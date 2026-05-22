@@ -98,19 +98,22 @@ export async function GET(request: Request) {
   // Token OK → servir contenido
   try {
     const content = await loadContent();
-    return new NextResponse(content, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        // No cachear: queremos que cualquier update del HTML se vea inmediato
-        "Cache-Control": "no-store, must-revalidate",
-        // Permitir scripts inline (necesarios para la interactividad del HTML)
-        // El HTML embebido confía en su propio JS — no hay user input.
-        "Content-Security-Policy":
-          "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com",
-        "X-Robots-Tag": "noindex, nofollow",
-      },
-    });
+    // Si el query incluye ?download=1, forzar descarga en vez de inline
+    const isDownload = url.searchParams.get("download") === "1";
+    const headers: Record<string, string> = {
+      "Content-Type": "text/html; charset=utf-8",
+      // No cachear: queremos que cualquier update del HTML se vea inmediato
+      "Cache-Control": "no-store, must-revalidate",
+      // Permitir scripts inline (necesarios para la interactividad del HTML)
+      "Content-Security-Policy":
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com",
+      "X-Robots-Tag": "noindex, nofollow",
+    };
+    if (isDownload) {
+      headers["Content-Disposition"] =
+        'attachment; filename="presentacion-cbm-china-venezuela.html"';
+    }
+    return new NextResponse(content, { status: 200, headers });
   } catch (err) {
     return new NextResponse(
       `<html><body><h1>Error cargando contenido</h1><p>${
