@@ -142,8 +142,8 @@ export function Nav() {
                   aria-current={active ? "page" : undefined}
                   className={`text-[14.5px] px-3 py-2 rounded-md transition-colors whitespace-nowrap ${
                     active
-                      ? "text-wine font-bold bg-wine/10"
-                      : "text-ink font-medium hover:text-wine hover:bg-wine/5"
+                      ? "text-wine font-bold bg-wine/30"
+                      : "text-ink font-medium hover:text-wine hover:bg-wine/15"
                   }`}
                 >
                   {l.label}
@@ -252,8 +252,8 @@ export function Nav() {
                 aria-current={active ? "page" : undefined}
                 className={`text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 transition-colors ${
                   active
-                    ? "text-wine font-bold bg-wine/10"
-                    : "text-ink font-semibold hover:text-wine hover:bg-wine/5"
+                    ? "text-wine font-bold bg-wine/30"
+                    : "text-ink font-semibold hover:text-wine hover:bg-wine/15"
                 }`}
               >
                 {l.label}
