@@ -1,0 +1,61 @@
+import type { Metadata } from "next";
+import { Nav } from "@/components/Nav";
+import { Footer } from "@/components/Footer";
+import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { TrackInput } from "@/components/TrackInput";
+
+export const metadata: Metadata = {
+  title: "Rastrear envío",
+  description:
+    "Ingresa tu BL, AWB o código DTDU y consulta el estado en tiempo real de tu envío DTD·CARGO. Sin registro, sin fricción.",
+};
+
+export default function TrackPage() {
+  return (
+    <>
+      <Nav />
+      <main className="min-h-[70vh]">
+        <section className="py-16 lg:py-24 bg-ink text-white">
+          <div className="wrap max-w-[720px]">
+            <span className="eyebrow" style={{ color: "rgba(255,255,255,0.5)" }}>
+              Rastreo en vivo
+            </span>
+            <h1
+              className="h-display mt-5"
+              style={{
+                color: "white",
+                fontSize: "clamp(40px, 6vw, 80px)",
+              }}
+            >
+              ¿Dónde está
+              <br />
+              <span style={{ color: "var(--color-wine-soft)" }}>tu envío?</span>
+            </h1>
+            <p
+              className="text-[17px] leading-[1.55] mt-6 max-w-[48ch]"
+              style={{ color: "rgba(255,255,255,0.7)" }}
+            >
+              Ingresa tu BL (Bill of Lading), AWB (Air Waybill) o código DTDU.
+              Eventos en tiempo real, sin registro, sin fricción.
+            </p>
+            <div className="mt-8">
+              <TrackInput />
+            </div>
+            <p className="mt-6 text-[13px] text-white/50">
+              ¿No tienes tu código?{" "}
+              <a
+                href="/contacto"
+                className="underline hover:text-wine-soft"
+              >
+                Escribinos
+              </a>{" "}
+              y te lo buscamos en menos de 1 hora.
+            </p>
+          </div>
+        </section>
+      </main>
+      <Footer />
+      <WhatsAppFAB />
+    </>
+  );
+}
