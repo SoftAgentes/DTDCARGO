@@ -6,7 +6,7 @@ import { HowWeWork } from "@/components/HowWeWork";
 import {
   SERVICES_CN,
   SERVICES_VE,
-  SERVICES_MATRIX,
+  SERVICES_OWNERSHIP,
   INCOTERMS,
   buildWhatsAppLink,
   type Service,
@@ -24,6 +24,8 @@ import {
   DocIcon,
   TruckIcon,
   ArrowIcon,
+  FlagCN,
+  FlagVE,
 } from "@/components/Icon";
 
 export const metadata: Metadata = {
@@ -140,11 +142,11 @@ export default function ServiciosPage() {
           </div>
         </section>
 
-        {/* Matriz de servicios por sede */}
+        {/* Mapa de operación — agrupado por ownership */}
         <section className="py-16 lg:py-20" id="matriz">
           <div className="wrap">
             <SectionHeader
-              eyebrow="Mapa de servicios"
+              eyebrow="Mapa de operación"
               title={
                 <>
                   Sabes con quién
@@ -153,51 +155,31 @@ export default function ServiciosPage() {
                   cada necesidad.
                 </>
               }
-              lead="Cada servicio tiene una sede responsable. Si una operación involucra ambas, te asignamos un único punto de contacto que coordina internamente."
+              lead="Tres tipos de operación según dónde nace el servicio. En todos hablás con un solo punto de contacto, sin importar cuántas sedes intervengan."
             />
 
-            <div className="mt-12 overflow-x-auto -mx-4 lg:mx-0">
-              <table className="w-full min-w-[640px] border-collapse">
-                <thead>
-                  <tr className="border-b-2 border-ink">
-                    <th className="text-left p-4 text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
-                      Servicio
-                    </th>
-                    <th className="text-left p-4 text-[12px] font-bold tracking-[0.12em] uppercase text-wine">
-                      🇨🇳 Yiwu, China
-                    </th>
-                    <th className="text-left p-4 text-[12px] font-bold tracking-[0.12em] uppercase text-wine">
-                      🇻🇪 Valencia, Venezuela
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {SERVICES_MATRIX.map((row, i) => (
-                    <tr
-                      key={row.service}
-                      className={i % 2 === 0 ? "bg-paper" : "bg-white"}
-                    >
-                      <td className="p-4 text-[14px] font-semibold text-ink align-top">
-                        {row.service}
-                      </td>
-                      <td
-                        className={`p-4 text-[14px] align-top ${
-                          row.cn === "—" ? "text-grey-300" : "text-grey-700"
-                        }`}
-                      >
-                        {row.cn}
-                      </td>
-                      <td
-                        className={`p-4 text-[14px] align-top ${
-                          row.ve === "—" ? "text-grey-300" : "text-grey-700"
-                        }`}
-                      >
-                        {row.ve}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
+              <OwnershipCard
+                flags="cn"
+                title="Solo Yiwu"
+                tagline="Control de fábrica · pre-embarque"
+                services={SERVICES_OWNERSHIP.onlyYiwu}
+                variant="muted"
+              />
+              <OwnershipCard
+                flags="both"
+                title="Yiwu + Valencia"
+                tagline="Yiwu ejecuta · Valencia coordina con vos"
+                services={SERVICES_OWNERSHIP.both}
+                variant="featured"
+              />
+              <OwnershipCard
+                flags="ve"
+                title="Solo Valencia"
+                tagline="Trámites locales · post-embarque"
+                services={SERVICES_OWNERSHIP.onlyValencia}
+                variant="muted"
+              />
             </div>
           </div>
         </section>
@@ -365,6 +347,113 @@ function ServiceCard({ service }: { service: Service }) {
           Cotiza este servicio <ArrowIcon size={14} />
         </a>
       </div>
+    </article>
+  );
+}
+
+/**
+ * Card del mapa de operación — muestra un bucket de servicios agrupado por
+ * ownership (solo Yiwu / ambas / solo Valencia).
+ *
+ * - `muted`: bg blanco + border gris. Para las cards laterales (solo una sede).
+ * - `featured`: bg wine + texto blanco. Para la card del medio donde se
+ *   articula el modelo "una operación, dos sedes" — es el corazón comercial.
+ *
+ * El count grande (56-64px Archivo Black) es el "wow" visual que reemplaza
+ * la tabla verbose con una respuesta inmediata: "10 servicios solo Yiwu, 4 solo
+ * Valencia, 5 conjuntos".
+ */
+function OwnershipCard({
+  flags,
+  title,
+  tagline,
+  services,
+  variant,
+}: {
+  flags: "cn" | "ve" | "both";
+  title: string;
+  tagline: string;
+  services: readonly string[];
+  variant: "muted" | "featured";
+}) {
+  const isFeatured = variant === "featured";
+
+  return (
+    <article
+      className={`rounded-[18px] p-7 lg:p-8 border transition-all hover:-translate-y-0.5 ${
+        isFeatured
+          ? "bg-wine text-white border-wine"
+          : "card-shadow bg-white border-grey-200 hover:border-ink"
+      }`}
+    >
+      {/* Fila top: flags + count gigante */}
+      <div className="flex items-start justify-between gap-4 mb-6">
+        <div className="flex items-center gap-1.5 mt-1">
+          {(flags === "cn" || flags === "both") && <FlagCN size={26} />}
+          {(flags === "ve" || flags === "both") && <FlagVE size={26} />}
+        </div>
+        <div className="text-right">
+          <div
+            className={`text-[56px] lg:text-[64px] leading-none tracking-[-0.02em] ${
+              isFeatured ? "text-white" : "text-wine"
+            }`}
+            style={{ fontFamily: "var(--font-archivo-black)" }}
+          >
+            {services.length}
+          </div>
+          <div
+            className={`text-[10px] font-bold tracking-[0.14em] uppercase mt-1 ${
+              isFeatured ? "text-white/60" : "text-grey-500"
+            }`}
+          >
+            servicios
+          </div>
+        </div>
+      </div>
+
+      {/* Title + tagline */}
+      <h3
+        className={`text-[20px] lg:text-[22px] leading-[1.1] tracking-[-0.01em] ${
+          isFeatured ? "text-white" : "text-ink"
+        }`}
+        style={{ fontFamily: "var(--font-archivo-black)" }}
+      >
+        {title}
+      </h3>
+      <p
+        className={`text-[13px] leading-[1.4] mt-2 ${
+          isFeatured ? "text-white/75" : "text-grey-500"
+        }`}
+      >
+        {tagline}
+      </p>
+
+      {/* Divider */}
+      <hr
+        className={`my-5 ${
+          isFeatured ? "border-white/15" : "border-grey-200"
+        }`}
+      />
+
+      {/* Services list */}
+      <ul className="flex flex-col gap-2.5 list-none p-0 m-0">
+        {services.map((s) => (
+          <li
+            key={s}
+            className={`flex items-start gap-2.5 text-[14px] leading-[1.4] ${
+              isFeatured ? "text-white/90" : "text-grey-700"
+            }`}
+          >
+            <span
+              className={`mt-[7px] inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                isFeatured ? "bg-white" : "bg-wine"
+              }`}
+              aria-hidden
+            />
+            {s}
+          </li>
+        ))}
+      </ul>
     </article>
   );
 }

@@ -27,9 +27,11 @@ test.describe("rutas públicas críticas", () => {
     await page.goto("/cotizar");
     await expect(page).toHaveTitle(/Cotiza/);
     await expect(page.locator("form")).toBeVisible();
-    // Inputs clave deben existir
+    // Inputs clave deben existir (volumen fue reemplazado por L/A/H en feat 1f35ab9)
     await expect(page.locator('input[name="peso"]')).toBeVisible();
-    await expect(page.locator('input[name="volumen"]')).toBeVisible();
+    await expect(page.locator('input[name="largo"]')).toBeVisible();
+    await expect(page.locator('input[name="ancho"]')).toBeVisible();
+    await expect(page.locator('input[name="alto"]')).toBeVisible();
   });
 
   test("/contacto muestra emails y WhatsApp", async ({ page }) => {
