@@ -132,6 +132,12 @@ export type EnvioInput = {
   embalaje: TipoEmbalaje;
   /** Ciudad de destino en Venezuela (slug de CIUDADES). */
   ciudadId: string;
+  /**
+   * Override de la tarifa base por CBM (USD).
+   * Si no se provee, se usa `CONFIG.tarifaBaseCBM` (default $800).
+   * Útil cuando el cliente tiene una cotización negociada distinta a la pública.
+   */
+  tarifaCBMOverride?: number;
 };
 
 export type EnvioCotizacion = {
@@ -199,7 +205,13 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
   const densidadKgM3 = input.pesoKg / cbm;
 
   // 5.3 — Precio base por volumen
-  const precioBase = cbm * CONFIG.tarifaBaseCBM;
+  // Si el usuario provee `tarifaCBMOverride`, se usa ese valor (debe ser >0).
+  // Si no, fallback a CONFIG.tarifaBaseCBM.
+  const tarifaCBM =
+    input.tarifaCBMOverride && input.tarifaCBMOverride > 0
+      ? input.tarifaCBMOverride
+      : CONFIG.tarifaBaseCBM;
+  const precioBase = cbm * tarifaCBM;
 
   // 5.4 — Recargo por excedente de peso (si aplica)
   // Solo se cobra si la densidad supera pesoIncluidoKg.

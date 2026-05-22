@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  CONFIG,
   CIUDADES,
   EMBALAJES,
   calcularEnvioLCL,
@@ -29,6 +30,7 @@ export function CalculadoraForm() {
     cantidadCajas: 1,
     embalaje: "carton",
     ciudadId: "valencia",
+    tarifaCBMOverride: CONFIG.tarifaBaseCBM,
   });
 
   const [cotizacion, setCotizacion] = useState<EnvioCotizacion | null>(null);
@@ -54,6 +56,48 @@ export function CalculadoraForm() {
         </h2>
 
         <div className="flex flex-col gap-5">
+          {/* Costo CBM (editable) — el cliente puede usar la tarifa estándar
+              o ingresar una negociada distinta */}
+          <div className="bg-paper border border-grey-200 rounded-[12px] p-4">
+            <label
+              htmlFor="tarifa-cbm"
+              className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine mb-2 block"
+            >
+              Costo CBM (USD)
+            </label>
+            <div className="flex items-center gap-2">
+              <span className="text-grey-500 text-[15px] font-medium">$</span>
+              <input
+                id="tarifa-cbm"
+                type="number"
+                min={1}
+                step="any"
+                value={form.tarifaCBMOverride || ""}
+                onChange={(e) =>
+                  update(
+                    "tarifaCBMOverride",
+                    parseFloat(e.target.value) || CONFIG.tarifaBaseCBM,
+                  )
+                }
+                placeholder={String(CONFIG.tarifaBaseCBM)}
+                className="flex-1 px-3 py-2 rounded-[8px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  update("tarifaCBMOverride", CONFIG.tarifaBaseCBM)
+                }
+                className="text-[12px] font-semibold text-wine hover:text-wine-deep transition-colors whitespace-nowrap"
+              >
+                Restaurar ${CONFIG.tarifaBaseCBM}
+              </button>
+            </div>
+            <p className="text-[11.5px] text-grey-500 mt-2 leading-[1.4]">
+              Tarifa estándar LCL DDP: ${CONFIG.tarifaBaseCBM}/CBM. Editá si tu
+              cotización es distinta (negociación FCL, promoción, etc.).
+            </p>
+          </div>
+
           {/* Dimensiones por caja */}
           <fieldset className="grid grid-cols-3 gap-3">
             <legend className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine mb-2 col-span-3">
@@ -306,7 +350,7 @@ function CotizacionDisplay({
           </div>
           <ul className="flex flex-col gap-2 text-[13.5px] list-none p-0">
             <DesgloseRow
-              label={`Volumen base (${cot.cbm} CBM × $800)`}
+              label={`Volumen base (${cot.cbm} CBM × $${(input.tarifaCBMOverride && input.tarifaCBMOverride > 0 ? input.tarifaCBMOverride : CONFIG.tarifaBaseCBM)})`}
               value={cot.precioBase}
             />
             {cot.recargoExcedente > 0 && (
