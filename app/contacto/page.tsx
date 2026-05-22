@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   title: "Contacto",
   description:
     "Habla con DTD-CARGO. Oficinas propias en Yiwu (China) y Valencia (Venezuela). WhatsApp directo, info@dtdcargo.com, respuesta en menos de 24 horas.",
+  alternates: { canonical: "/contacto" },
+  openGraph: {
+    title: "Contacto · DTD·CARGO",
+    url: "/contacto",
+  },
 };
 
 export default function ContactoPage() {

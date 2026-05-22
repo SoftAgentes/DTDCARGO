@@ -29,7 +29,12 @@ import {
 export const metadata: Metadata = {
   title: "Servicios",
   description:
-    "Suite completa entre China y Venezuela: 16 servicios entre Yiwu y Valencia. Reserva FCL con BL propio, consolidación LCL, sourcing, QC, lab testing, etiquetado, courier aéreo, registro de marca, visado, aduana y last mile.",
+    "16 servicios entre Yiwu y Valencia: FCL con BL propio, consolidación LCL, sourcing, QC, courier aéreo, registro de marca, visado, aduana y last mile.",
+  alternates: { canonical: "/servicios" },
+  openGraph: {
+    title: "Servicios · DTD·CARGO",
+    url: "/servicios",
+  },
 };
 
 const iconMap = {

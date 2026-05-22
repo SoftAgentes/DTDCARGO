@@ -14,7 +14,7 @@ import { ArrowIcon } from "@/components/Icon";
 export const metadata: Metadata = {
   title: "Glosario de comercio exterior",
   description:
-    "Los términos de logística e importación que vas a escuchar al traer mercancía de China a Venezuela — explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, MARKBOX y más.",
+    "Los términos de logística e importación China-Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, MARKBOX y más.",
   keywords: [
     "glosario DDP",
     "Incoterms 2020",
@@ -23,6 +23,11 @@ export const metadata: Metadata = {
     "ETA CBM logística",
     "términos importación China",
   ],
+  alternates: { canonical: "/glosario" },
+  openGraph: {
+    title: "Glosario de comercio exterior · DTD·CARGO",
+    url: "/glosario",
+  },
 };
 
 export default function GlosarioPage() {

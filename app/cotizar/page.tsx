@@ -8,6 +8,11 @@ export const metadata: Metadata = {
   title: "Cotiza tu envío",
   description:
     "Cotización cerrada DDP en 24 horas. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido.",
+  alternates: { canonical: "/cotizar" },
+  openGraph: {
+    title: "Cotiza tu envío · DTD·CARGO",
+    url: "/cotizar",
+  },
 };
 
 export default function CotizarPage() {
