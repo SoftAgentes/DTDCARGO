@@ -645,19 +645,177 @@ $6.36 × 1.16 (IVA) = $7.38</div>
       cualquier paqueteria.
     </div>
 
-    <div class="card" style="background:#F4F2EE;margin-top:14px">
-      <h4 style="font-size:15px;color:var(--ink)">📊 Resumen de los 3 ejemplos</h4>
-      <table style="margin-top:8px;font-size:13.5px">
+    <!-- ─── EJEMPLO 4 ───────────────────────────────────────────── -->
+    <h3 style="margin-top:48px">📐 Ejemplo 4 — Contenedor completo (FCL) · NO usar la calculadora</h3>
+    <p style="font-size:15px;color:var(--grey-700);max-width:65ch">
+      Cuando la carga llena un contenedor entero (>3500 kg), <strong>la calculadora USD/kg deja de tener
+      sentido</strong>. Acá se cotiza por <strong>contenedor completo</strong> usando el tabulador gremial
+      Cobra lo Justo.
+    </p>
+
+    <div class="card" style="margin-top:14px;border-left:4px solid var(--warning)">
+      <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+        <div>
+          <span class="eyebrow">Caso FCL</span>
+          <h4 style="margin-top:6px;font-size:18px">Importador grande · 1 contenedor 20' lleno (~20 ton · 33 m³)</h4>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--grey-500);letter-spacing:0.08em;text-transform:uppercase">Ruta</div>
+          <div style="font-family:'Archivo Black';font-size:16px;color:var(--ink)">Puerto Cabello → Maracaibo</div>
+        </div>
+      </div>
+      <p style="font-size:13.5px;color:var(--grey-700);margin-top:10px">
+        El cliente trae un <strong>contenedor 20' completo</strong> de productos textiles. Pesa ~20 toneladas
+        y ocupa 33 m³. La calculadora USD/kg termina en el tramo "3000-3500 kg" — para más peso, hay que ir
+        a tarifa FCL.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:18px">
+      <div class="card" style="border:2px solid var(--warning)">
+        <div style="display:inline-block;background:var(--warning);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">1</div>
+        <h4 style="margin-top:10px;font-size:14.5px">⚠️ Detectar que NO es paquetería</h4>
+        <div class="ec">peso > 3500 kg
+→ no usar tabla USD/kg
+→ ir a tabulador FCL</div>
+        <p style="font-size:12.5px;color:#7A5A1F;margin-top:8px;font-weight:600">
+          La calculadora pública NO maneja este caso. Es cotización MANUAL del asesor.
+        </p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--warning);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">2</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Buscar en Cobra Justo FCL</h4>
+        <div class="ec">Pto Cabello → Maracaibo
+  Contenedor 20'
+  → USD 2.564 (gremial)</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">
+          De la hoja "Cobra Justo FCL" del Excel. Es el precio que cobran los camioneros del gremio por
+          contenedor completo ida y vuelta.
+        </p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--warning);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">3</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Agregar margen DTD</h4>
+        <div class="ec">2.564 × 1.15 = USD 2.948
++ coordinación = ~USD 3.000</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">
+          Mismo margen 15%. Plus posibles cargos adicionales por escolta, permisos especiales, mercancía
+          peligrosa.
+        </p>
+      </div>
+
+      <div class="card card-ink" style="padding:20px;background:var(--warning)">
+        <div style="font-size:10px;color:rgba(255,255,255,0.9);letter-spacing:0.14em;text-transform:uppercase;font-weight:700">Total ref.</div>
+        <div style="font-family:'Archivo Black';font-size:34px;color:#fff;margin-top:4px;line-height:1">USD ~3.000</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:8px">Cotización manual del asesor</div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <strong>⚠️ Importante para ventas/atención</strong>: si un cliente pregunta por FCL en el cotizador web,
+      la calc da "tarifa de referencia" pero el asesor SIEMPRE cierra precio por WhatsApp. La razón: para
+      FCL hay variables que la calc no captura (tipo de contenedor 20'/40', necesidad de escolta, mercancía
+      peligrosa, ruta con permisos especiales, etc.).
+    </div>
+
+    <!-- ─── EJEMPLO 5 ───────────────────────────────────────────── -->
+    <h3 style="margin-top:48px">📐 Ejemplo 5 — Retorno vacío · oportunidad de margen extra</h3>
+    <p style="font-size:15px;color:var(--grey-700);max-width:65ch">
+      Caso operativo importante para el equipo de transporte. Cuando un camión de un tercero vuelve vacío
+      de un destino, podemos negociar tarifa MUY por debajo del estándar.
+    </p>
+
+    <div class="card" style="margin-top:14px;border-left:4px solid var(--success)">
+      <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+        <div>
+          <span class="eyebrow">Caso operativo</span>
+          <h4 style="margin-top:6px;font-size:18px">Cliente envía 200 kg · 1.2 m³ · Valencia → Caracas</h4>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--grey-500);letter-spacing:0.08em;text-transform:uppercase">Ruta</div>
+          <div style="font-family:'Archivo Black';font-size:16px;color:var(--ink)">Valencia → Caracas</div>
+        </div>
+      </div>
+      <p style="font-size:13.5px;color:var(--grey-700);margin-top:10px">
+        El equipo de transporte sabe que <strong>un chofer está volviendo vacío de Caracas a Valencia</strong>
+        mañana a la noche. En vez de regresar sin carga, puede llevar este envío a precio reducido — para él
+        es "carga oportunista", para DTD es margen extra.
+      </p>
+    </div>
+
+    <div class="grid-2" style="margin-top:18px">
+      <div class="card">
+        <span class="eyebrow">Escenario A · Tarifa estándar</span>
+        <h4 style="margin-top:8px;font-size:15px">Lo que cotiza la calculadora pública</h4>
+        <div class="ec">peso_vol = 1.2 × 200 = 240 kg
+peso_fact = 240 kg
+zona 3 · tramo 200-300
+tarifa = 0.79 × 1.15 = 0.91/kg
+flete = 240 × 0.91 = $218.40
++ FPO + IVA = $268.55</div>
+        <p style="font-size:13px;color:var(--grey-700);margin-top:8px">
+          <strong>Cliente paga:</strong> USD 268.55<br>
+          <strong>Costo real DTD</strong> (a transportista de planta): ~USD 220<br>
+          <strong>Margen DTD:</strong> ~USD 49
+        </p>
+      </div>
+
+      <div class="card" style="background:#E8F7EE;border-color:#A6E0BB">
+        <span class="eyebrow" style="color:#0F5934">Escenario B · Con retorno vacío</span>
+        <h4 style="margin-top:8px;font-size:15px;color:#0F5934">Mismo cliente, pero usando camión de retorno</h4>
+        <div class="ec">Mismo cobro al cliente: $268.55
+Pero costo real DTD baja:
+chofer cobra solo $120
+(vs $220 ida normal)
+
+Margen DTD = $268.55 − $120
+           = $148.55</div>
+        <p style="font-size:13px;color:#0F5934;margin-top:8px">
+          <strong>Cliente paga lo mismo:</strong> USD 268.55<br>
+          <strong>Costo real DTD:</strong> USD 120 (¡45% menos!)<br>
+          <strong>Margen DTD:</strong> ~USD 148 — 3× más que sin retorno
+        </p>
+      </div>
+    </div>
+
+    <div class="card card-ink" style="margin-top:16px;background:linear-gradient(135deg, var(--ink), #1F4380);padding:24px">
+      <h4 style="color:#fff;font-size:16px;margin:0 0 10px">🎯 Decisión estratégica del equipo de transporte</h4>
+      <p style="color:rgba(255,255,255,0.9);font-size:13.5px;line-height:1.6">
+        Cuando hay retorno vacío disponible, DTD tiene 3 opciones:
+      </p>
+      <ol style="color:rgba(255,255,255,0.85);font-size:13px;line-height:1.7;padding-left:20px;margin-top:8px">
+        <li><strong style="color:#fff">Mantener el precio público y ganar más margen.</strong> El cliente paga $268, nosotros ganamos $148. Caso "default" — no avisamos al cliente.</li>
+        <li><strong style="color:#fff">Ofrecer descuento al cliente</strong> (ej. -15%): cobramos $228, ganamos $108. Útil para clientes recurrentes o volúmenes altos como argumento comercial.</li>
+        <li><strong style="color:#fff">Combinar:</strong> precio público + asesor ofrece "tarifa especial" en WhatsApp como upsell del servicio integrado. Mejor para fidelizar.</li>
+      </ol>
+    </div>
+
+    <div class="note green" style="margin-top:14px">
+      <strong>💡 Lección clave para transporte</strong>: la calculadora pública es la <strong>tarifa de
+      referencia</strong>, no el "techo". Hay margen operativo según oportunidades de cada día (retornos,
+      consolidaciones, rutas regulares). El asesor cierra el precio final con WhatsApp basado en lo que
+      el equipo de transporte sabe ese día.
+    </div>
+
+    <!-- ─── TABLA FINAL CON LOS 5 EJEMPLOS ───────────────────── -->
+    <div class="card" style="background:#F4F2EE;margin-top:32px">
+      <h4 style="font-size:15px;color:var(--ink)">📊 Resumen de los 5 ejemplos</h4>
+      <table style="margin-top:8px;font-size:13px">
         <thead><tr><th>#</th><th>Carga</th><th>Peso · Volumen</th><th>Destino</th><th>Caso</th><th>Total USD</th></tr></thead>
         <tbody>
-          <tr><td><strong>1</strong></td><td>Electrónicos</td><td>50 kg · 0.8 m³</td><td>Maracaibo (z5)</td><td>Gana volumétrico</td><td><strong>219.46</strong></td></tr>
-          <tr><td><strong>2</strong></td><td>Autopartes</td><td>500 kg · 0.5 m³</td><td>Caracas (z3)</td><td>Gana peso real</td><td><strong>452.49</strong></td></tr>
+          <tr><td><strong>1</strong></td><td>Electrónicos LCL</td><td>50 kg · 0.8 m³</td><td>Maracaibo (z5)</td><td>Gana volumétrico</td><td><strong>219.46</strong></td></tr>
+          <tr><td><strong>2</strong></td><td>Autopartes denso</td><td>500 kg · 0.5 m³</td><td>Caracas (z3)</td><td>Gana peso real</td><td><strong>452.49</strong></td></tr>
           <tr><td><strong>3</strong></td><td>Documentos</td><td>0.3 kg · 0 m³</td><td>La Guaira (z3)</td><td>Sobre fijo</td><td><strong>7.38</strong></td></tr>
+          <tr><td><strong>4</strong></td><td>Contenedor FCL</td><td>20 ton · 33 m³</td><td>Maracaibo</td><td>Cotización manual</td><td><strong>~3.000</strong></td></tr>
+          <tr><td><strong>5</strong></td><td>LCL retorno vacío</td><td>200 kg · 1.2 m³</td><td>Caracas (z3)</td><td>Margen operativo extra</td><td><strong>268.55</strong> (cliente)<br>$148 (margen DTD)</td></tr>
         </tbody>
       </table>
       <p style="font-size:12.5px;color:var(--grey-500);margin-top:12px;font-style:italic">
-        Estos 3 ejemplos cubren el 90% de los casos que va a ver el equipo de ventas/atención. Para casos
-        edge (multi-bultos, sobre 1500 kg, exportación con permisos), siempre cotización manual por WhatsApp.
+        Estos 5 ejemplos cubren el 95%+ de los casos. Para escenarios edge (multi-bultos mixtos, exportación
+        con permisos especiales, mercancía peligrosa, dimensiones no estándar), siempre cotización manual
+        por WhatsApp.
       </p>
     </div>
 
