@@ -482,6 +482,185 @@ total con FPO + IVA ≈ $63.43</div>
       transporte. Si tenés CBM con nosotros, pagás menos de la mitad".
     </p>
 
+    <!-- ─── EJEMPLO 2 ───────────────────────────────────────────── -->
+    <h3 style="margin-top:48px">📐 Ejemplo 2 — Carga pesada y compacta</h3>
+    <p style="font-size:15px;color:var(--grey-700);max-width:65ch">
+      El caso opuesto: mucha plata por kilo, poco espacio. Aquí <strong>gana el peso real</strong> y el peso
+      volumétrico queda sin uso.
+    </p>
+
+    <div class="card" style="margin-top:14px;border-left:4px solid var(--ink)">
+      <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+        <div>
+          <span class="eyebrow">Caso compacto</span>
+          <h4 style="margin-top:6px;font-size:18px">Importador de autopartes · 500 kg · 0.5 m³</h4>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--grey-500);letter-spacing:0.08em;text-transform:uppercase">Ruta</div>
+          <div style="font-family:'Archivo Black';font-size:16px;color:var(--ink)">Valencia → Caracas</div>
+        </div>
+      </div>
+      <p style="font-size:13.5px;color:var(--grey-700);margin-top:10px">
+        El cliente trae <strong>500 kg de repuestos metálicos</strong> (frenos, amortiguadores, herramientas)
+        en 5 cajas chicas y densas. Total: 0.5 m³ — entran en un cuarto del camión pero PESAN.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px">
+      <div class="card">
+        <div style="display:inline-block;background:var(--ink);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">1</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Peso volumétrico</h4>
+        <div class="ec">0.5 m³ × 200
+   = 100 kg</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">Por volumen "pesa" solo 100 kg — el espacio ocupado es chico.</p>
+      </div>
+
+      <div class="card" style="border:2px solid var(--success)">
+        <div style="display:inline-block;background:var(--success);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">2</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Peso facturable: gana el REAL</h4>
+        <div class="ec">MAX(500, 100) = 500 kg</div>
+        <p style="font-size:12.5px;color:#0F5934;margin-top:8px;font-weight:600">⚡ Acá la balanza gana al volumen. El cliente paga por el peso porque es más alto.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--ink);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">3</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Zona + tarifa</h4>
+        <div class="ec">Caracas → zona 3
+Tramo 400-500 kg
+→ 0.64 USD/kg base</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">Más volumen = mejor tarifa por kg (descuento por volumen).</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--ink);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">4</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Margen DTD + flete</h4>
+        <div class="ec">0.64 × 1.15 = 0.736
+500 × 0.736 = $368.00</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">+15% margen DTD por coordinación.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--ink);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">5</div>
+        <h4 style="margin-top:10px;font-size:14.5px">FPO + IVA</h4>
+        <div class="ec">FPO: 368 × 0.06 = $22.08
+IVA: 390.08 × 0.16 = $62.41</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">Mismo cargos estándar (sin seguro porque no declaró valor).</p>
+      </div>
+
+      <div class="card card-ink" style="padding:20px;background:var(--wine)">
+        <div style="font-size:10px;color:rgba(255,255,255,0.7);letter-spacing:0.14em;text-transform:uppercase;font-weight:700">Total</div>
+        <div style="font-family:'Archivo Black';font-size:36px;color:#fff;margin-top:4px;line-height:1">USD 452.49</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.8);margin-top:8px">$368 + $22 FPO + $62 IVA</div>
+      </div>
+    </div>
+
+    <div class="note green" style="margin-top:16px">
+      <strong>💡 Lección clave</strong>: aunque el peso volumétrico (100 kg) era 5× menos que el real (500 kg),
+      <strong>la fórmula MAX siempre toma el mayor</strong>. El cliente paga por los 500 kg reales. Esto protege
+      al transportista de cobrar de menos cuando el peso es alto.
+    </div>
+
+    <div class="card" style="background:#FFF4D6;border-color:#F0E4A6;margin-top:14px">
+      <h4 style="font-size:15px;color:#5E4B0F">📊 Comparativa rápida — ejemplo 1 vs ejemplo 2</h4>
+      <table style="margin-top:8px;font-size:13.5px">
+        <thead><tr><th>Caso</th><th>Peso real</th><th>Volumen</th><th>Facturable</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr><td>1 · Electrónicos LCL</td><td>50 kg</td><td>0.8 m³</td><td><strong>160 kg</strong> (volumétrico)</td><td>USD 219.46</td></tr>
+          <tr><td>2 · Autopartes denso</td><td>500 kg</td><td>0.5 m³</td><td><strong>500 kg</strong> (real)</td><td>USD 452.49</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:13px;color:#5E4B0F;margin-top:10px">
+        Notá que <strong>500 kg "pagan" 452 mientras que 50 kg pagan 219</strong>. La diferencia no es 10×
+        como sugeriría el peso real — porque a más peso, tarifa por kg más baja (escala de descuentos).
+      </p>
+    </div>
+
+    <!-- ─── EJEMPLO 3 ───────────────────────────────────────────── -->
+    <h3 style="margin-top:48px">📐 Ejemplo 3 — Sobre o paquete pequeño (≤ 1 kg)</h3>
+    <p style="font-size:15px;color:var(--grey-700);max-width:65ch">
+      Caso especial con regla aparte: para envíos chicos no se aplica la fórmula <code>peso × tarifa</code>.
+      <strong>Hay un precio fijo de USD 6.00</strong>.
+    </p>
+
+    <div class="card" style="margin-top:14px;border-left:4px solid var(--wine-soft)">
+      <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+        <div>
+          <span class="eyebrow">Caso sobre</span>
+          <h4 style="margin-top:6px;font-size:18px">Documentos urgentes · 0.3 kg</h4>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--grey-500);letter-spacing:0.08em;text-transform:uppercase">Ruta</div>
+          <div style="font-family:'Archivo Black';font-size:16px;color:var(--ink)">Valencia → La Guaira</div>
+        </div>
+      </div>
+      <p style="font-size:13.5px;color:var(--grey-700);margin-top:10px">
+        Un cliente necesita mandar <strong>contratos firmados</strong> a una oficina en La Guaira. Sobre A4 con
+        documentos, sin volumen relevante. Peso real: 0.3 kg.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:18px">
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine-soft);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">1</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Detección automática del caso "sobre"</h4>
+        <div class="ec">peso_facturable = 0.3 kg
+0.3 ≤ 1 → es SOBRE</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">
+          La calculadora detecta que el peso es menor o igual a 1 kg y activa el caso especial. NO usa
+          la tabla USD/kg.
+        </p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine-soft);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">2</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Aplicar precio fijo</h4>
+        <div class="ec">flete_base = USD 6.00 (fijo)</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">
+          USD 5.66 + USD 0.34 de franqueo postal = USD 6.00 redondeado. Es el estándar Fletes GAG para
+          sobres y paquetes pequeños hasta 1 kg.
+        </p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine-soft);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">3</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Sumar IVA</h4>
+        <div class="ec">$6.00 + FPO 6% = $6.36
+$6.36 × 1.16 (IVA) = $7.38</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">
+          Sí, el FPO y IVA aplican igual aunque sea sobre.
+        </p>
+      </div>
+
+      <div class="card card-ink" style="padding:20px;background:var(--wine-soft)">
+        <div style="font-size:10px;color:rgba(255,255,255,0.9);letter-spacing:0.14em;text-transform:uppercase;font-weight:700">Total</div>
+        <div style="font-family:'Archivo Black';font-size:36px;color:#fff;margin-top:4px;line-height:1">USD 7.38</div>
+        <div style="font-size:12px;color:rgba(255,255,255,0.85);margin-top:8px">$6 fijo + $0.36 FPO + $1.02 IVA</div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:16px">
+      <strong>💡 Por qué precio fijo</strong>: para envíos chicos, la tarifa USD/kg multiplicada por 0.3 kg daría
+      centavos. El costo administrativo de procesar el envío (factura, etiqueta, registro) es más alto que el
+      flete. Por eso la industria estandariza un precio fijo mínimo. Es lo mismo que cobran MRW, Domesa o
+      cualquier paqueteria.
+    </div>
+
+    <div class="card" style="background:#F4F2EE;margin-top:14px">
+      <h4 style="font-size:15px;color:var(--ink)">📊 Resumen de los 3 ejemplos</h4>
+      <table style="margin-top:8px;font-size:13.5px">
+        <thead><tr><th>#</th><th>Carga</th><th>Peso · Volumen</th><th>Destino</th><th>Caso</th><th>Total USD</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1</strong></td><td>Electrónicos</td><td>50 kg · 0.8 m³</td><td>Maracaibo (z5)</td><td>Gana volumétrico</td><td><strong>219.46</strong></td></tr>
+          <tr><td><strong>2</strong></td><td>Autopartes</td><td>500 kg · 0.5 m³</td><td>Caracas (z3)</td><td>Gana peso real</td><td><strong>452.49</strong></td></tr>
+          <tr><td><strong>3</strong></td><td>Documentos</td><td>0.3 kg · 0 m³</td><td>La Guaira (z3)</td><td>Sobre fijo</td><td><strong>7.38</strong></td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:12.5px;color:var(--grey-500);margin-top:12px;font-style:italic">
+        Estos 3 ejemplos cubren el 90% de los casos que va a ver el equipo de ventas/atención. Para casos
+        edge (multi-bultos, sobre 1500 kg, exportación con permisos), siempre cotización manual por WhatsApp.
+      </p>
+    </div>
+
     <h3 style="margin-top:48px">Hallazgo #4 — Las zonas son convención de cada empresa</h3>
     <p style="font-size:15px;color:var(--grey-700)">No existe una zonificación oficial. Cada empresa arma su clasificación según distancia desde su sede. <strong>DTD también puede tener la suya</strong> — y eso fue parte de las decisiones que validamos con el equipo (ver decisión #1 abajo).</p>
 
