@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { ORIGINS, DESTINATIONS, CONTACT } from "@/lib/design-tokens";
 import { ArrowIcon } from "./Icon";
+import { UltimoKmCalculator } from "./UltimoKmCalculator";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
@@ -275,6 +276,9 @@ export function CotizarForm() {
           />
         </Row>
       </div>
+
+      {/* Calculadora opcional del ultimo km en Venezuela */}
+      <UltimoKmCalculator />
 
       <button
         type="submit"
