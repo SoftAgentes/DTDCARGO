@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import Link from "next/link";
-import { ArrowIcon } from "./Icon";
+import { ArrowIcon, WhatsAppIcon } from "./Icon";
 import { CONTACT } from "@/lib/design-tokens";
 
 type Status = "idle" | "submitting" | "success" | "error";
@@ -16,19 +15,50 @@ const TOPICS = [
   { v: "otro", l: "Otro" },
 ];
 
+type LeadData = {
+  topic: string;
+  topicLabel: string;
+  nombre: string;
+  email: string;
+  whatsapp: string;
+  mensaje: string;
+};
+
 /**
- * Formulario de contacto general. MOCK actualmente.
- * Cuando el ERP exponga `POST {ERP}/api/public/leads`, reemplazar mockSubmit por fetch.
+ * Formulario de contacto general. Actualmente MOCK — el `onSubmit` solo
+ * captura los datos para que el botón "Adelantar por WhatsApp" pueda
+ * pre-armar un mensaje estructurado con toda la info del cliente.
+ *
+ * Próximo paso (NIVEL B): conectar a Resend para envío real por email.
+ * Cuando ese endpoint exista (`/api/contact`), reemplazar el setTimeout
+ * por un fetch a esa ruta.
  */
 export function ContactoForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [leadId, setLeadId] = useState<string | null>(null);
+  const [leadData, setLeadData] = useState<LeadData | null>(null);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setStatus("submitting");
+
+    // Capturar datos del form ANTES del envío para usarlos en el WhatsApp prearmado
+    const fd = new FormData(e.currentTarget);
+    const topic = String(fd.get("topic") ?? "");
+    const captured: LeadData = {
+      topic,
+      topicLabel: TOPICS.find((t) => t.v === topic)?.l ?? topic,
+      nombre: String(fd.get("nombre") ?? "").trim(),
+      email: String(fd.get("email") ?? "").trim(),
+      whatsapp: String(fd.get("whatsapp") ?? "").trim(),
+      mensaje: String(fd.get("mensaje") ?? "").trim(),
+    };
+
     try {
+      // MOCK — sustituir por fetch('/api/contact', { method: 'POST', body: JSON.stringify(captured) })
+      // cuando Resend esté configurado.
       await new Promise((r) => setTimeout(r, 700));
+      setLeadData(captured);
       setLeadId(`DTD-${Date.now().toString(36).toUpperCase().slice(-6)}`);
       setStatus("success");
     } catch {
@@ -36,7 +66,22 @@ export function ContactoForm() {
     }
   }
 
-  if (status === "success") {
+  if (status === "success" && leadData) {
+    // Mensaje WhatsApp estructurado para que tu CRM pueda parsearlo fácil.
+    // Formato: bullets con `• campo: valor` + un bloque de "Mensaje:" al final.
+    const lines = [
+      "Hola DTD-CARGO, vengo del formulario web.",
+      "",
+      `• Código: ${leadId}`,
+      `• Tema: ${leadData.topicLabel}`,
+      `• Nombre: ${leadData.nombre}`,
+      `• Email: ${leadData.email}`,
+    ];
+    if (leadData.whatsapp) lines.push(`• WhatsApp: ${leadData.whatsapp}`);
+    lines.push("", "Mensaje:", leadData.mensaje);
+    const whatsappText = lines.join("\n");
+    const whatsappUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(whatsappText)}`;
+
     return (
       <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-8 lg:p-10">
         <div className="eyebrow" style={{ color: "var(--color-wine)" }}>
@@ -53,21 +98,22 @@ export function ContactoForm() {
           <strong className="text-ink">{leadId}</strong>. Un asesor humano se
           comunicará por email o WhatsApp para continuar.
         </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <a
-            href={`https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
-              `Hola, ya escribí por el formulario. Mi código es ${leadId}.`
-            )}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary"
-          >
-            Adelantar por WhatsApp <ArrowIcon />
-          </a>
-          <Link href="/" className="btn btn-ghost">
-            Volver al inicio
-          </Link>
-        </div>
+
+        {/* CTA WhatsApp — único botón, prominente, mensaje pre-armado con todos los datos */}
+        <a
+          href={whatsappUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn mt-6 inline-flex items-center justify-center gap-2 w-full sm:w-auto"
+          style={{ background: "#25D366", color: "white" }}
+        >
+          <WhatsAppIcon size={20} />
+          Acelerar respuesta por WhatsApp
+        </a>
+        <p className="text-[12px] text-grey-500 mt-3 leading-[1.5]">
+          Al clickear, abrís WhatsApp con tu mensaje pre-cargado. Llega
+          directo a un asesor con todos tus datos.
+        </p>
       </div>
     );
   }
