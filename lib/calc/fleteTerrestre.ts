@@ -19,7 +19,9 @@
 
 import {
   type Origen,
+  type ModoCotizacionTerrestre,
   getMapaZonasParaOrigen,
+  destinoEsCasco,
   TARIFA_USD_KG,
   FACTOR_VOLUMETRICO_KG_M3,
   MULTIPLICADOR_DTD_DEFAULT,
@@ -39,6 +41,13 @@ export interface FleteTerrestreInput {
   valorDeclaradoUsd?: number;
   /** Multiplicador DTD sobre tarifa Fletes GAG. Default 1.15 (margen 15%). */
   multiplicadorDtd?: number;
+  /**
+   * Modo de cotización según situación del cliente:
+   * - `solo-terrestre` (default): sin envío CBM, cobra todo
+   * - `cbm-casco`: tiene CBM + destino dentro del casco central → $0
+   * - `cbm-lejos`: tiene CBM + destino fuera del casco → descuento parcial
+   */
+  modoCotizacion?: ModoCotizacionTerrestre;
 }
 
 export interface FleteTerrestreOutput {
@@ -58,7 +67,13 @@ export interface FleteTerrestreOutput {
   tarifaDtdUsdKg: number;
   /** Flete base USD = peso facturable × tarifa DTD (o $6 si sobre). */
   fleteBaseUsd: number;
-  /** Franqueo Postal Obligatorio = 6% del flete. */
+  /**
+   * Descuento aplicado por casco central CBM (modo `cbm-lejos`).
+   * USD que el cliente NO paga porque el casco ya está cubierto por su CBM.
+   * 0 en modos `solo-terrestre` y `cbm-casco`.
+   */
+  descuentoCascoUsd: number;
+  /** Franqueo Postal Obligatorio = 6% del flete neto. */
   fpoUsd: number;
   /** Seguro = 3% del valor declarado. 0 si no se declaró valor. */
   seguroUsd: number;
@@ -68,7 +83,16 @@ export interface FleteTerrestreOutput {
   ivaUsd: number;
   /** Total final USD al cliente. */
   totalUsd: number;
-  /** Si hay error en input (destino no existe, peso negativo, etc.). */
+  /**
+   * Modo aplicado finalmente (puede diferir del solicitado si hubo override
+   * por incompatibilidad entre modo elegido y destino).
+   */
+  modoAplicado: ModoCotizacionTerrestre;
+  /** Mensaje contextual sobre el modo aplicado (informativo, no es error). */
+  notaCasco?: string;
+  /** Warning si el modo elegido no coincide con el destino (informativo). */
+  warning?: string;
+  /** Si hay error duro en input (destino no existe, peso negativo, etc.). */
   error?: string;
 }
 
@@ -117,6 +141,7 @@ export function calcularFleteTerrestre(
     volumenM3 = 0,
     valorDeclaradoUsd = 0,
     multiplicadorDtd = MULTIPLICADOR_DTD_DEFAULT,
+    modoCotizacion = "solo-terrestre",
   } = input;
 
   // Validación básica
@@ -132,7 +157,7 @@ export function calcularFleteTerrestre(
   const pesoFacturableKg = Math.max(pesoRealKg, pesoVolumetricoKg);
   const esSobre = pesoFacturableKg <= 1;
 
-  // 2. Buscar zona
+  // 2. Buscar zona del destino
   const mapaZonas = getMapaZonasParaOrigen(origen);
   const zona = mapaZonas[destino] ?? null;
   if (zona === null) {
@@ -141,10 +166,48 @@ export function calcularFleteTerrestre(
       pesoVolumetricoKg,
       pesoFacturableKg,
       esSobre,
+      modoAplicado: modoCotizacion,
     };
   }
 
-  // 3. Si es sobre, precio fijo
+  // 3. Validar coherencia modo ↔ destino
+  const esCasco = destinoEsCasco(destino);
+  let modoAplicado: ModoCotizacionTerrestre = modoCotizacion;
+  let warning: string | undefined;
+  if (modoCotizacion === "cbm-casco" && !esCasco) {
+    // Cliente dice "incluido en casco" pero destino NO es casco. Fallback a cbm-lejos.
+    modoAplicado = "cbm-lejos";
+    warning = `"${destino}" no está en el casco central. Aplicamos cotización CBM + lejos (con descuento parcial).`;
+  } else if (modoCotizacion === "cbm-lejos" && esCasco) {
+    // Cliente dice "lejos" pero destino SÍ es casco. Fallback a cbm-casco.
+    modoAplicado = "cbm-casco";
+    warning = `"${destino}" está en el casco central. Aplicamos cotización CBM + casco (sin costo).`;
+  }
+
+  // 4. Caso especial: CBM + destino en casco → todo gratis
+  if (modoAplicado === "cbm-casco" && esCasco) {
+    return {
+      zona,
+      pesoVolumetricoKg,
+      pesoFacturableKg,
+      esSobre,
+      tramoAplicado: "Casco central CBM",
+      tarifaBaseUsdKg: 0,
+      tarifaDtdUsdKg: 0,
+      fleteBaseUsd: 0,
+      descuentoCascoUsd: 0,
+      fpoUsd: 0,
+      seguroUsd: 0,
+      subtotalUsd: 0,
+      ivaUsd: 0,
+      totalUsd: 0,
+      modoAplicado,
+      notaCasco: `${destino} está incluido en tu flete CBM China-VZLA. Sin costo adicional.`,
+      warning,
+    };
+  }
+
+  // 5. Caso especial: sobre ≤ 1 kg → precio fijo (mismo en todos los modos)
   if (esSobre) {
     const fleteBaseUsd = PRECIO_SOBRE_HASTA_1KG_USD;
     const fpoUsd = fleteBaseUsd * FPO_PORCENTAJE;
@@ -160,15 +223,18 @@ export function calcularFleteTerrestre(
       tarifaBaseUsdKg: 0,
       tarifaDtdUsdKg: 0,
       fleteBaseUsd,
+      descuentoCascoUsd: 0,
       fpoUsd,
       seguroUsd,
       subtotalUsd,
       ivaUsd,
       totalUsd: subtotalUsd + ivaUsd,
+      modoAplicado,
+      warning,
     };
   }
 
-  // 4. Tramo de peso + tarifa por zona
+  // 6. Tramo de peso + tarifa por zona
   const tramoIdx = encontrarTramo(pesoFacturableKg);
   if (tramoIdx === -1) {
     return {
@@ -176,22 +242,33 @@ export function calcularFleteTerrestre(
       zona,
       pesoVolumetricoKg,
       pesoFacturableKg,
+      modoAplicado,
     };
   }
   const tramo = TARIFA_USD_KG[tramoIdx];
-  // Zona 1-11 → índice 0-10
   const tarifaBaseUsdKg = tramo.tarifaPorZona[zona - 1] ?? 0;
   const tarifaDtdUsdKg = tarifaBaseUsdKg * multiplicadorDtd;
 
-  // 5. Flete
-  const fleteBaseUsd = pesoFacturableKg * tarifaDtdUsdKg;
+  // 7. Flete base
+  let fleteBaseUsd = pesoFacturableKg * tarifaDtdUsdKg;
 
-  // 6. Cargos extra
+  // 8. Descuento por casco (solo en modo cbm-lejos)
+  let descuentoCascoUsd = 0;
+  if (modoAplicado === "cbm-lejos") {
+    // Restar el equivalente al tramo casco (zona 1) — ese tramo ya está pagado por el CBM.
+    const tarifaZona1UsdKg = tramo.tarifaPorZona[0]; // zona 1 = índice 0
+    const tarifaZona1DtdUsdKg = tarifaZona1UsdKg * multiplicadorDtd;
+    descuentoCascoUsd = pesoFacturableKg * tarifaZona1DtdUsdKg;
+    // El flete neto no puede ser negativo
+    fleteBaseUsd = Math.max(0, fleteBaseUsd - descuentoCascoUsd);
+  }
+
+  // 9. Cargos extra sobre flete neto
   const fpoUsd = fleteBaseUsd * FPO_PORCENTAJE;
   const seguroUsd = valorDeclaradoUsd * SEGURO_PORCENTAJE;
   const subtotalUsd = fleteBaseUsd + fpoUsd + seguroUsd;
 
-  // 7. IVA
+  // 10. IVA
   const ivaUsd = subtotalUsd * IVA_PORCENTAJE;
   const totalUsd = subtotalUsd + ivaUsd;
 
@@ -204,11 +281,18 @@ export function calcularFleteTerrestre(
     tarifaBaseUsdKg,
     tarifaDtdUsdKg,
     fleteBaseUsd,
+    descuentoCascoUsd,
     fpoUsd,
     seguroUsd,
     subtotalUsd,
     ivaUsd,
     totalUsd,
+    modoAplicado,
+    notaCasco:
+      modoAplicado === "cbm-lejos"
+        ? `Descuento aplicado: el casco central (Valencia → Pto Cabello) ya está cubierto por tu CBM. Solo pagas el diferencial.`
+        : undefined,
+    warning,
   };
 }
 
@@ -222,11 +306,13 @@ function emptyOutput(error: string): FleteTerrestreOutput {
     tarifaBaseUsdKg: 0,
     tarifaDtdUsdKg: 0,
     fleteBaseUsd: 0,
+    descuentoCascoUsd: 0,
     fpoUsd: 0,
     seguroUsd: 0,
     subtotalUsd: 0,
     ivaUsd: 0,
     totalUsd: 0,
+    modoAplicado: "solo-terrestre",
     error,
   };
 }

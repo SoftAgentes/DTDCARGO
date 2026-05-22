@@ -217,3 +217,49 @@ export const FPO_PORCENTAJE = 0.06;
 export const SEGURO_PORCENTAJE = 0.03;
 /** % IVA Venezuela. */
 export const IVA_PORCENTAJE = 0.16;
+
+// ─── Casco central DTD (cubierto por flete CBM China-VZLA) ──────────
+/**
+ * Lista de destinos cubiertos automáticamente por el flete internacional CBM.
+ * Si el cliente envió mercancía de China a Venezuela con DTD (modo CBM),
+ * la entrega a cualquiera de estos destinos NO tiene costo adicional —
+ * está incluida en el flete original.
+ *
+ * Para destinos FUERA de esta lista, aunque el cliente tenga CBM activo,
+ * se cotiza el flete terrestre completo (modo "cbm-lejos" con descuento parcial).
+ */
+export const CASCO_CENTRAL_DTD: readonly string[] = [
+  "Valencia",         // sede DTD
+  "Puerto Cabello",   // puerto de llegada
+  "Maracay",          // corredor diario (80km)
+  "Mariara",          // 30km
+  "Guacara",          // 10km (suburbio Valencia)
+  "San Joaquin",      // 15km
+  "Naguanagua",       // 5km (suburbio Valencia)
+  "Ciudad Alianza",   // 20km
+  "Caracas",          // parte central — incluido por pedido DTD
+];
+
+/** Verifica si un destino está dentro del casco central cubierto por CBM. */
+export function destinoEsCasco(destino: string): boolean {
+  return CASCO_CENTRAL_DTD.includes(destino);
+}
+
+/**
+ * Modo de cotización del transporte terrestre:
+ *
+ * - `solo-terrestre`: Cliente NO tiene envío CBM con DTD. Cobra el flete
+ *   completo según peso × tarifa(zona) × multiplicador.
+ *
+ * - `cbm-casco`: Cliente tiene CBM China-VZLA activo Y su destino está en el
+ *   casco central. Total = $0 (incluido en el flete internacional).
+ *
+ * - `cbm-lejos`: Cliente tiene CBM activo pero su destino está FUERA del
+ *   casco. Se cobra el flete completo MENOS el "tramo casco" (equivalente
+ *   a calcular el flete a zona 1) — porque ese tramo ya está cubierto por
+ *   el CBM. El cliente solo paga el diferencial.
+ */
+export type ModoCotizacionTerrestre =
+  | "solo-terrestre"
+  | "cbm-casco"
+  | "cbm-lejos";

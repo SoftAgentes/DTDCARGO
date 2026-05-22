@@ -151,4 +151,102 @@ describe("calcularFleteTerrestre", () => {
     });
     expect(r.zona).toBe(2); // Maracay → Caracas = zona 2 según Fletes GAG
   });
+
+  // ─── Modos de cotización CBM ────────────────────────────────────────
+
+  it("modo cbm-casco + destino casco (Maracay) → total $0", () => {
+    const r = calcularFleteTerrestre({
+      origen: "Valencia",
+      destino: "Maracay",
+      pesoRealKg: 100,
+      modoCotizacion: "cbm-casco",
+    });
+    expect(r.modoAplicado).toBe("cbm-casco");
+    expect(r.totalUsd).toBe(0);
+    expect(r.fleteBaseUsd).toBe(0);
+    expect(r.notaCasco).toContain("Maracay");
+    expect(r.notaCasco).toContain("incluido");
+  });
+
+  it("modo cbm-casco + destino casco (Caracas) → total $0 (pedido DTD)", () => {
+    const r = calcularFleteTerrestre({
+      origen: "Valencia",
+      destino: "Caracas",
+      pesoRealKg: 100,
+      modoCotizacion: "cbm-casco",
+    });
+    expect(r.totalUsd).toBe(0);
+    expect(r.modoAplicado).toBe("cbm-casco");
+  });
+
+  it("modo cbm-casco + destino FUERA del casco (Barquisimeto) → fallback a cbm-lejos con warning", () => {
+    const r = calcularFleteTerrestre({
+      origen: "Valencia",
+      destino: "Barquisimeto",
+      pesoRealKg: 100,
+      modoCotizacion: "cbm-casco",
+    });
+    expect(r.modoAplicado).toBe("cbm-lejos");
+    expect(r.warning).toContain("Barquisimeto");
+    expect(r.warning).toContain("casco central");
+    expect(r.totalUsd).toBeGreaterThan(0); // Cobra (con descuento)
+  });
+
+  it("modo cbm-lejos + destino fuera del casco → descuento aplicado", () => {
+    const r = calcularFleteTerrestre({
+      origen: "Valencia",
+      destino: "Maracaibo",
+      pesoRealKg: 100,
+      modoCotizacion: "cbm-lejos",
+    });
+    expect(r.modoAplicado).toBe("cbm-lejos");
+    expect(r.descuentoCascoUsd).toBeGreaterThan(0);
+    expect(r.notaCasco).toContain("casco central");
+
+    // Comparar con solo-terrestre: el descuento debe hacerlo más barato
+    const sinCbm = calcularFleteTerrestre({
+      origen: "Valencia",
+      destino: "Maracaibo",
+      pesoRealKg: 100,
+      modoCotizacion: "solo-terrestre",
+    });
+    expect(r.totalUsd).toBeLessThan(sinCbm.totalUsd);
+  });
+
+  it("modo cbm-lejos + destino EN el casco → fallback a cbm-casco con warning", () => {
+    const r = calcularFleteTerrestre({
+      origen: "Valencia",
+      destino: "Maracay",
+      pesoRealKg: 100,
+      modoCotizacion: "cbm-lejos",
+    });
+    expect(r.modoAplicado).toBe("cbm-casco");
+    expect(r.totalUsd).toBe(0);
+    expect(r.warning).toContain("casco central");
+  });
+
+  it("modo solo-terrestre (default) ignora la lógica de casco", () => {
+    const r = calcularFleteTerrestre({
+      origen: "Valencia",
+      destino: "Maracay", // está en casco
+      pesoRealKg: 100,
+      modoCotizacion: "solo-terrestre",
+    });
+    expect(r.modoAplicado).toBe("solo-terrestre");
+    expect(r.totalUsd).toBeGreaterThan(0); // cobra completo aunque sea casco
+    expect(r.descuentoCascoUsd).toBe(0);
+  });
+
+  it("descuento casco no hace el total negativo", () => {
+    // Edge case: tramo donde zona 1 tarifa > zona destino tarifa
+    // (rare pero posible en tarifa Fletes GAG por la columna zona 1 inversa en 2.01-3 kg)
+    const r = calcularFleteTerrestre({
+      origen: "Valencia",
+      destino: "Barquisimeto",
+      pesoRealKg: 2.5, // tramo "2.01 a 3" tiene zona 1 más cara que zona 3
+      modoCotizacion: "cbm-lejos",
+    });
+    expect(r.fleteBaseUsd).toBeGreaterThanOrEqual(0);
+    expect(r.totalUsd).toBeGreaterThanOrEqual(0);
+  });
 });
