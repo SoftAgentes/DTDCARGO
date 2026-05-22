@@ -384,6 +384,27 @@ export const SERVICES_MATRIX = [
   { service: "Entrega puerta a puerta (last mile)", cn: "—", ve: "Gestión completa" },
 ] as const;
 
+/**
+ * Agrupación derivada de SERVICES_MATRIX por ownership: quién ejecuta cada
+ * servicio. Tres buckets:
+ *
+ * - `onlyYiwu`: 🇨🇳 hace todo, 🇻🇪 no aplica → control de fábrica puro.
+ * - `both`: 🇨🇳 ejecuta + 🇻🇪 coordina/asesora con el cliente → operación conjunta.
+ * - `onlyValencia`: 🇻🇪 hace todo, 🇨🇳 no aplica → trámites locales venezolanos.
+ *
+ * Source of truth única: SERVICES_MATRIX. Si se agrega/quita un servicio acá,
+ * la agrupación se recalcula sola.
+ */
+export const SERVICES_OWNERSHIP = {
+  onlyYiwu: SERVICES_MATRIX.filter((s) => s.ve === "—").map((s) => s.service),
+  both: SERVICES_MATRIX.filter((s) => s.cn !== "—" && s.ve !== "—").map(
+    (s) => s.service,
+  ),
+  onlyValencia: SERVICES_MATRIX.filter((s) => s.cn === "—").map(
+    (s) => s.service,
+  ),
+} as const;
+
 // ──────────────────────────────────────────────────────────────────
 // INCOTERMS 2020 — términos comerciales que DTD-CARGO maneja en el
 // corredor China-Venezuela. Los marcados como principales son los más
