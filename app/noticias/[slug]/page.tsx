@@ -10,6 +10,7 @@ import {
   buildWhatsAppLink,
   type NewsPost,
 } from "@/lib/design-tokens";
+import { renderBolded } from "@/lib/text";
 import { ArrowIcon } from "@/components/Icon";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -123,13 +124,9 @@ export default async function NewsPostPage({ params }: Props) {
                   <p
                     key={i}
                     className="text-[16px] leading-[1.7] text-grey-700"
-                    dangerouslySetInnerHTML={{
-                      __html: paragraph.replace(
-                        /<b>(.*?)<\/b>/g,
-                        '<strong class="text-ink">$1</strong>',
-                      ),
-                    }}
-                  />
+                  >
+                    {renderBolded(paragraph)}
+                  </p>
                 ))}
               </div>
             ) : (

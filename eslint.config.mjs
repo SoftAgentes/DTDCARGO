@@ -11,6 +11,10 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "_handoff_preview/**",
+    "_payload-disabled/**",
+    "e2e/**", // Playwright tests usan import maps distintos
+    "playwright-report/**",
+    "test-results/**",
   ]),
 ]);
 

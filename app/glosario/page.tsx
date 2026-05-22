@@ -8,6 +8,7 @@ import {
   buildWhatsAppLink,
   type GlossaryTerm,
 } from "@/lib/design-tokens";
+import { renderBolded } from "@/lib/text";
 import { ArrowIcon } from "@/components/Icon";
 
 export const metadata: Metadata = {
@@ -175,8 +176,9 @@ function GlossaryEntry({ term }: { term: GlossaryTerm }) {
           <p
             key={i}
             className="text-[15px] leading-[1.65] text-grey-700"
-            dangerouslySetInnerHTML={{ __html: paragraph.replace(/<b>(.*?)<\/b>/g, '<strong class="text-ink">$1</strong>') }}
-          />
+          >
+            {renderBolded(paragraph)}
+          </p>
         ))}
       </div>
       {term.analogy && (
