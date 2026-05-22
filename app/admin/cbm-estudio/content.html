@@ -357,7 +357,132 @@ total_USD        = flete_base + FPO 6% + seguro 3% + IVA 16%</div>
       <p style="color:rgba(255,255,255,0.75);font-size:13.5px;margin-top:14px">El <strong>factor 200 kg/m³</strong> es estándar para transporte terrestre nacional venezolano (Fletes GAG lo usa). Para terrestre internacional es 333. Para aéreo 167. Marítimo LCL 1000.</p>
     </div>
 
-    <h3 style="margin-top:32px">Hallazgo #4 — Las zonas son convención de cada empresa</h3>
+    <h3 style="margin-top:32px">📐 Ejemplo paso a paso — cómo se aplica la fórmula</h3>
+    <p style="font-size:15px;color:var(--grey-700);max-width:65ch">Para que cualquiera del equipo pueda explicarlo a un cliente sin trabarse, acá va un caso típico aterrizando cada número.</p>
+
+    <div class="card" style="margin-top:14px;border-left:4px solid var(--wine)">
+      <div style="display:flex;justify-content:space-between;align-items:start;flex-wrap:wrap;gap:8px">
+        <div>
+          <span class="eyebrow">Caso típico</span>
+          <h4 style="margin-top:6px;font-size:18px">Cliente importador de electrónicos · 50 kg · 0.8 m³</h4>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:11px;color:var(--grey-500);letter-spacing:0.08em;text-transform:uppercase">Ruta</div>
+          <div style="font-family:'Archivo Black';font-size:16px;color:var(--ink)">Valencia → Maracaibo</div>
+        </div>
+      </div>
+      <p style="font-size:13.5px;color:var(--grey-700);margin-top:10px">
+        El cliente trae 50 kg de auriculares bluetooth en 3 cajas. <strong>Pesan poco pero ocupan espacio</strong>:
+        cada caja es de 40×50×30 cm. Volumen total: 0.18 m³ × 3 + un poco más por embalaje = <strong>0.8 m³ aprox</strong>.
+      </p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin-top:18px">
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">1</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Calcular peso volumétrico</h4>
+        <div class="ec">peso_vol = 0.8 m³ × 200
+         = 160 kg</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">El volumen "pesa" 160 kg equivalentes, aunque la balanza diga 50.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">2</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Peso facturable: el mayor</h4>
+        <div class="ec">peso_fact = MAX(50, 160)
+          = 160 kg</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">Gana el volumétrico. El cliente paga por el espacio que ocupa, no por lo que pesa.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">3</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Buscar zona del destino</h4>
+        <div class="ec">Maracaibo desde Valencia
+       = zona 5</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">580 km, periferia oeste — zona 5 según el mapa Valencia DTD.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">4</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Buscar tarifa USD/kg</h4>
+        <div class="ec">Tramo 100.01-200 kg
+zona 5 → 0.97 USD/kg</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">Sale de la tabla Fletes GAG vigente 01-may-2026.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">5</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Aplicar margen DTD</h4>
+        <div class="ec">0.97 × 1.15 (DTD)
+   = 1.1155 USD/kg</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">+15% por coordinación, seguro propio y gestión integrada.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">6</div>
+        <h4 style="margin-top:10px;font-size:14.5px">Flete base</h4>
+        <div class="ec">160 kg × 1.1155
+    = $178.48</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">El subtotal sin impuestos ni cargos extra.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">7</div>
+        <h4 style="margin-top:10px;font-size:14.5px">FPO (Franqueo Postal)</h4>
+        <div class="ec">$178.48 × 0.06
+   = $10.71</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">6% obligatorio en VZLA. Estándar Fletes GAG.</p>
+      </div>
+
+      <div class="card">
+        <div style="display:inline-block;background:var(--wine);color:#fff;width:28px;height:28px;border-radius:50%;text-align:center;line-height:28px;font-weight:700;font-family:'Archivo Black';font-size:14px">8</div>
+        <h4 style="margin-top:10px;font-size:14.5px">IVA 16%</h4>
+        <div class="ec">($178.48 + $10.71) × 0.16
+            = $30.27</div>
+        <p style="font-size:12.5px;color:var(--grey-700);margin-top:8px">Sobre el subtotal (flete + FPO).</p>
+      </div>
+    </div>
+
+    <div class="card card-ink" style="margin-top:20px;padding:24px 28px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.55);letter-spacing:0.14em;text-transform:uppercase;font-weight:700">Total cobrado al cliente</div>
+          <div style="font-family:'Archivo Black';font-size:42px;color:#fff;letter-spacing:-0.02em;margin-top:4px">USD 219.46</div>
+        </div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.7);text-align:right;max-width:30ch">
+          $178.48 flete<br>+ $10.71 FPO<br>+ $30.27 IVA<br>= <strong style="color:#fff">$219.46 total</strong>
+        </div>
+      </div>
+    </div>
+
+    <h4 style="margin-top:28px;font-size:16px">🆚 Si el mismo cliente tiene CBM activo (Modo C — descuento parcial)</h4>
+    <div class="card" style="background:#E8F7EE;border-color:#A6E0BB">
+      <p style="font-size:13.5px;color:#0F5934;line-height:1.6">
+        Como el cliente ya pagó el casco central en su envío CBM China→VZLA, restamos lo que costaría el tramo
+        Valencia → casco (zona 1):
+      </p>
+      <div class="ec">descuento = 160 × tarifa_zona_1 × 1.15
+          = 160 × 0.69 × 1.15
+          = $126.96
+
+flete_neto = $178.48 − $126.96
+           = $51.52
+
+total con FPO + IVA ≈ $63.43</div>
+      <p style="font-size:14px;color:#0F5934;font-weight:600;margin-top:12px">
+        ✓ El cliente con CBM ahorra <strong>USD 156.03</strong> respecto a un cliente sin CBM.
+        Esto es lo que diferencia a DTD del transporte estándar — el servicio integrado door-to-door.
+      </p>
+    </div>
+
+    <p style="font-size:12.5px;color:var(--grey-500);margin-top:14px;font-style:italic">
+      💡 Para ventas y atención al cliente: usá este ejemplo cuando un cliente pregunte "¿por qué cobran USD 219
+      por 50 kg?". La respuesta es "porque ocupás 160 kg de espacio en el camión, y esa es la realidad del
+      transporte. Si tenés CBM con nosotros, pagás menos de la mitad".
+    </p>
+
+    <h3 style="margin-top:48px">Hallazgo #4 — Las zonas son convención de cada empresa</h3>
     <p style="font-size:15px;color:var(--grey-700)">No existe una zonificación oficial. Cada empresa arma su clasificación según distancia desde su sede. <strong>DTD también puede tener la suya</strong> — y eso fue parte de las decisiones que validamos con el equipo (ver decisión #1 abajo).</p>
 
     <h3 style="margin-top:32px">Resumen — Fuentes consultadas</h3>
