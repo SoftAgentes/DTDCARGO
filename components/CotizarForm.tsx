@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, useRef, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { ORIGINS, DESTINATIONS, CONTACT } from "@/lib/design-tokens";
 import { ArrowIcon } from "./Icon";
@@ -11,6 +11,14 @@ type Status = "idle" | "submitting" | "success" | "error";
  * Formulario completo de cotización. En MVP usa un mock que simula la respuesta
  * — cuando el ERP exponga `POST {ERP}/api/public/cotizar` y `POST /leads`,
  * cambiamos `mockSubmit` por `fetch(...)`.
+ *
+ * Dimensiones: el usuario ingresa Largo × Ancho × Alto en cm y se calcula
+ * el volumen en m³ al submit ((L×A×H) / 1.000.000). Esto es más amigable
+ * que pedirle volumen directo a un usuario B2B no técnico.
+ *
+ * Diagrama educativo de dimensiones: SVG flotante que aparece cuando el
+ * usuario hover por primera vez sobre los campos L/A/H (auto-hide a 3s),
+ * y vuelve a aparecer cada vez que clickean en uno de esos campos.
  */
 export function CotizarForm() {
   const [status, setStatus] = useState<Status>("idle");
@@ -20,6 +28,32 @@ export function CotizarForm() {
     days: string;
     leadId: string;
   } | null>(null);
+
+  // ─── Diagrama de dimensiones — UX hover-first + click-to-repeat ───
+  const [showDiagram, setShowDiagram] = useState(false);
+  const [hasShownViaHover, setHasShownViaHover] = useState(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showDiagramFor3s = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    setShowDiagram(true);
+    hideTimerRef.current = setTimeout(() => setShowDiagram(false), 3000);
+  };
+
+  const onDimensionsHover = () => {
+    // Solo la PRIMERA vez que el usuario hover, mostramos automáticamente.
+    if (!hasShownViaHover) {
+      setHasShownViaHover(true);
+      showDiagramFor3s();
+    }
+  };
+
+  // Cleanup del timer si el componente desmonta
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, []);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,7 +65,11 @@ export function CotizarForm() {
       // MOCK: simulamos llamada al ERP. Reemplazar cuando los endpoints estén listos.
       await new Promise((r) => setTimeout(r, 900));
       const peso = Number(payload.peso ?? 0);
-      const volumen = Number(payload.volumen ?? 0);
+      // L × A × H en cm → m³ (dividir entre 1.000.000)
+      const largo = Number(payload.largo ?? 0);
+      const ancho = Number(payload.ancho ?? 0);
+      const alto = Number(payload.alto ?? 0);
+      const volumen = (largo * ancho * alto) / 1_000_000;
       const factor = payload.modo === "aereo" ? 6 : 1.3;
       const base = Math.max(peso, volumen * 167) * factor + 220;
       setEstimate({
@@ -145,28 +183,55 @@ export function CotizarForm() {
         </select>
       </Row>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Row label="Peso (kg)">
-          <input
-            type="number"
-            name="peso"
-            min={1}
-            required
-            placeholder="120"
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+      <Row label="Peso (kg)">
+        <input
+          type="number"
+          name="peso"
+          min={1}
+          required
+          placeholder="120"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+        />
+      </Row>
+
+      {/* Dimensiones (L x A x H en cm) + diagrama flotante educativo */}
+      <div className="relative" onMouseEnter={onDimensionsHover}>
+        <div className="flex items-baseline justify-between mb-2">
+          <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-grey-500">
+            Dimensiones por caja (cm)
+          </span>
+          <button
+            type="button"
+            onClick={showDiagramFor3s}
+            className="text-[11.5px] font-medium text-wine hover:text-wine-deep underline underline-offset-2"
+          >
+            Como medir?
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <DimInput name="largo" label="Largo" placeholder="40" onTrigger={showDiagramFor3s} />
+          <DimInput name="ancho" label="Ancho" placeholder="30" onTrigger={showDiagramFor3s} />
+          <DimInput name="alto" label="Alto" placeholder="25" onTrigger={showDiagramFor3s} />
+        </div>
+
+        {/* Diagrama flotante - aparece por hover (1ra vez) o click en campos L/A/H */}
+        <div
+          aria-hidden={!showDiagram}
+          className={`absolute left-1/2 -translate-x-1/2 top-full mt-3 z-30 w-full max-w-[420px] pointer-events-none transition-all duration-500 ease-out ${
+            showDiagram
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 -translate-y-2"
+          }`}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/brand/dtdcargo-dimensions-box.svg"
+            alt="Diagrama: como medir el largo, ancho y alto de una caja"
+            width={600}
+            height={500}
+            className="w-full h-auto drop-shadow-[0_20px_40px_rgba(15,30,61,0.25)]"
           />
-        </Row>
-        <Row label="Volumen (m³)">
-          <input
-            type="number"
-            name="volumen"
-            min={0}
-            step="0.01"
-            required
-            placeholder="0.5"
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
-          />
-        </Row>
+        </div>
       </div>
 
       <Row label="Descripción de la mercancía">
@@ -241,6 +306,40 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
         {label}
       </span>
       {children}
+    </label>
+  );
+}
+
+/**
+ * Input compacto para una dimension (largo/ancho/alto) en cm.
+ * Trigger del diagrama tanto en click como en focus (TAB nav).
+ */
+function DimInput({
+  name,
+  label,
+  placeholder,
+  onTrigger,
+}: {
+  name: string;
+  label: string;
+  placeholder: string;
+  onTrigger: () => void;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-grey-500 text-center">
+        {label}
+      </span>
+      <input
+        type="number"
+        name={name}
+        min={1}
+        required
+        placeholder={placeholder}
+        onClick={onTrigger}
+        onFocus={onTrigger}
+        className="h-12 px-2 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-semibold text-ink text-center"
+      />
     </label>
   );
 }
