@@ -1,0 +1,1162 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Transporte CBM China-Venezuela · Presentación interna DTD-CARGO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --wine:#7F0F1A; --wine-deep:#5E0A12; --wine-soft:#C2747F;
+    --ink:#0F1E3D; --ink-soft:#1f2f54;
+    --paper:#FBFAF7; --grey-100:#F4F2EE; --grey-200:#E8E5DE;
+    --grey-500:#8C8A86; --grey-700:#5E5C58;
+    --success:#1F8A5B; --warning:#B8893A;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;padding:0;font-family:'Archivo',system-ui,sans-serif;color:var(--ink);background:var(--paper);line-height:1.55;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{font-family:'Archivo Black',system-ui,sans-serif;letter-spacing:-0.01em;line-height:1.1;margin:0}
+  h1{font-size:clamp(34px,4.5vw,56px)}
+  h2{font-size:clamp(26px,3vw,38px);margin-top:0}
+  h3{font-size:clamp(20px,2.4vw,28px)}
+  h4{font-size:16px}
+  p{margin:0 0 12px}
+  a{color:var(--wine);text-decoration:underline;text-underline-offset:2px}
+  a:hover{color:var(--wine-deep)}
+  code,pre,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.92em}
+  pre{background:var(--ink);color:#e6e3dc;padding:16px 20px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.55}
+  .eyebrow{display:inline-block;font-size:11px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;color:var(--wine)}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 32px}
+  /* Layout sidebar + main */
+  .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+  @media (max-width:880px){.app{grid-template-columns:1fr}}
+  aside.sidebar{position:sticky;top:0;height:100vh;background:var(--ink);color:#fff;overflow-y:auto;padding:24px 0}
+  @media (max-width:880px){aside.sidebar{position:relative;height:auto;padding:16px 0}}
+  .sidebar-brand{padding:0 20px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+  .sidebar-brand .name{font-family:'Archivo Black';font-size:18px;letter-spacing:-0.02em}
+  .sidebar-brand .name span{color:var(--wine-soft)}
+  .sidebar-brand .sub{font-size:11px;color:rgba(255,255,255,0.55);margin-top:4px;letter-spacing:0.08em;text-transform:uppercase}
+  nav.sidebar-nav{padding:16px 0;display:flex;flex-direction:column;gap:2px}
+  nav.sidebar-nav a{display:block;padding:10px 20px;color:rgba(255,255,255,0.75);text-decoration:none;font-size:13.5px;font-weight:500;border-left:3px solid transparent;transition:all 0.18s}
+  nav.sidebar-nav a:hover{color:#fff;background:rgba(255,255,255,0.04)}
+  nav.sidebar-nav a.active{color:#fff;background:rgba(127,15,26,0.4);border-left-color:var(--wine-soft);font-weight:700}
+  nav.sidebar-nav .nav-group{padding:14px 20px 6px;font-size:10px;color:rgba(255,255,255,0.4);font-weight:700;letter-spacing:0.14em;text-transform:uppercase}
+  main.content{padding:48px 0;min-width:0}
+  section.slide{padding:0 0 96px;scroll-margin-top:20px}
+  section.slide:not(:last-child){border-bottom:1px solid var(--grey-200)}
+  .cover{background:linear-gradient(135deg,var(--ink),var(--ink-soft));color:#fff;padding:80px 0;margin-top:-48px;margin-bottom:48px}
+  .cover .wrap > .eyebrow{color:var(--wine-soft)}
+  .cover h1{color:#fff;margin-top:14px;font-size:clamp(38px,5vw,72px);max-width:18ch}
+  .cover .lead{color:rgba(255,255,255,0.75);font-size:18px;margin-top:24px;max-width:60ch;line-height:1.55}
+  .cover .meta{margin-top:36px;display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:18px;max-width:760px}
+  .cover .meta-item{background:rgba(255,255,255,0.06);padding:14px 16px;border-radius:10px;border:1px solid rgba(255,255,255,0.1)}
+  .cover .meta-item .lbl{font-size:10.5px;letter-spacing:0.14em;text-transform:uppercase;color:rgba(255,255,255,0.55);font-weight:700}
+  .cover .meta-item .val{font-size:15px;color:#fff;margin-top:4px;font-weight:600}
+  /* Cards */
+  .card{background:#fff;border:1px solid var(--grey-200);border-radius:14px;padding:24px;box-shadow:0 2px 4px rgba(15,30,61,0.06),0 8px 16px rgba(15,30,61,0.06)}
+  .card-ink{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .card-ink h3,.card-ink h4{color:#fff}
+  .card + .card{margin-top:16px}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+  @media (max-width:700px){.grid-2,.grid-3{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--grey-200);vertical-align:top}
+  th{font-size:11px;letter-spacing:0.12em;text-transform:uppercase;color:var(--grey-700);background:var(--grey-100);font-weight:700}
+  .audience-pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .audience-pill{font-size:10.5px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:4px 10px;border-radius:20px}
+  .audience-pill.logistica{background:#FEF3D7;color:#7A5A1F}
+  .audience-pill.transporte{background:#E8F0FE;color:#1F4380}
+  .audience-pill.admin{background:#FEE3E5;color:var(--wine-deep)}
+  /* Decision card */
+  .decision{margin:32px 0}
+  .decision-header{background:var(--ink);color:#fff;border-radius:12px 12px 0 0;padding:18px 24px}
+  .decision-header .num{display:inline-block;background:var(--wine);color:#fff;width:32px;height:32px;border-radius:50%;text-align:center;line-height:32px;font-weight:700;font-family:'Archivo Black';margin-right:12px}
+  .decision-header .q{font-family:'Archivo Black';font-size:18px;line-height:1.3;display:inline}
+  .decision-body{background:#fff;border:1px solid var(--grey-200);border-top:none;border-radius:0 0 12px 12px;padding:0}
+  .decision-tabs{display:flex;border-bottom:1px solid var(--grey-200);overflow-x:auto;background:var(--grey-100)}
+  .decision-tabs button{flex:0 0 auto;padding:14px 18px;background:none;border:none;font-family:inherit;font-size:13.5px;font-weight:600;color:var(--grey-700);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.18s}
+  .decision-tabs button:hover{color:var(--ink)}
+  .decision-tabs button.active{color:var(--wine);border-bottom-color:var(--wine);background:#fff}
+  .decision-tabs button.chosen::before{content:"★ ";color:var(--wine)}
+  .decision-content{padding:24px;display:none}
+  .decision-content.active{display:block}
+  .chosen-badge{display:inline-block;background:var(--success);color:#fff;font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:12px}
+  .alt-badge{display:inline-block;background:var(--grey-200);color:var(--grey-700);font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;padding:3px 10px;border-radius:20px;margin-bottom:12px}
+  /* Calc widget */
+  .calc{background:var(--grey-100);border-radius:10px;padding:18px;margin-top:18px;border:1px dashed var(--grey-500)}
+  .calc h5{font-family:'Archivo Black';font-size:13px;margin:0 0 12px;color:var(--ink);letter-spacing:0.04em}
+  .calc-inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+  .calc-inputs label{display:flex;flex-direction:column;gap:4px;font-size:11.5px;font-weight:600;color:var(--grey-700);text-transform:uppercase;letter-spacing:0.08em}
+  .calc-inputs input,.calc-inputs select{padding:8px 10px;border:1px solid var(--grey-200);border-radius:6px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);background:#fff}
+  .calc-result{background:#fff;border-radius:8px;padding:14px;border:1px solid var(--grey-200)}
+  .calc-result-line{display:flex;justify-content:space-between;padding:4px 0;font-size:13.5px}
+  .calc-result-line .lbl{color:var(--grey-700)}
+  .calc-result-line .val{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+  .calc-result-total{border-top:2px solid var(--ink);margin-top:6px;padding-top:8px}
+  .calc-result-total .lbl{color:var(--ink);font-weight:700}
+  .calc-result-total .val{font-size:18px;color:var(--wine);font-family:'Archivo Black'}
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .compare > div{padding:12px 14px;border-radius:8px;background:#fff;border:1px solid var(--grey-200);font-size:13px}
+  .compare > div.chosen{border-color:var(--success);background:#f0faf4}
+  .compare > div.alt{border-color:var(--warning);background:#fefaf2}
+  .compare .lbl{font-size:10.5px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--grey-700)}
+  .compare .v{font-family:'Archivo Black';font-size:22px;margin-top:6px;color:var(--ink)}
+  .note{padding:14px 18px;border-radius:8px;background:#FEF8E0;border:1px solid #F0E4A6;font-size:13.5px;line-height:1.5;color:#5E4B0F}
+  .note.green{background:#E8F7EE;border-color:#A6E0BB;color:#0F5934}
+  .note.red{background:#FCEAEC;border-color:#E8B5BB;color:var(--wine-deep)}
+  ul.bullets{padding-left:18px;margin:8px 0}
+  ul.bullets li{margin-bottom:6px}
+  .ec{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--ink);color:#e6e3dc;padding:10px 14px;border-radius:6px;font-size:13px;line-height:1.6;margin:10px 0;white-space:pre-wrap;word-break:break-word}
+  /* Print styles */
+  @media print{
+    aside.sidebar{display:none}
+    .app{grid-template-columns:1fr}
+    main.content{padding:24px 0}
+    section.slide{page-break-before:always;border-bottom:none}
+    .decision-content{display:block!important}
+    .decision-tabs{display:none}
+    .cover{background:#fff;color:var(--ink);margin:0;padding:24px 0}
+    .cover h1,.cover .meta-item .val{color:var(--ink)}
+    .cover .lead,.cover .meta-item .lbl{color:var(--grey-700)}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="name">DTD·<span>CARGO</span></div>
+    <div class="sub">Presentación interna</div>
+  </div>
+  <nav class="sidebar-nav" id="sidenav">
+    <a href="#cover" class="active">Portada</a>
+    <a href="#resumen">Resumen ejecutivo</a>
+    <div class="nav-group">Estudio</div>
+    <a href="#parte1">1. Transporte nacional VZLA</a>
+    <a href="#parte2">2. Cómo combinamos CBM + terrestre</a>
+    <div class="nav-group">Decisiones tomadas</div>
+    <a href="#d1">D1 · Origen base</a>
+    <a href="#d2">D2 · Multiplicador DTD</a>
+    <a href="#d3">D3 · Casco central</a>
+    <a href="#d4">D4 · Descuento parcial</a>
+    <a href="#d5">D5 · UX 3 modos</a>
+    <a href="#d6">D6 · Form: agregar o reemplazar</a>
+    <a href="#d7">D7 · Validador del mapa</a>
+    <a href="#d8">D8 · Ubicación presentación</a>
+    <div class="nav-group">Cierre</div>
+    <a href="#proximos">Próximos pasos</a>
+    <a href="#fuentes">Fuentes y ecuaciones</a>
+  </nav>
+</aside>
+
+<main class="content">
+
+<!-- ============================================================ COVER -->
+<section class="slide cover" id="cover">
+  <div class="wrap">
+    <span class="eyebrow">Proyecto interno · Mayo 2026</span>
+    <h1>Transporte CBM China-Venezuela.</h1>
+    <p class="lead">Estudio de mercado del transporte terrestre venezolano y propuesta metodológica para integrar el último km a nuestro servicio CBM existente — convertido en una calculadora pública en <strong style="color:#fff">dtdcargo.com/cotizar</strong>.</p>
+    <div class="meta">
+      <div class="meta-item"><div class="lbl">Owner</div><div class="val">Sam · DTD-CARGO</div></div>
+      <div class="meta-item"><div class="lbl">Fecha</div><div class="val">22 mayo 2026</div></div>
+      <div class="meta-item"><div class="lbl">Status</div><div class="val">v1 en producción</div></div>
+      <div class="meta-item"><div class="lbl">Próx. revisión</div><div class="val">Agosto 2026</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ RESUMEN -->
+<section class="slide" id="resumen">
+  <div class="wrap">
+    <span class="eyebrow">Resumen ejecutivo</span>
+    <h2 style="margin-top:8px">Lo que necesitás saber según tu rol.</h2>
+
+    <div class="grid-3" style="margin-top:32px">
+      <div class="card">
+        <div class="audience-pills"><span class="audience-pill logistica">🚚 Logística</span></div>
+        <h3 style="margin-top:12px;font-size:20px">Cómo se calcula el flete</h3>
+        <p style="font-size:14px;color:var(--grey-700)">Adoptamos el estándar gremial venezolano (factor 200 kg/m³) y la tabla USD/kg de Fletes GAG vigente 01-may-2026. La calculadora aplica el peso mayor entre real y volumétrico.</p>
+        <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Foco</strong>: ecuaciones, factor volumétrico, fuentes de tarifas.</p>
+      </div>
+      <div class="card">
+        <div class="audience-pills"><span class="audience-pill transporte">🚛 Transporte</span></div>
+        <h3 style="margin-top:12px;font-size:20px">Casco central + retornos</h3>
+        <p style="font-size:14px;color:var(--grey-700)">Definimos 9 destinos como "casco central" (cubierto por CBM). Fuera de eso aplicamos descuento parcial — espacio para que negocies con transportistas que vuelven vacíos de Caracas, Maracaibo, etc.</p>
+        <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Foco</strong>: zonificación, descuento parcial, negociación con choferes.</p>
+      </div>
+      <div class="card">
+        <div class="audience-pills"><span class="audience-pill admin">📊 Administración</span></div>
+        <h3 style="margin-top:12px;font-size:20px">Viabilidad comercial</h3>
+        <p style="font-size:14px;color:var(--grey-700)">Multiplicador 1.15× sobre Fletes GAG = 15% margen DTD. La calculadora muestra "tarifa de referencia"; el asesor cierra precio final por WhatsApp. Riesgo: si Fletes GAG sube tarifas, el código se actualiza en 1 archivo.</p>
+        <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Foco</strong>: margen, riesgos, plan de actualización.</p>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:32px">
+      <h3>Lo que se aprueba con esta presentación</h3>
+      <ul class="bullets">
+        <li><strong>Metodología de cálculo</strong>: factor volumétrico, multiplicador DTD, descuentos por CBM</li>
+        <li><strong>Mapa de zonas Valencia DTD</strong>: 9 zonas para 78 destinos en VZLA</li>
+        <li><strong>Casco central</strong>: cuáles ciudades están incluidas en el flete CBM</li>
+        <li><strong>Publicación en dtdcargo.com/cotizar</strong>: ya está deployada (v1, sujeta a ajustes del equipo)</li>
+      </ul>
+      <div class="note green" style="margin-top:14px"><strong>✓ Disclaimer del sitio:</strong> "Tarifa de referencia, cotización final por WhatsApp en 24 hs". Esto nos protege legalmente y permite ajustes caso a caso.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ PARTE 1 -->
+<section class="slide" id="parte1">
+  <div class="wrap">
+    <span class="eyebrow">Parte 1</span>
+    <h2 style="margin-top:8px">Estudio del transporte nacional venezolano.</h2>
+    <p style="font-size:17px;color:var(--grey-700);margin-top:14px;max-width:60ch">Antes de cobrar nada, había que entender cómo cobra el mercado. Esto es lo que encontramos en 15 búsquedas web + análisis de 4 fuentes principales.</p>
+
+    <h3 style="margin-top:32px">Hallazgo #1 — No existe tabulador oficial del gobierno</h3>
+    <div class="card">
+      <p>El <strong>INTT</strong> (Instituto Nacional de Transporte Terrestre) regula PASAJEROS y registra operadores de carga (ROTC), pero <strong>NO fija tarifas de flete de mercancía</strong>. Las únicas tarifas en Gaceta Oficial (43.335, marzo 2026) son de pasaje urbano y suburbano.</p>
+      <div class="note"><strong>Implicación:</strong> El mercado de fletes de carga en VZLA es <strong>libre mercado + gremial</strong>. Hay dos fuerzas: las cámaras de transporte (Cobra Justo, Frente de Volqueteros) y las empresas comerciales privadas (Fletes GAG, MRW, TEALCA).</div>
+    </div>
+
+    <h3 style="margin-top:24px">Hallazgo #2 — Dos modelos coexisten en el mercado</h3>
+    <div class="grid-2" style="margin-top:14px">
+      <div class="card">
+        <span class="eyebrow">Modelo A — Gremial / FCL</span>
+        <h4 style="margin-top:8px;font-size:18px">Cobra lo Justo</h4>
+        <p style="font-size:14px;color:var(--grey-700)">Tabulador por contenedor completo (20 ton) desde Pto Cabello. Precio fijo total por ruta. Usado por camioneros independientes y volqueteros.</p>
+        <pre>Pto Cabello → Caracas    USD 1.300
+Pto Cabello → Maracaibo  USD 2.564
+Pto Cabello → Pto Ordaz  USD 4.025</pre>
+      </div>
+      <div class="card">
+        <span class="eyebrow">Modelo B — Comercial / LCL</span>
+        <h4 style="margin-top:8px;font-size:18px">Fletes GAG</h4>
+        <p style="font-size:14px;color:var(--grey-700)">Tarifa USD/kg por zona y tramo de peso. 4 PDFs origen (Maracay, Caracas, Pto Ordaz, Coro). Vigencia 01-may-2026.</p>
+        <pre>11 zonas × 33 tramos de peso
+Ejemplo zona 3 (Caracas):
+  100 kg = $1.00/kg = $100 base</pre>
+      </div>
+    </div>
+    <div class="note green" style="margin-top:14px">DTD trae carga internacional (LCL típicamente). Modelo B encaja mejor con nuestro caso. <strong>Decisión:</strong> usamos Fletes GAG como base + agregamos margen DTD.</div>
+
+    <h3 style="margin-top:32px">Hallazgo #3 — Metodología universal del flete</h3>
+    <div class="card card-ink">
+      <h4 style="font-size:16px;color:#fff">La fórmula del flete terrestre en VZLA</h4>
+      <div class="ec">peso_volumétrico = volumen_m³ × 200 (kg/m³)
+peso_facturable = MAX(peso_real, peso_volumétrico)
+flete_base       = peso_facturable × tarifa(zona, tramo)
+total_USD        = flete_base + FPO 6% + seguro 3% + IVA 16%</div>
+      <p style="color:rgba(255,255,255,0.75);font-size:13.5px;margin-top:14px">El <strong>factor 200 kg/m³</strong> es estándar para transporte terrestre nacional venezolano (Fletes GAG lo usa). Para terrestre internacional es 333. Para aéreo 167. Marítimo LCL 1000.</p>
+    </div>
+
+    <h3 style="margin-top:32px">Hallazgo #4 — Las zonas son convención de cada empresa</h3>
+    <p style="font-size:15px;color:var(--grey-700)">No existe una zonificación oficial. Cada empresa arma su clasificación según distancia desde su sede. <strong>DTD también puede tener la suya</strong> — y eso fue parte de las decisiones que validamos con el equipo (ver decisión #1 abajo).</p>
+
+    <h3 style="margin-top:32px">Resumen — Fuentes consultadas</h3>
+    <table>
+      <thead><tr><th>Fuente</th><th>Tipo</th><th>Vigencia</th><th>Confiabilidad</th></tr></thead>
+      <tbody>
+      <tr><td>Fletes GAG (4 PDFs)</td><td>Comercial privada</td><td>01-may-2026</td><td>★★★★★ alta (PDFs originales)</td></tr>
+      <tr><td>Cobra lo Justo (video)</td><td>Gremial</td><td>Indeterminada</td><td>★★★ media (video baja res)</td></tr>
+      <tr><td>TEALCA</td><td>Comercial privada</td><td>08-ene-2026</td><td>★★★★ alta (web actualizada)</td></tr>
+      <tr><td>MRW Venezuela</td><td>Comercial / calculadora</td><td>Online dinámico</td><td>★★★ media (sin tarifario público)</td></tr>
+      <tr><td>INTT</td><td>Oficial regulador</td><td>—</td><td>N/A (no regula cargas)</td></tr>
+      <tr><td>DHL VE (metodología)</td><td>Internacional</td><td>—</td><td>★★★★★ educación validada</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============================================================ PARTE 2 -->
+<section class="slide" id="parte2">
+  <div class="wrap">
+    <span class="eyebrow">Parte 2</span>
+    <h2 style="margin-top:8px">Cómo combinamos CBM internacional + terrestre VZLA.</h2>
+    <p style="font-size:17px;color:var(--grey-700);margin-top:14px;max-width:65ch">DTD ya tiene servicio CBM China → Venezuela. Lo nuevo es el "último km" terrestre. La pregunta clave: <strong>¿el cliente paga 2 veces el casco central o ya está incluido en el CBM?</strong></p>
+
+    <div class="grid-2" style="margin-top:32px">
+      <div class="card">
+        <span class="eyebrow">Servicio existente</span>
+        <h4 style="margin-top:8px">CBM China → VZLA</h4>
+        <p style="font-size:14px;color:var(--grey-700)">Carga internacional consolidada. La carga llega a Puerto Cabello (o La Guaira). El cliente la recibe en nuestra sede de Valencia o en alguna ciudad del corredor cercano (Maracay, Guacara, etc.).</p>
+        <p style="font-size:13px;color:var(--grey-500);margin-top:6px"><strong>Casco central:</strong> ya está pagado en el flete internacional.</p>
+      </div>
+      <div class="card">
+        <span class="eyebrow">Servicio nuevo</span>
+        <h4 style="margin-top:8px">Transporte terrestre VZLA</h4>
+        <p style="font-size:14px;color:var(--grey-700)">El cliente quiere que entreguemos en otra ciudad (Caracas, Maracaibo, Barquisimeto, etc.). Aquí entran 3 escenarios distintos según si tiene CBM activo o no.</p>
+        <p style="font-size:13px;color:var(--grey-500);margin-top:6px"><strong>Decisión:</strong> 3 modos de cotización (ver decisión #4 y #5 abajo).</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:32px">Los 3 escenarios de cotización</h3>
+    <div class="card">
+      <table>
+        <thead><tr><th>Escenario</th><th>Cliente</th><th>Destino</th><th>Fórmula</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong style="color:var(--ink)">A · Solo terrestre</strong></td>
+            <td>SIN envío CBM</td>
+            <td>Cualquiera</td>
+            <td><code>flete = peso × tarifa × 1.15</code></td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--success)">B · CBM + casco</strong></td>
+            <td>CON envío CBM activo</td>
+            <td>DENTRO del casco</td>
+            <td><code>flete = $0</code> (incluido)</td>
+          </tr>
+          <tr>
+            <td><strong style="color:var(--warning)">C · CBM + lejos</strong></td>
+            <td>CON envío CBM activo</td>
+            <td>FUERA del casco</td>
+            <td><code>flete = (peso × tarifa zona_dest × 1.15) − (peso × tarifa zona 1 × 1.15)</code></td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="note green" style="margin-top:14px"><strong>La idea operativa:</strong> el CBM cubre solo el "casco central" (el corredor donde DTD ya transita con camión propio). Para destinos lejos, se necesita coordinar con transportistas de terceros — por eso se cobra el diferencial.</div>
+    </div>
+
+    <h3 style="margin-top:32px">El casco central — 9 destinos cubiertos por CBM</h3>
+    <div class="card card-ink">
+      <p style="color:rgba(255,255,255,0.85);font-size:14px">Estos destinos están <strong>incluidos sin costo extra</strong> si el cliente tiene CBM activo:</p>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px">
+        <div style="background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">Valencia (sede)</div>
+        <div style="background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">Puerto Cabello</div>
+        <div style="background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">Maracay</div>
+        <div style="background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">Mariara</div>
+        <div style="background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">Guacara</div>
+        <div style="background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">San Joaquín</div>
+        <div style="background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">Naguanagua</div>
+        <div style="background:rgba(255,255,255,0.06);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">Ciudad Alianza</div>
+        <div style="background:rgba(127,15,26,0.5);padding:10px 14px;border-radius:8px;color:#fff;font-weight:600;font-size:14px">Caracas (parte central)*</div>
+      </div>
+      <p style="color:rgba(255,255,255,0.55);font-size:12px;margin-top:14px">*Caracas se incluyó por decisión específica de DTD (pedido del equipo). El resto son los 8 destinos zona 1 que están a menos de 80km de Valencia.</p>
+    </div>
+
+    <h3 style="margin-top:32px">Ejemplo concreto — 100 kg Valencia → Maracaibo</h3>
+    <div id="ejemplo-comparacion-modos" class="card"></div>
+  </div>
+</section>
+
+<!-- ============================================================ DECISIONES -->
+<section class="slide" id="decisiones">
+  <div class="wrap">
+    <span class="eyebrow">Decisiones tomadas</span>
+    <h2 style="margin-top:8px">8 decisiones clave — interactivas.</h2>
+    <p style="font-size:17px;color:var(--grey-700);margin-top:14px;max-width:65ch">Cada decisión muestra <strong>la opción elegida</strong> (con ★) y <strong>las alternativas</strong> que NO se eligieron. Si tu equipo cree que deberíamos cambiar algo, abrí esa otra opción y la recalculadora muestra qué pasaría.</p>
+  </div>
+</section>
+
+<!-- DECISION 1 — Origen base -->
+<section class="slide" id="d1">
+  <div class="wrap">
+    <div class="decision">
+      <div class="decision-header"><span class="num">1</span><span class="q">¿Cuál es el origen base operativo para el cálculo del flete terrestre?</span></div>
+      <div class="decision-body">
+        <div class="decision-tabs" data-tabs="d1">
+          <button class="active chosen" data-tab="d1-a">Valencia (elegido)</button>
+          <button data-tab="d1-b">Puerto Cabello</button>
+          <button data-tab="d1-c">Maracay</button>
+        </div>
+        <div class="decision-content active" id="d1-a">
+          <span class="chosen-badge">✓ Decisión final</span>
+          <h4>Valencia como origen — la sede DTD coordina todo</h4>
+          <p>Aunque la carga llega físicamente a Puerto Cabello (50km de Valencia), <strong>todas las operaciones de transporte interno se coordinan desde la oficina de Valencia</strong>. Es donde está el equipo, la flota propia y los contactos con transportistas terceros.</p>
+          <p>El mapa de zonas que armamos toma Valencia como punto 0 y calcula distancia/zona desde ahí.</p>
+          <div class="calc" id="d1-calc-valencia">
+            <h5>🧮 Mini-calc: ver tarifa desde Valencia</h5>
+            <div class="calc-inputs">
+              <label>Destino<select data-calc-target="d1cv-dest"><option>Caracas</option><option>Maracaibo</option><option>Barquisimeto</option><option>Pto Ordaz</option></select></label>
+              <label>Peso (kg)<input type="number" value="100" data-calc-target="d1cv-peso" /></label>
+            </div>
+            <div class="calc-result" id="d1cv-result"></div>
+          </div>
+        </div>
+        <div class="decision-content" id="d1-b">
+          <span class="alt-badge">⚠ Alternativa no elegida</span>
+          <h4>Puerto Cabello como origen</h4>
+          <p>Era mi propuesta original (porque ahí llega físicamente la carga). <strong>Sam corrigió:</strong> el origen debe ser Valencia, donde está la sede operativa de DTD.</p>
+          <p><strong>Si hubiéramos elegido Puerto Cabello:</strong></p>
+          <ul class="bullets">
+            <li>El mapa de zonas sería ligeramente distinto (Pto Cabello está al norte de Valencia)</li>
+            <li>El casco central no incluiría Valencia como "zona 1" naturalmente — sería una decisión aparte</li>
+            <li>El cliente cotizando "Valencia → Caracas" tendría que entender que se calcula como "Pto Cabello → Caracas + tramo Pto Cabello-Valencia"</li>
+          </ul>
+          <div class="note red"><strong>Por qué no se eligió:</strong> Valencia es donde está el equipo, la flota y los contactos. Físicamente sería origen Pto Cabello pero operativamente todo pasa por Valencia.</div>
+        </div>
+        <div class="decision-content" id="d1-c">
+          <span class="alt-badge">⚠ Alternativa no considerada explícitamente</span>
+          <h4>Maracay como origen</h4>
+          <p>Maracay tiene su propio PDF de Fletes GAG (es uno de los 4 que descargamos). Está a 80km de Valencia y es centro logístico importante.</p>
+          <p><strong>Si tuviéramos sede en Maracay:</strong></p>
+          <ul class="bullets">
+            <li>Zonas distintas (Caracas pasaría a estar más cerca, Maracaibo igual de lejos)</li>
+            <li>Casco central probablemente incluiría Cagua, Turmero, San Mateo (suburbios de Maracay)</li>
+            <li>Pto Cabello pasaría a ser "zona 2-3" (más lejos)</li>
+          </ul>
+          <div class="note"><strong>Lo dejamos como opcional en la calc:</strong> el dropdown de orígenes incluye Maracay para clientes que tengan su sede ahí.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISION 2 — Multiplicador DTD -->
+<section class="slide" id="d2">
+  <div class="wrap">
+    <div class="decision">
+      <div class="decision-header"><span class="num">2</span><span class="q">¿Qué margen agrega DTD sobre la tarifa Fletes GAG?</span></div>
+      <div class="decision-body">
+        <div class="decision-tabs" data-tabs="d2">
+          <button data-tab="d2-a">1.0x (paridad)</button>
+          <button class="active chosen" data-tab="d2-b">1.15x +15% (elegido)</button>
+          <button data-tab="d2-c">1.25x +25%</button>
+          <button data-tab="d2-d">Variable por zona</button>
+        </div>
+        <div class="decision-content" id="d2-a">
+          <span class="alt-badge">⚠ Alternativa: sin margen</span>
+          <h4>Multiplicador 1.0× — paridad con el mercado</h4>
+          <p>DTD cobraría exactamente lo que cobra Fletes GAG. Sin margen comercial en el terrestre.</p>
+          <p><strong>Pro</strong>: el más competitivo de todos. Cliente paga lo mismo que en MRW/Fletes GAG.</p>
+          <p><strong>Contra</strong>: DTD trabaja gratis en este servicio (no cubre coordinación, gestión, seguro propio).</p>
+          <div class="calc" id="d2a-calc">
+            <h5>🧮 Comparación 100 kg Valencia → Caracas</h5>
+            <div id="d2a-result"></div>
+          </div>
+        </div>
+        <div class="decision-content active" id="d2-b">
+          <span class="chosen-badge">✓ Decisión final</span>
+          <h4>Multiplicador 1.15× — margen +15%</h4>
+          <p>Razonable para cubrir <strong>coordinación, seguro, gestión y comunicación con el cliente</strong>. Compite con MRW/Domesa pero deja margen para DTD.</p>
+          <div class="calc">
+            <h5>🧮 Sliding del multiplicador — ver el impacto</h5>
+            <div class="calc-inputs">
+              <label>Multiplicador<input type="range" min="1" max="1.5" step="0.05" value="1.15" data-calc-target="d2-mult" oninput="this.parentElement.querySelector('.v').textContent=Number(this.value).toFixed(2)+'×'" /><span class="v" style="font-family:'Archivo Black';color:var(--wine);margin-top:4px">1.15×</span></label>
+              <label>Peso (kg)<input type="number" value="100" data-calc-target="d2-peso" /></label>
+              <label>Destino<select data-calc-target="d2-dest"><option>Caracas</option><option>Maracaibo</option><option>Maturin</option><option>San Cristobal</option></select></label>
+            </div>
+            <div class="calc-result" id="d2-result"></div>
+          </div>
+        </div>
+        <div class="decision-content" id="d2-c">
+          <span class="alt-badge">⚠ Alternativa más agresiva</span>
+          <h4>Multiplicador 1.25× — margen +25%</h4>
+          <p>Más caro que el mercado pero justificable por el valor agregado del "todo incluido China + último km en una sola operación".</p>
+          <p><strong>Pro</strong>: mayor margen para DTD, cubre cualquier sobrecosto operativo.</p>
+          <p><strong>Contra</strong>: el cliente puede comparar con MRW directamente y elegir transportar él mismo desde Valencia.</p>
+          <div class="calc" id="d2c-calc">
+            <h5>🧮 Comparación contra el actual (1.15×)</h5>
+            <div id="d2c-result"></div>
+          </div>
+        </div>
+        <div class="decision-content" id="d2-d">
+          <span class="alt-badge">⚠ Alternativa más sofisticada</span>
+          <h4>Multiplicador variable por zona</h4>
+          <p>1.0× zona 1-2 (cerca, competitivo) · 1.15× zona 3-5 (medio) · 1.25× zona 6-11 (lejos, requiere más coordinación).</p>
+          <p><strong>Pro</strong>: refleja el costo operativo real — coordinar Maracaibo es más caro que coordinar Maracay.</p>
+          <p><strong>Contra</strong>: más complejo de explicar al cliente. Más fácil que el equipo se equivoque.</p>
+          <div class="note">Si el equipo cree que esta es la mejor opción, en el código solo cambiamos <code>MULTIPLICADOR_DTD_DEFAULT</code> por una función <code>obtenerMultiplicador(zona)</code>. 30 minutos de trabajo.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISION 3 — Casco central -->
+<section class="slide" id="d3">
+  <div class="wrap">
+    <div class="decision">
+      <div class="decision-header"><span class="num">3</span><span class="q">¿Qué destinos están "incluidos" en el flete CBM (casco central)?</span></div>
+      <div class="decision-body">
+        <div class="decision-tabs" data-tabs="d3">
+          <button class="active chosen" data-tab="d3-a">8 zona 1 + Caracas (elegido)</button>
+          <button data-tab="d3-b">Solo VLC + Pto Cabello + Maracay</button>
+          <button data-tab="d3-c">Solo VLC + Pto Cabello</button>
+        </div>
+        <div class="decision-content active" id="d3-a">
+          <span class="chosen-badge">✓ Decisión final</span>
+          <h4>9 destinos: zona 1 completa + Caracas parte central</h4>
+          <p>Valencia, Pto Cabello, Maracay, Mariara, Guacara, San Joaquín, Naguanagua, Ciudad Alianza, <strong>+ Caracas</strong>.</p>
+          <p>Caracas fue pedido específico de DTD (parte central) — porque el equipo ya tiene rutas regulares hacia ahí con clientes existentes.</p>
+          <div class="calc">
+            <h5>🧮 Total para 100 kg con CBM activo</h5>
+            <div class="calc-inputs">
+              <label>Destino<select data-calc-target="d3-dest"><option>Maracay</option><option>Caracas</option><option>Barquisimeto</option><option>Maracaibo</option></select></label>
+            </div>
+            <div class="calc-result" id="d3-result"></div>
+          </div>
+        </div>
+        <div class="decision-content" id="d3-b">
+          <span class="alt-badge">⚠ Alternativa más conservadora</span>
+          <h4>Solo 3 destinos: Valencia + Pto Cabello + Maracay</h4>
+          <p>Menos destinos cubiertos por CBM. Más estricto.</p>
+          <p><strong>Pro</strong>: DTD se compromete a menos. Solo donde garantiza camión propio.</p>
+          <p><strong>Contra</strong>: cliente que recibe en Mariara o Guacara (que están al lado de Valencia) sentiría que "no es justo cobrarle aparte por 10 km".</p>
+          <div class="note red">El equipo de transporte debería confirmar: ¿realmente coordinamos Mariara/Guacara con el mismo viaje del puerto? Si la respuesta es sí, mantener los 9 destinos. Si no, achicar a 3.</div>
+        </div>
+        <div class="decision-content" id="d3-c">
+          <span class="alt-badge">⚠ Alternativa muy conservadora</span>
+          <h4>Solo 2 destinos: Valencia + Pto Cabello</h4>
+          <p>El cliente solo tiene "incluido" si recibe en Valencia o Pto Cabello. Cualquier otra ciudad (incluso Maracay a 80km) se cobra.</p>
+          <p><strong>Pro</strong>: cero riesgo de cobrar de menos.</p>
+          <p><strong>Contra</strong>: poco competitivo. Maracay queda en zona 1 según el mapa pero igual paga — el cliente lo percibirá como contradictorio.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISION 4 — Descuento parcial -->
+<section class="slide" id="d4">
+  <div class="wrap">
+    <div class="decision">
+      <div class="decision-header"><span class="num">4</span><span class="q">Cliente con CBM va a destino FUERA del casco — ¿qué descuento aplicamos?</span></div>
+      <div class="decision-body">
+        <div class="decision-tabs" data-tabs="d4">
+          <button data-tab="d4-a">Sin descuento (cobra todo)</button>
+          <button class="active chosen" data-tab="d4-b">Descuento parcial (elegido)</button>
+          <button data-tab="d4-c">Decisión del asesor</button>
+        </div>
+        <div class="decision-content" id="d4-a">
+          <span class="alt-badge">⚠ Alternativa estricta</span>
+          <h4>Sin descuento — cobra 100% del trayecto</h4>
+          <p>Cliente con CBM que va a Barquisimeto paga el flete completo Valencia → Barquisimeto, sin reconocer que el casco central ya está cubierto.</p>
+          <p><strong>Pro</strong>: simple de explicar, mayor margen DTD.</p>
+          <p><strong>Contra</strong>: el cliente puede sentirse "doble cobrado" — ya pagó casco en el CBM y ahora paga casco otra vez como parte de Valencia → Barquisimeto.</p>
+          <div class="calc" id="d4a-calc">
+            <h5>🧮 100 kg Valencia → Maracaibo · sin descuento</h5>
+            <div id="d4a-result"></div>
+          </div>
+        </div>
+        <div class="decision-content active" id="d4-b">
+          <span class="chosen-badge">✓ Decisión final</span>
+          <h4>Descuento parcial — restar el "tramo casco" ya cubierto</h4>
+          <p>Si el cliente va a Maracaibo (zona 5), restamos del total lo que costaría calcular zona 1 — porque ese tramo ya está pagado en el CBM.</p>
+          <div class="ec">flete_neto = (peso × tarifa_zona_destino × 1.15) − (peso × tarifa_zona_1 × 1.15)</div>
+          <p>Esto es <strong>matemáticamente justo</strong>: el cliente paga solo el diferencial del trayecto que NO está en el casco.</p>
+          <div class="calc">
+            <h5>🧮 Comparación: con vs sin descuento</h5>
+            <div class="calc-inputs">
+              <label>Destino<select data-calc-target="d4-dest"><option>Maracaibo</option><option>Barquisimeto</option><option>Caracas</option><option>San Cristobal</option></select></label>
+              <label>Peso (kg)<input type="number" value="100" data-calc-target="d4-peso" /></label>
+            </div>
+            <div class="calc-result" id="d4-result"></div>
+          </div>
+        </div>
+        <div class="decision-content" id="d4-c">
+          <span class="alt-badge">⚠ Alternativa "humana"</span>
+          <h4>Decisión del asesor caso a caso</h4>
+          <p>La calc muestra el monto completo + nota "si tenés CBM con nosotros, consultá por descuento por WhatsApp". El asesor decide.</p>
+          <p><strong>Pro</strong>: máxima flexibilidad comercial. El asesor puede dar más descuento a clientes grandes.</p>
+          <p><strong>Contra</strong>: inconsistencia entre asesores. Cliente confundido.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISION 5 — UX 3 modos -->
+<section class="slide" id="d5">
+  <div class="wrap">
+    <div class="decision">
+      <div class="decision-header"><span class="num">5</span><span class="q">¿Cómo declara el cliente en la web si tiene CBM activo?</span></div>
+      <div class="decision-body">
+        <div class="decision-tabs" data-tabs="d5">
+          <button data-tab="d5-a">Checkbox simple</button>
+          <button class="active chosen" data-tab="d5-b">Toggle 3 estados (elegido)</button>
+          <button data-tab="d5-c">Auto-detección</button>
+          <button data-tab="d5-d">2 columnas siempre</button>
+        </div>
+        <div class="decision-content" id="d5-a">
+          <span class="alt-badge">⚠ Alternativa más simple</span>
+          <h4>Checkbox: "¿Tenés envío CBM con nosotros?"</h4>
+          <p>Una sola pregunta SI/NO. Si marca SÍ, la calc decide internamente si aplica casco o lejos según el destino.</p>
+          <p><strong>Pro</strong>: la opción más sencilla para el cliente.</p>
+          <p><strong>Contra</strong>: el cliente no entiende por qué a veces sale gratis y a veces no. Menos educativo.</p>
+        </div>
+        <div class="decision-content active" id="d5-b">
+          <span class="chosen-badge">✓ Decisión final</span>
+          <h4>3 radio buttons: Solo terrestre / CBM + casco / CBM + lejos</h4>
+          <p>El cliente declara explícitamente su caso. La calc valida coherencia (si elige "casco" pero destino es lejos, fallback automático con warning).</p>
+          <p><strong>Pro</strong>: cliente entiende exactamente qué se le está cobrando.</p>
+          <p><strong>Contra</strong>: un poco más de fricción inicial (3 opciones que leer vs 1 checkbox).</p>
+          <div class="note green"><strong>Cómo se ve en producción:</strong> 3 cards horizontales con título + subtítulo. La elegida se pinta en wine. Click cualquiera → la calc se recalcula al instante.</div>
+        </div>
+        <div class="decision-content" id="d5-c">
+          <span class="alt-badge">⚠ Alternativa "mágica"</span>
+          <h4>Auto-detectar según el form internacional arriba</h4>
+          <p>Si el cliente llenó el form China→VZLA, asumimos que tiene CBM. Si solo usó la calc del último km, asumimos que no.</p>
+          <p><strong>Pro</strong>: menos pasos para el usuario.</p>
+          <p><strong>Contra</strong>: rompedora silenciosa. Cliente puede llenar el internacional "exploratorio" sin haber contratado el CBM, y la calc le da descuento que no le corresponde.</p>
+        </div>
+        <div class="decision-content" id="d5-d">
+          <span class="alt-badge">⚠ Alternativa más educativa</span>
+          <h4>Mostrar 2 columnas: "sin CBM" y "con CBM"</h4>
+          <p>La calc muestra ambos números siempre. El cliente ve la diferencia y entiende el valor agregado del CBM.</p>
+          <p><strong>Pro</strong>: ventaja comercial visible. Refuerza el upsell del servicio CBM.</p>
+          <p><strong>Contra</strong>: más complejo visualmente. Puede confundir si el cliente no conoce CBM.</p>
+          <div class="note">Esta opción es <strong>excelente como evolución</strong> para v2 de la calculadora. Por ahora arrancamos con los 3 estados explícitos.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISION 6 — Form -->
+<section class="slide" id="d6">
+  <div class="wrap">
+    <div class="decision">
+      <div class="decision-header"><span class="num">6</span><span class="q">¿La calc terrestre va en /cotizar (con el internacional) o en su propia página?</span></div>
+      <div class="decision-body">
+        <div class="decision-tabs" data-tabs="d6">
+          <button class="active chosen" data-tab="d6-a">Sección nueva en /cotizar (elegido)</button>
+          <button data-tab="d6-b">Página aparte /cotizar-terrestre</button>
+          <button data-tab="d6-c">Reemplazar form actual</button>
+        </div>
+        <div class="decision-content active" id="d6-a">
+          <span class="chosen-badge">✓ Decisión final</span>
+          <h4>Sección nueva al final de /cotizar (opcional)</h4>
+          <p>El cliente completa el form internacional + ve abajo, claramente separado, la calc del último km. Sin obligación de usarla.</p>
+          <p><strong>Por qué funciona</strong>: el cliente que viene a cotizar internacional ya tiene mentalmente el envío en mente. Mostrar terrestre ahí mismo le ahorra navegación.</p>
+        </div>
+        <div class="decision-content" id="d6-b">
+          <span class="alt-badge">⚠ Alternativa: ruta separada</span>
+          <h4>/cotizar-terrestre como página propia</h4>
+          <p><strong>Pro</strong>: el cotizador internacional queda enfocado. Hay link explícito en nav.</p>
+          <p><strong>Contra</strong>: el cliente que quiere ambos servicios tiene que navegar 2 páginas. Menor visibilidad del terrestre.</p>
+          <div class="note">Si en el futuro el terrestre crece como servicio independiente (no atado al CBM), mover a ruta propia tiene sentido.</div>
+        </div>
+        <div class="decision-content" id="d6-c">
+          <span class="alt-badge">⚠ Alternativa más ambiciosa</span>
+          <h4>Un solo form unificado</h4>
+          <p>Form único que entiende: internacional + terrestre + combinaciones. UX más complejo pero menos clicks.</p>
+          <div class="note red">Requiere rediseño completo. No es por ahora — quizás v3 cuando tengamos datos de cómo usan los clientes la versión actual.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISION 7 — Validador del mapa -->
+<section class="slide" id="d7">
+  <div class="wrap">
+    <div class="decision">
+      <div class="decision-header"><span class="num">7</span><span class="q">¿Quién valida el mapa de zonas Valencia DTD?</span></div>
+      <div class="decision-body">
+        <div class="decision-tabs" data-tabs="d7">
+          <button data-tab="d7-a">Solo Sam</button>
+          <button class="active chosen" data-tab="d7-b">Sam + equipo operaciones (elegido)</button>
+          <button data-tab="d7-c">Validar en uso</button>
+        </div>
+        <div class="decision-content" id="d7-a">
+          <span class="alt-badge">⚠ Alternativa más rápida</span>
+          <h4>Sam revisa solo y aprueba</h4>
+          <p><strong>Pro</strong>: decisión rápida, sin coordinación.</p>
+          <p><strong>Contra</strong>: el conocimiento operativo real está distribuido — el equipo de transporte sabe mejor qué cuesta cada ruta.</p>
+        </div>
+        <div class="decision-content active" id="d7-b">
+          <span class="chosen-badge">✓ Decisión final</span>
+          <h4>Sesión colaborativa Sam + equipo operaciones</h4>
+          <p>Para esta presentación. El equipo de transporte (que coordina camiones reales) valida cada zona basado en costos reales que pagan.</p>
+          <div class="note green"><strong>Esta presentación es la herramienta</strong> para hacer esa validación. Si el equipo dice "Caracas debería estar en zona 4 no 3", lo cambiamos en 1 línea de código.</div>
+        </div>
+        <div class="decision-content" id="d7-c">
+          <span class="alt-badge">⚠ Alternativa empírica</span>
+          <h4>Validamos en uso — primera cotización real es el test</h4>
+          <p>Lanzamos con el mapa actual. El primer cliente que cotice algo "raro" (precio muy distinto al real) activa el ajuste.</p>
+          <p><strong>Pro</strong>: validación real con dinero real.</p>
+          <p><strong>Contra</strong>: se puede generar fricción con el primer cliente que se sienta mal cotizado.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DECISION 8 — Ubicación presentación -->
+<section class="slide" id="d8">
+  <div class="wrap">
+    <div class="decision">
+      <div class="decision-header"><span class="num">8</span><span class="q">¿Dónde queda esta presentación para el equipo?</span></div>
+      <div class="decision-body">
+        <div class="decision-tabs" data-tabs="d8">
+          <button class="active chosen" data-tab="d8-a">Standalone interno (elegido)</button>
+          <button class="active chosen" data-tab="d8-b">Ruta protegida del sitio (elegido)</button>
+          <button data-tab="d8-c">Pagina pública</button>
+          <button data-tab="d8-d">Doble entrega</button>
+        </div>
+        <div class="decision-content active" id="d8-a">
+          <span class="chosen-badge">✓ Decisión final · 1 de 2</span>
+          <h4>Archivo HTML standalone en _handoff_preview/</h4>
+          <p>Este archivo que estás viendo. Vive en <code>_handoff_preview/transporte-cbm-china-venezuela/index.html</code> — NO se sube al sitio público. Lo compartís por email/WhatsApp/Drive con tu equipo.</p>
+          <p><strong>Cuándo usar</strong>: para llevar a la reunión. Funciona offline.</p>
+        </div>
+        <div class="decision-content active" id="d8-b">
+          <span class="chosen-badge">✓ Decisión final · 2 de 2</span>
+          <h4>Ruta protegida del sitio: /admin/cbm-estudio</h4>
+          <p>El mismo contenido pero accesible online via dtdcargo.com/admin/cbm-estudio. Protegida con env var o token simple.</p>
+          <p><strong>Cuándo usar</strong>: para que el equipo lo vea desde su PC sin necesidad de mandar archivo.</p>
+          <div class="note">La ruta protegida se crea en una sesión posterior — requiere decidir el método de protección (env var, query string token, NextAuth).</div>
+        </div>
+        <div class="decision-content" id="d8-c">
+          <span class="alt-badge">⚠ Alternativa transparente</span>
+          <h4>Página pública /metodologia-flete</h4>
+          <p><strong>Pro</strong>: marketing — clientes ven cómo trabajamos.</p>
+          <p><strong>Contra</strong>: competidores ven nuestro multiplicador, fuentes, descuentos. Información de negocio expuesta.</p>
+        </div>
+        <div class="decision-content" id="d8-d">
+          <span class="alt-badge">⚠ Alternativa "ambas"</span>
+          <h4>Versión completa interna + versión simplificada pública</h4>
+          <p>2 archivos. La pública saca multiplicadores, sólo muestra metodología y fuentes.</p>
+          <p>Sería el siguiente paso después de validar internamente.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ PROXIMOS -->
+<section class="slide" id="proximos">
+  <div class="wrap">
+    <span class="eyebrow">Próximos pasos</span>
+    <h2 style="margin-top:8px">Qué queda por validar y mejorar.</h2>
+
+    <div class="grid-2" style="margin-top:32px">
+      <div class="card">
+        <span class="audience-pill transporte">🚛 Operaciones</span>
+        <h4 style="margin-top:8px">Validación zona por zona</h4>
+        <p style="font-size:14px;color:var(--grey-700)">El equipo de transporte revisa el mapa actual y propone ajustes. ¿Caracas debería ser zona 3 o 4? ¿Maturín 6 o 7? Cada cambio se aplica en <code>lib/data/tarifas-terrestres-vzla.ts</code>.</p>
+      </div>
+      <div class="card">
+        <span class="audience-pill logistica">🚚 Logística China</span>
+        <h4 style="margin-top:8px">Confirmar factor volumétrico</h4>
+        <p style="font-size:14px;color:var(--grey-700)">Hoy usamos <strong>200 kg/m³</strong> para el terrestre (estándar Fletes GAG). Si la operación China-VZLA usa otro factor para el CBM internacional, hay que documentarlo claramente para no confundir al cliente.</p>
+      </div>
+      <div class="card">
+        <span class="audience-pill admin">📊 Administración</span>
+        <h4 style="margin-top:8px">Aprobar multiplicador 1.15×</h4>
+        <p style="font-size:14px;color:var(--grey-700)">Decidir si el +15% es razonable o se ajusta. Posibilidad: empezar con 1.15× y revisar trimestralmente según los cierres reales con clientes.</p>
+      </div>
+      <div class="card">
+        <span class="audience-pill transporte">🚛 Operaciones</span>
+        <h4 style="margin-top:8px">Tarifas de retorno (negociación viva)</h4>
+        <p style="font-size:14px;color:var(--grey-700)">La calc cobra la zona "ida". Si el equipo consigue un camión de retorno (Caracas → Valencia), el costo real puede ser menor — eso es margen extra para DTD o descuento para el cliente.</p>
+      </div>
+    </div>
+
+    <div class="card card-ink" style="margin-top:32px">
+      <h3 style="color:#fff">Plan de actualización trimestral</h3>
+      <ul class="bullets" style="color:rgba(255,255,255,0.85)">
+        <li>Cada 3 meses: revisar Fletes GAG (4 PDFs)</li>
+        <li>Trigger urgente: devaluación bolívar &gt; 20% O subida gasoil &gt; 15%</li>
+        <li>Responsable interno por definir</li>
+        <li>Cambios se aplican en 1 archivo del código + push a git → live en 2 minutos</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ FUENTES -->
+<section class="slide" id="fuentes">
+  <div class="wrap">
+    <span class="eyebrow">Anexo</span>
+    <h2 style="margin-top:8px">Fuentes consultadas y ecuaciones.</h2>
+
+    <h3 style="margin-top:24px">Ecuaciones completas</h3>
+    <div class="card card-ink">
+      <div class="ec">// Peso facturable
+peso_volumétrico = volumen_m³ × 200 (kg/m³)
+peso_facturable  = MAX(peso_real, peso_volumétrico)
+
+// Modo A — Solo terrestre (sin CBM)
+flete_base       = peso_facturable × tarifa(zona_destino) × 1.15
+FPO              = flete_base × 0.06
+seguro           = valor_declarado × 0.03  (si valor > 0)
+subtotal         = flete_base + FPO + seguro
+IVA              = subtotal × 0.16
+total            = subtotal + IVA
+
+// Modo B — CBM + destino en casco central
+total            = 0  (incluido en CBM)
+
+// Modo C — CBM + destino fuera del casco
+descuento_casco  = peso_facturable × tarifa(zona_1) × 1.15
+flete_neto       = MAX(0, flete_base − descuento_casco)
+FPO              = flete_neto × 0.06
+subtotal         = flete_neto + FPO + seguro
+total            = subtotal × 1.16
+
+// Caso especial: sobre ≤ 1 kg
+flete_base       = USD 6.00 fijo  (independiente del modo)</div>
+    </div>
+
+    <h3 style="margin-top:24px">Fuentes principales</h3>
+    <table>
+      <thead><tr><th>Recurso</th><th>URL / Ubicación</th></tr></thead>
+      <tbody>
+        <tr><td>Fletes GAG — Maracay PDF</td><td><a href="https://fletesgag.com/wp-content/uploads/2021/10/maracay.pdf" target="_blank">fletesgag.com/.../maracay.pdf</a></td></tr>
+        <tr><td>Fletes GAG — Caracas PDF</td><td><a href="https://fletesgag.com/wp-content/uploads/2021/10/caracas.pdf" target="_blank">fletesgag.com/.../caracas.pdf</a></td></tr>
+        <tr><td>Fletes GAG — Pto Ordaz PDF</td><td><a href="https://fletesgag.com/wp-content/uploads/2021/10/puertoordaz.pdf" target="_blank">fletesgag.com/.../puertoordaz.pdf</a></td></tr>
+        <tr><td>Fletes GAG — Coro PDF</td><td><a href="https://fletesgag.com/wp-content/uploads/2021/10/coro.pdf" target="_blank">fletesgag.com/.../coro.pdf</a></td></tr>
+        <tr><td>Cobra lo Justo — video gremial</td><td>Sin URL pública (descargado de Instagram)</td></tr>
+        <tr><td>TEALCA Carga Nacional</td><td><a href="https://www.tealca.com/tarifas-carga-nacional/" target="_blank">tealca.com/tarifas-carga-nacional</a></td></tr>
+        <tr><td>DHL VE — Metodología peso volumétrico</td><td><a href="https://www.dhl.com/ve-es/home/transporte-de-envios/centro-educativo-para-el-transporte-de-carga/calcular-peso-facturable.html" target="_blank">dhl.com/ve-es/.../calcular-peso-facturable</a></td></tr>
+        <tr><td>Excel consolidado interno</td><td><code>_handoff_preview/tarifas-terrestres/tarifario-consolidado-vzla.xlsx</code></td></tr>
+        <tr><td>Calculadora en producción</td><td><a href="https://dtdcargo.com/cotizar" target="_blank">dtdcargo.com/cotizar</a></td></tr>
+        <tr><td>Spec técnico SDD-0002</td><td><code>docs/specs/0002-calculadora-flete-terrestre/spec.md</code></td></tr>
+        <tr><td>Código de la calculadora</td><td><code>lib/calc/fleteTerrestre.ts</code> · <code>lib/data/tarifas-terrestres-vzla.ts</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:32px">Casco central completo</h3>
+    <p>Los 9 destinos cubiertos por el flete CBM:</p>
+    <table>
+      <thead><tr><th>Destino</th><th>Distancia a Valencia</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><td>Valencia</td><td>0 km</td><td>Carabobo (sede)</td></tr>
+        <tr><td>Naguanagua</td><td>~5 km</td><td>Carabobo (suburbio)</td></tr>
+        <tr><td>Guacara</td><td>~10 km</td><td>Carabobo (suburbio)</td></tr>
+        <tr><td>San Joaquín</td><td>~15 km</td><td>Carabobo</td></tr>
+        <tr><td>Ciudad Alianza</td><td>~20 km</td><td>Carabobo</td></tr>
+        <tr><td>Mariara</td><td>~30 km</td><td>Carabobo norte</td></tr>
+        <tr><td>Puerto Cabello</td><td>~50 km</td><td>Carabobo (puerto)</td></tr>
+        <tr><td>Maracay</td><td>~80 km</td><td>Aragua (corredor diario)</td></tr>
+        <tr><td>Caracas</td><td>~170 km</td><td>Distrito Capital (inclusión especial DTD)</td></tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:48px;padding-top:24px;border-top:1px solid var(--grey-200);text-align:center;color:var(--grey-500);font-size:12.5px">
+      DTD-CARGO · Presentación interna · 22 mayo 2026 · v1<br>
+      <em>Generado automáticamente desde <code>_handoff_preview/transporte-cbm-china-venezuela/</code></em>
+    </div>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+/* =============================================================
+   LÓGICA DE CÁLCULO (mismo que en la web pero embebida en HTML)
+============================================================= */
+const FACTOR_VOL = 200;
+const MULT_DTD_DEFAULT = 1.15;
+const FPO = 0.06;
+const SEGURO = 0.03;
+const IVA = 0.16;
+const SOBRE_USD = 6.0;
+
+// Mapa Valencia → zona (subset de los más importantes para los ejemplos)
+const VALENCIA_ZONAS = {
+  "Valencia":1,"Guacara":1,"San Joaquin":1,"Naguanagua":1,"Ciudad Alianza":1,
+  "Mariara":1,"Puerto Cabello":1,"Maracay":1,
+  "Tucacas":2,"Cagua":2,"Turmero":2,"Villa de Cura":2,"San Felipe":2,
+  "Yaritagua":2,"Mamo":2,"Santa Cruz":2,"La Victoria":2,
+  "Chivacoa":3,"Caracas":3,"La Guaira":3,"Maiquetia":3,"Catia La Mar":3,
+  "Caraballeda":3,"San Antonio de Los Altos":3,"Los Teques":3,"Guarenas":3,
+  "Guatire":3,"Barquisimeto":3,"Cabudare":3,"Acarigua":3,"Araure":3,
+  "Coro":3,"Punta Cardon":3,"Punto Fijo":3,
+  "Valles del Tuy":4,"Carora":4,"Turen":4,"Ospino":4,"Guanare":4,
+  "Barcelona":5,"Puerto La Cruz":5,"Lecherias":5,"Guanta":5,"Barinas":5,
+  "Trujillo":5,"Valera":5,"Cabimas":5,"Ciudad Ojeda":5,"Maracaibo":5,
+  "Merida":6,"Ejido":6,"El Vigia":6,"Caja Seca":6,"Sabana de Mendoza":6,
+  "Agua Viva":6,"Barinitas":6,"Maturin":6,"Anaco":6,"El Tigre":6,
+  "El Tigrito":6,"San Mateo (Anzoategui)":6,"Cantaura":6,"San Tome":6,
+  "Santa Barbara del Zulia":6,
+  "San Cristobal":7,"La Fria":7,"Tariba":7,"Colon":7,"Coloncito":7,
+  "Capacho":7,"Puerto Ordaz":7,"San Felix":7,"Ciudad Bolivar":7,
+  "Buena Vista":7,"Unare":7,
+  "Urena":8,"Rubio":8,
+  "Porlamar":11
+};
+
+const CASCO = ["Valencia","Puerto Cabello","Maracay","Mariara","Guacara",
+               "San Joaquin","Naguanagua","Ciudad Alianza","Caracas"];
+
+// Tabla USD/kg por zona × tramo (subset reducido para ejemplos)
+const TARIFA = [
+  [1.01, [3.21,3.34,3.45,3.57,3.70,3.81,3.93,4.05,4.17,4.28,4.41]],
+  [2.01, [3.10,2.98,3.10,3.21,3.34,3.45,3.57,3.70,3.81,3.93,4.05]],
+  [3.01, [2.98,3.10,3.21,3.34,3.45,3.57,3.70,3.81,3.93,4.05,4.17]],
+  [4.01, [2.38,2.50,2.61,2.74,2.86,2.98,3.10,3.21,3.34,3.45,3.57]],
+  [5.01, [2.26,2.38,2.50,2.61,2.74,2.86,2.98,3.10,3.21,3.34,3.45]],
+  [6.01, [2.03,2.14,2.26,2.38,2.50,2.61,2.74,2.86,2.98,3.10,3.21]],
+  [7.01, [1.67,1.79,1.90,2.03,2.14,2.26,2.38,2.50,2.61,2.74,2.86]],
+  [8.01, [1.43,1.54,1.67,1.79,1.90,2.03,2.14,2.26,2.38,2.50,2.61]],
+  [9.01, [1.31,1.43,1.54,1.67,1.79,1.90,2.03,2.14,2.26,2.38,2.52]],
+  [10.01,[1.19,1.31,1.43,1.54,1.67,1.79,1.90,2.03,2.14,2.26,2.38]],
+  [11.01,[1.07,1.18,1.28,1.40,1.50,1.61,1.71,1.83,1.93,2.04,2.14]],
+  [20.01,[1.01,1.11,1.22,1.31,1.42,1.52,1.62,1.72,1.83,1.92,2.03]],
+  [30.01,[0.89,0.99,1.07,1.17,1.25,1.34,1.43,1.52,1.61,1.70,1.79]],
+  [60.01,[0.83,0.91,1.00,1.08,1.17,1.25,1.33,1.42,1.50,1.59,1.67]],
+  [100.01,[0.69,0.76,0.83,0.90,0.97,1.04,1.10,1.18,1.24,1.31,1.39]],
+  [200.01,[0.65,0.72,0.79,0.85,0.91,0.99,1.05,1.11,1.18,1.25,1.31]],
+  [300.01,[0.60,0.65,0.71,0.78,0.83,0.89,0.96,1.01,1.07,1.13,1.19]],
+  [400.01,[0.54,0.59,0.64,0.69,0.75,0.81,0.86,0.91,0.97,1.02,1.07]],
+  [500.01,[0.42,0.46,0.50,0.55,0.59,0.63,0.67,0.70,0.75,0.79,0.83]]
+];
+
+function tarifaParaPeso(zona,pesoKg){
+  if(pesoKg<=1) return null; // usar sobre
+  let row = TARIFA[0];
+  for(const r of TARIFA){ if(r[0]<=pesoKg) row = r; }
+  return row[1][zona-1] || 0;
+}
+
+function fmt(usd){return "USD "+usd.toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+function calcular(opts){
+  const {origen="Valencia",destino,pesoKg,volumenM3=0,valorDecl=0,mult=MULT_DTD_DEFAULT,modo="solo-terrestre"} = opts;
+  const zona = VALENCIA_ZONAS[destino];
+  if(!zona) return {error:"Destino no en mapa"};
+  const pesoVol = volumenM3*FACTOR_VOL;
+  const pesoF = Math.max(pesoKg,pesoVol);
+  const esCasco = CASCO.includes(destino);
+  let modoApl = modo, warning;
+  if(modo==="cbm-casco" && !esCasco){modoApl="cbm-lejos";warning=destino+" no está en casco — aplico descuento parcial"}
+  if(modo==="cbm-lejos" && esCasco){modoApl="cbm-casco";warning=destino+" sí está en casco — sin costo"}
+
+  if(modoApl==="cbm-casco" && esCasco){
+    return {zona,pesoF,esCasco:true,total:0,fleteBase:0,fpoUsd:0,seguroUsd:0,subtotal:0,ivaUsd:0,
+            descuento:0,modoApl,warning,tarifa:0,nota:destino+" incluido en CBM"};
+  }
+  if(pesoF<=1){
+    const fleteBase=SOBRE_USD;
+    const fpoUsd=fleteBase*FPO;
+    const seguroUsd=valorDecl*SEGURO;
+    const subtotal=fleteBase+fpoUsd+seguroUsd;
+    const ivaUsd=subtotal*IVA;
+    return {zona,pesoF,esCasco,fleteBase,fpoUsd,seguroUsd,subtotal,ivaUsd,total:subtotal+ivaUsd,
+            descuento:0,modoApl,warning,tarifa:0,tramo:"Sobre ≤ 1kg"};
+  }
+  const tarifa = tarifaParaPeso(zona,pesoF);
+  const tarifaDtd = tarifa*mult;
+  let fleteBase = pesoF*tarifaDtd;
+  let descuento = 0;
+  if(modoApl==="cbm-lejos"){
+    const tarifaZ1 = tarifaParaPeso(1,pesoF);
+    descuento = pesoF*tarifaZ1*mult;
+    fleteBase = Math.max(0,fleteBase-descuento);
+  }
+  const fpoUsd = fleteBase*FPO;
+  const seguroUsd = valorDecl*SEGURO;
+  const subtotal = fleteBase+fpoUsd+seguroUsd;
+  const ivaUsd = subtotal*IVA;
+  return {zona,pesoF,esCasco,fleteBase,fpoUsd,seguroUsd,subtotal,ivaUsd,total:subtotal+ivaUsd,
+          descuento,modoApl,warning,tarifa,tarifaDtd};
+}
+
+function renderResult(target,r,opts={}){
+  if(r.error){ target.innerHTML='<div class="note red">⚠️ '+r.error+'</div>'; return; }
+  const lines = [];
+  lines.push(`<div class="calc-result-line"><span class="lbl">Zona destino</span><span class="val">${r.zona}</span></div>`);
+  if(r.tarifa) lines.push(`<div class="calc-result-line"><span class="lbl">Tarifa base USD/kg</span><span class="val">${r.tarifa.toFixed(3)}</span></div>`);
+  if(r.tarifaDtd) lines.push(`<div class="calc-result-line"><span class="lbl">Tarifa DTD (× ${opts.mult||1.15})</span><span class="val">${r.tarifaDtd.toFixed(3)}</span></div>`);
+  lines.push(`<div class="calc-result-line"><span class="lbl">Flete base</span><span class="val">${fmt(r.fleteBase)}</span></div>`);
+  if(r.descuento>0) lines.push(`<div class="calc-result-line"><span class="lbl">Descuento casco CBM</span><span class="val" style="color:var(--success)">− ${fmt(r.descuento)}</span></div>`);
+  lines.push(`<div class="calc-result-line"><span class="lbl">FPO 6%</span><span class="val">${fmt(r.fpoUsd)}</span></div>`);
+  if(r.seguroUsd>0) lines.push(`<div class="calc-result-line"><span class="lbl">Seguro 3%</span><span class="val">${fmt(r.seguroUsd)}</span></div>`);
+  lines.push(`<div class="calc-result-line"><span class="lbl">Subtotal</span><span class="val">${fmt(r.subtotal)}</span></div>`);
+  lines.push(`<div class="calc-result-line"><span class="lbl">IVA 16%</span><span class="val">${fmt(r.ivaUsd)}</span></div>`);
+  lines.push(`<div class="calc-result-line calc-result-total"><span class="lbl">TOTAL</span><span class="val">${fmt(r.total)}</span></div>`);
+  if(r.nota) lines.push(`<div class="note green" style="margin-top:10px;font-size:12.5px">✓ ${r.nota}</div>`);
+  if(r.warning) lines.push(`<div class="note" style="margin-top:10px;font-size:12.5px">⚠️ ${r.warning}</div>`);
+  target.innerHTML = lines.join("");
+}
+
+/* =============================================================
+   INTERACTIVIDAD
+============================================================= */
+// Tabs de decisiones
+document.querySelectorAll(".decision-tabs").forEach(tabs => {
+  tabs.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click",() => {
+      const target = btn.dataset.tab;
+      tabs.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      const body = tabs.parentElement;
+      body.querySelectorAll(".decision-content").forEach(c => c.classList.remove("active"));
+      const content = document.getElementById(target);
+      if(content) content.classList.add("active");
+    });
+  });
+});
+
+// Sidebar nav active state on scroll
+const sections = document.querySelectorAll("section.slide");
+const navLinks = document.querySelectorAll("#sidenav a");
+function updateActiveNav(){
+  let current = "cover";
+  sections.forEach(s => {
+    const top = s.getBoundingClientRect().top;
+    if(top < 200) current = s.id;
+  });
+  navLinks.forEach(a => {
+    a.classList.toggle("active", a.getAttribute("href") === "#"+current);
+  });
+}
+window.addEventListener("scroll", updateActiveNav);
+updateActiveNav();
+
+// Smooth scroll en anchors
+navLinks.forEach(a => {
+  a.addEventListener("click", e => {
+    const target = a.getAttribute("href");
+    if(target.startsWith("#")){
+      e.preventDefault();
+      document.querySelector(target).scrollIntoView({behavior:"smooth"});
+    }
+  });
+});
+
+/* =============================================================
+   MINI-CALCULADORAS DE CADA DECISIÓN
+============================================================= */
+
+// EJEMPLO COMPARACIÓN MODOS (en parte 2)
+function renderEjemplo3Modos(){
+  const dest = "Maracaibo";
+  const peso = 100;
+  const a = calcular({destino:dest,pesoKg:peso,modo:"solo-terrestre"});
+  const b = calcular({destino:"Maracay",pesoKg:peso,modo:"cbm-casco"});
+  const c = calcular({destino:dest,pesoKg:peso,modo:"cbm-lejos"});
+  const el = document.getElementById("ejemplo-comparacion-modos");
+  if(!el) return;
+  el.innerHTML = `
+    <div class="grid-3">
+      <div>
+        <span class="alt-badge">A · Solo terrestre</span>
+        <h4 style="margin-top:6px">Sin CBM</h4>
+        <p style="font-size:13px;color:var(--grey-700)">Valencia → ${dest}, 100 kg</p>
+        <div style="font-family:'Archivo Black';font-size:28px;color:var(--ink);margin-top:8px">${fmt(a.total)}</div>
+      </div>
+      <div>
+        <span class="alt-badge" style="background:#E8F7EE;color:#0F5934">B · CBM + casco</span>
+        <h4 style="margin-top:6px">CBM activo · Maracay</h4>
+        <p style="font-size:13px;color:var(--grey-700)">Valencia → Maracay, 100 kg</p>
+        <div style="font-family:'Archivo Black';font-size:28px;color:var(--success);margin-top:8px">${fmt(b.total)}</div>
+        <p style="font-size:11.5px;color:var(--grey-500);margin-top:4px">Incluido en flete CBM</p>
+      </div>
+      <div>
+        <span class="alt-badge" style="background:#FEF8E0;color:#7A5A1F">C · CBM + lejos</span>
+        <h4 style="margin-top:6px">CBM activo · ${dest}</h4>
+        <p style="font-size:13px;color:var(--grey-700)">Con descuento casco</p>
+        <div style="font-family:'Archivo Black';font-size:28px;color:var(--wine);margin-top:8px">${fmt(c.total)}</div>
+        <p style="font-size:11.5px;color:var(--grey-500);margin-top:4px">Ahorra ${fmt(a.total-c.total)} vs Modo A</p>
+      </div>
+    </div>
+  `;
+}
+renderEjemplo3Modos();
+
+// D1 — Valencia calc
+function setupD1(){
+  const dest = document.querySelector('[data-calc-target="d1cv-dest"]');
+  const peso = document.querySelector('[data-calc-target="d1cv-peso"]');
+  const target = document.getElementById("d1cv-result");
+  if(!dest || !target) return;
+  const update = () => renderResult(target, calcular({destino:dest.value, pesoKg:Number(peso.value)||0}));
+  dest.addEventListener("input", update); peso.addEventListener("input", update);
+  update();
+}
+setupD1();
+
+// D2 — Multiplicador slider
+function setupD2(){
+  const mult = document.querySelector('[data-calc-target="d2-mult"]');
+  const peso = document.querySelector('[data-calc-target="d2-peso"]');
+  const dest = document.querySelector('[data-calc-target="d2-dest"]');
+  const target = document.getElementById("d2-result");
+  if(!mult) return;
+  const update = () => renderResult(target, calcular({destino:dest.value, pesoKg:Number(peso.value)||0, mult:Number(mult.value)}), {mult:Number(mult.value).toFixed(2)});
+  mult.addEventListener("input", update);
+  peso.addEventListener("input", update);
+  dest.addEventListener("input", update);
+  update();
+
+  // D2A — sin margen (1.0x)
+  const a1 = calcular({destino:"Caracas",pesoKg:100,mult:1.0});
+  const a2 = calcular({destino:"Caracas",pesoKg:100,mult:1.15});
+  const a3 = calcular({destino:"Caracas",pesoKg:100,mult:1.25});
+  const elA = document.getElementById("d2a-result");
+  if(elA){
+    elA.innerHTML = `
+      <div class="compare">
+        <div class="alt"><div class="lbl">1.0× sin margen</div><div class="v">${fmt(a1.total)}</div></div>
+        <div class="chosen"><div class="lbl">1.15× actual ★</div><div class="v">${fmt(a2.total)}</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--grey-700);margin-top:10px">Diferencia: ${fmt(a2.total-a1.total)} — eso es el margen que DTD pierde si va a paridad.</p>
+    `;
+  }
+  const elC = document.getElementById("d2c-result");
+  if(elC){
+    elC.innerHTML = `
+      <div class="compare">
+        <div class="chosen"><div class="lbl">1.15× actual ★</div><div class="v">${fmt(a2.total)}</div></div>
+        <div class="alt"><div class="lbl">1.25× +25%</div><div class="v">${fmt(a3.total)}</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--grey-700);margin-top:10px">Diferencia: ${fmt(a3.total-a2.total)} — extra que cobraríamos si subimos al 1.25×. Cliente puede comparar con MRW.</p>
+    `;
+  }
+}
+setupD2();
+
+// D3 — Casco central
+function setupD3(){
+  const dest = document.querySelector('[data-calc-target="d3-dest"]');
+  const target = document.getElementById("d3-result");
+  if(!dest) return;
+  const update = () => {
+    const d = dest.value;
+    const modo = CASCO.includes(d) ? "cbm-casco" : "cbm-lejos";
+    renderResult(target, calcular({destino:d, pesoKg:100, modo}));
+  };
+  dest.addEventListener("input", update);
+  update();
+}
+setupD3();
+
+// D4 — Descuento parcial
+function setupD4(){
+  const dest = document.querySelector('[data-calc-target="d4-dest"]');
+  const peso = document.querySelector('[data-calc-target="d4-peso"]');
+  const target = document.getElementById("d4-result");
+  if(!dest) return;
+  const update = () => {
+    const d = dest.value;
+    const p = Number(peso.value)||0;
+    const sin = calcular({destino:d, pesoKg:p, modo:"solo-terrestre"});
+    const con = calcular({destino:d, pesoKg:p, modo:"cbm-lejos"});
+    const ahorro = sin.total - con.total;
+    target.innerHTML = `
+      <div class="compare">
+        <div class="alt"><div class="lbl">SIN descuento (modo A)</div><div class="v">${fmt(sin.total)}</div></div>
+        <div class="chosen"><div class="lbl">CON descuento parcial (modo C) ★</div><div class="v">${fmt(con.total)}</div></div>
+      </div>
+      <p style="font-size:13px;color:var(--grey-700);margin-top:10px">Ahorro para el cliente con CBM activo: <strong style="color:var(--success)">${fmt(ahorro)}</strong> (${((ahorro/sin.total)*100).toFixed(1)}% menos).</p>
+    `;
+  };
+  dest.addEventListener("input", update); peso.addEventListener("input", update);
+  update();
+
+  // D4A — sin descuento
+  const a = calcular({destino:"Maracaibo",pesoKg:100,modo:"solo-terrestre"});
+  const elA = document.getElementById("d4a-result");
+  if(elA){
+    elA.innerHTML = `
+      <div class="calc-result">
+        <div class="calc-result-line"><span class="lbl">Total cobrado (sin descuento)</span><span class="val">${fmt(a.total)}</span></div>
+        <p style="font-size:12.5px;color:var(--grey-500);margin-top:8px">Cliente con CBM pagaría exactamente lo mismo que un cliente sin CBM. Esto puede crear fricción.</p>
+      </div>
+    `;
+  }
+}
+setupD4();
+</script>
+</body>
+</html>
