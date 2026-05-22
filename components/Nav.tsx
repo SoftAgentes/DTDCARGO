@@ -140,10 +140,10 @@ export function Nav() {
                   key={l.href}
                   href={l.href}
                   aria-current={active ? "page" : undefined}
-                  className={`text-[14.5px] py-2 transition-colors whitespace-nowrap ${
+                  className={`text-[14.5px] px-3 py-2 rounded-md transition-colors whitespace-nowrap ${
                     active
-                      ? "text-wine font-bold"
-                      : "text-ink font-medium hover:text-wine"
+                      ? "text-wine font-bold bg-wine/10"
+                      : "text-ink font-medium hover:text-wine hover:bg-wine/5"
                   }`}
                 >
                   {l.label}
@@ -250,10 +250,10 @@ export function Nav() {
                 href={l.href}
                 onClick={close}
                 aria-current={active ? "page" : undefined}
-                className={`text-[18px] py-4 border-b border-grey-200 transition-colors ${
+                className={`text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 transition-colors ${
                   active
-                    ? "text-wine font-bold"
-                    : "text-ink font-semibold hover:text-wine"
+                    ? "text-wine font-bold bg-wine/10"
+                    : "text-ink font-semibold hover:text-wine hover:bg-wine/5"
                 }`}
               >
                 {l.label}
