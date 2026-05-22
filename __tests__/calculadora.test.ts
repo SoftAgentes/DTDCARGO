@@ -214,6 +214,38 @@ describe("calcularEnvioLCL", () => {
     });
     expect(cot.precioBase).toBe(1 * CONFIG.tarifaBaseCBM);
   });
+
+  // ─────────────────────────────────────────────────────────────────
+  // Override de tarifa CBM (el cliente edita la tarifa estándar)
+  // ─────────────────────────────────────────────────────────────────
+  it("usa tarifaCBMOverride cuando se provee un valor válido", () => {
+    const cot = calcularEnvioLCL({
+      largoCm: 100,
+      anchoCm: 100,
+      altoCm: 100,
+      pesoKg: 100,
+      cantidadCajas: 1,
+      embalaje: "carton",
+      ciudadId: "maracay",
+      tarifaCBMOverride: 650,
+    });
+    expect(cot.precioBase).toBe(650); // 1 CBM × $650
+    expect(cot.total).toBe(650);
+  });
+
+  it("ignora tarifaCBMOverride si es 0 o negativo, cae al default", () => {
+    const cot = calcularEnvioLCL({
+      largoCm: 100,
+      anchoCm: 100,
+      altoCm: 100,
+      pesoKg: 100,
+      cantidadCajas: 1,
+      embalaje: "carton",
+      ciudadId: "maracay",
+      tarifaCBMOverride: 0, // inválido
+    });
+    expect(cot.precioBase).toBe(CONFIG.tarifaBaseCBM); // fallback
+  });
 });
 
 describe("whatsappTextFromCotizacion", () => {

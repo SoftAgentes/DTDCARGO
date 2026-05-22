@@ -27,29 +27,21 @@ export default function CalculadoraPage() {
     <>
       <Nav />
       <main className="bg-paper min-h-screen">
-        {/* Hero */}
-        <section className="py-16 lg:py-24">
+        {/* Encabezado compacto — el form aparece casi inmediato al cargar.
+            H1 mantenido para SEO/accesibilidad pero visualmente discreto. */}
+        <section className="pt-8 pb-5 lg:pt-12 lg:pb-6">
           <div className="wrap max-w-[1100px]">
-            <span className="eyebrow">Tarifa estimada en segundos</span>
-            <h1
-              className="h-display mt-5"
-              style={{ fontSize: "clamp(40px, 5.5vw, 76px)" }}
-            >
-              Calculadora
-              <br />
-              <span style={{ color: "var(--color-wine)" }}>de envíos.</span>
-            </h1>
-            <p className="lead mt-6 max-w-[58ch]">
-              Tarifa base $800 por CBM. Hasta 500 kg/CBM sin recargo.
-              Embalaje, distancia desde Valencia y excedente de peso se calculan
-              automáticamente. Es un estimado — escribinos por WhatsApp para
-              cerrar la tarifa final.
+            <span className="eyebrow">Calculadora · LCL DDP · China → Venezuela</span>
+            <h1 className="sr-only">Calculadora de envíos LCL DDP</h1>
+            <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[60ch]">
+              Tarifa base $800/CBM, hasta 500 kg/CBM sin recargo. Estimado
+              inmediato — confirmá la tarifa final por WhatsApp.
             </p>
           </div>
         </section>
 
-        {/* Form + Resultado */}
-        <section className="pb-16 lg:pb-24">
+        {/* Form + Resultado — visible apenas se carga la página */}
+        <section className="pb-16 lg:pb-20">
           <div className="wrap max-w-[1100px]">
             <CalculadoraForm />
           </div>
