@@ -70,6 +70,9 @@
   .audience-pill.logistica{background:#FEF3D7;color:#7A5A1F}
   .audience-pill.transporte{background:#E8F0FE;color:#1F4380}
   .audience-pill.admin{background:#FEE3E5;color:var(--wine-deep)}
+  .audience-pill.ventas{background:#E0F7E8;color:#0F5934}
+  .audience-pill.atencion{background:#F0E5FE;color:#4A1F80}
+  .audience-pill.crm{background:#FDE7C5;color:#7A4400}
   /* Decision card */
   .decision{margin:32px 0}
   .decision-header{background:var(--ink);color:#fff;border-radius:12px 12px 0 0;padding:18px 24px}
@@ -134,7 +137,8 @@
   </div>
   <nav class="sidebar-nav" id="sidenav">
     <a href="#cover" class="active">Portada</a>
-    <a href="#resumen">Resumen ejecutivo</a>
+    <a href="#resumen">Resumen ejecutivo (6 roles)</a>
+    <a href="#scripts-roles">Scripts comerciales</a>
     <div class="nav-group">Estudio</div>
     <a href="#parte1">1. Transporte nacional VZLA</a>
     <a href="#parte2">2. Cómo combinamos CBM + terrestre</a>
@@ -174,27 +178,64 @@
 <section class="slide" id="resumen">
   <div class="wrap">
     <span class="eyebrow">Resumen ejecutivo</span>
-    <h2 style="margin-top:8px">Lo que necesitás saber según tu rol.</h2>
+    <h2 style="margin-top:8px">Qué tiene que leer cada rol.</h2>
+    <p style="font-size:16px;color:var(--grey-700);margin-top:14px;max-width:65ch">Cada persona del equipo solo necesita 5-10 minutos en esta presentación. La tabla de abajo dice exactamente qué secciones le sirven a cada rol y qué decisión pueden ayudarte a tomar.</p>
 
     <div class="grid-3" style="margin-top:32px">
       <div class="card">
         <div class="audience-pills"><span class="audience-pill logistica">🚚 Logística</span></div>
-        <h3 style="margin-top:12px;font-size:20px">Cómo se calcula el flete</h3>
-        <p style="font-size:14px;color:var(--grey-700)">Adoptamos el estándar gremial venezolano (factor 200 kg/m³) y la tabla USD/kg de Fletes GAG vigente 01-may-2026. La calculadora aplica el peso mayor entre real y volumétrico.</p>
-        <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Foco</strong>: ecuaciones, factor volumétrico, fuentes de tarifas.</p>
+        <h3 style="margin-top:12px;font-size:18px">Cómo se calcula el flete</h3>
+        <p style="font-size:13.5px;color:var(--grey-700)">Adoptamos estándar gremial (factor 200 kg/m³) + tabla USD/kg de Fletes GAG. La calc aplica el mayor entre peso real y volumétrico.</p>
+        <p style="font-size:12.5px;color:var(--grey-500);margin-top:8px"><strong>Leer</strong>: Parte 1 + D7 (validador)</p>
       </div>
       <div class="card">
         <div class="audience-pills"><span class="audience-pill transporte">🚛 Transporte</span></div>
-        <h3 style="margin-top:12px;font-size:20px">Casco central + retornos</h3>
-        <p style="font-size:14px;color:var(--grey-700)">Definimos 9 destinos como "casco central" (cubierto por CBM). Fuera de eso aplicamos descuento parcial — espacio para que negocies con transportistas que vuelven vacíos de Caracas, Maracaibo, etc.</p>
-        <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Foco</strong>: zonificación, descuento parcial, negociación con choferes.</p>
+        <h3 style="margin-top:12px;font-size:18px">Casco central + retornos</h3>
+        <p style="font-size:13.5px;color:var(--grey-700)">9 destinos como "casco central". Fuera de eso, descuento parcial — espacio para negociar con choferes que vuelven vacíos.</p>
+        <p style="font-size:12.5px;color:var(--grey-500);margin-top:8px"><strong>Leer</strong>: Parte 2 + D3 + D4</p>
       </div>
       <div class="card">
         <div class="audience-pills"><span class="audience-pill admin">📊 Administración</span></div>
-        <h3 style="margin-top:12px;font-size:20px">Viabilidad comercial</h3>
-        <p style="font-size:14px;color:var(--grey-700)">Multiplicador 1.15× sobre Fletes GAG = 15% margen DTD. La calculadora muestra "tarifa de referencia"; el asesor cierra precio final por WhatsApp. Riesgo: si Fletes GAG sube tarifas, el código se actualiza en 1 archivo.</p>
-        <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Foco</strong>: margen, riesgos, plan de actualización.</p>
+        <h3 style="margin-top:12px;font-size:18px">Viabilidad comercial</h3>
+        <p style="font-size:13.5px;color:var(--grey-700)">Multiplicador 1.15× = 15% margen DTD. La calc muestra "referencia"; el asesor cierra precio final por WhatsApp.</p>
+        <p style="font-size:12.5px;color:var(--grey-500);margin-top:8px"><strong>Leer</strong>: D2 + Próximos pasos</p>
       </div>
+    </div>
+
+    <div class="grid-3" style="margin-top:20px">
+      <div class="card">
+        <div class="audience-pills"><span class="audience-pill ventas">💼 Ventas</span></div>
+        <h3 style="margin-top:12px;font-size:18px">Justificación del precio al cliente</h3>
+        <p style="font-size:13.5px;color:var(--grey-700)">Por qué cobramos lo que cobramos: usamos tarifa gremial vigente + 15% margen DTD por coordinación. Justo, comparable con MRW/TEALCA. Los descuentos para clientes CBM son nuestro diferenciador.</p>
+        <p style="font-size:12.5px;color:var(--grey-500);margin-top:8px"><strong>Leer</strong>: Resumen + Parte 2 + D2 + D4</p>
+      </div>
+      <div class="card">
+        <div class="audience-pills"><span class="audience-pill atencion">📞 Atención al cliente</span></div>
+        <h3 style="margin-top:12px;font-size:18px">Respuestas a las dudas comunes</h3>
+        <p style="font-size:13.5px;color:var(--grey-700)">"¿Por qué a Maracay sale gratis y a Caracas también pero a Maracaibo no?" — porque casco central. "¿Cómo cobramos sobre 50kg vs 1m³?" — peso facturable. Casos típicos cubiertos.</p>
+        <p style="font-size:12.5px;color:var(--grey-500);margin-top:8px"><strong>Leer</strong>: Parte 2 + D3 + D5 + Ejemplo en vivo</p>
+      </div>
+      <div class="card">
+        <div class="audience-pills"><span class="audience-pill crm">🗂️ CRM</span></div>
+        <h3 style="margin-top:12px;font-size:18px">Qué tracking necesitamos</h3>
+        <p style="font-size:13.5px;color:var(--grey-700)">Datos del cliente + cotización + modo (solo terrestre / CBM+casco / CBM+lejos) + total cotizado vs cerrado. Esto alimenta el ajuste trimestral del multiplicador 1.15×.</p>
+        <p style="font-size:12.5px;color:var(--grey-500);margin-top:8px"><strong>Leer</strong>: D5 + Próximos pasos + Fase B futura</p>
+      </div>
+    </div>
+
+    <h3 style="margin-top:48px">📋 Mapa de lectura · ruta rápida por rol</h3>
+    <div class="card" style="margin-top:14px">
+      <table style="font-size:13.5px">
+        <thead><tr><th>Rol</th><th>Foco principal</th><th>Tiempo lectura</th><th>Decisiones que aprueba</th></tr></thead>
+        <tbody>
+          <tr><td><span class="audience-pill logistica">🚚 Logística</span></td><td>Parte 1 (metodología, factor volumétrico, fuentes)</td><td>10 min</td><td>D7</td></tr>
+          <tr><td><span class="audience-pill transporte">🚛 Transporte</span></td><td>Parte 2 (casco central, descuentos, 3 modos)</td><td>15 min</td><td>D1, D3, D4</td></tr>
+          <tr><td><span class="audience-pill admin">📊 Administración</span></td><td>Resumen + D2 + Próximos pasos</td><td>10 min</td><td>D2, D8 + aprobar plan</td></tr>
+          <tr><td><span class="audience-pill ventas">💼 Ventas</span></td><td>Resumen + Parte 2 + D2 + D4</td><td>15 min</td><td>Argumento comercial al cliente</td></tr>
+          <tr><td><span class="audience-pill atencion">📞 Atención al cliente</span></td><td>Parte 2 + D3 + D5 + ejemplos</td><td>10 min</td><td>Script de respuestas a dudas</td></tr>
+          <tr><td><span class="audience-pill crm">🗂️ CRM</span></td><td>D5 + Próximos pasos + Fase B (admin interno)</td><td>8 min</td><td>Definición de campos a trackear</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="card" style="margin-top:32px">
@@ -203,9 +244,71 @@
         <li><strong>Metodología de cálculo</strong>: factor volumétrico, multiplicador DTD, descuentos por CBM</li>
         <li><strong>Mapa de zonas Valencia DTD</strong>: 9 zonas para 78 destinos en VZLA</li>
         <li><strong>Casco central</strong>: cuáles ciudades están incluidas en el flete CBM</li>
+        <li><strong>Argumento comercial unificado</strong>: cómo ventas y atención al cliente explican el precio</li>
         <li><strong>Publicación en dtdcargo.com/cotizar</strong>: ya está deployada (v1, sujeta a ajustes del equipo)</li>
       </ul>
       <div class="note green" style="margin-top:14px"><strong>✓ Disclaimer del sitio:</strong> "Tarifa de referencia, cotización final por WhatsApp en 24 hs". Esto nos protege legalmente y permite ajustes caso a caso.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ SCRIPTS COMERCIALES POR ROL -->
+<section class="slide" id="scripts-roles">
+  <div class="wrap">
+    <span class="eyebrow">Scripts por rol</span>
+    <h2 style="margin-top:8px">Qué decirle al cliente según el caso.</h2>
+    <p style="font-size:16px;color:var(--grey-700);margin-top:14px;max-width:65ch">Esta sección es específica para <strong>Ventas y Atención al cliente</strong>. Son respuestas listas para usar cuando el cliente pregunta por el precio.</p>
+
+    <h3 style="margin-top:32px">💼 Para VENTAS — argumentos por modo de cotización</h3>
+
+    <div class="card" style="margin-top:14px;border-left:4px solid var(--grey-500)">
+      <h4 style="font-size:16px">Cliente sin servicio CBM previo (Modo A — Solo terrestre)</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Argumento</strong>: "Cobramos tarifa de mercado venezolano (basada en Fletes GAG, vigente mayo 2026) + 15% por coordinación, seguro, gestión y trato directo desde Valencia. Es comparable con MRW o Domesa pero con la diferencia que somos un solo punto de contacto para tu operación."</p>
+      <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Cuándo usarlo</strong>: cliente nuevo que solo quiere transporte interno (sin envío internacional con nosotros).</p>
+    </div>
+
+    <div class="card" style="margin-top:12px;border-left:4px solid var(--success)">
+      <h4 style="font-size:16px">Cliente con CBM activo + destino en casco (Modo B — Incluido)</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Argumento</strong>: "Tu envío desde China ya incluye la entrega en Valencia, Pto Cabello, Maracay y zonas cercanas, incluyendo Caracas centro. Sin cargos adicionales. Es parte del servicio integrado que diferencia DTD de un freight forwarder común."</p>
+      <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Cuándo usarlo</strong>: cliente trajo CBM y entrega es en una de las 9 ciudades del casco central.</p>
+    </div>
+
+    <div class="card" style="margin-top:12px;border-left:4px solid var(--warning)">
+      <h4 style="font-size:16px">Cliente con CBM activo + destino lejos (Modo C — Descuento parcial)</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Argumento</strong>: "Tu CBM cubre hasta el casco central (Valencia → Pto Cabello). Para llevar a [destino], coordinamos con transportistas locales. Te descontamos el tramo del casco que ya está pagado en tu CBM — solo pagás el diferencial. Para 100kg a Maracaibo, esto representa un ahorro de aprox. USD 110 vs cotizar de cero."</p>
+      <p style="font-size:13px;color:var(--grey-500);margin-top:8px"><strong>Cuándo usarlo</strong>: cliente con CBM que necesita entrega fuera del casco. Es el caso que más diferencia DTD del mercado.</p>
+    </div>
+
+    <h3 style="margin-top:40px">📞 Para ATENCIÓN AL CLIENTE — respuestas a las 6 preguntas más comunes</h3>
+
+    <div class="card" style="margin-top:14px">
+      <h4 style="font-size:15px;color:var(--ink)">❓ "¿Por qué a Caracas es gratis pero a Barquisimeto no?"</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Respuesta</strong>: "Caracas está dentro del casco central que ya cubre tu envío CBM. Barquisimeto está fuera, y aunque cobramos solo el diferencial (no el trayecto completo), tenemos que coordinar transporte adicional con choferes locales. Por eso hay cargo."</p>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h4 style="font-size:15px;color:var(--ink)">❓ "¿Por qué cobramos 100 kg si solo pesan 50 kg?" (caso peso volumétrico)</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Respuesta</strong>: "La carga ocupa volumen aunque pese poco. Imagina 50kg de almohadas vs 50kg de hierro — la almohada ocupa 10 veces más espacio en el camión. Cobramos el mayor entre peso real y peso volumétrico (volumen × 200 kg/m³). Es estándar en todo el mundo logístico."</p>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h4 style="font-size:15px;color:var(--ink)">❓ "¿De dónde sale el precio? ¿Es arbitrario?"</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Respuesta</strong>: "Usamos la tabla oficial de Fletes GAG (empresa con 30+ años en el mercado venezolano), vigente desde mayo 2026. Cualquiera puede verificar esos números en fletesgag.com. Sumamos 15% por nuestro servicio integrado. No es arbitrario, es estándar de mercado."</p>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h4 style="font-size:15px;color:var(--ink)">❓ "¿Pueden bajar el precio?"</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Respuesta</strong>: "El precio del cotizador es una referencia. Para volúmenes recurrentes o casos especiales (carga consolidada con otros clientes, retornos vacíos), conversamos por WhatsApp y vemos qué se puede ajustar. Lo importante es no comprometernos a un precio que después tengamos que romper."</p>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h4 style="font-size:15px;color:var(--ink)">❓ "¿Incluye seguro? ¿Y el IVA?"</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Respuesta</strong>: "El IVA 16% ya está incluido en el total que ves. El seguro es opcional — son 3% del valor declarado de tu mercancía. Si querés cubrir robo, daño o pérdida, lo agregamos. Si no declarás valor, va sin seguro y vos asumís el riesgo."</p>
+    </div>
+
+    <div class="card" style="margin-top:12px">
+      <h4 style="font-size:15px;color:var(--ink)">❓ "¿Mi destino no aparece en el dropdown. ¿Pueden cotizarlo igual?"</h4>
+      <p style="font-size:14px;color:var(--grey-700)"><strong>Respuesta</strong>: "Sí, el cotizador cubre las 78 ciudades más comunes pero hay muchas más. Escribime tu destino exacto por WhatsApp y te cotizo en menos de 4 horas. Lo más probable es que tengamos un transportista que ya hace esa ruta."</p>
     </div>
   </div>
 </section>
