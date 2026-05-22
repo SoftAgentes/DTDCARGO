@@ -21,6 +21,11 @@ export const metadata: Metadata = {
     "tiempos puerto cabello",
     "tutorial importación",
   ],
+  alternates: { canonical: "/noticias" },
+  openGraph: {
+    title: "Noticias y guías · DTD·CARGO",
+    url: "/noticias",
+  },
 };
 
 export default function NoticiasPage() {

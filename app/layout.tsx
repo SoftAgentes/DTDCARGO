@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     template: "%s · DTD·CARGO",
   },
   description:
-    "Logística end-to-end China → Venezuela. Operando desde 2010. Carga DDP puerta a puerta, agente de compra, inspección de fábrica, registro de marca y visa de negocios. Equipo propio en Yiwu y Valencia.",
+    "Logística end-to-end China → Venezuela desde 2010. Carga DDP puerta a puerta, agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
   applicationName: "DTD·CARGO",
   authors: [{ name: "DTD·CARGO" }],
   keywords: [
@@ -90,10 +90,14 @@ export const metadata: Metadata = {
  */
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "MovingCompany",
+  // LocalBusiness es el tipo correcto para freight forwarding / logistics B2B.
+  // MovingCompany (anterior) es específicamente para mudanzas residenciales — no nuestro caso.
+  "@type": "LocalBusiness",
   name: CONTACT.legalName,
   url: SITE_URL,
-  logo: `${SITE_URL}${BRAND_ASSETS.logoFull}`,
+  // BRAND_ASSETS.logoFull es null (forzamos render por componente del lockup).
+  // Para Google Knowledge Panel necesitamos un asset real — usamos el isotipo PNG.
+  logo: `${SITE_URL}${BRAND_ASSETS.isotipo}`,
   image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
   description:
     "Logística end-to-end China → Venezuela operando desde 2010. Carga DDP puerta a puerta, agente de compra, inspección de fábrica, registro de marca y visa de negocios.",

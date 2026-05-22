@@ -140,7 +140,8 @@ export const CONTACT = {
   web: "www.dtdcargo.com",
   instagram: {
     handle: "@doortudoor_",
-    url: "https://www.instagram.com/doortudoor_?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
+    // URL canónica sin tracking params — limpio para schema.org sameAs.
+    url: "https://www.instagram.com/doortudoor_",
   },
   // Email general (fuente brochure)
   emailGeneral: "info@dtdcargo.com",
