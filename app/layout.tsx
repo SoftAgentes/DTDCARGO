@@ -161,7 +161,11 @@ export default function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          // Escapar `<` previene que un valor con `</script>` rompa el tag.
+          // JSON.stringify por default no lo hace. Defense-in-depth gratis.
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
         />
       </head>
       <body>{children}</body>

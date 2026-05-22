@@ -9,10 +9,12 @@ import { CONTACT } from "@/lib/design-tokens";
 type Props = { params: Promise<{ code: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  // Next.js ya entrega el param URL-decodeado. Re-decodear crashea ante
+  // input malformado (ej. /track/% → URIError: URI malformed).
   const { code } = await params;
   return {
-    title: `Tracking ${decodeURIComponent(code)}`,
-    description: `Estado en tiempo real del envío ${decodeURIComponent(code)} de DTD·CARGO.`,
+    title: `Tracking ${code}`,
+    description: `Estado en tiempo real del envío ${code} de DTD·CARGO.`,
     robots: { index: false, follow: false },
   };
 }
@@ -66,8 +68,8 @@ async function getTracking(code: string): Promise<{
 }
 
 export default async function TrackResultPage({ params }: Props) {
-  const { code } = await params;
-  const decoded = decodeURIComponent(code);
+  // Next.js ya entrega el param URL-decodeado. No re-decodear.
+  const { code: decoded } = await params;
   const data = await getTracking(decoded);
 
   return (
