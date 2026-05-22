@@ -109,13 +109,13 @@ export function Nav() {
         <div className="wrap flex items-center justify-between h-[76px]">
           <BrandMark asLink />
 
-          {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-x-7 lg:gap-x-8">
+          {/* Desktop nav (lg+ para evitar que 6 links + logo + botón compriman) */}
+          <div className="hidden lg:flex items-center gap-x-6 xl:gap-x-8">
             {links.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="text-[14.5px] font-medium text-ink py-2 hover:text-wine transition-colors"
+                className="text-[14.5px] font-medium text-ink py-2 hover:text-wine transition-colors whitespace-nowrap"
               >
                 {l.label}
                 {l.hasCaret && (
@@ -123,13 +123,13 @@ export function Nav() {
                 )}
               </Link>
             ))}
-            <Link href="/contacto" className="btn btn-primary">
+            <Link href="/contacto" className="btn btn-primary whitespace-nowrap">
               Contáctanos
             </Link>
           </div>
 
-          {/* Mobile: hamburger + Contacto */}
-          <div className="md:hidden flex items-center gap-2">
+          {/* Mobile + tablet: hamburger + Contacto (<lg = <1024px) */}
+          <div className="lg:hidden flex items-center gap-2">
             <button
               ref={hamburgerRef}
               type="button"
@@ -167,7 +167,7 @@ export function Nav() {
       <div
         onClick={close}
         aria-hidden
-        className={`md:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${
+        className={`lg:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         style={{ background: "rgba(15,30,61,0.45)" }}
@@ -181,7 +181,7 @@ export function Nav() {
         aria-modal="true"
         aria-label="Menú de navegación"
         aria-hidden={!open}
-        className={`md:hidden fixed top-0 right-0 bottom-0 z-[70] w-[82vw] max-w-[360px] bg-paper flex flex-col transition-transform duration-300 ease-out ${
+        className={`lg:hidden fixed top-0 right-0 bottom-0 z-[70] w-[82vw] max-w-[360px] bg-paper flex flex-col transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{
