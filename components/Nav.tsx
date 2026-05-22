@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { BrandMark } from "./BrandMark";
 
 const links = [
@@ -33,8 +34,29 @@ const FOCUSABLE_SEL =
  * - Focus retorna al botón hamburguesa al cerrar (SC 2.4.3)
  * - Touch targets de 44×44px (SC 2.5.8)
  */
+/**
+ * Determina si un link del nav debe mostrarse como "activo" basándose
+ * en la ruta actual.
+ *
+ * - Match exacto: `/glosario` activa el link `/glosario`.
+ * - Match de subpath: `/noticias/incoterm-exw-explicado` activa el link `/noticias`.
+ * - Anchors del home (`/#how`, etc.) nunca activan — necesitarían IntersectionObserver
+ *   para detectar cuando la sección está visible, fuera del scope actual.
+ */
+function isLinkActive(pathname: string, linkHref: string): boolean {
+  // Anchors al home → nunca marcamos activo
+  if (linkHref.startsWith("/#")) return false;
+  // Match exacto
+  if (pathname === linkHref) return true;
+  // Subpath (ej. /noticias/[slug] activa el link /noticias)
+  // Pero solo si linkHref no es `/` para evitar que /noticias active el link de la home
+  if (linkHref !== "/" && pathname.startsWith(linkHref + "/")) return true;
+  return false;
+}
+
 export function Nav() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
 
@@ -111,18 +133,26 @@ export function Nav() {
 
           {/* Desktop nav (lg+ para evitar que 6 links + logo + botón compriman) */}
           <div className="hidden lg:flex items-center gap-x-6 xl:gap-x-8">
-            {links.map((l) => (
-              <Link
-                key={l.href}
-                href={l.href}
-                className="text-[14.5px] font-medium text-ink py-2 hover:text-wine transition-colors whitespace-nowrap"
-              >
-                {l.label}
-                {l.hasCaret && (
-                  <span className="text-[9px] ml-1.5 text-grey-500">▾</span>
-                )}
-              </Link>
-            ))}
+            {links.map((l) => {
+              const active = isLinkActive(pathname, l.href);
+              return (
+                <Link
+                  key={l.href}
+                  href={l.href}
+                  aria-current={active ? "page" : undefined}
+                  className={`text-[14.5px] py-2 transition-colors whitespace-nowrap ${
+                    active
+                      ? "text-wine font-bold"
+                      : "text-ink font-medium hover:text-wine"
+                  }`}
+                >
+                  {l.label}
+                  {l.hasCaret && (
+                    <span className="text-[9px] ml-1.5 text-grey-500">▾</span>
+                  )}
+                </Link>
+              );
+            })}
             <Link href="/contacto" className="btn btn-primary whitespace-nowrap">
               Contáctanos
             </Link>
@@ -212,16 +242,24 @@ export function Nav() {
         </div>
 
         <nav className="flex flex-col px-6 pt-4 flex-1">
-          {links.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={close}
-              className="text-[18px] font-semibold text-ink py-4 border-b border-grey-200 hover:text-wine transition-colors"
-            >
-              {l.label}
-            </Link>
-          ))}
+          {links.map((l) => {
+            const active = isLinkActive(pathname, l.href);
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                onClick={close}
+                aria-current={active ? "page" : undefined}
+                className={`text-[18px] py-4 border-b border-grey-200 transition-colors ${
+                  active
+                    ? "text-wine font-bold"
+                    : "text-ink font-semibold hover:text-wine"
+                }`}
+              >
+                {l.label}
+              </Link>
+            );
+          })}
         </nav>
 
         <div className="p-6 border-t border-grey-200">
