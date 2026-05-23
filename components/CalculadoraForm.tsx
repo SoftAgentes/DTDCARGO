@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   CONFIG,
   CIUDADES,
@@ -34,6 +34,33 @@ export function CalculadoraForm() {
   });
 
   const [cotizacion, setCotizacion] = useState<EnvioCotizacion | null>(null);
+
+  // ─── Diagrama de dimensiones — UX hover-first + click-to-repeat ───
+  // Mismo comportamiento que en CotizarForm: el SVG educativo aparece
+  // automáticamente la primera vez que el usuario hover sobre L/A/H,
+  // y vuelve a aparecer cada vez que clickea/foca uno de esos campos.
+  const [showDiagram, setShowDiagram] = useState(false);
+  const [hasShownViaHover, setHasShownViaHover] = useState(false);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showDiagramFor3s = () => {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    setShowDiagram(true);
+    hideTimerRef.current = setTimeout(() => setShowDiagram(false), 3000);
+  };
+
+  const onDimensionsHover = () => {
+    if (!hasShownViaHover) {
+      setHasShownViaHover(true);
+      showDiagramFor3s();
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    };
+  }, []);
 
   function update<K extends keyof EnvioInput>(key: K, value: EnvioInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -98,30 +125,63 @@ export function CalculadoraForm() {
             </p>
           </div>
 
-          {/* Dimensiones por caja */}
-          <fieldset className="grid grid-cols-3 gap-3">
-            <legend className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine mb-2 col-span-3">
-              Dimensiones por caja (cm)
-            </legend>
-            <InputField
-              label="Largo"
-              value={form.largoCm}
-              onChange={(v) => update("largoCm", v)}
-              placeholder="60"
-            />
-            <InputField
-              label="Ancho"
-              value={form.anchoCm}
-              onChange={(v) => update("anchoCm", v)}
-              placeholder="40"
-            />
-            <InputField
-              label="Alto"
-              value={form.altoCm}
-              onChange={(v) => update("altoCm", v)}
-              placeholder="50"
-            />
-          </fieldset>
+          {/* Dimensiones por caja + diagrama flotante educativo */}
+          <div className="relative" onMouseEnter={onDimensionsHover}>
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
+                Dimensiones por caja (cm)
+              </span>
+              <button
+                type="button"
+                onClick={showDiagramFor3s}
+                className="text-[11.5px] font-medium text-wine hover:text-wine-deep underline underline-offset-2"
+              >
+                ¿Cómo medir?
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <InputField
+                label="Largo"
+                value={form.largoCm}
+                onChange={(v) => update("largoCm", v)}
+                placeholder="60"
+                onTrigger={showDiagramFor3s}
+              />
+              <InputField
+                label="Ancho"
+                value={form.anchoCm}
+                onChange={(v) => update("anchoCm", v)}
+                placeholder="40"
+                onTrigger={showDiagramFor3s}
+              />
+              <InputField
+                label="Alto"
+                value={form.altoCm}
+                onChange={(v) => update("altoCm", v)}
+                placeholder="50"
+                onTrigger={showDiagramFor3s}
+              />
+            </div>
+
+            {/* Diagrama flotante: aparece por hover (1ra vez) o click/focus en L/A/H */}
+            <div
+              aria-hidden={!showDiagram}
+              className={`absolute left-1/2 -translate-x-1/2 top-full mt-3 z-30 w-full max-w-[420px] pointer-events-none transition-all duration-500 ease-out ${
+                showDiagram
+                  ? "opacity-100 translate-y-0"
+                  : "opacity-0 -translate-y-2"
+              }`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/brand/dtdcargo-dimensions-box.svg"
+                alt="Diagrama: cómo medir el largo, ancho y alto de una caja"
+                width={600}
+                height={500}
+                className="w-full h-auto drop-shadow-[0_20px_40px_rgba(15,30,61,0.25)]"
+              />
+            </div>
+          </div>
 
           {/* Peso + cantidad */}
           <fieldset className="grid grid-cols-2 gap-3">
@@ -232,11 +292,14 @@ function InputField({
   value,
   onChange,
   placeholder,
+  onTrigger,
 }: {
   label: string;
   value: number;
   onChange: (n: number) => void;
   placeholder?: string;
+  /** Opcional: callback que dispara el popover del diagrama (solo en L/A/H). */
+  onTrigger?: () => void;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -247,6 +310,8 @@ function InputField({
         step="any"
         value={value || ""}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+        onClick={onTrigger}
+        onFocus={onTrigger}
         placeholder={placeholder}
         className="px-3 py-2.5 rounded-[10px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
       />
