@@ -125,16 +125,18 @@ export function CalculadoraForm() {
             </p>
           </div>
 
-          {/* Dimensiones por caja + diagrama flotante educativo */}
+          {/* Dimensiones por caja + diagrama flotante educativo (solo mobile) */}
           <div className="relative" onMouseEnter={onDimensionsHover}>
             <div className="flex items-baseline justify-between mb-2">
               <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
                 Dimensiones por caja (cm)
               </span>
+              {/* En desktop el SVG vive permanentemente en el panel derecho,
+                  asi que el boton "Como medir?" solo aporta valor en mobile. */}
               <button
                 type="button"
                 onClick={showDiagramFor3s}
-                className="text-[11.5px] font-medium text-wine hover:text-wine-deep underline underline-offset-2"
+                className="lg:hidden text-[11.5px] font-medium text-wine hover:text-wine-deep underline underline-offset-2"
               >
                 ¿Cómo medir?
               </button>
@@ -163,10 +165,11 @@ export function CalculadoraForm() {
               />
             </div>
 
-            {/* Diagrama flotante: aparece por hover (1ra vez) o click/focus en L/A/H */}
+            {/* Diagrama flotante: SOLO mobile (lg:hidden). En desktop esta
+                permanente en el panel derecho via DimensionsAmbientSVG. */}
             <div
               aria-hidden={!showDiagram}
-              className={`absolute left-1/2 -translate-x-1/2 top-full mt-3 z-30 w-full max-w-[420px] pointer-events-none transition-all duration-500 ease-out ${
+              className={`lg:hidden absolute left-1/2 -translate-x-1/2 top-full mt-3 z-30 w-full max-w-[420px] pointer-events-none transition-all duration-500 ease-out ${
                 showDiagram
                   ? "opacity-100 translate-y-0"
                   : "opacity-0 -translate-y-2"
@@ -268,12 +271,18 @@ export function CalculadoraForm() {
         </div>
       </div>
 
-      {/* Resultado */}
+      {/* Resultado o SVG ambiental educativo (solo desktop) */}
       <div className="flex flex-col">
         {cotizacion ? (
           <CotizacionDisplay cotizacion={cotizacion} input={form} />
         ) : (
-          <CotizacionPlaceholder />
+          // hidden lg:flex: en mobile no se muestra (el popover educativo
+          // ya cubre esa necesidad y un placeholder vacio agrega scroll
+          // innecesario). En desktop, el SVG vive aca como contenido ambiental
+          // hasta que el usuario calcule.
+          <div className="hidden lg:flex h-full">
+            <DimensionsAmbientSVG />
+          </div>
         )}
       </div>
     </div>
@@ -319,32 +328,36 @@ function InputField({
   );
 }
 
-function CotizacionPlaceholder() {
+/**
+ * Placeholder ambiental del panel derecho (desktop only). En vez de mostrar
+ * un empty-state generico, mostramos el SVG educativo de "como medir L/A/H"
+ * como contenido permanente. Razon: el usuario llega a esta pagina sin saber
+ * exactamente que medir, y el SVG responde esa pregunta antes de que la haga.
+ * Cuando calcula, este componente se reemplaza por CotizacionDisplay.
+ */
+function DimensionsAmbientSVG() {
   return (
-    <div className="card-shadow bg-paper border border-grey-200 rounded-[18px] p-7 lg:p-9 h-full flex flex-col items-center justify-center text-center min-h-[400px]">
-      <div className="w-16 h-16 rounded-full bg-wine/10 grid place-items-center mb-5">
-        <svg
-          width="28"
-          height="28"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-wine"
-          aria-hidden
-        >
-          <path d="M9 11H5a2 2 0 0 0-2 2v7h6m4 0h6v-7a2 2 0 0 0-2-2h-4m-4 9V8a2 2 0 0 1 2-2h0a2 2 0 0 1 2 2v13" />
-        </svg>
+    <div className="card-shadow bg-paper border border-grey-200 rounded-[18px] p-7 lg:p-9 w-full flex flex-col items-center justify-center text-center min-h-[400px]">
+      <div className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-wine mb-5">
+        ¿Cómo medir tu caja?
       </div>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/brand/dtdcargo-dimensions-box.svg"
+        alt="Diagrama: cómo medir el largo, ancho y alto de una caja"
+        width={600}
+        height={500}
+        className="w-full h-auto max-w-[380px] mb-6 drop-shadow-[0_12px_24px_rgba(15,30,61,0.12)]"
+      />
       <h3
         className="text-[18px] leading-[1.2] text-ink mb-2"
         style={{ fontFamily: "var(--font-archivo-black)" }}
       >
-        Tu cotización aparecerá acá
+        Largo × Ancho × Alto · en centímetros
       </h3>
-      <p className="text-[13.5px] text-grey-500 leading-[1.55] max-w-[32ch]">
-        Completá las dimensiones, peso y destino, y obtené un estimado
-        inmediato basado en nuestras tarifas reales.
+      <p className="text-[13.5px] text-grey-500 leading-[1.55] max-w-[34ch]">
+        Medí cada caja por afuera. Si tenés cajas de distintos tamaños, usá
+        el promedio. Tu cotización aparece acá cuando calculás.
       </p>
     </div>
   );
