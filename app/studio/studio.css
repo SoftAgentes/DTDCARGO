@@ -1,0 +1,287 @@
+/**
+ * Estilos del Studio (DoorTuDoor) — sistema visual.
+ *
+ * Este archivo NO comparte clases con app/globals.css del sitio público.
+ * Todas las clases tienen prefijo `studio-*` para evitar colisiones.
+ *
+ * Sistema documentado en /docs/specs/0004 y /docs/specs/0005.
+ * Refactor visual del audit técnico + diseñador gráfico (post-SDD-0005).
+ */
+
+/* ───────────────────────────────────────────────────────────
+   CSS vars: escala tipográfica + ritmo + tokens locales
+   ─────────────────────────────────────────────────────────── */
+:root {
+  /* Escala tipográfica modular del Studio (base 14, ratio ~1.25) */
+  --studio-fs-caption-xs: 9px;
+  --studio-fs-caption: 11px;
+  --studio-fs-body-sm: 12px;
+  --studio-fs-body: 14px;
+  --studio-fs-h3: 18px;
+  --studio-fs-h2: 22px;
+  --studio-fs-h1: 30px;
+  --studio-fs-hero: 36px;
+
+  /* Brand tokens locales (mirror de globals — no modificar valores aquí, son referencia) */
+  --studio-wine: #7F0F1A;
+  --studio-wine-deep: #5E0A12;
+  --studio-wine-soft: #C2747F;
+  --studio-ink: #0F1E3D;
+  --studio-ink-2: #16264A;        /* card dark del login */
+  --studio-paper: #FBFAF7;
+  --studio-paper-2: #F2F0EC;
+  --studio-border: #E8E6E2;
+  --studio-border-strong: #C9C5BE;
+  --studio-text-muted: #6B6B6B;
+  --studio-text-soft: #9B9B9B;
+
+  /* Status colors operativos */
+  --studio-green: #1F8A5B;
+  --studio-gold: #B8893A;
+  --studio-red: #C2353F;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Containers raíz del Studio
+   ─────────────────────────────────────────────────────────── */
+.studio-root {
+  min-height: 100vh;
+  background: var(--studio-paper);
+  color: var(--studio-ink);
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+}
+
+.studio-dark {
+  min-height: 100vh;
+  background: var(--studio-ink);
+  color: #FFFFFF;
+  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Tipografía
+   ─────────────────────────────────────────────────────────── */
+.studio-display {
+  font-family: "Archivo Black", "Archivo", sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  margin: 0;
+}
+
+/* Eyebrow con guión wine-soft a la izquierda (eco del .eyebrow del sitio público) */
+.studio-eyebrow {
+  font: 600 var(--studio-fs-caption) / 1 "Archivo", sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--studio-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.studio-eyebrow::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+  background: var(--studio-wine-soft);
+  flex-shrink: 0;
+}
+
+/* Variante para fondos oscuros (login) */
+.studio-eyebrow-dark {
+  font: 600 var(--studio-fs-caption) / 1 "Archivo", sans-serif;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.studio-eyebrow-dark::before {
+  content: "";
+  width: 18px;
+  height: 2px;
+  background: var(--studio-wine-soft);
+  flex-shrink: 0;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Inputs — con focus visible (a11y WCAG 2.4.7)
+   ─────────────────────────────────────────────────────────── */
+.studio-input {
+  width: 100%;
+  padding: 10px 12px;
+  background: #FFFFFF;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: 6px;
+  font: 500 13.5px/1.2 "Archivo", sans-serif;
+  color: var(--studio-ink);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.studio-input::placeholder {
+  color: var(--studio-text-soft);
+}
+.studio-input:hover:not(:disabled) {
+  border-color: var(--studio-ink);
+}
+.studio-input:focus-visible {
+  border-color: var(--studio-wine);
+  box-shadow: 0 0 0 3px rgba(127, 15, 26, 0.18);
+}
+.studio-input:disabled {
+  background: var(--studio-paper-2);
+  color: var(--studio-text-muted);
+  cursor: not-allowed;
+}
+
+.studio-input-mono {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/* Variante dark para login */
+.studio-input-dark {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  font: 500 14px/1 "Archivo", sans-serif;
+  color: #FFFFFF;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.studio-input-dark::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+.studio-input-dark:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.30);
+}
+.studio-input-dark:focus-visible {
+  border-color: var(--studio-wine-soft);
+  box-shadow: 0 0 0 3px rgba(194, 116, 127, 0.22);
+}
+.studio-input-dark:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Label uppercase tracked (acompaña a los inputs) */
+.studio-label {
+  font: 600 10.5px/1 "Archivo", sans-serif;
+  color: var(--studio-text-muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
+}
+.studio-label-dark {
+  font: 600 10.5px/1 "Archivo", sans-serif;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* ───────────────────────────────────────────────────────────
+   Sistema de botones (3 variantes + tamaño sm)
+   ─────────────────────────────────────────────────────────── */
+.studio-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 12px 22px;
+  font: 800 13px/1 "Archivo Black", "Archivo", sans-serif;
+  letter-spacing: 0.05em;
+  border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, transform 0.12s;
+}
+.studio-btn:disabled {
+  cursor: wait;
+  opacity: 0.85;
+}
+
+.studio-btn-primary {
+  background: var(--studio-wine);
+  color: #FFFFFF;
+}
+.studio-btn-primary:hover:not(:disabled) {
+  background: var(--studio-wine-deep);
+}
+.studio-btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.studio-btn-primary:focus-visible {
+  outline: 2px solid var(--studio-wine-soft);
+  outline-offset: 2px;
+}
+
+.studio-btn-dark {
+  background: var(--studio-ink);
+  color: #FFFFFF;
+}
+.studio-btn-dark:hover:not(:disabled) {
+  background: #1F1F1F;
+}
+.studio-btn-dark:focus-visible {
+  outline: 2px solid var(--studio-wine-soft);
+  outline-offset: 2px;
+}
+
+.studio-btn-ghost {
+  background: #FFFFFF;
+  border: 1px solid var(--studio-border-strong);
+  color: var(--studio-ink);
+  font-family: "Archivo", sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.studio-btn-ghost:hover:not(:disabled) {
+  border-color: var(--studio-ink);
+}
+.studio-btn-ghost:focus-visible {
+  outline: 2px solid var(--studio-wine);
+  outline-offset: 2px;
+}
+
+.studio-btn-sm {
+  padding: 9px 16px;
+  font-size: 11.5px;
+}
+
+/* Icon button (logout, eye toggle, etc.) */
+.studio-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.6);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.studio-icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.20);
+}
+.studio-icon-btn:focus-visible {
+  outline: 2px solid var(--studio-wine-soft);
+  outline-offset: 2px;
+}
