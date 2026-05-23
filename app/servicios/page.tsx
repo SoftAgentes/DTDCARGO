@@ -142,44 +142,87 @@ export default function ServiciosPage() {
           </div>
         </section>
 
-        {/* Mapa de operación — agrupado por ownership */}
+        {/* Mapa de operación — dos oficinas + puente de coordinación */}
         <section className="py-16 lg:py-20" id="matriz">
           <div className="wrap">
             <SectionHeader
               eyebrow="Mapa de operación"
               title={
                 <>
-                  Sabes con quién
+                  Una operación.
                   <br />
-                  <span style={{ color: "var(--color-wine)" }}>hablar</span> para
-                  cada necesidad.
+                  <span style={{ color: "var(--color-wine)" }}>Dos oficinas</span>{" "}
+                  trabajando juntas.
                 </>
               }
-              lead="Tres tipos de operación según dónde nace el servicio. En todos hablás con un solo punto de contacto, sin importar cuántas sedes intervengan."
+              lead="No elegís entre opciones. Tu envío pasa por dos oficinas que se coordinan internamente, y vos siempre hablás con una sola persona del equipo."
             />
 
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-5 lg:gap-6">
-              <OwnershipCard
-                flags="cn"
-                title="Solo Yiwu"
-                tagline="Control de fábrica · pre-embarque"
+            {/* Dos oficinas (peers) — cada una con los servicios que ejecuta sola */}
+            <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-5 lg:gap-6">
+              <OfficeCard
+                flag="cn"
+                title="Yiwu"
+                location="Tu equipo en China"
+                role="Control de fábrica · pre-embarque"
                 services={SERVICES_OWNERSHIP.onlyYiwu}
-                variant="muted"
               />
-              <OwnershipCard
-                flags="both"
-                title="Yiwu + Valencia"
-                tagline="Yiwu ejecuta · Valencia coordina con vos"
-                services={SERVICES_OWNERSHIP.both}
-                variant="featured"
-              />
-              <OwnershipCard
-                flags="ve"
-                title="Solo Valencia"
-                tagline="Trámites locales · post-embarque"
+              <OfficeCard
+                flag="ve"
+                title="Valencia"
+                location="Tu equipo en Venezuela"
+                role="Trámites locales · post-embarque"
                 services={SERVICES_OWNERSHIP.onlyValencia}
-                variant="muted"
               />
+            </div>
+
+            {/* Puente — servicios donde ambas oficinas colaboran */}
+            <div className="relative mt-6 lg:mt-7">
+              {/* Conectores visuales hacia arriba (solo desktop) */}
+              <div
+                aria-hidden
+                className="hidden md:flex justify-center gap-[calc(50%-48px)] -mt-1 mb-2"
+              >
+                <span className="block w-px h-5 bg-grey-300" />
+                <span className="block w-px h-5 bg-grey-300" />
+              </div>
+
+              <div className="bg-wine text-white rounded-[18px] p-7 lg:p-9 text-center">
+                <span className="inline-block text-[10.5px] font-bold tracking-[0.14em] uppercase text-white/65">
+                  {SERVICES_OWNERSHIP.both.length} servicios donde ambas oficinas colaboran
+                </span>
+                <p
+                  className="mt-3 text-[15px] lg:text-[16.5px] leading-[1.5] text-white/85 max-w-[60ch] mx-auto"
+                >
+                  <strong className="text-white">Yiwu ejecuta</strong> el trabajo en
+                  China, <strong className="text-white">Valencia te lo coordina</strong>{" "}
+                  con vos. Los dos equipos hablan entre sí — vos solo hablás con uno.
+                </p>
+                <ul className="mt-5 flex flex-wrap justify-center gap-2 list-none p-0">
+                  {SERVICES_OWNERSHIP.both.map((s) => (
+                    <li
+                      key={s}
+                      className="inline-flex px-3 py-1.5 rounded-[8px] bg-white/10 text-[13px] font-semibold text-white"
+                    >
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* Closing — el contrato con el cliente */}
+            <div className="mt-10 lg:mt-12 text-center max-w-[52ch] mx-auto">
+              <p className="text-[11.5px] font-bold tracking-[0.14em] uppercase text-wine">
+                Un punto de contacto único
+              </p>
+              <p
+                className="mt-3 text-[20px] lg:text-[24px] leading-[1.25] tracking-[-0.01em] text-ink"
+                style={{ fontFamily: "var(--font-archivo-black)" }}
+              >
+                No te pasamos de área en área. Una persona del equipo coordina
+                todo internamente.
+              </p>
             </div>
           </div>
         </section>
@@ -352,102 +395,68 @@ function ServiceCard({ service }: { service: Service }) {
 }
 
 /**
- * Card del mapa de operación — muestra un bucket de servicios agrupado por
- * ownership (solo Yiwu / ambas / solo Valencia).
+ * Card de una oficina (Yiwu o Valencia).
  *
- * - `muted`: bg blanco + border gris. Para las cards laterales (solo una sede).
- * - `featured`: bg wine + texto blanco. Para la card del medio donde se
- *   articula el modelo "una operación, dos sedes" — es el corazón comercial.
+ * Diseño plano "peer-to-peer": ambas cards usan exactamente el mismo
+ * tratamiento visual. NO hay variant "featured" porque ya no estamos vendiendo
+ * planes a elegir — son dos oficinas reales de la misma empresa.
  *
- * El count grande (56-64px Archivo Black) es el "wow" visual que reemplaza
- * la tabla verbose con una respuesta inmediata: "10 servicios solo Yiwu, 4 solo
- * Valencia, 5 conjuntos".
+ * El layout 2-col + el "puente de coordinación" debajo es lo que comunica
+ * que es UNA operación con DOS sedes (no tres opciones a elegir). La card
+ * en sí solo muestra qué servicios ejecuta esa oficina sola.
  */
-function OwnershipCard({
-  flags,
+function OfficeCard({
+  flag,
   title,
-  tagline,
+  location,
+  role,
   services,
-  variant,
 }: {
-  flags: "cn" | "ve" | "both";
+  flag: "cn" | "ve";
   title: string;
-  tagline: string;
+  location: string;
+  role: string;
   services: readonly string[];
-  variant: "muted" | "featured";
 }) {
-  const isFeatured = variant === "featured";
-
   return (
-    <article
-      className={`rounded-[18px] p-7 lg:p-8 border transition-all hover:-translate-y-0.5 ${
-        isFeatured
-          ? "bg-wine text-white border-wine"
-          : "card-shadow bg-white border-grey-200 hover:border-ink"
-      }`}
-    >
-      {/* Fila top: flags + count gigante */}
-      <div className="flex items-start justify-between gap-4 mb-6">
-        <div className="flex items-center gap-1.5 mt-1">
-          {(flags === "cn" || flags === "both") && <FlagCN size={26} />}
-          {(flags === "ve" || flags === "both") && <FlagVE size={26} />}
+    <article className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9 transition-all hover:-translate-y-0.5 hover:border-ink">
+      {/* Header: flag + título + ubicación */}
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0 mt-1">
+          {flag === "cn" ? <FlagCN size={32} /> : <FlagVE size={32} />}
         </div>
-        <div className="text-right">
-          <div
-            className={`text-[56px] lg:text-[64px] leading-none tracking-[-0.02em] ${
-              isFeatured ? "text-white" : "text-wine"
-            }`}
+        <div className="flex-1 min-w-0">
+          <h3
+            className="text-[28px] lg:text-[32px] leading-[1] tracking-[-0.02em] text-ink"
             style={{ fontFamily: "var(--font-archivo-black)" }}
           >
-            {services.length}
-          </div>
-          <div
-            className={`text-[10px] font-bold tracking-[0.14em] uppercase mt-1 ${
-              isFeatured ? "text-white/60" : "text-grey-500"
-            }`}
-          >
-            servicios
-          </div>
+            {title}
+          </h3>
+          <p className="text-[13px] text-grey-500 leading-[1.3] mt-1.5">
+            {location}
+          </p>
         </div>
       </div>
 
-      {/* Title + tagline */}
-      <h3
-        className={`text-[20px] lg:text-[22px] leading-[1.1] tracking-[-0.01em] ${
-          isFeatured ? "text-white" : "text-ink"
-        }`}
-        style={{ fontFamily: "var(--font-archivo-black)" }}
-      >
-        {title}
-      </h3>
-      <p
-        className={`text-[13px] leading-[1.4] mt-2 ${
-          isFeatured ? "text-white/75" : "text-grey-500"
-        }`}
-      >
-        {tagline}
+      {/* Rol — qué hace esta oficina en la cadena */}
+      <p className="mt-5 text-[14px] text-wine font-semibold tracking-[0.02em]">
+        {role}
       </p>
 
-      {/* Divider */}
-      <hr
-        className={`my-5 ${
-          isFeatured ? "border-white/15" : "border-grey-200"
-        }`}
-      />
+      <hr className="my-5 border-grey-200" />
 
-      {/* Services list */}
+      {/* Lista de servicios que ejecuta solo esta oficina */}
+      <span className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-grey-500 block mb-3">
+        {services.length} servicios que ejecuta solo
+      </span>
       <ul className="flex flex-col gap-2.5 list-none p-0 m-0">
         {services.map((s) => (
           <li
             key={s}
-            className={`flex items-start gap-2.5 text-[14px] leading-[1.4] ${
-              isFeatured ? "text-white/90" : "text-grey-700"
-            }`}
+            className="flex items-start gap-2.5 text-[14.5px] leading-[1.4] text-grey-700"
           >
             <span
-              className={`mt-[7px] inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                isFeatured ? "bg-white" : "bg-wine"
-              }`}
+              className="mt-[8px] inline-block w-1.5 h-1.5 rounded-full flex-shrink-0 bg-wine"
               aria-hidden
             />
             {s}
