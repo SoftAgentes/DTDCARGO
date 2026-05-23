@@ -1,24 +1,25 @@
 /**
  * Tracking — lista de envíos del tenant.
  *
- * Reemplaza el placeholder del SDD-0004. CRUD basico:
- * - GET via query directa server-side (mas rapido que /api).
- * - Boton "+ Envio" lleva a /studio/tracking/nuevo.
+ * - Lee filtros desde searchParams (?service=&status=&q=)
+ * - Filas clickeables → /studio/tracking/[id]
+ * - Hover row highlight via CSS module-like inline (transition)
+ * - Empty state diferenciado:
+ *   - Sin filtros + 0 envios → onboarding
+ *   - Con filtros + 0 envios → "ningún resultado"
  *
- * Refactor visual post-audit:
- *   - H1 estandarizado a 30px
- *   - Eyebrow con guión wine-soft (.studio-eyebrow)
- *   - Botón "+ ENVÍO" usa sistema de botones
- *   - Spacing rítmico 8/12/32
- *   - Hover sutil en filas (paper-2 background)
- *
- * Edicion + detalle + timeline → SDD-0006.
+ * Tipos visuales mantenidos del SDD-0005. Detalle: SDD-0006.
  */
 
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
+import { listShipments } from "@/lib/studio/shipment-queries";
 import { ServiceBadge } from "./_components/ServiceBadge";
 import { StatusBadge } from "./_components/StatusBadge";
+import {
+  TrackingFilters,
+  parseFiltersFromSearchParams,
+} from "./_components/TrackingFilters";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 
 export const metadata = {
@@ -47,17 +48,18 @@ function formatDate(iso: string): string {
   });
 }
 
-export default async function TrackingPage() {
-  const supabase = await createClient();
-  const { data: shipments } = await supabase
-    .from("shipments")
-    .select(
-      "id, code, client_name, origin, destination, shipment_service, status, weight_kg, volume_m3, created_at",
-    )
-    .order("created_at", { ascending: false })
-    .limit(100);
+export default async function TrackingPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const rawParams = await searchParams;
+  const filters = parseFiltersFromSearchParams(rawParams);
 
-  const rows = (shipments ?? []) as ShipmentRow[];
+  const supabase = await createClient();
+  const rows = (await listShipments(supabase, filters)) as ShipmentRow[];
+
+  const hasFilters = Boolean(filters.service || filters.status || filters.q);
 
   return (
     <div style={{ maxWidth: 1200 }}>
@@ -67,7 +69,7 @@ export default async function TrackingPage() {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
-          marginBottom: 32,
+          marginBottom: 24,
         }}
       >
         <div>
@@ -86,8 +88,10 @@ export default async function TrackingPage() {
             }}
           >
             {rows.length === 0
-              ? "Sin envíos todavía."
-              : `${rows.length} ${rows.length === 1 ? "envío" : "envíos"} · 100 más recientes`}
+              ? hasFilters
+                ? "Sin resultados para los filtros actuales."
+                : "Sin envíos todavía."
+              : `${rows.length} ${rows.length === 1 ? "envío" : "envíos"}${rows.length === 100 ? " · 100 más recientes" : ""}`}
           </p>
         </div>
         <Link
@@ -97,6 +101,9 @@ export default async function TrackingPage() {
           + ENVÍO
         </Link>
       </div>
+
+      {/* Filtros */}
+      <TrackingFilters />
 
       {/* Lista */}
       {rows.length === 0 ? (
@@ -113,7 +120,7 @@ export default async function TrackingPage() {
             className="studio-display"
             style={{ fontSize: 22, color: "#0F1E3D", marginBottom: 10 }}
           >
-            Todavía no hay envíos.
+            {hasFilters ? "Ningún envío coincide con estos filtros." : "Todavía no hay envíos."}
           </div>
           <p
             style={{
@@ -123,9 +130,9 @@ export default async function TrackingPage() {
               margin: "0 auto 18px",
             }}
           >
-            Creá el primero con el botón "+ ENVÍO" arriba a la derecha. Vas a poder
-            elegir entre Consolidación, Puerta a Puerta DDP, Reserva FCL o Transporte
-            terrestre.
+            {hasFilters
+              ? "Probá ajustar la búsqueda o limpiar los filtros para ver todos los envíos."
+              : "Creá el primero con el botón \"+ ENVÍO\" arriba a la derecha. Vas a poder elegir entre Consolidación, Puerta a Puerta DDP, Reserva FCL o Transporte terrestre."}
           </p>
         </div>
       ) : (
@@ -159,11 +166,12 @@ export default async function TrackingPage() {
             <span style={{ textAlign: "right" }}>Creado</span>
           </div>
 
-          {/* Rows */}
+          {/* Rows clickeables → detalle */}
           {rows.map((row, i) => (
-            <div
+            <Link
               key={row.id}
-              title="Detalle disponible en SDD-0006"
+              href={`/studio/tracking/${row.id}`}
+              className="studio-tracking-row"
               style={{
                 display: "grid",
                 gridTemplateColumns: "150px 1fr 180px 130px 100px",
@@ -171,9 +179,9 @@ export default async function TrackingPage() {
                 padding: "14px 20px",
                 borderTop: i > 0 ? "1px solid #F2F0EC" : 0,
                 alignItems: "center",
-                transition: "background 0.12s",
+                textDecoration: "none",
+                color: "inherit",
               }}
-              onMouseEnter={undefined}
             >
               <span
                 style={{
@@ -187,7 +195,7 @@ export default async function TrackingPage() {
               <div style={{ font: "500 12.5px/1.4 Archivo, sans-serif", color: "#0F1E3D" }}>
                 <div style={{ fontWeight: 700 }}>{row.client_name ?? "—"}</div>
                 {(row.origin || row.destination) && (
-                  <div style={{ color: "#6B6B6B", marginTop: 3, fontSize: 11 }}>
+                  <div style={{ color: "#9B9B9B", marginTop: 2, fontSize: 10.5, letterSpacing: "0.02em" }}>
                     {row.origin ?? "?"} → {row.destination ?? "?"}
                   </div>
                 )}
@@ -203,7 +211,7 @@ export default async function TrackingPage() {
               >
                 {formatDate(row.created_at)}
               </span>
-            </div>
+            </Link>
           ))}
         </div>
       )}

@@ -262,6 +262,74 @@
   font-size: 11.5px;
 }
 
+.studio-btn-xs {
+  padding: 6px 12px;
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+/* Variant warning (gold) — para acciones de atencion */
+.studio-btn-warning {
+  background: var(--studio-gold);
+  color: #FFFFFF;
+}
+.studio-btn-warning:hover:not(:disabled) {
+  background: #9C7330;
+}
+.studio-btn-warning:focus-visible {
+  outline: 2px solid var(--studio-gold);
+  outline-offset: 2px;
+}
+
+/* Variant danger (red) — para acciones destructivas */
+.studio-btn-danger {
+  background: var(--studio-red);
+  color: #FFFFFF;
+}
+.studio-btn-danger:hover:not(:disabled) {
+  background: #A02830;
+}
+.studio-btn-danger:focus-visible {
+  outline: 2px solid var(--studio-red);
+  outline-offset: 2px;
+}
+
+/* Hover de ghost con background paper-2 para mejor feedback */
+.studio-btn-ghost:hover:not(:disabled) {
+  background: var(--studio-paper-2);
+}
+
+/* ───────────────────────────────────────────────────────────
+   Tracking — filas clickeables del listado
+   ─────────────────────────────────────────────────────────── */
+.studio-tracking-row {
+  transition: background 0.12s;
+}
+.studio-tracking-row:hover {
+  background: var(--studio-paper-2);
+}
+.studio-tracking-row:focus-visible {
+  outline: 2px solid var(--studio-wine);
+  outline-offset: -2px;
+  background: var(--studio-paper-2);
+}
+
+/* ───────────────────────────────────────────────────────────
+   Tracking — grid del detalle (2 cols desktop, 1 col mobile)
+   ─────────────────────────────────────────────────────────── */
+.studio-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .studio-detail-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
 /* Icon button (logout, eye toggle, etc.) */
 .studio-icon-btn {
   display: grid;
