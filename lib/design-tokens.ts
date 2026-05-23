@@ -219,7 +219,7 @@ export const SERVICES_CN: Service[] = [
   {
     slug: "reserva-contenedores",
     title: "Reserva de contenedores FCL",
-    subtitle: "Full Container Load",
+    subtitle: "FCL directo desde fábrica de tu proveedor",
     copy: "Coordinamos la reserva del buque, posicionamos el contenedor vacío en la fábrica de tu proveedor y embarcamos. Nosotros figuramos como exportador en el BL; tú quedas como consignatario único.",
     benefit: "Tu proveedor no puede desviar la carga",
     icon: "Container",
@@ -227,9 +227,10 @@ export const SERVICES_CN: Service[] = [
   },
   {
     slug: "consolidacion-bodega-yiwu",
-    title: "Consolidación en bodega Yiwu",
-    copy: "Recepción de múltiples proveedores, clasificación y consolidación para envío.",
-    benefit: "Optimización de espacio y costos",
+    title: "Consolidación FCL en bodega propia",
+    subtitle: "Cuando consolidás varios proveedores",
+    copy: "Tus proveedores chinos envían a nuestra bodega propia en Yiwu. Ahí inspeccionamos, etiquetamos y consolidamos todo en un solo contenedor (FCL) o en grupaje (LCL). Sale unificado, con un único BL y un solo responsable.",
+    benefit: "Una sola carga desde múltiples proveedores",
     icon: "Warehouse",
     location: "cn",
     featured: true,
@@ -369,7 +370,7 @@ export const SERVICES_FEATURED: Service[] = [
 // Tabla cruzada de responsabilidad por sede (fuente: brochure Mapa de Servicios)
 export const SERVICES_MATRIX = [
   { service: "Reserva de contenedores FCL", cn: "Ejecución completa", ve: "Coordinación con cliente" },
-  { service: "Consolidación y bodega", cn: "Ejecución completa", ve: "—" },
+  { service: "Consolidación FCL en bodega propia", cn: "Ejecución completa", ve: "—" },
   { service: "Inspección y etiquetado mercancía", cn: "Ejecución completa", ve: "Solicitud del cliente" },
   { service: "Verificación de proveedores", cn: "Ejecución completa", ve: "—" },
   { service: "Auditorías y control de calidad", cn: "Ejecución completa", ve: "—" },
