@@ -210,9 +210,12 @@ export function CotizarForm() {
           </button>
         </div>
         <div className="grid grid-cols-3 gap-3">
-          <DimInput name="largo" label="Largo" placeholder="40" onTrigger={showDiagramFor3s} />
-          <DimInput name="ancho" label="Ancho" placeholder="30" onTrigger={showDiagramFor3s} />
-          <DimInput name="alto" label="Alto" placeholder="25" onTrigger={showDiagramFor3s} />
+          {/* Labels color-coded para matchear el SVG educativo (wine/gold/ink
+              en versiones mas tenues). Asi el usuario asocia visualmente
+              el campo del form con la flecha del diagrama. */}
+          <DimInput name="largo" label="Largo" placeholder="40" onTrigger={showDiagramFor3s} labelColor="#C2747F" />
+          <DimInput name="ancho" label="Ancho" placeholder="30" onTrigger={showDiagramFor3s} labelColor="#D4B077" />
+          <DimInput name="alto" label="Alto" placeholder="25" onTrigger={showDiagramFor3s} labelColor="#5C6B8E" />
         </div>
 
         {/* Diagrama flotante - aparece por hover (1ra vez) o click en campos L/A/H */}
@@ -323,15 +326,24 @@ function DimInput({
   label,
   placeholder,
   onTrigger,
+  labelColor,
 }: {
   name: string;
   label: string;
   placeholder: string;
   onTrigger: () => void;
+  /**
+   * Opcional: color custom para el label (usado en L/A/H para matchear los
+   * colores del SVG educativo). Default: text-grey-500 via Tailwind class.
+   */
+  labelColor?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-grey-500 text-center">
+      <span
+        className={`text-[11px] font-bold uppercase tracking-[0.08em] text-center ${labelColor ? "" : "text-grey-500"}`}
+        style={labelColor ? { color: labelColor } : undefined}
+      >
         {label}
       </span>
       <input
