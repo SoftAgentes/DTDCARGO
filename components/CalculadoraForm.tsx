@@ -125,7 +125,11 @@ export function CalculadoraForm() {
             </p>
           </div>
 
-          {/* Dimensiones por caja + diagrama flotante educativo (solo mobile) */}
+          {/* Dimensiones por caja + diagrama flotante educativo (solo mobile)
+              Los labels Largo/Ancho/Alto van color-coded para matchear las
+              etiquetas del SVG educativo (wine/gold/ink respectivamente, mas
+              tenues para no competir con el form). Memoria espacial inmediata
+              entre el campo y el diagrama. */}
           <div className="relative" onMouseEnter={onDimensionsHover}>
             <div className="flex items-baseline justify-between mb-2">
               <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
@@ -148,6 +152,7 @@ export function CalculadoraForm() {
                 onChange={(v) => update("largoCm", v)}
                 placeholder="60"
                 onTrigger={showDiagramFor3s}
+                labelColor="#C2747F"
               />
               <InputField
                 label="Ancho"
@@ -155,6 +160,7 @@ export function CalculadoraForm() {
                 onChange={(v) => update("anchoCm", v)}
                 placeholder="40"
                 onTrigger={showDiagramFor3s}
+                labelColor="#D4B077"
               />
               <InputField
                 label="Alto"
@@ -162,6 +168,7 @@ export function CalculadoraForm() {
                 onChange={(v) => update("altoCm", v)}
                 placeholder="50"
                 onTrigger={showDiagramFor3s}
+                labelColor="#5C6B8E"
               />
             </div>
 
@@ -302,6 +309,7 @@ function InputField({
   onChange,
   placeholder,
   onTrigger,
+  labelColor,
 }: {
   label: string;
   value: number;
@@ -309,10 +317,20 @@ function InputField({
   placeholder?: string;
   /** Opcional: callback que dispara el popover del diagrama (solo en L/A/H). */
   onTrigger?: () => void;
+  /**
+   * Opcional: color custom para el label (usado en L/A/H para matchear los
+   * colores del SVG educativo). Default: text-grey-700 via Tailwind class.
+   */
+  labelColor?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-[12.5px] text-grey-700 font-medium">{label}</span>
+      <span
+        className={`text-[12.5px] font-semibold ${labelColor ? "" : "text-grey-700"}`}
+        style={labelColor ? { color: labelColor } : undefined}
+      >
+        {label}
+      </span>
       <input
         type="number"
         min={0}
