@@ -24,13 +24,13 @@ interface ModuleDef {
   label: string;
   icon: IconName;
   slug: string; // ruta bajo /studio
-  badge?: string; // TODO: wire to real counts cuando existan los módulos
+  badge?: string; // Pendiente de cablear contra data real — ver SDD-0014/dashboard-queries
 }
 
 export const MODULES: ModuleDef[] = [
   // OPERACIÓN
   { id: "dashboard", group: "OPERACIÓN", label: "Dashboard", icon: "dashboard", slug: "/studio/dashboard" },
-  { id: "shipments", group: "OPERACIÓN", label: "Embarques", icon: "box", slug: "/studio/embarques", badge: "24" },
+  { id: "shipments", group: "OPERACIÓN", label: "Embarques", icon: "box", slug: "/studio/embarques" },
   { id: "tracking", group: "OPERACIÓN", label: "Tracking", icon: "radar", slug: "/studio/tracking" },
   { id: "calendar", group: "OPERACIÓN", label: "Calendario", icon: "clock", slug: "/studio/calendario" },
   { id: "cn", group: "OPERACIÓN", label: "Almacén CN", icon: "warehouse", slug: "/studio/cn" },
@@ -40,13 +40,13 @@ export const MODULES: ModuleDef[] = [
 
   // COMERCIAL
   { id: "quotes", group: "COMERCIAL", label: "Cotizador", icon: "calc", slug: "/studio/cotizador" },
-  { id: "clients", group: "COMERCIAL", label: "Clientes", icon: "users", slug: "/studio/clientes", badge: "187" },
+  { id: "clients", group: "COMERCIAL", label: "Clientes", icon: "users", slug: "/studio/clientes" },
   { id: "leads", group: "COMERCIAL", label: "CRM · Leads", icon: "spark", slug: "/studio/leads" },
   { id: "suppliers", group: "COMERCIAL", label: "Proveedores CN", icon: "cn", slug: "/studio/proveedores" },
   { id: "rates", group: "COMERCIAL", label: "Tarifas", icon: "tag", slug: "/studio/tarifas" },
 
   // FINANZAS
-  { id: "invoices", group: "FINANZAS", label: "Facturación", icon: "invoice", slug: "/studio/facturacion", badge: "4" },
+  { id: "invoices", group: "FINANZAS", label: "Facturación", icon: "invoice", slug: "/studio/facturacion" },
   { id: "documents", group: "FINANZAS", label: "Documentos", icon: "doc", slug: "/studio/documentos" },
   { id: "reports", group: "FINANZAS", label: "Reportes", icon: "chart", slug: "/studio/reportes" },
   { id: "costing", group: "FINANZAS", label: "Costing & Margen", icon: "star", slug: "/studio/costing" },
@@ -144,16 +144,16 @@ export function StudioSidebar() {
               justifyContent: "center",
               borderRadius: "var(--r-sm)",
               color: "var(--ink-side-soft)",
-              background: "rgba(255,255,255,0.04)",
+              background: "var(--bg-side-btn)",
               transition:
                 "background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.10)";
-              e.currentTarget.style.color = "#fff";
+              e.currentTarget.style.background = "var(--bg-side-btn-hover)";
+              e.currentTarget.style.color = "var(--ink-side-strong)";
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+              e.currentTarget.style.background = "var(--bg-side-btn)";
               e.currentTarget.style.color = "var(--ink-side-soft)";
             }}
           >
@@ -205,7 +205,7 @@ export function StudioSidebar() {
                     padding: collapsed ? "10px 0" : "9px 12px",
                     justifyContent: collapsed ? "center" : "flex-start",
                     background: active ? "var(--bg-sidebar-active)" : "transparent",
-                    color: active ? "#fff" : "var(--ink-side)",
+                    color: active ? "var(--ink-side-strong)" : "var(--ink-side)",
                     borderRadius: "var(--r-md)",
                     font: "500 13px/1 var(--f-sans)",
                     textDecoration: "none",
@@ -235,35 +235,17 @@ export function StudioSidebar() {
                     {Icon[m.icon]?.(18)}
                   </span>
                   {!collapsed && (
-                    <>
-                      <span
-                        style={{
-                          flex: 1,
-                          textAlign: "left",
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {m.label}
-                      </span>
-                      {m.badge && (
-                        <span
-                          style={{
-                            padding: "2px 7px",
-                            borderRadius: "var(--r-sm)",
-                            background: active
-                              ? "rgba(216,154,164,0.2)"
-                              : "rgba(255,255,255,0.08)",
-                            color: active ? "var(--wine-soft)" : "var(--ink-side-soft)",
-                            font: "700 10.5px/1.3 var(--f-sans)",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {m.badge}
-                        </span>
-                      )}
-                    </>
+                    <span
+                      style={{
+                        flex: 1,
+                        textAlign: "left",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {m.label}
+                    </span>
                   )}
                 </Link>
               );
@@ -292,14 +274,14 @@ export function StudioSidebar() {
             padding: "8px",
             borderRadius: "var(--r-md)",
             color: "var(--ink-side-soft)",
-            background: "rgba(255,255,255,0.04)",
+            background: "var(--bg-side-btn)",
             font: "500 12px/1 var(--f-sans)",
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.10)";
+            e.currentTarget.style.background = "var(--bg-side-btn-hover)";
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+            e.currentTarget.style.background = "var(--bg-side-btn)";
           }}
         >
           <span
@@ -360,7 +342,7 @@ function Logo({ collapsed }: { collapsed: boolean }) {
             }}
           >
             <span style={{ color: "var(--wine-soft)" }}>DTD</span>
-            <span style={{ color: "#fff" }}>STUDIO</span>
+            <span style={{ color: "var(--ink-side-strong)" }}>STUDIO</span>
           </span>
           <span
             style={{

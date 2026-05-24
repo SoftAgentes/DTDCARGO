@@ -13,6 +13,8 @@
   --bg-sidebar: #0F1E3D;
   --bg-sidebar-hover: rgba(255,255,255,0.06);
   --bg-sidebar-active: rgba(194,116,127,0.12);
+  --bg-side-btn: rgba(255,255,255,0.04);
+  --bg-side-btn-hover: rgba(255,255,255,0.10);
 
   --ink: #0F1E3D;
   --ink-soft: #6B6B6B;
@@ -22,6 +24,7 @@
   --ink-inv-mute: rgba(255,255,255,0.5);
   --ink-side: rgba(255,255,255,0.85);
   --ink-side-soft: rgba(255,255,255,0.55);
+  --ink-side-strong: #FFFFFF;
 
   --border: #E8E6E2;
   --border-strong: #D8D4CE;
