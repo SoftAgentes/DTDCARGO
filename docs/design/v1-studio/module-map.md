@@ -47,7 +47,7 @@ Leyenda de estado:
 | **Calendario** | ✅ vista mes + feriados CN/VE | `calendar.jsx` (29 KB) | SDD-0015 — vista mes con feriados pintados + sidebar próximos + warning CN. Semana/Agenda diferidas |
 | **Almacén CN** | ✅ recepción + items multi-HS + traductor + lang toggle | `cn.jsx` (66 KB) ⚠️ grande | SDD-0016 — Tabla + KPIs + drawer multi-item + huérfanas + status change. Wizard consolidación / fotos / HsDetector diferidos a SDD-0016.x |
 | **Almacén VE** | ✅ vista derivada + 4 acciones operativas | `ve.jsx` (5 KB) | SDD-0017 — Listado de shipments en estados VE-relevant + KPIs (SENIAT/retiro/reparto/entregados) + menú ··· por row (liberar aduana / asignar reparto / marcar entregado / reportar incidencia). Mini-drawer asignar reparto diferido a SDD-0019 TMS |
-| **Aduana SENIAT** | 🔴 no existe | `seniat.jsx` (23 KB) | **SDD** — Workflow aduanal VE (impuestos, agentes, HS codes, AES sync) |
+| **Aduana SENIAT** | ✅ workflow completo: filings + checklist + agentes + tax | `seniat.jsx` (23 KB) | SDD-0018 — 4 tabs (Cola/Liberados/Agentes/Tax). 3 tablas + lazy create + auto-insert 7 docs + cálculo manual con helpers IVA/IGTF + timeline 6-step. Upload Storage / Auto-calc HS / AES sync diferidos |
 | **TMS · Transporte** | 🔴 no existe | `tms.jsx` (33 KB) | **SDD** — Flota + choferes + rutas + GPS + incidencias |
 
 ### COMERCIAL
@@ -150,7 +150,7 @@ Lo que reemplaza el Excel del día a día.
 |---|---|---|---|
 | 3.1 | **Almacén CN** (recepción + items multi-HS + traductor) | SDD-0016 ✅ | ~8h |
 | 3.2 | **Almacén VE** (vista derivada + 4 acciones) | SDD-0017 ✅ | ~3h |
-| 3.3 | **Aduana SENIAT** | SDD-0018 | ~8h |
+| 3.3 | **Aduana SENIAT** (4 tabs + filings + checklist + agentes) | SDD-0018 ✅ | ~6h |
 | 3.4 | **TMS · Transporte** (flota + GPS) | SDD-0019 | ~10h |
 
 ### Sprint 4 — Finanzas (4-6 semanas)
@@ -224,15 +224,20 @@ Tracking operativo (SDD-0013) + Calendario operativo (SDD-0015). El
 calendario V1 enfocado en feriados CN+VE 2026 (vista Mes) — eventos
 de shipments (ETD/ETA/POD) diferidos hasta tener columnas reales.
 
-**Sprint 3 (Operación profunda) en curso 2/4:** SDD-0016 Almacén CN
-cerrado + SDD-0017 Almacén VE cerrado. CN: tabla + KPIs + drawer
-multi-item + supplier bilingüe + huérfanas. VE: vista derivada de
-shipments + KPIs + menú ··· con 4 acciones operativas. Diferidos a
-sub-SDDs: wizard consolidación CN (-.1), drawer asignar reparto VE
-(va con SDD-0019 TMS).
+**Sprint 3 (Operación profunda) en curso 3/4:** SDD-0016 Almacén CN
+cerrado + SDD-0017 Almacén VE cerrado + SDD-0018 Aduana SENIAT
+cerrado. CN: tabla + drawer multi-item + supplier bilingüe.
+VE: vista derivada de shipments + 4 acciones operativas.
+SENIAT: 4 tabs + cost breakdown + checklist 7 docs auto-insertados +
+4 agentes seeded + timeline 6-step + helpers IVA/IGTF.
 
-Próximo: **SDD-0018 Aduana SENIAT** (workflow aduanal VE — impuestos,
-agentes, HS codes, AES sync).
+Diferidos a sub-SDDs: wizard consolidación CN (-.1), upload Storage
+SENIAT (0018.1), auto-calc aranceles HS (0018.2), sync AES (0018.3),
+UI CRUD agentes (0018.4), DUA PDF (0018.5), reporte SENIAT exportable
+(0018.6).
+
+Próximo: **SDD-0019 TMS · Transporte** (flota + choferes + rutas +
+GPS + incidencias) — última tarea del Sprint 3.
 
 ---
 
