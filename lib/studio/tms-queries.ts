@@ -6,10 +6,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   TmsDriver,
-  TmsIncident,
   TmsIncidentRow,
   TmsIncidentType,
-  TmsRoute,
   TmsRouteRow,
   TmsRouteStatus,
   TmsTruck,

@@ -5,7 +5,7 @@ export const metadata = { title: "Facturación" };
 export default function FacturacionPage() {
   return (
     <EmptyState
-      eyebrow="Próximamente · SDD-0020"
+      eyebrow="Próximamente · SDD-0021"
       title="Facturación"
       description="Generación de facturas con links a embarques y clientes."
     />
