@@ -197,6 +197,14 @@ export default async function DashboardPage() {
         {/* Cotizaciones recientes */}
         <RecentQuotesCard quotes={recentQuotes} />
       </section>
+
+      {/* INTELIGENCIA · Placeholder hasta SDD-0020 */}
+      <section style={{ marginTop: 28 }}>
+        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+          Inteligencia
+        </div>
+        <AgenticHealthPlaceholder />
+      </section>
     </div>
   );
 }
@@ -239,6 +247,69 @@ function ActiveOperationCard({ total }: { total: number }) {
           VER TRACKING →
         </Link>
       </div>
+    </section>
+  );
+}
+
+function AgenticHealthPlaceholder() {
+  return (
+    <section
+      style={{
+        background: "var(--bg-surface)",
+        border: "2px dashed var(--border-strong)",
+        borderRadius: "var(--r-lg)",
+        padding: "22px 24px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 20,
+        flexWrap: "wrap",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 6,
+          flex: 1,
+          minWidth: 280,
+        }}
+      >
+        <div
+          style={{
+            font: "700 10.5px/1 var(--f-sans)",
+            color: "var(--wine)",
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+          }}
+        >
+          Próximamente · SDD-0020
+        </div>
+        <div
+          className="studio-display"
+          style={{ fontSize: 18, color: "var(--ink)", letterSpacing: "-0.01em" }}
+        >
+          Dashboard salud agentic
+        </div>
+        <p
+          style={{
+            font: "400 13px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+            maxWidth: "62ch",
+            margin: 0,
+          }}
+        >
+          Vista rápida de agentes activos, runs del día, aprobaciones pendientes
+          y gasto del mes — con link directo a la consola en{" "}
+          <strong style={{ color: "var(--ink)" }}>Administración</strong>.
+        </p>
+      </div>
+      <Link
+        href="/studio/admin"
+        className="studio-btn studio-btn-ghost studio-btn-sm"
+      >
+        Ir a Administración →
+      </Link>
     </section>
   );
 }
