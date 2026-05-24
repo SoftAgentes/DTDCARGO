@@ -69,6 +69,9 @@
   --shadow-lg: 0 4px 12px rgba(15,30,61,0.10), 0 12px 32px rgba(15,30,61,0.12);
   --shadow-pop: 0 12px 40px rgba(15,30,61,0.18), 0 4px 12px rgba(15,30,61,0.08);
 
+  /* ── Scrim (overlay para drawers/modals) ─────────────────── */
+  --scrim: rgba(15,30,61,0.55);
+
   /* ── Layout ────────────────────────────────────────────── */
   --sb-expanded: 248px;
   --sb-collapsed: 64px;
@@ -135,6 +138,9 @@
   --shadow-md: 0 2px 6px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.25);
   --shadow-lg: 0 4px 12px rgba(0,0,0,0.45), 0 12px 32px rgba(0,0,0,0.4);
   --shadow-pop: 0 12px 40px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.3);
+
+  /* Scrim más oscuro en dark theme */
+  --scrim: rgba(0,0,0,0.65);
 }
 
 /* ── Density modifiers ────────────────────────────────────── */

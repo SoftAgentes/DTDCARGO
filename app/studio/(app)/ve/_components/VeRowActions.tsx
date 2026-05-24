@@ -22,7 +22,6 @@ import {
 } from "@/lib/studio/warehouse-ve-types";
 import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 import {
-  assignDeliveryAction,
   markCustomsReleasedAction,
   markDeliveredAction,
   reportIncidentAction,
@@ -31,13 +30,14 @@ import {
 interface Props {
   shipmentId: string;
   status: ShipmentStatus;
-  currentDeliveryAddress: string | null;
+  /** Deprecated post-SDD-0019: el flow asignar reparto va a TMS. Se mantiene
+   *  como prop opcional para no romper callers existentes. */
+  currentDeliveryAddress?: string | null;
 }
 
 export function VeRowActions({
   shipmentId,
   status,
-  currentDeliveryAddress,
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -80,15 +80,11 @@ export function VeRowActions({
       if (action === "mark_customs_released") {
         result = await markCustomsReleasedAction(shipmentId);
       } else if (action === "assign_delivery") {
-        const addressDefault = currentDeliveryAddress ?? "";
-        const addr = window.prompt(
-          "Dirección final del cliente (opcional, podés editarla después):",
-          addressDefault,
-        );
-        if (addr === null) return; // cancelado
-        result = await assignDeliveryAction(shipmentId, {
-          deliveryAddress: addr.trim() || undefined,
-        });
+        // Refactor SDD-0019: el flow principal va por TMS (RouteDrawer
+        // con shipment pre-seleccionado). El prompt() viejo queda solo
+        // como fallback si alguien navega manualmente acá.
+        router.push(`/studio/tms?view=route&shipment=${shipmentId}`);
+        return;
       } else if (action === "mark_delivered") {
         const signedBy = window.prompt(
           "¿Quién firmó el POD? (opcional)",
@@ -148,8 +144,6 @@ export function VeRowActions({
           borderRadius: "var(--r-sm)",
           color: "var(--ink-soft)",
           cursor: pending ? "wait" : "pointer",
-          font: "700 14px/1 var(--f-sans)",
-          letterSpacing: "0.1em",
         }}
         onMouseEnter={(e) => {
           if (!pending) {
@@ -162,7 +156,7 @@ export function VeRowActions({
           e.currentTarget.style.color = "var(--ink-soft)";
         }}
       >
-        ⋯
+        {Icon.more(14)}
       </button>
 
       {open && (

@@ -48,7 +48,7 @@ Leyenda de estado:
 | **Almacén CN** | ✅ recepción + items multi-HS + traductor + lang toggle | `cn.jsx` (66 KB) ⚠️ grande | SDD-0016 — Tabla + KPIs + drawer multi-item + huérfanas + status change. Wizard consolidación / fotos / HsDetector diferidos a SDD-0016.x |
 | **Almacén VE** | ✅ vista derivada + 4 acciones operativas | `ve.jsx` (5 KB) | SDD-0017 — Listado de shipments en estados VE-relevant + KPIs (SENIAT/retiro/reparto/entregados) + menú ··· por row (liberar aduana / asignar reparto / marcar entregado / reportar incidencia). Mini-drawer asignar reparto diferido a SDD-0019 TMS |
 | **Aduana SENIAT** | ✅ workflow completo: filings + checklist + agentes + tax | `seniat.jsx` (23 KB) | SDD-0018 — 4 tabs (Cola/Liberados/Agentes/Tax). 3 tablas + lazy create + auto-insert 7 docs + cálculo manual con helpers IVA/IGTF + timeline 6-step. Upload Storage / Auto-calc HS / AES sync diferidos |
-| **TMS · Transporte** | 🔴 no existe | `tms.jsx` (33 KB) | **SDD** — Flota + choferes + rutas + GPS + incidencias |
+| **TMS · Transporte** | ✅ flota + choferes + rutas + incidencias (sin mapa GPS V1) | `tms.jsx` (33 KB) | SDD-0019 — 5 tabs + 4 KPIs + 3 drawer forms + integración VE refactor. Mapa GPS real, WhatsApp notif, optimización rutas, mobile app, edit completo diferidos a SDD-0019.x |
 
 ### COMERCIAL
 
@@ -151,7 +151,7 @@ Lo que reemplaza el Excel del día a día.
 | 3.1 | **Almacén CN** (recepción + items multi-HS + traductor) | SDD-0016 ✅ | ~8h |
 | 3.2 | **Almacén VE** (vista derivada + 4 acciones) | SDD-0017 ✅ | ~3h |
 | 3.3 | **Aduana SENIAT** (4 tabs + filings + checklist + agentes) | SDD-0018 ✅ | ~6h |
-| 3.4 | **TMS · Transporte** (flota + GPS) | SDD-0019 | ~10h |
+| 3.4 | **TMS · Transporte** (flota + choferes + rutas + integración VE) | SDD-0019 ✅ | ~7h |
 
 ### Sprint 4 — Finanzas (4-6 semanas)
 
@@ -224,20 +224,33 @@ Tracking operativo (SDD-0013) + Calendario operativo (SDD-0015). El
 calendario V1 enfocado en feriados CN+VE 2026 (vista Mes) — eventos
 de shipments (ETD/ETA/POD) diferidos hasta tener columnas reales.
 
-**Sprint 3 (Operación profunda) en curso 3/4:** SDD-0016 Almacén CN
-cerrado + SDD-0017 Almacén VE cerrado + SDD-0018 Aduana SENIAT
-cerrado. CN: tabla + drawer multi-item + supplier bilingüe.
-VE: vista derivada de shipments + 4 acciones operativas.
-SENIAT: 4 tabs + cost breakdown + checklist 7 docs auto-insertados +
-4 agentes seeded + timeline 6-step + helpers IVA/IGTF.
+**Sprint 3 (Operación profunda) CERRADO 4/4 ✅:** SDD-0016 CN +
+SDD-0017 VE + SDD-0018 SENIAT + SDD-0019 TMS. Todo el flow operativo
+end-to-end implementado: recepción supplier CN → consolidación →
+arribo VE → aduana SENIAT → liberación → asignación TMS → entrega
+POD final.
 
-Diferidos a sub-SDDs: wizard consolidación CN (-.1), upload Storage
-SENIAT (0018.1), auto-calc aranceles HS (0018.2), sync AES (0018.3),
-UI CRUD agentes (0018.4), DUA PDF (0018.5), reporte SENIAT exportable
-(0018.6).
+**Cross-SDD integration**: VE "Asignar reparto" ahora navega a
+`/studio/tms?view=route&shipment=<id>` (refactor de SDD-0019). El
+flow operativo está conectado: aduana libera → VE marca listo retiro
+→ click "Asignar reparto" abre TMS RouteDrawer pre-llenado → al crear
+ruta shipment pasa a "En reparto" + truck/driver a en_ruta.
 
-Próximo: **SDD-0019 TMS · Transporte** (flota + choferes + rutas +
-GPS + incidencias) — última tarea del Sprint 3.
+Diferidos a sub-SDDs (out V1 honest):
+- CN: wizard consolidación (-.1), detalle (-.2), fotos+files (-.3),
+  HsDetector IA (-.4), importación Excel (-.5), auto-traducción (-.6)
+- VE: drawer asignar reparto completo (cubierto por TMS), POD upload (-.2)
+- SENIAT: upload docs (0018.1), auto-calc HS (0018.2), AES sync
+  (0018.3), CRUD agentes (0018.4), DUA PDF (0018.5), reporte (0018.6)
+- TMS: mapa GPS real (0019.1), WhatsApp notif (0019.2), alertas
+  computed (0019.3), optimización rutas (0019.4), mobile app chofer
+  (0019.5), incident drawer (0019.6/.7)
+
+Próximo: **Sprint 4 — Finanzas** (4 módulos: Facturación / Documentos /
+Reportes / Costing & Margen). Antes considerar cleanup SDD chico —
+deuda técnica acumulada: extraer DrawerShell/Footer/Field a
+`_components/ui/drawer/` shared, refactor 2 drawers viejos al patrón
+`form=` HTML5, etc.
 
 ---
 
