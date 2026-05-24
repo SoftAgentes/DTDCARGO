@@ -6,17 +6,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ShipmentStatus } from "./shipment-types";
 import type { Quote } from "./quote-types";
-
-const IN_TRANSIT_STATES: ShipmentStatus[] = [
-  "shipped",
-  "in_transit",
-  "last_mile",
-  "out_for_delivery",
-];
-
-const ALERT_STATES: ShipmentStatus[] = ["exception", "delayed_warehouse"];
 
 export type OperationalCounts = {
   enTransito: number;
@@ -26,26 +16,33 @@ export type OperationalCounts = {
   total: number;
 };
 
+const EMPTY_COUNTS: OperationalCounts = {
+  enTransito: 0,
+  enAduana: 0,
+  entregados: 0,
+  conAlerta: 0,
+  total: 0,
+};
+
+/**
+ * Counts del dashboard operacional. Usa RPC shipments_dashboard_counts()
+ * (migration 0014) que agrega con count(*) filter (where status in ...) en
+ * SQL, sin traer rows al cliente. RLS filtra por tenant automaticamente.
+ */
 export async function getOperationalCounts(
   supabase: SupabaseClient,
 ): Promise<OperationalCounts> {
-  const { data } = await supabase.from("shipments").select("status");
-  const counts: OperationalCounts = {
-    enTransito: 0,
-    enAduana: 0,
-    entregados: 0,
-    conAlerta: 0,
-    total: 0,
+  const { data, error } = await supabase.rpc("shipments_dashboard_counts");
+  if (error || !data) return EMPTY_COUNTS;
+  // jsonb llega como objeto JS — castear con defensiva si falta algun key
+  const j = data as Partial<OperationalCounts>;
+  return {
+    enTransito: j.enTransito ?? 0,
+    enAduana: j.enAduana ?? 0,
+    entregados: j.entregados ?? 0,
+    conAlerta: j.conAlerta ?? 0,
+    total: j.total ?? 0,
   };
-  for (const row of data ?? []) {
-    counts.total++;
-    const status = row.status as ShipmentStatus;
-    if (IN_TRANSIT_STATES.includes(status)) counts.enTransito++;
-    else if (status === "in_customs") counts.enAduana++;
-    else if (status === "delivered") counts.entregados++;
-    if (ALERT_STATES.includes(status)) counts.conAlerta++;
-  }
-  return counts;
 }
 
 export async function getClientCount(supabase: SupabaseClient): Promise<number> {
