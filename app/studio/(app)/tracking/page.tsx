@@ -13,13 +13,13 @@
 
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { listShipments } from "@/lib/studio/shipment-queries";
+import {
+  listShipments,
+  parseFiltersFromSearchParams,
+} from "@/lib/studio/shipment-queries";
 import { ServiceBadge } from "./_components/ServiceBadge";
 import { StatusBadge } from "./_components/StatusBadge";
-import {
-  TrackingFilters,
-  parseFiltersFromSearchParams,
-} from "./_components/TrackingFilters";
+import { TrackingFilters } from "./_components/TrackingFilters";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 
 export const metadata = {

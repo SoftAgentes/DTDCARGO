@@ -62,11 +62,13 @@ export async function updateShipment(
   }
   const service = current.shipment_service as ShipmentService;
 
+  // client_name y client_markbox NO se actualizan desde edicion del detalle —
+  // vienen de la base de clientes externa. Defensa server-side: aunque alguien
+  // edite el HTML, el server no procesa esos campos.
   const update = {
-    client_name: parseString(formData.get("client_name")),
-    client_markbox: parseString(formData.get("client_markbox")),
     origin: parseString(formData.get("origin")),
     destination: parseString(formData.get("destination")),
+    destination_gps: parseString(formData.get("destination_gps")),
     weight_kg: parseNumber(formData.get("weight_kg")),
     volume_m3: parseNumber(formData.get("volume_m3")),
     vehicle_category: parseString(formData.get("vehicle_category")),
