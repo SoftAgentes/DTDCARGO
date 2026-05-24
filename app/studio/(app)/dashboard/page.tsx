@@ -19,13 +19,17 @@ import {
   getQuoteStatsThisMonth,
   getRecentQuotes,
 } from "@/lib/studio/dashboard-queries";
+import { computeAgentKpis } from "@/lib/studio/agent-queries";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { RecentQuotesCard } from "./_components/RecentQuotesCard";
+import { AgenticHealthCard } from "./_components/AgenticHealthCard";
 
 export const metadata = { title: "Dashboard" };
 
 type TenantRow = { display_name: string; base_currency: string };
 type UserTenantWithTenant = { role: string; tenants: TenantRow | null };
+
+const VE_TZ = "America/Caracas";
 
 function formatMoney(n: number): string {
   return n.toLocaleString("en-US", {
@@ -34,18 +38,64 @@ function formatMoney(n: number): string {
   });
 }
 
+function firstNameFromUser(
+  meta: Record<string, unknown> | undefined,
+  email: string | undefined,
+): string | null {
+  const fromMeta =
+    (meta?.first_name as string | undefined) ??
+    (meta?.given_name as string | undefined) ??
+    (typeof meta?.full_name === "string"
+      ? (meta.full_name as string).split(" ")[0]
+      : undefined) ??
+    (typeof meta?.name === "string" ? (meta.name as string).split(" ")[0] : undefined);
+  if (fromMeta && fromMeta.trim().length > 0) return fromMeta.trim();
+  if (email) {
+    const local = email.split("@")[0]?.split(/[.+_-]/)[0];
+    if (local) return local.charAt(0).toUpperCase() + local.slice(1);
+  }
+  return null;
+}
+
+function greetingForHourVE(now: Date): string {
+  const hourStr = new Intl.DateTimeFormat("es-VE", {
+    timeZone: VE_TZ,
+    hour: "numeric",
+    hour12: false,
+  }).format(now);
+  const hour = parseInt(hourStr, 10);
+  if (hour < 12) return "Buenos días";
+  if (hour < 19) return "Buenas tardes";
+  return "Buenas noches";
+}
+
+function eyebrowDateVE(now: Date): string {
+  // "OPERACIÓN · 24 MAY 2026"
+  const fmt = new Intl.DateTimeFormat("es-VE", {
+    timeZone: VE_TZ,
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).format(now);
+  // es-VE puede devolver "24 may 2026" o "24 may. 2026" según ICU — limpiamos punto y uppercase
+  return fmt.replace(/\./g, "").toUpperCase();
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 
   // Fetch en paralelo
   const [
+    userResp,
     tenantLink,
     operational,
     clientCount,
     rateCount,
     quoteStats,
     recentQuotes,
+    agentKpis,
   ] = await Promise.all([
+    supabase.auth.getUser(),
     supabase
       .from("user_tenants")
       .select("role, tenants(display_name, base_currency)")
@@ -56,19 +106,34 @@ export default async function DashboardPage() {
     getActiveRateCount(supabase),
     getQuoteStatsThisMonth(supabase),
     getRecentQuotes(supabase, 5),
+    computeAgentKpis(supabase),
   ]);
 
   const tenant = tenantLink;
+  const now = new Date();
+  const firstName = firstNameFromUser(
+    userResp.data.user?.user_metadata,
+    userResp.data.user?.email,
+  );
+  const greeting = greetingForHourVE(now);
+  const eyebrow = `OPERACIÓN · ${eyebrowDateVE(now)}`;
+  const subject = firstName ?? tenant?.display_name ?? "DoorTuDoor";
 
   return (
     <div style={{ maxWidth: 1280 }}>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
+        <div
+          className="studio-eyebrow"
+          style={{ marginBottom: 10, color: "var(--wine)" }}
+        >
+          {eyebrow}
+        </div>
         <h1
           className="studio-display"
           style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
         >
-          Hola, <span style={{ color: "var(--wine)" }}>DoorTuDoor</span>.
+          {greeting}, <span style={{ color: "var(--wine)" }}>{subject}</span>.
         </h1>
         <p
           style={{
@@ -77,7 +142,7 @@ export default async function DashboardPage() {
             margin: 0,
           }}
         >
-          Bienvenido al Studio. Operando como{" "}
+          Operando como{" "}
           <strong style={{ color: "var(--ink)" }}>
             {tenant?.display_name ?? "DTD·CARGO"}
           </strong>
@@ -198,12 +263,12 @@ export default async function DashboardPage() {
         <RecentQuotesCard quotes={recentQuotes} />
       </section>
 
-      {/* INTELIGENCIA · Placeholder hasta SDD-0020 */}
+      {/* INTELIGENCIA · SDD-0020 Fase 2A */}
       <section style={{ marginTop: 28 }}>
         <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
           Inteligencia
         </div>
-        <AgenticHealthPlaceholder />
+        <AgenticHealthCard kpis={agentKpis} />
       </section>
     </div>
   );
@@ -247,69 +312,6 @@ function ActiveOperationCard({ total }: { total: number }) {
           VER TRACKING →
         </Link>
       </div>
-    </section>
-  );
-}
-
-function AgenticHealthPlaceholder() {
-  return (
-    <section
-      style={{
-        background: "var(--bg-surface)",
-        border: "2px dashed var(--border-strong)",
-        borderRadius: "var(--r-lg)",
-        padding: "22px 24px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 20,
-        flexWrap: "wrap",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          flex: 1,
-          minWidth: 280,
-        }}
-      >
-        <div
-          style={{
-            font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine)",
-            letterSpacing: "0.16em",
-            textTransform: "uppercase",
-          }}
-        >
-          Próximamente · SDD-0020
-        </div>
-        <div
-          className="studio-display"
-          style={{ fontSize: 18, color: "var(--ink)", letterSpacing: "-0.01em" }}
-        >
-          Dashboard salud agentic
-        </div>
-        <p
-          style={{
-            font: "400 13px/1.5 var(--f-sans)",
-            color: "var(--ink-soft)",
-            maxWidth: "62ch",
-            margin: 0,
-          }}
-        >
-          Vista rápida de agentes activos, runs del día, aprobaciones pendientes
-          y gasto del mes — con link directo a la consola en{" "}
-          <strong style={{ color: "var(--ink)" }}>Administración</strong>.
-        </p>
-      </div>
-      <Link
-        href="/studio/admin"
-        className="studio-btn studio-btn-ghost studio-btn-sm"
-      >
-        Ir a Administración →
-      </Link>
     </section>
   );
 }
