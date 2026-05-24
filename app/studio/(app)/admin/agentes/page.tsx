@@ -16,6 +16,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import {
   computeAgentKpis,
+  listAgentRuns,
   listAgents,
   listSkills,
 } from "@/lib/studio/agent-queries";
@@ -25,12 +26,14 @@ import {
   formatCostUsd,
   modelBadgeTone,
   modelShortLabel,
+  type AgentRunWithAgent,
   type AgentWithSkill,
 } from "@/lib/studio/agent-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { AgentKpisRow } from "./_components/AgentKpisRow";
 import { AgentRowActions } from "./_components/AgentRowActions";
+import { RunsTable } from "./_components/RunsTable";
 import { SkillCard } from "./_components/SkillCard";
 
 export const metadata = { title: "Agentes y Skills" };
@@ -56,10 +59,11 @@ export default async function AgentesPage({
   const active: Tab = isTab(sp.tab) ? sp.tab : "catalog";
 
   const supabase = await createClient();
-  const [skills, kpis, agents] = await Promise.all([
+  const [skills, kpis, agents, runs] = await Promise.all([
     listSkills(supabase),
     computeAgentKpis(supabase),
     listAgents(supabase),
+    listAgentRuns(supabase, { limit: 100 }),
   ]);
 
   return (
@@ -140,7 +144,7 @@ export default async function AgentesPage({
                     ? skills.length
                     : t.key === "installed"
                       ? agents.length
-                      : 0
+                      : runs.length
                 }
                 active={isActive}
               />
@@ -152,7 +156,7 @@ export default async function AgentesPage({
       {/* Content */}
       {active === "catalog" && <CatalogContent skills={skills} />}
       {active === "installed" && <InstalledContent agents={agents} />}
-      {active === "runs" && <RunsContent />}
+      {active === "runs" && <RunsContent runs={runs} />}
     </div>
   );
 }
@@ -350,20 +354,23 @@ function Td({ children, align = "left" }: { children: React.ReactNode; align?: "
   );
 }
 
-function RunsContent() {
-  return (
-    <EmptyState
-      eyebrow="Próximamente · Fase 2D"
-      title="Historial de runs"
-      description="Cada ejecución de un agente queda registrada acá con tokens, costo, latencia, tools usadas y output. Requiere el runtime con Anthropic SDK + endpoint /api/studio/agents/run."
-      action={
-        <Link
-          href="/studio/admin/agentes?tab=catalog"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
-        >
-          Ver catálogo →
-        </Link>
-      }
-    />
-  );
+function RunsContent({ runs }: { runs: AgentRunWithAgent[] }) {
+  if (runs.length === 0) {
+    return (
+      <EmptyState
+        eyebrow="Sin runs todavía"
+        title="No hay ejecuciones registradas"
+        description="Cada vez que un agente ejecute (manual, cron, webhook o evento), queda acá con tokens, costo, latencia, tools usadas y output. Activá un agente y ejecutalo desde Instalados para ver el primer run."
+        action={
+          <Link
+            href="/studio/admin/agentes?tab=installed"
+            className="studio-btn studio-btn-primary studio-btn-sm"
+          >
+            Ver agentes instalados →
+          </Link>
+        }
+      />
+    );
+  }
+  return <RunsTable runs={runs} />;
 }
