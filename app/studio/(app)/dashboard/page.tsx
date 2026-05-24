@@ -1,206 +1,289 @@
 /**
- * Dashboard del Studio.
+ * Dashboard del Studio (SDD-0014 — KPIs reales).
  *
- * SDD-0005 + refactor visual post-audit. Movido desde /resumen a /dashboard
- * en SDD-0007 (Sprint 0.1 — Shell v1) para matchear naming del handoff v1.
+ * Layout:
+ *  - Header con saludo + tenant
+ *  - Sección "Operativo": 4 KPIs (En tránsito / En aduana / Entregados / Con alerta)
+ *  - Sección "Comercial · este mes": 4 KPIs (Clientes / Cotizaciones / Total $ / Tarifas)
+ *  - Grid 2 cols: Card "Operación activa" + Card "Cotizaciones recientes"
  *
- * NOTA: este page contiene hex literales heredados de antes del Sprint 0.
- * Quedan documentados como deuda — se refactorizan a tokens en Sprint 0.3
- * o cuando se implemente el Dashboard real (SDD-0014).
+ * Todo server-fetched en paralelo. RLS filtra por tenant automáticamente.
  */
 
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import type { ShipmentStatus } from "@/lib/studio/shipment-types";
+import {
+  getActiveRateCount,
+  getClientCount,
+  getOperationalCounts,
+  getQuoteStatsThisMonth,
+  getRecentQuotes,
+} from "@/lib/studio/dashboard-queries";
+import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { RecentQuotesCard } from "./_components/RecentQuotesCard";
 
-export const metadata = {
-  title: "Dashboard",
-};
+export const metadata = { title: "Dashboard" };
 
 type TenantRow = { display_name: string; base_currency: string };
 type UserTenantWithTenant = { role: string; tenants: TenantRow | null };
 
-const IN_TRANSIT_STATES: ShipmentStatus[] = [
-  "shipped",
-  "in_transit",
-  "last_mile",
-  "out_for_delivery",
-];
+function formatMoney(n: number): string {
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  // 1) Tenant del usuario (RLS via user_tenants)
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("role, tenants(display_name, base_currency)")
-    .maybeSingle<UserTenantWithTenant>();
-  const tenant = link?.tenants ?? null;
+  // Fetch en paralelo
+  const [
+    tenantLink,
+    operational,
+    clientCount,
+    rateCount,
+    quoteStats,
+    recentQuotes,
+  ] = await Promise.all([
+    supabase
+      .from("user_tenants")
+      .select("role, tenants(display_name, base_currency)")
+      .maybeSingle<UserTenantWithTenant>()
+      .then((r) => r.data?.tenants ?? null),
+    getOperationalCounts(supabase),
+    getClientCount(supabase),
+    getActiveRateCount(supabase),
+    getQuoteStatsThisMonth(supabase),
+    getRecentQuotes(supabase, 5),
+  ]);
 
-  // 2) Conteos de shipments
-  const { data: rows } = await supabase.from("shipments").select("status");
-
-  const counts = {
-    en_transito: 0,
-    en_aduana: 0,
-    entregados: 0,
-    con_alerta: 0,
-    total: 0,
-  };
-
-  for (const row of rows ?? []) {
-    counts.total++;
-    const status = row.status as ShipmentStatus;
-    if (IN_TRANSIT_STATES.includes(status)) counts.en_transito++;
-    else if (status === "in_customs") counts.en_aduana++;
-    else if (status === "delivered") counts.entregados++;
-    else if (status === "exception" || status === "delayed_warehouse") counts.con_alerta++;
-  }
-
-  const kpis = [
-    { label: "En tránsito", value: counts.en_transito, color: "var(--ink)" },
-    { label: "En aduana", value: counts.en_aduana, color: "var(--warning)" },
-    { label: "Entregados", value: counts.entregados, color: "var(--success)" },
-    { label: "Con alerta", value: counts.con_alerta, color: "var(--danger)" },
-  ];
+  const tenant = tenantLink;
 
   return (
-    <div style={{ maxWidth: 1200 }}>
-      <h1
-        className="studio-display"
-        style={{ fontSize: 30, margin: "0 0 12px", color: "var(--ink)" }}
-      >
-        Hola, <span style={{ color: "var(--wine)" }}>DoorTuDoor</span>.
-      </h1>
-      <p
-        style={{
-          font: "400 14px/1.5 var(--f-sans)",
-          color: "var(--ink-soft)",
-          margin: "0 0 32px",
-        }}
-      >
-        Bienvenido al Studio. Operando como{" "}
-        <strong style={{ color: "var(--ink)" }}>{tenant?.display_name ?? "DTD·CARGO"}</strong>
-        {" · "}
-        Moneda base:{" "}
-        <strong style={{ color: "var(--ink)" }}>{tenant?.base_currency ?? "USD"}</strong>.
-      </p>
-
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 14,
-          marginBottom: 28,
-        }}
-      >
-        {kpis.map((kpi) => {
-          const hasValue = kpi.value > 0;
-          return (
-            <div
-              key={kpi.label}
-              style={{
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border)",
-                borderTop: hasValue ? "2px solid var(--wine-soft)" : "1px solid var(--border)",
-                borderRadius: "var(--r-lg)",
-                padding: "18px 20px 16px",
-              }}
-            >
-              <div
-                style={{
-                  font: '900 30px/1 var(--f-display)',
-                  color: kpi.color,
-                  letterSpacing: "-0.02em",
-                }}
-              >
-                {kpi.value}
-              </div>
-              <div
-                style={{
-                  font: "600 11.5px/1 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  marginTop: 10,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
-                {kpi.label}
-              </div>
-            </div>
-          );
-        })}
+    <div style={{ maxWidth: 1280 }}>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h1
+          className="studio-display"
+          style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
+        >
+          Hola, <span style={{ color: "var(--wine)" }}>DoorTuDoor</span>.
+        </h1>
+        <p
+          style={{
+            font: "400 14px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: 0,
+          }}
+        >
+          Bienvenido al Studio. Operando como{" "}
+          <strong style={{ color: "var(--ink)" }}>
+            {tenant?.display_name ?? "DTD·CARGO"}
+          </strong>
+          {" · "}
+          Moneda base:{" "}
+          <strong style={{ color: "var(--ink)" }}>
+            {tenant?.base_currency ?? "USD"}
+          </strong>
+          .
+        </p>
       </div>
 
-      {counts.total === 0 ? (
+      {/* OPERATIVO */}
+      <section style={{ marginBottom: 28 }}>
+        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+          Operativo
+        </div>
         <div
           style={{
-            background: "var(--bg-surface)",
-            border: "2px dashed var(--border-strong)",
-            borderRadius: "var(--r-xl)",
-            padding: "48px 28px",
-            textAlign: "center",
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 14,
           }}
         >
-          <div
-            className="studio-display"
-            style={{ fontSize: 22, color: "var(--ink)", marginBottom: 10 }}
-          >
-            Todavía no hay envíos.
-          </div>
-          <p
-            style={{
-              font: "400 14px/1.55 var(--f-sans)",
-              color: "var(--ink-soft)",
-              maxWidth: "56ch",
-              margin: "0 auto 22px",
-            }}
-          >
-            Empezá creando el primer envío para que los conteos arriba se llenen con
-            datos reales.
-          </p>
-          <Link href="/studio/tracking/nuevo" className="studio-btn studio-btn-primary">
-            + CREAR ENVÍO
-          </Link>
+          <KpiCard
+            value={operational.enTransito}
+            label="En tránsito"
+            valueColor="var(--ink)"
+          />
+          <KpiCard
+            value={operational.enAduana}
+            label="En aduana"
+            valueColor="var(--warning)"
+          />
+          <KpiCard
+            value={operational.entregados}
+            label="Entregados"
+            valueColor="var(--success)"
+          />
+          <KpiCard
+            value={operational.conAlerta}
+            label="Con alerta"
+            valueColor="var(--danger)"
+          />
         </div>
-      ) : (
+      </section>
+
+      {/* COMERCIAL · ESTE MES */}
+      <section style={{ marginBottom: 28 }}>
+        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+          Comercial · este mes
+        </div>
         <div
           style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-lg)",
-            padding: "18px 22px",
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 14,
           }}
         >
-          <div>
-            <div
-              style={{
-                font: "700 11px/1 var(--f-sans)",
-                color: "var(--ink-soft)",
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                marginBottom: 6,
-              }}
-            >
-              Operación activa
-            </div>
-            <div style={{ font: "500 14px/1.4 var(--f-sans)", color: "var(--ink)" }}>
-              <strong style={{ color: "var(--ink)" }}>{counts.total}</strong>{" "}
-              {counts.total === 1 ? "envío activo" : "envíos activos"} en el tenant
-              DTD·CARGO.
-            </div>
-          </div>
-          <Link
-            href="/studio/tracking"
-            className="studio-btn studio-btn-dark studio-btn-sm"
-          >
-            VER TRACKING →
-          </Link>
+          <KpiCard
+            value={clientCount}
+            label="Clientes"
+            sub={
+              <Link
+                href="/studio/clientes"
+                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
+              >
+                Ver catálogo →
+              </Link>
+            }
+          />
+          <KpiCard
+            value={quoteStats.countSent + quoteStats.countAccepted}
+            label="Cotizaciones del mes"
+            sub={`${quoteStats.countSent} enviadas · ${quoteStats.countAccepted} aceptadas`}
+          />
+          <KpiCard
+            value={`$${formatMoney(quoteStats.totalSentAndAccepted)}`}
+            label="Total cotizado"
+            valueColor="var(--wine)"
+            sub={
+              quoteStats.countAccepted > 0
+                ? `de las cuales $${formatMoney(quoteStats.totalAccepted)} aceptado`
+                : "ninguna aceptada todavía"
+            }
+          />
+          <KpiCard
+            value={rateCount}
+            label="Tarifas vigentes"
+            sub={
+              <Link
+                href="/studio/tarifas"
+                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
+              >
+                Ver catálogo →
+              </Link>
+            }
+          />
         </div>
-      )}
+      </section>
+
+      {/* Grid inferior 2 cols */}
+      <section
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.4fr)",
+          gap: 14,
+        }}
+      >
+        {/* Operación activa */}
+        {operational.total === 0 ? (
+          <EmptyOperationalCard />
+        ) : (
+          <ActiveOperationCard total={operational.total} />
+        )}
+
+        {/* Cotizaciones recientes */}
+        <RecentQuotesCard quotes={recentQuotes} />
+      </section>
     </div>
+  );
+}
+
+function ActiveOperationCard({ total }: { total: number }) {
+  return (
+    <section
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        padding: "20px 22px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        gap: 14,
+        minHeight: 160,
+      }}
+    >
+      <div>
+        <div className="studio-eyebrow" style={{ marginBottom: 8 }}>
+          Operación activa
+        </div>
+        <div
+          style={{
+            font: "500 14px/1.5 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          <strong style={{ color: "var(--ink)" }}>{total}</strong>{" "}
+          {total === 1 ? "envío activo" : "envíos activos"} en el tenant
+          DTD·CARGO.
+        </div>
+      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <Link
+          href="/studio/tracking"
+          className="studio-btn studio-btn-dark studio-btn-sm"
+        >
+          VER TRACKING →
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function EmptyOperationalCard() {
+  return (
+    <section
+      style={{
+        background: "var(--bg-surface)",
+        border: "2px dashed var(--border-strong)",
+        borderRadius: "var(--r-lg)",
+        padding: "28px 22px",
+        textAlign: "center",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        gap: 12,
+        minHeight: 160,
+      }}
+    >
+      <div
+        className="studio-display"
+        style={{ fontSize: 18, color: "var(--ink)" }}
+      >
+        Todavía no hay envíos.
+      </div>
+      <p
+        style={{
+          font: "400 13px/1.5 var(--f-sans)",
+          color: "var(--ink-soft)",
+          maxWidth: "44ch",
+          margin: "0 auto",
+        }}
+      >
+        Empezá creando el primer envío para que los conteos arriba se
+        llenen con datos reales.
+      </p>
+      <div>
+        <Link
+          href="/studio/tracking/nuevo"
+          className="studio-btn studio-btn-primary studio-btn-sm"
+        >
+          + CREAR ENVÍO
+        </Link>
+      </div>
+    </section>
   );
 }
