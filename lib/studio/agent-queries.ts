@@ -10,7 +10,12 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { AgentKpis, AgentWithSkill, Skill } from "./agent-types";
+import type {
+  AgentKpis,
+  AgentRunWithAgent,
+  AgentWithSkill,
+  Skill,
+} from "./agent-types";
 
 const VE_TZ = "America/Caracas";
 
@@ -172,4 +177,40 @@ export async function listAgents(
     .order("created_at", { ascending: false });
   if (error) return [];
   return (data ?? []) as AgentWithSkill[];
+}
+
+// ─── Historial de runs ──────────────────────────────────────
+
+export interface ListAgentRunsFilters {
+  agentId?: string;
+  status?: string;
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * Lista runs del tenant con join agent + skill. Default last 100,
+ * orden más reciente primero. RLS via tenant_id denorm filtra.
+ */
+export async function listAgentRuns(
+  supabase: SupabaseClient,
+  filters: ListAgentRunsFilters = {},
+): Promise<AgentRunWithAgent[]> {
+  let q = supabase
+    .from("agent_runs")
+    .select(
+      "*, agent:agents(id, name, slug, skill:skills(slug, name, icon))",
+    )
+    .order("created_at", { ascending: false });
+
+  if (filters.agentId) q = q.eq("agent_id", filters.agentId);
+  if (filters.status) q = q.eq("status", filters.status);
+
+  const limit = filters.limit ?? 100;
+  const offset = filters.offset ?? 0;
+  q = q.range(offset, offset + limit - 1);
+
+  const { data, error } = await q;
+  if (error) return [];
+  return (data ?? []) as AgentRunWithAgent[];
 }
