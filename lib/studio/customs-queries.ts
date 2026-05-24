@@ -147,7 +147,7 @@ export async function listFilings(
   // 1 count (no filtra). Fallback: fetcheamos los docs en una sola query
   // adicional para todos los filings y agregamos en memoria.
   const filingIds = rows.map((r) => r.id);
-  let docCounts = new Map<string, { uploaded: number; total: number }>();
+  const docCounts = new Map<string, { uploaded: number; total: number }>();
   if (filingIds.length > 0) {
     const { data: docsAgg, error: docsErr } = await supabase
       .from("customs_documents")
