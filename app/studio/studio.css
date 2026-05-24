@@ -125,13 +125,14 @@
 .studio-input {
   width: 100%;
   padding: 10px 12px;
-  background: #FFFFFF;
+  background: var(--bg-surface);
   border: 1px solid var(--studio-border-strong);
   border-radius: 6px;
-  font: 500 13.5px/1.2 "Archivo", sans-serif;
+  font: 500 13.5px/1.2 var(--f-sans);
   color: var(--studio-ink);
   outline: none;
   box-sizing: border-box;
+  color-scheme: light dark;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 .studio-input::placeholder {
@@ -241,8 +242,8 @@
 }
 
 .studio-btn-dark {
-  background: var(--studio-ink);
-  color: #FFFFFF;
+  background: var(--ink);
+  color: var(--ink-inv);
 }
 .studio-btn-dark:hover:not(:disabled) {
   background: #1F1F1F;
@@ -252,11 +253,23 @@
   outline-offset: 2px;
 }
 
+/* Dark theme: --ink se invierte a paper, así que el botón "dark" debe usar
+   un fondo elevado del theme con texto principal (color-aware via tokens). */
+[data-theme="dark"] .studio-btn-dark {
+  background: var(--bg-elevated);
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+}
+[data-theme="dark"] .studio-btn-dark:hover:not(:disabled) {
+  background: var(--bg-surface);
+  border-color: var(--ink-soft);
+}
+
 .studio-btn-ghost {
-  background: #FFFFFF;
+  background: var(--bg-surface);
   border: 1px solid var(--studio-border-strong);
   color: var(--studio-ink);
-  font-family: "Archivo", sans-serif;
+  font-family: var(--f-sans);
   font-weight: 700;
   letter-spacing: 0.02em;
 }
