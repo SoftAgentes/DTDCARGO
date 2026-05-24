@@ -30,7 +30,7 @@ export type ShipmentFilters = {
 
 /** Campos que se devuelven en el listado (los necesarios para la fila). */
 const LIST_COLUMNS =
-  "id, code, client_name, origin, destination, shipment_service, status, weight_kg, volume_m3, created_at";
+  "id, code, client_name, client_markbox, origin, destination, shipment_service, status, weight_kg, volume_m3, created_at";
 
 /** Campos completos para la vista detalle. */
 const DETAIL_COLUMNS =
@@ -281,4 +281,123 @@ export function parseFiltersFromSearchParams(
         : undefined,
     onlyAlert,
   };
+}
+
+// ─────────────────────────────────────────────────────────────
+// SDD-0012: helpers para vista comercial agrupada por cliente
+// ─────────────────────────────────────────────────────────────
+
+/** Subset mínimo necesario para Embarques (matchea LIST_COLUMNS). */
+export type ShipmentListRow = {
+  id: string;
+  code: string;
+  client_name: string | null;
+  origin: string | null;
+  destination: string | null;
+  shipment_service: ShipmentService;
+  status: ShipmentStatus;
+  weight_kg: number | null;
+  volume_m3: number | null;
+  created_at: string;
+  /** Puede no estar si el SELECT del caller no lo pide. */
+  client_markbox?: string | null;
+};
+
+export type ClientGroupStats = {
+  count: number;
+  activeCount: number;
+  alertCount: number;
+  totalCbm: number;
+  totalWeight: number;
+};
+
+export type ClientShipmentGroup = {
+  /** Key: MARKBOX si existe, sino el client_name, sino "Sin cliente". */
+  groupKey: string;
+  clientName: string;
+  clientMarkbox: string | null;
+  shipments: ShipmentListRow[];
+  stats: ClientGroupStats;
+};
+
+const TERMINAL_STATUSES_SET = new Set<ShipmentStatus>([
+  "delivered",
+  "cancelled",
+]);
+
+/**
+ * Calcula stats agregadas de un grupo de envíos del mismo cliente.
+ */
+export function computeClientStats(rows: ShipmentListRow[]): ClientGroupStats {
+  let activeCount = 0;
+  let alertCount = 0;
+  let totalCbm = 0;
+  let totalWeight = 0;
+  for (const r of rows) {
+    if (!TERMINAL_STATUSES_SET.has(r.status)) activeCount++;
+    if (r.status === "exception") alertCount++;
+    if (r.volume_m3 != null) totalCbm += Number(r.volume_m3);
+    if (r.weight_kg != null) totalWeight += Number(r.weight_kg);
+  }
+  return {
+    count: rows.length,
+    activeCount,
+    alertCount,
+    totalCbm: Math.round(totalCbm * 1000) / 1000,
+    totalWeight: Math.round(totalWeight * 100) / 100,
+  };
+}
+
+/**
+ * Agrupa shipments por cliente (MARKBOX si existe, sino client_name).
+ * Grupos ordenados por: alertCount DESC, luego activeCount DESC, luego clientName ASC.
+ * Children dentro del grupo: created_at DESC (ya viene así de listShipments).
+ */
+export function groupShipmentsByClient(
+  rows: ShipmentListRow[],
+): ClientShipmentGroup[] {
+  const map = new Map<string, ClientShipmentGroup>();
+
+  for (const r of rows) {
+    const markbox = r.client_markbox?.trim() || null;
+    const name = r.client_name?.trim() || "Sin cliente";
+    const key = markbox || `__name:${name.toLowerCase()}`;
+
+    let group = map.get(key);
+    if (!group) {
+      group = {
+        groupKey: key,
+        clientName: name,
+        clientMarkbox: markbox,
+        shipments: [],
+        stats: {
+          count: 0,
+          activeCount: 0,
+          alertCount: 0,
+          totalCbm: 0,
+          totalWeight: 0,
+        },
+      };
+      map.set(key, group);
+    }
+    group.shipments.push(r);
+  }
+
+  const groups = Array.from(map.values());
+  // Recalcular stats con todos los shipments asignados
+  for (const g of groups) {
+    g.stats = computeClientStats(g.shipments);
+  }
+
+  groups.sort((a, b) => {
+    if (b.stats.alertCount !== a.stats.alertCount) {
+      return b.stats.alertCount - a.stats.alertCount;
+    }
+    if (b.stats.activeCount !== a.stats.activeCount) {
+      return b.stats.activeCount - a.stats.activeCount;
+    }
+    return a.clientName.localeCompare(b.clientName, "es");
+  });
+
+  return groups;
 }
