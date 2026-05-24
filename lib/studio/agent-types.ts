@@ -166,6 +166,9 @@ export interface AgentApproval {
 // ─── KPIs (computed) ─────────────────────────────────────────
 
 export interface AgentKpis {
+  /** Agentes instalados (cualquier status, excluye soft-deleted). */
+  installed: number;
+  /** Agentes con status='active' (corriendo). */
   active: number;
   runsToday: number;
   spendMtd: number;
