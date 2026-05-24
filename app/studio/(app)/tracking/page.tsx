@@ -1,99 +1,175 @@
 /**
- * Tracking — lista de envíos del tenant.
+ * Tracking en vivo — vista operativa (SDD-0013).
  *
- * - Lee filtros desde searchParams (?service=&status=&q=)
- * - Filas clickeables → /studio/tracking/[id]
- * - Hover row highlight via CSS module-like inline (transition)
- * - Empty state diferenciado:
- *   - Sin filtros + 0 envios → onboarding
- *   - Con filtros + 0 envios → "ningún resultado"
+ * Reemplaza el listado plano anterior (que se solapaba con Embarques)
+ * por sidebar de embarques activos + mapa SVG estilizado + timeline
+ * operativa con steps done/active/pending.
  *
- * Tipos visuales mantenidos del SDD-0005. Detalle: SDD-0006.
+ * Selección persiste via `?id=<shipment.id>`. Si no se pasa o el id
+ * no existe en la lista activa, fallback al primero.
+ *
+ * Detalle de edición sigue siendo `/tracking/[id]`. Crear sigue siendo
+ * `/tracking/nuevo`.
  */
 
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import {
-  listShipments,
-  parseFiltersFromSearchParams,
+  getShipmentById,
+  listActiveShipments,
 } from "@/lib/studio/shipment-queries";
-import { ServiceBadge } from "./_components/ServiceBadge";
-import { StatusBadge } from "./_components/StatusBadge";
-import { TrackingFilters } from "./_components/TrackingFilters";
-import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
+import type {
+  Shipment,
+  ShipmentService,
+  ShipmentStatus,
+} from "@/lib/studio/shipment-types";
+import {
+  ActiveShipmentList,
+  type ActiveShipmentRow,
+} from "./_components/ActiveShipmentList";
+import { TrackingMap } from "./_components/TrackingMap";
+import { TrackingTimeline } from "./_components/TrackingTimeline";
+import { TrackingDetailActions } from "./_components/TrackingDetailActions";
+import { TrackingEmptyOps } from "./_components/TrackingEmptyOps";
 
-export const metadata = {
-  title: "Tracking",
-};
+export const metadata = { title: "Tracking en vivo" };
 
-type ShipmentRow = {
+type ActiveRow = {
   id: string;
   code: string;
   client_name: string | null;
+  client_markbox: string | null;
   origin: string | null;
   destination: string | null;
   shipment_service: ShipmentService;
   status: ShipmentStatus;
-  weight_kg: number | null;
-  volume_m3: number | null;
   created_at: string;
+  arrived_destination_at: string | null;
 };
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString("es-VE", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 export default async function TrackingPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const rawParams = await searchParams;
-  const filters = parseFiltersFromSearchParams(rawParams);
+  const sp = await searchParams;
+  const requestedId = typeof sp.id === "string" ? sp.id : null;
 
   const supabase = await createClient();
-  const rows = (await listShipments(supabase, filters)) as ShipmentRow[];
+  const active = (await listActiveShipments(supabase)) as ActiveRow[];
 
-  const hasFilters = Boolean(filters.service || filters.status || filters.q);
+  // Empty state si no hay activos
+  if (active.length === 0) {
+    return (
+      <div style={{ maxWidth: 1200 }}>
+        <TrackingHeader count={0} />
+        <TrackingEmptyOps />
+      </div>
+    );
+  }
+
+  // Resolver el seleccionado:
+  //   1. ?id=<x> si existe en activos
+  //   2. ?id=<x> que no esté en activos → buscar shipment completo
+  //      (puede ser delivered y se quiera ver). Si no existe → primero activo.
+  //   3. sin ?id → primero activo.
+  let selected: Shipment | null = null;
+  if (requestedId) {
+    const inActive = active.find((s) => s.id === requestedId);
+    if (inActive) {
+      selected = await getShipmentById(supabase, requestedId);
+    } else {
+      // El id puede ser de un envío terminal; intentamos cargarlo igual.
+      selected = await getShipmentById(supabase, requestedId);
+    }
+  }
+  if (!selected) {
+    selected = await getShipmentById(supabase, active[0].id);
+  }
+
+  // Si después de todo no hay selected, fallback al empty (caso edge).
+  if (!selected) {
+    return (
+      <div style={{ maxWidth: 1200 }}>
+        <TrackingHeader count={active.length} />
+        <TrackingEmptyOps />
+      </div>
+    );
+  }
+
+  const sidebarRows: ActiveShipmentRow[] = active.map((s) => ({
+    id: s.id,
+    code: s.code,
+    client_name: s.client_name,
+    client_markbox: s.client_markbox,
+    origin: s.origin,
+    destination: s.destination,
+    shipment_service: s.shipment_service,
+    status: s.status,
+    created_at: s.created_at,
+    arrived_destination_at: s.arrived_destination_at,
+  }));
 
   return (
     <div style={{ maxWidth: 1200 }}>
-      {/* Header con spacing rítmico 8/12/32 */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          marginBottom: 24,
-        }}
-      >
-        <div>
-          <span className="studio-eyebrow">Operación</span>
-          <h1
-            className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 12px", color: "var(--ink)" }}
-          >
-            Tracking.
-          </h1>
-          <p
-            style={{
-              font: "400 13px/1.4 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: 0,
-            }}
-          >
-            {rows.length === 0
-              ? hasFilters
-                ? "Sin resultados para los filtros actuales."
-                : "Sin envíos todavía."
-              : `${rows.length} ${rows.length === 1 ? "envío" : "envíos"}${rows.length === 100 ? " · 100 más recientes" : ""}`}
-          </p>
+      <TrackingHeader count={active.length} />
+
+      <div className="studio-tracking-ops-grid">
+        {/* Sidebar */}
+        <ActiveShipmentList
+          shipments={sidebarRows}
+          selectedId={selected.id}
+        />
+
+        {/* Detalle */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <TrackingDetailActions shipment={selected} />
+          <TrackingMap shipment={selected} />
+          <TrackingTimeline shipment={selected} />
         </div>
+      </div>
+    </div>
+  );
+}
+
+function TrackingHeader({ count }: { count: number }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-end",
+        marginBottom: 24,
+        gap: 16,
+        flexWrap: "wrap",
+      }}
+    >
+      <div>
+        <span className="studio-eyebrow">Operación · en vivo</span>
+        <h1
+          className="studio-display"
+          style={{
+            fontSize: 30,
+            margin: "8px 0 12px",
+            color: "var(--ink)",
+          }}
+        >
+          Tracking en vivo.
+        </h1>
+        <p
+          style={{
+            font: "400 13px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: 0,
+            maxWidth: "60ch",
+          }}
+        >
+          Posición estimada por status operativo. ETA exacto cuando exista
+          integración AIS · {count}{" "}
+          {count === 1 ? "envío activo" : "envíos activos"}.
+        </p>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
         <Link
           href="/studio/tracking/nuevo"
           className="studio-btn studio-btn-primary"
@@ -101,120 +177,6 @@ export default async function TrackingPage({
           + ENVÍO
         </Link>
       </div>
-
-      {/* Filtros */}
-      <TrackingFilters />
-
-      {/* Lista */}
-      {rows.length === 0 ? (
-        <div
-          style={{
-            background: "var(--bg-surface)",
-            border: "2px dashed var(--border-strong)",
-            borderRadius: 12,
-            padding: "48px 28px",
-            textAlign: "center",
-          }}
-        >
-          <div
-            className="studio-display"
-            style={{ fontSize: 22, color: "var(--ink)", marginBottom: 10 }}
-          >
-            {hasFilters ? "Ningún envío coincide con estos filtros." : "Todavía no hay envíos."}
-          </div>
-          <p
-            style={{
-              font: "400 14px/1.55 var(--f-sans)",
-              color: "var(--ink-soft)",
-              maxWidth: "56ch",
-              margin: "0 auto 18px",
-            }}
-          >
-            {hasFilters
-              ? "Probá ajustar la búsqueda o limpiar los filtros para ver todos los envíos."
-              : "Creá el primero con el botón \"+ ENVÍO\" arriba a la derecha. Vas a poder elegir entre Consolidación, Puerta a Puerta DDP, Reserva FCL o Transporte terrestre."}
-          </p>
-        </div>
-      ) : (
-        <div
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            overflow: "hidden",
-          }}
-        >
-          {/* Table header */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "150px 1fr 180px 130px 100px",
-              gap: 12,
-              padding: "12px 20px",
-              background: "var(--bg-elevated)",
-              borderBottom: "1px solid var(--border)",
-              font: "700 10px/1 var(--f-sans)",
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: "var(--ink-soft)",
-            }}
-          >
-            <span>Código</span>
-            <span>Cliente · Ruta</span>
-            <span>Servicio</span>
-            <span>Estado</span>
-            <span style={{ textAlign: "right" }}>Creado</span>
-          </div>
-
-          {/* Rows clickeables → detalle */}
-          {rows.map((row, i) => (
-            <Link
-              key={row.id}
-              href={`/studio/tracking/${row.id}`}
-              className="studio-tracking-row"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "150px 1fr 180px 130px 100px",
-                gap: 12,
-                padding: "14px 20px",
-                borderTop: i > 0 ? "1px solid var(--border)" : 0,
-                alignItems: "center",
-                textDecoration: "none",
-                color: "inherit",
-              }}
-            >
-              <span
-                style={{
-                  font: "700 12.5px/1 ui-monospace, monospace",
-                  color: "var(--ink)",
-                  letterSpacing: "0.02em",
-                }}
-              >
-                {row.code}
-              </span>
-              <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>
-                <div style={{ fontWeight: 700 }}>{row.client_name ?? "—"}</div>
-                {(row.origin || row.destination) && (
-                  <div style={{ color: "var(--ink-mute)", marginTop: 2, fontSize: 10.5, letterSpacing: "0.02em" }}>
-                    {row.origin ?? "?"} → {row.destination ?? "?"}
-                  </div>
-                )}
-              </div>
-              <ServiceBadge service={row.shipment_service} />
-              <StatusBadge status={row.status} />
-              <span
-                style={{
-                  font: "500 11px/1 var(--f-sans)",
-                  color: "var(--ink-soft)",
-                  textAlign: "right",
-                }}
-              >
-                {formatDate(row.created_at)}
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
