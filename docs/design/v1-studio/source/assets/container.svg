@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" fill="none">
+  <defs>
+    <linearGradient id="bodyG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8E1622"></stop>
+      <stop offset="1" stop-color="#5E0A12"></stop>
+    </linearGradient>
+    <linearGradient id="topG" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9B1B27"></stop>
+      <stop offset="1" stop-color="#6E0E18"></stop>
+    </linearGradient>
+    <linearGradient id="sideG" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#5E0A12"></stop>
+      <stop offset="1" stop-color="#3D060B"></stop>
+    </linearGradient>
+    <pattern id="corr" width="22" height="40" patternUnits="userSpaceOnUse">
+      <rect width="22" height="40" fill="url(#bodyG)"></rect>
+      <rect x="0" y="0" width="2" height="40" fill="rgba(0,0,0,0.22)"></rect>
+      <rect x="20" y="0" width="2" height="40" fill="rgba(255,255,255,0.05)"></rect>
+    </pattern>
+    <pattern id="corrTop" width="18" height="32" patternUnits="userSpaceOnUse" patternTransform="skewX(-32)">
+      <rect width="18" height="32" fill="url(#topG)"></rect>
+      <rect x="0" y="0" width="2" height="32" fill="rgba(0,0,0,0.18)"></rect>
+    </pattern>
+    <pattern id="corrSide" width="14" height="28" patternUnits="userSpaceOnUse" patternTransform="skewY(28)">
+      <rect width="14" height="28" fill="url(#sideG)"></rect>
+      <rect x="0" y="0" width="1.6" height="28" fill="rgba(0,0,0,0.32)"></rect>
+    </pattern>
+    <filter id="lighten" x="0%" y="0%" width="100%" height="100%">
+      <feColorMatrix type="matrix" values="0 0 0 0 0.95   0 0 0 0 0.91   0 0 0 0 0.86   0 0 0 1 0"></feColorMatrix>
+    </filter>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="14"></feGaussianBlur>
+      <feOffset dx="0" dy="22"></feOffset>
+      <feComponentTransfer><feFuncA type="linear" slope="0.35"></feFuncA></feComponentTransfer>
+      <feMerge><feMergeNode></feMergeNode><feMergeNode in="SourceGraphic"></feMergeNode></feMerge>
+    </filter>
+  </defs>
+
+  
+  <ellipse cx="430" cy="520" rx="320" ry="18" fill="rgba(0,0,0,0.18)"></ellipse>
+
+  <g filter="url(#shadow)">
+    
+    <polygon points="120,150 690,150 760,90 190,90" fill="url(#corrTop)"></polygon>
+    <polygon points="120,150 690,150 760,90 190,90" fill="none" stroke="#3D060B" stroke-width="2"></polygon>
+    
+    <line x1="190" y1="90" x2="760" y2="90" stroke="#2A0408" stroke-width="3"></line>
+    <line x1="120" y1="150" x2="690" y2="150" stroke="#2A0408" stroke-width="3"></line>
+
+    
+    <polygon points="690,150 760,90 760,420 690,470" fill="url(#corrSide)"></polygon>
+    <polygon points="690,150 760,90 760,420 690,470" fill="none" stroke="#1F0306" stroke-width="2"></polygon>
+
+    
+    <rect x="120" y="150" width="570" height="320" fill="url(#corr)"></rect>
+    <rect x="120" y="150" width="570" height="320" fill="none" stroke="#2A0408" stroke-width="3"></rect>
+
+    
+    <rect x="118" y="146" width="574" height="14" fill="#2A0408"></rect>
+    <rect x="118" y="460" width="574" height="14" fill="#2A0408"></rect>
+
+    
+    <rect x="116" y="142" width="22" height="22" fill="#1A0205" stroke="#000" stroke-width="1"></rect>
+    <rect x="672" y="142" width="22" height="22" fill="#1A0205" stroke="#000" stroke-width="1"></rect>
+    <rect x="116" y="456" width="22" height="22" fill="#1A0205" stroke="#000" stroke-width="1"></rect>
+    <rect x="672" y="456" width="22" height="22" fill="#1A0205" stroke="#000" stroke-width="1"></rect>
+
+    
+    <g>
+      <rect x="700" y="160" width="55" height="298" fill="rgba(0,0,0,0.18)"></rect>
+      <line x1="728" y1="160" x2="728" y2="458" stroke="rgba(0,0,0,0.6)" stroke-width="2"></line>
+      
+      <line x1="710" y1="170" x2="710" y2="450" stroke="rgba(255,255,255,0.12)" stroke-width="2"></line>
+      <line x1="722" y1="170" x2="722" y2="450" stroke="rgba(255,255,255,0.12)" stroke-width="2"></line>
+      <line x1="738" y1="170" x2="738" y2="450" stroke="rgba(255,255,255,0.12)" stroke-width="2"></line>
+      <line x1="750" y1="170" x2="750" y2="450" stroke="rgba(255,255,255,0.12)" stroke-width="2"></line>
+      
+      <rect x="706" y="290" width="10" height="40" fill="#1F0306"></rect>
+      <rect x="746" y="290" width="10" height="40" fill="#1F0306"></rect>
+    </g>
+
+    
+    <g transform="translate(150,200)">
+      
+      <image x="0" y="50" width="110" height="120" preserveAspectRatio="xMidYMid meet" filter="url(#lighten)"></image>
+      
+      <text x="120" y="138" font-family="Archivo Black, Arial Black, sans-serif" font-weight="900" font-size="62" fill="#E8DCC8" letter-spacing="-1">DTD</text>
+      
+      <text x="265" y="138" font-family="Archivo Black, Arial Black, sans-serif" font-weight="900" font-size="62" fill="#FFFFFF" letter-spacing="-1">CARGO</text>
+    </g>
+
+    
+    <text x="138" y="180" font-family="Archivo, sans-serif" font-size="11" fill="rgba(245,239,234,0.55)" letter-spacing="1">DTDU 472816 · 22G1</text>
+    <text x="540" y="450" font-family="Archivo, sans-serif" font-size="9" fill="rgba(245,239,234,0.45)" letter-spacing="0.5">MAX GROSS 30,480 KG · TARE 2,250 KG · NET 28,230 KG</text>
+
+    
+    <polygon points="640,170 660,170 650,190" fill="#E5B442" opacity="0.9"></polygon>
+  </g>
+
+  
+  <line x1="195" y1="92" x2="755" y2="92" stroke="rgba(255,255,255,0.25)" stroke-width="1"></line>
+</svg>

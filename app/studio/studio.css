@@ -4,15 +4,26 @@
  * Este archivo NO comparte clases con app/globals.css del sitio público.
  * Todas las clases tienen prefijo `studio-*` para evitar colisiones.
  *
- * Sistema documentado en /docs/specs/0004 y /docs/specs/0005.
- * Refactor visual del audit técnico + diseñador gráfico (post-SDD-0005).
+ * Sistema documentado en /docs/specs/0004, /docs/specs/0005, /docs/specs/0006.
+ *
+ * Tokens del diseño v1 (Claude Design handoff): importados de ./tokens.css.
+ * Ver BRAND.md en la raíz para reglas de marca completas.
  */
 
+@import "./tokens.css";
+
 /* ───────────────────────────────────────────────────────────
-   CSS vars: escala tipográfica + ritmo + tokens locales
+   ALIAS DE COMPATIBILIDAD (--studio-* → tokens del diseño v1)
+   ───────────────────────────────────────────────────────────
+   Las variables --studio-* del SDD-0004/0005/0006 se mapean a los
+   tokens nuevos del diseño v1 (sin prefijo). Esto permite migración
+   gradual sin tocar todos los componentes ya construidos.
+
+   PARA CÓDIGO NUEVO: usá las variables del diseño directo
+   (var(--wine), var(--ink), var(--bg-base), etc.). Ver tokens.css.
    ─────────────────────────────────────────────────────────── */
 :root {
-  /* Escala tipográfica modular del Studio (base 14, ratio ~1.25) */
+  /* Escala tipográfica modular del Studio (legacy — uso interno) */
   --studio-fs-caption-xs: 9px;
   --studio-fs-caption: 11px;
   --studio-fs-body-sm: 12px;
@@ -22,23 +33,23 @@
   --studio-fs-h1: 30px;
   --studio-fs-hero: 36px;
 
-  /* Brand tokens locales (mirror de globals — no modificar valores aquí, son referencia) */
-  --studio-wine: #7F0F1A;
-  --studio-wine-deep: #5E0A12;
-  --studio-wine-soft: #C2747F;
-  --studio-ink: #0F1E3D;
-  --studio-ink-2: #16264A;        /* card dark del login */
-  --studio-paper: #FBFAF7;
-  --studio-paper-2: #F2F0EC;
-  --studio-border: #E8E6E2;
-  --studio-border-strong: #C9C5BE;
-  --studio-text-muted: #6B6B6B;
-  --studio-text-soft: #9B9B9B;
+  /* Alias colores: --studio-* apuntan a los tokens del diseño v1 */
+  --studio-wine: var(--wine);
+  --studio-wine-deep: var(--wine-deep);
+  --studio-wine-soft: var(--wine-soft);
+  --studio-ink: var(--ink);
+  --studio-ink-2: var(--bg-surface);      /* antes #16264A para card login dark */
+  --studio-paper: var(--bg-base);
+  --studio-paper-2: var(--bg-elevated);
+  --studio-border: var(--border);
+  --studio-border-strong: var(--border-strong);
+  --studio-text-muted: var(--ink-soft);
+  --studio-text-soft: var(--ink-mute);
 
   /* Status colors operativos */
-  --studio-green: #1F8A5B;
-  --studio-gold: #B8893A;
-  --studio-red: #C2353F;
+  --studio-green: var(--success);
+  --studio-gold: var(--warning);
+  --studio-red: var(--danger);
 }
 
 /* ───────────────────────────────────────────────────────────
