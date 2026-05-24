@@ -23,14 +23,35 @@ Cada PR referencia su spec: `feat(DTD-0001): ...`.
 - Tipografías de marca: **Archivo** (UI) + **Archivo Black** (display) + **Noto Sans SC** (CJK)
 - Cargadas via `next/font/google` en `app/layout.tsx`
 
-## Brand
+## Brand — ⚠️ leer SIEMPRE antes de tocar visuales
 
-Fuente canónica: [`_handoff_preview/dtd-cargo/project/Brand Book DTD.html`](_handoff_preview/dtd-cargo/project/Brand%20Book%20DTD.html).
+**Fuente canónica de reglas de marca:** [`BRAND.md`](BRAND.md) en la raíz del repo.
 
-- Paleta espejada en `lib/design-tokens.ts` (`DTD.*`) y `app/globals.css` (`--color-*`).
-- Nunca hardcodear hex de brand fuera de estos archivos.
-- Wine `#7F0F1A` = primary; Ink `#0F1E3D` = secondary; Paper `#FBFAF7` = surface alt.
-- Brand mark: "DTD" (wine) + "CARGO" (ink), Archivo Black. Componente `<BrandMark/>`.
+Antes de aplicar **cualquier** cambio visual (color, tipografía, spacing, componente,
+copy, badge, button variant) → leer BRAND.md primero. Define:
+
+- Sistema de color completo (light + dark) — wine / ink / paper / success / warning / danger
+- Colores **prohibidos** (verde fosfo, neón, gradientes coloridos, "AI slop")
+- 3 fuentes únicas: Archivo + JetBrains Mono + Noto Sans SC. **Prohibidas**: Inter, Roboto, Poppins, etc.
+- Spacing scale estricta 4px (nada de `padding: 17px` arbitrario)
+- 6 variantes oficiales de botones + 6 tonos de badges
+- Formato `BRAND-CHECK` que debo mostrar antes de violar cualquier regla
+- Formato `DESIGN-CHECK` cuando me piden algo sin diseño aprobado (ver HANDOFF.md)
+
+**Tokens del Studio:** [`app/studio/tokens.css`](app/studio/tokens.css) — adoptados del
+diseño v1 (Claude Design handoff en `docs/design/v1-studio/`). Light + Dark themes,
+density modifiers (compact / spacious), motion, reset.
+
+**Brand Book HTML actual:** v2.4 vive en [`docs/design/v1-studio/source/Brand Book DTD v2.4.html`](docs/design/v1-studio/source/).
+Las versiones anteriores en `_handoff_preview/` / `BANDBOOK V1/` están **archivadas** —
+no consultar para decisiones nuevas.
+
+**Resumen ejecutivo (5 reglas que NO se rompen — ver BRAND.md sec. final):**
+1. Solo tokens CSS (`var(--*)`). Cero hex inventados fuera del tokens.css.
+2. Solo fuentes Archivo + JetBrains Mono + Noto Sans SC.
+3. Cero AI slop (gradientes coloridos, glassmorphism, emojis decorativos).
+4. Componentes del sistema primero. Inventar solo con `/* TODO: brand-review */`.
+5. Avisar antes de violar con formato `BRAND-CHECK` explícito.
 
 ## Comandos
 
