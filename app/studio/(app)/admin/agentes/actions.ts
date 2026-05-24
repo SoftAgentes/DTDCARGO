@@ -17,8 +17,10 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import {
+  AGENT_STATUSES,
   validateInstallSkillInput,
   type AgentActionState,
+  type AgentStatus,
   type InstallSkillInput,
 } from "@/lib/studio/agent-types";
 
@@ -133,4 +135,32 @@ export async function installSkillAction(
   revalidatePath("/studio/admin/agentes");
   revalidatePath("/studio/dashboard");
   return { ok: true, agentId: agentRow.id };
+}
+
+/**
+ * Toggle status del agent (off ↔ paused ↔ active). RLS valida tenant
+ * automáticamente via update — un user de otro tenant no puede afectar.
+ */
+export async function toggleAgentStatusAction(
+  agentId: string,
+  nextStatus: AgentStatus,
+): Promise<AgentActionState> {
+  if (!AGENT_STATUSES.includes(nextStatus)) {
+    return { error: `Estado inválido: ${nextStatus}` };
+  }
+  if (!agentId) return { error: "Falta agentId." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("agents")
+    .update({ status: nextStatus })
+    .eq("id", agentId)
+    .is("deleted_at", null);
+  if (error) {
+    return { error: `No se pudo cambiar el estado: ${error.message}` };
+  }
+
+  revalidatePath("/studio/admin/agentes");
+  revalidatePath("/studio/dashboard");
+  return { ok: true, agentId };
 }
