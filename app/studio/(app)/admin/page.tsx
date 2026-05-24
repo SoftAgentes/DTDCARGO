@@ -1,14 +1,19 @@
 /**
- * Hub de Administración del Studio (SDD-0020 Fase 2A).
+ * Administración · /studio/admin (refactor maestro-detalle)
  *
- * Grid de cards de configuración. V1: solo "Agentes y Skills" es clickable
- * (SDD-0020). Las 11 cards restantes son placeholders disabled con tag
- * "Próximamente" — se irán habilitando en SDDs futuros (0021 cron/eventos,
- * 0024 usuarios, 0026 mailing, 0030 configuración general, etc.).
+ * Layout sidenav 240px + content 1fr, alineado al handoff Claude Design
+ * v1.3.1 (docs/design/studio/v1.3.1-claude-design/proyecto/erp/modules/admin.jsx).
  *
- * Patrón visual: cards estilo dashboard, eyebrow + título + descripción
- * + chip de status. Active card tiene border wine, disabled tiene border
- * dashed neutral.
+ * 13 secciones agrupadas en 3 niveles (BÁSICO / INTERMEDIO / PRO).
+ * URL state via ?section= (server component, sin client JS).
+ *
+ * V1 acá: shell + placeholders informativos por sección. La única
+ * sección con implementación real es "Agentes y Skills" (SDD-0020),
+ * que linkea al módulo dedicado /admin/agentes.
+ *
+ * Las 12 secciones restantes irán implementándose en SDDs futuros
+ * con su contenido real del handoff (forms de empresa, feature flags,
+ * tabla de master data, etc.).
  */
 
 import Link from "next/link";
@@ -16,123 +21,354 @@ import { Icon, type IconName } from "@/app/studio/_components/icons";
 
 export const metadata = { title: "Administración" };
 
-type AdminCard = {
+type SectionGroup = "BÁSICO" | "INTERMEDIO" | "PRO";
+
+interface AdminSection {
   id: string;
+  group: SectionGroup;
   label: string;
-  description: string;
   icon: IconName;
+  description: string;
+  /** Si está definido, la sección es navegable a una ruta externa
+   *  (módulo dedicado). Si no, renderiza placeholder informativo. */
   href?: string;
-  sdd?: string;
-};
+  /** SDD donde se implementará. Mostrado en el placeholder. */
+  sddRef?: string;
+}
 
-const ACTIVE_CARDS: AdminCard[] = [
+const SECTIONS: AdminSection[] = [
+  // ─── BÁSICO ──────────────────────────────────────────────
   {
-    id: "agentes",
-    label: "Agentes y Skills",
-    description:
-      "Catálogo de skills, agentes instalados, runs y audit trail.",
-    icon: "spark",
-    href: "/studio/admin/agentes",
-    sdd: "SDD-0020",
-  },
-];
-
-const PLACEHOLDER_CARDS: AdminCard[] = [
-  {
-    id: "usuarios",
-    label: "Usuarios",
-    description: "Invitaciones, roles asignados, 2FA y sesiones activas.",
-    icon: "users",
-    sdd: "SDD-0024",
-  },
-  {
-    id: "roles",
-    label: "Roles y permisos",
-    description: "Roles por módulo, scope por almacén y permisos finos.",
+    id: "company",
+    group: "BÁSICO",
+    label: "Datos de la empresa",
     icon: "shield",
-    sdd: "SDD-0024",
+    description:
+      "Identificación fiscal (RIF, razón social), oficinas CN/VE, datos bancarios que aparecen en facturas, impuestos (IVA / ISLR / IGTF).",
+    sddRef: "SDD-0030",
   },
   {
-    id: "integraciones",
-    label: "Integraciones",
-    description: "WhatsApp Business, Anthropic, Supabase, SENIAT, Stripe.",
-    icon: "link",
-    sdd: "SDD-0021",
+    id: "features",
+    group: "BÁSICO",
+    label: "Casos de uso · ON/OFF",
+    icon: "flag",
+    description:
+      "Feature flags por módulo. Encendé/apagá WhatsApp Business, SENIAT, Vault, Mailing y otros sin tocar código.",
+    sddRef: "SDD-0030",
   },
   {
-    id: "tenants",
-    label: "Tenants",
-    description: "Multi-empresa, switch de tenant y catálogo de organizaciones.",
-    icon: "globe",
-    sdd: "SDD-0030",
-  },
-  {
-    id: "branding",
-    label: "Branding",
-    description: "Logo, colores y tono por tenant — overrides del Brand Book.",
+    id: "masterdata",
+    group: "BÁSICO",
+    label: "Master data",
     icon: "tag",
-    sdd: "SDD-0030",
+    description:
+      "Catálogos editables: segmentos de cliente, tiers, servicios (LCL/FCL), estados del workflow, tipos de documento, HS codes OMA, AES arancel VE.",
+    sddRef: "SDD-0030",
   },
   {
-    id: "plantillas",
-    label: "Plantillas",
-    description: "Templates de correos, contratos, facturas y notas de débito.",
-    icon: "doc",
-    sdd: "SDD-0026",
-  },
-  {
-    id: "notificaciones",
-    label: "Notificaciones",
-    description: "Reglas de alertas — embarques demorados, facturas vencidas.",
-    icon: "bell",
-    sdd: "SDD-0026",
-  },
-  {
-    id: "webhooks",
-    label: "Webhooks",
-    description: "Endpoints salientes para sincronizar con sistemas externos.",
-    icon: "cog",
-    sdd: "SDD-0021",
-  },
-  {
-    id: "logs",
-    label: "Logs y auditoría",
-    description: "Audit log con drill-down por usuario, módulo y acción.",
-    icon: "chart",
-    sdd: "Sprint C",
-  },
-  {
-    id: "backups",
-    label: "Backups",
-    description: "Snapshots periódicos y restore point-in-time del tenant.",
-    icon: "download",
-    sdd: "Backlog",
-  },
-  {
-    id: "billing",
-    label: "Facturación SaaS",
-    description: "Plan, ciclo de pago, uso de API y métodos de cobro.",
+    id: "rates",
+    group: "BÁSICO",
+    label: "Tasas de cambio",
     icon: "invoice",
-    sdd: "Backlog",
+    description:
+      "BCV, paralelo y CNY. Historial diario y configuración de qué tasa usa cada flujo (facturación, costing, estado de cuenta).",
+    sddRef: "SDD-0030",
+  },
+  {
+    id: "holidays",
+    group: "BÁSICO",
+    label: "Feriados CN/VE",
+    icon: "clock",
+    description:
+      "Calendario de feriados de ambos países usado por TMS, almacén y SLAs. Sincronizado con el calendario operativo.",
+    sddRef: "SDD-0030",
+  },
+  {
+    id: "appearance",
+    group: "BÁSICO",
+    label: "Apariencia",
+    icon: "sun",
+    description:
+      "Theme (light/dark), densidad (compact/normal/spacious), branding por tenant (logo, color de acento). Persistido por usuario.",
+    sddRef: "SDD-0030",
+  },
+  // ─── INTERMEDIO ──────────────────────────────────────────
+  {
+    id: "permissions",
+    group: "INTERMEDIO",
+    label: "Permisos por rol",
+    icon: "lock",
+    description:
+      "Roles del tenant (Admin, Comercial, Operaciones, Bodega) con scope por módulo y por almacén. Granularidad de read/write/approve.",
+    sddRef: "SDD-0024",
+  },
+  {
+    id: "audit",
+    group: "INTERMEDIO",
+    label: "Audit log",
+    icon: "eye",
+    description:
+      "Drill-down de quién hizo qué, cuándo y desde dónde. Filtros por usuario, módulo, acción y rango de fechas.",
+    sddRef: "Sprint C",
+  },
+  {
+    id: "numbering",
+    group: "INTERMEDIO",
+    label: "Numeración & legal",
+    icon: "doc",
+    description:
+      "Correlativos por documento (factura, nota de débito/crédito, control SENIAT) con prefijo y zero-padding configurables.",
+    sddRef: "SDD-0030",
+  },
+  // ─── PRO ─────────────────────────────────────────────────
+  {
+    id: "agents",
+    group: "PRO",
+    label: "Agentes y Skills",
+    icon: "spark",
+    description:
+      "Catálogo de skills built-in, agentes instalados por tenant, audit trail de runs y métricas de costo. Runtime con Anthropic SDK + tools read-only sobre el ERP.",
+    sddRef: "SDD-0020",
+    href: "/studio/admin/agentes",
+  },
+  {
+    id: "api",
+    group: "PRO",
+    label: "API keys & webhooks",
+    icon: "link",
+    description:
+      "Tokens para integrar con sistemas externos (CRM, BI, contabilidad). Webhooks salientes para sincronizar embarques / facturas / pagos.",
+    sddRef: "SDD-0021",
+  },
+  {
+    id: "workflows",
+    group: "PRO",
+    label: "Workflows custom",
+    icon: "radar",
+    description:
+      "Reglas de automatización por tenant (cron, eventos, triggers). Disparan agents, mailing, alertas o cambios de estado.",
+    sddRef: "SDD-0021",
+  },
+  {
+    id: "import",
+    group: "PRO",
+    label: "Importar / Exportar",
+    icon: "upload",
+    description:
+      "CSV/XLSX bulk: clientes, tarifas, embarques históricos. Export para BI o backup manual.",
+    sddRef: "Backlog",
   },
 ];
 
-export default function AdminPage() {
+const GROUP_ORDER: SectionGroup[] = ["BÁSICO", "INTERMEDIO", "PRO"];
+
+function isSection(s: string | undefined): s is string {
+  return !!s && SECTIONS.some((sec) => sec.id === s);
+}
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ section?: string }>;
+}) {
+  const sp = await searchParams;
+  const activeId: string = isSection(sp.section) ? sp.section : "company";
+  const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];
+
+  const grouped = GROUP_ORDER.map((g) => ({
+    group: g,
+    items: SECTIONS.filter((s) => s.group === g),
+  }));
+
   return (
     <div style={{ maxWidth: 1280 }}>
-      <header style={{ marginBottom: 28 }}>
+      {/* Page header */}
+      <header
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          justifyContent: "space-between",
+          gap: 16,
+          marginBottom: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <div
+            className="studio-eyebrow"
+            style={{ marginBottom: 10, color: "var(--wine)" }}
+          >
+            Configuración · Studio
+          </div>
+          <h1
+            className="studio-display"
+            style={{
+              fontSize: 28,
+              margin: "0 0 6px",
+              color: "var(--ink)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            Administración
+          </h1>
+          <p
+            style={{
+              font: "400 13px/1.5 var(--f-sans)",
+              color: "var(--ink-soft)",
+              margin: 0,
+              maxWidth: "72ch",
+            }}
+          >
+            Configuración global del Studio. Solo accesible para rol Admin.
+          </p>
+        </div>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "6px 10px",
+            background: "var(--wine-tint)",
+            color: "var(--wine)",
+            borderRadius: "var(--r-pill)",
+            font: "700 11px/1 var(--f-sans)",
+            letterSpacing: "0.04em",
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "var(--wine)",
+            }}
+          />
+          Acceso restringido · Admin
+        </span>
+      </header>
+
+      {/* Layout sidenav + content */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "240px minmax(0, 1fr)",
+          gap: 16,
+          alignItems: "flex-start",
+        }}
+      >
+        <SideNav grouped={grouped} activeId={activeId} />
+        <Content section={active} />
+      </div>
+    </div>
+  );
+}
+
+function SideNav({
+  grouped,
+  activeId,
+}: {
+  grouped: Array<{ group: SectionGroup; items: AdminSection[] }>;
+  activeId: string;
+}) {
+  return (
+    <nav
+      aria-label="Secciones de Administración"
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        overflow: "hidden",
+        position: "sticky",
+        top: 16,
+      }}
+    >
+      {grouped.map(({ group, items }) => (
+        <div key={group}>
+          <div
+            style={{
+              padding: "12px 14px 6px",
+              font: "700 9.5px/1 var(--f-sans)",
+              color: "var(--ink-mute)",
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+            }}
+          >
+            {group}
+          </div>
+          {items.map((s) => {
+            const isActive = s.id === activeId;
+            return (
+              <Link
+                key={s.id}
+                href={`/studio/admin?section=${s.id}`}
+                aria-current={isActive ? "page" : undefined}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "10px 14px",
+                  background: isActive ? "var(--wine-tint)" : "transparent",
+                  color: isActive ? "var(--wine)" : "var(--ink)",
+                  font: `${isActive ? "700" : "500"} 13px/1 var(--f-sans)`,
+                  textDecoration: "none",
+                  position: "relative",
+                }}
+              >
+                {isActive && (
+                  <span
+                    aria-hidden
+                    style={{
+                      position: "absolute",
+                      left: 0,
+                      top: 8,
+                      bottom: 8,
+                      width: 3,
+                      background: "var(--wine)",
+                      borderRadius: 2,
+                    }}
+                  />
+                )}
+                <span
+                  style={{
+                    color: isActive ? "var(--wine)" : "var(--ink-soft)",
+                    display: "inline-flex",
+                    flexShrink: 0,
+                  }}
+                >
+                  {Icon[s.icon]?.(15)}
+                </span>
+                <span style={{ flex: 1 }}>{s.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+function Content({ section }: { section: AdminSection }) {
+  return (
+    <div key={section.id}>
+      {/* Header del content */}
+      <div style={{ marginBottom: 20 }}>
         <div
           className="studio-eyebrow"
-          style={{ marginBottom: 10, color: "var(--wine)" }}
+          style={{ color: "var(--wine)", marginBottom: 6 }}
         >
-          Configuración · Studio
+          {section.group}
         </div>
-        <h1
+        <h2
           className="studio-display"
-          style={{ fontSize: 30, margin: "0 0 8px", color: "var(--ink)" }}
+          style={{
+            fontSize: 22,
+            margin: "0 0 8px",
+            color: "var(--ink)",
+            letterSpacing: "-0.02em",
+          }}
         >
-          Administración
-        </h1>
+          {section.label}
+        </h2>
         <p
           style={{
             font: "400 14px/1.5 var(--f-sans)",
@@ -141,104 +377,47 @@ export default function AdminPage() {
             maxWidth: "72ch",
           }}
         >
-          Hub de configuración del Studio. La sección{" "}
-          <strong style={{ color: "var(--ink)" }}>Agentes y Skills</strong> ya
-          está disponible. El resto se va habilitando con SDDs futuros.
+          {section.description}
         </p>
-      </header>
+      </div>
 
-      {/* Disponibles */}
-      <section style={{ marginBottom: 28 }}>
-        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
-          Disponibles
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 14,
-          }}
-        >
-          {ACTIVE_CARDS.map((card) => (
-            <AdminCardActive key={card.id} card={card} />
-          ))}
-        </div>
-      </section>
-
-      {/* Próximamente */}
-      <section>
-        <div
-          className="studio-eyebrow"
-          style={{ marginBottom: 12, color: "var(--ink-mute)" }}
-        >
-          Próximamente
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-            gap: 14,
-          }}
-        >
-          {PLACEHOLDER_CARDS.map((card) => (
-            <AdminCardPlaceholder key={card.id} card={card} />
-          ))}
-        </div>
-      </section>
+      {section.href ? (
+        <LinkedSectionCTA section={section} />
+      ) : (
+        <PendingSectionPanel section={section} />
+      )}
     </div>
   );
 }
 
-function AdminCardActive({ card }: { card: AdminCard }) {
-  if (!card.href) return null;
+function LinkedSectionCTA({ section }: { section: AdminSection }) {
+  if (!section.href) return null;
   return (
-    <Link
-      href={card.href}
+    <section
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        padding: "20px 22px",
         background: "var(--bg-surface)",
         border: "1px solid var(--border)",
         borderLeft: "3px solid var(--wine)",
         borderRadius: "var(--r-lg)",
-        textDecoration: "none",
-        color: "inherit",
-        minHeight: 152,
-        transition: "background var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)",
+        padding: "22px 24px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 16,
+        flexWrap: "wrap",
       }}
     >
-      <header
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 10,
-        }}
-      >
-        <span style={{ color: "var(--wine)", display: "inline-flex" }}>
-          {Icon[card.icon]?.(22)}
-        </span>
-        {card.sdd && (
-          <span
-            style={{
-              font: "700 9.5px/1 var(--f-sans)",
-              letterSpacing: "0.14em",
-              color: "var(--wine)",
-              textTransform: "uppercase",
-            }}
-          >
-            {card.sdd}
-          </span>
-        )}
-      </header>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+      <div style={{ flex: 1, minWidth: 260 }}>
         <div
           className="studio-display"
-          style={{ fontSize: 17, color: "var(--ink)", letterSpacing: "-0.01em" }}
+          style={{
+            fontSize: 16,
+            color: "var(--ink)",
+            letterSpacing: "-0.01em",
+            marginBottom: 6,
+          }}
         >
-          {card.label}
+          Esta sección tiene su módulo dedicado
         </div>
         <p
           style={{
@@ -247,90 +426,104 @@ function AdminCardActive({ card }: { card: AdminCard }) {
             margin: 0,
           }}
         >
-          {card.description}
+          {section.label} corre como módulo separado para mantener el área de
+          configuración liviana.{" "}
+          {section.sddRef && (
+            <>
+              Implementación cubierta por{" "}
+              <strong style={{ color: "var(--ink)" }}>{section.sddRef}</strong>.
+            </>
+          )}
         </p>
       </div>
-      <div
-        style={{
-          marginTop: "auto",
-          font: "600 12px/1 var(--f-sans)",
-          color: "var(--wine)",
-        }}
+      <Link
+        href={section.href}
+        className="studio-btn studio-btn-primary studio-btn-sm"
       >
-        Abrir →
-      </div>
-    </Link>
+        Abrir {section.label} →
+      </Link>
+    </section>
   );
 }
 
-function AdminCardPlaceholder({ card }: { card: AdminCard }) {
+function PendingSectionPanel({ section }: { section: AdminSection }) {
   return (
-    <div
+    <section
       style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-        padding: "20px 22px",
         background: "var(--bg-surface)",
         border: "2px dashed var(--border-strong)",
         borderRadius: "var(--r-lg)",
-        minHeight: 152,
-        opacity: 0.78,
+        padding: "26px 28px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
       }}
-      aria-disabled="true"
     >
-      <header
+      <div
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: 10,
+          gap: 12,
         }}
       >
-        <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
-          {Icon[card.icon]?.(22)}
-        </span>
-        {card.sdd && (
+        <div
+          style={{
+            font: "700 10px/1 var(--f-sans)",
+            color: "var(--wine)",
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+          }}
+        >
+          Por implementar
+        </div>
+        {section.sddRef && (
           <span
             style={{
-              font: "700 9.5px/1 var(--f-sans)",
-              letterSpacing: "0.14em",
+              font: "700 10px/1 var(--f-sans)",
               color: "var(--ink-mute)",
+              letterSpacing: "0.14em",
               textTransform: "uppercase",
             }}
           >
-            {card.sdd}
+            {section.sddRef}
           </span>
         )}
-      </header>
-      <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
-        <div
-          className="studio-display"
-          style={{ fontSize: 17, color: "var(--ink-soft)", letterSpacing: "-0.01em" }}
-        >
-          {card.label}
-        </div>
-        <p
-          style={{
-            font: "400 13px/1.5 var(--f-sans)",
-            color: "var(--ink-mute)",
-            margin: 0,
-          }}
-        >
-          {card.description}
-        </p>
       </div>
       <div
+        className="studio-display"
         style={{
-          marginTop: "auto",
-          font: "600 11px/1 var(--f-sans)",
-          color: "var(--ink-mute)",
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
+          fontSize: 17,
+          color: "var(--ink)",
+          letterSpacing: "-0.01em",
         }}
       >
-        Próximamente
+        El shell está listo, falta el contenido.
       </div>
-    </div>
+      <p
+        style={{
+          font: "400 13px/1.5 var(--f-sans)",
+          color: "var(--ink-soft)",
+          margin: 0,
+          maxWidth: "62ch",
+        }}
+      >
+        El diseño viene del handoff Claude Design v1.3.1 (sección{" "}
+        <code style={{ font: "600 12px/1 var(--f-mono)" }}>
+          {section.id}
+        </code>{" "}
+        en{" "}
+        <code style={{ font: "600 12px/1 var(--f-mono)" }}>
+          erp/modules/admin.jsx
+        </code>
+        ). Implementación queda para{" "}
+        {section.sddRef ? (
+          <strong style={{ color: "var(--ink)" }}>{section.sddRef}</strong>
+        ) : (
+          "el SDD correspondiente"
+        )}
+        .
+      </p>
+    </section>
   );
 }
