@@ -128,8 +128,8 @@ Lo que desbloquea cobro real y operación comercial.
 | # | Módulo | SDD | Esfuerzo | Por qué primero |
 |---|---|---|---|---|
 | 1.1 | **Tarifas** | SDD-0008 ✅ | ~3h | Bloquea Cambio de destino, Cotizador y Facturación. Schema rates + 6 seed |
-| 1.2 | **Cambio de destino** (feature en Tracking) | SDD-0009 ⭐ | ~2h | Próximo. Modal + cálculo haversine consumiendo Tarifas |
-| 1.3 | **Clientes** + MARKBOX | SDD-0010 | ~6h | Bloquea Embarques, CRM, Facturación. Tabla `clients` + tiers |
+| 1.2 | **Cambio de destino** (feature en Tracking) | SDD-0009 ✅ | ~2h | Modal con sugerencia de fee desde Tarifas + audit en timeline |
+| 1.3 | **Clientes** + MARKBOX | SDD-0010 ⭐ | ~6h | Próximo. Bloquea Embarques, CRM, Facturación. Tabla `clients` + tiers |
 | 1.4 | **Cotizador** (portar a Studio) | SDD-0011 | ~4h | Conecta Tarifas + Clientes. Quotes guardables |
 
 ### Sprint 2 — Operación visual (4-6 semanas)
@@ -217,11 +217,12 @@ Esto NO es estimación blue-sky de "lo escribo en una tarde". Es:
 
 **Sprint 0 (Cimientos visuales) cerrado** + **SDD-0008 Tarifas** completo (primer módulo real del diseño portado).
 
+**SDD-0008 Tarifas** y **SDD-0009 Cambio de destino** completos. Tarifas se
+integra con Tracking via el modal de cambio de destino (sugerencia automática
+del fee desde el catálogo).
+
 Próximos en cola:
-- **SDD-0009 Cambio de destino** ⭐ — feature en Tracking. Modal + cálculo
-  haversine consumiendo Tarifas. ~2h. Es la primera demostración de que
-  Tarifas se integra con Tracking.
-- **SDD-0010 Clientes + MARKBOX** — base de todo lo comercial. Tabla
+- **SDD-0010 Clientes + MARKBOX** ⭐ — base de todo lo comercial. Tabla
   `clients` + tiers + RIF. Bloquea Embarques + CRM + Facturación.
 - **SDD-0011 Cotizador** — portar el módulo al Studio conectando Tarifas +
   Clientes. Permite quotes guardables como entidad.

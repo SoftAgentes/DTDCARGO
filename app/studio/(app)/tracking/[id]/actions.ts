@@ -6,6 +6,7 @@
  * - cancelShipment: cancelar con razon obligatoria → status='cancelled' + event
  * - transitionShipment: cambio de estado por boton → update status + event
  * - addShipmentEvent: agregar evento manual (status + nota + occurred_at)
+ * - changeDestination: cambia destino del envio + registra fee en timeline (SDD-0009)
  *
  * Todas validan sesion via Supabase. RLS filtra por tenant_id automaticamente.
  */
@@ -17,7 +18,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
 import { isValidStatusForService } from "@/lib/studio/shipment-state-machine";
+import { formatChangeNote, findRateForDestination } from "@/lib/studio/destination-change";
+import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
+
+/** Estados terminales en los que no se puede cambiar el destino. */
+const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
 
 export type ActionState = {
   ok?: boolean;
@@ -276,4 +282,121 @@ export async function addShipmentEvent(
 
   revalidatePath(`/studio/tracking/${id}`);
   return { ok: true };
+}
+
+/**
+ * SDD-0009: cambio de destino + registro de fee en el timeline.
+ *
+ * - Update shipments.destination (y destination_gps si se pasó)
+ * - Insert shipment_event con note estructurada (parseable para Facturación futura)
+ * - El estado del envío NO cambia
+ * - Validación: envío NO terminal, motivo >=5 chars, fee >=0
+ */
+export async function changeDestination(
+  id: string,
+  input: {
+    newDestination: string;
+    newGps?: string | null;
+    fee: number;
+    reason: string;
+  },
+): Promise<ActionState> {
+  const newDest = input.newDestination?.trim() ?? "";
+  const newGps = input.newGps?.trim() || null;
+  const fee = Number.isFinite(input.fee) ? input.fee : NaN;
+  const reason = input.reason?.trim() ?? "";
+
+  const fieldErrors: Record<string, string> = {};
+  if (!newDest) fieldErrors.newDestination = "Indicá el nuevo destino.";
+  if (!Number.isFinite(fee) || fee < 0)
+    fieldErrors.fee = "El fee debe ser 0 o positivo.";
+  if (reason.length < 5)
+    fieldErrors.reason = "El motivo debe tener al menos 5 caracteres.";
+
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
+  }
+
+  const tenantId = await getUserTenantId();
+  if (!tenantId) return { error: "Sin tenant asignado." };
+
+  const supabase = await createClient();
+
+  // 1) Leer envío actual (destino actual + status)
+  const { data: shipment, error: readError } = await supabase
+    .from("shipments")
+    .select("destination, status")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (readError || !shipment) {
+    return { error: "Envío no encontrado." };
+  }
+
+  const status = shipment.status as ShipmentStatus;
+  if (TERMINAL_STATUSES.includes(status)) {
+    return { error: "No se puede cambiar el destino de un envío entregado o cancelado." };
+  }
+
+  const fromDest = (shipment.destination as string | null)?.trim() || "—";
+
+  // Defensa contra "cambio" a sí mismo (UX should prevent it, but server safety)
+  if (fromDest.toLowerCase() === newDest.toLowerCase()) {
+    return {
+      fieldErrors: { newDestination: "El nuevo destino es igual al actual." },
+    };
+  }
+
+  // 2) Update shipments
+  const updatePayload: Record<string, string | null> = { destination: newDest };
+  if (newGps !== null) updatePayload.destination_gps = newGps;
+
+  const { error: updateError } = await supabase
+    .from("shipments")
+    .update(updatePayload)
+    .eq("id", id);
+
+  if (updateError) {
+    return { error: "No pudimos actualizar el destino." };
+  }
+
+  // 3) Insert event con nota estructurada
+  const note = formatChangeNote({ from: fromDest, to: newDest, fee, reason });
+  const user = await getUser();
+
+  const { error: eventError } = await supabase.from("shipment_events").insert({
+    tenant_id: tenantId,
+    shipment_id: id,
+    status, // mantiene el estado actual del envío
+    note,
+    occurred_at: new Date().toISOString(),
+    created_by: user?.id ?? null,
+  });
+
+  if (eventError) {
+    return { error: "Destino cambiado pero el evento falló al registrarse." };
+  }
+
+  revalidatePath(`/studio/tracking/${id}`);
+  revalidatePath("/studio/tracking");
+  return { ok: true };
+}
+
+/**
+ * Lookup helper que el modal de cambio de destino llama on blur del input
+ * destino. Retorna la rate matching para sugerir el fee.
+ */
+export async function lookupRateForNewDestination(
+  service: ShipmentService,
+  destination: string,
+): Promise<{ rate: Rate | null }> {
+  if (!destination?.trim()) return { rate: null };
+
+  const supabase = await createClient();
+  try {
+    const rate = await findRateForDestination(supabase, service, destination);
+    return { rate };
+  } catch {
+    return { rate: null };
+  }
 }
