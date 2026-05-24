@@ -45,7 +45,7 @@ Leyenda de estado:
 | **Embarques** | 🟡 mezclado en `/studio/tracking` actual | `shipments.jsx` (32 KB) | **SDD** — Separar: vista comercial agrupada por cliente. Tabs Tabla / Kanban. Drawer detalle. |
 | **Tracking** | ✅ vista operativa (mapa + timeline) | `tracking.jsx` (11 KB) | SDD-0013 — refactor de listado plano a vista en vivo con sidebar + map + timeline |
 | **Calendario** | ✅ vista mes + feriados CN/VE | `calendar.jsx` (29 KB) | SDD-0015 — vista mes con feriados pintados + sidebar próximos + warning CN. Semana/Agenda diferidas |
-| **Almacén CN** | 🔴 no existe | `cn.jsx` (66 KB) ⚠️ grande | **SDD** — Recepción + scope + traductor CN/ES + parciales |
+| **Almacén CN** | ✅ recepción + items multi-HS + traductor + lang toggle | `cn.jsx` (66 KB) ⚠️ grande | SDD-0016 — Tabla + KPIs + drawer multi-item + huérfanas + status change. Wizard consolidación / fotos / HsDetector diferidos a SDD-0016.x |
 | **Almacén VE** | 🔴 no existe | `ve.jsx` (5 KB) | **SDD** — Recepción de container + scope (acceso por almacén) |
 | **Aduana SENIAT** | 🔴 no existe | `seniat.jsx` (23 KB) | **SDD** — Workflow aduanal VE (impuestos, agentes, HS codes, AES sync) |
 | **TMS · Transporte** | 🔴 no existe | `tms.jsx` (33 KB) | **SDD** — Flota + choferes + rutas + GPS + incidencias |
@@ -148,10 +148,10 @@ Lo que reemplaza el Excel del día a día.
 
 | # | Módulo | SDD | Esfuerzo |
 |---|---|---|---|
-| 3.1 | **Almacén CN** (recepción + scope + traductor) | SDD-0015 | ~12h ⚠️ |
-| 3.2 | **Almacén VE** | SDD-0016 | ~4h |
-| 3.3 | **Aduana SENIAT** | SDD-0017 | ~8h |
-| 3.4 | **TMS · Transporte** (flota + GPS) | SDD-0018 | ~10h |
+| 3.1 | **Almacén CN** (recepción + items multi-HS + traductor) | SDD-0016 ✅ | ~8h |
+| 3.2 | **Almacén VE** | SDD-0017 | ~4h |
+| 3.3 | **Aduana SENIAT** | SDD-0018 | ~8h |
+| 3.4 | **TMS · Transporte** (flota + GPS) | SDD-0019 | ~10h |
 
 ### Sprint 4 — Finanzas (4-6 semanas)
 
@@ -224,8 +224,14 @@ Tracking operativo (SDD-0013) + Calendario operativo (SDD-0015). El
 calendario V1 enfocado en feriados CN+VE 2026 (vista Mes) — eventos
 de shipments (ETD/ETA/POD) diferidos hasta tener columnas reales.
 
-Próximo: arrancar **Sprint 3 — Operación profunda** (Almacén CN /
-Almacén VE / Aduana SENIAT / TMS).
+**Sprint 3 (Operación profunda) en curso 1/4:** SDD-0016 Almacén CN
+cerrado — tabla + KPIs + drawer multi-item + supplier bilingüe +
+huérfanas + status change. Diferidos a sub-SDDs: wizard de
+consolidación (-.1), detalle individual (-.2), fotos+files (-.3),
+HsDetector IA (-.4), importación Excel (-.5), auto-traducción real
+(-.6).
+
+Próximo: **SDD-0017 Almacén VE** o saltar a **SDD-0018 Aduana SENIAT**.
 
 ---
 
