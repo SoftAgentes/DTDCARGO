@@ -33,7 +33,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { runAgent } from "@/lib/studio/agents/runtime/orchestrator";
-import { MockLLMClient } from "@/lib/studio/agents/runtime/llm-client-mock";
+import { createLLMClient } from "@/lib/studio/agents/runtime/llm-client-factory";
 import {
   AgentRuntimeError,
 } from "@/lib/studio/agents/runtime/errors";
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
       {
         supabaseUser,
         supabaseAdmin,
-        llmClient: new MockLLMClient(),
+        llmClient: createLLMClient(),
       },
     );
 
