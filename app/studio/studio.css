@@ -377,3 +377,43 @@
   outline: 2px solid var(--studio-wine-soft);
   outline-offset: 2px;
 }
+
+/* ───────────────────────────────────────────────────────────
+   Tracking · vista operativa (SDD-0013) — grid sidebar + detalle
+   ─────────────────────────────────────────────────────────── */
+.studio-tracking-ops-grid {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 16px;
+  align-items: flex-start;
+}
+@media (max-width: 1100px) {
+  .studio-tracking-ops-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* Cards de la sidebar de tracking ops */
+.studio-shipment-card {
+  transition: background var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.studio-shipment-card:hover:not([data-active="true"]) {
+  background: var(--bg-elevated) !important;
+  border-color: var(--border-strong) !important;
+}
+.studio-shipment-card:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+
+/* prefers-reduced-motion · pausar pulso del barco en el mapa */
+@media (prefers-reduced-motion: reduce) {
+  .studio-tracking-map-svg [data-pulse="halo"] {
+    opacity: 0.25 !important;
+  }
+  .studio-tracking-map-svg [data-pulse="halo"] animate {
+    display: none;
+  }
+}

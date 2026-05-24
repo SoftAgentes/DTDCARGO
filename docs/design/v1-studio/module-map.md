@@ -43,7 +43,7 @@ Leyenda de estado:
 |---|---|---:|---|
 | **Dashboard** | 📦 placeholder en `/studio/resumen` | `dashboard.jsx` (13 KB) | **SDD futuro** — Editor de KPIs + drag de widgets + ojo ocultar valores |
 | **Embarques** | 🟡 mezclado en `/studio/tracking` actual | `shipments.jsx` (32 KB) | **SDD** — Separar: vista comercial agrupada por cliente. Tabs Tabla / Kanban. Drawer detalle. |
-| **Tracking** | 🟡 mezclado con Embarques | `tracking.jsx` (11 KB) | **SDD** — Re-enfocar: mapa + timeline operativa (no lista comercial) |
+| **Tracking** | ✅ vista operativa (mapa + timeline) | `tracking.jsx` (11 KB) | SDD-0013 — refactor de listado plano a vista en vivo con sidebar + map + timeline |
 | **Calendario** | 🔴 no existe | `calendar.jsx` (29 KB) | **SDD** — Mes/semana/agenda. Feriados CN + VE. Eventos operativos |
 | **Almacén CN** | 🔴 no existe | `cn.jsx` (66 KB) ⚠️ grande | **SDD** — Recepción + scope + traductor CN/ES + parciales |
 | **Almacén VE** | 🔴 no existe | `ve.jsx` (5 KB) | **SDD** — Recepción de container + scope (acceso por almacén) |
@@ -140,7 +140,7 @@ Lo que reemplaza el Excel del día a día.
 |---|---|---|---|
 | 2.1 | **Embarques** (vista comercial agrupada por cliente) | SDD-0012 ✅ | ~3.5h |
 | 2.2 | **Embarques Kanban** (vista alternativa a la tabla) | SDD futuro | ~3h |
-| 2.3 | **Tracking** (mapa + timeline) | SDD-0013 ⭐ | ~5h |
+| 2.3 | **Tracking** (mapa + timeline) | SDD-0013 ✅ | ~5h |
 | 2.4 | **Dashboard real** (KPIs operativos + comerciales) | SDD-0014 ✅ | ~2.5h |
 | 2.5 | **Calendario** operativo (mes/semana + feriados CN/VE) | SDD-0015 | ~6h |
 
@@ -219,12 +219,11 @@ Esto NO es estimación blue-sky de "lo escribo en una tarde". Es:
 **Sprint 0 (Cimientos visuales) cerrado** + **SDD-0008 Tarifas** completo (primer módulo real del diseño portado).
 
 **Sprint 1 (Comercial mínimo) cerrado.** **Sprint 2 (Operación visual)**
-2/4 completos: Embarques MVP (SDD-0012) + Dashboard real (SDD-0014). El
-dashboard ahora muestra KPIs en vivo de los 4 módulos comerciales.
+3/4 completos: Embarques MVP (SDD-0012) + Dashboard real (SDD-0014) +
+Tracking operativo (SDD-0013). El tracking ahora es una vista en vivo
+con sidebar + mapa SVG + timeline (sin duplicar el listado comercial).
 
-Próximos en cola (Sprint 2 continúa):
-- **SDD-0013 Tracking** ⭐ — refactor del módulo actual con mapa + timeline
-  operativa (separar del listado comercial que ya cubre Embarques).
+Próximo en cola (Sprint 2):
 - **SDD-0015 Calendario operativo** — mes/semana/agenda con feriados CN+VE.
 
 ---

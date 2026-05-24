@@ -32,6 +32,13 @@ export type ShipmentFilters = {
 const LIST_COLUMNS =
   "id, code, client_name, client_markbox, origin, destination, shipment_service, status, weight_kg, volume_m3, created_at";
 
+/** Campos para la sidebar del tracking operativo (SDD-0013). */
+const ACTIVE_LIST_COLUMNS =
+  "id, code, client_name, client_markbox, origin, destination, shipment_service, status, created_at, arrived_destination_at";
+
+/** Status que se consideran "no activos" para el tracking operativo. */
+const INACTIVE_STATUSES = ["delivered", "cancelled", "draft"];
+
 /** Campos completos para la vista detalle. */
 const DETAIL_COLUMNS =
   "id, tenant_id, code, client_name, client_markbox, origin, destination, destination_gps, shipment_service, status, weight_kg, volume_m3, vehicle_category, vehicle_model, arrived_destination_at, cancellation_reason, notes, deleted_at, created_at, updated_at";
@@ -103,6 +110,22 @@ export async function listShipments(
   }
 
   const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+/**
+ * Lista de envios activos para el tracking operativo (SDD-0013).
+ * Excluye delivered / cancelled / draft. Hasta 200 mas recientes.
+ */
+export async function listActiveShipments(supabase: SupabaseClient) {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select(ACTIVE_LIST_COLUMNS)
+    .not("status", "in", `(${INACTIVE_STATUSES.join(",")})`)
+    .order("created_at", { ascending: false })
+    .limit(200);
+
   if (error) throw error;
   return data ?? [];
 }
