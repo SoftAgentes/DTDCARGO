@@ -146,8 +146,18 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
               cursor: "pointer",
             }}
           >
-            <span style={{ display: "inline-flex" }}>{Icon.search(14)}</span>
-            <span style={{ flex: 1 }}>Buscar embarques, clientes, MARKBOX…</span>
+            <span style={{ display: "inline-flex", flexShrink: 0 }}>{Icon.search(14)}</span>
+            <span
+              style={{
+                flex: 1,
+                minWidth: 0,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Buscar embarques, clientes, MARKBOX…
+            </span>
             <kbd
               style={{
                 padding: "2px 6px",
@@ -212,11 +222,12 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
                 style={{
                   font: "600 12.5px/1 var(--f-sans)",
                   color: "var(--ink)",
-                  maxWidth: 160,
+                  maxWidth: 140,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                 }}
+                title={userEmail}
               >
                 {userEmail.split("@")[0]}
               </span>

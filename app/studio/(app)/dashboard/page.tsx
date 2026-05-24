@@ -66,10 +66,9 @@ export default async function DashboardPage() {
 
   return (
     <div style={{ maxWidth: 1200 }}>
-      <span className="studio-eyebrow">Dashboard</span>
       <h1
         className="studio-display"
-        style={{ fontSize: 30, margin: "8px 0 12px", color: "var(--ink)" }}
+        style={{ fontSize: 30, margin: "0 0 12px", color: "var(--ink)" }}
       >
         Hola, <span style={{ color: "var(--wine)" }}>DoorTuDoor</span>.
       </h1>
