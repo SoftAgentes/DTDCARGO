@@ -30,6 +30,7 @@ import {
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { AgentKpisRow } from "./_components/AgentKpisRow";
+import { AgentRowActions } from "./_components/AgentRowActions";
 import { SkillCard } from "./_components/SkillCard";
 
 export const metadata = { title: "Agentes y Skills" };
@@ -246,6 +247,7 @@ function InstalledContent({ agents }: { agents: AgentWithSkill[] }) {
             <Th align="right">Gasto MTD</Th>
             <Th align="right">Budget</Th>
             <Th>Último run</Th>
+            <Th align="right">Acciones</Th>
           </tr>
         </thead>
         <tbody>
@@ -301,6 +303,13 @@ function InstalledContent({ agents }: { agents: AgentWithSkill[] }) {
                       })
                     : "—"}
                 </span>
+              </Td>
+              <Td align="right">
+                <AgentRowActions
+                  agentId={a.id}
+                  agentName={a.name}
+                  currentStatus={a.status}
+                />
               </Td>
             </tr>
           ))}
