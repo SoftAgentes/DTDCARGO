@@ -1,20 +1,40 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # DTD·CARGO — Claude Code instructions
 
-## Aislamiento crítico
+## Arquitectura del repo (leer primero)
 
-Este proyecto vive **completamente afuera** de `~/Desktop/HailuWay/` y de `hailuway-erp/`.
-**Cero imports, cero edits, cero refs cruzadas.** La única forma de comunicación con el
-ERP es **HTTP a endpoints públicos** (`{NEXT_PUBLIC_HAILUWAY_API}/api/public/*`).
+Este repo aloja **dos productos** en el mismo Next.js app:
 
-Si encontrás un import de `hailuway-erp`, `@supabase/*`, o cualquier referencia al ERP
-fuera de URLs HTTP → **es un bug, removelo**.
+| Carpeta | Producto | Backend |
+|---|---|---|
+| `app/` (raíz: `cotizar`, `track`, `contacto`, `calculadora`, `servicios`, `noticias`, `glosario`) | **Sitio público DTD·CARGO** (marketing + tracking público) | **HTTP-only** contra ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`). Hoy con mocks hasta que el ERP exponga endpoints. |
+| `app/studio/(app)/` (20+ módulos: dashboard, tracking, calendario, clientes, cotizador, embarques, tarifas, almacén CN/VE, SENIAT, TMS, etc.) | **DTD Studio ERP** (operación interna — "DoorTuDoor") | **Supabase propio** (`@/lib/db/server`) + Server Actions. |
+| `app/api/studio/` | Endpoints internos del Studio | Supabase propio. |
+
+## Aislamiento crítico (solo sitio público)
+
+El **sitio público** (`app/` fuera de `app/studio/`) vive **completamente afuera** de
+`~/Desktop/HailuWay/` y de `hailuway-erp/`. **Cero imports, cero edits, cero refs cruzadas.**
+La única forma de comunicación con el ERP HailuWay es **HTTP a endpoints públicos**
+(`{NEXT_PUBLIC_HAILUWAY_API}/api/public/*`).
+
+Si encontrás un import de `hailuway-erp` desde una ruta de `app/` (no studio) → **es un
+bug, removelo**.
+
+**El Studio (`app/studio/`) sí usa `@supabase/*`** — es su backend propio (no es el de
+HailuWay). Server Actions hablan con Supabase via `@/lib/db/server`.
 
 ## SDD propio
 
 Este proyecto tiene su propio correlativo de specs desde 0001 (no comparte numeración
-con HailuWay). Specs viven en `docs/specs/NNNN-slug/spec.md`.
+con HailuWay). Specs viven en `docs/specs/NNNN-slug/spec.md`. 19 specs cerradas hasta
+ahora (0001-0019), ver `docs/specs/` para el índice completo.
 
-Cada PR referencia su spec: `feat(DTD-0001): ...`.
+**Naming de commits visto en el historial:** `feat(studio): SDD-NNNN — título` para los
+del Studio, `feat(DTD-NNNN): ...` para el sitio público.
 
 ## Stack
 
@@ -60,7 +80,19 @@ pnpm dev                  # Next.js dev (http://localhost:3000)
 pnpm typecheck            # tsc --noEmit
 pnpm build                # build producción
 pnpm lint                 # ESLint flat config
+
+pnpm test                 # vitest run (unit tests)
+pnpm test:watch           # vitest en watch mode
+pnpm test:ui              # vitest UI
+pnpm test:e2e             # playwright test
+pnpm test:e2e:ui          # playwright UI
+
+pnpm seed                 # tsx scripts/seed.ts — siembra datos demo del Studio
+pnpm payload              # CLI de Payload CMS (admin headless)
+pnpm generate:types       # tipos de Payload
 ```
+
+**Correr un test puntual:** `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre del test"`.
 
 ## Variables de entorno
 
@@ -95,6 +127,35 @@ Cuando los endpoints del ERP estén listos, reemplazar `mockSubmit`/`getTracking
   `.h-display`, `.brand`) usá las clases definidas en `globals.css`. Inline style solo
   cuando necesités CSS vars (`var(--color-wine)`).
 - **Imágenes** → siempre `<Image>` de `next/image`. Assets de brand en `public/brand/`.
+
+## Patrones del Studio ERP (`app/studio/`)
+
+- **Server Actions** (`app/studio/(app)/<módulo>/actions.ts`): `"use server"` +
+  `useActionState` desde el client + parsing manual de `FormData` + validación con
+  `validate*Input()` propio (no Zod — patrón del proyecto, definido en
+  `lib/studio/<entidad>-types.ts`). Mutación → `revalidatePath()`.
+- **Queries server-side**: `lib/studio/<entidad>-queries.ts` con funciones puras que
+  reciben `SupabaseClient` y devuelven data tipada. Llamadas desde `page.tsx` server
+  components.
+- **Types compartidos**: `lib/studio/<entidad>-types.ts` (enums, validators,
+  helpers de label/badge tone).
+- **Drawer compartido**: `app/studio/_components/ui/drawer/DrawerShell.tsx` exporta
+  `DrawerShell` + `DrawerFooter`. Patrón submit obligatorio: `<form id="X">` en el
+  cuerpo + `<button type="submit" form="X">` en el footer (HTML5 estándar — **no**
+  `closest().querySelector().requestSubmit()`).
+- **UI primitivas compartidas**: `app/studio/_components/ui/` (Avatar, Badge,
+  EmptyState, KpiCard) + `_components/icons.tsx`.
+- **Tokens visuales**: solo `var(--*)` desde `app/studio/tokens.css`. Para text sobre
+  fondo navy (`background: var(--ink)`) usar `--ink-inv-soft` (text secundario) /
+  `--ink-inv-mute` (text terciario), nunca `rgba(255,255,255,X)` inline.
+- **MARKBOX** = ID estable de cliente (formato `DTD-NNNN`), autogenerado por
+  `rpc('next_markbox')` de Supabase.
+
+## Proceso UI/UX
+
+Toda pantalla nueva o modificación visual sustancial **pasa por el agente
+`ui-ux-designer` antes del commit** (regla persistente del founder). Es un check
+liviano, no un bloqueo — verifica spacing, jerarquía, AI slop, hover states.
 
 ## Logo provisional
 

@@ -174,7 +174,7 @@ function TrackingHeader({ count }: { count: number }) {
           href="/studio/tracking/nuevo"
           className="studio-btn studio-btn-primary"
         >
-          + ENVÍO
+          + Envío
         </Link>
       </div>
     </div>

@@ -42,7 +42,7 @@ export function TrackingEmptyOps() {
         href="/studio/tracking/nuevo"
         className="studio-btn studio-btn-primary"
       >
-        + ENVÍO
+        + Envío
       </Link>
     </div>
   );

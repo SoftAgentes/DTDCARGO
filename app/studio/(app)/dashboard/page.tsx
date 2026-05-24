@@ -281,7 +281,7 @@ function EmptyOperationalCard() {
           href="/studio/tracking/nuevo"
           className="studio-btn studio-btn-primary studio-btn-sm"
         >
-          + CREAR ENVÍO
+          + Crear envío
         </Link>
       </div>
     </section>

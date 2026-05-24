@@ -18,6 +18,8 @@
   --ink-soft: #6B6B6B;
   --ink-mute: #9B9B9B;
   --ink-inv: #FBFAF7;
+  --ink-inv-soft: rgba(255,255,255,0.75);
+  --ink-inv-mute: rgba(255,255,255,0.5);
   --ink-side: rgba(255,255,255,0.85);
   --ink-side-soft: rgba(255,255,255,0.55);
 
@@ -109,6 +111,8 @@
   --ink-soft: #A8B0C4;
   --ink-mute: #6E7896;
   --ink-inv: #0F1E3D;
+  --ink-inv-soft: rgba(15,30,61,0.72);
+  --ink-inv-mute: rgba(15,30,61,0.48);
   --ink-side: rgba(255,255,255,0.88);
   --ink-side-soft: rgba(255,255,255,0.5);
 

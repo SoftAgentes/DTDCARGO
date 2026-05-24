@@ -217,6 +217,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
         </header>
 
         <form
+          id="quote-drawer-form"
           action={formAction}
           style={{
             flex: 1,
@@ -632,7 +633,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 display: "flex",
                 justifyContent: "space-between",
                 font: "500 13px/1 var(--f-sans)",
-                color: "rgba(255,255,255,0.75)",
+                color: "var(--ink-inv-soft)",
               }}
             >
               <span>Subtotal flete</span>
@@ -646,7 +647,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                   display: "flex",
                   justifyContent: "space-between",
                   font: "500 13px/1 var(--f-sans)",
-                  color: "rgba(255,255,255,0.75)",
+                  color: "var(--ink-inv-soft)",
                 }}
               >
                 <span>Embalaje</span>
@@ -667,7 +668,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 <div
                   style={{
                     font: "600 10.5px/1 var(--f-sans)",
-                    color: "rgba(255,255,255,0.55)",
+                    color: "var(--ink-inv-mute)",
                     letterSpacing: "0.14em",
                     textTransform: "uppercase",
                   }}
@@ -688,7 +689,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
               <div
                 style={{
                   font: "500 11px/1.4 var(--f-sans)",
-                  color: "rgba(255,255,255,0.55)",
+                  color: "var(--ink-inv-mute)",
                   textAlign: "right",
                 }}
               >
@@ -774,13 +775,9 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
             </button>
             <button
               type="submit"
+              form="quote-drawer-form"
               className="studio-btn studio-btn-primary"
               disabled={isPending}
-              onClick={(e) => {
-                e.preventDefault();
-                const form = (e.currentTarget.closest("aside") as HTMLElement)?.querySelector("form");
-                if (form) (form as HTMLFormElement).requestSubmit();
-              }}
             >
               {isPending
                 ? mode === "create"

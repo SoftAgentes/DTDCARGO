@@ -133,6 +133,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
         </header>
 
         <form
+          id="client-drawer-form"
           action={formAction}
           style={{
             flex: 1,
@@ -384,13 +385,9 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             </button>
             <button
               type="submit"
+              form="client-drawer-form"
               className="studio-btn studio-btn-primary"
               disabled={isPending}
-              onClick={(e) => {
-                e.preventDefault();
-                const form = (e.currentTarget.closest("aside") as HTMLElement)?.querySelector("form");
-                if (form) (form as HTMLFormElement).requestSubmit();
-              }}
             >
               {isPending
                 ? mode === "create"
