@@ -1,13 +1,31 @@
-import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+/**
+ * Cotizador — lista de cotizaciones.
+ *
+ * SDD-0011. Reemplaza el placeholder.
+ *
+ * Server component que fetchea quotes con filtros desde searchParams y
+ * delega la UI interactiva al CotizadorClient.
+ */
+
+import { createClient } from "@/lib/db/server";
+import {
+  listQuotes,
+  parseQuoteFiltersFromSearchParams,
+} from "@/lib/studio/quote-queries";
+import { CotizadorClient } from "./_components/CotizadorClient";
 
 export const metadata = { title: "Cotizador" };
 
-export default function CotizadorPage() {
-  return (
-    <EmptyState
-      eyebrow="Próximamente · SDD-0011"
-      title="Cotizador"
-      description="Cotizaciones guardables como entidad, conectadas a Tarifas y Clientes."
-    />
-  );
+export default async function CotizadorPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const rawParams = await searchParams;
+  const filters = parseQuoteFiltersFromSearchParams(rawParams);
+
+  const supabase = await createClient();
+  const quotes = await listQuotes(supabase, filters);
+
+  return <CotizadorClient quotes={quotes} filters={filters} />;
 }

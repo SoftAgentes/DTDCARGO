@@ -130,7 +130,7 @@ Lo que desbloquea cobro real y operación comercial.
 | 1.1 | **Tarifas** | SDD-0008 ✅ | ~3h | Bloquea Cambio de destino, Cotizador y Facturación. Schema rates + 6 seed |
 | 1.2 | **Cambio de destino** (feature en Tracking) | SDD-0009 ✅ | ~2h | Modal con sugerencia de fee desde Tarifas + audit en timeline |
 | 1.3 | **Clientes** + MARKBOX | SDD-0010 ✅ | ~4h | Tabla `clients` + tiers + RIF + auto-MARKBOX + detalle con histórico |
-| 1.4 | **Cotizador** (portar a Studio) | SDD-0011 ⭐ | ~4h | Próximo. Conecta Tarifas + Clientes. Quotes guardables |
+| 1.4 | **Cotizador** (portar a Studio) | SDD-0011 ✅ | ~5h | Calculator live + state machine + convertir a embarque |
 
 ### Sprint 2 — Operación visual (4-6 semanas)
 
@@ -217,15 +217,18 @@ Esto NO es estimación blue-sky de "lo escribo en una tarde". Es:
 
 **Sprint 0 (Cimientos visuales) cerrado** + **SDD-0008 Tarifas** completo (primer módulo real del diseño portado).
 
-**SDD-0008 Tarifas**, **SDD-0009 Cambio de destino**, y **SDD-0010 Clientes**
-completos. El módulo Clientes incluye detalle con histórico de envíos
-(lookup textual por `client_markbox`, sin FK por ahora).
+**Sprint 1 (Comercial mínimo) cerrado:** Tarifas (SDD-0008), Cambio de
+destino (SDD-0009), Clientes + MARKBOX (SDD-0010), Cotizador (SDD-0011).
+Stack comercial completo: catálogo de precios + cliente identificable +
+cotización con state machine + conversión automática a embarque.
 
-Próximos en cola:
-- **SDD-0011 Cotizador** ⭐ — portar el módulo al Studio conectando Tarifas +
-  Clientes. Permite quotes guardables como entidad.
-- **SDD-0012 Embarques** — separar la vista comercial (agrupada por cliente)
-  del Tracking operativo actual.
+Próximos en cola (Sprint 2 — Operación visual):
+- **SDD-0012 Embarques** ⭐ — separar la vista comercial (agrupada por
+  cliente) del Tracking operativo actual. Tabs Tabla/Kanban. Drawer
+  detalle. Es el primer módulo del Sprint 2.
+- **SDD-0013 Tracking** (refactor con mapa + timeline)
+- **SDD-0014 Dashboard real** (KPIs leyendo de envíos)
+- **SDD-0015 Calendario operativo**
 
 ---
 
