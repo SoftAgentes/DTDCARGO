@@ -115,11 +115,11 @@ el roadmap completo para llegar al 100%.
 Adoptar el shell del diseño antes de seguir construyendo módulos. Sin esto, cada
 módulo nuevo refactorea visualmente lo anterior.
 
-| # | Tarea | Esfuerzo |
-|---|---|---|
-| 0.1 | Portar `shell.jsx` → sidebar oscuro agrupado 4 secciones + topbar con búsqueda ⌘K + theme toggle | ~6h |
-| 0.2 | Portar `components.jsx` → React components reutilizables (`<Btn>`, `<Badge>`, `<Card>`, `<Table>`, `<Input>`, `<Drawer>`, `<Modal>`, `<Tabs>`, `<KPI>`, `<EmptyState>`) en `app/studio/_components/ui/` | ~8h |
-| 0.3 | Refactor pantallas existentes (Tracking actual, Resumen, Ajustes, Login) para usar nuevos componentes | ~4h |
+| # | Tarea | SDD | Estado | Esfuerzo |
+|---|---|---|---|---|
+| 0.1 | Portar `shell.jsx` → sidebar oscuro agrupado 4 secciones + topbar con búsqueda ⌘K + theme toggle | **SDD-0007** | 🟡 en progreso (2026-05-23) | ~6h |
+| 0.2 | Portar `components.jsx` → React components reutilizables (`<Btn>`, `<Badge>`, `<Card>`, `<Table>`, `<Input>`, `<Drawer>`, `<Modal>`, `<Tabs>`, `<KPI>`, `<EmptyState>`) en `app/studio/_components/ui/` | TBD | pendiente | ~8h |
+| 0.3 | Refactor pantallas existentes (Tracking actual, Dashboard, Ajustes, Login) para usar nuevos componentes | TBD | pendiente | ~4h |
 
 ### Sprint 1 — Comercial mínimo (3-4 semanas)
 
@@ -127,10 +127,10 @@ Lo que desbloquea cobro real y operación comercial.
 
 | # | Módulo | SDD | Esfuerzo | Por qué primero |
 |---|---|---|---|---|
-| 1.1 | **Tarifas** | SDD-0007 ⭐ | ~3h | Bloquea Cambio de destino, Cotizador y Facturación |
-| 1.2 | **Cambio de destino** (feature en Tracking) | SDD-0008 | ~2h | Pausado esperando Tarifas. Cobra cada cambio |
-| 1.3 | **Clientes** + MARKBOX | SDD-0009 | ~6h | Bloquea Embarques, CRM, Facturación. Tabla `clients` + tiers |
-| 1.4 | **Cotizador** (portar a Studio) | SDD-0010 | ~4h | Conecta Tarifas + Clientes. Quotes guardables |
+| 1.1 | **Tarifas** | SDD-0008 ⭐ | ~3h | Bloquea Cambio de destino, Cotizador y Facturación |
+| 1.2 | **Cambio de destino** (feature en Tracking) | SDD-0009 | ~2h | Pausado esperando Tarifas. Cobra cada cambio |
+| 1.3 | **Clientes** + MARKBOX | SDD-0010 | ~6h | Bloquea Embarques, CRM, Facturación. Tabla `clients` + tiers |
+| 1.4 | **Cotizador** (portar a Studio) | SDD-0011 | ~4h | Conecta Tarifas + Clientes. Quotes guardables |
 
 ### Sprint 2 — Operación visual (4-6 semanas)
 
@@ -215,17 +215,14 @@ Esto NO es estimación blue-sky de "lo escribo en una tarde". Es:
 
 ## 🚦 Próximo paso lógico
 
-**SDD-0007 = Tarifas (módulo `rates`)** es el siguiente. Razones:
-
-1. Es el **módulo más chico** del diseño (5.5 KB) → ideal para validar el patrón de portar JSX → Next.js
-2. **Bloquea** Cambio de destino, Cotizador y Facturación
-3. **Pausado** desde sesiones anteriores esperando este handoff
-4. Tiene **schema simple**: tabla `rates` con (id, service, origin, destination, perCBM o flatRate, minCharge, transit days, valid_until)
-5. **Demuestra** cómo se integra el sistema de componentes del diseño con el código actual
+**SDD-0007 = Studio Shell v1** está **en progreso** (Sprint 0.1). Ver
+[`docs/specs/0007-studio-shell-v1/spec.md`](../../specs/0007-studio-shell-v1/spec.md).
 
 Después de SDD-0007:
-- SDD-0008 Cambio de destino (rápido — solo modal + cálculo haversine consumiendo Tarifas)
-- SDD-0009 Clientes (la base de todo lo comercial)
+- **SDD-0008 Tarifas** (módulo `rates`) — el más chico del diseño (5.5 KB), bloquea
+  Cotizador y Facturación, ideal para validar el patrón JSX → Next.js
+- **SDD-0009 Cambio de destino** (rápido — solo modal + cálculo haversine consumiendo Tarifas)
+- **SDD-0010 Clientes** (la base de todo lo comercial)
 
 ---
 
