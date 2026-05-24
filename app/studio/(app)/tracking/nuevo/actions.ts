@@ -59,6 +59,7 @@ export async function createShipment(
   const volume_m3 = parseNumber(formData.get("volume_m3"));
   const vehicle_category = parseString(formData.get("vehicle_category"));
   const vehicle_model = parseString(formData.get("vehicle_model"));
+  const destination_gps = parseString(formData.get("destination_gps"));
   const notes = parseString(formData.get("notes"));
 
   // Validaciones
@@ -94,6 +95,7 @@ export async function createShipment(
     volume_m3,
     vehicle_category,
     vehicle_model,
+    destination_gps,
     notes,
   });
 

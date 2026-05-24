@@ -40,6 +40,24 @@ export default async function ShipmentDetailPage({
 
   const events = await getShipmentEvents(supabase, id);
 
+  // Si esta en excepcion, buscar el evento mas reciente con status="exception"
+  // para mostrar su nota en un banner arriba.
+  const lastExceptionEvent =
+    shipment.status === "exception"
+      ? events.find((e) => e.status === "exception")
+      : null;
+
+  function formatRelative(iso: string): string {
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const min = Math.round(diffMs / 60_000);
+    if (min < 1) return "ahora";
+    if (min < 60) return `hace ${min} min`;
+    const hr = Math.round(min / 60);
+    if (hr < 24) return `hace ${hr} h`;
+    const days = Math.round(hr / 24);
+    return `hace ${days} ${days === 1 ? "día" : "días"}`;
+  }
+
   return (
     <div style={{ maxWidth: 1200 }}>
       <ShipmentHeader shipment={shipment} />
@@ -70,6 +88,60 @@ export default async function ShipmentDetailPage({
           >
             {shipment.cancellation_reason}
           </p>
+        </div>
+      )}
+
+      {/* Exception banner — activo solo mientras status=exception */}
+      {lastExceptionEvent && (
+        <div
+          style={{
+            background: "rgba(194, 53, 63, 0.08)",
+            border: "1px solid rgba(194, 53, 63, 0.35)",
+            borderRadius: 8,
+            padding: "14px 18px",
+            marginBottom: 24,
+            display: "flex",
+            gap: 14,
+            alignItems: "flex-start",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              fontSize: 22,
+              lineHeight: 1,
+              flexShrink: 0,
+            }}
+          >
+            ⚠
+          </span>
+          <div style={{ flex: 1 }}>
+            <div
+              className="studio-eyebrow"
+              style={{ color: "#C2353F", marginBottom: 6 }}
+            >
+              Excepción activa · {formatRelative(lastExceptionEvent.occurred_at)}
+            </div>
+            <p
+              style={{
+                font: "500 13px/1.5 Archivo, sans-serif",
+                color: "#0F1E3D",
+                margin: 0,
+              }}
+            >
+              {lastExceptionEvent.note ?? "Sin descripción."}
+            </p>
+            <p
+              style={{
+                font: "500 11px/1.4 Archivo, sans-serif",
+                color: "#6B6B6B",
+                margin: "6px 0 0",
+              }}
+            >
+              Resolvé el problema y cambiá el estado en el panel de acciones
+              para que el envío continúe.
+            </p>
+          </div>
         </div>
       )}
 
@@ -127,7 +199,11 @@ export default async function ShipmentDetailPage({
         </aside>
       </div>
 
-      <FooterActions shipmentId={shipment.id} status={shipment.status} />
+      <FooterActions
+        shipmentId={shipment.id}
+        shipmentCode={shipment.code}
+        status={shipment.status}
+      />
     </div>
   );
 }

@@ -3,13 +3,18 @@
 /**
  * Panel de datos editables del envio.
  *
- * Form con todos los campos editables del envio. Boton "Guardar cambios"
+ * Form con campos editables del envio. Boton "Guardar cambios"
  * se habilita solo si hay cambios pendientes (dirty state).
  *
- * Campos NO editables: code, shipment_service, status, deleted_at.
+ * Campos NO editables (read-only):
  *  - code: trazabilidad externa (BL, AWB).
  *  - shipment_service: cambia la matriz de estados aplicables.
  *  - status: se modifica via StateActionsPanel.
+ *  - client_name + client_markbox: vienen de la base de clientes externa
+ *    (Excel/sistema CRM futuro). Bloqueados en edicion. Solo se setean al
+ *    momento de crear el envio (form /nuevo). Cuando llegue el modulo de
+ *    Clientes, estos se sincronizan, no se editan aca.
+ *  - deleted_at: solo via boton "Eliminar envio".
  */
 
 import { useActionState, useState } from "react";
@@ -25,16 +30,16 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
   const action = updateShipment.bind(null, shipment.id);
   const [state, formAction, isPending] = useActionState(action, initialState);
 
-  // Dirty state — comparamos cada input con su valor inicial.
+  // Dirty state — solo cuenta los campos editables.
+  // client_name y client_markbox NO se chequean: son readonly (vienen de BD externa).
   const [dirty, setDirty] = useState(false);
   const checkDirty = (e: React.FormEvent<HTMLFormElement>) => {
     const form = e.currentTarget;
     const fd = new FormData(form);
     const changed =
-      (fd.get("client_name") ?? "") !== (shipment.client_name ?? "") ||
-      (fd.get("client_markbox") ?? "") !== (shipment.client_markbox ?? "") ||
       (fd.get("origin") ?? "") !== (shipment.origin ?? "") ||
       (fd.get("destination") ?? "") !== (shipment.destination ?? "") ||
+      (fd.get("destination_gps") ?? "") !== (shipment.destination_gps ?? "") ||
       String(fd.get("weight_kg") ?? "") !== String(shipment.weight_kg ?? "") ||
       String(fd.get("volume_m3") ?? "") !== String(shipment.volume_m3 ?? "") ||
       (fd.get("vehicle_category") ?? "") !== (shipment.vehicle_category ?? "") ||
@@ -43,7 +48,19 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
     setDirty(changed);
   };
 
-  const showVehicle = shipment.shipment_service === "transporte_terrestre" || shipment.vehicle_category;
+  const isTerrestre = shipment.shipment_service === "transporte_terrestre";
+  const showVehicle = isTerrestre || shipment.vehicle_category;
+  const showGps = isTerrestre || shipment.destination_gps;
+
+  // Si hay GPS, intentamos detectar si es link o lat,long para mostrar el boton
+  // "Abrir en Google Maps" con el href apropiado.
+  const gpsValue = shipment.destination_gps ?? "";
+  const gpsIsUrl = /^https?:\/\//i.test(gpsValue);
+  const gpsMapsUrl = gpsIsUrl
+    ? gpsValue
+    : gpsValue.trim()
+      ? `https://maps.google.com/?q=${encodeURIComponent(gpsValue.trim())}`
+      : null;
 
   return (
     <form action={formAction} onChange={checkDirty} noValidate>
@@ -56,41 +73,57 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: 14,
-          marginBottom: 14,
+          marginBottom: 6,
         }}
       >
         <div>
           <label className="studio-label" htmlFor="client_name">
-            Cliente
+            <span style={{ marginRight: 6 }}>🔒</span> Cliente
           </label>
           <input
             id="client_name"
             name="client_name"
             className="studio-input"
             defaultValue={shipment.client_name ?? ""}
-            placeholder="Nombre del cliente"
+            placeholder="—"
+            readOnly
+            disabled
+            title="El cliente se gestiona desde la base de clientes (futuro: sync con Excel)"
           />
         </div>
         <div>
           <label className="studio-label" htmlFor="client_markbox">
-            MARKBOX
+            <span style={{ marginRight: 6 }}>🔒</span> MARKBOX
           </label>
           <input
             id="client_markbox"
             name="client_markbox"
             className="studio-input studio-input-mono"
             defaultValue={shipment.client_markbox ?? ""}
-            placeholder="DTD-XXXX"
+            placeholder="—"
+            readOnly
+            disabled
+            title="El MARKBOX viene de la base de clientes (futuro: sync con Excel)"
           />
         </div>
       </div>
+      <p
+        style={{
+          font: "500 11px/1.4 Archivo, sans-serif",
+          color: "#9B9B9B",
+          margin: "0 0 14px",
+          letterSpacing: "0.02em",
+        }}
+      >
+        Cliente y MARKBOX vienen de la base de clientes — no se editan acá.
+      </p>
 
       <div
         style={{
           display: "grid",
           gridTemplateColumns: "1fr 1fr",
           gap: 14,
-          marginBottom: 14,
+          marginBottom: showGps ? 8 : 14,
         }}
       >
         <div>
@@ -118,6 +151,55 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
           />
         </div>
       </div>
+
+      {/* GPS destino — solo terrestre o si ya tiene valor */}
+      {showGps && (
+        <div
+          style={{
+            padding: "12px 14px",
+            background: "rgba(31, 138, 91, 0.04)",
+            border: "1px dashed #1F8A5B",
+            borderRadius: 8,
+            marginBottom: 14,
+          }}
+        >
+          <label
+            className="studio-label"
+            htmlFor="destination_gps"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>📍 GPS destino {isTerrestre && <span style={{ color: "#9B9B9B", fontWeight: 500 }}>(recomendado)</span>}</span>
+            {gpsMapsUrl && (
+              <a
+                href={gpsMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  font: "600 10.5px/1 Archivo, sans-serif",
+                  color: "#1F8A5B",
+                  textDecoration: "none",
+                  letterSpacing: "0.04em",
+                  textTransform: "none",
+                }}
+              >
+                Abrir en Google Maps ↗
+              </a>
+            )}
+          </label>
+          <input
+            id="destination_gps"
+            name="destination_gps"
+            className="studio-input"
+            defaultValue={shipment.destination_gps ?? ""}
+            placeholder="10.4806, -66.9036  o  https://maps.app.goo.gl/…"
+            autoComplete="off"
+          />
+        </div>
+      )}
 
       <div
         style={{
