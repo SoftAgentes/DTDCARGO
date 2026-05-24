@@ -46,6 +46,9 @@ export type Shipment = {
   vehicle_category: string | null;
   vehicle_model: string | null;
   arrived_destination_at: string | null;
+  delivered_at: string | null;
+  pod_signed_by: string | null;
+  delivery_address: string | null;
   cancellation_reason: string | null;
   destination_gps: string | null;
   notes: string | null;
