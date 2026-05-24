@@ -1,25 +1,26 @@
 /**
- * Seed master del Studio (SDD-0020 Fase 2E).
+ * Seed master del Studio.
  *
- * Corre todos los seeds de catálogos globales que viven en código:
- *  - seedAgents → sincroniza public.skills con SKILLS_BY_SLUG
+ * Corre todos los seeds de catálogos que viven como "fuente de verdad
+ * en código, proyección a DB":
  *
- * Futuros seeds van acá: catálogos de hubs TMS, plantillas de mailing,
- * etc. — todo lo que sea "fuente de verdad en código, proyección a DB".
+ *   - seedAgents          (SDD-0020) → public.skills global
+ *   - seedMailTemplates   (SDD-0026) → public.mail_templates por tenant
  *
  * NO siembra data de tenants individuales (clientes, embarques, etc).
- * Esos van por flows operativos normales (drawer, import CSV, etc).
+ * Esos van por flows operativos normales (drawer, import CSV).
  *
  * Uso:
  *   pnpm seed
  *
  * Requiere:
  *   NEXT_PUBLIC_SUPABASE_URL
- *   SUPABASE_SERVICE_ROLE_KEY  (necesario para UPSERT en skills sin RLS)
+ *   SUPABASE_SERVICE_ROLE_KEY  (necesario para UPSERT en tablas con RLS)
  */
 
 import { createClient } from "@supabase/supabase-js";
 import { seedAgents } from "./seed-agents";
+import { seedMailTemplates } from "./seed-mail-templates";
 
 async function main() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,7 +30,7 @@ async function main() {
   }
   if (!serviceKey) {
     throw new Error(
-      "Falta SUPABASE_SERVICE_ROLE_KEY en .env.local. El seed necesita service_role para escribir en skills.",
+      "Falta SUPABASE_SERVICE_ROLE_KEY en .env.local. El seed necesita service_role para escribir en tablas con RLS.",
     );
   }
 
@@ -39,6 +40,7 @@ async function main() {
 
   console.log("[seed] Iniciando…");
   await seedAgents(supabase);
+  await seedMailTemplates(supabase);
   console.log("[seed] Terminado.");
 }
 
