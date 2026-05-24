@@ -138,10 +138,11 @@ Lo que reemplaza el Excel del día a día.
 
 | # | Módulo | SDD | Esfuerzo |
 |---|---|---|---|
-| 2.1 | **Embarques** (separar de Tracking actual + Kanban) | SDD-0011 | ~8h |
-| 2.2 | **Tracking** (mapa + timeline) | SDD-0012 | ~5h |
-| 2.3 | **Dashboard real** (KPIs leyendo de envíos) | SDD-0013 | ~4h |
-| 2.4 | **Calendario** operativo (mes/semana + feriados CN/VE) | SDD-0014 | ~6h |
+| 2.1 | **Embarques** (vista comercial agrupada por cliente) | SDD-0012 ✅ | ~3.5h |
+| 2.2 | **Embarques Kanban** (vista alternativa a la tabla) | SDD futuro | ~3h |
+| 2.3 | **Tracking** (mapa + timeline) | SDD-0013 ⭐ | ~5h |
+| 2.4 | **Dashboard real** (KPIs leyendo de envíos) | SDD-0014 | ~4h |
+| 2.5 | **Calendario** operativo (mes/semana + feriados CN/VE) | SDD-0015 | ~6h |
 
 ### Sprint 3 — Operación profunda (6-8 semanas)
 
@@ -217,18 +218,15 @@ Esto NO es estimación blue-sky de "lo escribo en una tarde". Es:
 
 **Sprint 0 (Cimientos visuales) cerrado** + **SDD-0008 Tarifas** completo (primer módulo real del diseño portado).
 
-**Sprint 1 (Comercial mínimo) cerrado:** Tarifas (SDD-0008), Cambio de
-destino (SDD-0009), Clientes + MARKBOX (SDD-0010), Cotizador (SDD-0011).
-Stack comercial completo: catálogo de precios + cliente identificable +
-cotización con state machine + conversión automática a embarque.
+**Sprint 1 (Comercial mínimo) cerrado.** **Sprint 2 (Operación visual) en
+progreso:** Embarques MVP (SDD-0012) ✅ con vista agrupada por cliente +
+drawer read-only. Kanban diferido a SDD futuro.
 
-Próximos en cola (Sprint 2 — Operación visual):
-- **SDD-0012 Embarques** ⭐ — separar la vista comercial (agrupada por
-  cliente) del Tracking operativo actual. Tabs Tabla/Kanban. Drawer
-  detalle. Es el primer módulo del Sprint 2.
-- **SDD-0013 Tracking** (refactor con mapa + timeline)
-- **SDD-0014 Dashboard real** (KPIs leyendo de envíos)
-- **SDD-0015 Calendario operativo**
+Próximos en cola (Sprint 2 continúa):
+- **SDD-0013 Tracking** ⭐ — refactor del módulo actual con mapa + timeline
+  operativa (separar del listado comercial que ya cubre Embarques).
+- **SDD-0014 Dashboard real** — KPIs leyendo de envíos en lugar de placeholders.
+- **SDD-0015 Calendario operativo** — mes/semana/agenda con feriados CN+VE.
 
 ---
 
