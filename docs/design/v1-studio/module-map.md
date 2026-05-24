@@ -127,8 +127,8 @@ Lo que desbloquea cobro real y operación comercial.
 
 | # | Módulo | SDD | Esfuerzo | Por qué primero |
 |---|---|---|---|---|
-| 1.1 | **Tarifas** | SDD-0008 ⭐ | ~3h | Bloquea Cambio de destino, Cotizador y Facturación |
-| 1.2 | **Cambio de destino** (feature en Tracking) | SDD-0009 | ~2h | Pausado esperando Tarifas. Cobra cada cambio |
+| 1.1 | **Tarifas** | SDD-0008 ✅ | ~3h | Bloquea Cambio de destino, Cotizador y Facturación. Schema rates + 6 seed |
+| 1.2 | **Cambio de destino** (feature en Tracking) | SDD-0009 ⭐ | ~2h | Próximo. Modal + cálculo haversine consumiendo Tarifas |
 | 1.3 | **Clientes** + MARKBOX | SDD-0010 | ~6h | Bloquea Embarques, CRM, Facturación. Tabla `clients` + tiers |
 | 1.4 | **Cotizador** (portar a Studio) | SDD-0011 | ~4h | Conecta Tarifas + Clientes. Quotes guardables |
 
@@ -215,14 +215,16 @@ Esto NO es estimación blue-sky de "lo escribo en una tarde". Es:
 
 ## 🚦 Próximo paso lógico
 
-**SDD-0007 = Studio Shell v1** está **en progreso** (Sprint 0.1). Ver
-[`docs/specs/0007-studio-shell-v1/spec.md`](../../specs/0007-studio-shell-v1/spec.md).
+**Sprint 0 (Cimientos visuales) cerrado** + **SDD-0008 Tarifas** completo (primer módulo real del diseño portado).
 
-Después de SDD-0007:
-- **SDD-0008 Tarifas** (módulo `rates`) — el más chico del diseño (5.5 KB), bloquea
-  Cotizador y Facturación, ideal para validar el patrón JSX → Next.js
-- **SDD-0009 Cambio de destino** (rápido — solo modal + cálculo haversine consumiendo Tarifas)
-- **SDD-0010 Clientes** (la base de todo lo comercial)
+Próximos en cola:
+- **SDD-0009 Cambio de destino** ⭐ — feature en Tracking. Modal + cálculo
+  haversine consumiendo Tarifas. ~2h. Es la primera demostración de que
+  Tarifas se integra con Tracking.
+- **SDD-0010 Clientes + MARKBOX** — base de todo lo comercial. Tabla
+  `clients` + tiers + RIF. Bloquea Embarques + CRM + Facturación.
+- **SDD-0011 Cotizador** — portar el módulo al Studio conectando Tarifas +
+  Clientes. Permite quotes guardables como entidad.
 
 ---
 
