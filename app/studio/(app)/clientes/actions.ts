@@ -1,0 +1,144 @@
+/**
+ * Server actions del módulo Clientes (SDD-0010).
+ *
+ * - createClient: autogenera MARKBOX via rpc('next_markbox') + insert
+ * - updateClient: edit por markbox (no toca markbox)
+ * - softDeleteClient: set deleted_at = now()
+ *
+ * Validación con validateClientInput() — sin zod, patrón del proyecto.
+ */
+
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/db/server";
+import {
+  validateClientInput,
+  type ClientActionState,
+  type ClientInput,
+  type ClientTier,
+} from "@/lib/studio/client-types";
+
+function parseStringOrNull(v: FormDataEntryValue | null): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s === "" ? null : s;
+}
+
+function inputFromFormData(formData: FormData): Partial<ClientInput> {
+  const tierRaw = String(formData.get("tier") ?? "");
+  const tier =
+    tierRaw === "regular" || tierRaw === "vip" || tierRaw === "premium"
+      ? (tierRaw as ClientTier)
+      : undefined;
+
+  return {
+    name: parseStringOrNull(formData.get("name")) ?? undefined,
+    email: parseStringOrNull(formData.get("email")),
+    phone: parseStringOrNull(formData.get("phone")),
+    address: parseStringOrNull(formData.get("address")),
+    rif: parseStringOrNull(formData.get("rif")),
+    tier,
+    notes: parseStringOrNull(formData.get("notes")),
+  };
+}
+
+export async function createClientAction(
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const supabase = await createClient();
+
+  const partial = inputFromFormData(formData);
+  const { input, fieldErrors } = validateClientInput(partial);
+  if (fieldErrors) return { fieldErrors };
+
+  // Resolver tenant_id (necesario para insert y para next_markbox)
+  const { data: link, error: linkErr } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (linkErr || !link?.tenant_id) {
+    return { error: "No se pudo resolver el tenant del usuario." };
+  }
+
+  // Generar MARKBOX atómico
+  const { data: markboxData, error: markboxErr } = await supabase.rpc(
+    "next_markbox",
+    { p_tenant_id: link.tenant_id },
+  );
+  if (markboxErr || !markboxData) {
+    return { error: "No se pudo generar el MARKBOX." };
+  }
+  const markbox = String(markboxData);
+
+  const { error } = await supabase.from("clients").insert({
+    tenant_id: link.tenant_id,
+    markbox,
+    name: input!.name,
+    email: input!.email,
+    phone: input!.phone,
+    address: input!.address,
+    rif: input!.rif,
+    tier: input!.tier,
+    notes: input!.notes,
+  });
+
+  if (error) {
+    return { error: `No se pudo crear el cliente: ${error.message}` };
+  }
+
+  revalidatePath("/studio/clientes");
+  return { ok: true, createdMarkbox: markbox };
+}
+
+export async function updateClientAction(
+  markbox: string,
+  _prev: ClientActionState,
+  formData: FormData,
+): Promise<ClientActionState> {
+  const supabase = await createClient();
+
+  const partial = inputFromFormData(formData);
+  const { input, fieldErrors } = validateClientInput(partial);
+  if (fieldErrors) return { fieldErrors };
+
+  const { error } = await supabase
+    .from("clients")
+    .update({
+      name: input!.name,
+      email: input!.email,
+      phone: input!.phone,
+      address: input!.address,
+      rif: input!.rif,
+      tier: input!.tier,
+      notes: input!.notes,
+    })
+    .eq("markbox", markbox);
+
+  if (error) {
+    return { error: `No se pudo guardar el cliente: ${error.message}` };
+  }
+
+  revalidatePath("/studio/clientes");
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}
+
+export async function softDeleteClientAction(
+  markbox: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("clients")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("markbox", markbox);
+
+  if (error) {
+    return { error: `No se pudo eliminar el cliente: ${error.message}` };
+  }
+
+  revalidatePath("/studio/clientes");
+  return { ok: true };
+}

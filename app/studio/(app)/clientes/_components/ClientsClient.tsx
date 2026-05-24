@@ -1,0 +1,351 @@
+"use client";
+
+/**
+ * Orquestador client del módulo Clientes (SDD-0010).
+ *
+ * - Header con CTA "+ Nuevo cliente"
+ * - Toolbar con filtros (tier + search), URL state
+ * - Tabla con clientes — click en fila → /clientes/[markbox]
+ * - Drawer crear/editar
+ */
+
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
+import {
+  CLIENT_TIER_OPTIONS,
+  tierBadgeTone,
+  tierLabel,
+  type Client,
+} from "@/lib/studio/client-types";
+import type { ClientFilters } from "@/lib/studio/client-queries";
+import { Badge } from "@/app/studio/_components/ui/Badge";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ClientDrawer } from "./ClientDrawer";
+
+type DrawerState = null | { mode: "create" } | { mode: "edit"; client: Client };
+
+export function ClientsClient({
+  clients,
+  filters,
+}: {
+  clients: Client[];
+  filters: ClientFilters;
+}) {
+  const router = useRouter();
+  const params = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+  const [drawer, setDrawer] = useState<DrawerState>(null);
+
+  const [q, setQ] = useState(params.get("q") ?? "");
+  const [tier, setTier] = useState(params.get("tier") ?? "");
+
+  useEffect(() => {
+    setQ(params.get("q") ?? "");
+    setTier(params.get("tier") ?? "");
+  }, [params]);
+
+  useEffect(() => {
+    const currentQ = params.get("q") ?? "";
+    if (q === currentQ) return;
+    const t = setTimeout(() => pushFilters({ q, tier }), 350);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  const pushFilters = (next: { q?: string; tier?: string }) => {
+    const s = new URLSearchParams();
+    if (next.q && next.q.trim()) s.set("q", next.q.trim());
+    if (next.tier) s.set("tier", next.tier);
+    const qs = s.toString();
+    startTransition(() => {
+      router.push(qs ? `/studio/clientes?${qs}` : "/studio/clientes");
+    });
+  };
+
+  return (
+    <div style={{ maxWidth: 1280 }}>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 24,
+          marginBottom: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <span className="studio-eyebrow">Comercial</span>
+          <h1
+            className="studio-display"
+            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
+          >
+            Clientes.
+          </h1>
+          <p
+            style={{
+              font: "400 13px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              margin: 0,
+              maxWidth: "62ch",
+            }}
+          >
+            Catálogo del tenant. MARKBOX como ID estable. El detalle muestra
+            el historial de envíos.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="studio-btn studio-btn-primary"
+          onClick={() => setDrawer({ mode: "create" })}
+        >
+          + NUEVO CLIENTE
+        </button>
+      </div>
+
+      {/* Toolbar */}
+      <div
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-end",
+          marginBottom: 16,
+          flexWrap: "wrap",
+          opacity: isPending ? 0.6 : 1,
+          transition: "opacity 0.12s",
+        }}
+      >
+        <div style={{ flex: "1 1 280px", minWidth: 240 }}>
+          <label className="studio-label" htmlFor="client-q">
+            Buscar
+          </label>
+          <input
+            id="client-q"
+            type="search"
+            className="studio-input"
+            placeholder="Nombre, MARKBOX, email, teléfono, RIF…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+        <div style={{ flex: "0 0 200px" }}>
+          <label className="studio-label" htmlFor="client-tier">
+            Tier
+          </label>
+          <select
+            id="client-tier"
+            className="studio-input"
+            value={tier}
+            onChange={(e) => {
+              setTier(e.target.value);
+              pushFilters({ q, tier: e.target.value });
+            }}
+          >
+            <option value="">Todos</option>
+            {CLIENT_TIER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        {(q || tier) && (
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            style={{ height: 38 }}
+            onClick={() => {
+              setQ("");
+              setTier("");
+              pushFilters({});
+            }}
+          >
+            Limpiar
+          </button>
+        )}
+      </div>
+
+      {/* Tabla o empty */}
+      {clients.length === 0 ? (
+        <EmptyState
+          eyebrow={filters.q || filters.tier !== "all" ? "Sin resultados" : "Catálogo vacío"}
+          title={
+            filters.q || filters.tier !== "all"
+              ? "Ningún cliente coincide con estos filtros."
+              : "Aún no cargaste clientes."
+          }
+          description={
+            filters.q || filters.tier !== "all"
+              ? "Probá ajustar los filtros o limpiá la búsqueda."
+              : "Creá el primer cliente. El MARKBOX se asigna automáticamente."
+          }
+          action={
+            !filters.q && filters.tier === "all" ? (
+              <button
+                type="button"
+                className="studio-btn studio-btn-primary"
+                onClick={() => setDrawer({ mode: "create" })}
+              >
+                + NUEVO CLIENTE
+              </button>
+            ) : null
+          }
+        />
+      ) : (
+        <ClientsTable clients={clients} />
+      )}
+
+      {drawer && (
+        <ClientDrawer
+          mode={drawer.mode}
+          client={drawer.mode === "edit" ? drawer.client : undefined}
+          onClose={() => setDrawer(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function ClientsTable({ clients }: { clients: Client[] }) {
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        overflow: "hidden",
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "120px 1.4fr 100px 1.2fr 140px 140px",
+          gap: 12,
+          padding: "12px 20px",
+          background: "var(--bg-elevated)",
+          borderBottom: "1px solid var(--border)",
+          font: "700 10px/1 var(--f-sans)",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--ink-soft)",
+        }}
+      >
+        <span>MARKBOX</span>
+        <span>Nombre</span>
+        <span>Tier</span>
+        <span>Contacto</span>
+        <span>RIF</span>
+        <span>Creado</span>
+      </div>
+
+      {clients.map((c, i) => (
+        <Link
+          key={c.id}
+          href={`/studio/clientes/${c.markbox}`}
+          className="studio-tracking-row"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "120px 1.4fr 100px 1.2fr 140px 140px",
+            gap: 12,
+            padding: "14px 20px",
+            borderTop: i > 0 ? "1px solid var(--border)" : 0,
+            alignItems: "center",
+            textDecoration: "none",
+            color: "inherit",
+          }}
+        >
+          <span
+            style={{
+              font: "700 12.5px/1 var(--f-mono)",
+              color: "var(--ink)",
+              letterSpacing: "0.02em",
+            }}
+          >
+            {c.markbox}
+          </span>
+          <div
+            style={{
+              font: "600 13px/1.3 var(--f-sans)",
+              color: "var(--ink)",
+            }}
+          >
+            {c.name}
+            {c.notes && (
+              <div
+                style={{
+                  font: "500 11px/1.3 var(--f-sans)",
+                  color: "var(--ink-mute)",
+                  marginTop: 3,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {c.notes}
+              </div>
+            )}
+          </div>
+          <span>
+            <Badge tone={tierBadgeTone(c.tier)} size="sm">
+              {tierLabel(c.tier)}
+            </Badge>
+          </span>
+          <div
+            style={{
+              font: "500 12px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              overflow: "hidden",
+            }}
+          >
+            {c.email && (
+              <div
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {c.email}
+              </div>
+            )}
+            {c.phone && (
+              <div
+                style={{
+                  font: "500 11.5px/1.3 var(--f-mono)",
+                  color: "var(--ink-mute)",
+                  marginTop: 2,
+                }}
+              >
+                {c.phone}
+              </div>
+            )}
+            {!c.email && !c.phone && <span style={{ color: "var(--ink-mute)" }}>—</span>}
+          </div>
+          <span
+            style={{
+              font: "500 11.5px/1 var(--f-mono)",
+              color: c.rif ? "var(--ink-soft)" : "var(--ink-mute)",
+            }}
+          >
+            {c.rif ?? "—"}
+          </span>
+          <span
+            style={{
+              font: "500 11.5px/1 var(--f-sans)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            {new Date(c.created_at).toLocaleDateString("es-VE", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })}
+          </span>
+        </Link>
+      ))}
+    </div>
+  );
+}
