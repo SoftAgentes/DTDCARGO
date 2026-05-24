@@ -10,11 +10,11 @@
  * Slugs definidos en SDD-0007 §4.1.
  */
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon, type IconName } from "../../_components/icons";
-import { Badge } from "../../_components/ui/Badge";
 
 type Group = "OPERACIÓN" | "COMERCIAL" | "FINANZAS" | "SISTEMA";
 
@@ -208,8 +208,11 @@ export function StudioSidebar() {
                     color: active ? "#fff" : "var(--ink-side)",
                     borderRadius: "var(--r-md)",
                     font: "500 13px/1 var(--f-sans)",
-                    position: "relative",
                     textDecoration: "none",
+                    boxShadow:
+                      active && !collapsed
+                        ? "inset 3px 0 0 var(--wine-soft)"
+                        : "none",
                     transition:
                       "background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)",
                   }}
@@ -222,19 +225,6 @@ export function StudioSidebar() {
                       e.currentTarget.style.background = "transparent";
                   }}
                 >
-                  {active && !collapsed && (
-                    <span
-                      style={{
-                        position: "absolute",
-                        left: 0,
-                        top: 8,
-                        bottom: 8,
-                        width: 3,
-                        background: "var(--wine-soft)",
-                        borderRadius: 2,
-                      }}
-                    />
-                  )}
                   <span
                     style={{
                       color: active ? "var(--wine-soft)" : "var(--ink-side-soft)",
@@ -246,7 +236,17 @@ export function StudioSidebar() {
                   </span>
                   {!collapsed && (
                     <>
-                      <span style={{ flex: 1, textAlign: "left" }}>{m.label}</span>
+                      <span
+                        style={{
+                          flex: 1,
+                          textAlign: "left",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                        }}
+                      >
+                        {m.label}
+                      </span>
                       {m.badge && (
                         <span
                           style={{
@@ -257,6 +257,7 @@ export function StudioSidebar() {
                               : "rgba(255,255,255,0.08)",
                             color: active ? "var(--wine-soft)" : "var(--ink-side-soft)",
                             font: "700 10.5px/1.3 var(--f-sans)",
+                            flexShrink: 0,
                           }}
                         >
                           {m.badge}
@@ -318,31 +319,44 @@ export function StudioSidebar() {
 }
 
 function Logo({ collapsed }: { collapsed: boolean }) {
+  const size = collapsed ? 28 : 30;
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-      <div
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        minWidth: 0,
+      }}
+    >
+      <Image
+        src="/brand/dtdcargo-icon-navy.png"
+        alt="DTD Cargo"
+        width={size}
+        height={size}
+        priority
         style={{
-          width: collapsed ? 28 : 30,
-          height: collapsed ? 28 : 30,
-          borderRadius: "var(--r-sm)",
-          background: "var(--wine-soft)",
-          color: "var(--bg-sidebar)",
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          font: "900 13px/1 var(--f-display)",
-          letterSpacing: "-0.02em",
+          width: size,
+          height: size,
+          objectFit: "contain",
+          filter: "brightness(0) invert(1)",
           flexShrink: 0,
         }}
-      >
-        DTD
-      </div>
+      />
       {!collapsed && (
-        <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            lineHeight: 1.1,
+            minWidth: 0,
+          }}
+        >
           <span
             style={{
               font: "900 17px/1 var(--f-display)",
               letterSpacing: "-0.02em",
+              whiteSpace: "nowrap",
             }}
           >
             <span style={{ color: "var(--wine-soft)" }}>DTD</span>
@@ -355,6 +369,7 @@ function Logo({ collapsed }: { collapsed: boolean }) {
               letterSpacing: "0.16em",
               textTransform: "uppercase",
               marginTop: 4,
+              whiteSpace: "nowrap",
             }}
           >
             ERP · v1.0

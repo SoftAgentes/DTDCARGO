@@ -70,10 +70,12 @@
   --content-max: 1440px;
 
   /* ── Typography ────────────────────────────────────────── */
-  --f-sans: 'Archivo', system-ui, -apple-system, sans-serif;
+  /* next/font/google expone variables auto-generadas en el <html> del root layout.
+     Hacemos chaining: 1) next/font, 2) nombre literal por si alguien usa el sistema, 3) fallback. */
+  --f-sans: var(--font-archivo), 'Archivo', system-ui, -apple-system, sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --f-display: 'Archivo Black', 'Archivo', sans-serif;
-  --f-cn: 'Noto Sans SC', 'Archivo', sans-serif;
+  --f-display: var(--font-archivo-black), 'Archivo Black', 'Archivo', sans-serif;
+  --f-cn: var(--font-noto-sc), 'Noto Sans SC', 'Archivo', sans-serif;
 
   /* ── Motion ────────────────────────────────────────────── */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
