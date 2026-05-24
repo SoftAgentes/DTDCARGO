@@ -88,8 +88,8 @@ export function TimelinePanel({
         <form
           action={handleSubmit}
           style={{
-            background: "#FFFFFF",
-            border: "1px solid #E8E6E2",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
             borderRadius: 8,
             padding: 14,
             marginBottom: 16,
@@ -133,8 +133,8 @@ export function TimelinePanel({
           {error && (
             <p
               style={{
-                color: "#C2353F",
-                font: "500 11.5px/1.4 Archivo, sans-serif",
+                color: "var(--danger)",
+                font: "500 11.5px/1.4 var(--f-sans)",
                 marginBottom: 10,
               }}
             >
@@ -155,8 +155,8 @@ export function TimelinePanel({
       {events.length === 0 ? (
         <p
           style={{
-            font: "500 12.5px/1.5 Archivo, sans-serif",
-            color: "#6B6B6B",
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
             margin: 0,
           }}
         >
@@ -192,7 +192,7 @@ export function TimelinePanel({
                       height: 12,
                       background: color,
                       borderRadius: "50%",
-                      border: "2px solid #FBFAF7",
+                      border: "2px solid var(--bg-base)",
                       marginTop: 3,
                       // Evento mas reciente: ring sutil del mismo color
                       boxShadow: i === 0 ? `0 0 0 4px ${color}33` : undefined,
@@ -207,7 +207,7 @@ export function TimelinePanel({
                         left: 5,
                         bottom: -18,
                         width: 2,
-                        background: "#E8E6E2",
+                        background: "var(--border)",
                       }}
                     />
                   )}
@@ -215,8 +215,8 @@ export function TimelinePanel({
                 <div>
                   <div
                     style={{
-                      font: "700 12px/1.2 Archivo, sans-serif",
-                      color: "#0F1E3D",
+                      font: "700 12px/1.2 var(--f-sans)",
+                      color: "var(--ink)",
                       marginBottom: 3,
                     }}
                   >
@@ -225,8 +225,8 @@ export function TimelinePanel({
                   {e.note && (
                     <div
                       style={{
-                        font: "400 12px/1.45 Archivo, sans-serif",
-                        color: "#3A3A3A",
+                        font: "400 12px/1.45 var(--f-sans)",
+                        color: "var(--ink)",
                         marginBottom: 3,
                       }}
                     >
@@ -235,8 +235,8 @@ export function TimelinePanel({
                   )}
                   <div
                     style={{
-                      font: "500 10.5px/1 Archivo, sans-serif",
-                      color: "#9B9B9B",
+                      font: "500 10.5px/1 var(--f-sans)",
+                      color: "var(--ink-mute)",
                       letterSpacing: "0.02em",
                     }}
                   >

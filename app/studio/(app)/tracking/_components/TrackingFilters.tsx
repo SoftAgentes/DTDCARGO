@@ -276,7 +276,7 @@ export function TrackingFilters() {
             type="button"
             onClick={clear}
             className="studio-btn studio-btn-ghost studio-btn-sm"
-            style={{ height: 38, color: "#6B6B6B" }}
+            style={{ height: 38, color: "var(--ink-soft)" }}
           >
             Limpiar
           </button>
@@ -290,8 +290,8 @@ export function TrackingFilters() {
           style={{
             marginTop: 12,
             padding: 16,
-            background: "#FFFFFF",
-            border: "1px solid #E8E6E2",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
             borderRadius: 8,
           }}
         >
@@ -393,12 +393,12 @@ export function TrackingFilters() {
                   alignItems: "center",
                   gap: 8,
                   padding: "10px 12px",
-                  background: adv.alert ? "rgba(194, 53, 63, 0.08)" : "#F2F0EC",
-                  border: `1px solid ${adv.alert ? "#C2353F" : "#E8E6E2"}`,
+                  background: adv.alert ? "var(--danger-bg)" : "var(--bg-elevated)",
+                  border: `1px solid ${adv.alert ? "var(--danger)" : "var(--border)"}`,
                   borderRadius: 6,
                   cursor: "pointer",
-                  font: "500 12px/1 Archivo, sans-serif",
-                  color: adv.alert ? "#C2353F" : "#0F1E3D",
+                  font: "500 12px/1 var(--f-sans)",
+                  color: adv.alert ? "var(--danger)" : "var(--ink)",
                   width: "100%",
                   height: 38,
                   boxSizing: "border-box",
@@ -413,7 +413,7 @@ export function TrackingFilters() {
                     setAdv((a) => ({ ...a, alert: v }));
                     push(buildUrl({ alert: v }));
                   }}
-                  style={{ accentColor: "#C2353F" }}
+                  style={{ accentColor: "var(--danger)" }}
                 />
                 <span>⚠ Solo con alerta</span>
               </label>
@@ -422,8 +422,8 @@ export function TrackingFilters() {
 
           <p
             style={{
-              font: "500 11px/1.4 Archivo, sans-serif",
-              color: "#9B9B9B",
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-mute)",
               margin: "12px 0 0",
             }}
           >

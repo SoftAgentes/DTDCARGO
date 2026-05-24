@@ -109,8 +109,8 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
       </div>
       <p
         style={{
-          font: "500 11px/1.4 Archivo, sans-serif",
-          color: "#9B9B9B",
+          font: "500 11px/1.4 var(--f-sans)",
+          color: "var(--ink-mute)",
           margin: "0 0 14px",
           letterSpacing: "0.02em",
         }}
@@ -157,8 +157,8 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
         <div
           style={{
             padding: "12px 14px",
-            background: "rgba(31, 138, 91, 0.04)",
-            border: "1px dashed #1F8A5B",
+            background: "var(--success-bg)",
+            border: "1px dashed var(--success)",
             borderRadius: 8,
             marginBottom: 14,
           }}
@@ -172,15 +172,15 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
               alignItems: "center",
             }}
           >
-            <span>📍 GPS destino {isTerrestre && <span style={{ color: "#9B9B9B", fontWeight: 500 }}>(recomendado)</span>}</span>
+            <span>📍 GPS destino {isTerrestre && <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>(recomendado)</span>}</span>
             {gpsMapsUrl && (
               <a
                 href={gpsMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  font: "600 10.5px/1 Archivo, sans-serif",
-                  color: "#1F8A5B",
+                  font: "600 10.5px/1 var(--f-sans)",
+                  color: "var(--success)",
                   textDecoration: "none",
                   letterSpacing: "0.04em",
                   textTransform: "none",
@@ -252,7 +252,7 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
             <label className="studio-label" htmlFor="vehicle_category">
               Categoría vehículo
               {shipment.shipment_service === "transporte_terrestre" && (
-                <span style={{ color: "#C2353F", marginLeft: 6 }}>*</span>
+                <span style={{ color: "var(--danger)", marginLeft: 6 }}>*</span>
               )}
             </label>
             <select
@@ -271,8 +271,8 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
             {state.fieldErrors?.vehicle_category && (
               <p
                 style={{
-                  color: "#C2353F",
-                  font: "500 11px/1.3 Archivo, sans-serif",
+                  color: "var(--danger)",
+                  font: "500 11px/1.3 var(--f-sans)",
                   marginTop: 4,
                 }}
               >
@@ -313,8 +313,8 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
       {state.error && (
         <p
           style={{
-            color: "#C2353F",
-            font: "500 12px/1.4 Archivo, sans-serif",
+            color: "var(--danger)",
+            font: "500 12px/1.4 var(--f-sans)",
             marginBottom: 10,
           }}
         >
@@ -324,8 +324,8 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
       {state.ok && !dirty && (
         <p
           style={{
-            color: "#1F8A5B",
-            font: "500 12px/1.4 Archivo, sans-serif",
+            color: "var(--success)",
+            font: "500 12px/1.4 var(--f-sans)",
             marginBottom: 10,
           }}
         >

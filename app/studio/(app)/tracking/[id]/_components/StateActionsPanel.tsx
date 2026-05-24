@@ -58,9 +58,9 @@ const MODAL_BACKDROP: React.CSSProperties = {
 };
 
 const MODAL_BOX: React.CSSProperties = {
-  background: "#FFFFFF",
+  background: "var(--bg-surface)",
   borderRadius: 10,
-  border: "1px solid #E8E6E2",
+  border: "1px solid var(--border)",
   padding: 24,
   width: "100%",
   maxWidth: 480,
@@ -158,13 +158,13 @@ export function StateActionsPanel({
         </div>
         <p
           style={{
-            font: "500 12.5px/1.5 Archivo, sans-serif",
-            color: "#6B6B6B",
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
             margin: 0,
             padding: "12px 14px",
-            background: "#F2F0EC",
+            background: "var(--bg-elevated)",
             borderRadius: 6,
-            border: "1px dashed #C9C5BE",
+            border: "1px dashed var(--border-strong)",
           }}
         >
           Envío {status === "delivered" ? "entregado" : "cancelado"}. Operación cerrada.
@@ -182,8 +182,8 @@ export function StateActionsPanel({
       {actions.length === 0 ? (
         <p
           style={{
-            font: "500 12.5px/1.5 Archivo, sans-serif",
-            color: "#6B6B6B",
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
             margin: 0,
           }}
         >
@@ -214,8 +214,8 @@ export function StateActionsPanel({
         <p
           style={{
             marginTop: 10,
-            color: "#C2353F",
-            font: "500 11.5px/1.4 Archivo, sans-serif",
+            color: "var(--danger)",
+            font: "500 11.5px/1.4 var(--f-sans)",
           }}
         >
           {error}
@@ -244,14 +244,14 @@ export function StateActionsPanel({
             <h3
               id="exc-modal-title"
               className="studio-display"
-              style={{ fontSize: 20, color: "#0F1E3D", marginBottom: 8 }}
+              style={{ fontSize: 20, color: "var(--ink)", marginBottom: 8 }}
             >
               ⚠ Marcar excepción
             </h3>
             <p
               style={{
-                font: "500 13px/1.5 Archivo, sans-serif",
-                color: "#6B6B6B",
+                font: "500 13px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
                 margin: "0 0 16px",
               }}
             >
@@ -280,7 +280,7 @@ export function StateActionsPanel({
 
             <label className="studio-label" htmlFor="exc-note">
               Descripción{" "}
-              <span style={{ color: "#9B9B9B", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
                 (opcional pero recomendado)
               </span>
             </label>
@@ -297,8 +297,8 @@ export function StateActionsPanel({
             {error && (
               <p
                 style={{
-                  color: "#C2353F",
-                  font: "500 12px/1.4 Archivo, sans-serif",
+                  color: "var(--danger)",
+                  font: "500 12px/1.4 var(--f-sans)",
                   marginBottom: 12,
                 }}
               >

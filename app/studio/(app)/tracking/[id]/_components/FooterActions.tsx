@@ -29,9 +29,9 @@ const MODAL_BACKDROP: React.CSSProperties = {
 };
 
 const MODAL_BOX: React.CSSProperties = {
-  background: "#FFFFFF",
+  background: "var(--bg-surface)",
   borderRadius: 10,
-  border: "1px solid #E8E6E2",
+  border: "1px solid var(--border)",
   padding: 24,
   width: "100%",
   maxWidth: 480,
@@ -112,7 +112,7 @@ export function FooterActions({
           gap: 14,
           paddingTop: 24,
           marginTop: 24,
-          borderTop: "1px solid #E8E6E2",
+          borderTop: "1px solid var(--border)",
         }}
       >
         {!terminal ? (
@@ -152,14 +152,14 @@ export function FooterActions({
             <h3
               id="cancel-modal-title"
               className="studio-display"
-              style={{ fontSize: 20, color: "#0F1E3D", marginBottom: 10 }}
+              style={{ fontSize: 20, color: "var(--ink)", marginBottom: 10 }}
             >
               Cancelar envío {shipmentCode}
             </h3>
             <p
               style={{
-                font: "500 13px/1.5 Archivo, sans-serif",
-                color: "#6B6B6B",
+                font: "500 13px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
                 margin: "0 0 16px",
               }}
             >
@@ -188,20 +188,20 @@ export function FooterActions({
                 alignItems: "flex-start",
                 gap: 10,
                 padding: "10px 12px",
-                background: "#F2F0EC",
-                border: "1px solid #E8E6E2",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
                 borderRadius: 6,
                 marginBottom: 12,
                 cursor: "pointer",
-                font: "500 12.5px/1.45 Archivo, sans-serif",
-                color: "#0F1E3D",
+                font: "500 12.5px/1.45 var(--f-sans)",
+                color: "var(--ink)",
               }}
             >
               <input
                 type="checkbox"
                 checked={cancelConfirmed}
                 onChange={(e) => setCancelConfirmed(e.target.checked)}
-                style={{ marginTop: 2, flexShrink: 0, accentColor: "#C2353F" }}
+                style={{ marginTop: 2, flexShrink: 0, accentColor: "var(--danger)" }}
               />
               <span>
                 Entiendo que esto cambia el estado del envío a <strong>cancelado</strong>{" "}
@@ -212,8 +212,8 @@ export function FooterActions({
             {error && (
               <p
                 style={{
-                  color: "#C2353F",
-                  font: "500 12px/1.4 Archivo, sans-serif",
+                  color: "var(--danger)",
+                  font: "500 12px/1.4 var(--f-sans)",
                   marginBottom: 12,
                 }}
               >
@@ -264,14 +264,14 @@ export function FooterActions({
             <h3
               id="delete-modal-title"
               className="studio-display"
-              style={{ fontSize: 20, color: "#0F1E3D", marginBottom: 10 }}
+              style={{ fontSize: 20, color: "var(--ink)", marginBottom: 10 }}
             >
               Eliminar envío {shipmentCode}
             </h3>
             <p
               style={{
-                font: "500 13px/1.5 Archivo, sans-serif",
-                color: "#6B6B6B",
+                font: "500 13px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
                 margin: "0 0 16px",
               }}
             >
@@ -284,8 +284,8 @@ export function FooterActions({
               Para confirmar, tipeá el código del envío:{" "}
               <span
                 style={{
-                  font: "700 11.5px/1 ui-monospace, monospace",
-                  color: "#0F1E3D",
+                  font: "700 11.5px/1 var(--f-mono)",
+                  color: "var(--ink)",
                   letterSpacing: "0.02em",
                 }}
               >
@@ -311,8 +311,8 @@ export function FooterActions({
             {error && (
               <p
                 style={{
-                  color: "#C2353F",
-                  font: "500 12px/1.4 Archivo, sans-serif",
+                  color: "var(--danger)",
+                  font: "500 12px/1.4 var(--f-sans)",
                   marginBottom: 12,
                 }}
               >
