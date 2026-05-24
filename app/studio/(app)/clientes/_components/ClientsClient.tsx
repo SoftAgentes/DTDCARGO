@@ -101,7 +101,7 @@ export function ClientsClient({
           className="studio-btn studio-btn-primary"
           onClick={() => setDrawer({ mode: "create" })}
         >
-          + NUEVO CLIENTE
+          + Nuevo cliente
         </button>
       </div>
 
@@ -188,7 +188,7 @@ export function ClientsClient({
                 className="studio-btn studio-btn-primary"
                 onClick={() => setDrawer({ mode: "create" })}
               >
-                + NUEVO CLIENTE
+                + Nuevo cliente
               </button>
             ) : null
           }

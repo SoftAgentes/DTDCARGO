@@ -123,7 +123,7 @@ export function TarifasClient({
             className="studio-btn studio-btn-primary"
             onClick={() => setDrawer({ mode: "create" })}
           >
-            + NUEVA TARIFA
+            + Nueva tarifa
           </button>
         </div>
       </div>
@@ -211,7 +211,7 @@ export function TarifasClient({
                 className="studio-btn studio-btn-primary"
                 onClick={() => setDrawer({ mode: "create" })}
               >
-                + NUEVA TARIFA
+                + Nueva tarifa
               </button>
             ) : null
           }

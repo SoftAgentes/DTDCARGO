@@ -12,6 +12,8 @@ import type {
 import {
   DrawerShell,
   DrawerFooter,
+} from "@/app/studio/_components/ui/drawer/DrawerShell";
+import {
   FieldText,
   FieldSelect,
   FieldError,

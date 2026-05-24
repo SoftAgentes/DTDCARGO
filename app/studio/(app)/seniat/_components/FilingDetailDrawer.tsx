@@ -764,7 +764,7 @@ function CostMini({ label, value }: { label: string; value: number }) {
       <div
         style={{
           font: "700 10px/1 var(--f-sans)",
-          color: "rgba(255,255,255,0.5)",
+          color: "var(--ink-inv-mute)",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
         }}

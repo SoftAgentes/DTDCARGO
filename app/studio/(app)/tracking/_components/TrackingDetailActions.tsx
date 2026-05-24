@@ -25,13 +25,13 @@ export function TrackingDetailActions({ shipment }: Props) {
         href={clientHref}
         className="studio-btn studio-btn-ghost studio-btn-sm"
       >
-        VER CLIENTE
+        Ver cliente
       </Link>
       <Link
         href={`/studio/tracking/${shipment.id}`}
         className="studio-btn studio-btn-primary studio-btn-sm"
       >
-        VER DETALLE COMPLETO
+        Ver detalle completo
       </Link>
     </div>
   );

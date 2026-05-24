@@ -105,7 +105,7 @@ export function CotizadorClient({
             className="studio-btn studio-btn-primary"
             onClick={() => setShowCreate(true)}
           >
-            + NUEVA COTIZACIÓN
+            + Nueva cotización
           </button>
         </div>
       </div>
@@ -192,7 +192,7 @@ export function CotizadorClient({
                 className="studio-btn studio-btn-primary"
                 onClick={() => setShowCreate(true)}
               >
-                + NUEVA COTIZACIÓN
+                + Nueva cotización
               </button>
             ) : null
           }
