@@ -25,8 +25,8 @@ export function CustomerPreview({
   return (
     <div
       style={{
-        background: "#F2F0EC",
-        border: "1px solid #E8E6E2",
+        background: "var(--bg-elevated)",
+        border: "1px solid var(--border)",
         borderRadius: 8,
         padding: "16px 20px",
       }}
@@ -36,8 +36,8 @@ export function CustomerPreview({
       </div>
       <p
         style={{
-          font: "500 13.5px/1.5 Archivo, sans-serif",
-          color: "#0F1E3D",
+          font: "500 13.5px/1.5 var(--f-sans)",
+          color: "var(--ink)",
           margin: 0,
         }}
       >

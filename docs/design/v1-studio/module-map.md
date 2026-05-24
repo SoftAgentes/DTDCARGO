@@ -117,9 +117,9 @@ módulo nuevo refactorea visualmente lo anterior.
 
 | # | Tarea | SDD | Estado | Esfuerzo |
 |---|---|---|---|---|
-| 0.1 | Portar `shell.jsx` → sidebar oscuro agrupado 4 secciones + topbar con búsqueda ⌘K + theme toggle | **SDD-0007** | 🟡 en progreso (2026-05-23) | ~6h |
+| 0.1 | Portar `shell.jsx` → sidebar oscuro agrupado 4 secciones + topbar con búsqueda ⌘K + theme toggle | **SDD-0007** | ✅ (2026-05-23) | ~6h |
 | 0.2 | Portar `components.jsx` → React components reutilizables (`<Btn>`, `<Badge>`, `<Card>`, `<Table>`, `<Input>`, `<Drawer>`, `<Modal>`, `<Tabs>`, `<KPI>`, `<EmptyState>`) en `app/studio/_components/ui/` | TBD | pendiente | ~8h |
-| 0.3 | Refactor pantallas existentes (Tracking actual, Dashboard, Ajustes, Login) para usar nuevos componentes | TBD | pendiente | ~4h |
+| 0.3 | Refactor pantallas existentes (`/dashboard`, `/tracking` lista + detalle + nuevo, `/ajustes`) — reemplazar 100+ hex hardcoded por tokens dark-aware. Habilita el dark theme funcional. | continuación SDD-0007 | ✅ (2026-05-23) | ~3h |
 
 ### Sprint 1 — Comercial mínimo (3-4 semanas)
 

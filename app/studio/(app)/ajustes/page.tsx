@@ -17,23 +17,23 @@ export default function AjustesPage() {
       <span className="studio-eyebrow">Configuración</span>
       <h1
         className="studio-display"
-        style={{ fontSize: 30, margin: "8px 0 32px", color: "#0F1E3D" }}
+        style={{ fontSize: 30, margin: "8px 0 32px", color: "var(--ink)" }}
       >
         Ajustes.
       </h1>
 
       <div
         style={{
-          background: "#FFFFFF",
-          border: "1px solid #E8E6E2",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
           borderRadius: 10,
           padding: 28,
         }}
       >
         <p
           style={{
-            font: "400 14px/1.6 Archivo, sans-serif",
-            color: "#6B6B6B",
+            font: "400 14px/1.6 var(--f-sans)",
+            color: "var(--ink-soft)",
             margin: 0,
           }}
         >

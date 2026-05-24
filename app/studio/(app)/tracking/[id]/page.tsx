@@ -66,8 +66,8 @@ export default async function ShipmentDetailPage({
       {shipment.status === "cancelled" && shipment.cancellation_reason && (
         <div
           style={{
-            background: "rgba(194, 53, 63, 0.08)",
-            border: "1px solid rgba(194, 53, 63, 0.30)",
+            background: "var(--danger-bg)",
+            border: "1px solid var(--danger)",
             borderRadius: 8,
             padding: "12px 16px",
             marginBottom: 24,
@@ -75,14 +75,14 @@ export default async function ShipmentDetailPage({
         >
           <div
             className="studio-eyebrow"
-            style={{ color: "#C2353F", marginBottom: 6 }}
+            style={{ color: "var(--danger)", marginBottom: 6 }}
           >
             Razón de cancelación
           </div>
           <p
             style={{
-              font: "500 13px/1.5 Archivo, sans-serif",
-              color: "#0F1E3D",
+              font: "500 13px/1.5 var(--f-sans)",
+              color: "var(--ink)",
               margin: 0,
             }}
           >
@@ -95,8 +95,8 @@ export default async function ShipmentDetailPage({
       {lastExceptionEvent && (
         <div
           style={{
-            background: "rgba(194, 53, 63, 0.08)",
-            border: "1px solid rgba(194, 53, 63, 0.35)",
+            background: "var(--danger-bg)",
+            border: "1px solid var(--danger)",
             borderRadius: 8,
             padding: "14px 18px",
             marginBottom: 24,
@@ -118,14 +118,14 @@ export default async function ShipmentDetailPage({
           <div style={{ flex: 1 }}>
             <div
               className="studio-eyebrow"
-              style={{ color: "#C2353F", marginBottom: 6 }}
+              style={{ color: "var(--danger)", marginBottom: 6 }}
             >
               Excepción activa · {formatRelative(lastExceptionEvent.occurred_at)}
             </div>
             <p
               style={{
-                font: "500 13px/1.5 Archivo, sans-serif",
-                color: "#0F1E3D",
+                font: "500 13px/1.5 var(--f-sans)",
+                color: "var(--ink)",
                 margin: 0,
               }}
             >
@@ -133,8 +133,8 @@ export default async function ShipmentDetailPage({
             </p>
             <p
               style={{
-                font: "500 11px/1.4 Archivo, sans-serif",
-                color: "#6B6B6B",
+                font: "500 11px/1.4 var(--f-sans)",
+                color: "var(--ink-soft)",
                 margin: "6px 0 0",
               }}
             >
@@ -149,8 +149,8 @@ export default async function ShipmentDetailPage({
         {/* Columna izquierda — datos editables */}
         <section
           style={{
-            background: "#FFFFFF",
-            border: "1px solid #E8E6E2",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
             borderRadius: 10,
             padding: 24,
           }}
@@ -162,8 +162,8 @@ export default async function ShipmentDetailPage({
         <aside style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <section
             style={{
-              background: "#FFFFFF",
-              border: "1px solid #E8E6E2",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
               borderRadius: 10,
               padding: 20,
             }}
@@ -184,8 +184,8 @@ export default async function ShipmentDetailPage({
 
           <section
             style={{
-              background: "#FFFFFF",
-              border: "1px solid #E8E6E2",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
               borderRadius: 10,
               padding: 20,
             }}

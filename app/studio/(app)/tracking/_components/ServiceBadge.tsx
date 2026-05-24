@@ -21,20 +21,20 @@ export function ServiceBadge({ service }: { service: ShipmentService }) {
         flexDirection: "column",
         alignItems: "flex-start",
         padding: "6px 10px",
-        background: "rgba(15, 30, 61, 0.05)",
-        border: "1px solid rgba(15, 30, 61, 0.12)",
+        background: "var(--bg-elevated)",
+        border: "1px solid var(--border)",
         borderRadius: 5,
         lineHeight: 1,
       }}
     >
-      <span style={{ font: "700 12px/1.1 Archivo, sans-serif", color: "#0F1E3D" }}>
+      <span style={{ font: "700 12px/1.1 var(--f-sans)", color: "var(--ink)" }}>
         {primary}
       </span>
       {sub && (
         <span
           style={{
-            font: "500 9px/1 Archivo, sans-serif",
-            color: "#6B6B6B",
+            font: "500 9px/1 var(--f-sans)",
+            color: "var(--ink-soft)",
             marginTop: 3,
             letterSpacing: "0.04em",
           }}

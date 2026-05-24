@@ -76,14 +76,14 @@ export default async function TrackingPage({
           <span className="studio-eyebrow">Operación</span>
           <h1
             className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 12px", color: "#0F1E3D" }}
+            style={{ fontSize: 30, margin: "8px 0 12px", color: "var(--ink)" }}
           >
             Tracking.
           </h1>
           <p
             style={{
-              font: "400 13px/1.4 Archivo, sans-serif",
-              color: "#6B6B6B",
+              font: "400 13px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
               margin: 0,
             }}
           >
@@ -109,8 +109,8 @@ export default async function TrackingPage({
       {rows.length === 0 ? (
         <div
           style={{
-            background: "#FFFFFF",
-            border: "2px dashed #C9C5BE",
+            background: "var(--bg-surface)",
+            border: "2px dashed var(--border-strong)",
             borderRadius: 12,
             padding: "48px 28px",
             textAlign: "center",
@@ -118,14 +118,14 @@ export default async function TrackingPage({
         >
           <div
             className="studio-display"
-            style={{ fontSize: 22, color: "#0F1E3D", marginBottom: 10 }}
+            style={{ fontSize: 22, color: "var(--ink)", marginBottom: 10 }}
           >
             {hasFilters ? "Ningún envío coincide con estos filtros." : "Todavía no hay envíos."}
           </div>
           <p
             style={{
-              font: "400 14px/1.55 Archivo, sans-serif",
-              color: "#6B6B6B",
+              font: "400 14px/1.55 var(--f-sans)",
+              color: "var(--ink-soft)",
               maxWidth: "56ch",
               margin: "0 auto 18px",
             }}
@@ -138,8 +138,8 @@ export default async function TrackingPage({
       ) : (
         <div
           style={{
-            background: "#FFFFFF",
-            border: "1px solid #E8E6E2",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
             borderRadius: 10,
             overflow: "hidden",
           }}
@@ -151,12 +151,12 @@ export default async function TrackingPage({
               gridTemplateColumns: "150px 1fr 180px 130px 100px",
               gap: 12,
               padding: "12px 20px",
-              background: "#F2F0EC",
-              borderBottom: "1px solid #E8E6E2",
-              font: "700 10px/1 Archivo, sans-serif",
+              background: "var(--bg-elevated)",
+              borderBottom: "1px solid var(--border)",
+              font: "700 10px/1 var(--f-sans)",
               letterSpacing: "0.08em",
               textTransform: "uppercase",
-              color: "#6B6B6B",
+              color: "var(--ink-soft)",
             }}
           >
             <span>Código</span>
@@ -177,7 +177,7 @@ export default async function TrackingPage({
                 gridTemplateColumns: "150px 1fr 180px 130px 100px",
                 gap: 12,
                 padding: "14px 20px",
-                borderTop: i > 0 ? "1px solid #F2F0EC" : 0,
+                borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 alignItems: "center",
                 textDecoration: "none",
                 color: "inherit",
@@ -186,16 +186,16 @@ export default async function TrackingPage({
               <span
                 style={{
                   font: "700 12.5px/1 ui-monospace, monospace",
-                  color: "#0F1E3D",
+                  color: "var(--ink)",
                   letterSpacing: "0.02em",
                 }}
               >
                 {row.code}
               </span>
-              <div style={{ font: "500 12.5px/1.4 Archivo, sans-serif", color: "#0F1E3D" }}>
+              <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>
                 <div style={{ fontWeight: 700 }}>{row.client_name ?? "—"}</div>
                 {(row.origin || row.destination) && (
-                  <div style={{ color: "#9B9B9B", marginTop: 2, fontSize: 10.5, letterSpacing: "0.02em" }}>
+                  <div style={{ color: "var(--ink-mute)", marginTop: 2, fontSize: 10.5, letterSpacing: "0.02em" }}>
                     {row.origin ?? "?"} → {row.destination ?? "?"}
                   </div>
                 )}
@@ -204,8 +204,8 @@ export default async function TrackingPage({
               <StatusBadge status={row.status} />
               <span
                 style={{
-                  font: "500 11px/1 Archivo, sans-serif",
-                  color: "#6B6B6B",
+                  font: "500 11px/1 var(--f-sans)",
+                  color: "var(--ink-soft)",
                   textAlign: "right",
                 }}
               >

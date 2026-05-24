@@ -43,8 +43,8 @@ export function ShipmentHeader({ shipment }: { shipment: Shipment }) {
       <Link
         href="/studio/tracking"
         style={{
-          font: "500 12px/1 Archivo, sans-serif",
-          color: "#6B6B6B",
+          font: "500 12px/1 var(--f-sans)",
+          color: "var(--ink-soft)",
           textDecoration: "none",
           display: "inline-flex",
           alignItems: "center",
@@ -69,20 +69,20 @@ export function ShipmentHeader({ shipment }: { shipment: Shipment }) {
         <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
           <span
             style={{
-              font: "800 18px/1 ui-monospace, monospace",
-              color: "#0F1E3D",
+              font: "800 18px/1 var(--f-mono)",
+              color: "var(--ink)",
               letterSpacing: "0.02em",
               padding: "8px 14px",
-              background: "#F2F0EC",
+              background: "var(--bg-elevated)",
               borderRadius: 8,
-              border: "1px solid #E8E6E2",
+              border: "1px solid var(--border)",
             }}
           >
             {shipment.code}
           </span>
           <span
             className="studio-display"
-            style={{ fontSize: 22, color: "#0F1E3D" }}
+            style={{ fontSize: 22, color: "var(--ink)" }}
           >
             {shipment.client_name ?? "Sin cliente"}
           </span>
@@ -96,8 +96,8 @@ export function ShipmentHeader({ shipment }: { shipment: Shipment }) {
       {shipment.origin && shipment.destination && (
         <p
           style={{
-            font: "600 13px/1.4 Archivo, sans-serif",
-            color: "#0F1E3D",
+            font: "600 13px/1.4 var(--f-sans)",
+            color: "var(--ink)",
             margin: "0 0 4px",
           }}
         >
@@ -106,8 +106,8 @@ export function ShipmentHeader({ shipment }: { shipment: Shipment }) {
       )}
       <p
         style={{
-          font: "400 11px/1.4 Archivo, sans-serif",
-          color: "#9B9B9B",
+          font: "400 11px/1.4 var(--f-sans)",
+          color: "var(--ink-mute)",
           margin: 0,
           letterSpacing: "0.02em",
         }}

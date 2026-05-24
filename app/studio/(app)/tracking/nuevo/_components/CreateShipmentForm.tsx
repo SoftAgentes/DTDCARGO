@@ -25,14 +25,14 @@ import {
 const initialState: CreateShipmentState = {};
 
 const fieldErrorStyle: React.CSSProperties = {
-  font: "500 11px/1.3 Archivo, sans-serif",
-  color: "#C2353F",
+  font: "500 11px/1.3 var(--f-sans)",
+  color: "var(--danger)",
   marginTop: 4,
 };
 
 const hintStyle: React.CSSProperties = {
-  font: "500 10.5px/1.3 Archivo, sans-serif",
-  color: "#6B6B6B",
+  font: "500 10.5px/1.3 var(--f-sans)",
+  color: "var(--ink-soft)",
   marginTop: 4,
 };
 
@@ -74,8 +74,8 @@ export function CreateShipmentForm({
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
-            font: "500 12px/1 Archivo, sans-serif",
-            color: "#6B6B6B",
+            font: "500 12px/1 var(--f-sans)",
+            color: "var(--ink-soft)",
             textDecoration: "none",
             transition: "color 0.12s",
           }}
@@ -99,7 +99,7 @@ export function CreateShipmentForm({
           style={{
             fontSize: 30,
             margin: "10px 0 0",
-            color: "#0F1E3D",
+            color: "var(--ink)",
           }}
         >
           Crear envío.
@@ -111,8 +111,8 @@ export function CreateShipmentForm({
         style={{
           display: "grid",
           gap: 18,
-          background: "#FFFFFF",
-          border: "1px solid #E8E6E2",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
           borderRadius: 12,
           padding: 28,
         }}
@@ -121,7 +121,7 @@ export function CreateShipmentForm({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1.4fr", gap: 14 }}>
           <div>
             <label htmlFor="code" className="studio-label">
-              Código del envío <span style={{ color: "#7F0F1A" }}>*</span>
+              Código del envío <span style={{ color: "var(--wine)" }}>*</span>
             </label>
             <input
               id="code"
@@ -139,7 +139,7 @@ export function CreateShipmentForm({
 
           <div>
             <label htmlFor="shipment_service" className="studio-label">
-              Servicio <span style={{ color: "#7F0F1A" }}>*</span>
+              Servicio <span style={{ color: "var(--wine)" }}>*</span>
             </label>
             <select
               id="shipment_service"
@@ -188,7 +188,7 @@ export function CreateShipmentForm({
               <div
                 style={{
                   ...hintStyle,
-                  color: "#1F8A5B",
+                  color: "var(--success)",
                   fontWeight: 600,
                 }}
               >
@@ -199,7 +199,7 @@ export function CreateShipmentForm({
               <div
                 style={{
                   ...hintStyle,
-                  color: "#B8893A",
+                  color: "var(--warning)",
                   fontWeight: 600,
                 }}
               >
@@ -263,14 +263,14 @@ export function CreateShipmentForm({
           <div
             style={{
               padding: 16,
-              background: "rgba(31, 138, 91, 0.04)",
-              border: "1px dashed #1F8A5B",
+              background: "var(--success-bg)",
+              border: "1px dashed var(--success)",
               borderRadius: 8,
             }}
           >
             <label htmlFor="destination_gps" className="studio-label">
               📍 GPS del destino{" "}
-              <span style={{ color: "#9B9B9B", fontWeight: 500 }}>
+              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
                 (recomendado para terrestre)
               </span>
             </label>
@@ -334,8 +334,8 @@ export function CreateShipmentForm({
                   gridTemplateColumns: "1fr 1fr",
                   gap: 14,
                   padding: 16,
-                  background: "rgba(127, 15, 26, 0.035)",
-                  border: "1px dashed #7F0F1A",
+                  background: "var(--wine-tint)",
+                  border: "1px dashed var(--wine)",
                   borderRadius: 8,
                 }
               : {
@@ -349,9 +349,9 @@ export function CreateShipmentForm({
             <label htmlFor="vehicle_category" className="studio-label">
               Vehículo{" "}
               {vehicleRequired ? (
-                <span style={{ color: "#7F0F1A" }}>*</span>
+                <span style={{ color: "var(--wine)" }}>*</span>
               ) : (
-                <span style={{ color: "#9B9B9B", fontWeight: 500 }}>(opcional)</span>
+                <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>(opcional)</span>
               )}
             </label>
             <select
@@ -409,7 +409,7 @@ export function CreateShipmentForm({
             disabled={isPending}
             placeholder="Cualquier detalle operativo que el operador necesite recordar."
             className="studio-input"
-            style={{ resize: "vertical", fontFamily: "Archivo, sans-serif" }}
+            style={{ resize: "vertical", fontFamily: "var(--f-sans)" }}
           />
         </div>
 
@@ -419,11 +419,11 @@ export function CreateShipmentForm({
             role="alert"
             style={{
               padding: "11px 14px",
-              background: "rgba(194, 53, 63, 0.08)",
-              border: "1px solid rgba(194, 53, 63, 0.25)",
+              background: "var(--danger-bg)",
+              border: "1px solid var(--danger)",
               borderRadius: 6,
-              color: "#C2353F",
-              font: "500 12.5px/1.4 Archivo, sans-serif",
+              color: "var(--danger)",
+              font: "500 12.5px/1.4 var(--f-sans)",
             }}
           >
             {state.error}
