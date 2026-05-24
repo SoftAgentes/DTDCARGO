@@ -417,3 +417,76 @@
     display: none;
   }
 }
+
+/* ───────────────────────────────────────────────────────────
+   Calendario operativo (SDD-0015) — grid + nav buttons
+   ─────────────────────────────────────────────────────────── */
+.studio-calendar-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: flex-start;
+}
+@media (max-width: 1100px) {
+  .studio-calendar-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+}
+
+/* Botones de navegación de mes (chevrons) */
+.studio-cal-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  color: var(--ink-soft);
+  font: 700 18px/1 var(--f-sans);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.studio-cal-nav-btn:hover:not(:disabled) {
+  background: var(--bg-elevated);
+  color: var(--ink);
+  border-color: var(--ink-soft);
+}
+.studio-cal-nav-btn:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+
+/* Botón "HOY" — pill wine */
+.studio-cal-today-btn {
+  padding: 8px 14px;
+  border-radius: 7px;
+  background: var(--wine-tint);
+  color: var(--wine);
+  border: 1px solid transparent;
+  font: 700 11px/1 var(--f-sans);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.studio-cal-today-btn:hover:not(:disabled) {
+  background: var(--wine);
+  color: var(--bg-surface);
+}
+.studio-cal-today-btn:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+.studio-cal-today-btn:disabled {
+  background: transparent;
+  color: var(--ink-mute);
+  cursor: not-allowed;
+  pointer-events: none;
+}
