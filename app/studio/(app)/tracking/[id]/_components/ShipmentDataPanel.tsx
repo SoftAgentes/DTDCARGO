@@ -22,13 +22,19 @@ import { updateShipment, type ActionState } from "../actions";
 import {
   VEHICLE_CATEGORY_OPTIONS,
   type Shipment,
+  type ShipmentStatus,
 } from "@/lib/studio/shipment-types";
+import { ChangeDestinationModal } from "./ChangeDestinationModal";
 
 const initialState: ActionState = {};
+
+const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
 
 export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
   const action = updateShipment.bind(null, shipment.id);
   const [state, formAction, isPending] = useActionState(action, initialState);
+  const [showChangeDest, setShowChangeDest] = useState(false);
+  const canChangeDest = !TERMINAL_STATUSES.includes(shipment.status);
 
   // Dirty state — solo cuenta los campos editables.
   // client_name y client_markbox NO se chequean: son readonly (vienen de BD externa).
@@ -63,6 +69,7 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
       : null;
 
   return (
+    <>
     <form action={formAction} onChange={checkDirty} noValidate>
       <div className="studio-eyebrow" style={{ marginBottom: 14 }}>
         Datos del envío
@@ -139,8 +146,35 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
           />
         </div>
         <div>
-          <label className="studio-label" htmlFor="destination">
-            Destino
+          <label
+            className="studio-label"
+            htmlFor="destination"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span>Destino</span>
+            {canChangeDest && (
+              <button
+                type="button"
+                onClick={() => setShowChangeDest(true)}
+                style={{
+                  font: "600 10px/1 var(--f-sans)",
+                  color: "var(--wine)",
+                  background: "transparent",
+                  border: 0,
+                  cursor: "pointer",
+                  letterSpacing: "0.02em",
+                  textTransform: "none",
+                  padding: 0,
+                }}
+                title="Cambia el destino del envío y registra el cobro en el timeline"
+              >
+                Cambiar destino →
+              </button>
+            )}
           </label>
           <input
             id="destination"
@@ -342,5 +376,12 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
         {isPending ? "Guardando…" : "Guardar cambios"}
       </button>
     </form>
+    {showChangeDest && (
+      <ChangeDestinationModal
+        shipment={shipment}
+        onClose={() => setShowChangeDest(false)}
+      />
+    )}
+    </>
   );
 }
