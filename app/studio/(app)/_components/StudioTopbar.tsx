@@ -33,6 +33,9 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  // Default "Ctrl" para que en SSR + Windows/Linux no flashee.
+  // Mac se detecta client-side via navigator.platform → "⌘".
+  const [modKey, setModKey] = useState<"Ctrl" | "⌘">("Ctrl");
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   // Hidratar theme desde localStorage
@@ -42,6 +45,16 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
       if (t === "dark") setTheme("dark");
     } catch {
       // ignore
+    }
+  }, []);
+
+  // Detectar OS para mostrar el modifier correcto (⌘ Mac vs Ctrl Win/Linux).
+  // navigator.platform sigue siendo el método más confiable cross-browser
+  // (userAgentData.platform aún no es universal).
+  useEffect(() => {
+    if (typeof navigator !== "undefined") {
+      const isMac = /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+      if (isMac) setModKey("⌘");
     }
   }, []);
 
@@ -129,7 +142,7 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
         <div style={{ flex: 1, maxWidth: 520, marginLeft: 24 }}>
           <button
             onClick={() => setSearchOpen(true)}
-            aria-label="Buscar en el Studio (atajo: Ctrl+K)"
+            aria-label={`Buscar en el Studio (atajo: ${modKey}+K)`}
             style={{
               width: "100%",
               height: 36,
@@ -168,7 +181,7 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
                 color: "var(--ink-soft)",
               }}
             >
-              ⌘ K
+              {modKey} K
             </kbd>
           </button>
         </div>
