@@ -85,8 +85,6 @@ export function ReceiptRowActions({
           borderRadius: "var(--r-sm)",
           color: "var(--ink-soft)",
           cursor: pending ? "wait" : "pointer",
-          font: "700 14px/1 var(--f-sans)",
-          letterSpacing: "0.1em",
         }}
         onMouseEnter={(e) => {
           if (!pending) {
@@ -99,7 +97,7 @@ export function ReceiptRowActions({
           e.currentTarget.style.color = "var(--ink-soft)";
         }}
       >
-        ⋯
+        {Icon.more(14)}
       </button>
 
       {open && (
