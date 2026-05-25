@@ -12,6 +12,7 @@
 import type { Metadata, Viewport } from "next";
 import "@/app/studio/studio.css";
 import "./m.css";
+import { PwaRegister } from "./_components/PwaRegister";
 
 export const metadata: Metadata = {
   title: {
@@ -19,12 +20,33 @@ export const metadata: Metadata = {
     default: "DTD Operario · DoorTuDoor",
   },
   description: "App de recepción de mercadería · DTD·CARGO",
+  manifest: "/m/manifest.json",
+  applicationName: "DTD Operario",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "DTD Operario",
+    startupImage: ["/m/icon-512.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/m/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/m/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/m/icon-192.png", sizes: "192x192", type: "image/png" }],
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  // Legacy iOS < 13 espera `apple-mobile-web-app-capable` además del
+  // moderno `mobile-web-app-capable` que Next genera por defecto.
+  other: {
+    "apple-mobile-web-app-capable": "yes",
+  },
   robots: {
     index: false,
     follow: false,
   },
-  // Manifest viene en una iteración futura (SDD-0028 PWA install).
-  // manifest: "/m/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -43,6 +65,7 @@ export default function MobileLayout({
 }) {
   return (
     <div className="m-root" data-theme="light">
+      <PwaRegister />
       {children}
     </div>
   );
