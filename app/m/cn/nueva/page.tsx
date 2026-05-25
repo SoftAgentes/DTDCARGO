@@ -13,6 +13,7 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
+import { getOperarioLang } from "@/lib/lang-server";
 import {
   NuevaRecepcionClient,
   type PickerClient,
@@ -23,6 +24,8 @@ export const metadata = { title: "Nueva recepción" };
 export default async function NuevaRecepcionPage() {
   const operario = await getCurrentOperario();
   if (!operario) redirect("/m/cn/login");
+
+  const initialLang = await getOperarioLang();
 
   // Query clientes del tenant del operario (para el cliente picker)
   const admin = createAdminClient();
@@ -40,6 +43,7 @@ export default async function NuevaRecepcionPage() {
 
   return (
     <NuevaRecepcionClient
+      initialLang={initialLang}
       clients={clients}
       defaultWarehouseId={operario.warehouse_id}
     />

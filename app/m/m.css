@@ -37,3 +37,12 @@
 .m-safe-top {
   padding-top: calc(env(safe-area-inset-top) + var(--s-3));
 }
+
+/* Focus ring global para el namespace mobile.
+   WCAG 2.4.7 (Focus Visible). Solo activo cuando el browser detecta
+   navegación por teclado (no aparece al tap táctil). */
+.m-root :focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
