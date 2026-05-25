@@ -95,5 +95,9 @@ export async function createReceiptFromOperarioAction(
   revalidatePath("/studio/cn");
   revalidatePath("/m/cn");
 
-  return { ok: true, receiptCode: row.receipt_code };
+  return {
+    ok: true,
+    receiptId: row.receipt_id,
+    receiptCode: row.receipt_code,
+  };
 }

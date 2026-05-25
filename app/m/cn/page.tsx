@@ -86,7 +86,7 @@ export default async function OperarioHomePage() {
   const { data: recentData } = await admin
     .from("warehouse_receipts_cn")
     .select(
-      "receipt_code, client_markbox, client_name, supplier_name, boxes, total_cbm, status, created_at, created_by_operario_id",
+      "id, receipt_code, client_markbox, client_name, supplier_name, boxes, total_cbm, status, created_at, created_by_operario_id",
     )
     .eq("tenant_id", operario.tenant_id)
     .eq("warehouse_id", operario.warehouse_id)
@@ -96,6 +96,7 @@ export default async function OperarioHomePage() {
 
   const recents: RecentReceipt[] = (recentData ?? []).map((r) => {
     const row = r as {
+      id: string;
       receipt_code: string;
       client_markbox: string | null;
       client_name: string | null;
@@ -107,6 +108,7 @@ export default async function OperarioHomePage() {
       created_by_operario_id: string | null;
     };
     return {
+      id: row.id,
       code: row.receipt_code,
       client: row.client_name ?? row.client_markbox ?? "—",
       clientMarkbox: row.client_markbox,

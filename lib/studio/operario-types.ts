@@ -79,6 +79,7 @@ export type SignInOperarioState = {
 
 export type CreateReceiptState = {
   ok?: boolean;
+  receiptId?: string;
   receiptCode?: string;
   error?: string;
 };
