@@ -11,20 +11,21 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export type OperarioRow = {
   id: string;
   tenant_id: string;
-  warehouse_id: string;
+  warehouse_id: string | null;     // nullable desde SDD-0023 (VE choferes)
+  region: "cn" | "ve";
   display_name: string;
   display_name_cn: string | null;
   role: "operario" | "supervisor";
   active: boolean;
   last_login_at: string | null;
   created_at: string;
-  // Join data (nullable si el warehouse fue desactivado)
+  // Join data (nullable si el warehouse fue desactivado o region=ve)
   warehouse_code: string | null;
   warehouse_name_es: string | null;
 };
 
 const LIST_SELECT = `
-  id, tenant_id, warehouse_id, display_name, display_name_cn, role,
+  id, tenant_id, warehouse_id, region, display_name, display_name_cn, role,
   active, last_login_at, created_at,
   warehouse:warehouses_cn!warehouse_id ( code, hub_name_es )
 `;
@@ -59,6 +60,7 @@ export async function listOperarios(
       id: r.id,
       tenant_id: r.tenant_id,
       warehouse_id: r.warehouse_id,
+      region: r.region,
       display_name: r.display_name,
       display_name_cn: r.display_name_cn,
       role: r.role,

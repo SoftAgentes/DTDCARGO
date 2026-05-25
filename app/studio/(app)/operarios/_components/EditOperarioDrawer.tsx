@@ -35,7 +35,10 @@ export function EditOperarioDrawer({
     updateOperarioAction,
     initialState,
   );
-  const [warehouseId, setWarehouseId] = useState(operario.warehouse_id);
+  // warehouse_id nullable desde SDD-0023 (operarios VE pueden no tener
+  // warehouse asignado). Default a "" para el select; el server action
+  // valida y rechaza si region='cn' y warehouse vacío.
+  const [warehouseId, setWarehouseId] = useState(operario.warehouse_id ?? "");
   const [displayName, setDisplayName] = useState(operario.display_name);
   const [displayNameCn, setDisplayNameCn] = useState(
     operario.display_name_cn ?? "",
