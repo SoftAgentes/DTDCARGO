@@ -16,13 +16,14 @@
  * Iconografía: Icon set Studio. Cero emojis decorativos.
  */
 
-import { startTransition, useActionState, useEffect, useReducer, useState } from "react";
+import { startTransition, useActionState, useEffect, useReducer, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { BigButton } from "@/app/m/_components/BigButton";
 import { MobileHeader } from "@/app/m/_components/MobileHeader";
 import type { Lang } from "@/lib/lang";
 import { createReceiptFromOperarioAction } from "../actions";
+import { uploadReceiptPhotoAction } from "../photo-actions";
 import type {
   CreateReceiptInput,
   CreateReceiptState,
@@ -41,9 +42,15 @@ export type PickerClient = {
 // State + reducer
 // ─────────────────────────────────────────────────────────────────────────
 
-type View = "step1" | "step2" | "step3" | "step4" | "done";
+type View = "step1" | "step2" | "step3" | "step4" | "uploading" | "done";
 
-type Photo = { id: number; preview: "box-front" | "label" | "inside" | "damage" };
+type Photo = {
+  id: number;
+  /** Object URL del File para preview local */
+  previewUrl: string;
+  /** Blob real que se sube a Storage post-submit */
+  file: File;
+};
 
 type Reception = {
   photos: Photo[];
@@ -76,7 +83,7 @@ const EMPTY: Reception = {
 };
 
 type Action =
-  | { type: "addPhoto" }
+  | { type: "addPhoto"; file: File }
   | { type: "removePhoto"; id: number }
   | { type: "setOrphan"; value: boolean }
   | { type: "set"; key: keyof Reception; value: string }
@@ -86,25 +93,31 @@ type Action =
 function reducer(state: Reception, action: Action): Reception {
   switch (action.type) {
     case "addPhoto": {
-      const previews: Photo["preview"][] = ["box-front", "label", "inside", "damage"];
+      const previewUrl = URL.createObjectURL(action.file);
       return {
         ...state,
         photos: [
           ...state.photos,
-          { id: Date.now(), preview: previews[state.photos.length % 4] },
+          { id: Date.now() + Math.floor(Math.random() * 1000), previewUrl, file: action.file },
         ],
       };
     }
-    case "removePhoto":
+    case "removePhoto": {
+      const target = state.photos.find((p) => p.id === action.id);
+      if (target) URL.revokeObjectURL(target.previewUrl);
       return { ...state, photos: state.photos.filter((p) => p.id !== action.id) };
+    }
     case "setOrphan":
       return { ...state, orphan: action.value, client: "" };
     case "set":
       return { ...state, [action.key]: action.value };
     case "setBool":
       return { ...state, [action.key]: action.value };
-    case "reset":
+    case "reset": {
+      // Liberar todos los object URLs antes de reset
+      state.photos.forEach((p) => URL.revokeObjectURL(p.previewUrl));
       return EMPTY;
+    }
   }
 }
 
@@ -135,10 +148,57 @@ export function NuevaRecepcionClient({
     initialState,
   );
 
-  // Cuando server retorna ok + receiptCode → pasamos a Done
+  // Estado de upload de fotos post-submit
+  const [photoUploadCount, setPhotoUploadCount] = useState(0);
+  const [photoUploadTotal, setPhotoUploadTotal] = useState(0);
+  const [photoUploadErrors, setPhotoUploadErrors] = useState<string[]>([]);
+  const photosRef = useRef<Photo[]>([]);
+  // Keep latest snapshot para useEffect
+  photosRef.current = reception.photos;
+
+  // Cuando server crea receipt → arrancar upload de fotos en paralelo
+  // y luego pasar a Done.
   useEffect(() => {
-    if (state.ok && state.receiptCode) setView("done");
-  }, [state.ok, state.receiptCode]);
+    if (!state.ok || !state.receiptCode) return;
+    const photos = photosRef.current;
+    if (photos.length === 0 || !state.receiptId) {
+      // Sin fotos o sin receipt_id → directo a done (sin uploads).
+      // Si no hay receipt_id es bug del server action, lo registramos.
+      if (photos.length > 0 && !state.receiptId) {
+        setPhotoUploadErrors(["Server no devolvió receipt_id; fotos no subieron."]);
+      }
+      setView("done");
+      return;
+    }
+    let cancelled = false;
+    setPhotoUploadTotal(photos.length);
+    setPhotoUploadCount(0);
+    setPhotoUploadErrors([]);
+    setView("uploading");
+
+    (async () => {
+      const errors: string[] = [];
+      for (let i = 0; i < photos.length; i++) {
+        if (cancelled) return;
+        const p = photos[i];
+        const fd = new FormData();
+        fd.set("receipt_id", state.receiptId!);
+        fd.set("position", String(i));
+        fd.set("photo", p.file);
+        const res = await uploadReceiptPhotoAction(fd);
+        if (!res.ok) errors.push(`Foto ${i + 1}: ${res.error}`);
+        if (!cancelled) setPhotoUploadCount(i + 1);
+      }
+      if (!cancelled) {
+        setPhotoUploadErrors(errors);
+        setView("done");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [state.ok, state.receiptCode, state.receiptId]);
 
   const submit = () => {
     const clientObj = reception.client
@@ -221,10 +281,20 @@ export function NuevaRecepcionClient({
           serverError={state.error}
         />
       )}
+      {view === "uploading" && (
+        <UploadingPhotos
+          lang={lang}
+          count={photoUploadCount}
+          total={photoUploadTotal}
+        />
+      )}
       {view === "done" && (
         <Done
           lang={lang}
           code={state.receiptCode ?? "—"}
+          photosUploaded={Math.max(0, photoUploadTotal - photoUploadErrors.length)}
+          photosTotal={photoUploadTotal}
+          photoErrors={photoUploadErrors}
           onNew={() => {
             dispatch({ type: "reset" });
             setView("step1");
@@ -364,7 +434,10 @@ function Step1Photos({
               onRemove={() => dispatch({ type: "removePhoto", id: p.id })}
             />
           ))}
-          <PhotoAddTile onClick={() => dispatch({ type: "addPhoto" })} lang={lang} />
+          <PhotoAddTile
+            lang={lang}
+            onPicked={(file) => dispatch({ type: "addPhoto", file })}
+          />
         </div>
 
         {photos.length > 0 && !enough && (
@@ -404,11 +477,23 @@ function Step1Photos({
   );
 }
 
-function PhotoAddTile({ onClick, lang }: { onClick: () => void; lang: Lang }) {
+/**
+ * PhotoAddTile — usa `<label for=input file capture=environment>` para
+ * abrir la cámara nativa del cel (Android Chrome / iOS Safari). Cada
+ * tap crea un input nuevo (key dinámica) para evitar el bug de iOS
+ * que cachea el último File seleccionado.
+ */
+function PhotoAddTile({
+  lang,
+  onPicked,
+}: {
+  lang: Lang;
+  onPicked: (file: File) => void;
+}) {
+  const inputId = `photo-input-${Math.random().toString(36).slice(2, 8)}`;
   return (
-    <button
-      type="button"
-      onClick={onClick}
+    <label
+      htmlFor={inputId}
       style={{
         aspectRatio: "4 / 3",
         background: "var(--wine)",
@@ -426,7 +511,20 @@ function PhotoAddTile({ onClick, lang }: { onClick: () => void; lang: Lang }) {
     >
       {Icon.camera(32)}
       {t(lang, "Tomar foto", "拍照")}
-    </button>
+      <input
+        id={inputId}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+        capture="environment"
+        style={{ position: "absolute", width: 1, height: 1, opacity: 0, pointerEvents: "none" }}
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) onPicked(file);
+          // Reset para permitir mismo archivo dos veces en sucesión
+          e.currentTarget.value = "";
+        }}
+      />
+    </label>
   );
 }
 
@@ -459,7 +557,18 @@ function PhotoSlot({
         color: "var(--wine)",
       }}
     >
-      <PhotoPlaceholder kind={photo.preview} />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photo.previewUrl}
+        alt={t(lang, `Foto ${index + 1}`, `照片 ${index + 1}`)}
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "cover",
+        }}
+      />
       {/* Badge "Foto N" top-left para confirmar captura */}
       <span
         aria-hidden
@@ -519,37 +628,8 @@ function PhotoSlot({
   );
 }
 
-function PhotoPlaceholder({ kind }: { kind: Photo["preview"] }) {
-  const label = {
-    "box-front": "FRENTE",
-    label: "ETIQUETA",
-    inside: "INTERIOR",
-    damage: "DAÑO",
-  }[kind];
-  return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 6,
-        opacity: 0.55,
-      }}
-    >
-      {Icon.box(36)}
-      <span
-        style={{
-          font: "700 9.5px/1 var(--f-sans)",
-          letterSpacing: "0.14em",
-          textTransform: "uppercase",
-          color: "var(--ink-soft)",
-        }}
-      >
-        {label}
-      </span>
-    </div>
-  );
-}
+// PhotoPlaceholder ya no se usa (fotos reales con <img src=previewUrl/>).
+// Removido en SDD-0028 Fase 3.
 
 function Hint({ tone, text }: { tone: "warning" | "success"; text: string }) {
   const colors = {
@@ -1159,17 +1239,114 @@ function SummaryRow({
 // DONE
 // ─────────────────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────
+// UPLOADING PHOTOS
+// ─────────────────────────────────────────────────────────────────────────
+
+function UploadingPhotos({
+  lang,
+  count,
+  total,
+}: {
+  lang: Lang;
+  count: number;
+  total: number;
+}) {
+  const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+  return (
+    <div
+      style={{
+        minHeight: "100dvh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "0 var(--s-5)",
+        gap: "var(--s-4)",
+      }}
+    >
+      {/* Spinner ring + count */}
+      <div
+        style={{
+          position: "relative",
+          width: 96,
+          height: 96,
+          borderRadius: "50%",
+          background: "var(--bg-elevated)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <span
+          aria-hidden
+          style={{
+            position: "absolute",
+            inset: 0,
+            borderRadius: "50%",
+            border: "3px solid var(--wine-tint, rgba(127,15,26,0.15))",
+            borderTopColor: "var(--wine)",
+            animation: "spin 1s linear infinite",
+          }}
+        />
+        <span style={{ font: "900 22px/1 var(--f-display)", color: "var(--wine)" }}>
+          {count}/{total}
+        </span>
+      </div>
+      <div style={{ textAlign: "center" }}>
+        <h2
+          style={{
+            font: "900 22px/1.1 var(--f-display)",
+            color: "var(--ink)",
+            margin: 0,
+            letterSpacing: "-0.02em",
+          }}
+        >
+          {t(lang, "Subiendo fotos…", "正在上传照片…")}
+        </h2>
+        <p
+          style={{
+            font: "500 13px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: "var(--s-2) 0 0",
+          }}
+        >
+          {t(lang, "No cierres la app", "请勿关闭应用")} · {pct}%
+        </p>
+      </div>
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// DONE
+// ─────────────────────────────────────────────────────────────────────────
+
 function Done({
   lang,
   code,
+  photosUploaded,
+  photosTotal,
+  photoErrors,
   onNew,
   onHome,
 }: {
   lang: Lang;
   code: string;
+  photosUploaded: number;
+  photosTotal: number;
+  photoErrors: string[];
   onNew: () => void;
   onHome: () => void;
 }) {
+  const allOk = photoErrors.length === 0;
   return (
     <div
       style={{
@@ -1229,6 +1406,27 @@ function Done({
               "几秒钟后将出现在Studio面板中",
             )}
           </p>
+          {photosTotal > 0 && (
+            <p
+              style={{
+                font: "600 12px/1.4 var(--f-sans)",
+                color: allOk ? "var(--success)" : "var(--warning)",
+                margin: "var(--s-2) 0 0",
+              }}
+            >
+              {allOk
+                ? t(
+                    lang,
+                    `✓ ${photosUploaded} foto${photosUploaded === 1 ? "" : "s"} subida${photosUploaded === 1 ? "" : "s"}`,
+                    `✓ 已上传 ${photosUploaded} 张照片`,
+                  )
+                : t(
+                    lang,
+                    `${photosUploaded}/${photosTotal} fotos · ${photoErrors.length} con error`,
+                    `${photosUploaded}/${photosTotal} 照片 · ${photoErrors.length} 失败`,
+                  )}
+            </p>
+          )}
         </div>
         <code
           style={{

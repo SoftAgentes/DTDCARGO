@@ -8,13 +8,14 @@
  */
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { BigButton } from "@/app/m/_components/BigButton";
 import { KpiCard } from "@/app/m/_components/KpiCard";
 import { MobileHeader } from "@/app/m/_components/MobileHeader";
 import { setOperarioLangClient, type Lang } from "@/lib/lang";
 import { signOutOperarioAction } from "../actions";
+import { getReceiptPhotoSignedUrlsAction } from "../nueva/photo-actions";
 
 const t = (lang: Lang, es: string, cn: string) => (lang === "cn" ? cn : es);
 
@@ -37,6 +38,7 @@ export type TodayKpis = {
 };
 
 export type RecentReceipt = {
+  id: string;                   // uuid del receipt (para fetch de photos)
   code: string;                 // "WR-2026-0009"
   client: string;               // "Tenant Industrial"
   clientMarkbox: string | null; // "DTD-1005" o null si huérfana
@@ -471,6 +473,29 @@ function ReceiptDetailModal({
   lang: Lang;
   onClose: () => void;
 }) {
+  // Lazy fetch de photos via server action (signed URLs TTL 1h)
+  const [photos, setPhotos] = useState<
+    { id: string; url: string; position: number }[]
+  >([]);
+  const [photosLoading, setPhotosLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getReceiptPhotoSignedUrlsAction(r.id)
+      .then((urls) => {
+        if (!cancelled) {
+          setPhotos(urls);
+          setPhotosLoading(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPhotosLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [r.id]);
+
   const statusLabel: Record<string, { es: string; cn: string; tone: string }> = {
     pendiente_consolidacion: {
       es: "Pendiente consolidar",
@@ -622,6 +647,43 @@ function ReceiptDetailModal({
             />
           )}
         </div>
+
+        {/* Photos grid (lazy) */}
+        {!photosLoading && photos.length > 0 && (
+          <div style={{ marginTop: "var(--s-3)" }}>
+            <div
+              className="studio-eyebrow"
+              style={{ color: "var(--wine)", marginBottom: "var(--s-2)" }}
+            >
+              {t(lang, `Fotos (${photos.length})`, `照片 (${photos.length})`)}
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: "var(--s-2)",
+              }}
+            >
+              {photos.map((p) => (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  key={p.id}
+                  src={p.url}
+                  alt={t(lang, `Foto ${p.position + 1}`, `照片 ${p.position + 1}`)}
+                  loading="lazy"
+                  style={{
+                    width: "100%",
+                    aspectRatio: "1 / 1",
+                    objectFit: "cover",
+                    background: "var(--bg-elevated)",
+                    borderRadius: "var(--r-sm)",
+                    border: "1px solid var(--border)",
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
 
         <p
           style={{
