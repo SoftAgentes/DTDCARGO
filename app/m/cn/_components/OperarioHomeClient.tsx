@@ -125,7 +125,9 @@ export function OperarioHomeClient({
         }
       />
 
-      <div style={{ padding: "var(--s-4) var(--s-4) 120px" }}>
+      {/* padding-bottom 144 = FAB 56 + safe-area + scroll room
+          (UX#11 review: 120 dejaba la última card en el gradient fade) */}
+      <div style={{ padding: "var(--s-4) var(--s-4) 144px" }}>
         {/* Greeting */}
         <section style={{ marginBottom: "var(--s-5)" }}>
           <div
@@ -155,7 +157,7 @@ export function OperarioHomeClient({
           </h1>
           <p
             style={{
-              font: "500 13px/1.4 var(--f-sans)",
+              font: "500 14px/1.4 var(--f-sans)",
               color: "var(--ink-soft)",
               margin: "var(--s-1) 0 0",
             }}
@@ -240,7 +242,7 @@ export function OperarioHomeClient({
               <span
                 style={{
                   display: "block",
-                  font: "500 11px/1.3 var(--f-sans)",
+                  font: "500 12px/1.3 var(--f-sans)",
                   color: "var(--ink-soft)",
                   marginTop: 3,
                 }}
@@ -420,7 +422,7 @@ function ReceiptRow({
         </div>
         <div
           style={{
-            font: "600 13px/1.2 var(--f-sans)",
+            font: "600 14px/1.2 var(--f-sans)",
             color: "var(--ink)",
             marginTop: 3,
             overflow: "hidden",
@@ -432,7 +434,7 @@ function ReceiptRow({
         </div>
         <div
           style={{
-            font: "500 11px/1.2 var(--f-sans)",
+            font: "500 12px/1.2 var(--f-sans)",
             color: "var(--ink-soft)",
             marginTop: 2,
             display: "flex",
@@ -693,7 +695,7 @@ function EmptyRecents({ lang }: { lang: Lang }) {
         border: "1px dashed var(--border)",
         borderRadius: "var(--r-md)",
         textAlign: "center",
-        font: "500 12.5px/1.5 var(--f-sans)",
+        font: "500 13px/1.5 var(--f-sans)",
         color: "var(--ink-mute)",
       }}
     >
@@ -803,7 +805,7 @@ function MenuModal({
             </div>
             <div
               style={{
-                font: "500 11px/1.3 var(--f-sans)",
+                font: "500 12px/1.3 var(--f-sans)",
                 color: "var(--ink-soft)",
                 marginTop: 2,
               }}
