@@ -1,0 +1,39 @@
+/**
+ * Estilos del namespace mobile `/m/*`.
+ *
+ * Capa muy fina sobre los tokens del Studio. Sólo lo específico de la
+ * PWA del operario: full-bleed (sin sidebar), tap targets grandes,
+ * safe-area iOS, scroll suave sin bounce raro.
+ */
+
+.m-root {
+  min-height: 100vh;
+  min-height: 100dvh; /* iOS Safari real viewport */
+  background: var(--bg-base);
+  color: var(--ink);
+  font-family: var(--f-sans);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Cualquier <button> dentro del namespace tiene touch-action manipulation
+   para evitar el delay de 300ms en iOS. */
+.m-root button {
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* Inputs grandes — el operario suele tener guantes o dedos sucios */
+.m-root input,
+.m-root select,
+.m-root textarea {
+  font-size: 16px; /* evita zoom de Safari al focus */
+}
+
+/* Container que respeta safe-area en iOS (notch / home indicator) */
+.m-safe-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--s-3));
+}
+.m-safe-top {
+  padding-top: calc(env(safe-area-inset-top) + var(--s-3));
+}
