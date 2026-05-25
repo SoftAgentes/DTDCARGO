@@ -228,6 +228,14 @@ export const Icon = {
   download: (s: Size = 14) =>
     wrap(s, <P d="M12 3v12M7 10l5 5 5-5M5 21h14" />),
   upload: (s: Size = 14) => wrap(s, <P d="M12 15V3M7 8l5-5 5 5M5 21h14" />),
+  camera: (s: Size = 18) =>
+    wrap(
+      s,
+      <>
+        <P d="M3 8h3l2-3h8l2 3h3v11H3z" />
+        <C cx={12} cy={13} r={3.5} />
+      </>,
+    ),
   edit: (s: Size = 14) => wrap(s, <P d="M16 3l5 5-11 11H5v-5z" />),
   trash: (s: Size = 14) =>
     wrap(s, <P d="M4 7h16M9 7V4h6v3M6 7l1 14h10l1-14M10 11v6M14 11v6" />),
