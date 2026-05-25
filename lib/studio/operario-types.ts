@@ -9,13 +9,23 @@
 
 export type OperarioRole = "operario" | "supervisor";
 
+/**
+ * Región operativa del operario (SDD-0023 schema step).
+ * cn = almacén China (recibe mercadería en hubs CN, warehouse_id requerido)
+ * ve = chofer/delivery Venezuela (warehouse_id nullable)
+ *
+ * Más roles vendrán con SDD-0029 Despacho (bodeguero, camionero, etc.).
+ */
+export type OperarioRegion = "cn" | "ve";
+
 export type Operario = {
   id: string;
   tenant_id: string;
-  warehouse_id: string;
+  warehouse_id: string | null;     // nullable desde SDD-0023 (chofer VE)
+  region: OperarioRegion;
   display_name: string;
   display_name_cn: string | null;
-  pin_hash: string;            // bcrypt — NUNCA exponer al cliente
+  pin_hash: string;                // bcrypt — NUNCA exponer al cliente
   role: OperarioRole;
   active: boolean;
   last_login_at: string | null;
@@ -26,6 +36,11 @@ export type Operario = {
 /**
  * Identidad del operario logueado — lo que guardamos en cookie
  * y devuelve el RPC verify_operario_pin. Sin pin_hash.
+ *
+ * NOTA: warehouse_id sigue typed como string aquí porque el RPC
+ * verify_operario_pin se diseñó pre-nullable y nunca retorna null
+ * en la práctica (todos los operarios CN tienen warehouse).
+ * Cuando llegue VE en SDD-0029, ajustar el RPC o agregar fallback.
  */
 export type OperarioSession = {
   operario_id: string;
