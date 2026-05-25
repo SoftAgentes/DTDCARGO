@@ -55,6 +55,7 @@ export const MODULES: ModuleDef[] = [
   { id: "mailing", group: "SISTEMA", label: "Mailing", icon: "mail", slug: "/studio/mailing" },
   { id: "vault", group: "SISTEMA", label: "Vault", icon: "lock", slug: "/studio/vault" },
   { id: "users", group: "SISTEMA", label: "Usuarios", icon: "shield", slug: "/studio/usuarios" },
+  { id: "operarios", group: "SISTEMA", label: "Operarios PWA", icon: "users", slug: "/studio/operarios" },
   { id: "admin", group: "SISTEMA", label: "Administración", icon: "cog", slug: "/studio/admin" },
 ];
 
