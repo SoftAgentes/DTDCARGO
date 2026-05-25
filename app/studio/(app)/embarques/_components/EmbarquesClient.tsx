@@ -18,15 +18,19 @@ import {
 } from "@/lib/studio/shipment-queries";
 import {
   SERVICE_LABELS,
+  SERVICE_OPTIONS,
   STATUS_LABELS,
+  type ShipmentService,
   type ShipmentStatus,
 } from "@/lib/studio/shipment-types";
+import { computeProgress } from "@/lib/studio/tracking-progress";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
 import { ShipmentDetailDrawer } from "./ShipmentDetailDrawer";
 
 type Tab = "all" | "active" | "delivered" | "alerts";
+type ServiceFilter = ShipmentService | "all";
 
 const TERMINAL_STATUSES = new Set<ShipmentStatus>(["delivered", "cancelled"]);
 
@@ -69,6 +73,7 @@ export function EmbarquesClient({
 }) {
   const [tab, setTab] = useState<Tab>("all");
   const [q, setQ] = useState("");
+  const [serviceFilter, setServiceFilter] = useState<ServiceFilter>("all");
   const [drawerShipmentId, setDrawerShipmentId] = useState<string | null>(null);
 
   // Counts globales para los tabs (sin search aplicado)
@@ -82,9 +87,13 @@ export function EmbarquesClient({
     };
   }, [shipments]);
 
-  // Apply tab + search → group
+  // Apply tab + service + search → group
   const groupedFiltered = useMemo(() => {
     let rows = filterByTab(shipments, tab);
+
+    if (serviceFilter !== "all") {
+      rows = rows.filter((r) => r.shipment_service === serviceFilter);
+    }
 
     if (q.trim()) {
       const needle = q.trim().toLowerCase();
@@ -100,7 +109,7 @@ export function EmbarquesClient({
     }
 
     return groupShipmentsByClient(rows);
-  }, [shipments, tab, q]);
+  }, [shipments, tab, serviceFilter, q]);
 
   // Default expand: si <3 grupos, todos abiertos; sino, todos cerrados
   const [expanded, setExpanded] = useState<Set<string>>(
@@ -222,17 +231,23 @@ export function EmbarquesClient({
         })}
       </div>
 
-      {/* Toolbar: search + expand/collapse all */}
+      {/* Toolbar: search + expand/collapse all
+          Mobile (<640px): cada item ocupa fila completa (stretch).
+          Desktop: search 1fr, select 200, botón inline a la derecha. */}
       <div
+        className="emb-toolbar"
         style={{
           display: "flex",
-          gap: 10,
-          alignItems: "flex-end",
+          gap: 12,
+          alignItems: "stretch",
           marginBottom: 16,
           flexWrap: "wrap",
         }}
       >
-        <div style={{ flex: "1 1 280px", minWidth: 240 }}>
+        <div
+          className="emb-toolbar-search"
+          style={{ flex: "1 1 280px", minWidth: 240 }}
+        >
           <label className="studio-label" htmlFor="emb-q">
             Buscar
           </label>
@@ -245,17 +260,82 @@ export function EmbarquesClient({
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
+        <div
+          className="emb-toolbar-svc"
+          style={{ flex: "0 1 220px", minWidth: 180 }}
+        >
+          <label className="studio-label" htmlFor="emb-svc">
+            Servicio
+          </label>
+          <select
+            id="emb-svc"
+            className="studio-input"
+            value={serviceFilter}
+            onChange={(e) => setServiceFilter(e.target.value as ServiceFilter)}
+          >
+            <option value="all">Todos los servicios</option>
+            {SERVICE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
         {groupedFiltered.length > 0 && (
           <button
             type="button"
-            className="studio-btn studio-btn-ghost studio-btn-sm"
-            style={{ height: 38 }}
+            className="studio-btn studio-btn-ghost studio-btn-sm emb-toolbar-toggle"
             onClick={allExpanded ? collapseAll : expandAll}
           >
             {allExpanded ? "Colapsar todo" : "Expandir todo"}
           </button>
         )}
       </div>
+      {/* Responsive: mobile-first stack del toolbar + header del grupo */}
+      <style>{`
+        @media (max-width: 640px) {
+          .emb-toolbar-search,
+          .emb-toolbar-svc {
+            flex: 1 1 100% !important;
+            min-width: 0 !important;
+          }
+          .emb-toolbar-toggle {
+            align-self: flex-start;
+          }
+          /* Header de grupo: 2 filas en mobile
+             Row 1: chev + nombre (full)
+             Row 2: badges + m³ */
+          .emb-group-header {
+            grid-template-columns: 24px 1fr auto !important;
+            row-gap: 6px !important;
+          }
+          .emb-group-header > :nth-child(1) {
+            grid-row: 1 / span 2;
+            align-self: start;
+            margin-top: 2px;
+          }
+          .emb-group-header > :nth-child(2) {
+            grid-row: 1;
+            grid-column: 2 / -1;
+          }
+          .emb-group-header > :nth-child(3) {
+            grid-row: 2;
+            grid-column: 2;
+            justify-self: start;
+          }
+          .emb-group-header > :nth-child(4) {
+            grid-row: 2;
+            grid-column: 3;
+            justify-self: end;
+          }
+        }
+        @media (min-width: 641px) {
+          .emb-toolbar-toggle {
+            align-self: flex-end;
+            margin-left: auto;
+          }
+        }
+      `}</style>
 
       {/* Tabla agrupada o empty */}
       {groupedFiltered.length === 0 ? (
@@ -328,14 +408,19 @@ function GroupedTable({
               borderTop: gi > 0 ? "1px solid var(--border)" : 0,
             }}
           >
-            {/* Group header (clickeable como toggle) */}
+            {/* Group header (clickeable como toggle).
+                Desktop: grid horizontal 4 cols (chev / nombre / badges / m³).
+                Mobile (<640px): areas en 2 filas — nombre arriba, badges+m³
+                en la segunda. Nombre nunca colapsa a 0px gracias a min 0
+                + overflow del wrapper interno. */}
             <button
               type="button"
               onClick={() => toggleGroup(group.groupKey)}
+              className="emb-group-header"
               style={{
                 width: "100%",
                 display: "grid",
-                gridTemplateColumns: "24px 1fr auto auto",
+                gridTemplateColumns: "24px minmax(0, 1fr) auto auto",
                 gap: 12,
                 padding: "14px 20px",
                 background: isOpen ? "var(--bg-elevated)" : "transparent",
@@ -370,6 +455,7 @@ function GroupedTable({
                   alignItems: "baseline",
                   gap: 10,
                   minWidth: 0,
+                  overflow: "hidden",
                 }}
               >
                 <span
@@ -379,6 +465,7 @@ function GroupedTable({
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    minWidth: 0,
                   }}
                 >
                   {group.clientName}
@@ -429,20 +516,30 @@ function GroupedTable({
             </button>
 
             {/* Children rows (cuando isOpen) */}
+            {/* Scroll horizontal aislado: el grid de 8 columnas necesita ~824px
+                mínimo. En mobile (< 824px) scrollea horizontal dentro del
+                contenedor, NO en el body. Body queda contenido. */}
             {isOpen && (
-              <div style={{ background: "var(--bg-surface)" }}>
+              <div
+                style={{
+                  background: "var(--bg-surface)",
+                  overflowX: "auto",
+                }}
+              >
                 {/* Mini header de columnas */}
                 <div
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "24px 130px 1fr 140px 130px 80px 100px",
+                    gridTemplateColumns:
+                      "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px",
                     gap: 10,
                     padding: "8px 20px",
                     borderTop: "1px solid var(--border)",
-                    font: "700 9.5px/1 var(--f-sans)",
+                    font: "700 10.5px/1 var(--f-sans)",
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
                     color: "var(--ink-mute)",
+                    minWidth: 824,
                   }}
                 >
                   <span></span>
@@ -450,93 +547,187 @@ function GroupedTable({
                   <span>Ruta</span>
                   <span>Servicio</span>
                   <span>Estado</span>
+                  <span>Progreso</span>
                   <span style={{ textAlign: "right" }}>CBM</span>
                   <span>Creado</span>
                 </div>
-                {group.shipments.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => onRowClick(s.id)}
-                    style={{
-                      width: "100%",
-                      display: "grid",
-                      gridTemplateColumns: "24px 130px 1fr 140px 130px 80px 100px",
-                      gap: 10,
-                      padding: "10px 20px",
-                      background: "transparent",
-                      border: 0,
-                      borderTop: "1px solid var(--border)",
-                      alignItems: "center",
-                      textAlign: "left",
-                      cursor: "pointer",
-                      transition: "background var(--dur-fast) var(--ease)",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = "var(--bg-elevated)";
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = "transparent";
-                    }}
-                  >
-                    <span></span>
-                    <span
+                {group.shipments.map((s) => {
+                  const pct = computeProgress(s.status);
+                  const svc = SERVICE_LABELS[s.shipment_service];
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => onRowClick(s.id)}
                       style={{
-                        font: "700 12px/1 var(--f-mono)",
-                        color: "var(--ink)",
-                        letterSpacing: "0.02em",
+                        width: "100%",
+                        display: "grid",
+                        gridTemplateColumns:
+                          "24px 130px minmax(160px, 1fr) 130px 130px 110px 70px 90px",
+                        gap: 10,
+                        padding: "12px 20px",
+                        background: "transparent",
+                        border: 0,
+                        borderTop: "1px solid var(--border)",
+                        alignItems: "center",
+                        textAlign: "left",
+                        cursor: "pointer",
+                        transition: "background var(--dur-fast) var(--ease)",
+                        minWidth: 824,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = "var(--bg-elevated)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = "transparent";
                       }}
                     >
-                      {s.code}
-                    </span>
-                    <span
-                      style={{
-                        font: "500 12px/1.3 var(--f-sans)",
-                        color: "var(--ink-soft)",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {s.origin ?? "?"} → {s.destination ?? "?"}
-                    </span>
-                    <span
-                      style={{
-                        font: "600 11.5px/1 var(--f-sans)",
-                        color: "var(--ink)",
-                      }}
-                    >
-                      {SERVICE_LABELS[s.shipment_service].primary}
-                    </span>
-                    <span>
-                      <Badge tone={statusBadgeTone(s.status)} size="sm" dot>
-                        {STATUS_LABELS[s.status]}
-                      </Badge>
-                    </span>
-                    <span
-                      style={{
-                        font: "600 12px/1 var(--f-mono)",
-                        color: "var(--ink)",
-                        textAlign: "right",
-                      }}
-                    >
-                      {s.volume_m3 != null ? Number(s.volume_m3).toFixed(2) : "—"}
-                    </span>
-                    <span
-                      style={{
-                        font: "500 11px/1 var(--f-sans)",
-                        color: "var(--ink-soft)",
-                      }}
-                    >
-                      {formatDate(s.created_at)}
-                    </span>
-                  </button>
-                ))}
+                      <span></span>
+                      <span
+                        style={{
+                          font: "700 12px/1 var(--f-mono)",
+                          color: "var(--ink)",
+                          letterSpacing: "0.02em",
+                        }}
+                      >
+                        {s.code}
+                      </span>
+                      <span
+                        style={{
+                          font: "500 12px/1.3 var(--f-sans)",
+                          color: "var(--ink-soft)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {s.origin ?? "?"} → {s.destination ?? "?"}
+                      </span>
+                      <span style={{ minWidth: 0 }}>
+                        <div
+                          style={{
+                            font: "600 11.5px/1.1 var(--f-sans)",
+                            color: "var(--ink)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {svc.primary}
+                        </div>
+                        {svc.sub && (
+                          <div
+                            style={{
+                              font: "500 10px/1.1 var(--f-sans)",
+                              color: "var(--ink-mute)",
+                              marginTop: 2,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {svc.sub}
+                          </div>
+                        )}
+                      </span>
+                      <span>
+                        <Badge tone={statusBadgeTone(s.status)} size="sm" dot>
+                          {STATUS_LABELS[s.status]}
+                        </Badge>
+                      </span>
+                      <ProgressBar pct={pct} status={s.status} />
+                      <span
+                        style={{
+                          font: "600 12px/1 var(--f-mono)",
+                          color: "var(--ink)",
+                          textAlign: "right",
+                        }}
+                      >
+                        {s.volume_m3 != null ? Number(s.volume_m3).toFixed(2) : "—"}
+                      </span>
+                      <span
+                        style={{
+                          font: "500 11px/1 var(--f-sans)",
+                          color: "var(--ink-soft)",
+                        }}
+                      >
+                        {formatDate(s.created_at)}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
         );
       })}
     </div>
+  );
+}
+
+// ── ProgressBar ────────────────────────────────────────────────
+// Mini barra horizontal con % numérico debajo. Color del fill por status,
+// pero usando TOKENS CSS (no hex literal) para que respete dark mode.
+// El mapa STATUS_COLORS del shipment-types.ts no se puede usar acá porque
+// consumers como StatusBadge concatenan alpha (`${color}1F`) que requiere
+// hex literal. Acá hacemos un mapa local equivalente con `var(--*)`.
+
+const PROGRESS_FILL_TOKEN: Record<ShipmentStatus, string> = {
+  draft: "var(--neutral)",
+  in_warehouse: "var(--ink)",
+  consolidating: "var(--ink)",
+  shipped: "var(--ink)",
+  in_transit: "var(--ink)",
+  in_customs: "var(--warning)",
+  arrived_destination: "var(--ink)",
+  delayed_warehouse: "var(--warning)",
+  out_for_delivery: "var(--ink)",
+  last_mile: "var(--ink)",
+  delivered: "var(--success)",
+  exception: "var(--danger)",
+  cancelled: "var(--neutral)",
+};
+
+function ProgressBar({
+  pct,
+  status,
+}: {
+  pct: number;
+  status: ShipmentStatus;
+}) {
+  const fillColor = PROGRESS_FILL_TOKEN[status];
+  const safePct = Math.max(0, Math.min(100, pct));
+  return (
+    <span style={{ display: "block", minWidth: 0 }}>
+      <span
+        style={{
+          display: "block",
+          height: 6,
+          background: "var(--bg-elevated)",
+          borderRadius: "var(--r-pill)",
+          overflow: "hidden",
+        }}
+      >
+        <span
+          style={{
+            display: "block",
+            width: `${safePct}%`,
+            height: "100%",
+            background: fillColor,
+            transition: "width var(--dur) var(--ease)",
+          }}
+        />
+      </span>
+      <span
+        style={{
+          display: "block",
+          font: "600 10.5px/1 var(--f-mono)",
+          color: "var(--ink-mute)",
+          marginTop: 4,
+        }}
+      >
+        {safePct}%
+      </span>
+    </span>
   );
 }
