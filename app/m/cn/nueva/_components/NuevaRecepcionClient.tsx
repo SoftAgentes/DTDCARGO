@@ -343,7 +343,7 @@ function Step1Photos({
       <MobileHeader
         title={t(lang, "1 de 4 · Fotos", "1/4 · 拍照")}
         subtitle={t(lang, "Tomá 3 fotos mínimo", "至少拍3张照片")}
-        back={<BackBtn onClick={onBack} />}
+        back={<BackBtn onClick={onBack} lang={lang} />}
       />
       <Steps current={1} />
 
@@ -355,10 +355,12 @@ function Step1Photos({
             gap: "var(--s-2)",
           }}
         >
-          {photos.map((p) => (
+          {photos.map((p, i) => (
             <PhotoSlot
               key={p.id}
               photo={p}
+              index={i}
+              lang={lang}
               onRemove={() => dispatch({ type: "removePhoto", id: p.id })}
             />
           ))}
@@ -428,29 +430,59 @@ function PhotoAddTile({ onClick, lang }: { onClick: () => void; lang: Lang }) {
   );
 }
 
-function PhotoSlot({ photo, onRemove }: { photo: Photo; onRemove: () => void }) {
+function PhotoSlot({
+  photo,
+  index,
+  lang,
+  onRemove,
+}: {
+  photo: Photo;
+  index: number;
+  lang: Lang;
+  onRemove: () => void;
+}) {
   return (
     <div
       style={{
         position: "relative",
         aspectRatio: "4 / 3",
-        background: "var(--bg-elevated)",
+        // Diferenciado del slot "+ Tomar foto": fondo wine-tint claro +
+        // check verde top-left para confirmar visualmente que la foto
+        // está capturada (no es slot vacío).
+        background: "var(--wine-tint, rgba(127, 15, 26, 0.08))",
         borderRadius: "var(--r-md)",
-        border: "1px solid var(--border)",
+        border: "1px solid var(--wine-soft, #C2747F)",
         overflow: "hidden",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        color: "var(--ink-mute)",
+        color: "var(--wine)",
       }}
     >
       <PhotoPlaceholder kind={photo.preview} />
-      {/* Hitbox 44x44 (Apple HIG / WCAG 2.5.8) con visual 28x28 centrado
-          via padding. Posicionado para no salirse del slot. */}
+      {/* Badge "Foto N" top-left para confirmar captura */}
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          top: 6,
+          left: 6,
+          padding: "2px 6px",
+          borderRadius: "var(--r-xs)",
+          background: "var(--success)",
+          color: "#FFFFFF",
+          font: "700 9.5px/1 var(--f-sans)",
+          letterSpacing: "0.06em",
+          textTransform: "uppercase",
+        }}
+      >
+        {t(lang, `Foto ${index + 1}`, `照片 ${index + 1}`)}
+      </span>
+      {/* Hitbox 44x44 (Apple HIG / WCAG 2.5.8) con visual 28x28 centrado */}
       <button
         type="button"
         onClick={onRemove}
-        aria-label="Quitar foto"
+        aria-label={t(lang, "Quitar foto", "删除照片")}
         style={{
           position: "absolute",
           top: -2,
@@ -582,7 +614,7 @@ function Step2Identify({
       <MobileHeader
         title={t(lang, "2 de 4 · Identificar", "2/4 · 识别")}
         subtitle={t(lang, "¿De quién es esta caja?", "这箱子是谁的?")}
-        back={<BackBtn onClick={onBack} />}
+        back={<BackBtn onClick={onBack} lang={lang} />}
       />
       <Steps current={2} />
 
@@ -640,9 +672,9 @@ function Step2Identify({
                     }
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "90px 1fr 22px",
-                      gap: "var(--s-2)",
-                      padding: "var(--s-3) var(--s-3)",
+                      gridTemplateColumns: "auto 1fr 24px",
+                      gap: "var(--s-3)",
+                      padding: "var(--s-3)",
                       background: selected
                         ? "var(--wine-tint, rgba(127,15,26,0.08))"
                         : "var(--bg-surface)",
@@ -657,6 +689,7 @@ function Step2Identify({
                       style={{
                         font: "800 12px/1 var(--f-mono)",
                         color: selected ? "var(--wine)" : "var(--ink)",
+                        fontVariantNumeric: "tabular-nums",
                       }}
                     >
                       {c.markbox}
@@ -775,7 +808,7 @@ function Step3Data({
       <MobileHeader
         title={t(lang, "3 de 4 · Datos", "3/4 · 数据")}
         subtitle={t(lang, "Dimensiones y supplier", "尺寸和供应商")}
-        back={<BackBtn onClick={onBack} />}
+        back={<BackBtn onClick={onBack} lang={lang} />}
       />
       <Steps current={3} />
 
@@ -946,7 +979,7 @@ function Step4Confirm({
       <MobileHeader
         title={t(lang, "4 de 4 · Confirmar", "4/4 · 确认")}
         subtitle={t(lang, "Revisá y guardá", "检查并保存")}
-        back={<BackBtn onClick={onBack} />}
+        back={<BackBtn onClick={onBack} lang={lang} />}
       />
       <Steps current={4} />
 
@@ -1232,12 +1265,12 @@ function Done({
 // BackBtn
 // ─────────────────────────────────────────────────────────────────────────
 
-function BackBtn({ onClick }: { onClick: () => void }) {
+function BackBtn({ onClick, lang }: { onClick: () => void; lang?: Lang }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-label="Volver"
+      aria-label={t(lang ?? "es", "Volver", "返回")}
       style={{
         width: 44,
         height: 44,
