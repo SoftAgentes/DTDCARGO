@@ -1,47 +1,65 @@
 "use client";
 
 /**
- * /m/cn/login — Login del operario CN (sketch sin backend).
+ * /m/cn/login — Login del operario CN (SDD-0027).
  *
  * Numpad PIN 4 dígitos. Bilingüe ES/CN. Fondo navy gradient (único
  * gradient brand-aprobado: var(--ink) → #1F3055).
  *
- * V1 stub: cualquier PIN de 4 dígitos navega a /m/cn (home).
- * V2 (SDD-0027 pendiente): server action `signInOperario(warehouse, pin)`
- * valida contra tabla `operario_pins` y setea cookie HTTP-only.
+ * Conecta con `signInOperarioAction` server action que valida contra
+ * tabla `operario_pins` via RPC y setea cookie HTTP-only `dtd_op`.
  *
- * Iconografía: Icon set del Studio (`@/app/studio/_components/icons`).
- * Cero emojis decorativos (regla BRAND.md).
+ * Iconografía: Icon set del Studio. Cero emojis decorativos (BRAND.md).
  */
 
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { startTransition, useActionState, useEffect, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { signInOperarioAction } from "./actions";
+import type { SignInOperarioState } from "@/lib/studio/operario-types";
 
 type Lang = "es" | "cn";
 
 const t = (lang: Lang, es: string, cn: string) => (lang === "cn" ? cn : es);
+const initialState: SignInOperarioState = {};
 
 export default function OperarioLoginPage() {
-  const router = useRouter();
+  const [state, formAction, isPending] = useActionState(
+    signInOperarioAction,
+    initialState,
+  );
   const [pin, setPin] = useState("");
   const [lang, setLang] = useState<Lang>("es");
-  const [submitting, setSubmitting] = useState(false);
+  const [shake, setShake] = useState(false);
+
+  // Cuando server retorna error, sacudir + limpiar PIN
+  useEffect(() => {
+    if (state.error && pin.length === 4) {
+      setShake(true);
+      const timer = setTimeout(() => {
+        setShake(false);
+        setPin("");
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [state.error, pin.length]);
+
+  const submitPin = (full: string) => {
+    const fd = new FormData();
+    fd.set("pin", full);
+    // React 19 exige startTransition al invocar useActionState fuera de <form>
+    startTransition(() => formAction(fd));
+  };
 
   const handleDigit = (d: string) => {
-    if (submitting) return;
+    if (isPending) return;
     if (pin.length >= 4) return;
     const next = pin + d;
     setPin(next);
-    if (next.length === 4) {
-      setSubmitting(true);
-      // V1 stub — cualquier PIN entra. SDD-0027 reemplaza por server action.
-      setTimeout(() => router.push("/m/cn"), 280);
-    }
+    if (next.length === 4) submitPin(next);
   };
 
   const handleBackspace = () => {
-    if (submitting) return;
+    if (isPending) return;
     setPin((p) => p.slice(0, -1));
   };
 
@@ -128,11 +146,12 @@ export default function OperarioLoginPage() {
           </p>
         </div>
 
-        {/* PIN dots */}
+        {/* PIN dots con shake en error */}
         <div
           style={{
             display: "flex",
             gap: 14,
+            animation: shake ? "pin-shake 0.35s linear" : undefined,
           }}
         >
           {[0, 1, 2, 3].map((i) => (
@@ -144,14 +163,45 @@ export default function OperarioLoginPage() {
                 width: 18,
                 height: 18,
                 borderRadius: "50%",
-                background:
-                  i < pin.length ? "var(--wine-soft, #C2747F)" : "transparent",
-                border: "2px solid rgba(255,255,255,0.4)",
+                background: shake
+                  ? "var(--danger, #A8323E)"
+                  : i < pin.length
+                    ? "var(--wine-soft, #C2747F)"
+                    : "transparent",
+                border: `2px solid ${
+                  shake ? "var(--danger, #A8323E)" : "rgba(255,255,255,0.4)"
+                }`,
                 transition: "background var(--dur-fast) var(--ease)",
               }}
             />
           ))}
         </div>
+
+        {/* Error message (cuando PIN incorrecto) */}
+        {state.error && (
+          <p
+            role="alert"
+            style={{
+              font: "600 12.5px/1.4 var(--f-sans)",
+              color: "var(--danger, #E07785)",
+              margin: 0,
+              padding: "8px 14px",
+              background: "rgba(168, 50, 62, 0.18)",
+              border: "1px solid rgba(168, 50, 62, 0.35)",
+              borderRadius: "var(--r-sm)",
+            }}
+          >
+            {state.error}
+          </p>
+        )}
+
+        <style>{`
+          @keyframes pin-shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+          }
+        `}</style>
 
         {/* Numpad */}
         <div
@@ -165,24 +215,35 @@ export default function OperarioLoginPage() {
             <NumpadButton
               key={n}
               onClick={() => handleDigit(String(n))}
-              disabled={submitting}
+              disabled={isPending}
             >
               {n}
             </NumpadButton>
           ))}
           <span aria-hidden />
-          <NumpadButton onClick={() => handleDigit("0")} disabled={submitting}>
+          <NumpadButton onClick={() => handleDigit("0")} disabled={isPending}>
             0
           </NumpadButton>
           <NumpadButton
             onClick={handleBackspace}
-            disabled={submitting || pin.length === 0}
+            disabled={isPending || pin.length === 0}
             ariaLabel={t(lang, "Borrar último dígito", "删除")}
             ghost
           >
             {Icon.close(22)}
           </NumpadButton>
         </div>
+
+        {isPending && (
+          <div
+            style={{
+              font: "500 12px/1 var(--f-sans)",
+              color: "rgba(255,255,255,0.6)",
+            }}
+          >
+            {t(lang, "Verificando…", "验证中…")}
+          </div>
+        )}
       </div>
 
       {/* Footer */}
