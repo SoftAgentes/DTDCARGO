@@ -10,17 +10,31 @@
  * tabla `operario_pins` via RPC y setea cookie HTTP-only `dtd_op`.
  *
  * Iconografía: Icon set del Studio. Cero emojis decorativos (BRAND.md).
+ * Texto sobre fondo navy: usa `--ink-inv-soft` y `--ink-inv-mute` del
+ * tokens.css del Studio (regla CLAUDE.md raíz §tokens).
  */
 
 import { startTransition, useActionState, useEffect, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import {
+  LANG_COOKIE_NAME,
+  setOperarioLangClient,
+  type Lang,
+} from "@/lib/lang";
 import { signInOperarioAction } from "./actions";
 import type { SignInOperarioState } from "@/lib/studio/operario-types";
 
-type Lang = "es" | "cn";
-
 const t = (lang: Lang, es: string, cn: string) => (lang === "cn" ? cn : es);
 const initialState: SignInOperarioState = {};
+
+/** Lee la cookie de lang del client (no SSR). Fallback "es". */
+function readLangCookie(): Lang {
+  if (typeof document === "undefined") return "es";
+  const match = document.cookie.match(
+    new RegExp(`(?:^|; )${LANG_COOKIE_NAME}=([^;]+)`),
+  );
+  return match?.[1] === "cn" ? "cn" : "es";
+}
 
 export default function OperarioLoginPage() {
   const [state, formAction, isPending] = useActionState(
@@ -28,8 +42,19 @@ export default function OperarioLoginPage() {
     initialState,
   );
   const [pin, setPin] = useState("");
-  const [lang, setLang] = useState<Lang>("es");
+  // Default "es" para que matchee el SSR (cookie no se lee desde client en SSR).
+  // useEffect al mount hidrata con la preferencia persistida.
+  const [lang, setLangState] = useState<Lang>("es");
   const [shake, setShake] = useState(false);
+
+  useEffect(() => {
+    setLangState(readLangCookie());
+  }, []);
+
+  const setLang = (next: Lang) => {
+    setLangState(next);
+    setOperarioLangClient(next);
+  };
 
   // Cuando server retorna error, sacudir + limpiar PIN
   useEffect(() => {
@@ -71,8 +96,9 @@ export default function OperarioLoginPage() {
           "linear-gradient(160deg, var(--ink) 0%, #1F3055 100%)",
         display: "flex",
         flexDirection: "column",
-        padding: "calc(env(safe-area-inset-top) + 32px) 24px calc(env(safe-area-inset-bottom) + 24px)",
-        color: "var(--ink-inv, #FFFFFF)",
+        padding:
+          "calc(env(safe-area-inset-top) + 32px) 24px calc(env(safe-area-inset-bottom) + 24px)",
+        color: "var(--ink-inv)",
       }}
     >
       {/* Top row: brand + lang switch */}
@@ -94,7 +120,7 @@ export default function OperarioLoginPage() {
           }}
         >
           <span>DTD</span>
-          <span style={{ color: "var(--wine-soft, #C2747F)" }}>OPERARIO</span>
+          <span style={{ color: "var(--wine-soft)" }}>OPERARIO</span>
         </div>
         <LangSwitch lang={lang} setLang={setLang} />
       </div>
@@ -115,7 +141,7 @@ export default function OperarioLoginPage() {
           <div
             style={{
               font: "700 11px/1 var(--f-sans)",
-              color: "var(--wine-soft, #C2747F)",
+              color: "var(--wine-soft)",
               letterSpacing: "0.18em",
               textTransform: "uppercase",
             }}
@@ -134,19 +160,15 @@ export default function OperarioLoginPage() {
           <p
             style={{
               font: "500 14px/1.4 var(--f-sans)",
-              color: "rgba(255,255,255,0.7)",
+              color: "var(--ink-inv-soft)",
               margin: 0,
             }}
           >
-            {t(
-              lang,
-              "Ingresá tu PIN de 4 dígitos",
-              "请输入4位PIN密码",
-            )}
+            {t(lang, "Ingresá tu PIN de 4 dígitos", "请输入4位PIN密码")}
           </p>
         </div>
 
-        {/* PIN dots con shake en error */}
+        {/* PIN dots con shake en error (respeta prefers-reduced-motion) */}
         <div
           style={{
             display: "flex",
@@ -164,13 +186,11 @@ export default function OperarioLoginPage() {
                 height: 18,
                 borderRadius: "50%",
                 background: shake
-                  ? "var(--danger, #A8323E)"
+                  ? "var(--danger)"
                   : i < pin.length
-                    ? "var(--wine-soft, #C2747F)"
+                    ? "var(--wine-soft)"
                     : "transparent",
-                border: `2px solid ${
-                  shake ? "var(--danger, #A8323E)" : "rgba(255,255,255,0.4)"
-                }`,
+                border: `2px solid ${shake ? "var(--danger)" : "rgba(255,255,255,0.4)"}`,
                 transition: "background var(--dur-fast) var(--ease)",
               }}
             />
@@ -183,9 +203,9 @@ export default function OperarioLoginPage() {
             role="alert"
             style={{
               font: "600 12.5px/1.4 var(--f-sans)",
-              color: "var(--danger, #E07785)",
+              color: "var(--danger)",
               margin: 0,
-              padding: "8px 14px",
+              padding: "var(--s-2) var(--s-3)",
               background: "rgba(168, 50, 62, 0.18)",
               border: "1px solid rgba(168, 50, 62, 0.35)",
               borderRadius: "var(--r-sm)",
@@ -195,11 +215,14 @@ export default function OperarioLoginPage() {
           </p>
         )}
 
+        {/* Reduced-motion safe: shake solo cuando el OS lo permite */}
         <style>{`
-          @keyframes pin-shake {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            75% { transform: translateX(8px); }
+          @media (prefers-reduced-motion: no-preference) {
+            @keyframes pin-shake {
+              0%, 100% { transform: translateX(0); }
+              25% { transform: translateX(-8px); }
+              75% { transform: translateX(8px); }
+            }
           }
         `}</style>
 
@@ -238,7 +261,7 @@ export default function OperarioLoginPage() {
           <div
             style={{
               font: "500 12px/1 var(--f-sans)",
-              color: "rgba(255,255,255,0.6)",
+              color: "var(--ink-inv-mute)",
             }}
           >
             {t(lang, "Verificando…", "验证中…")}
@@ -251,7 +274,7 @@ export default function OperarioLoginPage() {
         style={{
           textAlign: "center",
           font: "500 11px/1.4 var(--f-sans)",
-          color: "rgba(255,255,255,0.4)",
+          color: "var(--ink-inv-mute)",
         }}
       >
         {t(lang, "Wang Hua · 王华 · YIW-A1", "Wang Hua · 王华 · YIW-A1")}
@@ -290,7 +313,7 @@ function NumpadButton({
         height: 72,
         borderRadius: "50%",
         background: ghost ? "transparent" : "rgba(255,255,255,0.08)",
-        color: ghost ? "rgba(255,255,255,0.6)" : "#FFFFFF",
+        color: ghost ? "var(--ink-inv-mute)" : "var(--ink-inv)",
         font: "900 28px/1 var(--f-display)",
         border: ghost ? 0 : "1px solid rgba(255,255,255,0.12)",
         display: "inline-flex",
@@ -346,10 +369,12 @@ function LangSwitch({
             style={{
               padding: "6px 12px",
               borderRadius: "var(--r-sm)",
-              background: active ? "var(--wine, #7F0F1A)" : "transparent",
-              color: active ? "#FFFFFF" : "rgba(255,255,255,0.6)",
+              background: active ? "var(--wine)" : "transparent",
+              color: active ? "var(--ink-inv)" : "var(--ink-inv-mute)",
               border: 0,
-              font: `700 12px/1 ${o.cn ? '"Noto Sans SC", var(--f-sans)' : "var(--f-sans)"}`,
+              font: `700 12px/1 ${
+                o.cn ? '"Noto Sans SC", var(--f-sans)' : "var(--f-sans)"
+              }`,
               cursor: "pointer",
             }}
           >

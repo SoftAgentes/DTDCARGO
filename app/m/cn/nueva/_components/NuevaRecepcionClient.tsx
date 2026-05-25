@@ -21,6 +21,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { BigButton } from "@/app/m/_components/BigButton";
 import { MobileHeader } from "@/app/m/_components/MobileHeader";
+import type { Lang } from "@/lib/lang";
 import { createReceiptFromOperarioAction } from "../actions";
 import type {
   CreateReceiptInput,
@@ -41,7 +42,6 @@ export type PickerClient = {
 // ─────────────────────────────────────────────────────────────────────────
 
 type View = "step1" | "step2" | "step3" | "step4" | "done";
-type Lang = "es" | "cn";
 
 type Photo = { id: number; preview: "box-front" | "label" | "inside" | "damage" };
 
@@ -116,15 +116,19 @@ const initialState: CreateReceiptState = {};
 // ─────────────────────────────────────────────────────────────────────────
 
 export function NuevaRecepcionClient({
+  initialLang,
   clients,
   defaultWarehouseId,
 }: {
+  initialLang: Lang;
   clients: PickerClient[];
   defaultWarehouseId: string;
 }) {
   const router = useRouter();
   const [view, setView] = useState<View>("step1");
-  const [lang] = useState<Lang>("es");
+  // Lang viene del server via cookie compartida con /m/cn (no re-toggleable
+  // dentro del wizard — el operario lo cambia desde el home y vuelve).
+  const [lang] = useState<Lang>(initialLang);
   const [reception, dispatch] = useReducer(reducer, EMPTY);
   const [state, formAction, isPending] = useActionState(
     createReceiptFromOperarioAction,
@@ -441,19 +445,21 @@ function PhotoSlot({ photo, onRemove }: { photo: Photo; onRemove: () => void }) 
       }}
     >
       <PhotoPlaceholder kind={photo.preview} />
+      {/* Hitbox 44x44 (Apple HIG / WCAG 2.5.8) con visual 28x28 centrado
+          via padding. Posicionado para no salirse del slot. */}
       <button
         type="button"
         onClick={onRemove}
         aria-label="Quitar foto"
         style={{
           position: "absolute",
-          top: 6,
-          right: 6,
-          width: 28,
-          height: 28,
+          top: -2,
+          right: -2,
+          width: 44,
+          height: 44,
+          padding: 8,
           borderRadius: "50%",
-          background: "var(--danger)",
-          color: "#FFFFFF",
+          background: "transparent",
           border: 0,
           display: "inline-flex",
           alignItems: "center",
@@ -461,7 +467,21 @@ function PhotoSlot({ photo, onRemove }: { photo: Photo; onRemove: () => void }) 
           cursor: "pointer",
         }}
       >
-        {Icon.close(12)}
+        <span
+          aria-hidden
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            background: "var(--danger)",
+            color: "#FFFFFF",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {Icon.close(12)}
+        </span>
       </button>
     </div>
   );
