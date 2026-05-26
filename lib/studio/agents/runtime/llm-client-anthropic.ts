@@ -22,6 +22,7 @@ import type {
   Message,
   MessageParam,
   TextBlock,
+  Tool,
   ToolResultBlockParam,
   ToolUnion,
   ToolUseBlock,
@@ -108,14 +109,20 @@ function parseFinalOutput(text: string): Record<string, unknown> {
 function toAnthropicTools(tools: AnyToolDef[]): ToolUnion[] {
   // Aplicamos cache_control en la ÚLTIMA tool — Anthropic cachea
   // todo lo previo en el bloque cacheable.
+  //
+  // Tipado: el SDK exporta ToolUnion como discriminated union que incluye
+  // tools predefinidos (computer_20250124, bash, etc.) que NO tienen
+  // input_schema. Construimos un Anthropic.Tool custom (que sí lo tiene)
+  // y lo asignamos al union — la conversión es segura porque Tool es uno
+  // de los miembros válidos del union.
   return tools.map((t, idx) => {
-    const base: ToolUnion = {
+    const base: Tool = {
       name: t.key,
       description: t.description,
-      input_schema: t.input_schema as ToolUnion["input_schema"],
+      input_schema: t.input_schema as Tool["input_schema"],
     };
     if (idx === tools.length - 1) {
-      (base as ToolUnion & { cache_control: { type: "ephemeral" } }).cache_control =
+      (base as Tool & { cache_control: { type: "ephemeral" } }).cache_control =
         { type: "ephemeral" };
     }
     return base;
