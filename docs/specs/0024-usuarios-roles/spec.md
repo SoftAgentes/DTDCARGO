@@ -114,7 +114,7 @@ tenant: enforced via CHECK constraint en `user_tenants.role`.
 
 - Seed: si no hay rows en `user_tenants` con role='admin' en algún
   tenant, NO sembramos automáticamente — eso es setup manual del
-  founder (similar a KEK del Vault). El primer user del tenant viene
+  founder (similar a KEK del No-Olvidar). El primer user del tenant viene
   via signup directo con metadata `tenant=dtd-cargo` + role='admin'
   hardcoded en trigger de Studio Shell.
 
@@ -202,7 +202,7 @@ tenant: enforced via CHECK constraint en `user_tenants.role`.
 - **Permisos por módulo** (matriz role × módulo con read/write/approve)
   → V1.5 si aparece caso real
 - **Scope por almacén** (Bodeguero CN solo ve almacén CN) → V1.5
-- **2FA TOTP** para login del Studio → V2 (el Vault tiene su propio
+- **2FA TOTP** para login del Studio → V2 (el No-Olvidar tiene su propio
   2FA en SDD-0025)
 - **SSO / OAuth** (Google / Microsoft) → V2 cuando se abra a tenants
   externos
@@ -472,10 +472,10 @@ nativo).
   `{{role}}` / `{{tenant_name}}` / `{{accept_url}}`
 - Rule auto-send en evento `user_invited` (cuando llegue SDD-0021)
 
-**Integración con SDD-0025** (Vault):
-- El campo `vault_user_keys.role` (member/admin) ya existe y es
+**Integración con SDD-0025** (No-Olvidar):
+- El campo `no_olvidar_user_keys.role` (member/admin) ya existe y es
   independiente del rol del Studio. Un user puede ser Comercial en
-  el Studio pero admin del Vault, o viceversa.
+  el Studio pero admin del No-Olvidar, o viceversa.
 
 ---
 

@@ -35,7 +35,7 @@
 
 1. **`AGT-0001` Tracking Concierge sigue en status `active`** en el tenant hailuway.com. Si ejecutás manualmente desde "Ejecutar ↗", va a fallar con `permission denied for table agent_runs` hasta que apliques `0016_agent_runs_service_role_grants.sql` a prod.
 2. **`ANTHROPIC_API_KEY` no configurada en `.env.local`** — el endpoint cae al MockLLMClient sin problemas, pero no podés validar el flujo Anthropic real hasta agregar la key.
-3. **Migraciones pendientes de aplicar a prod:** `0016` (GRANT fix), `0017` (Vault schema), `0018` (Mailing schema), `0019` (Users+Roles schema). Las 4 escritas + commiteadas a main, no aplicadas.
+3. **Migraciones pendientes de aplicar a prod:** `0016` (GRANT fix), `0017` (No-Olvidar schema), `0018` (Mailing schema), `0019` (Users+Roles schema). Las 4 escritas + commiteadas a main, no aplicadas.
 
 ---
 

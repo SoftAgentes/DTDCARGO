@@ -486,7 +486,7 @@ alter table public.user_notification_prefs enable row level security;
 alter table public.bug_notifications       enable row level security;
 
 -- Helper inline para no repetir: caller es admin del tenant del bug
--- (no creamos function aparte porque vault_check_admin no aplica)
+-- (no creamos function aparte porque no_olvidar_check_admin no aplica)
 
 -- ── bug_reports: reporter ve sus bugs, admin del tenant ve todos ──
 create policy "bug_reports_reporter_or_admin_select"

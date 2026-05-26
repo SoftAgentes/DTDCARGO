@@ -83,7 +83,7 @@ app/studio/(app)/
 ├── reportes/page.tsx        → SDD-0023
 ├── costing/page.tsx         → SDD-0022
 ├── mailing/page.tsx         → SDD-0026 y siguientes
-├── vault/page.tsx           → SDD-0025
+├── no-olvidar/page.tsx      → SDD-0025
 ├── usuarios/page.tsx        → SDD-0024
 └── admin/page.tsx           → SDD-0030
 ```
@@ -150,7 +150,7 @@ app/studio/(app)/
 ├── reportes/page.tsx                                    ← placeholder
 ├── costing/page.tsx                                     ← placeholder
 ├── mailing/page.tsx                                     ← placeholder
-├── vault/page.tsx                                       ← placeholder
+├── no-olvidar/page.tsx                                  ← placeholder
 ├── usuarios/page.tsx                                    ← placeholder
 └── admin/page.tsx                                       ← placeholder
 ```
@@ -211,7 +211,7 @@ del handoff que son acrónimos reconocibles: `cn`, `ve`, `tms`, `seniat`, `crm`
 | `reports` | `/reportes` | Reportes |
 | `costing` | `/costing` | Costing & Margen |
 | `mailing` | `/mailing` | Mailing |
-| `vault` | `/vault` | Vault |
+| `no-olvidar` | `/no-olvidar` | No-Olvidar |
 | `users` | `/usuarios` | Usuarios |
 | `admin` | `/admin` | Administración |
 

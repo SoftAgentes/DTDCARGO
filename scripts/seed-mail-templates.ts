@@ -39,7 +39,7 @@ interface MailTemplateSeed {
  *  - Facturación (emitida / vencida)
  *  - Operación (embarque creado / arribado)
  *  - Cliente (bienvenida)
- *  - Sistema (recovery vault)
+ *  - Sistema (recovery no-olvidar)
  */
 const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
   {
@@ -167,22 +167,22 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     `),
   },
   {
-    slug: "vault_recovery_requested",
-    name: "Vault · pedido de recovery (admin)",
+    slug: "no_olvidar_recovery_requested",
+    name: "No-Olvidar · pedido de recovery (admin)",
     category: "sistema",
     channel: "email",
-    subject: "[DTD Vault] {{requester_name}} solicitó recovery — necesitamos tu aprobación",
+    subject: "[DTD No-Olvidar] {{requester_name}} solicitó recovery — necesitamos tu aprobación",
     body_html: htmlBlock(`
       <p>Hola,</p>
-      <p>El usuario <strong>{{requester_name}}</strong> ({{requester_email}}) solicitó un recovery del Vault interno.</p>
+      <p>El usuario <strong>{{requester_name}}</strong> ({{requester_email}}) solicitó un recovery del No-Olvidar interno.</p>
       <table style="border-collapse:collapse;font:14px Archivo,sans-serif;margin:16px 0;">
         <tr><td style="padding:6px 12px;color:#6B6B6B;vertical-align:top;">Motivo</td><td style="padding:6px 12px;color:#0F1E3D;">{{reason}}</td></tr>
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Solicitado</td><td style="padding:6px 12px;color:#0F1E3D;font-family:'JetBrains Mono',monospace;">{{requested_at}}</td></tr>
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Expira</td><td style="padding:6px 12px;color:#0F1E3D;font-family:'JetBrains Mono',monospace;">{{expires_at}}</td></tr>
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Aprobaciones requeridas</td><td style="padding:6px 12px;color:#0F1E3D;">{{approvals_required}}</td></tr>
       </table>
-      <p><strong>Aprobá solo si confirmaste por canal externo (WhatsApp, llamada) que el pedido es legítimo.</strong> Un recovery aprobado permite resetear la master password del Vault.</p>
-      <p style="margin:20px 0;"><a href="{{review_url}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Revisar en el Vault →</a></p>
+      <p><strong>Aprobá solo si confirmaste por canal externo (WhatsApp, llamada) que el pedido es legítimo.</strong> Un recovery aprobado permite resetear la master password del No-Olvidar.</p>
+      <p style="margin:20px 0;"><a href="{{review_url}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Revisar en el No-Olvidar →</a></p>
     `),
   },
 ];

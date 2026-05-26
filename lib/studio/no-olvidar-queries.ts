@@ -1,17 +1,17 @@
 /**
- * Queries del módulo Vault interno DTD-CARGO (SDD-0025 Fase 1).
+ * Queries del módulo No-Olvidar interno DTD-CARGO (SDD-0025 Fase 1).
  *
  * Fase 1 — solo lectura, NO desencripta. Las queries devuelven items
  * con `ciphertext`/`nonce`/`dek_encrypted`/`dek_nonce` crudos. La
- * desencripción es responsabilidad del runtime crypto (lib/studio/vault/
+ * desencripción es responsabilidad del runtime crypto (lib/studio/no-olvidar/
  * crypto.ts) que llega en Fase 2.
  *
  * RLS hace todo el filtrado server-side:
- *   - vault_items: user_id = auth.uid() (spec §4.8)
- *   - vault_user_keys: user_id = auth.uid()
- *   - vault_access_log: owner OR admin (vault_check_admin RPC)
- *   - vault_recovery_requests: requester OR admin
- *   - vault_kek_versions: admin
+ *   - no_olvidar_items: user_id = auth.uid() (spec §4.8)
+ *   - no_olvidar_user_keys: user_id = auth.uid()
+ *   - no_olvidar_access_log: owner OR admin (no_olvidar_check_admin RPC)
+ *   - no_olvidar_recovery_requests: requester OR admin
+ *   - no_olvidar_kek_versions: admin
  *
  * Si el user no es admin, las queries que requieren admin devuelven []
  * (no error — RLS filtra silenciosamente).
@@ -19,18 +19,18 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
-  VaultAccessLog,
-  VaultCategory,
-  VaultItem,
-  VaultKekVersion,
-  VaultKpis,
-  VaultRecoveryRequest,
-  VaultRecoveryStatus,
-  VaultUserKeys,
-  VaultUserKeysPublic,
-} from "./vault-types";
+  NoOlvidarAccessLog,
+  NoOlvidarCategory,
+  NoOlvidarItem,
+  NoOlvidarKekVersion,
+  NoOlvidarKpis,
+  NoOlvidarRecoveryRequest,
+  NoOlvidarRecoveryStatus,
+  NoOlvidarUserKeys,
+  NoOlvidarUserKeysPublic,
+} from "./no-olvidar-types";
 
-const EMPTY_KPIS: VaultKpis = {
+const EMPTY_KPIS: NoOlvidarKpis = {
   totalItems: 0,
   itemsLast30d: 0,
   recoveryPending: 0,
@@ -40,7 +40,7 @@ const EMPTY_KPIS: VaultKpis = {
 // ─── Items ──────────────────────────────────────────────────
 
 export interface ListItemsFilters {
-  category?: VaultCategory;
+  category?: NoOlvidarCategory;
   search?: string;
   favorite?: boolean;
   limit?: number;
@@ -48,19 +48,19 @@ export interface ListItemsFilters {
 }
 
 /**
- * Lista items del Vault para el user logueado (RLS aplica user_id).
+ * Lista items del No-Olvidar para el user logueado (RLS aplica user_id).
  * Excluye soft-deleted. Search es ilike en name + url + username
  * (NUNCA en ciphertext — eso requeriría desencriptar todo).
  *
  * Devuelve ciphertext crudo. El caller que necesite plaintext
- * desencripta con lib/studio/vault/crypto.ts (Fase 2).
+ * desencripta con lib/studio/no-olvidar/crypto.ts (Fase 2).
  */
 export async function listItems(
   supabase: SupabaseClient,
   filters: ListItemsFilters = {},
-): Promise<VaultItem[]> {
+): Promise<NoOlvidarItem[]> {
   let q = supabase
-    .from("vault_items")
+    .from("no_olvidar_items")
     .select("*")
     .is("deleted_at", null);
 
@@ -81,19 +81,19 @@ export async function listItems(
 
   const { data, error } = await q;
   if (error) return [];
-  return (data ?? []) as VaultItem[];
+  return (data ?? []) as NoOlvidarItem[];
 }
 
 export async function getItem(
   supabase: SupabaseClient,
   id: string,
-): Promise<VaultItem | null> {
+): Promise<NoOlvidarItem | null> {
   const { data, error } = await supabase
-    .from("vault_items")
+    .from("no_olvidar_items")
     .select("*")
     .eq("id", id)
     .is("deleted_at", null)
-    .maybeSingle<VaultItem>();
+    .maybeSingle<NoOlvidarItem>();
   if (error) return null;
   return data;
 }
@@ -101,26 +101,26 @@ export async function getItem(
 // ─── User keys ──────────────────────────────────────────────
 
 /**
- * Lee la row de vault_user_keys del user logueado (RLS filtra). Si
- * setup_completed=false, el caller debería redirect a /vault/setup.
+ * Lee la row de no_olvidar_user_keys del user logueado (RLS filtra). Si
+ * setup_completed=false, el caller debería redirect a /no-olvidar/setup.
  *
  * Devuelve la versión "completa" con bytea — usar solo server-side.
- * Para enviar al cliente, mapear a VaultUserKeysPublic con
+ * Para enviar al cliente, mapear a NoOlvidarUserKeysPublic con
  * `toPublicKeys()`.
  */
 export async function getUserKeys(
   supabase: SupabaseClient,
-): Promise<VaultUserKeys | null> {
+): Promise<NoOlvidarUserKeys | null> {
   const { data, error } = await supabase
-    .from("vault_user_keys")
+    .from("no_olvidar_user_keys")
     .select("*")
-    .maybeSingle<VaultUserKeys>();
+    .maybeSingle<NoOlvidarUserKeys>();
   if (error) return null;
   return data;
 }
 
-/** Convierte VaultUserKeys → shape segura para mandar al cliente. */
-export function toPublicKeys(k: VaultUserKeys): VaultUserKeysPublic {
+/** Convierte NoOlvidarUserKeys → shape segura para mandar al cliente. */
+export function toPublicKeys(k: NoOlvidarUserKeys): NoOlvidarUserKeysPublic {
   return {
     user_id: k.user_id,
     has_master_password: k.has_master_password,
@@ -146,9 +146,9 @@ export interface ListAccessLogFilters {
 export async function listAccessLog(
   supabase: SupabaseClient,
   filters: ListAccessLogFilters = {},
-): Promise<VaultAccessLog[]> {
+): Promise<NoOlvidarAccessLog[]> {
   let q = supabase
-    .from("vault_access_log")
+    .from("no_olvidar_access_log")
     .select("*")
     .order("created_at", { ascending: false });
 
@@ -162,13 +162,13 @@ export async function listAccessLog(
 
   const { data, error } = await q;
   if (error) return [];
-  return (data ?? []) as VaultAccessLog[];
+  return (data ?? []) as NoOlvidarAccessLog[];
 }
 
 // ─── Recovery requests ──────────────────────────────────────
 
 export interface ListRecoveryRequestsFilters {
-  status?: VaultRecoveryStatus;
+  status?: NoOlvidarRecoveryStatus;
   limit?: number;
   offset?: number;
 }
@@ -181,9 +181,9 @@ export interface ListRecoveryRequestsFilters {
 export async function listRecoveryRequests(
   supabase: SupabaseClient,
   filters: ListRecoveryRequestsFilters = {},
-): Promise<VaultRecoveryRequest[]> {
+): Promise<NoOlvidarRecoveryRequest[]> {
   let q = supabase
-    .from("vault_recovery_requests")
+    .from("no_olvidar_recovery_requests")
     .select("*")
     .order("created_at", { ascending: false });
 
@@ -195,7 +195,7 @@ export async function listRecoveryRequests(
 
   const { data, error } = await q;
   if (error) return [];
-  return (data ?? []) as VaultRecoveryRequest[];
+  return (data ?? []) as NoOlvidarRecoveryRequest[];
 }
 
 // ─── KEK versions ───────────────────────────────────────────
@@ -206,26 +206,26 @@ export async function listRecoveryRequests(
  */
 export async function listKekVersions(
   supabase: SupabaseClient,
-): Promise<VaultKekVersion[]> {
+): Promise<NoOlvidarKekVersion[]> {
   const { data, error } = await supabase
-    .from("vault_kek_versions")
+    .from("no_olvidar_kek_versions")
     .select("*")
     .order("version", { ascending: false });
   if (error) return [];
-  return (data ?? []) as VaultKekVersion[];
+  return (data ?? []) as NoOlvidarKekVersion[];
 }
 
 /**
  * Devuelve la versión activa actual (caché en el RPC). Útil para
  * que el cliente sepa qué `key_version` poner al crear items nuevos.
  *
- * Si retorna null, el Vault no está inicializado (KEK no creada
+ * Si retorna null, el No-Olvidar no está inicializado (KEK no creada
  * manualmente post-deploy — ver spec §7.1).
  */
 export async function getActiveKekVersion(
   supabase: SupabaseClient,
 ): Promise<number | null> {
-  const { data, error } = await supabase.rpc("vault_get_active_kek_version");
+  const { data, error } = await supabase.rpc("no_olvidar_get_active_kek_version");
   if (error || data == null) return null;
   return data as number;
 }
@@ -233,33 +233,33 @@ export async function getActiveKekVersion(
 // ─── KPIs ───────────────────────────────────────────────────
 
 /**
- * KPIs agregados del Vault del user logueado. Defensivo: si alguna
- * query rompe (Vault no instalado, RLS bloquea), devuelve EMPTY_KPIS
+ * KPIs agregados del No-Olvidar del user logueado. Defensivo: si alguna
+ * query rompe (No-Olvidar no instalado, RLS bloquea), devuelve EMPTY_KPIS
  * para no romper el render.
  */
-export async function computeVaultKpis(
+export async function computeNoOlvidarKpis(
   supabase: SupabaseClient,
-): Promise<VaultKpis> {
+): Promise<NoOlvidarKpis> {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
 
   const [totalResp, recentResp, pendingResp, alertsResp] = await Promise.all([
     supabase
-      .from("vault_items")
+      .from("no_olvidar_items")
       .select("id", { count: "exact", head: true })
       .is("deleted_at", null),
     supabase
-      .from("vault_items")
+      .from("no_olvidar_items")
       .select("id", { count: "exact", head: true })
       .is("deleted_at", null)
       .gte("created_at", thirtyDaysAgo),
     supabase
-      .from("vault_recovery_requests")
+      .from("no_olvidar_recovery_requests")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending"),
     supabase
-      .from("vault_access_log")
+      .from("no_olvidar_access_log")
       .select("id", { count: "exact", head: true })
       .in("action", ["recovery_requested", "kek_rotated"])
       .gte("created_at", twentyFourHoursAgo),
@@ -285,14 +285,14 @@ export async function computeVaultKpis(
 // ─── Helpers de admin check ─────────────────────────────────
 
 /**
- * Wrapper conveniente del RPC vault_check_admin. Sin user_id explícito
+ * Wrapper conveniente del RPC no_olvidar_check_admin. Sin user_id explícito
  * usa auth.uid() del JWT (que es lo común).
  */
-export async function isVaultAdmin(
+export async function isNoOlvidarAdmin(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<boolean> {
-  const { data, error } = await supabase.rpc("vault_check_admin", {
+  const { data, error } = await supabase.rpc("no_olvidar_check_admin", {
     p_user_id: userId,
   });
   if (error || data == null) return false;
