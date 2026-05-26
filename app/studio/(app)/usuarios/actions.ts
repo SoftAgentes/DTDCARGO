@@ -1,0 +1,196 @@
+"use server";
+
+/**
+ * Server actions de Usuarios & Roles (SDD-0024 Fase 2).
+ *
+ * Wraps RPCs ya existentes (studio_invite_user, studio_change_user_role)
+ * + mutaciones directas para disable / enable / revoke invitation.
+ *
+ * Pattern useActionState con UserActionState shape.
+ */
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/db/server";
+import {
+  changeUserRoleRPC,
+  inviteUserRPC,
+  tenantHasOtherAdmins,
+} from "@/lib/studio/user-queries";
+import {
+  invitationAcceptPath,
+  validateInviteUserInput,
+  type StudioUserRole,
+  type UserActionState,
+} from "@/lib/studio/user-types";
+
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+// ─────────────────────────────────────────────────────────────
+// inviteUserAction · crea invitation + devuelve link copy/paste
+// ─────────────────────────────────────────────────────────────
+
+export async function inviteUserAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const partial = {
+    email: (formData.get("email") as string | null) ?? undefined,
+    role: (formData.get("role") as StudioUserRole | null) ?? undefined,
+  };
+
+  const { input, fieldErrors } = validateInviteUserInput(partial);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos inválidos." };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
+  try {
+    const { invitationId, token } = await inviteUserRPC(
+      supabase,
+      input.email,
+      input.role,
+    );
+    const link = `${SITE_URL}${invitationAcceptPath(token)}`;
+    revalidatePath("/studio/usuarios");
+    return {
+      ok: true,
+      invitationId,
+      invitationLink: link,
+    };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: `No se pudo crear la invitación: ${msg}` };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// changeUserRoleAction · solo admin · anti-lockout en RPC
+// ─────────────────────────────────────────────────────────────
+
+export async function changeUserRoleAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  const newRole = formData.get("new_role") as StudioUserRole | null;
+
+  if (!targetUserId) return { error: "Falta el usuario." };
+  if (!newRole) return { error: "Falta el rol nuevo." };
+
+  const supabase = await createClient();
+  try {
+    await changeUserRoleRPC(supabase, targetUserId, newRole);
+    revalidatePath("/studio/usuarios");
+    return { ok: true, userId: targetUserId };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { error: msg };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// disableUserAction · soft disable (set disabled_at)
+// ─────────────────────────────────────────────────────────────
+
+export async function disableUserAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  if (!targetUserId) return { error: "Falta el usuario." };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
+  // Anti-lockout client-side: no podés desactivarte a vos mismo si sos
+  // el último admin. El RPC studio_change_user_role tiene este check; acá
+  // lo replicamos para disable (que es semántica distinta).
+  if (targetUserId === userResp.user.id) {
+    const hasOthers = await tenantHasOtherAdmins(supabase, userResp.user.id);
+    if (!hasOthers) {
+      return {
+        error: "No te podés desactivar a vos mismo si sos el último admin.",
+      };
+    }
+  }
+
+  const { error } = await supabase
+    .from("user_tenants")
+    .update({ disabled_at: new Date().toISOString() })
+    .eq("user_id", targetUserId);
+
+  if (error) {
+    if (error.code === "42501") {
+      return { error: "Solo admins pueden desactivar usuarios." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: targetUserId };
+}
+
+// ─────────────────────────────────────────────────────────────
+// enableUserAction · reactivar usuario desactivado
+// ─────────────────────────────────────────────────────────────
+
+export async function enableUserAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
+  if (!targetUserId) return { error: "Falta el usuario." };
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("user_tenants")
+    .update({ disabled_at: null })
+    .eq("user_id", targetUserId);
+
+  if (error) {
+    if (error.code === "42501") {
+      return { error: "Solo admins pueden reactivar usuarios." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: targetUserId };
+}
+
+// ─────────────────────────────────────────────────────────────
+// revokeInvitationAction · marca invitation como revoked
+// ─────────────────────────────────────────────────────────────
+
+export async function revokeInvitationAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const invitationId = (formData.get("invitation_id") as string | null)?.trim();
+  if (!invitationId) return { error: "Falta el ID de la invitación." };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
+  const { error } = await supabase
+    .from("user_invitations")
+    .update({
+      revoked_at: new Date().toISOString(),
+      revoked_by: userResp.user.id,
+    })
+    .eq("id", invitationId);
+
+  if (error) {
+    if (error.code === "42501") {
+      return { error: "Solo admins pueden revocar invitaciones." };
+    }
+    return { error: error.message };
+  }
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true };
+}
