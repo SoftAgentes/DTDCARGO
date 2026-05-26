@@ -2,13 +2,14 @@
  * /api/studio/bugs/[id]
  *
  * GET   — detalle completo del bug (reporter ve los propios, admin del tenant todos).
- *         Incluye attachments, tech_data, messages count y timeline count.
+ *         Incluye attachments, messages y timeline. `tech_data` SOLO se devuelve
+ *         si el caller es admin del tenant del bug (D3 + P1-1 codex review).
  *
  * PATCH — admin del tenant edita campos: severity, eta_days, admin_thanks,
  *         commit_url, duplicate_of_id (manual override).
  *         Para cambiar estado, usar /state endpoint.
  *
- * SDD-0036 Fase 1.
+ * SDD-0036 Fase 1 + P1-1 fix.
  */
 
 import { NextResponse, type NextRequest } from "next/server";
@@ -57,9 +58,23 @@ export async function GET(
       return NextResponse.json({ error: "Bug no encontrado." }, { status: 404 });
     }
 
+    // P1-1 (codex review): tech_data SOLO si caller es admin del tenant DEL BUG.
+    // Reporter no ve sus propios datos tecnicos (consistente con D3 invisible
+    // auto-capture). Validamos antes de pedir tech_data para no inflar el query
+    // si va a ser descartado.
+    const { data: tenantLink } = await supabase
+      .from("user_tenants")
+      .select("role")
+      .eq("user_id", userResp.user.id)
+      .eq("tenant_id", bug.tenant_id)
+      .is("disabled_at", null)
+      .maybeSingle<{ role: string }>();
+
+    const isAdminOfBugTenant = tenantLink?.role === "admin";
+
     const [attachments, techData, messages, timeline] = await Promise.all([
       listBugAttachments(supabase, id),
-      getBugTechData(supabase, id),
+      isAdminOfBugTenant ? getBugTechData(supabase, id) : Promise.resolve(null),
       listBugMessages(supabase, id),
       listBugTimeline(supabase, id),
     ]);
