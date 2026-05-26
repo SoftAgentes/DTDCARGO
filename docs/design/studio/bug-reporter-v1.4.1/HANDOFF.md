@@ -9,7 +9,7 @@
 El módulo **Bug Reporter** del ERP DTD Studio permite a usuarios internos (admin + reportadores) gestionar bugs, mejoras y sugerencias desde dentro del propio ERP. Tiene 2 caras:
 
 - **Cara reportador** (María/Yiwu/Luis): botón FAB flotante para reportar, vista "Mis reportes" con progreso visual, notificaciones automáticas cuando Sam avanza en sus bugs
-- **Cara admin** (Sam): Kanban + tabla + estadísticas, drawer con conversación + datos técnicos + acciones, integración Claude Code/GitHub para resolver bugs
+- **Cara admin** (Sam · humano): Kanban + tabla + estadísticas, drawer con conversación + datos técnicos + acciones. Botón "Copiar prompt para Claude Code" arma contexto que Sam pega manualmente en otra ventana; **el admin supervisa siempre y decide cuándo cerrar el bug**. Cero automatización de cierre (ver D9 del spec).
 
 Está diseñado COMPLETO. **Iteración final: v1.4.1** (archivo `Bug_Reporter_Demo_v1.4.1_FIX.html`).
 
@@ -54,11 +54,11 @@ El sistema captura SIEMPRE (sin que el usuario sepa):
 - **NO:** trofeos, medallas, estrellas, puntos, niveles, confetti, sonidos de victoria
 - Razón: María/Yiwu son profesionales adultos · esto es ERP corporativo, no Duolingo
 
-### 2.7 Integración Claude Code
+### 2.7 Asistencia Claude Code (NO automatización · decisión D9 del spec · 2026-05-26)
 En el drawer del admin, tab "Acciones" tiene:
-- Botón **"Copiar prompt"** → genera prompt completo (bug + contexto técnico + replay) listo para pegar en Claude Code
-- Botón **"Tomar este bug"** → cambia estado a "Triaje" automáticamente y dispara notificación al reportador
-- Detección automática de commits con mensaje `fix: BUG-XXXXX` → cierra el bug solo
+- Botón **"Copiar prompt"** → genera markdown completo (bug + contexto técnico + replay) que el admin copia y pega en Claude Code en otra ventana
+- Botón **"Tomar este bug"** → cambia estado a "Triaje" + notif al reportador (acción manual del admin, no automática del sistema)
+- **NO existe** detección automática de commits ni webhook GitHub. Si el admin commitea con `fix: BUG-XXXXX`, queda solo como convención de trazabilidad en git log; el cierre del bug es siempre por click humano del admin en el drawer
 
 ### 2.8 Notificaciones · 4 canales
 | Canal | Activo por defecto | Cuándo |
@@ -261,8 +261,7 @@ CREATE TABLE bug_notifications (
 | `/api/bugs/:id/messages` | POST | Admin / dueño | Agregar mensaje al hilo |
 | `/api/bugs/:id/attachments` | POST | Reportador | Subir foto (max 5MB) |
 | `/api/bugs/:id/take` | POST | Admin | Botón "Tomar bug" · estado→triaje |
-| `/api/bugs/:id/prompt` | GET | Admin | Genera prompt Claude Code |
-| `/api/webhooks/github` | POST | GitHub | Detecta commit `fix: BUG-XXXXX` |
+| `/api/bugs/:id/prompt` | GET | Admin | Genera markdown para copy/paste a Claude Code |
 
 ---
 
@@ -345,7 +344,7 @@ Thumbs.db
 3. **Fase 3 · UI admin (Kanban + tabla + drawer)** (2 días)
 4. **Fase 4 · Auto-captura técnica (rrweb + console + network)** (2 días)
 5. **Fase 5 · Notificaciones 4 canales** (3 días)
-6. **Fase 6 · Integración Claude Code + GitHub webhook** (1 día)
+6. **Fase 6 · Polish admin** (banner bugs estancados + export CSV) (1 día) — **NO incluye webhook ni cierre automático** (ver D9 del spec)
 
 ---
 

@@ -14,9 +14,10 @@ related: ["0024", "0026", "0028"]
 
 > **Sistema interno de reporte de bugs/mejoras/sugerencias dentro del propio
 > ERP DTD Studio.** Reportador (María/Yiwu/Luis) reporta con FAB flotante;
-> admin (Sam) triagea desde Kanban + tabla + drawer con auto-captura técnica
-> (rrweb session replay + console + network). Integración Claude Code para
-> resolver bugs vía `fix: BUG-XXXXX` y cerrar automático con webhook GitHub.
+> admin (Sam · humano) triagea desde Kanban + tabla + drawer con auto-captura
+> técnica (rrweb session replay + console + network). Botón "Copiar prompt"
+> arma contexto para asistirse con Claude Code, pero **el admin supervisa
+> siempre** y decide manualmente cuándo cerrar. Cero automatización de cierre.
 
 ---
 
@@ -75,8 +76,8 @@ cierra el bug + notifica reportador en 4 canales (in-app + push + email + Telegr
 - `POST /api/studio/bugs/:id/messages` — agregar mensaje al hilo
 - `POST /api/studio/bugs/:id/attachments` — subir foto (max 5MB)
 - `POST /api/studio/bugs/:id/take` — "Tomar bug" (admin) · estado→triaje + notif al reportador
-- `GET /api/studio/bugs/:id/prompt` — genera prompt Claude Code (texto plano para copy)
-- `POST /api/webhooks/github` — detecta commit `fix: BUG-XXXXX` en push + cierra bug automático
+- `GET /api/studio/bugs/:id/prompt` — genera markdown listo para que el admin
+  copie y pegue en Claude Code (asistencia, no automatización)
 
 #### UI (cara reportador)
 
@@ -115,9 +116,10 @@ cierra el bug + notifica reportador en 4 canales (in-app + push + email + Telegr
 
 Sonido (default ON) con beep Web Audio API · toggle persistido en `localStorage`.
 
-#### Integración Claude Code + GitHub
+#### Asistencia al admin con Claude Code
 
-- Botón "Copiar prompt" en drawer admin tab Acciones genera:
+- Botón "Copiar prompt" en drawer admin tab Acciones genera markdown listo
+  para pegar en Claude Code (otro contexto, no este ERP):
   ```
   Bug BUG-12345 reportado por María (operario CN) en /studio/cn:
   Título: "El drawer de nueva recepción no cierra al cancelar"
@@ -127,7 +129,15 @@ Sonido (default ON) con beep Web Audio API · toggle persistido en `localStorage
   Replay rrweb: <url firmada Supabase Storage>
   Reproducir: <steps inferidos>
   ```
-- Webhook `/api/webhooks/github` parsea push events buscando regex `fix: BUG-\d{5}` en commit messages · si match → llama bug_advance_state(id, 'resuelto') + setea commit_url
+
+**El admin (humano · Sam) supervisa siempre.** Claude Code propone fix, el
+admin revisa el código, decide si aplicar, hace commit con
+`fix: BUG-XXXXX — <resumen>` (sólo como convención de trazabilidad), y
+**cambia el estado del bug a `resuelto` manualmente** desde el drawer.
+
+**NO hay cierre automático.** No hay webhook GitHub que lea commits. No
+hay agentes que cambien estado por su cuenta. Cualquier transición de
+estado pasa por un click humano en `/studio/bugs`.
 
 #### Roles autorizados a ver el FAB
 
@@ -142,7 +152,11 @@ Solo si `user_tenants.role` está en (`admin`, `commercial`, `operations`, `acco
 - Asignación de bugs entre admins (V1 todos los bugs son del admin único Sam)
 - SLA real con timer alertas (V1 muestra solo "días desde apertura")
 - Reabrir un bug resuelto (V1 estado terminal · si vuelve a fallar, nuevo bug)
-- Sync con GitHub Issues bi-direccional (V2 — V1 solo recibe commits)
+- Sync con GitHub Issues bi-direccional (V2 — y aún así nunca cierre automático)
+- **Webhook GitHub auto-close** (descartado explícito · ver D9). Toda transición
+  pasa por un humano en el drawer.
+- Agentes IA que actúen sobre el ERP sin supervisión (descartado · sólo
+  asistencia de Claude Code via "Copiar prompt", el admin aplica)
 
 ---
 
@@ -177,6 +191,36 @@ Tokens (`var(--*)`) del Brand Book v2.4 · NO hex hardcoded · 3 fuentes (Archiv
 NO crear bucket nuevo. Reusa `receipt-photos` con prefijo `bug/<tenant>/<bug_id>/`.
 **Razón**: simplifica policies + ya tiene tamaño limits configurados.
 
+### D9 · Cero automatización de cierre · admin humano supervisa siempre (2026-05-26)
+
+Decisión explícita del founder al revisar la spec original:
+
+> "Claude no nos lo va a arreglar automáticamente; va a haber una supervisión
+> de una persona. Lo que va a hacer Claude es darme la información que se
+> requiere para resolver lo que él pensó o entendió."
+
+**Implicaciones**:
+
+- ❌ **NO existe `POST /api/webhooks/github`**. Si se commitea con
+  `fix: BUG-XXXXX`, queda solo como convención de trazabilidad en git log;
+  el bug NO cambia de estado solo. El admin debe ir a `/studio/bugs`,
+  abrir el drawer del bug, y hacer click manual en "→ Resuelto".
+- ❌ **NO hay agentes IA (SDD-0020) ni cron jobs que muevan bugs entre
+  estados**. Cualquier transición pasa por click humano del admin.
+- ✅ **SÍ existe botón "Copiar prompt para Claude Code"** en el drawer
+  (`/api/studio/bugs/[id]/prompt`). Esto **NO es una integración**, es un
+  helper de copy/paste para que el admin pegue contexto en Claude Code en
+  otra ventana y se asista en investigar/proponer fix. La aceptación del
+  fix y el cierre del bug son siempre del humano.
+- ✅ La convención `fix: BUG-XXXXX — <resumen>` en commits sigue siendo
+  útil para auditar manualmente qué commit resolvió cada bug, pero **no
+  dispara nada automático**.
+
+**Razón**: el admin no quiere ceder control sobre el estado de su backlog
+de bugs a un agente. El costo del error (un bug cerrado en falso, un bug
+en espera ignorado) es mayor que el ahorro de unos clicks. Prefiere
+mantener el loop humano.
+
 ---
 
 ## 4. Schema (migración 0028_bug_reporter.sql)
@@ -201,7 +245,7 @@ Highlights:
 | `triaje` | `espera` | "Pedir info al reportador" | Admin | `bug_advance_state` |
 | `triaje` | `progreso` | "Empezar a trabajar" | Admin | `bug_advance_state` |
 | `espera` | `triaje` | Reportador responde | Sistema | trigger en `bug_messages` |
-| `progreso` | `resuelto` | "Marcar resuelto" o commit `fix: BUG-XXXXX` | Admin o webhook | `bug_advance_state` |
+| `progreso` | `resuelto` | "Marcar resuelto" (botón manual) | Admin humano | `bug_advance_state` |
 | `*` (no terminal) | `descartado` | "Descartar" + motivo | Admin | `bug_advance_state` |
 | `resuelto`/`descartado` | — | Terminal | — | — |
 
@@ -215,7 +259,7 @@ Transiciones bloqueadas por trigger guard `bug_reports_state_transition_guard`.
 |---|---|---|---|
 | R1 | rrweb session replay pesa MB → bucket fill | Media | Compresión rrweb + retención 30 días + cleanup nightly |
 | R2 | Auto-captura console/network captura passwords o tokens | **Alta** | Sanitizer regex en captura (Authorization headers redacted, query params con `token=` redacted) |
-| R3 | Webhook GitHub spoofable | Alta | Verificación HMAC con secret env var `GITHUB_WEBHOOK_SECRET` |
+| R3 | Admin olvida actualizar estado de bugs resueltos | Media | Recordatorio in-app cuando hay > 5 bugs en `progreso` desde > 7 días |
 | R4 | Push browser permissions denegadas → no notif | Baja | Fallback a in-app + email |
 | R5 | Telegram bot caído → critical alert no llega | Media | Fallback a email + log warning · admin chequea Telegram health weekly |
 | R6 | Reportador spam de bugs idénticos | Baja | Dedup por hash + rate limit 10 bugs/hora por user |
@@ -226,7 +270,7 @@ Transiciones bloqueadas por trigger guard `bug_reports_state_transition_guard`.
 ## 7. Open questions
 
 1. **¿Retención de session replays?** V1: 30 días auto-delete. ¿Confirmás?
-2. **¿GITHUB_WEBHOOK_SECRET via No-Olvidar o env var?** V1: env var directo. Si No-Olvidar listo (SDD-0025 Fase 2), migrar.
+2. **¿Recordatorio admin cuando hay bugs estancados?** V1 simple banner "tenés N bugs en progreso > 7 días" arriba del Kanban. ¿OK?
 3. **¿Push subscription guardada por user-agent o por user?** V1: por user (overwrites si cambia browser).
 4. **¿Telegram bot único para todo el tenant o uno por user?** V1: uno por tenant (el chat_id del admin). User puede setear su propio chat_id en prefs.
 
@@ -241,14 +285,17 @@ Transiciones bloqueadas por trigger guard `bug_reports_state_transition_guard`.
 | **3** | UI admin (Kanban + tabla + stats + drawer) | 2 días |
 | **4** | Auto-captura técnica (rrweb + console + network sanitizer) | 2 días |
 | **5** | Notificaciones 4 canales (in-app + push + email + Telegram) | 3 días |
-| **6** | Integración Claude Code + GitHub webhook | 1 día |
+| **6** | Polish admin · banner bugs estancados + filtros guardados + export CSV | 1 día |
 
 **Total: 13 días** ± 1 (buffer para QA + bugs).
 
 **Dependencias externas**:
 - SDD-0026 Fase 2 (Resend runtime) debe estar listo antes de Fase 5 email
 - `NEXT_PUBLIC_BUILD_SHA` debe venir del build (Vercel inyecta `VERCEL_GIT_COMMIT_SHA`)
-- GitHub webhook secret debe configurarse en repo settings antes de Fase 6
+
+**Cero automatización de cambio de estado.** Ningún webhook, ningún agente IA,
+ningún cron que mueva bugs entre columnas. Toda transición pasa por click
+humano del admin en el drawer (ver D9).
 
 ---
 
@@ -271,4 +318,4 @@ Ejemplos esperados:
 - `feat(studio): SDD-0036 Fase 1 — Schema + RLS + RPCs bug_reports`
 - `feat(studio): SDD-0036 Fase 2 — BugFABButton + BugReportModal + /mis-bugs`
 - `feat(studio): SDD-0036 Fase 4 — Auto-captura rrweb + sanitizer console/network`
-- `feat(studio): SDD-0036 Fase 6 — GitHub webhook + Claude Code prompt generator`
+- `feat(studio): SDD-0036 Fase 6 — Banner bugs estancados + export CSV admin`
