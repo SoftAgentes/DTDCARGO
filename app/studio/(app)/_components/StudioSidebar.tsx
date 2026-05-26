@@ -59,9 +59,10 @@ export const MODULES: ModuleDef[] = [
 
   // SISTEMA
   { id: "mailing", group: "SISTEMA", label: "Mailing", icon: "mail", slug: "/studio/mailing" },
-  { id: "vault", group: "SISTEMA", label: "Vault", icon: "lock", slug: "/studio/vault" },
+  { id: "no-olvidar", group: "SISTEMA", label: "No-Olvidar", icon: "lock", slug: "/studio/no-olvidar" },
   { id: "users", group: "SISTEMA", label: "Usuarios", icon: "shield", slug: "/studio/usuarios" },
   { id: "operarios", group: "SISTEMA", label: "Operarios PWA", icon: "users", slug: "/studio/operarios" },
+  { id: "bugs", group: "SISTEMA", label: "Bug Tracker", icon: "shield", slug: "/studio/bugs" },
   { id: "mis-bugs", group: "SISTEMA", label: "Mis reportes", icon: "flag", slug: "/studio/mis-bugs" },
   { id: "admin", group: "SISTEMA", label: "Administración", icon: "cog", slug: "/studio/admin" },
 ];
