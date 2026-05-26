@@ -11,6 +11,7 @@ import { getUser } from "@/lib/auth/session";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
+import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
 
 export default async function StudioAppLayout({
   children,
@@ -19,6 +20,13 @@ export default async function StudioAppLayout({
 }) {
   const user = await getUser();
   if (!user) redirect("/studio/login");
+
+  // Build SHA del deploy (Vercel inyecta VERCEL_GIT_COMMIT_SHA en build time).
+  // NEXT_PUBLIC_BUILD_SHA permite override manual. Local: undefined.
+  const buildSha =
+    process.env.NEXT_PUBLIC_BUILD_SHA ??
+    process.env.VERCEL_GIT_COMMIT_SHA ??
+    null;
 
   return (
     <WiringProvider>
@@ -54,6 +62,9 @@ export default async function StudioAppLayout({
           </div>
         </main>
       </div>
+
+      {/* Bug Reporter FAB · SDD-0036 Fase 2 · visible en todo el Studio */}
+      <BugFABButton buildSha={buildSha} />
     </WiringProvider>
   );
 }
