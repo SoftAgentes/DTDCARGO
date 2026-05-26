@@ -20,6 +20,7 @@ import { Avatar } from "../../_components/ui/Avatar";
 import { Badge } from "../../_components/ui/Badge";
 import { pathToModuleLabel } from "./StudioSidebar";
 import { signOut } from "../actions";
+import { useDTDWiring } from "../../_components/wiring/WiringProvider";
 
 const THEME_KEY = "studio_theme";
 
@@ -373,15 +374,7 @@ function UserMenuDropdown({
           </Badge>
         </div>
       </div>
-      <div style={{ padding: 6 }}>
-        <MenuItem
-          label="Preferencias"
-          onClick={() => {
-            onClose();
-            window.location.href = "/studio/ajustes";
-          }}
-        />
-      </div>
+      <UserMenuItems onClose={onClose} />
       <div
         style={{
           padding: "6px 8px",
@@ -412,6 +405,42 @@ function UserMenuDropdown({
           {isPending ? "Cerrando sesión…" : "Cerrar sesión"}
         </button>
       </div>
+    </div>
+  );
+}
+
+function UserMenuItems({ onClose }: { onClose: () => void }) {
+  const { openProfileModal, openShortcutsModal } = useDTDWiring();
+  return (
+    <div style={{ padding: 6 }}>
+      <MenuItem
+        label="Mi perfil"
+        onClick={() => {
+          onClose();
+          openProfileModal({ tab: "profile" });
+        }}
+      />
+      <MenuItem
+        label="Cambiar contraseña"
+        onClick={() => {
+          onClose();
+          openProfileModal({ tab: "password" });
+        }}
+      />
+      <MenuItem
+        label="Atajos de teclado"
+        onClick={() => {
+          onClose();
+          openShortcutsModal();
+        }}
+      />
+      <MenuItem
+        label="Preferencias"
+        onClick={() => {
+          onClose();
+          openProfileModal({ tab: "prefs" });
+        }}
+      />
     </div>
   );
 }

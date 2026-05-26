@@ -10,6 +10,7 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth/session";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
+import { WiringProvider } from "../_components/wiring/WiringProvider";
 
 export default async function StudioAppLayout({
   children,
@@ -20,37 +21,39 @@ export default async function StudioAppLayout({
   if (!user) redirect("/studio/login");
 
   return (
-    <div
-      style={{
-        display: "flex",
-        minHeight: "100vh",
-        background: "var(--bg-base)",
-        color: "var(--ink)",
-      }}
-    >
-      <StudioSidebar />
-
-      <main
+    <WiringProvider>
+      <div
         style={{
-          flex: 1,
           display: "flex",
-          flexDirection: "column",
-          minWidth: 0,
+          minHeight: "100vh",
+          background: "var(--bg-base)",
+          color: "var(--ink)",
         }}
       >
-        <StudioTopbar userEmail={user.email ?? ""} />
-        <div
+        <StudioSidebar />
+
+        <main
           style={{
             flex: 1,
-            padding: "var(--s-6) var(--s-8)",
-            maxWidth: "var(--content-max)",
-            width: "100%",
-            margin: "0 auto",
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
           }}
         >
-          {children}
-        </div>
-      </main>
-    </div>
+          <StudioTopbar userEmail={user.email ?? ""} />
+          <div
+            style={{
+              flex: 1,
+              padding: "var(--s-6) var(--s-8)",
+              maxWidth: "var(--content-max)",
+              width: "100%",
+              margin: "0 auto",
+            }}
+          >
+            {children}
+          </div>
+        </main>
+      </div>
+    </WiringProvider>
   );
 }
