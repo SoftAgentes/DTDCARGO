@@ -90,6 +90,11 @@ export type ClientActionState = {
   fieldErrors?: Partial<Record<keyof ClientInput, string>>;
   /** En create, el server devuelve el markbox autogenerado. */
   createdMarkbox?: string;
+  /**
+   * Warning soft (no rompe la operación). Ej: cliente creado pero el email
+   * de bienvenida no se pudo registrar. SDD-0032.
+   */
+  warning?: string;
 };
 
 /**

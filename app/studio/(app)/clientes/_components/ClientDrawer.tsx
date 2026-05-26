@@ -44,10 +44,11 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
 
-  // Cerrar drawer en success
+  // Cerrar drawer en success — SDD-0032: si hay warning, NO cerrar
+  // automáticamente para que el founder vea el aviso (email no encolado).
   useEffect(() => {
-    if (state.ok) onClose();
-  }, [state.ok, onClose]);
+    if (state.ok && !state.warning) onClose();
+  }, [state.ok, state.warning, onClose]);
 
   const title = mode === "create" ? "Nuevo cliente" : "Editar cliente";
 
@@ -294,6 +295,34 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             />
           </div>
 
+          {state.ok && state.warning && (
+            <div
+              role="status"
+              style={{
+                marginTop: 12,
+                padding: 12,
+                background: "var(--warning-bg)",
+                color: "var(--ink)",
+                border: "1px solid var(--warning)",
+                borderRadius: "var(--r-sm)",
+                font: "500 12.5px/1.4 var(--f-sans)",
+              }}
+            >
+              <div style={{ font: "700 12.5px/1 var(--f-sans)", color: "var(--warning)", marginBottom: 6 }}>
+                Cliente creado{state.createdMarkbox ? ` (${state.createdMarkbox})` : ""}
+              </div>
+              {state.warning}
+              <div style={{ marginTop: 8, textAlign: "right" }}>
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-xs"
+                  onClick={onClose}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          )}
           {state.error && (
             <p
               role="alert"
