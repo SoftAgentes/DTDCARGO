@@ -46,8 +46,13 @@ export interface ClientSummary {
   markbox: string;
   name: string;
   tier: string | null;
-  city: string | null;
-  country: string | null;
+  /**
+   * Dirección libre del cliente (SDD-0010 client_types.ts).
+   * Reemplaza los antiguos campos `city` + `country` que no existían
+   * en la tabla `clients`. Cuando se agreguen columnas estructuradas
+   * (SDD futuro de Master data), volvemos a city + country separados.
+   */
+  address: string | null;
   total_shipments: number;
 }
 
@@ -213,8 +218,7 @@ const getCustomerTool: ToolDef<{ markbox: string }, ClientSummary | null> = {
       markbox: client.markbox,
       name: client.name,
       tier: client.tier ?? null,
-      city: client.city ?? null,
-      country: client.country ?? null,
+      address: client.address ?? null,
       total_shipments: shipments.length,
     };
   },
