@@ -7,7 +7,7 @@
  * seleccionado. Filtros en query params via router.replace.
  */
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { BugKanban } from "./BugKanban";
 import { BugTable } from "./BugTable";
@@ -15,6 +15,7 @@ import { BugStats } from "./BugStats";
 import { BugDrawer } from "./BugDrawer";
 import {
   BUG_CATEGORY_LABELS,
+  BUG_SEVERITY_LABELS,
   BUG_STATE_LABELS,
   type BugAdminFilters,
   type BugAdminTab,
@@ -22,6 +23,7 @@ import {
   type BugReport,
   type BugState,
 } from "@/lib/studio/bug-types";
+import { moduleLabelFromSlug } from "@/lib/studio/bug-module-name";
 import type { BugAdminKpis } from "@/lib/studio/bug-queries";
 import type { ReporterProfile } from "../page";
 
@@ -32,7 +34,19 @@ interface Props {
   reporterMap: Record<string, ReporterProfile>;
   moduleList: string[];
   currentUserId: string;
+  staleCount: number;
+  staleDays: number;
 }
+
+// Keys que persistimos en localStorage para recordar filtros del admin
+// entre sesiones. NO incluye `tab` (que se inicializa siempre en Kanban).
+const PERSIST_KEYS: Array<"category" | "state" | "module" | "search"> = [
+  "category",
+  "state",
+  "module",
+  "search",
+];
+const STORAGE_KEY = "studio_bugs_filters";
 
 export function BugsAdminClient({
   bugs,
@@ -41,6 +55,8 @@ export function BugsAdminClient({
   reporterMap,
   moduleList,
   currentUserId,
+  staleCount,
+  staleDays,
 }: Props) {
   const router = useRouter();
   const pathname = usePathname();
@@ -65,29 +81,187 @@ export function BugsAdminClient({
 
   const refresh = () => router.refresh();
 
+  // ─── F6.2 Filtros persistidos en localStorage ───────────────
+  // Hydrate at mount: si NO hay query params explícitos y hay filtros
+  // guardados, re-aplicarlos (silent push a URL). Esto trae al admin a
+  // su última vista al volver al Studio.
+  const hydratedRef = useRef(false);
+  useEffect(() => {
+    if (hydratedRef.current) return;
+    hydratedRef.current = true;
+
+    const hasExplicitParams = params.toString().length > 0;
+    if (hasExplicitParams) {
+      // Ya vienen params en la URL · persistirlos para próxima vez
+      try {
+        const persisted: Record<string, string> = {};
+        for (const k of PERSIST_KEYS) {
+          const v = params.get(k);
+          if (v) persisted[k] = v;
+        }
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(persisted));
+      } catch {
+        // localStorage disabled / quota · ignorar
+      }
+      return;
+    }
+
+    // No params · intentar hidratar desde localStorage
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const persisted = JSON.parse(raw) as Record<string, string>;
+      const sp = new URLSearchParams();
+      for (const k of PERSIST_KEYS) {
+        const v = persisted[k];
+        if (v && v !== "all") sp.set(k, v);
+      }
+      if (sp.toString().length > 0) {
+        router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+      }
+    } catch {
+      // localStorage disabled · ignorar
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── F6.3 Export CSV de la tabla actual filtrada ────────────
+  const exportCsv = () => {
+    const rows = bugsToCsvRows(bugs, reporterMap);
+    const csv = rowsToCsv(rows);
+    const ts = new Date()
+      .toISOString()
+      .replace(/[:.]/g, "-")
+      .slice(0, 19);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dtd-bugs-${ts}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // ─── F6.1 Banner bugs estancados ────────────────────────────
+  const onClickStaleBanner = () => {
+    // Cambia a tabla con estado=progreso (los más críticos estancados)
+    const sp = new URLSearchParams(params.toString());
+    sp.set("tab", "tabla");
+    sp.set("state", "progreso");
+    startTransition(() => {
+      router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+    });
+  };
+
   return (
     <>
-      {/* Tabs */}
+      {/* F6.1 · Banner bugs estancados (si hay) */}
+      {staleCount > 0 && (
+        <button
+          type="button"
+          onClick={onClickStaleBanner}
+          style={{
+            display: "flex",
+            width: "100%",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            padding: "10px 16px",
+            marginBottom: 16,
+            background: "var(--warning-bg, #FBF1DF)",
+            border: "1px solid var(--warning, #B8893A)",
+            borderRadius: 8,
+            cursor: "pointer",
+            textAlign: "left",
+            font: "inherit",
+            color: "var(--ink)",
+            transition: "background var(--dur, 180ms) var(--ease, ease-out)",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = "var(--warning, #B8893A)";
+            e.currentTarget.style.color = "var(--ink-inv, #FBFAF7)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = "var(--warning-bg, #FBF1DF)";
+            e.currentTarget.style.color = "var(--ink)";
+          }}
+        >
+          <span style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <ClockIcon size={18} />
+            <span style={{ fontSize: 13 }}>
+              <strong
+                style={{
+                  fontFamily: "var(--font-archivo-black, 'Archivo Black')",
+                  fontSize: 14,
+                }}
+              >
+                {staleCount}
+              </strong>{" "}
+              {staleCount === 1 ? "bug está estancado" : "bugs están estancados"} hace
+              más de {staleDays} días en triaje / espera / progreso.
+            </span>
+          </span>
+          <span
+            style={{
+              fontSize: 12,
+              textTransform: "uppercase",
+              letterSpacing: "0.06em",
+              fontWeight: 600,
+            }}
+          >
+            Ver en tabla →
+          </span>
+        </button>
+      )}
+
+      {/* Tabs + Export CSV */}
       <div
-        role="tablist"
-        aria-label="Vistas Bug Tracker"
         style={{
-          display: "inline-flex",
-          background: "var(--bg-elevated, #F2F0EC)",
-          borderRadius: 8,
-          padding: 4,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
           marginBottom: 16,
-          gap: 2,
+          flexWrap: "wrap",
         }}
       >
-        {(["kanban", "tabla", "stats"] as const).map((tab) => (
-          <TabButton
-            key={tab}
-            active={filters.tab === tab}
-            label={tab === "kanban" ? "Kanban" : tab === "tabla" ? "Tabla" : "Stats"}
-            onClick={() => changeTab(tab)}
-          />
-        ))}
+        <div
+          role="tablist"
+          aria-label="Vistas Bug Tracker"
+          style={{
+            display: "inline-flex",
+            background: "var(--bg-elevated, #F2F0EC)",
+            borderRadius: 8,
+            padding: 4,
+            gap: 2,
+          }}
+        >
+          {(["kanban", "tabla", "stats"] as const).map((tab) => (
+            <TabButton
+              key={tab}
+              active={filters.tab === tab}
+              label={tab === "kanban" ? "Kanban" : tab === "tabla" ? "Tabla" : "Stats"}
+              onClick={() => changeTab(tab)}
+            />
+          ))}
+        </div>
+
+        {/* F6.3 Export CSV (disabled si no hay bugs) */}
+        <button
+          type="button"
+          onClick={exportCsv}
+          disabled={bugs.length === 0}
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          title={
+            bugs.length === 0
+              ? "Sin bugs para exportar"
+              : `Exportar ${bugs.length} bug(s) como CSV`
+          }
+        >
+          Exportar CSV ({bugs.length})
+        </button>
       </div>
 
       {/* Filters */}
@@ -319,4 +493,103 @@ function SearchInput({
       />
     </label>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Icons
+// ─────────────────────────────────────────────────────────────
+
+function ClockIcon({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width={size}
+      height={size}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// CSV export helpers (F6.3)
+// ─────────────────────────────────────────────────────────────
+
+type CsvRow = {
+  folio: string;
+  categoria: string;
+  severidad: string;
+  estado: string;
+  progreso_pct: number;
+  titulo: string;
+  modulo: string;
+  reporter: string;
+  url: string;
+  dias_abierto: number;
+  taken_at: string;
+  resolved_at: string;
+  duplicate_count: number;
+  commit_url: string;
+};
+
+function bugsToCsvRows(
+  bugs: BugReport[],
+  reporterMap: Record<string, ReporterProfile>,
+): CsvRow[] {
+  const now = Date.now();
+  return bugs.map((b) => {
+    const reporter = reporterMap[b.reporter_id];
+    const reporterName = reporter
+      ? [reporter.first_name, reporter.last_name].filter(Boolean).join(" ") ||
+        reporter.email ||
+        b.reporter_id.slice(0, 8)
+      : b.reporter_id.slice(0, 8);
+    const days = Math.max(
+      0,
+      Math.floor((now - new Date(b.created_at).getTime()) / (24 * 60 * 60 * 1000)),
+    );
+    return {
+      folio: b.folio,
+      categoria: BUG_CATEGORY_LABELS[b.category],
+      severidad: b.severity ? BUG_SEVERITY_LABELS[b.severity] : "",
+      estado: BUG_STATE_LABELS[b.state],
+      progreso_pct: b.progress_pct,
+      titulo: b.title,
+      modulo: moduleLabelFromSlug(b.module),
+      reporter: reporterName,
+      url: b.url ?? "",
+      dias_abierto: days,
+      taken_at: b.taken_at ?? "",
+      resolved_at: b.resolved_at ?? "",
+      duplicate_count: b.duplicate_count,
+      commit_url: b.commit_url ?? "",
+    };
+  });
+}
+
+function rowsToCsv(rows: CsvRow[]): string {
+  if (rows.length === 0) return "";
+  const headers = Object.keys(rows[0]) as Array<keyof CsvRow>;
+  const escape = (v: string | number): string => {
+    const s = String(v);
+    // CSV escaping: si contiene "," " o newline → envolver en "" + escape internal "
+    if (/[",\n\r]/.test(s)) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  };
+  const lines: string[] = [];
+  lines.push(headers.join(","));
+  for (const row of rows) {
+    lines.push(headers.map((h) => escape(row[h])).join(","));
+  }
+  // BOM para Excel detecte UTF-8 (Sam abre con Excel español)
+  return "﻿" + lines.join("\r\n");
 }

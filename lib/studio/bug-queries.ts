@@ -248,6 +248,30 @@ export async function countUnreadNotifications(
   return count ?? 0;
 }
 
+/**
+ * Bugs en estados activos (triaje/espera/progreso) abiertos hace > N días.
+ * Usado por el banner "bugs estancados" del admin (SDD-0036 Fase 6).
+ * Excluye `nuevo` porque ese estado es responsabilidad del admin de tomarlo
+ * primero, no de "ya está estancado".
+ */
+export async function countStaleBugs(
+  supabase: SupabaseClient,
+  staleDays = 7,
+): Promise<number> {
+  const cutoffIso = new Date(
+    Date.now() - staleDays * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const { count, error } = await supabase
+    .from("bug_reports")
+    .select("id", { count: "exact", head: true })
+    .in("state", ["triaje", "espera", "progreso"])
+    .lte("created_at", cutoffIso);
+
+  if (error) throw error;
+  return count ?? 0;
+}
+
 export async function getUserNotificationPrefs(
   supabase: SupabaseClient,
   userId: string,

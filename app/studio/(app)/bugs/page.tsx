@@ -13,10 +13,13 @@ import { createClient } from "@/lib/db/server";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import {
   computeBugAdminKpis,
+  countStaleBugs,
   listBugsForAdmin,
 } from "@/lib/studio/bug-queries";
 import { parseBugAdminFilters } from "@/lib/studio/bug-types";
 import { BugsAdminClient } from "./_components/BugsAdminClient";
+
+const STALE_DAYS = 7;
 
 export const metadata = { title: "Bug Tracker · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -62,9 +65,10 @@ export default async function BugsAdminPage({
   const params = await searchParams;
   const filters = parseBugAdminFilters(params);
 
-  const [bugs, kpis] = await Promise.all([
+  const [bugs, kpis, staleCount] = await Promise.all([
     listBugsForAdmin(supabase, filters),
     computeBugAdminKpis(supabase),
+    countStaleBugs(supabase, STALE_DAYS),
   ]);
 
   // Reporter profiles para mostrar nombre en cards/tabla
@@ -144,6 +148,8 @@ export default async function BugsAdminPage({
         reporterMap={reporterMap}
         moduleList={moduleList}
         currentUserId={userResp.user.id}
+        staleCount={staleCount}
+        staleDays={STALE_DAYS}
       />
     </div>
   );
