@@ -17,10 +17,12 @@ import {
   getClientCount,
   getOperationalCounts,
   getQuoteStatsThisMonth,
+  getRecentActivity,
   getRecentQuotes,
 } from "@/lib/studio/dashboard-queries";
 import { computeAgentKpis } from "@/lib/studio/agent-queries";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { RecentActivityCard } from "./_components/RecentActivityCard";
 import { RecentQuotesCard } from "./_components/RecentQuotesCard";
 import { AgenticHealthCard } from "./_components/AgenticHealthCard";
 
@@ -93,6 +95,7 @@ export default async function DashboardPage() {
     rateCount,
     quoteStats,
     recentQuotes,
+    recentActivity,
     agentKpis,
   ] = await Promise.all([
     supabase.auth.getUser(),
@@ -106,6 +109,7 @@ export default async function DashboardPage() {
     getActiveRateCount(supabase),
     getQuoteStatsThisMonth(supabase),
     getRecentQuotes(supabase, 5),
+    getRecentActivity(supabase, 6),
     computeAgentKpis(supabase),
   ]);
 
@@ -244,11 +248,11 @@ export default async function DashboardPage() {
         </div>
       </section>
 
-      {/* Grid inferior 2 cols */}
+      {/* Grid inferior 3 cols (SDD-0035 sumó RecentActivity) */}
       <section
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1.4fr)",
+          gridTemplateColumns: "minmax(0, 0.9fr) minmax(0, 1.2fr) minmax(0, 1fr)",
           gap: 14,
         }}
       >
@@ -261,6 +265,9 @@ export default async function DashboardPage() {
 
         {/* Cotizaciones recientes */}
         <RecentQuotesCard quotes={recentQuotes} />
+
+        {/* Actividad reciente */}
+        <RecentActivityCard items={recentActivity} />
       </section>
 
       {/* INTELIGENCIA · SDD-0020 Fase 2A */}
