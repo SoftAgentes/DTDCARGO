@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD-Cargo · Brand Book v3.0</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; font-family: var(--f-sans); color: var(--ink); background: var(--bg-base); line-height: 1.5; }
+
+/* ── LAYOUT ─────────────────────────────────────────────── */
+.shell { display: grid; grid-template-columns: 240px 1fr; min-height: 100vh; }
+.sidebar { position: sticky; top: 0; height: 100vh; overflow-y: auto; background: var(--bg-sidebar); color: rgba(255,255,255,0.92); padding: 28px 0; }
+.sidebar-head { padding: 0 22px 22px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.sidebar-head .iso { width: 40px; height: auto; display: block; margin-bottom: 14px; }
+.sidebar-head .title { font: 900 17px/1.1 'Archivo Black', sans-serif; letter-spacing: -0.02em; color: white; }
+.sidebar-head .v { font: 700 10.5px/1 var(--f-mono); color: #C2747F; letter-spacing: 0.16em; text-transform: uppercase; margin-top: 6px; }
+.sidebar-head .sub { font: 500 11.5px/1.4 var(--f-sans); color: rgba(255,255,255,0.6); margin-top: 10px; }
+.sidebar nav { padding: 14px 0; }
+.sidebar nav a { display: flex; align-items: center; gap: 10px; padding: 9px 22px; font: 500 12.5px/1 var(--f-sans); color: rgba(255,255,255,0.75); text-decoration: none; transition: all 120ms; position: relative; }
+.sidebar nav a:hover { background: rgba(255,255,255,0.04); color: white; }
+.sidebar nav a.active { background: rgba(127,15,26,0.4); color: white; }
+.sidebar nav a.active::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; background: #C2747F; border-radius: 2px; }
+.sidebar nav a .n { font: 700 10px/1 var(--f-mono); color: rgba(255,255,255,0.4); min-width: 22px; }
+.sidebar nav a.active .n { color: #C2747F; }
+.sidebar nav .group-label { padding: 18px 22px 6px; font: 700 9.5px/1 var(--f-sans); color: rgba(255,255,255,0.35); letter-spacing: 0.18em; text-transform: uppercase; }
+.sidebar-foot { position: sticky; bottom: 0; padding: 16px 22px; background: var(--bg-sidebar); border-top: 1px solid rgba(255,255,255,0.08); }
+.sidebar-foot .btn-download { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 10px; background: var(--wine); color: white; border: none; border-radius: var(--r-sm); font: 700 11.5px/1 var(--f-sans); letter-spacing: 0.04em; cursor: pointer; }
+.sidebar-foot .btn-download:hover { background: #5E0A12; }
+.sidebar-foot .meta { font: 500 10px/1.4 var(--f-mono); color: rgba(255,255,255,0.4); margin-top: 10px; text-align: center; }
+
+.main { padding: 0; max-width: 1100px; }
+
+/* ── SECTION ────────────────────────────────────────────── */
+section { padding: 80px 64px; border-bottom: 1px solid var(--border); scroll-margin-top: 20px; }
+section:nth-child(odd) { background: var(--bg-base); }
+section:nth-child(even) { background: var(--bg-surface); }
+.sec-head { margin-bottom: 36px; }
+.sec-head .num { font: 800 11px/1 var(--f-mono); color: var(--wine); letter-spacing: 0.24em; }
+.sec-head h2 { font: 900 36px/1.05 'Archivo Black', sans-serif; letter-spacing: -0.025em; margin: 14px 0 10px; color: var(--ink); }
+.sec-head .lead { font-size: 16px; color: var(--ink-soft); max-width: 720px; margin: 0; }
+
+h3 { font: 900 18px/1.2 'Archivo Black', sans-serif; letter-spacing: -0.01em; margin: 0 0 10px; }
+h4 { font: 700 13px/1.2 var(--f-sans); margin: 0 0 6px; color: var(--ink); }
+.eyebrow { font: 700 10.5px/1 var(--f-sans); color: var(--wine); letter-spacing: 0.18em; text-transform: uppercase; }
+
+.card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 28px; }
+section:nth-child(even) .card { background: var(--bg-base); }
+.card.dark { background: var(--bg-sidebar); color: rgba(255,255,255,0.92); border-color: rgba(255,255,255,0.08); }
+.card.dark h3, .card.dark h4 { color: white; }
+.card.wine { background: var(--wine); color: white; border-color: transparent; }
+.card.paper { background: var(--bg-elevated); }
+
+.row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+.row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.row-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+
+/* ── LOCKUP COMPONENT ───────────────────────────────────── */
+.lockup { display: inline-flex; align-items: center; gap: 18px; }
+.lockup img { width: 56px; height: auto; }
+.lockup .mark { font: 900 32px/1 'Archivo Black', sans-serif; letter-spacing: -0.02em; }
+.lockup .mark .dtd { color: #7F0F1A; }
+.lockup .mark .gap { display: inline-block; width: 0.15em; }
+.lockup .mark .cargo { color: #0F1E3D; }
+
+/* ── COVER ──────────────────────────────────────────────── */
+#cover { padding: 0; background: linear-gradient(135deg, var(--bg-sidebar) 0%, #1F3055 100%); color: white; min-height: 100vh; display: grid; place-items: center; position: relative; overflow: hidden; }
+#cover::before { content: ''; position: absolute; right: -200px; top: -100px; width: 800px; height: 800px; background: url('assets/dtdcargo-isologo-reverse.png') center/contain no-repeat; opacity: 0.06; }
+#cover .cover-inner { position: relative; z-index: 1; max-width: 720px; padding: 80px 64px; }
+#cover .cover-eyebrow { font: 700 11px/1 var(--f-mono); letter-spacing: 0.32em; color: #C2747F; text-transform: uppercase; }
+#cover h1 { font: 900 64px/0.98 'Archivo Black', sans-serif; letter-spacing: -0.035em; margin: 22px 0 18px; color: white; }
+#cover h1 .accent { color: #C2747F; }
+#cover .cover-tag { font: 500 17px/1.5 var(--f-sans); color: rgba(255,255,255,0.78); max-width: 520px; margin-bottom: 36px; }
+#cover .cover-meta { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; padding: 24px 0; border-top: 1px solid rgba(255,255,255,0.12); border-bottom: 1px solid rgba(255,255,255,0.12); }
+#cover .cover-meta div { display: flex; flex-direction: column; gap: 4px; }
+#cover .cover-meta .k { font: 600 10px/1 var(--f-mono); color: rgba(255,255,255,0.5); letter-spacing: 0.14em; text-transform: uppercase; }
+#cover .cover-meta .v { font: 900 18px/1 'Archivo Black', sans-serif; color: white; letter-spacing: -0.01em; }
+#cover .cover-cta { display: flex; gap: 12px; margin-top: 36px; }
+#cover .btn { padding: 14px 22px; border-radius: var(--r-md); font: 700 13px/1 var(--f-sans); letter-spacing: 0.04em; cursor: pointer; border: none; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+#cover .btn.primary { background: var(--wine); color: white; }
+#cover .btn.primary:hover { background: #5E0A12; }
+#cover .btn.ghost { background: transparent; color: white; border: 1px solid rgba(255,255,255,0.2); }
+#cover .btn.ghost:hover { background: rgba(255,255,255,0.06); }
+
+/* ── COMPONENTS ─────────────────────────────────────────── */
+.changelog { display: flex; flex-direction: column; gap: 10px; }
+.changelog .row { display: grid; grid-template-columns: 80px 1fr; gap: 14px; padding: 14px 18px; background: var(--bg-elevated); border-radius: var(--r-sm); align-items: center; }
+section:nth-child(even) .changelog .row { background: var(--bg-surface); }
+.changelog .tag { font: 700 10.5px/1 var(--f-mono); padding: 5px 8px; border-radius: 3px; text-align: center; }
+.changelog .tag.add { background: rgba(31,138,91,0.12); color: var(--success); }
+.changelog .tag.rem { background: rgba(168,50,62,0.12); color: var(--danger); }
+.changelog .tag.chg { background: rgba(184,137,58,0.14); color: var(--warning); }
+.changelog .row code { font: 500 11.5px/1.4 var(--f-mono); color: var(--ink); }
+
+/* Timeline */
+.timeline { position: relative; padding-left: 32px; }
+.timeline::before { content: ''; position: absolute; left: 8px; top: 0; bottom: 0; width: 2px; background: var(--border); }
+.timeline .ev { position: relative; padding: 0 0 22px; }
+.timeline .ev::before { content: ''; position: absolute; left: -32px; top: 5px; width: 18px; height: 18px; border-radius: 50%; background: var(--bg-surface); border: 3px solid var(--wine); }
+.timeline .ev.highlight::before { background: var(--wine); }
+.timeline .ev .year { font: 800 12px/1 var(--f-mono); color: var(--wine); letter-spacing: 0.06em; }
+.timeline .ev h4 { margin: 6px 0 2px; font-size: 14px; }
+.timeline .ev p { margin: 0; font-size: 13px; color: var(--ink-soft); }
+
+/* Color swatch */
+.palette-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.swatch { padding: 14px; border-radius: var(--r-md); border: 1px solid var(--border); }
+.swatch .chip { width: 100%; height: 80px; border-radius: var(--r-sm); border: 1px solid rgba(0,0,0,0.06); }
+.swatch .name { font: 700 13px/1.2 var(--f-sans); margin-top: 12px; color: var(--ink); }
+.swatch .token { font: 600 10.5px/1.3 var(--f-mono); color: var(--ink-soft); margin-top: 4px; }
+.swatch .hex { font: 500 10.5px/1 var(--f-mono); color: var(--ink-mute); margin-top: 4px; }
+
+/* Type specimen */
+.type-row { padding: 22px; background: var(--bg-elevated); border-radius: var(--r-md); margin-bottom: 12px; }
+section:nth-child(even) .type-row { background: var(--bg-surface); }
+.type-row .specimen { font-size: 56px; line-height: 1; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 12px; }
+.type-row .meta { display: flex; gap: 24px; font: 500 11.5px/1 var(--f-mono); color: var(--ink-soft); }
+.type-row .meta strong { color: var(--ink); }
+
+/* Variant lockup card */
+.variant { border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--border); }
+.variant .canvas { aspect-ratio: 1/1; display: grid; place-items: center; padding: 24px; }
+.variant .canvas img { max-width: 65%; max-height: 70%; display: block; }
+.variant .label { padding: 12px 14px; background: var(--bg-surface); }
+.variant .label .name { font: 700 13px/1 var(--f-sans); color: var(--ink); }
+.variant .label .meta { font: 500 10.5px/1.3 var(--f-mono); color: var(--ink-soft); margin-top: 4px; }
+
+/* Icon thumbnails */
+.icon-strip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 12px; padding: 22px; background: var(--bg-sidebar); border-radius: var(--r-lg); }
+.icon-strip .cell { aspect-ratio: 1/1; border-radius: 50%; background: rgba(255,255,255,0.08); display: grid; place-items: center; position: relative; overflow: hidden; }
+.icon-strip .cell .glyph { width: 60%; height: 60%; background: currentColor; opacity: 0.7; border-radius: 50%; }
+.icon-strip .cell .lbl { position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%); font: 600 9.5px/1 var(--f-mono); color: rgba(255,255,255,0.5); white-space: nowrap; }
+
+/* Placeholder block */
+.placeholder { background: repeating-linear-gradient(45deg, var(--bg-elevated) 0px, var(--bg-elevated) 10px, transparent 10px, transparent 20px), var(--bg-surface); border: 2px dashed var(--border); border-radius: var(--r-md); padding: 36px 28px; text-align: center; }
+section:nth-child(even) .placeholder { background: repeating-linear-gradient(45deg, var(--bg-base) 0px, var(--bg-base) 10px, transparent 10px, transparent 20px), var(--bg-elevated); }
+.placeholder .ph-icon { width: 48px; height: 48px; border-radius: 50%; background: var(--wine-tint); color: var(--wine); display: grid; place-items: center; margin: 0 auto 14px; font: 900 20px/1 'Archivo Black', sans-serif; }
+.placeholder h4 { font-size: 16px; margin-bottom: 8px; }
+.placeholder p { font-size: 13.5px; color: var(--ink-soft); max-width: 460px; margin: 0 auto; }
+.placeholder .ph-tags { display: flex; gap: 6px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.placeholder .ph-tags span { font: 600 10px/1 var(--f-mono); padding: 4px 8px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: 3px; color: var(--ink-soft); letter-spacing: 0.06em; }
+
+/* Pull-quote */
+.pull { padding: 36px 40px; background: var(--bg-elevated); border-radius: var(--r-lg); border-left: 4px solid var(--wine); }
+section:nth-child(even) .pull { background: var(--bg-surface); }
+.pull p { font: 900 22px/1.3 'Archivo Black', sans-serif; letter-spacing: -0.01em; color: var(--ink); margin: 0; }
+.pull .attr { font: 600 11.5px/1 var(--f-mono); color: var(--wine); letter-spacing: 0.16em; text-transform: uppercase; margin-top: 14px; }
+
+/* Process disclosure */
+.disclosure { margin-top: 22px; }
+.disclosure summary { cursor: pointer; padding: 12px 16px; background: var(--wine-tint); color: var(--wine); border-radius: var(--r-sm); font: 700 12px/1 var(--f-sans); letter-spacing: 0.04em; list-style: none; user-select: none; display: flex; align-items: center; gap: 10px; }
+.disclosure summary::before { content: '＋'; font-family: var(--f-mono); }
+.disclosure[open] summary::before { content: '－'; }
+.disclosure .body { padding: 22px 24px; background: var(--bg-elevated); border-radius: 0 0 var(--r-md) var(--r-md); margin-top: -1px; font-size: 13.5px; color: var(--ink-soft); line-height: 1.6; }
+section:nth-child(even) .disclosure .body { background: var(--bg-surface); }
+.disclosure .body strong { color: var(--ink); }
+
+/* External link card */
+.ext-link { display: flex; align-items: center; gap: 14px; padding: 16px 18px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); text-decoration: none; transition: all 160ms; }
+section:nth-child(even) .ext-link { background: var(--bg-base); }
+.ext-link:hover { border-color: var(--wine); transform: translateX(4px); }
+.ext-link .badge { width: 44px; height: 44px; background: var(--wine); color: white; border-radius: var(--r-sm); display: grid; place-items: center; font: 900 18px/1 'Archivo Black', sans-serif; }
+.ext-link .info { flex: 1; }
+.ext-link .info .t { font: 700 14px/1.2 var(--f-sans); color: var(--ink); }
+.ext-link .info .s { font: 500 12px/1.3 var(--f-sans); color: var(--ink-soft); margin-top: 3px; }
+.ext-link .arrow { font: 700 18px/1 var(--f-mono); color: var(--wine); }
+
+/* Voice & tone */
+.tone-matrix { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.tone-card { padding: 22px; border-radius: var(--r-md); }
+.tone-card.formal { background: #0F1E3D; color: white; }
+.tone-card.cercano { background: #7F0F1A; color: white; }
+.tone-card.urgente { background: #F2F0EC; color: var(--ink); border: 1px solid #B8893A; }
+.tone-card h4 { color: inherit; opacity: 0.85; font-family: 'Archivo Black'; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
+.tone-card .ex { font: 900 16px/1.3 'Archivo Black', sans-serif; margin: 14px 0 10px; }
+.tone-card .when { font-size: 12px; opacity: 0.8; }
+.tone-card.urgente h4 { color: #B8893A; }
+
+/* Footer */
+.bb-foot { padding: 56px 64px; background: var(--bg-sidebar); color: rgba(255,255,255,0.7); text-align: center; }
+.bb-foot .lockup .mark { color: white; }
+.bb-foot .lockup .mark .dtd { color: #C2747F; }
+.bb-foot .lockup .mark .cargo { color: white; }
+.bb-foot p { font: 500 11.5px/1.6 var(--f-mono); margin-top: 22px; }
+
+@media print {
+  .sidebar, .sidebar-foot { display: none; }
+  .shell { grid-template-columns: 1fr; }
+  section { page-break-inside: avoid; padding: 36px 28px; }
+  #cover { min-height: auto; }
+}
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .sidebar { position: relative; height: auto; }
+  section { padding: 48px 24px; }
+  .row-2, .row-3, .row-4, .palette-grid, .tone-matrix { grid-template-columns: 1fr 1fr; }
+  .icon-strip { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-head">
+    <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" class="iso" />
+    <div class="title">DTD Cargo</div>
+    <div class="v">Brand Book · v3.0</div>
+    <div class="sub">Sistema completo de identidad y aplicaciones de marca. Mayo 2026.</div>
+  </div>
+  <nav id="bb-nav">
+    <div class="group-label">Fundamento</div>
+    <a href="#cover"><span class="n">00</span>Portada</a>
+    <a href="#changelog"><span class="n">01</span>Changelog v2→v3</a>
+    <a href="#foundation"><span class="n">02</span>Fundamento de marca</a>
+    <a href="#heritage"><span class="n">03</span>Heritage 2008-2026</a>
+    <div class="group-label">Sistema visual</div>
+    <a href="#logo"><span class="n">04</span>Logo · 4 variantes</a>
+    <a href="#type"><span class="n">05</span>Tipografía</a>
+    <a href="#color"><span class="n">06</span>Paleta de color</a>
+    <a href="#icons"><span class="n">07</span>Iconografía</a>
+    <a href="#apps"><span class="n">08</span>Aplicaciones · 12 piezas</a>
+    <div class="group-label">Lenguaje</div>
+    <a href="#photo"><span class="n">09</span>Sistema fotográfico</a>
+    <a href="#voice"><span class="n">10</span>Voice & tone</a>
+    <a href="#motion"><span class="n">11</span>Brand in motion</a>
+    <div class="group-label">Operación</div>
+    <a href="#crm"><span class="n">12</span>CRM & contactos</a>
+    <a href="#appendix"><span class="n">13</span>Apéndices</a>
+  </nav>
+  <div class="sidebar-foot">
+    <button class="btn-download" onclick="window.print()">⎙ Imprimir / PDF</button>
+    <div class="meta">v3.0 · 26 May 2026</div>
+  </div>
+</aside>
+
+<!-- ══════════════════ MAIN ══════════════════ -->
+<div class="main">
+
+<!-- ══════════ COVER ══════════ -->
+<section id="cover">
+  <div class="cover-inner">
+    <div class="cover-eyebrow">DTD-Cargo · Brand Book</div>
+    <h1>v3.0 · <span class="accent">una marca,</span><br/>un sistema completo.</h1>
+    <div class="cover-tag">Identidad visual + aplicaciones operacionales + voz de marca. Reseteo desde el isólogo oficial al spinner de la app móvil — todo coherente, todo derivable.</div>
+    <div class="cover-meta">
+      <div><span class="k">Versión</span><span class="v">3.0</span></div>
+      <div><span class="k">Fecha</span><span class="v">May 2026</span></div>
+      <div><span class="k">Páginas</span><span class="v">14</span></div>
+      <div><span class="k">Assets</span><span class="v">+ 40</span></div>
+    </div>
+    <div class="cover-cta">
+      <a href="#changelog" class="btn primary">→ Ver cambios v2.4 → v3.0</a>
+      <a href="#logo" class="btn ghost">Ir al logo</a>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 01 · CHANGELOG ══════════ -->
+<section id="changelog">
+  <div class="sec-head">
+    <div class="num">01 / CHANGELOG</div>
+    <h2>De v2.4 a v3.0 · qué cambió</h2>
+    <p class="lead">Esto NO es un patch — es una revisión mayor. El logo se reconstruyó, las variantes se sistematizaron y se agregaron 5 sistemas nuevos.</p>
+  </div>
+  <div class="changelog">
+    <div class="row"><span class="tag chg">CHANGED</span><div><strong>Wordmark</strong> · de <code>DTDCARGO</code> (una palabra, mayúsculas) a <code>DTD Cargo</code> (dos palabras, capitalizado, Archivo Black, gap 0.15em)</div></div>
+    <div class="row"><span class="tag add">NEW</span><div><strong>4 variantes oficiales del isólogo</strong> con reglas WCAG · primary · reverse · mono-light · mono-dark</div></div>
+    <div class="row"><span class="tag add">NEW</span><div><strong>Sistema de 15 íconos de perfil</strong> · 8 roles individuales + 7 grupos / canales WhatsApp</div></div>
+    <div class="row"><span class="tag add">NEW</span><div><strong>12 aplicaciones de marca</strong> · favicon, factura, sello, sticker pack, QR, mapa, watermark, etc.</div></div>
+    <div class="row"><span class="tag add">NEW</span><div><strong>Sistema fotográfico</strong>, <strong>voice & tone</strong>, <strong>brand in motion</strong> · placeholders en este book</div></div>
+    <div class="row"><span class="tag add">NEW</span><div><strong>Sección "Heritage"</strong> con timeline oficial 2008 → 2026 (de la web)</div></div>
+    <div class="row"><span class="tag chg">CHANGED</span><div><strong>Año de fundación reconocido</strong>: 2008 (orígenes comerciales) — DTD Cargo formal desde 2010</div></div>
+    <div class="row"><span class="tag rem">REMOVED</span><div><strong>Filtros CSS</strong> <code>filter: brightness(0) invert(1)</code> sobre el isólogo — reemplazados por variantes nativas</div></div>
+    <div class="row"><span class="tag rem">REMOVED</span><div><strong>Uso de wine-soft</strong> en el wordmark · ahora wine-soft es solo acento decorativo (charts, badges)</div></div>
+    <div class="row"><span class="tag chg">CHANGED</span><div><strong>Regla de contraste WCAG 3:1 mínimo</strong> · documentada y enforceable por archivo (no se inventan combos)</div></div>
+  </div>
+</section>
+
+<!-- ══════════ 02 · FOUNDATION ══════════ -->
+<section id="foundation">
+  <div class="sec-head">
+    <div class="num">02 / FUNDAMENTO DE MARCA</div>
+    <h2>Misión, propósito, tagline</h2>
+    <p class="lead">El "para qué" antes del "cómo se ve". Esto es lo que la marca dice antes de mostrar nada.</p>
+  </div>
+  <div class="row-2">
+    <div class="card">
+      <div class="eyebrow">Tagline oficial</div>
+      <h3 style="font-size: 26px; margin-top: 10px;"><span style="color: var(--wine);">Con confianza,</span><br/>de China a tu puerta.</h3>
+      <p style="font-size: 14px; color: var(--ink-soft); margin-top: 14px;">Tagline corto, claro, repetible. Lo único que necesita un cliente para entender qué hacemos.</p>
+    </div>
+    <div class="card paper">
+      <div class="eyebrow">Sub-claim</div>
+      <h3 style="font-size: 20px; margin-top: 10px;">Construyendo confianza<br/>cliente a cliente,<br/>contenedor a contenedor.</h3>
+      <p style="font-size: 14px; color: var(--ink-soft); margin-top: 14px;">Voz interna · filosofía operativa. Define el tono "sin bulla, con resultados".</p>
+    </div>
+  </div>
+  <div class="pull" style="margin-top: 22px;">
+    <p>"El boca a boca nos ha mantenido sólidos y constantes. No necesitamos tanta bulla cuando los resultados hablan por sí solos."</p>
+    <div class="attr">— Filosofía DTD-Cargo</div>
+  </div>
+  <details class="disclosure">
+    <summary>Cómo llegamos a este tagline</summary>
+    <div class="body">El tagline anterior era genérico ("Logística end-to-end"). En mayo 2026 lo refinamos a <strong>"Con confianza, de China a tu puerta."</strong> — antepone el valor diferencial (confianza, construida cliente a cliente) antes que la promesa funcional. La voz pasa de transaccional a relacional, sin perder claridad sobre qué hace la empresa.</div>
+  </details>
+</section>
+
+<!-- ══════════ 03 · HERITAGE ══════════ -->
+<section id="heritage">
+  <div class="sec-head">
+    <div class="num">03 / HERITAGE</div>
+    <h2>2008 → 2026 · 18 años, 12 hitos</h2>
+    <p class="lead">La historia oficial. De primer viaje a Yiwu a 12+ servicios entre China y Latam.</p>
+  </div>
+  <div class="row-2" style="gap: 36px;">
+    <div>
+      <div class="timeline">
+        <div class="ev highlight"><span class="year">2008</span><h4>Orígenes comerciales en China</h4><p>Primer viaje de compra al país asiático.</p></div>
+        <div class="ev highlight"><span class="year">2010</span><h4>Fundación DTD-Cargo</h4><p>Se formaliza la operación logística. Primera alianza en Guangzhou.</p></div>
+        <div class="ev"><span class="year">2011</span><h4>Multi-destino + Venezuela FCL</h4><p>Operación a varios países. Venezuela arranca con Full Container Load.</p></div>
+        <div class="ev"><span class="year">2012</span><h4>Demanda LCL</h4><p>Aumenta la consolidación de varios clientes por embarque.</p></div>
+        <div class="ev highlight"><span class="year">2013</span><h4>Sede en Yiwu</h4><p>Apertura en el mayor mercado mayorista del mundo.</p></div>
+        <div class="ev"><span class="year">2014</span><h4>Door-to-door</h4><p>Servicio puerta-a-puerta para clientes que necesitan end-to-end.</p></div>
+      </div>
+    </div>
+    <div>
+      <div class="timeline">
+        <div class="ev highlight"><span class="year">2015</span><h4>DTD Services Venezuela</h4><p>LCL puerta-a-puerta dedicado al mercado venezolano.</p></div>
+        <div class="ev"><span class="year">2016</span><h4>QC + lab testing estándar</h4><p>Verificación de proveedores como parte del flujo.</p></div>
+        <div class="ev"><span class="year">2019</span><h4>8 servicios</h4><p>Bodega Yiwu ampliada. Suite logística consolidada.</p></div>
+        <div class="ev"><span class="year">2020</span><h4>Pandemia · rutas activas</h4><p>Importación de equipos médicos cuando el mercado se paralizó.</p></div>
+        <div class="ev"><span class="year">2024</span><h4>10 servicios + courier aéreo</h4><p>Etiquetado, muestras y aéreo se suman al catálogo.</p></div>
+        <div class="ev highlight"><span class="year">2026</span><h4>12+ modalidades · ERP propio</h4><p>Cobertura end-to-end entre China y Latam con plataforma propia.</p></div>
+      </div>
+    </div>
+  </div>
+  <div class="placeholder" style="margin-top: 32px;">
+    <div class="ph-icon">📷</div>
+    <h4>Fotos de hitos · placeholder</h4>
+    <p>4 fotos clave: oficina Yiwu, equipo Valencia, primer contenedor 2010, certificación 2016.</p>
+    <div class="ph-tags"><span>FOTO YIWU</span><span>FOTO VLN</span><span>FOTO PRIMER FCL</span><span>FOTO QC LAB</span></div>
+  </div>
+</section>
+
+<!-- ══════════ 04 · LOGO ══════════ -->
+<section id="logo">
+  <div class="sec-head">
+    <div class="num">04 / SISTEMA DE LOGO</div>
+    <h2>Isólogo + wordmark · 4 variantes oficiales</h2>
+    <p class="lead">El isólogo es PNG nativo. El wordmark se construye con Archivo Black: <code style="font-family:var(--f-mono); background:var(--bg-elevated); padding:2px 6px; border-radius:3px;">DTD</code> en wine, gap 0.15em, <code style="font-family:var(--f-mono); background:var(--bg-elevated); padding:2px 6px; border-radius:3px;">Cargo</code> en navy.</p>
+  </div>
+
+  <div class="card" style="text-align: center; padding: 48px;">
+    <div class="lockup" style="--mark-size: 48px;">
+      <img src="assets/dtdcargo-isologo-primary.png" style="width: 80px;" alt="" />
+      <span class="mark" style="font-size: 48px;"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
+    </div>
+    <div style="margin-top: 14px; font: 500 11.5px/1.4 var(--f-mono); color: var(--ink-soft); letter-spacing: 0.06em;">PRIMARY · LOCKUP HORIZONTAL · v1.0</div>
+  </div>
+
+  <h3 style="margin-top: 36px;">Las 4 variantes oficiales</h3>
+  <div class="row-4">
+    <div class="variant">
+      <div class="canvas" style="background: #FFFFFF;"><img src="assets/dtdcargo-isologo-primary.png" /></div>
+      <div class="label"><div class="name">Primary</div><div class="meta">Sobre light · ratio 14.8:1</div></div>
+    </div>
+    <div class="variant">
+      <div class="canvas" style="background: #0F1E3D;"><img src="assets/dtdcargo-isologo-reverse.png" /></div>
+      <div class="label"><div class="name">Reverse</div><div class="meta">Sobre navy · ratio 12.4:1</div></div>
+    </div>
+    <div class="variant">
+      <div class="canvas" style="background: #7F0F1A;"><img src="assets/dtdcargo-isologo-mono-light.png" /></div>
+      <div class="label"><div class="name">Mono light</div><div class="meta">Sobre wine · ratio 7.2:1</div></div>
+    </div>
+    <div class="variant">
+      <div class="canvas" style="background: #F2F0EC;"><img src="assets/dtdcargo-isologo-mono-dark.png" /></div>
+      <div class="label"><div class="name">Mono dark</div><div class="meta">B&W · ratio 15.3:1</div></div>
+    </div>
+  </div>
+
+  <a class="ext-link" style="margin-top: 22px;" href="Logo Oficial.html" target="_blank">
+    <div class="badge">→</div>
+    <div class="info">
+      <div class="t">Abrir Logo Oficial · spec interactiva</div>
+      <div class="s">Carrusel de variantes · tweaks en vivo · descarga PNG por variante</div>
+    </div>
+    <div class="arrow">↗</div>
+  </a>
+
+  <details class="disclosure">
+    <summary>Decisiones de construcción del logo</summary>
+    <div class="body">El logo viejo (v2.4) usaba <strong>DTDCARGO como una sola palabra</strong> en mayúsculas. Detectamos 3 problemas: (1) el primary navy+wine era <strong>invisible sobre fondos navy</strong> del sistema (ratio 1.1:1 — incumple WCAG), (2) el wordmark fusionado no se podía editar letra-por-letra para imprenta, (3) no había sistema de variantes documentado. La v3.0 separa el wordmark en dos palabras (<strong>DTD Cargo</strong>) con Archivo Black, gap mínimo 0.15em, define 4 variantes oficiales con reglas de contraste WCAG, y elimina los filtros CSS <code>brightness(0) invert(1)</code> que eran un parche para tapar el problema 1.</div>
+  </details>
+</section>
+
+<!-- ══════════ 05 · TYPE ══════════ -->
+<section id="type">
+  <div class="sec-head">
+    <div class="num">05 / TIPOGRAFÍA</div>
+    <h2>4 familias · roles fijos</h2>
+    <p class="lead">Ninguna otra fuente. Ni Inter, ni Roboto, ni system-ui.</p>
+  </div>
+
+  <div class="type-row">
+    <div class="specimen" style="font-family: 'Archivo Black', sans-serif; font-weight: 900;">Archivo Black · 900</div>
+    <div class="meta">
+      <span><strong>Token</strong> <code>--f-display</code></span>
+      <span><strong>Uso</strong> H1, H2, KPI values, código destacado</span>
+      <span><strong>Source</strong> Google Fonts</span>
+    </div>
+  </div>
+  <div class="type-row">
+    <div class="specimen" style="font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 36px;">Archivo · 400/500/600/700</div>
+    <div class="meta">
+      <span><strong>Token</strong> <code>--f-sans</code></span>
+      <span><strong>Uso</strong> Body, labels, buttons, navegación</span>
+    </div>
+  </div>
+  <div class="type-row">
+    <div class="specimen" style="font-family: 'JetBrains Mono', monospace; font-weight: 500; font-size: 36px;">JetBrains Mono · DTDU-472819</div>
+    <div class="meta">
+      <span><strong>Token</strong> <code>--f-mono</code></span>
+      <span><strong>Uso</strong> MARKBOX, container IDs, facturas, HS codes, fechas en tablas</span>
+    </div>
+  </div>
+  <div class="type-row">
+    <div class="specimen" style="font-family: 'Noto Sans SC', sans-serif; font-weight: 900; font-size: 36px;">Noto Sans SC · 义乌·瓦伦西亚</div>
+    <div class="meta">
+      <span><strong>Token</strong> <code>--f-cn</code></span>
+      <span><strong>Uso</strong> SOLO chino mandarín — direcciones CN, nombres bilingües</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 06 · COLOR ══════════ -->
+<section id="color">
+  <div class="sec-head">
+    <div class="num">06 / PALETA</div>
+    <h2>Tokens duales · light + dark</h2>
+    <p class="lead">Nunca hex literales en código. Siempre <code style="font-family:var(--f-mono); background:var(--bg-elevated); padding:2px 6px; border-radius:3px;">var(--*)</code>.</p>
+  </div>
+  <h3>Wine · acento principal</h3>
+  <div class="palette-grid">
+    <div class="swatch"><div class="chip" style="background: #7F0F1A;"></div><div class="name">Wine</div><div class="token">--wine</div><div class="hex">#7F0F1A</div></div>
+    <div class="swatch"><div class="chip" style="background: #5E0A12;"></div><div class="name">Wine deep</div><div class="token">--wine-deep</div><div class="hex">#5E0A12</div></div>
+    <div class="swatch"><div class="chip" style="background: #C2747F;"></div><div class="name">Wine soft</div><div class="token">--wine-soft</div><div class="hex">#C2747F</div></div>
+    <div class="swatch"><div class="chip" style="background: rgba(127,15,26,0.12);"></div><div class="name">Wine tint</div><div class="token">--wine-tint</div><div class="hex">rgba 0.12</div></div>
+  </div>
+
+  <h3 style="margin-top: 36px;">Backgrounds · superficies</h3>
+  <div class="palette-grid">
+    <div class="swatch"><div class="chip" style="background: #FBFAF7;"></div><div class="name">Base</div><div class="token">--bg-base</div><div class="hex">#FBFAF7</div></div>
+    <div class="swatch"><div class="chip" style="background: #FFFFFF; border: 1px solid var(--border);"></div><div class="name">Surface</div><div class="token">--bg-surface</div><div class="hex">#FFFFFF</div></div>
+    <div class="swatch"><div class="chip" style="background: #F2F0EC;"></div><div class="name">Elevated</div><div class="token">--bg-elevated</div><div class="hex">#F2F0EC</div></div>
+    <div class="swatch"><div class="chip" style="background: #0F1E3D;"></div><div class="name">Sidebar</div><div class="token">--bg-sidebar</div><div class="hex">#0F1E3D</div></div>
+  </div>
+
+  <h3 style="margin-top: 36px;">Texto · ink</h3>
+  <div class="palette-grid">
+    <div class="swatch"><div class="chip" style="background: #0F1E3D;"></div><div class="name">Ink</div><div class="token">--ink</div><div class="hex">#0F1E3D</div></div>
+    <div class="swatch"><div class="chip" style="background: #6B6B6B;"></div><div class="name">Ink soft</div><div class="token">--ink-soft</div><div class="hex">#6B6B6B</div></div>
+    <div class="swatch"><div class="chip" style="background: #9B9B9B;"></div><div class="name">Ink mute</div><div class="token">--ink-mute</div><div class="hex">#9B9B9B</div></div>
+    <div class="swatch"><div class="chip" style="background: #E8E6E2;"></div><div class="name">Border</div><div class="token">--border</div><div class="hex">#E8E6E2</div></div>
+  </div>
+
+  <h3 style="margin-top: 36px;">Funcionales · estados</h3>
+  <div class="palette-grid">
+    <div class="swatch"><div class="chip" style="background: #1F8A5B;"></div><div class="name">Success</div><div class="token">--success</div><div class="hex">#1F8A5B</div></div>
+    <div class="swatch"><div class="chip" style="background: #B8893A;"></div><div class="name">Warning</div><div class="token">--warning</div><div class="hex">#B8893A</div></div>
+    <div class="swatch"><div class="chip" style="background: #A8323E;"></div><div class="name">Danger</div><div class="token">--danger</div><div class="hex">#A8323E</div></div>
+    <div class="swatch"><div class="chip" style="background: #2A6FDB;"></div><div class="name">Info</div><div class="token">--info</div><div class="hex">#2A6FDB</div></div>
+  </div>
+</section>
+
+<!-- ══════════ 07 · ICONS ══════════ -->
+<section id="icons">
+  <div class="sec-head">
+    <div class="num">07 / ICONOGRAFÍA</div>
+    <h2>3 sets · 15 íconos de perfil + UI + operacional</h2>
+    <p class="lead">El set principal son los <strong>15 íconos de perfil</strong> (8 roles + 7 grupos) usados en directorio, CRM y WhatsApp.</p>
+  </div>
+
+  <h3>Íconos de perfil · 8 roles individuales</h3>
+  <div class="icon-strip" style="margin-bottom: 14px;">
+    <div class="cell" style="background: #0F1E3D; color: #FBFAF7;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Almacenista</div></div>
+    <div class="cell" style="background: #7F0F1A; color: #FBFAF7;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Transportista</div></div>
+    <div class="cell" style="background: #F2F0EC; color: #0F1E3D;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Logística</div></div>
+    <div class="cell" style="background: #0F1E3D; color: #7F0F1A;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Administración</div></div>
+    <div class="cell" style="background: #FBFAF7; color: #7F0F1A;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Contabilidad</div></div>
+    <div class="cell" style="background: #7F0F1A; color: #FBFAF7;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Compras</div></div>
+    <div class="cell" style="background: #0F1E3D; color: #C2747F;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Sub-CEO</div></div>
+    <div class="cell" style="background: #0B1428; color: #C2747F;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">CEO</div></div>
+  </div>
+
+  <h3 style="margin-top: 26px;">Íconos grupales · 7 canales</h3>
+  <div class="icon-strip" style="grid-template-columns: repeat(7, 1fr); margin-bottom: 14px;">
+    <div class="cell" style="background: #0F1E3D; color: #FBFAF7;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Oficina</div></div>
+    <div class="cell" style="background: #F2F0EC; color: #7F0F1A;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Despachos</div></div>
+    <div class="cell" style="background: #7F0F1A; color: #FBFAF7;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Marketing</div></div>
+    <div class="cell" style="background: #0F1E3D; color: #C2747F;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Redes Soc.</div></div>
+    <div class="cell" style="background: #0F1E3D; color: #7F0F1A;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">CRM</div></div>
+    <div class="cell" style="background: #0F1E3D; color: #7F0F1A;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Alianzas</div></div>
+    <div class="cell" style="background: #7F0F1A; color: #FBFAF7;"><div class="glyph"></div><div class="lbl" style="color: rgba(255,255,255,0.7);">Comunidad</div></div>
+  </div>
+
+  <a class="ext-link" style="margin-top: 22px;" href="Iconos de Perfil.html" target="_blank">
+    <div class="badge">→</div>
+    <div class="info">
+      <div class="t">Abrir Íconos de Perfil · 15 perfiles completos</div>
+      <div class="s">Animaciones por rol · descarga PNG @512/@1024 · números WA reales</div>
+    </div>
+    <div class="arrow">↗</div>
+  </a>
+
+  <div class="placeholder" style="margin-top: 22px;">
+    <div class="ph-icon">UI</div>
+    <h4>Set de íconos UI/operacional · placeholder</h4>
+    <p>Set de ~40 íconos de interfaz extraídos del ERP — dashboard, box, calc, truck, ship, etc. Hoy viven en <code style="font-family:var(--f-mono);">erp/icons.jsx</code>; necesitan estar sistematizados acá.</p>
+    <div class="ph-tags"><span>40 ICONOS UI</span><span>OUTLINE 1.6PX</span><span>GRILLA 24×24</span></div>
+  </div>
+</section>
+
+<!-- ══════════ 08 · APPS ══════════ -->
+<section id="apps">
+  <div class="sec-head">
+    <div class="num">08 / APLICACIONES</div>
+    <h2>12 piezas vivas · sistema extendido</h2>
+    <p class="lead">El isólogo no es solo el logo — se aplica a 12 touchpoints operacionales y comerciales.</p>
+  </div>
+  <div class="row-4" style="gap: 12px;">
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">01</div><h4 style="margin-top: 4px;">Favicon</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">16/32/64/180</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">02</div><h4 style="margin-top: 4px;">Factura A4</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Header estándar</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">03</div><h4 style="margin-top: 4px;">Sello jurídico</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Redondo · tinta wine</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">04</div><h4 style="margin-top: 4px;">Email signature</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">HTML embebible</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">05</div><h4 style="margin-top: 4px;">Spinner</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Loading animado</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">06</div><h4 style="margin-top: 4px;">Social pack</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">IG · LI · TT · X</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">07</div><h4 style="margin-top: 4px;">QR branded</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Isólogo central</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">08</div><h4 style="margin-top: 4px;">Emoji pack</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">16 emojis Slack</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">09</div><h4 style="margin-top: 4px;">Mapas pins</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">5 etapas tracking</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">10</div><h4 style="margin-top: 4px;">Photo watermark</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Trazabilidad foto</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">11</div><h4 style="margin-top: 4px;">Sticker caja</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">A6 · Zebra ZPL</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">12</div><h4 style="margin-top: 4px;">WA sticker pack</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">12 animados</p></div>
+  </div>
+
+  <a class="ext-link" style="margin-top: 22px;" href="Aplicaciones de Marca.html" target="_blank">
+    <div class="badge">→</div>
+    <div class="info">
+      <div class="t">Abrir Aplicaciones de Marca · 12 piezas interactivas</div>
+      <div class="s">Previews · código copiable · spec por pieza · exportables</div>
+    </div>
+    <div class="arrow">↗</div>
+  </a>
+</section>
+
+<!-- ══════════ 09 · PHOTO · placeholder ══════════ -->
+<section id="photo">
+  <div class="sec-head">
+    <div class="num">09 / SISTEMA FOTOGRÁFICO</div>
+    <h2>Cómo se ve una foto DTD <span style="color: var(--wine);">— placeholder</span></h2>
+    <p class="lead">Sistema fotográfico oficial. Falta contenido — son lineamientos a definir con el equipo.</p>
+  </div>
+  <div class="placeholder">
+    <div class="ph-icon">📷</div>
+    <h4>Sección fotográfica · pendiente de contenido</h4>
+    <p>Define qué fotos sí/no representan DTD: composición, filtros, color grading, do/don'ts. En logística la foto del bodeguero/inspector es prueba social diaria — necesita reglas.</p>
+    <div class="ph-tags"><span>FOTO MERCADERÍA</span><span>FOTO EQUIPO</span><span>FOTO RUTA</span><span>FOTO BODEGA</span><span>WATERMARK STYLE</span></div>
+  </div>
+  <details class="disclosure">
+    <summary>Qué incluiría esta sección cuando esté completa</summary>
+    <div class="body">
+      <strong>Tipos de foto cubiertos:</strong> (1) <strong>Foto de mercadería en bodega</strong> — encuadre, fondo, iluminación, ángulo, watermark obligatorio. (2) <strong>Foto de equipo</strong> — retrato vs candid, vestimenta admitida, locaciones aprobadas. (3) <strong>Foto de ruta y operación</strong> — buque, contenedor, camión: cuándo SI cuándo NO. (4) <strong>Foto de producto en cliente final</strong> — testimonio social. <br/><br/>
+      <strong>Reglas técnicas:</strong> color grading levemente cálido (no frío industrial), nada de stock fotos genéricas (penaliza), cuadrado 1:1 para social, 16:9 para hero web, 4:3 para watermark.<br/><br/>
+      <strong>Watermark spec:</strong> isólogo mono-light esquina inferior derecha, fondo rgba(0,0,0,0.4) + blur 4px, con MARKBOX/timestamp/bodega. Ya está definida en Aplicaciones de Marca #10.
+    </div>
+  </details>
+</section>
+
+<!-- ══════════ 10 · VOICE & TONE ══════════ -->
+<section id="voice">
+  <div class="sec-head">
+    <div class="num">10 / VOICE &amp; TONE</div>
+    <h2>Cómo hablamos <span style="color: var(--wine);">— placeholder</span></h2>
+    <p class="lead">Tres registros de tono según contexto. La marca se mueve entre los tres según urgencia y formalidad.</p>
+  </div>
+
+  <div class="tone-matrix">
+    <div class="tone-card formal">
+      <h4>Formal · documentos</h4>
+      <div class="ex">"Adjuntamos factura F-2026-0447 correspondiente al embarque DTDU-472819."</div>
+      <div class="when">Contratos, facturas, cotizaciones, comunicaciones legales.</div>
+    </div>
+    <div class="tone-card cercano">
+      <h4>Cercano · whatsapp</h4>
+      <div class="ex">"Llegó tu carga al puerto. Te aviso cuando salga de aduana ✓"</div>
+      <div class="when">WhatsApp con cliente recurrente, redes sociales, comunidad.</div>
+    </div>
+    <div class="tone-card urgente">
+      <h4>Urgente · operaciones</h4>
+      <div class="ex">"DTDU-472819 retenido en aduana. Acción requerida en 24h."</div>
+      <div class="when">Alertas operativas, escalación, situaciones críticas.</div>
+    </div>
+  </div>
+
+  <div class="placeholder" style="margin-top: 22px;">
+    <div class="ph-icon">A</div>
+    <h4>Glosario do/don't · pendiente</h4>
+    <p>Listado de palabras y frases que SÍ usamos vs las que NO. Incluye anglicismos permitidos, regionalismos VE/CN, expresiones a evitar.</p>
+    <div class="ph-tags"><span>SÍ: cotizar</span><span>SÍ: tracking</span><span>NO: "click acá"</span><span>NO: "¡genial!"</span><span>NO: emoji 🎉</span></div>
+  </div>
+</section>
+
+<!-- ══════════ 11 · BRAND IN MOTION ══════════ -->
+<section id="motion">
+  <div class="sec-head">
+    <div class="num">11 / BRAND IN MOTION</div>
+    <h2>Cómo se mueve la marca <span style="color: var(--wine);">— placeholder</span></h2>
+    <p class="lead">Animaciones, transiciones y micro-interacciones del sistema.</p>
+  </div>
+  <div class="placeholder">
+    <div class="ph-icon">▶</div>
+    <h4>Sección de motion · pendiente</h4>
+    <p>Especificación de spinner DTD, transitions ERP, tracking en vivo, micro-interacciones del portal. Hoy las animaciones existen pero no están sistematizadas como spec.</p>
+    <div class="ph-tags"><span>SPINNER 1.4s EASE</span><span>FADE-IN 200ms</span><span>SLIDE 240ms</span><span>TRACKING PULSE</span></div>
+  </div>
+  <details class="disclosure">
+    <summary>Animaciones ya implementadas (referencias)</summary>
+    <div class="body">
+      <strong>Ya en producción:</strong> spinner DTD (Aplicaciones de Marca #5), animaciones de íconos por rol (Iconos de Perfil — 15 distintas), transiciones de tabs en ERP (200ms ease), tracking pulse en mapa, badge dot animation. <strong>Falta documentar:</strong> velocidades canónicas, curvas de bezier, qué animar y qué dejar quieto.
+    </div>
+  </details>
+</section>
+
+<!-- ══════════ 12 · CRM ══════════ -->
+<section id="crm">
+  <div class="sec-head">
+    <div class="num">12 / CRM &amp; CONTACTOS</div>
+    <h2>Cómo llegan al equipo</h2>
+    <p class="lead">Cada rol y canal tiene su número. El fijo corporativo es la línea CRM · atención al cliente (no del CEO).</p>
+  </div>
+  <div class="row-2">
+    <div class="card">
+      <h3>Roles individuales · 8</h3>
+      <table style="width:100%; font-size: 12.5px; border-collapse: collapse; margin-top: 12px;">
+        <tr><td style="padding: 7px 0;">Almacenista</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 100 0001</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Transportista</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 495 0884</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Logística</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 414 888 8805</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Administración</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 241 414 7886</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Contabilidad</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 414 887 0000</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Compras</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 100 0006</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Sub-CEO</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 454 5325</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">CEO</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 414 884 0000</td></tr>
+      </table>
+    </div>
+    <div class="card paper">
+      <h3>Grupos · 7 canales</h3>
+      <table style="width:100%; font-size: 12.5px; border-collapse: collapse; margin-top: 12px;">
+        <tr><td style="padding: 7px 0;">Oficina</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 100 1000</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Despachos</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 100 1001</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Marketing</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 100 1002</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Redes Sociales</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 160 5202</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;"><strong>CRM · Atención</strong></td><td style="font-family: var(--f-mono); color: var(--wine); font-weight: 700;">+58 412 166 8021</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Alianzas Estratégicas</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 100 1003</td></tr>
+        <tr style="border-top: 1px solid var(--border);"><td style="padding: 7px 0;">Comunidad</td><td style="font-family: var(--f-mono); color: var(--wine);">+58 412 100 1004</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="card" style="margin-top: 22px;">
+    <div class="eyebrow">Direcciones oficiales</div>
+    <div class="row-2" style="margin-top: 14px; gap: 22px;">
+      <div>
+        <h4>Venezuela · sede</h4>
+        <p style="font-size: 13px; color: var(--ink-soft);">Edificio Kokuy · Av. Bolívar Norte · Valencia, Carabobo<br/><a href="mailto:Vzla@dtdcargo.com" style="color: var(--wine);">Vzla@dtdcargo.com</a></p>
+      </div>
+      <div>
+        <h4>China · sede Yiwu</h4>
+        <p style="font-size: 13px; color: var(--ink-soft);">Yiwu Port Phase II · Warehouse 2 · No. 2 (Cargo 7-11) · Yiwu City, Zhejiang<br/><a href="mailto:China@dtdcargo.com" style="color: var(--wine);">China@dtdcargo.com</a> · ☎ Sr. Sun +86 180 0689 1419</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 13 · APPENDIX ══════════ -->
+<section id="appendix">
+  <div class="sec-head">
+    <div class="num">13 / APÉNDICES</div>
+    <h2>Documentos técnicos vinculados</h2>
+    <p class="lead">Material complementario para devs, Claude Code y handoffs.</p>
+  </div>
+  <div style="display: flex; flex-direction: column; gap: 12px;">
+    <a class="ext-link" href="CLAUDE.md" target="_blank"><div class="badge">CL</div><div class="info"><div class="t">CLAUDE.md · reglas para AI</div><div class="s">Sistema de guardrails que todo agente de IA debe respetar al editar el codebase</div></div><div class="arrow">↗</div></a>
+    <a class="ext-link" href="BRAND-MIGRATION-2026-05.md" target="_blank"><div class="badge">MG</div><div class="info"><div class="t">BRAND-MIGRATION-2026-05.md</div><div class="s">Checklist de migración v2.4 → v3.0 con find/replace, archivos afectados y verificación</div></div><div class="arrow">↗</div></a>
+    <a class="ext-link" href="Logo Oficial.html" target="_blank"><div class="badge">LO</div><div class="info"><div class="t">Logo Oficial · interactivo</div><div class="s">Carrusel 4 variantes · spec técnica · descarga PNG</div></div><div class="arrow">↗</div></a>
+    <a class="ext-link" href="Iconos de Perfil.html" target="_blank"><div class="badge">IP</div><div class="info"><div class="t">Iconos de Perfil · 15 íconos</div><div class="s">Showcase + descarga PNG/SVG · animaciones por rol</div></div><div class="arrow">↗</div></a>
+    <a class="ext-link" href="Aplicaciones de Marca.html" target="_blank"><div class="badge">AM</div><div class="info"><div class="t">Aplicaciones de Marca · 12 piezas</div><div class="s">Sistema extendido a touchpoints operacionales</div></div><div class="arrow">↗</div></a>
+  </div>
+
+  <div class="card dark" style="margin-top: 36px;">
+    <div class="eyebrow" style="color: #C2747F;">Próximos pasos · v3.1</div>
+    <h3 style="color: white;">Lo que falta consolidar</h3>
+    <ul style="margin: 14px 0 0; padding-left: 20px; color: rgba(255,255,255,0.78); font-size: 13.5px;">
+      <li>Completar las 3 secciones placeholder (sistema fotográfico, voice & tone, brand in motion)</li>
+      <li>Sistematizar los 40 íconos UI del ERP en este book</li>
+      <li>Foto-shoot oficial · equipo Yiwu + equipo Valencia · 1er release v3.1</li>
+      <li>Producir los 12 entregables binarios (favicon ZIP, factura template, ZPL, sticker pack)</li>
+      <li>Coordinar con dev: migrar todas las referencias al logo viejo en el codebase (ver BRAND-MIGRATION)</li>
+    </ul>
+  </div>
+</section>
+
+</div>
+
+<!-- ══════════════════ FOOTER ══════════════════ -->
+<div class="bb-foot">
+  <div class="lockup" style="--mark-size: 24px;">
+    <img src="assets/dtdcargo-isologo-reverse.png" style="width: 36px;" alt="" />
+    <span class="mark" style="font-size: 24px;"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
+  </div>
+  <p>© 2026 DTD-Cargo · Doortudoor Services · Brand Book v3.0 · Mayo 2026<br/>www.dtdcargo.com · Made in Yiwu & Valencia</p>
+</div>
+
+</div>
+</div>
+
+<script>
+// Scroll-spy for sidebar
+const links = document.querySelectorAll('#bb-nav a');
+const sections = [...links].map(a => document.querySelector(a.getAttribute('href')));
+function spy() {
+  const y = window.scrollY + 100;
+  let active = sections[0];
+  sections.forEach((s) => { if (s && s.offsetTop <= y) active = s; });
+  links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + active.id));
+}
+window.addEventListener('scroll', spy, { passive: true });
+spy();
+</script>
+
+</body>
+</html>
