@@ -155,23 +155,12 @@
   max-width: 56ch;
 }
 
-/* Brand mark */
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-family: var(--font-archivo-black);
-  font-size: 22px;
-  letter-spacing: -0.01em;
-  line-height: 1;
-}
-.brand .b-dtd {
-  color: var(--color-wine);
-}
-.brand .b-cargo {
-  color: var(--color-ink);
-  margin-left: 2px;
-}
+/* Brand mark v3.0 — el styling vive inline en components/BrandMark.tsx
+   (4 variantes oficiales con colores específicos por fondo). Las clases
+   antiguas .brand / .b-dtd / .b-cargo se removieron porque renderizaban
+   "DTDCARGO" todo mayúsculas con letter-spacing -0.01em y gap margin,
+   incompatible con la spec v3.0 ("DTD Cargo" capitalizado, -0.02em,
+   gap 0.15em inline-block). */
 
 /* Buttons */
 .btn {

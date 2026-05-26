@@ -29,13 +29,13 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "DTD·CARGO — De China a tu puerta. Sin intermediarios.",
-    template: "%s · DTD·CARGO",
+    default: "DTD Cargo — Con confianza, de China a tu puerta.",
+    template: "%s · DTD Cargo",
   },
   description:
     "Logística end-to-end China → Venezuela desde 2010. Carga DDP puerta a puerta, agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
-  applicationName: "DTD·CARGO",
-  authors: [{ name: "DTD·CARGO" }],
+  applicationName: "DTD Cargo",
+  authors: [{ name: "DTD Cargo" }],
   keywords: [
     "logística China Venezuela",
     "carga DDP puerta a puerta",
@@ -52,24 +52,24 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_VE",
     url: SITE_URL,
-    siteName: "DTD·CARGO",
-    title: "DTD·CARGO — De China a tu puerta. Sin intermediarios.",
+    siteName: "DTD Cargo",
+    title: "DTD Cargo — Con confianza, de China a tu puerta.",
     description:
-      "Logística end-to-end China → Venezuela operando desde 2010. Carga DDP puerta a puerta con un único responsable.",
+      "Logística end-to-end China → Venezuela operando desde 2010. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [
       {
         url: BRAND_ASSETS.ogImage,
         width: 1200,
         height: 630,
-        alt: "DTD·CARGO — De China a tu puerta",
+        alt: "DTD Cargo — Con confianza, de China a tu puerta",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "DTD·CARGO — De China a tu puerta. Sin intermediarios.",
+    title: "DTD Cargo — Con confianza, de China a tu puerta.",
     description:
-      "Logística end-to-end China → Venezuela operando desde 2010. Carga DDP puerta a puerta con un único responsable.",
+      "Logística end-to-end China → Venezuela operando desde 2010. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [BRAND_ASSETS.ogImage],
   },
   icons: {
@@ -95,12 +95,12 @@ const jsonLd = {
   "@type": "LocalBusiness",
   name: CONTACT.legalName,
   url: SITE_URL,
-  // BRAND_ASSETS.logoFull es null (forzamos render por componente del lockup).
-  // Para Google Knowledge Panel necesitamos un asset real — usamos el isotipo PNG.
-  logo: `${SITE_URL}${BRAND_ASSETS.isotipo}`,
+  // Para Google Knowledge Panel usamos el isólogo oficial v3.0 variante primary
+  // (navy + wine sobre fondo claro — el más universal).
+  logo: `${SITE_URL}${BRAND_ASSETS.isologoPrimary}`,
   image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
   description:
-    "Logística end-to-end China → Venezuela operando desde 2010. Carga DDP puerta a puerta, agente de compra, inspección de fábrica, registro de marca y visa de negocios.",
+    "Logística end-to-end China → Venezuela operando desde 2010. Con confianza, de China a tu puerta — construyendo confianza cliente a cliente, contenedor a contenedor.",
   foundingDate: "2010",
   email: CONTACT.emailGeneral,
   telephone: CONTACT.ve.phone,

@@ -60,39 +60,41 @@ export const SHADOWS = {
   cardOnDark: "inset 0 1px 0 rgba(255,255,255,0.04), 0 8px 20px rgba(0,0,0,0.32), 0 24px 60px -20px rgba(0,0,0,0.5)",
 } as const;
 
+/**
+ * Sistema de assets de marca · DTD-Cargo v3.0 (mayo 2026).
+ *
+ * Fuente de verdad oficial:
+ *   docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html
+ *   docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md
+ *
+ * El isólogo oficial v3.0 tiene 4 variantes según el fondo. Usá `<BrandMark>`
+ * desde `components/BrandMark.tsx` que abstrae la selección de variante.
+ */
 export const BRAND_ASSETS = {
-  /**
-   * Lockup completo: null fuerza el render por componente (isotipo + wordmark CSS).
-   *
-   * Los SVG oficiales `dtdcargo-logo-lockup.svg` y `dtdcargo-logo-light.svg` embedean
-   * el isotipo PNG via `<image xlink:href="dtdcargo-isotipo.png">`. Esta referencia
-   * externa NO se resuelve cuando el SVG se carga como `<img src="...">` (restricción
-   * de seguridad del navegador). Resultado visible: solo wordmark sin isotipo.
-   *
-   * Solución: usar el fallback de BrandMark que renderiza `<Image src=isotipo.png />`
-   * + wordmark CSS con Archivo Black. Es brand-compliant (usa los archivos provistos
-   * y la fuente oficial; no recoloriza vía CSS filter).
-   */
-  logoFull: null as string | null,
-  logoFullDark: null as string | null,
-  /**
-   * Isotipo PNG directo (sin wrapper SVG). El wrapper SVG tendría el mismo problema
-   * de imagen externa no resuelta. PNG funciona en cualquier `<img>` context.
-   */
-  isotipo: "/brand/dtdcargo-isotipo.png",
-  /**
-   * Isotipo para fondos oscuros. Si es null, el componente aplica `filter: invert`
-   * (o el SVG light usa feColorMatrix interno).
-   */
-  isotipoDark: null as string | null,
+  /** Isólogo oficial v3.0 — variante PRIMARY (sobre fondo claro). 741×764, transparente. */
+  isologoPrimary: "/brand/dtdcargo-isologo-primary.png",
+  /** Isólogo oficial v3.0 — variante REVERSE (sobre fondo navy/oscuro). 741×764, transparente. */
+  isologoReverse: "/brand/dtdcargo-isologo-reverse.png",
+  /** Isólogo oficial v3.0 — variante MONO-LIGHT (cream sólido sobre wine). 741×764. */
+  isologoMonoLight: "/brand/dtdcargo-isologo-mono-light.png",
+  /** Isólogo oficial v3.0 — variante MONO-DARK (navy sólido B&W para imprenta). 741×764. */
+  isologoMonoDark: "/brand/dtdcargo-isologo-mono-dark.png",
+
   /** Ilustración hero del contenedor (SVG vectorial del handoff original). */
   containerSvg: "/brand/container.svg",
-  /** Favicon multi-size (.ico) del brand-export. */
+  /** Favicon multi-size (.ico). Pendiente regenerar con isólogo v3.0. */
   favicon: "/brand/favicon.ico",
-  /** Apple touch icon (180×180) del brand-export — para iOS home screen. */
+  /** Apple touch icon (180×180). Pendiente regenerar con isólogo v3.0. */
   appleIcon: "/brand/apple-touch-icon.png",
   /** OG image (1200×630) — preview en redes sociales / WhatsApp / X. */
   ogImage: "/brand/og-image.png",
+
+  /**
+   * @deprecated v2.x. Reemplazado por isologoPrimary en v3.0. Se mantiene la
+   * key únicamente porque JSON-LD legacy la consume en layout.tsx; nuevos
+   * usos deben referenciar isologoPrimary / isologoReverse / mono-*.
+   */
+  isotipo: "/brand/dtdcargo-isologo-primary.png",
 } as const;
 
 // Layout tokens
@@ -1339,16 +1341,28 @@ export const NEWS_POSTS: NewsPost[] = [
 export const HERO = {
   eyebrow: "Logística end-to-end · Desde 2008",
   /**
-   * Slogan dividido en 3 líneas.
-   * `accent: "wine"` = pintada en wine.
-   * `accent: "grey"` = pintada en grey-700.
-   * Sin accent = ink (default).
+   * Tagline oficial v3.0 (mayo 2026). Fuente:
+   *   docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html § 02
+   *
+   * Antes (v2.x): "De China a tu puerta. Sin intermediarios."
+   * Ahora (v3.0): "Con confianza, / de China a tu puerta."
+   *
+   * Por qué cambió (del brand book): "antepone el valor diferencial (confianza,
+   * construida cliente a cliente) antes que la promesa funcional. La voz pasa
+   * de transaccional a relacional, sin perder claridad."
+   *
+   * Layout: 2 líneas (NO hay 3ra "kicker"). Primera línea en wine, segunda
+   * en color default (ink/navy).
    */
   headline: [
-    { text: "DE CHINA", accent: null },
-    { text: "A TU PUERTA.", accent: "wine" as const },
-    { text: "SIN INTERMEDIARIOS.", accent: "grey" as const },
+    { text: "Con confianza,", accent: "wine" as const },
+    { text: "de China a tu puerta.", accent: null },
   ],
+  /**
+   * Sub-claim (voz interna · filosofía operativa). NO se renderiza en el hero;
+   * se usa en footer y otros copy secundarios donde aplique.
+   */
+  subClaim: "Construyendo confianza cliente a cliente, contenedor a contenedor.",
   subtitle:
     "Carga suelta DDP puerta a puerta, agente de compra en territorio, registro de marca y visa de negocios. Tu operación China-LATAM con un único responsable.",
   search: {
