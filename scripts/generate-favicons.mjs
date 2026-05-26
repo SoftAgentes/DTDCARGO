@@ -5,6 +5,7 @@
  * Outputs:
  *  - public/brand/favicon-16.png       (16×16, fondo transparente)
  *  - public/brand/favicon-32.png       (32×32, fondo transparente)
+ *  - public/brand/favicon.ico          (16+32+48, multi-size, legacy fallback)
  *  - public/brand/apple-touch-icon.png (180×180, fondo paper #FBFAF7)
  *
  * Decisiones:
@@ -16,11 +17,15 @@
  *   queda más limpio que dejar que el wallpaper se vea atrás del isólogo.
  * - Padding interno: el isólogo ocupa ~80% del canvas para que respire en
  *   tamaños chicos (sin padding se ve apretado a 16×16).
+ * - favicon.ico contiene 3 tamaños embebidos (16, 32, 48). IE/Edge legacy
+ *   y crawlers viejos lo prefieren sobre los <link rel="icon"> PNG.
  *
  * Uso:
  *   node scripts/generate-favicons.mjs
  */
 import sharp from "sharp";
+import toIco from "to-ico";
+import { writeFile } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -57,6 +62,27 @@ async function makeIcon(size, outFile, options = {}) {
   console.log(`✓ ${outFile} · ${size}×${size}${background ? " · fondo " + JSON.stringify(background) : " · transparente"}`);
 }
 
+/**
+ * Genera un PNG buffer en memoria (no toca disco) para alimentar to-ico.
+ * Usa el mismo padding/composite que makeIcon pero retorna Buffer.
+ */
+async function pngBuffer(size, paddingRatio = 0.08) {
+  const innerSize = Math.round(size * (1 - paddingRatio * 2));
+  const resized = await sharp(SRC)
+    .resize(innerSize, innerSize, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .toBuffer();
+  const pad = Math.round((size - innerSize) / 2);
+  return sharp({
+    create: {
+      width: size, height: size, channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([{ input: resized, left: pad, top: pad }])
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}
+
 console.log(`Source: ${SRC}\nOutput: ${OUT_DIR}\n`);
 
 await makeIcon(16, "favicon-16.png", { paddingRatio: 0.06 });
@@ -66,4 +92,14 @@ await makeIcon(180, "apple-touch-icon.png", {
   paddingRatio: 0.12,
 });
 
-console.log("\n✓ Listo. favicon.ico se mantiene del v2.x (legacy fallback IE).\n  Para regenerar el .ico hay que instalar un pkg adicional (to-ico).\n  Modern browsers usan los PNGs directamente vía <link rel='icon' type='image/png'>.");
+// favicon.ico multi-size (16 + 32 + 48) para fallback legacy IE / crawlers viejos.
+const [b16, b32, b48] = await Promise.all([
+  pngBuffer(16, 0.06),
+  pngBuffer(32, 0.08),
+  pngBuffer(48, 0.10),
+]);
+const icoBuffer = await toIco([b16, b32, b48]);
+await writeFile(join(OUT_DIR, "favicon.ico"), icoBuffer);
+console.log("✓ favicon.ico · 16+32+48 multi-size");
+
+console.log("\n✓ Listo. 4 archivos regenerados desde isologoPrimary v3.0.");
