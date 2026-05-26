@@ -200,6 +200,32 @@ export async function replyBugMessageAction(
     return { error: msgErr.message };
   }
 
+  // P1-3 (codex review): si el caller es reporter del bug y el bug está en
+  // 'espera', auto-avanzar a 'triaje'. Esto replica el side-effect del
+  // endpoint REST POST /api/studio/bugs/[id]/messages para que el flujo sea
+  // consistente vengas por la API o por el Drawer (que usa esta server
+  // action). D9 permite esta única excepción al "admin supervisa siempre"
+  // porque destraba el bug que el admin dejó esperando.
+  if (authorType === "user") {
+    const { data: bugCheck } = await supabase
+      .from("bug_reports")
+      .select("state, reporter_id")
+      .eq("id", input.bug_id)
+      .maybeSingle<{ state: string; reporter_id: string }>();
+
+    if (
+      bugCheck &&
+      bugCheck.state === "espera" &&
+      bugCheck.reporter_id === userResp.user.id
+    ) {
+      await supabase.rpc("bug_advance_state", {
+        p_bug_id: input.bug_id,
+        p_new_state: "triaje",
+        p_note: "Auto: reportador respondió",
+      });
+    }
+  }
+
   // Timeline entry (service_role)
   try {
     const supabaseAdmin = createAdminClient();
@@ -215,5 +241,6 @@ export async function replyBugMessageAction(
   }
 
   revalidatePath("/studio/bugs");
+  revalidatePath("/studio/mis-bugs");
   return { ok: true, bugId: input.bug_id };
 }

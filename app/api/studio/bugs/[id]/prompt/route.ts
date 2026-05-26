@@ -36,22 +36,28 @@ export async function GET(
     return NextResponse.json({ error: "No autorizado." }, { status: 401 });
   }
 
-  // Verificar rol admin del caller (RLS deja ver el bug si es admin o reporter,
-  // pero el prompt solo tiene sentido para admin)
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("role")
-    .maybeSingle<{ role: string }>();
-  if (link?.role !== "admin") {
-    return NextResponse.json(
-      { error: "Solo admins pueden generar el prompt." },
-      { status: 403 },
-    );
-  }
-
+  // P1-2 (codex review): cargar bug primero, despues validar que el caller
+  // sea admin DEL TENANT DEL BUG. La version anterior validaba role global
+  // sin tenant scope, permitiendo a un admin de otro tenant (que tenga
+  // acceso al bug como reporter via RLS) generar el prompt cross-tenant.
   const bug = await getBugDetail(supabase, id);
   if (!bug) {
     return NextResponse.json({ error: "Bug no encontrado." }, { status: 404 });
+  }
+
+  const { data: tenantLink } = await supabase
+    .from("user_tenants")
+    .select("role")
+    .eq("user_id", userResp.user.id)
+    .eq("tenant_id", bug.tenant_id)
+    .is("disabled_at", null)
+    .maybeSingle<{ role: string }>();
+
+  if (tenantLink?.role !== "admin") {
+    return NextResponse.json(
+      { error: "Solo admins del tenant del bug pueden generar el prompt." },
+      { status: 403 },
+    );
   }
 
   const [techData, messages] = await Promise.all([
