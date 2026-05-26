@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Iconos de Perfil · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css" />
+<link rel="stylesheet" href="iconos-perfiles/animations.css" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: var(--f-sans);
+    color: var(--ink);
+    background: var(--bg-base);
+    line-height: 1.5;
+  }
+  .page { max-width: 1320px; margin: 0 auto; padding: 56px 48px 96px; }
+  h1 { font-family: var(--f-display); font-size: 42px; letter-spacing: -0.025em; margin: 0 0 12px; line-height: 1.05; }
+  h2 { font-family: var(--f-display); font-size: 24px; letter-spacing: -0.01em; margin: 0 0 8px; }
+  h3 { font-family: var(--f-display); font-size: 18px; margin: 0 0 6px; }
+  .eyebrow { font: 600 11px/1 var(--f-sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--wine); margin-bottom: 14px; }
+  .lead { font-size: 16px; color: var(--ink-soft); max-width: 720px; }
+
+  .hero { display: grid; grid-template-columns: 1.4fr 1fr; gap: 48px; align-items: end; margin-top: 28px; padding-bottom: 36px; border-bottom: 1px solid var(--border); }
+  .hero-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 22px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
+  .hero-meta div { font-size: 13px; color: var(--ink-soft); }
+  .hero-meta strong { display: block; font-family: var(--f-display); font-size: 20px; color: var(--ink); letter-spacing: -0.01em; margin-bottom: 4px; }
+
+  .section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 64px 0 24px; gap: 24px; flex-wrap: wrap; }
+  .section-head .num { font: 700 13px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); margin-bottom: 6px; }
+  .section-head p { margin: 0; color: var(--ink-soft); font-size: 14px; max-width: 460px; }
+
+  /* ── Icon shell ──────────────────────────────── */
+  .icon-shell { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; position: relative; }
+  .icon-shell.is-interactive { cursor: pointer; transition: transform 160ms var(--ease); }
+  .icon-shell.is-interactive:hover { transform: scale(1.04); }
+  .icon-shell.is-interactive.is-playing { box-shadow: 0 0 0 3px rgba(127,15,26,0.18), 0 0 0 6px rgba(127,15,26,0.06); }
+
+  /* ── Role card ───────────────────────────────── */
+  .grid-roles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
+  .role-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl); padding: 28px; display: grid; grid-template-columns: auto 1fr; gap: 28px; align-items: start; box-shadow: var(--shadow-xs); transition: box-shadow 200ms var(--ease); }
+  .role-card:hover { box-shadow: var(--shadow-md); }
+  .role-avatars { display: flex; gap: 14px; align-items: center; }
+  .role-avatar { width: 128px; height: 128px; flex-shrink: 0; }
+  .role-avatar.is-small { width: 88px; height: 88px; }
+  .avatar-label { font: 600 10px/1 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-top: 8px; text-align: center; }
+  .role-body { min-width: 0; }
+  .role-tag { font: 600 10.5px/1 var(--f-mono); letter-spacing: 0.12em; text-transform: uppercase; color: var(--wine); margin-bottom: 8px; }
+  .role-desc { font-size: 13.5px; color: var(--ink-soft); margin: 8px 0 14px; }
+  .role-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .role-num { font: 700 11px/1.3 var(--f-mono); letter-spacing: 0.04em; color: var(--ink); padding: 6px 10px; background: var(--bg-elevated); border-radius: var(--r-sm); border: 1px solid var(--border); display: inline-flex; gap: 6px; align-items: center; }
+  .role-num .wa { color: #25D366; font-weight: 700; }
+  .role-num .wc { color: var(--wine); font-weight: 700; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    font: 600 11px/1 var(--f-sans); letter-spacing: 0.05em;
+    padding: 8px 12px; border-radius: var(--r-sm);
+    border: 1px solid var(--border); cursor: pointer;
+    background: var(--bg-surface); color: var(--ink);
+    transition: all 120ms;
+  }
+  .btn:hover { background: var(--bg-elevated); border-color: var(--border-strong); }
+  .btn.primary { background: var(--wine); color: white; border-color: transparent; }
+  .btn.primary:hover { background: var(--wine-deep); }
+
+  /* ── Avatars-strip showcase ───────────────────── */
+  .avatars-strip { display: grid; grid-template-columns: repeat(8, 1fr); gap: 14px; padding: 24px; background: var(--bg-sidebar); border-radius: var(--r-xl); margin-top: 16px; }
+  .avatars-strip:has(.pose:nth-child(7):last-child) { grid-template-columns: repeat(7, 1fr); }
+  .avatars-strip:has(.pose:nth-child(6):last-child) { grid-template-columns: repeat(6, 1fr); }
+  .avatars-strip:has(.pose:nth-child(4):last-child) { grid-template-columns: repeat(4, 1fr); }
+  .avatars-strip .pose { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .avatars-strip .pose .name { font: 600 10.5px/1.2 var(--f-sans); letter-spacing: 0.04em; color: rgba(255,255,255,0.85); text-align: center; }
+  .avatars-strip .pose .tag-mini { font: 500 10px/1 var(--f-mono); color: rgba(255,255,255,0.55); letter-spacing: 0.1em; }
+  .avatars-strip .pose .av { width: 100%; aspect-ratio: 1/1; max-width: 96px; }
+
+  /* ── CRM section ──────────────────────────────── */
+  .crm-card { background: var(--bg-sidebar); color: var(--ink-side); border-radius: var(--r-xl); padding: 36px 40px; display: grid; grid-template-columns: 200px 1fr; gap: 36px; align-items: center; margin-top: 16px; }
+  .crm-card h2 { color: white; font-size: 24px; }
+  .crm-card p { color: rgba(255,255,255,0.7); margin: 6px 0 14px; max-width: 560px; }
+  .crm-card .crm-avatar { width: 200px; aspect-ratio: 1/1; }
+  .crm-card code { font: 500 12px/1.4 var(--f-mono); padding: 2px 6px; background: rgba(255,255,255,0.08); border-radius: 3px; }
+  .crm-snippet { background: rgba(0,0,0,0.3); padding: 14px 16px; border-radius: var(--r-md); font: 500 11.5px/1.5 var(--f-mono); color: rgba(255,255,255,0.9); margin-top: 14px; overflow-x: auto; }
+  .crm-snippet .kw { color: #C2747F; }
+  .crm-snippet .str { color: #92E5B8; }
+  .crm-snippet .com { color: rgba(255,255,255,0.4); }
+
+  /* ── Toast ───────────────────────────────────── */
+  .toast { position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: white; padding: 12px 22px; border-radius: var(--r-md); font: 600 12.5px/1 var(--f-sans); box-shadow: var(--shadow-lg); opacity: 0; transition: all 200ms; pointer-events: none; z-index: 100; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  @media (max-width: 1100px) {
+    .grid-roles { grid-template-columns: 1fr; }
+    .hero { grid-template-columns: 1fr; }
+    .avatars-strip { grid-template-columns: repeat(4, 1fr); }
+    .crm-card { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<!-- ── HERO ─────────────────────────────────────────────── -->
+<div class="eyebrow">DTD-Cargo · Identidad digital</div>
+<h1>Iconos de perfil <span style="color: var(--wine);">por rol y por grupo</span></h1>
+<p class="lead">15 íconos: <strong>8 individuales</strong> (uno por persona) + <strong>7 grupales</strong> (oficina, despachos, marketing, redes sociales, CRM, alianzas, comunidad). Cada uno tiene versión <strong>fija</strong> (PNG estático para WhatsApp Business / WeChat) y <strong>interactiva</strong> (animación on-hover).</p></p>
+
+<div class="hero">
+  <div></div>
+  <div class="hero-meta">
+    <div><strong>15</strong>íconos totales</div>
+    <div><strong>8</strong>roles individuales</div>
+    <div><strong>7</strong>grupos / canales</div>
+    <div><strong>SVG</strong>nativo · export PNG @512 · @1024</div>
+  </div>
+</div>
+
+<!-- ── ROLES GRID ────────────────────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">01 / Roles individuales</div>
+    <h2>8 roles · uno por persona</h2>
+  </div>
+  <p>Para WhatsApp / WeChat personales de cada integrante. Click izquierdo en el ícono grande pinea la animación.</p>
+</div>
+
+<div id="grid-mount"></div>
+
+<!-- ── GROUPS GRID ───────────────────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">02 / Grupos y departamentos</div>
+    <h2>7 íconos · grupos y áreas</h2>
+  </div>
+  <p>Para grupos de WhatsApp del equipo y áreas funcionales — uno por canal.</p>
+</div>
+
+<div id="groups-mount"></div>
+
+<!-- ── STRIP COMPACTO · roles ────────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">03 / Distribución · roles</div>
+    <h2>Tira completa de roles individuales</h2>
+  </div>
+  <p>Cómo se ven los 8 perfiles juntos en el portal interno o el sidebar del ERP.</p>
+</div>
+<div id="strip-mount"></div>
+
+<!-- ── STRIP COMPACTO · grupos ───────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">04 / Distribución · grupos</div>
+    <h2>Tira de grupos y departamentos</h2>
+  </div>
+  <p>Los 7 canales grupales en formato avatar — para usar en el directorio del CRM o el sidebar interno.</p>
+</div>
+<div id="groups-strip-mount"></div>
+
+<!-- ── CRM / TELÉFONO FIJO ───────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">05 / CRM · línea oficial</div>
+    <h2>Teléfono corporativo · Atención al cliente</h2>
+  </div>
+  <p>El número fijo de la empresa con WhatsApp Business conectado al CRM. <strong>Atención al cliente</strong> — NO la línea del CEO.</p>
+</div>
+<div id="crm-mount"></div>
+
+</div>
+
+<div class="toast" id="toast">Listo</div>
+
+<!-- React + Babel -->
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="iconos-perfiles/icons-1.jsx"></script>
+<script type="text/babel" src="iconos-perfiles/icons-2.jsx"></script>
+<script type="text/babel" src="iconos-perfiles/icons-3.jsx"></script>
+<script type="text/babel" src="iconos-perfiles/showcase.jsx"></script>
+
+</body>
+</html>
