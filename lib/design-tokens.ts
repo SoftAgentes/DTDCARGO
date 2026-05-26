@@ -82,9 +82,13 @@ export const BRAND_ASSETS = {
 
   /** Ilustración hero del contenedor (SVG vectorial del handoff original). */
   containerSvg: "/brand/container.svg",
-  /** Favicon multi-size (.ico). Pendiente regenerar con isólogo v3.0. */
+  /** Favicon PNG 32×32 (regenerado desde isologoPrimary v3.0 vía scripts/generate-favicons.mjs). */
+  favicon32: "/brand/favicon-32.png",
+  /** Favicon PNG 16×16 (regenerado v3.0). */
+  favicon16: "/brand/favicon-16.png",
+  /** Favicon .ico legacy fallback (sin regenerar — modern browsers usan los PNG primero). */
   favicon: "/brand/favicon.ico",
-  /** Apple touch icon (180×180). Pendiente regenerar con isólogo v3.0. */
+  /** Apple touch icon 180×180 (regenerado v3.0 con fondo paper #FBFAF7). */
   appleIcon: "/brand/apple-touch-icon.png",
   /** OG image (1200×630) — preview en redes sociales / WhatsApp / X. */
   ogImage: "/brand/og-image.png",

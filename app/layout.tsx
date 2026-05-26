@@ -73,7 +73,13 @@ export const metadata: Metadata = {
     images: [BRAND_ASSETS.ogImage],
   },
   icons: {
-    icon: BRAND_ASSETS.favicon,
+    // Multi-size PNG primero, .ico al final como legacy fallback.
+    // Modern browsers eligen el PNG del tamaño que mejor matchea su tab bar.
+    icon: [
+      { url: BRAND_ASSETS.favicon32, sizes: "32x32", type: "image/png" },
+      { url: BRAND_ASSETS.favicon16, sizes: "16x16", type: "image/png" },
+      { url: BRAND_ASSETS.favicon, sizes: "any" }, // .ico legacy
+    ],
     apple: BRAND_ASSETS.appleIcon,
   },
   robots: {
