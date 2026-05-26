@@ -185,6 +185,22 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
       <p style="margin:20px 0;"><a href="{{review_url}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Revisar en el No-Olvidar →</a></p>
     `),
   },
+  {
+    slug: "team_invitation",
+    name: "Invitación al equipo · DTD Studio",
+    category: "interno",
+    channel: "email",
+    subject: "{{inviter_name}} te invitó a {{tenant_name}} · DTD Studio",
+    body_html: htmlBlock(`
+      <p>Hola,</p>
+      <p><strong>{{inviter_name}}</strong> te invitó a unirte al equipo de <strong>{{tenant_name}}</strong> en DTD Studio con el rol de <strong>{{role_label}}</strong>.</p>
+      <p>Aceptá tu invitación y creá tu cuenta:</p>
+      <p style="margin:20px 0;"><a href="{{invitation_link}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Aceptar invitación →</a></p>
+      <p style="color:#6B6B6B;font-size:13px;">El link expira en <strong>{{expires_in_days}}</strong> días. Si no esperabas esta invitación, ignorala — no se crea ninguna cuenta hasta que la aceptés.</p>
+      <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0;">
+      <p style="color:#6B6B6B;font-size:12px;margin:0;">¿Problemas con el link? Copialo a tu navegador:<br><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7F0F1A;word-break:break-all;">{{invitation_link}}</code></p>
+    `),
+  },
 ];
 
 /**

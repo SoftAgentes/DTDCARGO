@@ -10,13 +10,16 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { sendEmail } from "@/lib/studio/mail/send-email";
 import {
   changeUserRoleRPC,
   inviteUserRPC,
   tenantHasOtherAdmins,
 } from "@/lib/studio/user-queries";
 import {
+  ROLE_LABELS,
   invitationAcceptPath,
   validateInviteUserInput,
   type StudioUserRole,
@@ -53,6 +56,54 @@ export async function inviteUserAction(
       input.role,
     );
     const link = `${SITE_URL}${invitationAcceptPath(token)}`;
+
+    // SDD-0026 F2: intentar mandar email automáticamente. Si no hay
+    // RESEND_API_KEY o falla, NO rompemos la invitación · el admin tiene
+    // el link de fallback en la UI para copy/paste manual.
+    try {
+      const { data: link2 } = await supabase
+        .from("user_tenants")
+        .select("tenant_id")
+        .maybeSingle<{ tenant_id: string }>();
+      if (link2?.tenant_id) {
+        const supabaseAdmin = createAdminClient();
+        // Resolver nombre del inviter + nombre del tenant para vars
+        const [{ data: inviterProfile }, { data: tenant }] = await Promise.all([
+          supabase
+            .from("user_profiles")
+            .select("first_name, last_name")
+            .eq("user_id", userResp.user.id)
+            .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
+          supabase
+            .from("tenants")
+            .select("display_name")
+            .eq("id", link2.tenant_id)
+            .maybeSingle<{ display_name: string }>(),
+        ]);
+        const inviterName =
+          [inviterProfile?.first_name, inviterProfile?.last_name]
+            .filter(Boolean)
+            .join(" ")
+            .trim() || userResp.user.email || "Un admin";
+        const tenantName = tenant?.display_name ?? "DTD-Cargo";
+
+        await sendEmail(supabaseAdmin, link2.tenant_id, {
+          templateSlug: "team_invitation",
+          to: input.email,
+          vars: {
+            inviter_name: inviterName,
+            tenant_name: tenantName,
+            role_label: ROLE_LABELS[input.role],
+            invitation_link: link,
+            expires_in_days: "7",
+          },
+          metadata: { source: "inviteUserAction", invitation_id: invitationId },
+        });
+      }
+    } catch {
+      // Email es best-effort · invitación ya está creada
+    }
+
     revalidatePath("/studio/usuarios");
     return {
       ok: true,
