@@ -12,12 +12,15 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import {
   validateClientInput,
   type ClientActionState,
   type ClientInput,
   type ClientTier,
 } from "@/lib/studio/client-types";
+import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
+import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
 
 function parseStringOrNull(v: FormDataEntryValue | null): string | null {
   if (v == null) return null;
@@ -72,6 +75,13 @@ export async function createClientAction(
   }
   const markbox = String(markboxData);
 
+  // SDD-0032: defensive double check del formato post-RPC
+  if (!validateMarkboxFormat(markbox)) {
+    return {
+      error: `MARKBOX inválido generado: ${markbox}. Verificá el RPC next_markbox.`,
+    };
+  }
+
   const { error } = await supabase.from("clients").insert({
     tenant_id: link.tenant_id,
     markbox,
@@ -88,8 +98,23 @@ export async function createClientAction(
     return { error: `No se pudo crear el cliente: ${error.message}` };
   }
 
+  // SDD-0032: Email de bienvenida (soft · no rompe creación si falla)
+  let warning: string | undefined;
+  if (input!.email) {
+    const admin = createAdminClient();
+    const welcome = await sendWelcomeEmail(admin, link.tenant_id, {
+      markbox,
+      name: input!.name,
+      email: input!.email,
+    });
+    if (!welcome.ok) {
+      warning = `Email de bienvenida no se pudo encolar: ${welcome.error}`;
+      console.warn("[createClientAction] welcome email failed:", welcome.error);
+    }
+  }
+
   revalidatePath("/studio/clientes");
-  return { ok: true, createdMarkbox: markbox };
+  return { ok: true, createdMarkbox: markbox, warning };
 }
 
 export async function updateClientAction(
