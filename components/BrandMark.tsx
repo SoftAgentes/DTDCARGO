@@ -86,17 +86,18 @@ export function BrandMark({
   const resolved: Variant = variant ?? (onDark ? "reverse" : "primary");
   const cfg = VARIANT_CONFIG[resolved];
 
-  // Wordmark escala para que su cap-height (altura visible de las letras)
-  // sea igual al alto del isologo. BRAND-EXCEPTION 2026-05-27 autorizada por
-  // founder — diverge de la spec del brand book v3.0:
+  // Wordmark font-size = ancho del isologo (ratio 1.0). Iteración 3 sobre la
+  // proporción del lockup. Histórico:
+  //   - 0.34 (commit inicial v3.0): wordmark más chico que links del nav.
+  //   - 0.55 (fix de jerarquía):    bigger pero todavía sub-brand.
+  //   - 1.43 (cap-height=isologo):  overshooteó, se montaba sobre "Rastrear".
+  //   - 1.00 (actual):              ratio "natural", wordmark cap-height ~72%
+  //     del alto del isologo, claramente dominante sobre nav links sin
+  //     comerse el espacio del menú.
   //
-  //   spec brand book:        ratio 0.31-0.60 (wordmark visualmente más chico)
-  //   founder request:        "mismo tamaño que isologo al lado" → visual = 1.43
-  //
-  // Calculo: cap-height ≈ 0.72 * font-size (Archivo Black). Para que
-  // cap-height = isologoHeight (= size * 1.03), font-size = size * 1.03/0.72
-  // ≈ size * 1.43. Math.round mantiene pixel-perfect en cualquier escala.
-  const markFontSize = Math.round(size * 1.43);
+  // BRAND-EXCEPTION 2026-05-27 autorizada por founder — sigue divergiendo de
+  // la spec canónica del brand book v3.0 (0.31-0.60), pero más cerca.
+  const markFontSize = Math.round(size * 1.0);
   // Gap horizontal entre isólogo y wordmark ~18% del alto del isólogo.
   const gap = Math.round(size * 0.18);
 
