@@ -17,6 +17,72 @@
 
 ---
 
+## 🖼 Logo y wordmark · sistema oficial v3.0 (mayo 2026)
+
+> Spec completa: [`docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md`](docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md) y [`Logo Oficial.html`](docs/design/brand-book/v3.0/proyecto/Logo%20Oficial.html).
+> Implementación en este repo: [`components/BrandMark.tsx`](components/BrandMark.tsx).
+
+### Las 4 variantes oficiales del isólogo
+
+| Variante | Archivo | Sobre fondo | Ratio WCAG |
+|---|---|---|---|
+| **primary** | `/brand/dtdcargo-isologo-primary.png` | light, paper, white | 14.8 : 1 |
+| **reverse** | `/brand/dtdcargo-isologo-reverse.png` | navy, ink, sidebar | 12.4 : 1 |
+| **mono-light** | `/brand/dtdcargo-isologo-mono-light.png` | wine, CTAs, alertas | 7.2 : 1 |
+| **mono-dark** | `/brand/dtdcargo-isologo-mono-dark.png` | paper, B&W, sello jurídico | 15.3 : 1 |
+
+### Wordmark · "DTD Cargo" (DOS palabras, NO "DTDCARGO")
+
+- Fuente: **`Archivo Black`** (font-weight 900)
+- `DTD` color wine `#7F0F1A` · `Cargo` color ink `#0F1E3D` (primary)
+- Letter-spacing: `-0.02em`
+- Gap entre palabras: `0.15em` vía `<span style="display:inline-block; width:0.15em">` (no espacio HTML, no margin-left)
+- **Nunca** "DTDCARGO" todo mayúsculas — siempre "DTD Cargo"
+- **Nunca** "CARGO" todo mayúsculas en el wordmark — siempre "Cargo" capitalizado
+
+### Reglas absolutas del logo
+
+1. **Nunca** `dtdcargo-isologo-primary.png` sobre fondo navy/wine — ratio 1.1:1 → invisible.
+2. **Nunca** `filter: brightness(0) invert(1)` sobre el isólogo. Ya existe `mono-light` que es cream sólido nativo.
+3. **Nunca** usar `var(--color-wine-soft)` en el texto "DTD" del wordmark. `wine-soft` es acento decorativo (charts, badges, hover), no del logo.
+4. **Nunca** inventar variantes nuevas. Son exactamente 4: primary · reverse · mono-light · mono-dark.
+5. **Nunca** usar `Inter`, `Roboto`, `system-ui` para el wordmark. Solo `Archivo Black`.
+
+### Uso
+
+```tsx
+import { BrandMark } from "@/components/BrandMark";
+
+<BrandMark asLink />                          // Nav (fondo claro) → primary
+<BrandMark onDark size={48} />                // Footer (fondo ink) → reverse
+<BrandMark variant="mono-light" size={44} />  // Sobre wine
+<BrandMark variant="mono-dark" size={60} />   // B&W sello
+<BrandMark variant="primary" isologoOnly />   // Solo símbolo (favicon, avatar)
+```
+
+---
+
+## ✨ Tagline oficial v3.0 (mayo 2026)
+
+```
+Con confianza,
+de China a tu puerta.
+```
+
+- Línea 1 (`Con confianza,`) → color **wine** `#7F0F1A`
+- Línea 2 (`de China a tu puerta.`) → color **ink/navy** (default)
+- 2 líneas. **NO** hay tercera línea kicker como v2.x ("Sin intermediarios" desapareció).
+
+**Sub-claim** (voz interna, footer y copy secundario, no para hero):
+> Construyendo confianza cliente a cliente, contenedor a contenedor.
+
+**Por qué cambió** (del brand book):
+> "Antepone el valor diferencial (confianza, construida cliente a cliente) antes que la promesa funcional. La voz pasa de transaccional a relacional, sin perder claridad."
+
+Source of truth en código: `HERO.headline` en [`lib/design-tokens.ts`](lib/design-tokens.ts).
+
+---
+
 ## 🎨 Sistema de color · ÚNICA fuente de verdad
 
 Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX cuando exista un token equivalente.

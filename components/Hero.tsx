@@ -14,66 +14,34 @@ export function Hero() {
         <div>
           <span className="eyebrow">{HERO.eyebrow}</span>
           {/*
-           * H1 con stepped hierarchy editorial (Pentagram/NYT style):
-           * - Línea 1 (DE CHINA): grande — el origen geográfico
-           * - Línea 2 (A TU PUERTA.): el más grande, wine — el value prop
-           * - Línea 3 (SIN INTERMEDIARIOS.): kicker chico — el commitment
-           * El kicker más chico amplifica el slogan por contraste, no lo debilita.
-           * Permite que ninguna línea desborde el column (~560px) sin sacrificar
-           * impacto del statement principal.
+           * H1 · tagline oficial v3.0 (mayo 2026):
+           *   "Con confianza, / de China a tu puerta."
+           *
+           * Spec del brand book: línea 1 en wine (#7F0F1A) como antesala del
+           * valor diferencial, línea 2 en ink (default) como la promesa
+           * funcional. Ambas mismo peso visual — la jerarquía la da el color,
+           * no el tamaño (a diferencia del v2.x que tenía 3 líneas con stepped
+           * hierarchy + kicker).
            */}
-          <h1 className="h-display mt-5 leading-[0.92]">
-            {HERO.headline.map((line, i) => {
-              const isKicker = i === HERO.headline.length - 1;
-              if (isKicker) {
-                return (
-                  <span
-                    key={i}
-                    className="block"
-                    style={{
-                      fontFamily: "var(--font-archivo)",
-                      fontSize: "clamp(20px, 2.4vw, 36px)",
-                      color: "var(--color-grey-700)",
-                      fontWeight: 700,
-                      marginTop: "0.6em",
-                      letterSpacing: "0.02em",
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: "var(--color-wine)",
-                        marginRight: "0.4em",
-                      }}
-                    >
-                      —
-                    </span>
-                    {line.text}
-                  </span>
-                );
-              }
-              return (
-                <span
-                  key={i}
-                  className="block"
-                  style={{
-                    fontSize:
-                      i === 0
-                        ? "clamp(40px, 6vw, 92px)"
-                        : "clamp(44px, 6.5vw, 100px)",
-                    color:
-                      line.accent === "wine"
-                        ? "var(--color-wine)"
-                        : line.accent === "grey"
-                          ? "var(--color-grey-700)"
-                          : undefined,
-                    marginTop: i > 0 ? "-0.04em" : undefined,
-                  }}
-                >
-                  {line.text}
-                </span>
-              );
-            })}
+          <h1 className="h-display mt-5 leading-[0.95]">
+            {HERO.headline.map((line, i) => (
+              <span
+                key={i}
+                className="block"
+                style={{
+                  fontSize: "clamp(40px, 6.2vw, 92px)",
+                  color:
+                    line.accent === "wine"
+                      ? "var(--color-wine)"
+                      : line.accent === "grey"
+                        ? "var(--color-grey-700)"
+                        : undefined,
+                  marginTop: i > 0 ? "-0.04em" : undefined,
+                }}
+              >
+                {line.text}
+              </span>
+            ))}
           </h1>
           <p
             className="mt-6 mb-8 text-[17px] leading-[1.55] max-w-[48ch]"

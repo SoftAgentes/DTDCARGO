@@ -1,143 +1,153 @@
 import Image from "next/image";
 import Link from "next/link";
-import { BRAND_ASSETS } from "@/lib/design-tokens";
 
-type Variant = "lockup" | "isotipo" | "wordmark";
+/**
+ * Sistema oficial de marca DTD-Cargo v3.0 (mayo 2026).
+ * Fuente de verdad: docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html
+ *
+ * Cambios vs v2.x:
+ * - Wordmark pasa de "DTDCARGO" (1 palabra, todo mayúsculas) a "DTD Cargo"
+ *   (2 palabras separadas, "Cargo" capitalizado, no all-caps).
+ * - 4 variantes oficiales del isólogo según fondo: primary, reverse,
+ *   mono-light, mono-dark.
+ * - Gap entre DTD y Cargo: 0.15em vía inline-block span (no margin).
+ * - Letter-spacing: -0.02em (era -0.01em).
+ * - `wine-soft` se prohibió para el wordmark — sigue siendo decorativo.
+ */
+
+type Variant = "primary" | "reverse" | "mono-light" | "mono-dark";
+
+const VARIANT_CONFIG: Record<
+  Variant,
+  { file: string; dtd: string; cargo: string }
+> = {
+  primary: {
+    file: "/brand/dtdcargo-isologo-primary.png",
+    dtd: "#7F0F1A", // wine
+    cargo: "#0F1E3D", // ink/navy
+  },
+  reverse: {
+    file: "/brand/dtdcargo-isologo-reverse.png",
+    dtd: "#7F0F1A", // wine sólido (NO wine-soft, según v3.0)
+    cargo: "#FBFAF7", // cream
+  },
+  "mono-light": {
+    file: "/brand/dtdcargo-isologo-mono-light.png",
+    dtd: "#FBFAF7",
+    cargo: "#FBFAF7",
+  },
+  "mono-dark": {
+    file: "/brand/dtdcargo-isologo-mono-dark.png",
+    dtd: "#0F1E3D",
+    cargo: "#0F1E3D",
+  },
+};
 
 type Props = {
   /**
-   * Variante de la marca.
-   * - `lockup` (default): ícono + wordmark "DTD CARGO". Usado en nav, footer.
-   * - `isotipo`: solo el símbolo (sin texto). Usado en favicons, watermarks.
-   * - `wordmark`: solo el texto "DTD CARGO" (sin ícono). Usado en places muy compactos.
+   * Variante oficial del isólogo según fondo:
+   * - `primary` (default): isólogo navy+wine sobre fondos claros (paper, white).
+   * - `reverse`: isólogo cream+wine sobre fondos oscuros (navy, sidebar).
+   * - `mono-light`: cream sólido sobre wine (CTAs, alertas).
+   * - `mono-dark`: navy sólido B&W (impresión, sello).
    */
   variant?: Variant;
-  /** Tamaño del ícono en px. Default 38. */
+  /** Tamaño del isólogo en px (default 38). El wordmark escala automático. */
   size?: number;
-  /** Si es true, ajusta colores para fondos oscuros. */
+  /**
+   * Legacy alias de v2.x: `onDark={true}` equivale a `variant="reverse"`.
+   * Mantenido para no romper imports existentes. `variant` tiene precedencia.
+   */
   onDark?: boolean;
-  /** Si es true, renderiza como link a la home. */
+  /** Si true, renderiza como `<Link href="/">` para uso en navbar. */
   asLink?: boolean;
+  /** Si true, oculta el wordmark (solo isólogo — favicons, watermarks). */
+  isologoOnly?: boolean;
   className?: string;
 };
 
 /**
- * Marca DTD·CARGO — fuente única de la marca en el sitio.
+ * Lockup oficial DTD-Cargo.
  *
- * Cuando llegue el logo final, basta con actualizar `BRAND_ASSETS` en
- * `lib/design-tokens.ts` y dejar los archivos en `public/brand/`. Si
- * `logoFull` (SVG con ícono+wordmark integrados) está seteado, este
- * componente lo usa directo. Si es `null`, renderiza el isotipo PNG +
- * el wordmark "DTD" wine + "CARGO" ink como composición CSS.
+ * - Nav (fondo claro): `<BrandMark asLink />` → variant primary
+ * - Footer (fondo ink oscuro): `<BrandMark onDark size={48} />` → variant reverse
+ * - CTA sobre wine: `<BrandMark variant="mono-light" />`
+ * - Sello B&W: `<BrandMark variant="mono-dark" />`
  */
 export function BrandMark({
-  variant = "lockup",
+  variant,
   size = 38,
   onDark = false,
   asLink = false,
+  isologoOnly = false,
   className = "",
 }: Props) {
-  const content = renderVariant({ variant, size, onDark, className });
+  // Resolve variant: prop `variant` > legacy `onDark` shortcut > primary default
+  const resolved: Variant = variant ?? (onDark ? "reverse" : "primary");
+  const cfg = VARIANT_CONFIG[resolved];
+
+  // Wordmark escala como ~34% del ancho del isólogo (spec brand book v3.0).
+  const markFontSize = Math.round(size * 0.34);
+  // Gap horizontal entre isólogo y wordmark ~18% del alto del isólogo.
+  const gap = Math.round(size * 0.18);
+
+  // Isólogo es 741×764 → aspect ratio 0.97. Mantenemos width fijo y dejamos
+  // que la altura se ajuste vía aspect-ratio del Image.
+  const isologoHeight = Math.round(size * (764 / 741));
+
+  const content = (
+    <span
+      className={className}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: `${gap}px`,
+        lineHeight: 1,
+      }}
+    >
+      <Image
+        src={cfg.file}
+        alt="DTD Cargo"
+        width={size}
+        height={isologoHeight}
+        priority
+        style={{
+          width: size,
+          height: isologoHeight,
+          objectFit: "contain",
+          display: "block",
+        }}
+      />
+      {!isologoOnly && (
+        <span
+          style={{
+            fontFamily: "var(--font-archivo-black)",
+            fontWeight: 900,
+            fontSize: `${markFontSize}px`,
+            letterSpacing: "-0.02em",
+            lineHeight: 0.9,
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span style={{ color: cfg.dtd }}>DTD</span>
+          {/* Gap entre palabras vía inline-block (no espacio HTML).
+              Spec brand book v3.0: width: 0.15em. */}
+          <span
+            aria-hidden
+            style={{ display: "inline-block", width: "0.15em" }}
+          />
+          <span style={{ color: cfg.cargo }}>Cargo</span>
+        </span>
+      )}
+    </span>
+  );
+
   if (asLink) {
     return (
-      <Link href="/" aria-label="DTD·CARGO — Inicio">
+      <Link href="/" aria-label="DTD Cargo — Inicio">
         {content}
       </Link>
     );
   }
   return content;
-}
-
-function renderVariant({
-  variant,
-  size,
-  onDark,
-  className,
-}: Required<Omit<Props, "asLink">>) {
-  // 1) LOCKUP — el caso normal: ícono + wordmark
-  if (variant === "lockup") {
-    // ¿Hay logo lockup pre-armado? úsalo directo
-    const lockupSrc = onDark
-      ? BRAND_ASSETS.logoFullDark ?? BRAND_ASSETS.logoFull
-      : BRAND_ASSETS.logoFull;
-
-    if (lockupSrc) {
-      return (
-        <Image
-          src={lockupSrc}
-          alt="DTD CARGO"
-          width={size * 4.5}
-          height={size}
-          priority
-          className={className}
-          style={{ width: "auto", height: size }}
-        />
-      );
-    }
-
-    // Fallback: isotipo + wordmark CSS
-    return (
-      <span className={`brand ${className}`}>
-        <Isotipo size={size} onDark={onDark} />
-        <Wordmark onDark={onDark} />
-      </span>
-    );
-  }
-
-  // 2) ISOTIPO — solo el símbolo
-  if (variant === "isotipo") {
-    return <Isotipo size={size} onDark={onDark} className={className} />;
-  }
-
-  // 3) WORDMARK — solo el texto
-  return (
-    <span className={`brand ${className}`}>
-      <Wordmark onDark={onDark} />
-    </span>
-  );
-}
-
-function Isotipo({
-  size,
-  onDark,
-  className = "",
-}: {
-  size: number;
-  onDark: boolean;
-  className?: string;
-}) {
-  const src = onDark
-    ? BRAND_ASSETS.isotipoDark ?? BRAND_ASSETS.isotipo
-    : BRAND_ASSETS.isotipo;
-  // Si no hay versión dark dedicada, aplicamos filter para invertir el isotipo.
-  const needsFilter = onDark && !BRAND_ASSETS.isotipoDark;
-  return (
-    <Image
-      src={src}
-      alt="DTD CARGO"
-      width={size}
-      height={size}
-      priority
-      className={className}
-      style={{
-        width: size,
-        height: "auto",
-        filter: needsFilter ? "brightness(0) invert(0.92)" : undefined,
-      }}
-    />
-  );
-}
-
-function Wordmark({ onDark }: { onDark: boolean }) {
-  return (
-    <span>
-      <span className="b-dtd">DTD</span>
-      <span
-        className="b-cargo"
-        style={onDark ? { color: "rgba(255,255,255,0.85)" } : undefined}
-      >
-        CARGO
-      </span>
-    </span>
-  );
 }
