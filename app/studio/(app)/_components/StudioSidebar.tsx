@@ -37,6 +37,10 @@ export const MODULES: ModuleDef[] = [
   { id: "ve", group: "OPERACIÓN", label: "Almacén VE", icon: "warehouse", slug: "/studio/ve" },
   { id: "seniat", group: "OPERACIÓN", label: "Aduana SENIAT", icon: "shield", slug: "/studio/seniat" },
   { id: "tms", group: "OPERACIÓN", label: "TMS · Transporte", icon: "truck", slug: "/studio/tms" },
+  { id: "despacho", group: "OPERACIÓN", label: "Despacho", icon: "truck", slug: "/studio/despacho" },
+  { id: "despacho-rules", group: "OPERACIÓN", label: "Reglas despacho", icon: "shield", slug: "/studio/despacho/reglas" },
+  { id: "despacho-dashboard", group: "OPERACIÓN", label: "Dashboard despacho", icon: "chart", slug: "/studio/despacho/dashboard" },
+  { id: "admin-rutas", group: "OPERACIÓN", label: "Rutas y ciudades", icon: "radar", slug: "/studio/admin/rutas" },
 
   // COMERCIAL
   { id: "quotes", group: "COMERCIAL", label: "Cotizador", icon: "calc", slug: "/studio/cotizador" },
