@@ -759,11 +759,13 @@ function ActionsTab({
           {copyStatus === "idle" && "Copiar prompt para Claude Code"}
         </button>
         <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--ink-soft)" }}>
-          Pegá el prompt en Claude Code, resolvé el bug y commiteá con{" "}
+          Pegá el prompt en Claude Code (otra ventana), revisá el fix que te propone
+          y aplicalo vos. Cuando lo commitees usá{" "}
           <code style={{ fontFamily: "var(--font-mono, monospace)", color: "var(--wine)" }}>
             fix: {bug.folio}
           </code>{" "}
-          para cerrarlo automático.
+          como convención de trazabilidad. <strong>Después</strong> cambiá el estado a
+          “Resuelto” a mano desde acá — no hay cierre automático.
         </p>
       </section>
 

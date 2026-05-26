@@ -117,8 +117,10 @@ export default async function BugsAdminPage({
           }}
         >
           Bugs, mejoras y sugerencias reportados desde el FAB del Studio.
-          Tomá uno desde el Kanban, conversá con quien lo reportó, y cuando
-          lo resuelvas commiteá con{" "}
+          Tomá uno desde el Kanban, conversá con quien lo reportó, usá
+          “Copiar prompt” para asistirte con Claude Code en otra ventana, y
+          cuando aplicaste el fix marcá el bug como resuelto vos mismo desde
+          el drawer. Convención de commit:{" "}
           <code
             style={{
               fontFamily: "var(--font-mono, 'JetBrains Mono')",
@@ -131,7 +133,7 @@ export default async function BugsAdminPage({
           >
             fix: BUG-XXXXX
           </code>{" "}
-          para cerrarlo automático.
+          (sólo trazabilidad, no dispara nada).
         </p>
       </div>
 

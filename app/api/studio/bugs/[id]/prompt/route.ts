@@ -128,7 +128,11 @@ export async function GET(
   // Footer
   lines.push(`---`);
   lines.push(
-    `**Tu tarea:** resolvé este bug. Cuando hagas el commit, usá el mensaje \`fix: ${bug.folio} — <resumen>\` para que el webhook GitHub lo cierre automático.`,
+    `**Tarea:** investigá este bug y proponé un fix. El admin (humano) revisa tu propuesta antes de aplicarla y decide cuándo cerrar el bug manualmente en /studio/bugs. NO hay cierre automático.`,
+  );
+  lines.push(``);
+  lines.push(
+    `**Convención de commit cuando el fix se apruebe:** \`fix: ${bug.folio} — <resumen>\` (queda como trazabilidad, no dispara nada automático).`,
   );
 
   const prompt = lines.join("\n");
