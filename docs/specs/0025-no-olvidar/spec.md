@@ -1,6 +1,6 @@
 ---
 sdd: "0025"
-title: "DoorTuDoor — Vault interno DTD-CARGO · envelope encryption + admin recovery"
+title: "DoorTuDoor — No-Olvidar interno DTD-CARGO · envelope encryption + admin recovery"
 status: approved
 author: "founder"
 created: 2026-05-24
@@ -10,20 +10,20 @@ superseded_by: null
 related: ["0007"]
 ---
 
-# DTD-0025 — Vault interno DTD-CARGO · envelope encryption + admin recovery
+# DTD-0025 — No-Olvidar interno DTD-CARGO · envelope encryption + admin recovery
 
 > **Caja fuerte interna para DTD-CARGO.** Gestor de contraseñas y secretos
 > empresariales (redes sociales, accesos a plataformas de proveedores, API keys
 > internas) para uso EXCLUSIVO de los empleados de DTD-CARGO. No es feature para
 > tenants externos — el scope cerrado permite arquitectura custodial con
 > emergency recovery administrativa en lugar de zero-knowledge puro.
-> Reemplaza el placeholder `EmptyState` actual de `/studio/vault`.
+> Reemplaza el placeholder `EmptyState` actual de `/studio/no-olvidar`.
 
 ---
 
 ## 1. Resumen en una línea
 
-`/studio/vault` permite a los empleados de DTD-CARGO guardar contraseñas y
+`/studio/no-olvidar` permite a los empleados de DTD-CARGO guardar contraseñas y
 secretos cifrados con **envelope encryption** (KEK maestra en Supabase Vault +
 DEK por item con `libsodium` XChaCha20-Poly1305), gateaway por 2FA TOTP
 obligatorio, con audit log append-only y **emergency recovery M-of-N** cuando
@@ -38,17 +38,17 @@ un user pierde el acceso.
 #### Schema (migración 0013)
 
 - 6 enums:
-  - `vault_category`: `login` / `note` / `card` / `totp`
-  - `vault_audit_action`: `view` / `copy` / `edit` / `create` / `delete` / `unlock` / `recovery_requested` / `recovery_approved` / `recovery_executed` / `kek_rotated`
-  - `vault_recovery_status`: `pending` / `approved` / `rejected` / `expired` / `completed`
-  - `vault_user_role`: `member` / `admin` (admin = puede aprobar recoveries y rotar KEK)
-  - `vault_kek_status`: `active` / `legacy` / `revoked`
-  - `vault_alert_severity`: `info` / `warning` / `critical`
+  - `no_olvidar_category`: `login` / `note` / `card` / `totp`
+  - `no_olvidar_audit_action`: `view` / `copy` / `edit` / `create` / `delete` / `unlock` / `recovery_requested` / `recovery_approved` / `recovery_executed` / `kek_rotated`
+  - `no_olvidar_recovery_status`: `pending` / `approved` / `rejected` / `expired` / `completed`
+  - `no_olvidar_user_role`: `member` / `admin` (admin = puede aprobar recoveries y rotar KEK)
+  - `no_olvidar_kek_status`: `active` / `legacy` / `revoked`
+  - `no_olvidar_alert_severity`: `info` / `warning` / `critical`
 
 - 6 tablas:
-  - **`vault_items`** (RLS por user_id, owner puede SELECT/UPDATE/DELETE soft):
+  - **`no_olvidar_items`** (RLS por user_id, owner puede SELECT/UPDATE/DELETE soft):
     id uuid PK, user_id uuid FK auth.users (owner), name text NOT NULL,
-    category vault_category NOT NULL, url text nullable,
+    category no_olvidar_category NOT NULL, url text nullable,
     username text nullable (NO encriptado para enable search),
     ciphertext bytea NOT NULL (payload sensible cifrado),
     nonce bytea NOT NULL (24 bytes XChaCha20),
@@ -58,7 +58,7 @@ un user pierde el acceso.
     notes_preview text nullable (primeros 60 chars en plaintext para preview),
     favorite bool default false, created_at, updated_at, deleted_at
 
-  - **`vault_user_keys`** (1 row por user, RLS estricta):
+  - **`no_olvidar_user_keys`** (1 row por user, RLS estricta):
     user_id uuid PK FK auth.users,
     has_master_password bool default false,
     master_password_verifier bytea nullable (Argon2id hash, validar al unlock),
@@ -72,40 +72,40 @@ un user pierde el acceso.
     totp_secret_nonce bytea NOT NULL,
     totp_enabled bool default false,
     setup_completed bool default false,
-    role vault_user_role default 'member',
+    role no_olvidar_user_role default 'member',
     last_unlock_at timestamptz,
     failed_unlock_attempts int default 0,
     locked_until timestamptz nullable (rate limit anti brute-force),
     created_at, updated_at
 
-  - **`vault_access_log`** (APPEND-ONLY, RLS bloquea UPDATE+DELETE para todos
+  - **`no_olvidar_access_log`** (APPEND-ONLY, RLS bloquea UPDATE+DELETE para todos
     incluyendo service_role):
     id uuid PK, user_id uuid FK NOT NULL, item_id uuid FK nullable
     (nullable porque algunas actions como unlock no apuntan a item),
-    action vault_audit_action NOT NULL,
+    action no_olvidar_audit_action NOT NULL,
     ip_address inet, user_agent text,
     metadata jsonb default '{}' (contexto extra: recovery_id, key_version, etc.),
     created_at timestamptz default now() NOT NULL
 
-  - **`vault_recovery_requests`**:
+  - **`no_olvidar_recovery_requests`**:
     id uuid PK, requester_user_id uuid FK,
     reason text NOT NULL (motivo escrito por el user),
-    status vault_recovery_status default 'pending',
+    status no_olvidar_recovery_status default 'pending',
     approvals jsonb default '[]' (array de `{approver_id, approved_at, ip}`),
-    approvals_required int default 2 (M de M-of-N, leído de vault_config al crear),
+    approvals_required int default 2 (M de M-of-N, leído de no_olvidar_config al crear),
     new_master_password_verifier bytea nullable (set al execute),
     new_master_password_salt bytea nullable,
     expires_at timestamptz NOT NULL (24h desde creación),
     completed_at timestamptz nullable, created_at, updated_at
 
-  - **`vault_kek_versions`** (registro auditado de rotaciones de KEK):
-    version int PK, vault_secret_name text NOT NULL (referencia a Supabase Vault),
-    status vault_kek_status default 'active',
+  - **`no_olvidar_kek_versions`** (registro auditado de rotaciones de KEK):
+    version int PK, kek_secret_name text NOT NULL (referencia a Supabase Vault),
+    status no_olvidar_kek_status default 'active',
     activated_at timestamptz default now(),
     deprecated_at timestamptz nullable, created_by uuid,
     notes text
 
-  - **`vault_config`** (1 row global, RLS solo lectura para members,
+  - **`no_olvidar_config`** (1 row global, RLS solo lectura para members,
     update para admins):
     id int PK default 1 CHECK (id = 1),
     recovery_approvals_required int default 2,
@@ -123,25 +123,25 @@ un user pierde el acceso.
     updated_at, updated_by uuid
 
 - RPCs (3):
-  - `vault_get_active_kek_version()` → int (caché de 5 min)
-  - `vault_rotate_kek(p_new_secret_name text, p_actor uuid)` → bool (transaction
+  - `no_olvidar_get_active_kek_version()` → int (caché de 5 min)
+  - `no_olvidar_rotate_kek(p_new_secret_name text, p_actor uuid)` → bool (transaction
     que marca versión actual como legacy y crea nueva activa)
-  - `vault_check_admin(p_user_id uuid)` → bool (helper para RLS de recovery)
+  - `no_olvidar_check_admin(p_user_id uuid)` → bool (helper para RLS de recovery)
 
 - RLS policies (críticas, listadas explícitas):
-  - `vault_items`: `SELECT/UPDATE/DELETE` solo si `user_id = auth.uid()`. `INSERT` si `user_id = auth.uid()` y user_keys.setup_completed = true.
-  - `vault_user_keys`: `SELECT/UPDATE` solo si `user_id = auth.uid()` (no INSERT/DELETE desde cliente, solo desde trigger de signup)
-  - `vault_access_log`: `SELECT` solo si `user_id = auth.uid()` (members) OR `vault_check_admin(auth.uid())` (admins ven todo). `INSERT` permitido a service_role solamente. **`UPDATE` y `DELETE` bloqueados para todos** (incluido service_role) via policy `FOR UPDATE USING (false)` + `FOR DELETE USING (false)`.
-  - `vault_recovery_requests`: `SELECT` para requester o cualquier admin. `INSERT` para cualquier user autenticado. `UPDATE` solo admins via RPC (no directo). `DELETE` bloqueado.
-  - `vault_kek_versions`: `SELECT` para admins. `INSERT/UPDATE` solo via RPC `vault_rotate_kek`.
-  - `vault_config`: `SELECT` todos los users autenticados. `UPDATE` solo admins.
+  - `no_olvidar_items`: `SELECT/UPDATE/DELETE` solo si `user_id = auth.uid()`. `INSERT` si `user_id = auth.uid()` y user_keys.setup_completed = true.
+  - `no_olvidar_user_keys`: `SELECT/UPDATE` solo si `user_id = auth.uid()` (no INSERT/DELETE desde cliente, solo desde trigger de signup)
+  - `no_olvidar_access_log`: `SELECT` solo si `user_id = auth.uid()` (members) OR `no_olvidar_check_admin(auth.uid())` (admins ven todo). `INSERT` permitido a service_role solamente. **`UPDATE` y `DELETE` bloqueados para todos** (incluido service_role) via policy `FOR UPDATE USING (false)` + `FOR DELETE USING (false)`.
+  - `no_olvidar_recovery_requests`: `SELECT` para requester o cualquier admin. `INSERT` para cualquier user autenticado. `UPDATE` solo admins via RPC (no directo). `DELETE` bloqueado.
+  - `no_olvidar_kek_versions`: `SELECT` para admins. `INSERT/UPDATE` solo via RPC `no_olvidar_rotate_kek`.
+  - `no_olvidar_config`: `SELECT` todos los users autenticados. `UPDATE` solo admins.
 
 - Trigger:
-  - `vault_user_keys` auto-creación: cuando se inserta nuevo row en `auth.users` con metadata `tenant = 'dtd-cargo'`, crear row en `vault_user_keys` con `setup_completed = false`.
+  - `no_olvidar_user_keys` auto-creación: cuando se inserta nuevo row en `auth.users` con metadata `tenant = 'dtd-cargo'`, crear row en `no_olvidar_user_keys` con `setup_completed = false`.
 
-- Seed inicial: NO seed de items (cada user los crea). SÍ seed de `vault_config` con defaults. KEK NO se siembra en migración — se crea manualmente post-deploy (ver sección 7).
+- Seed inicial: NO seed de items (cada user los crea). SÍ seed de `no_olvidar_config` con defaults. KEK NO se siembra en migración — se crea manualmente post-deploy (ver sección 7).
 
-#### Lib crypto (`lib/studio/vault/`)
+#### Lib crypto (`lib/studio/no-olvidar/`)
 
 - `crypto.ts` — wrappers `libsodium-wrappers` (NO `crypto-js`, NO bcrypt, NO Web Crypto V1):
   - `encryptPayload(plaintext: string, key: Uint8Array): { ciphertext, nonce }` — XChaCha20-Poly1305 secret box
@@ -157,11 +157,11 @@ un user pierde el acceso.
 - `key-manager.ts`:
   - `getActiveKek(supabase): Promise<{ version, key }>` — fetch KEK desde Supabase Vault via RPC `vault.decrypted_secrets`, cache in-memory 5 min con TTL
   - `getKekByVersion(supabase, version): Promise<Uint8Array>` — para descifrar items legacy post-rotación
-  - `rotateKek(supabase, actor): Promise<{ oldVersion, newVersion }>` — crea nuevo secret en Supabase Vault + llama RPC `vault_rotate_kek`
+  - `rotateKek(supabase, actor): Promise<{ oldVersion, newVersion }>` — crea nuevo secret en Supabase Vault + llama RPC `no_olvidar_rotate_kek`
   - `reEncryptAllItems(supabase, fromVersion, toVersion, actor): Promise<count>` — batch que toma todos los items con `key_version=fromVersion`, desencripta DEK, re-envuelve con nueva KEK, update. Idempotente.
 
 - `audit.ts`:
-  - `logAccess(supabase, params: { userId, itemId?, action, ip?, ua?, metadata? })` — INSERT en vault_access_log (con service_role para garantizar siempre se loggea)
+  - `logAccess(supabase, params: { userId, itemId?, action, ip?, ua?, metadata? })` — INSERT en no_olvidar_access_log (con service_role para garantizar siempre se loggea)
   - `getAccessLog(supabase, filters)` — query con paginación
   - `getAnomalies(supabase, window): Promise<Anomaly[]>` — heurísticas: ≥5 views en 1 min, accesos fuera de 06:00-23:00 VET, IP nueva (no vista en últimos 30d)
 
@@ -172,38 +172,38 @@ un user pierde el acceso.
   - `rejectRecovery(supabase, recoveryId, adminId, reason)`
 
 - `session.ts`:
-  - `validateUnlockSession(supabase, userId): Promise<{ unlocked: boolean, expiresAt }>` — chequea `last_unlock_at` vs `vault_config.session_timeout_minutes`
+  - `validateUnlockSession(supabase, userId): Promise<{ unlocked: boolean, expiresAt }>` — chequea `last_unlock_at` vs `no_olvidar_config.session_timeout_minutes`
   - `markUnlocked(supabase, userId): Promise<void>` — actualiza `last_unlock_at`
   - `incrementFailedAttempt(supabase, userId): Promise<{ locked: boolean, until }>` — si llega al threshold, setea `locked_until = now() + lockout_minutes`
 
 #### Lib types + queries
 
-- `lib/studio/vault-types.ts`:
+- `lib/studio/no-olvidar-types.ts`:
   - Types de las 6 entidades + DecryptedItem (= Item + plaintext)
   - Enums + LABELS + TONES (`categoryLabel`, `categoryIcon`, `categoryBadgeTone`, `actionLabel`, `roleLabel`)
   - Validators sin Zod: `validateCreateItemInput`, `validateUpdateItemInput`, `validateMasterPasswordInput` (mínimo 12 chars, complejidad razonable), `validateRecoveryRequestInput`
   - Helpers: `formatLastAccess`, `isSessionExpired`, `categoryDefaultFields`
 
-- `lib/studio/vault-queries.ts`:
+- `lib/studio/no-olvidar-queries.ts`:
   - `listItems(supabase, filters?)` — RLS aplica user_id automáticamente; filtros por category, search en name/url/username (NO en ciphertext)
   - `getItem(supabase, id)`
   - `getUserKeys(supabase, userId)`
   - `getRecoveryRequests(supabase, filters?)` — admin ve todas, user ve las propias
   - `getKekVersions(supabase)` — solo admin
-  - `computeVaultKpis(supabase)` — total_items, items_30d, recovery_pending, alerts_24h
+  - `computeNoOlvidarKpis(supabase)` — total_items, items_30d, recovery_pending, alerts_24h
 
-#### Pages (`app/studio/(app)/vault/`)
+#### Pages (`app/studio/(app)/no-olvidar/`)
 
-- `page.tsx` — **REFACTOR del placeholder**: si `setup_completed = false` → redirect a `/vault/setup`. Si sesión no unlocked → redirect a `/vault/2fa`. Si todo OK → renderiza VaultClient con lista de items + KPIs + tab "Audit" + tab "Recovery" (admin only).
-- `vault/setup/page.tsx` — wizard primer uso: paso 1 (intro + términos), paso 2 (set master password opcional + recovery kit auto-generado para imprimir), paso 3 (setup TOTP con QR), paso 4 (confirm done → `setup_completed = true`).
-- `vault/2fa/page.tsx` — gate de TOTP. Input código 6 dígitos + (opcional) master password si configurado. Submit → si OK → marca `last_unlock_at = now()` y redirect a `?next=` o `/vault`.
-- `vault/recovery/page.tsx` — flow recovery: user que perdió acceso pide reset (form con reason + email confirmation). Admin ve queue de pending requests.
-- `vault/admin/page.tsx` — admin only: lista KEK versions, botón rotar KEK, queue recoveries, config (M-of-N number, session timeout, etc.), audit log global.
+- `page.tsx` — **REFACTOR del placeholder**: si `setup_completed = false` → redirect a `/no-olvidar/setup`. Si sesión no unlocked → redirect a `/no-olvidar/2fa`. Si todo OK → renderiza NoOlvidarClient con lista de items + KPIs + tab "Audit" + tab "Recovery" (admin only).
+- `no-olvidar/setup/page.tsx` — wizard primer uso: paso 1 (intro + términos), paso 2 (set master password opcional + recovery kit auto-generado para imprimir), paso 3 (setup TOTP con QR), paso 4 (confirm done → `setup_completed = true`).
+- `no-olvidar/2fa/page.tsx` — gate de TOTP. Input código 6 dígitos + (opcional) master password si configurado. Submit → si OK → marca `last_unlock_at = now()` y redirect a `?next=` o `/no-olvidar`.
+- `no-olvidar/recovery/page.tsx` — flow recovery: user que perdió acceso pide reset (form con reason + email confirmation). Admin ve queue de pending requests.
+- `no-olvidar/admin/page.tsx` — admin only: lista KEK versions, botón rotar KEK, queue recoveries, config (M-of-N number, session timeout, etc.), audit log global.
 
-#### Components (`app/studio/(app)/vault/_components/`)
+#### Components (`app/studio/(app)/no-olvidar/_components/`)
 
-- `VaultClient.tsx` — orquestador con session timeout watchdog (cada 60s chequea `validateUnlockSession`; si expira → redirect 2FA)
-- `VaultKpis.tsx` (server) — 4 KPI cards (Total items / Items últimos 30d / Recovery pending / Alertas 24h)
+- `NoOlvidarClient.tsx` — orquestador con session timeout watchdog (cada 60s chequea `validateUnlockSession`; si expira → redirect 2FA)
+- `NoOlvidarKpis.tsx` (server) — 4 KPI cards (Total items / Items últimos 30d / Recovery pending / Alertas 24h)
 - `ItemList.tsx` — grid de cards con search + filter por category + favoritos arriba
 - `ItemCard.tsx` — preview con icon categoría + name + url + username (NO password)
 - `ItemDrawer.tsx` — drawer detalle: click-to-reveal con auto-hide 10s, copy con auto-clear clipboard 30s, edit, share (V2 disabled), audit local del item
@@ -218,51 +218,51 @@ un user pierde el acceso.
 - `CategoryBadge.tsx`, `ActionBadge.tsx`
 - `AlertsBanner.tsx` — banner top si hay anomalías recientes (visible a admins)
 
-#### Server actions (`vault/actions.ts`)
+#### Server actions (`no-olvidar/actions.ts`)
 
-- `setupVaultAction(prev, formData)` — completa wizard, genera recovery kit, configura TOTP
-- `unlockVaultAction(prev, formData)` — verifica TOTP + master password (si aplica), marca unlocked, devuelve session expiry
+- `setupNoOlvidarAction(prev, formData)` — completa wizard, genera recovery kit, configura TOTP
+- `unlockNoOlvidarAction(prev, formData)` — verifica TOTP + master password (si aplica), marca unlocked, devuelve session expiry
 - `createItemAction(prev, formData)` — encripta + insert + audit log
 - `updateItemAction(prev, formData)` — re-encripta + update + audit
 - `softDeleteItemAction(itemId)`
 - `revealItemAction(itemId)` — desencripta + audit log con action='view' + devuelve plaintext (SIN cachear nada server-side)
 - `copyItemFieldAction(itemId, field)` — audit log action='copy' (el copy real lo hace cliente con `navigator.clipboard`)
-- `requestRecoveryAction(prev, formData)` — solo si vault locked o user no logueado vía endpoint público con captcha (V1 sin captcha)
+- `requestRecoveryAction(prev, formData)` — solo si No-Olvidar locked o user no logueado vía endpoint público con captcha (V1 sin captcha)
 - `approveRecoveryAction(recoveryId)` — admin only
 - `executeRecoveryAction(prev, formData)` — el user setea nueva master password después de M aprobaciones
 - `rotateKekAction()` — admin only, dispara `rotateKek` + `reEncryptAllItems`
-- `updateVaultConfigAction(prev, formData)` — admin only
+- `updateNoOlvidarConfigAction(prev, formData)` — admin only
 
 #### Endpoint público (sin auth, rate-limited)
 
-- `app/api/studio/vault/recovery/route.ts` — POST recovery request. Validación: email del user + razón + rate limit por IP. Crea request pending + notifica admins por Slack/email.
+- `app/api/studio/no-olvidar/recovery/route.ts` — POST recovery request. Validación: email del user + razón + rate limit por IP. Crea request pending + notifica admins por Slack/email.
 
 #### Sidebar
-- **Sin cambios**. "Vault" ya existe en `StudioSidebar.tsx:56`. Active state automático.
+- **Sin cambios**. "No-Olvidar" ya existe en `StudioSidebar.tsx:56`. Active state automático.
 
 #### Env y deps
 - `package.json` agregar:
   - `libsodium-wrappers` (^0.7.x)
   - `otplib` (^12.x) para TOTP
   - `qrcode` (^1.5.x) para generar QR del TOTP secret
-- `.env.example` agregar `VAULT_KEK_SECRET_NAME=vault_kek_v1` (referencia al secret en Supabase Vault, no la KEK en sí)
+- `.env.example` agregar `NO_OLVIDAR_KEK_SECRET_NAME=no_olvidar_kek_v1` (referencia al secret en Supabase Vault, no la KEK en sí)
 - NO agregar la KEK al .env. La KEK vive SOLO en Supabase Vault.
 
 ### NO incluye (diferidos)
 
-- **Sharing de items entre users** del Studio DTD-CARGO → V2 (requiere sharing con Curve25519 + tabla `vault_shared_items`). V1 cada user tiene sus items propios; si necesita compartir, lo hace por afuera o usa recovery admin.
+- **Sharing de items entre users** del Studio DTD-CARGO → V2 (requiere sharing con Curve25519 + tabla `no_olvidar_shared_items`). V1 cada user tiene sus items propios; si necesita compartir, lo hace por afuera o usa recovery admin.
 - **Browser extension** para autofill → backlog largo
 - **Mobile app** → backlog largo
 - **File attachments** (PDFs, certificados, llaves SSH binarias) → V1.5
 - **Categorías adicionales** (ssh_key, api_key, identity, server) → V1.5
 - **Import desde 1Password / Bitwarden / CSV** → V1.5 cuando se valide el caso de uso
-- **Export del vault** (backup user) → V1.5 con caveats de seguridad (export en JSON cifrado con master password)
+- **Export del No-Olvidar** (backup user) → V1.5 con caveats de seguridad (export en JSON cifrado con master password)
 - **Sync con manager externo** → no roadmap
 - **Apertura a tenants externos** → cambia toda la arquitectura, vuelve a Opción A zero-knowledge del análisis previo. Si llega esa decisión, SDD nuevo con refactor grande.
 - **Hardware security key** (FIDO2 / WebAuthn) en lugar de TOTP → V2
 - **Captcha en endpoint público de recovery** → V1.5 cuando aparezca abuso
-- **Notificación email/Slack a admins de recovery requests** → V1 solo notifica via UI (admin debe entrar a `/vault/admin`). V2 integrar con Slack webhook.
-- **Multi-tenant del Vault** (otros tenants distintos a DTD-CARGO) → fuera de scope por decisión explícita del founder
+- **Notificación email/Slack a admins de recovery requests** → V1 solo notifica via UI (admin debe entrar a `/no-olvidar/admin`). V2 integrar con Slack webhook.
+- **Multi-tenant del No-Olvidar** (otros tenants distintos a DTD-CARGO) → fuera de scope por decisión explícita del founder
 - **Backup automático de la KEK** en S3 cifrado → V1 backup manual offline (USB físicos founder + socio). V2 considerar S3 con KMS distinto.
 - **2FA via SMS / email** → NO. TOTP only (más seguro).
 - **Botón "Master password" obligatorio** → V1 master password es OPCIONAL pero recomendado para admins. Si no se configura, items se desencriptan solo con KEK y el admin recovery es trivial (no necesita resetear password). Si se configura, hay capa extra y recovery resetea password.
@@ -275,26 +275,26 @@ un user pierde el acceso.
 ### Nuevos
 
 ```
-docs/specs/0025-vault-interno/spec.md
-supabase/migrations/0013_vault.sql
-lib/studio/vault-types.ts
-lib/studio/vault-queries.ts
-lib/studio/vault/
+docs/specs/0025-no-olvidar/spec.md
+supabase/migrations/0017_no_olvidar.sql
+lib/studio/no-olvidar-types.ts
+lib/studio/no-olvidar-queries.ts
+lib/studio/no-olvidar/
 ├── crypto.ts
 ├── key-manager.ts
 ├── audit.ts
 ├── recovery.ts
 └── session.ts
-app/api/studio/vault/recovery/route.ts
-app/studio/(app)/vault/
+app/api/studio/no-olvidar/recovery/route.ts
+app/studio/(app)/no-olvidar/
 ├── actions.ts
 ├── setup/page.tsx
 ├── 2fa/page.tsx
 ├── recovery/page.tsx
 ├── admin/page.tsx
 └── _components/
-    ├── VaultClient.tsx
-    ├── VaultKpis.tsx
+    ├── NoOlvidarClient.tsx
+    ├── NoOlvidarKpis.tsx
     ├── ItemList.tsx
     ├── ItemCard.tsx
     ├── ItemDrawer.tsx
@@ -309,21 +309,21 @@ app/studio/(app)/vault/
     ├── CategoryBadge.tsx
     ├── ActionBadge.tsx
     └── AlertsBanner.tsx
-tests/vault/crypto.test.ts
-tests/vault/recovery.test.ts
-tests/vault/session.test.ts
-tests/e2e/vault.spec.ts
-docs/vault/threat-model.md
-docs/vault/runbook.md
-docs/vault/recovery-procedure.md
-docs/vault/admin-handbook.md
+tests/no-olvidar/crypto.test.ts
+tests/no-olvidar/recovery.test.ts
+tests/no-olvidar/session.test.ts
+tests/e2e/no-olvidar.spec.ts
+docs/no-olvidar/threat-model.md
+docs/no-olvidar/runbook.md
+docs/no-olvidar/recovery-procedure.md
+docs/no-olvidar/admin-handbook.md
 ```
 
 ### Editados
 
 ```
-app/studio/(app)/vault/page.tsx                # EmptyState → VaultClient real
-.env.example                                    # VAULT_KEK_SECRET_NAME
+app/studio/(app)/no-olvidar/page.tsx                # EmptyState → NoOlvidarClient real
+.env.example                                    # NO_OLVIDAR_KEK_SECRET_NAME
 package.json                                    # add libsodium-wrappers, otplib, qrcode
 ```
 
@@ -333,14 +333,14 @@ package.json                                    # add libsodium-wrappers, otplib
 
 ### 4.1 Custodial (no zero-knowledge) — admin recovery posible
 
-**Por qué:** decisión explícita del founder (sesión 2026-05-24). Vault es para
+**Por qué:** decisión explícita del founder (sesión 2026-05-24). No-Olvidar es para
 uso interno de empleados DTD-CARGO, no para tenants externos. Zero-knowledge
 puro implica que pérdida de master password = pérdida total, lo cual no
 encaja con responsabilidad operativa de una empresa que paga el sueldo.
 
 Trade-off aceptado: si TODOS los admins se confabulan, pueden ver todo. Para
 DTD chica (~5 admins potenciales, todos conocidos), es riesgo controlable
-operacionalmente. Si en el futuro el Vault se abre a tenants externos,
+operacionalmente. Si en el futuro el No-Olvidar se abre a tenants externos,
 **SDD nuevo con refactor a zero-knowledge** (no se reusa este).
 
 ### 4.2 Envelope Encryption (KEK + DEK)
@@ -395,7 +395,7 @@ Anti rate-limit: `failed_unlock_attempts` cuenta intentos; ≥5 en 15 min →
 (violación de privacidad + opportunity for abuse). Requerir 2 firmas baja
 significativamente la probabilidad de mal uso.
 
-Implementación: `vault_recovery_requests.approvals_required = vault_config.recovery_approvals_required`
+Implementación: `no_olvidar_recovery_requests.approvals_required = no_olvidar_config.recovery_approvals_required`
 (configurable, default 2). Un admin NO puede aprobar su propio request (validación
 en RPC). Cada approval queda en `approvals jsonb` array con `{approver_id,
 approved_at, ip}`.
@@ -415,15 +415,15 @@ puede ocultar su rastro. Audit log que NO es inmutable es seguridad teatral.
 
 Implementación: policies explícitas
 ```sql
-CREATE POLICY vault_audit_no_update ON vault_access_log
+CREATE POLICY no_olvidar_audit_no_update ON no_olvidar_access_log
   FOR UPDATE TO public USING (false);
-CREATE POLICY vault_audit_no_delete ON vault_access_log
+CREATE POLICY no_olvidar_audit_no_delete ON no_olvidar_access_log
   FOR DELETE TO public USING (false);
 ```
 
 Estas policies aplican incluso a service_role. Si en el futuro hay necesidad
 operativa de purgar histórico muy viejo, hacer via SQL administrativo con
-trail en otro log (ej. anotación en `vault_kek_versions.notes` o tabla nueva).
+trail en otro log (ej. anotación en `no_olvidar_kek_versions.notes` o tabla nueva).
 
 ### 4.8 RLS estricta por user (no solo tenant)
 
@@ -444,7 +444,7 @@ app puede leerlo.
 
 Implementación:
 - Click "Mostrar" → desencripta (action='view' loggeado) → muestra 10s →
-  re-oculta con efecto. Configurable en `vault_config.reveal_auto_hide_seconds`.
+  re-oculta con efecto. Configurable en `no_olvidar_config.reveal_auto_hide_seconds`.
 - Click "Copiar" → `navigator.clipboard.writeText(plaintext)` + setTimeout
   `navigator.clipboard.writeText('')` a los 30s. Configurable.
 - Botón "Copiar password" loggea `action='copy'` en audit (no el contenido).
@@ -455,13 +455,13 @@ Implementación:
 compromiso es buena práctica.
 
 Flow:
-1. Admin va a `/vault/admin` → botón "Rotar KEK"
-2. UI confirma (operación cara, requiere lock del Vault para todos durante
+1. Admin va a `/no-olvidar/admin` → botón "Rotar KEK"
+2. UI confirma (operación cara, requiere lock del No-Olvidar para todos durante
    re-encrypt)
 3. `rotateKekAction()` server:
    a. Genera nueva KEK (32 bytes random)
-   b. `vault.create_secret('vault_kek_v2', new_kek)` en Supabase Vault
-   c. RPC `vault_rotate_kek('vault_kek_v2', actor)` marca v1 como legacy + v2 como activa
+   b. `vault.create_secret('no_olvidar_kek_v2', new_kek)` en Supabase Vault
+   c. RPC `no_olvidar_rotate_kek('no_olvidar_kek_v2', actor)` marca v1 como legacy + v2 como activa
    d. Background job (server action que devuelve progreso): `reEncryptAllItems(v1, v2)` — itera todos los items con `key_version=1`, desencripta DEK con v1, re-envuelve con v2, update `key_version=2`
    e. Cuando count=0 en v1, marcar v1 como `revoked` (no se elimina, solo se marca)
 4. Audit `action='kek_rotated'` con metadata `{from_version: 1, to_version: 2, items_count}`
@@ -475,22 +475,22 @@ job en background no bloqueante.
 asume entornos adversariales (cibercafé, máquina ajena). DTD interno usa
 máquinas conocidas, 30 min balancea seguridad/UX.
 
-Configurable en `vault_config.session_timeout_minutes`. Si en el futuro hay
+Configurable en `no_olvidar_config.session_timeout_minutes`. Si en el futuro hay
 mayor exposición, bajar.
 
-Implementación: cuando user "abre" el Vault (`unlock`), se guarda
+Implementación: cuando user "abre" el No-Olvidar (`unlock`), se guarda
 `last_unlock_at = now()`. Cada action que requiere desencripción valida
 `now() - last_unlock_at < session_timeout`. Si excede, redirect a 2FA.
 
 ### 4.12 Setup wizard obligatorio primer uso
 
-**Por qué:** sin setup, el Vault es inutilizable + inseguro. Forzar wizard
+**Por qué:** sin setup, el No-Olvidar es inutilizable + inseguro. Forzar wizard
 en primer login asegura: TOTP configurado, master password definido (o
 declinado explícitamente), recovery kit generado e impreso, términos
 aceptados.
 
-Implementación: `vault/page.tsx` chequea `setup_completed`. Si false →
-redirect `/vault/setup`. No hay forma de evitar el wizard.
+Implementación: `no-olvidar/page.tsx` chequea `setup_completed`. Si false →
+redirect `/no-olvidar/setup`. No hay forma de evitar el wizard.
 
 ### 4.13 Recovery kit como 24 palabras BIP39
 
@@ -501,7 +501,7 @@ es astronomically seguro.
 Implementación: generar entropía 32 bytes random, mapear a 24 palabras BIP39,
 mostrar para imprimir con instrucciones claras ("guardá esto en lugar
 físico seguro, NO en la nube"). Hash con Argon2id + guardar `recovery_kit_hash`
-en `vault_user_keys`. NUNCA guardar las palabras en plaintext server.
+en `no_olvidar_user_keys`. NUNCA guardar las palabras en plaintext server.
 
 Si user pierde master password Y recovery kit → necesita admin recovery
 (M-of-N). Esa es la tercera capa.
@@ -516,7 +516,7 @@ Heurísticas V1 (function `getAnomalies`):
 - IP nueva (no vista en últimos 30d) → posible compromiso
 - ≥3 failed unlock attempts en 5 min → posible brute force
 
-Banner top en `/vault` visible a admins si hay anomalías últimas 24h.
+Banner top en `/no-olvidar` visible a admins si hay anomalías últimas 24h.
 V2: enviar a Slack/email.
 
 ### 4.15 Sin sharing entre users V1
@@ -549,37 +549,37 @@ capturado igualmente.
 
 1. **Hold-to-reveal**: el password solo se ve mientras el botón del ojo está
    presionado (`onMouseDown` muestra, `onMouseUp` y `onMouseLeave` ocultan).
-   Configurable via `vault_config.hold_to_reveal` (default `true`).
+   Configurable via `no_olvidar_config.hold_to_reveal` (default `true`).
    *Reduce ~60-70% de capturas casuales — requiere coordinación o software
    automatizado*.
 
 2. **Auto-hide agresivo 3 segundos** (en lugar de 10): suficiente para leer
    y copiar mentalmente, no para preparar herramienta de captura externa.
-   `vault_config.reveal_auto_hide_seconds = 3` (default).
+   `no_olvidar_config.reveal_auto_hide_seconds = 3` (default).
 
 3. **Blur on window blur**: `window.addEventListener('blur', hide)`. Si el
    user pierde foco (alt-tab, click otra app, abre DevTools), password se
    oculta instantáneamente. También en `document.visibilityState === 'hidden'`.
-   `vault_config.blur_on_window_blur` (default `true`).
+   `no_olvidar_config.blur_on_window_blur` (default `true`).
 
 4. **Watermark forense** (componente `<ForensicWatermark />`): overlay
    diagonal semi-transparente con `email + IP + timestamp` repetido en grid
    sobre el password. Si el password termina en un screenshot circulando
    online, la marca permite identificar quién lo capturó. NO previene la
-   captura, habilita forensics. `vault_config.forensic_watermark` (default `true`).
+   captura, habilita forensics. `no_olvidar_config.forensic_watermark` (default `true`).
 
 5. **Bloqueo `onCopy` / `onContextMenu`** mientras está revealed: previene
    copy accidental con `Ctrl+C` o right-click → "Copiar". El usuario debe
-   usar el botón "Copiar" del Vault (que loggea `action='copy'`). Filtra
-   usuarios casuales, NO atacantes (bypassable con DevTools). `vault_config.block_copy_event`
+   usar el botón "Copiar" del No-Olvidar (que loggea `action='copy'`). Filtra
+   usuarios casuales, NO atacantes (bypassable con DevTools). `no_olvidar_config.block_copy_event`
    (default `true`).
 
 6. **Char-by-char reveal** (opt-in): muestra solo 1 carácter del password
    según la posición del mouse sobre la cadena. User entiende el password
    pero captura completa requiere N screenshots distintos coordinados.
    Funciona bien para passwords 12-30 chars, mal para passphrases largas.
-   `vault_config.char_by_char_reveal` (default `false`, opt-in por user via
-   toggle en settings personal del Vault).
+   `no_olvidar_config.char_by_char_reveal` (default `false`, opt-in por user via
+   toggle en settings personal del No-Olvidar).
 
 **Lo que NO implementamos (explícitamente descartado)**:
 
@@ -591,8 +591,8 @@ capturado igualmente.
   Lo incluimos solo dentro del componente `<RevealField />` como complemento
   de los items 1+5, no como mitigación standalone.
 - ❌ Encrypted Media Extensions (DRM Widevine) — solo para media, no texto.
-- ❌ Comunicar al user del Vault "los screenshots están bloqueados" — eso
-  sería falso y genera complacencia peligrosa. El copy del Vault debe decir
+- ❌ Comunicar al user del No-Olvidar "los screenshots están bloqueados" — eso
+  sería falso y genera complacencia peligrosa. El copy del No-Olvidar debe decir
   honestamente: "estas son defensas adicionales, asumí siempre que tu pantalla
   puede ser fotografiada por una cámara externa".
 
@@ -600,7 +600,7 @@ capturado igualmente.
 
 Cuando se construya **App móvil DTD nativa** (React Native / Swift / Kotlin),
 ahí sí implementar:
-- Android: `WindowManager.LayoutParams.FLAG_SECURE` en la activity del Vault
+- Android: `WindowManager.LayoutParams.FLAG_SECURE` en la activity del No-Olvidar
   → screenshots y grabaciones aparecen negros a nivel SO.
 - iOS: detectar screenshots con `UIApplication.userDidTakeScreenshotNotification`
   (no se previene, pero podés cerrar sesión + alertar al admin via audit).
@@ -610,7 +610,7 @@ Eso da bloqueo REAL en móvil. En web, lo de §4.16 es lo máximo posible.
 
 **Lo que el equipo de DTD debe saber siempre**:
 
-El Vault NO sustituye higiene operacional. Asumir que TODO password ahí
+El No-Olvidar NO sustituye higiene operacional. Asumir que TODO password ahí
 adentro podría leakearse por:
 - Captura con cámara externa de monitor
 - Compromiso del SO del user (malware, keylogger)
@@ -627,39 +627,39 @@ contención rápida del leak", no "prevención del leak".
 
 ### Funcional
 
-- [ ] Primer login: `/studio/vault` → redirect a `/vault/setup` (wizard 4 pasos)
+- [ ] Primer login: `/studio/no-olvidar` → redirect a `/no-olvidar/setup` (wizard 4 pasos)
 - [ ] Wizard paso 1: intro + checkbox "acepto términos" → next
 - [ ] Wizard paso 2: opción "configurar master password" toggle. Si activado, input password (min 12 chars) + confirm. Si declined, warning "tu admin podrá ver tus items en caso necesario"
 - [ ] Wizard paso 3: setup TOTP — muestra QR + input código 6 dígitos → verifica → marca `totp_enabled = true`
 - [ ] Wizard paso 4: muestra recovery kit (24 palabras BIP39) en card grande, botón "Imprimir", checkbox "lo guardé en lugar seguro" → done → `setup_completed = true`
-- [ ] Segundo login: `/studio/vault` → redirect a `/vault/2fa`
-- [ ] 2FA: input TOTP (+ master password si configurado) → submit → si OK marca unlocked + redirect a `/vault`
+- [ ] Segundo login: `/studio/no-olvidar` → redirect a `/no-olvidar/2fa`
+- [ ] 2FA: input TOTP (+ master password si configurado) → submit → si OK marca unlocked + redirect a `/no-olvidar`
 - [ ] 5 intentos fallidos en 15 min → `locked_until = now() + 15min` → UI bloqueada con countdown
-- [ ] Vault unlocked: muestra lista de items (vacío inicial) + KPIs + botón "+ Nuevo item"
+- [ ] No-Olvidar unlocked: muestra lista de items (vacío inicial) + KPIs + botón "+ Nuevo item"
 - [ ] Crear item login: name, url, username, password (oculto al typing) → submit → encripta + insert + audit log → aparece en lista
 - [ ] Detalle item: drawer con campos. Password oculto por default.
 - [ ] **Hold-to-reveal**: mantener presionado botón ojo → password visible mientras esté presionado. Soltar → se oculta. Audit log `action=view` al primer mousedown.
 - [ ] **Auto-hide 3s**: si el user no suelta el botón en 3s, password se oculta automáticamente (anti olvido).
-- [ ] **Blur on window blur**: revelar password → alt-tab a otra app → password se oculta antes de regresar al Vault.
+- [ ] **Blur on window blur**: revelar password → alt-tab a otra app → password se oculta antes de regresar al No-Olvidar.
 - [ ] **Watermark forense**: al revelar, overlay diagonal muestra email + IP + timestamp del user actual encima del password. Visible en screenshot (verificar tomando uno manualmente en QA).
-- [ ] **Bloqueo copy/contextmenu**: con password revealed, `Ctrl+C` y right-click NO copian el plaintext. Solo botón "Copiar" del Vault funciona (con audit).
+- [ ] **Bloqueo copy/contextmenu**: con password revealed, `Ctrl+C` y right-click NO copian el plaintext. Solo botón "Copiar" del No-Olvidar funciona (con audit).
 - [ ] **Char-by-char opcional**: settings del user permite activar `char_by_char_reveal`. Activado → al revelar muestra solo 1 char según posición mouse. Desactivado por default.
-- [ ] Click botón "Copiar password" del Vault → clipboard tiene plaintext + audit log `action=copy` + clipboard se borra a los 30s
+- [ ] Click botón "Copiar password" del No-Olvidar → clipboard tiene plaintext + audit log `action=copy` + clipboard se borra a los 30s
 - [ ] Edit item → re-encripta + audit `action=edit`
 - [ ] Soft delete item → `deleted_at = now()` + audit `action=delete`
-- [ ] Session timeout: pasados 30 min sin actividad → click reveal redirect a `/vault/2fa`
+- [ ] Session timeout: pasados 30 min sin actividad → click reveal redirect a `/no-olvidar/2fa`
 - [ ] Anomaly detection: forzar 5 views en 1 min de un item → banner top visible a admin
-- [ ] Recovery request: user en `/vault/recovery` → form con reason → submit → crea pending request → notifica admins (UI)
-- [ ] Admin en `/vault/admin/recoveries`: ve queue → click "Aprobar" en 1 request → approval count = 1
+- [ ] Recovery request: user en `/no-olvidar/recovery` → form con reason → submit → crea pending request → notifica admins (UI)
+- [ ] Admin en `/no-olvidar/admin/recoveries`: ve queue → click "Aprobar" en 1 request → approval count = 1
 - [ ] Segundo admin aprueba → approval count = 2 → request `status=approved`
 - [ ] User original ve "tu recovery está aprobado" → input nueva master password → submit → `executeRecovery` re-envuelve private_key → user vuelve a entrar con nueva password
-- [ ] Admin rota KEK: `/vault/admin` botón "Rotar KEK" → confirm → genera v2 + re-encrypt todos los items + audit `action=kek_rotated`
+- [ ] Admin rota KEK: `/no-olvidar/admin` botón "Rotar KEK" → confirm → genera v2 + re-encrypt todos los items + audit `action=kek_rotated`
 - [ ] Después de rotación, items siguen accesibles (re-wrap fue transparente)
 - [ ] Admin único NO puede aprobar su propia recovery request (validation)
 - [ ] User member NO ve queue de recoveries (RLS bloquea)
 - [ ] User member NO ve items de otro user (RLS bloquea)
-- [ ] Audit log: query directa `UPDATE vault_access_log SET ...` desde service_role falla (RLS)
-- [ ] Audit log: query directa `DELETE FROM vault_access_log WHERE id=...` desde service_role falla (RLS)
+- [ ] Audit log: query directa `UPDATE no_olvidar_access_log SET ...` desde service_role falla (RLS)
+- [ ] Audit log: query directa `DELETE FROM no_olvidar_access_log WHERE id=...` desde service_role falla (RLS)
 
 ### Sistema
 
@@ -667,7 +667,7 @@ contención rápida del leak", no "prevención del leak".
 - [ ] `pnpm build` pasa
 - [ ] `pnpm lint` pasa
 - [ ] Migration 0013 corre limpia + verificar 6 tablas + RLS via `\d+` en cada una
-- [ ] RPC `vault.create_secret('vault_kek_v1', random_bytes(32))` se ejecuta UNA VEZ manualmente post-deploy (NO en migración)
+- [ ] RPC `vault.create_secret('no_olvidar_kek_v1', random_bytes(32))` se ejecuta UNA VEZ manualmente post-deploy (NO en migración)
 - [ ] Backup OFFLINE de la KEK v1: founder + 1 socio cada uno tiene copia en USB físico en cajas separadas (responsabilidad operacional, no parte del code)
 - [ ] Tests unitarios crypto:
   - encrypt/decrypt roundtrip funciona
@@ -680,11 +680,11 @@ contención rápida del leak", no "prevención del leak".
 - [ ] Tests session: unlock → válido 30 min → expirado después → re-unlock funciona
 - [ ] Tests E2E: full flow setup → crear item → ver → editar → eliminar → ver audit
 - [ ] Tests RLS: simular user A intentando ver items de user B → 0 results
-- [ ] Sidebar marca "Vault" como active en `/vault/...` (prefix match funciona)
+- [ ] Sidebar marca "No-Olvidar" como active en `/no-olvidar/...` (prefix match funciona)
 - [ ] Componentes pasan revisión por agente `ui-ux-designer`
 - [ ] BRAND-CHECK: castellano-VE, sin emojis decorativos, sentence case en CTAs, tokens CSS
 - [ ] Documentación interna creada: threat-model.md + runbook.md + recovery-procedure.md + admin-handbook.md
-- [ ] **Code review crypto externo**: `lib/studio/vault/crypto.ts` + `key-manager.ts` + `recovery.ts` revisados por dev senior con experiencia crypto (freelance $300-800, cotizar Upwork/Toptal). Sin esto no se mergea.
+- [ ] **Code review crypto externo**: `lib/studio/no-olvidar/crypto.ts` + `key-manager.ts` + `recovery.ts` revisados por dev senior con experiencia crypto (freelance $300-800, cotizar Upwork/Toptal). Sin esto no se mergea.
 
 ---
 
@@ -714,57 +714,57 @@ captcha en endpoint recovery, notificaciones Slack/email, backup auto KEK,
 ### Open questions diferidas
 
 - **¿KEK rotation cada cuánto?** V1 sin schedule. Sugerencia operacional: anual o ante sospecha. Documentar en `runbook.md`.
-- **¿Backup de la KEK rotada (legacy)?** V1 mantener registro en `vault_kek_versions` con status=legacy. Si todos los items se re-encriptan a v2, ¿se puede eliminar v1 de Supabase Vault? Decisión: NO. Mantener legacy KEKs indefinidamente por si aparece item huérfano. Espacio es negligible (32 bytes por versión).
+- **¿Backup de la KEK rotada (legacy)?** V1 mantener registro en `no_olvidar_kek_versions` con status=legacy. Si todos los items se re-encriptan a v2, ¿se puede eliminar v1 de Supabase Vault? Decisión: NO. Mantener legacy KEKs indefinidamente por si aparece item huérfano. Espacio es negligible (32 bytes por versión).
 - **¿Qué pasa si un admin deja DTD?** Política operacional: rotar KEK + rotar passwords de todos los items que el admin pudo haber visto (asumiendo que pudo). Documentar en `admin-handbook.md`.
 - **¿Recovery kit puede regenerarse?** V1 NO (es one-time al setup). Si user lo pierde → debe pedir admin recovery. V2 considerar "regenerar recovery kit" tras autenticarse con master password actual.
-- **¿Notificar al user cuando alguien hace recovery sobre su cuenta?** V1 sí, vía email al user (uso de tabla `vault_access_log` con `metadata.notify_email = true`). Implementar simple con Resend o similar; si no hay servicio email configurado, dejar como `// TODO: enviar email` con comentario explícito.
+- **¿Notificar al user cuando alguien hace recovery sobre su cuenta?** V1 sí, vía email al user (uso de tabla `no_olvidar_access_log` con `metadata.notify_email = true`). Implementar simple con Resend o similar; si no hay servicio email configurado, dejar como `// TODO: enviar email` con comentario explícito.
 - **¿Login a Studio con SSO en lugar de password?** Fuera de scope, depende de SDD futuro de auth.
-- **¿Versionar items?** (ej. password antigua de Twitter cuando se cambia). V1 NO. V2 considerar tabla `vault_item_versions` append-only.
-- **¿Reportes ejecutivos de uso del Vault?** (ej. "este mes se accedió 47 veces a credenciales de Instagram"). V2.
+- **¿Versionar items?** (ej. password antigua de Twitter cuando se cambia). V1 NO. V2 considerar tabla `no_olvidar_item_versions` append-only.
+- **¿Reportes ejecutivos de uso del No-Olvidar?** (ej. "este mes se accedió 47 veces a credenciales de Instagram"). V2.
 
 ---
 
 ## 7. Operación post-deploy — checklist obligatorio
 
-Estos pasos NO son código, son operacionales. **Sin esto el Vault no está
+Estos pasos NO son código, son operacionales. **Sin esto el No-Olvidar no está
 seguro independientemente de qué tan bien implementemos crypto.**
 
 ### 7.1 Setup KEK (una sola vez, post-migration)
 
-1. Aplicar migración `0013_vault.sql`
+1. Aplicar migración `0017_no_olvidar.sql`
 2. En SQL Editor de Supabase, ejecutar:
    ```sql
    SELECT vault.create_secret(
      gen_random_bytes(32),
-     'vault_kek_v1',
-     'KEK maestra del módulo Vault DTD-CARGO — NO ELIMINAR'
+     'no_olvidar_kek_v1',
+     'KEK maestra del módulo No-Olvidar DTD-CARGO — NO ELIMINAR'
    );
-   INSERT INTO vault_kek_versions (version, vault_secret_name, status, created_by, notes)
-   VALUES (1, 'vault_kek_v1', 'active', auth.uid(), 'Initial KEK created at deploy');
+   INSERT INTO no_olvidar_kek_versions (version, kek_secret_name, status, created_by, notes)
+   VALUES (1, 'no_olvidar_kek_v1', 'active', auth.uid(), 'Initial KEK created at deploy');
    ```
-3. Verificar: `SELECT * FROM vault.decrypted_secrets WHERE name = 'vault_kek_v1'` devuelve 1 row.
+3. Verificar: `SELECT * FROM vault.decrypted_secrets WHERE name = 'no_olvidar_kek_v1'` devuelve 1 row.
 
 ### 7.2 Backup OFFLINE de la KEK
 
 1. Founder genera USB físico cifrado (VeraCrypt o equivalente). Mete la KEK + recovery kit master.
 2. Socio 1 hace lo mismo en USB separado.
 3. USBs guardados en cajas físicas separadas (caja fuerte, caja bancaria, etc.).
-4. **Sin este paso, si Supabase pierde la DB en un evento catastrófico, perdemos todo el Vault sin posibilidad de recovery.**
+4. **Sin este paso, si Supabase pierde la DB en un evento catastrófico, perdemos todo el No-Olvidar sin posibilidad de recovery.**
 
 ### 7.3 Asignar admins iniciales
 
 ```sql
-UPDATE vault_user_keys SET role = 'admin' WHERE user_id IN ('<founder_uuid>', '<socio_uuid>', '<it_uuid>');
+UPDATE no_olvidar_user_keys SET role = 'admin' WHERE user_id IN ('<founder_uuid>', '<socio_uuid>', '<it_uuid>');
 ```
 
 Mínimo 3 admins para que M-of-N (default 2) funcione robustamente (si solo
 hay 2 admins y uno necesita recovery, el otro queda solo con 1 voto, no
 alcanza M=2).
 
-### 7.4 Configurar `vault_config`
+### 7.4 Configurar `no_olvidar_config`
 
 ```sql
-UPDATE vault_config SET
+UPDATE no_olvidar_config SET
   recovery_approvals_required = 2,
   session_timeout_minutes = 30,
   failed_attempts_lockout = 5,
@@ -783,7 +783,7 @@ WHERE id = 1;
 
 ### 7.5 Documentar política operacional
 
-Crear `docs/vault/admin-handbook.md` con:
+Crear `docs/no-olvidar/admin-handbook.md` con:
 - Lista de admins actuales con contacto
 - Procedimiento si un admin deja DTD (rotar KEK + revocar role + audit revisión)
 - Procedimiento si se sospecha breach (rotar KEK inmediato + revisar audit_log + notificar founder)
@@ -794,14 +794,14 @@ Crear `docs/vault/admin-handbook.md` con:
 
 ANTES de mergear a main:
 1. Cotizar dev senior crypto en Upwork/Toptal/freelance local ($300-800).
-2. Enviar: `lib/studio/vault/crypto.ts` + `key-manager.ts` + `recovery.ts` + `session.ts` + `audit.ts` + migración 0013.
+2. Enviar: `lib/studio/no-olvidar/crypto.ts` + `key-manager.ts` + `recovery.ts` + `session.ts` + `audit.ts` + migración 0013.
 3. Pedir: review enfocada en (a) uso correcto de libsodium, (b) ausencia de timing attacks, (c) RLS policies efectivas, (d) flow recovery sin race conditions, (e) nonce reuse / IV reuse.
 4. Fix issues encontradas. Re-review.
 5. Recién entonces merge.
 
 ---
 
-## 8. Threat Model resumido (detalle completo en `docs/vault/threat-model.md`)
+## 8. Threat Model resumido (detalle completo en `docs/no-olvidar/threat-model.md`)
 
 | # | Amenaza | Vector | Mitigación V1 | Riesgo residual |
 |---|---|---|---|---|

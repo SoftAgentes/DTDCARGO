@@ -155,7 +155,7 @@ NO se duplica. El admin sigue gestionando todos los operarios desde
   página · idem el camionero.
 - Foto fachada del cliente al registrarse → SDD-0032
 - AttachModal de docs (BL/Packing/Factura) → SDD-0034 wiring
-- Vault de credenciales para camionero (alcabalas SENIAT) → SDD futuro
+- No-Olvidar de credenciales para camionero (alcabalas SENIAT) → SDD futuro
 - Push notifications nativas → fuera de scope V1 (mock visible-only en
   el camionero si GPS off)
 - GPS real (geolocation API) → V1 toggle estado interno; V2 wired al API

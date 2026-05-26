@@ -58,7 +58,7 @@ export type MailRuleEvent =
   | "quote_accepted"
   | "invoice_emitted"
   | "invoice_overdue"
-  | "vault_recovery_requested"
+  | "no_olvidar_recovery_requested"
   | "agent_run_failed";
 
 export const MAIL_RULE_EVENTS: MailRuleEvent[] = [
@@ -68,7 +68,7 @@ export const MAIL_RULE_EVENTS: MailRuleEvent[] = [
   "quote_accepted",
   "invoice_emitted",
   "invoice_overdue",
-  "vault_recovery_requested",
+  "no_olvidar_recovery_requested",
   "agent_run_failed",
 ];
 
@@ -589,7 +589,7 @@ export const RULE_EVENT_LABELS: Record<MailRuleEvent, string> = {
   quote_accepted: "Cotización aceptada",
   invoice_emitted: "Factura emitida",
   invoice_overdue: "Factura vencida",
-  vault_recovery_requested: "Recovery del Vault",
+  no_olvidar_recovery_requested: "Recovery del No-Olvidar",
   agent_run_failed: "Run de agente falló",
 };
 
@@ -643,7 +643,7 @@ export function logStatusBadgeTone(s: MailLogStatus): BadgeTone {
 
 export function ruleEventBadgeTone(e: MailRuleEvent): BadgeTone {
   if (e === "invoice_overdue" || e === "agent_run_failed") return "danger";
-  if (e === "invoice_emitted" || e === "vault_recovery_requested") return "warning";
+  if (e === "invoice_emitted" || e === "no_olvidar_recovery_requested") return "warning";
   if (e === "quote_accepted" || e === "shipment_arrived") return "success";
   return "info";
 }

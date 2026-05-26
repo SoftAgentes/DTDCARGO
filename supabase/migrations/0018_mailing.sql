@@ -54,7 +54,7 @@ create type mail_rule_event as enum (
   'quote_accepted',
   'invoice_emitted',
   'invoice_overdue',
-  'vault_recovery_requested',
+  'no_olvidar_recovery_requested',
   'agent_run_failed'
 );
 
@@ -424,7 +424,7 @@ on conflict (tenant_id) do nothing;
 
 -- ─── NO se siembran templates aquí ───────────────────────────
 -- Los 8 templates iniciales (cotización, factura, embarque, recovery
--- vault, bienvenida cliente, etc.) se siembran desde TS con UPSERT
+-- no-olvidar, bienvenida cliente, etc.) se siembran desde TS con UPSERT
 -- via scripts/seed-mail-templates.ts. Esto permite:
 --   - Source of truth en código (versionable, diffable)
 --   - Templates HTML con backticks JS sin tener que escapar SQL

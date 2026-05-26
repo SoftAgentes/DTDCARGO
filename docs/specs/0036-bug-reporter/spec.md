@@ -226,7 +226,7 @@ Transiciones bloqueadas por trigger guard `bug_reports_state_transition_guard`.
 ## 7. Open questions
 
 1. **¿Retención de session replays?** V1: 30 días auto-delete. ¿Confirmás?
-2. **¿GITHUB_WEBHOOK_SECRET via Vault o env var?** V1: env var directo. Si Vault listo (SDD-0025 Fase 2), migrar.
+2. **¿GITHUB_WEBHOOK_SECRET via No-Olvidar o env var?** V1: env var directo. Si No-Olvidar listo (SDD-0025 Fase 2), migrar.
 3. **¿Push subscription guardada por user-agent o por user?** V1: por user (overwrites si cambia browser).
 4. **¿Telegram bot único para todo el tenant o uno por user?** V1: uno por tenant (el chat_id del admin). User puede setear su propio chat_id en prefs.
 

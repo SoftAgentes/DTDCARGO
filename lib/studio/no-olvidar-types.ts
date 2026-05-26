@@ -1,9 +1,10 @@
 /**
- * Types, enums, validators y helpers de label/badge para el Vault
- * interno DTD-CARGO (SDD-0025 Fase 1). Match con migración 0017_vault.sql.
+ * Types, enums, validators y helpers de label/badge para el módulo
+ * No-Olvidar interno DTD-CARGO (SDD-0025 Fase 1). Match con migración
+ * 0017_no_olvidar.sql.
  *
- * NO incluye crypto types (esos viven en lib/studio/vault/crypto.ts en
- * Fase 2). Acá solo lo que es seguro mostrar al cliente: shapes de
+ * NO incluye crypto types (esos viven en lib/studio/no-olvidar/crypto.ts
+ * en Fase 2). Acá solo lo que es seguro mostrar al cliente: shapes de
  * entidades, enums, formatters.
  *
  * Convenciones del proyecto:
@@ -14,10 +15,10 @@
 
 // ─── Enums ───────────────────────────────────────────────────
 
-export type VaultCategory = "login" | "note" | "card" | "totp";
-export const VAULT_CATEGORIES: VaultCategory[] = ["login", "note", "card", "totp"];
+export type NoOlvidarCategory = "login" | "note" | "card" | "totp";
+export const NO_OLVIDAR_CATEGORIES: NoOlvidarCategory[] = ["login", "note", "card", "totp"];
 
-export type VaultAuditAction =
+export type NoOlvidarAuditAction =
   | "view"
   | "copy"
   | "edit"
@@ -29,7 +30,7 @@ export type VaultAuditAction =
   | "recovery_executed"
   | "kek_rotated";
 
-export const VAULT_AUDIT_ACTIONS: VaultAuditAction[] = [
+export const NO_OLVIDAR_AUDIT_ACTIONS: NoOlvidarAuditAction[] = [
   "view",
   "copy",
   "edit",
@@ -42,14 +43,14 @@ export const VAULT_AUDIT_ACTIONS: VaultAuditAction[] = [
   "kek_rotated",
 ];
 
-export type VaultRecoveryStatus =
+export type NoOlvidarRecoveryStatus =
   | "pending"
   | "approved"
   | "rejected"
   | "expired"
   | "completed";
 
-export const VAULT_RECOVERY_STATUSES: VaultRecoveryStatus[] = [
+export const NO_OLVIDAR_RECOVERY_STATUSES: NoOlvidarRecoveryStatus[] = [
   "pending",
   "approved",
   "rejected",
@@ -57,27 +58,27 @@ export const VAULT_RECOVERY_STATUSES: VaultRecoveryStatus[] = [
   "completed",
 ];
 
-export type VaultUserRole = "member" | "admin";
-export const VAULT_USER_ROLES: VaultUserRole[] = ["member", "admin"];
+export type NoOlvidarUserRole = "member" | "admin";
+export const NO_OLVIDAR_USER_ROLES: NoOlvidarUserRole[] = ["member", "admin"];
 
-export type VaultKekStatus = "active" | "legacy" | "revoked";
-export const VAULT_KEK_STATUSES: VaultKekStatus[] = ["active", "legacy", "revoked"];
+export type NoOlvidarKekStatus = "active" | "legacy" | "revoked";
+export const NO_OLVIDAR_KEK_STATUSES: NoOlvidarKekStatus[] = ["active", "legacy", "revoked"];
 
-export type VaultAlertSeverity = "info" | "warning" | "critical";
+export type NoOlvidarAlertSeverity = "info" | "warning" | "critical";
 
 // ─── Entity types (match schema 0017) ────────────────────────
 
 /**
- * VaultItem · row de vault_items. Los campos `ciphertext`, `nonce`,
+ * NoOlvidarItem · row de no_olvidar_items. Los campos `ciphertext`, `nonce`,
  * `dek_encrypted`, `dek_nonce` llegan como Uint8Array desde Supabase
  * (bytea → base64 string en la wire, hay que castear). En el cliente
  * NUNCA exponer al render, solo pasar a crypto.ts.
  */
-export interface VaultItem {
+export interface NoOlvidarItem {
   id: string;
   user_id: string;
   name: string;
-  category: VaultCategory;
+  category: NoOlvidarCategory;
   url: string | null;
   username: string | null;
   ciphertext: string;            // bytea como base64 string
@@ -93,30 +94,30 @@ export interface VaultItem {
 }
 
 /**
- * VaultItem con su plaintext desencriptado. NUNCA persistir esta shape
+ * NoOlvidarItem con su plaintext desencriptado. NUNCA persistir esta shape
  * server-side. Vive solo en memoria del request/component que la
  * desencriptó.
  */
-export interface DecryptedVaultItem extends VaultItem {
-  plaintext: VaultItemPlaintext;
+export interface DecryptedNoOlvidarItem extends NoOlvidarItem {
+  plaintext: NoOlvidarItemPlaintext;
 }
 
 /**
  * Shape del payload desencriptado. Varía por categoría — cada cat tiene
  * sus campos. login = {password, totp?, notes}. card = {number, cvc, expiry, holder, notes}. note = {body}. totp = {secret, label}.
  */
-export type VaultItemPlaintext =
+export type NoOlvidarItemPlaintext =
   | { kind: "login"; password: string; totp?: string; notes?: string }
   | { kind: "card"; number: string; cvc: string; expiry: string; holder: string; notes?: string }
   | { kind: "note"; body: string }
   | { kind: "totp"; secret: string; label: string };
 
 /**
- * VaultUserKeys · 1 row por user. NUNCA enviar al cliente los campos
+ * NoOlvidarUserKeys · 1 row por user. NUNCA enviar al cliente los campos
  * bytea (verifier, salts, ciphertexts, hash). El cliente solo debería
  * ver flags + role + last_unlock_at + setup_completed.
  */
-export interface VaultUserKeys {
+export interface NoOlvidarUserKeys {
   user_id: string;
   has_master_password: boolean;
   master_password_verifier: string | null;
@@ -130,7 +131,7 @@ export interface VaultUserKeys {
   totp_secret_nonce: string;
   totp_enabled: boolean;
   setup_completed: boolean;
-  role: VaultUserRole;
+  role: NoOlvidarUserRole;
   last_unlock_at: string | null;
   failed_unlock_attempts: number;
   locked_until: string | null;
@@ -140,43 +141,43 @@ export interface VaultUserKeys {
 
 /**
  * Shape segura para mandar al cliente (sin bytea sensibles). El runtime
- * server-side debería retornar este shape en lugar de VaultUserKeys
+ * server-side debería retornar este shape en lugar de NoOlvidarUserKeys
  * completo cuando le pase data al browser.
  */
-export interface VaultUserKeysPublic {
+export interface NoOlvidarUserKeysPublic {
   user_id: string;
   has_master_password: boolean;
   totp_enabled: boolean;
   setup_completed: boolean;
-  role: VaultUserRole;
+  role: NoOlvidarUserRole;
   last_unlock_at: string | null;
   failed_unlock_attempts: number;
   locked_until: string | null;
 }
 
-export interface VaultAccessLog {
+export interface NoOlvidarAccessLog {
   id: string;
   user_id: string;
   item_id: string | null;
-  action: VaultAuditAction;
+  action: NoOlvidarAuditAction;
   ip_address: string | null;
   user_agent: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
 }
 
-export interface VaultRecoveryApproval {
+export interface NoOlvidarRecoveryApproval {
   approver_id: string;
   approved_at: string;
   ip?: string;
 }
 
-export interface VaultRecoveryRequest {
+export interface NoOlvidarRecoveryRequest {
   id: string;
   requester_user_id: string;
   reason: string;
-  status: VaultRecoveryStatus;
-  approvals: VaultRecoveryApproval[];
+  status: NoOlvidarRecoveryStatus;
+  approvals: NoOlvidarRecoveryApproval[];
   approvals_required: number;
   new_master_password_verifier: string | null;
   new_master_password_salt: string | null;
@@ -186,17 +187,17 @@ export interface VaultRecoveryRequest {
   updated_at: string;
 }
 
-export interface VaultKekVersion {
+export interface NoOlvidarKekVersion {
   version: number;
-  vault_secret_name: string;
-  status: VaultKekStatus;
+  kek_secret_name: string;
+  status: NoOlvidarKekStatus;
   activated_at: string;
   deprecated_at: string | null;
   created_by: string | null;
   notes: string | null;
 }
 
-export interface VaultConfig {
+export interface NoOlvidarConfig {
   id: 1;
   recovery_approvals_required: number;
   session_timeout_minutes: number;
@@ -216,7 +217,7 @@ export interface VaultConfig {
 
 // ─── KPIs (computed) ─────────────────────────────────────────
 
-export interface VaultKpis {
+export interface NoOlvidarKpis {
   totalItems: number;
   itemsLast30d: number;
   recoveryPending: number;
@@ -227,7 +228,7 @@ export interface VaultKpis {
 
 export interface CreateItemInput {
   name: string;
-  category: VaultCategory;
+  category: NoOlvidarCategory;
   url?: string;
   username?: string;
   notes_preview?: string;
@@ -244,7 +245,7 @@ export interface CreateItemInput {
 export interface UpdateItemInput {
   id: string;
   name?: string;
-  category?: VaultCategory;
+  category?: NoOlvidarCategory;
   url?: string;
   username?: string;
   notes_preview?: string;
@@ -267,7 +268,7 @@ export interface RecoveryRequestInput {
 
 export type ActionFieldErrors = Partial<Record<string, string>>;
 
-export interface VaultActionState {
+export interface NoOlvidarActionState {
   ok?: boolean;
   error?: string;
   fieldErrors?: ActionFieldErrors;
@@ -292,7 +293,7 @@ export function validateCreateItemInput(
   } else if (partial.name.length > MAX_NAME) {
     fieldErrors.name = `Nombre demasiado largo (max ${MAX_NAME})`;
   }
-  if (!partial.category || !VAULT_CATEGORIES.includes(partial.category as VaultCategory)) {
+  if (!partial.category || !NO_OLVIDAR_CATEGORIES.includes(partial.category as NoOlvidarCategory)) {
     fieldErrors.category = "Categoría inválida";
   }
   if (!partial.ciphertext) fieldErrors.ciphertext = "Falta ciphertext (¿el cliente cifró bien?)";
@@ -307,7 +308,7 @@ export function validateCreateItemInput(
   return {
     input: {
       name: partial.name!.trim(),
-      category: partial.category as VaultCategory,
+      category: partial.category as NoOlvidarCategory,
       url: partial.url?.trim() || undefined,
       username: partial.username?.trim() || undefined,
       notes_preview: partial.notes_preview?.slice(0, 60) || undefined,
@@ -335,7 +336,7 @@ export function validateUpdateItemInput(
   }
   if (
     partial.category !== undefined &&
-    !VAULT_CATEGORIES.includes(partial.category as VaultCategory)
+    !NO_OLVIDAR_CATEGORIES.includes(partial.category as NoOlvidarCategory)
   ) {
     fieldErrors.category = "Categoría inválida";
   }
@@ -392,14 +393,14 @@ export function validateRecoveryRequestInput(
 
 // ─── Label helpers (castellano-VE) ───────────────────────────
 
-export const CATEGORY_LABELS: Record<VaultCategory, string> = {
+export const CATEGORY_LABELS: Record<NoOlvidarCategory, string> = {
   login: "Login",
   note: "Nota segura",
   card: "Tarjeta",
   totp: "Código 2FA",
 };
 
-export function categoryLabel(c: VaultCategory): string {
+export function categoryLabel(c: NoOlvidarCategory): string {
   return CATEGORY_LABELS[c];
 }
 
@@ -408,14 +409,14 @@ export function categoryLabel(c: VaultCategory): string {
  * Si el icono no existe se usa "lock" como fallback (lo manejan los
  * componentes que consumen este helper).
  */
-export const CATEGORY_ICONS: Record<VaultCategory, string> = {
+export const CATEGORY_ICONS: Record<NoOlvidarCategory, string> = {
   login: "users",
   note: "doc",
   card: "invoice",
   totp: "shield",
 };
 
-export function categoryIcon(c: VaultCategory): string {
+export function categoryIcon(c: NoOlvidarCategory): string {
   return CATEGORY_ICONS[c];
 }
 
@@ -427,14 +428,14 @@ export type BadgeTone =
   | "wine"
   | "neutral";
 
-export function categoryBadgeTone(c: VaultCategory): BadgeTone {
+export function categoryBadgeTone(c: NoOlvidarCategory): BadgeTone {
   if (c === "login") return "info";
   if (c === "card") return "wine";
   if (c === "totp") return "warning";
   return "neutral";
 }
 
-export const AUDIT_ACTION_LABELS: Record<VaultAuditAction, string> = {
+export const AUDIT_ACTION_LABELS: Record<NoOlvidarAuditAction, string> = {
   view: "Visto",
   copy: "Copiado",
   edit: "Editado",
@@ -447,11 +448,11 @@ export const AUDIT_ACTION_LABELS: Record<VaultAuditAction, string> = {
   kek_rotated: "KEK rotada",
 };
 
-export function actionLabel(a: VaultAuditAction): string {
+export function actionLabel(a: NoOlvidarAuditAction): string {
   return AUDIT_ACTION_LABELS[a];
 }
 
-export function actionBadgeTone(a: VaultAuditAction): BadgeTone {
+export function actionBadgeTone(a: NoOlvidarAuditAction): BadgeTone {
   if (a === "delete") return "danger";
   if (a === "kek_rotated" || a === "recovery_executed") return "wine";
   if (a === "recovery_requested" || a === "recovery_approved") return "warning";
@@ -460,7 +461,7 @@ export function actionBadgeTone(a: VaultAuditAction): BadgeTone {
   return "neutral";
 }
 
-export const RECOVERY_STATUS_LABELS: Record<VaultRecoveryStatus, string> = {
+export const RECOVERY_STATUS_LABELS: Record<NoOlvidarRecoveryStatus, string> = {
   pending: "Pendiente",
   approved: "Aprobada",
   rejected: "Rechazada",
@@ -468,11 +469,11 @@ export const RECOVERY_STATUS_LABELS: Record<VaultRecoveryStatus, string> = {
   completed: "Completada",
 };
 
-export function recoveryStatusLabel(s: VaultRecoveryStatus): string {
+export function recoveryStatusLabel(s: NoOlvidarRecoveryStatus): string {
   return RECOVERY_STATUS_LABELS[s];
 }
 
-export function recoveryStatusBadgeTone(s: VaultRecoveryStatus): BadgeTone {
+export function recoveryStatusBadgeTone(s: NoOlvidarRecoveryStatus): BadgeTone {
   if (s === "completed") return "success";
   if (s === "approved") return "info";
   if (s === "pending") return "warning";
@@ -480,26 +481,26 @@ export function recoveryStatusBadgeTone(s: VaultRecoveryStatus): BadgeTone {
   return "neutral";
 }
 
-export const USER_ROLE_LABELS: Record<VaultUserRole, string> = {
+export const USER_ROLE_LABELS: Record<NoOlvidarUserRole, string> = {
   member: "Miembro",
   admin: "Admin",
 };
 
-export function roleLabel(r: VaultUserRole): string {
+export function roleLabel(r: NoOlvidarUserRole): string {
   return USER_ROLE_LABELS[r];
 }
 
-export function roleBadgeTone(r: VaultUserRole): BadgeTone {
+export function roleBadgeTone(r: NoOlvidarUserRole): BadgeTone {
   return r === "admin" ? "wine" : "neutral";
 }
 
-export const KEK_STATUS_LABELS: Record<VaultKekStatus, string> = {
+export const KEK_STATUS_LABELS: Record<NoOlvidarKekStatus, string> = {
   active: "Activa",
   legacy: "Legacy",
   revoked: "Revocada",
 };
 
-export function kekStatusBadgeTone(s: VaultKekStatus): BadgeTone {
+export function kekStatusBadgeTone(s: NoOlvidarKekStatus): BadgeTone {
   if (s === "active") return "success";
   if (s === "legacy") return "warning";
   return "danger";
@@ -525,8 +526,8 @@ export function formatLastAccess(iso: string | null): string {
 }
 
 /**
- * Calcula si la session del Vault expiró (now() - last_unlock > timeout).
- * Usado por VaultClient watchdog cada 60s para forzar redirect a 2FA.
+ * Calcula si la session del No-Olvidar expiró (now() - last_unlock > timeout).
+ * Usado por NoOlvidarClient watchdog cada 60s para forzar redirect a 2FA.
  */
 export function isSessionExpired(
   lastUnlockAt: string | null,
@@ -549,7 +550,7 @@ export interface CategoryFieldDef {
   required?: boolean;
 }
 
-export const CATEGORY_DEFAULT_FIELDS: Record<VaultCategory, CategoryFieldDef[]> = {
+export const CATEGORY_DEFAULT_FIELDS: Record<NoOlvidarCategory, CategoryFieldDef[]> = {
   login: [
     { key: "url", label: "URL del sitio", type: "text" },
     { key: "username", label: "Usuario / email", type: "text" },
@@ -573,12 +574,12 @@ export const CATEGORY_DEFAULT_FIELDS: Record<VaultCategory, CategoryFieldDef[]> 
   ],
 };
 
-export function categoryDefaultFields(c: VaultCategory): CategoryFieldDef[] {
+export function categoryDefaultFields(c: NoOlvidarCategory): CategoryFieldDef[] {
   return CATEGORY_DEFAULT_FIELDS[c];
 }
 
 /** Severity → BadgeTone (para banner de anomalías). */
-export function alertSeverityBadgeTone(s: VaultAlertSeverity): BadgeTone {
+export function alertSeverityBadgeTone(s: NoOlvidarAlertSeverity): BadgeTone {
   if (s === "critical") return "danger";
   if (s === "warning") return "warning";
   return "info";

@@ -41,7 +41,7 @@ eventos del ERP a templates. Cualquier módulo del Studio puede llamar
   - `mail_channel`: `email` (V1) — `whatsapp` reservado para SDD-0021
   - `mail_category`: `operativo` / `comercial` / `cobranza` / `cliente` / `interno` / `sistema`
   - `mail_log_status`: `queued` / `sent` / `delivered` / `bounced` / `complained` / `opened` / `clicked` / `failed`
-  - `mail_rule_event`: `shipment_created` / `shipment_arrived` / `quote_sent` / `quote_accepted` / `invoice_emitted` / `invoice_overdue` / `vault_recovery_requested` / `agent_run_failed`
+  - `mail_rule_event`: `shipment_created` / `shipment_arrived` / `quote_sent` / `quote_accepted` / `invoice_emitted` / `invoice_overdue` / `no_olvidar_recovery_requested` / `agent_run_failed`
   - `mail_signature_layout`: `minimal` / `card` / `corporate` / `inline` / `image_only`
 
 - 6 tablas:
@@ -140,7 +140,7 @@ eventos del ERP a templates. Cualquier módulo del Studio puede llamar
 
 - Seed:
   - 8 templates iniciales para DTD-Cargo (cotización enviada / aceptada,
-    factura emitida / vencida, embarque creado / arribado, recovery vault,
+    factura emitida / vencida, embarque creado / arribado, recovery no-olvidar,
     bienvenida cliente).
   - `mail_config` row por tenant existente con `from_email='noreply@dtdcargo.com'`,
     `test_mode=true`, `internal_test_email='comercial@dtdcargo.com'`.
