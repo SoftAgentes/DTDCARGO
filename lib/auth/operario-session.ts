@@ -49,6 +49,7 @@ export async function signInWithPin(
     display_name: row.display_name,
     display_name_cn: row.display_name_cn,
     role: row.role,
+    region: row.region,
   };
 
   // Setear cookie HTTP-only con el operario_id
@@ -78,15 +79,16 @@ export async function getCurrentOperario(): Promise<OperarioSession | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("operario_pins")
-    .select("id, tenant_id, warehouse_id, display_name, display_name_cn, role, active")
+    .select("id, tenant_id, warehouse_id, display_name, display_name_cn, role, region, active")
     .eq("id", operarioId)
     .maybeSingle<{
       id: string;
       tenant_id: string;
-      warehouse_id: string;
+      warehouse_id: string | null;
       display_name: string;
       display_name_cn: string | null;
-      role: "operario" | "supervisor";
+      role: "operario" | "supervisor" | "bodeguero" | "camionero";
+      region: "cn" | "ve";
       active: boolean;
     }>();
 
@@ -103,6 +105,7 @@ export async function getCurrentOperario(): Promise<OperarioSession | null> {
     display_name: data.display_name,
     display_name_cn: data.display_name_cn,
     role: data.role,
+    region: data.region,
   };
 }
 

@@ -46,7 +46,12 @@ export async function createReceiptFromOperarioAction(
   }
 
   // Default: warehouse del operario si el cliente no lo mandó
+  // (operarios CN siempre tienen warehouse_id; defensive check para satisfacer
+  // el tipo nullable introducido en SDD-0030)
   if (!partial.warehouse_id) {
+    if (!operario.warehouse_id) {
+      return { error: "Operario sin warehouse asignado." };
+    }
     partial.warehouse_id = operario.warehouse_id;
   }
 

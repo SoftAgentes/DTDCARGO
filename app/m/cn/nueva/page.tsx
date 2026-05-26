@@ -24,6 +24,9 @@ export const metadata = { title: "Nueva recepción" };
 export default async function NuevaRecepcionPage() {
   const operario = await getCurrentOperario();
   if (!operario) redirect("/m/cn/login");
+  // Defensive: SDD-0030 hizo warehouse_id nullable. El operario CN debería
+  // tener siempre warehouse_id por constraint operario_pins_cn_requires_warehouse.
+  if (!operario.warehouse_id) redirect("/m/cn/login");
 
   const initialLang = await getOperarioLang();
 
