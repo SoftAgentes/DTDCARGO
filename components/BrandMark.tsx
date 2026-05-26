@@ -86,14 +86,17 @@ export function BrandMark({
   const resolved: Variant = variant ?? (onDark ? "reverse" : "primary");
   const cfg = VARIANT_CONFIG[resolved];
 
-  // Wordmark escala como ~55% del ancho del isólogo. La spec original del
-  // brand book v3.0 usa 60% en el ejemplo de Logo Oficial.html (isólogo 80px
-  // + wordmark font-size 48px = 60%). Bajamos un punto a 55% para que el
-  // wordmark no domine en contextos compactos tipo navbar, manteniendo la
-  // jerarquía correcta: el wordmark sigue siendo el ancla visual, no el
-  // isólogo. Antes estaba en 0.34, lo que dejaba el wordmark más chico que
-  // los links del nav — bug visible reportado por el founder 2026-05-27.
-  const markFontSize = Math.round(size * 0.55);
+  // Wordmark escala para que su cap-height (altura visible de las letras)
+  // sea igual al alto del isologo. BRAND-EXCEPTION 2026-05-27 autorizada por
+  // founder — diverge de la spec del brand book v3.0:
+  //
+  //   spec brand book:        ratio 0.31-0.60 (wordmark visualmente más chico)
+  //   founder request:        "mismo tamaño que isologo al lado" → visual = 1.43
+  //
+  // Calculo: cap-height ≈ 0.72 * font-size (Archivo Black). Para que
+  // cap-height = isologoHeight (= size * 1.03), font-size = size * 1.03/0.72
+  // ≈ size * 1.43. Math.round mantiene pixel-perfect en cualquier escala.
+  const markFontSize = Math.round(size * 1.43);
   // Gap horizontal entre isólogo y wordmark ~18% del alto del isólogo.
   const gap = Math.round(size * 0.18);
 
