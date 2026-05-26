@@ -62,6 +62,7 @@ export const MODULES: ModuleDef[] = [
   { id: "vault", group: "SISTEMA", label: "Vault", icon: "lock", slug: "/studio/vault" },
   { id: "users", group: "SISTEMA", label: "Usuarios", icon: "shield", slug: "/studio/usuarios" },
   { id: "operarios", group: "SISTEMA", label: "Operarios PWA", icon: "users", slug: "/studio/operarios" },
+  { id: "mis-bugs", group: "SISTEMA", label: "Mis reportes", icon: "flag", slug: "/studio/mis-bugs" },
   { id: "admin", group: "SISTEMA", label: "Administración", icon: "cog", slug: "/studio/admin" },
 ];
 
