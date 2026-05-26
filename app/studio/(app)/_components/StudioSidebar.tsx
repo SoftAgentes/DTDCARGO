@@ -34,6 +34,7 @@ export const MODULES: ModuleDef[] = [
   { id: "tracking", group: "OPERACIÓN", label: "Tracking", icon: "radar", slug: "/studio/tracking" },
   { id: "calendar", group: "OPERACIÓN", label: "Calendario", icon: "clock", slug: "/studio/calendario" },
   { id: "cn", group: "OPERACIÓN", label: "Almacén CN", icon: "warehouse", slug: "/studio/cn" },
+  { id: "qrqueue", group: "OPERACIÓN", label: "Cola de QR", icon: "tag", slug: "/studio/cola-qr" },
   { id: "labels", group: "OPERACIÓN", label: "Etiquetas CN", icon: "tag", slug: "/studio/etiquetas" },
   { id: "ve", group: "OPERACIÓN", label: "Almacén VE", icon: "warehouse", slug: "/studio/ve" },
   { id: "seniat", group: "OPERACIÓN", label: "Aduana SENIAT", icon: "shield", slug: "/studio/seniat" },
