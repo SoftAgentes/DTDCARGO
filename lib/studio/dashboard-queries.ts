@@ -127,3 +127,62 @@ export async function getRecentQuotes(
     .limit(limit);
   return (data as RecentQuoteRow[] | null) ?? [];
 }
+
+// ─────────────────────────────────────────────────────────────
+// Recent activity (SDD-0035)
+// ─────────────────────────────────────────────────────────────
+
+export type RecentActivityItem = {
+  id: string;
+  status: string; // shipment_status enum
+  note: string | null;
+  occurred_at: string;
+  shipment_id: string;
+  shipment_code: string;
+  client_name: string | null;
+};
+
+export async function getRecentActivity(
+  supabase: SupabaseClient,
+  limit = 6,
+): Promise<RecentActivityItem[]> {
+  const { data, error } = await supabase
+    .from("shipment_events")
+    .select(
+      "id, status, note, occurred_at, shipment_id, shipment:shipments!shipment_id ( id, code, client_name )",
+    )
+    .is("deleted_at", null)
+    .order("occurred_at", { ascending: false })
+    .limit(limit);
+
+  if (error) return [];
+
+  type Row = {
+    id: string;
+    status: string;
+    note: string | null;
+    occurred_at: string;
+    shipment_id: string;
+    shipment:
+      | { id: string; code: string; client_name: string | null }
+      | { id: string; code: string; client_name: string | null }[]
+      | null;
+  };
+
+  const rows = ((data as unknown) as Row[] | null) ?? [];
+  return rows
+    .map((r) => {
+      const ship = Array.isArray(r.shipment) ? r.shipment[0] : r.shipment;
+      if (!ship) return null; // Skip eventos huérfanos (shipment borrado)
+      return {
+        id: r.id,
+        status: r.status,
+        note: r.note,
+        occurred_at: r.occurred_at,
+        shipment_id: ship.id,
+        shipment_code: ship.code,
+        client_name: ship.client_name,
+      } satisfies RecentActivityItem;
+    })
+    .filter((item): item is RecentActivityItem => item !== null);
+}
