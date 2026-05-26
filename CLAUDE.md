@@ -66,6 +66,72 @@ density modifiers (compact / spacious), motion, reset.
 Las versiones anteriores en `_handoff_preview/` / `BANDBOOK V1/` están **archivadas** —
 no consultar para decisiones nuevas.
 
+### 📂 `docs/design/` — home único de TODO lo visual (regla establecida 2026-05-24)
+
+**Carpeta predeterminada para CUALQUIER material visual, de marca, mockup, handoff
+o asset.** Antes de poner archivos visuales en otro lado, va acá. Sub-organización
+por **producto**:
+
+```
+docs/design/
+├── README.md                              ← índice maestro (leer al arrancar)
+├── studio/                                ← Producto: ERP Studio (interno)
+│   ├── v1-studio/                         ← handoff inicial
+│   └── v1.3.1-claude-design/              ← entrega Claude Design 2026-05-24
+├── sitio-publico/                         ← Producto: dtdcargo.com
+├── mobile/                                ← Producto: app móvil nativa (futuro)
+├── micro-sites/                           ← landings standalone
+├── brand-assets/                          ← logos, isotipos, favicons (transversal)
+├── tokens/                                ← colors.json + typography.json
+├── rollbacks/                             ← cambios visuales revertidos
+└── handoffs-archive/                      ← backups ZIP originales
+```
+
+**Reglas de ubicación**:
+
+| Tipo de material | Va a |
+|---|---|
+| Handoff visual nuevo (Claude Design, freelancer, agencia) | `docs/design/<producto>/<vM.m.p-origen>/` + `README.md` adentro con contexto |
+| Asset de marca (logo, isotipo, favicon, OG image) | `docs/design/brand-assets/<categoría>/` |
+| Rollback visual | `docs/design/rollbacks/YYYY-MM-DD-<feature>/` |
+| Tokens documentados (colors.json, typography.json) | `docs/design/tokens/` |
+| Backup ZIP de entrega | `docs/design/handoffs-archive/<nombre>-<version>.zip` |
+
+**Naming**:
+
+- Versión: `vM.m.p-<origen>` (ej: `v1.3.1-claude-design`, `v2.0-figma`)
+- Carpeta del proyecto descomprimido: siempre `proyecto/`
+- Versiones anteriores archivadas: prefijo `_archivo-` (ej: `_archivo-v1.3/`)
+- Rollbacks: `YYYY-MM-DD-<slug-feature>/`
+
+**Prohibido**:
+
+- ❌ NO usar `_handoff_preview/` para nada nuevo (queda como legacy histórico, no se borra para no romper paths)
+- ❌ NO usar `BANDBOOK V1/` para nada nuevo (legacy)
+- ❌ NO dejar ZIPs en `~/Downloads/` después de procesarlos — siempre mover a `handoffs-archive/`
+- ❌ NO crear estructura ad-hoc tipo `mockups-vN/` o `01-foo/` dentro de un handoff
+
+**Por qué `design/` y no `marketing/` o `brand/`**:
+
+- `BRAND.md` raíz ya tiene las **reglas** de marca → no duplicar
+- `docs/design/` es para **materiales** que aplican esas reglas
+- "Design" abarca: mockups, handoffs, brand-assets, tokens, rollbacks (todo lo visual)
+- Si en el futuro aparece "marketing" como vertical distinto (campañas, content strategy,
+  copy para ads, performance creative, etc.), se abre `docs/marketing/` ese día
+  como hermana de `docs/design/`. Hoy NO existe ese vertical, no anticipamos.
+
+**Comportamiento esperado en futuras sesiones**:
+
+Cuando el founder mencione "diseño", "branding", "handoff", "mockup", "Claude Design",
+"entregable visual", "rollback", "assets de marca", "logo":
+
+1. Asumir que el material va a `docs/design/<producto>/<version>/`
+2. Si llega vía `~/Downloads/`: extraer ZIPs → mover a destino → backup ZIP en `handoffs-archive/` → crear `README.md` contextual → reportar
+3. NO sugerir `_handoff_preview/` ni otras ubicaciones legacy
+4. Si el founder propone otra ubicación, recordarle esta regla y proponer migración
+
+Memoria persistente con la regla: `~/.claude/projects/.../memory/convention_design_handoffs_folder.md`.
+
 **Resumen ejecutivo (5 reglas que NO se rompen — ver BRAND.md sec. final):**
 1. Solo tokens CSS (`var(--*)`). Cero hex inventados fuera del tokens.css.
 2. Solo fuentes Archivo + JetBrains Mono + Noto Sans SC.
