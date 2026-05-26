@@ -12,6 +12,7 @@ import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
+import { BugTechCaptureProvider } from "../_components/bug-reporter/BugTechCaptureProvider";
 
 export default async function StudioAppLayout({
   children,
@@ -63,7 +64,9 @@ export default async function StudioAppLayout({
         </main>
       </div>
 
-      {/* Bug Reporter FAB · SDD-0036 Fase 2 · visible en todo el Studio */}
+      {/* Bug Reporter · SDD-0036 · visible en todo el Studio */}
+      {/* Provider (sin UI) instala listeners de error/network para tech_data */}
+      <BugTechCaptureProvider />
       <BugFABButton buildSha={buildSha} />
     </WiringProvider>
   );

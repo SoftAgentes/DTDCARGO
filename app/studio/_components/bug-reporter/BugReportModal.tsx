@@ -26,13 +26,13 @@ import {
   BUG_SEVERITY_LABELS,
   type BugActionState,
   type BugCategory,
-  type BugEnvironment,
   type BugSeverity,
 } from "@/lib/studio/bug-types";
 import {
   moduleLabelFromSlug,
   moduleSlugFromPathname,
 } from "@/lib/studio/bug-module-name";
+import { getBugTechCapture } from "@/lib/studio/bug-tech-capture";
 
 interface BugReportModalProps {
   onClose: () => void;
@@ -73,9 +73,15 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
     return () => window.removeEventListener("keydown", handler);
   }, [isPending, onClose]);
 
-  // Browser info + environment (solo cliente)
+  // Snapshot del capture singleton (SDD-0036 Fase 4):
+  // browser_info + environment + console_logs + network_requests, todos
+  // sanitizados por bug-sanitizer. Captura al mount del modal. Si el user
+  // abre modal y espera mucho antes de submit, el snapshot puede quedar
+  // "viejo" — V2 podría re-snapshot on-submit. V1 acepta este trade-off.
   const [browserInfo, setBrowserInfo] = useState<string>("{}");
   const [environment, setEnvironment] = useState<string>("{}");
+  const [consoleLogs, setConsoleLogs] = useState<string>("[]");
+  const [networkRequests, setNetworkRequests] = useState<string>("[]");
   const [currentUrl, setCurrentUrl] = useState<string>("");
 
   useEffect(() => {
@@ -87,12 +93,10 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
         pixelRatio: window.devicePixelRatio,
       }),
     );
-    const env: BugEnvironment = {
-      locale: navigator.language,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      viewport: { w: window.innerWidth, h: window.innerHeight },
-    };
-    setEnvironment(JSON.stringify(env));
+    const snapshot = getBugTechCapture().getSnapshot();
+    setEnvironment(JSON.stringify(snapshot.environment));
+    setConsoleLogs(JSON.stringify(snapshot.console_logs));
+    setNetworkRequests(JSON.stringify(snapshot.network_requests));
   }, []);
 
   return (
@@ -260,12 +264,15 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
               gap: "var(--s-4, 16px)",
             }}
           >
-            {/* Hidden fields auto-captured */}
+            {/* Hidden fields auto-captured (D3: invisible al user) */}
             <input type="hidden" name="module" value={moduleSlug} />
             <input type="hidden" name="url" value={currentUrl} />
             <input type="hidden" name="build_sha" value={buildSha ?? ""} />
             <input type="hidden" name="browser_info" value={browserInfo} />
             <input type="hidden" name="environment" value={environment} />
+            {/* Tech capture · sanitizados por bug-sanitizer.ts (SDD-0036 Fase 4) */}
+            <input type="hidden" name="console_logs" value={consoleLogs} />
+            <input type="hidden" name="network_requests" value={networkRequests} />
             <input type="hidden" name="category" value={category} />
             {category === "error" && (
               <input type="hidden" name="severity" value={severity} />
