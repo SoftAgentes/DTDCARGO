@@ -1,13 +1,24 @@
 ---
 sdd: "0036"
 title: "Bug Reporter · módulo interno de bug tracking con auto-captura técnica e integración Claude Code"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-26
 updated: 2026-05-26
 supersedes: null
 superseded_by: null
 related: ["0024", "0026", "0028"]
+implementation_commits:
+  - "3e54aac feat(studio): Fase 1 backend"
+  - "ef1391a feat(studio): Fase 2 UI reportador"
+  - "f53ce40 feat(studio): Fase 3 UI admin"
+  - "052d917 docs(spec): D9 cero automatizacion"
+  - "66f4d7c fix(studio): codex review P1 fixes"
+  - "fe63615 feat(studio): Fase 4 V1 captura + sanitizer"
+  - "a7cae34 feat(studio): Fase 6 polish admin"
+deferred:
+  - "Fase 4.5 rrweb session replay (requiere pnpm add rrweb + storage upload)"
+  - "Fase 5 notif 4 canales (depende SDD-0026 Resend Fase 2)"
 ---
 
 # DTD-0036 — Bug Reporter · módulo interno de bug tracking
