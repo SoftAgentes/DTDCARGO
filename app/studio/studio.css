@@ -421,7 +421,9 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  div[role="status"] {
+  /* Scopeada al ToastCard específico (necesita !important porque la
+     animación está aplicada inline-style en ToastProvider). */
+  .studio-toast {
     animation: none !important;
   }
 }
@@ -609,5 +611,135 @@
   50% {
     opacity: 0.5;
     transform: scale(1.25);
+  }
+}
+
+/* ── BugFAB · paleta dev-tools (violeta + cyan halo) ─────────
+   Se separa intencionalmente del wine de los botones "+ Nuevo..."
+   y del navy del topbar para que no se confunda con acciones
+   comerciales. Estilo Linear/Vercel dev tools. */
+:root {
+  --bug-fab-fill: #7c3aed; /* violeta vibrante */
+  --bug-fab-fill-hover: #6d28d9;
+  --bug-fab-fill-active: #5b21b6;
+  --bug-fab-halo: #22d3ee; /* cyan electric */
+  --bug-fab-on: #ffffff;
+}
+[data-theme="dark"] {
+  --bug-fab-fill: #8b5cf6;
+  --bug-fab-fill-hover: #a78bfa;
+  --bug-fab-fill-active: #7c3aed;
+  --bug-fab-halo: #67e8f9;
+}
+
+/* Pulso idle del halo · respira cada 2.8s */
+@keyframes bug-fab-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 6px 18px rgba(124, 58, 237, 0.38),
+      0 0 0 0 rgba(34, 211, 238, 0);
+  }
+  50% {
+    box-shadow:
+      0 6px 18px rgba(124, 58, 237, 0.38),
+      0 0 0 8px rgba(34, 211, 238, 0.18);
+  }
+}
+
+/* Mientras se está arrastrando: el botón rota sutil */
+@keyframes bug-fab-wobble {
+  0%,
+  100% {
+    transform: rotate(-6deg) scale(1.12);
+  }
+  50% {
+    transform: rotate(6deg) scale(1.12);
+  }
+}
+
+/* Ghost targets que aparecen durante el drag · indican las 4 esquinas */
+@keyframes bug-fab-ghost-in {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.bug-fab-button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bug-fab-fill);
+  color: var(--bug-fab-on);
+  border: 0;
+  cursor: grab;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: bug-fab-pulse 2.8s ease-in-out infinite;
+  transition:
+    background var(--dur, 180ms) var(--ease, ease-out),
+    transform var(--dur, 180ms) var(--ease, ease-out);
+  touch-action: none; /* no scroll mientras arrastra en touch */
+}
+.bug-fab-button:hover {
+  background: var(--bug-fab-fill-hover);
+  transform: scale(1.08);
+}
+.bug-fab-button:active {
+  background: var(--bug-fab-fill-active);
+  cursor: grabbing;
+}
+.bug-fab-button:focus-visible {
+  outline: 2px solid var(--bug-fab-halo);
+  outline-offset: 3px;
+}
+.bug-fab-button[data-dragging="true"] {
+  animation: bug-fab-wobble 0.9s ease-in-out infinite;
+  cursor: grabbing;
+  box-shadow:
+    0 10px 24px rgba(124, 58, 237, 0.45),
+    0 0 0 10px rgba(34, 211, 238, 0.22);
+}
+
+.bug-fab-ghost {
+  position: fixed;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px dashed var(--bug-fab-halo);
+  background: rgba(124, 58, 237, 0.08);
+  pointer-events: none;
+  z-index: 99;
+  animation: bug-fab-ghost-in 180ms var(--ease, ease-out);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--bug-fab-fill);
+  font: 700 9px/1 var(--f-sans);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.bug-fab-ghost[data-active="true"] {
+  background: rgba(34, 211, 238, 0.22);
+  border-style: solid;
+  border-color: var(--bug-fab-fill);
+  color: var(--bug-fab-fill);
+  transform: scale(1.12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bug-fab-button,
+  .bug-fab-button[data-dragging="true"] {
+    animation: none;
+    transition: none;
+  }
+  .bug-fab-ghost {
+    animation: none;
   }
 }

@@ -16,6 +16,7 @@ import { WiringProvider } from "../_components/wiring/WiringProvider";
 import { ToastProvider } from "../_components/ui/ToastProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
 import { BugTechCaptureProvider } from "../_components/bug-reporter/BugTechCaptureProvider";
+import { EnvBanner } from "../_components/EnvBanner";
 
 export default async function StudioAppLayout({
   children,
@@ -93,6 +94,7 @@ export default async function StudioAppLayout({
               minWidth: 0,
             }}
           >
+            <EnvBanner />
             <StudioTopbar userEmail={user.email ?? ""} />
             <div
               style={{
