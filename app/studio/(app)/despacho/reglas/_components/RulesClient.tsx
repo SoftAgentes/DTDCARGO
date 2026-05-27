@@ -55,8 +55,20 @@ export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
       <input type="hidden" name="optional_rules.tier" value={optionalTier ? "on" : "off"} />
       <input type="hidden" name="optional_rules.routes" value={optionalRoutes ? "on" : "off"} />
 
-      {/* Política de pago (anclada arriba) */}
-      <Card title="Política de pago" eyebrow="REGLA ANCLADA · NO SE PUEDE APAGAR">
+      {/* Política de pago (anclada arriba · plegable) */}
+      <Card
+        title="Política de pago"
+        eyebrow="REGLA ANCLADA · NO SE PUEDE APAGAR"
+        collapsible
+        defaultOpen
+        summary={
+          <>
+            Modo: <b>{PAYMENT_POLICY_LABELS[policy]}</b>
+            {policy === "credito_whitelist" &&
+              ` · ${whitelist.split(/[,\n]/).filter((s) => s.trim()).length} markboxes en whitelist`}
+          </>
+        }
+      >
         <p style={hintStyle}>
           Es el filtro estructural sobre la cola. Determina qué paquetes pueden
           aparecer (o aparecen greyed-out). No se le da slider porque no es un peso
@@ -146,8 +158,21 @@ export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
         </div>
       </Card>
 
-      {/* Opcionales */}
-      <Card title="Reglas opcionales" eyebrow="ACTIVÁ SI VALE">
+      {/* Opcionales · plegable */}
+      <Card
+        title="Reglas opcionales"
+        eyebrow="ACTIVÁ SI VALE"
+        collapsible
+        defaultOpen={false}
+        summary={
+          <>
+            {[optionalTier && "Tier", optionalRoutes && "Rutas"]
+              .filter(Boolean)
+              .join(" · ") || "Ninguna activa"}{" "}
+            · {[optionalTier, optionalRoutes].filter(Boolean).length} de 2
+          </>
+        }
+      >
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Toggle
             label="Tier de cliente"
@@ -164,8 +189,19 @@ export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
         </div>
       </Card>
 
-      {/* VIP markboxes */}
-      <Card title="MARKBOX VIP" eyebrow="LISTA MANUAL · ALTERNATIVA AL TIER">
+      {/* VIP markboxes · plegable */}
+      <Card
+        title="MARKBOX VIP"
+        eyebrow="LISTA MANUAL · ALTERNATIVA AL TIER"
+        collapsible
+        defaultOpen={false}
+        summary={
+          <>
+            {vipMarkboxes.split(/[,\n]/).filter((s) => s.trim()).length} markboxes
+            cargados
+          </>
+        }
+      >
         <p style={hintStyle}>
           Markboxes que reciben el peso VIP aunque no estén marcados como Gold/Platinum
           en Clientes. Útil si el módulo de tiers no está alineado con tu prioridad real.
@@ -233,13 +269,25 @@ function Card({
   title,
   eyebrow,
   action,
+  collapsible = false,
+  defaultOpen = true,
+  summary,
   children,
 }: {
   title: string;
   eyebrow?: string;
   action?: React.ReactNode;
+  /** Si true, el body es plegable con chevron clickeable. */
+  collapsible?: boolean;
+  /** Estado inicial cuando collapsible=true. Ignorado si !collapsible. */
+  defaultOpen?: boolean;
+  /** Sub-line visible cuando colapsado (resumen del estado · ej: "Modo: Estricto"). */
+  summary?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
+  const isOpen = !collapsible || open;
+
   return (
     <div
       style={{
@@ -249,21 +297,75 @@ function Card({
         borderRadius: "var(--r-md)",
       }}
     >
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 16 }}>
-        <div>
-          {eyebrow && (
-            <div
-              className="studio-eyebrow"
-              style={{ color: "var(--wine)", marginBottom: 6 }}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: isOpen ? 14 : 0,
+          gap: 16,
+        }}
+      >
+        <button
+          type="button"
+          onClick={collapsible ? () => setOpen(!open) : undefined}
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 12,
+            padding: 0,
+            border: 0,
+            background: "transparent",
+            cursor: collapsible ? "pointer" : "default",
+            textAlign: "left",
+          }}
+          aria-expanded={collapsible ? isOpen : undefined}
+        >
+          {collapsible && (
+            <span
+              style={{
+                color: "var(--ink-mute)",
+                marginTop: 4,
+                fontSize: 12,
+                transform: `rotate(${isOpen ? 90 : 0}deg)`,
+                transition: "transform 160ms ease",
+                display: "inline-flex",
+                flexShrink: 0,
+              }}
+              aria-hidden
             >
-              {eyebrow}
-            </div>
+              ▸
+            </span>
           )}
-          <div style={{ font: "800 16px/1.2 var(--f-display)", color: "var(--ink)" }}>{title}</div>
-        </div>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            {eyebrow && (
+              <div
+                className="studio-eyebrow"
+                style={{ color: "var(--wine)", marginBottom: 6 }}
+              >
+                {eyebrow}
+              </div>
+            )}
+            <div style={{ font: "800 16px/1.2 var(--f-display)", color: "var(--ink)" }}>
+              {title}
+            </div>
+            {collapsible && !isOpen && summary && (
+              <div
+                style={{
+                  font: "500 12px/1.4 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  marginTop: 6,
+                }}
+              >
+                {summary}
+              </div>
+            )}
+          </div>
+        </button>
         {action}
       </div>
-      {children}
+      {isOpen && children}
     </div>
   );
 }
