@@ -34,6 +34,9 @@ export type ClientInput = {
   rif: string | null;
   tier: ClientTier;
   notes: string | null;
+  /** GPS opcional · habilita "Cerca tuyo" del Mobile ERP. */
+  lat: number | null;
+  lng: number | null;
 };
 
 export const CLIENT_TIER_OPTIONS: { value: ClientTier; label: string }[] = [
@@ -129,6 +132,19 @@ export function validateClientInput(input: Partial<ClientInput>): {
     errors.tier = "Tier inválido.";
   }
 
+  const lat = input.lat ?? null;
+  const lng = input.lng ?? null;
+  if (lat !== null && (Number.isNaN(lat) || lat < -90 || lat > 90)) {
+    errors.lat = "Latitud inválida (debe estar entre -90 y 90).";
+  }
+  if (lng !== null && (Number.isNaN(lng) || lng < -180 || lng > 180)) {
+    errors.lng = "Longitud inválida (debe estar entre -180 y 180).";
+  }
+  if ((lat === null) !== (lng === null)) {
+    errors.lat = errors.lat ?? "Cargá lat y lng juntos.";
+    errors.lng = errors.lng ?? "Cargá lat y lng juntos.";
+  }
+
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };
   }
@@ -142,6 +158,8 @@ export function validateClientInput(input: Partial<ClientInput>): {
       rif: rif ? formatRif(rif) : null,
       tier: tier!,
       notes: input.notes?.trim() || null,
+      lat,
+      lng,
     },
   };
 }
