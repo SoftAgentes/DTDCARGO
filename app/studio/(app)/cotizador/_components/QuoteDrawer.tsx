@@ -36,6 +36,7 @@ import type { Rate } from "@/lib/studio/rate-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 
 interface Props {
   mode: "create" | "edit";
@@ -515,17 +516,15 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 <label className="studio-label" htmlFor="qd-cbm">
                   CBM <span style={{ color: "var(--wine)" }}>*</span>
                 </label>
-                <input
+                <NumericInput
                   id="qd-cbm"
                   name="cbm"
-                  type="number"
-                  step="0.001"
-                  min="0"
-                  className="studio-input studio-input-mono"
-                  value={cbm}
-                  onChange={(e) => setCbm(e.target.value)}
-                  placeholder="3.40"
+                  type="volume"
                   required
+                  min={0}
+                  placeholder="3.40"
+                  value={cbm === "" ? null : Number(cbm)}
+                  onChange={(v) => setCbm(v != null ? String(v) : "")}
                 />
                 {state.fieldErrors?.cbm && <FieldError msg={state.fieldErrors.cbm} />}
               </div>
@@ -533,32 +532,31 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 <label className="studio-label" htmlFor="qd-weight">
                   Peso (kg)
                 </label>
-                <input
+                <NumericInput
                   id="qd-weight"
                   name="weight_kg"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  className="studio-input studio-input-mono"
-                  value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
+                  type="weight"
+                  min={0}
                   placeholder="450"
+                  value={weightKg === "" ? null : Number(weightKg)}
+                  onChange={(v) =>
+                    setWeightKg(v != null ? String(v) : "")
+                  }
                 />
               </div>
               <div>
                 <label className="studio-label" htmlFor="qd-boxes">
                   Cajas
                 </label>
-                <input
+                <NumericInput
                   id="qd-boxes"
                   name="boxes"
-                  type="number"
-                  step="1"
-                  min="0"
-                  className="studio-input studio-input-mono"
-                  value={boxes}
-                  onChange={(e) => setBoxes(e.target.value)}
+                  type="count"
+                  unit="cajas"
+                  min={0}
                   placeholder="4"
+                  value={boxes === "" ? null : Number(boxes)}
+                  onChange={(v) => setBoxes(v != null ? String(v) : "")}
                 />
               </div>
             </div>
@@ -570,16 +568,16 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
               <label className="studio-label" htmlFor="qd-weight-flat">
                 Peso (kg)
               </label>
-              <input
+              <NumericInput
                 id="qd-weight-flat"
                 name="weight_kg"
-                type="number"
-                step="0.01"
-                min="0"
-                className="studio-input studio-input-mono"
-                value={weightKg}
-                onChange={(e) => setWeightKg(e.target.value)}
+                type="weight"
+                min={0}
                 placeholder="—"
+                value={weightKg === "" ? null : Number(weightKg)}
+                onChange={(v) =>
+                  setWeightKg(v != null ? String(v) : "")
+                }
               />
             </div>
           )}
@@ -590,17 +588,18 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
               <label className="studio-label" htmlFor="qd-rate-cbm">
                 Tarifa por CBM (USD) <span style={{ color: "var(--wine)" }}>*</span>
               </label>
-              <input
+              <NumericInput
                 id="qd-rate-cbm"
                 name="rate_per_cbm"
-                type="number"
-                step="0.01"
-                min="0"
-                className="studio-input studio-input-mono"
-                value={ratePerCbm}
-                onChange={(e) => setRatePerCbm(e.target.value)}
-                placeholder="480.00"
+                type="currency"
+                currency="USD"
                 required
+                min={0}
+                placeholder="480.00"
+                value={ratePerCbm === "" ? null : Number(ratePerCbm)}
+                onChange={(v) =>
+                  setRatePerCbm(v != null ? String(v) : "")
+                }
               />
               <input type="hidden" name="flat_rate" value={flatRate} />
               {state.fieldErrors?.rate_per_cbm && (
@@ -612,17 +611,18 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
               <label className="studio-label" htmlFor="qd-rate-flat">
                 Tarifa flat (USD) <span style={{ color: "var(--wine)" }}>*</span>
               </label>
-              <input
+              <NumericInput
                 id="qd-rate-flat"
                 name="flat_rate"
-                type="number"
-                step="0.01"
-                min="0"
-                className="studio-input studio-input-mono"
-                value={flatRate}
-                onChange={(e) => setFlatRate(e.target.value)}
-                placeholder="8500.00"
+                type="currency"
+                currency="USD"
                 required
+                min={0}
+                placeholder="8500.00"
+                value={flatRate === "" ? null : Number(flatRate)}
+                onChange={(v) =>
+                  setFlatRate(v != null ? String(v) : "")
+                }
               />
               <input type="hidden" name="rate_per_cbm" value={ratePerCbm} />
               {state.fieldErrors?.flat_rate && (
