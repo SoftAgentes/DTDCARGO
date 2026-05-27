@@ -3,11 +3,16 @@
 /**
  * Client component del dashboard de despacho.
  * Selector de periodo + KPIs + tabla ranking + barras top ciudades.
+ *
+ * Alineado a Claude Design v1.7 (despacho-dashboard.jsx):
+ *  - KPIs con icons (truck/check/clock/warn/clock) coloreados por tone
+ *  - Top ciudades muestra "N tarde" cuando hay paquetes que excedieron SLA
  */
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Icon } from "@/app/studio/_components/icons";
 import type {
   DispatchDashboardPeriod,
   DispatchDashboardStats,
@@ -97,21 +102,41 @@ export function DispatchDashboardClient({
           marginBottom: 24,
         }}
       >
-        <Kpi label="Total ODs" value={String(stats.totalOds)} sub="creadas en periodo" tone="wine" />
+        <Kpi
+          label="Total ODs"
+          value={String(stats.totalOds)}
+          sub="creadas en periodo"
+          tone="wine"
+          icon={Icon.truck(18)}
+        />
         <Kpi
           label="Completadas"
           value={String(stats.completed)}
           sub={stats.totalOds > 0 ? `${Math.round((stats.completed / stats.totalOds) * 100)}% del total` : "—"}
           tone="success"
+          icon={Icon.check(18)}
         />
-        <Kpi label="On-time" value={`${stats.ontimePct}%`} sub={`${stats.ontime} a tiempo`} tone="info" />
+        <Kpi
+          label="On-time"
+          value={`${stats.ontimePct}%`}
+          sub={`${stats.ontime} a tiempo`}
+          tone="info"
+          icon={Icon.clock(18)}
+        />
         <Kpi
           label="Tarde + canceladas"
           value={String(stats.late + stats.cancelled)}
           sub={`${stats.late} tarde · ${stats.cancelled} canceladas`}
           tone="warning"
+          icon={Icon.warn(18)}
         />
-        <Kpi label="Tiempo promedio" value={avgRouteLabel} sub="por ruta completa" tone="neutral" />
+        <Kpi
+          label="Tiempo promedio"
+          value={avgRouteLabel}
+          sub="por ruta completa"
+          tone="neutral"
+          icon={Icon.clock(18)}
+        />
       </div>
 
       {/* Ranking + Top cities */}
@@ -214,12 +239,19 @@ export function DispatchDashboardClient({
                     </div>
                     <div
                       style={{
+                        display: "flex",
+                        justifyContent: "space-between",
                         marginTop: 4,
                         font: "500 10.5px/1 var(--f-sans)",
                         color: "var(--ink-mute)",
                       }}
                     >
-                      {(c.kg / 1000).toFixed(1)} t total
+                      <span>{(c.kg / 1000).toFixed(1)} t total</span>
+                      {c.late > 0 && (
+                        <span style={{ color: "var(--warning)", font: "700 10.5px/1 var(--f-sans)" }}>
+                          {c.late} tarde
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -237,11 +269,13 @@ function Kpi({
   value,
   sub,
   tone,
+  icon,
 }: {
   label: string;
   value: string;
   sub: string;
   tone: "wine" | "success" | "info" | "warning" | "neutral";
+  icon?: React.ReactNode;
 }) {
   const color: Record<typeof tone, string> = {
     wine: "var(--wine)",
@@ -249,6 +283,13 @@ function Kpi({
     info: "var(--info)",
     warning: "var(--warning)",
     neutral: "var(--ink-soft)",
+  };
+  const bgTone: Record<typeof tone, string> = {
+    wine: "var(--wine-tint)",
+    success: "var(--success-bg)",
+    info: "var(--info-bg)",
+    warning: "var(--warning-bg)",
+    neutral: "var(--bg-elevated)",
   };
   return (
     <div
@@ -261,13 +302,39 @@ function Kpi({
     >
       <div
         style={{
-          font: "700 9.5px/1 var(--f-sans)",
-          color: "var(--ink-soft)",
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 8,
         }}
       >
-        {label}
+        <div
+          style={{
+            font: "700 9.5px/1 var(--f-sans)",
+            color: "var(--ink-soft)",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+          }}
+        >
+          {label}
+        </div>
+        {icon && (
+          <span
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: "var(--r-sm)",
+              background: bgTone[tone],
+              color: color[tone],
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </span>
+        )}
       </div>
       <div
         style={{

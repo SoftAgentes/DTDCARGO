@@ -34,7 +34,7 @@
 | **dashboard** (nuevo override) | `nuevo/modules/dashboard.jsx` (39KB) | mismo path | 🔴 falta portar | Editor de KPIs/widgets + 14 KPIs catálogo + 7 widgets + drag-to-reorder + persistencia |
 | **despacho** | `erp/modules/despacho.jsx` (84KB) | `app/studio/(app)/despacho/` | 🟡 verificar | Cola priorizada + scoring + asignación. Auditar contra handoff. |
 | **despacho-rules** | `erp/modules/despacho-rules.jsx` (59KB) | `app/studio/(app)/despacho/reglas/` | 🟡 verificar | Stripe/Linear cards plegables + Pago primero anclado + presets |
-| **despacho-dashboard** | `erp/modules/despacho-dashboard.jsx` (7KB) | — | 🔴 falta portar | 5 KPIs + ranking rutas + top ciudades |
+| **despacho-dashboard** | `erp/modules/despacho-dashboard.jsx` (7KB) | `app/studio/(app)/despacho/dashboard/` | ✅ alineado | Tier 2.3 (2026-05-27) — KPIs con icons toned + columna "N tarde" en top ciudades (extend listDispatchTopCities con SLA check) + subtitle dinámico por periodo. $/km skip hasta integrar costing. |
 | **documents** | `erp/modules/documents.jsx` (5KB) | `app/studio/(app)/documentos/` | 🟡 verificar | Wireado a `openGenerateBLModal` en v1.6 |
 | **invoices** | `erp/modules/invoices.jsx` (11KB) | `app/studio/(app)/facturacion/` | 🟡 verificar | Auditar contra handoff |
 | **leads** | `erp/modules/leads.jsx` (29KB) | `app/studio/(app)/leads/` | 🟡 verificar | Kanban + Tabla + Timeline + drawer |
@@ -149,7 +149,7 @@
 ### Tier 2 — flow operativo core
 4. ✅ **admin-routes** (CRUD rutas + ciudades IPOSTEL) — alineado a v1.7 (2026-05-27)
 5. **despacho-rules** (motor scoring + pago primero) — bloquea operación despacho ~3-4h
-6. **despacho-dashboard** (KPIs) — visibilidad operativa ~1-2h
+6. ✅ **despacho-dashboard** (KPIs + ranking + top ciudades + late count) — alineado a v1.7 (2026-05-27)
 7. **OD Bridge + Data Bridge** (pipeline CN→Despacho→Bodeguero→Transportista)
    ~2-3h (parte va a Supabase realtime en lugar de localStorage)
 
@@ -192,19 +192,20 @@ ve, label-generator, qr-queue.
 
 ## 📊 Resumen ejecutivo
 
-- **✅ Alineado** (7): mailing tabs (Logs/Reglas/Config/orquestador) + wiring modals
+- **✅ Alineado** (8): mailing tabs (Logs/Reglas/Config/orquestador) + wiring modals
   + **admin-routes** (Tier 2.1 · 2026-05-27) + **venezuela-catalog** (Tier 1.3 · como data)
+  + **despacho-dashboard** (Tier 2.3 · 2026-05-27)
 - **🟡 Divergente** (24): mayoría de módulos prod — necesitan audit detallado
-- **🔴 Falta portar** (22): módulos nuevos, pantallas standalone, mobile ERP,
-  sistemas globales (bridges, feature flags ya hechos, rates)
+- **🔴 Falta portar** (21): módulos nuevos, pantallas standalone, mobile ERP,
+  sistemas globales (bridges, rates)
 - **⚪ N/A** (3): comments, quick-email (modal global), tweaks-panel (sandbox only)
 - **➕ Extra prod** (4): bugs/, mis-bugs/, operarios/, no-olvidar/
 
-**Próximo por valor por hora invertida** (Tier 1 ya cerrado):
-1. despacho-dashboard (~1-2h, chico, no-bloquea)
-2. despacho-rules (~3-4h, motor scoring de Despacho)
-3. **Decisión bridge approach** (bloqueante de Tier 2.4 · Realtime / polling / SSE)
-4. Estado de cuenta cliente (~4-5h, fuerte para comercial)
+**Próximo por valor por hora invertida** (Tier 1 + 2.1 + 2.3 ya cerrados):
+1. **Decisión bridge approach** (bloqueante de Tier 2.4 · Realtime / polling / SSE)
+2. despacho-rules (~3-4h, motor scoring de Despacho · tablas + RPC ya existen)
+3. Estado de cuenta cliente (~4-5h, fuerte para comercial)
+4. Mobile ERP (~6-8h, 5 pantallas)
 
 **Bloqueador conceptual**: el bridge end-to-end (CN → Despacho → Bodeguero
 → Transportista) está diseñado con localStorage. Para Next.js + Supabase
