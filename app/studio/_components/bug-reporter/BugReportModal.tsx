@@ -33,10 +33,49 @@ import {
   moduleSlugFromPathname,
 } from "@/lib/studio/bug-module-name";
 import { getBugTechCapture } from "@/lib/studio/bug-tech-capture";
+import { getBugRrwebCapture } from "@/lib/studio/bug-rrweb-capture";
 
 interface BugReportModalProps {
   onClose: () => void;
   buildSha: string | null;
+}
+
+/**
+ * Best-effort upload del rrweb replay al endpoint POST /replay.
+ * Si no hay buffer (ej: rrweb no instaló) o falla el upload, NO rompe el
+ * flow del bug — solo log. El bug queda sin replay.
+ */
+async function uploadReplayBestEffort(bugId: string): Promise<void> {
+  try {
+    const rrweb = getBugRrwebCapture();
+    const serialized = await rrweb.serializeToBlob();
+    if (!serialized) {
+      // sin eventos, nada que subir
+      return;
+    }
+    const fd = new FormData();
+    fd.append(
+      "replay",
+      new File([serialized.blob], `replay.${serialized.extension}`, {
+        type: serialized.contentType,
+      }),
+    );
+    const res = await fetch(`/api/studio/bugs/${bugId}/replay`, {
+      method: "POST",
+      body: fd,
+    });
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      console.error(
+        `[BugReportModal] replay upload failed: HTTP ${res.status}`,
+        txt,
+      );
+      return;
+    }
+    rrweb.reset(); // buffer post-submit (next bug captures fresh window)
+  } catch (err) {
+    console.error("[BugReportModal] replay upload error:", err);
+  }
 }
 
 const CATEGORIES: BugCategory[] = ["error", "improve", "suggest", "question"];
@@ -56,13 +95,14 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
     INITIAL_STATE,
   );
 
-  // Auto-cerrar al éxito
+  // Auto-cerrar al éxito + subir replay rrweb (best-effort, no bloquea)
   useEffect(() => {
-    if (state.ok) {
+    if (state.ok && state.bugId) {
+      uploadReplayBestEffort(state.bugId);
       const t = window.setTimeout(() => onClose(), 1800);
       return () => window.clearTimeout(t);
     }
-  }, [state.ok, onClose]);
+  }, [state.ok, state.bugId, onClose]);
 
   // Escape para cerrar
   useEffect(() => {

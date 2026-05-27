@@ -29,6 +29,7 @@ import {
   type BugTimelineEvent,
 } from "@/lib/studio/bug-types";
 import { moduleLabelFromSlug } from "@/lib/studio/bug-module-name";
+import { BugReplayPlayer } from "./BugReplayPlayer";
 import {
   advanceBugStateAction,
   replyBugMessageAction,
@@ -616,14 +617,7 @@ function TechTab({
           <h4 className="studio-eyebrow" style={{ fontSize: 11, margin: "0 0 8px", color: "var(--ink-soft)" }}>
             Session replay
           </h4>
-          <a
-            href={tech.session_replay_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: "var(--wine)", fontSize: 13 }}
-          >
-            Ver replay rrweb (30s)
-          </a>
+          <BugReplayPlayer bugId={bug.id} />
         </section>
       )}
 
