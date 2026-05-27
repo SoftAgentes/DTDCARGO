@@ -19,6 +19,7 @@ import {
   type ClientInput,
   type ClientTier,
 } from "@/lib/studio/client-types";
+import { geocodeAddress, type GeocodeResult } from "@/lib/studio/geocoding";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
 
@@ -161,6 +162,29 @@ export async function updateClientAction(
   revalidatePath("/studio/clientes");
   revalidatePath(`/studio/clientes/${markbox}`);
   return { ok: true };
+}
+
+/**
+ * Geocoding wrapper · address → lat/lng via Nominatim. Devuelve null si
+ * no encontró o si la API falla. UI muestra mensaje al user.
+ *
+ * Auth wall: requiere sesión Studio · evita usar el endpoint como proxy
+ * de geocoding gratis para terceros.
+ */
+export async function geocodeClientAddressAction(
+  address: string,
+): Promise<
+  | { ok: true; result: GeocodeResult }
+  | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { ok: false, error: "Iniciá sesión primero." };
+
+  // Default a Venezuela (la mayoría de clientes están allá). Si la
+  // dirección incluye otro país, Nominatim igual lo intenta — el
+  // countrycodes solo filtra cuando hay ambigüedad.
+  return geocodeAddress(address, { countryCode: "ve" });
 }
 
 export async function softDeleteClientAction(

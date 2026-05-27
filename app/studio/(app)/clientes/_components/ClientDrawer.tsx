@@ -19,6 +19,7 @@ import {
 } from "@/lib/studio/client-types";
 import {
   createClientAction,
+  geocodeClientAddressAction,
   softDeleteClientAction,
   updateClientAction,
 } from "../actions";
@@ -52,6 +53,9 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
   >("idle");
   const [geoError, setGeoError] = useState<string | null>(null);
 
+  const [geocodeMatched, setGeocodeMatched] = useState<string | null>(null);
+  const [isGeocoding, startGeocoding] = useTransition();
+
   const captureGps = () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setGeoStatus("unavailable");
@@ -60,6 +64,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
     }
     setGeoStatus("loading");
     setGeoError(null);
+    setGeocodeMatched(null);
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setLat(pos.coords.latitude.toFixed(6));
@@ -79,11 +84,37 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
     );
   };
 
+  const geocodeFromAddress = () => {
+    const addressInput = document.getElementById("cl-address") as HTMLInputElement | null;
+    const addr = addressInput?.value.trim();
+    if (!addr) {
+      setGeoStatus("error");
+      setGeoError("Cargá una dirección primero.");
+      return;
+    }
+    setGeoStatus("loading");
+    setGeoError(null);
+    setGeocodeMatched(null);
+    startGeocoding(async () => {
+      const result = await geocodeClientAddressAction(addr);
+      if (result.ok) {
+        setLat(result.result.lat.toFixed(6));
+        setLng(result.result.lng.toFixed(6));
+        setGeocodeMatched(result.result.displayName);
+        setGeoStatus("ok");
+      } else {
+        setGeoStatus("error");
+        setGeoError(result.error);
+      }
+    });
+  };
+
   const clearGps = () => {
     setLat("");
     setLng("");
     setGeoStatus("idle");
     setGeoError(null);
+    setGeocodeMatched(null);
   };
 
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -332,15 +363,25 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                   Capturá visitando al cliente · habilita "Cerca tuyo" del Mobile ERP.
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-sm"
+                  onClick={geocodeFromAddress}
+                  disabled={isGeocoding || geoStatus === "loading"}
+                  style={{ whiteSpace: "nowrap" }}
+                  title="Geocoding via OpenStreetMap a partir de la dirección"
+                >
+                  {isGeocoding ? "Buscando…" : "Buscar desde dirección"}
+                </button>
                 <button
                   type="button"
                   className="studio-btn studio-btn-ghost studio-btn-sm"
                   onClick={captureGps}
-                  disabled={geoStatus === "loading"}
+                  disabled={isGeocoding || geoStatus === "loading"}
                   style={{ whiteSpace: "nowrap" }}
                 >
-                  {geoStatus === "loading" ? "Capturando…" : "Capturar GPS aquí"}
+                  {geoStatus === "loading" && !isGeocoding ? "Capturando…" : "Capturar GPS aquí"}
                 </button>
                 {(lat || lng) && (
                   <button
@@ -396,7 +437,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             </div>
 
             {geoStatus === "ok" && (
-              <p
+              <div
                 style={{
                   font: "500 11px/1.4 var(--f-sans)",
                   color: "var(--success)",
@@ -404,7 +445,18 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                 }}
               >
                 Coordenadas capturadas.
-              </p>
+                {geocodeMatched && (
+                  <div
+                    style={{
+                      font: "500 10.5px/1.4 var(--f-sans)",
+                      color: "var(--ink-mute)",
+                      marginTop: 3,
+                    }}
+                  >
+                    Match: {geocodeMatched}
+                  </div>
+                )}
+              </div>
             )}
             {geoError && (
               <p
