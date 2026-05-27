@@ -12,11 +12,11 @@
 import { useActionState, useEffect, useState } from "react";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
-  INITIAL_MAILING_STATE,
   createMailRuleAction,
   deleteMailRuleAction,
   updateMailRuleAction,
 } from "../actions";
+import { INITIAL_MAILING_STATE } from "./mailing-types";
 import {
   MAIL_RULE_EVENTS,
   RULE_EVENT_LABELS,

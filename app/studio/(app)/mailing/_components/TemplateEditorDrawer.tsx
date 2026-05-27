@@ -19,10 +19,10 @@ import {
 } from "@/lib/studio/mail-sample-vars";
 import { extractVariables, type MailTemplate } from "@/lib/studio/mail-types";
 import {
-  INITIAL_MAILING_STATE,
   sendTestTemplateAction,
   updateMailTemplateAction,
 } from "../actions";
+import { INITIAL_MAILING_STATE } from "./mailing-types";
 
 type View = "editor" | "preview";
 
