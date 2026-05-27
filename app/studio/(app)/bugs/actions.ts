@@ -53,6 +53,9 @@ export async function advanceBugStateAction(
     return { error: error.message };
   }
 
+  // SDD-0036 F5 · email notif al reportador (best-effort)
+  await notifyStateChangeBestEffort(bugId, userResp.user.id);
+
   revalidatePath("/studio/bugs");
   revalidatePath("/studio/mis-bugs");
   return { ok: true, bugId };
@@ -70,6 +73,9 @@ export async function takeBugAction(
   if (!bugId) return { error: "Falta el ID del bug." };
 
   const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
   const { error } = await supabase.rpc("bug_advance_state", {
     p_bug_id: bugId,
     p_new_state: "triaje",
@@ -77,9 +83,58 @@ export async function takeBugAction(
   });
   if (error) return { error: error.message };
 
+  // SDD-0036 F5 · email notif al reportador (best-effort)
+  await notifyStateChangeBestEffort(bugId, userResp.user.id);
+
   revalidatePath("/studio/bugs");
   revalidatePath("/studio/mis-bugs");
   return { ok: true, bugId };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Helper interno: dispara F5 email state change (best-effort).
+// Usado por advanceBugStateAction y takeBugAction. No propaga errores.
+// ─────────────────────────────────────────────────────────────
+
+async function notifyStateChangeBestEffort(
+  bugId: string,
+  actorId: string,
+): Promise<void> {
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data: bugRow } = await supabaseAdmin
+      .from("bug_reports")
+      .select("id, tenant_id, folio, title, state, severity, reporter_id")
+      .eq("id", bugId)
+      .maybeSingle<{
+        id: string;
+        tenant_id: string;
+        folio: string;
+        title: string;
+        state: string;
+        severity: string | null;
+        reporter_id: string;
+      }>();
+    if (!bugRow) return;
+    const { notifyBugStateChangeToReporter } = await import(
+      "@/lib/studio/bug-email-notify"
+    );
+    await notifyBugStateChangeToReporter(
+      supabaseAdmin,
+      bugRow.tenant_id,
+      {
+        id: bugRow.id,
+        folio: bugRow.folio,
+        title: bugRow.title,
+        state: bugRow.state as never,
+        severity: bugRow.severity as never,
+        reporter_id: bugRow.reporter_id,
+      },
+      actorId,
+    );
+  } catch (err) {
+    console.error("[bugs/actions] notifyStateChange failed:", err);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
