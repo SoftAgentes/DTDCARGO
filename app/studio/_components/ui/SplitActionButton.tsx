@@ -119,6 +119,12 @@ function writeStoredKey(memoryKey: string, lastKey: string) {
   }
 }
 
+/** Alto estimado del menú · usado para decidir si abrir hacia arriba o
+ *  hacia abajo según el espacio disponible en viewport. */
+const ESTIMATED_MENU_HEIGHT = 220;
+
+type MenuDirection = "down" | "up";
+
 export function SplitActionButton({
   memoryKey,
   actions,
@@ -131,6 +137,7 @@ export function SplitActionButton({
 }: SplitActionButtonProps) {
   // Estado de UI
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuDirection, setMenuDirection] = useState<MenuDirection>("down");
   const [activeKey, setActiveKey] = useState<string>(actions[0]?.key ?? "");
   const [isPending, startTransition] = useTransition();
   const [successKey, setSuccessKey] = useState<string | null>(null);
@@ -143,6 +150,32 @@ export function SplitActionButton({
       setActiveKey(stored);
     }
   }, [memoryKey, actions]);
+
+  /**
+   * Decide si el menú abre hacia arriba o abajo según espacio disponible.
+   * Importante para drawers donde el botón vive en el footer (al borde
+   * inferior) · si abriera hacia abajo quedaría fuera del viewport o
+   * tapado por la barra de tareas / safe area.
+   */
+  const toggleMenu = () => {
+    if (menuOpen) {
+      setMenuOpen(false);
+      return;
+    }
+    const el = wrapRef.current;
+    if (el && typeof window !== "undefined") {
+      const rect = el.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const spaceAbove = rect.top;
+      // Si no hay espacio suficiente debajo, abrimos hacia arriba.
+      if (spaceBelow < ESTIMATED_MENU_HEIGHT && spaceAbove > spaceBelow) {
+        setMenuDirection("up");
+      } else {
+        setMenuDirection("down");
+      }
+    }
+    setMenuOpen(true);
+  };
 
   // Cerrar el menú con click afuera o Escape.
   useEffect(() => {
@@ -290,7 +323,7 @@ export function SplitActionButton({
       <button
         type="button"
         className={sharedBtnClass}
-        onClick={() => setMenuOpen((v) => !v)}
+        onClick={toggleMenu}
         disabled={disabled || inFlight}
         aria-label="Más opciones de la acción"
         aria-haspopup="menu"
@@ -306,11 +339,12 @@ export function SplitActionButton({
         <ChevronDownIcon />
       </button>
 
-      {/* Menú de opciones · aparece debajo del chevron. */}
+      {/* Menú de opciones · abre hacia abajo o arriba según el espacio. */}
       {menuOpen && (
         <SplitActionMenu
           actions={actions}
           activeKey={active.key}
+          direction={menuDirection}
           onSelect={runAction}
         />
       )}
@@ -321,19 +355,28 @@ export function SplitActionButton({
 function SplitActionMenu({
   actions,
   activeKey,
+  direction,
   onSelect,
 }: {
   actions: SplitAction[];
   activeKey: string;
+  direction: MenuDirection;
   onSelect: (a: SplitAction) => void;
 }) {
+  // Posicionamiento según dirección · evita que el menú quede fuera del
+  // viewport cuando el botón vive en el footer de un drawer.
+  const verticalAnchor: React.CSSProperties =
+    direction === "up"
+      ? { bottom: "calc(100% + 6px)" }
+      : { top: "calc(100% + 6px)" };
+
   return (
     <div
       role="menu"
       aria-label="Opciones alternativas de la acción"
       style={{
         position: "absolute",
-        top: "calc(100% + 6px)",
+        ...verticalAnchor,
         right: 0,
         minWidth: "max(220px, 100%)",
         background: "var(--bg-surface)",
