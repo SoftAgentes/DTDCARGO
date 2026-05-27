@@ -60,12 +60,19 @@ export async function inviteUserAction(
     // SDD-0026 F2: intentar mandar email automáticamente. Si no hay
     // RESEND_API_KEY o falla, NO rompemos la invitación · el admin tiene
     // el link de fallback en la UI para copy/paste manual.
+    let emailDebug: string | undefined;
     try {
-      const { data: link2 } = await supabase
+      const { data: link2, error: link2Err } = await supabase
         .from("user_tenants")
         .select("tenant_id")
         .maybeSingle<{ tenant_id: string }>();
-      if (link2?.tenant_id) {
+      if (link2Err) {
+        emailDebug = `user_tenants query: ${link2Err.message}`;
+        console.error("[inviteUserAction] user_tenants query failed:", link2Err);
+      } else if (!link2?.tenant_id) {
+        emailDebug = "user_tenants returned null (no row visible via RLS)";
+        console.error("[inviteUserAction] user_tenants returned null");
+      } else {
         const supabaseAdmin = createAdminClient();
         // Resolver nombre del inviter + nombre del tenant para vars
         const [{ data: inviterProfile }, { data: tenant }] = await Promise.all([
@@ -87,7 +94,7 @@ export async function inviteUserAction(
             .trim() || userResp.user.email || "Un admin";
         const tenantName = tenant?.display_name ?? "DTD-Cargo";
 
-        await sendEmail(supabaseAdmin, link2.tenant_id, {
+        const sendResult = await sendEmail(supabaseAdmin, link2.tenant_id, {
           templateSlug: "team_invitation",
           to: input.email,
           vars: {
@@ -99,9 +106,20 @@ export async function inviteUserAction(
           },
           metadata: { source: "inviteUserAction", invitation_id: invitationId },
         });
+        if (!sendResult.ok) {
+          emailDebug = `sendEmail failed: ${sendResult.error}`;
+          console.error("[inviteUserAction] sendEmail failed:", sendResult.error);
+        } else {
+          emailDebug = sendResult.queued
+            ? `queued (logId=${sendResult.logId}, no API key)`
+            : `sent (logId=${sendResult.logId}, resendId=${sendResult.resendId})`;
+          console.log("[inviteUserAction] sendEmail ok:", emailDebug);
+        }
       }
-    } catch {
-      // Email es best-effort · invitación ya está creada
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      emailDebug = `exception: ${msg}`;
+      console.error("[inviteUserAction] sendEmail exception:", err);
     }
 
     revalidatePath("/studio/usuarios");
