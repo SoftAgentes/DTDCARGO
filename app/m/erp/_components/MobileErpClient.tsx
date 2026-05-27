@@ -39,7 +39,11 @@ import {
   useGeolocation,
 } from "@/lib/studio/hooks/use-geolocation";
 import { signOut } from "@/app/studio/(app)/actions";
-import { createExpenseAction } from "../actions";
+import {
+  createExpenseAction,
+  softDeleteExpenseAction,
+  updateExpenseAction,
+} from "../actions";
 
 // Shipment subset que devuelve listShipments (LIST_COLUMNS).
 // Mantengo solo los fields que la mobile UI muestra.
@@ -85,6 +89,7 @@ export function MobileErpClient({
 }: Props) {
   const [tab, setTab] = useState<Tab>("home");
   const [expenseModal, setExpenseModal] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   return (
     <div
@@ -117,6 +122,7 @@ export function MobileErpClient({
             expenses={expenses}
             receiptUrls={receiptUrls}
             onNewExpense={() => setExpenseModal(true)}
+            onEditExpense={(e) => setEditingExpense(e)}
           />
         )}
         {tab === "more" && <MoreScreen user={user} />}
@@ -126,6 +132,18 @@ export function MobileErpClient({
 
       {expenseModal && (
         <NewExpenseModal onClose={() => setExpenseModal(false)} />
+      )}
+
+      {editingExpense && (
+        <EditExpenseSheet
+          expense={editingExpense}
+          receiptUrl={
+            editingExpense.receipt_path
+              ? receiptUrls[editingExpense.receipt_path]
+              : undefined
+          }
+          onClose={() => setEditingExpense(null)}
+        />
       )}
     </div>
   );
@@ -1378,10 +1396,12 @@ function ExpensesScreen({
   expenses,
   receiptUrls,
   onNewExpense,
+  onEditExpense,
 }: {
   expenses: Expense[];
   receiptUrls: Record<string, string>;
   onNewExpense: () => void;
+  onEditExpense: (e: Expense) => void;
 }) {
   const billableCount = expenses.filter((e) => e.billable).length;
 
@@ -1450,6 +1470,7 @@ function ExpensesScreen({
               key={e.id}
               e={e}
               receiptUrl={e.receipt_path ? receiptUrls[e.receipt_path] : undefined}
+              onClick={() => onEditExpense(e)}
             />
           ))}
         </div>
@@ -1461,9 +1482,11 @@ function ExpensesScreen({
 function ExpenseRow({
   e,
   receiptUrl,
+  onClick,
 }: {
   e: Expense;
   receiptUrl?: string;
+  onClick: () => void;
 }) {
   const date = new Date(e.occurred_at);
   const dateLabel = date.toLocaleDateString("es-VE", {
@@ -1472,7 +1495,10 @@ function ExpenseRow({
   });
 
   return (
-    <div
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`Editar gasto ${e.expense_code}`}
       style={{
         padding: "12px 14px",
         background: "var(--bg-surface)",
@@ -1481,14 +1507,15 @@ function ExpenseRow({
         display: "flex",
         gap: 12,
         alignItems: "center",
+        width: "100%",
+        textAlign: "left",
+        cursor: "pointer",
+        font: "inherit",
+        color: "inherit",
       }}
     >
       {receiptUrl ? (
-        <a
-          href={receiptUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Ver recibo"
+        <div
           style={{
             width: 44,
             height: 44,
@@ -1497,13 +1524,12 @@ function ExpenseRow({
             overflow: "hidden",
             position: "relative",
             border: "1px solid var(--border)",
-            display: "block",
           }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={receiptUrl}
-            alt={`Recibo ${e.expense_code}`}
+            alt=""
             loading="lazy"
             style={{
               width: "100%",
@@ -1527,7 +1553,7 @@ function ExpenseRow({
           >
             {CATEGORY_ICONS[e.category]}
           </span>
-        </a>
+        </div>
       ) : (
         <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>
           {CATEGORY_ICONS[e.category]}
@@ -1606,7 +1632,7 @@ function ExpenseRow({
           )}
         </div>
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -2484,5 +2510,654 @@ function QuickAction({
         {desc}
       </div>
     </button>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// EditExpenseSheet · bottom sheet con form pre-filled + delete
+// ─────────────────────────────────────────────────────────────
+
+function EditExpenseSheet({
+  expense,
+  receiptUrl,
+  onClose,
+}: {
+  expense: Expense;
+  receiptUrl?: string;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [amount, setAmount] = useState(String(expense.amount));
+  const [currency, setCurrency] = useState<ExpenseCurrency>(expense.currency);
+  const [category, setCategory] = useState<ExpenseCategory>(expense.category);
+  const [method, setMethod] = useState<ExpenseMethod>(expense.method);
+  const [note, setNote] = useState(expense.note ?? "");
+  const [location, setLocation] = useState(expense.location ?? "");
+  const [billable, setBillable] = useState(expense.billable);
+
+  const [newReceiptPreview, setNewReceiptPreview] = useState<string | null>(null);
+  const [removeReceipt, setRemoveReceipt] = useState(false);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const updateBound = updateExpenseAction.bind(null, expense.id);
+  const [state, formAction, isPending] = useActionState(
+    updateBound,
+    INITIAL_EXPENSE_STATE,
+  );
+
+  if (state?.ok) {
+    setTimeout(() => {
+      router.refresh();
+      onClose();
+    }, 100);
+  }
+
+  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setReceiptError(null);
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setNewReceiptPreview(null);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setReceiptError("Foto demasiado pesada (máx 5 MB).");
+      e.target.value = "";
+      setNewReceiptPreview(null);
+      return;
+    }
+    setRemoveReceipt(false);
+    setNewReceiptPreview(URL.createObjectURL(file));
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    setDeleteError(null);
+    const result = await softDeleteExpenseAction(expense.id);
+    if (result.ok) {
+      router.refresh();
+      onClose();
+      return;
+    }
+    setDeleteError(result.error ?? "Error al eliminar.");
+    setIsDeleting(false);
+  };
+
+  const canSubmit = Number(amount) > 0 && !!category && !isPending && !isDeleting;
+  const hasExistingPhoto = !!expense.receipt_path && !removeReceipt && !newReceiptPreview;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,30,61,0.5)",
+        zIndex: 60,
+        display: "flex",
+        alignItems: "flex-end",
+      }}
+    >
+      <form
+        action={(fd) => startTransition(() => formAction(fd))}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          margin: "0 auto",
+          background: "var(--bg-surface)",
+          borderRadius: "20px 20px 0 0",
+          padding: 18,
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 18px)",
+          maxHeight: "92vh",
+          overflow: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 4,
+            background: "var(--border)",
+            borderRadius: 999,
+            margin: "0 auto 4px",
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 10,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <h2
+              style={{
+                font: "900 20px/1.1 var(--f-display)",
+                color: "var(--ink)",
+                margin: 0,
+              }}
+            >
+              Editar gasto
+            </h2>
+            <code
+              style={{
+                font: "700 11px/1 var(--f-mono)",
+                color: "var(--ink-soft)",
+                marginTop: 4,
+                display: "inline-block",
+              }}
+            >
+              {expense.expense_code}
+            </code>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending || isDeleting}
+            style={{
+              background: "transparent",
+              border: 0,
+              color: "var(--ink-mute)",
+              cursor: "pointer",
+              padding: 4,
+            }}
+            aria-label="Cerrar"
+          >
+            {Icon.close(18)}
+          </button>
+        </div>
+
+        {/* Amount + currency */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 8 }}>
+          <div>
+            <label
+              className="studio-label"
+              htmlFor="exp-edit-amount"
+              style={{ marginBottom: 6, display: "block" }}
+            >
+              Monto
+            </label>
+            <input
+              id="exp-edit-amount"
+              name="amount"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              required
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="studio-input studio-input-mono"
+              style={{
+                width: "100%",
+                height: 52,
+                fontSize: 22,
+                textAlign: "right",
+                paddingRight: 14,
+              }}
+            />
+          </div>
+          <div>
+            <label
+              className="studio-label"
+              htmlFor="exp-edit-currency"
+              style={{ marginBottom: 6, display: "block" }}
+            >
+              Moneda
+            </label>
+            <select
+              id="exp-edit-currency"
+              name="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as ExpenseCurrency)}
+              className="studio-input"
+              style={{ width: "100%", height: 52, fontSize: 16, textAlign: "center" }}
+            >
+              <option value="USD">USD {CURRENCY_SYMBOL.USD}</option>
+              <option value="VES">VES {CURRENCY_SYMBOL.VES}</option>
+              <option value="CNY">CNY {CURRENCY_SYMBOL.CNY}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Category chips */}
+        <div>
+          <label className="studio-label" style={{ marginBottom: 8, display: "block" }}>
+            Categoría
+          </label>
+          <input type="hidden" name="category" value={category} />
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {CATEGORY_OPTIONS.map((opt) => {
+              const active = category === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setCategory(opt.value)}
+                  style={{
+                    padding: "8px 12px",
+                    background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
+                    color: active ? "var(--wine)" : "var(--ink-soft)",
+                    border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                    borderRadius: "var(--r-pill)",
+                    font: "700 11px/1 var(--f-sans)",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <span>{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Method */}
+        <div>
+          <label
+            className="studio-label"
+            htmlFor="exp-edit-method"
+            style={{ marginBottom: 6, display: "block" }}
+          >
+            Método de pago
+          </label>
+          <select
+            id="exp-edit-method"
+            name="method"
+            value={method}
+            onChange={(e) => setMethod(e.target.value as ExpenseMethod)}
+            className="studio-input"
+            style={{ width: "100%", height: 44 }}
+          >
+            <option value="cash">Efectivo</option>
+            <option value="card">Tarjeta</option>
+            <option value="transfer">Transferencia</option>
+            <option value="usdt">USDT</option>
+          </select>
+        </div>
+
+        {/* Note */}
+        <div>
+          <label
+            className="studio-label"
+            htmlFor="exp-edit-note"
+            style={{ marginBottom: 6, display: "block" }}
+          >
+            Nota (opcional)
+          </label>
+          <textarea
+            id="exp-edit-note"
+            name="note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            className="studio-input"
+            style={{ width: "100%", resize: "vertical", padding: "10px 14px" }}
+          />
+        </div>
+
+        {/* Location */}
+        <div>
+          <label
+            className="studio-label"
+            htmlFor="exp-edit-location"
+            style={{ marginBottom: 6, display: "block" }}
+          >
+            Ubicación (opcional)
+          </label>
+          <input
+            id="exp-edit-location"
+            name="location"
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="studio-input"
+            style={{ width: "100%", height: 44 }}
+          />
+        </div>
+
+        {/* Foto */}
+        <div>
+          <label className="studio-label" style={{ marginBottom: 6, display: "block" }}>
+            Foto del recibo
+          </label>
+          <input type="hidden" name="remove_receipt" value={removeReceipt ? "true" : "false"} />
+
+          {newReceiptPreview ? (
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                borderRadius: "var(--r-md)",
+                overflow: "hidden",
+                border: "1px solid var(--border)",
+                background: "var(--bg-elevated)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={newReceiptPreview}
+                alt="Vista previa nueva"
+                style={{
+                  width: "100%",
+                  maxHeight: 240,
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
+              <span
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  left: 6,
+                  padding: "3px 8px",
+                  background: "rgba(15,30,61,0.78)",
+                  color: "#fff",
+                  font: "700 9.5px/1 var(--f-sans)",
+                  borderRadius: "var(--r-sm)",
+                  letterSpacing: "0.06em",
+                }}
+              >
+                NUEVA · REEMPLAZA LA ANTERIOR
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  if (newReceiptPreview) URL.revokeObjectURL(newReceiptPreview);
+                  setNewReceiptPreview(null);
+                  const el = document.getElementById("exp-edit-receipt") as HTMLInputElement | null;
+                  if (el) el.value = "";
+                }}
+                aria-label="Cancelar reemplazo"
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  width: 28,
+                  height: 28,
+                  borderRadius: "var(--r-pill)",
+                  background: "rgba(15,30,61,0.78)",
+                  color: "#fff",
+                  border: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  cursor: "pointer",
+                }}
+              >
+                {Icon.close(14)}
+              </button>
+            </div>
+          ) : hasExistingPhoto && receiptUrl ? (
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                borderRadius: "var(--r-md)",
+                overflow: "hidden",
+                border: "1px solid var(--border)",
+                background: "var(--bg-elevated)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={receiptUrl}
+                alt={`Recibo ${expense.expense_code}`}
+                style={{
+                  width: "100%",
+                  maxHeight: 240,
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
+              <div
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 8,
+                  padding: 8,
+                  background:
+                    "linear-gradient(to top, rgba(15,30,61,0.78), rgba(15,30,61,0))",
+                }}
+              >
+                <a
+                  href={receiptUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    padding: "6px 10px",
+                    background: "rgba(255,255,255,0.94)",
+                    color: "var(--ink)",
+                    borderRadius: "var(--r-sm)",
+                    font: "700 11px/1 var(--f-sans)",
+                    textDecoration: "none",
+                  }}
+                >
+                  Ver original
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setRemoveReceipt(true)}
+                  style={{
+                    padding: "6px 10px",
+                    background: "rgba(217,28,28,0.92)",
+                    color: "#fff",
+                    border: 0,
+                    borderRadius: "var(--r-sm)",
+                    font: "700 11px/1 var(--f-sans)",
+                    cursor: "pointer",
+                  }}
+                >
+                  Quitar foto
+                </button>
+              </div>
+            </div>
+          ) : null}
+
+          <label
+            htmlFor="exp-edit-receipt"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              padding: "12px 16px",
+              marginTop: hasExistingPhoto || newReceiptPreview ? 8 : 0,
+              background: "var(--bg-elevated)",
+              border: "1px dashed var(--border)",
+              borderRadius: "var(--r-md)",
+              cursor: "pointer",
+              font: "700 12px/1 var(--f-sans)",
+              color: "var(--ink-soft)",
+            }}
+          >
+            {Icon.plus(14)}
+            <span>
+              {hasExistingPhoto || newReceiptPreview
+                ? "Reemplazar foto"
+                : "Tomar foto o adjuntar"}
+            </span>
+          </label>
+          <input
+            id="exp-edit-receipt"
+            name="receipt"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            capture="environment"
+            onChange={handleReceiptChange}
+            style={{ display: "none" }}
+          />
+          {(receiptError || state?.fieldErrors?.receipt) && (
+            <p
+              style={{
+                font: "500 11px/1.4 var(--f-sans)",
+                color: "var(--danger)",
+                margin: "6px 0 0",
+              }}
+            >
+              {receiptError ?? state?.fieldErrors?.receipt}
+            </p>
+          )}
+          {removeReceipt && expense.receipt_path && !newReceiptPreview && (
+            <p
+              style={{
+                font: "600 11px/1.4 var(--f-sans)",
+                color: "var(--warning)",
+                margin: "6px 0 0",
+              }}
+            >
+              La foto actual se eliminará al guardar.{" "}
+              <button
+                type="button"
+                onClick={() => setRemoveReceipt(false)}
+                style={{
+                  background: "transparent",
+                  border: 0,
+                  color: "var(--wine)",
+                  font: "700 11px/1.4 var(--f-sans)",
+                  cursor: "pointer",
+                  padding: 0,
+                }}
+              >
+                Deshacer
+              </button>
+            </p>
+          )}
+        </div>
+
+        {/* Billable */}
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 14px",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-md)",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            name="billable"
+            checked={billable}
+            onChange={(e) => setBillable(e.target.checked)}
+            style={{ accentColor: "var(--success)" }}
+          />
+          <div style={{ flex: 1 }}>
+            <div style={{ font: "700 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+              Cobrable al cliente
+            </div>
+            <div
+              style={{
+                font: "500 11px/1.3 var(--f-sans)",
+                color: "var(--ink-soft)",
+                marginTop: 3,
+              }}
+            >
+              Se incluirá en la factura del cliente correspondiente.
+            </div>
+          </div>
+        </label>
+
+        {(state?.error || deleteError) && (
+          <div
+            style={{
+              padding: 10,
+              background: "var(--danger-bg)",
+              color: "var(--danger)",
+              borderRadius: "var(--r-sm)",
+              font: "600 12px/1.3 var(--f-sans)",
+            }}
+          >
+            {state?.error || deleteError}
+          </div>
+        )}
+
+        {/* Action buttons */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginTop: 4 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending || isDeleting}
+            className="studio-btn studio-btn-ghost"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={!canSubmit}
+            className="studio-btn studio-btn-primary"
+          >
+            {isPending ? "Guardando…" : "Guardar cambios"}
+          </button>
+        </div>
+
+        {/* Delete con confirm inline */}
+        <div
+          style={{
+            marginTop: 4,
+            padding: "12px 0 4px",
+            borderTop: "1px solid var(--border)",
+            display: "flex",
+            justifyContent: "center",
+          }}
+        >
+          {!confirmDelete ? (
+            <button
+              type="button"
+              onClick={() => setConfirmDelete(true)}
+              disabled={isPending || isDeleting}
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              style={{ color: "var(--danger)" }}
+            >
+              Eliminar este gasto
+            </button>
+          ) : (
+            <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+              <span
+                style={{
+                  font: "600 12px/1 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                ¿Seguro?
+              </span>
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="studio-btn studio-btn-danger studio-btn-sm"
+              >
+                {isDeleting ? "Eliminando…" : "Sí, eliminar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmDelete(false)}
+                disabled={isDeleting}
+                className="studio-btn studio-btn-ghost studio-btn-sm"
+              >
+                No
+              </button>
+            </div>
+          )}
+        </div>
+      </form>
+    </div>
   );
 }
