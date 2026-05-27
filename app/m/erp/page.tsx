@@ -20,6 +20,7 @@ import { listClients } from "@/lib/studio/client-queries";
 import { listShipments } from "@/lib/studio/shipment-queries";
 import {
   listMyExpenses,
+  signReceiptUrls,
   sumMyExpensesTodayUsd,
 } from "@/lib/studio/expense-queries";
 import { MobileErpClient } from "./_components/MobileErpClient";
@@ -56,6 +57,9 @@ export default async function MobileErpPage() {
     ]);
   const profile = profileRes.data;
   const link = linkRes.data;
+
+  // Signed URLs (TTL 1h) para las fotos de recibo de los expenses con receipt_path
+  const receiptUrls = await signReceiptUrls(supabase, expenses);
 
   const firstName =
     profile?.first_name?.trim() ||
@@ -116,6 +120,7 @@ export default async function MobileErpPage() {
       shipments={activeShipments}
       clients={clients}
       expenses={expenses}
+      receiptUrls={receiptUrls}
       expensesTodayUsd={todaySum.total}
     />
   );

@@ -31,6 +31,8 @@ export type Expense = {
   note: string | null;
   location: string | null;
   billable: boolean;
+  /** Path en bucket expense-receipts · NULL si no se cargó. */
+  receipt_path: string | null;
   occurred_at: string;
   created_at: string;
   updated_at: string;
