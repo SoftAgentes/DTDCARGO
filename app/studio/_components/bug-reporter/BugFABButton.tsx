@@ -8,21 +8,20 @@
  * accounting, warehouse, support). El check de rol lo hace el server (no se
  * monta en layout si no aplica) — este componente asume rol válido.
  *
- * Posición configurable por user. 4 esquinas posibles:
- *   - bottom-right (default)
- *   - bottom-left
- *   - top-right (debajo del topbar)
- *   - top-left
+ * UX:
+ *   - Click rápido (sin arrastrar) → abre el modal de reporte.
+ *   - Mantener pulsado y arrastrar → modo drag con ghost targets visibles
+ *     en las 4 esquinas. Al soltar, snappea a la esquina más cercana al
+ *     cursor. Persiste en localStorage 'studio.bug-fab-corner'.
+ *   - Right-click → menú explícito con las 4 opciones (fallback).
  *
- * Cómo cambiarla:
- *   - Right-click en el botón → menú flotante con las 4 opciones.
- *   - Selección se persiste en localStorage (clave 'studio.bug-fab-corner').
- *   - Cada user/browser tiene su preferencia.
- *
- * Brand: 56px circle wine. Hover: lift sutil + shadow. Sin emojis.
+ * Brand intencional: el FAB usa paleta dev-tools (violeta + cyan halo)
+ * separada del wine de los botones "+ Nuevo..." y del navy del topbar para
+ * que no se confunda con acciones comerciales. Estilo Linear/Vercel.
+ * Ver tokens en studio.css (`--bug-fab-*`).
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BugReportModal } from "./BugReportModal";
 
 interface BugFABButtonProps {
@@ -36,14 +35,16 @@ const STORAGE_KEY = "studio.bug-fab-corner";
 const DEFAULT_CORNER: Corner = "bottom-right";
 
 /** Offset desde el topbar cuando está arriba. El topbar mide ~64px. */
-const TOP_OFFSET = "84px";
-const SIDE_OFFSET = "var(--s-6, 24px)";
+const TOP_OFFSET_PX = 84;
+const SIDE_OFFSET_PX = 24;
+const FAB_SIZE = 48;
+const DRAG_THRESHOLD_PX = 8;
 
 const CORNER_STYLES: Record<Corner, React.CSSProperties> = {
-  "bottom-right": { bottom: SIDE_OFFSET, right: SIDE_OFFSET },
-  "bottom-left": { bottom: SIDE_OFFSET, left: SIDE_OFFSET },
-  "top-right": { top: TOP_OFFSET, right: SIDE_OFFSET },
-  "top-left": { top: TOP_OFFSET, left: SIDE_OFFSET },
+  "bottom-right": { bottom: SIDE_OFFSET_PX, right: SIDE_OFFSET_PX },
+  "bottom-left": { bottom: SIDE_OFFSET_PX, left: SIDE_OFFSET_PX },
+  "top-right": { top: TOP_OFFSET_PX, right: SIDE_OFFSET_PX },
+  "top-left": { top: TOP_OFFSET_PX, left: SIDE_OFFSET_PX },
 };
 
 const CORNER_LABELS: Record<Corner, string> = {
@@ -52,6 +53,44 @@ const CORNER_LABELS: Record<Corner, string> = {
   "top-right": "Arriba derecha",
   "top-left": "Arriba izquierda",
 };
+
+/** Punto en viewport donde se ancla el centro del FAB para cada esquina. */
+function cornerAnchorPx(corner: Corner): { x: number; y: number } {
+  if (typeof window === "undefined") return { x: 0, y: 0 };
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const half = FAB_SIZE / 2;
+  switch (corner) {
+    case "top-left":
+      return { x: SIDE_OFFSET_PX + half, y: TOP_OFFSET_PX + half };
+    case "top-right":
+      return { x: vw - SIDE_OFFSET_PX - half, y: TOP_OFFSET_PX + half };
+    case "bottom-left":
+      return { x: SIDE_OFFSET_PX + half, y: vh - SIDE_OFFSET_PX - half };
+    case "bottom-right":
+      return { x: vw - SIDE_OFFSET_PX - half, y: vh - SIDE_OFFSET_PX - half };
+  }
+}
+
+function closestCorner(x: number, y: number): Corner {
+  const corners: Corner[] = [
+    "top-left",
+    "top-right",
+    "bottom-left",
+    "bottom-right",
+  ];
+  let best: Corner = "bottom-right";
+  let bestDist = Infinity;
+  for (const c of corners) {
+    const a = cornerAnchorPx(c);
+    const d = Math.hypot(a.x - x, a.y - y);
+    if (d < bestDist) {
+      bestDist = d;
+      best = c;
+    }
+  }
+  return best;
+}
 
 function readStoredCorner(): Corner {
   if (typeof window === "undefined") return DEFAULT_CORNER;
@@ -77,7 +116,14 @@ export function BugFABButton({ buildSha }: BugFABButtonProps) {
   // hydration mismatch · el snap a la pref real ocurre en useEffect.
   const [corner, setCorner] = useState<Corner>(DEFAULT_CORNER);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [dragPos, setDragPos] = useState<{ x: number; y: number } | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const pointerStartRef = useRef<{ x: number; y: number; id: number } | null>(
+    null,
+  );
+  const movedRef = useRef(false);
 
   useEffect(() => {
     setCorner(readStoredCorner());
@@ -102,73 +148,143 @@ export function BugFABButton({ buildSha }: BugFABButtonProps) {
     };
   }, [menuOpen]);
 
-  const changeCorner = (next: Corner) => {
+  const persistCorner = useCallback((next: Corner) => {
     setCorner(next);
-    setMenuOpen(false);
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
       // ignore
     }
+  }, []);
+
+  const changeCorner = (next: Corner) => {
+    persistCorner(next);
+    setMenuOpen(false);
   };
+
+  const onPointerDown = (e: React.PointerEvent<HTMLButtonElement>) => {
+    // Solo botón principal · ignoramos right-click (lo maneja onContextMenu)
+    if (e.button !== 0) return;
+    pointerStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      id: e.pointerId,
+    };
+    movedRef.current = false;
+    try {
+      buttonRef.current?.setPointerCapture(e.pointerId);
+    } catch {
+      // setPointerCapture puede tirar si el pointer ya se liberó · ignoramos
+    }
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const start = pointerStartRef.current;
+    if (!start || start.id !== e.pointerId) return;
+    const dx = e.clientX - start.x;
+    const dy = e.clientY - start.y;
+    const dist = Math.hypot(dx, dy);
+    if (!movedRef.current && dist > DRAG_THRESHOLD_PX) {
+      movedRef.current = true;
+      setDragging(true);
+      setMenuOpen(false);
+    }
+    if (movedRef.current) {
+      setDragPos({ x: e.clientX, y: e.clientY });
+    }
+  };
+
+  const finishPointer = (e: React.PointerEvent<HTMLButtonElement>) => {
+    const start = pointerStartRef.current;
+    if (!start || start.id !== e.pointerId) return;
+    try {
+      buttonRef.current?.releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
+    }
+    if (movedRef.current) {
+      const next = closestCorner(e.clientX, e.clientY);
+      persistCorner(next);
+    } else {
+      // Click puro sin arrastre · abrir modal
+      setOpen(true);
+    }
+    pointerStartRef.current = null;
+    movedRef.current = false;
+    setDragging(false);
+    setDragPos(null);
+  };
+
+  // Esquina hacia la que snappearía si soltáramos ahora · sirve para
+  // resaltar el ghost target activo durante el drag.
+  const activeTarget: Corner | null = useMemo(() => {
+    if (!dragging || !dragPos) return null;
+    return closestCorner(dragPos.x, dragPos.y);
+  }, [dragging, dragPos]);
+
+  // Posición fixed del wrapper · durante drag sigue al puntero, idle queda
+  // en la esquina elegida.
+  const wrapperStyle: React.CSSProperties = dragging && dragPos
+    ? {
+        position: "fixed",
+        left: dragPos.x - FAB_SIZE / 2,
+        top: dragPos.y - FAB_SIZE / 2,
+        zIndex: 100,
+      }
+    : {
+        position: "fixed",
+        ...CORNER_STYLES[corner],
+        zIndex: 100,
+      };
 
   return (
     <>
-      <div
-        ref={wrapRef}
-        style={{
-          position: "fixed",
-          ...CORNER_STYLES[corner],
-          zIndex: 100,
-        }}
-      >
+      {/* Ghost targets · solo visibles durante drag */}
+      {dragging && (
+        <>
+          {(
+            ["top-left", "top-right", "bottom-left", "bottom-right"] as Corner[]
+          ).map((c) => {
+            const a = cornerAnchorPx(c);
+            return (
+              <div
+                key={c}
+                className="bug-fab-ghost"
+                data-active={activeTarget === c ? "true" : "false"}
+                style={{
+                  left: a.x - 32,
+                  top: a.y - 32,
+                }}
+                aria-hidden="true"
+              >
+                {activeTarget === c ? "Aquí" : ""}
+              </div>
+            );
+          })}
+        </>
+      )}
+
+      <div ref={wrapRef} style={wrapperStyle}>
         <button
+          ref={buttonRef}
           type="button"
-          onClick={() => setOpen(true)}
+          className="bug-fab-button"
+          data-dragging={dragging ? "true" : "false"}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={finishPointer}
+          onPointerCancel={finishPointer}
           onContextMenu={(e) => {
             e.preventDefault();
             setMenuOpen((v) => !v);
           }}
-          aria-label="Reportar un bug, mejora o sugerencia. Click derecho para mover."
-          title="Reportar un bug · click derecho para mover de esquina"
-          style={{
-            width: 56,
-            height: 56,
-            borderRadius: "50%",
-            background: "var(--wine)",
-            color: "var(--ink-inv, #FBFAF7)",
-            border: "none",
-            cursor: "pointer",
-            boxShadow:
-              "0 4px 12px rgba(127, 15, 26, 0.25), 0 2px 4px rgba(0,0,0,0.08)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition:
-              "transform var(--dur, 180ms) var(--ease, ease-out), box-shadow var(--dur, 180ms) var(--ease, ease-out)",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = "scale(1.05)";
-            e.currentTarget.style.boxShadow =
-              "0 6px 16px rgba(127, 15, 26, 0.32), 0 3px 6px rgba(0,0,0,0.10)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = "scale(1)";
-            e.currentTarget.style.boxShadow =
-              "0 4px 12px rgba(127, 15, 26, 0.25), 0 2px 4px rgba(0,0,0,0.08)";
-          }}
-          onFocus={(e) => {
-            e.currentTarget.style.outline = "2px solid var(--wine-soft, #C2747F)";
-            e.currentTarget.style.outlineOffset = "2px";
-          }}
-          onBlur={(e) => {
-            e.currentTarget.style.outline = "none";
-          }}
+          aria-label="Reportar un bug, mejora o sugerencia. Arrastrar para moverlo; click derecho para menú."
+          title="Click para reportar · arrastrar para mover · click derecho para menú"
         >
-          <BugIcon size={26} />
+          <BugIcon size={22} />
         </button>
 
-        {menuOpen && (
+        {menuOpen && !dragging && (
           <CornerMenu
             currentCorner={corner}
             onSelect={changeCorner}
@@ -199,8 +315,8 @@ function CornerMenu({
   // El menú se ancla al opuesto del FAB para no quedar fuera de viewport.
   // Si el FAB está en bottom-right, el menú sale hacia top-left.
   const menuAnchor: React.CSSProperties = currentCorner.startsWith("bottom")
-    ? { bottom: 68 }
-    : { top: 68 };
+    ? { bottom: 60 }
+    : { top: 60 };
   const menuHorizontal: React.CSSProperties = currentCorner.endsWith("right")
     ? { right: 0 }
     : { left: 0 };
@@ -225,7 +341,7 @@ function CornerMenu({
         borderRadius: "var(--r-md, 8px)",
         boxShadow: "var(--shadow-md, 0 8px 24px rgba(0,0,0,0.15))",
         padding: 8,
-        minWidth: 180,
+        minWidth: 200,
         display: "flex",
         flexDirection: "column",
         gap: 2,
@@ -277,7 +393,12 @@ function CornerMenu({
             <CornerGlyph corner={c} />
             <span style={{ flex: 1 }}>{CORNER_LABELS[c]}</span>
             {isActive && (
-              <span style={{ color: "var(--wine)", font: "700 10px/1 var(--f-sans)" }}>
+              <span
+                style={{
+                  color: "var(--bug-fab-fill, #7c3aed)",
+                  font: "700 10px/1 var(--f-sans)",
+                }}
+              >
                 ✓
               </span>
             )}
@@ -290,9 +411,20 @@ function CornerMenu({
           paddingTop: 6,
           borderTop: "1px solid var(--border)",
           display: "flex",
-          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: 8,
+          justifyContent: "space-between",
         }}
       >
+        <span
+          style={{
+            font: "500 10.5px/1.35 var(--f-sans)",
+            color: "var(--ink-mute)",
+            padding: "0 4px",
+          }}
+        >
+          Tip: arrastrá el botón para moverlo.
+        </span>
         <button
           type="button"
           onClick={onClose}
@@ -319,7 +451,7 @@ function CornerGlyph({ corner }: { corner: Corner }) {
     width: 5,
     height: 5,
     borderRadius: 1,
-    background: "var(--wine)",
+    background: "var(--bug-fab-fill, #7c3aed)",
   };
   const dotPos: React.CSSProperties =
     corner === "top-left"
@@ -355,7 +487,7 @@ function BugIcon({ size = 24 }: { size?: number }) {
       height={size}
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.6}
+      strokeWidth={1.7}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"

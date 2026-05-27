@@ -256,6 +256,7 @@ function ToastCard({
 
   return (
     <div
+      className="studio-toast"
       role="status"
       aria-live="polite"
       aria-atomic="true"
