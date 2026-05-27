@@ -17,6 +17,8 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient as createBrowserSupabase } from "@/lib/db/client";
 import {
+  linkTelegramAccountAction,
+  unlinkTelegramAccountAction,
   updateMyPreferencesAction,
   updateMyProfileAction,
 } from "@/app/studio/(app)/usuarios/actions";
@@ -34,6 +36,11 @@ export interface ProfileModalInitialData {
   /** HQ operativa del user · fallback para "Cerca tuyo" del Mobile ERP. */
   operatingLat: number | null;
   operatingLng: number | null;
+  /** Telegram link state · set por webhook /api/telegram/webhook tras /start. */
+  telegramChatId: string | null;
+  telegramUsername: string | null;
+  /** Bot username del tenant (sin @) · NEXT_PUBLIC_TELEGRAM_BOT_USERNAME. */
+  telegramBotUsername: string | null;
 }
 
 const EMPTY_STATE: UserActionState = {};
@@ -623,6 +630,13 @@ function PrefsTabContent({
           su propio submit (subscribe via fetch directo) */}
       <PushSubscriptionSection />
 
+      {/* Telegram link · sub-section fuera del form (acciones independientes) */}
+      <TelegramSection
+        initialChatId={initialData.telegramChatId}
+        initialUsername={initialData.telegramUsername}
+        botUsername={initialData.telegramBotUsername}
+      />
+
       <p
         style={{
           font: "500 11.5px/1.4 var(--f-sans)",
@@ -887,6 +901,249 @@ function PushSubscriptionSection() {
           }}
         >
           {errorMsg}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Telegram section (sub-component de Preferencias)
+// ─────────────────────────────────────────────────────────────
+
+function TelegramSection({
+  initialChatId,
+  initialUsername,
+  botUsername,
+}: {
+  initialChatId: string | null;
+  initialUsername: string | null;
+  botUsername: string | null;
+}) {
+  const router = useRouter();
+  const [chatId, setChatId] = useState(initialChatId);
+  const [username, setUsername] = useState(initialUsername);
+  const [pendingLink, startLinking] = useTransition();
+  const [pendingUnlink, startUnlinking] = useTransition();
+  const [linkCode, setLinkCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [waitingConfirm, setWaitingConfirm] = useState(false);
+
+  const linked = !!chatId;
+  const tgUrl =
+    linkCode && botUsername
+      ? `https://t.me/${botUsername}?start=${linkCode}`
+      : null;
+
+  const handleLink = () => {
+    setError(null);
+    setLinkCode(null);
+    startLinking(async () => {
+      const result = await linkTelegramAccountAction();
+      if (!result.ok || !result.linkCode) {
+        setError(result.error ?? "No se pudo generar el código.");
+        return;
+      }
+      setLinkCode(result.linkCode);
+      setWaitingConfirm(true);
+    });
+  };
+
+  const handleUnlink = () => {
+    setError(null);
+    startUnlinking(async () => {
+      const result = await unlinkTelegramAccountAction();
+      if (!result.ok) {
+        setError(result.error ?? "No se pudo desconectar.");
+        return;
+      }
+      setChatId(null);
+      setUsername(null);
+      setLinkCode(null);
+      setWaitingConfirm(false);
+      router.refresh();
+    });
+  };
+
+  // Poll periódico (cada 4s) cuando esperando confirm webhook
+  // Refresca sólo el chat_id del user actual via re-fetch via router.refresh
+  useEffect(() => {
+    if (!waitingConfirm || linked) return;
+    const interval = setInterval(() => {
+      router.refresh();
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [waitingConfirm, linked, router]);
+
+  // Si en algún refresh el chat_id apareció (vía webhook), salimos del waiting
+  useEffect(() => {
+    if (linked && waitingConfirm) {
+      setWaitingConfirm(false);
+      setLinkCode(null);
+    }
+  }, [linked, waitingConfirm]);
+
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        background: "var(--bg-elevated)",
+        borderRadius: 7,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              font: "600 12.5px/1.2 var(--f-sans)",
+              color: "var(--ink)",
+            }}
+          >
+            Notificaciones por Telegram
+          </div>
+          <div
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 2,
+            }}
+          >
+            Recibí los mismos avisos que por email, en tu chat de Telegram.
+          </div>
+        </div>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            height: 20,
+            padding: "0 8px",
+            background: linked ? "var(--success-bg)" : "var(--bg-base)",
+            color: linked ? "var(--success)" : "var(--ink-soft)",
+            borderRadius: 4,
+            fontSize: 11,
+            fontWeight: 700,
+            lineHeight: 1,
+          }}
+        >
+          {linked ? "conectado" : "no conectado"}
+        </span>
+      </div>
+
+      {linked && username && (
+        <div
+          style={{
+            font: "500 11.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          Cuenta: <strong style={{ color: "var(--ink)" }}>@{username}</strong>
+        </div>
+      )}
+
+      {!linked && !linkCode && (
+        <button
+          type="button"
+          onClick={handleLink}
+          disabled={pendingLink || !botUsername}
+          className="studio-btn studio-btn-primary studio-btn-sm"
+          style={{ alignSelf: "flex-start" }}
+          title={
+            botUsername
+              ? undefined
+              : "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME no configurado en env"
+          }
+        >
+          {pendingLink ? "Generando código…" : "Conectar Telegram"}
+        </button>
+      )}
+
+      {linkCode && tgUrl && (
+        <div
+          style={{
+            padding: "10px 12px",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-sm)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }}
+        >
+          <div
+            style={{
+              font: "600 11.5px/1.3 var(--f-sans)",
+              color: "var(--ink)",
+            }}
+          >
+            Tocá este link · vas a abrir Telegram y mandar /start automático:
+          </div>
+          <a
+            href={tgUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              font: "700 12.5px/1 var(--f-mono)",
+              color: "var(--wine)",
+              wordBreak: "break-all",
+            }}
+          >
+            {tgUrl}
+          </a>
+          <div
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-mute)",
+            }}
+          >
+            Código: <code style={{ font: "700 11px/1 var(--f-mono)" }}>{linkCode}</code>
+            {waitingConfirm && " · esperando confirmación…"}
+          </div>
+        </div>
+      )}
+
+      {linked && (
+        <button
+          type="button"
+          onClick={handleUnlink}
+          disabled={pendingUnlink}
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          style={{ alignSelf: "flex-start" }}
+        >
+          {pendingUnlink ? "Desconectando…" : "Desconectar Telegram"}
+        </button>
+      )}
+
+      {!botUsername && (
+        <p
+          style={{
+            font: "500 11px/1.4 var(--f-sans)",
+            color: "var(--warning)",
+            margin: 0,
+          }}
+        >
+          Bot no configurado · setear <code>NEXT_PUBLIC_TELEGRAM_BOT_USERNAME</code> en
+          Vercel. Ver runbook docs/runbooks/setup-telegram-bot.md.
+        </p>
+      )}
+      {error && (
+        <p
+          style={{
+            font: "500 11px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+            margin: 0,
+          }}
+        >
+          {error}
         </p>
       )}
     </div>

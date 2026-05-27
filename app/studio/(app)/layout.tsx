@@ -36,7 +36,9 @@ export default async function StudioAppLayout({
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("first_name, last_name, phone, locale, timezone, operating_lat, operating_lng")
+    .select(
+      "first_name, last_name, phone, locale, timezone, operating_lat, operating_lng, telegram_chat_id, telegram_username",
+    )
     .eq("user_id", user.id)
     .maybeSingle<{
       first_name: string | null;
@@ -46,6 +48,8 @@ export default async function StudioAppLayout({
       timezone: string | null;
       operating_lat: number | null;
       operating_lng: number | null;
+      telegram_chat_id: string | null;
+      telegram_username: string | null;
     }>();
 
   const profileInitial = {
@@ -57,6 +61,9 @@ export default async function StudioAppLayout({
     timezone: profile?.timezone ?? null,
     operatingLat: profile?.operating_lat ?? null,
     operatingLng: profile?.operating_lng ?? null,
+    telegramChatId: profile?.telegram_chat_id ?? null,
+    telegramUsername: profile?.telegram_username ?? null,
+    telegramBotUsername: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? null,
   };
 
   // Feature flags del tenant (Tier 1.2). El sidebar los usa para esconder
