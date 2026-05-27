@@ -13,6 +13,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { listRules, listTemplates } from "@/lib/studio/mail-queries";
 import { MailingClient } from "./_components/MailingClient";
 import type {
   MailingAdminTab,
@@ -107,15 +108,14 @@ export default async function MailingAdminPage({
     console.error("[mailing] mail_logs query failed:", logsErr);
   }
 
-  // Lista única de template slugs para el filter (no requiere query separada,
-  // saca del listado actual + agrega los conocidos seedeados)
-  const { data: tplData } = await supabase
-    .from("mail_templates")
-    .select("slug, name")
-    .eq("active", true)
-    .order("slug");
+  // Templates + rules para los tabs correspondientes (siempre cargamos los
+  // templates para usar como filter dropdown en tab Logs también)
+  const [templatesFull, rules] = await Promise.all([
+    listTemplates(supabase, { limit: 100 }),
+    tab === "reglas" ? listRules(supabase) : Promise.resolve([]),
+  ]);
 
-  const templates = (tplData ?? []) as Array<{ slug: string; name: string }>;
+  const templates = templatesFull.map((t) => ({ slug: t.slug, name: t.name }));
 
   return (
     <div style={{ maxWidth: 1480 }}>
@@ -146,6 +146,8 @@ export default async function MailingAdminPage({
         tab={tab}
         logs={(logs ?? []) as unknown as MailLogRow[]}
         templates={templates}
+        templatesFull={templatesFull}
+        rules={rules}
         filters={{ status, template: templateSlug ?? "all", search: search ?? "" }}
       />
     </div>
