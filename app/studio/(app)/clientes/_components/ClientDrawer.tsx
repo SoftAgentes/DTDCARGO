@@ -11,6 +11,7 @@
  */
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   CLIENT_TIER_OPTIONS,
   type Client,
@@ -24,6 +25,8 @@ import {
   updateClientAction,
 } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
+import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 
 interface Props {
   mode: "create" | "edit";
@@ -118,6 +121,87 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
   };
 
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const router = useRouter();
+  const toast = useToast();
+  // Error local del SplitActionButton (modo create) · el useActionState
+  // legacy seguía manejando errores via state.error.
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  /** Reset de campos para "Crear y empezar otra". */
+  const resetFormFields = () => {
+    const formEl = document.getElementById(
+      "client-drawer-form",
+    ) as HTMLFormElement | null;
+    formEl?.reset();
+    setTier("regular");
+    setLat("");
+    setLng("");
+    setGeoStatus("idle");
+    setGeoError(null);
+    setGeocodeMatched(null);
+  };
+
+  /**
+   * Crea cliente llamando createClientAction directo + ejecuta el
+   * comportamiento `postAction` según opción del SplitActionButton.
+   */
+  const createWithPostAction = async (
+    postAction: "close" | "open" | "reset",
+  ): Promise<void | { error?: string }> => {
+    setCreateError(null);
+    const formEl = document.getElementById(
+      "client-drawer-form",
+    ) as HTMLFormElement | null;
+    if (!formEl) return { error: "No se encontró el formulario." };
+    if (!formEl.checkValidity()) {
+      formEl.reportValidity();
+      return { error: "Hay campos requeridos sin completar." };
+    }
+    const formData = new FormData(formEl);
+    const result = await createClientAction({} as ClientActionState, formData);
+    if (result.error) {
+      setCreateError(result.error);
+      return { error: result.error };
+    }
+    if (result.fieldErrors) {
+      const firstErr =
+        Object.values(result.fieldErrors).find((v) => !!v) ??
+        "Revisá los campos.";
+      setCreateError(firstErr);
+      return { error: firstErr };
+    }
+    if (!result.ok || !result.createdMarkbox) {
+      const m = "No se pudo crear el cliente.";
+      setCreateError(m);
+      return { error: m };
+    }
+    const markbox = result.createdMarkbox;
+    if (postAction === "close") {
+      toast.success(`Cliente ${markbox} creado`, {
+        link: {
+          href: `/studio/clientes/${markbox}`,
+          label: "Abrir perfil",
+        },
+      });
+      router.push(
+        `/studio/clientes?highlight=${encodeURIComponent(markbox)}&hl-tone=warm`,
+      );
+      onClose();
+    } else if (postAction === "open") {
+      toast.success(`Cliente ${markbox} creado · abriendo perfil`);
+      router.push(`/studio/clientes/${markbox}`);
+      onClose();
+    } else if (postAction === "reset") {
+      toast.success(`Cliente ${markbox} creado · empezá el siguiente`, {
+        link: {
+          href: `/studio/clientes?highlight=${encodeURIComponent(markbox)}&hl-tone=warm`,
+          label: "Ver en listado",
+        },
+      });
+      resetFormFields();
+    }
+    return undefined;
+  };
   const [isDeleting, startDelete] = useTransition();
 
   // Cerrar drawer en success — SDD-0032: si hay warning, NO cerrar
@@ -211,7 +295,10 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
 
         <form
           id="client-drawer-form"
-          action={formAction}
+          action={mode === "edit" ? formAction : undefined}
+          onSubmit={
+            mode === "create" ? (e) => e.preventDefault() : undefined
+          }
           style={{
             flex: 1,
             overflow: "auto",
@@ -633,20 +720,56 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              form="client-drawer-form"
-              className="studio-btn studio-btn-primary"
-              disabled={isPending}
-            >
-              {isPending
-                ? mode === "create"
-                  ? "Creando…"
-                  : "Guardando…"
-                : mode === "create"
-                  ? "Crear cliente"
-                  : "Guardar cambios"}
-            </button>
+            {mode === "create" ? (
+              <SplitActionButton
+                memoryKey="client-drawer-create"
+                variant="primary"
+                size="default"
+                disabled={isPending}
+                onError={setCreateError}
+                actions={[
+                  {
+                    key: "create-and-close",
+                    idleLabel: "Crear y cerrar",
+                    loadingLabel: "Creando…",
+                    successLabel: "Cliente creado",
+                    successIcon: Icon.check(14),
+                    description:
+                      "Crea el cliente y vuelve al listado con el nuevo resaltado.",
+                    onAction: () => createWithPostAction("close"),
+                  },
+                  {
+                    key: "create-and-open",
+                    idleLabel: "Crear y abrir perfil",
+                    loadingLabel: "Creando…",
+                    successLabel: "Abriendo perfil",
+                    successIcon: Icon.check(14),
+                    description:
+                      "Crea el cliente y abre su perfil para completar datos extra.",
+                    onAction: () => createWithPostAction("open"),
+                  },
+                  {
+                    key: "create-and-new",
+                    idleLabel: "Crear y empezar otro",
+                    loadingLabel: "Creando…",
+                    successLabel: "Listo el siguiente",
+                    successIcon: Icon.check(14),
+                    description:
+                      "Crea el cliente, limpia los campos y deja este drawer abierto para batch de onboarding.",
+                    onAction: () => createWithPostAction("reset"),
+                  },
+                ]}
+              />
+            ) : (
+              <button
+                type="submit"
+                form="client-drawer-form"
+                className="studio-btn studio-btn-primary"
+                disabled={isPending}
+              >
+                {isPending ? "Guardando…" : "Guardar cambios"}
+              </button>
+            )}
           </div>
         </footer>
       </aside>
