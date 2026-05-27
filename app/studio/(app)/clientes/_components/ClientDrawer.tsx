@@ -41,6 +41,51 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
 
   const [tier, setTier] = useState<ClientTier>(client?.tier ?? "regular");
 
+  const [lat, setLat] = useState<string>(
+    client?.lat != null ? String(client.lat) : "",
+  );
+  const [lng, setLng] = useState<string>(
+    client?.lng != null ? String(client.lng) : "",
+  );
+  const [geoStatus, setGeoStatus] = useState<
+    "idle" | "loading" | "ok" | "denied" | "unavailable" | "error"
+  >("idle");
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  const captureGps = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("unavailable");
+      setGeoError("Browser sin soporte de geolocation.");
+      return;
+    }
+    setGeoStatus("loading");
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setLat(pos.coords.latitude.toFixed(6));
+        setLng(pos.coords.longitude.toFixed(6));
+        setGeoStatus("ok");
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeoStatus("denied");
+          setGeoError("Permiso de ubicación denegado por el navegador.");
+        } else {
+          setGeoStatus("error");
+          setGeoError(err.message || "No se pudo obtener la ubicación.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  };
+
+  const clearGps = () => {
+    setLat("");
+    setLng("");
+    setGeoStatus("idle");
+    setGeoError(null);
+  };
+
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
 
@@ -248,6 +293,130 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
               placeholder="Av. Bolívar, Edif Centro, Piso 4, Valencia"
               autoComplete="off"
             />
+          </div>
+
+          {/* GPS · habilita "Cerca tuyo" del Mobile ERP */}
+          <div
+            style={{
+              padding: "12px 14px",
+              background: "var(--bg-elevated)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-sm)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 10,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div
+                  className="studio-eyebrow"
+                  style={{ font: "700 10.5px/1 var(--f-sans)", color: "var(--ink-soft)", letterSpacing: "0.06em" }}
+                >
+                  Ubicación GPS
+                </div>
+                <div
+                  style={{
+                    font: "500 11.5px/1.4 var(--f-sans)",
+                    color: "var(--ink-mute)",
+                    marginTop: 4,
+                  }}
+                >
+                  Capturá visitando al cliente · habilita "Cerca tuyo" del Mobile ERP.
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-sm"
+                  onClick={captureGps}
+                  disabled={geoStatus === "loading"}
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {geoStatus === "loading" ? "Capturando…" : "Capturar GPS aquí"}
+                </button>
+                {(lat || lng) && (
+                  <button
+                    type="button"
+                    className="studio-btn studio-btn-ghost studio-btn-sm"
+                    onClick={clearGps}
+                    style={{ color: "var(--ink-mute)" }}
+                    aria-label="Limpiar GPS"
+                  >
+                    Limpiar
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div
+              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
+            >
+              <div>
+                <label className="studio-label" htmlFor="cl-lat">
+                  Latitud
+                </label>
+                <input
+                  id="cl-lat"
+                  name="lat"
+                  type="text"
+                  inputMode="decimal"
+                  className="studio-input studio-input-mono"
+                  value={lat}
+                  onChange={(e) => setLat(e.target.value)}
+                  placeholder="10.182650"
+                  autoComplete="off"
+                />
+                {state.fieldErrors?.lat && <FieldError msg={state.fieldErrors.lat} />}
+              </div>
+              <div>
+                <label className="studio-label" htmlFor="cl-lng">
+                  Longitud
+                </label>
+                <input
+                  id="cl-lng"
+                  name="lng"
+                  type="text"
+                  inputMode="decimal"
+                  className="studio-input studio-input-mono"
+                  value={lng}
+                  onChange={(e) => setLng(e.target.value)}
+                  placeholder="-68.005250"
+                  autoComplete="off"
+                />
+                {state.fieldErrors?.lng && <FieldError msg={state.fieldErrors.lng} />}
+              </div>
+            </div>
+
+            {geoStatus === "ok" && (
+              <p
+                style={{
+                  font: "500 11px/1.4 var(--f-sans)",
+                  color: "var(--success)",
+                  margin: 0,
+                }}
+              >
+                Coordenadas capturadas.
+              </p>
+            )}
+            {geoError && (
+              <p
+                style={{
+                  font: "500 11px/1.4 var(--f-sans)",
+                  color: "var(--danger)",
+                  margin: 0,
+                }}
+              >
+                {geoError}
+              </p>
+            )}
           </div>
 
           {/* RIF */}

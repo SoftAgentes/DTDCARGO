@@ -28,6 +28,13 @@ function parseStringOrNull(v: FormDataEntryValue | null): string | null {
   return s === "" ? null : s;
 }
 
+function parseNumberOrNull(v: FormDataEntryValue | null): number | null {
+  const s = parseStringOrNull(v);
+  if (s === null) return null;
+  const n = Number(s);
+  return Number.isFinite(n) ? n : Number.NaN;
+}
+
 function inputFromFormData(formData: FormData): Partial<ClientInput> {
   const tierRaw = String(formData.get("tier") ?? "");
   const tier =
@@ -43,6 +50,8 @@ function inputFromFormData(formData: FormData): Partial<ClientInput> {
     rif: parseStringOrNull(formData.get("rif")),
     tier,
     notes: parseStringOrNull(formData.get("notes")),
+    lat: parseNumberOrNull(formData.get("lat")),
+    lng: parseNumberOrNull(formData.get("lng")),
   };
 }
 
@@ -92,6 +101,8 @@ export async function createClientAction(
     rif: input!.rif,
     tier: input!.tier,
     notes: input!.notes,
+    lat: input!.lat,
+    lng: input!.lng,
   });
 
   if (error) {
@@ -138,6 +149,8 @@ export async function updateClientAction(
       rif: input!.rif,
       tier: input!.tier,
       notes: input!.notes,
+      lat: input!.lat,
+      lng: input!.lng,
     })
     .eq("markbox", markbox);
 
