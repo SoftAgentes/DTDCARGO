@@ -11,11 +11,8 @@
 import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import {
-  INITIAL_MAILING_STATE,
-  updateMailConfigAction,
-} from "../actions";
-import type { MailConfigRow } from "./mailing-types";
+import { updateMailConfigAction } from "../actions";
+import { INITIAL_MAILING_STATE, type MailConfigRow } from "./mailing-types";
 
 interface Props {
   config: MailConfigRow | null;

@@ -26,15 +26,11 @@ import {
   validateUpdateTemplateInput,
   type ActionFieldErrors,
 } from "@/lib/studio/mail-types";
+import type { MailingActionState } from "./_components/mailing-types";
 
-export interface MailingActionState {
-  ok?: boolean;
-  error?: string;
-  fieldErrors?: ActionFieldErrors;
-  message?: string;
-}
-
-const INITIAL: MailingActionState = {};
+// NOTE: `MailingActionState` + `INITIAL_MAILING_STATE` ahora viven en
+// `_components/mailing-types.ts`. Next 16 prohíbe exportar tipos / constantes
+// desde un archivo con "use server" — solo funciones async permitidas.
 
 // ─────────────────────────────────────────────────────────────
 // Templates · update
@@ -422,4 +418,3 @@ export async function removeMailBlacklistAction(
   return { ok: true, message: "Email removido de la blacklist." };
 }
 
-export { INITIAL as INITIAL_MAILING_STATE };

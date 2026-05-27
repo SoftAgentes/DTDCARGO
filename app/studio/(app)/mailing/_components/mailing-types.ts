@@ -1,6 +1,22 @@
 /**
  * Types compartidos entre server + client del módulo /studio/mailing.
+ *
+ * IMPORTANTE: `MailingActionState` + `INITIAL_MAILING_STATE` viven acá
+ * (y NO en `../actions.ts`) porque Next 16 enforcing estricto: archivos
+ * con "use server" solo pueden exportar funciones async. Las constantes
+ * y types compartidos con clients tienen que vivir en un module separado.
  */
+
+import type { ActionFieldErrors } from "@/lib/studio/mail-types";
+
+export interface MailingActionState {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: ActionFieldErrors;
+  message?: string;
+}
+
+export const INITIAL_MAILING_STATE: MailingActionState = {};
 
 export type MailingAdminTab =
   | "logs"

@@ -15,11 +15,13 @@ import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import {
-  INITIAL_MAILING_STATE,
   addMailBlacklistAction,
   removeMailBlacklistAction,
 } from "../actions";
-import type { MailBlacklistRow } from "./mailing-types";
+import {
+  INITIAL_MAILING_STATE,
+  type MailBlacklistRow,
+} from "./mailing-types";
 
 interface Props {
   blacklist: MailBlacklistRow[];
