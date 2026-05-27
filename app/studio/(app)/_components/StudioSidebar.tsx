@@ -10,11 +10,11 @@
  * Slugs definidos en SDD-0007 §4.1.
  */
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon, type IconName } from "../../_components/icons";
+import { BrandMark } from "@/components/BrandMark";
 
 type Group = "OPERACIÓN" | "COMERCIAL" | "FINANZAS" | "SISTEMA";
 
@@ -309,6 +309,21 @@ export function StudioSidebar() {
   );
 }
 
+/**
+ * Logo del Studio sidebar — alineado a Brand Book v3.0 (mayo 2026).
+ *
+ * Reusa el componente `<BrandMark>` con variant "reverse" (cream sobre
+ * navy oscuro). El sub-tag "Studio · ERP" queda como caption secundario
+ * después del lockup oficial — preserva la pista visual de "esto es el
+ * ERP interno" sin violar la spec del wordmark v3.0 ("DTD Cargo" es el
+ * único wordmark aprobado).
+ *
+ * Cambios vs versión legacy:
+ *  - `dtdcargo-icon-navy.png` (raster viejo) → 4 variantes PNG nuevas via BrandMark
+ *  - Filtro `brightness(0) invert(1)` removido (parche CSS prohibido por v3.0)
+ *  - `wine-soft` en "DTD" → wine sólido (var v3.0 explícita)
+ *  - "DTDSTUDIO" mashup → "DTD Cargo" + caption "Studio · ERP"
+ */
 function Logo({ collapsed }: { collapsed: boolean }) {
   const size = collapsed ? 28 : 30;
   return (
@@ -320,52 +335,25 @@ function Logo({ collapsed }: { collapsed: boolean }) {
         minWidth: 0,
       }}
     >
-      <Image
-        src="/brand/dtdcargo-icon-navy.png"
-        alt="DTD Cargo"
-        width={size}
-        height={size}
-        priority
-        style={{
-          width: size,
-          height: size,
-          objectFit: "contain",
-          filter: "brightness(0) invert(1)",
-          flexShrink: 0,
-        }}
+      <BrandMark
+        variant="reverse"
+        size={size}
+        isologoOnly={collapsed}
       />
       {!collapsed && (
-        <div
+        <span
           style={{
-            display: "flex",
-            flexDirection: "column",
-            lineHeight: 1.1,
-            minWidth: 0,
+            font: "600 9.5px/1 var(--f-sans)",
+            color: "var(--ink-side-soft)",
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            whiteSpace: "nowrap",
+            paddingLeft: 8,
+            borderLeft: "1px solid var(--border-side)",
           }}
         >
-          <span
-            style={{
-              font: "900 17px/1 var(--f-display)",
-              letterSpacing: "-0.02em",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <span style={{ color: "var(--wine-soft)" }}>DTD</span>
-            <span style={{ color: "var(--ink-side-strong)" }}>STUDIO</span>
-          </span>
-          <span
-            style={{
-              font: "600 9.5px/1 var(--f-sans)",
-              color: "var(--ink-side-soft)",
-              letterSpacing: "0.16em",
-              textTransform: "uppercase",
-              marginTop: 4,
-              whiteSpace: "nowrap",
-            }}
-          >
-            ERP · v1.0
-          </span>
-        </div>
+          Studio · ERP
+        </span>
       )}
     </div>
   );
