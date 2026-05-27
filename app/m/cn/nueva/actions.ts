@@ -84,6 +84,7 @@ export async function createReceiptFromOperarioAction(
     p_items: input.items,
     p_incident: input.incident,
     p_incident_note: input.incident_note,
+    p_destination_city: input.destination_city,
   });
 
   if (error) {

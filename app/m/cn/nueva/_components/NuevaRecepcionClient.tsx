@@ -38,6 +38,12 @@ export type PickerClient = {
   name: string;
 };
 
+export type PickerCity = {
+  id: string;
+  city: string;
+  state_name: string;
+};
+
 // ─────────────────────────────────────────────────────────────────────────
 // State + reducer
 // ─────────────────────────────────────────────────────────────────────────
@@ -63,6 +69,8 @@ type Reception = {
   cbm: string;
   weight: string;
   hs: string;
+  /** Ciudad VE de entrega final (Opción A · capturada por operario CN). */
+  destinationCity: string;
   incident: boolean;
   incidentNote: string;
 };
@@ -78,6 +86,7 @@ const EMPTY: Reception = {
   cbm: "",
   weight: "",
   hs: "",
+  destinationCity: "",
   incident: false,
   incidentNote: "",
 };
@@ -131,10 +140,12 @@ const initialState: CreateReceiptState = {};
 export function NuevaRecepcionClient({
   initialLang,
   clients,
+  cities,
   defaultWarehouseId,
 }: {
   initialLang: Lang;
   clients: PickerClient[];
+  cities: PickerCity[];
   defaultWarehouseId: string;
 }) {
   const router = useRouter();
@@ -231,6 +242,7 @@ export function NuevaRecepcionClient({
         : [],
       incident: reception.incident,
       incident_note: reception.incident ? reception.incidentNote || null : null,
+      destination_city: reception.destinationCity.trim() || null,
     };
 
     const fd = new FormData();
@@ -264,6 +276,7 @@ export function NuevaRecepcionClient({
         <Step3Data
           lang={lang}
           reception={reception}
+          cities={cities}
           dispatch={dispatch}
           onBack={() => setView("step2")}
           onNext={() => setView("step4")}
@@ -869,12 +882,14 @@ function OrphanToggle({
 function Step3Data({
   lang,
   reception,
+  cities,
   dispatch,
   onBack,
   onNext,
 }: {
   lang: Lang;
   reception: Reception;
+  cities: PickerCity[];
   dispatch: React.Dispatch<Action>;
   onBack: () => void;
   onNext: () => void;
@@ -946,10 +961,116 @@ function Step3Data({
           placeholder="0000.00"
           mono
         />
+
+        {/* Ciudad destino · Opción A SDD-0029 · alimenta scoring de Despacho */}
+        <MobileCitySelect
+          lang={lang}
+          cities={cities}
+          value={reception.destinationCity}
+          onChange={(v) => set("destinationCity", v)}
+        />
       </div>
 
       <BottomActions lang={lang} onBack={onBack} onNext={onNext} nextDisabled={!canNext} />
     </div>
+  );
+}
+
+function MobileCitySelect({
+  lang,
+  cities,
+  value,
+  onChange,
+}: {
+  lang: Lang;
+  cities: PickerCity[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const hasCatalog = cities.length > 0;
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+      <span
+        style={{
+          font: "700 10.5px/1 var(--f-sans)",
+          color: "var(--ink-soft)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+        }}
+      >
+        {t(lang, "Ciudad destino VE (opcional)", "委内瑞拉目的地 (可选)")}
+      </span>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          height: 48,
+          padding: "0 14px",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-md)",
+        }}
+      >
+        {hasCatalog ? (
+          <select
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            style={{
+              flex: 1,
+              border: 0,
+              outline: 0,
+              background: "transparent",
+              font: "500 16px/1 var(--f-sans)",
+              color: value ? "var(--ink)" : "var(--ink-mute)",
+              appearance: "none",
+              WebkitAppearance: "none",
+            }}
+          >
+            <option value="">{t(lang, "— Elegir —", "— 选择 —")}</option>
+            {cities.map((c) => (
+              <option key={c.id} value={c.city}>
+                {c.city} · {c.state_name}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={t(lang, "ej: Valencia", "如: 巴伦西亚")}
+            style={{
+              flex: 1,
+              border: 0,
+              outline: 0,
+              background: "transparent",
+              font: "500 16px/1 var(--f-sans)",
+              color: "var(--ink)",
+              minWidth: 0,
+            }}
+          />
+        )}
+      </div>
+      <span
+        style={{
+          font: "500 11px/1.4 var(--f-sans)",
+          color: "var(--ink-mute)",
+          marginTop: 2,
+        }}
+      >
+        {hasCatalog
+          ? t(
+              lang,
+              `${cities.length} ciudades cargadas del catálogo del tenant.`,
+              `${cities.length} 个城市来自租户目录`,
+            )
+          : t(
+              lang,
+              "Catálogo VE vacío · escribí ciudad libre o pedile al admin seedear catálogo.",
+              "目录为空 · 自由输入或请管理员添加",
+            )}
+      </span>
+    </label>
   );
 }
 
