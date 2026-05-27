@@ -644,9 +644,10 @@ function PrefsTabContent({
           margin: 0,
         }}
       >
-        Notificaciones email se mandan desde Resend cuando hay un bug
-        crítico o cambio de estado en tus reportes. Telegram queda
-        pendiente para Fase 5 follow-up.
+        Email, push browser y Telegram se disparan automáticamente
+        cuando hay un bug crítico nuevo, cambio de estado en tus
+        reportes o respuesta del admin. Activá los canales que
+        querés recibir.
       </p>
 
       {state.error && (
