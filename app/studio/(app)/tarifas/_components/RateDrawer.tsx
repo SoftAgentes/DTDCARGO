@@ -21,6 +21,7 @@ import { createRate, softDeleteRate, updateRate } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 
 interface Props {
   mode: "create" | "edit";
@@ -281,16 +282,15 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
               <label className="studio-label" htmlFor="per_cbm">
                 Tarifa por CBM (USD) <span style={{ color: "var(--wine)" }}>*</span>
               </label>
-              <input
+              <NumericInput
                 id="per_cbm"
                 name="per_cbm"
-                type="number"
-                step="0.01"
-                min="0"
-                className="studio-input"
-                defaultValue={rate?.per_cbm ?? ""}
-                placeholder="480.00"
+                type="currency"
+                currency="USD"
                 required
+                min={0}
+                placeholder="480.00"
+                defaultValue={rate?.per_cbm ?? null}
               />
               <input
                 type="hidden"
@@ -307,16 +307,15 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
                 Tarifa flat por contenedor (USD){" "}
                 <span style={{ color: "var(--wine)" }}>*</span>
               </label>
-              <input
+              <NumericInput
                 id="flat_rate"
                 name="flat_rate"
-                type="number"
-                step="0.01"
-                min="0"
-                className="studio-input"
-                defaultValue={rate?.flat_rate ?? ""}
-                placeholder="8500.00"
+                type="currency"
+                currency="USD"
                 required
+                min={0}
+                placeholder="8500.00"
+                defaultValue={rate?.flat_rate ?? null}
               />
               <input
                 type="hidden"
@@ -341,15 +340,14 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
               <label className="studio-label" htmlFor="min_charge">
                 Min charge (USD)
               </label>
-              <input
+              <NumericInput
                 id="min_charge"
                 name="min_charge"
-                type="number"
-                step="0.01"
-                min="0"
-                className="studio-input"
-                defaultValue={rate?.min_charge ?? ""}
+                type="currency"
+                currency="USD"
+                min={0}
                 placeholder="380.00"
+                defaultValue={rate?.min_charge ?? null}
               />
               {state.fieldErrors?.min_charge && (
                 <FieldError msg={state.fieldErrors.min_charge} />
@@ -359,15 +357,14 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
               <label className="studio-label" htmlFor="transit_days">
                 Días de tránsito
               </label>
-              <input
+              <NumericInput
                 id="transit_days"
                 name="transit_days"
-                type="number"
-                step="1"
-                min="0"
-                className="studio-input"
-                defaultValue={rate?.transit_days ?? ""}
+                type="count"
+                unit="días"
+                min={0}
                 placeholder="38"
+                defaultValue={rate?.transit_days ?? null}
               />
               {state.fieldErrors?.transit_days && (
                 <FieldError msg={state.fieldErrors.transit_days} />

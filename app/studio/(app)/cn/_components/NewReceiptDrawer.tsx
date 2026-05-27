@@ -22,6 +22,7 @@ import { createReceiptAction } from "../actions";
 import { SupplierBilingualInput } from "./SupplierBilingualInput";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import type {
   WarehouseCN,
   WarehouseReceiptActionState,
@@ -619,17 +620,16 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 <label htmlFor="rd-boxes" className="studio-label">
                   Cajas <span style={{ color: "var(--wine)" }}>*</span>
                 </label>
-                <input
+                <NumericInput
                   id="rd-boxes"
                   name="boxes"
-                  type="number"
-                  min="0"
-                  step="1"
-                  className="studio-input studio-input-mono"
-                  value={boxes}
-                  onChange={(e) => setBoxes(e.target.value)}
-                  placeholder="0"
+                  type="count"
+                  unit="cajas"
                   required
+                  min={0}
+                  placeholder="0"
+                  value={boxes === "" ? null : Number(boxes)}
+                  onChange={(v) => setBoxes(v != null ? String(v) : "")}
                 />
                 {state.fieldErrors?.boxes && (
                   <FieldError msg={state.fieldErrors.boxes} />
@@ -637,34 +637,34 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               </div>
               <div>
                 <label htmlFor="rd-cbm" className="studio-label">
-                  CBM (m³)
+                  CBM
                 </label>
-                <input
+                <NumericInput
                   id="rd-cbm"
                   name="total_cbm"
-                  type="number"
-                  min="0"
-                  step="0.001"
-                  className="studio-input studio-input-mono"
-                  value={totalCbm}
-                  onChange={(e) => setTotalCbm(e.target.value)}
+                  type="volume"
+                  min={0}
                   placeholder="0.000"
+                  value={totalCbm === "" ? null : Number(totalCbm)}
+                  onChange={(v) =>
+                    setTotalCbm(v != null ? String(v) : "")
+                  }
                 />
               </div>
               <div>
                 <label htmlFor="rd-weight" className="studio-label">
-                  Peso (kg)
+                  Peso
                 </label>
-                <input
+                <NumericInput
                   id="rd-weight"
                   name="total_weight_kg"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className="studio-input studio-input-mono"
-                  value={totalWeight}
-                  onChange={(e) => setTotalWeight(e.target.value)}
+                  type="weight"
+                  min={0}
                   placeholder="0"
+                  value={totalWeight === "" ? null : Number(totalWeight)}
+                  onChange={(v) =>
+                    setTotalWeight(v != null ? String(v) : "")
+                  }
                 />
               </div>
               <div>
@@ -915,20 +915,15 @@ function ItemEditor({
           >
             Cantidad
           </label>
-          <input
+          <NumericInput
             id={`item-qty-${item._key}`}
-            type="number"
-            min="0"
-            step="1"
-            className="studio-input studio-input-mono"
-            value={item.quantity ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              onChange({
-                quantity: v === "" ? null : Math.round(Number(v)),
-              });
-            }}
+            type="count"
+            min={0}
             placeholder="0"
+            value={item.quantity}
+            onChange={(v) =>
+              onChange({ quantity: v == null ? null : Math.round(v) })
+            }
           />
         </div>
         <div>
@@ -938,20 +933,14 @@ function ItemEditor({
           >
             Valor unit. USD
           </label>
-          <input
+          <NumericInput
             id={`item-val-${item._key}`}
-            type="number"
-            min="0"
-            step="0.01"
-            className="studio-input studio-input-mono"
-            value={item.unit_value_usd ?? ""}
-            onChange={(e) => {
-              const v = e.target.value;
-              onChange({
-                unit_value_usd: v === "" ? null : Number(v),
-              });
-            }}
+            type="currency"
+            currency="USD"
+            min={0}
             placeholder="0.00"
+            value={item.unit_value_usd}
+            onChange={(v) => onChange({ unit_value_usd: v })}
           />
         </div>
       </div>
