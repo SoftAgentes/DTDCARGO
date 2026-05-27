@@ -70,6 +70,8 @@ interface Props {
   shipments: MobileShipment[];
   clients: Client[];
   expenses: Expense[];
+  /** Map { receipt_path: signed_url } generado server-side (TTL 1h). */
+  receiptUrls: Record<string, string>;
   expensesTodayUsd: number;
 }
 
@@ -78,6 +80,7 @@ export function MobileErpClient({
   shipments,
   clients,
   expenses,
+  receiptUrls,
   expensesTodayUsd,
 }: Props) {
   const [tab, setTab] = useState<Tab>("home");
@@ -112,6 +115,7 @@ export function MobileErpClient({
         {tab === "expenses" && (
           <ExpensesScreen
             expenses={expenses}
+            receiptUrls={receiptUrls}
             onNewExpense={() => setExpenseModal(true)}
           />
         )}
@@ -1372,9 +1376,11 @@ function ClientCard({ c }: { c: ClientWithDistance }) {
 
 function ExpensesScreen({
   expenses,
+  receiptUrls,
   onNewExpense,
 }: {
   expenses: Expense[];
+  receiptUrls: Record<string, string>;
   onNewExpense: () => void;
 }) {
   const billableCount = expenses.filter((e) => e.billable).length;
@@ -1440,7 +1446,11 @@ function ExpensesScreen({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {expenses.map((e) => (
-            <ExpenseRow key={e.id} e={e} />
+            <ExpenseRow
+              key={e.id}
+              e={e}
+              receiptUrl={e.receipt_path ? receiptUrls[e.receipt_path] : undefined}
+            />
           ))}
         </div>
       )}
@@ -1448,7 +1458,13 @@ function ExpensesScreen({
   );
 }
 
-function ExpenseRow({ e }: { e: Expense }) {
+function ExpenseRow({
+  e,
+  receiptUrl,
+}: {
+  e: Expense;
+  receiptUrl?: string;
+}) {
   const date = new Date(e.occurred_at);
   const dateLabel = date.toLocaleDateString("es-VE", {
     day: "2-digit",
@@ -1467,9 +1483,56 @@ function ExpenseRow({ e }: { e: Expense }) {
         alignItems: "center",
       }}
     >
-      <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>
-        {CATEGORY_ICONS[e.category]}
-      </span>
+      {receiptUrl ? (
+        <a
+          href={receiptUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Ver recibo"
+          style={{
+            width: 44,
+            height: 44,
+            flexShrink: 0,
+            borderRadius: "var(--r-sm)",
+            overflow: "hidden",
+            position: "relative",
+            border: "1px solid var(--border)",
+            display: "block",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={receiptUrl}
+            alt={`Recibo ${e.expense_code}`}
+            loading="lazy"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "cover",
+              display: "block",
+            }}
+          />
+          <span
+            style={{
+              position: "absolute",
+              bottom: 0,
+              right: 0,
+              padding: "1px 4px",
+              background: "rgba(15,30,61,0.78)",
+              color: "#fff",
+              font: "700 9px/1 var(--f-sans)",
+              borderTopLeftRadius: "var(--r-sm)",
+            }}
+            aria-hidden
+          >
+            {CATEGORY_ICONS[e.category]}
+          </span>
+        </a>
+      ) : (
+        <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>
+          {CATEGORY_ICONS[e.category]}
+        </span>
+      )}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
@@ -1562,6 +1625,24 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
   const [note, setNote] = useState("");
   const [location, setLocation] = useState("");
   const [billable, setBillable] = useState(false);
+  const [receiptPreview, setReceiptPreview] = useState<string | null>(null);
+  const [receiptError, setReceiptError] = useState<string | null>(null);
+
+  const handleReceiptChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setReceiptError(null);
+    const file = e.target.files?.[0] ?? null;
+    if (!file) {
+      setReceiptPreview(null);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setReceiptError("Foto demasiado pesada (máx 5 MB).");
+      e.target.value = "";
+      setReceiptPreview(null);
+      return;
+    }
+    setReceiptPreview(URL.createObjectURL(file));
+  };
 
   const [state, formAction, isPending] = useActionState(
     createExpenseAction,
@@ -1803,6 +1884,110 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
             className="studio-input"
             style={{ width: "100%", height: 44 }}
           />
+        </div>
+
+        {/* Foto del recibo */}
+        <div>
+          <label
+            className="studio-label"
+            htmlFor="exp-receipt"
+            style={{ marginBottom: 6, display: "block" }}
+          >
+            Foto del recibo (opcional)
+          </label>
+          {receiptPreview ? (
+            <div
+              style={{
+                position: "relative",
+                width: "100%",
+                borderRadius: "var(--r-md)",
+                overflow: "hidden",
+                border: "1px solid var(--border)",
+                background: "var(--bg-elevated)",
+              }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={receiptPreview}
+                alt="Vista previa del recibo"
+                style={{
+                  width: "100%",
+                  maxHeight: 240,
+                  objectFit: "contain",
+                  display: "block",
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (receiptPreview) URL.revokeObjectURL(receiptPreview);
+                  setReceiptPreview(null);
+                  setReceiptError(null);
+                  const el = document.getElementById(
+                    "exp-receipt",
+                  ) as HTMLInputElement | null;
+                  if (el) el.value = "";
+                }}
+                aria-label="Quitar foto"
+                style={{
+                  position: "absolute",
+                  top: 6,
+                  right: 6,
+                  width: 28,
+                  height: 28,
+                  borderRadius: "var(--r-pill)",
+                  background: "rgba(15,30,61,0.78)",
+                  color: "#fff",
+                  border: 0,
+                  display: "grid",
+                  placeItems: "center",
+                  cursor: "pointer",
+                }}
+              >
+                {Icon.close(14)}
+              </button>
+            </div>
+          ) : (
+            <label
+              htmlFor="exp-receipt"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                padding: "14px 16px",
+                background: "var(--bg-elevated)",
+                border: "1px dashed var(--border)",
+                borderRadius: "var(--r-md)",
+                cursor: "pointer",
+                font: "700 12.5px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {Icon.plus(14)}
+              <span>Tomar foto o adjuntar</span>
+            </label>
+          )}
+          <input
+            id="exp-receipt"
+            name="receipt"
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+            capture="environment"
+            onChange={handleReceiptChange}
+            style={{ display: "none" }}
+          />
+          {(receiptError || state?.fieldErrors?.receipt) && (
+            <p
+              style={{
+                font: "500 11px/1.4 var(--f-sans)",
+                color: "var(--danger)",
+                margin: "6px 0 0",
+              }}
+            >
+              {receiptError ?? state?.fieldErrors?.receipt}
+            </p>
+          )}
         </div>
 
         {/* Billable toggle */}
