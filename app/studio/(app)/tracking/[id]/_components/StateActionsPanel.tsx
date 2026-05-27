@@ -14,6 +14,7 @@
  */
 
 import { useEffect, useState, useTransition } from "react";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { transitionShipment } from "../actions";
 import {
   getNextActions,
@@ -24,6 +25,13 @@ import type {
   ShipmentService,
   ShipmentStatus,
 } from "@/lib/studio/shipment-types";
+
+type ActionVariant = "primary" | "warning" | "neutral";
+const VARIANT_TO_ACTIONBUTTON: Record<ActionVariant, "dark" | "warning" | "ghost"> = {
+  primary: "dark",
+  warning: "warning",
+  neutral: "ghost",
+};
 
 /** Tipos de excepcion sugeridos. */
 const EXCEPTION_TYPES = [
@@ -110,20 +118,11 @@ export function StateActionsPanel({
     return () => document.removeEventListener("keydown", onKey);
   }, [excModal, isPending]);
 
-  const handleTransition = (newStatus: ShipmentStatus) => {
-    // Caso especial: excepcion abre modal pidiendo tipo + nota
-    if (newStatus === "exception") {
-      setExcType("aduana");
-      setExcNote("");
-      setError(null);
-      setExcModal(true);
-      return;
-    }
+  const openExceptionModal = () => {
+    setExcType("aduana");
+    setExcNote("");
     setError(null);
-    startTransition(async () => {
-      const result = await transitionShipment(shipmentId, newStatus);
-      if (result.error) setError(result.error);
-    });
+    setExcModal(true);
   };
 
   const handleExceptionConfirm = () => {
@@ -191,22 +190,39 @@ export function StateActionsPanel({
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {actions.map((a) => (
-            <button
-              key={a.status}
-              type="button"
-              onClick={() => handleTransition(a.status)}
-              disabled={isPending}
-              className={VARIANT_CLASS[a.variant]}
-              style={{
-                justifyContent: "flex-start",
-                opacity: isPending ? 0.6 : 1,
-              }}
-              title={`Cambia estado a "${STATUS_LABELS[a.status]}"`}
-            >
-              {a.label}
-            </button>
-          ))}
+          {actions.map((a) =>
+            a.status === "exception" ? (
+              <button
+                key={a.status}
+                type="button"
+                onClick={openExceptionModal}
+                className={VARIANT_CLASS[a.variant]}
+                style={{ justifyContent: "flex-start" }}
+                title={`Cambia estado a "${STATUS_LABELS[a.status]}"`}
+              >
+                {a.label}
+              </button>
+            ) : (
+              <ActionButton
+                key={a.status}
+                variant={VARIANT_TO_ACTIONBUTTON[a.variant]}
+                size="sm"
+                idleLabel={a.label}
+                loadingLabel="Procesando…"
+                successLabel="Listo"
+                title={(s) =>
+                  s === "success"
+                    ? `Estado: ${STATUS_LABELS[a.status]}`
+                    : `Cambia estado a "${STATUS_LABELS[a.status]}"`
+                }
+                onAction={async () => {
+                  setError(null);
+                  return transitionShipment(shipmentId, a.status);
+                }}
+                onError={setError}
+              />
+            ),
+          )}
         </div>
       )}
 
