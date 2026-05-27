@@ -13,6 +13,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { sendEmail } from "@/lib/studio/mail/send-email";
+import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
 import {
   changeUserRoleRPC,
   inviteUserRPC,
@@ -385,4 +386,84 @@ export async function updateMyPreferencesAction(
   }
 
   return { ok: true, userId: userResp.user.id };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Telegram link flow (SDD-0036 Fase 5 follow-up)
+//
+// 1. User toca "Conectar Telegram" → linkTelegramAccountAction()
+//    genera link_code random, lo guarda en user_profile, devuelve el code
+// 2. UI muestra "t.me/{BOT_USERNAME}?start={code}"
+// 3. User abre el link · webhook /api/telegram/webhook recibe /start {code}
+//    → setea telegram_chat_id + telegram_username + clear link_code
+// 4. unlinkTelegramAccountAction() borra el chat_id (canal apagado)
+// ─────────────────────────────────────────────────────────────
+
+export async function linkTelegramAccountAction(): Promise<{
+  ok?: boolean;
+  linkCode?: string;
+  botUsername?: string | null;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
+  // Generar code unique (retry hasta 5x si choca con índice unique)
+  let linkCode: string | null = null;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = generateTelegramLinkCode();
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({
+        telegram_link_code: candidate,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userResp.user.id);
+    if (!error) {
+      linkCode = candidate;
+      break;
+    }
+    if (!error || !String(error.message).includes("duplicate")) {
+      // Otro tipo de error · no es colisión de code
+      return { error: `No se pudo generar el código: ${error.message}` };
+    }
+    // Colisión · reintentar
+  }
+
+  if (!linkCode) {
+    return { error: "No se pudo generar un código único. Reintentá." };
+  }
+
+  return {
+    ok: true,
+    linkCode,
+    botUsername: process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? null,
+  };
+}
+
+export async function unlinkTelegramAccountAction(): Promise<{
+  ok?: boolean;
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({
+      telegram_chat_id: null,
+      telegram_username: null,
+      telegram_link_code: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("user_id", userResp.user.id);
+
+  if (error) {
+    return { error: `No se pudo desconectar: ${error.message}` };
+  }
+
+  revalidatePath("/studio");
+  return { ok: true };
 }
