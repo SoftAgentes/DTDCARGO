@@ -318,6 +318,28 @@
   outline-offset: 2px;
 }
 
+/* Variant success (verde) — confirmación post-acción exitosa (transitorio
+   típico 2-3s, después el revalidate del server cambia el render).
+   color: var(--ink-inv) se invierte por theme · cream sobre verde oscuro
+   en light, navy sobre verde claro en dark · mantiene WCAG AA en ambos. */
+.studio-btn-success {
+  background: var(--success);
+  color: var(--ink-inv);
+}
+.studio-btn-success:disabled {
+  opacity: 1;
+  cursor: default;
+}
+
+/* Spinner inline para estados de loading dentro de un botón. */
+.studio-spin {
+  display: inline-block;
+  animation: studio-spin 0.7s linear infinite;
+}
+@keyframes studio-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* Hover de ghost con background paper-2 para mejor feedback */
 .studio-btn-ghost:hover:not(:disabled) {
   background: var(--studio-paper-2);
