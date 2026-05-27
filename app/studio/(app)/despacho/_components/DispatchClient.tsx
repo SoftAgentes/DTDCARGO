@@ -15,6 +15,8 @@ import { DispatchQueueTable } from "./DispatchQueueTable";
 import { ActiveOdsPanel } from "./ActiveOdsPanel";
 import { CreateOdDrawer } from "./CreateOdDrawer";
 import { CancelOdDrawer } from "./CancelOdDrawer";
+import { RealtimeIndicator } from "./RealtimeIndicator";
+import { useRealtimeRefresh } from "@/lib/studio/hooks/use-realtime-refresh";
 import type {
   DispatchFilters,
   DispatchHub,
@@ -36,6 +38,7 @@ interface Props {
   availableTrucks: TmsTruck[];
   availableDrivers: TmsDriver[];
   filters: DispatchFilters;
+  tenantId: string | null;
 }
 
 export function DispatchClient({
@@ -47,7 +50,20 @@ export function DispatchClient({
   availableTrucks,
   availableDrivers,
   filters,
+  tenantId,
 }: Props) {
+  // Realtime: refresh server data ante cualquier change en dispatch_orders
+  // o warehouse_receipts_cn del tenant. Server recomputa joins + scoring.
+  const odsRealtime = useRealtimeRefresh({
+    table: "dispatch_orders",
+    filter: tenantId ? `tenant_id=eq.${tenantId}` : undefined,
+    disabled: !tenantId,
+  });
+  const inboxRealtime = useRealtimeRefresh({
+    table: "warehouse_receipts_cn",
+    filter: tenantId ? `tenant_id=eq.${tenantId}` : undefined,
+    disabled: !tenantId,
+  });
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -123,8 +139,27 @@ export function DispatchClient({
   const selectedPackages = queue.filter((p) => selectedIds.has(p.id));
   const odToCancel = activeOds.find((o) => o.id === odId);
 
+  // Worst status entre los 2 channels (si uno está error, mostrar error)
+  const worstStatus =
+    odsRealtime.status === "error" || inboxRealtime.status === "error"
+      ? "error"
+      : odsRealtime.status === "connected" && inboxRealtime.status === "connected"
+        ? "connected"
+        : odsRealtime.status === "connecting" || inboxRealtime.status === "connecting"
+          ? "connecting"
+          : odsRealtime.status;
+
   return (
     <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: 12,
+        }}
+      >
+        <RealtimeIndicator status={worstStatus} />
+      </div>
       <DispatchKpis kpis={kpis} />
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 24, marginTop: 24 }}>
