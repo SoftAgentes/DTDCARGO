@@ -10,6 +10,10 @@
 import { useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import type {
+  MailRuleWithTemplate,
+  MailTemplate,
+} from "@/lib/studio/mail-types";
 import {
   MAIL_LOG_STATUS_LABEL,
   MAIL_LOG_STATUS_TONE,
@@ -18,11 +22,15 @@ import {
   type MailingAdminTab,
   type MailingFilters,
 } from "./mailing-types";
+import { TemplatesView } from "./TemplatesView";
+import { RulesView } from "./RulesView";
 
 interface Props {
   tab: MailingAdminTab;
   logs: MailLogRow[];
   templates: Array<{ slug: string; name: string }>;
+  templatesFull: MailTemplate[];
+  rules: MailRuleWithTemplate[];
   filters: MailingFilters;
 }
 
@@ -44,7 +52,14 @@ const TONE_FG: Record<string, string> = {
   neutral: "var(--ink-soft, #6B6B6B)",
 };
 
-export function MailingClient({ tab, logs, templates, filters }: Props) {
+export function MailingClient({
+  tab,
+  logs,
+  templates,
+  templatesFull,
+  rules,
+  filters,
+}: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -121,20 +136,10 @@ export function MailingClient({ tab, logs, templates, filters }: Props) {
         />
       )}
 
-      {tab === "templates" && (
-        <EmptyState
-          eyebrow="Próximamente"
-          title="Editor de templates"
-          description="Edición visual de los 10 templates seedeados (team_invitation, quote_sent, invoice_emitted, etc.) con preview en vivo y variables documentadas. Por ahora, los templates viven en código + DB sincronizada via `pnpm seed`."
-        />
-      )}
+      {tab === "templates" && <TemplatesView templates={templatesFull} />}
 
       {tab === "reglas" && (
-        <EmptyState
-          eyebrow="Próximamente"
-          title="Reglas de envío"
-          description="Configuración de reglas tipo si X entonces mandá Y (ej: 'al crear factura, mandar invoice_emitted al cliente'). Por ahora los disparos están hard-coded en los server actions."
-        />
+        <RulesView rules={rules} templates={templatesFull} />
       )}
     </>
   );
