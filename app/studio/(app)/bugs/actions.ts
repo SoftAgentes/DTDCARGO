@@ -226,7 +226,7 @@ export async function replyBugMessageAction(
     }
   }
 
-  // Timeline entry (service_role)
+  // Timeline entry + SDD-0036 F5 email notif (service_role)
   try {
     const supabaseAdmin = createAdminClient();
     await supabaseAdmin.from("bug_timeline").insert({
@@ -236,8 +236,45 @@ export async function replyBugMessageAction(
       actor_type: authorType,
       payload: { message_id: msg.id, preview: input.body.slice(0, 120) },
     });
-  } catch {
-    // si no hay admin client, skip timeline
+
+    // Email notif al reportador cuando el admin responde desde el drawer.
+    // Mirror del wire en /api/studio/bugs/[id]/messages para consistencia.
+    if (authorType === "admin") {
+      const { data: bugRow } = await supabaseAdmin
+        .from("bug_reports")
+        .select("id, tenant_id, folio, title, state, severity, reporter_id")
+        .eq("id", input.bug_id)
+        .maybeSingle<{
+          id: string;
+          tenant_id: string;
+          folio: string;
+          title: string;
+          state: string;
+          severity: string | null;
+          reporter_id: string;
+        }>();
+      if (bugRow) {
+        const { notifyBugMessageToReporter } = await import(
+          "@/lib/studio/bug-email-notify"
+        );
+        await notifyBugMessageToReporter(
+          supabaseAdmin,
+          bugRow.tenant_id,
+          {
+            id: bugRow.id,
+            folio: bugRow.folio,
+            title: bugRow.title,
+            state: bugRow.state as never,
+            severity: bugRow.severity as never,
+            reporter_id: bugRow.reporter_id,
+          },
+          input.body,
+          userResp.user.id,
+        );
+      }
+    }
+  } catch (err) {
+    console.error("[replyBugMessageAction] timeline/notify failed:", err);
   }
 
   revalidatePath("/studio/bugs");

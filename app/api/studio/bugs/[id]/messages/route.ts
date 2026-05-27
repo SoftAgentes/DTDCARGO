@@ -120,7 +120,7 @@ export async function POST(
     }
   }
 
-  // Timeline entry (service_role)
+  // Timeline entry + SDD-0036 F5 email notif (ambos via admin client)
   try {
     const supabaseAdmin = createAdminClient();
     await supabaseAdmin.from("bug_timeline").insert({
@@ -130,8 +130,44 @@ export async function POST(
       actor_type: authorType,
       payload: { message_id: msg.id, preview: input.body.slice(0, 120) },
     });
-  } catch {
-    // Si no hay admin client, ignoramos timeline (no crítico)
+
+    // Email notif: solo cuando admin respondió (no spammear admin con sus
+    // propios reportes ni reportadores con sus propios mensajes)
+    if (authorType === "admin") {
+      const { data: bugRow } = await supabaseAdmin
+        .from("bug_reports")
+        .select("id, folio, title, state, severity, reporter_id")
+        .eq("id", input.bug_id)
+        .maybeSingle<{
+          id: string;
+          folio: string;
+          title: string;
+          state: string;
+          severity: string | null;
+          reporter_id: string;
+        }>();
+      if (bugRow) {
+        const { notifyBugMessageToReporter } = await import(
+          "@/lib/studio/bug-email-notify"
+        );
+        await notifyBugMessageToReporter(
+          supabaseAdmin,
+          link.tenant_id,
+          {
+            id: bugRow.id,
+            folio: bugRow.folio,
+            title: bugRow.title,
+            state: bugRow.state as never,
+            severity: bugRow.severity as never,
+            reporter_id: bugRow.reporter_id,
+          },
+          input.body,
+          userResp.user.id,
+        );
+      }
+    }
+  } catch (err) {
+    console.error("[bugs/messages] timeline/notify failed:", err);
   }
 
   return NextResponse.json({ ok: true, message: msg });

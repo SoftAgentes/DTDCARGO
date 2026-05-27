@@ -11,6 +11,8 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { notifyBugStateChangeToReporter } from "@/lib/studio/bug-email-notify";
 import {
   validateAdvanceBugStateInput,
   type AdvanceBugStateInput,
@@ -66,6 +68,41 @@ export async function PATCH(
       { error: error.message, code: error.code },
       { status },
     );
+  }
+
+  // SDD-0036 F5 · email notif al reportador (best-effort, no rompe respuesta)
+  try {
+    const supabaseAdmin = createAdminClient();
+    const { data: bugRow } = await supabaseAdmin
+      .from("bug_reports")
+      .select("id, tenant_id, folio, title, state, severity, reporter_id")
+      .eq("id", input.bug_id)
+      .maybeSingle<{
+        id: string;
+        tenant_id: string;
+        folio: string;
+        title: string;
+        state: string;
+        severity: string | null;
+        reporter_id: string;
+      }>();
+    if (bugRow) {
+      await notifyBugStateChangeToReporter(
+        supabaseAdmin,
+        bugRow.tenant_id,
+        {
+          id: bugRow.id,
+          folio: bugRow.folio,
+          title: bugRow.title,
+          state: bugRow.state as never,
+          severity: bugRow.severity as never,
+          reporter_id: bugRow.reporter_id,
+        },
+        userResp.user.id,
+      );
+    }
+  } catch (err) {
+    console.error("[bugs/state] notify failed:", err);
   }
 
   return NextResponse.json({ ok: true, bug: data });

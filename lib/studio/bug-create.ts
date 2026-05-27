@@ -158,6 +158,18 @@ export async function createBugForReporter(args: {
     } catch {
       // Si falla tech_data/timeline, el bug ya fue creado · seguimos
     }
+
+    // SDD-0036 F5 · email notif al admin si severity alta/critica.
+    // Best-effort: el helper no propaga errores.
+    const { notifyBugCreatedToAdmin } = await import("./bug-email-notify");
+    await notifyBugCreatedToAdmin(supabaseAdmin, tenantId, {
+      id: bug.id,
+      folio: bug.folio,
+      title: bug.title,
+      state: bug.state,
+      severity: bug.severity,
+      reporter_id: bug.reporter_id,
+    });
   }
 
   return {
