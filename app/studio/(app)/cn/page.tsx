@@ -15,6 +15,7 @@ import {
   listWarehouses,
   parseReceiptFiltersFromSearchParams,
 } from "@/lib/studio/warehouse-cn-queries";
+import { listCities } from "@/lib/studio/dispatch-routes-queries";
 import { AlmacenCnClient } from "./_components/AlmacenCnClient";
 import { HeaderActions } from "./_components/HeaderActions";
 import { WarehouseKpis } from "./_components/WarehouseKpis";
@@ -30,11 +31,14 @@ export default async function CnPage({
   const filters = parseReceiptFiltersFromSearchParams(rawParams);
 
   const supabase = await createClient();
-  const [receipts, warehouses, clients, kpis] = await Promise.all([
+  const [receipts, warehouses, clients, kpis, cities] = await Promise.all([
     listReceipts(supabase, filters),
     listWarehouses(supabase),
     listClients(supabase),
     computeWarehouseKpis(supabase),
+    // Catálogo per-tenant para el picker de destino al consolidar.
+    // Si vacío, el component fallback a input text libre.
+    listCities(supabase, { activeOnly: true }),
   ]);
 
   return (
@@ -94,6 +98,7 @@ export default async function CnPage({
         receipts={receipts}
         warehouses={warehouses}
         clients={clients}
+        cities={cities}
         filters={filters}
       />
     </div>
