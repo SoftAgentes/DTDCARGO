@@ -11,6 +11,7 @@
 
 import { useState } from "react";
 import { IGTF_RATE, IVA_RATE } from "@/lib/studio/customs-types";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 
 interface Props {
   onApplyIgtf: (value: number) => void;
@@ -77,17 +78,16 @@ export function CostHelpers({ onApplyIgtf, onApplyIva }: Props) {
       >
         <div>
           <label htmlFor="cost-base" className="studio-label">
-            Valor mercadería (USD)
+            Valor mercadería
           </label>
-          <input
+          <NumericInput
             id="cost-base"
-            type="number"
-            min="0"
-            step="0.01"
-            className="studio-input studio-input-mono"
-            value={base}
-            onChange={(e) => setBase(e.target.value)}
+            type="currency"
+            currency="USD"
+            min={0}
             placeholder="0.00"
+            value={base === "" ? null : Number(base)}
+            onChange={(v) => setBase(v != null ? String(v) : "")}
           />
         </div>
         <button

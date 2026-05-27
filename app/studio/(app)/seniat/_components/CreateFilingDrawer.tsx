@@ -15,6 +15,7 @@
 
 import { useActionState, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { createFilingAction } from "../actions";
 import { CostHelpers } from "./CostHelpers";
 import type {
@@ -566,14 +567,13 @@ function CostInput({
   return (
     <div>
       <label className="studio-label">{label}</label>
-      <input
-        type="number"
-        min="0"
-        step="0.01"
-        className="studio-input studio-input-mono"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+      <NumericInput
+        type="currency"
+        currency="USD"
+        min={0}
         placeholder="0.00"
+        value={value === "" ? null : Number(value)}
+        onChange={(v) => onChange(v != null ? String(v) : "")}
       />
       {error && <FieldError msg={error} />}
     </div>
