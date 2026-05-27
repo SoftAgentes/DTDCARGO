@@ -394,6 +394,128 @@ export async function changeReceiptPaymentStatusAction(
 }
 
 // ─────────────────────────────────────────────────────────────
+// Bulk actions · marcar N recibos en una sola operación
+//
+// MVP intencionalmente NO incluye bulk-consolidar (cada destino_city
+// puede diferir por row · forzaría UI multi-step). Sí cubre pago bulk
+// y status bulk excluyendo "consolidado" (pendiente / incidencia OK).
+// ─────────────────────────────────────────────────────────────
+
+const MAX_BULK_RECEIPTS = 100;
+
+export async function bulkChangeReceiptPaymentStatusAction(
+  receiptIds: string[],
+  newPaymentStatus: PaymentStatusOpt,
+): Promise<{ ok?: boolean; updated?: number; error?: string }> {
+  if (!Array.isArray(receiptIds) || receiptIds.length === 0) {
+    return { error: "Seleccioná al menos 1 recepción." };
+  }
+  if (receiptIds.length > MAX_BULK_RECEIPTS) {
+    return { error: `Máximo ${MAX_BULK_RECEIPTS} recepciones por bulk.` };
+  }
+  if (!VALID_PAYMENT_STATUSES.includes(newPaymentStatus)) {
+    return { error: "Estado de pago inválido." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) {
+    return { error: "No se pudo resolver el tenant del usuario." };
+  }
+
+  // Update atómico · RLS filtra por tenant
+  const { data: updated, error: updateErr } = await supabase
+    .from("warehouse_receipts_cn")
+    .update({ payment_status: newPaymentStatus })
+    .in("id", receiptIds)
+    .select("id");
+
+  if (updateErr) {
+    return { error: `No se pudo cambiar el pago: ${updateErr.message}` };
+  }
+
+  const updatedCount = updated?.length ?? 0;
+
+  // Audit event 1 por receipt (best effort · no falla la operación)
+  if (updatedCount > 0) {
+    const events = (updated ?? []).map((r) => ({
+      tenant_id: link.tenant_id,
+      receipt_id: r.id,
+      event_type: "status_change" as const,
+      description: `Pago bulk → ${newPaymentStatus} (${updatedCount} recepciones)`,
+    }));
+    await supabase.from("warehouse_receipt_events").insert(events);
+  }
+
+  revalidatePath("/studio/cn");
+  revalidatePath("/studio/despacho");
+  return { ok: true, updated: updatedCount };
+}
+
+const BULK_VALID_STATUSES: WarehouseReceiptStatus[] = [
+  "pendiente_consolidacion",
+  "incidencia",
+];
+
+export async function bulkChangeReceiptStatusAction(
+  receiptIds: string[],
+  newStatus: (typeof BULK_VALID_STATUSES)[number],
+): Promise<{ ok?: boolean; updated?: number; error?: string }> {
+  if (!Array.isArray(receiptIds) || receiptIds.length === 0) {
+    return { error: "Seleccioná al menos 1 recepción." };
+  }
+  if (receiptIds.length > MAX_BULK_RECEIPTS) {
+    return { error: `Máximo ${MAX_BULK_RECEIPTS} recepciones por bulk.` };
+  }
+  if (!BULK_VALID_STATUSES.includes(newStatus)) {
+    return {
+      error:
+        "Bulk solo permite pendiente_consolidacion o incidencia. Consolidar requiere destino por row.",
+    };
+  }
+
+  const supabase = await createClient();
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) {
+    return { error: "No se pudo resolver el tenant del usuario." };
+  }
+
+  const { data: updated, error: updateErr } = await supabase
+    .from("warehouse_receipts_cn")
+    .update({ status: newStatus })
+    .in("id", receiptIds)
+    .select("id");
+
+  if (updateErr) {
+    return { error: `No se pudo cambiar el estado: ${updateErr.message}` };
+  }
+
+  const updatedCount = updated?.length ?? 0;
+  if (updatedCount > 0) {
+    const eventType = newStatus === "incidencia" ? "incident" : "status_change";
+    const events = (updated ?? []).map((r) => ({
+      tenant_id: link.tenant_id,
+      receipt_id: r.id,
+      event_type: eventType,
+      description: `Estado bulk → ${newStatus} (${updatedCount} recepciones)`,
+    }));
+    await supabase.from("warehouse_receipt_events").insert(events);
+  }
+
+  revalidatePath("/studio/cn");
+  revalidatePath("/studio/despacho");
+  return { ok: true, updated: updatedCount };
+}
+
+// ─────────────────────────────────────────────────────────────
 // softDeleteReceiptAction (no expuesto en UI V1)
 // ─────────────────────────────────────────────────────────────
 

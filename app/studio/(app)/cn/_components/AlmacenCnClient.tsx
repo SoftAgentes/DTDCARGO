@@ -33,6 +33,10 @@ import type { ReceiptFilters } from "@/lib/studio/warehouse-cn-queries";
 import { ReceiptStatusBadge } from "./ReceiptStatusBadge";
 import { ReceiptRowActions } from "./ReceiptRowActions";
 import { NewReceiptDrawer } from "./NewReceiptDrawer";
+import {
+  bulkChangeReceiptPaymentStatusAction,
+  bulkChangeReceiptStatusAction,
+} from "../actions";
 
 interface Props {
   receipts: WarehouseReceiptRow[];
@@ -61,6 +65,27 @@ export function AlmacenCnClient({
   const [q, setQ] = useState(params.get("q") ?? "");
   const [hub, setHub] = useState(params.get("hub") ?? "");
   const [status, setStatus] = useState(params.get("status") ?? "");
+
+  // Bulk selection (set de receipt IDs)
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const toggleAll = (allIds: string[]) =>
+    setSelected((prev) => {
+      const allSelected = allIds.every((id) => prev.has(id));
+      if (allSelected) return new Set();
+      return new Set(allIds);
+    });
+  const clearSelection = () => setSelected(new Set());
+  // Limpiar selección cuando cambian los filtros (rows visibles cambiaron)
+  useEffect(() => {
+    setSelected(new Set());
+  }, [params]);
 
   // Re-sincronizar si la URL cambia desde afuera
   useEffect(() => {
@@ -234,6 +259,9 @@ export function AlmacenCnClient({
           lang={lang}
           cities={cities}
           onCreateClick={openDrawer}
+          selected={selected}
+          onToggleOne={toggleOne}
+          onToggleAll={() => toggleAll(receipts.map((r) => r.id))}
         />
       )}
 
@@ -244,6 +272,18 @@ export function AlmacenCnClient({
           onClose={closeDrawer}
         />
       )}
+
+      {selected.size > 0 && (
+        <BulkBar
+          count={selected.size}
+          ids={Array.from(selected)}
+          onClear={clearSelection}
+          onAfter={() => {
+            clearSelection();
+            router.refresh();
+          }}
+        />
+      )}
     </>
   );
 }
@@ -252,17 +292,32 @@ export function AlmacenCnClient({
 // Tabla de recepciones
 // ─────────────────────────────────────────────────────────────
 
+// Grid template compartido por header + rows (con checkbox 32px al inicio).
+const RECEIPT_GRID_COLS =
+  "32px 150px minmax(160px, 1.4fr) minmax(140px, 1.4fr) 90px 78px 90px 80px 72px 120px 60px";
+
 function ReceiptsTable({
   rows,
   lang,
   cities,
   onCreateClick: _onCreateClick,
+  selected,
+  onToggleOne,
+  onToggleAll,
 }: {
   rows: WarehouseReceiptRow[];
   lang: LangDisplay;
   cities: DispatchCity[];
   onCreateClick: () => void;
+  selected: Set<string>;
+  onToggleOne: (id: string) => void;
+  onToggleAll: () => void;
 }) {
+  const allVisibleSelected =
+    rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const someVisibleSelected =
+    rows.some((r) => selected.has(r.id)) && !allVisibleSelected;
+
   return (
     <div
       style={{
@@ -276,8 +331,7 @@ function ReceiptsTable({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns:
-            "150px minmax(160px, 1.4fr) minmax(140px, 1.4fr) 90px 78px 90px 80px 72px 120px 60px",
+          gridTemplateColumns: RECEIPT_GRID_COLS,
           gap: 12,
           padding: "12px 18px",
           background: "var(--bg-elevated)",
@@ -289,6 +343,23 @@ function ReceiptsTable({
           alignItems: "center",
         }}
       >
+        <span style={{ display: "flex", alignItems: "center" }}>
+          <input
+            type="checkbox"
+            aria-label="Seleccionar todas las visibles"
+            checked={allVisibleSelected}
+            ref={(el) => {
+              if (el) el.indeterminate = someVisibleSelected;
+            }}
+            onChange={onToggleAll}
+            style={{
+              accentColor: "var(--wine)",
+              cursor: "pointer",
+              width: 16,
+              height: 16,
+            }}
+          />
+        </span>
         <span>Recepción</span>
         <span>Cliente</span>
         <span>Proveedor CN</span>
@@ -308,6 +379,8 @@ function ReceiptsTable({
           lang={lang}
           cities={cities}
           hasBorderTop={i > 0}
+          selected={selected.has(r.id)}
+          onToggle={() => onToggleOne(r.id)}
         />
       ))}
     </div>
@@ -319,11 +392,15 @@ function ReceiptRow({
   lang,
   cities,
   hasBorderTop,
+  selected,
+  onToggle,
 }: {
   row: WarehouseReceiptRow;
   lang: LangDisplay;
   cities: DispatchCity[];
   hasBorderTop: boolean;
+  selected: boolean;
+  onToggle: () => void;
 }) {
   // Supplier bilingual display
   const sup = pickBilingual(
@@ -371,13 +448,29 @@ function ReceiptRow({
       style={{
         display: "grid",
         gridTemplateColumns:
-          "150px minmax(160px, 1.4fr) minmax(140px, 1.4fr) 90px 70px 90px 80px 60px 160px 60px",
+          "32px 150px minmax(160px, 1.4fr) minmax(140px, 1.4fr) 90px 70px 90px 80px 60px 160px 60px",
         gap: 12,
         padding: "14px 18px",
         borderTop: hasBorderTop ? "1px solid var(--border)" : 0,
         alignItems: "center",
+        background: selected ? "var(--wine-tint)" : "transparent",
+        transition: "background 120ms ease",
       }}
     >
+      <span style={{ display: "flex", alignItems: "center" }}>
+        <input
+          type="checkbox"
+          aria-label={`Seleccionar ${row.receipt_code}`}
+          checked={selected}
+          onChange={onToggle}
+          style={{
+            accentColor: "var(--wine)",
+            cursor: "pointer",
+            width: 16,
+            height: 16,
+          }}
+        />
+      </span>
       {/* Recepción code */}
       <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
         <code
@@ -614,4 +707,229 @@ function formatReceivedDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// BulkBar · barra inferior con acciones masivas
+// ─────────────────────────────────────────────────────────────
+
+type BulkAction =
+  | "pay_paid"
+  | "pay_partial"
+  | "pay_pending"
+  | "status_pending"
+  | "status_incident";
+
+const BULK_LABELS: Record<BulkAction, string> = {
+  pay_paid: "Marcar pagados",
+  pay_partial: "Marcar pago parcial",
+  pay_pending: "Marcar pago pendiente",
+  status_pending: "Volver a pendiente",
+  status_incident: "Marcar incidencia",
+};
+
+const BULK_CONFIRM_THRESHOLD = 5;
+
+function BulkBar({
+  count,
+  ids,
+  onClear,
+  onAfter,
+}: {
+  count: number;
+  ids: string[];
+  onClear: () => void;
+  onAfter: () => void;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [confirmAction, setConfirmAction] = useState<BulkAction | null>(null);
+  const [feedback, setFeedback] = useState<
+    | { kind: "ok"; msg: string }
+    | { kind: "err"; msg: string }
+    | null
+  >(null);
+
+  const runAction = (action: BulkAction) => {
+    setFeedback(null);
+    startTransition(async () => {
+      let result: { ok?: boolean; updated?: number; error?: string };
+      switch (action) {
+        case "pay_paid":
+          result = await bulkChangeReceiptPaymentStatusAction(ids, "pagado");
+          break;
+        case "pay_partial":
+          result = await bulkChangeReceiptPaymentStatusAction(ids, "parcial");
+          break;
+        case "pay_pending":
+          result = await bulkChangeReceiptPaymentStatusAction(ids, "pendiente");
+          break;
+        case "status_pending":
+          result = await bulkChangeReceiptStatusAction(
+            ids,
+            "pendiente_consolidacion",
+          );
+          break;
+        case "status_incident":
+          result = await bulkChangeReceiptStatusAction(ids, "incidencia");
+          break;
+      }
+      if (result.ok) {
+        setFeedback({
+          kind: "ok",
+          msg: `${result.updated ?? 0} actualizadas.`,
+        });
+        setConfirmAction(null);
+        setTimeout(onAfter, 700);
+      } else {
+        setFeedback({ kind: "err", msg: result.error ?? "Error" });
+      }
+    });
+  };
+
+  const handleClick = (action: BulkAction) => {
+    if (count >= BULK_CONFIRM_THRESHOLD) {
+      setConfirmAction(action);
+    } else {
+      runAction(action);
+    }
+  };
+
+  return (
+    <div
+      role="region"
+      aria-label={`Acciones masivas · ${count} seleccionadas`}
+      style={{
+        position: "fixed",
+        bottom: 16,
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 70,
+        maxWidth: "calc(100vw - 32px)",
+        background: "var(--ink)",
+        color: "var(--ink-inv)",
+        borderRadius: "var(--r-md)",
+        boxShadow: "var(--shadow-pop)",
+        padding: "10px 14px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          flexWrap: "wrap",
+        }}
+      >
+        <div
+          style={{
+            font: "700 12.5px/1 var(--f-sans)",
+            color: "var(--ink-inv)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {count} seleccionada{count === 1 ? "" : "s"}
+        </div>
+        <div
+          style={{
+            width: 1,
+            height: 20,
+            background: "var(--ink-inv-mute)",
+          }}
+        />
+        {(
+          ["pay_paid", "pay_partial", "pay_pending", "status_pending", "status_incident"] as BulkAction[]
+        ).map((a) => (
+          <button
+            key={a}
+            type="button"
+            onClick={() => handleClick(a)}
+            disabled={pending}
+            style={{
+              padding: "6px 10px",
+              background: "transparent",
+              color: "var(--ink-inv)",
+              border: "1px solid var(--ink-inv-mute)",
+              borderRadius: "var(--r-sm)",
+              font: "600 11.5px/1 var(--f-sans)",
+              cursor: pending ? "wait" : "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {BULK_LABELS[a]}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={onClear}
+          disabled={pending}
+          style={{
+            padding: "6px 10px",
+            background: "transparent",
+            color: "var(--ink-inv-soft)",
+            border: 0,
+            font: "600 11.5px/1 var(--f-sans)",
+            cursor: pending ? "wait" : "pointer",
+          }}
+        >
+          Cancelar
+        </button>
+      </div>
+
+      {confirmAction && (
+        <div
+          style={{
+            background: "var(--warning-bg)",
+            color: "var(--ink)",
+            padding: "8px 10px",
+            borderRadius: "var(--r-sm)",
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            font: "600 11.5px/1.3 var(--f-sans)",
+          }}
+        >
+          <span>
+            ¿Aplicar <b>{BULK_LABELS[confirmAction]}</b> a {count} recepciones?
+          </span>
+          <button
+            type="button"
+            onClick={() => runAction(confirmAction)}
+            disabled={pending}
+            className="studio-btn studio-btn-primary studio-btn-xs"
+          >
+            {pending ? "Aplicando…" : "Sí, aplicar"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setConfirmAction(null)}
+            disabled={pending}
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+          >
+            No
+          </button>
+        </div>
+      )}
+
+      {feedback && (
+        <div
+          role="status"
+          style={{
+            padding: "6px 10px",
+            background:
+              feedback.kind === "ok"
+                ? "var(--success-bg)"
+                : "var(--danger-bg)",
+            color: feedback.kind === "ok" ? "var(--success)" : "var(--danger)",
+            borderRadius: "var(--r-sm)",
+            font: "600 11.5px/1.3 var(--f-sans)",
+          }}
+        >
+          {feedback.msg}
+        </div>
+      )}
+    </div>
+  );
 }
