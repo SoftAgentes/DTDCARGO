@@ -137,7 +137,10 @@ function MemberRow({
     <tr style={{ borderTop: "1px solid var(--border)" }}>
       <Td>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Avatar initials={userInitials(member.profile, member.email)} />
+          <Avatar
+            initials={userInitials(member.profile, member.email)}
+            tone={tone}
+          />
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <span style={{ fontWeight: 600, color: "var(--ink)" }}>
               {userDisplayName(member.profile, member.email)}
@@ -337,7 +340,13 @@ function Pill({
   );
 }
 
-function Avatar({ initials }: { initials: string }) {
+function Avatar({
+  initials,
+  tone = "wine",
+}: {
+  initials: string;
+  tone?: string;
+}) {
   return (
     <div
       aria-hidden="true"
@@ -345,8 +354,8 @@ function Avatar({ initials }: { initials: string }) {
         width: 32,
         height: 32,
         borderRadius: "50%",
-        background: "var(--wine-tint, #FBE9EC)",
-        color: "var(--wine, #7F0F1A)",
+        background: TONE_BG[tone] ?? TONE_BG.wine,
+        color: TONE_FG[tone] ?? TONE_FG.wine,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
