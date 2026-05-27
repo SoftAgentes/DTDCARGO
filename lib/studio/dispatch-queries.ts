@@ -118,38 +118,57 @@ export async function getDispatchOrderByCode(
  *
  * NOTA Fase 1: source solo warehouse_receipts_cn. En SDD-0030 se extiende
  * a warehouse_receipts_ve cuando esté portado.
+ *
+ * SCHEMA DRIFT (2026-05-27): el SDD-0029 spec original asumía columnas
+ * `markbox`, `weight_kg`, `cbm`, `destination_city`, `payment_status`,
+ * `hs_code`, `aes_code` en warehouse_receipts_cn. SDD-0027/0028 (PWA
+ * operario CN · Wang Hua) rediseñó la tabla y nadie sincronizó este query.
+ *
+ * Schema actual:
+ *   - markbox          → client_markbox (rename)
+ *   - weight_kg        → total_weight_kg (rename)
+ *   - cbm              → total_cbm (rename)
+ *   - destination_city → no existe en NINGUNA tabla (operario CN no captura)
+ *   - payment_status   → no existe (pertenece a cobranza, no al receipt)
+ *   - hs_code/aes_code → no existen en este schema
+ *
+ * Fix mínimo viable: defaults razonables ("—" y "pendiente") para los
+ * campos que no podemos resolver. TODO enriquecer cuando founder decida
+ * approach (a · agregar columnas o b · resolver via JOINs futuras).
  */
 export async function listEligiblePackages(
   supabase: SupabaseClient,
-  opts: { hub?: DispatchHub; city?: string } = {},
+  _opts: { hub?: DispatchHub; city?: string } = {},
 ): Promise<EligiblePackage[]> {
-  // 1. Traer receipts CN status='received'
-  let query = supabase
+  // 1. Traer receipts CN status='received', no orphan, no deleted
+  // opts.city es no-op por ahora (city no existe en schema)
+  void _opts;
+  const query = supabase
     .from("warehouse_receipts_cn")
     .select(
-      "id, markbox, client_name, destination_city, payment_status, description, boxes, weight_kg, cbm, hs_code, aes_code, received_at",
+      "id, client_markbox, client_name, description, boxes, total_weight_kg, total_cbm, received_at",
     )
-    .eq("status", "received")
+    // SCHEMA DRIFT (2026-05-27): el enum warehouse_receipt_status real es
+    // {pendiente_consolidacion, consolidado, incidencia} · NO existe 'received'
+    // que el SDD-0029 asumía. 'consolidado' significa paquete listo para
+    // despacho (ya empacado/preparado).
+    .eq("status", "consolidado")
+    .eq("is_orphan", false)
+    .is("deleted_at", null)
     .order("received_at", { ascending: true })
     .limit(500);
-
-  if (opts.city) query = query.eq("destination_city", opts.city);
 
   const { data: receipts, error } = await query;
   if (error) throw error;
 
   type Receipt = {
     id: string;
-    markbox: string;
+    client_markbox: string;
     client_name: string | null;
-    destination_city: string | null;
-    payment_status: DispatchPaymentStatus | null;
     description: string | null;
     boxes: number | null;
-    weight_kg: number | null;
-    cbm: number | null;
-    hs_code: string | null;
-    aes_code: string | null;
+    total_weight_kg: number | null;
+    total_cbm: number | null;
     received_at: string;
   };
 
@@ -177,7 +196,7 @@ export async function listEligiblePackages(
     }
   }
 
-  // 3. Proyección runtime
+  // 3. Proyección runtime con defaults para columnas no resueltas
   const now = Date.now();
   const projected: EligiblePackage[] = rows
     .filter((r) => !assignedSet.has(r.id))
@@ -187,16 +206,16 @@ export async function listEligiblePackages(
       return {
         id: r.id,
         package_kind: "warehouse_receipt_cn" as DispatchPackageKind,
-        markbox: r.markbox,
+        markbox: r.client_markbox,
         client_name: r.client_name ?? "—",
-        city: r.destination_city ?? "—",
-        pay: r.payment_status ?? "pendiente",
+        city: "—", // TODO: resolver via parseo de clients.address o nueva columna
+        pay: "pendiente" as DispatchPaymentStatus, // TODO: resolver via cobranza/invoices
         description: r.description,
         boxes_total: r.boxes ?? 1,
-        weight_kg: Number(r.weight_kg ?? 0),
-        cbm: Number(r.cbm ?? 0),
-        hs_code: r.hs_code,
-        aes_code: r.aes_code,
+        weight_kg: Number(r.total_weight_kg ?? 0),
+        cbm: Number(r.total_cbm ?? 0),
+        hs_code: null, // TODO: resolver via paquetes detallados
+        aes_code: null, // TODO: resolver via paquetes detallados
         received_at: r.received_at,
         route_proximity: null,
         tier: null,

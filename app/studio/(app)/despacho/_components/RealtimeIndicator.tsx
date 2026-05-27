@@ -78,16 +78,12 @@ export function RealtimeIndicator({ status }: Props) {
           borderRadius: "50%",
           background: meta.tone,
           flexShrink: 0,
-          animation: meta.pulse ? "dtd-pulse 1.6s ease-in-out infinite" : "none",
+          animation: meta.pulse
+            ? "dtd-realtime-pulse 1.6s ease-in-out infinite"
+            : "none",
         }}
       />
       <span>{meta.label}</span>
-      <style>{`
-        @keyframes dtd-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.5; transform: scale(1.25); }
-        }
-      `}</style>
     </div>
   );
 }
