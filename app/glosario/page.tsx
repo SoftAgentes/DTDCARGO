@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/glosario" },
   openGraph: {
-    title: "Glosario de comercio exterior · DTD·CARGO",
+    title: "Glosario de comercio exterior · DTD Cargo",
     url: "/glosario",
   },
 };
@@ -38,7 +38,7 @@ export default function GlosarioPage() {
         {/* Hero */}
         <section className="py-16 lg:py-24">
           <div className="wrap max-w-[1100px]">
-            <span className="eyebrow">Recursos · DTD·CARGO</span>
+            <span className="eyebrow">Recursos · DTD Cargo</span>
             <h1
               className="h-display mt-5"
               style={{ fontSize: "clamp(40px, 5.5vw, 76px)" }}
@@ -143,7 +143,7 @@ export default function GlosarioPage() {
               </p>
               <a
                 href={buildWhatsAppLink(
-                  "Hola DTD-CARGO, tengo una duda sobre un término del glosario. ¿Pueden ayudarme?",
+                  "Hola DTD Cargo, tengo una duda sobre un término del glosario. ¿Pueden ayudarme?",
                 )}
                 target="_blank"
                 rel="noopener noreferrer"

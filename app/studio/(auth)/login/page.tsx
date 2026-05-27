@@ -173,7 +173,7 @@ export default function LoginPage() {
             textAlign: "center",
           }}
         >
-          Solo personal autorizado de DTD·CARGO.
+          Solo personal autorizado de DTD Cargo.
           <br />
           ¿Olvidaste tu contraseña?{" "}
           <a

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: "%s · DTD Studio",
     default: "DTD Studio · DoorTuDoor",
   },
-  description: "Backend interno de DTD·CARGO.",
+  description: "Backend interno de DTD Cargo.",
   robots: {
     index: false,
     follow: false,

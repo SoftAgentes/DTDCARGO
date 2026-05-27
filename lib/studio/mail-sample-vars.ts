@@ -13,7 +13,7 @@ const DEFAULTS: Record<string, string> = {
   // Cliente / persona
   customer_name: "María Pérez",
   inviter_name: "Sam Maan",
-  tenant_name: "DTD·CARGO",
+  tenant_name: "DTD Cargo",
   role_label: "Admin",
   invitation_link: "https://dtdcargo.com/invitar/SAMPLE_TOKEN_XYZ",
   expires_in_days: "7",

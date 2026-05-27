@@ -262,7 +262,7 @@ describe("whatsappTextFromCotizacion", () => {
     const cot = calcularEnvioLCL(input);
     const text = whatsappTextFromCotizacion(cot, input);
 
-    expect(text).toContain("DTD-CARGO");
+    expect(text).toContain("DTD Cargo");
     expect(text).toContain("60");
     expect(text).toContain("40");
     expect(text).toContain("50");

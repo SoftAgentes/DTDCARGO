@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/noticias" },
   openGraph: {
-    title: "Noticias y guías · DTD·CARGO",
+    title: "Noticias y guías · DTD Cargo",
     url: "/noticias",
   },
 };
@@ -41,7 +41,7 @@ export default function NoticiasPage() {
         {/* Hero */}
         <section className="py-16 lg:py-24">
           <div className="wrap max-w-[1100px]">
-            <span className="eyebrow">Noticias · DTD·CARGO</span>
+            <span className="eyebrow">Noticias · DTD Cargo</span>
             <h1
               className="h-display mt-5"
               style={{ fontSize: "clamp(40px, 5.5vw, 76px)" }}
@@ -98,7 +98,7 @@ export default function NoticiasPage() {
               </p>
               <a
                 href={buildWhatsAppLink(
-                  "Hola DTD-CARGO, quiero recibir las novedades del corredor por WhatsApp.",
+                  "Hola DTD Cargo, quiero recibir las novedades del corredor por WhatsApp.",
                 )}
                 target="_blank"
                 rel="noopener noreferrer"

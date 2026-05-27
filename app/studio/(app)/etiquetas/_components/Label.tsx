@@ -244,7 +244,7 @@ export function Label({
               letterSpacing: "0.02em",
             }}
           >
-            SHIPPING TO · DTD-CARGO
+            SHIPPING TO · DTD Cargo
           </div>
           <div
             style={{

@@ -767,7 +767,7 @@ function CitiesTab({
         }}
       >
         <div style={{ minWidth: 0, flex: 1 }}>
-          <span className="studio-eyebrow">Catálogo per-tenant · DTD·CARGO</span>
+          <span className="studio-eyebrow">Catálogo per-tenant · DTD Cargo</span>
           <div
             style={{
               font: "900 17px/1.1 var(--f-display)",

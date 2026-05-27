@@ -51,7 +51,7 @@ export function HowWeWork() {
         <div className="mt-14 text-center">
           <a
             href={buildWhatsAppLink(
-              "Hola DTD-CARGO, quiero cotizar mi primer envío desde China a Venezuela. ¿Pueden ayudarme con el proceso completo?"
+              "Hola DTD Cargo, quiero cotizar mi primer envío desde China a Venezuela. ¿Pueden ayudarme con el proceso completo?"
             )}
             target="_blank"
             rel="noopener noreferrer"

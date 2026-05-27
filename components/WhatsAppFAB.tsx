@@ -29,7 +29,7 @@ export function WhatsAppFAB() {
   const tickingRef = useRef(false);
 
   const waMessage = encodeURIComponent(
-    "Hola DTD-CARGO, vi su sitio web y quería consultar por un envío desde China."
+    "Hola DTD Cargo, vi su sitio web y quería consultar por un envío desde China."
   );
   const waUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${waMessage}`;
 
@@ -93,7 +93,7 @@ export function WhatsAppFAB() {
         href={CONTACT.instagram.url}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Seguir a DTD·CARGO en Instagram"
+        aria-label="Seguir a DTD Cargo en Instagram"
         className="fab-ig"
         tabIndex={isExpanded ? 0 : -1}
         aria-hidden={!isExpanded}
@@ -119,7 +119,7 @@ export function WhatsAppFAB() {
         href={waUrl}
         target="_blank"
         rel="noopener noreferrer"
-        aria-label="Hablar por WhatsApp con DTD·CARGO"
+        aria-label="Hablar por WhatsApp con DTD Cargo"
         className="fab-wa"
         data-has-dot={!isExpanded}
         onClick={handleWaClick}

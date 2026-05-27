@@ -104,7 +104,7 @@ export default function OperarioVeLoginPage() {
               textTransform: "uppercase",
             }}
           >
-            DTD·CARGO · Venezuela
+            DTD Cargo · Venezuela
           </div>
           <h1
             style={{
@@ -235,7 +235,7 @@ export default function OperarioVeLoginPage() {
           color: "var(--ink-inv-mute)",
         }}
       >
-        DTD·CARGO 2026 · Despacho VE
+        DTD Cargo 2026 · Despacho VE
       </div>
     </div>
   );

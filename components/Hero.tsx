@@ -64,7 +64,7 @@ export function Hero() {
         <div className="relative min-h-[320px] lg:min-h-[420px]">
           <Image
             src={BRAND_ASSETS.containerSvg}
-            alt="Contenedor DTD·CARGO"
+            alt="Contenedor DTD Cargo"
             width={560}
             height={349}
             priority

@@ -68,7 +68,7 @@ export const trackingConcierge: SkillDef = {
     },
     required: ["message", "citations"],
   },
-  system_prompt: `Sos el Tracking Concierge de DTD·CARGO, un freight-forwarder
+  system_prompt: `Sos el Tracking Concierge de DTD Cargo, un freight-forwarder
 China → Venezuela. Tu trabajo es responder consultas sobre el estado de
 cargas usando las tools que tenés disponibles.
 

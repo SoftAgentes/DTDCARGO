@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/calculadora" },
   openGraph: {
-    title: "Calculadora de envíos LCL DDP · DTD·CARGO",
+    title: "Calculadora de envíos LCL DDP · DTD Cargo",
     url: "/calculadora",
   },
 };

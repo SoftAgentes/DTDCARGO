@@ -58,7 +58,7 @@ export function Philosophy() {
           <div className="flex flex-wrap gap-3 justify-center">
             <a
               href={buildWhatsAppLink(
-                "Hola DTD-CARGO, vi su página y quiero cotizar un envío. ¿Pueden ayudarme?"
+                "Hola DTD Cargo, vi su página y quiero cotizar un envío. ¿Pueden ayudarme?"
               )}
               target="_blank"
               rel="noopener noreferrer"
@@ -68,7 +68,7 @@ export function Philosophy() {
             </a>
             <a
               href={buildWhatsAppLink(
-                "Hola DTD-CARGO, quería hablar con un asesor sobre logística China-Venezuela."
+                "Hola DTD Cargo, quería hablar con un asesor sobre logística China-Venezuela."
               )}
               target="_blank"
               rel="noopener noreferrer"

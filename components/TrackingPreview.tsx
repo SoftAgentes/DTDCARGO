@@ -103,7 +103,7 @@ export function TrackingPreview() {
               ¿Todavía no eres cliente?{" "}
               <a
                 href={buildWhatsAppLink(
-                  "Hola DTD-CARGO, vi el demo de tracking y quiero cotizar mi primer envío. ¿Pueden ayudarme?"
+                  "Hola DTD Cargo, vi el demo de tracking y quiero cotizar mi primer envío. ¿Pueden ayudarme?"
                 )}
                 target="_blank"
                 rel="noopener noreferrer"

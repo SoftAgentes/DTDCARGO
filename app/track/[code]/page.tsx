@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { code } = await params;
   return {
     title: `Tracking ${code}`,
-    description: `Estado en tiempo real del envío ${code} de DTD·CARGO.`,
+    description: `Estado en tiempo real del envío ${code} de DTD Cargo.`,
     robots: { index: false, follow: false },
   };
 }

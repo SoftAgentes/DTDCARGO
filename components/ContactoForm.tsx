@@ -70,7 +70,7 @@ export function ContactoForm() {
     // Mensaje WhatsApp estructurado para que tu CRM pueda parsearlo fácil.
     // Formato: bullets con `• campo: valor` + un bloque de "Mensaje:" al final.
     const lines = [
-      "Hola DTD-CARGO, vengo del formulario web.",
+      "Hola DTD Cargo, vengo del formulario web.",
       "",
       `• Código: ${leadId}`,
       `• Tema: ${leadData.topicLabel}`,

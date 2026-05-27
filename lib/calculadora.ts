@@ -330,7 +330,7 @@ export function whatsappTextFromCotizacion(
 ): string {
   const ciudad = cot.ciudad?.label ?? "destino";
   const lines = [
-    "Hola DTD-CARGO, vi en la calculadora un estimado para mi envío:",
+    "Hola DTD Cargo, vi en la calculadora un estimado para mi envío:",
     "",
     `• Dimensiones: ${input.largoCm}×${input.anchoCm}×${input.altoCm} cm`,
     `• Cantidad de cajas: ${input.cantidadCajas}`,

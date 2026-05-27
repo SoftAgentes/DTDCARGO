@@ -23,7 +23,7 @@ export function HeroCotizador() {
 
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const message = `Hola DTD-CARGO, quiero cotizar un envío desde ${origen.trim()} a ${destino.trim()}. ¿Cuál es la tarifa actual por CBM?`;
+    const message = `Hola DTD Cargo, quiero cotizar un envío desde ${origen.trim()} a ${destino.trim()}. ¿Cuál es la tarifa actual por CBM?`;
     const url = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(message)}`;
     window.open(url, "_blank", "noopener,noreferrer");
   }
