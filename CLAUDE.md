@@ -237,19 +237,54 @@ referencias migraron al lockup oficial.
 - [`docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md`](docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md) — spec completa del Lockup
 - `docs/design/brand-book/v3.0/proyecto/Logo Oficial.html` — preview en vivo
 
-## Protocolo UI · handoff-first
+## Protocolo UI · handoff-first (v1.7)
 
-**Antes de tocar UI de cualquier módulo** del Studio, leer SIEMPRE el JSX
-del handoff Claude Design correspondiente. Sin esto, mi implementación
-diverge del mockup y vos pedís rework. Orden de consulta:
+**Fuente única de verdad Claude Design**: `docs/design/studio/v1.7-claude-design/project/`.
+Versiones anteriores quedaron como `_archivo-*` (legacy histórico, no consultar
+para decisiones nuevas).
 
-1. `docs/design/studio/v1.6-claude-design/handoff/SDD-2026-05-25-sesion/source/erp/modules/<modulo>.jsx`
-2. Si no está → `docs/design/studio/v1.3.1-claude-design/proyecto/erp/modules/<modulo>.jsx`
-3. Si tampoco → **avisar al founder** antes de inventar; pedir guía o handoff nuevo
-4. Reglas de marca: `docs/design/brand-book/v3.0/proyecto/CLAUDE.md`
-5. Al cerrar la tarea: reportar "alineado a v1.X handoff línea Y-Z" o flag
-   explícito "divergencia documentada porque…"
+### Lectura obligatoria al INICIO de sesión visual
 
-Aplica a: nuevos módulos, redesigns, agregar componentes a un módulo
-existente, ajustes visuales no triviales. NO aplica a: bugfixes lógicos
-sin cambio visual, hooks/server actions, migraciones de DB.
+1. `docs/design/studio/v1.7-claude-design/project/CLAUDE.md` — reglas de marca
+2. `docs/design/studio/v1.7-claude-design/project/HANDOFF.md` — qué está diseñado, qué falta
+3. `docs/design/studio/v1.7-claude-design/project/nuevo/README.md` — convención v1.0 / nuevo/
+4. `docs/design/studio/v1.7-claude-design/project/nuevo/CHANGELOG.md` — bitácora completa
+5. `docs/design/studio/v1.7-claude-design/project/nuevo/PROMPT-CLAUDE-CODE.md` — prompt para mí
+
+### Antes de tocar UI de un módulo
+
+1. **v1.0 (referencia, no tocar)**:
+   `docs/design/studio/v1.7-claude-design/project/erp/modules/<modulo>.jsx`
+2. **v1.1+ (overrides actuales)**:
+   `docs/design/studio/v1.7-claude-design/project/nuevo/modules/<modulo>.jsx`
+   (si existe override, ése es el actual)
+3. **Pantallas standalone** (perfiles, estados):
+   `docs/design/studio/v1.7-claude-design/project/nuevo/pantallas/<nombre>.jsx`
+4. **Screenshots de referencia** (67 PNG):
+   `docs/design/studio/v1.7-claude-design/project/uploads/*.png`
+5. **Si no hay diseño** → AVISAR al founder antes de inventar; pedir guía
+6. **Al cerrar la tarea**: reportar "alineado a v1.7 archivo X líneas Y-Z" o
+   flag "divergencia documentada porque…"
+
+### Brand assets
+
+- Reglas: `docs/design/studio/v1.7-claude-design/project/CLAUDE.md`
+  (sección Logo / Color / Tipografía)
+- Migración v3.0: `docs/design/studio/v1.7-claude-design/project/BRAND-MIGRATION-2026-05.md`
+- 4 variantes PNG isólogo: `public/brand/dtdcargo-isologo-{primary|reverse|mono-light|mono-dark}.png`
+- Componente: `components/BrandMark.tsx`
+
+### Cuándo aplica el protocolo
+
+✅ Aplica: nuevos módulos, redesigns, agregar componentes a módulo existente,
+ajustes visuales no triviales, pantallas nuevas.
+
+❌ NO aplica: bugfixes lógicos sin cambio visual, hooks/server actions,
+migraciones de DB, fixes de tipos TS.
+
+### Convención v1.0 / nuevo/ del handoff
+
+Claude Design separa: `erp/modules/*.jsx` (v1.0 congelado) vs
+`nuevo/modules/*.jsx` (v1.1+ overrides). Cuando porto algo al Next.js, si
+hay versión en `nuevo/`, **esa es la que vale**. Si solo está en `erp/`,
+ese es el original.
