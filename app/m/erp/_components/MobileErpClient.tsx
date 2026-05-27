@@ -3,20 +3,37 @@
 /**
  * MobileErpClient · vista móvil del ERP para usuarios full Studio.
  *
- * Portado de Claude Design v1.7 nuevo/mobile/app.jsx · Fase 1 alcance:
- *   - TopBar sticky con logo + ubicación user + bell + avatar
- *   - BottomNav 5 ítems sticky (Inicio · Tracking · Clientes · Gastos · Más)
- *   - HomeScreen con 4 KPIs mock + 4 quick actions + activity feed
- *   - Placeholders para las 4 tabs restantes (próximas fases)
- *
- * Mobile-first 480px max-width centrado · safe-area-inset compatible.
- * Sin localStorage (el handoff lo usa para gastos · acá quedan para SDD nuevo).
+ * Portado de Claude Design v1.7 nuevo/mobile/app.jsx · Fases 1-5.
+ * 5 screens: Home · Tracking · Clientes · Gastos (placeholder) · Más.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { BrandMark } from "@/components/BrandMark";
 import { Icon } from "@/app/studio/_components/icons";
+import { Badge } from "@/app/studio/_components/ui/Badge";
+import {
+  SERVICE_LABELS,
+  STATUS_COLORS,
+  STATUS_LABELS,
+  type ShipmentService,
+  type ShipmentStatus,
+} from "@/lib/studio/shipment-types";
+import type { Client } from "@/lib/studio/client-types";
+import { signOut } from "@/app/studio/(app)/actions";
+
+// Shipment subset que devuelve listShipments (LIST_COLUMNS).
+// Mantengo solo los fields que la mobile UI muestra.
+type MobileShipment = {
+  id: string;
+  code: string;
+  client_name: string | null;
+  client_markbox: string | null;
+  origin: string | null;
+  destination: string | null;
+  shipment_service: ShipmentService;
+  status: ShipmentStatus;
+};
 
 type Tab = "home" | "tracking" | "clients" | "expenses" | "more";
 
@@ -29,7 +46,13 @@ interface UserInfo {
   email: string;
 }
 
-export function MobileErpClient({ user }: { user: UserInfo }) {
+interface Props {
+  user: UserInfo;
+  shipments: MobileShipment[];
+  clients: Client[];
+}
+
+export function MobileErpClient({ user, shipments, clients }: Props) {
   const [tab, setTab] = useState<Tab>("home");
 
   return (
@@ -46,10 +69,12 @@ export function MobileErpClient({ user }: { user: UserInfo }) {
       <MobileTopBar user={user} />
 
       <main>
-        {tab === "home" && <HomeScreen user={user} setTab={setTab} />}
-        {tab === "tracking" && <PlaceholderScreen title="Tracking" subtitle="Embarques en vivo · próxima fase" />}
-        {tab === "clients" && <PlaceholderScreen title="Clientes" subtitle="Lista geo-localizada · próxima fase" />}
-        {tab === "expenses" && <PlaceholderScreen title="Gastos rápidos" subtitle="Foto + monto + cobrable · próxima fase" />}
+        {tab === "home" && (
+          <HomeScreen user={user} setTab={setTab} shipmentsCount={shipments.length} clientsCount={clients.length} />
+        )}
+        {tab === "tracking" && <TrackingScreen shipments={shipments} />}
+        {tab === "clients" && <ClientsScreen clients={clients} />}
+        {tab === "expenses" && <ExpensesScreen />}
         {tab === "more" && <MoreScreen user={user} />}
       </main>
 
@@ -59,7 +84,7 @@ export function MobileErpClient({ user }: { user: UserInfo }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Top bar
+// Top bar + Bottom nav
 // ─────────────────────────────────────────────────────────────
 
 function MobileTopBar({ user }: { user: UserInfo }) {
@@ -143,10 +168,6 @@ function MobileTopBar({ user }: { user: UserInfo }) {
   );
 }
 
-// ─────────────────────────────────────────────────────────────
-// Bottom nav
-// ─────────────────────────────────────────────────────────────
-
 const NAV_ITEMS: { k: Tab; label: string; icon: (s?: number) => React.ReactNode }[] = [
   { k: "home", label: "Inicio", icon: Icon.dashboard },
   { k: "tracking", label: "Tracking", icon: Icon.radar },
@@ -209,10 +230,19 @@ function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
 // Home screen
 // ─────────────────────────────────────────────────────────────
 
-function HomeScreen({ user, setTab }: { user: UserInfo; setTab: (t: Tab) => void }) {
+function HomeScreen({
+  user,
+  setTab,
+  shipmentsCount,
+  clientsCount,
+}: {
+  user: UserInfo;
+  setTab: (t: Tab) => void;
+  shipmentsCount: number;
+  clientsCount: number;
+}) {
   return (
     <div style={{ padding: "20px 18px" }}>
-      {/* Saludo */}
       <div style={{ marginBottom: 22 }}>
         <div
           style={{
@@ -241,12 +271,11 @@ function HomeScreen({ user, setTab }: { user: UserInfo; setTab: (t: Tab) => void
             marginTop: 6,
           }}
         >
-          Vista mobile del ERP · alcance ejecutivo y comercial. Cambiá de
-          tab abajo para tracking, clientes, gastos.
+          {shipmentsCount} embarques activos · {clientsCount} clientes en
+          cartera.
         </div>
       </div>
 
-      {/* 4 KPIs grid 2x2 — TODO: queries reales en Fase 2 */}
       <div
         style={{
           display: "grid",
@@ -257,10 +286,17 @@ function HomeScreen({ user, setTab }: { user: UserInfo; setTab: (t: Tab) => void
       >
         <MobileMini
           label="Embarques activos"
-          value="—"
-          sub="próxima fase"
+          value={String(shipmentsCount)}
+          sub="tocá para ver"
           tone="wine"
           onClick={() => setTab("tracking")}
+        />
+        <MobileMini
+          label="Clientes"
+          value={String(clientsCount)}
+          sub="cartera total"
+          tone="success"
+          onClick={() => setTab("clients")}
         />
         <MobileMini
           label="Facturas vencidas"
@@ -269,21 +305,14 @@ function HomeScreen({ user, setTab }: { user: UserInfo; setTab: (t: Tab) => void
           tone="warning"
         />
         <MobileMini
-          label="Leads nuevos"
-          value="—"
-          sub="próxima fase"
-          tone="info"
-        />
-        <MobileMini
           label="Gastos hoy"
           value="—"
-          sub="próxima fase"
-          tone="success"
+          sub="próximo SDD"
+          tone="info"
           onClick={() => setTab("expenses")}
         />
       </div>
 
-      {/* Quick actions */}
       <div style={{ marginBottom: 18 }}>
         <div
           style={{
@@ -304,37 +333,36 @@ function HomeScreen({ user, setTab }: { user: UserInfo; setTab: (t: Tab) => void
           }}
         >
           <QuickAction
-            icon={Icon.plus}
-            label="Cargar gasto"
-            desc="Próximamente"
-            tone="wine"
-            onClick={() => setTab("expenses")}
-          />
-          <QuickAction
-            icon={Icon.users}
-            label="Clientes cerca"
-            desc="Próximamente"
-            tone="success"
-            onClick={() => setTab("clients")}
-          />
-          <QuickAction
             icon={Icon.radar}
             label="Tracking"
-            desc="Próximamente"
+            desc={`${shipmentsCount} activos`}
             tone="info"
             onClick={() => setTab("tracking")}
           />
           <QuickAction
+            icon={Icon.users}
+            label="Clientes"
+            desc="Búsqueda + contacto"
+            tone="success"
+            onClick={() => setTab("clients")}
+          />
+          <QuickAction
+            icon={Icon.plus}
+            label="Cargar gasto"
+            desc="Próximo SDD"
+            tone="wine"
+            onClick={() => setTab("expenses")}
+          />
+          <QuickAction
             icon={Icon.cog}
-            label="Configuración"
-            desc="Mi perfil · prefs"
+            label="Más"
+            desc="Perfil · ajustes"
             tone="neutral"
             onClick={() => setTab("more")}
           />
         </div>
       </div>
 
-      {/* Link al Studio web (escape hatch a desktop full) */}
       <Link
         href="/studio"
         style={{
@@ -372,143 +400,846 @@ function HomeScreen({ user, setTab }: { user: UserInfo; setTab: (t: Tab) => void
 }
 
 // ─────────────────────────────────────────────────────────────
-// More screen
+// Tracking screen
 // ─────────────────────────────────────────────────────────────
 
-function MoreScreen({ user }: { user: UserInfo }) {
+function TrackingScreen({ shipments }: { shipments: MobileShipment[] }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!search) return shipments;
+    const q = search.trim().toLowerCase();
+    return shipments.filter(
+      (s) =>
+        s.code.toLowerCase().includes(q) ||
+        (s.client_name ?? "").toLowerCase().includes(q) ||
+        (s.client_markbox ?? "").toLowerCase().includes(q) ||
+        (s.destination ?? "").toLowerCase().includes(q),
+    );
+  }, [shipments, search]);
+
   return (
     <div style={{ padding: "20px 18px" }}>
-      <div style={{ marginBottom: 22 }}>
-        <div
-          style={{
-            font: "700 11px/1 var(--f-sans)",
-            color: "var(--wine)",
-            letterSpacing: "0.14em",
-            textTransform: "uppercase",
-          }}
-        >
-          Mi cuenta
-        </div>
-        <h1
-          style={{
-            font: "900 26px/1.1 var(--f-display)",
-            color: "var(--ink)",
-            letterSpacing: "-0.02em",
-            margin: "6px 0 0",
-          }}
-        >
-          {user.fullName}
-        </h1>
-        <div
-          style={{
-            font: "500 12.5px/1.4 var(--f-sans)",
-            color: "var(--ink-soft)",
-            marginTop: 6,
-          }}
-        >
-          {user.email} · {user.role}
-        </div>
+      <h1
+        style={{
+          font: "900 26px/1.1 var(--f-display)",
+          color: "var(--ink)",
+          letterSpacing: "-0.02em",
+          margin: 0,
+        }}
+      >
+        Tracking
+      </h1>
+      <div
+        style={{
+          font: "500 12.5px/1.4 var(--f-sans)",
+          color: "var(--ink-soft)",
+          marginTop: 6,
+          marginBottom: 18,
+        }}
+      >
+        {shipments.length} embarques activos · sin entregados/cancelados
       </div>
 
-      <Link
-        href="/studio"
-        style={{
-          display: "block",
-          padding: "14px 16px",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-md)",
-          textDecoration: "none",
-          marginBottom: 10,
-        }}
-      >
-        <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
-          Mi perfil completo
-        </div>
-        <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
-          Datos personales · contraseña · notificaciones (en Studio web)
-        </div>
-      </Link>
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Buscar por código, cliente, MARKBOX…"
+      />
 
-      <Link
-        href="/studio/admin/feature-flags"
-        style={{
-          display: "block",
-          padding: "14px 16px",
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-md)",
-          textDecoration: "none",
-          marginBottom: 10,
-        }}
+      <div
+        style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 14 }}
       >
-        <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
-          Feature flags
-        </div>
-        <div style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
-          Casos de uso · módulos activos para el tenant
-        </div>
-      </Link>
+        {filtered.length === 0 ? (
+          <EmptyMobile
+            title={search ? "Sin resultados" : "Sin embarques activos"}
+            desc={
+              search
+                ? "Probá con otro código o nombre."
+                : "Los embarques activos aparecerán acá cuando estén en curso."
+            }
+          />
+        ) : (
+          filtered.map((s) => <ShipmentCard key={s.id} s={s} />)
+        )}
+      </div>
+    </div>
+  );
+}
 
-      <Link
-        href="/studio"
+function ShipmentCard({ s }: { s: MobileShipment}) {
+  const statusColor = STATUS_COLORS[s.status as ShipmentStatus] ?? "var(--ink-soft)";
+  const service = SERVICE_LABELS[s.shipment_service];
+
+  return (
+    <Link
+      href={`/studio/tracking/${s.id}`}
+      style={{
+        padding: "14px 16px",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderLeft:
+          s.status === "exception"
+            ? "4px solid var(--warning)"
+            : "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        textDecoration: "none",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div
         style={{
-          display: "block",
-          padding: "14px 16px",
-          background: "var(--bg-elevated)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-md)",
-          textDecoration: "none",
-          marginTop: 18,
-          textAlign: "center",
-          font: "700 13px/1 var(--f-sans)",
-          color: "var(--wine)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
         }}
       >
-        ← Volver al Studio
-      </Link>
+        <code
+          style={{
+            font: "800 13px/1 var(--f-mono)",
+            color: "var(--ink)",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {s.code}
+        </code>
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "2px 8px",
+            borderRadius: "var(--r-sm)",
+            background: "var(--bg-elevated)",
+            color: statusColor,
+            font: "700 10.5px/1.4 var(--f-sans)",
+            letterSpacing: "0.02em",
+          }}
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: statusColor,
+            }}
+          />
+          {STATUS_LABELS[s.status as ShipmentStatus]}
+        </span>
+      </div>
+      <div>
+        <div
+          style={{
+            font: "700 13px/1.2 var(--f-sans)",
+            color: "var(--ink)",
+          }}
+        >
+          {s.client_name ?? "—"}
+        </div>
+        <div
+          style={{
+            font: "500 11.5px/1.3 var(--f-sans)",
+            color: "var(--ink-soft)",
+            marginTop: 4,
+          }}
+        >
+          {s.origin ?? "—"} → {s.destination ?? "—"} ·{" "}
+          <span style={{ color: "var(--wine)", font: "700 11.5px/1.3 var(--f-sans)" }}>
+            {service.primary}
+            {service.sub && (
+              <span style={{ color: "var(--ink-mute)", fontWeight: 500 }}>
+                {" "}
+                · {service.sub}
+              </span>
+            )}
+          </span>
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Clients screen
+// ─────────────────────────────────────────────────────────────
+
+function ClientsScreen({ clients }: { clients: Client[] }) {
+  const [search, setSearch] = useState("");
+
+  const filtered = useMemo(() => {
+    if (!search) return clients;
+    const q = search.trim().toLowerCase();
+    return clients.filter(
+      (c) =>
+        c.markbox.toLowerCase().includes(q) ||
+        c.name.toLowerCase().includes(q) ||
+        (c.email ?? "").toLowerCase().includes(q) ||
+        (c.phone ?? "").toLowerCase().includes(q),
+    );
+  }, [clients, search]);
+
+  return (
+    <div style={{ padding: "20px 18px" }}>
+      <h1
+        style={{
+          font: "900 26px/1.1 var(--f-display)",
+          color: "var(--ink)",
+          letterSpacing: "-0.02em",
+          margin: 0,
+        }}
+      >
+        Clientes
+      </h1>
+      <div
+        style={{
+          font: "500 12.5px/1.4 var(--f-sans)",
+          color: "var(--ink-soft)",
+          marginTop: 6,
+          marginBottom: 18,
+        }}
+      >
+        {clients.length} en cartera · geo-filter "cerca tuyo" próxima fase
+      </div>
+
+      <SearchBar
+        value={search}
+        onChange={setSearch}
+        placeholder="Buscar por MARKBOX, nombre, email, teléfono…"
+      />
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+          marginTop: 14,
+        }}
+      >
+        {filtered.length === 0 ? (
+          <EmptyMobile
+            title={search ? "Sin resultados" : "Sin clientes en cartera"}
+            desc={
+              search
+                ? "Probá con otro nombre o MARKBOX."
+                : "Agregá clientes desde /studio/clientes en desktop."
+            }
+          />
+        ) : (
+          filtered.map((c) => <ClientCard key={c.id} c={c} />)
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ClientCard({ c }: { c: Client }) {
+  const phoneClean = (c.phone ?? "").replace(/[^\d+]/g, "");
+  const tierTone =
+    c.tier === "premium" ? "wine" : c.tier === "vip" ? "info" : "neutral";
+
+  return (
+    <div
+      style={{
+        padding: "14px 16px",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 10,
+        }}
+      >
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <code
+            style={{
+              font: "800 12px/1 var(--f-mono)",
+              color: "var(--wine)",
+              letterSpacing: "0.02em",
+            }}
+          >
+            {c.markbox}
+          </code>
+          <div
+            style={{
+              font: "700 14px/1.2 var(--f-sans)",
+              color: "var(--ink)",
+              marginTop: 4,
+            }}
+          >
+            {c.name}
+          </div>
+          {c.email && (
+            <div
+              style={{
+                font: "500 11.5px/1.3 var(--f-sans)",
+                color: "var(--ink-soft)",
+                marginTop: 3,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {c.email}
+            </div>
+          )}
+        </div>
+        <Badge tone={tierTone} size="sm">
+          {c.tier}
+        </Badge>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+        {phoneClean ? (
+          <>
+            <a
+              href={`tel:${phoneClean}`}
+              style={{
+                padding: "10px",
+                background: "var(--bg-elevated)",
+                color: "var(--ink)",
+                borderRadius: "var(--r-sm)",
+                textDecoration: "none",
+                textAlign: "center",
+                font: "700 11px/1 var(--f-sans)",
+              }}
+            >
+              📞 Llamar
+            </a>
+            <a
+              href={`https://wa.me/${phoneClean.replace("+", "")}`}
+              target="_blank"
+              rel="noreferrer"
+              style={{
+                padding: "10px",
+                background: "var(--success-bg)",
+                color: "var(--success)",
+                borderRadius: "var(--r-sm)",
+                textDecoration: "none",
+                textAlign: "center",
+                font: "700 11px/1 var(--f-sans)",
+              }}
+            >
+              WhatsApp
+            </a>
+          </>
+        ) : (
+          <div
+            style={{
+              gridColumn: "span 2",
+              padding: "10px",
+              background: "var(--bg-elevated)",
+              color: "var(--ink-mute)",
+              borderRadius: "var(--r-sm)",
+              textAlign: "center",
+              font: "500 11px/1.2 var(--f-sans)",
+            }}
+          >
+            Sin teléfono
+          </div>
+        )}
+        <Link
+          href={`/studio/clientes/${c.markbox}`}
+          style={{
+            padding: "10px",
+            background: "var(--wine)",
+            color: "#fff",
+            borderRadius: "var(--r-sm)",
+            textDecoration: "none",
+            textAlign: "center",
+            font: "700 11px/1 var(--f-sans)",
+          }}
+        >
+          Ver
+        </Link>
+      </div>
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Placeholders (Fases 2-5)
+// Expenses screen · placeholder pendiente SDD
 // ─────────────────────────────────────────────────────────────
 
-function PlaceholderScreen({ title, subtitle }: { title: string; subtitle: string }) {
+function ExpensesScreen() {
+  return (
+    <div style={{ padding: "20px 18px" }}>
+      <h1
+        style={{
+          font: "900 26px/1.1 var(--f-display)",
+          color: "var(--ink)",
+          letterSpacing: "-0.02em",
+          margin: 0,
+        }}
+      >
+        Gastos rápidos
+      </h1>
+      <div
+        style={{
+          font: "500 12.5px/1.4 var(--f-sans)",
+          color: "var(--ink-soft)",
+          marginTop: 6,
+          marginBottom: 18,
+        }}
+      >
+        Foto del recibo + monto + categoría · cobrable al cliente o no.
+      </div>
+
+      <div
+        style={{
+          padding: 20,
+          background: "var(--wine-tint, var(--bg-elevated))",
+          border: "1px solid var(--wine)",
+          borderRadius: "var(--r-lg)",
+          marginBottom: 14,
+        }}
+      >
+        <div
+          style={{
+            font: "700 10.5px/1 var(--f-sans)",
+            color: "var(--wine)",
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            marginBottom: 8,
+          }}
+        >
+          Próximo SDD
+        </div>
+        <div
+          style={{
+            font: "800 16px/1.2 var(--f-display)",
+            color: "var(--ink)",
+            marginBottom: 6,
+          }}
+        >
+          Schema de gastos pendiente
+        </div>
+        <div
+          style={{
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          Falta crear la tabla{" "}
+          <code
+            style={{
+              font: "700 11.5px/1 var(--f-mono)",
+              color: "var(--wine)",
+            }}
+          >
+            expenses
+          </code>{" "}
+          + RPC para capturar gastos rápidos de viaje (CN/VE) con foto, monto,
+          moneda (USD/VES/CNY), categoría, vinculación opcional a embarque y
+          flag &quot;cobrable al cliente&quot;.
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <PreviewExpense
+          icon="🚕"
+          label="Taxi/transfer"
+          amount="$45 USD"
+          context="Hotel → fábrica Ningbo"
+        />
+        <PreviewExpense
+          icon="🍽"
+          label="Comida"
+          amount="¥280 CNY"
+          context="Almuerzo cliente Yiwu Trading"
+        />
+        <PreviewExpense
+          icon="🛣"
+          label="Peaje"
+          amount="$120 USD"
+          context="PBL → Caracas · DTDU-472816 · cobrable"
+          billable
+        />
+      </div>
+    </div>
+  );
+}
+
+function PreviewExpense({
+  icon,
+  label,
+  amount,
+  context,
+  billable,
+}: {
+  icon: string;
+  label: string;
+  amount: string;
+  context: string;
+  billable?: boolean;
+}) {
   return (
     <div
       style={{
-        padding: "60px 18px",
+        padding: "12px 14px",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        display: "flex",
+        gap: 12,
+        alignItems: "center",
+        opacity: 0.65,
+      }}
+    >
+      <span style={{ fontSize: 22, lineHeight: 1 }}>{icon}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+          }}
+        >
+          <div style={{ font: "700 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+            {label}
+          </div>
+          <code
+            style={{
+              font: "800 13px/1 var(--f-mono)",
+              color: "var(--ink)",
+            }}
+          >
+            {amount}
+          </code>
+        </div>
+        <div
+          style={{
+            font: "500 11px/1.3 var(--f-sans)",
+            color: "var(--ink-mute)",
+            marginTop: 3,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {context}
+          {billable && (
+            <span
+              style={{
+                marginLeft: 6,
+                padding: "1px 6px",
+                background: "var(--success-bg)",
+                color: "var(--success)",
+                borderRadius: "var(--r-sm)",
+                font: "700 9.5px/1 var(--f-sans)",
+                letterSpacing: "0.06em",
+              }}
+            >
+              COBRABLE
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// More screen · cuenta + ajustes + logout
+// ─────────────────────────────────────────────────────────────
+
+function MoreScreen({ user }: { user: UserInfo }) {
+  return (
+    <div style={{ padding: "20px 18px" }}>
+      {/* Avatar grande */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
+          padding: 18,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-lg)",
+          marginBottom: 18,
+        }}
+      >
+        <div
+          style={{
+            width: 60,
+            height: 60,
+            borderRadius: "var(--r-pill)",
+            background: "var(--wine)",
+            color: "#fff",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            font: "900 22px/1 var(--f-display)",
+            flexShrink: 0,
+          }}
+        >
+          {user.initials}
+        </div>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div
+            style={{
+              font: "800 18px/1.2 var(--f-display)",
+              color: "var(--ink)",
+              letterSpacing: "-0.01em",
+            }}
+          >
+            {user.fullName}
+          </div>
+          <div
+            style={{
+              font: "500 12px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 4,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {user.email}
+          </div>
+          <Badge tone="wine" size="sm" style={{ marginTop: 8 }}>
+            {user.role}
+          </Badge>
+        </div>
+      </div>
+
+      {/* Menu Ajustes */}
+      <SectionLabel>Ajustes</SectionLabel>
+      <MenuLink
+        href="/studio"
+        label="Mi perfil"
+        desc="Datos personales · contraseña · notificaciones"
+        icon={Icon.cog}
+      />
+      <MenuLink
+        href="/studio/admin/feature-flags"
+        label="Feature flags"
+        desc="Módulos activos para el tenant"
+        icon={Icon.shield}
+      />
+
+      {/* Menu Studio */}
+      <SectionLabel style={{ marginTop: 18 }}>Studio</SectionLabel>
+      <MenuLink
+        href="/studio"
+        label="Dashboard completo"
+        desc="Visión general del ERP en desktop"
+        icon={Icon.dashboard}
+      />
+      <MenuLink
+        href="/studio/usuarios"
+        label="Equipo y roles"
+        desc="Invitaciones · permisos · scope"
+        icon={Icon.users}
+      />
+
+      {/* Logout */}
+      <form action={signOut} style={{ marginTop: 24 }}>
+        <button
+          type="submit"
+          style={{
+            width: "100%",
+            padding: "14px",
+            background: "var(--danger-bg)",
+            color: "var(--danger)",
+            border: "1px solid var(--danger)",
+            borderRadius: "var(--r-md)",
+            font: "700 13px/1 var(--f-sans)",
+            cursor: "pointer",
+          }}
+        >
+          Cerrar sesión
+        </button>
+      </form>
+
+      <div
+        style={{
+          marginTop: 18,
+          textAlign: "center",
+          font: "500 10.5px/1.4 var(--f-sans)",
+          color: "var(--ink-mute)",
+        }}
+      >
+        DTD·CARGO · DoorTuDoor · Mobile ERP Fase 1
+      </div>
+    </div>
+  );
+}
+
+function SectionLabel({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      style={{
+        font: "700 10.5px/1 var(--f-sans)",
+        color: "var(--wine)",
+        letterSpacing: "0.16em",
+        textTransform: "uppercase",
+        marginBottom: 10,
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function MenuLink({
+  href,
+  label,
+  desc,
+  icon,
+}: {
+  href: string;
+  label: string;
+  desc: string;
+  icon: (s?: number) => React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "flex",
+        gap: 12,
+        padding: "14px 16px",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        textDecoration: "none",
+        marginBottom: 8,
+        alignItems: "center",
+      }}
+    >
+      <span
+        style={{
+          width: 36,
+          height: 36,
+          background: "var(--bg-elevated)",
+          color: "var(--wine)",
+          borderRadius: "var(--r-sm)",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        {icon(16)}
+      </span>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+          {label}
+        </div>
+        <div
+          style={{
+            font: "500 11.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+            marginTop: 3,
+          }}
+        >
+          {desc}
+        </div>
+      </div>
+      <span style={{ color: "var(--ink-mute)" }}>→</span>
+    </Link>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Shared primitives
+// ─────────────────────────────────────────────────────────────
+
+function SearchBar({
+  value,
+  onChange,
+  placeholder,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "0 14px",
+        height: 44,
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+      }}
+    >
+      <span style={{ color: "var(--ink-mute)", display: "inline-flex" }}>
+        {Icon.search(16)}
+      </span>
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        style={{
+          flex: 1,
+          border: 0,
+          outline: "none",
+          background: "transparent",
+          font: "500 14px/1 var(--f-sans)",
+          color: "var(--ink)",
+          minWidth: 0,
+        }}
+      />
+    </div>
+  );
+}
+
+function EmptyMobile({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div
+      style={{
+        padding: "40px 20px",
         textAlign: "center",
+        background: "var(--bg-surface)",
+        border: "1px dashed var(--border)",
+        borderRadius: "var(--r-lg)",
       }}
     >
       <div
         style={{
-          font: "900 22px/1.2 var(--f-display)",
+          font: "800 16px/1.2 var(--f-display)",
           color: "var(--ink)",
-          marginBottom: 8,
+          marginBottom: 6,
         }}
       >
         {title}
       </div>
       <div
         style={{
-          font: "500 12.5px/1.5 var(--f-sans)",
+          font: "500 12px/1.4 var(--f-sans)",
           color: "var(--ink-soft)",
           maxWidth: "32ch",
           margin: "0 auto",
         }}
       >
-        {subtitle}
+        {desc}
       </div>
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────
-// MobileMini KPI card
-// ─────────────────────────────────────────────────────────────
 
 const TONE_BG: Record<MiniTone, string> = {
   wine: "var(--wine-tint)",
