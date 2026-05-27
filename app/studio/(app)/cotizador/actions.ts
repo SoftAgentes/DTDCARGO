@@ -18,6 +18,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import {
   calcQuoteTotal,
   validateQuoteInput,
@@ -26,7 +27,12 @@ import {
 } from "@/lib/studio/quote-types";
 import { suggestRateForQuote } from "@/lib/studio/quote-queries";
 import type { Rate } from "@/lib/studio/rate-types";
-import type { ShipmentService } from "@/lib/studio/shipment-types";
+import {
+  type ShipmentService,
+  SERVICE_LABELS,
+} from "@/lib/studio/shipment-types";
+import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
+import type { MailRuleEvent } from "@/lib/studio/mail-types";
 
 const VALID_SERVICES: ShipmentService[] = [
   "consolidacion",
@@ -220,9 +226,24 @@ async function transitionStatus(
 
   const { data: current, error: readErr } = await supabase
     .from("quotes")
-    .select("status, quote_code")
+    .select(
+      "id, tenant_id, status, quote_code, client_name, client_markbox, service, origin, destination, cbm, total_usd, valid_until",
+    )
     .eq("id", id)
-    .maybeSingle();
+    .maybeSingle<{
+      id: string;
+      tenant_id: string;
+      status: string;
+      quote_code: string;
+      client_name: string | null;
+      client_markbox: string | null;
+      service: ShipmentService;
+      origin: string | null;
+      destination: string | null;
+      cbm: number | null;
+      total_usd: number | null;
+      valid_until: string | null;
+    }>();
   if (readErr || !current) return { error: "Cotización no encontrada." };
 
   if (current.status !== from) {
@@ -237,6 +258,50 @@ async function transitionStatus(
     .eq("id", id);
 
   if (error) return { error: error.message };
+
+  // Disparar reglas de mailing según la transición (best-effort).
+  const mailEvent: MailRuleEvent | null =
+    to === "sent" ? "quote_sent" : to === "accepted" ? "quote_accepted" : null;
+
+  if (mailEvent) {
+    const admin = createAdminClient();
+    const validityDays = current.valid_until
+      ? Math.max(
+          0,
+          Math.ceil(
+            (new Date(current.valid_until).getTime() - Date.now()) /
+              (1000 * 60 * 60 * 24),
+          ),
+        )
+      : 30;
+
+    const svcLabel = SERVICE_LABELS[current.service];
+    const serviceText = svcLabel
+      ? svcLabel.sub
+        ? `${svcLabel.primary} (${svcLabel.sub})`
+        : svcLabel.primary
+      : current.service;
+
+    await fireMailEvent(admin, current.tenant_id, {
+      event: mailEvent,
+      vars: {
+        customer_name: current.client_name ?? "cliente",
+        quote_code: current.quote_code,
+        origin: current.origin ?? "—",
+        destination: current.destination ?? "—",
+        service: serviceText,
+        cbm: current.cbm != null ? String(current.cbm) : "—",
+        total_usd:
+          current.total_usd != null
+            ? Number(current.total_usd).toFixed(2)
+            : "—",
+        validity_days: String(validityDays),
+      },
+      clientMarkbox: current.client_markbox,
+      clientName: current.client_name,
+      sourceRef: { kind: "quote", id: current.id },
+    });
+  }
 
   revalidatePath("/studio/cotizador");
   revalidatePath(`/studio/cotizador/${current.quote_code}`);
