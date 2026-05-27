@@ -45,12 +45,6 @@ Esta carpeta contiene los assets que sirve el sitio público (`/brand/*.png|svg`
 
 ---
 
-## Legacy
-
-`dtdcargo-icon-navy.png` queda como provisional **solo para el Studio** ERP — su sidebar lo importa hasta que se migre al sistema `<Lockup>` v3.0 (tarea pendiente del equipo Studio). El sitio público no lo referencia.
-
----
-
 ## Versión
 
 Brand Book DTD v3.0 · mayo 2026.

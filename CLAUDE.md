@@ -223,8 +223,33 @@ Toda pantalla nueva o modificación visual sustancial **pasa por el agente
 `ui-ux-designer` antes del commit** (regla persistente del founder). Es un check
 liviano, no un bloqueo — verifica spacing, jerarquía, AI slop, hover states.
 
-## Logo provisional
+## Brand Book v3.0 · logo + lockup
 
-El logo actual (`public/brand/dtdcargo-icon-navy.png`) es **provisional** — el founder
-debe entregar la versión SVG final del lockup. El componente `<BrandMark/>` es el único
-lugar donde se referencia el archivo → cambio de 1 archivo para actualizar todo el sitio.
+Sistema oficial v3.0 (mayo 2026). Las 4 variantes PNG del isólogo viven en
+`public/brand/dtdcargo-isologo-{primary|reverse|mono-light|mono-dark}.png`.
+Único punto de entrada: el componente `<BrandMark variant={...} />` en
+[`components/BrandMark.tsx`](components/BrandMark.tsx). El raster legacy
+`dtdcargo-icon-navy.png` fue eliminado del repo el 2026-05-27 — todas las
+referencias migraron al lockup oficial.
+
+**Fuente de verdad del rebrand:**
+- [`docs/design/brand-book/v3.0/proyecto/CLAUDE.md`](docs/design/brand-book/v3.0/proyecto/CLAUDE.md) — guardrails
+- [`docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md`](docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md) — spec completa del Lockup
+- `docs/design/brand-book/v3.0/proyecto/Logo Oficial.html` — preview en vivo
+
+## Protocolo UI · handoff-first
+
+**Antes de tocar UI de cualquier módulo** del Studio, leer SIEMPRE el JSX
+del handoff Claude Design correspondiente. Sin esto, mi implementación
+diverge del mockup y vos pedís rework. Orden de consulta:
+
+1. `docs/design/studio/v1.6-claude-design/handoff/SDD-2026-05-25-sesion/source/erp/modules/<modulo>.jsx`
+2. Si no está → `docs/design/studio/v1.3.1-claude-design/proyecto/erp/modules/<modulo>.jsx`
+3. Si tampoco → **avisar al founder** antes de inventar; pedir guía o handoff nuevo
+4. Reglas de marca: `docs/design/brand-book/v3.0/proyecto/CLAUDE.md`
+5. Al cerrar la tarea: reportar "alineado a v1.X handoff línea Y-Z" o flag
+   explícito "divergencia documentada porque…"
+
+Aplica a: nuevos módulos, redesigns, agregar componentes a un módulo
+existente, ajustes visuales no triviales. NO aplica a: bugfixes lógicos
+sin cambio visual, hooks/server actions, migraciones de DB.
