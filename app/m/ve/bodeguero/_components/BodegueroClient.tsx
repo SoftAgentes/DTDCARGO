@@ -13,6 +13,8 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { RealtimeIndicator } from "@/app/studio/_components/ui/RealtimeIndicator";
+import { useRealtimeRefresh } from "@/lib/studio/hooks/use-realtime-refresh";
 import {
   advanceOdAction,
   signOutAction,
@@ -38,11 +40,19 @@ interface Props {
     role: string;
   };
   ods: DispatchOrderRow[];
+  tenantId: string;
 }
 
-export function BodegueroClient({ operario, ods }: Props) {
+export function BodegueroClient({ operario, ods, tenantId }: Props) {
   const [selectedOdId, setSelectedOdId] = useState<string | null>(null);
   const selected = ods.find((o) => o.id === selectedOdId);
+
+  // Realtime: cuando un OD del tenant cambia (admin asigna, status update),
+  // refresh server data para que la cola del bodeguero se mantenga sincronizada.
+  const realtime = useRealtimeRefresh({
+    table: "dispatch_orders",
+    filter: `tenant_id=eq.${tenantId}`,
+  });
 
   return (
     <div
@@ -57,7 +67,7 @@ export function BodegueroClient({ operario, ods }: Props) {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <Header operario={operario} />
+      <Header operario={operario} realtimeStatus={realtime.status} />
 
       {selected ? (
         <OdDetail od={selected} onBack={() => setSelectedOdId(null)} />
@@ -72,7 +82,13 @@ export function BodegueroClient({ operario, ods }: Props) {
 // Header sticky
 // ─────────────────────────────────────────────────────────────
 
-function Header({ operario }: { operario: Props["operario"] }) {
+function Header({
+  operario,
+  realtimeStatus,
+}: {
+  operario: Props["operario"];
+  realtimeStatus: import("@/lib/studio/hooks/use-realtime-table").RealtimeStatus;
+}) {
   return (
     <header
       style={{
@@ -120,15 +136,25 @@ function Header({ operario }: { operario: Props["operario"] }) {
           Hola, {operario.firstName}
         </div>
       </div>
-      <form action={signOutAction}>
-        <button
-          type="submit"
-          className="studio-btn studio-btn-ghost studio-btn-xs"
-          style={{ color: "var(--ink-soft)" }}
-        >
-          Salir
-        </button>
-      </form>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 6,
+        }}
+      >
+        <RealtimeIndicator status={realtimeStatus} />
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+            style={{ color: "var(--ink-soft)" }}
+          >
+            Salir
+          </button>
+        </form>
+      </div>
     </header>
   );
 }

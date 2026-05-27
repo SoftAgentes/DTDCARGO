@@ -44,6 +44,7 @@ export default async function BodegueroHomePage() {
         role: operario.role,
       }}
       ods={ods}
+      tenantId={operario.tenant_id}
     />
   );
 }
