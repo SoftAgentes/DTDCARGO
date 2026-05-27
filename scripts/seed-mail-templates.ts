@@ -47,7 +47,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     name: "Cotización enviada",
     category: "comercial",
     channel: "email",
-    subject: "Cotización DTD-Cargo · {{quote_code}} · {{customer_name}}",
+    subject: "Cotización DTD Cargo · {{quote_code}} · {{customer_name}}",
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
       <p>Te adjuntamos la cotización <strong>{{quote_code}}</strong> con el desglose del flete puerta a puerta.</p>
@@ -84,7 +84,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     name: "Factura emitida",
     category: "cobranza",
     channel: "email",
-    subject: "DTD-Cargo · Factura {{invoice_code}} por USD {{total_usd}}",
+    subject: "DTD Cargo · Factura {{invoice_code}} por USD {{total_usd}}",
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
       <p>Adjuntamos la factura <strong>{{invoice_code}}</strong> correspondiente al embarque {{shipment_code}}.</p>
@@ -152,7 +152,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     name: "Bienvenida · nuevo cliente",
     category: "cliente",
     channel: "email",
-    subject: "Bienvenido a DTD-Cargo, {{customer_name}}",
+    subject: "Bienvenido a DTD Cargo, {{customer_name}}",
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
       <p>Gracias por elegirnos para tu logística China → Venezuela. Tu cuenta quedó creada con MARKBOX <strong>{{markbox}}</strong> — usá este código en cualquier comunicación con nosotros.</p>
