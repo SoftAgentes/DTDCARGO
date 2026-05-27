@@ -81,12 +81,12 @@
 
     
     <g transform="translate(150,200)">
-      
-      <image href="dtdcargo-icon-navy.png" x="0" y="50" width="110" height="120" preserveAspectRatio="xMidYMid meet" filter="url(#lighten)"></image>
-      
-      <text x="120" y="138" font-family="Archivo Black, Arial Black, sans-serif" font-weight="900" font-size="62" fill="#E8DCC8" letter-spacing="-1">DTD</text>
-      
-      <text x="265" y="138" font-family="Archivo Black, Arial Black, sans-serif" font-weight="900" font-size="62" fill="#FFFFFF" letter-spacing="-1">CARGO</text>
+
+      <image href="dtdcargo-isologo-mono-light.png" x="0" y="50" width="110" height="120" preserveAspectRatio="xMidYMid meet"></image>
+
+      <text x="120" y="138" font-family="Archivo Black, Arial Black, sans-serif" font-weight="900" font-size="62" fill="#FBFAF7" letter-spacing="-1.2">DTD</text>
+
+      <text x="265" y="138" font-family="Archivo Black, Arial Black, sans-serif" font-weight="900" font-size="62" fill="#FBFAF7" letter-spacing="-1.2">Cargo</text>
     </g>
 
     

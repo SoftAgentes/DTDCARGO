@@ -30,8 +30,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "DTD Studio";
   const options = {
     body: payload.body || "",
-    icon: payload.icon || "/brand/dtdcargo-icon-navy.png",
-    badge: payload.badge || "/brand/dtdcargo-icon-navy.png",
+    icon: payload.icon || "/brand/dtdcargo-isologo-primary.png",
+    badge: payload.badge || "/brand/dtdcargo-isologo-mono-dark.png",
     tag: payload.tag || "dtd-bug",
     data: payload.data || {},
     requireInteraction: payload.requireInteraction || false,
