@@ -577,10 +577,8 @@ function ReceiptRow({
           receiptId={row.id}
           currentStatus={row.status as WarehouseReceiptStatus}
           cities={cities}
-          currentDestinationCity={
-            (row as WarehouseReceiptRow & { destination_city?: string | null })
-              .destination_city ?? null
-          }
+          currentDestinationCity={row.destination_city ?? null}
+          currentPaymentStatus={row.payment_status}
         />
       </span>
     </div>

@@ -47,7 +47,8 @@ const RECEIPT_LIST_SELECT = `
   client_markbox, client_name, is_orphan, orphan_marks, orphan_brought_by, orphan_suspected_client,
   supplier_name, supplier_name_translated,
   boxes, total_cbm, total_weight_kg, status, shipment_id,
-  received_at, notes, deleted_at, created_at, updated_at,
+  received_at, notes, destination_city, payment_status,
+  deleted_at, created_at, updated_at,
   warehouse:warehouses_cn!warehouse_id ( code, hub_code, hub_name_es, hub_name_cn ),
   items_count:warehouse_receipt_items(count)
 `;

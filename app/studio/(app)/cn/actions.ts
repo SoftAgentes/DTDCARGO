@@ -330,6 +330,70 @@ export async function changeReceiptStatusAction(
 }
 
 // ─────────────────────────────────────────────────────────────
+// changeReceiptPaymentStatusAction (Opción A · SDD-0029)
+//
+// Admin marca pago del paquete · alimenta scoring de Despacho.
+// Permitido en cualquier status (paquete pendiente, consolidado, etc).
+// ─────────────────────────────────────────────────────────────
+
+const VALID_PAYMENT_STATUSES = ["pagado", "parcial", "pendiente"] as const;
+type PaymentStatusOpt = (typeof VALID_PAYMENT_STATUSES)[number];
+
+export async function changeReceiptPaymentStatusAction(
+  receiptId: string,
+  newPaymentStatus: PaymentStatusOpt,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!VALID_PAYMENT_STATUSES.includes(newPaymentStatus)) {
+    return { error: "Estado de pago inválido." };
+  }
+
+  const supabase = await createClient();
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) {
+    return { error: "No se pudo resolver el tenant del usuario." };
+  }
+
+  const { data: current, error: readErr } = await supabase
+    .from("warehouse_receipts_cn")
+    .select("payment_status, receipt_code")
+    .eq("id", receiptId)
+    .maybeSingle<{ payment_status: PaymentStatusOpt; receipt_code: string }>();
+
+  if (readErr || !current) {
+    return { error: "Recepción no encontrada." };
+  }
+
+  if (current.payment_status === newPaymentStatus) {
+    return { ok: true }; // no-op
+  }
+
+  const { error: updateErr } = await supabase
+    .from("warehouse_receipts_cn")
+    .update({ payment_status: newPaymentStatus })
+    .eq("id", receiptId);
+
+  if (updateErr) {
+    return { error: `No se pudo cambiar el pago: ${updateErr.message}` };
+  }
+
+  // Audit event
+  await supabase.from("warehouse_receipt_events").insert({
+    tenant_id: link.tenant_id,
+    receipt_id: receiptId,
+    event_type: "status_change",
+    description: `Pago: ${current.payment_status} → ${newPaymentStatus} · ${current.receipt_code}`,
+  });
+
+  revalidatePath("/studio/cn");
+  revalidatePath("/studio/despacho");
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
 // softDeleteReceiptAction (no expuesto en UI V1)
 // ─────────────────────────────────────────────────────────────
 
