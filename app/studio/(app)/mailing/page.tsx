@@ -144,7 +144,7 @@ export default async function MailingAdminPage({
 
       <MailingClient
         tab={tab}
-        logs={(logs ?? []) as MailLogRow[]}
+        logs={(logs ?? []) as unknown as MailLogRow[]}
         templates={templates}
         filters={{ status, template: templateSlug ?? "all", search: search ?? "" }}
       />

@@ -271,8 +271,13 @@ function LogsView({
                         {log.to_name}
                       </div>
                     )}
-                    {log.metadata?.original_to &&
-                      log.metadata.original_to !== log.to_email && (
+                    {(() => {
+                      const origTo =
+                        typeof log.metadata?.original_to === "string"
+                          ? log.metadata.original_to
+                          : null;
+                      if (!origTo || origTo === log.to_email) return null;
+                      return (
                         <div
                           style={{
                             fontSize: 11,
@@ -280,9 +285,10 @@ function LogsView({
                           }}
                           title="Test mode redirigió este email del destinatario original al inbox interno de pruebas"
                         >
-                          Test mode · orig: {String(log.metadata.original_to)}
+                          Test mode · orig: {origTo}
                         </div>
-                      )}
+                      );
+                    })()}
                   </Td>
                   <Td>
                     <div
