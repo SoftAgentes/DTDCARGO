@@ -283,16 +283,19 @@ export async function updateMyProfileAction(
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Iniciá sesión primero." };
 
-  const { error } = await supabase.from("user_profiles").upsert(
-    {
-      user_id: userResp.user.id,
+  // UPDATE (no upsert): row siempre existe por trigger handle_new_user del
+  // auth.users → public.user_profiles. Policy user_profiles_no_direct_insert
+  // bloquea INSERT desde authenticated, y .upsert() evalúa WITH CHECK del
+  // INSERT branch aunque el row exista (Supabase/PostgREST 2026-05).
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({
       first_name: firstName || null,
       last_name: lastName || null,
       phone: phone || null,
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
+    })
+    .eq("user_id", userResp.user.id);
 
   if (error) {
     return { error: `No se pudo guardar: ${error.message}` };
@@ -331,15 +334,16 @@ export async function updateMyPreferencesAction(
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Iniciá sesión primero." };
 
-  const { error } = await supabase.from("user_profiles").upsert(
-    {
-      user_id: userResp.user.id,
+  // UPDATE (no upsert): mismo patrón que updateMyProfileAction para evitar
+  // el INSERT branch bloqueado por user_profiles_no_direct_insert.
+  const { error } = await supabase
+    .from("user_profiles")
+    .update({
       locale,
       timezone: timezone || "America/Caracas",
       updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id" },
-  );
+    })
+    .eq("user_id", userResp.user.id);
 
   if (error) {
     return { error: `No se pudo guardar: ${error.message}` };
