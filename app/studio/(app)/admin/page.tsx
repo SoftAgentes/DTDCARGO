@@ -54,7 +54,7 @@ const SECTIONS: AdminSection[] = [
     icon: "flag",
     description:
       "Feature flags por módulo. Encendé/apagá WhatsApp Business, SENIAT, No-Olvidar, Mailing y otros sin tocar código.",
-    sddRef: "SDD-0030",
+    href: "/studio/admin/feature-flags",
   },
   {
     id: "masterdata",
