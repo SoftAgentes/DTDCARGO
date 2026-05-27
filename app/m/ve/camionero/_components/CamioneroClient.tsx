@@ -13,6 +13,8 @@
 
 import { useActionState, useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { RealtimeIndicator } from "@/app/studio/_components/ui/RealtimeIndicator";
+import { useRealtimeRefresh } from "@/lib/studio/hooks/use-realtime-refresh";
 import { advanceOdAction, signOutAction } from "../actions";
 import { PodModal } from "./PodModal";
 import {
@@ -32,13 +34,20 @@ interface Props {
     initials: string;
   };
   ods: DispatchOrderRow[];
+  tenantId: string;
 }
 
-export function CamioneroClient({ operario, ods }: Props) {
+export function CamioneroClient({ operario, ods, tenantId }: Props) {
   const [activeOdId, setActiveOdId] = useState<string | null>(ods[0]?.id ?? null);
   const [podOpen, setPodOpen] = useState(false);
 
   const activeOd = ods.find((o) => o.id === activeOdId);
+
+  // Realtime: refresh cuando el admin cambia la asignación o status de OD.
+  const realtime = useRealtimeRefresh({
+    table: "dispatch_orders",
+    filter: `tenant_id=eq.${tenantId}`,
+  });
 
   return (
     <div
@@ -53,7 +62,7 @@ export function CamioneroClient({ operario, ods }: Props) {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <Header operario={operario} />
+      <Header operario={operario} realtimeStatus={realtime.status} />
 
       {ods.length === 0 ? (
         <EmptyState />
@@ -119,7 +128,13 @@ export function CamioneroClient({ operario, ods }: Props) {
 // Header
 // ─────────────────────────────────────────────────────────────
 
-function Header({ operario }: { operario: Props["operario"] }) {
+function Header({
+  operario,
+  realtimeStatus,
+}: {
+  operario: Props["operario"];
+  realtimeStatus: import("@/lib/studio/hooks/use-realtime-table").RealtimeStatus;
+}) {
   return (
     <header
       style={{
@@ -167,15 +182,25 @@ function Header({ operario }: { operario: Props["operario"] }) {
           Hola, {operario.firstName}
         </div>
       </div>
-      <form action={signOutAction}>
-        <button
-          type="submit"
-          className="studio-btn studio-btn-ghost studio-btn-xs"
-          style={{ color: "var(--ink-soft)" }}
-        >
-          Salir
-        </button>
-      </form>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-end",
+          gap: 6,
+        }}
+      >
+        <RealtimeIndicator status={realtimeStatus} />
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+            style={{ color: "var(--ink-soft)" }}
+          >
+            Salir
+          </button>
+        </form>
+      </div>
     </header>
   );
 }

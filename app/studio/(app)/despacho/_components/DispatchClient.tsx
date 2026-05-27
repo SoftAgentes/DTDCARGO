@@ -15,7 +15,7 @@ import { DispatchQueueTable } from "./DispatchQueueTable";
 import { ActiveOdsPanel } from "./ActiveOdsPanel";
 import { CreateOdDrawer } from "./CreateOdDrawer";
 import { CancelOdDrawer } from "./CancelOdDrawer";
-import { RealtimeIndicator } from "./RealtimeIndicator";
+import { RealtimeIndicator } from "@/app/studio/_components/ui/RealtimeIndicator";
 import { useRealtimeRefresh } from "@/lib/studio/hooks/use-realtime-refresh";
 import type {
   DispatchFilters,

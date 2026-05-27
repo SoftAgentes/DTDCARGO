@@ -49,6 +49,7 @@ export default async function CamioneroHomePage() {
         initials,
       }}
       ods={ods}
+      tenantId={operario.tenant_id}
     />
   );
 }
