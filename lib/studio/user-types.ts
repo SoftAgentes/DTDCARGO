@@ -190,8 +190,8 @@ export function validateAcceptInvitationInput(
   if (!partial.token || partial.token.trim().length < 16) {
     fieldErrors.token = "Token inválido";
   }
-  if (!partial.password || partial.password.length < 10) {
-    fieldErrors.password = "Password mínimo 10 caracteres";
+  if (!partial.password || partial.password.length < 6) {
+    fieldErrors.password = "Password mínimo 6 caracteres";
   }
   if (partial.first_name !== undefined && partial.first_name.trim().length > 60) {
     fieldErrors.first_name = "Nombre muy largo";
