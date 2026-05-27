@@ -167,6 +167,7 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${archivo.variable} ${archivoBlack.variable} ${notoSansSc.variable}`}
+      suppressHydrationWarning
     >
       <head>
         <script
