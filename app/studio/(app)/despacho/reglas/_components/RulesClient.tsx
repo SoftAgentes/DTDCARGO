@@ -11,7 +11,7 @@
  * - Submit via useActionState
  */
 
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 import { updateDispatchRulesAction } from "../actions";
 import {
   DEFAULT_WEIGHTS,
@@ -26,16 +26,112 @@ import {
   type DispatchRulesActionState,
   type DispatchWeights,
 } from "@/lib/studio/dispatch-rules-types";
+import {
+  evaluatePolicy,
+  scoreBreakdown,
+  scoreLevel,
+  SCORE_LEVEL_COLORS,
+  SCORE_LEVEL_LABELS,
+} from "@/lib/studio/dispatch-scoring";
+import type { EligiblePackage } from "@/lib/studio/dispatch-types";
+
+// 4 sample packages para Preview Live · cubren casos típicos
+const PREVIEW_SAMPLES: EligiblePackage[] = [
+  {
+    id: "preview-1",
+    package_kind: "warehouse_receipt_cn",
+    markbox: "DTD-5392",
+    client_name: "Luis Fernández",
+    city: "Caracas",
+    pay: "pagado",
+    description: null,
+    boxes_total: 4,
+    weight_kg: 80,
+    cbm: 1.5,
+    hs_code: null,
+    aes_code: null,
+    received_at: "",
+    route_proximity: 3,
+    tier: "Platinum",
+    days_in_warehouse: 8,
+    score: 0,
+  },
+  {
+    id: "preview-2",
+    package_kind: "warehouse_receipt_cn",
+    markbox: "DTD-5452",
+    client_name: "Carlos Méndez",
+    city: "Valencia",
+    pay: "pagado",
+    description: null,
+    boxes_total: 6,
+    weight_kg: 150,
+    cbm: 2.8,
+    hs_code: null,
+    aes_code: null,
+    received_at: "",
+    route_proximity: 5,
+    tier: "Gold",
+    days_in_warehouse: 18,
+    score: 0,
+  },
+  {
+    id: "preview-3",
+    package_kind: "warehouse_receipt_cn",
+    markbox: "DTD-5263",
+    client_name: "Sofía Linares",
+    city: "Caracas",
+    pay: "pendiente",
+    description: null,
+    boxes_total: 2,
+    weight_kg: 40,
+    cbm: 0.6,
+    hs_code: null,
+    aes_code: null,
+    received_at: "",
+    route_proximity: 3,
+    tier: null,
+    days_in_warehouse: 19,
+    score: 0,
+  },
+  {
+    id: "preview-4",
+    package_kind: "warehouse_receipt_cn",
+    markbox: "DTD-5241",
+    client_name: "José Hernández",
+    city: "Maturín",
+    pay: "parcial",
+    description: null,
+    boxes_total: 10,
+    weight_kg: 220,
+    cbm: 4.2,
+    hs_code: null,
+    aes_code: null,
+    received_at: "",
+    route_proximity: 1,
+    tier: "Gold",
+    days_in_warehouse: 28,
+    score: 0,
+  },
+];
 
 const INITIAL_STATE: DispatchRulesActionState = {};
 
-export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
+export function RulesClient({
+  initialRules,
+  tierClientsCount,
+}: {
+  initialRules: DispatchRules;
+  tierClientsCount: number;
+}) {
   const [policy, setPolicy] = useState<DispatchPaymentPolicy>(initialRules.payment_policy);
   const [whitelist, setWhitelist] = useState<string>(initialRules.whitelist_markboxes.join(", "));
   const [weights, setWeights] = useState<DispatchWeights>(initialRules.weights ?? DEFAULT_WEIGHTS);
   const [optionalTier, setOptionalTier] = useState<boolean>(initialRules.optional_rules?.tier ?? false);
   const [optionalRoutes, setOptionalRoutes] = useState<boolean>(initialRules.optional_rules?.routes ?? true);
   const [vipMarkboxes, setVipMarkboxes] = useState<string>(initialRules.vip_markboxes.join(", "));
+  const [holdUntil, setHoldUntil] = useState<string>(initialRules.hold_until ?? "");
+  const [holdReason, setHoldReason] = useState<string>(initialRules.hold_reason ?? "");
 
   const [state, formAction, isPending] = useActionState(updateDispatchRulesAction, INITIAL_STATE);
 
@@ -49,6 +145,8 @@ export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
       <input type="hidden" name="payment_policy" value={policy} />
       <input type="hidden" name="whitelist_markboxes" value={whitelist} />
       <input type="hidden" name="vip_markboxes" value={vipMarkboxes} />
+      <input type="hidden" name="hold_until" value={policy === "hold" ? holdUntil : ""} />
+      <input type="hidden" name="hold_reason" value={policy === "hold" ? holdReason : ""} />
       {(Object.keys(weights) as Array<keyof DispatchWeights>).map((k) => (
         <input key={k} type="hidden" name={`weights.${k}`} value={weights[k]} />
       ))}
@@ -66,6 +164,8 @@ export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
             Modo: <b>{PAYMENT_POLICY_LABELS[policy]}</b>
             {policy === "credito_whitelist" &&
               ` · ${whitelist.split(/[,\n]/).filter((s) => s.trim()).length} markboxes en whitelist`}
+            {policy === "hold" && holdUntil && ` · vence ${holdUntil}`}
+            {policy === "hold" && !holdUntil && ` · sin fecha · indefinido`}
           </>
         }
       >
@@ -128,6 +228,72 @@ export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
             </p>
           </div>
         )}
+
+        {policy === "hold" && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: 14,
+              background: "var(--warning-bg)",
+              border: "1px solid var(--warning)",
+              borderRadius: "var(--r-md)",
+            }}
+          >
+            <div
+              style={{
+                font: "700 11px/1 var(--f-sans)",
+                color: "var(--warning)",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                marginBottom: 10,
+              }}
+            >
+              Hold temporal · vence automáticamente
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "180px 1fr",
+                gap: 12,
+                alignItems: "start",
+              }}
+            >
+              <div>
+                <label className="studio-label" htmlFor="hold-until">
+                  Hasta cuándo
+                </label>
+                <input
+                  id="hold-until"
+                  type="date"
+                  className="studio-input"
+                  value={holdUntil}
+                  onChange={(e) => setHoldUntil(e.target.value)}
+                  min={new Date().toISOString().slice(0, 10)}
+                  style={{ marginTop: 6 }}
+                />
+                {holdUntil && (
+                  <p style={{ ...hintStyle, marginTop: 6 }}>
+                    Vencida la fecha, vuelve a Estricto automáticamente.
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="studio-label" htmlFor="hold-reason">
+                  Razón (visible al equipo)
+                </label>
+                <textarea
+                  id="hold-reason"
+                  className="studio-input"
+                  rows={3}
+                  placeholder="Ej: Cierre fiscal Q2 · contabilidad revisando facturación · feriado SENIAT"
+                  value={holdReason}
+                  onChange={(e) => setHoldReason(e.target.value)}
+                  style={{ resize: "vertical", marginTop: 6 }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Pesos del scoring */}
@@ -176,10 +342,42 @@ export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <Toggle
             label="Tier de cliente"
-            hint="Suma el peso VIP a clientes Gold/Platinum (tier del módulo Clientes)."
+            hint="Suma el peso VIP a clientes con tier elevado (vip/premium en el módulo Clientes)."
             checked={optionalTier}
             onChange={setOptionalTier}
           />
+
+          {optionalTier && (
+            <div
+              style={{
+                padding: "10px 12px",
+                background: "var(--wine-tint)",
+                border: "1px solid var(--wine)",
+                borderRadius: "var(--r-sm)",
+                font: "500 12px/1.4 var(--f-sans)",
+                color: "var(--wine)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 10,
+                marginLeft: 26,
+              }}
+            >
+              <span>
+                <b>{tierClientsCount}</b> cliente{tierClientsCount === 1 ? "" : "s"} con tier elevado · recibirá{tierClientsCount === 1 ? "" : "n"} <b>+{weights.vip} pts</b>
+              </span>
+              <a
+                href="/studio/clientes?tier=vip"
+                style={{
+                  font: "700 11px/1 var(--f-sans)",
+                  color: "var(--wine)",
+                  textDecoration: "underline",
+                }}
+              >
+                Ver lista →
+              </a>
+            </div>
+          )}
           <Toggle
             label="Cercanía a ruta"
             hint="Aplica el peso route_proximity (0-5 calculado por backend)."
@@ -187,6 +385,32 @@ export function RulesClient({ initialRules }: { initialRules: DispatchRules }) {
             onChange={setOptionalRoutes}
           />
         </div>
+      </Card>
+
+      {/* Preview Live · scoring en vivo contra samples */}
+      <Card
+        title="Preview Live"
+        eyebrow="VER CÓMO QUEDARÍA LA COLA"
+        collapsible
+        defaultOpen={false}
+        summary={<>4 paquetes ejemplo · pinch test antes de guardar</>}
+      >
+        <PreviewLive
+          weights={weights}
+          policy={policy}
+          whitelist={whitelist
+            .split(/[,\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean)}
+          vipList={vipMarkboxes
+            .split(/[,\n]/)
+            .map((s) => s.trim())
+            .filter(Boolean)}
+          optionalTier={optionalTier}
+          optionalRoutes={optionalRoutes}
+          holdUntil={holdUntil || null}
+          holdReason={holdReason || null}
+        />
       </Card>
 
       {/* VIP markboxes · plegable */}
@@ -446,3 +670,222 @@ const hintStyle: React.CSSProperties = {
   color: "var(--ink-soft)",
   margin: 0,
 };
+
+// ─────────────────────────────────────────────────────────────
+// Preview Live
+// ─────────────────────────────────────────────────────────────
+
+function PreviewLive({
+  weights,
+  policy,
+  whitelist,
+  vipList,
+  optionalTier,
+  optionalRoutes,
+  holdUntil,
+  holdReason,
+}: {
+  weights: DispatchWeights;
+  policy: DispatchPaymentPolicy;
+  whitelist: string[];
+  vipList: string[];
+  optionalTier: boolean;
+  optionalRoutes: boolean;
+  holdUntil: string | null;
+  holdReason: string | null;
+}) {
+  const [selectedId, setSelectedId] = useState(PREVIEW_SAMPLES[0].id);
+  const selected = PREVIEW_SAMPLES.find((p) => p.id === selectedId) ?? PREVIEW_SAMPLES[0];
+
+  // Sintetizar un DispatchRules-like para reusar las funciones puras
+  const liveRules = useMemo<DispatchRules>(
+    () => ({
+      tenant_id: "",
+      payment_policy: policy,
+      whitelist_markboxes: whitelist,
+      weights,
+      optional_rules: { tier: optionalTier, routes: optionalRoutes },
+      vip_markboxes: vipList,
+      hold_until: holdUntil,
+      hold_reason: holdReason,
+      updated_by: null,
+      updated_at: "",
+    }),
+    [policy, whitelist, weights, optionalTier, optionalRoutes, vipList, holdUntil, holdReason],
+  );
+
+  const breakdown = useMemo(() => scoreBreakdown(selected, liveRules), [selected, liveRules]);
+  const policyEval = useMemo(() => evaluatePolicy(selected, liveRules), [selected, liveRules]);
+  const level = scoreLevel(breakdown.total);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Selector de samples */}
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {PREVIEW_SAMPLES.map((s) => {
+          const active = s.id === selectedId;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => setSelectedId(s.id)}
+              style={{
+                padding: "8px 12px",
+                background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
+                color: active ? "var(--wine)" : "var(--ink-soft)",
+                border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                borderRadius: "var(--r-pill)",
+                font: "700 11px/1 var(--f-sans)",
+                cursor: "pointer",
+                display: "inline-flex",
+                gap: 6,
+              }}
+            >
+              <code style={{ font: "700 11px/1 var(--f-mono)" }}>{s.markbox}</code>
+              <span>·</span>
+              <span>{s.city}</span>
+              <span>·</span>
+              <span style={{ textTransform: "uppercase", letterSpacing: "0.06em" }}>{s.pay}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Scoreboard */}
+      <div
+        style={{
+          padding: 16,
+          background: "var(--bg-elevated)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-md)",
+          display: "grid",
+          gridTemplateColumns: "auto 1fr auto",
+          gap: 16,
+          alignItems: "center",
+        }}
+      >
+        <div
+          style={{
+            font: "900 38px/1 var(--f-display)",
+            color: SCORE_LEVEL_COLORS[level],
+            letterSpacing: "-0.02em",
+            minWidth: 70,
+          }}
+        >
+          {breakdown.total}
+        </div>
+        <div>
+          <div
+            style={{
+              font: "800 14px/1.2 var(--f-display)",
+              color: "var(--ink)",
+            }}
+          >
+            {selected.client_name} · {selected.markbox}
+          </div>
+          <div
+            style={{
+              font: "500 12px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 3,
+            }}
+          >
+            {selected.city} · {selected.boxes_total} cajas · {selected.weight_kg} kg ·{" "}
+            {selected.days_in_warehouse} días en bodega
+            {selected.tier && ` · ${selected.tier}`}
+          </div>
+        </div>
+        <div
+          style={{
+            padding: "6px 12px",
+            background: SCORE_LEVEL_COLORS[level],
+            color: "white",
+            borderRadius: "var(--r-pill)",
+            font: "800 11px/1 var(--f-sans)",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          {SCORE_LEVEL_LABELS[level]}
+        </div>
+      </div>
+
+      {/* Breakdown */}
+      <div
+        style={{
+          padding: 14,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-md)",
+        }}
+      >
+        <div
+          style={{
+            font: "700 10.5px/1 var(--f-sans)",
+            color: "var(--wine)",
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            marginBottom: 10,
+          }}
+        >
+          Cómo se compone el score
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          {breakdown.lines.map((line) => (
+            <div
+              key={line.key}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                padding: "6px 10px",
+                background: line.muted ? "transparent" : "var(--bg-elevated)",
+                borderRadius: "var(--r-sm)",
+                font: "500 12.5px/1.2 var(--f-sans)",
+                color: line.muted ? "var(--ink-mute)" : "var(--ink)",
+                textDecoration: line.muted ? "line-through" : "none",
+              }}
+            >
+              <span>{line.label}</span>
+              <code
+                style={{
+                  font: "800 13px/1 var(--f-mono)",
+                  color: line.muted ? "var(--ink-mute)" : "var(--wine)",
+                }}
+              >
+                {line.pts > 0 ? `+${line.pts}` : "0"} pts
+              </code>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Policy evaluation */}
+      <div
+        style={{
+          padding: 12,
+          background:
+            policyEval.state === "blocked"
+              ? "var(--danger-bg)"
+              : policyEval.state === "credit-ok"
+                ? "var(--info-bg)"
+                : "var(--success-bg)",
+          color:
+            policyEval.state === "blocked"
+              ? "var(--danger)"
+              : policyEval.state === "credit-ok"
+                ? "var(--info)"
+                : "var(--success)",
+          borderRadius: "var(--r-md)",
+          font: "600 12.5px/1.4 var(--f-sans)",
+        }}
+      >
+        <div style={{ font: "800 10.5px/1 var(--f-sans)", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: 4 }}>
+          {policyEval.state === "blocked" ? "Bloqueado por política" : policyEval.state === "credit-ok" ? "Excepción crédito" : "OK"}
+        </div>
+        {policyEval.reason}
+      </div>
+    </div>
+  );
+}

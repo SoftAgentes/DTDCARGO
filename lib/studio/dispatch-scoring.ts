@@ -86,6 +86,106 @@ export const SCORE_LEVEL_COLORS: Record<ScoreLevel, string> = {
 };
 
 /**
+ * Breakdown del score por regla · para Preview Live del editor de reglas.
+ * Devuelve cada componente que sumó al total (label + pts) · útil para mostrar
+ * cómo se compone el score en UI didáctica.
+ */
+export type ScoreLine = {
+  key: string;
+  label: string;
+  pts: number;
+  muted?: boolean;
+};
+
+export function scoreBreakdown(
+  pkg: EligiblePackage,
+  rules: DispatchRules,
+): { total: number; lines: ScoreLine[] } {
+  const w = rules.weights;
+  const lines: ScoreLine[] = [];
+  let total = 0;
+
+  const cityLower = pkg.city.trim().toLowerCase();
+  if (cityLower === "valencia" || cityLower.startsWith("caracas")) {
+    lines.push({ key: "valencia", label: `Ciudad principal · ${pkg.city}`, pts: w.valencia });
+    total += w.valencia;
+  }
+
+  if (pkg.pay === "pagado") {
+    lines.push({ key: "full_pay", label: "Pagado 100%", pts: w.full_pay });
+    total += w.full_pay;
+  } else if (pkg.pay === "parcial") {
+    lines.push({ key: "partial_pay", label: "Abono parcial", pts: w.partial_pay });
+    total += w.partial_pay;
+  } else {
+    lines.push({ key: "no_pay", label: "Sin pago", pts: 0, muted: true });
+  }
+
+  const fifoRatio = Math.min(pkg.days_in_warehouse / 21, 1);
+  const fifoPts = Math.round(fifoRatio * w.fifo);
+  lines.push({
+    key: "fifo",
+    label: `FIFO antigüedad · ${pkg.days_in_warehouse}d`,
+    pts: fifoPts,
+  });
+  total += fifoPts;
+
+  if (rules.optional_rules.tier && pkg.tier && (pkg.tier === "Gold" || pkg.tier === "Platinum")) {
+    lines.push({ key: "vip", label: `Cliente ${pkg.tier}`, pts: w.vip });
+    total += w.vip;
+  } else if (rules.vip_markboxes.includes(pkg.markbox)) {
+    lines.push({ key: "vip", label: `VIP markbox manual`, pts: w.vip });
+    total += w.vip;
+  }
+
+  if (rules.optional_rules.routes && pkg.route_proximity != null) {
+    const proxRatio = Math.max(0, Math.min(pkg.route_proximity / 5, 1));
+    const proxPts = Math.round(proxRatio * w.route_proximity);
+    lines.push({
+      key: "route",
+      label: `Cercanía ruta · ${pkg.route_proximity}/5`,
+      pts: proxPts,
+    });
+    total += proxPts;
+  }
+
+  return { total: Math.min(100, total), lines };
+}
+
+export type PolicyEvalState = "ok" | "blocked" | "credit-ok";
+
+export function evaluatePolicy(
+  pkg: EligiblePackage,
+  rules: DispatchRules,
+): { state: PolicyEvalState; reason: string } {
+  if (pkg.pay === "pagado") return { state: "ok", reason: "Pago saldado · sin restricción." };
+  if (rules.payment_policy === "estricto") {
+    return {
+      state: "blocked",
+      reason: `Política estricta · ${pkg.pay === "parcial" ? "abono parcial" : "pago pendiente"} bloqueado.`,
+    };
+  }
+  if (rules.payment_policy === "hold") {
+    return {
+      state: "ok",
+      reason: rules.hold_until
+        ? `Hold activo hasta ${rules.hold_until} · entra a la cola con score normal.`
+        : "Hold sin fecha · entra a la cola.",
+    };
+  }
+  if (rules.payment_policy === "credito_whitelist") {
+    if (rules.whitelist_markboxes.includes(pkg.markbox)) {
+      return { state: "credit-ok", reason: "Cliente con crédito aprobado · excepción permitida." };
+    }
+    return {
+      state: "blocked",
+      reason: `${pkg.markbox} no está en whitelist · pago pendiente bloqueado.`,
+    };
+  }
+  return { state: "ok", reason: "" };
+}
+
+/**
  * Aplica la payment_policy del tenant para filtrar la cola visible.
  * - estricto → solo pagados
  * - hold → todos visibles, pero los no-pagados greyed (lo decide la UI)

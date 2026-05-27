@@ -26,6 +26,10 @@ export type DispatchRules = {
   weights: DispatchWeights;
   optional_rules: DispatchOptionalRules;
   vip_markboxes: string[];
+  /** Hasta cuándo dura el modo hold · NULL si no aplica (migración 0046). */
+  hold_until: string | null;          // ISO date 'YYYY-MM-DD'
+  /** Razón del hold visible al equipo · texto libre. */
+  hold_reason: string | null;
   updated_by: string | null;
   updated_at: string;
 };
@@ -54,6 +58,8 @@ export const DEFAULT_DISPATCH_RULES: Omit<DispatchRules, "tenant_id" | "updated_
   weights: DEFAULT_WEIGHTS,
   optional_rules: DEFAULT_OPTIONAL_RULES,
   vip_markboxes: [],
+  hold_until: null,
+  hold_reason: null,
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -125,6 +131,8 @@ export type UpdateDispatchRulesInput = {
   weights: DispatchWeights;
   optional_rules: DispatchOptionalRules;
   vip_markboxes: string[];
+  hold_until: string | null;
+  hold_reason: string | null;
 };
 
 const POLICIES: DispatchPaymentPolicy[] = ["estricto", "hold", "credito_whitelist"];
@@ -150,6 +158,12 @@ export function validateUpdateDispatchRulesInput(
     }
   }
 
+  // Hold validation: si policy='hold' y hold_until viene, debe ser fecha válida
+  if (input.payment_policy === "hold" && input.hold_until) {
+    const d = new Date(input.hold_until);
+    if (isNaN(d.getTime())) errors.hold_until = "Fecha inválida.";
+  }
+
   if (Object.keys(errors).length > 0) return { fieldErrors: errors };
 
   return {
@@ -159,6 +173,8 @@ export function validateUpdateDispatchRulesInput(
       weights: input.weights!,
       optional_rules: input.optional_rules ?? DEFAULT_OPTIONAL_RULES,
       vip_markboxes: input.vip_markboxes ?? [],
+      hold_until: input.hold_until?.trim() || null,
+      hold_reason: input.hold_reason?.trim() || null,
     },
   };
 }
