@@ -79,6 +79,8 @@ export type RateActionState = {
   ok?: boolean;
   error?: string;
   fieldErrors?: Partial<Record<keyof RateInput, string>>;
+  /** ID del rate recién creado · solo en createRate. Sirve para highlight de row. */
+  createdId?: string;
 };
 
 /**

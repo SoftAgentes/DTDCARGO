@@ -83,25 +83,31 @@ export async function createRate(
     return { error: "No se pudo resolver el tenant del usuario." };
   }
 
-  const { error } = await supabase.from("rates").insert({
-    tenant_id: link.tenant_id,
-    service: input!.service,
-    origin: input!.origin,
-    destination: input!.destination,
-    per_cbm: input!.per_cbm,
-    flat_rate: input!.flat_rate,
-    min_charge: input!.min_charge,
-    transit_days: input!.transit_days,
-    valid_until: input!.valid_until,
-    notes: input!.notes,
-  });
+  const { data: inserted, error } = await supabase
+    .from("rates")
+    .insert({
+      tenant_id: link.tenant_id,
+      service: input!.service,
+      origin: input!.origin,
+      destination: input!.destination,
+      per_cbm: input!.per_cbm,
+      flat_rate: input!.flat_rate,
+      min_charge: input!.min_charge,
+      transit_days: input!.transit_days,
+      valid_until: input!.valid_until,
+      notes: input!.notes,
+    })
+    .select("id")
+    .single<{ id: string }>();
 
-  if (error) {
-    return { error: `No se pudo crear la tarifa: ${error.message}` };
+  if (error || !inserted) {
+    return {
+      error: `No se pudo crear la tarifa: ${error?.message ?? "desconocido"}`,
+    };
   }
 
   revalidatePath("/studio/tarifas");
-  return { ok: true };
+  return { ok: true, createdId: inserted.id };
 }
 
 export async function updateRate(

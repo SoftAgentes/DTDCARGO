@@ -9,6 +9,7 @@
  */
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   RATE_SERVICE_OPTIONS,
   priceMode,
@@ -18,6 +19,8 @@ import {
 import type { ShipmentService } from "@/lib/studio/shipment-types";
 import { createRate, softDeleteRate, updateRate } from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
+import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 
 interface Props {
   mode: "create" | "edit";
@@ -43,10 +46,77 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
 
-  // Auto-cerrar drawer on success
+  const router = useRouter();
+  const toast = useToast();
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // Auto-cerrar drawer on success (modo edit · create maneja close via SplitActionButton)
   useEffect(() => {
     if (state.ok) onClose();
   }, [state.ok, onClose]);
+
+  /** Reset de campos controlados para "Crear y empezar otra". */
+  const resetFormFields = () => {
+    const formEl = document.getElementById(
+      "rate-drawer-form",
+    ) as HTMLFormElement | null;
+    formEl?.reset();
+    setService("consolidacion");
+  };
+
+  /**
+   * Crea tarifa llamando createRate directo + ejecuta el comportamiento
+   * `postAction`. Las tarifas no tienen detail page · solo 2 opciones
+   * útiles (cerrar y empezar otra).
+   */
+  const createWithPostAction = async (
+    postAction: "close" | "reset",
+  ): Promise<void | { error?: string }> => {
+    setCreateError(null);
+    const formEl = document.getElementById(
+      "rate-drawer-form",
+    ) as HTMLFormElement | null;
+    if (!formEl) return { error: "No se encontró el formulario." };
+    if (!formEl.checkValidity()) {
+      formEl.reportValidity();
+      return { error: "Hay campos requeridos sin completar." };
+    }
+    const formData = new FormData(formEl);
+    const result = await createRate({} as RateActionState, formData);
+    if (result.error) {
+      setCreateError(result.error);
+      return { error: result.error };
+    }
+    if (result.fieldErrors) {
+      const firstErr =
+        Object.values(result.fieldErrors).find((v) => !!v) ??
+        "Revisá los campos.";
+      setCreateError(firstErr);
+      return { error: firstErr };
+    }
+    if (!result.ok || !result.createdId) {
+      const m = "No se pudo crear la tarifa.";
+      setCreateError(m);
+      return { error: m };
+    }
+    const id = result.createdId;
+    if (postAction === "close") {
+      toast.success("Tarifa creada");
+      router.push(
+        `/studio/tarifas?highlight=${encodeURIComponent(id)}&hl-tone=warm`,
+      );
+      onClose();
+    } else if (postAction === "reset") {
+      toast.success("Tarifa creada · cargá la siguiente", {
+        link: {
+          href: `/studio/tarifas?highlight=${encodeURIComponent(id)}&hl-tone=warm`,
+          label: "Ver en listado",
+        },
+      });
+      resetFormFields();
+    }
+    return undefined;
+  };
 
   const title = mode === "create" ? "Nueva tarifa" : "Editar tarifa";
 
@@ -123,7 +193,11 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
         </header>
 
         <form
-          action={formAction}
+          id="rate-drawer-form"
+          action={mode === "edit" ? formAction : undefined}
+          onSubmit={
+            mode === "create" ? (e) => e.preventDefault() : undefined
+          }
           style={{
             flex: 1,
             overflow: "auto",
@@ -427,26 +501,46 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              form=""
-              className="studio-btn studio-btn-primary"
-              disabled={isPending}
-              onClick={(e) => {
-                // submit del form (el form no tiene id, lo buscamos via closest)
-                e.preventDefault();
-                const form = (e.currentTarget.closest("aside") as HTMLElement)?.querySelector("form");
-                if (form) (form as HTMLFormElement).requestSubmit();
-              }}
-            >
-              {isPending
-                ? mode === "create"
-                  ? "Creando…"
-                  : "Guardando…"
-                : mode === "create"
-                  ? "Crear tarifa"
-                  : "Guardar cambios"}
-            </button>
+            {mode === "create" ? (
+              <SplitActionButton
+                memoryKey="rate-drawer-create"
+                variant="primary"
+                size="default"
+                disabled={isPending}
+                onError={setCreateError}
+                actions={[
+                  {
+                    key: "create-and-close",
+                    idleLabel: "Crear y cerrar",
+                    loadingLabel: "Creando…",
+                    successLabel: "Tarifa creada",
+                    successIcon: Icon.check(14),
+                    description:
+                      "Crea la tarifa y vuelve al listado con la nueva resaltada.",
+                    onAction: () => createWithPostAction("close"),
+                  },
+                  {
+                    key: "create-and-new",
+                    idleLabel: "Crear y empezar otra",
+                    loadingLabel: "Creando…",
+                    successLabel: "Lista la siguiente",
+                    successIcon: Icon.check(14),
+                    description:
+                      "Crea la tarifa, limpia los campos y deja el drawer abierto para cargar el catálogo trimestral.",
+                    onAction: () => createWithPostAction("reset"),
+                  },
+                ]}
+              />
+            ) : (
+              <button
+                type="submit"
+                form="rate-drawer-form"
+                className="studio-btn studio-btn-primary"
+                disabled={isPending}
+              >
+                {isPending ? "Guardando…" : "Guardar cambios"}
+              </button>
+            )}
           </div>
         </footer>
       </aside>

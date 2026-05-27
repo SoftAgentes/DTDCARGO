@@ -16,9 +16,12 @@
  */
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { createReceiptAction } from "../actions";
 import { SupplierBilingualInput } from "./SupplierBilingualInput";
+import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type {
   WarehouseCN,
   WarehouseReceiptActionState,
@@ -79,9 +82,91 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
   const selectedClient = clients.find((c) => c.markbox === clientMarkbox);
   const clientName = selectedClient?.name ?? "";
 
+  const router = useRouter();
+  const toast = useToast();
+  const [createError, setCreateError] = useState<string | null>(null);
+
   useEffect(() => {
     if (state.ok) onClose();
   }, [state.ok, onClose]);
+
+  /** Reset de campos para "Crear y empezar otra". */
+  const resetFormFields = () => {
+    const formEl = document.getElementById(
+      "receipt-drawer-form",
+    ) as HTMLFormElement | null;
+    formEl?.reset();
+    setIsOrphan(false);
+    setClientMarkbox("");
+    setOrphanMarks("");
+    setOrphanBroughtBy("");
+    setOrphanSuspected("");
+    setSupplierName("");
+    setSupplierTranslated("");
+    setBoxes("");
+    setTotalCbm("");
+    setTotalWeight("");
+    setReceivedAt(new Date().toISOString().slice(0, 10));
+    setNotes("");
+    setItems([newItem()]);
+    // Mantenemos `warehouseId` igual · el operario suele recibir paquetes
+    // del mismo almacén toda la mañana, evitamos reseleccionar cada vez.
+  };
+
+  /**
+   * Crea recibo llamando createReceiptAction directo + ejecuta el
+   * comportamiento `postAction` según opción del SplitActionButton.
+   */
+  const createWithPostAction = async (
+    postAction: "close" | "open" | "reset",
+  ): Promise<void | { error?: string }> => {
+    setCreateError(null);
+    const formEl = document.getElementById(
+      "receipt-drawer-form",
+    ) as HTMLFormElement | null;
+    if (!formEl) return { error: "No se encontró el formulario." };
+    if (!formEl.checkValidity()) {
+      formEl.reportValidity();
+      return { error: "Hay campos requeridos sin completar." };
+    }
+    const formData = new FormData(formEl);
+    const result = await createReceiptAction(
+      {} as WarehouseReceiptActionState,
+      formData,
+    );
+    if (result.error) {
+      setCreateError(result.error);
+      return { error: result.error };
+    }
+    if (!result.ok || !result.createdReceiptCode) {
+      const m = "No se pudo registrar la recepción.";
+      setCreateError(m);
+      return { error: m };
+    }
+    const code = result.createdReceiptCode;
+    if (postAction === "close") {
+      toast.success(`Recepción ${code} registrada`, {
+        link: { href: `/studio/cn/${code}`, label: "Abrir recibo" },
+      });
+      router.push(
+        `/studio/cn?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
+      );
+      onClose();
+    } else if (postAction === "open") {
+      toast.success(`Recepción ${code} · abriendo recibo`);
+      router.push(`/studio/cn/${code}`);
+      onClose();
+    } else if (postAction === "reset") {
+      toast.success(`Recepción ${code} registrada · siguiente paquete`, {
+        link: {
+          href: `/studio/cn?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
+          label: "Ver en listado",
+        },
+      });
+      resetFormFields();
+    }
+    return undefined;
+  };
 
   const addItem = () => {
     if (items.length >= MAX_ITEMS) return;
@@ -208,7 +293,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
 
         <form
           id="receipt-drawer-form"
-          action={formAction}
+          onSubmit={(e) => e.preventDefault()}
           style={{
             flex: 1,
             overflow: "auto",
@@ -659,14 +744,45 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
           >
             Cancelar
           </button>
-          <button
-            type="submit"
-            form="receipt-drawer-form"
-            className="studio-btn studio-btn-primary"
+          <SplitActionButton
+            memoryKey="cn-receipt-drawer-create"
+            variant="primary"
+            size="default"
             disabled={isPending || !canSubmit}
-          >
-            {isPending ? "Registrando…" : "Registrar recepción"}
-          </button>
+            onError={setCreateError}
+            actions={[
+              {
+                key: "create-and-close",
+                idleLabel: "Registrar y cerrar",
+                loadingLabel: "Registrando…",
+                successLabel: "Recepción registrada",
+                successIcon: Icon.check(14),
+                description:
+                  "Registra el recibo y vuelve al listado con el nuevo resaltado.",
+                onAction: () => createWithPostAction("close"),
+              },
+              {
+                key: "create-and-open",
+                idleLabel: "Registrar y abrir recibo",
+                loadingLabel: "Registrando…",
+                successLabel: "Abriendo recibo",
+                successIcon: Icon.check(14),
+                description:
+                  "Registra y abre el detalle del recibo para imprimir / verificar.",
+                onAction: () => createWithPostAction("open"),
+              },
+              {
+                key: "create-and-new",
+                idleLabel: "Registrar y siguiente paquete",
+                loadingLabel: "Registrando…",
+                successLabel: "Listo el siguiente",
+                successIcon: Icon.check(14),
+                description:
+                  "Registra el recibo, limpia los campos (mantiene el almacén) y deja el drawer abierto para el próximo paquete del lote.",
+                onAction: () => createWithPostAction("reset"),
+              },
+            ]}
+          />
         </footer>
       </aside>
     </div>
