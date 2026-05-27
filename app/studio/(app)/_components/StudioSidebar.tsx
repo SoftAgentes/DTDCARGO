@@ -69,19 +69,34 @@ export const MODULES: ModuleDef[] = [
 
 const GROUP_ORDER: Group[] = ["OPERACIÓN", "COMERCIAL", "FINANZAS", "SISTEMA"];
 const STORAGE_KEY = "studio_sidebar_collapsed";
+const GROUPS_STORAGE_KEY = "studio_sidebar_groups";
+
+/**
+ * Estado de grupos: `false` = cerrado, `true` o undefined = abierto (default).
+ * Persistido en localStorage key `studio_sidebar_groups`. Patrón portado de
+ * `docs/design/studio/v1.7-claude-design/project/erp/shell.jsx` líneas 84-90.
+ */
+type OpenGroups = Partial<Record<Group, boolean>>;
 
 export function StudioSidebar() {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
+  const [openGroups, setOpenGroups] = useState<OpenGroups>({});
 
-  // Hidratar estado collapsed desde localStorage
+  // Hidratar estado collapsed + openGroups desde localStorage
   useEffect(() => {
     try {
       const v = localStorage.getItem(STORAGE_KEY);
       if (v === "1") setCollapsed(true);
     } catch {
       // ignore (SSR / disabled storage)
+    }
+    try {
+      const raw = localStorage.getItem(GROUPS_STORAGE_KEY);
+      if (raw) setOpenGroups(JSON.parse(raw) as OpenGroups);
+    } catch {
+      // ignore (parse error / disabled storage)
     }
     setHydrated(true);
   }, []);
@@ -96,6 +111,18 @@ export function StudioSidebar() {
     }
   };
 
+  const toggleGroup = (group: Group) => {
+    // Default abierto · si nunca se tocó, primera click = cerrar (false)
+    const currentlyOpen = openGroups[group] !== false;
+    const next: OpenGroups = { ...openGroups, [group]: !currentlyOpen };
+    setOpenGroups(next);
+    try {
+      localStorage.setItem(GROUPS_STORAGE_KEY, JSON.stringify(next));
+    } catch {
+      // ignore
+    }
+  };
+
   // Match active: exacto o prefijo + "/"
   const isActive = (slug: string) =>
     pathname === slug || pathname.startsWith(slug + "/");
@@ -103,6 +130,7 @@ export function StudioSidebar() {
   const grouped = GROUP_ORDER.map((g) => ({
     group: g,
     items: MODULES.filter((m) => m.group === g),
+    isOpen: openGroups[g] !== false, // default abierto
   }));
 
   return (
@@ -184,22 +212,56 @@ export function StudioSidebar() {
           gap: 4,
         }}
       >
-        {grouped.map(({ group, items }) => (
+        {grouped.map(({ group, items, isOpen }) => {
+          // Cuando sidebar colapsado: ignorar isOpen, mostrar todos los iconos.
+          // Cuando expandido: respetar estado por grupo (default abierto).
+          const showItems = collapsed || isOpen;
+          return (
           <div key={group} style={{ marginBottom: 6 }}>
             {!collapsed && (
-              <div
+              <button
+                type="button"
+                onClick={() => toggleGroup(group)}
+                aria-expanded={isOpen}
+                aria-controls={`sidebar-group-${group}`}
                 style={{
+                  width: "100%",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 8,
                   padding: "8px 10px 6px",
                   font: "700 9.5px/1 var(--f-sans)",
                   color: "var(--ink-side-soft)",
                   letterSpacing: "0.16em",
                   textTransform: "uppercase",
+                  background: "transparent",
+                  border: "none",
+                  cursor: "pointer",
+                  transition: "color var(--dur-fast) var(--ease)",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = "var(--ink-side-strong)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = "var(--ink-side-soft)";
                 }}
               >
-                {group}
-              </div>
+                <span>{group}</span>
+                <span
+                  aria-hidden
+                  style={{
+                    display: "inline-flex",
+                    transform: `rotate(${isOpen ? 0 : -90}deg)`,
+                    transition: "transform var(--dur-fast) var(--ease)",
+                  }}
+                >
+                  {Icon.chevD(11)}
+                </span>
+              </button>
             )}
-            {items.map((m) => {
+            <div id={`sidebar-group-${group}`} hidden={!showItems}>
+            {showItems && items.map((m) => {
               const active = isActive(m.slug);
               return (
                 <Link
@@ -259,8 +321,10 @@ export function StudioSidebar() {
                 </Link>
               );
             })}
+            </div>
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Footer: collapse toggle */}
