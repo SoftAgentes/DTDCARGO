@@ -86,6 +86,9 @@ export type CreateReceiptInput = {
   items: ReceiptItemInput[];
   incident: boolean;
   incident_note: string | null;
+  /** Ciudad VE destino · capturada por operario CN al recibir (Opción A
+   *  SDD-0029 · migración 0044). NULL si todavía no se decidió. */
+  destination_city: string | null;
 };
 
 // ─────────────────────────────────────────────────────────────
@@ -177,6 +180,7 @@ export function validateCreateReceiptInput(
       items,
       incident: !!partial.incident,
       incident_note: partial.incident_note ?? null,
+      destination_city: partial.destination_city?.trim() || null,
     },
   };
 }

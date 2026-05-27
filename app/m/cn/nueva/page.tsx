@@ -14,9 +14,11 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { getOperarioLang } from "@/lib/lang-server";
+import { listCities } from "@/lib/studio/dispatch-routes-queries";
 import {
   NuevaRecepcionClient,
   type PickerClient,
+  type PickerCity,
 } from "./_components/NuevaRecepcionClient";
 
 export const metadata = { title: "Nueva recepción" };
@@ -32,22 +34,32 @@ export default async function NuevaRecepcionPage() {
 
   // Query clientes del tenant del operario (para el cliente picker)
   const admin = createAdminClient();
-  const { data: clientsData } = await admin
-    .from("clients")
-    .select("markbox, name")
-    .eq("tenant_id", operario.tenant_id)
-    .is("deleted_at", null)
-    .order("markbox", { ascending: true });
+  const [{ data: clientsData }, citiesData] = await Promise.all([
+    admin
+      .from("clients")
+      .select("markbox, name")
+      .eq("tenant_id", operario.tenant_id)
+      .is("deleted_at", null)
+      .order("markbox", { ascending: true }),
+    // Cities per-tenant para el picker de destino · admin client porque
+    // operario session no es Supabase auth user (es PIN-based).
+    listCities(admin, { activeOnly: true }).catch(() => []),
+  ]);
 
   const clients: PickerClient[] = (clientsData ?? []).map((c) => ({
     markbox: c.markbox as string,
     name: c.name as string,
   }));
 
+  const cities: PickerCity[] = citiesData
+    .filter((c) => c.tenant_id === operario.tenant_id)
+    .map((c) => ({ id: c.id, city: c.city, state_name: c.state_name }));
+
   return (
     <NuevaRecepcionClient
       initialLang={initialLang}
       clients={clients}
+      cities={cities}
       defaultWarehouseId={operario.warehouse_id}
     />
   );
