@@ -4,10 +4,10 @@
  * RulesView · lista de mail_rules con drawer crear/editar (SDD-0026 Fase 3c).
  *
  * Click row → drawer en modo edit. Click "+ Nueva regla" → drawer en modo crear.
- * NOTE: las reglas creadas NO se disparan automáticamente — el runtime
- * engine que watch los eventos (shipment_created, invoice_emitted, etc.)
- * todavía no existe. Las reglas son data por ahora · cuando implementemos
- * el watcher, va a leer esta tabla y disparar sendEmail.
+ *
+ * Runtime engine activo: ver `lib/studio/mail/mail-rule-engine.ts`.
+ * `fireMailEvent()` se llama desde las server actions afectadas (cotizador,
+ * tracking) y dispara las reglas activas para el evento + tenant.
  */
 
 import { useState } from "react";
@@ -75,9 +75,10 @@ export function RulesView({ rules, templates }: Props) {
           }}
         >
           Configurá reglas para disparar emails automáticos cuando ocurre un
-          evento (ej: al crear un embarque, mandar shipment_created al cliente).
-          El runtime engine que escucha los eventos está pendiente — por ahora
-          las reglas guardan data pero no disparan.
+          evento (ej: al crear un embarque, mandar shipment_created al
+          cliente). Las reglas activas se ejecutan en tiempo real desde los
+          hooks en cotizador y tracking. Envíos best-effort: si Resend falla,
+          la operación principal no se rompe.
         </p>
         <button
           type="button"
