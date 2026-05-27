@@ -15,9 +15,12 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { getUserTenantId } from "@/lib/auth/session";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 import { getDefaultInitialStatus } from "@/lib/studio/shipment-state-machine";
+import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
+import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 
 const VALID_SERVICES: ShipmentService[] = [
   "consolidacion",
@@ -82,22 +85,26 @@ export async function createShipment(
   const initialStatus: ShipmentStatus = getDefaultInitialStatus(shipment_service);
 
   const supabase = await createClient();
-  const { error } = await supabase.from("shipments").insert({
-    tenant_id: tenantId,
-    code: code!,
-    shipment_service,
-    status: initialStatus,
-    client_name,
-    client_markbox,
-    origin,
-    destination,
-    weight_kg,
-    volume_m3,
-    vehicle_category,
-    vehicle_model,
-    destination_gps,
-    notes,
-  });
+  const { data: created, error } = await supabase
+    .from("shipments")
+    .insert({
+      tenant_id: tenantId,
+      code: code!,
+      shipment_service,
+      status: initialStatus,
+      client_name,
+      client_markbox,
+      origin,
+      destination,
+      weight_kg,
+      volume_m3,
+      vehicle_category,
+      vehicle_model,
+      destination_gps,
+      notes,
+    })
+    .select("id, code")
+    .single<{ id: string; code: string }>();
 
   if (error) {
     if (error.code === "23505") {
@@ -107,6 +114,30 @@ export async function createShipment(
       };
     }
     return { error: "No pudimos crear el envío. Intentá de nuevo." };
+  }
+
+  // Disparar reglas de mailing para shipment_created (best-effort, no rompe op).
+  if (created) {
+    const admin = createAdminClient();
+    const svcLabel = SERVICE_LABELS[shipment_service];
+    await fireMailEvent(admin, tenantId, {
+      event: "shipment_created",
+      vars: {
+        customer_name: client_name ?? "cliente",
+        shipment_code: created.code,
+        origin: origin ?? "—",
+        destination: destination ?? "—",
+        service: svcLabel
+          ? svcLabel.sub
+            ? `${svcLabel.primary} (${svcLabel.sub})`
+            : svcLabel.primary
+          : shipment_service,
+        eta: "—",
+      },
+      clientMarkbox: client_markbox,
+      clientName: client_name,
+      sourceRef: { kind: "shipment", id: created.id },
+    });
   }
 
   revalidatePath("/studio/tracking");

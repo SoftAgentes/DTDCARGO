@@ -16,11 +16,13 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
 import { isValidStatusForService } from "@/lib/studio/shipment-state-machine";
 import { formatChangeNote, findRateForDestination } from "@/lib/studio/destination-change";
 import type { Rate } from "@/lib/studio/rate-types";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
+import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 
 /** Estados terminales en los que no se puede cambiar el destino. */
 const TERMINAL_STATUSES: ShipmentStatus[] = ["delivered", "cancelled"];
@@ -188,15 +190,24 @@ export async function transitionShipment(
 
   const { data: shipment, error: readError } = await supabase
     .from("shipments")
-    .select("shipment_service, status")
+    .select(
+      "shipment_service, status, code, client_name, client_markbox, destination",
+    )
     .eq("id", id)
-    .maybeSingle();
+    .maybeSingle<{
+      shipment_service: ShipmentService;
+      status: ShipmentStatus;
+      code: string;
+      client_name: string | null;
+      client_markbox: string | null;
+      destination: string | null;
+    }>();
 
   if (readError || !shipment) {
     return { error: "Envío no encontrado." };
   }
 
-  const service = shipment.shipment_service as ShipmentService;
+  const service = shipment.shipment_service;
   if (!isValidStatusForService(service, newStatus)) {
     return {
       error: `El estado "${newStatus}" no aplica al servicio "${service}".`,
@@ -227,6 +238,29 @@ export async function transitionShipment(
 
   if (eventError) {
     return { error: "Cambio aplicado pero el evento falló al registrarse." };
+  }
+
+  // Solo el arribo a destino dispara el evento de mail. Otros transitions
+  // (in_warehouse, in_transit, etc) son ruido si se notifica cada uno.
+  if (newStatus === "arrived_destination" && shipment.status !== newStatus) {
+    const admin = createAdminClient();
+    await fireMailEvent(admin, tenantId, {
+      event: "shipment_arrived",
+      vars: {
+        customer_name: shipment.client_name ?? "cliente",
+        shipment_code: shipment.code,
+        destination: shipment.destination ?? "—",
+        arrival_date: new Date().toLocaleDateString("es-VE", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }),
+        customs_eta_days: "—",
+      },
+      clientMarkbox: shipment.client_markbox,
+      clientName: shipment.client_name,
+      sourceRef: { kind: "shipment", id },
+    });
   }
 
   revalidatePath(`/studio/tracking/${id}`);
