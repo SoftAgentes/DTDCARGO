@@ -2,7 +2,18 @@
  * Types compartidos entre server + client del módulo /studio/mailing.
  */
 
-export type MailingAdminTab = "logs" | "templates" | "reglas";
+export type MailingAdminTab = "logs" | "templates" | "reglas" | "config";
+
+export interface MailConfigRow {
+  tenant_id: string;
+  from_email: string;
+  from_name: string;
+  reply_to: string | null;
+  test_mode: boolean;
+  internal_test_email: string | null;
+  domain_verified: boolean;
+  updated_at: string;
+}
 
 export type MailLogStatus =
   | "queued"
