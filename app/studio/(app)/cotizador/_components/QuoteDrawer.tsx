@@ -35,6 +35,7 @@ import {
 import type { Rate } from "@/lib/studio/rate-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 
 interface Props {
   mode: "create" | "edit";
@@ -91,8 +92,104 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
 
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, startDelete] = useTransition();
+  // Error local para el SplitActionButton (modo create) · el useActionState
+  // legacy seguía manejando errores via state.error.
+  const [createError, setCreateError] = useState<string | null>(null);
 
   const mode$ = quotePriceMode(service);
+
+  /**
+   * Reset de todos los campos del form a sus valores default. Usado por la
+   * acción "Crear y empezar otra" del SplitActionButton.
+   */
+  const resetFormFields = () => {
+    setService("consolidacion");
+    setClientMarkbox("");
+    setClientName("");
+    setOrigin("");
+    setDestination("");
+    setCbm("");
+    setWeightKg("");
+    setBoxes("");
+    setPackaging("carton");
+    setRatePerCbm("");
+    setFlatRate("");
+    setRateUsedId("");
+    setValidUntil(
+      new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10),
+    );
+    setNotes("");
+    setSuggestedRate(null);
+  };
+
+  /**
+   * Crea una cotización llamando createQuote directamente (sin useActionState)
+   * y ejecuta el comportamiento `postAction` según la opción elegida en el
+   * SplitActionButton:
+   *
+   *   - "close"  → navega al listado con highlight + cierra drawer
+   *   - "open"   → navega al detail de la nueva quote + cierra drawer
+   *   - "reset"  → limpia el form, drawer queda abierto (batch rápido)
+   *
+   * Retorna `{ error }` para el contrato de SplitActionButton.onAction.
+   */
+  const createWithPostAction = async (
+    postAction: "close" | "open" | "reset",
+  ): Promise<void | { error?: string }> => {
+    setCreateError(null);
+    const formEl = document.getElementById(
+      "quote-drawer-form",
+    ) as HTMLFormElement | null;
+    if (!formEl) return { error: "No se encontró el formulario." };
+    if (!formEl.checkValidity()) {
+      formEl.reportValidity();
+      return { error: "Hay campos requeridos sin completar." };
+    }
+    const formData = new FormData(formEl);
+    const result = await createQuote({} as QuoteActionState, formData);
+    if (result.error) {
+      setCreateError(result.error);
+      return { error: result.error };
+    }
+    if (result.fieldErrors) {
+      const firstErr =
+        Object.values(result.fieldErrors).find((v) => !!v) ??
+        "Revisá los campos.";
+      setCreateError(firstErr);
+      return { error: firstErr };
+    }
+    if (!result.ok || !result.createdCode) {
+      const m = "No se pudo crear la cotización.";
+      setCreateError(m);
+      return { error: m };
+    }
+    const code = result.createdCode;
+    if (postAction === "close") {
+      toast.success(`Cotización ${code} creada`, {
+        link: {
+          href: `/studio/cotizador/${code}`,
+          label: "Abrir detalle",
+        },
+      });
+      router.push(
+        `/studio/cotizador?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
+      );
+      onClose();
+    } else if (postAction === "open") {
+      toast.success(`Cotización ${code} creada · abriendo detalle`);
+      router.push(`/studio/cotizador/${code}`);
+      onClose();
+    } else if (postAction === "reset") {
+      toast.success(`Cotización ${code} creada · empezá la siguiente`, {
+        link: {
+          href: `/studio/cotizador?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
+          label: "Ver en listado",
+        },
+      });
+      resetFormFields();
+    }
+    return undefined;
+  };
 
   useEffect(() => {
     if (!state.ok) return;
@@ -242,7 +339,10 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
 
         <form
           id="quote-drawer-form"
-          action={formAction}
+          action={mode === "edit" ? formAction : undefined}
+          onSubmit={
+            mode === "create" ? (e) => e.preventDefault() : undefined
+          }
           style={{
             flex: 1,
             overflow: "auto",
@@ -622,7 +722,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
             </div>
           </div>
 
-          {state.error && (
+          {(state.error || createError) && (
             <p
               role="alert"
               style={{
@@ -635,7 +735,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                 borderRadius: "var(--r-sm)",
               }}
             >
-              {state.error}
+              {state.error ?? createError}
             </p>
           )}
 
@@ -797,20 +897,56 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
             >
               Cancelar
             </button>
-            <button
-              type="submit"
-              form="quote-drawer-form"
-              className="studio-btn studio-btn-primary"
-              disabled={isPending}
-            >
-              {isPending
-                ? mode === "create"
-                  ? "Creando…"
-                  : "Guardando…"
-                : mode === "create"
-                  ? "Crear cotización"
-                  : "Guardar cambios"}
-            </button>
+            {mode === "create" ? (
+              <SplitActionButton
+                memoryKey="quote-drawer-create"
+                variant="primary"
+                size="default"
+                disabled={isPending}
+                onError={setCreateError}
+                actions={[
+                  {
+                    key: "create-and-close",
+                    idleLabel: "Crear y cerrar",
+                    loadingLabel: "Creando…",
+                    successLabel: "Cotización creada",
+                    successIcon: Icon.check(14),
+                    description:
+                      "Crea la cotización y vuelve al listado con la nueva resaltada.",
+                    onAction: () => createWithPostAction("close"),
+                  },
+                  {
+                    key: "create-and-open",
+                    idleLabel: "Crear y abrir detalle",
+                    loadingLabel: "Creando…",
+                    successLabel: "Abriendo detalle",
+                    successIcon: Icon.check(14),
+                    description:
+                      "Crea la cotización y abre su detalle para revisar o enviar al cliente.",
+                    onAction: () => createWithPostAction("open"),
+                  },
+                  {
+                    key: "create-and-new",
+                    idleLabel: "Crear y empezar otra",
+                    loadingLabel: "Creando…",
+                    successLabel: "Lista la siguiente",
+                    successIcon: Icon.check(14),
+                    description:
+                      "Crea la cotización, limpia los campos y deja este drawer abierto para batch rápido.",
+                    onAction: () => createWithPostAction("reset"),
+                  },
+                ]}
+              />
+            ) : (
+              <button
+                type="submit"
+                form="quote-drawer-form"
+                className="studio-btn studio-btn-primary"
+                disabled={isPending}
+              >
+                {isPending ? "Guardando…" : "Guardar cambios"}
+              </button>
+            )}
           </div>
         </footer>
       </aside>

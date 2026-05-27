@@ -348,6 +348,104 @@ Al crear un módulo nuevo en el Studio, considerar de entrada cómo cumplir
 las 3 reglas. Si el módulo tiene listado + acciones, debe usar
 `useRowHighlight` y `useToast`. Esto se valida en el UI/UX review pre-merge.
 
+## Estándar de botones del Studio · 8 reglas
+
+Decisión arquitectónica del founder: TODOS los botones del Studio se
+comportan según estas reglas. Aplican cross-módulo y se validan en el
+UI/UX review pre-merge. Si una pantalla nueva tiene botones, debe
+cumplirlas todas.
+
+### Regla 1 · Variantes visuales (cuándo usar qué tono)
+
+| Variante | Cuándo | Ejemplo |
+|---|---|---|
+| `primary` (wine) | Acción principal de la pantalla. **Una sola** por contexto. | "Enviar cotización", "Crear cliente", "Convertir a embarque" |
+| `dark` (navy) | Acción secundaria importante pero no destructive. | "Marcar despachado", "Asignar ruta" |
+| `ghost` (outline) | Acciones secundarias, cancelar, navegación. | "Editar", "Cancelar", "Cerrar" |
+| `danger` (red) | Acciones destructivas o de rechazo. | "Eliminar", "Rechazar", "Cancelar embarque" |
+| `warning` (gold) | Requiere atención · no destructiva pero significativa. | "Marcar excepción", "On hold" |
+| `success` (green) | **NUNCA como idle** · solo flash transitorio post-éxito. | (estado interno de ActionButton) |
+
+### Regla 2 · Tamaños y proporciones
+
+- `default` · botones primarios del header de página.
+- `sm` · botones en drawers, modals, tablas, listados.
+- `xs` · chips, badges interactivas, micro-acciones en cells.
+- `min-width: max-content` para evitar reflow entre estados.
+- `gap: 6px` entre icono y label.
+
+### Regla 3 · Estados (anti-doble-submit + feedback)
+
+Todo botón crítico (mutación de datos) usa `<ActionButton>` que garantiza:
+
+```
+idle → loading (disabled, spinner inline)
+     → success (verde, flash 2.5s) → desmonte por revalidate
+     → error (vuelve a idle, error en banner separado)
+```
+
+Disabled durante loading **y** success → segundo click es no-op.
+
+### Regla 4 · Trazabilidad visual (rastro de la acción)
+
+Toda acción crítica debe dejar rastro visible al operador para el caso
+"alguien me interrumpió mientras la disparé". Ver sección "Trazabilidad
+visual" arriba. Mínimo:
+
+1. Botón cambia a verde 2.5s ("Enviado al cliente") · vía ActionButton.
+2. Toast en bottom-right con resumen + link al destino · vía useToast.
+3. Highlight de row en el listado destino · vía useRowHighlight.
+
+### Regla 5 · Patrones avanzados disponibles
+
+| Patrón | Cuándo |
+|---|---|
+| `<ActionButton>` | Default · acción única con anti-doble-submit |
+| `<SplitActionButton>` | Cuando hay 2-4 variantes de la misma acción (ej: "Crear y cerrar" vs "Crear y dejar abierta") · con **memoria** de última opción usada |
+| Confirm inline | "Convertir a embarque → ¿Sí/No?" · para acciones que dispararían algo grande sin doble-check |
+| Modal de confirmación | Para destructivos irreversibles · "¿Eliminar definitivamente?" |
+
+### Regla 6 · Accesibilidad
+
+- `aria-busy={isPending}` durante loading.
+- `role="status"` + `aria-live="polite"` para anuncios de cambio de estado.
+- `outline` visible al focus (auto vía `.studio-btn:focus-visible`).
+- Tamaño mínimo touch target: 32×32px.
+- Teclado: `Enter`/`Space` activa · `Esc` cancela menús abiertos.
+- En menús desplegables: click afuera cierra · `Tab` navega entre items.
+
+### Regla 7 · Copy
+
+- **Sentence case**, no UPPERCASE: "Enviar cotización" ✓ · "ENVIAR" ✗.
+- Verbos directos: "Enviar", "Crear", "Aceptar", "Marcar despachado".
+- **Cero emojis decorativos** en CTAs. (✓ check icon vía Icon.check sí.)
+- Castellano rioplatense/venezolano: "Enviá", "Marcá", "Aceptá".
+- Estado loading: gerundio + ellipsis: "Enviando…", "Procesando…",
+  "Marcando…".
+- Estado success: participio pasado: "Enviado al cliente",
+  "Marcado despachado", "Aceptada".
+
+### Regla 8 · Posicionamiento en el footer/header
+
+- **Primary a la derecha** del bloque de botones.
+- **Cancelar/secundarios a la izquierda**.
+- **Destructive separado** del bloque principal (no al lado de positive)
+  · evita clicks accidentales.
+- Si hay split button con memoria, el botón principal va a la derecha
+  (siguiendo la regla anterior) y el chevron va al lado derecho del
+  principal.
+
+### Componentes que implementan estas 8 reglas
+
+- `app/studio/_components/ui/ActionButton.tsx` · Reglas 1-3, 4 (parcial), 6, 7.
+- `app/studio/_components/ui/SplitActionButton.tsx` · Reglas 1-7 + memoria.
+- `app/studio/_components/ui/ToastProvider.tsx` · Regla 4.
+- `app/studio/_components/ui/useRowHighlight.ts` · Regla 4.
+
+Si vas a usar `<button>` HTML crudo en lugar de estos componentes, debés
+justificar por qué en el PR description y validar las 8 reglas a mano
+en el UI/UX review.
+
 ## Convenciones operativas
 
 - **MARKBOX** = ID estable de cliente, formato `DTD-NNNN`. Autogenerado por
