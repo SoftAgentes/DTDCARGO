@@ -111,7 +111,7 @@ export function ChinaSupplierClip() {
         ¿No tienes MARKBOX todavía?{" "}
         <a
           href={`https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
-            "Hola DTD-CARGO, quiero registrarme y obtener mi código MARKBOX."
+            "Hola DTD Cargo, quiero registrarme y obtener mi código MARKBOX."
           )}`}
           target="_blank"
           rel="noopener noreferrer"

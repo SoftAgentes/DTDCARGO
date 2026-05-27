@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s · DTD Operario",
     default: "DTD Operario · DoorTuDoor",
   },
-  description: "App de recepción de mercadería · DTD·CARGO",
+  description: "App de recepción de mercadería · DTD Cargo",
   manifest: "/m/manifest.json",
   applicationName: "DTD Operario",
   appleWebApp: {

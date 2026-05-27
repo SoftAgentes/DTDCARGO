@@ -146,7 +146,7 @@ export default function OperarioLoginPage() {
               textTransform: "uppercase",
             }}
           >
-            DTD·CARGO · 操作员
+            DTD Cargo · 操作员
           </div>
           <h1
             style={{
@@ -279,7 +279,7 @@ export default function OperarioLoginPage() {
       >
         {t(lang, "Wang Hua · 王华 · YIW-A1", "Wang Hua · 王华 · YIW-A1")}
         <br />
-        v1.0 · DTD·CARGO 2026
+        v1.0 · DTD Cargo 2026
       </div>
     </div>
   );

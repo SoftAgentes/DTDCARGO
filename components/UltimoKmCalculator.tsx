@@ -76,7 +76,7 @@ export function UltimoKmCalculator() {
         <span className="eyebrow inline-flex">
           <span className="mr-1.5">🚛</span> Último km en Venezuela (opcional)
         </span>
-        <span className="text-[11.5px] text-grey-500">Estimación referencial · DTD-CARGO</span>
+        <span className="text-[11.5px] text-grey-500">Estimación referencial · DTD Cargo</span>
       </div>
 
       <p className="text-[13px] text-grey-500 leading-[1.5] mb-5">

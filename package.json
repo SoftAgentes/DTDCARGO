@@ -2,7 +2,7 @@
   "name": "dtdcargo-web",
   "version": "0.1.0",
   "private": true,
-  "description": "Sitio web público de DTD·CARGO — cliente del ERP HailuWay, totalmente aislado.",
+  "description": "Sitio web público de DTD Cargo — cliente del ERP HailuWay, totalmente aislado.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

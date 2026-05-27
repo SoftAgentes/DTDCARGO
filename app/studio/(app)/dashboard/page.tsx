@@ -148,7 +148,7 @@ export default async function DashboardPage() {
         >
           Operando como{" "}
           <strong style={{ color: "var(--ink)" }}>
-            {tenant?.display_name ?? "DTD·CARGO"}
+            {tenant?.display_name ?? "DTD Cargo"}
           </strong>
           {" · "}
           Moneda base:{" "}
@@ -308,7 +308,7 @@ function ActiveOperationCard({ total }: { total: number }) {
         >
           <strong style={{ color: "var(--ink)" }}>{total}</strong>{" "}
           {total === 1 ? "envío activo" : "envíos activos"} en el tenant
-          DTD·CARGO.
+          DTD Cargo.
         </div>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

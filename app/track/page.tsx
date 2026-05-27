@@ -7,10 +7,10 @@ import { TrackInput } from "@/components/TrackInput";
 export const metadata: Metadata = {
   title: "Rastrear envío",
   description:
-    "Ingresa tu BL, AWB o código DTDU y consulta el estado en tiempo real de tu envío DTD·CARGO. Sin registro, sin fricción.",
+    "Ingresa tu BL, AWB o código DTDU y consulta el estado en tiempo real de tu envío DTD Cargo. Sin registro, sin fricción.",
   alternates: { canonical: "/track" },
   openGraph: {
-    title: "Rastrear envío · DTD·CARGO",
+    title: "Rastrear envío · DTD Cargo",
     url: "/track",
   },
 };

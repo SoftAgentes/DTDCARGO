@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     "16 servicios entre Yiwu y Valencia: FCL con BL propio, consolidación LCL, sourcing, QC, courier aéreo, registro de marca, visado, aduana y last mile.",
   alternates: { canonical: "/servicios" },
   openGraph: {
-    title: "Servicios · DTD·CARGO",
+    title: "Servicios · DTD Cargo",
     url: "/servicios",
   },
 };
@@ -252,7 +252,7 @@ export default function ServiciosPage() {
                   ¿No sabes con qué término te conviene operar?{" "}
                   <a
                     href={buildWhatsAppLink(
-                      "Hola DTD-CARGO, quiero asesoría para elegir el Incoterm correcto para mi operación."
+                      "Hola DTD Cargo, quiero asesoría para elegir el Incoterm correcto para mi operación."
                     )}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -379,7 +379,7 @@ function ServiceCard({ service }: { service: Service }) {
       <div className="mt-5 flex gap-3 pt-5 border-t border-grey-200/30">
         <a
           href={buildWhatsAppLink(
-            `Hola DTD-CARGO, me interesa el servicio: ${service.title}. ¿Me pueden cotizar?`
+            `Hola DTD Cargo, me interesa el servicio: ${service.title}. ¿Me pueden cotizar?`
           )}
           target="_blank"
           rel="noopener noreferrer"

@@ -10,10 +10,10 @@ import { WhatsAppIcon, MapPinIcon, PhoneIcon, MailIcon } from "@/components/Icon
 export const metadata: Metadata = {
   title: "Contacto",
   description:
-    "Habla con DTD-CARGO. Oficinas propias en Yiwu (China) y Valencia (Venezuela). WhatsApp directo, info@dtdcargo.com, respuesta en menos de 24 horas.",
+    "Habla con DTD Cargo. Oficinas propias en Yiwu (China) y Valencia (Venezuela). WhatsApp directo, info@dtdcargo.com, respuesta en menos de 24 horas.",
   alternates: { canonical: "/contacto" },
   openGraph: {
-    title: "Contacto · DTD·CARGO",
+    title: "Contacto · DTD Cargo",
     url: "/contacto",
   },
 };
@@ -132,7 +132,7 @@ export default function ContactoPage() {
                 </p>
                 <a
                   href={`https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
-                    "Hola DTD-CARGO, quería consultar por un envío."
+                    "Hola DTD Cargo, quería consultar por un envío."
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"

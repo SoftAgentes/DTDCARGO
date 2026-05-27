@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# DTD·CARGO — Claude Code instructions
+# DTD Cargo — Claude Code instructions
 
 ## Arquitectura del repo (leer primero)
 
@@ -10,7 +10,7 @@ Este repo aloja **dos productos** en el mismo Next.js app:
 
 | Carpeta | Producto | Backend |
 |---|---|---|
-| `app/` (raíz: `cotizar`, `track`, `contacto`, `calculadora`, `servicios`, `noticias`, `glosario`) | **Sitio público DTD·CARGO** (marketing + tracking público) | **HTTP-only** contra ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`). Hoy con mocks hasta que el ERP exponga endpoints. |
+| `app/` (raíz: `cotizar`, `track`, `contacto`, `calculadora`, `servicios`, `noticias`, `glosario`) | **Sitio público DTD Cargo** (marketing + tracking público) | **HTTP-only** contra ERP HailuWay externo (`NEXT_PUBLIC_HAILUWAY_API`). Hoy con mocks hasta que el ERP exponga endpoints. |
 | `app/studio/(app)/` (20+ módulos: dashboard, tracking, calendario, clientes, cotizador, embarques, tarifas, almacén CN/VE, SENIAT, TMS, etc.) | **DTD Studio ERP** (operación interna — "DoorTuDoor") | **Supabase propio** (`@/lib/db/server`) + Server Actions. |
 | `app/api/studio/` | Endpoints internos del Studio | Supabase propio. |
 
@@ -165,7 +165,7 @@ pnpm generate:types       # tipos de Payload
 Ver `.env.example`. Las que usa el sitio:
 
 - `NEXT_PUBLIC_HAILUWAY_API` — base URL del ERP (HTTP only).
-- `DTD_API_KEY` — API key emitida por el ERP a DTD·CARGO como tenant.
+- `DTD_API_KEY` — API key emitida por el ERP a DTD Cargo como tenant.
 - `NEXT_PUBLIC_WHATSAPP_NUMBER` — número WhatsApp Business.
 - `NEXT_PUBLIC_CONTACT_EMAIL` — email comercial mostrado en footer.
 - `NEXT_PUBLIC_SITE_URL` — dominio canónico (default `https://dtdcargo.com`).

@@ -124,7 +124,7 @@ function AcceptInvitationContainer({ children }: { children: React.ReactNode }) 
               color: "var(--ink-soft, #6B6B6B)",
             }}
           >
-            DTD·CARGO · Equipo
+            DTD Cargo · Equipo
           </span>
           <h1
             style={{

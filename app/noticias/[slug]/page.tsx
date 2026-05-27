@@ -178,7 +178,7 @@ function ComingSoonBlock({ post }: { post: NewsPost }) {
       </p>
       <a
         href={buildWhatsAppLink(
-          `Hola DTD-CARGO, vi el artículo "${post.title}" en su blog y quiero saber más al respecto antes de que lo publiquen.`,
+          `Hola DTD Cargo, vi el artículo "${post.title}" en su blog y quiero saber más al respecto antes de que lo publiquen.`,
         )}
         target="_blank"
         rel="noopener noreferrer"

@@ -30,7 +30,7 @@ const ACCESS_DENIED_HTML = `<!doctype html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Acceso restringido — DTD-CARGO</title>
+  <title>Acceso restringido — DTD Cargo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700&family=Archivo+Black&display=swap" rel="stylesheet">
@@ -47,7 +47,7 @@ const ACCESS_DENIED_HTML = `<!doctype html>
 </head>
 <body>
   <div class="card">
-    <span class="badge">DTD·CARGO · Interno</span>
+    <span class="badge">DTD Cargo · Interno</span>
     <h1>Acceso <span>restringido</span></h1>
     <p>Esta presentación interna requiere un token de acceso.</p>
     <p>Si formás parte del equipo DTD, pedile el link completo a Sam o consultá el archivo standalone que se compartió por WhatsApp.</p>

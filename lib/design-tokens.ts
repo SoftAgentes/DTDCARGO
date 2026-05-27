@@ -1,5 +1,5 @@
 /**
- * DTD·CARGO design tokens — fuente: _handoff_preview/dtd-cargo/project/Brand Book DTD.html
+ * DTD Cargo design tokens — fuente: _handoff_preview/dtd-cargo/project/Brand Book DTD.html
  * + Brochure_DTD_Cargo_China_Venezuela.docx (contenido editorial).
  *
  * Estos tokens espejan 1:1 las CSS custom properties definidas en globals.css.
@@ -545,7 +545,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "Delivered Duty Paid · Entrega con derechos pagados",
     category: "modalidad",
     body: [
-      'Sigla en inglés que significa "Entrega con Derechos Pagados". Es un Incoterm internacional bajo el cual el vendedor —DTD·CARGO— se hace cargo de todos los costos del shipment: flete internacional, despacho aduanero, aranceles, impuestos y entrega final en el domicilio del comprador.',
+      'Sigla en inglés que significa "Entrega con Derechos Pagados". Es un Incoterm internacional bajo el cual el vendedor —DTD Cargo— se hace cargo de todos los costos del shipment: flete internacional, despacho aduanero, aranceles, impuestos y entrega final en el domicilio del comprador.',
       "Es el más completo de los 11 Incoterms 2020 — cubre absolutamente todo del lado del vendedor. Tú recibes la mercancía y no pagas nada en destino.",
     ],
     analogy: {
@@ -589,7 +589,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "Modalidad de pago",
     category: "modalidad",
     body: [
-      "Indica cuándo pagas a DTD·CARGO: al confirmar el envío, antes de que la carga salga. Esto es lo que nos permite cubrir por adelantado los aranceles e impuestos para que tu mercancía llegue sin trabas ni cobros sorpresa.",
+      "Indica cuándo pagas a DTD Cargo: al confirmar el envío, antes de que la carga salga. Esto es lo que nos permite cubrir por adelantado los aranceles e impuestos para que tu mercancía llegue sin trabas ni cobros sorpresa.",
     ],
     analogy: {
       label: "Por qué importa",
@@ -617,7 +617,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     category: "documento",
     body: [
       "Documento legal emitido por la naviera que actúa como contrato de transporte, recibo de la mercancía y título de propiedad de la carga. Indica quién es el shipper (exportador), el consignee (destinatario), y describe la mercancía.",
-      "Quien tiene el BL original tiene el derecho a retirar la carga en destino. Por eso emitir el BL a nombre del proveedor en China expone al cliente a desvíos — DTD·CARGO emite los BL a nuestro nombre como exportador, con tu empresa como consignatario único.",
+      "Quien tiene el BL original tiene el derecho a retirar la carga en destino. Por eso emitir el BL a nombre del proveedor en China expone al cliente a desvíos — DTD Cargo emite los BL a nuestro nombre como exportador, con tu empresa como consignatario único.",
     ],
   },
   {
@@ -669,7 +669,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "DTD Universal · formato propio",
     category: "tracking",
     body: [
-      "Código interno de DTD·CARGO que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo usás en /track para ver el estado en tiempo real.",
+      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo usás en /track para ver el estado en tiempo real.",
       "El DTDU agrupa el BL marítimo, los documentos de aduana y el last mile bajo un solo identificador — más cómodo que recordar múltiples números.",
     ],
   },
@@ -679,7 +679,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "Código de cliente · formato DTD-XXXX",
     category: "tracking",
     body: [
-      "Código único que se le asigna a cada cliente al darse de alta con DTD·CARGO. Sirve para identificar quién es el dueño de cada caja que llega a nuestra bodega en Yiwu.",
+      "Código único que se le asigna a cada cliente al darse de alta con DTD Cargo. Sirve para identificar quién es el dueño de cada caja que llega a nuestra bodega en Yiwu.",
       "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu MARKBOX. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
     ],
     analogy: {
