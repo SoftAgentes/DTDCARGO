@@ -9,6 +9,7 @@
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
+import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
@@ -54,6 +55,11 @@ export default async function StudioAppLayout({
     timezone: profile?.timezone ?? null,
   };
 
+  // Feature flags del tenant (Tier 1.2). El sidebar los usa para esconder
+  // módulos que el tenant no quiere ver (ej: seniat OFF, no-olvidar OFF, etc.).
+  // Si falla, cae a defaults del handoff v1.7.
+  const featureFlags = await listFeatureFlags(supabase);
+
   return (
     <WiringProvider profileInitial={profileInitial}>
       <div
@@ -64,7 +70,7 @@ export default async function StudioAppLayout({
           color: "var(--ink)",
         }}
       >
-        <StudioSidebar />
+        <StudioSidebar featureFlags={featureFlags} />
 
         <main
           style={{

@@ -15,6 +15,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon, type IconName } from "../../_components/icons";
 import { BrandMark } from "@/components/BrandMark";
+import {
+  FEATURE_FLAG_DEFAULTS,
+  isModuleEnabled,
+  type FeatureFlags,
+} from "@/lib/studio/feature-flags-types";
 
 type Group = "OPERACIÓN" | "COMERCIAL" | "FINANZAS" | "SISTEMA";
 
@@ -78,8 +83,15 @@ const GROUPS_STORAGE_KEY = "studio_sidebar_groups";
  */
 type OpenGroups = Partial<Record<Group, boolean>>;
 
-export function StudioSidebar() {
+interface Props {
+  /** Feature flags del tenant · sidebar oculta módulos cuyo flag esté OFF. */
+  featureFlags?: FeatureFlags;
+}
+
+export function StudioSidebar({ featureFlags }: Props = {}) {
   const pathname = usePathname();
+  // Fallback a defaults del handoff si el layout no pasó flags (SSR / tests).
+  const flags = featureFlags ?? FEATURE_FLAG_DEFAULTS;
   const [collapsed, setCollapsed] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [openGroups, setOpenGroups] = useState<OpenGroups>({});
@@ -127,11 +139,16 @@ export function StudioSidebar() {
   const isActive = (slug: string) =>
     pathname === slug || pathname.startsWith(slug + "/");
 
+  // Filtrar módulos por feature flags ANTES de agrupar (esconder lo
+  // desactivado del tenant). Módulos sin entry en MODULE_FLAG_MAP =
+  // siempre visibles (core).
+  const visibleModules = MODULES.filter((m) => isModuleEnabled(m.id, flags));
+
   const grouped = GROUP_ORDER.map((g) => ({
     group: g,
-    items: MODULES.filter((m) => m.group === g),
+    items: visibleModules.filter((m) => m.group === g),
     isOpen: openGroups[g] !== false, // default abierto
-  }));
+  })).filter((g) => g.items.length > 0); // ocultar grupos vacíos
 
   return (
     <aside
