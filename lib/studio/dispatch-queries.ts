@@ -461,6 +461,8 @@ export type DispatchTopCity = {
   city: string;
   ods: number;
   kg: number;
+  /** Cantidad de paquetes en ODs entregadas que excedieron SLA de la ruta. */
+  late: number;
 };
 
 export async function listDispatchTopCities(
@@ -472,7 +474,9 @@ export async function listDispatchTopCities(
 
   const { data, error } = await supabase
     .from("dispatch_order_packages")
-    .select("city, weight_kg, boxes_shipped, boxes_total, od:dispatch_orders!od_id(created_at, tenant_id)")
+    .select(
+      "city, weight_kg, boxes_shipped, boxes_total, od:dispatch_orders!od_id(created_at, tenant_id, status, departed_at, completed_at, route:dispatch_routes!route_id(sla_hours))",
+    )
     .gte("od.created_at", since)
     .limit(5000);
 
@@ -483,15 +487,50 @@ export async function listDispatchTopCities(
     weight_kg: number;
     boxes_shipped: number;
     boxes_total: number;
-    od: { created_at: string } | { created_at: string }[] | null;
+    od:
+      | {
+          created_at: string;
+          status: DispatchOrderStatus;
+          departed_at: string | null;
+          completed_at: string | null;
+          route: { sla_hours: number | null } | { sla_hours: number | null }[] | null;
+        }
+      | {
+          created_at: string;
+          status: DispatchOrderStatus;
+          departed_at: string | null;
+          completed_at: string | null;
+          route: { sla_hours: number | null } | { sla_hours: number | null }[] | null;
+        }[]
+      | null;
   };
 
   const map = new Map<string, DispatchTopCity>();
   for (const r of (data as Row[] | null) ?? []) {
-    const existing = map.get(r.city) ?? { city: r.city, ods: 0, kg: 0 };
+    const existing = map.get(r.city) ?? { city: r.city, ods: 0, kg: 0, late: 0 };
     existing.ods += 1;
     const ratio = r.boxes_shipped / r.boxes_total;
     existing.kg += Number(r.weight_kg ?? 0) * ratio;
+
+    // Calcular si este paquete cayó en una OD entregada tarde
+    const od = Array.isArray(r.od) ? r.od[0] : r.od;
+    if (
+      od &&
+      (od.status === "entregada" || od.status === "cerrada") &&
+      od.departed_at &&
+      od.completed_at
+    ) {
+      const route = Array.isArray(od.route) ? od.route[0] : od.route;
+      const sla = route?.sla_hours;
+      if (sla != null) {
+        const hours =
+          (new Date(od.completed_at).getTime() -
+            new Date(od.departed_at).getTime()) /
+          (1000 * 60 * 60);
+        if (hours > sla) existing.late += 1;
+      }
+    }
+
     map.set(r.city, existing);
   }
 

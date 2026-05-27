@@ -72,8 +72,10 @@ export default async function DispatchDashboardPage({
               maxWidth: "76ch",
             }}
           >
-            Métricas operativas de las Órdenes de Despacho. Mirá qué rutas son
-            más eficientes, dónde hay demoras y volumen por ciudad destino.
+            Métricas operativas de los últimos{" "}
+            {period === "7d" ? "7 días" : period === "30d" ? "30 días" : "90 días"}.
+            Mirá qué rutas son más eficientes, dónde hay demoras y volumen por
+            ciudad destino.
           </p>
         </div>
       </div>
