@@ -13,6 +13,7 @@ import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
+import { ToastProvider } from "../_components/ui/ToastProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
 import { BugTechCaptureProvider } from "../_components/bug-reporter/BugTechCaptureProvider";
 
@@ -72,44 +73,46 @@ export default async function StudioAppLayout({
   const featureFlags = await listFeatureFlags(supabase);
 
   return (
-    <WiringProvider profileInitial={profileInitial}>
-      <div
-        style={{
-          display: "flex",
-          minHeight: "100vh",
-          background: "var(--bg-base)",
-          color: "var(--ink)",
-        }}
-      >
-        <StudioSidebar featureFlags={featureFlags} />
-
-        <main
+    <ToastProvider>
+      <WiringProvider profileInitial={profileInitial}>
+        <div
           style={{
-            flex: 1,
             display: "flex",
-            flexDirection: "column",
-            minWidth: 0,
+            minHeight: "100vh",
+            background: "var(--bg-base)",
+            color: "var(--ink)",
           }}
         >
-          <StudioTopbar userEmail={user.email ?? ""} />
-          <div
+          <StudioSidebar featureFlags={featureFlags} />
+
+          <main
             style={{
               flex: 1,
-              padding: "var(--s-6) var(--s-8)",
-              maxWidth: "var(--content-max)",
-              width: "100%",
-              margin: "0 auto",
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
             }}
           >
-            {children}
-          </div>
-        </main>
-      </div>
+            <StudioTopbar userEmail={user.email ?? ""} />
+            <div
+              style={{
+                flex: 1,
+                padding: "var(--s-6) var(--s-8)",
+                maxWidth: "var(--content-max)",
+                width: "100%",
+                margin: "0 auto",
+              }}
+            >
+              {children}
+            </div>
+          </main>
+        </div>
 
-      {/* Bug Reporter · SDD-0036 · visible en todo el Studio */}
-      {/* Provider (sin UI) instala listeners de error/network para tech_data */}
-      <BugTechCaptureProvider />
-      <BugFABButton buildSha={buildSha} />
-    </WiringProvider>
+        {/* Bug Reporter · SDD-0036 · visible en todo el Studio */}
+        {/* Provider (sin UI) instala listeners de error/network para tech_data */}
+        <BugTechCaptureProvider />
+        <BugFABButton buildSha={buildSha} />
+      </WiringProvider>
+    </ToastProvider>
   );
 }

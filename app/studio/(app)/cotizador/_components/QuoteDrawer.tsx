@@ -14,6 +14,7 @@
  */
 
 import { useActionState, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import {
   PACKAGING_OPTIONS,
   calcQuoteTotal,
@@ -33,6 +34,7 @@ import {
 } from "../actions";
 import type { Rate } from "@/lib/studio/rate-types";
 import { Icon } from "@/app/studio/_components/icons";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 
 interface Props {
   mode: "create" | "edit";
@@ -52,6 +54,8 @@ const SERVICE_CARDS: { value: ShipmentService; label: string; hint: string }[] =
 ];
 
 export function QuoteDrawer({ mode, quote, onClose }: Props) {
+  const router = useRouter();
+  const toast = useToast();
   const action =
     mode === "edit" && quote
       ? updateQuote.bind(null, quote.id)
@@ -91,8 +95,28 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
   const mode$ = quotePriceMode(service);
 
   useEffect(() => {
-    if (state.ok) onClose();
-  }, [state.ok, onClose]);
+    if (!state.ok) return;
+    // Trazabilidad visual · cuando se CREA, navegamos al listado con
+    // ?highlight=<code> y disparamos toast. Cuando se EDITA, mostramos
+    // un toast más suave sin navegación (el detail page revalida sola).
+    if (mode === "create" && state.createdCode) {
+      const code = state.createdCode;
+      toast.success(`Cotización ${code} creada`, {
+        link: {
+          href: `/studio/cotizador/${code}`,
+          label: "Abrir detalle",
+        },
+      });
+      // tone=warm porque la entidad es NUEVA en el listado · regla 1 del
+      // principio "Trazabilidad visual".
+      router.push(
+        `/studio/cotizador?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
+      );
+    } else if (mode === "edit" && quote) {
+      toast.success(`Cotización ${quote.quote_code} actualizada`);
+    }
+    onClose();
+  }, [state.ok, state.createdCode, mode, quote, router, toast, onClose]);
 
   // Lookup automático de rate al cambiar destino
   useEffect(() => {

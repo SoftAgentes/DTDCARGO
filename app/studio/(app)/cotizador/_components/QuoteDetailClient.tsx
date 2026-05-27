@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   canConvertToShipment,
   isEditable,
@@ -30,6 +31,7 @@ const SENT_SUCCESS_MS = 2500;
 
 export function QuoteDetailClient({ quote }: { quote: Quote }) {
   const router = useRouter();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmConvert, setConfirmConvert] = useState(false);
@@ -82,6 +84,15 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
             onSuccess={() => {
               setJustSent(true);
               setTimeout(() => setJustSent(false), SENT_SUCCESS_MS);
+              toast.success(
+                `Cotización ${quote.quote_code} enviada al cliente`,
+                {
+                  link: {
+                    href: `/studio/cotizador?status=sent&highlight=${encodeURIComponent(quote.quote_code)}`,
+                    label: "Ver en Enviadas",
+                  },
+                },
+              );
             }}
             onError={setError}
           />
@@ -99,6 +110,14 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
                 setError(null);
                 return markQuoteRejected(quote.id);
               }}
+              onSuccess={() =>
+                toast.info(`Cotización ${quote.quote_code} marcada como rechazada`, {
+                  link: {
+                    href: `/studio/cotizador?status=rejected&highlight=${encodeURIComponent(quote.quote_code)}`,
+                    label: "Ver en Rechazadas",
+                  },
+                })
+              }
               onError={setError}
             />
             <ActionButton
@@ -112,6 +131,17 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
                 setError(null);
                 return markQuoteAccepted(quote.id);
               }}
+              onSuccess={() =>
+                toast.success(
+                  `Cotización ${quote.quote_code} aceptada · lista para convertir`,
+                  {
+                    link: {
+                      href: `/studio/cotizador?status=accepted&highlight=${encodeURIComponent(quote.quote_code)}`,
+                      label: "Ver en Aceptadas",
+                    },
+                  },
+                )
+              }
               onError={setError}
             />
           </>
@@ -141,8 +171,17 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
                   const r = await convertQuoteToShipment(quote.id);
                   if (r.error) return { error: r.error };
                   if (r.shipmentId) {
-                    // Navega antes de retornar · el botón se desmonta con la
-                    // página, no necesita flash de success.
+                    toast.success(
+                      `Cotización ${quote.quote_code} convertida a embarque`,
+                      {
+                        link: {
+                          href: `/studio/tracking/${r.shipmentId}`,
+                          label: "Ver embarque",
+                        },
+                      },
+                    );
+                    // Navega al detalle del shipment · highlight no aplica
+                    // acá porque no estamos en el listado.
                     router.push(`/studio/tracking/${r.shipmentId}`);
                   }
                   return undefined;

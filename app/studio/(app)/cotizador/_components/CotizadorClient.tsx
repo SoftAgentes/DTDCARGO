@@ -18,6 +18,7 @@ import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import type { QuoteFilters } from "@/lib/studio/quote-queries";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { QuoteDrawer } from "./QuoteDrawer";
 
 export function CotizadorClient({
@@ -209,6 +210,11 @@ export function CotizadorClient({
 }
 
 function QuotesTable({ quotes }: { quotes: Quote[] }) {
+  // Trazabilidad visual · highlight de la row recién creada o mutada
+  // (lee ?highlight=Q-2026-XXXX&hl-tone=warm|success del URL, hace scroll
+  // condicional y aplica .studio-row-flash-warm/-success). Ver
+  // app/studio/CLAUDE.md sección "Trazabilidad visual".
+  const flashClassFor = useRowHighlight();
   return (
     <div
       style={{
@@ -249,7 +255,8 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
           <Link
             key={quote.id}
             href={`/studio/cotizador/${quote.quote_code}`}
-            className="studio-tracking-row"
+            data-row-id={quote.quote_code}
+            className={`studio-tracking-row ${flashClassFor(quote.quote_code)}`.trim()}
             style={{
               display: "grid",
               gridTemplateColumns: "130px 1.4fr 140px 1.2fr 80px 110px 110px 110px",

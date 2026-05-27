@@ -226,6 +226,127 @@ inline via `.studio-spin` (keyframe `studio-spin` definido en `studio.css`).
 - `.studio-label` · label estándar de form
 - `.studio-display` · Archivo Black para títulos
 - `.studio-eyebrow` · uppercase tracking-wide
+- `.studio-row-flash` · highlight transitorio de row tras mutación (ver
+  sección "Trazabilidad visual" debajo)
+
+## Trazabilidad visual · principio de UX del Studio
+
+> El operador típico de DTD trabaja en el Studio mientras lo interrumpen
+> por WhatsApp, teléfono o cliente presencial. Cuando vuelve a la pantalla,
+> tiene que poder retomar el contexto en 1-2 segundos. **Cualquier acción
+> que muta datos debe dejar un rastro visual persistente** que sobreviva
+> a la interrupción.
+
+Esto no es opcional ni decorativo. Es **estándar del Studio aplicado a
+todos los módulos** (Cotizador, Tracking, Clientes, CN, Expenses, Bugs,
+Usuarios, TMS, Mailing, etc.). En la industria se llama "affordance
+trails" / "motion-aware feedback".
+
+### Las 3 reglas
+
+1. **Crear → navegar al listado + highlight warm 4s + toast**.
+   Toda acción que crea una nueva row en un listado (`+ Nueva cotización`,
+   `+ Nuevo cliente`, `+ Nuevo embarque`, etc.) debe:
+   - Navegar al listado con `?highlight=<id>&hl-tone=warm`.
+   - Disparar `toast.success(...)` con link opcional al detalle.
+   - La row aparece con fondo cálido (amarillo) durante 4s con fade-out.
+   - Es el ÚNICO caso donde se navega automático.
+   - Implementación: `useRowHighlight()` hook + clase
+     `.studio-row-flash-warm`.
+
+2. **Transición de state (sin moverse) → highlight success + toast**.
+   Toda acción que cambia el state de una entidad pero el operador queda
+   en la misma vista (`enviar`, `aceptar`, `tomar bug`, etc.) debe disparar:
+   - Highlight verde de la row durante 4s (si el listado está visible),
+     vía clase `.studio-row-flash-success`.
+   - `<ActionToast>` con resumen + link al filtro nuevo
+     (`?status=sent&highlight=...&hl-tone=success`).
+   - NO navegamos al operador · él decide si clickea el link.
+
+3. **Acción saca la row de la vista actual → toast con link es la traza**.
+   Si la acción mueve la entidad a un filtro/vista donde el operador NO
+   está mirando (ej: filtro actual = "Borrador" y la cotización pasó a
+   "Enviada" — ya no aparece en la lista visible), el toast es la
+   **ÚNICA** forma de trazabilidad disponible. **No navegamos automático**.
+   El toast debe:
+   - Decir qué pasó y dónde quedó (`"Cotización Q-... enviada · Ver en
+     Enviadas"`).
+   - El link al nuevo destino debe incluir `?highlight=<id>&hl-tone=success`
+     para que al llegar el operador vea la row resaltada.
+
+### Componentes que implementan esto
+
+- `app/studio/_components/ui/useRowHighlight.ts` · hook que lee
+  `?highlight=<id>` y `?hl-tone=warm|success` del URL. Devuelve
+  `(id) => string` con la clase CSS que corresponde:
+  ```tsx
+  const flashClassFor = useRowHighlight();
+  <tr data-row-id={q.code} className={`base ${flashClassFor(q.code)}`} />
+  ```
+  Hace scroll-into-view condicional (solo si la row no está visible) +
+  respeta `prefers-reduced-motion`. Tras N ms hace `router.replace` para
+  limpiar los params.
+
+- `app/studio/_components/ui/ToastProvider.tsx` · context provider que
+  va en el layout. Expone hook `useToast()` con `success/info/error/warning`.
+  Renderiza portal en bottom-right (con offset a la izquierda del BugFAB).
+  Cola max 3 visibles. Pausa al hover · cleanup automático en unmount.
+
+- `.studio-row-flash-warm` · creación (amarillo suave, regla 1).
+- `.studio-row-flash-success` · cambio de state (verde, reglas 2 y 3).
+
+### Patrón del lado del caller
+
+```tsx
+// CREAR (regla 1) · navegamos + highlight warm + toast.
+const result = await createQuoteAction(formData);
+if (result.ok) {
+  toast.success(`Cotización ${result.quoteCode} creada`, {
+    link: { href: `/studio/cotizador/${result.quoteCode}`, label: "Abrir detalle" },
+  });
+  router.push(`/studio/cotizador?highlight=${result.quoteCode}&hl-tone=warm`);
+}
+
+// TRANSICIÓN DE STATE (reglas 2 y 3) · no navegamos · toast con link.
+onSuccess={() => {
+  toast.success(`Cotización ${quote.code} enviada al cliente`, {
+    link: {
+      href: `/studio/cotizador?status=sent&highlight=${quote.code}&hl-tone=success`,
+      label: "Ver en Enviadas",
+    },
+  });
+}}
+
+// En el LISTADO:
+const flashClassFor = useRowHighlight();
+{quotes.map(q => (
+  <tr
+    key={q.id}
+    data-row-id={q.code}
+    className={`base-row ${flashClassFor(q.code)}`.trim()}
+  >...</tr>
+))}
+```
+
+### Cuándo NO aplicar
+
+- Filtros y búsquedas (no mutan datos).
+- Navegación pura (links sin acción).
+- Operaciones puramente de lectura.
+- Toggle de UI (collapse, dark mode, expand row).
+- Acciones puramente client-side optimistic (likes, toggles que rebotan
+  al server — el highlight ya pasó cuando el server responde).
+- **Bulk operations**: un toast por item es spam. Usar **un solo toast
+  resumen** ("12 cotizaciones marcadas como vencidas · Ver en
+  Vencidas →").
+- **Auto-saves de formularios** mientras el operador tipea — sería ruido
+  visual constante.
+
+### Para nuevos módulos
+
+Al crear un módulo nuevo en el Studio, considerar de entrada cómo cumplir
+las 3 reglas. Si el módulo tiene listado + acciones, debe usar
+`useRowHighlight` y `useToast`. Esto se valida en el UI/UX review pre-merge.
 
 ## Convenciones operativas
 
