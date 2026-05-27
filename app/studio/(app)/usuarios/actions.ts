@@ -249,3 +249,50 @@ export async function revokeInvitationAction(
   revalidatePath("/studio/usuarios");
   return { ok: true };
 }
+
+// ─────────────────────────────────────────────────────────────
+// updateMyProfileAction · UPSERT del user_profile del logueado
+//
+// Permite que el user de la sesión actualice su first_name + last_name
+// (campos que aparecen en emails enviados — "Hola Sam Maan" en lugar
+// de "Hola hailuway.com@gmail.com"). UPSERT por user_id porque la row
+// puede no existir si el user nunca tocó su perfil.
+// ─────────────────────────────────────────────────────────────
+
+export async function updateMyProfileAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const firstName = ((formData.get("first_name") as string | null) ?? "").trim();
+  const lastName = ((formData.get("last_name") as string | null) ?? "").trim();
+
+  const fieldErrors: Record<string, string> = {};
+  if (firstName.length > 80) {
+    fieldErrors.first_name = "Máximo 80 caracteres";
+  }
+  if (lastName.length > 80) {
+    fieldErrors.last_name = "Máximo 80 caracteres";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
+  const { error } = await supabase.from("user_profiles").upsert(
+    {
+      user_id: userResp.user.id,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  if (error) {
+    return { error: `No se pudo guardar: ${error.message}` };
+  }
+
+  revalidatePath("/studio/usuarios");
+  return { ok: true, userId: userResp.user.id };
+}
