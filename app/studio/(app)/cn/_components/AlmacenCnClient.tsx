@@ -16,6 +16,8 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   HUB_GROUPS,
+  PAYMENT_STATUS_LABELS,
+  PAYMENT_STATUS_TONES,
   RECEIPT_STATUS_OPTIONS,
   isChinese,
   parseLangFromParam,
@@ -566,9 +568,24 @@ function ReceiptRow({
         {row.items_count}
       </span>
 
-      {/* Status */}
-      <span>
+      {/* Status + payment + destino · stacked */}
+      <span style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
         <ReceiptStatusBadge status={row.status} />
+        <Badge tone={PAYMENT_STATUS_TONES[row.payment_status]} size="sm">
+          {PAYMENT_STATUS_LABELS[row.payment_status]}
+        </Badge>
+        {row.destination_city && (
+          <span
+            style={{
+              font: "600 10.5px/1.2 var(--f-sans)",
+              color: "var(--ink-mute)",
+              letterSpacing: "0.02em",
+            }}
+            title={`Ciudad destino: ${row.destination_city}`}
+          >
+            → {row.destination_city}
+          </span>
+        )}
       </span>
 
       {/* Actions */}
