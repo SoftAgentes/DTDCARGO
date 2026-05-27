@@ -7,8 +7,9 @@
  * 5 screens: Home · Tracking · Clientes · Gastos (placeholder) · Más.
  */
 
-import { useMemo, useState } from "react";
+import { startTransition, useActionState, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -20,7 +21,20 @@ import {
   type ShipmentStatus,
 } from "@/lib/studio/shipment-types";
 import type { Client } from "@/lib/studio/client-types";
+import {
+  CATEGORY_ICONS,
+  CATEGORY_LABELS,
+  CATEGORY_OPTIONS,
+  CURRENCY_SYMBOL,
+  formatExpenseAmount,
+  type Expense,
+  type ExpenseActionState,
+  type ExpenseCategory,
+  type ExpenseCurrency,
+  type ExpenseMethod,
+} from "@/lib/studio/expense-types";
 import { signOut } from "@/app/studio/(app)/actions";
+import { createExpenseAction } from "../actions";
 
 // Shipment subset que devuelve listShipments (LIST_COLUMNS).
 // Mantengo solo los fields que la mobile UI muestra.
@@ -50,10 +64,19 @@ interface Props {
   user: UserInfo;
   shipments: MobileShipment[];
   clients: Client[];
+  expenses: Expense[];
+  expensesTodayUsd: number;
 }
 
-export function MobileErpClient({ user, shipments, clients }: Props) {
+export function MobileErpClient({
+  user,
+  shipments,
+  clients,
+  expenses,
+  expensesTodayUsd,
+}: Props) {
   const [tab, setTab] = useState<Tab>("home");
+  const [expenseModal, setExpenseModal] = useState(false);
 
   return (
     <div
@@ -70,15 +93,31 @@ export function MobileErpClient({ user, shipments, clients }: Props) {
 
       <main>
         {tab === "home" && (
-          <HomeScreen user={user} setTab={setTab} shipmentsCount={shipments.length} clientsCount={clients.length} />
+          <HomeScreen
+            user={user}
+            setTab={setTab}
+            shipmentsCount={shipments.length}
+            clientsCount={clients.length}
+            expensesTodayUsd={expensesTodayUsd}
+            onNewExpense={() => setExpenseModal(true)}
+          />
         )}
         {tab === "tracking" && <TrackingScreen shipments={shipments} />}
         {tab === "clients" && <ClientsScreen clients={clients} />}
-        {tab === "expenses" && <ExpensesScreen />}
+        {tab === "expenses" && (
+          <ExpensesScreen
+            expenses={expenses}
+            onNewExpense={() => setExpenseModal(true)}
+          />
+        )}
         {tab === "more" && <MoreScreen user={user} />}
       </main>
 
       <BottomNav tab={tab} setTab={setTab} />
+
+      {expenseModal && (
+        <NewExpenseModal onClose={() => setExpenseModal(false)} />
+      )}
     </div>
   );
 }
@@ -235,11 +274,15 @@ function HomeScreen({
   setTab,
   shipmentsCount,
   clientsCount,
+  expensesTodayUsd,
+  onNewExpense,
 }: {
   user: UserInfo;
   setTab: (t: Tab) => void;
   shipmentsCount: number;
   clientsCount: number;
+  expensesTodayUsd: number;
+  onNewExpense: () => void;
 }) {
   return (
     <div style={{ padding: "20px 18px" }}>
@@ -306,8 +349,8 @@ function HomeScreen({
         />
         <MobileMini
           label="Gastos hoy"
-          value="—"
-          sub="próximo SDD"
+          value={expensesTodayUsd > 0 ? `$${expensesTodayUsd}` : "$0"}
+          sub="USD equivalente"
           tone="info"
           onClick={() => setTab("expenses")}
         />
@@ -349,9 +392,9 @@ function HomeScreen({
           <QuickAction
             icon={Icon.plus}
             label="Cargar gasto"
-            desc="Próximo SDD"
+            desc="Monto + categoría"
             tone="wine"
-            onClick={() => setTab("expenses")}
+            onClick={onNewExpense}
           />
           <QuickAction
             icon={Icon.cog}
@@ -405,6 +448,7 @@ function HomeScreen({
 
 function TrackingScreen({ shipments }: { shipments: MobileShipment[] }) {
   const [search, setSearch] = useState("");
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     if (!search) return shipments;
@@ -417,6 +461,8 @@ function TrackingScreen({ shipments }: { shipments: MobileShipment[] }) {
         (s.destination ?? "").toLowerCase().includes(q),
     );
   }, [shipments, search]);
+
+  const detail = detailId ? shipments.find((s) => s.id === detailId) ?? null : null;
 
   return (
     <div style={{ padding: "20px 18px" }}>
@@ -460,20 +506,25 @@ function TrackingScreen({ shipments }: { shipments: MobileShipment[] }) {
             }
           />
         ) : (
-          filtered.map((s) => <ShipmentCard key={s.id} s={s} />)
+          filtered.map((s) => (
+            <ShipmentCard key={s.id} s={s} onClick={() => setDetailId(s.id)} />
+          ))
         )}
       </div>
+
+      {detail && <ShipmentSheet s={detail} onClose={() => setDetailId(null)} />}
     </div>
   );
 }
 
-function ShipmentCard({ s }: { s: MobileShipment}) {
+function ShipmentCard({ s, onClick }: { s: MobileShipment; onClick: () => void }) {
   const statusColor = STATUS_COLORS[s.status as ShipmentStatus] ?? "var(--ink-soft)";
   const service = SERVICE_LABELS[s.shipment_service];
 
   return (
-    <Link
-      href={`/studio/tracking/${s.id}`}
+    <button
+      type="button"
+      onClick={onClick}
       style={{
         padding: "14px 16px",
         background: "var(--bg-surface)",
@@ -483,7 +534,8 @@ function ShipmentCard({ s }: { s: MobileShipment}) {
             ? "4px solid var(--warning)"
             : "1px solid var(--border)",
         borderRadius: "var(--r-lg)",
-        textDecoration: "none",
+        textAlign: "left",
+        cursor: "pointer",
         display: "flex",
         flexDirection: "column",
         gap: 10,
@@ -558,28 +610,386 @@ function ShipmentCard({ s }: { s: MobileShipment}) {
           </span>
         </div>
       </div>
-    </Link>
+    </button>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// ShipmentSheet · bottom modal con mapa + detail + share
+// ─────────────────────────────────────────────────────────────
+
+function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void }) {
+  const statusColor = STATUS_COLORS[s.status as ShipmentStatus] ?? "var(--ink-soft)";
+  const service = SERVICE_LABELS[s.shipment_service];
+
+  const shareText = `Hola, tu embarque ${s.code}${s.client_name ? ` (${s.client_name})` : ""} está en estado: ${STATUS_LABELS[s.status as ShipmentStatus]}.${s.destination ? ` Destino: ${s.destination}.` : ""}`;
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+
+  // Progress mock derivado del status (0-100). Hasta tener tracking real
+  // de eventos, mapeamos status → progress estimado para visualizar el mapa.
+  const progress = statusToProgress(s.status as ShipmentStatus);
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,30,61,0.5)",
+        zIndex: 50,
+        display: "flex",
+        alignItems: "flex-end",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        role="dialog"
+        aria-label={`Detalle embarque ${s.code}`}
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          margin: "0 auto",
+          background: "var(--bg-surface)",
+          borderRadius: "20px 20px 0 0",
+          padding: 18,
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 18px)",
+          maxHeight: "88vh",
+          overflow: "auto",
+        }}
+      >
+        {/* Handle bar */}
+        <div
+          style={{
+            width: 40,
+            height: 4,
+            background: "var(--border)",
+            borderRadius: 999,
+            margin: "0 auto 14px",
+          }}
+        />
+
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: 14,
+            gap: 10,
+          }}
+        >
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <code
+              style={{
+                font: "900 18px/1 var(--f-mono)",
+                color: "var(--ink)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              {s.code}
+            </code>
+            <div
+              style={{
+                font: "600 13px/1.2 var(--f-sans)",
+                color: "var(--ink)",
+                marginTop: 6,
+              }}
+            >
+              {s.client_name ?? "—"}
+              {s.client_markbox && (
+                <span
+                  style={{
+                    color: "var(--wine)",
+                    font: "700 12px/1.2 var(--f-mono)",
+                    marginLeft: 8,
+                  }}
+                >
+                  {s.client_markbox}
+                </span>
+              )}
+            </div>
+          </div>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              padding: "4px 10px",
+              borderRadius: "var(--r-sm)",
+              background: "var(--bg-elevated)",
+              color: statusColor,
+              font: "700 11px/1.4 var(--f-sans)",
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                background: statusColor,
+              }}
+            />
+            {STATUS_LABELS[s.status as ShipmentStatus]}
+          </span>
+        </div>
+
+        {/* Mock map */}
+        <div
+          style={{
+            position: "relative",
+            height: 160,
+            marginBottom: 16,
+            background: "linear-gradient(135deg, var(--bg-sidebar), #1F3055)",
+            borderRadius: "var(--r-md)",
+            overflow: "hidden",
+          }}
+        >
+          <svg viewBox="0 0 400 160" style={{ width: "100%", height: "100%" }}>
+            {/* línea bezier curve overlay */}
+            <path
+              d="M 60 80 Q 200 30 340 80"
+              stroke="rgba(255,255,255,0.18)"
+              strokeWidth="1.5"
+              strokeDasharray="3 4"
+              fill="none"
+            />
+            {/* línea del progreso */}
+            <path
+              d={`M 60 80 Q ${60 + (340 - 60) * 0.5} ${80 - 35} ${60 + (340 - 60) * (progress / 100)} ${80 - 35 * Math.sin((progress / 100) * Math.PI)}`}
+              stroke="rgba(194,116,127,0.85)"
+              strokeWidth="2.5"
+              fill="none"
+            />
+            <circle cx="60" cy="80" r="8" fill="#1F8A5B" />
+            <circle cx="340" cy="80" r="8" fill="rgba(194,116,127,0.5)" />
+            {/* ship dot animado al progreso */}
+            <circle
+              cx={60 + (340 - 60) * (progress / 100)}
+              cy={80 - 35 * Math.sin((progress / 100) * Math.PI)}
+              r="6"
+              fill="#C2747F"
+            />
+            <text
+              x="60"
+              y="105"
+              fontFamily="Archivo, sans-serif"
+              fontSize="9.5"
+              fontWeight="700"
+              fill="rgba(255,255,255,0.7)"
+              textAnchor="middle"
+            >
+              {truncate(s.origin ?? "Origen", 18)}
+            </text>
+            <text
+              x="340"
+              y="105"
+              fontFamily="Archivo, sans-serif"
+              fontSize="9.5"
+              fontWeight="700"
+              fill="rgba(255,255,255,0.7)"
+              textAnchor="middle"
+            >
+              {truncate(s.destination ?? "Destino", 18)}
+            </text>
+          </svg>
+          <div
+            style={{
+              position: "absolute",
+              top: 12,
+              left: 12,
+              font: "700 9px/1 var(--f-sans)",
+              color: "rgba(255,255,255,0.5)",
+              letterSpacing: "0.14em",
+              textTransform: "uppercase",
+            }}
+          >
+            Vista mock · progreso estimado
+          </div>
+        </div>
+
+        {/* Detail fields */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 10,
+            marginBottom: 14,
+          }}
+        >
+          <DetailField label="Servicio" value={service.primary} sub={service.sub} />
+          <DetailField label="Progreso" value={`${progress}%`} mono />
+          <DetailField label="Origen" value={s.origin ?? "—"} />
+          <DetailField label="Destino" value={s.destination ?? "—"} />
+        </div>
+
+        {/* Quick actions */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <a
+            href={waUrl}
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: "block",
+              padding: "12px",
+              background: "var(--success)",
+              color: "#fff",
+              borderRadius: "var(--r-md)",
+              textDecoration: "none",
+              textAlign: "center",
+              font: "700 13px/1 var(--f-sans)",
+            }}
+          >
+            Compartir status
+          </a>
+          <Link
+            href={`/studio/tracking/${s.id}`}
+            style={{
+              display: "block",
+              padding: "12px",
+              background: "var(--wine)",
+              color: "#fff",
+              borderRadius: "var(--r-md)",
+              textDecoration: "none",
+              textAlign: "center",
+              font: "700 13px/1 var(--f-sans)",
+            }}
+          >
+            Ver completo
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailField({
+  label,
+  value,
+  sub,
+  mono,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  mono?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        padding: "10px 12px",
+        background: "var(--bg-elevated)",
+        borderRadius: "var(--r-md)",
+      }}
+    >
+      <div
+        style={{
+          font: "700 9.5px/1 var(--f-sans)",
+          color: "var(--ink-soft)",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          marginBottom: 5,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          font: `${mono ? "700" : "600"} 13px/1.2 ${mono ? "var(--f-mono)" : "var(--f-sans)"}`,
+          color: "var(--ink)",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {value}
+      </div>
+      {sub && (
+        <div
+          style={{
+            font: "500 10.5px/1 var(--f-sans)",
+            color: "var(--ink-mute)",
+            marginTop: 3,
+          }}
+        >
+          {sub}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function truncate(s: string, n: number) {
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function statusToProgress(status: ShipmentStatus): number {
+  switch (status) {
+    case "draft":
+      return 0;
+    case "in_warehouse":
+    case "consolidating":
+      return 15;
+    case "shipped":
+      return 35;
+    case "in_transit":
+      return 55;
+    case "in_customs":
+      return 75;
+    case "arrived_destination":
+    case "delayed_warehouse":
+      return 85;
+    case "out_for_delivery":
+    case "last_mile":
+      return 95;
+    case "delivered":
+      return 100;
+    case "exception":
+      return 50;
+    case "cancelled":
+      return 0;
+    default:
+      return 0;
+  }
 }
 
 // ─────────────────────────────────────────────────────────────
 // Clients screen
 // ─────────────────────────────────────────────────────────────
 
+type ClientsMode = "nearby" | "all";
+
+const TIER_RANK: Record<string, number> = { premium: 0, vip: 1, regular: 2 };
+
 function ClientsScreen({ clients }: { clients: Client[] }) {
   const [search, setSearch] = useState("");
+  const [mode, setMode] = useState<ClientsMode>("all");
 
   const filtered = useMemo(() => {
-    if (!search) return clients;
-    const q = search.trim().toLowerCase();
-    return clients.filter(
-      (c) =>
-        c.markbox.toLowerCase().includes(q) ||
-        c.name.toLowerCase().includes(q) ||
-        (c.email ?? "").toLowerCase().includes(q) ||
-        (c.phone ?? "").toLowerCase().includes(q),
-    );
-  }, [clients, search]);
+    let list = clients;
+    if (search) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (c) =>
+          c.markbox.toLowerCase().includes(q) ||
+          c.name.toLowerCase().includes(q) ||
+          (c.email ?? "").toLowerCase().includes(q) ||
+          (c.phone ?? "").toLowerCase().includes(q),
+      );
+    }
+    if (mode === "nearby") {
+      // Mock: ordena por tier (premium/vip arriba) + created_at más reciente
+      // primero · proxy de "más cercano" / "más relevante" hasta tener
+      // schema lat/lng + browser geolocation API real.
+      list = [...list].sort((a, b) => {
+        const tierA = TIER_RANK[a.tier] ?? 99;
+        const tierB = TIER_RANK[b.tier] ?? 99;
+        if (tierA !== tierB) return tierA - tierB;
+        return b.created_at.localeCompare(a.created_at);
+      });
+    }
+    return list;
+  }, [clients, search, mode]);
 
   return (
     <div style={{ padding: "20px 18px" }}>
@@ -598,11 +1008,68 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
           font: "500 12.5px/1.4 var(--f-sans)",
           color: "var(--ink-soft)",
           marginTop: 6,
-          marginBottom: 18,
+          marginBottom: 14,
         }}
       >
-        {clients.length} en cartera · geo-filter "cerca tuyo" próxima fase
+        {mode === "nearby"
+          ? `${filtered.length} prioritarios · tier elevado primero`
+          : `${clients.length} en cartera`}
       </div>
+
+      {/* Mode toggle pill */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 4,
+          padding: 4,
+          background: "var(--bg-elevated)",
+          borderRadius: "var(--r-md)",
+          marginBottom: 14,
+        }}
+      >
+        {(["nearby", "all"] as ClientsMode[]).map((m) => {
+          const active = mode === m;
+          return (
+            <button
+              key={m}
+              type="button"
+              onClick={() => setMode(m)}
+              style={{
+                padding: "10px 12px",
+                borderRadius: "var(--r-sm)",
+                background: active ? "var(--bg-surface)" : "transparent",
+                color: active ? "var(--ink)" : "var(--ink-soft)",
+                border: 0,
+                font: `${active ? "700" : "500"} 12.5px/1 var(--f-sans)`,
+                boxShadow: active ? "var(--shadow-xs)" : "none",
+                cursor: "pointer",
+                transition: "all 160ms ease",
+              }}
+            >
+              {m === "nearby" ? "📍 Cerca tuyo" : `Todos · ${clients.length}`}
+            </button>
+          );
+        })}
+      </div>
+
+      {mode === "nearby" && (
+        <div
+          style={{
+            padding: "10px 12px",
+            background: "var(--info-bg)",
+            borderLeft: "3px solid var(--info)",
+            borderRadius: "var(--r-md)",
+            marginBottom: 14,
+            font: "500 11px/1.4 var(--f-sans)",
+            color: "var(--info)",
+          }}
+        >
+          <b>Mock:</b> ordenado por tier elevado (premium/vip) y actividad
+          reciente · geolocalización real con browser API + lat/lng en clients
+          queda para próximo SDD.
+        </div>
+      )}
 
       <SearchBar
         value={search}
@@ -768,121 +1235,94 @@ function ClientCard({ c }: { c: Client }) {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Expenses screen · placeholder pendiente SDD
+// Expenses screen · real (SDD Expenses · migración 0047)
 // ─────────────────────────────────────────────────────────────
 
-function ExpensesScreen() {
+function ExpensesScreen({
+  expenses,
+  onNewExpense,
+}: {
+  expenses: Expense[];
+  onNewExpense: () => void;
+}) {
+  const billableCount = expenses.filter((e) => e.billable).length;
+
   return (
     <div style={{ padding: "20px 18px" }}>
-      <h1
+      <div
         style={{
-          font: "900 26px/1.1 var(--f-display)",
-          color: "var(--ink)",
-          letterSpacing: "-0.02em",
-          margin: 0,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          gap: 12,
+          marginBottom: 6,
         }}
       >
-        Gastos rápidos
-      </h1>
+        <h1
+          style={{
+            font: "900 26px/1.1 var(--f-display)",
+            color: "var(--ink)",
+            letterSpacing: "-0.02em",
+            margin: 0,
+          }}
+        >
+          Gastos rápidos
+        </h1>
+        <button
+          type="button"
+          onClick={onNewExpense}
+          aria-label="Nuevo gasto"
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: "var(--r-pill)",
+            background: "var(--wine)",
+            color: "#fff",
+            border: 0,
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        >
+          {Icon.plus(18)}
+        </button>
+      </div>
       <div
         style={{
           font: "500 12.5px/1.4 var(--f-sans)",
           color: "var(--ink-soft)",
-          marginTop: 6,
           marginBottom: 18,
         }}
       >
-        Foto del recibo + monto + categoría · cobrable al cliente o no.
+        {expenses.length} gastos · {billableCount} cobrable
+        {billableCount === 1 ? "" : "s"} al cliente
       </div>
 
-      <div
-        style={{
-          padding: 20,
-          background: "var(--wine-tint, var(--bg-elevated))",
-          border: "1px solid var(--wine)",
-          borderRadius: "var(--r-lg)",
-          marginBottom: 14,
-        }}
-      >
-        <div
-          style={{
-            font: "700 10.5px/1 var(--f-sans)",
-            color: "var(--wine)",
-            letterSpacing: "0.16em",
-            textTransform: "uppercase",
-            marginBottom: 8,
-          }}
-        >
-          Próximo SDD
-        </div>
-        <div
-          style={{
-            font: "800 16px/1.2 var(--f-display)",
-            color: "var(--ink)",
-            marginBottom: 6,
-          }}
-        >
-          Schema de gastos pendiente
-        </div>
-        <div
-          style={{
-            font: "500 12.5px/1.5 var(--f-sans)",
-            color: "var(--ink-soft)",
-          }}
-        >
-          Falta crear la tabla{" "}
-          <code
-            style={{
-              font: "700 11.5px/1 var(--f-mono)",
-              color: "var(--wine)",
-            }}
-          >
-            expenses
-          </code>{" "}
-          + RPC para capturar gastos rápidos de viaje (CN/VE) con foto, monto,
-          moneda (USD/VES/CNY), categoría, vinculación opcional a embarque y
-          flag &quot;cobrable al cliente&quot;.
-        </div>
-      </div>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <PreviewExpense
-          icon="🚕"
-          label="Taxi/transfer"
-          amount="$45 USD"
-          context="Hotel → fábrica Ningbo"
+      {expenses.length === 0 ? (
+        <EmptyMobile
+          title="Sin gastos cargados"
+          desc="Tocá el botón + arriba para cargar tu primer gasto."
         />
-        <PreviewExpense
-          icon="🍽"
-          label="Comida"
-          amount="¥280 CNY"
-          context="Almuerzo cliente Yiwu Trading"
-        />
-        <PreviewExpense
-          icon="🛣"
-          label="Peaje"
-          amount="$120 USD"
-          context="PBL → Caracas · DTDU-472816 · cobrable"
-          billable
-        />
-      </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {expenses.map((e) => (
+            <ExpenseRow key={e.id} e={e} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function PreviewExpense({
-  icon,
-  label,
-  amount,
-  context,
-  billable,
-}: {
-  icon: string;
-  label: string;
-  amount: string;
-  context: string;
-  billable?: boolean;
-}) {
+function ExpenseRow({ e }: { e: Expense }) {
+  const date = new Date(e.occurred_at);
+  const dateLabel = date.toLocaleDateString("es-VE", {
+    day: "2-digit",
+    month: "short",
+  });
+
   return (
     <div
       style={{
@@ -893,28 +1333,39 @@ function PreviewExpense({
         display: "flex",
         gap: 12,
         alignItems: "center",
-        opacity: 0.65,
       }}
     >
-      <span style={{ fontSize: 22, lineHeight: 1 }}>{icon}</span>
+      <span style={{ fontSize: 22, lineHeight: 1, flexShrink: 0 }}>
+        {CATEGORY_ICONS[e.category]}
+      </span>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
           style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "baseline",
+            gap: 10,
           }}
         >
-          <div style={{ font: "700 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}>
-            {label}
+          <div
+            style={{
+              font: "700 12.5px/1.2 var(--f-sans)",
+              color: "var(--ink)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {CATEGORY_LABELS[e.category]}
           </div>
           <code
             style={{
               font: "800 13px/1 var(--f-mono)",
               color: "var(--ink)",
+              flexShrink: 0,
             }}
           >
-            {amount}
+            {formatExpenseAmount(e)}
           </code>
         </div>
         <div
@@ -922,16 +1373,31 @@ function PreviewExpense({
             font: "500 11px/1.3 var(--f-sans)",
             color: "var(--ink-mute)",
             marginTop: 3,
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            display: "flex",
+            gap: 6,
+            alignItems: "center",
+            flexWrap: "wrap",
           }}
         >
-          {context}
-          {billable && (
+          <span>{dateLabel}</span>
+          {e.note && (
+            <>
+              <span>·</span>
+              <span
+                style={{
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  maxWidth: 200,
+                }}
+              >
+                {e.note}
+              </span>
+            </>
+          )}
+          {e.billable && (
             <span
               style={{
-                marginLeft: 6,
                 padding: "1px 6px",
                 background: "var(--success-bg)",
                 color: "var(--success)",
@@ -945,6 +1411,336 @@ function PreviewExpense({
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// NewExpenseModal · form full-screen mobile
+// ─────────────────────────────────────────────────────────────
+
+const INITIAL_EXPENSE_STATE: ExpenseActionState = {};
+
+function NewExpenseModal({ onClose }: { onClose: () => void }) {
+  const router = useRouter();
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState<ExpenseCurrency>("USD");
+  const [category, setCategory] = useState<ExpenseCategory>("otro");
+  const [method, setMethod] = useState<ExpenseMethod>("cash");
+  const [note, setNote] = useState("");
+  const [location, setLocation] = useState("");
+  const [billable, setBillable] = useState(false);
+
+  const [state, formAction, isPending] = useActionState(
+    createExpenseAction,
+    INITIAL_EXPENSE_STATE,
+  );
+
+  if (state?.ok) {
+    setTimeout(() => {
+      router.refresh();
+      onClose();
+    }, 100);
+  }
+
+  const canSubmit = Number(amount) > 0 && !!category;
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(15,30,61,0.5)",
+        zIndex: 60,
+        display: "flex",
+        alignItems: "flex-end",
+      }}
+    >
+      <form
+        action={(fd) => startTransition(() => formAction(fd))}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          margin: "0 auto",
+          background: "var(--bg-surface)",
+          borderRadius: "20px 20px 0 0",
+          padding: 18,
+          paddingBottom: "calc(env(safe-area-inset-bottom) + 18px)",
+          maxHeight: "92vh",
+          overflow: "auto",
+          display: "flex",
+          flexDirection: "column",
+          gap: 14,
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 4,
+            background: "var(--border)",
+            borderRadius: 999,
+            margin: "0 auto 4px",
+          }}
+        />
+
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "baseline",
+            gap: 10,
+          }}
+        >
+          <h2
+            style={{
+              font: "900 20px/1.1 var(--f-display)",
+              color: "var(--ink)",
+              margin: 0,
+            }}
+          >
+            Nuevo gasto
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              background: "transparent",
+              border: 0,
+              color: "var(--ink-mute)",
+              cursor: "pointer",
+              padding: 4,
+            }}
+            aria-label="Cerrar"
+          >
+            {Icon.close(18)}
+          </button>
+        </div>
+
+        {/* Amount + currency */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 100px", gap: 8 }}>
+          <div>
+            <label
+              className="studio-label"
+              htmlFor="exp-amount"
+              style={{ marginBottom: 6, display: "block" }}
+            >
+              Monto
+            </label>
+            <input
+              id="exp-amount"
+              name="amount"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              required
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="0.00"
+              className="studio-input studio-input-mono"
+              style={{ width: "100%", height: 52, fontSize: 22, textAlign: "right", paddingRight: 14 }}
+            />
+          </div>
+          <div>
+            <label
+              className="studio-label"
+              htmlFor="exp-currency"
+              style={{ marginBottom: 6, display: "block" }}
+            >
+              Moneda
+            </label>
+            <select
+              id="exp-currency"
+              name="currency"
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value as ExpenseCurrency)}
+              className="studio-input"
+              style={{ width: "100%", height: 52, fontSize: 16, textAlign: "center" }}
+            >
+              <option value="USD">USD {CURRENCY_SYMBOL.USD}</option>
+              <option value="VES">VES {CURRENCY_SYMBOL.VES}</option>
+              <option value="CNY">CNY {CURRENCY_SYMBOL.CNY}</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Category chips */}
+        <div>
+          <label className="studio-label" style={{ marginBottom: 8, display: "block" }}>
+            Categoría
+          </label>
+          <input type="hidden" name="category" value={category} />
+          <div
+            style={{
+              display: "flex",
+              gap: 6,
+              flexWrap: "wrap",
+            }}
+          >
+            {CATEGORY_OPTIONS.map((opt) => {
+              const active = category === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setCategory(opt.value)}
+                  style={{
+                    padding: "8px 12px",
+                    background: active ? "var(--wine-tint)" : "var(--bg-elevated)",
+                    color: active ? "var(--wine)" : "var(--ink-soft)",
+                    border: `1px solid ${active ? "var(--wine)" : "var(--border)"}`,
+                    borderRadius: "var(--r-pill)",
+                    font: "700 11px/1 var(--f-sans)",
+                    cursor: "pointer",
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 5,
+                  }}
+                >
+                  <span>{opt.icon}</span>
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Method */}
+        <div>
+          <label
+            className="studio-label"
+            htmlFor="exp-method"
+            style={{ marginBottom: 6, display: "block" }}
+          >
+            Método de pago
+          </label>
+          <select
+            id="exp-method"
+            name="method"
+            value={method}
+            onChange={(e) => setMethod(e.target.value as ExpenseMethod)}
+            className="studio-input"
+            style={{ width: "100%", height: 44 }}
+          >
+            <option value="cash">Efectivo</option>
+            <option value="card">Tarjeta</option>
+            <option value="transfer">Transferencia</option>
+            <option value="usdt">USDT</option>
+          </select>
+        </div>
+
+        {/* Note */}
+        <div>
+          <label
+            className="studio-label"
+            htmlFor="exp-note"
+            style={{ marginBottom: 6, display: "block" }}
+          >
+            Nota (opcional)
+          </label>
+          <textarea
+            id="exp-note"
+            name="note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Ej: Almuerzo cliente Yiwu Trading"
+            rows={2}
+            className="studio-input"
+            style={{ width: "100%", resize: "vertical", padding: "10px 14px" }}
+          />
+        </div>
+
+        {/* Location */}
+        <div>
+          <label
+            className="studio-label"
+            htmlFor="exp-location"
+            style={{ marginBottom: 6, display: "block" }}
+          >
+            Ubicación (opcional)
+          </label>
+          <input
+            id="exp-location"
+            name="location"
+            type="text"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            placeholder="Ej: Yiwu, CN"
+            className="studio-input"
+            style={{ width: "100%", height: 44 }}
+          />
+        </div>
+
+        {/* Billable toggle */}
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "12px 14px",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-md)",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            name="billable"
+            checked={billable}
+            onChange={(e) => setBillable(e.target.checked)}
+            style={{ accentColor: "var(--success)" }}
+          />
+          <div style={{ flex: 1 }}>
+            <div style={{ font: "700 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+              Cobrable al cliente
+            </div>
+            <div
+              style={{
+                font: "500 11px/1.3 var(--f-sans)",
+                color: "var(--ink-soft)",
+                marginTop: 3,
+              }}
+            >
+              Se incluirá en la factura del cliente correspondiente.
+            </div>
+          </div>
+        </label>
+
+        {state?.error && (
+          <div
+            style={{
+              padding: 10,
+              background: "var(--danger-bg)",
+              color: "var(--danger)",
+              borderRadius: "var(--r-sm)",
+              font: "600 12px/1.3 var(--f-sans)",
+            }}
+          >
+            {state.error}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr", gap: 8, marginTop: 4 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isPending}
+            className="studio-btn studio-btn-ghost"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isPending || !canSubmit}
+            className="studio-btn studio-btn-primary"
+          >
+            {isPending ? "Guardando…" : "Guardar gasto"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

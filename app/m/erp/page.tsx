@@ -18,6 +18,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { listClients } from "@/lib/studio/client-queries";
 import { listShipments } from "@/lib/studio/shipment-queries";
+import {
+  listMyExpenses,
+  sumMyExpensesTodayUsd,
+} from "@/lib/studio/expense-queries";
 import { MobileErpClient } from "./_components/MobileErpClient";
 
 export const metadata = {
@@ -33,20 +37,23 @@ export default async function MobileErpPage() {
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");
 
-  // Fetch profile + tenant + data de las 2 tabs reales en paralelo
-  const [profileRes, linkRes, shipments, clients] = await Promise.all([
-    supabase
-      .from("user_profiles")
-      .select("first_name, last_name")
-      .eq("user_id", userResp.user.id)
-      .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
-    supabase
-      .from("user_tenants")
-      .select("role")
-      .maybeSingle<{ role: string }>(),
-    listShipments(supabase, {}),
-    listClients(supabase, {}),
-  ]);
+  // Fetch profile + tenant + data de las tabs reales en paralelo
+  const [profileRes, linkRes, shipments, clients, expenses, todaySum] =
+    await Promise.all([
+      supabase
+        .from("user_profiles")
+        .select("first_name, last_name")
+        .eq("user_id", userResp.user.id)
+        .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
+      supabase
+        .from("user_tenants")
+        .select("role")
+        .maybeSingle<{ role: string }>(),
+      listShipments(supabase, {}),
+      listClients(supabase, {}),
+      listMyExpenses(supabase, { limit: 50 }),
+      sumMyExpensesTodayUsd(supabase),
+    ]);
   const profile = profileRes.data;
   const link = linkRes.data;
 
@@ -108,6 +115,8 @@ export default async function MobileErpPage() {
       }}
       shipments={activeShipments}
       clients={clients}
+      expenses={expenses}
+      expensesTodayUsd={todaySum.total}
     />
   );
 }
