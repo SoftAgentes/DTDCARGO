@@ -98,7 +98,9 @@ export function InviteUserDrawer({ onClose }: Props) {
   const [team, setTeam] = useState<string>("Op. CN");
   const [scope, setScope] = useState<string[]>([]);
   const [permission, setPermission] = useState<"read" | "write">("write");
-  const [twoFa, setTwoFa] = useState(true);
+  // 2FA opcional · default OFF para no molestar en testing. Cada user
+  // puede activarlo después desde "Mi perfil" → tab Contraseña/2FA.
+  const [twoFa, setTwoFa] = useState(false);
 
   const [state, formAction, isPending] = useActionState(
     inviteUserAction,
@@ -237,11 +239,11 @@ export function InviteUserDrawer({ onClose }: Props) {
               />
             )}
 
-            {/* ─── Toggle 2FA ─── */}
+            {/* ─── Toggle 2FA opcional ─── */}
             <label
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 gap: 10,
                 padding: "12px 14px",
                 background: "var(--bg-elevated)",
@@ -257,16 +259,37 @@ export function InviteUserDrawer({ onClose }: Props) {
                   accentColor: "var(--wine)",
                   width: 16,
                   height: 16,
+                  marginTop: 2,
                 }}
               />
-              <span
-                style={{
-                  font: "500 12.5px/1.4 var(--font-sans, 'Archivo')",
-                  color: "var(--ink)",
-                }}
-              >
-                Requerir 2FA al primer login
-              </span>
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    font: "500 12.5px/1.4 var(--font-sans, 'Archivo')",
+                    color: "var(--ink)",
+                  }}
+                >
+                  Sugerir 2FA al primer login{" "}
+                  <span
+                    style={{
+                      color: "var(--ink-mute)",
+                      fontWeight: 400,
+                    }}
+                  >
+                    (opcional)
+                  </span>
+                </div>
+                <div
+                  style={{
+                    font: "500 11px/1.4 var(--font-sans, 'Archivo')",
+                    color: "var(--ink-soft)",
+                    marginTop: 2,
+                  }}
+                >
+                  El user verá un prompt para activar 2FA, pero podrá saltarlo.
+                  Nunca obligamos a configurar 2FA en testing.
+                </div>
+              </div>
             </label>
 
             {/* ─── Resumen gradient navy ─── */}
@@ -638,7 +661,7 @@ function SummaryCard({
         ) : (
           <div>✓ Acceso global · sin restricción por almacén</div>
         )}
-        {twoFa && <div>✓ 2FA requerido al primer login</div>}
+        {twoFa && <div>✓ Se le sugerirá activar 2FA (opcional)</div>}
       </div>
     </div>
   );
