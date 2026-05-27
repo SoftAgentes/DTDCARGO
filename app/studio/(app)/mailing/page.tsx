@@ -16,6 +16,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { listRules, listTemplates } from "@/lib/studio/mail-queries";
 import { MailingClient } from "./_components/MailingClient";
 import type {
+  MailBlacklistRow,
   MailConfigRow,
   MailingAdminTab,
   MailLogRow,
@@ -73,7 +74,10 @@ export default async function MailingAdminPage({
 
   const tabRaw = singleParam("tab");
   const tab: MailingAdminTab =
-    tabRaw === "templates" || tabRaw === "reglas" || tabRaw === "config"
+    tabRaw === "templates" ||
+    tabRaw === "reglas" ||
+    tabRaw === "config" ||
+    tabRaw === "blacklist"
       ? (tabRaw as MailingAdminTab)
       : "logs";
 
@@ -109,9 +113,9 @@ export default async function MailingAdminPage({
     console.error("[mailing] mail_logs query failed:", logsErr);
   }
 
-  // Templates + rules + config para los tabs correspondientes (siempre
-  // cargamos los templates para usar como filter dropdown en tab Logs también)
-  const [templatesFull, rules, config] = await Promise.all([
+  // Templates + rules + config + blacklist para los tabs correspondientes
+  // (siempre cargamos los templates para usar como filter dropdown en tab Logs)
+  const [templatesFull, rules, config, blacklistResp] = await Promise.all([
     listTemplates(supabase, { limit: 100 }),
     tab === "reglas" ? listRules(supabase) : Promise.resolve([]),
     tab === "config"
@@ -123,9 +127,18 @@ export default async function MailingAdminPage({
           .eq("tenant_id", link.tenant_id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
+    tab === "blacklist"
+      ? supabase
+          .from("mail_blacklist")
+          .select("id, email, reason, notes, added_by, added_at")
+          .order("added_at", { ascending: false })
+          .limit(200)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const templates = templatesFull.map((t) => ({ slug: t.slug, name: t.name }));
+  const blacklist =
+    (blacklistResp?.data ?? []) as unknown as MailBlacklistRow[];
 
   return (
     <div style={{ maxWidth: 1480 }}>
@@ -159,6 +172,7 @@ export default async function MailingAdminPage({
         templatesFull={templatesFull}
         rules={rules}
         config={(config?.data ?? null) as unknown as MailConfigRow | null}
+        blacklist={blacklist}
         filters={{ status, template: templateSlug ?? "all", search: search ?? "" }}
       />
     </div>

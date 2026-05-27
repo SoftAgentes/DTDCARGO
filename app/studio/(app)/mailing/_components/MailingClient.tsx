@@ -17,6 +17,7 @@ import type {
 import {
   MAIL_LOG_STATUS_LABEL,
   MAIL_LOG_STATUS_TONE,
+  type MailBlacklistRow,
   type MailConfigRow,
   type MailLogRow,
   type MailLogStatus,
@@ -26,6 +27,7 @@ import {
 import { TemplatesView } from "./TemplatesView";
 import { RulesView } from "./RulesView";
 import { ConfigView } from "./ConfigView";
+import { BlacklistView } from "./BlacklistView";
 
 interface Props {
   tab: MailingAdminTab;
@@ -34,6 +36,7 @@ interface Props {
   templatesFull: MailTemplate[];
   rules: MailRuleWithTemplate[];
   config: MailConfigRow | null;
+  blacklist: MailBlacklistRow[];
   filters: MailingFilters;
 }
 
@@ -62,6 +65,7 @@ export function MailingClient({
   templatesFull,
   rules,
   config,
+  blacklist,
   filters,
 }: Props) {
   const router = useRouter();
@@ -105,36 +109,41 @@ export function MailingClient({
           marginBottom: 20,
         }}
       >
-        {(["logs", "templates", "reglas", "config"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            role="tab"
-            aria-selected={tab === t}
-            onClick={() => changeTab(t)}
-            style={{
-              padding: "8px 16px",
-              border: "none",
-              background: tab === t ? "var(--bg-surface, #FFFFFF)" : "transparent",
-              color: tab === t ? "var(--ink)" : "var(--ink-soft)",
-              borderRadius: 6,
-              cursor: "pointer",
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: tab === t ? 600 : 500,
-              boxShadow: tab === t ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
-              transition: "all var(--dur, 180ms) var(--ease, ease-out)",
-            }}
-          >
-            {t === "logs"
-              ? "Logs"
-              : t === "templates"
-                ? "Templates"
-                : t === "reglas"
-                  ? "Reglas"
-                  : "Config"}
-          </button>
-        ))}
+        {(["logs", "templates", "reglas", "config", "blacklist"] as const).map(
+          (t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => changeTab(t)}
+              style={{
+                padding: "8px 16px",
+                border: "none",
+                background:
+                  tab === t ? "var(--bg-surface, #FFFFFF)" : "transparent",
+                color: tab === t ? "var(--ink)" : "var(--ink-soft)",
+                borderRadius: 6,
+                cursor: "pointer",
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: tab === t ? 600 : 500,
+                boxShadow: tab === t ? "0 1px 2px rgba(0,0,0,0.08)" : "none",
+                transition: "all var(--dur, 180ms) var(--ease, ease-out)",
+              }}
+            >
+              {t === "logs"
+                ? "Logs"
+                : t === "templates"
+                  ? "Templates"
+                  : t === "reglas"
+                    ? "Reglas"
+                    : t === "config"
+                      ? "Config"
+                      : "Blacklist"}
+            </button>
+          ),
+        )}
       </div>
 
       {tab === "logs" && (
@@ -153,6 +162,8 @@ export function MailingClient({
       )}
 
       {tab === "config" && <ConfigView config={config} />}
+
+      {tab === "blacklist" && <BlacklistView blacklist={blacklist} />}
     </>
   );
 }

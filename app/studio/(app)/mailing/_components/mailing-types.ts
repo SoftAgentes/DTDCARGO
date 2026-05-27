@@ -2,7 +2,12 @@
  * Types compartidos entre server + client del módulo /studio/mailing.
  */
 
-export type MailingAdminTab = "logs" | "templates" | "reglas" | "config";
+export type MailingAdminTab =
+  | "logs"
+  | "templates"
+  | "reglas"
+  | "config"
+  | "blacklist";
 
 export interface MailConfigRow {
   tenant_id: string;
@@ -13,6 +18,15 @@ export interface MailConfigRow {
   internal_test_email: string | null;
   domain_verified: boolean;
   updated_at: string;
+}
+
+export interface MailBlacklistRow {
+  id: string;
+  email: string;
+  reason: string; // "bounce" | "complaint" | "manual" (text en DB, no enum)
+  notes: string | null;
+  added_by: string | null;
+  added_at: string;
 }
 
 export type MailLogStatus =

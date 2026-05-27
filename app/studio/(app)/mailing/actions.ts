@@ -358,4 +358,68 @@ export async function updateMailConfigAction(
   };
 }
 
+// ─────────────────────────────────────────────────────────────
+// Blacklist · add manual / remove
+// ─────────────────────────────────────────────────────────────
+
+export async function addMailBlacklistAction(
+  _prev: MailingActionState,
+  formData: FormData,
+): Promise<MailingActionState> {
+  const email = ((formData.get("email") as string | null) ?? "").trim().toLowerCase();
+  const notes = ((formData.get("notes") as string | null) ?? "").trim() || null;
+
+  const fieldErrors: ActionFieldErrors = {};
+  if (!email || !EMAIL_RE.test(email)) {
+    fieldErrors.email = "Email inválido";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  const { error } = await supabase.from("mail_blacklist").insert({
+    tenant_id: link.tenant_id,
+    email,
+    reason: "manual",
+    notes,
+    added_by: userResp.user.id,
+  });
+
+  if (error) {
+    if (error.code === "23505") return { error: "Ese email ya está en la blacklist." };
+    if (error.code === "42501") return { error: "Solo admins." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/studio/mailing");
+  return { ok: true, message: `${email} agregado a la blacklist.` };
+}
+
+export async function removeMailBlacklistAction(
+  _prev: MailingActionState,
+  formData: FormData,
+): Promise<MailingActionState> {
+  const id = (formData.get("id") as string | null)?.trim();
+  if (!id) return { error: "Falta id." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("mail_blacklist").delete().eq("id", id);
+
+  if (error) {
+    if (error.code === "42501") return { error: "Solo admins." };
+    return { error: error.message };
+  }
+
+  revalidatePath("/studio/mailing");
+  return { ok: true, message: "Email removido de la blacklist." };
+}
+
 export { INITIAL as INITIAL_MAILING_STATE };
