@@ -401,7 +401,7 @@ export function validateAdvanceBugStateInput(
 // Filters (admin Kanban + tabla)
 // ─────────────────────────────────────────────────────────────
 
-export type BugAdminTab = "kanban" | "tabla" | "stats";
+export type BugAdminTab = "kanban" | "tabla" | "stats" | "cerrados";
 
 export type BugAdminFilters = {
   tab: BugAdminTab;
@@ -425,7 +425,9 @@ export function parseBugAdminFilters(
   const catRaw = single("category");
   return {
     tab:
-      tabRaw === "tabla" || tabRaw === "stats" ? (tabRaw as BugAdminTab) : "kanban",
+      tabRaw === "tabla" || tabRaw === "stats" || tabRaw === "cerrados"
+        ? (tabRaw as BugAdminTab)
+        : "kanban",
     state: isBugState(stateRaw) ? stateRaw : "all",
     category: isBugCategory(catRaw) ? catRaw : "all",
     module: single("module"),

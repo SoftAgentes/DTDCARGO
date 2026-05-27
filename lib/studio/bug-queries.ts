@@ -47,7 +47,15 @@ export async function listBugsForAdmin(
     .order("created_at", { ascending: false })
     .limit(500);
 
-  if (filters.state && filters.state !== "all") {
+  if (filters.tab === "cerrados") {
+    // Tab "Cerrados": solo terminales (descartados + resueltos) como historial.
+    // Si hay filtro state explícito y es terminal, lo respeta. Sino ambos.
+    if (filters.state === "resuelto" || filters.state === "descartado") {
+      query = query.eq("state", filters.state);
+    } else {
+      query = query.in("state", ["resuelto", "descartado"]);
+    }
+  } else if (filters.state && filters.state !== "all") {
     query = query.eq("state", filters.state);
   } else if (filters.tab === "kanban") {
     // Kanban muestra activos + resueltos recientes (no descartados)
