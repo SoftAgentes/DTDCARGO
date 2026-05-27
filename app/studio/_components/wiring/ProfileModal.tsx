@@ -31,6 +31,9 @@ export interface ProfileModalInitialData {
   phone: string | null;
   locale: string | null;
   timezone: string | null;
+  /** HQ operativa del user · fallback para "Cerca tuyo" del Mobile ERP. */
+  operatingLat: number | null;
+  operatingLng: number | null;
 }
 
 const EMPTY_STATE: UserActionState = {};
@@ -366,6 +369,51 @@ function PrefsTabContent({
   const [timezone, setTimezone] = useState(
     initialData.timezone ?? "America/Caracas",
   );
+  const [operatingLat, setOperatingLat] = useState(
+    initialData.operatingLat != null ? String(initialData.operatingLat) : "",
+  );
+  const [operatingLng, setOperatingLng] = useState(
+    initialData.operatingLng != null ? String(initialData.operatingLng) : "",
+  );
+  const [geoStatus, setGeoStatus] = useState<
+    "idle" | "loading" | "ok" | "denied" | "unavailable" | "error"
+  >("idle");
+  const [geoError, setGeoError] = useState<string | null>(null);
+
+  const captureGps = () => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGeoStatus("unavailable");
+      setGeoError("Browser sin soporte de geolocation.");
+      return;
+    }
+    setGeoStatus("loading");
+    setGeoError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setOperatingLat(pos.coords.latitude.toFixed(6));
+        setOperatingLng(pos.coords.longitude.toFixed(6));
+        setGeoStatus("ok");
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeoStatus("denied");
+          setGeoError("Permiso denegado por el navegador.");
+        } else {
+          setGeoStatus("error");
+          setGeoError(err.message || "No se pudo obtener la ubicación.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10_000, maximumAge: 60_000 },
+    );
+  };
+
+  const clearGps = () => {
+    setOperatingLat("");
+    setOperatingLng("");
+    setGeoStatus("idle");
+    setGeoError(null);
+  };
+
   const [state, formAction, pending] = useActionState(
     updateMyPreferencesAction,
     EMPTY_STATE,
@@ -411,6 +459,165 @@ function PrefsTabContent({
         disabled={pending}
         hint="Formato IANA · ej: America/Caracas, Asia/Shanghai, Europe/Madrid."
       />
+
+      {/* HQ operativa · fallback para "Cerca tuyo" del Mobile ERP */}
+      <div
+        style={{
+          padding: "12px 14px",
+          background: "var(--bg-elevated)",
+          borderRadius: 7,
+          display: "flex",
+          flexDirection: "column",
+          gap: 10,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ font: "600 12.5px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+              HQ operativa (GPS)
+            </div>
+            <div
+              style={{
+                font: "500 11px/1.4 var(--f-sans)",
+                color: "var(--ink-soft)",
+                marginTop: 2,
+              }}
+            >
+              Punto de referencia cuando el browser no autoriza geo · habilita
+              "Cerca tuyo" del Mobile ERP en escritorio o sin permiso.
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            <button
+              type="button"
+              onClick={captureGps}
+              disabled={pending || geoStatus === "loading"}
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              style={{ whiteSpace: "nowrap" }}
+            >
+              {geoStatus === "loading" ? "Capturando…" : "Capturar GPS aquí"}
+            </button>
+            {(operatingLat || operatingLng) && (
+              <button
+                type="button"
+                onClick={clearGps}
+                disabled={pending}
+                className="studio-btn studio-btn-ghost studio-btn-sm"
+                style={{ color: "var(--ink-mute)" }}
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <div>
+            <label
+              className="studio-label"
+              htmlFor="pm-operating_lat"
+              style={{ display: "block", marginBottom: 6 }}
+            >
+              Latitud
+            </label>
+            <input
+              id="pm-operating_lat"
+              type="text"
+              inputMode="decimal"
+              name="operating_lat"
+              value={operatingLat}
+              onChange={(e) => setOperatingLat(e.target.value)}
+              placeholder="10.182650"
+              disabled={pending}
+              autoComplete="off"
+              className="studio-input studio-input-mono"
+              style={
+                state.fieldErrors?.operating_lat
+                  ? { borderColor: "var(--danger)" }
+                  : undefined
+              }
+            />
+            {state.fieldErrors?.operating_lat && (
+              <p
+                style={{
+                  font: "600 11px/1.3 var(--f-sans)",
+                  color: "var(--danger)",
+                  margin: "6px 0 0",
+                }}
+              >
+                {state.fieldErrors.operating_lat}
+              </p>
+            )}
+          </div>
+          <div>
+            <label
+              className="studio-label"
+              htmlFor="pm-operating_lng"
+              style={{ display: "block", marginBottom: 6 }}
+            >
+              Longitud
+            </label>
+            <input
+              id="pm-operating_lng"
+              type="text"
+              inputMode="decimal"
+              name="operating_lng"
+              value={operatingLng}
+              onChange={(e) => setOperatingLng(e.target.value)}
+              placeholder="-68.005250"
+              disabled={pending}
+              autoComplete="off"
+              className="studio-input studio-input-mono"
+              style={
+                state.fieldErrors?.operating_lng
+                  ? { borderColor: "var(--danger)" }
+                  : undefined
+              }
+            />
+            {state.fieldErrors?.operating_lng && (
+              <p
+                style={{
+                  font: "600 11px/1.3 var(--f-sans)",
+                  color: "var(--danger)",
+                  margin: "6px 0 0",
+                }}
+              >
+                {state.fieldErrors.operating_lng}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {geoStatus === "ok" && (
+          <p
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--success)",
+              margin: 0,
+            }}
+          >
+            Coordenadas capturadas.
+          </p>
+        )}
+        {geoError && (
+          <p
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--danger)",
+              margin: 0,
+            }}
+          >
+            {geoError}
+          </p>
+        )}
+      </div>
 
       {/* Push notifications · sub-section fuera del form porque tiene
           su propio submit (subscribe via fetch directo) */}

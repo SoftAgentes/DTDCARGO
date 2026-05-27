@@ -36,7 +36,7 @@ export default async function StudioAppLayout({
   const supabase = await createClient();
   const { data: profile } = await supabase
     .from("user_profiles")
-    .select("first_name, last_name, phone, locale, timezone")
+    .select("first_name, last_name, phone, locale, timezone, operating_lat, operating_lng")
     .eq("user_id", user.id)
     .maybeSingle<{
       first_name: string | null;
@@ -44,6 +44,8 @@ export default async function StudioAppLayout({
       phone: string | null;
       locale: string | null;
       timezone: string | null;
+      operating_lat: number | null;
+      operating_lng: number | null;
     }>();
 
   const profileInitial = {
@@ -53,6 +55,8 @@ export default async function StudioAppLayout({
     phone: profile?.phone ?? null,
     locale: profile?.locale ?? null,
     timezone: profile?.timezone ?? null,
+    operatingLat: profile?.operating_lat ?? null,
+    operatingLng: profile?.operating_lng ?? null,
   };
 
   // Feature flags del tenant (Tier 1.2). El sidebar los usa para esconder

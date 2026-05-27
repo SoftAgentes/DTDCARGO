@@ -43,9 +43,14 @@ export default async function MobileErpPage() {
     await Promise.all([
       supabase
         .from("user_profiles")
-        .select("first_name, last_name")
+        .select("first_name, last_name, operating_lat, operating_lng")
         .eq("user_id", userResp.user.id)
-        .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
+        .maybeSingle<{
+          first_name: string | null;
+          last_name: string | null;
+          operating_lat: number | null;
+          operating_lng: number | null;
+        }>(),
       supabase
         .from("user_tenants")
         .select("role")
@@ -122,6 +127,8 @@ export default async function MobileErpPage() {
       expenses={expenses}
       receiptUrls={receiptUrls}
       expensesTodayUsd={todaySum.total}
+      operatingLat={profile?.operating_lat ?? null}
+      operatingLng={profile?.operating_lng ?? null}
     />
   );
 }

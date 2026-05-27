@@ -315,6 +315,15 @@ export async function updateMyProfileAction(
 const VALID_LOCALES = ["es-VE", "es", "en", "zh"] as const;
 type Locale = (typeof VALID_LOCALES)[number];
 
+function parseGeoOrInvalid(raw: string | null): number | null | "invalid" {
+  if (raw == null) return null;
+  const s = raw.trim();
+  if (s === "") return null;
+  const n = Number(s);
+  if (!Number.isFinite(n)) return "invalid";
+  return n;
+}
+
 export async function updateMyPreferencesAction(
   _prev: UserActionState,
   formData: FormData,
@@ -326,9 +335,33 @@ export async function updateMyPreferencesAction(
     ? (localeRaw as Locale)
     : "es-VE";
 
+  const fieldErrors: Record<string, string> = {};
+
   if (timezone.length > 80) {
-    return { fieldErrors: { timezone: "Máximo 80 caracteres" } };
+    fieldErrors.timezone = "Máximo 80 caracteres";
   }
+
+  const latRaw = parseGeoOrInvalid(formData.get("operating_lat") as string | null);
+  const lngRaw = parseGeoOrInvalid(formData.get("operating_lng") as string | null);
+
+  if (latRaw === "invalid") {
+    fieldErrors.operating_lat = "Latitud inválida.";
+  } else if (typeof latRaw === "number" && (latRaw < -90 || latRaw > 90)) {
+    fieldErrors.operating_lat = "Latitud fuera de rango (-90..90).";
+  }
+  if (lngRaw === "invalid") {
+    fieldErrors.operating_lng = "Longitud inválida.";
+  } else if (typeof lngRaw === "number" && (lngRaw < -180 || lngRaw > 180)) {
+    fieldErrors.operating_lng = "Longitud fuera de rango (-180..180).";
+  }
+  const lat = latRaw === "invalid" ? null : latRaw;
+  const lng = lngRaw === "invalid" ? null : lngRaw;
+  if ((lat === null) !== (lng === null)) {
+    fieldErrors.operating_lat ??= "Cargá lat y lng juntos.";
+    fieldErrors.operating_lng ??= "Cargá lat y lng juntos.";
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
@@ -341,6 +374,8 @@ export async function updateMyPreferencesAction(
     .update({
       locale,
       timezone: timezone || "America/Caracas",
+      operating_lat: lat,
+      operating_lng: lng,
       updated_at: new Date().toISOString(),
     })
     .eq("user_id", userResp.user.id);
