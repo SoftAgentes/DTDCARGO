@@ -39,6 +39,21 @@ export type WarehouseCN = {
   created_at: string;
 };
 
+/** Payment status del paquete · alimenta scoring de Despacho (Opción A SDD-0029). */
+export type PaymentStatus = "pagado" | "parcial" | "pendiente";
+
+export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
+  pagado: "Pagado",
+  parcial: "Abono parcial",
+  pendiente: "Pendiente",
+};
+
+export const PAYMENT_STATUS_TONES: Record<PaymentStatus, "success" | "warning" | "danger"> = {
+  pagado: "success",
+  parcial: "warning",
+  pendiente: "danger",
+};
+
 export type WarehouseReceipt = {
   id: string;
   tenant_id: string;
@@ -59,6 +74,10 @@ export type WarehouseReceipt = {
   shipment_id: string | null;
   received_at: string; // ISO date 'YYYY-MM-DD'
   notes: string | null;
+  /** Ciudad VE destino · capturada por operario CN al recibir o admin al consolidar (migración 0044). */
+  destination_city: string | null;
+  /** Estado de pago · default 'pendiente'. Admin updatea desde /studio/cn (migración 0044). */
+  payment_status: PaymentStatus;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

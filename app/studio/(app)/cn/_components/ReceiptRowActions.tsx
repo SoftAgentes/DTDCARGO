@@ -16,20 +16,30 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { changeReceiptStatusAction } from "../actions";
-import type { WarehouseReceiptStatus } from "@/lib/studio/warehouse-cn-types";
 import {
+  changeReceiptPaymentStatusAction,
+  changeReceiptStatusAction,
+} from "../actions";
+import type {
+  PaymentStatus,
+  WarehouseReceiptStatus,
+} from "@/lib/studio/warehouse-cn-types";
+import {
+  PAYMENT_STATUS_LABELS,
   RECEIPT_STATUS_LABELS,
   RECEIPT_STATUS_OPTIONS,
 } from "@/lib/studio/warehouse-cn-types";
 import type { DispatchCity } from "@/lib/studio/dispatch-routes-types";
 import { Icon } from "@/app/studio/_components/icons";
 
+const PAYMENT_OPTIONS: PaymentStatus[] = ["pagado", "parcial", "pendiente"];
+
 interface Props {
   receiptId: string;
   currentStatus: WarehouseReceiptStatus;
   cities?: DispatchCity[];
   currentDestinationCity?: string | null;
+  currentPaymentStatus?: PaymentStatus;
 }
 
 type View = "menu" | "consolidate-form";
@@ -39,6 +49,7 @@ export function ReceiptRowActions({
   currentStatus,
   cities = [],
   currentDestinationCity = null,
+  currentPaymentStatus = "pendiente",
 }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -104,6 +115,19 @@ export function ReceiptRowActions({
       return;
     }
     submit(newStatus);
+  };
+
+  const handlePaymentPick = (newPayment: PaymentStatus) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await changeReceiptPaymentStatusAction(receiptId, newPayment);
+      if (res.error) {
+        setError(res.error);
+      } else {
+        closeMenu();
+        router.refresh();
+      }
+    });
   };
 
   const handleConsolidateSubmit = (e: React.FormEvent) => {
@@ -227,6 +251,68 @@ export function ReceiptRowActions({
                       {isCurrent ? Icon.check(13) : null}
                     </span>
                     <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+
+              {/* Separador + sección Cambiar pago */}
+              <div
+                style={{
+                  height: 1,
+                  background: "var(--border)",
+                  margin: "6px 0",
+                }}
+              />
+              <div
+                style={{
+                  padding: "6px 10px 4px",
+                  font: "700 9.5px/1 var(--f-sans)",
+                  color: "var(--ink-mute)",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                }}
+              >
+                Cambiar pago
+              </div>
+              {PAYMENT_OPTIONS.map((p) => {
+                const isCurrent = p === currentPaymentStatus;
+                return (
+                  <button
+                    key={p}
+                    role="menuitem"
+                    type="button"
+                    onClick={() => handlePaymentPick(p)}
+                    disabled={isCurrent || pending}
+                    style={{
+                      textAlign: "left",
+                      padding: "8px 10px",
+                      border: 0,
+                      background: isCurrent ? "var(--bg-elevated)" : "transparent",
+                      color: isCurrent ? "var(--ink-mute)" : "var(--ink)",
+                      font: "500 12.5px/1.2 var(--f-sans)",
+                      cursor: isCurrent || pending ? "default" : "pointer",
+                      borderRadius: "var(--r-sm)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isCurrent && !pending) {
+                        e.currentTarget.style.background = "var(--wine-tint)";
+                        e.currentTarget.style.color = "var(--wine)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isCurrent && !pending) {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "var(--ink)";
+                      }
+                    }}
+                  >
+                    <span style={{ width: 14, display: "inline-flex" }}>
+                      {isCurrent ? Icon.check(13) : null}
+                    </span>
+                    <span>{PAYMENT_STATUS_LABELS[p]}</span>
                   </button>
                 );
               })}
