@@ -238,11 +238,19 @@ export function BugsAdminClient({
             gap: 2,
           }}
         >
-          {(["kanban", "tabla", "stats"] as const).map((tab) => (
+          {(["kanban", "tabla", "cerrados", "stats"] as const).map((tab) => (
             <TabButton
               key={tab}
               active={filters.tab === tab}
-              label={tab === "kanban" ? "Kanban" : tab === "tabla" ? "Tabla" : "Stats"}
+              label={
+                tab === "kanban"
+                  ? "Kanban"
+                  : tab === "tabla"
+                    ? "Tabla"
+                    : tab === "cerrados"
+                      ? "Cerrados"
+                      : "Stats"
+              }
               onClick={() => changeTab(tab)}
             />
           ))}
@@ -299,6 +307,18 @@ export function BugsAdminClient({
               ]}
             />
           )}
+          {filters.tab === "cerrados" && (
+            <FilterSelect
+              label="Estado"
+              value={filters.state ?? "all"}
+              onChange={(v) => setQp("state", v)}
+              options={[
+                { value: "all", label: "Todos (resueltos + descartados)" },
+                { value: "resuelto", label: BUG_STATE_LABELS.resuelto },
+                { value: "descartado", label: BUG_STATE_LABELS.descartado },
+              ]}
+            />
+          )}
           {moduleList.length > 0 && (
             <FilterSelect
               label="Módulo"
@@ -321,7 +341,7 @@ export function BugsAdminClient({
       {/* Body */}
       {filters.tab === "stats" ? (
         <BugStats kpis={kpis} bugs={bugs} />
-      ) : filters.tab === "tabla" ? (
+      ) : filters.tab === "tabla" || filters.tab === "cerrados" ? (
         <BugTable
           bugs={bugs}
           reporterMap={reporterMap}
