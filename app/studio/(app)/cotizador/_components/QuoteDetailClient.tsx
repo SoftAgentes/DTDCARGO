@@ -10,7 +10,7 @@
  */
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import {
@@ -32,41 +32,12 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
   const [confirmConvert, setConfirmConvert] = useState(false);
   // Lifteo del flag "recién envié" para extender la visibilidad del botón
   // durante el flash verde · sin esto, el revalidatePath del server
   // cambia quote.status a "sent" y el botón se desmonta antes de que el
   // operador vea la confirmación.
   const [justSent, setJustSent] = useState(false);
-
-  const handleAccepted = () => {
-    setError(null);
-    startTransition(async () => {
-      const r = await markQuoteAccepted(quote.id);
-      if (r.error) setError(r.error);
-    });
-  };
-
-  const handleRejected = () => {
-    setError(null);
-    startTransition(async () => {
-      const r = await markQuoteRejected(quote.id);
-      if (r.error) setError(r.error);
-    });
-  };
-
-  const handleConvert = () => {
-    setError(null);
-    startTransition(async () => {
-      const r = await convertQuoteToShipment(quote.id);
-      if (r.error) {
-        setError(r.error);
-      } else if (r.shipmentId) {
-        router.push(`/studio/tracking/${r.shipmentId}`);
-      }
-    });
-  };
 
   return (
     <>
@@ -84,7 +55,6 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
             onClick={() => setEditing(true)}
-            disabled={isPending}
           >
             Editar
           </button>
@@ -100,7 +70,6 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
             idleIcon={Icon.mail(14)}
             successIcon={Icon.check(14)}
             successMs={SENT_SUCCESS_MS}
-            disabled={isPending}
             title={(s) =>
               s === "success"
                 ? "Email enviado al cliente y cotización marcada como enviada"
@@ -120,23 +89,31 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
 
         {quote.status === "sent" && !justSent && (
           <>
-            <button
-              type="button"
-              className="studio-btn studio-btn-ghost studio-btn-sm"
-              style={{ color: "var(--danger)" }}
-              onClick={handleRejected}
-              disabled={isPending}
-            >
-              Rechazada
-            </button>
-            <button
-              type="button"
-              className="studio-btn studio-btn-primary studio-btn-sm"
-              onClick={handleAccepted}
-              disabled={isPending}
-            >
-              Aceptada ✓
-            </button>
+            <ActionButton
+              variant="danger"
+              size="sm"
+              idleLabel="Rechazada"
+              loadingLabel="Marcando…"
+              successLabel={null}
+              onAction={async () => {
+                setError(null);
+                return markQuoteRejected(quote.id);
+              }}
+              onError={setError}
+            />
+            <ActionButton
+              variant="primary"
+              size="sm"
+              idleLabel="Aceptada"
+              loadingLabel="Marcando…"
+              successLabel="Cotización aceptada"
+              successIcon={Icon.check(14)}
+              onAction={async () => {
+                setError(null);
+                return markQuoteAccepted(quote.id);
+              }}
+              onError={setError}
+            />
           </>
         )}
 
@@ -153,19 +130,29 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
               >
                 ¿Convertir ahora?
               </span>
-              <button
-                type="button"
-                className="studio-btn studio-btn-primary studio-btn-sm"
-                onClick={handleConvert}
-                disabled={isPending}
-              >
-                {isPending ? "Convirtiendo…" : "Sí, convertir"}
-              </button>
+              <ActionButton
+                variant="primary"
+                size="sm"
+                idleLabel="Sí, convertir"
+                loadingLabel="Convirtiendo…"
+                successLabel={null}
+                onAction={async () => {
+                  setError(null);
+                  const r = await convertQuoteToShipment(quote.id);
+                  if (r.error) return { error: r.error };
+                  if (r.shipmentId) {
+                    // Navega antes de retornar · el botón se desmonta con la
+                    // página, no necesita flash de success.
+                    router.push(`/studio/tracking/${r.shipmentId}`);
+                  }
+                  return undefined;
+                }}
+                onError={setError}
+              />
               <button
                 type="button"
                 className="studio-btn studio-btn-ghost studio-btn-sm"
                 onClick={() => setConfirmConvert(false)}
-                disabled={isPending}
               >
                 No
               </button>
@@ -175,7 +162,6 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
               type="button"
               className="studio-btn studio-btn-primary studio-btn-sm"
               onClick={() => setConfirmConvert(true)}
-              disabled={isPending}
               title="Crea un embarque del Tracking con los datos de la cotización"
             >
               Convertir a embarque →
