@@ -1,0 +1,30 @@
+-- ─────────────────────────────────────────────────────────────
+-- 0041 · Rollback de la policy 0040 (broke maybeSingle queries)
+--
+-- La policy 0040 "users see members of their tenant" hacía que
+-- queries del tipo:
+--   await supabase.from("user_tenants").select("tenant_id").maybeSingle()
+-- devuelvan 3+ rows → maybeSingle() rompe → la página /studio/usuarios
+-- (entre otras ~20 queries similares) interpreta "sin tenant" → user
+-- efectivamente bloqueado del Studio.
+--
+-- Patrón roto en ~20 archivos. Demasiado riesgo arreglar one-by-one.
+-- Approach correcto: dejar RLS estricto (1 row per user) + usar admin
+-- client (service_role) en listMembers + computeUserKpis con filter
+-- explícito por tenant_id.
+--
+-- Esto deja la visibilidad de miembros restringida a "su own row" para
+-- queries directas con RLS, pero las pages que necesitan listar TODO el
+-- equipo usan admin client. Ver:
+--   - app/studio/(app)/usuarios/page.tsx
+--   - lib/studio/user-queries.ts (filters.tenantId)
+--
+-- Detectado en producción 2026-05-27: vzla@dtdcargo.com perdió acceso
+-- al Studio después de aplicar 0040. Rollback aplicado a los pocos
+-- minutos via Supabase MCP.
+--
+-- APLICADA IN-PLACE EN PROD via Supabase MCP el 2026-05-27.
+-- Este archivo queda para historial + idempotente para otros environments.
+-- ─────────────────────────────────────────────────────────────
+
+drop policy if exists "users see members of their tenant" on public.user_tenants;
