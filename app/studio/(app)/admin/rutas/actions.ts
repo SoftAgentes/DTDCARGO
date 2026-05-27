@@ -194,6 +194,28 @@ export async function softDeleteRouteAction(
   return { ok: true };
 }
 
+export async function toggleRouteActiveAction(
+  _prev: RoutesActionState,
+  formData: FormData,
+): Promise<RoutesActionState> {
+  const supabase = await createClient();
+  const id = parseStringOrNull(formData.get("id"));
+  const next = parseBool(formData.get("active"));
+  if (!id) return { fieldErrors: { id: "Falta el ID de la ruta." } };
+
+  const { error } = await supabase
+    .from("dispatch_routes")
+    .update({ active: next })
+    .eq("id", id)
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo cambiar el estado: ${error.message}` };
+
+  revalidatePath("/studio/admin/rutas");
+  revalidatePath("/studio/despacho");
+  return { ok: true };
+}
+
 // ─────────────────────────────────────────────────────────────
 // Cities (per-tenant catalog)
 // ─────────────────────────────────────────────────────────────

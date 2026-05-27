@@ -22,7 +22,7 @@
 |---|---|---|---|---|
 | **admin** | `erp/modules/admin.jsx` (98KB) | `app/studio/(app)/admin/` | 🟡 divergente | Handoff tiene 11 secciones (BÁSICO/AVANZADO + scrapers BCV). Prod tiene admin pero parcial. Auditar secciones. |
 | **admin-brand** | `erp/modules/admin-brand.jsx` (21KB) | — | 🔴 falta portar | Nuevo en v1.7. Gestión visual de marca desde admin. |
-| **admin-routes** | `erp/modules/admin-routes.jsx` (56KB) | — | 🔴 falta portar | CRUD rutas + catálogo ciudades IPOSTEL. Vital para Despacho. |
+| **admin-routes** | `erp/modules/admin-routes.jsx` (56KB) | `app/studio/(app)/admin/rutas/` | ✅ alineado | Tier 2.1 (2026-05-27) — SDD-0029 + alineación visual v1.7: tab Rutas con KPIs+toolbar+cards · tab Cities con header rico+banner IPOSTEL+cols Uso/Barrios · RouteDrawer con eyebrows+segmented+CityPicker custom (agregar inline)+numbered intermedias+DrawerSwitch pill. |
 | **audit-log** (v1.0) | `erp/modules/audit-log.jsx` (4KB) | — | 🔴 falta portar | Básico legacy. Mejor portar la versión `nuevo/` |
 | **audit-log** (nuevo) | `nuevo/modules/audit-log.jsx` (29KB) | — | 🔴 falta portar | Drill-down con 5 tabs (Resumen/Diff/Actor/Relacionados/JSON). |
 | **calendar** | `erp/modules/calendar.jsx` (29KB) | `app/studio/(app)/calendario/` | 🟡 verificar | Mes/semana/agenda + feriados CN/VE. Auditar tabs. |
@@ -57,7 +57,7 @@
 | **users** | `erp/modules/users.jsx` (15KB) | `app/studio/(app)/usuarios/` | 🟡 70% | Hoy hicimos Fase A + C alineadas. Falta Fase B (schema team/2FA/scope) + posible refinamiento del handoff v1.7. |
 | **vault** | `erp/modules/vault.jsx` (42KB) | `app/studio/(app)/no-olvidar/` | 🟡 verificar | Renombrado a No-Olvidar. Schema implementado (SDD-0025) pero UI puede divergir. |
 | **ve** (almacén) | `erp/modules/ve.jsx` (5KB) | `app/studio/(app)/ve/` | 🟡 verificar | Scope por almacén |
-| **venezuela-catalog** | `erp/modules/venezuela-catalog.jsx` (23KB) | — | 🔴 falta portar (como data) | 24 estados + IPOSTEL. NO es UI, es data + helpers `window.VECatalog` |
+| **venezuela-catalog** | `erp/modules/venezuela-catalog.jsx` (23KB) | `lib/data/venezuela-catalog.ts` + `public.ve_locality_catalog` (DB) | ✅ portado como data | Tier 1.3 (2026-05-27): TypeScript puro · 24 estados + IPOSTEL + 7 helpers. Plus seed SQL en migración 0024 para `ve_locality_catalog` (lookup público desde CityPicker). |
 
 ---
 
@@ -141,15 +141,13 @@
 
 ## 🎯 Prioridades sugeridas para portar
 
-### Tier 1 — alto valor operativo, bajo esfuerzo
-1. **Sidebar grupos colapsables** (OPERACIÓN/COMERCIAL/FINANZAS/SISTEMA + persistencia)
-   — mejora navegación inmediata, ~1h
-2. **Feature flags reales** (`DTDFlags`) — esconder módulos no usados, ~1h
-3. **venezuela-catalog** como data + helpers — habilita CityPicker, geocoding, registro
-   ~30 min porting puro
+### Tier 1 — alto valor operativo, bajo esfuerzo ✅ COMPLETO (2026-05-27)
+1. ✅ **Sidebar grupos colapsables** (OPERACIÓN/COMERCIAL/FINANZAS/SISTEMA + persistencia)
+2. ✅ **Feature flags reales** (`/studio/admin/feature-flags` · 20 toggles · esconde módulos)
+3. ✅ **venezuela-catalog** como data + helpers + seed SQL público (`ve_locality_catalog`)
 
 ### Tier 2 — flow operativo core
-4. **admin-routes** (CRUD rutas + ciudades IPOSTEL) — bloquea despacho ~3-4h
+4. ✅ **admin-routes** (CRUD rutas + ciudades IPOSTEL) — alineado a v1.7 (2026-05-27)
 5. **despacho-rules** (motor scoring + pago primero) — bloquea operación despacho ~3-4h
 6. **despacho-dashboard** (KPIs) — visibilidad operativa ~1-2h
 7. **OD Bridge + Data Bridge** (pipeline CN→Despacho→Bodeguero→Transportista)
@@ -194,18 +192,19 @@ ve, label-generator, qr-queue.
 
 ## 📊 Resumen ejecutivo
 
-- **✅ Alineado** (4): mailing tabs (Logs/Reglas/Config/orquestador) + wiring modals
+- **✅ Alineado** (7): mailing tabs (Logs/Reglas/Config/orquestador) + wiring modals
+  + **admin-routes** (Tier 2.1 · 2026-05-27) + **venezuela-catalog** (Tier 1.3 · como data)
 - **🟡 Divergente** (24): mayoría de módulos prod — necesitan audit detallado
-- **🔴 Falta portar** (24): módulos nuevos, pantallas standalone, mobile ERP,
-  sistemas globales (bridges, feature flags, rates)
+- **🔴 Falta portar** (22): módulos nuevos, pantallas standalone, mobile ERP,
+  sistemas globales (bridges, feature flags ya hechos, rates)
 - **⚪ N/A** (3): comments, quick-email (modal global), tweaks-panel (sandbox only)
 - **➕ Extra prod** (4): bugs/, mis-bugs/, operarios/, no-olvidar/
 
-**Top valor por hora invertida**:
-1. Sidebar grupos colapsables (~1h)
-2. Feature flags reales (~1h)
-3. venezuela-catalog data (~30min)
-4. despacho-rules + despacho-dashboard (~5h combinado, desbloquea flow operativo)
+**Próximo por valor por hora invertida** (Tier 1 ya cerrado):
+1. despacho-dashboard (~1-2h, chico, no-bloquea)
+2. despacho-rules (~3-4h, motor scoring de Despacho)
+3. **Decisión bridge approach** (bloqueante de Tier 2.4 · Realtime / polling / SSE)
+4. Estado de cuenta cliente (~4-5h, fuerte para comercial)
 
 **Bloqueador conceptual**: el bridge end-to-end (CN → Despacho → Bodeguero
 → Transportista) está diseñado con localStorage. Para Next.js + Supabase
