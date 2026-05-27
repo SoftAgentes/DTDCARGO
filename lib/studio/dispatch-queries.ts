@@ -247,10 +247,17 @@ export async function computeDispatchKpis(
     cancelledWeekResult,
     activeOdsForCapacity,
   ] = await Promise.all([
+    // Schema drift fix (2026-05-27): enum real es {pendiente_consolidacion,
+    // consolidado, incidencia} · no existe 'received'. Mismo fix que
+    // listEligiblePackages. Conteo puede sobre-estimar levemente vs la
+    // cola visible (no excluye paquetes ya asignados a una OD activa)
+    // pero es buen proxy para el KPI.
     supabase
       .from("warehouse_receipts_cn")
       .select("id", { count: "exact", head: true })
-      .eq("status", "received"),
+      .eq("status", "consolidado")
+      .eq("is_orphan", false)
+      .is("deleted_at", null),
     supabase
       .from("dispatch_orders")
       .select("id", { count: "exact", head: true })
