@@ -1,21 +1,22 @@
 /**
- * /studio/usuarios · Gestión de usuarios + invitaciones (SDD-0024 Fase 2).
+ * /studio/usuarios · Usuarios & Roles (SDD-0024 · design v1.3.1).
  *
  * Server component:
  *   1. Auth + verifica admin (no-admin → redirect /studio/dashboard).
- *   2. Fetch members (con auth.admin para resolver emails) + invitations + KPIs.
- *   3. Render UsersClient (tabs Members/Invitations + filtros + drawer invitar).
+ *   2. Fetch members (con admin client) + invitations.
+ *   3. Render header con título "Usuarios & Roles" + subtitle dinámico +
+ *      slot vacío `#users-page-actions` que UsersClient hidrata client-side
+ *      con los botones [Permisos por rol] + [+ Invitar usuario].
+ *   4. UsersClient maneja la vista (card roles, tabla, drawer, modal).
+ *
+ * Sin tabs · sin KPI cards horizontales (alineado a design).
  */
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import {
-  computeUserKpis,
-  listInvitations,
-  listMembers,
-} from "@/lib/studio/user-queries";
+import { listInvitations, listMembers } from "@/lib/studio/user-queries";
 import type { UserMembershipWithProfile } from "@/lib/studio/user-types";
 import { UsersClient } from "./_components/UsersClient";
 
@@ -46,12 +47,7 @@ export default async function UsuariosPage() {
     redirect("/studio/dashboard");
   }
 
-  // listMembers + computeUserKpis usan admin client porque la RLS
-  // de user_tenants solo permite ver el row propio (1 fila). Para mostrar
-  // todos los miembros del tenant, necesitamos service_role + filter
-  // explícito por tenant_id (defensa en profundidad).
-  // listInvitations sigue con client regular porque user_invitations
-  // RLS sí permite ver todas las del tenant.
+  // Admin client para listMembers (RLS de user_tenants restringe a 1 row).
   const supabaseAdminForListing = (() => {
     try {
       return createAdminClient();
@@ -60,15 +56,11 @@ export default async function UsuariosPage() {
     }
   })();
 
-  const [membersRaw, invitations, kpis] = await Promise.all([
+  const [membersRaw, invitations] = await Promise.all([
     listMembers(supabaseAdminForListing ?? supabase, {
       tenantId: link.tenant_id,
     }),
     listInvitations(supabase),
-    computeUserKpis(
-      supabaseAdminForListing ?? supabase,
-      supabaseAdminForListing ? link.tenant_id : undefined,
-    ),
   ]);
 
   // Resolver emails de auth.users via service_role admin client.
@@ -94,34 +86,64 @@ export default async function UsuariosPage() {
     members = membersRaw.map((m) => ({ ...m, email: "—" }));
   }
 
+  const activeCount = members.filter((m) => !m.disabled_at).length;
+  const roleCount = 6; // Roles fijos en el system (STUDIO_USER_ROLES.length)
+
   return (
     <div style={{ maxWidth: 1280 }}>
-      <div style={{ marginBottom: 24 }}>
-        <span className="studio-eyebrow">Sistema · Equipo</span>
-        <h1
-          className="studio-display"
-          style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
-        >
-          Usuarios
-        </h1>
-        <p
+      {/* Page header alineado a design v1.3.1 ─── título + subtitle + slot acciones */}
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 16,
+          marginBottom: 24,
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <span className="studio-eyebrow">Sistema · Equipo</span>
+          <h1
+            className="studio-display"
+            style={{
+              fontSize: 30,
+              margin: "8px 0 8px",
+              color: "var(--ink)",
+            }}
+          >
+            Usuarios & Roles
+          </h1>
+          <p
+            style={{
+              font: "400 13px/1.4 var(--font-sans, 'Archivo')",
+              color: "var(--ink-soft)",
+              margin: 0,
+              maxWidth: "76ch",
+            }}
+          >
+            {activeCount} usuario{activeCount === 1 ? "" : "s"} interno
+            {activeCount === 1 ? "" : "s"} · {roleCount} roles definidos · acceso
+            por módulo configurable.
+          </p>
+        </div>
+
+        {/* Slot que UsersClient hidrata client-side con los botones de acción.
+            Esto evita pasar callbacks server→client y mantiene el page como
+            server component. Ver UsersClient::ActionsPortal. */}
+        <div
+          id="users-page-actions"
           style={{
-            font: "400 13px/1.4 var(--f-sans)",
-            color: "var(--ink-soft)",
-            margin: 0,
-            maxWidth: "76ch",
+            display: "flex",
+            gap: 10,
+            alignItems: "center",
           }}
-        >
-          Miembros del tenant y sus roles. Invitá nuevos usuarios por email
-          (token expira en 7 días). Hasta que el módulo de mailing esté
-          activo, copiá el link de invitación a mano cuando creés una.
-        </p>
+        />
       </div>
 
       <UsersClient
         members={members}
         invitations={invitations}
-        kpis={kpis}
         currentUserId={userResp.user.id}
       />
     </div>
