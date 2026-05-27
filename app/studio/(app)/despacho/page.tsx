@@ -32,6 +32,13 @@ export default async function DispatchPage({
 
   const supabase = await createClient();
 
+  // Resolver tenant del user logueado · necesario para Realtime filter
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  const tenantId = link?.tenant_id ?? null;
+
   const [eligibleRaw, activeOds, rules, kpis, routes, availableTrucks, availableDrivers] =
     await Promise.all([
       listEligiblePackages(supabase, { city: filters.city }),
@@ -97,6 +104,7 @@ export default async function DispatchPage({
         availableTrucks={availableTrucks}
         availableDrivers={availableDrivers}
         filters={filters}
+        tenantId={tenantId}
       />
     </div>
   );
