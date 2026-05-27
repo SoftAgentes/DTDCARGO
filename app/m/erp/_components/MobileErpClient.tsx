@@ -77,6 +77,9 @@ interface Props {
   /** Map { receipt_path: signed_url } generado server-side (TTL 1h). */
   receiptUrls: Record<string, string>;
   expensesTodayUsd: number;
+  /** HQ operativa del user · fallback "Cerca tuyo" si browser geo denegada. */
+  operatingLat: number | null;
+  operatingLng: number | null;
 }
 
 export function MobileErpClient({
@@ -86,6 +89,8 @@ export function MobileErpClient({
   expenses,
   receiptUrls,
   expensesTodayUsd,
+  operatingLat,
+  operatingLng,
 }: Props) {
   const [tab, setTab] = useState<Tab>("home");
   const [expenseModal, setExpenseModal] = useState(false);
@@ -116,7 +121,13 @@ export function MobileErpClient({
           />
         )}
         {tab === "tracking" && <TrackingScreen shipments={shipments} />}
-        {tab === "clients" && <ClientsScreen clients={clients} />}
+        {tab === "clients" && (
+          <ClientsScreen
+            clients={clients}
+            operatingLat={operatingLat}
+            operatingLng={operatingLng}
+          />
+        )}
         {tab === "expenses" && (
           <ExpensesScreen
             expenses={expenses}
@@ -990,7 +1001,15 @@ const TIER_RANK: Record<string, number> = { premium: 0, vip: 1, regular: 2 };
 
 type ClientWithDistance = Client & { distanceKm: number | null };
 
-function ClientsScreen({ clients }: { clients: Client[] }) {
+function ClientsScreen({
+  clients,
+  operatingLat,
+  operatingLng,
+}: {
+  clients: Client[];
+  operatingLat: number | null;
+  operatingLng: number | null;
+}) {
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState<ClientsMode>("all");
   const geo = useGeolocation();
@@ -1001,18 +1020,30 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
     if (geo.status === "idle") geo.request();
   };
 
+  // Posición efectiva: browser geo > HQ operativa fallback > null
+  const effectivePos: {
+    lat: number;
+    lng: number;
+    source: "browser" | "hq";
+  } | null =
+    geo.status === "granted" && geo.lat != null && geo.lng != null
+      ? { lat: geo.lat, lng: geo.lng, source: "browser" }
+      : operatingLat != null && operatingLng != null
+        ? { lat: operatingLat, lng: operatingLng, source: "hq" }
+        : null;
+
   const enriched = useMemo<ClientWithDistance[]>(() => {
-    if (mode !== "nearby" || geo.status !== "granted" || geo.lat == null || geo.lng == null) {
+    if (mode !== "nearby" || !effectivePos) {
       return clients.map((c) => ({ ...c, distanceKm: null }));
     }
     return clients.map((c) => ({
       ...c,
       distanceKm:
         c.lat != null && c.lng != null
-          ? haversineKm(geo.lat!, geo.lng!, c.lat, c.lng)
+          ? haversineKm(effectivePos.lat, effectivePos.lng, c.lat, c.lng)
           : null,
     }));
-  }, [clients, mode, geo.status, geo.lat, geo.lng]);
+  }, [clients, mode, effectivePos]);
 
   const filtered = useMemo<ClientWithDistance[]>(() => {
     let list = enriched;
@@ -1027,7 +1058,7 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
       );
     }
     if (mode === "nearby") {
-      if (geo.status === "granted") {
+      if (effectivePos) {
         // Sort real por distancia · sin distancia (null) van al final
         list = [...list].sort((a, b) => {
           if (a.distanceKm == null && b.distanceKm == null) {
@@ -1051,9 +1082,10 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
       }
     }
     return list;
-  }, [enriched, search, mode, geo.status]);
+  }, [enriched, search, mode, effectivePos]);
 
   const clientsWithGps = clients.filter((c) => c.lat != null && c.lng != null).length;
+  const usingHqFallback = effectivePos?.source === "hq";
 
   return (
     <div style={{ padding: "20px 18px" }}>
@@ -1117,7 +1149,13 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
         })}
       </div>
 
-      {mode === "nearby" && <GeoStatusBanner geo={geo} clientsWithGps={clientsWithGps} />}
+      {mode === "nearby" && (
+        <GeoStatusBanner
+          geo={geo}
+          clientsWithGps={clientsWithGps}
+          usingHqFallback={usingHqFallback}
+        />
+      )}
 
       <SearchBar
         value={search}
@@ -1153,9 +1191,11 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
 function GeoStatusBanner({
   geo,
   clientsWithGps,
+  usingHqFallback,
 }: {
   geo: ReturnType<typeof useGeolocation>;
   clientsWithGps: number;
+  usingHqFallback: boolean;
 }) {
   if (geo.status === "loading") {
     return (
@@ -1164,12 +1204,22 @@ function GeoStatusBanner({
       </BannerLine>
     );
   }
+  if (usingHqFallback) {
+    // Browser geo no disponible/denegada PERO el user cargó su HQ operativa
+    // en /studio (ProfileModal · Preferencias). Usamos esas coords.
+    return (
+      <BannerLine tone="info" mb={14}>
+        <b>Usando tu HQ operativa</b> · distancia calculada desde las coords
+        que cargaste en tu perfil. {clientsWithGps} de cartera con GPS.
+      </BannerLine>
+    );
+  }
   if (geo.status === "denied") {
     return (
       <BannerLine tone="warning" mb={14}>
-        <b>Permiso denegado</b> · ordenando por tier elevado y recientes
-        como fallback. Habilitá el permiso en tu browser para distancia
-        real.
+        <b>Permiso denegado</b> · sin HQ operativa cargada en tu perfil,
+        ordenando por tier. Habilitá el permiso o cargá tu HQ desde
+        Preferencias para distancia real.
       </BannerLine>
     );
   }
@@ -1177,7 +1227,7 @@ function GeoStatusBanner({
     return (
       <BannerLine tone="danger" mb={14}>
         <b>Sin geolocalización</b> · {geo.error ?? "browser no soporta"}.
-        Usando fallback tier-based.
+        Cargá tu HQ operativa en Preferencias o usá fallback tier-based.
       </BannerLine>
     );
   }
