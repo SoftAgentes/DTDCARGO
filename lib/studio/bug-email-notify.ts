@@ -21,6 +21,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
+import { sendBugPushToUser } from "@/lib/studio/notify/send-bug-push";
 import {
   BUG_STATE_LABELS,
   BUG_SEVERITY_LABELS,
@@ -55,8 +56,8 @@ export async function notifyBugCreatedToAdmin(
   if (bug.severity !== "alta" && bug.severity !== "critica") return;
 
   try {
-    const adminEmails = await resolveAdminEmails(supabaseAdmin, tenantId);
-    if (adminEmails.length === 0) {
+    const admins = await resolveAdminEntries(supabaseAdmin, tenantId);
+    if (admins.length === 0) {
       console.warn("[bug-email-notify] No hay admins para notificar bug", bug.folio);
       return;
     }
@@ -67,15 +68,27 @@ export async function notifyBugCreatedToAdmin(
         ? "🔴 Bug crítico reportado"
         : "🟠 Bug de severidad alta";
 
-    for (const email of adminEmails) {
+    const bugUrlPath = `/studio/bugs?focus=${bug.id}`;
+
+    for (const admin of admins) {
+      // Email (puede skip-ar si Resend no está configurado)
       await sendBugNotification(supabaseAdmin, tenantId, {
-        to: email,
+        to: admin.email,
         bug,
         notifTypeLabel: notifLabel,
         recipientName: "Equipo admin",
         messageExcerpt: `Reportado por ${reporterName}.`,
-        bugUrlPath: `/studio/bugs?focus=${bug.id}`,
+        bugUrlPath,
         actionLabel: "Ver bug en el Studio",
+      });
+
+      // Push browser (skip silencioso si el admin no opted-in)
+      await sendBugPushToUser(supabaseAdmin, admin.user_id, {
+        title: `${notifLabel} · ${bug.folio}`,
+        body: `${bug.title} — reportado por ${reporterName}`,
+        url: bugUrlPath,
+        tag: `bug-${bug.id}`,
+        requireInteraction: bug.severity === "critica",
       });
     }
   } catch (err) {
@@ -101,6 +114,7 @@ export async function notifyBugStateChangeToReporter(
 
     const reporterName = await resolveUserDisplayName(supabaseAdmin, bug.reporter_id);
     const stateLabel = BUG_STATE_LABELS[bug.state] ?? bug.state;
+    const bugUrlPath = `/studio/mis-bugs?focus=${bug.id}`;
 
     await sendBugNotification(supabaseAdmin, tenantId, {
       to: reporterEmail,
@@ -108,8 +122,15 @@ export async function notifyBugStateChangeToReporter(
       notifTypeLabel: `Tu reporte cambió a ${stateLabel}`,
       recipientName: reporterName,
       messageExcerpt: "El admin actualizó el estado de tu reporte.",
-      bugUrlPath: `/studio/mis-bugs?focus=${bug.id}`,
+      bugUrlPath,
       actionLabel: "Ver mi reporte",
+    });
+
+    await sendBugPushToUser(supabaseAdmin, bug.reporter_id, {
+      title: `${bug.folio} · ${stateLabel}`,
+      body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
+      url: bugUrlPath,
+      tag: `bug-${bug.id}`,
     });
   } catch (err) {
     console.error("[bug-email-notify] notifyBugStateChangeToReporter failed:", err);
@@ -135,6 +156,7 @@ export async function notifyBugMessageToReporter(
     const reporterName = await resolveUserDisplayName(supabaseAdmin, bug.reporter_id);
     const excerpt =
       messageBody.length > 280 ? messageBody.slice(0, 277) + "…" : messageBody;
+    const bugUrlPath = `/studio/mis-bugs?focus=${bug.id}`;
 
     await sendBugNotification(supabaseAdmin, tenantId, {
       to: reporterEmail,
@@ -142,8 +164,15 @@ export async function notifyBugMessageToReporter(
       notifTypeLabel: "El admin respondió tu reporte",
       recipientName: reporterName,
       messageExcerpt: excerpt,
-      bugUrlPath: `/studio/mis-bugs?focus=${bug.id}`,
+      bugUrlPath,
       actionLabel: "Ver conversación",
+    });
+
+    await sendBugPushToUser(supabaseAdmin, bug.reporter_id, {
+      title: `${bug.folio} · Admin respondió`,
+      body: excerpt,
+      url: bugUrlPath,
+      tag: `bug-${bug.id}`,
     });
   } catch (err) {
     console.error("[bug-email-notify] notifyBugMessageToReporter failed:", err);
@@ -200,6 +229,18 @@ async function resolveAdminEmails(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
 ): Promise<string[]> {
+  const admins = await resolveAdminEntries(supabaseAdmin, tenantId);
+  return admins.map((a) => a.email);
+}
+
+/**
+ * Resuelve admins activos del tenant con {user_id, email}. Útil cuando
+ * el caller necesita disparar push notifications además del email.
+ */
+async function resolveAdminEntries(
+  supabaseAdmin: SupabaseClient,
+  tenantId: string,
+): Promise<Array<{ user_id: string; email: string }>> {
   const { data, error } = await supabaseAdmin
     .from("user_tenants")
     .select("user_id")
@@ -217,7 +258,7 @@ async function resolveAdminEmails(
   const usersList = users?.users ?? [];
   return usersList
     .filter((u) => ids.includes(u.id) && !!u.email)
-    .map((u) => u.email as string);
+    .map((u) => ({ user_id: u.id, email: u.email as string }));
 }
 
 async function resolveUserEmail(
