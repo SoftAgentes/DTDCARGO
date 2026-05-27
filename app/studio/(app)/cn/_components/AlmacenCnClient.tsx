@@ -24,6 +24,7 @@ import {
   pickBilingual,
   type LangDisplay,
   type WarehouseCN,
+  type WarehouseReceiptItemSummary,
   type WarehouseReceiptRow,
   type WarehouseReceiptStatus,
 } from "@/lib/studio/warehouse-cn-types";
@@ -60,6 +61,12 @@ export function AlmacenCnClient({
 
   const lang: LangDisplay = parseLangFromParam(params.get("lang"));
   const [drawerOpen, setDrawerOpen] = useState(params.get("view") === "create");
+
+  // Privacidad: nombre del cliente oculto por defecto (operadores CN no deberían
+  // ver el nombre real del importador VE — sólo el MARKBOX).
+  // TODO: cuando user_tenants tenga `region`, gatear este toggle para que sólo
+  // VE pueda activarlo y el server redacte client_name para region='cn'.
+  const [showClientNames, setShowClientNames] = useState(false);
 
   // Filtros locales sincronizados con URL
   const [q, setQ] = useState(params.get("q") ?? "");
@@ -225,6 +232,34 @@ export function AlmacenCnClient({
             Limpiar
           </button>
         )}
+        <button
+          type="button"
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          style={{
+            height: 38,
+            marginLeft: "auto",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            // Estado visual activo: wine-tint + borde wine para que
+            // el operador VE distinga "estoy revelando" de "están ocultos".
+            ...(showClientNames && {
+              background: "var(--wine-tint)",
+              color: "var(--wine)",
+              borderColor: "var(--wine)",
+            }),
+          }}
+          onClick={() => setShowClientNames((v) => !v)}
+          aria-pressed={showClientNames}
+          title={
+            showClientNames
+              ? "Ocultar nombres (operadores CN no deberían verlos)"
+              : "Mostrar nombres (solo para uso interno VE)"
+          }
+        >
+          {showClientNames ? Icon.eyeOff(13) : Icon.eye(13)}
+          <span>{showClientNames ? "Ocultar nombres" : "Mostrar nombres"}</span>
+        </button>
       </div>
 
       {/* Tabla o empty */}
@@ -262,6 +297,7 @@ export function AlmacenCnClient({
           selected={selected}
           onToggleOne={toggleOne}
           onToggleAll={() => toggleAll(receipts.map((r) => r.id))}
+          showClientNames={showClientNames}
         />
       )}
 
@@ -293,8 +329,9 @@ export function AlmacenCnClient({
 // ─────────────────────────────────────────────────────────────
 
 // Grid template compartido por header + rows (con checkbox 32px al inicio).
+// La columna "Items" se ensancha (min 200px) porque ahora muestra descripciones.
 const RECEIPT_GRID_COLS =
-  "32px 150px minmax(160px, 1.4fr) minmax(140px, 1.4fr) 90px 78px 90px 80px 72px 120px 60px";
+  "32px 130px minmax(150px, 1.2fr) minmax(140px, 1.2fr) 88px 64px 78px 78px minmax(200px, 1.6fr) 150px 50px";
 
 function ReceiptsTable({
   rows,
@@ -304,6 +341,7 @@ function ReceiptsTable({
   selected,
   onToggleOne,
   onToggleAll,
+  showClientNames,
 }: {
   rows: WarehouseReceiptRow[];
   lang: LangDisplay;
@@ -312,6 +350,7 @@ function ReceiptsTable({
   selected: Set<string>;
   onToggleOne: (id: string) => void;
   onToggleAll: () => void;
+  showClientNames: boolean;
 }) {
   const allVisibleSelected =
     rows.length > 0 && rows.every((r) => selected.has(r.id));
@@ -367,7 +406,7 @@ function ReceiptsTable({
         <span style={{ textAlign: "right" }}>Cajas</span>
         <span style={{ textAlign: "right" }}>CBM</span>
         <span style={{ textAlign: "right" }}>Peso</span>
-        <span style={{ textAlign: "right" }}>Items</span>
+        <span>Productos</span>
         <span>Estado</span>
         <span style={{ textAlign: "right" }}>·</span>
       </div>
@@ -381,6 +420,7 @@ function ReceiptsTable({
           hasBorderTop={i > 0}
           selected={selected.has(r.id)}
           onToggle={() => onToggleOne(r.id)}
+          showClientNames={showClientNames}
         />
       ))}
     </div>
@@ -394,6 +434,7 @@ function ReceiptRow({
   hasBorderTop,
   selected,
   onToggle,
+  showClientNames,
 }: {
   row: WarehouseReceiptRow;
   lang: LangDisplay;
@@ -401,6 +442,7 @@ function ReceiptRow({
   hasBorderTop: boolean;
   selected: boolean;
   onToggle: () => void;
+  showClientNames: boolean;
 }) {
   // Supplier bilingual display
   const sup = pickBilingual(
@@ -447,8 +489,7 @@ function ReceiptRow({
       className="studio-tracking-row"
       style={{
         display: "grid",
-        gridTemplateColumns:
-          "32px 150px minmax(160px, 1.4fr) minmax(140px, 1.4fr) 90px 70px 90px 80px 60px 160px 60px",
+        gridTemplateColumns: RECEIPT_GRID_COLS,
         gap: 12,
         padding: "14px 18px",
         borderTop: hasBorderTop ? "1px solid var(--border)" : 0,
@@ -525,19 +566,27 @@ function ReceiptRow({
             <span
               style={{
                 font: "600 12.5px/1.2 var(--f-sans)",
-                color: "var(--ink)",
+                color: showClientNames ? "var(--ink)" : "var(--ink-mute)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
                 whiteSpace: "nowrap",
+                letterSpacing: showClientNames ? "normal" : "0.18em",
               }}
+              title={
+                showClientNames
+                  ? row.client_name ?? undefined
+                  : "Nombre oculto · activá el ojo en la toolbar para verlo"
+              }
             >
-              {row.client_name ?? "—"}
+              {showClientNames ? row.client_name ?? "—" : "••••••"}
             </span>
             {row.client_markbox && (
               <code
                 style={{
-                  font: "700 11px/1 var(--f-mono)",
-                  color: "var(--wine)",
+                  font: "800 11px/1 var(--f-mono)",
+                  // En selected row el bg pasa a wine-tint → wine sobre wine-tint
+                  // pierde contraste AA. Usamos --ink en ese caso.
+                  color: selected ? "var(--ink)" : "var(--wine)",
                 }}
               >
                 {row.client_markbox}
@@ -650,16 +699,8 @@ function ReceiptRow({
         {weightDisplay}
       </span>
 
-      {/* Items count */}
-      <span
-        style={{
-          font: "600 11.5px/1 var(--f-mono)",
-          color: "var(--ink-soft)",
-          textAlign: "right",
-        }}
-      >
-        {row.items_count}
-      </span>
+      {/* Items · descripciones (packing list) */}
+      <ItemsCell items={row.items} totalCount={row.items_count} lang={lang} />
 
       {/* Status + payment + destino · stacked */}
       <span style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
@@ -707,6 +748,113 @@ function formatReceivedDate(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// ItemsCell · descripciones de productos al estilo packing list
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Muestra el primer item + "+N más" para que la tabla refleje qué hay
+ * dentro de la caja sin abrir el detalle. Tooltip con la lista completa.
+ * Bilingüe: si lang preferido es CN/ES, intenta usar description_translated.
+ */
+function ItemsCell({
+  items,
+  totalCount,
+  lang,
+}: {
+  items: WarehouseReceiptItemSummary[];
+  totalCount: number;
+  lang: LangDisplay;
+}) {
+  if (items.length === 0) {
+    return (
+      <span
+        style={{
+          font: "500 11.5px/1 var(--f-sans)",
+          color: "var(--ink-mute)",
+        }}
+      >
+        {totalCount > 0 ? `${totalCount} item${totalCount === 1 ? "" : "s"}` : "—"}
+      </span>
+    );
+  }
+
+  const renderText = (it: WarehouseReceiptItemSummary): string => {
+    const picked = pickBilingual(it.description, it.description_translated, lang);
+    return picked.primary ?? it.description;
+  };
+
+  const first = items[0];
+  const remaining = items.length - 1;
+  const firstText = renderText(first);
+  const firstIsCn = isChinese(firstText);
+
+  // Tooltip = lista completa "1. Producto x 5 · 8517.12.10\n2. ..."
+  const tooltip = items
+    .map((it, i) => {
+      const text = renderText(it);
+      const qty = it.quantity != null ? ` × ${it.quantity}` : "";
+      const hs = it.hs_code ? ` · ${it.hs_code}` : "";
+      return `${i + 1}. ${text}${qty}${hs}`;
+    })
+    .join("\n");
+
+  return (
+    <div style={{ minWidth: 0 }} title={tooltip}>
+      <div
+        style={{
+          font: `600 12px/1.3 ${firstIsCn ? '"Noto Sans SC", var(--f-sans)' : "var(--f-sans)"}`,
+          color: "var(--ink)",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "baseline",
+          gap: 6,
+        }}
+      >
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            minWidth: 0,
+            flex: 1,
+          }}
+        >
+          {firstText}
+        </span>
+        {first.quantity != null && (
+          <span
+            style={{
+              font: "700 10.5px/1 var(--f-mono)",
+              color: "var(--ink-mute)",
+              flexShrink: 0,
+            }}
+          >
+            ×{first.quantity}
+          </span>
+        )}
+      </div>
+      {remaining > 0 && (
+        <span
+          style={{
+            font: "600 10.5px/1.3 var(--f-sans)",
+            // ink-soft (no wine) para no leer como CTA — el tooltip nativo
+            // hace de revelación, no es clickeable.
+            color: "var(--ink-soft)",
+            cursor: "help",
+            marginTop: 2,
+            display: "inline-block",
+          }}
+        >
+          +{remaining} más
+        </span>
+      )}
+    </div>
+  );
 }
 
 // ─────────────────────────────────────────────────────────────

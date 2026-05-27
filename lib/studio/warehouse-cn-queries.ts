@@ -11,6 +11,7 @@ import type {
   WarehouseReceipt,
   WarehouseReceiptEvent,
   WarehouseReceiptItem,
+  WarehouseReceiptItemSummary,
   WarehouseReceiptRow,
   WarehouseReceiptStatus,
 } from "./warehouse-cn-types";
@@ -50,6 +51,7 @@ const RECEIPT_LIST_SELECT = `
   received_at, notes, destination_city, payment_status,
   deleted_at, created_at, updated_at,
   warehouse:warehouses_cn!warehouse_id ( code, hub_code, hub_name_es, hub_name_cn ),
+  items:warehouse_receipt_items ( description, description_translated, quantity, position, hs_code ),
   items_count:warehouse_receipt_items(count)
 `;
 
@@ -154,19 +156,26 @@ export async function listReceipts(
 
   // Supabase devuelve las relaciones como arrays incluso en FK 1:1
   // (`warehouse` viene `[{...}]`, `items_count` viene `[{count: N}]`).
-  // Normalizar a forma plana para el consumidor.
-  type RawRow = Omit<WarehouseReceiptRow, "warehouse" | "items_count"> & {
+  // `items` viene como array desordenado — ordenamos por position acá.
+  type RawRow = Omit<
+    WarehouseReceiptRow,
+    "warehouse" | "items_count" | "items"
+  > & {
     warehouse:
       | Pick<WarehouseCN, "code" | "hub_code" | "hub_name_es" | "hub_name_cn">
       | Pick<WarehouseCN, "code" | "hub_code" | "hub_name_es" | "hub_name_cn">[]
       | null;
     items_count: { count: number }[] | number;
+    items: WarehouseReceiptItemSummary[] | null;
   };
 
   const rows = (data ?? []) as unknown as RawRow[];
 
   return rows.map((r) => {
     const wh = Array.isArray(r.warehouse) ? r.warehouse[0] : r.warehouse;
+    const items = (r.items ?? [])
+      .slice()
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     return {
       ...r,
       warehouse: wh ?? {
@@ -175,6 +184,7 @@ export async function listReceipts(
         hub_name_es: "—",
         hub_name_cn: "—",
       },
+      items,
       items_count: Array.isArray(r.items_count)
         ? (r.items_count[0]?.count ?? 0)
         : (r.items_count ?? 0),
