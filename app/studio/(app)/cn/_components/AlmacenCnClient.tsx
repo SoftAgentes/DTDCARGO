@@ -26,6 +26,7 @@ import {
   type WarehouseReceiptStatus,
 } from "@/lib/studio/warehouse-cn-types";
 import type { Client } from "@/lib/studio/client-types";
+import type { DispatchCity } from "@/lib/studio/dispatch-routes-types";
 import type { ReceiptFilters } from "@/lib/studio/warehouse-cn-queries";
 import { ReceiptStatusBadge } from "./ReceiptStatusBadge";
 import { ReceiptRowActions } from "./ReceiptRowActions";
@@ -35,6 +36,7 @@ interface Props {
   receipts: WarehouseReceiptRow[];
   warehouses: WarehouseCN[];
   clients: Client[];
+  cities: DispatchCity[];
   filters: ReceiptFilters;
 }
 
@@ -42,6 +44,7 @@ export function AlmacenCnClient({
   receipts,
   warehouses,
   clients,
+  cities,
   filters,
 }: Props) {
   const router = useRouter();
@@ -227,6 +230,7 @@ export function AlmacenCnClient({
         <ReceiptsTable
           rows={receipts}
           lang={lang}
+          cities={cities}
           onCreateClick={openDrawer}
         />
       )}
@@ -249,10 +253,12 @@ export function AlmacenCnClient({
 function ReceiptsTable({
   rows,
   lang,
+  cities,
   onCreateClick: _onCreateClick,
 }: {
   rows: WarehouseReceiptRow[];
   lang: LangDisplay;
+  cities: DispatchCity[];
   onCreateClick: () => void;
 }) {
   return (
@@ -294,7 +300,13 @@ function ReceiptsTable({
       </div>
 
       {rows.map((r, i) => (
-        <ReceiptRow key={r.id} row={r} lang={lang} hasBorderTop={i > 0} />
+        <ReceiptRow
+          key={r.id}
+          row={r}
+          lang={lang}
+          cities={cities}
+          hasBorderTop={i > 0}
+        />
       ))}
     </div>
   );
@@ -303,10 +315,12 @@ function ReceiptsTable({
 function ReceiptRow({
   row,
   lang,
+  cities,
   hasBorderTop,
 }: {
   row: WarehouseReceiptRow;
   lang: LangDisplay;
+  cities: DispatchCity[];
   hasBorderTop: boolean;
 }) {
   // Supplier bilingual display
@@ -562,6 +576,11 @@ function ReceiptRow({
         <ReceiptRowActions
           receiptId={row.id}
           currentStatus={row.status as WarehouseReceiptStatus}
+          cities={cities}
+          currentDestinationCity={
+            (row as WarehouseReceiptRow & { destination_city?: string | null })
+              .destination_city ?? null
+          }
         />
       </span>
     </div>

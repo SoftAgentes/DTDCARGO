@@ -4,10 +4,17 @@
  * ReceiptRowActions — menú "..." en cada row de la tabla para cambiar status.
  *
  * Acciones: marcar pendiente / consolidado / incidencia.
+ *
+ * Consolidar (2026-05-27 · Opción A SDD-0029): muestra mini-form inline
+ * pidiendo ciudad destino (required). Cities cargadas del catálogo
+ * per-tenant (dispatch_city_catalog). Si tenant catalog vacío, fallback
+ * a input text libre. La city queda guardada en warehouse_receipts_cn
+ * y alimenta el scoring del módulo Despacho.
+ *
  * Llama changeReceiptStatusAction y refresca la ruta.
  */
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { changeReceiptStatusAction } from "../actions";
 import type { WarehouseReceiptStatus } from "@/lib/studio/warehouse-cn-types";
@@ -15,30 +22,49 @@ import {
   RECEIPT_STATUS_LABELS,
   RECEIPT_STATUS_OPTIONS,
 } from "@/lib/studio/warehouse-cn-types";
+import type { DispatchCity } from "@/lib/studio/dispatch-routes-types";
 import { Icon } from "@/app/studio/_components/icons";
+
+interface Props {
+  receiptId: string;
+  currentStatus: WarehouseReceiptStatus;
+  cities?: DispatchCity[];
+  currentDestinationCity?: string | null;
+}
+
+type View = "menu" | "consolidate-form";
 
 export function ReceiptRowActions({
   receiptId,
   currentStatus,
-}: {
-  receiptId: string;
-  currentStatus: WarehouseReceiptStatus;
-}) {
+  cities = [],
+  currentDestinationCity = null,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [view, setView] = useState<View>("menu");
+  const [destinationCity, setDestinationCity] = useState(
+    currentDestinationCity ?? "",
+  );
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
+
+  const sortedCities = useMemo(() => {
+    return cities
+      .filter((c) => c.active)
+      .sort((a, b) => a.city.localeCompare(b.city));
+  }, [cities]);
 
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
       if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        closeMenu();
       }
     };
     const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") closeMenu();
     };
     document.addEventListener("mousedown", onDocClick);
     document.addEventListener("keydown", onEsc);
@@ -46,19 +72,48 @@ export function ReceiptRowActions({
       document.removeEventListener("mousedown", onDocClick);
       document.removeEventListener("keydown", onEsc);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const handleChange = (newStatus: WarehouseReceiptStatus) => {
-    setError(null);
+  const closeMenu = () => {
     setOpen(false);
+    setView("menu");
+    setError(null);
+  };
+
+  const submit = (
+    newStatus: WarehouseReceiptStatus,
+    opts?: { destinationCity?: string },
+  ) => {
+    setError(null);
     startTransition(async () => {
-      const res = await changeReceiptStatusAction(receiptId, newStatus);
+      const res = await changeReceiptStatusAction(receiptId, newStatus, opts);
       if (res.error) {
         setError(res.error);
       } else {
+        closeMenu();
         router.refresh();
       }
     });
+  };
+
+  const handleMenuPick = (newStatus: WarehouseReceiptStatus) => {
+    if (newStatus === "consolidado") {
+      // Abrir mini-form inline en lugar de invocar directo
+      setView("consolidate-form");
+      return;
+    }
+    submit(newStatus);
+  };
+
+  const handleConsolidateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const city = destinationCity.trim();
+    if (!city) {
+      setError("Ciudad destino es obligatoria para consolidar.");
+      return;
+    }
+    submit("consolidado", { destinationCity: city });
   };
 
   return (
@@ -108,71 +163,195 @@ export function ReceiptRowActions({
             position: "absolute",
             top: "calc(100% + 4px)",
             right: 0,
-            minWidth: 220,
+            minWidth: view === "menu" ? 220 : 280,
             background: "var(--bg-surface)",
             border: "1px solid var(--border-strong)",
             borderRadius: "var(--r-md)",
             boxShadow: "var(--shadow-md)",
-            padding: 4,
+            padding: view === "menu" ? 4 : 12,
             zIndex: 30,
             display: "flex",
             flexDirection: "column",
-            gap: 2,
+            gap: view === "menu" ? 2 : 10,
           }}
         >
-          <div
-            style={{
-              padding: "6px 10px 4px",
-              font: "700 9.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
-              letterSpacing: "0.14em",
-              textTransform: "uppercase",
-            }}
-          >
-            Cambiar estado
-          </div>
-          {RECEIPT_STATUS_OPTIONS.map((opt) => {
-            const isCurrent = opt.value === currentStatus;
-            return (
-              <button
-                key={opt.value}
-                role="menuitem"
-                type="button"
-                onClick={() => handleChange(opt.value)}
-                disabled={isCurrent || pending}
+          {view === "menu" ? (
+            <>
+              <div
                 style={{
-                  textAlign: "left",
-                  padding: "8px 10px",
-                  border: 0,
-                  background: isCurrent ? "var(--bg-elevated)" : "transparent",
-                  color: isCurrent ? "var(--ink-mute)" : "var(--ink)",
-                  font: "500 12.5px/1.2 var(--f-sans)",
-                  cursor: isCurrent || pending ? "default" : "pointer",
-                  borderRadius: "var(--r-sm)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-                onMouseEnter={(e) => {
-                  if (!isCurrent && !pending) {
-                    e.currentTarget.style.background = "var(--wine-tint)";
-                    e.currentTarget.style.color = "var(--wine)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isCurrent && !pending) {
-                    e.currentTarget.style.background = "transparent";
-                    e.currentTarget.style.color = "var(--ink)";
-                  }
+                  padding: "6px 10px 4px",
+                  font: "700 9.5px/1 var(--f-sans)",
+                  color: "var(--ink-mute)",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
                 }}
               >
-                <span style={{ width: 14, display: "inline-flex" }}>
-                  {isCurrent ? Icon.check(13) : null}
+                Cambiar estado
+              </div>
+              {RECEIPT_STATUS_OPTIONS.map((opt) => {
+                const isCurrent = opt.value === currentStatus;
+                return (
+                  <button
+                    key={opt.value}
+                    role="menuitem"
+                    type="button"
+                    onClick={() => handleMenuPick(opt.value)}
+                    disabled={isCurrent || pending}
+                    style={{
+                      textAlign: "left",
+                      padding: "8px 10px",
+                      border: 0,
+                      background: isCurrent ? "var(--bg-elevated)" : "transparent",
+                      color: isCurrent ? "var(--ink-mute)" : "var(--ink)",
+                      font: "500 12.5px/1.2 var(--f-sans)",
+                      cursor: isCurrent || pending ? "default" : "pointer",
+                      borderRadius: "var(--r-sm)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isCurrent && !pending) {
+                        e.currentTarget.style.background = "var(--wine-tint)";
+                        e.currentTarget.style.color = "var(--wine)";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isCurrent && !pending) {
+                        e.currentTarget.style.background = "transparent";
+                        e.currentTarget.style.color = "var(--ink)";
+                      }
+                    }}
+                  >
+                    <span style={{ width: 14, display: "inline-flex" }}>
+                      {isCurrent ? Icon.check(13) : null}
+                    </span>
+                    <span>{opt.label}</span>
+                  </button>
+                );
+              })}
+            </>
+          ) : (
+            <form onSubmit={handleConsolidateSubmit}>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 8,
+                }}
+              >
+                <span
+                  style={{
+                    font: "700 9.5px/1 var(--f-sans)",
+                    color: "var(--wine)",
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  Consolidar · destino
                 </span>
-                <span>{opt.label}</span>
-              </button>
-            );
-          })}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setView("menu");
+                    setError(null);
+                  }}
+                  style={{
+                    color: "var(--ink-soft)",
+                    background: "transparent",
+                    border: 0,
+                    font: "600 11px/1 var(--f-sans)",
+                    cursor: "pointer",
+                  }}
+                >
+                  ← Volver
+                </button>
+              </div>
+
+              <label
+                className="studio-label"
+                htmlFor={`dest-city-${receiptId}`}
+                style={{ display: "block", marginBottom: 4 }}
+              >
+                Ciudad destino
+              </label>
+
+              {sortedCities.length > 0 ? (
+                <select
+                  id={`dest-city-${receiptId}`}
+                  className="studio-input"
+                  value={destinationCity}
+                  onChange={(e) => setDestinationCity(e.target.value)}
+                  required
+                  autoFocus
+                  style={{ width: "100%", height: 34 }}
+                >
+                  <option value="">— Elegí ciudad —</option>
+                  {sortedCities.map((c) => (
+                    <option key={c.id} value={c.city}>
+                      {c.city} · {c.state_name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  id={`dest-city-${receiptId}`}
+                  type="text"
+                  className="studio-input"
+                  value={destinationCity}
+                  onChange={(e) => setDestinationCity(e.target.value)}
+                  placeholder="ej: Valencia"
+                  required
+                  autoFocus
+                  style={{ width: "100%", height: 34 }}
+                />
+              )}
+              {sortedCities.length === 0 && (
+                <p
+                  style={{
+                    font: "500 10.5px/1.4 var(--f-sans)",
+                    color: "var(--ink-mute)",
+                    margin: "6px 0 0",
+                  }}
+                >
+                  Catálogo del tenant vacío. Seedealo desde{" "}
+                  <code style={{ font: "700 10.5px/1 var(--f-mono)" }}>
+                    /studio/admin/rutas
+                  </code>{" "}
+                  tab Ciudades para elegir de una lista.
+                </p>
+              )}
+
+              <div
+                style={{
+                  display: "flex",
+                  gap: 8,
+                  justifyContent: "flex-end",
+                  marginTop: 12,
+                }}
+              >
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-sm"
+                  onClick={() => {
+                    setView("menu");
+                    setError(null);
+                  }}
+                  disabled={pending}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="studio-btn studio-btn-primary studio-btn-sm"
+                  disabled={pending || !destinationCity.trim()}
+                >
+                  {pending ? "Consolidando…" : "Consolidar"}
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       )}
 
@@ -191,6 +370,7 @@ export function ReceiptRowActions({
             color: "var(--danger)",
             whiteSpace: "nowrap",
             zIndex: 31,
+            maxWidth: 300,
           }}
         >
           {error}

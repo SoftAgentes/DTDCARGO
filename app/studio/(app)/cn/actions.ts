@@ -229,10 +229,27 @@ const VALID_NEW_STATUSES: WarehouseReceiptStatus[] = [
 export async function changeReceiptStatusAction(
   receiptId: string,
   newStatus: WarehouseReceiptStatus,
-  note?: string,
+  options?: {
+    note?: string;
+    /**
+     * Ciudad destino. REQUIRED si newStatus = 'consolidado' (Opción A SDD-0029 ·
+     * migración 0044 agregó la columna). Ignorado para otros status.
+     * Validar contra dispatch_city_catalog del tenant lo hace el caller (UI).
+     */
+    destinationCity?: string;
+  },
 ): Promise<{ ok?: boolean; error?: string }> {
   if (!VALID_NEW_STATUSES.includes(newStatus)) {
     return { error: "Estado inválido." };
+  }
+
+  const destinationCity = options?.destinationCity?.trim();
+  const note = options?.note?.trim();
+
+  // Consolidar requiere city. Para volver a pendiente_consolidacion o incidencia,
+  // no se toca la city (puede quedar de un consolidado previo).
+  if (newStatus === "consolidado" && !destinationCity) {
+    return { error: "Indicá la ciudad destino para consolidar." };
   }
 
   const supabase = await createClient();
@@ -249,21 +266,36 @@ export async function changeReceiptStatusAction(
   // Leer current status para no insertar event redundante
   const { data: current, error: readErr } = await supabase
     .from("warehouse_receipts_cn")
-    .select("status, receipt_code")
+    .select("status, receipt_code, destination_city")
     .eq("id", receiptId)
-    .maybeSingle<{ status: WarehouseReceiptStatus; receipt_code: string }>();
+    .maybeSingle<{
+      status: WarehouseReceiptStatus;
+      receipt_code: string;
+      destination_city: string | null;
+    }>();
 
   if (readErr || !current) {
     return { error: "Recepción no encontrada." };
   }
 
-  if (current.status === newStatus) {
+  if (
+    current.status === newStatus &&
+    (newStatus !== "consolidado" || current.destination_city === destinationCity)
+  ) {
     return { ok: true }; // no-op
+  }
+
+  // Update: solo persiste destination_city si estamos consolidando
+  const patch: { status: WarehouseReceiptStatus; destination_city?: string } = {
+    status: newStatus,
+  };
+  if (newStatus === "consolidado" && destinationCity) {
+    patch.destination_city = destinationCity;
   }
 
   const { error: updateErr } = await supabase
     .from("warehouse_receipts_cn")
-    .update({ status: newStatus })
+    .update(patch)
     .eq("id", receiptId);
 
   if (updateErr) {
@@ -278,9 +310,12 @@ export async function changeReceiptStatusAction(
         ? "incident"
         : "status_change";
 
-  const description =
-    note?.trim() ||
+  let description =
+    note ||
     `Estado: ${current.status} → ${newStatus} · ${current.receipt_code}`;
+  if (newStatus === "consolidado" && destinationCity) {
+    description += ` · destino: ${destinationCity}`;
+  }
 
   await supabase.from("warehouse_receipt_events").insert({
     tenant_id: link.tenant_id,
@@ -290,6 +325,7 @@ export async function changeReceiptStatusAction(
   });
 
   revalidatePath("/studio/cn");
+  revalidatePath("/studio/despacho");
   return { ok: true };
 }
 
