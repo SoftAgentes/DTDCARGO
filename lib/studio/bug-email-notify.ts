@@ -1,27 +1,34 @@
 /**
- * Bug Reporter · notificaciones por email (SDD-0036 Fase 5 · mínimo viable).
+ * Bug Reporter · notificaciones multi-canal (SDD-0036 Fase 5).
  *
- * Wraps sendEmail con el template `bug_notification` para 3 casos:
- *   - notifyBugCreatedToAdmin: bug nuevo con severity alta/critica → email admin
- *   - notifyBugStateChangeToReporter: cambio de estado → email reportador
- *   - notifyBugMessageToReporter: admin respondió → email reportador
+ * 3 casos cubiertos:
+ *   - notifyBugCreatedToAdmin: bug nuevo con severity alta/critica → admin(s)
+ *   - notifyBugStateChangeToReporter: cambio de estado → reportador
+ *   - notifyBugMessageToReporter: admin respondió → reportador
+ *
+ * 3 canales que dispara para cada caso:
+ *   1. Email · sendEmail con template bug_notification (Resend)
+ *   2. Push browser · sendBugPushToUser (Web Push + VAPID)
+ *   3. Telegram · sendBugTelegramToUser (Bot API)
  *
  * Diseño:
- *  - Best-effort: errores se loggean a console.error pero NO se propagan
- *    (no rompe la operación principal del bug).
- *  - Resuelve email + nombre del destinatario internamente (admin client).
+ *  - Best-effort por canal: cada falla se loguea a console.error pero
+ *    NO rompe la operación principal del bug ni los otros canales.
+ *  - Cada canal hace check propio de "user opted-in" via su tabla/columna:
+ *    email = siempre · push = push_subscriptions row · telegram =
+ *    user_profiles.telegram_chat_id no null
  *  - Si test_mode=true en mail_config, sendEmail redirige a internal_test_email.
  *
- * NO cubre (deferred al spec completo de F5):
- *  - Canales in-app, push browser, Telegram
+ * NO cubre todavía:
+ *  - user_notification_prefs check global (asume todos quieren todos los canales)
  *  - Outbox bug_notifications (retry, status, idempotency)
- *  - user_notification_prefs check (asume todos quieren email)
- *  - Templates por tipo de notif (1 template genérico cubre los 3)
+ *  - Templates específicos por tipo de notif (1 template genérico cubre los 3)
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { sendBugPushToUser } from "@/lib/studio/notify/send-bug-push";
+import { sendTelegramMessage } from "@/lib/studio/telegram/send-message";
 import {
   BUG_STATE_LABELS,
   BUG_SEVERITY_LABELS,
@@ -90,6 +97,13 @@ export async function notifyBugCreatedToAdmin(
         tag: `bug-${bug.id}`,
         requireInteraction: bug.severity === "critica",
       });
+
+      // Telegram (skip silencioso si el admin no linkeó su Telegram)
+      await sendBugTelegramToUser(supabaseAdmin, admin.user_id, {
+        title: `${notifLabel} · ${bug.folio}`,
+        body: `${bug.title}\nReportado por ${reporterName}.`,
+        url: `${SITE_URL}${bugUrlPath}`,
+      });
     }
   } catch (err) {
     console.error("[bug-email-notify] notifyBugCreatedToAdmin failed:", err);
@@ -132,6 +146,12 @@ export async function notifyBugStateChangeToReporter(
       url: bugUrlPath,
       tag: `bug-${bug.id}`,
     });
+
+    await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
+      title: `${bug.folio} · ${stateLabel}`,
+      body: `Tu reporte "${bug.title}" cambió a ${stateLabel}.`,
+      url: `${SITE_URL}${bugUrlPath}`,
+    });
   } catch (err) {
     console.error("[bug-email-notify] notifyBugStateChangeToReporter failed:", err);
   }
@@ -173,6 +193,12 @@ export async function notifyBugMessageToReporter(
       body: excerpt,
       url: bugUrlPath,
       tag: `bug-${bug.id}`,
+    });
+
+    await sendBugTelegramToUser(supabaseAdmin, bug.reporter_id, {
+      title: `${bug.folio} · Admin respondió`,
+      body: excerpt,
+      url: `${SITE_URL}${bugUrlPath}`,
     });
   } catch (err) {
     console.error("[bug-email-notify] notifyBugMessageToReporter failed:", err);
@@ -286,4 +312,42 @@ async function resolveUserDisplayName(
 
   const { data: userData } = await supabaseAdmin.auth.admin.getUserById(userId);
   return userData?.user?.email ?? "Usuario";
+}
+
+/**
+ * Envía notif por Telegram a un user. Skip silencioso si el user no
+ * linkeó su cuenta (telegram_chat_id IS NULL) o si TELEGRAM_BOT_TOKEN
+ * no está configurado.
+ *
+ * Best-effort: errores se loguean pero no se propagan.
+ */
+async function sendBugTelegramToUser(
+  supabaseAdmin: SupabaseClient,
+  userId: string,
+  payload: {
+    title: string;
+    body: string;
+    url: string;
+  },
+): Promise<void> {
+  try {
+    const { data: profile } = await supabaseAdmin
+      .from("user_profiles")
+      .select("telegram_chat_id")
+      .eq("user_id", userId)
+      .maybeSingle<{ telegram_chat_id: string | null }>();
+
+    const chatId = profile?.telegram_chat_id;
+    if (!chatId) return;
+
+    // Plain text · evita escape hell de MarkdownV2.
+    const text = `${payload.title}\n\n${payload.body}\n\n${payload.url}`;
+
+    const result = await sendTelegramMessage(chatId, text);
+    if (!result.ok) {
+      console.error("[bug-email-notify] sendTelegramMessage failed:", result.error);
+    }
+  } catch (err) {
+    console.error("[bug-email-notify] sendBugTelegramToUser failed:", err);
+  }
 }
