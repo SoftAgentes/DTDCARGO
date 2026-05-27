@@ -16,6 +16,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
+import { listClients } from "@/lib/studio/client-queries";
+import { listShipments } from "@/lib/studio/shipment-queries";
 import { MobileErpClient } from "./_components/MobileErpClient";
 
 export const metadata = {
@@ -31,18 +33,22 @@ export default async function MobileErpPage() {
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) redirect("/studio/login");
 
-  // Fetch profile del user logueado · para saludo + avatar
-  const { data: profile } = await supabase
-    .from("user_profiles")
-    .select("first_name, last_name")
-    .eq("user_id", userResp.user.id)
-    .maybeSingle<{ first_name: string | null; last_name: string | null }>();
-
-  // Fetch user_tenant para rol display
-  const { data: link } = await supabase
-    .from("user_tenants")
-    .select("role")
-    .maybeSingle<{ role: string }>();
+  // Fetch profile + tenant + data de las 2 tabs reales en paralelo
+  const [profileRes, linkRes, shipments, clients] = await Promise.all([
+    supabase
+      .from("user_profiles")
+      .select("first_name, last_name")
+      .eq("user_id", userResp.user.id)
+      .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
+    supabase
+      .from("user_tenants")
+      .select("role")
+      .maybeSingle<{ role: string }>(),
+    listShipments(supabase, {}),
+    listClients(supabase, {}),
+  ]);
+  const profile = profileRes.data;
+  const link = linkRes.data;
 
   const firstName =
     profile?.first_name?.trim() ||
@@ -55,6 +61,41 @@ export default async function MobileErpPage() {
     (lastName[0] ?? "").toUpperCase();
   const role = link?.role ?? "user";
 
+  // Filtros: activos para Tracking (sin entregados/cancelados/borradores)
+  // listShipments devuelve any[] · cast inline para satisfacer MobileShipment.
+  const activeShipments = (shipments as {
+    id: string;
+    code: string;
+    client_name: string | null;
+    client_markbox: string | null;
+    origin: string | null;
+    destination: string | null;
+    shipment_service:
+      | "consolidacion"
+      | "puerta_a_puerta_DDP"
+      | "reserva_FCL"
+      | "transporte_terrestre";
+    status:
+      | "draft"
+      | "in_warehouse"
+      | "consolidating"
+      | "shipped"
+      | "in_transit"
+      | "in_customs"
+      | "arrived_destination"
+      | "delayed_warehouse"
+      | "out_for_delivery"
+      | "last_mile"
+      | "delivered"
+      | "exception"
+      | "cancelled";
+  }[]).filter(
+    (s) =>
+      s.status !== "delivered" &&
+      s.status !== "cancelled" &&
+      s.status !== "draft",
+  );
+
   return (
     <MobileErpClient
       user={{
@@ -65,6 +106,8 @@ export default async function MobileErpPage() {
         role,
         email: userResp.user.email ?? "",
       }}
+      shipments={activeShipments}
+      clients={clients}
     />
   );
 }
