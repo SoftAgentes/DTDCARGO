@@ -13,7 +13,7 @@ export type ClientFilters = {
 };
 
 const CLIENT_COLUMNS =
-  "id, tenant_id, markbox, name, email, phone, address, rif, tier, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, markbox, name, email, phone, address, rif, tier, notes, lat, lng, created_at, updated_at, deleted_at";
 
 /**
  * Lista de clientes con filtros opcionales. RLS filtra por tenant.

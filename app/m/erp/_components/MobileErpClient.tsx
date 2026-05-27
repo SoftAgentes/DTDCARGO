@@ -33,6 +33,11 @@ import {
   type ExpenseCurrency,
   type ExpenseMethod,
 } from "@/lib/studio/expense-types";
+import {
+  formatDistance,
+  haversineKm,
+  useGeolocation,
+} from "@/lib/studio/hooks/use-geolocation";
 import { signOut } from "@/app/studio/(app)/actions";
 import { createExpenseAction } from "../actions";
 
@@ -961,12 +966,34 @@ type ClientsMode = "nearby" | "all";
 
 const TIER_RANK: Record<string, number> = { premium: 0, vip: 1, regular: 2 };
 
+type ClientWithDistance = Client & { distanceKm: number | null };
+
 function ClientsScreen({ clients }: { clients: Client[] }) {
   const [search, setSearch] = useState("");
   const [mode, setMode] = useState<ClientsMode>("all");
+  const geo = useGeolocation();
 
-  const filtered = useMemo(() => {
-    let list = clients;
+  // Auto-request geo al entrar en modo nearby (si todavía idle)
+  const tryNearby = () => {
+    setMode("nearby");
+    if (geo.status === "idle") geo.request();
+  };
+
+  const enriched = useMemo<ClientWithDistance[]>(() => {
+    if (mode !== "nearby" || geo.status !== "granted" || geo.lat == null || geo.lng == null) {
+      return clients.map((c) => ({ ...c, distanceKm: null }));
+    }
+    return clients.map((c) => ({
+      ...c,
+      distanceKm:
+        c.lat != null && c.lng != null
+          ? haversineKm(geo.lat!, geo.lng!, c.lat, c.lng)
+          : null,
+    }));
+  }, [clients, mode, geo.status, geo.lat, geo.lng]);
+
+  const filtered = useMemo<ClientWithDistance[]>(() => {
+    let list = enriched;
     if (search) {
       const q = search.trim().toLowerCase();
       list = list.filter(
@@ -978,18 +1005,33 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
       );
     }
     if (mode === "nearby") {
-      // Mock: ordena por tier (premium/vip arriba) + created_at más reciente
-      // primero · proxy de "más cercano" / "más relevante" hasta tener
-      // schema lat/lng + browser geolocation API real.
-      list = [...list].sort((a, b) => {
-        const tierA = TIER_RANK[a.tier] ?? 99;
-        const tierB = TIER_RANK[b.tier] ?? 99;
-        if (tierA !== tierB) return tierA - tierB;
-        return b.created_at.localeCompare(a.created_at);
-      });
+      if (geo.status === "granted") {
+        // Sort real por distancia · sin distancia (null) van al final
+        list = [...list].sort((a, b) => {
+          if (a.distanceKm == null && b.distanceKm == null) {
+            // Fallback: tier para los dos sin GPS
+            const ta = TIER_RANK[a.tier] ?? 99;
+            const tb = TIER_RANK[b.tier] ?? 99;
+            return ta - tb;
+          }
+          if (a.distanceKm == null) return 1;
+          if (b.distanceKm == null) return -1;
+          return a.distanceKm - b.distanceKm;
+        });
+      } else {
+        // Fallback mock pre-permission: tier + recent
+        list = [...list].sort((a, b) => {
+          const tierA = TIER_RANK[a.tier] ?? 99;
+          const tierB = TIER_RANK[b.tier] ?? 99;
+          if (tierA !== tierB) return tierA - tierB;
+          return b.created_at.localeCompare(a.created_at);
+        });
+      }
     }
     return list;
-  }, [clients, search, mode]);
+  }, [enriched, search, mode, geo.status]);
+
+  const clientsWithGps = clients.filter((c) => c.lat != null && c.lng != null).length;
 
   return (
     <div style={{ padding: "20px 18px" }}>
@@ -1034,7 +1076,7 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
             <button
               key={m}
               type="button"
-              onClick={() => setMode(m)}
+              onClick={() => (m === "nearby" ? tryNearby() : setMode("all"))}
               style={{
                 padding: "10px 12px",
                 borderRadius: "var(--r-sm)",
@@ -1053,23 +1095,7 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
         })}
       </div>
 
-      {mode === "nearby" && (
-        <div
-          style={{
-            padding: "10px 12px",
-            background: "var(--info-bg)",
-            borderLeft: "3px solid var(--info)",
-            borderRadius: "var(--r-md)",
-            marginBottom: 14,
-            font: "500 11px/1.4 var(--f-sans)",
-            color: "var(--info)",
-          }}
-        >
-          <b>Mock:</b> ordenado por tier elevado (premium/vip) y actividad
-          reciente · geolocalización real con browser API + lat/lng en clients
-          queda para próximo SDD.
-        </div>
-      )}
+      {mode === "nearby" && <GeoStatusBanner geo={geo} clientsWithGps={clientsWithGps} />}
 
       <SearchBar
         value={search}
@@ -1102,7 +1128,100 @@ function ClientsScreen({ clients }: { clients: Client[] }) {
   );
 }
 
-function ClientCard({ c }: { c: Client }) {
+function GeoStatusBanner({
+  geo,
+  clientsWithGps,
+}: {
+  geo: ReturnType<typeof useGeolocation>;
+  clientsWithGps: number;
+}) {
+  if (geo.status === "loading") {
+    return (
+      <BannerLine tone="info" mb={14}>
+        Obteniendo tu ubicación…
+      </BannerLine>
+    );
+  }
+  if (geo.status === "denied") {
+    return (
+      <BannerLine tone="warning" mb={14}>
+        <b>Permiso denegado</b> · ordenando por tier elevado y recientes
+        como fallback. Habilitá el permiso en tu browser para distancia
+        real.
+      </BannerLine>
+    );
+  }
+  if (geo.status === "unavailable" || geo.status === "error") {
+    return (
+      <BannerLine tone="danger" mb={14}>
+        <b>Sin geolocalización</b> · {geo.error ?? "browser no soporta"}.
+        Usando fallback tier-based.
+      </BannerLine>
+    );
+  }
+  if (geo.status === "granted") {
+    if (clientsWithGps === 0) {
+      return (
+        <BannerLine tone="warning" mb={14}>
+          <b>0 clientes con lat/lng cargados</b> · cargá las coordenadas
+          desde el detalle de cada cliente en /studio para que la
+          distancia funcione.
+        </BannerLine>
+      );
+    }
+    return (
+      <BannerLine tone="success" mb={14}>
+        <b>Ubicación OK</b> · {clientsWithGps} de cartera con GPS ordenados
+        por distancia real.
+      </BannerLine>
+    );
+  }
+  return (
+    <BannerLine tone="info" mb={14}>
+      Pidiendo permiso de ubicación al browser…
+    </BannerLine>
+  );
+}
+
+function BannerLine({
+  tone,
+  mb,
+  children,
+}: {
+  tone: "info" | "warning" | "danger" | "success";
+  mb?: number;
+  children: React.ReactNode;
+}) {
+  const bgMap = {
+    info: "var(--info-bg)",
+    warning: "var(--warning-bg)",
+    danger: "var(--danger-bg)",
+    success: "var(--success-bg)",
+  } as const;
+  const fgMap = {
+    info: "var(--info)",
+    warning: "var(--warning)",
+    danger: "var(--danger)",
+    success: "var(--success)",
+  } as const;
+  return (
+    <div
+      style={{
+        padding: "10px 12px",
+        background: bgMap[tone],
+        borderLeft: `3px solid ${fgMap[tone]}`,
+        borderRadius: "var(--r-md)",
+        marginBottom: mb,
+        font: "500 11.5px/1.4 var(--f-sans)",
+        color: fgMap[tone],
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ClientCard({ c }: { c: ClientWithDistance }) {
   const phoneClean = (c.phone ?? "").replace(/[^\d+]/g, "");
   const tierTone =
     c.tier === "premium" ? "wine" : c.tier === "vip" ? "info" : "neutral";
@@ -1161,9 +1280,22 @@ function ClientCard({ c }: { c: Client }) {
             </div>
           )}
         </div>
-        <Badge tone={tierTone} size="sm">
-          {c.tier}
-        </Badge>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end", flexShrink: 0 }}>
+          <Badge tone={tierTone} size="sm">
+            {c.tier}
+          </Badge>
+          {c.distanceKm != null && (
+            <span
+              style={{
+                font: "700 10.5px/1 var(--f-mono)",
+                color: "var(--wine)",
+                letterSpacing: "0.02em",
+              }}
+            >
+              📍 {formatDistance(c.distanceKm)}
+            </span>
+          )}
+        </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
