@@ -12,6 +12,14 @@ export default async function DispatchRulesPage() {
   const supabase = await createClient();
   const rules = await getDispatchRules(supabase);
 
+  // Count clients con tier elevado · feeds Tier editor del Card opcionales.
+  // Schema usa 'vip' y 'premium' como tiers elevados (Gold/Platinum del handoff).
+  const { count: tierClientsCount } = await supabase
+    .from("clients")
+    .select("id", { count: "exact", head: true })
+    .in("tier", ["vip", "premium"])
+    .is("deleted_at", null);
+
   return (
     <div style={{ maxWidth: 1100 }}>
       <div
@@ -47,7 +55,7 @@ export default async function DispatchRulesPage() {
         </div>
       </div>
 
-      <RulesClient initialRules={rules} />
+      <RulesClient initialRules={rules} tierClientsCount={tierClientsCount ?? 0} />
     </div>
   );
 }

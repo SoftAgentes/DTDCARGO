@@ -67,6 +67,8 @@ export async function updateDispatchRulesAction(
       routes: formData.get("optional_rules.routes") === "on",
     },
     vip_markboxes: parseStringList(formData.get("vip_markboxes")),
+    hold_until: (formData.get("hold_until") as string | null)?.trim() || null,
+    hold_reason: (formData.get("hold_reason") as string | null)?.trim() || null,
   };
 
   const { input, fieldErrors } = validateUpdateDispatchRulesInput(partial);
@@ -86,6 +88,8 @@ export async function updateDispatchRulesAction(
       weights: input!.weights,
       optional_rules: input!.optional_rules,
       vip_markboxes: input!.vip_markboxes,
+      hold_until: input!.hold_until,
+      hold_reason: input!.hold_reason,
     },
   });
 
