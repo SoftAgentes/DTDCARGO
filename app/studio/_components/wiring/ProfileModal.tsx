@@ -412,6 +412,10 @@ function PrefsTabContent({
         hint="Formato IANA · ej: America/Caracas, Asia/Shanghai, Europe/Madrid."
       />
 
+      {/* Push notifications · sub-section fuera del form porque tiene
+          su propio submit (subscribe via fetch directo) */}
+      <PushSubscriptionSection />
+
       <p
         style={{
           font: "500 11.5px/1.4 var(--f-sans)",
@@ -419,8 +423,9 @@ function PrefsTabContent({
           margin: 0,
         }}
       >
-        Notificaciones push y email se configurarán cuando esté listo el
-        canal correspondiente (SDD-0036 Fase 5 push pendiente).
+        Notificaciones email se mandan desde Resend cuando hay un bug
+        crítico o cambio de estado en tus reportes. Telegram queda
+        pendiente para Fase 5 follow-up.
       </p>
 
       {state.error && (
@@ -460,6 +465,295 @@ function PrefsTabContent({
       />
     </form>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Push subscription section (sub-component de Preferencias)
+// ─────────────────────────────────────────────────────────────
+
+type PushStatus =
+  | "loading"
+  | "unsupported"
+  | "blocked" // Notification.permission === "denied"
+  | "off" // permitido pero sin subscription
+  | "on" // subscribed
+  | "pending" // mid-transition (toggle)
+  | "error";
+
+function PushSubscriptionSection() {
+  const [status, setStatus] = useState<PushStatus>("loading");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Check estado inicial al mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (
+      !("serviceWorker" in navigator) ||
+      !("PushManager" in window) ||
+      !("Notification" in window)
+    ) {
+      setStatus("unsupported");
+      return;
+    }
+    if (Notification.permission === "denied") {
+      setStatus("blocked");
+      return;
+    }
+
+    // Estado real: hay subscription registrada?
+    navigator.serviceWorker
+      .getRegistration("/sw.js")
+      .then((reg) => reg?.pushManager.getSubscription() ?? null)
+      .then((sub) => {
+        setStatus(sub ? "on" : "off");
+      })
+      .catch(() => setStatus("off"));
+  }, []);
+
+  const handleEnable = async () => {
+    setErrorMsg(null);
+    setStatus("pending");
+    try {
+      const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+      if (!publicKey) {
+        setErrorMsg("VAPID public key no configurada en env.");
+        setStatus("error");
+        return;
+      }
+
+      // 1. Permiso
+      let perm = Notification.permission;
+      if (perm === "default") {
+        perm = await Notification.requestPermission();
+      }
+      if (perm !== "granted") {
+        setStatus("blocked");
+        return;
+      }
+
+      // 2. Registrar SW (idempotente)
+      const reg = await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.ready;
+
+      // 3. Pedir subscription
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey) as unknown as ArrayBuffer,
+        });
+      }
+
+      // 4. POST al endpoint
+      const res = await fetch("/api/studio/push/subscribe", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ subscription: sub.toJSON() }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      setStatus("on");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
+      setStatus("error");
+    }
+  };
+
+  const handleDisable = async () => {
+    setErrorMsg(null);
+    setStatus("pending");
+    try {
+      const reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe();
+
+      const res = await fetch("/api/studio/push/subscribe", {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      setStatus("off");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : String(err));
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div
+      style={{
+        padding: "12px 14px",
+        background: "var(--bg-elevated)",
+        borderRadius: 7,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              font: "600 12.5px/1.2 var(--f-sans)",
+              color: "var(--ink)",
+            }}
+          >
+            Notificaciones push del navegador
+          </div>
+          <div
+            style={{
+              font: "500 11px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 2,
+            }}
+          >
+            Recibí avisos en tiempo real cuando hay un bug crítico nuevo o
+            cuando el admin responde tu reporte.
+          </div>
+        </div>
+        <PushStatusBadge status={status} />
+      </div>
+
+      {status === "off" && (
+        <button
+          type="button"
+          onClick={handleEnable}
+          className="studio-btn studio-btn-primary studio-btn-sm"
+          style={{ alignSelf: "flex-start" }}
+        >
+          Activar notificaciones
+        </button>
+      )}
+      {status === "on" && (
+        <button
+          type="button"
+          onClick={handleDisable}
+          className="studio-btn studio-btn-ghost studio-btn-sm"
+          style={{ alignSelf: "flex-start" }}
+        >
+          Desactivar push
+        </button>
+      )}
+      {status === "blocked" && (
+        <p
+          style={{
+            font: "500 11.5px/1.4 var(--f-sans)",
+            color: "var(--warning)",
+            margin: 0,
+          }}
+        >
+          El navegador bloqueó las notificaciones. Habilitalas desde el
+          ícono de candado en la URL y volvé a probar.
+        </p>
+      )}
+      {status === "unsupported" && (
+        <p
+          style={{
+            font: "500 11.5px/1.4 var(--f-sans)",
+            color: "var(--ink-mute)",
+            margin: 0,
+          }}
+        >
+          Este navegador no soporta Web Push (probablemente Safari iOS sin
+          PWA o un browser muy viejo).
+        </p>
+      )}
+      {errorMsg && (
+        <p
+          style={{
+            font: "500 11.5px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+            margin: 0,
+          }}
+        >
+          {errorMsg}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function PushStatusBadge({ status }: { status: PushStatus }) {
+  const config: Record<PushStatus, { label: string; bg: string; fg: string }> = {
+    loading: { label: "…", bg: "var(--bg-base)", fg: "var(--ink-soft)" },
+    unsupported: {
+      label: "no soportado",
+      bg: "var(--bg-base)",
+      fg: "var(--ink-mute)",
+    },
+    blocked: {
+      label: "bloqueado",
+      bg: "var(--warning-bg, #FBF1DF)",
+      fg: "var(--warning, #B8893A)",
+    },
+    off: {
+      label: "inactivo",
+      bg: "var(--bg-base)",
+      fg: "var(--ink-soft)",
+    },
+    on: {
+      label: "activo",
+      bg: "var(--success-bg, #E5F4ED)",
+      fg: "var(--success, #1F8A5B)",
+    },
+    pending: {
+      label: "…",
+      bg: "var(--bg-base)",
+      fg: "var(--ink-soft)",
+    },
+    error: {
+      label: "error",
+      bg: "var(--danger-bg, #FCEDED)",
+      fg: "var(--danger, #A8323E)",
+    },
+  };
+  const c = config[status];
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        height: 20,
+        padding: "0 8px",
+        background: c.bg,
+        color: c.fg,
+        borderRadius: 4,
+        fontSize: 11,
+        fontWeight: 700,
+        lineHeight: 1,
+      }}
+    >
+      {c.label}
+    </span>
+  );
+}
+
+/**
+ * Convierte base64url (formato VAPID) a Uint8Array para pushManager.subscribe.
+ * Standard helper.
+ */
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; ++i) {
+    output[i] = raw.charCodeAt(i);
+  }
+  return output;
 }
 
 // ─────────────────────────────────────────────────────────────
