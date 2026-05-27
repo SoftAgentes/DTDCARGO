@@ -121,8 +121,102 @@ Viven en `app/studio/_components/ui/`:
 - `EmptyState` · eyebrow + título + descripción + action opcional
 - `KpiCard` · número grande + label + sub
 - `drawer/DrawerShell` · shell + footer compartidos
+- `ActionButton` · anti-double-submit + feedback visual (ver sección debajo)
 
 Icons en `app/studio/_components/icons.tsx` (objeto `Icon` con métodos por nombre).
+
+## Anti-double-submit · usá `<ActionButton>`
+
+`app/studio/_components/ui/ActionButton.tsx` es la convención del Studio para
+**cualquier acción que no debe ejecutarse dos veces**. Resuelve 3 problemas en
+uno: doble click humano (button disabled apenas se dispara), falta de feedback
+visual (spinner durante loading + flash verde 2.5s post-éxito), y consistencia
+visual (un solo componente para todo el Studio).
+
+### Cuándo SÍ usarlo
+
+- Mandar emails (welcome, factura, cotización, invitación, recovery)
+- Convertir estados con side-effects (`draft→sent` dispara mail-rule-engine,
+  `sent→accepted`, `accepted→shipment`, etc.)
+- Crear asientos contables, facturas SENIAT, DIM
+- Transferencias, payments, link de pago
+- Marcar despachos / entregas (cambian timeline + cobros)
+- Generar PDF / exportar (no idempotente si side-effect)
+
+### Cuándo NO
+
+- Filtros, búsquedas, navegación, ordenamientos
+- Toggle UI (collapse, dark mode, expand row)
+- Editar dentro de un drawer (form submit estándar)
+- Links (`<a href>`)
+
+### Patrón
+
+```tsx
+<ActionButton
+  variant="primary"            // primary | dark | danger | ghost | warning
+  size="sm"                    // sm | xs | default
+  idleLabel="Enviar cotización"
+  loadingLabel="Enviando…"
+  successLabel="Enviado al cliente"  // null = no flash verde, vuelve directo
+  idleIcon={Icon.mail(14)}
+  successIcon={Icon.check(14)}
+  successMs={2500}             // default 2500
+  disabled={otherActionPending} // disabled externo (form inválido, etc.)
+  onAction={async () => {
+    setError(null);
+    return markQuoteSent(quote.id);  // acepta `void` o `{ error }`
+  }}
+  onSuccess={() => {            // opcional · útil para liftear flag al padre
+    setJustSent(true);
+    setTimeout(() => setJustSent(false), 2500);
+  }}
+  onError={setError}
+/>
+```
+
+### Convención `onAction`
+
+Acepta los 2 patrones idiomáticos del Studio:
+
+- **Server action que retorna `{ error }`** (lo más común) → el componente
+  detecta el error automático y llama `onError(message)`.
+- **Throw nativo** (`throw new Error("...")`) → también captura.
+
+NO retornar `void` sin error es el caso happy → entra en flash verde.
+
+### Extender visibilidad durante success flash
+
+Si el padre desmonta el botón cuando cambia el estado del recurso (típico:
+`{quote.status === "draft" && <ActionButton/>}`), el flash verde se corta antes
+de que el usuario lo vea. Solución: liftear un flag `justSent` y extender
+visibilidad:
+
+```tsx
+const [justSent, setJustSent] = useState(false);
+
+{(quote.status === "draft" || justSent) && (
+  <ActionButton
+    ...
+    onSuccess={() => {
+      setJustSent(true);
+      setTimeout(() => setJustSent(false), 2500);
+    }}
+  />
+)}
+```
+
+### Accesibilidad
+
+El componente ya incluye `aria-busy={isPending}` + `<span role="status"
+aria-live="polite">` oculto para anunciar transiciones de estado a screen
+readers. No necesitás agregar nada en el caller.
+
+### Estilos
+
+Variants oficiales (`studio-btn-primary | dark | ghost | danger | warning`)
++ el override automático `studio-btn-success` cuando entra en flash. Spinner
+inline via `.studio-spin` (keyframe `studio-spin` definido en `studio.css`).
 
 ## Clases CSS reusables (`studio.css`)
 

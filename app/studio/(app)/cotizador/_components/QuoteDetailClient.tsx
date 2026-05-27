@@ -11,6 +11,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import { Icon } from "@/app/studio/_components/icons";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import {
   canConvertToShipment,
   isEditable,
@@ -24,20 +26,19 @@ import {
 } from "../actions";
 import { QuoteDrawer } from "./QuoteDrawer";
 
+const SENT_SUCCESS_MS = 2500;
+
 export function QuoteDetailClient({ quote }: { quote: Quote }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [confirmConvert, setConfirmConvert] = useState(false);
-
-  const handleSent = () => {
-    setError(null);
-    startTransition(async () => {
-      const r = await markQuoteSent(quote.id);
-      if (r.error) setError(r.error);
-    });
-  };
+  // Lifteo del flag "recién envié" para extender la visibilidad del botón
+  // durante el flash verde · sin esto, el revalidatePath del server
+  // cambia quote.status a "sent" y el botón se desmonta antes de que el
+  // operador vea la confirmación.
+  const [justSent, setJustSent] = useState(false);
 
   const handleAccepted = () => {
     setError(null);
@@ -89,19 +90,35 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
           </button>
         )}
 
-        {quote.status === "draft" && (
-          <button
-            type="button"
-            className="studio-btn studio-btn-dark studio-btn-sm"
-            onClick={handleSent}
+        {(quote.status === "draft" || justSent) && (
+          <ActionButton
+            variant="primary"
+            size="sm"
+            idleLabel="Enviar cotización"
+            loadingLabel="Enviando…"
+            successLabel="Enviado al cliente"
+            idleIcon={Icon.mail(14)}
+            successIcon={Icon.check(14)}
+            successMs={SENT_SUCCESS_MS}
             disabled={isPending}
-            title="Marca como enviada (sin email real — SDD futuro)"
-          >
-            {isPending ? "Procesando…" : "Marcar enviada →"}
-          </button>
+            title={(s) =>
+              s === "success"
+                ? "Email enviado al cliente y cotización marcada como enviada"
+                : "Manda el email al cliente con la cotización y la marca como enviada"
+            }
+            onAction={async () => {
+              setError(null);
+              return markQuoteSent(quote.id);
+            }}
+            onSuccess={() => {
+              setJustSent(true);
+              setTimeout(() => setJustSent(false), SENT_SUCCESS_MS);
+            }}
+            onError={setError}
+          />
         )}
 
-        {quote.status === "sent" && (
+        {quote.status === "sent" && !justSent && (
           <>
             <button
               type="button"
