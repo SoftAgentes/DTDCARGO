@@ -490,3 +490,16 @@
   cursor: not-allowed;
   pointer-events: none;
 }
+
+/* ── Realtime pulse · usado por RealtimeIndicator ─────────── */
+@keyframes dtd-realtime-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.25);
+  }
+}
