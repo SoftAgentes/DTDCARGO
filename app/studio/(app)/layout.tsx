@@ -8,6 +8,7 @@
 
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth/session";
+import { createClient } from "@/lib/db/server";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
@@ -29,8 +30,32 @@ export default async function StudioAppLayout({
     process.env.VERCEL_GIT_COMMIT_SHA ??
     null;
 
+  // Cargar profile real del user logueado para alimentar el ProfileModal
+  // del topbar (WiringProvider). Si la row no existe todavía, defaults nulos.
+  const supabase = await createClient();
+  const { data: profile } = await supabase
+    .from("user_profiles")
+    .select("first_name, last_name, phone, locale, timezone")
+    .eq("user_id", user.id)
+    .maybeSingle<{
+      first_name: string | null;
+      last_name: string | null;
+      phone: string | null;
+      locale: string | null;
+      timezone: string | null;
+    }>();
+
+  const profileInitial = {
+    email: user.email ?? "",
+    firstName: profile?.first_name ?? null,
+    lastName: profile?.last_name ?? null,
+    phone: profile?.phone ?? null,
+    locale: profile?.locale ?? null,
+    timezone: profile?.timezone ?? null,
+  };
+
   return (
-    <WiringProvider>
+    <WiringProvider profileInitial={profileInitial}>
       <div
         style={{
           display: "flex",

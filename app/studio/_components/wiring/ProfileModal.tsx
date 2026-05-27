@@ -2,21 +2,46 @@
 
 /**
  * ProfileModal — 3 tabs (Datos personales · Contraseña · Preferencias).
- * SDD-0034.
+ * SDD-0034 + wireup real a user_profiles (SDD-0024).
  *
- * V1: solo UI. "Guardar" muestra toast verde sin persistir.
- * V2 cuando exista tabla user_profiles: wirear mutations.
+ * Recibe initial data del user logueado por props (cargada en
+ * `app/studio/(app)/layout.tsx` y propagada via WiringProvider).
+ *
+ * Tabs wireadas:
+ *   - Datos personales: useActionState → updateMyProfileAction
+ *   - Contraseña: supabase.auth.updateUser({ password }) client-side
+ *   - Preferencias: useActionState → updateMyPreferencesAction
  */
 
-import { useState } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { createClient as createBrowserSupabase } from "@/lib/db/client";
+import {
+  updateMyPreferencesAction,
+  updateMyProfileAction,
+} from "@/app/studio/(app)/usuarios/actions";
+import type { UserActionState } from "@/lib/studio/user-types";
 
 export type ProfileTab = "profile" | "password" | "prefs";
 
+export interface ProfileModalInitialData {
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phone: string | null;
+  locale: string | null;
+  timezone: string | null;
+}
+
+const EMPTY_STATE: UserActionState = {};
+
 export function ProfileModal({
   initialTab,
+  initialData,
   onClose,
 }: {
   initialTab: ProfileTab;
+  initialData: ProfileModalInitialData;
   onClose: () => void;
 }) {
   const [tab, setTab] = useState<ProfileTab>(initialTab);
@@ -72,9 +97,13 @@ export function ProfileModal({
           gap: 14,
         }}
       >
-        {tab === "profile" && <ProfileTabContent onClose={onClose} />}
+        {tab === "profile" && (
+          <ProfileTabContent initialData={initialData} onClose={onClose} />
+        )}
         {tab === "password" && <PasswordTabContent onClose={onClose} />}
-        {tab === "prefs" && <PrefsTabContent onClose={onClose} />}
+        {tab === "prefs" && (
+          <PrefsTabContent initialData={initialData} onClose={onClose} />
+        )}
       </div>
     </ModalShell>
   );
@@ -84,25 +113,72 @@ export function ProfileModal({
 // Tab · Datos personales
 // ─────────────────────────────────────────────────────────────
 
-function ProfileTabContent({ onClose }: { onClose: () => void }) {
-  const [name, setName] = useState("Sam Bonny");
-  const [email, setEmail] = useState("bigbonnysam@gmail.com");
-  const [phone, setPhone] = useState("");
-  const [saved, setSaved] = useState(false);
+function ProfileTabContent({
+  initialData,
+  onClose,
+}: {
+  initialData: ProfileModalInitialData;
+  onClose: () => void;
+}) {
+  const router = useRouter();
+  const [firstName, setFirstName] = useState(initialData.firstName ?? "");
+  const [lastName, setLastName] = useState(initialData.lastName ?? "");
+  const [phone, setPhone] = useState(initialData.phone ?? "");
+  const [state, formAction, pending] = useActionState(
+    updateMyProfileAction,
+    EMPTY_STATE,
+  );
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      onClose();
-    }, 1200);
-  };
+  useEffect(() => {
+    if (state.ok) {
+      router.refresh();
+      const t = setTimeout(onClose, 800);
+      return () => clearTimeout(t);
+    }
+  }, [state.ok, router, onClose]);
+
+  const displayName =
+    [firstName.trim(), lastName.trim()].filter(Boolean).join(" ").trim() ||
+    initialData.email;
 
   return (
-    <>
-      <Field label="Nombre" value={name} onChange={setName} />
-      <Field label="Email" value={email} onChange={setEmail} type="email" />
-      <Field label="Teléfono" value={phone} onChange={setPhone} placeholder="+58 414 …" />
+    <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <Field
+        label="Nombre"
+        name="first_name"
+        value={firstName}
+        onChange={setFirstName}
+        error={state.fieldErrors?.first_name}
+        placeholder="Sam"
+        disabled={pending}
+      />
+      <Field
+        label="Apellido"
+        name="last_name"
+        value={lastName}
+        onChange={setLastName}
+        error={state.fieldErrors?.last_name}
+        placeholder="Maan"
+        disabled={pending}
+      />
+      <Field
+        label="Email"
+        name="email"
+        value={initialData.email}
+        onChange={() => {}}
+        type="email"
+        disabled
+        hint="Tu email de inicio de sesión. No editable desde acá."
+      />
+      <Field
+        label="Teléfono"
+        name="phone"
+        value={phone}
+        onChange={setPhone}
+        placeholder="+58 414 …"
+        error={state.fieldErrors?.phone}
+        disabled={pending}
+      />
 
       <p
         style={{
@@ -111,54 +187,88 @@ function ProfileTabContent({ onClose }: { onClose: () => void }) {
           margin: 0,
         }}
       >
-        V1: cambios visuales no persisten todavía. Tabla{" "}
-        <code style={{ font: "600 11px/1 var(--f-mono)", color: "var(--ink)" }}>
-          user_profiles
-        </code>{" "}
-        llega en un SDD futuro.
+        Saludo en emails: <strong style={{ color: "var(--ink)" }}>Hola {displayName}</strong>.
+        Sin nombre cargado, los emails usan tu dirección de correo.
       </p>
+
+      {state.error && (
+        <p
+          style={{
+            font: "600 12px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+            margin: 0,
+          }}
+        >
+          {state.error}
+        </p>
+      )}
+      {state.ok && (
+        <p
+          style={{
+            font: "600 12px/1.4 var(--f-sans)",
+            color: "var(--success)",
+            margin: 0,
+          }}
+        >
+          Guardado.
+        </p>
+      )}
 
       <Footer
         onClose={onClose}
         primary={
           <button
-            type="button"
+            type="submit"
             className="studio-btn studio-btn-primary"
-            onClick={handleSave}
-            disabled={saved}
+            disabled={pending}
           >
-            {saved ? "Guardado" : "Guardar cambios"}
+            {pending ? "Guardando…" : "Guardar cambios"}
           </button>
         }
       />
-    </>
+    </form>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Tab · Contraseña
+// Tab · Contraseña · client-side via supabase.auth.updateUser
 // ─────────────────────────────────────────────────────────────
 
 function PasswordTabContent({ onClose }: { onClose: () => void }) {
-  const [pw1, setPw1] = useState("");
   const [pw2, setPw2] = useState("");
   const [pw3, setPw3] = useState("");
-  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [pending, startTransition] = useTransition();
 
   const tooShort = pw2.length > 0 && pw2.length < 12;
   const mismatch = pw3.length > 0 && pw2 !== pw3;
-  const canSubmit = pw1.length > 0 && pw2.length >= 12 && pw2 === pw3 && !saved;
+  const canSubmit =
+    pw2.length >= 12 && pw2 === pw3 && !pending && !success;
 
-  const handleChange = () => {
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      onClose();
-    }, 1200);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSubmit) return;
+    setError(null);
+    startTransition(async () => {
+      const supabase = createBrowserSupabase();
+      const { error: updateErr } = await supabase.auth.updateUser({
+        password: pw2,
+      });
+      if (updateErr) {
+        setError(`No se pudo cambiar: ${updateErr.message}`);
+        return;
+      }
+      setSuccess(true);
+      setTimeout(onClose, 1200);
+    });
   };
 
   return (
-    <>
+    <form
+      onSubmit={handleSubmit}
+      style={{ display: "flex", flexDirection: "column", gap: 14 }}
+    >
       <div
         style={{
           padding: 12,
@@ -173,115 +283,182 @@ function PasswordTabContent({ onClose }: { onClose: () => void }) {
       </div>
 
       <Field
-        label="Contraseña actual"
-        value={pw1}
-        onChange={setPw1}
-        type="password"
-      />
-      <Field
         label="Nueva contraseña"
+        name="new_password"
         value={pw2}
         onChange={setPw2}
         type="password"
         error={tooShort ? "Mínimo 12 caracteres." : undefined}
+        disabled={pending || success}
       />
       <Field
         label="Repetí la nueva contraseña"
+        name="repeat_password"
         value={pw3}
         onChange={setPw3}
         type="password"
         error={mismatch ? "Las contraseñas no coinciden." : undefined}
+        disabled={pending || success}
       />
+
+      {error && (
+        <p
+          style={{
+            font: "600 12px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+            margin: 0,
+          }}
+        >
+          {error}
+        </p>
+      )}
+      {success && (
+        <p
+          style={{
+            font: "600 12px/1.4 var(--f-sans)",
+            color: "var(--success)",
+            margin: 0,
+          }}
+        >
+          Contraseña actualizada. Tu sesión actual sigue activa.
+        </p>
+      )}
 
       <Footer
         onClose={onClose}
         primary={
           <button
-            type="button"
+            type="submit"
             className="studio-btn studio-btn-primary"
-            onClick={handleChange}
             disabled={!canSubmit}
           >
-            {saved ? "Cambiada" : "Cambiar contraseña"}
+            {pending
+              ? "Cambiando…"
+              : success
+                ? "Cambiada"
+                : "Cambiar contraseña"}
           </button>
         }
       />
-    </>
+    </form>
   );
 }
 
 // ─────────────────────────────────────────────────────────────
-// Tab · Preferencias
+// Tab · Preferencias · locale + timezone
 // ─────────────────────────────────────────────────────────────
 
-function PrefsTabContent({ onClose }: { onClose: () => void }) {
-  const [lang, setLang] = useState<"es" | "en" | "zh">("es");
-  const [density, setDensity] = useState<"compact" | "comfortable">("comfortable");
-  const [emailDaily, setEmailDaily] = useState(true);
-  const [pushBrowser, setPushBrowser] = useState(true);
-  const [sound, setSound] = useState(false);
-  const [saved, setSaved] = useState(false);
+const LOCALE_OPTIONS = [
+  { value: "es-VE", label: "Español (Venezuela)" },
+  { value: "es", label: "Español" },
+  { value: "en", label: "English" },
+  { value: "zh", label: "中文" },
+];
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => {
-      setSaved(false);
-      onClose();
-    }, 1200);
-  };
+function PrefsTabContent({
+  initialData,
+  onClose,
+}: {
+  initialData: ProfileModalInitialData;
+  onClose: () => void;
+}) {
+  const [locale, setLocale] = useState(initialData.locale ?? "es-VE");
+  const [timezone, setTimezone] = useState(
+    initialData.timezone ?? "America/Caracas",
+  );
+  const [state, formAction, pending] = useActionState(
+    updateMyPreferencesAction,
+    EMPTY_STATE,
+  );
+
+  useEffect(() => {
+    if (state.ok) {
+      const t = setTimeout(onClose, 800);
+      return () => clearTimeout(t);
+    }
+  }, [state.ok, onClose]);
 
   return (
-    <>
+    <form
+      action={formAction}
+      style={{ display: "flex", flexDirection: "column", gap: 14 }}
+    >
       <div>
         <label className="studio-label">Idioma</label>
         <select
-          value={lang}
-          onChange={(e) => setLang(e.target.value as typeof lang)}
+          name="locale"
+          value={locale}
+          onChange={(e) => setLocale(e.target.value)}
           className="studio-input"
           style={{ marginTop: 6 }}
+          disabled={pending}
         >
-          <option value="es">Español</option>
-          <option value="en">English</option>
-          <option value="zh">中文</option>
+          {LOCALE_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
         </select>
       </div>
 
-      <div>
-        <label className="studio-label">Densidad visual</label>
-        <select
-          value={density}
-          onChange={(e) => setDensity(e.target.value as typeof density)}
-          className="studio-input"
-          style={{ marginTop: 6 }}
-        >
-          <option value="comfortable">Comfortable</option>
-          <option value="compact">Compact</option>
-        </select>
-      </div>
+      <Field
+        label="Zona horaria"
+        name="timezone"
+        value={timezone}
+        onChange={setTimezone}
+        placeholder="America/Caracas"
+        error={state.fieldErrors?.timezone}
+        disabled={pending}
+        hint="Formato IANA · ej: America/Caracas, Asia/Shanghai, Europe/Madrid."
+      />
 
-      <div style={{ marginTop: 6 }}>
-        <span className="studio-label">Notificaciones</span>
-        <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 8 }}>
-          <Check label="Email diario con resumen" checked={emailDaily} onChange={setEmailDaily} />
-          <Check label="Push del navegador" checked={pushBrowser} onChange={setPushBrowser} />
-          <Check label="Sonido en alertas" checked={sound} onChange={setSound} />
-        </div>
-      </div>
+      <p
+        style={{
+          font: "500 11.5px/1.4 var(--f-sans)",
+          color: "var(--ink-mute)",
+          margin: 0,
+        }}
+      >
+        Notificaciones push y email se configurarán cuando esté listo el
+        canal correspondiente (SDD-0036 Fase 5 push pendiente).
+      </p>
+
+      {state.error && (
+        <p
+          style={{
+            font: "600 12px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+            margin: 0,
+          }}
+        >
+          {state.error}
+        </p>
+      )}
+      {state.ok && (
+        <p
+          style={{
+            font: "600 12px/1.4 var(--f-sans)",
+            color: "var(--success)",
+            margin: 0,
+          }}
+        >
+          Guardado.
+        </p>
+      )}
 
       <Footer
         onClose={onClose}
         primary={
           <button
-            type="button"
+            type="submit"
             className="studio-btn studio-btn-primary"
-            onClick={handleSave}
-            disabled={saved}
+            disabled={pending}
           >
-            {saved ? "Guardado" : "Guardar preferencias"}
+            {pending ? "Guardando…" : "Guardar preferencias"}
           </button>
         }
       />
-    </>
+    </form>
   );
 }
 
@@ -362,35 +539,51 @@ export function ModalShell({
 
 function Field({
   label,
+  name,
   value,
   onChange,
   type = "text",
   placeholder,
   error,
+  disabled,
+  hint,
 }: {
   label: string;
+  name: string;
   value: string;
   onChange: (v: string) => void;
   type?: "text" | "email" | "password";
   placeholder?: string;
   error?: string;
+  disabled?: boolean;
+  hint?: string;
 }) {
   return (
     <div>
-      <label className="studio-label" style={{ display: "block", marginBottom: 6 }}>
+      <label
+        className="studio-label"
+        htmlFor={`pm-${name}`}
+        style={{ display: "block", marginBottom: 6 }}
+      >
         {label}
       </label>
       <input
+        id={`pm-${name}`}
         type={type}
+        name={name}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="studio-input"
-        style={
-          error
-            ? { borderColor: "var(--danger)" }
-            : undefined
+        disabled={disabled}
+        autoComplete={
+          type === "password"
+            ? "new-password"
+            : name === "email"
+              ? "email"
+              : "off"
         }
+        className="studio-input"
+        style={error ? { borderColor: "var(--danger)" } : undefined}
       />
       {error && (
         <p
@@ -403,42 +596,18 @@ function Field({
           {error}
         </p>
       )}
+      {hint && !error && (
+        <p
+          style={{
+            font: "500 11px/1.3 var(--f-sans)",
+            color: "var(--ink-mute)",
+            margin: "6px 0 0",
+          }}
+        >
+          {hint}
+        </p>
+      )}
     </div>
-  );
-}
-
-function Check({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: (v: boolean) => void;
-}) {
-  return (
-    <label
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-        padding: "10px 12px",
-        background: "var(--bg-elevated)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-sm)",
-        cursor: "pointer",
-        font: "600 12.5px/1 var(--f-sans)",
-        color: "var(--ink)",
-      }}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        style={{ accentColor: "var(--wine)" }}
-      />
-      {label}
-    </label>
   );
 }
 

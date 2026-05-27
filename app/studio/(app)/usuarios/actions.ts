@@ -254,9 +254,9 @@ export async function revokeInvitationAction(
 // updateMyProfileAction · UPSERT del user_profile del logueado
 //
 // Permite que el user de la sesión actualice su first_name + last_name
-// (campos que aparecen en emails enviados — "Hola Sam Maan" en lugar
-// de "Hola hailuway.com@gmail.com"). UPSERT por user_id porque la row
-// puede no existir si el user nunca tocó su perfil.
+// + phone. Estos campos aparecen en emails enviados — "Hola Sam Maan"
+// en lugar de "Hola hailuway.com@gmail.com". UPSERT por user_id porque
+// la row puede no existir si el user nunca tocó su perfil.
 // ─────────────────────────────────────────────────────────────
 
 export async function updateMyProfileAction(
@@ -265,6 +265,7 @@ export async function updateMyProfileAction(
 ): Promise<UserActionState> {
   const firstName = ((formData.get("first_name") as string | null) ?? "").trim();
   const lastName = ((formData.get("last_name") as string | null) ?? "").trim();
+  const phone = ((formData.get("phone") as string | null) ?? "").trim();
 
   const fieldErrors: Record<string, string> = {};
   if (firstName.length > 80) {
@@ -272,6 +273,9 @@ export async function updateMyProfileAction(
   }
   if (lastName.length > 80) {
     fieldErrors.last_name = "Máximo 80 caracteres";
+  }
+  if (phone.length > 40) {
+    fieldErrors.phone = "Máximo 40 caracteres";
   }
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
@@ -284,6 +288,7 @@ export async function updateMyProfileAction(
       user_id: userResp.user.id,
       first_name: firstName || null,
       last_name: lastName || null,
+      phone: phone || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "user_id" },
@@ -294,5 +299,51 @@ export async function updateMyProfileAction(
   }
 
   revalidatePath("/studio/usuarios");
+  return { ok: true, userId: userResp.user.id };
+}
+
+// ─────────────────────────────────────────────────────────────
+// updateMyPreferencesAction · locale + timezone
+//
+// Tab Preferencias del ProfileModal. user_profiles ya tiene
+// las columnas; solo wireamos.
+// ─────────────────────────────────────────────────────────────
+
+const VALID_LOCALES = ["es-VE", "es", "en", "zh"] as const;
+type Locale = (typeof VALID_LOCALES)[number];
+
+export async function updateMyPreferencesAction(
+  _prev: UserActionState,
+  formData: FormData,
+): Promise<UserActionState> {
+  const localeRaw = (formData.get("locale") as string | null) ?? "es-VE";
+  const timezone = ((formData.get("timezone") as string | null) ?? "").trim();
+
+  const locale: Locale = (VALID_LOCALES as readonly string[]).includes(localeRaw)
+    ? (localeRaw as Locale)
+    : "es-VE";
+
+  if (timezone.length > 80) {
+    return { fieldErrors: { timezone: "Máximo 80 caracteres" } };
+  }
+
+  const supabase = await createClient();
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Iniciá sesión primero." };
+
+  const { error } = await supabase.from("user_profiles").upsert(
+    {
+      user_id: userResp.user.id,
+      locale,
+      timezone: timezone || "America/Caracas",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "user_id" },
+  );
+
+  if (error) {
+    return { error: `No se pudo guardar: ${error.message}` };
+  }
+
   return { ok: true, userId: userResp.user.id };
 }

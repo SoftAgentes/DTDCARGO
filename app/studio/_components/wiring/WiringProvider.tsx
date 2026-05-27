@@ -25,7 +25,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { ProfileModal, type ProfileTab } from "./ProfileModal";
+import {
+  ProfileModal,
+  type ProfileModalInitialData,
+  type ProfileTab,
+} from "./ProfileModal";
 import { ShortcutsModal } from "./ShortcutsModal";
 import { GenerateBLModal } from "./GenerateBLModal";
 import { OAuthFlowModal, type OAuthProvider } from "./OAuthFlowModal";
@@ -57,7 +61,13 @@ export function useDTDWiring(): WiringContextValue {
   return ctx;
 }
 
-export function WiringProvider({ children }: { children: ReactNode }) {
+export function WiringProvider({
+  children,
+  profileInitial,
+}: {
+  children: ReactNode;
+  profileInitial: ProfileModalInitialData;
+}) {
   const [active, setActive] = useState<ActiveModal>(null);
 
   const close = useCallback(() => setActive(null), []);
@@ -87,7 +97,11 @@ export function WiringProvider({ children }: { children: ReactNode }) {
     <WiringContext.Provider value={value}>
       {children}
       {active?.kind === "profile" && (
-        <ProfileModal initialTab={active.tab ?? "profile"} onClose={close} />
+        <ProfileModal
+          initialTab={active.tab ?? "profile"}
+          initialData={profileInitial}
+          onClose={close}
+        />
       )}
       {active?.kind === "shortcuts" && <ShortcutsModal onClose={close} />}
       {active?.kind === "generate-bl" && <GenerateBLModal onClose={close} />}
