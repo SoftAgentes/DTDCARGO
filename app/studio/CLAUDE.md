@@ -441,10 +441,80 @@ visual" arriba. Mínimo:
 - `app/studio/_components/ui/SplitActionButton.tsx` · Reglas 1-7 + memoria.
 - `app/studio/_components/ui/ToastProvider.tsx` · Regla 4.
 - `app/studio/_components/ui/useRowHighlight.ts` · Regla 4.
+- `app/studio/_components/ui/NumericInput.tsx` · Inputs numéricos con
+  expresiones + adornment + preview (sección "Inputs numéricos" abajo).
 
 Si vas a usar `<button>` HTML crudo en lugar de estos componentes, debés
 justificar por qué en el PR description y validar las 8 reglas a mano
 en el UI/UX review.
+
+## Inputs numéricos · usá `<NumericInput>`
+
+Todos los inputs numéricos del Studio (kg, CBM, USD, cajas, montos) deben
+usar `app/studio/_components/ui/NumericInput.tsx` en vez de `<input
+type="number">` HTML crudo. Razones:
+
+1. **Expresiones aritméticas inline**: el operador puede escribir
+   `233+2` o `0.45 + 0.32 + 0.18` y ver el resultado en vivo · ahorra
+   sacar la calculadora cuando suma peso/CBM de varias cajas.
+2. **Adornment lateral fijo**: el símbolo de moneda (`$` izquierda) o
+   unidad (`kg` derecha) queda siempre visible · el operador SABE en qué
+   campo está sin leer el label cada vez.
+3. **Preview formateado debajo**: muestra el número parseado con
+   separador de miles (`= USD 12,323.00`, `= 235 kg`, `= 15 cajas`) ·
+   confirma visualmente el valor sin reformatear el input en vivo (que
+   rompería la posición del cursor).
+4. **Form submission limpia**: el hidden input con el value canónico
+   (number) va al form, no la expresión raw. La server action recibe
+   `cbm=0.95` aunque el operador escribió `0.45+0.32+0.18`.
+5. **Parser seguro**: whitelist regex de operadores permitidos
+   (`+ − × ÷ ( )`) · NO usa `eval()` crudo.
+6. **Acepta coma o punto decimal**: tanto `12.5` como `12,5` son
+   válidos · convención mixta de copy-paste de operadores.
+
+### Tipos disponibles
+
+| `type` | Adornment | Preview |
+|---|---|---|
+| `currency` | `$` (o `€`/`Bs.`) prefijo | `= USD 12,323.00` |
+| `weight` | `kg` sufijo | `= 235 kg` |
+| `volume` | `m³` sufijo | `= 0.95 m³` |
+| `count` | (sin sufijo o custom, ej `cajas`) | `= 15` o `= 15 cajas` |
+| `decimal` | (ninguno) | `= 12,323.50` |
+
+### Patrón del caller
+
+```tsx
+<NumericInput
+  id="qd-cbm"
+  name="cbm"
+  type="volume"
+  required
+  min={0}
+  placeholder="3.40"
+  value={cbm === "" ? null : Number(cbm)}
+  onChange={(v) => setCbm(v != null ? String(v) : "")}
+/>
+```
+
+### Convención de formato (V1)
+
+- Decimal: `.` (punto)
+- Thousand separator: `,` (coma)
+- Símbolo moneda: `$` prefijo + `USD` en preview
+- Unidad peso: `kg` (no g/t en V1)
+
+Esto se hace configurable en SDD-0037 Sistema de Preferencias (futuro)
+donde el user podrá elegir formato VE (`12.323,50`) vs US
+(`12,323.50`).
+
+### Cuándo NO usar `<NumericInput>`
+
+- Inputs de date/time (usar `<input type="date">` nativo).
+- Inputs de tracking codes / MARKBOX / RIF (alfanuméricos · no son
+  numéricos puros).
+- Counters de UI internos (paginación, etc.) · ahí está bien
+  `<input type="number">` simple.
 
 ## Convenciones operativas
 
