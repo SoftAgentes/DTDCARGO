@@ -114,39 +114,28 @@ export async function getDispatchOrderByCode(
 
 /**
  * Devuelve los paquetes que se pueden incluir en una OD nueva.
- * Source: warehouse_receipts_cn con status='received' y NOT in dispatch_order_packages.
+ * Source: warehouse_receipts_cn con status='consolidado' y NOT in dispatch_order_packages.
  *
  * NOTA Fase 1: source solo warehouse_receipts_cn. En SDD-0030 se extiende
  * a warehouse_receipts_ve cuando esté portado.
  *
- * SCHEMA DRIFT (2026-05-27): el SDD-0029 spec original asumía columnas
- * `markbox`, `weight_kg`, `cbm`, `destination_city`, `payment_status`,
- * `hs_code`, `aes_code` en warehouse_receipts_cn. SDD-0027/0028 (PWA
- * operario CN · Wang Hua) rediseñó la tabla y nadie sincronizó este query.
- *
- * Schema actual:
- *   - markbox          → client_markbox (rename)
- *   - weight_kg        → total_weight_kg (rename)
- *   - cbm              → total_cbm (rename)
- *   - destination_city → no existe en NINGUNA tabla (operario CN no captura)
- *   - payment_status   → no existe (pertenece a cobranza, no al receipt)
- *   - hs_code/aes_code → no existen en este schema
- *
- * Fix mínimo viable: defaults razonables ("—" y "pendiente") para los
- * campos que no podemos resolver. TODO enriquecer cuando founder decida
- * approach (a · agregar columnas o b · resolver via JOINs futuras).
+ * Schema sync (2026-05-27 · migración 0044):
+ *   - destination_city · capturada por bodeguero CN al consolidar
+ *     (paso wizard /m/cn/nueva · Fase 3 pendiente)
+ *   - payment_status (text+CHECK pagado/parcial/pendiente) · default
+ *     'pendiente', actualizado por admin/cobranza
+ *   - hs_code/aes_code: siguen sin existir en este schema
+ *     (TODO: resolver via paquetes detallados o agregar)
  */
 export async function listEligiblePackages(
   supabase: SupabaseClient,
-  _opts: { hub?: DispatchHub; city?: string } = {},
+  opts: { hub?: DispatchHub; city?: string } = {},
 ): Promise<EligiblePackage[]> {
-  // 1. Traer receipts CN status='received', no orphan, no deleted
-  // opts.city es no-op por ahora (city no existe en schema)
-  void _opts;
-  const query = supabase
+  // 1. Traer receipts CN status='consolidado', no orphan, no deleted
+  let query = supabase
     .from("warehouse_receipts_cn")
     .select(
-      "id, client_markbox, client_name, description, boxes, total_weight_kg, total_cbm, received_at",
+      "id, client_markbox, client_name, destination_city, payment_status, description, boxes, total_weight_kg, total_cbm, received_at",
     )
     // SCHEMA DRIFT (2026-05-27): el enum warehouse_receipt_status real es
     // {pendiente_consolidacion, consolidado, incidencia} · NO existe 'received'
@@ -158,6 +147,8 @@ export async function listEligiblePackages(
     .order("received_at", { ascending: true })
     .limit(500);
 
+  if (opts.city) query = query.eq("destination_city", opts.city);
+
   const { data: receipts, error } = await query;
   if (error) throw error;
 
@@ -165,6 +156,8 @@ export async function listEligiblePackages(
     id: string;
     client_markbox: string;
     client_name: string | null;
+    destination_city: string | null;
+    payment_status: string | null;
     description: string | null;
     boxes: number | null;
     total_weight_kg: number | null;
@@ -208,8 +201,8 @@ export async function listEligiblePackages(
         package_kind: "warehouse_receipt_cn" as DispatchPackageKind,
         markbox: r.client_markbox,
         client_name: r.client_name ?? "—",
-        city: "—", // TODO: resolver via parseo de clients.address o nueva columna
-        pay: "pendiente" as DispatchPaymentStatus, // TODO: resolver via cobranza/invoices
+        city: r.destination_city ?? "—",
+        pay: (r.payment_status ?? "pendiente") as DispatchPaymentStatus,
         description: r.description,
         boxes_total: r.boxes ?? 1,
         weight_kg: Number(r.total_weight_kg ?? 0),
