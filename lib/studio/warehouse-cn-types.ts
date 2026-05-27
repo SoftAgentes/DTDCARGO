@@ -109,9 +109,23 @@ export type WarehouseReceiptEvent = {
   created_at: string;
 };
 
-/** Row del listado: receipt + warehouse joinada + items count. */
+/**
+ * Subset liviano del item para el listado de recepciones — los campos
+ * que se renderizan en la tabla (descripción + cantidad + HS code).
+ * Para edición completa usar WarehouseReceiptItem desde listItemsForReceipt.
+ */
+export type WarehouseReceiptItemSummary = {
+  description: string;
+  description_translated: string | null;
+  quantity: number | null;
+  position: number;
+  hs_code: string | null;
+};
+
+/** Row del listado: receipt + warehouse joinada + items embebidos. */
 export type WarehouseReceiptRow = WarehouseReceipt & {
   warehouse: Pick<WarehouseCN, "code" | "hub_code" | "hub_name_es" | "hub_name_cn">;
+  items: WarehouseReceiptItemSummary[];
   items_count: number;
 };
 
