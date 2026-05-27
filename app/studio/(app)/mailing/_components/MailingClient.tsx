@@ -17,6 +17,7 @@ import type {
 import {
   MAIL_LOG_STATUS_LABEL,
   MAIL_LOG_STATUS_TONE,
+  type MailConfigRow,
   type MailLogRow,
   type MailLogStatus,
   type MailingAdminTab,
@@ -24,6 +25,7 @@ import {
 } from "./mailing-types";
 import { TemplatesView } from "./TemplatesView";
 import { RulesView } from "./RulesView";
+import { ConfigView } from "./ConfigView";
 
 interface Props {
   tab: MailingAdminTab;
@@ -31,6 +33,7 @@ interface Props {
   templates: Array<{ slug: string; name: string }>;
   templatesFull: MailTemplate[];
   rules: MailRuleWithTemplate[];
+  config: MailConfigRow | null;
   filters: MailingFilters;
 }
 
@@ -58,6 +61,7 @@ export function MailingClient({
   templates,
   templatesFull,
   rules,
+  config,
   filters,
 }: Props) {
   const router = useRouter();
@@ -101,7 +105,7 @@ export function MailingClient({
           marginBottom: 20,
         }}
       >
-        {(["logs", "templates", "reglas"] as const).map((t) => (
+        {(["logs", "templates", "reglas", "config"] as const).map((t) => (
           <button
             key={t}
             type="button"
@@ -122,7 +126,13 @@ export function MailingClient({
               transition: "all var(--dur, 180ms) var(--ease, ease-out)",
             }}
           >
-            {t === "logs" ? "Logs" : t === "templates" ? "Templates" : "Reglas"}
+            {t === "logs"
+              ? "Logs"
+              : t === "templates"
+                ? "Templates"
+                : t === "reglas"
+                  ? "Reglas"
+                  : "Config"}
           </button>
         ))}
       </div>
@@ -141,6 +151,8 @@ export function MailingClient({
       {tab === "reglas" && (
         <RulesView rules={rules} templates={templatesFull} />
       )}
+
+      {tab === "config" && <ConfigView config={config} />}
     </>
   );
 }

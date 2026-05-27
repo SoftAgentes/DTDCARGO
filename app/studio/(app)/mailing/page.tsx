@@ -16,6 +16,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { listRules, listTemplates } from "@/lib/studio/mail-queries";
 import { MailingClient } from "./_components/MailingClient";
 import type {
+  MailConfigRow,
   MailingAdminTab,
   MailLogRow,
   MailLogStatus,
@@ -72,7 +73,7 @@ export default async function MailingAdminPage({
 
   const tabRaw = singleParam("tab");
   const tab: MailingAdminTab =
-    tabRaw === "templates" || tabRaw === "reglas"
+    tabRaw === "templates" || tabRaw === "reglas" || tabRaw === "config"
       ? (tabRaw as MailingAdminTab)
       : "logs";
 
@@ -108,11 +109,20 @@ export default async function MailingAdminPage({
     console.error("[mailing] mail_logs query failed:", logsErr);
   }
 
-  // Templates + rules para los tabs correspondientes (siempre cargamos los
-  // templates para usar como filter dropdown en tab Logs también)
-  const [templatesFull, rules] = await Promise.all([
+  // Templates + rules + config para los tabs correspondientes (siempre
+  // cargamos los templates para usar como filter dropdown en tab Logs también)
+  const [templatesFull, rules, config] = await Promise.all([
     listTemplates(supabase, { limit: 100 }),
     tab === "reglas" ? listRules(supabase) : Promise.resolve([]),
+    tab === "config"
+      ? supabase
+          .from("mail_config")
+          .select(
+            "tenant_id, from_email, from_name, reply_to, test_mode, internal_test_email, domain_verified, updated_at",
+          )
+          .eq("tenant_id", link.tenant_id)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const templates = templatesFull.map((t) => ({ slug: t.slug, name: t.name }));
@@ -148,6 +158,7 @@ export default async function MailingAdminPage({
         templates={templates}
         templatesFull={templatesFull}
         rules={rules}
+        config={(config?.data ?? null) as unknown as MailConfigRow | null}
         filters={{ status, template: templateSlug ?? "all", search: search ?? "" }}
       />
     </div>

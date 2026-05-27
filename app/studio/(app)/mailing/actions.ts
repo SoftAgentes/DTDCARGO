@@ -351,4 +351,71 @@ export async function deleteMailRuleAction(
   return { ok: true, message: "Regla eliminada." };
 }
 
+// ─────────────────────────────────────────────────────────────
+// Config · update mail_config
+// ─────────────────────────────────────────────────────────────
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export async function updateMailConfigAction(
+  _prev: MailingActionState,
+  formData: FormData,
+): Promise<MailingActionState> {
+  const fromEmail = ((formData.get("from_email") as string | null) ?? "").trim();
+  const fromName = ((formData.get("from_name") as string | null) ?? "").trim();
+  const replyTo = ((formData.get("reply_to") as string | null) ?? "").trim();
+  const internalTestEmail = (
+    (formData.get("internal_test_email") as string | null) ?? ""
+  ).trim();
+  const testMode = formData.get("test_mode") === "on";
+
+  const fieldErrors: ActionFieldErrors = {};
+  if (!fromEmail || !EMAIL_RE.test(fromEmail)) {
+    fieldErrors.from_email = "Email inválido";
+  }
+  if (!fromName || fromName.length < 2) {
+    fieldErrors.from_name = "Nombre requerido (min 2 chars)";
+  }
+  if (replyTo && !EMAIL_RE.test(replyTo)) {
+    fieldErrors.reply_to = "Reply-to inválido";
+  }
+  if (testMode && (!internalTestEmail || !EMAIL_RE.test(internalTestEmail))) {
+    fieldErrors.internal_test_email =
+      "Si test_mode está activo, internal_test_email es requerido";
+  }
+  if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
+
+  const supabase = await createClient();
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "Sin tenant." };
+
+  const { error } = await supabase
+    .from("mail_config")
+    .update({
+      from_email: fromEmail,
+      from_name: fromName,
+      reply_to: replyTo || null,
+      internal_test_email: internalTestEmail || null,
+      test_mode: testMode,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("tenant_id", link.tenant_id);
+
+  if (error) {
+    if (error.code === "42501") return { error: "Solo admins pueden editar config." };
+    return { error: `No se pudo guardar: ${error.message}` };
+  }
+
+  revalidatePath("/studio/mailing");
+  return {
+    ok: true,
+    message: testMode
+      ? "Config guardada · test_mode ACTIVO (todos los emails van a internal_test_email)"
+      : "Config guardada · test_mode OFF · los emails van a los destinatarios reales",
+  };
+}
+
 export { INITIAL as INITIAL_MAILING_STATE };
