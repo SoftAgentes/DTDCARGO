@@ -16,6 +16,10 @@ export type Client = {
   rif: string | null;
   tier: ClientTier;
   notes: string | null;
+  /** Latitud GPS · habilita "Cerca tuyo" del Mobile ERP (migración 0048). */
+  lat: number | null;
+  /** Longitud GPS. */
+  lng: number | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
