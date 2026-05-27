@@ -37,6 +37,14 @@ export interface ListMembersFilters {
   search?: string;
   limit?: number;
   offset?: number;
+  /**
+   * Filter explícito por tenant_id. Obligatorio cuando el caller usa
+   * service_role / admin client (que bypassea RLS y vería rows de
+   * otros tenants). Cuando el caller usa el client regular, RLS ya
+   * filtra a las rows visibles, pero pasarlo de todas formas es
+   * defensa en profundidad y no rompe nada.
+   */
+  tenantId?: string;
 }
 
 /**
@@ -65,6 +73,7 @@ export async function listMembers(
     )
     .order("created_at", { ascending: false });
 
+  if (filters.tenantId) q = q.eq("tenant_id", filters.tenantId);
   if (filters.role) q = q.eq("role", filters.role);
   if (!filters.includeDisabled) q = q.is("disabled_at", null);
 
@@ -213,28 +222,43 @@ export async function getInvitationByToken(
  */
 export async function computeUserKpis(
   supabase: SupabaseClient,
+  tenantId?: string,
 ): Promise<UserKpis> {
   const nowIso = new Date().toISOString();
 
+  const total = supabase
+    .from("user_tenants")
+    .select("user_id", { count: "exact", head: true });
+  const active = supabase
+    .from("user_tenants")
+    .select("user_id", { count: "exact", head: true })
+    .is("disabled_at", null);
+  const admins = supabase
+    .from("user_tenants")
+    .select("user_id", { count: "exact", head: true })
+    .eq("role", "admin")
+    .is("disabled_at", null);
+  const pending = supabase
+    .from("user_invitations")
+    .select("id", { count: "exact", head: true })
+    .is("accepted_at", null)
+    .is("revoked_at", null)
+    .gte("expires_at", nowIso);
+
+  // Si el caller pasa tenantId, filtramos explícito (necesario cuando se
+  // usa admin client que bypassea RLS).
+  if (tenantId) {
+    total.eq("tenant_id", tenantId);
+    active.eq("tenant_id", tenantId);
+    admins.eq("tenant_id", tenantId);
+    pending.eq("tenant_id", tenantId);
+  }
+
   const [totalResp, activeResp, adminsResp, pendingResp] = await Promise.all([
-    supabase
-      .from("user_tenants")
-      .select("user_id", { count: "exact", head: true }),
-    supabase
-      .from("user_tenants")
-      .select("user_id", { count: "exact", head: true })
-      .is("disabled_at", null),
-    supabase
-      .from("user_tenants")
-      .select("user_id", { count: "exact", head: true })
-      .eq("role", "admin")
-      .is("disabled_at", null),
-    supabase
-      .from("user_invitations")
-      .select("id", { count: "exact", head: true })
-      .is("accepted_at", null)
-      .is("revoked_at", null)
-      .gte("expires_at", nowIso),
+    total,
+    active,
+    admins,
+    pending,
   ]);
 
   if (totalResp.error || activeResp.error || adminsResp.error || pendingResp.error) {
