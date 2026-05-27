@@ -18,7 +18,6 @@ import {
 } from "@/lib/studio/user-queries";
 import type { UserMembershipWithProfile } from "@/lib/studio/user-types";
 import { UsersClient } from "./_components/UsersClient";
-import { MyProfileEditor } from "./_components/MyProfileEditor";
 
 export const metadata = { title: "Usuarios · DTD Studio" };
 export const dynamic = "force-dynamic";
@@ -47,18 +46,11 @@ export default async function UsuariosPage() {
     redirect("/studio/dashboard");
   }
 
-  const [membersRaw, invitations, kpis, profileResp] = await Promise.all([
+  const [membersRaw, invitations, kpis] = await Promise.all([
     listMembers(supabase),
     listInvitations(supabase),
     computeUserKpis(supabase),
-    supabase
-      .from("user_profiles")
-      .select("first_name, last_name")
-      .eq("user_id", userResp.user.id)
-      .maybeSingle<{ first_name: string | null; last_name: string | null }>(),
   ]);
-
-  const myProfile = profileResp?.data ?? null;
 
   // Resolver emails de auth.users via service_role admin client.
   // La query de listMembers devuelve email='' como placeholder.
@@ -104,12 +96,6 @@ export default async function UsuariosPage() {
           activo, copiá el link de invitación a mano cuando creés una.
         </p>
       </div>
-
-      <MyProfileEditor
-        currentEmail={userResp.user.email ?? "(sin email)"}
-        currentFirstName={myProfile?.first_name ?? null}
-        currentLastName={myProfile?.last_name ?? null}
-      />
 
       <UsersClient
         members={members}
