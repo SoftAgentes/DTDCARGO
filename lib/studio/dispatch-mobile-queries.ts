@@ -55,37 +55,34 @@ export async function listOdsForBodeguero(
 }
 
 // ─────────────────────────────────────────────────────────────
-// Camionero · OD asignadas al chofer matcheando por nombre
+// Camionero · OD asignadas al chofer (Sprint 0 fix: link explícito)
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Match operario↔driver por nombre (deuda D6 del spec).
- * Devuelve ODs `lista` o `en_ruta` asignadas al driver que matchea
- * con el `display_name` del operario.
+ * Devuelve ODs `lista` o `en_ruta` asignadas al driver linkeado al
+ * operario via `operario_pins.tms_driver_id` (migración 0060).
+ *
+ * Sprint 0 fix: reemplaza el match por nombre (`.ilike("name", ...)`)
+ * que era anti-pattern de seguridad — homónimos veían ODs cruzadas.
+ * Ahora es FK explícito: cada operario camionero tiene su driver TMS
+ * linkeado al crearse en el Studio admin.
+ *
+ * Si `tmsDriverId` es null (operario sin link todavía), devuelve []
+ * — UI muestra empty state con mensaje claro.
  */
 export async function listOdsForCamionero(
   supabase: SupabaseClient,
   tenantId: string,
-  operarioDisplayName: string,
+  tmsDriverId: string | null,
 ): Promise<DispatchOrderRow[]> {
-  // 1. Buscar driver con nombre matcheante
-  const { data: drivers, error: dErr } = await supabase
-    .from("tms_drivers")
-    .select("id, name")
-    .eq("tenant_id", tenantId)
-    .ilike("name", operarioDisplayName);
-  if (dErr) throw dErr;
+  if (!tmsDriverId) return [];
 
-  const driverIds = ((drivers as { id: string }[] | null) ?? []).map((d) => d.id);
-  if (driverIds.length === 0) return [];
-
-  // 2. Buscar ODs lista/en_ruta de esos drivers
   const { data, error } = await supabase
     .from("dispatch_orders")
     .select(OD_WITH_JOINS_SELECT)
     .eq("tenant_id", tenantId)
     .in("status", ["lista", "en_ruta"])
-    .in("driver_id", driverIds)
+    .eq("driver_id", tmsDriverId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;

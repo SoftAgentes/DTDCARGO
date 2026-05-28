@@ -55,6 +55,7 @@ export async function signInWithPin(
     display_name_cn: row.display_name_cn,
     role: row.role,
     region: row.region,
+    tms_driver_id: row.tms_driver_id ?? null,
   };
 
   // Setear cookie HTTP-only con el operario_id
@@ -98,7 +99,7 @@ export async function getCurrentOperario(): Promise<OperarioSession | null> {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("operario_pins")
-    .select("id, tenant_id, warehouse_id, display_name, display_name_cn, role, region, active")
+    .select("id, tenant_id, warehouse_id, display_name, display_name_cn, role, region, active, tms_driver_id")
     .eq("id", operarioId)
     .maybeSingle<{
       id: string;
@@ -109,6 +110,7 @@ export async function getCurrentOperario(): Promise<OperarioSession | null> {
       role: "operario" | "supervisor" | "bodeguero" | "camionero";
       region: "cn" | "ve";
       active: boolean;
+      tms_driver_id: string | null;
     }>();
 
   if (error || !data || !data.active) {
@@ -125,6 +127,7 @@ export async function getCurrentOperario(): Promise<OperarioSession | null> {
     display_name_cn: data.display_name_cn,
     role: data.role,
     region: data.region,
+    tms_driver_id: data.tms_driver_id,
   };
 }
 
