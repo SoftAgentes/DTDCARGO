@@ -22,32 +22,65 @@ const SERIF: React.CSSProperties = {
   fontFamily: "Georgia, 'Times New Roman', serif",
 };
 
-/** Reemplaza **bold** y *italic* en un string, devolviendo nodos React. */
+/** Reemplaza **bold**, *italic* y [VERIFICAR:...] en un string. */
 function inlineFormat(text: string, keyPrefix: string): React.ReactNode[] {
+  // Primero: split por [VERIFICAR:...] markers. Cada marker se vuelve un
+  // <mark> visualmente destacado para que el editor lo resuelva antes de
+  // publicar. Plan v5.
+  const verifyParts = text.split(/(\[VERIFICAR:?[^\]]*\])/gi);
   const nodes: React.ReactNode[] = [];
-  // Strategy: split por ** (bold) primero, después dentro de cada chunk por *.
-  const boldSplit = text.split(/(\*\*[^*]+\*\*)/g);
-  boldSplit.forEach((chunk, i) => {
-    if (chunk.startsWith("**") && chunk.endsWith("**")) {
-      const inner = chunk.slice(2, -2);
+
+  verifyParts.forEach((part, vIdx) => {
+    if (/^\[VERIFICAR:?[^\]]*\]$/i.test(part)) {
       nodes.push(
-        <strong key={`${keyPrefix}-b-${i}`} className="text-ink">
-          {inner}
-        </strong>,
+        <mark
+          key={`${keyPrefix}-v-${vIdx}`}
+          style={{
+            background: "var(--warning-bg, rgba(184,137,58,0.15))",
+            color: "var(--warning, #B8893A)",
+            padding: "1px 6px",
+            borderRadius: 4,
+            fontSize: "0.92em",
+            fontWeight: 600,
+            border: "1px dashed var(--warning, #B8893A)",
+            fontFamily:
+              "var(--f-mono, 'JetBrains Mono', ui-monospace, monospace)",
+          }}
+          title="Dato sin verificar — resolvelo antes de publicar"
+        >
+          {part}
+        </mark>,
       );
-    } else {
-      // Italic dentro del chunk
-      const italicSplit = chunk.split(/(\*[^*]+\*)/g);
-      italicSplit.forEach((piece, j) => {
-        if (piece.startsWith("*") && piece.endsWith("*") && piece.length > 2) {
-          nodes.push(
-            <em key={`${keyPrefix}-i-${i}-${j}`}>{piece.slice(1, -1)}</em>,
-          );
-        } else if (piece) {
-          nodes.push(piece);
-        }
-      });
+      return;
     }
+    // Dentro del chunk no-VERIFICAR aplicamos **bold** y *italic* como antes.
+    const boldSplit = part.split(/(\*\*[^*]+\*\*)/g);
+    boldSplit.forEach((chunk, i) => {
+      if (chunk.startsWith("**") && chunk.endsWith("**")) {
+        const inner = chunk.slice(2, -2);
+        nodes.push(
+          <strong
+            key={`${keyPrefix}-b-${vIdx}-${i}`}
+            className="text-ink"
+          >
+            {inner}
+          </strong>,
+        );
+      } else {
+        const italicSplit = chunk.split(/(\*[^*]+\*)/g);
+        italicSplit.forEach((piece, j) => {
+          if (piece.startsWith("*") && piece.endsWith("*") && piece.length > 2) {
+            nodes.push(
+              <em key={`${keyPrefix}-i-${vIdx}-${i}-${j}`}>
+                {piece.slice(1, -1)}
+              </em>,
+            );
+          } else if (piece) {
+            nodes.push(piece);
+          }
+        });
+      }
+    });
   });
   return nodes;
 }
