@@ -17,6 +17,8 @@ import {
 } from "@/lib/news/queries";
 import { NewsMarkdown } from "@/lib/news/markdown";
 import { ArrowIcon } from "@/components/Icon";
+import { NewsArticleJsonLd } from "./_components/NewsArticleJsonLd";
+import { FaqPageJsonLd } from "./_components/FaqPageJsonLd";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -74,6 +76,9 @@ export default async function NewsPostPage({ params }: Props) {
 
   return (
     <>
+      {/* JSON-LD schema.org NewsArticle + FAQPage (Plan v5 · Fase D) */}
+      <NewsArticleJsonLd post={post} />
+      <FaqPageJsonLd bodyMarkdown={post.body_markdown} />
       <Nav />
       <main className="bg-paper">
         <article className="py-16 lg:py-24">
