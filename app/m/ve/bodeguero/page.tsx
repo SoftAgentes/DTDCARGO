@@ -10,7 +10,11 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/db/admin";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
-import { listOdsForBodeguero } from "@/lib/studio/dispatch-mobile-queries";
+import {
+  listAvailableDriversForHub,
+  listAvailableTrucksForHub,
+  listOdsForBodeguero,
+} from "@/lib/studio/dispatch-mobile-queries";
 import { BodegueroClient } from "./_components/BodegueroClient";
 
 export const metadata = { title: "Despacho · Bodeguero" };
@@ -37,6 +41,21 @@ export default async function BodegueroHomePage() {
   const admin = createAdminClient();
   const ods = await listOdsForBodeguero(admin, operario.tenant_id);
 
+  // Sprint 2 · pool de trucks/drivers disponibles para reasignación inline
+  const [availableTrucks, availableDrivers] = await Promise.all([
+    listAvailableTrucksForHub(admin, operario.tenant_id),
+    listAvailableDriversForHub(admin, operario.tenant_id),
+  ]);
+
+  // Sprint 2 · feature flag para warehouse_location (default off)
+  const { data: flag } = await admin
+    .from("feature_flags")
+    .select("enabled")
+    .eq("tenant_id", operario.tenant_id)
+    .eq("key", "dispatch.show_warehouse_location")
+    .maybeSingle<{ enabled: boolean }>();
+  const showWarehouseLocation = !!flag?.enabled;
+
   const firstName = operario.display_name.split(/\s+/)[0] ?? operario.display_name;
   const initials =
     operario.display_name
@@ -57,6 +76,9 @@ export default async function BodegueroHomePage() {
       }}
       ods={ods}
       tenantId={operario.tenant_id}
+      availableTrucks={availableTrucks}
+      availableDrivers={availableDrivers}
+      showWarehouseLocation={showWarehouseLocation}
     />
   );
 }
