@@ -13,6 +13,7 @@ import type { Metadata, Viewport } from "next";
 import "@/app/studio/studio.css";
 import "./m.css";
 import { PwaRegister } from "./_components/PwaRegister";
+import { ToastProvider } from "@/app/studio/_components/ui/ToastProvider";
 
 export const metadata: Metadata = {
   title: {
@@ -66,7 +67,7 @@ export default function MobileLayout({
   return (
     <div className="m-root" data-theme="light">
       <PwaRegister />
-      {children}
+      <ToastProvider>{children}</ToastProvider>
     </div>
   );
 }
