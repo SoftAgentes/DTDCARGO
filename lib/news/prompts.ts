@@ -28,6 +28,17 @@ import {
 
 export type Tone = "informativo" | "curiosidad" | "polemico";
 
+/**
+ * Brief del operador antes de elegir tipo/categoría. Plan v5 — Brief primero.
+ * El operador escribe tema + links opcionales + ángulo; Claude deriva el
+ * resto (tipo + categoría + tono) vía buildDetectBriefIntentPrompt.
+ */
+export interface NewsBrief {
+  topic: string;
+  refs: string[]; // 0-3 URLs
+  angle: string; // 1 oración, opcional (puede ser "")
+}
+
 const TONE_INSTRUCTIONS: Record<Tone, string> = {
   informativo:
     "tono informativo, claro y directo, estilo periodístico serio. Sin adjetivos vacíos.",
@@ -36,6 +47,73 @@ const TONE_INSTRUCTIONS: Record<Tone, string> = {
   polemico:
     "tono polémico y provocador, que genere debate honesto, sin desinformación.",
 };
+
+// ──────────────────────────────────────────────────────────────
+// 0. detectBriefIntent — brief completo → tipo + categoría + tono
+//
+// Plan v5: el operador escribe brief (tema + refs + ángulo) en step 0
+// y Claude propone tipo + categoría + tono automáticamente. Reemplaza
+// funcionalmente a detectCategory cuando hay brief con angle (más rico
+// que solo "topic + tipo ya elegido").
+// ──────────────────────────────────────────────────────────────
+
+export function buildDetectBriefIntentPrompt(brief: NewsBrief): string {
+  const tiposList = (Object.entries(NEWS_TIPOS) as Array<
+    [NewsTipo, typeof NEWS_TIPOS[NewsTipo]]
+  >)
+    .map(([slug, info]) => `- "${slug}" → ${info.label}: ${info.description}`)
+    .join("\n");
+
+  const catsList = (Object.entries(NEWS_CATEGORIES_V4) as Array<
+    [NewsCategoria, typeof NEWS_CATEGORIES_V4[NewsCategoria]]
+  >)
+    .map(
+      ([slug, info]) =>
+        `- "${slug}" (tipo=${info.tipo}) → ${info.label}: ${info.description}`,
+    )
+    .join("\n");
+
+  const refsBlock =
+    brief.refs.length > 0
+      ? `\n\nLINKS DE REFERENCIA aportados por el operador:\n${brief.refs
+          .map((r) => `- ${r}`)
+          .join("\n")}`
+      : "";
+
+  const angleBlock = brief.angle.trim()
+    ? `\n\nÁNGULO EDITORIAL (qué se debe llevar el lector):\n"${brief.angle.trim()}"`
+    : "";
+
+  return `Sos editor jefe de DTD Cargo (logística China-Venezuela). El operador escribió un brief para una nueva pieza editorial del sitio público /noticias. Tu tarea: leer el brief y proponer la clasificación editorial más apropiada — tipo + categoría + tono sugerido.
+
+TEMA: ${brief.topic.trim()}${refsBlock}${angleBlock}
+
+Tipos editoriales disponibles:
+${tiposList}
+
+Categorías disponibles (con su tipo asociado):
+${catsList}
+
+Tonos disponibles:
+- "informativo" → claro y directo, periodístico serio
+- "curiosidad" → con gancho, despierta interés sin clickbait barato
+- "polemico" → provocador, genera debate honesto
+
+Reglas:
+- Elegí UN tipo, UNA categoría (debe pertenecer al tipo elegido), UN tono.
+- Si el brief tiene ángulo polémico declarado, priorizá tipo="polemica".
+- Si el brief no tiene ángulo, asumí tipo="informativo".
+- "anuncios-dtd" (tipo="especial") SOLO si el brief habla de la empresa misma.
+
+Devolvé SOLO JSON válido sin prosa ni bloques de código:
+{
+  "tipo": "<slug del tipo>",
+  "categoria": "<slug de la categoría>",
+  "tone_suggested": "<informativo|curiosidad|polemico>",
+  "reason": "<1-2 oraciones explicando la elección>",
+  "confidence": <0-100>
+}`;
+}
 
 // ──────────────────────────────────────────────────────────────
 // 1. detectCategory — usuario tipea tema + ya eligió tipo
@@ -154,6 +232,55 @@ Devolvé entre 8 y 10 secciones (bullets) en orden lógico de lectura. Cada bull
 
 Devolvé SOLO JSON válido sin prosa adicional ni bloques de código:
 {"bullets": [{"title": "...", "desc": "..."}, ...]}`;
+}
+
+// ──────────────────────────────────────────────────────────────
+// 4b. generateOutlines — 3 outlines completos alternativos (Plan v5)
+//
+// Reemplaza funcionalmente a generateBullets. En vez de 8-10 bullets
+// para destildar (trabajo de checkbox), Claude propone 3 arquitecturas
+// narrativas distintas para el mismo titular. El editor compara
+// outlines completos y elige uno (radio). Refleja cómo decide un
+// editor jefe en un newsroom real.
+// ──────────────────────────────────────────────────────────────
+
+export function buildGenerateOutlinesPrompt(
+  headline: string,
+  categoria: NewsCategoria,
+  secondaryKeywords?: string[],
+): string {
+  const catInfo = NEWS_CATEGORIES_V4[categoria];
+  const pains = painPointsFor(categoria);
+  const painsBlock =
+    pains.length > 0
+      ? `\n\nPAIN POINTS DEL CLIENTE en esta categoría:\n${pains
+          .map((p) => `- "${p}"`)
+          .join("\n")}\n\nAl menos 1 de los 3 outlines debe RESOLVER pain points concretos del listado.`
+      : "";
+  const kwBlock = secondaryKeywords?.length
+    ? `\n\nKEYWORDS SECUNDARIAS a incorporar de forma orgánica en titles de secciones: ${secondaryKeywords.map((k) => `"${k}"`).join(", ")}`
+    : "";
+
+  return `Sos editor jefe de DTD Cargo. Generá 3 OUTLINES ALTERNATIVOS para este titular. Cada outline debe ser una arquitectura narrativa distinta — NO variaciones cosméticas del mismo enfoque.
+
+TITULAR: ${headline}
+CATEGORÍA: ${catInfo.label}${painsBlock}${kwBlock}
+
+Cada outline debe traer:
+- thesis: 1 oración (máx 200 chars) que resuma el punto central del artículo. Es el "nut graf" del periodismo — la columna vertebral editorial.
+- sections: array de 5-7 secciones (cada una con title máx 60 chars + desc 1 línea máx 120 chars).
+- closing_type: uno de:
+    "conclusion-analitica"  → cierre que sintetiza y concluye
+    "llamada-a-la-accion"   → cierre que invita a actuar (cotizar, contactar, etc.)
+    "pregunta-abierta"      → cierre que abre debate o reflexión
+
+Los 3 outlines deben TENER ENFOQUES DISTINTOS:
+- Outline 1 (pragmático): "cómo funciona / qué hacer en la práctica". Foco operativo.
+- Outline 2 (contextual): "por qué importa / historia detrás". Foco narrativo.
+- Outline 3 (analítico): "desafío al supuesto / posición editorial". Foco crítico.
+
+Devolvé SOLO JSON válido sin prosa adicional ni bloques de código:
+{"outlines": [{"thesis": "...", "sections": [{"title": "...", "desc": "..."}, ...], "closing_type": "conclusion-analitica"}, {...}, {...}]}`;
 }
 
 // ──────────────────────────────────────────────────────────────

@@ -44,9 +44,10 @@ import {
   buildGenerateBulletsPrompt,
   buildGenerateArticlePrompt,
   buildSuggestKeywordsPrompt,
+  type NewsBrief,
 } from "@/lib/news/prompts";
 import { StepIndicator } from "./StepIndicator";
-import { Step0Tipo } from "./Step0Tipo";
+import { Step0Brief } from "./Step0Brief";
 import { Step1Headlines } from "./Step1Headlines";
 import { Step2Structure, type BulletState } from "./Step2Structure";
 import { Step3Article } from "./Step3Article";
@@ -57,11 +58,14 @@ import { KeywordPanel } from "./KeywordPanel";
 import { PublishModal } from "./PublishModal";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
+  detectBriefIntent,
   generateArticle,
   generateBullets,
   generateHeadlines,
   suggestKeywords,
   type BulletItem,
+  type DetectBriefIntentResult,
+  type ErrorResult,
   type Tone,
 } from "../actions";
 
@@ -134,11 +138,16 @@ export function NoticiasWebClient() {
   // Step machine
   const [step, setStep] = useState<Step>(0);
 
-  // Step 0 state
+  // Step 0 state · Brief (Plan v5)
+  // El brief es lo único que el operador escribe en step 0; tipo + categoría
+  // + tono se derivan vía detectBriefIntent y son editables después.
+  const [briefRefs, setBriefRefs] = useState<string[]>([]);
+  const [briefAngle, setBriefAngle] = useState("");
+  // tipo + categoría: state derivado del brief (populated por detectBriefIntent)
   const [tipo, setTipo] = useState<NewsTipo | null>(null);
-
-  // Step 1 state
   const [categoria, setCategoria] = useState<NewsCategoria | null>(null);
+
+  // Step 1 state · topic vive acá porque Step1Headlines lo edita inline
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState<Tone>("informativo");
   const [headlines, setHeadlines] = useState<string[]>([]);
@@ -189,14 +198,36 @@ export function NoticiasWebClient() {
 
   const closeModal = () => setModal({ open: false });
 
-  // ── Step 0 → 1 ──────────────────────────────────────────────
+  // ── Step 0 → 1 · Brief submit (Plan v5) ─────────────────────
+  //
+  // El operador escribe brief en step 0. Click "Detectar tipo + continuar"
+  // dispara detectBriefIntent que devuelve tipo + categoría + tono sugeridos
+  // por Claude. Populamos el state derivado y avanzamos a step 1 donde el
+  // operador puede ajustar.
+  //
+  // Devuelve el result al caller (ActionButton dentro de Step0Brief) para
+  // que pueda mostrar error con el callback estándar.
 
-  const handleSelectTipo = (t: NewsTipo) => {
-    setTipo(t);
+  const handleBriefSubmit = async (
+    brief: NewsBrief,
+  ): Promise<DetectBriefIntentResult | ErrorResult> => {
     setError(null);
-    const cats = categoriasByTipo(t);
-    setCategoria(cats[0] ?? null);
+    const res = await detectBriefIntent(brief);
+    if (!res.ok) {
+      setError(res.error);
+      return res;
+    }
+    // Persistir el brief en state
+    setTopic(brief.topic);
+    setBriefRefs(brief.refs);
+    setBriefAngle(brief.angle);
+    // State derivado por Claude
+    setTipo(res.tipo);
+    setCategoria(res.categoria);
+    setTone(res.tone_suggested);
+    setAiSuggestionReason(res.reason);
     setStep(1);
+    return res;
   };
 
   // ── Step 1 · Aceptar sugerencia de categoría (CategoryDetector) ─
@@ -207,6 +238,23 @@ export function NoticiasWebClient() {
   ) => {
     setCategoria(cat);
     setAiSuggestionReason(reason);
+  };
+
+  // ── Step 1 · Cambiar tipo (revalidar categoría) ─────────────
+  //
+  // Si el operador cambia el tipo editorial en step 1, la categoría
+  // actual puede no pertenecer al nuevo tipo. Si no calza, caemos a
+  // la primera categoría disponible del tipo nuevo. Sin esto, el
+  // botón "Generar" se rompería con "categoría inválida".
+
+  const handleTipoChange = (t: NewsTipo) => {
+    setTipo(t);
+    const cats = categoriasByTipo(t);
+    if (!categoria || !cats.includes(categoria)) {
+      setCategoria(cats[0] ?? null);
+    }
+    // Limpiar reason de Claude porque el operador overrideó manual
+    setAiSuggestionReason(null);
   };
 
   // ── Step 1 · Sugerir keywords ──────────────────────────────
@@ -576,27 +624,38 @@ export function NoticiasWebClient() {
     );
   };
 
-  // ── Navegación atrás ────────────────────────────────────────
+  // ── Navegación atrás (Plan v5) ──────────────────────────────
+  //
+  // Filosofía: preservar el trabajo del operador. Atrás permite editar el
+  // step anterior sin destruir lo que ya hizo. Solo descartamos lo que
+  // forzosamente queda inconsistente con el cambio (ej: si vuelve al brief
+  // y lo cambia, el artículo generado puede no calzar — pero NO lo
+  // descartamos automático, le pedimos confirmación si lo va a perder).
 
   const handleBack = () => {
     setError(null);
     if (step === 3) {
-      setArticle("");
-      setPublishedInfo(null);
+      // De artículo a outlines · preserva todo, solo cambia de vista.
       setStep(2);
-    } else if (step === 2) {
-      setBullets([]);
-      setSelectedHeadline("");
+      return;
+    }
+    if (step === 2) {
+      // De estructura a headlines · preserva headlines + brief.
       setStep(1);
-    } else if (step === 1) {
-      setHeadlines([]);
-      setTopic("");
-      setCategoria(null);
-      setTipo(null);
-      setFocusKeyword("");
-      setSecondaryKeywords([]);
-      setPainPoints([]);
-      setAiSuggestionReason(null);
+      return;
+    }
+    if (step === 1) {
+      // De step 1 al brief · si hay artículo generado, confirmar antes.
+      if (article) {
+        const ok = window.confirm(
+          "Volver al brief va a descartar el artículo generado. ¿Continuar?",
+        );
+        if (!ok) return;
+        setArticle("");
+        setBullets([]);
+        setSelectedHeadline("");
+        setHeadlines([]);
+      }
       setStep(0);
     }
   };
@@ -604,7 +663,7 @@ export function NoticiasWebClient() {
   // ── Render ──────────────────────────────────────────────────
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-[1100px] mx-auto">
       {/* Top: back + step indicator + mode toggle */}
       <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
@@ -631,7 +690,13 @@ export function NoticiasWebClient() {
       </div>
 
       {/* Body */}
-      {step === 0 && <Step0Tipo onSelect={handleSelectTipo} />}
+      {step === 0 && (
+        <Step0Brief
+          initialBrief={{ topic, refs: briefRefs, angle: briefAngle }}
+          onSubmit={handleBriefSubmit}
+          onError={setError}
+        />
+      )}
 
       {step === 1 && tipo && categoria && (
         <Step1Headlines

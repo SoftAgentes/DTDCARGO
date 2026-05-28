@@ -117,7 +117,7 @@ export function Step3Article({
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-3 rounded-lg font-semibold text-[14.5px] text-white transition-colors"
-              style={{ background: "var(--color-status-success, #1F8A5B)" }}
+              style={{ background: "var(--color-status-success)" }}
             >
               <span className="inline-flex" aria-hidden>
                 {Icon.check(16)}

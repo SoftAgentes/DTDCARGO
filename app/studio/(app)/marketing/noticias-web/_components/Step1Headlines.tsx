@@ -1,24 +1,33 @@
 /**
- * Step1Headlines · paso 1 del generador.
+ * Step1Headlines · Plan v5 — Titular elegido (layout 2 columnas).
  *
- * Input textarea para el tema base + 3 pills de tono (Informativo /
- * Curiosidad / Polémico) + botón "Generar 5 alternativas".
+ * Layout:
+ *  - Izq (60%): SegmentedControl Tipo + Categoría + Topic textarea +
+ *               SegmentedControl Tono + botón "Generar 5 titulares" +
+ *               lista de 5 headlines (full-width debajo).
+ *  - Der (40%, sticky): KeywordPanel (focus + secundarias + pain points).
  *
- * Cuando hay resultados, renderiza 5 cards numeradas (serif wine) con
- * textarea editable + botones Copy y ChevronRight (avanzar al paso 2).
+ * Plan v5: el Tipo + Categoría llegan pre-poblados por `detectBriefIntent`
+ * (paso 0 Brief). El operador puede editarlos acá si Claude se equivocó.
  *
- * Feedback de copia: icono Check verde durante 1.5s por card.
+ * Cambios vs v4:
+ *  - Eliminado el "chip de tipo" display-only — ahora es editable.
+ *  - CategorySelector dropdown → SegmentedControl pills.
+ *  - Tone pills ad-hoc → SegmentedControl pills.
+ *  - Layout 1-col → 2-col con KeywordPanel sticky.
  */
 
 "use client";
 
 import React, { useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import { copyToClipboard } from "./copy";
-import { CategorySelector } from "./CategorySelector";
 import {
   NEWS_CATEGORIES_V4,
   NEWS_TIPOS,
+  ALL_TIPO_SLUGS,
+  categoriasByTipo,
   type NewsCategoria,
   type NewsTipo,
 } from "@/lib/news/categories";
@@ -33,25 +42,14 @@ const TONE_OPTIONS: Array<{
   label: string;
   description: string;
 }> = [
-  {
-    value: "informativo",
-    label: "Informativo",
-    description: "Claro y directo",
-  },
-  {
-    value: "curiosidad",
-    label: "Curiosidad",
-    description: "Despierta interés",
-  },
-  {
-    value: "polemico",
-    label: "Polémico",
-    description: "Provocador",
-  },
+  { value: "informativo", label: "Informativo", description: "Claro y directo" },
+  { value: "curiosidad", label: "Curiosidad", description: "Despierta interés" },
+  { value: "polemico", label: "Polémico", description: "Provocador" },
 ];
 
 interface Props {
   tipo: NewsTipo;
+  onTipoChange: (t: NewsTipo) => void;
   categoria: NewsCategoria;
   onCategoriaChange: (c: NewsCategoria) => void;
   topic: string;
@@ -64,14 +62,17 @@ interface Props {
   onSelect: (headline: string) => void;
   loading: boolean;
   error: string | null;
-  /** Slot: chip "Sugerido por IA" — se renderiza debajo del CategorySelector */
+  /** Reason por la cual Claude sugirió este tipo+categoría desde el brief (Plan v5). */
+  aiSuggestionReason?: string | null;
+  /** Slot: chip "Sugerido por IA" — se renderiza debajo del CategorySelector (modo Auto manual de re-detect) */
   categoryDetectorSlot?: React.ReactNode;
-  /** Slot: panel "Keywords SEO" expandible — se renderiza debajo del input de topic */
+  /** Slot: panel "Keywords SEO" expandible — col derecha sticky */
   keywordPanelSlot?: React.ReactNode;
 }
 
 export function Step1Headlines({
   tipo,
+  onTipoChange,
   categoria,
   onCategoriaChange,
   topic,
@@ -84,126 +85,181 @@ export function Step1Headlines({
   onSelect,
   loading,
   error,
+  aiSuggestionReason,
   categoryDetectorSlot,
   keywordPanelSlot,
 }: Props) {
-  const tipoInfo = NEWS_TIPOS[tipo];
   const catInfo = NEWS_CATEGORIES_V4[categoria];
-  // catInfo se usa abajo para mostrar el prefix esperado en los titulares
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const hasResults = headlines.length > 0;
-  const selectedTone = TONE_OPTIONS.find((t) => t.value === tone);
+
+  // Tipos como SegmentedControl cards (4 opciones)
+  const tipoOptions = ALL_TIPO_SLUGS.map((t) => ({
+    value: t,
+    label: NEWS_TIPOS[t].label,
+    description: NEWS_TIPOS[t].description,
+  }));
+
+  // Categorías del tipo actual como SegmentedControl pills
+  const catsForTipo = categoriasByTipo(tipo);
+  const catOptions = catsForTipo.map((c) => ({
+    value: c,
+    label: NEWS_CATEGORIES_V4[c].label,
+  }));
 
   const handleCopy = async (idx: number, value: string) => {
     const ok = await copyToClipboard(value);
     if (ok) {
       setCopiedIdx(idx);
-      window.setTimeout(() => setCopiedIdx((cur) => (cur === idx ? null : cur)), 1500);
+      window.setTimeout(
+        () => setCopiedIdx((cur) => (cur === idx ? null : cur)),
+        1500,
+      );
     }
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Chip de tipo seleccionado */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-grey-100 text-[11.5px] font-semibold text-grey-700">
-          <span className="text-grey-500">Tipo:</span> {tipoInfo.label}
-        </span>
-        <span className="text-[11.5px] text-grey-500">
-          ({tipoInfo.description})
-        </span>
-      </div>
-
-      {/* Selector de categoría */}
-      <CategorySelector
-        tipo={tipo}
-        selected={categoria}
-        onChange={onCategoriaChange}
-      />
-
-      {/* Slot: CategoryDetector (chip "Sugerido por IA") */}
-      {categoryDetectorSlot}
-
-      {/* Input tema */}
-      <div className="flex flex-col gap-2">
-        <label className="eyebrow" htmlFor="seo-topic">
-          Tema base
-        </label>
-        <textarea
-          id="seo-topic"
-          value={topic}
-          onChange={(e) => onTopicChange(e.target.value)}
-          rows={3}
-          placeholder={`Ej tema para ${catInfo.label}: "Logística China-Venezuela se detiene por X"`}
-          className="w-full bg-white border border-grey-200 rounded-lg p-4 text-[15px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-wine transition-colors resize-none card-shadow"
-          disabled={loading}
-        />
-        <p className="text-[11.5px] text-grey-500">
-          Los 5 titulares generados arrancarán con: <code className="text-wine font-semibold">{catInfo.titlePrefix}</code>
-        </p>
-      </div>
-
-      {/* Slot: KeywordPanel (Step 1.5 — keywords SEO expandible) */}
-      {keywordPanelSlot}
-
-      {/* Pills tono */}
-      <div className="flex flex-col gap-2">
-        <span className="eyebrow">Tono</span>
-        <div className="flex flex-wrap gap-2">
-          {TONE_OPTIONS.map((opt) => {
-            const active = tone === opt.value;
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onToneChange(opt.value)}
-                disabled={loading}
-                className={`inline-flex items-center px-4 py-2 rounded-full text-[13px] font-semibold border transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                  active
-                    ? "bg-wine text-white border-wine"
-                    : "bg-white text-grey-700 border-grey-200 hover:border-wine"
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-        {selectedTone && (
-          <p className="text-[12px] text-grey-500 mt-1">
-            {selectedTone.description}
-          </p>
-        )}
-      </div>
-
-      {/* Botón generar */}
-      <div>
-        <button
-          type="button"
-          onClick={onGenerate}
-          disabled={loading || !topic.trim()}
-          className="inline-flex items-center gap-2 bg-wine text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
+    <div className="flex flex-col gap-7">
+      {/* Banner sugerencia IA · solo si vino del brief */}
+      {aiSuggestionReason && (
+        <div
+          className="flex items-start gap-3 px-4 py-3 rounded-lg border"
+          style={{
+            background: "var(--wine-tint, rgba(127,15,26,0.06))",
+            borderColor: "var(--wine, #7F0F1A)",
+          }}
         >
           <span
-            className={loading ? "inline-flex animate-spin" : "inline-flex"}
+            className="inline-flex flex-shrink-0 mt-0.5"
+            style={{ color: "var(--wine, #7F0F1A)" }}
             aria-hidden
           >
-            {loading ? Icon.refresh(16) : hasResults ? Icon.refresh(16) : Icon.spark(16)}
+            {Icon.info(16)}
           </span>
-          {loading
-            ? "Generando 5 titulares..."
-            : hasResults
-              ? "Regenerar 5 alternativas"
-              : "Generar 5 alternativas"}
-        </button>
-        {error && (
-          <p className="mt-3 text-[13px] text-[color:var(--color-status-danger)]">
-            {error}
-          </p>
+          <div className="flex-1 min-w-0">
+            <div
+              className="text-[12.5px] font-semibold uppercase tracking-wider"
+              style={{ color: "var(--wine, #7F0F1A)" }}
+            >
+              Sugerencia editorial de Claude
+            </div>
+            <p className="text-[13px] text-ink mt-1 leading-snug">
+              {aiSuggestionReason}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Layout 2 columnas */}
+      <div className="grid gap-6 lg:grid-cols-[3fr_2fr] items-start">
+        {/* ─── Columna izquierda: clasificación + tema + tono + generar ─── */}
+        <div className="flex flex-col gap-6 min-w-0">
+          {/* Tipo editorial */}
+          <div className="flex flex-col gap-2">
+            <label className="eyebrow">Tipo editorial</label>
+            <SegmentedControl<NewsTipo>
+              value={tipo}
+              onChange={onTipoChange}
+              options={tipoOptions}
+              variant="cards"
+              columns={2}
+              ariaLabel="Tipo editorial"
+            />
+          </div>
+
+          {/* Categoría */}
+          <div className="flex flex-col gap-2">
+            <label className="eyebrow">Categoría</label>
+            <SegmentedControl<NewsCategoria>
+              value={categoria}
+              onChange={onCategoriaChange}
+              options={catOptions}
+              variant="pills"
+              ariaLabel="Categoría"
+            />
+            {categoryDetectorSlot}
+          </div>
+
+          {/* Tema base */}
+          <div className="flex flex-col gap-2">
+            <label className="eyebrow" htmlFor="seo-topic">
+              Tema base
+            </label>
+            <textarea
+              id="seo-topic"
+              value={topic}
+              onChange={(e) => onTopicChange(e.target.value)}
+              rows={3}
+              placeholder={`Ej tema para ${catInfo.label}: "Logística China-Venezuela se detiene por X"`}
+              className="w-full bg-white border border-grey-200 rounded-lg p-4 text-[15px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-wine transition-colors resize-y"
+              disabled={loading}
+            />
+            <p className="text-[11.5px] text-grey-500">
+              Los 5 titulares arrancarán con:{" "}
+              <code className="text-wine font-semibold">
+                {catInfo.titlePrefix}
+              </code>
+            </p>
+          </div>
+
+          {/* Tono */}
+          <div className="flex flex-col gap-2">
+            <label className="eyebrow">Tono</label>
+            <SegmentedControl<Tone>
+              value={tone}
+              onChange={onToneChange}
+              options={TONE_OPTIONS.map((t) => ({
+                value: t.value,
+                label: t.label,
+              }))}
+              variant="pills"
+              ariaLabel="Tono editorial"
+              disabled={loading}
+            />
+            <p className="text-[12px] text-grey-500 mt-1">
+              {TONE_OPTIONS.find((t) => t.value === tone)?.description}
+            </p>
+          </div>
+
+          {/* Botón generar */}
+          <div>
+            <button
+              type="button"
+              onClick={onGenerate}
+              disabled={loading || !topic.trim()}
+              className="inline-flex items-center gap-2 bg-wine text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
+            >
+              <span
+                className={loading ? "inline-flex animate-spin" : "inline-flex"}
+                aria-hidden
+              >
+                {loading
+                  ? Icon.refresh(16)
+                  : hasResults
+                    ? Icon.refresh(16)
+                    : Icon.spark(16)}
+              </span>
+              {loading
+                ? "Generando 5 titulares…"
+                : hasResults
+                  ? "Regenerar 5 alternativas"
+                  : "Generar 5 alternativas"}
+            </button>
+            {error && (
+              <p className="mt-3 text-[13px] text-[color:var(--color-status-danger)]">
+                {error}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* ─── Columna derecha: KeywordPanel sticky ─── */}
+        {keywordPanelSlot && (
+          <div className="lg:sticky lg:top-4 min-w-0">{keywordPanelSlot}</div>
         )}
       </div>
 
-      {/* Lista de titulares */}
+      {/* Lista de titulares · full-width debajo del 2-col */}
       {hasResults && (
         <div className="flex flex-col gap-3 mt-2">
           <span className="eyebrow">5 alternativas — editá y elegí una</span>
@@ -243,7 +299,10 @@ export function Step1Headlines({
                   }`}
                   style={
                     copiedIdx === idx
-                      ? { color: "var(--color-status-success)", borderColor: "var(--color-status-success)" }
+                      ? {
+                          color: "var(--color-status-success)",
+                          borderColor: "var(--color-status-success)",
+                        }
                       : undefined
                   }
                 >
