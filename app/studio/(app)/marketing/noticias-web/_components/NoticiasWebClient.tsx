@@ -158,8 +158,12 @@ export function NoticiasWebClient() {
   const [painPoints, setPainPoints] = useState<string[]>([]);
   const [suggesting, setSuggesting] = useState(false);
 
-  // Step 1 — flag de sugerencia IA aceptada (para el draft persistido en Phase E)
-  const [_aiSuggestionReason, setAiSuggestionReason] = useState<string | null>(null);
+  // Step 1 — reason por el cual Claude sugirió este tipo+categoría desde el brief.
+  // Se renderiza como banner sutil en Step1Headlines (Plan v5) + persiste en
+  // el draft para audit (Phase E).
+  const [aiSuggestionReason, setAiSuggestionReason] = useState<string | null>(
+    null,
+  );
 
   // Step 2 state
   const [selectedHeadline, setSelectedHeadline] = useState("");
@@ -701,6 +705,7 @@ export function NoticiasWebClient() {
       {step === 1 && tipo && categoria && (
         <Step1Headlines
           tipo={tipo}
+          onTipoChange={handleTipoChange}
           categoria={categoria}
           onCategoriaChange={setCategoria}
           topic={topic}
@@ -713,6 +718,7 @@ export function NoticiasWebClient() {
           onSelect={handleSelectHeadline}
           loading={isPending}
           error={error}
+          aiSuggestionReason={aiSuggestionReason}
           categoryDetectorSlot={
             <CategoryDetector
               topic={topic}
