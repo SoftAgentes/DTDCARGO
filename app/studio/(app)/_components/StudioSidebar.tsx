@@ -394,16 +394,18 @@ export function StudioSidebar({ featureFlags }: Props = {}) {
  * Logo del Studio sidebar — alineado a Brand Book v3.0 (mayo 2026).
  *
  * Reusa el componente `<BrandMark>` con variant "reverse" (cream sobre
- * navy oscuro). El sub-tag "Studio · ERP" queda como caption secundario
- * después del lockup oficial — preserva la pista visual de "esto es el
- * ERP interno" sin violar la spec del wordmark v3.0 ("DTD Cargo" es el
- * único wordmark aprobado).
+ * navy oscuro). Solo lockup oficial — el contexto "estás en el ERP" ya
+ * está cubierto por URL (/studio/*), topbar (MÓDULO · X), avatar
+ * (hailuway.com) y el chrome navy distintivo del Studio.
  *
  * Cambios vs versión legacy:
  *  - `dtdcargo-icon-navy.png` (raster viejo) → 4 variantes PNG nuevas via BrandMark
  *  - Filtro `brightness(0) invert(1)` removido (parche CSS prohibido por v3.0)
  *  - `wine-soft` en "DTD" → wine sólido (var v3.0 explícita)
- *  - "DTDSTUDIO" mashup → "DTD Cargo" + caption "Studio · ERP"
+ *  - "DTDSTUDIO" mashup → "DTD Cargo" lockup oficial v3.0
+ *  - Sub-tag "Studio · ERP" removido (2026-05-27) — causaba overlap visual
+ *    con el wordmark "Cargo" en sidebar expanded (no entraba en 248px).
+ *    Triple redundancia ya cubría el contexto.
  */
 function Logo({ collapsed }: { collapsed: boolean }) {
   const size = collapsed ? 28 : 30;
@@ -412,7 +414,6 @@ function Logo({ collapsed }: { collapsed: boolean }) {
       style={{
         display: "flex",
         alignItems: "center",
-        gap: 10,
         minWidth: 0,
       }}
     >
@@ -421,21 +422,6 @@ function Logo({ collapsed }: { collapsed: boolean }) {
         size={size}
         isologoOnly={collapsed}
       />
-      {!collapsed && (
-        <span
-          style={{
-            font: "600 9.5px/1 var(--f-sans)",
-            color: "var(--ink-side-soft)",
-            letterSpacing: "0.16em",
-            textTransform: "uppercase",
-            whiteSpace: "nowrap",
-            paddingLeft: 8,
-            borderLeft: "1px solid var(--border-side)",
-          }}
-        >
-          Studio · ERP
-        </span>
-      )}
     </div>
   );
 }

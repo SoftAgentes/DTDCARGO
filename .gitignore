@@ -67,3 +67,7 @@ docs/design/studio/*/project/uploads/
 docs/design/studio/*/project/Brand Book v3.0 Package/
 # El paquete v3.0 también vive embebido en el v1.7 zip; lo tenemos
 # extraído en docs/design/brand-book/v3.0/proyecto/ que sí está versionado.
+
+# Material interno de planning del founder (mockups, roadmaps, draft docs)
+# que no va al repo público ni a producción.
+CoWork/
