@@ -21,8 +21,14 @@ export default async function CamioneroHomePage() {
   const operario = await getCurrentOperario();
   if (!operario) redirect("/m/ve/login");
   if (operario.region !== "ve") redirect("/m/ve/login");
-  // Bodeguero NO entra acá
-  if (operario.role === "bodeguero" || operario.role === "operario") {
+
+  // Sprint D · multi-rol: si tiene > 1 modo y no eligió hoy, al selector
+  if (operario.roles.length > 1 && !operario.current_mode) {
+    redirect("/m/ve/modos");
+  }
+  // Si el modo activo NO es camionero, redirigir al modo correcto
+  const activeMode = operario.current_mode ?? operario.role;
+  if (activeMode !== "camionero" && activeMode !== "supervisor") {
     redirect("/m/ve/bodeguero");
   }
 
@@ -48,6 +54,7 @@ export default async function CamioneroHomePage() {
         displayName: operario.display_name,
         firstName,
         initials,
+        roles: operario.roles,
       }}
       ods={ods}
       tenantId={operario.tenant_id}

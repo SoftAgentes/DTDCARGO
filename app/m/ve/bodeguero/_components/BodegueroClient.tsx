@@ -31,6 +31,7 @@ import {
   signOutAction,
   splitPackageP2Action,
 } from "../actions";
+import { switchModeAction } from "../../modos/actions";
 import {
   DISPATCH_ORDER_STATUS_LABELS,
   DISPATCH_ORDER_STATUS_TONES,
@@ -40,6 +41,7 @@ import {
 } from "@/lib/studio/dispatch-types";
 import { tierLabel, tierBadgeTone, type ClientTier } from "@/lib/studio/client-types";
 import type { MobileActionState } from "@/lib/studio/dispatch-mobile-types";
+import type { OperarioRole } from "@/lib/studio/operario-types";
 
 const INITIAL: MobileActionState = {};
 
@@ -50,6 +52,8 @@ interface Props {
     firstName: string;
     initials: string;
     role: string;
+    /** Sprint D · multi-rol. Si length > 1, header muestra "Cambiar modo". */
+    roles: OperarioRole[];
   };
   ods: DispatchOrderRow[];
   tenantId: string;
@@ -87,6 +91,7 @@ export function BodegueroClient({ operario, ods, tenantId }: Props) {
         realtimeStatus={realtime.status}
         theme={theme}
         onToggleTheme={toggleTheme}
+        isMultiRole={operario.roles.length > 1}
       />
 
       {selected ? (
@@ -107,11 +112,13 @@ function Header({
   realtimeStatus,
   theme,
   onToggleTheme,
+  isMultiRole,
 }: {
   operario: Props["operario"];
   realtimeStatus: import("@/lib/studio/hooks/use-realtime-table").RealtimeStatus;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  isMultiRole: boolean;
 }) {
   return (
     <header
@@ -173,6 +180,7 @@ function Header({
           theme={theme}
           onToggleTheme={onToggleTheme}
           signOutAction={signOutAction}
+          onSwitchMode={isMultiRole ? () => switchModeAction() : undefined}
         />
       </div>
     </header>
