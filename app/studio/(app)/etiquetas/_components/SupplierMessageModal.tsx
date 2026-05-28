@@ -55,7 +55,7 @@ export function SupplierMessageModal({
 
   const msgEs = `Hola ${supplier.contactName || "equipo"},
 
-Adjunto te paso ${totalLabels} etiquetas DTD-Cargo para ${totalBoxes} cajas${copiesNote}. Pegalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).
+Adjunto te paso ${totalLabels} etiquetas DTD Cargo para ${totalBoxes} cajas${copiesNote}. Pegalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).
 
 MARKBOX del cliente: ${client.markbox}
 Cliente: ${client.name}${client.company ? " · " + client.company : ""}
@@ -65,11 +65,11 @@ Etiquetas por caja: ${copiesPerBox}
 Cualquier duda escribime por WeChat: ${warehouse.wechat}
 
 Gracias!
-DTD-Cargo`;
+DTD Cargo`;
 
   const msgCn = `${supplier.contactCn ? supplier.contactCn + "您好" : "您好"}：
 
-附件是 ${totalLabels} 张 DTD-Cargo 标签，用于 ${totalBoxes} 个箱子${copiesNoteCn}。请在发到我们仓库 ${warehouse.code}（${warehouse.city_cn}）之前贴好。
+附件是 ${totalLabels} 张 DTD Cargo 标签，用于 ${totalBoxes} 个箱子${copiesNoteCn}。请在发到我们仓库 ${warehouse.code}（${warehouse.city_cn}）之前贴好。
 
 客户编号 (MARKBOX): ${client.markbox}
 客户名称: ${client.name}
@@ -79,7 +79,7 @@ DTD-Cargo`;
 如有疑问请微信联系: ${warehouse.wechat}
 
 谢谢！
-DTD-Cargo 国际货运`;
+DTD Cargo 国际货运`;
 
   async function copy(text: string, label: "es" | "cn") {
     try {
@@ -105,7 +105,7 @@ DTD-Cargo 国际货运`;
 
   const mailtoHref = supplier.email
     ? `mailto:${encodeURIComponent(supplier.email)}?subject=${encodeURIComponent(
-        `DTD-Cargo · ${totalBoxes} etiquetas · MARKBOX ${client.markbox}`,
+        `DTD Cargo · ${totalBoxes} etiquetas · MARKBOX ${client.markbox}`,
       )}&body=${encodeURIComponent(msgEs + "\n\n— — —\n\n" + msgCn)}`
     : null;
 

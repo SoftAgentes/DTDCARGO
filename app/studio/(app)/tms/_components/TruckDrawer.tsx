@@ -94,7 +94,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             value={owned}
             onChange={setOwned}
             options={[
-              { value: "true", label: "Propio · DTD-Cargo" },
+              { value: "true", label: "Propio · DTD Cargo" },
               { value: "false", label: "Contratado · proveedor externo" },
             ]}
           />

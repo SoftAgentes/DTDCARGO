@@ -115,7 +115,7 @@ create table public.mail_signatures (
   whatsapp            text,
   avatar_url          text,
   photo_url           text,
-  company_name        text not null default 'DTD-Cargo',
+  company_name        text not null default 'DTD Cargo',
   show_offices_link   boolean not null default true,
   custom_html         text,                              -- override del layout
   is_default          boolean not null default true,
@@ -203,7 +203,7 @@ create table public.mail_config (
   tenant_id                   uuid primary key references public.tenants(id) on delete cascade,
   provider                    text not null default 'resend' check (provider in ('resend')),
   from_email                  text not null,
-  from_name                   text not null default 'DTD-Cargo',
+  from_name                   text not null default 'DTD Cargo',
   reply_to                    text,
   daily_limit                 int not null default 1000,
   rate_per_minute             int not null default 30,
@@ -415,7 +415,7 @@ insert into public.mail_config (
 select
   t.id,
   'noreply@dtdcargo.com',
-  'DTD-Cargo',
+  'DTD Cargo',
   'comercial@dtdcargo.com',
   true,                                      -- test_mode ON inicial
   'comercial@dtdcargo.com'                   -- redirect destino en test mode
