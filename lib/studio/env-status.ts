@@ -72,6 +72,9 @@ const TRACKED_ENV_VARS = [
   "VERCEL_URL",
   "VERCEL_GIT_COMMIT_SHA",
   "VERCEL_GIT_COMMIT_REF",
+  "VERCEL_API_TOKEN",
+  "VERCEL_PROJECT_ID",
+  "VERCEL_TEAM_ID",
 ];
 
 function statusOf(envKey: string, isRequired = false): IntegrationStatus {
