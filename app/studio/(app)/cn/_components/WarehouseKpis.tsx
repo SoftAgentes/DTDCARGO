@@ -10,11 +10,18 @@
 
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import type { WarehouseKpis as KpisType } from "@/lib/studio/warehouse-cn-queries";
+import { t, formatNumber, type Locale } from "@/lib/i18n";
 
-export function WarehouseKpis({ kpis }: { kpis: KpisType }) {
+export function WarehouseKpis({
+  kpis,
+  locale,
+}: {
+  kpis: KpisType;
+  locale: Locale;
+}) {
   const cbmDisplay =
     kpis.cbmInWarehouse > 0
-      ? kpis.cbmInWarehouse.toLocaleString("es-VE", {
+      ? formatNumber(kpis.cbmInWarehouse, locale, {
           minimumFractionDigits: 1,
           maximumFractionDigits: 3,
         })
@@ -30,34 +37,34 @@ export function WarehouseKpis({ kpis }: { kpis: KpisType }) {
       }}
     >
       <KpiCard
-        label="Recepciones del mes"
+        label={t(locale, "warehouse_cn.kpi.receipts_this_month")}
         value={kpis.receiptsThisMonth}
-        sub="Cajas registradas desde el 1 del mes"
+        sub={t(locale, "warehouse_cn.kpi.receipts_this_month_sub")}
       />
       <KpiCard
-        label="Pendientes consolidar"
+        label={t(locale, "warehouse_cn.kpi.pending_consolidation")}
         value={kpis.pendingCount}
         sub={
           kpis.pendingCount > 0
-            ? "Esperando container"
-            : "Sin pendientes"
+            ? t(locale, "warehouse_cn.kpi.pending_consolidation_sub_some")
+            : t(locale, "warehouse_cn.kpi.pending_consolidation_sub_none")
         }
         valueColor={
           kpis.pendingCount > 0 ? "var(--warning)" : "var(--ink)"
         }
       />
       <KpiCard
-        label="CBM en bodega"
+        label={t(locale, "warehouse_cn.kpi.cbm_in_warehouse")}
         value={cbmDisplay}
-        sub="Suma de pendientes (m³)"
+        sub={t(locale, "warehouse_cn.kpi.cbm_in_warehouse_sub")}
       />
       <KpiCard
-        label="Incidencias"
+        label={t(locale, "warehouse_cn.kpi.incidents")}
         value={kpis.incidentsCount}
         sub={
           kpis.incidentsCount > 0
-            ? "Requieren atención"
-            : "Sin incidencias activas"
+            ? t(locale, "warehouse_cn.kpi.incidents_sub_some")
+            : t(locale, "warehouse_cn.kpi.incidents_sub_none")
         }
         valueColor={
           kpis.incidentsCount > 0 ? "var(--danger)" : "var(--ink)"

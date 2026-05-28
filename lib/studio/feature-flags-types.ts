@@ -31,7 +31,8 @@ export type FeatureFlagKey =
   | "mobile_operator"
   | "sustainability"
   | "backup_auto"
-  | "sso";
+  | "sso"
+  | "marketing_news";
 
 export type FeatureFlags = Record<FeatureFlagKey, boolean>;
 
@@ -71,6 +72,9 @@ export const FEATURE_FLAG_DEFAULTS: FeatureFlags = {
   sustainability: false,
   backup_auto: true,
   sso: false,
+  // Default off · habilitar manualmente cuando migrations 0053-0056
+  // (seo_drafts, news_writers, news_posts, seed) estén aplicadas a prod.
+  marketing_news: false,
 };
 
 export const FEATURE_FLAG_KEYS: FeatureFlagKey[] = Object.keys(
@@ -101,6 +105,7 @@ export const FEATURE_FLAG_LABELS: Record<FeatureFlagKey, string> = {
   sustainability: "Reportes de sustentabilidad",
   backup_auto: "Backup automático",
   sso: "Single Sign-On",
+  marketing_news: "Marketing · Generador de Noticias Web",
 };
 
 /**
@@ -115,6 +120,7 @@ export const MODULE_FLAG_MAP: Partial<Record<string, FeatureFlagKey>> = {
   "no-olvidar": "vault",
   qrqueue: "mobile_operator",
   operarios: "mobile_operator",
+  "noticias-web": "marketing_news",
   // Cuando se porten estos módulos del v1.7, los enchufamos:
   // "audit-log": "audit_log",
   // "conciliacion": "audit_log", // o flag propio si crece

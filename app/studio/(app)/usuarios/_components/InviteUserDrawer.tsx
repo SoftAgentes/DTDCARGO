@@ -35,6 +35,13 @@ import {
   type StudioUserRole,
   type UserActionState,
 } from "@/lib/studio/user-types";
+import {
+  REGION_DEFAULTS,
+  SUPPORTED_REGIONS,
+  resolveErrorMessage,
+  useT,
+  type UserRegion,
+} from "@/lib/i18n";
 import { inviteUserAction } from "../actions";
 
 const INITIAL: UserActionState = {};
@@ -91,9 +98,11 @@ const ROLES_WITH_SCOPE: StudioUserRole[] = ["operations", "warehouse", "support"
 // ─────────────────────────────────────────────────────────────
 
 export function InviteUserDrawer({ onClose }: Props) {
+  const t = useT();
   // Form state — algunos campos solo viven en UI hasta Fase B schema
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [region, setRegion] = useState<UserRegion>("ve");
   const [role, setRole] = useState<StudioUserRole>("operations");
   const [team, setTeam] = useState<string>("Op. CN");
   const [scope, setScope] = useState<string[]>([]);
@@ -161,6 +170,7 @@ export function InviteUserDrawer({ onClose }: Props) {
             }}
           >
             <input type="hidden" name="role" value={role} />
+            <input type="hidden" name="region" value={region} />
 
             {/* ─── Nombre + Apellido ─── */}
             <div
@@ -200,6 +210,13 @@ export function InviteUserDrawer({ onClose }: Props) {
               error={state.fieldErrors?.email}
               disabled={isPending}
               placeholder="maria@dtdcargo.com"
+            />
+
+            {/* ─── Oficina (region) ─── */}
+            <OfficePicker
+              region={region}
+              onChange={setRegion}
+              disabled={isPending}
             />
 
             {/* ─── Rol + Equipo ─── */}
@@ -294,6 +311,7 @@ export function InviteUserDrawer({ onClose }: Props) {
 
             {/* ─── Resumen gradient navy ─── */}
             <SummaryCard
+              region={region}
               role={role}
               team={team}
               needsScope={needsScope}
@@ -302,22 +320,26 @@ export function InviteUserDrawer({ onClose }: Props) {
               twoFa={twoFa}
             />
 
-            {/* ─── Error general del action ─── */}
-            {state.error && (
-              <div
-                role="alert"
-                style={{
-                  padding: "10px 12px",
-                  background: "var(--danger-bg, #FCEDED)",
-                  border: "1px solid var(--danger, #A8323E)",
-                  borderRadius: 6,
-                  color: "var(--danger, #A8323E)",
-                  fontSize: 13,
-                }}
-              >
-                {state.error}
-              </div>
-            )}
+            {/* ─── Error general del action · prioriza errorCode traducido ─── */}
+            {(() => {
+              const msg = resolveErrorMessage(t, state);
+              if (!msg) return null;
+              return (
+                <div
+                  role="alert"
+                  style={{
+                    padding: "10px 12px",
+                    background: "var(--danger-bg, #FCEDED)",
+                    border: "1px solid var(--danger, #A8323E)",
+                    borderRadius: 6,
+                    color: "var(--danger, #A8323E)",
+                    fontSize: 13,
+                  }}
+                >
+                  {msg}
+                </div>
+              );
+            })()}
 
             {/* Disclaimer Fase C */}
             <p
@@ -342,6 +364,102 @@ export function InviteUserDrawer({ onClose }: Props) {
         </>
       )}
     </DrawerShell>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Office picker · selector de region (VE / CN) con cards visuales
+// ─────────────────────────────────────────────────────────────
+
+function OfficePicker({
+  region,
+  onChange,
+  disabled,
+}: {
+  region: UserRegion;
+  onChange: (r: UserRegion) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+      <span
+        style={{
+          fontSize: 11,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          color: "var(--ink-soft)",
+        }}
+      >
+        Oficina
+      </span>
+      <div
+        role="radiogroup"
+        aria-label="Oficina del invitado"
+        style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
+      >
+        {SUPPORTED_REGIONS.map((r) => {
+          const cfg = REGION_DEFAULTS[r];
+          const sel = region === r;
+          return (
+            <button
+              key={r}
+              type="button"
+              role="radio"
+              aria-checked={sel}
+              onClick={() => onChange(r)}
+              disabled={disabled}
+              style={{
+                padding: "12px 14px",
+                textAlign: "left",
+                background: sel
+                  ? "var(--wine-tint, #FBE9EC)"
+                  : "var(--bg-surface)",
+                border: `1.5px solid ${sel ? "var(--wine)" : "var(--border)"}`,
+                borderRadius: 7,
+                cursor: disabled ? "not-allowed" : "pointer",
+                font: "inherit",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+              }}
+            >
+              <span style={{ fontSize: 26, lineHeight: 1 }}>{cfg.flag}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    font: "700 13px/1.2 var(--font-sans, 'Archivo')",
+                    color: sel ? "var(--wine)" : "var(--ink)",
+                  }}
+                >
+                  {cfg.officeLabel}
+                </div>
+                <div
+                  style={{
+                    font: "500 10.5px/1.3 var(--font-sans, 'Archivo')",
+                    color: "var(--ink-soft)",
+                    marginTop: 2,
+                  }}
+                >
+                  {cfg.locale === "zh-CN"
+                    ? "中文 · " + cfg.timezone.split("/")[1] + " · " + cfg.currency
+                    : cfg.locale + " · " + cfg.timezone.split("/")[1] + " · " + cfg.currency}
+                </div>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+      <p
+        style={{
+          font: "500 11px/1.4 var(--font-sans, 'Archivo')",
+          color: "var(--ink-mute)",
+          margin: 0,
+        }}
+      >
+        Determina el idioma del Studio, formato de fecha y moneda default. El
+        invitado lo verá apenas acepte la invitación.
+      </p>
+    </div>
   );
 }
 
@@ -596,6 +714,7 @@ function ScopeBadge({ count }: { count: number }) {
 // ─────────────────────────────────────────────────────────────
 
 function SummaryCard({
+  region,
   role,
   team,
   needsScope,
@@ -603,6 +722,7 @@ function SummaryCard({
   permission,
   twoFa,
 }: {
+  region: UserRegion;
   role: StudioUserRole;
   team: string;
   needsScope: boolean;
@@ -610,6 +730,7 @@ function SummaryCard({
   permission: "read" | "write";
   twoFa: boolean;
 }) {
+  const regionCfg = REGION_DEFAULTS[region];
   return (
     <div
       style={{
@@ -640,6 +761,15 @@ function SummaryCard({
           color: "var(--ink-inv-soft, rgba(255,255,255,0.85))",
         }}
       >
+        <div>
+          ✓ Oficina:{" "}
+          <b style={{ color: "#fff" }}>
+            {regionCfg.flag} {regionCfg.officeLabel}
+          </b>{" "}
+          <span style={{ color: "var(--wine-soft, #C2747F)" }}>
+            ({regionCfg.locale} · {regionCfg.currency})
+          </span>
+        </div>
         <div>
           ✓ Rol: <b style={{ color: "#fff" }}>{ROLE_LABELS[role]}</b>
         </div>

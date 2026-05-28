@@ -21,6 +21,11 @@
 import { cookies } from "next/headers";
 import { createAdminClient } from "@/lib/db/admin";
 import type { OperarioSession } from "@/lib/studio/operario-types";
+import {
+  LANG_COOKIE_MAX_AGE_DAYS,
+  LANG_COOKIE_NAME,
+  regionToOperarioLang,
+} from "@/lib/lang";
 
 const COOKIE_NAME = "dtd_op";
 const COOKIE_MAX_AGE_SEC = 60 * 60 * 12; // 12 horas — turno del operario
@@ -62,6 +67,20 @@ export async function signInWithPin(
     sameSite: "lax",
     path: "/m",                       // sólo namespace mobile
     maxAge: COOKIE_MAX_AGE_SEC,
+  });
+
+  // Auto-setear cookie de idioma según operario.region (i18n bridge).
+  // Un operario CN ve la PWA en chino desde el primer login sin tocar
+  // nada · si después cambia manualmente el toggle, su elección persiste
+  // (porque solo setea aquí Y al login, no a cada request).
+  store.set({
+    name: LANG_COOKIE_NAME,
+    value: regionToOperarioLang(session.region),
+    httpOnly: false,                  // legible desde client para toggle UI
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/m",
+    maxAge: LANG_COOKIE_MAX_AGE_DAYS * 24 * 60 * 60,
   });
 
   return session;

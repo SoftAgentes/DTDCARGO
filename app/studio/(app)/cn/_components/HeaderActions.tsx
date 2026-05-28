@@ -9,6 +9,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
+import { useT } from "@/lib/i18n";
 import { LangToggle } from "./LangToggle";
 
 export function HeaderActions() {
@@ -16,6 +17,7 @@ export function HeaderActions() {
   const pathname = usePathname();
   const params = useSearchParams();
   const [, startTransition] = useTransition();
+  const t = useT();
 
   const openCreate = () => {
     const sp = new URLSearchParams(params.toString());
@@ -41,7 +43,7 @@ export function HeaderActions() {
         className="studio-btn studio-btn-primary"
         onClick={openCreate}
       >
-        + Nueva recepción
+        {t("warehouse_cn.header.new_receipt")}
       </button>
     </div>
   );

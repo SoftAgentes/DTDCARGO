@@ -119,6 +119,9 @@ export async function createBugForReporter(args: {
       build_sha: input.build_sha,
       browser_info: input.browser_info ?? {},
       duplicate_hash: duplicateHash,
+      // Locale del reporter (migración 0052 bug_reports.reporter_locale).
+      // El triage VE lo usa para saber si esperar texto CN o ES.
+      reporter_locale: input.reporter_locale ?? "es-VE",
     })
     .select(
       "id, tenant_id, folio, reporter_id, category, severity, state, progress_pct, " +

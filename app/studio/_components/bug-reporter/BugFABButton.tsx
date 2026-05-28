@@ -22,6 +22,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useT, type I18nKey } from "@/lib/i18n";
 import { BugReportModal } from "./BugReportModal";
 
 interface BugFABButtonProps {
@@ -47,11 +48,11 @@ const CORNER_STYLES: Record<Corner, React.CSSProperties> = {
   "top-left": { top: TOP_OFFSET_PX, left: SIDE_OFFSET_PX },
 };
 
-const CORNER_LABELS: Record<Corner, string> = {
-  "bottom-right": "Abajo derecha",
-  "bottom-left": "Abajo izquierda",
-  "top-right": "Arriba derecha",
-  "top-left": "Arriba izquierda",
+const CORNER_LABEL_KEYS: Record<Corner, I18nKey> = {
+  "bottom-right": "bug.fab.corner_label_bottom_right",
+  "bottom-left": "bug.fab.corner_label_bottom_left",
+  "top-right": "bug.fab.corner_label_top_right",
+  "top-left": "bug.fab.corner_label_top_left",
 };
 
 /** Punto en viewport donde se ancla el centro del FAB para cada esquina. */
@@ -111,6 +112,7 @@ function readStoredCorner(): Corner {
 }
 
 export function BugFABButton({ buildSha }: BugFABButtonProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   // Iniciamos en default y leemos localStorage solo client-side para evitar
   // hydration mismatch · el snap a la pref real ocurre en useEffect.
@@ -257,7 +259,7 @@ export function BugFABButton({ buildSha }: BugFABButtonProps) {
                 }}
                 aria-hidden="true"
               >
-                {activeTarget === c ? "Aquí" : ""}
+                {activeTarget === c ? t("bug.fab.drag_target_here") : ""}
               </div>
             );
           })}
@@ -278,8 +280,8 @@ export function BugFABButton({ buildSha }: BugFABButtonProps) {
             e.preventDefault();
             setMenuOpen((v) => !v);
           }}
-          aria-label="Reportar un bug, mejora o sugerencia. Arrastrar para moverlo; click derecho para menú."
-          title="Click para reportar · arrastrar para mover · click derecho para menú"
+          aria-label={t("bug.fab.aria")}
+          title={t("bug.fab.title")}
         >
           <BugIcon size={22} />
         </button>
@@ -312,6 +314,7 @@ function CornerMenu({
   onSelect: (c: Corner) => void;
   onClose: () => void;
 }) {
+  const t = useT();
   // El menú se ancla al opuesto del FAB para no quedar fuera de viewport.
   // Si el FAB está en bottom-right, el menú sale hacia top-left.
   const menuAnchor: React.CSSProperties = currentCorner.startsWith("bottom")
@@ -331,7 +334,7 @@ function CornerMenu({
   return (
     <div
       role="menu"
-      aria-label="Mover botón de bugs a otra esquina"
+      aria-label={t("bug.fab.corner_menu_aria")}
       style={{
         position: "absolute",
         ...menuAnchor,
@@ -356,7 +359,7 @@ function CornerMenu({
           textTransform: "uppercase",
         }}
       >
-        Mover botón a
+        {t("bug.fab.corner_menu_heading")}
       </div>
       {corners.map((c) => {
         const isActive = c === currentCorner;
@@ -391,7 +394,7 @@ function CornerMenu({
             }}
           >
             <CornerGlyph corner={c} />
-            <span style={{ flex: 1 }}>{CORNER_LABELS[c]}</span>
+            <span style={{ flex: 1 }}>{t(CORNER_LABEL_KEYS[c])}</span>
             {isActive && (
               <span
                 style={{
@@ -423,7 +426,7 @@ function CornerMenu({
             padding: "0 4px",
           }}
         >
-          Tip: arrastrá el botón para moverlo.
+          {t("bug.fab.corner_menu_tip")}
         </span>
         <button
           type="button"
@@ -437,7 +440,7 @@ function CornerMenu({
             padding: "4px 8px",
           }}
         >
-          Cerrar
+          {t("bug.fab.corner_menu_close")}
         </button>
       </div>
     </div>
