@@ -232,6 +232,82 @@ function OdList({
 
   return (
     <main style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+      {/* Recepción VE entry point · Sprint E */}
+      <a
+        href="/m/ve/bodeguero/recepcion"
+        style={{
+          padding: 12,
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderLeft: "4px solid var(--info)",
+          borderRadius: "var(--r-md)",
+          textDecoration: "none",
+          color: "var(--ink)",
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+        }}
+      >
+        <div
+          aria-hidden="true"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: "var(--r-sm)",
+            background: "var(--info-bg)",
+            color: "var(--info)",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          <svg viewBox="0 0 24 24" width={20} height={20} fill="none">
+            <path
+              d="M3 14h18M5 14V8a2 2 0 012-2h10a2 2 0 012 2v6M8 14v4M16 14v4M3 18h18"
+              stroke="currentColor"
+              strokeWidth={1.6}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div
+            style={{
+              font: "800 13.5px/1.2 var(--f-sans)",
+              color: "var(--ink)",
+            }}
+          >
+            Recepción VE
+          </div>
+          <div
+            style={{
+              font: "500 11.5px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 2,
+            }}
+          >
+            Escanear contenedores que llegaron
+          </div>
+        </div>
+        <svg
+          viewBox="0 0 24 24"
+          width={18}
+          height={18}
+          fill="none"
+          style={{ color: "var(--ink-mute)" }}
+        >
+          <path
+            d="M9 18l6-6-6-6"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </a>
+
       <div
         className="studio-eyebrow"
         style={{ color: "var(--ink-soft)" }}
