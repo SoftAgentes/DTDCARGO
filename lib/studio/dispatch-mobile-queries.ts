@@ -57,6 +57,76 @@ export async function listOdsForBodeguero(
 }
 
 // ─────────────────────────────────────────────────────────────
+// Sprint 2 · listas auxiliares para reasignar truck/driver runtime
+// ─────────────────────────────────────────────────────────────
+
+export type AvailableTruck = {
+  id: string;
+  plate: string;
+  brand: string | null;
+  vehicle_type: string | null;
+  capacity_cbm: number | null;
+  capacity_kg: number | null;
+  driver_id: string | null;
+  status: string;
+  hub_code: string | null;
+};
+
+export type AvailableDriver = {
+  id: string;
+  name: string;
+  phone: string | null;
+  hub_code: string | null;
+  rating: number | null;
+};
+
+/**
+ * Trucks disponibles del tenant para reasignación inline en runtime.
+ * Filtro flexible por `hub` opcional (matching contra `hub_code` del truck).
+ * Solo devuelve trucks `status = 'disponible'`.
+ */
+export async function listAvailableTrucksForHub(
+  supabase: SupabaseClient,
+  tenantId: string,
+  hub?: string | null,
+): Promise<AvailableTruck[]> {
+  let q = supabase
+    .from("tms_trucks")
+    .select(
+      "id, plate, brand, vehicle_type, capacity_cbm, capacity_kg, driver_id, status, hub_code",
+    )
+    .eq("tenant_id", tenantId)
+    .eq("status", "disponible")
+    .order("plate", { ascending: true })
+    .limit(50);
+  if (hub) q = q.eq("hub_code", hub);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data as AvailableTruck[] | null) ?? [];
+}
+
+/**
+ * Drivers del tenant para reasignación. No filtra por status (los drivers
+ * no tienen enum `disponible` como los trucks) · el bodeguero decide en UI.
+ */
+export async function listAvailableDriversForHub(
+  supabase: SupabaseClient,
+  tenantId: string,
+  hub?: string | null,
+): Promise<AvailableDriver[]> {
+  let q = supabase
+    .from("tms_drivers")
+    .select("id, name, phone, hub_code, rating")
+    .eq("tenant_id", tenantId)
+    .order("name", { ascending: true })
+    .limit(50);
+  if (hub) q = q.eq("hub_code", hub);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data as AvailableDriver[] | null) ?? [];
+}
+
+// ─────────────────────────────────────────────────────────────
 // Hydration · join packages.markbox → clients.{tier, phone}
 // ─────────────────────────────────────────────────────────────
 

@@ -17,6 +17,7 @@
  */
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { RealtimeIndicator } from "@/app/studio/_components/ui/RealtimeIndicator";
@@ -28,11 +29,13 @@ import {
 } from "@/app/m/_components/SettingsMenu";
 import {
   advanceOdAction,
+  reassignOdAction,
   signOutAction,
   splitPackageP2Action,
 } from "../actions";
 import { switchModeAction } from "../../modos/actions";
 import {
+  computeCapacity,
   DISPATCH_ORDER_STATUS_LABELS,
   DISPATCH_ORDER_STATUS_TONES,
   DISPATCH_SPLIT_REASON_LABELS,
@@ -42,8 +45,14 @@ import {
 import { tierLabel, tierBadgeTone, type ClientTier } from "@/lib/studio/client-types";
 import type { MobileActionState } from "@/lib/studio/dispatch-mobile-types";
 import type { OperarioRole } from "@/lib/studio/operario-types";
+import type {
+  AvailableDriver,
+  AvailableTruck,
+} from "@/lib/studio/dispatch-mobile-queries";
 
 const INITIAL: MobileActionState = {};
+
+type LoadMode = "cargar" | "despachar";
 
 interface Props {
   operario: {
@@ -57,9 +66,21 @@ interface Props {
   };
   ods: DispatchOrderRow[];
   tenantId: string;
+  /** Sprint 2 · pool para reasignación inline. */
+  availableTrucks: AvailableTruck[];
+  availableDrivers: AvailableDriver[];
+  /** Sprint 2 · feature flag warehouse_location render. */
+  showWarehouseLocation: boolean;
 }
 
-export function BodegueroClient({ operario, ods, tenantId }: Props) {
+export function BodegueroClient({
+  operario,
+  ods,
+  tenantId,
+  availableTrucks,
+  availableDrivers,
+  showWarehouseLocation,
+}: Props) {
   const [selectedOdId, setSelectedOdId] = useState<string | null>(null);
   const { theme, toggle: toggleTheme } = useThemeMode("bodeguero");
 
@@ -95,7 +116,13 @@ export function BodegueroClient({ operario, ods, tenantId }: Props) {
       />
 
       {selected ? (
-        <OdDetail od={selected} onBack={() => setSelectedOdId(null)} />
+        <OdDetail
+          od={selected}
+          onBack={() => setSelectedOdId(null)}
+          availableTrucks={availableTrucks}
+          availableDrivers={availableDrivers}
+          showWarehouseLocation={showWarehouseLocation}
+        />
       ) : (
         <OdList ods={ods} onPick={setSelectedOdId} />
       )}
@@ -233,7 +260,7 @@ function OdList({
   return (
     <main style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
       {/* Recepción VE entry point · Sprint E */}
-      <a
+      <Link
         href="/m/ve/bodeguero/recepcion"
         style={{
           padding: 12,
@@ -306,7 +333,7 @@ function OdList({
             strokeLinejoin="round"
           />
         </svg>
-      </a>
+      </Link>
 
       <div
         className="studio-eyebrow"
@@ -387,9 +414,29 @@ function OdList({
 // Detalle de OD + acciones
 // ─────────────────────────────────────────────────────────────
 
-function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) {
+function OdDetail({
+  od,
+  onBack,
+  availableTrucks,
+  availableDrivers,
+  showWarehouseLocation,
+}: {
+  od: DispatchOrderRow;
+  onBack: () => void;
+  availableTrucks: AvailableTruck[];
+  availableDrivers: AvailableDriver[];
+  showWarehouseLocation: boolean;
+}) {
   const [splitForId, setSplitForId] = useState<string | null>(null);
   const [advanceError, setAdvanceError] = useState<string | null>(null);
+  const [reassignOpen, setReassignOpen] = useState(false);
+
+  // Sprint 2 · LIFO/FIFO mode toggle (defaults a 'cargar' = LIFO).
+  // cargar  → load order: last stop first (LIFO). El bodeguero llena el
+  //           camión con el paquete que sale ÚLTIMO primero · stack.
+  // despachar → delivery order: first stop first (FIFO). Visualiza en orden
+  //           cronológico de entrega del camionero.
+  const [loadMode, setLoadMode] = useState<LoadMode>("cargar");
 
   const splittingPkg = od.packages.find((p) => p.package_id === splitForId);
 
@@ -406,9 +453,30 @@ function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) 
   // una "parada". Usamos el orden de `cities_ordered` si existe (lo setea
   // el admin al crear la OD desde la ruta), si no caemos al orden de
   // aparición.
+  // Sprint 2: la dirección del array depende de loadMode (cargar=LIFO,
+  // despachar=FIFO).
   const groupedByCity = useMemo(() => {
-    return groupPackagesByCity(od.packages, od.cities_ordered);
-  }, [od.packages, od.cities_ordered]);
+    const groups = groupPackagesByCity(od.packages, od.cities_ordered);
+    return loadMode === "cargar" ? [...groups].reverse() : groups;
+  }, [od.packages, od.cities_ordered, loadMode]);
+
+  // Sprint 2: capacity de la OD (snapshot vs total acumulado).
+  const capacity = useMemo(() => {
+    const cap = {
+      capacity_kg: Number(od.capacity_kg_snapshot ?? 0),
+      capacity_cbm: Number(od.capacity_cbm_snapshot ?? 0),
+    };
+    if (cap.capacity_kg === 0 || cap.capacity_cbm === 0) return null;
+    return computeCapacity(od.packages, cap);
+  }, [od.packages, od.capacity_kg_snapshot, od.capacity_cbm_snapshot]);
+
+  // Sprint 2: DoneState · todos los paquetes con status non-pendiente
+  const allDelivered = useMemo(() => {
+    if (od.status !== "en_ruta" && od.status !== "entregada") return false;
+    return od.packages.every(
+      (p) => (p.delivery_status ?? "pendiente") !== "pendiente",
+    );
+  }, [od.packages, od.status]);
 
   return (
     <main style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -464,11 +532,84 @@ function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) 
           <span>{od.total_kg.toFixed(0)} kg</span>
           <span>{od.total_cbm.toFixed(1)} cbm</span>
         </div>
+
+        {/* Sprint 2 · capacity progress bars · solo si snapshot existe */}
+        {capacity && (
+          <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+            <CapacityBar
+              label="Peso"
+              used={capacity.kg_used}
+              total={Number(od.capacity_kg_snapshot ?? 0)}
+              unit="kg"
+              pct={capacity.kg_pct}
+              overflow={capacity.kg_pct > 100}
+            />
+            <CapacityBar
+              label="Volumen"
+              used={capacity.cbm_used}
+              total={Number(od.capacity_cbm_snapshot ?? 0)}
+              unit="m³"
+              pct={capacity.cbm_pct}
+              overflow={capacity.cbm_pct > 100}
+            />
+          </div>
+        )}
+
+        {/* Sprint 2 · botón Reasignar inline · solo si OD editable */}
+        {(od.status === "creada" || od.status === "cargando") && (
+          <button
+            type="button"
+            onClick={() => setReassignOpen(true)}
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+            style={{
+              marginTop: 10,
+              color: "var(--wine-soft)",
+              borderColor: "var(--wine-soft)",
+            }}
+          >
+            Reasignar camión / chofer
+          </button>
+        )}
       </div>
 
-      {/* Stops grouped by city · Sprint G (handoff v1.7) */}
+      {/* Sprint 2 · DoneState · cuando todos los paquetes entregados/etc */}
+      {allDelivered && (
+        <div
+          style={{
+            padding: 14,
+            background: "var(--success-bg)",
+            color: "var(--success)",
+            border: "1px solid var(--success)",
+            borderRadius: "var(--r-md)",
+            font: "700 13px/1.4 var(--f-sans)",
+            textAlign: "center",
+          }}
+        >
+          ✓ Todos los paquetes marcados · esperando POD final del camionero.
+        </div>
+      )}
+
+      {/* Sprint 2 · LIFO/FIFO toggle · solo si carga activa */}
+      {(od.status === "creada" || od.status === "cargando") && groupedByCity.length > 1 && (
+        <LoadModeToggle mode={loadMode} onChange={setLoadMode} />
+      )}
+
+      {/* Stops grouped by city · Sprint G (handoff v1.7) · Sprint 2 · dir LIFO/FIFO */}
       <div className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
         Paradas · {groupedByCity.length} ciudades · {od.packages.length} paquetes
+        {(od.status === "creada" || od.status === "cargando") && groupedByCity.length > 1 && (
+          <span
+            style={{
+              marginLeft: 8,
+              color: "var(--wine-soft)",
+              textTransform: "none",
+              letterSpacing: 0,
+              font: "500 11px/1 var(--f-sans)",
+            }}
+          >
+            {loadMode === "cargar" ? "Orden de carga (LIFO)" : "Orden de entrega (FIFO)"}
+          </span>
+        )}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         {groupedByCity.map((group, gIdx) => (
@@ -529,6 +670,7 @@ function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) 
                   pkg={p}
                   odStatus={od.status}
                   onRequestSplit={() => setSplitForId(p.package_id)}
+                  showWarehouseLocation={showWarehouseLocation}
                 />
               ))}
             </div>
@@ -569,6 +711,16 @@ function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) 
           onClose={() => setSplitForId(null)}
         />
       )}
+
+      {/* Reassign modal · Sprint 2 v3 */}
+      {reassignOpen && (
+        <ReassignModal
+          od={od}
+          trucks={availableTrucks}
+          drivers={availableDrivers}
+          onClose={() => setReassignOpen(false)}
+        />
+      )}
     </main>
   );
 }
@@ -581,15 +733,28 @@ function PackageCard({
   pkg,
   odStatus,
   onRequestSplit,
+  showWarehouseLocation,
 }: {
   pkg: DispatchOrderRow["packages"][number];
   odStatus: DispatchOrderRow["status"];
   onRequestSplit: () => void;
+  showWarehouseLocation: boolean;
 }) {
   const isPartial = pkg.boxes_shipped < pkg.boxes_total;
   const tier: ClientTier | null = pkg.client_tier ?? null;
   const phone = pkg.client_phone ?? null;
   const phoneClean = phone ? phone.replace(/[^\d+]/g, "") : null;
+
+  // Sprint 2: warehouse_location · `{pasillo, zona, estante}` jsonb opcional
+  const warehouseLoc = showWarehouseLocation
+    ? (pkg as DispatchOrderRow["packages"][number] & {
+        warehouse_location?: {
+          pasillo?: string;
+          zona?: string;
+          estante?: string;
+        } | null;
+      }).warehouse_location ?? null
+    : null;
 
   return (
     <div
@@ -634,6 +799,27 @@ function PackageCard({
           </Badge>
         )}
       </div>
+
+      {/* Warehouse location · Sprint 2 (feature flag) */}
+      {warehouseLoc && (
+        <div
+          style={{
+            marginTop: 6,
+            padding: "4px 8px",
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-sm)",
+            font: "700 11px/1.2 var(--f-mono)",
+            color: "var(--ink-soft)",
+            display: "inline-flex",
+            gap: 8,
+          }}
+        >
+          {warehouseLoc.pasillo && <span>Pasillo {warehouseLoc.pasillo}</span>}
+          {warehouseLoc.zona && <span>Zona {warehouseLoc.zona}</span>}
+          {warehouseLoc.estante && <span>Est. {warehouseLoc.estante}</span>}
+        </div>
+      )}
 
       {pkg.description && (
         <div
@@ -944,6 +1130,389 @@ function ErrorBanner({ msg }: { msg: string }) {
       }}
     >
       {msg}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Sprint 2 · LoadModeToggle (LIFO / FIFO)
+// ─────────────────────────────────────────────────────────────
+
+function LoadModeToggle({
+  mode,
+  onChange,
+}: {
+  mode: LoadMode;
+  onChange: (m: LoadMode) => void;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label="Modo de visualización: cargar (LIFO) o despachar (FIFO)"
+      style={{
+        display: "flex",
+        background: "var(--bg-elevated)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-pill)",
+        padding: 3,
+        gap: 2,
+      }}
+    >
+      {(["cargar", "despachar"] as LoadMode[]).map((m) => {
+        const active = mode === m;
+        return (
+          <button
+            key={m}
+            type="button"
+            onClick={() => onChange(m)}
+            aria-pressed={active}
+            style={{
+              flex: 1,
+              padding: "8px 12px",
+              borderRadius: 999,
+              border: "none",
+              background: active ? "var(--bg-surface)" : "transparent",
+              color: active ? "var(--ink)" : "var(--ink-soft)",
+              font: "700 12px/1 var(--f-sans)",
+              cursor: "pointer",
+              boxShadow: active ? "var(--shadow-xs)" : "none",
+              transition: "background var(--dur) var(--ease), color var(--dur) var(--ease)",
+            }}
+          >
+            {m === "cargar" ? "Cargar (LIFO)" : "Despachar (FIFO)"}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Sprint 2 · CapacityBar
+// ─────────────────────────────────────────────────────────────
+
+function CapacityBar({
+  label,
+  used,
+  total,
+  unit,
+  pct,
+  overflow,
+}: {
+  label: string;
+  used: number;
+  total: number;
+  unit: string;
+  pct: number;
+  overflow: boolean;
+}) {
+  const clamped = Math.min(100, Math.max(0, pct));
+  const color = overflow
+    ? "var(--danger)"
+    : pct > 90
+      ? "var(--warning)"
+      : "var(--success)";
+  return (
+    <div>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          font: "600 10.5px/1 var(--f-mono)",
+          color: "var(--ink-inv-soft)",
+          marginBottom: 3,
+        }}
+      >
+        <span>{label}</span>
+        <span>
+          {used.toFixed(0)}/{total.toFixed(0)} {unit} · {pct.toFixed(0)}%
+        </span>
+      </div>
+      <div
+        style={{
+          width: "100%",
+          height: 4,
+          background: "rgba(255,255,255,0.12)",
+          borderRadius: 999,
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            width: `${clamped}%`,
+            height: "100%",
+            background: color,
+            transition: "width var(--dur) var(--ease)",
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Sprint 2 · ReassignModal (truck / driver runtime)
+// ─────────────────────────────────────────────────────────────
+
+function ReassignModal({
+  od,
+  trucks,
+  drivers,
+  onClose,
+}: {
+  od: DispatchOrderRow;
+  trucks: AvailableTruck[];
+  drivers: AvailableDriver[];
+  onClose: () => void;
+}) {
+  const [truckId, setTruckId] = useState<string | "">(od.truck_id ?? "");
+  const [driverId, setDriverId] = useState<string | "">(od.driver_id ?? "");
+  const [reason, setReason] = useState("");
+  const [confirm, setConfirm] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const truckChanged = truckId !== "" && truckId !== (od.truck_id ?? "");
+  const driverChanged = driverId !== "" && driverId !== (od.driver_id ?? "");
+  const hasChange = truckChanged || driverChanged;
+
+  // Validación capacidad client-side cuando cambia el truck
+  const selectedTruck = trucks.find((t) => t.id === truckId);
+  let capacityWarning: string | null = null;
+  if (selectedTruck) {
+    const cap = {
+      capacity_kg: Number(selectedTruck.capacity_kg ?? 0),
+      capacity_cbm: Number(selectedTruck.capacity_cbm ?? 0),
+    };
+    if (cap.capacity_kg > 0 && cap.capacity_cbm > 0) {
+      const u = computeCapacity(od.packages, cap);
+      if (u.overflow) {
+        capacityWarning = `Capacidad insuficiente · ${u.kg_pct.toFixed(0)}% peso · ${u.cbm_pct.toFixed(0)}% volumen.`;
+      }
+    }
+  }
+
+  async function handleSubmit() {
+    setError(null);
+    setSubmitting(true);
+    const r = await reassignOdAction({
+      od_id: od.id,
+      truck_id: truckChanged ? truckId : null,
+      driver_id: driverChanged ? driverId : null,
+      reason: reason.trim() || null,
+    });
+    setSubmitting(false);
+    if (r.error) {
+      setError(r.error);
+      return;
+    }
+    onClose();
+  }
+
+  return (
+    <div
+      onClick={submitting ? undefined : onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reassign-title"
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "var(--scrim)",
+        zIndex: 100,
+        display: "flex",
+        alignItems: "flex-end",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          margin: "0 auto",
+          background: "var(--bg-surface)",
+          borderRadius: "var(--r-lg) var(--r-lg) 0 0",
+          padding: "20px 18px calc(env(safe-area-inset-bottom) + 18px)",
+          maxHeight: "90dvh",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 4,
+            background: "var(--border-strong)",
+            borderRadius: 999,
+            margin: "0 auto 14px",
+          }}
+        />
+        <h2
+          id="reassign-title"
+          style={{
+            font: "800 16px/1.2 var(--f-display)",
+            color: "var(--ink)",
+            margin: "0 0 6px",
+          }}
+        >
+          Reasignar camión / chofer
+        </h2>
+        <p
+          style={{
+            font: "500 12.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: "0 0 14px",
+          }}
+        >
+          <code style={{ color: "var(--wine)" }}>{od.order_code}</code> · cambia
+          truck o driver del OD activo. Acción destructiva · el camionero
+          original deja de ver esta entrega.
+        </p>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div>
+            <label className="studio-label" htmlFor="reassign-truck">
+              Camión
+            </label>
+            <select
+              id="reassign-truck"
+              className="studio-input"
+              value={truckId}
+              onChange={(e) => setTruckId(e.target.value)}
+              disabled={submitting}
+              style={{ marginTop: 6 }}
+            >
+              <option value="">— sin cambio —</option>
+              {trucks.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.plate} {t.brand ?? ""} ·{" "}
+                  {t.capacity_cbm ?? "?"}m³ · {t.capacity_kg ?? "?"}kg
+                </option>
+              ))}
+            </select>
+            {capacityWarning && (
+              <div
+                style={{
+                  marginTop: 6,
+                  padding: 8,
+                  background: "var(--warning-bg)",
+                  color: "var(--warning)",
+                  border: "1px solid var(--warning)",
+                  borderRadius: "var(--r-sm)",
+                  font: "600 11.5px/1.3 var(--f-sans)",
+                }}
+              >
+                {capacityWarning}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="studio-label" htmlFor="reassign-driver">
+              Chofer
+            </label>
+            <select
+              id="reassign-driver"
+              className="studio-input"
+              value={driverId}
+              onChange={(e) => setDriverId(e.target.value)}
+              disabled={submitting}
+              style={{ marginTop: 6 }}
+            >
+              <option value="">— sin cambio —</option>
+              {drivers.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                  {d.hub_code ? ` · ${d.hub_code}` : ""}
+                  {d.rating != null ? ` · ${d.rating.toFixed(1)}★` : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="studio-label" htmlFor="reassign-reason">
+              Motivo (opcional)
+            </label>
+            <textarea
+              id="reassign-reason"
+              className="studio-input"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Ej: camión X rompió · chofer Y no llegó"
+              rows={2}
+              disabled={submitting}
+              style={{ marginTop: 6, resize: "vertical" }}
+            />
+          </div>
+
+          {error && <ErrorBanner msg={error} />}
+
+          {!confirm ? (
+            <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
+              <button
+                type="button"
+                className="studio-btn studio-btn-ghost"
+                onClick={onClose}
+                disabled={submitting}
+                style={{ flex: 1 }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="studio-btn studio-btn-warning"
+                onClick={() => setConfirm(true)}
+                disabled={!hasChange || submitting}
+                style={{ flex: 2 }}
+              >
+                Reasignar
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                marginTop: 6,
+                padding: 12,
+                background: "var(--warning-bg)",
+                border: "1px solid var(--warning)",
+                borderRadius: "var(--r-md)",
+              }}
+            >
+              <div
+                style={{
+                  font: "700 12.5px/1.3 var(--f-sans)",
+                  color: "var(--warning)",
+                  marginBottom: 8,
+                }}
+              >
+                ¿Confirmás la reasignación? Acción destructiva.
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-ghost studio-btn-sm"
+                  onClick={() => setConfirm(false)}
+                  disabled={submitting}
+                  style={{ flex: 1 }}
+                >
+                  Atrás
+                </button>
+                <ActionButton
+                  variant="warning"
+                  size="sm"
+                  idleLabel="Sí, reasignar"
+                  loadingLabel="Reasignando…"
+                  successLabel="Reasignado"
+                  onAction={async () => {
+                    await handleSubmit();
+                    return undefined;
+                  }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
