@@ -17,6 +17,7 @@
 import { useId, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { isChinese } from "@/lib/studio/warehouse-cn-types";
+import { useT } from "@/lib/i18n";
 
 interface Props {
   /** Texto principal (lo que escribió el operario, en cualquier idioma). */
@@ -40,11 +41,13 @@ export function SupplierBilingualInput({
   onChange,
   translated,
   onTranslatedChange,
-  label = "Proveedor (CN o ES)",
+  label,
   required = false,
   disabled = false,
   error,
 }: Props) {
+  const t = useT();
+  const resolvedLabel = label ?? t("warehouse_cn.drawer.supplier_label_bi");
   const inputId = useId();
   const translatedId = useId();
   const [showTranslated, setShowTranslated] = useState(
@@ -59,7 +62,9 @@ export function SupplierBilingualInput({
       ? "ES → CN"
       : null;
 
-  const placeholderLang = valueHasChinese ? "español" : "中文";
+  const placeholderLang = valueHasChinese
+    ? t("warehouse_cn.supplier.lang_es")
+    : t("warehouse_cn.supplier.lang_cn");
 
   return (
     <div>
@@ -72,7 +77,7 @@ export function SupplierBilingualInput({
         }}
       >
         <label htmlFor={inputId} className="studio-label" style={{ margin: 0 }}>
-          {label}
+          {resolvedLabel}
           {required && (
             <span style={{ color: "var(--wine)", marginLeft: 3 }}>*</span>
           )}
@@ -94,9 +99,10 @@ export function SupplierBilingualInput({
               border: 0,
               cursor: "pointer",
             }}
-            title={`Cargar traducción ${direction}`}
+            title={t("warehouse_cn.supplier.translate_title", { direction })}
           >
-            {Icon.globe(10)} Traducir {direction}
+            {Icon.globe(10)}{" "}
+            {t("warehouse_cn.supplier.translate_btn", { direction })}
           </button>
         )}
       </div>
@@ -107,7 +113,7 @@ export function SupplierBilingualInput({
         className="studio-input"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Nombre del supplier · 中文 o español"
+        placeholder={t("warehouse_cn.supplier.placeholder")}
         disabled={disabled}
         required={required}
         style={{
@@ -147,7 +153,9 @@ export function SupplierBilingualInput({
                 textTransform: "uppercase",
               }}
             >
-              Traducción {direction ?? "(opcional)"}
+              {direction
+                ? t("warehouse_cn.supplier.translation_label", { direction })
+                : t("warehouse_cn.supplier.translation_label_optional")}
             </label>
             <button
               type="button"
@@ -163,7 +171,7 @@ export function SupplierBilingualInput({
                 cursor: "pointer",
                 padding: "2px 6px",
               }}
-              aria-label="Quitar traducción"
+              aria-label={t("warehouse_cn.supplier.remove_translation")}
             >
               {Icon.close(11)}
             </button>
@@ -174,7 +182,9 @@ export function SupplierBilingualInput({
             className="studio-input"
             value={translated}
             onChange={(e) => onTranslatedChange(e.target.value)}
-            placeholder={`Pegá la traducción en ${placeholderLang}…`}
+            placeholder={t("warehouse_cn.supplier.paste_placeholder", {
+              lang: placeholderLang,
+            })}
             style={{
               background: "var(--bg-surface)",
               fontFamily:
@@ -190,8 +200,7 @@ export function SupplierBilingualInput({
               margin: 0,
             }}
           >
-            V1: pegá la traducción manualmente (de WeChat, Alibaba, tu
-            contacto). Auto-traducción IA viene en SDD futuro.
+            {t("warehouse_cn.supplier.translation_note")}
           </p>
         </div>
       )}
@@ -204,8 +213,7 @@ export function SupplierBilingualInput({
             margin: "5px 0 0",
           }}
         >
-          Podés escribir en chino o español · te ofrecemos cargar la
-          traducción al otro idioma.
+          {t("warehouse_cn.supplier.bilingual_hint")}
         </p>
       )}
 

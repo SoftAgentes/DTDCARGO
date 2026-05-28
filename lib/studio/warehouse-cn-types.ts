@@ -287,7 +287,11 @@ export type WarehouseReceiptInput = {
 
 export type WarehouseReceiptActionState = {
   ok?: boolean;
+  /** Legacy string (fallback). El client lo muestra tal cual cuando no hay errorCode. */
   error?: string;
+  /** Preferido: machine-readable code traducido en client via t(). */
+  errorCode?: import("@/lib/i18n").ErrorCode;
+  errorParams?: Record<string, string | number>;
   fieldErrors?: Partial<Record<keyof WarehouseReceiptInput | "items", string>>;
   /** En create, server devuelve el receipt_code autogenerado. */
   createdReceiptCode?: string;

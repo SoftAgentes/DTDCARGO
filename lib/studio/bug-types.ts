@@ -269,7 +269,11 @@ export function canTransitionBugState(from: BugState, to: BugState): boolean {
 
 export type BugActionState = {
   ok?: boolean;
+  /** Legacy string (fallback). Mostrar tal cual si no hay errorCode. */
   error?: string;
+  /** Preferido: code que el client traduce via lib/i18n. */
+  errorCode?: import("@/lib/i18n").ErrorCode;
+  errorParams?: Record<string, string | number>;
   fieldErrors?: Record<string, string>;
   bugId?: string;
   folio?: string;
@@ -292,6 +296,13 @@ export type CreateBugInput = {
   environment?: BugEnvironment;
   // Dedup hash precalculado client-side (sha256(module + url + stack_signature))
   duplicate_hash?: string | null;
+  // Locale del reporter al momento del envío (BCP-47). Sirve al triage VE
+  // para saber si el title/description vienen en chino o español. Se
+  // persiste en bug_reports.reporter_locale (migración 0052).
+  reporter_locale?: string | null;
+  // Traducción opcional al español que el reporter CN puede pegar para
+  // acelerar el triage. V1: campo libre · V2: auto-traducción LLM.
+  translation_es?: string | null;
 };
 
 export function validateCreateBugInput(

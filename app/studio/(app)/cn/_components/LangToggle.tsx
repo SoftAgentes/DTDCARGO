@@ -14,12 +14,20 @@ import {
   parseLangFromParam,
   type LangDisplay,
 } from "@/lib/studio/warehouse-cn-types";
+import { useT, type I18nKey } from "@/lib/i18n";
+
+const LANG_LABEL_KEY: Record<LangDisplay, I18nKey> = {
+  original: "warehouse_cn.header.lang_original",
+  cn: "warehouse_cn.header.lang_cn",
+  es: "warehouse_cn.header.lang_es",
+};
 
 export function LangToggle() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [, startTransition] = useTransition();
+  const t = useT();
 
   const current: LangDisplay = parseLangFromParam(params.get("lang"));
 
@@ -39,7 +47,7 @@ export function LangToggle() {
   return (
     <div
       role="group"
-      aria-label="Idioma de display"
+      aria-label={t("warehouse_cn.header.lang_toggle_aria")}
       style={{
         display: "inline-flex",
         padding: 3,
@@ -52,13 +60,14 @@ export function LangToggle() {
     >
       {LANG_OPTIONS.map((opt) => {
         const active = current === opt.value;
+        const label = t(LANG_LABEL_KEY[opt.value]);
         return (
           <button
             key={opt.value}
             type="button"
             onClick={() => setLang(opt.value)}
             aria-pressed={active}
-            title={`Mostrar en ${opt.label}`}
+            title={label}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -87,7 +96,7 @@ export function LangToggle() {
             >
               {opt.short}
             </span>
-            <span>{opt.label}</span>
+            <span>{label}</span>
           </button>
         );
       })}

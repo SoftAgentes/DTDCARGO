@@ -20,59 +20,75 @@ import {
   isModuleEnabled,
   type FeatureFlags,
 } from "@/lib/studio/feature-flags-types";
+import { useT, t as tBase, type I18nKey, type Locale } from "@/lib/i18n";
 
-type Group = "OPERACIÓN" | "COMERCIAL" | "FINANZAS" | "SISTEMA";
+type Group = "OPERACIÓN" | "COMERCIAL" | "FINANZAS" | "MARKETING" | "SISTEMA";
 
 interface ModuleDef {
   id: string;
   group: Group;
+  /** Label en es-VE · fallback si no hay labelKey o si la key no traduce. */
   label: string;
+  /** Key del catálogo i18n. Cuando exista, el render usa `t(labelKey)`. */
+  labelKey?: I18nKey;
   icon: IconName;
   slug: string; // ruta bajo /studio
   badge?: string; // Pendiente de cablear contra data real — ver SDD-0014/dashboard-queries
 }
 
+/** Group label → I18nKey para localización en sidebar headers. */
+const GROUP_LABEL_KEYS: Record<Group, I18nKey> = {
+  "OPERACIÓN": "chrome.sidebar.group.operation",
+  "COMERCIAL": "chrome.sidebar.group.commercial",
+  "FINANZAS": "chrome.sidebar.group.finance",
+  "MARKETING": "chrome.sidebar.group.marketing",
+  "SISTEMA": "chrome.sidebar.group.system",
+};
+
 export const MODULES: ModuleDef[] = [
   // OPERACIÓN
-  { id: "dashboard", group: "OPERACIÓN", label: "Dashboard", icon: "dashboard", slug: "/studio/dashboard" },
-  { id: "shipments", group: "OPERACIÓN", label: "Embarques", icon: "box", slug: "/studio/embarques" },
-  { id: "tracking", group: "OPERACIÓN", label: "Tracking", icon: "radar", slug: "/studio/tracking" },
-  { id: "calendar", group: "OPERACIÓN", label: "Calendario", icon: "clock", slug: "/studio/calendario" },
-  { id: "cn", group: "OPERACIÓN", label: "Almacén CN", icon: "warehouse", slug: "/studio/cn" },
-  { id: "qrqueue", group: "OPERACIÓN", label: "Cola de QR", icon: "tag", slug: "/studio/cola-qr" },
-  { id: "labels", group: "OPERACIÓN", label: "Etiquetas CN", icon: "tag", slug: "/studio/etiquetas" },
-  { id: "ve", group: "OPERACIÓN", label: "Almacén VE", icon: "warehouse", slug: "/studio/ve" },
-  { id: "seniat", group: "OPERACIÓN", label: "Aduana SENIAT", icon: "shield", slug: "/studio/seniat" },
-  { id: "tms", group: "OPERACIÓN", label: "TMS · Transporte", icon: "truck", slug: "/studio/tms" },
-  { id: "despacho", group: "OPERACIÓN", label: "Despacho", icon: "truck", slug: "/studio/despacho" },
-  { id: "despacho-rules", group: "OPERACIÓN", label: "Reglas despacho", icon: "shield", slug: "/studio/despacho/reglas" },
-  { id: "despacho-dashboard", group: "OPERACIÓN", label: "Dashboard despacho", icon: "chart", slug: "/studio/despacho/dashboard" },
-  { id: "admin-rutas", group: "OPERACIÓN", label: "Rutas y ciudades", icon: "radar", slug: "/studio/admin/rutas" },
+  { id: "dashboard", group: "OPERACIÓN", label: "Dashboard", labelKey: "chrome.sidebar.dashboard", icon: "dashboard", slug: "/studio/dashboard" },
+  { id: "shipments", group: "OPERACIÓN", label: "Embarques", labelKey: "chrome.sidebar.shipments", icon: "box", slug: "/studio/embarques" },
+  { id: "tracking", group: "OPERACIÓN", label: "Tracking", labelKey: "chrome.sidebar.tracking", icon: "radar", slug: "/studio/tracking" },
+  { id: "calendar", group: "OPERACIÓN", label: "Calendario", labelKey: "chrome.sidebar.calendar", icon: "clock", slug: "/studio/calendario" },
+  { id: "cn", group: "OPERACIÓN", label: "Almacén CN", labelKey: "chrome.sidebar.warehouse_cn", icon: "warehouse", slug: "/studio/cn" },
+  { id: "qrqueue", group: "OPERACIÓN", label: "Cola de QR", labelKey: "chrome.sidebar.qr_queue", icon: "tag", slug: "/studio/cola-qr" },
+  { id: "labels", group: "OPERACIÓN", label: "Etiquetas CN", labelKey: "chrome.sidebar.labels_cn", icon: "tag", slug: "/studio/etiquetas" },
+  { id: "ve", group: "OPERACIÓN", label: "Almacén VE", labelKey: "chrome.sidebar.warehouse_ve", icon: "warehouse", slug: "/studio/ve" },
+  { id: "seniat", group: "OPERACIÓN", label: "Aduana SENIAT", labelKey: "chrome.sidebar.customs_seniat", icon: "shield", slug: "/studio/seniat" },
+  { id: "tms", group: "OPERACIÓN", label: "TMS · Transporte", labelKey: "chrome.sidebar.tms", icon: "truck", slug: "/studio/tms" },
+  { id: "despacho", group: "OPERACIÓN", label: "Despacho", labelKey: "chrome.sidebar.dispatch", icon: "truck", slug: "/studio/despacho" },
+  { id: "despacho-rules", group: "OPERACIÓN", label: "Reglas despacho", labelKey: "chrome.sidebar.dispatch_rules", icon: "shield", slug: "/studio/despacho/reglas" },
+  { id: "despacho-dashboard", group: "OPERACIÓN", label: "Dashboard despacho", labelKey: "chrome.sidebar.dispatch_dashboard", icon: "chart", slug: "/studio/despacho/dashboard" },
+  { id: "admin-rutas", group: "OPERACIÓN", label: "Rutas y ciudades", labelKey: "chrome.sidebar.routes_cities", icon: "radar", slug: "/studio/admin/rutas" },
 
   // COMERCIAL
-  { id: "quotes", group: "COMERCIAL", label: "Cotizador", icon: "calc", slug: "/studio/cotizador" },
-  { id: "clients", group: "COMERCIAL", label: "Clientes", icon: "users", slug: "/studio/clientes" },
-  { id: "leads", group: "COMERCIAL", label: "CRM · Leads", icon: "spark", slug: "/studio/leads" },
-  { id: "suppliers", group: "COMERCIAL", label: "Proveedores CN", icon: "cn", slug: "/studio/proveedores" },
-  { id: "rates", group: "COMERCIAL", label: "Tarifas", icon: "tag", slug: "/studio/tarifas" },
+  { id: "quotes", group: "COMERCIAL", label: "Cotizador", labelKey: "chrome.sidebar.quotes", icon: "calc", slug: "/studio/cotizador" },
+  { id: "clients", group: "COMERCIAL", label: "Clientes", labelKey: "chrome.sidebar.clients", icon: "users", slug: "/studio/clientes" },
+  { id: "leads", group: "COMERCIAL", label: "CRM · Leads", labelKey: "chrome.sidebar.leads", icon: "spark", slug: "/studio/leads" },
+  { id: "suppliers", group: "COMERCIAL", label: "Proveedores CN", labelKey: "chrome.sidebar.suppliers_cn", icon: "cn", slug: "/studio/proveedores" },
+  { id: "rates", group: "COMERCIAL", label: "Tarifas", labelKey: "chrome.sidebar.rates", icon: "tag", slug: "/studio/tarifas" },
 
   // FINANZAS
-  { id: "invoices", group: "FINANZAS", label: "Facturación", icon: "invoice", slug: "/studio/facturacion" },
-  { id: "documents", group: "FINANZAS", label: "Documentos", icon: "doc", slug: "/studio/documentos" },
-  { id: "reports", group: "FINANZAS", label: "Reportes", icon: "chart", slug: "/studio/reportes" },
-  { id: "costing", group: "FINANZAS", label: "Costing & Margen", icon: "star", slug: "/studio/costing" },
+  { id: "invoices", group: "FINANZAS", label: "Facturación", labelKey: "chrome.sidebar.invoices", icon: "invoice", slug: "/studio/facturacion" },
+  { id: "documents", group: "FINANZAS", label: "Documentos", labelKey: "chrome.sidebar.documents", icon: "doc", slug: "/studio/documentos" },
+  { id: "reports", group: "FINANZAS", label: "Reportes", labelKey: "chrome.sidebar.reports", icon: "chart", slug: "/studio/reportes" },
+  { id: "costing", group: "FINANZAS", label: "Costing & Margen", labelKey: "chrome.sidebar.costing", icon: "star", slug: "/studio/costing" },
+
+  // MARKETING
+  { id: "noticias-web", group: "MARKETING", label: "Noticias Web", labelKey: "chrome.sidebar.noticias_web", icon: "doc", slug: "/studio/marketing/noticias-web" },
 
   // SISTEMA
-  { id: "mailing", group: "SISTEMA", label: "Mailing", icon: "mail", slug: "/studio/mailing" },
-  { id: "no-olvidar", group: "SISTEMA", label: "No-Olvidar", icon: "lock", slug: "/studio/no-olvidar" },
-  { id: "users", group: "SISTEMA", label: "Usuarios", icon: "shield", slug: "/studio/usuarios" },
-  { id: "operarios", group: "SISTEMA", label: "Operarios PWA", icon: "users", slug: "/studio/operarios" },
-  { id: "bugs", group: "SISTEMA", label: "Bug Tracker", icon: "shield", slug: "/studio/bugs" },
-  { id: "mis-bugs", group: "SISTEMA", label: "Mis reportes", icon: "flag", slug: "/studio/mis-bugs" },
-  { id: "admin", group: "SISTEMA", label: "Administración", icon: "cog", slug: "/studio/admin" },
+  { id: "mailing", group: "SISTEMA", label: "Mailing", labelKey: "chrome.sidebar.mailing", icon: "mail", slug: "/studio/mailing" },
+  { id: "no-olvidar", group: "SISTEMA", label: "No-Olvidar", labelKey: "chrome.sidebar.no_olvidar", icon: "lock", slug: "/studio/no-olvidar" },
+  { id: "users", group: "SISTEMA", label: "Usuarios", labelKey: "chrome.sidebar.users", icon: "shield", slug: "/studio/usuarios" },
+  { id: "operarios", group: "SISTEMA", label: "Operarios PWA", labelKey: "chrome.sidebar.operarios_pwa", icon: "users", slug: "/studio/operarios" },
+  { id: "bugs", group: "SISTEMA", label: "Bug Tracker", labelKey: "chrome.sidebar.bugs", icon: "shield", slug: "/studio/bugs" },
+  { id: "mis-bugs", group: "SISTEMA", label: "Mis reportes", labelKey: "chrome.sidebar.my_reports", icon: "flag", slug: "/studio/mis-bugs" },
+  { id: "admin", group: "SISTEMA", label: "Administración", labelKey: "chrome.sidebar.administration", icon: "cog", slug: "/studio/admin" },
 ];
 
-const GROUP_ORDER: Group[] = ["OPERACIÓN", "COMERCIAL", "FINANZAS", "SISTEMA"];
+const GROUP_ORDER: Group[] = ["OPERACIÓN", "COMERCIAL", "FINANZAS", "MARKETING", "SISTEMA"];
 const STORAGE_KEY = "studio_sidebar_collapsed";
 const GROUPS_STORAGE_KEY = "studio_sidebar_groups";
 
@@ -90,6 +106,7 @@ interface Props {
 
 export function StudioSidebar({ featureFlags }: Props = {}) {
   const pathname = usePathname();
+  const t = useT();
   // Fallback a defaults del handoff si el layout no pasó flags (SSR / tests).
   const flags = featureFlags ?? FEATURE_FLAG_DEFAULTS;
   const [collapsed, setCollapsed] = useState(false);
@@ -181,14 +198,14 @@ export function StudioSidebar({ featureFlags }: Props = {}) {
           flexShrink: 0,
         }}
         onClick={collapsed ? toggleCollapsed : undefined}
-        title={collapsed ? "Expandir sidebar" : undefined}
+        title={collapsed ? t("chrome.sidebar.expand") : undefined}
       >
         <Logo collapsed={collapsed} />
         {!collapsed && (
           <button
             onClick={toggleCollapsed}
-            title="Colapsar sidebar"
-            aria-label="Colapsar sidebar"
+            title={t("chrome.sidebar.collapse")}
+            aria-label={t("chrome.sidebar.collapse")}
             style={{
               width: 26,
               height: 26,
@@ -264,7 +281,7 @@ export function StudioSidebar({ featureFlags }: Props = {}) {
                   e.currentTarget.style.color = "var(--ink-side-soft)";
                 }}
               >
-                <span>{group}</span>
+                <span>{GROUP_LABEL_KEYS[group] ? t(GROUP_LABEL_KEYS[group]) : group}</span>
                 <span
                   aria-hidden
                   style={{
@@ -280,11 +297,12 @@ export function StudioSidebar({ featureFlags }: Props = {}) {
             <div id={`sidebar-group-${group}`} hidden={!showItems}>
             {showItems && items.map((m) => {
               const active = isActive(m.slug);
+              const moduleLabel = m.labelKey ? t(m.labelKey) : m.label;
               return (
                 <Link
                   key={m.id}
                   href={m.slug}
-                  title={collapsed ? m.label : undefined}
+                  title={collapsed ? moduleLabel : undefined}
                   style={{
                     width: "100%",
                     display: "flex",
@@ -332,7 +350,7 @@ export function StudioSidebar({ featureFlags }: Props = {}) {
                         textOverflow: "ellipsis",
                       }}
                     >
-                      {m.label}
+                      {moduleLabel}
                     </span>
                   )}
                 </Link>
@@ -354,7 +372,7 @@ export function StudioSidebar({ featureFlags }: Props = {}) {
       >
         <button
           onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+          aria-label={collapsed ? t("chrome.sidebar.expand") : t("chrome.sidebar.collapse")}
           style={{
             width: "100%",
             display: "flex",
@@ -383,7 +401,7 @@ export function StudioSidebar({ featureFlags }: Props = {}) {
           >
             {Icon.chevR(14)}
           </span>
-          {!collapsed && <span>Colapsar</span>}
+          {!collapsed && <span>{t("chrome.sidebar.collapse_short")}</span>}
         </button>
       </div>
     </aside>
@@ -426,12 +444,26 @@ function Logo({ collapsed }: { collapsed: boolean }) {
   );
 }
 
-/** Helper: pathname → module label (para topbar y otros). */
-export function pathToModuleLabel(pathname: string): string {
+/**
+ * Helper: pathname → module label (para topbar y otros).
+ *
+ * Si se pasa `locale`, devuelve el label traducido vía catálogo i18n;
+ * si no, devuelve el label es-VE hardcoded (compat con callers viejos).
+ *
+ * Server components: pasar `locale` resuelto via resolveLocale().
+ * Client components: usar el wrapper hook `useModuleLabel(pathname)` que
+ * inyecta el locale activo del LocaleProvider.
+ */
+export function pathToModuleLabel(pathname: string, locale?: Locale): string {
   const match = MODULES.find(
-    (m) => pathname === m.slug || pathname.startsWith(m.slug + "/")
+    (m) => pathname === m.slug || pathname.startsWith(m.slug + "/"),
   );
-  if (match) return match.label;
-  if (pathname.startsWith("/studio/ajustes")) return "Ajustes";
-  return "DTD Studio";
+  if (match) {
+    if (locale && match.labelKey) return tBase(locale, match.labelKey);
+    return match.label;
+  }
+  if (pathname.startsWith("/studio/ajustes")) {
+    return locale ? tBase(locale, "chrome.module.settings") : "Ajustes";
+  }
+  return locale ? tBase(locale, "chrome.module.studio") : "DTD Studio";
 }

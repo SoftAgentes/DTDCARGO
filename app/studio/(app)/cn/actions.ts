@@ -123,7 +123,7 @@ export async function createReceiptAction(
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateReceiptInput(partial);
-  if (fieldErrors) return { fieldErrors };
+  if (fieldErrors) return { fieldErrors, errorCode: "field_errors_present" };
 
   // Resolver tenant_id
   const { data: link, error: linkErr } = await supabase
@@ -131,7 +131,7 @@ export async function createReceiptAction(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   if (linkErr || !link?.tenant_id) {
-    return { error: "No se pudo resolver el tenant del usuario." };
+    return { errorCode: "tenant_unresolved" };
   }
 
   // Generar receipt_code (normal o huérfana)
@@ -140,8 +140,11 @@ export async function createReceiptAction(
     p_tenant_id: link.tenant_id,
   });
   if (codeErr || !codeData) {
+    // Pasamos también `error` legacy con el detalle de Postgres porque a
+    // veces ayuda para debug en runtime logs.
     return {
-      error: `No se pudo generar el código de recepción${codeErr ? ` (${codeErr.message})` : ""}.`,
+      errorCode: "cn_code_generation_failed",
+      error: codeErr?.message,
     };
   }
   const receipt_code = String(codeData);
@@ -238,9 +241,13 @@ export async function changeReceiptStatusAction(
      */
     destinationCity?: string;
   },
-): Promise<{ ok?: boolean; error?: string }> {
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  errorCode?: import("@/lib/i18n").ErrorCode;
+}> {
   if (!VALID_NEW_STATUSES.includes(newStatus)) {
-    return { error: "Estado inválido." };
+    return { errorCode: "invalid_input" };
   }
 
   const destinationCity = options?.destinationCity?.trim();
@@ -249,7 +256,7 @@ export async function changeReceiptStatusAction(
   // Consolidar requiere city. Para volver a pendiente_consolidacion o incidencia,
   // no se toca la city (puede quedar de un consolidado previo).
   if (newStatus === "consolidado" && !destinationCity) {
-    return { error: "Indicá la ciudad destino para consolidar." };
+    return { errorCode: "cn_destination_required" };
   }
 
   const supabase = await createClient();
@@ -260,7 +267,7 @@ export async function changeReceiptStatusAction(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   if (!link?.tenant_id) {
-    return { error: "No se pudo resolver el tenant del usuario." };
+    return { errorCode: "tenant_unresolved" };
   }
 
   // Leer current status para no insertar event redundante
@@ -275,7 +282,7 @@ export async function changeReceiptStatusAction(
     }>();
 
   if (readErr || !current) {
-    return { error: "Recepción no encontrada." };
+    return { errorCode: "cn_receipt_not_found" };
   }
 
   if (
@@ -342,9 +349,13 @@ type PaymentStatusOpt = (typeof VALID_PAYMENT_STATUSES)[number];
 export async function changeReceiptPaymentStatusAction(
   receiptId: string,
   newPaymentStatus: PaymentStatusOpt,
-): Promise<{ ok?: boolean; error?: string }> {
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  errorCode?: import("@/lib/i18n").ErrorCode;
+}> {
   if (!VALID_PAYMENT_STATUSES.includes(newPaymentStatus)) {
-    return { error: "Estado de pago inválido." };
+    return { errorCode: "cn_invalid_payment_status" };
   }
 
   const supabase = await createClient();
@@ -354,7 +365,7 @@ export async function changeReceiptPaymentStatusAction(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   if (!link?.tenant_id) {
-    return { error: "No se pudo resolver el tenant del usuario." };
+    return { errorCode: "tenant_unresolved" };
   }
 
   const { data: current, error: readErr } = await supabase
@@ -364,7 +375,7 @@ export async function changeReceiptPaymentStatusAction(
     .maybeSingle<{ payment_status: PaymentStatusOpt; receipt_code: string }>();
 
   if (readErr || !current) {
-    return { error: "Recepción no encontrada." };
+    return { errorCode: "cn_receipt_not_found" };
   }
 
   if (current.payment_status === newPaymentStatus) {
@@ -406,15 +417,20 @@ const MAX_BULK_RECEIPTS = 100;
 export async function bulkChangeReceiptPaymentStatusAction(
   receiptIds: string[],
   newPaymentStatus: PaymentStatusOpt,
-): Promise<{ ok?: boolean; updated?: number; error?: string }> {
+): Promise<{
+  ok?: boolean;
+  updated?: number;
+  error?: string;
+  errorCode?: import("@/lib/i18n").ErrorCode;
+}> {
   if (!Array.isArray(receiptIds) || receiptIds.length === 0) {
-    return { error: "Seleccioná al menos 1 recepción." };
+    return { errorCode: "invalid_input" };
   }
   if (receiptIds.length > MAX_BULK_RECEIPTS) {
-    return { error: `Máximo ${MAX_BULK_RECEIPTS} recepciones por bulk.` };
+    return { errorCode: "cn_bulk_max_exceeded" };
   }
   if (!VALID_PAYMENT_STATUSES.includes(newPaymentStatus)) {
-    return { error: "Estado de pago inválido." };
+    return { errorCode: "cn_invalid_payment_status" };
   }
 
   const supabase = await createClient();
@@ -424,7 +440,7 @@ export async function bulkChangeReceiptPaymentStatusAction(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   if (!link?.tenant_id) {
-    return { error: "No se pudo resolver el tenant del usuario." };
+    return { errorCode: "tenant_unresolved" };
   }
 
   // Update atómico · RLS filtra por tenant
@@ -464,18 +480,20 @@ const BULK_VALID_STATUSES: WarehouseReceiptStatus[] = [
 export async function bulkChangeReceiptStatusAction(
   receiptIds: string[],
   newStatus: (typeof BULK_VALID_STATUSES)[number],
-): Promise<{ ok?: boolean; updated?: number; error?: string }> {
+): Promise<{
+  ok?: boolean;
+  updated?: number;
+  error?: string;
+  errorCode?: import("@/lib/i18n").ErrorCode;
+}> {
   if (!Array.isArray(receiptIds) || receiptIds.length === 0) {
-    return { error: "Seleccioná al menos 1 recepción." };
+    return { errorCode: "invalid_input" };
   }
   if (receiptIds.length > MAX_BULK_RECEIPTS) {
-    return { error: `Máximo ${MAX_BULK_RECEIPTS} recepciones por bulk.` };
+    return { errorCode: "cn_bulk_max_exceeded" };
   }
   if (!BULK_VALID_STATUSES.includes(newStatus)) {
-    return {
-      error:
-        "Bulk solo permite pendiente_consolidacion o incidencia. Consolidar requiere destino por row.",
-    };
+    return { errorCode: "invalid_input" };
   }
 
   const supabase = await createClient();
@@ -485,7 +503,7 @@ export async function bulkChangeReceiptStatusAction(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   if (!link?.tenant_id) {
-    return { error: "No se pudo resolver el tenant del usuario." };
+    return { errorCode: "tenant_unresolved" };
   }
 
   const { data: updated, error: updateErr } = await supabase

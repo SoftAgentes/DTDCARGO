@@ -31,6 +31,19 @@ import {
 } from "@/lib/studio/warehouse-cn-types";
 import type { DispatchCity } from "@/lib/studio/dispatch-routes-types";
 import { Icon } from "@/app/studio/_components/icons";
+import { useT, resolveErrorMessage, type I18nKey } from "@/lib/i18n";
+
+const STATUS_KEY: Record<WarehouseReceiptStatus, I18nKey> = {
+  pendiente_consolidacion: "warehouse_cn.status.pending_consolidation",
+  consolidado: "warehouse_cn.status.consolidated",
+  incidencia: "warehouse_cn.status.incident",
+};
+
+const PAYMENT_KEY: Record<PaymentStatus, I18nKey> = {
+  pagado: "warehouse_cn.payment.paid",
+  parcial: "warehouse_cn.payment.partial",
+  pendiente: "warehouse_cn.payment.pending",
+};
 
 const PAYMENT_OPTIONS: PaymentStatus[] = ["pagado", "parcial", "pendiente"];
 
@@ -52,6 +65,7 @@ export function ReceiptRowActions({
   currentPaymentStatus = "pendiente",
 }: Props) {
   const router = useRouter();
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<View>("menu");
   const [destinationCity, setDestinationCity] = useState(
@@ -99,9 +113,11 @@ export function ReceiptRowActions({
     setError(null);
     startTransition(async () => {
       const res = await changeReceiptStatusAction(receiptId, newStatus, opts);
-      if (res.error) {
-        setError(res.error);
-      } else {
+      // Prioridad: errorCode traducido > error legacy string
+      const msg = resolveErrorMessage(t, res);
+      if (msg) {
+        setError(msg);
+      } else if (res.ok) {
         closeMenu();
         router.refresh();
       }
@@ -121,9 +137,10 @@ export function ReceiptRowActions({
     setError(null);
     startTransition(async () => {
       const res = await changeReceiptPaymentStatusAction(receiptId, newPayment);
-      if (res.error) {
-        setError(res.error);
-      } else {
+      const msg = resolveErrorMessage(t, res);
+      if (msg) {
+        setError(msg);
+      } else if (res.ok) {
         closeMenu();
         router.refresh();
       }
@@ -134,7 +151,7 @@ export function ReceiptRowActions({
     e.preventDefault();
     const city = destinationCity.trim();
     if (!city) {
-      setError("Ciudad destino es obligatoria para consolidar.");
+      setError(t("warehouse_cn.row.destination_required"));
       return;
     }
     submit("consolidado", { destinationCity: city });
@@ -150,7 +167,7 @@ export function ReceiptRowActions({
           setOpen((o) => !o);
         }}
         disabled={pending}
-        aria-label="Acciones de la recepción"
+        aria-label={t("warehouse_cn.row.aria_actions")}
         aria-haspopup="menu"
         aria-expanded={open}
         style={{
@@ -210,7 +227,7 @@ export function ReceiptRowActions({
                   textTransform: "uppercase",
                 }}
               >
-                Cambiar estado
+                {t("warehouse_cn.row.action_change_status")}
               </div>
               {RECEIPT_STATUS_OPTIONS.map((opt) => {
                 const isCurrent = opt.value === currentStatus;
@@ -250,7 +267,7 @@ export function ReceiptRowActions({
                     <span style={{ width: 14, display: "inline-flex" }}>
                       {isCurrent ? Icon.check(13) : null}
                     </span>
-                    <span>{opt.label}</span>
+                    <span>{t(STATUS_KEY[opt.value])}</span>
                   </button>
                 );
               })}
@@ -272,7 +289,7 @@ export function ReceiptRowActions({
                   textTransform: "uppercase",
                 }}
               >
-                Cambiar pago
+                {t("warehouse_cn.row.action_change_payment")}
               </div>
               {PAYMENT_OPTIONS.map((p) => {
                 const isCurrent = p === currentPaymentStatus;
@@ -312,7 +329,7 @@ export function ReceiptRowActions({
                     <span style={{ width: 14, display: "inline-flex" }}>
                       {isCurrent ? Icon.check(13) : null}
                     </span>
-                    <span>{PAYMENT_STATUS_LABELS[p]}</span>
+                    <span>{t(PAYMENT_KEY[p])}</span>
                   </button>
                 );
               })}
@@ -335,7 +352,7 @@ export function ReceiptRowActions({
                     textTransform: "uppercase",
                   }}
                 >
-                  Consolidar · destino
+                  {t("warehouse_cn.row.action_consolidate")}
                 </span>
                 <button
                   type="button"
@@ -351,7 +368,7 @@ export function ReceiptRowActions({
                     cursor: "pointer",
                   }}
                 >
-                  ← Volver
+                  {t("warehouse_cn.row.back")}
                 </button>
               </div>
 
@@ -360,7 +377,7 @@ export function ReceiptRowActions({
                 htmlFor={`dest-city-${receiptId}`}
                 style={{ display: "block", marginBottom: 4 }}
               >
-                Ciudad destino
+                {t("warehouse_cn.row.destination_city_label")}
               </label>
 
               {sortedCities.length > 0 ? (
@@ -373,7 +390,9 @@ export function ReceiptRowActions({
                   autoFocus
                   style={{ width: "100%", height: 34 }}
                 >
-                  <option value="">— Elegí ciudad —</option>
+                  <option value="">
+                    {t("warehouse_cn.row.destination_choose_option")}
+                  </option>
                   {sortedCities.map((c) => (
                     <option key={c.id} value={c.city}>
                       {c.city} · {c.state_name}
@@ -387,7 +406,7 @@ export function ReceiptRowActions({
                   className="studio-input"
                   value={destinationCity}
                   onChange={(e) => setDestinationCity(e.target.value)}
-                  placeholder="ej: Valencia"
+                  placeholder={t("warehouse_cn.row.city_placeholder")}
                   required
                   autoFocus
                   style={{ width: "100%", height: 34 }}
@@ -401,11 +420,7 @@ export function ReceiptRowActions({
                     margin: "6px 0 0",
                   }}
                 >
-                  Catálogo del tenant vacío. Seedealo desde{" "}
-                  <code style={{ font: "700 10.5px/1 var(--f-mono)" }}>
-                    /studio/admin/rutas
-                  </code>{" "}
-                  tab Ciudades para elegir de una lista.
+                  {t("warehouse_cn.row.empty_catalog_hint")}
                 </p>
               )}
 
@@ -426,14 +441,16 @@ export function ReceiptRowActions({
                   }}
                   disabled={pending}
                 >
-                  Cancelar
+                  {t("chrome.action.cancel")}
                 </button>
                 <button
                   type="submit"
                   className="studio-btn studio-btn-primary studio-btn-sm"
                   disabled={pending || !destinationCity.trim()}
                 >
-                  {pending ? "Consolidando…" : "Consolidar"}
+                  {pending
+                    ? t("warehouse_cn.row.consolidating")
+                    : t("warehouse_cn.row.consolidate_submit")}
                 </button>
               </div>
             </form>
