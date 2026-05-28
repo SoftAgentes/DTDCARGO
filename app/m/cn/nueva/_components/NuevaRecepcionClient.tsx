@@ -19,6 +19,8 @@
 import { startTransition, useActionState, useEffect, useReducer, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { BigButton } from "@/app/m/_components/BigButton";
 import { MobileHeader } from "@/app/m/_components/MobileHeader";
 import type { Lang } from "@/lib/lang";
@@ -923,36 +925,36 @@ function Step3Data({
         />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-2)" }}>
-          <MobileInput
-            label={t(lang, "Cajas", "箱数")}
-            value={reception.boxes}
-            onChange={(v) => set("boxes", v)}
-            placeholder="0"
-            mono
-            large
-            numeric
-          />
-          <MobileInput
-            label="CBM"
-            value={reception.cbm}
-            onChange={(v) => set("cbm", v)}
-            placeholder="0.0"
-            mono
-            large
-            numeric
-            suffix="m³"
-          />
+          <NumLabel label={t(lang, "Cajas", "箱数")}>
+            <NumericInput
+              type="count"
+              unit="cj"
+              value={reception.boxes === "" ? null : Number(reception.boxes)}
+              onChange={(v) => set("boxes", v != null ? String(v) : "")}
+              placeholder="0"
+              min={1}
+            />
+          </NumLabel>
+          <NumLabel label="CBM">
+            <NumericInput
+              type="volume"
+              value={reception.cbm === "" ? null : Number(reception.cbm)}
+              onChange={(v) => set("cbm", v != null ? String(v) : "")}
+              placeholder="0.00"
+              min={0}
+            />
+          </NumLabel>
         </div>
 
-        <MobileInput
-          label={t(lang, "Peso total", "总重量")}
-          value={reception.weight}
-          onChange={(v) => set("weight", v)}
-          placeholder="0"
-          mono
-          numeric
-          suffix="kg"
-        />
+        <NumLabel label={t(lang, "Peso total", "总重量")}>
+          <NumericInput
+            type="weight"
+            value={reception.weight === "" ? null : Number(reception.weight)}
+            onChange={(v) => set("weight", v != null ? String(v) : "")}
+            placeholder="0"
+            min={0}
+          />
+        </NumLabel>
 
         <MobileInput
           label={t(lang, "HS Code (opcional · del supplier)", "HS编码 (可选)")}
@@ -1468,6 +1470,26 @@ function Done({
   onHome: () => void;
 }) {
   const allOk = photoErrors.length === 0;
+  const toast = useToast();
+
+  // Toast post-success (trazabilidad visual · sobrevive interrupciones)
+  useEffect(() => {
+    if (code === "—") return;
+    if (allOk) {
+      toast.success(
+        t(lang, `Recepción ${code} guardada`, `接收 ${code} 已保存`),
+      );
+    } else {
+      toast.warning(
+        t(
+          lang,
+          `Recepción ${code} guardada — ${photoErrors.length} foto${photoErrors.length === 1 ? "" : "s"} con error`,
+          `接收 ${code} 已保存 — ${photoErrors.length} 张照片失败`,
+        ),
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code]);
   return (
     <div
       style={{
@@ -1583,6 +1605,35 @@ function Done({
 // ─────────────────────────────────────────────────────────────────────────
 // BackBtn
 // ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * NumLabel · wrapper que reusa el label uppercase del MobileInput para
+ * envolver un <NumericInput> del Studio. Mantiene consistencia visual
+ * con el resto del wizard mientras gana las expresiones aritméticas.
+ */
+function NumLabel({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
+      <span
+        style={{
+          font: "700 10.5px/1 var(--f-sans)",
+          color: "var(--ink-soft)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </span>
+      {children}
+    </label>
+  );
+}
 
 function BackBtn({ onClick, lang }: { onClick: () => void; lang?: Lang }) {
   return (
