@@ -9,12 +9,23 @@
  *  - Abrir carga (creada → cargando)
  *  - Fraccionar paquete (split P1/P2)
  *  - Cerrar carga (cargando → lista)
+ *
+ * Sprint G (handoff v1.7): ActionButton anti-double-submit en "Abrir/Cerrar
+ * carga", SettingsMenu con cerrar sesión + tema, tier badge por paquete,
+ * botones Llamar (tel:) + WhatsApp (wa.me/), grouping de paquetes por
+ * ciudad (cada ciudad es una "parada").
  */
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { RealtimeIndicator } from "@/app/studio/_components/ui/RealtimeIndicator";
 import { useRealtimeRefresh } from "@/lib/studio/hooks/use-realtime-refresh";
+import {
+  SettingsMenu,
+  useThemeMode,
+  type ThemeMode,
+} from "@/app/m/_components/SettingsMenu";
 import {
   advanceOdAction,
   signOutAction,
@@ -27,6 +38,7 @@ import {
   type DispatchOrderRow,
   type DispatchSplitReason,
 } from "@/lib/studio/dispatch-types";
+import { tierLabel, tierBadgeTone, type ClientTier } from "@/lib/studio/client-types";
 import type { MobileActionState } from "@/lib/studio/dispatch-mobile-types";
 
 const INITIAL: MobileActionState = {};
@@ -45,6 +57,8 @@ interface Props {
 
 export function BodegueroClient({ operario, ods, tenantId }: Props) {
   const [selectedOdId, setSelectedOdId] = useState<string | null>(null);
+  const { theme, toggle: toggleTheme } = useThemeMode("bodeguero");
+
   const selected = ods.find((o) => o.id === selectedOdId);
 
   // Realtime: cuando un OD del tenant cambia (admin asigna, status update),
@@ -56,6 +70,7 @@ export function BodegueroClient({ operario, ods, tenantId }: Props) {
 
   return (
     <div
+      data-theme={theme}
       style={{
         maxWidth: 480,
         margin: "0 auto",
@@ -67,7 +82,12 @@ export function BodegueroClient({ operario, ods, tenantId }: Props) {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <Header operario={operario} realtimeStatus={realtime.status} />
+      <Header
+        operario={operario}
+        realtimeStatus={realtime.status}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
 
       {selected ? (
         <OdDetail od={selected} onBack={() => setSelectedOdId(null)} />
@@ -85,9 +105,13 @@ export function BodegueroClient({ operario, ods, tenantId }: Props) {
 function Header({
   operario,
   realtimeStatus,
+  theme,
+  onToggleTheme,
 }: {
   operario: Props["operario"];
   realtimeStatus: import("@/lib/studio/hooks/use-realtime-table").RealtimeStatus;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
 }) {
   return (
     <header
@@ -145,15 +169,11 @@ function Header({
         }}
       >
         <RealtimeIndicator status={realtimeStatus} />
-        <form action={signOutAction}>
-          <button
-            type="submit"
-            className="studio-btn studio-btn-ghost studio-btn-xs"
-            style={{ color: "var(--ink-soft)" }}
-          >
-            Salir
-          </button>
-        </form>
+        <SettingsMenu
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          signOutAction={signOutAction}
+        />
       </div>
     </header>
   );
@@ -284,11 +304,8 @@ function OdList({
 // ─────────────────────────────────────────────────────────────
 
 function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) {
-  const [advanceState, advanceAction, advancePending] = useActionState(
-    advanceOdAction,
-    INITIAL,
-  );
   const [splitForId, setSplitForId] = useState<string | null>(null);
+  const [advanceError, setAdvanceError] = useState<string | null>(null);
 
   const splittingPkg = od.packages.find((p) => p.package_id === splitForId);
 
@@ -296,6 +313,18 @@ function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) 
     od.status === "creada" ? "cargando" : od.status === "cargando" ? "lista" : null;
   const nextLabel =
     nextStatus === "cargando" ? "Abrir carga" : nextStatus === "lista" ? "Cerrar carga · lista para salir" : null;
+  const nextLoadingLabel =
+    nextStatus === "cargando" ? "Abriendo…" : "Cerrando…";
+  const nextSuccessLabel =
+    nextStatus === "cargando" ? "Carga abierta" : "Lista para salir";
+
+  // Sprint G (handoff v1.7): agrupar paquetes por ciudad → cada ciudad es
+  // una "parada". Usamos el orden de `cities_ordered` si existe (lo setea
+  // el admin al crear la OD desde la ruta), si no caemos al orden de
+  // aparición.
+  const groupedByCity = useMemo(() => {
+    return groupPackagesByCity(od.packages, od.cities_ordered);
+  }, [od.packages, od.cities_ordered]);
 
   return (
     <main style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -353,107 +382,100 @@ function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) 
         </div>
       </div>
 
-      {/* Packages */}
+      {/* Stops grouped by city · Sprint G (handoff v1.7) */}
       <div className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
-        Paquetes · {od.packages.length}
+        Paradas · {groupedByCity.length} ciudades · {od.packages.length} paquetes
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {od.packages.map((p) => {
-          const isPartial = p.boxes_shipped < p.boxes_total;
-          return (
-            <div
-              key={p.package_id}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {groupedByCity.map((group, gIdx) => (
+          <section
+            key={group.city || `__no-city-${gIdx}`}
+            aria-label={`Parada ${gIdx + 1}: ${group.city || "Sin ciudad"}`}
+            style={{ display: "flex", flexDirection: "column", gap: 8 }}
+          >
+            <header
               style={{
-                padding: 12,
-                background: "var(--bg-surface)",
-                border: `1px solid ${isPartial ? "var(--warning)" : "var(--border)"}`,
-                borderRadius: "var(--r-md)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "6px 0",
+                borderBottom: "1px solid var(--border)",
               }}
             >
               <div
+                aria-hidden="true"
                 style={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: "var(--r-pill)",
+                  background: "var(--wine-tint)",
+                  color: "var(--wine)",
+                  font: "900 11px/1 var(--f-mono)",
                   display: "flex",
-                  justifyContent: "space-between",
                   alignItems: "center",
-                  marginBottom: 4,
+                  justifyContent: "center",
+                  border: "1px solid var(--wine)",
                 }}
               >
-                <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)" }}>
-                  {p.markbox}
-                </code>
-                <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
-                  {p.boxes_shipped} / {p.boxes_total} cj
-                </code>
+                {gIdx + 1}
               </div>
-              <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
-                {p.client_name}
+              <div
+                style={{
+                  font: "800 13px/1.2 var(--f-display)",
+                  color: "var(--ink)",
+                }}
+              >
+                {group.city || "Sin ciudad"}
               </div>
-              <div style={{ font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
-                {p.city}
+              <div
+                style={{
+                  marginLeft: "auto",
+                  font: "600 11px/1 var(--f-mono)",
+                  color: "var(--ink-mute)",
+                }}
+              >
+                {group.packages.length} pkg
               </div>
-              {p.description && (
-                <div
-                  style={{
-                    font: "500 11px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
-                    marginTop: 6,
-                    paddingTop: 6,
-                    borderTop: "1px dashed var(--border)",
-                  }}
-                >
-                  {p.description}
-                </div>
-              )}
-              {isPartial && (
-                <div
-                  style={{
-                    marginTop: 6,
-                    font: "600 11px/1.3 var(--f-sans)",
-                    color: "var(--warning)",
-                  }}
-                >
-                  Parcial · motivo: {p.split_reason ? DISPATCH_SPLIT_REASON_LABELS[p.split_reason] : "—"}
-                </div>
-              )}
+            </header>
 
-              {od.status !== "lista" && !isPartial && p.boxes_total > 1 && (
-                <button
-                  type="button"
-                  onClick={() => setSplitForId(p.package_id)}
-                  className="studio-btn studio-btn-ghost studio-btn-xs"
-                  style={{ marginTop: 8 }}
-                >
-                  Fraccionar P1/P2
-                </button>
-              )}
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {group.packages.map((p) => (
+                <PackageCard
+                  key={p.package_id}
+                  pkg={p}
+                  odStatus={od.status}
+                  onRequestSplit={() => setSplitForId(p.package_id)}
+                />
+              ))}
             </div>
-          );
-        })}
+          </section>
+        ))}
       </div>
 
       {/* Advance action */}
       {nextStatus && nextLabel && (
-        <form action={advanceAction} style={{ marginTop: 8 }}>
-          <input type="hidden" name="od_id" value={od.id} />
-          <input type="hidden" name="status" value={nextStatus} />
-          <button
-            type="submit"
-            className={
-              nextStatus === "lista"
-                ? "studio-btn studio-btn-primary"
-                : "studio-btn studio-btn-secondary"
-            }
-            style={{ width: "100%", height: 52, fontSize: 14 }}
-            disabled={advancePending}
-          >
-            {advancePending ? "Procesando…" : nextLabel}
-          </button>
-        </form>
+        <div style={{ marginTop: 8 }}>
+          <ActionButton
+            variant={nextStatus === "lista" ? "primary" : "dark"}
+            size="default"
+            idleLabel={nextLabel}
+            loadingLabel={nextLoadingLabel}
+            successLabel={nextSuccessLabel}
+            onAction={async () => {
+              setAdvanceError(null);
+              const fd = new FormData();
+              fd.append("od_id", od.id);
+              fd.append("status", nextStatus);
+              const result = await advanceOdAction({}, fd);
+              if (result?.error) return { error: result.error };
+              return undefined;
+            }}
+            onError={setAdvanceError}
+          />
+        </div>
       )}
 
-      {advanceState?.error && (
-        <ErrorBanner msg={advanceState.error} />
-      )}
+      {advanceError && <ErrorBanner msg={advanceError} />}
 
       {/* Split modal */}
       {splittingPkg && (
@@ -465,6 +487,190 @@ function OdDetail({ od, onBack }: { od: DispatchOrderRow; onBack: () => void }) 
       )}
     </main>
   );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Package card · tier badge + tel + WA + descripción + fraccionar
+// ─────────────────────────────────────────────────────────────
+
+function PackageCard({
+  pkg,
+  odStatus,
+  onRequestSplit,
+}: {
+  pkg: DispatchOrderRow["packages"][number];
+  odStatus: DispatchOrderRow["status"];
+  onRequestSplit: () => void;
+}) {
+  const isPartial = pkg.boxes_shipped < pkg.boxes_total;
+  const tier: ClientTier | null = pkg.client_tier ?? null;
+  const phone = pkg.client_phone ?? null;
+  const phoneClean = phone ? phone.replace(/[^\d+]/g, "") : null;
+
+  return (
+    <div
+      style={{
+        padding: 12,
+        background: "var(--bg-surface)",
+        border: `1px solid ${isPartial ? "var(--warning)" : "var(--border)"}`,
+        borderRadius: "var(--r-md)",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 4,
+          gap: 8,
+        }}
+      >
+        <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)" }}>
+          {pkg.markbox}
+        </code>
+        <code style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
+          {pkg.boxes_shipped} / {pkg.boxes_total} cj
+        </code>
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          flexWrap: "wrap",
+          marginTop: 2,
+        }}
+      >
+        <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+          {pkg.client_name}
+        </div>
+        {tier && (
+          <Badge tone={tierBadgeTone(tier)} size="sm">
+            {tierLabel(tier)}
+          </Badge>
+        )}
+      </div>
+
+      {pkg.description && (
+        <div
+          style={{
+            font: "500 11px/1.4 var(--f-sans)",
+            color: "var(--ink-mute)",
+            marginTop: 6,
+            paddingTop: 6,
+            borderTop: "1px dashed var(--border)",
+          }}
+        >
+          {pkg.description}
+        </div>
+      )}
+
+      {isPartial && (
+        <div
+          style={{
+            marginTop: 6,
+            font: "600 11px/1.3 var(--f-sans)",
+            color: "var(--warning)",
+          }}
+        >
+          Parcial · motivo: {pkg.split_reason ? DISPATCH_SPLIT_REASON_LABELS[pkg.split_reason] : "—"}
+        </div>
+      )}
+
+      {/* Tel + WhatsApp (Sprint G handoff v1.7) */}
+      {phoneClean && (
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+          <a
+            href={`tel:${phoneClean}`}
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+            style={{ flex: 1, textDecoration: "none" }}
+            aria-label={`Llamar a ${pkg.client_name}`}
+          >
+            Llamar
+          </a>
+          <a
+            href={`https://wa.me/${phoneClean.replace(/^\+/, "")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="studio-btn studio-btn-ghost studio-btn-xs"
+            style={{ flex: 1, textDecoration: "none" }}
+            aria-label={`WhatsApp a ${pkg.client_name}`}
+          >
+            WhatsApp
+          </a>
+        </div>
+      )}
+
+      {odStatus !== "lista" && !isPartial && pkg.boxes_total > 1 && (
+        <button
+          type="button"
+          onClick={onRequestSplit}
+          className="studio-btn studio-btn-ghost studio-btn-xs"
+          style={{ marginTop: 8 }}
+        >
+          Fraccionar P1/P2
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Helpers · grouping de paquetes por ciudad
+// ─────────────────────────────────────────────────────────────
+
+type CityGroup = {
+  city: string;
+  packages: DispatchOrderRow["packages"];
+};
+
+/**
+ * Agrupa paquetes por ciudad respetando `cities_ordered` si está populated.
+ * Caso fallback: orden de primera aparición en `packages[]`. Paquetes con
+ * city = "" o null caen en grupo "Sin ciudad" al final.
+ */
+function groupPackagesByCity(
+  packages: DispatchOrderRow["packages"],
+  citiesOrdered: string[],
+): CityGroup[] {
+  const byCity = new Map<string, DispatchOrderRow["packages"]>();
+  for (const p of packages) {
+    const key = (p.city || "").trim();
+    const list = byCity.get(key);
+    if (list) list.push(p);
+    else byCity.set(key, [p]);
+  }
+
+  const orderedKeys: string[] = [];
+  const seen = new Set<string>();
+
+  // 1. Orden canónico del admin (`cities_ordered`)
+  for (const c of citiesOrdered ?? []) {
+    const key = (c || "").trim();
+    if (byCity.has(key) && !seen.has(key)) {
+      orderedKeys.push(key);
+      seen.add(key);
+    }
+  }
+  // 2. Cualquier ciudad presente en paquetes pero NO en cities_ordered
+  for (const key of byCity.keys()) {
+    if (!seen.has(key)) {
+      orderedKeys.push(key);
+      seen.add(key);
+    }
+  }
+
+  // 3. Mover "Sin ciudad" al final
+  const out: CityGroup[] = [];
+  const noCityKey = "";
+  for (const key of orderedKeys) {
+    if (key === noCityKey) continue;
+    out.push({ city: key, packages: byCity.get(key)! });
+  }
+  if (byCity.has(noCityKey)) {
+    out.push({ city: "", packages: byCity.get(noCityKey)! });
+  }
+  return out;
 }
 
 // ─────────────────────────────────────────────────────────────
