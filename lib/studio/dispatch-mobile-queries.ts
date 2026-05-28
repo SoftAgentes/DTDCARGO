@@ -24,7 +24,7 @@ const OD_WITH_JOINS_SELECT = `
   route:dispatch_routes!route_id ( id, route_code, name ),
   truck:tms_trucks!truck_id ( id, plate, brand ),
   driver:tms_drivers!driver_id ( id, name, rating ),
-  packages:dispatch_order_packages ( * )
+  packages:dispatch_order_packages ( *, delivery_status )
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -86,23 +86,35 @@ async function hydrateClientFieldsOnPackages(
   }
   if (markboxes.size === 0) return rows;
 
-  // 2. Batch query a clients
+  // 2. Batch query a clients (Sprint G: tier+phone · Sprint 3: address+facade+gps)
   const { data: clientsData, error } = await supabase
     .from("clients")
-    .select("markbox, tier, phone")
+    .select(
+      "markbox, tier, phone, address, address_reference, facade_photo_url, lat, lng",
+    )
     .eq("tenant_id", tenantId)
     .in("markbox", Array.from(markboxes));
 
   if (error) {
-    // No-fatal · UI rendea sin tier/phone si esto falla
+    // No-fatal · UI rendea sin tier/phone/etc si esto falla
     console.error("[dispatch-mobile-queries] hydrate clients error:", error);
     return rows;
   }
 
   // 3. Indexar por markbox
-  const byMarkbox = new Map<string, { tier: ClientTier; phone: string | null }>();
-  for (const c of (clientsData as { markbox: string; tier: ClientTier; phone: string | null }[] | null) ?? []) {
-    byMarkbox.set(c.markbox, { tier: c.tier, phone: c.phone });
+  type ClientRow = {
+    markbox: string;
+    tier: ClientTier;
+    phone: string | null;
+    address: string | null;
+    address_reference: string | null;
+    facade_photo_url: string | null;
+    lat: number | null;
+    lng: number | null;
+  };
+  const byMarkbox = new Map<string, ClientRow>();
+  for (const c of (clientsData as ClientRow[] | null) ?? []) {
+    byMarkbox.set(c.markbox, c);
   }
 
   // 4. Patchear packages (inmutable · clona los packages)
@@ -114,6 +126,11 @@ async function hydrateClientFieldsOnPackages(
         ...p,
         client_tier: c?.tier ?? null,
         client_phone: c?.phone ?? null,
+        client_address: c?.address ?? null,
+        client_address_reference: c?.address_reference ?? null,
+        client_facade_photo_url: c?.facade_photo_url ?? null,
+        client_lat: c?.lat ?? null,
+        client_lng: c?.lng ?? null,
       };
     }),
   }));
@@ -151,7 +168,8 @@ export async function listOdsForCamionero(
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return normalizeOdRows(data);
+  const rows = normalizeOdRows(data);
+  return hydrateClientFieldsOnPackages(supabase, tenantId, rows);
 }
 
 // ─────────────────────────────────────────────────────────────

@@ -15,6 +15,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import { advanceOdAction, podAction } from "../actions";
+import { useGpsLiveState } from "./GpsBlock";
 import type { DispatchOrderRow } from "@/lib/studio/dispatch-types";
 import type { MobileActionState } from "@/lib/studio/dispatch-mobile-types";
 
@@ -42,6 +43,9 @@ export function PodModal({
     advanceOdAction,
     INITIAL,
   );
+
+  // Sprint 3 · snapshot GPS al momento del submit (si está on)
+  const gps = useGpsLiveState();
 
   // Setup canvas
   useEffect(() => {
@@ -157,6 +161,21 @@ export function PodModal({
         fd.set("received_by", receivedBy.trim());
         if (receivedDoc.trim()) fd.set("received_doc", receivedDoc.trim());
         if (notes.trim()) fd.set("notes", notes.trim());
+
+        // Sprint 3 · GPS opcional: mandar snapshot si está on, sino marcar estado
+        if (gps.status === "on" && gps.lat != null && gps.lng != null) {
+          fd.set("pod_lat", String(gps.lat));
+          fd.set("pod_lng", String(gps.lng));
+          if (gps.accuracy_m != null) fd.set("pod_accuracy_m", String(gps.accuracy_m));
+          fd.set("pod_gps_status", "on");
+        } else if (gps.status === "off") {
+          fd.set("pod_gps_status", "off");
+        } else if (gps.status === "denied") {
+          fd.set("pod_gps_status", "denied");
+        } else {
+          fd.set("pod_gps_status", "unavailable");
+        }
+
         podFormAction(fd);
       },
       "image/png",
@@ -224,10 +243,53 @@ export function PodModal({
               style={{
                 font: "500 12.5px/1.4 var(--f-sans)",
                 color: "var(--ink-soft)",
-                marginBottom: 14,
+                marginBottom: 10,
               }}
             >
               <code style={{ color: "var(--wine)" }}>{od.order_code}</code> · {od.route?.name ?? "Sin ruta"}
+            </div>
+
+            {/* GPS status badge · Sprint 3 */}
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                padding: "6px 10px",
+                marginBottom: 14,
+                borderRadius: "var(--r-sm)",
+                background:
+                  gps.status === "on"
+                    ? "var(--success-bg)"
+                    : "var(--warning-bg)",
+                color:
+                  gps.status === "on"
+                    ? "var(--success)"
+                    : "var(--warning)",
+                font: "600 11.5px/1.3 var(--f-sans)",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <span
+                aria-hidden="true"
+                style={{
+                  display: "inline-block",
+                  width: 6,
+                  height: 6,
+                  borderRadius: "50%",
+                  background: "currentColor",
+                }}
+              />
+              {gps.status === "on"
+                ? "POD se guardará con ubicación GPS"
+                : gps.status === "off"
+                  ? "GPS apagado · POD sin ubicación"
+                  : gps.status === "denied"
+                    ? "Permiso GPS denegado · POD sin ubicación"
+                    : gps.status === "no_position"
+                      ? "Buscando GPS… podés esperar o continuar sin ubicación"
+                      : "GPS no disponible · POD sin ubicación"}
             </div>
 
             <form

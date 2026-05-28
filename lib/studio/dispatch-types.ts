@@ -98,6 +98,14 @@ export type DispatchOrderPackage = {
    */
   client_tier?: import("./client-types").ClientTier | null;
   client_phone?: string | null;
+  /** Sprint 3 (handoff v1.7) · CurrentDelivery del camionero. */
+  client_address?: string | null;
+  client_address_reference?: string | null;
+  client_facade_photo_url?: string | null;
+  client_lat?: number | null;
+  client_lng?: number | null;
+  /** Sprint 3 · status per-paquete (V1 default 'pendiente'). */
+  delivery_status?: "pendiente" | "entregado" | "rechazado" | "retornado";
 };
 
 /** OD con joins (route + truck + driver) para tabla principal y panel activas. */
