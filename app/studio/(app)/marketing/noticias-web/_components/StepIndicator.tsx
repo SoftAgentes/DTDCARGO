@@ -1,7 +1,7 @@
 /**
- * StepIndicator · breadcrumb 0 → 1 → 2 → 3 (Plan v4 — 4 steps).
+ * StepIndicator · breadcrumb 0 → 1 → 2 → 3 (Plan v5 — 4 steps).
  *
- * Step 0 = Tipo editorial (Informativo/Curiosidad/Polémica/Especial).
+ * Step 0 = Brief editorial (tema + links + ángulo — Claude detecta tipo).
  * Steps 1-3 = Titular → Estructura → Artículo (igual que antes).
  *
  * Pasos completados / activo: bg-status-success texto white.
@@ -16,7 +16,7 @@ import { Icon } from "@/app/studio/_components/icons";
 type Step = 0 | 1 | 2 | 3;
 
 const LABELS: Record<Step, string> = {
-  0: "Tipo",
+  0: "Brief",
   1: "Titular",
   2: "Estructura",
   3: "Artículo",
