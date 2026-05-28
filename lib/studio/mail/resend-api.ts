@@ -18,7 +18,7 @@
 const RESEND_API_BASE = "https://api.resend.com";
 
 export type ResendSendInput = {
-  from: string;          // "DTD-Cargo <noreply@dtdcargo.com>"
+  from: string;          // "DTD Cargo <noreply@dtdcargo.com>"
   to: string | string[];
   subject: string;
   html: string;

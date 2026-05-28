@@ -61,7 +61,7 @@ export const SHADOWS = {
 } as const;
 
 /**
- * Sistema de assets de marca · DTD-Cargo v3.0 (mayo 2026).
+ * Sistema de assets de marca · DTD Cargo v3.0 (mayo 2026).
  *
  * Fuente de verdad oficial:
  *   docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html
