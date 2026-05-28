@@ -685,6 +685,29 @@ function ReceiptDetailModal({
           </div>
         )}
 
+        {/* Sprint 1 v3: editar inline (sólo si pendiente_consolidacion + mine) */}
+        {r.status === "pendiente_consolidacion" && r.mine && (
+          <Link
+            href={`/m/cn/recepcion/${r.id}/editar`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: "var(--s-4)",
+              padding: "12px 16px",
+              background: "var(--wine)",
+              color: "var(--ink-inv)",
+              borderRadius: "var(--r-md)",
+              font: "700 13px/1 var(--f-sans)",
+              textDecoration: "none",
+            }}
+          >
+            {Icon.edit(16)}
+            <span>{t(lang, "Editar recepción", "编辑接收")}</span>
+          </Link>
+        )}
+
         <p
           style={{
             font: "500 11.5px/1.4 var(--f-sans)",
@@ -693,11 +716,17 @@ function ReceiptDetailModal({
             textAlign: "center",
           }}
         >
-          {t(
-            lang,
-            "Vista resumida. Para editar abrí el Studio web.",
-            "摘要视图。如需编辑请打开 Studio 网页。",
-          )}
+          {r.status === "pendiente_consolidacion" && r.mine
+            ? t(
+                lang,
+                "Editable hasta consolidación. Cambios quedan auditados.",
+                "整合前可编辑。所有更改将记录。",
+              )
+            : t(
+                lang,
+                "Vista resumida. Para editar abrí el Studio web.",
+                "摘要视图。如需编辑请打开 Studio 网页。",
+              )}
         </p>
       </div>
     </div>
