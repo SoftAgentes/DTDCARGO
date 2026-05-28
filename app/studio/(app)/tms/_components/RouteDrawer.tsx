@@ -356,6 +356,7 @@ export function RouteDrawer({
             value={distanceKm}
             onChange={setDistanceKm}
             type="number"
+            numericType="count"
             placeholder="168"
             mono
           />

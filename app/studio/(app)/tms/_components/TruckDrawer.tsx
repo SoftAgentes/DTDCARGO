@@ -12,6 +12,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 
 const initialState: TmsActionState = {};
 
@@ -105,6 +106,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             value={capacityKg}
             onChange={setCapacityKg}
             type="number"
+            numericType="weight"
             placeholder="30000"
             mono
           />
@@ -114,6 +116,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             value={capacityCbm}
             onChange={setCapacityCbm}
             type="number"
+            numericType="volume"
             placeholder="76"
             mono
           />
@@ -123,6 +126,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             value={km}
             onChange={setKm}
             type="number"
+            numericType="count"
             placeholder="0"
             mono
             error={state.fieldErrors?.km}
@@ -142,6 +146,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             value={consumption}
             onChange={setConsumption}
             type="number"
+            numericType="decimal"
             placeholder="8.0"
             mono
           />
@@ -184,6 +189,7 @@ export function FieldText({
   value,
   onChange,
   type = "text",
+  numericType,
   placeholder,
   mono,
   error,
@@ -193,13 +199,25 @@ export function FieldText({
   name: string;
   value: string;
   onChange: (v: string) => void;
+  /**
+   * type HTML del input. Si es `"number"`, internamente se renderiza
+   * `<NumericInput>` (con adornment + preview formateado + soporte de
+   * expresiones aritméticas).
+   */
   type?: string;
+  /**
+   * Cuando type="number", define el tipo semántico del NumericInput:
+   * "currency" / "weight" / "volume" / "count" / "decimal".
+   * Default: "decimal".
+   */
+  numericType?: "currency" | "weight" | "volume" | "count" | "decimal";
   placeholder?: string;
   mono?: boolean;
   error?: string;
   rows?: number;
 }) {
   const cls = mono ? "studio-input studio-input-mono" : "studio-input";
+  const isNumeric = type === "number";
   return (
     <div>
       <label className="studio-label" htmlFor={`tms-${name}`}>
@@ -215,6 +233,15 @@ export function FieldText({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           style={{ resize: "vertical" }}
+        />
+      ) : isNumeric ? (
+        <NumericInput
+          id={`tms-${name}`}
+          name={name}
+          type={numericType ?? "decimal"}
+          placeholder={placeholder}
+          value={value === "" ? null : Number(value)}
+          onChange={(v) => onChange(v != null ? String(v) : "")}
         />
       ) : (
         <input

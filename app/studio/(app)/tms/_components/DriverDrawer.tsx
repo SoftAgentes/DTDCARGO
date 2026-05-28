@@ -131,6 +131,7 @@ export function DriverDrawer({ onClose }: { onClose: () => void }) {
             value={expYears}
             onChange={setExpYears}
             type="number"
+            numericType="count"
             placeholder="5"
             mono
             error={state.fieldErrors?.exp_years}
