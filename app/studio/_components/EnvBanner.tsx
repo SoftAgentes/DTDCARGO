@@ -24,6 +24,7 @@ import {
   type IntegrationStatus,
 } from "@/lib/studio/env-status";
 import { Badge } from "./ui/Badge";
+import { DeployButton } from "./deploy/DeployWebBot";
 
 const CRITICAL_INTEGRATIONS: IntegrationKey[] = [
   "resend",
@@ -131,20 +132,29 @@ export function EnvBanner() {
         </span>
       </div>
 
-      <Link
-        href="/studio/debug"
+      <div
         style={{
-          color: accentColor,
-          fontSize: 12,
-          fontWeight: 600,
-          textDecoration: "underline",
-          textUnderlineOffset: 2,
-          textDecorationThickness: 1,
-          whiteSpace: "nowrap",
+          display: "flex",
+          alignItems: "center",
+          gap: "var(--s-3)",
         }}
       >
-        Ver detalle <span aria-hidden>→</span>
-      </Link>
+        {isLocal && <DeployButton />}
+        <Link
+          href="/studio/debug"
+          style={{
+            color: accentColor,
+            fontSize: 12,
+            fontWeight: 600,
+            textDecoration: "underline",
+            textUnderlineOffset: 2,
+            textDecorationThickness: 1,
+            whiteSpace: "nowrap",
+          }}
+        >
+          Ver detalle <span aria-hidden>→</span>
+        </Link>
+      </div>
     </div>
   );
 }
