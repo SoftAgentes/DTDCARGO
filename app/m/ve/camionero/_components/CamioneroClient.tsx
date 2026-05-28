@@ -28,12 +28,15 @@ import {
 import { advanceOdAction, signOutAction } from "../actions";
 import { switchModeAction } from "../../modos/actions";
 import { PodModal } from "./PodModal";
+import { CurrentDelivery } from "./CurrentDelivery";
+import { GpsBlock, GpsLiveProvider } from "./GpsBlock";
 import {
   DISPATCH_ORDER_STATUS_LABELS,
   DISPATCH_ORDER_STATUS_TONES,
   type DispatchOrderRow,
 } from "@/lib/studio/dispatch-types";
 import type { OperarioRole } from "@/lib/studio/operario-types";
+import { useRouter } from "next/navigation";
 
 interface Props {
   operario: {
@@ -46,9 +49,17 @@ interface Props {
   };
   ods: DispatchOrderRow[];
   tenantId: string;
+  /** Sprint 3 · markbox → signed URL del bucket client-facades (10min). */
+  facadeSignedUrls: Record<string, string>;
 }
 
-export function CamioneroClient({ operario, ods, tenantId }: Props) {
+export function CamioneroClient({
+  operario,
+  ods,
+  tenantId,
+  facadeSignedUrls,
+}: Props) {
+  const router = useRouter();
   const [activeOdId, setActiveOdId] = useState<string | null>(ods[0]?.id ?? null);
   const [podOpen, setPodOpen] = useState(false);
   const { theme, toggle: toggleTheme } = useThemeMode("camionero");
@@ -62,6 +73,7 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
   });
 
   return (
+    <GpsLiveProvider>
     <div
       data-theme={theme}
       style={{
@@ -128,6 +140,8 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
             <OdView
               od={activeOd}
               onOpenPod={() => setPodOpen(true)}
+              facadeSignedUrls={facadeSignedUrls}
+              onRefresh={() => router.refresh()}
             />
           )}
         </>
@@ -140,6 +154,7 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
         />
       )}
     </div>
+    </GpsLiveProvider>
   );
 }
 
@@ -270,11 +285,26 @@ function EmptyState() {
 function OdView({
   od,
   onOpenPod,
+  facadeSignedUrls,
+  onRefresh,
 }: {
   od: DispatchOrderRow;
   onOpenPod: () => void;
+  facadeSignedUrls: Record<string, string>;
+  onRefresh: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+
+  // Sprint 3: partial-delivery + currentDelivery
+  const totalPkgs = od.packages.length;
+  const pendingPkgs = od.packages.filter(
+    (p) => (p.delivery_status ?? "pendiente") === "pendiente",
+  );
+  const completedCount = totalPkgs - pendingPkgs.length;
+  const allDone = pendingPkgs.length === 0 && totalPkgs > 0;
+  const currentIdx = od.packages.findIndex(
+    (p) => (p.delivery_status ?? "pendiente") === "pendiente",
+  );
 
   return (
     <main style={{ flex: 1, padding: 16, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -316,88 +346,117 @@ function OdView({
             font: "700 12px/1 var(--f-mono)",
           }}
         >
-          <span>{od.package_count} pkg</span>
+          <span>
+            {completedCount}/{totalPkgs} entregadas
+          </span>
           <span>{od.total_kg.toFixed(0)} kg</span>
           <span>{od.total_cbm.toFixed(1)} cbm</span>
         </div>
       </div>
 
-      {/* Packages · numeración 1/N (Sprint G handoff v1.7) */}
-      <div className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
-        Próxima entrega 1/{od.packages.length} · Paradas
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {od.packages.map((p, idx) => (
-          <div
-            key={p.package_id}
-            style={{
-              padding: 12,
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-md)",
-              display: "flex",
-              gap: 12,
-              alignItems: "flex-start",
-            }}
-          >
-            <div
-              aria-hidden="true"
-              style={{
-                flexShrink: 0,
-                width: 28,
-                height: 28,
-                borderRadius: "var(--r-pill)",
-                background: idx === 0 ? "var(--wine-tint)" : "var(--bg-elevated)",
-                color: idx === 0 ? "var(--wine)" : "var(--ink-soft)",
-                font: "900 12.5px/1 var(--f-mono)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: idx === 0 ? "1px solid var(--wine)" : "1px solid var(--border)",
-              }}
-            >
-              {idx + 1}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
+      {/* GPS Live Block (Sprint 3) */}
+      {od.status === "en_ruta" && <GpsBlock />}
+
+      {/* Current Delivery + paquetes restantes */}
+      {od.status === "en_ruta" && pendingPkgs.length > 0 && (
+        <>
+          <div className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
+            Próxima entrega · {currentIdx + 1}/{totalPkgs}
+          </div>
+          {od.packages.map((p, idx) => {
+            const status = p.delivery_status ?? "pendiente";
+            const isPending = status === "pendiente";
+            // Render expandido el primer pendiente, los demás compactos
+            const isCurrent = idx === currentIdx;
+            return (
+              <CurrentDelivery
+                key={p.package_id}
+                pkg={p}
+                odId={od.id}
+                facadeSignedUrl={facadeSignedUrls[p.markbox] ?? null}
+                position={idx + 1}
+                total={totalPkgs}
+                readOnly={!isCurrent && !isPending}
+                onRefresh={onRefresh}
+              />
+            );
+          })}
+        </>
+      )}
+
+      {/* Si status es lista, lista compacta de packages */}
+      {od.status === "lista" && (
+        <>
+          <div className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
+            {totalPkgs} paradas · arranca cuando estés listo
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {od.packages.map((p, idx) => (
               <div
+                key={p.package_id}
                 style={{
+                  padding: 10,
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-sm)",
                   display: "flex",
-                  justifyContent: "space-between",
+                  gap: 10,
                   alignItems: "center",
-                  marginBottom: 4,
-                  gap: 8,
                 }}
               >
-                <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)" }}>
-                  {p.markbox}
-                </code>
-                <code style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
-                  {p.boxes_shipped} cj · {p.weight_kg.toFixed(0)} kg
-                </code>
-              </div>
-              <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
-                {p.client_name}
-              </div>
-              <div style={{ font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
-                {p.city}
-              </div>
-              {p.description && (
                 <div
+                  aria-hidden="true"
                   style={{
-                    font: "500 11px/1.4 var(--f-sans)",
-                    color: "var(--ink-mute)",
-                    marginTop: 6,
-                    paddingTop: 6,
-                    borderTop: "1px dashed var(--border)",
+                    flexShrink: 0,
+                    width: 26,
+                    height: 26,
+                    borderRadius: "var(--r-pill)",
+                    background:
+                      idx === 0 ? "var(--wine-tint)" : "var(--bg-elevated)",
+                    color: idx === 0 ? "var(--wine)" : "var(--ink-soft)",
+                    font: "800 11px/1 var(--f-mono)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border:
+                      idx === 0
+                        ? "1px solid var(--wine)"
+                        : "1px solid var(--border)",
                   }}
                 >
-                  {p.description}
+                  {idx + 1}
                 </div>
-              )}
-            </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      font: "700 12.5px/1.2 var(--f-sans)",
+                      color: "var(--ink)",
+                    }}
+                  >
+                    {p.client_name}
+                  </div>
+                  <div
+                    style={{
+                      font: "500 11px/1.3 var(--f-sans)",
+                      color: "var(--ink-soft)",
+                    }}
+                  >
+                    {p.city}
+                  </div>
+                </div>
+                <code
+                  style={{
+                    font: "700 11px/1 var(--f-mono)",
+                    color: "var(--ink-mute)",
+                  }}
+                >
+                  {p.boxes_shipped} cj
+                </code>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       {/* Actions */}
       {od.status === "lista" && (
@@ -422,15 +481,32 @@ function OdView({
         </div>
       )}
 
-      {od.status === "en_ruta" && (
+      {od.status === "en_ruta" && allDone && (
         <button
           type="button"
           onClick={onOpenPod}
           className="studio-btn studio-btn-primary"
           style={{ width: "100%", height: 52, fontSize: 14, marginTop: 8 }}
         >
-          Confirmar entrega · POD
+          Cerrar ruta · POD final
         </button>
+      )}
+
+      {od.status === "en_ruta" && !allDone && (
+        <div
+          style={{
+            padding: 10,
+            background: "var(--bg-elevated)",
+            border: "1px dashed var(--border)",
+            borderRadius: "var(--r-sm)",
+            font: "500 11.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+            textAlign: "center",
+          }}
+        >
+          Marcá cada parada como entregada / rechazada / retornada arriba.
+          Cuando termines, podrás cerrar la ruta con el POD final.
+        </div>
       )}
 
       {error && (
