@@ -38,11 +38,14 @@ import {
   type NewsTipo,
 } from "@/lib/news/categories";
 import {
+  buildDetectBriefIntentPrompt,
   buildDetectCategoryPrompt,
   buildSuggestKeywordsPrompt,
   buildGenerateHeadlinesPrompt,
   buildGenerateBulletsPrompt,
+  buildGenerateOutlinesPrompt,
   buildGenerateArticlePrompt,
+  type NewsBrief,
 } from "@/lib/news/prompts";
 import { slugify, dedupSlug } from "@/lib/news/slugify";
 import {
@@ -69,7 +72,23 @@ export interface HeadlinesResult {
 
 export interface BulletsResult {
   ok: true;
-  bullets: BulletItem[]; // 8-10 secciones
+  bullets: BulletItem[]; // 8-10 secciones (Plan v4 — legacy)
+}
+
+export type OutlineClosingType =
+  | "conclusion-analitica"
+  | "llamada-a-la-accion"
+  | "pregunta-abierta";
+
+export interface OutlineItem {
+  thesis: string;
+  sections: BulletItem[]; // 5-7 secciones
+  closing_type: OutlineClosingType;
+}
+
+export interface OutlinesResult {
+  ok: true;
+  outlines: OutlineItem[]; // 3 alternativas (Plan v5)
 }
 
 export interface ArticleResult {
@@ -80,6 +99,15 @@ export interface ArticleResult {
 export interface DetectCategoryResult {
   ok: true;
   categoria: NewsCategoria;
+  reason: string;
+  confidence: number; // 0-100
+}
+
+export interface DetectBriefIntentResult {
+  ok: true;
+  tipo: NewsTipo;
+  categoria: NewsCategoria;
+  tone_suggested: Tone;
   reason: string;
   confidence: number; // 0-100
 }
@@ -249,6 +277,104 @@ function parseJsonLoose<T>(text: string): T | null {
 function firstText(content: Anthropic.Messages.ContentBlock[]): string {
   const tb = content.find((b): b is TextBlock => b.type === "text");
   return tb?.text ?? "";
+}
+
+// ── Action 0 · Detectar tipo + categoría + tono desde brief (Plan v5) ──
+
+export async function detectBriefIntent(
+  brief: NewsBrief,
+): Promise<DetectBriefIntentResult | ErrorResult> {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard;
+
+  const cleanTopic = brief.topic.trim();
+  if (!cleanTopic) return { ok: false, error: "Ingresá un tema en el brief" };
+  if (cleanTopic.length > 500) {
+    return { ok: false, error: "El tema es demasiado largo (máx 500 chars)" };
+  }
+  const cleanAngle = brief.angle.trim();
+  if (cleanAngle.length > 280) {
+    return { ok: false, error: "El ángulo es demasiado largo (máx 280 chars)" };
+  }
+  // Validación URLs (solo formato — no verificamos reachability)
+  const cleanRefs: string[] = [];
+  for (const ref of brief.refs) {
+    const r = ref.trim();
+    if (!r) continue;
+    try {
+      const u = new URL(r);
+      if (u.protocol !== "http:" && u.protocol !== "https:") {
+        return { ok: false, error: `Link inválido: ${r}` };
+      }
+      cleanRefs.push(r);
+    } catch {
+      return { ok: false, error: `Link inválido: ${r}` };
+    }
+    if (cleanRefs.length >= 3) break;
+  }
+
+  const prompt = buildDetectBriefIntentPrompt({
+    topic: cleanTopic,
+    refs: cleanRefs,
+    angle: cleanAngle,
+  });
+
+  try {
+    const client = getClient();
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: 500,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = firstText(response.content);
+    const parsed = parseJsonLoose<{
+      tipo: string;
+      categoria: string;
+      tone_suggested: string;
+      reason: string;
+      confidence: number;
+    }>(text);
+    if (
+      !parsed ||
+      typeof parsed.tipo !== "string" ||
+      typeof parsed.categoria !== "string"
+    ) {
+      return {
+        ok: false,
+        error: "Claude devolvió un formato inesperado. Reintentá.",
+      };
+    }
+    const tipo = parsed.tipo as NewsTipo;
+    const categoria = parsed.categoria as NewsCategoria;
+    const catInfo = NEWS_CATEGORIES_V4[categoria];
+    if (!catInfo) {
+      return { ok: false, error: `Categoría inválida: ${parsed.categoria}` };
+    }
+    if (catInfo.tipo !== tipo) {
+      return {
+        ok: false,
+        error: `Inconsistencia: categoría "${parsed.categoria}" no pertenece al tipo "${parsed.tipo}"`,
+      };
+    }
+    const validTones: Tone[] = ["informativo", "curiosidad", "polemico"];
+    const tone = validTones.includes(parsed.tone_suggested as Tone)
+      ? (parsed.tone_suggested as Tone)
+      : "informativo";
+    const confidence = Number.isFinite(parsed.confidence)
+      ? Math.max(0, Math.min(100, Math.round(parsed.confidence)))
+      : 70;
+    return {
+      ok: true,
+      tipo,
+      categoria,
+      tone_suggested: tone,
+      reason: String(parsed.reason ?? "").trim(),
+      confidence,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error desconocido";
+    return { ok: false, error: `Falló la llamada a Claude: ${msg}` };
+  }
 }
 
 // ── Action 1 · Detectar categoría sugerida ────────────────────
@@ -499,6 +625,92 @@ Devolvé SOLO JSON válido con este shape exacto, sin prosa adicional ni bloques
       };
     }
     return { ok: true, bullets };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error desconocido";
+    return { ok: false, error: `Falló la llamada a Claude: ${msg}` };
+  }
+}
+
+// ── Action 4b · Generar 3 outlines alternativos (Plan v5) ─────
+
+export async function generateOutlines(
+  headline: string,
+  categoria: NewsCategoria,
+  secondaryKeywords?: string[],
+): Promise<OutlinesResult | ErrorResult> {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard;
+
+  const cleanHeadline = headline.trim();
+  if (!cleanHeadline) return { ok: false, error: "Falta el titular elegido" };
+  if (!NEWS_CATEGORIES_V4[categoria]) {
+    return { ok: false, error: `Categoría inválida: ${categoria}` };
+  }
+
+  const prompt = buildGenerateOutlinesPrompt(
+    cleanHeadline,
+    categoria,
+    secondaryKeywords,
+  );
+
+  const VALID_CLOSINGS = new Set<OutlineClosingType>([
+    "conclusion-analitica",
+    "llamada-a-la-accion",
+    "pregunta-abierta",
+  ]);
+
+  try {
+    const client = getClient();
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: 3000,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = firstText(response.content);
+    const parsed = parseJsonLoose<{ outlines: unknown[] }>(text);
+    if (!parsed || !Array.isArray(parsed.outlines)) {
+      return {
+        ok: false,
+        error: "Claude devolvió un formato inesperado. Reintentá.",
+      };
+    }
+    const outlines: OutlineItem[] = parsed.outlines
+      .map((raw): OutlineItem | null => {
+        if (!raw || typeof raw !== "object") return null;
+        const o = raw as {
+          thesis?: unknown;
+          sections?: unknown;
+          closing_type?: unknown;
+        };
+        const thesis = String(o.thesis ?? "").trim();
+        const sections: BulletItem[] = Array.isArray(o.sections)
+          ? o.sections
+              .map((s): BulletItem | null => {
+                if (!s || typeof s !== "object") return null;
+                const sec = s as { title?: unknown; desc?: unknown };
+                const title = String(sec.title ?? "").trim();
+                const desc = String(sec.desc ?? "").trim();
+                if (!title) return null;
+                return { title, desc };
+              })
+              .filter((s): s is BulletItem => s !== null)
+          : [];
+        const rawClosing = String(o.closing_type ?? "");
+        const closing_type: OutlineClosingType = VALID_CLOSINGS.has(
+          rawClosing as OutlineClosingType,
+        )
+          ? (rawClosing as OutlineClosingType)
+          : "conclusion-analitica";
+        if (!thesis || sections.length < 3) return null;
+        return { thesis, sections, closing_type };
+      })
+      .filter((o): o is OutlineItem => o !== null)
+      .slice(0, 3);
+
+    if (outlines.length === 0) {
+      return { ok: false, error: "No se obtuvieron outlines válidos. Reintentá." };
+    }
+    return { ok: true, outlines };
   } catch (e) {
     const msg = e instanceof Error ? e.message : "Error desconocido";
     return { ok: false, error: `Falló la llamada a Claude: ${msg}` };

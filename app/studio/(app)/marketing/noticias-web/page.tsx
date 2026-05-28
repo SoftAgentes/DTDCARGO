@@ -67,12 +67,11 @@ export default async function NoticiasWebPage() {
     <div
       data-theme="light"
       style={{
-        background: "var(--color-paper, #FBFAF7)",
-        color: "var(--color-ink, #0F1E3D)",
+        background: "var(--color-paper)",
+        color: "var(--color-ink)",
         borderRadius: 16,
         padding: "32px 28px 48px",
-        boxShadow:
-          "0 2px 4px rgba(15,30,61,0.08), 0 8px 16px rgba(15,30,61,0.10), 0 24px 48px -16px rgba(15,30,61,0.22)",
+        boxShadow: "var(--shadow-pop)",
         maxWidth: 1480,
       }}
     >

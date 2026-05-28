@@ -1,18 +1,22 @@
 /**
- * LLMModeToggle · Plan v4 — Switch Auto ↔ Manual del Generador.
+ * LLMModeToggle · Plan v5 — Switch Auto ↔ Manual del Generador.
  *
  * Auto:    el cliente llama a server actions que invocan Claude vía SDK.
- * Manual:  el cliente abre ManualPromptModal con el prompt pre-cargado para
- *          que el operador lo pegue en claude.ai y traiga la respuesta.
+ * Manual:  el cliente abre ManualPromptModal con el prompt pre-cargado
+ *          para que el operador lo pegue en claude.ai y traiga la
+ *          respuesta.
  *
  * Persistencia en localStorage('dtd:noticias:mode'). Default = "auto".
- *
  * El hook `useLLMMode()` es SSR-safe (hidrata después de mount).
+ *
+ * v5: UI migrada a primitiva <SegmentedControl> compartida del Studio.
+ * La implementación ad-hoc de pills inline se eliminó.
  */
 
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 
 export type LLMMode = "auto" | "manual";
 
@@ -40,19 +44,6 @@ export function useLLMMode(): [LLMMode, (m: LLMMode) => void] {
   return [mode, setMode];
 }
 
-const OPTIONS: Array<{ value: LLMMode; label: string; hint: string }> = [
-  {
-    value: "auto",
-    label: "Auto",
-    hint: "Genera con Claude vía API (rápido, 3-15s)",
-  },
-  {
-    value: "manual",
-    label: "Manual",
-    hint: "Te muestra el prompt para pegarlo en claude.ai",
-  },
-];
-
 interface Props {
   mode: LLMMode;
   onChange: (m: LLMMode) => void;
@@ -65,33 +56,18 @@ export function LLMModeToggle({ mode, onChange, disabled }: Props) {
       <span className="text-[10.5px] uppercase tracking-wider font-semibold text-grey-500">
         Modo
       </span>
-      <div
-        role="radiogroup"
-        aria-label="Modo de generación"
-        className="inline-flex items-center bg-grey-100 rounded-full p-1 border border-grey-200"
-      >
-        {OPTIONS.map((opt) => {
-          const active = mode === opt.value;
-          return (
-            <button
-              key={opt.value}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => onChange(opt.value)}
-              disabled={disabled}
-              title={opt.hint}
-              className={`inline-flex items-center px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                active
-                  ? "bg-white text-wine card-shadow"
-                  : "text-grey-700 hover:text-wine"
-              }`}
-            >
-              {opt.label}
-            </button>
-          );
-        })}
-      </div>
+      <SegmentedControl<LLMMode>
+        value={mode}
+        onChange={onChange}
+        disabled={disabled}
+        variant="pills"
+        size="sm"
+        ariaLabel="Modo de generación"
+        options={[
+          { value: "auto", label: "Auto" },
+          { value: "manual", label: "Manual" },
+        ]}
+      />
     </div>
   );
 }
