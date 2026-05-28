@@ -9,6 +9,7 @@ import type {
   DispatchOrderRow,
   DispatchOrderStatus,
 } from "./dispatch-types";
+import type { ClientTier } from "./client-types";
 
 const OD_WITH_JOINS_SELECT = `
   id, tenant_id, order_code, status, hub,
@@ -51,7 +52,71 @@ export async function listOdsForBodeguero(
     .limit(50);
 
   if (error) throw error;
-  return normalizeOdRows(data);
+  const rows = normalizeOdRows(data);
+  return hydrateClientFieldsOnPackages(supabase, tenantId, rows);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Hydration · join packages.markbox → clients.{tier, phone}
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Sprint G (handoff v1.7): segundo query batch para traer `tier` y `phone`
+ * de los clientes referenciados por los packages. NO hay FK directo entre
+ * `dispatch_order_packages` y `clients` — el link es lógico via `markbox`.
+ *
+ * Por qué un segundo query y no JOIN inline en `OD_WITH_JOINS_SELECT`:
+ *  - PostgREST/Supabase no soporta JOIN por columna no-FK.
+ *  - Hacerlo en SQL embebido cruzaría tenants si no filtramos · este
+ *    helper aplica `eq("tenant_id", tenantId)` explícito.
+ *  - Es un solo round-trip extra por listado de ODs (los markboxes únicos
+ *    son ~5-20 por hub). Coste despreciable.
+ */
+async function hydrateClientFieldsOnPackages(
+  supabase: SupabaseClient,
+  tenantId: string,
+  rows: DispatchOrderRow[],
+): Promise<DispatchOrderRow[]> {
+  // 1. Recolectar markboxes únicos de todos los packages
+  const markboxes = new Set<string>();
+  for (const od of rows) {
+    for (const p of od.packages) {
+      if (p.markbox) markboxes.add(p.markbox);
+    }
+  }
+  if (markboxes.size === 0) return rows;
+
+  // 2. Batch query a clients
+  const { data: clientsData, error } = await supabase
+    .from("clients")
+    .select("markbox, tier, phone")
+    .eq("tenant_id", tenantId)
+    .in("markbox", Array.from(markboxes));
+
+  if (error) {
+    // No-fatal · UI rendea sin tier/phone si esto falla
+    console.error("[dispatch-mobile-queries] hydrate clients error:", error);
+    return rows;
+  }
+
+  // 3. Indexar por markbox
+  const byMarkbox = new Map<string, { tier: ClientTier; phone: string | null }>();
+  for (const c of (clientsData as { markbox: string; tier: ClientTier; phone: string | null }[] | null) ?? []) {
+    byMarkbox.set(c.markbox, { tier: c.tier, phone: c.phone });
+  }
+
+  // 4. Patchear packages (inmutable · clona los packages)
+  return rows.map((od) => ({
+    ...od,
+    packages: od.packages.map((p) => {
+      const c = byMarkbox.get(p.markbox);
+      return {
+        ...p,
+        client_tier: c?.tier ?? null,
+        client_phone: c?.phone ?? null,
+      };
+    }),
+  }));
 }
 
 // ─────────────────────────────────────────────────────────────
