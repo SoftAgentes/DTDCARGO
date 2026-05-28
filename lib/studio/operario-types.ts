@@ -49,6 +49,11 @@ export type Operario = {
  * Sprint 0 (0060): tms_driver_id linkea camionero/supervisor con su
  * driver TMS para que listOdsForCamionero filtre por driver_id en vez
  * de matching frágil por display_name (anti-pattern eliminado).
+ *
+ * Sprint F v3 (0066): roles text[] (multi-rol). Si length > 1, el login
+ * muestra selector "Modos". role (singular) se mantiene como primary
+ * mode default. `current_mode` lee la cookie `dtd_op_mode` y refleja
+ * el rol activo del día (puede ser null si el operario no eligió aún).
  */
 export type OperarioSession = {
   operario_id: string;
@@ -57,8 +62,10 @@ export type OperarioSession = {
   display_name: string;
   display_name_cn: string | null;
   role: OperarioRole;
+  roles: OperarioRole[];
   region: OperarioRegion;
   tms_driver_id: string | null;
+  current_mode: OperarioRole | null;
 };
 
 // ─────────────────────────────────────────────────────────────
