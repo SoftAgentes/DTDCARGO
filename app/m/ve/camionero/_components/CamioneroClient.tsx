@@ -26,12 +26,14 @@ import {
   type ThemeMode,
 } from "@/app/m/_components/SettingsMenu";
 import { advanceOdAction, signOutAction } from "../actions";
+import { switchModeAction } from "../../modos/actions";
 import { PodModal } from "./PodModal";
 import {
   DISPATCH_ORDER_STATUS_LABELS,
   DISPATCH_ORDER_STATUS_TONES,
   type DispatchOrderRow,
 } from "@/lib/studio/dispatch-types";
+import type { OperarioRole } from "@/lib/studio/operario-types";
 
 interface Props {
   operario: {
@@ -39,6 +41,8 @@ interface Props {
     displayName: string;
     firstName: string;
     initials: string;
+    /** Sprint D · multi-rol. Si length > 1, header muestra "Cambiar modo". */
+    roles: OperarioRole[];
   };
   ods: DispatchOrderRow[];
   tenantId: string;
@@ -76,6 +80,7 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
         realtimeStatus={realtime.status}
         theme={theme}
         onToggleTheme={toggleTheme}
+        isMultiRole={operario.roles.length > 1}
       />
 
       {ods.length === 0 ? (
@@ -147,11 +152,13 @@ function Header({
   realtimeStatus,
   theme,
   onToggleTheme,
+  isMultiRole,
 }: {
   operario: Props["operario"];
   realtimeStatus: import("@/lib/studio/hooks/use-realtime-table").RealtimeStatus;
   theme: ThemeMode;
   onToggleTheme: () => void;
+  isMultiRole: boolean;
 }) {
   return (
     <header
@@ -213,6 +220,7 @@ function Header({
           theme={theme}
           onToggleTheme={onToggleTheme}
           signOutAction={signOutAction}
+          onSwitchMode={isMultiRole ? () => switchModeAction() : undefined}
         />
       </div>
     </header>
