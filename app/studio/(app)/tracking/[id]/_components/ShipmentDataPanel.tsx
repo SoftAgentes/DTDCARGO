@@ -19,6 +19,7 @@
 
 import { useActionState, useState } from "react";
 import { updateShipment, type ActionState } from "../actions";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import {
   VEHICLE_CATEGORY_OPTIONS,
   type Shipment,
@@ -245,30 +246,26 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
       >
         <div>
           <label className="studio-label" htmlFor="weight_kg">
-            Peso (kg)
+            Peso
           </label>
-          <input
+          <NumericInput
             id="weight_kg"
             name="weight_kg"
-            type="number"
-            min="0"
-            step="0.01"
-            className="studio-input"
-            defaultValue={shipment.weight_kg ?? ""}
+            type="weight"
+            min={0}
+            defaultValue={shipment.weight_kg ?? null}
           />
         </div>
         <div>
           <label className="studio-label" htmlFor="volume_m3">
-            Volumen (m³)
+            Volumen
           </label>
-          <input
+          <NumericInput
             id="volume_m3"
             name="volume_m3"
-            type="number"
-            min="0"
-            step="0.001"
-            className="studio-input"
-            defaultValue={shipment.volume_m3 ?? ""}
+            type="volume"
+            min={0}
+            defaultValue={shipment.volume_m3 ?? null}
           />
         </div>
       </div>

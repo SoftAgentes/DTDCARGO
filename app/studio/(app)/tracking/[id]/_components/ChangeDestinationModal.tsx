@@ -16,6 +16,7 @@ import {
   changeDestination,
   lookupRateForNewDestination,
 } from "../actions";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { formatRate } from "@/lib/studio/rate-types";
 import type { Rate } from "@/lib/studio/rate-types";
 import type { Shipment } from "@/lib/studio/shipment-types";
@@ -399,17 +400,16 @@ function FormPhase({
       {/* Fee */}
       <div>
         <label className="studio-label" htmlFor="cd-fee">
-          Fee del cambio (USD) <span style={{ color: "var(--wine)" }}>*</span>
+          Fee del cambio <span style={{ color: "var(--wine)" }}>*</span>
         </label>
-        <input
+        <NumericInput
           id="cd-fee"
-          type="number"
-          step="0.01"
-          min="0"
-          className="studio-input"
-          value={fee}
-          onChange={(e) => setFee(e.target.value)}
+          type="currency"
+          currency="USD"
+          min={0}
           placeholder="0.00"
+          value={fee === "" ? null : Number(fee)}
+          onChange={(v) => setFee(v != null ? String(v) : "")}
         />
         {fieldErrors.fee && <FieldError msg={fieldErrors.fee} />}
         <p

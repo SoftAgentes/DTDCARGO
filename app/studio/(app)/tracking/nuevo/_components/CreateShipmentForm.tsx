@@ -16,6 +16,7 @@
 import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { createShipment, type CreateShipmentState } from "../actions";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import {
   SERVICE_OPTIONS,
   VEHICLE_CATEGORY_OPTIONS,
@@ -295,32 +296,28 @@ export function CreateShipmentForm({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <div>
             <label htmlFor="weight_kg" className="studio-label">
-              Peso (kg)
+              Peso
             </label>
-            <input
+            <NumericInput
               id="weight_kg"
               name="weight_kg"
-              type="number"
-              step="0.01"
-              min="0"
+              type="weight"
+              min={0}
               placeholder="120.50"
               disabled={isPending}
-              className="studio-input"
             />
           </div>
           <div>
             <label htmlFor="volume_m3" className="studio-label">
-              Volumen (m³)
+              Volumen
             </label>
-            <input
+            <NumericInput
               id="volume_m3"
               name="volume_m3"
-              type="number"
-              step="0.001"
-              min="0"
+              type="volume"
+              min={0}
               placeholder="0.450"
               disabled={isPending}
-              className="studio-input"
             />
           </div>
         </div>
