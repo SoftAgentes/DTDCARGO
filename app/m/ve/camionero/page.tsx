@@ -3,7 +3,8 @@
  *
  * Server component:
  *  1. Valida sesión + role
- *  2. Fetch ODs `lista` o `en_ruta` asignadas al driver (match por nombre)
+ *  2. Fetch ODs `lista` o `en_ruta` asignadas al driver via FK explícito
+ *     `operario.tms_driver_id` (Sprint 0 fix — antes era match por nombre)
  *  3. Render CamioneroClient con ruta del día
  */
 
@@ -29,7 +30,7 @@ export default async function CamioneroHomePage() {
   const ods = await listOdsForCamionero(
     admin,
     operario.tenant_id,
-    operario.display_name,
+    operario.tms_driver_id,
   );
 
   const firstName = operario.display_name.split(/\s+/)[0] ?? operario.display_name;

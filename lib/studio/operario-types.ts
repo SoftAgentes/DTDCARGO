@@ -45,6 +45,10 @@ export type Operario = {
  *
  * SDD-0030: warehouse_id ahora es nullable (bodeguero/camionero VE
  * pueden no tener warehouse atado), region distingue cn vs ve.
+ *
+ * Sprint 0 (0060): tms_driver_id linkea camionero/supervisor con su
+ * driver TMS para que listOdsForCamionero filtre por driver_id en vez
+ * de matching frágil por display_name (anti-pattern eliminado).
  */
 export type OperarioSession = {
   operario_id: string;
@@ -54,6 +58,7 @@ export type OperarioSession = {
   display_name_cn: string | null;
   role: OperarioRole;
   region: OperarioRegion;
+  tms_driver_id: string | null;
 };
 
 // ─────────────────────────────────────────────────────────────
