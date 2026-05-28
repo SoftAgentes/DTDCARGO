@@ -46,6 +46,7 @@ import {
   buildGenerateOutlinesPrompt,
   buildGenerateArticlePrompt,
   type NewsBrief,
+  type NewsDialecto,
 } from "@/lib/news/prompts";
 import { slugify, dedupSlug } from "@/lib/news/slugify";
 import {
@@ -724,6 +725,8 @@ export async function generateArticle(
   sections: BulletItem[],
   focusKeyword?: string,
   secondaryKeywords?: string[],
+  tipo?: NewsTipo,
+  dialecto?: NewsDialecto,
 ): Promise<ArticleResult | ErrorResult> {
   const guard = await requireAdmin();
   if (!guard.ok) return guard;
@@ -739,6 +742,8 @@ export async function generateArticle(
     sections,
     focusKeyword,
     secondaryKeywords,
+    tipo,
+    dialecto,
   );
 
   try {

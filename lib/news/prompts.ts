@@ -29,6 +29,39 @@ import {
 export type Tone = "informativo" | "curiosidad" | "polemico";
 
 /**
+ * Dialecto del castellano usado en el cuerpo del artículo. Default
+ * "neutro-latam". El operador puede pedir "ve" para activar
+ * venezolanismos naturales cuando el lector objetivo es claramente VE.
+ */
+export type NewsDialecto = "neutro-latam" | "ve";
+
+const DIALECT_INSTRUCTIONS: Record<NewsDialecto, string> = {
+  "neutro-latam":
+    "Castellano neutro Latam — no voseo argentino, no españolismos peninsulares. Vocabulario común a México, Colombia, Venezuela, Perú, Argentina.",
+  ve: "Castellano venezolano natural — el lector objetivo es importador VE. Usá venezolanismos cuando encajen orgánicamente ('real' como dinero, 'chévere', 'pana', 'echarle pichón', 'arrochar'). Evitá voseo argentino, evitá españolismos peninsulares.",
+};
+
+/**
+ * Target de longitud por tipo editorial. Rangos amplios (800-1200) le dan
+ * pereza al modelo; targets específicos producen piezas más consistentes.
+ * Valores afinados con feedback editorial (Plan v5).
+ */
+const LENGTH_TARGET_BY_TIPO: Record<NewsTipo, { mid: number; band: number }> =
+  {
+    informativo: { mid: 1000, band: 100 },
+    curiosidad: { mid: 700, band: 80 },
+    polemica: { mid: 1100, band: 100 },
+    especial: { mid: 850, band: 100 },
+  };
+
+/** Instrucción universal anti-fabricación de datos · Plan v5. */
+const VERIFY_INSTRUCTION = `IMPORTANTE — Marcadores [VERIFICAR]:
+- Marcá con [VERIFICAR: <dato>] CUALQUIER dato numérico, fecha específica, cita textual atribuida, estadística o porcentaje que no podés confirmar como hecho público.
+- Ejemplos de qué marcar: "el flete subió [VERIFICAR: 30%] el último trimestre", "según [VERIFICAR: cita de directivo de Maersk] el corredor...", "en [VERIFICAR: 2024] entró en vigencia...".
+- Es preferible MARCAR de más a inventar de menos: el editor humano resolverá cada marcador antes de publicar.
+- NO marques afirmaciones generales o conocimiento común (ej: "el yuan es la moneda china" NO necesita marca).`;
+
+/**
  * Brief del operador antes de elegir tipo/categoría. Plan v5 — Brief primero.
  * El operador escribe tema + links opcionales + ángulo; Claude deriva el
  * resto (tipo + categoría + tono) vía buildDetectBriefIntentPrompt.
@@ -292,6 +325,8 @@ export function buildGenerateArticlePrompt(
   sections: Array<{ title: string; desc: string }>,
   focusKeyword?: string,
   secondaryKeywords?: string[],
+  tipo: NewsTipo = "informativo",
+  dialecto: NewsDialecto = "neutro-latam",
 ): string {
   const sectionsList = sections
     .map((s, i) => `${i + 1}. ${s.title} — ${s.desc}`)
@@ -301,22 +336,33 @@ export function buildGenerateArticlePrompt(
     ? `\n\nKEYWORD PRINCIPAL: "${focusKeyword}" — debe aparecer en intro + al menos 1 H2 + 2-3 veces en el body (density 1-2%, NO stuffing).${secondaryKeywords?.length ? `\nKEYWORDS SECUNDARIAS: ${secondaryKeywords.map((k) => `"${k}"`).join(", ")} — incorporar de forma natural cuando encajen.` : ""}`
     : "";
 
-  return `Sos redactor SEO senior de DTD Cargo (logística China-Venezuela). Escribí un artículo completo en castellano neutro Latam.
+  const len = LENGTH_TARGET_BY_TIPO[tipo];
+  const dialectoInstr = DIALECT_INSTRUCTIONS[dialecto];
+
+  return `Sos redactor editorial senior de DTD Cargo (logística China-Venezuela). Escribí un artículo completo siguiendo estas reglas estrictamente.
 
 TITULAR: ${headline}
+TIPO EDITORIAL: ${tipo} · target ${len.mid} palabras (±${len.band})
 
 SECCIONES (en este orden):
 ${sectionsList}${kwBlock}
 
-Reglas:
-- Largo total: 800-1200 palabras
-- Introducción atractiva ANTES de la primera sección (sin H2)
-- Cada sección con un H2 en Markdown (## Título)
-- Transiciones naturales entre secciones
-- Conclusión al final (con H2 "## Conclusión")
-- Palabras clave naturales, sin sobreoptimización ni stuffing
-- Castellano neutro Latam, voz "tú" neutro
-- Pain points del cliente como subtexto — el contenido debe RESOLVER, no solo informar
+ESTRUCTURA EDITORIAL OBLIGATORIA:
+1. Párrafo de introducción (sin H2) — gancho que enmarca el problema o pregunta. 2-3 oraciones.
+2. NUT GRAF — el SEGUNDO párrafo del artículo debe ser el "párrafo de tesis": resume el ángulo central del artículo en 2-3 oraciones. Esta es la columna vertebral editorial — el lector que lee solo los primeros 2 párrafos debe quedarse con el punto central.
+3. Cada sección con un H2 en Markdown (## Título). Title exacto = el del outline elegido.
+4. Transiciones naturales entre secciones (no inicies cada sección con "En esta sección…").
+5. Conclusión al final con H2 "## Conclusión" (o equivalente apropiado).
 
-Devolvé SOLO Markdown puro. NO uses bloques de código \`\`\`. NO agregues preámbulo ni notas. Empezá directamente con el párrafo de introducción.`;
+REGLAS DE LENGUA:
+- ${dialectoInstr}
+- Voz "tú" neutro. Evitá voseo argentino siempre.
+- Pain points del cliente como subtexto — el contenido debe RESOLVER, no solo informar.
+- Sin AI slop ("en conclusión", "es importante destacar", "no podemos olvidar que…").
+
+${VERIFY_INSTRUCTION}
+
+OUTPUT:
+- SOLO Markdown puro. NO uses bloques de código \`\`\`. NO agregues preámbulo ni notas.
+- Empezá directamente con el párrafo de introducción.`;
 }

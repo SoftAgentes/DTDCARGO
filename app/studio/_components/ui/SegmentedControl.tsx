@@ -47,7 +47,7 @@ export interface SegmentedControlProps<T extends string> {
   /** Default sm. Solo aplica a variant=pills. */
   size?: "sm" | "default";
   /** Layout en columnas (cards). 'auto' = flex-1 que reparte ancho. */
-  columns?: "auto" | 2 | 3 | 4 | 5;
+  columns?: "auto" | 1 | 2 | 3 | 4 | 5;
   /** Disabled global del control. Cada option puede tener su propio disabled. */
   disabled?: boolean;
   /** Label accesible del grupo. */

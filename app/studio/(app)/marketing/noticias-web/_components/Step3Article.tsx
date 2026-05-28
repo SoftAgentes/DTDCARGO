@@ -1,22 +1,36 @@
 /**
- * Step3Article · paso 3 del generador.
+ * Step3Article · Plan v5 — artículo + panel SEO lateral.
  *
- * Muestra el titular elegido arriba con un botón "Copiar" a la derecha
- * que copia el artículo completo en Markdown (con `# titular` prefijado).
+ * Layout:
+ *  - Izq (1fr): titular + render Markdown del artículo con MarkdownLite.
+ *               Los `[VERIFICAR:...]` markers se resaltan inline (visual hint
+ *               para el editor: dato sin verificar, resolvelo antes de
+ *               publicar).
+ *  - Der (340px, sticky desktop): panel "Score SEO" con métricas computadas
+ *               por `computeArticleScore`. Density del focus_keyword vs
+ *               target 1-2%, cuenta de H2, longitud, pain points cubiertos,
+ *               nut graf detectado, lista de markers VERIFICAR pendientes.
  *
- * Render del Markdown vía MarkdownLite (parser propio sin deps). Tipografía
- * Georgia, párrafos grey-700, headings ink.
+ * Plan v5 enforcement:
+ *  - Botón "Publicar" queda DISABLED si quedan `[VERIFICAR:...]` markers sin
+ *    resolver en el body (decisión editorial: no publicar datos inventados).
  *
- * Botón inferior "Regenerar artículo" con Icon.refresh (animated cuando
- * loading).
+ * Mobile: panel SEO va arriba del artículo (no sticky).
  */
 
 "use client";
 
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { copyToClipboard } from "./copy";
 import { MarkdownLite } from "./MarkdownLite";
+import {
+  computeArticleScore,
+  densityTone,
+  isPublishReady,
+  TARGET_DENSITY_MIN,
+  TARGET_DENSITY_MAX,
+} from "@/lib/news/score";
 
 const SERIF: React.CSSProperties = {
   fontFamily: "Georgia, 'Times New Roman', serif",
@@ -25,9 +39,10 @@ const SERIF: React.CSSProperties = {
 interface Props {
   selectedHeadline: string;
   markdown: string;
+  focusKeyword?: string;
+  painPoints?: string[];
   onRegenerate: () => void;
   onPublish: () => void;
-  /** Si está set, el artículo ya fue publicado · botón "Publicar" pasa a link "Ver en /noticias" */
   publishedSlug?: string | null;
   loading: boolean;
   error: string | null;
@@ -36,6 +51,8 @@ interface Props {
 export function Step3Article({
   selectedHeadline,
   markdown,
+  focusKeyword = "",
+  painPoints = [],
   onRegenerate,
   onPublish,
   publishedSlug,
@@ -43,6 +60,13 @@ export function Step3Article({
   error,
 }: Props) {
   const [copied, setCopied] = useState(false);
+
+  const score = useMemo(
+    () => computeArticleScore(markdown, focusKeyword, painPoints),
+    [markdown, focusKeyword, painPoints],
+  );
+  const publishReady = isPublishReady(score);
+  const dTone = densityTone(score.focusKeywordDensity);
 
   const handleCopy = async () => {
     const full = `# ${selectedHeadline}\n\n${markdown}`;
@@ -55,7 +79,7 @@ export function Step3Article({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Titular elegido + botón copiar todo */}
+      {/* Header titular + copiar */}
       <div className="border-b border-grey-200 pb-5 flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <span className="eyebrow">Titular elegido</span>
@@ -87,26 +111,245 @@ export function Step3Article({
         </button>
       </div>
 
-      {/* Render del artículo */}
-      {loading ? (
-        <div
-          className="text-grey-500 text-[14px] py-12 text-center"
-          aria-live="polite"
-        >
-          <span className="inline-flex animate-spin mr-2" aria-hidden>
-            {Icon.refresh(16)}
-          </span>
-          Redactando artículo completo...
+      {/* Layout 2-col: artículo + panel SEO */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px] items-start">
+        {/* ─── Artículo ─── */}
+        <div className="min-w-0">
+          {loading ? (
+            <div
+              className="text-grey-500 text-[14px] py-12 text-center"
+              aria-live="polite"
+            >
+              <span className="inline-flex animate-spin mr-2" aria-hidden>
+                {Icon.refresh(16)}
+              </span>
+              Redactando artículo completo...
+            </div>
+          ) : markdown ? (
+            <article className="bg-white card-shadow border border-grey-200 rounded-lg p-6 lg:p-8">
+              <MarkdownLite source={markdown} />
+            </article>
+          ) : (
+            <div className="text-grey-500 text-[14px] py-12 text-center">
+              Sin artículo todavía. Generá uno con el botón de abajo.
+            </div>
+          )}
         </div>
-      ) : markdown ? (
-        <article className="bg-white card-shadow border border-grey-200 rounded-lg p-6 lg:p-8">
-          <MarkdownLite source={markdown} />
-        </article>
-      ) : (
-        <div className="text-grey-500 text-[14px] py-12 text-center">
-          Sin artículo todavía. Generá uno con el botón de abajo.
-        </div>
-      )}
+
+        {/* ─── Panel SEO sticky ─── */}
+        {markdown && !loading && (
+          <aside
+            className="lg:sticky lg:top-4 min-w-0"
+            style={{
+              background: "var(--bg-surface, #FFFFFF)",
+              border: "1px solid var(--border, rgba(15,30,61,0.12))",
+              borderRadius: "var(--r-lg, 12px)",
+              padding: "16px",
+              boxShadow: "var(--shadow-sm)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 14,
+            }}
+          >
+            <div>
+              <div
+                style={{
+                  fontSize: 10.5,
+                  fontWeight: 700,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.06em",
+                  color: "var(--ink-soft, #6B6B6B)",
+                  marginBottom: 4,
+                }}
+              >
+                Score SEO
+              </div>
+              <div
+                style={{
+                  fontSize: 12.5,
+                  color: "var(--ink-soft, #6B6B6B)",
+                  lineHeight: 1.4,
+                }}
+              >
+                Métricas computadas en cliente — el panel se actualiza si
+                editás el markdown.
+              </div>
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-3">
+              <ScoreStat
+                label="Palabras"
+                value={String(score.wordCount)}
+                hint={`${score.readTimeMin} min de lectura`}
+              />
+              <ScoreStat label="H2 (secciones)" value={String(score.h2Count)} />
+              <ScoreStat
+                label="Nut graf"
+                value={score.hasNutGraf ? "Detectado" : "Falta"}
+                tone={score.hasNutGraf ? "ok" : "warn"}
+              />
+              <ScoreStat
+                label="Densidad focus"
+                value={
+                  focusKeyword
+                    ? `${score.focusKeywordDensity.toFixed(2)}%`
+                    : "—"
+                }
+                hint={
+                  focusKeyword
+                    ? `${score.focusKeywordOccurrences}× · target ${TARGET_DENSITY_MIN}-${TARGET_DENSITY_MAX}%`
+                    : "Sin focus keyword"
+                }
+                tone={
+                  dTone === "ok"
+                    ? "ok"
+                    : dTone === "missing"
+                      ? "muted"
+                      : "warn"
+                }
+              />
+            </div>
+
+            {/* Pain points cubiertos */}
+            {painPoints.length > 0 && (
+              <div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    color: "var(--ink-soft, #6B6B6B)",
+                    marginBottom: 6,
+                  }}
+                >
+                  Pain points cubiertos · {score.painPointsCovered.length} /{" "}
+                  {painPoints.length}
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    padding: 0,
+                    listStyle: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 3,
+                  }}
+                >
+                  {score.painPointsCovered.map((p) => (
+                    <li
+                      key={`covered-${p}`}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--color-status-success, #1F8A5B)",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 6,
+                      }}
+                    >
+                      <span style={{ flexShrink: 0 }} aria-hidden>
+                        {Icon.check(12)}
+                      </span>
+                      <span style={{ lineHeight: 1.35 }}>{p}</span>
+                    </li>
+                  ))}
+                  {score.painPointsMissed.map((p) => (
+                    <li
+                      key={`missed-${p}`}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--ink-soft, #6B6B6B)",
+                        display: "flex",
+                        alignItems: "flex-start",
+                        gap: 6,
+                        opacity: 0.75,
+                      }}
+                    >
+                      <span style={{ flexShrink: 0, marginTop: 1 }} aria-hidden>
+                        {Icon.close(11)}
+                      </span>
+                      <span style={{ lineHeight: 1.35 }}>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Markers VERIFICAR */}
+            {score.verifyMarkers.length > 0 && (
+              <div
+                style={{
+                  background: "var(--warning-bg, rgba(184,137,58,0.10))",
+                  border: "1px solid var(--warning, #B8893A)",
+                  borderRadius: 8,
+                  padding: "10px 12px",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 6,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    color: "var(--warning, #B8893A)",
+                  }}
+                >
+                  ⚠ {score.verifyMarkers.length} dato
+                  {score.verifyMarkers.length === 1 ? "" : "s"} sin verificar
+                </div>
+                <ul
+                  style={{
+                    margin: 0,
+                    padding: 0,
+                    listStyle: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 3,
+                  }}
+                >
+                  {score.verifyMarkers.slice(0, 5).map((m, i) => (
+                    <li
+                      key={i}
+                      style={{
+                        fontSize: 12,
+                        color: "var(--ink, #0F1E3D)",
+                        lineHeight: 1.35,
+                      }}
+                    >
+                      • {m.length > 60 ? `${m.slice(0, 60)}…` : m}
+                    </li>
+                  ))}
+                  {score.verifyMarkers.length > 5 && (
+                    <li
+                      style={{
+                        fontSize: 11.5,
+                        color: "var(--ink-soft, #6B6B6B)",
+                      }}
+                    >
+                      +{score.verifyMarkers.length - 5} más
+                    </li>
+                  )}
+                </ul>
+                <p
+                  style={{
+                    fontSize: 11.5,
+                    color: "var(--ink-soft, #6B6B6B)",
+                    margin: "4px 0 0 0",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  Resolvelos en el artículo (editá el markdown) antes de
+                  publicar.
+                </p>
+              </div>
+            )}
+          </aside>
+        )}
+      </div>
 
       {/* Botones publicar (primary) + regenerar (ghost) + error */}
       <div className="flex flex-col gap-3">
@@ -131,7 +374,12 @@ export function Step3Article({
             <button
               type="button"
               onClick={onPublish}
-              disabled={loading || !markdown}
+              disabled={loading || !markdown || !publishReady}
+              title={
+                !publishReady && score.verifyMarkers.length > 0
+                  ? `Resolvé los ${score.verifyMarkers.length} marcadores [VERIFICAR] antes de publicar`
+                  : undefined
+              }
               className="inline-flex items-center gap-2 bg-wine text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"
             >
               <span className="inline-flex" aria-hidden>
@@ -163,6 +411,71 @@ export function Step3Article({
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+// ── ScoreStat helper ─────────────────────────────────────────
+
+interface ScoreStatProps {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "ok" | "warn" | "muted";
+}
+
+function ScoreStat({ label, value, hint, tone }: ScoreStatProps) {
+  const valueColor =
+    tone === "ok"
+      ? "var(--color-status-success, #1F8A5B)"
+      : tone === "warn"
+        ? "var(--warning, #B8893A)"
+        : tone === "muted"
+          ? "var(--ink-mute, #9CA3AF)"
+          : "var(--ink, #0F1E3D)";
+  return (
+    <div
+      style={{
+        background: "var(--bg-elevated, rgba(15,30,61,0.03))",
+        borderRadius: 8,
+        padding: "8px 10px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 2,
+      }}
+    >
+      <span
+        style={{
+          fontSize: 10.5,
+          fontWeight: 700,
+          textTransform: "uppercase",
+          letterSpacing: "0.06em",
+          color: "var(--ink-soft, #6B6B6B)",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        style={{
+          fontSize: 16,
+          fontWeight: 700,
+          color: valueColor,
+          lineHeight: 1.1,
+        }}
+      >
+        {value}
+      </span>
+      {hint && (
+        <span
+          style={{
+            fontSize: 10.5,
+            color: "var(--ink-mute, #9CA3AF)",
+            lineHeight: 1.2,
+          }}
+        >
+          {hint}
+        </span>
+      )}
     </div>
   );
 }

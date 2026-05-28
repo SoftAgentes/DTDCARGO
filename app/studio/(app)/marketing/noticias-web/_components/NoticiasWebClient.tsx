@@ -41,7 +41,7 @@ import {
 } from "@/lib/news/categories";
 import {
   buildGenerateHeadlinesPrompt,
-  buildGenerateBulletsPrompt,
+  buildGenerateOutlinesPrompt,
   buildGenerateArticlePrompt,
   buildSuggestKeywordsPrompt,
   type NewsBrief,
@@ -49,7 +49,7 @@ import {
 import { StepIndicator } from "./StepIndicator";
 import { Step0Brief } from "./Step0Brief";
 import { Step1Headlines } from "./Step1Headlines";
-import { Step2Structure, type BulletState } from "./Step2Structure";
+import { Step2Outlines } from "./Step2Outlines";
 import { Step3Article } from "./Step3Article";
 import { LLMModeToggle, useLLMMode } from "./LLMModeToggle";
 import { ManualPromptModal } from "./ManualPromptModal";
@@ -60,17 +60,17 @@ import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   detectBriefIntent,
   generateArticle,
-  generateBullets,
   generateHeadlines,
+  generateOutlines,
   suggestKeywords,
-  type BulletItem,
   type DetectBriefIntentResult,
   type ErrorResult,
+  type OutlineItem,
   type Tone,
 } from "../actions";
 
 type Step = 0 | 1 | 2 | 3;
-type ModalKind = "headlines" | "bullets" | "article" | "suggest-keywords";
+type ModalKind = "headlines" | "outlines" | "article" | "suggest-keywords";
 
 interface ManualModalConfig {
   kind: ModalKind;
@@ -111,17 +111,6 @@ function parseJsonLoose<T>(text: string): T | null {
     }
   }
   return null;
-}
-
-/** Mapea BulletItem[] (action) → BulletState[] (UI) con id estable. */
-function mapBulletsToState(items: BulletItem[]): BulletState[] {
-  const stamp = Date.now();
-  return items.map((b, i) => ({
-    id: `b-${i}-${stamp}`,
-    title: b.title,
-    desc: b.desc,
-    selected: true,
-  }));
 }
 
 /** Limpia markdown — quita fences si vienen. */
@@ -165,9 +154,10 @@ export function NoticiasWebClient() {
     null,
   );
 
-  // Step 2 state
+  // Step 2 state · 3 outlines alternativos (Plan v5) reemplazan a bullets-checkbox
   const [selectedHeadline, setSelectedHeadline] = useState("");
-  const [bullets, setBullets] = useState<BulletState[]>([]);
+  const [outlines, setOutlines] = useState<OutlineItem[]>([]);
+  const [selectedOutlineIdx, setSelectedOutlineIdx] = useState<number>(-1);
 
   // Step 3 state
   const [article, setArticle] = useState("");
@@ -391,58 +381,66 @@ export function NoticiasWebClient() {
     }
     setError(null);
     setSelectedHeadline(h);
+    setSelectedOutlineIdx(-1);
 
     const secondaryOpt =
       secondaryKeywords.length > 0 ? secondaryKeywords : undefined;
-    const prompt = buildGenerateBulletsPrompt(h, categoria, secondaryOpt);
+    const prompt = buildGenerateOutlinesPrompt(h, categoria, secondaryOpt);
 
     if (mode === "manual") {
       // No avanzamos a Step 2 todavía — esperamos respuesta del modal
       openManualModal({
-        kind: "bullets",
-        title: "Generar estructura del artículo",
-        subtitle: 'Pegá el JSON {"bullets": [...]} con 8-10 secciones',
+        kind: "outlines",
+        title: "Generar 3 arquitecturas alternativas",
+        subtitle:
+          'Pegá el JSON {"outlines": [...]} con 3 outlines (cada uno: thesis + sections + closing_type)',
         prompt,
         inputHint:
-          'Esperamos {"bullets": [{"title": "...", "desc": "..."}, ...]}',
-        placeholder: '{"bullets": [{"title": "...", "desc": "..."}]}',
-        submitLabel: "Cargar estructura",
+          'Esperamos {"outlines": [{"thesis":"...","sections":[{"title":"...","desc":"..."}],"closing_type":"conclusion-analitica"}]}',
+        placeholder: '{"outlines": [{"thesis":"...","sections":[...]}]}',
+        submitLabel: "Cargar 3 outlines",
       });
       return;
     }
 
     setStep(2);
     startTransition(async () => {
-      const res = await generateBullets(h, categoria, secondaryOpt);
+      const res = await generateOutlines(h, categoria, secondaryOpt);
       if (!res.ok) {
         openManualModal(
           {
-            kind: "bullets",
-            title: "Generar estructura (failover Manual)",
+            kind: "outlines",
+            title: "Generar 3 arquitecturas (failover Manual)",
             subtitle: "La API falló — completá en Manual y seguimos",
             prompt,
-            inputHint: 'Esperamos {"bullets": [{"title": "...", "desc": "..."}]}',
-            placeholder: '{"bullets": [...]}',
-            submitLabel: "Cargar estructura",
+            inputHint: 'Esperamos {"outlines": [...]}',
+            placeholder: '{"outlines": [...]}',
+            submitLabel: "Cargar 3 outlines",
           },
           res.error,
         );
         return;
       }
-      setBullets(mapBulletsToState(res.bullets));
+      setOutlines(res.outlines);
+      // Por default proponemos el outline 0 (pragmático) pero el operador
+      // puede elegir otro
+      setSelectedOutlineIdx(0);
     });
   };
 
   // ── Step 2 → 3 ──────────────────────────────────────────────
 
   const handleGenerateArticle = () => {
-    const selectedBullets = bullets
-      .filter((b) => b.selected)
-      .map((b) => ({ title: b.title, desc: b.desc }));
-    if (selectedBullets.length === 0) {
-      setError("Seleccioná al menos 1 sección");
+    const selectedOutline =
+      selectedOutlineIdx >= 0 ? outlines[selectedOutlineIdx] : null;
+    if (!selectedOutline || selectedOutline.sections.length === 0) {
+      setError("Elegí una arquitectura antes de generar el artículo");
       return;
     }
+    const selectedBullets = selectedOutline.sections.map((s) => ({
+      title: s.title,
+      desc: s.desc,
+    }));
     setError(null);
 
     const focusOpt = focusKeyword.trim() || undefined;
@@ -454,6 +452,7 @@ export function NoticiasWebClient() {
       selectedBullets,
       focusOpt,
       secondaryOpt,
+      tipo ?? undefined,
     );
 
     if (mode === "manual") {
@@ -477,6 +476,7 @@ export function NoticiasWebClient() {
         selectedBullets,
         focusOpt,
         secondaryOpt,
+        tipo ?? undefined,
       );
       if (!res.ok) {
         openManualModal(
@@ -523,23 +523,55 @@ export function NoticiasWebClient() {
           closeModal();
           break;
         }
-        case "bullets": {
-          const parsed = parseJsonLoose<{ bullets: BulletItem[] }>(raw);
-          if (!parsed || !Array.isArray(parsed.bullets)) {
+        case "outlines": {
+          const parsed = parseJsonLoose<{ outlines: unknown[] }>(raw);
+          if (!parsed || !Array.isArray(parsed.outlines)) {
             throw new Error(
-              'JSON inválido. Esperamos {"bullets": [{"title": "...", "desc": "..."}]}',
+              'JSON inválido. Esperamos {"outlines": [{"thesis":"...","sections":[...]}]}',
             );
           }
-          const items = parsed.bullets
-            .map((b) => ({
-              title: String(b?.title ?? "").trim(),
-              desc: String(b?.desc ?? "").trim(),
-            }))
-            .filter((b) => b.title.length > 0);
-          if (items.length < 4) {
-            throw new Error("Se esperaban al menos 4 bullets");
+          const VALID_CLOSINGS = new Set([
+            "conclusion-analitica",
+            "llamada-a-la-accion",
+            "pregunta-abierta",
+          ]);
+          const parsedOutlines: OutlineItem[] = parsed.outlines
+            .map((raw): OutlineItem | null => {
+              if (!raw || typeof raw !== "object") return null;
+              const o = raw as {
+                thesis?: unknown;
+                sections?: unknown;
+                closing_type?: unknown;
+              };
+              const thesis = String(o.thesis ?? "").trim();
+              const sections = Array.isArray(o.sections)
+                ? o.sections
+                    .map((s) => {
+                      if (!s || typeof s !== "object") return null;
+                      const sec = s as { title?: unknown; desc?: unknown };
+                      const title = String(sec.title ?? "").trim();
+                      const desc = String(sec.desc ?? "").trim();
+                      if (!title) return null;
+                      return { title, desc };
+                    })
+                    .filter(
+                      (s): s is { title: string; desc: string } => s !== null,
+                    )
+                : [];
+              const rawClosing = String(o.closing_type ?? "");
+              const closing_type = VALID_CLOSINGS.has(rawClosing)
+                ? (rawClosing as OutlineItem["closing_type"])
+                : "conclusion-analitica";
+              if (!thesis || sections.length < 3) return null;
+              return { thesis, sections, closing_type };
+            })
+            .filter((o): o is OutlineItem => o !== null)
+            .slice(0, 3);
+          if (parsedOutlines.length === 0) {
+            throw new Error("No se obtuvieron outlines válidos");
           }
-          setBullets(mapBulletsToState(items));
+          setOutlines(parsedOutlines);
+          setSelectedOutlineIdx(0);
           setStep(2);
           closeModal();
           break;
@@ -644,7 +676,9 @@ export function NoticiasWebClient() {
       return;
     }
     if (step === 2) {
-      // De estructura a headlines · preserva headlines + brief.
+      // De outlines a headlines · preserva headlines + brief.
+      // Los outlines no se pierden — si el operador vuelve a step 2 sin
+      // cambiar el headline, los outlines siguen ahí.
       setStep(1);
       return;
     }
@@ -656,7 +690,8 @@ export function NoticiasWebClient() {
         );
         if (!ok) return;
         setArticle("");
-        setBullets([]);
+        setOutlines([]);
+        setSelectedOutlineIdx(-1);
         setSelectedHeadline("");
         setHeadlines([]);
       }
@@ -745,11 +780,17 @@ export function NoticiasWebClient() {
       )}
 
       {step === 2 && (
-        <Step2Structure
+        <Step2Outlines
           selectedHeadline={selectedHeadline}
-          bullets={bullets}
-          onBulletsChange={setBullets}
-          onGenerate={handleGenerateArticle}
+          outlines={outlines}
+          selectedOutlineIdx={selectedOutlineIdx}
+          onSelectOutline={setSelectedOutlineIdx}
+          onUpdateOutline={(idx, next) => {
+            setOutlines((cur) =>
+              cur.map((o, i) => (i === idx ? next : o)),
+            );
+          }}
+          onGenerateArticle={handleGenerateArticle}
           loading={isPending}
           error={error}
         />
@@ -759,6 +800,8 @@ export function NoticiasWebClient() {
         <Step3Article
           selectedHeadline={selectedHeadline}
           markdown={article}
+          focusKeyword={focusKeyword}
+          painPoints={painPoints}
           onRegenerate={handleGenerateArticle}
           onPublish={handleOpenPublish}
           publishedSlug={publishedInfo?.slug ?? null}
