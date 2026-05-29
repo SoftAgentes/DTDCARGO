@@ -198,6 +198,24 @@ async function checkAnthropic(): Promise<IntegrationHealth> {
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }
 
+// ─── OpenRouter (AI alternativo) ──────────────────────────────
+async function checkOpenRouter(): Promise<IntegrationHealth> {
+  const key = process.env.OPENROUTER_API_KEY;
+  if (!key) return skipped();
+  // GET /models lista modelos disponibles · sin gasto de tokens
+  const r = await timedFetch("https://openrouter.ai/api/v1/models", {
+    headers: { Authorization: `Bearer ${key}` },
+  });
+  if (r.ok) {
+    const data = r.body as { data?: Array<{ id: string }> } | undefined;
+    const count = data?.data?.length ?? 0;
+    return ok(r.latencyMs, `${count} model(s) disponibles`);
+  }
+  if (r.status === 401) return err(r.latencyMs, "API key inválida");
+  if (r.status === 429) return err(r.latencyMs, "Rate limited");
+  return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
+}
+
 // ─── ERP HailuWay ─────────────────────────────────────────────
 async function checkHailuway(): Promise<IntegrationHealth> {
   const api = process.env.NEXT_PUBLIC_HAILUWAY_API;
@@ -213,7 +231,7 @@ async function checkHailuway(): Promise<IntegrationHealth> {
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }
 
-// ─── Orquestador · corre los 7 en paralelo ────────────────────
+// ─── Orquestador · corre las 8 en paralelo ────────────────────
 export async function checkAllIntegrations(): Promise<
   Record<IntegrationKey, IntegrationHealth>
 > {
@@ -224,6 +242,7 @@ export async function checkAllIntegrations(): Promise<
     telegram,
     telegramWebhook,
     anthropic,
+    openrouter,
     hailuway,
   ] = await Promise.all([
     checkSupabase(),
@@ -232,6 +251,7 @@ export async function checkAllIntegrations(): Promise<
     checkTelegramBot(),
     checkTelegramWebhook(),
     checkAnthropic(),
+    checkOpenRouter(),
     checkHailuway(),
   ]);
   return {
@@ -241,6 +261,7 @@ export async function checkAllIntegrations(): Promise<
     telegram,
     telegramWebhook,
     anthropic,
+    openrouter,
     hailuway,
   };
 }

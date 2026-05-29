@@ -50,6 +50,7 @@ const INTEGRATION_ORDER: IntegrationKey[] = [
   "telegram",
   "telegramWebhook",
   "anthropic",
+  "openrouter",
   "hailuway",
 ];
 
@@ -60,6 +61,7 @@ const INTEGRATION_DESCRIPTIONS: Record<IntegrationKey, string> = {
   telegram: "Bot @DTDStudioBot · notif a operarios y reporters de bugs.",
   telegramWebhook: "Recepción de mensajes del bot (linkeo, comandos).",
   anthropic: "Features con Claude (LLM Agent, AI assist).",
+  openrouter: "Proveedor LLM alternativo · GPT/Gemini/Llama via single API.",
   hailuway: "ERP HailuWay externo · usado por sitio público (cotizar, track).",
 };
 
