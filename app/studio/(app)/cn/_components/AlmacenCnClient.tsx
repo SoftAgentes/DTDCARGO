@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
@@ -19,6 +20,7 @@ import {
   PAYMENT_STATUS_LABELS,
   PAYMENT_STATUS_TONES,
   RECEIPT_STATUS_OPTIONS,
+  RECEIPT_STATUS_LABEL_KEYS,
   isChinese,
   parseLangFromParam,
   pickBilingual,
@@ -52,6 +54,11 @@ interface Props {
   clients: Client[];
   cities: DispatchCity[];
   filters: ReceiptFilters;
+  /** shipment_ids con alerta de gastos activa → chip en la row consolidada. */
+  alertShipmentIds?: string[];
+  /** Si false (user region=cn no-admin), se oculta el toggle "Mostrar nombres"
+   *  y el server ya redactó client_name. Default true (compat). */
+  canSeeClientNames?: boolean;
 }
 
 export function AlmacenCnClient({
@@ -60,7 +67,10 @@ export function AlmacenCnClient({
   clients,
   cities,
   filters,
+  alertShipmentIds = [],
+  canSeeClientNames = true,
 }: Props) {
+  const alertSet = new Set(alertShipmentIds);
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -219,19 +229,11 @@ export function AlmacenCnClient({
             }}
           >
             <option value="">{t("warehouse_cn.filter.status_all")}</option>
-            {RECEIPT_STATUS_OPTIONS.map((opt) => {
-              const key =
-                opt.value === "pendiente_consolidacion"
-                  ? "warehouse_cn.status.pending_consolidation"
-                  : opt.value === "consolidado"
-                    ? "warehouse_cn.status.consolidated"
-                    : "warehouse_cn.status.incident";
-              return (
-                <option key={opt.value} value={opt.value}>
-                  {t(key)}
-                </option>
-              );
-            })}
+            {RECEIPT_STATUS_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {t(RECEIPT_STATUS_LABEL_KEYS[opt.value])}
+              </option>
+            ))}
           </select>
         </div>
         {hasActiveFilters && (
@@ -249,36 +251,40 @@ export function AlmacenCnClient({
             {t("warehouse_cn.filter.clear")}
           </button>
         )}
-        <button
-          type="button"
-          className="studio-btn studio-btn-ghost studio-btn-sm"
-          style={{
-            height: 38,
-            marginLeft: "auto",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 6,
-            ...(showClientNames && {
-              background: "var(--wine-tint)",
-              color: "var(--wine)",
-              borderColor: "var(--wine)",
-            }),
-          }}
-          onClick={() => setShowClientNames((v) => !v)}
-          aria-pressed={showClientNames}
-          title={
-            showClientNames
-              ? t("warehouse_cn.filter.hide_names")
-              : t("warehouse_cn.filter.show_names")
-          }
-        >
-          {showClientNames ? Icon.eyeOff(13) : Icon.eye(13)}
-          <span>
-            {showClientNames
-              ? t("warehouse_cn.filter.hide_names")
-              : t("warehouse_cn.filter.show_names")}
-          </span>
-        </button>
+        {/* Toggle "Mostrar nombres" · oculto para region=cn no-admin
+            (el server ya redactó client_name — privacidad SDD-0039 B.9). */}
+        {canSeeClientNames && (
+          <button
+            type="button"
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            style={{
+              height: 38,
+              marginLeft: "auto",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              ...(showClientNames && {
+                background: "var(--wine-tint)",
+                color: "var(--wine)",
+                borderColor: "var(--wine)",
+              }),
+            }}
+            onClick={() => setShowClientNames((v) => !v)}
+            aria-pressed={showClientNames}
+            title={
+              showClientNames
+                ? t("warehouse_cn.filter.hide_names")
+                : t("warehouse_cn.filter.show_names")
+            }
+          >
+            {showClientNames ? Icon.eyeOff(13) : Icon.eye(13)}
+            <span>
+              {showClientNames
+                ? t("warehouse_cn.filter.hide_names")
+                : t("warehouse_cn.filter.show_names")}
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Tabla o empty */}
@@ -321,6 +327,7 @@ export function AlmacenCnClient({
           onToggleOne={toggleOne}
           onToggleAll={() => toggleAll(receipts.map((r) => r.id))}
           showClientNames={showClientNames}
+          alertSet={alertSet}
         />
       )}
 
@@ -365,6 +372,7 @@ function ReceiptsTable({
   onToggleOne,
   onToggleAll,
   showClientNames,
+  alertSet,
 }: {
   rows: WarehouseReceiptRow[];
   lang: LangDisplay;
@@ -374,6 +382,7 @@ function ReceiptsTable({
   onToggleOne: (id: string) => void;
   onToggleAll: () => void;
   showClientNames: boolean;
+  alertSet: Set<string>;
 }) {
   const t = useT();
   const allVisibleSelected =
@@ -445,6 +454,7 @@ function ReceiptsTable({
           selected={selected.has(r.id)}
           onToggle={() => onToggleOne(r.id)}
           showClientNames={showClientNames}
+          hasAlert={r.shipment_id ? alertSet.has(r.shipment_id) : false}
         />
       ))}
     </div>
@@ -459,6 +469,7 @@ function ReceiptRow({
   selected,
   onToggle,
   showClientNames,
+  hasAlert,
 }: {
   row: WarehouseReceiptRow;
   lang: LangDisplay;
@@ -467,7 +478,9 @@ function ReceiptRow({
   selected: boolean;
   onToggle: () => void;
   showClientNames: boolean;
+  hasAlert: boolean;
 }) {
+  const tRow = useT();
   // Supplier bilingual display
   const sup = pickBilingual(
     row.supplier_name,
@@ -743,6 +756,17 @@ function ReceiptRow({
           >
             → {row.destination_city}
           </span>
+        )}
+        {hasAlert && row.shipment_id && (
+          <Link
+            href={`/studio/gastos?scope=shipment&new_expense=${encodeURIComponent(row.shipment_id)}`}
+            title={tRow("expenses.alert.load_btn")}
+            style={{ textDecoration: "none" }}
+          >
+            <Badge tone="warning" size="sm">
+              {Icon.bell(9)} {tRow("expenses.alert.chip")}
+            </Badge>
+          </Link>
         )}
       </span>
 

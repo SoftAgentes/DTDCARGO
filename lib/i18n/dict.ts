@@ -22,6 +22,10 @@ import { pwaOperario as pwaOperarioES } from "./es-VE/pwa-operario";
 import { pwaOperario as pwaOperarioCN } from "./zh-CN/pwa-operario";
 import { errors as errorsES } from "./es-VE/errors";
 import { errors as errorsCN } from "./zh-CN/errors";
+import { users as usersES } from "./es-VE/users";
+import { users as usersCN } from "./zh-CN/users";
+import { expenses as expensesES } from "./es-VE/expenses";
+import { expenses as expensesCN } from "./zh-CN/expenses";
 import type { Locale } from "./locales";
 import { DEFAULT_LOCALE } from "./locales";
 
@@ -32,6 +36,8 @@ const dicts = {
     ...bugReporterES,
     ...pwaOperarioES,
     ...errorsES,
+    ...usersES,
+    ...expensesES,
   },
   "zh-CN": {
     ...chromeCN,
@@ -39,6 +45,8 @@ const dicts = {
     ...bugReporterCN,
     ...pwaOperarioCN,
     ...errorsCN,
+    ...usersCN,
+    ...expensesCN,
   },
 } as const;
 

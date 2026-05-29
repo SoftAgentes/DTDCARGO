@@ -16,6 +16,7 @@ import {
   parseReceiptFiltersFromSearchParams,
 } from "@/lib/studio/warehouse-cn-queries";
 import { listCities } from "@/lib/studio/dispatch-routes-queries";
+import { activeAlertShipmentIds } from "@/lib/studio/expense-alerts-queries";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { t } from "@/lib/i18n";
 import { AlmacenCnClient } from "./_components/AlmacenCnClient";
@@ -33,18 +34,10 @@ export default async function CnPage({
   const filters = parseReceiptFiltersFromSearchParams(rawParams);
 
   const supabase = await createClient();
-  const [receipts, warehouses, clients, kpis, cities] = await Promise.all([
-    listReceipts(supabase, filters),
-    listWarehouses(supabase),
-    listClients(supabase),
-    computeWarehouseKpis(supabase),
-    // Catálogo per-tenant para el picker de destino al consolidar.
-    // Si vacío, el component fallback a input text libre.
-    listCities(supabase, { activeOnly: true }),
-  ]);
 
-  // Resolver locale para textos server-side (header eyebrow/título/desc + KPIs).
-  // Server actions usan el query; el override URL `?lang=` se aplica en cliente.
+  // Resolver user + locale + región/rol ANTES de las queries: necesitamos la
+  // región para redactar nombres de cliente server-side a users region=cn
+  // (SDD-0039 B.9). El override URL `?lang=` se aplica en cliente.
   const userId = (await supabase.auth.getUser()).data.user?.id;
   const [{ data: prof }, { data: ut }] = await Promise.all([
     userId
@@ -57,15 +50,31 @@ export default async function CnPage({
     userId
       ? supabase
           .from("user_tenants")
-          .select("region")
+          .select("region, role")
           .eq("user_id", userId)
-          .maybeSingle<{ region: string | null }>()
+          .maybeSingle<{ region: string | null; role: string | null }>()
       : Promise.resolve({ data: null }),
   ]);
   const { locale } = await resolveLocale({
     userProfileLocale: prof?.locale ?? null,
     userTenantRegion: ut?.region ?? null,
   });
+  // Privacidad: el equipo CN (no-admin) NO ve el nombre real del importador VE,
+  // solo el MARKBOX. Admin (cualquier región) y users VE sí.
+  const canSeeClientNames = !(ut?.region === "cn" && ut?.role !== "admin");
+
+  const [receipts, warehouses, clients, kpis, cities, alertShipmentSet] =
+    await Promise.all([
+      listReceipts(supabase, filters, { redactClientNames: !canSeeClientNames }),
+      listWarehouses(supabase),
+      listClients(supabase),
+      computeWarehouseKpis(supabase),
+      // Catálogo per-tenant para el picker de destino al consolidar.
+      // Si vacío, el component fallback a input text libre.
+      listCities(supabase, { activeOnly: true }),
+      // Shipments con alerta de gastos activa → chip "Pendiente gastos" en la row.
+      activeAlertShipmentIds(supabase),
+    ]);
 
   // Header: título queda compuesto "<prefijo> · 中国" — el sufijo 中国 va
   // siempre en CN como guiño visual (cuando el locale es zh-CN ya se dobla,
@@ -134,6 +143,8 @@ export default async function CnPage({
         clients={clients}
         cities={cities}
         filters={filters}
+        alertShipmentIds={Array.from(alertShipmentSet)}
+        canSeeClientNames={canSeeClientNames}
       />
     </div>
   );

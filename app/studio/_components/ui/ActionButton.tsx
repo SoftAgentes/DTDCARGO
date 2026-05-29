@@ -51,6 +51,7 @@
  */
 
 import { useState, useTransition, type ReactNode } from "react";
+import { useT } from "@/lib/i18n";
 
 const DEFAULT_SUCCESS_MS = 2500;
 
@@ -64,7 +65,8 @@ export interface ActionButtonProps {
   size?: Size;
   /** Texto idle. */
   idleLabel: string;
-  /** Texto durante loading. Default: "Procesando…". */
+  /** Texto durante loading. Default: traducido `chrome.action.processing`
+   *  ("Procesando…" / "处理中…") según el locale activo. */
   loadingLabel?: string;
   /**
    * Texto en estado success. Si es null, se salta el flash de éxito
@@ -107,7 +109,7 @@ export function ActionButton({
   variant = "primary",
   size = "sm",
   idleLabel,
-  loadingLabel = "Procesando…",
+  loadingLabel,
   successLabel = null,
   idleIcon,
   successIcon,
@@ -118,6 +120,10 @@ export function ActionButton({
   onError,
   onSuccess,
 }: ActionButtonProps) {
+  const t = useT();
+  // Label de loading: si el caller no lo pasa, cae al traducido genérico
+  // "Procesando…" / "处理中…" según el locale activo.
+  const effectiveLoadingLabel = loadingLabel ?? t("chrome.action.processing");
   const [isPending, startTransition] = useTransition();
   const [success, setSuccess] = useState(false);
 
@@ -174,7 +180,7 @@ export function ActionButton({
   // cuando NO está idle (sino spamearía "Enviar cotización" cada mount).
   const liveAnnouncement =
     state === "loading"
-      ? loadingLabel
+      ? effectiveLoadingLabel
       : state === "success"
         ? successLabel ?? ""
         : "";
@@ -200,7 +206,7 @@ export function ActionButton({
             <span className="studio-spin" style={iconWrap}>
               <DefaultSpinner />
             </span>
-            {loadingLabel}
+            {effectiveLoadingLabel}
           </>
         ) : (
           <>

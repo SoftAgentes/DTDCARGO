@@ -23,7 +23,8 @@ import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { BigButton } from "@/app/m/_components/BigButton";
 import { MobileHeader } from "@/app/m/_components/MobileHeader";
-import type { Lang } from "@/lib/lang";
+import { type Lang, operarioLangToLocale } from "@/lib/lang";
+import { t as tDict, type I18nKey } from "@/lib/i18n";
 import { createReceiptFromOperarioAction } from "../actions";
 import { uploadReceiptPhotoAction } from "../photo-actions";
 import type {
@@ -132,7 +133,16 @@ function reducer(state: Reception, action: Action): Reception {
   }
 }
 
-const t = (lang: Lang, es: string, cn: string) => (lang === "cn" ? cn : es);
+/**
+ * Wrapper i18n del wizard · mapea Lang (cookie es|cn) → Locale del dict
+ * unificado. Firma `t(lang, key, params?)` para conservar el call-site
+ * similar al helper inline anterior. SDD-0038.
+ */
+const t = (
+  lang: Lang,
+  key: I18nKey,
+  params?: Record<string, string | number>,
+) => tDict(operarioLangToLocale(lang), key, params);
 const initialState: CreateReceiptState = {};
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -385,7 +395,7 @@ function BottomActions({
       }}
     >
       <BigButton
-        label={t(lang, "Atrás", "上一步")}
+        label={t(lang, "pwa.receipt.nav_back")}
         onClick={onBack}
         variant="secondary"
         disabled={isPending}
@@ -393,8 +403,8 @@ function BottomActions({
       <BigButton
         label={
           isPending
-            ? t(lang, "Guardando…", "保存中…")
-            : submitLabel ?? t(lang, "Siguiente →", "下一步 →")
+            ? t(lang, "pwa.receipt.saving")
+            : submitLabel ?? t(lang, "pwa.receipt.next_arrow")
         }
         onClick={onSubmit ?? onNext}
         disabled={nextDisabled || isPending}
@@ -426,8 +436,8 @@ function Step1Photos({
   return (
     <div>
       <MobileHeader
-        title={t(lang, "1 de 4 · Fotos", "1/4 · 拍照")}
-        subtitle={t(lang, "Tomá 3 fotos mínimo", "至少拍3张照片")}
+        title={t(lang, "pwa.receipt.step1_title")}
+        subtitle={t(lang, "pwa.receipt.step1_subtitle")}
         back={<BackBtn onClick={onBack} lang={lang} />}
       />
       <Steps current={1} />
@@ -458,17 +468,13 @@ function Step1Photos({
         {photos.length > 0 && !enough && (
           <Hint
             tone="warning"
-            text={t(
-              lang,
-              `Faltan ${3 - photos.length} fotos · mínimo 3 para registrar`,
-              `还需${3 - photos.length}张照片 · 至少3张`,
-            )}
+            text={t(lang, "pwa.receipt.photos_missing", { n: 3 - photos.length })}
           />
         )}
         {enough && (
           <Hint
             tone="success"
-            text={t(lang, "Fotos suficientes · podés seguir", "照片足够 · 可以继续")}
+            text={t(lang, "pwa.receipt.photos_enough")}
           />
         )}
 
@@ -479,11 +485,7 @@ function Step1Photos({
             color: "var(--ink-mute)",
           }}
         >
-          {t(
-            lang,
-            "Tomá: 1) frente con etiqueta · 2) supplier label · 3) contenido · 4) daños si hay",
-            "拍摄: 1) 正面带标签 · 2) 供应商标签 · 3) 内容 · 4) 损坏(如有)",
-          )}
+          {t(lang, "pwa.receipt.photo_hint")}
         </p>
       </div>
 
@@ -525,7 +527,7 @@ function PhotoAddTile({
       }}
     >
       {Icon.camera(32)}
-      {t(lang, "Tomar foto", "拍照")}
+      {t(lang, "pwa.receipt.take_photo")}
       <input
         id={inputId}
         type="file"
@@ -575,7 +577,7 @@ function PhotoSlot({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={photo.previewUrl}
-        alt={t(lang, `Foto ${index + 1}`, `照片 ${index + 1}`)}
+        alt={t(lang, "pwa.receipt.photo_n", { n: index + 1 })}
         style={{
           position: "absolute",
           inset: 0,
@@ -600,13 +602,13 @@ function PhotoSlot({
           textTransform: "uppercase",
         }}
       >
-        {t(lang, `Foto ${index + 1}`, `照片 ${index + 1}`)}
+        {t(lang, "pwa.receipt.photo_n", { n: index + 1 })}
       </span>
       {/* Hitbox 44x44 (Apple HIG / WCAG 2.5.8) con visual 28x28 centrado */}
       <button
         type="button"
         onClick={onRemove}
-        aria-label={t(lang, "Quitar foto", "删除照片")}
+        aria-label={t(lang, "pwa.receipt.remove_photo")}
         style={{
           position: "absolute",
           top: -2,
@@ -707,8 +709,8 @@ function Step2Identify({
   return (
     <div>
       <MobileHeader
-        title={t(lang, "2 de 4 · Identificar", "2/4 · 识别")}
-        subtitle={t(lang, "¿De quién es esta caja?", "这箱子是谁的?")}
+        title={t(lang, "pwa.receipt.step2_title")}
+        subtitle={t(lang, "pwa.receipt.step2_subtitle")}
         back={<BackBtn onClick={onBack} lang={lang} />}
       />
       <Steps current={2} />
@@ -723,26 +725,22 @@ function Step2Identify({
         {orphan ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-3)" }}>
             <MobileInput
-              label={t(lang, "Marcas visibles en la caja", "箱子上可见标记")}
+              label={t(lang, "pwa.receipt.visible_marks")}
               value={marks}
               onChange={(v) => dispatch({ type: "set", key: "marks", value: v })}
-              placeholder={t(
-                lang,
-                "Ej: ACINDAR-VLN-04 · etiqueta china",
-                "例: ACINDAR-VLN-04 · 中文标签",
-              )}
+              placeholder={t(lang, "pwa.receipt.marks_ph")}
             />
             <MobileInput
-              label={t(lang, "¿Quién la trajo?", "谁送的?")}
+              label={t(lang, "pwa.receipt.brought_by")}
               value={reception.broughtBy}
               onChange={(v) => dispatch({ type: "set", key: "broughtBy", value: v })}
-              placeholder={t(lang, "Chofer o courier", "司机或快递")}
+              placeholder={t(lang, "pwa.receipt.brought_by_ph")}
             />
           </div>
         ) : (
           <div>
             <MobileInput
-              label={t(lang, "Buscar cliente · MARKBOX", "查找客户 · MARKBOX")}
+              label={t(lang, "pwa.receipt.search_client")}
               value={search}
               onChange={setSearch}
               placeholder="DTD-XXXX"
@@ -813,7 +811,7 @@ function Step2Identify({
                     padding: "var(--s-4) 0",
                   }}
                 >
-                  {t(lang, "Sin coincidencias", "无匹配")}
+                  {t(lang, "pwa.receipt.no_matches")}
                 </p>
               )}
             </div>
@@ -871,7 +869,7 @@ function OrphanToggle({
         {orphan && Icon.check(12)}
       </span>
       <span style={{ flex: 1, font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
-        {t(lang, "Caja sin código · huérfana", "无编码 · 孤箱")}
+        {t(lang, "pwa.receipt.orphan_toggle")}
       </span>
     </button>
   );
@@ -903,8 +901,8 @@ function Step3Data({
   return (
     <div>
       <MobileHeader
-        title={t(lang, "3 de 4 · Datos", "3/4 · 数据")}
-        subtitle={t(lang, "Dimensiones y supplier", "尺寸和供应商")}
+        title={t(lang, "pwa.receipt.step3_title")}
+        subtitle={t(lang, "pwa.receipt.step3_subtitle")}
         back={<BackBtn onClick={onBack} lang={lang} />}
       />
       <Steps current={3} />
@@ -918,14 +916,14 @@ function Step3Data({
         }}
       >
         <MobileInput
-          label={t(lang, "Proveedor chino", "中国供应商")}
+          label={t(lang, "pwa.receipt.supplier")}
           value={reception.supplier}
           onChange={(v) => set("supplier", v)}
-          placeholder={t(lang, "Nombre del supplier", "供应商名称")}
+          placeholder={t(lang, "pwa.receipt.supplier_ph")}
         />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--s-2)" }}>
-          <NumLabel label={t(lang, "Cajas", "箱数")}>
+          <NumLabel label={t(lang, "pwa.receipt.boxes")}>
             <NumericInput
               type="count"
               unit="cj"
@@ -946,7 +944,7 @@ function Step3Data({
           </NumLabel>
         </div>
 
-        <NumLabel label={t(lang, "Peso total", "总重量")}>
+        <NumLabel label={t(lang, "pwa.receipt.total_weight")}>
           <NumericInput
             type="weight"
             value={reception.weight === "" ? null : Number(reception.weight)}
@@ -957,7 +955,7 @@ function Step3Data({
         </NumLabel>
 
         <MobileInput
-          label={t(lang, "HS Code (opcional · del supplier)", "HS编码 (可选)")}
+          label={t(lang, "pwa.receipt.hs_code")}
           value={reception.hs}
           onChange={(v) => set("hs", v)}
           placeholder="0000.00"
@@ -1000,7 +998,7 @@ function MobileCitySelect({
           textTransform: "uppercase",
         }}
       >
-        {t(lang, "Ciudad destino VE (opcional)", "委内瑞拉目的地 (可选)")}
+        {t(lang, "pwa.receipt.dest_city")}
       </span>
       <div
         style={{
@@ -1028,7 +1026,7 @@ function MobileCitySelect({
               WebkitAppearance: "none",
             }}
           >
-            <option value="">{t(lang, "— Elegir —", "— 选择 —")}</option>
+            <option value="">{t(lang, "pwa.receipt.choose")}</option>
             {cities.map((c) => (
               <option key={c.id} value={c.city}>
                 {c.city} · {c.state_name}
@@ -1040,7 +1038,7 @@ function MobileCitySelect({
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            placeholder={t(lang, "ej: Valencia", "如: 巴伦西亚")}
+            placeholder={t(lang, "pwa.receipt.city_ph")}
             style={{
               flex: 1,
               border: 0,
@@ -1061,16 +1059,8 @@ function MobileCitySelect({
         }}
       >
         {hasCatalog
-          ? t(
-              lang,
-              `${cities.length} ciudades cargadas del catálogo del tenant.`,
-              `${cities.length} 个城市来自租户目录`,
-            )
-          : t(
-              lang,
-              "Catálogo VE vacío · escribí ciudad libre o pedile al admin seedear catálogo.",
-              "目录为空 · 自由输入或请管理员添加",
-            )}
+          ? t(lang, "pwa.receipt.cities_loaded", { n: cities.length })
+          : t(lang, "pwa.receipt.cities_empty")}
       </span>
     </label>
   );
@@ -1180,8 +1170,8 @@ function Step4Confirm({
   return (
     <div>
       <MobileHeader
-        title={t(lang, "4 de 4 · Confirmar", "4/4 · 确认")}
-        subtitle={t(lang, "Revisá y guardá", "检查并保存")}
+        title={t(lang, "pwa.receipt.step4_title")}
+        subtitle={t(lang, "pwa.receipt.step4_subtitle")}
         back={<BackBtn onClick={onBack} lang={lang} />}
       />
       <Steps current={4} />
@@ -1206,14 +1196,14 @@ function Step4Confirm({
             className="studio-eyebrow"
             style={{ color: "var(--wine)", marginBottom: "var(--s-3)" }}
           >
-            {t(lang, "Resumen", "总结")}
+            {t(lang, "pwa.receipt.summary")}
           </div>
-          <SummaryRow label={t(lang, "Fotos", "照片")} value={`${reception.photos.length}`} />
+          <SummaryRow label={t(lang, "pwa.receipt.photos_label")} value={`${reception.photos.length}`} />
           <SummaryRow
-            label={t(lang, "Cliente", "客户")}
+            label={t(lang, "pwa.receipt.client")}
             value={
               reception.orphan
-                ? t(lang, `Huérfana · ${reception.marks}`, `孤箱 · ${reception.marks}`)
+                ? t(lang, "pwa.receipt.orphan_summary", { marks: reception.marks })
                 : clientObj?.name ?? reception.client
             }
             highlight={reception.orphan ? "warning" : undefined}
@@ -1221,11 +1211,11 @@ function Step4Confirm({
           {!reception.orphan && reception.client && (
             <SummaryRow label="MARKBOX" value={reception.client} mono />
           )}
-          <SummaryRow label={t(lang, "Supplier", "供应商")} value={reception.supplier || "—"} />
-          <SummaryRow label={t(lang, "Cajas", "箱")} value={reception.boxes} mono />
+          <SummaryRow label={t(lang, "pwa.receipt.supplier_label")} value={reception.supplier || "—"} />
+          <SummaryRow label={t(lang, "pwa.receipt.boxes_short")} value={reception.boxes} mono />
           <SummaryRow label="CBM" value={`${reception.cbm} m³`} mono />
           {reception.weight && (
-            <SummaryRow label={t(lang, "Peso", "重量")} value={`${reception.weight} kg`} mono />
+            <SummaryRow label={t(lang, "pwa.receipt.weight_label")} value={`${reception.weight} kg`} mono />
           )}
           {reception.hs && <SummaryRow label="HS" value={reception.hs} mono />}
         </div>
@@ -1265,20 +1255,16 @@ function Step4Confirm({
             {reception.incident && Icon.check(12)}
           </span>
           <span style={{ flex: 1, font: "700 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
-            {t(lang, "Reportar incidencia con la caja", "报告箱子问题")}
+            {t(lang, "pwa.receipt.report_incident")}
           </span>
         </button>
 
         {reception.incident && (
           <MobileInput
-            label={t(lang, "Descripción de la incidencia", "问题描述")}
+            label={t(lang, "pwa.receipt.incident_desc")}
             value={reception.incidentNote}
             onChange={(v) => dispatch({ type: "set", key: "incidentNote", value: v })}
-            placeholder={t(
-              lang,
-              "Ej: caja con daño en esquina superior",
-              "例: 箱子上角损坏",
-            )}
+            placeholder={t(lang, "pwa.receipt.incident_ph")}
           />
         )}
 
@@ -1303,7 +1289,7 @@ function Step4Confirm({
         lang={lang}
         onBack={onBack}
         onSubmit={onSubmit}
-        submitLabel={t(lang, "Registrar recepción", "保存接收")}
+        submitLabel={t(lang, "pwa.receipt.submit_register")}
         isPending={isPending}
       />
     </div>
@@ -1425,7 +1411,7 @@ function UploadingPhotos({
             letterSpacing: "-0.02em",
           }}
         >
-          {t(lang, "Subiendo fotos…", "正在上传照片…")}
+          {t(lang, "pwa.receipt.uploading_photos")}
         </h2>
         <p
           style={{
@@ -1434,7 +1420,7 @@ function UploadingPhotos({
             margin: "var(--s-2) 0 0",
           }}
         >
-          {t(lang, "No cierres la app", "请勿关闭应用")} · {pct}%
+          {t(lang, "pwa.receipt.dont_close")} · {pct}%
         </p>
       </div>
       <style>{`
@@ -1477,15 +1463,14 @@ function Done({
     if (code === "—") return;
     if (allOk) {
       toast.success(
-        t(lang, `Recepción ${code} guardada`, `接收 ${code} 已保存`),
+        t(lang, "pwa.receipt.saved_toast", { code }),
       );
     } else {
       toast.warning(
-        t(
-          lang,
-          `Recepción ${code} guardada — ${photoErrors.length} foto${photoErrors.length === 1 ? "" : "s"} con error`,
-          `接收 ${code} 已保存 — ${photoErrors.length} 张照片失败`,
-        ),
+        t(lang, "pwa.receipt.saved_with_errors", {
+          code,
+          n: photoErrors.length,
+        }),
       );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -1534,7 +1519,7 @@ function Done({
               letterSpacing: "-0.02em",
             }}
           >
-            {t(lang, "Recepción guardada", "接收已保存")}
+            {t(lang, "pwa.receipt.saved_title")}
           </h1>
           <p
             style={{
@@ -1543,11 +1528,7 @@ function Done({
               margin: 0,
             }}
           >
-            {t(
-              lang,
-              "Aparece en el panel del Studio en segundos",
-              "几秒钟后将出现在Studio面板中",
-            )}
+            {t(lang, "pwa.receipt.appears_in_studio")}
           </p>
           {photosTotal > 0 && (
             <p
@@ -1558,16 +1539,12 @@ function Done({
               }}
             >
               {allOk
-                ? t(
-                    lang,
-                    `✓ ${photosUploaded} foto${photosUploaded === 1 ? "" : "s"} subida${photosUploaded === 1 ? "" : "s"}`,
-                    `✓ 已上传 ${photosUploaded} 张照片`,
-                  )
-                : t(
-                    lang,
-                    `${photosUploaded}/${photosTotal} fotos · ${photoErrors.length} con error`,
-                    `${photosUploaded}/${photosTotal} 照片 · ${photoErrors.length} 失败`,
-                  )}
+                ? t(lang, "pwa.receipt.photos_uploaded", { n: photosUploaded })
+                : t(lang, "pwa.receipt.photos_progress", {
+                    up: photosUploaded,
+                    total: photosTotal,
+                    err: photoErrors.length,
+                  })}
             </p>
           )}
         </div>
@@ -1588,12 +1565,12 @@ function Done({
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
         <BigButton
-          label={t(lang, "+ Nueva recepción", "+ 新接收")}
+          label={t(lang, "pwa.receipt.new_another")}
           onClick={onNew}
           icon={Icon.camera(20)}
         />
         <BigButton
-          label={t(lang, "Volver al home", "返回主页")}
+          label={t(lang, "pwa.receipt.back_home")}
           onClick={onHome}
           variant="secondary"
         />
@@ -1640,7 +1617,7 @@ function BackBtn({ onClick, lang }: { onClick: () => void; lang?: Lang }) {
     <button
       type="button"
       onClick={onClick}
-      aria-label={t(lang ?? "es", "Volver", "返回")}
+      aria-label={t(lang ?? "es", "pwa.receipt.back_generic")}
       style={{
         width: 44,
         height: 44,

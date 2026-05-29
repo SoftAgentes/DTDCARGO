@@ -47,6 +47,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { Icon } from "../icons";
+import { useT } from "@/lib/i18n";
 
 type ToastKind = "success" | "info" | "error" | "warning";
 
@@ -205,6 +206,7 @@ function ToastViewport({
 }) {
   // SSR-safe: no renderizar el portal hasta mount.
   const [mounted, setMounted] = useState(false);
+  const t = useT();
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
   if (toasts.length === 0) return null;
@@ -212,7 +214,7 @@ function ToastViewport({
   return (
     <div
       role="region"
-      aria-label="Notificaciones del Studio"
+      aria-label={t("chrome.toast.region_aria")}
       style={{
         position: "fixed",
         bottom: "var(--s-6, 24px)",
@@ -253,6 +255,7 @@ function ToastCard({
   onResumeTimer: (id: string) => void;
 }) {
   const tone = TONE_BY_KIND[toast.kind];
+  const t = useT();
 
   return (
     <div
@@ -329,7 +332,7 @@ function ToastCard({
       <button
         type="button"
         onClick={() => onDismiss(toast.id)}
-        aria-label="Cerrar notificación"
+        aria-label={t("chrome.toast.dismiss_aria")}
         style={{
           background: "transparent",
           border: 0,
