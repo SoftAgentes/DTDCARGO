@@ -1,9 +1,19 @@
+---
+sdd: "0002"
+title: "Calculadora de Flete Terrestre Venezuela"
+status: draft
+author: "founder"
+created: 2026-05-22
+updated: 2026-05-22
+supersedes: null
+superseded_by: null
+related: ["0001"]
+confidencialidad: interno
+---
+
 # SDD-0002 — Calculadora de Flete Terrestre Venezuela
 
-**Status**: Draft
-**Created**: 2026-05-22
-**Owner**: DTD-CARGO + Sam
-**Depende de**: SDD-0001 (sitio público base)
+**Owner**: DTD-CARGO + Sam · **Depende de**: SDD-0001 (sitio público base)
 
 ---
 
