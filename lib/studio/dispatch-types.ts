@@ -90,6 +90,22 @@ export type DispatchOrderPackage = {
   split_reason: DispatchSplitReason | null;
   split_reason_text: string | null;
   added_at: string;
+  /**
+   * Sprint G (handoff v1.7): fields derivados del JOIN con `clients` por
+   * markbox. NO viven en DB · se hidratan en `dispatch-mobile-queries.ts`
+   * post-fetch. Si el cliente fue borrado o el markbox no matchea, quedan
+   * `null` y la UI hace fallback graceful (sin tier badge, sin botones tel/WA).
+   */
+  client_tier?: import("./client-types").ClientTier | null;
+  client_phone?: string | null;
+  /** Sprint 3 (handoff v1.7) · CurrentDelivery del camionero. */
+  client_address?: string | null;
+  client_address_reference?: string | null;
+  client_facade_photo_url?: string | null;
+  client_lat?: number | null;
+  client_lng?: number | null;
+  /** Sprint 3 · status per-paquete (V1 default 'pendiente'). */
+  delivery_status?: "pendiente" | "entregado" | "rechazado" | "retornado";
 };
 
 /** OD con joins (route + truck + driver) para tabla principal y panel activas. */

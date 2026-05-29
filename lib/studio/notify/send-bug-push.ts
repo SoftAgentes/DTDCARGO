@@ -18,7 +18,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import webpush from "web-push";
+import { ensureVapid, webpush } from "./vapid";
 
 interface PushSubscriptionStored {
   endpoint: string;
@@ -34,31 +34,6 @@ export interface PushPayload {
   requireInteraction?: boolean;
 }
 
-let vapidConfigured = false;
-let vapidWarned = false;
-
-function configureVapidOnce(): boolean {
-  if (vapidConfigured) return true;
-
-  const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT || "mailto:vzla@dtdcargo.com";
-
-  if (!publicKey || !privateKey) {
-    if (!vapidWarned) {
-      console.warn(
-        "[send-bug-push] VAPID keys no configuradas en env. Push notifications quedan en no-op.",
-      );
-      vapidWarned = true;
-    }
-    return false;
-  }
-
-  webpush.setVapidDetails(subject, publicKey, privateKey);
-  vapidConfigured = true;
-  return true;
-}
-
 /**
  * Manda push notification a un user específico. Best-effort.
  *
@@ -72,7 +47,7 @@ export async function sendBugPushToUser(
   userId: string,
   payload: PushPayload,
 ): Promise<boolean> {
-  if (!configureVapidOnce()) return false;
+  if (!ensureVapid()) return false;
 
   try {
     const { data: prefs } = await supabaseAdmin

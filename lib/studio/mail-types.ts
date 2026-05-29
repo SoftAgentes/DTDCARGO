@@ -477,7 +477,7 @@ export function validateCreateSignatureInput(
       whatsapp: partial.whatsapp?.trim() || undefined,
       avatar_url: partial.avatar_url?.trim() || undefined,
       photo_url: partial.photo_url?.trim() || undefined,
-      company_name: partial.company_name?.trim() || "DTD-Cargo",
+      company_name: partial.company_name?.trim() || "DTD Cargo",
       show_offices_link: partial.show_offices_link ?? true,
       custom_html: partial.custom_html,
       is_default: partial.is_default ?? true,
@@ -673,10 +673,10 @@ export function formatLogTime(iso: string | null): string {
  * crea template nuevo y no se le ocurre subject).
  */
 export const CATEGORY_DEFAULT_SUBJECT: Record<MailCategory, string> = {
-  operativo: "[DTD-Cargo] {{shipment_code}} · Actualización",
-  comercial: "Cotización DTD-Cargo para {{customer_name}}",
+  operativo: "[DTD Cargo] {{shipment_code}} · Actualización",
+  comercial: "Cotización DTD Cargo para {{customer_name}}",
   cobranza: "Recordatorio · Factura {{invoice_code}} pendiente",
-  cliente: "DTD-Cargo · {{topic}}",
+  cliente: "DTD Cargo · {{topic}}",
   interno: "[Interno] {{topic}}",
   sistema: "[Sistema] {{topic}}",
 };

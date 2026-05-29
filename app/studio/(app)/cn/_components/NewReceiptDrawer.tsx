@@ -29,6 +29,7 @@ import type {
   WarehouseReceiptItemInput,
 } from "@/lib/studio/warehouse-cn-types";
 import type { Client } from "@/lib/studio/client-types";
+import { useT, resolveErrorMessage } from "@/lib/i18n";
 
 interface Props {
   warehouses: WarehouseCN[];
@@ -56,6 +57,7 @@ function newItem(): ItemRow {
 }
 
 export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
+  const t = useT();
   const [state, formAction, isPending] = useActionState(
     createReceiptAction,
     initialState,
@@ -258,7 +260,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               className="studio-display"
               style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
             >
-              Nueva recepción CN
+              {t("warehouse_cn.drawer.title")}
             </h2>
             <p
               style={{
@@ -267,14 +269,14 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                 margin: "4px 0 0",
               }}
             >
-              Registro de mercadería recibida en almacén origen
+              {t("warehouse_cn.drawer.subtitle")}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             disabled={isPending}
-            aria-label="Cerrar"
+            aria-label={t("chrome.action.close")}
             style={{
               width: 32,
               height: 32,
@@ -332,7 +334,8 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
           {/* ── 1. Almacén ──────────────────────────── */}
           <div>
             <label htmlFor="rd-warehouse" className="studio-label">
-              Almacén <span style={{ color: "var(--wine)" }}>*</span>
+              {t("warehouse_cn.drawer.section_warehouse")}{" "}
+              <span style={{ color: "var(--wine)" }}>*</span>
             </label>
             <select
               id="rd-warehouse"
@@ -341,7 +344,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               onChange={(e) => setWarehouseId(e.target.value)}
               required
             >
-              <option value="">Seleccioná el hub que recibió la caja…</option>
+              <option value="">{t("warehouse_cn.drawer.warehouse_placeholder")}</option>
               {warehouses.map((w) => (
                 <option key={w.id} value={w.id}>
                   {w.code} · {w.hub_name_es} · {w.hub_name_cn}
@@ -359,7 +362,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             {!isOrphan ? (
               <>
                 <label htmlFor="rd-client" className="studio-label">
-                  Cliente · MARKBOX{" "}
+                  {t("warehouse_cn.drawer.client_label")}{" "}
                   <span style={{ color: "var(--wine)" }}>*</span>
                 </label>
                 <select
@@ -369,7 +372,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                   onChange={(e) => setClientMarkbox(e.target.value)}
                   required={!isOrphan}
                 >
-                  <option value="">Seleccioná cliente…</option>
+                  <option value="">{t("warehouse_cn.drawer.client_placeholder")}</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.markbox}>
                       {c.markbox} · {c.name}
@@ -401,7 +404,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     (e.currentTarget.style.color = "var(--ink-soft)")
                   }
                 >
-                  {Icon.box(11)} ¿Sin código MARKBOX? · marcar como caja huérfana
+                  {Icon.box(11)} {t("warehouse_cn.drawer.orphan_toggle")}
                 </button>
               </>
             ) : (
@@ -426,7 +429,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     color: "var(--ink)",
                   }}
                 >
-                  Caja huérfana
+                  {t("warehouse_cn.drawer.orphan_badge")}
                   <span
                     style={{
                       font: "500 11px/1.4 var(--f-sans)",
@@ -434,7 +437,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                       marginLeft: 4,
                     }}
                   >
-                    · se asignará{" "}
+                    {t("warehouse_cn.drawer.orphan_code_note")}{" "}
                     <code
                       style={{
                         font: "700 11px/1 var(--f-mono)",
@@ -455,7 +458,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                   }}
                   className="studio-btn studio-btn-ghost studio-btn-xs"
                 >
-                  Desactivar
+                  {t("warehouse_cn.drawer.orphan_disable")}
                 </button>
               </div>
             )}
@@ -474,7 +477,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             >
               <div>
                 <label htmlFor="rd-marks" className="studio-label">
-                  Marcas / identificación visible
+                  {t("warehouse_cn.drawer.orphan_marks_label")}
                 </label>
                 <input
                   id="rd-marks"
@@ -483,7 +486,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                   className="studio-input"
                   value={orphanMarks}
                   onChange={(e) => setOrphanMarks(e.target.value)}
-                  placeholder="Ej: ACINDAR-VLN-04 · ⌂ rojo · etiqueta china"
+                  placeholder={t("warehouse_cn.drawer.orphan_marks_placeholder")}
                 />
                 <p
                   style={{
@@ -492,8 +495,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     margin: "4px 0 0",
                   }}
                 >
-                  Cualquier texto, color, símbolo o marca visible. Sirve
-                  para que el cliente reclame la caja después.
+                  {t("warehouse_cn.drawer.orphan_marks_hint")}
                 </p>
               </div>
               <div
@@ -505,7 +507,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               >
                 <div>
                   <label htmlFor="rd-brought" className="studio-label">
-                    ¿Quién la trajo?
+                    {t("warehouse_cn.drawer.orphan_brought_label")}
                   </label>
                   <input
                     id="rd-brought"
@@ -514,12 +516,12 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     className="studio-input"
                     value={orphanBroughtBy}
                     onChange={(e) => setOrphanBroughtBy(e.target.value)}
-                    placeholder="Chofer / transportista"
+                    placeholder={t("warehouse_cn.drawer.orphan_brought_placeholder")}
                   />
                 </div>
                 <div>
                   <label htmlFor="rd-suspected" className="studio-label">
-                    Posible cliente (sospecha)
+                    {t("warehouse_cn.drawer.orphan_suspected_label")}
                   </label>
                   <input
                     id="rd-suspected"
@@ -528,7 +530,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     className="studio-input"
                     value={orphanSuspected}
                     onChange={(e) => setOrphanSuspected(e.target.value)}
-                    placeholder="Si tenés idea…"
+                    placeholder={t("warehouse_cn.drawer.orphan_suspected_placeholder")}
                   />
                 </div>
               </div>
@@ -557,7 +559,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             >
               <div>
                 <div className="studio-eyebrow" style={{ margin: 0 }}>
-                  Items en la caja
+                  {t("warehouse_cn.drawer.items_title")}
                 </div>
                 <p
                   style={{
@@ -566,7 +568,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     margin: "4px 0 0",
                   }}
                 >
-                  Multi-HS soportado · entre 1 y {MAX_ITEMS} items.
+                  {t("warehouse_cn.drawer.items_hint", { max: MAX_ITEMS })}
                 </p>
               </div>
               <button
@@ -580,7 +582,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
                     items.length >= MAX_ITEMS ? "not-allowed" : "pointer",
                 }}
               >
-                {Icon.plus(12)} Agregar item
+                {Icon.plus(12)} {t("warehouse_cn.drawer.items_add_btn")}
               </button>
             </div>
 
@@ -607,7 +609,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
           {/* ── 5. Totales + fecha ──────────────────── */}
           <div>
             <div className="studio-eyebrow" style={{ marginBottom: 10 }}>
-              Totales de la caja
+              {t("warehouse_cn.drawer.totals_title")}
             </div>
             <div
               style={{
@@ -618,13 +620,14 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             >
               <div>
                 <label htmlFor="rd-boxes" className="studio-label">
-                  Cajas <span style={{ color: "var(--wine)" }}>*</span>
+                  {t("warehouse_cn.drawer.boxes_field_label")}{" "}
+                  <span style={{ color: "var(--wine)" }}>*</span>
                 </label>
                 <NumericInput
                   id="rd-boxes"
                   name="boxes"
                   type="count"
-                  unit="cajas"
+                  unit={t("warehouse_cn.drawer.boxes_unit")}
                   required
                   min={0}
                   placeholder="0"
@@ -637,7 +640,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               </div>
               <div>
                 <label htmlFor="rd-cbm" className="studio-label">
-                  CBM
+                  {t("warehouse_cn.drawer.cbm_field_label")}
                 </label>
                 <NumericInput
                   id="rd-cbm"
@@ -653,7 +656,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               </div>
               <div>
                 <label htmlFor="rd-weight" className="studio-label">
-                  Peso
+                  {t("warehouse_cn.drawer.weight_field_label")}
                 </label>
                 <NumericInput
                   id="rd-weight"
@@ -669,7 +672,8 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               </div>
               <div>
                 <label htmlFor="rd-received" className="studio-label">
-                  Recibido <span style={{ color: "var(--wine)" }}>*</span>
+                  {t("warehouse_cn.drawer.received_label")}{" "}
+                  <span style={{ color: "var(--wine)" }}>*</span>
                 </label>
                 <input
                   id="rd-received"
@@ -690,7 +694,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
           {/* ── 6. Notas ────────────────────────────── */}
           <div>
             <label htmlFor="rd-notes" className="studio-label">
-              Notas internas
+              {t("warehouse_cn.drawer.notes_label")}
             </label>
             <textarea
               id="rd-notes"
@@ -699,27 +703,31 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
               className="studio-input"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Estado de la mercadería, observaciones, daños visibles…"
+              placeholder={t("warehouse_cn.drawer.notes_placeholder_long")}
               style={{ resize: "vertical" }}
             />
           </div>
 
-          {state.error && (
-            <p
-              role="alert"
-              style={{
-                font: "500 12px/1.4 var(--f-sans)",
-                color: "var(--danger)",
-                margin: 0,
-                padding: "10px 12px",
-                background: "var(--danger-bg)",
-                border: "1px solid var(--danger)",
-                borderRadius: "var(--r-sm)",
-              }}
-            >
-              {state.error}
-            </p>
-          )}
+          {(() => {
+            const msg = resolveErrorMessage(t, state);
+            if (!msg) return null;
+            return (
+              <p
+                role="alert"
+                style={{
+                  font: "500 12px/1.4 var(--f-sans)",
+                  color: "var(--danger)",
+                  margin: 0,
+                  padding: "10px 12px",
+                  background: "var(--danger-bg)",
+                  border: "1px solid var(--danger)",
+                  borderRadius: "var(--r-sm)",
+                }}
+              >
+                {msg}
+              </p>
+            );
+          })()}
 
           <div style={{ flex: 1, minHeight: 12 }} />
         </form>
@@ -742,7 +750,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             onClick={onClose}
             disabled={isPending}
           >
-            Cancelar
+            {t("chrome.action.cancel")}
           </button>
           <SplitActionButton
             memoryKey="cn-receipt-drawer-create"
@@ -753,32 +761,29 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             actions={[
               {
                 key: "create-and-close",
-                idleLabel: "Registrar y cerrar",
-                loadingLabel: "Registrando…",
-                successLabel: "Recepción registrada",
+                idleLabel: t("warehouse_cn.drawer.submit_close"),
+                loadingLabel: t("warehouse_cn.drawer.submitting"),
+                successLabel: t("warehouse_cn.drawer.success_close"),
                 successIcon: Icon.check(14),
-                description:
-                  "Registra el recibo y vuelve al listado con el nuevo resaltado.",
+                description: t("warehouse_cn.drawer.submit_close_desc"),
                 onAction: () => createWithPostAction("close"),
               },
               {
                 key: "create-and-open",
-                idleLabel: "Registrar y abrir recibo",
-                loadingLabel: "Registrando…",
-                successLabel: "Abriendo recibo",
+                idleLabel: t("warehouse_cn.drawer.submit_open"),
+                loadingLabel: t("warehouse_cn.drawer.submitting"),
+                successLabel: t("warehouse_cn.drawer.success_open"),
                 successIcon: Icon.check(14),
-                description:
-                  "Registra y abre el detalle del recibo para imprimir / verificar.",
+                description: t("warehouse_cn.drawer.submit_open_desc"),
                 onAction: () => createWithPostAction("open"),
               },
               {
                 key: "create-and-new",
-                idleLabel: "Registrar y siguiente paquete",
-                loadingLabel: "Registrando…",
-                successLabel: "Listo el siguiente",
+                idleLabel: t("warehouse_cn.drawer.submit_next"),
+                loadingLabel: t("warehouse_cn.drawer.submitting"),
+                successLabel: t("warehouse_cn.drawer.success_next"),
                 successIcon: Icon.check(14),
-                description:
-                  "Registra el recibo, limpia los campos (mantiene el almacén) y deja el drawer abierto para el próximo paquete del lote.",
+                description: t("warehouse_cn.drawer.submit_next_desc"),
                 onAction: () => createWithPostAction("reset"),
               },
             ]}
@@ -805,6 +810,7 @@ function ItemEditor({
   onChange: (patch: Partial<ItemRow>) => void;
   onRemove: () => void;
 }) {
+  const t = useT();
   return (
     <div
       style={{
@@ -832,13 +838,13 @@ function ItemEditor({
             textTransform: "uppercase",
           }}
         >
-          Item {index + 1}
+          {t("warehouse_cn.drawer.item_label", { index: index + 1 })}
         </div>
         {canRemove && (
           <button
             type="button"
             onClick={onRemove}
-            aria-label={`Quitar item ${index + 1}`}
+            aria-label={t("warehouse_cn.drawer.item_remove_aria", { index: index + 1 })}
             style={{
               width: 26,
               height: 26,
@@ -870,7 +876,8 @@ function ItemEditor({
           className="studio-label"
           htmlFor={`item-desc-${item._key}`}
         >
-          Descripción <span style={{ color: "var(--wine)" }}>*</span>
+          {t("warehouse_cn.drawer.item_desc_label")}{" "}
+          <span style={{ color: "var(--wine)" }}>*</span>
         </label>
         <input
           id={`item-desc-${item._key}`}
@@ -878,7 +885,7 @@ function ItemEditor({
           className="studio-input"
           value={item.description}
           onChange={(e) => onChange({ description: e.target.value })}
-          placeholder="Cargadores USB-C · 充电器"
+          placeholder={t("warehouse_cn.drawer.item_desc_placeholder")}
           required
         />
       </div>
@@ -895,7 +902,7 @@ function ItemEditor({
             className="studio-label"
             htmlFor={`item-hs-${item._key}`}
           >
-            HS code
+            {t("warehouse_cn.drawer.item_hs_label")}
           </label>
           <input
             id={`item-hs-${item._key}`}
@@ -913,7 +920,7 @@ function ItemEditor({
             className="studio-label"
             htmlFor={`item-qty-${item._key}`}
           >
-            Cantidad
+            {t("warehouse_cn.drawer.item_qty_label")}
           </label>
           <NumericInput
             id={`item-qty-${item._key}`}
@@ -931,7 +938,7 @@ function ItemEditor({
             className="studio-label"
             htmlFor={`item-val-${item._key}`}
           >
-            Valor unit. USD
+            {t("warehouse_cn.drawer.item_val_label")}
           </label>
           <NumericInput
             id={`item-val-${item._key}`}

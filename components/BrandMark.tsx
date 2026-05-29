@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 /**
- * Sistema oficial de marca DTD-Cargo v3.0 (mayo 2026).
+ * Sistema oficial de marca DTD Cargo v3.0 (mayo 2026).
  * Fuente de verdad: docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html
  *
  * Cambios vs v2.x:
@@ -67,7 +67,7 @@ type Props = {
 };
 
 /**
- * Lockup oficial DTD-Cargo.
+ * Lockup oficial DTD Cargo.
  *
  * - Nav (fondo claro): `<BrandMark asLink />` → variant primary
  * - Footer (fondo ink oscuro): `<BrandMark onDark size={48} />` → variant reverse

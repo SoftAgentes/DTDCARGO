@@ -16,6 +16,8 @@ import {
   parseReceiptFiltersFromSearchParams,
 } from "@/lib/studio/warehouse-cn-queries";
 import { listCities } from "@/lib/studio/dispatch-routes-queries";
+import { resolveLocale } from "@/lib/i18n/resolve-server";
+import { t } from "@/lib/i18n";
 import { AlmacenCnClient } from "./_components/AlmacenCnClient";
 import { HeaderActions } from "./_components/HeaderActions";
 import { WarehouseKpis } from "./_components/WarehouseKpis";
@@ -41,6 +43,38 @@ export default async function CnPage({
     listCities(supabase, { activeOnly: true }),
   ]);
 
+  // Resolver locale para textos server-side (header eyebrow/título/desc + KPIs).
+  // Server actions usan el query; el override URL `?lang=` se aplica en cliente.
+  const userId = (await supabase.auth.getUser()).data.user?.id;
+  const [{ data: prof }, { data: ut }] = await Promise.all([
+    userId
+      ? supabase
+          .from("user_profiles")
+          .select("locale")
+          .eq("user_id", userId)
+          .maybeSingle<{ locale: string | null }>()
+      : Promise.resolve({ data: null }),
+    userId
+      ? supabase
+          .from("user_tenants")
+          .select("region")
+          .eq("user_id", userId)
+          .maybeSingle<{ region: string | null }>()
+      : Promise.resolve({ data: null }),
+  ]);
+  const { locale } = await resolveLocale({
+    userProfileLocale: prof?.locale ?? null,
+    userTenantRegion: ut?.region ?? null,
+  });
+
+  // Header: título queda compuesto "<prefijo> · 中国" — el sufijo 中国 va
+  // siempre en CN como guiño visual (cuando el locale es zh-CN ya se dobla,
+  // pero el design canónico lo mantiene como signature).
+  const titlePrefix = t(locale, "warehouse_cn.page.title_prefix");
+  const description = t(locale, "warehouse_cn.page.description_template", {
+    hubs: t(locale, "warehouse_cn.page.hubs_label"),
+  });
+
   return (
     <div style={{ maxWidth: 1480 }}>
       {/* Header */}
@@ -55,7 +89,9 @@ export default async function CnPage({
         }}
       >
         <div>
-          <span className="studio-eyebrow">Operación · Almacén</span>
+          <span className="studio-eyebrow">
+            {t(locale, "warehouse_cn.page.eyebrow")}
+          </span>
           <h1
             className="studio-display"
             style={{
@@ -64,7 +100,7 @@ export default async function CnPage({
               color: "var(--ink)",
             }}
           >
-            Almacén CN ·{" "}
+            {titlePrefix} ·{" "}
             <span
               style={{
                 fontFamily: '"Noto Sans SC", var(--f-sans)',
@@ -82,16 +118,14 @@ export default async function CnPage({
               maxWidth: "70ch",
             }}
           >
-            Recepción de mercadería en hubs{" "}
-            <strong style={{ color: "var(--ink)" }}>Yiwu · Guangzhou · Shenzhen · Shanghai</strong>
-            . Consolidación previa a zarpe.
+            {description}
           </p>
         </div>
         <HeaderActions />
       </div>
 
       {/* KPIs */}
-      <WarehouseKpis kpis={kpis} />
+      <WarehouseKpis kpis={kpis} locale={locale} />
 
       {/* Toolbar + tabla + drawer */}
       <AlmacenCnClient

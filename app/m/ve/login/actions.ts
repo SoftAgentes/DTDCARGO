@@ -33,8 +33,16 @@ export async function signInOperarioVeAction(
     return { error: "Esta app es para operarios VE. Tu cuenta es de almacén CN." };
   }
 
-  // Redirect según role
-  switch (session.role) {
+  // Sprint D (multi-rol "Modos"): si tiene más de 1 rol y NO eligió modo
+  // hoy, mandarlo al selector. signInWithPin ya auto-setea current_mode si
+  // es mono-rol → session.current_mode contiene el rol activo o null.
+  if (session.roles.length > 1 && !session.current_mode) {
+    redirect("/m/ve/modos");
+  }
+
+  // Mono-rol o multi-rol con modo persistido → ir a la app del modo activo
+  const activeMode = session.current_mode ?? session.role;
+  switch (activeMode) {
     case "camionero":
       redirect("/m/ve/camionero");
     case "bodeguero":

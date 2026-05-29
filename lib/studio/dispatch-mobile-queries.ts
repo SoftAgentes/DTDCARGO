@@ -9,6 +9,7 @@ import type {
   DispatchOrderRow,
   DispatchOrderStatus,
 } from "./dispatch-types";
+import type { ClientTier } from "./client-types";
 
 const OD_WITH_JOINS_SELECT = `
   id, tenant_id, order_code, status, hub,
@@ -23,7 +24,7 @@ const OD_WITH_JOINS_SELECT = `
   route:dispatch_routes!route_id ( id, route_code, name ),
   truck:tms_trucks!truck_id ( id, plate, brand ),
   driver:tms_drivers!driver_id ( id, name, rating ),
-  packages:dispatch_order_packages ( * )
+  packages:dispatch_order_packages ( *, delivery_status )
 `;
 
 // ─────────────────────────────────────────────────────────────
@@ -51,45 +52,194 @@ export async function listOdsForBodeguero(
     .limit(50);
 
   if (error) throw error;
-  return normalizeOdRows(data);
+  const rows = normalizeOdRows(data);
+  return hydrateClientFieldsOnPackages(supabase, tenantId, rows);
 }
 
 // ─────────────────────────────────────────────────────────────
-// Camionero · OD asignadas al chofer matcheando por nombre
+// Sprint 2 · listas auxiliares para reasignar truck/driver runtime
+// ─────────────────────────────────────────────────────────────
+
+export type AvailableTruck = {
+  id: string;
+  plate: string;
+  brand: string | null;
+  vehicle_type: string | null;
+  capacity_cbm: number | null;
+  capacity_kg: number | null;
+  driver_id: string | null;
+  status: string;
+  hub_code: string | null;
+};
+
+export type AvailableDriver = {
+  id: string;
+  name: string;
+  phone: string | null;
+  hub_code: string | null;
+  rating: number | null;
+};
+
+/**
+ * Trucks disponibles del tenant para reasignación inline en runtime.
+ * Filtro flexible por `hub` opcional (matching contra `hub_code` del truck).
+ * Solo devuelve trucks `status = 'disponible'`.
+ */
+export async function listAvailableTrucksForHub(
+  supabase: SupabaseClient,
+  tenantId: string,
+  hub?: string | null,
+): Promise<AvailableTruck[]> {
+  let q = supabase
+    .from("tms_trucks")
+    .select(
+      "id, plate, brand, vehicle_type, capacity_cbm, capacity_kg, driver_id, status, hub_code",
+    )
+    .eq("tenant_id", tenantId)
+    .eq("status", "disponible")
+    .order("plate", { ascending: true })
+    .limit(50);
+  if (hub) q = q.eq("hub_code", hub);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data as AvailableTruck[] | null) ?? [];
+}
+
+/**
+ * Drivers del tenant para reasignación. No filtra por status (los drivers
+ * no tienen enum `disponible` como los trucks) · el bodeguero decide en UI.
+ */
+export async function listAvailableDriversForHub(
+  supabase: SupabaseClient,
+  tenantId: string,
+  hub?: string | null,
+): Promise<AvailableDriver[]> {
+  let q = supabase
+    .from("tms_drivers")
+    .select("id, name, phone, hub_code, rating")
+    .eq("tenant_id", tenantId)
+    .order("name", { ascending: true })
+    .limit(50);
+  if (hub) q = q.eq("hub_code", hub);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data as AvailableDriver[] | null) ?? [];
+}
+
+// ─────────────────────────────────────────────────────────────
+// Hydration · join packages.markbox → clients.{tier, phone}
 // ─────────────────────────────────────────────────────────────
 
 /**
- * Match operario↔driver por nombre (deuda D6 del spec).
- * Devuelve ODs `lista` o `en_ruta` asignadas al driver que matchea
- * con el `display_name` del operario.
+ * Sprint G (handoff v1.7): segundo query batch para traer `tier` y `phone`
+ * de los clientes referenciados por los packages. NO hay FK directo entre
+ * `dispatch_order_packages` y `clients` — el link es lógico via `markbox`.
+ *
+ * Por qué un segundo query y no JOIN inline en `OD_WITH_JOINS_SELECT`:
+ *  - PostgREST/Supabase no soporta JOIN por columna no-FK.
+ *  - Hacerlo en SQL embebido cruzaría tenants si no filtramos · este
+ *    helper aplica `eq("tenant_id", tenantId)` explícito.
+ *  - Es un solo round-trip extra por listado de ODs (los markboxes únicos
+ *    son ~5-20 por hub). Coste despreciable.
+ */
+async function hydrateClientFieldsOnPackages(
+  supabase: SupabaseClient,
+  tenantId: string,
+  rows: DispatchOrderRow[],
+): Promise<DispatchOrderRow[]> {
+  // 1. Recolectar markboxes únicos de todos los packages
+  const markboxes = new Set<string>();
+  for (const od of rows) {
+    for (const p of od.packages) {
+      if (p.markbox) markboxes.add(p.markbox);
+    }
+  }
+  if (markboxes.size === 0) return rows;
+
+  // 2. Batch query a clients (Sprint G: tier+phone · Sprint 3: address+facade+gps)
+  const { data: clientsData, error } = await supabase
+    .from("clients")
+    .select(
+      "markbox, tier, phone, address, address_reference, facade_photo_url, lat, lng",
+    )
+    .eq("tenant_id", tenantId)
+    .in("markbox", Array.from(markboxes));
+
+  if (error) {
+    // No-fatal · UI rendea sin tier/phone/etc si esto falla
+    console.error("[dispatch-mobile-queries] hydrate clients error:", error);
+    return rows;
+  }
+
+  // 3. Indexar por markbox
+  type ClientRow = {
+    markbox: string;
+    tier: ClientTier;
+    phone: string | null;
+    address: string | null;
+    address_reference: string | null;
+    facade_photo_url: string | null;
+    lat: number | null;
+    lng: number | null;
+  };
+  const byMarkbox = new Map<string, ClientRow>();
+  for (const c of (clientsData as ClientRow[] | null) ?? []) {
+    byMarkbox.set(c.markbox, c);
+  }
+
+  // 4. Patchear packages (inmutable · clona los packages)
+  return rows.map((od) => ({
+    ...od,
+    packages: od.packages.map((p) => {
+      const c = byMarkbox.get(p.markbox);
+      return {
+        ...p,
+        client_tier: c?.tier ?? null,
+        client_phone: c?.phone ?? null,
+        client_address: c?.address ?? null,
+        client_address_reference: c?.address_reference ?? null,
+        client_facade_photo_url: c?.facade_photo_url ?? null,
+        client_lat: c?.lat ?? null,
+        client_lng: c?.lng ?? null,
+      };
+    }),
+  }));
+}
+
+// ─────────────────────────────────────────────────────────────
+// Camionero · OD asignadas al chofer (Sprint 0 fix: link explícito)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Devuelve ODs `lista` o `en_ruta` asignadas al driver linkeado al
+ * operario via `operario_pins.tms_driver_id` (migración 0060).
+ *
+ * Sprint 0 fix: reemplaza el match por nombre (`.ilike("name", ...)`)
+ * que era anti-pattern de seguridad — homónimos veían ODs cruzadas.
+ * Ahora es FK explícito: cada operario camionero tiene su driver TMS
+ * linkeado al crearse en el Studio admin.
+ *
+ * Si `tmsDriverId` es null (operario sin link todavía), devuelve []
+ * — UI muestra empty state con mensaje claro.
  */
 export async function listOdsForCamionero(
   supabase: SupabaseClient,
   tenantId: string,
-  operarioDisplayName: string,
+  tmsDriverId: string | null,
 ): Promise<DispatchOrderRow[]> {
-  // 1. Buscar driver con nombre matcheante
-  const { data: drivers, error: dErr } = await supabase
-    .from("tms_drivers")
-    .select("id, name")
-    .eq("tenant_id", tenantId)
-    .ilike("name", operarioDisplayName);
-  if (dErr) throw dErr;
+  if (!tmsDriverId) return [];
 
-  const driverIds = ((drivers as { id: string }[] | null) ?? []).map((d) => d.id);
-  if (driverIds.length === 0) return [];
-
-  // 2. Buscar ODs lista/en_ruta de esos drivers
   const { data, error } = await supabase
     .from("dispatch_orders")
     .select(OD_WITH_JOINS_SELECT)
     .eq("tenant_id", tenantId)
     .in("status", ["lista", "en_ruta"])
-    .in("driver_id", driverIds)
+    .eq("driver_id", tmsDriverId)
     .order("created_at", { ascending: true });
 
   if (error) throw error;
-  return normalizeOdRows(data);
+  const rows = normalizeOdRows(data);
+  return hydrateClientFieldsOnPackages(supabase, tenantId, rows);
 }
 
 // ─────────────────────────────────────────────────────────────

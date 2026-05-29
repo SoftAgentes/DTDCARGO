@@ -8,11 +8,16 @@
  */
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { BigButton } from "@/app/m/_components/BigButton";
 import { KpiCard } from "@/app/m/_components/KpiCard";
 import { MobileHeader } from "@/app/m/_components/MobileHeader";
+import { PushOptIn } from "@/app/m/_components/PushOptIn";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { pushQrPrintForReceiptAction } from "../qr-actions";
 import { setOperarioLangClient, type Lang } from "@/lib/lang";
 import { signOutOperarioAction } from "../actions";
 import { getReceiptPhotoSignedUrlsAction } from "../nueva/photo-actions";
@@ -83,20 +88,44 @@ export function OperarioHomeClient({
   operario,
   today,
   recents,
+  searchMode = false,
+  searchQuery = "",
 }: {
   initialLang: Lang;
   operario: OperarioHomeProps;
   today: TodayKpis;
   recents: RecentReceipt[];
+  /** Sprint 1.5 · true si la lista son resultados de búsqueda, no recientes. */
+  searchMode?: boolean;
+  searchQuery?: string;
 }) {
   const [lang, setLangState] = useState<Lang>(initialLang);
   const [menuOpen, setMenuOpen] = useState(false);
   const [detailReceipt, setDetailReceipt] = useState<RecentReceipt | null>(null);
+  const toast = useToast();
 
   // Persistir cambio de lang en cookie (compartida con server + otras pantallas).
   const setLang = (next: Lang) => {
     setLangState(next);
     setOperarioLangClient(next);
+  };
+
+  // El QR se imprime por recepción (tiene markbox + bultos). Desde el home,
+  // guiamos al operario a abrir una recepción. Si solo hay una reciente con
+  // markbox, la abrimos directo.
+  const handleQrShortcut = () => {
+    const printable = recents.filter((r) => r.clientMarkbox);
+    if (printable.length === 1) {
+      setDetailReceipt(printable[0]);
+      return;
+    }
+    toast.info(
+      t(
+        lang,
+        "Abrí una recepción y tocá “Imprimir QR”.",
+        "打开一条接收记录并点击“打印QR”。",
+      ),
+    );
   };
 
   return (
@@ -202,7 +231,7 @@ export function OperarioHomeClient({
           </div>
           <button
             type="button"
-            onClick={() => {}}
+            onClick={handleQrShortcut}
             style={{
               width: "100%",
               padding: "var(--s-3)",
@@ -260,17 +289,33 @@ export function OperarioHomeClient({
           </button>
         </section>
 
-        {/* Últimas recepciones */}
+        {/* Búsqueda + últimas recepciones · Sprint 1.5 */}
         <section>
+          <ReceiptSearchBox lang={lang} initialQuery={searchQuery} />
+
           <div
             className="studio-eyebrow"
-            style={{ color: "var(--wine)", marginBottom: "var(--s-2)" }}
+            style={{
+              color: "var(--wine)",
+              marginBottom: "var(--s-2)",
+              marginTop: "var(--s-3)",
+            }}
           >
-            {t(lang, "Últimas recepciones", "最近接收")}
+            {searchMode
+              ? t(
+                  lang,
+                  `Resultados · ${recents.length}`,
+                  `搜索结果 · ${recents.length}`,
+                )
+              : t(lang, "Últimas recepciones", "最近接收")}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-2)" }}>
             {recents.length === 0 ? (
-              <EmptyRecents lang={lang} />
+              searchMode ? (
+                <NoSearchResults lang={lang} query={searchQuery} />
+              ) : (
+                <EmptyRecents lang={lang} />
+              )
             ) : (
               recents.map((r) => (
                 <ReceiptRow
@@ -473,6 +518,7 @@ function ReceiptDetailModal({
   lang: Lang;
   onClose: () => void;
 }) {
+  const toast = useToast();
   // Lazy fetch de photos via server action (signed URLs TTL 1h)
   const [photos, setPhotos] = useState<
     { id: string; url: string; position: number }[]
@@ -685,6 +731,57 @@ function ReceiptDetailModal({
           </div>
         )}
 
+        {/* Sprint 1 v3: editar inline (sólo si pendiente_consolidacion + mine) */}
+        {r.status === "pendiente_consolidacion" && r.mine && (
+          <Link
+            href={`/m/cn/recepcion/${r.id}/editar`}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              marginTop: "var(--s-4)",
+              padding: "12px 16px",
+              background: "var(--wine)",
+              color: "var(--ink-inv)",
+              borderRadius: "var(--r-md)",
+              font: "700 13px/1 var(--f-sans)",
+              textDecoration: "none",
+            }}
+          >
+            {Icon.edit(16)}
+            <span>{t(lang, "Editar recepción", "编辑接收")}</span>
+          </Link>
+        )}
+
+        {/* Sprint 1.5: imprimir QR (solo si tiene MARKBOX · no huérfana) */}
+        {!isOrphan && (
+          <div style={{ marginTop: "var(--s-2)", display: "flex", justifyContent: "center" }}>
+            <ActionButton
+              variant="dark"
+              size="default"
+              idleLabel={t(lang, `Imprimir QR · ${r.boxes} etiquetas`, `打印QR · ${r.boxes} 标签`)}
+              loadingLabel={t(lang, "Enviando a cola…", "发送到队列…")}
+              successLabel={t(lang, "En cola de impresión ✓", "已加入打印队列 ✓")}
+              idleIcon={Icon.box(14)}
+              successIcon={Icon.check(14)}
+              onAction={async () => {
+                const res = await pushQrPrintForReceiptAction(r.id);
+                if (!res.ok) return { error: res.error };
+                toast.success(
+                  t(
+                    lang,
+                    `QR ${res.orderCode} en cola · el hub la imprime`,
+                    `QR ${res.orderCode} 已入队 · 仓库将打印`,
+                  ),
+                );
+                return undefined;
+              }}
+              onError={(msg) => toast.error(msg)}
+            />
+          </div>
+        )}
+
         <p
           style={{
             font: "500 11.5px/1.4 var(--f-sans)",
@@ -693,11 +790,17 @@ function ReceiptDetailModal({
             textAlign: "center",
           }}
         >
-          {t(
-            lang,
-            "Vista resumida. Para editar abrí el Studio web.",
-            "摘要视图。如需编辑请打开 Studio 网页。",
-          )}
+          {r.status === "pendiente_consolidacion" && r.mine
+            ? t(
+                lang,
+                "Editable hasta consolidación. Cambios quedan auditados.",
+                "整合前可编辑。所有更改将记录。",
+              )
+            : t(
+                lang,
+                "Vista resumida. Para editar abrí el Studio web.",
+                "摘要视图。如需编辑请打开 Studio 网页。",
+              )}
         </p>
       </div>
     </div>
@@ -744,6 +847,120 @@ function DetailRow({
       >
         {value}
       </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Sprint 1.5 · búsqueda de recepciones (debounce → URL ?q=)
+// ─────────────────────────────────────────────────────────────
+
+function ReceiptSearchBox({
+  lang,
+  initialQuery,
+}: {
+  lang: Lang;
+  initialQuery: string;
+}) {
+  const router = useRouter();
+  const [value, setValue] = useState(initialQuery);
+
+  // Debounce 350ms · al estabilizar el input, navega a ?q= (o limpia)
+  useEffect(() => {
+    const trimmed = value.trim();
+    // No re-navegar si coincide con lo que ya está en la URL
+    if (trimmed === initialQuery) return;
+    const id = setTimeout(() => {
+      if (trimmed.length >= 2) {
+        router.push(`/m/cn?q=${encodeURIComponent(trimmed)}`);
+      } else if (trimmed.length === 0) {
+        router.push("/m/cn");
+      }
+    }, 350);
+    return () => clearTimeout(id);
+  }, [value, initialQuery, router]);
+
+  return (
+    <div style={{ position: "relative" }}>
+      <span
+        aria-hidden
+        style={{
+          position: "absolute",
+          left: 12,
+          top: "50%",
+          transform: "translateY(-50%)",
+          color: "var(--ink-mute)",
+          pointerEvents: "none",
+          display: "inline-flex",
+        }}
+      >
+        {Icon.search(16)}
+      </span>
+      <input
+        type="search"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={t(
+          lang,
+          "Buscar por código, MARKBOX, cliente…",
+          "按编号、MARKBOX、客户搜索…",
+        )}
+        aria-label={t(lang, "Buscar recepciones", "搜索接收")}
+        className="studio-input"
+        style={{
+          width: "100%",
+          paddingLeft: 38,
+          height: 44,
+          fontSize: 14,
+        }}
+      />
+      {value.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setValue("")}
+          aria-label={t(lang, "Limpiar búsqueda", "清除搜索")}
+          style={{
+            position: "absolute",
+            right: 8,
+            top: "50%",
+            transform: "translateY(-50%)",
+            width: 28,
+            height: 28,
+            borderRadius: "var(--r-sm)",
+            border: 0,
+            background: "transparent",
+            color: "var(--ink-mute)",
+            cursor: "pointer",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          {Icon.close(16)}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function NoSearchResults({ lang, query }: { lang: Lang; query: string }) {
+  return (
+    <div
+      style={{
+        padding: "var(--s-5) var(--s-4)",
+        background: "var(--bg-surface)",
+        border: "1px dashed var(--border)",
+        borderRadius: "var(--r-md)",
+        textAlign: "center",
+        font: "500 13px/1.5 var(--f-sans)",
+        color: "var(--ink-mute)",
+      }}
+    >
+      {t(
+        lang,
+        `Sin resultados para "${query}". Probá con el código o MARKBOX.`,
+        `未找到 "${query}" 的结果。请尝试编号或 MARKBOX。`,
+      )}
     </div>
   );
 }
@@ -926,6 +1143,17 @@ function MenuModal({
               );
             })}
           </div>
+        </div>
+
+        {/* Sprint 4 · push opt-in (se auto-oculta si no soportado) */}
+        <div
+          style={{
+            marginTop: "var(--s-3)",
+            padding: "4px 0",
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <PushOptIn lang={lang} />
         </div>
 
         {/* Cerrar sesión via server action */}

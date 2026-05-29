@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
-import { NEWS_POSTS } from "@/lib/design-tokens";
+import { listPublishedPosts } from "@/lib/news/queries";
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
   const now = new Date();
   const routes: MetadataRoute.Sitemap = [
@@ -15,8 +15,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/track`,     lastModified: now, priority: 0.7, changeFrequency: "monthly" },
   ];
 
-  // Posts individuales — pre-generados estáticamente, indexables
-  for (const post of NEWS_POSTS) {
+  // Posts individuales · ahora DB-backed (Plan v4 Phase F)
+  const posts = await listPublishedPosts();
+  for (const post of posts) {
     routes.push({
       url: `${base}/noticias/${post.slug}`,
       lastModified: new Date(post.date),

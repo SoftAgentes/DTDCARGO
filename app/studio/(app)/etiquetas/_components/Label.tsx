@@ -145,19 +145,19 @@ export type WarehouseAddress = {
 
 const HUB_DATA: Record<string, Omit<WarehouseAddress, "code" | "city" | "city_cn">> = {
   "YIW-A1": {
-    address_cn: "义乌市国际商贸城三区 5楼 218号 · DTD-Cargo",
+    address_cn: "义乌市国际商贸城三区 5楼 218号 · DTD Cargo",
     contact_cn: "王亮 Wang Liang",
     phone: "+86 137 5028 9114",
     wechat: "DTD_CARGO_YIW",
   },
   "GZ-B2": {
-    address_cn: "广州市番禺区市桥工业园 12号 B栋 · DTD-Cargo",
+    address_cn: "广州市番禺区市桥工业园 12号 B栋 · DTD Cargo",
     contact_cn: "陈伟 Chen Wei",
     phone: "+86 188 2266 9988",
     wechat: "DTD_CARGO_GZ",
   },
   "SZ-C1": {
-    address_cn: "深圳市宝安区福永街道工业区 8栋 · DTD-Cargo",
+    address_cn: "深圳市宝安区福永街道工业区 8栋 · DTD Cargo",
     contact_cn: "张敏 Zhang Min",
     phone: "+86 159 8842 1107",
     wechat: "DTD_CARGO_SZ",
@@ -166,8 +166,8 @@ const HUB_DATA: Record<string, Omit<WarehouseAddress, "code" | "city" | "city_cn
 
 export function warehouseAddress(w: LabelWarehouseCn): WarehouseAddress {
   const fallback = {
-    address_cn: w.hub_name_cn ?? w.warehouse_name ?? "DTD-Cargo",
-    contact_cn: "DTD-Cargo",
+    address_cn: w.hub_name_cn ?? w.warehouse_name ?? "DTD Cargo",
+    contact_cn: "DTD Cargo",
     phone: "—",
     wechat: "—",
   };
@@ -253,7 +253,7 @@ export function Label({
               marginTop: 2,
             }}
           >
-            寄至：DTD-Cargo 国际货运
+            寄至：DTD Cargo 国际货运
           </div>
         </div>
         <div

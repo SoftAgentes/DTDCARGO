@@ -3,12 +3,12 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
-  NEWS_POSTS,
-  NEWS_CATEGORIES,
-  buildWhatsAppLink,
-  type NewsPost,
-} from "@/lib/design-tokens";
+  NEWS_CATEGORIES_V4,
+  gradientToCss,
+} from "@/lib/news/categories";
+import { listPublishedPosts, type NewsPostRow } from "@/lib/news/queries";
 import { ArrowIcon } from "@/components/Icon";
 
 export const metadata: Metadata = {
@@ -28,11 +28,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function NoticiasPage() {
-  // Ordenar por fecha descendente (más reciente primero)
-  const sortedPosts = [...NEWS_POSTS].sort((a, b) =>
-    a.date < b.date ? 1 : -1,
-  );
+export default async function NoticiasPage() {
+  // Plan v4 · Phase F — posts vienen de la tabla news_posts (anon SELECT
+  // permite leer published=true gracias a la policy news_posts_public_select).
+  const posts = await listPublishedPosts();
 
   return (
     <>
@@ -63,11 +62,11 @@ export default function NoticiasPage() {
         {/* Posts grid */}
         <section className="pb-20">
           <div className="wrap max-w-[1100px]">
-            {sortedPosts.length === 0 ? (
+            {posts.length === 0 ? (
               <EmptyState />
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {sortedPosts.map((post) => (
+                {posts.map((post) => (
                   <PostCard key={post.slug} post={post} />
                 ))}
               </div>
@@ -116,26 +115,24 @@ export default function NoticiasPage() {
   );
 }
 
-function PostCard({ post }: { post: NewsPost }) {
-  const cat = NEWS_CATEGORIES[post.category];
+function PostCard({ post }: { post: NewsPostRow }) {
+  const cat = NEWS_CATEGORIES_V4[post.categoria];
   const date = new Date(post.date).toLocaleDateString("es-VE", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
-  const hasBody = post.body && post.body.length > 0;
+  const hasBody = post.body_markdown && post.body_markdown.trim().length > 0;
 
   return (
     <Link
       href={`/noticias/${post.slug}`}
       className="card-shadow bg-white border border-grey-200 rounded-[18px] overflow-hidden flex flex-col group transition-transform hover:-translate-y-1"
     >
-      {/* Cover decorativo — gradient por categoría sin imagen */}
+      {/* Cover decorativo — gradient v4 from→to por categoría */}
       <div
         className="h-[140px] relative overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, ${cat.color} 0%, ${cat.color}dd 100%)`,
-        }}
+        style={{ background: gradientToCss(cat.gradient) }}
       >
         <span className="absolute top-4 left-4 inline-flex px-3 py-1 rounded-full bg-white/15 backdrop-blur-sm text-[10.5px] font-bold tracking-[0.12em] uppercase text-white">
           {cat.label}
@@ -152,7 +149,7 @@ function PostCard({ post }: { post: NewsPost }) {
         </p>
         <div className="mt-5 pt-5 border-t border-grey-200 flex items-center justify-between text-[12px] text-grey-500">
           <time dateTime={post.date}>{date}</time>
-          <span>{post.readTimeMin} min lectura</span>
+          <span>{post.read_time_min} min lectura</span>
         </div>
         <span className="mt-4 inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-wine group-hover:text-wine-deep transition-colors">
           {hasBody ? "Leer artículo" : "Próximamente · Ver detalle"}{" "}

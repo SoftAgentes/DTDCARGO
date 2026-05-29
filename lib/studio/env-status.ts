@@ -21,6 +21,7 @@ export type IntegrationKey =
   | "telegram"
   | "telegramWebhook"
   | "anthropic"
+  | "openrouter"
   | "hailuway";
 
 export type EnvStatus = {
@@ -44,6 +45,7 @@ const INTEGRATION_ENV_MAP: Record<IntegrationKey, string> = {
   telegram: "TELEGRAM_BOT_TOKEN",
   telegramWebhook: "TELEGRAM_WEBHOOK_SECRET",
   anthropic: "ANTHROPIC_API_KEY",
+  openrouter: "OPENROUTER_API_KEY",
   hailuway: "DTD_API_KEY",
 };
 
@@ -63,6 +65,7 @@ const TRACKED_ENV_VARS = [
   "RESEND_API_KEY",
   "RESEND_WEBHOOK_SECRET",
   "ANTHROPIC_API_KEY",
+  "OPENROUTER_API_KEY",
   "LLM_FORCE_MOCK",
   "TELEGRAM_BOT_TOKEN",
   "TELEGRAM_WEBHOOK_SECRET",
@@ -72,6 +75,9 @@ const TRACKED_ENV_VARS = [
   "VERCEL_URL",
   "VERCEL_GIT_COMMIT_SHA",
   "VERCEL_GIT_COMMIT_REF",
+  "VERCEL_API_TOKEN",
+  "VERCEL_PROJECT_ID",
+  "VERCEL_TEAM_ID",
 ];
 
 function statusOf(envKey: string, isRequired = false): IntegrationStatus {
@@ -103,6 +109,7 @@ export function getEnvStatus(): EnvStatus {
       telegram: statusOf(INTEGRATION_ENV_MAP.telegram),
       telegramWebhook: statusOf(INTEGRATION_ENV_MAP.telegramWebhook),
       anthropic: statusOf(INTEGRATION_ENV_MAP.anthropic),
+      openrouter: statusOf(INTEGRATION_ENV_MAP.openrouter),
       hailuway: statusOf(INTEGRATION_ENV_MAP.hailuway),
     },
     envVarsPresent: TRACKED_ENV_VARS.filter((k) => Boolean(process.env[k])),
@@ -123,6 +130,7 @@ export function integrationLabel(k: IntegrationKey): string {
     telegram: "Telegram bot",
     telegramWebhook: "Telegram webhook",
     anthropic: "Anthropic (AI)",
+    openrouter: "OpenRouter (AI)",
     hailuway: "ERP HailuWay",
   };
   return labels[k];

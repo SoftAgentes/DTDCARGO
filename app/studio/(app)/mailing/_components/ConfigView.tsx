@@ -93,7 +93,7 @@ export function ConfigView({ config }: Props) {
           defaultValue={config.from_name}
           error={state.fieldErrors?.from_name}
           disabled={pending}
-          hint="Nombre visible junto al From. Ej: DTD-Cargo."
+          hint="Nombre visible junto al From. Ej: DTD Cargo."
         />
 
         <Field

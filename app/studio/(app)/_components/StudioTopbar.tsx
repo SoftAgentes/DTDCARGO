@@ -10,7 +10,7 @@
  * - Notifications icon (placeholder, 0 notifs)
  * - User menu dropdown con avatar + email + role + Cerrar sesión
  *
- * Portado desde docs/design/v1-studio/source/erp/shell.jsx (Topbar function).
+ * Diseño (v1.7): docs/design/studio/v1.7-claude-design/project/erp/shell.jsx (Topbar)
  */
 
 import { useTransition, useEffect, useRef, useState } from "react";
@@ -21,6 +21,7 @@ import { Badge } from "../../_components/ui/Badge";
 import { pathToModuleLabel } from "./StudioSidebar";
 import { signOut } from "../actions";
 import { useDTDWiring } from "../../_components/wiring/WiringProvider";
+import { useT, useLocale } from "@/lib/i18n";
 
 const THEME_KEY = "studio_theme";
 
@@ -30,7 +31,9 @@ interface StudioTopbarProps {
 
 export function StudioTopbar({ userEmail }: StudioTopbarProps) {
   const pathname = usePathname();
-  const moduleLabel = pathToModuleLabel(pathname);
+  const locale = useLocale();
+  const t = useT();
+  const moduleLabel = pathToModuleLabel(pathname, locale);
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [searchOpen, setSearchOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -126,7 +129,7 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
               textTransform: "uppercase",
             }}
           >
-            Módulo
+            {t("chrome.topbar.module")}
           </span>
           <span
             style={{
@@ -143,7 +146,7 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
         <div style={{ flex: 1, maxWidth: 520, marginLeft: 24 }}>
           <button
             onClick={() => setSearchOpen(true)}
-            aria-label={`Buscar en el Studio (atajo: ${modKey}+K)`}
+            aria-label={t("chrome.topbar.search_aria", { key: modKey })}
             style={{
               width: "100%",
               height: 36,
@@ -170,7 +173,7 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
                 whiteSpace: "nowrap",
               }}
             >
-              Buscar embarques, clientes, MARKBOX…
+              {t("chrome.topbar.search_placeholder")}
             </span>
             <kbd
               style={{
@@ -198,8 +201,8 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
           {/* Theme toggle */}
           <IconButton
             onClick={toggleTheme}
-            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
-            ariaLabel="Cambiar tema"
+            title={theme === "dark" ? t("chrome.topbar.theme_to_light") : t("chrome.topbar.theme_to_dark")}
+            ariaLabel={t("chrome.topbar.theme_toggle")}
           >
             {theme === "dark" ? Icon.sun(16) : Icon.moon(16)}
           </IconButton>
@@ -209,8 +212,8 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
             onClick={() => {
               /* Sprint futuro */
             }}
-            title="Notificaciones"
-            ariaLabel="Notificaciones"
+            title={t("chrome.topbar.notifications")}
+            ariaLabel={t("chrome.topbar.notifications")}
           >
             {Icon.bell(16)}
           </IconButton>
@@ -219,7 +222,7 @@ export function StudioTopbar({ userEmail }: StudioTopbarProps) {
           <div ref={userMenuRef} style={{ position: "relative", marginLeft: 6 }}>
             <button
               onClick={() => setUserMenuOpen((v) => !v)}
-              aria-label="Menú de usuario"
+              aria-label={t("chrome.topbar.user_menu")}
               aria-expanded={userMenuOpen}
               style={{
                 display: "inline-flex",
@@ -313,6 +316,7 @@ function UserMenuDropdown({
   email: string;
   onClose: () => void;
 }) {
+  const t = useT();
   const [isPending, startTransition] = useTransition();
   const handleSignOut = () => {
     startTransition(() => {
@@ -402,7 +406,7 @@ function UserMenuDropdown({
             e.currentTarget.style.background = "transparent";
           }}
         >
-          {isPending ? "Cerrando sesión…" : "Cerrar sesión"}
+          {isPending ? t("chrome.topbar.logging_out") : t("chrome.topbar.menu_logout")}
         </button>
       </div>
     </div>
@@ -410,32 +414,33 @@ function UserMenuDropdown({
 }
 
 function UserMenuItems({ onClose }: { onClose: () => void }) {
+  const t = useT();
   const { openProfileModal, openShortcutsModal } = useDTDWiring();
   return (
     <div style={{ padding: 6 }}>
       <MenuItem
-        label="Mi perfil"
+        label={t("chrome.topbar.menu_profile")}
         onClick={() => {
           onClose();
           openProfileModal({ tab: "profile" });
         }}
       />
       <MenuItem
-        label="Cambiar contraseña"
+        label={t("chrome.topbar.menu_password")}
         onClick={() => {
           onClose();
           openProfileModal({ tab: "password" });
         }}
       />
       <MenuItem
-        label="Atajos de teclado"
+        label={t("chrome.topbar.menu_shortcuts")}
         onClick={() => {
           onClose();
           openShortcutsModal();
         }}
       />
       <MenuItem
-        label="Preferencias"
+        label={t("chrome.topbar.menu_preferences")}
         onClick={() => {
           onClose();
           openProfileModal({ tab: "prefs" });
@@ -473,6 +478,7 @@ function MenuItem({ label, onClick }: { label: string; onClick: () => void }) {
 }
 
 function SearchPlaceholderModal({ onClose }: { onClose: () => void }) {
+  const t = useT();
   return (
     <div
       onClick={onClose}
@@ -511,7 +517,7 @@ function SearchPlaceholderModal({ onClose }: { onClose: () => void }) {
           </span>
           <input
             disabled
-            placeholder="Búsqueda global (próximamente)"
+            placeholder={t("chrome.topbar.search_modal_placeholder")}
             style={{
               flex: 1,
               border: 0,
@@ -542,11 +548,10 @@ function SearchPlaceholderModal({ onClose }: { onClose: () => void }) {
           }}
         >
           <strong style={{ color: "var(--ink)", font: "800 13px/1 var(--f-display)" }}>
-            Búsqueda global llegará en Sprint 6.4.
+            {t("chrome.topbar.search_modal_title")}
           </strong>
           <div style={{ marginTop: 8 }}>
-            Mientras tanto, navegá desde el sidebar para encontrar embarques,
-            clientes, MARKBOX y demás.
+            {t("chrome.topbar.search_modal_hint")}
           </div>
         </div>
       </div>

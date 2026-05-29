@@ -4,77 +4,81 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { NewsDisclaimer } from "@/components/NewsDisclaimer";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
-  NEWS_POSTS,
-  NEWS_CATEGORIES,
-  buildWhatsAppLink,
-  type NewsPost,
-} from "@/lib/design-tokens";
-import { renderBolded } from "@/lib/text";
+  NEWS_CATEGORIES_V4,
+  gradientToCss,
+} from "@/lib/news/categories";
+import {
+  getPostBySlug,
+  getRelatedPosts,
+  type NewsPostRow,
+} from "@/lib/news/queries";
+import { NewsMarkdown } from "@/lib/news/markdown";
 import { ArrowIcon } from "@/components/Icon";
+import { NewsArticleJsonLd } from "./_components/NewsArticleJsonLd";
+import { FaqPageJsonLd } from "./_components/FaqPageJsonLd";
 
 type Props = { params: Promise<{ slug: string }> };
 
-/**
- * Static params — Next.js pre-genera una página por cada post en NEWS_POSTS.
- * Cuando se agrega un nuevo post al array, queda automáticamente accesible
- * en su slug sin tocar este archivo.
- */
-export async function generateStaticParams() {
-  return NEWS_POSTS.map((post) => ({ slug: post.slug }));
-}
+// Sin generateStaticParams: las páginas se SSR-renderizan on-demand y se
+// cachean automáticamente. `publishPost` dispara `revalidatePath` para
+// invalidar tras nueva publicación. Pre-generación al build queda diferida
+// — `createClient()` lee cookies y no es válido en `generateStaticParams`.
 
 /**
- * SEO por post — title + description individuales.
- * OpenGraph hereda del layout.tsx pero el title específico aplica al share.
+ * SEO por post — title + description + canonical individuales.
+ * meta_description de la DB tiene preferencia sobre excerpt si está set.
  */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
-  const post = NEWS_POSTS.find((p) => p.slug === slug);
+  const post = await getPostBySlug(slug);
   if (!post) {
     return {
       title: "Artículo no encontrado",
       robots: { index: false },
     };
   }
+  const description = post.meta_description || post.excerpt;
   return {
     title: post.title,
-    description: post.excerpt,
+    description,
     alternates: { canonical: `/noticias/${slug}` },
     openGraph: {
       type: "article",
       title: post.title,
-      description: post.excerpt,
+      description,
       url: `/noticias/${slug}`,
       publishedTime: post.date,
+      authors: [post.author_name],
     },
+    keywords: [
+      ...(post.focus_keyword ? [post.focus_keyword] : []),
+      ...post.secondary_keywords,
+    ],
   };
 }
 
 export default async function NewsPostPage({ params }: Props) {
   const { slug } = await params;
-  const post = NEWS_POSTS.find((p) => p.slug === slug);
+  const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  const cat = NEWS_CATEGORIES[post.category];
+  const cat = NEWS_CATEGORIES_V4[post.categoria];
   const date = new Date(post.date).toLocaleDateString("es-VE", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
-  const hasBody = post.body && post.body.length > 0;
-
-  // Posts relacionados: misma categoría primero, luego cualquier otro
-  const related = NEWS_POSTS.filter((p) => p.slug !== slug)
-    .sort((a, b) => {
-      if (a.category === post.category && b.category !== post.category) return -1;
-      if (b.category === post.category && a.category !== post.category) return 1;
-      return a.date < b.date ? 1 : -1;
-    })
-    .slice(0, 2);
+  const hasBody = post.body_markdown && post.body_markdown.trim().length > 0;
+  const related = await getRelatedPosts(slug, post.categoria, 2);
 
   return (
     <>
+      {/* JSON-LD schema.org NewsArticle + FAQPage (Plan v5 · Fase D) */}
+      <NewsArticleJsonLd post={post} />
+      <FaqPageJsonLd bodyMarkdown={post.body_markdown} />
       <Nav />
       <main className="bg-paper">
         <article className="py-16 lg:py-24">
@@ -94,7 +98,7 @@ export default async function NewsPostPage({ params }: Props) {
             <header className="mt-8">
               <span
                 className="inline-flex px-3 py-1 rounded-full text-[10.5px] font-bold tracking-[0.12em] uppercase text-white"
-                style={{ background: cat.color }}
+                style={{ background: gradientToCss(cat.gradient) }}
               >
                 {cat.label}
               </span>
@@ -104,10 +108,21 @@ export default async function NewsPostPage({ params }: Props) {
               >
                 {post.title}
               </h1>
-              <div className="mt-5 flex items-center gap-3 text-[13px] text-grey-500">
+              <div className="mt-5 flex items-center gap-3 text-[13px] text-grey-500 flex-wrap">
                 <time dateTime={post.date}>{date}</time>
                 <span aria-hidden>·</span>
-                <span>{post.readTimeMin} min lectura</span>
+                <span>{post.read_time_min} min lectura</span>
+                {post.author_name !== "DTD Cargo" && (
+                  <>
+                    <span aria-hidden>·</span>
+                    <span>
+                      Por{" "}
+                      <strong className="text-ink font-semibold">
+                        {post.author_name}
+                      </strong>
+                    </span>
+                  </>
+                )}
               </div>
             </header>
 
@@ -121,19 +136,19 @@ export default async function NewsPostPage({ params }: Props) {
 
             {/* Body o Coming soon */}
             {hasBody ? (
-              <div className="mt-10 flex flex-col gap-5">
-                {post.body!.map((paragraph, i) => (
-                  <p
-                    key={i}
-                    className="text-[16px] leading-[1.7] text-grey-700"
-                  >
-                    {renderBolded(paragraph)}
-                  </p>
-                ))}
+              <div className="mt-10">
+                <NewsMarkdown source={post.body_markdown} />
               </div>
             ) : (
               <ComingSoonBlock post={post} />
             )}
+
+            {/* Disclaimer del autor (si aplica) */}
+            <NewsDisclaimer
+              tipo={post.tipo}
+              authorName={post.author_name}
+              authorRole={post.author_role}
+            />
           </div>
         </article>
 
@@ -141,9 +156,7 @@ export default async function NewsPostPage({ params }: Props) {
         {related.length > 0 && (
           <section className="py-16 lg:py-20 border-t border-grey-200">
             <div className="wrap max-w-[1100px]">
-              <h2
-                className="text-[14px] font-bold tracking-[0.14em] uppercase text-wine mb-8"
-              >
+              <h2 className="text-[14px] font-bold tracking-[0.14em] uppercase text-wine mb-8">
                 Seguí leyendo
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -161,7 +174,7 @@ export default async function NewsPostPage({ params }: Props) {
   );
 }
 
-function ComingSoonBlock({ post }: { post: NewsPost }) {
+function ComingSoonBlock({ post }: { post: NewsPostRow }) {
   return (
     <div className="mt-10 card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-10">
       <span className="eyebrow inline-flex">Artículo en preparación</span>
@@ -190,8 +203,8 @@ function ComingSoonBlock({ post }: { post: NewsPost }) {
   );
 }
 
-function RelatedPostCard({ post }: { post: NewsPost }) {
-  const cat = NEWS_CATEGORIES[post.category];
+function RelatedPostCard({ post }: { post: NewsPostRow }) {
+  const cat = NEWS_CATEGORIES_V4[post.categoria];
   const date = new Date(post.date).toLocaleDateString("es-VE", {
     day: "2-digit",
     month: "short",
@@ -204,9 +217,7 @@ function RelatedPostCard({ post }: { post: NewsPost }) {
     >
       <div
         className="h-[100px] relative overflow-hidden"
-        style={{
-          background: `linear-gradient(135deg, ${cat.color} 0%, ${cat.color}dd 100%)`,
-        }}
+        style={{ background: gradientToCss(cat.gradient) }}
       >
         <span className="absolute top-3 left-3 inline-flex px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-sm text-[10px] font-bold tracking-[0.12em] uppercase text-white">
           {cat.label}

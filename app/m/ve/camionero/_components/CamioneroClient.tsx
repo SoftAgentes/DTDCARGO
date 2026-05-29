@@ -9,22 +9,35 @@
  *
  * El POD modal sube foto + firma canvas → server action `podAction`.
  * Después de la última entrega, advance a `entregada`.
+ *
+ * Sprint G (handoff v1.7): wrapper data-theme="dark" por default (per-rol),
+ * SettingsMenu con toggle sun/moon, ActionButton en "Iniciar ruta",
+ * numeración paradas 1/N.
  */
 
-import { useActionState, useState } from "react";
+import { useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { RealtimeIndicator } from "@/app/studio/_components/ui/RealtimeIndicator";
 import { useRealtimeRefresh } from "@/lib/studio/hooks/use-realtime-refresh";
+import {
+  SettingsMenu,
+  useThemeMode,
+  type ThemeMode,
+} from "@/app/m/_components/SettingsMenu";
 import { advanceOdAction, signOutAction } from "../actions";
+import { switchModeAction } from "../../modos/actions";
 import { PodModal } from "./PodModal";
+import { CurrentDelivery } from "./CurrentDelivery";
+import { GpsBlock, GpsLiveProvider } from "./GpsBlock";
+import { PodRetryRunner } from "./PodRetryRunner";
 import {
   DISPATCH_ORDER_STATUS_LABELS,
   DISPATCH_ORDER_STATUS_TONES,
   type DispatchOrderRow,
 } from "@/lib/studio/dispatch-types";
-import type { MobileActionState } from "@/lib/studio/dispatch-mobile-types";
-
-const INITIAL: MobileActionState = {};
+import type { OperarioRole } from "@/lib/studio/operario-types";
+import { useRouter } from "next/navigation";
 
 interface Props {
   operario: {
@@ -32,14 +45,25 @@ interface Props {
     displayName: string;
     firstName: string;
     initials: string;
+    /** Sprint D · multi-rol. Si length > 1, header muestra "Cambiar modo". */
+    roles: OperarioRole[];
   };
   ods: DispatchOrderRow[];
   tenantId: string;
+  /** Sprint 3 · markbox → signed URL del bucket client-facades (10min). */
+  facadeSignedUrls: Record<string, string>;
 }
 
-export function CamioneroClient({ operario, ods, tenantId }: Props) {
+export function CamioneroClient({
+  operario,
+  ods,
+  tenantId,
+  facadeSignedUrls,
+}: Props) {
+  const router = useRouter();
   const [activeOdId, setActiveOdId] = useState<string | null>(ods[0]?.id ?? null);
   const [podOpen, setPodOpen] = useState(false);
+  const { theme, toggle: toggleTheme } = useThemeMode("camionero");
 
   const activeOd = ods.find((o) => o.id === activeOdId);
 
@@ -50,7 +74,11 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
   });
 
   return (
+    <GpsLiveProvider>
+    {/* Sprint 3.5 · reintenta PODs que quedaron offline */}
+    <PodRetryRunner />
     <div
+      data-theme={theme}
       style={{
         maxWidth: 480,
         margin: "0 auto",
@@ -62,7 +90,13 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
-      <Header operario={operario} realtimeStatus={realtime.status} />
+      <Header
+        operario={operario}
+        realtimeStatus={realtime.status}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        isMultiRole={operario.roles.length > 1}
+      />
 
       {ods.length === 0 ? (
         <EmptyState />
@@ -109,6 +143,8 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
             <OdView
               od={activeOd}
               onOpenPod={() => setPodOpen(true)}
+              facadeSignedUrls={facadeSignedUrls}
+              onRefresh={() => router.refresh()}
             />
           )}
         </>
@@ -121,6 +157,7 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
         />
       )}
     </div>
+    </GpsLiveProvider>
   );
 }
 
@@ -131,9 +168,15 @@ export function CamioneroClient({ operario, ods, tenantId }: Props) {
 function Header({
   operario,
   realtimeStatus,
+  theme,
+  onToggleTheme,
+  isMultiRole,
 }: {
   operario: Props["operario"];
   realtimeStatus: import("@/lib/studio/hooks/use-realtime-table").RealtimeStatus;
+  theme: ThemeMode;
+  onToggleTheme: () => void;
+  isMultiRole: boolean;
 }) {
   return (
     <header
@@ -191,15 +234,12 @@ function Header({
         }}
       >
         <RealtimeIndicator status={realtimeStatus} />
-        <form action={signOutAction}>
-          <button
-            type="submit"
-            className="studio-btn studio-btn-ghost studio-btn-xs"
-            style={{ color: "var(--ink-soft)" }}
-          >
-            Salir
-          </button>
-        </form>
+        <SettingsMenu
+          theme={theme}
+          onToggleTheme={onToggleTheme}
+          signOutAction={signOutAction}
+          onSwitchMode={isMultiRole ? () => switchModeAction() : undefined}
+        />
       </div>
     </header>
   );
@@ -248,13 +288,25 @@ function EmptyState() {
 function OdView({
   od,
   onOpenPod,
+  facadeSignedUrls,
+  onRefresh,
 }: {
   od: DispatchOrderRow;
   onOpenPod: () => void;
+  facadeSignedUrls: Record<string, string>;
+  onRefresh: () => void;
 }) {
-  const [advanceState, advanceAction, advancePending] = useActionState(
-    advanceOdAction,
-    INITIAL,
+  const [error, setError] = useState<string | null>(null);
+
+  // Sprint 3: partial-delivery + currentDelivery
+  const totalPkgs = od.packages.length;
+  const pendingPkgs = od.packages.filter(
+    (p) => (p.delivery_status ?? "pendiente") === "pendiente",
+  );
+  const completedCount = totalPkgs - pendingPkgs.length;
+  const allDone = pendingPkgs.length === 0 && totalPkgs > 0;
+  const currentIdx = od.packages.findIndex(
+    (p) => (p.delivery_status ?? "pendiente") === "pendiente",
   );
 
   return (
@@ -297,93 +349,170 @@ function OdView({
             font: "700 12px/1 var(--f-mono)",
           }}
         >
-          <span>{od.package_count} pkg</span>
+          <span>
+            {completedCount}/{totalPkgs} entregadas
+          </span>
           <span>{od.total_kg.toFixed(0)} kg</span>
           <span>{od.total_cbm.toFixed(1)} cbm</span>
         </div>
       </div>
 
-      {/* Packages */}
-      <div className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
-        Paradas · {od.packages.length}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        {od.packages.map((p) => (
-          <div
-            key={p.package_id}
-            style={{
-              padding: 12,
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--r-md)",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: 4,
-              }}
-            >
-              <code style={{ font: "700 11.5px/1 var(--f-mono)", color: "var(--wine)" }}>
-                {p.markbox}
-              </code>
-              <code style={{ font: "700 11px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
-                {p.boxes_shipped} cj · {p.weight_kg.toFixed(0)} kg
-              </code>
-            </div>
-            <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)" }}>
-              {p.client_name}
-            </div>
-            <div style={{ font: "500 11.5px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
-              {p.city}
-            </div>
-            {p.description && (
+      {/* GPS Live Block (Sprint 3) */}
+      {od.status === "en_ruta" && <GpsBlock />}
+
+      {/* Current Delivery + paquetes restantes */}
+      {od.status === "en_ruta" && pendingPkgs.length > 0 && (
+        <>
+          <div className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
+            Próxima entrega · {currentIdx + 1}/{totalPkgs}
+          </div>
+          {od.packages.map((p, idx) => {
+            const status = p.delivery_status ?? "pendiente";
+            const isPending = status === "pendiente";
+            // Render expandido el primer pendiente, los demás compactos
+            const isCurrent = idx === currentIdx;
+            return (
+              <CurrentDelivery
+                key={p.package_id}
+                pkg={p}
+                odId={od.id}
+                facadeSignedUrl={facadeSignedUrls[p.markbox] ?? null}
+                position={idx + 1}
+                total={totalPkgs}
+                readOnly={!isCurrent && !isPending}
+                onRefresh={onRefresh}
+              />
+            );
+          })}
+        </>
+      )}
+
+      {/* Si status es lista, lista compacta de packages */}
+      {od.status === "lista" && (
+        <>
+          <div className="studio-eyebrow" style={{ color: "var(--ink-soft)" }}>
+            {totalPkgs} paradas · arranca cuando estés listo
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {od.packages.map((p, idx) => (
               <div
+                key={p.package_id}
                 style={{
-                  font: "500 11px/1.4 var(--f-sans)",
-                  color: "var(--ink-mute)",
-                  marginTop: 6,
-                  paddingTop: 6,
-                  borderTop: "1px dashed var(--border)",
+                  padding: 10,
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--r-sm)",
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
                 }}
               >
-                {p.description}
+                <div
+                  aria-hidden="true"
+                  style={{
+                    flexShrink: 0,
+                    width: 26,
+                    height: 26,
+                    borderRadius: "var(--r-pill)",
+                    background:
+                      idx === 0 ? "var(--wine-tint)" : "var(--bg-elevated)",
+                    color: idx === 0 ? "var(--wine)" : "var(--ink-soft)",
+                    font: "800 11px/1 var(--f-mono)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border:
+                      idx === 0
+                        ? "1px solid var(--wine)"
+                        : "1px solid var(--border)",
+                  }}
+                >
+                  {idx + 1}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      font: "700 12.5px/1.2 var(--f-sans)",
+                      color: "var(--ink)",
+                    }}
+                  >
+                    {p.client_name}
+                  </div>
+                  <div
+                    style={{
+                      font: "500 11px/1.3 var(--f-sans)",
+                      color: "var(--ink-soft)",
+                    }}
+                  >
+                    {p.city}
+                  </div>
+                </div>
+                <code
+                  style={{
+                    font: "700 11px/1 var(--f-mono)",
+                    color: "var(--ink-mute)",
+                  }}
+                >
+                  {p.boxes_shipped} cj
+                </code>
               </div>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
 
       {/* Actions */}
       {od.status === "lista" && (
-        <form action={advanceAction} style={{ marginTop: 8 }}>
-          <input type="hidden" name="od_id" value={od.id} />
-          <input type="hidden" name="status" value="en_ruta" />
-          <button
-            type="submit"
-            className="studio-btn studio-btn-primary"
-            style={{ width: "100%", height: 52, fontSize: 14 }}
-            disabled={advancePending}
-          >
-            {advancePending ? "Iniciando…" : "Iniciar ruta"}
-          </button>
-        </form>
+        <div style={{ marginTop: 8 }}>
+          <ActionButton
+            variant="primary"
+            size="default"
+            idleLabel="Iniciar ruta"
+            loadingLabel="Iniciando…"
+            successLabel="Ruta iniciada"
+            onAction={async () => {
+              setError(null);
+              const fd = new FormData();
+              fd.append("od_id", od.id);
+              fd.append("status", "en_ruta");
+              const result = await advanceOdAction({}, fd);
+              if (result?.error) return { error: result.error };
+              return undefined;
+            }}
+            onError={setError}
+          />
+        </div>
       )}
 
-      {od.status === "en_ruta" && (
+      {od.status === "en_ruta" && allDone && (
         <button
           type="button"
           onClick={onOpenPod}
           className="studio-btn studio-btn-primary"
           style={{ width: "100%", height: 52, fontSize: 14, marginTop: 8 }}
         >
-          Confirmar entrega · POD
+          Cerrar ruta · POD final
         </button>
       )}
 
-      {advanceState?.error && (
+      {od.status === "en_ruta" && !allDone && (
+        <div
+          style={{
+            padding: 10,
+            background: "var(--bg-elevated)",
+            border: "1px dashed var(--border)",
+            borderRadius: "var(--r-sm)",
+            font: "500 11.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+            textAlign: "center",
+          }}
+        >
+          Marcá cada parada como entregada / rechazada / retornada arriba.
+          Cuando termines, podrás cerrar la ruta con el POD final.
+        </div>
+      )}
+
+      {error && (
         <div
           style={{
             padding: 10,
@@ -393,7 +522,7 @@ function OdView({
             font: "600 12.5px/1.4 var(--f-sans)",
           }}
         >
-          {advanceState.error}
+          {error}
         </div>
       )}
     </main>

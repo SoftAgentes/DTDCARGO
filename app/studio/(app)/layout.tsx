@@ -4,12 +4,18 @@
  * Provee Sidebar agrupado oscuro + Topbar sticky con search/theme/user menu.
  * Auth guard server-side: el proxy.ts ya filtra, pero acá hacemos segunda
  * verificación por defensa en profundidad.
+ *
+ * i18n: resuelve locale y region UNA vez por request leyendo
+ * user_tenants.region + user_profiles.locale + Accept-Language. El
+ * LocaleProvider client maneja el override URL `?lang=cn|es`.
  */
 
 import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
+import { resolveLocale } from "@/lib/i18n/resolve-server";
+import { LocaleProvider } from "@/lib/i18n";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
@@ -54,6 +60,23 @@ export default async function StudioAppLayout({
       telegram_username: string | null;
     }>();
 
+  // Resolver la región del user via user_tenants.region (migración 0052).
+  // Un user puede estar en N tenants — para V1 tomamos el primero (suficiente
+  // mientras el Studio sea single-tenant por sesión; cuando haya tenant
+  // switcher, leer del switcher activo).
+  const { data: tenantLink } = await supabase
+    .from("user_tenants")
+    .select("region")
+    .eq("user_id", user.id)
+    .maybeSingle<{ region: string | null }>();
+
+  // Resolver locale activo. El override URL `?lang=` se aplica client-side
+  // en LocaleProvider.
+  const { locale, region } = await resolveLocale({
+    userProfileLocale: profile?.locale ?? null,
+    userTenantRegion: tenantLink?.region ?? null,
+  });
+
   const profileInitial = {
     email: user.email ?? "",
     firstName: profile?.first_name ?? null,
@@ -74,47 +97,49 @@ export default async function StudioAppLayout({
   const featureFlags = await listFeatureFlags(supabase);
 
   return (
-    <ToastProvider>
-      <WiringProvider profileInitial={profileInitial}>
-        <div
-          style={{
-            display: "flex",
-            minHeight: "100vh",
-            background: "var(--bg-base)",
-            color: "var(--ink)",
-          }}
-        >
-          <StudioSidebar featureFlags={featureFlags} />
-
-          <main
+    <LocaleProvider locale={locale} region={region}>
+      <ToastProvider>
+        <WiringProvider profileInitial={profileInitial}>
+          <div
             style={{
-              flex: 1,
               display: "flex",
-              flexDirection: "column",
-              minWidth: 0,
+              minHeight: "100vh",
+              background: "var(--bg-base)",
+              color: "var(--ink)",
             }}
           >
-            <EnvBanner />
-            <StudioTopbar userEmail={user.email ?? ""} />
-            <div
+            <StudioSidebar featureFlags={featureFlags} />
+
+            <main
               style={{
                 flex: 1,
-                padding: "var(--s-6) var(--s-8)",
-                maxWidth: "var(--content-max)",
-                width: "100%",
-                margin: "0 auto",
+                display: "flex",
+                flexDirection: "column",
+                minWidth: 0,
               }}
             >
-              {children}
-            </div>
-          </main>
-        </div>
+              <EnvBanner />
+              <StudioTopbar userEmail={user.email ?? ""} />
+              <div
+                style={{
+                  flex: 1,
+                  padding: "var(--s-6) var(--s-8)",
+                  maxWidth: "var(--content-max)",
+                  width: "100%",
+                  margin: "0 auto",
+                }}
+              >
+                {children}
+              </div>
+            </main>
+          </div>
 
-        {/* Bug Reporter · SDD-0036 · visible en todo el Studio */}
-        {/* Provider (sin UI) instala listeners de error/network para tech_data */}
-        <BugTechCaptureProvider />
-        <BugFABButton buildSha={buildSha} />
-      </WiringProvider>
-    </ToastProvider>
+          {/* Bug Reporter · SDD-0036 · visible en todo el Studio */}
+          {/* Provider (sin UI) instala listeners de error/network para tech_data */}
+          <BugTechCaptureProvider />
+          <BugFABButton buildSha={buildSha} />
+        </WiringProvider>
+      </ToastProvider>
+    </LocaleProvider>
   );
 }

@@ -13,6 +13,7 @@ import { useRouter } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   SERVICE_LABELS,
   STATUS_COLORS,
@@ -139,7 +140,7 @@ export function MobileErpClient({
         {tab === "more" && <MoreScreen user={user} />}
       </main>
 
-      <BottomNav tab={tab} setTab={setTab} />
+      <BottomNav tab={tab} setTab={setTab} role={user.role} />
 
       {expenseModal && (
         <NewExpenseModal onClose={() => setExpenseModal(false)} />
@@ -245,15 +246,63 @@ function MobileTopBar({ user }: { user: UserInfo }) {
   );
 }
 
-const NAV_ITEMS: { k: Tab; label: string; icon: (s?: number) => React.ReactNode }[] = [
+/**
+ * NAV_ITEMS con `roles` opcional · si undefined, todos los roles ven el tab.
+ *
+ * Plan v2 Sprint B (Mobile ERP Martina-only · bottom nav adaptativo por rol):
+ * - admin (Carlos)        → ve los 5 tabs (home + tracking + clients + expenses + more).
+ * - commercial (Martina)  → 4 tabs (sin clients · Studio web cubre el caso).
+ * - operations (Yusneidy) → 3 tabs (home + tracking + more; despachos VE futuro).
+ * - warehouse / accounting / support → 2 tabs mínimos (home + more).
+ *
+ * Filosofía Hick's Law: cada rol ve solo lo que usa. Menos ruido = decisiones
+ * más rápidas en campo (Martina en viaje, Yusneidy en planta).
+ */
+type NavRole =
+  | "admin"
+  | "commercial"
+  | "operations"
+  | "warehouse"
+  | "accounting"
+  | "support";
+
+const NAV_ITEMS: {
+  k: Tab;
+  label: string;
+  icon: (s?: number) => React.ReactNode;
+  roles?: NavRole[];
+}[] = [
   { k: "home", label: "Inicio", icon: Icon.dashboard },
-  { k: "tracking", label: "Tracking", icon: Icon.radar },
-  { k: "clients", label: "Clientes", icon: Icon.users },
-  { k: "expenses", label: "Gastos", icon: Icon.invoice },
+  {
+    k: "tracking",
+    label: "Tracking",
+    icon: Icon.radar,
+    roles: ["admin", "commercial", "operations"],
+  },
+  { k: "clients", label: "Clientes", icon: Icon.users, roles: ["admin"] },
+  {
+    k: "expenses",
+    label: "Gastos",
+    icon: Icon.invoice,
+    roles: ["admin", "commercial"],
+  },
   { k: "more", label: "Más", icon: Icon.more },
 ];
 
-function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+function visibleNavItems(role: string) {
+  return NAV_ITEMS.filter((it) => !it.roles || it.roles.includes(role as NavRole));
+}
+
+function BottomNav({
+  tab,
+  setTab,
+  role,
+}: {
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  role: string;
+}) {
+  const items = visibleNavItems(role);
   return (
     <nav
       style={{
@@ -264,7 +313,7 @@ function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
         maxWidth: 480,
         margin: "0 auto",
         display: "grid",
-        gridTemplateColumns: "repeat(5, 1fr)",
+        gridTemplateColumns: `repeat(${items.length}, 1fr)`,
         background: "var(--bg-surface)",
         borderTop: "1px solid var(--border)",
         padding: "8px 8px",
@@ -272,7 +321,7 @@ function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
         zIndex: 30,
       }}
     >
-      {NAV_ITEMS.map((it) => {
+      {items.map((it) => {
         const active = tab === it.k;
         return (
           <button
@@ -1725,8 +1774,13 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
     INITIAL_EXPENSE_STATE,
   );
 
+  const toast = useToast();
+
   if (state?.ok) {
     setTimeout(() => {
+      toast.success(
+        `Gasto ${CURRENCY_SYMBOL[currency as ExpenseCurrency] ?? ""}${amount} ${category} guardado`,
+      );
       router.refresh();
       onClose();
     }, 100);
