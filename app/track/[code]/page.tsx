@@ -30,7 +30,7 @@ import {
   STATUS_COLORS,
   SERVICE_LABELS,
   type ShipmentStatus,
-} from "@/lib/studio/shipment-types";
+} from "@/lib/shared/shipment-public";
 
 type Props = { params: Promise<{ code: string }> };
 

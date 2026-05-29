@@ -12,7 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import type {
   ShipmentService,
   ShipmentStatus,
-} from "@/lib/studio/shipment-types";
+} from "@/lib/shared/shipment-public";
 
 /** Cliente Supabase con la anon key (NO service_role). */
 function getAnonClient() {
