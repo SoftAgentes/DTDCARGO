@@ -4,6 +4,13 @@
 
 ---
 
+## ⚠️ Estado (reorg ISO · 2026-05-29)
+
+- **Versión activa del Studio: `v1.7-claude-design`.** Anteriores: `_archivo-*` (no consultar para decisiones nuevas).
+- **Reglas de ubicación de archivos → [`/CLAUDE.md`](../../CLAUDE.md) §"Organización · ISO 9001 §7.5"** (fuente única; este README es índice de *materiales*, no de reglas).
+- Backups ZIP de `handoffs-archive/` están **fuera de git** (gitignored); ver su README.
+- La "Estructura actual" de más abajo quedó desactualizada (menciona v1.3.1) — refresh completo pendiente para una sesión de diseño dedicada.
+
 ## Regla de organización (vigente desde 2026-05-24)
 
 A partir de hoy:

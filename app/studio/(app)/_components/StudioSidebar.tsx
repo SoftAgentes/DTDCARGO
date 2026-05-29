@@ -5,7 +5,7 @@
  *
  * Sidebar oscuro agrupado en 4 secciones (OPERACIÓN/COMERCIAL/FINANZAS/SISTEMA)
  * con 21 módulos. Active state via usePathname. Collapsed state persistido
- * en localStorage. Portado desde docs/design/v1-studio/source/erp/shell.jsx.
+ * en localStorage. Diseño (v1.7): docs/design/studio/v1.7-claude-design/project/erp/shell.jsx
  *
  * Slugs definidos en SDD-0007 §4.1.
  */
