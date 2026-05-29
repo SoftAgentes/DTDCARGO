@@ -2,7 +2,7 @@
  * DTD Studio · Icon set
  *
  * Outline icons, 1.6 stroke, 24×24 grid. Match brand style.
- * Portado 1:1 desde docs/design/v1-studio/source/erp/icons.jsx
+ * Diseño (v1.7): docs/design/studio/v1.7-claude-design/project/erp/icons.jsx
  *
  * Uso:
  *   import { Icon } from "@/app/studio/_components/icons";

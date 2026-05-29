@@ -2,7 +2,7 @@
  * Avatar primitive · DTD Studio
  *
  * Initials en círculo con tono de color (wine/info/success/warning/neutral).
- * Portado desde docs/design/v1-studio/source/erp/components.jsx (line 366).
+ * Diseño (v1.7): docs/design/studio/v1.7-claude-design/project/erp/components.jsx
  */
 
 import type { CSSProperties } from "react";
