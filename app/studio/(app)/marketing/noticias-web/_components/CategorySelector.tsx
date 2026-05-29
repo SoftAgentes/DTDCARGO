@@ -50,7 +50,7 @@ export function CategorySelector({ tipo, selected, onChange }: Props) {
                 {selectedInfo.label}
               </span>
               <span className="text-[11.5px] text-grey-500 leading-tight truncate max-w-full">
-                Titulares arrancarán con: "{selectedInfo.titlePrefix}..."
+                Titulares arrancarán con: &quot;{selectedInfo.titlePrefix}...&quot;
               </span>
             </div>
           </div>

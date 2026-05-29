@@ -395,7 +395,7 @@ function ResultView({
           >
             /studio/debug
           </Link>{" "}
-          (sección "Deploys recientes").
+          (sección &quot;Deploys recientes&quot;).
         </p>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
