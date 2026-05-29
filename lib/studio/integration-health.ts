@@ -113,7 +113,12 @@ async function checkResend(): Promise<IntegrationHealth> {
     const verified = domains.filter((d) => d.status === "verified").length;
     return ok(r.latencyMs, `${verified} dominio(s) verificado(s)`);
   }
-  if (r.status === 401 || r.status === 403) return err(r.latencyMs, "API key inválida");
+  // Key con scope "Sending access" (lo recomendado por el runbook) NO puede
+  // leer /domains → 401/403. NO es key inválida: el envío funciona igual.
+  // Reportamos ok con nota en vez de un rojo engañoso.
+  if (r.status === 401 || r.status === 403) {
+    return ok(r.latencyMs, "key Sending-scoped · envío activo (/domains no legible)");
+  }
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }
 
@@ -133,6 +138,11 @@ async function checkResendWebhook(): Promise<IntegrationHealth> {
       return err(r.latencyMs, "Secret seteado pero sin webhooks registrados");
     }
     return ok(r.latencyMs, `${hooks.length} webhook(s) activo(s)`);
+  }
+  // Key Sending-scoped no puede listar /webhooks → 401/403, pero el webhook
+  // puede estar configurado y activo (lo confirma el dashboard de Resend).
+  if (r.status === 401 || r.status === 403) {
+    return ok(r.latencyMs, "secret configurado · lista no legible con key Sending-scoped");
   }
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }
