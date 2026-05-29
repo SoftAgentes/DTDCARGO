@@ -288,3 +288,55 @@ Claude Design separa: `erp/modules/*.jsx` (v1.0 congelado) vs
 `nuevo/modules/*.jsx` (v1.1+ overrides). Cuando porto algo al Next.js, si
 hay versión en `nuevo/`, **esa es la que vale**. Si solo está en `erp/`,
 ese es el original.
+
+## Organización · ISO 9001 §7.5 (reorg ISO — rama `reorg/iso-folders`)
+
+> Disciplina, no certificación. Índice maestro de docs: [`docs/README.md`](docs/README.md).
+> Plan completo del reorden: `~/.claude/plans/eres-un-especialista-en-reflective-puffin.md`.
+
+### Las 4 superficies del repo
+
+| Superficie | Rutas | Backend | Frontera |
+|---|---|---|---|
+| **Sitio público** | `app/{cotizar,track,contacto,calculadora,servicios,noticias,glosario}` + `components/` (raíz) | HTTP al ERP externo | ❌ NUNCA importa `@/lib/studio`, `@/lib/db`, `@supabase/*` |
+| **Studio ERP** | `app/studio/(app)/<modulo>/` | Supabase (`@/lib/db`) | — |
+| **Móvil PWA** | `app/m/{cn,ve,erp}/` | Supabase (reusa `lib/studio`, permitido) | — |
+| **Back (CMS público)** | `app/back/(app)/` | Supabase (`lib/back/`) | no importa `@/lib/studio` |
+
+`app/invitar/` es **onboarding del Studio** (usa DB por diseño, NO es ruta pública).
+
+### Dónde va el código nuevo
+
+```
+1. ¿Material VISUAL/marca? → docs/design/<producto>/<version>/  (no en código)
+2. ¿Qué SUPERFICIE? → ver tabla de arriba
+   - Studio: page.tsx + actions.ts ("use server") + _components/ en el módulo;
+     queries → lib/studio/<entidad>-queries.ts ; types → lib/studio/<entidad>-types.ts
+   - API (solo webhook/cron/externo): app/api/.../route.ts FINO (sin lógica de negocio)
+3. ¿Feature TRANSVERSAL (push/mail/telegram/agents)? → un hogar en lib/studio/<feature>/; rutas finas
+4. ¿Tipo/helper compartido público↔ERP? → lib/shared/ (único puente que cruza la frontera)
+5. ¿Util genérico sin dominio? → lib/<nombre>.ts (raíz)
+
+Regla lib/studio: dominio con ≥3 archivos → carpeta; 1-2 → par plano <entidad>-queries/-types.
+NUNCA tirar un archivo suelto en lib/studio raíz si el dominio ya tiene hogar.
+```
+
+### Adjuntos (2 planos — no confundir)
+
+- **Documentación** (diagrama de spec, captura de runbook) → `docs/.../assets/` al lado del doc. En git si <1 MB.
+- **Runtime** (foto operario, recibo, upload de cliente) → **Supabase Storage**, path `{tenant_id}/{entidad}/{id}/archivo`, signed URL. **Nunca en git.**
+
+### Nombres
+
+- Carpetas de **código** NO se renombran (Next.js las exige como estructura/URL).
+- Carpetas de `docs/`: técnicas en inglés (`specs`, `runbooks`, `architecture`); negocio en español (`legal`, `operaciones`).
+- Archivos en `docs/.../assets/`: kebab-case, sin acentos, fechas ISO-8601.
+
+### Front-matter de specs (§7.5 = dueño/estado/fecha)
+
+`sdd · title · status · author · created · updated · supersedes · superseded_by · related · confidencialidad`
+(`review-by` solo en docs vivos: runbooks, architecture, índices).
+
+### Nunca en git
+
+Secretos (`.env*`), PII de clientes (solo Supabase+RLS), financieros/contratos crudos (→ Drive + puntero en `docs/legal/`).
