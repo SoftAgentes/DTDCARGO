@@ -25,10 +25,20 @@ export const metadata = { title: "Mi día" };
 export const dynamic = "force-dynamic";
 
 const RECENT_LIMIT = 5;
+const SEARCH_LIMIT = 25;
 
-export default async function OperarioHomePage() {
+export default async function OperarioHomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const operario = await getCurrentOperario();
   if (!operario) redirect("/m/cn/login");
+
+  // Sprint 1.5 · búsqueda paginada · ?q= filtra por código/markbox/cliente
+  const { q: rawQ } = await searchParams;
+  const searchQuery = (rawQ ?? "").trim();
+  const searchMode = searchQuery.length >= 2;
 
   const initialLang = await getOperarioLang();
   const admin = createAdminClient();
@@ -83,16 +93,31 @@ export default async function OperarioHomePage() {
   // Lo que el operario ve cuando entra al almacén: qué llegó recién al
   // hub, sin importar quién lo registró.
 
-  const { data: recentData } = await admin
+  let recentQuery = admin
     .from("warehouse_receipts_cn")
     .select(
       "id, receipt_code, client_markbox, client_name, supplier_name, boxes, total_cbm, status, created_at, created_by_operario_id",
     )
     .eq("tenant_id", operario.tenant_id)
     .eq("warehouse_id", operario.warehouse_id)
-    .is("deleted_at", null)
+    .is("deleted_at", null);
+
+  if (searchMode) {
+    // Escape de comodines PostgREST (% y _) + comas que romperían el .or()
+    const safe = searchQuery.replace(/[%_,()]/g, " ").trim();
+    recentQuery = recentQuery.or(
+      [
+        `receipt_code.ilike.%${safe}%`,
+        `client_markbox.ilike.%${safe}%`,
+        `client_name.ilike.%${safe}%`,
+        `supplier_name.ilike.%${safe}%`,
+      ].join(","),
+    );
+  }
+
+  const { data: recentData } = await recentQuery
     .order("created_at", { ascending: false })
-    .limit(RECENT_LIMIT);
+    .limit(searchMode ? SEARCH_LIMIT : RECENT_LIMIT);
 
   const recents: RecentReceipt[] = (recentData ?? []).map((r) => {
     const row = r as {
@@ -170,6 +195,8 @@ export default async function OperarioHomePage() {
         pending: pendingCount,
       }}
       recents={recents}
+      searchMode={searchMode}
+      searchQuery={searchQuery}
     />
   );
 }
