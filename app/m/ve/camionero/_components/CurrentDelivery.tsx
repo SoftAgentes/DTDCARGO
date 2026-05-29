@@ -75,6 +75,16 @@ export function CurrentDelivery({
   const phone = pkg.client_phone ?? null;
   const phoneClean = phone ? phone.replace(/[^\d+]/g, "") : null;
 
+  // Sprint 3.6 · navegación. Preferimos coords (precisión GPS); si no hay,
+  // usamos la dirección de texto. Google Maps universal URL abre la app
+  // nativa (o el chooser con Waze) en Android · cero token/dependencia.
+  const navUrl = buildNavUrl(
+    pkg.client_lat ?? null,
+    pkg.client_lng ?? null,
+    pkg.client_address ?? null,
+    pkg.city,
+  );
+
   const onFacadeFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const f = e.target.files?.[0];
@@ -384,6 +394,33 @@ export function CurrentDelivery({
           </div>
         )}
 
+        {/* Navegar · Sprint 3.6 (botón primario · es lo que el camionero
+            más necesita al llegar a la zona) */}
+        {navUrl && (
+          <a
+            href={navUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="studio-btn studio-btn-primary studio-btn-sm"
+            style={{ textDecoration: "none", justifyContent: "center" }}
+            aria-label={`Navegar a ${pkg.client_name}`}
+          >
+            {/* Pin / navigation icon */}
+            <svg viewBox="0 0 24 24" width={15} height={15} fill="none">
+              <path
+                d="M3 11l19-9-9 19-2-8-8-2z"
+                stroke="currentColor"
+                strokeWidth={1.6}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span style={{ marginLeft: 6 }}>
+              Navegar{pkg.client_lat == null ? " (por dirección)" : ""}
+            </span>
+          </a>
+        )}
+
         {/* Tel + WhatsApp */}
         {phoneClean && (
           <div style={{ display: "flex", gap: 8 }}>
@@ -542,4 +579,30 @@ export function CurrentDelivery({
       </div>
     </article>
   );
+}
+
+/**
+ * Construye la URL de navegación. Prioridad:
+ *  1. coords GPS (precisión exacta) → destination=lat,lng
+ *  2. dirección de texto + ciudad → destination=URLencoded
+ *  3. null si no hay nada que navegar
+ *
+ * Google Maps universal URL (`/maps/dir/?api=1`) abre la app nativa de
+ * Maps en móvil, o el chooser (Waze/Maps) si el SO lo permite. Cero token.
+ */
+function buildNavUrl(
+  lat: number | null,
+  lng: number | null,
+  address: string | null,
+  city: string,
+): string | null {
+  const base = "https://www.google.com/maps/dir/?api=1&destination=";
+  if (lat != null && lng != null) {
+    return `${base}${lat},${lng}`;
+  }
+  const text = [address?.trim(), city?.trim()].filter(Boolean).join(", ");
+  if (text) {
+    return `${base}${encodeURIComponent(text)}`;
+  }
+  return null;
 }
