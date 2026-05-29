@@ -43,8 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# payload (auto-generado)
-payload-types.ts
 .gstack/
 
 # Handoff temp — assets de referencia del brand book v1/v2, no parte del sitio
