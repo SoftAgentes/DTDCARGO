@@ -1,12 +1,4 @@
 import type { NextConfig } from "next";
-// withPayload está deshabilitado mientras Payload viva en _payload-disabled/.
-// Cuando reactivemos Payload con Supabase conectado, volver a agregar:
-//   import { withPayload } from "@payloadcms/next/withPayload";
-// y al final cambiar `export default nextConfig` por `export default withPayload(nextConfig)`.
-//
-// Razón del cambio: en Vercel, withPayload dispara el "modifyConfig" especial para
-// Payload que asume payload.config.ts en root. Sin ese archivo, Vercel crashea con
-// `TypeError: The "path" argument must be of type string. Received undefined`.
 
 const isDev = process.env.NODE_ENV === "development";
 
