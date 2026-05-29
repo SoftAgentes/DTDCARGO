@@ -30,6 +30,7 @@ import { switchModeAction } from "../../modos/actions";
 import { PodModal } from "./PodModal";
 import { CurrentDelivery } from "./CurrentDelivery";
 import { GpsBlock, GpsLiveProvider } from "./GpsBlock";
+import { PodRetryRunner } from "./PodRetryRunner";
 import {
   DISPATCH_ORDER_STATUS_LABELS,
   DISPATCH_ORDER_STATUS_TONES,
@@ -74,6 +75,8 @@ export function CamioneroClient({
 
   return (
     <GpsLiveProvider>
+    {/* Sprint 3.5 · reintenta PODs que quedaron offline */}
+    <PodRetryRunner />
     <div
       data-theme={theme}
       style={{

@@ -1,25 +1,35 @@
 "use client";
 
 /**
- * PodModal — captura del Proof of Delivery (SDD-0030).
+ * PodModal — captura del Proof of Delivery (SDD-0030 + Sprint 3.5).
  *
  * Bottom sheet con:
- *  - File input (foto cámara · capture="environment")
+ *  - File input (foto cámara · capture="environment") · comprimida client-side
  *  - Canvas firma touch + mouse
  *  - Inputs: receptor, cédula, notas
- *  - Submit: convierte canvas a PNG blob + foto file → FormData multipart
+ *  - Submit: comprime foto + canvas→PNG → FormData → podAction → advance
  *
- * Después del POD exitoso, dispara advance OD a `entregada` con un segundo
- * form (chain de actions).
+ * Sprint 3.5 offline-resilient: si el upload falla por RED (no por
+ * validación), el POD se guarda en localStorage y se reintenta solo cuando
+ * vuelve la señal (PodRetryRunner). El camionero nunca pierde la entrega.
+ *
+ * Distinción clave: podAction que THROWEA = problema de red → encolar.
+ * podAction que devuelve { error } = validación server → mostrar error.
  */
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { advanceOdAction, podAction } from "../actions";
 import { useGpsLiveState } from "./GpsBlock";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { compressImage } from "@/app/m/_lib/image-compress";
+import {
+  blobToDataUrl,
+  enqueuePod,
+  makeLocalId,
+} from "@/app/m/_lib/pod-queue";
 import type { DispatchOrderRow } from "@/lib/studio/dispatch-types";
-import type { MobileActionState } from "@/lib/studio/dispatch-mobile-types";
 
-const INITIAL: MobileActionState = {};
+type SubmitPhase = "idle" | "submitting" | "done" | "queued";
 
 export function PodModal({
   od,
@@ -37,12 +47,13 @@ export function PodModal({
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawingRef = useRef(false);
+  const toast = useToast();
 
-  const [podState, podFormAction, podPending] = useActionState(podAction, INITIAL);
-  const [advanceState, advanceFormAction, advancePending] = useActionState(
-    advanceOdAction,
-    INITIAL,
-  );
+  // Estado manual del submit (reemplaza useActionState · necesitamos
+  // distinguir throw de red vs { error } de validación · Sprint 3.5).
+  const [phase, setPhase] = useState<SubmitPhase>("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [warningMsg, setWarningMsg] = useState<string | null>(null);
 
   // Sprint 3 · snapshot GPS al momento del submit (si está on)
   const gps = useGpsLiveState();
@@ -61,24 +72,13 @@ export function PodModal({
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }, []);
 
-  // Auto-chain: si podState ok, advance a entregada
+  // Cerrar después de done/queued
   useEffect(() => {
-    if (podState?.ok && !advanceState?.ok && !advancePending) {
-      const fd = new FormData();
-      fd.set("od_id", od.id);
-      fd.set("status", "entregada");
-      fd.set("progress", "100");
-      advanceFormAction(fd);
-    }
-  }, [podState?.ok, advanceState?.ok, advancePending, od.id, advanceFormAction]);
-
-  // Cerrar después del advance ok
-  useEffect(() => {
-    if (advanceState?.ok) {
-      const t = setTimeout(onClose, 800);
+    if (phase === "done" || phase === "queued") {
+      const t = setTimeout(onClose, phase === "queued" ? 1600 : 800);
       return () => clearTimeout(t);
     }
-  }, [advanceState?.ok, onClose]);
+  }, [phase, onClose]);
 
   // Canvas drawing
   const getPos = (e: React.MouseEvent | React.TouchEvent) => {
@@ -142,52 +142,145 @@ export function PodModal({
     setPhotoPreview(URL.createObjectURL(f));
   };
 
-  // Submit
+  // Helper: GPS status string actual (para payload + cola)
+  const gpsStatus: "on" | "off" | "denied" | "unavailable" =
+    gps.status === "on" && gps.lat != null && gps.lng != null
+      ? "on"
+      : gps.status === "off"
+        ? "off"
+        : gps.status === "denied"
+          ? "denied"
+          : "unavailable";
+
+  // Canvas → PNG blob (promesa)
+  const signatureBlob = (): Promise<Blob | null> =>
+    new Promise((resolve) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return resolve(null);
+      canvas.toBlob(resolve, "image/png");
+    });
+
+  // Submit · Sprint 3.5 offline-resilient
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!photoFile || !hasSignature || !receivedBy.trim()) return;
+    if (phase === "submitting") return;
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    setPhase("submitting");
+    setErrorMsg(null);
+    setWarningMsg(null);
 
-    // Canvas → Blob (PNG)
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const fd = new FormData();
-        fd.set("od_id", od.id);
-        fd.set("photo", photoFile);
-        fd.set("signature", new File([blob], "signature.png", { type: "image/png" }));
-        fd.set("received_by", receivedBy.trim());
-        if (receivedDoc.trim()) fd.set("received_doc", receivedDoc.trim());
-        if (notes.trim()) fd.set("notes", notes.trim());
+    try {
+      const sigBlob = await signatureBlob();
+      if (!sigBlob) {
+        setErrorMsg("No se pudo capturar la firma · reintentá.");
+        setPhase("idle");
+        return;
+      }
 
-        // Sprint 3 · GPS opcional: mandar snapshot si está on, sino marcar estado
-        if (gps.status === "on" && gps.lat != null && gps.lng != null) {
-          fd.set("pod_lat", String(gps.lat));
-          fd.set("pod_lng", String(gps.lng));
-          if (gps.accuracy_m != null) fd.set("pod_accuracy_m", String(gps.accuracy_m));
-          fd.set("pod_gps_status", "on");
-        } else if (gps.status === "off") {
-          fd.set("pod_gps_status", "off");
-        } else if (gps.status === "denied") {
-          fd.set("pod_gps_status", "denied");
-        } else {
-          fd.set("pod_gps_status", "unavailable");
+      // Comprimir foto antes de subir (8MB → ~300KB) · clave para red VE
+      const compressedPhoto = await compressImage(photoFile);
+      const signatureFile = new File([sigBlob], "signature.png", {
+        type: "image/png",
+      });
+
+      const fd = new FormData();
+      fd.set("od_id", od.id);
+      fd.set("photo", compressedPhoto);
+      fd.set("signature", signatureFile);
+      fd.set("received_by", receivedBy.trim());
+      if (receivedDoc.trim()) fd.set("received_doc", receivedDoc.trim());
+      if (notes.trim()) fd.set("notes", notes.trim());
+      fd.set("pod_gps_status", gpsStatus);
+      if (gpsStatus === "on") {
+        fd.set("pod_lat", String(gps.lat));
+        fd.set("pod_lng", String(gps.lng));
+        if (gps.accuracy_m != null) fd.set("pod_accuracy_m", String(gps.accuracy_m));
+      }
+
+      // Intento de upload. THROW = red caída → encolar. { error } = validación.
+      let podResult: { ok?: boolean; error?: string } | undefined;
+      try {
+        podResult = await podAction({}, fd);
+      } catch (networkErr) {
+        // Red caída · encolar el POD para reintento offline
+        console.warn("[PodModal] upload falló (red), encolando:", networkErr);
+        await queuePodForRetry(compressedPhoto, sigBlob);
+        toast.info("Sin señal · el POD se subirá cuando vuelva la red", {
+          durationMs: 4000,
+        });
+        setPhase("queued");
+        return;
+      }
+
+      if (podResult?.error) {
+        // Validación server · NO encolar (reintentar daría el mismo error)
+        setErrorMsg(podResult.error);
+        setPhase("idle");
+        return;
+      }
+
+      // POD subió OK → chain advance a entregada
+      try {
+        const fdAdvance = new FormData();
+        fdAdvance.set("od_id", od.id);
+        fdAdvance.set("status", "entregada");
+        fdAdvance.set("progress", "100");
+        const advResult = await advanceOdAction({}, fdAdvance);
+        if (advResult?.error) {
+          // POD subió pero advance falló (validación) · no re-encolar el POD
+          setWarningMsg(
+            `POD subido, pero no se pudo marcar entregada: ${advResult.error}`,
+          );
+          setPhase("idle");
+          return;
         }
+      } catch {
+        // advance falló por red · el POD YA subió, no se pierde nada.
+        // El admin/bodeguero puede marcar entregada, o el camionero reintenta.
+        setWarningMsg(
+          "POD subido ✓ pero no se confirmó 'entregada' por falta de señal. Reintentá en un momento.",
+        );
+        setPhase("idle");
+        return;
+      }
 
-        podFormAction(fd);
-      },
-      "image/png",
-    );
+      setPhase("done");
+    } catch (err) {
+      console.error("[PodModal] submit error:", err);
+      setErrorMsg("Error inesperado · reintentá.");
+      setPhase("idle");
+    }
   };
 
-  const canSubmit = !!photoFile && hasSignature && receivedBy.trim().length >= 3 && !podPending;
-  const isDone = !!advanceState?.ok;
-  // m4 fix: bloquear cierre durante el chain pod.ok → advance pending,
-  // así no queda POD subido sin marcar entregada.
-  const lockedDuringChain = !!podState?.ok && !advanceState?.ok;
-  const canCloseByBackdrop = !podPending && !advancePending && !lockedDuringChain;
+  // Guarda el POD en localStorage para reintento (Sprint 3.5)
+  async function queuePodForRetry(photo: File, sigBlob: Blob): Promise<void> {
+    const [photoDataUrl, signatureDataUrl] = await Promise.all([
+      blobToDataUrl(photo),
+      blobToDataUrl(sigBlob),
+    ]);
+    enqueuePod({
+      localId: makeLocalId(od.id),
+      odId: od.id,
+      photoDataUrl,
+      signatureDataUrl,
+      receivedBy: receivedBy.trim(),
+      receivedDoc: receivedDoc.trim() || null,
+      notes: notes.trim() || null,
+      podLat: gpsStatus === "on" ? gps.lat : null,
+      podLng: gpsStatus === "on" ? gps.lng : null,
+      podAccuracyM: gpsStatus === "on" ? gps.accuracy_m : null,
+      podGpsStatus: gpsStatus,
+      queuedAt: Date.now(),
+    });
+  }
+
+  const submitting = phase === "submitting";
+  const canSubmit =
+    !!photoFile && hasSignature && receivedBy.trim().length >= 3 && !submitting;
+  const isDone = phase === "done";
+  const isQueued = phase === "queued";
+  const canCloseByBackdrop = !submitting;
 
   return (
     <div
@@ -228,6 +321,8 @@ export function PodModal({
 
         {isDone ? (
           <SuccessState />
+        ) : isQueued ? (
+          <QueuedState />
         ) : (
           <>
             <div
@@ -482,7 +577,7 @@ export function PodModal({
               </div>
 
               {/* Errors */}
-              {podState?.error && (
+              {errorMsg && (
                 <div
                   style={{
                     padding: 10,
@@ -492,10 +587,10 @@ export function PodModal({
                     font: "600 12.5px/1.4 var(--f-sans)",
                   }}
                 >
-                  {podState.error}
+                  {errorMsg}
                 </div>
               )}
-              {advanceState?.error && (
+              {warningMsg && (
                 <div
                   style={{
                     padding: 10,
@@ -505,7 +600,7 @@ export function PodModal({
                     font: "600 12.5px/1.4 var(--f-sans)",
                   }}
                 >
-                  POD subido pero no se pudo marcar entregada: {advanceState.error}
+                  {warningMsg}
                 </div>
               )}
 
@@ -514,7 +609,7 @@ export function PodModal({
                   type="button"
                   className="studio-btn studio-btn-ghost"
                   onClick={onClose}
-                  disabled={podPending || advancePending || lockedDuringChain}
+                  disabled={submitting}
                   style={{ flex: 1 }}
                 >
                   Cancelar
@@ -522,14 +617,10 @@ export function PodModal({
                 <button
                   type="submit"
                   className="studio-btn studio-btn-primary"
-                  disabled={!canSubmit || advancePending}
+                  disabled={!canSubmit}
                   style={{ flex: 2 }}
                 >
-                  {podPending
-                    ? "Subiendo POD…"
-                    : advancePending
-                      ? "Finalizando…"
-                      : "Confirmar entrega"}
+                  {submitting ? "Subiendo POD…" : "Confirmar entrega"}
                 </button>
               </div>
             </form>
@@ -577,6 +668,60 @@ function SuccessState() {
         }}
       >
         El POD se subió al ERP. La OD quedó como entregada.
+      </p>
+    </div>
+  );
+}
+
+/** Sprint 3.5 · POD guardado offline, se reintentará al volver la señal. */
+function QueuedState() {
+  return (
+    <div style={{ padding: "24px 12px", textAlign: "center" }}>
+      <div
+        style={{
+          width: 64,
+          height: 64,
+          margin: "0 auto 14px",
+          borderRadius: "50%",
+          background: "var(--warning-bg)",
+          color: "var(--warning)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        {/* Cloud-clock icon · guardado, pendiente de subir */}
+        <svg viewBox="0 0 24 24" width={30} height={30} fill="none">
+          <path
+            d="M7 18a4 4 0 010-8 5 5 0 019.6-1.5A3.5 3.5 0 0117 18"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M12 13v2.5l1.5 1"
+            stroke="currentColor"
+            strokeWidth={1.6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+      <div style={{ font: "900 18px/1.2 var(--f-display)", color: "var(--ink)" }}>
+        Guardado sin señal
+      </div>
+      <p
+        style={{
+          font: "500 13px/1.5 var(--f-sans)",
+          color: "var(--ink-soft)",
+          marginTop: 8,
+          maxWidth: "34ch",
+          marginInline: "auto",
+        }}
+      >
+        El POD quedó guardado en el teléfono. Se sube solo cuando vuelva la
+        señal — no hace falta que repitas nada.
       </p>
     </div>
   );
