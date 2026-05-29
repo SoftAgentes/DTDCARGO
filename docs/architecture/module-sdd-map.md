@@ -1,0 +1,58 @@
+# Mapa de trazabilidad · módulo ↔ SDD ↔ código
+
+> **Qué hacíamos por módulo y por SDD, de un vistazo** (criterio ISO 9001 · trazabilidad).
+> Cableado módulo→código mantenido a mano; se actualiza al cerrar cada SDD. El índice de specs
+> con estado vive (generado) en [`docs/specs/README.md`](../specs/README.md).
+> ⚠️ Tabla parcial — alta confianza en las filas listadas; completar las que falten al tocarlas.
+
+## Sitio público
+
+| Módulo | SDD | Código (app) | Código (lib) |
+|---|---|---|---|
+| Sitio público MVP | 0001 | `app/{page,servicios,contacto,noticias,glosario}` + `components/` | `lib/public`, `lib/news` |
+| Calculadora flete terrestre | 0002 | `app/calculadora/` | `lib/calculadora.ts`, `lib/data/tarifas-terrestres-vzla.ts` |
+| Cotizar (form público) | 0001/0011 | `app/cotizar/` | `lib/calc` |
+| Tracking público | 0005/0013 | `app/track/[code]/` | `lib/public/tracking-queries.ts` + `lib/shared/shipment-public.ts` |
+
+## Studio ERP
+
+| Módulo | SDD | Código (app) | Código (lib) |
+|---|---|---|---|
+| Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
+| Tracking / Embarques | 0005, 0006, 0012, 0013 | `app/studio/(app)/{tracking,embarques}/` | `lib/studio/shipment-*`, `tracking-progress` |
+| Cambio de destino | 0009 | (dentro de tracking) | `lib/studio/destination-change.ts` |
+| Tarifas | 0008 | `app/studio/(app)/tarifas/` | `lib/studio/rate-*` |
+| Clientes + MARKBOX | 0010 | `app/studio/(app)/clientes/` | `lib/studio/client-*` |
+| Cotizador | 0011 | `app/studio/(app)/cotizador/` | `lib/studio/quote-*` |
+| Dashboard | 0014 | `app/studio/(app)/resumen/` | `lib/studio/dashboard-queries.ts` |
+| Calendario | 0015 | `app/studio/(app)/calendario/` | `lib/studio/calendar-*` |
+| Almacén CN | 0016 | `app/studio/(app)/cn/` + `app/m/cn/` | `lib/studio/warehouse-cn-*` |
+| Almacén VE | 0017 | `app/studio/(app)/ve/` + `app/m/ve/` | `lib/studio/warehouse-ve-*`, `warehouse-receipt-ve-*` |
+| Aduana SENIAT | 0018 | `app/studio/(app)/seniat/` | `lib/studio/customs-*` |
+| TMS · transporte VE | 0019 | `app/studio/(app)/tms/` | `lib/studio/tms-*` |
+| Agentes y Skills | 0020 | `app/studio/(app)/admin/agentes/` + `app/api/studio/agents/` | `lib/studio/agents/`, `agent-*` |
+| Usuarios & Roles | 0024 | `app/studio/(app)/usuarios/` + `app/invitar/[token]/` | `lib/studio/user-*` |
+| No-Olvidar | 0025 | `app/studio/(app)/no-olvidar/` | `lib/studio/no-olvidar-*` |
+| Mailing & Notif | 0026 | `app/studio/(app)/mailing/` | `lib/studio/mail/`, `mail-*` |
+| Despacho | 0029, 0030 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` |
+| Etiquetas suppliers CN | 0031 | `app/studio/(app)/etiquetas/` | (labels) |
+| QR print queue | 0033 | `app/studio/(app)/cola-qr/` | `lib/studio/qr-queue-*` |
+| Wiring modals globales | 0034 | `app/studio/_components/wiring/` | — |
+| Bug Reporter | 0036 | `app/studio/(app)/{bugs,mis-bugs}/` + `_components/bug-reporter/` | `lib/studio/bug-*` |
+
+## Móvil PWA (operario)
+
+| App | SDD | Código |
+|---|---|---|
+| CN (recepción) | 0016, 0030 | `app/m/cn/` |
+| VE bodeguero | 0017, 0030 | `app/m/ve/bodeguero/` |
+| VE camionero | 0030 | `app/m/ve/camionero/` |
+| ERP móvil (staff) | varios | `app/m/erp/` |
+
+## Back (CMS del sitio público)
+
+| Superficie | Código |
+|---|---|
+| CMS contenido (noticias/servicios/glosario) | `app/back/(app)/` · `lib/back/` |
+
+> Huecos del correlativo (0021-0023, 0027-0028): ver `docs/specs/README.md` — código sin spec o renumerado, auditar.

@@ -1,6 +1,6 @@
-# DTD-Cargo · Brand Guardrails
+# DTD Cargo · Brand Guardrails
 
-> **Para Claude Code:** este archivo define las reglas de marca y sistema de diseño de DTD-Cargo. Antes de aplicar **cualquier** cambio visual (colores, tipografía, componentes, espaciado, copy), validá contra estas reglas. Si lo que te piden contradice una regla, **avisá al usuario antes de aplicar el cambio** con el formato definido al final.
+> **Para Claude Code:** este archivo define las reglas de marca y sistema de diseño de DTD Cargo. Antes de aplicar **cualquier** cambio visual (colores, tipografía, componentes, espaciado, copy), validá contra estas reglas. Si lo que te piden contradice una regla, **avisá al usuario antes de aplicar el cambio** con el formato definido al final.
 
 ---
 
@@ -198,7 +198,7 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 ### ❌ Copy PROHIBIDO
 - "¡Genial!", "¡Increíble!", "🎉", "✨" en mensajes de éxito → usar texto simple ("Embarque creado").
-- "Lorem ipsum" en producción. Si necesitás placeholder, escribí algo verosímil de DTD-Cargo.
+- "Lorem ipsum" en producción. Si necesitás placeholder, escribí algo verosímil de DTD Cargo.
 - Anglicismos innecesarios: "Login" sí (común), "Sign in" no. "Onboarding" sí, "Welcome flow" no.
 
 ---
@@ -228,7 +228,7 @@ Si el usuario pide algo así, **avisarle** y proponer alternativa que respete el
 - Estilos: **inline styles con tokens CSS** o classes del sistema. **No** Tailwind, **no** CSS-in-JS libs, **no** styled-components.
 - Archivos `.jsx` cargados via `<script type="text/babel" src=...>`.
 - Cada componente que se reutiliza globalmente se expone en `window.*` (ej: `window.ERPUI`, `window.Icon`, `window.ERPData`).
-- Mock data realista de DTD-Cargo: rutas CN→VE, MARKBOX `DTD-XXXX`, containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
+- Mock data realista de DTD Cargo: rutas CN→VE, MARKBOX `DTD-XXXX`, containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
 
 ---
 

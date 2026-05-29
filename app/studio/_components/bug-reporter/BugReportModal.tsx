@@ -34,6 +34,20 @@ import {
 } from "@/lib/studio/bug-module-name";
 import { getBugTechCapture } from "@/lib/studio/bug-tech-capture";
 import { getBugRrwebCapture } from "@/lib/studio/bug-rrweb-capture";
+import { useT, useLocale, resolveErrorMessage, type I18nKey } from "@/lib/i18n";
+
+const BUG_CATEGORY_KEY: Record<BugCategory, I18nKey> = {
+  error: "bug.category.error",
+  improve: "bug.category.improve",
+  suggest: "bug.category.suggest",
+  question: "bug.category.question",
+};
+const BUG_SEVERITY_KEY: Record<BugSeverity, I18nKey> = {
+  baja: "bug.severity.baja",
+  media: "bug.severity.media",
+  alta: "bug.severity.alta",
+  critica: "bug.severity.critica",
+};
 
 interface BugReportModalProps {
   onClose: () => void;
@@ -84,6 +98,8 @@ const SEVERITIES: BugSeverity[] = ["baja", "media", "alta", "critica"];
 const INITIAL_STATE: BugActionState = {};
 
 export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
+  const t = useT();
+  const locale = useLocale();
   const pathname = usePathname() ?? "/";
   const moduleSlug = useMemo(() => moduleSlugFromPathname(pathname), [pathname]);
   const moduleLabel = moduleLabelFromSlug(moduleSlug);
@@ -196,7 +212,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                 letterSpacing: "-0.01em",
               }}
             >
-              Reportar
+              {t("bug.modal.title")}
             </h2>
             <p
               style={{
@@ -205,14 +221,13 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                 fontSize: 13,
               }}
             >
-              Estás en <strong style={{ color: "var(--ink)" }}>{moduleLabel}</strong>.
-              Adjuntamos URL + entorno técnico automáticamente.
+              {t("bug.modal.subtitle", { module: moduleLabel })}
             </p>
           </div>
           <button
             type="button"
             onClick={() => !isPending && onClose()}
-            aria-label="Cerrar"
+            aria-label={t("bug.modal.close_aria")}
             disabled={isPending}
             style={{
               background: "transparent",
@@ -254,38 +269,32 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                 fontSize: 18,
               }}
             >
-              {state.duplicated ? "Ya estaba reportado" : "Reporte recibido"}
+              {state.duplicated
+                ? t("bug.modal.success_duplicated")
+                : t("bug.modal.success_new")}
             </h3>
             <p style={{ margin: 0, color: "var(--ink-soft)" }}>
-              {state.duplicated ? (
-                <>
-                  Sumamos al contador del bug{" "}
-                  <code
-                    style={{
-                      fontFamily: "var(--font-mono, 'JetBrains Mono')",
-                      color: "var(--wine)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {state.folio}
-                  </code>
-                  . Gracias por avisar.
-                </>
-              ) : (
-                <>
-                  Tu bug es{" "}
-                  <code
-                    style={{
-                      fontFamily: "var(--font-mono, 'JetBrains Mono')",
-                      color: "var(--wine)",
-                      fontWeight: 700,
-                    }}
-                  >
-                    {state.folio}
-                  </code>
-                  . Te avisamos cuando avancemos.
-                </>
-              )}
+              {(state.duplicated
+                ? t("bug.modal.success_duplicated_desc", { folio: state.folio ?? "" })
+                : t("bug.modal.success_new_desc", { folio: state.folio ?? "" })
+              )
+                .split(state.folio ?? " ")
+                .map((part, i, arr) => (
+                  <span key={i}>
+                    {part}
+                    {i < arr.length - 1 && (
+                      <code
+                        style={{
+                          fontFamily: "var(--font-mono, 'JetBrains Mono')",
+                          color: "var(--wine)",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {state.folio}
+                      </code>
+                    )}
+                  </span>
+                ))}
             </p>
           </div>
         )}
@@ -317,6 +326,10 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
             {category === "error" && (
               <input type="hidden" name="severity" value={severity} />
             )}
+            {/* Locale del reporter al momento del envío · sirve al triage VE
+                para saber si esperar texto CN o ES (col bug_reports.reporter_locale,
+                migración 0052). */}
+            <input type="hidden" name="reporter_locale" value={locale} />
 
             {/* Categoría */}
             <fieldset
@@ -338,11 +351,11 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                   marginBottom: 4,
                 }}
               >
-                Tipo de reporte
+                {t("bug.modal.category_legend")}
               </legend>
               <div
                 role="radiogroup"
-                aria-label="Categoría"
+                aria-label={t("bug.modal.category_aria")}
                 style={{
                   display: "grid",
                   gridTemplateColumns: "repeat(2, 1fr)",
@@ -354,7 +367,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                     key={c}
                     active={category === c}
                     onClick={() => setCategory(c)}
-                    label={BUG_CATEGORY_LABELS[c]}
+                    label={t(BUG_CATEGORY_KEY[c])}
                   />
                 ))}
               </div>
@@ -381,11 +394,11 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                     marginBottom: 4,
                   }}
                 >
-                  Severidad
+                  {t("bug.modal.severity_legend")}
                 </legend>
                 <div
                   role="radiogroup"
-                  aria-label="Severidad"
+                  aria-label={t("bug.modal.severity_aria")}
                   style={{
                     display: "grid",
                     gridTemplateColumns: "repeat(4, 1fr)",
@@ -397,7 +410,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                       key={s}
                       active={severity === s}
                       onClick={() => setSeverity(s)}
-                      label={BUG_SEVERITY_LABELS[s]}
+                      label={t(BUG_SEVERITY_KEY[s])}
                       compact
                     />
                   ))}
@@ -416,7 +429,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                   color: "var(--ink-soft)",
                 }}
               >
-                Título
+                {t("bug.modal.title_label")}
               </label>
               <input
                 id="bug-title"
@@ -425,7 +438,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                 required
                 minLength={4}
                 maxLength={200}
-                placeholder="Resumen corto del problema"
+                placeholder={t("bug.modal.title_placeholder")}
                 disabled={isPending}
                 style={{
                   width: "100%",
@@ -460,7 +473,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                   color: "var(--ink-soft)",
                 }}
               >
-                Descripción
+                {t("bug.modal.description_label")}
               </label>
               <textarea
                 id="bug-description"
@@ -469,7 +482,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                 minLength={10}
                 maxLength={4000}
                 rows={5}
-                placeholder="Qué intentabas hacer, qué pasó, qué esperabas que pasara."
+                placeholder={t("bug.modal.description_placeholder")}
                 disabled={isPending}
                 style={{
                   width: "100%",
@@ -494,6 +507,46 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
               )}
             </div>
 
+            {/* Traducción al español · solo visible si reporter está en zh-CN.
+                Ayuda al triage VE a procesar bugs de la oficina CN sin demora.
+                Campo opcional. V1 manual · V2 auto-traducción LLM. */}
+            {locale === "zh-CN" && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label
+                  htmlFor="bug-translation"
+                  style={{
+                    fontSize: 11,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  {t("bug.modal.translation_label")}
+                </label>
+                <textarea
+                  id="bug-translation"
+                  name="translation_es"
+                  rows={3}
+                  maxLength={4000}
+                  placeholder={t("bug.modal.translation_placeholder")}
+                  disabled={isPending}
+                  style={{
+                    width: "100%",
+                    padding: 12,
+                    border: "1px solid var(--border, #E8E6E2)",
+                    borderRadius: 6,
+                    background: "var(--bg-base)",
+                    color: "var(--ink)",
+                    fontFamily: "inherit",
+                    fontSize: 14,
+                    outline: "none",
+                    resize: "vertical",
+                    minHeight: 70,
+                  }}
+                />
+              </div>
+            )}
+
             {/* Info adjunta automáticamente */}
             <div
               style={{
@@ -508,7 +561,10 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
               }}
             >
               <div>
-                <strong style={{ color: "var(--ink)" }}>Módulo:</strong> {moduleLabel}
+                <strong style={{ color: "var(--ink)" }}>
+                  {t("bug.modal.attached_label_module")}
+                </strong>{" "}
+                {moduleLabel}
               </div>
               {currentUrl && (
                 <div
@@ -519,12 +575,17 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
                   }}
                   title={currentUrl}
                 >
-                  <strong style={{ color: "var(--ink)" }}>URL:</strong> {currentUrl}
+                  <strong style={{ color: "var(--ink)" }}>
+                    {t("bug.modal.attached_label_url")}
+                  </strong>{" "}
+                  {currentUrl}
                 </div>
               )}
               {buildSha && (
                 <div>
-                  <strong style={{ color: "var(--ink)" }}>Build:</strong>{" "}
+                  <strong style={{ color: "var(--ink)" }}>
+                    {t("bug.modal.attached_label_build")}
+                  </strong>{" "}
                   <code style={{ fontFamily: "var(--font-mono, monospace)" }}>
                     {buildSha.slice(0, 8)}
                   </code>
@@ -532,22 +593,27 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
               )}
             </div>
 
-            {/* Error global */}
-            {state.error && (
-              <div
-                style={{
-                  padding: "var(--s-3, 12px) var(--s-4, 16px)",
-                  background: "var(--danger-bg, #FCEDED)",
-                  border: "1px solid var(--danger, #A8323E)",
-                  borderRadius: 6,
-                  color: "var(--danger, #A8323E)",
-                  fontSize: 13,
-                }}
-                role="alert"
-              >
-                {state.error}
-              </div>
-            )}
+            {/* Error global · resolveErrorMessage prioriza errorCode
+                traducido sobre el string legacy. */}
+            {(() => {
+              const msg = resolveErrorMessage(t, state);
+              if (!msg) return null;
+              return (
+                <div
+                  style={{
+                    padding: "var(--s-3, 12px) var(--s-4, 16px)",
+                    background: "var(--danger-bg, #FCEDED)",
+                    border: "1px solid var(--danger, #A8323E)",
+                    borderRadius: 6,
+                    color: "var(--danger, #A8323E)",
+                    fontSize: 13,
+                  }}
+                  role="alert"
+                >
+                  {msg}
+                </div>
+              );
+            })()}
           </form>
         )}
 
@@ -569,7 +635,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
               disabled={isPending}
               className="studio-btn studio-btn-ghost"
             >
-              Cancelar
+              {t("bug.modal.cancel")}
             </button>
             <button
               type="submit"
@@ -577,7 +643,9 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
               disabled={isPending}
               className="studio-btn studio-btn-primary"
             >
-              {isPending ? "Enviando…" : "Enviar reporte"}
+              {isPending
+                ? t("bug.modal.submit_loading")
+                : t("bug.modal.submit_idle")}
             </button>
           </footer>
         )}

@@ -41,20 +41,25 @@ export async function inviteUserAction(
     email: (formData.get("email") as string | null) ?? undefined,
     role: (formData.get("role") as StudioUserRole | null) ?? undefined,
   };
+  // Region (oficina): la única decisión que toma el admin para derivar
+  // locale + timezone + moneda del invitee. Default 've'. Valida el RPC.
+  const regionRaw = (formData.get("region") as string | null) ?? "ve";
+  const region: "ve" | "cn" = regionRaw === "cn" ? "cn" : "ve";
 
   const { input, fieldErrors } = validateInviteUserInput(partial);
-  if (fieldErrors) return { fieldErrors };
-  if (!input) return { error: "Datos inválidos." };
+  if (fieldErrors) return { fieldErrors, errorCode: "field_errors_present" };
+  if (!input) return { errorCode: "invalid_input" };
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { errorCode: "user_signin_required" };
 
   try {
     const { invitationId, token } = await inviteUserRPC(
       supabase,
       input.email,
       input.role,
+      region,
     );
     const link = `${SITE_URL}${invitationAcceptPath(token)}`;
 
@@ -87,7 +92,7 @@ export async function inviteUserAction(
             .filter(Boolean)
             .join(" ")
             .trim() || userResp.user.email || "Un admin";
-        const tenantName = tenant?.display_name ?? "DTD-Cargo";
+        const tenantName = tenant?.display_name ?? "DTD Cargo";
 
         const sendResult = await sendEmail(supabaseAdmin, link2.tenant_id, {
           templateSlug: "team_invitation",
@@ -132,8 +137,8 @@ export async function changeUserRoleAction(
   const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
   const newRole = formData.get("new_role") as StudioUserRole | null;
 
-  if (!targetUserId) return { error: "Falta el usuario." };
-  if (!newRole) return { error: "Falta el rol nuevo." };
+  if (!targetUserId) return { errorCode: "invalid_input" };
+  if (!newRole) return { errorCode: "user_role_invalid" };
 
   const supabase = await createClient();
   try {
@@ -141,6 +146,9 @@ export async function changeUserRoleAction(
     revalidatePath("/studio/usuarios");
     return { ok: true, userId: targetUserId };
   } catch (err) {
+    // Errores del RPC (anti-lockout, permisos, etc.) vienen como string ya
+    // formateado en Postgres. Los pasamos como `error` legacy en lugar de
+    // intentar mapearlos a errorCode — son contextuales.
     const msg = err instanceof Error ? err.message : String(err);
     return { error: msg };
   }
@@ -155,11 +163,11 @@ export async function disableUserAction(
   formData: FormData,
 ): Promise<UserActionState> {
   const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
-  if (!targetUserId) return { error: "Falta el usuario." };
+  if (!targetUserId) return { errorCode: "invalid_input" };
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { errorCode: "user_signin_required" };
 
   // Anti-lockout client-side: no podés desactivarte a vos mismo si sos
   // el último admin. El RPC studio_change_user_role tiene este check; acá
@@ -167,9 +175,7 @@ export async function disableUserAction(
   if (targetUserId === userResp.user.id) {
     const hasOthers = await tenantHasOtherAdmins(supabase, userResp.user.id);
     if (!hasOthers) {
-      return {
-        error: "No te podés desactivar a vos mismo si sos el último admin.",
-      };
+      return { errorCode: "user_no_other_admins" };
     }
   }
 
@@ -180,7 +186,7 @@ export async function disableUserAction(
 
   if (error) {
     if (error.code === "42501") {
-      return { error: "Solo admins pueden desactivar usuarios." };
+      return { errorCode: "permission_denied" };
     }
     return { error: error.message };
   }
@@ -198,7 +204,7 @@ export async function enableUserAction(
   formData: FormData,
 ): Promise<UserActionState> {
   const targetUserId = (formData.get("target_user_id") as string | null)?.trim();
-  if (!targetUserId) return { error: "Falta el usuario." };
+  if (!targetUserId) return { errorCode: "invalid_input" };
 
   const supabase = await createClient();
   const { error } = await supabase
@@ -208,7 +214,7 @@ export async function enableUserAction(
 
   if (error) {
     if (error.code === "42501") {
-      return { error: "Solo admins pueden reactivar usuarios." };
+      return { errorCode: "permission_denied" };
     }
     return { error: error.message };
   }

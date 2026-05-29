@@ -114,7 +114,15 @@ export type ActionFieldErrors = Partial<Record<string, string>>;
 
 export interface UserActionState {
   ok?: boolean;
+  /** Legacy: string ya formateado en es-VE. Útil para mensajes que vienen
+   *  directos del RPC (errores de Postgres, etc) donde no podemos mapear
+   *  a un errorCode predefinido. El client lo muestra tal cual. */
   error?: string;
+  /** Preferido: machine-readable code que el client mapea a t(locale, key).
+   *  Lista de codes en `lib/i18n/error-codes.ts`. */
+  errorCode?: import("@/lib/i18n").ErrorCode;
+  /** Params para interpolación del template del mensaje (ej {name: "..."}). */
+  errorParams?: Record<string, string | number>;
   fieldErrors?: ActionFieldErrors;
   invitationId?: string;
   invitationLink?: string;

@@ -283,10 +283,12 @@ export async function inviteUserRPC(
   supabase: SupabaseClient,
   email: string,
   role: StudioUserRole,
+  region: "ve" | "cn" = "ve",
 ): Promise<{ invitationId: string; token: string }> {
   const { data, error } = await supabase.rpc("studio_invite_user", {
     p_email: email,
     p_role: role,
+    p_region: region,
   });
   if (error || !data || !Array.isArray(data) || data.length === 0) {
     throw new Error(error?.message ?? "RPC studio_invite_user vacío");

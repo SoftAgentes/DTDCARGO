@@ -28,6 +28,13 @@ import {
   type WarehouseReceiptRow,
   type WarehouseReceiptStatus,
 } from "@/lib/studio/warehouse-cn-types";
+import {
+  useT,
+  useLocale,
+  formatNumber,
+  resolveErrorMessage,
+  type I18nKey,
+} from "@/lib/i18n";
 import type { Client } from "@/lib/studio/client-types";
 import type { DispatchCity } from "@/lib/studio/dispatch-routes-types";
 import type { ReceiptFilters } from "@/lib/studio/warehouse-cn-queries";
@@ -58,6 +65,8 @@ export function AlmacenCnClient({
   const pathname = usePathname();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const t = useT();
+  const locale = useLocale();
 
   const lang: LangDisplay = parseLangFromParam(params.get("lang"));
   const [drawerOpen, setDrawerOpen] = useState(params.get("view") === "create");
@@ -164,20 +173,20 @@ export function AlmacenCnClient({
       >
         <div style={{ flex: "1 1 280px", minWidth: 240 }}>
           <label className="studio-label" htmlFor="cn-q">
-            Buscar
+            {t("warehouse_cn.filter.search_label")}
           </label>
           <input
             id="cn-q"
             type="search"
             className="studio-input"
-            placeholder="Recibo, cliente, MARKBOX, supplier…"
+            placeholder={t("warehouse_cn.filter.search_placeholder")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
         <div style={{ flex: "0 0 180px" }}>
           <label className="studio-label" htmlFor="cn-hub">
-            Hub
+            {t("warehouse_cn.filter.hub_label")}
           </label>
           <select
             id="cn-hub"
@@ -188,7 +197,7 @@ export function AlmacenCnClient({
               pushFilters({ q, hub: e.target.value, status });
             }}
           >
-            <option value="">Todos los hubs</option>
+            <option value="">{t("warehouse_cn.filter.hub_all")}</option>
             {HUB_GROUPS.map((g) => (
               <option key={g.code} value={g.code}>
                 {g.nameEs} · {g.nameCn}
@@ -198,7 +207,7 @@ export function AlmacenCnClient({
         </div>
         <div style={{ flex: "0 0 220px" }}>
           <label className="studio-label" htmlFor="cn-status">
-            Estado
+            {t("warehouse_cn.filter.status_label")}
           </label>
           <select
             id="cn-status"
@@ -209,12 +218,20 @@ export function AlmacenCnClient({
               pushFilters({ q, hub, status: e.target.value });
             }}
           >
-            <option value="">Todos los estados</option>
-            {RECEIPT_STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
+            <option value="">{t("warehouse_cn.filter.status_all")}</option>
+            {RECEIPT_STATUS_OPTIONS.map((opt) => {
+              const key =
+                opt.value === "pendiente_consolidacion"
+                  ? "warehouse_cn.status.pending_consolidation"
+                  : opt.value === "consolidado"
+                    ? "warehouse_cn.status.consolidated"
+                    : "warehouse_cn.status.incident";
+              return (
+                <option key={opt.value} value={opt.value}>
+                  {t(key)}
+                </option>
+              );
+            })}
           </select>
         </div>
         {hasActiveFilters && (
@@ -229,7 +246,7 @@ export function AlmacenCnClient({
               pushFilters({});
             }}
           >
-            Limpiar
+            {t("warehouse_cn.filter.clear")}
           </button>
         )}
         <button
@@ -241,8 +258,6 @@ export function AlmacenCnClient({
             display: "inline-flex",
             alignItems: "center",
             gap: 6,
-            // Estado visual activo: wine-tint + borde wine para que
-            // el operador VE distinga "estoy revelando" de "están ocultos".
             ...(showClientNames && {
               background: "var(--wine-tint)",
               color: "var(--wine)",
@@ -253,28 +268,36 @@ export function AlmacenCnClient({
           aria-pressed={showClientNames}
           title={
             showClientNames
-              ? "Ocultar nombres (operadores CN no deberían verlos)"
-              : "Mostrar nombres (solo para uso interno VE)"
+              ? t("warehouse_cn.filter.hide_names")
+              : t("warehouse_cn.filter.show_names")
           }
         >
           {showClientNames ? Icon.eyeOff(13) : Icon.eye(13)}
-          <span>{showClientNames ? "Ocultar nombres" : "Mostrar nombres"}</span>
+          <span>
+            {showClientNames
+              ? t("warehouse_cn.filter.hide_names")
+              : t("warehouse_cn.filter.show_names")}
+          </span>
         </button>
       </div>
 
       {/* Tabla o empty */}
       {receipts.length === 0 ? (
         <EmptyState
-          eyebrow={hasActiveFilters ? "Sin resultados" : "Sin recepciones"}
+          eyebrow={
+            hasActiveFilters
+              ? t("chrome.empty.no_results")
+              : t("warehouse_cn.empty.title")
+          }
           title={
             hasActiveFilters
-              ? "Ninguna recepción coincide con esos filtros."
-              : "Todavía no se registró ninguna recepción CN."
+              ? t("warehouse_cn.empty.filtered_title")
+              : t("warehouse_cn.empty.title")
           }
           description={
             hasActiveFilters
-              ? "Probá ajustar la búsqueda o limpiá los filtros."
-              : "Cuando llegue la primera caja del supplier a un hub, registrala acá."
+              ? t("warehouse_cn.empty.filtered_description")
+              : t("warehouse_cn.empty.description")
           }
           action={
             !hasActiveFilters ? (
@@ -283,7 +306,7 @@ export function AlmacenCnClient({
                 className="studio-btn studio-btn-primary"
                 onClick={openDrawer}
               >
-                + Nueva recepción
+                {t("warehouse_cn.header.new_receipt")}
               </button>
             ) : null
           }
@@ -352,6 +375,7 @@ function ReceiptsTable({
   onToggleAll: () => void;
   showClientNames: boolean;
 }) {
+  const t = useT();
   const allVisibleSelected =
     rows.length > 0 && rows.every((r) => selected.has(r.id));
   const someVisibleSelected =
@@ -385,7 +409,7 @@ function ReceiptsTable({
         <span style={{ display: "flex", alignItems: "center" }}>
           <input
             type="checkbox"
-            aria-label="Seleccionar todas las visibles"
+            aria-label={t("warehouse_cn.bulk.clear_selection")}
             checked={allVisibleSelected}
             ref={(el) => {
               if (el) el.indeterminate = someVisibleSelected;
@@ -399,15 +423,15 @@ function ReceiptsTable({
             }}
           />
         </span>
-        <span>Recepción</span>
-        <span>Cliente</span>
-        <span>Proveedor CN</span>
-        <span>Hub</span>
-        <span style={{ textAlign: "right" }}>Cajas</span>
-        <span style={{ textAlign: "right" }}>CBM</span>
-        <span style={{ textAlign: "right" }}>Peso</span>
-        <span>Productos</span>
-        <span>Estado</span>
+        <span>{t("warehouse_cn.table.col_receipt")}</span>
+        <span>{t("warehouse_cn.table.col_client")}</span>
+        <span>{t("warehouse_cn.table.col_supplier")}</span>
+        <span>{t("warehouse_cn.table.col_hub")}</span>
+        <span style={{ textAlign: "right" }}>{t("warehouse_cn.table.col_boxes")}</span>
+        <span style={{ textAlign: "right" }}>{t("warehouse_cn.table.col_cbm")}</span>
+        <span style={{ textAlign: "right" }}>{t("warehouse_cn.table.col_weight")}</span>
+        <span>{t("warehouse_cn.table.col_products")}</span>
+        <span>{t("warehouse_cn.table.col_status")}</span>
         <span style={{ textAlign: "right" }}>·</span>
       </div>
 
@@ -868,12 +892,12 @@ type BulkAction =
   | "status_pending"
   | "status_incident";
 
-const BULK_LABELS: Record<BulkAction, string> = {
-  pay_paid: "Marcar pagados",
-  pay_partial: "Marcar pago parcial",
-  pay_pending: "Marcar pago pendiente",
-  status_pending: "Volver a pendiente",
-  status_incident: "Marcar incidencia",
+const BULK_LABEL_KEYS: Record<BulkAction, I18nKey> = {
+  pay_paid: "warehouse_cn.bulk.pay_paid",
+  pay_partial: "warehouse_cn.bulk.pay_partial",
+  pay_pending: "warehouse_cn.bulk.pay_pending",
+  status_pending: "warehouse_cn.bulk.status_pending",
+  status_incident: "warehouse_cn.bulk.status_incident",
 };
 
 const BULK_CONFIRM_THRESHOLD = 5;
@@ -889,6 +913,7 @@ function BulkBar({
   onClear: () => void;
   onAfter: () => void;
 }) {
+  const t = useT();
   const [pending, startTransition] = useTransition();
   const [confirmAction, setConfirmAction] = useState<BulkAction | null>(null);
   const [feedback, setFeedback] = useState<
@@ -924,12 +949,16 @@ function BulkBar({
       if (result.ok) {
         setFeedback({
           kind: "ok",
-          msg: `${result.updated ?? 0} actualizadas.`,
+          msg: t("warehouse_cn.bulk.feedback_ok", { count: result.updated ?? 0 }),
         });
         setConfirmAction(null);
         setTimeout(onAfter, 700);
       } else {
-        setFeedback({ kind: "err", msg: result.error ?? "Error" });
+        const msg = resolveErrorMessage(t, result);
+        setFeedback({
+          kind: "err",
+          msg: msg ?? t("warehouse_cn.bulk.feedback_error_generic"),
+        });
       }
     });
   };
@@ -945,7 +974,7 @@ function BulkBar({
   return (
     <div
       role="region"
-      aria-label={`Acciones masivas · ${count} seleccionadas`}
+      aria-label={t("warehouse_cn.bulk.aria_region", { count })}
       style={{
         position: "fixed",
         bottom: 16,
@@ -978,7 +1007,12 @@ function BulkBar({
             whiteSpace: "nowrap",
           }}
         >
-          {count} seleccionada{count === 1 ? "" : "s"}
+          {t(
+            count === 1
+              ? "warehouse_cn.bulk.selected_count_singular"
+              : "warehouse_cn.bulk.selected_count",
+            { count },
+          )}
         </div>
         <div
           style={{
@@ -1006,7 +1040,7 @@ function BulkBar({
               whiteSpace: "nowrap",
             }}
           >
-            {BULK_LABELS[a]}
+            {t(BULK_LABEL_KEYS[a])}
           </button>
         ))}
         <button
@@ -1022,7 +1056,7 @@ function BulkBar({
             cursor: pending ? "wait" : "pointer",
           }}
         >
-          Cancelar
+          {t("warehouse_cn.bulk.cancel_btn")}
         </button>
       </div>
 
@@ -1040,7 +1074,10 @@ function BulkBar({
           }}
         >
           <span>
-            ¿Aplicar <b>{BULK_LABELS[confirmAction]}</b> a {count} recepciones?
+            {t("warehouse_cn.bulk.confirm_question", {
+              action: t(BULK_LABEL_KEYS[confirmAction]),
+              count,
+            })}
           </span>
           <button
             type="button"
@@ -1048,7 +1085,9 @@ function BulkBar({
             disabled={pending}
             className="studio-btn studio-btn-primary studio-btn-xs"
           >
-            {pending ? "Aplicando…" : "Sí, aplicar"}
+            {pending
+              ? t("warehouse_cn.bulk.applying")
+              : t("warehouse_cn.bulk.confirm_yes")}
           </button>
           <button
             type="button"
@@ -1056,7 +1095,7 @@ function BulkBar({
             disabled={pending}
             className="studio-btn studio-btn-ghost studio-btn-xs"
           >
-            No
+            {t("warehouse_cn.bulk.confirm_no")}
           </button>
         </div>
       )}
