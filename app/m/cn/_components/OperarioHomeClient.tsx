@@ -13,6 +13,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import { BigButton } from "@/app/m/_components/BigButton";
 import { KpiCard } from "@/app/m/_components/KpiCard";
 import { MobileHeader } from "@/app/m/_components/MobileHeader";
+import { PushOptIn } from "@/app/m/_components/PushOptIn";
 import { setOperarioLangClient, type Lang } from "@/lib/lang";
 import { signOutOperarioAction } from "../actions";
 import { getReceiptPhotoSignedUrlsAction } from "../nueva/photo-actions";
@@ -955,6 +956,17 @@ function MenuModal({
               );
             })}
           </div>
+        </div>
+
+        {/* Sprint 4 · push opt-in (se auto-oculta si no soportado) */}
+        <div
+          style={{
+            marginTop: "var(--s-3)",
+            padding: "4px 0",
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <PushOptIn lang={lang} />
         </div>
 
         {/* Cerrar sesión via server action */}

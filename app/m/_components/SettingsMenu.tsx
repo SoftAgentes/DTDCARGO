@@ -30,6 +30,7 @@ import {
   type ReactNode,
 } from "react";
 import { Icon } from "@/app/studio/_components/icons";
+import { PushOptIn } from "./PushOptIn";
 
 export type ThemeMode = "light" | "dark";
 export type ThemeScope = "bodeguero" | "camionero";
@@ -211,6 +212,9 @@ export function SettingsMenu({
               }}
             />
           )}
+
+          {/* Sprint 4 · push opt-in (se auto-oculta si no soportado) */}
+          <PushOptIn />
 
           <div
             style={{
