@@ -12,6 +12,7 @@
  */
 
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { updateDispatchRulesAction } from "../actions";
 import {
   DEFAULT_WEIGHTS,
@@ -366,7 +367,7 @@ export function RulesClient({
               <span>
                 <b>{tierClientsCount}</b> cliente{tierClientsCount === 1 ? "" : "s"} con tier elevado · recibirá{tierClientsCount === 1 ? "" : "n"} <b>+{weights.vip} pts</b>
               </span>
-              <a
+              <Link
                 href="/studio/clientes?tier=vip"
                 style={{
                   font: "700 11px/1 var(--f-sans)",
@@ -375,7 +376,7 @@ export function RulesClient({
                 }}
               >
                 Ver lista →
-              </a>
+              </Link>
             </div>
           )}
           <Toggle

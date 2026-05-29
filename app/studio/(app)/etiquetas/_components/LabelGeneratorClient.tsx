@@ -22,13 +22,11 @@ interface Props {
   preselectMarkbox?: string;
 }
 
-export function LabelGeneratorClient({
-  clients,
-  warehouses,
-  preselectMarkbox,
-}: Props) {
-  // Empty fallback si no hay clientes ni warehouses
-  if (clients.length === 0 || warehouses.length === 0) {
+export function LabelGeneratorClient(props: Props) {
+  // Empty fallback ANTES de cualquier hook. El guard vive en este wrapper y
+  // los hooks viven en <LabelGeneratorInner> (que solo se monta cuando hay
+  // datos) → satisface rules-of-hooks sin cambiar el comportamiento.
+  if (props.clients.length === 0 || props.warehouses.length === 0) {
     return (
       <div
         style={{
@@ -46,7 +44,7 @@ export function LabelGeneratorClient({
             marginBottom: 8,
           }}
         >
-          {clients.length === 0
+          {props.clients.length === 0
             ? "Aún no hay clientes registrados"
             : "Aún no hay warehouses CN configurados"}
         </div>
@@ -57,14 +55,21 @@ export function LabelGeneratorClient({
             margin: 0,
           }}
         >
-          {clients.length === 0
+          {props.clients.length === 0
             ? "Creá clientes desde /studio/clientes antes de generar etiquetas."
             : "Aplicá la migration 0008_warehouses_cn.sql para tener los hubs CN seedeados."}
         </p>
       </div>
     );
   }
+  return <LabelGeneratorInner {...props} />;
+}
 
+function LabelGeneratorInner({
+  clients,
+  warehouses,
+  preselectMarkbox,
+}: Props) {
   const initialMarkbox =
     (preselectMarkbox && clients.find((c) => c.markbox === preselectMarkbox)?.markbox) ??
     clients[0].markbox;
