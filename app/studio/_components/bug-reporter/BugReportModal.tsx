@@ -34,7 +34,8 @@ import {
 } from "@/lib/studio/bug-module-name";
 import { getBugTechCapture } from "@/lib/studio/bug-tech-capture";
 import { getBugRrwebCapture } from "@/lib/studio/bug-rrweb-capture";
-import { useT, useLocale, resolveErrorMessage, type I18nKey } from "@/lib/i18n";
+import { useT, useLocale, type I18nKey } from "@/lib/i18n";
+import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
 
 const BUG_CATEGORY_KEY: Record<BugCategory, I18nKey> = {
   error: "bug.category.error",
@@ -102,7 +103,7 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
   const locale = useLocale();
   const pathname = usePathname() ?? "/";
   const moduleSlug = useMemo(() => moduleSlugFromPathname(pathname), [pathname]);
-  const moduleLabel = moduleLabelFromSlug(moduleSlug);
+  const moduleLabel = moduleLabelFromSlug(moduleSlug, locale);
 
   const [category, setCategory] = useState<BugCategory>("error");
   const [severity, setSeverity] = useState<BugSeverity>("media");
@@ -593,27 +594,8 @@ export function BugReportModal({ onClose, buildSha }: BugReportModalProps) {
               )}
             </div>
 
-            {/* Error global · resolveErrorMessage prioriza errorCode
-                traducido sobre el string legacy. */}
-            {(() => {
-              const msg = resolveErrorMessage(t, state);
-              if (!msg) return null;
-              return (
-                <div
-                  style={{
-                    padding: "var(--s-3, 12px) var(--s-4, 16px)",
-                    background: "var(--danger-bg, #FCEDED)",
-                    border: "1px solid var(--danger, #A8323E)",
-                    borderRadius: 6,
-                    color: "var(--danger, #A8323E)",
-                    fontSize: 13,
-                  }}
-                  role="alert"
-                >
-                  {msg}
-                </div>
-              );
-            })()}
+            {/* Error global · ErrorAlert prioriza errorCode traducido. */}
+            <ErrorAlert state={state} />
           </form>
         )}
 

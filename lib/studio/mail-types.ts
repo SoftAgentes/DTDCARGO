@@ -54,6 +54,7 @@ export const MAIL_LOG_STATUSES: MailLogStatus[] = [
 export type MailRuleEvent =
   | "shipment_created"
   | "shipment_arrived"
+  | "shipment_consolidated_cn"
   | "quote_sent"
   | "quote_accepted"
   | "invoice_emitted"
@@ -64,6 +65,7 @@ export type MailRuleEvent =
 export const MAIL_RULE_EVENTS: MailRuleEvent[] = [
   "shipment_created",
   "shipment_arrived",
+  "shipment_consolidated_cn",
   "quote_sent",
   "quote_accepted",
   "invoice_emitted",
@@ -585,6 +587,7 @@ export function logStatusLabel(s: MailLogStatus): string {
 export const RULE_EVENT_LABELS: Record<MailRuleEvent, string> = {
   shipment_created: "Embarque creado",
   shipment_arrived: "Embarque arribado",
+  shipment_consolidated_cn: "Contenedor consolidado (CN)",
   quote_sent: "Cotización enviada",
   quote_accepted: "Cotización aceptada",
   invoice_emitted: "Factura emitida",

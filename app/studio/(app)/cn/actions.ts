@@ -14,6 +14,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
+import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
+import {
+  findOrCreateConsolidationShipment,
+  ensureActiveAlert,
+  revertAlertIfShipmentEmpty,
+} from "@/lib/studio/expense-alerts-queries";
 import {
   validateReceiptInput,
   type WarehouseReceiptActionState,
@@ -273,12 +280,13 @@ export async function changeReceiptStatusAction(
   // Leer current status para no insertar event redundante
   const { data: current, error: readErr } = await supabase
     .from("warehouse_receipts_cn")
-    .select("status, receipt_code, destination_city")
+    .select("status, receipt_code, destination_city, shipment_id")
     .eq("id", receiptId)
     .maybeSingle<{
       status: WarehouseReceiptStatus;
       receipt_code: string;
       destination_city: string | null;
+      shipment_id: string | null;
     }>();
 
   if (readErr || !current) {
@@ -292,13 +300,44 @@ export async function changeReceiptStatusAction(
     return { ok: true }; // no-op
   }
 
-  // Update: solo persiste destination_city si estamos consolidando
-  const patch: { status: WarehouseReceiptStatus; destination_city?: string } = {
-    status: newStatus,
-  };
-  if (newStatus === "consolidado" && destinationCity) {
-    patch.destination_city = destinationCity;
+  // Modelo A (SDD-0039): al consolidar, find-or-create el contenedor
+  // (shipment service=consolidacion, status=consolidating) agrupado por
+  // destino y colgamos la recepción + la alerta de gastos de ahí. Es un
+  // side-effect de sistema → admin client (el warehouse+cn no inserta
+  // shipments por RLS). Best-effort: la consolidación NO debe fallar si
+  // el contenedor/alerta falla.
+  const wasConsolidated = current.status === "consolidado";
+  const isConsolidating = newStatus === "consolidado";
+  const isReverting = wasConsolidated && !isConsolidating;
+  const admin = isConsolidating || isReverting ? createAdminClient() : null;
+
+  let containerShipmentId: string | null = null;
+  let containerCode: string | null = null;
+  if (isConsolidating && destinationCity && admin) {
+    const res = await findOrCreateConsolidationShipment(admin, {
+      tenantId: link.tenant_id,
+      destination: destinationCity,
+    });
+    if ("shipmentId" in res) {
+      containerShipmentId = res.shipmentId;
+      containerCode = res.code;
+    } else {
+      console.error("[cn] contenedor consolidación:", res.error);
+    }
   }
+
+  // Update: persiste destination_city + shipment_id al consolidar; limpia
+  // shipment_id al revertir (la recepción sale del contenedor).
+  const patch: {
+    status: WarehouseReceiptStatus;
+    destination_city?: string;
+    shipment_id?: string | null;
+  } = { status: newStatus };
+  if (isConsolidating && destinationCity) {
+    patch.destination_city = destinationCity;
+    if (containerShipmentId) patch.shipment_id = containerShipmentId;
+  }
+  if (isReverting) patch.shipment_id = null;
 
   const { error: updateErr } = await supabase
     .from("warehouse_receipts_cn")
@@ -307,6 +346,28 @@ export async function changeReceiptStatusAction(
 
   if (updateErr) {
     return { error: `No se pudo cambiar el estado: ${updateErr.message}` };
+  }
+
+  // Side-effects de alerta CN (best-effort).
+  if (isConsolidating && containerShipmentId && admin) {
+    const ensured = await ensureActiveAlert(admin, {
+      tenantId: link.tenant_id,
+      shipmentId: containerShipmentId,
+    });
+    if (ensured.created) {
+      // Notificar al equipo CN · solo si el tenant tiene regla activa.
+      // SIN nombre real del cliente (privacidad CN) → solo código contenedor.
+      await fireMailEvent(admin, link.tenant_id, {
+        event: "shipment_consolidated_cn",
+        vars: {
+          shipment_code: containerCode ?? "",
+          destination: destinationCity ?? "—",
+        },
+        sourceRef: { kind: "shipment", id: containerShipmentId },
+      });
+    }
+  } else if (isReverting && current.shipment_id && admin) {
+    await revertAlertIfShipmentEmpty(admin, current.shipment_id);
   }
 
   // Insertar event 'status_change' (o 'consolidated' / 'incident' según el destino)
@@ -333,6 +394,7 @@ export async function changeReceiptStatusAction(
 
   revalidatePath("/studio/cn");
   revalidatePath("/studio/despacho");
+  revalidatePath("/studio/gastos");
   return { ok: true };
 }
 

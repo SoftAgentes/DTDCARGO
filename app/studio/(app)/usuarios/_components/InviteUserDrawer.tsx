@@ -30,7 +30,6 @@ import {
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
-  ROLE_LABELS,
   STUDIO_USER_ROLES,
   type StudioUserRole,
   type UserActionState,
@@ -38,10 +37,21 @@ import {
 import {
   REGION_DEFAULTS,
   SUPPORTED_REGIONS,
-  resolveErrorMessage,
   useT,
+  type I18nKey,
   type UserRegion,
 } from "@/lib/i18n";
+import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
+
+/** Rol → I18nKey para localizar labels en select + summary. */
+const ROLE_KEY: Record<StudioUserRole, I18nKey> = {
+  admin: "users.role.admin",
+  commercial: "users.role.commercial",
+  operations: "users.role.operations",
+  accounting: "users.role.accounting",
+  warehouse: "users.role.warehouse",
+  support: "users.role.support",
+};
 import { inviteUserAction } from "../actions";
 
 const INITIAL: UserActionState = {};
@@ -70,25 +80,33 @@ const VE_WAREHOUSES = [
   { code: "PFI", flag: "🇻🇪", name: "Punto Fijo", sub: "Falcón · oriente" },
 ];
 
-const TEAM_OPTIONS = [
-  "Dirección",
-  "Ventas",
-  "Op. CN",
-  "Op. VE",
-  "Finanzas",
-  "CX",
-] as const;
+/** Equipos · value = identificador interno (Fase C UI-only), labelKey = display. */
+const TEAM_OPTIONS: { value: string; labelKey: I18nKey }[] = [
+  { value: "Dirección", labelKey: "users.team.direccion" },
+  { value: "Ventas", labelKey: "users.team.ventas" },
+  { value: "Op. CN", labelKey: "users.team.op_cn" },
+  { value: "Op. VE", labelKey: "users.team.op_ve" },
+  { value: "Finanzas", labelKey: "users.team.finanzas" },
+  { value: "CX", labelKey: "users.team.cx" },
+];
+const TEAM_KEY_BY_VALUE: Record<string, I18nKey> = Object.fromEntries(
+  TEAM_OPTIONS.map((o) => [o.value, o.labelKey]),
+);
 
-const PERMISSION_OPTIONS = [
+const PERMISSION_OPTIONS: {
+  value: "read" | "write";
+  labelKey: I18nKey;
+  descKey: I18nKey;
+}[] = [
   {
-    value: "read" as const,
-    label: "Solo lectura",
-    desc: "Ver recepciones · no editar",
+    value: "read",
+    labelKey: "users.permission.read",
+    descKey: "users.permission.read_desc",
   },
   {
-    value: "write" as const,
-    label: "Lectura + escritura",
-    desc: "Crear y editar recepciones del hub",
+    value: "write",
+    labelKey: "users.permission.write",
+    descKey: "users.permission.write_desc",
   },
 ];
 
@@ -142,8 +160,8 @@ export function InviteUserDrawer({ onClose }: Props) {
 
   return (
     <DrawerShell
-      title="Invitar usuario"
-      subtitle="Vamos a generar un link de invitación que expira en 7 días"
+      title={t("users.invite.title")}
+      subtitle={t("users.invite.subtitle")}
       onClose={onClose}
       pending={isPending}
       width={640}
@@ -181,26 +199,26 @@ export function InviteUserDrawer({ onClose }: Props) {
               }}
             >
               <Field
-                label="Nombre"
+                label={t("users.field.first_name")}
                 name="first_name"
                 value={firstName}
                 onChange={setFirstName}
                 disabled={isPending}
-                placeholder="María"
+                placeholder={t("users.field.first_name_ph")}
               />
               <Field
-                label="Apellido"
+                label={t("users.field.last_name")}
                 name="last_name"
                 value={lastName}
                 onChange={setLastName}
                 disabled={isPending}
-                placeholder="Pérez"
+                placeholder={t("users.field.last_name_ph")}
               />
             </div>
 
             {/* ─── Email ─── */}
             <Field
-              label="Email"
+              label={t("users.field.email")}
               name="email"
               type="email"
               required
@@ -209,7 +227,7 @@ export function InviteUserDrawer({ onClose }: Props) {
               uncontrolled
               error={state.fieldErrors?.email}
               disabled={isPending}
-              placeholder="maria@dtdcargo.com"
+              placeholder={t("users.field.email_ph")}
             />
 
             {/* ─── Oficina (region) ─── */}
@@ -228,21 +246,24 @@ export function InviteUserDrawer({ onClose }: Props) {
               }}
             >
               <SelectField
-                label="Rol"
+                label={t("users.field.role")}
                 value={role}
                 onChange={(v) => handleRoleChange(v as StudioUserRole)}
                 disabled={isPending}
                 options={STUDIO_USER_ROLES.map((r) => ({
                   value: r,
-                  label: ROLE_LABELS[r],
+                  label: t(ROLE_KEY[r]),
                 }))}
               />
               <SelectField
-                label="Equipo"
+                label={t("users.field.team")}
                 value={team}
                 onChange={setTeam}
                 disabled={isPending}
-                options={TEAM_OPTIONS.map((t) => ({ value: t, label: t }))}
+                options={TEAM_OPTIONS.map((opt) => ({
+                  value: opt.value,
+                  label: t(opt.labelKey),
+                }))}
               />
             </div>
 
@@ -286,14 +307,14 @@ export function InviteUserDrawer({ onClose }: Props) {
                     color: "var(--ink)",
                   }}
                 >
-                  Sugerir 2FA al primer login{" "}
+                  {t("users.twofa.label")}{" "}
                   <span
                     style={{
                       color: "var(--ink-mute)",
                       fontWeight: 400,
                     }}
                   >
-                    (opcional)
+                    {t("users.twofa.optional")}
                   </span>
                 </div>
                 <div
@@ -303,8 +324,7 @@ export function InviteUserDrawer({ onClose }: Props) {
                     marginTop: 2,
                   }}
                 >
-                  El user verá un prompt para activar 2FA, pero podrá saltarlo.
-                  Nunca obligamos a configurar 2FA en testing.
+                  {t("users.twofa.desc")}
                 </div>
               </div>
             </label>
@@ -321,25 +341,7 @@ export function InviteUserDrawer({ onClose }: Props) {
             />
 
             {/* ─── Error general del action · prioriza errorCode traducido ─── */}
-            {(() => {
-              const msg = resolveErrorMessage(t, state);
-              if (!msg) return null;
-              return (
-                <div
-                  role="alert"
-                  style={{
-                    padding: "10px 12px",
-                    background: "var(--danger-bg, #FCEDED)",
-                    border: "1px solid var(--danger, #A8323E)",
-                    borderRadius: 6,
-                    color: "var(--danger, #A8323E)",
-                    fontSize: 13,
-                  }}
-                >
-                  {msg}
-                </div>
-              );
-            })()}
+            <ErrorAlert state={state} />
 
             {/* Disclaimer Fase C */}
             <p
@@ -349,9 +351,7 @@ export function InviteUserDrawer({ onClose }: Props) {
                 margin: 0,
               }}
             >
-              V1 persiste solo email + rol. Nombre, equipo, scope, permiso y
-              2FA viven en UI hasta que llegue Fase B del schema. Cuando el
-              user acepte la invitación cargará su nombre.
+              {t("users.disclaimer")}
             </p>
           </form>
           <DrawerFooter
@@ -359,7 +359,11 @@ export function InviteUserDrawer({ onClose }: Props) {
             onClose={onClose}
             isPending={isPending}
             canSubmit={true}
-            submitLabel={isPending ? "Generando…" : "Generar link"}
+            submitLabel={
+              isPending
+                ? t("users.invite.submit_loading")
+                : t("users.invite.submit_idle")
+            }
           />
         </>
       )}
@@ -380,6 +384,7 @@ function OfficePicker({
   onChange: (r: UserRegion) => void;
   disabled?: boolean;
 }) {
+  const t = useT();
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
       <span
@@ -390,11 +395,11 @@ function OfficePicker({
           color: "var(--ink-soft)",
         }}
       >
-        Oficina
+        {t("users.office.label")}
       </span>
       <div
         role="radiogroup"
-        aria-label="Oficina del invitado"
+        aria-label={t("users.office.aria")}
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}
       >
         {SUPPORTED_REGIONS.map((r) => {
@@ -456,8 +461,7 @@ function OfficePicker({
           margin: 0,
         }}
       >
-        Determina el idioma del Studio, formato de fecha y moneda default. El
-        invitado lo verá apenas acepte la invitación.
+        {t("users.office.hint")}
       </p>
     </div>
   );
@@ -478,6 +482,7 @@ function ScopeSection({
   permission: "read" | "write";
   onPermissionChange: (p: "read" | "write") => void;
 }) {
+  const t = useT();
   return (
     <div>
       <div
@@ -496,7 +501,7 @@ function ScopeSection({
             textTransform: "uppercase",
           }}
         >
-          Almacén/es asignado/s
+          {t("users.scope.assigned_label")}
         </span>
         <ScopeBadge count={scope.length} />
       </div>
@@ -507,10 +512,9 @@ function ScopeSection({
           marginBottom: 10,
         }}
       >
-        Este usuario solo verá recepciones y embarques del/los hub/s
-        seleccionados.{" "}
+        {t("users.scope.explainer")}{" "}
         <b style={{ color: "var(--ink)" }}>
-          No podrá cambiar de almacén ni ver otros hubs.
+          {t("users.scope.explainer_bold")}
         </b>
       </div>
 
@@ -523,7 +527,7 @@ function ScopeSection({
           fontSize: 10,
         }}
       >
-        🇨🇳 Almacenes China
+        {t("users.scope.cn_group")}
       </div>
       <div
         style={{
@@ -552,7 +556,7 @@ function ScopeSection({
           fontSize: 10,
         }}
       >
-        🇻🇪 Almacenes Venezuela
+        {t("users.scope.ve_group")}
       </div>
       <div
         style={{
@@ -584,7 +588,7 @@ function ScopeSection({
             marginBottom: 8,
           }}
         >
-          Permiso dentro del almacén
+          {t("users.scope.permission_label")}
         </span>
         <div
           style={{
@@ -616,7 +620,7 @@ function ScopeSection({
                     color: sel ? "var(--wine)" : "var(--ink)",
                   }}
                 >
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </div>
                 <div
                   style={{
@@ -625,7 +629,7 @@ function ScopeSection({
                     marginTop: 4,
                   }}
                 >
-                  {opt.desc}
+                  {t(opt.descKey)}
                 </div>
               </button>
             );
@@ -689,6 +693,7 @@ function WarehouseCheckbox({
 }
 
 function ScopeBadge({ count }: { count: number }) {
+  const t = useT();
   return (
     <span
       style={{
@@ -704,7 +709,14 @@ function ScopeBadge({ count }: { count: number }) {
         lineHeight: 1,
       }}
     >
-      {count === 0 ? "sin definir" : `${count} hub${count > 1 ? "s" : ""}`}
+      {count === 0
+        ? t("users.scope.badge_empty")
+        : t(
+            count > 1
+              ? "users.scope.badge_count_plural"
+              : "users.scope.badge_count",
+            { count },
+          )}
     </span>
   );
 }
@@ -730,6 +742,7 @@ function SummaryCard({
   permission: "read" | "write";
   twoFa: boolean;
 }) {
+  const t = useT();
   const regionCfg = REGION_DEFAULTS[region];
   return (
     <div
@@ -750,7 +763,7 @@ function SummaryCard({
           marginBottom: 8,
         }}
       >
-        Este usuario podrá:
+        {t("users.summary.heading")}
       </div>
       <div
         style={{
@@ -762,7 +775,7 @@ function SummaryCard({
         }}
       >
         <div>
-          ✓ Oficina:{" "}
+          ✓ {t("users.summary.office")}{" "}
           <b style={{ color: "#fff" }}>
             {regionCfg.flag} {regionCfg.officeLabel}
           </b>{" "}
@@ -771,27 +784,34 @@ function SummaryCard({
           </span>
         </div>
         <div>
-          ✓ Rol: <b style={{ color: "#fff" }}>{ROLE_LABELS[role]}</b>
+          ✓ {t("users.summary.role")}{" "}
+          <b style={{ color: "#fff" }}>{t(ROLE_KEY[role])}</b>
         </div>
         <div>
-          ✓ Equipo: <b style={{ color: "#fff" }}>{team}</b>
+          ✓ {t("users.summary.team")}{" "}
+          <b style={{ color: "#fff" }}>
+            {TEAM_KEY_BY_VALUE[team] ? t(TEAM_KEY_BY_VALUE[team]) : team}
+          </b>
         </div>
         {needsScope ? (
           scope.length > 0 ? (
             <div>
-              ✓ Ver solo:{" "}
+              ✓ {t("users.summary.see_only")}{" "}
               <b style={{ color: "#fff" }}>{scope.join(" · ")}</b> (
-              {permission === "write" ? "lectura + escritura" : "solo lectura"})
+              {permission === "write"
+                ? t("users.summary.perm_write")
+                : t("users.summary.perm_read")}
+              )
             </div>
           ) : (
             <div style={{ color: "var(--wine-soft, #C2747F)" }}>
-              ⚠ Falta asignar al menos un almacén
+              {t("users.summary.missing_warehouse")}
             </div>
           )
         ) : (
-          <div>✓ Acceso global · sin restricción por almacén</div>
+          <div>{t("users.summary.global_access")}</div>
         )}
-        {twoFa && <div>✓ Se le sugerirá activar 2FA (opcional)</div>}
+        {twoFa && <div>{t("users.summary.twofa_suggested")}</div>}
       </div>
     </div>
   );
@@ -812,6 +832,7 @@ function SuccessView({
   copyStatus: "idle" | "ok" | "err";
   onCopy: () => void;
 }) {
+  const t = useT();
   return (
     <>
       <div
@@ -835,7 +856,7 @@ function SuccessView({
           }}
         >
           <strong style={{ color: "var(--success, #1F8A5B)" }}>
-            Invitación creada
+            {t("users.success.title")}
           </strong>
           <p
             style={{
@@ -844,9 +865,7 @@ function SuccessView({
               fontSize: 12,
             }}
           >
-            Copiá el link y mandáselo a tu invitado por WhatsApp, email o como
-            prefieras. Expira en 7 días. (Cuando Resend esté listo, el sistema
-            lo manda automático.)
+            {t("users.success.body")}
           </p>
         </div>
 
@@ -861,7 +880,7 @@ function SuccessView({
               marginBottom: 6,
             }}
           >
-            Link de invitación
+            {t("users.success.link_label")}
           </span>
           <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
             <input
@@ -889,10 +908,10 @@ function SuccessView({
               style={{ minWidth: 100 }}
             >
               {copyStatus === "ok"
-                ? "✓ Copiado"
+                ? t("users.success.copied")
                 : copyStatus === "err"
-                  ? "Error"
-                  : "Copiar"}
+                  ? t("users.success.copy_error")
+                  : t("users.success.copy")}
             </button>
           </div>
         </div>
@@ -912,7 +931,7 @@ function SuccessView({
           className="studio-btn studio-btn-primary"
           onClick={onClose}
         >
-          Cerrar
+          {t("users.success.close")}
         </button>
       </footer>
     </>

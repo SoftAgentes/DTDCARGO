@@ -25,25 +25,13 @@ import type {
   WarehouseReceiptStatus,
 } from "@/lib/studio/warehouse-cn-types";
 import {
-  PAYMENT_STATUS_LABELS,
-  RECEIPT_STATUS_LABELS,
+  PAYMENT_STATUS_LABEL_KEYS,
+  RECEIPT_STATUS_LABEL_KEYS,
   RECEIPT_STATUS_OPTIONS,
 } from "@/lib/studio/warehouse-cn-types";
 import type { DispatchCity } from "@/lib/studio/dispatch-routes-types";
 import { Icon } from "@/app/studio/_components/icons";
-import { useT, resolveErrorMessage, type I18nKey } from "@/lib/i18n";
-
-const STATUS_KEY: Record<WarehouseReceiptStatus, I18nKey> = {
-  pendiente_consolidacion: "warehouse_cn.status.pending_consolidation",
-  consolidado: "warehouse_cn.status.consolidated",
-  incidencia: "warehouse_cn.status.incident",
-};
-
-const PAYMENT_KEY: Record<PaymentStatus, I18nKey> = {
-  pagado: "warehouse_cn.payment.paid",
-  parcial: "warehouse_cn.payment.partial",
-  pendiente: "warehouse_cn.payment.pending",
-};
+import { useT, resolveErrorMessage } from "@/lib/i18n";
 
 const PAYMENT_OPTIONS: PaymentStatus[] = ["pagado", "parcial", "pendiente"];
 
@@ -267,7 +255,7 @@ export function ReceiptRowActions({
                     <span style={{ width: 14, display: "inline-flex" }}>
                       {isCurrent ? Icon.check(13) : null}
                     </span>
-                    <span>{t(STATUS_KEY[opt.value])}</span>
+                    <span>{t(RECEIPT_STATUS_LABEL_KEYS[opt.value])}</span>
                   </button>
                 );
               })}
@@ -329,7 +317,7 @@ export function ReceiptRowActions({
                     <span style={{ width: 14, display: "inline-flex" }}>
                       {isCurrent ? Icon.check(13) : null}
                     </span>
-                    <span>{t(PAYMENT_KEY[p])}</span>
+                    <span>{t(PAYMENT_STATUS_LABEL_KEYS[p])}</span>
                   </button>
                 );
               })}
@@ -482,5 +470,3 @@ export function ReceiptRowActions({
     </div>
   );
 }
-
-export const STATUS_LABEL_FOR_TOOLTIP = RECEIPT_STATUS_LABELS;

@@ -3,10 +3,10 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Expense, ExpenseCurrency } from "./expense-types";
+import type { Expense, ExpenseCurrency, ExpenseScope } from "./expense-types";
 
 const EXPENSE_COLUMNS =
-  "id, tenant_id, user_id, expense_code, amount, currency, category, method, shipment_id, note, location, billable, receipt_path, occurred_at, created_at, updated_at, deleted_at";
+  "id, tenant_id, user_id, expense_code, amount, currency, amount_usd, fx_rate, category, scope, method, shipment_id, note, location, billable, receipt_path, occurred_at, created_at, updated_at, deleted_at";
 
 /** Mis gastos · ordenados por occurred_at desc. RLS filtra por user_id. */
 export async function listMyExpenses(
@@ -58,6 +58,7 @@ export function convertToUsd(amount: number, currency: ExpenseCurrency): number 
 export async function signReceiptUrls(
   supabase: SupabaseClient,
   expenses: Pick<Expense, "receipt_path">[],
+  ttlSeconds = 60 * 60,
 ): Promise<Record<string, string>> {
   const paths = expenses
     .map((e) => e.receipt_path)
@@ -66,7 +67,7 @@ export async function signReceiptUrls(
 
   const { data, error } = await supabase.storage
     .from("expense-receipts")
-    .createSignedUrls(paths, 60 * 60);
+    .createSignedUrls(paths, ttlSeconds);
 
   if (error || !data) return {};
 
@@ -77,6 +78,170 @@ export async function signReceiptUrls(
     }
   }
   return out;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Módulo web /studio/gastos (SDD-0039) · vista tenant-wide
+// ─────────────────────────────────────────────────────────────
+
+export interface ExpenseFilters {
+  scope: ExpenseScope;
+  /** Mes en formato 'YYYY-MM'. Si undefined, mes actual. */
+  month?: string;
+  search?: string;
+}
+
+/** Rango [inicio, fin) ISO de un mes 'YYYY-MM' (o mes actual). */
+function monthRange(month?: string): { start: string; end: string } {
+  const now = new Date();
+  const [y, m] = month
+    ? month.split("-").map(Number)
+    : [now.getUTCFullYear(), now.getUTCMonth() + 1];
+  const start = new Date(Date.UTC(y, m - 1, 1)).toISOString();
+  const end = new Date(Date.UTC(y, m, 1)).toISOString();
+  return { start, end };
+}
+
+/**
+ * Gastos del tenant filtrados por scope + mes + search. RLS (policies
+ * expenses_cn_team / expenses_ve_accounting de 0074) decide qué ve cada rol.
+ */
+export async function listTenantExpenses(
+  supabase: SupabaseClient,
+  filters: ExpenseFilters,
+): Promise<Expense[]> {
+  const { start, end } = monthRange(filters.month);
+  let query = supabase
+    .from("expenses")
+    .select(EXPENSE_COLUMNS)
+    .is("deleted_at", null)
+    .eq("scope", filters.scope)
+    .gte("occurred_at", start)
+    .lt("occurred_at", end)
+    .order("occurred_at", { ascending: false })
+    .limit(500);
+
+  if (filters.search?.trim()) {
+    const s = `%${filters.search.trim()}%`;
+    query = query.or(`expense_code.ilike.${s},note.ilike.${s},location.ilike.${s}`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data as Expense[] | null) ?? [];
+}
+
+export interface ExportRow extends Expense {
+  shipment_code: string | null;
+}
+
+/**
+ * Todos los gastos del mes (ambos scopes) + código de contenedor, para el
+ * export CSV. Ordenado cronológico. RLS scopea al tenant/rol.
+ */
+export async function listMonthExpensesForExport(
+  supabase: SupabaseClient,
+  month?: string,
+): Promise<ExportRow[]> {
+  const { start, end } = monthRange(month);
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(EXPENSE_COLUMNS + ", shipments(code)")
+    .is("deleted_at", null)
+    .gte("occurred_at", start)
+    .lt("occurred_at", end)
+    .order("occurred_at", { ascending: true })
+    .limit(5000);
+  if (error) throw error;
+
+  type Raw = Expense & {
+    shipments: { code: string | null } | { code: string | null }[] | null;
+  };
+  return ((data as unknown as Raw[] | null) ?? []).map((r) => {
+    const ship = Array.isArray(r.shipments) ? r.shipments[0] : r.shipments;
+    const { shipments: _drop, ...rest } = r;
+    void _drop;
+    return { ...(rest as Expense), shipment_code: ship?.code ?? null };
+  });
+}
+
+export interface ExpenseKpis {
+  shipmentTotalUsd: number;
+  externalTotalUsd: number;
+  count: number;
+}
+
+/** KPIs del mes · suma por scope usando amount_usd (ya normalizado). */
+export async function computeExpenseKpis(
+  supabase: SupabaseClient,
+  month?: string,
+): Promise<ExpenseKpis> {
+  const { start, end } = monthRange(month);
+  const { data, error } = await supabase
+    .from("expenses")
+    .select("scope, amount_usd")
+    .is("deleted_at", null)
+    .gte("occurred_at", start)
+    .lt("occurred_at", end);
+  if (error) throw error;
+
+  const rows = (data as { scope: ExpenseScope; amount_usd: number }[] | null) ?? [];
+  let shipmentTotalUsd = 0;
+  let externalTotalUsd = 0;
+  for (const r of rows) {
+    if (r.scope === "shipment") shipmentTotalUsd += Number(r.amount_usd);
+    else externalTotalUsd += Number(r.amount_usd);
+  }
+  return {
+    shipmentTotalUsd: Math.round(shipmentTotalUsd),
+    externalTotalUsd: Math.round(externalTotalUsd),
+    count: rows.length,
+  };
+}
+
+export interface ShipmentPick {
+  id: string;
+  code: string;
+  status: string;
+}
+
+/** Shipments del tenant para el picker del drawer (scope=shipment). */
+export async function listShipmentsForPicker(
+  supabase: SupabaseClient,
+): Promise<ShipmentPick[]> {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select("id, code, status")
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(200);
+  if (error) {
+    // shipments puede no tener deleted_at en algunos esquemas viejos · retry sin el filtro
+    const retry = await supabase
+      .from("shipments")
+      .select("id, code, status")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (retry.error) throw retry.error;
+    return (retry.data as ShipmentPick[] | null) ?? [];
+  }
+  return (data as ShipmentPick[] | null) ?? [];
+}
+
+/** Último fx_rate cargado por el tenant para un par (prefill del drawer). */
+export async function getLastFxRate(
+  supabase: SupabaseClient,
+  currencyPair: string,
+): Promise<{ rate: number; setAt: string } | null> {
+  const { data, error } = await supabase
+    .from("tenant_fx_history")
+    .select("rate, set_at")
+    .eq("currency_pair", currencyPair)
+    .order("set_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ rate: number; set_at: string }>();
+  if (error || !data) return null;
+  return { rate: Number(data.rate), setAt: data.set_at };
 }
 
 export async function sumMyExpensesTodayUsd(
