@@ -439,7 +439,7 @@ export default async function DebugPage() {
           <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55, margin: 0 }}>
             En <strong>{envLabel(s.env)}</strong> faltan algunas env vars de
             servicios externos. Eso es <strong>esperado</strong>: el código
-            detecta la ausencia y entra en "mock mode" (devuelve un error
+            detecta la ausencia y entra en &quot;mock mode&quot; (devuelve un error
             controlado sin romper el flujo, pero no envía nada al exterior).
           </p>
           <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55, marginTop: "var(--s-3)" }}>

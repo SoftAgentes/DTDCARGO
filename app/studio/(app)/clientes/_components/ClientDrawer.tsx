@@ -447,7 +447,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                     marginTop: 4,
                   }}
                 >
-                  Capturá visitando al cliente · habilita "Cerca tuyo" del Mobile ERP.
+                  Capturá visitando al cliente · habilita &quot;Cerca tuyo&quot; del Mobile ERP.
                 </div>
               </div>
               <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap", justifyContent: "flex-end" }}>
