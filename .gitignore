@@ -45,6 +45,12 @@ next-env.d.ts
 
 .gstack/
 
+# ─── Docs sensibles · fuera de git (clasificación: confidencial) ──────
+# Contratos/NDA/costos. Originales en disco local (mover a Drive). Pointers
+# tracked en docs/legal/README.md y docs/operaciones/README.md.
+docs/legal/*.pdf
+docs/operaciones/*.xlsx
+
 # Handoff temp — assets de referencia del brand book v1/v2, no parte del sitio
 _handoff_preview/
 BANDBOOK V1/
