@@ -15,6 +15,7 @@ import {
   getCurrentOperario,
   signOutOperario,
 } from "@/lib/auth/operario-session";
+import { notifyCamioneroOdLista } from "@/lib/studio/notify/notify-dispatch-events";
 import {
   validateBodegueroAdvanceInput,
   validateBodegueroSplitInput,
@@ -76,6 +77,12 @@ export async function advanceOdAction(
   });
 
   if (error) return { error: humanizeRpcError(error.message) };
+
+  // Sprint 4 · si la carga quedó lista, notificar al camionero asignado.
+  // Best-effort · no rompe el advance si el push falla.
+  if (input!.status === "lista") {
+    await notifyCamioneroOdLista(admin, input!.od_id);
+  }
 
   revalidatePath("/m/ve/bodeguero");
   return { ok: true };
