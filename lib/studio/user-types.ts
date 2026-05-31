@@ -222,7 +222,7 @@ export const ROLE_LABELS: Record<StudioUserRole, string> = {
   commercial: "Comercial",
   operations: "Operaciones",
   accounting: "Contabilidad",
-  warehouse: "Bodeguero",
+  warehouse: "Almacenista",
   support: "Soporte",
 };
 

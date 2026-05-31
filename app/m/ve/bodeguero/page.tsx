@@ -17,7 +17,7 @@ import {
 } from "@/lib/studio/dispatch-mobile-queries";
 import { BodegueroClient } from "./_components/BodegueroClient";
 
-export const metadata = { title: "Despacho · Bodeguero" };
+export const metadata = { title: "Despacho · Almacenista" };
 export const dynamic = "force-dynamic";
 
 export default async function BodegueroHomePage() {
