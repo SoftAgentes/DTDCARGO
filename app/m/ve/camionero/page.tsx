@@ -17,7 +17,7 @@ import { CamioneroClient } from "./_components/CamioneroClient";
 const FACADE_BUCKET = "client-facades";
 const SIGNED_URL_TTL_SEC = 600; // 10 min
 
-export const metadata = { title: "Despacho · Camionero" };
+export const metadata = { title: "Despacho · Transportista" };
 export const dynamic = "force-dynamic";
 
 export default async function CamioneroHomePage() {

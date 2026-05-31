@@ -47,7 +47,7 @@ const MODE_DEFS: Record<OperarioRole, ModeDef> = {
   },
   camionero: {
     role: "camionero",
-    label: "Camionero",
+    label: "Transportista",
     subtitle: "Entrega último kilómetro",
     description: "Iniciás ruta, navegás paradas y confirmás POD con foto + firma.",
     icon: Icon.truck(28),
