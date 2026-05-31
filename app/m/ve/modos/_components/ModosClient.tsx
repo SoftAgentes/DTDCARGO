@@ -40,7 +40,7 @@ type ModeDef = {
 const MODE_DEFS: Record<OperarioRole, ModeDef> = {
   bodeguero: {
     role: "bodeguero",
-    label: "Bodeguero",
+    label: "Almacenista",
     subtitle: "Recibe + despacha",
     description: "Recibís contenedores, armás camiones y cerrás cargas.",
     icon: Icon.warehouse(28),

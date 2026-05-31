@@ -32,7 +32,7 @@ export const users = {
   "users.role.commercial": "Comercial",
   "users.role.operations": "Operaciones",
   "users.role.accounting": "Contabilidad",
-  "users.role.warehouse": "Bodeguero",
+  "users.role.warehouse": "Almacenista",
   "users.role.support": "Soporte",
 
   // ── Teams ────────────────────────────────────────────────
