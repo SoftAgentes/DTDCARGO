@@ -6,6 +6,7 @@
   --wine-deep: #5E0A12;
   --wine-soft: #C2747F;
   --wine-tint: rgba(127,15,26,0.08);
+  --wine-bg: rgba(127,15,26,0.08);
 
   --bg-base: #FBFAF7;
   --bg-surface: #FFFFFF;
@@ -86,6 +87,7 @@
   --wine: #A8323E;
   --wine-soft: #D89AA4;
   --wine-tint: rgba(168,50,62,0.14);
+  --wine-bg: rgba(168,50,62,0.14);
 
   --bg-base: #0B1428;
   --bg-surface: #16264A;

@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>DTD Studio · ERP · v1.9</title>
+<title>DTD Studio · ERP · v1.9.1</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -107,6 +107,23 @@
 <script type="text/babel" src="nuevo/modules/audit-log.jsx"></script>
 <script type="text/babel" src="nuevo/modules/contabilidad-data.jsx"></script>
 <script type="text/babel" src="nuevo/modules/contabilidad.jsx"></script>
+<script type="text/babel" src="nuevo/modules/tesoreria-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/tesoreria.jsx"></script>
+<script type="text/babel" src="nuevo/modules/naviera-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/naviera.jsx"></script>
+<script type="text/babel" src="nuevo/modules/conversaciones-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/conversaciones.jsx"></script>
+<script type="text/babel" src="nuevo/modules/fidelizacion-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/fidelizacion.jsx"></script>
+<script type="text/babel" src="nuevo/modules/direccion.jsx"></script>
+<script type="text/babel" src="nuevo/modules/flujo-trabajo.jsx"></script>
+<script type="text/babel" src="nuevo/modules/documentos-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/documentos-hub.jsx"></script>
+<script type="text/babel" src="nuevo/modules/fiscal-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/fiscal.jsx"></script>
+<script type="text/babel" src="nuevo/modules/dtd-config.jsx"></script>
+<script type="text/babel" src="nuevo/modules/cobranzas-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/cobranzas.jsx"></script>
 <script type="text/babel" src="nuevo/modules/label-generator.jsx"></script>
 <script type="text/babel" src="nuevo/modules/wiring.jsx"></script>
 
@@ -126,7 +143,7 @@ function App() {
     ? window.useTweaks(ERP_DEFAULTS)
     : [ERP_DEFAULTS, () => {}];
 
-  const [activeMod, setActiveMod] = useState('dashboard');
+  const [activeMod, setActiveMod] = useState('inicio');
   const [view, setView] = useState('list');       // 'list' | 'detail' | 'create' | 'edit'
   const [selectedId, setSelectedId] = useState(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -242,8 +259,14 @@ function App() {
     vault:      window.ModuleVault,
     qrqueue:    window.ModuleQrQueue,
     reconcile:  window.ModuleConciliacion,
-    auditlog:   window.ModuleAuditLog,
     contab:     window.ModuleContabilidad,
+    tesoreria:  window.ModuleTesoreria,
+    naviera:    window.ModuleNaviera,
+    conversaciones: window.ModuleConversaciones,
+    fidelizacion: window.ModuleFidelizacion,
+    direccion:  window.ModuleDireccion,
+    inicio:     window.ModuleInicio,
+    cobranzas:  window.ModuleCobranzas,
     labels:     window.ModuleLabelGenerator,
   };
   const ActiveModule = moduleMap[activeMod];

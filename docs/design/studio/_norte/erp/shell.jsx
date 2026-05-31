@@ -6,32 +6,40 @@ const { useState, useEffect, useRef, useMemo } = React;
 // ── Modules registry ──────────────────────────────────────────
 // Each module renders itself; the shell just hosts them.
 const MODULES = [
+  { id: 'inicio',     group: 'INICIO',     label: 'Flujo de trabajo', icon: 'flow' },
+  { id: 'direccion',  group: 'DIRECCIÓN',  label: 'Tablero ejecutivo', icon: 'dashboard' },
+
   { id: 'dashboard',  group: 'OPERACIÓN',  label: 'Dashboard',      icon: 'dashboard' },
   { id: 'shipments',  group: 'OPERACIÓN',  label: 'Embarques',      icon: 'box',       badge: '24' },
   { id: 'tracking',   group: 'OPERACIÓN',  label: 'Tracking',       icon: 'radar' },
+  { id: 'naviera',    group: 'OPERACIÓN',  label: 'Naviera & Consol.', icon: 'ship' },
   { id: 'calendar',   group: 'OPERACIÓN',  label: 'Calendario',     icon: 'clock' },
-  { id: 'cn',         group: 'OPERACIÓN',  label: 'Almacén CN',     icon: 'warehouse' },
-  { id: 'qrqueue',    group: 'OPERACIÓN',  label: 'Cola de QR',     icon: 'tag' },
-  { id: 'labels',     group: 'OPERACIÓN',  label: 'Etiquetas CN',   icon: 'tag' },
-  { id: 've',         group: 'OPERACIÓN',  label: 'Almacén VE',     icon: 'warehouse' },
-  { id: 'despacho',   group: 'OPERACIÓN',  label: 'Despacho',       icon: 'truck' },
-  { id: 'despacho-rules', group: 'OPERACIÓN', label: 'Reglas de despacho', icon: 'cog' },
-  { id: 'despacho-dashboard', group: 'OPERACIÓN', label: 'Dashboard despacho', icon: 'chart' },
+  { id: 'cn',         group: 'OPERACIÓN',  label: 'Almacén CN',     icon: 'warehouse', parent: 'almacenes' },
+  { id: 'qrqueue',    group: 'OPERACIÓN',  label: 'Cola de QR',     icon: 'tag',       parent: 'almacenes' },
+  { id: 'labels',     group: 'OPERACIÓN',  label: 'Etiquetas CN',   icon: 'tag',       parent: 'almacenes' },
+  { id: 've',         group: 'OPERACIÓN',  label: 'Almacén VE',     icon: 'warehouse', parent: 'almacenes' },
+  { id: 'despacho',   group: 'OPERACIÓN',  label: 'Despacho',       icon: 'truck',     parent: 'despachogrp' },
+  { id: 'despacho-rules', group: 'OPERACIÓN', label: 'Reglas',      icon: 'cog',       parent: 'despachogrp' },
+  { id: 'despacho-dashboard', group: 'OPERACIÓN', label: 'Métricas', icon: 'chart',    parent: 'despachogrp' },
   { id: 'seniat',     group: 'OPERACIÓN',  label: 'Aduana SENIAT',  icon: 'shield' },
   { id: 'tms',        group: 'OPERACIÓN',  label: 'TMS · Transporte', icon: 'truck' },
 
   { id: 'quotes',     group: 'COMERCIAL',  label: 'Cotizador',      icon: 'calc' },
   { id: 'clients',    group: 'COMERCIAL',  label: 'Clientes',       icon: 'users',     badge: '187' },
+  { id: 'conversaciones', group: 'COMERCIAL', label: 'Conversaciones', icon: 'chat',    badge: '5' },
   { id: 'leads',      group: 'COMERCIAL',  label: 'CRM · Leads',    icon: 'spark' },
+  { id: 'fidelizacion', group: 'COMERCIAL', label: 'Fidelización',  icon: 'star' },
   { id: 'suppliers',  group: 'COMERCIAL',  label: 'Proveedores CN', icon: 'cn' },
   { id: 'rates',      group: 'COMERCIAL',  label: 'Tarifas',        icon: 'tag' },
 
   { id: 'invoices',   group: 'FINANZAS',   label: 'Facturación',    icon: 'invoice',   badge: '4' },
-  { id: 'contab',     group: 'FINANZAS',   label: 'Contabilidad',   icon: 'invoice' },
-  { id: 'reconcile',  group: 'FINANZAS',   label: 'Conciliación bancaria', icon: 'check' },
+  { id: 'cobranzas',  group: 'FINANZAS',   label: 'Cobranzas',      icon: 'check' },
+  { id: 'contab',     group: 'FINANZAS',   label: 'Contabilidad',   icon: 'invoice',   parent: 'contable' },
+  { id: 'tesoreria',  group: 'FINANZAS',   label: 'Tesorería',      icon: 'cn',        parent: 'contable' },
+  { id: 'reconcile',  group: 'FINANZAS',   label: 'Conciliación',   icon: 'check',     parent: 'contable' },
   { id: 'documents',  group: 'FINANZAS',   label: 'Documentos',     icon: 'doc' },
   { id: 'reports',    group: 'FINANZAS',   label: 'Reportes',       icon: 'chart' },
-  { id: 'costing',    group: 'FINANZAS',   label: 'Costing & Margen', icon: 'star' },
+  { id: 'costing',    group: 'FINANZAS',   label: 'Costing & margen', icon: 'star',    parent: 'contable' },
 
   { id: 'mailing',    group: 'SISTEMA',    label: 'Mailing',        icon: 'mail' },
   { id: 'vault',      group: 'SISTEMA',    label: 'Vault',          icon: 'lock' },
@@ -40,6 +48,15 @@ const MODULES = [
   { id: 'operarios',  group: 'SISTEMA',    label: 'Operarios PWA',  icon: 'users' },
   { id: 'admin',      group: 'SISTEMA',    label: 'Administración', icon: 'cog' },
 ];
+
+// ── Sub-grupos (parents anidados dentro de un grupo) ──────────
+// Colapsan clusters solapados sin tocar el routing: los hijos
+// siguen siendo módulos normales, solo cambia su presentación.
+const PARENTS = {
+  almacenes:   { id: 'almacenes',   label: 'Almacenes', icon: 'warehouse' },
+  despachogrp: { id: 'despachogrp', label: 'Despacho',  icon: 'truck' },
+  contable:    { id: 'contable',    label: 'Contable',  icon: 'invoice' },
+};
 
 // Logo (compact for sidebar)
 function DTDLogo({ collapsed = false, dark = true }) {
@@ -59,7 +76,7 @@ function DTDLogo({ collapsed = false, dark = true }) {
             <span style={{ color: dark ? '#fff' : 'var(--ink)' }}>STUDIO</span>
           </span>
           <span style={{ font: '600 9.5px/1 var(--f-sans)', color: dark ? 'rgba(255,255,255,0.55)' : 'var(--ink-soft)', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 4 }}>
-            ERP · v1.9
+            ERP · v1.9.1
           </span>
         </div>
       )}
@@ -91,13 +108,109 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
   }, [openGroups]);
 
   const grouped = useMemo(() => {
-    const map = new Map();
-    MODULES.filter(m => isAllowed(m.id)).forEach(m => {
-      if (!map.has(m.group)) map.set(m.group, []);
-      map.get(m.group).push(m);
+    const allowed = MODULES.filter(m => isAllowed(m.id));
+    const byGroup = new Map();
+    allowed.forEach(m => {
+      if (!byGroup.has(m.group)) byGroup.set(m.group, []);
+      byGroup.get(m.group).push(m);
     });
-    return [...map.entries()];
+    // Construir unidades ordenadas: leaf (módulo suelto) o parent (cluster anidado)
+    const result = [];
+    for (const [group, items] of byGroup) {
+      const units = [];
+      const emitted = new Set();
+      items.forEach(m => {
+        if (m.parent && PARENTS[m.parent]) {
+          if (!emitted.has(m.parent)) {
+            emitted.add(m.parent);
+            units.push({ type: 'parent', parent: PARENTS[m.parent], children: items.filter(x => x.parent === m.parent) });
+          }
+        } else {
+          units.push({ type: 'leaf', mod: m });
+        }
+      });
+      result.push([group, units]);
+    }
+    return result;
   }, [currentUser, flags]);
+
+  // Render de un ítem-hoja (módulo). indent = sangría px para hijos anidados.
+  const renderLeaf = (m, indent = 0) => {
+    const isActive = active === m.id;
+    return (
+      <button
+        key={m.id}
+        onClick={() => onSelect(m.id)}
+        title={collapsed ? m.label : undefined}
+        style={{
+          width: '100%',
+          display: 'flex', alignItems: 'center', gap: 12,
+          padding: collapsed ? '10px 0' : `8px 12px 8px ${12 + indent}px`,
+          justifyContent: collapsed ? 'center' : 'flex-start',
+          background: isActive ? 'var(--bg-sidebar-active)' : 'transparent',
+          color: isActive ? '#fff' : 'var(--ink-side)',
+          borderRadius: 'var(--r-md)',
+          font: `500 ${indent ? '12.5' : '13'}px/1 var(--f-sans)`,
+          position: 'relative',
+          transition: 'background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)',
+        }}
+        onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-sidebar-hover)'; }}
+        onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
+      >
+        {isActive && !collapsed && (
+          <span style={{ position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, background: 'var(--wine-soft)', borderRadius: 2 }} />
+        )}
+        <span style={{ color: isActive ? 'var(--wine-soft)' : 'var(--ink-side-soft)', flexShrink: 0, display: 'inline-flex' }}>
+          {window.Icon[m.icon]?.(indent ? 16 : 18)}
+        </span>
+        {!collapsed && (
+          <>
+            <span style={{ flex: 1, textAlign: 'left' }}>{m.label}</span>
+            {m.badge && (
+              <span style={{
+                padding: '2px 7px', borderRadius: 'var(--r-sm)',
+                background: isActive ? 'rgba(216,154,164,0.2)' : 'rgba(255,255,255,0.08)',
+                color: isActive ? 'var(--wine-soft)' : 'var(--ink-side-soft)',
+                font: '700 10.5px/1.3 var(--f-sans)',
+              }}>{m.badge}</span>
+            )}
+          </>
+        )}
+      </button>
+    );
+  };
+
+  // Render de un sub-grupo (parent) con sus hijos expandibles.
+  const renderParent = (u) => {
+    if (collapsed) return u.children.map(c => renderLeaf(c, 0));
+    const pid = u.parent.id;
+    const childActive = u.children.some(c => c.id === active);
+    const pOpen = childActive || openGroups['__p_' + pid] === true;
+    return (
+      <div key={pid}>
+        <button
+          onClick={() => setOpenGroups({ ...openGroups, ['__p_' + pid]: !pOpen })}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+            padding: '8px 12px', borderRadius: 'var(--r-md)',
+            background: childActive ? 'var(--bg-sidebar-hover)' : 'transparent',
+            color: childActive ? '#fff' : 'var(--ink-side)',
+            font: '600 13px/1 var(--f-sans)',
+            transition: 'background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)',
+          }}
+          onMouseEnter={(e) => { if (!childActive) e.currentTarget.style.background = 'var(--bg-sidebar-hover)'; }}
+          onMouseLeave={(e) => { if (!childActive) e.currentTarget.style.background = 'transparent'; }}
+        >
+          <span style={{ color: childActive ? 'var(--wine-soft)' : 'var(--ink-side-soft)', flexShrink: 0, display: 'inline-flex' }}>{window.Icon[u.parent.icon]?.(18)}</span>
+          <span style={{ flex: 1, textAlign: 'left' }}>{u.parent.label}</span>
+          <span style={{ display: 'inline-flex', color: 'var(--ink-side-soft)', transform: `rotate(${pOpen ? 0 : -90}deg)`, transition: 'transform var(--dur-fast) var(--ease)' }}>{window.Icon.chevD(12)}</span>
+        </button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 2 }}>
+          {pOpen && u.children.map(c => renderLeaf(c, 16))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <aside style={{
@@ -145,7 +258,7 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
 
       {/* Navigation */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '14px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        {grouped.map(([group, items]) => {
+        {grouped.map(([group, units]) => {
           const open = !collapsed && openGroups[group] !== false;
           return (
           <div key={group} style={{ marginBottom: 6 }}>
@@ -167,53 +280,11 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
                 <span style={{ transform: `rotate(${open ? 0 : -90}deg)`, transition: 'transform var(--dur-fast) var(--ease)' }}>{window.Icon.chevD(11)}</span>
               </button>
             )}
-            {(collapsed || open) && items.map(m => {
-              const isActive = active === m.id;
-              return (
-                <button
-                  key={m.id}
-                  onClick={() => onSelect(m.id)}
-                  title={collapsed ? m.label : undefined}
-                  style={{
-                    width: '100%',
-                    display: 'flex', alignItems: 'center', gap: 12,
-                    padding: collapsed ? '10px 0' : '9px 12px',
-                    justifyContent: collapsed ? 'center' : 'flex-start',
-                    background: isActive ? 'var(--bg-sidebar-active)' : 'transparent',
-                    color: isActive ? '#fff' : 'var(--ink-side)',
-                    borderRadius: 'var(--r-md)',
-                    font: '500 13px/1 var(--f-sans)',
-                    position: 'relative',
-                    transition: 'background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease)',
-                  }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--bg-sidebar-hover)'; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
-                >
-                  {isActive && !collapsed && (
-                    <span style={{
-                      position: 'absolute', left: 0, top: 8, bottom: 8, width: 3,
-                      background: 'var(--wine-soft)', borderRadius: 2,
-                    }} />
-                  )}
-                  <span style={{ color: isActive ? 'var(--wine-soft)' : 'var(--ink-side-soft)', flexShrink: 0, display: 'inline-flex' }}>
-                    {window.Icon[m.icon]?.(18)}
-                  </span>
-                  {!collapsed && (
-                    <>
-                      <span style={{ flex: 1, textAlign: 'left' }}>{m.label}</span>
-                      {m.badge && (
-                        <span style={{
-                          padding: '2px 7px', borderRadius: 'var(--r-sm)',
-                          background: isActive ? 'rgba(216,154,164,0.2)' : 'rgba(255,255,255,0.08)',
-                          color: isActive ? 'var(--wine-soft)' : 'var(--ink-side-soft)',
-                          font: '700 10.5px/1.3 var(--f-sans)',
-                        }}>{m.badge}</span>
-                      )}
-                    </>
-                  )}
-                </button>
-              );
-            })}
+            {(collapsed || open) && units.map((u, ui) => (
+              <React.Fragment key={u.type === 'leaf' ? u.mod.id : u.parent.id}>
+                {u.type === 'leaf' ? renderLeaf(u.mod, 0) : renderParent(u)}
+              </React.Fragment>
+            ))}
           </div>
           );
         })}

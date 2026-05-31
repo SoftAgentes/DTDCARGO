@@ -4,6 +4,37 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v1.9.1 — cargada 2026-05-31 (handoff de Cloud Design · ola finanzas/fiscal + portal unificado)
+
+Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v1.9.1).zip` (~13.9 MB). El ZIP viene
+**envuelto en `dtd-cargo/project/`** (estructura nueva) → se extrae ese contenido a `_norte/`.
+Se omitieron `uploads/` y `scraps/` (221 PNGs de trabajo, ruido). git detectó **21 nuevos · 9 borrados**.
+
+**Portal unificado (resuelto en origen):** Cloud Design eliminó el duplicado "· V2" y dejó el nombre
+base con el contenido bueno → `Portal del Cliente.html` + `portal/app.jsx` (67→**91 KB**) y
+`Registro Cliente.html` + `portal/registro.jsx`. Se borraron los huérfanos "· V2" y `_legacy/portal-v1/`.
+
+**~11 módulos nuevos (mockup, sin código en el repo todavía → 📋 Diseño):**
+- **Finanzas/Fiscal:** Cobranzas (CxC vencidas, pipeline con promesa de pago) · Tesorería (pagos a
+  proveedores CN) · Fiscal · SENIAT (IVA 16%, retenciones IVA/ISLR, Libro Ventas/Compras, declaración,
+  USD+VES@BCV) · Facturación IVA-aware · Toggle IVA/SENIAT (default OFF) · Export CSV real.
+- **Reportes (3 fases):** categorización + datos reales (P&L, aging, IVA) · combinados op×finanzas
+  (rentabilidad por ruta, margen por cliente, costo/CBM) · constructor interactivo.
+- **Operación:** Naviera & Consolidación · Documentos · Hub central (transversal + adjuntos embebidos en
+  cada transacción) · Flujo de trabajo (workflow view por rol con badges en vivo).
+- **Dirección/CRM:** Tablero ejecutivo ("cabina del dueño") · Conversaciones (bandeja unificada) ·
+  Fidelización & Referidos (ERP + portal) · Portal · Reclamos formales.
+
+**Norte:** se agregaron los 9 módulos al índice como grupo "ERP · Módulos nuevos (v1.9.1)" (cards `inErp`
+que abren el ERP, sin .html propio), listados como **referencia/backlog FUERA del %** (decisión: no diluir
+el progreso con módulos que aún son mockup). Overlay: **55% construido · 12 listas · 0 en obra · 10 en
+diseño (22 pantallas-meta navegables)** + 9 módulos del ERP como backlog aparte.
+
+**Detalle:** el ZIP trae también `design_handoff_dtd_cargo/` (tokens/CLAUDE/README · posible reorg del handoff).
+**Peso (fuera de git):** `Brand Book v3.0 Package/`, `_norte.html`. `uploads/` y `scraps/` no se extrajeron.
+
+---
+
 ## v1.9 — cargada 2026-05-31 (handoff de Cloud Design; el front llegó a v1.9.2)
 
 Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v1.9).zip` (~13.4 MB, 374 archivos).

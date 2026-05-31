@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v1.9"; // handoff Cloud Design (front llegó a v1.9.2)
+const NORTE_VERSION = "v1.9.1"; // handoff Cloud Design (ola finanzas/fiscal + portal unificado)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -50,15 +50,13 @@ const GROUPS = [
   },
   {
     title: "Portal del Cliente",
-    // Una sola pantalla por concepto. En v1.9 el ZIP traía duplicado (V1 + "· V2"); el founder
-    // lo unificó en Cloud Design (2026-05-31): desde v1.91 viene UN solo archivo con NOMBRE BASE
-    // ("Portal del Cliente.html" / "Registro Cliente.html") y el contenido bueno (ex-V2).
-    // ⮕ AL CARGAR v1.91: cambiar estos `file:` de "· V2.html" al nombre base, y verificar el shell.
-    //   Hoy (v1.9) apuntan al "· V2.html" porque es el único archivo con el contenido correcto.
+    // v1.9.1: Cloud Design unificó el portal en origen → un solo archivo con NOMBRE BASE
+    // ("Portal del Cliente.html" / "Registro Cliente.html") con el contenido bueno (ex-V2).
+    // Ya no hay duplicado "· V2" ni carpeta _legacy (limpiado en la carga v1.9.1, 2026-05-31).
     screens: [
-      { name: "Portal del Cliente", file: "Portal del Cliente · V2.html", code: null, sdd: null },
+      { name: "Portal del Cliente", file: "Portal del Cliente.html", code: null, sdd: null },
       { name: "Modo Cliente (impersonación admin)", file: "Modo Cliente.html", code: null, sdd: null },
-      { name: "Registro de cliente", file: "Registro de cliente · V2.html", code: "app/invitar", sdd: "0024" },
+      { name: "Registro de cliente", file: "Registro Cliente.html", code: "app/invitar", sdd: "0024" },
     ],
   },
   {
@@ -91,6 +89,23 @@ const GROUPS = [
     ],
   },
   {
+    // Módulos del ERP que llegaron en v1.9.1: no son pantallas .html standalone (viven dentro
+    // de "DTD Studio · ERP.html"), por eso `inErp: true` → la card abre el ERP. Sin código en el
+    // repo todavía (mockup), así que cuentan como 📋 Diseño. Mapear `code`/`sdd` cuando se construyan.
+    title: "ERP · Módulos nuevos (v1.9.1 · finanzas / fiscal / CRM)",
+    screens: [
+      { name: "Cobranzas (CxC vencidas)", file: null, code: null, sdd: null, inErp: true },
+      { name: "Tesorería (pagos a proveedores CN)", file: null, code: null, sdd: null, inErp: true },
+      { name: "Fiscal · SENIAT (IVA / retenciones)", file: null, code: null, sdd: null, inErp: true },
+      { name: "Naviera & Consolidación", file: null, code: null, sdd: null, inErp: true },
+      { name: "Conversaciones (bandeja unificada)", file: null, code: null, sdd: null, inErp: true },
+      { name: "Fidelización & Referidos", file: null, code: null, sdd: null, inErp: true },
+      { name: "Documentos · Hub central", file: null, code: null, sdd: null, inErp: true },
+      { name: "Dirección · Tablero ejecutivo", file: null, code: null, sdd: null, inErp: true },
+      { name: "Flujo de trabajo (workflow view)", file: null, code: null, sdd: null, inErp: true },
+    ],
+  },
+  {
     title: "Marca",
     screens: [
       { name: "Brand Book v3.0", file: "Brand Book DTD v3.0.html", kind: "brand" },
@@ -102,7 +117,7 @@ const GROUPS = [
 ];
 
 const exists = (rel) => fs.existsSync(path.join(ROOT, rel));
-const screenPresent = (file) => fs.existsSync(path.join(NORTE_DIR, file));
+const screenPresent = (file) => Boolean(file) && fs.existsSync(path.join(NORTE_DIR, file));
 
 // --- Specs: cargar TODAS una vez (status + updated + title) -------------------------
 // Parsea el front-matter de docs/specs/NNNN-*/spec.md (tolerante a CRLF, mismo criterio
@@ -191,20 +206,29 @@ const toneOf = (st) =>
 let built = 0, wip = 0, design = 0, total = 0;
 
 const sections = GROUPS.map((g) => {
-  let gB = 0, gW = 0, gD = 0, gT = 0;
+  let gB = 0, gW = 0, gD = 0, gT = 0, gErp = 0;
   const cards = g.screens
     .map((s) => {
       const present = screenPresent(s.file);
       const st = statusFor(s);
-      if (st.cls === "built") { built++; gB++; }
-      else if (st.cls === "wip") { wip++; gW++; }
-      else if (st.cls === "design") { design++; gD++; }
-      if (st.cls !== "brand") { total++; gT++; }
+      if (s.inErp) {
+        gErp++; // módulo del ERP: se lista como referencia/backlog, NO cuenta en el progreso (%)
+      } else {
+        if (st.cls === "built") { built++; gB++; }
+        else if (st.cls === "wip") { wip++; gW++; }
+        else if (st.cls === "design") { design++; gD++; }
+        if (st.cls !== "brand") { total++; gT++; }
+      }
 
-      const href = encodeURI("./" + s.file);
-      const open = present
-        ? `<a class="open" href="${href}" target="_blank" rel="noopener">Abrir ↗</a>`
-        : `<span class="open missing">⚠ falta el archivo</span>`;
+      let open;
+      if (s.inErp) {
+        // módulo que vive DENTRO del ERP (no tiene .html standalone): abre el ERP completo
+        open = `<a class="open" href="${encodeURI("./DTD Studio · ERP.html")}" target="_blank" rel="noopener">Ver en ERP ↗</a>`;
+      } else if (present) {
+        open = `<a class="open" href="${encodeURI("./" + s.file)}" target="_blank" rel="noopener">Abrir ↗</a>`;
+      } else {
+        open = `<span class="open missing">⚠ falta el archivo</span>`;
+      }
 
       // línea meta: SDD + ruta de código (dato accionable, recognition over recall)
       let metaHtml = "";
@@ -231,6 +255,9 @@ const sections = GROUPS.map((g) => {
         <span class="bar mini"><i class="built" style="width:${b}%"></i><i class="wip" style="width:${w}%"></i><i class="design" style="width:${d}%"></i></span>
         <span class="group-count">${gB}/${gT}</span>
       </span>`;
+  } else if (gErp) {
+    // grupo de módulos del ERP: referencia/backlog, no entra en el porcentaje
+    groupMeta = `<span class="group-meta"><span class="group-count">${gErp} módulos · fuera del %</span></span>`;
   }
 
   return `    <section class="group">

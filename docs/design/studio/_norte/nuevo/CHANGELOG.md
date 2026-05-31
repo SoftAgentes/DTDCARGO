@@ -22,6 +22,463 @@ Formato:
 
 <!-- Las entradas nuevas se agregan acá arriba -->
 
+## 2026-05-31 · Cobranzas (cola de CxC vencidas con seguimiento)
+
+Módulo nuevo en FINANZAS: convierte el aging real en un pipeline de cobranza accionable.
+
+**Archivos nuevos en `nuevo/`:**
+- `nuevo/modules/cobranzas-data.jsx` · deriva los ítems de `ERPData.INVOICES` con saldo, calcula
+  días de vencimiento, estados (Al día / Vencido / Contactado / Promesa de pago / Pagado). Gestión
+  **persistida en localStorage** (overlay por factura: estado, promesa, bitácora). Helpers
+  `cobItems`/`cobSetStage`/`cobAddAction`/`cobTotals`. `window.CobranzasData`.
+- `nuevo/modules/cobranzas.jsx` · `ModuleCobranzas`:
+  - KPIs (por cobrar, vencido, en promesa, tasa de cobro), filtro por estado, tabla con saldo,
+    días de vencido, última gestión y estado (resalta >30d en rojo).
+  - Drawer con acciones: **Registrar contacto · Promesa de pago (con fecha) · Enviar recordatorio ·
+    Marcar pagado**, + bitácora de gestión con timeline. Links a factura/cliente. Reactivo (evento).
+
+**Archivos viejos modificados:**
+- `erp/shell.jsx` · MODULES · `cobranzas` (icono `check`) tras Facturación en FINANZAS.
+- `DTD Studio · ERP.html` · `<script>` cobranzas-data + cobranzas; `cobranzas: window.ModuleCobranzas` al moduleMap.
+- `erp/data.jsx` · ROLE_MODULES · `cobranzas` agregado a Comercial y Contabilidad.
+
+**Brand-check:** solo tokens + ERPUI. Sin AI slop. Persistencia real de la gestión (localStorage).
+
+**Pendiente (backend):** envío real de recordatorios (WhatsApp/email), escalamiento automático por antigüedad,
+registro del pago que baje el saldo real de la factura, reporte de efectividad de cobranza por gestor.
+
+---
+
+## 2026-05-31 · Export CSV real (Constructor + libros fiscales)
+
+Reemplaza los botones "Exportar" placeholder por descarga CSV real.
+
+**Archivos modificados:**
+- `nuevo/modules/dtd-config.jsx` · `window.DTDExport.csv(filename, headers, rows)` · genera un Blob
+  CSV (con BOM UTF-8, escapado de comas/comillas) y dispara la descarga.
+- `erp/modules/reports.jsx` · botón **Exportar** del Constructor → baja el resultado actual
+  (grupo, registros, métrica) como CSV.
+- `nuevo/modules/fiscal.jsx` · **Libro de Ventas** y **Libro de Compras** → botón "Exportar CSV"
+  con todas las columnas (fecha, factura/doc, control, cliente/proveedor, RIF, base, IVA, total).
+
+**Brand-check:** solo tokens + ERPUI. Sin AI slop. Descarga nativa del navegador.
+
+**Pendiente:** Excel (.xlsx) con formato, export del PDF de cada reporte, export de retenciones.
+
+---
+
+## 2026-05-31 · Facturación IVA-aware (cierra el círculo del toggle)
+
+Cuando el toggle **IVA/SENIAT** (Admin) está ON, la Facturación discrimina base + IVA.
+
+**Archivo modificado:** `erp/modules/invoices.jsx`
+- `ModuleInvoices` lee `DTDConfig.useCfg('iva')`.
+- **Nueva factura:** si IVA ON, en vez de "Monto" pide **Base imponible** y muestra desglose en vivo
+  (Base + IVA 16% + Total) con nota de que alimenta el Libro de Ventas; si OFF, "Monto" simple.
+- **Detalle de factura:** si IVA ON, agrega card **"Desglose fiscal · IVA 16%"** (base / IVA débito / total)
+  derivado del monto.
+
+**Limpieza:** se eliminó el alias duplicado `auditlog` del `moduleMap` en `DTD Studio · ERP.html`
+(el ítem real es `audit-log`; nada en runtime usaba el alias).
+
+**Brand-check:** solo tokens + ERPUI. Sin AI slop. Reactivo al toggle (sin recargar).
+
+---
+
+## 2026-05-31 · Reportes Fase 3 (Constructor) + Toggle IVA/SENIAT en Admin
+
+**Fase 3 · Constructor de reportes** (`erp/modules/reports.jsx`)
+- Nueva categoría **Constructor** → `ReportsBuilder`: armador interactivo.
+  - Fuente (Embarques / Facturas / Clientes / CxP) → Agrupar por → Métrica (conteo / suma / promedio)
+    → Filtro opcional → visualización **barras o tabla**.
+  - Total + grupos en vivo, **guardar reporte** (localStorage, chips reutilizables) y exportar.
+  - `BUILDER_SOURCES` define dims/métricas/filtros por fuente; agrega leyendo `ERPData`/`TesoreriaData`.
+
+**Toggle IVA/SENIAT · desactivado por defecto** (pedido: DTD hoy no maneja IVA)
+- `nuevo/modules/dtd-config.jsx` · `window.DTDConfig` (get/set/useCfg, persist localStorage,
+  evento `dtd-cfg-changed`; `iva` default **false**) + `AdminFiscalConfig` (sección con switch +
+  explicación de qué cambia al activar).
+- `erp/modules/admin.jsx` · nueva sección **"Impuestos · IVA/SENIAT"** (grupo BÁSICO) → `AdminFiscalConfig`.
+- **Gating reactivo:**
+  - `nuevo/modules/contabilidad.jsx` · el tab **Fiscal · SENIAT** solo aparece si IVA está ON (si se
+    apaga estando en él, vuelve a "flujo").
+  - `erp/modules/reports.jsx` · el reporte **Posición IVA** solo aparece en Contables si IVA está ON.
+- `DTD Studio · ERP.html` · `<script>` dtd-config.jsx.
+
+**Brand-check:** solo tokens + ERPUI + fuentes del sistema. Sin AI slop. Default fiscal OFF = modo actual del negocio.
+
+**Próximo:** export real (Excel/PDF) del constructor; al activar IVA, que Facturación discrimine base+IVA automáticamente.
+
+---
+
+## 2026-05-31 · Reportes · Fase 2 · Combinados (op × finanzas)
+
+Nueva categoría **Combinados** en Reportes: cruces operación × finanzas que ningún otro
+módulo hace.
+
+**Archivo modificado:** `erp/modules/reports.jsx`
+- Pill de categoría **Combinados** (icono `spark`) con 3 reportes:
+  - `ReportsRentRuta` · **Rentabilidad por ruta** CN→VE (ingreso vs costo directo → margen %), con KPIs.
+  - `ReportsMargenCliente` · **Margen por cliente** (link al cliente), ordenado por margen.
+  - `ReportsCostoCBM` · **Costo/Ingreso por CBM** por ruta (clave para pricing de consolidado).
+- Helpers `_shipAgg()` (agrega `ERPData.SHIPMENTS` aplicando ratio de costo directo por ruta) +
+  `_MarginTable` reutilizable.
+
+**Brand-check:** solo tokens + ERPUI. Sin AI slop. Reusa SHIPMENTS/ORIGINS/DESTINATIONS reales.
+
+**Próxima fase:** Fase 3 = Constructor de reportes (armador interactivo).
+
+---
+
+## 2026-05-31 · Reportes · Fase 1 · Categorización + cableado a datos reales
+
+Reestructura del módulo Reportes: de 7 tabs planos a **navegación de 2 niveles** (categoría →
+reporte), con lo Contable **separado** de lo Operacional y leyendo la fuente de verdad.
+
+**Archivo modificado:** `erp/modules/reports.jsx`
+- `ModuleReports` · pills de categoría (nivel 1) + sub-tabs por categoría (nivel 2):
+  - **Operacionales:** Overview, Por ruta, Por naviera, Por servicio (existentes).
+  - **Comerciales:** Por cliente, Por agente (existentes).
+  - **Contables & financieros:** 3 reportes NUEVOS cableados a datos reales + Facturado vs cobrado.
+- Nuevos componentes contables:
+  - `ReportsPL` · estado de resultados leído de `ContabilidadData.calculatePL()` (no re-mockea):
+    ingresos, CGS, utilidad bruta, gastos, operativa, neta + % sobre ingresos.
+  - `ReportsAging` · aging real de **CxC** (de `ERPData.INVOICES` con saldo, por días de vencimiento)
+    y **CxP** (de `TesoreriaData.openPayables`), en buckets Corriente / 1-30 / 31-60 / 60+, con barras.
+  - `ReportsIVA` · posición de IVA leída de `FiscalData.declaracionIVA()` (débito/crédito/cuota/a pagar)
+    + equivalente VES @ BCV + link a los libros fiscales.
+
+**Brand-check:** solo tokens + ERPUI + fuentes del sistema. Elimina el riesgo de números inconsistentes
+(los contables ahora salen de la misma fuente que Contabilidad/Tesorería/Fiscal). Sin AI slop.
+
+**Próximas fases:** Fase 2 = Combinados (rentabilidad por ruta/cliente, costo por CBM · cruces op×finanzas);
+Fase 3 = Constructor de reportes (armador interactivo: fuente → agrupar → métrica → filtro → visualización).
+
+---
+
+## 2026-05-31 · Fiscal · SENIAT (cumplimiento VE · tab en Contabilidad)
+
+Cierra la rama de cumplimiento: hasta ahora había libros en USD pero no el cumplimiento fiscal
+venezolano formal. Nuevo tab **"Fiscal · SENIAT"** en Contabilidad, con montos en USD funcional
++ VES @ BCV (la declaración se presenta en bolívares).
+
+**Archivos nuevos en `nuevo/`:**
+- `nuevo/modules/fiscal-data.jsx` · IVA 16%, retención IVA 75% / ISLR 3%; Libro de Ventas
+  (alimentado por facturas reales F-2026-…), Libro de Compras (proveedores con RIF), Retenciones
+  emitidas (IVA + ISLR), helpers de totales y `declaracionIVA()` (débito − crédito − retenciones
+  soportadas = a pagar). `window.FiscalData`.
+- `nuevo/modules/fiscal.jsx` · `FiscalTab` con 4 sub-tabs:
+  - **Declaración IVA:** forma resumen (débito/crédito/cuota/retenciones/IVA a pagar) en USD + VES,
+    panel de obligaciones del período y KPIs.
+  - **Libro de Ventas / Libro de Compras:** tablas formato SENIAT (fecha, factura/doc, Nº control,
+    RIF, base, IVA, total) con totales.
+  - **Retenciones:** comprobantes IVA/ISLR emitidos con KPIs.
+
+**Archivos viejos modificados:**
+- `DTD Studio · ERP.html` · `<script>` fiscal-data + fiscal (después de documentos-hub).
+- `nuevo/modules/contabilidad.jsx` · nuevo tab **"Fiscal · SENIAT"** (entre Reportes y Configuración)
+  que renderiza `window.FiscalTab`.
+
+**Brand-check:** solo tokens + ERPUI + fuentes del sistema. Reusa `ERPRates` (BCV) y los IDs reales de facturas. Sin AI slop.
+
+**Pendiente (backend):** generación de los TXT/XML para el portal SENIAT, calendario real de contribuyentes
+especiales, numeración de comprobantes automática, conexión con el módulo de facturación para alimentar el libro en vivo.
+
+---
+
+## 2026-05-31 · Documentos · Hub central + adjuntos embebidos en transacciones
+
+Se reemplazó la tabla plana de Documentos por un **hub central transversal** y se integró
+de forma **bidireccional**: cada transacción muestra sus adjuntos en su propio detalle, y todos
+ruedan al hub clasificados por carpeta.
+
+**Archivos nuevos en `nuevo/`:**
+- `nuevo/modules/documentos-data.jsx` · árbol de 5 carpetas (Operacionales, Logísticas, Contables
+  & financieras, Aduaneras · SENIAT, Otras) con subcarpetas; 23 documentos seed con extensión,
+  carpeta, vínculo a transacción (embarque/factura/pago/asiento/cliente/proveedor), estado y autor.
+  Helpers `docsIn`, `folderCount`, `unlinked`, `expiring`, `pending`. `window.DocumentosData`.
+- `nuevo/modules/documentos-hub.jsx`:
+  - `ModuleDocumentosHub` (override de `window.ModuleDocuments`) · KPIs + **árbol de carpetas**
+    expandible con contadores + **explorador** (glifo por extensión, vínculo a transacción navegable,
+    fecha/autor, tamaño, estado) + **drawer** con vista previa placeholder, metadatos y bloque
+    "Transacción vinculada".
+  - `DocsForTransaction({ kind, id })` · **componente embebible** que filtra el hub por una
+    transacción y la muestra con botón "Adjuntar" + "Ver en hub". `window.DocsForTransaction`.
+
+**Archivos viejos modificados:**
+- `DTD Studio · ERP.html` · `<script>` documentos-data + documentos-hub (override, después de flujo-trabajo).
+- `erp/modules/shipments.jsx` · `ShipmentDetail` · la sección DOCUMENTOS ahora usa
+  `window.DocsForTransaction kind="embarque"` (fallback a la lista vieja si no está cargado).
+- `nuevo/modules/tesoreria.jsx` · `PayableDrawer` · embebido `DocsForTransaction kind="pago"`
+  (las remesas USDT/CNY muestran su comprobante adjunto).
+
+**Brand-check:** transversal (no dentro de Contabilidad). Solo tokens + ERPUI + íconos del set. Sin AI slop.
+
+**Pendiente (backend):** subida real de archivos (drag&drop), preview real (PDF/imagen), OCR/auto-clasificación,
+versionado, permisos por carpeta, vincular un doc suelto a una transacción desde el drawer.
+
+**Replicado (mismo embed):** `erp/modules/clients.jsx` (`ClientDetail`, `kind="cliente"`) muestra RIF, registro
+mercantil, contratos y permisos del cliente; `erp/modules/invoices.jsx` (drawer de detalle, `kind="factura"`)
+muestra la factura emitida, comprobante de cobro y retención. Ahora embarque, CxP, cliente y factura tienen su sección de adjuntos.
+
+---
+
+## 2026-05-31 · Flujo de trabajo · "Workflow view" (Inicio por rol + tab en Contabilidad)
+
+Inspirado en el "Map/Workflow view" de QuickBooks pero con **diseño propio DTD** (sin copiar su
+look): un mapa de proceso con carriles de nodos conectados por flechas, cada nodo clickeable
+(atajo al módulo) y con badge en vivo de pendientes. Reutilizable en dos lugares.
+
+**Archivo nuevo en `nuevo/`:**
+- `nuevo/modules/flujo-trabajo.jsx`:
+  - `LANES()` · 6 carriles con visibilidad por rol y badges en vivo (leads nuevos, CxP abiertas,
+    pagos por vencer, consolidando, embarques en aduana, asientos borrador, conversaciones,
+    reclamos) leídos defensivamente de los demás módulos:
+    **Venta · Dinero que entra · Operación · Dinero que sale · Cierre & reportes · Servicio.**
+  - `WorkflowMap` · componente reutilizable (carril = etiqueta + fila de nodos con conectores).
+  - `financeLanes()` · subconjunto (entra/sale/cierre) para Contabilidad.
+  - `ModuleInicio` · **pantalla de bienvenida** que saluda al usuario y muestra solo los carriles
+    de su rol ("¿Qué querés hacer hoy?"). Es ahora el **landing por defecto** del ERP.
+
+**Archivos viejos modificados:**
+- `erp/icons.jsx` · nuevo icono `flow` (nodos conectados, estilo del set).
+- `erp/shell.jsx` · MODULES · nuevo grupo **INICIO** al tope con `inicio` (icono `flow`).
+- `erp/data.jsx` · `ROLE_MODULES` · agregado `inicio` a todos los roles + se sumaron los módulos
+  nuevos a los roles relevantes (Comercial→conversaciones/fidelizacion; Operaciones/Almacén CN→naviera;
+  Contabilidad→tesoreria; Soporte→conversaciones) para que el flujo navegue correcto.
+- `DTD Studio · ERP.html` · `<script>` flujo-trabajo.jsx (último) + `inicio: window.ModuleInicio` al
+  moduleMap + `activeMod` inicial `'inicio'` (landing).
+- `nuevo/modules/contabilidad.jsx` · nuevo tab **"Flujo de trabajo"** (primero y default) que renderiza
+  `WorkflowMap` con los carriles financieros + intro.
+
+**Brand-check:** diseño original (no clon de QuickBooks). Solo tokens + ERPUI + íconos del set + fuentes del sistema. Sin AI slop.
+
+**Pulido (v1.9.1):** nodos sin pendientes en gris neutro / con pendientes en el tono del carril + badge (estilo activo/inactivo, menos "arcoíris"); cada carril muestra chip verde **"Al día"** cuando no hay pendientes; banner de resumen en Inicio ("Tenés N tareas en M áreas" / "Todo al día").
+
+**Pendiente (backend):** badges con datos en vivo reales, marcar pasos "al día" (check verde) según estado real, personalizar carriles por usuario.
+
+---
+
+## 2026-05-31 · Dirección · Tablero ejecutivo (cabina del dueño)
+
+Vista consolidada de solo-lectura para el dueño/dirección. No agrega datos nuevos: lee y
+cruza lo que ya producen los demás módulos (Contabilidad, Tesorería, Naviera, Fidelización,
+Conversaciones, CRM) en una sola pantalla con drill-down a cada área.
+
+**Archivo nuevo en `nuevo/`:**
+- `nuevo/modules/direccion.jsx` · módulo único (sin data propia):
+  - **KPIs financieros:** ingresos del mes (P&L), utilidad neta + margen, caja consolidada, posición neta (caja+CxC−CxP).
+  - **Salud financiera:** CxC / CxP / vencido + barra de cobertura de pagos con caja.
+  - **Proyección de salidas 4 semanas** (reusa el forecast de Tesorería).
+  - **Operación:** embarques activos + valor en ruta, contenedores consolidando + ocupación media, carga suelta CN, próximo cut-off.
+  - **Comercial:** pipeline CRM, referidos activos, mini-distribución por tier.
+  - **Servicio:** conversaciones abiertas / sin asignar, reclamos abiertos.
+  - **Panel de alertas:** vencidos, reclamos, cut-off próximo, sin asignar, carga suelta → cada una linkea al módulo. Cada tarjeta/stat hace drill-down con `goTo`.
+  - Lectura defensiva: helper `safe()` con fallback 0/—, tolera que falte cualquier módulo.
+
+**Archivos viejos modificados:**
+- `erp/shell.jsx` · MODULES · nuevo grupo **DIRECCIÓN** al tope con `direccion` (icono `dashboard`).
+- `DTD Studio · ERP.html` · `<script>` de direccion.jsx cargado **último** (para que toda la data de los demás módulos exista) + entrada `direccion: window.ModuleDireccion` al moduleMap.
+
+**Brand-check:** solo tokens + ERPUI + fuentes del sistema. Sin AI slop. Solo-admin por ROLE_MODULES (el grupo no aparece para roles sin el módulo).
+
+**Fix de sistema (root-cause):** se agregó el token faltante `--wine-bg` (= `--wine-tint`, sin color nuevo)
+en `erp/tokens.css` light + dark. Todos los tonos semánticos (success/warning/danger/info/neutral) tenían
+su `-bg` menos wine; el patrón `var(--${tone}-bg)` con tono wine resolvía a transparente. Completar la
+convención corrige el hover/fondo en `direccion`, `tesoreria`, `conversaciones`, el portal y módulos
+pre-existentes (despacho/dashboard/tms). El `MiniStat` de direccion además usa `--wine-tint` explícito.
+
+**Pendiente (backend):** datos en vivo (hoy mock cruzado), rango de fechas configurable, export real del resumen a PDF, comparativos mes/mes.
+
+---
+
+## 2026-05-31 · Fidelización & Referidos (ERP + Portal · rama de lealtad)
+
+El tier (Platinum/Gold/Silver/Bronze) estaba hardcodeado en `reports.jsx` y "Referido" existía
+solo como fuente de lead — sin motor. Se construyó el sistema completo de lealtad: niveles por
+facturación + programa de referidos con créditos, en el ERP (gestión) y el Portal (cliente).
+
+**Archivos nuevos en `nuevo/`:**
+- `nuevo/modules/fidelizacion-data.jsx` · 4 tiers con umbral por facturación anual y beneficios,
+  `tierOf`/`nextTier`/`tierProgress`, reglas del programa (crédito $80 al referidor / $60 al
+  referido), 8 referidos seed enlazados a clientes reales, código determinístico `REF-XXXX`,
+  agregadores (distribución por tier, top referidores, stats del programa). `window.FidelizacionData`.
+- `nuevo/modules/fidelizacion.jsx` · módulo ERP con 4 tabs:
+  - **Dashboard:** KPIs (clientes/tier, referidos activos, créditos emitidos, tasa de conversión),
+    distribución por nivel, leaderboard de embajadores, "cómo funciona el programa".
+  - **Niveles:** las 4 tarjetas de tier con umbral, beneficios y conteo de clientes.
+  - **Referidos:** tabla filtrable por estado + drawer con timeline (invitado→registrado→primer
+    embarque→acreditado) y montos de recompensa.
+  - **Clientes:** tabla loyalty con tier, facturado, barra de progreso al siguiente nivel, créditos y referidos.
+
+**Archivos viejos modificados:**
+- `erp/shell.jsx` · MODULES grupo COMERCIAL · agregado `fidelizacion` (icono `star`) tras CRM · Leads.
+- `DTD Studio · ERP.html` · `<script>` de fidelizacion-data + fidelizacion; entrada `fidelizacion: window.ModuleFidelizacion` al moduleMap.
+- `Portal del Cliente.html` · `<script>` de fidelizacion-data.jsx (reúso de la misma fuente de verdad).
+- `portal/app.jsx` · nav **Referidos** (icono `star`) + router + componente `PortalReferidos`:
+  código de referido del cliente (copiar + compartir por WhatsApp), tarjeta de créditos
+  (acreditados + en camino), nivel actual con beneficios y progreso al siguiente, lista de "tus referidos".
+
+**Brand-check:** solo tokens + ERPUI + fuentes del sistema. Tagline oficial en el mensaje de compartir.
+Único gradiente permitido (navy→ink) reusado en el hero del portal. Sin AI slop.
+
+**Pendiente (backend):** acreditación real del crédito a factura, generación/validación de códigos,
+atribución del referido al registrarse (link código→nuevo cliente), tier recalculado por job nocturno.
+
+---
+
+## 2026-05-31 · Conversaciones · Bandeja unificada (rama de diferenciación → v2)
+
+Rama de diferenciación alineada con la filosofía "construir confianza cliente a cliente":
+una bandeja única que junta WhatsApp + email + portal en un solo hilo por cliente. Cubre
+también reclamos/incidencias vía el **tipo** de conversación → un solo módulo en vez de dos
+solapados (coherente con la recomendación anti-sprawl).
+
+**Archivos nuevos en `nuevo/`:**
+- `nuevo/modules/conversaciones-data.jsx` · canales (WhatsApp/Email/Portal), tipos
+  (consulta/cotización/seguimiento/incidencia/reclamo), estados (abierto/pendiente/resuelto),
+  8 conversaciones seed con hilos realistas CN→VE, quick replies. Helpers de conteo
+  (abiertas, sin asignar, reclamos). Expuesto en `window.ConversacionesData`.
+- `nuevo/modules/conversaciones.jsx` · bandeja de 2 paneles:
+  - **Lista** (360px): buscador + filtros de estado (tabs) + canal (chips), tarjetas con
+    canal, no-leídos, último mensaje, tipo, MARKBOX, agente asignado.
+  - **Hilo**: header con cliente + badges + links a cliente/embarque + selects de asignación
+    y estado; burbujas in/out estilo chat; quick replies desplegables; composer con textarea
+    (⌘↵ envía) que agrega la respuesta al hilo en vivo (demo, estado local).
+  - KPIs: abiertas, sin asignar, reclamos abiertos, resueltas.
+
+**Archivos viejos modificados:**
+- `erp/icons.jsx` · agregado icono `chat` (burbuja, mismo estilo de trazo del set).
+- `erp/shell.jsx` · MODULES grupo COMERCIAL · agregado `conversaciones` (icono `chat`, badge 5) tras Clientes.
+- `DTD Studio · ERP.html` · `<script>` de conversaciones-data + conversaciones; `conversaciones: window.ModuleConversaciones` al moduleMap.
+
+**Brand-check:** solo tokens + ERPUI + fuentes del sistema. Tagline oficial usado en el cierre de quick replies. Sin AI slop. (Los emoji 🙏/👍/👍 aparecen dentro de mensajes *del cliente* citados, no en UI de producto.)
+
+**Pendiente (backend):** integración real WhatsApp Business API + IMAP/SMTP + mensajes del portal,
+webhooks de entrada, notificaciones push, SLA de tiempo de respuesta, plantillas aprobadas por Meta.
+
+---
+
+## 2026-05-31 · Portal · Reclamos formales (cierra el loop con Conversaciones)
+
+El portal del cliente tenía solo un **chat de Soporte** genérico, sin reclamos formales. Se agregó
+una sección **Reclamos** con número de caso, tipo, estado con seguimiento y conversación — la
+contraparte cliente del módulo Conversaciones del ERP (tipo reclamo).
+
+**Archivos viejos modificados:**
+- `portal/app.jsx`:
+  - `PortalTopbar` · nuevo ítem de nav **Reclamos** (icono `shield`) entre Documentos y Soporte.
+  - Router · `{view === 'reclamos' && <PortalReclamos />}`.
+  - Componentes nuevos: `PortalReclamos` (lista de reclamos del cliente con tipo/estado/embarque +
+    botón "Nuevo reclamo"), `NewReclamoForm` (tipo, embarque, asunto, descripción → genera
+    REC-2026-XXXX en estado "recibido"), `ReclamoDetail` (línea de tiempo recibido→en revisión→
+    resuelto + hilo de conversación + caja de respuesta + bloque de resolución). Tipos: faltante,
+    daño, demora, facturación, otro. Seed de 2 reclamos para el cliente demo.
+
+**Brand-check:** solo tokens + ERPUI + fuentes del sistema. Verbos directos ("Enviar reclamo", "Nuevo reclamo"). Sin AI slop.
+
+**Pendiente (backend):** persistencia real del reclamo, ruteo automático al agente/CX en el ERP
+(crear conversación tipo reclamo), adjuntar fotos/archivos, notificación al cliente al cambiar de estado.
+
+---
+
+## 2026-05-31 · v1.9.1 · Naviera & Consolidación + consolidación de Portal a v2
+
+> **Versión a lanzar: v1.9.1.** Próximo gran salto → v2. Footer del sidebar y title del ERP bumpeados a v1.9.1.
+
+### Naviera & Consolidación (módulo nuevo · cierra el círculo logístico)
+
+Hasta ahora la naviera no existía como entidad: el flete estaba implícito. Este módulo la
+modela y suma el corazón de la operación LCL→FCL.
+
+**Archivos nuevos en `nuevo/`:**
+- `nuevo/modules/naviera-data.jsx` · navieras (COSCO/Maersk/MSC/Evergreen), puertos CN/VE,
+  tipos de contenedor con capacidad útil (CBM/kg), itinerarios (sailings con cut-off),
+  bookings (reservas con BL marítimo), contenedores con items consolidados, carga suelta
+  en CN. Helpers `containerStats` (utilización CBM/peso), `openSailings`, `consolidating`.
+  Expuesto en `window.NavieraData`.
+- `nuevo/modules/naviera.jsx` · 4 tabs:
+  - **Dashboard:** KPIs (salidas con espacio, contenedores consolidando, carga suelta,
+    próximo cut-off), barras de ocupación de cada contenedor, próximas salidas, carga suelta CN.
+  - **Itinerarios:** tabla de sailings filtrable por naviera (ruta, ETD, cut-off, tránsito, espacio).
+  - **Reservas:** bookings con BL marítimo + drawer con mapa de ruta POL→POD, embarques vinculados.
+  - **Consolidación:** master-detail · selector de contenedor + ocupación CBM/peso con barras,
+    tabla de carga consolidada por cliente (MARKBOX, proveedor, piezas, CBM, % del contenedor),
+    hint de CBM libre antes del cut-off. **El núcleo LCL→FCL.**
+
+**Archivos viejos modificados:**
+- `erp/shell.jsx` · MODULES grupo OPERACIÓN · agregado `naviera` (icono `ship`) tras Tracking. Footer v1.9 → v1.9.1.
+- `DTD Studio · ERP.html` · `<script>` de naviera-data + naviera; `naviera: window.ModuleNaviera` al moduleMap; title → v1.9.1.
+
+### Consolidación Portal + Registro a v2 (limpieza)
+
+Se eliminó la versión vieja del Portal del Cliente y del Registro de cliente; nos quedamos
+solo con v2, renombrada a los nombres canónicos.
+
+- **Borrados:** `portal/app.jsx` (v1), `portal/registro.jsx` (v1), `Portal del Cliente.html` (v1), `Registro Cliente.html` (v1).
+- **Renombrados (v2 → canónico):** `portal/app-v2.jsx`→`portal/app.jsx` · `portal/registro-v2.jsx`→`portal/registro.jsx` · `Portal del Cliente · V2.html`→`Portal del Cliente.html` · `Registro de cliente · V2.html`→`Registro Cliente.html`.
+- **Referencias actualizadas:** `src` internos de ambos HTML, link "Ir al portal" en `registro.jsx`, constante `PORTAL` en `Modo Cliente.html`, titles. Los docs/CLAUDE.md ya apuntaban a los nombres canónicos → quedaron correctos.
+
+**Brand-check:** solo tokens + ERPUI + fuentes del sistema (Noto Sans SC para nombres CN). Sin AI slop.
+
+### Reorganización del sidebar (recomendación #3 · menos sprawl)
+
+El sidebar tenía ~32 ítems planos con clusters solapados. Se introdujo **un nivel de anidación**
+(parent → hijos expandibles) sin tocar el routing ni los módulos: los hijos siguen siendo módulos
+normales, solo cambia su presentación.
+
+- **Nuevos sub-grupos** (`PARENTS` en `erp/shell.jsx`):
+  - **Almacenes** (icono warehouse) ← Almacén CN, Cola de QR, Etiquetas CN, Almacén VE
+  - **Despacho** (icono truck) ← Despacho, Reglas, Métricas
+  - **Contable** (icono invoice) ← Contabilidad, Tesorería, Conciliación, Costing & margen
+- OPERACIÓN baja de 14 a 9 filas visibles; FINANZAS de 8 a 5. El resto quedó plano.
+- Comportamiento: el parent se expande al click; si un hijo está activo, el parent se fuerza
+  abierto (el ítem activo siempre visible). Estado de expansión persistido en `localStorage`
+  (`dtd-sidebar-groups`, claves `__p_<id>`). En modo colapsado (sólo iconos) los hijos se
+  muestran planos. El ⌘K command palette sigue navegando directo a cualquier módulo.
+
+**Archivos modificados:** `erp/shell.jsx` · MODULES (campo `parent` en 11 ítems) + const `PARENTS`
++ `grouped` useMemo (produce unidades leaf/parent) + helpers `renderLeaf`/`renderParent` + render del nav.
+
+**Pendiente (backend):** scraping real de itinerarios de naviera, emisión real de BL, algoritmo de
+optimización de consolidación (bin-packing), asignación drag&drop de carga suelta a contenedor.
+
+---
+
+## 2026-05-31 · Tesorería · Pagos a proveedores CN (módulo nuevo)
+
+Cierra el círculo financiero: hasta ahora el ERP modelaba lo que se **cobra** (CxC,
+conciliación, contabilidad) pero no lo que se **paga**. Tesorería suma la otra mitad
+del libro: caja multi-moneda + cuentas por pagar + remesas a China.
+
+**Archivos nuevos en `nuevo/`:**
+- `nuevo/modules/tesoreria-data.jsx` · cuentas de caja multi-moneda (USD/VES/USDT/CNY),
+  beneficiarios (proveedores CN, navieras, agente aduanal, transporte, servicios),
+  CxP con pipeline de estados, órdenes de pago/remesas, helpers (posición de caja por
+  moneda, proyección de salidas 4 semanas, vencidos, próximos). Formatter `fmtCny` +
+  conversiones `usdToCny`/`cnyToUsd`. Expuesto en `window.TesoreriaData`.
+- `nuevo/modules/tesoreria.jsx` · módulo con 4 tabs:
+  - **Dashboard:** KPIs (caja total, por pagar, vencido, vence en 7d), posición de caja
+    por moneda, CxP por beneficiario, proyección de salidas a 4 semanas (bar chart),
+    acciones rápidas, próximos vencimientos.
+  - **Cuentas por pagar:** tabla filtrable (tipo/estado/búsqueda) con drawer de detalle
+    + "Programar pago" inline (cuenta origen, método, monto, fecha) y link a proveedor/embarque.
+  - **Pagos & remesas:** órdenes de pago ejecutadas con método (Wire USD, USDT, Alipay CNY,
+    Transfer VES), drawer de comprobante.
+  - **Cuentas:** tarjetas de cada cuenta de caja con saldo en USD + moneda original.
+
+**Archivos viejos modificados (línea + razón):**
+- `erp/shell.jsx` · MODULES, grupo FINANZAS · agregado ítem `tesoreria` (icono `cn`) entre Contabilidad y Conciliación.
+- `DTD Studio · ERP.html` · agregados `<script>` de `tesoreria-data.jsx` + `tesoreria.jsx` (después de contabilidad) y entrada `tesoreria: window.ModuleTesoreria` al `moduleMap`.
+
+**Brand-check:** solo tokens CSS, componentes ERPUI, fuentes del sistema (Archivo + JetBrains Mono;
+Noto Sans SC vía `var(--f-cn)` para nombres de proveedores en chino). Sin AI slop. Reusa `ERPRates` para tasas BCV/CNY.
+
+**Pendiente (necesita backend):** ejecución real de wire/USDT, aprobación multi-firma, generación
+automática del asiento contable de salida, conciliación con los movimientos bancarios reales.
+
+---
+
 ## 2026-05-31 · v1.9.2 · Pulido completo (mailing, persistencia, drag, skeletons, TMS)
 
 Continuación. Completados los pendientes de pulido (#3) y persistencia (#6) que NO necesitan backend.

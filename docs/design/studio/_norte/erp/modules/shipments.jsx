@@ -355,25 +355,32 @@ function ShipmentDetail({ s }) {
       {/* Consolidated receptions linked to this shipment */}
       <ConsolidatedReceptions shipmentId={s.id} />
 
-      {/* Documents */}
+      {/* Documents (hub central · adjuntos de esta transacción) */}
       <div>
-        <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>DOCUMENTOS</div>        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {window.ERPData.DOCUMENTS.filter(d => d.shipment === s.id).map(d => (
-            <div key={d.id} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '10px 14px', background: 'var(--bg-elevated)',
-              borderRadius: 'var(--r-md)',
-            }}>
-              <span style={{ color: 'var(--wine)' }}>{window.Icon.doc(18)}</span>
-              <div style={{ flex: 1 }}>
-                <div style={{ font: '600 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{d.type} · <span style={{ color: 'var(--ink-mute)', fontFamily: 'var(--f-mono)' }}>{d.id}</span></div>
-                <div style={{ font: '500 11px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>{d.issued} · {d.size}</div>
+        {window.DocsForTransaction
+          ? <window.DocsForTransaction kind="embarque" id={s.id} goTo={window.__erpGoTo} />
+          : (
+            <>
+              <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>DOCUMENTOS</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {window.ERPData.DOCUMENTS.filter(d => d.shipment === s.id).map(d => (
+                  <div key={d.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 12,
+                    padding: '10px 14px', background: 'var(--bg-elevated)',
+                    borderRadius: 'var(--r-md)',
+                  }}>
+                    <span style={{ color: 'var(--wine)' }}>{window.Icon.doc(18)}</span>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ font: '600 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{d.type} · <span style={{ color: 'var(--ink-mute)', fontFamily: 'var(--f-mono)' }}>{d.id}</span></div>
+                      <div style={{ font: '500 11px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>{d.issued} · {d.size}</div>
+                    </div>
+                    <U.Badge tone={d.status === 'firmado' ? 'success' : 'warning'} size="sm">{d.status}</U.Badge>
+                    <button style={{ color: 'var(--ink-soft)', padding: 6 }}>{window.Icon.download(14)}</button>
+                  </div>
+                ))}
               </div>
-              <U.Badge tone={d.status === 'firmado' ? 'success' : 'warning'} size="sm">{d.status}</U.Badge>
-              <button style={{ color: 'var(--ink-soft)', padding: 6 }}>{window.Icon.download(14)}</button>
-            </div>
-          ))}
-        </div>
+            </>
+          )}
       </div>
 
       {/* Financial summary */}

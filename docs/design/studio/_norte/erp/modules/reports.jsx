@@ -3,24 +3,47 @@
 
 function ModuleReports({ goTo }) {
   const U = window.ERPUI;
+  const I = window.Icon;
+  const ivaOn = window.DTDConfig ? window.DTDConfig.useCfg('iva') : false;
   const [period, setPeriod] = React.useState('1A');
-  const [tab, setTab] = React.useState('overview');
 
-  const tabs = [
-    { value: 'overview',  label: 'Overview' },
-    { value: 'clients',   label: 'Por cliente' },
-    { value: 'agents',    label: 'Por agente' },
-    { value: 'routes',    label: 'Por ruta' },
-    { value: 'carriers',  label: 'Por naviera' },
-    { value: 'services',  label: 'Por servicio' },
-    { value: 'finance',   label: 'Finanzas' },
+  const CATS = [
+    { id: 'op',  label: 'Operacionales', icon: 'ship', reports: [
+      { value: 'overview', label: 'Overview' },
+      { value: 'routes',   label: 'Por ruta' },
+      { value: 'carriers', label: 'Por naviera' },
+      { value: 'services', label: 'Por servicio' },
+    ]},
+    { id: 'com', label: 'Comerciales', icon: 'users', reports: [
+      { value: 'clients', label: 'Por cliente' },
+      { value: 'agents',  label: 'Por agente' },
+    ]},
+    { id: 'con', label: 'Contables & financieros', icon: 'invoice', reports: [
+      { value: 'pl',       label: 'Estado de resultados' },
+      { value: 'aging',    label: 'Aging CxC / CxP' },
+      ...(((window.DTDConfig && window.DTDConfig.get('iva'))) ? [{ value: 'iva', label: 'Posición IVA' }] : []),
+      { value: 'cashflow', label: 'Facturado vs cobrado' },
+    ]},
+    { id: 'mix', label: 'Combinados', icon: 'spark', reports: [
+      { value: 'rent-ruta',     label: 'Rentabilidad por ruta' },
+      { value: 'margen-cliente', label: 'Margen por cliente' },
+      { value: 'costo-cbm',     label: 'Costo por CBM' },
+    ]},
+    { id: 'build', label: 'Constructor', icon: 'cog', reports: [
+      { value: 'builder', label: 'Armar reporte' },
+    ]},
   ];
+  const [cat, setCat] = React.useState('op');
+  const [tab, setTab] = React.useState('overview');
+  React.useEffect(() => { if (tab === 'iva' && !ivaOn) setTab('pl'); }, [ivaOn]);
+  const activeCat = CATS.find(c => c.id === cat) || CATS[0];
+  const selectCat = (id) => { const c = CATS.find(x => x.id === id); setCat(id); setTab(c.reports[0].value); };
 
   return (
     <div>
       <U.PageHeader
         title="Reportes & Analytics"
-        subtitle="Performance operativa, comercial y financiera de DTD-Cargo. Exportable a Excel y PDF."
+        subtitle="Performance operativa, comercial y contable de DTD-Cargo. Categorizado y exportable a Excel y PDF."
         actions={
           <>
             <U.Select value={period} onChange={(e)=>setPeriod(e.target.value)} style={{ width: 130 }} options={[
@@ -34,16 +57,46 @@ function ModuleReports({ goTo }) {
         }
       />
 
-      <U.Tabs value={tab} onChange={setTab} items={tabs} style={{ marginBottom: 'var(--s-5)' }} />
+      {/* Nivel 1 · categoría */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        {CATS.map(c => {
+          const active = cat === c.id;
+          return (
+            <button key={c.id} onClick={() => selectCat(c.id)} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 16px',
+              borderRadius: 'var(--r-md)', cursor: 'pointer',
+              background: active ? 'var(--wine)' : 'var(--bg-surface)',
+              color: active ? '#fff' : 'var(--ink-soft)',
+              border: `1px solid ${active ? 'var(--wine)' : 'var(--border-strong)'}`,
+              font: '600 13px/1 var(--f-sans)',
+              transition: 'all var(--dur-fast) var(--ease)',
+            }}>
+              <span style={{ display: 'inline-flex', color: active ? '#fff' : 'var(--ink-mute)' }}>{I[c.icon]?.(15)}</span>
+              {c.label}
+              <span style={{ font: '700 10.5px/1 var(--f-mono)', color: active ? 'rgba(255,255,255,0.7)' : 'var(--ink-mute)' }}>{c.reports.length}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Nivel 2 · reporte dentro de la categoría */}
+      <U.Tabs value={tab} onChange={setTab} items={activeCat.reports} style={{ marginBottom: 'var(--s-5)' }} />
 
       <div key={tab} style={{ animation: 'erp-route-in 200ms var(--ease)' }}>
         {tab === 'overview' && <ReportsOverview />}
-        {tab === 'clients'  && <ReportsClients goTo={goTo} />}
-        {tab === 'agents'   && <ReportsAgents />}
         {tab === 'routes'   && <ReportsRoutes />}
         {tab === 'carriers' && <ReportsCarriers />}
         {tab === 'services' && <ReportsServices />}
-        {tab === 'finance'  && <ReportsFinance />}
+        {tab === 'clients'  && <ReportsClients goTo={goTo} />}
+        {tab === 'agents'   && <ReportsAgents />}
+        {tab === 'pl'       && <ReportsPL />}
+        {tab === 'aging'    && <ReportsAging goTo={goTo} />}
+        {tab === 'iva'      && <ReportsIVA goTo={goTo} />}
+        {tab === 'cashflow' && <ReportsFinance />}
+        {tab === 'rent-ruta'      && <ReportsRentRuta goTo={goTo} />}
+        {tab === 'margen-cliente' && <ReportsMargenCliente goTo={goTo} />}
+        {tab === 'costo-cbm'      && <ReportsCostoCBM />}
+        {tab === 'builder'        && <ReportsBuilder goTo={goTo} />}
       </div>
     </div>
   );
@@ -623,6 +676,456 @@ function Donut({ data }) {
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// CONTABLES · cableados a la fuente real (ContabilidadData / Tesorería / FiscalData)
+// ════════════════════════════════════════════════════════════════
+function ReportsPL() {
+  const U = window.ERPUI;
+  const R = window.ERPRates;
+  const C = window.ContabilidadData;
+  const fmt = (n) => (R?.fmtUsd ? R.fmtUsd(n) : '$' + Math.round(n||0).toLocaleString('en-US'));
+  if (!C) return <U.EmptyState icon={window.Icon.invoice(22)} title="Contabilidad no disponible" body="No se pudo leer el estado de resultados." />;
+  const pl = C.calculatePL();
+  const Row = ({ label, val, bold, tone = 'ink', pct }) => (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px 90px', gap: 14, padding: bold ? '12px 18px' : '8px 18px', borderTop: '1px solid var(--border)', background: bold ? 'var(--bg-elevated)' : 'transparent' }}>
+      <span style={{ font: `${bold ? '800' : '500'} ${bold ? '13' : '12.5'}px/1.3 var(--f-${bold ? 'display' : 'sans'})`, color: `var(--${tone})`, textTransform: bold ? 'uppercase' : 'none', letterSpacing: bold ? '0.02em' : 0 }}>{label}</span>
+      <span style={{ textAlign: 'right', font: `${bold ? '800' : '600'} 12.5px/1 var(--f-mono)`, color: `var(--${tone})` }}>{fmt(val)}</span>
+      <span style={{ textAlign: 'right', font: '600 11px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>{pct != null ? pct + '%' : ''}</span>
+    </div>
+  );
+  const p = (n) => pl.totalIngresos ? Math.round((n / pl.totalIngresos) * 100) : 0;
+  return (
+    <U.Card padded={false}>
+      <div style={{ padding: '18px 18px 12px', borderBottom: '1px solid var(--border)' }}>
+        <div className="eyebrow eyebrow-wine">ESTADO DE RESULTADOS · MAY 2026 · FUENTE: CONTABILIDAD</div>
+        <div style={{ font: '900 18px/1.1 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>DTD-Cargo C.A. · moneda funcional USD</div>
+      </div>
+      <Row label="Ingresos operativos" val={pl.totalIngresos} bold tone="success" pct={100} />
+      <Row label="Costos directos (CGS)" val={pl.totalCgs} tone="warning" pct={p(pl.totalCgs)} />
+      <Row label="Utilidad bruta" val={pl.utilidadBruta} bold tone={pl.utilidadBruta >= 0 ? 'success' : 'danger'} pct={p(pl.utilidadBruta)} />
+      <Row label="Gastos operativos" val={pl.totalGastos} tone="warning" pct={p(pl.totalGastos)} />
+      <Row label="Utilidad operativa" val={pl.utilidadOperativa} bold tone={pl.utilidadOperativa >= 0 ? 'success' : 'danger'} pct={p(pl.utilidadOperativa)} />
+      {pl.totalOtros !== 0 && <Row label="Otros resultados" val={pl.totalOtros} tone="info" pct={p(pl.totalOtros)} />}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px 90px', gap: 14, padding: '14px 18px', borderTop: '2px solid var(--ink)', background: 'var(--bg-sidebar)', color: '#fff' }}>
+        <span style={{ font: '900 14px/1 var(--f-display)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Utilidad neta</span>
+        <span style={{ textAlign: 'right', font: '900 16px/1 var(--f-mono)', color: pl.utilidadNeta >= 0 ? '#7CE3A5' : 'var(--wine-soft)' }}>{fmt(pl.utilidadNeta)}</span>
+        <span style={{ textAlign: 'right', font: '800 12px/1 var(--f-mono)', color: 'rgba(255,255,255,0.8)' }}>{p(pl.utilidadNeta)}%</span>
+      </div>
+    </U.Card>
+  );
+}
+
+function ReportsAging({ goTo }) {
+  const U = window.ERPUI;
+  const R = window.ERPRates;
+  const D = window.ERPData;
+  const T = window.TesoreriaData;
+  const fmt = (n) => (R?.fmtUsd ? R.fmtUsd(n) : '$' + Math.round(n||0).toLocaleString('en-US'));
+  const TODAY = new Date('2026-05-24T00:00:00');
+  const daysPast = (dateStr) => { try { return Math.round((TODAY - new Date(dateStr + 'T00:00:00')) / 86400000); } catch (e) { return 0; } };
+  const bucketOf = (overdue) => overdue <= 0 ? 0 : overdue <= 30 ? 1 : overdue <= 60 ? 2 : 3;
+  const LABELS = ['Corriente', '1–30 días', '31–60 días', '60+ días'];
+  const TONES = ['success', 'info', 'warning', 'danger'];
+
+  // CxC desde facturas con saldo
+  const cxc = [0, 0, 0, 0];
+  (D?.INVOICES || []).filter(i => (i.balance || 0) > 0).forEach(i => { cxc[bucketOf(daysPast(i.due))] += i.balance; });
+  // CxP desde Tesorería
+  const cxp = [0, 0, 0, 0];
+  (T ? T.openPayables() : []).forEach(p => { const od = -1 * (T.daysUntil(p.dueDate)); cxp[bucketOf(od)] += T.outstandingUsd(p); });
+
+  const Bars = ({ title, data, link }) => {
+    const total = data.reduce((s, x) => s + x, 0) || 1;
+    const overdue = data[1] + data[2] + data[3];
+    return (
+      <U.Card padded>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+          <div className="eyebrow eyebrow-wine">{title}</div>
+          <button onClick={link} style={{ font: '600 11.5px/1 var(--f-sans)', color: 'var(--wine)' }}>Ver detalle →</button>
+        </div>
+        <div style={{ font: '900 26px/1 var(--f-display)', color: 'var(--ink)' }}>{fmt(total)}</div>
+        <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: overdue > 0 ? 'var(--danger)' : 'var(--success)', marginTop: 4, marginBottom: 16 }}>
+          {overdue > 0 ? `${fmt(overdue)} vencido (${Math.round(overdue/total*100)}%)` : 'Todo al día'}
+        </div>
+        <div style={{ display: 'flex', height: 12, borderRadius: 999, overflow: 'hidden', marginBottom: 14 }}>
+          {data.map((v, i) => v > 0 && <div key={i} style={{ width: `${v/total*100}%`, background: `var(--${TONES[i]})` }} title={`${LABELS[i]}: ${fmt(v)}`} />)}
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {data.map((v, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 2, background: `var(--${TONES[i]})` }} />
+              <span style={{ flex: 1, font: '500 12px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>{LABELS[i]}</span>
+              <span style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--ink)' }}>{fmt(v)}</span>
+              <span style={{ font: '600 10.5px/1 var(--f-mono)', color: 'var(--ink-mute)', minWidth: 38, textAlign: 'right' }}>{Math.round(v/total*100)}%</span>
+            </div>
+          ))}
+        </div>
+      </U.Card>
+    );
+  };
+
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <Bars title="CUENTAS POR COBRAR · AGING" data={cxc} link={() => goTo && goTo('invoices')} />
+      <Bars title="CUENTAS POR PAGAR · AGING" data={cxp} link={() => goTo && goTo('tesoreria')} />
+    </div>
+  );
+}
+
+function ReportsIVA({ goTo }) {
+  const U = window.ERPUI;
+  const R = window.ERPRates;
+  const F = window.FiscalData;
+  const fmt = (n) => (R?.fmtUsd ? R.fmtUsd(n) : '$' + Math.round(n||0).toLocaleString('en-US'));
+  if (!F) return <U.EmptyState icon={window.Icon.shield(22)} title="Fiscal no disponible" body="No se pudo leer la posición de IVA." />;
+  const d = F.declaracionIVA();
+  const ves = (n) => (R?.fmtBs ? R.fmtBs(R.usdToVes(n)) : '');
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, alignContent: 'start' }}>
+        <U.KPI label="Débito fiscal" value={fmt(d.debito)} delta="IVA en ventas" tone="success" icon={window.Icon.invoice(18)} />
+        <U.KPI label="Crédito fiscal" value={fmt(d.credito)} delta="IVA en compras" tone="warning" icon={window.Icon.box(18)} />
+        <U.KPI label="Cuota tributaria" value={fmt(d.cuota)} delta="débito − crédito" tone="info" icon={window.Icon.chart(18)} />
+        <U.KPI label={d.aPagar > 0 ? 'IVA a pagar' : 'Excedente'} value={fmt(d.aPagar > 0 ? d.aPagar : d.excedente)} delta="luego de retenciones" tone={d.aPagar > 0 ? 'wine' : 'success'} icon={window.Icon.shield(18)} />
+      </div>
+      <U.Card padded>
+        <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>POSICIÓN ANTE EL SENIAT · MAY 2026</div>
+        <div style={{ font: '500 12.5px/1.6 var(--f-sans)', color: 'var(--ink)' }}>
+          La cuota tributaria del período es <b>{fmt(d.cuota)}</b>. Tras descontar <b>{fmt(d.retSoportadas)}</b> de retenciones de IVA que los clientes nos practicaron (75%), el resultado es <b>{d.aPagar > 0 ? `${fmt(d.aPagar)} a pagar` : `${fmt(d.excedente)} de excedente a favor`}</b>.
+        </div>
+        <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
+          Equivalente en VES @ BCV: <b style={{ color: 'var(--ink)' }}>{ves(d.aPagar > 0 ? d.aPagar : d.excedente)}</b> · la declaración se presenta en bolívares.
+        </div>
+        <U.Btn variant="soft" size="sm" icon={window.Icon.arrowR(12)} style={{ marginTop: 14 }} onClick={() => goTo && goTo('contab')}>Ver libros fiscales completos</U.Btn>
+      </U.Card>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// COMBINADOS · cruces operación × finanzas (revenue vs costo directo)
+// ════════════════════════════════════════════════════════════════
+// Ratio de costo directo por ruta (origen→destino). Lo demás es margen.
+const _ROUTE_COST = { default: 0.70 };
+function _shipAgg() {
+  const D = window.ERPData;
+  const ships = (D?.SHIPMENTS || []).filter(s => !['cotizado'].includes(s.status));
+  return ships.map(s => {
+    const revenue = s.value || 0;
+    const ratio = _ROUTE_COST[`${s.origin}-${s.destination}`] || _ROUTE_COST.default;
+    // pequeña variación determinística por id para que no sean todos iguales
+    const jitter = ((s.id || '').split('').reduce((a, c) => a + c.charCodeAt(0), 0) % 9) / 100; // 0–0.08
+    const cost = Math.round(revenue * (ratio + jitter - 0.04));
+    return { ...s, revenue, cost, margin: revenue - cost };
+  });
+}
+
+function _MarginTable({ rows, label0, render0 }) {
+  const U = window.ERPUI; const R = window.ERPRates;
+  const fmt = (n) => (R?.fmtUsd ? R.fmtUsd(n) : '$' + Math.round(n||0).toLocaleString('en-US'));
+  return (
+    <U.Card padded={false}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 110px 110px 110px 90px', padding: '10px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)', font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', gap: 14 }}>
+        <span>{label0}</span>
+        <span style={{ textAlign: 'right' }}>Ingreso</span>
+        <span style={{ textAlign: 'right' }}>Costo dir.</span>
+        <span style={{ textAlign: 'right' }}>Margen</span>
+        <span style={{ textAlign: 'right' }}>%</span>
+      </div>
+      {rows.map((r, i) => {
+        const pct = r.revenue ? (r.margin / r.revenue) * 100 : 0;
+        const tone = pct >= 30 ? 'success' : pct >= 18 ? 'wine' : pct >= 8 ? 'warning' : 'danger';
+        return (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.4fr 110px 110px 110px 90px', padding: '11px 18px', gap: 14, alignItems: 'center', borderTop: i > 0 ? '1px solid var(--border)' : 0 }}>
+            {render0(r)}
+            <div style={{ textAlign: 'right', font: '600 12px/1 var(--f-mono)', color: 'var(--ink)' }}>{fmt(r.revenue)}</div>
+            <div style={{ textAlign: 'right', font: '600 12px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{fmt(r.cost)}</div>
+            <div style={{ textAlign: 'right', font: '800 12.5px/1 var(--f-mono)', color: `var(--${tone})` }}>{fmt(r.margin)}</div>
+            <div style={{ textAlign: 'right' }}><U.Badge tone={tone} size="sm">{pct.toFixed(0)}%</U.Badge></div>
+          </div>
+        );
+      })}
+    </U.Card>
+  );
+}
+
+function ReportsRentRuta({ goTo }) {
+  const U = window.ERPUI; const R = window.ERPRates; const D = window.ERPData;
+  const fmt = (n) => (R?.fmtUsd ? R.fmtUsd(n) : '$' + Math.round(n||0).toLocaleString('en-US'));
+  const nameO = (c) => (D.ORIGINS || []).find(o => o.code === c)?.name || c;
+  const nameD = (c) => (D.DESTINATIONS || []).find(o => o.code === c)?.name || c;
+  const map = {};
+  _shipAgg().forEach(s => {
+    const k = `${s.origin}→${s.destination}`;
+    if (!map[k]) map[k] = { key: k, route: `${nameO(s.origin)} → ${nameD(s.destination)}`, revenue: 0, cost: 0, margin: 0, n: 0 };
+    map[k].revenue += s.revenue; map[k].cost += s.cost; map[k].margin += s.margin; map[k].n += 1;
+  });
+  const rows = Object.values(map).sort((a, b) => b.margin - a.margin);
+  const tot = rows.reduce((a, r) => ({ revenue: a.revenue + r.revenue, cost: a.cost + r.cost, margin: a.margin + r.margin }), { revenue: 0, cost: 0, margin: 0 });
+  return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 14 }}>
+        <U.KPI label="Ingreso total" value={fmt(tot.revenue)} delta={`${rows.length} rutas activas`} tone="success" icon={window.Icon.chart(18)} />
+        <U.KPI label="Costo directo" value={fmt(tot.cost)} delta={`${tot.revenue ? Math.round(tot.cost/tot.revenue*100) : 0}% sobre ingreso`} tone="warning" icon={window.Icon.box(18)} />
+        <U.KPI label="Margen bruto" value={fmt(tot.margin)} delta={`${tot.revenue ? (tot.margin/tot.revenue*100).toFixed(1) : 0}% margen`} tone="wine" icon={window.Icon.spark(18)} />
+      </div>
+      <_MarginTable rows={rows} label0="Ruta CN → VE" render0={(r) => (
+        <div>
+          <div style={{ font: '600 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{r.route}</div>
+          <div style={{ font: '500 10.5px/1.2 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 2 }}>{r.n} embarque{r.n === 1 ? '' : 's'}</div>
+        </div>
+      )} />
+    </div>
+  );
+}
+
+function ReportsMargenCliente({ goTo }) {
+  const U = window.ERPUI; const D = window.ERPData;
+  const map = {};
+  _shipAgg().forEach(s => {
+    const k = s.client;
+    if (!map[k]) map[k] = { key: k, client: s.clientName || s.client, markbox: s.client, revenue: 0, cost: 0, margin: 0, n: 0 };
+    map[k].revenue += s.revenue; map[k].cost += s.cost; map[k].margin += s.margin; map[k].n += 1;
+  });
+  const rows = Object.values(map).sort((a, b) => b.margin - a.margin);
+  return (
+    <_MarginTable rows={rows} label0="Cliente" render0={(r) => (
+      <button onClick={() => goTo && goTo('clients', r.markbox)} style={{ textAlign: 'left', padding: 0 }}>
+        <div style={{ font: '600 12.5px/1.2 var(--f-sans)', color: 'var(--wine)' }}>{r.client}</div>
+        <code style={{ font: '500 10.5px/1.2 var(--f-mono)', color: 'var(--ink-mute)' }}>{r.markbox} · {r.n} env.</code>
+      </button>
+    )} />
+  );
+}
+
+function ReportsCostoCBM() {
+  const U = window.ERPUI; const R = window.ERPRates; const D = window.ERPData;
+  const fmt = (n) => (R?.fmtUsd ? R.fmtUsd(n) : '$' + Math.round(n||0).toLocaleString('en-US'));
+  const nameO = (c) => (D.ORIGINS || []).find(o => o.code === c)?.name || c;
+  const nameD = (c) => (D.DESTINATIONS || []).find(o => o.code === c)?.name || c;
+  const map = {};
+  _shipAgg().forEach(s => {
+    const k = `${s.origin}→${s.destination}`;
+    if (!map[k]) map[k] = { key: k, route: `${nameO(s.origin)} → ${nameD(s.destination)}`, cbm: 0, revenue: 0, cost: 0 };
+    map[k].cbm += s.cbm || 0; map[k].revenue += s.revenue; map[k].cost += s.cost;
+  });
+  const rows = Object.values(map).map(r => ({ ...r, costCbm: r.cbm ? r.cost / r.cbm : 0, revCbm: r.cbm ? r.revenue / r.cbm : 0 })).sort((a, b) => b.revCbm - a.revCbm);
+  const maxRev = Math.max(...rows.map(r => r.revCbm), 1);
+  return (
+    <U.Card padded={false}>
+      <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border)' }}>
+        <div className="eyebrow eyebrow-wine">RENDIMIENTO POR CBM · INGRESO Y COSTO POR METRO CÚBICO</div>
+        <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Cuánto rinde cada CBM por ruta — clave para pricing de carga consolidada.</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 90px 110px 110px 1fr', padding: '10px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)', font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', gap: 14 }}>
+        <span>Ruta</span>
+        <span style={{ textAlign: 'right' }}>CBM</span>
+        <span style={{ textAlign: 'right' }}>$/CBM ing.</span>
+        <span style={{ textAlign: 'right' }}>$/CBM costo</span>
+        <span>Margen / CBM</span>
+      </div>
+      {rows.map((r, i) => {
+        const mCbm = r.revCbm - r.costCbm;
+        return (
+          <div key={i} style={{ display: 'grid', gridTemplateColumns: '1.4fr 90px 110px 110px 1fr', padding: '11px 18px', gap: 14, alignItems: 'center', borderTop: i > 0 ? '1px solid var(--border)' : 0 }}>
+            <span style={{ font: '600 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{r.route}</span>
+            <span style={{ textAlign: 'right', font: '600 12px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{r.cbm.toFixed(1)}</span>
+            <span style={{ textAlign: 'right', font: '700 12px/1 var(--f-mono)', color: 'var(--ink)' }}>{fmt(r.revCbm)}</span>
+            <span style={{ textAlign: 'right', font: '600 12px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{fmt(r.costCbm)}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ flex: 1, height: 8, background: 'var(--bg-elevated)', borderRadius: 999, overflow: 'hidden' }}>
+                <div style={{ height: '100%', width: `${Math.max(2, (mCbm / maxRev) * 100)}%`, background: 'var(--wine)', borderRadius: 999 }} />
+              </div>
+              <span style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)', minWidth: 54, textAlign: 'right' }}>{fmt(mCbm)}</span>
+            </div>
+          </div>
+        );
+      })}
+    </U.Card>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// CONSTRUCTOR · armador interactivo de reportes
+// ════════════════════════════════════════════════════════════════
+function _routeName(s) {
+  const D = window.ERPData;
+  const o = (D.ORIGINS || []).find(x => x.code === s.origin)?.name || s.origin;
+  const d = (D.DESTINATIONS || []).find(x => x.code === s.destination)?.name || s.destination;
+  return `${o} → ${d}`;
+}
+const BUILDER_SOURCES = {
+  shipments: { label: 'Embarques', icon: 'box', rows: () => (window.ERPData?.SHIPMENTS || []),
+    dims: [ { k: 'clientName', l: 'Cliente' }, { k: '_route', l: 'Ruta', get: _routeName }, { k: 'status', l: 'Estado' }, { k: 'type', l: 'Tipo de servicio' } ],
+    metrics: [ { k: 'count', l: 'Cantidad de embarques' }, { k: 'value', l: 'Valor total', agg: 'sum', money: true }, { k: 'cbm', l: 'CBM total', agg: 'sum' }, { k: 'cbm', l: 'CBM promedio', agg: 'avg' } ],
+    filters: [ { k: 'status', l: 'Estado' }, { k: 'type', l: 'Tipo' } ] },
+  invoices: { label: 'Facturas', icon: 'invoice', rows: () => (window.ERPData?.INVOICES || []),
+    dims: [ { k: 'clientName', l: 'Cliente' }, { k: 'status', l: 'Estado' } ],
+    metrics: [ { k: 'count', l: 'Cantidad' }, { k: 'amount', l: 'Monto total', agg: 'sum', money: true }, { k: 'balance', l: 'Saldo pendiente', agg: 'sum', money: true } ],
+    filters: [ { k: 'status', l: 'Estado' } ] },
+  clients: { label: 'Clientes', icon: 'users', rows: () => (window.ERPData?.CLIENTS || []),
+    dims: [ { k: 'segment', l: 'Segmento' }, { k: 'city', l: 'Ciudad' }, { k: 'status', l: 'Estado' } ],
+    metrics: [ { k: 'count', l: 'Cantidad' }, { k: 'billed', l: 'Facturado', agg: 'sum', money: true }, { k: 'shipments', l: 'Embarques', agg: 'sum' } ],
+    filters: [ { k: 'segment', l: 'Segmento' }, { k: 'status', l: 'Estado' } ] },
+  payables: { label: 'Cuentas por pagar', icon: 'cn', rows: () => (window.TesoreriaData?.PAYABLES || []),
+    dims: [ { k: 'status', l: 'Estado' }, { k: 'currency', l: 'Moneda' }, { k: '_payee', l: 'Tipo de beneficiario', get: (p) => window.TesoreriaData?.PAYEE_TYPE[window.TesoreriaData?.getPayee(p.payee)?.type]?.label || '—' } ],
+    metrics: [ { k: 'count', l: 'Cantidad' }, { k: 'amountUsd', l: 'Monto (USD)', agg: 'sum', money: true } ],
+    filters: [ { k: 'status', l: 'Estado' }, { k: 'currency', l: 'Moneda' } ] },
+};
+
+function ReportsBuilder({ goTo }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const R = window.ERPRates;
+  const fmt = (n) => (R?.fmtUsd ? R.fmtUsd(n) : '$' + Math.round(n||0).toLocaleString('en-US'));
+
+  const [sourceK, setSourceK] = React.useState('shipments');
+  const src = BUILDER_SOURCES[sourceK];
+  const [dimI, setDimI] = React.useState(0);
+  const [metI, setMetI] = React.useState(0);
+  const [chart, setChart] = React.useState('bars');
+  const [filterVal, setFilterVal] = React.useState('all');
+  const [filterFieldI, setFilterFieldI] = React.useState(0);
+  const [saved, setSaved] = React.useState(() => { try { return JSON.parse(localStorage.getItem('dtd_saved_reports') || '[]'); } catch (e) { return []; } });
+
+  // reset índices al cambiar de fuente
+  const changeSource = (k) => { setSourceK(k); setDimI(0); setMetI(0); setFilterFieldI(0); setFilterVal('all'); };
+
+  const dim = src.dims[dimI] || src.dims[0];
+  const met = src.metrics[metI] || src.metrics[0];
+  const filterField = (src.filters || [])[filterFieldI];
+  const filterOpts = filterField ? ['all', ...Array.from(new Set(src.rows().map(r => r[filterField.k]).filter(Boolean)))] : ['all'];
+
+  const result = React.useMemo(() => {
+    let rows = src.rows();
+    if (filterField && filterVal !== 'all') rows = rows.filter(r => r[filterField.k] === filterVal);
+    const groups = {};
+    rows.forEach(r => {
+      const key = (dim.get ? dim.get(r) : r[dim.k]) ?? '—';
+      if (!groups[key]) groups[key] = { key, n: 0, sum: 0 };
+      groups[key].n += 1;
+      if (met.k !== 'count') groups[key].sum += (Number(r[met.k]) || 0);
+    });
+    return Object.values(groups).map(g => ({ key: g.key, value: met.k === 'count' ? g.n : (met.agg === 'avg' ? (g.n ? g.sum / g.n : 0) : g.sum), n: g.n }))
+      .sort((a, b) => b.value - a.value);
+  }, [sourceK, dimI, metI, filterFieldI, filterVal]);
+
+  const total = result.reduce((s, r) => s + r.value, 0);
+  const maxV = Math.max(...result.map(r => r.value), 1);
+  const fmtV = (v) => met.money ? fmt(v) : (met.agg === 'avg' ? v.toFixed(1) : Math.round(v).toLocaleString('es-VE'));
+  const title = `${met.l} por ${dim.l} · ${src.label}`;
+
+  const saveReport = () => {
+    const rep = { id: 'R-' + Date.now().toString(36), title, sourceK, dimI, metI, chart, filterFieldI, filterVal };
+    const next = [rep, ...saved].slice(0, 8);
+    setSaved(next); try { localStorage.setItem('dtd_saved_reports', JSON.stringify(next)); } catch (e) {}
+  };
+  const applySaved = (r) => { setSourceK(r.sourceK); setDimI(r.dimI); setMetI(r.metI); setChart(r.chart); setFilterFieldI(r.filterFieldI || 0); setFilterVal(r.filterVal || 'all'); };
+  const delSaved = (id) => { const next = saved.filter(s => s.id !== id); setSaved(next); try { localStorage.setItem('dtd_saved_reports', JSON.stringify(next)); } catch (e) {} };
+
+  const selWrap = { display: 'flex', flexDirection: 'column', gap: 5 };
+  const lblS = { font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Constructor */}
+      <U.Card padded>
+        <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>ARMÁ TU REPORTE</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr)) auto', gap: 12, alignItems: 'end' }}>
+          <label style={selWrap}><span style={lblS}>1 · Fuente</span>
+            <U.Select value={sourceK} onChange={(e) => changeSource(e.target.value)} options={Object.entries(BUILDER_SOURCES).map(([k, v]) => ({ value: k, label: v.label }))} />
+          </label>
+          <label style={selWrap}><span style={lblS}>2 · Agrupar por</span>
+            <U.Select value={String(dimI)} onChange={(e) => setDimI(+e.target.value)} options={src.dims.map((d, i) => ({ value: String(i), label: d.l }))} />
+          </label>
+          <label style={selWrap}><span style={lblS}>3 · Métrica</span>
+            <U.Select value={String(metI)} onChange={(e) => setMetI(+e.target.value)} options={src.metrics.map((m, i) => ({ value: String(i), label: m.l }))} />
+          </label>
+          {src.filters && src.filters.length > 0 && (
+            <label style={selWrap}><span style={lblS}>4 · Filtro</span>
+              <U.Select value={String(filterFieldI)} onChange={(e) => { setFilterFieldI(+e.target.value); setFilterVal('all'); }} options={src.filters.map((f, i) => ({ value: String(i), label: f.l }))} />
+            </label>
+          )}
+          {filterField && (
+            <label style={selWrap}><span style={lblS}>{filterField.l} =</span>
+              <U.Select value={filterVal} onChange={(e) => setFilterVal(e.target.value)} options={filterOpts.map(o => ({ value: o, label: o === 'all' ? 'Todos' : o }))} />
+            </label>
+          )}
+          <div style={{ display: 'flex', gap: 4, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: 3 }}>
+            {[['bars', 'chart'], ['table', 'doc']].map(([v, ic]) => (
+              <button key={v} onClick={() => setChart(v)} title={v === 'bars' ? 'Barras' : 'Tabla'} style={{ width: 34, height: 32, borderRadius: 'var(--r-sm)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: chart === v ? 'var(--bg-surface)' : 'transparent', color: chart === v ? 'var(--wine)' : 'var(--ink-mute)', boxShadow: chart === v ? 'var(--shadow-xs)' : 'none' }}>{I[ic](15)}</button>
+            ))}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+          <U.Btn variant="secondary" size="sm" icon={I.download(12)} onClick={() => {
+            window.DTDExport && window.DTDExport.csv(
+              `reporte-${sourceK}-${dim.l}`.replace(/\s+/g, '-').toLowerCase(),
+              [dim.l, 'Registros', met.l],
+              result.map(r => [r.key, r.n, met.money ? Math.round(r.value) : (met.agg === 'avg' ? r.value.toFixed(2) : r.value)])
+            );
+          }}>Exportar</U.Btn>
+          <U.Btn variant="primary" size="sm" icon={I.plus(12)} onClick={saveReport}>Guardar reporte</U.Btn>
+        </div>
+      </U.Card>
+
+      {/* Resultado */}
+      <U.Card padded={false}>
+        <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div style={{ font: '900 15px/1.1 var(--f-display)', color: 'var(--ink)' }}>{title}</div>
+            <div style={{ font: '500 11.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 4 }}>{result.length} grupos · total {fmtV(total)}</div>
+          </div>
+          <U.Badge tone="wine" size="md">{met.k === 'count' ? 'Conteo' : met.agg === 'avg' ? 'Promedio' : 'Suma'}</U.Badge>
+        </div>
+        {result.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center', font: '500 13px var(--f-sans)', color: 'var(--ink-mute)' }}>Sin datos para esta combinación.</div>
+        ) : chart === 'bars' ? (
+          <div style={{ padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {result.slice(0, 14).map((r, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '180px 1fr 110px', gap: 12, alignItems: 'center' }}>
+                <span style={{ font: '600 12px/1.3 var(--f-sans)', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={r.key}>{r.key}</span>
+                <div style={{ height: 22, background: 'var(--bg-elevated)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${Math.max(2, (r.value / maxV) * 100)}%`, background: i === 0 ? 'var(--wine)' : 'var(--wine-soft)', borderRadius: 'var(--r-sm)', transition: 'width var(--dur-slow) var(--ease)' }} />
+                </div>
+                <span style={{ textAlign: 'right', font: '800 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{fmtV(r.value)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 130px', padding: '10px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)', font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', gap: 12 }}>
+              <span>{dim.l}</span><span style={{ textAlign: 'right' }}>Registros</span><span style={{ textAlign: 'right' }}>{met.l}</span>
+            </div>
+            {result.map((r, i) => (
+              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 100px 130px', padding: '10px 20px', gap: 12, alignItems: 'center', borderTop: i > 0 ? '1px solid var(--border)' : 0 }}>
+                <span style={{ font: '600 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{r.key}</span>
+                <span style={{ textAlign: 'right', font: '500 11.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>{r.n}</span>
+                <span style={{ textAlign: 'right', font: '800 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{fmtV(r.value)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </U.Card>
+
+      {/* Reportes guardados */}
+      {saved.length > 0 && (
+        <U.Card padded>
+          <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>REPORTES GUARDADOS</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {saved.map(r => (
+              <div key={r.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 10px 7px 12px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-pill)' }}>
+                <button onClick={() => applySaved(r)} style={{ font: '600 12px/1 var(--f-sans)', color: 'var(--ink)' }}>{r.title}</button>
+                <button onClick={() => delSaved(r.id)} style={{ color: 'var(--ink-mute)', display: 'inline-flex' }} title="Eliminar">{I.close(11)}</button>
+              </div>
+            ))}
+          </div>
+        </U.Card>
+      )}
     </div>
   );
 }

@@ -372,11 +372,11 @@
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', maxWidth: 360 }}>
           <U.Btn variant="secondary" size="lg" icon={I.copy(14)}>Copiar código</U.Btn>
-          <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {window.location.href = 'Portal del Cliente · V2.html';}}>Ir al portal</U.Btn>
+          <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
         </div>
 
         {/* Acceso al portal · usuario + clave (= cédula/RIF) */}
-        <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 24, flexWrap: 'wrap' }} data-comment-anchor="83f11171af-div-379-9">
           <div>
             <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Usuario</div>
             <code style={{ font: '800 15px/1 var(--f-mono)', color: 'var(--success)' }}>{markbox}</code>

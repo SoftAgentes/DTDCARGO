@@ -265,6 +265,10 @@ function ClientDetail({ c, goTo }) {
         </div>
       </div>
 
+      {window.DocsForTransaction && (
+        <window.DocsForTransaction kind="cliente" id={c.markbox} goTo={goTo} />
+      )}
+
       {/* Comments thread */}
       {window.CommentsThread && <window.CommentsThread recordId={c.markbox} recordType="cliente" />}
     </div>

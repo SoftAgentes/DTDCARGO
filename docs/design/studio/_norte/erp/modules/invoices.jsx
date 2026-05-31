@@ -19,6 +19,8 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
   const [search, setSearch] = React.useState('');
   const [tab, setTab] = React.useState('all');
   const [drawerKind, setDrawerKind] = React.useState(null);
+  const ivaOn = window.DTDConfig ? window.DTDConfig.useCfg('iva') : false;
+  const [base, setBase] = React.useState('');
   const [colCfg, setColCfg] = U.useColumns('dtd-inv-cols-v1', INV_COLS_DEFAULT);
   const hideValues = U.useHideValues();
   const loadingTable = U.useFirstLoad('invoices');
@@ -145,6 +147,19 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
                 </div>
               </div>
             </U.Card>
+            {ivaOn && (() => {
+              const total = detailRecord.amount || 0;
+              const baseV = total / 1.16, ivaV = total - baseV;
+              const f = (n) => '$' + Math.round(n).toLocaleString('en-US');
+              return (
+                <div style={{ padding: '14px 16px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <div className="eyebrow eyebrow-wine">DESGLOSE FISCAL · IVA 16%</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)' }}><span>Base imponible</span><span className="mono">{f(baseV)}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)' }}><span>IVA débito fiscal</span><span className="mono">{f(ivaV)}</span></div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 8, borderTop: '1px solid var(--border)', font: '800 13px/1 var(--f-display)', color: 'var(--ink)' }}><span>Total facturado</span><span className="mono">{f(total)}</span></div>
+                </div>
+              );
+            })()}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <U.Field label="Cliente" value={detailRecord.clientName} />
               <U.Field label="MARKBOX" value={detailRecord.client} mono />
@@ -155,6 +170,9 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
               <U.Field label="Pagado" value={`$${detailRecord.paid.toLocaleString()}`} mono />
               <U.Field label="Moneda" value={detailRecord.currency} />
             </div>
+            {window.DocsForTransaction && (
+              <window.DocsForTransaction kind="factura" id={detailRecord.id} goTo={goTo} />
+            )}
             {window.CommentsThread && <window.CommentsThread recordId={detailRecord.id} recordType="factura" />}
           </div>
         )}
@@ -183,7 +201,26 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
             <U.Input label="Fecha emisión" type="date" mono />
             <U.Input label="Vencimiento" type="date" mono />
           </div>
-          <U.Input label="Monto" placeholder="0.00" prefix="$" suffix="USD" mono />
+          {ivaOn ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <U.Input label="Base imponible" value={base} onChange={(e) => setBase(e.target.value)} placeholder="0.00" prefix="$" suffix="USD" mono />
+              {(() => {
+                const b = parseFloat(String(base).replace(/[^0-9.]/g, '')) || 0;
+                const iva = b * 0.16, total = b + iva;
+                const f = (n) => '$' + n.toLocaleString('en-US', { maximumFractionDigits: 2 });
+                return (
+                  <div style={{ padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)' }}><span>Base imponible</span><span className="mono">{f(b)}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)' }}><span>IVA 16%</span><span className="mono">{f(iva)}</span></div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 7, borderTop: '1px solid var(--border)', font: '800 14px/1 var(--f-display)', color: 'var(--ink)' }}><span>Total</span><span className="mono">{f(total)}</span></div>
+                  </div>
+                );
+              })()}
+              <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Al emitir, esta factura alimenta el Libro de Ventas (IVA débito fiscal).</div>
+            </div>
+          ) : (
+            <U.Input label="Monto" placeholder="0.00" prefix="$" suffix="USD" mono />
+          )}
           <U.Input label="Notas" placeholder="Concepto, referencias internas…" />
         </div>
       </U.Drawer>
