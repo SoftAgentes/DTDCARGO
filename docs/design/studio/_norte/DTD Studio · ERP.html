@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>DTD Studio · ERP · v1.8</title>
+<title>DTD Studio · ERP · v1.9</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -79,6 +79,7 @@
 <script type="text/babel" src="erp/modules/mailing-rules.jsx"></script>
 <script type="text/babel" src="erp/modules/mailing-config.jsx"></script>
 <script type="text/babel" src="erp/modules/mailing-logs.jsx"></script>
+<script type="text/babel" src="nuevo/modules/mailing-scheduled.jsx"></script>
 <script type="text/babel" src="erp/modules/vault.jsx"></script>
 <script type="text/babel" src="erp/modules/quick-email.jsx"></script>
 <script type="text/babel" src="erp/modules/calendar.jsx"></script>
@@ -135,9 +136,26 @@ function App() {
   // Initialize current user from data (default Admin = Carlos V.)
   useEffect(() => {
     if (window.ERPData?.USERS && !currentUser) {
+      // Aplicar overrides de perfil guardados (localStorage)
+      try {
+        window.ERPData.USERS.forEach(u => {
+          const raw = localStorage.getItem('dtd_user_override_' + u.id);
+          if (raw) { const o = JSON.parse(raw); if (o.name) u.name = o.name; if (o.email) u.email = o.email; if (o.phone) u.phone = o.phone; }
+        });
+      } catch (e) {}
       setCurrentUser(window.ERPData.USERS[0]);
     }
   }, [currentUser]);
+
+  // Re-render cuando el perfil del usuario actual cambia (persistencia de "Mi perfil")
+  useEffect(() => {
+    const onUserUpdated = (e) => {
+      const u = window.ERPData?.USERS?.find(x => x.id === e.detail);
+      if (u) setCurrentUser({ ...u });
+    };
+    window.addEventListener('dtd-user-updated', onUserUpdated);
+    return () => window.removeEventListener('dtd-user-updated', onUserUpdated);
+  }, []);
 
   // When switching user, redirect to dashboard if module not allowed
   useEffect(() => {

@@ -14,6 +14,8 @@ function MailingCompose() {
   const [signature, setSignature] = React.useState('u-001');
   const [channel, setChannel] = React.useState('email');
   const [sentOk, setSentOk] = React.useState(false);
+  const [scheduledOk, setScheduledOk] = React.useState(null);
+  const [attachments, setAttachments] = React.useState([]);
   const [showHistory, setShowHistory] = React.useState(false);
 
   const applyTemplate = (id) => {
@@ -24,6 +26,21 @@ function MailingCompose() {
     if (tpl.channel === 'email') setSubject(tpl.subject);
     setBody(tpl.body?.es || '');
   };
+
+  if (scheduledOk) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', textAlign: 'center' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{window.Icon.clock(28)}</div>
+        <div style={{ font: '900 22px/1.2 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Envío programado</div>
+        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 10, maxWidth: '42ch' }}>
+          Se enviará a <b style={{ color: 'var(--ink)' }}>{scheduledOk.to.split(',')[0]}</b> el <b style={{ color: 'var(--ink)' }}>{scheduledOk.date} {scheduledOk.time}</b> ({scheduledOk.tz}). Lo podés ver y cancelar en la pestaña <b style={{ color: 'var(--wine)' }}>Programados</b>.
+        </div>
+        <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
+          <U.Btn variant="secondary" onClick={() => { setScheduledOk(null); setTo(''); setSubject(''); setBody(''); setTemplate(''); setAttachments([]); }}>Redactar otro</U.Btn>
+        </div>
+      </div>
+    );
+  }
 
   if (sentOk) {
     return (
@@ -135,11 +152,31 @@ function MailingCompose() {
             </div>
           )}
 
+          {/* Adjuntos */}
+          {attachments.length > 0 && (
+            <div style={{ marginTop: 14, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {attachments.map((f, i) => (
+                <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+                  <span style={{ color: 'var(--wine)' }}>{window.Icon.doc ? window.Icon.doc(13) : null}</span>
+                  <span style={{ font: '600 12px/1.2 var(--f-sans)', color: 'var(--ink)', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name || f}</span>
+                  {f.size && <span style={{ font: '500 10.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>{(f.size/1024).toFixed(0)} KB</span>}
+                  <button onClick={() => setAttachments(a => a.filter((_, j) => j !== i))} title="Quitar" style={{ color: 'var(--ink-mute)', background: 'transparent', border: 0, cursor: 'pointer', display: 'inline-flex' }}>{window.Icon.x ? window.Icon.x(12) : '×'}</button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Footer actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, paddingTop: 16, marginTop: 16, borderTop: '1px solid var(--border)' }}>
             <U.Btn variant="primary" icon={window.Icon.arrowR(13)} onClick={() => setSentOk(true)} disabled={!to.trim()}>Enviar ahora</U.Btn>
-            <U.Btn variant="secondary" icon={window.Icon.clock(13)} onClick={() => window.DTDWiring?.openScheduleModal({ onSchedule: (s) => { console.log('[mailing] programado para', s.iso); setSentOk(true); } })}>Programar</U.Btn>
-            <U.Btn variant="ghost" icon={window.Icon.upload(13)} onClick={() => window.DTDWiring?.openAttachModal({ onSelect: (files) => console.log('[mailing] adjuntos:', files) })}>Adjuntar</U.Btn>
+            <U.Btn variant="secondary" icon={window.Icon.clock(13)} onClick={() => window.DTDWiring?.openScheduleModal({ onSchedule: (s) => {
+              const item = { id: 'sch-' + Date.now(), iso: s.iso, date: s.date, time: s.time, tz: s.tz, to: to, subject: channel === 'email' ? (subject || '(sin asunto)') : 'WhatsApp', channel, status: 'queued', attachments: attachments.length };
+              window.__scheduledEmails = window.__scheduledEmails || [];
+              window.__scheduledEmails.unshift(item);
+              try { window.dispatchEvent(new CustomEvent('dtd-scheduled-changed')); } catch (e) {}
+              setScheduledOk(item);
+            } })} disabled={!to.trim()}>Programar</U.Btn>
+            <U.Btn variant="ghost" icon={window.Icon.upload(13)} onClick={() => window.DTDWiring?.openAttachModal({ onSelect: (files) => setAttachments(prev => [...prev, ...(files || [])]) })}>Adjuntar{attachments.length > 0 ? ` · ${attachments.length}` : ''}</U.Btn>
             <div style={{ marginLeft: 'auto', font: '500 11.5px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>
               {channel === 'email' && <>Saliendo desde <b style={{ color: 'var(--ink)' }}>comercial@dtdcargo.com</b></>}
               {channel === 'whatsapp' && <>WhatsApp Business · <b style={{ color: 'var(--ink)' }}>+58 412 DTD-CARG</b></>}

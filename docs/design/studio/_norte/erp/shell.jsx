@@ -59,7 +59,7 @@ function DTDLogo({ collapsed = false, dark = true }) {
             <span style={{ color: dark ? '#fff' : 'var(--ink)' }}>STUDIO</span>
           </span>
           <span style={{ font: '600 9.5px/1 var(--f-sans)', color: dark ? 'rgba(255,255,255,0.55)' : 'var(--ink-soft)', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 4 }}>
-            ERP · v1.8
+            ERP · v1.9
           </span>
         </div>
       )}
@@ -303,6 +303,32 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
       </div>
 
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
+        {/* Tu día · bandeja personal */}
+        <button
+          onClick={() => window.open('nuevo/pantallas/tu-dia.html?id=' + (currentUser?.id || 'u-001'), '_blank')}
+          title="Tu día · pendientes personales"
+          style={{
+            height: 36, padding: '0 12px', borderRadius: 'var(--r-md)', marginRight: 2,
+            display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', cursor: 'pointer',
+            background: 'transparent', color: 'var(--ink-soft)', font: '700 12.5px/1 var(--f-sans)',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-elevated)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+        >{window.Icon.check(14)} Tu día</button>
+
+        {/* AI Copilot */}
+        <button
+          onClick={() => window.open('nuevo/pantallas/copilot.html', '_blank')}
+          title="AI Copilot · preguntá sobre tus datos"
+          style={{
+            width: 36, height: 36, borderRadius: 'var(--r-md)', marginRight: 2,
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid var(--wine)', background: 'var(--wine-tint)', color: 'var(--wine)', cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--wine)'; e.currentTarget.style.color = '#fff'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--wine-tint)'; e.currentTarget.style.color = 'var(--wine)'; }}
+        >{window.Icon.spark(16)}</button>
+
         {/* Language toggle · ES / 中文 (global) */}
         <button
           onClick={() => { window.DTDTranslate?.toggle(); setLangTick(t => t + 1); }}
@@ -413,10 +439,12 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
               </div>
               <div style={{ padding: 6 }}>
                 {[
+                  { label: 'Ver mi perfil completo', action: () => window.open('nuevo/pantallas/usuario-perfil.html?id=' + (currentUser?.id || 'u-001'), '_blank') },
                   { label: 'Mi perfil',         action: () => window.DTDWiring?.openProfileModal({ tab: 'profile' }) },
                   { label: 'Cambiar contraseña', action: () => window.DTDWiring?.openProfileModal({ tab: 'password' }) },
                   { label: 'Preferencias',      action: () => window.DTDWiring?.openProfileModal({ tab: 'prefs' }) },
                   { label: 'Atajos de teclado', action: () => window.DTDWiring?.openShortcutsModal() },
+                  ...((currentUser?.role === 'Admin' || !currentUser) ? [{ label: 'Modo cliente · ver el portal', action: () => window.open('Modo Cliente.html', '_blank') }] : []),
                 ].map(it => (
                   <button key={it.label}
                     onClick={() => { it.action(); setUserOpen(false); }}

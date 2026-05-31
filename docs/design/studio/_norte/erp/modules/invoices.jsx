@@ -20,6 +20,8 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
   const [tab, setTab] = React.useState('all');
   const [drawerKind, setDrawerKind] = React.useState(null);
   const [colCfg, setColCfg] = U.useColumns('dtd-inv-cols-v1', INV_COLS_DEFAULT);
+  const hideValues = U.useHideValues();
+  const loadingTable = U.useFirstLoad('invoices');
 
   React.useEffect(() => {
     if (view === 'create') setDrawerKind('create');
@@ -67,8 +69,8 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
     ), width: 140 },
     { label: 'Emitida', key: 'issued', render: (r) => <span className="mono" style={{ font: '500 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{r.issued}</span>, width: 95 },
     { label: 'Vence', key: 'due', render: (r) => <span className="mono" style={{ font: '500 11.5px/1 var(--f-mono)', color: r.status === 'vencida' ? 'var(--danger)' : 'var(--ink-soft)' }}>{r.due}</span>, width: 95 },
-    { label: 'Monto', key: 'amount', align: 'right', render: (r) => <span className="mono" style={{ font: '700 13px/1 var(--f-mono)' }}>${(r.amount/1000).toFixed(1)}K</span>, width: 80 },
-    { label: 'Saldo', key: 'balance', align: 'right', render: (r) => <span className="mono" style={{ font: '700 13px/1 var(--f-mono)', color: r.balance > 0 ? 'var(--wine)' : 'var(--ink-mute)' }}>{r.balance > 0 ? `$${(r.balance/1000).toFixed(1)}K` : '—'}</span>, width: 80 },
+    { label: 'Monto', key: 'amount', align: 'right', render: (r) => <span className="mono" style={{ font: '700 13px/1 var(--f-mono)' }}>{hideValues ? '•••' : `$${(r.amount/1000).toFixed(1)}K`}</span>, width: 80 },
+    { label: 'Saldo', key: 'balance', align: 'right', render: (r) => <span className="mono" style={{ font: '700 13px/1 var(--f-mono)', color: r.balance > 0 ? 'var(--wine)' : 'var(--ink-mute)' }}>{hideValues ? '•••' : `$${(r.balance/1000).toFixed(1)}K`}</span>, width: 80 },
     { label: 'Estado', key: 'status', render: (r) => <U.Badge tone={statusTone[r.status]} size="sm" dot>{r.status}</U.Badge>, width: 100 },
   ];
   const visibleColumns = U.applyColumns(columns, colCfg);
@@ -102,7 +104,9 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
       <U.Toolbar search={search} onSearchChange={setSearch} searchPlaceholder="Buscar factura o cliente…" filters={<U.ColumnManager cfg={colCfg} setCfg={setColCfg} columns={columns} defaultCfg={INV_COLS_DEFAULT} />} />
 
       {filtered.length === 0 ? (
-        <U.EmptyState icon={window.Icon.invoice(22)} title="Sin facturas en esta vista" body="Ajustá los filtros o emití una factura nueva." />
+        loadingTable ? <U.LoadingRows rows={6} cols={visibleColumns.length} /> : <U.EmptyState icon={window.Icon.invoice(22)} title="Sin facturas en esta vista" body="Ajustá los filtros o emití una factura nueva." />
+      ) : loadingTable ? (
+        <U.LoadingRows rows={6} cols={visibleColumns.length} />
       ) : (
         <U.Table columns={visibleColumns} rows={filtered} onRowClick={(r) => { setSelectedId(r.id); setView('detail'); setDrawerKind('detail'); }} />
       )}

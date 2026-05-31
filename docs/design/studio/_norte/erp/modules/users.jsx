@@ -133,7 +133,7 @@ function TenantUsers({ view, setView }) {
         }
       />
 
-      <U.Table columns={columns} rows={filtered} />
+      <U.Table columns={columns} rows={filtered} onRowClick={(r) => window.open('nuevo/pantallas/usuario-perfil.html?id=' + r.id, '_blank')} />
 
       <U.Drawer
         open={drawerKind === 'create'}

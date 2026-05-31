@@ -10,6 +10,7 @@ function ModuleMailing({ view, setView, goTo }) {
     { value: 'templates',  label: 'Templates',     count: D.MAIL_TEMPLATES.length },
     { value: 'signatures', label: 'Firmas',        count: D.SIGNATURES.length },
     { value: 'compose',    label: 'Envío manual' },
+    { value: 'scheduled',  label: 'Programados',    count: (window.__scheduledEmails || []).length || undefined },
     { value: 'rules',      label: 'Reglas auto.',  count: 8 },
     { value: 'config',     label: 'Configuración' },
     { value: 'logs',       label: 'Logs' },
@@ -19,6 +20,7 @@ function ModuleMailing({ view, setView, goTo }) {
     templates:  'Plantillas de email y WhatsApp · variables dinámicas · multi-idioma · test send.',
     signatures: 'Cada empleado configura su firma. 5 layouts oficiales del Brand Book DTD.',
     compose:    'Envío individual con plantilla + firma. Vista tipo Compose o modal rápido desde cualquier vista.',
+    scheduled:  'Correos programados en cola. Se envían automáticamente en su fecha/hora. Podés adelantarlos o cancelarlos.',
     rules:      'Eventos del ERP que disparan correos automáticos. Configurar destinatario cliente vs interno.',
     config:     'Proveedor de envío (Gmail · Outlook · SMTP · SendGrid · WhatsApp), límites y blacklist.',
     logs:       'Histórico de envíos. Estado de entrega, aperturas y rebotes.',
@@ -36,6 +38,7 @@ function ModuleMailing({ view, setView, goTo }) {
         {tab === 'templates'  && window.MailingTemplates   && <window.MailingTemplates />}
         {tab === 'signatures' && window.MailingSignatures  && <window.MailingSignatures />}
         {tab === 'compose'    && window.MailingCompose     && <window.MailingCompose />}
+        {tab === 'scheduled'  && window.MailingScheduled   && <window.MailingScheduled />}
         {tab === 'rules'      && window.MailingRules       && <window.MailingRules />}
         {tab === 'config'     && window.MailingConfig      && <window.MailingConfig />}
         {tab === 'logs'        && window.MailingLogs        && <window.MailingLogs goTo={goTo} />}
@@ -49,6 +52,7 @@ function MailingHeaderActions({ tab }) {
   if (tab === 'templates')  return (<><U.Btn variant="secondary" icon={window.Icon.download(14)}>Exportar</U.Btn><U.Btn variant="primary" icon={window.Icon.plus(14)} onClick={() => window.__openMailingEditor?.('template-new')}>Nuevo template</U.Btn></>);
   if (tab === 'signatures') return (<U.Btn variant="primary" icon={window.Icon.plus(14)} onClick={() => window.__openMailingEditor?.('signature-new')}>Editar mi firma</U.Btn>);
   if (tab === 'compose')    return null;
+  if (tab === 'scheduled')  return null;
   if (tab === 'rules')      return (<U.Btn variant="primary" icon={window.Icon.plus(14)}>Nueva regla</U.Btn>);
   if (tab === 'config')     return (<U.Btn variant="secondary" icon={window.Icon.refresh(14)}>Test conexión</U.Btn>);
   if (tab === 'logs')       return (<U.Btn variant="secondary" icon={window.Icon.download(14)}>Exportar CSV</U.Btn>);

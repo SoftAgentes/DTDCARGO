@@ -22,6 +22,74 @@ Formato:
 
 <!-- Las entradas nuevas se agregan acá arriba -->
 
+## 2026-05-31 · v1.9.2 · Pulido completo (mailing, persistencia, drag, skeletons, TMS)
+
+Continuación. Completados los pendientes de pulido (#3) y persistencia (#6) que NO necesitan backend.
+
+**Mailing · adjuntos + cola de programados:**
+- `erp/modules/mailing-compose.jsx` · adjuntos ahora se guardan en estado (`attachments`), se muestran como chips removibles, badge con contador en el botón Adjuntar. "Programar" pushea a `window.__scheduledEmails` (con evento `dtd-scheduled-changed`) + pantalla de confirmación.
+- `erp/modules/mailing.jsx` · nueva pestaña **Programados** (count en vivo).
+- `nuevo/modules/mailing-scheduled.jsx` (NUEVO) · `window.MailingScheduled`: cola con KPIs, cancelar / "Enviar ya", estados (en cola / enviado). Cargado en `DTD Studio · ERP.html`.
+
+**Persistencia de perfil / preferencias:**
+- `nuevo/modules/wiring.jsx` · ProfileModal: "Guardar cambios" ahora actualiza `window.__currentUser` + `D.USERS` + `localStorage('dtd_user_override_{id}')` + evento `dtd-user-updated`. Tab Preferencias: idioma/densidad/notificaciones controlados + persistidos en `localStorage('dtd_prefs')`.
+- `DTD Studio · ERP.html` · al iniciar aplica los overrides guardados a USERS; escucha `dtd-user-updated` para re-renderizar con el perfil actualizado.
+
+**Pulido visual:**
+- `erp/components.jsx` · `useFirstLoad(key, ms)` (skeleton solo la 1ª vez por sesión, no ralentiza navegaciones repetidas).
+- `erp/modules/shipments.jsx` + `erp/modules/invoices.jsx` · skeleton (`LoadingRows`) en la primera carga de la tabla.
+- `erp/modules/despacho.jsx` · drag de reordenamiento animado: fila arrastrada se levanta (scale + `--shadow-pop`), la fila destino hace lugar (translateY), transición spring.
+
+**TMS · editor de incidencias (antes read-only):**
+- `erp/modules/tms.jsx` · `IncidentsTab` ahora editable: botón "Registrar incidencia", filas clickeables, nuevo `IncidentEditor` (Drawer) con tipo/severidad/camión/fecha/descripción/costo/estado. Store en `window.__tmsIncidents`. Crear / editar / eliminar.
+
+**⚠️ Servicios externos (#8) — NO se pueden hacer en mock:** geocoding real, push notifications, WhatsApp API del CRM, OAuth callbacks reales → requieren backend + cuentas externas. La UI/stub ya existe; Claude Code los conecta.
+
+---
+
+## 2026-05-31 · v1.9.1 · Pulido: HideValues global + OAuth completa
+
+Continuación de v1.9. Avance en pendientes de Email (#2) y Pulido (#3).
+
+**HideValues (👁) global y reactivo:**
+- `erp/components.jsx` · nuevo en ERPUI: `useHideValues()` (hook reactivo), `setHideValues(v)` (setter que persiste en `dtd_dashboard_hide` + dispara evento `dtd-hide-values`), `getHideValues()`, `maskVal()`. El flag ahora es global y vive entre módulos.
+- `nuevo/modules/dashboard.jsx` · el ojo ahora usa `U.setHideValues`/`U.useHideValues` (antes era estado local) → al togglear, las tablas reaccionan en vivo.
+- `erp/modules/shipments.jsx` · columna "Valor" enmascara (`•••`) cuando hideValues activo.
+- `erp/modules/invoices.jsx` · columnas "Monto" y "Saldo" enmascaran cuando hideValues activo.
+
+**OAuth SMTP · callback completa (mock persistente):**
+- `nuevo/modules/wiring.jsx` · al llegar al paso 3 del OAuth, ahora configura el proveedor de verdad: `SMTP_PROVIDERS[provider]` → `configured:true, active:true, account` = email del usuario actual. Antes solo mostraba el mensaje de éxito sin persistir.
+
+**Sigue pendiente en #2/#3 (no bloqueante):** envío SMTP real (necesita backend), skeletons de carga, drag&drop animado en Despacho, cola "Programados" en Mailing, persistencia de adjuntos en draft.
+
+---
+
+## 2026-05-31 · v1.9 · 5 pantallas nuevas + wiring al ERP
+
+Sesión Claude Design. Construcción de las 5 visuales que faltaban (perfil de usuario, Tu día, Modo cliente, hilo de comentario, AI Copilot) + cableado de entradas en el ERP.
+
+**Archivos nuevos en `nuevo/pantallas/`:**
+- `usuario-perfil.html` + `usuario-perfil.jsx` + `usuario-perfil-data.jsx` — Perfil de usuario interno. Hero con presencia (online/away/offline), asignados por rol, actividad reciente (timeline), contacto corporativo (líneas por depto. con los teléfonos reales del cliente), acceso por rol (deriva de ROLE_MODULES), notas, acciones admin. Selector entre los 8 USERS. Param `?id=u-00X`.
+- `tu-dia.html` + `tu-dia.jsx` — Bandeja personal cross-módulo, **consciente del rol**. Genera tareas desde datos reales (SHIPMENTS por estado, INVOICES vencidas, QUOTES del agente, NOTIFS) agrupadas y priorizadas. Check para marcar hecho + progreso. Rail: resumen, agenda, accesos rápidos por rol. Param `?id=u-00X`.
+- `hilo-comentario.html` + `hilo-comentario.jsx` — Vista expandida de un hilo: contexto del registro, comentario raíz prominente, **respuestas anidadas con líneas conectoras**, @menciones resaltadas, reacciones interactivas, composer, rail con info + participantes (linkeados a usuario-perfil). Param `?t=t-472816|t-0418`.
+- `copilot.html` + `copilot.jsx` — AI Copilot conversacional. Usa `window.claude.complete` (claude-haiku-4-5) con un snapshot compacto de SHIPMENTS/INVOICES/CLIENTS/QUOTES como contexto para fundamentar respuestas. Sugerencias, typing indicator, mini-markdown, aviso de verificación.
+
+**Archivo nuevo en raíz:**
+- `Modo Cliente.html` — Barra de impersonación admin (navy + wine) sobre un iframe del Portal del Cliente V2 real. Selector de cliente + "Salir del modo". Param `?as=DTD-XXXX`.
+
+**Archivos viejos modificados (wiring · línea + razón):**
+- `portal/app-v2.jsx` · ~8 · soporte `?as=DTD-XXXX` (impersonación): DEMO_MARKBOX lee el param; `logged` inicia en true cuando hay `?as=` (salta login). Sin el param, el portal funciona idéntico.
+- `erp/shell.jsx` · ~305 (Topbar) · botones nuevos **Tu día** + **AI Copilot** (abren las pantallas en pestaña nueva). · ~445 (user menu) · ítems **Ver mi perfil completo** + **Modo cliente** (admin).
+- `erp/modules/users.jsx` · ~136 · `onRowClick` en la tabla → abre `usuario-perfil.html?id={u.id}`.
+- `erp/modules/comments.jsx` · ~120 · link **Expandir hilo** en el header → abre `hilo-comentario.html?t={mapeado}`.
+
+**Notas para Claude Code:**
+- Las 5 pantallas son standalone (review-friendly) y se abren con `window.open(..., '_blank')`. Al consolidar, evaluar montarlas como drawers/rutas dentro del ERP en vez de pestañas.
+- USER_PROFILES (usuario-perfil-data.jsx) y THREADS (hilo-comentario.jsx) son mock local — al consolidar mover a `erp/data.jsx` y exponer en `window.ERPData`.
+- El Copilot corre bajo la cuota del visor (haiku, 1024 tokens out). Para producción, conectar al backend con el modelo/quota propios.
+
+---
+
 ## 2026-05-31 · v1.8 · Config de columnas reutilizable + fix render global + permisos por rol
 
 Sesión Claude Design. Tres frentes: branding (Logo Oficial), UX de tablas (gestor de columnas), y un bug crítico de renderizado.

@@ -532,10 +532,13 @@
                       onDragEnd={onDragEnd}
                       style={{
                         background: isSel ? 'var(--wine-tint)' : isOver ? 'var(--info-bg)' : 'transparent',
-                        opacity: isDrag ? 0.35 : 1,
+                        opacity: isDrag ? 0.5 : 1,
                         borderTop: isOver ? '2px solid var(--info)' : '2px solid transparent',
-                        transition: 'background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease)',
-                        cursor: 'default',
+                        boxShadow: isDrag ? 'var(--shadow-pop)' : 'none',
+                        transform: isDrag ? 'scale(1.01)' : isOver ? 'translateY(2px)' : 'none',
+                        transition: 'background 160ms var(--ease), opacity 160ms var(--ease), transform 200ms cubic-bezier(0.2, 0.9, 0.3, 1.3), box-shadow 160ms var(--ease)',
+                        cursor: isDrag ? 'grabbing' : 'default',
+                        position: 'relative', zIndex: isDrag ? 5 : 1,
                       }}
                       onMouseEnter={(e) => { if (!isSel && !isOver) e.currentTarget.style.background = 'var(--bg-elevated)'; }}
                       onMouseLeave={(e) => { if (!isSel && !isOver) e.currentTarget.style.background = 'transparent'; }}
