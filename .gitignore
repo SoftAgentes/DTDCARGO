@@ -75,3 +75,15 @@ docs/design/studio/*/project/Brand Book v3.0 Package/
 # Material interno de planning del founder (mockups, roadmaps, draft docs)
 # que no va al repo público ni a producción.
 CoWork/
+
+# ─── Norte visual · handoff vigente de Cloud Design (protocolo NORTE-SYNC) ──────
+# El mockup en código (HTML/JSX/CSS/MD) SÍ va a git: liviano y permite `git diff`.
+# Lo pesado/ruido queda FUERA (no infla el repo): capturas de referencia,
+# screenshots de trabajo, paquete de marca embebido y el índice generado.
+docs/design/studio/_norte/uploads/
+docs/design/studio/_norte/scraps/
+docs/design/studio/_norte/Brand Book v3.0 Package/
+docs/design/studio/_norte/_norte.html
+
+# Artefactos efímeros del harness (coordinación entre agentes; la historia vive en git log)
+.harness/
