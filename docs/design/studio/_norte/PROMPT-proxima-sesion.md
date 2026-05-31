@@ -1,4 +1,4 @@
-# Prompt de continuidad · próxima sesión Claude Code · DTD-Cargo v1.9
+# Prompt de continuidad · próxima sesión Claude Code · DTD-Cargo v2.0
 
 Copialo tal cual al iniciar la próxima sesión con Claude Code.
 
@@ -8,13 +8,14 @@ Copialo tal cual al iniciar la próxima sesión con Claude Code.
 Continuamos trabajando en DTD-Cargo. Sesiones anteriores con Claude Design:
 · 2026-05-25 → v1.4 → v1.4.1 → v1.5 → v1.6
 · 2026-05-31 → v1.8 (config de columnas reutilizable + fix render global + permisos por rol)
+· 2026-05-31 → v1.9 (5 pantallas nuevas + wiring al ERP)
 
 Antes de tocar nada, leé:
 
 1. CLAUDE.md (guardrails de marca + nomenclatura oficial MARKBOX)
 2. HANDOFF.md (estructura del proyecto + regla de oro)
 3. nuevo/CHANGELOG.md (TODO lo construido · ver el resumen del día
-   al tope + entradas v1.8, v1.6, v1.5, v1.4.1, v1.4)
+   al tope + entradas v1.9, v1.8, v1.6, v1.5, v1.4.1, v1.4)
 4. nuevo/README.md (convención: nuevo va a nuevo/, anotar archivos
    viejos modificados)
 
@@ -73,6 +74,30 @@ RESUMEN: dónde estamos · qué se hizo el 2026-05-25
     (RecentActivityWidget clickeable, navega por type)
   - erp/modules/mailing-logs.jsx (lee + suscribe a emailsSent del
     bridge, mergea con seed mock)
+
+✅ v1.9 · 5 PANTALLAS NUEVAS + WIRING AL ERP (2026-05-31)
+  Nuevas en nuevo/pantallas/ (standalone, abren con window.open):
+  - usuario-perfil.html/.jsx/-data.jsx → perfil de usuario interno
+    (?id=u-00X). Presencia, asignados por rol, actividad, contacto
+    corporativo (líneas por depto), acceso por rol (ROLE_MODULES).
+  - tu-dia.html/.jsx → bandeja personal consciente del rol (?id=u-00X).
+    Genera tareas desde SHIPMENTS/INVOICES/QUOTES/NOTIFS reales.
+  - hilo-comentario.html/.jsx → hilo expandido con respuestas anidadas
+    (?t=t-472816|t-0418). @menciones, reacciones, participantes.
+  - copilot.html/.jsx → AI Copilot (window.claude.complete · haiku).
+    Contexto = snapshot de SHIPMENTS/INVOICES/CLIENTS/QUOTES.
+  Nueva en raíz:
+  - Modo Cliente.html → barra impersonación admin + iframe del Portal
+    V2 (?as=DTD-XXXX). Selector de cliente + salir del modo.
+  Wiring (archivos viejos):
+  - portal/app-v2.jsx → soporte ?as=DTD-XXXX (salta login si presente).
+  - erp/shell.jsx → topbar: botones Tu día + Copilot; user menu:
+    Ver mi perfil completo + Modo cliente (admin).
+  - erp/modules/users.jsx → onRowClick abre usuario-perfil.
+  - erp/modules/comments.jsx → link "Expandir hilo" abre hilo-comentario.
+  ⚠️ USER_PROFILES y THREADS son mock local — al consolidar mover a
+  erp/data.jsx. Las 5 pantallas: evaluar montarlas como drawers/rutas
+  internas en vez de window.open en pestaña nueva.
 
 ✅ v1.8 · CONFIG DE COLUMNAS + FIX RENDER GLOBAL + PERMISOS (2026-05-31)
   Componente nuevo en ERPUI (erp/components.jsx):

@@ -391,6 +391,39 @@ function EmptyState({ icon, title, body, action, style = {} }) {
   );
 }
 
+// ── HideValues · flag global persistido + reactivo ───────────
+// El ojo del dashboard lo togglea; tablas/charts lo leen en vivo.
+let _hideVals = (() => { try { return localStorage.getItem('dtd_dashboard_hide') === '1'; } catch (e) { return false; } })();
+const HIDE_EVENT = 'dtd-hide-values';
+function setHideValues(v) {
+  _hideVals = !!v;
+  try { localStorage.setItem('dtd_dashboard_hide', _hideVals ? '1' : '0'); } catch (e) {}
+  try { window.dispatchEvent(new CustomEvent(HIDE_EVENT, { detail: _hideVals })); } catch (e) {}
+}
+function getHideValues() { return _hideVals; }
+function useHideValues() {
+  const [h, setH] = React.useState(_hideVals);
+  React.useEffect(() => {
+    const fn = (e) => setH(e.detail);
+    window.addEventListener(HIDE_EVENT, fn);
+    return () => window.removeEventListener(HIDE_EVENT, fn);
+  }, []);
+  return h;
+}
+function maskVal(v, hide, dots = '•••') { return hide ? dots : v; }
+
+// ── useFirstLoad · skeleton solo la 1ª vez por sesión ────────
+const _loadedOnce = new Set();
+function useFirstLoad(key, ms = 380) {
+  const [loading, setLoading] = React.useState(() => !_loadedOnce.has(key));
+  React.useEffect(() => {
+    if (_loadedOnce.has(key)) return;
+    const t = setTimeout(() => { _loadedOnce.add(key); setLoading(false); }, ms);
+    return () => clearTimeout(t);
+  }, [key]);
+  return loading;
+}
+
 // ── Loading ──────────────────────────────────────────────────
 function Skeleton({ w = '100%', h = 14, style = {} }) {
   return (
@@ -732,4 +765,5 @@ window.ERPUI = {
   Btn, Input, Select, Badge, StatusBadge, Card, PageHeader, KPI, Table,
   EmptyState, Skeleton, LoadingRows, Avatar, Progress, Tabs, Drawer, Modal,
   Toolbar, Field, useColumns, applyColumns, ColumnManager,
+  useHideValues, setHideValues, getHideValues, maskVal, useFirstLoad,
 };

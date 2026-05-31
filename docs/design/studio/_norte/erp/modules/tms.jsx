@@ -364,29 +364,53 @@ function RoutesTab({ routes, trucks, drivers, goTo }) {
 function IncidentsTab() {
   const D = window.ERPData;
   const U = window.ERPUI;
-  const incs = D.TMS_INCIDENTS;
-  const total = incs.reduce((s, i) => s + i.cost, 0);
-  const typeTone = { mantenimiento: 'warning', multa: 'danger', combustible: 'info' };
+  const I = window.Icon;
+  window.__tmsIncidents = window.__tmsIncidents || D.TMS_INCIDENTS.map(x => ({ ...x }));
+  const [list, setList] = React.useState(window.__tmsIncidents);
+  const [editing, setEditing] = React.useState(null); // incident object or {} for new
+  const total = list.reduce((s, i) => s + (Number(i.cost) || 0), 0);
+  const typeTone = { mantenimiento: 'warning', multa: 'danger', combustible: 'info', otro: 'neutral' };
+
+  const save = (inc) => {
+    setList(prev => {
+      let next;
+      if (inc.id && prev.some(x => x.id === inc.id)) next = prev.map(x => x.id === inc.id ? inc : x);
+      else next = [{ ...inc, id: inc.id || ('INC-' + Date.now()) }, ...prev];
+      window.__tmsIncidents = next;
+      return next;
+    });
+    setEditing(null);
+  };
+  const remove = (id) => {
+    setList(prev => { const next = prev.filter(x => x.id !== id); window.__tmsIncidents = next; return next; });
+    setEditing(null);
+  };
 
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 'var(--s-5)' }}>
-        <U.KPI label="Total mes" value={`$${total}`} sub={`${incs.length} eventos`} tone="warning" icon={window.Icon.invoice(18)} />
-        <U.KPI label="Combustible" value={`$${incs.filter(i=>i.type==='combustible').reduce((s,i)=>s+i.cost,0)}`} sub="mensual" tone="info" />
-        <U.KPI label="Mantenimientos" value={incs.filter(i=>i.type==='mantenimiento').length} sub="programados" tone="wine" />
-        <U.KPI label="Multas" value={incs.filter(i=>i.type==='multa').length} delta={`$${incs.filter(i=>i.type==='multa').reduce((s,i)=>s+i.cost,0)} acumulado`} tone="danger" />
+        <U.KPI label="Total mes" value={`$${total}`} sub={`${list.length} eventos`} tone="warning" icon={window.Icon.invoice(18)} />
+        <U.KPI label="Combustible" value={`$${list.filter(i=>i.type==='combustible').reduce((s,i)=>s+(Number(i.cost)||0),0)}`} sub="mensual" tone="info" />
+        <U.KPI label="Mantenimientos" value={list.filter(i=>i.type==='mantenimiento').length} sub="programados" tone="wine" />
+        <U.KPI label="Multas" value={list.filter(i=>i.type==='multa').length} delta={`$${list.filter(i=>i.type==='multa').reduce((s,i)=>s+(Number(i.cost)||0),0)} acumulado`} tone="danger" />
       </div>
 
       <U.Card padded={false}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="eyebrow eyebrow-wine">INCIDENCIAS · ÚLTIMOS 30 DÍAS</div>
+          <U.Btn variant="primary" size="sm" icon={I.plus(13)} onClick={() => setEditing({ type: 'mantenimiento', status: 'abierta', date: '2026-05-31', severity: 'media' })}>Registrar incidencia</U.Btn>
         </div>
-        {incs.map((inc, i) => (
-          <div key={inc.id} style={{
+        {list.length === 0 ? (
+          <div style={{ padding: '24px 18px', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Sin incidencias registradas. Tocá "Registrar incidencia" para agregar una.</div>
+        ) : list.map((inc, i) => (
+          <div key={inc.id} onClick={() => setEditing(inc)} style={{
             display: 'grid', gridTemplateColumns: '110px 80px 100px 1fr 100px 90px',
-            padding: '14px 18px', gap: 14, alignItems: 'center',
+            padding: '14px 18px', gap: 14, alignItems: 'center', cursor: 'pointer',
             borderTop: i > 0 ? '1px solid var(--border)' : 0,
-          }}>
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-elevated)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+          >
             <code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{inc.id}</code>
             <code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--wine)' }}>{inc.truck}</code>
             <span className="mono" style={{ font: '500 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{inc.date}</span>
@@ -399,7 +423,54 @@ function IncidentsTab() {
           </div>
         ))}
       </U.Card>
+
+      <IncidentEditor incident={editing} onClose={() => setEditing(null)} onSave={save} onDelete={remove} />
     </div>
+  );
+}
+
+// ── Incident editor (drawer) ─────────────────────────────────
+function IncidentEditor({ incident, onClose, onSave, onDelete }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const D = window.ERPData;
+  const isEdit = incident && incident.id;
+  const [f, setF] = React.useState(incident || {});
+  React.useEffect(() => { setF(incident || {}); }, [incident]);
+  if (!incident) return null;
+  const set = (k, v) => setF(p => ({ ...p, [k]: v }));
+  const trucks = (D.TRUCKS || []).map(t => t.plate);
+
+  return (
+    <U.Drawer open={!!incident} onClose={onClose} title={isEdit ? `Incidencia ${incident.id}` : 'Registrar incidencia'} subtitle="Mantenimiento · multa · combustible · otros costos de flota" width={560}
+      actions={<>
+        {isEdit && <U.Btn variant="ghost" style={{ color: 'var(--danger)', marginRight: 'auto' }} onClick={() => onDelete(incident.id)}>Eliminar</U.Btn>}
+        <U.Btn variant="ghost" onClick={onClose}>Cancelar</U.Btn>
+        <U.Btn variant="primary" icon={I.check(13)} disabled={!f.truck || !f.desc} onClick={() => onSave(f)}>{isEdit ? 'Guardar cambios' : 'Registrar'}</U.Btn>
+      </>}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <U.Select label="Tipo" value={f.type || 'mantenimiento'} onChange={(e) => set('type', e.target.value)} options={[
+            { value: 'mantenimiento', label: 'Mantenimiento' }, { value: 'multa', label: 'Multa' }, { value: 'combustible', label: 'Combustible' }, { value: 'otro', label: 'Otro' },
+          ]} />
+          <U.Select label="Severidad" value={f.severity || 'media'} onChange={(e) => set('severity', e.target.value)} options={[
+            { value: 'baja', label: 'Baja' }, { value: 'media', label: 'Media' }, { value: 'alta', label: 'Alta' },
+          ]} />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <U.Select label="Camión" value={f.truck || ''} onChange={(e) => set('truck', e.target.value)} options={[{ value: '', label: 'Seleccioná patente…' }, ...trucks.map(p => ({ value: p, label: p }))]} />
+          <U.Input label="Fecha" type="date" value={f.date || ''} onChange={(e) => set('date', e.target.value)} mono />
+        </div>
+        <U.Input label="Descripción" value={f.desc || ''} onChange={(e) => set('desc', e.target.value)} placeholder="Ej: Cambio de frenos delanteros · revisión preventiva" />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <U.Input label="Costo" type="number" value={f.cost || ''} onChange={(e) => set('cost', Number(e.target.value))} prefix="$" mono />
+          <U.Select label="Estado" value={f.status || 'abierta'} onChange={(e) => set('status', e.target.value)} options={[
+            { value: 'abierta', label: 'Abierta' }, { value: 'en proceso', label: 'En proceso' }, { value: 'resuelta', label: 'Resuelta' }, { value: 'pagada', label: 'Pagada' },
+          ]} />
+        </div>
+      </div>
+    </U.Drawer>
   );
 }
 

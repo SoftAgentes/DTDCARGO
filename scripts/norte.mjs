@@ -21,10 +21,10 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-// Carpeta del "norte vigente". Hoy: v1.7 del repo. Con NORTE-SYNC pasará a docs/design/studio/_norte.
+// Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v1.8";
+const NORTE_VERSION = "v1.9"; // handoff Cloud Design (front llegó a v1.9.2)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -49,11 +49,15 @@ const GROUPS = [
   },
   {
     title: "Portal del Cliente",
+    // Una sola pantalla por concepto. En v1.9 el ZIP traía duplicado (V1 + "· V2"); el founder
+    // lo unificó en Cloud Design (2026-05-31): desde v1.91 viene UN solo archivo con NOMBRE BASE
+    // ("Portal del Cliente.html" / "Registro Cliente.html") y el contenido bueno (ex-V2).
+    // ⮕ AL CARGAR v1.91: cambiar estos `file:` de "· V2.html" al nombre base, y verificar el shell.
+    //   Hoy (v1.9) apuntan al "· V2.html" porque es el único archivo con el contenido correcto.
     screens: [
-      { name: "Portal del Cliente · V2", file: "Portal del Cliente · V2.html", code: null, sdd: null },
-      { name: "Portal del Cliente", file: "Portal del Cliente.html", code: null, sdd: null },
-      { name: "Registro de cliente · V2", file: "Registro de cliente · V2.html", code: "app/invitar", sdd: "0024" },
-      { name: "Registro Cliente", file: "Registro Cliente.html", code: "app/invitar", sdd: "0024" },
+      { name: "Portal del Cliente", file: "Portal del Cliente · V2.html", code: null, sdd: null },
+      { name: "Modo Cliente (impersonación admin)", file: "Modo Cliente.html", code: null, sdd: null },
+      { name: "Registro de cliente", file: "Registro de cliente · V2.html", code: "app/invitar", sdd: "0024" },
     ],
   },
   {
@@ -68,12 +72,21 @@ const GROUPS = [
     ],
   },
   {
-    title: "Perfiles (pendientes de diseño/código)",
+    title: "Perfiles individuales",
     screens: [
+      { name: "Perfil · Usuario interno", file: "nuevo/pantallas/usuario-perfil.html", code: null, sdd: null },
       { name: "Perfil · Agente aduanal", file: "nuevo/pantallas/agente-perfil.html", code: null, sdd: null },
       { name: "Perfil · Camión", file: "nuevo/pantallas/camion-perfil.html", code: null, sdd: null },
       { name: "Perfil · Chofer", file: "nuevo/pantallas/chofer-perfil.html", code: null, sdd: null },
       { name: "Estado de cuenta", file: "nuevo/pantallas/estado-cuenta.html", code: null, sdd: null },
+    ],
+  },
+  {
+    title: "Cross-módulo & productividad (v1.9)",
+    screens: [
+      { name: "Tu día (bandeja personal)", file: "nuevo/pantallas/tu-dia.html", code: null, sdd: null },
+      { name: "AI Copilot (chat sobre datos)", file: "nuevo/pantallas/copilot.html", code: null, sdd: null },
+      { name: "Hilo de comentario expandido", file: "nuevo/pantallas/hilo-comentario.html", code: null, sdd: null },
     ],
   },
   {

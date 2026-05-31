@@ -5,12 +5,15 @@
 
 const { useState: pUseState, useEffect: pUseEffect } = React;
 
-// Quién es el cliente "logueado" en este mock
-const DEMO_MARKBOX = 'DTD-5452';
+// Quién es el cliente "logueado" en este mock.
+// Soporta impersonación admin vía ?as=DTD-XXXX (modo cliente · demo).
+const _portalParams = (() => { try { return new URLSearchParams(window.location.search); } catch (e) { return new URLSearchParams(); } })();
+const IMPERSONATE = _portalParams.get('as');
+const DEMO_MARKBOX = (IMPERSONATE && /^DTD-\d{4}$/.test(IMPERSONATE)) ? IMPERSONATE : 'DTD-5452';
 
 function PortalApp() {
   const D = window.ERPData;
-  const [logged, setLogged] = pUseState(false);
+  const [logged, setLogged] = pUseState(!!IMPERSONATE);
   const [showPwTip, setShowPwTip] = pUseState(false);
   const [tour, setTour] = pUseState(false);
   const [view, setView] = pUseState('home');

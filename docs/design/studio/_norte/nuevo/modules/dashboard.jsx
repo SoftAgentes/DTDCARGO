@@ -99,14 +99,9 @@ function ModuleDashboard({ goTo }) {
   const U = window.ERPUI;
   const I = window.Icon;
   const [config, updateConfig, resetConfig] = useDashboardConfig();
-  const [hideValues, setHideValues] = React.useState(() => {
-    try { return localStorage.getItem('dtd_dashboard_hide') === '1'; } catch (e) { return false; }
-  });
+  const hideValues = window.ERPUI.useHideValues();
+  const setHideValues = (v) => window.ERPUI.setHideValues(typeof v === 'function' ? v(hideValues) : v);
   const [editorOpen, setEditorOpen] = React.useState(false);
-
-  React.useEffect(() => {
-    try { localStorage.setItem('dtd_dashboard_hide', hideValues ? '1' : '0'); } catch (e) {}
-  }, [hideValues]);
 
   const mask = (v) => hideValues ? '•••••' : v;
   const activeShipments = D.SHIPMENTS.filter(s => !['entregado', 'cotizado'].includes(s.status));

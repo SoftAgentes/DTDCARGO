@@ -29,6 +29,8 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
   const [selected, setSelected] = useState([]);
   const [drawerKind, setDrawerKind] = useState(null); // 'detail' | 'create' | null
   const [viewMode, setViewMode] = useState('table'); // 'table' | 'kanban'
+  const hideValues = window.ERPUI.useHideValues();
+  const loadingTable = window.ERPUI.useFirstLoad('shipments');
   const [colCfg, setColCfg] = window.ERPUI.useColumns('dtd-ship-cols-v1', SHIP_COLS_DEFAULT);
 
   // Sync from props (e.g. command palette selection)
@@ -122,7 +124,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
     { label: 'ETA', key: 'eta', render: (r) => (
       <span style={{ font: '600 12px/1 var(--f-mono)', color: r.alert ? 'var(--warning)' : 'var(--ink-soft)' }}>{r.eta || '—'}</span>
     ), width: 100 },
-    { label: 'Valor', key: 'value', align: 'right', render: (r) => <span className="mono" style={{ font: '700 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>${(r.value/1000).toFixed(0)}K</span>, width: 80 },
+    { label: 'Valor', key: 'value', align: 'right', render: (r) => <span className="mono" style={{ font: '700 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{hideValues ? '•••' : `$${(r.value/1000).toFixed(0)}K`}</span>, width: 80 },
   ];
   const visibleColumns = U.applyColumns(columns, colCfg);
 
@@ -214,11 +216,12 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
       ) : (
         <U.Table
           columns={visibleColumns}
-          rows={filtered}
+          rows={loadingTable ? [] : filtered}
           selectable
           selected={selected}
           onSelectChange={setSelected}
           onRowClick={(r) => { setSelectedId(r.id); setView('detail'); setDrawerKind('detail'); }}
+          empty={loadingTable ? <U.LoadingRows rows={7} cols={visibleColumns.length} /> : undefined}
         />
       )}
 

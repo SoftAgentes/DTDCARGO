@@ -6,7 +6,7 @@
 
 ---
 
-## 🟢 ESTADO ACTUAL · v1.8 (2026-05-31) — LEÉ ESTO PRIMERO
+## 🟢 ESTADO ACTUAL · v1.9 (2026-05-31) — LEÉ ESTO PRIMERO
 
 > Las secciones de "lo que falta" más abajo en este archivo son **históricas (v1.1)** y quedaron desactualizadas. **La fuente de verdad del estado real es `nuevo/CHANGELOG.md` + `PROMPT-proxima-sesion.md`.** Leé esos dos antes de tocar nada para no rehacer trabajo ya hecho.
 
@@ -20,6 +20,7 @@
 | **v1.5** | Validación MARKBOX server-side + email bienvenida real + cross-links cliente + **Cola de QR** con storage listener |
 | **v1.6** | **9 conexiones wireadas** (`nuevo/modules/wiring.jsx`): Adjuntar · Programar · Mi perfil · Cambiar contraseña · Atajos · **Generar BL** · OAuth · sync HS/AES · Actividad reciente clickeable · Mailing Logs |
 | **v1.8** | **Gestor de columnas reutilizable** (6 tablas) + **ROLE_MODULES** completo (permisos por rol) + fix crítico de render (`.erp-route`) + Logo Oficial 2 grupos |
+| **v1.9** | **5 pantallas nuevas** (perfil de usuario, Tu día, Modo cliente, hilo de comentario, AI Copilot) + **wiring** al ERP (topbar, menú usuario, tabla Usuarios, comentarios) |
 
 **Además se construyó (ver CHANGELOG para detalle):** concepto **Plataforma + Super Admin** (separado de Administrador de Tenant), **modo despacho** de contenedor + parciales, alertas de **cierre de contenedor / BL** a 50 CBM, **escaneo por grupo**, etiquetado de mercancía peligrosa/frágil/marca/licencia, **traducción 中文** de plataforma, módulo **Operarios PWA**, **Conciliación bancaria**, **Vault**, perfiles individuales (chofer/camión/agente).
 
@@ -171,7 +172,7 @@ Esperá confirmación antes de aplicar B.
 
 ## ❌ LO QUE FALTA DISEÑAR (pendiente para próxima sesión en Design)
 
-> **⚠️ HISTÓRICO v1.1 — DESACTUALIZADO.** Varios de los ítems de abajo **YA se construyeron** en v1.2–v1.8 (Cola de QR, Conciliación bancaria, Editor de Dashboard, perfiles individuales, feature flags reales, Generar BL, Adjuntar/Programar/OAuth, etc.). **No uses esta lista como pendientes reales** — consultá `nuevo/CHANGELOG.md` y la sección "PENDIENTES" de `PROMPT-proxima-sesion.md`. Se conserva solo como registro del estado en v1.1.
+> **⚠️ HISTÓRICO v1.1 — DESACTUALIZADO.** Varios de los ítems de abajo **YA se construyeron** en v1.2–v1.9 (Cola de QR, Conciliación bancaria, Editor de Dashboard, perfiles individuales, feature flags reales, Generar BL, Adjuntar/Programar/OAuth, etc.). **No uses esta lista como pendientes reales** — consultá `nuevo/CHANGELOG.md` y la sección "PENDIENTES" de `PROMPT-proxima-sesion.md`. Se conserva solo como registro del estado en v1.1.
 
 ### 🔴 Visuales que NO existen todavía
 

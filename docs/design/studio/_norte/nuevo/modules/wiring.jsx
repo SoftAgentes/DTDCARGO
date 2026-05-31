@@ -244,11 +244,36 @@
     const [phone, setPhone] = useState(user.phone || '+58 412 000-0000');
     const [saved, setSaved] = useState(false);
 
+    const saveProfile = () => {
+      try {
+        const u = window.__currentUser;
+        if (u) {
+          u.name = name; u.email = email; u.phone = phone;
+          const idx = D.USERS.findIndex(x => x.id === u.id);
+          if (idx >= 0) { D.USERS[idx].name = name; D.USERS[idx].email = email; D.USERS[idx].phone = phone; }
+          localStorage.setItem('dtd_user_override_' + u.id, JSON.stringify({ name, email, phone }));
+          window.dispatchEvent(new CustomEvent('dtd-user-updated', { detail: u.id }));
+        }
+      } catch (e) {}
+      setSaved(true); setTimeout(() => setSaved(false), 2000);
+    };
+
     const [pw1, setPw1] = useState('');
     const [pw2, setPw2] = useState('');
     const [pw3, setPw3] = useState('');
     const [pwSaved, setPwSaved] = useState(false);
     const pwOk = pw1.length >= 8 && pw2 === pw3 && pw2.length >= 12;
+
+    const [prefs, setPrefs] = useState(() => {
+      const def = { lang: 'es', density: 'compact', emailDigest: true, push: true, sound: false };
+      try { return { ...def, ...JSON.parse(localStorage.getItem('dtd_prefs') || '{}') }; } catch (e) { return def; }
+    });
+    const [prefsSaved, setPrefsSaved] = useState(false);
+    const setPref = (k, v) => setPrefs(p => ({ ...p, [k]: v }));
+    const savePrefs = () => {
+      try { localStorage.setItem('dtd_prefs', JSON.stringify(prefs)); window.dispatchEvent(new CustomEvent('dtd-prefs-changed', { detail: prefs })); } catch (e) {}
+      setPrefsSaved(true); setTimeout(() => setPrefsSaved(false), 2000);
+    };
 
     return (
       <U.Modal open onClose={onClose} title="Mi perfil" width={580}
@@ -276,7 +301,7 @@
             <U.Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
             <U.Input label="Teléfono" value={phone} onChange={(e) => setPhone(e.target.value)} mono />
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <U.Btn variant="primary" icon={I.check(13)} onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 1800); }}>Guardar cambios</U.Btn>
+              <U.Btn variant="primary" icon={I.check(13)} onClick={saveProfile}>Guardar cambios</U.Btn>
               {saved && <span style={{ font: '600 12px/1 var(--f-sans)', color: 'var(--success)' }}>{I.check(13)} Guardado</span>}
             </div>
           </div>
@@ -313,31 +338,35 @@
             <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
               Configurá notificaciones, idioma y densidad de la interfaz.
             </div>
-            <U.Select label="Idioma de la interfaz" defaultValue="es"
+            <U.Select label="Idioma de la interfaz" value={prefs.lang} onChange={(e) => setPref('lang', e.target.value)}
               options={[
                 { value: 'es', label: 'Español (rioplatense)' },
                 { value: 'en', label: 'English' },
                 { value: 'zh', label: '中文' },
               ]}
             />
-            <U.Select label="Densidad" defaultValue="compact"
+            <U.Select label="Densidad" value={prefs.density} onChange={(e) => setPref('density', e.target.value)}
               options={[
                 { value: 'compact', label: 'Compacta · más info en pantalla' },
                 { value: 'comfortable', label: 'Cómoda · más espacio' },
               ]}
             />
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, font: '600 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>
-              <input type="checkbox" defaultChecked style={{ accentColor: 'var(--wine)' }} />
+              <input type="checkbox" checked={prefs.emailDigest} onChange={(e) => setPref('emailDigest', e.target.checked)} style={{ accentColor: 'var(--wine)' }} />
               Notificaciones por email (resumen diario)
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, font: '600 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>
-              <input type="checkbox" defaultChecked style={{ accentColor: 'var(--wine)' }} />
+              <input type="checkbox" checked={prefs.push} onChange={(e) => setPref('push', e.target.checked)} style={{ accentColor: 'var(--wine)' }} />
               Push en el navegador para embarques críticos
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: 10, font: '600 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>
-              <input type="checkbox" style={{ accentColor: 'var(--wine)' }} />
+              <input type="checkbox" checked={prefs.sound} onChange={(e) => setPref('sound', e.target.checked)} style={{ accentColor: 'var(--wine)' }} />
               Sonido al recibir notificaciones
             </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <U.Btn variant="primary" icon={I.check(13)} onClick={savePrefs}>Guardar preferencias</U.Btn>
+              {prefsSaved && <span style={{ font: '600 12px/1 var(--f-sans)', color: 'var(--success)' }}>{I.check(13)} Guardado</span>}
+            </div>
           </div>
         )}
       </U.Modal>
@@ -559,6 +588,21 @@
       if (step === 2) {
         const t = setTimeout(() => setStep(3), 1800);
         return () => clearTimeout(t);
+      }
+    }, [step]);
+
+    // Al completar OAuth, configurar el proveedor de verdad (mock persistente)
+    useEffect(() => {
+      if (step === 3) {
+        try {
+          const p = window.ERPData.SMTP_PROVIDERS.find(x => x.id === provider);
+          if (p) {
+            const u = window.__currentUser || window.ERPData.USERS[0];
+            p.configured = true;
+            p.active = true;
+            p.account = p.account || (u && u.email) || 'usuario@dtdcargo.com';
+          }
+        } catch (e) {}
       }
     }, [step]);
 
