@@ -172,7 +172,7 @@ function Header({
             textTransform: "uppercase",
           }}
         >
-          Bodeguero · DTD
+          Almacenista · DTD
         </div>
         <div
           style={{

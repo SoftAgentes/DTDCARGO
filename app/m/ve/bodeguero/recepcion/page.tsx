@@ -17,7 +17,7 @@ import {
   type WarehouseReceiptVeStatus,
 } from "@/lib/studio/warehouse-receipt-ve-types";
 
-export const metadata = { title: "Recepción VE · Bodeguero" };
+export const metadata = { title: "Recepción VE · Almacenista" };
 export const dynamic = "force-dynamic";
 
 export default async function ReceptionListPage() {
