@@ -21,7 +21,7 @@ DTD-Cargo/
 ├── Brand Book DTD v3.0.html
 ├── Operario CN.html
 ├── Operario VE.html
-├── Bodeguero VE.html
+├── Almacenista VE.html
 ├── Operario Multi.html
 ├── Mobile ERP.html                    ← ⚠ Nuevo (v1.3) · vive en raíz por convención
 ├── erp/
@@ -35,7 +35,7 @@ DTD-Cargo/
 ├── operario/                          ← apps móviles para operarios
 │   ├── app.jsx                        ← Operario CN
 │   ├── ve.jsx                         ← Operario VE
-│   └── bodeguero.jsx
+│   └── almacenista.jsx
 └── portal/
     └── app.jsx                        ← Portal del Cliente
 ```

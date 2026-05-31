@@ -15,10 +15,10 @@ Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
 - Score 0–100 con motor de reglas; badges de prioridad por color
 - Badge Tier (Gold/Platinum) inline en cada paquete
 - Columna "Descripción mercancía" con HS + weight + volume para SENIAT
-- Modal de asignación al bodeguero: ruta + camión + chofer + validador de capacidad (peso/volumen) + resumen SENIAT por HS code
+- Modal de asignación al almacenista: ruta + camión + chofer + validador de capacidad (peso/volumen) + resumen SENIAT por HS code
 - Panel "Órdenes activas hoy" con status pills, progreso, capacity bars
 - Botón **Cancelar OD** por orden
-- Modal contactar camionero (Llamar / WhatsApp / Push)
+- Modal contactar transportista (Llamar / WhatsApp / Push)
 - Job de geocoding sintético al hacer click en KPI "Sin coordenadas"
 
 ### 2 · Reglas de prioridad (Vista 2)
@@ -34,22 +34,22 @@ Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
 - Selector de tenant per-tenant
 - Renames: "Pesos" → **Puntos** · "Pago parcial" → **Abono** · "Carga parcial" → **Carga fraccionada**
 
-### 3 · Bodeguero móvil (Vista 3)
-`operario/bodeguero-despacho.jsx` · standalone `Despacho · Vista 3.html`
+### 3 · Almacenista móvil (Vista 3)
+`operario/almacenista-despacho.jsx` · standalone `Despacho · Vista 3.html`
 
-- **Role picker** al login (Bodeguero / Camionero)
-- **Home del bodeguero** post-cierre con resumen de última OD + 2 sub-modos
+- **Role picker** al login (Almacenista / Transportista)
+- **Home del almacenista** post-cierre con resumen de última OD + 2 sub-modos
 - **Modo Despachar al camión** (LIFO): banner ruta + timeline de ciudades + cola priorizada por ciudad
 - **Modo Recibir mercancía**: selector tipo (mono-cliente / LCL) → lista de contenedores ordenada (sin abrir → en curso → completado) → detalle del contenedor seleccionado
 - **Demo escáner**: cámara mock con reticle, animación scan, detección de MARKBOX a los ~2.4s, actualiza packing list, auto-cierra
 - Card de paquete actual con bloque SENIAT (HS + AES + descripción)
 - Carga fraccionada (P1/P2) con modal de split, badges, sección "Próximo viaje" en bodega
-- Botón "Cerrar carga · entregar al camionero" cuando termina el viaje
+- Botón "Cerrar carga · entregar al transportista" cuando termina el viaje
 - Toggle light/dark + modo "Comparar light + dark" en wrapper
 - Banner "OD recibida desde admin" cuando el bridge está activo
 
 ### 4 · Transportista móvil
-`operario/camionero.jsx` · standalone `Camionero.html`
+`operario/transportista.jsx` · standalone `Transportista.html`
 
 - Banner ruta del día asignada + camión + chofer
 - GPS block con switch + animación pulse + push notification overlay si se apaga
@@ -58,7 +58,7 @@ Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
 - Botones Llamar (tel:) + WhatsApp (wa.me)
 - Modal POD bottom-sheet con foto + firma; confirmar entrega habilitado solo cuando ambos completos
 - Lista de próximas entregas + entregadas
-- Banner "OD recibida desde bodeguero" cuando el bridge está activo
+- Banner "OD recibida desde almacenista" cuando el bridge está activo
 
 ### 5 · Admin → Administrar rutas (módulo nuevo)
 `erp/modules/admin-routes.jsx` · standalone `Admin · Rutas.html`
@@ -83,7 +83,7 @@ Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
 `erp/od-bridge.jsx`
 
 - Helper `window.DTDBridge` con `publish()` · `advance()` · `cancel()` · `reassign()` · `subscribe()` · `reset()`
-- Pipeline localStorage compartido entre Admin · Bodeguero · Camionero
+- Pipeline localStorage compartido entre Admin · Almacenista · Transportista
 - Polling 1.5s como fallback al evento `storage` (que no dispara en mismo tab)
 - Sincronización del ciclo: creada → cargando → lista → en-ruta → entregada → cerrada · más cancelada
 
@@ -111,7 +111,7 @@ Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
 Bridge construido + integrado en Vista 1 admin (publish + cancel). Falta cerrar:
 
 - ⚠ Cargar `od-bridge.jsx` en los 3 HTML standalone (path con `·` dio problemas en script automático)
-- ⚠ Wire subscribe en bodeguero + camionero (parcial · banner agregado pero no consumo de OD real)
+- ⚠ Wire subscribe en almacenista + transportista (parcial · banner agregado pero no consumo de OD real)
 
 Estos 3 puntos se cierran en 5 minutos manualmente o en próxima sesión.
 
@@ -124,9 +124,9 @@ Estos 3 puntos se cierran en 5 minutos manualmente o en próxima sesión.
 | Pesos del motor | Puntos por regla | Más obvio para no-técnicos |
 | Pago parcial | Abono | No confundir con Carga parcial |
 | Carga parcial | Carga fraccionada | Diferenciar del pago |
-| Paradas (en bodeguero) | Ciudades | Operativo más claro |
+| Paradas (en almacenista) | Ciudades | Operativo más claro |
 | Paradas (en Admin Rutas) | Ciudades intermedias | Consistencia |
-| Cargar al camión / Despachar (FIFO) | Despachar / Recibir mercancía | Refleja los 2 sub-modos reales del bodeguero |
+| Cargar al camión / Despachar (FIFO) | Despachar / Recibir mercancía | Refleja los 2 sub-modos reales del almacenista |
 
 ---
 
@@ -138,22 +138,22 @@ erp/modules/despacho-rules.jsx
 erp/modules/admin-routes.jsx
 erp/modules/venezuela-catalog.jsx
 erp/od-bridge.jsx
-operario/bodeguero-despacho.jsx
-operario/camionero.jsx
+operario/almacenista-despacho.jsx
+operario/transportista.jsx
 
 Despacho · Vista 1.html
 Despacho · Vista 2.html
 Despacho · Vista 3.html
 Admin · Rutas.html
-Camionero.html
+Transportista.html
 ```
 
 ---
 
 ## 📋 Pendientes para próxima sesión (mi lista)
 
-1. Cerrar pipeline bridge (3 cargas de `<script>` + wire bodeguero/camionero al state real)
-2. POD del camionero → marca OD entregada automáticamente en admin (vía bridge)
+1. Cerrar pipeline bridge (3 cargas de `<script>` + wire almacenista/transportista al state real)
+2. POD del transportista → marca OD entregada automáticamente en admin (vía bridge)
 3. Sidebar del ERP reorganizado en grupos (Comercial / Operaciones / Finanzas / Contenidos / Sistema)
 4. Registrar módulo Despacho en `ERPShell.MODULES` para que aparezca en sidebar
 5. Carga fraccionada P2 genera 2da OD automática
@@ -167,11 +167,11 @@ Camionero.html
 
 ## 🎯 Lo más valioso construido en la sesión
 
-1. **Flujo end-to-end del módulo Despacho** desde admin → bodeguero → camionero, con role-aware UIs separadas
+1. **Flujo end-to-end del módulo Despacho** desde admin → almacenista → transportista, con role-aware UIs separadas
 2. **Motor de reglas configurable** con presets, anclajes y previsualización en vivo
 3. **Datos reales venezolanos** (IPOSTEL, estados, municipios) que estructuran direcciones para geocoding futuro
 4. **Carga fraccionada** como mecánica operativa explícita
-5. **SENIAT compliance** visible en bodeguero + camionero
+5. **SENIAT compliance** visible en almacenista + transportista
 6. **Demo del escáner** funcional para reuniones de venta
 7. **Patrón de cards plegables** (Stripe/Linear) reutilizable en cualquier futuro módulo de reglas
 
@@ -181,12 +181,12 @@ Camionero.html
 
 ### Críticos completados después del changelog inicial
 
-**1 · POD transportista → OD entregada automática** (`operario/camionero.jsx`)
+**1 · POD transportista → OD entregada automática** (`operario/transportista.jsx`)
 - Cuando el chofer marca la última entrega como POD, llama `DTDBridge.advance(id, 'entregada')`
 - El admin ve la OD pasar a 'entregada' en su panel sin tocar nada
 
-**2 · P2 fraccionada genera 2da OD automática** (`operario/bodeguero-despacho.jsx`)
-- Cuando bodeguero cierra carga y hay paquetes en "Próximo viaje", el `BridgeCloseHook` avanza la OD actual a 'lista' y publica una OD-V2 nueva con status 'creada' (sin camión/chofer asignado)
+**2 · P2 fraccionada genera 2da OD automática** (`operario/almacenista-despacho.jsx`)
+- Cuando almacenista cierra carga y hay paquetes en "Próximo viaje", el `BridgeCloseHook` avanza la OD actual a 'lista' y publica una OD-V2 nueva con status 'creada' (sin camión/chofer asignado)
 - El admin la ve aparecer en "Órdenes activas" para asignarle recursos cuando esté listo el próximo viaje
 
 **3 · Despacho registrado en sidebar del ERP real**
@@ -199,7 +199,7 @@ Camionero.html
 
 - 3 pasos + confirmación: Datos → Dirección VE → Confirmar → Éxito
 - Step 1: tipo persona/empresa · nombre · cédula/RIF · foto identidad · email · teléfono + WhatsApp toggle
-- Step 2: Estado → Municipio → Ciudad → Barrio en cascada usando `window.VECatalog`, auto-fill de código postal, dirección detallada, punto de referencia, **foto fachada** (que luego usa el camionero)
+- Step 2: Estado → Municipio → Ciudad → Barrio en cascada usando `window.VECatalog`, auto-fill de código postal, dirección detallada, punto de referencia, **foto fachada** (que luego usa el transportista)
 - Step 3: review completo de datos
 - Step 4 éxito: MARKBOX generado random (`DTD-XXXX`) en card wine destacada
 - Mensaje "Bienvenido a la familia de DoorTuDoor Cargo"
@@ -212,8 +212,8 @@ Camionero.html
 - Email preview con mención de la guía adjunta
 
 ### Pipeline bridge cerrado
-- `od-bridge.jsx` cargado en los 3 HTML standalone (Vista 1, Vista 3, Camionero)
-- Bodeguero y Camionero suscritos al bridge con `useEffect` + banners verdes "OD recibida"
+- `od-bridge.jsx` cargado en los 3 HTML standalone (Vista 1, Vista 3, Transportista)
+- Almacenista y Transportista suscritos al bridge con `useEffect` + banners verdes "OD recibida"
 - Polling 1.5s como fallback al evento `storage`
 - Admin: botón **Cancelar OD** en cada card de OD activa con `window.confirm` antes de cancelar
 
@@ -231,15 +231,15 @@ erp/modules/despacho-rules.jsx
 erp/modules/admin-routes.jsx
 erp/modules/venezuela-catalog.jsx
 erp/od-bridge.jsx
-operario/bodeguero-despacho.jsx
-operario/camionero.jsx
+operario/almacenista-despacho.jsx
+operario/transportista.jsx
 portal/registro.jsx               ← NUEVO
 
 Despacho · Vista 1.html
 Despacho · Vista 2.html
 Despacho · Vista 3.html
 Admin · Rutas.html
-Camionero.html
+Transportista.html
 Registro Cliente.html             ← NUEVO
 
 CHANGELOG-sesion.md
@@ -305,7 +305,7 @@ CHANGELOG-sesion.md
 - Banner explicativo sobre scraping server-side
 
 ### Renames consolidados
-- Camionero → **Transportista** (display only · archivos siguen camionero.jsx)
+- Transportista → **Transportista** (display only · archivos siguen transportista.jsx)
 
 ---
 
