@@ -206,7 +206,7 @@ const toneOf = (st) =>
 let built = 0, wip = 0, design = 0, total = 0;
 
 const sections = GROUPS.map((g) => {
-  let gB = 0, gW = 0, gD = 0, gT = 0, gErp = 0;
+  let gB = 0, gW = 0, gT = 0, gErp = 0;
   const cards = g.screens
     .map((s) => {
       const present = screenPresent(s.file);
@@ -216,7 +216,7 @@ const sections = GROUPS.map((g) => {
       } else {
         if (st.cls === "built") { built++; gB++; }
         else if (st.cls === "wip") { wip++; gW++; }
-        else if (st.cls === "design") { design++; gD++; }
+        else if (st.cls === "design") { design++; }
         if (st.cls !== "brand") { total++; gT++; }
       }
 
