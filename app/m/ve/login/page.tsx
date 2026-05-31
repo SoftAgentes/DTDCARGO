@@ -113,7 +113,7 @@ export default function OperarioVeLoginPage() {
               letterSpacing: "-0.025em",
             }}
           >
-            Bodeguero o transportista
+            Almacenista o transportista
           </h1>
           <p
             style={{
