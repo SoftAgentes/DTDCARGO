@@ -585,7 +585,7 @@ function OdDetail({
             textAlign: "center",
           }}
         >
-          ✓ Todos los paquetes marcados · esperando POD final del camionero.
+          ✓ Todos los paquetes marcados · esperando POD final del transportista.
         </div>
       )}
 
