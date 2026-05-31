@@ -39,7 +39,7 @@ Respuestas en `init` (las importantes):
 
 | Pregunta | Valor |
 |---|---|
-| **Application ID / package** | `com.dtdcargo.operario` ⚠️ *exacto* (lo espera el assetlinks del repo) |
+| **Application ID / package** | `com.dtdcargo.twa` ⚠️ *exacto* (lo espera el assetlinks del repo) |
 | Host | `dtdcargo.com` |
 | Start URL | `/m/cn` (o `/m/ve/login` si querés un APK para VE — ver §5) |
 | Launcher name | `DTD Operario` |
@@ -62,34 +62,21 @@ por `.gitignore`, pero verificá).
 
 ## 2. Habilitar pantalla completa (Digital Asset Links)
 
-Sin esto el APK abre la PWA **con barra de URL** (modo Custom Tab). Para que abra
-chromeless hay que publicar el fingerprint del keystore en
-`/.well-known/assetlinks.json` — el repo ya sirve ese endpoint desde
-[`app/api/well-known/assetlinks/route.ts`](../../app/api/well-known/assetlinks/route.ts),
-solo necesita la env var.
+El repo sirve `/.well-known/assetlinks.json` desde
+[`app/api/well-known/assetlinks/route.ts`](../../app/api/well-known/assetlinks/route.ts)
+con el **package name** (`com.dtdcargo.twa`) y el **fingerprint del APK actual
+horneados por default**. O sea: tras deployar, el endpoint ya devuelve el JSON
+correcto y el APK abre chromeless. **No hay que setear nada en Vercel.**
 
-1. Obtené el fingerprint SHA-256 del keystore:
-   ```bash
-   keytool -list -v -keystore android.keystore -alias android | grep SHA256
-   # → SHA256: AA:BB:CC:...:FF
-   ```
-   (bubblewrap también lo imprime al final del `build`.)
+Verificá:
+```bash
+curl https://dtdcargo.com/.well-known/assetlinks.json
+# Debe devolver package_name com.dtdcargo.twa + el fingerprint del APK.
+```
 
-2. En **Vercel → Project → Settings → Environment Variables** (Production):
-   ```
-   DTD_ANDROID_CERT_SHA256 = AA:BB:CC:...:FF
-   ```
-   Coma-separado si tenés más de una llave (debug + release).
-
-3. Redeploy. Verificá:
-   ```bash
-   curl https://dtdcargo.com/.well-known/assetlinks.json
-   # Debe devolver el JSON con package_name com.dtdcargo.operario y tu fingerprint.
-   ```
-
-> El `package_name` está hardcodeado en el route handler como
-> `com.dtdcargo.operario`. Si cambiás el package en `bubblewrap init`, actualizá
-> también esa constante.
+Solo si **rotás el keystore** (APK nuevo con otra firma): actualizá el
+fingerprint vía env `DTD_ANDROID_CERT_SHA256` en Vercel (coma-separado para
+varias llaves), o editá `DEFAULT_SHA256` / `PACKAGE_NAME` en el route handler.
 
 ---
 
