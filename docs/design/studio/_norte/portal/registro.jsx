@@ -283,7 +283,7 @@
 
         <SectionLabel>Foto de la fachada (opcional pero útil)</SectionLabel>
         <PhotoUpload value={data.photoFachada} onChange={(v) => update({ photoFachada: v })}
-        label="Subí una foto de la entrada de tu casa o local · ayuda al camionero a encontrarte rápido" />
+        label="Subí una foto de la entrada de tu casa o local · ayuda al transportista a encontrarte rápido" />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8 }}>
           <U.Btn variant="ghost" size="lg" onClick={onBack} icon={I.arrowL(14)}>Volver</U.Btn>

@@ -85,7 +85,7 @@ function MultiApp() {
           <div style={{ font: '700 10px/1', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>¿QUÉ HACÉS HOY?</div>
           <div style={{ font: '500 13px/1.4', color: 'var(--ink-soft)', marginBottom: 18 }}>Elegí un modo. Cambiás cuando quieras desde el menú.</div>
 
-          {/* Bodeguero */}
+          {/* Almacenista */}
           <button onClick={() => setStep('bodega')} style={{
             width: '100%', padding: 20, marginBottom: 12,
             background: 'linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)',
@@ -95,7 +95,7 @@ function MultiApp() {
             <div style={{ width: 64, height: 64, borderRadius: 'var(--r-md)', background: 'rgba(216,154,164,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, flexShrink: 0 }}>📦</div>
             <div style={{ flex: 1 }}>
               <div style={{ font: '700 9.5px/1', color: 'var(--wine-soft)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>MODO BODEGA</div>
-              <div style={{ font: '900 20px/1.1', color: '#fff', letterSpacing: '-0.02em', marginTop: 6 }}>Soy bodeguero</div>
+              <div style={{ font: '900 20px/1.1', color: '#fff', letterSpacing: '-0.02em', marginTop: 6 }}>Soy almacenista</div>
               <div style={{ font: '500 12px/1.4', color: 'rgba(255,255,255,0.7)', marginTop: 6 }}>Recibir contenedor · armar camión · escanear cajas</div>
               <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <Pill bg="rgba(255,255,255,0.12)" color="#fff">2 contenedores hoy</Pill>
@@ -155,7 +155,7 @@ function MultiApp() {
           <button onClick={() => setStep('picker')} style={{ width: 36, height: 36, color: 'var(--ink-soft)', fontSize: 18 }}>←</button>
           <div style={{ flex: 1 }}>
             <div style={{ font: '900 15px/1.1', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Mi día · {isB ? 'Bodega' : 'Chofer'}</div>
-            <div style={{ font: '500 10.5px/1.2', color: 'var(--ink-soft)', marginTop: 3 }}>{isB ? 'PFI · Bodeguero' : 'AG991QM · Chofer'}</div>
+            <div style={{ font: '500 10.5px/1.2', color: 'var(--ink-soft)', marginTop: 3 }}>{isB ? 'PFI · Almacenista' : 'AG991QM · Chofer'}</div>
           </div>
           <span style={{ padding: '4px 9px', borderRadius: 999, background: isB ? 'rgba(216,154,164,0.2)' : 'var(--wine-tint)', color: isB ? '#1F3055' : 'var(--wine)', font: '700 10px/1', letterSpacing: '0.12em' }}>{isB ? '📦 BODEGA' : '🚛 CHOFER'}</span>
         </header>

@@ -71,7 +71,7 @@ DTD-Cargo/
 ├── Portal del Cliente.html         · Portal externo (cliente)
 ├── Operario CN.html                · Mobile recepción China
 ├── Operario VE.html                · Mobile chofer Venezuela
-├── Bodeguero VE.html               · Mobile bodega Venezuela
+├── Almacenista VE.html               · Mobile bodega Venezuela
 ├── Operario Multi.html             · Mobile multi-rol
 ├── erp/
 │   ├── tokens.css                  · Design tokens (light + dark) · NO TOCAR
@@ -84,7 +84,7 @@ DTD-Cargo/
 ├── operario/
 │   ├── app.jsx                     · Operario CN
 │   ├── ve.jsx                      · Operario VE
-│   └── bodeguero.jsx               · Bodeguero VE
+│   └── almacenista.jsx               · Almacenista VE
 └── portal/
     └── app.jsx                     · Portal del Cliente
 ```
@@ -130,7 +130,7 @@ Esperá confirmación antes de aplicar B.
 - `Brand Book DTD v3.0.html` — manual de marca
 - `Operario CN.html` — app móvil recepción China
 - `Operario VE.html` — app móvil chofer Venezuela
-- `Bodeguero VE.html` — app móvil bodega Venezuela
+- `Almacenista VE.html` — app móvil bodega Venezuela
 - `Operario Multi.html` — app móvil multi-rol
 
 ### Módulos del ERP (con diseño completo)
@@ -159,7 +159,7 @@ Esperá confirmación antes de aplicar B.
 ### Apps móviles (con flow completo)
 - Operario CN: recepción + fotos + HS detector + traductor + QR print
 - Operario VE: carga + GPS + docs + firma + POD + parciales
-- Bodeguero VE: recibir contenedor + armar camión + WhatsApp a externos
+- Almacenista VE: recibir contenedor + armar camión + WhatsApp a externos
 - Operario Multi: picker + previews de modos
 
 ### Cross-módulo

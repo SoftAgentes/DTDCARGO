@@ -671,7 +671,7 @@ function ReceptionForm() {
           onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
         />
         <div style={{ marginTop: 6, font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
-          {window.Icon.info(11)} Esta descripción viaja con la caja a lo largo de toda la cadena: aduana CN/VE · bodeguero · camionero · cliente. Sé específico.
+          {window.Icon.info(11)} Esta descripción viaja con la caja a lo largo de toda la cadena: aduana CN/VE · almacenista · transportista · cliente. Sé específico.
         </div>
       </div>
 

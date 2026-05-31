@@ -1,9 +1,9 @@
 /* global React */
-/* ── DTD · Bodeguero VE · Mobile (arma camiones) ────────────── */
+/* ── DTD · Almacenista VE · Mobile (arma camiones) ────────────── */
 
 const { useState, useEffect } = React;
 
-function BodegueroApp() {
+function AlmacenistaApp() {
   const [view, setView] = useState('login');
   const [user, setUser] = useState(null);
   const [theme, setTheme] = useState('light');
@@ -563,7 +563,7 @@ function Handoff({ truck, driver, loadout, onDone }) {
   );
 }
 
-window.BodegueroApp = BodegueroApp;
+window.AlmacenistaApp = AlmacenistaApp;
 
 // ── Reception list ─────────────────────────────────
 function ReceptionList({ onPick, onBack }) {
