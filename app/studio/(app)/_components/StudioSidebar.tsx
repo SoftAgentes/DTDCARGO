@@ -70,6 +70,7 @@ export const MODULES: ModuleDef[] = [
   { id: "rates", group: "COMERCIAL", label: "Tarifas", labelKey: "chrome.sidebar.rates", icon: "tag", slug: "/studio/tarifas" },
 
   // FINANZAS
+  { id: "expenses", group: "FINANZAS", label: "Gastos", labelKey: "chrome.sidebar.expenses", icon: "calc", slug: "/studio/gastos" },
   { id: "invoices", group: "FINANZAS", label: "Facturación", labelKey: "chrome.sidebar.invoices", icon: "invoice", slug: "/studio/facturacion" },
   { id: "documents", group: "FINANZAS", label: "Documentos", labelKey: "chrome.sidebar.documents", icon: "doc", slug: "/studio/documentos" },
   { id: "reports", group: "FINANZAS", label: "Reportes", labelKey: "chrome.sidebar.reports", icon: "chart", slug: "/studio/reportes" },
@@ -102,9 +103,14 @@ type OpenGroups = Partial<Record<Group, boolean>>;
 interface Props {
   /** Feature flags del tenant · sidebar oculta módulos cuyo flag esté OFF. */
   featureFlags?: FeatureFlags;
+  /** Alertas de gastos activas (badge en el item "Gastos"). */
+  expenseAlertCount?: number;
 }
 
-export function StudioSidebar({ featureFlags }: Props = {}) {
+export function StudioSidebar({
+  featureFlags,
+  expenseAlertCount = 0,
+}: Props = {}) {
   const pathname = usePathname();
   const t = useT();
   // Fallback a defaults del handoff si el layout no pasó flags (SSR / tests).
@@ -351,6 +357,26 @@ export function StudioSidebar({ featureFlags }: Props = {}) {
                       }}
                     >
                       {moduleLabel}
+                    </span>
+                  )}
+                  {!collapsed && m.id === "expenses" && expenseAlertCount > 0 && (
+                    <span
+                      aria-label={`${expenseAlertCount}`}
+                      style={{
+                        minWidth: 18,
+                        height: 18,
+                        padding: "0 5px",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: 9,
+                        background: "var(--warning)",
+                        color: "var(--ink)",
+                        font: "800 10px/1 var(--f-mono)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {expenseAlertCount}
                     </span>
                   )}
                 </Link>

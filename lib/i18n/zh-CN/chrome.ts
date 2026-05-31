@@ -40,6 +40,7 @@ export const chrome: ChromeDict = {
   "chrome.drawer.cancel": "取消",
   "chrome.drawer.close": "关闭",
   "chrome.drawer.aria_close": "关闭面板",
+  "chrome.drawer.submitting": "创建中…",
 
   // ── Estados de form ──────────────────────────────────────
   "chrome.form.required": "此字段为必填项。",
@@ -101,6 +102,7 @@ export const chrome: ChromeDict = {
   // Fallback module labels
   "chrome.module.settings": "设置",
   "chrome.module.studio": "DTD Studio",
+  "chrome.module.general": "通用",
 
   // ── Topbar ───────────────────────────────────────────────
   "chrome.topbar.module": "模块",
@@ -126,6 +128,8 @@ export const chrome: ChromeDict = {
   "chrome.toast.success": "完成",
   "chrome.toast.error": "出现错误",
   "chrome.toast.dismiss": "关闭",
+  "chrome.toast.region_aria": "Studio 通知",
+  "chrome.toast.dismiss_aria": "关闭通知",
 
   // ── Badges de status comunes ─────────────────────────────
   "chrome.badge.pending": "待处理",

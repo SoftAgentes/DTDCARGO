@@ -35,6 +35,7 @@ export const chrome = {
   "chrome.drawer.cancel": "Cancelar",
   "chrome.drawer.close": "Cerrar",
   "chrome.drawer.aria_close": "Cerrar panel",
+  "chrome.drawer.submitting": "Creando…",
 
   // ── Estados de form ──────────────────────────────────────
   "chrome.form.required": "Este campo es requerido.",
@@ -96,6 +97,7 @@ export const chrome = {
   // Fallback module labels (pathToModuleLabel)
   "chrome.module.settings": "Ajustes",
   "chrome.module.studio": "DTD Studio",
+  "chrome.module.general": "General",
 
   // ── Topbar ───────────────────────────────────────────────
   "chrome.topbar.module": "Módulo",
@@ -121,6 +123,8 @@ export const chrome = {
   "chrome.toast.success": "Listo",
   "chrome.toast.error": "Algo salió mal",
   "chrome.toast.dismiss": "Cerrar",
+  "chrome.toast.region_aria": "Notificaciones del Studio",
+  "chrome.toast.dismiss_aria": "Cerrar notificación",
 
   // ── Badges de status comunes ─────────────────────────────
   "chrome.badge.pending": "Pendiente",

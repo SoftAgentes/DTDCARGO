@@ -9,6 +9,7 @@
  */
 
 import { Icon } from "@/app/studio/_components/icons";
+import { useT } from "@/lib/i18n";
 
 export function DrawerShell({
   title,
@@ -17,6 +18,7 @@ export function DrawerShell({
   pending,
   children,
   width = 620,
+  closeLabel,
 }: {
   title: string;
   subtitle?: string;
@@ -24,7 +26,10 @@ export function DrawerShell({
   pending: boolean;
   children: React.ReactNode;
   width?: number;
+  /** aria-label del botón cerrar. Default: traducido `chrome.action.close`. */
+  closeLabel?: string;
 }) {
+  const t = useT();
   return (
     <div
       onClick={() => !pending && onClose()}
@@ -86,7 +91,7 @@ export function DrawerShell({
             type="button"
             onClick={onClose}
             disabled={pending}
-            aria-label="Cerrar"
+            aria-label={closeLabel ?? t("chrome.action.close")}
             style={{
               width: 32,
               height: 32,
@@ -114,13 +119,20 @@ export function DrawerFooter({
   isPending,
   canSubmit,
   submitLabel,
+  cancelLabel,
+  pendingLabel,
 }: {
   formId: string;
   onClose: () => void;
   isPending: boolean;
   canSubmit: boolean;
   submitLabel: string;
+  /** Texto del botón cancelar. Default: traducido `chrome.action.cancel`. */
+  cancelLabel?: string;
+  /** Texto del submit mientras isPending. Default: traducido `chrome.drawer.submitting`. */
+  pendingLabel?: string;
 }) {
+  const t = useT();
   return (
     <footer
       style={{
@@ -139,7 +151,7 @@ export function DrawerFooter({
         onClick={onClose}
         disabled={isPending}
       >
-        Cancelar
+        {cancelLabel ?? t("chrome.action.cancel")}
       </button>
       <button
         type="submit"
@@ -147,7 +159,7 @@ export function DrawerFooter({
         className="studio-btn studio-btn-primary"
         disabled={isPending || !canSubmit}
       >
-        {isPending ? "Creando…" : submitLabel}
+        {isPending ? (pendingLabel ?? t("chrome.drawer.submitting")) : submitLabel}
       </button>
     </footer>
   );

@@ -29,7 +29,8 @@ import type {
   WarehouseReceiptItemInput,
 } from "@/lib/studio/warehouse-cn-types";
 import type { Client } from "@/lib/studio/client-types";
-import { useT, resolveErrorMessage } from "@/lib/i18n";
+import { useT } from "@/lib/i18n";
+import { ErrorAlert } from "@/app/studio/_components/ui/ErrorAlert";
 
 interface Props {
   warehouses: WarehouseCN[];
@@ -708,26 +709,7 @@ export function NewReceiptDrawer({ warehouses, clients, onClose }: Props) {
             />
           </div>
 
-          {(() => {
-            const msg = resolveErrorMessage(t, state);
-            if (!msg) return null;
-            return (
-              <p
-                role="alert"
-                style={{
-                  font: "500 12px/1.4 var(--f-sans)",
-                  color: "var(--danger)",
-                  margin: 0,
-                  padding: "10px 12px",
-                  background: "var(--danger-bg)",
-                  border: "1px solid var(--danger)",
-                  borderRadius: "var(--r-sm)",
-                }}
-              >
-                {msg}
-              </p>
-            );
-          })()}
+          <ErrorAlert state={state} />
 
           <div style={{ flex: 1, minHeight: 12 }} />
         </form>

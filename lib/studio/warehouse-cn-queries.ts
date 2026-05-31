@@ -97,6 +97,7 @@ export async function listWarehouses(
 export async function listReceipts(
   supabase: SupabaseClient,
   filters: ReceiptFilters = {},
+  opts: { redactClientNames?: boolean } = {},
 ): Promise<WarehouseReceiptRow[]> {
   let query = supabase
     .from("warehouse_receipts_cn")
@@ -178,6 +179,10 @@ export async function listReceipts(
       .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
     return {
       ...r,
+      // Privacidad (SDD-0039 B.9): a users region=cn no se les envía el nombre
+      // real del importador VE — solo el MARKBOX. Redacción server-side (no se
+      // confía en hide-en-cliente).
+      client_name: opts.redactClientNames ? null : r.client_name,
       warehouse: wh ?? {
         code: "—",
         hub_code: "—",
