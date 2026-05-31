@@ -104,6 +104,18 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async rewrites() {
+    return [
+      // Digital Asset Links del TWA operario. Android lo busca en
+      // /.well-known/assetlinks.json; lo servimos desde un route handler que
+      // lee el fingerprint SHA-256 de env (sin rebuild). Ver
+      // app/api/well-known/assetlinks + docs/runbooks/setup-android-apk.md.
+      {
+        source: "/.well-known/assetlinks.json",
+        destination: "/api/well-known/assetlinks",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
