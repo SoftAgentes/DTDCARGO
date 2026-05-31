@@ -55,8 +55,14 @@ docs/operaciones/*.xlsx
 _handoff_preview/
 BANDBOOK V1/
 
-# Planes locales de Claude — work-in-progress, no necesitan commit
-.claude/
+# Config local de Claude. El harness del proyecto (agentes + skills) SÍ se versiona;
+# settings/planes locales quedan fuera.
+.claude/*
+!.claude/agents/
+!.claude/agents/**
+!.claude/commands/
+!.claude/commands/**
+!.claude/settings.json
 
 # ─── Design handoffs · binarios grandes (no van al repo) ──────
 # Los standalones HTML del brand book tienen base64 embebido (>5MB c/u).
@@ -75,3 +81,16 @@ docs/design/studio/*/project/Brand Book v3.0 Package/
 # Material interno de planning del founder (mockups, roadmaps, draft docs)
 # que no va al repo público ni a producción.
 CoWork/
+
+# ─── Norte visual · handoff vigente de Cloud Design (protocolo NORTE-SYNC) ──────
+# El mockup en código (HTML/JSX/CSS/MD) SÍ va a git: liviano y permite `git diff`.
+# Lo pesado/ruido queda FUERA (no infla el repo): capturas de referencia,
+# screenshots de trabajo, paquete de marca embebido y el índice generado.
+docs/design/studio/_norte/uploads/
+docs/design/studio/_norte/scraps/
+docs/design/studio/_norte/Brand Book v3.0 Package/
+docs/design/studio/_norte/_norte.html
+
+# Harness: el progreso efímero (coordinación entre agentes) NO va a git; la historia vive en git log.
+# El resto del harness (CHECKPOINTS.md, config) SÍ se versiona.
+.harness/progress/

@@ -16,7 +16,8 @@
     "test:e2e:ui": "playwright test --ui",
     "seed": "tsx scripts/seed.ts",
     "docs:index": "node scripts/build-docs-index.mjs",
-    "docs:check": "node scripts/build-docs-index.mjs --check"
+    "docs:check": "node scripts/build-docs-index.mjs --check",
+    "verify": "node scripts/verify.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
