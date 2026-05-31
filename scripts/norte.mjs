@@ -66,8 +66,8 @@ const GROUPS = [
       { name: "Operario CN", file: "Operario CN.html", code: "app/m/cn", sdd: "0016" },
       { name: "Operario VE", file: "Operario VE.html", code: "app/m/ve", sdd: "0017" },
       { name: "Operario Multi", file: "Operario Multi.html", code: "app/m", sdd: "0030" },
-      { name: "Bodeguero VE", file: "Bodeguero VE.html", code: "app/m/ve/bodeguero", sdd: "0030" },
-      { name: "Camionero", file: "Camionero.html", code: "app/m/ve/camionero", sdd: "0030" },
+      { name: "Almacenista VE", file: "Almacenista VE.html", code: "app/m/ve/bodeguero", sdd: "0030" },
+      { name: "Transportista", file: "Transportista.html", code: "app/m/ve/camionero", sdd: "0030" },
     ],
   },
   {
