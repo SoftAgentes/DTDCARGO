@@ -203,7 +203,7 @@ function Header({
             textTransform: "uppercase",
           }}
         >
-          Camionero · DTD
+          Transportista · DTD
         </div>
         <div
           style={{

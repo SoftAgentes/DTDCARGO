@@ -115,7 +115,7 @@ export function validateCamioneroAdvanceInput(
   const od_id = input.od_id?.trim();
   if (!od_id) errors.od_id = "Falta el ID de la OD.";
   if (!input.status || !CAMIONERO_ALLOWED.includes(input.status)) {
-    errors.status = "Status inválido para camionero.";
+    errors.status = "Status inválido para transportista.";
   }
   let progress = input.progress;
   if (progress != null) {
