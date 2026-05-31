@@ -62,6 +62,7 @@ BANDBOOK V1/
 !.claude/agents/**
 !.claude/commands/
 !.claude/commands/**
+!.claude/settings.json
 
 # ─── Design handoffs · binarios grandes (no van al repo) ──────
 # Los standalones HTML del brand book tienen base64 embebido (>5MB c/u).
