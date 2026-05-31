@@ -26,6 +26,9 @@
 *.pem
 Thumbs.db
 
+# editor (config local, no se versiona)
+.vscode/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
