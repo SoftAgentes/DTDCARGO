@@ -333,8 +333,14 @@ const html = `<!doctype html>
   header .recent .dot.design { background: var(--on-navy-mute); }
 
   main { max-width: 1100px; margin: 0 auto; padding: 28px 32px 64px; }
-  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; font-size: 13px; color: var(--ink-soft); }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 24px; font-size: 13px; color: var(--ink-soft); }
   .legend .badge { margin-right: 6px; }
+  .legend-hint { font: 600 11px/1 'Archivo'; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-mute); }
+  .legend-item { appearance: none; background: none; border: 0; margin: 0; padding: 4px 8px; border-radius: 6px;
+    font: inherit; color: inherit; text-align: left; cursor: pointer; transition: opacity .12s ease, background .12s ease; }
+  .legend-item:hover { background: #F2F0EC; }
+  .legend-item.off { opacity: .38; }
+  .legend-item.off .badge { filter: grayscale(.55); }
 
   .group { margin-bottom: 32px; }
   .group h2 { font: 800 16px/1.2 'Archivo'; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
@@ -397,14 +403,36 @@ ${recentBlock}
 </header>
 <main>
   <div class="legend">
-    <span><span class="badge built">✅ Construido</span> SDD cerrado o aprobado con código</span>
-    <span><span class="badge wip">🚧 En construcción</span> SDD en progreso o aprobado sin código aún</span>
-    <span><span class="badge design">📋 Diseño</span> solo mockup, falta construir</span>
-    <span><span class="badge brand">Marca</span> material de identidad</span>
+    <span class="legend-hint">Filtrar</span>
+    <button type="button" class="legend-item" data-filter="built" title="Clic para mostrar/ocultar"><span class="badge built">✅ Construido</span> SDD cerrado o aprobado con código</button>
+    <button type="button" class="legend-item" data-filter="wip" title="Clic para mostrar/ocultar"><span class="badge wip">🚧 En construcción</span> SDD en progreso o aprobado sin código aún</button>
+    <button type="button" class="legend-item" data-filter="design" title="Clic para mostrar/ocultar"><span class="badge design">📋 Diseño</span> solo mockup, falta construir</button>
+    <button type="button" class="legend-item" data-filter="brand" title="Clic para mostrar/ocultar"><span class="badge brand">Marca</span> material de identidad</button>
   </div>
 ${sections}
 </main>
 <footer>Norte vigente: <code>${esc(NORTE_REL)}</code> · estado derivado del <code>status</code> del SDD del módulo cruzado con la carpeta de código (mapa en <code>docs/architecture/module-sdd-map.md</code>).</footer>
+<script>
+  // Filtro por estado: clic en un ítem de la leyenda muestra/oculta sus cards.
+  // Vanilla, sin deps. Las secciones que quedan sin cards visibles se ocultan.
+  (function () {
+    document.querySelectorAll('.legend-item').forEach(function (b) {
+      b.addEventListener('click', function () {
+        b.classList.toggle('off');
+        var hidden = b.classList.contains('off');
+        document.querySelectorAll('.card.' + b.dataset.filter).forEach(function (c) {
+          c.style.display = hidden ? 'none' : '';
+        });
+        document.querySelectorAll('.group').forEach(function (g) {
+          var anyVisible = Array.prototype.some.call(g.querySelectorAll('.card'), function (c) {
+            return c.style.display !== 'none';
+          });
+          g.style.display = anyVisible ? '' : 'none';
+        });
+      });
+    });
+  })();
+</script>
 </body>
 </html>
 `;
