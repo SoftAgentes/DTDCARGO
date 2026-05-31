@@ -1,11 +1,11 @@
 {
-  "name": "DTD Operario CN",
+  "name": "DTD Operario",
   "short_name": "DTD Operario",
-  "description": "Recepción de mercadería en hubs CN · DTD·CARGO",
+  "description": "Operaciones DTD·CARGO — almacén China y despacho Venezuela",
   "lang": "es",
   "dir": "ltr",
-  "scope": "/m/",
-  "start_url": "/m/cn",
+  "scope": "/m",
+  "start_url": "/m",
   "display": "standalone",
   "orientation": "portrait-primary",
   "background_color": "#FBFAF7",
@@ -29,15 +29,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Nueva recepción",
-      "short_name": "Nueva",
-      "description": "Registrar una caja recibida",
-      "url": "/m/cn/nueva",
-      "icons": [{ "src": "/m/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }
