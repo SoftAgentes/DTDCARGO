@@ -276,7 +276,7 @@ function EstadoCuenta() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>
       <ECTopBar markbox={markbox} setMarkbox={setMarkbox} clients={eligibleClients} />
-      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 32px 60px' }}>
+      <div style={{ maxWidth: 1280, margin: '0 auto', padding: '20px 32px 60px' }} data-comment-anchor="1d704d3e63-div-279-7">
         <ECHero client={client} acc={acc} saldo={saldo} overdueAmount={overdueAmount} />
 
         <RatesBanner rates={rates} />

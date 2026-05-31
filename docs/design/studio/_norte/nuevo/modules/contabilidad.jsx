@@ -9,7 +9,9 @@ function ModuleContabilidad({ goTo }) {
   const C = window.ContabilidadData;
   const R = window.ERPRates;
   const [rates] = R.useRates();
-  const [tab, setTab] = React.useState('dashboard');
+  const ivaOn = window.DTDConfig ? window.DTDConfig.useCfg('iva') : false;
+  const [tab, setTab] = React.useState('flujo');
+  React.useEffect(() => { if (tab === 'fiscal' && !ivaOn) setTab('flujo'); }, [ivaOn]);
   const [lock, setLock] = React.useState(C.readLock());
   React.useEffect(() => {
     const handler = (e) => setLock(e.detail || C.readLock());
@@ -37,22 +39,46 @@ function ModuleContabilidad({ goTo }) {
         value={tab}
         onChange={setTab}
         items={[
+          { value: 'flujo',     label: 'Flujo de trabajo' },
           { value: 'dashboard', label: 'Dashboard' },
           { value: 'journal',   label: 'Libro diario', count: C.JOURNAL_ENTRIES.length },
           { value: 'coa',       label: 'Plan de cuentas', count: C.CHART_OF_ACCOUNTS.filter(a => a.level === 3).length },
           { value: 'ledger',    label: 'Libro mayor' },
           { value: 'reports',   label: 'Reportes' },
+          ...(ivaOn ? [{ value: 'fiscal', label: 'Fiscal · SENIAT' }] : []),
           { value: 'config',    label: 'Configuración' },
         ]}
         style={{ marginBottom: 'var(--s-5)' }}
       />
 
+      {tab === 'flujo'     && <FlujoTab goTo={goTo} />}
       {tab === 'dashboard' && <DashboardTab goTo={goTo} setTab={setTab} />}
       {tab === 'journal'   && <JournalTab unlocked={unlocked} />}
       {tab === 'coa'       && <CoATab unlocked={unlocked} />}
       {tab === 'ledger'    && <LedgerTab />}
       {tab === 'reports'   && <ReportsTab />}
+      {tab === 'fiscal'    && (window.FiscalTab ? <window.FiscalTab /> : null)}
       {tab === 'config'    && <ConfigTab lock={lock} setLock={setLock} />}
+    </div>
+  );
+}
+
+// ── Flujo de trabajo (workflow view · carriles financieros) ──
+function FlujoTab({ goTo }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const lanes = window.financeLanes ? window.financeLanes() : [];
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)' }}>
+        <span style={{ color: 'var(--wine)', display: 'inline-flex' }}>{I.flow ? I.flow(18) : I.chart(18)}</span>
+        <span style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
+          El ciclo contable de DTD-Cargo de un vistazo. Hacé click en cualquier paso para ir a la acción · los números en rojo marcan pendientes.
+        </span>
+      </div>
+      {window.WorkflowMap
+        ? <window.WorkflowMap lanes={lanes} goTo={goTo} />
+        : <U.EmptyState icon={I.chart(22)} title="Flujo no disponible" body="El módulo de flujo de trabajo no está cargado." />}
     </div>
   );
 }

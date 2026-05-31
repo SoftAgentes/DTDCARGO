@@ -26,6 +26,8 @@ const Icon = {
   chart: (s=18) => _wrap(s, [_ipath('M3 3v18h18'), _ipath('M7 15l3-3 3 3 5-5')].map((e,i)=>React.cloneElement(e,{key:i}))),
   spark: (s=18) => _wrap(s, [_ipath('M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z')].map((e,i)=>React.cloneElement(e,{key:i}))),
   mail: (s=18) => _wrap(s, [_irect(3,5,18,14,2), _ipath('M3 7l9 6 9-6')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  chat: (s=18) => _wrap(s, [_ipath('M4 5h16v11H9l-4 4z'), _ipath('M8 9.5h8M8 12.5h5')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  flow: (s=18) => _wrap(s, [_icirc(5,6,2.3), _icirc(5,18,2.3), _icirc(19,12,2.3), _ipath('M7.2 7l9.6 4M7.2 17l9.6 -4')].map((e,i)=>React.cloneElement(e,{key:i}))),
 
   // ── Actions ────────────────────────
   plus: (s=14) => _wrap(s, [_ipath('M12 5v14M5 12h14')].map((e,i)=>React.cloneElement(e,{key:i}))),

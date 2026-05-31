@@ -9,6 +9,7 @@ const ADMIN_SECTIONS = [
   { group: 'BÁSICO',     id: 'features',    label: 'Casos de uso · ON/OFF', icon: 'flag' },
   { group: 'BÁSICO',     id: 'masterdata',  label: 'Master data',         icon: 'tag' },
   { group: 'BÁSICO',     id: 'rates',       label: 'Tasas de cambio',     icon: 'invoice' },
+  { group: 'BÁSICO',     id: 'fiscal',      label: 'Impuestos · IVA/SENIAT', icon: 'shield' },
   { group: 'BÁSICO',     id: 'holidays',    label: 'Feriados CN/VE',      icon: 'clock' },
   { group: 'BÁSICO',     id: 'appearance',  label: 'Apariencia',          icon: 'sun' },
   { group: 'BÁSICO',     id: 'routes',      label: 'Administrar rutas',   icon: 'truck' },
@@ -92,6 +93,7 @@ function ModuleAdmin() {
           {section === 'features'    && <SectionFeatures />}
           {section === 'masterdata'  && <SectionMasterData />}
           {section === 'rates'       && <SectionRates />}
+          {section === 'fiscal'      && (window.AdminFiscalConfig ? <window.AdminFiscalConfig /> : null)}
           {section === 'holidays'    && <SectionHolidays />}
           {section === 'appearance'  && <SectionAppearance />}
           {section === 'brand-system'&& (window.AdminBrandSystem ? <window.AdminBrandSystem /> : null)}

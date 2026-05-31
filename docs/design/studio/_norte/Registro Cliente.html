@@ -2,7 +2,7 @@
 <html lang="es" data-theme="light">
 <head>
 <meta charset="utf-8" />
-<title>DTD-Cargo · Registro de cliente</title>
+<title>DTD-Cargo · Registro de cliente · v1.9.1</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,25 +13,11 @@
   @keyframes erp-pop { from { opacity: 0; transform: scale(0.96) translateY(-4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
   @keyframes erp-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
   @keyframes erp-fade { from { opacity: 0; } to { opacity: 1; } }
-  /* Pulse del CTA "Cómo usar tu MARKBOX" */
-  @keyframes guide-glow {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(127,15,26,0); }
-    50%      { box-shadow: 0 0 0 8px rgba(127,15,26,0.18); }
-  }
-  @keyframes guide-arrow-h {
-    0%, 100% { transform: translateX(0); }
-    50%      { transform: translateX(-4px); }
-  }
-  .guide-pulse {
-    animation: guide-glow 2s ease-in-out infinite;
-  }
-  .guide-pulse:hover {
-    animation: none;
-    background: var(--wine-tint) !important;
-  }
-  .guide-arrow-bounce {
-    animation: guide-arrow-h 1.6s ease-in-out infinite;
-  }
+  @keyframes guide-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(127,15,26,0); } 50% { box-shadow: 0 0 0 8px rgba(127,15,26,0.18); } }
+  @keyframes guide-arrow-h { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-4px); } }
+  .guide-pulse { animation: guide-glow 2s ease-in-out infinite; }
+  .guide-pulse:hover { animation: none; background: var(--wine-tint) !important; }
+  .guide-arrow-bounce { animation: guide-arrow-h 1.6s ease-in-out infinite; }
 </style>
 </head>
 <body>

@@ -198,12 +198,12 @@ const USERS = [
 // ── Permisos por rol (qué módulos pueden ver) ───────────────
 const ROLE_MODULES = {
   'Admin':        '*',  // todos
-  'Comercial':    ['dashboard', 'shipments', 'tracking', 'calendar', 'quotes', 'clients', 'leads', 'suppliers', 'rates', 'invoices', 'documents', 'reports', 'mailing'],
-  'Operaciones':  ['dashboard', 'shipments', 'tracking', 'calendar', 'cn', 'qrqueue', 'labels', 've', 'despacho', 'despacho-rules', 'despacho-dashboard', 'seniat', 'tms', 'clients', 'documents', 'operarios', 'mailing'],
-  'Contabilidad': ['dashboard', 'shipments', 'invoices', 'contab', 'reconcile', 'costing', 'documents', 'clients', 'reports', 'rates'],
-  'Almacén CN':   ['dashboard', 'cn', 'qrqueue', 'labels', 'shipments'],
-  'Almacén VE':   ['dashboard', 've', 'despacho', 'tracking', 'shipments'],
-  'Soporte':      ['dashboard', 'shipments', 'tracking', 'clients', 'documents', 'mailing'],
+  'Comercial':    ['inicio', 'dashboard', 'shipments', 'tracking', 'calendar', 'quotes', 'clients', 'leads', 'suppliers', 'rates', 'invoices', 'cobranzas', 'documents', 'reports', 'mailing', 'conversaciones', 'fidelizacion'],
+  'Operaciones':  ['inicio', 'dashboard', 'shipments', 'tracking', 'calendar', 'cn', 'qrqueue', 'labels', 've', 'despacho', 'despacho-rules', 'despacho-dashboard', 'seniat', 'tms', 'clients', 'documents', 'operarios', 'mailing', 'naviera'],
+  'Contabilidad': ['inicio', 'dashboard', 'shipments', 'invoices', 'cobranzas', 'contab', 'reconcile', 'costing', 'documents', 'clients', 'reports', 'rates', 'tesoreria'],
+  'Almacén CN':   ['inicio', 'dashboard', 'cn', 'qrqueue', 'labels', 'shipments', 'naviera'],
+  'Almacén VE':   ['inicio', 'dashboard', 've', 'despacho', 'tracking', 'shipments'],
+  'Soporte':      ['inicio', 'dashboard', 'shipments', 'tracking', 'clients', 'documents', 'mailing', 'conversaciones'],
 };
 
 // ── Tarifas ──────────────────────────────────────────────────

@@ -59,6 +59,8 @@ function PortalApp() {
           {view === 'suppliers' && <PortalSuppliers me={me} />}
           {view === 'invoices' && <PortalInvoices invs={myInvoices} />}
           {view === 'documents' && <PortalDocuments />}
+          {view === 'referidos' && <PortalReferidos me={me} />}
+          {view === 'reclamos' && <PortalReclamos me={me} setView={setView} />}
           {view === 'support' && <PortalSupport />}
           {view === 'profile' && <PortalProfile me={me} />}
         </div>
@@ -195,6 +197,8 @@ function PortalTopbar({ me, view, setView, onLogout, theme, setTheme }) {
     { v: 'suppliers', l: 'Tus proveedores', icon: 'truck' },
     { v: 'invoices',  l: 'Facturas',   icon: 'invoice' },
     { v: 'documents', l: 'Documentos', icon: 'doc' },
+    { v: 'referidos', l: 'Referidos',  icon: 'star' },
+    { v: 'reclamos',  l: 'Reclamos',   icon: 'shield' },
     { v: 'support',   l: 'Soporte',    icon: 'mail' },
   ];
 
@@ -815,6 +819,367 @@ function PortalSupport() {
           </U.Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Referidos (programa de lealtad) ──────────────────────────
+function PortalReferidos({ me }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const F = window.FidelizacionData;
+  const fmt = (n) => '$' + (Number(n) || 0).toLocaleString('en-US');
+  const [copied, setCopied] = pUseState(false);
+
+  if (!F) return <div style={{ font: '500 13px var(--f-sans)', color: 'var(--ink-soft)' }}>Programa de referidos no disponible.</div>;
+
+  const code = F.referralCode(me.markbox);
+  const prog = F.tierProgress(me.billed);
+  const myRefs = F.referralsByReferrer(me.markbox);
+  const credits = F.creditsEarned(me.markbox);
+  const pending = F.pendingCredits(me.markbox);
+
+  const copy = () => {
+    try { navigator.clipboard.writeText(code); } catch (e) {}
+    setCopied(true); setTimeout(() => setCopied(false), 1600);
+  };
+  const share = () => {
+    const txt = `Importá de China con DTD-Cargo y usá mi código ${code} para ${fmt(F.REFERRAL_RULES.referredReward)} de descuento en tu primer embarque. Con confianza, de China a tu puerta.`;
+    window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
+  };
+
+  return (
+    <div>
+      <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Referidos</h1>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '54ch' }}>
+        Recomendá DTD-Cargo y ganá crédito. Cada importador que sumás fortalece la comunidad — contenedor a contenedor.
+      </p>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, marginBottom: 16 }}>
+        {/* Hero: tu código */}
+        <U.Card padded={false} style={{ overflow: 'hidden', background: 'linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)', border: 0, color: '#fff' }}>
+          <div style={{ padding: 28 }}>
+            <div style={{ font: '700 11px/1 var(--f-sans)', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 14 }}>TU CÓDIGO DE REFERIDO</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+              <code style={{ font: '900 34px/1 var(--f-display)', letterSpacing: '0.02em', color: '#fff' }}>{code}</code>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button onClick={copy} style={heroBtn(copied)}>{copied ? I.check(14) : I.doc(14)} {copied ? 'Copiado' : 'Copiar'}</button>
+                <button onClick={share} style={heroBtn(false, true)}>{I.globe(14)} Compartir</button>
+              </div>
+            </div>
+            <div style={{ marginTop: 22, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)' }}>
+                <div style={{ font: '900 22px/1 var(--f-display)', color: '#fff' }}>{fmt(F.REFERRAL_RULES.referredReward)}</div>
+                <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>para tu referido en su 1er embarque</div>
+              </div>
+              <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)' }}>
+                <div style={{ font: '900 22px/1 var(--f-display)', color: '#fff' }}>{fmt(F.REFERRAL_RULES.referrerReward)}</div>
+                <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>de crédito para vos al acreditarse</div>
+              </div>
+            </div>
+          </div>
+        </U.Card>
+
+        {/* Créditos */}
+        <U.Card padded>
+          <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>TUS CRÉDITOS</div>
+          <div style={{ font: '900 32px/1 var(--f-display)', color: 'var(--success)', letterSpacing: '-0.02em' }}>{fmt(credits)}</div>
+          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>acreditados a tu cuenta</div>
+          {pending > 0 && (
+            <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--warning-bg)', borderRadius: 'var(--r-md)', font: '600 12px/1.4 var(--f-sans)', color: 'var(--warning)' }}>
+              {fmt(pending)} en camino · referidos en proceso
+            </div>
+          )}
+          <div style={{ marginTop: 14, font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
+            Los créditos se descuentan automáticamente de tu próxima factura.
+          </div>
+        </U.Card>
+      </div>
+
+      {/* Nivel actual */}
+      <U.Card padded style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: prog.next ? 16 : 0, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: `var(--${prog.tier.tone}-bg)`, color: prog.tier.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I.star(22)}</span>
+            <div>
+              <div style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Tu nivel</div>
+              <div style={{ font: '900 22px/1 var(--f-display)', color: prog.tier.color, marginTop: 4 }}>{prog.tier.label}</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, maxWidth: 460, justifyContent: 'flex-end' }}>
+            {prog.tier.benefits.map((b, i) => (
+              <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-pill)', font: '600 11px/1 var(--f-sans)', color: 'var(--ink)' }}>
+                <span style={{ color: prog.tier.color }}>{I.check(11)}</span>{b}
+              </span>
+            ))}
+          </div>
+        </div>
+        {prog.next && (
+          <div>
+            <div style={{ height: 8, background: 'var(--bg-elevated)', borderRadius: 999, overflow: 'hidden', marginBottom: 6 }}>
+              <div style={{ height: '100%', width: `${prog.pct}%`, background: prog.next.color, borderRadius: 999, transition: 'width var(--dur-slow) var(--ease)' }} />
+            </div>
+            <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>
+              Te faltan <b style={{ color: 'var(--ink)' }}>{fmt(prog.toNext)}</b> de facturación para alcanzar <b style={{ color: prog.next.color }}>{prog.next.label}</b>.
+            </div>
+          </div>
+        )}
+      </U.Card>
+
+      {/* Tus referidos */}
+      <U.Card padded={false}>
+        <div style={{ padding: '16px 20px 14px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="eyebrow eyebrow-wine">TUS REFERIDOS</div>
+          <span style={{ font: '600 12px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>{myRefs.length} en total</span>
+        </div>
+        {myRefs.length === 0 ? (
+          <div style={{ padding: '32px 20px', textAlign: 'center', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Todavía no referiste a nadie. Compartí tu código y empezá a ganar.</div>
+        ) : myRefs.map((r, i) => {
+          const stt = F.REFERRAL_STATUS[r.status];
+          return (
+            <div key={r.id} style={{ display: 'grid', gridTemplateColumns: '1fr 150px 110px', gap: 14, alignItems: 'center', padding: '13px 20px', borderTop: i > 0 ? '1px solid var(--border)' : 0 }}>
+              <div>
+                <div style={{ font: '600 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{r.referredName}</div>
+                <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 2 }}>{r.referredCompany} · {r.date}</div>
+              </div>
+              <U.Badge tone={stt.tone} size="sm" dot>{stt.label}</U.Badge>
+              <div style={{ textAlign: 'right', font: '700 13px/1 var(--f-mono)', color: r.status === 'acreditado' ? 'var(--success)' : 'var(--ink-mute)' }}>
+                {r.status === 'acreditado' ? '+' + fmt(r.rewardUsd) : '—'}
+              </div>
+            </div>
+          );
+        })}
+      </U.Card>
+    </div>
+  );
+}
+
+function heroBtn(active, outline) {
+  return {
+    display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--r-md)',
+    font: '700 12.5px/1 var(--f-sans)', cursor: 'pointer',
+    background: active ? 'var(--success)' : (outline ? 'transparent' : '#fff'),
+    color: active ? '#fff' : (outline ? '#fff' : 'var(--ink)'),
+    border: outline ? '1px solid rgba(255,255,255,0.3)' : 'none',
+  };
+}
+
+// ── Reclamos formales ────────────────────────────────────────
+const RECLAMO_TYPE = {
+  faltante:    { label: 'Faltante de mercancía', tone: 'danger'  },
+  dano:        { label: 'Daño en la carga',      tone: 'danger'  },
+  demora:      { label: 'Demora en entrega',     tone: 'warning' },
+  facturacion: { label: 'Facturación',           tone: 'info'    },
+  otro:        { label: 'Otro',                  tone: 'neutral' },
+};
+const RECLAMO_STEPS = ['recibido', 'en-revision', 'resuelto'];
+const RECLAMO_STEP_LABEL = { recibido: 'Recibido', 'en-revision': 'En revisión', resuelto: 'Resuelto' };
+
+function PortalReclamos({ me, setView }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const D = window.ERPData;
+  const myShipments = (D.SHIPMENTS || []).filter(s => s.client === me.markbox);
+
+  const [claims, setClaims] = pUseState([
+    {
+      id: 'REC-2026-0042', type: 'faltante', shipment: myShipments[0]?.id || 'DTDU-472816',
+      subject: 'Faltan 2 cajas según packing list', status: 'en-revision', date: '2026-05-22',
+      messages: [
+        { from: 'me',    text: 'Recibí el contenedor pero faltan 2 cajas según el packing. Adjunto fotos del precinto.', time: '22 may · 08:31' },
+        { from: 'agent', text: 'Roberto, lamento el inconveniente. Abrí tu reclamo y estoy revisando con almacén CN el conteo de salida.', time: '22 may · 08:44' },
+      ],
+    },
+    {
+      id: 'REC-2026-0031', type: 'demora', shipment: 'DTDU-365044',
+      subject: 'El despacho tardó más del ETA informado', status: 'resuelto', date: '2026-05-10',
+      messages: [
+        { from: 'me',    text: 'El ETA era el 5 y recién entregaron el 9. ¿Qué pasó?', time: '10 may · 10:10' },
+        { from: 'agent', text: 'Hubo congestión en Puerto Cabello. Te aplicamos un crédito de almacenaje como compensación.', time: '10 may · 14:02' },
+      ],
+      resolution: 'Crédito de $120 aplicado a tu próxima factura.',
+    },
+  ]);
+  const [selected, setSelected] = pUseState(null);
+  const [creating, setCreating] = pUseState(false);
+
+  const sel = selected ? claims.find(c => c.id === selected) : null;
+
+  if (sel) return <ReclamoDetail claim={sel} onBack={() => setSelected(null)} />;
+
+  return (
+    <div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginBottom: 'var(--s-6)' }}>
+        <div>
+          <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Reclamos</h1>
+          <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0, maxWidth: '52ch' }}>
+            Registrá un reclamo formal con seguimiento. Cada caso tiene número, estado y respuesta de tu agente.
+          </p>
+        </div>
+        <U.Btn variant="primary" icon={I.plus(14)} onClick={() => setCreating(c => !c)}>Nuevo reclamo</U.Btn>
+      </div>
+
+      {creating && <NewReclamoForm myShipments={myShipments} onCancel={() => setCreating(false)} onSubmit={(claim) => { setClaims([claim, ...claims]); setCreating(false); }} />}
+
+      {claims.length === 0 ? (
+        <U.EmptyState icon={I.shield(22)} title="Sin reclamos" body="No tenés reclamos abiertos. Si tuviste un problema con un embarque, registralo acá." />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {claims.map(c => {
+            const tp = RECLAMO_TYPE[c.type];
+            const stepIdx = RECLAMO_STEPS.indexOf(c.status);
+            return (
+              <U.Card key={c.id} hoverable onClick={() => setSelected(c.id)} style={{ cursor: 'pointer' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--r-md)', background: `var(--${tp.tone}-bg)`, color: `var(--${tp.tone})`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I.shield(20)}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                      <code style={{ font: '700 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{c.id}</code>
+                      <U.Badge tone={tp.tone} size="sm">{tp.label}</U.Badge>
+                    </div>
+                    <div style={{ font: '600 13.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{c.subject}</div>
+                    <div style={{ font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>
+                      <code style={{ font: '600 11px var(--f-mono)' }}>{c.shipment}</code> · {c.date}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <U.Badge tone={c.status === 'resuelto' ? 'success' : c.status === 'en-revision' ? 'warning' : 'info'} dot>{RECLAMO_STEP_LABEL[c.status]}</U.Badge>
+                    <div style={{ font: '500 10.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 8 }}>Paso {stepIdx + 1} de 3</div>
+                  </div>
+                  <span style={{ color: 'var(--ink-mute)', display: 'inline-flex' }}>{I.chevR(16)}</span>
+                </div>
+              </U.Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewReclamoForm({ myShipments, onCancel, onSubmit }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const [type, setType] = pUseState('faltante');
+  const [shipment, setShipment] = pUseState(myShipments[0]?.id || '');
+  const [subject, setSubject] = pUseState('');
+  const [desc, setDesc] = pUseState('');
+
+  const submit = () => {
+    if (!subject.trim() || !desc.trim()) { alert('Completá el asunto y la descripción.'); return; }
+    const num = String(Math.floor(40 + Math.random() * 50)).padStart(4, '0');
+    onSubmit({
+      id: 'REC-2026-' + num, type, shipment: shipment || '—', subject: subject.trim(),
+      status: 'recibido', date: new Date().toISOString().slice(0, 10),
+      messages: [{ from: 'me', text: desc.trim(), time: 'ahora' }],
+    });
+  };
+
+  return (
+    <U.Card padded style={{ marginBottom: 16, border: '1px solid var(--wine)', background: 'var(--wine-tint)' }}>
+      <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>NUEVO RECLAMO</div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+        <U.Select label="Tipo de reclamo" value={type} onChange={(e) => setType(e.target.value)} options={Object.entries(RECLAMO_TYPE).map(([k, v]) => ({ value: k, label: v.label }))} />
+        <U.Select label="Embarque relacionado" value={shipment} onChange={(e) => setShipment(e.target.value)} options={[{ value: '', label: 'Sin embarque' }, ...myShipments.map(s => ({ value: s.id, label: s.id }))]} />
+      </div>
+      <U.Input label="Asunto" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Resumí el problema en una línea" style={{ marginBottom: 12 }} />
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+        <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Descripción</span>
+        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder="Contanos qué pasó. Si tenés fotos o el packing, mencionalo." style={{
+          resize: 'vertical', padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+          font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink)', outline: 'none',
+        }} />
+      </label>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <U.Btn variant="ghost" onClick={onCancel}>Cancelar</U.Btn>
+        <U.Btn variant="primary" icon={I.check(13)} onClick={submit}>Enviar reclamo</U.Btn>
+      </div>
+    </U.Card>
+  );
+}
+
+function ReclamoDetail({ claim, onBack }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const [msg, setMsg] = pUseState('');
+  const [thread, setThread] = pUseState(claim.messages);
+  const tp = RECLAMO_TYPE[claim.type];
+  const stepIdx = RECLAMO_STEPS.indexOf(claim.status);
+
+  const send = () => {
+    if (!msg.trim()) return;
+    setThread([...thread, { from: 'me', text: msg.trim(), time: 'ahora' }]);
+    setMsg('');
+  };
+
+  return (
+    <div>
+      <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 13px/1 var(--f-sans)', color: 'var(--wine)', marginBottom: 16, cursor: 'pointer' }}>
+        {I.arrowL(14)} Volver a reclamos
+      </button>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+        <code style={{ font: '900 22px/1 var(--f-display)', color: 'var(--ink)' }}>{claim.id}</code>
+        <U.Badge tone={tp.tone} size="sm">{tp.label}</U.Badge>
+        <U.Badge tone={claim.status === 'resuelto' ? 'success' : claim.status === 'en-revision' ? 'warning' : 'info'} dot>{RECLAMO_STEP_LABEL[claim.status]}</U.Badge>
+      </div>
+      <div style={{ font: '600 15px/1.4 var(--f-sans)', color: 'var(--ink)', marginBottom: 4 }}>{claim.subject}</div>
+      <div style={{ font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginBottom: 'var(--s-6)' }}>
+        <code style={{ font: '600 12px var(--f-mono)' }}>{claim.shipment}</code> · abierto el {claim.date}
+      </div>
+
+      {/* Timeline */}
+      <U.Card padded style={{ marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          {RECLAMO_STEPS.map((s, i) => {
+            const done = i <= stepIdx;
+            return (
+              <React.Fragment key={s}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  <span style={{ width: 30, height: 30, borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: done ? 'var(--wine)' : 'var(--bg-elevated)', color: done ? '#fff' : 'var(--ink-mute)', border: done ? 'none' : '1px solid var(--border)' }}>
+                    {done ? I.check(15) : <span style={{ font: '700 12px/1 var(--f-sans)' }}>{i + 1}</span>}
+                  </span>
+                  <span style={{ font: `${i === stepIdx ? '700' : '500'} 11.5px/1 var(--f-sans)`, color: i === stepIdx ? 'var(--wine)' : done ? 'var(--ink)' : 'var(--ink-mute)' }}>{RECLAMO_STEP_LABEL[s]}</span>
+                </div>
+                {i < RECLAMO_STEPS.length - 1 && <div style={{ flex: 1, height: 2, background: i < stepIdx ? 'var(--wine)' : 'var(--border)', margin: '0 8px', marginBottom: 22 }} />}
+              </React.Fragment>
+            );
+          })}
+        </div>
+        {claim.resolution && (
+          <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--success-bg)', borderRadius: 'var(--r-md)', font: '600 12.5px/1.5 var(--f-sans)', color: 'var(--success)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ flexShrink: 0, marginTop: 1 }}>{I.check(15)}</span>
+            <span><b>Resuelto:</b> {claim.resolution}</span>
+          </div>
+        )}
+      </U.Card>
+
+      {/* Hilo */}
+      <U.Card padded={false} style={{ display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', font: '700 12px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Conversación del reclamo</div>
+        <div style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 360, overflowY: 'auto' }}>
+          {thread.map((m, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: m.from === 'me' ? 'flex-end' : 'flex-start' }}>
+              <div style={{
+                maxWidth: '74%', padding: '10px 14px',
+                background: m.from === 'me' ? 'var(--wine)' : 'var(--bg-elevated)',
+                color: m.from === 'me' ? '#fff' : 'var(--ink)',
+                borderRadius: m.from === 'me' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
+                font: '500 13px/1.5 var(--f-sans)',
+              }}>
+                {m.text}
+                <div style={{ marginTop: 4, font: '500 10px/1 var(--f-sans)', color: m.from === 'me' ? 'rgba(255,255,255,0.65)' : 'var(--ink-mute)', textAlign: 'right' }}>{m.time}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {claim.status !== 'resuelto' && (
+          <div style={{ padding: 14, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
+            <input value={msg} onChange={(e) => setMsg(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && send()} placeholder="Agregar un mensaje al reclamo…" style={{ flex: 1, height: 40, padding: '0 14px', background: 'var(--bg-elevated)', border: 0, borderRadius: 'var(--r-md)', font: '500 13px/1 var(--f-sans)', outline: 'none', color: 'var(--ink)' }} />
+            <U.Btn variant="primary" icon={I.arrowR(13)} onClick={send}>Enviar</U.Btn>
+          </div>
+        )}
+      </U.Card>
     </div>
   );
 }
