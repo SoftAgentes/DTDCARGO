@@ -276,6 +276,7 @@ ${recentRows}
 const now = new Date();
 const p2 = (n) => String(n).padStart(2, "0");
 const stamp = `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
+const wipDim = wip === 0 ? ' style="opacity:.55"' : ""; // atenúa el ítem "en obra" de la leyenda si no hay nada en obra
 
 const html = `<!doctype html>
 <html lang="es">
@@ -290,7 +291,7 @@ const html = `<!doctype html>
     --wine: #7F0F1A; --navy: #0F1E3D; --paper: #FBFAF7; --surface: #FFFFFF;
     --ink: #0F1E3D; --ink-soft: #6B6B6B; --ink-mute: #9B9B9B; --border: #E8E6E2;
     --built: #1F8A5B; --wip: #B8893A; --design: #6B6B6B;
-    --on-navy: #A8B0C4; --on-navy-mute: #7E8AA6;
+    --on-navy: #B9C0D2; --on-navy-mute: #8E99B4;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--paper); color: var(--ink);
@@ -304,18 +305,18 @@ const html = `<!doctype html>
   header p { margin: 0; color: var(--on-navy); font-size: 14px; max-width: 600px; }
 
   /* Barra de progreso global */
-  .progress-wrap { margin-top: 22px; max-width: 580px; }
-  .progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 9px; }
+  .progress-wrap { margin-top: 24px; max-width: 580px; }
+  .progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
   .progress-pct { font: 900 38px/1 'Archivo Black'; color: var(--paper); }
-  .progress-pct span { font: 600 14px/1 'JetBrains Mono'; color: var(--on-navy); margin-left: 9px; }
+  .progress-pct span { font: 600 14px/1 'JetBrains Mono'; color: var(--on-navy); margin-left: 8px; }
   .progress-count { font: 600 12px/1 'JetBrains Mono'; color: var(--on-navy); white-space: nowrap; }
-  .bar { display: flex; height: 11px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.09); }
+  .bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.09); }
   .bar > i { display: block; height: 100%; }
   .bar > i.built { background: var(--built); }
   .bar > i.wip { background: var(--wip); }
   .bar > i.design { background: var(--design); }
-  .bar-legend { display: flex; gap: 18px; margin-top: 11px; font: 600 12px/1 'JetBrains Mono'; color: var(--on-navy); }
-  .bar-legend i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .bar-legend { display: flex; gap: 16px; margin-top: 12px; font: 600 12px/1 'JetBrains Mono'; color: var(--on-navy); }
+  .bar-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
   .meta-src { margin-top: 16px; font: 500 11px/1 'JetBrains Mono'; color: var(--on-navy-mute); }
 
   /* Movimiento reciente */
@@ -338,7 +339,7 @@ const html = `<!doctype html>
   .group { margin-bottom: 32px; }
   .group h2 { font: 800 16px/1.2 'Archivo'; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
     display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-  .group-title { flex: 1 1 auto; }
+  .group-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .group-meta { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
   .bar.mini { width: 120px; height: 6px; }
   .group-count { font: 600 12px/1 'JetBrains Mono'; color: var(--ink-mute); }
@@ -349,7 +350,7 @@ const html = `<!doctype html>
   .card:hover { border-color: var(--ink-mute); box-shadow: 0 1px 3px rgba(15,30,61,.06); }
   .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
   .card .name { font-weight: 600; font-size: 14px; }
-  .card-meta { font: 500 11px/1.4 'JetBrains Mono'; color: var(--ink-mute); margin-bottom: 10px; word-break: break-all; }
+  .card-meta { font: 500 11px/1.4 'JetBrains Mono'; color: var(--ink-mute); margin-bottom: 10px; overflow-wrap: anywhere; word-break: normal; }
   .card-meta .sdd { color: var(--wine); }
   .card-meta code { color: var(--ink-soft); }
   .card-meta .nospec { font-style: italic; }
@@ -386,7 +387,7 @@ const html = `<!doctype html>
       </div>
       <div class="bar-legend">
         <span><i style="background:var(--built)"></i>${built} listas</span>
-        <span><i style="background:var(--wip)"></i>${wip} en obra</span>
+        <span${wipDim}><i style="background:var(--wip)"></i>${wip} en obra</span>
         <span><i style="background:var(--design)"></i>${design} en diseño</span>
       </div>
       <div class="meta-src">${NORTE_VERSION} · generado por scripts/norte.mjs · ${stamp}</div>
