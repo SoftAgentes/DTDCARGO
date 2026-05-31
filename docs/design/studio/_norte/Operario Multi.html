@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD · Operario Multi-rol</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1" />
+<meta name="theme-color" content="#0F1E3D" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+  body { background: var(--bg-base); -webkit-tap-highlight-color: transparent; margin: 0; }
+  .op-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-base); }
+  button { -webkit-tap-highlight-color: transparent; transition: opacity 0.15s ease; }
+  button:active:not(:disabled) { opacity: 0.75; }
+  @keyframes erp-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes erp-pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel">
+const { useState } = React;
+
+function MultiApp() {
+  const [step, setStep] = useState('login'); // login | picker | bodega | chofer
+  const [pin, setPin] = useState('');
+
+  const handle = (d) => {
+    if (pin.length < 4) {
+      const next = pin + d;
+      setPin(next);
+      if (next.length === 4) setTimeout(() => setStep('picker'), 280);
+    }
+  };
+
+  // ── Login ────────────────────────────────────────
+  if (step === 'login') {
+    return (
+      <div className="op-app" style={{ minHeight: '100vh', background: 'linear-gradient(160deg, var(--ink) 0%, #1F3055 100%)', display: 'flex', flexDirection: 'column', padding: 40, color: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
+          <img src="assets/dtdcargo-icon-navy.png" alt="" style={{ width: 40, height: 40, filter: 'brightness(0) invert(1)' }} />
+          <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>MULTI-ROL</div>
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
+          <div style={{ font: '700 11px/1', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>DTD-CARGO · OPERARIO</div>
+          <div style={{ font: '900 28px/1.05', color: '#fff', marginTop: 14, letterSpacing: '-0.025em' }}>Bodega + Despacho 🔄</div>
+          <div style={{ font: '500 14px/1.4', color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>Ingresá tu PIN</div>
+          <div style={{ display: 'flex', gap: 14, marginTop: 32 }}>
+            {[0,1,2,3].map(i => <div key={i} style={{ width: 18, height: 18, borderRadius: '50%', background: i < pin.length ? 'var(--wine-soft)' : 'transparent', border: '2px solid rgba(255,255,255,0.4)' }} />)}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 72px)', gap: 14, marginTop: 32 }}>
+            {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} onClick={() => handle(String(n))} style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', color: '#fff', font: '900 28px/1', border: '1px solid rgba(255,255,255,0.12)' }}>{n}</button>)}
+            <div />
+            <button onClick={() => handle('0')} style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', color: '#fff', font: '900 28px/1', border: '1px solid rgba(255,255,255,0.12)' }}>0</button>
+            <button onClick={() => setPin(pin.slice(0,-1))} style={{ width: 72, height: 72, borderRadius: '50%', background: 'transparent', color: 'rgba(255,255,255,0.6)', fontSize: 22 }}>✕</button>
+          </div>
+        </div>
+        <div style={{ textAlign: 'center', font: '500 11px/1.4', color: 'rgba(255,255,255,0.4)' }}>Ramón Briceño · PFI · 2 roles habilitados</div>
+      </div>
+    );
+  }
+
+  // ── Picker ──────────────────────────────────────
+  if (step === 'picker') {
+    return (
+      <div className="op-app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '20px 16px 14px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 14px/1' }}>RB</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: '500 11px/1', color: 'var(--ink-mute)' }}>23 May 2026 · 06:42</div>
+              <div style={{ font: '900 18px/1.1', color: 'var(--ink)', letterSpacing: '-0.02em', marginTop: 4 }}>Hola, Ramón 👋</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ padding: 16, flex: 1, animation: 'erp-pop 220ms ease' }}>
+          <div style={{ font: '700 10px/1', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>¿QUÉ HACÉS HOY?</div>
+          <div style={{ font: '500 13px/1.4', color: 'var(--ink-soft)', marginBottom: 18 }}>Elegí un modo. Cambiás cuando quieras desde el menú.</div>
+
+          {/* Bodeguero */}
+          <button onClick={() => setStep('bodega')} style={{
+            width: '100%', padding: 20, marginBottom: 12,
+            background: 'linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)',
+            color: '#fff', border: 0, borderRadius: 'var(--r-lg)',
+            display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
+          }}>
+            <div style={{ width: 64, height: 64, borderRadius: 'var(--r-md)', background: 'rgba(216,154,164,0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, flexShrink: 0 }}>📦</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: '700 9.5px/1', color: 'var(--wine-soft)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>MODO BODEGA</div>
+              <div style={{ font: '900 20px/1.1', color: '#fff', letterSpacing: '-0.02em', marginTop: 6 }}>Soy bodeguero</div>
+              <div style={{ font: '500 12px/1.4', color: 'rgba(255,255,255,0.7)', marginTop: 6 }}>Recibir contenedor · armar camión · escanear cajas</div>
+              <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <Pill bg="rgba(255,255,255,0.12)" color="#fff">2 contenedores hoy</Pill>
+                <Pill bg="rgba(216,154,164,0.25)" color="var(--wine-soft)">1 camión por armar</Pill>
+              </div>
+            </div>
+            <span style={{ color: 'var(--wine-soft)', fontSize: 20 }}>→</span>
+          </button>
+
+          {/* Chofer */}
+          <button onClick={() => setStep('chofer')} style={{
+            width: '100%', padding: 20, marginBottom: 18,
+            background: 'var(--bg-surface)',
+            border: '1px solid var(--border)',
+            borderLeft: '6px solid var(--wine)',
+            borderRadius: 'var(--r-lg)',
+            display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
+          }}>
+            <div style={{ width: 64, height: 64, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36, flexShrink: 0 }}>🚛</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: '700 9.5px/1', color: 'var(--wine)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>MODO CHOFER</div>
+              <div style={{ font: '900 20px/1.1', color: 'var(--ink)', letterSpacing: '-0.02em', marginTop: 6 }}>Soy chofer</div>
+              <div style={{ font: '500 12px/1.4', color: 'var(--ink-soft)', marginTop: 6 }}>Recibir camión sellado · ruta GPS · entrega + POD + firma</div>
+              <div style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <Pill bg="var(--wine-tint)" color="var(--wine)">3 entregas hoy</Pill>
+                <Pill bg="var(--warning-bg)" color="var(--warning)">142 km ruta</Pill>
+              </div>
+            </div>
+            <span style={{ color: 'var(--wine)', fontSize: 20 }}>→</span>
+          </button>
+
+          <div style={{ padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
+            <div style={{ font: '500 11.5px/1.5', color: 'var(--ink)' }}>
+              ℹ <b>Multi-rol</b> · este perfil tiene los 2 módulos habilitados. Podés cambiar de modo desde el menú ☰ sin cerrar sesión.
+            </div>
+          </div>
+
+          <div style={{ marginTop: 24, padding: '14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+            <div style={{ font: '700 10px/1', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>SU AGENDA DE HOY</div>
+            <Row time="07:00" mode="bodega" text="Recibir contenedor DTDU-388501 (MSC Tianshan)" />
+            <Row time="09:30" mode="bodega" text="Armar camión AC542XK · 3 paradas" />
+            <Row time="10:00" mode="chofer" text="Salir ruta: PFI → Punto Fijo · Cliente Castro" />
+            <Row time="14:00" mode="bodega" text="Recibir contenedor DTDU-401234 (COSCO)" />
+            <Row time="15:30" mode="chofer" text="Salir ruta: Maracay (1 parada)" last />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Mode preview (visual only) ──────────────────
+  if (step === 'bodega' || step === 'chofer') {
+    const isB = step === 'bodega';
+    return (
+      <div className="op-app" style={{ minHeight: '100vh' }}>
+        <header style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button onClick={() => setStep('picker')} style={{ width: 36, height: 36, color: 'var(--ink-soft)', fontSize: 18 }}>←</button>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: '900 15px/1.1', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Mi día · {isB ? 'Bodega' : 'Chofer'}</div>
+            <div style={{ font: '500 10.5px/1.2', color: 'var(--ink-soft)', marginTop: 3 }}>{isB ? 'PFI · Bodeguero' : 'AG991QM · Chofer'}</div>
+          </div>
+          <span style={{ padding: '4px 9px', borderRadius: 999, background: isB ? 'rgba(216,154,164,0.2)' : 'var(--wine-tint)', color: isB ? '#1F3055' : 'var(--wine)', font: '700 10px/1', letterSpacing: '0.12em' }}>{isB ? '📦 BODEGA' : '🚛 CHOFER'}</span>
+        </header>
+
+        <div style={{ padding: 16 }}>
+          <div style={{ padding: 14, background: isB ? 'linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)' : 'var(--wine)', color: '#fff', borderRadius: 'var(--r-md)', marginBottom: 14 }}>
+            <div style={{ font: '700 10px/1', color: 'rgba(255,255,255,0.6)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>MODO ACTIVO</div>
+            <div style={{ font: '900 22px/1', marginTop: 8 }}>{isB ? 'Bodega · Recepción' : 'Chofer · Entregas'}</div>
+            <div style={{ marginTop: 8, font: '500 12px/1.4', color: 'rgba(255,255,255,0.75)' }}>
+              {isB ? 'Acciones disponibles: recibir contenedor, armar camión, escanear bultos, sellar carga.'
+                   : 'Acciones disponibles: recibir camión sellado, GPS ruta, descargar docs, firma POD, entrega final.'}
+            </div>
+          </div>
+
+          <button onClick={() => setStep('picker')} style={{
+            width: '100%', padding: '12px 14px',
+            background: 'var(--bg-elevated)', border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-md)',
+            font: '700 12px/1', color: 'var(--wine)',
+          }}>🔄 Cambiar a modo {isB ? 'Chofer' : 'Bodega'}</button>
+
+          <div style={{ marginTop: 16, padding: 14, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+            <div style={{ font: '700 10px/1', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>
+              {isB ? 'Próximas tareas · bodega' : 'Próximas tareas · chofer'}
+            </div>
+            <Row time="07:00" mode="bodega" text="Recibir DTDU-388501 · MSC Tianshan" muted={!isB} />
+            <Row time="09:30" mode="bodega" text="Armar AC542XK · 3 paradas" muted={!isB} />
+            <Row time="10:00" mode="chofer" text="Salir → Punto Fijo · Castro" muted={isB} />
+            <Row time="14:00" mode="bodega" text="Recibir DTDU-401234 · COSCO" muted={!isB} />
+            <Row time="15:30" mode="chofer" text="Salir → Maracay" muted={isB} last />
+          </div>
+
+          <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5', color: 'var(--ink)' }}>
+            <b>Esta pantalla es el preview del modo.</b> En producción acá arranca el flujo completo de {isB ? 'bodega (recibir/armar/sellar)' : 'chofer (carga/ruta/POD)'}.
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
+function Pill({ children, bg, color }) {
+  return <span style={{ padding: '3px 8px', borderRadius: 3, background: bg, color, font: '700 10px/1.2 var(--f-sans)' }}>{children}</span>;
+}
+
+function Row({ time, mode, text, muted, last }) {
+  const isB = mode === 'bodega';
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '50px 24px 1fr', gap: 8, padding: '8px 0', borderTop: '1px solid var(--border)', alignItems: 'center', opacity: muted ? 0.4 : 1 }}>
+      <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{time}</code>
+      <span style={{ width: 22, height: 22, borderRadius: 'var(--r-sm)', background: isB ? 'rgba(15,30,61,0.12)' : 'var(--wine-tint)', color: isB ? 'var(--ink)' : 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>{isB ? '📦' : '🚛'}</span>
+      <span style={{ font: '500 12px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{text}</span>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<MultiApp />);
+</script>
+</body>
+</html>

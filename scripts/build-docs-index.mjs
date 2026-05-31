@@ -30,7 +30,7 @@ function parseFrontMatter(text) {
   const end = text.indexOf("\n---", 3);
   if (end === -1) return null;
   const fm = {};
-  for (const line of text.slice(3, end).split("\n")) {
+  for (const line of text.slice(3, end).split(/\r?\n/)) {
     const m = line.match(/^([a-z_]+):\s*(.*)$/i);
     if (!m) continue;
     let v = m[2].trim();

@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD · Bodeguero · Despacho</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#060D1C" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+  html { background: #1a1a1a; }
+  body {
+    background: #1a1a1a;
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+    color: #fff;
+  }
+  button { -webkit-tap-highlight-color: transparent; transition: opacity 0.15s ease, background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease); }
+  button:active:not(:disabled) { opacity: 0.75; }
+  @keyframes erp-pop  { from { opacity: 0; transform: scale(0.96) translateY(-4px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes erp-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes erp-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
+  /* Mini-toolbar */
+  .preview-bar {
+    position: sticky; top: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center; gap: 6;
+    padding: 12px;
+    background: rgba(20,20,20,0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .preview-bar .seg {
+    display: inline-flex;
+    padding: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 999px;
+  }
+  .preview-bar .seg button {
+    padding: 7px 14px;
+    font: 700 12px/1 'Archivo', system-ui, sans-serif;
+    letter-spacing: 0.02em;
+    color: rgba(255,255,255,0.55);
+    border-radius: 999px;
+    transition: all 0.15s ease;
+  }
+  .preview-bar .seg button.active {
+    background: #A8323E;
+    color: #fff;
+  }
+  .preview-bar .label {
+    margin-right: 12px;
+    font: 700 10px/1 'Archivo', system-ui, sans-serif;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+
+  /* Stage */
+  .stage-single { display: flex; justify-content: center; padding: 24px 0 48px; }
+  .stage-compare {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 480px));
+    gap: 28px;
+    justify-content: center;
+    padding: 24px 24px 48px;
+  }
+  .phone-frame {
+    width: 480px;
+    border-radius: 22px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.08);
+    background: #000;
+  }
+  .phone-label {
+    text-align: center;
+    margin-bottom: 10px;
+    font: 700 10px/1 'Archivo', system-ui, sans-serif;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+  .phone-label .swatch {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: -1px;
+  }
+  @media (max-width: 1080px) {
+    .stage-compare { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="erp/icons.jsx"></script>
+<script type="text/babel" src="erp/data-bridge.jsx"></script>
+<script type="text/babel" src="erp/components.jsx"></script>
+<script type="text/babel" src="erp/od-bridge.jsx"></script>
+<script type="text/babel" src="operario/bodeguero-despacho.jsx"></script>
+
+<script type="text/babel">
+  const { useState } = React;
+
+  function Preview() {
+    const [mode, setMode] = useState('single'); // 'single' | 'compare'
+
+    return (
+      <div>
+        <div className="preview-bar" data-screen-label="03 Bodeguero · Despacho">
+          <span className="label">Vista</span>
+          <div className="seg" role="tablist">
+            <button
+              onClick={() => setMode('single')}
+              className={mode === 'single' ? 'active' : ''}
+              role="tab" aria-selected={mode === 'single'}
+            >Vista única</button>
+            <button
+              onClick={() => setMode('compare')}
+              className={mode === 'compare' ? 'active' : ''}
+              role="tab" aria-selected={mode === 'compare'}
+            >Comparar light + dark</button>
+          </div>
+        </div>
+
+        {mode === 'single' ? (
+          <div className="stage-single">
+            <div className="phone-frame">
+              <window.BodegueroDespacho />
+            </div>
+          </div>
+        ) : (
+          <div className="stage-compare">
+            <div>
+              <div className="phone-label"><span className="swatch" style={{ background: '#FBFAF7', border: '1px solid rgba(0,0,0,0.2)' }}></span>Light</div>
+              <div className="phone-frame">
+                <window.BodegueroDespacho fixedTheme="light" />
+              </div>
+            </div>
+            <div>
+              <div className="phone-label"><span className="swatch" style={{ background: '#0B1428' }}></span>Dark</div>
+              <div className="phone-frame">
+                <window.BodegueroDespacho fixedTheme="dark" />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<Preview />);
+</script>
+</body>
+</html>

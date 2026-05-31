@@ -1,0 +1,828 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Logo Oficial · DTD Cargo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: var(--f-sans); color: var(--ink); background: var(--bg-base); padding: 56px 48px 100px; line-height: 1.5; }
+.page { max-width: 1280px; margin: 0 auto; }
+h1 { font-family: var(--f-display); font-size: 44px; letter-spacing: -0.025em; margin: 0 0 10px; line-height: 1.05; }
+h2 { font-family: var(--f-display); font-size: 22px; margin: 0 0 14px; }
+.eyebrow { font: 600 11px/1 var(--f-sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--wine); margin-bottom: 14px; }
+.lead { font-size: 16px; color: var(--ink-soft); max-width: 720px; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 56px 0 22px; gap: 24px; flex-wrap: wrap; padding-top: 28px; border-top: 1px solid var(--border); }
+.section-head h2 { margin: 0; }
+.section-head .num { font: 700 13px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); margin-bottom: 6px; }
+.section-head p { margin: 0; color: var(--ink-soft); font-size: 14px; max-width: 480px; }
+
+/* ── Lockup spec — el corazón del archivo ────────────────────────── */
+:root {
+  --iso-w-px: 180;          /* base size of isólogo in lockup */
+  --iso-mark-gap: 40;       /* gap between isólogo and wordmark */
+  --mark-letter-spacing: -0.02em;
+  --mark-word-gap: 0.15em;  /* space between DTD and Cargo */
+  --mark-size-px: 56;       /* font size of wordmark */
+}
+
+/* ── Logo lockup component ─────────────────────────────────── */
+.lockup { display: inline-flex; flex-direction: column; align-items: center; gap: calc(var(--iso-mark-gap) * 1px); }
+.lockup .iso { width: calc(var(--iso-w-px) * 1px); height: auto; aspect-ratio: 741/764; }
+.lockup .iso img { width: 100%; height: 100%; display: block; }
+.lockup .mark {
+  font-family: 'Archivo Black', 'Archivo', sans-serif;
+  font-weight: 900;
+  font-size: calc(var(--mark-size-px) * 1px);
+  letter-spacing: var(--mark-letter-spacing);
+  line-height: 0.9;
+  white-space: nowrap;
+}
+.lockup .mark .dtd { color: #7F0F1A; }
+.lockup .mark .space { display: inline-block; width: var(--mark-word-gap); }
+.lockup .mark .cargo { color: #0F1E3D; }
+
+/* Horizontal variant */
+.lockup.horizontal { flex-direction: row; align-items: center; gap: calc(var(--iso-mark-gap) * 0.6px); }
+
+.variant-meta { display: flex; justify-content: space-between; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); font: 500 11px/1.4 var(--f-mono); color: var(--ink-soft); }
+.variant-meta code { font: 600 11px/1 var(--f-mono); color: var(--ink); }
+.variant-meta.dark-meta { border-top-color: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); }
+.variant-meta.dark-meta code { color: rgba(255,255,255,0.95); }
+
+/* Contrast check grid */
+.contrast-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.contrast-card { border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--border); }
+.contrast-card .contrast-bg { aspect-ratio: 1.2/1; display: grid; place-items: center; padding: 28px; }
+.contrast-card .contrast-bg img { max-width: 60%; max-height: 80%; display: block; }
+.contrast-card .contrast-meta { padding: 14px 18px; background: var(--bg-surface); display: flex; flex-direction: column; gap: 4px; }
+.contrast-card .contrast-meta strong { font-family: var(--f-display); font-size: 14px; color: var(--ink); }
+.contrast-card .contrast-meta .ratio { font: 700 13px/1.2 var(--f-mono); color: var(--ink); letter-spacing: 0.02em; }
+.contrast-card .contrast-meta .verdict { font: 600 11px/1 var(--f-sans); letter-spacing: 0.04em; padding: 4px 8px; border-radius: 3px; width: fit-content; }
+.contrast-card .contrast-meta .verdict.ok { background: rgba(31,138,91,0.12); color: var(--success); }
+.contrast-card .contrast-meta .verdict.err { background: rgba(168,50,62,0.12); color: var(--danger); }
+.contrast-card.bad .contrast-bg, .contrast-card.warn .contrast-bg { position: relative; }
+.contrast-dl { margin-top: 8px; display: inline-flex; align-items: center; gap: 7px; padding: 8px 12px; background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-sm); font: 700 11.5px/1 var(--f-sans); color: var(--wine); cursor: pointer; width: fit-content; transition: background .15s, border-color .15s; }
+.contrast-dl:hover { background: var(--wine-tint); border-color: var(--wine); }
+.contrast-dl .fmt { font: 600 10px/1 var(--f-mono); color: var(--ink-mute); letter-spacing: 0.04em; }
+.variant-dl { margin-top: 14px; }
+
+/* Diff panel */
+.diff-panel { margin-top: 20px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 22px 28px; }
+.diff-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.diff-head h3 { margin: 0; font-family: var(--f-display); font-size: 14px; letter-spacing: 0; }
+.diff-body { font-size: 13px; }
+.diff-empty { color: var(--ink-mute); font-style: italic; padding: 8px 0; }
+.diff-grid { display: grid; gap: 8px; }
+.diff-row { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 14px; padding: 10px 12px; background: var(--bg-elevated); border-radius: var(--r-sm); align-items: center; font: 500 12px/1.4 var(--f-mono); }
+.diff-row .key { color: var(--ink); font-weight: 700; }
+.diff-row .default { color: var(--ink-soft); }
+.diff-row .default::before { content: 'default: '; opacity: 0.6; font-weight: 400; }
+.diff-row .changed { color: var(--wine); font-weight: 700; }
+.diff-row .changed::before { content: 'tu valor: '; opacity: 0.7; font-weight: 400; color: var(--ink-soft); }
+
+/* Cards */
+.card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 32px; box-shadow: var(--shadow-xs); }
+.card.dark { background: var(--bg-sidebar); border-color: rgba(255,255,255,0.08); }
+.card.wine { background: var(--wine); border-color: transparent; }
+.card.paper { background: var(--bg-elevated); }
+.card-label { font: 600 10.5px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 22px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.card.dark .card-label, .card.wine .card-label { color: rgba(255,255,255,0.7); }
+.card-label code { font: 600 10px/1 var(--f-mono); letter-spacing: 0.04em; opacity: 0.75; }
+.tag { font: 700 9.5px/1 var(--f-mono); padding: 4px 7px; border-radius: 3px; background: var(--wine-tint); color: var(--wine); letter-spacing: 0.05em; }
+.tag.ok { background: rgba(31,138,91,0.12); color: var(--success); }
+
+.stage {
+  display: grid;
+  place-items: center;
+  padding: 48px 24px;
+  min-height: 280px;
+}
+
+/* Hero · light background to match primary variant */
+.hero { display: grid; grid-template-columns: 1.3fr 1fr; gap: 36px; align-items: center; margin-top: 32px; padding: 48px 56px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--shadow-xs); }
+.hero h1 { color: var(--ink); margin-bottom: 14px; }
+.hero .lead { color: var(--ink-soft); max-width: 460px; }
+.hero ul { margin: 22px 0 0; padding: 0; list-style: none; }
+.hero ul li { display: flex; gap: 16px; padding: 10px 0; font-size: 14px; color: var(--ink-soft); border-bottom: 1px solid var(--border); align-items: baseline; }
+.hero ul li strong { color: var(--ink); min-width: 140px; display: inline-block; font-weight: 600; }
+.hero ul li code { font: 500 12px/1.4 var(--f-mono); color: var(--wine); background: var(--wine-tint); padding: 2px 6px; border-radius: 3px; }
+
+/* Hero stage wrap with carousel arrows */
+.hero-stage-wrap { position: relative; }
+.hero-stage { background: #FFFFFF; border: 1px solid var(--border); border-radius: var(--r-lg); padding: 56px 40px; display: grid; place-items: center; transition: background 240ms ease, border-color 240ms ease; min-height: 360px; }
+.hero-stage.bg-light { background: #FFFFFF; border-color: var(--border); }
+.hero-stage.bg-navy { background: #0F1E3D; border-color: #1F3055; }
+.hero-stage.bg-wine { background: #7F0F1A; border-color: #5E0A12; }
+.hero-stage.bg-paper { background: #F2F0EC; border-color: var(--border); }
+
+.carousel-arrow { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: var(--r-pill); background: var(--bg-surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); cursor: pointer; font-family: var(--f-display); font-size: 24px; color: var(--ink); display: grid; place-items: center; z-index: 5; transition: all 160ms; }
+.carousel-arrow:hover { background: var(--wine); color: white; border-color: transparent; }
+.carousel-arrow.left { left: -22px; }
+.carousel-arrow.right { right: -22px; }
+
+.variant-dots { display: flex; gap: 8px; justify-content: center; margin-top: 16px; }
+.variant-dots button { width: 8px; height: 8px; border-radius: 50%; background: var(--border); border: none; cursor: pointer; padding: 0; transition: all 160ms; }
+.variant-dots button:hover { background: var(--ink-soft); }
+.variant-dots button.is-active { background: var(--wine); width: 22px; border-radius: 4px; }
+
+/* Variants grid */
+.variants-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+
+/* Spec table */
+.spec-table { width: 100%; border-collapse: collapse; }
+.spec-table tr { border-bottom: 1px solid var(--border); }
+.spec-table tr:last-child { border-bottom: none; }
+.spec-table td { padding: 12px 14px; font-size: 13.5px; vertical-align: top; }
+.spec-table td:first-child { font-weight: 600; color: var(--ink); width: 38%; }
+.spec-table td:last-child { color: var(--ink-soft); }
+.spec-table code { font: 500 12px/1.4 var(--f-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: 3px; color: var(--ink); }
+
+/* Sizes test */
+.sizes-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 18px; align-items: end; }
+.size-cell { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 24px 12px; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); }
+.size-cell .label { font: 500 10.5px/1.3 var(--f-mono); color: var(--ink-soft); text-align: center; }
+.size-cell .label strong { display: block; color: var(--ink); font-family: var(--f-display); font-size: 13px; margin-bottom: 4px; }
+
+/* Construction guide */
+.construction { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.construction .card { padding: 24px; }
+.measure-stage { position: relative; padding: 20px; background: var(--bg-elevated); border-radius: var(--r-sm); }
+
+/* Editing controls panel · INLINE inside hero card */
+.tweaks { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--r-md); padding: 18px 22px; margin-top: 18px; display: none; }
+.tweaks.is-open { display: block; }
+.tweaks h3 { margin: 0 0 14px; font-family: var(--f-display); font-size: 13px; letter-spacing: 0.02em; color: var(--ink); display: flex; justify-content: space-between; align-items: center; }
+.tweaks h3 .close { background: none; border: none; font-size: 18px; cursor: pointer; color: var(--ink-soft); padding: 0; line-height: 1; }
+.tweaks .tweak-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
+.tweak { margin: 0; }
+.tweak label { display: block; font: 600 10px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 5px; }
+.tweak .row { display: flex; gap: 8px; align-items: center; }
+.tweak input[type=range] { flex: 1; accent-color: var(--wine); }
+.tweak .v { font: 600 11px/1 var(--f-mono); color: var(--ink); min-width: 64px; text-align: right; }
+
+.btn { display: inline-flex; align-items: center; gap: 8px; font: 600 12px/1 var(--f-sans); letter-spacing: 0.05em; padding: 10px 16px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg-surface); color: var(--ink); cursor: pointer; transition: all 120ms; text-decoration: none; }
+.btn:hover { background: var(--bg-elevated); }
+.btn.primary { background: var(--wine); color: white; border-color: transparent; }
+.btn.primary:hover { background: var(--wine-deep); }
+.actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+
+/* Download menu */
+.download-menu-wrap { position: relative; display: inline-block; }
+.download-menu { position: absolute; top: calc(100% + 6px); left: 0; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-md); padding: 6px; min-width: 240px; display: none; z-index: 30; }
+.download-menu.is-open { display: block; }
+.download-menu button { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; padding: 10px 12px; background: transparent; border: none; cursor: pointer; border-radius: var(--r-sm); text-align: left; }
+.download-menu button:hover { background: var(--bg-elevated); }
+.download-menu button { font: 600 12.5px/1.2 var(--f-sans); color: var(--ink); }
+.download-menu button span { font: 500 11px/1.2 var(--f-mono); color: var(--ink-soft); letter-spacing: 0.02em; }
+
+@media (max-width: 900px) {
+  .hero, .construction, .variants-grid { grid-template-columns: 1fr; }
+  .sizes-row { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+<div class="eyebrow">DTD-Cargo · Identidad oficial v1.0</div>
+<h1>Logo oficial · <span style="color: var(--wine);">isólogo + wordmark</span></h1>
+<p class="lead">El isólogo se mantiene tal cual el PNG original. El wordmark se reconstruye en <strong>Archivo Black</strong>: <span style="color: var(--wine); font-weight: 700;">DTD</span> en wine, espacio mínimo, <strong style="color: var(--ink);">Cargo</strong> en navy.</p>
+
+<!-- ── HERO LOCKUP · interactive carousel ─────────────────── -->
+<div class="hero">
+  <div>
+    <h1 style="font-size: 30px;" id="hero-title">Logo principal</h1>
+    <p class="lead" id="hero-sub">El logo completo — isólogo + wordmark. Lo que mandás a imprenta cuando piden "el logo".</p>
+    <ul>
+      <li><strong>Variante activa</strong> <span id="active-variant">Logo · Principal</span></li>
+      <li><strong>Archivo</strong> <code id="active-file">DTDCargo-Logo-Principal.png</code></li>
+      <li><strong>Fondo válido</strong> <span id="active-bg">Light / paper / white</span></li>
+      <li><strong>Contraste</strong> <span id="active-contrast">14.8 : 1 · AAA</span></li>
+      <li><strong>Paleta</strong> <span id="active-palette">#0F1E3D · #7F0F1A</span></li>
+    </ul>
+    <div class="actions">
+      <button class="btn primary" id="open-tweaks">⚙ Ajustar lockup</button>
+      <button class="btn" id="download-active">↓ Descargar logo + isólogo PNG</button>
+      <button class="btn" id="print-page">⎙ Imprimir</button>
+    </div>
+
+    <!-- Tweaks panel — appears here when "Ajustar lockup" is clicked -->
+    <div class="tweaks" id="tweaks-panel">
+      <h3>
+        <span>Ajustar lockup oficial</span>
+        <button class="close" id="close-tweaks" aria-label="Cerrar">×</button>
+      </h3>
+      <div class="tweak-grid">
+        <div class="tweak">
+          <label>Tamaño isólogo</label>
+          <div class="row"><input type="range" min="100" max="320" value="180" data-var="--iso-w-px"/><div class="v"><span data-display="--iso-w-px">180</span> px</div></div>
+        </div>
+        <div class="tweak">
+          <label>Gap iso ↔ wordmark</label>
+          <div class="row"><input type="range" min="0" max="80" value="40" data-var="--iso-mark-gap"/><div class="v"><span data-display="--iso-mark-gap">40</span> px</div></div>
+        </div>
+        <div class="tweak">
+          <label>Tamaño wordmark</label>
+          <div class="row"><input type="range" min="24" max="120" value="56" data-var="--mark-size-px"/><div class="v"><span data-display="--mark-size-px">56</span> px</div></div>
+        </div>
+        <div class="tweak">
+          <label>Gap DTD ↔ Cargo (em)</label>
+          <div class="row"><input type="range" min="0" max="100" value="15" data-var="--mark-word-gap" data-unit="em" data-scale="0.01"/><div class="v"><span data-display="--mark-word-gap">0.15</span> em</div></div>
+        </div>
+        <div class="tweak">
+          <label>Letter-spacing (em)</label>
+          <div class="row"><input type="range" min="-50" max="20" value="-20" data-var="--mark-letter-spacing" data-unit="em" data-scale="0.001"/><div class="v"><span data-display="--mark-letter-spacing">-0.020</span> em</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="hero-stage-wrap">
+    <button class="carousel-arrow left" id="prev-variant" aria-label="Variante anterior">‹</button>
+    <button class="carousel-arrow right" id="next-variant" aria-label="Siguiente variante">›</button>
+    <div class="hero-stage" id="hero-stage">
+      <div class="lockup" id="hero-lockup">
+        <div class="iso"><img id="hero-iso" src="assets/dtdcargo-isologo-primary.png" alt="DTD Cargo"/></div>
+        <div class="mark"><span class="dtd" id="hero-dtd">DTD</span><span class="space"></span><span class="cargo" id="hero-cargo">Cargo</span></div>
+      </div>
+    </div>
+    <div class="variant-dots" id="variant-dots"></div>
+  </div>
+</div>
+
+<!-- ── DIFF PANEL · shows live changes from default ──────── -->
+<div class="diff-panel" id="diff-panel">
+  <div class="diff-head">
+    <h3>Ajustes en vivo · diff vs default</h3>
+    <button class="btn" id="reset-tweaks">↺ Resetear a default</button>
+  </div>
+  <div class="diff-body" id="diff-body">
+    <div class="diff-empty">Aún no cambiaste nada. Abrí "Ajustar lockup" y vas a ver acá lo que modifiques.</div>
+  </div>
+</div>
+
+<!-- ── VARIANTES ─────────────────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">01 / Variantes oficiales</div>
+    <h2>4 versiones · una para cada fondo</h2>
+  </div>
+  <p>Toda identidad seria tiene múltiples lockups por contraste. Estos son los <strong>únicos 4 permitidos</strong>.</p>
+</div>
+
+<div class="variants-grid">
+  <div class="card">
+    <div class="card-label">Primary · light <span class="tag ok">DEFAULT</span></div>
+    <div class="stage" style="background: #FFFFFF; border-radius: var(--r-md);">
+      <div class="lockup" style="--iso-w-px: 200;">
+        <div class="iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD Cargo"/></div>
+        <div class="mark"><span class="dtd">DTD</span><span class="space"></span><span class="cargo">Cargo</span></div>
+      </div>
+    </div>
+    <div class="variant-meta">
+      <code>dtdcargo-isologo-primary.png</code>
+      <span>Sobre #FBFAF7 · #FFFFFF · #F2F0EC</span>
+    </div>
+    <button class="contrast-dl variant-dl" data-file="dtdcargo-isologo-primary.png">↓ Descargar logo + isólogo <span class="fmt">PNG</span></button>
+  </div>
+
+  <div class="card dark">
+    <div class="card-label">Reverse · dark <code>#0F1E3D</code></div>
+    <div class="stage">
+      <div class="lockup" style="--iso-w-px: 200;">
+        <div class="iso"><img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo"/></div>
+        <div class="mark"><span class="dtd" style="color: #7F0F1A;">DTD</span><span class="space"></span><span class="cargo" style="color: #FBFAF7;">Cargo</span></div>
+      </div>
+    </div>
+    <div class="variant-meta dark-meta">
+      <code>dtdcargo-isologo-reverse.png</code>
+      <span>Sobre navy · sidebar · botones dark</span>
+    </div>
+    <button class="contrast-dl variant-dl" data-file="dtdcargo-isologo-reverse.png">↓ Descargar logo + isólogo <span class="fmt">PNG</span></button>
+  </div>
+
+  <div class="card wine">
+    <div class="card-label">Reverse · wine <code>#7F0F1A</code></div>
+    <div class="stage">
+      <div class="lockup" style="--iso-w-px: 200;">
+        <div class="iso"><img src="assets/dtdcargo-isologo-mono-light.png" alt="DTD Cargo"/></div>
+        <div class="mark"><span class="dtd" style="color: #FBFAF7;">DTD</span><span class="space"></span><span class="cargo" style="color: #FBFAF7;">Cargo</span></div>
+      </div>
+    </div>
+    <div class="variant-meta dark-meta">
+      <code>dtdcargo-isologo-mono-light.png</code>
+      <span>Sobre wine · alerta · CTA primario</span>
+    </div>
+    <button class="contrast-dl variant-dl" data-file="dtdcargo-isologo-mono-light.png">↓ Descargar logo + isólogo <span class="fmt">PNG</span></button>
+  </div>
+
+  <div class="card paper">
+    <div class="card-label">Mono · sello tinta <code>#0F1E3D</code></div>
+    <div class="stage">
+      <div class="lockup" style="--iso-w-px: 200;">
+        <div class="iso"><img src="assets/dtdcargo-isologo-mono-dark.png" alt="DTD Cargo"/></div>
+        <div class="mark"><span class="dtd" style="color: #0F1E3D;">DTD</span><span class="space"></span><span class="cargo" style="color: #0F1E3D;">Cargo</span></div>
+      </div>
+    </div>
+    <div class="variant-meta">
+      <code>dtdcargo-isologo-mono-dark.png</code>
+      <span>B&amp;W · imprenta tinta · sello jurídico</span>
+    </div>
+    <button class="contrast-dl variant-dl" data-file="dtdcargo-isologo-mono-dark.png">↓ Descargar logo + isólogo <span class="fmt">PNG</span></button>
+  </div>
+</div>
+
+<!-- ── REGLA DE CONTRASTE ───────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">02 / Regla de oro · contraste</div>
+    <h2>¿Cuál variante uso?</h2>
+  </div>
+  <p>Si dudás, mirá el ratio WCAG. Mínimo <strong>3:1</strong> para identidad gráfica.</p>
+</div>
+
+<div class="contrast-grid">
+  <div class="contrast-card good">
+    <div class="contrast-bg" style="background: #FBFAF7;">
+      <img src="assets/dtdcargo-isologo-primary.png" alt=""/>
+    </div>
+    <div class="contrast-meta">
+      <strong>Primary sobre Light</strong>
+      <span class="ratio">14.8 : 1</span>
+      <span class="verdict ok">AAA · perfecto</span>
+      <button class="contrast-dl" data-file="dtdcargo-isologo-primary.png">↓ Descargar isólogo solo <span class="fmt">PNG</span></button>
+    </div>
+  </div>
+  <div class="contrast-card good">
+    <div class="contrast-bg" style="background: #0F1E3D;">
+      <img src="assets/dtdcargo-isologo-reverse.png" alt=""/>
+    </div>
+    <div class="contrast-meta">
+      <strong>Reverse sobre Navy</strong>
+      <span class="ratio">12.4 : 1</span>
+      <span class="verdict ok">AAA · perfecto</span>
+      <button class="contrast-dl" data-file="dtdcargo-isologo-reverse.png">↓ Descargar isólogo solo <span class="fmt">PNG</span></button>
+    </div>
+  </div>
+  <div class="contrast-card good">
+    <div class="contrast-bg" style="background: #7F0F1A;">
+      <img src="assets/dtdcargo-isologo-mono-light.png" alt=""/>
+    </div>
+    <div class="contrast-meta">
+      <strong>Mono Light sobre Wine</strong>
+      <span class="ratio">7.2 : 1</span>
+      <span class="verdict ok">AAA · perfecto</span>
+      <button class="contrast-dl" data-file="dtdcargo-isologo-mono-light.png">↓ Descargar isólogo solo <span class="fmt">PNG</span></button>
+    </div>
+  </div>
+  <div class="contrast-card bad">
+    <div class="contrast-bg" style="background: #0F1E3D;">
+      <img src="assets/dtdcargo-isologo-primary.png" alt=""/>
+    </div>
+    <div class="contrast-meta">
+      <strong>Primary sobre Navy</strong>
+      <span class="ratio">1.1 : 1</span>
+      <span class="verdict err">❌ Prohibido</span>
+    </div>
+  </div>
+  <div class="contrast-card bad">
+    <div class="contrast-bg" style="background: #7F0F1A;">
+      <img src="assets/dtdcargo-isologo-primary.png" alt=""/>
+    </div>
+    <div class="contrast-meta">
+      <strong>Primary sobre Wine</strong>
+      <span class="ratio">2.4 : 1</span>
+      <span class="verdict err">❌ Prohibido</span>
+    </div>
+  </div>
+  <div class="contrast-card warn">
+    <div class="contrast-bg" style="background: #F2F0EC;">
+      <img src="assets/dtdcargo-isologo-mono-light.png" alt=""/>
+    </div>
+    <div class="contrast-meta">
+      <strong>Mono Light sobre Paper</strong>
+      <span class="ratio">1.0 : 1</span>
+      <span class="verdict err">❌ Invisible</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── ESCALA ──────────────────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">03 / Escala</div>
+    <h2>De favicon a header</h2>
+  </div>
+  <p>El lockup respeta legibilidad de 48 a 320 px de ancho.</p>
+</div>
+
+<div class="sizes-row">
+  <div class="size-cell">
+    <div class="lockup" style="--iso-w-px: 48; --mark-size-px: 14; --iso-mark-gap: 8;">
+      <div class="iso"><img src="assets/dtdcargo-isologo-primary.png" alt=""/></div>
+      <div class="mark"><span class="dtd">DTD</span><span class="space"></span><span class="cargo">Cargo</span></div>
+    </div>
+    <div class="label"><strong>48 px</strong>Mínimo</div>
+  </div>
+  <div class="size-cell">
+    <div class="lockup" style="--iso-w-px: 80; --mark-size-px: 22; --iso-mark-gap: 14;">
+      <div class="iso"><img src="assets/dtdcargo-isologo-primary.png" alt=""/></div>
+      <div class="mark"><span class="dtd">DTD</span><span class="space"></span><span class="cargo">Cargo</span></div>
+    </div>
+    <div class="label"><strong>80 px</strong>Sidebar</div>
+  </div>
+  <div class="size-cell">
+    <div class="lockup" style="--iso-w-px: 120; --mark-size-px: 30; --iso-mark-gap: 20;">
+      <div class="iso"><img src="assets/dtdcargo-isologo-primary.png" alt=""/></div>
+      <div class="mark"><span class="dtd">DTD</span><span class="space"></span><span class="cargo">Cargo</span></div>
+    </div>
+    <div class="label"><strong>120 px</strong>Card</div>
+  </div>
+  <div class="size-cell">
+    <div class="lockup" style="--iso-w-px: 200; --mark-size-px: 52; --iso-mark-gap: 36;">
+      <div class="iso"><img src="assets/dtdcargo-isologo-primary.png" alt=""/></div>
+      <div class="mark"><span class="dtd">DTD</span><span class="space"></span><span class="cargo">Cargo</span></div>
+    </div>
+    <div class="label"><strong>200 px</strong>Hero</div>
+  </div>
+  <div class="size-cell">
+    <div class="lockup" style="--iso-w-px: 320; --mark-size-px: 82; --iso-mark-gap: 56;">
+      <div class="iso"><img src="assets/dtdcargo-isologo-primary.png" alt=""/></div>
+      <div class="mark"><span class="dtd">DTD</span><span class="space"></span><span class="cargo">Cargo</span></div>
+    </div>
+    <div class="label"><strong>320 px</strong>Banner</div>
+  </div>
+</div>
+
+<!-- ── ESPECIFICACIÓN ───────────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">04 / Especificación técnica</div>
+    <h2>Para reproducirlo en cualquier herramienta</h2>
+  </div>
+  <p>Si lo hacés en Figma, Illustrator, Canva o Word — estos son los parámetros oficiales.</p>
+</div>
+
+<div class="construction">
+  <div class="card">
+    <div class="card-label">Construcción</div>
+    <table class="spec-table">
+      <tr><td>Isólogo</td><td>PNG <code>assets/dtdcargo-isologo.png</code> · 741×764 px · fondo transparente</td></tr>
+      <tr><td>Wordmark fuente</td><td><code>Archivo Black</code> · 900 weight</td></tr>
+      <tr><td>Wordmark size</td><td>≈ 30% del ancho del isólogo</td></tr>
+      <tr><td>Letter-spacing</td><td><code>-0.02em</code> (ligero negative tracking)</td></tr>
+      <tr><td>Gap DTD ↔ Cargo</td><td><code>0.15em</code> (espacio mínimo)</td></tr>
+      <tr><td>Gap iso ↔ wordmark</td><td>≈ 18-22% del alto del isólogo</td></tr>
+      <tr><td>Color "DTD"</td><td><code style="color: #7F0F1A;">#7F0F1A</code> wine corporativo</td></tr>
+      <tr><td>Color "Cargo"</td><td><code style="color: #0F1E3D;">#0F1E3D</code> navy corporativo</td></tr>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-label">Reglas</div>
+    <table class="spec-table">
+      <tr><td>✅ Sí</td><td>Usar sobre fondos light, paper, dark y wine del sistema</td></tr>
+      <tr><td>✅ Sí</td><td>Escalar proporcionalmente — nunca deformar</td></tr>
+      <tr><td>✅ Sí</td><td>Versión horizontal permitida cuando el alto sea limitante</td></tr>
+      <tr><td>❌ No</td><td>Inventar colores fuera de la paleta · usar verde / fucsia / neón</td></tr>
+      <tr><td>❌ No</td><td>Aplicar gradientes, sombras difusas o efectos de "glow"</td></tr>
+      <tr><td>❌ No</td><td>Usar el isólogo solo sin el wordmark (excepto avatares &lt; 64px)</td></tr>
+      <tr><td>❌ No</td><td>Reemplazar la fuente Archivo Black por Inter / Roboto / system</td></tr>
+      <tr><td>❌ No</td><td>Concatenar como "DTDCARGO" — siempre dos palabras</td></tr>
+    </table>
+  </div>
+</div>
+
+<!-- ── HORIZONTAL ─────────────────────────────────── -->
+<div class="section-head">
+  <div>
+    <div class="num">05 / Lockup horizontal</div>
+    <h2>Variante header</h2>
+  </div>
+  <p>Cuando el alto es la dimensión crítica (header de email, sidebar del ERP, factura).</p>
+</div>
+
+<div class="card">
+  <div class="card-label">Horizontal · header</div>
+  <div class="stage" style="padding: 56px 40px;">
+    <div class="lockup horizontal" style="--iso-w-px: 80; --mark-size-px: 36; --iso-mark-gap: 26;">
+      <div class="iso"><img src="assets/dtdcargo-isologo-primary.png" alt=""/></div>
+      <div class="mark"><span class="dtd">DTD</span><span class="space"></span><span class="cargo">Cargo</span></div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ── TWEAKS PANEL ──────────────────────────────────── -->
+<!-- ── TWEAKS PANEL · inline below hero actions ──────── -->
+<!-- (moved into hero card via inline placement) -->
+
+<script>
+const root = document.documentElement;
+
+// ── VARIANT DATA ────────────────────────────────────
+const VARIANTS = [
+  // ── A · LOGO completo (isólogo + wordmark "DTD Cargo") ──
+  {
+    kind: 'logo', label: 'Principal',
+    title: 'Logo principal',
+    sub: 'El logo completo — isólogo + wordmark. Lo que mandás a imprenta cuando piden "el logo".',
+    file: 'dtdcargo-isologo-primary.png', dl: 'DTDCargo-Logo-Principal.png',
+    bg: 'bg-light', bgValid: 'Light · paper · white', contrast: '14.8 : 1 · AAA',
+    palette: '#0F1E3D · #7F0F1A', dtdColor: '#7F0F1A', cargoColor: '#0F1E3D', mark: true,
+  },
+  {
+    kind: 'logo', label: 'Reverse',
+    title: 'Logo · Reverse',
+    sub: 'Logo completo para fondos navy o ink — sidebar, dark mode, mockups oscuros.',
+    file: 'dtdcargo-isologo-reverse.png', dl: 'DTDCargo-Logo-Reverse.png',
+    bg: 'bg-navy', bgValid: 'Navy · ink · sidebar', contrast: '12.4 : 1 · AAA',
+    palette: '#FBFAF7 · #7F0F1A', dtdColor: '#7F0F1A', cargoColor: '#FBFAF7', mark: true,
+  },
+  {
+    kind: 'logo', label: 'Mono light',
+    title: 'Logo · Mono light',
+    sub: 'Logo completo en cream sólido — sobre wine o CTA primario, alerta crítica.',
+    file: 'dtdcargo-isologo-mono-light.png', dl: 'DTDCargo-Logo-MonoLight.png',
+    bg: 'bg-wine', bgValid: 'Wine · CTA · alerta', contrast: '7.2 : 1 · AAA',
+    palette: '#FBFAF7', dtdColor: '#FBFAF7', cargoColor: '#FBFAF7', mark: true,
+  },
+  {
+    kind: 'logo', label: 'Mono dark',
+    title: 'Logo · Mono dark',
+    sub: 'Logo completo B&W tinta — imprenta a un color, sello jurídico, fax.',
+    file: 'dtdcargo-isologo-mono-dark.png', dl: 'DTDCargo-Logo-MonoDark.png',
+    bg: 'bg-paper', bgValid: 'Paper · light · B&W', contrast: '15.3 : 1 · AAA',
+    palette: '#0F1E3D', dtdColor: '#0F1E3D', cargoColor: '#0F1E3D', mark: true,
+  },
+  // ── B · SOLO ISÓLOGO (sin wordmark) ──
+  {
+    kind: 'iso', label: 'Principal',
+    title: 'Solo isólogo · Principal',
+    sub: 'Solo el isólogo, sin wordmark. Para avatares, favicon, sellos y app icons.',
+    file: 'dtdcargo-isologo-primary.png', dl: 'DTDCargo-SoloIsologo-Principal.png',
+    bg: 'bg-light', bgValid: 'Light · paper · white', contrast: '14.8 : 1 · AAA',
+    palette: '#0F1E3D · #7F0F1A', dtdColor: '#7F0F1A', cargoColor: '#0F1E3D', mark: false,
+  },
+  {
+    kind: 'iso', label: 'Reverse',
+    title: 'Solo isólogo · Reverse',
+    sub: 'Solo el isólogo para fondos navy o ink — avatar dark, favicon dark mode.',
+    file: 'dtdcargo-isologo-reverse.png', dl: 'DTDCargo-SoloIsologo-Reverse.png',
+    bg: 'bg-navy', bgValid: 'Navy · ink · sidebar', contrast: '12.4 : 1 · AAA',
+    palette: '#FBFAF7 · #7F0F1A', dtdColor: '#7F0F1A', cargoColor: '#FBFAF7', mark: false,
+  },
+  {
+    kind: 'iso', label: 'Mono light',
+    title: 'Solo isólogo · Mono light',
+    sub: 'Solo el isólogo en cream sólido — sobre wine sólido o CTA primario.',
+    file: 'dtdcargo-isologo-mono-light.png', dl: 'DTDCargo-SoloIsologo-MonoLight.png',
+    bg: 'bg-wine', bgValid: 'Wine · CTA · alerta', contrast: '7.2 : 1 · AAA',
+    palette: '#FBFAF7', dtdColor: '#FBFAF7', cargoColor: '#FBFAF7', mark: false,
+  },
+];
+
+let currentIdx = 0;
+
+function applyVariant(idx) {
+  const v = VARIANTS[idx];
+  currentIdx = idx;
+  document.getElementById('hero-title').textContent = v.title;
+  document.getElementById('hero-sub').textContent = v.sub;
+  document.getElementById('active-variant').textContent = (v.kind === 'iso' ? 'Solo isólogo · ' : 'Logo · ') + v.label;
+  document.getElementById('active-file').textContent = v.dl;
+  document.getElementById('active-bg').textContent = v.bgValid;
+  document.getElementById('active-contrast').textContent = v.contrast;
+  document.getElementById('active-palette').textContent = v.palette;
+  document.getElementById('hero-iso').src = 'assets/' + v.file;
+  document.getElementById('hero-dtd').style.color = v.dtdColor;
+  document.getElementById('hero-cargo').style.color = v.cargoColor;
+  // Solo isólogo no lleva wordmark abajo
+  document.querySelector('#hero-lockup .mark').style.display = v.mark ? '' : 'none';
+  // botón de descarga según tipo
+  document.getElementById('download-active').textContent = v.mark ? '↓ Descargar logo + isólogo PNG' : '↓ Descargar solo isólogo PNG';
+  // bg
+  const stage = document.getElementById('hero-stage');
+  stage.classList.remove('bg-light', 'bg-navy', 'bg-wine', 'bg-paper');
+  stage.classList.add(v.bg);
+  // dots
+  document.querySelectorAll('#variant-dots button').forEach((d, i) => {
+    d.classList.toggle('is-active', i === idx);
+  });
+}
+
+// Render dots
+const dotsHost = document.getElementById('variant-dots');
+VARIANTS.forEach((v, i) => {
+  const b = document.createElement('button');
+  b.setAttribute('aria-label', v.label);
+  b.addEventListener('click', () => applyVariant(i));
+  dotsHost.appendChild(b);
+});
+
+// Arrows
+document.getElementById('prev-variant').addEventListener('click', () => {
+  applyVariant((currentIdx - 1 + VARIANTS.length) % VARIANTS.length);
+});
+document.getElementById('next-variant').addEventListener('click', () => {
+  applyVariant((currentIdx + 1) % VARIANTS.length);
+});
+
+// Init
+applyVariant(0);
+
+// ── TWEAKS · with default tracking + diff ─────────────
+const TWEAK_DEFAULTS = {
+  '--iso-w-px': { value: 180, unit: 'px', label: 'Tamaño isólogo' },
+  '--iso-mark-gap': { value: 40, unit: 'px', label: 'Gap iso ↔ wordmark' },
+  '--mark-size-px': { value: 56, unit: 'px', label: 'Tamaño wordmark' },
+  '--mark-word-gap': { value: 0.15, unit: 'em', label: 'Gap DTD ↔ Cargo' },
+  '--mark-letter-spacing': { value: -0.02, unit: 'em', label: 'Letter-spacing' },
+};
+const currentTweaks = Object.fromEntries(
+  Object.entries(TWEAK_DEFAULTS).map(([k, v]) => [k, v.value])
+);
+
+const panel = document.getElementById('tweaks-panel');
+document.getElementById('open-tweaks').addEventListener('click', () => panel.classList.add('is-open'));
+document.getElementById('close-tweaks').addEventListener('click', () => panel.classList.remove('is-open'));
+
+panel.querySelectorAll('input[type=range]').forEach(inp => {
+  inp.addEventListener('input', () => {
+    const v = +inp.value;
+    const variable = inp.dataset.var;
+    const unit = inp.dataset.unit || 'px';
+    const scale = +inp.dataset.scale || 1;
+    const val = v * scale;
+    const cssVal = unit === 'em' ? val + 'em' : val;
+    const heroLockup = document.getElementById('hero-lockup');
+    heroLockup.style.setProperty(variable, cssVal);
+    const display = panel.querySelector('[data-display="' + variable + '"]');
+    if (display) display.textContent = scale === 1 ? val : val.toFixed(scale === 0.001 ? 3 : 2);
+    currentTweaks[variable] = val;
+    renderDiff();
+  });
+});
+
+function renderDiff() {
+  const body = document.getElementById('diff-body');
+  const changes = [];
+  for (const [key, def] of Object.entries(TWEAK_DEFAULTS)) {
+    const cur = currentTweaks[key];
+    if (Math.abs(cur - def.value) > 0.0001) {
+      changes.push({ key: def.label, varName: key, def: def.value, cur, unit: def.unit });
+    }
+  }
+  if (changes.length === 0) {
+    body.innerHTML = '<div class="diff-empty">Aún no cambiaste nada. Abrí "Ajustar lockup" y vas a ver acá lo que modifiques.</div>';
+    return;
+  }
+  body.innerHTML = '<div class="diff-grid">' + changes.map(c => {
+    const defStr = c.unit === 'em' ? c.def.toFixed(c.def.toString().length > 4 ? 3 : 2) : c.def;
+    const curStr = c.unit === 'em' ? c.cur.toFixed(c.cur.toString().length > 4 ? 3 : 2) : c.cur;
+    return '<div class="diff-row"><span class="key">' + c.key + '</span><span class="default">' + defStr + ' ' + c.unit + '</span><span class="changed">' + curStr + ' ' + c.unit + '</span></div>';
+  }).join('') + '</div>';
+}
+
+// Reset
+document.getElementById('reset-tweaks').addEventListener('click', () => {
+  const heroLockup = document.getElementById('hero-lockup');
+  Object.entries(TWEAK_DEFAULTS).forEach(([key, def]) => {
+    const cssVal = def.unit === 'em' ? def.value + 'em' : def.value;
+    heroLockup.style.setProperty(key, cssVal);
+    currentTweaks[key] = def.value;
+  });
+  // Reset slider positions
+  panel.querySelectorAll('input[type=range]').forEach(inp => {
+    const variable = inp.dataset.var;
+    const def = TWEAK_DEFAULTS[variable];
+    if (!def) return;
+    const scale = +inp.dataset.scale || 1;
+    inp.value = def.value / scale;
+    const display = panel.querySelector('[data-display="' + variable + '"]');
+    if (display) {
+      display.textContent = scale === 1 ? def.value : def.value.toFixed(scale === 0.001 ? 3 : 2);
+    }
+  });
+  renderDiff();
+});
+
+// ── DOWNLOAD helpers ─────────────────────────────────
+const VBY_FILE = {};
+VARIANTS.forEach(v => { VBY_FILE[v.file] = v; });
+
+function triggerBlob(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Download raw isólogo PNG (isólogo solo) with a custom filename
+async function downloadIsoSolo(file, dlName) {
+  try {
+    const res = await fetch('assets/' + file);
+    if (!res.ok) throw new Error('Not found');
+    triggerBlob(await res.blob(), dlName);
+  } catch (err) { alert('No se pudo descargar ' + file); }
+}
+
+// Render the FULL lockup (isólogo + wordmark "DTD Cargo") to a canvas and download
+async function downloadLockup(file, dlName) {
+  const v = VBY_FILE[file];
+  try {
+    await (document.fonts ? document.fonts.load('900 56px "Archivo Black"').then(() => document.fonts.ready) : Promise.resolve());
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = 'assets/' + file; });
+
+    const S = 4;                       // export scale for print crispness
+    const isoW = 200;                  // matches lockup card
+    const isoH = isoW * img.height / img.width;
+    const gap = 40;
+    const markSize = 56;
+    const tracking = -0.02 * markSize; // -0.02em
+    const wordGap = 0.15 * markSize;   // 0.15em between DTD and Cargo
+    const pad = 24;
+
+    // measure wordmark
+    const meas = document.createElement('canvas').getContext('2d');
+    meas.font = '900 ' + markSize + 'px "Archivo Black", "Archivo", sans-serif';
+    if ('letterSpacing' in meas) meas.letterSpacing = tracking + 'px';
+    const wDTD = meas.measureText('DTD').width;
+    const wCargo = meas.measureText('Cargo').width;
+    const markW = wDTD + wordGap + wCargo;
+
+    const contentW = isoW + gap + markW;
+    const contentH = Math.max(isoH, markSize * 1.2);
+    const W = contentW + pad * 2;
+    const H = contentH + pad * 2;
+
+    const c = document.createElement('canvas');
+    c.width = Math.ceil(W * S); c.height = Math.ceil(H * S);
+    const ctx = c.getContext('2d');
+    ctx.scale(S, S);
+    ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+
+    // isólogo — vertically centered
+    ctx.drawImage(img, pad, pad + (contentH - isoH) / 2, isoW, isoH);
+
+    // wordmark — vertically centered, baseline aligned
+    const textX = pad + isoW + gap;
+    const textY = pad + contentH / 2;
+    ctx.textBaseline = 'middle';
+    ctx.font = '900 ' + markSize + 'px "Archivo Black", "Archivo", sans-serif';
+    if ('letterSpacing' in ctx) ctx.letterSpacing = tracking + 'px';
+    ctx.fillStyle = v.dtdColor;
+    ctx.fillText('DTD', textX, textY + 2);
+    ctx.fillStyle = v.cargoColor;
+    ctx.fillText('Cargo', textX + wDTD + wordGap, textY + 2);
+
+    c.toBlob(blob => triggerBlob(blob, dlName), 'image/png');
+  } catch (err) { alert('No se pudo generar el lockup de ' + file); }
+}
+
+const FILE_VAR = {
+  'dtdcargo-isologo-primary.png': 'Principal',
+  'dtdcargo-isologo-reverse.png': 'Reverse',
+  'dtdcargo-isologo-mono-light.png': 'MonoLight',
+  'dtdcargo-isologo-mono-dark.png': 'MonoDark',
+};
+function isoSoloName(file) { return 'DTDCargo-SoloIsologo-' + (FILE_VAR[file] || 'X') + '.png'; }
+function lockupName(file) { return 'DTDCargo-Logo-' + (FILE_VAR[file] || 'X') + '.png'; }
+
+// Hero active variant → logo completo o solo isólogo según tipo
+document.getElementById('download-active').addEventListener('click', () => {
+  const v = VARIANTS[currentIdx];
+  if (v.mark) downloadLockup(v.file, v.dl);
+  else downloadIsoSolo(v.file, v.dl);
+});
+
+// TOP "01 / Variantes oficiales" → full lockup (logo + isólogo)
+document.querySelectorAll('.variant-dl').forEach(btn => {
+  btn.addEventListener('click', () => downloadLockup(btn.dataset.file, lockupName(btn.dataset.file)));
+});
+
+// BOTTOM "regla de contraste" cards → isólogo solo
+document.querySelectorAll('.contrast-dl:not(.variant-dl)').forEach(btn => {
+  btn.addEventListener('click', () => downloadIsoSolo(btn.dataset.file, isoSoloName(btn.dataset.file)));
+});
+
+// Keyboard nav
+document.addEventListener('keydown', (e) => {
+  if (panel.classList.contains('is-open')) return;
+  if (e.key === 'ArrowLeft') document.getElementById('prev-variant').click();
+  if (e.key === 'ArrowRight') document.getElementById('next-variant').click();
+});
+
+// Print
+document.getElementById('print-page').addEventListener('click', () => window.print());
+</script>
+
+</body>
+</html>
