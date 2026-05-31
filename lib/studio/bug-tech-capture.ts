@@ -135,7 +135,11 @@ class BugTechCapture {
     // Monkey-patch XMLHttpRequest
     this.originalXhrOpen = XMLHttpRequest.prototype.open;
     this.originalXhrSend = XMLHttpRequest.prototype.send;
-    const captureSelf = this;
+    // Capturamos métodos como locales (en vez de aliasar `this`) porque dentro
+    // de los overrides de XHR `this` es la instancia XMLHttpRequest, no el manager.
+    const originalXhrOpen = this.originalXhrOpen;
+    const originalXhrSend = this.originalXhrSend;
+    const pushNetwork = this.pushNetwork.bind(this);
     XMLHttpRequest.prototype.open = function (
       this: XMLHttpRequest & { __bugCapture?: { url: string; method: string; start: number } },
       method: string,
@@ -148,7 +152,7 @@ class BugTechCapture {
         start: performance.now(),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (captureSelf.originalXhrOpen as any).call(this, method, url, ...rest);
+      return (originalXhrOpen as any).call(this, method, url, ...rest);
     };
 
     XMLHttpRequest.prototype.send = function (
@@ -158,7 +162,7 @@ class BugTechCapture {
       const meta = this.__bugCapture;
       if (meta) {
         const onDone = () => {
-          captureSelf.pushNetwork({
+          pushNetwork({
             url: meta.url,
             method: meta.method,
             status: this.status,
@@ -170,7 +174,7 @@ class BugTechCapture {
         this.addEventListener("loadend", onDone);
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (captureSelf.originalXhrSend as any).call(this, body);
+      return (originalXhrSend as any).call(this, body);
     };
   }
 

@@ -498,7 +498,7 @@ function PrefsTabContent({
               }}
             >
               Punto de referencia cuando el browser no autoriza geo · habilita
-              "Cerca tuyo" del Mobile ERP en escritorio o sin permiso.
+              &quot;Cerca tuyo&quot; del Mobile ERP en escritorio o sin permiso.
             </div>
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>

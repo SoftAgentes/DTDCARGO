@@ -34,12 +34,12 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 31 specs)
+### Índice de specs (generado · 33 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
 | 0001 | Sitio web público MVP de DTD·CARGO | draft | interno |
-| 0002 | Calculadora de Flete Terrestre Venezuela | draft | interno |
+| 0002 | (sin título) | ? | interno |
 | 0003 | DoorTuDoor — Arquitectura MVP del ERP interno (multi-tenant r… | approved | interno |
 | 0004 | DoorTuDoor — Fase 1: Studio shell + Auth | done | interno |
 | 0005 | DoorTuDoor — Fase 2: Módulo Tracking (envíos + estados + dash… | done | interno |
@@ -69,6 +69,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0034 | Wiring 9 conexiones rotas · modals globales (DTDWiring) | approved | interno |
 | 0035 | Dashboard · RecentActivity widget clickeable + CodesSync defe… | approved | interno |
 | 0036 | Bug Reporter · módulo interno de bug tracking con auto-captur… | done | interno |
+| 0038 | i18n CN · región como fuente de verdad + chrome bilingüe es-V… | done | interno |
+| 0039 | Gastos CN · scope contenedor/operativo + moneda dual CNY/USD … | in-progress | interno |
 
-> **Huecos en el correlativo:** 0021, 0022, 0023, 0027, 0028 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0021, 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -14,6 +14,7 @@ import { redirect } from "next/navigation";
 import { getUser } from "@/lib/auth/session";
 import { createClient } from "@/lib/db/server";
 import { listFeatureFlags } from "@/lib/studio/feature-flags-queries";
+import { countActiveAlerts } from "@/lib/studio/expense-alerts-queries";
 import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { LocaleProvider } from "@/lib/i18n";
 import { StudioSidebar } from "./_components/StudioSidebar";
@@ -94,7 +95,12 @@ export default async function StudioAppLayout({
   // Feature flags del tenant (Tier 1.2). El sidebar los usa para esconder
   // módulos que el tenant no quiere ver (ej: seniat OFF, no-olvidar OFF, etc.).
   // Si falla, cae a defaults del handoff v1.7.
-  const featureFlags = await listFeatureFlags(supabase);
+  // En paralelo: count de alertas de gastos activas (badge sidebar · RLS
+  // ya lo scopea al tenant y al rol — un VE no-accounting ve 0).
+  const [featureFlags, expenseAlertCount] = await Promise.all([
+    listFeatureFlags(supabase),
+    countActiveAlerts(supabase),
+  ]);
 
   return (
     <LocaleProvider locale={locale} region={region}>
@@ -108,7 +114,10 @@ export default async function StudioAppLayout({
               color: "var(--ink)",
             }}
           >
-            <StudioSidebar featureFlags={featureFlags} />
+            <StudioSidebar
+              featureFlags={featureFlags}
+              expenseAlertCount={expenseAlertCount}
+            />
 
             <main
               style={{

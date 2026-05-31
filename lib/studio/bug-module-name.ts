@@ -5,8 +5,14 @@
  * Estrategia: mapea segmento principal de la URL a label legible.
  * Si no matchea, retorna el segmento crudo o "general".
  *
+ * i18n (SDD-0038): `moduleLabelFromSlug(slug, locale?)` acepta locale y
+ * reusa las keys del sidebar (`chrome.sidebar.*`) para devolver el label
+ * traducido. Sin locale, cae al label es-VE legacy (`MODULE_LABELS`).
+ *
  * SDD-0036 Fase 2.
  */
+
+import { t, type I18nKey, type Locale } from "@/lib/i18n";
 
 const MODULE_MAP: Record<string, string> = {
   dashboard: "dashboard",
@@ -38,6 +44,10 @@ const MODULE_MAP: Record<string, string> = {
   bugs: "bug-reporter",
 };
 
+/**
+ * @deprecated Pasá `locale` a `moduleLabelFromSlug` para texto traducido.
+ * Este record es solo es-VE (fallback cuando no hay locale).
+ */
 const MODULE_LABELS: Record<string, string> = {
   dashboard: "Dashboard",
   embarques: "Embarques",
@@ -69,6 +79,41 @@ const MODULE_LABELS: Record<string, string> = {
 };
 
 /**
+ * module-slug → I18nKey. Reusa las keys del sidebar (mismos módulos) +
+ * fallbacks de `chrome.module.*`. Si un slug no está acá, el helper cae
+ * al MODULE_LABELS es-VE o al slug crudo.
+ */
+const MODULE_LABEL_KEYS: Record<string, I18nKey> = {
+  dashboard: "chrome.sidebar.dashboard",
+  embarques: "chrome.sidebar.shipments",
+  tracking: "chrome.sidebar.tracking",
+  calendario: "chrome.sidebar.calendar",
+  "almacen-cn": "chrome.sidebar.warehouse_cn",
+  "almacen-ve": "chrome.sidebar.warehouse_ve",
+  "cola-qr": "chrome.sidebar.qr_queue",
+  "etiquetas-cn": "chrome.sidebar.labels_cn",
+  "aduana-seniat": "chrome.sidebar.customs_seniat",
+  tms: "chrome.sidebar.tms",
+  despacho: "chrome.sidebar.dispatch",
+  cotizador: "chrome.sidebar.quotes",
+  clientes: "chrome.sidebar.clients",
+  "crm-leads": "chrome.sidebar.leads",
+  proveedores: "chrome.sidebar.suppliers_cn",
+  tarifas: "chrome.sidebar.rates",
+  facturacion: "chrome.sidebar.invoices",
+  documentos: "chrome.sidebar.documents",
+  reportes: "chrome.sidebar.reports",
+  costing: "chrome.sidebar.costing",
+  mailing: "chrome.sidebar.mailing",
+  "no-olvidar": "chrome.sidebar.no_olvidar",
+  usuarios: "chrome.sidebar.users",
+  operarios: "chrome.sidebar.operarios_pwa",
+  administracion: "chrome.sidebar.administration",
+  "bug-reporter": "chrome.sidebar.bugs",
+  general: "chrome.module.general",
+};
+
+/**
  * Pathname → module slug (estable, usado en duplicate_hash + filtros).
  *
  * /studio/clientes        → "clientes"
@@ -85,10 +130,22 @@ export function moduleSlugFromPathname(pathname: string): string {
   return MODULE_MAP[first] ?? first;
 }
 
-export function moduleLabelFromSlug(slug: string): string {
+/**
+ * module-slug → label legible. Con `locale`, devuelve el traducido vía
+ * catálogo i18n (reusa keys del sidebar). Sin `locale`, cae al es-VE
+ * legacy (compat con callers viejos / server sin contexto).
+ */
+export function moduleLabelFromSlug(slug: string, locale?: Locale): string {
+  if (locale) {
+    const key = MODULE_LABEL_KEYS[slug];
+    if (key) return t(locale, key);
+  }
   return MODULE_LABELS[slug] ?? slug;
 }
 
-export function moduleLabelFromPathname(pathname: string): string {
-  return moduleLabelFromSlug(moduleSlugFromPathname(pathname));
+export function moduleLabelFromPathname(
+  pathname: string,
+  locale?: Locale,
+): string {
+  return moduleLabelFromSlug(moduleSlugFromPathname(pathname), locale);
 }

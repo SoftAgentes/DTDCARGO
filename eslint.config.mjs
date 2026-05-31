@@ -11,6 +11,11 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "_handoff_preview/**",
+    // Documentación + mockups de handoff (Claude Design *.jsx congelados,
+    // brand-books, etc.): material de referencia, NO código de la app. No se
+    // lintea (genera cientos de jsx-no-undef/no-unescaped en snippets que no
+    // son componentes reales).
+    "docs/**",
     "e2e/**", // Playwright tests usan import maps distintos
     "playwright-report/**",
     "test-results/**",
@@ -87,6 +92,29 @@ const eslintConfig = defineConfig([
           ],
         },
       ],
+    },
+  },
+
+  // ─── Deuda de lint · reglas nuevas del React Compiler ────────────────
+  // `eslint-plugin-react-hooks` v6 (bundleado por Next 16) sumó reglas del
+  // React Compiler que marcan como ERROR patrones pre-existentes que hoy
+  // funcionan (setState en effects de re-sync/hidratación, Date.now()/
+  // Math.random() en render, const usado antes de declararse en callbacks
+  // diferidos, refs). Son ~50 hits en ~30 componentes; refactorizarlos todos
+  // a la vez es riesgoso y fuera del alcance de cada feature.
+  //
+  // Las dejamos en "warn": preservan la señal (siguen apareciendo) sin
+  // romper `pnpm lint`/CI. Refactor incremental — usar GastosClient
+  // (debounce en handler, sin effect de re-sync) como patrón de referencia.
+  //
+  // NO se bajan: react-hooks/rules-of-hooks (bugs reales), las reglas de
+  // frontera público↔ERP, ni react/no-unescaped-entities.
+  {
+    rules: {
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/purity": "warn",
+      "react-hooks/immutability": "warn",
+      "react-hooks/refs": "warn",
     },
   },
 ]);

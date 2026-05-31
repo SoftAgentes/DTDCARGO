@@ -4,6 +4,7 @@
  */
 
 import type { BadgeTone } from "@/app/studio/_components/ui/Badge";
+import { t, type I18nKey, type Locale } from "@/lib/i18n";
 
 // ─────────────────────────────────────────────────────────────
 // Enums (matchean Postgres)
@@ -42,11 +43,27 @@ export type WarehouseCN = {
 /** Payment status del paquete · alimenta scoring de Despacho (Opción A SDD-0029). */
 export type PaymentStatus = "pagado" | "parcial" | "pendiente";
 
+/**
+ * @deprecated Usar `paymentStatusLabel(status, locale)` para texto
+ * localizable. Este record es solo es-VE y se mantiene para callers viejos.
+ */
 export const PAYMENT_STATUS_LABELS: Record<PaymentStatus, string> = {
   pagado: "Pagado",
   parcial: "Abono parcial",
   pendiente: "Pendiente",
 };
+
+/** Mapping status → I18nKey (dict warehouse). Fuente única para badges/menus. */
+export const PAYMENT_STATUS_LABEL_KEYS: Record<PaymentStatus, I18nKey> = {
+  pagado: "warehouse_cn.payment.paid",
+  parcial: "warehouse_cn.payment.partial",
+  pendiente: "warehouse_cn.payment.pending",
+};
+
+/** Label de payment status localizado. Reusable cross-módulo (ej: Gastos). */
+export function paymentStatusLabel(s: PaymentStatus, locale: Locale): string {
+  return t(locale, PAYMENT_STATUS_LABEL_KEYS[s]);
+}
 
 export const PAYMENT_STATUS_TONES: Record<PaymentStatus, "success" | "warning" | "danger"> = {
   pagado: "success",
@@ -133,11 +150,30 @@ export type WarehouseReceiptRow = WarehouseReceipt & {
 // Display labels + tonos de Badge
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * @deprecated Usar `receiptStatusLabel(status, locale)` para texto
+ * localizable. Este record es solo es-VE (callers viejos / tooltips).
+ */
 export const RECEIPT_STATUS_LABELS: Record<WarehouseReceiptStatus, string> = {
   pendiente_consolidacion: "Pendiente consolidar",
   consolidado: "Consolidado",
   incidencia: "Incidencia",
 };
+
+/** Mapping status → I18nKey (dict warehouse). Fuente única para badges/menus/filtros. */
+export const RECEIPT_STATUS_LABEL_KEYS: Record<WarehouseReceiptStatus, I18nKey> = {
+  pendiente_consolidacion: "warehouse_cn.status.pending_consolidation",
+  consolidado: "warehouse_cn.status.consolidated",
+  incidencia: "warehouse_cn.status.incident",
+};
+
+/** Label de receipt status localizado. */
+export function receiptStatusLabel(
+  s: WarehouseReceiptStatus,
+  locale: Locale,
+): string {
+  return t(locale, RECEIPT_STATUS_LABEL_KEYS[s]);
+}
 
 /**
  * Tonos de Badge según convención post-audit (ver shipment-types.ts):

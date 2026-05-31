@@ -11,16 +11,11 @@
 
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import {
+  RECEIPT_STATUS_LABEL_KEYS,
   RECEIPT_STATUS_TONES,
   type WarehouseReceiptStatus,
 } from "@/lib/studio/warehouse-cn-types";
-import { useT, type I18nKey } from "@/lib/i18n";
-
-const STATUS_LABEL_KEYS: Record<WarehouseReceiptStatus, I18nKey> = {
-  pendiente_consolidacion: "warehouse_cn.status.pending_consolidation",
-  consolidado: "warehouse_cn.status.consolidated",
-  incidencia: "warehouse_cn.status.incident",
-};
+import { useT } from "@/lib/i18n";
 
 export function ReceiptStatusBadge({
   status,
@@ -34,7 +29,7 @@ export function ReceiptStatusBadge({
   const t = useT();
   return (
     <Badge tone={RECEIPT_STATUS_TONES[status]} size={size} dot={dot}>
-      {t(STATUS_LABEL_KEYS[status])}
+      {t(RECEIPT_STATUS_LABEL_KEYS[status])}
     </Badge>
   );
 }
