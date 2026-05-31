@@ -15,7 +15,11 @@ const isDev = process.env.NODE_ENV === "development";
  *   CSP aplica también a atributos style inline, no solo a `<style>` tags.
  * - `img-src https://*.supabase.co`: previsto para cuando Payload sirva media desde
  *   Storage. El sitio público actual no carga imágenes externas.
- * - `connect-src ws: wss:` SOLO en dev: para el websocket de HMR.
+ * - `connect-src https://*.supabase.co wss://*.supabase.co`: REST + Realtime del
+ *   Studio y de las PWAs operario desde el browser client (`lib/db/client.ts` →
+ *   `createBrowserClient`). Sin esto, el websocket de Realtime no conecta en prod
+ *   (el bridge cross-cliente no actualiza solo). El `ws: wss:` extra es SOLO en dev
+ *   (websocket de HMR de Turbopack).
  * - `frame-ancestors 'none'`: bloquea ser iframeado (espejo moderno de X-Frame-Options).
  * - `object-src 'none'`: cero soporte para <object>, <embed>, <applet> (legacy Flash).
  * - `base-uri 'self'`: previene inyección de <base href="evil"> que cambiaría todos
@@ -28,7 +32,7 @@ const cspHeader = [
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
   `img-src 'self' data: blob: https://*.supabase.co`,
-  `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isDev ? " ws: wss:" : ""}`,
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,
@@ -78,10 +82,37 @@ const nextConfig: NextConfig = {
     ],
   },
   async headers() {
+    // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y
+    // geolocalización (GPS camionero · GpsBlock) en same-origin. El resto del
+    // sitio queda estricto (allowlist vacío). Como múltiples `Permissions-Policy`
+    // se intersectan al valor MÁS restrictivo, el catch-all DEBE excluir `/m`
+    // (negative lookahead): si ambos rules matchearan `/m`, ganaría el estricto
+    // y la cámara seguiría apagada.
+    const ppMobile =
+      "camera=(self), microphone=(), geolocation=(self), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()";
+    const baseNoPP = securityHeaders.filter(
+      (h) => h.key !== "Permissions-Policy",
+    );
     return [
       {
-        source: "/:path*",
+        source: "/m/:path*",
+        headers: [...baseNoPP, { key: "Permissions-Policy", value: ppMobile }],
+      },
+      {
+        source: "/:path((?!m/).*)",
         headers: securityHeaders,
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      // Digital Asset Links del TWA operario. Android lo busca en
+      // /.well-known/assetlinks.json; lo servimos desde un route handler que
+      // lee el fingerprint SHA-256 de env (sin rebuild). Ver
+      // app/api/well-known/assetlinks + docs/runbooks/setup-android-apk.md.
+      {
+        source: "/.well-known/assetlinks.json",
+        destination: "/api/well-known/assetlinks",
       },
     ];
   },
