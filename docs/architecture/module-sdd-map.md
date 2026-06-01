@@ -36,6 +36,7 @@
 | Mailing & Notif | 0026 | `app/studio/(app)/mailing/` | `lib/studio/mail/`, `mail-*` |
 | Facturación | 0021 | `app/studio/(app)/facturacion/` | `lib/studio/invoice-*` |
 | Contabilidad | 0040 | `app/studio/(app)/contabilidad/` | `lib/studio/account-*`, `journal-*`, `accounting/` |
+| Cobranzas | 0041 | `app/studio/(app)/cobranzas/` | `lib/studio/payment-*`, `collections-actions`, `accounting/receipt-posting` |
 | Despacho | 0029, 0030 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` |
 | Etiquetas suppliers CN | 0031 | `app/studio/(app)/etiquetas/` | (labels) |
 | QR print queue | 0033 | `app/studio/(app)/cola-qr/` | `lib/studio/qr-queue-*` |

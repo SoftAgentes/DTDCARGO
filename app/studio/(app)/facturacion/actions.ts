@@ -30,9 +30,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
+import { registerCollectionFor } from "@/lib/studio/collections-actions";
+import { type PaymentMethod } from "@/lib/studio/payment-types";
 import {
   calcInvoiceTotals,
-  computeBalance,
   IVA_RATE_DEFAULT,
   normalizeLines,
   validateInvoiceInput,
@@ -370,83 +371,59 @@ export async function emitInvoice(
   return { ok: true };
 }
 
+/**
+ * Registra un cobro sobre una factura (SDD-0041). Delega en la lógica
+ * compartida `registerCollectionFor` (crea recibo R-YYYY-NNNN + sube saldo +
+ * recalcula status + asiento del cobro DR caja / CR 1.1.2). El detalle de
+ * factura y el módulo Cobranzas usan el mismo camino server-side.
+ *
+ * Recibe `cashAccountId` (cuenta de caja/banco), `method`, `receivedAt` y
+ * `reference` además del `amount`.
+ */
 export async function registerPayment(
   id: string,
-  amount: number,
-): Promise<{ ok?: boolean; error?: string }> {
+  payload: {
+    amount: number;
+    cashAccountId: string;
+    method?: PaymentMethod;
+    receivedAt?: string;
+    reference?: string | null;
+    notes?: string | null;
+  },
+): Promise<{ ok?: boolean; error?: string; receiptCode?: string; fullyPaid?: boolean }> {
   const supabase = await createClient();
 
-  const amt = Number(amount);
-  if (!Number.isFinite(amt) || amt <= 0) {
-    return { error: "El monto del pago debe ser mayor a cero." };
-  }
-
-  const { data: current, error: readErr } = await supabase
+  // Resolver el invoice_code para revalidar el detalle (la lógica compartida
+  // no lo devuelve; lo leemos barato acá).
+  const { data: inv } = await supabase
     .from("invoices")
-    .select(
-      "id, tenant_id, status, invoice_code, total_amount, paid_amount",
-    )
+    .select("invoice_code")
     .eq("id", id)
-    .maybeSingle<{
-      id: string;
-      tenant_id: string;
-      status: string;
-      invoice_code: string;
-      total_amount: number;
-      paid_amount: number;
-    }>();
-  if (readErr || !current) return { error: "Factura no encontrada." };
+    .maybeSingle<{ invoice_code: string }>();
 
-  if (
-    current.status !== "emitida" &&
-    current.status !== "parcial" &&
-    current.status !== "vencida"
-  ) {
-    return {
-      error: "Solo se pueden registrar pagos en facturas emitidas o parciales.",
-    };
+  const result = await registerCollectionFor(supabase, id, {
+    amount: payload.amount,
+    cashAccountId: payload.cashAccountId,
+    method: payload.method,
+    receivedAt: payload.receivedAt,
+    reference: payload.reference ?? null,
+    notes: payload.notes ?? null,
+  });
+
+  if (!result.ok) {
+    // Aplanar fieldErrors a un mensaje (el modal muestra un banner simple).
+    const firstFieldError = result.fieldErrors
+      ? Object.values(result.fieldErrors)[0]
+      : undefined;
+    return { error: result.error ?? firstFieldError ?? "No se pudo registrar el cobro." };
   }
-
-  const balance = computeBalance(current);
-  if (amt > balance + 1e-6) {
-    return {
-      error: `El pago ($${amt.toFixed(2)}) no puede superar el saldo ($${balance.toFixed(2)}).`,
-    };
-  }
-
-  const newPaid = Math.round((current.paid_amount + amt + Number.EPSILON) * 100) / 100;
-  const fullyPaid = newPaid >= Number(current.total_amount) - 1e-6;
-  const newStatus = fullyPaid ? "pagada" : "parcial";
-
-  const { error } = await supabase
-    .from("invoices")
-    .update({
-      paid_amount: newPaid,
-      status: newStatus,
-      last_payment_at: new Date().toISOString(),
-    })
-    .eq("id", id);
-
-  if (error) return { error: error.message };
-
-  // TODO(SDD-contabilidad): asiento de cobro al registrar el pago.
-  // TODO(SDD-cobranzas): ledger de pagos (quién, método, recibo).
-  await auditInvoice(
-    current.tenant_id,
-    current.id,
-    await currentUserId(supabase),
-    "payment_registered",
-    {
-      invoice_code: current.invoice_code,
-      amount: amt,
-      paid_total: newPaid,
-      new_status: newStatus,
-    },
-  );
 
   revalidatePath("/studio/facturacion");
-  revalidatePath(`/studio/facturacion/${current.invoice_code}`);
-  return { ok: true };
+  revalidatePath("/studio/cobranzas");
+  if (inv?.invoice_code) {
+    revalidatePath(`/studio/facturacion/${inv.invoice_code}`);
+  }
+  return { ok: true, receiptCode: result.receiptCode, fullyPaid: result.fullyPaid };
 }
 
 export async function voidInvoice(

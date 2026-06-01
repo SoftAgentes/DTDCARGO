@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 35 specs)
+### Índice de specs (generado · 36 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -73,6 +73,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0038 | i18n CN · región como fuente de verdad + chrome bilingüe es-V… | done | interno |
 | 0039 | Gastos CN · scope contenedor/operativo + moneda dual CNY/USD … | in-progress | interno |
 | 0040 | Contabilidad — plan de cuentas + diario/mayor + P&L/Balance +… | done | interno |
+| 0041 | Cobranzas — recibos de pago + asiento del cobro + cola CxC (B… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
