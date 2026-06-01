@@ -76,7 +76,7 @@ function DTDLogo({ collapsed = false, dark = true }) {
             <span style={{ color: 'var(--ink-nav)' }}>STUDIO</span>
           </span>
           <span style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-nav-soft)', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 4 }}>
-            ERP · v2.3
+            ERP · v2.4
           </span>
         </div>
       )}
@@ -717,7 +717,7 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
               </div>
               <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                 {notifications.map(n => {
-                  const actionLabel = n.kind === 'cotizacion' ? 'Ver cotización' : n.kind === 'recompra' ? 'Ver compras' : 'Aprobar registro';
+                  const actionLabel = n.kind === 'cotizacion' ? 'Ver cotización' : n.kind === 'recompra' ? 'Ver compras' : n.kind === 'cne-alert' ? 'Ver cliente' : 'Aprobar registro';
                   return (
                   <div key={n.id} style={{
                     padding: '12px 18px', borderBottom: '1px solid var(--border)',
@@ -726,7 +726,7 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
                   }}>
                     <span style={{
                       width: 8, height: 8, borderRadius: '50%', marginTop: 6, flexShrink: 0,
-                      background: n.tone === 'wine' ? 'var(--wine)' : n.tone === 'success' ? 'var(--success)' : n.tone === 'warning' ? 'var(--warning)' : 'var(--info)',
+                      background: n.tone === 'wine' ? 'var(--wine)' : n.tone === 'success' ? 'var(--success)' : n.tone === 'warning' ? 'var(--warning)' : n.tone === 'danger' ? 'var(--danger)' : 'var(--info)',
                     }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {n.portal && (
@@ -850,7 +850,7 @@ function CommandPalette({ open, onClose, modules, onSelect }) {
   const results = useMemo(() => {
     const data = window.ERPData;
     const list = [];
-    modules.forEach(m => list.push({ kind: 'mod', label: m.label, sub: m.group, action: () => onSelect(m.id), icon: m.icon }));
+    modules.forEach(m => list.push({ kind: 'mod', label: m.label, sub: m.group, action: () => m.href ? window.open(m.href, '_blank') : onSelect(m.id), icon: m.icon }));
     data.SHIPMENTS.slice(0, 30).forEach(s => list.push({ kind: 'ship', label: s.id, sub: `${s.clientName} · ${data.origin(s.origin).name} → ${data.dest(s.destination).name}`, action: () => onSelect('shipments', s.id), icon: 'box' }));
     data.CLIENTS.slice(0, 30).forEach(c => list.push({ kind: 'cli', label: `${c.markbox} · ${c.company}`, sub: c.city, action: () => onSelect('clients', c.markbox), icon: 'users' }));
     if (!q) return list.slice(0, 8);

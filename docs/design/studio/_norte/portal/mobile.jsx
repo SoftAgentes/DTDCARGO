@@ -517,16 +517,16 @@ function PMVerify({ me, onBack, onSubmit }) {
         </div>
 
         <window.PM.Section title="DIRECCIÓN EN VENEZUELA">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }} data-comment-anchor="0803138272-input-433-71">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
             <div style={{ display: 'flex', gap: 10 }}>
               <div style={{ flex: 1 }}><U.SearchSelect label="Estado" value={a.estado} onChange={pickEstado} options={estadoOpts} placeholder="Elegí tu estado" /></div>
               <div style={{ flex: 1 }}><U.SearchSelect label="Ciudad" value={a.ciudad} onChange={pickCiudad} options={cityOpts} placeholder={a.estado ? 'Elegí ciudad' : 'Elegí estado primero'} /></div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               <div style={{ flex: 1 }}><U.SearchSelect label="Municipio" value={a.municipio} onChange={pickMunicipio} options={muniOpts} placeholder={a.ciudad ? 'Elegí municipio' : 'Elegí ciudad primero'} /></div>
-              <div style={{ width: 110 }}><span style={lbl}>Código postal</span><input value={a.cp} readOnly placeholder="—" style={{ height: 38, padding: '0 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--ink-soft)', font: '500 13px/1 var(--f-mono)', width: '100%', boxSizing: 'border-box', cursor: 'not-allowed' }} data-comment-anchor="354988a370-input-493-81" /></div>
+              <div style={{ width: 110 }}><span style={lbl}>Código postal</span><input value={a.cp} readOnly placeholder="—" style={{ height: 38, padding: '0 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--ink-soft)', font: '500 13px/1 var(--f-mono)', width: '100%', boxSizing: 'border-box', cursor: 'not-allowed' }} /></div>
             </div>
-            <div><span style={lbl}>Dirección exacta</span><input value={a.address} onChange={(e) => setA({ ...a, address: e.target.value })} placeholder="Ej. Av. Bolívar, edificio Centro, piso 3, of. 3-B" style={inStyle} data-comment-anchor="7029ae6d39-input-495-59" /></div>
+            <div><span style={lbl}>Dirección exacta</span><input value={a.address} onChange={(e) => setA({ ...a, address: e.target.value })} placeholder="Ej. Av. Bolívar, edificio Centro, piso 3, of. 3-B" style={inStyle} /></div>
             <div><span style={lbl}>Punto de referencia</span><input value={a.reference} onChange={(e) => setA({ ...a, reference: e.target.value })} placeholder="Opcional · cerca de…" style={inStyle} /></div>
             <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>Estado, ciudad, municipio y código postal salen de nuestra lista oficial — elegílos para que la entrega sea exacta. Solo escribí la <strong style={{ color: 'var(--ink-soft)' }}>dirección exacta</strong> (avenida, calle, edificio).</p>
           </div>

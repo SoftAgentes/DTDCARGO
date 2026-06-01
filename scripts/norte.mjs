@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v2.3"; // handoff Cloud Design (backend blueprint: schema.prisma + API-CONTRACT + seam DTDApi · proceso/propuestas)
+const NORTE_VERSION = "v2.4"; // handoff Cloud Design (índice propio Nort v2.4 + Brand Assets + CLAUDE Shipping Mark; consolidó despacho, removió Vista 1/2 · Admin Rutas · propuesta Órdenes · Sidebar Tono)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -41,11 +41,9 @@ const GROUPS = [
   },
   {
     title: "Despacho",
+    // v2.4: Cloud Design consolidó despacho a una sola vista (removió Vista 1/2 y "Admin · Rutas").
     screens: [
-      { name: "Despacho · Vista 1", file: "Despacho · Vista 1.html", code: "app/studio/(app)/despacho", sdd: "0029" },
-      { name: "Despacho · Vista 2", file: "Despacho · Vista 2.html", code: "app/studio/(app)/despacho", sdd: "0029" },
       { name: "Despacho · Vista 3", file: "Despacho · Vista 3.html", code: "app/studio/(app)/despacho", sdd: "0029" },
-      { name: "Admin · Rutas", file: "Admin · Rutas.html", code: "app/studio/(app)/tms", sdd: "0019" },
     ],
   },
   {
@@ -111,13 +109,13 @@ const GROUPS = [
     // NO diluyen el % construido (mismo criterio "no contar mockups" del grupo de módulos nuevos).
     // Mapear `code`/`sdd` cuando se construyan (varias apuntan a entidades faltantes: órdenes,
     // proveedores, caja — ver docs/architecture/schema-reconciliation.md).
-    title: "Nuevo en v2.3 · proceso · propuestas · portal mobile",
+    title: "Nuevo en v2.3-v2.4 · proceso · propuestas · índice Cloud Design",
     screens: [
+      { name: "Índice Cloud Design (Nort v2.4)", file: "DTD CARGO Nort v2.4.html", ref: true },
       { name: "Mapa de Proceso", file: "Mapa de Proceso.html", ref: true },
       { name: "Guía del Mapa de Proceso", file: "Guía del Mapa de Proceso.html", ref: true },
       { name: "Portal Cliente · Mobile", file: "Portal Cliente Mobile.html", ref: true },
       { name: "Propuesta · Botón Crear", file: "Propuesta · Botón Crear.html", ref: true },
-      { name: "Propuesta · Órdenes, Caja y Proveedores", file: "Propuesta · Órdenes, Caja y Proveedores.html", ref: true },
       { name: "Propuesta · Servicios y Tarifas", file: "Propuesta · Servicios y Tarifas.html", ref: true },
     ],
   },
