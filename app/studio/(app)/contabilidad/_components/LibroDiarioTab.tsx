@@ -1,0 +1,348 @@
+"use client";
+
+/**
+ * Tab "Libro diario" (SDD-0040).
+ *
+ * Lista de asientos con su total (debe=haber), fecha, origen y estado.
+ * Acciones por asiento: asentar (borrador→asentado), anular (asentado→anulado),
+ * eliminar (solo borrador). "Nuevo asiento" abre el EntryDrawer.
+ */
+
+import { useState } from "react";
+import {
+  entryStatusBadgeTone,
+  entryStatusLabel,
+  entrySourceLabel,
+  type JournalEntry,
+} from "@/lib/studio/journal-types";
+import { entryLineTotals } from "@/lib/studio/journal-queries";
+import type { Account } from "@/lib/studio/account-types";
+import { Badge } from "@/app/studio/_components/ui/Badge";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { Icon } from "@/app/studio/_components/icons";
+import { fmtAmount } from "./format";
+import { EntryDrawer } from "./EntryDrawer";
+import { postEntry, voidEntry, softDeleteEntry } from "../actions";
+
+export function LibroDiarioTab({
+  entries,
+  postableAccounts,
+  accountsCount,
+  asentadosCount,
+  showCreate,
+  onOpenCreate,
+  onCloseCreate,
+}: {
+  entries: JournalEntry[];
+  postableAccounts: Account[];
+  accountsCount: number;
+  asentadosCount: number;
+  showCreate: boolean;
+  onOpenCreate: () => void;
+  onCloseCreate: () => void;
+}) {
+  const toast = useToast();
+  const flashClassFor = useRowHighlight();
+  const [error, setError] = useState<string | null>(null);
+
+  const noAccounts = accountsCount === 0 || postableAccounts.length === 0;
+
+  if (entries.length === 0) {
+    return (
+      <>
+        <EmptyState
+          eyebrow="Sin asientos"
+          title="Aún no hay asientos en el diario."
+          description={
+            noAccounts
+              ? "Primero necesitás un plan de cuentas con cuentas postables para poder asentar."
+              : "Cargá tu primer asiento de doble partida (debe = haber). Las facturas emitidas también generan su asiento acá."
+          }
+          action={
+            !noAccounts ? (
+              <button
+                type="button"
+                className="studio-btn studio-btn-primary"
+                onClick={onOpenCreate}
+              >
+                + Nuevo asiento
+              </button>
+            ) : null
+          }
+        />
+        {showCreate && (
+          <EntryDrawer
+            postableAccounts={postableAccounts}
+            onClose={onCloseCreate}
+          />
+        )}
+      </>
+    );
+  }
+
+  const GRID = "130px 110px 1.4fr 110px 120px 130px 150px";
+
+  return (
+    <>
+      {error && (
+        <p
+          role="alert"
+          style={{
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+            margin: "0 0 12px",
+            padding: "10px 12px",
+            background: "var(--danger-bg)",
+            border: "1px solid var(--danger)",
+            borderRadius: "var(--r-sm)",
+          }}
+        >
+          {error}
+        </p>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          gap: 16,
+          marginBottom: 14,
+          font: "500 11.5px/1 var(--f-sans)",
+          color: "var(--ink-mute)",
+        }}
+      >
+        <span>
+          {entries.length} asiento{entries.length === 1 ? "" : "s"}
+        </span>
+        <span>·</span>
+        <span>{asentadosCount} asentado{asentadosCount === 1 ? "" : "s"}</span>
+      </div>
+
+      <div
+        style={{
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-lg)",
+          overflow: "hidden",
+        }}
+      >
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: GRID,
+            gap: 12,
+            padding: "12px 20px",
+            background: "var(--bg-elevated)",
+            borderBottom: "1px solid var(--border)",
+            font: "700 10px/1 var(--f-sans)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--ink-soft)",
+          }}
+        >
+          <span>Asiento</span>
+          <span>Fecha</span>
+          <span>Concepto</span>
+          <span>Origen</span>
+          <span style={{ textAlign: "right" }}>Monto</span>
+          <span>Estado</span>
+          <span style={{ textAlign: "right" }}>Acciones</span>
+        </div>
+
+        {entries.map((entry, i) => {
+          const totals = entryLineTotals(entry);
+          return (
+            <div
+              key={entry.id}
+              data-row-id={entry.entry_code}
+              className={`studio-tracking-row ${flashClassFor(entry.entry_code)}`.trim()}
+              style={{
+                display: "grid",
+                gridTemplateColumns: GRID,
+                gap: 12,
+                padding: "13px 20px",
+                borderTop: i > 0 ? "1px solid var(--border)" : 0,
+                alignItems: "center",
+              }}
+            >
+              <span
+                style={{
+                  font: "700 12px/1 var(--f-mono)",
+                  color: "var(--ink)",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {entry.entry_code}
+              </span>
+              <span
+                style={{
+                  font: "500 11px/1 var(--f-mono)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                {entry.entry_date}
+              </span>
+              <span
+                style={{
+                  font: "500 12px/1.3 var(--f-sans)",
+                  color: "var(--ink)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {entry.memo ?? "—"}
+              </span>
+              <span>
+                <Badge
+                  tone={entry.source === "invoice" ? "info" : "neutral"}
+                  size="sm"
+                >
+                  {entrySourceLabel(entry.source)}
+                </Badge>
+              </span>
+              <span
+                style={{
+                  font: "800 12.5px/1 var(--f-mono)",
+                  color: "var(--ink)",
+                  textAlign: "right",
+                }}
+              >
+                ${fmtAmount(totals.debit)}
+              </span>
+              <span>
+                <Badge tone={entryStatusBadgeTone(entry.status)} size="sm" dot>
+                  {entryStatusLabel(entry.status)}
+                </Badge>
+              </span>
+              <span
+                style={{
+                  display: "flex",
+                  gap: 6,
+                  justifyContent: "flex-end",
+                  alignItems: "center",
+                }}
+              >
+                {entry.status === "borrador" && (
+                  <>
+                    <ActionButton
+                      variant="dark"
+                      size="xs"
+                      idleLabel="Asentar"
+                      loadingLabel="Asentando…"
+                      successLabel="Asentado"
+                      idleIcon={Icon.check(12)}
+                      onAction={async () => {
+                        setError(null);
+                        const r = await postEntry(entry.id);
+                        if (r.error) throw new Error(r.error);
+                      }}
+                      onSuccess={() =>
+                        toast.success(`Asiento ${entry.entry_code} asentado`)
+                      }
+                      onError={setError}
+                    />
+                    <DeleteButton
+                      entryCode={entry.entry_code}
+                      onConfirm={async () => {
+                        setError(null);
+                        const r = await softDeleteEntry(entry.id);
+                        if (r.error) setError(r.error);
+                        else toast.info(`Asiento ${entry.entry_code} eliminado`);
+                      }}
+                    />
+                  </>
+                )}
+                {entry.status === "asentado" && (
+                  <ActionButton
+                    variant="ghost"
+                    size="xs"
+                    idleLabel="Anular"
+                    loadingLabel="Anulando…"
+                    successLabel="Anulado"
+                    onAction={async () => {
+                      setError(null);
+                      const r = await voidEntry(entry.id);
+                      if (r.error) throw new Error(r.error);
+                    }}
+                    onSuccess={() =>
+                      toast.success(`Asiento ${entry.entry_code} anulado`)
+                    }
+                    onError={setError}
+                  />
+                )}
+                {entry.status === "anulado" && (
+                  <span
+                    style={{
+                      font: "500 11px/1 var(--f-sans)",
+                      color: "var(--ink-mute)",
+                    }}
+                  >
+                    —
+                  </span>
+                )}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      {showCreate && (
+        <EntryDrawer postableAccounts={postableAccounts} onClose={onCloseCreate} />
+      )}
+    </>
+  );
+}
+
+/** Botón de eliminar con confirmación inline (solo borradores). */
+function DeleteButton({
+  entryCode,
+  onConfirm,
+}: {
+  entryCode: string;
+  onConfirm: () => Promise<void>;
+}) {
+  const [confirm, setConfirm] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  if (!confirm) {
+    return (
+      <button
+        type="button"
+        className="studio-btn studio-btn-ghost studio-btn-xs"
+        style={{ color: "var(--danger)" }}
+        onClick={() => setConfirm(true)}
+        aria-label={`Eliminar asiento ${entryCode}`}
+      >
+        Eliminar
+      </button>
+    );
+  }
+  return (
+    <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+      <button
+        type="button"
+        className="studio-btn studio-btn-danger studio-btn-xs"
+        disabled={pending}
+        onClick={async () => {
+          setPending(true);
+          await onConfirm();
+          setPending(false);
+          setConfirm(false);
+        }}
+      >
+        {pending ? "…" : "Sí"}
+      </button>
+      <button
+        type="button"
+        className="studio-btn studio-btn-ghost studio-btn-xs"
+        onClick={() => setConfirm(false)}
+        disabled={pending}
+      >
+        No
+      </button>
+    </span>
+  );
+}

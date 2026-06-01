@@ -18,9 +18,10 @@
  * con actor_type='user' via el admin client (service_role) — entity_type
  * 'invoice' habilitado en la migración 0077.
  *
- * GANCHO CONTABLE: emitInvoice y registerPayment son los puntos donde el SDD
- * de Contabilidad (Bloque 1.2) enganchará el asiento automático. Acá NO se
- * crea asiento (no existen accounts/journal_entries todavía).
+ * GANCHO CONTABLE: emitInvoice (y createInvoice con emit_on_create) crean el
+ * asiento automático de venta vía SDD-0040 Contabilidad
+ * (DR 1.1.2 Clientes / CR 4.5 Ingresos [+ CR 2.1.5 IVA]). registerPayment NO
+ * toca contabilidad (el asiento del cobro vive en Cobranzas/Tesorería, Bloque 2).
  */
 
 "use server";
@@ -28,6 +29,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import {
   calcInvoiceTotals,
   computeBalance,
@@ -136,6 +138,29 @@ async function auditInvoice(
   }
 }
 
+/**
+ * Dispara el asiento automático de venta (SDD-0040). Best-effort: nunca rompe
+ * la emisión (la factura ya se persistió). Logea el resultado para diagnóstico.
+ */
+async function postInvoiceJournalEntryForInvoice(
+  input: Parameters<typeof postInvoiceJournalEntry>[0],
+): Promise<void> {
+  try {
+    const r = await postInvoiceJournalEntry(input);
+    if (!r.ok) {
+      console.error(
+        `[contabilidad] asiento de factura ${input.invoiceCode} no creado:`,
+        r.skipped ?? r.error,
+      );
+    }
+  } catch (e) {
+    console.error(
+      `[contabilidad] error inesperado al asentar factura ${input.invoiceCode}:`,
+      e,
+    );
+  }
+}
+
 async function currentUserId(
   supabase: Awaited<ReturnType<typeof createClient>>,
 ): Promise<string | null> {
@@ -208,7 +233,16 @@ export async function createInvoice(
   }
 
   if (emitNow) {
-    // TODO(SDD-contabilidad): asiento automático al emitir.
+    // SDD-0040: asiento automático de venta al emitir (también al crear-y-emitir).
+    await postInvoiceJournalEntryForInvoice({
+      tenantId,
+      invoiceId: inserted.id,
+      invoiceCode: invoice_code,
+      baseAmount: totals.base,
+      ivaAmount: totals.iva,
+      totalAmount: totals.total,
+      entryDate: today,
+    });
     await auditInvoice(
       tenantId,
       inserted.id,
@@ -280,7 +314,9 @@ export async function emitInvoice(
 
   const { data: current, error: readErr } = await supabase
     .from("invoices")
-    .select("id, tenant_id, status, invoice_code, due_date, total_amount")
+    .select(
+      "id, tenant_id, status, invoice_code, due_date, base_amount, iva_amount, total_amount",
+    )
     .eq("id", id)
     .maybeSingle<{
       id: string;
@@ -288,6 +324,8 @@ export async function emitInvoice(
       status: string;
       invoice_code: string;
       due_date: string | null;
+      base_amount: number;
+      iva_amount: number;
       total_amount: number;
     }>();
   if (readErr || !current) return { error: "Factura no encontrada." };
@@ -307,7 +345,18 @@ export async function emitInvoice(
 
   if (error) return { error: error.message };
 
-  // TODO(SDD-contabilidad): asiento automático al emitir la factura.
+  // SDD-0040: asiento automático de venta (DR Clientes / CR Ingresos [+ IVA]).
+  // Best-effort: si la contabilidad falla, la factura se emite igual.
+  await postInvoiceJournalEntryForInvoice({
+    tenantId: current.tenant_id,
+    invoiceId: current.id,
+    invoiceCode: current.invoice_code,
+    baseAmount: Number(current.base_amount),
+    ivaAmount: Number(current.iva_amount),
+    totalAmount: Number(current.total_amount),
+    entryDate: today,
+  });
+
   await auditInvoice(
     current.tenant_id,
     current.id,
