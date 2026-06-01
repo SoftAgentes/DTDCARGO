@@ -4,6 +4,29 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v2.4 — cargada 2026-06-01 (handoff de Cloud Design · índice propio + consolidación de despacho + Brand Assets)
+
+Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v2.4).zip` (~26 MB, 579 archivos). **Cambio de empaque:** ya NO viene envuelto en `dtd-cargo/project/` — el contenido está en la **raíz** del ZIP. Se omitieron `uploads/`, `scraps/`, `screenshots/`, `Brand Book v3.0 Package/` (ruido gitignoreado). git (mirror): copió 181 · **purgó 13**.
+
+**Nuevo:**
+- `DTD CARGO Nort v2.4.html` — el **índice navegable propio de Cloud Design** (su versión del "norte"). Agregado al grupo del índice como `ref`.
+- `Brand Assets DTD/` — paquete de logos + `LEEME · uso de logos.txt`.
+- `Brand Book DTD v3.1 · para enviar.html` — variante del brand book para compartir.
+- `nuevo/mobile/` (1 archivo) + actualización de `_norte/CLAUDE.md`: **nueva sección MARKBOX / Shipping Mark (唛头)** — qué término mostrar según contexto (cliente/público = MARKBOX · proveedor CN = Shipping Mark).
+
+**Removido por Cloud Design (consolidación, NO accidente — git lo recupera si hace falta):**
+- **Despacho · Vista 1 y Vista 2** (consolidó a una sola vista; queda "Despacho · Vista 3") + **Admin · Rutas**.
+- **Propuesta · Órdenes, Caja y Proveedores** + **Sidebar DTD · Tono** + `nuevo/propuesta/propuesta.jsx`.
+- `scripts/norte.mjs` GROUPS actualizado: Despacho → 1 card; grupo de propuestas → sin la card de Órdenes; + card "Índice Cloud Design (Nort v2.4)".
+
+**Terminología (drift recurrente ⚠️):** v2.4 SIGUE trayendo "Bodeguero/Camionero". Re-aplicado el rename **Almacenista/Transportista** (5 archivos movidos + sweep de texto en 24, salvo `nuevo/CHANGELOG.md`). Se repetirá en cada sync hasta que Cloud Design lo adopte en origen.
+
+**Overlay "estás aquí":** **47% construido · 9 listas · 0 en obra · 10 en diseño (19 pantallas-meta)**. Bajó de 55% **NO por regresión**: Cloud Design consolidó/removió 3 pantallas ya construidas (Despacho Vista 1/2 + Admin Rutas) → menos pantallas-meta en el índice. + 9 módulos ERP backlog + 6 referencias v2.3/v2.4.
+
+**Peso (fuera de git):** `uploads/`, `scraps/`, `screenshots/`, `Brand Book v3.0 Package/`, `_norte.html`.
+
+---
+
 ## v2.3 — cargada 2026-05-31 (handoff de Cloud Design · ⭐ ARRANQUE DE BACKEND: blueprint Prisma + contrato REST + seam)
 
 Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v2.3).zip` (~20.7 MB; el front interno sigue

@@ -103,7 +103,7 @@
         { name: 'Valencia',      cities: [{ name: 'Valencia',         postalCode: '2001', parroquias: ['San José', 'San Blas', 'Catedral', 'Candelaria'], barrios: ['El Viñedo', 'Trigal Norte', 'San José', 'Prebo', 'El Recreo', 'La Granja'] }] },
         { name: 'Naguanagua',    cities: [{ name: 'Naguanagua',       postalCode: '2005', parroquias: ['Naguanagua'], barrios: ['Mañongo', 'La Granja', 'Bárbula'] }] },
         { name: 'San Diego',     cities: [{ name: 'San Diego',        postalCode: '2006', parroquias: ['San Diego'], barrios: ['Yuma', 'Castillito'] }] },
-        { name: 'Los Guayos',    cities: [{ name: 'Los Guayos',       postalCode: '2014', parroquias: ['Los Guayos'], barrios: [] }] },
+        { name: 'Los Guayos',    cities: [{ name: 'Los Guayos',       postalCode: '2014', parroquias: ['Los Guayos'], barrios: ['Los Guayos Centro', 'Paraparal', 'Yagua', 'Ciudad Alianza', 'La Esmeralda', 'Sabana del Medio'] }] },
         { name: 'Guacara',       cities: [{ name: 'Guacara',          postalCode: '2015', parroquias: ['Guacara'], barrios: ['Centro'] }] },
         { name: 'Puerto Cabello',cities: [{ name: 'Puerto Cabello',   postalCode: '2050', parroquias: ['Fraternidad', 'Bartolomé Salom', 'Goaigoaza'], barrios: ['Centro', 'Cumboto'] }] },
       ],

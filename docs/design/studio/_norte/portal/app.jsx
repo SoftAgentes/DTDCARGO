@@ -75,7 +75,6 @@ function PortalApp() {
 function PortalLogin({ onLogin }) {
   const [markbox, setMarkbox] = pUseState(DEMO_MARKBOX);
   const [pw, setPw] = pUseState('');
-  const [showHelp, setShowHelp] = pUseState(false);
 
   return (
     <div style={{
@@ -170,17 +169,17 @@ function PortalLogin({ onLogin }) {
             }}>
               Entrar al portal {window.Icon.arrowR(14)}
             </button>
-            <div style={{ display: 'flex', justifyContent: 'space-between', font: '600 12px/1 var(--f-sans)' }}>
-              <a style={{ color: 'var(--wine)', cursor: 'pointer' }}>¿Olvidaste tu contraseña?</a>
-              <a style={{ color: 'var(--ink-soft)', cursor: 'pointer' }} onClick={() => setShowHelp(v=>!v)}>¿No tenés MARKBOX?</a>
+            <div style={{ font: '600 12px/1 var(--f-sans)' }}>
+              <a style={{ color: 'var(--ink-soft)', cursor: 'pointer' }}>¿Olvidaste tu contraseña?</a>
             </div>
-            {showHelp && (
-              <div style={{ marginTop: 8, padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)' }}>
-                <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-                  Solicitá tu MARKBOX en <a style={{ color: 'var(--wine)', fontWeight: 700 }}>dtdcargo.com/registro</a> o por WhatsApp al +58 412 DTD-CARG.
-                </div>
-              </div>
-            )}
+            {/* CTA de registro · puerta única: quien no tiene MARKBOX se registra acá */}
+            <div style={{ marginTop: 4, padding: '12px 14px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ font: '600 12.5px/1.4 var(--f-sans)', color: 'var(--ink)' }}>¿No tienes MARKBOX?</span>
+              <a
+                onClick={() => { window.location.href = 'Registro Cliente.html'; }}
+                style={{ font: '800 13px/1 var(--f-sans)', color: 'var(--wine)', textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
+              >Regístrate {window.Icon.arrowR(13)}</a>
+            </div>
           </div>
         </div>
       </div>
@@ -1233,7 +1232,7 @@ function PortalProfile({ me }) {
             }}>{`仓库地址：义乌市义乌港二期直通仓2栋2号货7--货11
 仓库电话：小孙：18006891419
 收货时间：周一至周六上午9点到下午5点半
-客户编码（MARKBOX）：${me.markbox}`}</pre>
+客户 Shipping Mark 代码：${me.markbox}`}</pre>
             <U.Btn variant="primary" icon={window.Icon.copy(13)} style={{ marginTop: 10 }} full>Copiar dirección completa</U.Btn>
           </U.Card>
         </div>
@@ -1425,9 +1424,12 @@ function LabelGenerator({ code, me, onClose }) {
                     <span style={{ font: '600 12.5px/1.2 var(--f-sans)', color: docs[d.k] ? 'var(--success)' : 'var(--ink)' }}>{d.label}{d.req && !docs[d.k] ? ' ·  obligatorio' : ''}{docs[d.k] ? ' ✓' : ''}</span>
                   </button>
                 ))}
-                <button onClick={() => setDocs({ ...docs, fotos: docs.fotos + 1 })} style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, padding: '12px 14px', textAlign: 'left', border: `1px solid ${docs.fotos ? 'var(--success)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', background: docs.fotos ? 'var(--success-bg)' : 'var(--bg-surface)', cursor: 'pointer' }}>
-                  <span style={{ color: docs.fotos ? 'var(--success)' : 'var(--ink-mute)' }}>{I.upload(15)}</span>
-                  <span style={{ font: '600 12.5px/1.2 var(--f-sans)', color: docs.fotos ? 'var(--success)' : 'var(--ink)' }}>Fotos de la mercancía {docs.fotos ? `· ${docs.fotos} cargada${docs.fotos > 1 ? 's' : ''}` : '· recomendado'}</span>
+                <button onClick={() => setDocs({ ...docs, fotos: docs.fotos + 1 })} style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'flex-start', gap: 8, padding: '12px 14px', textAlign: 'left', border: `1px solid ${docs.fotos ? 'var(--success)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', background: docs.fotos ? 'var(--success-bg)' : 'var(--bg-surface)', cursor: 'pointer' }}>
+                  <span style={{ color: docs.fotos ? 'var(--success)' : 'var(--ink-mute)', marginTop: 1, flexShrink: 0 }}>{I.upload(15)}</span>
+                  <span style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <span style={{ font: '600 12.5px/1.2 var(--f-sans)', color: docs.fotos ? 'var(--success)' : 'var(--ink)' }}>Fotos de los artículos {docs.fotos ? `· ${docs.fotos} cargada${docs.fotos > 1 ? 's' : ''}` : '· recomendado'}</span>
+                    <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Fotos de los productos que estás comprando · ayudan a verificar tu mercancía.</span>
+                  </span>
                 </button>
               </div>
               <U.Btn variant="primary" full size="lg" iconRight={I.arrowR(14)} style={{ marginTop: 16 }} disabled={!docs.packing} onClick={() => setPhase('labels')}>

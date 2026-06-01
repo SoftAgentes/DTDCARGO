@@ -53,19 +53,19 @@ function Btn({ variant = 'secondary', size = 'md', icon, iconRight, children, on
 }
 
 // ── Input ─────────────────────────────────────────────────────
-function Input({ label, value, onChange, placeholder, type = 'text', prefix, suffix, hint, error, mono, style = {}, inputStyle = {}, ...rest }) {
+function Input({ label, value, onChange, placeholder, type = 'text', prefix, suffix, hint, error, required, mono, style = {}, inputStyle = {}, ...rest }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
       {label &&
-      <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>
+      <span style={{ font: '600 11px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}{required && <span style={{ color: 'inherit' }}> *</span>}</span>
       }
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
         height: 38, padding: '0 12px',
         background: 'var(--bg-surface)',
-        border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`,
+        borderWidth: '1px', borderStyle: 'solid', borderColor: error ? 'var(--danger)' : 'var(--border)',
         borderRadius: 'var(--r-md)',
-        transition: 'border-color var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease)'
+        transition: 'box-shadow var(--dur-fast) var(--ease)'
       }}
       onFocus={(e) => {e.currentTarget.style.borderColor = 'var(--wine)';e.currentTarget.style.boxShadow = '0 0 0 3px var(--wine-tint)';}}
       onBlur={(e) => {e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border)';e.currentTarget.style.boxShadow = 'none';}}>
@@ -93,17 +93,17 @@ function Input({ label, value, onChange, placeholder, type = 'text', prefix, suf
 }
 
 // ── Select ────────────────────────────────────────────────────
-function Select({ label, value, onChange, options = [], style = {} }) {
+function Select({ label, value, onChange, options = [], required, error, style = {} }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
-      {label && <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}</span>}
+      {label && <span style={{ font: '600 11px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}{required && <span style={{ color: 'inherit' }}> *</span>}</span>}
       <select
         value={value || ''}
         onChange={onChange}
         style={{
           height: 38, padding: '0 32px 0 12px',
           background: `var(--bg-surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%236B6B6B' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>") no-repeat right 12px center`,
-          border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+          border: `1px solid ${error ? 'var(--danger)' : 'var(--border)'}`, borderRadius: 'var(--r-md)',
           font: '500 13.5px/1 var(--f-sans)', color: 'var(--ink)',
           appearance: 'none', outline: 'none', cursor: 'pointer'
         }}>
@@ -114,6 +114,7 @@ function Select({ label, value, onChange, options = [], style = {} }) {
           return <option key={val} value={val}>{lbl}</option>;
         })}
       </select>
+      {error && typeof error === 'string' && <span style={{ font: '600 11px/1.4 var(--f-sans)', color: 'var(--danger)' }}>{error}</span>}
     </label>);
 
 }
@@ -376,7 +377,7 @@ function EmptyState({ icon, title, body, action, style = {} }) {
       display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 14,
       background: 'var(--bg-surface)', border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-lg)',
       ...style
-    }} data-comment-anchor="3e0bb4c050-div-374-5">
+    }}>
       {icon &&
       <div style={{
         width: 56, height: 56, borderRadius: 'var(--r-pill)',
@@ -494,7 +495,7 @@ function Progress({ value, tone = 'wine', height = 6, style = {} }) {
 // ── Tabs ──────────────────────────────────────────────────────
 function Tabs({ value, onChange, items, style = {} }) {
   return (
-    <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', ...style }} data-comment-anchor="45f598c5e1-div-497-5">
+    <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', ...style }}>
       {items.map((item) => {
         const active = item.value === value;
         return (
@@ -565,7 +566,7 @@ function Drawer({ open, onClose, title, subtitle, width = 640, children, actions
             {window.Icon.close(16)}
           </button>
         </header>
-        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }} data-comment-anchor="f494b6e03c-div-568-9">{children}</div>
+        <div style={{ flex: 1, overflowY: 'auto', padding: 24 }}>{children}</div>
         {actions &&
         <footer style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 10, justifyContent: 'flex-end', background: 'var(--bg-surface)' }}>
             {actions}

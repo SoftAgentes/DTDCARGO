@@ -178,6 +178,24 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 ---
 
+## 🏷 Terminología · MARKBOX / Shipping Mark (regla de contexto)
+
+> **MARKBOX y Shipping Mark son la MISMA cosa** — el identificador que marca la caja. El término estándar del sistema es **"Shipping Mark"** (la marca de envío que usan los chinos, 唛头); como era muy largo se abrevió a **MARKBOX**. Siempre apunta a un registro de cliente (`DTD-XXXX`).
+
+**Cuál mostrar según quién lee** (regla absoluta):
+
+| Contexto | Término que se muestra |
+|---|---|
+| **Público / cliente** (portal, registro, login, emails, app) | **MARKBOX** |
+| **Proveedor en China** (instructivos WeChat/WhatsApp, etiquetas, packing list) | **Shipping Mark** (唛头) |
+| **Glosario de marca** (Brand Book) | **MARKBOX** · "marca la caja" |
+
+- En texto de cara al **proveedor**, liderá con **Shipping Mark / 唛头**; podés aclarar `(MARKBOX)` entre paréntesis la primera vez si ayuda, pero el término principal es Shipping Mark.
+- En texto de cara al **cliente**, NUNCA uses "Shipping Mark" como término principal — siempre **MARKBOX**.
+- El **valor** del código no cambia nunca según contexto (`DTD-5532`, `DTD-5532-1-1`): lo único que cambia es la **etiqueta** con que lo nombramos.
+
+---
+
 ## ✍️ Tono y voz
 
 - **Tagline oficial:** **"Con confianza, de China a tu puerta."** — antepone el valor diferencial (confianza) a la promesa funcional. NO usar la versión vieja "De China a tu puerta. Sin intermediarios."

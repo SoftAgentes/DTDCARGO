@@ -33,7 +33,7 @@
     const [step, setStep] = useState(1);
     const [data, setData] = useState({
       tipo: 'persona', name: '', company: '', rif: '', cedula: '',
-      email: '', phone: '', whatsapp: true,
+      email: '', phone: '', phoneOffice: '', whatsapp: true,
       photoCedula: null,
       state: '', municipio: '', city: '', parroquia: '', barrio: '',
       postalCode: '', address: '', reference: '',
@@ -70,15 +70,28 @@
       // Publicar al bridge (compartido entre módulos)
       let newClient = null;
       if (window.DTDData) {
+        // ── Pre-chequeo CNE interno (solo persona natural) ──
+        // No bloquea ni se muestra al cliente. Si la cédula + nombre
+        // no coinciden con el registro, queda una pre-alerta interna
+        // en el cliente + una notificación discreta al ERP.
+        let cneFlag = null;
+        if (data.tipo === 'persona' && data.cedula && window.DTDData.cneVerify) {
+          try {cneFlag = window.DTDData.cneVerify(data.cedula, data.name);}
+          catch (e) {console.error('[registro] cneVerify falló:', e);}
+        }
+
         newClient = {
           markbox: newMarkbox,
           name: data.name,
           company: data.company || null,
           tipo: data.tipo,
           cedula: data.cedula || data.rif,
+          rif: data.tipo === 'empresa' ? data.rif : null,
           email: data.email,
           phone: data.phone,
-          whatsapp: data.whatsapp,
+          phoneOffice: data.phoneOffice || null,
+          whatsapp: true,
+          cneFlag, // pre-alerta interna · no visible al cliente
           state: data.state,
           municipio: data.municipio,
           city: data.city,
@@ -101,9 +114,21 @@
               kind: 'registro', tone: 'wine', markbox: newMarkbox,
               title: 'Registro nuevo · ' + (newClient.name || 'cliente'),
               detail: (newClient.company ? newClient.company + ' · ' : '') + 'Esperando aprobación',
-              channel: 'portal-web',
+              channel: 'portal-web'
             });
-          } catch (e) { console.error('[registro] pushPortalEvent falló:', e); }
+          } catch (e) {console.error('[registro] pushPortalEvent falló:', e);}
+        }
+        // Pre-alerta CNE interna · solo si hay discrepancia (no la ve el cliente)
+        if (cneFlag && cneFlag.status === 'mismatch' && window.DTDData.pushPortalEvent) {
+          try {
+            window.DTDData.pushPortalEvent({
+              kind: 'cne-alert', tone: 'danger', markbox: newMarkbox,
+              title: 'Pre-alerta CNE · ' + (newClient.name || 'cliente'),
+              detail: `Cédula ${data.cedula} no coincide con el nombre del registro CNE` + (
+              cneFlag.registryName ? ` (CNE: ${cneFlag.registryName})` : ''),
+              channel: 'interno', internal: true
+            });
+          } catch (e) {console.error('[registro] pushPortalEvent CNE falló:', e);}
         }
       }
 
@@ -185,45 +210,142 @@
   function Step1({ data, update, onNext }) {
     const U = window.ERPUI;
     const I = window.Icon;
-    const valid = data.name && (data.tipo === 'persona' ? data.cedula : data.rif) && data.email && data.phone;
+    const esEmpresa = data.tipo === 'empresa';
+    const docValue = esEmpresa ? data.rif : data.cedula;
+
+    // ── Chequeo en vivo · ¿el documento ya está registrado? ──
+    // Persona → cédula · Empresa → RIF. Si ya existe, no dejamos avanzar:
+    // ofrecemos recuperar la cuenta (ver DupAlert).
+    const dupClient = useMemo(() => {
+      const q = (docValue || '').trim();
+      if (q.length < 6 || !window.DTDData || !window.DTDData.findClientByDoc) return null;
+      return window.DTDData.findClientByDoc(q);
+    }, [docValue]);
+
+    const [tried, setTried] = useState(false);
+
+    const valid =
+    data.name &&
+    docValue && (
+    !esEmpresa || data.company) &&
+    data.photoCedula && // foto de identidad obligatoria
+    data.email &&
+    data.phone && // WhatsApp obligatorio (oficina es opcional)
+    !dupClient; // bloqueado si ya existe
+
+    // Errores por campo · solo se muestran tras intentar continuar.
+    const errName = tried && !data.name;
+    const errCompany = tried && esEmpresa && !data.company;
+    const errDoc = dupClient ? true : tried && !docValue;
+    const errPhoto = tried && !data.photoCedula;
+    const errEmail = tried && !data.email;
+    const errPhone = tried && !data.phone;
+
+    function handleNext() {
+      if (valid) onNext();else setTried(true);
+    }
+
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <SectionLabel>Tipo de cliente</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          <TypeCard active={data.tipo === 'persona'} onClick={() => update({ tipo: 'persona' })}
+          <TypeCard active={!esEmpresa} onClick={() => update({ tipo: 'persona' })}
           label="Persona natural" desc="Importás a título personal" icon={I.users(18)} />
-          <TypeCard active={data.tipo === 'empresa'} onClick={() => update({ tipo: 'empresa' })}
+          <TypeCard active={esEmpresa} onClick={() => update({ tipo: 'empresa' })}
           label="Empresa" desc="Importás para tu negocio · razón social" icon={I.shield(18)} />
         </div>
 
-        <SectionLabel>Identificación</SectionLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: data.tipo === 'empresa' ? '1fr 1fr' : '1fr', gap: 10 }}>
-          <U.Input label={data.tipo === 'empresa' ? 'Nombre de contacto' : 'Nombre completo'}
+        <SectionLabel>Identificación · todos los campos son obligatorios</SectionLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: esEmpresa ? '1fr 1fr' : '1fr', gap: 10 }}>
+          <U.Input label={esEmpresa ? 'Nombre de contacto' : 'Nombre completo'} required
+          error={errName ? 'Campo obligatorio' : undefined}
           value={data.name} onChange={(e) => update({ name: e.target.value })} placeholder="Carlos Pérez" />
-          {data.tipo === 'empresa' &&
-          <U.Input label="Razón social" value={data.company} onChange={(e) => update({ company: e.target.value })} placeholder="Importadora Pérez CA" />
+          {esEmpresa &&
+          <U.Input label="Razón social" required error={errCompany ? 'Campo obligatorio' : undefined}
+          value={data.company} onChange={(e) => update({ company: e.target.value })} placeholder="Importadora Pérez CA" />
           }
         </div>
-        <U.Input label={data.tipo === 'empresa' ? 'RIF' : 'Cédula'}
-        value={data.tipo === 'empresa' ? data.rif : data.cedula}
-        onChange={(e) => update(data.tipo === 'empresa' ? { rif: e.target.value } : { cedula: e.target.value })}
-        placeholder={data.tipo === 'empresa' ? 'J-XXXXXXXX-X' : 'V-XXXXXXXX'} mono />
+        <U.Input label={esEmpresa ? 'RIF' : 'Cédula'} required
+        value={docValue}
+        onChange={(e) => update(esEmpresa ? { rif: e.target.value } : { cedula: e.target.value })}
+        placeholder={esEmpresa ? 'J-XXXXXXXX-X' : 'V-XXXXXXXX'} mono
+        error={dupClient ? `Este ${esEmpresa ? 'RIF' : 'cédula'} ya está registrado` : errDoc ? 'Campo obligatorio' : undefined} />
 
-        <SectionLabel>Foto de la {data.tipo === 'empresa' ? 'RIF' : 'cédula'}</SectionLabel>
-        <PhotoUpload value={data.photoCedula} onChange={(v) => update({ photoCedula: v })}
-        label={data.tipo === 'empresa' ? 'Subí foto del RIF · ambos lados' : 'Subí foto de la cédula · anverso y reverso'} />
+        {dupClient && <DupAlert client={dupClient} esEmpresa={esEmpresa} />}
+
+        <SectionLabel required error={errPhoto}>Foto de la {esEmpresa ? 'RIF' : 'cédula'}</SectionLabel>
+        <PhotoUpload value={data.photoCedula} onChange={(v) => update({ photoCedula: v })} error={errPhoto}
+        label={esEmpresa ? 'Subí foto del RIF · ambos lados' : 'Subí foto de la cédula · anverso y reverso'} />
+        {errPhoto && <span style={{ font: '600 11px/1.4 var(--f-sans)', color: 'var(--danger)' }}>Tenés que subir la foto.</span>}
 
         <SectionLabel>Contacto</SectionLabel>
-        <U.Input label="Email" type="email" value={data.email} onChange={(e) => update({ email: e.target.value })} placeholder="cperez@empresa.com" />
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 10, alignItems: 'flex-end' }}>
-          <U.Input label="Teléfono" value={data.phone} onChange={(e) => update({ phone: e.target.value })} placeholder="+58 412 XXX-XXXX" mono />
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, paddingBottom: 10, font: '600 12px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>
-            <input type="checkbox" checked={data.whatsapp} onChange={(e) => update({ whatsapp: e.target.checked })} style={{ accentColor: 'var(--success)' }} />
-            WhatsApp
-          </label>
-        </div>
+        <U.Input label="Email" type="email" required error={errEmail ? 'Campo obligatorio' : undefined}
+        value={data.email} onChange={(e) => update({ email: e.target.value })} placeholder="cperez@empresa.com" />
 
-        <U.Btn variant="primary" size="lg" full disabled={!valid} onClick={onNext} iconRight={I.arrowR(14)}>Siguiente · Dirección</U.Btn>
+        {/* Teléfono WhatsApp · siempre WhatsApp, sin opción de desvincular */}
+        <U.Input label="Teléfono WhatsApp" required error={errPhone ? 'Campo obligatorio' : undefined}
+        value={data.phone} onChange={(e) => update({ phone: e.target.value })}
+        placeholder="+58 412 XXX-XXXX" mono
+        hint="Es el número por el que te contactamos · siempre es WhatsApp, no se puede desvincular." />
+
+        {/* Teléfono de oficina / oficial · NO es WhatsApp · opcional */}
+        <U.Input label="Teléfono de oficina (opcional)"
+        value={data.phoneOffice} onChange={(e) => update({ phoneOffice: e.target.value })}
+        placeholder="+58 212 XXX-XXXX" mono
+        hint="Teléfono fijo u oficial de la empresa · este no se usa para WhatsApp." />
+
+        {tried && !valid && !dupClient &&
+        <div style={{ padding: '9px 12px', background: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: 'var(--r-sm)', font: '600 11.5px/1.4 var(--f-sans)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <span style={{ flexShrink: 0, marginTop: 1 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
+          <span>Faltan datos obligatorios · completá los campos marcados en rojo.</span>
+        </div>
+        }
+
+        <U.Btn variant="primary" size="lg" full onClick={handleNext} iconRight={I.arrowR(14)}>Siguiente · Dirección</U.Btn>
+      </div>);
+
+  }
+
+  // ── Cuenta ya existente · ofrecer recuperación ──────────────
+  // Si el documento (cédula/RIF) ya está en el padrón de clientes,
+  // no creamos duplicado: mostramos "¿Querés recuperar tu cuenta?".
+  function DupAlert({ client, esEmpresa }) {
+    const U = window.ERPUI;
+    const I = window.Icon;
+    const [recovering, setRecovering] = useState(false);
+    const maskedEmail = client.email ?
+    client.email.replace(/^(.).*(@.*)$/, (_, a, b) => a + '•••' + b) :
+    null;
+
+    if (recovering) {
+      return (
+        <div style={{ padding: '14px 16px', background: 'var(--success-bg)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ color: 'var(--success)', flexShrink: 0, marginTop: 1 }}>{I.check(16)}</span>
+          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
+            <b style={{ color: 'var(--success)' }}>Enlace de recuperación enviado</b>
+            {maskedEmail ? <> al correo registrado <b>{maskedEmail}</b>.</> : <> al correo registrado de la cuenta.</>}
+            {' '}Revisá tu bandeja para volver a entrar con tu MARKBOX <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{client.markbox}</code>.
+          </div>
+        </div>);
+    }
+
+    return (
+      <div style={{ padding: '14px 16px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-md)' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ color: 'var(--wine)', flexShrink: 0, marginTop: 1 }}>{I.info(16)}</span>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: '800 13px/1.3 var(--f-display)', color: 'var(--wine)' }}>
+              Este {esEmpresa ? 'RIF' : 'cédula'} ya tiene una cuenta en DTD-Cargo
+            </div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
+              {client.company || client.name ? <>Registrada a nombre de <b style={{ color: 'var(--ink)' }}>{client.company || client.name}</b>. </> : null}
+              ¿Querés recuperar tu cuenta en vez de crear una nueva?
+            </div>
+          </div>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <U.Btn variant="primary" size="md" icon={I.mail(14)} onClick={() => setRecovering(true)}>Recuperar mi cuenta</U.Btn>
+        </div>
       </div>);
 
   }
@@ -254,41 +376,58 @@
       }
     }, [cityObj]);
 
-    const valid = data.state && data.municipio && data.city && data.address;
+    const barrioOk = data.barrio && (data.barrio !== '__other__' || data.barrioCustom && data.barrioCustom.trim());
+    // Todos los campos de la tabla son obligatorios salvo punto de referencia
+    // y foto de la fachada.
+    const valid = data.state && data.municipio && data.city && data.postalCode && barrioOk && data.address;
+
+    const [tried, setTried] = useState(false);
+    const errState = tried && !data.state;
+    const errMuni = tried && !data.municipio;
+    const errCity = tried && !data.city;
+    const errCP = tried && !data.postalCode;
+    const errBarrio = tried && !barrioOk;
+    const errAddress = tried && !data.address;
+    function handleNext() {
+      if (valid) onNext();else setTried(true);
+    }
 
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <SectionLabel>Dirección de entrega</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <U.Select label="Estado" value={data.state}
+          <U.Select label="Estado" required error={errState ? 'Obligatorio' : undefined} value={data.state}
           onChange={(e) => update({ state: e.target.value, municipio: '', city: '', postalCode: '' })}
           options={[{ value: '', label: '— Elegí —' }, ...states.map((s) => ({ value: s, label: s }))]} />
-          <U.Select label="Municipio" value={data.municipio}
+          <U.Select label="Municipio" required error={errMuni ? 'Obligatorio' : undefined} value={data.municipio}
           onChange={(e) => update({ municipio: e.target.value, city: '', postalCode: '' })}
           options={[{ value: '', label: '— Elegí —' }, ...municipios.map((m) => ({ value: m, label: m }))]} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <U.Select label="Ciudad" value={data.city}
+          <U.Select label="Ciudad" required error={errCity ? 'Obligatorio' : undefined} value={data.city}
           onChange={(e) => {
             const c = cities.find((x) => x.name === e.target.value);
             update({ city: e.target.value, postalCode: c?.postalCode || '' });
           }}
           options={[{ value: '', label: '— Elegí —' }, ...cities.map((c) => ({ value: c.name, label: c.name }))]} />
-          <U.Input label="Código postal" value={data.postalCode}
+          <U.Input label="Código postal" required error={errCP ? 'Obligatorio' : undefined} value={data.postalCode}
           onChange={(e) => update({ postalCode: e.target.value })} placeholder="4 dígitos" mono />
         </div>
-        <U.Select label="Barrio / urbanización" value={data.barrio}
+        <U.Select label="Barrio / urbanización" required error={errBarrio && data.barrio !== '__other__' ? 'Obligatorio' : undefined} value={data.barrio}
         onChange={(e) => update({ barrio: e.target.value })}
-        options={[{ value: '', label: '— Elegí (opcional) —' }, ...barrios.map((b) => ({ value: b, label: b })), { value: '__other__', label: 'Otro · escribir manualmente' }]} />
+        options={[{ value: '', label: '— Elegí —' }, ...barrios.map((b) => ({ value: b, label: b })), { value: '__other__', label: 'Otro · escribir manualmente' }]} />
+        {data.city && barrios.length === 0 &&
+        <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -6 }}>Todavía no tenemos urbanizaciones cargadas para esta ciudad · elegí "Otro" y escribila.</span>
+        }
         {data.barrio === '__other__' &&
-        <U.Input label="Barrio (manual)" value={data.barrioCustom || ''} onChange={(e) => update({ barrioCustom: e.target.value })} />
+        <U.Input label="Barrio (manual)" required error={errBarrio ? 'Obligatorio' : undefined} value={data.barrioCustom || ''} onChange={(e) => update({ barrioCustom: e.target.value })} placeholder="Ej. Urb. La Esmeralda" />
         }
 
-        <U.Input label="Dirección detallada"
+        <U.Input label="Dirección detallada" required error={errAddress ? 'Campo obligatorio' : undefined}
         value={data.address} onChange={(e) => update({ address: e.target.value })}
         placeholder="Av. principal, edif. Tía Mary, piso 3, apto 4-B" hint="Calle, número, edificio, piso, apartamento" />
 
-        <U.Input label="Punto de referencia (opcional)"
+        <U.Input label="Punto de referencia (opcional)" hint="Opcional · ayuda al transportista a ubicarte."
         value={data.reference} onChange={(e) => update({ reference: e.target.value })}
         placeholder="Ej: frente a la panadería La Espiga" />
 
@@ -296,9 +435,16 @@
         <PhotoUpload value={data.photoFachada} onChange={(v) => update({ photoFachada: v })}
         label="Subí una foto de la entrada de tu casa o local · ayuda al transportista a encontrarte rápido" />
 
+        {tried && !valid &&
+        <div style={{ padding: '9px 12px', background: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: 'var(--r-sm)', font: '600 11.5px/1.4 var(--f-sans)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <span style={{ flexShrink: 0, marginTop: 1 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
+          <span>Faltan datos obligatorios · completá los campos marcados en rojo.</span>
+        </div>
+        }
+
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8 }}>
           <U.Btn variant="ghost" size="lg" onClick={onBack} icon={I.arrowL(14)}>Volver</U.Btn>
-          <U.Btn variant="primary" size="lg" full disabled={!valid} onClick={onNext} iconRight={I.arrowR(14)}>Siguiente · Confirmar</U.Btn>
+          <U.Btn variant="primary" size="lg" full onClick={handleNext} iconRight={I.arrowR(14)}>Siguiente · Confirmar</U.Btn>
         </div>
       </div>);
 
@@ -317,7 +463,8 @@
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
             <Field label={data.tipo === 'empresa' ? 'RIF' : 'Cédula'} value={data.tipo === 'empresa' ? data.rif : data.cedula} mono />
             <Field label="Email" value={data.email} />
-            <Field label="Teléfono" value={data.phone + (data.whatsapp ? ' · WhatsApp ✓' : '')} mono />
+            <Field label="WhatsApp" value={data.phone} mono />
+            <Field label="Tel. oficina" value={data.phoneOffice || '—'} mono />
             <Field label="Foto identidad" value={data.photoCedula ? '✓ Cargada' : '— Falta'} tone={data.photoCedula ? 'success' : 'warning'} />
           </div>
         </U.Card>
@@ -338,10 +485,27 @@
         {/* ── CTA opcional · ¿ya tenés una compra en China? ── */}
         <PurchaseCTA data={data} update={update} />
 
+        {/* ── Instrucción operativa · regla de caja huérfana ──────────────
+              Si la caja llega a China con el MARKBOX pero SIN proveedor /
+              grupo WeChat asociado, el almacén CN la marca automáticamente
+              como "caja huérfana por falta de datos": sabemos quién es el
+              cliente, pero no de qué proveedor (grupo WeChat) viene.
+              ⚠ BACKEND: el registro del proveedor de acá (PurchaseCTA) debe
+              conectarse al pipeline del almacén CN — mapear MARKBOX ↔ grupo
+              WeChat ↔ proveedor — para que la asociación sea automática en
+              recepción. Ver erp/data.jsx (SUPPLIER_CLIENTS.wechatGroup) y el
+              módulo Almacén CN. */}
+        {data.supplierName ?
         <div style={{ padding: '10px 12px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-          <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(13)}</span>
-          <span>Al confirmar, se genera tu código <b>MARKBOX</b> personal. Vas a usarlo cuando coordines envíos desde China — tus proveedores deben anotarlo en cada caja.</span>
-        </div>
+            <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(13)}</span>
+            <span>Al confirmar generamos tu <b>MARKBOX</b> y el código de compra de tu proveedor. Tus cajas llegarán a China ya asociadas a tu cuenta y a tu proveedor (grupo WeChat).</span>
+          </div> :
+
+        <div style={{ padding: '10px 12px', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+            <span style={{ marginTop: 1, flexShrink: 0 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
+            <span>Al confirmar se genera tu <b>MARKBOX</b>. <b>Importante:</b> si tu caja llega a China solo con el MARKBOX y sin un proveedor registrado, nuestro almacén la marca como <b>caja huérfana</b> — sabemos que es tuya, pero no de qué proveedor (grupo WeChat) viene, y se retrasa. Registrá tu proveedor arriba o desde el portal apenas tengas la compra.</span>
+          </div>
+        }
 
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8 }}>
           <U.Btn variant="ghost" size="lg" onClick={onBack} icon={I.arrowL(14)}>Volver</U.Btn>
@@ -381,13 +545,15 @@
           }
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%', maxWidth: 360 }}>
-          <U.Btn variant="secondary" size="lg" icon={I.copy(14)}>Copiar código</U.Btn>
-          <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
+        <div style={{ width: '100%', maxWidth: 360 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <CopyCodeButton data={data} markbox={markbox} />
+            <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
+          </div>
         </div>
 
         {/* Acceso al portal · usuario + clave (= cédula/RIF) */}
-        <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 24, flexWrap: 'wrap' }} data-comment-anchor="83f11171af-div-379-9">
+        <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           <div>
             <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Usuario</div>
             <code style={{ font: '800 15px/1 var(--f-mono)', color: 'var(--success)' }}>{markbox}</code>
@@ -395,7 +561,7 @@
           <div>
             <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Contraseña</div>
             <code style={{ font: '800 15px/1 var(--f-mono)', color: 'var(--success)' }}>{data.cedula || data.rif || '—'}</code>
-            <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Es tu {data.tipo === 'persona' ? 'cédula' : 'RIF'} · cambiala al entrar</div>
+            <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Es tu {data.tipo === 'persona' ? 'cédula' : 'RIF'} · recomendado cambiar al entrar al portal</div>
           </div>
         </div>
 
@@ -432,10 +598,28 @@
             <U.Card padded>
               <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>NOMENCLATURA · CÓMO FUNCIONA</div>
 
-              <div style={{ marginBottom: 14, padding: '12px 14px', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', textAlign: 'center' }}>
-                <code style={{ font: '900 18px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-<span style={{ color: 'var(--ink)' }}>1</span>-<span style={{ color: 'var(--ink-soft)' }}>2</span></code>
-                <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8, font: '600 9.5px/1.2 var(--f-sans)', color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  <span>Vos (cliente)</span><span>Proveedor</span><span>Compra</span>
+              <div style={{ marginBottom: 14, padding: '14px 14px', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 6 }}>
+                  {/* Código de cliente (MARKBOX) · wine */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <code style={{ font: '900 18px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}</code>
+                    <span style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--wine)' }}>↑</span>
+                    <span style={{ font: '700 8.5px/1.2 var(--f-sans)', color: 'var(--wine)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Código de<br />cliente</span>
+                  </div>
+                  <span style={{ font: '900 18px/1 var(--f-mono)', color: 'var(--ink-mute)', marginTop: 1 }}>-</span>
+                  {/* Proveedor · navy (mismo color que el número) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <code style={{ font: '900 18px/1 var(--f-mono)', color: 'var(--ink)' }}>1</code>
+                    <span style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink)' }}>↑</span>
+                    <span style={{ font: '700 8.5px/1.2 var(--f-sans)', color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Proveedor<br />n.º 1</span>
+                  </div>
+                  <span style={{ font: '900 18px/1 var(--f-mono)', color: 'var(--ink-mute)', marginTop: 1 }}>-</span>
+                  {/* Compra · azul (mismo color que el número) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                    <code style={{ font: '900 18px/1 var(--f-mono)', color: 'var(--info)' }}>2</code>
+                    <span style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--info)' }}>↑</span>
+                    <span style={{ font: '700 8.5px/1.2 var(--f-sans)', color: 'var(--info)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center' }}>Compra<br />n.º 2</span>
+                  </div>
                 </div>
               </div>
 
@@ -444,19 +628,22 @@
               </Guide>
 
               <Guide n="2" title="Cada proveedor lleva su propio número">
-                Si tenés varios proveedores en China (ej. 5), a cada uno le asignamos un <b>código de proveedor</b> (1, 2, 3…). Así sabés exactamente de cuál te está llegando la mercancía. Tu primera compra al proveedor 1 sería <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-1-1</code>; al proveedor 2 sería <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-2-1</code>.
+                Si tenés varios proveedores en China (ej. 5), a cada uno le asignamos un <b>código de proveedor</b> (1, 2, 3…). Así sabés exactamente de cuál proveedor te está llegando la mercancía. Tu primera compra al proveedor 1 sería <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-1-1</code>; al proveedor 2 sería <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-2-1</code>.
               </Guide>
 
               <Guide n="3" title="Cada compra suma correlativamente">
-                Cada vez que le volvés a comprar al mismo proveedor, el número de compra avanza. Tres compras al proveedor 1 serían <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>-1-1</code>, <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>-1-2</code> y <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>-1-3</code>. Así cada pedido queda separado y trazable.
+                Cada vez que le volvés a comprar al mismo proveedor, el número de compra avanza. Tres compras al proveedor 1 serían <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>-1-1</code>, <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>-1-2</code> y <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>-1-3</code>. Así cada pedido queda separado y trazable. <b>Y lo mejor:</b> desde tu portal vas a llevar el control de todas tus compras en un solo lugar, sin manejar sistemas externos.
               </Guide>
 
-              <Guide n="4" title="Formato de etiqueta · qué debe ir en cada caja">
-                Pedile a tu proveedor que pegue esta etiqueta en TODAS las cajas (frente visible). Sin esto, la caja entra como "huérfana" y no la podemos asociar a tu cuenta.
-                <div style={{ marginTop: 10, padding: 14, background: '#fff', border: '1px solid var(--border-strong)', borderRadius: 'var(--r-sm)', textAlign: 'center', boxShadow: 'var(--shadow-xs)' }}>
-                  <div style={{ font: '700 9px/1 var(--f-sans)', color: '#9B9B9B', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>SHIPPING TO DTD-CARGO</div>
-                  <code style={{ font: '900 22px/1 var(--f-mono)', color: '#0F1E3D', letterSpacing: '-0.01em' }}>{markbox}</code>
-                  <div style={{ marginTop: 8, font: '600 11px/1.4 var(--f-sans)', color: '#6B6B6B' }}>{data.name} {data.company && `· ${data.company}`}</div>
+              <Guide n="4" title="Etiquetas · qué pegar en cada caja">
+                Cuando registres tu compra, te vamos a asignar las <b>etiquetas</b> de esa compra. Pedile a tu proveedor que pegue <b>esas etiquetas</b> en TODAS las cajas, en el frente visible. Sin la etiqueta correcta, la caja entra como "huérfana" y no la podemos asociar a tu cuenta.
+                <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-sm)' }}>
+                  <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Cómo registrar tu compra · 3 pasos</div>
+                  <ol style={{ margin: 0, paddingLeft: 18, font: '500 12px/1.7 var(--f-sans)', color: 'var(--ink)' }}>
+                    <li>Entrá al <b>panel de control</b> (tu portal).</li>
+                    <li>Andá a <b>"Tus proveedores"</b>.</li>
+                    <li>Tocá <b>"Nueva compra"</b> y te asignamos el código + etiquetas.</li>
+                  </ol>
                 </div>
                 <div style={{ marginTop: 8, font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>El número de cajas (1/12, 2/12…) lo genera el sistema automáticamente cuando registres la compra e indiques cuántas cajas son — todavía no hace falta.</div>
               </Guide>
@@ -465,7 +652,7 @@
                 <ul style={{ paddingLeft: 18, margin: '4px 0 0' }}>
                   <li>Tus cajas llegan a nuestro almacén China · te avisamos por email/WhatsApp.</li>
                   <li>Consolidamos con otros pedidos para optimizar costos (LCL).</li>
-                  <li>Zarpe + tránsito marítimo (~30-40 días según puerto).</li>
+                  <li>Zarpe + tránsito marítimo · lo podés trackear desde tu portal o la app.</li>
                   <li>Aduana VE, liberación SENIAT, entrega final puerta a puerta.</li>
                 </ul>
               </Guide>
@@ -493,6 +680,74 @@
         {/* CTA · registrar compra acá (no lleva al portal: aún no hay clave) */}
         <SuccessPurchaseCTA data={data} markbox={markbox} />
       </div>);
+
+  }
+
+  // ── Instructivo para el proveedor (chino simplificado) ─────────
+  // Se copia tal cual, reemplazando {{MARKBOX}} por el código EXACTO que
+  // muestra la tarjeta roja. Usamos la misma fuente (`markbox`) que rinde
+  // la tarjeta, así el texto copiado y la tarjeta SIEMPRE coinciden.
+  const PROVIDER_MSG_ZH = `发货前请确认以下事项：
+一、发货前，请先确认是否已建立微信群。
+二、微信群名称须包含客户 Shipping Mark 代码（例如：{{MARKBOX}}）。
+三、若尚未建立微信群，请先联系吴小姐：18606891419 建群，并将微信号"DTDLogistic"加入该群。
+四、唛头（Shipping Mark）将在群内提供；此外，我司将为每个箱子提供标签。
+五、未经确认，不得自行发货。群内将发送相关指示及其他信息，确认后方可发货。
+六、仓库地址（此地址供您提前核算运费；建群后将提供完整地址）：义乌市义乌港二期直通仓2栋2`;
+
+  function CopyCodeButton({ data, markbox }) {
+    const U = window.ERPUI;
+    const I = window.Icon;
+    const [copied, setCopied] = useState(false);
+    // Código exacto mostrado en la tarjeta roja (mismo origen que el render).
+    const cardCode = markbox ? data.supplierName ? `${markbox}-1-1` : markbox : '';
+    const disabled = !cardCode;
+
+    function onCopy() {
+      if (!cardCode) return; // nunca copiar con el token sin reemplazar
+      const text = PROVIDER_MSG_ZH.split('{{MARKBOX}}').join(cardCode);
+      // Fallback execCommand si la Clipboard API no está disponible/permitida.
+      function legacyCopy() {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        } catch (e) {/* no-op */}
+      }
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).catch(legacyCopy);
+        } else {
+          legacyCopy();
+        }
+      } catch (e) {legacyCopy();}
+      setCopied(true);
+      setTimeout(() => setCopied(false), 7000);
+    }
+
+    return (
+      <React.Fragment>
+        <U.Btn variant="secondary" size="lg" icon={I.copy(14)} disabled={disabled} onClick={onCopy}>
+          {copied ? '¡Copiado!' : 'Copiar para proveedor'}
+        </U.Btn>
+        {copied &&
+        <div style={{
+          gridColumn: '1 / -1', marginTop: 4, padding: '10px 12px',
+          background: 'var(--success-bg)', color: 'var(--ink)',
+          border: '1px solid var(--success)', borderRadius: 'var(--r-sm)',
+          font: '600 11.5px/1.5 var(--f-sans)', textAlign: 'left',
+          display: 'flex', gap: 8, alignItems: 'flex-start'
+        }}>
+          <span style={{ color: 'var(--success)', flexShrink: 0, marginTop: 1 }}>{I.check(13)}</span>
+          <span>Ya lo copiaste. Pegá esto en el <b>WhatsApp o WeChat de tu proveedor</b> para que siga las instrucciones.</span>
+        </div>
+        }
+      </React.Fragment>);
 
   }
 
@@ -669,9 +924,9 @@
 
   }
 
-  function SectionLabel({ children }) {
+  function SectionLabel({ children, required, error }) {
     return (
-      <div style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{children}</div>);
+      <div style={{ font: '700 10.5px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{children}{required && <span style={{ color: 'inherit' }}> *</span>}</div>);
 
   }
 
@@ -693,7 +948,7 @@
 
   }
 
-  function PhotoUpload({ value, onChange, label }) {
+  function PhotoUpload({ value, onChange, label, error }) {
     const I = window.Icon;
     return value ?
     <div style={{ padding: 12, background: 'var(--success-bg)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -704,8 +959,9 @@
 
     <button onClick={() => onChange('mock-photo-' + Date.now())} style={{
       padding: '20px 14px',
-      background: 'var(--bg-elevated)', border: '1px dashed var(--border-strong)',
-      borderRadius: 'var(--r-md)', color: 'var(--ink-soft)',
+      background: error ? 'var(--danger-bg)' : 'var(--bg-elevated)',
+      border: `1px dashed ${error ? 'var(--danger)' : 'var(--border-strong)'}`,
+      borderRadius: 'var(--r-md)', color: error ? 'var(--danger)' : 'var(--ink-soft)',
       display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
       font: '600 12px/1.4 var(--f-sans)', textAlign: 'center'
     }}>

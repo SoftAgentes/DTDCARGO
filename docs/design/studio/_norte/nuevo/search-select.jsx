@@ -105,7 +105,7 @@
               width: '100%', height: 34, padding: '0 10px', border: '1px solid var(--border)',
               borderRadius: 'var(--r-sm)', background: 'var(--bg-base)', color: 'var(--ink)',
               font: '500 13px/1 var(--f-sans)', outline: 'none'
-            }} autoFocus data-comment-anchor="a16885ca78-input-98-15" />
+            }} autoFocus />
             </div>
             <div style={{ maxHeight: 256, overflowY: 'auto', padding: 4 }}>
               {rows.length === 0 &&

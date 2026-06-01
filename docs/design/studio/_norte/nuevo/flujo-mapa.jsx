@@ -770,7 +770,7 @@ function DetailPanel({ node, onClose }) {
       </div>
 
       {/* Cuerpo */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }} data-comment-anchor="9e7bda7712-div-463-7">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* KPIs (2 indicadores) */}
         {sum?.kpis &&
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>

@@ -257,7 +257,7 @@ function ModuleCalendar({ goTo, currentUser }) {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 14, alignItems: 'flex-start' }}>
         <div>
           {/* Month nav */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }} data-comment-anchor="c10c539455-div-104-11">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
             <button onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))} style={{
               width: 36, height: 36, borderRadius: 'var(--r-md)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--ink-soft)'
@@ -288,7 +288,7 @@ function ModuleCalendar({ goTo, currentUser }) {
           {view === 'agenda' && <AgendaView events={events} cursor={cursor} onEventClick={(e) => e.ship && goTo('shipments', e.ship.id, 'detail')} />}
 
           {/* Legend */}
-          <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }} data-comment-anchor="04e8d2d9b1-div-135-11">
+          <div style={{ marginTop: 16, padding: '12px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
             <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>LEYENDA</span>
             <LegendChip color="var(--info)" label="ETD · zarpe" />
             <LegendChip color="var(--wine)" label="ETA · arribo" />
