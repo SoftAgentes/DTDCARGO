@@ -1,262 +1,108 @@
-# Prompt de continuidad · próxima sesión Claude Code · DTD-Cargo v2.0
+# Prompt de continuidad · próxima sesión · DTD-Cargo
 
-Copialo tal cual al iniciar la próxima sesión con Claude Code.
+Copialo tal cual al iniciar la próxima sesión.
+
+> ⚠️ **Actualizado 2026-05-31 (revisión de pendientes).** El bloque crítico de
+> pulido sin backend (#1-#14) está **cerrado**. Lo que queda crítico **necesita
+> backend real**. No rehagas lo que ya está hecho — ver tabla abajo.
 
 ---
 
 ```
-Continuamos trabajando en DTD-Cargo. Sesiones anteriores con Claude Design:
-· 2026-05-25 → v1.4 → v1.4.1 → v1.5 → v1.6
-· 2026-05-31 → v1.8 (config de columnas reutilizable + fix render global + permisos por rol)
-· 2026-05-31 → v1.9 (5 pantallas nuevas + wiring al ERP)
+╔══════════════════════════════════════════════════════════════╗
+║  🎯 ESTADO · v2.0 · pulido sin-backend CERRADO (10/10)         ║
+║  → próximo golpe real: BACKEND (ver BACKEND-BRIEF.md)          ║
+╚══════════════════════════════════════════════════════════════╝
 
-Antes de tocar nada, leé:
+Continuamos en DTD-Cargo. ESTADO ACTUAL: v2.0.
+Todo el pulido visual + lógica mock está cerrado. Lo que falta
+necesita un backend real (SMTP, OAuth, geocoding, push, scraping)
+o es deuda menor de producto (ver más abajo).
 
-1. CLAUDE.md (guardrails de marca + nomenclatura oficial MARKBOX)
-2. HANDOFF.md (estructura del proyecto + regla de oro)
-3. nuevo/CHANGELOG.md (TODO lo construido · ver el resumen del día
-   al tope + entradas v1.9, v1.8, v1.6, v1.5, v1.4.1, v1.4)
-4. nuevo/README.md (convención: nuevo va a nuevo/, anotar archivos
-   viejos modificados)
+Antes de tocar nada leé: CLAUDE.md · HANDOFF.md · nuevo/CHANGELOG.md
+(las entradas v2.0, v1.9.2, v1.9.1 resumen lo último).
+```
 
-────────────────────────────────────────────────────────────────
-RESUMEN: dónde estamos · qué se hizo el 2026-05-25
-────────────────────────────────────────────────────────────────
+---
 
-✅ v1.4 · GENERADOR DE ETIQUETAS PDF PARA SUPPLIERS CN
-  Archivo: nuevo/modules/label-generator.jsx
-  Sidebar: OPERACIÓN → "Etiquetas CN"
-  - Plancha PDF bilingüe ES / 中文 con MARKBOX + Box X/Y + QR mock
-  - 4 formatos: A4 8-up · A4 4-up · térmico 100×150 · térmico 100×100
-  - Print stylesheet con @page en mm reales (PDF via Save as)
-  - Modal "Mensaje al supplier" con copy ES + 中文 + Compose
+## ✅ CERRADO · no rehacer (estaba marcado como pendiente y YA está hecho)
 
-✅ v1.4.1 · COPIAS POR CAJA (×1 a ×4)
-  Misma etiqueta repetida N veces por caja para trazabilidad
-  redundante. Las copias son idénticas (no se marcan 1 de 3 porque
-  las cajas se descargan en orden arbitrario).
+| # | Tarea | Dónde quedó |
+|---|---|---|
+| 2 | **Profile Modal · persistencia** | `nuevo/modules/wiring.jsx` → actualiza `window.__currentUser` + `D.USERS` + `localStorage('dtd_user_override_{id}')` + evento `dtd-user-updated`; prefs en `localStorage('dtd_prefs')`. Overrides re-aplicados al iniciar en `DTD Studio · ERP.html`. |
+| 3 | **OAuth SMTP · callback** | `nuevo/modules/wiring.jsx` → al paso 3 setea `SMTP_PROVIDERS[provider]` (`configured/active/account`). |
+| 4 | **Attach files · draft** | `erp/modules/mailing-compose.jsx` → estado `attachments`, chips removibles, badge con contador en "Adjuntar". |
+| 5 | **Scheduled send · cola** | `window.__scheduledEmails` + evento `dtd-scheduled-changed`; pestaña **Programados** (`erp/modules/mailing.jsx`) con `nuevo/modules/mailing-scheduled.jsx` (cancelar / enviar ya / KPIs). |
+| 6 | **Drag&drop animado · Despacho** | `erp/modules/despacho.jsx` → fila levantada (scale + shadow-pop), destino translateY, transición spring. |
+| 7 | **Skeletons de carga** | `erp/components.jsx` `useFirstLoad(key, ms)` + `LoadingRows` en `shipments.jsx` / `invoices.jsx`. |
+| 8 | **HideValues (👁) global** | `erp/components.jsx` `useHideValues/setHideValues/getHideValues/maskVal`; aplicado en dashboard, shipments (Valor), invoices (Monto/Saldo). |
+| 10 | **TMS · editor de incidencias** | `erp/modules/tms.jsx` `IncidentEditor` (Drawer) + store `window.__tmsIncidents` (crear/editar/eliminar). |
+| 14 | **Multi-tenant · filtrado real** | `erp/data.jsx` (TENANTS, `byTenant`, `setTenant`, `currentTenant`, tagging `tenantId`); `TenantSwitcher` en `erp/shell.jsx`; `byTenant` aplicado en dashboard, shipments, clients, suppliers, invoices, costing, calendar, leads, quotes. |
 
-✅ v1.5 · MARKBOX VALIDATION + EMAIL BIENVENIDA REAL
-  - erp/data-bridge.jsx · helpers expuestos en window.DTDData:
-    · validateMarkboxFormat(code)  → regex /^DTD-\d{4,5}$/
-    · isMarkboxUnique(code)        → check contra bridge + seed
-    · nextMarkbox()                → secuencial defensivo con retry
-    · sendWelcomeEmail(client)     → renderiza template m-05
-                                      + push a emailsSent store
-                                      + push a audit log
-    · Store nuevo: emailsSent (key dtd-emails-sent)
-  - portal/registro.jsx submit() ahora usa nextMarkbox() +
-    sendWelcomeEmail(). UI muestra feedback "Email enviado" verde.
-  - erp/modules/clients.jsx drawer detalle: 2 botones nuevos
-    "Estado de cuenta" (abre nuevo/pantallas/estado-cuenta.html en
-    pestaña nueva) y "Etiquetas" (goTo('labels', markbox)).
-  - nuevo/modules/qr-queue.jsx: storage listener para refresh
-    real-time cuando la app móvil pushea órdenes.
+Las 5 visuales nuevas (15-19: perfil usuario, Tu día, Modo cliente, hilo de
+comentario, AI Copilot) también están construidas — viven en `nuevo/pantallas/`.
+Pendiente menor: consolidarlas como drawers/rutas internas (hoy abren con
+`window.open`) y mover `USER_PROFILES`/`THREADS` a `erp/data.jsx`.
 
-✅ v1.6 · 9 CONEXIONES ROTAS REPARADAS (sprint quick)
-  Archivo nuevo: nuevo/modules/wiring.jsx
-  Expone en window.DTDWiring un singleton de modals globales:
-  - openAttachModal({ onSelect })     → dropzone + file input
-  - openScheduleModal({ onSchedule }) → date/time + atajos + tz
-  - openProfileModal({ tab })         → 3 tabs (profile/password/prefs)
-  - openShortcutsModal()              → 5 grupos de keyboard shortcuts
-  - openGenerateBLModal()             → flow embarque → tipo → preview
-  - openOAuthFlow(provider)           → mock 3 pasos para Google/MS
-  Wireados en:
-  - erp/modules/mailing-compose.jsx (Programar + Adjuntar)
-  - erp/modules/documents.jsx (Generar BL)
-  - erp/modules/mailing-config.jsx (Conectar con Google/Microsoft)
-  - erp/shell.jsx (Mi perfil / Cambiar contraseña / Preferencias /
-    Atajos / Cerrar sesión con confirm + reload)
-  - erp/modules/admin.jsx (CodesSyncHeader persiste lastSync en
-    localStorage dtd_codes_lastsync_${source}, muestra "hace N min")
-  - erp/modules/dashboard.jsx + nuevo/modules/dashboard.jsx
-    (RecentActivityWidget clickeable, navega por type)
-  - erp/modules/mailing-logs.jsx (lee + suscribe a emailsSent del
-    bridge, mergea con seed mock)
+---
 
-✅ v1.9 · 5 PANTALLAS NUEVAS + WIRING AL ERP (2026-05-31)
-  Nuevas en nuevo/pantallas/ (standalone, abren con window.open):
-  - usuario-perfil.html/.jsx/-data.jsx → perfil de usuario interno
-    (?id=u-00X). Presencia, asignados por rol, actividad, contacto
-    corporativo (líneas por depto), acceso por rol (ROLE_MODULES).
-  - tu-dia.html/.jsx → bandeja personal consciente del rol (?id=u-00X).
-    Genera tareas desde SHIPMENTS/INVOICES/QUOTES/NOTIFS reales.
-  - hilo-comentario.html/.jsx → hilo expandido con respuestas anidadas
-    (?t=t-472816|t-0418). @menciones, reacciones, participantes.
-  - copilot.html/.jsx → AI Copilot (window.claude.complete · haiku).
-    Contexto = snapshot de SHIPMENTS/INVOICES/CLIENTS/QUOTES.
-  Nueva en raíz:
-  - Modo Cliente.html → barra impersonación admin + iframe del Portal
-    V2 (?as=DTD-XXXX). Selector de cliente + salir del modo.
-  Wiring (archivos viejos):
-  - portal/app-v2.jsx → soporte ?as=DTD-XXXX (salta login si presente).
-  - erp/shell.jsx → topbar: botones Tu día + Copilot; user menu:
-    Ver mi perfil completo + Modo cliente (admin).
-  - erp/modules/users.jsx → onRowClick abre usuario-perfil.
-  - erp/modules/comments.jsx → link "Expandir hilo" abre hilo-comentario.
-  ⚠️ USER_PROFILES y THREADS son mock local — al consolidar mover a
-  erp/data.jsx. Las 5 pantallas: evaluar montarlas como drawers/rutas
-  internas en vez de window.open en pestaña nueva.
+## 🔴 CRÍTICO RESTANTE · necesita BACKEND REAL (no hacer en mock)
 
-✅ v1.8 · CONFIG DE COLUMNAS + FIX RENDER GLOBAL + PERMISOS (2026-05-31)
-  Componente nuevo en ERPUI (erp/components.jsx):
-  - useColumns(storageKey, defaultCfg) → hook, persiste orden +
-    visibilidad por tabla en localStorage (keys dtd-{modulo}-cols-v1)
-  - applyColumns(columns, cfg) → proyecta cfg sobre las columnas
-  - ColumnManager → dropdown ▲▼ reordenar + checkbox mostrar/ocultar
-    + Restablecer. Botón "Columnas · N" en el toolbar.
-  Aplicado en 6 tablas: ve.jsx (oculta ID interno, "Recibido" al
-  frente), shipments.jsx, invoices.jsx, clients.jsx (col _action fija),
-  documents.jsx (col _a fija), + cn.jsx que ya lo tenía.
+> **Arranque ya hecho (2026-05-31):** el contrato + esquema están escritos —
+> `backend/prisma/schema.prisma` (multi-tenant, 1:1 con los mocks),
+> `backend/API-CONTRACT.md` (endpoints→stores, regla de oro tenantId-del-JWT) y
+> el seam de front `nuevo/api/client.jsx` (`window.DTDApi`/`DTDAuth`, toggle
+> mock↔rest, hidrata `ERPData`). Lo que falta es **levantar el servidor**
+> (Postgres + Prisma migrate + auth/JWT + worker SMTP), que NO corre en este
+> entorno → sesión de Claude Code sobre el repo.
 
-  ROLE_MODULES completado (erp/data.jsx ~199): cada rol ve los módulos
-  que se le construyeron (Contabilidad→contab/reconcile/costing,
-  Almacén CN→qrqueue/labels, Operaciones→despacho/tms/seniat/operarios,
-  etc.). Solo-Admin a propósito: users/vault/audit-log/admin.
+Leer **`BACKEND-BRIEF.md`** y **`PROMPT-BACKEND.md`**. La UI/stub ya existe;
+estos puntos solo cierran con servidor + cuentas externas:
 
-  FIX CRÍTICO render (DTD Studio · ERP.html ~38): @keyframes
-  erp-route-in hacía fade opacity 0→1 y se congelaba en opacity:0 en
-  algunos entornos → TODO el contenido de cada módulo quedaba invisible
-  (estaba en el DOM). Reescrita: solo translateY + fill-mode both.
-  ⚠️ NO reintroducir fade de opacity en animaciones de entrada de
-  contenedores que puedan montarse sin reflow. Mismo fix en los 2
-  Portal del Cliente.
+1. **Envío SMTP real** — `sendWelcomeEmail()` y el compose hoy escriben a
+   localStorage. Falta disparar el mail vía proveedor configurado.
+   (`erp/data-bridge.jsx` + `erp/modules/mailing-config.jsx`; template `m-05` listo.)
+2. **OAuth callbacks reales** — el flujo mock persiste el provider; falta el
+   callback real de Google/Microsoft.
+3. **Geocoding real** (Google Maps / Mapbox) — direcciones VE ya estructuradas
+   con IPOSTEL para alimentarlo.
+4. **Push notifications** (FCM / APNs).
+5. **Scraping real** — tasas BCV (4 fuentes mock) + ferias/feriados (hoy la IA
+   descubre/normaliza vía `window.claude.complete`).
+6. **Aislamiento por tenant server-side** — `byTenant` es filtro cliente;
+   en backend `tenantId` debe venir del server y filtrarse en la API.
+   (TMS/flota quedó como infra compartida sin `tenantId` a propósito.)
+7. **Persistencia compartida entre usuarios** — hoy todo es localStorage /
+   stores en memoria (`window.__scheduledEmails`, `__tmsIncidents`, `__comments`).
 
-  FIX feature-flags (nuevo/feature-flags.jsx ~75): MODULE_FLAG_MAP tenía
-  clave 'auditlog' pero el nav usa 'audit-log' (guion). Corregido.
+---
 
-  Branding (Logo Oficial.html): carrusel en 2 grupos (Logo completo ×4 /
-  Solo isólogo ×3), descargas con nombres consistentes
-  (DTDCargo-Logo-{V}.png / DTDCargo-SoloIsologo-{V}.png), logo completo
-  renderizado a canvas a ~2388×1017 para imprenta.
+## 🟡 DEUDA MENOR · sí codeable en mock (si no se va a backend todavía)
 
-────────────────────────────────────────────────────────────────
-🔲 PENDIENTES PARA ATACAR (en orden de impacto)
-────────────────────────────────────────────────────────────────
+- ~~**SearchSelect en proveedor + líneas** de Servicios y Tarifas~~ ✅ **HECHO (2026-05-31)** —
+  "Proveedor sugerido" y la sección "Proveedores y costos" por tarifa usan `ERPUI.SearchSelect`
+  con "+ crear proveedor" (`nuevo/propuesta/servicios-tarifas.jsx`).
+- ~~**Catálogo de Servicios → `ERPData`** y enganche real con cotizador/facturación~~ ✅ **HECHO
+  (2026-05-31)** — `ERPData.CATALOG` (única fuente) + `ERPUI.CatalogLines` (líneas que toman tarifa
+  vigente) enganchado en Factura (→ base/monto) y Cotización (→ total).
+  (cada línea referencia un ítem + su tarifa vigente).
+- **"+ Crear" global por rol** — filtrar ítems del mega-menú por permisos +
+  sección "Frecuentes" que aprenda lo más usado (`erp/shell.jsx`).
+- **Consolidar pantallas 15-19** como drawers/rutas internas (ver arriba).
+- Integrar **Órdenes esperadas (Almacén CN) + Cobro a caja + Proveedores CN**
+  con Servicios y Tarifas.
 
-🔴 LÓGICA REAL · necesita backend o decisiones de producto
+---
 
-  1. EMAIL BIENVENIDA · SMTP real
-     · Hoy: sendWelcomeEmail() solo pushea a localStorage
-     · Necesita: integrar SMTP_PROVIDERS configurado (Gmail OAuth o
-       SMTP) y disparar el email de verdad. OAuth flow ya tiene el
-       UI mock; falta el callback real.
-     · Archivos: erp/data-bridge.jsx + erp/modules/mailing-config.jsx
+## ⚠ NOTAS PARA LA PRÓXIMA SESIÓN
 
-  2. PROFILE MODAL · persistencia
-     · Hoy: openProfileModal muestra "Guardado" toast pero no
-       actualiza window.__currentUser ni persiste a USERS
-     · Necesita: setUser callback que actualice el state del shell
-       + escribir a un store persistente (futuro: backend /me)
-
-  3. OAUTH SMTP · completar callback
-     · Hoy: openOAuthFlow tiene 3 pasos visuales con setTimeout
-     · Necesita: al completar (step 3) actualizar el provider.account
-       del SMTP_PROVIDERS (D.SMTP_PROVIDERS) con el email del usuario
-       que autorizó. Hoy queda como p.account vacío.
-
-  4. ATTACH FILES · persistir en draft
-     · Hoy: openAttachModal({ onSelect }) sólo console.log de archivos
-     · Necesita: pasarlo al state local del MailingCompose para que
-       muestre la lista de adjuntos en el draft. Update count badge
-       cuando hay 1+ archivos.
-
-  5. SCHEDULED SEND · cola visible
-     · Hoy: openScheduleModal cierra modal + setSentOk
-     · Necesita: pushear el email programado a un nuevo store
-       scheduledEmails con { iso, draft, status: 'queued' }
-       y mostrarlo en una tab nueva "Programados" en Mailing → Logs
-
-🟡 PULIDO VISUAL · todo en mock
-
-  6. DRAG & DROP ANIMADO · Despacho V1
-     · Hoy: reordenar paquetes es instantáneo
-     · Necesita: animación spring (Popmotion ya está disponible) +
-       placeholder de drop zone + feedback de "snap" al soltar
-
-  7. SKELETONS DE LOADING · todos los módulos
-     · Hoy: las tablas/cards aparecen instantáneamente con mock
-     · Necesita: U.Skeleton ya existe (window.ERPUI.Skeleton),
-       envolver los principales módulos con un loading state de
-       300ms para sentirse menos "instantáneo"
-
-  8. HIDEVALUES (👁) · aplicar a tablas y gráficos
-     · Hoy: el ojo del dashboard solo oculta KPI hero
-     · Necesita: tablas (Embarques, Facturas, Cuentas) y charts
-       deben respetar el flag. Persistir en localStorage (key
-       dtd_dashboard_hide).
-
-  9. CALENDAR · drag de eventos para reprogramar
-     · Hoy: eventos del calendario operativo son estáticos
-     · Necesita: html5 drag-drop o react-dnd para mover events de
-       un día a otro, con confirm modal.
-
-  10. TMS · editor de incidencias
-      · Hoy: las incidencias son read-only
-      · Necesita: U.Drawer con form (severity / categoría /
-        descripción / fotos / chofer / camión) + push al state.
-
-  11. COSTING · comparativa mes vs mes anterior
-      · Hoy: solo muestra YTD
-      · Necesita: agregar un toggle "Comparar con mes anterior" que
-        muestre delta % por categoría.
-
-  12. SUPPLIERS · tab "Embarques históricos"
-      · Hoy: en detalle de supplier solo se ven KPIs + contacto
-      · Necesita: nueva tab que liste todos los SHIPMENTS asociados
-        a ese supplier con filtro fecha + estado.
-
-  13. VAULT · exportar credenciales cifradas a archivo
-      · Hoy: el módulo Vault no tiene export
-      · Necesita: botón "Exportar todo (.enc)" con un blob de
-        localStorage cifrado simulado.
-
-  14. MULTI-TENANT · filtrado real
-      · Hoy: el selector de tenant existe pero los datos NO se
-        filtran. Todos los módulos muestran todo.
-      · Necesita: cada módulo lee window.__currentTenant y filtra
-        sus arrays. CLIENTS, SHIPMENTS, SUPPLIERS al menos.
-
-🔴 VISUALES NUEVAS · falta diseño primero (volver a Claude Design)
-
-  15. PERFIL DE USUARIO (al click en @mención en comments / owners
-      de Vault). Patrón: ver chofer-perfil.html / camion-perfil.html.
-
-  16. BANDEJA UNIFICADA "Tu día" cross-módulo. Lista personal de
-      tasks pendientes del usuario actual.
-
-  17. VISTA "MODO CLIENTE REAL" · preview del ERP filtrado por
-      cliente externo para hacer demos.
-
-  18. DETALLE DE COMENTARIO INDIVIDUAL / hilo expandido.
-
-  19. AI COPILOT · modal conversacional dentro del ERP.
-      Puede usar window.claude.complete() con haiku-4-5.
-
-⚪ REQUIERE BACKEND REAL · no hacerlo en mock
-
-  - Geocoding real (Google Maps / Mapbox)
-  - Push notifications (FCM / APNs)
-  - Haptics mobile (navigator.vibrate ya existe en navegador)
-  - OAuth callbacks reales
-
-────────────────────────────────────────────────────────────────
-⚠ NOTAS PARA CLAUDE CODE
-────────────────────────────────────────────────────────────────
-
-- TODO archivo nuevo va a nuevo/. Si tocás un archivo viejo, anotalo
-  en nuevo/CHANGELOG.md con archivo + línea + razón.
-- Tokens CSS (var(--*)) SIEMPRE · cero hex inventados (excepto en
-  components con render fijo en blanco como las etiquetas PDF).
-- Solo fuentes Archivo + Archivo Black + JetBrains Mono + Noto Sans SC.
+- TODO archivo nuevo va a `nuevo/`. Si tocás un archivo viejo, anotalo en
+  `nuevo/CHANGELOG.md` con archivo + línea + razón.
+- Tokens CSS (`var(--*)`) SIEMPRE · cero hex inventados (excepto render fijo en
+  blanco como las etiquetas PDF).
+- Fuentes del sistema: **Nunito Sans + Sora**; branding: **Archivo / Archivo
+  Black**; + **JetBrains Mono** y **Noto Sans SC**. Ninguna otra.
 - Sin emoji decorativo · sin gradientes coloridos · sin AI slop.
-- Antes de implementar lógica MARKBOX nueva, leer CLAUDE.md y los
-  comentarios al inicio de portal/registro.jsx.
-- Para SMTP/email real: revisar erp/data.jsx → MAIL_TEMPLATES y
-  SMTP_PROVIDERS. El template m-05 ya está completo en ES/EN/ZH.
-
-NO REHAGAS NADA EXISTENTE. Solo trabajá sobre los pendientes o
-sobre lo que el usuario te pida explícitamente. Si hay duda,
-preguntá antes de codear.
+- **NO REHAGAS NADA EXISTENTE.** Verificá contra la tabla "CERRADO" antes de
+  empezar. Si hay duda, preguntá antes de codear.
 ```

@@ -5,6 +5,7 @@ const { useState: _sUseState, useMemo: _sUseMemo } = React;
 
 function ModuleSuppliers({ goTo }) {
   const D = window.ERPData;
+  const baseSuppliers = D.byTenant(D.SUPPLIERS);   // multi-tenant
   const U = window.ERPUI;
   const [search, setSearch] = _sUseState('');
   const [industryFilter, setIndustryFilter] = _sUseState('all');
@@ -13,7 +14,7 @@ function ModuleSuppliers({ goTo }) {
   const [createOpen, setCreateOpen] = _sUseState(false);
 
   const filtered = _sUseMemo(() => {
-    let rows = D.SUPPLIERS;
+    let rows = baseSuppliers;
     if (industryFilter !== 'all') rows = rows.filter(s => s.industry === industryFilter);
     if (statusFilter !== 'all') rows = rows.filter(s => s.status === statusFilter);
     if (search) {
@@ -23,19 +24,19 @@ function ModuleSuppliers({ goTo }) {
     return rows;
   }, [search, industryFilter, statusFilter]);
 
-  const preferred = D.SUPPLIERS.filter(s => s.status === 'preferido').length;
-  const totalValue = D.SUPPLIERS.reduce((a, s) => a + s.totalValue, 0);
-  const totalShipments = D.SUPPLIERS.reduce((a, s) => a + s.shipments, 0);
-  const observ = D.SUPPLIERS.filter(s => s.status === 'observación').length;
+  const preferred = baseSuppliers.filter(s => s.status === 'preferido').length;
+  const totalValue = baseSuppliers.reduce((a, s) => a + s.totalValue, 0);
+  const totalShipments = baseSuppliers.reduce((a, s) => a + s.shipments, 0);
+  const observ = baseSuppliers.filter(s => s.status === 'observación').length;
 
-  const industries = [...new Set(D.SUPPLIERS.map(s => s.industry))];
+  const industries = [...new Set(baseSuppliers.map(s => s.industry))];
   const statusTone = { preferido: 'success', aprobado: 'info', observación: 'warning', bloqueado: 'danger' };
 
   return (
     <div>
       <U.PageHeader
-        title="Proveedores CN · 中国供应商"
-        subtitle="Base de datos de suppliers chinos. Performance, contactos, asignación cliente↔proveedor, historial."
+        title="Proveedores de clientes · CN · 客户供应商"
+        subtitle="Proveedores chinos de nuestros clientes. Grupo WeChat por compra, contactos, asignación cliente↔proveedor, historial."
         actions={
           <>
             <U.Btn variant="secondary" icon={window.Icon.download(14)}>Exportar CSV</U.Btn>
@@ -44,8 +45,15 @@ function ModuleSuppliers({ goTo }) {
         }
       />
 
+      <div style={{ padding: '11px 16px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', marginBottom: 'var(--s-5)', display: 'flex', gap: 10, alignItems: 'center' }}>
+        <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{window.Icon.info(14)}</span>
+        <div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)' }}>
+          Estos proveedores pertenecen a los <b>clientes</b>: son a quienes les compran en China. La deuda de la empresa con sus propios acreedores (navieras, aduana, transporte) se gestiona en <b>Tesorería · Cuentas por pagar</b>.
+        </div>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 'var(--s-5)' }}>
-        <U.KPI label="Proveedores totales" value={D.SUPPLIERS.length} delta={`${preferred} preferidos`} tone="wine" icon={window.Icon.cn(18)} />
+        <U.KPI label="Proveedores totales" value={baseSuppliers.length} delta={`${preferred} preferidos`} tone="wine" icon={window.Icon.cn(18)} />
         <U.KPI label="Embarques totales" value={totalShipments} sub="histórico acumulado" tone="info" icon={window.Icon.box(18)} />
         <U.KPI label="Volumen movido" value={`$${(totalValue/1000).toFixed(0)}K`} sub="USD acumulado" tone="success" icon={window.Icon.chart(18)} />
         <U.KPI label="En observación" value={observ} delta={observ > 0 ? 'revisar performance' : 'todos ok'} tone={observ > 0 ? 'warning' : 'success'} icon={window.Icon.warn(18)} />
@@ -132,6 +140,8 @@ function MiniStat({ label, value }) {
 function SupplierDetail({ s, onClose, goTo }) {
   const D = window.ERPData;
   const U = window.ERPUI;
+  const [tab, setTab] = React.useState('resumen');
+  React.useEffect(() => { setTab('resumen'); }, [s && s.id]);
   if (!s) return null;
 
   const clients = D.SUPPLIER_CLIENTS.filter(sc => sc.supplierId === s.id);
@@ -154,6 +164,14 @@ function SupplierDetail({ s, onClose, goTo }) {
         </>
       }
     >
+      <U.Tabs value={tab} onChange={setTab} style={{ marginBottom: 18 }} items={[
+        { value: 'resumen', label: 'Resumen' },
+        { value: 'ship', label: 'Embarques históricos', count: s.shipments },
+      ]} />
+
+      {tab === 'ship' && <SupplierShipments s={s} clients={clients} goTo={goTo} />}
+
+      {tab === 'resumen' && (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
         {/* Status + rating hero */}
         <U.Card padded style={{ background: 'linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)', color: '#fff', border: 0 }}>
@@ -226,10 +244,10 @@ function SupplierDetail({ s, onClose, goTo }) {
           </U.Card>
         </div>
 
-        {/* Clientes asignados */}
+        {/* Clientes asignados + grupo WeChat */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <div className="eyebrow eyebrow-wine">{clients.length} CLIENTES DTD QUE COMPRAN AQUÍ</div>
+            <div className="eyebrow eyebrow-wine">{clients.length} CLIENTES DTD · GRUPOS WECHAT</div>
             <span style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--wine)' }}>${(totalValue/1000).toFixed(0)}K total</span>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -238,7 +256,7 @@ function SupplierDetail({ s, onClose, goTo }) {
               if (!client) return null;
               return (
                 <div key={c.clientMarkbox} style={{
-                  display: 'grid', gridTemplateColumns: '24px 1fr 100px 90px 90px',
+                  display: 'grid', gridTemplateColumns: '20px 1fr 92px 78px',
                   gap: 12, alignItems: 'center',
                   padding: '10px 12px',
                   background: c.favorite ? 'var(--wine-tint)' : 'var(--bg-elevated)',
@@ -248,19 +266,27 @@ function SupplierDetail({ s, onClose, goTo }) {
                 onClick={() => goTo?.('clients', client.markbox, 'detail')}
                 >
                   {c.favorite ? <span style={{ color: 'var(--wine)' }}>★</span> : <span />}
-                  <div>
+                  <div style={{ minWidth: 0 }}>
                     <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{client.company}</div>
-                    <code style={{ font: '600 11px/1.2 var(--f-mono)', color: c.favorite ? 'var(--wine)' : 'var(--ink-mute)' }}>{c.clientMarkbox}</code>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 3, flexWrap: 'wrap' }}>
+                      <code style={{ font: '600 11px/1.2 var(--f-mono)', color: c.favorite ? 'var(--wine)' : 'var(--ink-mute)' }}>{c.clientMarkbox}</code>
+                      {c.wechatGroup && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }} title="Grupo WeChat de la compra">
+                          <span style={{ color: 'var(--success)', display: 'flex' }}>{window.Icon.globe(11)}</span>
+                          <code style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{c.wechatGroup}</code>
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <span className="mono" style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--ink-soft)', textAlign: 'right' }}>{c.shipments} envíos</span>
                   <span className="mono" style={{ font: '800 12.5px/1 var(--f-mono)', color: 'var(--ink)', textAlign: 'right' }}>${(c.totalValue/1000).toFixed(0)}K</span>
-                  <span style={{ font: '500 11px/1 var(--f-mono)', color: 'var(--ink-mute)', textAlign: 'right' }}>desde {c.since}</span>
                 </div>
               );
             })}
           </div>
         </div>
       </div>
+      )}
     </U.Drawer>
   );
 }
@@ -283,8 +309,25 @@ function RatingBar({ label, val }) {
 // ── Supplier create form ────────────────────────────────────
 function SupplierForm({ open, onClose }) {
   const U = window.ERPUI;
+  const D = window.ERPData;
+  const [client, setClient] = _sUseState('');
+
+  // El código del grupo WeChat se genera solo: MARKBOX-N (N = nº de proveedor del cliente).
+  const groupCode = _sUseMemo(() => {
+    if (!client) return null;
+    const n = D.SUPPLIER_CLIENTS.filter(sc => sc.clientMarkbox === client).length + 1;
+    return `${client}-${n}`;
+  }, [client]);
+
+  const clientOptions = _sUseMemo(() => {
+    const seen = new Set();
+    return D.byTenant(D.CLIENTS)
+      .filter(c => c.markbox && !seen.has(c.markbox) && seen.add(c.markbox))
+      .map(c => ({ value: c.markbox, label: `${c.markbox} · ${c.company}` }));
+  }, []);
+
   return (
-    <U.Drawer open={open} onClose={onClose} title="Nuevo proveedor chino" subtitle="Alta de supplier en la base de datos DTD" width={620}
+    <U.Drawer open={open} onClose={onClose} title="Nuevo proveedor de cliente · CN" subtitle="Proveedor chino de un cliente DTD" width={620}
       actions={<><U.Btn variant="ghost" onClick={onClose}>Cancelar</U.Btn><U.Btn variant="primary" icon={window.Icon.check(13)}>Crear proveedor</U.Btn></>}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -307,12 +350,150 @@ function SupplierForm({ open, onClose }) {
         </div>
         <U.Input label="Email" type="email" placeholder="contacto@supplier.com" />
 
+        <div className="eyebrow eyebrow-wine" style={{ marginTop: 8 }}>GRUPO WECHAT · CLIENTE</div>
+        <U.Select label="Cliente que lo usa" value={client} onChange={(e) => setClient(e.target.value)} options={[
+          { value: '', label: 'Seleccionar cliente DTD…' },
+          ...clientOptions,
+        ]} />
+        <div style={{ padding: '11px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ color: client ? 'var(--success)' : 'var(--ink-mute)', display: 'flex', flexShrink: 0 }}>{window.Icon.globe(15)}</span>
+          {groupCode ? (
+            <div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)' }}>
+              Código del grupo WeChat: <code style={{ font: '800 12.5px/1 var(--f-mono)', color: 'var(--wine)' }}>{groupCode}</code> — se genera solo y es el nombre del grupo de seguimiento de la compra.
+            </div>
+          ) : (
+            <div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink-soft)' }}>
+              Elegí un cliente y el código del grupo WeChat (<code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>MARKBOX-N</code>) se genera automáticamente.
+            </div>
+          )}
+        </div>
+
         <div className="eyebrow eyebrow-wine" style={{ marginTop: 8 }}>ESTADO INICIAL</div>
         <U.Select label="Status" options={['aprobado · uso normal', 'preferido · uso priorizado', 'observación · necesita revisión']} />
 
         <U.Input label="Notas internas" placeholder="Calidad, comunicación, condiciones de pago, observaciones…" />
       </div>
     </U.Drawer>
+  );
+}
+
+// ── Historial de embarques del proveedor (derivado determinista) ──
+// SHIPMENTS no trae supplierId; derivamos el historial de cada proveedor
+// de sus datos reales: clientes que le compran (SUPPLIER_CLIENTS), su
+// conteo de envíos y su último negocio. Estable por proveedor (LCG con
+// semilla = nº del id). Para backend: reemplazar por SHIPMENTS.filter(supplierId).
+function buildSupplierShipments(s, clients, CLIENTS) {
+  const n = Math.min(s.shipments || 0, 16);
+  const end = new Date((s.lastDeal || '2026-05-01') + 'T00:00:00');
+  let seed = parseInt((String(s.id).match(/\d+/) || ['7'])[0], 10) || 7;
+  const rng = () => { seed = (seed * 9301 + 49297) % 233280; return seed / 233280; };
+  const rows = [];
+  for (let i = 0; i < n; i++) {
+    const d = new Date(end);
+    d.setDate(d.getDate() - Math.round(i * (335 / Math.max(n, 1)) + rng() * 9));
+    const cl = clients.length ? clients[i % clients.length] : null;
+    const client = cl ? CLIENTS.find(x => x.markbox === cl.clientMarkbox) : null;
+    const cbm = +(2.4 + rng() * 30).toFixed(1);
+    const value = Math.round(1800 + rng() * 42000);
+    const status = i === 0 ? 'tránsito' : i === 1 ? 'aduana VE'
+      : (i % 11 === 5 ? 'incidencia' : 'entregado');
+    rows.push({
+      id: 'DTDU-' + (300000 + (seed % 180000) + i * 41),
+      date: d.toISOString().slice(0, 10),
+      markbox: cl ? cl.clientMarkbox : '—',
+      clientName: client ? client.company : (cl ? cl.clientMarkbox : 'Cliente DTD'),
+      cbm, value, status,
+    });
+  }
+  return rows; // i=0 = más reciente
+}
+
+function SupplierShipments({ s, clients, goTo }) {
+  const D = window.ERPData;
+  const U = window.ERPUI;
+  const [status, setStatus] = _sUseState('all');
+  const [period, setPeriod] = _sUseState('all');
+
+  const all = _sUseMemo(() => buildSupplierShipments(s, clients, D.CLIENTS), [s.id]);
+  const NOW = new Date('2026-05-31T00:00:00');
+  const monthsAgo = (iso) => (NOW - new Date(iso + 'T00:00:00')) / (1000 * 60 * 60 * 24 * 30.4);
+
+  const rows = all.filter(r => {
+    if (status !== 'all' && r.status !== status) return false;
+    if (period !== 'all' && monthsAgo(r.date) > parseInt(period, 10)) return false;
+    return true;
+  });
+
+  const sumCbm = rows.reduce((a, r) => a + r.cbm, 0);
+  const sumVal = rows.reduce((a, r) => a + r.value, 0);
+  const statusTone = { 'entregado': 'success', 'tránsito': 'info', 'aduana VE': 'warning', 'incidencia': 'danger' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* KPI strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+        <ShipKPI label="Embarques" value={rows.length} sub={`de ${s.shipments} totales`} />
+        <ShipKPI label="CBM acumulado" value={sumCbm.toFixed(1)} sub="m³ del filtro" />
+        <ShipKPI label="Valor FOB" value={`$${(sumVal / 1000).toFixed(0)}K`} sub="USD del filtro" />
+      </div>
+
+      {/* Filtros */}
+      <div style={{ display: 'flex', gap: 10 }}>
+        <U.Select value={status} onChange={(e) => setStatus(e.target.value)} style={{ flex: 1 }} options={[
+          { value: 'all', label: 'Todos los estados' },
+          'entregado', 'tránsito', 'aduana VE', 'incidencia',
+        ]} />
+        <U.Select value={period} onChange={(e) => setPeriod(e.target.value)} style={{ flex: 1 }} options={[
+          { value: 'all', label: 'Todo el historial' },
+          { value: '3', label: 'Últimos 3 meses' },
+          { value: '6', label: 'Últimos 6 meses' },
+          { value: '12', label: 'Últimos 12 meses' },
+        ]} />
+      </div>
+
+      {/* Tabla */}
+      {rows.length === 0 ? (
+        <U.EmptyState icon={window.Icon.box(22)} title="Sin embarques" body="No hay embarques de este proveedor con los filtros aplicados." />
+      ) : (
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '116px 1fr 70px 84px 96px', gap: 10, padding: '9px 14px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+            {['Embarque', 'Cliente · fecha', 'CBM', 'Valor', 'Estado'].map((h, i) => (
+              <span key={h} style={{ font: '700 9px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-mute)', textAlign: i >= 2 && i < 4 ? 'right' : 'left' }}>{h}</span>
+            ))}
+          </div>
+          {rows.map((r, i) => (
+            <div key={r.id} onClick={() => goTo && goTo('shipments', r.id)} style={{
+              display: 'grid', gridTemplateColumns: '116px 1fr 70px 84px 96px', gap: 10, alignItems: 'center',
+              padding: '10px 14px', cursor: goTo ? 'pointer' : 'default',
+              borderBottom: i === rows.length - 1 ? 'none' : '1px solid var(--border)',
+              background: 'var(--bg-surface)',
+            }}>
+              <code style={{ font: '700 11px/1.2 var(--f-mono)', color: 'var(--wine)' }}>{r.id}</code>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ font: '600 12.5px/1.2 var(--f-sans)', color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.clientName}</div>
+                <div style={{ font: '500 10.5px/1.2 var(--f-mono)', color: 'var(--ink-mute)', marginTop: 2 }}>{r.markbox} · {r.date}</div>
+              </div>
+              <span style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--ink-soft)', textAlign: 'right' }}>{r.cbm}</span>
+              <span style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--ink)', textAlign: 'right' }}>${(r.value / 1000).toFixed(1)}K</span>
+              <span style={{ textAlign: 'right' }}><U.Badge tone={statusTone[r.status]} size="sm">{r.status}</U.Badge></span>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ font: '500 10.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
+        Mostrando los {all.length} embarques más recientes de {s.name}. El historial completo se sincroniza desde el ERP.
+      </div>
+    </div>
+  );
+}
+
+function ShipKPI({ label, value, sub }) {
+  return (
+    <div style={{ padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+      <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ font: '900 20px/1 var(--f-display)', color: 'var(--ink)', marginTop: 7, letterSpacing: '-0.02em' }}>{value}</div>
+      <div style={{ font: '500 10px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{sub}</div>
+    </div>
   );
 }
 

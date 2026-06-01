@@ -15,12 +15,16 @@ const INV_COLS_DEFAULT = [
 function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
   const stop = (e) => e.stopPropagation();
   const D = window.ERPData;
+  const baseInvoices = D.byTenant(D.INVOICES);   // multi-tenant
   const U = window.ERPUI;
   const [search, setSearch] = React.useState('');
   const [tab, setTab] = React.useState('all');
   const [drawerKind, setDrawerKind] = React.useState(null);
   const ivaOn = window.DTDConfig ? window.DTDConfig.useCfg('iva') : false;
   const [base, setBase] = React.useState('');
+  const [monto, setMonto] = React.useState('');
+  const [lineSubtotal, setLineSubtotal] = React.useState(0);
+  const [invCli, setInvCli] = React.useState('');
   const [colCfg, setColCfg] = U.useColumns('dtd-inv-cols-v1', INV_COLS_DEFAULT);
   const hideValues = U.useHideValues();
   const loadingTable = U.useFirstLoad('invoices');
@@ -31,7 +35,7 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
   }, [view, selectedId]);
 
   const filtered = React.useMemo(() => {
-    let rows = D.INVOICES;
+    let rows = baseInvoices;
     if (tab === 'pending') rows = rows.filter(i => i.balance > 0 && i.status !== 'vencida');
     if (tab === 'overdue') rows = rows.filter(i => i.status === 'vencida');
     if (tab === 'paid') rows = rows.filter(i => i.status === 'pagada');
@@ -42,9 +46,9 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
     return rows;
   }, [search, tab]);
 
-  const total = D.INVOICES.reduce((s, i) => s + i.amount, 0);
-  const outstanding = D.INVOICES.reduce((s, i) => s + i.balance, 0);
-  const overdue = D.INVOICES.filter(i => i.status === 'vencida').reduce((s, i) => s + i.balance, 0);
+  const total = baseInvoices.reduce((s, i) => s + i.amount, 0);
+  const outstanding = baseInvoices.reduce((s, i) => s + i.balance, 0);
+  const overdue = baseInvoices.filter(i => i.status === 'vencida').reduce((s, i) => s + i.balance, 0);
 
   const statusTone = { pagada: 'success', emitida: 'info', parcial: 'warning', vencida: 'danger' };
 
@@ -92,15 +96,15 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 'var(--s-5)' }}>
         <U.KPI label="Facturado YTD" value={`$${(total/1000).toFixed(0)}K`} delta="+12% vs Q1" tone="success" icon={window.Icon.invoice(18)} />
-        <U.KPI label="Por cobrar" value={`$${(outstanding/1000).toFixed(0)}K`} delta={`${D.INVOICES.filter(i=>i.balance>0).length} facturas`} tone="warning" icon={window.Icon.clock(18)} />
+        <U.KPI label="Por cobrar" value={`$${(outstanding/1000).toFixed(0)}K`} delta={`${baseInvoices.filter(i=>i.balance>0).length} facturas`} tone="warning" icon={window.Icon.clock(18)} />
         <U.KPI label="Vencido" value={`$${(overdue/1000).toFixed(0)}K`} delta="acción requerida" tone="danger" icon={window.Icon.warn(18)} />
       </div>
 
       <U.Tabs value={tab} onChange={setTab} items={[
-        { value: 'all', label: 'Todas', count: D.INVOICES.length },
-        { value: 'pending', label: 'Por cobrar', count: D.INVOICES.filter(i=>i.balance>0 && i.status !== 'vencida').length },
-        { value: 'overdue', label: 'Vencidas', count: D.INVOICES.filter(i=>i.status==='vencida').length },
-        { value: 'paid', label: 'Pagadas', count: D.INVOICES.filter(i=>i.status==='pagada').length },
+        { value: 'all', label: 'Todas', count: baseInvoices.length },
+        { value: 'pending', label: 'Por cobrar', count: baseInvoices.filter(i=>i.balance>0 && i.status !== 'vencida').length },
+        { value: 'overdue', label: 'Vencidas', count: baseInvoices.filter(i=>i.status==='vencida').length },
+        { value: 'paid', label: 'Pagadas', count: baseInvoices.filter(i=>i.status==='pagada').length },
       ]} style={{ marginBottom: 'var(--s-5)' }} />
 
       <U.Toolbar search={search} onSearchChange={setSearch} searchPlaceholder="Buscar factura o cliente…" filters={<U.ColumnManager cfg={colCfg} setCfg={setColCfg} columns={columns} defaultCfg={INV_COLS_DEFAULT} />} />
@@ -193,10 +197,20 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <U.Select label="Embarque a facturar" options={[
-            { value: '', label: 'Seleccioná embarque…' },
-            ...D.SHIPMENTS.filter(s => !s.billed).map(s => ({ value: s.id, label: `${s.id} · ${s.clientName} · $${s.value.toLocaleString()}` })),
-          ]} />
+          <window.ERPUI.SearchSelect label="Cliente" placeholder="Buscá o creá un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
+            onChange={(v) => setInvCli(v)}
+            options={D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.name} (${c.markbox})`, sub: c.company || 'Cliente' }))} />
+          <window.ERPUI.SearchSelect label="Embarque huérfano (opcional)" placeholder={invCli ? 'Embarques sin factura de este cliente…' : 'Elegí primero un cliente'} createLabel="Crear nuevo embarque"
+            onCreate={() => goTo('shipments')}
+            options={D.SHIPMENTS.filter(s => !s.billed && (!invCli || s.client === invCli)).map(s => ({ value: s.id, label: `${s.id} · ${s.clientName}`, sub: `huérfano · $${s.value.toLocaleString()}` }))} />
+          <div style={{ font: '500 11px/1.45 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -6 }}>La factura se cobra a un <b>cliente</b> por cualquier servicio (no solo logística, ej. registro de marca). El <b>embarque es opcional</b> y solo lista los <b>huérfanos del cliente elegido</b> (evita cruzar códigos de otro cliente).</div>
+          {window.ERPUI.CatalogLines && (
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+              <window.ERPUI.CatalogLines title="Líneas de la factura" addLabel="Agregar servicio del catálogo"
+                emptyHint="Agregá servicios del catálogo (flete, despacho, seguro…). Cada línea toma su tarifa vigente; el monto se calcula solo. También podés facturar un monto manual abajo."
+                onChange={(lines, st) => { setLineSubtotal(st); if (ivaOn) setBase(st ? st.toFixed(2) : ''); else setMonto(st ? st.toFixed(2) : ''); }} />
+            </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <U.Input label="Fecha emisión" type="date" mono />
             <U.Input label="Vencimiento" type="date" mono />
@@ -219,7 +233,8 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
               <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Al emitir, esta factura alimenta el Libro de Ventas (IVA débito fiscal).</div>
             </div>
           ) : (
-            <U.Input label="Monto" placeholder="0.00" prefix="$" suffix="USD" mono />
+            <U.Input label="Monto" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0.00" prefix="$" suffix="USD" mono
+              hint={lineSubtotal > 0 ? 'Calculado de las líneas · podés ajustarlo' : undefined} />
           )}
           <U.Input label="Notas" placeholder="Concepto, referencias internas…" />
         </div>

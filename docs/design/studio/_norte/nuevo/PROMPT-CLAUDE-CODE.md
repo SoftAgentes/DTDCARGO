@@ -18,7 +18,7 @@ Es el ERP original entregado en sesiones previas con Claude Design. Está congel
 DTD-Cargo/
 ├── DTD Studio · ERP.html              ← ERP principal (admin web)
 ├── Portal del Cliente.html
-├── Brand Book DTD v3.0.html
+├── Brand Book DTD v3.1.html
 ├── Operario CN.html
 ├── Operario VE.html
 ├── Almacenista VE.html
@@ -193,7 +193,7 @@ Casi siempre la respuesta correcta es **portar a `nuevo/`**, no editar `erp/` o 
 - Archivos `.jsx` cargados via `<script type="text/babel" src=...>`.
 - Cada componente reutilizable global se expone en `window.*`.
 - Mock data realista de DTD-Cargo: rutas CN→VE, MARKBOX `DTD-XXXX`, containers `DTDU-XXXXXX`, RIF venezolano (`J-NNNNNNN-N`), nombres verosímiles.
-- Moneda según Brand Book (Brand Book DTD v3.0.html):
+- Moneda según Brand Book (Brand Book DTD v3.1.html):
   - `USD 4.820` (sin decimales · . miles)
   - `Bs. 175.640` (sin decimales · . miles · prefijo Bs.)
   - Tasa con coma decimal: `BCV 36,45 · Paralelo 37,20`

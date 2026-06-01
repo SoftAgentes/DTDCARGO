@@ -90,7 +90,7 @@ function Login({ onLogin }) {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, var(--ink) 0%, #1F3055 100%)', display: 'flex', flexDirection: 'column', padding: '40px 24px', color: '#fff' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
         <img src="assets/dtdcargo-icon-navy.png" alt="" style={{ width: 40, height: 40, filter: 'brightness(0) invert(1)' }} />
-        <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>BODEGUERO</div>
+        <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>ALMACENISTA</div>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>BODEGA · ALMACÉN VE</div>
@@ -116,9 +116,15 @@ function Login({ onLogin }) {
 // ── Home ────────────────────────────────────────────────────
 function Home({ user, theme, setTheme, onDispatch, onReception, onLogout }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [avisosOpen, setAvisosOpen] = useState(false);
+  const Avisos = window.OperarioAvisos;
+  const tt = (es) => es;
+  const avisos = (Avisos && Avisos.seedBodega) ? Avisos.seedBodega() : [];
+  const onAviso = (act) => { if (act === 'dispatch') onDispatch(); };
   return (
     <div>
-      <MobileHeader title="Mi día · Bodega" subtitle="Pto Cabello · YP" right={<button onClick={() => setMenuOpen(true)} style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', color: 'var(--ink-soft)' }}>{window.Icon.menu(20)}</button>} />
+      <MobileHeader title="Mi día · Bodega" subtitle="Pto Cabello · YP" right={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2, marginRight: -8 }}>{Avisos && <Avisos.Bell items={avisos} onOpen={() => setAvisosOpen(true)} />}<button onClick={() => setMenuOpen(true)} style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', color: 'var(--ink-soft)', background: 'transparent', border: 0 }}>{window.Icon.menu(20)}</button></div>} />
+      {Avisos && <Avisos.Sheet open={avisosOpen} onClose={() => setAvisosOpen(false)} t={tt} lang="es" items={avisos} onAction={onAviso} />}
       <div style={{ padding: 16 }}>
         <div style={{ marginBottom: 18 }}>
           <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>23 May 2026 · 06:42</div>

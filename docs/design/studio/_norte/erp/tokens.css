@@ -1,5 +1,12 @@
 /* ── DTD Studio · ERP · Design tokens ───────────────────────── */
 /* Tokens duales (light/dark) heredados del Brand Book v2.4.    */
+
+/* Fuentes del SISTEMA + utilidades (un solo punto · cubre todo
+   consumidor de tokens.css): Nunito Sans (cuerpo), Sora (títulos),
+   JetBrains Mono (códigos), Noto Sans SC (chino mandarín).
+   El branding sigue en Archivo / Archivo Black, cargado aparte. */
+@import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap');
+
 :root {
   /* ── Color palette ─────────────────────────────────────── */
   --wine: #7F0F1A;
@@ -14,6 +21,17 @@
   --bg-sidebar: #0F1E3D;
   --bg-sidebar-hover: rgba(255,255,255,0.06);
   --bg-sidebar-active: rgba(194,116,127,0.12);
+
+  /* Barra de navegación (clara · marca DTD). Distinta de --bg-sidebar,
+     que sigue siendo "superficie oscura" para totales/sellos/etc. */
+  --bg-nav: #FBFAF7;
+  --bg-nav-hover: #F2F0EC;
+  --bg-nav-active: var(--wine-tint);
+  --ink-nav: #0F1E3D;
+  --ink-nav-soft: #6B6B6B;
+  --ink-nav-active: var(--wine);
+  --border-nav: #E8E6E2;
+  --nav-brand: #7F0F1A;
 
   --ink: #0F1E3D;
   --ink-soft: #6B6B6B;
@@ -71,10 +89,19 @@
   --content-max: 1440px;
 
   /* ── Typography ────────────────────────────────────────── */
-  --f-sans: 'Archivo', system-ui, -apple-system, sans-serif;
+  /* SISTEMA · definitivo: Nunito Sans (cuerpo/datos) + Sora (títulos).
+     BRAND-EXCEPTION: Nunito Sans + Sora en la capa de sistema (no
+     branding) — autorizado por el usuario el 2026-05-31. Para revertir
+     a la marca: igualar --f-sans/--f-display a 'Archivo'/'Archivo Black'. */
+  --f-sans: 'Nunito Sans', system-ui, -apple-system, sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
-  --f-display: 'Archivo Black', 'Archivo', sans-serif;
-  --f-cn: 'Noto Sans SC', 'Archivo', sans-serif;
+  --f-display: 'Sora', 'Nunito Sans', sans-serif;
+  --f-cn: 'Noto Sans SC', 'Nunito Sans', sans-serif;
+
+  /* BRANDING · constante (logo, wordmark, plantillas de correo, firma).
+     Nunca se ve afectado por la tipografía del sistema. */
+  --f-brand: 'Archivo', system-ui, sans-serif;
+  --f-brand-display: 'Archivo Black', 'Archivo', sans-serif;
 
   /* ── Motion ────────────────────────────────────────────── */
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -95,6 +122,16 @@
   --bg-sidebar: #060D1C;
   --bg-sidebar-hover: rgba(255,255,255,0.06);
   --bg-sidebar-active: rgba(216,154,164,0.14);
+
+  /* Barra de navegación · en dark se mantiene oscura */
+  --bg-nav: #0F1E3D;
+  --bg-nav-hover: rgba(255,255,255,0.06);
+  --bg-nav-active: rgba(216,154,164,0.14);
+  --ink-nav: rgba(255,255,255,0.88);
+  --ink-nav-soft: rgba(255,255,255,0.5);
+  --ink-nav-active: #fff;
+  --border-nav: rgba(255,255,255,0.06);
+  --nav-brand: #C2747F;
 
   --ink: #F2F0EC;
   --ink-soft: #A8B0C4;

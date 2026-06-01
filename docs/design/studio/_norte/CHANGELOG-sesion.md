@@ -312,7 +312,7 @@ CHANGELOG-sesion.md
 ## 🔌 Estado del bridge end-to-end
 
 ```
-ALMACÉN CN          DESPACHO ADMIN          BODEGUERO          TRANSPORTISTA
+ALMACÉN CN          DESPACHO ADMIN          ALMACENISTA          TRANSPORTISTA
 ────────────         ──────────────          ─────────          ─────────────
 liberarADespacho()→  cnInbox subscribe       
                      score + cola

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD · Mapa de proceso</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+  html, body { height: 100%; }
+  #root { min-height: 100vh; }
+  @keyframes erp-slide-in { from { transform: translateX(40px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  @keyframes erp-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes erp-slide-up { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  @keyframes tie-flow { to { stroke-dashoffset: -14; } }
+  .tie-flow { animation: tie-flow 600ms linear infinite; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="erp/icons.jsx"></script>
+<script type="text/babel" src="erp/data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/contabilidad-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/tesoreria-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/naviera-data.jsx"></script>
+<script type="text/babel" src="nuevo/modules/conversaciones-data.jsx"></script>
+<script type="text/babel" src="nuevo/flujo-resumenes.jsx"></script>
+<script type="text/babel" src="nuevo/flujo-reglas.jsx"></script>
+<script type="text/babel" src="nuevo/flujo-mapa.jsx"></script>
+<script type="text/babel">
+  const App = window.ProcessMapApp;
+  const root = ReactDOM.createRoot(document.getElementById('root'));
+  root.render(<App />);
+</script>
+</body>
+</html>

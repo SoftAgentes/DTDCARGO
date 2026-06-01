@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v1.9.1"; // handoff Cloud Design (ola finanzas/fiscal + portal unificado)
+const NORTE_VERSION = "v2.3"; // handoff Cloud Design (backend blueprint: schema.prisma + API-CONTRACT + seam DTDApi · proceso/propuestas)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -106,9 +106,25 @@ const GROUPS = [
     ],
   },
   {
+    // v2.3: pantallas nuevas de Cloud Design (mapa de proceso navegable, propuestas de features,
+    // portal del cliente mobile). `ref:true` → se listan y se abren como referencia de diseño, pero
+    // NO diluyen el % construido (mismo criterio "no contar mockups" del grupo de módulos nuevos).
+    // Mapear `code`/`sdd` cuando se construyan (varias apuntan a entidades faltantes: órdenes,
+    // proveedores, caja — ver docs/architecture/schema-reconciliation.md).
+    title: "Nuevo en v2.3 · proceso · propuestas · portal mobile",
+    screens: [
+      { name: "Mapa de Proceso", file: "Mapa de Proceso.html", ref: true },
+      { name: "Guía del Mapa de Proceso", file: "Guía del Mapa de Proceso.html", ref: true },
+      { name: "Portal Cliente · Mobile", file: "Portal Cliente Mobile.html", ref: true },
+      { name: "Propuesta · Botón Crear", file: "Propuesta · Botón Crear.html", ref: true },
+      { name: "Propuesta · Órdenes, Caja y Proveedores", file: "Propuesta · Órdenes, Caja y Proveedores.html", ref: true },
+      { name: "Propuesta · Servicios y Tarifas", file: "Propuesta · Servicios y Tarifas.html", ref: true },
+    ],
+  },
+  {
     title: "Marca",
     screens: [
-      { name: "Brand Book v3.0", file: "Brand Book DTD v3.0.html", kind: "brand" },
+      { name: "Brand Book v3.1", file: "Brand Book DTD v3.1.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
       { name: "Aplicaciones de Marca", file: "Aplicaciones de Marca.html", kind: "brand" },
@@ -211,8 +227,8 @@ const sections = GROUPS.map((g) => {
     .map((s) => {
       const present = screenPresent(s.file);
       const st = statusFor(s);
-      if (s.inErp) {
-        gErp++; // módulo del ERP: se lista como referencia/backlog, NO cuenta en el progreso (%)
+      if (s.inErp || s.ref) {
+        gErp++; // módulo/pantalla de referencia o backlog: se lista pero NO cuenta en el progreso (%)
       } else {
         if (st.cls === "built") { built++; gB++; }
         else if (st.cls === "wip") { wip++; gW++; }

@@ -14,7 +14,7 @@ function ModuleQuotes({ goTo, view, setView, selectedId, setSelectedId }) {
   }, [view, selectedId]);
 
   const filtered = React.useMemo(() => {
-    let rows = D.QUOTES;
+    let rows = D.byTenant(D.QUOTES);
     if (status !== 'all') rows = rows.filter(q => q.status === status);
     if (search) {
       const q = search.toLowerCase();
@@ -128,12 +128,13 @@ function QuoteCalculator() {
   const [weight, setWeight] = React.useState('450');
   const [embalaje, setEmbalaje] = React.useState('carton');
   const [rate, setRate] = React.useState('800');
+  const [extraSubtotal, setExtraSubtotal] = React.useState(0);
 
   const numCbm = parseFloat(cbm) || 0;
   const numRate = parseFloat(rate) || 800;
   const embalajeCost = embalaje === 'carton' ? 0 : 60;
   const subtotal = type.startsWith('LCL') ? numCbm * numRate : (type === "FCL 20'" ? 3200 : 5400);
-  const total = subtotal + embalajeCost;
+  const total = subtotal + embalajeCost + extraSubtotal;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -156,10 +157,8 @@ function QuoteCalculator() {
         </div>
       </div>
 
-      <U.Select label="Cliente · MARKBOX" options={[
-        { value: '', label: 'Seleccioná cliente…' },
-        ...D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.markbox} · ${c.company}` })),
-      ]} />
+      <window.ERPUI.SearchSelect label="Cliente · MARKBOX" placeholder="Buscá o creá un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
+        options={D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.markbox} · ${c.company}`, sub: 'Cliente' }))} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <U.Select label="Origen" value={origin} onChange={(e)=>setOrigin(e.target.value)}
@@ -211,6 +210,14 @@ function QuoteCalculator() {
         </>
       )}
 
+      {window.ERPUI.CatalogLines && (
+        <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+          <window.ERPUI.CatalogLines title="Servicios adicionales" addLabel="Agregar servicio del catálogo"
+            emptyHint="Sumá servicios del catálogo (despacho, seguro, almacenaje…) al flete. Cada uno toma su tarifa vigente."
+            onChange={(lines, st) => setExtraSubtotal(st)} />
+        </div>
+      )}
+
       {/* Total */}
       <div style={{
         padding: '18px 20px', background: 'var(--ink)', color: '#fff',
@@ -224,6 +231,12 @@ function QuoteCalculator() {
           <div style={{ display: 'flex', justifyContent: 'space-between', font: '500 13px/1 var(--f-sans)', color: 'rgba(255,255,255,0.75)' }}>
             <span>Embalaje</span>
             <span className="mono">+${embalajeCost}</span>
+          </div>
+        )}
+        {extraSubtotal > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', font: '500 13px/1 var(--f-sans)', color: 'rgba(255,255,255,0.75)' }}>
+            <span>Servicios adicionales</span>
+            <span className="mono">+${extraSubtotal.toLocaleString()}</span>
           </div>
         )}
         <div style={{ height: 1, background: 'rgba(255,255,255,0.15)' }} />

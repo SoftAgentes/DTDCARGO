@@ -506,6 +506,13 @@ function CoATab({ unlocked }) {
   const R = window.ERPRates;
   const [search, setSearch] = React.useState('');
   const [typeFilter, setTypeFilter] = React.useState('all');
+  const [createOpen, setCreateOpen] = React.useState(false);
+  const [, force] = React.useReducer(x => x + 1, 0);
+  React.useEffect(() => {
+    const f = () => force();
+    window.addEventListener('dtd-coa-changed', f);
+    return () => window.removeEventListener('dtd-coa-changed', f);
+  }, []);
 
   const filtered = C.CHART_OF_ACCOUNTS.filter(a => {
     if (typeFilter !== 'all' && a.type !== typeFilter) return false;
@@ -528,7 +535,7 @@ function CoATab({ unlocked }) {
             ...Object.entries(C.TYPE_LABEL).map(([k, v]) => ({ value: k, label: v.label })),
           ]} style={{ minWidth: 180 }} />
         }
-        actions={<U.Btn variant="primary" size="sm" icon={I.plus(12)} disabled={!unlocked}>Nueva cuenta</U.Btn>}
+        actions={<U.Btn variant="primary" size="sm" icon={I.plus(12)} onClick={() => setCreateOpen(true)}>Nueva cuenta</U.Btn>}
       />
 
       <U.Card padded={false}>
@@ -576,6 +583,7 @@ function CoATab({ unlocked }) {
           );
         })}
       </U.Card>
+      <NewAccountDrawer open={createOpen} onClose={() => setCreateOpen(false)} />
     </div>
   );
 }
@@ -583,6 +591,202 @@ function CoATab({ unlocked }) {
 // ════════════════════════════════════════════════════════════════
 // Libro Mayor (General Ledger)
 // ════════════════════════════════════════════════════════════════
+function NewAccountDrawer({ open, onClose }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const C = window.ContabilidadData;
+  const TYPES = [['A', 'Activo'], ['P', 'Pasivo'], ['PT', 'Patrimonio'], ['I', 'Ingreso'], ['CGS', 'Costo directo'], ['G', 'Gasto']];
+  const parentsFor = (t) => C.CHART_OF_ACCOUNTS.filter(a => a.type === t && (a.level === 2 || (a.level === 1 && !C.CHART_OF_ACCOUNTS.some(x => x.parent === a.code && x.level === 2))));
+
+  const [type, setType] = React.useState('A');
+  const [detailId, setDetailId] = React.useState('banco');
+  const [parent, setParent] = React.useState('1.1');
+  const [name, setName] = React.useState('');
+  const [code, setCode] = React.useState('');
+  const [currency, setCurrency] = React.useState('USD');
+  const [methods, setMethods] = React.useState([]);
+  const [defMethod, setDefMethod] = React.useState(null);
+  const [opening, setOpening] = React.useState('');
+  const [desc, setDesc] = React.useState('');
+  const [done, setDone] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const dl = C.ACCOUNT_DETAIL_TYPES['A']; const ps = parentsFor('A');
+    setType('A'); setDetailId(dl[0]?.id); setParent(ps[0]?.code); setName('');
+    setCode(C.nextAccountCode(ps[0]?.code)); setCurrency('USD'); setMethods([]); setDefMethod(null);
+    setOpening(''); setDesc(''); setDone(null);
+  }, [open]);
+
+  const detailList = C.ACCOUNT_DETAIL_TYPES[type] || [];
+  const detail = detailList.find(d => d.id === detailId) || detailList[0];
+  const isBank = !!detail?.bank;
+  const parents = parentsFor(type);
+
+  const onType = (t) => {
+    const dl = C.ACCOUNT_DETAIL_TYPES[t] || []; const ps = parentsFor(t);
+    setType(t); setDetailId(dl[0]?.id); setParent(ps[0]?.code); setCode(C.nextAccountCode(ps[0]?.code));
+  };
+  const onParent = (p) => { setParent(p); setCode(C.nextAccountCode(p)); };
+  const toggleMethod = (id) => {
+    setMethods(ms => {
+      const has = ms.includes(id);
+      const next = has ? ms.filter(m => m !== id) : [...ms, id];
+      if (has && defMethod === id) setDefMethod(next[0] || null);
+      if (!has && !defMethod) setDefMethod(id);
+      return next;
+    });
+  };
+
+  const canCreate = name.trim() && code.trim() && parent && (!isBank || methods.length > 0);
+  const create = () => {
+    setDone(C.createAccount({
+      code: code.trim(), name: name.trim(), type, parent, detail: detailId,
+      ...(isBank ? { currency, methods, defaultMethod: defMethod || methods[0], opening: Number(opening) || 0 } : {}),
+      desc: desc.trim() || undefined,
+    }));
+  };
+
+  const Label = ({ children, hint }) => (
+    <div style={{ marginBottom: 6 }}>
+      <span style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{children}</span>
+      {hint && <span style={{ font: '500 10.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginLeft: 8 }}>{hint}</span>}
+    </div>
+  );
+  const inputBox = { width: '100%', padding: '9px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--ink)', font: '500 13px/1.3 var(--f-sans)' };
+  const methodCcy = { USD: 'success', VES: 'info', USDT: 'wine' };
+
+  return (
+    <U.Drawer open={open} onClose={onClose} width={560}
+      title={done ? 'Cuenta creada' : 'Nueva cuenta'}
+      subtitle={done ? null : 'Tipo → detalle → cuenta, como en QuickBooks'}
+      actions={done ?
+        <U.Btn variant="primary" onClick={onClose}>Listo</U.Btn> :
+        <React.Fragment>
+          <U.Btn variant="ghost" onClick={onClose}>Cancelar</U.Btn>
+          <U.Btn variant="primary" icon={I.check(14)} disabled={!canCreate} onClick={create}>Crear cuenta</U.Btn>
+        </React.Fragment>}
+    >
+      {done ?
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ padding: 16, background: 'var(--success-bg)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--success)' }}>{I.check(18)}</span>
+            <div style={{ font: '500 12.5px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
+              <b><code style={{ font: '700 12.5px/1 var(--f-mono)', color: 'var(--wine)' }}>{done.code}</code> · {done.name}</b> quedó en el plan de cuentas bajo <b>{C.getAccount(done.parent)?.name}</b>.
+              {done.methods && <span> Recibe {done.methods.length} método(s) de pago · predeterminado <b>{(C.PAYMENT_METHODS.find(m => m.id === done.defaultMethod) || {}).label}</b>.</span>}
+            </div>
+          </div>
+        </div> :
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ padding: '10px 13px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
+            El <b>tipo</b> define dónde cae en los estados (activo, pasivo…); el <b>detalle</b> afina el comportamiento. Si elegís <b>Banco</b> o <b>Caja</b>, podés vincularle los métodos de pago que recibe.
+          </div>
+
+          <div>
+            <Label>Tipo de cuenta</Label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {TYPES.map(([id, lbl]) => {
+                const on = type === id;
+                return (
+                  <button key={id} onClick={() => onType(id)} style={{
+                    padding: '9px 8px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+                    border: '1px solid ' + (on ? 'var(--wine)' : 'var(--border)'),
+                    background: on ? 'var(--wine-tint)' : 'var(--bg-surface)',
+                    color: on ? 'var(--wine)' : 'var(--ink)', font: `${on ? '700' : '500'} 12px/1 var(--f-sans)`,
+                  }}>{lbl}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <Label>Detalle</Label>
+              <U.Select value={detailId} onChange={(e) => setDetailId(e.target.value)} options={detailList.map(d => ({ value: d.id, label: d.label }))} />
+            </div>
+            <div>
+              <Label>Cuenta padre</Label>
+              <U.Select value={parent} onChange={(e) => onParent(e.target.value)} options={parents.map(p => ({ value: p.code, label: `${p.code} · ${p.name}` }))} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px', gap: 12 }}>
+            <div>
+              <Label>Nombre de la cuenta</Label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder={isBank ? 'Ej. Banco Provincial · USD' : 'Nombre de la cuenta'} style={inputBox} />
+            </div>
+            <div>
+              <Label hint="auto">Código</Label>
+              <input value={code} onChange={(e) => setCode(e.target.value)} style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
+            </div>
+          </div>
+
+          {isBank &&
+          <React.Fragment>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div>
+                <Label>Moneda</Label>
+                <U.Select value={currency} onChange={(e) => setCurrency(e.target.value)} options={[{ value: 'USD', label: 'USD · dólares' }, { value: 'VES', label: 'VES · bolívares' }, { value: 'USDT', label: 'USDT · cripto' }]} />
+              </div>
+              <div>
+                <Label hint="opcional">Saldo inicial</Label>
+                <input type="number" value={opening} onChange={(e) => setOpening(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
+              </div>
+            </div>
+
+            <div>
+              <Label>Métodos de pago que recibe</Label>
+              <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -2, marginBottom: 8 }}>
+                Marcá los que entran a esta cuenta. Uno queda <b>por defecto</b> (se usa al cobrar/pagar sin tener que elegirlo); el resto quedan opcionales.
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {C.PAYMENT_METHODS.map(m => {
+                  const on = methods.includes(m.id);
+                  const isDef = defMethod === m.id;
+                  return (
+                    <div key={m.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 'var(--r-md)',
+                      border: '1px solid ' + (on ? 'var(--wine)' : 'var(--border)'),
+                      background: on ? 'var(--wine-tint)' : 'var(--bg-surface)',
+                    }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, cursor: 'pointer', minWidth: 0 }}>
+                        <input type="checkbox" checked={on} onChange={() => toggleMethod(m.id)} style={{ accentColor: 'var(--wine)', width: 16, height: 16 }} />
+                        <span style={{ font: `${on ? '600' : '500'} 12.5px/1.2 var(--f-sans)`, color: 'var(--ink)' }}>{m.label}</span>
+                        <window.ERPUI.Badge tone={methodCcy[m.ccy] || 'neutral'} size="sm">{m.ccy}</window.ERPUI.Badge>
+                      </label>
+                      <button onClick={() => on && setDefMethod(m.id)} disabled={!on} title="Marcar por defecto" style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 6, cursor: on ? 'pointer' : 'not-allowed',
+                        opacity: on ? 1 : 0.4, font: '700 10px/1 var(--f-sans)', letterSpacing: '0.04em',
+                        color: isDef ? 'var(--wine)' : 'var(--ink-mute)', background: 'transparent', border: 'none',
+                      }}>
+                        <span style={{ width: 13, height: 13, borderRadius: '50%', border: '2px solid ' + (isDef ? 'var(--wine)' : 'var(--border)'), background: isDef ? 'var(--wine)' : 'transparent', boxShadow: isDef ? 'inset 0 0 0 2px var(--bg-surface)' : 'none' }} />
+                        {isDef ? 'POR DEFECTO' : 'Predeterminar'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </React.Fragment>}
+
+          {!isBank &&
+          <div>
+            <Label hint="opcional">Descripción</Label>
+            <input value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Para qué se usa esta cuenta" style={inputBox} />
+          </div>}
+
+          {/* Preview */}
+          <div style={{ padding: '11px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Quedará así</span>
+            <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{code || '—'}</code>
+            <span style={{ font: '600 12.5px/1 var(--f-sans)', color: 'var(--ink)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name || 'Nombre de la cuenta'}</span>
+            <window.ERPUI.Badge tone={C.TYPE_LABEL[type]?.tone || 'neutral'} size="sm">{C.TYPE_LABEL[type]?.label}</window.ERPUI.Badge>
+          </div>
+        </div>}
+    </U.Drawer>
+  );
+}
+
 function LedgerTab() {
   const U = window.ERPUI;
   const C = window.ContabilidadData;

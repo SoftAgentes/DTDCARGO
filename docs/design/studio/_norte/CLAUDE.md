@@ -109,25 +109,37 @@ Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX 
 
 ## 🔤 Tipografía
 
-Tres familias, **ninguna otra**:
+> **Actualización 2026-05-31 · capa de SISTEMA redefinida (BRAND-EXCEPTION autorizada por el usuario).**
+> El sistema (ERP, portal, pantallas de producto) usa **Nunito Sans** (cuerpo/datos) + **Sora**
+> (títulos). El **branding** (logo corporativo "DTD Cargo", wordmark, plantillas de correo, firma)
+> sigue en **Archivo / Archivo Black**, intacto. Dos capas, un solo punto de control en `tokens.css`.
 
 ```
---f-sans:    'Archivo', system-ui, sans-serif
---f-display: 'Archivo Black', 'Archivo', sans-serif
---f-mono:    'JetBrains Mono', ui-monospace, monospace
---f-cn:      'Noto Sans SC', 'Archivo', sans-serif   /* solo para chino mandarín */
+/* SISTEMA (plataforma) */
+--f-sans:    'Nunito Sans', system-ui, sans-serif       /* cuerpo, datos, labels, buttons */
+--f-display: 'Sora', 'Nunito Sans', sans-serif          /* títulos, H1/H2, KPI values */
+--f-mono:    'JetBrains Mono', ui-monospace, monospace  /* códigos */
+--f-cn:      'Noto Sans SC', 'Nunito Sans', sans-serif  /* solo chino mandarín */
+
+/* BRANDING (constante · nunca afectado por el sistema) */
+--f-brand:         'Archivo', system-ui, sans-serif
+--f-brand-display: 'Archivo Black', 'Archivo', sans-serif
 ```
 
 ### Reglas
-- **Archivo Black** se usa SOLO para títulos y display (H1, H2 grandes, KPI values, codes destacados).
-- **Archivo regular** para todo el body, labels, buttons.
+- **Sora** (`--f-display`) para títulos y display del sistema (H1, H2 grandes, KPI values, codes destacados).
+- **Nunito Sans** (`--f-sans`) para todo el body, labels, buttons del sistema.
+  - ⚠ Nunito Sans no trae figuras tabulares; en columnas de montos la alineación no es perfecta (límite conocido y aceptado).
+- **Archivo / Archivo Black** (`--f-brand` / `--f-brand-display`) para el **logo corporativo, wordmark "DTD Cargo", plantillas de correo y firma**. El wordmark sigue en Archivo Black (ver `BRAND-MIGRATION`).
 - **JetBrains Mono** para códigos: MARKBOX (`DTD-XXXX`), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
 - **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
+- **Revertir** a la marca = igualar `--f-sans`/`--f-display` a `'Archivo'`/`'Archivo Black'` en `tokens.css` (una línea cada una).
 
 ### ❌ Fuentes PROHIBIDAS
 - Inter, Roboto, Open Sans, Lato, Montserrat, Poppins, Helvetica, Arial — son AI slop.
 - Fuentes serif: Fraunces, Playfair, Georgia, Times — no van con el sistema.
 - Cualquier fuente cursiva o decorativa.
+- **Excepción vigente:** Nunito Sans + Sora son las fuentes oficiales de la **capa de sistema** desde 2026-05-31 (autorizado por el usuario). No agregar NINGUNA otra fuera de: Nunito Sans, Sora, Archivo/Archivo Black (branding), JetBrains Mono, Noto Sans SC.
 
 ---
 
@@ -247,7 +259,7 @@ preferís la alternativa?
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `Brand Book DTD v3.0.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro.
+- **Brand Book:** `Brand Book DTD v3.1.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro.
 - Mock data en `erp/data.jsx`. Cualquier dato nuevo se agrega ahí y se expone vía `window.ERPData`.
 
 ---
@@ -255,7 +267,7 @@ preferís la alternativa?
 ## 🔒 Resumen ejecutivo · 5 reglas que NO se rompen
 
 1. **Solo usar tokens CSS** (`var(--*)`). Cero hex inventados.
-2. **Solo fuentes Archivo + JetBrains Mono + Noto Sans SC**. Nada más.
+2. **Fuentes:** sistema → **Nunito Sans + Sora**; branding → **Archivo / Archivo Black**; + **JetBrains Mono** y **Noto Sans SC**. Ninguna otra.
 3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism, sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
 5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito.

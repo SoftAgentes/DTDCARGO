@@ -66,7 +66,7 @@ DTD-Cargo/
 ├── CLAUDE.md                       · Reglas de marca (no negociables)
 ├── HANDOFF.md                      · Este archivo
 ├── Reporte DTD-Cargo.html          · Contexto de operación del negocio
-├── Brand Book DTD v3.0.html        · Manual de marca
+├── Brand Book DTD v3.1.html        · Manual de marca
 ├── DTD Studio · ERP.html           · ERP principal (admin)
 ├── Portal del Cliente.html         · Portal externo (cliente)
 ├── Operario CN.html                · Mobile recepción China
@@ -127,7 +127,7 @@ Esperá confirmación antes de aplicar B.
 ### Archivos principales (16 totales)
 - `DTD Studio · ERP.html` — ERP completo (admin)
 - `Portal del Cliente.html` — portal externo
-- `Brand Book DTD v3.0.html` — manual de marca
+- `Brand Book DTD v3.1.html` — manual de marca
 - `Operario CN.html` — app móvil recepción China
 - `Operario VE.html` — app móvil chofer Venezuela
 - `Almacenista VE.html` — app móvil bodega Venezuela

@@ -10,6 +10,12 @@ function ModuleTesoreria({ goTo }) {
   const R = window.ERPRates;
   const [rates] = R.useRates();
   const [tab, setTab] = React.useState('dashboard');
+  const [, _force] = React.useState(0);
+  React.useEffect(() => {
+    const f = () => _force(x => x + 1);
+    window.addEventListener('dtd-tesoreria-changed', f);
+    return () => window.removeEventListener('dtd-tesoreria-changed', f);
+  }, []);
 
   const overdue = T.overduePayables().length;
 
@@ -678,10 +684,10 @@ function AccountsTab() {
                 </div>
                 <U.Badge tone="neutral" size="sm">{a.currency}</U.Badge>
               </div>
-              <div style={{ font: '900 26px/1 var(--f-display)', color: 'var(--ink)' }}>{R.fmtUsd(a.balanceUsd)}</div>
+              <div style={{ font: '900 26px/1 var(--f-display)', color: 'var(--ink)' }}>{R.fmtUsd(T.accBalanceUsd(a))}</div>
               {a.currency !== 'USD' && a.currency !== 'USDT' && (
                 <div style={{ font: '500 12px/1 var(--f-mono)', color: 'var(--ink-soft)', marginTop: 6 }}>
-                  {a.currency === 'CNY' ? T.fmtCny(a.balance) : R.fmtBs(a.balance)}
+                  {a.currency === 'CNY' ? T.fmtCny(T.accBalance(a)) : R.fmtBs(T.accBalance(a))}
                 </div>
               )}
               <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>{a.detail}</div>

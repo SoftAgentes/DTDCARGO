@@ -4,6 +4,53 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v2.3 — cargada 2026-05-31 (handoff de Cloud Design · ⭐ ARRANQUE DE BACKEND: blueprint Prisma + contrato REST + seam)
+
+Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v2.3).zip` (~20.7 MB; el front interno sigue
+rotulado v1.9.2, el **paquete** es "v2.3"). Envuelto en `dtd-cargo/project/` → se extrae ese contenido a
+`_norte/`. Se omitieron `uploads/`, `scraps/` y la **nueva `screenshots/`** (104 PNG de trabajo, ruido →
+gitignorada). git: **26 entradas nuevas** (31 archivos con subcarpetas) · **1 borrado** (Brand Book v3.0)
+· 80 M (mayoría ruido LF/CRLF + el rename sweep de abajo).
+
+**⭐ El titular — backend (el "poquito de back" que mencionó el founder).** Cloud Design escribió el
+**blueprint del backend**: NO un servidor, sino la *especificación*. Carpeta nueva `backend/`:
+- `backend/prisma/schema.prisma` — **18 modelos multi-tenant** derivados 1:1 de los mocks (Tenant, User,
+  Client, Supplier, Order, Shipment, Box, Container, WarehouseEvent, Invoice, Quote, Account,
+  JournalEntry/Line, ExchangeRate, Comment, ScheduledEmail, TmsIncident, Document, AuditLog). `tenantId`
+  en toda tabla operativa, MARKBOX único por tenant, `F-`/`DTDU-` server-side, IVA flag OFF por defecto.
+- `backend/API-CONTRACT.md` — contrato REST endpoint→store-mock + regla de oro (`tenantId` SIEMPRE del JWT).
+- `nuevo/api/client.jsx` — el *seam* `window.DTDApi`/`window.DTDAuth` (modo mock↔rest) del **prototipo**.
+- `PROMPT-BACKEND.md` — instrucciones de arranque (asume Vite+React+TS+Prisma **desde cero**).
+
+**Reconciliación (lo importante para NOSOTROS).** El repo real (Next.js+Supabase) ya está MÁS adelante que
+este blueprint en infra (75 tablas, multi-tenant+RLS, auth, 25 módulos). **NO seguimos PROMPT-BACKEND
+literal** (ni Prisma ni rebuild): el schema es **SPEC**, no algo a instalar. Mapa entidad-blueprint ↔
+tabla real + plan por bloques en **`docs/architecture/schema-reconciliation.md`** (creado en esta carga).
+Resumen del cruce de los 18 modelos → **5 ya existen · 6 parciales · 7 faltan** (Supplier, Container y toda
+la capa financiera: Invoice/Account/Journal/Comment). El hueco = **la mitad financiera del ERP**.
+
+**Pantallas nuevas (referencia de diseño · `ref:true` → FUERA del %):**
+- `Mapa de Proceso.html` + `Guía del Mapa de Proceso.html` — flujo operativo end-to-end navegable.
+- `Portal Cliente Mobile.html` — portal del cliente en mobile.
+- 3× `Propuesta · …` (Botón Crear · **Órdenes/Caja/Proveedores** · Servicios y Tarifas) — exploraciones de
+  features; varias apuntan a las **entidades faltantes** (órdenes, proveedores, caja). `Sidebar DTD · Tono.html`
+  llegó pero no se agregó al índice (micro-exploración).
+
+**Terminología (drift recurrente ⚠️).** Cloud Design v2.3 volvió a "Bodeguero/Camionero". Se **RE-APLICÓ**
+el rename del repo **Bodeguero→Almacenista · Camionero→Transportista** (5 archivos movidos + sweep de texto
+en 25, réplica de commit `edda317`), salvo `nuevo/CHANGELOG.md` (bitácora histórica, intacta). **Esto se
+repetirá en cada sync** hasta que Cloud Design adopte los términos en origen.
+
+**Brand Book:** v3.0 → **v3.1** (índice actualizado · `Brand Book DTD v3.1.html`).
+
+**Overlay "estás aquí":** **55% construido · 12 listas · 0 en obra · 10 en diseño (22 pantallas-meta)** —
+**sin cambio** vs v1.9.1 (las 6 nuevas son `ref`, no diluyen) + 9 módulos ERP backlog + 6 referencias v2.3.
+Se agregó el flag `ref` a `scripts/norte.mjs` (listar referencia sin contar en el %).
+
+**Peso (fuera de git):** `uploads/`, `scraps/`, `screenshots/`, `Brand Book v3.0 Package/`, `_norte.html`.
+
+---
+
 ## v1.9.1 — cargada 2026-05-31 (handoff de Cloud Design · ola finanzas/fiscal + portal unificado)
 
 Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v1.9.1).zip` (~13.9 MB). El ZIP viene
