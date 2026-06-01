@@ -43,7 +43,7 @@
 | 7 | Box | 🟡 | `warehouse_receipt_items` (CN) · `warehouse_receipt_ve_boxes` (VE) · `dispatch_order_packages` | Concepto **fragmentado por superficie**, no unificado como `Box`. |
 | 8 | Container | ❌ | — | Sin entidad. Aparece como *scope* en `expenses` + RPC `next_consolidation_code`. **Lo necesita Naviera/Consolidación.** |
 | 9 | WarehouseEvent | ✅ | `warehouse_receipt_events` | + `shipment_events`, `entity_audit_log`. |
-| 10 | Invoice | ❌ | — | `facturacion` = placeholder (SDD-0021 sin spec). **Núcleo financiero.** |
+| 10 | Invoice | ✅ | `invoices` | SDD-0021: módulo Facturación (RPC `next_invoice_code` F-YYYY-NNNN, toggle `tenants.iva_enabled`). Sin asiento contable (gancho para Contabilidad) ni ledger de pagos (`paid_amount` acumulador). |
 | 11 | Quote | ✅ | `quotes` | Cotizador completo (RPC `next_quote_code`). |
 | 12 | Account | ❌ | — | Sin plan de cuentas. **Contabilidad.** |
 | 13 | JournalEntry | ❌ | — | Sin asientos. **Contabilidad.** |
