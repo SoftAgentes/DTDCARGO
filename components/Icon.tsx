@@ -15,6 +15,22 @@ export function ArrowIcon({ className, size = 16 }: IconProps) {
   );
 }
 
+export function DownloadIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className}>
+      <path d="M12 3v12M7 11l5 5 5-5M5 21h14" />
+    </svg>
+  );
+}
+
+export function CloseIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2.2} className={className}>
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
+
 export function PinIcon({ className, size = 18 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={1.8} className={className}>

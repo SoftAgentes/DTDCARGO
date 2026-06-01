@@ -181,9 +181,12 @@ export function Footer() {
             © {new Date().getFullYear()} {CONTACT.legalName}. Todos los
             derechos reservados.
           </span>
-          <span>
-            {CONTACT.web} · Made in Yiwu &amp; Valencia
-          </span>
+          <div className="flex items-center gap-4">
+            <Link href="/brand" className="hover:text-white transition-colors">
+              Kit de marca
+            </Link>
+            <span>{CONTACT.web} · Made in Yiwu &amp; Valencia</span>
+          </div>
         </div>
       </div>
     </footer>
