@@ -447,6 +447,16 @@
   outline-offset: -2px;
   background: var(--studio-paper-2);
 }
+/* Tintes persistentes (Cobranzas): mantienen la clase studio-tracking-row
+   intacta para conservar hover + focus-visible. El :hover/:focus de arriba
+   gana por especificidad (.studio-tracking-row:hover = 0,2,0 vs
+   .studio-row-* = 0,1,0), así que el feedback de hover/focus pisa el tinte. */
+.studio-row-overdue {
+  background: var(--danger-bg);
+}
+.studio-row-selected {
+  background: var(--wine-tint);
+}
 
 /* ───────────────────────────────────────────────────────────
    Tracking — grid del detalle (2 cols desktop, 1 col mobile)

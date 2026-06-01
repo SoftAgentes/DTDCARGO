@@ -26,11 +26,18 @@ import {
   type Invoice,
 } from "@/lib/studio/invoice-types";
 import {
+  PAYMENT_METHOD_OPTIONS,
+  type PaymentMethod,
+} from "@/lib/studio/payment-types";
+import {
   emitInvoice,
   registerPayment,
   voidInvoice,
 } from "../actions";
 import { InvoiceDrawer } from "./InvoiceDrawer";
+
+/** Cuenta de caja/banco (subset para el select del cobro). */
+export type CashAccountOption = { id: string; code: string; name: string };
 
 function fmt(n: number): string {
   return n.toLocaleString("en-US", {
@@ -42,9 +49,11 @@ function fmt(n: number): string {
 export function InvoiceDetailClient({
   invoice,
   ivaOn,
+  cashAccounts,
 }: {
   invoice: Invoice;
   ivaOn: boolean;
+  cashAccounts: CashAccountOption[];
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -209,11 +218,12 @@ export function InvoiceDetailClient({
         <PaymentModal
           invoice={invoice}
           balance={balance}
+          cashAccounts={cashAccounts}
           onClose={() => setShowPayment(false)}
           onError={setError}
-          onPaid={(amount, fullyPaid) => {
+          onPaid={(amount, fullyPaid, receiptCode) => {
             toast.success(
-              `Pago de $${fmt(amount)} registrado en ${invoice.invoice_code}`,
+              `Cobro de $${fmt(amount)} registrado en ${invoice.invoice_code}${receiptCode ? ` · recibo ${receiptCode}` : ""}`,
               fullyPaid
                 ? {
                     link: {
@@ -234,21 +244,32 @@ export function InvoiceDetailClient({
 function PaymentModal({
   invoice,
   balance,
+  cashAccounts,
   onClose,
   onPaid,
   onError,
 }: {
   invoice: Invoice;
   balance: number;
+  cashAccounts: CashAccountOption[];
   onClose: () => void;
-  onPaid: (amount: number, fullyPaid: boolean) => void;
+  onPaid: (amount: number, fullyPaid: boolean, receiptCode?: string) => void;
   onError: (msg: string) => void;
 }) {
+  const today = new Date().toISOString().slice(0, 10);
   const [amount, setAmount] = useState<string>(String(balance));
+  const [cashAccountId, setCashAccountId] = useState<string>(
+    cashAccounts[0]?.id ?? "",
+  );
+  const [method, setMethod] = useState<PaymentMethod>("transferencia");
+  const [receivedAt, setReceivedAt] = useState<string>(today);
+  const [reference, setReference] = useState<string>("");
   const [localError, setLocalError] = useState<string | null>(null);
 
   const amt = Number(amount) || 0;
-  const valid = amt > 0 && amt <= balance + 1e-6;
+  const noCashAccounts = cashAccounts.length === 0;
+  const valid =
+    amt > 0 && amt <= balance + 1e-6 && !!cashAccountId && !noCashAccounts;
 
   return (
     <div
@@ -269,7 +290,9 @@ function PaymentModal({
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          width: "min(440px, 96vw)",
+          width: "min(460px, 96vw)",
+          maxHeight: "90vh",
+          overflow: "auto",
           background: "var(--bg-surface)",
           border: "1px solid var(--border)",
           borderRadius: "var(--r-lg)",
@@ -286,7 +309,7 @@ function PaymentModal({
             className="studio-display"
             style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
           >
-            Registrar pago
+            Registrar cobro
           </h2>
           <p
             style={{
@@ -304,7 +327,7 @@ function PaymentModal({
 
         <div>
           <label className="studio-label" htmlFor="pay-amount">
-            Monto a registrar ({invoice.currency})
+            Monto a cobrar ({invoice.currency})
           </label>
           <NumericInput
             id="pay-amount"
@@ -316,7 +339,20 @@ function PaymentModal({
             value={amount === "" ? null : Number(amount)}
             onChange={(v) => setAmount(v != null ? String(v) : "")}
           />
-          {!valid && amount !== "" && (
+          {amt > 0 && amt <= balance + 1e-6 && (
+            <p
+              style={{
+                font: "500 11px/1.3 var(--f-sans)",
+                color: amt >= balance - 1e-6 ? "var(--ink-mute)" : "var(--warning)",
+                margin: "4px 0 0",
+              }}
+            >
+              {amt >= balance - 1e-6
+                ? "Cobro total · salda la factura."
+                : `Abono parcial · quedan $${fmt(balance - amt)} pendientes.`}
+            </p>
+          )}
+          {amt > balance + 1e-6 && amount !== "" && (
             <p
               style={{
                 font: "500 11px/1.3 var(--f-sans)",
@@ -324,9 +360,86 @@ function PaymentModal({
                 margin: "4px 0 0",
               }}
             >
-              El monto debe ser mayor a 0 y no superar el saldo (${fmt(balance)}).
+              El monto no puede superar el saldo (${fmt(balance)}).
             </p>
           )}
+        </div>
+
+        <div>
+          <label className="studio-label" htmlFor="pay-cash-account">
+            Cuenta de caja / banco
+          </label>
+          {noCashAccounts ? (
+            <p
+              style={{
+                font: "500 11.5px/1.4 var(--f-sans)",
+                color: "var(--warning)",
+                margin: "4px 0 0",
+              }}
+            >
+              No hay cuentas de caja/banco en el plan de cuentas. Sembrá el plan
+              en Contabilidad para registrar cobros con asiento.
+            </p>
+          ) : (
+            <select
+              id="pay-cash-account"
+              className="studio-input"
+              value={cashAccountId}
+              onChange={(e) => setCashAccountId(e.target.value)}
+            >
+              {cashAccounts.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.code} · {a.name}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label className="studio-label" htmlFor="pay-method">
+              Método
+            </label>
+            <select
+              id="pay-method"
+              className="studio-input"
+              value={method}
+              onChange={(e) => setMethod(e.target.value as PaymentMethod)}
+            >
+              {PAYMENT_METHOD_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="studio-label" htmlFor="pay-date">
+              Fecha
+            </label>
+            <input
+              id="pay-date"
+              type="date"
+              className="studio-input studio-input-mono"
+              value={receivedAt}
+              onChange={(e) => setReceivedAt(e.target.value)}
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="studio-label" htmlFor="pay-ref">
+            Referencia <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+          </label>
+          <input
+            id="pay-ref"
+            type="text"
+            className="studio-input"
+            placeholder="Nro de transferencia, captura, nota…"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+          />
         </div>
 
         {localError && (
@@ -357,21 +470,27 @@ function PaymentModal({
           <ActionButton
             variant="primary"
             size="default"
-            idleLabel="Registrar pago"
+            idleLabel="Registrar cobro"
             loadingLabel="Registrando…"
-            successLabel="Pago registrado"
+            successLabel="Cobro registrado"
             idleIcon={Icon.check(14)}
             successIcon={Icon.check(14)}
             disabled={!valid}
             onAction={async () => {
               setLocalError(null);
-              const r = await registerPayment(invoice.id, amt);
+              const r = await registerPayment(invoice.id, {
+                amount: amt,
+                cashAccountId,
+                method,
+                receivedAt,
+                reference: reference.trim() || null,
+              });
               if (r.error) {
                 setLocalError(r.error);
                 return { error: r.error };
               }
-              const fullyPaid = amt >= balance - 1e-6;
-              onPaid(amt, fullyPaid);
+              const fullyPaid = r.fullyPaid ?? amt >= balance - 1e-6;
+              onPaid(amt, fullyPaid, r.receiptCode);
               onClose();
               return undefined;
             }}

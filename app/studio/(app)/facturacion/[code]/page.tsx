@@ -9,6 +9,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getInvoiceByCode } from "@/lib/studio/invoice-queries";
+import { listCashAccounts } from "@/lib/studio/payment-queries";
 import {
   computeBalance,
   currencyLabel,
@@ -37,9 +38,10 @@ export default async function InvoiceDetailPage({
   const { code } = await params;
   const supabase = await createClient();
 
-  const [invoice, ivaRow] = await Promise.all([
+  const [invoice, ivaRow, cashAccounts] = await Promise.all([
     getInvoiceByCode(supabase, code),
     supabase.from("tenants").select("iva_enabled").maybeSingle(),
+    listCashAccounts(supabase),
   ]);
   if (!invoice) notFound();
 
@@ -66,7 +68,15 @@ export default async function InvoiceDetailPage({
         <span style={{ fontSize: 14 }}>←</span> Volver al listado
       </Link>
 
-      <InvoiceDetailClient invoice={invoice} ivaOn={ivaOn} />
+      <InvoiceDetailClient
+        invoice={invoice}
+        ivaOn={ivaOn}
+        cashAccounts={cashAccounts.map((a) => ({
+          id: a.id,
+          code: a.code,
+          name: a.name,
+        }))}
+      />
 
       {/* Header */}
       <div
