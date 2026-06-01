@@ -34,6 +34,7 @@
 | Usuarios & Roles | 0024 | `app/studio/(app)/usuarios/` + `app/invitar/[token]/` | `lib/studio/user-*` |
 | No-Olvidar | 0025 | `app/studio/(app)/no-olvidar/` | `lib/studio/no-olvidar-*` |
 | Mailing & Notif | 0026 | `app/studio/(app)/mailing/` | `lib/studio/mail/`, `mail-*` |
+| Facturación | 0021 | `app/studio/(app)/facturacion/` | `lib/studio/invoice-*` |
 | Despacho | 0029, 0030 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` |
 | Etiquetas suppliers CN | 0031 | `app/studio/(app)/etiquetas/` | (labels) |
 | QR print queue | 0033 | `app/studio/(app)/cola-qr/` | `lib/studio/qr-queue-*` |
@@ -55,4 +56,4 @@
 |---|---|
 | CMS contenido (noticias/servicios/glosario) | `app/back/(app)/` · `lib/back/` |
 
-> Huecos del correlativo (0021-0023, 0027-0028): ver `docs/specs/README.md` — código sin spec o renumerado, auditar.
+> Huecos del correlativo (0022-0023, 0027-0028): ver `docs/specs/README.md` — código sin spec o renumerado, auditar. (0021 = Facturación, en implementación.)

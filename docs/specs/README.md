@@ -34,12 +34,12 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 33 specs)
+### Índice de specs (generado · 34 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
 | 0001 | Sitio web público MVP de DTD·CARGO | draft | interno |
-| 0002 | (sin título) | ? | interno |
+| 0002 | Calculadora de Flete Terrestre Venezuela | draft | interno |
 | 0003 | DoorTuDoor — Arquitectura MVP del ERP interno (multi-tenant r… | approved | interno |
 | 0004 | DoorTuDoor — Fase 1: Studio shell + Auth | done | interno |
 | 0005 | DoorTuDoor — Fase 2: Módulo Tracking (envíos + estados + dash… | done | interno |
@@ -58,6 +58,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0018 | DoorTuDoor — Aduana SENIAT (workflow aduanal VE) | approved | interno |
 | 0019 | DoorTuDoor — TMS · Transporte interno VE | approved | interno |
 | 0020 | DoorTuDoor — Agentes y Skills · infraestructura + Tracking Co… | approved | interno |
+| 0021 | Facturación — Invoice + estados + pago (Bloque 1.1 financiero) | done | interno |
 | 0024 | DoorTuDoor — Usuarios & Roles V1 simple (invitaciones + 6 rol… | approved | interno |
 | 0025 | DoorTuDoor — No-Olvidar interno DTD-CARGO · envelope encrypti… | approved | interno |
 | 0026 | DoorTuDoor — Mailing & Notificaciones (Resend + templates + s… | approved | interno |
@@ -72,5 +73,5 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0038 | i18n CN · región como fuente de verdad + chrome bilingüe es-V… | done | interno |
 | 0039 | Gastos CN · scope contenedor/operativo + moneda dual CNY/USD … | in-progress | interno |
 
-> **Huecos en el correlativo:** 0021, 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

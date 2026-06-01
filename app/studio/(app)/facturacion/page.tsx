@@ -1,13 +1,50 @@
-import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+/**
+ * Facturación — lista de facturas (SDD-0021).
+ *
+ * Reemplaza el placeholder EmptyState. Server component que fetchea facturas
+ * con filtros desde searchParams, los KPIs agregados y el flag iva_enabled
+ * del tenant, y delega la UI interactiva al FacturacionClient.
+ */
+
+import { createClient } from "@/lib/db/server";
+import {
+  invoiceKpis,
+  listInvoices,
+  parseInvoiceFiltersFromSearchParams,
+  tabCounts,
+} from "@/lib/studio/invoice-queries";
+import { FacturacionClient } from "./_components/FacturacionClient";
 
 export const metadata = { title: "Facturación" };
 
-export default function FacturacionPage() {
+export default async function FacturacionPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const rawParams = await searchParams;
+  const filters = parseInvoiceFiltersFromSearchParams(rawParams);
+
+  const supabase = await createClient();
+
+  // Cargamos sin filtro de tab para poder contar todas las pestañas; el
+  // filtro de tab se aplica client-side sobre el set ya resuelto.
+  const [allRows, kpis, ivaRow] = await Promise.all([
+    listInvoices(supabase, { q: filters.q, clientMarkbox: filters.clientMarkbox }),
+    invoiceKpis(supabase),
+    supabase.from("tenants").select("iva_enabled").maybeSingle(),
+  ]);
+
+  const ivaOn = (ivaRow.data as { iva_enabled?: boolean } | null)?.iva_enabled ?? false;
+  const counts = tabCounts(allRows);
+
   return (
-    <EmptyState
-      eyebrow="Próximamente · SDD-0021"
-      title="Facturación"
-      description="Generación de facturas con links a embarques y clientes."
+    <FacturacionClient
+      invoices={allRows}
+      filters={filters}
+      kpis={kpis}
+      counts={counts}
+      ivaOn={ivaOn}
     />
   );
 }
