@@ -43,11 +43,11 @@
 | 7 | Box | 🟡 | `warehouse_receipt_items` (CN) · `warehouse_receipt_ve_boxes` (VE) · `dispatch_order_packages` | Concepto **fragmentado por superficie**, no unificado como `Box`. |
 | 8 | Container | ❌ | — | Sin entidad. Aparece como *scope* en `expenses` + RPC `next_consolidation_code`. **Lo necesita Naviera/Consolidación.** |
 | 9 | WarehouseEvent | ✅ | `warehouse_receipt_events` | + `shipment_events`, `entity_audit_log`. |
-| 10 | Invoice | ✅ | `invoices` | SDD-0021: módulo Facturación (RPC `next_invoice_code` F-YYYY-NNNN, toggle `tenants.iva_enabled`). Sin asiento contable (gancho para Contabilidad) ni ledger de pagos (`paid_amount` acumulador). |
+| 10 | Invoice | ✅ | `invoices` | SDD-0021: módulo Facturación (RPC `next_invoice_code` F-YYYY-NNNN, toggle `tenants.iva_enabled`). Asiento automático al emitir (SDD-0040); sin ledger de pagos (`paid_amount` acumulador). |
 | 11 | Quote | ✅ | `quotes` | Cotizador completo (RPC `next_quote_code`). |
-| 12 | Account | ❌ | — | Sin plan de cuentas. **Contabilidad.** |
-| 13 | JournalEntry | ❌ | — | Sin asientos. **Contabilidad.** |
-| 14 | JournalLine | ❌ | — | Sin líneas de asiento. **Contabilidad.** |
+| 12 | Account | ✅ | `accounts` | SDD-0040: plan de cuentas jerárquico (seed 86 cuentas estándar transporte, editable). |
+| 13 | JournalEntry | ✅ | `journal_entries` | SDD-0040: asientos doble partida (borrador/asentado/anulado), `next_entry_code` A-YYYY-NNNN, asiento automático desde factura. |
+| 14 | JournalLine | ✅ | `journal_lines` | SDD-0040: líneas debe/haber (CHECK XOR). |
 | 15 | ExchangeRate | 🟡 | `tenant_fx_history` | FX CNY/USD acotado a expenses; no catálogo general BCV/paralelo/CNY. (`rates` = tarifas de flete, otro concepto.) |
 | 16 | Comment | ❌ | — | `bug_messages` es hilo acotado a bugs; no comentarios transversales con @menciones. |
 | 17 | ScheduledEmail | 🟡 | dominio `mail_*` (`mail_logs/rules/templates/config`) | Motor de reglas event-driven existe; falta cola programada (`scheduledAt`). |
@@ -55,7 +55,7 @@
 | 19 | Document | 🟡 | `customs_documents` · `bug_attachments` · `warehouse_receipt_photos` · `back_assets` | Sin DMS genérico `documents`; módulo `documentos` es stub. |
 | 20 | AuditLog | ✅ | `entity_audit_log` | + logs específicos (`no_olvidar_access_log`, `bug_timeline`). |
 
-**Resumen:** **7 ✅ · 6 🟡 · 7 ❌.** El patrón: el backend real es **fuerte en operación/logística**
+**Resumen:** **10 ✅ · 6 🟡 · 4 ❌** (faltan: Supplier, Container, Comment + completar parciales). El patrón: el backend real es **fuerte en operación/logística**
 (clientes, cotizaciones, envíos, almacenes CN/VE, despacho, TMS, aduana + infra: multi-tenant, agentes
 IA, mailing, bug reporter, push, auditoría). El hueco es **la mitad financiera/contable del ERP** +
 catálogos comerciales (Supplier, Container como entidad, Comment genérico).
