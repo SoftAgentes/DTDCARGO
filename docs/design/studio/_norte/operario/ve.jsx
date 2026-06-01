@@ -158,8 +158,11 @@ function Home({ user, theme, setTheme, onStartRoute, onLogout }) {
   const D = window.ERPData;
   const myRoutes = (D?.TMS_ROUTES || []).filter(r => r.driver === user.id || true).slice(0, 3);
   const [menuOpen, setMenuOpen] = useState(false);
-
-  // Mock today's routes
+  const [avisosOpen, setAvisosOpen] = useState(false);
+  const Avisos = window.OperarioAvisos;
+  const tt = (es) => es;
+  const avisos = (Avisos && Avisos.seedVE) ? Avisos.seedVE() : [];
+  const onAviso = (act) => { if (act === 'route') onStartRoute(routes.find(r => r.status === 'pendiente')); };
   const routes = [
     { id: 'R-2026-0142', shipment: 'DTDU-472816', client: 'Acindar Comercial', from: 'PBL · Terminal', to: 'Valencia · ZI Acindar', distance: 168, eta: '14:30', status: 'pendiente', boxes: 12, cbm: 6.4 },
     { id: 'R-2026-0144', shipment: 'DTDU-364299', client: 'Vargas & Asoc', from: 'PBL · Terminal', to: 'Valencia · Galpón', distance: 142, eta: '17:00', status: 'pendiente', boxes: 8, cbm: 24.2 },
@@ -171,7 +174,7 @@ function Home({ user, theme, setTheme, onStartRoute, onLogout }) {
       <MobileHeader
         title="Mi día"
         subtitle={`${user.truck} · ${user.hub}`}
-        right={<button onClick={() => setMenuOpen(true)} style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', color: 'var(--ink-soft)' }}>{window.Icon.menu(20)}</button>}
+        right={<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2, marginRight: -8 }}>{Avisos && <Avisos.Bell items={avisos} onOpen={() => setAvisosOpen(true)} />}<button onClick={() => setMenuOpen(true)} style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', color: 'var(--ink-soft)', background: 'transparent', border: 0 }}>{window.Icon.menu(20)}</button></div>}
       />
 
       <div style={{ padding: 16, paddingBottom: 100 }}>
@@ -227,6 +230,8 @@ function Home({ user, theme, setTheme, onStartRoute, onLogout }) {
       <div style={{ position: 'fixed', bottom: 'env(safe-area-inset-bottom)', left: 0, right: 0, padding: '12px 16px 18px', background: 'linear-gradient(0deg, var(--bg-base) 50%, transparent 100%)', maxWidth: 480, margin: '0 auto' }}>
         <BigButton label="Iniciar próxima ruta →" onClick={() => onStartRoute(routes.find(r => r.status === 'pendiente'))} icon={<span style={{ fontSize: 22 }}>🚚</span>} />
       </div>
+
+      {Avisos && <Avisos.Sheet open={avisosOpen} onClose={() => setAvisosOpen(false)} t={tt} lang="es" items={avisos} onAction={onAviso} />}
 
       {menuOpen && (
         <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(15,30,61,0.4)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>

@@ -69,6 +69,23 @@ const Icon = {
   star: (s=14) => _wrap(s, [_ipath('M12 3l2.9 6 6.1.9-4.5 4.3 1.1 6.3L12 17l-5.6 3.5L7.5 14.2 3 9.9 9.1 9z')].map((e,i)=>React.cloneElement(e,{key:i}))),
   flame: (s=14) => _wrap(s, [_ipath('M12 3s4 3 4 8a4 4 0 11-8 0c0-2 1-3 1-3s-1 4 2 4-1-6 1-9z')].map((e,i)=>React.cloneElement(e,{key:i}))),
   lock: (s=18) => _wrap(s, [_irect(4,11,16,10,2), _ipath('M8 11V7a4 4 0 018 0v4'), _icirc(12,16,1.4,'currentColor')].map((e,i)=>React.cloneElement(e,{key:i}))),
+
+  // ── Añadidos · de-duplicación del sidebar (2026-05) ──────────
+  map: (s=18) => _wrap(s, [_ipath('M9 4 3 6v14l6-2 6 2 6-2V4l-6 2z'), _ipath('M9 4v14M15 6v14')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  gauge: (s=18) => _wrap(s, [_ipath('M4 19a8 8 0 1 1 16 0'), _ipath('M12 19l4.5-4.5'), _icirc(12,19,1.3,'currentColor')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  calendar: (s=18) => _wrap(s, [_irect(3,5,18,16,2), _ipath('M3 10h18M8 3v4M16 3v4')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  qr: (s=18) => _wrap(s, [_irect(3,3,7,7,1.2), _irect(14,3,7,7,1.2), _irect(3,14,7,7,1.2), _ipath('M14 14h3v3M14 19v2h2M19 19v2h2M21 14v2')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  route: (s=18) => _wrap(s, [_icirc(5,19,2), _icirc(19,7,2), _ipath('M7 19h5a4 4 0 0 0 4-4V9')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  sliders: (s=18) => _wrap(s, [_ipath('M4 8h9M19 8h1M4 16h1M11 16h9'), _icirc(16,8,2.2), _icirc(8,16,2.2)].map((e,i)=>React.cloneElement(e,{key:i}))),
+  barchart: (s=18) => _wrap(s, [_ipath('M3 21h18'), _ipath('M7 21v-7M12 21V7M17 21v-10')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  cash: (s=18) => _wrap(s, [_irect(2,6,20,12,2), _icirc(12,12,2.4), _ipath('M6 9v6M18 9v6')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  ledger: (s=18) => _wrap(s, [_ipath('M6 4h13v13H6a2 2 0 0 0 0 4h13v-4'), _ipath('M9 8h7M9 11.5h7')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  wallet: (s=18) => _wrap(s, [_irect(3,6,18,13,2.5), _ipath('M16 12h5v4h-5a2 2 0 0 1 0-4z')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  reconcile: (s=18) => _wrap(s, [_ipath('M4 8h12M13 5l3 3-3 3'), _ipath('M20 16H8M11 13l-3 3 3 3')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  margin: (s=18) => _wrap(s, [_ipath('M6 18 18 6'), _icirc(7.5,7.5,2.2), _icirc(16.5,16.5,2.2)].map((e,i)=>React.cloneElement(e,{key:i}))),
+  eye: (s=18) => _wrap(s, [_ipath('M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z'), _icirc(12,12,3)].map((e,i)=>React.cloneElement(e,{key:i}))),
+  idcard: (s=18) => _wrap(s, [_irect(3,5,18,14,2), _icirc(8.5,11,2.2), _ipath('M5.5 16c0-1.8 1.6-2.8 3-2.8s3 1 3 2.8M14 9.5h4M14 12.5h4M14 15.5h2')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  hardhat: (s=18) => _wrap(s, [_ipath('M3 17a9 9 0 0 1 18 0'), _ipath('M2 17h20'), _ipath('M10 8.6V6a2 2 0 0 1 4 0v2.6'), _ipath('M9 9.6a9 9 0 0 1 6 0')].map((e,i)=>React.cloneElement(e,{key:i}))),
 };
 
 window.Icon = Icon;

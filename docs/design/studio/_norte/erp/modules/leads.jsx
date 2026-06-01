@@ -13,7 +13,7 @@ function ModuleLeads() {
   const D = window.ERPData;
   const U = window.ERPUI;
   const [viewMode, setViewMode] = _lUseState('kanban');
-  const [leads, setLeads] = _lUseState(D.LEADS);
+  const [leads, setLeads] = _lUseState(D.byTenant(D.LEADS));
   const [selected, setSelected] = _lUseState(null);
   const [search, setSearch] = _lUseState('');
   const [ownerFilter, setOwnerFilter] = _lUseState('all');
@@ -62,8 +62,8 @@ function ModuleLeads() {
     return { active: active.length, wonValue, pipelineValue, conversion: total > 0 ? Math.round((wonCount / total) * 100) : 0 };
   }, [leads]);
 
-  const owners = [...new Set(D.LEADS.map(l => l.owner))];
-  const sources = [...new Set(D.LEADS.map(l => l.source))];
+  const owners = [...new Set(D.byTenant(D.LEADS).map(l => l.owner))];
+  const sources = [...new Set(D.byTenant(D.LEADS).map(l => l.source))];
 
   return (
     <div>

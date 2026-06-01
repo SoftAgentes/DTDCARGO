@@ -60,6 +60,44 @@
   // F · Emails enviados (mock log para Mailing → Logs)
   const emailsSent = makeStore('dtd-emails-sent', []);
 
+  // G · Bandeja del Portal (eventos entrantes del cliente → ERP)
+  // Registros nuevos, cotizaciones exprés y re-compras publicados desde el
+  // portal (web + móvil). El ERP los muestra como notificaciones con badge
+  // para aprobar/atender. En prod = endpoint /portal-inbox del backend.
+  const portalInbox = makeStore('dtd-portal-inbox', []);
+
+  // Deriva el tenant (empresa) desde el prefijo del MARKBOX (DTD-/AND-/…).
+  // Respeta multi-tenant: cada evento queda etiquetado para que el ERP solo
+  // lo muestre en la empresa correcta (ver erp/data.jsx byTenant).
+  function tenantForMarkbox(markbox) {
+    const prefix = (markbox || '').split('-')[0];
+    const tenants = (window.ERPData && window.ERPData.TENANTS) || [];
+    const t = tenants.find(x => x.prefix === prefix);
+    return t ? t.id : 'dtd';
+  }
+
+  // Publica un evento entrante del portal. Auto-tag: id, ts, read, tenantId.
+  // evt: { kind:'registro'|'cotizacion'|'recompra', tone, markbox, title, detail, channel, meta }
+  function pushPortalEvent(evt) {
+    const entry = {
+      id: 'pi-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+      ts: new Date().toISOString(),
+      read: false,
+      tenantId: evt.tenantId || tenantForMarkbox(evt.markbox),
+      ...evt,
+    };
+    const cur = portalInbox.read() || [];
+    portalInbox.write([entry, ...cur].slice(0, 200));
+    return entry;
+  }
+
+  // Marca eventos del inbox como leídos (todos, o por lista de ids).
+  function markPortalRead(ids) {
+    const cur = portalInbox.read() || [];
+    const set = ids && ids.length ? new Set(ids) : null;
+    portalInbox.write(cur.map(e => (!set || set.has(e.id)) ? { ...e, read: true } : e));
+  }
+
   // ── MARKBOX helpers (validación + secuencial server-side) ──
   // Formato oficial: DTD-XXXX o DTD-XXXXX (4 o 5 dígitos)
   // Ver CLAUDE.md y portal/registro.jsx para nomenclatura completa.
@@ -146,13 +184,15 @@
   }
 
   window.DTDData = {
-    cnInbox, clients, rules, routes, cities, rates, emailsSent,
+    cnInbox, clients, rules, routes, cities, rates, emailsSent, portalInbox,
     // MARKBOX
     validateMarkboxFormat, isMarkboxUnique, nextMarkbox,
     // Email
     sendWelcomeEmail, renderTemplate,
+    // Portal inbox (eventos cliente → ERP)
+    pushPortalEvent, markPortalRead, tenantForMarkbox,
     resetAll: () => {
-      ['dtd-cn-inbox','dtd-clients','dtd-rules','dtd-routes','dtd-cities','dtd-rates','dtd-emails-sent'].forEach(k => {
+      ['dtd-cn-inbox','dtd-clients','dtd-rules','dtd-routes','dtd-cities','dtd-rates','dtd-emails-sent','dtd-portal-inbox'].forEach(k => {
         localStorage.removeItem(k);
       });
       window.dispatchEvent(new CustomEvent('dtd-data-reset'));

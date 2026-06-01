@@ -22,6 +22,824 @@ Formato:
 
 <!-- Las entradas nuevas se agregan acá arriba -->
 
+## 2026-05-31 · v2.3 · 🔖 Release consolidado (2 sesiones en paralelo) + única bitácora
+
+> **`graba todo como v2.3`.** Esta fecha tuvo **dos sesiones en paralelo** que se unifican bajo **v2.3**:
+> (a) **Portal → ERP en vivo** (cotizador/re-compra publican al bridge + badge de avisos en el ERP — ver entrada v2.3 abajo)
+> y (b) **Sidebar · reorganización IA + acordeón** (ver entrada v2.3 · Sidebar abajo). Ambas quedan estampadas como v2.3.
+>
+> **Enlace roto analizado (antes de grabar):** auditoría automática de los 39 HTML → **cero `src`/`href` rotos** en las apps vivas.
+> El "enlace roto" real era de **continuidad de la bitácora**: `design_handoff_dtd_cargo/CHANGELOG.md` era un *fork* congelado en la entrada
+> "Cobranzas" (le faltaba todo el arco v2.0→v2.3, ~27 entradas), aunque su propio `README.md` ya declara a **`nuevo/CHANGELOG.md`**
+> como única fuente de verdad. **Resuelto:** este archivo (`nuevo/CHANGELOG.md`) es la **única bitácora**; la copia del handoff se reemplazó
+> por un puntero a este archivo. (Verificado: el handoff era subconjunto estricto — no se perdió ninguna entrada.)
+
+---
+
+## 2026-05-31 · v2.3 · Sidebar · reorganización IA + acordeón + de-duplicación de íconos
+
+Feedback del usuario: sidebar confuso ("Contabilidad dentro de Contabilidad"), demasiados ítems y
+contaminación visual, íconos parecidos.
+
+**Archivos modificados:** `erp/shell.jsx` (MODULES, PARENTS, Sidebar), `erp/icons.jsx` (+16 íconos).
+
+**Cambios:**
+- **Acordeón:** un solo grupo abierto a la vez (estado `openGroup` + persistencia + auto-open del
+  grupo del módulo activo). Bajó de ~38 filas visibles a ~8-12.
+- **Grupo "DIRECCIÓN" eliminado** (era de 1 ítem): "Tablero ejecutivo" se movió a INICIO.
+- **Redundancia "Contable → Contabilidad" resuelta APLANANDO** el sub-grupo `contable` (eliminado de
+  PARENTS). Ahora Contabilidad, Tesorería, Conciliación y Costing cuelgan directo de FINANZAS.
+  - ⚠ Corrección de criterio: NO se renombró el módulo a "Plan de cuentas" — ese ya existe como
+    **pestaña** dentro de la suite Contabilidad (`nuevo/modules/contabilidad.jsx`: Flujo · Dashboard ·
+    Libro diario · Plan de cuentas · Libro mayor · Reportes · Fiscal · Config). La hoja del sidebar
+    se llama **"Contabilidad"** para coincidir con el título de su página.
+- **Íconos de-duplicados + 1 roto arreglado.** Antes: invoice×3, tag×3, check×2, truck×2, cog×2,
+  chart×2, users×2, cn×2, y `audit-log` usaba `eye` que **no existía** (renderizaba vacío).
+  Nuevos íconos en `icons.jsx`: map, gauge, calendar, qr, route, sliders, barchart, cash, ledger,
+  wallet, reconcile, margin, **eye**, idcard, hardhat. Reasignados: Mapa de proceso→map, Tablero→gauge,
+  Calendario→calendar, Cola QR→qr, TMS→route, Reglas→sliders, Métricas→barchart, Cobranzas→cash,
+  Contabilidad→ledger, Tesorería→wallet, Conciliación→reconcile, Costing→margin, Audit log→eye,
+  Usuarios→idcard, Operarios→hardhat.
+
+---
+
+## 2026-05-31 · v2.3 · Portal → ERP en vivo: cotizador + re-compra publican al bridge, badge de avisos en el ERP
+
+**Qué se hizo:** se cerró el lazo Portal→ERP para tres flujos del cliente y se le dio al admin
+un aviso accionable cuando entra actividad nueva desde el portal.
+
+**1 · Cotizador y "Pedir re-compra" del móvil ahora publican al bridge** (antes solo el registro lo hacía):
+- `erp/data-bridge.jsx` · nuevo store `portalInbox` (`dtd-portal-inbox`) + helpers `pushPortalEvent(evt)`,
+  `markPortalRead(ids?)` y `tenantForMarkbox(markbox)`. Cada evento se auto-tagea con `id/ts/read/tenantId`
+  (el `tenantId` se deriva del prefijo del MARKBOX vía `ERPData.TENANTS`). Expuestos en `window.DTDData`
+  + agregado a `resetAll`.
+- `portal/mobile-extra.jsx` · `CotizadorScreen` "Solicitar cotización formal" → `pushPortalEvent({kind:'cotizacion'…})`
+  con ruta/servicio/estimado. `ProveedoresScreen` "Pedir re-compra" (antes sin onClick) → `pushPortalEvent({kind:'recompra'…})`
+  + estado por fila (`rebought`) que confirma con "Pedido enviado".
+
+**2 · El ERP avisa cuando entra un registro/cotización/re-compra nueva desde el portal:**
+- `DTD Studio · ERP.html` · App se suscribe a `DTDData.portalInbox`, mezcla los eventos (filtrados con
+  `ERPData.byTenant`) al feed de `notifications` del Topbar; handlers `onPortalAction` (marca leído + navega
+  a clients/quotes/suppliers) y `onPortalClear` (marca todo leído).
+- `erp/shell.jsx` · `Topbar` ahora muestra un **badge numérico** (en vez de punto) con el conteo de eventos
+  del portal; los ítems del portal salen con fondo `wine-tint`, eyebrow "PORTAL DEL CLIENTE" y botón de acción
+  ("Aprobar registro" / "Ver cotización" / "Ver compras"). "Marcar leídas" wireado a `onPortalClear`.
+- `portal/registro.jsx` + `portal/mobile.jsx` · al publicar el cliente nuevo también emiten un evento
+  `kind:'registro'` al inbox (web y móvil).
+
+**3 · Multi-tenant (#14) — el portal móvil respeta el tenant:** confirmado. El portal móvil es vista
+single-client (`PM_MARKBOX = DTD-5452`, impersonación `?as=` solo acepta `DTD-####`), así que sus datos ya
+están aislados por cliente. Los eventos que emite quedan etiquetados con el `tenantId` derivado del prefijo
+del MARKBOX, y el ERP los filtra con `byTenant` antes de mostrarlos → no hay fuga cross-empresa.
+
+**4 · PWA "Instalar app" — install-ready, falta el hosting HTTPS (no codeable acá):** verificado que están
+todos los artefactos (`manifest.webmanifest` válido, `sw.js`, `assets/pwa-icon-192/512.png`, handler
+`beforeinstallprompt` + registro del SW en `Portal Cliente Mobile.html`). El prompt de instalación y el
+service worker **requieren contexto seguro (HTTPS)**; en `file://`/preview no disparan. Para que "Instalar app"
+funcione de verdad hay que **publicar en un hosting HTTPS** (paso de deploy, fuera de este entorno).
+
+**Archivos viejos modificados:**
+- `erp/data-bridge.jsx` · store `portalInbox` + `pushPortalEvent`/`markPortalRead`/`tenantForMarkbox` + export + resetAll
+- `portal/mobile-extra.jsx` · CotizadorScreen submit publica; ProveedoresScreen re-compra wireada + estado por fila
+- `portal/registro.jsx` · ~línea 96 · emite evento `registro` al inbox
+- `portal/mobile.jsx` · ~línea 150 · emite evento `registro` al inbox tras aprobación
+- `DTD Studio · ERP.html` · suscripción a portalInbox + merge byTenant + props onPortalAction/onPortalClear
+- `erp/shell.jsx` · Topbar: badge numérico + render de ítems del portal con acción + "Marcar leídas"
+
+**Notas:** todo dentro del sistema (tokens, `wine`/`wine-tint`, variantes `Btn` `primary`/`soft`/`secondary`,
+fuentes del sistema). Cero hex inventados, cero AI slop.
+
+---
+
+## 2026-05-31 · v2.2 · Fix registro móvil atado al backend canónico + consolidación de changelogs
+
+**La falla (encontrada y corregida):** el registro del **Portal Cliente Mobile** generaba el MARKBOX
+con un fallback random local y **NO publicaba el cliente al bridge compartido** — los registros
+hechos en el celular nunca llegaban al ERP. Causa raíz: `Portal Cliente Mobile.html` no cargaba
+`erp/data-bridge.jsx`, así que `window.DTDData` no existía en esa página.
+
+**Arquitectura correcta (1 backend, 2 UIs):** hay UN solo backend de registro (`window.DTDData`
+en `erp/data-bridge.jsx`): `nextMarkbox()` secuencial+validado, store `clients` compartido (lo ve
+el ERP) y `sendWelcomeEmail()` (template m-05). Existen DOS interfaces que deben alimentarlo:
+- **Web:** `portal/registro.jsx` (3 pasos) — ya lo usaba bien.
+- **Móvil:** `portal/mobile.jsx` (registro 2 pasos + verificación) — **ahora también**.
+
+**Cambios:**
+- `Portal Cliente Mobile.html` · carga `erp/data-bridge.jsx` (después de data.jsx, antes de components.jsx).
+- `portal/mobile.jsx` · al aprobarse la verificación: usa `DTDData.nextMarkbox()`, publica el cliente
+  al store `clients` (mismo shape que registro.jsx, con `origin: 'portal-mobile'`) y dispara
+  `sendWelcomeEmail()`. Verificado en vivo: DTDData carga, nextMarkbox→DTD-5518, store 18 seed, email OK.
+- Footer de la app → **v2.2**.
+
+**Consolidación:** los changelogs sueltos de la raíz (`CHANGELOG-sesion.md` y
+`CHANGELOG-calendario-ferias.md`) se **fusionaron al final de este archivo** y se eliminaron los
+originales. Este `nuevo/CHANGELOG.md` queda como **única fuente de verdad**.
+
+---
+
+## 2026-05-31 · Cobro → Caja (Cobranzas + Tesorería) · sección B de la propuesta integrada al ERP
+
+Cierra la propuesta `Órdenes, Caja y Proveedores`. El cobro de una factura ahora **aterriza en una
+caja real** de Tesorería y baja el saldo de la factura. Soporta multimoneda + abono parcial.
+
+**Archivos viejos modificados:**
+- `nuevo/modules/tesoreria-data.jsx` · nueva **capa de depósitos** persistente (`CASH_LS_KEY`):
+  `cashDeposits()`, `cashDeposit(entry)`, `accountDepositsUsd/Orig`, `accBalance(acc)` y
+  `accBalanceUsd(acc)` (= saldo base + depósitos). `cashByCurrency()` y `totalCashUsd()` ahora usan
+  los saldos efectivos. Evento `dtd-tesoreria-changed`. Exportados en `window.TesoreriaData`.
+- `nuevo/modules/tesoreria.jsx` · `ModuleTesoreria` escucha `dtd-tesoreria-changed` (re-render);
+  `AccountsTab` usa `accBalanceUsd`/`accBalance` para mostrar el saldo con los ingresos sumados.
+- `nuevo/modules/cobranzas-data.jsx` · **`cobRegisterPayment(invId, payload)`**: acumula
+  `collectedUsd` en el overlay, baja el saldo (parcial/pagado), loguea la gestión y dispara
+  `TesoreriaData.cashDeposit`. `cobItems()` ahora descuenta `collectedUsd` del saldo y marca
+  parcial/pagado. Exportado.
+- `nuevo/modules/cobranzas.jsx` · `CobranzaDrawer` · botón **"Registrar cobro"** (acciones + gestión)
+  abre el nuevo **`CobroModal`**: cuenta de caja (USD/VES/USDT, sin CNY), método, **tasa del día**
+  auto-editable si la caja no es USD, monto en moneda de caja + equivalente en US$, **comprobante
+  obligatorio**, abono parcial; al confirmar muestra el ingreso y actualiza factura + caja.
+
+**Verificado (eval):** cobrar F-2026-0405 ($29.300) → saldo a $0, depósito creado en Mercantil USD
+con comprobante+concepto, Mercantil sube 184.260→213.560, total caja sube. "Confirmar" deshabilitado
+sin comprobante. Pantalla de éxito OK. Sin errores (solo warning Babel).
+
+**Propuesta `Órdenes, Caja y Proveedores`: A + B + C integradas.** Pendiente backend: el saldo no se
+refleja aún en el módulo Facturación (lee `ERPData.INVOICES` directo), y los depósitos viven en
+localStorage hasta tener servidor.
+
+---
+
+## 2026-05-31 · Órdenes esperadas (Almacén CN) · sección A de la propuesta integrada al ERP
+
+Bajada al módulo vivo la **sección A** de `Propuesta · Órdenes, Caja y Proveedores`. El núcleo del
+flujo: lo que el cliente compra en China entra como **orden esperada** y el almacén solo verifica.
+
+**Archivos viejos modificados:**
+- `erp/data.jsx` · nuevo dataset **`ORDERS`** (5 órdenes reales, atadas a cliente + `supplierId`):
+  code `MARKBOX-proveedor-compra` (= grupo WeChat + nº de compra), boxes/cbm/weight declarados,
+  flags `packing`/`invoice`, status (`por verificar`/`en camino`/`verificada`), eta, goods.
+  Tagged `tenantId` vía `_byClient`. Exportado en `window.ERPData`.
+- `erp/modules/cn.jsx`:
+  - `ModuleCN` · nuevo **tab `cnTab`** (Recibidas / Esperadas · en camino) tras el PageHeader; toda
+    la vista de recepciones quedó envuelta en `{cnTab === 'recibidas' && …}`. Estado nuevo:
+    `verifyOrder`, `verifiedCodes` (Set), `orders = byTenant(ORDERS)`, `enCaminoCount`.
+  - **NUEVO `OrdersExpected`** · KPIs (en camino / por verificar / CBM esperado / verificadas) +
+    banner explicativo del flujo + filtro por estado + `U.Table` (código·goods, cliente→detalle,
+    proveedor, declarado, chips de docs, ETA, estado, acción Verificar). Derivado real de SUPPLIERS/
+    CLIENTS.
+  - **NUEVO `OrderVerifyDrawer`** · rectificar sumatorias (Declarado vs Rectificado, marca diferencias)
+    + docs atados al grupo; "Confirmar y pasar a recepción" agrega el code a `verifiedCodes` (pasa a
+    estado verificada / "en recepción ✓") con pantalla de éxito.
+
+**Verificado:** tab "Esperadas · en camino 4" lista las 5 órdenes (DTD-5452-1-1 … DTD-5277-1-1),
+4 botones Verificar, drawer abre con sumatorias rectificables y docs. Sin errores (solo warning Babel).
+
+**Pendiente de la propuesta:** B · Cobro → Caja (cobranzas/tesorería). Backend: link real
+SHIPMENTS↔orden + persistencia de la verificación.
+
+---
+
+## 2026-05-31 · Proveedores de clientes CN · sección C de la propuesta integrada al ERP
+
+Bajada al módulo vivo la **sección C** de `Propuesta · Órdenes, Caja y Proveedores` (era mockup
+sin integrar). Es la parte autocontenida (no depende de modelar `ORDERS`).
+
+**Archivos viejos modificados:**
+- `erp/data.jsx` · `SUPPLIER_CLIENTS` · agregado campo **`wechatGroup`** a cada relación
+  cliente↔proveedor (el grupo WeChat es POR par: cada cliente abre su propio grupo con cada
+  supplier). Código `MARKBOX-N` (N = orden del proveedor en la lista del cliente): `DTD-5452-1`,
+  `DTD-5452-2`, etc. Datos reales, deterministas.
+- `erp/modules/suppliers.jsx`:
+  - `ModuleSuppliers` · **renombrado** el header a "Proveedores de clientes · CN · 客户供应商" +
+    subtítulo reformulado + **banner aclaratorio** (wine-tint): estos proveedores son de los
+    *clientes*; la deuda de la empresa vive en **Tesorería · CxP**.
+  - `SupplierDetail` · la lista de clientes pasó a "{n} CLIENTES DTD · GRUPOS WECHAT"; cada fila
+    muestra el **chip del código de grupo WeChat** (`wechatGroup`) junto al MARKBOX. Grid recompuesto
+    (se sacó la columna "desde" para dar lugar al chip).
+  - `SupplierForm` · nueva sección **"GRUPO WECHAT · CLIENTE"**: Select de cliente (byTenant) +
+    **preview del código auto-generado** (`MARKBOX-N`, calculado de `SUPPLIER_CLIENTS`). Form ahora
+    stateful (`client` + `useMemo`).
+
+**Verificado:** módulo abre, header/banner correctos, drawer de Yiwu Standard muestra 3 clientes con
+sus chips `DTD-5452-1 / DTD-5340-1 / DTD-5298-1`. Solo warning normal de Babel.
+
+**Pendiente de la propuesta (no integrado aún):** A · Órdenes esperadas (Almacén CN, requiere
+modelar `ORDERS`) · B · Cobro → Caja (cobranzas/tesorería).
+
+---
+
+## 2026-05-31 · v2.2 · Portal Cliente Mobile (APK) · app de teléfono para el cliente externo
+
+**Archivos nuevos:**
+- `Portal Cliente Mobile.html` · shell PWA (meta standalone, theme navy, bezel responsive 480px)
+- `portal/mobile.jsx` · shell + Bienvenida (PMIntro) + Login + Registro + Verificación + Inicio + Envíos (lista + detalle timeline vertical) + pull-to-refresh + haptics + onboarding
+- `portal/mobile-extra.jsx` · primitivos móviles (window.PM: SubHeader/Section/ListRow/Chip/Sheet) + pantallas (Pagar+detalle factura, Comprar en China/Proveedores, Más + subpantallas, Cotizador exprés, NotifSheet)
+- `manifest.webmanifest` · `sw.js` (service worker network-first) · `assets/pwa-icon-192.png` + `pwa-icon-512.png` (isólogo reverse sobre navy)
+
+**Funcionalidad:**
+- Bottom-nav 5 tabs (Inicio · Envíos · Pagar · Comprar en China · Más). Reusa tokens + ERPUI + ERPData + Icon.
+- **Auth de 2 niveles** (pedido del usuario): registro completo → ENTRA al app SIN MARKBOX; verificación (dirección + cédula/fachada) → estado "en revisión" → MARKBOX asignado (aprobación simulada ~6s). Cuenta + sesión persistidas en localStorage (sobrevive refresh). Login pre-carga el MARKBOX guardado.
+- **Cotizador exprés** DDP usando `ERPData.RATES`. **Detalle de factura** con desglose + subir comprobante.
+- **Gate por MARKBOX**: "Comprar en China" bloqueado sin verificar / en revisión.
+
+**Feedback de equipo (Sam) aplicado:**
+- Verificación: dirección por **cascada estado→ciudad→municipio** vía `ERPUI.SearchSelect` (sin texto libre) + **código postal automático** (dataset VE en `PM_GEO`). Dirección exacta = único campo libre (placeholder "Ej. …"). Explicación de "¿Por qué la fachada?".
+- CP alineado al tamaño de los selects (38px / 13px mono).
+- Botón de Inicio "Comprar en China · Nueva compra o recompra".
+- Intro educativa en "Comprar en China" (seguimiento de compras, registrar proveedor, todo por código, valor de organización, explicación del sistema de codificación MARKBOX/caja/DTDU). Dismissible + reabrible vía ⓘ.
+
+**Archivos viejos modificados:**
+- `Portal Cliente Mobile.html` · carga `nuevo/search-select.jsx` antes de `portal/mobile-extra.jsx`.
+- (ninguno del ERP central tocado por esta app; reusa erp/tokens.css, icons.jsx, data.jsx, components.jsx)
+
+**Notas:** Mock. Pagos/SMTP/push y el push del registro al módulo Clientes del ERP (data-bridge) quedan para backend. La aprobación de verificación es un timer simulado.
+
+## 2026-05-31 · Catálogo de Servicios → ERPData + enganche cotizador/facturación (deuda mock #2)
+
+**Catálogo como única fuente de verdad** (antes vivía local en servicios-tarifas):
+- `erp/data.jsx` · nuevo **`ERPData.CATALOG`** = `{ ITEMS (14 ítems con tarifa vigente + historial +
+  supplierRates), INCOME_ACCTS, EXPENSE_ACCTS, CATEGORIES, AUTHORS, SUPPLIERS_CN, PROVIDERS,
+  byCode(), groupTotal(), displayRate(), rateOf(code), lineOptions() }`. `displayRate` resuelve grupos
+  como suma de componentes. Agregado al export de `window.ERPData`.
+- `nuevo/propuesta/servicios-tarifas.jsx` · ahora lee `ITEMS`/`INCOME_ACCTS`/`EXPENSE_ACCTS`/
+  `CATEGORIES`/`AUTHORS`/`SUPPLIERS_CN`/`PROVIDERS` desde `ERPData.CATALOG` (literal local queda como
+  fallback por orden de carga).
+
+**Componente reusable de líneas** (`nuevo/catalog-lines.jsx` · `window.ERPUI.CatalogLines`):
+- Cada línea referencia un ítem del catálogo y **toma su tarifa vigente** (`CATALOG.displayRate`);
+  cantidad + precio editables; calcula importe y subtotal; informa vía `onChange(lines, subtotal)`.
+  Se agregan con un `SearchSelect` (`CATALOG.lineOptions()`); "+ Crear servicio nuevo" navega a
+  Servicios y Tarifas en modo create. Cargado en `DTD Studio · ERP.html` tras `search-select.jsx`.
+
+**Enganche:**
+- `erp/modules/invoices.jsx` · drawer "Nueva factura" suma sección **"Líneas de la factura"** con
+  `CatalogLines`; el subtotal **auto-completa** la base imponible (IVA ON) o el Monto (IVA OFF),
+  editable. El campo Monto pasó a controlado (`monto` state) — de paso quitó un warning read-only.
+- `erp/modules/quotes.jsx` · `QuoteCalculator` suma **"Servicios adicionales"** con `CatalogLines`;
+  su subtotal entra al TOTAL DDP con su propia línea en el desglose (`extraSubtotal` state).
+
+**Verificado:** factura abre con "Líneas de la factura" → agregar "Despacho aduanal" trae su tarifa
+vigente $120, importe y subtotal correctos. Solo warnings read-only pre-existentes de `U.Input`
+(campos date/notas) — no introducidos acá. Falta confirmar visualmente el drawer de cotización
+(mismo patrón; compila y la lista renderiza).
+
+**Pendiente mock:** consolidar pantallas 15-19; "+ Crear" filtrado por rol; (opcional) que la línea
+guarde la cuenta de ingresos del ítem para el asiento automático cuando exista backend.
+
+---
+
+## 2026-05-31 · SearchSelect en proveedor + líneas (deuda mock #1 cerrada)
+
+**Archivos modificados:**
+- `nuevo/propuesta/servicios-tarifas.jsx`:
+  - `NewItemDrawer` · "Proveedor sugerido" pasó de `U.Select` a **`ERPUI.SearchSelect`** con
+    "+ Crear proveedor" inline (`newSupps` state) — buscable + crear sin salir del drawer.
+  - `DetailDrawer` · **se construyó la sección "Proveedores y costos"** que estaba como código
+    muerto (`provRates`/`npName`/`npPrice`/`npTo`/`npOpen` declarados pero nunca renderizados):
+    lista de proveedores por tarifa (nombre · badge de vencimiento vía `tarifaStatus` · costo /unidad ·
+    quitar ×) + form inline "Agregar proveedor" con **`ERPUI.SearchSelect`** (opciones = navieras
+    `PROVIDERS` ∪ `SUPPLIERS_CN` ∪ creados) + costo + vigencia. Solo para no-grupo / no-inventario.
+  - Se **hoistó `Label`** a scope de módulo (antes solo existía local en `NewItemDrawer`; la local lo
+    sombrea, sin conflicto) para que `DetailDrawer` lo use.
+
+**Verificado:** módulo Servicios y Tarifas abre, drawer de SRV-LCL muestra 5 proveedores con
+badge+costo, "Agregar proveedor" abre el SearchSelect con "+ Crear proveedor" y la lista. Sin
+errores de consola (solo el warning normal de Babel in-browser).
+
+**Pendiente mock:** catálogo de Servicios → `ERPData` + enganche cotizador/facturación;
+consolidar pantallas 15-19; "+ Crear" filtrado por rol.
+
+---
+
+## 2026-05-31 · Mapa de Proceso · flujograma global + motor de automatizaciones (página aparte)
+
+Nueva vista **fuera del ERP** (página propia, enlazada desde el sidebar) que dibuja el flujo de
+trabajo de DTD-Cargo de extremo a extremo en swimlanes, con las líneas de enlace que atan los
+departamentos y un motor de reglas de automatización sobre esos handoffs.
+
+**Archivos nuevos:**
+- `Mapa de Proceso.html` · wrapper (tokens + React + carga de datos del ERP + módulos del mapa).
+- `nuevo/flujo-mapa.jsx` · app principal. Swimlanes de **4 líneas de negocio** (Comercial · Operatividad ·
+  Contabilidad · Servicio al cliente), geometría determinística generalizada a N carriles, conectores
+  intra-carril (flujo del depto) + **líneas de enlace punteadas** entre deptos (handoffs, con bow/labelDY
+  para bordear nodos). Badges en vivo por nodo (cuentan pendientes de `ERPData`/Tesorería/Naviera/
+  Contabilidad/Conversaciones). **Modo foco/acordeón** por carril (otros se compactan, el elegido expande
+  tarjetas con detalle). **Panel de resumen** por nodo (2 KPIs + 3-4 registros clickeables + acción).
+  **Envío al cliente** (modal de revisión → canal → toast). **Modo Automatizaciones**: chips ⚡ sobre las
+  líneas, panel de reglas (crear/editar/eliminar, switches, condiciones, canales), **persistencia en
+  localStorage** (`dtd-mapa-rules-v1`) + Restablecer, **Registro de ejecuciones en vivo** + "Ejecutar ahora".
+- `nuevo/flujo-resumenes.jsx` · `window.FlowSummaries` — lógica de resumen por nodo (KPIs + registros +
+  acción), incluye vínculos cliente↔cotización↔envío y órdenes de pedido sintéticas (estados
+  negociación WeChat / confirmada / tránsito / recibida CN).
+- `nuevo/flujo-reglas.jsx` · `window.FlowRules` — 11 reglas predefinidas sobre los handoffs (AUT-01..11),
+  con trigger/acción/módulos/condiciones/canales + `LOG` de ejecuciones seed.
+- `nuevo/flujo-guia.jsx` + `Guía del Mapa de Proceso.html` · hoja de referencia imprimible (4 líneas,
+  cómo leer el mapa, set de reglas leído **en vivo** de `FlowRules`, cómo usar Automatizaciones).
+
+**Archivos viejos modificados (línea + razón):**
+- `erp/shell.jsx` · MODULES (~9) · agregado ítem `mapa-proceso` (grupo INICIO, `href` externo) +
+  `renderLeaf` (~185) ahora abre `m.href` en pestaña nueva e indica con ícono ↗.
+
+**Notas:** todo con tokens del sistema; el 4º carril (Servicio) usa el token `warning` (dorado) como
+identidad visual por no haber un 4º acento — decisión consensuada con el usuario, no color inventado.
+Las reglas creadas viven en localStorage (sesión/equipo), no hay backend. "Ejecutar ahora" simula el
+disparo y genera documentos verosímiles (F-/COB-/CXP-/OP-/Q-). Accesos cruzados: ERP → Mapa → Guía → ERP.
+
+---
+
+## 2026-05-31 · CRÍTICO #1 · Arranque de backend (schema Prisma + contrato API + seam de front)
+
+Primer entregable de la pista CRÍTICA (backend), que es lo único codeable sin servidor:
+el contrato y el esquema. NO hay servidor corriendo todavía — eso es la sesión de Claude Code
+sobre el repo. Acá quedó la base lista para que el backend se enchufe sin tocar la UI.
+
+**Archivos nuevos:**
+- `backend/prisma/schema.prisma` · esquema **multi-tenant** completo derivado 1:1 de los shapes
+  mock (`window.ERPData`): Tenant, User (tenantId NULL = Plataforma), Client (MARKBOX único por
+  tenant), Supplier, Order (seq por proveedor), Shipment (`DTDU-`), Box (flags), Container,
+  WarehouseEvent (fotos S3), Invoice (`F-2026-`, fxRate BCV), Quote, Account (plan jerárquico),
+  JournalEntry/Line, ExchangeRate, Comment (threads), ScheduledEmail, TmsIncident, Document, AuditLog.
+  Enums de estado por entidad. `tenant.ivaEnabled` OFF por defecto · `markboxSeq` server-side.
+- `backend/API-CONTRACT.md` · contrato REST endpoint→store-mock, con regla de oro (tenantId del JWT),
+  paginación/filtros estándar y tabla de integraciones externas.
+- `nuevo/api/client.jsx` · **seam único** `window.DTDApi` + `window.DTDAuth`. `window.ERPData` sigue
+  siendo LA interfaz; toggle `mode:'mock'|'rest'` (flip de una línea: `DTDApi.config({mode:'rest',baseUrl})`).
+  En mock espeja el contrato leyendo `ERPData`/`DTDData` (aplica `byTenant`); en rest hace `fetch` con
+  `Authorization: Bearer` (tenantId implícito en el token) e hidrata `window.ERPData` al loguear.
+  Decodifica `tenantId` del JWT front-side. No invasivo: aditivo, los módulos siguen usando su mock.
+
+**Archivos viejos modificados (línea + razón):**
+- `DTD Studio · ERP.html` · ~98 · agregado `<script src="nuevo/api/client.jsx">` tras `data-bridge.jsx`
+  (carga el seam; inerte en modo mock).
+
+**Notas:** próximo paso de CRÍTICO ya es servidor real (Postgres/Prisma migrate + auth/JWT + worker
+SMTP), fuera de este entorno → handoff `PROMPT-BACKEND.md`. La hidratación real (`DTDApi.hydrate()`)
+queda lista esperando endpoints.
+
+---
+
+## 2026-05-31 · Sesión · Servicios&Tarifas integrado, SearchSelect estándar, Crear global, Plan de cuentas real
+
+**Servicios & Tarifas → integrado al ERP** (dejó de ser propuesta)
+- `nuevo/propuesta/servicios-tarifas.jsx` con modo `embedded`; expone `window.ModuleServiciosTarifas`. Cargado en `DTD Studio · ERP.html`; `moduleMap.rates → ModuleServiciosTarifas`; sidebar "Tarifas" → **"Servicios y Tarifas"** (`erp/shell.jsx`).
+- 5 tipos al crear (Servicio · No inventario · Inventario · Grupo · **Tarifa**); parte contable (cuenta ingresos/gasto, "lo compro", **proveedor sugerido**); **imagen** por ítem; **proveedores múltiples por tarifa** c/vencimiento; **historial con autor** (borrado solo admin); grupos con **toggle de desglose** en factura; pestaña **Tarifas**; menú **"Más"** (categorías/informes/reglas); **motor de reglas de precios** (cliente/volumen/CBM/cantidad + **exceso de peso ≥500 kg/CBM**); "Guardar y cerrar / y nuevo".
+
+**SearchSelect estándar** (`nuevo/search-select.jsx` · `window.ERPUI.SearchSelect`)
+- Buscar en vivo + ↑↓/Enter + **"Crear nuevo" en panel lateral** prellenado (no saca del módulo) — `ClienteQuickForm` con Nota. Regla del sistema.
+- Aplicado en **Factura** (Cliente + Embarque) y **Cotización** (Cliente). Factura: **Cliente primero**, **embarque opcional/huérfano filtrado por cliente** (evita cruzar códigos).
+
+**Botón "+ Crear" global** (`erp/shell.jsx` · `CreateButton`)
+- Arriba del sidebar, **sticky** (sigue el scroll), círculo "+" al colapsar; mega-menú agrupado (Comercial/Operación/Finanzas/Catálogo). Quitado el Crear del topbar (`CreateMenu` desmontado).
+
+**Plan de cuentas REAL** (`nuevo/modules/contabilidad-data.jsx`)
+- Reemplazado el mock por las **161 cuentas** del CSV (`uploads/Contactanos.csv`), jerárquico padre→hijo, tipos A/P/PT/I/CGS/G, **sin montos** (saldos 0). Duplicados inglés fusionados; `COMISIONES BANCARIAS`→Gasto bancario, `ALIPAY SAM`→Banco. Sin romper Libro mayor/Reportes.
+
+**Pendiente (próxima sesión):** SearchSelect en **proveedor** y **líneas de producto/servicio**; integrar **Órdenes esperadas (Almacén CN) + Cobro a caja + Proveedores de clientes CN**; mover catálogo de Servicios a `ERPData` y enganchar con cotizador/facturación.
+
+---
+
+## 2026-05-31 · Botón "+ Crear" global · integrado al ERP
+
+El mega-menú "+ Crear" (estilo QuickBooks) dejó de ser propuesta — vive en el Topbar del ERP, en
+todos los módulos.
+
+**Archivos viejos modificados:**
+- `erp/shell.jsx` · nuevo `CreateMenu` (pill wine "+ Crear" + mega-menú 5 columnas: Comercial ·
+  Operación · Finanzas · Catálogo · Equipo). Atajo de teclado **C**. Montado en `Topbar` tras el label
+  de módulo. Cada ítem llama `window.__erpGoTo(mod, null, 'create')`; los del catálogo navegan a
+  `rates` y emiten `dtd-create-catalog` con el tipo.
+- `nuevo/propuesta/servicios-tarifas.jsx` · el módulo embebido escucha `dtd-create-catalog` y abre
+  directo el tipo pedido (servicio/inventario/grupo/tarifa).
+
+**Verificado:** "+ Crear → Servicio" navega a Servicios y Tarifas y abre el drawer de creación; los 5
+grupos y sus ítems renderizan; sin errores de consola.
+
+**Pendiente:** filtrar ítems del menú por rol/permisos; sección "Frecuentes" que aprenda lo más usado.
+
+---
+
+## 2026-05-31 · Propuesta (sin integrar) · Servicios & Tarifas (lógica QuickBooks)
+
+Mockup de revisión con el sistema real (tokens + ERPUI). **No integrado** — espera OK del usuario.
+
+**Archivos:**
+- `Propuesta · Servicios y Tarifas.html` (shell · fuentes Nunito+Sora) + `nuevo/propuesta/servicios-tarifas.jsx`.
+
+**Lógica (QuickBooks adaptada a DTD):**
+- **4 tipos** al crear (selector de tarjetas): Servicio (sin stock) · No inventario (cobra, sin stock) ·
+  Inventario (con stock + punto de reorden) · Grupo/Paquete (bundle de ítems, ej. DDP Puerta a Puerta).
+- **Servicio ≠ Tarifa**: el ítem es estable; la **tarifa** tiene **vigencia** (fecha de corte) y estado
+  (vigente / por vencer / vencida) + **historial** de tarifas anteriores. Drawer de detalle permite
+  **renovar** (la tarifa actual pasa al historial).
+- Catálogo con tabs por tipo, KPIs (ítems, tarifas por vencer, grupos, inventario bajo stock), tabla con
+  tarifa vigente + vencimiento. Drawer crear adaptativo por tipo (inventario→stock/costo/reorden,
+  grupo→constructor de componentes con suma de tarifa).
+
+**Pendiente de integración:** modelar catálogo en datos, módulo Tarifas real, enganche con cotizador/
+facturación (cada línea referencia un ítem + su tarifa vigente).
+
+---
+
+## 2026-05-31 · Barra lateral clara (Papel DTD) · integrada al ERP
+
+La barra de navegación pasa de navy oscuro a **claro** (tono "Papel DTD" `#FBFAF7`), elegido por el
+usuario en `Sidebar DTD · Tono.html` (opción 2: Papel DTD + ítem wine-suave + borde sutil). Marca
+wine/navy y tipografía intactas.
+
+**Tokens nuevos (no se tocó `--bg-sidebar`, que sigue oscuro para totales/sellos):**
+- `erp/tokens.css` · set dedicado a la barra: `--bg-nav` `#FBFAF7`, `--bg-nav-hover` `#F2F0EC`,
+  `--bg-nav-active` `var(--wine-tint)`, `--ink-nav` `#0F1E3D`, `--ink-nav-soft` `#6B6B6B`,
+  `--ink-nav-active` `var(--wine)`, `--border-nav` `#E8E6E2`, `--nav-brand` `#7F0F1A`. En **dark theme**
+  estos tokens se mantienen oscuros (la barra sigue navy en modo oscuro).
+
+**Archivos viejos modificados:**
+- `erp/shell.jsx` · `Sidebar` y `DTDLogo` apuntan a `--*-nav` en vez de `--bg-sidebar`/`--ink-side`/
+  `#fff` hardcodeado. Ítem activo: fondo wine-tint + texto/ícono/barra wine. Badge activo wine sólido,
+  inactivo gris claro. Botones colapsar y labels de grupo re-tonalizados a los tokens nav.
+
+**Motivo de la separación:** `--bg-sidebar` se reutiliza como "superficie oscura" en ~10 módulos
+(tesorería, reportes, fiscal, conciliación, estado de cuenta, Mobile ERP…) con texto blanco; aclararlo
+los habría roto. Por eso la barra usa tokens propios.
+
+**Selector de tono:** `Sidebar DTD · Tono.html` queda como herramienta para reajustar el tono más
+adelante (presets + sliders de claridad/calidez + estilo de ítem activo).
+
+---
+
+## 2026-05-31 · Tipografía del sistema (definitiva) · Nunito Sans + Sora
+
+Decisión cerrada tras explorar 5 combinaciones en `Tipografía del Sistema · Demo.html`. La capa de
+**sistema** (ERP, portal, pantallas de producto) pasa a **Nunito Sans** (cuerpo/datos) + **Sora**
+(títulos). El **branding** (logo corporativo, wordmark "DTD Cargo", plantillas de correo, firma)
+queda en **Archivo / Archivo Black**, intacto.
+
+**Archivos viejos modificados:**
+- `erp/tokens.css` · `@import` de Nunito Sans + Sora al tope (un solo punto · cubre los ~25 archivos que
+  consumen tokens). `--f-sans` → Nunito Sans, `--f-display` → Sora, `--f-cn` fallback a Nunito.
+  Nuevas variables de marca `--f-brand` ('Archivo') y `--f-brand-display` ('Archivo Black').
+- `DTD Studio · ERP.html` y `Portal del Cliente.html` · `<link>` de fuentes ampliado con Nunito Sans +
+  Sora (preconnect/perf; el `@import` ya las cargaba).
+- `CLAUDE.md` · sección Tipografía reescrita + BRAND-EXCEPTION documentada + regla #2 del resumen
+  actualizada.
+
+**Reversible en un punto:** igualar `--f-sans`/`--f-display` a `'Archivo'`/`'Archivo Black'` en
+`tokens.css`. **Límite conocido y aceptado:** Nunito Sans no trae figuras tabulares → columnas de
+montos no alinean perfecto (si molesta, se cambia solo `--f-sans` de datos).
+
+---
+
+## 2026-05-31 · Contabilidad · "Nueva cuenta" (estilo QuickBooks) + métodos de pago
+
+Diseñado y wireado el flujo de **crear cuenta** en el Plan de cuentas (el botón estaba deshabilitado
+y sin lógica).
+
+**Lógica (QuickBooks):** Tipo de cuenta → Detalle ("detail type") → Cuenta padre → Nombre + Código
+autosugerido (próximo libre bajo el padre, editable). Si el detalle es **Banco** o **Caja**, aparece
+**moneda + saldo inicial + métodos de pago vinculados** (checkbox por método; uno **POR DEFECTO**, el
+resto opcionales) — para no tener que elegirlos cada vez al cobrar/pagar.
+
+**Archivos viejos modificados:**
+- `nuevo/modules/contabilidad-data.jsx` · `PAYMENT_METHODS` (catálogo VE: Wire/Zelle/USDT/Binance/
+  Transferencia VES/Pago Móvil/PdV/efectivo), `ACCOUNT_DETAIL_TYPES` por tipo, `nextAccountCode(parent)`,
+  `createAccount()` con overlay persistente (`dtd_coa_custom_v1`) fusionado en `CHART_OF_ACCOUNTS` +
+  evento `dtd-coa-changed`. Expuestos en `window.ContabilidadData`.
+- `nuevo/modules/contabilidad.jsx` · `CoATab` ahora abre `NewAccountDrawer` (botón habilitado, re-render
+  por evento). Nuevo componente `NewAccountDrawer` (tipo segmentado, detalle, padre, nombre/código,
+  moneda, saldo, métodos con default, preview en vivo, estado de éxito).
+
+**Pendiente sugerido:** que los métodos vinculados a cada banco/caja alimenten el selector del cobro a
+caja (propuesta B) para cerrar el círculo.
+
+---
+
+## 2026-05-31 · Feedback de Sam · tenants como empresas + cobro multimoneda + más
+
+**1 · Multi-tenant = empresas separadas (Highway), NO sucursales.**
+- `erp/data.jsx` · TENANTS redefinido como EMPRESAS aisladas (`dtd` home + `andes` + `pacifico`);
+  toda la data de DTD queda bajo un solo tenant `dtd`. `HOME_TENANT`, `isHomeTenant()`, `COMPANIES`.
+  `_initTenant` default `dtd` y descarta ids viejos de sucursal.
+- `erp/shell.jsx` · **sacado el selector de tenant del Topbar** (invisible en DTD). Nuevo
+  `CompanySwitchModal` ("Cambiar de empresa" en el menú de usuario · salir/entrar) + `CompanyBanner`
+  (barra wine cuando operás otra empresa · "Volver a DTD-Cargo"). Exportado en `window.ERPShell`.
+- `DTD Studio · ERP.html` · monta `<CompanyBanner/>` entre Topbar y contenido.
+- `nuevo/modules/dashboard.jsx` · KPIs/subtitle solo se recalculan para empresas NO-home (la home
+  muestra sus números completos). Cambiar a otra empresa → datos aislados (vacíos).
+
+**2 · Cobro multimoneda + comprobante** (`nuevo/propuesta/propuesta.jsx`)
+- Si la caja es en otra moneda aparece la **tasa del día** (auto·BCV, editable); doble input
+  **En {moneda} / En US$**; el equivalente **siempre en dólares** (la factura se salda en USD).
+  Soporta abono parcial. **Comprobante de pago obligatorio** (Confirmar deshabilitado sin adjunto).
+
+**3 · Proveedores** · solo "Grupo WeChat" (sacado WhatsApp) en la propuesta.
+**4 · Órdenes** · gestor de columnas (reordenar/ocultar) en la tabla de la propuesta (`U.ColumnManager`).
+**5 · Estado de cuenta** (`nuevo/pantallas/estado-cuenta.jsx`) · transacciones en **bolívares** en la
+  cuenta corriente principal (chip `Bs … · BCV/paralelo`), dividiendo pagos USD para no alterar saldos.
+
+---
+
+## 2026-05-31 · Propuesta (sin integrar) · Órdenes · Caja · Proveedores
+
+Mockup de revisión con el sistema real (tokens + ERPUI + ERPData). **No integrado** a
+los módulos vivos — espera OK del usuario para wirear.
+
+**Archivos nuevos:**
+- `Propuesta · Órdenes, Caja y Proveedores.html` (shell: fuentes + tokens + icons/data/components)
+- `nuevo/propuesta/propuesta.jsx` (3 secciones interactivas)
+
+**Qué propone (reglas confirmadas por el usuario):**
+- **A · Almacén CN → pestaña "Esperadas / en camino"**: las órdenes que el cliente registra al
+  comprar en China entran como esperadas (proveedor + packing list + factura que declaran cajas/CBM/
+  peso). Drawer **Verificar**: el almacén rectifica sumatorias y confirma docs → la orden pasa a
+  "Recibidas". Seguimiento automático. Código `MARKBOX-proveedor-compra` (ej. `DTD-5452-1-1`) **es** el
+  nombre del grupo WeChat.
+- **B · Cobranzas → Caja**: al registrar el cobro se elige **cuenta de caja** (USD/USDT/VES) + **método**;
+  baja el saldo de la factura y **entra como ingreso** a Tesorería (posición de caja se actualiza).
+  Soporta abono parcial.
+- **C · Proveedores de clientes · CN**: renombrado (no son acreedores de la empresa — esos viven en
+  Tesorería · CxP), nuevo campo **Grupo WhatsApp/WeChat + código**, y **clientes** a los que pertenece.
+
+**Pendiente de integración (cuando el usuario apruebe):** modelar `ORDERS` en `erp/data.jsx`
+(atadas a cliente + proveedor CN), pestaña real en `erp/modules/cn.jsx`, cobro→caja en
+`nuevo/modules/cobranzas*.jsx` + `tesoreria*`, y campos nuevos en `erp/modules/suppliers.jsx`.
+
+---
+
+## 2026-05-31 · v2.1 · 🏢 #14 Multi-tenant · filtrado real por tenant
+
+Selector de tenant en el Topbar que ahora **filtra datos de verdad** en todos los módulos
+(antes era solo visual). Patrón idéntico al ojo `dtd-hide-values` / feature flags.
+
+**Modelo (datos):**
+- 3 tenants mock (ids alineados con `users-platform.jsx`): `dtd-ca` (Caracas·Valencia · Enterprise),
+  `dtd-zulia` (Maracaibo · Pro), `dtd-occ` (Barquisimeto · onboarding, data escasa a propósito).
+- `tenantId` asignado a cada entidad raíz: CLIENTS por ciudad (mapa `CITY_TENANT`), y por linkage de
+  markbox a SHIPMENTS · INVOICES · QUOTES · WAREHOUSE_CN/VE · DOCUMENTS · SUPPLIER_CLIENTS; LEADS por
+  ciudad; SUPPLIERS por mayoría de clientes que le compran.
+- Estado global `window.__currentTenant` (default `'all'` = vista plataforma/super-admin),
+  persistido en localStorage `dtd-current-tenant`, evento `dtd-tenant-changed`.
+- Helper central `ERPData.byTenant(rows)` (filas sin tenantId pasan = infra compartida) +
+  `ERPData.TENANTS`, `currentTenant()`, `setTenant(id)`, `tenant(id)`, `tenantCodePrefix()`.
+
+**Archivos viejos modificados (línea + razón):**
+- `erp/data.jsx` · ~+70 líneas antes de `window.ERPData` · modelo de tenants + tagging + API; `Object.assign` al final.
+- `erp/shell.jsx` · ~319 · nuevo componente `TenantSwitcher` + montado en el Topbar (al lado del switch de usuario).
+- `DTD Studio · ERP.html` · App · estado `tenantTick` + listener `dtd-tenant-changed` + tenant en el `key` de `.erp-route` (remonta módulos al cambiar).
+- `nuevo/modules/dashboard.jsx` · `resolveKpiValue` recalcula KPIs derivados (`_tenantKpis()`) sobre data filtrada cuando hay tenant activo; widgets (activos/ETA) + subtitle filtrados.
+- `nuevo/modules/cobranzas-data.jsx` · `cobItems()` filtra INVOICES por tenant (cubre lista + totales).
+- `erp/modules/shipments.jsx` · `baseShipments = byTenant(SHIPMENTS)` (lista + tabs).
+- `erp/modules/clients.jsx` · `baseClients` (lista + subtitle).
+- `erp/modules/suppliers.jsx` · `baseSuppliers` (lista + KPIs agregados).
+- `erp/modules/invoices.jsx` · `baseInvoices` (lista + KPIs + tabs).
+- `erp/modules/costing.jsx` · `byTenant` en data principal, editor y forecast (pipeline + quotes).
+- `erp/modules/calendar.jsx` · `byTenant` en eventos y en impacto de feriados.
+- `erp/modules/leads.jsx` · `byTenant(LEADS)` (estado inicial + owners/sources).
+- `erp/modules/quotes.jsx` · `byTenant(QUOTES)` en la lista.
+
+**Verificado (screenshots):** Dashboard / Clientes / Proveedores / Facturación / Costing cambian sus
+números y listas al conmutar `all → dtd-zulia → dtd-occ`. Tenant escaso (`dtd-occ`: 1 cliente,
+0 facturas) renderiza empty states sin crashear; Costing OCC muestra 1/1 embarque con margen real.
+
+**Notas / pendiente backend:** TMS (flota/choferes) queda como infra compartida (sin tenantId) a
+propósito. Al consolidar, `tenantId` debería venir del backend (`tenant.id`) y `byTenant` ser un
+filtro server-side. Cierra el último pendiente del pulido sin backend (#14).
+
+---
+
+## 2026-05-31 · v2.0 · 🔍 Auditoría de interconexiones + cierre de sesión
+
+Antes de cerrar v2 se auditó todo el grafo de navegación e integración del ERP. **Resultado: sano.**
+
+### ✅ Verificado OK
+- **Router completo**: los 37 IDs del sidebar (`erp/shell.jsx` · MODULES) están todos presentes en el
+  `moduleMap` del bootstrap (`DTD Studio · ERP.html`). Cero "Módulo no encontrado".
+- **Overrides bien ordenados**: `nuevo/modules/documentos-hub.jsx` reemplaza `window.ModuleDocuments`
+  (carga después de `erp/modules/documents.jsx`); `nuevo/modules/dashboard.jsx` override del dashboard;
+  `flujo-trabajo.jsx` expone `window.ModuleInicio` (landing). Todos cargan en orden correcto.
+- **Contrato `goTo` consistente**: `window.__erpGoTo(mod, id?, view?)` + prop `goTo` en cada módulo.
+  Navegaciones cruzadas verificadas (cliente→embarque, proveedor→embarque histórico, calendario drag).
+- **Íconos y helpers**: todos los usados esta sesión existen en el set (`arrowR`, `flow`, `download`,
+  `refresh`, `warn`, `info`, `check`, `shield`, `plus`, `chevR`) + `toneColor`/`formatShortDate` en calendar.
+- **Apps móviles**: los 5 HTML existen (CN, VE, Bodeguero, Camionero, Multi); avisos wireados en 4
+  (Multi es launcher, sin campana a propósito).
+- **Links externos**: perfiles standalone (`nuevo/pantallas/*`) linkean a `../../DTD Studio · ERP.html`
+  + `mailto:`/`tel:`/`wa.me` correctos. Despacho V1/V2/Admin se enlazan por `window.location.href`.
+
+### 🔧 Corregido en la auditoría
+- **`erp/components.jsx` · `Table`** · 🛑 **BUG CRÍTICO de hooks** (destapado por el skeleton de
+  Embarques). El componente tenía un `useMemo` **después** de un early return condicional
+  (`if (!rows.length) return empty`), violando las reglas de hooks de React. Cuando `rows` pasaba de
+  vacío→lleno entre renders (nuevo timing del `useFirstLoad('shipments')`), el conteo de hooks
+  cambiaba y tiraba `Rendered more hooks than during the previous render`, **crasheando el árbol
+  entero** (todo el ERP quedaba inutilizable hasta recargar). **Fix**: el early return se movió a
+  DESPUÉS del `useMemo` — ningún hook queda tras un return condicional. Beneficia a todos los módulos
+  que usan `U.Table` (Embarques, Clientes, etc.). Verificado: `Drawer` y `Modal` ya tenían el patrón
+  correcto (early return después del `useEffect`).
+- **`erp/modules/operarios-pwa.jsx`** · el launcher de apps listaba solo 3 de 5 (faltaban **Camionero**
+  y **Operario Multi**). Agregadas las 2 entradas al array `APPS` + grid pasado a `repeat(auto-fill,
+  minmax(240px,1fr))` para que las 5 cards fluyan parejas.
+
+### ⚠️ Notas menores (no bloqueантes, para backend/próximo)
+- El aviso `act:'route'` del Operario VE asume que existe una ruta en estado `pendiente`; si no hay,
+  `onStartRoute(undefined)` no hace nada (no crashea). Cuando el bridge alimente rutas reales, validar.
+- Los avisos de las 4 móviles usan seeds locales (no el bridge real todavía) — documentado en su entrada.
+
+---
+
+## 📍 ESTADO AL CIERRE · v2.0 (2026-05-31)
+
+**Versión lanzada: v2.0** — estampada en los 10 HTML + footer del ERP.
+
+**Pulido v2 (sin backend) — 9 de 10 cerrados:**
+| ✅ | #6 drag despacho · #7+7b skeletons · #8+8b ojo 👁 · #9 calendario drag · #10 incidencias TMS · #11 costing mes·mes · #12 proveedores histórico · #13 vault export · 🔔 Centro de Avisos en las 4 móviles |
+| 🔲 | **#14 Multi-tenant** — único pendiente. Es el arranque de la PRÓXIMA sesión. |
+
+**Próxima sesión → #14 Multi-tenant** (ver `PROMPT-proxima-sesion.md`): selector de tenant que filtre
+datos de verdad en CLIENTS / SHIPMENTS / SUPPLIERS y los módulos. Es transversal → sesión dedicada,
+verificando módulo por módulo.
+
+---
+
+## 2026-05-31 · v2.0 · Remates de pulido · skeletons + ojo (7b/8b)
+
+Extiende los pendientes #7 (skeletons) y #8 (ocultar valores 👁) a los módulos que faltaban.
+
+**Clientes** (`erp/modules/clients.jsx`)
+- `useFirstLoad('clients')` → `LoadingRows` en la primera carga de la tabla.
+- `useHideValues()` → columna **Facturado** enmascara (`•••`); en el detalle, KPIs **Facturado** y
+  **Adeudado** también respetan el flag.
+
+**Cobranzas** (`nuevo/modules/cobranzas.jsx`)
+- `useFirstLoad('cobranzas')` → `LoadingRows` en la primera carga.
+- `useHideValues()` → KPIs **Por cobrar / Vencido / En promesa** y la columna **Saldo** enmascaran.
+
+**Costing** (`erp/modules/costing.jsx`)
+- `useHideValues()` → KPIs hero **Revenue / Costo / Margen bruto** enmascaran (el conteo de
+  embarques y los %s quedan visibles).
+
+**Brand-check:** solo helpers de ERPUI (`useFirstLoad`/`LoadingRows`/`useHideValues`) + tokens. Sin
+emoji, sin AI slop. Reactivo al toggle global `dtd-hide-values` (se prende desde el ojo del Dashboard).
+
+**Pendiente menor:** enmascarar los SVG de charts (composición de costos) y los `PeriodMetric` del
+Overview; hoy se enmascaran los KPIs y tablas, que es lo más visible.
+
+---
+
+## 2026-05-31 · v2.0 · Calendario · drag de eventos para reprogramar (#9)
+
+Cierra el pendiente #9. En la vista **Mes**, los eventos ETD/ETA/POD se pueden **arrastrar a otro día**
+para reprogramarlos, con confirmación y persistencia.
+
+**Archivo modificado:** `erp/modules/calendar.jsx`
+- `ModuleCalendar` · store de overrides de fecha por evento en `localStorage['dtd-cal-overrides']`
+  (`{ [eventId]: 'YYYY-MM-DD' }`). El armado de eventos aplica el override (`origDate` + flag `moved`).
+  Estado `dragEvent` + `pendingMove`. `onDayDrop(day)` abre confirmación; `confirmMove` persiste
+  (si la nueva fecha == original, borra el override); `resetOverrides` limpia todo.
+- Pista bajo el nav ("Arrastrá un evento… para reprogramarlo") + botón **"N reprogramados ·
+  Restablecer"** cuando hay overrides.
+- **Modal de confirmación** con badge del tipo, embarque, y comparación **Antes → Nueva fecha**.
+- `MonthGrid` · celdas de día con `onDragOver/onDragLeave/onDrop` + highlight wine al pasar por
+  encima; chips de evento `draggable` (cursor grab, `onDragStart` setea el evento) con indicador
+  **↻ + barra wine** cuando están reprogramados. Los feriados no son arrastrables.
+
+**Brand-check:** solo tokens + ERPUI (`Modal`/`Badge`/`Btn`). Sin emoji, sin AI slop. HTML5 drag&drop
+nativo (sin librerías). Persistencia real del reordenamiento de fechas.
+
+**Pendiente (backend):** que reprogramar dispare el update real de ETD/ETA del embarque (hoy es un
+override visual del calendario). Drag en vista Semana (hoy solo Mes).
+
+---
+
+## 2026-05-31 · v2.0 · Vault · exportar credenciales a archivo (#13)
+
+Cierra el pendiente #13. El módulo Vault ahora puede **exportar la bóveda a un `.enc`** cifrado simulado.
+
+**Archivo modificado:** `erp/modules/vault.jsx`
+- `ModuleVault` · botón **"Exportar"** (icono download) en el PageHeader + estado `exportOpen` +
+  render de `<VaultExport>`.
+- **NUEVO** `VaultExport` (U.Modal): scope **Toda la bóveda / Categoría actual** (deshabilitada si
+  estás en "Todas"), **passphrase** de cifrado opcional, y `Exportar .enc`. Genera el archivo con
+  cabecera `-----BEGIN DTD-VAULT ENCRYPTED EXPORT-----`, payload **XOR+base64** (cifrado simulado,
+  NO criptografía real) en líneas de 64, y dispara la **descarga** vía Blob + `<a download>`
+  (`dtd-vault-{scope}-{fecha}.enc`). Estado de éxito con nombre de archivo + aviso de resguardo.
+  Las contraseñas se exportan como `«cifrado»` (no hay claves reales en el mock).
+
+**Brand-check:** solo tokens + ERPUI (`Modal`/`Btn`). Sin emoji, sin AI slop. Descarga nativa del navegador.
+
+**Pendiente (backend):** cifrado real (AES-GCM con la master key derivada), e import/restore del .enc.
+
+---
+
+## 2026-05-31 · v2.0 · Costing · comparativa mes vs mes (#11)
+
+Cierra el pendiente #11. El Overview de Costing ya tenía una comparativa **YTD vs Q4 2025**; se le
+agregó un **toggle Trimestre / Mes a mes** y, en modo mes, el **delta % por categoría de costo**.
+
+**Archivo modificado:** `erp/modules/costing.jsx` · `OverviewSection`
+- Estado `cmpMode` ('quarter' | 'month') + toggle segmentado en el header de la card de comparativa.
+- Modelo mensual **derivado del YTD real** (no hardcode suelto): mes corriente ≈ 21% del acumulado;
+  abril se reconstruye por categoría con un factor MoM determinista (`MONTH_VAR`). Revenue/costo/
+  margen/margen% de Mayo vs Abril con los mismos `PeriodMetric`.
+- Sección **"Delta por categoría de costo · Mayo vs Abril"**: grid de 7 categorías (flete, aduana,
+  transporte, handling, seguro, comisión, otros) con valor del mes + delta % coloreado
+  (↓ verde = gastás menos / ↑ rojo = alerta, porque son costos). Nuevo componente `MonthCatRow`.
+
+**Brand-check:** solo tokens + ERPUI + JetBrains Mono. Sin emoji, sin AI slop. La semántica de color
+respeta que en costos bajar es bueno. Datos derivados del acumulado real del módulo.
+
+**Pendiente (backend):** cuando `SHIPMENT_COSTS` tenga fecha, agregar por mes real en vez del
+modelo derivado. La UI y el toggle quedan igual.
+
+---
+
+## 2026-05-31 · v2.0 · Proveedores · tab "Embarques históricos" (#12)
+
+Cierra el pendiente #12 del pulido v2. El drawer de detalle de proveedor (`SupplierDetail`) ahora
+es **tabbed**: **Resumen** (todo lo que ya existía) + **Embarques históricos** (nuevo).
+
+**Archivo modificado:** `erp/modules/suppliers.jsx`
+- `SupplierDetail` · agregado `useState('resumen')` + `useEffect` que resetea el tab al cambiar de
+  proveedor; `<U.Tabs>` arriba del cuerpo (Resumen / Embarques históricos · count = `s.shipments`).
+  El contenido previo quedó envuelto en `{tab === 'resumen' && (…)}`.
+- **NUEVO** `buildSupplierShipments(s, clients, CLIENTS)` · genera el historial **determinista** del
+  proveedor (LCG con semilla = nº del id) a partir de datos reales: clientes que le compran
+  (`SUPPLIER_CLIENTS`), `s.shipments` (cap 16 mostrados) y `s.lastDeal` (fechas hacia atrás ~11 meses).
+  Estados: el más reciente en `tránsito`, el siguiente en `aduana VE`, resto `entregado` (1 `incidencia`).
+- **NUEVO** `SupplierShipments` · KPI strip (embarques / CBM / valor FOB del filtro) + 2 filtros
+  (**estado**: todos/entregado/tránsito/aduana/incidencia · **período**: todo/3/6/12 meses) + tabla
+  (código DTDU, cliente+MARKBOX+fecha, CBM, valor, badge de estado). Fila clickeable → `goTo('shipments', id)`.
+  EmptyState cuando el filtro no devuelve nada. `ShipKPI` helper.
+
+**Brand-check:** solo tokens + ERPUI (`Tabs`/`Select`/`Badge`/`EmptyState`) + JetBrains Mono en códigos.
+Sin emoji, sin AI slop. Datos derivados de fuentes reales del ERP (no inventados de la nada).
+
+**Pendiente (backend):** cuando exista el link real SHIPMENTS↔proveedor, reemplazar
+`buildSupplierShipments` por `SHIPMENTS.filter(supplierId)`. La UI y los filtros quedan igual.
+
+---
+
+## 2026-05-31 · v2.0 · Centro de Avisos del operario (mobile) + apertura de línea v2
+
+> **Versión a lanzar: v2.0.** Se abre la línea v2 con la feature insignia móvil. El tema macro
+> de v2 sigue siendo el **cierre total de pulido sin backend** (#6–14): esta entrada cierra el
+> primero de esa lista para mobile (centro de notificaciones del operario). El resto del pulido
+> queda pendiente — ver `PROMPT-proxima-sesion.md`.
+
+### Centro de Avisos · `nuevo/operario/avisos.jsx` (NUEVO · módulo reutilizable)
+
+Bandeja de notificaciones del operario móvil, bilingüe ES/中文, diseñada para clonar a Operario
+VE / Bodeguero / Camionero. Expone `window.OperarioAvisos`:
+
+- `Bell({ items, onOpen })` → campana del header con **badge de no-leídos** (wine, "9+" tope).
+- `Sheet({ open, onClose, t, lang, items, onAction })` → bottom-sheet con:
+  - Header con contador "N sin leer / Todo al día" + **Marcar leído** (marca todo) + cerrar.
+  - **Filtros** pill: Todos · Sin leer (con contador) · Operación · Sistema.
+  - **Agrupado** Hoy / Ayer.
+  - Filas con chip de ícono por tipo (color del token), eyebrow, título, body, code/from y CTA.
+  - **Empty state** por filtro.
+- `useUnread(items)` → hook reactivo (escucha `dtd-avisos-changed` + `storage`).
+- Read-state **persistido** en `localStorage['dtd-op-avisos-read']`. Tap marca leído; si el aviso
+  trae `act` (`dispatch`/`print`) navega a esa acción del Home.
+- **6 tipos** (sin emoji, íconos del set `window.Icon`): `cierre` (warning·ship),
+  `od` (info·truck), `incidencia` (danger·warn), `qr` (wine·tag), `mensaje` (ink·chat),
+  `sync` (success·check). Seed de 8 avisos realistas DTD-Cargo (YIW-A1, MARKBOX, OD, CBM 50).
+
+### Wiring en Operario CN
+
+- `operario/app.jsx` · `Home` · agregada **campana** (`<Avisos.Bell>`) a la izquierda del menú en el
+  header + render de `<Avisos.Sheet>`. Estado `avisosOpen`; `avisos = useMemo(seed(t), [lang])`;
+  `onAviso(act)` enchufa `dispatch`→modo despacho y `print`→sheet de QR. Footer login `v1.0`→`v2.0`.
+- `Operario CN.html` · `<script src="nuevo/operario/avisos.jsx">` antes de `app.jsx`; title → v2.0.
+
+### Bump de versión v1.9.1 → v2.0 (labels visibles)
+
+- Titles de: `Bodeguero VE.html`, `Camionero.html`, `Operario Multi.html`, `Operario VE.html`,
+  `Operario CN.html`, `Portal del Cliente.html`, `Registro Cliente.html`, `Mobile ERP.html`,
+  `DTD Studio · ERP.html`, `Modo Cliente.html`.
+- `erp/shell.jsx` · footer del sidebar `ERP · v1.9.1` → `ERP · v2.0`.
+
+**Brand-check:** solo tokens `var(--*)` + íconos del set + fuentes del sistema. **Sin emoji** en los
+avisos (a diferencia del resto del Home, que aún usa emoji heredado — deuda de pulido aparte). Sin
+AI slop. Persistencia real del leído/no-leído.
+
+**Pendiente (backend):** alimentar `items` desde el bridge real (`window.DTDBridge` / `data-bridge`)
+en vez de los seeds; push real (FCM/APNs); marcar leído server-side; sincronizar el read-state entre
+dispositivos. Operario Multi (launcher) no lleva campana a propósito.
+
+### Clonado a las otras 3 móviles (mismo módulo, seed por rol)
+
+- `nuevo/operario/avisos.jsx` · agregados `seedVE()` (chofer: ruta/POD/GPS), `seedBodega()`
+  (contenedor por recibir, camión por armar, parcial sin motivo) y `seedCamion()` (ruta activa,
+  GPS, WhatsApp del bodeguero). IDs prefijados por rol (`ve-`/`bo-`/`ca-`) → comparten el mismo
+  store `dtd-op-avisos-read` sin colisión.
+- `operario/ve.jsx` · `Home` · campana + `<Avisos.Sheet>` (es-only, `t=(es)=>es`); `act:'route'`
+  inicia la próxima ruta. `Operario VE.html` · script avisos.
+- `operario/bodeguero.jsx` · `Home` · campana + sheet; `act:'dispatch'` abre armar camión.
+  `Bodeguero VE.html` · script avisos.
+- `operario/camionero.jsx` · `Header` acepta `avisos`/`onAvisos` → campana en el cluster derecho
+  (junto al toggle de tema); `<Avisos.Sheet>` en el App (hereda `data-theme` del wrapper, anda en
+  dark). `Camionero.html` · script avisos.
+
+---
+
 ## 2026-05-31 · Cobranzas (cola de CxC vencidas con seguimiento)
 
 Módulo nuevo en FINANZAS: convierte el aging real en un pipeline de cobranza accionable.
@@ -1315,3 +2133,883 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 - HANDOFF.md · agregado bloque "v1.1 · CONTINUIDAD DEL PROYECTO" y "Workflow de continuidad con Claude Code"
 
 **Notas:** Setup inicial. Todavía sin pantallas nuevas. El próximo trabajo arranca en Claude Code con el prompt de continuación.
+
+
+---
+---
+
+# 📎 ANEXO · changelogs consolidados (antes sueltos en la raíz)
+
+> Fusionados el 2026-05-31. Los archivos `CHANGELOG-sesion.md` y
+> `CHANGELOG-calendario-ferias.md` se eliminaron; su contenido íntegro queda acá.
+
+---
+
+## 📦 ANEXO A · DTD-Cargo · Changelog de la sesión
+
+Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
+
+---
+
+## 🧱 Módulos construidos
+
+### 1 · Despacho admin (Vista 1)
+`erp/modules/despacho.jsx` · standalone `Despacho · Vista 1.html`
+
+- Cola priorizada de paquetes pendientes con drag & drop manual
+- 5 KPIs: pendientes · listos · atrasados · días promedio · sin coordenadas
+- 5 filtros: ciudad · barrio (dependiente) · pago · días · ruta
+- Score 0–100 con motor de reglas; badges de prioridad por color
+- Badge Tier (Gold/Platinum) inline en cada paquete
+- Columna "Descripción mercancía" con HS + weight + volume para SENIAT
+- Modal de asignación al bodeguero: ruta + camión + chofer + validador de capacidad (peso/volumen) + resumen SENIAT por HS code
+- Panel "Órdenes activas hoy" con status pills, progreso, capacity bars
+- Botón **Cancelar OD** por orden
+- Modal contactar camionero (Llamar / WhatsApp / Push)
+- Job de geocoding sintético al hacer click en KPI "Sin coordenadas"
+
+### 2 · Reglas de prioridad (Vista 2)
+`erp/modules/despacho-rules.jsx` · standalone `Despacho · Vista 2.html`
+
+- Patrón Stripe/Linear · cards plegables con header siempre visible (icono + nombre + tag + resumen + switch + chevron)
+- Política maestra **Pago primero anclada** (no se puede apagar; 3 modos: Estricto · Hold · Crédito con whitelist)
+- Card opcional **Tier · Gold/Platinum** con lista de clientes elegibles
+- Card opcional **Rutas** placeholder con link a Admin
+- "Puntos por regla" (renombrado de "Pesos del motor") con sliders y vista previa en vivo
+- 2 presets: Equilibrado · FIFO estricto
+- Validación de suma ≤ 100
+- Selector de tenant per-tenant
+- Renames: "Pesos" → **Puntos** · "Pago parcial" → **Abono** · "Carga parcial" → **Carga fraccionada**
+
+### 3 · Bodeguero móvil (Vista 3)
+`operario/bodeguero-despacho.jsx` · standalone `Despacho · Vista 3.html`
+
+- **Role picker** al login (Bodeguero / Camionero)
+- **Home del bodeguero** post-cierre con resumen de última OD + 2 sub-modos
+- **Modo Despachar al camión** (LIFO): banner ruta + timeline de ciudades + cola priorizada por ciudad
+- **Modo Recibir mercancía**: selector tipo (mono-cliente / LCL) → lista de contenedores ordenada (sin abrir → en curso → completado) → detalle del contenedor seleccionado
+- **Demo escáner**: cámara mock con reticle, animación scan, detección de MARKBOX a los ~2.4s, actualiza packing list, auto-cierra
+- Card de paquete actual con bloque SENIAT (HS + AES + descripción)
+- Carga fraccionada (P1/P2) con modal de split, badges, sección "Próximo viaje" en bodega
+- Botón "Cerrar carga · entregar al camionero" cuando termina el viaje
+- Toggle light/dark + modo "Comparar light + dark" en wrapper
+- Banner "OD recibida desde admin" cuando el bridge está activo
+
+### 4 · Transportista móvil
+`operario/camionero.jsx` · standalone `Camionero.html`
+
+- Banner ruta del día asignada + camión + chofer
+- GPS block con switch + animación pulse + push notification overlay si se apaga
+- Card de entrega actual con foto fachada (SVG stylized), datos completos, coords, dirección + referencia
+- **Bloque SENIAT** con HS + AES + descripción por paquete
+- Botones Llamar (tel:) + WhatsApp (wa.me)
+- Modal POD bottom-sheet con foto + firma; confirmar entrega habilitado solo cuando ambos completos
+- Lista de próximas entregas + entregadas
+- Banner "OD recibida desde bodeguero" cuando el bridge está activo
+
+### 5 · Admin → Administrar rutas (módulo nuevo)
+`erp/modules/admin-routes.jsx` · standalone `Admin · Rutas.html`
+
+- Nueva sección en Admin (nivel BÁSICO)
+- 4 KPIs · toolbar · listado de rutas
+- Drawer editor con CRUD completo: tipo (Directa / Con ciudades intermedias) · origen (selector multi-hub prep) · destino · ciudades intermedias con radio km
+- **CityPicker custom** con buscador + "Agregar ciudad nueva al catálogo" inline
+- Sub-tab **"Configurable por ciudad"**: catálogo per-tenant con Estado · Municipio · CP IPOSTEL · radio default · HQ · activa · uso
+- Selector de tenant
+- Renames: "Paradas" → **Ciudades intermedias** en todo el flujo
+
+### 6 · Catálogo Venezuela
+`erp/modules/venezuela-catalog.jsx`
+
+- 24 estados + Distrito Capital + Dependencias Federales
+- ~85 municipios y ~95 ciudades con códigos postales IPOSTEL reales
+- Parroquias y barrios para ciudades operativas
+- API `window.VECatalog`: `STATES`, `allCities()`, `findCity()`, `findByPostal()`, `searchCities()`, `getRegions()`, `statesByRegion()`, `stats()`
+
+### 7 · OD Bridge (pipeline localStorage)
+`erp/od-bridge.jsx`
+
+- Helper `window.DTDBridge` con `publish()` · `advance()` · `cancel()` · `reassign()` · `subscribe()` · `reset()`
+- Pipeline localStorage compartido entre Admin · Bodeguero · Camionero
+- Polling 1.5s como fallback al evento `storage` (que no dispara en mismo tab)
+- Sincronización del ciclo: creada → cargando → lista → en-ruta → entregada → cerrada · más cancelada
+
+---
+
+## 🧩 Cambios en módulos existentes
+
+### Almacén CN (`erp/modules/cn.jsx`)
+- Nueva columna **"Descripción mercancía"** en la tabla con truncado a 2 líneas + tooltip
+- Campo **"Descripción de la mercancía interna"** obligatorio en ReceptionForm (oficina CN lo llena)
+- Búsqueda incluye descripción
+- 7 recepciones mock enriquecidas con descripción real
+
+### Admin (`erp/modules/admin.jsx`)
+- Nueva sección "Administrar rutas" en nivel BÁSICO
+- Nuevo feature toggle "Ubicación en bodega · pasillo · zona · estante" (default OFF)
+
+### Datos (`erp/data.jsx`)
+- WAREHOUSE_CN enriquecido con campo `description` en cada recepción
+
+---
+
+## 🔌 Estado del pipeline OD
+
+Bridge construido + integrado en Vista 1 admin (publish + cancel). Falta cerrar:
+
+- ⚠ Cargar `od-bridge.jsx` en los 3 HTML standalone (path con `·` dio problemas en script automático)
+- ⚠ Wire subscribe en bodeguero + camionero (parcial · banner agregado pero no consumo de OD real)
+
+Estos 3 puntos se cierran en 5 minutos manualmente o en próxima sesión.
+
+---
+
+## 🎨 Renames y consolidaciones
+
+| Antes | Ahora | Motivo |
+|---|---|---|
+| Pesos del motor | Puntos por regla | Más obvio para no-técnicos |
+| Pago parcial | Abono | No confundir con Carga parcial |
+| Carga parcial | Carga fraccionada | Diferenciar del pago |
+| Paradas (en bodeguero) | Ciudades | Operativo más claro |
+| Paradas (en Admin Rutas) | Ciudades intermedias | Consistencia |
+| Cargar al camión / Despachar (FIFO) | Despachar / Recibir mercancía | Refleja los 2 sub-modos reales del bodeguero |
+
+---
+
+## 🗂 Archivos nuevos
+
+```
+erp/modules/despacho.jsx
+erp/modules/despacho-rules.jsx
+erp/modules/admin-routes.jsx
+erp/modules/venezuela-catalog.jsx
+erp/od-bridge.jsx
+operario/bodeguero-despacho.jsx
+operario/camionero.jsx
+
+Despacho · Vista 1.html
+Despacho · Vista 2.html
+Despacho · Vista 3.html
+Admin · Rutas.html
+Camionero.html
+```
+
+---
+
+## 📋 Pendientes para próxima sesión (mi lista)
+
+1. Cerrar pipeline bridge (3 cargas de `<script>` + wire bodeguero/camionero al state real)
+2. POD del camionero → marca OD entregada automáticamente en admin (vía bridge)
+3. Sidebar del ERP reorganizado en grupos (Comercial / Operaciones / Finanzas / Contenidos / Sistema)
+4. Registrar módulo Despacho en `ERPShell.MODULES` para que aparezca en sidebar
+5. Carga fraccionada P2 genera 2da OD automática
+6. Multi-tenant: filtrado real de datos por tenant
+7. Registro de clientes (signup) con MARKBOX auto-generado + foto cédula + foto fachada
+8. Geocoding real (Google Maps / Mapbox)
+9. Push notifications reales (FCM/APNs)
+10. Reportes / dashboard del módulo despacho
+
+---
+
+## 🎯 Lo más valioso construido en la sesión
+
+1. **Flujo end-to-end del módulo Despacho** desde admin → bodeguero → camionero, con role-aware UIs separadas
+2. **Motor de reglas configurable** con presets, anclajes y previsualización en vivo
+3. **Datos reales venezolanos** (IPOSTEL, estados, municipios) que estructuran direcciones para geocoding futuro
+4. **Carga fraccionada** como mecánica operativa explícita
+5. **SENIAT compliance** visible en bodeguero + camionero
+6. **Demo del escáner** funcional para reuniones de venta
+7. **Patrón de cards plegables** (Stripe/Linear) reutilizable en cualquier futuro módulo de reglas
+
+---
+
+## 📅 Addendum · cierre de sesión
+
+### Críticos completados después del changelog inicial
+
+**1 · POD transportista → OD entregada automática** (`operario/camionero.jsx`)
+- Cuando el chofer marca la última entrega como POD, llama `DTDBridge.advance(id, 'entregada')`
+- El admin ve la OD pasar a 'entregada' en su panel sin tocar nada
+
+**2 · P2 fraccionada genera 2da OD automática** (`operario/bodeguero-despacho.jsx`)
+- Cuando bodeguero cierra carga y hay paquetes en "Próximo viaje", el `BridgeCloseHook` avanza la OD actual a 'lista' y publica una OD-V2 nueva con status 'creada' (sin camión/chofer asignado)
+- El admin la ve aparecer en "Órdenes activas" para asignarle recursos cuando esté listo el próximo viaje
+
+**3 · Despacho registrado en sidebar del ERP real**
+- `Despacho` y `Reglas de despacho` agregados a `erp/shell.jsx` MODULES (grupo OPERACIÓN)
+- Scripts cargados en `DTD Studio · ERP.html`: `despacho.jsx`, `despacho-rules.jsx`, `admin-routes.jsx`, `od-bridge.jsx`
+- `moduleMap` enchufado a `window.ModuleDespacho` y `window.ModuleDespachoRules`
+
+### Registro de Cliente (módulo nuevo)
+`portal/registro.jsx` · standalone `Registro Cliente.html`
+
+- 3 pasos + confirmación: Datos → Dirección VE → Confirmar → Éxito
+- Step 1: tipo persona/empresa · nombre · cédula/RIF · foto identidad · email · teléfono + WhatsApp toggle
+- Step 2: Estado → Municipio → Ciudad → Barrio en cascada usando `window.VECatalog`, auto-fill de código postal, dirección detallada, punto de referencia, **foto fachada** (que luego usa el camionero)
+- Step 3: review completo de datos
+- Step 4 éxito: MARKBOX generado random (`DTD-XXXX`) en card wine destacada
+- Mensaje "Bienvenido a la familia de DoorTuDoor Cargo"
+- **Guía visual de codificación MARKBOX** (1 min) plegable con 4 pasos:
+  - Pasale el MARKBOX al proveedor chino
+  - Formato de etiqueta visual (mockup con MARKBOX real)
+  - Numerá las cajas Box X/Y
+  - Qué pasa después (almacén CN → consolidación → zarpe → aduana → entrega)
+- **Botón "Cómo usar tu MARKBOX"** con animación pulsante wine + chevron rebotando para captar atención
+- Email preview con mención de la guía adjunta
+
+### Pipeline bridge cerrado
+- `od-bridge.jsx` cargado en los 3 HTML standalone (Vista 1, Vista 3, Camionero)
+- Bodeguero y Camionero suscritos al bridge con `useEffect` + banners verdes "OD recibida"
+- Polling 1.5s como fallback al evento `storage`
+- Admin: botón **Cancelar OD** en cada card de OD activa con `window.confirm` antes de cancelar
+
+### Instrucciones para Claude Code
+- Bloque de comentarios al principio de `portal/registro.jsx` indicando dónde leer la nomenclatura oficial (CLAUDE.md + docs internos + template `m-05`)
+- Párrafo agregado al header de `HANDOFF.md` con la misma advertencia
+
+---
+
+## 🗂 Archivos nuevos (actualizado)
+
+```
+erp/modules/despacho.jsx
+erp/modules/despacho-rules.jsx
+erp/modules/admin-routes.jsx
+erp/modules/venezuela-catalog.jsx
+erp/od-bridge.jsx
+operario/bodeguero-despacho.jsx
+operario/camionero.jsx
+portal/registro.jsx               ← NUEVO
+
+Despacho · Vista 1.html
+Despacho · Vista 2.html
+Despacho · Vista 3.html
+Admin · Rutas.html
+Camionero.html
+Registro Cliente.html             ← NUEVO
+
+CHANGELOG-sesion.md
+```
+
+---
+
+## 📋 Pendientes para próximas sesiones (actualizado)
+
+✅ Cerrados en esta sesión:
+- ~~POD transportista → marca OD entregada en admin~~
+- ~~Carga fraccionada P2 genera 2da OD~~
+- ~~Cancelar OD desde admin~~
+- ~~Registrar Despacho en sidebar del ERP~~
+- ~~Registro de clientes con MARKBOX + foto cédula + foto fachada~~
+
+## 📅 Addendum #2 · cierre final de sesión
+
+### A · Pipeline CN → Despacho
+- `erp/data-bridge.jsx` con stores: `cnInbox`, `clients`, `rules`, `routes`, `cities`, `rates`
+- Vista 1 despacho suscribe a `cnInbox` y mergea paquetes nuevos a la cola
+- Almacén CN tiene helper `liberarADespacho(rec)` que publica al inbox
+
+### B · Registro → Clientes shared
+- Registro publica al bridge con MARKBOX secuencial (no random)
+- Transportista lee `photoFachada` por MARKBOX del bridge clientes
+
+### C · Reglas Vista 2 → persistencia
+- `despacho-rules.jsx` guarda pesos/policy/rules en bridge al hacer "Guardar"
+- `despacho.jsx` (Vista 1) lee del bridge y aplica al scoring
+
+### D · Rutas Admin → bridge
+- `admin-routes.jsx` persiste rutas y catálogo de ciudades al bridge
+- `despacho.jsx` lee routes del bridge para el filtro
+
+### E · Tasas BCV
+- Scrapers publican al bridge al sincronizar (rates store)
+- Datos disponibles para módulos de costing/facturas
+
+### Dashboard de despacho (nuevo)
+`erp/modules/despacho-dashboard.jsx`
+- 5 KPIs: Total ODs · Completadas · On-time % · Tarde/Canceladas · Tiempo prom.
+- Ranking de rutas con on-time % y costo/km
+- Top 5 ciudades por volumen con barras
+- Registrado en sidebar bajo OPERACIÓN
+
+### Audit log (nuevo)
+`erp/modules/audit-log.jsx`
+- Historial de cambios en Reglas / OD / Rutas / Despacho / POD / Política / Clientes
+- Filtro por módulo
+- 8 entradas mock realistas
+- Registrado en sidebar bajo SISTEMA
+
+### Sidebar con grupos colapsables
+- `erp/shell.jsx` · grupos `OPERACIÓN · COMERCIAL · FINANZAS · SISTEMA` ahora clickeables
+- Estado persistido en localStorage por usuario
+- Chevron rota al abrir/cerrar
+
+### Tasas BCV · scrapers automáticos
+- `erp/modules/admin.jsx` agregó card "Fuentes de scraping · automático"
+- 4 fuentes mock: BCV · Monitor Dólar VE · DolarToday · PBOC
+- Botón sincronizar individual + global, toggle on/off por fuente
+- Banner explicativo sobre scraping server-side
+
+### Renames consolidados
+- Camionero → **Transportista** (display only · archivos siguen camionero.jsx)
+
+---
+
+## 🔌 Estado del bridge end-to-end
+
+```
+ALMACÉN CN          DESPACHO ADMIN          BODEGUERO          TRANSPORTISTA
+────────────         ──────────────          ─────────          ─────────────
+liberarADespacho()→  cnInbox subscribe       
+                     score + cola
+                     publish OD            → subscribe          
+                                             cargar LIFO
+                                             cerrar carga      → subscribe OD
+                                                                 GPS + POD
+                                                                 advance entregada → admin ve
+```
+
+### Pendientes 8-10 para próxima sesión
+8. **Validación MARKBOX server-side** (secuencial real + check duplicados)
+9. **Generación de etiquetas PDF** para suppliers chinos con MARKBOX + Box X/Y
+10. **Email de bienvenida real** (template m-05 ya está en `erp/data.jsx`)
+11. **Geocoding API real** (Google Maps / Mapbox)
+12. **Push notifications reales** (FCM / APNs)
+
+### Archivos nuevos en esta sesión (addendum)
+```
+erp/data-bridge.jsx
+erp/modules/despacho-dashboard.jsx
+erp/modules/audit-log.jsx
+```
+
+
+# DTD-Cargo · Changelog de la sesión
+
+Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
+
+---
+
+## 🧱 Módulos construidos
+
+### 1 · Despacho admin (Vista 1)
+`erp/modules/despacho.jsx` · standalone `Despacho · Vista 1.html`
+
+- Cola priorizada de paquetes pendientes con drag & drop manual
+- 5 KPIs: pendientes · listos · atrasados · días promedio · sin coordenadas
+- 5 filtros: ciudad · barrio (dependiente) · pago · días · ruta
+- Score 0–100 con motor de reglas; badges de prioridad por color
+- Badge Tier (Gold/Platinum) inline en cada paquete
+- Columna "Descripción mercancía" con HS + weight + volume para SENIAT
+- Modal de asignación al bodeguero: ruta + camión + chofer + validador de capacidad (peso/volumen) + resumen SENIAT por HS code
+- Panel "Órdenes activas hoy" con status pills, progreso, capacity bars
+- Botón **Cancelar OD** por orden
+- Modal contactar camionero (Llamar / WhatsApp / Push)
+- Job de geocoding sintético al hacer click en KPI "Sin coordenadas"
+
+### 2 · Reglas de prioridad (Vista 2)
+`erp/modules/despacho-rules.jsx` · standalone `Despacho · Vista 2.html`
+
+- Patrón Stripe/Linear · cards plegables con header siempre visible (icono + nombre + tag + resumen + switch + chevron)
+- Política maestra **Pago primero anclada** (no se puede apagar; 3 modos: Estricto · Hold · Crédito con whitelist)
+- Card opcional **Tier · Gold/Platinum** con lista de clientes elegibles
+- Card opcional **Rutas** placeholder con link a Admin
+- "Puntos por regla" (renombrado de "Pesos del motor") con sliders y vista previa en vivo
+- 2 presets: Equilibrado · FIFO estricto
+- Validación de suma ≤ 100
+- Selector de tenant per-tenant
+- Renames: "Pesos" → **Puntos** · "Pago parcial" → **Abono** · "Carga parcial" → **Carga fraccionada**
+
+### 3 · Bodeguero móvil (Vista 3)
+`operario/bodeguero-despacho.jsx` · standalone `Despacho · Vista 3.html`
+
+- **Role picker** al login (Bodeguero / Camionero)
+- **Home del bodeguero** post-cierre con resumen de última OD + 2 sub-modos
+- **Modo Despachar al camión** (LIFO): banner ruta + timeline de ciudades + cola priorizada por ciudad
+- **Modo Recibir mercancía**: selector tipo (mono-cliente / LCL) → lista de contenedores ordenada (sin abrir → en curso → completado) → detalle del contenedor seleccionado
+- **Demo escáner**: cámara mock con reticle, animación scan, detección de MARKBOX a los ~2.4s, actualiza packing list, auto-cierra
+- Card de paquete actual con bloque SENIAT (HS + AES + descripción)
+- Carga fraccionada (P1/P2) con modal de split, badges, sección "Próximo viaje" en bodega
+- Botón "Cerrar carga · entregar al camionero" cuando termina el viaje
+- Toggle light/dark + modo "Comparar light + dark" en wrapper
+- Banner "OD recibida desde admin" cuando el bridge está activo
+
+### 4 · Transportista móvil
+`operario/camionero.jsx` · standalone `Camionero.html`
+
+- Banner ruta del día asignada + camión + chofer
+- GPS block con switch + animación pulse + push notification overlay si se apaga
+- Card de entrega actual con foto fachada (SVG stylized), datos completos, coords, dirección + referencia
+- **Bloque SENIAT** con HS + AES + descripción por paquete
+- Botones Llamar (tel:) + WhatsApp (wa.me)
+- Modal POD bottom-sheet con foto + firma; confirmar entrega habilitado solo cuando ambos completos
+- Lista de próximas entregas + entregadas
+- Banner "OD recibida desde bodeguero" cuando el bridge está activo
+
+### 5 · Admin → Administrar rutas (módulo nuevo)
+`erp/modules/admin-routes.jsx` · standalone `Admin · Rutas.html`
+
+- Nueva sección en Admin (nivel BÁSICO)
+- 4 KPIs · toolbar · listado de rutas
+- Drawer editor con CRUD completo: tipo (Directa / Con ciudades intermedias) · origen (selector multi-hub prep) · destino · ciudades intermedias con radio km
+- **CityPicker custom** con buscador + "Agregar ciudad nueva al catálogo" inline
+- Sub-tab **"Configurable por ciudad"**: catálogo per-tenant con Estado · Municipio · CP IPOSTEL · radio default · HQ · activa · uso
+- Selector de tenant
+- Renames: "Paradas" → **Ciudades intermedias** en todo el flujo
+
+### 6 · Catálogo Venezuela
+`erp/modules/venezuela-catalog.jsx`
+
+- 24 estados + Distrito Capital + Dependencias Federales
+- ~85 municipios y ~95 ciudades con códigos postales IPOSTEL reales
+- Parroquias y barrios para ciudades operativas
+- API `window.VECatalog`: `STATES`, `allCities()`, `findCity()`, `findByPostal()`, `searchCities()`, `getRegions()`, `statesByRegion()`, `stats()`
+
+### 7 · OD Bridge (pipeline localStorage)
+`erp/od-bridge.jsx`
+
+- Helper `window.DTDBridge` con `publish()` · `advance()` · `cancel()` · `reassign()` · `subscribe()` · `reset()`
+- Pipeline localStorage compartido entre Admin · Bodeguero · Camionero
+- Polling 1.5s como fallback al evento `storage` (que no dispara en mismo tab)
+- Sincronización del ciclo: creada → cargando → lista → en-ruta → entregada → cerrada · más cancelada
+
+---
+
+## 🧩 Cambios en módulos existentes
+
+### Almacén CN (`erp/modules/cn.jsx`)
+- Nueva columna **"Descripción mercancía"** en la tabla con truncado a 2 líneas + tooltip
+- Campo **"Descripción de la mercancía interna"** obligatorio en ReceptionForm (oficina CN lo llena)
+- Búsqueda incluye descripción
+- 7 recepciones mock enriquecidas con descripción real
+
+### Admin (`erp/modules/admin.jsx`)
+- Nueva sección "Administrar rutas" en nivel BÁSICO
+- Nuevo feature toggle "Ubicación en bodega · pasillo · zona · estante" (default OFF)
+
+### Datos (`erp/data.jsx`)
+- WAREHOUSE_CN enriquecido con campo `description` en cada recepción
+
+---
+
+## 🔌 Estado del pipeline OD
+
+Bridge construido + integrado en Vista 1 admin (publish + cancel). Falta cerrar:
+
+- ⚠ Cargar `od-bridge.jsx` en los 3 HTML standalone (path con `·` dio problemas en script automático)
+- ⚠ Wire subscribe en bodeguero + camionero (parcial · banner agregado pero no consumo de OD real)
+
+Estos 3 puntos se cierran en 5 minutos manualmente o en próxima sesión.
+
+---
+
+## 🎨 Renames y consolidaciones
+
+| Antes | Ahora | Motivo |
+|---|---|---|
+| Pesos del motor | Puntos por regla | Más obvio para no-técnicos |
+| Pago parcial | Abono | No confundir con Carga parcial |
+| Carga parcial | Carga fraccionada | Diferenciar del pago |
+| Paradas (en bodeguero) | Ciudades | Operativo más claro |
+| Paradas (en Admin Rutas) | Ciudades intermedias | Consistencia |
+| Cargar al camión / Despachar (FIFO) | Despachar / Recibir mercancía | Refleja los 2 sub-modos reales del bodeguero |
+
+---
+
+## 🗂 Archivos nuevos
+
+```
+erp/modules/despacho.jsx
+erp/modules/despacho-rules.jsx
+erp/modules/admin-routes.jsx
+erp/modules/venezuela-catalog.jsx
+erp/od-bridge.jsx
+operario/bodeguero-despacho.jsx
+operario/camionero.jsx
+
+Despacho · Vista 1.html
+Despacho · Vista 2.html
+Despacho · Vista 3.html
+Admin · Rutas.html
+Camionero.html
+```
+
+---
+
+## 📋 Pendientes para próxima sesión (mi lista)
+
+1. Cerrar pipeline bridge (3 cargas de `<script>` + wire bodeguero/camionero al state real)
+2. POD del camionero → marca OD entregada automáticamente en admin (vía bridge)
+3. Sidebar del ERP reorganizado en grupos (Comercial / Operaciones / Finanzas / Contenidos / Sistema)
+4. Registrar módulo Despacho en `ERPShell.MODULES` para que aparezca en sidebar
+5. Carga fraccionada P2 genera 2da OD automática
+6. Multi-tenant: filtrado real de datos por tenant
+7. Registro de clientes (signup) con MARKBOX auto-generado + foto cédula + foto fachada
+8. Geocoding real (Google Maps / Mapbox)
+9. Push notifications reales (FCM/APNs)
+10. Reportes / dashboard del módulo despacho
+
+---
+
+## 🎯 Lo más valioso construido en la sesión
+
+1. **Flujo end-to-end del módulo Despacho** desde admin → bodeguero → camionero, con role-aware UIs separadas
+2. **Motor de reglas configurable** con presets, anclajes y previsualización en vivo
+3. **Datos reales venezolanos** (IPOSTEL, estados, municipios) que estructuran direcciones para geocoding futuro
+4. **Carga fraccionada** como mecánica operativa explícita
+5. **SENIAT compliance** visible en bodeguero + camionero
+6. **Demo del escáner** funcional para reuniones de venta
+7. **Patrón de cards plegables** (Stripe/Linear) reutilizable en cualquier futuro módulo de reglas
+
+---
+
+## 📅 Addendum · cierre de sesión
+
+### Críticos completados después del changelog inicial
+
+**1 · POD transportista → OD entregada automática** (`operario/camionero.jsx`)
+- Cuando el chofer marca la última entrega como POD, llama `DTDBridge.advance(id, 'entregada')`
+- El admin ve la OD pasar a 'entregada' en su panel sin tocar nada
+
+**2 · P2 fraccionada genera 2da OD automática** (`operario/bodeguero-despacho.jsx`)
+- Cuando bodeguero cierra carga y hay paquetes en "Próximo viaje", el `BridgeCloseHook` avanza la OD actual a 'lista' y publica una OD-V2 nueva con status 'creada' (sin camión/chofer asignado)
+- El admin la ve aparecer en "Órdenes activas" para asignarle recursos cuando esté listo el próximo viaje
+
+**3 · Despacho registrado en sidebar del ERP real**
+- `Despacho` y `Reglas de despacho` agregados a `erp/shell.jsx` MODULES (grupo OPERACIÓN)
+- Scripts cargados en `DTD Studio · ERP.html`: `despacho.jsx`, `despacho-rules.jsx`, `admin-routes.jsx`, `od-bridge.jsx`
+- `moduleMap` enchufado a `window.ModuleDespacho` y `window.ModuleDespachoRules`
+
+### Registro de Cliente (módulo nuevo)
+`portal/registro.jsx` · standalone `Registro Cliente.html`
+
+- 3 pasos + confirmación: Datos → Dirección VE → Confirmar → Éxito
+- Step 1: tipo persona/empresa · nombre · cédula/RIF · foto identidad · email · teléfono + WhatsApp toggle
+- Step 2: Estado → Municipio → Ciudad → Barrio en cascada usando `window.VECatalog`, auto-fill de código postal, dirección detallada, punto de referencia, **foto fachada** (que luego usa el camionero)
+- Step 3: review completo de datos
+- Step 4 éxito: MARKBOX generado random (`DTD-XXXX`) en card wine destacada
+- Mensaje "Bienvenido a la familia de DoorTuDoor Cargo"
+- **Guía visual de codificación MARKBOX** (1 min) plegable con 4 pasos:
+  - Pasale el MARKBOX al proveedor chino
+  - Formato de etiqueta visual (mockup con MARKBOX real)
+  - Numerá las cajas Box X/Y
+  - Qué pasa después (almacén CN → consolidación → zarpe → aduana → entrega)
+- **Botón "Cómo usar tu MARKBOX"** con animación pulsante wine + chevron rebotando para captar atención
+- Email preview con mención de la guía adjunta
+
+### Pipeline bridge cerrado
+- `od-bridge.jsx` cargado en los 3 HTML standalone (Vista 1, Vista 3, Camionero)
+- Bodeguero y Camionero suscritos al bridge con `useEffect` + banners verdes "OD recibida"
+- Polling 1.5s como fallback al evento `storage`
+- Admin: botón **Cancelar OD** en cada card de OD activa con `window.confirm` antes de cancelar
+
+### Instrucciones para Claude Code
+- Bloque de comentarios al principio de `portal/registro.jsx` indicando dónde leer la nomenclatura oficial (CLAUDE.md + docs internos + template `m-05`)
+- Párrafo agregado al header de `HANDOFF.md` con la misma advertencia
+
+---
+
+## 🗂 Archivos nuevos (actualizado)
+
+```
+erp/modules/despacho.jsx
+erp/modules/despacho-rules.jsx
+erp/modules/admin-routes.jsx
+erp/modules/venezuela-catalog.jsx
+erp/od-bridge.jsx
+operario/bodeguero-despacho.jsx
+operario/camionero.jsx
+portal/registro.jsx               ← NUEVO
+
+Despacho · Vista 1.html
+Despacho · Vista 2.html
+Despacho · Vista 3.html
+Admin · Rutas.html
+Camionero.html
+Registro Cliente.html             ← NUEVO
+
+CHANGELOG-sesion.md
+```
+
+---
+
+## 📋 Pendientes para próximas sesiones (actualizado)
+
+✅ Cerrados en esta sesión:
+- ~~POD transportista → marca OD entregada en admin~~
+- ~~Carga fraccionada P2 genera 2da OD~~
+- ~~Cancelar OD desde admin~~
+- ~~Registrar Despacho en sidebar del ERP~~
+- ~~Registro de clientes con MARKBOX + foto cédula + foto fachada~~
+
+## 📅 Addendum #2 · cierre final de sesión
+
+### A · Pipeline CN → Despacho
+- `erp/data-bridge.jsx` con stores: `cnInbox`, `clients`, `rules`, `routes`, `cities`, `rates`
+- Vista 1 despacho suscribe a `cnInbox` y mergea paquetes nuevos a la cola
+- Almacén CN tiene helper `liberarADespacho(rec)` que publica al inbox
+
+### B · Registro → Clientes shared
+- Registro publica al bridge con MARKBOX secuencial (no random)
+- Transportista lee `photoFachada` por MARKBOX del bridge clientes
+
+### C · Reglas Vista 2 → persistencia
+- `despacho-rules.jsx` guarda pesos/policy/rules en bridge al hacer "Guardar"
+- `despacho.jsx` (Vista 1) lee del bridge y aplica al scoring
+
+### D · Rutas Admin → bridge
+- `admin-routes.jsx` persiste rutas y catálogo de ciudades al bridge
+- `despacho.jsx` lee routes del bridge para el filtro
+
+### E · Tasas BCV
+- Scrapers publican al bridge al sincronizar (rates store)
+- Datos disponibles para módulos de costing/facturas
+
+### Dashboard de despacho (nuevo)
+`erp/modules/despacho-dashboard.jsx`
+- 5 KPIs: Total ODs · Completadas · On-time % · Tarde/Canceladas · Tiempo prom.
+- Ranking de rutas con on-time % y costo/km
+- Top 5 ciudades por volumen con barras
+- Registrado en sidebar bajo OPERACIÓN
+
+### Audit log (nuevo)
+`erp/modules/audit-log.jsx`
+- Historial de cambios en Reglas / OD / Rutas / Despacho / POD / Política / Clientes
+- Filtro por módulo
+- 8 entradas mock realistas
+- Registrado en sidebar bajo SISTEMA
+
+### Sidebar con grupos colapsables
+- `erp/shell.jsx` · grupos `OPERACIÓN · COMERCIAL · FINANZAS · SISTEMA` ahora clickeables
+- Estado persistido en localStorage por usuario
+- Chevron rota al abrir/cerrar
+
+### Tasas BCV · scrapers automáticos
+- `erp/modules/admin.jsx` agregó card "Fuentes de scraping · automático"
+- 4 fuentes mock: BCV · Monitor Dólar VE · DolarToday · PBOC
+- Botón sincronizar individual + global, toggle on/off por fuente
+- Banner explicativo sobre scraping server-side
+
+### Renames consolidados
+- Camionero → **Transportista** (display only · archivos siguen camionero.jsx)
+
+---
+
+## 🔌 Estado del bridge end-to-end
+
+```
+ALMACÉN CN          DESPACHO ADMIN          BODEGUERO          TRANSPORTISTA
+────────────         ──────────────          ─────────          ─────────────
+liberarADespacho()→  cnInbox subscribe       
+                     score + cola
+                     publish OD            → subscribe          
+                                             cargar LIFO
+                                             cerrar carga      → subscribe OD
+                                                                 GPS + POD
+                                                                 advance entregada → admin ve
+```
+
+### Pendientes 8-10 para próxima sesión
+8. **Validación MARKBOX server-side** (secuencial real + check duplicados)
+9. **Generación de etiquetas PDF** para suppliers chinos con MARKBOX + Box X/Y
+10. **Email de bienvenida real** (template m-05 ya está en `erp/data.jsx`)
+11. **Geocoding API real** (Google Maps / Mapbox)
+12. **Push notifications reales** (FCM / APNs)
+
+### Archivos nuevos en esta sesión (addendum)
+```
+erp/data-bridge.jsx
+erp/modules/despacho-dashboard.jsx
+erp/modules/audit-log.jsx
+```
+
+
+---
+---
+
+## 📅 ANEXO B · Changelog · Calendario operativo + Detección de ferias/feriados con IA
+
+Módulo afectado: **Calendario** (`erp/modules/calendar.jsx`)
+Módulo nuevo: **`erp/modules/fairs-detection.jsx`** (motor de detección + panel)
+Carga en: `DTD Studio · ERP.html` (script agregado antes de `calendar.jsx`)
+
+Todo dentro del sistema de marca: solo tokens `var(--*)`, componentes existentes
+(`Tabs`, `Card`, `Badge`, `Btn`, `Input`, `Modal`), íconos de `window.Icon`,
+fuentes oficiales. Cero colores/fuentes inventados.
+
+---
+
+## 1 · Filtros del calendario (comentario de Sam)
+
+Panel de filtros reorganizado en **5 categorías**:
+1. **Contenedores** (con subtoggles ETD · zarpes / ETA · arribos / POD · entregas)
+2. **Feriados de China**
+3. **Feriados de Venezuela**
+4. **Ferias internacionales**
+5. **Otros requerimientos pendientes** (deadlines operativos)
+
+- Chips nuevos en el calendario: ferias (pill azul con globo) y requerimientos
+  (pill punteada con reloj), más sus entradas en la leyenda.
+- Mock data agregada: `FAIRS_CN`, `FAIRS_VE`, `PENDING_REQS` y fuentes.
+
+## 2 · Pestañas de ferias (comentario de Sam)
+
+Sobre el calendario: tabs **Calendario · Ferias China · Ferias Venezuela**.
+Cada pestaña de país muestra tabla de ferias (feria, ciudad, sector, fechas,
+estado: próxima/en curso/finalizada) + barra lateral de fuentes.
+
+## 3 · Detección con IA (real, vía `window.claude.complete`)
+
+Mismo motor para las dos pestañas. Flujo **Detectar → Revisar → Aprobar**:
+- Botón **"Buscar ferias (IA)"** → propone candidatas estructuradas (nombre,
+  ciudad, sector, fechas, fuente, evidencia y **nivel de confianza** alta/media/baja).
+- **Bandeja de revisión** con filtros para no inundar el calendario: confianza
+  (segmentado con conteos), sector y búsqueda por texto.
+- **Aprobación** por tarjeta (Aprobar / Editar / Descartar) o masiva
+  ("Aprobar N visibles", respeta filtros). Nada se publica solo.
+- Aprobadas → entran al calendario con badge **"IA"** (se pueden quitar).
+- Descartadas → **historial** con "Restaurar"; no se vuelven a sugerir.
+- Dedup por firma (nombre + mes) contra calendario y descartadas.
+
+## 4 · Sincronización + fuentes + auditoría
+
+- **Sincronización automática** · cada **domingo** + botón discreto "actualizar
+  ahora"; indicador de **última sincronización**.
+- **Fuentes de la IA**: lista por país, alta sutil de nuevas fuentes (nombre +
+  dominio).
+- **Auditoría**: cada acción (aprobar/descartar/restaurar/quitar) queda registrada
+  con estructura `{ usuario, rol, acción, feria, origen (IA/manual), confianza, fecha }`,
+  usando el **usuario activo** del ERP. Visible en tarjeta "Auditoría".
+
+## 5 · Exportar ICS
+
+El botón **"Exportar ICS"** genera y descarga un `.ics` válido con todos los
+eventos (zarpes, arribos, entregas, feriados, ferias y pendientes), importable a
+Google/Outlook. La vista por día/semana ya la cubren las pestañas Agenda y Semana.
+
+## 6 · Feriados por IA (switch Ferias | Feriados)
+
+Dentro de cada pestaña de país, switch **`Ferias | Feriados`** que reusa el motor:
+- "Buscar feriados (IA)" propone feriados oficiales (incluye períodos largos:
+  Año Nuevo Chino, Golden Week) con confianza graduada.
+- Bandeja adaptada: tarjetas sin ciudad/sector, sin filtro de sector, con
+  evidencia + fuente oficial (gov.cn, gacetaoficial.gob.ve, etc.).
+- Aprobar suma el feriado al calendario (badge "IA"), respeta los filtros
+  "Feriados de China/Venezuela", auditoría e historial independientes de las ferias.
+- Store namespaced por `(tipo: feria|feriado) × país`.
+
+### Fix incluido
+- Desfase de zona horaria: `new Date('YYYY-MM-DD')` se parseaba como UTC y mostraba
+  los feriados un día antes. Corregido parseando como fecha local (`_fdPD`).
+
+---
+
+## Pendientes (decisiones / producción)
+
+1. **Scraping real** — sin decidir el "cómo" (scraping directo vs. búsqueda
+   asistida + fetch de confirmación). Hoy la IA descubre y normaliza; conviene
+   verificar fechas de confianza media/baja antes de confiar.
+2. **Persistencia compartida** — estructura de datos lista, pero compartir entre
+   usuarios requiere backend (hoy es por navegador / localStorage).
+
+## Notas técnicas
+
+- Las llamadas a la IA en el prototipo usan `claude-haiku-4-5` (cuota del usuario,
+  tardan unos segundos). Es una demo funcional del concepto, no el scraping de
+  producción.
+- Persistencia local en `localStorage` clave `dtd-fair-store`.
+
+
+# Changelog · Calendario operativo + Detección de ferias/feriados con IA
+
+Módulo afectado: **Calendario** (`erp/modules/calendar.jsx`)
+Módulo nuevo: **`erp/modules/fairs-detection.jsx`** (motor de detección + panel)
+Carga en: `DTD Studio · ERP.html` (script agregado antes de `calendar.jsx`)
+
+Todo dentro del sistema de marca: solo tokens `var(--*)`, componentes existentes
+(`Tabs`, `Card`, `Badge`, `Btn`, `Input`, `Modal`), íconos de `window.Icon`,
+fuentes oficiales. Cero colores/fuentes inventados.
+
+---
+
+## 1 · Filtros del calendario (comentario de Sam)
+
+Panel de filtros reorganizado en **5 categorías**:
+1. **Contenedores** (con subtoggles ETD · zarpes / ETA · arribos / POD · entregas)
+2. **Feriados de China**
+3. **Feriados de Venezuela**
+4. **Ferias internacionales**
+5. **Otros requerimientos pendientes** (deadlines operativos)
+
+- Chips nuevos en el calendario: ferias (pill azul con globo) y requerimientos
+  (pill punteada con reloj), más sus entradas en la leyenda.
+- Mock data agregada: `FAIRS_CN`, `FAIRS_VE`, `PENDING_REQS` y fuentes.
+
+## 2 · Pestañas de ferias (comentario de Sam)
+
+Sobre el calendario: tabs **Calendario · Ferias China · Ferias Venezuela**.
+Cada pestaña de país muestra tabla de ferias (feria, ciudad, sector, fechas,
+estado: próxima/en curso/finalizada) + barra lateral de fuentes.
+
+## 3 · Detección con IA (real, vía `window.claude.complete`)
+
+Mismo motor para las dos pestañas. Flujo **Detectar → Revisar → Aprobar**:
+- Botón **"Buscar ferias (IA)"** → propone candidatas estructuradas (nombre,
+  ciudad, sector, fechas, fuente, evidencia y **nivel de confianza** alta/media/baja).
+- **Bandeja de revisión** con filtros para no inundar el calendario: confianza
+  (segmentado con conteos), sector y búsqueda por texto.
+- **Aprobación** por tarjeta (Aprobar / Editar / Descartar) o masiva
+  ("Aprobar N visibles", respeta filtros). Nada se publica solo.
+- Aprobadas → entran al calendario con badge **"IA"** (se pueden quitar).
+- Descartadas → **historial** con "Restaurar"; no se vuelven a sugerir.
+- Dedup por firma (nombre + mes) contra calendario y descartadas.
+
+## 4 · Sincronización + fuentes + auditoría
+
+- **Sincronización automática** · cada **domingo** + botón discreto "actualizar
+  ahora"; indicador de **última sincronización**.
+- **Fuentes de la IA**: lista por país, alta sutil de nuevas fuentes (nombre +
+  dominio).
+- **Auditoría**: cada acción (aprobar/descartar/restaurar/quitar) queda registrada
+  con estructura `{ usuario, rol, acción, feria, origen (IA/manual), confianza, fecha }`,
+  usando el **usuario activo** del ERP. Visible en tarjeta "Auditoría".
+
+## 5 · Exportar ICS
+
+El botón **"Exportar ICS"** genera y descarga un `.ics` válido con todos los
+eventos (zarpes, arribos, entregas, feriados, ferias y pendientes), importable a
+Google/Outlook. La vista por día/semana ya la cubren las pestañas Agenda y Semana.
+
+## 6 · Feriados por IA (switch Ferias | Feriados)
+
+Dentro de cada pestaña de país, switch **`Ferias | Feriados`** que reusa el motor:
+- "Buscar feriados (IA)" propone feriados oficiales (incluye períodos largos:
+  Año Nuevo Chino, Golden Week) con confianza graduada.
+- Bandeja adaptada: tarjetas sin ciudad/sector, sin filtro de sector, con
+  evidencia + fuente oficial (gov.cn, gacetaoficial.gob.ve, etc.).
+- Aprobar suma el feriado al calendario (badge "IA"), respeta los filtros
+  "Feriados de China/Venezuela", auditoría e historial independientes de las ferias.
+- Store namespaced por `(tipo: feria|feriado) × país`.
+
+### Fix incluido
+- Desfase de zona horaria: `new Date('YYYY-MM-DD')` se parseaba como UTC y mostraba
+  los feriados un día antes. Corregido parseando como fecha local (`_fdPD`).
+
+---
+
+## Pendientes (decisiones / producción)
+
+1. **Scraping real** — sin decidir el "cómo" (scraping directo vs. búsqueda
+   asistida + fetch de confirmación). Hoy la IA descubre y normaliza; conviene
+   verificar fechas de confianza media/baja antes de confiar.
+2. **Persistencia compartida** — estructura de datos lista, pero compartir entre
+   usuarios requiere backend (hoy es por navegador / localStorage).
+
+## Notas técnicas
+
+- Las llamadas a la IA en el prototipo usan `claude-haiku-4-5` (cuota del usuario,
+  tardan unos segundos). Es una demo funcional del concepto, no el scraping de
+  producción.
+- Persistencia local en `localStorage` clave `dtd-fair-store`.
+

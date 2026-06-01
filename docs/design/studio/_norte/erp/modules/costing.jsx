@@ -6,6 +6,7 @@ const { useState: _kUseState, useMemo: _kUseMemo } = React;
 function ModuleCosting({ goTo }) {
   const D = window.ERPData;
   const U = window.ERPUI;
+  const hide = U.useHideValues();
   const [tab, setTab] = _kUseState('overview');
   const [sortBy, setSortBy] = _kUseState('margin-pct-desc');
   const [editorShip, setEditorShip] = _kUseState(null);
@@ -20,7 +21,7 @@ function ModuleCosting({ goTo }) {
   };
 
   // Build economics for all shipments
-  const data = _kUseMemo(() => D.SHIPMENTS.map(s => ({ ship: s, eco: D.shipmentEconomics(s) })), []);
+  const data = _kUseMemo(() => D.byTenant(D.SHIPMENTS).map(s => ({ ship: s, eco: D.shipmentEconomics(s) })), []);
 
   const totalRevenue = data.reduce((a, x) => a + x.eco.revenue, 0);
   const totalCost    = data.reduce((a, x) => a + x.eco.totalCost, 0);
@@ -49,16 +50,16 @@ function ModuleCosting({ goTo }) {
           <>
             <CurrencyToggle value={currency} onChange={setCurrency} rate={VES_RATE} />
             <U.Btn variant="secondary" icon={window.Icon.download(14)}>Exportar análisis</U.Btn>
-            <U.Btn variant="primary" icon={window.Icon.edit(14)} onClick={() => setEditorShip(D.SHIPMENTS[0])}>Editar costos</U.Btn>
+            <U.Btn variant="primary" icon={window.Icon.edit(14)} onClick={() => setEditorShip(D.byTenant(D.SHIPMENTS)[0])}>Editar costos</U.Btn>
           </>
         }
       />
 
       {/* Top KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 'var(--s-5)' }}>
-        <U.KPI label="Revenue total" value={fxLabel(totalRevenue)} delta="YTD 2026" tone="wine" icon={window.Icon.chart(18)} />
-        <U.KPI label="Costo total" value={fxLabel(totalCost)} delta={`${Math.round(totalCost/totalRevenue*100)}% del revenue`} tone="warning" icon={window.Icon.invoice(18)} />
-        <U.KPI label="Margen bruto" value={fxLabel(totalMargin)} delta={`${avgMarginPct.toFixed(1)}% promedio`} tone="success" icon={window.Icon.star(18)} />
+        <U.KPI label="Revenue total" value={hide ? '•••' : fxLabel(totalRevenue)} delta="YTD 2026" tone="wine" icon={window.Icon.chart(18)} />
+        <U.KPI label="Costo total" value={hide ? '•••' : fxLabel(totalCost)} delta={`${Math.round(totalCost/totalRevenue*100)}% del revenue`} tone="warning" icon={window.Icon.invoice(18)} />
+        <U.KPI label="Margen bruto" value={hide ? '•••' : fxLabel(totalMargin)} delta={`${avgMarginPct.toFixed(1)}% promedio`} tone="success" icon={window.Icon.star(18)} />
         <U.KPI label="Embarques OK" value={`${profitable}/${data.length}`} delta={losing > 0 ? `${losing} en pérdida` : 'todos en verde'} tone={losing > 0 ? 'danger' : 'success'} icon={window.Icon.check(18)} />
       </div>
 
@@ -98,22 +99,78 @@ function OverviewSection({ data, catTotals, totalCost, totalRevenue, totalMargin
   const dMargin = ((totalMargin - prev.margin) / prev.margin) * 100;
   const dPct = avgMarginPct - prev.marginPct;
 
+  // Comparación mes vs mes (Mayo vs Abril). Modelo derivado del YTD real:
+  // el mes corriente ≈ 21% del acumulado; abril se reconstruye por categoría
+  // con una variación determinista (factor MoM). Para backend: reemplazar por
+  // agregados mensuales reales de SHIPMENT_COSTS por fecha.
+  const [cmpMode, setCmpMode] = React.useState('quarter'); // quarter | month
+  const MONTH_SHARE = 0.21;
+  const MONTH_VAR = { freight: 1.08, customs: 0.93, transport: 1.16, handling: 0.98, insurance: 1.0, commission: 1.06, other: 0.88 };
+  const CMP_CATS = [
+    { k: 'freight', l: 'Flete naviera', c: '#7F0F1A' },
+    { k: 'customs', l: 'Aduana SENIAT', c: '#A8323E' },
+    { k: 'transport', l: 'Transporte VE', c: '#C2747F' },
+    { k: 'handling', l: 'Handling CN', c: '#B8893A' },
+    { k: 'insurance', l: 'Seguro', c: '#2A6FDB' },
+    { k: 'commission', l: 'Comisión', c: '#1F8A5B' },
+    { k: 'other', l: 'Otros', c: '#6B6B6B' },
+  ];
+  const curCat = {}, prevCat = {};
+  Object.keys(catTotals).forEach(k => { curCat[k] = catTotals[k] * MONTH_SHARE; prevCat[k] = curCat[k] / (MONTH_VAR[k] || 1); });
+  const mRev = totalRevenue * MONTH_SHARE;
+  const mCost = Object.values(curCat).reduce((a, v) => a + v, 0);
+  const mMargin = mRev - mCost, mPct = mRev > 0 ? (mMargin / mRev) * 100 : 0;
+  const pRev = mRev / 1.06;
+  const pCost = Object.values(prevCat).reduce((a, v) => a + v, 0);
+  const pMargin = pRev - pCost, pPct = pRev > 0 ? (pMargin / pRev) * 100 : 0;
+  const dRevM = ((mRev - pRev) / pRev) * 100;
+  const dCostM = ((mCost - pCost) / pCost) * 100;
+  const dMarginM = ((mMargin - pMargin) / pMargin) * 100;
+  const dPctM = mPct - pPct;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Period comparison */}
       <U.Card padded>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div className="eyebrow eyebrow-wine">COMPARATIVA · YTD 2026 VS Q4 2025</div>
-            <div style={{ font: '900 14px/1.1 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>Performance vs período anterior</div>
+            <div className="eyebrow eyebrow-wine">{cmpMode === 'quarter' ? 'COMPARATIVA · YTD 2026 VS Q4 2025' : 'COMPARATIVA · MAYO VS ABRIL 2026'}</div>
+            <div style={{ font: '900 14px/1.1 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>{cmpMode === 'quarter' ? 'Performance vs período anterior' : 'Performance mes vs mes anterior'}</div>
+          </div>
+          <div style={{ display: 'inline-flex', padding: 3, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', gap: 2 }}>
+            {[['quarter', 'Trimestre'], ['month', 'Mes a mes']].map(([k, l]) => {
+              const a = cmpMode === k;
+              return <button key={k} onClick={() => setCmpMode(k)} style={{ padding: '7px 14px', borderRadius: 'var(--r-sm)', background: a ? 'var(--wine)' : 'transparent', color: a ? '#fff' : 'var(--ink-soft)', font: '700 12px/1 var(--f-sans)', cursor: 'pointer', border: 0 }}>{l}</button>;
+            })}
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
-          <PeriodMetric label="Revenue"    cur={`$${(totalRevenue/1000).toFixed(0)}K`} prev={`$${(prev.revenue/1000).toFixed(0)}K`} delta={dRev}    suffix="%" positiveIsGood />
-          <PeriodMetric label="Costo total" cur={`$${(totalCost/1000).toFixed(0)}K`}    prev={`$${(prev.cost/1000).toFixed(0)}K`}    delta={dCost}   suffix="%" positiveIsGood={false} />
-          <PeriodMetric label="Margen $"    cur={`$${(totalMargin/1000).toFixed(0)}K`}  prev={`$${(prev.margin/1000).toFixed(0)}K`}  delta={dMargin} suffix="%" positiveIsGood />
-          <PeriodMetric label="Margen %"    cur={`${avgMarginPct.toFixed(1)}%`}          prev={`${prev.marginPct.toFixed(1)}%`}        delta={dPct}    suffix=" pts" positiveIsGood />
-        </div>
+
+        {cmpMode === 'quarter' ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+            <PeriodMetric label="Revenue"    cur={`$${(totalRevenue/1000).toFixed(0)}K`} prev={`$${(prev.revenue/1000).toFixed(0)}K`} delta={dRev}    suffix="%" positiveIsGood />
+            <PeriodMetric label="Costo total" cur={`$${(totalCost/1000).toFixed(0)}K`}    prev={`$${(prev.cost/1000).toFixed(0)}K`}    delta={dCost}   suffix="%" positiveIsGood={false} />
+            <PeriodMetric label="Margen $"    cur={`$${(totalMargin/1000).toFixed(0)}K`}  prev={`$${(prev.margin/1000).toFixed(0)}K`}  delta={dMargin} suffix="%" positiveIsGood />
+            <PeriodMetric label="Margen %"    cur={`${avgMarginPct.toFixed(1)}%`}          prev={`${prev.marginPct.toFixed(1)}%`}        delta={dPct}    suffix=" pts" positiveIsGood />
+          </div>
+        ) : (
+          <React.Fragment>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+              <PeriodMetric label="Revenue"    cur={`$${(mRev/1000).toFixed(0)}K`}    prev={`$${(pRev/1000).toFixed(0)}K`}    delta={dRevM}    suffix="%" positiveIsGood />
+              <PeriodMetric label="Costo total" cur={`$${(mCost/1000).toFixed(0)}K`}   prev={`$${(pCost/1000).toFixed(0)}K`}   delta={dCostM}   suffix="%" positiveIsGood={false} />
+              <PeriodMetric label="Margen $"    cur={`$${(mMargin/1000).toFixed(0)}K`} prev={`$${(pMargin/1000).toFixed(0)}K`} delta={dMarginM} suffix="%" positiveIsGood />
+              <PeriodMetric label="Margen %"    cur={`${mPct.toFixed(1)}%`}            prev={`${pPct.toFixed(1)}%`}           delta={dPctM}    suffix=" pts" positiveIsGood />
+            </div>
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>DELTA POR CATEGORÍA DE COSTO · MAYO VS ABRIL</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 8 }}>
+                {CMP_CATS.map(c => <MonthCatRow key={c.k} label={c.l} color={c.c} cur={curCat[c.k]} prev={prevCat[c.k]} />)}
+              </div>
+              <div style={{ marginTop: 12, font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
+                En costos, <b style={{ color: 'var(--success)' }}>↓ verde</b> es bueno (gastás menos) y <b style={{ color: 'var(--danger)' }}>↑ rojo</b> es alerta. Transporte VE subió por combustible; aduana y otros bajaron.
+              </div>
+            </div>
+          </React.Fragment>
+        )}
       </U.Card>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 16 }}>
@@ -188,6 +245,22 @@ function PeriodMetric({ label, cur, prev, delta, suffix, positiveIsGood }) {
         <span style={{ font: '700 12px/1 var(--f-mono)', color: c }}>{arrow} {Math.abs(delta).toFixed(1)}{suffix}</span>
         <span style={{ font: '500 11px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>vs {prev}</span>
       </div>
+    </div>
+  );
+}
+
+function MonthCatRow({ label, color, cur, prev }) {
+  const delta = prev > 0 ? ((cur - prev) / prev) * 100 : 0;
+  const flat = Math.abs(delta) < 0.1;
+  const good = delta <= 0; // en costos, bajar es bueno
+  const c = flat ? 'var(--ink-soft)' : good ? 'var(--success)' : 'var(--danger)';
+  const arrow = delta > 0 ? '↑' : '↓';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-sm)' }}>
+      <span style={{ width: 10, height: 10, borderRadius: 3, background: color, flexShrink: 0 }} />
+      <span style={{ flex: 1, font: '600 12px/1.2 var(--f-sans)', color: 'var(--ink)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+      <span style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--ink)' }}>${(cur / 1000).toFixed(1)}K</span>
+      <span style={{ font: '700 11.5px/1 var(--f-mono)', color: c, minWidth: 56, textAlign: 'right' }}>{flat ? '—' : `${arrow} ${Math.abs(delta).toFixed(1)}%`}</span>
     </div>
   );
 }
@@ -504,9 +577,9 @@ function ForecastSection() {
   const D = window.ERPData;
   const U = window.ERPUI;
   // Pipeline: shipments in cotizado/confirmado/recibido CN status + accepted quotes
-  const pipeline = D.SHIPMENTS.filter(s => ['cotizado', 'confirmado', 'recibido CN', 'consolidado'].includes(s.status))
+  const pipeline = D.byTenant(D.SHIPMENTS).filter(s => ['cotizado', 'confirmado', 'recibido CN', 'consolidado'].includes(s.status))
     .map(s => ({ ship: s, eco: D.shipmentEconomics(s) }));
-  const acceptedQuotes = D.QUOTES.filter(q => q.status === 'aceptada');
+  const acceptedQuotes = D.byTenant(D.QUOTES).filter(q => q.status === 'aceptada');
 
   const projRevenue = pipeline.reduce((a, x) => a + x.eco.revenue, 0) + acceptedQuotes.reduce((a, q) => a + q.totalUSD, 0);
   const projCost    = pipeline.reduce((a, x) => a + x.eco.totalCost, 0) + acceptedQuotes.reduce((a, q) => a + q.totalUSD * 0.78, 0); // ~22% margen estimado

@@ -335,20 +335,35 @@ const SUPPLIERS = [
 ];
 
 // Cliente ↔ Proveedor relaciones
+// wechatGroup = código del grupo WeChat de seguimiento de la compra:
+// MARKBOX-N, donde N es el orden del proveedor dentro de la lista de ese cliente.
+// El grupo es POR par cliente↔proveedor (cada cliente abre su propio grupo con cada supplier).
 const SUPPLIER_CLIENTS = [
-  { supplierId: 'sup-001', clientMarkbox: 'DTD-5452', favorite: true,  shipments: 14, totalValue: 84200, since: '2019-08' },
-  { supplierId: 'sup-001', clientMarkbox: 'DTD-5340', favorite: false, shipments: 8,  totalValue: 38400, since: '2021-02' },
-  { supplierId: 'sup-001', clientMarkbox: 'DTD-5298', favorite: false, shipments: 6,  totalValue: 28200, since: '2022-05' },
-  { supplierId: 'sup-002', clientMarkbox: 'DTD-5418', favorite: true,  shipments: 12, totalValue: 78400, since: '2020-12' },
-  { supplierId: 'sup-003', clientMarkbox: 'DTD-5277', favorite: true,  shipments: 18, totalValue: 128400, since: '2018-09' },
-  { supplierId: 'sup-003', clientMarkbox: 'DTD-5263', favorite: false, shipments: 4,  totalValue: 18400, since: '2023-09' },
-  { supplierId: 'sup-004', clientMarkbox: 'DTD-5371', favorite: true,  shipments: 11, totalValue: 158000, since: '2021-09' },
-  { supplierId: 'sup-005', clientMarkbox: 'DTD-5452', favorite: false, shipments: 4,  totalValue: 16800, since: '2022-03' },
-  { supplierId: 'sup-005', clientMarkbox: 'DTD-5340', favorite: true,  shipments: 22, totalValue: 88400, since: '2020-04' },
-  { supplierId: 'sup-005', clientMarkbox: 'DTD-5354', favorite: false, shipments: 6,  totalValue: 24200, since: '2021-11' },
-  { supplierId: 'sup-006', clientMarkbox: 'DTD-5215', favorite: true,  shipments: 8,  totalValue: 52400, since: '2021-04' },
-  { supplierId: 'sup-007', clientMarkbox: 'DTD-5392', favorite: true,  shipments: 16, totalValue: 312000, since: '2017-08' },
-  { supplierId: 'sup-007', clientMarkbox: 'DTD-5241', favorite: true,  shipments: 8,  totalValue: 98000, since: '2018-11' },
+  { supplierId: 'sup-001', clientMarkbox: 'DTD-5452', favorite: true,  shipments: 14, totalValue: 84200, since: '2019-08', wechatGroup: 'DTD-5452-1' },
+  { supplierId: 'sup-001', clientMarkbox: 'DTD-5340', favorite: false, shipments: 8,  totalValue: 38400, since: '2021-02', wechatGroup: 'DTD-5340-1' },
+  { supplierId: 'sup-001', clientMarkbox: 'DTD-5298', favorite: false, shipments: 6,  totalValue: 28200, since: '2022-05', wechatGroup: 'DTD-5298-1' },
+  { supplierId: 'sup-002', clientMarkbox: 'DTD-5418', favorite: true,  shipments: 12, totalValue: 78400, since: '2020-12', wechatGroup: 'DTD-5418-1' },
+  { supplierId: 'sup-003', clientMarkbox: 'DTD-5277', favorite: true,  shipments: 18, totalValue: 128400, since: '2018-09', wechatGroup: 'DTD-5277-1' },
+  { supplierId: 'sup-003', clientMarkbox: 'DTD-5263', favorite: false, shipments: 4,  totalValue: 18400, since: '2023-09', wechatGroup: 'DTD-5263-1' },
+  { supplierId: 'sup-004', clientMarkbox: 'DTD-5371', favorite: true,  shipments: 11, totalValue: 158000, since: '2021-09', wechatGroup: 'DTD-5371-1' },
+  { supplierId: 'sup-005', clientMarkbox: 'DTD-5452', favorite: false, shipments: 4,  totalValue: 16800, since: '2022-03', wechatGroup: 'DTD-5452-2' },
+  { supplierId: 'sup-005', clientMarkbox: 'DTD-5340', favorite: true,  shipments: 22, totalValue: 88400, since: '2020-04', wechatGroup: 'DTD-5340-2' },
+  { supplierId: 'sup-005', clientMarkbox: 'DTD-5354', favorite: false, shipments: 6,  totalValue: 24200, since: '2021-11', wechatGroup: 'DTD-5354-1' },
+  { supplierId: 'sup-006', clientMarkbox: 'DTD-5215', favorite: true,  shipments: 8,  totalValue: 52400, since: '2021-04', wechatGroup: 'DTD-5215-1' },
+  { supplierId: 'sup-007', clientMarkbox: 'DTD-5392', favorite: true,  shipments: 16, totalValue: 312000, since: '2017-08', wechatGroup: 'DTD-5392-1' },
+  { supplierId: 'sup-007', clientMarkbox: 'DTD-5241', favorite: true,  shipments: 8,  totalValue: 98000, since: '2018-11', wechatGroup: 'DTD-5241-1' },
+];
+
+// ── Órdenes esperadas (mercancía en camino, registrada por el cliente) ──
+// El cliente las crea al comprar en China. Código = MARKBOX-proveedor-compra,
+// que ES el nombre del grupo WeChat de seguimiento (wechatGroup + nº de compra).
+// El almacén CN solo VERIFICA sumatorias + docs; al confirmar pasa a recepción.
+const ORDERS = [
+  { code: 'DTD-5452-1-1', client: 'DTD-5452', supplierId: 'sup-001', boxes: 12, cbm: 6.4,  weight: 980,   packing: true,  invoice: true,  status: 'por verificar', eta: '2026-06-04', goods: 'Cables eléctricos + conectores' },
+  { code: 'DTD-5392-1-2', client: 'DTD-5392', supplierId: 'sup-007', boxes: 42, cbm: 28.4, weight: 12400, packing: true,  invoice: true,  status: 'por verificar', eta: '2026-06-02', goods: 'Heladeras vitrina 600L' },
+  { code: 'DTD-5418-1-1', client: 'DTD-5418', supplierId: 'sup-002', boxes: 8,  cbm: 4.2,  weight: 620,   packing: true,  invoice: false, status: 'en camino',     eta: '2026-06-10', goods: 'Lámparas LED 30/50W' },
+  { code: 'DTD-5340-2-3', client: 'DTD-5340', supplierId: 'sup-005', boxes: 14, cbm: 5.4,  weight: 2100,  packing: false, invoice: true,  status: 'en camino',     eta: '2026-06-18', goods: 'Bolsos cuero sintético' },
+  { code: 'DTD-5277-1-1', client: 'DTD-5277', supplierId: 'sup-003', boxes: 22, cbm: 6.2,  weight: 2400,  packing: true,  invoice: true,  status: 'verificada',    eta: '2026-06-06', goods: 'Tela algodón crudo · 22 rollos' },
 ];
 const SMTP_PROVIDERS = [
   { id: 'gmail',    name: 'Google Workspace',   type: 'oauth', icon: 'mail',  configured: true,  active: true,  account: 'comercial@dtdcargo.com', sent30d: 1840 },
@@ -420,17 +435,149 @@ const KPIS = {
   cbmInTransit:    { value: 412, delta: 'CBM',       tone: 'neutral' },
 };
 
+// ── Multi-tenant ─────────────────────────────────────────────
+// ── Multi-tenant (estructura "Highway") ──────────────────────
+// Cada tenant es una EMPRESA distinta y aislada que usa el sistema
+// (NO son sucursales de DTD). En DTD-Cargo el tenant es invisible:
+// operamos como la empresa 'dtd'. "Cambiar de empresa" = salir de
+// esta e ingresar a otra (no se muestran sucursales en la UI).
+const HOME_TENANT = 'dtd';
+const TENANTS = [
+  { id: 'dtd',      name: 'DTD-Cargo',          short: 'DTD', region: 'Venezuela · CN→VE',        plan: 'Enterprise', prefix: 'DTD', home: true },
+  { id: 'andes',    name: 'Andes Import CA',    short: 'AND', region: 'Empresa aparte · Highway', plan: 'Pro',        prefix: 'AND' },
+  { id: 'pacifico', name: 'Pacífico Logística', short: 'PAC', region: 'Empresa aparte · Highway', plan: 'Pro',        prefix: 'PAC' },
+];
+
+// Toda la data de DTD pertenece a UNA empresa (tenant 'dtd').
+const _cityTenant = () => HOME_TENANT;
+
+// 1) CLIENTS
+CLIENTS.forEach(c => { c.tenantId = HOME_TENANT; });
+const _clientTenant = {};
+CLIENTS.forEach(c => { _clientTenant[c.markbox] = c.tenantId; });
+const _byClient = (markbox) => _clientTenant[markbox] || HOME_TENANT;
+
+// 2) Entidades vinculadas a cliente (markbox)
+SHIPMENTS.forEach(s => { s.tenantId = _byClient(s.client); });
+INVOICES.forEach(i => { i.tenantId = _byClient(i.client); });
+QUOTES.forEach(q => { q.tenantId = _byClient(q.client); });
+WAREHOUSE_CN.forEach(w => { w.tenantId = _byClient(w.client); });
+WAREHOUSE_VE.forEach(w => { w.tenantId = _byClient(w.client); });
+DOCUMENTS.forEach(d => { d.tenantId = _byClient(d.client); });
+SUPPLIER_CLIENTS.forEach(sc => { sc.tenantId = _byClient(sc.clientMarkbox); });
+ORDERS.forEach(o => { o.tenantId = _byClient(o.client); });
+
+// 3) LEADS por ciudad
+LEADS.forEach(l => { l.tenantId = _cityTenant(l.city); });
+
+// 4) SUPPLIERS: tenant = el que más le compra (mayoría de SUPPLIER_CLIENTS)
+SUPPLIERS.forEach(sup => {
+  const tally = {};
+  SUPPLIER_CLIENTS.filter(sc => sc.supplierId === sup.id)
+    .forEach(sc => { tally[sc.tenantId] = (tally[sc.tenantId] || 0) + (sc.shipments || 1); });
+  sup.tenantId = Object.keys(tally).sort((a, b) => tally[b] - tally[a])[0] || HOME_TENANT;
+});
+
+// Estado global del tenant activo (mismo patrón que dtd-hide-values / flags)
+const _TENANT_KEY = 'dtd-current-tenant';
+function _initTenant() {
+  try {
+    const saved = localStorage.getItem(_TENANT_KEY);
+    if (saved && TENANTS.some(t => t.id === saved)) return saved;
+  } catch (e) {}
+  return HOME_TENANT;   // DTD opera como su propia empresa (tenant invisible)
+}
+if (window.__currentTenant == null) window.__currentTenant = _initTenant();
+
+const _tenantApi = {
+  TENANTS,
+  COMPANIES: TENANTS,
+  HOME_TENANT,
+  currentTenant: () => window.__currentTenant || HOME_TENANT,
+  isHomeTenant: () => (window.__currentTenant || HOME_TENANT) === HOME_TENANT,
+  tenant: (id) => TENANTS.find(t => t.id === id) || null,
+  tenantCodePrefix: () => (TENANTS.find(t => t.id === window.__currentTenant)?.prefix) || 'DTD',
+  setTenant: (id) => {
+    window.__currentTenant = id;
+    try { localStorage.setItem(_TENANT_KEY, id); } catch (e) {}
+    window.dispatchEvent(new CustomEvent('dtd-tenant-changed', { detail: id }));
+  },
+  // Filtra por la empresa (tenant) activa. Filas sin tenantId pasan
+  // (infra compartida: flota, plantillas). 'all' = sin filtro.
+  byTenant: (rows) => {
+    const t = window.__currentTenant || HOME_TENANT;
+    if (t === 'all' || !Array.isArray(rows)) return rows;
+    return rows.filter(r => !r || r.tenantId == null || r.tenantId === t);
+  },
+};
+
+// ── Catálogo de Servicios y Tarifas (única fuente de verdad) ──
+// Lo consumen: módulo Servicios y Tarifas, cotizador y facturación.
+// Cada ítem tiene tarifa vigente (rate + from/to) e historial.
+const CATALOG_ITEMS = [
+  { id: 's1', type: 'servicio', code: 'SRV-LCL',     name: 'Flete marítimo LCL · DDP', unit: 'CBM',      desc: 'Consolidado puerta a puerta CN → VE', rate: 185, from: '2026-05-01', to: '2026-06-30',
+    supplierRates: [
+      { name: 'Evergreen', price: 175, to: '2026-06-10' },
+      { name: 'MSC', price: 182, to: '2026-06-20' },
+      { name: 'COSCO', price: 178, to: '2026-06-30' },
+      { name: 'Maersk', price: 185, to: '2026-07-15' },
+      { name: 'Hapag-Lloyd', price: 190, to: '2026-08-01' },
+    ],
+    history: [{ rate: 172, from: '2026-03-01', to: '2026-04-30' }, { rate: 165, from: '2026-01-01', to: '2026-02-28' }] },
+  { id: 's2', type: 'servicio', code: 'SRV-ADU',     name: 'Despacho aduanal',         unit: 'envío',    desc: 'Gestión SENIAT + nacionalización', rate: 120, from: '2026-04-15', to: '2026-07-15', history: [{ rate: 110, from: '2026-01-15', to: '2026-04-14' }] },
+  { id: 's3', type: 'servicio', code: 'SRV-ALM-CN',  name: 'Almacenaje en China',      unit: 'CBM/mes',  desc: 'Bodega Yiwu · primeros 15 días libres', rate: 8, from: '2026-05-01', to: '2026-06-12', history: [{ rate: 7, from: '2026-02-01', to: '2026-04-30' }] },
+  { id: 's4', type: 'servicio', code: 'SRV-MILLA',   name: 'Última milla · Venezuela', unit: 'envío',    desc: 'Entrega nacional desde Valencia', rate: 35, from: '2026-03-01', to: '2026-05-20', history: [{ rate: 32, from: '2025-11-01', to: '2026-02-28' }] },
+  { id: 's5', type: 'servicio', code: 'SRV-SEG',     name: 'Seguro de carga',          unit: '% valor',  desc: 'Cobertura todo riesgo sobre valor CIF', rate: 1.2, from: '2026-01-01', to: '2026-12-31', history: [] },
+
+  { id: 'n1', type: 'no_inv', code: 'REC-BAF',   name: 'Recargo combustible (BAF)', unit: 'CBM',   desc: 'Ajuste por flete · variable mensual', rate: 14, from: '2026-05-01', to: '2026-05-31', history: [{ rate: 11, from: '2026-04-01', to: '2026-04-30' }] },
+  { id: 'n2', type: 'no_inv', code: 'DOC-GEST',  name: 'Gestión documental',        unit: 'envío', desc: 'BL, packing list, certificados', rate: 18, from: '2026-01-01', to: '2026-12-31', history: [] },
+  { id: 'n3', type: 'no_inv', code: 'INSP-3RO',  name: 'Inspección de terceros',    unit: 'envío', desc: 'Al costo · proveedor externo', rate: 45, from: '2026-02-01', to: '2026-08-01', history: [] },
+
+  { id: 'i1', type: 'inventario', code: 'INV-CAJA',   name: 'Caja master 60×40×40', unit: 'unidad', desc: 'Cartón doble corrugado', rate: 2.5, cost: 1.4, stock: 320, reorder: 100, from: '2026-04-01', to: '2026-09-30', history: [] },
+  { id: 'i2', type: 'inventario', code: 'INV-PALLET', name: 'Pallet de madera',     unit: 'unidad', desc: 'Estándar 1.2×1.0 m', rate: 12, cost: 7, stock: 28, reorder: 40, from: '2026-04-01', to: '2026-09-30', history: [] },
+  { id: 'i3', type: 'inventario', code: 'INV-QR',     name: 'Etiqueta QR adhesiva', unit: 'unidad', desc: 'Trazabilidad de bultos', rate: 0.3, cost: 0.12, stock: 1500, reorder: 500, from: '2026-01-01', to: '2026-12-31', history: [] },
+  { id: 'i4', type: 'inventario', code: 'INV-FILM',   name: 'Film stretch',         unit: 'rollo',  desc: 'Embalaje de pallets', rate: 6, cost: 3.5, stock: 14, reorder: 20, from: '2026-03-01', to: '2026-08-31', history: [] },
+
+  { id: 'g1', type: 'grupo', code: 'GRP-DDP',  name: 'DDP Puerta a Puerta', unit: 'envío', desc: 'El combo estrella · todo incluido', components: ['SRV-LCL', 'SRV-ADU', 'SRV-MILLA', 'SRV-SEG'], from: '2026-05-01', to: '2026-06-30', history: [] },
+  { id: 'g2', type: 'grupo', code: 'GRP-ECOM', name: 'Combo e-commerce',    unit: 'envío', desc: 'Para tiendas online · con materiales', components: ['SRV-LCL', 'SRV-MILLA', 'INV-CAJA', 'INV-QR'], from: '2026-05-01', to: '2026-07-31', history: [] },
+];
+const _catByCode = (c) => CATALOG_ITEMS.find(x => x.code === c);
+const _catGroupTotal = (item) => (item.components || []).reduce((a, c) => a + (_catByCode(c)?.rate || 0), 0);
+const _catDisplayRate = (item) => item && item.type === 'grupo' ? _catGroupTotal(item) : (item ? item.rate : 0);
+const CATALOG = {
+  ITEMS: CATALOG_ITEMS,
+  INCOME_ACCTS: ['Ventas envío marítimo · CBM', 'Ventas envío marítimo · Consolidado China', 'Servicio de transporte · China', 'Servicio de transporte · Nacional', 'Peso extra', 'Ingresos de envío', 'Bodegaje', 'Comisión por envío de dinero', 'Compra asistida', 'Registro de marca', 'Trámite visa China', 'Validación de proveedores', 'Descuento en venta'],
+  EXPENSE_ACCTS: ['Costos fletes · Envío marítimo', 'Costos fletes · Transporte China', 'Costos fletes · Extras en origen China', 'Costos fletes · Encomienda y despacho', 'Comisión envío dinero', 'Costo de inspección', 'Costo compra asistida', 'Costo registro de marca', 'Costo trámite visa China', 'Validación de proveedor', 'Gastos de oficina · Compras', 'Comisiones bancarias'],
+  CATEGORIES: ['Envío marítimo', 'Transporte China', 'Transporte nacional', 'Peso extra', 'Bodegaje', 'Compra asistida', 'Registro de marca', 'Visa China', 'Validación de proveedores', 'Otros'],
+  AUTHORS: ['Martina Acuña', 'Carlos Vásquez', 'Diego Núñez'],
+  SUPPLIERS_CN: ['Yiwu Standard Trading', 'Shenzhen Lights Ltd', 'Guangzhou Textile Mfg', 'Industrial CN Group', 'Yiwu Trade Mall'],
+  PROVIDERS: ['COSCO', 'Maersk', 'MSC', 'Evergreen', 'Hapag-Lloyd', 'ONE', 'CMA CGM', 'Yiwu Standard Trading'],
+  byCode: _catByCode,
+  groupTotal: _catGroupTotal,
+  displayRate: _catDisplayRate,
+  // Tarifa vigente de un código (grupo = suma de componentes)
+  rateOf: (code) => _catDisplayRate(_catByCode(code)),
+  // Ítems vendibles (servicios + no_inv + grupos + inventario), formato SearchSelect
+  lineOptions: () => CATALOG_ITEMS.map(it => ({
+    value: it.code,
+    label: `${it.name}`,
+    sub: `${it.code} · $${_catDisplayRate(it)}/${it.unit}`,
+  })),
+};
+
 window.ERPData = {
   CLIENTS, SHIPMENTS, QUOTES, INVOICES, WAREHOUSE_CN, WAREHOUSE_VE,
   LEADS, USERS, RATES, DOCUMENTS, MAIL_TEMPLATES, NOTIFS, KPIS,
   SIGNATURES, SIGNATURE_LAYOUTS, SMTP_PROVIDERS, BLACKLIST, TEMPLATE_VARIABLES,
   SHIPMENT_COSTS, shipmentEconomics, ROUTE_COST_TEMPLATES,
-  SUPPLIERS, SUPPLIER_CLIENTS,
+  SUPPLIERS, SUPPLIER_CLIENTS, ORDERS,
   TRUCKS, DRIVERS, TMS_ROUTES, TMS_INCIDENTS,
   ROLE_MODULES,
   STATUS_FLOW, STATUS_TONE,
+  CATALOG,
   ORIGINS: _origins, DESTINATIONS: _destinations,
   byMarkbox: (m) => CLIENTS.find(c => c.markbox === m),
   origin: (code) => _origins.find(o => o.code === code) || { name: code, cn: '', country: 'CN' },
   dest: (code) => _destinations.find(d => d.code === code) || { name: code, country: 'VE' },
 };
+Object.assign(window.ERPData, _tenantApi);

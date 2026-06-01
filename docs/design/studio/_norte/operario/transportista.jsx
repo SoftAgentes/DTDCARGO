@@ -38,6 +38,9 @@
     const [activeIndex, setActiveIndex] = useState(0);
     const [podOpen, setPodOpen]       = useState(false);
     const [toast, setToast]           = useState(null);
+    const [avisosOpen, setAvisosOpen]  = useState(false);
+    const Avisos = window.OperarioAvisos;
+    const avisos = (Avisos && Avisos.seedCamion) ? Avisos.seedCamion() : [];
 
     const pending = deliveries.filter(d => d.status === 'pending');
     const done    = deliveries.filter(d => d.status === 'done');
@@ -75,7 +78,7 @@
         display: 'flex', flexDirection: 'column',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}>
-        <Header theme={theme} onToggleTheme={themeControlled ? null : () => setInternalTheme(t => t === 'dark' ? 'light' : 'dark')} driver={ROUTE.driver} truck={ROUTE.truck} />
+        <Header theme={theme} onToggleTheme={themeControlled ? null : () => setInternalTheme(t => t === 'dark' ? 'light' : 'dark')} driver={ROUTE.driver} truck={ROUTE.truck} avisos={avisos} onAvisos={() => setAvisosOpen(true)} />
         <RouteBlock route={ROUTE} done={doneCt} total={total} />
         <GPSBlock gpsOn={gpsOn} onToggle={() => setGpsOn(!gpsOn)} current={current} />
 
@@ -121,6 +124,8 @@
           <GPSPushAlert onTurnOn={() => { setGpsOn(true); setShowGpsAlert(false); }} onDismiss={() => setShowGpsAlert(false)} />
         )}
 
+        {Avisos && <Avisos.Sheet open={avisosOpen} onClose={() => setAvisosOpen(false)} t={(es) => es} lang="es" items={avisos} />}
+
         {/* Modal POD (Llegada + foto + firma) */}
         {podOpen && current && (
           <PODModal pkg={current} onClose={() => setPodOpen(false)} onConfirm={() => markDelivered(current.order)} />
@@ -141,7 +146,7 @@
   }
 
   // ── Header sticky ────────────────────────────────────────────
-  function Header({ theme, onToggleTheme, driver, truck }) {
+  function Header({ theme, onToggleTheme, driver, truck, avisos, onAvisos }) {
     const I = window.Icon;
     return (
       <header style={{
@@ -157,6 +162,7 @@
             <div style={{ font: '500 11.5px/1.2 var(--f-mono)', color: 'var(--ink-soft)', marginTop: 3 }}>{truck.plate} · {truck.label}</div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {window.OperarioAvisos && onAvisos && <window.OperarioAvisos.Bell items={avisos || []} onOpen={onAvisos} />}
             {onToggleTheme && (
               <button onClick={onToggleTheme} aria-label="Toggle tema" style={{
                 width: 36, height: 36, borderRadius: 'var(--r-pill)',

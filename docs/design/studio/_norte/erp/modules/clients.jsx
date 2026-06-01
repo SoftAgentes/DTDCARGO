@@ -16,7 +16,10 @@ const CLI_COLS_DEFAULT = [
 
 function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
   const D = window.ERPData;
+  const baseClients = D.byTenant(D.CLIENTS);   // multi-tenant
   const U = window.ERPUI;
+  const hide = U.useHideValues();
+  const loading = U.useFirstLoad('clients');
   const [search, setSearch] = _useStateCli('');
   const [tier, setTier] = _useStateCli('all');
   const [status, setStatus] = _useStateCli('all');
@@ -29,7 +32,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
   }, [selectedId, view]);
 
   const filtered = _useMemoCli(() => {
-    let rows = D.CLIENTS;
+    let rows = baseClients;
     if (status !== 'all') rows = rows.filter(c => c.status === status);
     if (tier !== 'all') rows = rows.filter(c => c.tier === tier);
     if (search) {
@@ -58,7 +61,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
     { label: 'Segmento', key: 'segment', render: (r) => <span style={{ font: '500 12px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>{r.segment}</span>, width: 110 },
     { label: 'Ciudad', key: 'city', width: 110 },
     { label: 'Envíos', key: 'shipments', align: 'right', render: (r) => <span className="mono" style={{ font: '700 13px/1 var(--f-mono)', color: 'var(--ink)' }}>{r.shipments}</span>, width: 70 },
-    { label: 'Facturado', key: 'billed', align: 'right', render: (r) => <span className="mono" style={{ font: '700 13px/1 var(--f-mono)', color: 'var(--ink)' }}>${(r.billed/1000).toFixed(1)}K</span>, width: 100 },
+    { label: 'Facturado', key: 'billed', align: 'right', render: (r) => <span className="mono" style={{ font: '700 13px/1 var(--f-mono)', color: 'var(--ink)' }}>{hide ? '•••' : `$${(r.billed/1000).toFixed(1)}K`}</span>, width: 100 },
     { label: 'Estado', key: 'status', render: (r) => {
       const today = new Date('2026-05-23');
       const last = r.lastLogin ? new Date(r.lastLogin) : null;
@@ -93,7 +96,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
     <div>
       <U.PageHeader
         title="Clientes"
-        subtitle={`${D.CLIENTS.length} cuentas con código MARKBOX activo. ${D.CLIENTS.filter(c=>c.status==='active').length} activas, ${D.CLIENTS.filter(c=>c.status==='pending').length} pendientes de verificación.`}
+        subtitle={`${baseClients.length} cuentas con código MARKBOX activo. ${baseClients.filter(c=>c.status==='active').length} activas, ${baseClients.filter(c=>c.status==='pending').length} pendientes de verificación.`}
         actions={
           <>
             <U.Btn variant="secondary" icon={window.Icon.download(14)}>Exportar</U.Btn>
@@ -126,7 +129,9 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
         }
       />
 
-      {filtered.length === 0 ? (
+      {loading ? (
+        <U.LoadingRows rows={6} cols={6} />
+      ) : filtered.length === 0 ? (
         <U.EmptyState
           icon={window.Icon.users(22)}
           title="No hay clientes que coincidan"
@@ -181,6 +186,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
 function ClientDetail({ c, goTo }) {
   const D = window.ERPData;
   const U = window.ERPUI;
+  const hide = U.useHideValues();
   const myShipments = D.SHIPMENTS.filter(s => s.client === c.markbox);
   const myInvoices = D.INVOICES.filter(i => i.client === c.markbox);
   const totalOutstanding = myInvoices.reduce((sum, i) => sum + i.balance, 0);
@@ -200,11 +206,11 @@ function ClientDetail({ c, goTo }) {
         </U.Card>
         <U.Card style={{ padding: 14 }}>
           <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Facturado</div>
-          <div style={{ font: '900 18px/1 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>${(c.billed/1000).toFixed(1)}K</div>
+          <div style={{ font: '900 18px/1 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>{hide ? '•••' : `$${(c.billed/1000).toFixed(1)}K`}</div>
         </U.Card>
         <U.Card style={{ padding: 14 }}>
           <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>Adeudado</div>
-          <div style={{ font: '900 18px/1 var(--f-display)', color: totalOutstanding > 0 ? 'var(--warning)' : 'var(--success)', marginTop: 6 }}>${(totalOutstanding/1000).toFixed(1)}K</div>
+          <div style={{ font: '900 18px/1 var(--f-display)', color: totalOutstanding > 0 ? 'var(--warning)' : 'var(--success)', marginTop: 6 }}>{hide ? '•••' : `$${(totalOutstanding/1000).toFixed(1)}K`}</div>
         </U.Card>
       </div>
 
@@ -277,22 +283,105 @@ function ClientDetail({ c, goTo }) {
 
 function ClientForm() {
   const U = window.ERPUI;
+  const I = window.Icon;
+  const [tipo, setTipo] = React.useState('persona');
+  const [whatsapp, setWhatsapp] = React.useState(true);
+  const [docCedula, setDocCedula] = React.useState(null);
+  const [docRif, setDocRif] = React.useState(null);
+
+  const SectionLabel = ({ children }) => (
+    <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.12em', textTransform: 'uppercase', marginTop: 4 }}>{children}</div>
+  );
+
+  // Tile de documento · refleja la cédula/RIF que el cliente cargó en el
+  // portal/registro. En alta manual, el admin la adjunta acá.
+  const DocTile = ({ value, onChange, title, hint, fileName }) => value ? (
+    <div style={{ padding: 12, background: 'var(--success-bg)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ color: 'var(--success)', display: 'inline-flex' }}>{I.check(16)}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ font: '700 12px/1.2 var(--f-sans)', color: 'var(--success)' }}>{title}</div>
+        <code style={{ font: '500 10.5px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>{fileName}</code>
+      </div>
+      <button onClick={() => onChange(null)} style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)', padding: '4px 8px', cursor: 'pointer' }}>Quitar</button>
+    </div>
+  ) : (
+    <button onClick={() => onChange('mock-doc-' + Date.now())} style={{
+      padding: '18px 14px', width: '100%',
+      background: 'var(--bg-elevated)', border: '1px dashed var(--border)',
+      borderRadius: 'var(--r-md)', color: 'var(--ink-soft)', cursor: 'pointer',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+      font: '600 12px/1.4 var(--f-sans)', textAlign: 'center',
+    }}
+    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--wine)'; e.currentTarget.style.color = 'var(--wine)'; }}
+    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--ink-soft)'; }}
+    >
+      {I.upload(20)}
+      <span style={{ font: '700 12px/1.2 var(--f-sans)' }}>{title}</span>
+      <span style={{ font: '500 10.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>{hint}</span>
+    </button>
+  );
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <U.Input label="Nombre" placeholder="Nombre del contacto" />
-        <U.Input label="Apellido" placeholder="Apellido" />
+      {/* Tipo de cliente · igual que el registro */}
+      <SectionLabel>Tipo de cliente</SectionLabel>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        {[
+          { id: 'persona', label: 'Persona natural', desc: 'Importa a título personal', icon: I.users(16) },
+          { id: 'empresa', label: 'Empresa', desc: 'Razón social · RIF', icon: I.shield(16) },
+        ].map(t => {
+          const on = tipo === t.id;
+          return (
+            <button key={t.id} onClick={() => setTipo(t.id)} style={{
+              padding: '12px 14px', textAlign: 'left', cursor: 'pointer',
+              border: '1px solid ' + (on ? 'var(--wine)' : 'var(--border)'),
+              background: on ? 'var(--wine-tint)' : 'var(--bg-surface)',
+              borderRadius: 'var(--r-md)', display: 'flex', flexDirection: 'column', gap: 6,
+            }}>
+              <span style={{ color: on ? 'var(--wine)' : 'var(--ink-soft)', display: 'inline-flex' }}>{t.icon}</span>
+              <div>
+                <div style={{ font: '800 13px/1.1 var(--f-display)', color: on ? 'var(--wine)' : 'var(--ink)' }}>{t.label}</div>
+                <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 2 }}>{t.desc}</div>
+              </div>
+            </button>
+          );
+        })}
       </div>
-      <U.Input label="Empresa" placeholder="Razón social" />
+
+      {/* Identificación */}
+      <SectionLabel>Identificación</SectionLabel>
+      <div style={{ display: 'grid', gridTemplateColumns: tipo === 'empresa' ? '1fr 1fr' : '1fr', gap: 14 }}>
+        <U.Input label={tipo === 'empresa' ? 'Nombre de contacto' : 'Nombre completo'} placeholder="Carlos Pérez" />
+        {tipo === 'empresa' && <U.Input label="Razón social" placeholder="Importadora Pérez CA" />}
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-        <U.Input label="RIF" placeholder="J-00000000-0" mono />
+        <U.Input label={tipo === 'empresa' ? 'RIF' : 'Cédula'} placeholder={tipo === 'empresa' ? 'J-00000000-0' : 'V-00000000'} mono />
         <U.Select label="Segmento" options={['Industrial', 'Retail', 'Mayorista', 'Tecnología', 'Textil', 'Belleza', 'Comercial', 'Servicios']} />
       </div>
+
+      {/* Contacto */}
+      <SectionLabel>Contacto</SectionLabel>
       <U.Input label="Email" type="email" placeholder="contacto@empresa.com" />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
         <U.Input label="Teléfono" placeholder="+58 412 000 0000" mono />
         <U.Select label="Ciudad" options={['Caracas', 'Valencia', 'Maracaibo', 'Punto Fijo', 'Barquisimeto', 'Mérida', 'Maturín']} />
       </div>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '2px 2px' }}>
+        <input type="checkbox" checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} style={{ accentColor: 'var(--wine)', width: 16, height: 16 }} />
+        <span style={{ font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink)' }}>El teléfono tiene WhatsApp</span>
+      </label>
+
+      {/* Documentos · cédula/RIF que el cliente cargó en el registro */}
+      <SectionLabel>Documentos de identidad</SectionLabel>
+      <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -4 }}>
+        En altas desde el portal, el cliente carga {tipo === 'empresa' ? 'el RIF' : 'la cédula'} automáticamente en el registro. En altas manuales, adjuntala acá.
+      </div>
+      {tipo === 'empresa' ? (
+        <DocTile value={docRif} onChange={setDocRif} title="Foto del RIF · ambos lados" hint="JPG o PDF · arrastrá o hacé clic" fileName="rif-empresa.jpg" />
+      ) : (
+        <DocTile value={docCedula} onChange={setDocCedula} title="Foto de la cédula · anverso y reverso" hint="JPG o PDF · arrastrá o hacé clic" fileName="cedula-cliente.jpg" />
+      )}
+
       <div style={{ padding: '14px 16px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', borderLeft: '3px solid var(--wine)' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ color: 'var(--wine)' }}>{window.Icon.info(14)}</span>

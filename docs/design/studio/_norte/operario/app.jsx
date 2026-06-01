@@ -168,7 +168,7 @@ function Login({ onLogin, lang, setLang, t }) {
 
       <div style={{ textAlign: 'center', font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.4)' }}>
         {t('Wang Hua · 王华 · YIW-A1', 'Wang Hua · 王华 · YIW-A1')}<br/>
-        v1.0 · DTD-CARGO 2026
+        v2.0 · DTD-CARGO 2026
       </div>
     </div>
   );
@@ -179,13 +179,20 @@ function Home({ user, t, lang, setLang, theme, setTheme, onStart, onDispatch, on
   const [menuOpen, setMenuOpen] = useState(false);
   const [printOpen, setPrintOpen] = useState(false);
   const [trackRec, setTrackRec] = useState(null);
+  const [avisosOpen, setAvisosOpen] = useState(false);
+  const Avisos = window.OperarioAvisos;
+  const avisos = React.useMemo(() => Avisos ? Avisos.seed(t) : [], [lang]);
+  const onAviso = (act) => { if (act === 'dispatch') onDispatch(); else if (act === 'print') setPrintOpen(true); };
   return (
     <div>
       <MobileHeader
         title={t('Mi día', '今日工作')}
         subtitle="YIW-A1 · 义乌港二期"
         right={
-          <button onClick={() => setMenuOpen(true)} style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', color: 'var(--ink-soft)' }}>{window.Icon.menu(20)}</button>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 2, marginRight: -8 }}>
+            {Avisos && <Avisos.Bell items={avisos} onOpen={() => setAvisosOpen(true)} />}
+            <button onClick={() => setMenuOpen(true)} style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', color: 'var(--ink-soft)', background: 'transparent', border: 0 }}>{window.Icon.menu(20)}</button>
+          </div>
         }
       />
 
@@ -334,6 +341,7 @@ function Home({ user, t, lang, setLang, theme, setTheme, onStart, onDispatch, on
       )}
 
       {window.PrintQRSheet && <window.PrintQRSheet open={printOpen} onClose={() => setPrintOpen(false)} t={t} lang={lang} />}
+      {Avisos && <Avisos.Sheet open={avisosOpen} onClose={() => setAvisosOpen(false)} t={t} lang={lang} items={avisos} onAction={onAviso} />}
       {trackRec && <TrackSheet rec={trackRec} t={t} lang={lang} onClose={() => setTrackRec(null)} onPrint={() => { setTrackRec(null); setPrintOpen(true); }} />}
     </div>
   );

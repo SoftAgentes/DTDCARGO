@@ -122,19 +122,38 @@ function daysUntil(dateStr) {
 
 function outstandingUsd(p) { return Math.max(0, (p.amountUsd || 0) - (p.paidUsd || 0)); }
 
+// ── Depósitos de caja (ingresos por cobranza) · overlay persistente ──
+// Los cobros registrados en Cobranzas aterrizan acá y suman al saldo de
+// la cuenta elegida. Persistido en localStorage; evento dtd-tesoreria-changed.
+const CASH_LS_KEY = 'dtd_cash_deposits_v1';
+function cashDeposits() { try { return JSON.parse(localStorage.getItem(CASH_LS_KEY) || '[]'); } catch (e) { return []; } }
+function _cashWriteDeposits(arr) {
+  try { localStorage.setItem(CASH_LS_KEY, JSON.stringify(arr)); } catch (e) {}
+  window.dispatchEvent(new CustomEvent('dtd-tesoreria-changed'));
+}
+function accountDepositsOrig(id) { return cashDeposits().filter(d => d.accountId === id).reduce((s, d) => s + (Number(d.amountOriginal) || 0), 0); }
+function accountDepositsUsd(id)  { return cashDeposits().filter(d => d.accountId === id).reduce((s, d) => s + (Number(d.amountUsd) || 0), 0); }
+function accBalance(acc)    { return (acc.balance || 0) + accountDepositsOrig(acc.id); }
+function accBalanceUsd(acc) { return (acc.balanceUsd || 0) + accountDepositsUsd(acc.id); }
+function cashDeposit(entry) {
+  const arr = cashDeposits();
+  arr.push({ id: 'DEP-' + Date.now(), date: TODAY, ...entry });
+  _cashWriteDeposits(arr);
+}
+
 // Posición de caja por moneda (agregada)
 function cashByCurrency() {
   const map = {};
   CASH_ACCOUNTS.forEach(a => {
     if (!map[a.currency]) map[a.currency] = { currency: a.currency, balance: 0, balanceUsd: 0, accounts: 0 };
-    map[a.currency].balance += a.balance;
-    map[a.currency].balanceUsd += a.balanceUsd;
+    map[a.currency].balance += accBalance(a);
+    map[a.currency].balanceUsd += accBalanceUsd(a);
     map[a.currency].accounts += 1;
   });
   return Object.values(map).sort((a, b) => b.balanceUsd - a.balanceUsd);
 }
 
-function totalCashUsd() { return CASH_ACCOUNTS.reduce((s, a) => s + a.balanceUsd, 0); }
+function totalCashUsd() { return CASH_ACCOUNTS.reduce((s, a) => s + accBalanceUsd(a), 0); }
 
 // CxP abiertas (no pagadas)
 function openPayables() { return PAYABLES.filter(p => p.status !== 'pagado'); }
@@ -176,6 +195,7 @@ window.TesoreriaData = {
   PAYEE_TYPE, PAYABLE_STATUS, PO_STATUS, PO_METHOD,
   getPayee, getAccount, daysUntil, outstandingUsd,
   cashByCurrency, totalCashUsd, openPayables, totalOpenUsd,
+  cashDeposits, cashDeposit, accBalance, accBalanceUsd, accountDepositsUsd, accountDepositsOrig,
   overduePayables, dueSoon, openByType, cashOutForecast,
   fmtCny, usdToCny, cnyToUsd, TODAY, TESORERIA_LS_KEY,
 };

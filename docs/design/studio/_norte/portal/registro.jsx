@@ -94,6 +94,17 @@
         };
         const cur = window.DTDData.clients.read();
         window.DTDData.clients.write([newClient, ...cur]);
+        // Aviso al ERP (badge + notificación para aprobar el registro)
+        if (window.DTDData.pushPortalEvent) {
+          try {
+            window.DTDData.pushPortalEvent({
+              kind: 'registro', tone: 'wine', markbox: newMarkbox,
+              title: 'Registro nuevo · ' + (newClient.name || 'cliente'),
+              detail: (newClient.company ? newClient.company + ' · ' : '') + 'Esperando aprobación',
+              channel: 'portal-web',
+            });
+          } catch (e) { console.error('[registro] pushPortalEvent falló:', e); }
+        }
       }
 
       // ── Email de bienvenida real (template m-05) ────────────

@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>DTD Studio · ERP · v1.9.1</title>
+<title>DTD Studio · ERP · v2.3</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=Nunito+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="erp/tokens.css" />
 <style>
   /* ── App-level layout ────────────────────────────────────── */
@@ -53,6 +53,8 @@
 <script type="text/babel" src="erp/i18n-cn.jsx"></script>
 <script type="text/babel" src="erp/data.jsx"></script>
 <script type="text/babel" src="erp/components.jsx"></script>
+<script type="text/babel" src="nuevo/search-select.jsx"></script>
+<script type="text/babel" src="nuevo/catalog-lines.jsx"></script>
 <script type="text/babel" src="nuevo/feature-flags.jsx"></script>
 <script type="text/babel" src="nuevo/rates.jsx"></script>
 <script type="text/babel" src="erp/shell.jsx"></script>
@@ -82,6 +84,7 @@
 <script type="text/babel" src="nuevo/modules/mailing-scheduled.jsx"></script>
 <script type="text/babel" src="erp/modules/vault.jsx"></script>
 <script type="text/babel" src="erp/modules/quick-email.jsx"></script>
+<script type="text/babel" src="erp/modules/fairs-detection.jsx"></script>
 <script type="text/babel" src="erp/modules/calendar.jsx"></script>
 <script type="text/babel" src="erp/modules/comments.jsx"></script>
 <script type="text/babel" src="erp/modules/admin.jsx"></script>
@@ -94,6 +97,7 @@
 <script type="text/babel" src="erp/modules/despacho-dashboard.jsx"></script>
 <script type="text/babel" src="erp/modules/audit-log.jsx"></script>
 <script type="text/babel" src="erp/data-bridge.jsx"></script>
+<script type="text/babel" src="nuevo/api/client.jsx"></script>
 <script type="text/babel" src="erp/od-bridge.jsx"></script>
 <script type="text/babel" src="erp/modules/costing.jsx"></script>
 <script type="text/babel" src="erp/modules/tms.jsx"></script>
@@ -125,6 +129,7 @@
 <script type="text/babel" src="nuevo/modules/cobranzas-data.jsx"></script>
 <script type="text/babel" src="nuevo/modules/cobranzas.jsx"></script>
 <script type="text/babel" src="nuevo/modules/label-generator.jsx"></script>
+<script type="text/babel" src="nuevo/propuesta/servicios-tarifas.jsx"></script>
 <script type="text/babel" src="nuevo/modules/wiring.jsx"></script>
 
 <!-- App bootstrap -->
@@ -149,6 +154,23 @@ function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(!!tweaks.sidebarCollapsed);
   const [currentUser, setCurrentUser] = useState(null);
+  const [tenantTick, setTenantTick] = useState(0);
+  const [portalInbox, setPortalInbox] = useState([]);
+
+  // Bandeja del portal (registros, cotizaciones, re-compras entrantes).
+  // Se suscribe al bridge compartido (localStorage) que publican el portal
+  // web + móvil. Se filtra por tenant antes de mostrarse (multi-tenant).
+  useEffect(() => {
+    if (!window.DTDData || !window.DTDData.portalInbox) return;
+    return window.DTDData.portalInbox.subscribe(list => setPortalInbox(list || []));
+  }, []);
+
+  // Re-render full ERP when the active tenant changes (multi-tenant)
+  useEffect(() => {
+    const onTenant = () => setTenantTick(t => t + 1);
+    window.addEventListener('dtd-tenant-changed', onTenant);
+    return () => window.removeEventListener('dtd-tenant-changed', onTenant);
+  }, []);
 
   // Initialize current user from data (default Admin = Carlos V.)
   useEffect(() => {
@@ -245,7 +267,7 @@ function App() {
     'despacho-rules': window.ModuleDespachoRules,
     'despacho-dashboard': window.ModuleDespachoDashboard,
     'audit-log': window.ModuleAuditLog,
-    rates:      window.ModuleRates,
+    rates:      window.ModuleServiciosTarifas || window.ModuleRates,
     users:      window.ModuleUsers,
     reports:    window.ModuleReports,
     costing:    window.ModuleCosting,
@@ -288,13 +310,37 @@ function App() {
           theme={tweaks.theme}
           onThemeToggle={() => setTweak('theme', tweaks.theme === 'dark' ? 'light' : 'dark')}
           onSearchFocus={() => setPaletteOpen(true)}
-          notifications={window.ERPData.NOTIFS}
+          notifications={(() => {
+            const byT = window.ERPData.byTenant;
+            const evts = byT(portalInbox).filter(e => !e.read);
+            const rel = (iso) => {
+              const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+              if (s < 60) return 'hace un momento';
+              if (s < 3600) return 'hace ' + Math.floor(s / 60) + ' min';
+              if (s < 86400) return 'hace ' + Math.floor(s / 3600) + ' h';
+              return 'hace ' + Math.floor(s / 86400) + ' d';
+            };
+            const portalNotifs = evts.map(e => ({
+              id: e.id, t: e.title,
+              m: (e.detail ? e.detail + ' · ' : '') + rel(e.ts),
+              tone: e.tone || 'wine', portal: true, kind: e.kind, markbox: e.markbox,
+            }));
+            return [...portalNotifs, ...window.ERPData.NOTIFS];
+          })()}
+          onPortalAction={(n) => {
+            if (window.DTDData?.markPortalRead) window.DTDData.markPortalRead([n.id]);
+            const mod = n.kind === 'cotizacion' ? 'quotes' : n.kind === 'recompra' ? 'suppliers' : 'clients';
+            goTo(mod);
+          }}
+          onPortalClear={() => { if (window.DTDData?.markPortalRead) window.DTDData.markPortalRead(); }}
           currentUser={currentUser}
           onSwitchUser={setCurrentUser}
         />
 
+        {window.ERPShell.CompanyBanner && <window.ERPShell.CompanyBanner />}
+
         <main className="erp-content">
-          <div className="erp-route" key={activeMod + view + (selectedId || '') + (currentUser?.id || '')}>
+          <div className="erp-route" key={activeMod + view + (selectedId || '') + (currentUser?.id || '') + '|' + tenantTick}>
             {ActiveModule ? (
               <ActiveModule
                 key={currentUser?.id || 'default'}

@@ -32,15 +32,22 @@ function _cobWriteOverlay(o) { try { localStorage.setItem(COBRANZAS_KEY, JSON.st
 
 // Ítems de cobranza = facturas con saldo, fusionadas con la gestión guardada.
 function cobItems() {
-  const invs = (window.ERPData?.INVOICES || []).filter(i => (i.balance || 0) > 0);
+  const invs = ((window.ERPData?.byTenant?.(window.ERPData.INVOICES)) || window.ERPData?.INVOICES || []).filter(i => (i.balance || 0) > 0);
   const overlay = _cobReadOverlay();
   return invs.map(i => {
     const over = overlay[i.id] || {};
+    const collectedUsd = over.collectedUsd || 0;
+    const balance = Math.max(0, (i.balance || 0) - collectedUsd);
     const days = _cobDays(i.due);
     const baseStage = days > 0 ? 'vencido' : 'al-dia';
     const stage = over.stage || baseStage;
     return {
-      ...i, days, stage,
+      ...i,
+      balance,
+      paid: (i.paid || 0) + collectedUsd,
+      collectedUsd,
+      status: balance <= 0 ? 'pagado' : (collectedUsd > 0 ? 'parcial' : i.status),
+      days, stage,
       promiseDate: over.promiseDate || null,
       log: over.log || [],
       lastAction: (over.log && over.log.length) ? over.log[over.log.length - 1] : null,
@@ -63,6 +70,44 @@ function cobAddAction(invId, type, text, extra) {
   o[invId] = cur; _cobWriteOverlay(o);
 }
 
+// Registrar un cobro: baja el saldo de la factura (overlay) + deposita en la
+// caja elegida (Tesorería) + log de gestión. Soporta abono parcial.
+function cobRegisterPayment(invId, { amountUsd, accountId, method, currency, amountOriginal, rate, ref, clientName }) {
+  const o = _cobReadOverlay();
+  const cur = o[invId] || {};
+  cur.collectedUsd = (cur.collectedUsd || 0) + (Number(amountUsd) || 0);
+
+  // saldo restante (sobre el balance original de la factura)
+  const inv = (window.ERPData?.INVOICES || []).find(i => i.id === invId);
+  const origBalance = inv ? (inv.balance || 0) : 0;
+  const remaining = Math.max(0, origBalance - cur.collectedUsd);
+  cur.stage = remaining <= 0 ? 'pagado' : (cur.stage === 'al-dia' || cur.stage === 'vencido' ? 'contactado' : cur.stage);
+
+  const acct = window.TesoreriaData?.getAccount?.(accountId);
+  const inCur = currency && currency !== 'USD'
+    ? `${acct ? acct.short : currency} (${(acct ? acct.currency : currency)})`
+    : (acct ? acct.short : 'USD');
+  const entry = {
+    at: new Date().toISOString().slice(0, 16).replace('T', ' '),
+    type: 'pago',
+    text: `Cobro ${remaining <= 0 ? 'total' : 'parcial'} de $${Math.round(Number(amountUsd)).toLocaleString('en-US')} · ${method} → ${inCur}${ref ? ' · ' + ref : ''}`,
+  };
+  cur.log = [...(cur.log || []), entry];
+  o[invId] = cur;
+  _cobWriteOverlay(o);
+
+  // Ingreso a la caja de Tesorería
+  if (window.TesoreriaData?.cashDeposit && accountId) {
+    window.TesoreriaData.cashDeposit({
+      accountId, amountUsd: Number(amountUsd) || 0,
+      amountOriginal: Number(amountOriginal) || Number(amountUsd) || 0,
+      currency: currency || 'USD', rate: Number(rate) || 1,
+      method, ref: ref || null, invoice: invId, concept: `Cobro factura ${invId}${clientName ? ' · ' + clientName : ''}`,
+    });
+  }
+  return remaining;
+}
+
 function cobTotals() {
   const items = cobItems();
   const porCobrar = items.filter(i => i.stage !== 'pagado').reduce((s, i) => s + i.balance, 0);
@@ -74,5 +119,5 @@ function cobTotals() {
 
 window.CobranzasData = {
   COB_STAGES, COB_ACTION, COB_TODAY,
-  cobItems, cobSetStage, cobAddAction, cobTotals, cobDays: _cobDays,
+  cobItems, cobSetStage, cobAddAction, cobRegisterPayment, cobTotals, cobDays: _cobDays,
 };

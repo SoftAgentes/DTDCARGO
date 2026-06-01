@@ -17,6 +17,8 @@
     { id: 'cn', name: 'Operario CN', file: 'Operario CN.html', desc: 'Recepción e inspección en bodega Yiwu · escaneo de cajas, fotos QC.', users: 3, color: '#7F0F1A' },
     { id: 've', name: 'Operario VE', file: 'Operario VE.html', desc: 'Chofer / despacho Venezuela · ruta, POD, confirmación de entrega.', users: 3, color: '#0F1E3D' },
     { id: 'bod', name: 'Almacenista',  file: 'Almacenista VE.html', desc: 'Almacén Valencia · picking, packing, reexpedición a cliente final.', users: 1, color: '#1F8A5B' },
+    { id: 'cam', name: 'Transportista',  file: 'Transportista.html', desc: 'Ruta activa con GPS · navegación, POD por parada, alerta de ubicación.', users: 2, color: '#B8893A' },
+    { id: 'multi', name: 'Operario Multi', file: 'Operario Multi.html', desc: 'Launcher multi-rol · cambia entre recepción, bodega y ruta en un dispositivo.', users: 1, color: '#2A6FDB' },
   ];
 
   const STATUS = {
@@ -110,7 +112,7 @@
         {/* ── APPS ── */}
         {tab === 'apps' && (
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 }}>
               {APPS.map(a => (
                 <U.Card key={a.id} padded>
                   <div style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: a.color, color: '#fff', display: 'grid', placeItems: 'center', marginBottom: 14 }}>{I.box(22)}</div>

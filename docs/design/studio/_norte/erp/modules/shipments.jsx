@@ -18,6 +18,7 @@ const SHIP_COLS_DEFAULT = [
 
 function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, currentUser }) {
   const D = window.ERPData;
+  const baseShipments = D.byTenant(D.SHIPMENTS);   // multi-tenant
   const U = window.ERPUI;
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('all');
@@ -41,7 +42,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
 
   const filtered = useMemo(() => {
     const u = currentUser || window.__currentUser;
-    let rows = D.SHIPMENTS;
+    let rows = baseShipments;
     // Scope by user's assigned hubs (CN origins or VE destinations)
     if (u?.scope?.type === 'scoped' && u.scope.hubs.length > 0) {
       // CN hubs format YIW-A1 / CAN-C1 / SZX-A2 / SHA-A1 → origin codes
@@ -129,10 +130,10 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
   const visibleColumns = U.applyColumns(columns, colCfg);
 
   const tabs = [
-    { value: 'all', label: 'Todos', count: D.SHIPMENTS.length },
-    { value: 'active', label: 'Activos', count: D.SHIPMENTS.filter(s => !['entregado', 'cotizado'].includes(s.status)).length },
-    { value: 'delivered', label: 'Entregados', count: D.SHIPMENTS.filter(s => s.status === 'entregado').length },
-    { value: 'alerts', label: 'Con alertas', count: D.SHIPMENTS.filter(s => s.alert).length },
+    { value: 'all', label: 'Todos', count: baseShipments.length },
+    { value: 'active', label: 'Activos', count: baseShipments.filter(s => !['entregado', 'cotizado'].includes(s.status)).length },
+    { value: 'delivered', label: 'Entregados', count: baseShipments.filter(s => s.status === 'entregado').length },
+    { value: 'alerts', label: 'Con alertas', count: baseShipments.filter(s => s.alert).length },
   ];
 
   return (

@@ -26,7 +26,8 @@ const ACCOUNT_PROFILES = {
     lastReminder: null,
     nextDue: '2026-06-08',
     movements: [
-      { date: '2026-05-22', kind: 'pago',           ref: 'WIRE-9982',     desc: 'Pago F-2026-0391 · transferencia USD',      debit: 0,      credit: 156800, balance: 0 },
+      { date: '2026-05-22', kind: 'pago',           ref: 'WIRE-9982',     desc: 'Pago F-2026-0391 · transferencia USD',      debit: 0,      credit: 120000, balance: 0 },
+      { date: '2026-05-22', kind: 'pago',           ref: 'TRF-VES-9001',  desc: 'Pago F-2026-0391 (parte) · transferencia Bs.', debit: 0,   credit: 36800, balance: 0, ccy: 'VES', amountBs: 1341360, rateUsed: 36.45, rateSource: 'bcv' },
       { date: '2026-05-20', kind: 'factura',        ref: 'F-2026-0391',   desc: 'DTDU-419032 · refrigeración Polar',          debit: 156800, credit: 0,      balance: 156800 },
       { date: '2026-05-12', kind: 'pago',           ref: 'WIRE-9941',     desc: 'Pago F-2026-0357 · transferencia USD',      debit: 0,      credit: 124400, balance: 0 },
       { date: '2026-04-22', kind: 'factura',        ref: 'F-2026-0357',   desc: 'DTDU-401234 · cadena de frío',                debit: 124400, credit: 0,      balance: 124400 },
@@ -69,7 +70,8 @@ const ACCOUNT_PROFILES = {
       { date: '2026-05-05', kind: 'pago',           ref: 'WIRE-9921',     desc: 'Pago parcial F-2026-0382',                    debit: 0,     credit: 18400, balance: 0 },
       { date: '2026-04-22', kind: 'factura',        ref: 'F-2026-0382',   desc: 'DTDU-388157 · partes industriales',           debit: 38400, credit: 0,    balance: 38400 },
       { date: '2026-04-12', kind: 'nota_debito',    ref: 'ND-2026-0042',  desc: 'Cargo demora desalmacenaje',                  debit: 1800,  credit: 0,    balance: 1800 },
-      { date: '2026-04-08', kind: 'pago',           ref: 'CASH-8821',     desc: 'Pago F-2026-0354 · efectivo USD',              debit: 0,     credit: 42800, balance: 0 },
+      { date: '2026-04-09', kind: 'pago',           ref: 'TRF-VES-7791',  desc: 'Pago F-2026-0354 (resto) · transferencia Bs.', debit: 0,  credit: 20000, balance: 0, ccy: 'VES', amountBs: 729000, rateUsed: 36.45, rateSource: 'bcv' },
+      { date: '2026-04-08', kind: 'pago',           ref: 'CASH-8821',     desc: 'Pago F-2026-0354 · efectivo USD',              debit: 0,     credit: 22800, balance: 0 },
       { date: '2026-03-25', kind: 'factura',        ref: 'F-2026-0354',   desc: 'DTDU-365044 · acero estructural',              debit: 42800, credit: 0,    balance: 42800 },
       { date: '2026-03-15', kind: 'recordatorio',   ref: '—',             desc: 'Recordatorio de pago enviado · Mailing',       debit: 0,     credit: 0,    balance: 0 },
       { date: '2026-02-28', kind: 'pago',           ref: 'WIRE-9841',     desc: 'Pago F-2026-0331',                              debit: 0,     credit: 31400, balance: 0 },
@@ -540,6 +542,9 @@ function MovementsTable({ movements, filter, setFilter }) {
               <div>
                 <div style={{ font: '600 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{m.desc}</div>
                 <code style={{ font: '500 10.5px/1 var(--f-mono)', color: 'var(--ink-mute)', marginTop: 3, display: 'inline-block' }}>{m.ref}</code>
+                {m.ccy === 'VES' &&
+                <span style={{ marginLeft: 8, padding: '2px 7px', borderRadius: 'var(--r-pill)', background: 'var(--wine-tint)', color: 'var(--wine)', font: '700 9.5px/1 var(--f-mono)' }}>Bs {m.amountBs.toLocaleString('es-VE')} · {m.rateSource === 'parallel' ? 'paralelo' : 'BCV'} {m.rateUsed}</span>
+                }
               </div>
               <div style={{ textAlign: 'right', font: '700 12px/1 var(--f-mono)', color: m.debit > 0 ? 'var(--ink)' : 'var(--ink-mute)' }}>{fmtMoney(m.debit || 0)}</div>
               <div style={{ textAlign: 'right', font: '700 12px/1 var(--f-mono)', color: m.credit > 0 ? 'var(--success)' : 'var(--ink-mute)' }}>{fmtMoney(m.credit || 0)}</div>

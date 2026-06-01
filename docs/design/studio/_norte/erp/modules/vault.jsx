@@ -72,6 +72,7 @@ function ModuleVault() {
   const [search, setSearch] = _vUseState('');
   const [createOpen, setCreateOpen] = _vUseState(false);
   const [genOpen, setGenOpen] = _vUseState(false);
+  const [exportOpen, setExportOpen] = _vUseState(false);
 
   const filtered = _vUseMemo(() => {
     let rows = VAULT_ENTRIES;
@@ -94,6 +95,7 @@ function ModuleVault() {
         subtitle="Bóveda cifrada de contraseñas del equipo. Categorías, permisos por usuario, generador y rotación."
         actions={
           <>
+            <U.Btn variant="secondary" icon={window.Icon.download(14)} onClick={() => setExportOpen(true)}>Exportar</U.Btn>
             <U.Btn variant="secondary" icon={window.Icon.shield(14)} onClick={() => setGenOpen(true)}>Generador</U.Btn>
             <U.Btn variant="secondary" icon={window.Icon.refresh(14)} onClick={() => setUnlocked(false)}>Bloquear</U.Btn>
             <U.Btn variant="primary" icon={window.Icon.plus(14)} onClick={() => setCreateOpen(true)}>Nueva clave</U.Btn>
@@ -214,6 +216,7 @@ function ModuleVault() {
 
       <VaultCreate open={createOpen} onClose={() => setCreateOpen(false)} />
       <VaultGenerator open={genOpen} onClose={() => setGenOpen(false)} />
+      <VaultExport open={exportOpen} onClose={() => setExportOpen(false)} category={category} />
     </div>
   );
 }
@@ -632,6 +635,119 @@ function VaultGenerator({ open, onClose }) {
           ))}
         </div>
       </div>
+    </U.Modal>
+  );
+}
+
+// ── Export de la bóveda (.enc cifrado simulado) ─────────────
+function VaultExport({ open, onClose, category }) {
+  const U = window.ERPUI;
+  const [scope, setScope] = _vUseState('all'); // all | category
+  const [pass, setPass] = _vUseState('');
+  const [done, setDone] = _vUseState(null);
+
+  _vUseEffect(() => {
+    if (open) { setDone(null); setPass(''); setScope(category === 'all' ? 'all' : 'category'); }
+  }, [open]);
+
+  const catName = VAULT_CATEGORIES.find(c => c.id === category)?.name;
+  const rows = (scope === 'category' && category !== 'all')
+    ? VAULT_ENTRIES.filter(e => e.cat === category) : VAULT_ENTRIES;
+
+  const doExport = () => {
+    const payload = {
+      meta: { app: 'DTD-Vault', version: '2.0', exported: new Date().toISOString(), scope, entries: rows.length, cipher: 'AES-256-GCM (sim)' },
+      data: rows.map(e => ({ id: e.id, name: e.name, cat: e.cat, user: e.user, url: e.url, twoFa: e.twoFa, strength: e.strength, updated: e.updated, tags: e.tags, secret: '«cifrado»' })),
+    };
+    const json = JSON.stringify(payload);
+    const key = pass || 'dtd-master-key';
+    // XOR + base64 → simula un blob cifrado (no es criptografía real)
+    let scrambled = '';
+    for (let i = 0; i < json.length; i++) scrambled += String.fromCharCode(json.charCodeAt(i) ^ key.charCodeAt(i % key.length));
+    const b64 = btoa(unescape(encodeURIComponent(scrambled)));
+    const lines = b64.match(/.{1,64}/g) || [b64];
+    const text = [
+      '-----BEGIN DTD-VAULT ENCRYPTED EXPORT-----',
+      `Version: 2.0   Cipher: AES-256-GCM (sim)   Entries: ${rows.length}`,
+      `Exported: ${new Date().toISOString()}`,
+      `Scope: ${scope === 'category' && category !== 'all' ? catName : 'Toda la bóveda'}`,
+      '',
+      ...lines,
+      '-----END DTD-VAULT ENCRYPTED EXPORT-----',
+      '',
+    ].join('\n');
+    const fname = `dtd-vault-${scope === 'category' && category !== 'all' ? category : 'full'}-${new Date().toISOString().slice(0, 10)}.enc`;
+    try {
+      const blob = new Blob([text], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = fname;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (e) {}
+    setDone({ count: rows.length, name: fname });
+  };
+
+  return (
+    <U.Modal open={open} onClose={onClose} title="Exportar bóveda" width={500}
+      actions={done
+        ? <U.Btn variant="primary" onClick={onClose}>Listo</U.Btn>
+        : <><U.Btn variant="ghost" onClick={onClose}>Cancelar</U.Btn><U.Btn variant="primary" icon={window.Icon.download(13)} onClick={doExport}>Exportar .enc</U.Btn></>
+      }
+    >
+      {done ? (
+        <div style={{ textAlign: 'center', padding: '12px 8px 8px' }}>
+          <div style={{ width: 56, height: 56, margin: '0 auto 14px', borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'grid', placeItems: 'center' }}>{window.Icon.check(26)}</div>
+          <div style={{ font: '900 17px/1.1 var(--f-display)', color: 'var(--ink)' }}>Bóveda exportada</div>
+          <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8, maxWidth: '40ch', marginInline: 'auto' }}>
+            {done.count} entradas cifradas en el archivo descargado.
+          </div>
+          <code style={{ display: 'inline-block', marginTop: 12, padding: '8px 12px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{done.name}</code>
+          <div style={{ marginTop: 16, padding: '10px 12px', background: 'var(--warning-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10, textAlign: 'left' }}>
+            <span style={{ color: 'var(--warning)', marginTop: 1 }}>{window.Icon.warn(13)}</span>
+            <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
+              Guardá el <code style={{ font: '700 11px/1 var(--f-mono)' }}>.enc</code> en un lugar seguro. Solo se puede restaurar con la misma passphrase.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10 }}>
+            <span style={{ color: 'var(--info)', marginTop: 1 }}>{window.Icon.shield(14)}</span>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
+              Genera un archivo <code style={{ font: '700 11px/1 var(--f-mono)' }}>.enc</code> cifrado con tus credenciales. Para backup offline o migración a otra bóveda.
+            </div>
+          </div>
+
+          <div>
+            <div style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Qué exportar</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[['all', 'Toda la bóveda', VAULT_ENTRIES.length], ['category', catName || 'Categoría actual', VAULT_ENTRIES.filter(e => e.cat === category).length]].map(([k, l, n]) => {
+                const disabled = k === 'category' && category === 'all';
+                const a = scope === k;
+                return (
+                  <button key={k} disabled={disabled} onClick={() => setScope(k)} style={{
+                    flex: 1, padding: '12px 14px', textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer',
+                    background: a ? 'var(--wine-tint)' : 'var(--bg-elevated)',
+                    border: `1px solid ${a ? 'var(--wine)' : 'var(--border)'}`,
+                    borderRadius: 'var(--r-md)', opacity: disabled ? 0.45 : 1,
+                  }}>
+                    <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: a ? 'var(--wine)' : 'var(--ink)' }}>{l}</div>
+                    <div style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--ink-soft)', marginTop: 5 }}>{disabled ? 'elegí una categoría' : `${n} entradas`}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Passphrase de cifrado (opcional)</span>
+            <input type="password" value={pass} onChange={(e) => setPass(e.target.value)} placeholder="Dejala vacía para usar tu clave maestra"
+              style={{ height: 42, padding: '0 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', font: '600 13.5px/1 var(--f-mono)', color: 'var(--ink)', outline: 'none' }} />
+            <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Necesaria para restaurar el archivo. Si la perdés, el .enc es irrecuperable.</span>
+          </label>
+        </div>
+      )}
     </U.Modal>
   );
 }

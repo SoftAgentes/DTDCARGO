@@ -54,6 +54,9 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
   const [lang, setLang] = React.useState('original'); // 'original' | 'cn' | 'es'
   const [consolidateOpen, setConsolidateOpen] = React.useState(false);
   const [colCfg, setColCfg] = React.useState(cnLoadColCfg);
+  const [cnTab, setCnTab] = React.useState('recibidas'); // 'recibidas' | 'camino'
+  const [verifyOrder, setVerifyOrder] = React.useState(null);
+  const [verifiedCodes, setVerifiedCodes] = React.useState(() => new Set());
   React.useEffect(() => { try { localStorage.setItem(CN_COLS_KEY, JSON.stringify(colCfg)); } catch (e) {} }, [colCfg]);
 
   React.useEffect(() => { if (view === 'create') setDrawerKind('create'); }, [view]);
@@ -95,6 +98,10 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
 
   const pendingCount = D.WAREHOUSE_CN.filter(r => r.status === 'pendiente consolidación').length;
   const totalCBM = D.WAREHOUSE_CN.filter(r => !r.shipment).reduce((s, r) => s + r.cbm, 0);
+
+  // ── Órdenes esperadas (en camino) · registradas por el cliente ──
+  const orders = React.useMemo(() => D.byTenant(D.ORDERS), [currentUser]);
+  const enCaminoCount = orders.filter(o => o.status !== 'verificada' && !verifiedCodes.has(o.code)).length;
 
   // ── Alerta automática · umbral de 50 CBM por contenedor ──
   const CBM_THRESHOLD = 50;
@@ -169,6 +176,16 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
         }
       />
 
+      <U.Tabs value={cnTab} onChange={setCnTab} items={[
+        { value: 'recibidas', label: 'Recibidas', count: D.WAREHOUSE_CN.length },
+        { value: 'camino', label: 'Esperadas · en camino', count: enCaminoCount },
+      ]} style={{ marginBottom: 'var(--s-5)' }} />
+
+      {cnTab === 'camino' && (
+        <OrdersExpected orders={orders} verifiedCodes={verifiedCodes} onVerify={setVerifyOrder} goTo={goTo} />
+      )}
+
+      {cnTab === 'recibidas' && (<React.Fragment>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 'var(--s-5)' }}>
         <U.KPI label="Recepciones del mes" value={D.WAREHOUSE_CN.length} delta="+8 esta sem" tone="wine" icon={window.Icon.warehouse(18)} />
         <U.KPI label="Pendientes consolidar" value={pendingCount} delta="ready to ship" tone="warning" icon={window.Icon.clock(18)} />
@@ -320,7 +337,200 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
           </div>
         </div>
       )}
+      </React.Fragment>)}
+
+      {/* Verificar orden esperada → pasa a recepción */}
+      <OrderVerifyDrawer
+        order={verifyOrder}
+        onClose={() => setVerifyOrder(null)}
+        onConfirm={(code) => setVerifiedCodes(prev => new Set(prev).add(code))}
+      />
     </div>
+  );
+}
+
+// ── Órdenes esperadas · pestaña "en camino" (registradas por el cliente) ──
+// El cliente las crea al comprar en China; el almacén solo VERIFICA y avanza.
+function OrdersExpected({ orders, verifiedCodes, onVerify, goTo }) {
+  const D = window.ERPData;
+  const U = window.ERPUI;
+  const [statusF, setStatusF] = React.useState('all');
+
+  const isVerified = (o) => o.status === 'verificada' || verifiedCodes.has(o.code);
+  const supName = (o) => { const s = D.SUPPLIERS.find(x => x.id === o.supplierId); return s ? s.name : (o.supplier || '—'); };
+  const cliName = (o) => { const c = D.CLIENTS.find(x => x.markbox === o.client); return c ? c.company : o.client; };
+  const orderTone = (o) => isVerified(o) ? 'success' : o.status === 'por verificar' ? 'warning' : 'info';
+  const orderLabel = (o) => isVerified(o) ? 'verificada' : o.status;
+
+  const rows = orders.filter(o => {
+    if (statusF === 'all') return true;
+    if (statusF === 'verificada') return isVerified(o);
+    return !isVerified(o) && o.status === statusF;
+  });
+
+  const enCamino = orders.filter(o => !isVerified(o));
+  const porVerificar = orders.filter(o => !isVerified(o) && o.status === 'por verificar').length;
+  const cbmEsperado = enCamino.reduce((a, o) => a + o.cbm, 0);
+
+  const docChip = (ok, label) => (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: 4, padding: '2px 7px', borderRadius: 'var(--r-pill)',
+      font: '700 10px/1 var(--f-sans)', whiteSpace: 'nowrap',
+      background: ok ? 'var(--success-bg)' : 'var(--bg-elevated)',
+      color: ok ? 'var(--success)' : 'var(--ink-mute)',
+    }}>{ok ? window.Icon.check(10) : window.Icon.warn(10)} {label}</span>
+  );
+
+  const columns = [
+    { label: 'Código · grupo WeChat', key: 'code', render: (o) => (
+      <div>
+        <code style={{ font: '800 12.5px/1 var(--f-mono)', color: 'var(--wine)' }}>{o.code}</code>
+        <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>{o.goods}</div>
+      </div>
+    ), width: 210 },
+    { label: 'Cliente', key: 'client', render: (o) => (
+      <button onClick={(e) => { e.stopPropagation(); goTo && goTo('clients', o.client, 'detail'); }} style={{ textAlign: 'left', padding: 0 }}>
+        <div style={{ font: '600 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{cliName(o)}</div>
+        <code style={{ font: '600 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{o.client}</code>
+      </button>
+    ), width: 150 },
+    { label: 'Proveedor CN', key: 'supplierId', render: (o) => <span style={{ font: '500 12px/1.3 var(--f-sans)', color: 'var(--ink-soft)' }}>{supName(o)}</span>, width: 150 },
+    { label: 'Declarado', key: 'boxes', align: 'right', render: (o) => (
+      <div style={{ font: '600 11.5px/1.4 var(--f-mono)', color: 'var(--ink)', textAlign: 'right' }}>
+        {o.boxes} cajas<br /><span style={{ color: 'var(--ink-soft)' }}>{o.cbm} CBM · {o.weight}kg</span>
+      </div>
+    ), width: 110 },
+    { label: 'Documentos', key: 'packing', render: (o) => (
+      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>{docChip(o.packing, 'Packing')}{docChip(o.invoice, 'Factura')}</div>
+    ), width: 150 },
+    { label: 'ETA', key: 'eta', render: (o) => <code style={{ font: '600 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{o.eta}</code>, width: 90 },
+    { label: 'Estado', key: 'status', render: (o) => <U.Badge tone={orderTone(o)} size="sm">{orderLabel(o)}</U.Badge>, width: 110 },
+    { label: '', key: '_a', align: 'right', render: (o) => isVerified(o)
+      ? <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--success)' }}>en recepción ✓</span>
+      : <U.Btn variant="soft" size="sm" onClick={(e) => { e.stopPropagation(); onVerify(o); }}>Verificar</U.Btn>, width: 100 },
+  ];
+
+  return (
+    <div>
+      <div style={{ padding: '11px 16px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', marginBottom: 'var(--s-5)', display: 'flex', gap: 10, alignItems: 'center' }}>
+        <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{window.Icon.info(14)}</span>
+        <div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)' }}>
+          El cliente registra estas órdenes al comprar en China (proveedor + packing list + factura). El código <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>MARKBOX-proveedor-compra</code> <b>es</b> el grupo WeChat. El almacén no carga datos: <b>rectifica sumatorias y confirma docs</b> → la orden pasa a recepción.
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 'var(--s-5)' }}>
+        <U.KPI label="En camino" value={enCamino.length} delta="esperadas" tone="info" icon={window.Icon.box(18)} />
+        <U.KPI label="Por verificar" value={porVerificar} delta="llegaron a bodega" tone={porVerificar > 0 ? 'warning' : 'success'} icon={window.Icon.clock(18)} />
+        <U.KPI label="CBM esperado" value={cbmEsperado.toFixed(1)} sub="declarado por clientes" tone="neutral" icon={window.Icon.box(18)} />
+        <U.KPI label="Verificadas" value={orders.filter(isVerified).length} sub="pasaron a recepción" tone="wine" icon={window.Icon.check(18)} />
+      </div>
+
+      <U.Toolbar filters={
+        <U.Select value={statusF} onChange={(e) => setStatusF(e.target.value)} style={{ width: 200 }} options={[
+          { value: 'all', label: 'Todos los estados' },
+          { value: 'por verificar', label: 'Por verificar' },
+          { value: 'en camino', label: 'En camino' },
+          { value: 'verificada', label: 'Verificadas' },
+        ]} />
+      } />
+
+      {rows.length === 0
+        ? <U.EmptyState icon={window.Icon.box(22)} title="Sin órdenes esperadas" body="Las compras que los clientes registran en China aparecen acá hasta que el almacén las verifica." />
+        : <U.Table columns={columns} rows={rows} onRowClick={(o) => !isVerified(o) && onVerify(o)} />
+      }
+    </div>
+  );
+}
+
+// ── Verificar orden esperada (rectificar sumatorias + docs) ──
+function OrderVerifyDrawer({ order, onClose, onConfirm }) {
+  const D = window.ERPData;
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const [boxes, setBoxes] = React.useState('');
+  const [cbm, setCbm] = React.useState('');
+  const [weight, setWeight] = React.useState('');
+  const [done, setDone] = React.useState(false);
+  React.useEffect(() => {
+    if (order) { setBoxes(order.boxes); setCbm(order.cbm); setWeight(order.weight); setDone(false); }
+  }, [order && order.code]);
+  if (!order) return null;
+
+  const sup = D.SUPPLIERS.find(x => x.id === order.supplierId);
+  const supName = sup ? sup.name : (order.supplier || '—');
+
+  const Row = ({ label, declared, value, set, unit }) => {
+    const diff = Number(value) !== Number(declared);
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 96px 96px', gap: 12, alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--border)' }}>
+        <span style={{ font: '600 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{label}</span>
+        <div>
+          <div style={{ font: '700 8.5px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Declarado</div>
+          <code style={{ font: '700 13px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{declared}{unit}</code>
+        </div>
+        <div>
+          <div style={{ font: '700 8.5px/1 var(--f-sans)', color: diff ? 'var(--warning)' : 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Rectificado</div>
+          <input value={value} onChange={(e) => set(e.target.value)} style={{
+            width: '100%', padding: '6px 8px', borderRadius: 'var(--r-sm)',
+            border: '1px solid ' + (diff ? 'var(--warning)' : 'var(--border)'),
+            background: 'var(--bg-surface)', color: 'var(--ink)', font: '700 13px/1 var(--f-mono)', boxSizing: 'border-box',
+          }} />
+        </div>
+      </div>
+    );
+  };
+
+  const DocCheck = ({ ok, label, sub }) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: ok ? 'var(--success-bg)' : 'var(--bg-elevated)' }}>
+      <span style={{ color: ok ? 'var(--success)' : 'var(--ink-mute)' }}>{ok ? I.check(16) : I.upload(16)}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{label}</div>
+        <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)' }}>{sub}</div>
+      </div>
+      <span style={{ font: '600 11px/1 var(--f-sans)', color: ok ? 'var(--success)' : 'var(--warning)' }}>{ok ? 'Adjunto' : 'Falta'}</span>
+    </div>
+  );
+
+  return (
+    <U.Drawer open={!!order} onClose={onClose} width={520}
+      title={done ? 'Orden verificada' : 'Verificar orden'}
+      subtitle={order.code + ' · ' + supName}
+      actions={done
+        ? <U.Btn variant="primary" onClick={onClose}>Listo</U.Btn>
+        : <>
+            <U.Btn variant="ghost" onClick={onClose}>Cancelar</U.Btn>
+            <U.Btn variant="primary" icon={I.check(14)} onClick={() => { setDone(true); onConfirm(order.code); }}>Confirmar y pasar a recepción</U.Btn>
+          </>
+      }>
+      {done ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, animation: 'erp-fade 240ms' }}>
+          <div style={{ padding: 16, background: 'var(--success-bg)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--success)' }}>{I.check(18)}</span>
+            <div style={{ font: '500 12.5px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
+              <b>{order.code}</b> pasó a la lista de <b>Recibidas</b>. Sumatorias confirmadas: {boxes} cajas · {cbm} CBM · {weight} kg. El seguimiento del cliente avanza solo.
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ padding: '12px 14px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', font: '500 12px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
+            Lo declaró el cliente al comprar. <b>Rectificá</b> contra lo que llegó físicamente; si difiere, el campo se marca.
+          </div>
+          <div className="eyebrow eyebrow-wine">SUMATORIAS</div>
+          <div>
+            <Row label="Cantidad de cajas" declared={order.boxes} value={boxes} set={setBoxes} unit="" />
+            <Row label="Volumen (CBM)" declared={order.cbm} value={cbm} set={setCbm} unit="" />
+            <Row label="Peso (kg)" declared={order.weight} value={weight} set={setWeight} unit="" />
+          </div>
+          <div className="eyebrow eyebrow-wine" style={{ marginTop: 4 }}>DOCUMENTOS ATADOS AL GRUPO</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <DocCheck ok={order.packing} label="Packing list" sub="Detalle por caja" />
+            <DocCheck ok={order.invoice} label="Factura comercial" sub="Valor de la mercancía" />
+          </div>
+        </div>
+      )}
+    </U.Drawer>
   );
 }
 

@@ -86,8 +86,49 @@ function useDashboardConfig() {
 }
 
 // ── Resolver valor de KPI por id ──────────────────────────────
+// Recalcula los KPIs derivados de datos sobre el tenant activo.
+// Los que no dependen de data (onTime, avgTransit…) caen al estático.
+function _tenantKpis() {
+  const D = window.ERPData;
+  if (!D || !D.byTenant) return {};
+  const ships = D.byTenant(D.SHIPMENTS) || [];
+  const invs  = D.byTenant(D.INVOICES) || [];
+  const clis  = D.byTenant(D.CLIENTS) || [];
+  const leads = D.byTenant(D.LEADS) || [];
+  const quotes = D.byTenant(D.QUOTES) || [];
+  const active = ships.filter(s => !['entregado', 'cotizado'].includes(s.status));
+  const inTransit = ships.filter(s => ['zarpado', 'tránsito', 'aduana VE'].includes(s.status));
+  const cbm = Math.round(inTransit.reduce((a, s) => a + (s.cbm || 0), 0));
+  const revenue = invs.reduce((a, i) => a + (i.amount || 0), 0);
+  const outstanding = invs.reduce((a, i) => a + (i.balance || 0), 0);
+  const dueCount = invs.filter(i => i.balance > 0).length;
+  const activeClients = clis.filter(c => c.status === 'active').length;
+  const won = quotes.filter(q => q.status === 'aceptada').length;
+  const eco = ships.reduce((a, s) => { const e = D.shipmentEconomics(s); a.rev += e.revenue; a.mar += e.margin; return a; }, { rev: 0, mar: 0 });
+  const marginPct = eco.rev > 0 ? (eco.mar / eco.rev) * 100 : 0;
+  const ticket = invs.length ? revenue / invs.length : 0;
+  const k = (n) => '$' + (n / 1000).toFixed(0) + 'K';
+  return {
+    shipmentsActive: { value: active.length, delta: `${ships.length} en total`, tone: 'wine' },
+    cbmInTransit:    { value: cbm, delta: 'CBM', tone: 'neutral' },
+    monthRevenue:    { value: k(revenue), delta: `${invs.length} facturas`, tone: 'success' },
+    invoicesDue:     { value: dueCount, delta: `${k(outstanding)} total`, tone: dueCount ? 'warning' : 'success' },
+    pendingCollect:  { value: k(outstanding), delta: `${dueCount} fac. con saldo`, tone: 'info' },
+    newLeads:        { value: leads.length, delta: 'en pipeline', tone: 'info' },
+    activeClients:   { value: activeClients, delta: `${clis.length} cuentas`, tone: 'neutral' },
+    wonQuotes:       { value: won, delta: `${quotes.length} cotizaciones`, tone: 'success' },
+    marginYTD:       { value: marginPct.toFixed(1) + '%', delta: 'sobre embarques', tone: 'wine' },
+    avgTicket:       { value: k(ticket), delta: 'por factura', tone: 'wine' },
+  };
+}
+
 function resolveKpiValue(id) {
   const D = window.ERPData;
+  // Si operamos OTRA empresa (no la home), los KPIs se recalculan filtrados
+  if (D.currentTenant && !D.isHomeTenant?.() && D.currentTenant() !== 'all') {
+    const tk = _tenantKpis();
+    if (tk[id]) return tk[id];
+  }
   if (D.KPIS && D.KPIS[id]) return D.KPIS[id];
   if (EXTRA_KPI_VALUES[id]) return EXTRA_KPI_VALUES[id];
   return { value: '—', delta: '', tone: 'neutral' };
@@ -104,7 +145,7 @@ function ModuleDashboard({ goTo }) {
   const [editorOpen, setEditorOpen] = React.useState(false);
 
   const mask = (v) => hideValues ? '•••••' : v;
-  const activeShipments = D.SHIPMENTS.filter(s => !['entregado', 'cotizado'].includes(s.status));
+  const activeShipments = D.byTenant(D.SHIPMENTS).filter(s => !['entregado', 'cotizado'].includes(s.status));
 
   const visibleKpis = config.kpis
     .map(id => ({ meta: KPI_CATALOG.find(k => k.id === id), data: resolveKpiValue(id) }))
@@ -120,7 +161,9 @@ function ModuleDashboard({ goTo }) {
       <U.PageHeader
         eyebrow="Operación · 23 May 2026"
         title="Buenos días, Carlos."
-        subtitle="Tenés 24 embarques activos, 4 facturas por cobrar y 18 leads nuevos esta semana."
+        subtitle={D.currentTenant && !D.isHomeTenant?.() && D.currentTenant() !== 'all'
+          ? `Tenés ${activeShipments.length} embarques activos, ${(D.byTenant(D.INVOICES).filter(i => i.balance > 0)).length} facturas por cobrar y ${D.byTenant(D.LEADS).length} leads en pipeline.`
+          : 'Tenés 24 embarques activos, 4 facturas por cobrar y 18 leads nuevos esta semana.'}
         actions={
           <>
             <button onClick={() => setHideValues(!hideValues)} title={hideValues ? 'Mostrar valores' : 'Ocultar valores'} style={{
@@ -237,7 +280,7 @@ function ActiveShipmentsWidget({ goTo, hideValues }) {
   const D = window.ERPData;
   const U = window.ERPUI;
   const I = window.Icon;
-  const activeShipments = D.SHIPMENTS.filter(s => !['entregado', 'cotizado'].includes(s.status));
+  const activeShipments = D.byTenant(D.SHIPMENTS).filter(s => !['entregado', 'cotizado'].includes(s.status));
   const mask = (v) => hideValues ? '•••' : v;
   return (
     <U.Card padded={false}>
@@ -432,7 +475,7 @@ function UpcomingEtaWidget({ goTo }) {
   const D = window.ERPData;
   const U = window.ERPUI;
   const I = window.Icon;
-  const next = D.SHIPMENTS
+  const next = D.byTenant(D.SHIPMENTS)
     .filter(s => !['entregado', 'cotizado'].includes(s.status) && s.eta)
     .sort((a, b) => (a.eta || '').localeCompare(b.eta || ''))
     .slice(0, 4);

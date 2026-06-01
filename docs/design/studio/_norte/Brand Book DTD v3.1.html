@@ -2,15 +2,23 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>DTD-Cargo · Brand Book v3.0</title>
+<title>DTD-Cargo · Brand Book v3.1</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=Nunito+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="erp/tokens.css" />
 <style>
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+
+/* El Brand Book es un documento de MARCA: usa su propia tipografía
+   (Archivo / Archivo Black), NO la del sistema (Nunito/Sora). Por eso
+   reapunta --f-sans/--f-display a la marca solo dentro de este archivo. */
+:root {
+  --f-sans: 'Archivo', system-ui, -apple-system, sans-serif;
+  --f-display: 'Archivo Black', 'Archivo', sans-serif;
+}
 body { margin: 0; font-family: var(--f-sans); color: var(--ink); background: var(--bg-base); line-height: 1.5; }
 
 /* ── LAYOUT ─────────────────────────────────────────────── */
@@ -213,7 +221,7 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
   <div class="sidebar-head">
     <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" class="iso" />
     <div class="title">DTD Cargo</div>
-    <div class="v">Brand Book · v3.0</div>
+    <div class="v">Brand Book · v3.1</div>
     <div class="sub">Sistema completo de identidad y aplicaciones de marca. Mayo 2026.</div>
   </div>
   <nav id="bb-nav">
@@ -238,7 +246,7 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
   </nav>
   <div class="sidebar-foot">
     <button class="btn-download" onclick="window.print()">⎙ Imprimir / PDF</button>
-    <div class="meta">v3.0 · 26 May 2026</div>
+    <div class="meta">v3.1 · 31 May 2026</div>
   </div>
 </aside>
 
@@ -249,16 +257,16 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
 <section id="cover">
   <div class="cover-inner">
     <div class="cover-eyebrow">DTD-Cargo · Brand Book</div>
-    <h1>v3.0 · <span class="accent">una marca,</span><br/>un sistema completo.</h1>
+    <h1>v3.1 · <span class="accent">una marca,</span><br/>un sistema completo.</h1>
     <div class="cover-tag">Identidad visual + aplicaciones operacionales + voz de marca. Reseteo desde el isólogo oficial al spinner de la app móvil — todo coherente, todo derivable.</div>
     <div class="cover-meta">
-      <div><span class="k">Versión</span><span class="v">3.0</span></div>
+      <div><span class="k">Versión</span><span class="v">3.1</span></div>
       <div><span class="k">Fecha</span><span class="v">May 2026</span></div>
       <div><span class="k">Páginas</span><span class="v">14</span></div>
       <div><span class="k">Assets</span><span class="v">+ 40</span></div>
     </div>
     <div class="cover-cta">
-      <a href="#changelog" class="btn primary">→ Ver cambios v2.4 → v3.0</a>
+      <a href="#changelog" class="btn primary">→ Ver cambios v2.4 → v3.1</a>
       <a href="#logo" class="btn ghost">Ir al logo</a>
     </div>
   </div>
@@ -268,10 +276,11 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
 <section id="changelog">
   <div class="sec-head">
     <div class="num">01 / CHANGELOG</div>
-    <h2>De v2.4 a v3.0 · qué cambió</h2>
+    <h2>De v2.4 a v3.1 · qué cambió</h2>
     <p class="lead">Esto NO es un patch — es una revisión mayor. El logo se reconstruyó, las variantes se sistematizaron y se agregaron 5 sistemas nuevos.</p>
   </div>
   <div class="changelog">
+    <div class="row"><span class="tag add">v3.1</span><div><strong>Barra de navegación clara</strong> · el sidebar del ERP pasa a Papel DTD <code>#FBFAF7</code> con tokens propios <code>--bg-nav</code> (sección 06)</div></div>
     <div class="row"><span class="tag chg">CHANGED</span><div><strong>Wordmark</strong> · de <code>DTDCARGO</code> (una palabra, mayúsculas) a <code>DTD Cargo</code> (dos palabras, capitalizado, Archivo Black, gap 0.15em)</div></div>
     <div class="row"><span class="tag add">NEW</span><div><strong>4 variantes oficiales del isólogo</strong> con reglas WCAG · primary · reverse · mono-light · mono-dark</div></div>
     <div class="row"><span class="tag add">NEW</span><div><strong>Sistema de 15 íconos de perfil</strong> · 8 roles individuales + 7 grupos / canales WhatsApp</div></div>
@@ -407,22 +416,22 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
   <div class="sec-head">
     <div class="num">05 / TIPOGRAFÍA</div>
     <h2>4 familias · roles fijos</h2>
-    <p class="lead">Ninguna otra fuente. Ni Inter, ni Roboto, ni system-ui.</p>
+    <p class="lead">La tipografía de la marca DTD-Cargo. Ninguna otra fuera de éstas — ni Inter, ni Roboto, ni system-ui.</p>
   </div>
 
   <div class="type-row">
     <div class="specimen" style="font-family: 'Archivo Black', sans-serif; font-weight: 900;">Archivo Black · 900</div>
     <div class="meta">
-      <span><strong>Token</strong> <code>--f-display</code></span>
-      <span><strong>Uso</strong> H1, H2, KPI values, código destacado</span>
+      <span><strong>Token</strong> <code>--f-brand-display</code></span>
+      <span><strong>Uso</strong> Wordmark "DTD Cargo", titulares de marca, H1/H2</span>
       <span><strong>Source</strong> Google Fonts</span>
     </div>
   </div>
   <div class="type-row">
     <div class="specimen" style="font-family: 'Archivo', sans-serif; font-weight: 500; font-size: 36px;">Archivo · 400/500/600/700</div>
     <div class="meta">
-      <span><strong>Token</strong> <code>--f-sans</code></span>
-      <span><strong>Uso</strong> Body, labels, buttons, navegación</span>
+      <span><strong>Token</strong> <code>--f-brand</code></span>
+      <span><strong>Uso</strong> Body de marca, plantillas de correo, firma, material impreso</span>
     </div>
   </div>
   <div class="type-row">
@@ -461,7 +470,16 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
     <div class="swatch"><div class="chip" style="background: #FBFAF7;"></div><div class="name">Base</div><div class="token">--bg-base</div><div class="hex">#FBFAF7</div></div>
     <div class="swatch"><div class="chip" style="background: #FFFFFF; border: 1px solid var(--border);"></div><div class="name">Surface</div><div class="token">--bg-surface</div><div class="hex">#FFFFFF</div></div>
     <div class="swatch"><div class="chip" style="background: #F2F0EC;"></div><div class="name">Elevated</div><div class="token">--bg-elevated</div><div class="hex">#F2F0EC</div></div>
-    <div class="swatch"><div class="chip" style="background: #0F1E3D;"></div><div class="name">Sidebar</div><div class="token">--bg-sidebar</div><div class="hex">#0F1E3D</div></div>
+    <div class="swatch"><div class="chip" style="background: #0F1E3D;"></div><div class="name">Superficie oscura</div><div class="token">--bg-sidebar</div><div class="hex">#0F1E3D</div></div>
+  </div>
+
+  <h3 style="margin-top: 36px;">Barra de navegación · clara <span style="color: var(--wine); font: 700 11px/1 var(--f-mono); letter-spacing:0.1em;">NUEVO v3.1</span></h3>
+  <p style="font-size:13px; color:var(--ink-soft); margin:0 0 16px; max-width:64ch;">La barra lateral del ERP pasó de navy oscuro a <strong>Papel DTD</strong> (el blanco cálido de la marca). Tokens propios — no se tocó <code style="font-family:var(--f-mono); background:var(--bg-elevated); padding:2px 6px; border-radius:3px;">--bg-sidebar</code>, que sigue siendo superficie oscura. En modo oscuro la barra se mantiene navy.</p>
+  <div class="palette-grid">
+    <div class="swatch"><div class="chip" style="background: #FBFAF7; border: 1px solid var(--border);"></div><div class="name">Nav · fondo</div><div class="token">--bg-nav</div><div class="hex">#FBFAF7</div></div>
+    <div class="swatch"><div class="chip" style="background: rgba(127,15,26,0.08);"></div><div class="name">Nav · ítem activo</div><div class="token">--bg-nav-active</div><div class="hex">wine-tint</div></div>
+    <div class="swatch"><div class="chip" style="background: #0F1E3D;"></div><div class="name">Nav · texto</div><div class="token">--ink-nav</div><div class="hex">#0F1E3D</div></div>
+    <div class="swatch"><div class="chip" style="background: #7F0F1A;"></div><div class="name">Nav · activo</div><div class="token">--ink-nav-active</div><div class="hex">#7F0F1A</div></div>
   </div>
 
   <h3 style="margin-top: 36px;">Texto · ink</h3>
@@ -724,7 +742,7 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
     <img src="assets/dtdcargo-isologo-reverse.png" style="width: 36px;" alt="" />
     <span class="mark" style="font-size: 24px;"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
   </div>
-  <p>© 2026 DTD-Cargo · Doortudoor Services · Brand Book v3.0 · Mayo 2026<br/>www.dtdcargo.com · Made in Yiwu & Valencia</p>
+  <p>© 2026 DTD-Cargo · Doortudoor Services · Brand Book v3.1 · Mayo 2026<br/>www.dtdcargo.com · Made in Yiwu & Valencia</p>
 </div>
 
 </div>
