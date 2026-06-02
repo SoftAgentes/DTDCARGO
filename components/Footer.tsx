@@ -182,6 +182,9 @@ export function Footer() {
             derechos reservados.
           </span>
           <div className="flex items-center gap-4">
+            <Link href="/registro" className="hover:text-white transition-colors">
+              Registro de cliente
+            </Link>
             <Link href="/brand" className="hover:text-white transition-colors">
               Kit de marca
             </Link>
