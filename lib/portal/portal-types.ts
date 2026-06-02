@@ -6,6 +6,18 @@
  * y colores que el tracking público y el Studio.
  */
 import type { ShipmentService, ShipmentStatus } from "@/lib/shared/shipment-public";
+import {
+  type InvoiceStatus,
+  type InvoiceCurrency,
+  type InvoiceLine,
+  statusLabel,
+  statusBadgeTone,
+  displayStatus,
+  computeBalance,
+  isOverdue,
+  currencyLabel,
+} from "@/lib/studio/invoice-types";
+import type { ShipmentDocType } from "@/lib/studio/shipment-document-types";
 
 export type { ShipmentService, ShipmentStatus };
 export {
@@ -148,3 +160,106 @@ export function estimatePortalEta(detail: {
   const days = ETA_DAYS_BY_SERVICE[detail.service] ?? 45;
   return new Date(created + days * 24 * 60 * 60 * 1000).toISOString();
 }
+
+// ─────────────────────────────────────────────────────────────
+// Facturas del portal (SDD-0042 · Fase 3)
+//
+// El portal REUSA los tipos/helpers de facturación del Studio (SDD-0021,
+// `lib/studio/invoice-types`): mismos labels, estados, derivación visual de
+// "vencida" y cálculo de saldo que el módulo Facturación. (El portal está FUERA
+// de la frontera ESLint público↔ERP — superficie autenticada Supabase-backed —
+// así que puede importar de `@/lib/studio`, igual que con el timeline de envíos.)
+// ─────────────────────────────────────────────────────────────
+export type { InvoiceStatus, InvoiceCurrency, InvoiceLine };
+export {
+  statusLabel as invoiceStatusLabel,
+  statusBadgeTone as invoiceStatusTone,
+  displayStatus as invoiceDisplayStatus,
+  computeBalance as invoiceBalance,
+  isOverdue as invoiceIsOverdue,
+  currencyLabel,
+};
+
+/** Tono del badge de estado de factura (lo que devuelve `invoiceStatusTone`). */
+export type InvoiceBadgeTone =
+  | "neutral"
+  | "info"
+  | "success"
+  | "danger"
+  | "warning";
+
+/**
+ * Color de marca para el badge de estado de factura. Espeja la lógica de
+ * `STATUS_COLORS` de envíos: usa los tokens de ESTADO de `globals.css`
+ * (`--color-status-*`, `--color-ink`, `--color-grey-500`) — NUNCA wine, que es
+ * sólo para CTAs. Son los hex de esos tokens (el badge necesita hex para componer
+ * el alpha del fondo/borde, mismo patrón que el badge de envíos).
+ */
+export const INVOICE_TONE_COLOR: Record<InvoiceBadgeTone, string> = {
+  success: "#1F8A5B", // --color-status-success · pagada
+  info: "#0F1E3D", // --color-ink · emitida (en curso)
+  warning: "#B8893A", // --color-status-warning · parcial
+  danger: "#C2353F", // --color-status-danger · vencida
+  neutral: "#6B6B6B", // --color-grey-500 · borrador / anulada
+};
+
+/**
+ * Formatea un monto de factura de cara al cliente: separador de miles + 2
+ * decimales y el CÓDIGO de moneda (no símbolo). USDT no es ISO 4217, así que por
+ * coherencia mostramos el código para las cuatro monedas. Ej: "USD 1,250.00".
+ */
+export function formatInvoiceAmount(
+  amount: number,
+  currency: InvoiceCurrency,
+): string {
+  const n = Number.isFinite(amount) ? amount : 0;
+  const formatted = new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+  return `${currency} ${formatted}`;
+}
+
+/** Una fila de "Mis facturas" (read-only). */
+export type PortalInvoiceRow = {
+  id: string;
+  /** invoice_code F-YYYY-NNNN. */
+  code: string;
+  /** Status crudo; la UI deriva "vencida" con `invoiceDisplayStatus`. */
+  status: InvoiceStatus;
+  currency: InvoiceCurrency;
+  total: number;
+  paid: number;
+  issuedAt: string | null; // YYYY-MM-DD
+  dueDate: string | null; // YYYY-MM-DD
+  shipmentCode: string | null;
+};
+
+/** Detalle de UNA factura del cliente (read-only). */
+export type PortalInvoiceDetail = PortalInvoiceRow & {
+  clientName: string;
+  base: number;
+  ivaRate: number;
+  ivaAmount: number;
+  fxRate: number | null;
+  lines: InvoiceLine[];
+  shipmentId: string | null;
+  notes: string | null;
+  createdAt: string;
+};
+
+/**
+ * Un documento del cliente para la sección GLOBAL "Documentos" del portal
+ * (SDD-0042 Fase 3b · Norte). Todos los docs del cliente cruzando envíos, con el
+ * código del envío al que pertenecen. Espeja `D.DOCUMENTS` del portal del Norte.
+ */
+export type PortalDocument = {
+  id: string;
+  docType: ShipmentDocType;
+  storagePath: string;
+  fileName: string;
+  contentType: string | null;
+  sizeBytes: number | null;
+  createdAt: string;
+  shipmentCode: string | null;
+};

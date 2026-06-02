@@ -167,6 +167,15 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${archivo.variable} ${archivoBlack.variable} ${notoSansSc.variable}`}
+      // Token de marca INMUNE: captura la familia real de Archivo Black (next/font)
+      // como literal, sin pasar por --font-archivo-black (que el portal redefine a
+      // Sora). Así el wordmark del logo sigue en Archivo Black en TODA la app,
+      // incluido /portal (capa branding ≠ capa sistema · regla del Norte).
+      style={
+        {
+          "--font-brand-display": `${archivoBlack.style.fontFamily}, "Archivo Black", sans-serif`,
+        } as React.CSSProperties
+      }
       suppressHydrationWarning
     >
       <head>

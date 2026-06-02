@@ -132,7 +132,10 @@ export function BrandMark({
       {!isologoOnly && (
         <span
           style={{
-            fontFamily: "var(--font-archivo-black)",
+            // Token de marca (Archivo Black) — NO `--font-archivo-black`, que el
+            // portal redefine a Sora. El logo corporativo es capa branding y debe
+            // quedar en Archivo Black en toda la app (regla del Norte).
+            fontFamily: "var(--font-brand-display)",
             fontWeight: 900,
             fontSize: `${markFontSize}px`,
             letterSpacing: "-0.02em",

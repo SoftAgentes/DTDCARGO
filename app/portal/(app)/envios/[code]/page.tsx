@@ -8,6 +8,12 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { StatusBadge } from "../../../_components/StatusBadge";
 import { PortalTimeline } from "../../../_components/PortalTimeline";
+import { PortalDocsCard } from "../../../_components/PortalDocsCard";
+import {
+  listShipmentDocuments,
+  signDocumentUrls,
+} from "@/lib/studio/shipment-document-queries";
+import { createAdminClient } from "@/lib/db/admin";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -25,6 +31,18 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   // RLS sólo devuelve envíos del cliente logueado; si no hay match (ajeno o
   // inexistente) → 404, no exponemos la diferencia.
   if (!shipment) notFound();
+
+  // Documentos del envío (SDD-0042 Fase 3b). El shipment ya viene verificado por
+  // markbox (getMyShipment) y la RLS de shipment_documents filtra por markbox;
+  // las signed URLs se firman con admin client (un cliente puro no puede leer el
+  // bucket por tenant vía storage RLS).
+  const documents = await listShipmentDocuments(supabase, shipment.id);
+  const docUrls = documents.length
+    ? await signDocumentUrls(
+        createAdminClient(),
+        documents.map((d) => d.storage_path),
+      )
+    : {};
 
   const svc = SERVICE_LABELS[shipment.service];
   const serviceLabel = svc.sub ? `${svc.primary} · ${svc.sub}` : svc.primary;
@@ -121,6 +139,10 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
             carga avanza.
           </p>
         </div>
+      </div>
+
+      <div className="mt-6">
+        <PortalDocsCard documents={documents} signedUrls={docUrls} />
       </div>
     </div>
   );
