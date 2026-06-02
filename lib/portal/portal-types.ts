@@ -50,7 +50,30 @@ export type PortalClient = {
   name: string;
   email: string | null;
   phone: string | null;
+  /**
+   * Dirección/ciudad de entrega en Venezuela (columna `clients.address`, migr
+   * 0006). La administra el asesor; el portal la muestra read-only. Null si el
+   * registro no la tiene cargada.
+   */
+  address: string | null;
 };
+
+/**
+ * El texto exacto que el cliente le pide a su proveedor en China que escriba en
+ * **cada caja** como Shipping Mark (唛头): su MARKBOX. Así la mercancía llega
+ * identificada a la bodega de Yiwu y se sabe de quién es. Es el VALOR del perfil
+ * (de cara al cliente el término es "MARKBOX"; sólo al hablar del proveedor se
+ * nombra "Shipping Mark").
+ *
+ * Función pura (testeable, reusable por un botón "copiar" del lado cliente) que
+ * NORMALIZA el código a como se rotula físicamente: en mayúsculas y sin espacios
+ * accidentales. NO agrega prefijos ni PII — la marca de la caja ES el código.
+ * Espeja el "texto listo para WeChat" del glosario (id "markbox") y el paso 03 de
+ * `/registro`.
+ */
+export function buildPortalSupplierMark(markbox: string): string {
+  return markbox.trim().toUpperCase();
+}
 
 /** Una fila de "Mis envíos" (read-only). */
 export type PortalShipmentRow = {

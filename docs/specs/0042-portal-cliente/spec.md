@@ -4,7 +4,7 @@ title: "Portal del Cliente — auth de cliente + mis envíos (V1)"
 status: in-progress
 author: "founder"
 created: 2026-06-02
-updated: 2026-06-02
+updated: 2026-06-03
 supersedes: null
 superseded_by: null
 related: ["0010", "0013", "0021", "0024", "0026"]
@@ -251,7 +251,14 @@ El esquema real (`0002_shipments.sql`) referencia al cliente por `client_markbox
   - **Reuso del timeline:** la derivación `buildTimeline(status, service)` (pasos done/active/pending/exception según el flow canónico por servicio) **YA existía** en `lib/studio/tracking-progress.ts` (la usa el Studio y conceptualmente el tracking público) — el portal la **reusa tal cual** vía re-export en `lib/portal/portal-types.ts` (el portal está fuera de la frontera ESLint público↔ERP, igual que `app/m/*`, así que importa de `lib/studio` legítimamente). El nuevo componente `PortalTimeline` sólo cambia la PIEL (brand del sitio público: paper/wine/Archivo, tokens `var(--*)`), no la lógica. **NO se tocó** `lib/studio/tracking-progress.ts`.
   - Nuevos: `app/portal/(app)/envios/[code]/page.tsx`, `app/portal/_components/PortalTimeline.tsx`, `lib/portal/__tests__/shipment-detail.test.ts`. Editados: `lib/portal/portal-queries.ts` (+`getMyShipment`), `lib/portal/portal-types.ts` (+`PortalShipmentDetail`, `estimatePortalEta`, re-export del derivador), `app/portal/_components/ShipmentRow.tsx` (link a detalle).
   - Tests Vitest (9): `buildTimeline` para status inicial / intermedio / entregado / exception + flow terrestre corto; `estimatePortalEta` (tránsito → futuro, terminal/ya-en-bodega → null). `node scripts/verify.mjs` VERDE (lint 0 errores, typecheck, 265 tests, docs:check).
-  - **Pendiente del resto de Fase 2:** documentos (BL/POD vía Storage) + perfil read.
+- **Slice 2.2 — Mi cuenta / perfil (read-only):** ✅ **HECHO (2026-06-03).**
+  Ruta `app/portal/(app)/cuenta/page.tsx` (server). Perfil read-only del cliente logueado: **MARKBOX prominente** (mono, es SU identificador), nombre/empresa, email, teléfono y **dirección/ciudad de entrega**. El cliente NO edita (modelo mediado por admin) → nota "¿algún dato desactualizado? Escribile a tu asesor" + CTA WhatsApp (`buildWhatsAppLink`). **Sin migración** (reusa la RLS del portal 0080: el cliente lee SU fila de `clients` vía `get_portal_client_id()`).
+  - **El valor de la página** es la sección "Tu MARKBOX para tus proveedores": explica que el cliente le pasa su MARKBOX al proveedor en China, que lo escribe en cada caja como **Shipping Mark (唛头)**, así la mercancía llega identificada a la bodega de Yiwu. Copy adaptado del paso 03 de `app/registro/page.tsx` + glosario `id "markbox"`. Terminología: de cara al cliente siempre **MARKBOX**; "Shipping Mark" sólo al nombrar lo que hace el proveedor.
+  - **Dato nuevo necesario:** la **dirección** del cliente. `getPortalClient` ahora trae `address` (columna `clients.address`, migr 0006 — ya existía, **ninguna migración nueva**) y `PortalClient` suma `address: string|null`. Helper puro nuevo `buildPortalSupplierMark(markbox)` en `portal-types.ts` (la marca que va en la caja ES el MARKBOX, normalizado a mayúsculas/sin espacios; sin prefijos ni PII).
+  - **Alcanzable:** link **"Mi cuenta"** en `PortalHeader` (la identidad nombre+MARKBOX y un botón "Mi cuenta" linkean a `/portal/cuenta`, junto a "Cerrar sesión").
+  - Nuevos: `app/portal/(app)/cuenta/page.tsx`, `lib/portal/__tests__/account.test.ts`. Editados: `lib/portal/portal-queries.ts` (+`address` en el select de `getPortalClient`), `lib/portal/portal-types.ts` (+`address` en `PortalClient`, +`buildPortalSupplierMark`), `app/portal/_components/PortalHeader.tsx` (+link "Mi cuenta").
+  - Tests Vitest (8): `getPortalClient` mapea `address` (fila completa + null-safety cuando el admin no lo cargó) + aislamiento (sin `client_id` del portal → null **sin** consultar `clients`; error de RPC/fila → null); `buildPortalSupplierMark` (la marca ES el MARKBOX, mayúsculas, trim). `node scripts/verify.mjs` VERDE (lint 0 errores, typecheck, 273 tests, docs:check). UI brand-checked (tokens `var(--*)`, radius ≤18px, voseo, MARKBOX-no-"Shipping Mark"); `ui-ux-designer` agendado.
+  - **Pendiente del resto de Fase 2:** documentos (BL/POD vía Storage).
 ### Fase 3 — Facturas (ver) + estado de cuenta (integra SDD-0021).
 ### Fase 4 — Modo Cliente (impersonación admin) + notificaciones al cliente.
 
