@@ -204,3 +204,48 @@ export async function softDeleteClientAction(
   revalidatePath("/studio/clientes");
   return { ok: true };
 }
+
+// ── Portal del Cliente (SDD-0042) ──────────────────────────────────────────
+// Habilitar / revocar el acceso del cliente al portal. Llaman a las RPCs
+// SECURITY DEFINER (portal_invite_client / portal_revoke_client) que validan
+// membresía de tenant. El cliente entra luego en /portal/login con su email.
+
+export async function invitePortalAction(
+  clientId: string,
+  markbox: string,
+): Promise<{ ok?: boolean; error?: string; email?: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("portal_invite_client", {
+    p_client_id: clientId,
+  });
+
+  if (error) {
+    const msg = error.message.includes("no tiene email")
+      ? "El cliente no tiene email — agregalo antes de habilitar el portal."
+      : `No se pudo habilitar el portal: ${error.message}`;
+    return { error: msg };
+  }
+
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { client_email?: string }
+    | null;
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true, email: row?.client_email };
+}
+
+export async function revokePortalAction(
+  clientId: string,
+  markbox: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("portal_revoke_client", {
+    p_client_id: clientId,
+  });
+
+  if (error) {
+    return { error: `No se pudo revocar el acceso: ${error.message}` };
+  }
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}

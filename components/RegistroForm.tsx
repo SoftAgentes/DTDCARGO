@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { ArrowIcon, WhatsAppIcon } from "./Icon";
 import { CONTACT, DESTINATIONS } from "@/lib/design-tokens";
 
@@ -111,6 +112,12 @@ export function RegistroForm() {
         <p className="text-[12px] text-grey-500 mt-3 leading-[1.5]">
           Al clickear, abrís WhatsApp con tus datos pre-cargados. Llega directo a
           un asesor que te da de alta y te pasa tu MARKBOX.
+        </p>
+        <p className="mt-5 pt-5 border-t border-grey-200 text-[13px] text-grey-500">
+          ¿Ya te habilitaron el portal?{" "}
+          <Link href="/portal/login" className="font-semibold text-wine hover:text-wine-deep">
+            Acceder
+          </Link>
         </p>
       </div>
     );

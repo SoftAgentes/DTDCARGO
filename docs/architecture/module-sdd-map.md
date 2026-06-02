@@ -58,4 +58,10 @@
 |---|---|
 | CMS contenido (noticias/servicios/glosario) | `app/back/(app)/` · `lib/back/` |
 
+## Portal del Cliente (5ª superficie · Supabase-backed)
+
+| Módulo | SDD | Código (app) | Código (lib) |
+|---|---|---|---|
+| Portal cliente (login magic-link + mis envíos) | 0042 | `app/portal/` (auth/callback/mis-envíos) + admin "Acceso al portal" en `app/studio/(app)/clientes/` (PortalAccessCard) + link "Acceder" en `components/{Nav,Footer}` | `lib/portal/` · `supabase/migrations/0080_portal_cliente.sql` + `0081` |
+
 > Huecos del correlativo (0022-0023, 0027-0028): ver `docs/specs/README.md` — código sin spec o renumerado, auditar. (0021 = Facturación ✅ y 0040 = Contabilidad ✅, ambos construidos.)

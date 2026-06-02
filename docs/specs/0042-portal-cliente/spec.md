@@ -1,7 +1,7 @@
 ---
 sdd: "0042"
 title: "Portal del Cliente — auth de cliente + mis envíos (V1)"
-status: draft
+status: in-progress
 author: "founder"
 created: 2026-06-02
 updated: 2026-06-02
@@ -243,7 +243,7 @@ El esquema real (`0002_shipments.sql`) referencia al cliente por `client_markbox
 - Admin: "Invitar al portal" + "Revocar" en `/studio/clientes/[markbox]` (con fallback de link manual si Mailing OFF).
 - Link "Portal" en el sitio público.
 - **Sub-fase 1a (mergeable sola, sin UI):** ✅ **HECHA y aplicada a prod (2026-06-02).** Migraciones `0080_portal_cliente` + `0081_portal_harden_grants` aplicadas vía MCP y validadas: rollback-test (corre limpio), **aislamiento probado** (un cliente simulado ve 1/10 envíos y 1/6 clientes, 0 de otros), advisors `anon_security_definer_*` cerrados (anon no ejecuta las funciones del portal). `lib/portal/*` typecheck + lint OK. *(Branching no disponible: el proyecto Vercel-managed no es Pro → validé con rollback-transaction sobre prod.)* **Nota authz:** `portal_invite_client`/`portal_revoke_client` chequean **membresía de tenant** (no rol `admin` estricto) → tightening a admin-only = V1.5.
-- **Sub-fase 1b:** las pantallas del portal + admin action + link. ← siguiente
+- **Sub-fase 1b:** ✅ **HECHA (2026-06-02).** Pantallas `/portal` (login magic-link + callback `portal_bind_session` + guard `getPortalClient` blindado vía `get_portal_client_id()` + "mis envíos" read-only), admin "Acceso al portal" (invitar/revocar via RPCs) en `/studio/clientes/[markbox]`, link "Acceder" en nav/footer + cross-links login↔registro. typecheck 0; `getPortalClient` endurecido contra fuga a user de equipo; `ui-ux-designer` sin hallazgos Alta (+ focus-visible global en `.btn`). **⚠️ Setup founder pendiente para que el magic-link funcione:** en Supabase → Auth → habilitar Email provider + agregar `{SITE_URL}/portal/callback` a **Redirect URLs** (+ SMTP/Resend para entrega real de los enlaces; el built-in tiene rate-limit bajo).
 
 ### Fase 2 — Detalle de envío (timeline) + documentos (BL/POD) + perfil read.
 ### Fase 3 — Facturas (ver) + estado de cuenta (integra SDD-0021).

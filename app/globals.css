@@ -209,6 +209,14 @@
   background: var(--color-grey-700);
 }
 
+/* Foco de teclado visible para TODOS los botones del sitio público (WCAG 2.4.7).
+   El sitio no tenía focus ring en .btn — esto lo cierra en login, registro,
+   contacto, cotizador, brand y portal de una sola vez. */
+.btn:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
 /* ──────────────────────────────────────────────────────────────────
    Sombras oficiales de cards — Brand Book DTD v2.0 · colors.json
    Aplicar .card-shadow en toda ventana/card blanca sobre bg-paper.
