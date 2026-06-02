@@ -1,10 +1,10 @@
 ---
 sdd: "0008"
 title: "DoorTuDoor — Tarifas (módulo rates) · primer módulo real del handoff"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0003", "0004", "0005", "0006", "0007"]

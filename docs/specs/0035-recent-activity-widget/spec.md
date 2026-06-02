@@ -1,10 +1,10 @@
 ---
 sdd: "0035"
 title: "Dashboard · RecentActivity widget clickeable + CodesSync deferred"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0002", "0014"]

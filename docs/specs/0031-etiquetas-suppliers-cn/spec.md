@@ -1,10 +1,10 @@
 ---
 sdd: "0031"
 title: "Etiquetas suppliers CN · PDF bilingüe ES/中文 + QR mock + copias por caja"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0008", "0010", "0029"]

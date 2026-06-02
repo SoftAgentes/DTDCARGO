@@ -1,10 +1,10 @@
 ---
 sdd: "0016"
 title: "DoorTuDoor — Almacén CN (recepción + scope + traductor)"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0010", "0012"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0034"
 title: "Wiring 9 conexiones rotas · modals globales (DTDWiring)"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0007", "0026"]

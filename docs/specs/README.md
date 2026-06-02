@@ -38,40 +38,40 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
-| 0001 | Sitio web público MVP de DTD·CARGO | draft | interno |
-| 0002 | Calculadora de Flete Terrestre Venezuela | draft | interno |
+| 0001 | Sitio web público MVP de DTD·CARGO | done | interno |
+| 0002 | Calculadora de Flete Terrestre Venezuela | done | interno |
 | 0003 | DoorTuDoor — Arquitectura MVP del ERP interno (multi-tenant r… | approved | interno |
 | 0004 | DoorTuDoor — Fase 1: Studio shell + Auth | done | interno |
 | 0005 | DoorTuDoor — Fase 2: Módulo Tracking (envíos + estados + dash… | done | interno |
-| 0006 | DoorTuDoor — Fase 3: Tracking edición + detalle + timeline + … | approved | interno |
-| 0007 | DoorTuDoor — Sprint 0.1: Studio Shell v1 (sidebar agrupado + … | approved | interno |
-| 0008 | DoorTuDoor — Tarifas (módulo rates) · primer módulo real del … | approved | interno |
-| 0009 | DoorTuDoor — Cambio de destino (feature en Tracking) | approved | interno |
-| 0010 | DoorTuDoor — Clientes + MARKBOX (catálogo comercial) | approved | interno |
-| 0011 | DoorTuDoor — Cotizador (Sprint 1 completo) | approved | interno |
-| 0012 | DoorTuDoor — Embarques (vista comercial agrupada por cliente) | approved | interno |
-| 0013 | DoorTuDoor — Tracking operativo (mapa + timeline) | approved | interno |
-| 0014 | DoorTuDoor — Dashboard real (KPIs operativos + comerciales) | approved | interno |
-| 0015 | DoorTuDoor — Calendario operativo (vista mes + feriados CN/VE) | approved | interno |
-| 0016 | DoorTuDoor — Almacén CN (recepción + scope + traductor) | approved | interno |
-| 0017 | DoorTuDoor — Almacén VE (vista derivada + 4 acciones operativas) | approved | interno |
-| 0018 | DoorTuDoor — Aduana SENIAT (workflow aduanal VE) | approved | interno |
-| 0019 | DoorTuDoor — TMS · Transporte interno VE | approved | interno |
-| 0020 | DoorTuDoor — Agentes y Skills · infraestructura + Tracking Co… | approved | interno |
+| 0006 | DoorTuDoor — Fase 3: Tracking edición + detalle + timeline + … | done | interno |
+| 0007 | DoorTuDoor — Sprint 0.1: Studio Shell v1 (sidebar agrupado + … | done | interno |
+| 0008 | DoorTuDoor — Tarifas (módulo rates) · primer módulo real del … | done | interno |
+| 0009 | DoorTuDoor — Cambio de destino (feature en Tracking) | done | interno |
+| 0010 | DoorTuDoor — Clientes + MARKBOX (catálogo comercial) | done | interno |
+| 0011 | DoorTuDoor — Cotizador (Sprint 1 completo) | done | interno |
+| 0012 | DoorTuDoor — Embarques (vista comercial agrupada por cliente) | done | interno |
+| 0013 | DoorTuDoor — Tracking operativo (mapa + timeline) | done | interno |
+| 0014 | DoorTuDoor — Dashboard real (KPIs operativos + comerciales) | done | interno |
+| 0015 | DoorTuDoor — Calendario operativo (vista mes + feriados CN/VE) | done | interno |
+| 0016 | DoorTuDoor — Almacén CN (recepción + scope + traductor) | done | interno |
+| 0017 | DoorTuDoor — Almacén VE (vista derivada + 4 acciones operativas) | done | interno |
+| 0018 | DoorTuDoor — Aduana SENIAT (workflow aduanal VE) | done | interno |
+| 0019 | DoorTuDoor — TMS · Transporte interno VE | done | interno |
+| 0020 | DoorTuDoor — Agentes y Skills · infraestructura + Tracking Co… | done | interno |
 | 0021 | Facturación — Invoice + estados + pago (Bloque 1.1 financiero) | done | interno |
-| 0024 | DoorTuDoor — Usuarios & Roles V1 simple (invitaciones + 6 rol… | approved | interno |
+| 0024 | DoorTuDoor — Usuarios & Roles V1 simple (invitaciones + 6 rol… | done | interno |
 | 0025 | DoorTuDoor — No-Olvidar interno DTD-CARGO · envelope encrypti… | approved | interno |
-| 0026 | DoorTuDoor — Mailing & Notificaciones (Resend + templates + s… | approved | interno |
-| 0029 | DTD Studio — Módulo de Despacho · cola priorizada + motor de … | approved | interno |
-| 0030 | Despacho · Apps móviles bodeguero VE + camionero VE (PWAs) | approved | interno |
-| 0031 | Etiquetas suppliers CN · PDF bilingüe ES/中文 + QR mock + copia… | approved | interno |
-| 0032 | Críticos v1.5 + cross-links cliente · MARKBOX validation + em… | approved | interno |
-| 0033 | Cola de impresión QR · oficina + push del operario CN | approved | interno |
-| 0034 | Wiring 9 conexiones rotas · modals globales (DTDWiring) | approved | interno |
-| 0035 | Dashboard · RecentActivity widget clickeable + CodesSync defe… | approved | interno |
+| 0026 | DoorTuDoor — Mailing & Notificaciones (Resend + templates + s… | done | interno |
+| 0029 | DTD Studio — Módulo de Despacho · cola priorizada + motor de … | done | interno |
+| 0030 | Despacho · Apps móviles bodeguero VE + camionero VE (PWAs) | done | interno |
+| 0031 | Etiquetas suppliers CN · PDF bilingüe ES/中文 + QR mock + copia… | done | interno |
+| 0032 | Críticos v1.5 + cross-links cliente · MARKBOX validation + em… | done | interno |
+| 0033 | Cola de impresión QR · oficina + push del operario CN | done | interno |
+| 0034 | Wiring 9 conexiones rotas · modals globales (DTDWiring) | done | interno |
+| 0035 | Dashboard · RecentActivity widget clickeable + CodesSync defe… | done | interno |
 | 0036 | Bug Reporter · módulo interno de bug tracking con auto-captur… | done | interno |
 | 0038 | i18n CN · región como fuente de verdad + chrome bilingüe es-V… | done | interno |
-| 0039 | Gastos CN · scope contenedor/operativo + moneda dual CNY/USD … | in-progress | interno |
+| 0039 | Gastos CN · scope contenedor/operativo + moneda dual CNY/USD … | done | interno |
 | 0040 | Contabilidad — plan de cuentas + diario/mayor + P&L/Balance +… | done | interno |
 | 0041 | Cobranzas — recibos de pago + asiento del cobro + cola CxC (B… | done | interno |
 | 0042 | Portal del Cliente — auth de cliente + mis envíos (V1) | in-progress | interno |

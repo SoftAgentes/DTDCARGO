@@ -1,10 +1,10 @@
 ---
 sdd: "0001"
 title: "Sitio web público MVP de DTD·CARGO"
-status: draft
+status: done
 author: "founder"
 created: 2026-05-19
-updated: 2026-05-19
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: []
