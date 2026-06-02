@@ -217,6 +217,12 @@
   outline-offset: 2px;
 }
 
+/* Foco de teclado para cards-link grandes (ej. fila de "Mis envíos" → detalle). */
+.card-link:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+}
+
 /* ──────────────────────────────────────────────────────────────────
    Sombras oficiales de cards — Brand Book DTD v2.0 · colors.json
    Aplicar .card-shadow en toda ventana/card blanca sobre bg-paper.

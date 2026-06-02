@@ -17,12 +17,14 @@ import {
  */
 
 /** Copy del meta-estado de cada paso, en voseo VE. */
-function stepMeta(state: TimelineStepState): string {
+function stepMeta(state: TimelineStepState, status: ShipmentStatus): string {
   switch (state) {
     case "done":
       return "Cumplido";
     case "active":
-      return "En curso · ahora";
+      // El estado terminal "delivered" llega como "active" (es el status
+      // actual) — pero para el cliente es un hecho cumplido, no algo en curso.
+      return status === "delivered" ? "Entregado" : "En curso · ahora";
     case "exception":
       return "Atención";
     default:
@@ -47,11 +49,17 @@ export function PortalTimeline({
         const isException = step.state === "exception";
         // Color del nodo y la línea: wine para alcanzado, danger para excepción,
         // gris para pendiente.
+        // El envío entregado se "celebra" en verde (cierra el loop con el
+        // StatusBadge, que ya es success para delivered).
+        const isDeliveredFinal =
+          step.status === "delivered" && step.state === "active";
         const dotColor = isException
           ? "var(--color-status-danger)"
-          : reached
-            ? "var(--color-wine)"
-            : "var(--color-grey-300)";
+          : isDeliveredFinal
+            ? "var(--color-status-success)"
+            : reached
+              ? "var(--color-wine)"
+              : "var(--color-grey-300)";
         // La línea hacia el siguiente paso se "llena" sólo si ESTE paso ya está
         // cumplido (el tramo recorrido).
         const lineColor =
@@ -122,12 +130,14 @@ export function PortalTimeline({
                 style={{
                   color: isException
                     ? "var(--color-status-danger)"
-                    : step.state === "active"
-                      ? "var(--color-wine)"
-                      : "var(--color-grey-500)",
+                    : isDeliveredFinal
+                      ? "var(--color-status-success)"
+                      : step.state === "active"
+                        ? "var(--color-wine)"
+                        : "var(--color-grey-500)",
                 }}
               >
-                {stepMeta(step.state)}
+                {stepMeta(step.state, step.status)}
               </div>
             </div>
           </div>

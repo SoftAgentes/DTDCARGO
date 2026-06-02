@@ -29,7 +29,7 @@ export function ShipmentRow({ shipment }: { shipment: PortalShipmentRow }) {
   return (
     <Link
       href={`/portal/envios/${encodeURIComponent(shipment.code)}`}
-      className="group bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 transition-colors hover:border-ink focus-visible:border-ink"
+      className="card-link group bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 transition-colors hover:border-ink focus-visible:border-ink"
       aria-label={`Ver detalle del envío ${shipment.code}`}
     >
       <div className="flex-1 min-w-0">
