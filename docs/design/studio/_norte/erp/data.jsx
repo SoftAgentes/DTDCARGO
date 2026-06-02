@@ -565,7 +565,666 @@ const CATALOG = {
   })),
 };
 
+// ── Perfiles de usuario interno (movido desde usuario-perfil-data.jsx · v2.4) ─
+/* ── Perfil de usuario interno · standalone ──────────────────── */
+/* Abre al click en @mención (comments) u owner (Vault, asignados).  */
+/* Patrón espejo de chofer-perfil / camion-perfil / agente-perfil.   */
+
+// ── Líneas corporativas por departamento (dadas por el cliente) ─
+const CORP_LINES = {
+  'Dirección':  { label: 'CEO · Dirección',        phone: '0414 884 0000' },
+  'Ventas':     { label: 'Comercial',              phone: '0412 454 5325' },
+  'Op. CN':     { label: 'Logística',              phone: '0414 888 8805' },
+  'Op. VE':     { label: 'Transporte',             phone: '0412 495 0884' },
+  'Finanzas':   { label: 'Contabilidad',           phone: '0414 887 0000' },
+  'CX':         { label: 'CRM · Atención cliente',  phone: '0412 166 8021', whatsappApi: true },
+  'Admin':      { label: 'Administración',          phone: '0241 414 7886' },
+};
+
+// ── Extra mock data por usuario ───────────────────────────────
+const USER_PROFILES = {
+  'u-001': {
+    avatarColor: 'wine', roleIcon: 'bigboss',
+    phone: '0414 884 0000', location: 'Caracas · HQ', presence: 'online',
+    lastActive: 'activo ahora', joined: '2019-02-01', title: 'Director General · CEO',
+    activity: [
+      { icon: 'check', text: 'Aprobó cierre de contenedor DTDU-419032', mod: 'cn', when: 'hace 8 min' },
+      { icon: 'invoice', text: 'Autorizó nota de crédito F-2026-0418', mod: 'invoices', when: 'hace 1 h' },
+      { icon: 'users', text: 'Creó usuario Carolina Méndez (Soporte)', mod: 'users', when: 'hace 3 h' },
+      { icon: 'doc', text: 'Firmó BL DTDU472816-OR', mod: 'documents', when: 'ayer 17:40' },
+    ],
+    owns: { label: 'Aprobaciones pendientes', count: 3, mod: 'dashboard', items: ['Cierre contenedor CN', 'Límite crédito DTD-5392', 'Baja proveedor sup-007'] },
+    note: 'Acceso total. Único rol que aprueba límites de crédito y bajas de proveedor.',
+  },
+  'u-002': {
+    avatarColor: 'info', roleIcon: 'compras',
+    phone: '0412 454 5325', location: 'Yiwu · CN (viaje)', presence: 'online',
+    lastActive: 'activo ahora', joined: '2021-06-14', title: 'Ejecutiva comercial senior',
+    activity: [
+      { icon: 'box', text: 'Creó cotización Q-2026-0331 · DTD-5418', mod: 'quotes', when: 'hace 4 min' },
+      { icon: 'users', text: 'Registró lead Comercial Linares', mod: 'leads', when: 'hace 2 h' },
+      { icon: 'mail', text: 'Envió seguimiento a DTD-5371', mod: 'mailing', when: 'hace 5 h' },
+    ],
+    owns: { label: 'Clientes asignados', count: 12, mod: 'clients', items: ['DTD-5418 Imp. Pereira', 'DTD-5371 Tech Solutions', 'DTD-5263 Comercial Linares'] },
+    note: 'De viaje en CN coordinando suppliers. Responde por WhatsApp.',
+  },
+  'u-003': {
+    avatarColor: 'info', roleIcon: 'compras',
+    phone: '0412 160 5202', location: 'Caracas · HQ', presence: 'away',
+    lastActive: 'hace 2 h', joined: '2022-01-10', title: 'Ejecutivo comercial',
+    activity: [
+      { icon: 'box', text: 'Actualizó embarque DTDU-388157', mod: 'shipments', when: 'hace 2 h' },
+      { icon: 'users', text: 'Movió lead a "negociación"', mod: 'leads', when: 'ayer' },
+    ],
+    owns: { label: 'Clientes asignados', count: 7, mod: 'clients', items: ['DTD-5298 Vargas & Asoc', 'DTD-5215 Ortiz Cosmetics'] },
+    note: '',
+  },
+  'u-004': {
+    avatarColor: 'success', roleIcon: 'logistica',
+    phone: '0414 888 8805', location: 'Yiwu · Almacén CN', presence: 'online',
+    lastActive: 'activo ahora', joined: '2020-09-22', title: 'Coordinador de operaciones CN',
+    activity: [
+      { icon: 'warehouse', text: 'Consolidó contenedor · 48.2 CBM', mod: 'cn', when: 'hace 12 min' },
+      { icon: 'box', text: 'Procesó recepción de 34 cajas · DTD-5452', mod: 'cn', when: 'hace 1 h' },
+      { icon: 'truck', text: 'Cerró despacho DESP-2026-0188', mod: 'despacho', when: 'hace 4 h' },
+    ],
+    owns: { label: 'Embarques en su hub', count: 9, mod: 'shipments', items: ['DTDU-472816 (consolidando)', 'DTDU-398770 (recibido CN)', 'DTDU-401234 (consolidado)'] },
+    note: 'Líder del equipo de Yiwu. Maneja el modo despacho de contenedores.',
+  },
+  'u-005': {
+    avatarColor: 'success', roleIcon: 'almacenista',
+    phone: '0412 495 0884', location: 'Puerto Cabello · Almacén VE', presence: 'online',
+    lastActive: 'activo ahora', joined: '2021-03-08', title: 'Coordinadora de operaciones VE',
+    activity: [
+      { icon: 'warehouse', text: 'Desconsolidó DTDU-365044 · 56 CBM', mod: 've', when: 'hace 30 min' },
+      { icon: 'truck', text: 'Asignó chofer a entrega Valencia', mod: 'tms', when: 'hace 2 h' },
+    ],
+    owns: { label: 'Entregas activas', count: 5, mod: 've', items: ['DTDU-365044 → Punto Fijo', 'DTDU-419032 → Maracaibo'] },
+    note: '',
+  },
+  'u-006': {
+    avatarColor: 'wine', roleIcon: 'contabilidad',
+    phone: '0414 887 0000', location: 'Caracas · HQ', presence: 'away',
+    lastActive: 'hace 3 h', joined: '2020-05-18', title: 'Contador general',
+    activity: [
+      { icon: 'invoice', text: 'Concilió 14 movimientos bancarios', mod: 'reconcile', when: 'hace 3 h' },
+      { icon: 'invoice', text: 'Emitió F-2026-0431 · DTD-5354', mod: 'invoices', when: 'ayer' },
+      { icon: 'doc', text: 'Cerró período contable abril', mod: 'contab', when: 'hace 2 d' },
+    ],
+    owns: { label: 'Facturas por cobrar', count: 8, mod: 'invoices', items: ['F-2026-0418 vencida 10d', 'F-2026-0425 vence en 3d'] },
+    note: 'Único con permiso de lock de período contable.',
+  },
+  'u-007': {
+    avatarColor: 'neutral', roleIcon: 'almacenista',
+    phone: '0414 888 8805', location: 'Yiwu · Almacén CN', presence: 'online',
+    lastActive: 'activo ahora', joined: '2022-08-30', title: 'Almacenista CN',
+    activity: [
+      { icon: 'box', text: 'Escaneó grupo de 20 cajas · DTD-5277', mod: 'cn', when: 'hace 6 min' },
+      { icon: 'warehouse', text: 'Etiquetó mercancía frágil', mod: 'cn', when: 'hace 1 h' },
+    ],
+    owns: { label: 'Recepciones de hoy', count: 6, mod: 'cn', items: ['DTD-5277 · 20 cajas', 'DTD-5452 · 34 cajas'] },
+    note: 'Opera la app móvil de Operario CN (escaneo + recepción).',
+  },
+  'u-008': {
+    avatarColor: 'wine', roleIcon: 'administracion',
+    phone: '0412 166 8021', location: 'Caracas · HQ', presence: 'offline',
+    lastActive: 'invitación pendiente', joined: '—', title: 'Atención al cliente · CRM',
+    activity: [],
+    owns: { label: 'Tickets asignados', count: 0, mod: 'dashboard', items: [] },
+    note: 'Usuaria recién invitada — todavía no activó su cuenta.',
+  },
+};
+
+const PRESENCE = {
+  online:  { tone: 'success', label: 'En línea' },
+  away:    { tone: 'warning', label: 'Ausente' },
+  offline: { tone: 'neutral', label: 'Desconectado' },
+};
+
+// ── Hilos de comentarios (movido desde hilo-comentario.jsx · v2.4) ─
+const THREADS = {
+  't-472816': {
+    record: { id: 'DTDU-472816', type: 'Embarque', mod: 'shipments', label: 'Acindar Comercial · FCL 20\' · Yiwu → Pto Cabello' },
+    created: 'hace 2 días', status: 'abierto',
+    root: {
+      id: 'c1', author: 'u-002', at: 'hace 2 días',
+      body: 'Yusneidy, este es el contenedor que está pasando por Panamá. Avisame cuando libere aduana así arranco el booking del flete interno. @Yusneidy P. ¿tenemos fecha tentativa de arribo a Pto Cabello?',
+      mentions: ['u-005'], reactions: { '👍': ['u-005', 'u-001'] },
+      replies: [
+        { id: 'r1', author: 'u-005', at: 'hace 2 días', body: '@Martina A. recibido. Lo estoy monitoreando — ETA Pto Cabello sigue para el 12 jun. En cuanto el agente confirme liberación te aviso acá mismo.', mentions: ['u-002'], reactions: { '✓': ['u-002'] }, replies: [
+          { id: 'r1a', author: 'u-002', at: 'hace 1 día', body: 'Perfecto, gracias. Dejo agendado el flete tentativo para el 13.', mentions: [], reactions: {}, replies: [] },
+        ] },
+        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegurate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
+          { id: 'r2a', author: 'u-003', at: 'hace 5 h', body: 'Coordinado. Chofer Luis Hernández (T-001) confirmado para el 13 a primera hora.', mentions: [], reactions: { '🔥': ['u-001', 'u-002'] }, replies: [] },
+        ] },
+      ],
+    },
+  },
+  't-0418': {
+    record: { id: 'F-2026-0418', type: 'Factura', mod: 'invoices', label: 'Acindar Comercial · $84.2K · vencida hace 10 días' },
+    created: 'hace 4 h', status: 'abierto',
+    root: {
+      id: 'c30', author: 'u-006', at: 'hace 4 h',
+      body: 'Factura vencida hace 10 días. @Martina A. ¿podés llamar al cliente? Ya mandamos 2 recordatorios automáticos sin respuesta.',
+      mentions: ['u-002'], reactions: {},
+      replies: [
+        { id: 'fr1', author: 'u-002', at: 'hace 3 h', body: 'Lo llamo hoy. Carlos me comentó la semana pasada que estaban esperando liberar el contenedor para pagar. @Andrés B. ¿le damos 5 días más?', mentions: ['u-006'], reactions: {}, replies: [] },
+      ],
+    },
+  },
+};
+
+
+// ── Bloques consolidados v2.4 · movidos acá desde sus módulos/pantallas ─
+// (antes vivían inline en qr-queue, dashboard, audit-log, conciliacion y
+//  las pantallas de perfil; ahora fuente única vía window.ERPData)
+const PRINT_ORDERS = [
+  { id: 'QR-2026-1118', markbox: 'DTD-7842', client: 'Polar C.A.',           bultos: 18, warehouse: 'cn-yiwu',      supplier: 'Yiwu Trading Hub Co.',    sentBy: 'Liu Wei',    sentByPhone: '+86 138 8829', sentAt: '2026-05-24 09:42', priority: 'urgent', status: 'pendiente', notes: 'Cliente pasa esta tarde — armar paquete listo' },
+  { id: 'QR-2026-1117', markbox: 'DTD-7842', client: 'Polar C.A.',           bultos: 24, warehouse: 'cn-yiwu',      supplier: 'Ningbo Textile Group',    sentBy: 'Liu Wei',    sentByPhone: '+86 138 8829', sentAt: '2026-05-24 09:38', priority: 'urgent', status: 'pendiente', notes: '' },
+  { id: 'QR-2026-1116', markbox: 'DTD-9104', client: 'Acindar Industrial',   bultos: 12, warehouse: 'cn-guangzhou', supplier: 'Foshan Steel Parts',      sentBy: 'Chen Min',   sentByPhone: '+86 159 2147', sentAt: '2026-05-24 09:14', priority: 'normal', status: 'pendiente', notes: '' },
+  { id: 'QR-2026-1115', markbox: 'DTD-5621', client: 'Tech Solutions',       bultos:  6, warehouse: 'cn-yiwu',      supplier: 'Shenzhen Electronics Ltd', sentBy: 'Liu Wei',    sentByPhone: '+86 138 8829', sentAt: '2026-05-24 08:51', priority: 'normal', status: 'pendiente', notes: 'Frágil — etiqueta verde extra' },
+  { id: 'QR-2026-1114', markbox: 'DTD-3308', client: 'Distribuidora MAVECA', bultos: 30, warehouse: 'cn-yiwu',      supplier: 'Hangzhou Plastics',       sentBy: 'Wang Lei',   sentByPhone: '+86 187 4421', sentAt: '2026-05-24 08:33', priority: 'normal', status: 'imprimiendo', assignedPrinter: 'HP LaserJet · Oficina 2', notes: '' },
+  { id: 'QR-2026-1113', markbox: 'DTD-7842', client: 'Polar C.A.',           bultos:  8, warehouse: 'cn-guangzhou', supplier: 'Foshan Steel Parts',      sentBy: 'Chen Min',   sentByPhone: '+86 159 2147', sentAt: '2026-05-24 08:12', priority: 'normal', status: 'imprimiendo', assignedPrinter: 'Zebra ZT411 · Oficina 1', notes: '' },
+  { id: 'QR-2026-1112', markbox: 'DTD-2017', client: 'Farmacia La Vista',    bultos: 14, warehouse: 'cn-yiwu',      supplier: 'Yiwu Trading Hub Co.',    sentBy: 'Liu Wei',    sentByPhone: '+86 138 8829', sentAt: '2026-05-23 17:48', priority: 'normal', status: 'impreso',     assignedPrinter: 'HP LaserJet · Oficina 2', printedAt: '2026-05-23 18:05', printedBy: 'Andrea M.', notes: '' },
+  { id: 'QR-2026-1111', markbox: 'DTD-9104', client: 'Acindar Industrial',   bultos: 22, warehouse: 'cn-guangzhou', supplier: 'Dongguan Hardware',       sentBy: 'Chen Min',   sentByPhone: '+86 159 2147', sentAt: '2026-05-23 16:22', priority: 'normal', status: 'impreso',     assignedPrinter: 'Zebra ZT411 · Oficina 1', printedAt: '2026-05-23 16:38', printedBy: 'Andrea M.', notes: '' },
+  { id: 'QR-2026-1110', markbox: 'DTD-5621', client: 'Tech Solutions',       bultos: 10, warehouse: 'cn-yiwu',      supplier: 'Shenzhen Electronics Ltd', sentBy: 'Liu Wei',    sentByPhone: '+86 138 8829', sentAt: '2026-05-23 15:11', priority: 'normal', status: 'entregado',   assignedPrinter: 'HP LaserJet · Oficina 2', printedAt: '2026-05-23 15:28', printedBy: 'Andrea M.', deliveredAt: '2026-05-23 17:50', notes: '' },
+  { id: 'QR-2026-1109', markbox: 'DTD-3308', client: 'Distribuidora MAVECA', bultos: 16, warehouse: 'cn-yiwu',      supplier: 'Hangzhou Plastics',       sentBy: 'Wang Lei',   sentByPhone: '+86 187 4421', sentAt: '2026-05-23 14:02', priority: 'normal', status: 'entregado',   assignedPrinter: 'HP LaserJet · Oficina 2', printedAt: '2026-05-23 14:17', printedBy: 'Andrea M.', deliveredAt: '2026-05-23 16:30', notes: '' },
+];
+const KPIS_EXTRA = {
+  avgTransit:     { value: '38d',   delta: '↓ 2d vs Q1',     tone: 'info' },
+  openIncidents:  { value: 3,       delta: '1 crítica',      tone: 'warning' },
+  cnStock:        { value: 1284,    delta: 'bultos',         tone: 'neutral' },
+  marginYTD:      { value: '24.6%', delta: '+1.8 pp',        tone: 'wine' },
+  pendingCollect: { value: '$162K', delta: '4 fac. vencidas',tone: 'info' },
+  wonQuotes:     { value: 11,       delta: '67% win rate',   tone: 'success' },
+  activeClients: { value: 47,       delta: '+4 este mes',    tone: 'neutral' },
+  avgTicket:     { value: '$24.8K', delta: '+$1.2K vs mes ant.', tone: 'wine' },
+};
+const AUDIT_LOG = [
+  {
+    id: 'AL-2026-4421', ts: '2026-05-24 09:56', timeRel: 'hace 4 min',
+    actor: { name: 'Martina A.', role: 'Comercial', email: 'martina@dtdcargo.com', initials: 'MA' },
+    action: 'edit', entity: 'Cotización', target: 'Q-2026-0421',
+    summary: 'Cambió total de $8,400 a $9,200',
+    ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
+    diff: [
+      { field: 'total',          before: 8400,   after: 9200,  type: 'money' },
+      { field: 'transport_cost', before: 320,    after: 420,   type: 'money' },
+      { field: 'margin',         before: 0.265,  after: 0.298, type: 'pct' },
+      { field: 'updated_at',     before: '2026-05-20 14:18', after: '2026-05-24 09:56', type: 'date' },
+    ],
+    related: [
+      { id: 'AL-2026-4395', ts: '2026-05-20 14:18', summary: 'Martina A. creó la cotización' },
+      { id: 'AL-2026-4318', ts: '2026-05-18 11:02', summary: 'Carlos V. asignó Martina como owner' },
+    ],
+  },
+  {
+    id: 'AL-2026-4420', ts: '2026-05-24 09:42', timeRel: 'hace 18 min',
+    actor: { name: 'Carlos V.', role: 'Admin', email: 'carlos@dtdcargo.com', initials: 'CV' },
+    action: 'create', entity: 'Cliente', target: 'DTD-5475',
+    summary: 'Creó cliente: Mendoza & Cía CA',
+    ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
+    diff: [
+      { field: 'markbox',  before: null, after: 'DTD-5475',         type: 'text' },
+      { field: 'company',  before: null, after: 'Mendoza & Cía CA',  type: 'text' },
+      { field: 'rif',      before: null, after: 'J-31884201-7',      type: 'text' },
+      { field: 'segment',  before: null, after: 'Comercial',         type: 'text' },
+      { field: 'city',     before: null, after: 'Valencia',          type: 'text' },
+      { field: 'status',   before: null, after: 'active',            type: 'text' },
+    ],
+    related: [],
+  },
+  {
+    id: 'AL-2026-4419', ts: '2026-05-24 09:00', timeRel: 'hace 1 h',
+    actor: { name: 'Yusneidy P.', role: 'Operaciones', email: 'yusneidy@dtdcargo.com', initials: 'YP' },
+    action: 'edit', entity: 'Embarque', target: 'DTDU-419032',
+    summary: 'Estado: aduana VE → liberado',
+    ip: '190.124.40.182', city: 'Maracaibo, VE', browser: 'Edge 124 · Windows',
+    diff: [
+      { field: 'status',     before: 'aduana_ve',  after: 'liberado',  type: 'text' },
+      { field: 'cleared_at', before: null,         after: '2026-05-24 09:00', type: 'date' },
+      { field: 'duty_paid',  before: 4820,         after: 4820,        type: 'money', unchanged: true },
+    ],
+    related: [
+      { id: 'AL-2026-4382', ts: '2026-05-22 14:22', summary: 'Yoel C. presentó DUA-VE-2026-088421' },
+      { id: 'AL-2026-4361', ts: '2026-05-22 09:48', summary: 'Sistema: arribo a MAR confirmado' },
+    ],
+  },
+  {
+    id: 'AL-2026-4418', ts: '2026-05-24 08:02', timeRel: 'hace 2 h',
+    actor: { name: 'Andrés B.', role: 'Contabilidad', email: 'andres@dtdcargo.com', initials: 'AB' },
+    action: 'create', entity: 'Factura', target: 'F-2026-0445',
+    summary: 'Emitida por $54,300',
+    ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
+    diff: [
+      { field: 'id',        before: null, after: 'F-2026-0445',  type: 'text' },
+      { field: 'client',    before: null, after: 'DTD-5418',      type: 'text' },
+      { field: 'amount',    before: null, after: 54300,           type: 'money' },
+      { field: 'currency',  before: null, after: 'USD',           type: 'text' },
+      { field: 'due',       before: null, after: '2026-06-23',    type: 'date' },
+    ],
+    related: [],
+  },
+  {
+    id: 'AL-2026-4417', ts: '2026-05-24 07:00', timeRel: 'hace 3 h',
+    actor: { name: 'Carlos V.', role: 'Admin', email: 'carlos@dtdcargo.com', initials: 'CV' },
+    action: 'login', entity: 'Sesión', target: '—',
+    summary: 'Login exitoso · IP 190.142.x.x · Caracas',
+    ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
+    diff: [],
+    related: [],
+  },
+  {
+    id: 'AL-2026-4416', ts: '2026-05-24 06:02', timeRel: 'hace 4 h',
+    actor: { name: 'Diego N.', role: 'Comercial', email: 'diego@dtdcargo.com', initials: 'DN' },
+    action: 'edit', entity: 'Lead', target: 'L-0140',
+    summary: 'Movió de "nuevo" a "demo"',
+    ip: '186.94.40.118', city: 'Valencia, VE', browser: 'Chrome 124 · Windows',
+    diff: [
+      { field: 'stage',         before: 'nuevo', after: 'demo', type: 'text' },
+      { field: 'demo_scheduled', before: null,    after: '2026-05-27 10:00', type: 'date' },
+    ],
+    related: [],
+  },
+  {
+    id: 'AL-2026-4415', ts: '2026-05-24 05:00', timeRel: 'hace 5 h',
+    actor: { name: 'Carlos V.', role: 'Admin', email: 'carlos@dtdcargo.com', initials: 'CV' },
+    action: 'config', entity: 'Sistema', target: 'Mailing',
+    summary: 'Activó proveedor Gmail Workspace',
+    ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
+    diff: [
+      { field: 'mail_provider', before: 'sendgrid',          after: 'gmail-workspace', type: 'text' },
+      { field: 'mail_from',     before: 'no-reply@dtdcargo.com', after: 'hola@dtdcargo.com', type: 'text' },
+      { field: 'mail_quota',    before: 10000,                after: 50000,             type: 'number' },
+    ],
+    related: [],
+    sensitive: true,
+  },
+  {
+    id: 'AL-2026-4414', ts: '2026-05-24 02:00', timeRel: 'hace 8 h',
+    actor: { name: 'Wang H.', role: 'Almacén CN', email: 'wang@dtdcargo.cn', initials: 'WH' },
+    action: 'create', entity: 'Recepción', target: 'CN-2026-2842',
+    summary: 'Recibió 18 cajas en YIW-A1',
+    ip: '120.241.18.55', city: 'Yiwu, CN', browser: 'WeChat Browser · Android',
+    diff: [
+      { field: 'boxes',     before: null, after: 18,      type: 'number' },
+      { field: 'location',  before: null, after: 'YIW-A1', type: 'text' },
+      { field: 'supplier',  before: null, after: 'Yiwu Trading Hub Co.', type: 'text' },
+      { field: 'client',    before: null, after: 'DTD-7842', type: 'text' },
+    ],
+    related: [],
+  },
+  {
+    id: 'AL-2026-4413', ts: '2026-05-23 17:42', timeRel: 'ayer 17:42',
+    actor: { name: 'Martina A.', role: 'Comercial', email: 'martina@dtdcargo.com', initials: 'MA' },
+    action: 'delete', entity: 'Cotización', target: 'Q-2026-0410',
+    summary: 'Eliminó borrador',
+    ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
+    diff: [
+      { field: 'status', before: 'draft', after: 'deleted', type: 'text' },
+    ],
+    related: [],
+    sensitive: true,
+  },
+  {
+    id: 'AL-2026-4412', ts: '2026-05-23 16:18', timeRel: 'ayer 16:18',
+    actor: { name: 'Carlos V.', role: 'Admin', email: 'carlos@dtdcargo.com', initials: 'CV' },
+    action: 'config', entity: 'Usuario', target: 'u-008',
+    summary: 'Invitó: Carolina Méndez (Soporte)',
+    ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
+    diff: [
+      { field: 'name',  before: null, after: 'Carolina Méndez', type: 'text' },
+      { field: 'role',  before: null, after: 'Soporte',          type: 'text' },
+      { field: 'email', before: null, after: 'c.mendez@dtdcargo.com', type: 'text' },
+    ],
+    related: [],
+  },
+  {
+    id: 'AL-2026-4411', ts: '2026-05-23 14:05', timeRel: 'ayer 14:05',
+    actor: { name: 'Andrés B.', role: 'Contabilidad', email: 'andres@dtdcargo.com', initials: 'AB' },
+    action: 'edit', entity: 'Factura', target: 'F-2026-0391',
+    summary: 'Registró pago $156,800 · saldo 0',
+    ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
+    diff: [
+      { field: 'paid',    before: 0,        after: 156800, type: 'money' },
+      { field: 'balance', before: 156800,   after: 0,      type: 'money' },
+      { field: 'status',  before: 'vencida', after: 'pagada', type: 'text' },
+      { field: 'paid_at', before: null,     after: '2026-05-23 14:05', type: 'date' },
+    ],
+    related: [
+      { id: 'AL-2026-4282', ts: '2026-05-14 10:00', summary: 'Andrés B. emitió F-2026-0391' },
+    ],
+  },
+  {
+    id: 'AL-2026-4410', ts: '2026-05-23 11:30', timeRel: 'ayer 11:30',
+    actor: { name: 'Sistema', role: 'Cron', email: '—', initials: 'SY', system: true },
+    action: 'auto', entity: 'Backup', target: 'S3 · diario',
+    summary: 'Backup completo a S3 · 4.2GB',
+    ip: '10.0.0.1', city: 'Servidor', browser: '—',
+    diff: [
+      { field: 'size_gb',   before: 4.1,  after: 4.2, type: 'number' },
+      { field: 'duration_s', before: null, after: 142, type: 'number' },
+    ],
+    related: [],
+  },
+];
+const BANK_STATEMENTS = {
+  bank: 'Banesco · USD Cuenta Corriente',
+  account: '0134-0892-XX-XXXX1442',
+  period: '2026-05-08 → 2026-05-22',
+  fileName: 'banesco-estadocuenta-may2026.pdf',
+  uploadedAt: '2026-05-24 09:15',
+  uploadedBy: 'Andrea M.',
+  openingBalance: 184200,
+  closingBalance: 312600,
+  movements: [
+    // CREDITS — payments from clients
+    { id: 'M-001', date: '2026-05-22', kind: 'credit', ref: 'WIRE-9982', desc: 'Pago Industrias Polar · ref F-2026-0391',  amount: 156800, suggested: { type: 'invoice', ref: 'F-2026-0391', confidence: 'high', client: 'Industrias Polar' } },
+    { id: 'M-002', date: '2026-05-20', kind: 'credit', ref: 'WIRE-9954', desc: 'Castro Hermanos C.A.',                      amount: 48200,  suggested: { type: 'invoice', ref: 'F-2026-0398', confidence: 'high', client: 'Castro Hermanos' } },
+    { id: 'M-003', date: '2026-05-18', kind: 'credit', ref: 'WIRE-9941', desc: 'INDUSTRIAS POLAR S.A.',                       amount: 124400, suggested: { type: 'invoice', ref: 'F-2026-0357', confidence: 'high', client: 'Industrias Polar' } },
+    { id: 'M-004', date: '2026-05-15', kind: 'credit', ref: 'WIRE-9933', desc: 'P.ROJAS DISTRIBUIDORA · pago parcial',          amount: 18400,  suggested: { type: 'invoice', ref: 'F-2026-0395', confidence: 'medium', client: 'Distribuidora Andina', partial: true } },
+    { id: 'M-005', date: '2026-05-14', kind: 'credit', ref: 'DEP-3344',  desc: 'Depósito en efectivo USD',                       amount: 12000,  suggested: null, status: 'manual' },
+    { id: 'M-006', date: '2026-05-12', kind: 'credit', ref: 'ZELLE-8841', desc: 'M GONZALEZ TECH SOLUTIONS',                     amount: 7600,   suggested: { type: 'invoice', ref: 'F-2026-0411', confidence: 'high', client: 'Tech Solutions' } },
+    { id: 'M-007', date: '2026-05-08', kind: 'credit', ref: 'WIRE-9921', desc: 'ACINDAR COMERCIAL · pago parcial F-0382',         amount: 18400,  suggested: { type: 'invoice', ref: 'F-2026-0382', confidence: 'high', client: 'Acindar Comercial', partial: true } },
+    // DEBITS — operational expenses
+    { id: 'M-008', date: '2026-05-22', kind: 'debit',  ref: 'TX-44182',  desc: 'Pago naviera COSCO · DTDU-501228',                amount: 28400,  suggested: { type: 'expense', ref: 'EXP-COSCO-0142', confidence: 'high', vendor: 'COSCO' } },
+    { id: 'M-009', date: '2026-05-19', kind: 'debit',  ref: 'TX-44158',  desc: 'Aduanas Carabobo · honorarios mayo',               amount: 4820,   suggested: { type: 'expense', ref: 'EXP-AGENT-a001', confidence: 'high', vendor: 'Aduanas Carabobo' } },
+    { id: 'M-010', date: '2026-05-17', kind: 'debit',  ref: 'TX-44128',  desc: 'COMBUSTIBLE PDV flota PBL',                         amount: 1240,   suggested: { type: 'expense', ref: 'EXP-FUEL-0521', confidence: 'medium', vendor: 'Flota DTD · combustible' } },
+    { id: 'M-011', date: '2026-05-14', kind: 'debit',  ref: 'TX-44102',  desc: 'Salarios quincena · choferes',                      amount: 8400,   suggested: { type: 'expense', ref: 'EXP-PAYROLL-Q1', confidence: 'high', vendor: 'Nómina · flota' } },
+    { id: 'M-012', date: '2026-05-12', kind: 'debit',  ref: 'TX-44081',  desc: 'TRX-INET digital · cargo no identificado',           amount: 380,    suggested: null, status: 'manual', flagged: true },
+    { id: 'M-013', date: '2026-05-10', kind: 'debit',  ref: 'TX-44062',  desc: 'Maersk · DTDU-419032 freight',                       amount: 41200,  suggested: { type: 'expense', ref: 'EXP-MAERSK-0118', confidence: 'high', vendor: 'Maersk' } },
+    { id: 'M-014', date: '2026-05-08', kind: 'debit',  ref: 'TX-44044',  desc: 'COMISIONES BANCO mayo',                              amount: 220,    suggested: { type: 'expense', ref: 'EXP-BANK-MAY', confidence: 'high', vendor: 'Banco · comisiones' } },
+  ],
+};
+const CLIENT_ACCOUNTS = {
+  'DTD-5392': { // Industrias Polar — mostly paid, big
+    creditLimit: 250000, creditDays: 45, discount: 2.0,
+    fiscalAddress: 'Av. Cuatricentenaria, Edif. Industrias Polar · Caracas, Distrito Capital',
+    billingContact: { name: 'Andrea Rodríguez', role: 'Tesorería corporativa', email: 'a.rodriguez@polar.com.ve', phone: '+58 212 446 9100' },
+    paymentTerms: 'Net 45 · 2% descuento pago a 15 días',
+    paymentMethods: [
+      { kind: 'wire',  label: 'Transferencia USD (offshore)', count: 22, total: 308600 },
+      { kind: 'usdt',  label: 'USDT · TRC20',                  count: 4,  total: 42800  },
+      { kind: 'zelle', label: 'Zelle',                          count: 2,  total: 18400 },
+    ],
+    monthSummary: [
+      { m: 'DIC', billed: 38400, collected: 38400 },
+      { m: 'ENE', billed: 84200, collected: 84200 },
+      { m: 'FEB', billed: 42800, collected: 42800 },
+      { m: 'MAR', billed: 96800, collected: 78400 },
+      { m: 'ABR', billed: 124400, collected: 124400 },
+      { m: 'MAY', billed: 156800, collected: 156800 },
+    ],
+    dpp: 38, dppTarget: 45,
+    lastReminder: null,
+    nextDue: '2026-06-08',
+    movements: [
+      { date: '2026-05-22', kind: 'pago',           ref: 'WIRE-9982',     desc: 'Pago F-2026-0391 · transferencia USD',      debit: 0,      credit: 120000, balance: 0 },
+      { date: '2026-05-22', kind: 'pago',           ref: 'TRF-VES-9001',  desc: 'Pago F-2026-0391 (parte) · transferencia Bs.', debit: 0,   credit: 36800, balance: 0, ccy: 'VES', amountBs: 1341360, rateUsed: 36.45, rateSource: 'bcv' },
+      { date: '2026-05-20', kind: 'factura',        ref: 'F-2026-0391',   desc: 'DTDU-419032 · refrigeración Polar',          debit: 156800, credit: 0,      balance: 156800 },
+      { date: '2026-05-12', kind: 'pago',           ref: 'WIRE-9941',     desc: 'Pago F-2026-0357 · transferencia USD',      debit: 0,      credit: 124400, balance: 0 },
+      { date: '2026-04-22', kind: 'factura',        ref: 'F-2026-0357',   desc: 'DTDU-401234 · cadena de frío',                debit: 124400, credit: 0,      balance: 124400 },
+      { date: '2026-04-15', kind: 'nota_credito',   ref: 'NC-2026-0118',  desc: 'Ajuste sobrecarga combustible',               debit: 0,      credit: 2400,   balance: 0 },
+      { date: '2026-04-08', kind: 'pago',           ref: 'WIRE-9881',     desc: 'Pago F-2026-0341',                            debit: 0,      credit: 96800,  balance: 0 },
+      { date: '2026-03-18', kind: 'factura',        ref: 'F-2026-0341',   desc: 'DTDU-388157 · vitrinas frigoríficas',         debit: 96800,  credit: 0,      balance: 96800 },
+      { date: '2026-02-28', kind: 'pago',           ref: 'USDT-TX-4471',  desc: 'Pago F-2026-0312 · USDT TRC20',                debit: 0,      credit: 42800,  balance: 0 },
+      { date: '2026-02-12', kind: 'factura',        ref: 'F-2026-0312',   desc: 'DTDU-365044 · equipos auxiliares',             debit: 42800,  credit: 0,      balance: 42800 },
+    ],
+    notes: 'Cliente A. Pagos predecibles. Renegociar Net 30 si se mantiene volumen.',
+  },
+  'DTD-5452': { // Acindar — has overdue
+    creditLimit: 120000, creditDays: 30, discount: 0,
+    fiscalAddress: 'ZI Valencia Sur, Galpón 12 · Valencia, Carabobo',
+    billingContact: { name: 'Carlos Méndez', role: 'Dueño · firmante', email: 'carlos@acindar.com.ve', phone: '+58 241 884 0212' },
+    paymentTerms: 'Net 30',
+    paymentMethods: [
+      { kind: 'wire',  label: 'Transferencia USD',  count: 14, total: 96400 },
+      { kind: 'cash',  label: 'Efectivo USD',        count: 3,  total: 18800 },
+      { kind: 'usdt',  label: 'USDT · TRC20',        count: 2,  total: 12200 },
+    ],
+    vesMovements: [
+      { date: '2026-05-19', ref: 'TRF-VES-8841', desc: 'Transfer Banesco Bs. · pago parcial F-2026-0382', amountBs: 671320,  rateUsed: 36.45, rateSource: 'bcv',      equivalentUsd: 18416, linkInvoice: 'F-2026-0382' },
+      { date: '2026-04-12', ref: 'PAGO-VES-552', desc: 'Pago retención IGTF · ajuste interno',              amountBs: 65610,   rateUsed: 36.45, rateSource: 'bcv',      equivalentUsd: 1800,  linkInvoice: 'ND-2026-0042' },
+      { date: '2026-03-04', ref: 'TRF-VES-8722', desc: 'Transfer Mercantil Bs. · pago F-2026-0312',         amountBs: 1184400, rateUsed: 37.00, rateSource: 'parallel', equivalentUsd: 32011, linkInvoice: 'F-2026-0312' },
+    ],
+    monthSummary: [
+      { m: 'DIC', billed: 18400, collected: 18400 },
+      { m: 'ENE', billed: 26200, collected: 26200 },
+      { m: 'FEB', billed: 31400, collected: 31400 },
+      { m: 'MAR', billed: 42800, collected: 42800 },
+      { m: 'ABR', billed: 38400, collected: 18400 },
+      { m: 'MAY', billed: 84200, collected: 0 },
+    ],
+    dpp: 52, dppTarget: 30,
+    lastReminder: '2026-05-20',
+    nextDue: '2026-06-13',
+    movements: [
+      { date: '2026-05-14', kind: 'factura',        ref: 'F-2026-0418',   desc: 'DTDU-472816 · zapatillas deportivas',        debit: 84200, credit: 0,    balance: 84200, overdue: true },
+      { date: '2026-05-05', kind: 'pago',           ref: 'WIRE-9921',     desc: 'Pago parcial F-2026-0382',                    debit: 0,     credit: 18400, balance: 0 },
+      { date: '2026-04-22', kind: 'factura',        ref: 'F-2026-0382',   desc: 'DTDU-388157 · partes industriales',           debit: 38400, credit: 0,    balance: 38400 },
+      { date: '2026-04-12', kind: 'nota_debito',    ref: 'ND-2026-0042',  desc: 'Cargo demora desalmacenaje',                  debit: 1800,  credit: 0,    balance: 1800 },
+      { date: '2026-04-09', kind: 'pago',           ref: 'TRF-VES-7791',  desc: 'Pago F-2026-0354 (resto) · transferencia Bs.', debit: 0,  credit: 20000, balance: 0, ccy: 'VES', amountBs: 729000, rateUsed: 36.45, rateSource: 'bcv' },
+      { date: '2026-04-08', kind: 'pago',           ref: 'CASH-8821',     desc: 'Pago F-2026-0354 · efectivo USD',              debit: 0,     credit: 22800, balance: 0 },
+      { date: '2026-03-25', kind: 'factura',        ref: 'F-2026-0354',   desc: 'DTDU-365044 · acero estructural',              debit: 42800, credit: 0,    balance: 42800 },
+      { date: '2026-03-15', kind: 'recordatorio',   ref: '—',             desc: 'Recordatorio de pago enviado · Mailing',       debit: 0,     credit: 0,    balance: 0 },
+      { date: '2026-02-28', kind: 'pago',           ref: 'WIRE-9841',     desc: 'Pago F-2026-0331',                              debit: 0,     credit: 31400, balance: 0 },
+      { date: '2026-02-10', kind: 'factura',        ref: 'F-2026-0331',   desc: 'DTDU-298311 · perfiles metálicos',             debit: 31400, credit: 0,    balance: 31400 },
+    ],
+    notes: 'Cliente histórico pero con desliz reciente. Llamar a Carlos para cobrar F-2026-0418 (10d vencida).',
+  },
+  'DTD-5354': { // Castro Hermanos — solid
+    creditLimit: 180000, creditDays: 45, discount: 1.5,
+    fiscalAddress: 'Av. Comercio 22 · Punto Fijo, Falcón',
+    billingContact: { name: 'Roberto Castro', role: 'Director financiero', email: 'r.castro@castroh.com.ve', phone: '+58 269 778 2114' },
+    paymentTerms: 'Net 45 · 1.5% descuento pago a 15 días',
+    paymentMethods: [
+      { kind: 'wire',  label: 'Transferencia USD', count: 28, total: 198400 },
+      { kind: 'usdt',  label: 'USDT · TRC20',       count: 5,  total: 50200 },
+    ],
+    monthSummary: [
+      { m: 'DIC', billed: 28400, collected: 28400 },
+      { m: 'ENE', billed: 42800, collected: 42800 },
+      { m: 'FEB', billed: 38200, collected: 38200 },
+      { m: 'MAR', billed: 56400, collected: 56400 },
+      { m: 'ABR', billed: 48200, collected: 48200 },
+      { m: 'MAY', billed: 34600, collected: 0 },
+    ],
+    dpp: 42, dppTarget: 45,
+    lastReminder: null,
+    nextDue: '2026-06-22',
+    movements: [
+      { date: '2026-05-22', kind: 'factura',        ref: 'F-2026-0421',   desc: 'DTDU-401234 · televisores LED',                debit: 34600, credit: 0,    balance: 34600 },
+      { date: '2026-05-15', kind: 'pago',           ref: 'WIRE-9954',     desc: 'Pago F-2026-0398',                              debit: 0,     credit: 48200, balance: 0 },
+      { date: '2026-04-30', kind: 'factura',        ref: 'F-2026-0398',   desc: 'DTDU-388157 · maletas + accesorios',           debit: 48200, credit: 0,    balance: 48200 },
+      { date: '2026-04-18', kind: 'pago',           ref: 'USDT-TX-4421',  desc: 'Pago F-2026-0371 · USDT',                       debit: 0,     credit: 56400, balance: 0 },
+      { date: '2026-03-28', kind: 'factura',        ref: 'F-2026-0371',   desc: 'DTDU-365044 · estanterías metálicas',          debit: 56400, credit: 0,    balance: 56400 },
+    ],
+    notes: 'Roberto siempre paga en término. Excelente cliente.',
+  },
+  'DTD-5371': { // Tech Solutions — smaller, recent
+    creditLimit: 80000, creditDays: 30, discount: 0,
+    fiscalAddress: 'Av. Andrés Bello, Torre Tech, Piso 8 · Maracay, Aragua',
+    billingContact: { name: 'María González', role: 'Cofundadora', email: 'maria@techsolutionsve.com', phone: '+58 243 552 8842' },
+    paymentTerms: 'Net 30',
+    paymentMethods: [
+      { kind: 'zelle', label: 'Zelle', count: 8, total: 48400 },
+      { kind: 'wire',  label: 'Transferencia USD', count: 4, total: 15800 },
+    ],
+    monthSummary: [
+      { m: 'DIC', billed: 8400,  collected: 8400 },
+      { m: 'ENE', billed: 12200, collected: 12200 },
+      { m: 'FEB', billed: 9800,  collected: 9800 },
+      { m: 'MAR', billed: 14400, collected: 14400 },
+      { m: 'ABR', billed: 11800, collected: 11800 },
+      { m: 'MAY', billed: 7600,  collected: 7600 },
+    ],
+    dpp: 22, dppTarget: 30,
+    lastReminder: null,
+    nextDue: '2026-06-04',
+    movements: [
+      { date: '2026-05-12', kind: 'pago',     ref: 'ZELLE-8841', desc: 'Pago F-2026-0411 · Zelle',     debit: 0,    credit: 7600,  balance: 0 },
+      { date: '2026-05-05', kind: 'factura',  ref: 'F-2026-0411', desc: 'DTDU-419031 · notebooks',     debit: 7600, credit: 0,     balance: 7600 },
+      { date: '2026-04-20', kind: 'pago',     ref: 'ZELLE-8821', desc: 'Pago F-2026-0388 · Zelle',     debit: 0,    credit: 11800, balance: 0 },
+      { date: '2026-04-08', kind: 'factura',  ref: 'F-2026-0388', desc: 'DTDU-401234 · accesorios IT', debit: 11800, credit: 0,    balance: 11800 },
+    ],
+    notes: '',
+  },
+  'DTD-5340': { // Distribuidora Andina — slow payer
+    creditLimit: 100000, creditDays: 30, discount: 0,
+    fiscalAddress: 'Av. Las Américas, Edif. Andinos · Mérida, Mérida',
+    billingContact: { name: 'Patricia Rojas', role: 'Dueña', email: 'patricia@distandina.ve', phone: '+58 274 220 8814' },
+    paymentTerms: 'Net 30 · estricto',
+    paymentMethods: [
+      { kind: 'wire',  label: 'Transferencia USD', count: 12, total: 82400 },
+      { kind: 'cash',  label: 'Efectivo USD',       count: 8,  total: 38400 },
+    ],
+    vesMovements: [
+      { date: '2026-05-12', ref: 'TRF-VES-7711', desc: 'Pago F-2026-0388 (parcial) · Banco Mercantil Bs.', amountBs: 656100, rateUsed: 36.45, rateSource: 'bcv',      equivalentUsd: 18000, linkInvoice: 'F-2026-0388' },
+      { date: '2026-04-08', ref: 'TRF-VES-7682', desc: 'Pago F-2026-0367 · transferencia Bs. (BCV+día)',   amountBs: 906980, rateUsed: 36.85, rateSource: 'parallel', equivalentUsd: 24612, linkInvoice: 'F-2026-0367' },
+      { date: '2026-02-22', ref: 'TRF-VES-7501', desc: 'Pago F-2026-0298 · Banesco Bs.',                    amountBs: 488170, rateUsed: 35.10, rateSource: 'bcv',      equivalentUsd: 13908, linkInvoice: 'F-2026-0298' },
+    ],
+    monthSummary: [
+      { m: 'DIC', billed: 18800, collected: 18800 },
+      { m: 'ENE', billed: 22400, collected: 0 },
+      { m: 'FEB', billed: 28200, collected: 22400 },
+      { m: 'MAR', billed: 24600, collected: 28200 },
+      { m: 'ABR', billed: 32200, collected: 24600 },
+      { m: 'MAY', billed: 26100, collected: 18400 },
+    ],
+    dpp: 61, dppTarget: 30,
+    lastReminder: '2026-05-15',
+    nextDue: '2026-06-15',
+    movements: [
+      { date: '2026-05-18', kind: 'factura',      ref: 'F-2026-0424',   desc: 'DTDU-401234 · cosmética + accesorios',     debit: 26100, credit: 0,    balance: 26100, overdue: true },
+      { date: '2026-05-15', kind: 'recordatorio', ref: '—',             desc: 'Segundo recordatorio · WhatsApp + email',   debit: 0,     credit: 0,    balance: 0 },
+      { date: '2026-05-08', kind: 'pago',         ref: 'WIRE-9933',     desc: 'Pago parcial F-2026-0395',                  debit: 0,     credit: 18400, balance: 0 },
+      { date: '2026-04-22', kind: 'factura',      ref: 'F-2026-0395',   desc: 'DTDU-388157 · maletas + bolsos',            debit: 32200, credit: 0,    balance: 32200 },
+      { date: '2026-04-08', kind: 'pago',         ref: 'CASH-8842',     desc: 'Pago F-2026-0367 · efectivo USD',           debit: 0,     credit: 24600, balance: 0 },
+    ],
+    notes: 'Patricia tiende a atrasarse 30d. Mantener recordatorios automáticos. Bloquear nuevas órdenes si saldo > $30K.',
+  },
+  'DTD-5321': { // Salazar — problematic
+    creditLimit: 0, creditDays: 0, discount: 0,
+    fiscalAddress: 'Calle 8, Centro · Caracas',
+    billingContact: { name: 'Eduardo Salazar', role: 'Dueño', email: 'esalazar@salazartrading.ve', phone: '+58 212 992 4421' },
+    paymentTerms: 'Pago anticipado · sin línea de crédito',
+    paymentMethods: [
+      { kind: 'cash', label: 'Efectivo USD', count: 4, total: 16200 },
+      { kind: 'usdt', label: 'USDT · TRC20',  count: 2, total: 8800 },
+    ],
+    vesMovements: [
+      { date: '2026-05-10', ref: 'TRF-VES-8801', desc: 'Anticipo F-2026-0419 · Bs.',     amountBs: 218700, rateUsed: 36.45, rateSource: 'bcv', equivalentUsd: 6000, linkInvoice: 'F-2026-0419' },
+      { date: '2026-04-22', ref: 'TRF-VES-8788', desc: 'Anticipo F-2026-0401 · Bs.',     amountBs: 466240, rateUsed: 36.40, rateSource: 'bcv', equivalentUsd: 12808, linkInvoice: 'F-2026-0401' },
+    ],
+    monthSummary: [
+      { m: 'DIC', billed: 0,    collected: 0 },
+      { m: 'ENE', billed: 4200, collected: 4200 },
+      { m: 'FEB', billed: 6800, collected: 6800 },
+      { m: 'MAR', billed: 8400, collected: 8400 },
+      { m: 'ABR', billed: 12800, collected: 12800 },
+      { m: 'MAY', billed: 6000, collected: 6000 },
+    ],
+    dpp: 0, dppTarget: 0,
+    lastReminder: null,
+    nextDue: null,
+    movements: [
+      { date: '2026-05-10', kind: 'pago',         ref: 'CASH-8851',     desc: 'Anticipo F-2026-0419 · efectivo',           debit: 0,    credit: 6000, balance: 0 },
+      { date: '2026-05-10', kind: 'factura',      ref: 'F-2026-0419',   desc: 'DTDU-401234 · electrónica importada',       debit: 6000, credit: 0,    balance: 6000 },
+    ],
+    notes: 'Status pending hasta normalizar legal. Solo pago anticipado.',
+  },
+};
+const TRUCK_PROFILES = {
+  'T-001': {
+    year: 2019, vin: 'YV2RT40A9KB823441', engine: 'D13K 460 CV · 6 cil.',
+    dimensions: { length: 13.6, width: 2.5, height: 2.9 }, // metros
+    tare: 8500, axles: 3,
+    purchaseDate: '2019-08-14', purchaseValue: 145000,
+    docs: {
+      circulacion:  { expiry: '2026-12-31' },
+      soat:         { expiry: '2026-09-15' },
+      rtv:          { expiry: '2026-11-08' },
+      seguroFlota:  { expiry: '2027-02-20' },
+      rifVehicular: { expiry: null },
+    },
+    nextServiceKm: 200000, nextServiceDate: '2026-06-30',
+    serviceHistory: [
+      { date: '2026-04-12', km: 178200, type: 'preventivo', desc: 'Aceite + filtros · revisión frenos', cost: 480 },
+      { date: '2026-02-08', km: 168400, type: 'preventivo', desc: 'Aceite + neumáticos delanteros', cost: 1240 },
+      { date: '2025-12-15', km: 158100, type: 'correctivo', desc: 'Cambio embrague completo', cost: 2800 },
+      { date: '2025-10-22', km: 148900, type: 'preventivo', desc: 'Aceite + filtros + frenos traseros', cost: 720 },
+    ],
+    costBreakdown: { fuel: 4820, maint: 480, salary: 1850, tolls: 420, other: 180 }, // último mes
+    trips30d: 22, utilization: 84,
+    incidents: [
+      { date: '2026-04-30', type: 'menor', desc: 'Roce lateral en patio Polar · sin daños mayores', cost: 0, severity: 'low' },
+    ],
+    recentTrips: [
+      { date: '2026-05-23', route: 'PBL → Valencia · ZI Acindar', driver: 'd-001', km: 168, fuel: 27, onTime: true },
+      { date: '2026-05-21', route: 'PBL → Caracas · CCS Polar Center', driver: 'd-001', km: 215, fuel: 35, onTime: true },
+      { date: '2026-05-19', route: 'PBL → Maracay · Tech Solutions', driver: 'd-001', km: 142, fuel: 23, onTime: false },
+      { date: '2026-05-17', route: 'PBL → Valencia · ZI Acindar', driver: 'd-001', km: 168, fuel: 27, onTime: true },
+      { date: '2026-05-15', route: 'PBL → Caracas · Farmacia La Vista', driver: 'd-001', km: 215, fuel: 36, onTime: true },
+      { date: '2026-05-13', route: 'PBL → Valencia · MAVECA', driver: 'd-001', km: 168, fuel: 28, onTime: true },
+    ],
+    notes: 'Camión emblema de la flota. Volvo veterano pero muy confiable. Mantener el plan de servicios cada 10.000 km.',
+  },
+  'T-002': { year: 2021, vin: 'WDB9701141L228874', engine: 'OM 924 LA · 240 CV · 4 cil.', dimensions: { length: 9.2, width: 2.4, height: 2.7 }, tare: 4200, axles: 2, purchaseDate: '2021-03-22', purchaseValue: 68000, docs: { circulacion: { expiry: '2026-12-31' }, soat: { expiry: '2026-08-30' }, rtv: { expiry: '2027-01-14' }, seguroFlota: { expiry: '2027-02-20' }, rifVehicular: { expiry: null } }, nextServiceKm: 100000, nextServiceDate: '2026-08-15', serviceHistory: [{ date: '2026-05-02', km: 88200, type: 'preventivo', desc: 'Aceite + filtros', cost: 380 }], costBreakdown: { fuel: 3120, maint: 380, salary: 1850, tolls: 320, other: 120 }, trips30d: 18, utilization: 72, incidents: [], recentTrips: [], notes: '' },
+  'T-003': { year: 2022, vin: 'ZCFC50AAA00582114', engine: '3.0 HPI · 170 CV', dimensions: { length: 7.4, width: 2.1, height: 2.5 }, tare: 2800, axles: 2, purchaseDate: '2022-07-08', purchaseValue: 52000, docs: { circulacion: { expiry: '2026-12-31' }, soat: { expiry: '2026-07-20' }, rtv: { expiry: '2026-10-12' }, seguroFlota: { expiry: '2027-02-20' }, rifVehicular: { expiry: null } }, nextServiceKm: 70000, nextServiceDate: '2026-07-04', serviceHistory: [{ date: '2026-04-28', km: 62400, type: 'preventivo', desc: 'Aceite + filtros + alineación', cost: 320 }], costBreakdown: { fuel: 2420, maint: 320, salary: 1850, tolls: 280, other: 100 }, trips30d: 16, utilization: 68, incidents: [], recentTrips: [], notes: '' },
+  'T-004': { year: 2017, vin: 'YS2R6X20009422118', engine: 'DC13 · 450 CV · 6 cil.', dimensions: { length: 13.6, width: 2.5, height: 2.9 }, tare: 8800, axles: 3, purchaseDate: null, purchaseValue: null, docs: { circulacion: { expiry: '2026-12-31' }, soat: { expiry: '2026-08-04' }, rtv: { expiry: '2026-06-30' }, seguroFlota: { expiry: '2027-02-20' }, rifVehicular: { expiry: null } }, nextServiceKm: 220000, nextServiceDate: '2026-06-08', serviceHistory: [{ date: '2026-03-14', km: 208400, type: 'preventivo', desc: 'Aceite + filtros + revisión turbo', cost: 540 }], costBreakdown: { fuel: 5210, maint: 540, salary: 0, tolls: 480, other: 200 }, trips30d: 24, utilization: 91, incidents: [{ date: '2026-05-18', type: 'multa', desc: 'Exceso velocidad ruta MAR', cost: 120, severity: 'medium' }], recentTrips: [], notes: 'Camión contratado · revisar contrato Scania en septiembre.' },
+  'T-005': { year: 2020, vin: 'JHFRR1JFLLKZ20088', engine: 'J05E-UF · 165 CV · 4 cil.', dimensions: { length: 6.2, width: 2.0, height: 2.3 }, tare: 2100, axles: 2, purchaseDate: '2020-11-30', purchaseValue: 38000, docs: { circulacion: { expiry: '2026-12-31' }, soat: { expiry: '2026-10-22' }, rtv: { expiry: '2026-09-04' }, seguroFlota: { expiry: '2027-02-20' }, rifVehicular: { expiry: null } }, nextServiceKm: 145000, nextServiceDate: '2026-06-22', serviceHistory: [{ date: '2026-05-22', km: 142000, type: 'correctivo', desc: 'Cambio bomba aceite · en taller hoy', cost: 1800 }], costBreakdown: { fuel: 1820, maint: 1800, salary: 1850, tolls: 220, other: 80 }, trips30d: 14, utilization: 58, incidents: [{ date: '2026-05-22', type: 'mecánica', desc: 'Falla bomba de aceite · en taller', cost: 1800, severity: 'high' }], recentTrips: [], notes: 'En taller esta semana. Falla en bomba de aceite.' },
+  'T-006': { year: 2016, vin: '1XKAD49X4GJ455882', engine: 'Cummins X15 · 510 CV', dimensions: { length: 14.2, width: 2.5, height: 3.0 }, tare: 9200, axles: 3, purchaseDate: null, purchaseValue: null, docs: { circulacion: { expiry: '2026-12-31' }, soat: { expiry: '2026-11-18' }, rtv: { expiry: '2026-08-22' }, seguroFlota: { expiry: '2027-02-20' }, rifVehicular: { expiry: null } }, nextServiceKm: 315000, nextServiceDate: '2026-06-15', serviceHistory: [{ date: '2026-04-20', km: 298400, type: 'preventivo', desc: 'Aceite + 4 neumáticos traseros', cost: 1820 }], costBreakdown: { fuel: 6080, maint: 1820, salary: 0, tolls: 520, other: 220 }, trips30d: 20, utilization: 78, incidents: [], recentTrips: [], notes: 'Camión contratado · de alto kilometraje pero confiable.' },
+  'T-007': { year: 2023, vin: 'WDB9701141L312441', engine: 'OM 924 LA · 240 CV · 4 cil.', dimensions: { length: 9.2, width: 2.4, height: 2.7 }, tare: 4200, axles: 2, purchaseDate: '2023-05-18', purchaseValue: 72000, docs: { circulacion: { expiry: '2026-12-31' }, soat: { expiry: '2026-12-04' }, rtv: { expiry: '2027-03-12' }, seguroFlota: { expiry: '2027-02-20' }, rifVehicular: { expiry: null } }, nextServiceKm: 60000, nextServiceDate: '2026-08-30', serviceHistory: [{ date: '2026-05-08', km: 44200, type: 'preventivo', desc: 'Aceite + filtros (primer service)', cost: 420 }], costBreakdown: { fuel: 1820, maint: 420, salary: 1850, tolls: 180, other: 100 }, trips30d: 12, utilization: 51, incidents: [], recentTrips: [], notes: 'El más nuevo de la flota.' },
+};
+const DRIVER_PROFILES = {
+  'd-001': {
+    initials: 'LH', avatarColor: 'wine',
+    rif: 'V-9.234.117-5', dob: '1968-03-12', hireDate: '2008-11-04',
+    email: 'l.hernandez@dtdcargo.com',
+    address: 'Av. Bolívar, Puerto Cabello, Carabobo',
+    emergencyContact: 'Marisol Hernández (esposa) · +58 414 552 1190',
+    licenseExpiry: '2027-08-15', licenseCategories: ['A', 'B', 'C', 'D', 'E'],
+    medicalExpiry: '2026-09-30', psychExpiry: '2026-11-12',
+    certifications: [
+      { name: 'IMDG · Cargas peligrosas', issuer: 'INEA', expiry: '2027-04-20' },
+      { name: 'Manejo defensivo', issuer: 'INTT', expiry: '2026-12-01' },
+      { name: 'Primeros auxilios', issuer: 'Cruz Roja', expiry: '2027-02-14' },
+    ],
+    assignedTruck: 'T-001',
+    trips6mo: [16, 18, 20, 19, 22, 22], // ene-jun
+    onTimePct: 96, kmTotal: 168400, fuelAvg: 3.2,
+    incidents: [
+      { date: '2026-04-12', type: 'mantenimiento', desc: 'Reportó ruido frenos · revisión preventiva OK', severity: 'low' },
+    ],
+    recentTrips: [
+      { date: '2026-05-23', route: 'PBL → Valencia · ZI Acindar',      shipment: 'DTDU-472816', km: 168, onTime: true,  rating: 5 },
+      { date: '2026-05-21', route: 'PBL → Caracas · CCS Polar Center', shipment: 'DTDU-419031', km: 215, onTime: true,  rating: 5 },
+      { date: '2026-05-19', route: 'PBL → Maracay · Tech Solutions',   shipment: 'DTDU-388157', km: 142, onTime: false, rating: 4, delay: '+45min · tráfico' },
+      { date: '2026-05-17', route: 'PBL → Valencia · ZI Acindar',      shipment: 'DTDU-401234', km: 168, onTime: true,  rating: 5 },
+      { date: '2026-05-15', route: 'PBL → Caracas · Farmacia La Vista', shipment: 'DTDU-365044', km: 215, onTime: true, rating: 5 },
+      { date: '2026-05-13', route: 'PBL → Valencia · MAVECA',          shipment: 'DTDU-298311', km: 168, onTime: true,  rating: 5 },
+      { date: '2026-05-10', route: 'PBL → Maracay · Tech Solutions',   shipment: 'DTDU-285044', km: 142, onTime: true,  rating: 4 },
+      { date: '2026-05-08', route: 'PBL → Caracas · CCS Polar Center', shipment: 'DTDU-271100', km: 215, onTime: true,  rating: 5 },
+    ],
+    notes: 'Excelente chofer veterano. Confianza absoluta para cargas premium y rutas largas. Buen rapport con clientes en planta Polar.',
+  },
+  'd-002': { initials: 'JV', avatarColor: 'info',    rif: 'V-12.884.331-2', dob: '1981-07-22', hireDate: '2015-03-12', email: 'j.velasquez@dtdcargo.com', address: 'Morón, Carabobo', emergencyContact: 'Yelitza Velásquez · +58 412 884 7711', licenseExpiry: '2026-11-08', licenseCategories: ['A', 'B', 'C'], medicalExpiry: '2026-07-15', psychExpiry: '2026-08-30', certifications: [{ name: 'Manejo defensivo', issuer: 'INTT', expiry: '2026-09-12' }], assignedTruck: 'T-002', trips6mo: [12, 14, 17, 18, 16, 18], onTimePct: 94, kmTotal: 84200, fuelAvg: 3.4, incidents: [], recentTrips: [{ date: '2026-05-22', route: 'PBL → Caracas · CCS Centro', shipment: 'DTDU-388157', km: 215, onTime: true, rating: 5 }], notes: '' },
+  'd-003': { initials: 'CS', avatarColor: 'success', rif: 'V-14.221.554-8', dob: '1979-11-04', hireDate: '2014-06-20', email: 'c.salinas@dtdcargo.com', address: 'La Guaira, Vargas', emergencyContact: 'Ana Salinas · +58 416 339 5520', licenseExpiry: '2027-03-22', licenseCategories: ['A','B','C','D'], medicalExpiry: '2026-12-01', psychExpiry: '2027-01-15', certifications: [{ name: 'IMDG · Cargas peligrosas', issuer: 'INEA', expiry: '2026-10-30' }, { name: 'Manejo defensivo', issuer: 'INTT', expiry: '2027-02-08' }], assignedTruck: 'T-003', trips6mo: [13, 15, 14, 16, 15, 16], onTimePct: 95, kmTotal: 112800, fuelAvg: 3.3, incidents: [], recentTrips: [], notes: '' },
+  'd-004': { initials: 'PM', avatarColor: 'warning', rif: 'V-7.882.044-1', dob: '1962-01-18', hireDate: '2003-09-14', email: 'p.marquina@dtdcargo.com', address: 'Maracaibo, Zulia', emergencyContact: 'Carmen Marquina · +58 426 771 4499', licenseExpiry: '2026-08-10', licenseCategories: ['A','B','C','D','E'], medicalExpiry: '2026-07-22', psychExpiry: '2026-10-05', certifications: [{ name: 'IMDG · Cargas peligrosas', issuer: 'INEA', expiry: '2027-01-14' }, { name: 'Manejo defensivo', issuer: 'INTT', expiry: '2026-12-12' }, { name: 'Primeros auxilios', issuer: 'Cruz Roja', expiry: '2027-03-08' }], assignedTruck: 'T-004', trips6mo: [20, 22, 21, 23, 24, 24], onTimePct: 97, kmTotal: 224500, fuelAvg: 3.1, incidents: [{ date: '2026-05-18', type: 'multa', desc: 'Exceso velocidad ruta MAR · ya pagada', severity: 'medium' }], recentTrips: [], notes: '22 años en DTD. Referente para rutas Zulia.' },
+  'd-005': { initials: 'MC', avatarColor: 'neutral', rif: 'V-15.117.882-3', dob: '1983-05-30', hireDate: '2016-11-08', email: 'm.castillo@dtdcargo.com', address: 'Puerto Cabello, Carabobo', emergencyContact: 'Luisa Castillo · +58 412 668 2211', licenseExpiry: '2026-06-04', licenseCategories: ['A','B','C','D'], medicalExpiry: '2026-08-18', psychExpiry: '2026-09-22', certifications: [{ name: 'Manejo defensivo', issuer: 'INTT', expiry: '2026-11-30' }], assignedTruck: 'T-005', trips6mo: [10, 12, 13, 14, 13, 14], onTimePct: 91, kmTotal: 62400, fuelAvg: 3.5, incidents: [], recentTrips: [], notes: '' },
+  'd-006': { initials: 'RB', avatarColor: 'wine',    rif: 'V-10.554.221-7', dob: '1973-08-09', hireDate: '2011-04-15', email: 'r.briceno@dtdcargo.com', address: 'Punto Fijo, Falcón', emergencyContact: 'Rosa Briceño · +58 414 998 7722', licenseExpiry: '2027-05-19', licenseCategories: ['A','B','C','D'], medicalExpiry: '2027-01-10', psychExpiry: '2027-02-22', certifications: [{ name: 'Manejo defensivo', issuer: 'INTT', expiry: '2027-04-04' }], assignedTruck: null, trips6mo: [9, 10, 11, 12, 11, 12], onTimePct: 93, kmTotal: 98700, fuelAvg: 3.3, incidents: [], recentTrips: [], notes: '' },
+  'd-007': { initials: 'JP', avatarColor: 'info',    rif: 'V-17.882.114-9', dob: '1989-12-15', hireDate: '2020-02-03', email: 'j.pena@dtdcargo.com', address: 'Puerto Cabello, Carabobo', emergencyContact: 'Marta Peña · +58 426 220 5555', licenseExpiry: '2026-07-30', licenseCategories: ['A','B','C'], medicalExpiry: '2026-06-20', psychExpiry: '2026-12-14', certifications: [], assignedTruck: null, trips6mo: [7, 9, 10, 11, 10, 11], onTimePct: 89, kmTotal: 38200, fuelAvg: 3.6, incidents: [{ date: '2026-04-30', type: 'roce', desc: 'Roce menor en patio Polar · sin lesionados', severity: 'low' }], notes: 'En proceso de tramitar licencia D.' },
+};
+const CUSTOMS_AGENTS = [
+  { id: 'a-001', name: 'Aduanas Carabobo CA',   rif: 'J-31002284-5', port: 'PBL', contact: 'Felipe Briceño', phone: '+58 412 552 8841', shipments: 84, rating: 4.8 },
+  { id: 'a-002', name: 'Logística Aduanal VE',  rif: 'J-30884512-7', port: 'LGU', contact: 'Romina Salas',   phone: '+58 414 220 1188', shipments: 62, rating: 4.6 },
+  { id: 'a-003', name: 'Zulia Aduanas SA',      rif: 'J-30551423-2', port: 'MAR', contact: 'Yoel Castillo',  phone: '+58 416 778 4477', shipments: 38, rating: 4.7 },
+  { id: 'a-004', name: 'Falcón Customs',        rif: 'J-31884201-9', port: 'PFI', contact: 'Diana Méndez',   phone: '+58 424 999 2200', shipments: 24, rating: 4.9 },
+];
+
 window.ERPData = {
+  PRINT_ORDERS, KPIS_EXTRA, AUDIT_LOG, BANK_STATEMENTS, CLIENT_ACCOUNTS, TRUCK_PROFILES, DRIVER_PROFILES, CUSTOMS_AGENTS,
+  CORP_LINES, USER_PROFILES, PRESENCE, THREADS,
   CLIENTS, SHIPMENTS, QUOTES, INVOICES, WAREHOUSE_CN, WAREHOUSE_VE,
   LEADS, USERS, RATES, DOCUMENTS, MAIL_TEMPLATES, NOTIFS, KPIS,
   SIGNATURES, SIGNATURE_LAYOUTS, SMTP_PROVIDERS, BLACKLIST, TEMPLATE_VARIABLES,

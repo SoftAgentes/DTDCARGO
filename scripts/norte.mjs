@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v2.4"; // handoff Cloud Design (índice propio Nort v2.4 + Brand Assets + CLAUDE Shipping Mark; consolidó despacho, removió Vista 1/2 · Admin Rutas · propuesta Órdenes · Sidebar Tono)
+const NORTE_VERSION = "v2.4b"; // handoff Cloud Design (consolidación/higiene: nuevo/→canónico, docs→backend/README.md + CHANGELOG raíz, borró handoff/ + design_handoff/ + código muerto; schema sin cambios de modelo)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -71,19 +71,19 @@ const GROUPS = [
   {
     title: "Perfiles individuales",
     screens: [
-      { name: "Perfil · Usuario interno", file: "nuevo/pantallas/usuario-perfil.html", code: null, sdd: null },
-      { name: "Perfil · Agente aduanal", file: "nuevo/pantallas/agente-perfil.html", code: null, sdd: null },
-      { name: "Perfil · Camión", file: "nuevo/pantallas/camion-perfil.html", code: null, sdd: null },
-      { name: "Perfil · Chofer", file: "nuevo/pantallas/chofer-perfil.html", code: null, sdd: null },
-      { name: "Estado de cuenta", file: "nuevo/pantallas/estado-cuenta.html", code: null, sdd: null },
+      { name: "Perfil · Usuario interno", file: "pantallas/usuario-perfil.html", code: null, sdd: null },
+      { name: "Perfil · Agente aduanal", file: "pantallas/agente-perfil.html", code: null, sdd: null },
+      { name: "Perfil · Camión", file: "pantallas/camion-perfil.html", code: null, sdd: null },
+      { name: "Perfil · Chofer", file: "pantallas/chofer-perfil.html", code: null, sdd: null },
+      { name: "Estado de cuenta", file: "pantallas/estado-cuenta.html", code: null, sdd: null },
     ],
   },
   {
     title: "Cross-módulo & productividad (v1.9)",
     screens: [
-      { name: "Tu día (bandeja personal)", file: "nuevo/pantallas/tu-dia.html", code: null, sdd: null },
-      { name: "AI Copilot (chat sobre datos)", file: "nuevo/pantallas/copilot.html", code: null, sdd: null },
-      { name: "Hilo de comentario expandido", file: "nuevo/pantallas/hilo-comentario.html", code: null, sdd: null },
+      { name: "Tu día (bandeja personal)", file: "pantallas/tu-dia.html", code: null, sdd: null },
+      { name: "AI Copilot (chat sobre datos)", file: "pantallas/copilot.html", code: null, sdd: null },
+      { name: "Hilo de comentario expandido", file: "pantallas/hilo-comentario.html", code: null, sdd: null },
     ],
   },
   {
@@ -109,13 +109,12 @@ const GROUPS = [
     // NO diluyen el % construido (mismo criterio "no contar mockups" del grupo de módulos nuevos).
     // Mapear `code`/`sdd` cuando se construyan (varias apuntan a entidades faltantes: órdenes,
     // proveedores, caja — ver docs/architecture/schema-reconciliation.md).
-    title: "Nuevo en v2.3-v2.4 · proceso · propuestas · índice Cloud Design",
+    // v2.4b consolidó: removió su índice propio (Nort v2.4.html) y archivó "Propuesta · Botón Crear" → _archivo/.
+    title: "Nuevo en v2.3-v2.4 · proceso · propuestas",
     screens: [
-      { name: "Índice Cloud Design (Nort v2.4)", file: "DTD CARGO Nort v2.4.html", ref: true },
       { name: "Mapa de Proceso", file: "Mapa de Proceso.html", ref: true },
       { name: "Guía del Mapa de Proceso", file: "Guía del Mapa de Proceso.html", ref: true },
       { name: "Portal Cliente · Mobile", file: "Portal Cliente Mobile.html", ref: true },
-      { name: "Propuesta · Botón Crear", file: "Propuesta · Botón Crear.html", ref: true },
       { name: "Propuesta · Servicios y Tarifas", file: "Propuesta · Servicios y Tarifas.html", ref: true },
     ],
   },

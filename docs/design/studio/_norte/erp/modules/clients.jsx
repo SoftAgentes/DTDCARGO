@@ -150,7 +150,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
         width={680}
         actions={
           <>
-            <U.Btn variant="ghost" icon={window.Icon.invoice(13)} onClick={() => detailRecord && window.open('nuevo/pantallas/estado-cuenta.html?id=' + detailRecord.markbox, '_blank')}>Estado de cuenta</U.Btn>
+            <U.Btn variant="ghost" icon={window.Icon.invoice(13)} onClick={() => detailRecord && window.__erpOverlay && window.__erpOverlay('estadocuenta', { markbox: detailRecord.markbox })}>Estado de cuenta</U.Btn>
             <U.Btn variant="ghost" icon={window.Icon.tag(13)} onClick={() => detailRecord && goTo('labels', detailRecord.markbox)}>Etiquetas</U.Btn>
             <U.Btn variant="secondary" icon={window.Icon.mail(13)} onClick={() => window.openQuickEmail?.({
               to: detailRecord?.email,

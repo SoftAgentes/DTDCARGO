@@ -1,7 +1,7 @@
 // ════════════════════════════════════════════════════════════════════
 //  DTD-Cargo · schema.prisma  ·  v0.1 (arranque de backend · CRÍTICO #1)
 //  Derivado 1:1 de los shapes mock del front (window.ERPData / *Data).
-//  Reglas que NO se negocian (ver BACKEND-BRIEF.md · CLAUDE.md):
+//  Reglas que NO se negocian (ver backend/README.md · CLAUDE.md):
 //    · TODA tabla operativa lleva tenantId y TODA query lo filtra.
 //    · MARKBOX y numeraciones (F- DTDU- CXP- REF- REC- DOC-) son
 //      secuenciales SERVER-SIDE (no confiar en el cliente).

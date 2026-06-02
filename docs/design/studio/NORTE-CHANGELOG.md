@@ -4,6 +4,36 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v2.4b — cargada 2026-06-01 (handoff de Cloud Design · CONSOLIDACIÓN / higiene de repo · supersede v2.4)
+
+Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v2.4b).zip` (~22 MB). **Supersede el v2.4** de unas
+horas antes — es su versión **consolidada/limpia, NO un cambio de diseño ni de datos.** git (mirror):
+156 copiados · **89 purgados**.
+
+**Es la consolidación que el HANDOFF siempre prometió** ("cuando el usuario decida consolidar"). El propio
+`CHANGELOG.md` de Cloud Design la describe (preocupación #1 del founder: fragmentación de repo):
+- **Disolvió `nuevo/`** (staging) → todo a su lugar canónico: `nuevo/modules/*`→`erp/modules/*`,
+  `nuevo/pantallas/*`→`pantallas/*`, `nuevo/api/client.jsx`→`erp/api/`, `nuevo/mobile/`→`mobile/`,
+  `nuevo/{flujo-*,rates,catalog-lines,feature-flags,search-select}.jsx`→`erp/*`, `nuevo/propuesta/*`→`propuesta/*`.
+- **8 bloques de seed** (`// TODO: al consolidar`) → `erp/data.jsx` (`window.ERPData`).
+- **Borró código muerto:** `estado-cuenta.jsx` (raíz huérfano), carpetas `handoff/` y `design_handoff_dtd_cargo/`.
+- **Consolidó docs (8→2 + bitácora):** `BACKEND-BRIEF.md` + `PROMPT-BACKEND.md` → **`backend/README.md`**;
+  `nuevo/CHANGELOG.md` → **`CHANGELOG.md` raíz**; quitó `PROMPT-proxima-sesion.md` / `PROMPT-CLAUDE-CODE.md` / `nuevo/README.md`.
+- **Misc:** quitó su `DTD CARGO Nort v2.4.html` + `Brand Assets DTD/`; archivó `Propuesta · Botón Crear` → `_archivo/`.
+
+**schema.prisma:** SIN cambios de modelo — **1 línea** (comentario `BACKEND-BRIEF.md`→`backend/README.md`).
+La reconciliación + los módulos construidos (Facturación/Contabilidad/Cobranzas) **NO se afectan**.
+
+**Terminología (drift):** sigue con Bodeguero/Camionero → re-aplicado el rename **Almacenista/Transportista**
+(5 archivos + sweep de texto en 23, salvo `CHANGELOG.md` histórico, ahora en la raíz del handoff).
+
+**`scripts/norte.mjs`:** v2.4→**v2.4b**; GROUPS: paths `nuevo/pantallas/*`→`pantallas/*`, quitadas las cards
+del índice propio (removido) y de Propuesta · Botón Crear (archivado). Overlay sin cambio real (~47%).
+
+**Peso (fuera de git):** `uploads/`, `scraps/`, `screenshots/`, `Brand Book v3.0 Package/`, `_norte.html`.
+
+---
+
 ## v2.4 — cargada 2026-06-01 (handoff de Cloud Design · índice propio + consolidación de despacho + Brand Assets)
 
 Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v2.4).zip` (~26 MB, 579 archivos). **Cambio de empaque:** ya NO viene envuelto en `dtd-cargo/project/` — el contenido está en la **raíz** del ZIP. Se omitieron `uploads/`, `scraps/`, `screenshots/`, `Brand Book v3.0 Package/` (ruido gitignoreado). git (mirror): copió 181 · **purgó 13**.
