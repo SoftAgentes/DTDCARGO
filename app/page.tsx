@@ -8,6 +8,7 @@ import { Timeline } from "@/components/Timeline";
 import { HowWeWork } from "@/components/HowWeWork";
 import { TrackingPreview } from "@/components/TrackingPreview";
 import { Philosophy } from "@/components/Philosophy";
+import { JoinCTA } from "@/components/JoinCTA";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 
@@ -35,6 +36,7 @@ export default function HomePage() {
         <Timeline />
         <TrackingPreview />
         <Philosophy />
+        <JoinCTA />
       </main>
       <Footer />
       <WhatsAppFAB />
