@@ -730,7 +730,7 @@ function NewAccountDrawer({ open, onClose }) {
               </div>
               <div>
                 <Label hint="opcional">Saldo inicial</Label>
-                <input type="number" value={opening} onChange={(e) => setOpening(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
+                <window.ERPUI.CalcInput value={opening} onChange={(e) => setOpening(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
               </div>
             </div>
 

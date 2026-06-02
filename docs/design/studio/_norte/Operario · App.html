@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD · Operario · App (un APK)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1" />
+<meta name="theme-color" content="#0F1E3D" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="DTD Cargo" />
+<meta name="application-name" content="DTD Cargo" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700;6..12,800&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+  body { background: var(--bg-base); -webkit-tap-highlight-color: transparent; margin: 0; }
+  .op-app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg-base); }
+  button { -webkit-tap-highlight-color: transparent; transition: opacity 0.15s ease; font-family: inherit; cursor: pointer; }
+  button:active:not(:disabled) { opacity: 0.75; }
+  @keyframes erp-fade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes erp-pop { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes erp-shimmer { 0% { top: 30%; } 50% { top: 70%; } 100% { top: 30%; } }
+  @keyframes ua-shake { 10%,90%{transform:translateX(-2px)} 30%,70%{transform:translateX(4px)} 50%{transform:translateX(-6px)} }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="erp/icons.jsx"></script>
+<script type="text/babel" src="operario/almacenista.jsx"></script>
+<script type="text/babel" src="operario/ve.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const I = window.Icon;
+const SESSION_KEY = 'dtd_op_session_v1';
+
+/* ════════════════════════════════════════════════════════════════
+   AUTH MOCK · directorio de operarios → { tenant, roles }
+   En producto real esto lo devuelve POST /auth/login (ver HANDOFF-MOBILE).
+   La app NO decide el rol: lo trae el perfil del backend.
+   ════════════════════════════════════════════════════════════════ */
+const DIRECTORY = [
+  { user: 'rbriceno', pass: '1234', pin: '1234', name: 'Ramón Briceño',  initials: 'RB', tenant: 'DTDSTUDIO', site: 'Pto Cabello', vehicle: 'AC542XK', roles: ['almacenista', 'transportista'] },
+  { user: 'yrojas',   pass: '1234', pin: '1234', name: 'Yusneidy Rojas', initials: 'YR', tenant: 'DTDSTUDIO', site: 'Valencia',    vehicle: null,      roles: ['almacenista'] },
+  { user: 'jmateran', pass: '1234', pin: '1234', name: 'José Materán',   initials: 'JM', tenant: 'DTDSTUDIO', site: 'Valencia',    vehicle: 'AG991QM', roles: ['transportista'] },
+  { user: 'wchen',    pass: '1234', pin: '1234', name: 'Wei Chen',       initials: 'WC', tenant: 'DTDSTUDIO', site: 'Yiwu · CN',   vehicle: null,      roles: ['operario_cn'] },
+];
+
+const ROLE_LABEL = { almacenista: 'Almacenista', transportista: 'Transportista', operario_cn: 'Operario CN' };
+
+function authenticate(user, pass) {
+  const u = DIRECTORY.find(d => d.user.toLowerCase() === user.trim().toLowerCase());
+  if (!u || u.pass !== pass) return null;
+  const { pass: _p, pin: _pin, ...profile } = u;
+  return profile; // { user, name, initials, tenant, site, vehicle, roles }
+}
+
+function homeFor(roles) {
+  if (roles.length > 1) return 'picker';
+  if (roles[0] === 'almacenista') return 'bodega';
+  if (roles[0] === 'transportista') return 'chofer';
+  if (roles[0] === 'operario_cn') return 'cn';
+  return 'picker';
+}
+
+/* ── localStorage de sesión ──────────────────────────────────── */
+function loadSession() {
+  try { const r = localStorage.getItem(SESSION_KEY); return r ? JSON.parse(r) : null; } catch (e) { return null; }
+}
+function saveSession(user) { try { localStorage.setItem(SESSION_KEY, JSON.stringify({ user, ts: Date.now() })); } catch (e) {} }
+function clearSession() { try { localStorage.removeItem(SESSION_KEY); } catch (e) {} }
+
+/* ════════════════════════════════════════════════════════════════
+   App raíz · máquina de estados de auth + ruteo
+   ════════════════════════════════════════════════════════════════ */
+function AuthApp() {
+  // boot: ¿hay sesión guardada? → desbloqueo por PIN. Si no → login.
+  const saved = loadSession();
+  const savedProfile = saved && DIRECTORY.find(d => d.user === saved.user);
+  const [profile, setProfile] = useState(null);
+  const [step, setStep] = useState(savedProfile ? 'unlock' : 'login');
+  const [route, setRoute] = useState(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const onAuthed = (p, remember) => {
+    setProfile(p);
+    if (remember) saveSession(p.user);
+    const dest = homeFor(p.roles);
+    if (dest === 'cn') { window.location.href = 'Operario CN.html'; return; }
+    setStep(dest);
+  };
+
+  const onUnlocked = () => {
+    const p = { ...savedProfile }; delete p.pass; delete p.pin;
+    setProfile(p);
+    const dest = homeFor(p.roles);
+    if (dest === 'cn') { window.location.href = 'Operario CN.html'; return; }
+    setStep(dest);
+  };
+
+  const logout = () => { clearSession(); setProfile(null); setMenuOpen(false); setStep('login'); };
+
+  if (step === 'login')  return <LoginScreen onAuthed={onAuthed} />;
+  if (step === 'unlock') return <PinUnlock profile={savedProfile} onUnlocked={onUnlocked} onForget={logout} />;
+
+  // ── sub-flujos reales (sin re-login) ──
+  if (step === 'rcp' || step === 'despacho') {
+    const F = window.AlmacenistaFlows;
+    if (!F) return <Loading />;
+    const Flow = step === 'rcp' ? F.ReceptionFlow : F.DispatchFlow;
+    return <div className="op-app"><Flow onExit={() => setStep('bodega')} /></div>;
+  }
+  if (step === 'entrega') {
+    const F = window.OperarioVEFlows;
+    if (!F) return <Loading />;
+    return <div className="op-app"><F.DeliveryFlow route={route} onExit={() => setStep('chofer')} /></div>;
+  }
+
+  if (step === 'picker') return <Picker profile={profile} onPick={setStep} />;
+
+  if (step === 'bodega' || step === 'chofer') {
+    return <ModeHome
+      profile={profile} mode={step}
+      onOpen={(s, r) => { if (r) setRoute(r); setStep(s); }}
+      onMenu={() => setMenuOpen(true)}
+      menuOpen={menuOpen} onCloseMenu={() => setMenuOpen(false)}
+      onSwitch={(m) => { setMenuOpen(false); setStep(m); }}
+      onLogout={logout}
+    />;
+  }
+  return <Loading />;
+}
+
+function Loading() {
+  return <div className="op-app" style={{ display: 'grid', placeItems: 'center', minHeight: '100vh' }}>
+    <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Cargando…</div>
+  </div>;
+}
+
+/* ════════ LOGIN único (usuario + contraseña) ════════ */
+function LoginScreen({ onAuthed }) {
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
+  const [show, setShow] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [err, setErr] = useState(false);
+
+  const submit = () => {
+    const p = authenticate(user, pass);
+    if (!p) { setErr(true); return; }
+    onAuthed(p, remember);
+  };
+
+  return (
+    <div className="op-app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* hero navy */}
+      <div style={{ background: 'linear-gradient(135deg, var(--ink), #1F3055)', padding: '0 0 26px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 24px 0' }}>
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" style={{ height: 30, display: 'block' }} />
+          <span style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 9.5px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Un solo acceso</span>
+        </div>
+        <div style={{ padding: '22px 24px 0' }}>
+          <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>DTD-CARGO · OPERARIO</div>
+          <div style={{ font: '800 27px/1.05 var(--f-display)', color: '#fff', marginTop: 10, letterSpacing: '-0.025em' }}>Iniciá sesión</div>
+          <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.65)', marginTop: 8, maxWidth: 320 }}>Entrás con tu usuario; el sistema te abre tu área según tu rol.</div>
+        </div>
+      </div>
+
+      {/* form */}
+      <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+        <UAField label="Usuario" value={user} onChange={(v) => { setUser(v); setErr(false); }} icon={I.idcard(16)} placeholder="usuario" mono />
+        <UAField label="Contraseña" value={pass} onChange={(v) => { setPass(v); setErr(false); }} type={show ? 'text' : 'password'} icon={I.lock(16)} placeholder="••••••••"
+          trailing={<button onClick={() => setShow(!show)} style={{ background: 'none', border: 0, color: 'var(--ink-mute)', display: 'flex', padding: 4 }}>{I.eye(16)}</button>}
+          onEnter={submit} />
+
+        {err && (
+          <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--danger-bg)', borderRadius: 'var(--r-md)', animation: 'ua-shake .35s' }}>
+            <span style={{ color: 'var(--danger)', display: 'flex', flexShrink: 0 }}>{I.alert ? I.alert(15) : I.info(15)}</span>
+            <span style={{ font: '600 12px/1.4 var(--f-sans)', color: 'var(--danger)' }}>Usuario o contraseña incorrectos.</span>
+          </div>
+        )}
+
+        <button onClick={() => setRemember(!remember)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textAlign: 'left', width: '100%' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Recordar este dispositivo</div>
+            <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Mantené la sesión iniciada. La próxima entrás con PIN.</div>
+          </div>
+          <UAToggle on={remember} />
+        </button>
+
+        <button onClick={submit} disabled={!user || !pass} style={{
+          width: '100%', height: 52, borderRadius: 'var(--r-md)', marginTop: 2,
+          background: (!user || !pass) ? 'var(--bg-elevated)' : 'var(--wine)',
+          color: (!user || !pass) ? 'var(--ink-mute)' : '#fff', border: 0,
+          font: '800 15px/1 var(--f-sans)', letterSpacing: '-0.01em',
+        }}>Entrar</button>
+
+        {/* demo helper · solo prototipo */}
+        <div style={{ marginTop: 'auto', paddingTop: 10 }}>
+          <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Demo · tocá un perfil (pass 1234)</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {DIRECTORY.map(d => (
+              <button key={d.user} onClick={() => { setUser(d.user); setPass('1234'); setErr(false); }} style={{
+                display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', textAlign: 'left',
+                background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', width: '100%',
+              }}>
+                <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 11px/1 var(--f-sans)', flexShrink: 0 }}>{d.initials}</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--ink)' }}>{d.user}</code>
+                  <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>{d.roles.map(r => ROLE_LABEL[r]).join(' + ')}{d.roles.length > 1 ? ' · multi-rol' : ''}</div>
+                </div>
+                <span style={{ color: 'var(--ink-mute)' }}>{I.chevR ? I.chevR(13) : '→'}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════ Desbloqueo por PIN (sesión guardada) ════════ */
+function PinUnlock({ profile, onUnlocked, onForget }) {
+  const [pin, setPin] = useState('');
+  const [fails, setFails] = useState(0);
+  const [shake, setShake] = useState(false);
+
+  const press = (d) => {
+    if (pin.length >= 4) return;
+    const next = pin + d;
+    setPin(next);
+    if (next.length === 4) {
+      setTimeout(() => {
+        if (next === profile.pin) { onUnlocked(); }
+        else {
+          const f = fails + 1; setFails(f); setShake(true); setPin('');
+          setTimeout(() => setShake(false), 400);
+          if (f >= 5) onForget(); // demasiados intentos → re-login con contraseña
+        }
+      }, 180);
+    }
+  };
+
+  return (
+    <div className="op-app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '20px 24px 28px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+        <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 15px/1 var(--f-display)' }}>{profile.initials}</div>
+        <div>
+          <div style={{ font: '800 19px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Hola, {profile.name.split(' ')[0]}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)' }} />
+            <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>Sesión activa · sin contraseña</span>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 18 }}>
+          {fails > 0 ? `PIN incorrecto · ${5 - fails} intentos` : 'Ingresá tu PIN'}
+        </div>
+        <div style={{ display: 'flex', gap: 14, marginBottom: 30, animation: shake ? 'ua-shake .35s' : 'none' }}>
+          {[0,1,2,3].map(i => <div key={i} style={{ width: 15, height: 15, borderRadius: '50%', background: i < pin.length ? (fails > 0 ? 'var(--danger)' : 'var(--wine)') : 'transparent', border: `2px solid ${i < pin.length ? (fails > 0 ? 'var(--danger)' : 'var(--wine)') : 'var(--border-strong)'}` }} />)}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 64px)', gap: 14 }}>
+          {[1,2,3,4,5,6,7,8,9].map(n => <button key={n} onClick={() => press(String(n))} style={padBtn}>{n}</button>)}
+          <div />
+          <button onClick={() => press('0')} style={padBtn}>0</button>
+          <button onClick={() => setPin(pin.slice(0,-1))} style={{ ...padBtn, background: 'transparent', border: 0, color: 'var(--ink-mute)' }}>{I.close(20)}</button>
+        </div>
+      </div>
+
+      <button onClick={onForget} style={{ background: 'none', border: 0, font: '600 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', textAlign: 'center' }}>
+        ¿No sos {profile.name.split(' ')[0]}? · Cerrar dispositivo
+      </button>
+      <div style={{ marginTop: 10, textAlign: 'center', font: '600 10px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Demo · PIN 1234</div>
+    </div>
+  );
+}
+const padBtn = { width: 64, height: 64, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 24px/1 var(--f-display)', color: 'var(--ink)' };
+
+/* ════════ Picker (solo multi-rol) ════════ */
+function Picker({ profile, onPick }) {
+  return (
+    <div className="op-app" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '20px 16px 14px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 14px/1 var(--f-display)' }}>{profile.initials}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>23 May 2026 · 06:42</div>
+          <div style={{ font: '900 18px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', marginTop: 4 }}>Hola, {profile.name.split(' ')[0]}</div>
+        </div>
+      </div>
+
+      <div style={{ padding: 16, flex: 1, animation: 'erp-pop 220ms ease' }}>
+        <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>¿QUÉ HACÉS HOY?</div>
+        <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 18 }}>Tu perfil tiene 2 roles. Elegí un modo; cambiás cuando quieras desde el menú.</div>
+
+        <button onClick={() => onPick('bodega')} style={{ width: '100%', padding: 20, marginBottom: 12, background: 'linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)', color: '#fff', border: 0, borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
+          <div style={{ width: 60, height: 60, borderRadius: 'var(--r-md)', background: 'rgba(216,154,164,0.20)', color: 'var(--wine-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{I.box(30)}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>MODO BODEGA</div>
+            <div style={{ font: '900 20px/1.1 var(--f-display)', color: '#fff', letterSpacing: '-0.02em', marginTop: 6 }}>Soy almacenista</div>
+            <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 6 }}>Recibir contenedor · armar y despachar camión</div>
+          </div>
+          <span style={{ color: 'var(--wine-soft)', display: 'flex' }}>{I.chevR ? I.chevR(18) : '→'}</span>
+        </button>
+
+        <button onClick={() => onPick('chofer')} style={{ width: '100%', padding: 20, marginBottom: 18, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderLeft: '6px solid var(--wine)', borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
+          <div style={{ width: 60, height: 60, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{I.truck(30)}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>MODO CHOFER</div>
+            <div style={{ font: '900 20px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', marginTop: 6 }}>Soy transportista</div>
+            <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>Rutas asignadas · ruta GPS · entrega con POD y firma</div>
+          </div>
+          <span style={{ color: 'var(--wine)', display: 'flex' }}>{I.chevR ? I.chevR(18) : '→'}</span>
+        </button>
+
+        <div style={{ display: 'flex', gap: 10, padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
+          <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.info(15)}</span>
+          <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}><b>Multi-rol.</b> Este perfil tiene los 2 módulos habilitados. Cambiás de modo desde el menú ☰ sin cerrar sesión.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════ Home del modo (Almacén / Chofer) ════════ */
+const VE_ROUTES = [
+  { id: 'R-2026-0142', shipment: 'DTDU-472816', client: 'Acindar Comercial', from: 'PBL · Terminal', to: 'Valencia · ZI Acindar', distance: 168, eta: '14:30', boxes: 12, cbm: 6.4, done: false },
+  { id: 'R-2026-0144', shipment: 'DTDU-364299', client: 'Vargas & Asoc',     from: 'PBL · Terminal', to: 'Valencia · Galpón',    distance: 142, eta: '17:00', boxes: 8,  cbm: 24.2, done: false },
+  { id: 'R-2026-0140', shipment: 'DTDU-388157', client: 'Imp. Pereira',      from: 'LGU · Hub',      to: 'Caracas · La Yaguara',  distance: 32,  eta: '10:42', boxes: 8,  cbm: 8.2, done: true },
+];
+
+function ModeHome({ profile, mode, onOpen, onMenu, menuOpen, onCloseMenu, onSwitch, onLogout }) {
+  const isB = mode === 'bodega';
+  const multi = profile.roles.length > 1;
+  const sub = isB
+    ? `${profile.name.split(' ')[0]} · ${profile.site} · Almacenista`
+    : `${profile.name.split(' ')[0]} · ${profile.vehicle || profile.site} · Transportista`;
+
+  return (
+    <div className="op-app" style={{ minHeight: '100vh' }}>
+      <header style={{ position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg-surface)', borderBottom: '1px solid var(--border)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 13px/1 var(--f-display)' }}>{profile.initials}</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ font: '900 15px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Mi día · {isB ? 'Almacén' : 'Chofer'}</div>
+          <div style={{ font: '500 10.5px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{sub}</div>
+        </div>
+        <button onClick={onMenu} style={{ width: 40, height: 40, borderRadius: 'var(--r-md)', color: 'var(--ink-soft)', background: 'var(--bg-elevated)', border: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{I.menu ? I.menu(18) : '☰'}</button>
+      </header>
+
+      <div style={{ padding: 16, animation: 'erp-pop 220ms ease' }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>23 May 2026 · 06:42</div>
+          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', marginTop: 6 }}>Hola, {profile.name.split(' ')[0]}</div>
+          <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{isB ? '2 contenedores por recibir · 3 camiones por armar' : '2 entregas pendientes hoy · 310 km de ruta'}</div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+          {isB ? <React.Fragment>
+            <UAKPI label="Por recibir" value="2" tone="var(--wine)" />
+            <UAKPI label="Por armar" value="3" tone="var(--info)" />
+            <UAKPI label="Recibidos hoy" value="5" tone="var(--success)" />
+          </React.Fragment> : <React.Fragment>
+            <UAKPI label="Rutas hoy" value="2" tone="var(--wine)" />
+            <UAKPI label="Entregadas" value="1" tone="var(--success)" />
+            <UAKPI label="Km hoy" value="310" tone="var(--info)" />
+          </React.Fragment>}
+        </div>
+
+        {isB ? (
+          <React.Fragment>
+            <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 10 }}>¿QUÉ VAS A HACER?</div>
+            <UAAction dark n="1" icon={I.box(26)} title="Recibir contenedor" sub="Escanear cajas · confirmar cantidad y CBM" badge="2 contenedores hoy" badgeBg="rgba(216,154,164,0.25)" badgeColor="var(--wine-soft)" onClick={() => onOpen('rcp')} />
+            <UAAction n="2" icon={I.truck(26)} title="Despachar camión" sub="Armar camión · asignar chofer · pase QR" badge="3 camiones por armar" badgeBg="var(--wine-tint)" badgeColor="var(--wine)" onClick={() => onOpen('despacho')} />
+          </React.Fragment>
+        ) : (
+          <React.Fragment>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+              <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>RUTAS ASIGNADAS</div>
+              <div style={{ font: '500 10.5px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>Asignadas por almacén</div>
+            </div>
+            {VE_ROUTES.map(r => <UARoute key={r.shipment} r={r} onClick={() => { if (!r.done) onOpen('entrega', r); }} />)}
+            <button onClick={() => { const nx = VE_ROUTES.find(x => !x.done); if (nx) onOpen('entrega', nx); }} style={{ width: '100%', height: 52, marginTop: 6, background: 'var(--wine)', color: '#fff', border: 0, borderRadius: 'var(--r-md)', font: '800 15px/1 var(--f-sans)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>Iniciar próxima ruta →</button>
+          </React.Fragment>
+        )}
+      </div>
+
+      {menuOpen && (
+        <div onClick={onCloseMenu} style={{ position: 'fixed', inset: 0, background: 'rgba(15,30,61,0.4)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxWidth: 480, margin: '0 auto', background: 'var(--bg-surface)', borderRadius: '20px 20px 0 0', padding: 20, paddingBottom: 'calc(env(safe-area-inset-bottom) + 20px)' }}>
+            <div style={{ width: 40, height: 4, background: 'var(--border-strong)', borderRadius: 999, margin: '0 auto 18px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '4px 2px 14px', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 14px/1 var(--f-display)' }}>{profile.initials}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ font: '800 14px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{profile.name}</div>
+                <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>{profile.tenant} · {profile.roles.map(r => ROLE_LABEL[r]).join(' + ')}</div>
+              </div>
+            </div>
+
+            {multi && <React.Fragment>
+              <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', margin: '16px 0 10px' }}>CAMBIAR DE MODO</div>
+              <button onClick={() => onSwitch(isB ? 'chofer' : 'bodega')} style={{ width: '100%', padding: 14, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderLeft: `4px solid ${isB ? 'var(--wine)' : 'var(--ink)'}`, borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: isB ? 'var(--wine-tint)' : 'rgba(15,30,61,0.1)', color: isB ? 'var(--wine)' : 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{isB ? I.truck(22) : I.box(22)}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ font: '800 14px/1.1 var(--f-sans)', color: 'var(--ink)' }}>Cambiar a modo {isB ? 'Chofer' : 'Almacén'}</div>
+                  <div style={{ font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{isB ? 'Pasar a entregas en ruta' : 'Volver a recepción y despacho'}</div>
+                </div>
+                <span style={{ color: 'var(--ink-mute)', display: 'flex' }}>{I.chevR ? I.chevR(14) : '→'}</span>
+              </button>
+            </React.Fragment>}
+
+            <button onClick={onLogout} style={{ width: '100%', padding: 14, marginTop: 14, background: 'var(--danger-bg)', color: 'var(--danger)', border: 0, borderRadius: 'var(--r-md)', font: '700 14px/1 var(--f-sans)' }}>Cerrar sesión</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ════════ átomos (prefijo UA · evitan colisión con almacenista.jsx) ════════ */
+function UAField({ label, value, onChange, type = 'text', icon, trailing, placeholder, mono, onEnter }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 50, padding: '0 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+        {icon && <span style={{ color: 'var(--ink-mute)', display: 'flex' }}>{icon}</span>}
+        <input value={value} onChange={(e) => onChange(e.target.value)} type={type} placeholder={placeholder}
+          onKeyDown={(e) => { if (e.key === 'Enter' && onEnter) onEnter(); }}
+          style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', font: `600 15px/1 ${mono ? 'var(--f-mono)' : 'var(--f-sans)'}`, color: 'var(--ink)' }} />
+        {trailing}
+      </div>
+    </label>
+  );
+}
+
+function UAToggle({ on }) {
+  return (
+    <div style={{ width: 42, height: 25, borderRadius: 999, background: on ? 'var(--wine)' : 'var(--border-strong)', position: 'relative', flexShrink: 0, transition: 'background .2s' }}>
+      <div style={{ position: 'absolute', top: 2.5, left: on ? 19.5 : 2.5, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.25)', transition: 'left .2s' }} />
+    </div>
+  );
+}
+
+function UAKPI({ label, value, tone }) {
+  return (
+    <div style={{ padding: 12, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+      <div style={{ font: '700 9px/1.1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ font: '900 22px/1 var(--f-display)', color: tone, marginTop: 8, letterSpacing: '-0.02em' }}>{value}</div>
+    </div>
+  );
+}
+
+function UAAction({ n, icon, title, sub, badge, badgeBg, badgeColor, dark, onClick }) {
+  return (
+    <button onClick={onClick} style={{ width: '100%', padding: 16, marginBottom: 10, background: dark ? 'linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)' : 'var(--bg-surface)', border: dark ? 0 : '1px solid var(--border)', borderLeft: dark ? 0 : '4px solid var(--wine)', borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
+      <div style={{ width: 56, height: 56, borderRadius: 'var(--r-md)', background: dark ? 'rgba(216,154,164,0.20)' : 'var(--wine-tint)', color: dark ? 'var(--wine-soft)' : 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{icon}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ font: '700 9px/1 var(--f-sans)', color: dark ? 'var(--wine-soft)' : 'var(--wine)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Acción {n}</div>
+        <div style={{ font: '900 18px/1.1 var(--f-display)', color: dark ? '#fff' : 'var(--ink)', letterSpacing: '-0.02em', marginTop: 5 }}>{title}</div>
+        <div style={{ font: '500 12px/1.4 var(--f-sans)', color: dark ? 'rgba(255,255,255,0.7)' : 'var(--ink-soft)', marginTop: 5 }}>{sub}</div>
+        <div style={{ marginTop: 8 }}><span style={{ padding: '3px 8px', borderRadius: 3, background: badgeBg, color: badgeColor, font: '700 10px/1.2 var(--f-sans)' }}>{badge}</span></div>
+      </div>
+      <span style={{ color: dark ? 'var(--wine-soft)' : 'var(--wine)', display: 'flex' }}>{I.chevR ? I.chevR(18) : '→'}</span>
+    </button>
+  );
+}
+
+function UARoute({ r, onClick }) {
+  const done = r.done;
+  return (
+    <button disabled={done} onClick={onClick} style={{ width: '100%', padding: 14, marginBottom: 10, textAlign: 'left', background: done ? 'var(--success-bg)' : 'var(--bg-surface)', border: `1px solid ${done ? 'var(--success)' : 'var(--border)'}`, borderLeft: `4px solid ${done ? 'var(--success)' : 'var(--wine)'}`, borderRadius: 'var(--r-md)', opacity: done ? 0.72 : 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <code style={{ font: '800 11.5px/1 var(--f-mono)', color: 'var(--wine)' }}>{r.shipment}</code>
+        {done ? <span style={{ padding: '3px 8px', borderRadius: 3, background: 'var(--success)', color: '#fff', font: '700 9px/1 var(--f-sans)', letterSpacing: '0.1em' }}>ENTREGADO</span>
+          : <span style={{ font: '700 10.5px/1 var(--f-mono)', color: 'var(--wine)' }}>ETA {r.eta}</span>}
+      </div>
+      <div style={{ font: '700 14px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{r.client}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, font: '500 12px/1.3 var(--f-sans)', color: 'var(--ink-soft)' }}>
+        <span>{r.from}</span><span style={{ color: 'var(--wine)' }}>→</span><span>{r.to}</span>
+      </div>
+      <div style={{ marginTop: 8, display: 'flex', gap: 14, font: '600 11px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>
+        <span>{r.boxes} cj</span><span>{r.cbm} CBM</span><span>{r.distance} km</span>
+      </div>
+    </button>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<AuthApp />);
+</script>
+</body>
+</html>

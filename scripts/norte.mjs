@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v2.4b"; // handoff Cloud Design (consolidación/higiene: nuevo/→canónico, docs→backend/README.md + CHANGELOG raíz, borró handoff/ + design_handoff/ + código muerto; schema sin cambios de modelo)
+const NORTE_VERSION = "v2.4c"; // handoff Cloud Design (capa legal: T&C v2.1 + acuerdos ES-中文 + admin-legal + Aceptación T&C; handoff mobile dedicado; Brand Book v3.2; removió Operario Multi + Brand Book v3.1)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -63,7 +63,8 @@ const GROUPS = [
       { name: "Mobile ERP", file: "Mobile ERP.html", code: "app/m/erp", sdd: null },
       { name: "Operario CN", file: "Operario CN.html", code: "app/m/cn", sdd: "0016" },
       { name: "Operario VE", file: "Operario VE.html", code: "app/m/ve", sdd: "0017" },
-      { name: "Operario Multi", file: "Operario Multi.html", code: "app/m", sdd: "0030" },
+      { name: "Operario · App (multi-rol)", file: "Operario · App.html", code: "app/m", sdd: "0030" },
+      { name: "Login y Sesión · Operario", file: "Login y Sesión · Operario.html", code: "app/m", sdd: "0030" },
       { name: "Almacenista VE", file: "Almacenista VE.html", code: "app/m/ve/bodeguero", sdd: "0030" },
       { name: "Transportista", file: "Transportista.html", code: "app/m/ve/camionero", sdd: "0030" },
     ],
@@ -101,6 +102,7 @@ const GROUPS = [
       { name: "Documentos · Hub central", file: null, code: null, sdd: null, inErp: true },
       { name: "Dirección · Tablero ejecutivo", file: null, code: null, sdd: null, inErp: true },
       { name: "Flujo de trabajo (workflow view)", file: null, code: null, sdd: null, inErp: true },
+      { name: "Legal · T&C / Acuerdos (admin-legal · v2.4c)", file: null, code: null, sdd: null, inErp: true },
     ],
   },
   {
@@ -110,18 +112,20 @@ const GROUPS = [
     // Mapear `code`/`sdd` cuando se construyan (varias apuntan a entidades faltantes: órdenes,
     // proveedores, caja — ver docs/architecture/schema-reconciliation.md).
     // v2.4b consolidó: removió su índice propio (Nort v2.4.html) y archivó "Propuesta · Botón Crear" → _archivo/.
-    title: "Nuevo en v2.3-v2.4 · proceso · propuestas",
+    title: "Nuevo en v2.3-v2.4c · proceso · propuestas · legal",
     screens: [
       { name: "Mapa de Proceso", file: "Mapa de Proceso.html", ref: true },
       { name: "Guía del Mapa de Proceso", file: "Guía del Mapa de Proceso.html", ref: true },
       { name: "Portal Cliente · Mobile", file: "Portal Cliente Mobile.html", ref: true },
       { name: "Propuesta · Servicios y Tarifas", file: "Propuesta · Servicios y Tarifas.html", ref: true },
+      { name: "Aceptación T&C · Cotización", file: "Aceptación T&C · Cotización.html", ref: true },
+      { name: "App Icon · DTD Cargo", file: "App Icon · DTD Cargo.html", ref: true },
     ],
   },
   {
     title: "Marca",
     screens: [
-      { name: "Brand Book v3.1", file: "Brand Book DTD v3.1.html", kind: "brand" },
+      { name: "Brand Book v3.2", file: "Brand Book DTD v3.2.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
       { name: "Aplicaciones de Marca", file: "Aplicaciones de Marca.html", kind: "brand" },

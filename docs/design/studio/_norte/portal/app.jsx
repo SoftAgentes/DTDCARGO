@@ -25,13 +25,15 @@ function PortalApp() {
   if (!logged) return <PortalLogin onLogin={() => {
     const firstTime = !localStorage.getItem('dtd-portal-visited');
     localStorage.setItem('dtd-portal-visited', '1');
+    sessionStorage.removeItem('dtd-from-registro'); // el hint “es tu cédula” no vuelve a aparecer
     setShowPwTip(firstTime);
     setTour(firstTime);
     setLogged(true);
   }} />;
 
   const me = D.CLIENTS.find(c => c.markbox === DEMO_MARKBOX);
-  const myShipments = D.SHIPMENTS.filter(s => s.client === DEMO_MARKBOX);
+  const _pq = (() => { try { return (window.DTDData && window.DTDData.clientQuotes) ? window.DTDData.clientQuotes(DEMO_MARKBOX) : []; } catch (e) { return []; } })();
+  const myShipments = [..._pq, ...D.SHIPMENTS.filter(s => s.client === DEMO_MARKBOX)];
   const myInvoices = D.INVOICES.filter(i => i.client === DEMO_MARKBOX);
 
   return (
@@ -60,8 +62,7 @@ function PortalApp() {
           {view === 'invoices' && <PortalInvoices invs={myInvoices} />}
           {view === 'documents' && <PortalDocuments />}
           {view === 'referidos' && <PortalReferidos me={me} />}
-          {view === 'reclamos' && <PortalReclamos me={me} setView={setView} />}
-          {view === 'support' && <PortalSupport />}
+          {view === 'support' && <PortalSupport me={me} />}
           {view === 'profile' && <PortalProfile me={me} />}
         </div>
       </main>
@@ -156,7 +157,7 @@ function PortalLogin({ onLogin }) {
                 onFocus={(e) => e.target.style.borderColor = 'var(--wine)'}
                 onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
               />
-              {!localStorage.getItem('dtd-portal-visited') && (
+              {sessionStorage.getItem('dtd-from-registro') && (
                 <span className="guide-pulse" style={{ display: 'inline-block', marginTop: 2, padding: '5px 10px', background: 'var(--wine-tint)', color: 'var(--wine)', borderRadius: 'var(--r-pill)', font: '700 11px/1 var(--f-sans)', width: 'fit-content' }}>💡 Es tu cédula</span>
               )}
             </label>
@@ -197,8 +198,7 @@ function PortalTopbar({ me, view, setView, onLogout, theme, setTheme }) {
     { v: 'invoices',  l: 'Facturas',   icon: 'invoice' },
     { v: 'documents', l: 'Documentos', icon: 'doc' },
     { v: 'referidos', l: 'Referidos',  icon: 'star' },
-    { v: 'reclamos',  l: 'Reclamos',   icon: 'shield' },
-    { v: 'support',   l: 'Soporte',    icon: 'mail' },
+    { v: 'support',   l: 'Soporte',    icon: 'chat' },
   ];
 
   return (
@@ -476,7 +476,7 @@ function PortalShipments({ ships, setDetail }) {
   const [search, setSearch] = pUseState('');
 
   const filtered = ships.filter(s => {
-    if (tab === 'active' && ['entregado','cotizado'].includes(s.status)) return false;
+    if (tab === 'active' && s.status === 'entregado') return false;
     if (tab === 'delivered' && s.status !== 'entregado') return false;
     if (search && !s.id.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -489,7 +489,7 @@ function PortalShipments({ ships, setDetail }) {
 
       <U.Tabs value={tab} onChange={setTab} items={[
         { value: 'all',       label: 'Todos',      count: ships.length },
-        { value: 'active',    label: 'En curso',   count: ships.filter(s => !['entregado','cotizado'].includes(s.status)).length },
+        { value: 'active',    label: 'En curso',   count: ships.filter(s => s.status !== 'entregado').length },
         { value: 'delivered', label: 'Entregados', count: ships.filter(s => s.status === 'entregado').length },
       ]} style={{ marginBottom: 'var(--s-5)' }} />
 
@@ -528,14 +528,182 @@ function PortalShipments({ ships, setDetail }) {
   );
 }
 
+// ── Aceptación legal de cotización (T&C + Operador) ──────────
+function pFmtLegalDate(iso) {
+  const [y, m, d] = iso.split('-');
+  const MM = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(m) - 1];
+  return `${parseInt(d)} ${MM} ${y}`;
+}
+function pNowStamp() {
+  const n = new Date(); const p = (x) => String(x).padStart(2, '0');
+  return `${p(n.getDate())}/${p(n.getMonth() + 1)}/${n.getFullYear()} ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
+}
+function pFakeHash() {
+  return ('sha256:' + 'a1f' + Math.random().toString(16).slice(2, 10) + 'c7' + Math.random().toString(16).slice(2, 8)).slice(0, 30);
+}
+
+function PortalDocViewer({ doc, onClose }) {
+  const U = window.ERPUI;
+  return (
+    <U.Modal open={!!doc} onClose={onClose} width={620}
+      title={doc ? `${doc.name} · ${doc.version}` : ''}
+      actions={<U.Btn variant="primary" onClick={onClose}>Cerrar</U.Btn>}>
+      {doc && (
+        <div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+            <U.Badge tone="wine" size="sm">{doc.version}</U.Badge>
+            <U.Badge tone="neutral" size="sm">Vigente desde {pFmtLegalDate(doc.effective)}</U.Badge>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: 360, overflowY: 'auto', overflowX: 'hidden', paddingRight: 6 }}>
+            {doc.body.map(([h, p], i) => (
+              <div key={i}>
+                <div style={{ font: '800 13px/1.3 var(--f-display)', color: 'var(--ink)', marginBottom: 5 }}>{h}</div>
+                <div style={{ font: '500 12.5px/1.6 var(--f-sans)', color: 'var(--ink-soft)' }}>{p}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </U.Modal>
+  );
+}
+
+function PortalAcceptModal({ quote, me, open, onClose, onAccepted }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const [checked, setChecked] = pUseState(false);
+  const [viewing, setViewing] = pUseState(null);
+  const docs = (window.LegalData && window.LegalData.currentDocs()) || [];
+
+  const close = () => { setChecked(false); setViewing(null); onClose(); };
+  const confirm = () => {
+    if (!checked) return;
+    const evidence = {
+      id: 'AC-2026-' + String(Math.floor(215 + Math.random() * 80)).padStart(4, '0'),
+      client: me.company || me.name, markbox: me.markbox,
+      quote: quote.id, orden: quote.id.replace('Q-', 'OS-'),
+      cbm: quote.cbm, weight: quote.weight, total: quote.amount,
+      docs: docs.map(d => [d.name, d.version]),
+      at: pNowStamp(), ip: me.ip || '190.142.88.214', hash: pFakeHash(),
+    };
+    try { if (window.LegalData) window.LegalData.ACCEPTANCES.unshift(evidence); } catch (e) {}
+    onAccepted(evidence);
+  };
+
+  return (
+    <React.Fragment>
+      <U.Modal open={open && !viewing} onClose={close} width={560} title="Aceptar cotización"
+        actions={
+          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 6 }}>{I.lock(13)} Paso obligatorio</span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <U.Btn variant="ghost" onClick={close}>Cancelar</U.Btn>
+              <U.Btn variant="primary" disabled={!checked} onClick={confirm} icon={I.check(14)}>Confirmar y generar orden</U.Btn>
+            </div>
+          </div>
+        }>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', marginBottom: 18 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{I.doc(20)}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <code style={{ font: '800 14px/1 var(--f-mono)', color: 'var(--ink)' }}>{quote.id}</code>
+            <div style={{ font: '500 12px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{quote.route} · {quote.cbm} m³ · {quote.type}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ font: '900 18px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{quote.total}</div>
+            <div style={{ font: '600 10px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3, letterSpacing: '0.08em', textTransform: 'uppercase' }}>DDP total</div>
+          </div>
+        </div>
+
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
+          <button onClick={() => setChecked(!checked)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12, padding: 16, textAlign: 'left', background: checked ? 'var(--wine-tint)' : 'var(--bg-surface)', border: 0, transition: 'background .15s ease' }}>
+            <span style={{ width: 22, height: 22, flexShrink: 0, marginTop: 1, borderRadius: 'var(--r-xs)', border: `2px solid ${checked ? 'var(--wine)' : 'var(--border-strong)'}`, background: checked ? 'var(--wine)' : 'var(--bg-surface)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{checked && I.check(13)}</span>
+            <div style={{ font: '600 13px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
+              He leído y acepto los{' '}
+              {docs[0] && <a onClick={(e) => { e.stopPropagation(); setViewing(docs[0]); }} style={{ color: 'var(--wine)', textDecoration: 'underline', fontWeight: 700, cursor: 'pointer' }}>Términos y Condiciones de DTD</a>}
+              {' '}y las{' '}
+              {docs[1] && <a onClick={(e) => { e.stopPropagation(); setViewing(docs[1]); }} style={{ color: 'var(--wine)', textDecoration: 'underline', fontWeight: 700, cursor: 'pointer' }}>Condiciones del Operador de Consolidación</a>}.
+            </div>
+          </button>
+          <div style={{ borderTop: '1px solid var(--border)', padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 8, background: 'var(--bg-elevated)' }}>
+            {docs.map(d => (
+              <button key={d.key} onClick={() => setViewing(d)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 9px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', font: '600 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
+                <span style={{ color: 'var(--wine)', display: 'flex' }}>{I.doc(11)}</span>{d.version} · vig. {pFmtLegalDate(d.effective)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, padding: '11px 13px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
+          <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield(15)}</span>
+          <div style={{ font: '500 11.5px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
+            Al confirmar registramos tu aceptación como evidencia legal: cliente, cotización, documento y versión, fecha/hora, IP y un hash de integridad. Se solicita en <b>cada</b> cotización.
+          </div>
+        </div>
+      </U.Modal>
+      <PortalDocViewer doc={viewing} onClose={() => setViewing(null)} />
+    </React.Fragment>
+  );
+}
+
+function PortalAcuseModal({ evidence, open, onClose }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  if (!evidence) return null;
+  const Row = ({ k, v }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '9px 0', borderTop: '1px solid var(--border)' }}>
+      <span style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', flexShrink: 0 }}>{k}</span>
+      <span style={{ font: '600 12px/1.4 var(--f-mono)', color: 'var(--ink)', textAlign: 'right', wordBreak: 'break-all' }}>{v}</span>
+    </div>
+  );
+  return (
+    <U.Modal open={open} onClose={onClose} width={520} title="Orden de servicio generada"
+      actions={<U.Btn variant="primary" full onClick={onClose} icon={I.check(14)}>Entendido</U.Btn>}>
+      <div style={{ textAlign: 'center', padding: '6px 0 18px' }}>
+        <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{I.check(30)}</div>
+        <div style={{ font: '900 20px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Cotización aceptada</div>
+        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>
+          Generamos la orden <code style={{ font: '800 13px/1 var(--f-mono)', color: 'var(--wine)' }}>{evidence.orden}</code> ligada a las versiones aceptadas.
+        </div>
+      </div>
+      <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '4px 16px 14px' }}>
+        <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', padding: '14px 0 6px' }}>Acuse de aceptación · evidencia</div>
+        <Row k="Cliente" v={`${evidence.client} · ${evidence.markbox}`} />
+        <Row k="Cotización" v={evidence.quote} />
+        {evidence.docs.map((d, i) => <Row key={i} k={i === 0 ? 'Documentos' : ''} v={`${d[0]} ${d[1]}`} />)}
+        <Row k="Fecha / hora" v={evidence.at} />
+        <Row k="IP" v={evidence.ip} />
+        <Row k="Hash" v={evidence.hash} />
+      </div>
+    </U.Modal>
+  );
+}
+
 // ── Detalle de un envío ─────────────────────────────────────
 function PortalShipmentDetail({ id, onBack }) {
   const D = window.ERPData;
   const U = window.ERPUI;
-  const s = D.SHIPMENTS.find(x => x.id === id);
+  const s = (() => { try { const q = (window.DTDData && window.DTDData.clientQuotes) ? window.DTDData.clientQuotes(DEMO_MARKBOX).find(x => x.id === id) : null; return q || D.SHIPMENTS.find(x => x.id === id); } catch (e) { return D.SHIPMENTS.find(x => x.id === id); } })();
+  const [accepting, setAccepting] = pUseState(false);
+  const [evidence, setEvidence] = pUseState(null);
+  const [acuse, setAcuse] = pUseState(false);
   if (!s) return null;
   const flow = D.STATUS_FLOW;
   const cur = flow.indexOf(s.status);
+  const pLegalAccepted = (qid) => { try { return (window.LegalData && window.LegalData.ACCEPTANCES.some(a => a.quote === qid)); } catch (e) { return false; } };
+  const quote = {
+    id: s.id.startsWith('Q-') ? s.id : 'Q-2026-' + s.id.slice(-4), route: `${D.origin(s.origin).name} → ${D.dest(s.destination).name}`,
+    cbm: s.cbm, weight: s.weight, amount: s.value, type: s.type, total: '$' + (s.value || 0).toLocaleString('en-US'),
+  };
+  const meQ = { company: s.clientName, markbox: s.client, ip: '190.142.88.214' };
+  // Gate de firma · atado a la MEDIDA aceptada (no solo al ID).
+  const accForQuote = (() => { try { return (window.LegalData ? window.LegalData.ACCEPTANCES : []).filter(a => a.quote === quote.id); } catch (e) { return []; } })();
+  const acceptedCurrent = !!evidence || accForQuote.some(a => Number(a.cbm) === Number(s.cbm) && Number(a.weight) === Number(s.weight));
+  const priorDiff = (!acceptedCurrent && accForQuote.length > 0) ? accForQuote[0] : null; // aceptó antes, pero la medida cambió
+  const inReview = s.status === 'cotizado' && s.quoteStage === 'en-proceso'; // recién solicitada · el agente la prepara
+  const needsAccept = (s.status === 'cotizado' || s.status === 'recibido CN') && !acceptedCurrent && !inReview;
+  const isMeasured = s.status === 'recibido CN';
+  const isReaccept = !!priorDiff;
+  const fmtUsd = (n) => '$' + (Number(n) || 0).toLocaleString('en-US');
 
   return (
     <div>
@@ -554,10 +722,67 @@ function PortalShipmentDetail({ id, onBack }) {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <U.Btn variant="secondary" icon={window.Icon.download(14)}>Descargar docs</U.Btn>
-          <U.Btn variant="primary" icon={window.Icon.mail(14)}>Contactar agente</U.Btn>
+          {inReview ? (
+            <U.Btn variant="secondary" icon={window.Icon.clock ? window.Icon.clock(14) : window.Icon.info(14)} disabled>En revisión</U.Btn>
+          ) : needsAccept ? (
+            <React.Fragment>
+              <U.Btn variant="secondary" icon={window.Icon.download(14)}>Descargar PDF</U.Btn>
+              <U.Btn variant="primary" icon={window.Icon.check(14)} onClick={() => setAccepting(true)}>{isReaccept ? 'Revisar y re-aceptar' : (isMeasured ? 'Aceptar cotización · medida real' : 'Aceptar cotización')}</U.Btn>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              {evidence && <U.Btn variant="secondary" icon={window.Icon.shield(14)} onClick={() => setAcuse(true)}>Ver acuse</U.Btn>}
+              <U.Btn variant="secondary" icon={window.Icon.download(14)}>Descargar docs</U.Btn>
+              <U.Btn variant="primary" icon={window.Icon.mail(14)}>Contactar agente</U.Btn>
+            </React.Fragment>
+          )}
         </div>
       </div>
+
+      {inReview && (
+        <U.Card padded style={{ marginBottom: 'var(--s-6)', background: 'var(--info-bg)', borderLeft: '3px solid var(--info)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <span style={{ color: 'var(--info)', flexShrink: 0, marginTop: 1 }}>{window.Icon.clock ? window.Icon.clock(18) : window.Icon.info(18)}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>Cotización en proceso</div>
+              <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>
+                Recibimos tu solicitud y tu agente está preparando la cotización formal{s.quoteRef ? ` (ref. ${s.quoteRef})` : ''}. Te avisamos apenas esté lista para aceptar.
+              </div>
+            </div>
+          </div>
+        </U.Card>
+      )}
+
+      {needsAccept && (
+        <U.Card padded style={{ marginBottom: 'var(--s-6)', background: 'var(--wine-tint)', borderLeft: '3px solid var(--wine)' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <span style={{ color: 'var(--wine)', flexShrink: 0, marginTop: 1 }}>{window.Icon.shield(18)}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida real cambió · re-aceptación requerida' : (isMeasured ? 'Tu carga llegó y se midió · falta tu aceptación' : 'Cotización pendiente de aceptación')}</div>
+              <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>
+                {isReaccept
+                  ? 'Aceptaste una cotización por la medida estimada, pero al medir tu carga en China el volumen/peso real cambió. Confirmá la nueva cotización para que emitamos la factura. La factura no se emite hasta que aceptes la diferencia.'
+                  : (isMeasured
+                    ? `Recibimos tu carga en China y medimos el volumen y peso reales (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá la cotización con la medida real para que emitamos tu factura DDP. La factura no se emite hasta que firmes.`
+                    : 'Revisá la cotización y aceptá los términos para generar tu orden de servicio.')}
+              </div>
+              {isReaccept && (
+                <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
+                  <div>
+                    <div style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Aceptado (estimado)</div>
+                    <div style={{ font: '600 13px/1.3 var(--f-mono)', color: 'var(--ink-soft)', marginTop: 5, textDecoration: 'line-through' }}>{priorDiff.cbm} m³ · {fmtUsd(priorDiff.total)}</div>
+                  </div>
+                  <span style={{ color: 'var(--wine)', alignSelf: 'flex-end', paddingBottom: 2 }}>{window.Icon.arrowR(14)}</span>
+                  <div>
+                    <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Medida real</div>
+                    <div style={{ font: '800 13px/1.3 var(--f-mono)', color: 'var(--ink)', marginTop: 5 }}>{s.cbm} m³ · {fmtUsd(s.value)}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </U.Card>
+      )}
 
       {s.alert && (
         <U.Card padded style={{ marginBottom: 'var(--s-6)', background: 'var(--warning-bg)', borderLeft: '3px solid var(--warning)' }}>
@@ -637,6 +862,11 @@ function PortalShipmentDetail({ id, onBack }) {
           </div>
         </U.Card>
       </div>
+
+      <PortalAcceptModal quote={quote} me={meQ} open={accepting}
+        onClose={() => setAccepting(false)}
+        onAccepted={(ev) => { setAccepting(false); setEvidence(ev); setAcuse(true); }} />
+      <PortalAcuseModal evidence={evidence} open={acuse} onClose={() => setAcuse(false)} />
     </div>
   );
 }
@@ -726,66 +956,118 @@ function PortalDocuments() {
 }
 
 // ── Soporte ──────────────────────────────────────────────────
-function PortalSupport() {
+// ── Soporte (agente + casos · fusión Reclamos + Soporte) ─────
+function PortalSupport({ me }) {
   const U = window.ERPUI;
+  const I = window.Icon;
+  const D = window.ERPData;
+  const myShipments = (D.SHIPMENTS || []).filter(s => s.client === me.markbox);
+
   const [msg, setMsg] = pUseState('');
   const [thread, setThread] = pUseState([
     { from: 'agent', text: 'Hola Carlos, ¿en qué te puedo ayudar?', time: 'hace 2 días' },
     { from: 'me',    text: 'Necesitaba saber la fecha exacta de zarpe del DTDU-472816', time: 'hace 2 días' },
     { from: 'agent', text: 'Sí, zarpó el 14 de mayo desde Ningbo a bordo del COSCO PISCES. ETA Puerto Cabello: 12 jun.', time: 'hace 2 días' },
   ]);
-
   const send = () => {
     if (!msg.trim()) return;
     setThread([...thread, { from: 'me', text: msg, time: 'ahora' }]);
     setMsg('');
-    setTimeout(() => {
-      setThread(t => [...t, { from: 'agent', text: 'Recibido. Voy a verificar y te respondo en unos minutos.', time: 'ahora' }]);
-    }, 1200);
+    setTimeout(() => setThread(t => [...t, { from: 'agent', text: 'Recibido. Voy a verificar y te respondo en unos minutos.', time: 'ahora' }]), 1200);
   };
+
+  const [claims, setClaims] = pUseState([
+    { id: 'SP-2026-0042', type: 'faltante', shipment: myShipments[0]?.id || 'DTDU-472816', subject: 'Faltan 2 cajas según packing list', status: 'en-revision', date: '2026-05-22',
+      messages: [
+        { from: 'me',    text: 'Recibí el contenedor pero faltan 2 cajas según el packing. Adjunto fotos del precinto.', time: '22 may · 08:31' },
+        { from: 'agent', text: 'Roberto, lamento el inconveniente. Abrí tu caso y estoy revisando con almacén CN el conteo de salida.', time: '22 may · 08:44' },
+      ] },
+    { id: 'SP-2026-0031', type: 'demora', shipment: 'DTDU-365044', subject: 'El despacho tardó más del ETA informado', status: 'resuelto', date: '2026-05-10',
+      messages: [
+        { from: 'me',    text: 'El ETA era el 5 y recién entregaron el 9. ¿Qué pasó?', time: '10 may · 10:10' },
+        { from: 'agent', text: 'Hubo congestión en Puerto Cabello. Te aplicamos un crédito de almacenaje como compensación.', time: '10 may · 14:02' },
+      ], resolution: 'Crédito de $120 aplicado a tu próxima factura.' },
+  ]);
+  const [selected, setSelected] = pUseState(null);
+  const [creating, setCreating] = pUseState(false);
+  const sel = selected ? claims.find(c => c.id === selected) : null;
+  if (sel) return <ReclamoDetail claim={sel} onBack={() => setSelected(null)} />;
 
   return (
     <div>
       <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Soporte</h1>
-      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>Chat directo con tu agente comercial · respuesta promedio 12 min en horario laboral.</p>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '54ch' }}>Hablá con tu agente o abrí un caso con seguimiento. Cada caso tiene número, estado y respuesta.</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16 }}>
-        <U.Card padded={false} style={{ display: 'flex', flexDirection: 'column', height: 540 }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <U.Avatar initials="MA" color="wine" size={36} />
-            <div>
-              <div style={{ font: '700 13.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Martina Acuña</div>
-              <div style={{ font: '500 11px/1.2 var(--f-sans)', color: 'var(--success)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} /> En línea
-              </div>
-            </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
+        {/* ── Casos ── */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div className="eyebrow eyebrow-wine">TUS CASOS</div>
+            <U.Btn variant="primary" size="sm" icon={I.plus(13)} onClick={() => setCreating(c => !c)}>Nuevo caso</U.Btn>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {thread.map((m, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: m.from === 'me' ? 'flex-end' : 'flex-start' }}>
-                <div style={{
-                  maxWidth: '70%',
-                  padding: '10px 14px',
-                  background: m.from === 'me' ? 'var(--wine)' : 'var(--bg-elevated)',
-                  color: m.from === 'me' ? '#fff' : 'var(--ink)',
-                  borderRadius: m.from === 'me' ? '14px 14px 4px 14px' : '14px 14px 14px 4px',
-                  font: '500 13px/1.5 var(--f-sans)',
-                }}>
-                  {m.text}
-                  <div style={{ marginTop: 4, font: '500 10px/1 var(--f-sans)', color: m.from === 'me' ? 'rgba(255,255,255,0.65)' : 'var(--ink-mute)', textAlign: 'right' }}>{m.time}</div>
+          {creating && <NewReclamoForm myShipments={myShipments} onCancel={() => setCreating(false)} onSubmit={(claim) => { setClaims([claim, ...claims]); setCreating(false); }} />}
+          {claims.length === 0 ? (
+            <U.EmptyState icon={I.chat(22)} title="Sin casos" body="No tenés casos abiertos. Si tuviste un problema con un embarque, abrí uno acá." />
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {claims.map(c => {
+                const tp = RECLAMO_TYPE[c.type];
+                const stepIdx = RECLAMO_STEPS.indexOf(c.status);
+                return (
+                  <U.Card key={c.id} hoverable onClick={() => setSelected(c.id)} style={{ cursor: 'pointer' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                      <span style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--r-md)', background: `var(--${tp.tone}-bg)`, color: `var(--${tp.tone})`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I.chat(20)}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+                          <code style={{ font: '700 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{c.id}</code>
+                          <U.Badge tone={tp.tone} size="sm">{tp.label}</U.Badge>
+                        </div>
+                        <div style={{ font: '600 13.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{c.subject}</div>
+                        <div style={{ font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>
+                          <code style={{ font: '600 11px var(--f-mono)' }}>{c.shipment}</code> · {c.date}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <U.Badge tone={c.status === 'resuelto' ? 'success' : c.status === 'en-revision' ? 'warning' : 'info'} dot>{RECLAMO_STEP_LABEL[c.status]}</U.Badge>
+                        <div style={{ font: '500 10.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 8 }}>Paso {stepIdx + 1} de 3</div>
+                      </div>
+                      <span style={{ color: 'var(--ink-mute)', display: 'inline-flex' }}>{I.chevR(16)}</span>
+                    </div>
+                  </U.Card>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* ── Agente + canales ── */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <U.Card padded={false} style={{ display: 'flex', flexDirection: 'column', height: 420 }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <U.Avatar initials="MA" color="wine" size={36} />
+              <div>
+                <div style={{ font: '700 13.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Martina Acuña</div>
+                <div style={{ font: '500 11px/1.2 var(--f-sans)', color: 'var(--success)', marginTop: 3, display: 'flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)' }} /> En línea
                 </div>
               </div>
-            ))}
-          </div>
-          <div style={{ padding: 14, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
-            <input value={msg} onChange={(e)=>setMsg(e.target.value)} onKeyDown={(e)=>e.key === 'Enter' && send()} placeholder="Escribí tu mensaje…"
-              style={{ flex: 1, height: 40, padding: '0 14px', background: 'var(--bg-elevated)', border: 0, borderRadius: 'var(--r-md)', font: '500 13px/1 var(--f-sans)', outline: 'none', color: 'var(--ink)' }}
-            />
-            <U.Btn variant="primary" icon={window.Icon.arrowR(13)} onClick={send}>Enviar</U.Btn>
-          </div>
-        </U.Card>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {thread.map((m, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: m.from === 'me' ? 'flex-end' : 'flex-start' }}>
+                  <div style={{ maxWidth: '78%', padding: '9px 13px', background: m.from === 'me' ? 'var(--wine)' : 'var(--bg-elevated)', color: m.from === 'me' ? '#fff' : 'var(--ink)', borderRadius: m.from === 'me' ? '14px 14px 4px 14px' : '14px 14px 14px 4px', font: '500 12.5px/1.5 var(--f-sans)' }}>
+                    {m.text}
+                    <div style={{ marginTop: 4, font: '500 10px/1 var(--f-sans)', color: m.from === 'me' ? 'rgba(255,255,255,0.65)' : 'var(--ink-mute)', textAlign: 'right' }}>{m.time}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
+              <input value={msg} onChange={(e)=>setMsg(e.target.value)} onKeyDown={(e)=>e.key === 'Enter' && send()} placeholder="Escribí tu mensaje…"
+                style={{ flex: 1, height: 38, padding: '0 12px', background: 'var(--bg-elevated)', border: 0, borderRadius: 'var(--r-md)', font: '500 12.5px/1 var(--f-sans)', outline: 'none', color: 'var(--ink)' }} />
+              <U.Btn variant="primary" size="sm" icon={window.Icon.arrowR(13)} onClick={send}>Enviar</U.Btn>
+            </div>
+          </U.Card>
           <U.Card padded>
             <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>OTROS CANALES</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -805,17 +1087,6 @@ function PortalSupport() {
               </a>
             </div>
           </U.Card>
-          <U.Card padded>
-            <div className="eyebrow eyebrow-wine" style={{ marginBottom: 10 }}>HORARIO</div>
-            <div style={{ font: '500 13px/1.6 var(--f-sans)', color: 'var(--ink)' }}>
-              Lun – Vie<br/>
-              <b>08:00 – 18:00</b> (VE) · GMT-4<br/>
-              <b>20:00 – 06:00</b> (CN) · GMT+8
-            </div>
-            <div style={{ marginTop: 10, font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>
-              Para urgencias fuera de horario, WhatsApp 24/7.
-            </div>
-          </U.Card>
         </div>
       </div>
     </div>
@@ -829,6 +1100,24 @@ function PortalReferidos({ me }) {
   const F = window.FidelizacionData;
   const fmt = (n) => '$' + (Number(n) || 0).toLocaleString('en-US');
   const [copied, setCopied] = pUseState(false);
+
+  // Feature flag · si está OFF, el cliente ve "Próximamente"
+  const flags = (window.DTDFlags && window.DTDFlags.getFlags()) || {};
+  if (!flags.referidos) {
+    return (
+      <div>
+        <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Referidos</h1>
+        <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '52ch' }}>Recomendá DTD-Cargo y ganá crédito en tus embarques.</p>
+        <U.Card padded style={{ textAlign: 'center', padding: '56px 24px' }}>
+          <div style={{ width: 64, height: 64, borderRadius: 'var(--r-lg)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{I.star ? I.star(30) : I.spark(30)}</div>
+          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Próximamente</div>
+          <div style={{ font: '500 13.5px/1.6 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 10, maxWidth: '42ch', marginInline: 'auto' }}>
+            Estamos afinando el programa de referidos. Muy pronto vas a poder invitar a otros importadores y ganar crédito por cada uno. Te avisamos cuando esté disponible.
+          </div>
+        </U.Card>
+      </div>
+    );
+  }
 
   if (!F) return <div style={{ font: '500 13px var(--f-sans)', color: 'var(--ink-soft)' }}>Programa de referidos no disponible.</div>;
 
@@ -974,88 +1263,6 @@ const RECLAMO_TYPE = {
 const RECLAMO_STEPS = ['recibido', 'en-revision', 'resuelto'];
 const RECLAMO_STEP_LABEL = { recibido: 'Recibido', 'en-revision': 'En revisión', resuelto: 'Resuelto' };
 
-function PortalReclamos({ me, setView }) {
-  const U = window.ERPUI;
-  const I = window.Icon;
-  const D = window.ERPData;
-  const myShipments = (D.SHIPMENTS || []).filter(s => s.client === me.markbox);
-
-  const [claims, setClaims] = pUseState([
-    {
-      id: 'REC-2026-0042', type: 'faltante', shipment: myShipments[0]?.id || 'DTDU-472816',
-      subject: 'Faltan 2 cajas según packing list', status: 'en-revision', date: '2026-05-22',
-      messages: [
-        { from: 'me',    text: 'Recibí el contenedor pero faltan 2 cajas según el packing. Adjunto fotos del precinto.', time: '22 may · 08:31' },
-        { from: 'agent', text: 'Roberto, lamento el inconveniente. Abrí tu reclamo y estoy revisando con almacén CN el conteo de salida.', time: '22 may · 08:44' },
-      ],
-    },
-    {
-      id: 'REC-2026-0031', type: 'demora', shipment: 'DTDU-365044',
-      subject: 'El despacho tardó más del ETA informado', status: 'resuelto', date: '2026-05-10',
-      messages: [
-        { from: 'me',    text: 'El ETA era el 5 y recién entregaron el 9. ¿Qué pasó?', time: '10 may · 10:10' },
-        { from: 'agent', text: 'Hubo congestión en Puerto Cabello. Te aplicamos un crédito de almacenaje como compensación.', time: '10 may · 14:02' },
-      ],
-      resolution: 'Crédito de $120 aplicado a tu próxima factura.',
-    },
-  ]);
-  const [selected, setSelected] = pUseState(null);
-  const [creating, setCreating] = pUseState(false);
-
-  const sel = selected ? claims.find(c => c.id === selected) : null;
-
-  if (sel) return <ReclamoDetail claim={sel} onBack={() => setSelected(null)} />;
-
-  return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, marginBottom: 'var(--s-6)' }}>
-        <div>
-          <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Reclamos</h1>
-          <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0, maxWidth: '52ch' }}>
-            Registrá un reclamo formal con seguimiento. Cada caso tiene número, estado y respuesta de tu agente.
-          </p>
-        </div>
-        <U.Btn variant="primary" icon={I.plus(14)} onClick={() => setCreating(c => !c)}>Nuevo reclamo</U.Btn>
-      </div>
-
-      {creating && <NewReclamoForm myShipments={myShipments} onCancel={() => setCreating(false)} onSubmit={(claim) => { setClaims([claim, ...claims]); setCreating(false); }} />}
-
-      {claims.length === 0 ? (
-        <U.EmptyState icon={I.shield(22)} title="Sin reclamos" body="No tenés reclamos abiertos. Si tuviste un problema con un embarque, registralo acá." />
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {claims.map(c => {
-            const tp = RECLAMO_TYPE[c.type];
-            const stepIdx = RECLAMO_STEPS.indexOf(c.status);
-            return (
-              <U.Card key={c.id} hoverable onClick={() => setSelected(c.id)} style={{ cursor: 'pointer' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <span style={{ width: 40, height: 40, flexShrink: 0, borderRadius: 'var(--r-md)', background: `var(--${tp.tone}-bg)`, color: `var(--${tp.tone})`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I.shield(20)}</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-                      <code style={{ font: '700 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{c.id}</code>
-                      <U.Badge tone={tp.tone} size="sm">{tp.label}</U.Badge>
-                    </div>
-                    <div style={{ font: '600 13.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{c.subject}</div>
-                    <div style={{ font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>
-                      <code style={{ font: '600 11px var(--f-mono)' }}>{c.shipment}</code> · {c.date}
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <U.Badge tone={c.status === 'resuelto' ? 'success' : c.status === 'en-revision' ? 'warning' : 'info'} dot>{RECLAMO_STEP_LABEL[c.status]}</U.Badge>
-                    <div style={{ font: '500 10.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 8 }}>Paso {stepIdx + 1} de 3</div>
-                  </div>
-                  <span style={{ color: 'var(--ink-mute)', display: 'inline-flex' }}>{I.chevR(16)}</span>
-                </div>
-              </U.Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
 function NewReclamoForm({ myShipments, onCancel, onSubmit }) {
   const U = window.ERPUI;
   const I = window.Icon;
@@ -1076,9 +1283,9 @@ function NewReclamoForm({ myShipments, onCancel, onSubmit }) {
 
   return (
     <U.Card padded style={{ marginBottom: 16, border: '1px solid var(--wine)', background: 'var(--wine-tint)' }}>
-      <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>NUEVO RECLAMO</div>
+      <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>NUEVO CASO</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-        <U.Select label="Tipo de reclamo" value={type} onChange={(e) => setType(e.target.value)} options={Object.entries(RECLAMO_TYPE).map(([k, v]) => ({ value: k, label: v.label }))} />
+        <U.Select label="Tipo de caso" value={type} onChange={(e) => setType(e.target.value)} options={Object.entries(RECLAMO_TYPE).map(([k, v]) => ({ value: k, label: v.label }))} />
         <U.Select label="Embarque relacionado" value={shipment} onChange={(e) => setShipment(e.target.value)} options={[{ value: '', label: 'Sin embarque' }, ...myShipments.map(s => ({ value: s.id, label: s.id }))]} />
       </div>
       <U.Input label="Asunto" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Resumí el problema en una línea" style={{ marginBottom: 12 }} />
@@ -1091,7 +1298,7 @@ function NewReclamoForm({ myShipments, onCancel, onSubmit }) {
       </label>
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <U.Btn variant="ghost" onClick={onCancel}>Cancelar</U.Btn>
-        <U.Btn variant="primary" icon={I.check(13)} onClick={submit}>Enviar reclamo</U.Btn>
+        <U.Btn variant="primary" icon={I.check(13)} onClick={submit}>Enviar caso</U.Btn>
       </div>
     </U.Card>
   );
@@ -1114,7 +1321,7 @@ function ReclamoDetail({ claim, onBack }) {
   return (
     <div>
       <button onClick={onBack} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 13px/1 var(--f-sans)', color: 'var(--wine)', marginBottom: 16, cursor: 'pointer' }}>
-        {I.arrowL(14)} Volver a reclamos
+        {I.arrowL(14)} Volver a soporte
       </button>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
@@ -1301,7 +1508,7 @@ function PortalSuppliers({ me }) {
         <U.Btn variant="primary" icon={I.plus(14)} onClick={() => setAdding(true)}>Nueva compra</U.Btn>
       </div>
       <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-5)' }}>
-        Generá el código de cada compra y las etiquetas para tus proveedores en China. Re-comprá a uno existente o agregá uno nuevo.
+        Cada <b>compra</b> es una <b style={{ color: 'var(--wine)' }}>prealerta</b>: nos avisás que viene mercancía de China para esperarla y procesarla más rápido (lo que las "puerta a puerta" de EE.UU. llaman pre-alerta). Generá el código y las etiquetas para tus proveedores, o re-comprá a uno existente.
       </p>
 
       {/* Por qué importa · trazabilidad */}

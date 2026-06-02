@@ -7,7 +7,11 @@
  * agregan filtro de cliente — confían en la RLS (read-only).
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { PortalClient, PortalShipmentRow } from "./portal-types";
+import type {
+  PortalClient,
+  PortalShipmentDetail,
+  PortalShipmentRow,
+} from "./portal-types";
 
 /**
  * El cliente vinculado al `auth.uid()` actual (su propio registro `clients`).
@@ -72,4 +76,45 @@ export async function listMyShipments(
     destination: (r.destination as string | null) ?? null,
     updatedAt: r.updated_at as string,
   }));
+}
+
+/**
+ * UN envío del cliente logueado por su `code` (Fase 2 · detalle read-only).
+ *
+ * La RLS del portal (policy `shipments portal self read` por `client_markbox`,
+ * migración 0080) ya garantiza que el cliente sólo puede leer SUS envíos: si el
+ * `code` no es suyo (o no existe), la query no devuelve filas → null. No hace
+ * falta filtrar por cliente acá; confiamos en la RLS (read-only). Igual filtramos
+ * `deleted_at is null` por si la policy cambiara.
+ *
+ * Devuelve null si no hay match → la página llama `notFound()`.
+ */
+export async function getMyShipment(
+  supabase: SupabaseClient,
+  code: string,
+): Promise<PortalShipmentDetail | null> {
+  const { data, error } = await supabase
+    .from("shipments")
+    .select(
+      "id, code, shipment_service, status, origin, destination, volume_m3, weight_kg, arrived_destination_at, created_at, updated_at",
+    )
+    .eq("code", code)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  return {
+    id: data.id as string,
+    code: data.code as string,
+    service: data.shipment_service as PortalShipmentDetail["service"],
+    status: data.status as PortalShipmentDetail["status"],
+    origin: (data.origin as string | null) ?? null,
+    destination: (data.destination as string | null) ?? null,
+    volumeM3: (data.volume_m3 as number | null) ?? null,
+    weightKg: (data.weight_kg as number | null) ?? null,
+    arrivedDestinationAt: (data.arrived_destination_at as string | null) ?? null,
+    createdAt: data.created_at as string,
+    updatedAt: data.updated_at as string,
+  };
 }

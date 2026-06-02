@@ -34,10 +34,19 @@
   {
     id: 'AUT-04', from: 'op-recibir', to: 'con-factura', category: 'Operación → Contabilidad',
     trigger: 'El pedido se recibe en el almacén de China',
-    action: 'Convierte el borrador en factura DDP emitida',
-    detail: 'Lo que llega se factura: pasa el borrador a F-2026-XXXX y queda lista para enviar.',
+    action: 'Emite la factura DDP — solo si el cliente aceptó la cotización con medida real',
+    detail: 'Lo que llega se factura, pero la emisión queda BLOQUEADA hasta que exista aceptación registrada (AUT-04a). Con la firma, pasa el borrador a F-2026-XXXX.',
     modules: ['Almacén CN', 'Facturación'],
+    conditions: [{ field: 'aceptacion', op: '=', value: 'registrada' }],
     channels: ['correo', 'portal', 'app'], auto: true, runs: 14
+  },
+  {
+    id: 'AUT-04a', from: 'op-recibir', to: 'com-quote', category: 'Operación → Comercial',
+    trigger: 'El pedido se recibe y mide en el almacén de China (CBM/peso real)',
+    action: 'Genera o reliquida la cotización formal con la medida real y la manda a aceptar',
+    detail: 'Con el CBM/peso real arma la cotización firme. Si no había cotización previa, la crea; si había y la medida difiere, reliquida. El cliente la acepta (casilla T&C + evidencia) ANTES de facturar — ese es el momento de la firma.',
+    modules: ['Almacén CN', 'Cotizador', 'Aceptaciones T&C'],
+    channels: ['portal', 'app', 'correo'], auto: true, runs: 14
   },
   {
     id: 'AUT-05', from: 'op-booking', to: 'con-cxpflete', category: 'Operación → Contabilidad',
@@ -84,8 +93,8 @@
   {
     id: 'AUT-10', from: 'op-aduana', to: 'sc-reclamo', category: 'Operación → Servicio',
     trigger: 'Se detecta un faltante o demora en aduana',
-    action: 'Abre un reclamo y avisa al cliente por su canal',
-    detail: 'Crea el caso en Conversaciones · Reclamos y notifica automáticamente.',
+    action: 'Abre un caso de soporte y avisa al cliente por su canal',
+    detail: 'Crea el caso en Conversaciones · Casos y notifica automáticamente.',
     modules: ['Aduana SENIAT', 'Conversaciones'],
     channels: ['whatsapp', 'app'], auto: true, runs: 6
   },
@@ -106,6 +115,7 @@
 
   // ── Registro de ejecuciones (log) ────────────────────────────
   const LOG = [
+  { id: 'AUT-04a', at: 'hace 10 min', summary: 'Recibido y medido en CN · cotización a aceptar · BriceñoTex', artifact: 'Q-2026-0423', module: 'Cotizador' },
   { id: 'AUT-04', at: 'hace 12 min', summary: 'Pedido recibido en CN · BriceñoTex', artifact: 'F-2026-0433', module: 'Facturación' },
   { id: 'AUT-01', at: 'hace 38 min', summary: 'Cotización solicitada · Manuel Quintero', artifact: 'Q-2026-0422', module: 'Cotizador' },
   { id: 'AUT-08', at: 'hace 1 h', summary: 'POD confirmado · Castro Hermanos', artifact: 'COB-2026-0188', module: 'Cobranzas' },

@@ -14,6 +14,31 @@ export {
   STATUS_COLORS,
 } from "@/lib/shared/shipment-public";
 
+/**
+ * Derivación de timeline desde el status — fuente ÚNICA del repo.
+ *
+ * `buildTimeline()` (status → pasos done/active/pending/exception según el flow
+ * canónico por servicio) ya existe en `lib/studio/tracking-progress.ts` y la usan
+ * el Studio (TrackingTimeline) y, conceptualmente, el tracking público. El portal
+ * la REUSA tal cual — no inventa una nueva derivación. Sólo depende de los enums
+ * compartidos, sin tocar la DB.
+ *
+ * El portal está FUERA de la frontera ESLint público↔ERP (es superficie
+ * autenticada Supabase-backed, igual que `app/m/*` que "reusa lib/studio,
+ * permitido"), así que puede importar de `@/lib/studio`. Lo re-exportamos acá
+ * para que las pantallas del portal tengan un único punto de entrada
+ * (`@/lib/portal/portal-types`), igual que con los labels/colores de estado.
+ */
+export type {
+  TimelineStep,
+  TimelineStepState,
+} from "@/lib/studio/tracking-progress";
+export {
+  buildTimeline,
+  flowForService,
+  nextMilestone,
+} from "@/lib/studio/tracking-progress";
+
 /** Estado del acceso de un cliente al portal (tabla client_users). */
 export type ClientUserStatus = "invited" | "active" | "revoked";
 
@@ -37,3 +62,66 @@ export type PortalShipmentRow = {
   destination: string | null;
   updatedAt: string;
 };
+
+/**
+ * Detalle de UN envío del cliente (read-only, Fase 2).
+ *
+ * Extiende la fila con los campos que el detalle muestra: volumen/peso y la
+ * llegada real a destino. `shipments` NO tiene columnas ETA/ETD — la ETA se
+ * estima en runtime (heurística por servicio sobre createdAt) y la "llegada"
+ * real es `arrivedDestinationAt` cuando la operación ya la marcó.
+ */
+export type PortalShipmentDetail = {
+  id: string;
+  code: string;
+  service: ShipmentService;
+  status: ShipmentStatus;
+  origin: string | null;
+  destination: string | null;
+  /** CBM (volumen) si está cargado. */
+  volumeM3: number | null;
+  /** Peso en kg si está cargado. */
+  weightKg: number | null;
+  /** Llegada real a bodega VE (dispara el reloj de bodegaje); null hasta que ocurre. */
+  arrivedDestinationAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * ETA estimada (ISO) para el detalle del portal. Heurística simple por servicio
+ * sobre `createdAt` — NO es real (no hay AIS/ETA confirmada en `shipments`).
+ * Espeja `estimateEta` del tracking público para que cliente vea el mismo número.
+ *
+ * Devuelve null cuando ya no aplica:
+ *  - entregado → null (ya llegó),
+ *  - ya en bodega VE (`arrivedDestinationAt`) → null (mostramos la llegada real),
+ *  - cancelado/borrador → null (no hay tránsito en curso).
+ */
+const ETA_DAYS_BY_SERVICE: Record<ShipmentService, number> = {
+  consolidacion: 45,
+  puerta_a_puerta_DDP: 50,
+  reserva_FCL: 35,
+  transporte_terrestre: 5,
+};
+
+export function estimatePortalEta(detail: {
+  status: ShipmentStatus;
+  service: ShipmentService;
+  arrivedDestinationAt: string | null;
+  createdAt: string;
+}): string | null {
+  if (
+    detail.status === "delivered" ||
+    detail.status === "cancelled" ||
+    detail.status === "draft"
+  ) {
+    return null;
+  }
+  if (detail.arrivedDestinationAt) return null;
+
+  const created = new Date(detail.createdAt).getTime();
+  if (Number.isNaN(created)) return null;
+  const days = ETA_DAYS_BY_SERVICE[detail.service] ?? 45;
+  return new Date(created + days * 24 * 60 * 60 * 1000).toISOString();
+}

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD · Aceptación T&C · Cotización</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#0F1E3D" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;600;700;800;900&family=Sora:wght@600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700;6..12,800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+  html, body { margin: 0; background: var(--bg-base); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  button { font-family: inherit; cursor: pointer; }
+  #root { min-height: 100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="erp/icons.jsx"></script>
+<script type="text/babel" src="erp/components.jsx"></script>
+<script type="text/babel" src="erp/modules/admin-legal.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+const U = window.ERPUI;
+const I = window.Icon;
+
+// ── Documentos legales · ÚNICA fuente: window.LegalData (admin-legal.jsx) ──
+// El modal del Portal y el repositorio del ERP leen de la misma fuente.
+const _docArr = (window.LegalData && window.LegalData.currentDocs()) || [];
+const LEGAL_DOCS = _docArr.reduce((m, d) => { m[d.key] = d; return m; }, {});
+
+// ── Casilla custom (cuadrada, wine al marcar) ──────────────────
+function Check({ on, onClick }) {
+  return (
+    <button onClick={onClick} aria-checked={on} role="checkbox" style={{
+      width: 22, height: 22, flexShrink: 0, marginTop: 1,
+      borderRadius: 'var(--r-xs)', border: `2px solid ${on ? 'var(--wine)' : 'var(--border-strong)'}`,
+      background: on ? 'var(--wine)' : 'var(--bg-surface)', color: '#fff',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+      transition: 'all .15s ease',
+    }}>{on && I.check(13)}</button>
+  );
+}
+
+// ── Visor de documento legal ───────────────────────────────────
+function DocViewer({ doc, onClose }) {
+  return (
+    <U.Modal open={!!doc} onClose={onClose} width={620}
+      title={doc ? `${doc.name} · ${doc.version}` : ''}
+      actions={<U.Btn variant="primary" onClick={onClose}>Cerrar</U.Btn>}>
+      {doc && (
+        <div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
+            <U.Badge tone="wine" size="sm">{doc.version}</U.Badge>
+            <U.Badge tone="neutral" size="sm">Vigente desde {fmtDate(doc.effective)}</U.Badge>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxHeight: 360, overflowY: 'auto', overflowX: 'hidden', paddingRight: 6 }}>
+            {doc.body.map(([h, p], i) => (
+              <div key={i}>
+                <div style={{ font: '800 13px/1.3 var(--f-display)', color: 'var(--ink)', marginBottom: 5 }}>{h}</div>
+                <div style={{ font: '500 12.5px/1.6 var(--f-sans)', color: 'var(--ink-soft)' }}>{p}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </U.Modal>
+  );
+}
+
+function fmtDate(iso) {
+  const [y, m, d] = iso.split('-');
+  const MM = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(m) - 1];
+  return `${parseInt(d)} ${MM} ${y}`;
+}
+function nowStamp() {
+  const n = new Date();
+  const p = (x) => String(x).padStart(2, '0');
+  return `${p(n.getDate())}/${p(n.getMonth() + 1)}/${n.getFullYear()} ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`;
+}
+function fakeHash() {
+  const h = 'a1f' + Math.random().toString(16).slice(2, 10) + 'c7' + Math.random().toString(16).slice(2, 8);
+  return ('sha256:' + h).slice(0, 30);
+}
+
+// ════════════════════════════════════════════════════════════════
+// MODAL DE ACEPTACIÓN (el núcleo)
+// ════════════════════════════════════════════════════════════════
+function AcceptModal({ quote, client, open, onClose, onAccepted }) {
+  const [checked, setChecked] = useState(false);
+  const [viewing, setViewing] = useState(null); // doc abierto en visor
+
+  const confirm = () => {
+    if (!checked) return;
+    // registra evidencia (acuse) y genera orden
+    const evidence = {
+      client: client.name, markbox: client.markbox,
+      quote: quote.id,
+      docs: [
+        { ...LEGAL_DOCS.tyc },
+        { ...LEGAL_DOCS.operador },
+      ].map(d => `${d.name} ${d.version}`),
+      at: nowStamp(),
+      ip: client.ip,
+      hash: fakeHash(),
+      orden: quote.id.replace('Q-', 'OS-'),
+    };
+    onAccepted(evidence);
+  };
+
+  // reset al cerrar
+  const close = () => { setChecked(false); setViewing(null); onClose(); };
+
+  return (
+    <React.Fragment>
+      <U.Modal open={open && !viewing} onClose={close} width={560}
+        title="Aceptar cotización"
+        actions={
+          <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              {I.lock(13)} Paso obligatorio
+            </span>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <U.Btn variant="ghost" onClick={close}>Cancelar</U.Btn>
+              <U.Btn variant="primary" disabled={!checked} onClick={confirm} icon={I.check(14)}>Confirmar y generar orden</U.Btn>
+            </div>
+          </div>
+        }>
+        {/* Resumen de la cotización (contexto) */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 14, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', marginBottom: 18 }}>
+          <div style={{ width: 42, height: 42, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{I.doc(20)}</div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <code style={{ font: '800 14px/1 var(--f-mono)', color: 'var(--ink)' }}>{quote.id}</code>
+            <div style={{ font: '500 12px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{quote.route} · {quote.cbm} m³ · {quote.type}</div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ font: '900 18px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{quote.total}</div>
+            <div style={{ font: '600 10px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3, letterSpacing: '0.08em', textTransform: 'uppercase' }}>DDP total</div>
+          </div>
+        </div>
+
+        {/* Bloque legal */}
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
+          <button onClick={() => setChecked(!checked)} style={{
+            width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12, padding: 16, textAlign: 'left',
+            background: checked ? 'var(--wine-tint)' : 'var(--bg-surface)', border: 0,
+            transition: 'background .15s ease',
+          }}>
+            <Check on={checked} onClick={() => setChecked(!checked)} />
+            <div style={{ font: '600 13px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
+              He leído y acepto los{' '}
+              <a onClick={(e) => { e.stopPropagation(); setViewing(LEGAL_DOCS.tyc); }} style={{ color: 'var(--wine)', textDecoration: 'underline', fontWeight: 700, cursor: 'pointer' }}>Términos y Condiciones de DTD</a>
+              {' '}y las{' '}
+              <a onClick={(e) => { e.stopPropagation(); setViewing(LEGAL_DOCS.operador); }} style={{ color: 'var(--wine)', textDecoration: 'underline', fontWeight: 700, cursor: 'pointer' }}>Condiciones del Operador de Consolidación</a>.
+            </div>
+          </button>
+
+          {/* versiones de los documentos */}
+          <div style={{ borderTop: '1px solid var(--border)', padding: '10px 16px', display: 'flex', flexWrap: 'wrap', gap: 8, background: 'var(--bg-elevated)' }}>
+            {[LEGAL_DOCS.tyc, LEGAL_DOCS.operador].map(d => (
+              <button key={d.key} onClick={() => setViewing(d)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 9px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', font: '600 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>
+                <span style={{ color: 'var(--wine)', display: 'flex' }}>{I.doc(11)}</span>
+                {d.version} · vig. {fmtDate(d.effective)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Nota de evidencia (transparencia) */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, padding: '11px 13px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
+          <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield(15)}</span>
+          <div style={{ font: '500 11.5px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
+            Al confirmar registramos tu aceptación como evidencia legal: cliente, cotización, documento y versión, fecha/hora, IP y un hash de integridad. Se solicita en <b>cada</b> cotización.
+          </div>
+        </div>
+      </U.Modal>
+
+      <DocViewer doc={viewing} onClose={() => setViewing(null)} />
+    </React.Fragment>
+  );
+}
+
+// ── Acuse de evidencia + orden generada ───────────────────────
+function AcuseModal({ evidence, open, onClose }) {
+  if (!evidence) return null;
+  const Row = ({ k, v, mono }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, padding: '9px 0', borderTop: '1px solid var(--border)' }}>
+      <span style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', flexShrink: 0 }}>{k}</span>
+      <span style={{ font: `${mono ? '600' : '600'} 12px/1.4 ${mono ? 'var(--f-mono)' : 'var(--f-sans)'}`, color: 'var(--ink)', textAlign: 'right', wordBreak: 'break-all' }}>{v}</span>
+    </div>
+  );
+  return (
+    <U.Modal open={open} onClose={onClose} width={520}
+      title="Orden de servicio generada"
+      actions={<U.Btn variant="primary" full onClick={onClose} icon={I.check(14)}>Entendido</U.Btn>}>
+      <div style={{ textAlign: 'center', padding: '6px 0 18px' }}>
+        <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{I.check(30)}</div>
+        <div style={{ font: '900 20px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Cotización aceptada</div>
+        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>
+          Generamos la orden <code style={{ font: '800 13px/1 var(--f-mono)', color: 'var(--wine)' }}>{evidence.orden}</code> ligada a las versiones aceptadas.
+        </div>
+      </div>
+      <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '4px 16px 14px' }}>
+        <div className="eyebrow" style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', padding: '14px 0 6px' }}>Acuse de aceptación · evidencia</div>
+        <Row k="Cliente" v={`${evidence.client} · ${evidence.markbox}`} />
+        <Row k="Cotización" v={evidence.quote} mono />
+        {evidence.docs.map((d, i) => <Row key={i} k={i === 0 ? 'Documentos' : ''} v={d} />)}
+        <Row k="Fecha / hora" v={evidence.at} mono />
+        <Row k="IP" v={evidence.ip} mono />
+        <Row k="Hash" v={evidence.hash} mono />
+      </div>
+    </U.Modal>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════
+// PANTALLA DEMO · detalle de cotización con el botón "Aceptar"
+// ════════════════════════════════════════════════════════════════
+function Demo() {
+  const client = { name: 'Acindar Comercial', markbox: 'DTD-5452', ip: '190.142.88.214' };
+  const quote = { id: 'Q-2026-0118', route: 'Yiwu → Puerto Cabello', cbm: '6.4', type: 'LCL · DDP', total: '$4,820' };
+
+  const [accepting, setAccepting] = useState(false);
+  const [evidence, setEvidence] = useState(null);
+  const [acuse, setAcuse] = useState(false);
+  const accepted = !!evidence;
+
+  return (
+    <div style={{ maxWidth: 760, margin: '0 auto', padding: '40px 24px 80px' }}>
+      <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>PORTAL DEL CLIENTE · COTIZACIÓN</div>
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, margin: '10px 0 24px' }}>
+        <div>
+          <code style={{ font: '900 28px/1 var(--f-mono)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{quote.id}</code>
+          <div style={{ font: '600 14px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>{quote.route}</div>
+        </div>
+        {accepted
+          ? <U.Badge tone="success" size="md" dot>Aceptada · {evidence.orden}</U.Badge>
+          : <U.Badge tone="warning" size="md" dot>Pendiente de aceptación</U.Badge>}
+      </div>
+
+      <U.Card padded style={{ marginBottom: 16 }}>
+        <div className="eyebrow eyebrow-wine" style={{ marginBottom: 16 }}>RESUMEN DDP</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          <U.Field label="Volumen" value={`${quote.cbm} m³`} mono />
+          <U.Field label="Modalidad" value={quote.type} />
+          <U.Field label="Validez" value="7 días" />
+          <U.Field label="Total DDP" value={quote.total} mono />
+        </div>
+      </U.Card>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+        <U.Btn variant="secondary" icon={I.download(14)}>Descargar PDF</U.Btn>
+        {accepted
+          ? <U.Btn variant="secondary" icon={I.shield(14)} onClick={() => setAcuse(true)}>Ver acuse de aceptación</U.Btn>
+          : <U.Btn variant="primary" icon={I.check(14)} onClick={() => setAccepting(true)}>Aceptar cotización</U.Btn>}
+      </div>
+
+      <AcceptModal
+        quote={quote} client={client} open={accepting}
+        onClose={() => setAccepting(false)}
+        onAccepted={(ev) => { setAccepting(false); setEvidence(ev); setAcuse(true); }}
+      />
+      <AcuseModal evidence={evidence} open={acuse} onClose={() => setAcuse(false)} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo />);
+</script>
+</body>
+</html>

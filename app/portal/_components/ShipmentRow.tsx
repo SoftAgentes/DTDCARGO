@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { SERVICE_LABELS, type PortalShipmentRow } from "@/lib/portal/portal-types";
+import { ArrowIcon } from "@/components/Icon";
 import { StatusBadge } from "./StatusBadge";
 
 function formatDate(iso: string): string {
@@ -14,7 +16,8 @@ function formatDate(iso: string): string {
 }
 
 /**
- * Fila read-only de "Mis envíos" (Fase 1b — sin link a detalle, eso es Fase 2).
+ * Fila read-only de "Mis envíos". Toda la card linkea al detalle del envío
+ * (`/portal/envios/[code]` — Fase 2). El `code` es URL-safe (S-YYYY-NNNN).
  */
 export function ShipmentRow({ shipment }: { shipment: PortalShipmentRow }) {
   const svc = SERVICE_LABELS[shipment.service];
@@ -24,7 +27,11 @@ export function ShipmentRow({ shipment }: { shipment: PortalShipmentRow }) {
       : null;
 
   return (
-    <div className="bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5">
+    <Link
+      href={`/portal/envios/${encodeURIComponent(shipment.code)}`}
+      className="group bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-5 transition-colors hover:border-ink focus-visible:border-ink"
+      aria-label={`Ver detalle del envío ${shipment.code}`}
+    >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2.5 flex-wrap">
           <span
@@ -48,9 +55,15 @@ export function ShipmentRow({ shipment }: { shipment: PortalShipmentRow }) {
           </div>
         ) : null}
       </div>
-      <div className="text-[12px] text-grey-500 sm:text-right flex-shrink-0">
-        Actualizado {formatDate(shipment.updatedAt)}
+      <div className="flex items-center gap-3 sm:gap-4 flex-shrink-0 sm:justify-end">
+        <span className="text-[12px] text-grey-500">
+          Actualizado {formatDate(shipment.updatedAt)}
+        </span>
+        <ArrowIcon
+          className="text-grey-300 transition-colors group-hover:text-wine"
+          size={18}
+        />
       </div>
-    </div>
+    </Link>
   );
 }

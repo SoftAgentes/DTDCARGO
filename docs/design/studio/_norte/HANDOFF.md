@@ -8,6 +8,10 @@
 > este archivo (estado + arquitectura) → `CHANGELOG.md` (bitácora detallada,
 > archivo+línea+razón de TODO lo construido) → `backend/README.md` (qué falta para
 > producto real).
+>
+> **Paquete móvil (app de teléfono):** ver `HANDOFF-MOBILE.md` — login único, ruteo
+> por rol, sesión persistente, multi-rol, offline y endpoints. Spec visual de sesión:
+> `Login y Sesión · Operario.html`.
 
 ---
 
@@ -24,7 +28,7 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
 ### Lo que cerró v2.4 (sesión de consolidación)
 1. **Entrypoint único** `DTD Studio · ERP.html` (se eliminó el clon `Nort v2.4`).
 2. **Fuentes de verdad únicas:** assets → `assets/` · tokens → `erp/tokens.css` ·
-   marca → `CLAUDE.md` · Brand Book → `Brand Book DTD v3.1.html`. Se borraron
+   marca → `CLAUDE.md` · Brand Book → `Brand Book DTD v3.2.html`. Se borraron
    snapshots viejos que revertían la migración tipográfica.
 3. **Split `erp/` vs `nuevo/` retirado:** todo lo que vivía en `nuevo/` se movió a su
    lugar canónico (`erp/`, `erp/modules/`, `pantallas/`, `operario/`, `propuesta/`,
@@ -68,6 +72,14 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
 - **Componentes compartidos:** `window.ERPUI` (`Btn, Input, Select, Badge, Card, Table,
   KPI, Drawer, Modal, Tabs, Avatar, Progress, Toolbar, Field, EmptyState, PageHeader,
   SearchSelect, CatalogLines`, columnas configurables).
+- **Apps de operario · reuso de flujos:** las apps móviles exponen sus sub-flujos para
+  que el launcher multi-rol (`Operario Multi.html`) los reuse sin re-login ni rediseño:
+  `operario/almacenista.jsx` → `window.AlmacenistaFlows = { ReceptionFlow, DispatchFlow }`;
+  `operario/ve.jsx` (envuelto en IIFE) → `window.OperarioVEFlows = { DeliveryFlow }`.
+  **Regla:** todo `.jsx` que se co-cargue con otro va en IIFE (escape solo `window.X`),
+  porque los scripts Babel comparten scope global y los helpers homónimos (`Steps`,
+  `Login`, `MobileHeader`…) se pisan. `ve.jsx` ya migró; `almacenista.jsx` sigue en
+  scope global (funciona porque su par, `ve.jsx`, está aislado).
 
 ---
 
@@ -80,7 +92,7 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
 | **Tesorería** | `erp/modules/tesoreria*.jsx` | Caja multi-moneda (USD/VES/USDT/CNY), CxP, órdenes de pago/remesas CN · ejecución wire/USDT + aprobación multi-firma |
 | **Naviera & Consolidación** | `erp/modules/naviera*.jsx` | Itinerarios (sailings + cut-off), bookings/BL, LCL→FCL · scraping de itinerarios, emisión BL, bin-packing CBM/peso |
 | **Conversaciones** | `erp/modules/conversaciones*.jsx` | Bandeja unificada WhatsApp/email/portal · WhatsApp Business API, IMAP/SMTP, webhooks, SLA |
-| **Portal · Reclamos + Fidelización/Referidos** | `portal/app.jsx`, `erp/modules/fidelizacion*.jsx` | Tickets, niveles por facturación, programa de referidos con créditos |
+| **Portal · Soporte + Fidelización/Referidos** | `portal/app.jsx`, `erp/modules/fidelizacion*.jsx` | Casos de soporte, niveles por facturación, programa de referidos con créditos |
 | **Dirección · Tablero ejecutivo** | `erp/modules/direccion.jsx` | Cabina del dueño (solo lectura, Admin-only) que cruza todos los módulos |
 | **Flujo de trabajo** | `erp/modules/flujo-trabajo.jsx` | Workflow map estilo QuickBooks · bienvenida por rol + nodos con badges en vivo |
 | **Documentos · Hub (DMS)** | `erp/modules/documentos*.jsx` | Carpetas + doc↔transacción; embed `window.DocsForTransaction({kind,id})` · subida real, preview, OCR, versionado |
@@ -107,8 +119,10 @@ IVA", desglose de IVA en Facturación. Reactivo vía `dtd-cfg-changed`. En backe
 | `Portal Cliente Mobile.html`, `Mobile ERP.html` | Versiones móviles |
 | `Operario CN/VE/Multi.html`, `Almacenista VE.html`, `Transportista.html` | Apps de operario |
 | `Despacho · Vista 3.html`, `Mapa de Proceso.html` | Operación / proceso |
-| `Brand Book DTD v3.1.html`, `Logo Oficial.html`, `Iconos de Perfil.html`, `Aplicaciones de Marca.html` | Identidad |
+| `Brand Book DTD v3.2.html`, `Logo Oficial.html`, `Iconos de Perfil.html`, `Aplicaciones de Marca.html` | Identidad |
 | `CLAUDE.md` | **Guardrails de marca — LEER PRIMERO** |
+| `HANDOFF-MOBILE.md` | **Paquete completo del teléfono** — auth, ruteo por rol, sesión, multi-rol, offline, endpoints |
+| `Login y Sesión · Operario.html` | Spec visual de la lógica de sesión (6 estados) |
 | `BRAND-MIGRATION-2026-05.md` | Spec del sistema de logo (4 variantes, `ERPUI.Lockup`) |
 | `CHANGELOG.md` | Bitácora detallada (archivo+línea+razón) |
 | `backend/README.md` + `backend/API-CONTRACT.md` + `backend/prisma/schema.prisma` | Handoff de backend |

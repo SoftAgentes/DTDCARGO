@@ -56,7 +56,10 @@ const SHIPMENTS = [
   { id: 'DTDU-401234', type: 'FCL 20\'', client: 'DTD-5340', clientName: 'Dist. Andina', origin: 'CAN', destination: 'PBL', cbm: 26.8, weight: 11400, value: 68900, status: 'consolidado', etd: '2026-05-28', eta: '2026-06-30', progress: 14, vessel: 'pendiente', invoice: 'F-2026-0441', billed: true, paid: false, alert: null },
   { id: 'DTDU-398770', type: 'LCL DDP', client: 'DTD-5277', clientName: 'BriceñoTex', origin: 'YIW', destination: 'PBL', cbm: 6.2, weight: 2400, value: 11200, status: 'recibido CN', etd: null, eta: '2026-06-28', progress: 10, vessel: 'pendiente', invoice: null, billed: false, paid: false, alert: null },
   { id: 'DTDU-388501', type: 'FCL 40\'HC', client: 'DTD-5241', clientName: 'Ind. Hernández', origin: 'CAN', destination: 'MAR', cbm: 64.8, weight: 21800, value: 142000, status: 'confirmado', etd: null, eta: '2026-07-04', progress: 6, vessel: 'pendiente', invoice: null, billed: false, paid: false, alert: null },
-  { id: 'DTDU-372110', type: 'LCL DDP', client: 'DTD-5215', clientName: 'Ortiz Cosmetics', origin: 'SZX', destination: 'LGU', cbm: 3.4, weight: 1200, value: 6800, status: 'cotizado', etd: null, eta: null, progress: 0, vessel: null, invoice: null, billed: false, paid: false, alert: null },
+  { id: 'Q-2026-0110', type: 'LCL DDP', client: 'DTD-5215', clientName: 'Ortiz Cosmetics', origin: 'SZX', destination: 'LGU', cbm: 3.4, weight: 1200, value: 6800, status: 'cotizado', etd: null, eta: null, progress: 0, vessel: null, invoice: null, billed: false, paid: false, alert: null },
+  { id: 'Q-2026-0188', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 6.4, weight: 2600, value: 4820, status: 'cotizado', etd: null, eta: null, progress: 0, vessel: null, container: null, invoice: null, billed: false, paid: false, alert: null },
+  { id: 'Q-2026-1245', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 8.1, weight: 3150, value: 6480, status: 'recibido CN', etd: null, eta: null, progress: 10, vessel: 'pendiente', container: null, invoice: null, billed: false, paid: false, alert: null },
+  { id: 'Q-2026-2310', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 9.2, weight: 3600, value: 7360, status: 'recibido CN', etd: null, eta: null, progress: 10, vessel: 'pendiente', container: null, invoice: null, billed: false, paid: false, alert: null },
   { id: 'DTDU-364299', type: 'FCL 20\'', client: 'DTD-5298', clientName: 'Vargas & Asoc', origin: 'YIW', destination: 'PBL', cbm: 24.2, weight: 9800, value: 54300, status: 'tránsito', etd: '2026-05-06', eta: '2026-06-04', progress: 62, vessel: 'YANG MING WORTH', invoice: 'F-2026-0405', billed: true, paid: true, alert: null },
 ];
 
@@ -111,7 +114,7 @@ const SHIPMENT_COSTS = {
   'DTDU-401234': { freight: 24800, customs:  9200, transport: 3800, handling: 1900, insurance: 1450, commission: 3445, other: 1500 },
   'DTDU-398770': { freight:  4200, customs:  1100, transport:  920, handling:  490, insurance:  220, commission:  560, other:  340 },
   'DTDU-388501': { freight: 52400, customs: 19800, transport: 6400, handling: 3700, insurance: 3500, commission: 7100, other: 2400 },
-  'DTDU-372110': { freight:  2400, customs:   620, transport:  780, handling:  380, insurance:  140, commission:  340, other:  220 },
+  'Q-2026-0110': { freight:  2400, customs:   620, transport:  780, handling:  380, insurance:  140, commission:  340, other:  220 },
   'DTDU-364299': { freight: 18900, customs:  7400, transport: 3200, handling: 1600, insurance: 1100, commission: 2715, other: 1200 },
 };
 

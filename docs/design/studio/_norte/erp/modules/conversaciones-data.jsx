@@ -16,7 +16,7 @@ const CONV_TYPE = {
   cotizacion:  { label: 'Cotización',  tone: 'info'    },
   seguimiento: { label: 'Seguimiento', tone: 'success' },
   incidencia:  { label: 'Incidencia',  tone: 'warning' },
-  reclamo:     { label: 'Reclamo',     tone: 'danger'  },
+  reclamo:     { label: 'Caso',     tone: 'danger'  },
 };
 
 // ── Estado ────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ const CONVERSATIONS = [
     status: 'abierto', assignedTo: 'u-008', priority: 'alta', shipment: 'DTDU-365044', unread: 1, lastAt: 'hace 22 min',
     messages: [
       { dir: 'in',  author: 'Roberto Castro', at: '08:31', text: 'Recibimos el contenedor pero faltan 2 cajas según el packing. MARKBOX DTD-5354.' },
-      { dir: 'out', author: 'Carolina Méndez', at: '08:44', text: 'Roberto, lamento el inconveniente. Abro el reclamo ya mismo y reviso con almacén CN el conteo de salida.' },
+      { dir: 'out', author: 'Carolina Méndez', at: '08:44', text: 'Roberto, lamento el inconveniente. Abro el caso ya mismo y reviso con almacén CN el conteo de salida.' },
       { dir: 'in',  author: 'Roberto Castro', at: '08:52', text: 'Te paso las fotos del precinto y del conteo.' },
     ],
   },
@@ -105,7 +105,7 @@ const QUICK_REPLIES = [
   { id: 'qr-1', label: 'Saludo', text: 'Buenos días, gracias por escribir a DTD-Cargo. ¿En qué puedo ayudarte?' },
   { id: 'qr-2', label: 'ETA en proceso', text: 'Estamos verificando el estatus de tu embarque con la naviera. Te confirmo el ETA en breve.' },
   { id: 'qr-3', label: 'Tracking portal', text: 'Podés seguir tu embarque en tiempo real desde el portal del cliente con tu MARKBOX.' },
-  { id: 'qr-4', label: 'Reclamo abierto', text: 'Abrí tu reclamo y lo estoy revisando con el equipo de almacén. Te mantengo al tanto.' },
+  { id: 'qr-4', label: 'Caso abierto', text: 'Abrí tu caso y lo estoy revisando con el equipo de almacén. Te mantengo al tanto.' },
   { id: 'qr-5', label: 'Cierre', text: '¿Hay algo más en lo que pueda ayudarte? Quedamos atentos. Con confianza, de China a tu puerta.' },
 ];
 

@@ -7,7 +7,7 @@ const LANE_DOC = [
 { label: 'Comercial', tone: 'info', icon: 'spark', resp: 'Ventas · CRM', desc: 'Capta el lead, cotiza puerta a puerta (DDP) y convierte al cliente con su MARKBOX. Cierra y, al final del ciclo, fideliza.' },
 { label: 'Operatividad', tone: 'wine', icon: 'ship', resp: 'Operaciones · Almacenes', desc: 'Mueve la carga de China a Venezuela: orden de pedido, recepción en CN, consolidación, zarpe, tránsito, aduana, almacén VE y última milla.' },
 { label: 'Contabilidad', tone: 'success', icon: 'invoice', resp: 'Finanzas', desc: 'Factura lo que llega, cobra el anticipo y el saldo, registra las CxP (naviera, aduana, transportes) y concilia el cierre del embarque.' },
-{ label: 'Servicio al cliente', tone: 'warning', icon: 'chat', resp: 'Soporte · CX', desc: 'Atiende conversaciones (WhatsApp, correo, portal), gestiona reclamos e incidencias y cierra los casos midiendo la satisfacción (CSAT).' }];
+{ label: 'Servicio al cliente', tone: 'warning', icon: 'chat', resp: 'Soporte · CX', desc: 'Atiende conversaciones (WhatsApp, correo, portal), gestiona casos e incidencias y cierra los casos midiendo la satisfacción (CSAT).' }];
 
 
 const READ_DOC = [

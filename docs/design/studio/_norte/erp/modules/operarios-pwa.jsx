@@ -8,7 +8,7 @@
     { id: 'op-002', name: 'Liang Wu',          role: 'almacenista',   roleLabel: 'Almacenista', site: 'Yiwu · A1', app: 'Operario CN', ver: '1.4.2', status: 'online',  battery: 64, lastSync: 'hace 5 min',  scans: 38, pending: 1, device: 'Redmi Note 12' },
     { id: 'op-003', name: 'José Materán',       role: 'transportista', roleLabel: 'Chofer',      site: 'Valencia',  app: 'Operario VE', ver: '1.4.0', status: 'ruta',    battery: 45, lastSync: 'hace 18 min', scans: 12, pending: 5, device: 'Galaxy A24' },
     { id: 'op-004', name: 'Luis Fernández',     role: 'transportista', roleLabel: 'Chofer',      site: 'Caracas',   app: 'Operario VE', ver: '1.4.0', status: 'ruta',    battery: 71, lastSync: 'hace 9 min',  scans: 9,  pending: 2, device: 'Moto G54' },
-    { id: 'op-005', name: 'Yusneidy Rojas',     role: 'almacenista',   roleLabel: 'Bodeguera',   site: 'Valencia',  app: 'Almacenista',   ver: '1.4.1', status: 'online',  battery: 90, lastSync: 'hace 1 min',  scans: 54, pending: 0, device: 'iPad 9' },
+    { id: 'op-005', name: 'Yusneidy Rojas',     role: 'almacenista',   roleLabel: 'Almacenista', site: 'Valencia',  app: 'Almacenista', ver: '1.4.1', status: 'online',  battery: 90, lastSync: 'hace 1 min',  scans: 54, pending: 0, device: 'iPad 9' },
     { id: 'op-006', name: 'Carlos Pérez',       role: 'transportista', roleLabel: 'Chofer',      site: 'Maracay',   app: 'Operario VE', ver: '1.3.8', status: 'offline', battery: 12, lastSync: 'hace 3 h',    scans: 0,  pending: 4, device: 'Galaxy A14' },
     { id: 'op-007', name: 'Sun Li',             role: 'almacenista',   roleLabel: 'Almacenista', site: 'Yiwu · B2', app: 'Operario CN', ver: '1.4.2', status: 'fuera',   battery: 0,  lastSync: 'hace 11 h',   scans: 0,  pending: 0, device: 'Redmi 10' },
   ];
@@ -18,7 +18,7 @@
     { id: 've', name: 'Operario VE', file: 'Operario VE.html', desc: 'Chofer / despacho Venezuela · ruta, POD, confirmación de entrega.', users: 3, color: '#0F1E3D' },
     { id: 'bod', name: 'Almacenista',  file: 'Almacenista VE.html', desc: 'Almacén Valencia · picking, packing, reexpedición a cliente final.', users: 1, color: '#1F8A5B' },
     { id: 'cam', name: 'Transportista',  file: 'Transportista.html', desc: 'Ruta activa con GPS · navegación, POD por parada, alerta de ubicación.', users: 2, color: '#B8893A' },
-    { id: 'multi', name: 'Operario Multi', file: 'Operario Multi.html', desc: 'Launcher multi-rol · cambia entre recepción, bodega y ruta en un dispositivo.', users: 1, color: '#2A6FDB' },
+    { id: 'multi', name: 'Operario · App', file: 'Operario · App.html', desc: 'APK único · login → ruteo por rol → multi-rol (bodega/chofer) con sesión persistente.', users: 1, color: '#2A6FDB' },
   ];
 
   const STATUS = {

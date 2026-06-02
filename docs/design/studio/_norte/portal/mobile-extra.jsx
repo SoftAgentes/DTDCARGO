@@ -86,7 +86,7 @@ function Chip({ active, children, onClick, count }) {
       background: active ? 'var(--wine)' : 'var(--bg-surface)',
       border: `1px solid ${active ? 'var(--wine)' : 'var(--border)'}`,
       color: active ? '#fff' : 'var(--ink-soft)',
-      font: '700 12.5px/1 var(--f-sans)', cursor: 'pointer',
+      font: '700 12.5px/1 var(--f-sans)', cursor: 'pointer', whiteSpace: 'nowrap',
       display: 'inline-flex', alignItems: 'center', gap: 6,
     }}>
       {children}
@@ -399,8 +399,7 @@ function MasScreen({ me, theme, setTheme, onLogout, onOpen }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <window.PM.ListRow icon={I.doc(16)}   iconTone="info"    title="Documentos"  sub="BL, facturas, packing lists" onClick={() => onOpen('documentos')} />
           <window.PM.ListRow icon={I.spark(16)} iconTone="wine"    title="Referidos"    sub="Ganá descuentos invitando" onClick={() => onOpen('referidos')} />
-          <window.PM.ListRow icon={I.shield(16)} iconTone="warning" title="Reclamos"     sub="Abrí o seguí un caso" onClick={() => onOpen('reclamos')} />
-          <window.PM.ListRow icon={I.chat(16)}  iconTone="success" title="Soporte"      sub="Hablá con tu agente" onClick={() => onOpen('soporte')} />
+          <window.PM.ListRow icon={I.chat(16)}  iconTone="success" title="Soporte"      sub="Abrí un caso o hablá con tu agente" onClick={() => onOpen('soporte')} />
         </div>
       </window.PM.Section>
 
@@ -452,6 +451,22 @@ function DocumentosScreen({ onBack, ships }) {
 function ReferidosScreen({ onBack, me }) {
   const U = window.ERPUI;
   const I = window.Icon;
+  // Feature flag · si está OFF, el cliente ve "Próximamente"
+  const flags = (window.DTDFlags && window.DTDFlags.getFlags()) || {};
+  if (!flags.referidos) {
+    return (
+      <div>
+        <window.PM.SubHeader title="Referidos" onBack={onBack} />
+        <div style={{ padding: '40px 24px', textAlign: 'center' }}>
+          <div style={{ width: 64, height: 64, borderRadius: 'var(--r-lg)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{I.star ? I.star(30) : I.spark(30)}</div>
+          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Próximamente</div>
+          <div style={{ font: '500 13.5px/1.6 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 10 }}>
+            Estamos afinando el programa de referidos. Muy pronto vas a poder invitar a otros importadores y ganar crédito por cada uno.
+          </div>
+        </div>
+      </div>
+    );
+  }
   const code = 'DTD-' + me.markbox.slice(4);
   const [copied, setCopied] = mUseState(false);
   return (
@@ -488,54 +503,24 @@ function ReferidosScreen({ onBack, me }) {
   );
 }
 
-// ── Subpantalla: Reclamos ────────────────────────────────────
-function ReclamosScreen({ onBack }) {
+// ── Subpantalla: Soporte · fusión Reclamos + Soporte ──
+function SoporteScreen({ onBack }) {
   const U = window.ERPUI;
   const I = window.Icon;
   const [open, setOpen] = mUseState(false);
-  const casos = [
-    { id: 'RC-2026-0042', t: 'Faltante en CN-2026-2836', step: 'en-revision', date: '24 may', tone: 'warning' },
-    { id: 'RC-2026-0031', t: 'Daño en caja 4 de 12', step: 'resuelto', date: '18 may', tone: 'success' },
+  const [msg, setMsg] = mUseState('');
+  const tickets = [
+    { id: 'SP-2026-0042', t: 'Faltante en CN-2026-2836', tipo: 'Faltante', step: 'en-revision', date: '24 may', tone: 'warning' },
+    { id: 'SP-2026-0031', t: 'Daño en caja 4 de 12', tipo: 'Daño', step: 'resuelto', date: '18 may', tone: 'success' },
+    { id: 'SP-2026-0028', t: 'Consulta sobre tarifa de almacenaje', tipo: 'Consulta', step: 'resuelto', date: '12 may', tone: 'success' },
   ];
   const stepLabel = { recibido: 'Recibido', 'en-revision': 'En revisión', resuelto: 'Resuelto' };
   return (
     <div>
-      <window.PM.SubHeader title="Reclamos" onBack={onBack}
-        action={<U.Btn variant="primary" size="sm" icon={I.plus(13)} onClick={() => setOpen(true)}>Nuevo</U.Btn>} />
-      <div style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {casos.map(c => (
-          <U.Card key={c.id} padded style={{ padding: 16 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <code style={{ font: '800 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{c.id}</code>
-              <U.Badge tone={c.tone} size="sm" dot>{stepLabel[c.step]}</U.Badge>
-            </div>
-            <div style={{ font: '600 13.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{c.t}</div>
-            <div style={{ font: '500 11.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 6 }}>Abierto el {c.date}</div>
-          </U.Card>
-        ))}
-      </div>
-      <window.PM.Sheet open={open} onClose={() => setOpen(false)} title="Nuevo reclamo">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
-          <U.Select label="Embarque afectado" options={[{ value: '', label: 'Elegí un embarque…' }]} />
-          <U.Select label="Tipo de reclamo" options={[{ value: 'faltante', label: 'Faltante' }, { value: 'daño', label: 'Daño' }, { value: 'demora', label: 'Demora' }, { value: 'otro', label: 'Otro' }]} />
-          <U.Input label="Descripción" placeholder="Contanos qué pasó…" />
-          <U.Btn variant="primary" full onClick={() => setOpen(false)}>Enviar reclamo</U.Btn>
-        </div>
-      </window.PM.Sheet>
-    </div>
-  );
-}
-
-// ── Subpantalla: Soporte ─────────────────────────────────────
-function SoporteScreen({ onBack }) {
-  const U = window.ERPUI;
-  const I = window.Icon;
-  const [msg, setMsg] = mUseState('');
-  const [sent, setSent] = mUseState(false);
-  return (
-    <div>
-      <window.PM.SubHeader title="Soporte" subtitle="Respuesta típica en menos de 1 hora" onBack={onBack} />
+      <window.PM.SubHeader title="Soporte" subtitle="Respuesta típica en menos de 1 hora" onBack={onBack}
+        action={<U.Btn variant="primary" size="sm" icon={I.plus(13)} onClick={() => setOpen(true)}>Nuevo caso</U.Btn>} />
       <div style={{ padding: '16px 16px 24px' }}>
+        {/* Agente */}
         <U.Card padded style={{ padding: 16, marginBottom: 'var(--s-6)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <U.Avatar initials="MA" color="wine" size={48} />
@@ -550,23 +535,36 @@ function SoporteScreen({ onBack }) {
             <U.Btn variant="secondary" size="sm" full icon={I.mail(13)}>Email</U.Btn>
           </div>
         </U.Card>
-        <window.PM.Section title="ENVIANOS UN MENSAJE">
-          {sent ? (
-            <U.Card padded style={{ background: 'var(--success-bg)', borderColor: 'var(--success)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: 'var(--success)' }}>{I.check(18)}</span>
-                <span style={{ font: '700 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Mensaje enviado. Martina te responde en breve.</span>
-              </div>
-            </U.Card>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
-              <textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="¿En qué te ayudamos?" rows={4}
-                style={{ width: '100%', padding: 14, borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--ink)', font: '500 14px/1.5 var(--f-sans)', resize: 'vertical' }} />
-              <U.Btn variant="primary" full disabled={!msg.trim()} onClick={() => { setSent(true); setMsg(''); }}>Enviar mensaje</U.Btn>
-            </div>
-          )}
+
+        {/* Casos */}
+        <window.PM.Section title="TUS CASOS">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {tickets.map(c => (
+              <U.Card key={c.id} padded style={{ padding: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <code style={{ font: '800 12.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{c.id}</code>
+                    <U.Badge tone="neutral" size="sm">{c.tipo}</U.Badge>
+                  </div>
+                  <U.Badge tone={c.tone} size="sm" dot>{stepLabel[c.step]}</U.Badge>
+                </div>
+                <div style={{ font: '600 13.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{c.t}</div>
+                <div style={{ font: '500 11.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 6 }}>Abierto el {c.date}</div>
+              </U.Card>
+            ))}
+          </div>
         </window.PM.Section>
       </div>
+
+      {/* Nuevo caso */}
+      <window.PM.Sheet open={open} onClose={() => { setOpen(false); setMsg(''); }} title="Nuevo caso">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
+          <U.Select label="Tipo" options={[{ value: 'consulta', label: 'Consulta general' }, { value: 'faltante', label: 'Faltante' }, { value: 'daño', label: 'Daño' }, { value: 'demora', label: 'Demora' }, { value: 'pago', label: 'Facturación / pago' }, { value: 'otro', label: 'Otro' }]} />
+          <U.Select label="Embarque relacionado" hint="Opcional · solo si aplica" options={[{ value: '', label: 'Ninguno / general' }]} />
+          <U.Input label="Contanos qué necesitás" placeholder="Escribí el detalle…" value={msg} onChange={(e) => setMsg(e.target.value)} />
+          <U.Btn variant="primary" full disabled={!msg.trim()} onClick={() => { setOpen(false); setMsg(''); }}>Enviar</U.Btn>
+        </div>
+      </window.PM.Sheet>
     </div>
   );
 }
@@ -742,6 +740,7 @@ function CotizadorScreen({ onBack, me }) {
   const [service, setService] = mUseState('LCL DDP');
   const [cbm, setCbm] = mUseState('6');
   const [sent, setSent] = mUseState(false);
+  const [reqRef, setReqRef] = mUseState(null);
 
   const svc = SERVICES.find(s => s.k === service);
   const lclRate = (D.RATES || []).find(r => r.service === 'LCL DDP' && r.origin === origin && r.destination === dest)
@@ -805,9 +804,18 @@ function CotizadorScreen({ onBack, me }) {
         </div>
 
         {sent ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 14, background: 'var(--success-bg)', borderRadius: 'var(--r-lg)' }}>
-            <span style={{ color: 'var(--success)' }}>{I.check(18)}</span>
-            <span style={{ font: '700 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Solicitud enviada. Tu agente te manda la cotización formal en breve.</span>
+          <div style={{ padding: 16, background: 'var(--success-bg)', borderRadius: 'var(--r-lg)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ color: 'var(--success)' }}>{I.check(18)}</span>
+              <span style={{ font: '700 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Solicitud enviada</span>
+            </div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>
+              Tu agente prepara la cotización formal. La vas a ver en <b>Mis envíos</b> como <b>“Cotización en proceso”</b> y te avisamos cuando esté lista para aceptar.
+            </div>
+            <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)' }}>
+              <span style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Referencia</span>
+              <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{reqRef}</code>
+            </div>
           </div>
         ) : (
           <U.Btn variant="primary" full icon={I.mail(14)} onClick={() => {
@@ -822,6 +830,14 @@ function CotizadorScreen({ onBack, me }) {
                 meta: { origin, dest, service, cbm: service === 'LCL DDP' ? cbm : null, estimate, transit },
               });
             } catch (e) { console.error('[cotizador] pushPortalEvent falló:', e); }
+            const _ref = 'SOL-2026-' + String(Math.floor(100 + Math.random() * 900));
+            try {
+              window.DTDData && window.DTDData.pushPortalQuote && window.DTDData.pushPortalQuote({
+                markbox: me.markbox, clientName: me.name || me.markbox,
+                origin, dest, service, cbm: service === 'LCL DDP' ? cbm : null, estimate, ref: _ref,
+              });
+            } catch (e) { console.error('[cotizador] pushPortalQuote falló:', e); }
+            setReqRef(_ref);
             setSent(true);
           }}>Solicitar cotización formal</U.Btn>
         )}
@@ -833,6 +849,6 @@ function CotizadorScreen({ onBack, me }) {
 
 window.PMExtra = {
   PagarScreen, ProveedoresScreen, MasScreen,
-  DocumentosScreen, ReferidosScreen, ReclamosScreen, SoporteScreen, PerfilScreen,
+  DocumentosScreen, ReferidosScreen, SoporteScreen, PerfilScreen,
   CotizadorScreen, NotifSheet,
 };

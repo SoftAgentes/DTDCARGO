@@ -548,7 +548,7 @@
         <div style={{ width: '100%', maxWidth: 360 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <CopyCodeButton data={data} markbox={markbox} />
-            <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
+            <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {try{sessionStorage.setItem('dtd-from-registro','1');}catch(e){} window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
           </div>
         </div>
 

@@ -200,7 +200,7 @@
               <div><Lab>{isFixed ? 'Precio' : (method === 'Monto' ? 'Monto' : '%')}</Lab>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   {(isFixed || method === 'Monto') && <span style={{ padding: '9px 9px', border: '1px solid var(--border)', borderRight: 0, borderRadius: 'var(--r-md) 0 0 var(--r-md)', background: 'var(--bg-elevated)', font: '700 13px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>$</span>}
-                  <input type="number" value={val} onChange={(e) => setVal(e.target.value)} placeholder="0" style={{ ...ib, borderRadius: (isFixed || method === 'Monto') ? '0 var(--r-md) var(--r-md) 0' : 'var(--r-md)', fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
+                  <window.ERPUI.CalcInput value={val} onChange={(e) => setVal(e.target.value)} placeholder="0" style={{ ...ib, borderRadius: (isFixed || method === 'Monto') ? '0 var(--r-md) var(--r-md) 0' : 'var(--r-md)', fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
                   {!isFixed && method === 'Porcentaje' && <span style={{ padding: '9px 9px', border: '1px solid var(--border)', borderLeft: 0, borderRadius: '0 var(--r-md) var(--r-md) 0', background: 'var(--bg-elevated)', font: '700 13px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>%</span>}
                 </div>
               </div>
@@ -211,7 +211,7 @@
               <Lab>Aplica cuando</Lab>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
                 <U.Select value={cond} onChange={(e) => setCond(e.target.value)} options={['Siempre', 'Cantidad ≥', 'CBM ≥', 'Monto ≥', 'Peso/CBM ≥'].map(x => ({ value: x, label: x }))} />
-                {needsN && <input type="number" value={condN} onChange={(e) => setCondN(e.target.value)} placeholder={cond === 'CBM ≥' ? 'CBM' : (cond === 'Monto ≥' ? '$' : (cond === 'Peso/CBM ≥' ? 'kg/CBM' : 'ítems'))} style={{ ...ib, width: 120, fontFamily: 'var(--f-mono)', fontWeight: 700 }} />}
+                {needsN && <window.ERPUI.CalcInput value={condN} onChange={(e) => setCondN(e.target.value)} placeholder={cond === 'CBM ≥' ? 'CBM' : (cond === 'Monto ≥' ? '$' : (cond === 'Peso/CBM ≥' ? 'kg/CBM' : 'ítems'))} style={{ ...ib, width: 120, fontFamily: 'var(--f-mono)', fontWeight: 700 }} />}
               </div>
               <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 7 }}>Ej.: si el cliente lleva <b>≥ 10 CBM</b> (o ítems) → descuento automático. Con <b>Peso/CBM ≥ 500</b> → si un CBM excede los 500 kg, se cobra la tarifa de <b>exceso de peso</b> (el “Monto” es el precio por el extra).</div>
             </div>
@@ -625,7 +625,7 @@
                   <div><Label>Nuevo precio</Label>
                     <div style={{ display: 'flex', alignItems: 'center' }}>
                       <span style={{ padding: '9px 10px', border: '1px solid var(--border)', borderRight: 0, borderRadius: 'var(--r-md) 0 0 var(--r-md)', background: 'var(--bg-elevated)', font: '700 13px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>$</span>
-                      <input type="number" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0" style={{ ...inputBox, borderRadius: '0 var(--r-md) var(--r-md) 0', fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
+                      <window.ERPUI.CalcInput value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0" style={{ ...inputBox, borderRadius: '0 var(--r-md) var(--r-md) 0', fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
                     </div>
                   </div>
                   <div><Label>Vigente hasta</Label>
@@ -670,7 +670,7 @@
                   <div><Label>Precio/Tasa de venta</Label>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
                       <span style={{ padding: '9px 10px', border: '1px solid var(--border)', borderRight: 0, borderRadius: 'var(--r-md) 0 0 var(--r-md)', background: 'var(--bg-elevated)', font: '700 13px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>$</span>
-                      <input type="number" value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0" style={{ ...inputBox, borderRadius: '0 var(--r-md) var(--r-md) 0', fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
+                      <window.ERPUI.CalcInput value={rate} onChange={(e) => setRate(e.target.value)} placeholder="0" style={{ ...inputBox, borderRadius: '0 var(--r-md) var(--r-md) 0', fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
                     </div>
                   </div>
                   <div><Label>Unidad</Label>
@@ -696,7 +696,7 @@
                       <div><Label>Costo</Label>
                         <div style={{ display: 'flex', alignItems: 'center' }}>
                           <span style={{ padding: '9px 10px', border: '1px solid var(--border)', borderRight: 0, borderRadius: 'var(--r-md) 0 0 var(--r-md)', background: 'var(--bg-elevated)', font: '700 13px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>$</span>
-                          <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" style={{ ...inputBox, borderRadius: '0 var(--r-md) var(--r-md) 0', fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
+                          <window.ERPUI.CalcInput value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" style={{ ...inputBox, borderRadius: '0 var(--r-md) var(--r-md) 0', fontFamily: 'var(--f-mono)', fontWeight: 700 }} />
                         </div>
                       </div>
                       <div><Label>Cuenta de gasto / costo</Label>
@@ -735,11 +735,11 @@
               <React.Fragment>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                   <div><Label>Costo unit.</Label>
-                    <input type="number" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} /></div>
+                    <window.ERPUI.CalcInput value={cost} onChange={(e) => setCost(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} /></div>
                   <div><Label>Stock inicial</Label>
-                    <input type="number" value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} /></div>
+                    <window.ERPUI.CalcInput value={stock} onChange={(e) => setStock(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} /></div>
                   <div><Label>Punto reorden</Label>
-                    <input type="number" value={reorder} onChange={(e) => setReorder(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} /></div>
+                    <window.ERPUI.CalcInput value={reorder} onChange={(e) => setReorder(e.target.value)} placeholder="0" style={{ ...inputBox, fontFamily: 'var(--f-mono)', fontWeight: 700 }} /></div>
                 </div>
                 <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>El stock baja al consumir y avisa cuando cae bajo el punto de reorden. (Lo que lo hace "inventario".)</div>
               </React.Fragment>
@@ -909,7 +909,7 @@
                       <Label>Costo</Label>
                       <div style={{ display: 'flex', alignItems: 'center' }}>
                         <span style={{ padding: '9px 10px', border: '1px solid var(--border)', borderRight: 0, borderRadius: 'var(--r-md) 0 0 var(--r-md)', background: 'var(--bg-surface)', font: '700 13px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>$</span>
-                        <input type="number" value={npPrice} onChange={(e) => setNpPrice(e.target.value)} placeholder="0" style={{ width: '100%', padding: '9px 11px', borderRadius: '0 var(--r-md) var(--r-md) 0', border: '1px solid var(--border)', background: 'var(--bg-surface)', font: '700 13px/1 var(--f-mono)', color: 'var(--ink)' }} />
+                        <window.ERPUI.CalcInput value={npPrice} onChange={(e) => setNpPrice(e.target.value)} placeholder="0" style={{ width: '100%', padding: '9px 11px', borderRadius: '0 var(--r-md) var(--r-md) 0', border: '1px solid var(--border)', background: 'var(--bg-surface)', font: '700 13px/1 var(--f-mono)', color: 'var(--ink)' }} />
                       </div>
                     </div>
                     <div>
@@ -935,7 +935,7 @@
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <div>
                   <div style={{ font: '600 10px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 5 }}>Precio</div>
-                  <input type="number" value={newRate} onChange={(e) => setNewRate(e.target.value)} style={{ width: '100%', padding: '9px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', font: '700 14px/1 var(--f-mono)', color: 'var(--ink)' }} />
+                  <window.ERPUI.CalcInput value={newRate} onChange={(e) => setNewRate(e.target.value)} style={{ width: '100%', padding: '9px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', font: '700 14px/1 var(--f-mono)', color: 'var(--ink)' }} />
                 </div>
                 <div>
                   <div style={{ font: '600 10px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 5 }}>Vigente hasta</div>
