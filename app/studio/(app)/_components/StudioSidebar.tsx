@@ -66,6 +66,7 @@ export const MODULES: ModuleDef[] = [
   { id: "quotes", group: "COMERCIAL", label: "Cotizador", labelKey: "chrome.sidebar.quotes", icon: "calc", slug: "/studio/cotizador" },
   { id: "clients", group: "COMERCIAL", label: "Clientes", labelKey: "chrome.sidebar.clients", icon: "users", slug: "/studio/clientes" },
   { id: "leads", group: "COMERCIAL", label: "CRM · Leads", labelKey: "chrome.sidebar.leads", icon: "spark", slug: "/studio/leads" },
+  { id: "kommo", group: "COMERCIAL", label: "Kommo CRM", icon: "radar", slug: "/studio/kommo" },
   { id: "suppliers", group: "COMERCIAL", label: "Proveedores CN", labelKey: "chrome.sidebar.suppliers_cn", icon: "cn", slug: "/studio/proveedores" },
   { id: "rates", group: "COMERCIAL", label: "Tarifas", labelKey: "chrome.sidebar.rates", icon: "tag", slug: "/studio/tarifas" },
 
