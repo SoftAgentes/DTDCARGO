@@ -1,10 +1,10 @@
 ---
 sdd: "0030"
 title: "Despacho · Apps móviles bodeguero VE + camionero VE (PWAs)"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0020", "0022", "0023", "0029"]

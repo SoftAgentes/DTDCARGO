@@ -1,10 +1,10 @@
 ---
 sdd: "0002"
 title: "Calculadora de Flete Terrestre Venezuela"
-status: draft
+status: done
 author: "founder"
 created: 2026-05-22
-updated: 2026-05-22
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0001"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0015"
 title: "DoorTuDoor — Calendario operativo (vista mes + feriados CN/VE)"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0013"]

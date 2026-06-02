@@ -1,10 +1,10 @@
 ---
 sdd: "0013"
 title: "DoorTuDoor — Tracking operativo (mapa + timeline)"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0005", "0006", "0012"]

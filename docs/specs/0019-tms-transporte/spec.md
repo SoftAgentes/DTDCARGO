@@ -1,10 +1,10 @@
 ---
 sdd: "0019"
 title: "DoorTuDoor — TMS · Transporte interno VE"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0005", "0017", "0018"]

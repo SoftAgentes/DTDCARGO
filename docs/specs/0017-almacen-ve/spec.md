@@ -1,10 +1,10 @@
 ---
 sdd: "0017"
 title: "DoorTuDoor — Almacén VE (vista derivada + 4 acciones operativas)"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0005", "0012", "0013", "0016"]

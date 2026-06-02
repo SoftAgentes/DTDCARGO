@@ -1,10 +1,10 @@
 ---
 sdd: "0006"
 title: "DoorTuDoor — Fase 3: Tracking edición + detalle + timeline + filtros"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0003", "0004", "0005"]

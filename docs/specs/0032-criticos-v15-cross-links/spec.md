@@ -1,10 +1,10 @@
 ---
 sdd: "0032"
 title: "Críticos v1.5 + cross-links cliente · MARKBOX validation + email bienvenida + drawer cross-links"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0006", "0010", "0018", "0026", "0031"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0007"
 title: "DoorTuDoor — Sprint 0.1: Studio Shell v1 (sidebar agrupado + topbar)"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-23
-updated: 2026-05-23
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0003", "0004", "0005", "0006"]

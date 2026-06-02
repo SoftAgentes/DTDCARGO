@@ -1,10 +1,10 @@
 ---
 sdd: "0011"
 title: "DoorTuDoor — Cotizador (Sprint 1 completo)"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-24
-updated: 2026-05-24
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0005", "0006", "0008", "0009", "0010"]

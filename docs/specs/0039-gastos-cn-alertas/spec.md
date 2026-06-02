@@ -1,10 +1,10 @@
 ---
 sdd: "0039"
 title: "Gastos CN · scope contenedor/operativo + moneda dual CNY/USD + alerta de consolidado al equipo CN"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-05-29
-updated: 2026-05-29
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0016", "0026", "0038", "0047"]

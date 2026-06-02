@@ -1,10 +1,10 @@
 ---
 sdd: "0033"
 title: "Cola de impresión QR · oficina + push del operario CN"
-status: approved
+status: done
 author: "founder"
 created: 2026-05-25
-updated: 2026-05-25
+updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0008", "0020", "0027", "0031"]
