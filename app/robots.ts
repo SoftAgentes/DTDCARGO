@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/track/"], // resultados de tracking individuales no se indexan
+        disallow: ["/track/", "/marca/"], // tracking individual + material de marca interno
       },
     ],
     sitemap: `${base}/sitemap.xml`,
