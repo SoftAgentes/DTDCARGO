@@ -20,30 +20,23 @@ const json = (body: unknown, status = 200) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
-/** Lee el claim `role` del JWT ya verificado por la plataforma (verify_jwt on). */
-function jwtRole(req: Request): string | null {
-  const m = (req.headers.get("Authorization") ?? "").match(/^Bearer\s+(.+)$/i);
-  if (!m) return null;
-  try {
-    return JSON.parse(atob(m[1].split(".")[1])).role ?? null;
-  } catch {
-    return null;
-  }
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Usá POST" }, 405);
-
-  // Solo service_role puede disparar el sync (no la anon key pública).
-  if (jwtRole(req) !== "service_role") {
-    return json({ error: "Forbidden: requiere service_role" }, 403);
-  }
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   if (!SUPABASE_URL || !SERVICE_ROLE) {
     return json({ error: "Faltan SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY" }, 500);
+  }
+
+  // Auth: la función va con verify_jwt=OFF (las keys nuevas sb_secret_*/sb_publishable_*
+  // NO son JWT → el gateway las rechazaría). Exigimos el SECRET key del proyecto en
+  // Authorization o apikey (uso backend; la publishable/anon no sirve).
+  const bearer = (req.headers.get("Authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  const apikey = (req.headers.get("apikey") ?? "").trim();
+  if (bearer !== SERVICE_ROLE && apikey !== SERVICE_ROLE) {
+    return json({ error: "Forbidden: requiere el service key del proyecto" }, 403);
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {

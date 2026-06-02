@@ -114,20 +114,35 @@ export async function syncAll(
   );
   results.push(
     await logged(supabase, conn, "statuses", async () => {
-      const rows = pipelines.flatMap((p) =>
-        (p._embedded?.statuses ?? []).map((s) => ({
-          tenant_id: t,
-          id: s.id,
-          pipeline_id: s.pipeline_id ?? p.id,
-          name: s.name ?? null,
-          sort: s.sort ?? null,
-          color: s.color ?? null,
-          type: s.type ?? null,
-        })),
-      );
+      // 142 "ganado" / 143 "perdido" se repiten en cada pipeline con el mismo id:
+      // dedupe por (pipeline_id, id) y upsert con la PK compuesta (migración 0083).
+      const seen = new Set<string>();
+      const rows = pipelines
+        .flatMap((p) =>
+          (p._embedded?.statuses ?? []).map((s) => ({
+            tenant_id: t,
+            id: s.id,
+            pipeline_id: s.pipeline_id ?? p.id,
+            name: s.name ?? null,
+            sort: s.sort ?? null,
+            color: s.color ?? null,
+            type: s.type ?? null,
+          })),
+        )
+        .filter((r) => {
+          const k = `${r.pipeline_id}:${r.id}`;
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
       return {
         fetched: rows.length,
-        upserted: await upsertRows(supabase, "kommo_statuses", rows),
+        upserted: await upsertRows(
+          supabase,
+          "kommo_statuses",
+          rows,
+          "tenant_id,pipeline_id,id",
+        ),
       };
     }),
   );
