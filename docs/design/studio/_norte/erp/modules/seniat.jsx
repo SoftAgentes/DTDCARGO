@@ -283,7 +283,7 @@ function AgentsTab({ agents }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 12 }}>
       {agents.map(a => (
         <U.Card key={a.id} padded hoverable
-          onClick={() => window.open(`nuevo/pantallas/agente-perfil.html?id=${a.id}`, '_blank')}
+          onClick={() => window.open(`pantallas/agente-perfil.html?id=${a.id}`, '_blank')}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
             <U.Avatar initials={a.contact.split(' ').map(w=>w[0]).slice(0,2).join('')} size={40} color="wine" />

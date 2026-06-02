@@ -85,7 +85,7 @@ function DTDLogo({ collapsed = false, dark = true }) {
 }
 
 // ── Sidebar ──────────────────────────────────────────────────
-function CreateButton({ collapsed, onSelect }) {
+function CreateButton({ collapsed, onSelect, currentUser }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -93,34 +93,98 @@ function CreateButton({ collapsed, onSelect }) {
     document.addEventListener('mousedown', onDoc);
     return () => document.removeEventListener('mousedown', onDoc);
   }, []);
-  const GROUPS = {
-    'Comercial': [['Cotización', 'quotes'], ['Cliente', 'clients'], ['Lead', 'crm'], ['Cobro', 'cobranzas']],
-    'Operación': [['Embarque', 'shipments'], ['Almacén CN', 'cn'], ['Proveedor CN', 'suppliers']],
-    'Finanzas': [['Factura', 'invoices'], ['Pago / Gasto', 'tesoreria'], ['Asiento', 'contab']],
-    'Catálogo': [['Servicio / Tarifa', 'rates'], ['Cuenta contable', 'contab']],
+
+  // Frecuentes · aprende los ítems más usados (persistido por usuario)
+  const freqKey = 'dtd-create-freq-' + (currentUser?.id || 'anon');
+  const [freq, setFreq] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(freqKey) || '{}'); } catch { return {}; }
+  });
+  const itemIndex = useMemo(() => {
+    const ix = {};
+    CREATE_GROUPS.forEach(col => col.items.forEach(([label, mod, kind]) => { ix[label] = [mod, kind]; }));
+    return ix;
+  }, []);
+
+  // Filtrado por rol · reusa ROLE_MODULES (misma fuente que el sidebar)
+  const allowedModules = currentUser && currentUser.role !== 'Admin'
+    ? (window.ERPData.ROLE_MODULES[currentUser.role] || ['dashboard'])
+    : '*';
+  const canCreate = (mod) => {
+    if (mod === '__tudia') return true;
+    if (allowedModules === '*') return true;
+    return allowedModules.includes(mod);
   };
-  const go = (id) => { setOpen(false); onSelect && onSelect(id); };
+  const visibleGroups = useMemo(() =>
+    CREATE_GROUPS
+      .map(col => ({ ...col, items: col.items.filter(([, mod]) => canCreate(mod)) }))
+      .filter(col => col.items.length > 0),
+    [currentUser]);
+  const topFreq = useMemo(() =>
+    Object.entries(freq)
+      .filter(([label]) => itemIndex[label] && canCreate(itemIndex[label][0]))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 4)
+      .map(([label]) => label),
+    [freq, currentUser]);
+
+  const run = (mod, kind, label) => {
+    setOpen(false);
+    if (label) {
+      setFreq(prev => {
+        const next = { ...prev, [label]: (prev[label] || 0) + 1 };
+        try { localStorage.setItem(freqKey, JSON.stringify(next)); } catch {}
+        return next;
+      });
+    }
+    if (mod === '__tudia') { window.__erpOverlay && window.__erpOverlay('tudia', { userId: currentUser?.id || 'u-001' }); return; }
+    if (CATALOG_KINDS.includes(kind)) {
+      onSelect && onSelect(mod);
+      setTimeout(() => window.dispatchEvent(new CustomEvent('dtd-create-catalog', { detail: kind })), 60);
+      return;
+    }
+    onSelect && onSelect(mod);
+  };
+
   return (
     <div ref={ref} style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-nav)', padding: '0 0 10px', marginBottom: 2 }}>
-      <button onClick={() => setOpen(v => !v)} title="Crear"
+      <button onClick={() => setOpen(v => !v)} title="Crear · se adapta a tu rol"
         style={{ width: collapsed ? 40 : '100%', height: 40, margin: collapsed ? '0 auto' : 0, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 9, padding: collapsed ? 0 : '0 14px', borderRadius: collapsed ? '50%' : 'var(--r-pill)', border: 'none', cursor: 'pointer', background: 'var(--wine)', color: '#fff', font: '800 13px/1 var(--f-sans)', boxShadow: '0 1px 2px rgba(127,15,26,.3), 0 8px 18px -8px rgba(127,15,26,.55)', transition: 'background var(--dur-fast) var(--ease)' }}
         onMouseEnter={(e) => e.currentTarget.style.background = 'var(--wine-deep)'}
         onMouseLeave={(e) => e.currentTarget.style.background = 'var(--wine)'}>
         <span style={{ font: '800 19px/1 var(--f-sans)', marginTop: -1 }}>+</span>{!collapsed && <span>Crear</span>}
       </button>
       {open && (
-        <div style={{ position: 'fixed', left: collapsed ? 74 : 248, top: 60, width: 460, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 80, padding: 16, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2px 16px', animation: 'erp-pop 160ms var(--ease)' }}>
-          {Object.keys(GROUPS).map(g => (
-            <div key={g}>
-              <div style={{ font: '800 9px/1 var(--f-sans)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--wine)', margin: '8px 0 4px' }}>{g}</div>
-              {GROUPS[g].map(([l, id]) => (
-                <button key={l} onClick={() => go(id)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', border: 'none', background: 'transparent', cursor: 'pointer', font: '600 12.5px/1.2 var(--f-sans)', color: 'var(--ink)', borderRadius: 'var(--r-sm)' }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = 'var(--wine-tint)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                  <span style={{ color: 'var(--wine)', font: '800 14px/1 var(--f-sans)' }}>+</span>{l}
-                </button>
-              ))}
+        <div style={{ position: 'fixed', left: collapsed ? 74 : 248, top: 60, width: 460, maxHeight: 'calc(100vh - 90px)', overflowY: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)', zIndex: 80, padding: 16, animation: 'erp-pop 160ms var(--ease)' }}>
+          {topFreq.length > 0 && (
+            <div style={{ marginBottom: 12, paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ font: '800 9px/1 var(--f-sans)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--wine)', margin: '0 0 8px' }}>Frecuentes</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+                {topFreq.map(label => {
+                  const [mod, kind] = itemIndex[label];
+                  return (
+                    <button key={label} onClick={() => run(mod, kind, label)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid var(--border)', background: 'var(--bg-base)', cursor: 'pointer', padding: '6px 11px 6px 9px', borderRadius: 'var(--r-pill)', font: '600 11.5px/1 var(--f-sans)', color: 'var(--ink)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--wine)'; e.currentTarget.style.color = 'var(--wine)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--ink)'; }}>
+                      <span style={{ color: 'var(--wine)', font: '800 13px/1 var(--f-sans)' }}>+</span>{label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          ))}
+          )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2px 16px' }}>
+            {visibleGroups.map(col => (
+              <div key={col.g}>
+                <div style={{ font: '800 9px/1 var(--f-sans)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--wine)', margin: '8px 0 4px' }}>{col.g}</div>
+                {col.items.map(([label, mod, kind]) => (
+                  <button key={label} onClick={() => run(mod, kind, label)} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px', border: 'none', background: 'transparent', cursor: 'pointer', font: '600 12.5px/1.2 var(--f-sans)', color: 'var(--ink)', borderRadius: 'var(--r-sm)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--wine-tint)'} onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
+                    <span style={{ color: 'var(--wine)', font: '800 14px/1 var(--f-sans)' }}>+</span>{label}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -317,7 +381,7 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
 
       {/* Navigation */}
       <nav style={{ flex: 1, overflowY: 'auto', padding: '14px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-        <CreateButton collapsed={collapsed} onSelect={onSelect} />
+        <CreateButton collapsed={collapsed} onSelect={onSelect} currentUser={currentUser} />
         {grouped.map(([group, units]) => {
           const open = !collapsed && openGroup === group;
           return (
@@ -485,79 +549,6 @@ const CREATE_GROUPS = [
 ];
 const CATALOG_KINDS = ['servicio', 'inventario', 'grupo', 'tarifa', 'no_inv'];
 
-function CreateMenu({ currentUser }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  useEffect(() => {
-    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    const onKey = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-      if ((e.key === 'c' || e.key === 'C') && !/input|textarea|select/i.test(e.target.tagName) && !e.metaKey && !e.ctrlKey) { e.preventDefault(); setOpen(v => !v); }
-    };
-    document.addEventListener('mousedown', onDoc);
-    document.addEventListener('keydown', onKey);
-    return () => { document.removeEventListener('mousedown', onDoc); document.removeEventListener('keydown', onKey); };
-  }, []);
-
-  const run = (mod, kind) => {
-    setOpen(false);
-    if (mod === '__tudia') { window.open('nuevo/pantallas/tu-dia.html?id=' + (currentUser?.id || 'u-001'), '_blank'); return; }
-    if (CATALOG_KINDS.includes(kind)) {
-      window.__erpGoTo && window.__erpGoTo(mod);
-      setTimeout(() => window.dispatchEvent(new CustomEvent('dtd-create-catalog', { detail: kind })), 60);
-      return;
-    }
-    window.__erpGoTo && window.__erpGoTo(mod, null, kind || 'list');
-  };
-
-  return (
-    <div ref={ref} style={{ position: 'relative', marginLeft: 18 }}>
-      <button onClick={() => setOpen(v => !v)} title="Crear cualquier cosa · tecla C" style={{
-        display: 'inline-flex', alignItems: 'center', gap: 8, height: 38, padding: '0 15px 0 11px',
-        borderRadius: 'var(--r-pill)', border: 'none', cursor: 'pointer',
-        background: open ? 'var(--wine-deep)' : 'var(--wine)', color: '#fff',
-        font: '700 13px/1 var(--f-sans)', boxShadow: '0 1px 2px rgba(127,15,26,.25), 0 6px 16px -8px rgba(127,15,26,.55)',
-        transition: 'background 140ms',
-      }}>
-        <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'rgba(255,255,255,.18)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', font: '800 15px/1 var(--f-sans)' }}>+</span>
-        Crear
-      </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 10px)', left: 0, width: 940, maxWidth: 'calc(100vw - 60px)',
-          background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)',
-          boxShadow: 'var(--shadow-pop, 0 18px 60px -20px rgba(15,30,61,.4))', zIndex: 60, padding: '20px 22px',
-          animation: 'erp-pop 160ms var(--ease, ease)',
-        }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '6px 16px' }}>
-            {CREATE_GROUPS.map(col => (
-              <div key={col.g}>
-                <div style={{ font: '800 10px/1 var(--f-sans)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--wine)', margin: '0 0 9px', whiteSpace: 'nowrap' }}>{col.g}</div>
-                {col.items.map(([label, mod, kind]) => (
-                  <button key={label} onClick={() => run(mod, kind)} style={{
-                    display: 'flex', alignItems: 'center', gap: 9, width: '100%', textAlign: 'left',
-                    border: 'none', background: 'transparent', cursor: 'pointer', padding: '7px 8px',
-                    borderRadius: 'var(--r-sm)', font: '600 12.5px/1.25 var(--f-sans)', color: 'var(--ink)',
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--wine-tint)'; e.currentTarget.style.color = 'var(--wine)'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink)'; }}
-                  >
-                    <span style={{ color: 'currentColor', opacity: 0.6, display: 'inline-flex' }}>{window.Icon.plus(13)}</span>
-                    {label}
-                  </button>
-                ))}
-              </div>
-            ))}
-          </div>
-          <div style={{ marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)', font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
-            Se adapta a tu <b style={{ color: 'var(--ink-soft)' }}>rol</b> · atajo <b style={{ color: 'var(--ink-soft)' }}>C</b> · cada ítem abre el flujo de su módulo.
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ── Topbar ───────────────────────────────────────────────────
 function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notifications, onTweaksToggle, currentUser, onSwitchUser, onPortalAction, onPortalClear }) {
   const [notifOpen, setNotifOpen] = useState(false);
@@ -621,7 +612,7 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 4 }}>
         {/* Tu día · bandeja personal */}
         <button
-          onClick={() => window.open('nuevo/pantallas/tu-dia.html?id=' + (currentUser?.id || 'u-001'), '_blank')}
+          onClick={() => window.__erpOverlay && window.__erpOverlay('tudia', { userId: currentUser?.id || 'u-001' })}
           title="Tu día · pendientes personales"
           style={{
             height: 36, padding: '0 12px', borderRadius: 'var(--r-md)', marginRight: 2,
@@ -634,7 +625,7 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
 
         {/* AI Copilot */}
         <button
-          onClick={() => window.open('nuevo/pantallas/copilot.html', '_blank')}
+          onClick={() => window.__erpOverlay && window.__erpOverlay('copilot')}
           title="AI Copilot · preguntá sobre tus datos"
           style={{
             width: 36, height: 36, borderRadius: 'var(--r-md)', marginRight: 2,
@@ -781,12 +772,12 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
               </div>
               <div style={{ padding: 6 }}>
                 {[
-                  { label: 'Ver mi perfil completo', action: () => window.open('nuevo/pantallas/usuario-perfil.html?id=' + (currentUser?.id || 'u-001'), '_blank') },
+                  { label: 'Ver mi perfil completo', action: () => window.__erpOverlay && window.__erpOverlay('perfil', { userId: currentUser?.id || 'u-001' }) },
                   { label: 'Mi perfil',         action: () => window.DTDWiring?.openProfileModal({ tab: 'profile' }) },
                   { label: 'Cambiar contraseña', action: () => window.DTDWiring?.openProfileModal({ tab: 'password' }) },
                   { label: 'Preferencias',      action: () => window.DTDWiring?.openProfileModal({ tab: 'prefs' }) },
                   { label: 'Atajos de teclado', action: () => window.DTDWiring?.openShortcutsModal() },
-                  ...((currentUser?.role === 'Admin' || !currentUser) ? [{ label: 'Modo cliente · ver el portal', action: () => window.open('Modo Cliente.html', '_blank') }] : []),
+                  ...((currentUser?.role === 'Admin' || !currentUser) ? [{ label: 'Modo cliente · ver el portal', action: () => window.__erpOverlay && window.__erpOverlay('modocliente') }] : []),
                   { label: 'Cambiar de empresa', action: () => setCompanyOpen(true) },
                 ].map(it => (
                   <button key={it.label}
@@ -928,4 +919,68 @@ function Shell({ initialModule = 'dashboard', children }) {
   return null; // unused, App handles layout
 }
 
-window.ERPShell = { MODULES, Sidebar, Topbar, CommandPalette, DTDLogo, CompanyBanner };
+// ── Overlay host · monta pantallas full-page DENTRO del ERP ──────
+// Reemplaza los window.open(...) por un overlay interno (sin pestañas).
+// Se abre vía window.__erpOverlay(kind, params) y se cierra con Esc/✕.
+// Intercepta los links "…DTD Studio · ERP.html#mod" de las pantallas
+// para navegar el ERP (via __erpGoTo) y cerrar, en vez de recargar.
+const OVERLAY_TITLES = { tudia: 'Tu día', perfil: 'Perfil de usuario', hilo: 'Hilo de comentarios', copilot: 'AI Copilot', estadocuenta: 'Estado de cuenta', modocliente: 'Modo cliente' };
+function OverlayHost() {
+  const [state, setState] = useState(null); // { kind, params }
+  const I = window.Icon;
+  useEffect(() => {
+    window.__erpOverlay = (kind, params = {}) => setState({ kind, params });
+    window.__erpCloseOverlay = () => setState(null);
+    const onKey = (e) => { if (e.key === 'Escape') setState(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+  if (!state) return null;
+
+  const map = {
+    tudia: window.TuDia,
+    perfil: window.UsuarioPerfil,
+    hilo: window.HiloComentario,
+    copilot: window.Copilot,
+    estadocuenta: window.EstadoCuenta,
+    modocliente: window.ModoCliente,
+  };
+  const Comp = map[state.kind];
+  const close = () => setState(null);
+
+  // Interceptar clicks en links hacia el ERP: navegar internamente + cerrar.
+  const onClick = (e) => {
+    const a = e.target.closest && e.target.closest('a');
+    if (!a) return;
+    const href = a.getAttribute('href') || '';
+    if (href.includes('DTD Studio')) {
+      e.preventDefault();
+      const hash = href.split('#')[1];
+      close();
+      if (hash && window.__erpGoTo) setTimeout(() => window.__erpGoTo(hash), 40);
+    }
+  };
+
+  return (
+    <div onClick={onClick} style={{
+      position: 'fixed', inset: 0, zIndex: 200, background: 'var(--bg-base)',
+      overflowY: 'auto', animation: 'erp-fade .18s var(--ease) both',
+    }}>
+      <button onClick={close} title="Cerrar · Esc" style={{
+        position: 'fixed', top: 14, right: 18, zIndex: 210, width: 38, height: 38,
+        borderRadius: 'var(--r-pill)', border: '1px solid var(--border)', cursor: 'pointer',
+        background: 'var(--bg-surface)', color: 'var(--ink-soft)', display: 'inline-flex',
+        alignItems: 'center', justifyContent: 'center', boxShadow: 'var(--shadow-md)',
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--wine)'; e.currentTarget.style.borderColor = 'var(--wine)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--ink-soft)'; e.currentTarget.style.borderColor = 'var(--border)'; }}>
+        {I && I.close ? I.close(17) : '✕'}
+      </button>
+      {Comp
+        ? <Comp {...state.params} embedded={true} />
+        : <div style={{ padding: 60, font: '600 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Pantalla “{OVERLAY_TITLES[state.kind] || state.kind}” no disponible.</div>}
+    </div>
+  );
+}
+
+window.ERPShell = { MODULES, Sidebar, Topbar, CommandPalette, DTDLogo, CompanyBanner, OverlayHost };

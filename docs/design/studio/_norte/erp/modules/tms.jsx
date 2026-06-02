@@ -256,7 +256,7 @@ function FleetTab({ trucks, drivers }) {
     { label: 'Estado', key: 'status', render: (r) => <U.Badge tone={statusTone[r.status]} size="sm" dot>{r.status}</U.Badge>, width: 130 },
   ];
 
-  return <U.Table columns={cols} rows={trucks} onRowClick={(r) => window.open(`nuevo/pantallas/camion-perfil.html?id=${r.id}`, '_blank')} />;
+  return <U.Table columns={cols} rows={trucks} onRowClick={(r) => window.open(`pantallas/camion-perfil.html?id=${r.id}`, '_blank')} />;
 }
 
 // ── Drivers tab ──────────────────────────────────────────────
@@ -267,7 +267,7 @@ function DriversTab({ drivers }) {
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
       {drivers.map(d => (
         <U.Card key={d.id} padded hoverable
-          onClick={() => window.open(`nuevo/pantallas/chofer-perfil.html?id=${d.id}`, '_blank')}
+          onClick={() => window.open(`pantallas/chofer-perfil.html?id=${d.id}`, '_blank')}
           style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <U.Avatar initials={d.name.split(' ').map(w=>w[0]).slice(0,2).join('')} size={44} color="wine" />

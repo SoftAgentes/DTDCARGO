@@ -53,10 +53,10 @@
 <script type="text/babel" src="erp/i18n-cn.jsx"></script>
 <script type="text/babel" src="erp/data.jsx"></script>
 <script type="text/babel" src="erp/components.jsx"></script>
-<script type="text/babel" src="nuevo/search-select.jsx"></script>
-<script type="text/babel" src="nuevo/catalog-lines.jsx"></script>
-<script type="text/babel" src="nuevo/feature-flags.jsx"></script>
-<script type="text/babel" src="nuevo/rates.jsx"></script>
+<script type="text/babel" src="erp/search-select.jsx"></script>
+<script type="text/babel" src="erp/catalog-lines.jsx"></script>
+<script type="text/babel" src="erp/feature-flags.jsx"></script>
+<script type="text/babel" src="erp/rates.jsx"></script>
 <script type="text/babel" src="erp/shell.jsx"></script>
 <script type="text/babel" src="erp/tweaks-panel.jsx"></script>
 
@@ -81,7 +81,7 @@
 <script type="text/babel" src="erp/modules/mailing-rules.jsx"></script>
 <script type="text/babel" src="erp/modules/mailing-config.jsx"></script>
 <script type="text/babel" src="erp/modules/mailing-logs.jsx"></script>
-<script type="text/babel" src="nuevo/modules/mailing-scheduled.jsx"></script>
+<script type="text/babel" src="erp/modules/mailing-scheduled.jsx"></script>
 <script type="text/babel" src="erp/modules/vault.jsx"></script>
 <script type="text/babel" src="erp/modules/quick-email.jsx"></script>
 <script type="text/babel" src="erp/modules/fairs-detection.jsx"></script>
@@ -97,7 +97,7 @@
 <script type="text/babel" src="erp/modules/despacho-dashboard.jsx"></script>
 <script type="text/babel" src="erp/modules/audit-log.jsx"></script>
 <script type="text/babel" src="erp/data-bridge.jsx"></script>
-<script type="text/babel" src="nuevo/api/client.jsx"></script>
+<script type="text/babel" src="erp/api/client.jsx"></script>
 <script type="text/babel" src="erp/od-bridge.jsx"></script>
 <script type="text/babel" src="erp/modules/costing.jsx"></script>
 <script type="text/babel" src="erp/modules/tms.jsx"></script>
@@ -105,32 +105,41 @@
 <script type="text/babel" src="erp/modules/seniat.jsx"></script>
 
 <!-- Overrides v1.1 (cargados después para reemplazar window.Module*) -->
-<script type="text/babel" src="nuevo/modules/dashboard.jsx"></script>
-<script type="text/babel" src="nuevo/modules/qr-queue.jsx"></script>
-<script type="text/babel" src="nuevo/modules/conciliacion.jsx"></script>
-<script type="text/babel" src="nuevo/modules/audit-log.jsx"></script>
-<script type="text/babel" src="nuevo/modules/contabilidad-data.jsx"></script>
-<script type="text/babel" src="nuevo/modules/contabilidad.jsx"></script>
-<script type="text/babel" src="nuevo/modules/tesoreria-data.jsx"></script>
-<script type="text/babel" src="nuevo/modules/tesoreria.jsx"></script>
-<script type="text/babel" src="nuevo/modules/naviera-data.jsx"></script>
-<script type="text/babel" src="nuevo/modules/naviera.jsx"></script>
-<script type="text/babel" src="nuevo/modules/conversaciones-data.jsx"></script>
-<script type="text/babel" src="nuevo/modules/conversaciones.jsx"></script>
-<script type="text/babel" src="nuevo/modules/fidelizacion-data.jsx"></script>
-<script type="text/babel" src="nuevo/modules/fidelizacion.jsx"></script>
-<script type="text/babel" src="nuevo/modules/direccion.jsx"></script>
-<script type="text/babel" src="nuevo/modules/flujo-trabajo.jsx"></script>
-<script type="text/babel" src="nuevo/modules/documentos-data.jsx"></script>
-<script type="text/babel" src="nuevo/modules/documentos-hub.jsx"></script>
-<script type="text/babel" src="nuevo/modules/fiscal-data.jsx"></script>
-<script type="text/babel" src="nuevo/modules/fiscal.jsx"></script>
-<script type="text/babel" src="nuevo/modules/dtd-config.jsx"></script>
-<script type="text/babel" src="nuevo/modules/cobranzas-data.jsx"></script>
-<script type="text/babel" src="nuevo/modules/cobranzas.jsx"></script>
-<script type="text/babel" src="nuevo/modules/label-generator.jsx"></script>
-<script type="text/babel" src="nuevo/propuesta/servicios-tarifas.jsx"></script>
-<script type="text/babel" src="nuevo/modules/wiring.jsx"></script>
+<script type="text/babel" src="erp/modules/dashboard.jsx"></script>
+<script type="text/babel" src="erp/modules/qr-queue.jsx"></script>
+<script type="text/babel" src="erp/modules/conciliacion.jsx"></script>
+<script type="text/babel" src="erp/modules/audit-log.jsx"></script>
+<script type="text/babel" src="erp/modules/contabilidad-data.jsx"></script>
+<script type="text/babel" src="erp/modules/contabilidad.jsx"></script>
+<script type="text/babel" src="erp/modules/tesoreria-data.jsx"></script>
+<script type="text/babel" src="erp/modules/tesoreria.jsx"></script>
+<script type="text/babel" src="erp/modules/naviera-data.jsx"></script>
+<script type="text/babel" src="erp/modules/naviera.jsx"></script>
+<script type="text/babel" src="erp/modules/conversaciones-data.jsx"></script>
+<script type="text/babel" src="erp/modules/conversaciones.jsx"></script>
+<script type="text/babel" src="erp/modules/fidelizacion-data.jsx"></script>
+<script type="text/babel" src="erp/modules/fidelizacion.jsx"></script>
+<script type="text/babel" src="erp/modules/direccion.jsx"></script>
+<script type="text/babel" src="erp/modules/flujo-trabajo.jsx"></script>
+<script type="text/babel" src="erp/modules/documentos-data.jsx"></script>
+<script type="text/babel" src="erp/modules/documentos-hub.jsx"></script>
+<script type="text/babel" src="erp/modules/fiscal-data.jsx"></script>
+<script type="text/babel" src="erp/modules/fiscal.jsx"></script>
+<script type="text/babel" src="erp/modules/dtd-config.jsx"></script>
+<script type="text/babel" src="erp/modules/cobranzas-data.jsx"></script>
+<script type="text/babel" src="erp/modules/cobranzas.jsx"></script>
+<script type="text/babel" src="erp/modules/label-generator.jsx"></script>
+<script type="text/babel" src="propuesta/servicios-tarifas.jsx"></script>
+<script type="text/babel" src="erp/modules/wiring.jsx"></script>
+
+<!-- Pantallas full-page montadas como overlay interno (Tu día, Perfil, Hilo, Copilot) -->
+<script type="text/babel" src="pantallas/usuario-perfil-data.jsx"></script>
+<script type="text/babel" src="pantallas/usuario-perfil.jsx"></script>
+<script type="text/babel" src="pantallas/tu-dia.jsx"></script>
+<script type="text/babel" src="pantallas/hilo-comentario.jsx"></script>
+<script type="text/babel" src="pantallas/copilot.jsx"></script>
+<script type="text/babel" src="pantallas/estado-cuenta.jsx"></script>
+<script type="text/babel" src="pantallas/modo-cliente.jsx"></script>
 
 <!-- App bootstrap -->
 <script type="text/babel">
@@ -371,6 +380,7 @@ function App() {
       />
 
       <ERPTweaks tweaks={tweaks} setTweak={setTweak} />
+      {window.ERPShell.OverlayHost && <window.ERPShell.OverlayHost />}
       {window.QuickEmailModal && <window.QuickEmailModal />}
       {window.DTDWiring && <window.DTDWiring.MountHost />}
     </div>

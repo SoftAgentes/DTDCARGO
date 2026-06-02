@@ -112,7 +112,7 @@ function CommentsThread({ recordId, recordType = 'embarque' }) {
         <div className="eyebrow eyebrow-wine">COMENTARIOS ({comments.length})</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           {comments.length > 0 && (
-            <button onClick={() => { const map = { 'DTDU-472816': 't-472816', 'F-2026-0418': 't-0418' }; window.open('nuevo/pantallas/hilo-comentario.html?t=' + (map[recordId] || 't-472816'), '_blank'); }} style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--wine)', background: 'transparent', border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>Expandir hilo {window.Icon.arrowR ? window.Icon.arrowR(11) : '↗'}</button>
+            <button onClick={() => { const map = { 'DTDU-472816': 't-472816', 'F-2026-0418': 't-0418' }; window.__erpOverlay && window.__erpOverlay('hilo', { threadKey: map[recordId] || 't-472816' }); }} style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--wine)', background: 'transparent', border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}>Expandir hilo {window.Icon.arrowR ? window.Icon.arrowR(11) : '↗'}</button>
           )}
           {comments.length > 0 && (
             <div style={{ display: 'flex', gap: 4 }}>

@@ -3,8 +3,8 @@
 > **Para Claude Code (backend).** Este doc es el contrato entre el backend real y el
 > front existente. Cada endpoint mapea a un store mock que hoy vive en `window.*`.
 > **Regla de oro:** todo endpoint resuelve `tenantId` del JWT — **nunca** del body/query.
-> El front consume todo a través del seam `window.DTDApi` (ver `nuevo/api/client.jsx`):
 > en modo `mock` lee `window.ERPData` / localStorage; en modo `rest` pega contra estos endpoints.
+> El front consume todo a través del seam `window.DTDApi` (ver `erp/api/client.jsx`):
 
 ---
 
