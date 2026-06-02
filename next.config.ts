@@ -40,6 +40,27 @@ const cspHeader = [
 ].join("; ");
 
 /**
+ * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book v3.1, un HTML
+ * autocontenido que hidrata sus assets (fuentes woff2 + imágenes, embebidos en
+ * base64 en un `<script type="__bundler/manifest">`) vía JS, creando blob:/data:
+ * URLs en runtime. Por eso necesita `font-src`/`img-src`/`connect-src` con
+ * `data:` y `blob:`, e inline + eval para el runtime del bundler embebido.
+ * El resto del sitio mantiene la CSP estricta de arriba.
+ */
+const brandBookCspHeader = [
+  `default-src 'self'`,
+  `script-src 'self' 'unsafe-inline' 'unsafe-eval'`,
+  `style-src 'self' 'unsafe-inline'`,
+  `font-src 'self' data: blob:`,
+  `img-src 'self' data: blob:`,
+  `connect-src 'self' data: blob:`,
+  `frame-ancestors 'self'`,
+  `base-uri 'self'`,
+  `form-action 'self'`,
+  `object-src 'none'`,
+].join("; ");
+
+/**
  * Security headers aplicados a TODAS las rutas.
  *
  * Verificar en prod con: https://securityheaders.com/?q=dtdcargo.com
@@ -93,13 +114,37 @@ const nextConfig: NextConfig = {
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
+    // `/marca/*` sirve el Brand Book v3.1 (HTML autocontenido, material de marca
+    // interno): CSP permisiva + framing same-origin (lo enmarca el visor) +
+    // noindex, TODO acotado a este prefijo. El catch-all de abajo lo excluye
+    // (negative lookahead) para que no le pise estos headers con los estrictos.
+    const marcaHeaders = [
+      { key: "Content-Security-Policy", value: brandBookCspHeader },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      {
+        key: "Permissions-Policy",
+        value:
+          "camera=(), microphone=(), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()",
+      },
+      {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ];
     return [
       {
         source: "/m/:path*",
         headers: [...baseNoPP, { key: "Permissions-Policy", value: ppMobile }],
       },
       {
-        source: "/:path((?!m/).*)",
+        source: "/marca/:path*",
+        headers: marcaHeaders,
+      },
+      {
+        source: "/:path((?!m/|marca/).*)",
         headers: securityHeaders,
       },
     ];
