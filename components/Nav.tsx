@@ -153,6 +153,12 @@ export function Nav() {
                 </Link>
               );
             })}
+            <Link
+              href="/portal/login"
+              className="text-[14.5px] px-3 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
+            >
+              Acceder
+            </Link>
             <Link href="/contacto" className="btn btn-primary whitespace-nowrap">
               Contáctanos
             </Link>
@@ -261,7 +267,14 @@ export function Nav() {
             );
           })}
 
-          {/* Cuenta · Registrate (el "Acceder al portal" se suma con SDD-0042 Fase 1b) */}
+          {/* Cuenta · Acceder al portal + Registrate */}
+          <Link
+            href="/portal/login"
+            onClick={close}
+            className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors"
+          >
+            Acceder al portal
+          </Link>
           <Link
             href="/registro"
             onClick={close}

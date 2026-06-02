@@ -181,7 +181,10 @@ export function Footer() {
             © {new Date().getFullYear()} {CONTACT.legalName}. Todos los
             derechos reservados.
           </span>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <Link href="/portal/login" className="hover:text-white transition-colors">
+              Acceder al portal
+            </Link>
             <Link href="/registro" className="hover:text-white transition-colors">
               Registro de cliente
             </Link>

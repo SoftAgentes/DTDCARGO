@@ -92,6 +92,39 @@ export async function listShipmentsByMarkbox(
   return data ?? [];
 }
 
+/** Estado del acceso al Portal del Cliente (SDD-0042) de un cliente. */
+export type ClientPortalAccess = {
+  status: "invited" | "active" | "revoked";
+  email: string;
+  invitedAt: string;
+  boundAt: string | null;
+  lastLoginAt: string | null;
+};
+
+/**
+ * Acceso al portal de un cliente (tabla client_users). null = nunca invitado.
+ * RLS "client_users self or tenant read" deja al admin del tenant ver la row.
+ */
+export async function getClientPortalAccess(
+  supabase: SupabaseClient,
+  clientId: string,
+): Promise<ClientPortalAccess | null> {
+  const { data, error } = await supabase
+    .from("client_users")
+    .select("status, email, invited_at, bound_at, last_login_at")
+    .eq("client_id", clientId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return {
+    status: data.status as ClientPortalAccess["status"],
+    email: data.email as string,
+    invitedAt: data.invited_at as string,
+    boundAt: (data.bound_at as string | null) ?? null,
+    lastLoginAt: (data.last_login_at as string | null) ?? null,
+  };
+}
+
 /**
  * Parsea filtros desde searchParams del URL (?tier=&q=).
  */

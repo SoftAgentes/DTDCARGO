@@ -11,6 +11,7 @@ import { createClient } from "@/lib/db/server";
 import {
   getClientByMarkbox,
   listShipmentsByMarkbox,
+  getClientPortalAccess,
 } from "@/lib/studio/client-queries";
 import { tierBadgeTone, tierLabel } from "@/lib/studio/client-types";
 import {
@@ -20,6 +21,7 @@ import {
 } from "@/lib/studio/shipment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ClientDetailClient } from "../_components/ClientDetailClient";
+import { PortalAccessCard } from "../_components/PortalAccessCard";
 
 export const metadata = { title: "Detalle cliente" };
 
@@ -53,6 +55,7 @@ export default async function ClienteDetallePage({
   if (!client) notFound();
 
   const shipments = (await listShipmentsByMarkbox(supabase, markbox)) as ShipmentRow[];
+  const portalAccess = await getClientPortalAccess(supabase, client.id);
 
   return (
     <div style={{ maxWidth: 1200 }}>
@@ -122,6 +125,8 @@ export default async function ClienteDetallePage({
             alignItems: "start",
           }}
         >
+          {/* Columna izquierda: datos del cliente + acceso al portal */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
           {/* Card datos */}
           <section
             style={{
@@ -166,6 +171,14 @@ export default async function ClienteDetallePage({
               Creado {formatDate(client.created_at)}
             </div>
           </section>
+
+          <PortalAccessCard
+            clientId={client.id}
+            markbox={client.markbox}
+            email={client.email}
+            access={portalAccess}
+          />
+          </div>
 
           {/* Histórico de envíos */}
           <section

@@ -22,10 +22,19 @@ import type { PortalClient, PortalShipmentRow } from "./portal-types";
 export async function getPortalClient(
   supabase: SupabaseClient,
 ): Promise<PortalClient | null> {
+  // Resolver el client_id del portal vía la helper AISLADA primero. Si es null,
+  // el principal NO es un cliente del portal (p.ej. un user de equipo con sesión
+  // del Studio): cortamos acá. Si confiáramos solo en RLS con limit(1), la policy
+  // "clients by tenant" le devolvería un cliente cualquiera del tenant al user de
+  // equipo → fuga de aislamiento. El filtro explícito por id lo previene.
+  const { data: portalClientId, error: idErr } =
+    await supabase.rpc("get_portal_client_id");
+  if (idErr || !portalClientId) return null;
+
   const { data, error } = await supabase
     .from("clients")
     .select("id, markbox, name, email, phone")
-    .limit(1)
+    .eq("id", portalClientId as string)
     .maybeSingle();
 
   if (error || !data) return null;
