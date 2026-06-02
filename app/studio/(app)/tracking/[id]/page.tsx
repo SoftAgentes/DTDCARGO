@@ -22,6 +22,11 @@ import { StateActionsPanel } from "./_components/StateActionsPanel";
 import { CustomerPreview } from "./_components/CustomerPreview";
 import { TimelinePanel } from "./_components/TimelinePanel";
 import { FooterActions } from "./_components/FooterActions";
+import { ShipmentDocsPanel } from "./_components/ShipmentDocsPanel";
+import {
+  listShipmentDocuments,
+  signDocumentUrls,
+} from "@/lib/studio/shipment-document-queries";
 
 export const metadata = {
   title: "Detalle envío",
@@ -39,6 +44,14 @@ export default async function ShipmentDetailPage({
   if (!shipment) notFound();
 
   const events = await getShipmentEvents(supabase, id);
+
+  // Documentos del envío (SDD-0042 Fase 3b) + signed URLs (user client del
+  // equipo: storage RLS por tenant le permite leer del bucket shipment-docs).
+  const documents = await listShipmentDocuments(supabase, id);
+  const docUrls = await signDocumentUrls(
+    supabase,
+    documents.map((d) => d.storage_path),
+  );
 
   // Si esta en excepcion, buscar el evento mas reciente con status="exception"
   // para mostrar su nota en un banner arriba.
@@ -146,17 +159,33 @@ export default async function ShipmentDetailPage({
       )}
 
       <div className="studio-detail-grid">
-        {/* Columna izquierda — datos editables */}
-        <section
-          style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-            borderRadius: 10,
-            padding: 24,
-          }}
-        >
-          <ShipmentDataPanel shipment={shipment} />
-        </section>
+        {/* Columna izquierda — datos editables + documentos */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <section
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+              padding: 24,
+            }}
+          >
+            <ShipmentDataPanel shipment={shipment} />
+          </section>
+          <section
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+              padding: 24,
+            }}
+          >
+            <ShipmentDocsPanel
+              shipmentId={shipment.id}
+              documents={documents}
+              signedUrls={docUrls}
+            />
+          </section>
+        </div>
 
         {/* Columna derecha — operación */}
         <aside style={{ display: "flex", flexDirection: "column", gap: 20 }}>
