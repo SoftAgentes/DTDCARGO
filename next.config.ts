@@ -40,18 +40,18 @@ const cspHeader = [
 ].join("; ");
 
 /**
- * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book v3.1, un HTML
- * autocontenido que hidrata sus assets (fuentes woff2 + imágenes, embebidos en
- * base64 en un `<script type="__bundler/manifest">`) vía JS, creando blob:/data:
- * URLs en runtime. Por eso necesita `font-src`/`img-src`/`connect-src` con
- * `data:` y `blob:`, e inline + eval para el runtime del bundler embebido.
- * El resto del sitio mantiene la CSP estricta de arriba.
+ * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book (material de marca
+ * interno). El v3.2 embebe sus imágenes en base64 (`window.__DTD_ASSETS`) pero
+ * referencia `erp/tokens.css` (servido en `public/marca/erp/`) y carga las fuentes
+ * Archivo / Nunito Sans desde Google Fonts (CDN) — por eso `style-src`/`font-src`
+ * permiten `fonts.googleapis`/`fonts.gstatic`. `img`/`connect` con `data:`/`blob:`
+ * + inline/eval para los assets embebidos. El resto del sitio mantiene la CSP estricta.
  */
 const brandBookCspHeader = [
   `default-src 'self'`,
   `script-src 'self' 'unsafe-inline' 'unsafe-eval'`,
-  `style-src 'self' 'unsafe-inline'`,
-  `font-src 'self' data: blob:`,
+  `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
+  `font-src 'self' data: blob: https://fonts.gstatic.com`,
   `img-src 'self' data: blob:`,
   `connect-src 'self' data: blob:`,
   `frame-ancestors 'self'`,
