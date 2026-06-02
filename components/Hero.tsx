@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { HERO, BRAND_ASSETS } from "@/lib/design-tokens";
 import { HeroCotizador } from "./HeroCotizador";
 
@@ -58,6 +59,19 @@ export function Hero() {
               <span key={mark}>✓ {mark}</span>
             ))}
           </div>
+
+          {/* CTA secundario: alta de cliente. La acción primaria del hero es el
+              cotizador (WhatsApp); esto queda subordinado como link de texto. */}
+          <p className="mt-6 text-[14px] text-grey-500">
+            ¿Vas a importar seguido?{" "}
+            <Link
+              href="/registro"
+              className="font-semibold text-wine hover:text-wine-deep underline underline-offset-2 decoration-1"
+            >
+              Registrate como cliente
+            </Link>{" "}
+            y obtené tu MARKBOX.
+          </p>
         </div>
 
         {/* Ilustración contenedor */}

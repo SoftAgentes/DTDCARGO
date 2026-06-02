@@ -260,6 +260,15 @@ export function Nav() {
               </Link>
             );
           })}
+
+          {/* Cuenta · Registrate (el "Acceder al portal" se suma con SDD-0042 Fase 1b) */}
+          <Link
+            href="/registro"
+            onClick={close}
+            className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-wine font-bold hover:bg-wine/15 transition-colors"
+          >
+            Registrate como cliente
+          </Link>
         </nav>
 
         <div className="p-6 border-t border-grey-200">
