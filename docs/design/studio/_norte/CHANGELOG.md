@@ -22,6 +22,591 @@ Formato:
 
 <!-- Las entradas nuevas se agregan acá arriba -->
 
+## 2026-06-02 · 🧹 Auditoría + limpieza + handoff a Claude Code
+
+- **Auditoría completa:** 37 módulos del ERP + todos los entrypoints (portales, apps de
+  operario, propuesta, aceptación T&C, marca, mapa) cargan sin errores de consola ni links
+  rotos. Todas las refs de `<script>`/`<img>`/`href` resuelven. Único mensaje: warning benigno
+  de Babel in-browser (esperado en prototipo).
+- **Limpieza:** borrados ~120 screenshots de prueba en `scraps/` (se conserva el sketch
+  `.napkin`). Eliminado el huérfano `Brand Book DTD v3.1 · para enviar.html`.
+- **Brand Book v3.2:** puntero de fuente de verdad actualizado a `Brand Book DTD v3.2.html`
+  (todas las refs vivas ya apuntaban ahí: `admin-brand.jsx`, `CLAUDE.md`, `HANDOFF.md`, `Reporte`).
+- **Handoff:** proyecto empaquetado para Claude Code (CLAUDE.md + HANDOFF.md + HANDOFF-MOBILE.md
+  + backend/API-CONTRACT.md + legal/ + CHANGELOG.md como front-door).
+
+---
+
+## 2026-06-02 · 🔌 #5 · Contrato de API para backend real (handoff)
+
+Nueva carpeta `backend/`: `API-CONTRACT.md` mapea **cada seam del prototipo**
+(`window.DTDData` stores + funciones, `window.DTDFlags`, `window.LegalData`, auth del
+`Operario · App`) a su endpoint REST: auth+sesión multi-tenant, clientes/MARKBOX secuencial,
+cotizaciones (cotizador→formal→aceptación, reliquidación CN), **aceptación legal con evidencia
+inmutable (IP+hash+timestamp server-side)**, bandeja del portal, facturación + gate, operación
+CN + **sync offline** (outbox), config/feature-flags a nivel tenant, notificaciones
+(WhatsApp/email/push) + orden de implementación. `backend/README.md` explica el principio
+"mismas firmas, otra implementación" y lo no negociable (multi-tenant, sesión revocable,
+evidencia inmutable, servidor = frontera de seguridad). Referenciado desde `CLAUDE.md`.
+**No se construye el servidor** (fuera del prototipo HTML); es la spec para que devs/Claude
+Code lo implementen.
+
+---
+
+## 2026-06-02 · ⚖️ #4 · Panel "Pendiente de revisión legal" (placeholders [..])
+
+`erp/modules/admin-legal.jsx`: helper `legalPlaceholders()` escanea el cuerpo vigente
+(`LEGAL_BODY`) y detecta los `[…]` sin definir. En Configuración → Documentos legales se
+agregó un panel ámbar "Pendiente de revisión legal" que los lista con doc + sección + texto,
+para que el equipo/abogado los resuelva antes de publicar la versión final. Hoy detecta 1
+(T&C §11 · jurisdicción). Es dinámico: aparece/desaparece según el texto. La validación en sí
+es de abogado (no se inventa contenido legal).
+
+---
+
+## 2026-06-02 · 🧩 Bundle regen + IDs de cotización + "reclamo"→"caso" + estado "en proceso"
+
+- **#6 Bundle handoff** (`design_handoff_mobile_app/`): regenerado. Se quitó `Operario Multi.html`
+  (consolidado) y se sumó `Operario · App.html` como entry; refrescados todos los `.html`,
+  `operario/*.jsx`, `erp/*` y docs (`CLAUDE.md`, `HANDOFF-MOBILE.md`) a la versión actual.
+  README actualizado (entry = Operario · App).
+- **#1 IDs de cotización sin contenedor:** en `erp/data.jsx`, los envíos en estado `cotizado`/
+  `recibido CN` que aún no tienen contenedor pasaron de `DTDU-…` a **`Q-2026-…`**
+  (460118→0188, 461245→1245, 462310→2310, 372110→0110; key del mapa de costos también).
+  Una cotización en proceso no muestra número de contenedor hasta que se despacha.
+- **#2 Terminología "reclamo" → "caso" (interno, unificado con el cliente):** etiqueta del tipo
+  `reclamo` ahora "Caso", KPIs "Casos abiertos" (Conversaciones + Dirección + resúmenes),
+  AUT-10 "abre un caso de soporte", guía de flujo y HANDOFF. Identificadores de código
+  (`type:'reclamo'`, `openReclamos()`) se mantienen para estabilidad.
+- **#3 Estado "en proceso":** la cotización generada por el cotizador exprés entra con
+  `quoteStage:'en-proceso'` → en el detalle (web + móvil) muestra "Cotización en proceso ·
+  en revisión por tu agente" con botón deshabilitado; **no es aceptable** hasta que el agente
+  la finalice. Las cotizaciones formales (sin `quoteStage`) sí son aceptables.
+- Verificado en vivo (móvil): generada → en proceso (no aceptable), seed → aceptable.
+
+---
+
+## 2026-06-02 · 🔗 Cierre #4 #1 #3 · calc en propuesta, enlace cotizador, pendientes legales
+
+- **#4 Calculadora en propuesta:** los 10 `<input type="number">` de
+  `propuesta/servicios-tarifas.jsx` (tarifa, costo, precio, stock, condiciones…) pasaron a
+  `window.ERPUI.CalcInput`. Cierra la regla calculadora en todo el ERP.
+- **#1 Enlace cotizador → cotización formal (auto):** nuevo store `dtd-portal-quotes` +
+  `pushPortalQuote()` / `clientQuotes()` en `erp/data-bridge.jsx`. El cotizador exprés
+  (`portal/mobile-extra.jsx`) ahora **genera automáticamente** la cotización formal, que
+  aparece en "Mis envíos" (web `portal/app.jsx` + móvil `portal/mobile.jsx`) en estado
+  `cotizado` y se puede aceptar (gate T&C). El filtro "En curso" ahora incluye las
+  cotizaciones pendientes. **Fix:** la cotización usa id de cotización **`Q-2026-XXX`**
+  (no `DTDU-` de contenedor) — una cotización en proceso aún no tiene contenedor. Se cargó
+  `data-bridge.jsx` en `Portal del Cliente.html` (faltaba). Chip de filtro con `nowrap`.
+- **#3 Pendientes legales:** los `[…]` (foro/jurisdicción T&C, ley/idioma del Acuerdo,
+  exclusión Venezuela en seguro) quedan marcados en `legal/*.md` + `legal/README.md` para
+  validación de abogado (sin inventar texto legal).
+- Verificado en vivo (web + móvil): cotización generada como `Q-2026-…`, visible y aceptable.
+
+---
+
+## 2026-06-02 · 🔁 Re-aceptación por diferencia de medida (corrección de lógica)
+
+**Bug:** la aceptación se ataba solo al ID de cotización y la evidencia no guardaba la medida,
+así que si el cliente aceptaba el estimado en `cotizado` y luego en CN el CBM/peso real difería,
+el sistema lo daba por aceptado y nunca pedía re-aceptar (contra la T&C "se reliquida al cierre").
+
+**Fix — la aceptación se ata a la MEDIDA aceptada:**
+- Evidencia ahora guarda `cbm`, `weight`, `total` (portal web + móvil + registro ERP).
+- Gate `acceptedCurrent` = existe aceptación de ese quote **con la misma medida** que el envío
+  actual. Si no, `needsAccept`. Si además hay una aceptación previa con **otra** medida →
+  `priorDiff` → estado **re-aceptación**.
+- UI: banner "La medida real cambió · re-aceptación requerida" con **antes → después**
+  (CBM y $ del estimado tachado vs. medida real) + botón "Revisar y re-aceptar". La factura no
+  se emite hasta aceptar la diferencia.
+- Seed: `DTDU-462310` (Acindar, recibido CN, medido 9.2 m³/$7,360) + aceptación previa al
+  estimado `Q-2026-2310` (7.0 m³/$5,600) en `admin-legal.jsx` para demostrar el caso.
+- Verificado en vivo (web): antes→después correcto, gate y factura condicionada.
+
+---
+
+## 2026-06-02 · 🧹 Cierre de pendientes técnicos (#4 #5 #6 #7)
+
+- **#4 Calculadora en inputs de dinero nativos:** nuevo `window.ERPUI.CalcInput`
+  (`erp/components.jsx`) — input nativo sin wrapper con la regla calculadora (escribís `100+50`,
+  queda `150` al salir). Aplicado a **Cobranzas** (tasa + monto US$/moneda local, `cobranzas.jsx`),
+  **Contabilidad** (saldo inicial, `contabilidad.jsx`) y **líneas de factura/cotización**
+  (rate, `catalog-lines.jsx`). Los campos de `ERPUI.Input type="number"`/`prefix="$"` ya
+  calculaban. (Pendiente cosmético: inputs de `propuesta/servicios-tarifas.jsx`, pantalla de
+  propuesta, no productiva.)
+- **#5 Emojis de categorías de gasto** (`mobile/app.jsx · EXPENSE_CATS`): 🚕🍽🏨✈🛣⛽📋🤝
+  eliminados. Las categorías ahora usan chip de texto + tile con **monograma** en el color del
+  `tone` (on-brand, sin pictograma emoji). Verificado: Mobile ERP sin emojis.
+- **#6 Terminología** (`operario/avisos.jsx`): "WhatsApp del bodeguero" → "del almacenista".
+- **#7 Reclamo interno:** se deja **a propósito** — en el módulo Conversaciones del ERP
+  "reclamo" es un tipo de conversación operativa interna (clasificación correcta). Lo de cara
+  al cliente ya se unificó a "Soporte/casos" (Portal web + móvil). Sin cambios.
+
+---
+
+## 2026-06-02 · 🔗 T&C única fuente + enlace del cotizador (cierre de pendientes)
+
+- **T&C unificada (1 sola fuente runtime):** `Aceptación T&C · Cotización.html` (demo) ahora
+  carga `erp/modules/admin-legal.jsx` y deriva `LEGAL_DOCS` de `window.LegalData.currentDocs()`
+  en vez de tener su propia copia hardcodeada. El modal del Portal, el repositorio del ERP y el
+  demo leen del mismo origen; cambiar el texto en `admin-legal.jsx` (`LEGAL_BODY`) propaga a todo.
+- **Enlace del cotizador:** el cotizador exprés (`portal/mobile-extra.jsx · CotizadorScreen`)
+  ya publicaba al ERP (`pushPortalEvent kind:'cotizacion'`); ahora el estado de éxito da una
+  **referencia rastreable** (`SOL-2026-XXX`) y explica que la solicitud aparecerá como
+  "Cotización en proceso" en Mis envíos y que se avisará cuando esté lista para aceptar —
+  cerrando el ciclo solicitud → cotización formal → aceptación.
+
+---
+
+## 2026-06-02 · 📁 Carpeta legal/ · 3 documentos (md canónico + docx original)
+
+Se guardaron los tres documentos legales del negocio en `legal/`, cada uno en **.md**
+(canónico, lo lee Claude Code directo) + **.docx** (original para subir a la web / firmar):
+- **Terminos-Condiciones-DTD-v2.1** (cliente · v2.1 · 1 may 2026) — texto idéntico al de
+  `admin-legal.jsx` y el modal del Portal.
+- **Acuerdo-Operador-Consolidacion-ES-ZH** (interno · contrato B2B con el operador, bilingüe).
+- **Brief-Seguro-Operador-ES-ZH** (interno · encargo de póliza a aseguradoras CN, bilingüe).
+- `legal/README.md` indexa los tres (versión, ámbito cliente/interno, regla de sincronía con
+  `admin-legal.jsx`, y los `[…]` legales pendientes de abogado). Referenciado desde `CLAUDE.md`
+  para que el handoff a Claude Code los descubra. Texto extraído exacto de los .docx adjuntos;
+  nombres de proveedor quedan entre `[corchetes]` en los internos (de cara al cliente: "el
+  Operador de Consolidación", sin nombre).
+
+---
+
+## 2026-06-02 · 🧾→✍️ Gate de firma antes de facturar (recepción CN → cotización → aceptación)
+
+Resuelve el hueco: en el modelo puerta a puerta el precio firme solo existe tras medir en
+el almacén CN, así que la **cotización vinculante y la firma del cliente deben ocurrir ahí**,
+antes de facturar (si no, AUT-04 facturaba sin que el cliente hubiera firmado nunca).
+
+- **`erp/flujo-reglas.jsx`:** nueva regla **AUT-04a** (op-recibir → com-quote): al recibir y
+  medir en CN genera/reliquida la cotización formal con CBM/peso real y la manda a aceptar.
+  **AUT-04** (facturación) ahora queda **condicionada** a `aceptacion = registrada` — la
+  factura no se emite hasta que haya aceptación. Log actualizado.
+- **Portal web** (`portal/app.jsx · PortalShipmentDetail`) y **móvil** (`portal/mobile.jsx ·
+  PMDetail`): el gate de aceptación ahora cubre `cotizado` **y** `recibido CN` sin aceptación
+  previa (`needsAccept`, chequea `window.LegalData.ACCEPTANCES`). Para `recibido CN` muestra
+  banner "Tu carga llegó y se midió · falta tu aceptación" con la medida real y la condición
+  "la factura no se emite hasta que firmes", y el botón "Aceptar cotización · medida real".
+- **Data:** seed `DTDU-461245` (Acindar, `recibido CN`, pendiente de firma) para demostrar el
+  caso "compró directo en China → llegó y se midió → cotizá y firmá".
+- Verificado en vivo (web): banner + gate + aceptación → `OS-2026-1245` registrada.
+
+---
+
+## 2026-06-02 · 🔗 Aceptación legal cableada en el Portal real (web + móvil)
+
+El modal de aceptación quedó integrado en el Portal sobre las cotizaciones (envíos en
+estado `cotizado`), reemplazando el botón suelto y escribiendo en el registro del ERP.
+- **Fuente única de contenido:** `erp/modules/admin-legal.jsx` ahora expone `LEGAL_BODY` +
+  `window.LegalData.currentDocs()` (versión vigente con cuerpo completo). El modal del
+  Portal y el "Ver" del ERP leen lo mismo. Cargado en `Portal del Cliente.html` y
+  `Portal Cliente Mobile.html`.
+- **Portal web** (`portal/app.jsx`): `PortalAcceptModal` + `PortalDocViewer` +
+  `PortalAcuseModal`; en `PortalShipmentDetail`, si `status==='cotizado'` se muestra
+  "Aceptar cotización" → casilla obligatoria (gating) → confirma → registra evidencia en
+  `window.LegalData.ACCEPTANCES` (unshift) → acuse con `OS-…` + hash; luego "Ver acuse".
+- **Portal móvil** (`portal/mobile.jsx`): `PMAcceptFlow` + acuse en `PMDetail`, mismo flujo
+  con `U.Modal`.
+- **Data:** nuevo envío seed `DTDU-460118` (Acindar `DTD-5452`, `cotizado`) en `erp/data.jsx`
+  para que el flujo sea visible por defecto. (Se evitó colisión con `DTDU-419032` existente.)
+- Verificado en vivo (web + móvil): gating real, generación de orden, evidencia registrada
+  y consultable desde Administración → Aceptaciones T&C.
+
+---
+
+## 2026-06-02 · ⚖️ Aceptación legal de cotizaciones · modal + repositorio + registro
+
+**Modal de aceptación** (`Aceptación T&C · Cotización.html`, nuevo): paso obligatorio entre
+"Aceptar cotización" y la generación de la orden. Casilla obligatoria con 2 enlaces (T&C DTD
++ Condiciones del Operador), cada uno abre su visor con versión y vigencia; "Confirmar"
+bloqueado hasta marcar; al confirmar registra evidencia (cliente, cotización, doc+versión,
+fecha/hora, IP, hash) y genera la orden `OS-…`. Contenido legal **final** (T&C v2.1 · 11
+secciones; Operador v1.4 · 9 secciones), texto exacto, sin nombrar proveedores.
+
+**ERP · dos componentes nuevos** (`erp/modules/admin-legal.jsx`, `window.LegalData` +
+`window.AdminLegalDocs` + `window.AdminAcceptances`):
+- **Configuración → Documentos legales:** repositorio versionado; cada doc con versión
+  vigente + fecha de vigencia + histórico (vigente/archivada) + nº de aceptaciones.
+- **Configuración → Aceptaciones T&C:** registro consultable (KPIs, buscador, filtro por
+  documento, tabla con acuse/cliente/cotización/docs+versión/fecha, badge ámbar si la
+  versión aceptada ya no es la vigente, y modal de detalle con toda la evidencia).
+- Registradas en `ADMIN_SECTIONS` (grupo INTERMEDIO) + routing en `admin.jsx`; script
+  cargado en `DTD Studio · ERP.html`. Verificado en vivo (8 aceptaciones seed, repositorio
+  con histórico). **Pendiente:** cablear el modal en el Portal real (web + móvil) sobre las
+  cotizaciones, reemplazando el botón actual.
+
+---
+
+## 2026-06-02 · 🚩 Feature flag · Programa de referidos (default OFF → "Próximamente")
+
+Nuevo flag **`referidos`** (default **false**) en `erp/feature-flags.jsx`. Card de toggle
+agregada en el admin (`erp/modules/admin.jsx · SectionFeatures`, grupo "Comunicación con
+cliente"). Gating de cara al cliente: `portal/app.jsx · PortalReferidos` y
+`portal/mobile-extra.jsx · ReferidosScreen` muestran un estado **"Próximamente"** (ícono +
+copy) cuando el flag está OFF, y el programa completo cuando está ON. Para que el portal lea
+el mismo flag que escribe el admin, se cargó `erp/feature-flags.jsx` en `Portal del Cliente.html`
+y `Portal Cliente Mobile.html` (mismo `localStorage dtd_feature_flags_v1`). Verificado en
+vivo: OFF→Próximamente, ON→programa. Default queda OFF (reglas del programa aún en definición).
+
+---
+
+## 2026-06-02 · 🎫 Portal · fusión Reclamos + Soporte → "Soporte"
+
+`portal/mobile-extra.jsx` + `portal/mobile.jsx`. Se unificaron las dos subpantallas del
+menú "Más" en una sola **Soporte**: el `SoporteScreen` ahora combina el bloque del agente
+(Martina · WhatsApp/Email), la lista "TUS CASOS" (lo que eran reclamos → IDs `SP-2026-…`,
+con tipo + estado) y el alta "Nuevo caso" (tipo + embarque opcional + descripción).
+`ReclamosScreen` eliminado (función + export + routing `sub==='reclamos'`); el menú "Más"
+pasa de 2 filas (Reclamos + Soporte) a 1 (Soporte · "Abrí un caso o hablá con tu agente").
+**Sin la palabra "tickets"** por pedido — se usa "caso(s)". Verificado en vivo.
+
+**Portal web** (`portal/app.jsx`): misma fusión. Se eliminó el tab "Reclamos" del nav y la
+función `PortalReclamos`; `PortalSupport` ahora combina el chat del agente + canales
+(WhatsApp/Email) con la lista "Tus casos" (`SP-2026-…`) y el alta "Nuevo caso" (reusa
+`NewReclamoForm`/`ReclamoDetail` con textos renombrados reclamo→caso). Verificado: nav sin
+Reclamos, Soporte muestra casos + agente, sin la palabra "reclamo" de cara al cliente.
+
+---
+
+## 2026-06-02 · ⏳ Spinner de marca · descargable desde el Brand Book (SVG + Lottie + GIF)
+
+Generado en `app-spinner/`: `spinner.svg` (isólogo con pulse, vector self-contained, ~14KB),
+`spinner.lottie.json` (apps móviles) y `spinner.gif` (encoder GIF89a inline, 18 frames,
+paleta de marca). En `Brand Book DTD v3.2.html` (sección Aplicaciones, debajo del App icon)
+se agregó un bloque con preview SVG animado en vivo + 3 botones de descarga (blob-fetch).
+Card "05 · Spinner" del grid actualizada ("SVG · Lottie · GIF ↑"). Verificado: los 3 assets
+responden 200.
+
+---
+
+## 2026-06-02 · 🏷 Terminología · Compra = Orden = Prealerta (opción b)
+
+Investigado (couriers puerta-a-puerta US/VE): "prealerta" = el cliente avisa que viene
+mercancía. Es el mismo registro que la "Compra" (cliente) y la "Orden" (interno).
+`portal/app.jsx · PortalSuppliers`: subtítulo reescrito anclando el concepto ("Cada compra
+es una prealerta…"), manteniendo "Nueva compra" como CTA. `CLAUDE.md`: nueva sección de
+terminología Compra/Orden/Prealerta (regla por audiencia, como MARKBOX/Shipping Mark).
+
+---
+
+## 2026-06-02 · 🎨 Brand Book v3.2 · App icon descargable (PNG + ZIP)
+
+`Brand Book DTD v3.2.html` (renombrado desde v3.1, contenido v3.2 —
+refs actualizadas en `CLAUDE.md`/`HANDOFF`/`admin-brand.jsx`). En la sección Aplicaciones se agregó el bloque
+**App icon · iOS + Android** con preview + botones **Descargar PNG (1024)** (`<a download>`)
+y **Descargar ZIP · todos los tamaños** (JSZip vía CDN, empaqueta los 20 PNGs de `app-icon/`
+en el navegador). Fila de changelog v3.2 + versión bumpeada (título, sidebar, portada, footer).
+Assets reales en `app-icon/` (master 1024 + iOS + Android adaptive), generados de la dirección A.
+
+---
+
+## 2026-06-02 · 🔒 Portal · hint "Es tu cédula" solo post-registro (seguridad)
+
+`portal/app.jsx · PortalLogin`: el hint "💡 Es tu cédula" se mostraba en **cualquier**
+primer acceso (`!dtd-portal-visited`) — riesgo de seguridad (revela que la contraseña es la
+cédula a quien abra el login). Ahora se muestra **solo** cuando el usuario viene del registro:
+gate por `sessionStorage('dtd-from-registro')`, que `portal/registro.jsx` setea en "Ir al
+portal" y `PortalLogin` borra al entrar (one-time). En un login normal nunca aparece.
+
+---
+
+## 2026-06-02 · 📱 App "DTD Cargo" · ícono + nombre de instalación + sidebar redimensionable
+
+- **Nombre de app:** la app instalable se llama **DTD Cargo**. Agregadas metas en
+  `Operario · App.html` (`apple-mobile-web-app-title`, `application-name`, `…-capable`).
+- **Ícono de app** (`App Icon · DTD Cargo.html`, nuevo): un solo ícono iPhone/Android sobre
+  el isólogo de marca. 3 direcciones (A navy+cream+glow wine [recomendado], B wine sólido,
+  C cream+primary), mock home iOS (squircle + label "DTD Cargo"), adaptive Android
+  (círculo/squircle/rounded, marca al 54% safe-zone) y fila de tamaños (120→29) para legibilidad.
+- **Sidebar redimensionable** (`erp/shell.jsx`): handle de arrastre en el borde derecho del
+  sidebar expandido que reescribe la var CSS `--sb-expanded` (sidebar + contenido se
+  sincronizan). Límite **200–280px**; el mínimo 200 es el ancho donde el label más largo
+  ("Naviera & Consolidación") aún entra en una línea (debajo se cortaría). Ancho persistido
+  en `localStorage` (`dtd-sb-w`); transición desactivada durante el drag para que sea fluido.
+
+---
+
+## 2026-06-02 · 📌 Sidebar v2 · gap real del sticky (modo colapsado)
+
+El fix anterior no alcanzaba en modo colapsado: `sticky top:0` pega el botón "+ Crear"
+contra el **content-box** del `<nav>`, dejando el `padding-top:14px` del nav como strip
+visible por encima donde se asomaban los íconos. Fix real: se movió el `padding-top` del
+`<nav>` (`padding: '0 10px 14px'`) al propio contenedor del botón Crear (`padding: '12px 0 10px'`,
+sin `marginTop`). Ahora el sticky pega contra el borde del nav (gap = 0). `erp/shell.jsx`.
+
+---
+
+## 2026-06-02 · 📌 Sidebar · botón "Crear" tapa los ítems al hacer scroll
+
+`erp/shell.jsx · CreateButton`: el botón "+ Crear" es `position: sticky` pero el `<nav>`
+tiene `padding-top: 14px`, dejando un strip por encima del botón donde los íconos de los
+módulos se asomaban al scrollear. Fix: el contenedor del botón ahora extiende su fondo
+(`--bg-nav`) sobre ese padding (`padding-top: 14`, `marginTop: -14`), tapándolos.
+
+---
+
+## 2026-06-02 · 🧹 Consolidación · `Operario · App.html` reemplaza a `Operario Multi.html`
+
+El multimodo quedó unificado en **`Operario · App.html`** (login único → auth → ruteo por
+rol → picker multi-rol → modos conectados, con sesión persistente e íconos `window.Icon`).
+`Operario Multi.html` era la versión vieja standalone (sin limpieza de emojis) → **eliminado**.
+- `erp/modules/operarios-pwa.jsx`: la card `{id:'multi'}` ahora apunta a `Operario · App.html`
+  (name "Operario · App").
+- `HANDOFF-MOBILE.md`: tabla de ruteo y de apps actualizadas a `Operario · App.html`.
+- Quedan referencias **históricas** en `CHANGELOG` (entradas viejas) y menciones cosméticas
+  (`Reporte DTD-Cargo.html`, label de dispositivo en `Login y Sesión · Operario.html`) que no
+  afectan el producto.
+
+---
+
+## 2026-06-02 · 🧮 Calc en campos de dinero ($) + íconos del home Operario CN
+
+**#4 Calculadora en campos de dinero (ERP web):** `erp/components.jsx · Input` ahora activa
+el modo calculadora también cuando `prefix === '$'` (antes solo `type="number"`). Cubre
+automáticamente Facturación (base/monto), Tesorería (monto a pagar), Cotización (tarifa CBM),
+Tarifas (tarifa/min charge) y Embarques (valor declarado). Pendiente menor: inputs nativos
+`<input type="number">` fuera de `ERPUI.Input` (cobranzas pago, contabilidad saldo,
+`catalog-lines` qty/rate) — no aceptan `+` por ser nativos; requieren conversión puntual.
+
+**#1 Emojis del home Operario CN → window.Icon:** `operario/app.jsx` — 📷 (Escanear/Tomar
+foto/scan/+Foto/Nueva recepción) → nuevo ícono de sistema `camera` (agregado a `erp/icons.jsx`);
+✍️ (recibir manual) → `Icon.edit`. Home y flujo de recepción quedan sin emojis.
+
+---
+
+## 2026-06-02 · 🧾 Step4 · resumen incluye alertas de carga (comentario inline)
+
+`operario/app.jsx · Step4Confirm`: el resumen no traía las **alertas de carga** marcadas en
+Step3 (Frágil, Peligrosa, etc.). Agregada fila "Alertas" que lista `reception.flags`
+(con etiquetas ES/中文) + el comentario `flagNote` si existe. De paso se limpiaron dos emojis
+del resumen (📷 Fotos → "Fotos", 🟠 en Cliente huérfana → quitado).
+
+---
+
+## 2026-06-02 · 📐 Fix · MobileInput no desborda en grids (min-width:0)
+
+`operario/app.jsx · MobileInput`: en columnas grid (`1fr 1fr` de Cajas/CBM) el `<input>`
+tiene `min-width:auto` por defecto y forzaba el ancho de la columna → el sufijo "m³" se
+salía a la derecha. Agregado `minWidth: 0` al `<label>`, al contenedor flex y al `<input>`.
+Verificado: el borde derecho del CBM ahora alinea exacto con los campos de ancho completo.
+
+---
+
+## 2026-06-02 · 🧩 Step3Data · descripción ↔ rangos (lógica de herencia, comentario SAM)
+
+`operario/app.jsx · Step3Data`. La descripción de arriba ya no se "pierde" al abrir rangos:
+- **Un solo artículo:** se describe en el campo de arriba (sin abrir rangos).
+- **Al abrir el primer rango:** `addRange` siembra la descripción de arriba en el rango 1 y
+  **limpia** el campo superior; este se oculta y muestra "La descripción quedó desglosada por
+  rango abajo". Las descripciones pasan a vivir por rango.
+- **Al borrar el último rango:** `delRange` restaura esa descripción al campo de arriba (no se
+  pierde el dato del artículo único).
+- Helper contextual (sin rangos vs con rangos). Resumen de Step4 muestra la descripción única
+  o, si hay rangos, el combinado `1–5: … · 6–10: …`.
+
+---
+
+## 2026-06-02 · 🧮 Regla calculadora system-wide + CBM/peso por rango con prorrateo
+
+**Calculadora (toda entrada numérica/monetaria, web + app):** `erp/components.jsx · Input`
+ahora evalúa sumas/restas tipo calculadora — automático con `type="number"` (o prop `calc`):
+escribís `32+1`, muestra "= 33" en vivo y colapsa a `33` al salir. Misma mecánica ya en
+`operario/app.jsx · MobileInput` (prop `calc`, aplicada a Cajas/CBM/Peso). Regla documentada
+en `CLAUDE.md` (Convenciones).
+
+**CBM por rango + prorrateo (`Step3Data`):** cada rango ahora tiene peso **y CBM**, ambos
+**opcionales**. Si se dejan vacíos, el sistema **prorratea** el total entre los rangos por
+cantidad de cajas (placeholder muestra el valor prorrateado en gris; si el usuario escribe,
+sobreescribe). Se revirtió el modelo anterior "total = Σ rangos / read-only": ahora el total
+es primario y los rangos son desglose opcional que prorratea. Helper y fila de rango
+actualizados (kg + m³ + borrar, `flex-wrap`).
+
+---
+
+## 2026-06-01 · 🧾 Operario CN · Step3Data rediseñado (comentarios de SAM)
+
+`operario/app.jsx · Step3Data` (recepción · datos). Atiende los 4 comentarios:
+- **Sin HS code:** se eliminó el campo "HS Code" (del form, del estado `reception.hs`,
+  y del resumen de Step4). Reemplazado por una **"Descripción de la mercancía"** de texto
+  libre como forma principal de identificar el contenido.
+- **Descripción + Rango:** el campo de descripción es primario y, al lado del label, un
+  botón **"+ Rango"** desglosa por número de caja (metodología clara que reemplaza el
+  confuso bloque "Descripción por rango"). Helper explica el uso. El `data-comment-anchor`
+  se movió al nuevo input de descripción.
+- **Campos más compactos:** Cajas/CBM perdieron `large` (56→48px, 24→15px); el CBM ya no
+  "se sale" del diseño.
+- **Regla calculadora:** los rangos son líneas; el **peso de cada rango suma automático**
+  al Peso total (que pasa a read-only mostrando "Σ rangos"). Se quitó el botón manual
+  "Usar como peso total". Fila de rango recompactada (kg agrupado, `flex-wrap`) — sin overflow.
+- `MobileInput` ahora acepta `readOnly` y **`calc`**: en modo calc los campos numéricos
+  evalúan sumas/restas tipo calculadora (escribís `32+1`, muestra "= 33" en vivo y colapsa
+  a `33` al salir). Aplicado a **Cajas, CBM y Peso total**.
+
+---
+
+## 2026-06-01 · 🔤 Títulos de login robustos + "Bodeguera"→"Almacenista" en el directorio ERP
+
+**Solape de texto (títulos de login):** se confirmó que NO era bug — el render real
+(con Sora cargada) tiene gap de ~12px; el solape solo aparecía en el generador de
+miniaturas, que no carga la webfont `Sora` (`--f-display`) → fallback más ancho → el
+hero parte en 3 líneas y desborda. Igual se reforzaron los títulos de login para ser
+robustos ante cualquier fuente: `operario/ve.jsx` ("Entregas DDP Venezuela" → 26px/1.2,
+`maxWidth:14ch`, sin `<br/>`), `operario/app.jsx` ("Almacén Yiwu" → 26px/1.3),
+`operario/bodeguero.jsx` ("Armar camiones" → 26px/1.3); subtítulos con `marginTop` 8→12.
+En el bundle `design_handoff_mobile_app/` se quitaron los thumbnails de login por-app
+(02/03/04/06) que el generador renderizaba con el artefacto; el login on-brand queda
+representado fielmente en `01-sesion-canvas.png`. README del bundle actualizado.
+
+**Unificación de terminología (directorio ERP):** `erp/modules/operarios-pwa.jsx` —
+`op-005` (Yusneidy Rojas) `roleLabel: 'Bodeguera' → 'Almacenista'` y `app: 'Bodeguero'
+→ 'Almacenista'`; la app del directorio `{id:'bod'}` `name: 'Bodeguero' → 'Almacenista'`
+(archivo `Bodeguero VE.html` y los identificadores de código `BodegueroApp`/`BodegueroFlows`
+se mantienen). Verificado en vivo: el directorio muestra "Almacenista", sin rótulos
+"Bodeguer". (Pendiente menor, fuera de alcance: prosa "WhatsApp del bodeguero" en
+`operario/avisos.jsx` y categorías de gasto con emoji en `mobile/app.jsx`.)
+
+---
+
+## 2026-06-01 · 🎨 Brand cleanup · operario flows on-brand (logo + emojis → window.Icon)
+
+Alineación al `CLAUDE.md` de los archivos que el APK unificado (`Operario · App.html`)
+abre por debajo.
+
+- **Logo `invert` → variante oficial:** `<img …icon-navy… filter:'brightness(0) invert(1)'>`
+  → `dtdcargo-isologo-reverse.png` (cream nativo) en `operario/bodeguero.jsx` (L92),
+  `operario/ve.jsx` (L117), `operario/app.jsx` (L124) y `Operario Multi.html` (L55).
+  (Regla CLAUDE.md: nunca invert sobre el isólogo; usar `-reverse` sobre navy.)
+- **Emojis decorativos → `window.Icon` o eliminados** en `bodeguero.jsx` y `ve.jsx`:
+  títulos/saludos (📦👋🚚 quitados); íconos de acción (📦🚛 → `Icon.box`/`Icon.truck`);
+  callouts de estado (ℹ→`Icon.info`, ⚠/⚠️→`Icon.warn` o solo color); stats de ruta
+  (📦📊🛣 quitados, las unidades ya rotulan); placeholders de foto (🚛📦 → `Icon.truck`/
+  `Icon.box`); botones (💬 Enviar WhatsApp, 🔄 Borrar → sin emoji); marcador GPS en SVG
+  (🚛 → punto blanco). Total ~25 spots.
+- **Se DEJARON a propósito:** el template del mensaje de WhatsApp (🚛📍📦⏰ — es copy de un
+  mensaje real, no UI) y el avatar del canal WhatsApp (💬 sobre verde #25D366), más los
+  ✓ checkmarks tipográficos.
+- **Cerrado después (misma sesión):** `operario/app.jsx` (Operario CN) — step icons
+  (📦✓🏬🚢🌊 → `Icon.box/check/warehouse/box/globe`), íconos de card/lista/drawer/PhotoMock
+  (📦🏷📋⚠️ → `Icon.box/tag/doc/warn`), flujo de impresión (🖨🏢 → nuevos `Icon.print` /
+  `Icon.building`), y decorativos (📸🖨 quitados, ⚠/ℹ → `Icon.warn`/`Icon.info`); logo
+  invert→reverse. `mobile/app.jsx` — logo invert→reverse. **Nuevos íconos de sistema**
+  `print` y `building` agregados a `erp/icons.jsx` (aditivo). Verificado: `Operario CN.html`
+  carga limpio, sin invert, sin emojis (solo ✓ tipográficos).
+- **Pendiente menor:** categorías de gasto con emoji en `mobile/app.jsx` (EXPENSE_CATS,
+  🚕🍽🏨…) — ese es el ERP móvil, no la app de operario; queda para otra pasada.
+- **Verificado:** `Operario · App.html` (flujos recepción/despacho/entrega renderizan
+  con íconos, sin emojis, sin errores), `Bodeguero VE.html` y `Operario VE.html` cargan
+  limpios con logo `-reverse`.
+
+---
+
+## 2026-06-01 · 🔑 Operario · App.html — entry unificado (auth → ruteo por rol → sesión)
+
+**`Operario · App.html`** (nuevo) · el **APK único** funcional que cablea la capa que
+faltaba: login único → auth → ruteo por rol → home, sin re-login. Hace tangible el
+concepto de `HANDOFF-MOBILE.md`.
+
+- **Auth mock** (`DIRECTORY` + `authenticate()`): 4 perfiles demo (rbriceno=multi,
+  yrojas=almacenista, jmateran=transportista, wchen=operario_cn), pass `1234`.
+  Simula el `POST /auth/login` que devuelve `{ tenant, roles }`. La app NO decide el
+  rol — lo trae el perfil.
+- **Ruteo por rol** (`homeFor()`): 1 rol almacenista→`bodega`, transportista→`chofer`,
+  multi→`picker`; `operario_cn`→`window.location='Operario CN.html'`.
+- **Sesión persistente** (`localStorage 'dtd_op_session_v1'`): con "Recordar este
+  dispositivo" (ON), al reabrir arranca en **PinUnlock** (PIN 1234; 5 fallos →
+  re-login con contraseña). Cerrar sesión limpia la sesión.
+- **Homes reusados** del patrón de Operario Multi, parametrizados con el `profile`
+  (nombre, iniciales, sitio, vehículo); el menú muestra "Cambiar de modo" solo si
+  `roles.length > 1`. Conectados a `window.BodegueroFlows` (rcp/despacho) y
+  `window.OperarioVEFlows.DeliveryFlow` (entrega) — sin re-login.
+- **On-brand:** login con logo `-reverse` (sin invert), `window.Icon`, Sora/Nunito Sans,
+  inputs reales (usuario+contraseña). Átomos prefijados `UA*` para no colisionar con
+  el scope global de `bodeguero.jsx`. (Los homes heredan los emojis del patrón Multi —
+  pendiente de limpieza a `window.Icon`, ya anotado.)
+- **Verificado en vivo:** 3 caminos de ruteo, menú condicional por rol, logout,
+  persistencia de sesión + desbloqueo por PIN. Sin errores de consola.
+
+---
+
+## 2026-06-01 · 📱 Login y Sesión · Operario + Handoff Móvil
+
+**`Login y Sesión · Operario.html`** (nuevo) · canvas (design_canvas) con los 6 estados
+de la lógica de sesión de la app de teléfono: (1) primer ingreso con "Recordar este
+dispositivo", (2) dispositivo vinculado + crear PIN + biometría, (3) desbloqueo diario
+por PIN, (4) desbloqueo biométrico, (5) sesión expirada → re-login, (6) reset desde el
+ERP (PIN temporal 24 h). On-brand: logo `-reverse` sobre navy (sin `filter: invert`),
+`window.Icon`, Sora/Nunito Sans, único gradiente permitido navy→ink. Huella = glifo
+iconográfico propio. `DCPostIt` no se usó (no acepta `tone` y es absolute) → se reemplazó
+por `NoteCard` (artboards) para las 2 notas de cierre.
+
+**`HANDOFF-MOBILE.md`** (nuevo) · instructivo para Claude Code del **paquete completo del
+teléfono**: principio de un APK multi-tenant, detección de rol → ruteo (operario /
+almacenista / transportista / multi-rol), modelo de tokens (access + refresh, "grabá la
+sesión nunca la contraseña"), PIN/biometría, recuperación por admin, control desde
+`operarios-pwa.jsx`, tabla de apps/flujos existentes + seam de reuso (`BodegueroFlows` /
+`OperarioVEFlows`, regla IIFE), offline-first, endpoints conceptuales contra `window.DTDApi`,
+y orden sugerido de implementación. Enlazado desde `HANDOFF.md` (orden de lectura +
+tabla de entrypoints).
+
+---
+
+## 2026-06-01 · 🔗 Operario Multi · shell multi-rol conectado a los flujos reales
+
+Sesión enfocada en **`Operario Multi.html`** (launcher multi-rol, un solo APK). El
+mismo operario es a veces **almacenista** (modo Bodega) y a veces **transportista**
+(modo Chofer). Se rehízo la lógica de cada modo y se **conectaron los botones a las
+pantallas ya existentes** (sin rediseñar ni duplicar).
+
+**Terminología (decisión del usuario):** `bodeguero → almacenista`, `chofer →
+transportista` en la auto-identificación del picker y en la línea de rol del header.
+Los **nombres de modo** siguen siendo "Bodega"/"Chofer". (Pendiente: el directorio
+`erp/modules/operarios-pwa.jsx` aún rotula `op-005` como "Bodeguera" — no se tocó.)
+
+**Reestructura de cada modo (antes mostraban una card "MODO ACTIVO" + botón de cambio):**
+- **Modo Almacén** → ahora muestra sus 2 acciones reales: **Recibir contenedor** y
+  **Despachar camión** (+ KPIs y agenda).
+- **Modo Chofer** → ahora muestra **Rutas asignadas** (órdenes de servicio, "asignadas
+  por almacén") + "Iniciar próxima ruta".
+- El **cambio de modo** se movió al menú ☰ (cambio directo al otro modo + cerrar sesión).
+
+**Conexión a flujos reales (hallazgo clave: los scripts Babel comparten scope global,
+así que dos `.jsx` sin IIFE pisan sus helpers homónimos — `Steps`, `Login`, `MobileHeader`…):**
+- `operario/bodeguero.jsx` · final (~líneas 759-782) · agregados wrappers
+  `ReceptionFlow` / `DispatchFlow` (manejan el sub-state machine sin el login/home
+  propios) y `window.BodegueroFlows = { ReceptionFlow, DispatchFlow }`. `BodegueroApp`
+  intacto.
+- `operario/ve.jsx` · **envuelto en IIFE** (línea 4 `(function () {` · final `})()`)
+  para no contaminar el scope global y chocar con `bodeguero.jsx`. Agregado
+  `DeliveryFlow` (s0→s5→done con un `route`) + `window.OperarioVEFlows = { DeliveryFlow }`.
+  `window.OperarioVEApp` sigue expuesto (verificado: `Operario VE.html` carga igual).
+- `Operario Multi.html`:
+  - líneas ~29-31 · cargados `erp/icons.jsx`, `operario/bodeguero.jsx`, `operario/ve.jsx`.
+  - `KPI` local renombrado a `ModeKPI` (1 def + 6 usos) para no colisionar con el `KPI`
+    global de `bodeguero.jsx`.
+  - nuevos `view`: `rcp` / `despacho` → `BodegueroFlows.*` con `onExit → 'bodega'`;
+    `entrega` → `OperarioVEFlows.DeliveryFlow` con `onExit → 'chofer'`. `RouteCard`
+    ahora acepta `onClick`; agregado keyframe `erp-shimmer` (lo usa el escáner de recepción).
+
+**Mapa final de conexiones:**
+| Modo | Acción | Pantalla real |
+|---|---|---|
+| Almacén | Recibir contenedor | `ReceptionList → ReceptionScan` (bodeguero.jsx) |
+| Almacén | Despachar camión | `PickTruck → PickDriver → PickItems → Handoff` (bodeguero.jsx) |
+| Chofer | Ruta asignada / Iniciar ruta | `Step0Load → … → Step5POD → Done` (ve.jsx) |
+
+**Verificado:** `Operario Multi`, `Operario VE`, `Bodeguero VE`, `DTD Studio · ERP`
+cargan sin errores; navegación de los 3 flujos + back a home confirmada en vivo.
+Limpieza: borradas 7 capturas de debug propias en `scraps/`.
+
+**Pendientes menores (no bloqueantes):** (1) solape de texto en el nombre del 1er
+cliente en `ve.jsx · Step0Load` (preexistente del diseño); (2) rótulo "Bodeguera" en
+`operarios-pwa.jsx` si se quiere unificar a "Almacenista".
+
+---
+
 ## 2026-06-01 · v2.4 · ✨ Pulido fino · 8 bloques de seed data `TODO: al consolidar` → `erp/data.jsx`
 
 Cierre de los marcadores `// TODO: al consolidar, mover a erp/data.jsx` dispersos —
@@ -129,7 +714,7 @@ Sesión de housekeeping (sin features nuevas). Objetivo: eliminar duplicación y
 - `Brand Book v3.0 Package/` (carpeta completa · 18 archivos) — snapshot v3.0 viejo con su propio `CLAUDE.md` + `tokens.css` pre-migración.
 - `Brand Assets DTD/` (5 archivos) — duplicado puro de los 4 PNG de `assets/`.
 - `design_handoff_dtd_cargo/CLAUDE.md` + `design_handoff_dtd_cargo/tokens.css` — copias viejas (drift). Se conservó su `README.md` (lo referencia `PROMPT-BACKEND.md`) y se le actualizaron refs v3.0→v3.1 + nota de fuentes.
-- **Únicas fuentes de verdad ahora:** assets → `assets/` · tokens → `erp/tokens.css` · marca → `CLAUDE.md` (raíz) · Brand Book → `Brand Book DTD v3.1.html` (+ `· para enviar` standalone).
+- **Únicas fuentes de verdad ahora:** assets → `assets/` · tokens → `erp/tokens.css` · marca → `CLAUDE.md` (raíz) · Brand Book → `Brand Book DTD v3.2.html`.
 
 **3 · Merge `nuevo/` → estructura canónica.** Se retiró el split `erp/` vs `nuevo/`. Todo lo que vivía en `nuevo/` se movió a su lugar definitivo y se reescribieron TODAS las referencias (`<script src>` + `window.open(...)`):
 - `nuevo/{search-select,catalog-lines,feature-flags,rates}.jsx` → `erp/`

@@ -76,6 +76,35 @@
     return t ? t.id : 'dtd';
   }
 
+  // H · Cotizaciones formales generadas desde el portal (cotizador exprés).
+  // Cada solicitud del cliente crea aquí un envío shape con status 'cotizado'
+  // que aparece en "Mis envíos" como "Cotización en proceso" y, al ser revisada
+  // por el agente, pasa a 'cotizado' (lista para aceptar). En prod = /quotes.
+  const portalQuotes = makeStore('dtd-portal-quotes', []);
+
+  // Crea la cotización formal a partir de la solicitud del cotizador.
+  // req: { markbox, clientName, origin, dest, service, cbm, estimate }
+  function pushPortalQuote(req) {
+    const seq = String(900 + ((portalQuotes.read() || []).length) + Math.floor(Math.random() * 90));
+    const ship = {
+      id: 'Q-2026-' + seq, type: req.service || 'LCL DDP',
+      client: req.markbox, clientName: req.clientName || req.markbox,
+      origin: req.origin, destination: req.dest,
+      cbm: Number(req.cbm) || 0, weight: 0, value: Number(req.estimate) || 0,
+      status: 'cotizado', etd: null, eta: null, progress: 0, vessel: null, container: null,
+      invoice: null, billed: false, paid: false, alert: null,
+      quoteStage: 'en-proceso', quoteRef: req.ref || null, createdAt: new Date().toISOString(),
+    };
+    const cur = portalQuotes.read() || [];
+    portalQuotes.write([ship, ...cur].slice(0, 100));
+    return ship;
+  }
+
+  // Envíos extra (cotizaciones del portal) de un MARKBOX, para mergear con SHIPMENTS.
+  function clientQuotes(markbox) {
+    return (portalQuotes.read() || []).filter(q => q.client === markbox);
+  }
+
   // Publica un evento entrante del portal. Auto-tag: id, ts, read, tenantId.
   // evt: { kind:'registro'|'cotizacion'|'recompra', tone, markbox, title, detail, channel, meta }
   function pushPortalEvent(evt) {
@@ -234,8 +263,10 @@
     sendWelcomeEmail, renderTemplate,
     // Portal inbox (eventos cliente → ERP)
     pushPortalEvent, markPortalRead, tenantForMarkbox,
+    // Cotizaciones formales generadas desde el portal
+    pushPortalQuote, clientQuotes,
     resetAll: () => {
-      ['dtd-cn-inbox','dtd-clients','dtd-rules','dtd-routes','dtd-cities','dtd-rates','dtd-emails-sent','dtd-portal-inbox'].forEach(k => {
+      ['dtd-cn-inbox','dtd-clients','dtd-rules','dtd-routes','dtd-cities','dtd-rates','dtd-emails-sent','dtd-portal-inbox','dtd-portal-quotes'].forEach(k => {
         localStorage.removeItem(k);
       });
       window.dispatchEvent(new CustomEvent('dtd-data-reset'));

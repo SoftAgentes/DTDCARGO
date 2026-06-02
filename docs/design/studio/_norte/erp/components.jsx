@@ -53,7 +53,13 @@ function Btn({ variant = 'secondary', size = 'md', icon, iconRight, children, on
 }
 
 // ── Input ─────────────────────────────────────────────────────
-function Input({ label, value, onChange, placeholder, type = 'text', prefix, suffix, hint, error, required, mono, style = {}, inputStyle = {}, ...rest }) {
+function Input({ label, value, onChange, placeholder, type = 'text', prefix, suffix, hint, error, required, mono, calc, style = {}, inputStyle = {}, ...rest }) {
+  const [raw, setRaw] = React.useState(null);
+  const calcOn = calc || type === 'number' || prefix === '$';
+  const evalSum = (s) => { const m = String(s).match(/[+\-]?\s*\d*\.?\d+/g); if (!m) return ''; const tot = m.reduce((a, tk) => a + (parseFloat(tk.replace(/\s/g, '')) || 0), 0); return String(Number.isInteger(tot) ? tot : +tot.toFixed(2)); };
+  const display = calcOn && raw !== null ? raw : (value == null ? '' : value);
+  const hasOp = calcOn && raw !== null && /\d\s*[+\-]\s*\d/.test(raw);
+  const handle = (e) => { if (calcOn) { const txt = e.target.value; setRaw(txt); onChange && onChange({ target: { value: evalSum(txt) } }); } else { onChange && onChange(e); } };
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
       {label &&
@@ -72,9 +78,12 @@ function Input({ label, value, onChange, placeholder, type = 'text', prefix, suf
         
         {prefix && <span style={{ color: 'var(--ink-mute)', font: '500 13px/1 var(--f-sans)' }}>{prefix}</span>}
         <input
-          type={type}
-          value={value || ''}
-          onChange={onChange}
+          type={calcOn ? 'text' : type}
+          inputMode={calcOn ? 'decimal' : undefined}
+          value={display}
+          onChange={handle}
+          onFocus={calcOn ? () => setRaw(value == null ? '' : String(value)) : undefined}
+          onBlur={calcOn ? () => setRaw(null) : undefined}
           placeholder={placeholder}
           style={{
             flex: 1, height: '100%', border: 0, outline: 'none', background: 'transparent',
@@ -83,6 +92,7 @@ function Input({ label, value, onChange, placeholder, type = 'text', prefix, suf
             ...inputStyle
           }}
           {...rest} />
+        {hasOp && <span style={{ color: 'var(--wine)', font: '700 13px/1 var(--f-mono)', whiteSpace: 'nowrap' }}>= {evalSum(raw)}</span>}
         
         {suffix && <span style={{ color: 'var(--ink-mute)', font: '500 13px/1 var(--f-sans)' }}>{suffix}</span>}
       </div>
@@ -764,8 +774,28 @@ function ColumnManager({ cfg, setCfg, columns, defaultCfg, notes = {} }) {
 
 }
 
+// ── CalcInput ─────────────────────────────────────────────────
+// Input nativo (sin wrapper) con la regla calculadora del sistema:
+// escribís "32+1" y al salir queda "33". Para campos inline (cobranzas,
+// contabilidad, líneas de factura) que no usan el wrapper de ERPUI.Input.
+function CalcInput({ value, onChange, style = {}, placeholder, ...rest }) {
+  const [raw, setRaw] = React.useState(null);
+  const evalSum = (s) => { const m = String(s).match(/[+\-]?\s*\d*\.?\d+/g); if (!m) return ''; const tot = m.reduce((a, tk) => a + (parseFloat(tk.replace(/\s/g, '')) || 0), 0); return String(Number.isInteger(tot) ? tot : +tot.toFixed(2)); };
+  const display = raw !== null ? raw : (value == null ? '' : value);
+  return (
+    <input
+      type="text" inputMode="decimal" placeholder={placeholder}
+      value={display}
+      onChange={(e) => { const txt = e.target.value; setRaw(txt); onChange && onChange({ target: { value: evalSum(txt) } }); }}
+      onFocus={() => setRaw(value == null ? '' : String(value))}
+      onBlur={() => setRaw(null)}
+      style={style}
+      {...rest} />);
+
+}
+
 window.ERPUI = {
-  Btn, Input, Select, Badge, StatusBadge, Card, PageHeader, KPI, Table,
+  Btn, Input, CalcInput, Select, Badge, StatusBadge, Card, PageHeader, KPI, Table,
   EmptyState, Skeleton, LoadingRows, Avatar, Progress, Tabs, Drawer, Modal,
   Toolbar, Field, useColumns, applyColumns, ColumnManager,
   useHideValues, setHideValues, getHideValues, maskVal, useFirstLoad

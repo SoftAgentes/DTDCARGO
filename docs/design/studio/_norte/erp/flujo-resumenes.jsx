@@ -301,7 +301,7 @@
       const all = [...rec, ...inc];
       return {
         kpis: [
-        { k: 'Reclamos', v: rec.length, tone: 'danger' },
+        { k: 'Casos', v: rec.length, tone: 'danger' },
         { k: 'Incidencias', v: inc.length, tone: 'warning' }],
 
         recordsTitle: 'Casos abiertos',
@@ -309,7 +309,7 @@
           icon: 'warn', title: c.client, sub: c.type + (c.shipment ? ' · ' + c.shipment : ''),
           right: c.priority, tone: c.priority === 'alta' ? 'danger' : 'warning', chip: c.id, href: ERP('conversations')
         })),
-        action: { kind: 'link', label: 'Abrir Reclamos', href: ERP('conversations') }
+        action: { kind: 'link', label: 'Abrir Casos', href: ERP('conversations') }
       };
     },
 

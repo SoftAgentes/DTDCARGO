@@ -86,6 +86,9 @@ const Icon = {
   eye: (s=18) => _wrap(s, [_ipath('M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z'), _icirc(12,12,3)].map((e,i)=>React.cloneElement(e,{key:i}))),
   idcard: (s=18) => _wrap(s, [_irect(3,5,18,14,2), _icirc(8.5,11,2.2), _ipath('M5.5 16c0-1.8 1.6-2.8 3-2.8s3 1 3 2.8M14 9.5h4M14 12.5h4M14 15.5h2')].map((e,i)=>React.cloneElement(e,{key:i}))),
   hardhat: (s=18) => _wrap(s, [_ipath('M3 17a9 9 0 0 1 18 0'), _ipath('M2 17h20'), _ipath('M10 8.6V6a2 2 0 0 1 4 0v2.6'), _ipath('M9 9.6a9 9 0 0 1 6 0')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  print: (s=18) => _wrap(s, [_ipath('M6 9V3h12v6'), _ipath('M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2'), _irect(6,14,12,7,1)].map((e,i)=>React.cloneElement(e,{key:i}))),
+  building: (s=18) => _wrap(s, [_irect(4,2,16,20,1.5), _ipath('M9 22v-4h6v4'), _ipath('M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01')].map((e,i)=>React.cloneElement(e,{key:i}))),
+  camera: (s=18) => _wrap(s, [_ipath('M3 8h3l1.5-2h7L16 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z'), _icirc(12,13,3.4)].map((e,i)=>React.cloneElement(e,{key:i}))),
 };
 
 window.Icon = Icon;

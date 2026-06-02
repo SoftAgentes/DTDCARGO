@@ -146,7 +146,7 @@ function CreateButton({ collapsed, onSelect, currentUser }) {
   };
 
   return (
-    <div ref={ref} style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-nav)', padding: '0 0 10px', marginBottom: 2 }}>
+    <div ref={ref} style={{ position: 'sticky', top: 0, zIndex: 3, background: 'var(--bg-nav)', padding: '12px 0 10px', marginBottom: 2 }}>
       <button onClick={() => setOpen(v => !v)} title="Crear · se adapta a tu rol"
         style={{ width: collapsed ? 40 : '100%', height: 40, margin: collapsed ? '0 auto' : 0, display: 'flex', alignItems: 'center', justifyContent: collapsed ? 'center' : 'flex-start', gap: 9, padding: collapsed ? 0 : '0 14px', borderRadius: collapsed ? '50%' : 'var(--r-pill)', border: 'none', cursor: 'pointer', background: 'var(--wine)', color: '#fff', font: '800 13px/1 var(--f-sans)', boxShadow: '0 1px 2px rgba(127,15,26,.3), 0 8px 18px -8px rgba(127,15,26,.55)', transition: 'background var(--dur-fast) var(--ease)' }}
         onMouseEnter={(e) => e.currentTarget.style.background = 'var(--wine-deep)'}
@@ -222,6 +222,35 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
   useEffect(() => {
     try { localStorage.setItem('dtd-sidebar-opengroup', openGroup || ''); } catch (e) {}
   }, [openGroup]);
+
+  // Ancho del sidebar ajustable con el mouse · escribe la var CSS (contenido se sincroniza)
+  // Límite: 200px (el label más largo aún entra en 1 línea) … 280px.
+  const SB_MIN = 200, SB_MAX = 280;
+  useEffect(() => {
+    try { const w = parseInt(localStorage.getItem('dtd-sb-w') || '', 10);
+      if (w >= SB_MIN && w <= SB_MAX) document.documentElement.style.setProperty('--sb-expanded', w + 'px'); } catch (e) {}
+  }, []);
+  const startResize = (e) => {
+    e.preventDefault();
+    const aside = document.querySelector('aside');
+    if (aside) aside.style.transition = 'none';
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    const move = (ev) => {
+      const w = Math.max(SB_MIN, Math.min(SB_MAX, Math.round(ev.clientX)));
+      document.documentElement.style.setProperty('--sb-expanded', w + 'px');
+    };
+    const up = () => {
+      document.removeEventListener('pointermove', move);
+      document.removeEventListener('pointerup', up);
+      if (aside) aside.style.transition = '';
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      try { localStorage.setItem('dtd-sb-w', String(parseInt(getComputedStyle(document.documentElement).getPropertyValue('--sb-expanded'), 10) || 248)); } catch (e) {}
+    };
+    document.addEventListener('pointermove', move);
+    document.addEventListener('pointerup', up);
+  };
   // Al navegar a un módulo, abrir su grupo (y colapsar los demás).
   useEffect(() => { if (activeGroup) setOpenGroup(activeGroup); }, [activeGroup]);
 
@@ -380,7 +409,7 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
       </div>
 
       {/* Navigation */}
-      <nav style={{ flex: 1, overflowY: 'auto', padding: '14px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <nav style={{ flex: 1, overflowY: 'auto', padding: '0 10px 14px', display: 'flex', flexDirection: 'column', gap: 4 }}>
         <CreateButton collapsed={collapsed} onSelect={onSelect} currentUser={currentUser} />
         {grouped.map(([group, units]) => {
           const open = !collapsed && openGroup === group;
@@ -436,6 +465,12 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
           {!collapsed && <span>Colapsar</span>}
         </button>
       </div>
+      {!collapsed && (
+        <div onPointerDown={startResize} title="Arrastrá para ajustar el ancho del menú"
+          style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 5, cursor: 'ew-resize', zIndex: 60 }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--wine-soft)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'} />
+      )}
     </aside>
   );
 }

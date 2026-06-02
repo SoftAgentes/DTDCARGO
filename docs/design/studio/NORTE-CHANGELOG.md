@@ -4,6 +4,41 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v2.4c — cargada 2026-06-02 (handoff de Cloud Design · capa LEGAL + handoff mobile dedicado + Brand Book v3.2)
+
+Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v2.4c).zip` (~18 MB). Supersede v2.4b. A diferencia
+de v2.4b (que fue higiene), v2.4c **agrega contenido**. git (mirror): rc=3 · empaque a la raíz del ZIP.
+
+**Nuevo ⭐:**
+- **Capa LEGAL** (`legal/`): **T&C DTD v2.1**, **Acuerdo Operador Consolidación**, **Brief Seguro** —
+  bilingüe ES-中文 (.md + .docx, ~13 KB c/u, son **templates** en blanco) + módulo
+  `erp/modules/admin-legal.jsx` + pantalla `Aceptación T&C · Cotización.html`. La capa legal/contractual
+  entra al diseño.
+- **Handoff mobile dedicado** (`design_handoff_mobile_app/`, 33 archivos · 1 MB): bundle de diseño de la
+  app operario (su propio `erp/` subset + tokens + screens) + `HANDOFF-MOBILE.md` + `design-canvas.jsx`.
+  Pantallas nuevas: `Operario · App.html`, `Login y Sesión · Operario.html`, `App Icon · DTD Cargo.html`,
+  `app-spinner/` (gif/lottie/svg).
+- **Brand Book v3.1 → v3.2**.
+
+**Removió:** `Brand Book DTD v3.1.html` (+ "· para enviar"), `Operario Multi.html` (→ reemplazado por `Operario · App`).
+
+**Cambios de contenido:** módulos cobranzas/contabilidad/conversaciones/dirección/operarios-pwa, portal
+(app/mobile/registro — T&C en cotización/portal), `backend/{API-CONTRACT,README}`, CLAUDE/HANDOFF/CHANGELOG.
+
+**Terminología:** sigue con Bodeguero/Camionero (ahora también en `design_handoff_mobile_app/operario/`) →
+rename **Almacenista/Transportista** re-aplicado (34 archivos).
+
+**`norte.mjs`:** v2.4b→**v2.4c**; GROUPS: Móvil (−Operario Multi, +Operario·App +Login·Operario), Marca
+(Brand Book **v3.2**), inErp (+Legal·T&C), grupo nuevo (+Aceptación T&C, +App Icon). Overlay **50% (10/20)**.
+
+**Para el radar del founder:** (1) **Brand Book v3.2 → propagar a la web** `/marca/brand-book` (regla brand-to-web).
+(2) `admin-legal` + Aceptación T&C = **feature nueva del ERP** (candidato a SDD). (3) Los `legal/` son templates
+(en git, livianos); si se vuelven **contratos ejecutados con PII → fuera de git** (regla AGENTS.md).
+
+**Peso (fuera de git):** `uploads/`, `scraps/`, `screenshots/`, `Brand Book v3.0 Package/`, `_norte.html`.
+
+---
+
 ## v2.4b — cargada 2026-06-01 (handoff de Cloud Design · CONSOLIDACIÓN / higiene de repo · supersede v2.4)
 
 Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v2.4b).zip` (~22 MB). **Supersede el v2.4** de unas

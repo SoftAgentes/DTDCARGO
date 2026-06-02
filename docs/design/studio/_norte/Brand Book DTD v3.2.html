@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>DTD-Cargo · Brand Book v3.1</title>
+<title>DTD-Cargo · Brand Book v3.2</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -230,7 +230,7 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
   <div class="sidebar-head">
     <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" class="iso" />
     <div class="title">DTD Cargo</div>
-    <div class="v">Brand Book · v3.1</div>
+    <div class="v">Brand Book · v3.2</div>
     <div class="sub">Sistema completo de identidad y aplicaciones de marca. Mayo 2026.</div>
   </div>
   <nav id="bb-nav">
@@ -255,7 +255,7 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
   </nav>
   <div class="sidebar-foot">
     <button class="btn-download" onclick="window.print()">⎙ Imprimir / PDF</button>
-    <div class="meta">v3.1 · 31 May 2026</div>
+    <div class="meta">v3.2 · 2 Jun 2026</div>
   </div>
 </aside>
 
@@ -266,7 +266,7 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
 <section id="cover">
   <div class="cover-inner">
     <div class="cover-eyebrow">DTD-Cargo · Brand Book</div>
-    <h1>v3.1 · <span class="accent">una marca,</span><br/>un sistema completo.</h1>
+    <h1>v3.2 · <span class="accent">una marca,</span><br/>un sistema completo.</h1>
     <div class="cover-tag">Identidad visual + aplicaciones operacionales + voz de marca. Reseteo desde el isólogo oficial al spinner de la app móvil — todo coherente, todo derivable.</div>
     <div class="cover-meta">
       <div><span class="k">Versión</span><span class="v">3.1</span></div>
@@ -275,7 +275,7 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
       <div><span class="k">Assets</span><span class="v">+ 40</span></div>
     </div>
     <div class="cover-cta">
-      <a href="#changelog" class="btn primary">→ Ver cambios v2.4 → v3.1</a>
+      <a href="#changelog" class="btn primary">→ Ver cambios v2.4 → v3.2</a>
       <a href="#logo" class="btn ghost">Ir al logo</a>
     </div>
   </div>
@@ -285,10 +285,11 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
 <section id="changelog">
   <div class="sec-head">
     <div class="num">01 / CHANGELOG</div>
-    <h2>De v2.4 a v3.1 · qué cambió</h2>
+    <h2>De v2.4 a v3.2 · qué cambió</h2>
     <p class="lead">Esto NO es un patch — es una revisión mayor. El logo se reconstruyó, las variantes se sistematizaron y se agregaron 5 sistemas nuevos.</p>
   </div>
   <div class="changelog">
+    <div class="row"><span class="tag add">v3.2</span><div><strong>App icon iOS/Android</strong> · ícono oficial de la app DTD Cargo, descargable (PNG + ZIP) desde <b>Aplicaciones (sección 08)</b></div></div>
     <div class="row"><span class="tag add">v3.1</span><div><strong>Barra de navegación clara</strong> · el sidebar del ERP pasa a Papel DTD <code>#FBFAF7</code> con tokens propios <code>--bg-nav</code> (sección 06)</div></div>
     <div class="row"><span class="tag chg">CHANGED</span><div><strong>Wordmark</strong> · de <code>DTDCARGO</code> (una palabra, mayúsculas) a <code>DTD Cargo</code> (dos palabras, capitalizado, Archivo Black, gap 0.15em)</div></div>
     <div class="row"><span class="tag add">NEW</span><div><strong>4 variantes oficiales del isólogo</strong> con reglas WCAG · primary · reverse · mono-light · mono-dark</div></div>
@@ -561,14 +562,80 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
   <div class="sec-head">
     <div class="num">08 / APLICACIONES</div>
     <h2>12 piezas vivas · sistema extendido</h2>
-    <p class="lead">El isólogo no es solo el logo — se aplica a 12 touchpoints operacionales y comerciales.</p>
+    <p class="lead">El isólogo no es solo el logo — se aplica a 13 touchpoints operacionales y comerciales.</p>
   </div>
+
+  <div class="card" style="display:flex; gap:20px; align-items:center; padding:20px; margin-bottom:18px; flex-wrap:wrap;">
+    <img src="app-icon/icon-master-1024.png" alt="DTD Cargo app icon" style="width:92px; height:92px; border-radius:21%; box-shadow:0 10px 28px -10px rgba(15,30,61,0.5); flex-shrink:0;" />
+    <div style="flex:1; min-width:200px;">
+      <div class="eyebrow" style="color:var(--wine);">NUEVO v3.2 · descargable</div>
+      <h4 style="margin:4px 0 4px;">App icon · iOS + Android</h4>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:0; max-width:54ch;">Ícono de la app <b>DTD Cargo</b> (un solo diseño, sobre el isólogo). Master 1024 + set completo iOS (180→29) y Android (Play 512, mipmaps, adaptive foreground/background). Construido sobre el isólogo — nunca el favicon estirado.</p>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn primary" id="dl-icon-png" type="button">⬇ PNG 1024</button>
+      <button class="btn ghost" id="dl-icon-zip" type="button">⬇ ZIP · todos los tamaños</button>
+    </div>
+  </div>
+  <script>
+  (function(){
+    var dl = async function(url, name){ var r = await fetch(url); if(!r.ok) throw 0; var b = await r.blob(); var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); };
+    var png = document.getElementById('dl-icon-png');
+    if(png) png.addEventListener('click', function(){ var o=png.textContent; png.textContent='Descargando…'; dl('app-icon/icon-master-1024.png','DTD-Cargo-AppIcon-1024.png').then(function(){png.textContent=o;}).catch(function(){png.textContent='Error · reintentar';}); });
+    var btn = document.getElementById('dl-icon-zip'); if(!btn) return;
+    var FILES = ['app-icon/icon-master-1024.png',
+      'app-icon/ios/icon-180.png','app-icon/ios/icon-167.png','app-icon/ios/icon-152.png','app-icon/ios/icon-120.png','app-icon/ios/icon-87.png','app-icon/ios/icon-80.png','app-icon/ios/icon-76.png','app-icon/ios/icon-60.png','app-icon/ios/icon-58.png','app-icon/ios/icon-40.png','app-icon/ios/icon-29.png',
+      'app-icon/android/play-store-512.png','app-icon/android/ic_launcher-192.png','app-icon/android/ic_launcher-144.png','app-icon/android/ic_launcher-96.png','app-icon/android/ic_launcher-72.png','app-icon/android/ic_launcher-48.png','app-icon/android/adaptive-foreground-432.png','app-icon/android/adaptive-background-432.png'];
+    var orig = btn.textContent;
+    btn.addEventListener('click', async function(){
+      btn.disabled = true; btn.textContent = 'Generando ZIP…';
+      try {
+        if(!window.JSZip){ await new Promise(function(res,rej){ var s=document.createElement('script'); s.src='https://unpkg.com/jszip@3.10.1/dist/jszip.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
+        var zip = new JSZip();
+        for (var i=0;i<FILES.length;i++){ var resp = await fetch(FILES[i]); var blob = await resp.blob(); zip.file(FILES[i].replace('app-icon/',''), blob); }
+        var out = await zip.generateAsync({ type:'blob' });
+        var a = document.createElement('a'); a.href = URL.createObjectURL(out); a.download = 'DTD-Cargo-AppIcon.zip'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+        btn.textContent = orig;
+      } catch(e){ btn.textContent = 'Error · reintentar'; }
+      finally { btn.disabled = false; }
+    });
+  })();
+  </script>
+
+  <div class="card" style="display:flex; gap:20px; align-items:center; padding:20px; margin-bottom:18px; flex-wrap:wrap;">
+    <div style="width:92px; height:92px; border-radius:21%; background:linear-gradient(150deg,#FFFFFF,#F2F0EC); display:flex; align-items:center; justify-content:center; box-shadow:0 10px 28px -10px rgba(15,30,61,0.5); flex-shrink:0;">
+      <img src="app-spinner/spinner.svg" alt="DTD Cargo spinner" style="width:64px; height:64px;" />
+    </div>
+    <div style="flex:1; min-width:200px;">
+      <div class="eyebrow" style="color:var(--wine);">NUEVO v3.2 · descargable</div>
+      <h4 style="margin:4px 0 4px;">Spinner · loading animado</h4>
+      <p style="font-size:12.5px; color:var(--ink-soft); margin:0; max-width:56ch;">El isólogo con un pulse sutil para estados de carga. <b>SVG</b> (web, vector, el más rápido de implementar) · <b>Lottie JSON</b> (apps iOS/Android/RN) · <b>GIF</b> (universal). Construido sobre el isólogo de marca.</p>
+    </div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <button class="btn primary" data-dl="app-spinner/spinner.svg" data-name="DTD-Cargo-spinner.svg" type="button">⬇ SVG</button>
+      <button class="btn ghost" data-dl="app-spinner/spinner.lottie.json" data-name="DTD-Cargo-spinner.lottie.json" type="button">⬇ Lottie</button>
+      <button class="btn ghost" data-dl="app-spinner/spinner.gif" data-name="DTD-Cargo-spinner.gif" type="button">⬇ GIF</button>
+    </div>
+  </div>
+  <script>
+  (function(){
+    document.querySelectorAll('[data-dl]').forEach(function(b){
+      b.addEventListener('click', async function(){
+        var o=b.textContent; b.disabled=true; b.textContent='…';
+        try { var r=await fetch(b.getAttribute('data-dl')); if(!r.ok) throw 0; var bl=await r.blob(); var a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=b.getAttribute('data-name'); document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href); b.textContent=o; }
+        catch(e){ b.textContent='Error'; }
+        finally { b.disabled=false; }
+      });
+    });
+  })();
+  </script>
+
   <div class="row-4" style="gap: 12px;">
     <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">01</div><h4 style="margin-top: 4px;">Favicon</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">16/32/64/180</p></div>
     <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">02</div><h4 style="margin-top: 4px;">Factura A4</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Header estándar</p></div>
     <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">03</div><h4 style="margin-top: 4px;">Sello jurídico</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Redondo · tinta wine</p></div>
     <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">04</div><h4 style="margin-top: 4px;">Email signature</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">HTML embebible</p></div>
-    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">05</div><h4 style="margin-top: 4px;">Spinner</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Loading animado</p></div>
+    <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">05</div><h4 style="margin-top: 4px;">Spinner</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">SVG · Lottie · GIF ↑</p></div>
     <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">06</div><h4 style="margin-top: 4px;">Social pack</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">IG · LI · TT · X</p></div>
     <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">07</div><h4 style="margin-top: 4px;">QR branded</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">Isólogo central</p></div>
     <div class="card" style="padding: 16px;"><div class="eyebrow" style="font-size: 9px;">08</div><h4 style="margin-top: 4px;">Emoji pack</h4><p style="font-size: 11.5px; color: var(--ink-soft); margin: 4px 0 0;">16 emojis Slack</p></div>
@@ -751,7 +818,7 @@ section:nth-child(even) .ext-link { background: var(--bg-base); }
     <img src="assets/dtdcargo-isologo-reverse.png" style="width: 36px;" alt="" />
     <span class="mark" style="font-size: 24px;"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
   </div>
-  <p>© 2026 DTD-Cargo · Doortudoor Services · Brand Book v3.1 · Mayo 2026<br/>www.dtdcargo.com · Made in Yiwu & Valencia</p>
+  <p>© 2026 DTD-Cargo · Doortudoor Services · Brand Book v3.2 · Junio 2026<br/>www.dtdcargo.com · Made in Yiwu & Valencia</p>
 </div>
 
 </div>

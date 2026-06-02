@@ -19,6 +19,9 @@ const eslintConfig = defineConfig([
     "e2e/**", // Playwright tests usan import maps distintos
     "playwright-report/**",
     "test-results/**",
+    // Edge Functions de Supabase corren en Deno (imports jsr:/ global Deno):
+    // no las lintea el config de Next. Se chequean con el bundler de deploy.
+    "supabase/functions/**",
   ]),
 
   // ─── Frontera sitio-público ↔ ERP ────────────────────────────────────

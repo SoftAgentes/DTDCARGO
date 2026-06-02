@@ -89,13 +89,13 @@ function Login({ onLogin }) {
   return (
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, var(--ink) 0%, #1F3055 100%)', display: 'flex', flexDirection: 'column', padding: '40px 24px', color: '#fff' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-        <img src="assets/dtdcargo-icon-navy.png" alt="" style={{ width: 40, height: 40, filter: 'brightness(0) invert(1)' }} />
+        <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" style={{ height: 32, display: 'block' }} />
         <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>ALMACENISTA</div>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>BODEGA · ALMACÉN VE</div>
-        <div style={{ font: '900 28px/1.05 var(--f-display)', color: '#fff', marginTop: 14, letterSpacing: '-0.025em' }}>Armar camiones 📦</div>
-        <div style={{ font: '500 14px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>PIN de 4 dígitos</div>
+        <div style={{ font: '900 26px/1.3 var(--f-display)', color: '#fff', marginTop: 14, letterSpacing: '-0.02em' }}>Armar camiones</div>
+        <div style={{ font: '500 14px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>PIN de 4 dígitos</div>
         <div style={{ display: 'flex', gap: 14, marginTop: 32 }}>
           {[0,1,2,3].map(i => <div key={i} style={{ width: 18, height: 18, borderRadius: '50%', background: i < pin.length ? 'var(--wine-soft)' : 'transparent', border: '2px solid rgba(255,255,255,0.4)' }} />)}
         </div>
@@ -128,7 +128,7 @@ function Home({ user, theme, setTheme, onDispatch, onReception, onLogout }) {
       <div style={{ padding: 16 }}>
         <div style={{ marginBottom: 18 }}>
           <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>23 May 2026 · 06:42</div>
-          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Hola, Yusneidy 👋</div>
+          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Hola, Yusneidy</div>
           <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>2 contenedores por recibir · 3 camiones por armar</div>
         </div>
 
@@ -139,7 +139,7 @@ function Home({ user, theme, setTheme, onDispatch, onReception, onLogout }) {
             border: 0, color: '#fff', borderRadius: 'var(--r-md)',
             display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
           }}>
-            <div style={{ width: 52, height: 52, borderRadius: 'var(--r-md)', background: 'rgba(216,154,164,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>📦</div>
+            <div style={{ width: 52, height: 52, borderRadius: 'var(--r-md)', background: 'rgba(216,154,164,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--wine-soft)' }}>{window.Icon.box(28)}</div>
             <div style={{ flex: 1 }}>
               <div style={{ font: '900 16px/1.1 var(--f-display)', color: '#fff', letterSpacing: '-0.01em' }}>Recibir contenedor</div>
               <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.65)', marginTop: 4 }}>Escanéa cajas · confirma cantidad y CBM</div>
@@ -153,7 +153,7 @@ function Home({ user, theme, setTheme, onDispatch, onReception, onLogout }) {
             borderRadius: 'var(--r-md)',
             display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left',
           }}>
-            <div style={{ width: 52, height: 52, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🚛</div>
+            <div style={{ width: 52, height: 52, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.truck(28)}</div>
             <div style={{ flex: 1 }}>
               <div style={{ font: '900 16px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Despachar camión</div>
               <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Arma camión · asigna chofer · pase QR</div>
@@ -223,7 +223,7 @@ function PickTruck({ onPick, onBack }) {
             background: 'var(--bg-surface)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
             display: 'flex', alignItems: 'center', gap: 14,
           }}>
-            <div style={{ width: 52, height: 52, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>🚛</div>
+            <div style={{ width: 52, height: 52, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.truck(28)}</div>
             <div style={{ flex: 1 }}>
               <code style={{ font: '900 16px/1 var(--f-mono)', color: 'var(--ink)' }}>{t.plate}</code>
               <div style={{ font: '600 12px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{t.type} · {t.capCBM} CBM</div>
@@ -281,7 +281,7 @@ function PickDriver({ truck, onPick, onBack }) {
                     border: 0, borderRadius: 'var(--r-md)',
                     font: '700 12.5px/1 var(--f-sans)',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  }}>💬 WhatsApp {needsConfirm && '· confirmar'}</button>
+                  }}>WhatsApp {needsConfirm && '· confirmar'}</button>
                   {!needsConfirm && (
                     <button onClick={() => onPick(d)} style={{
                       padding: '10px 16px', background: 'var(--wine)', color: '#fff',
@@ -346,11 +346,11 @@ Maps: https://maps.app.goo.gl/dtd-pbl-valencia`
               style={{ width: '100%', padding: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink)', outline: 'none', resize: 'vertical' }}
             />
             <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--info-bg)', borderRadius: 'var(--r-sm)', font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-              ℹ Incluye link de Google Maps con el destino y resumen de la carga. Editá antes de enviar si necesitás.
+              Incluye link de Google Maps con el destino y resumen de la carga. Editá antes de enviar si necesitás.
             </div>
             <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <BigButton label="Cancelar" onClick={onClose} variant="secondary" />
-              <BigButton label="💬 Enviar WhatsApp" onClick={() => setSent(true)} variant="success" />
+              <BigButton label="Enviar WhatsApp" onClick={() => setSent(true)} variant="success" />
             </div>
           </>
         )}
@@ -411,7 +411,7 @@ function PickItems({ truck, driver, loadout, setLoadout, onBack, onSeal }) {
           <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 999, overflow: 'hidden' }}>
             <div style={{ width: `${Math.min(100, usage)}%`, height: '100%', background: usage > 100 ? 'var(--danger)' : usage > 90 ? 'var(--warning)' : 'var(--wine-soft)' }} />
           </div>
-          {usage > 100 && <div style={{ marginTop: 6, font: '700 11px/1.3 var(--f-sans)', color: 'var(--warning)' }}>⚠ Excede capacidad · marcá parciales</div>}
+          {usage > 100 && <div style={{ marginTop: 6, font: '700 11px/1.3 var(--f-sans)', color: 'var(--warning)' }}>Excede capacidad · marcá parciales</div>}
         </div>
       </div>
 
@@ -441,10 +441,10 @@ function PickItems({ truck, driver, loadout, setLoadout, onBack, onSeal }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{item.shipment}</code>
                     <span style={{ padding: '1px 6px', borderRadius: 3, background: `var(--${priorityTone[item.priority]}-bg)`, color: `var(--${priorityTone[item.priority]})`, font: '700 9px/1 var(--f-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{item.priority}</span>
-                    {item.daysWait >= 5 && <span style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--warning)' }}>{item.daysWait}d ⏱</span>}
+                    {item.daysWait >= 5 && <span style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--warning)' }}>{item.daysWait}d</span>}
                   </div>
                   <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>{item.client}</div>
-                  <div style={{ font: '500 11px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>📍 {item.addr} · <code style={{ font: '600 10.5px/1 var(--f-mono)' }}>{item.markbox}</code></div>
+                  <div style={{ font: '500 11px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{item.addr} · <code style={{ font: '600 10.5px/1 var(--f-mono)' }}>{item.markbox}</code></div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ font: '800 14px/1 var(--f-mono)', color: 'var(--ink)' }}>{item.totalBoxes}cj</div>
@@ -466,7 +466,7 @@ function PickItems({ truck, driver, loadout, setLoadout, onBack, onSeal }) {
                   {isPartial && (
                     <div style={{ marginTop: 8, padding: '8px 10px', background: 'rgba(255,255,255,0.6)', borderRadius: 'var(--r-sm)' }}>
                       <div style={{ font: '700 11px/1.3 var(--f-sans)', color: 'var(--warning)', marginBottom: 4 }}>
-                        ⚠️ Parcial · {p.boxes}/{item.totalBoxes} · resta como <code style={{ font: '700 10px/1 var(--f-mono)' }}>{item.shipment}-P2</code>
+                        Parcial · {p.boxes}/{item.totalBoxes} · resta como <code style={{ font: '700 10px/1 var(--f-mono)' }}>{item.shipment}-P2</code>
                       </div>
                       <button onClick={() => setReasonOpen(reasonOpen === item.id ? null : item.id)} style={{ padding: '4px 9px', borderRadius: 'var(--r-sm)', background: p.reason ? 'var(--success-bg)' : 'var(--wine)', color: p.reason ? 'var(--success)' : '#fff', font: '700 11px/1 var(--f-sans)' }}>
                         {p.reason ? `✓ ${reasonOptions.find(r => r.v === p.reason)?.l}` : 'Motivo →'}
@@ -594,7 +594,7 @@ function ReceptionList({ onPick, onBack }) {
               <code style={{ font: '900 14px/1 var(--f-mono)', color: 'var(--ink)' }}>{c.id}</code>
               <span style={{ padding: '3px 8px', borderRadius: 3, background: c.status === 'en muelle' ? 'var(--success)' : 'var(--warning)', color: '#fff', font: '700 9.5px/1 var(--f-sans)' }}>{c.status === 'en muelle' ? '✓ LISTO' : c.eta}</span>
             </div>
-            <div style={{ font: '600 12px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>🚢 {c.vessel}</div>
+            <div style={{ font: '600 12px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{c.vessel}</div>
             <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
               <div><div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Cajas</div><div style={{ font: '800 14px/1 var(--f-mono)', color: 'var(--ink)', marginTop: 4 }}>{c.expectedBoxes}</div></div>
               <div><div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>CBM</div><div style={{ font: '800 14px/1 var(--f-mono)', color: 'var(--ink)', marginTop: 4 }}>{c.cbm}</div></div>
@@ -730,7 +730,7 @@ function ReceptionScan({ container, onBack, onDone }) {
           display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left',
         }}>
           <input type="checkbox" checked={reportIncident} readOnly style={{ accentColor: 'var(--danger)', width: 18, height: 18 }} />
-          <span style={{ flex: 1, font: '700 13px/1.3 var(--f-sans)', color: 'var(--ink)' }}>⚠️ Reportar caja faltante / dañada</span>
+          <span style={{ flex: 1, font: '700 13px/1.3 var(--f-sans)', color: 'var(--ink)' }}>Reportar caja faltante / dañada</span>
         </button>
       </div>
 
@@ -786,3 +786,27 @@ function ReceptionScan({ container, onBack, onDone }) {
     </div>
   );
 }
+
+// ── Flujos reutilizables para el shell multi-rol ─────────────
+// Exponen los sub-flujos de Recepción y Despacho SIN el login/home
+// propios de AlmacenistaApp, para incrustarlos en otra app
+// (p. ej. Operario Multi). onExit vuelve al home del modo.
+function ReceptionFlow({ onExit }) {
+  const [view, setView] = useState('list');
+  const [container, setContainer] = useState(null);
+  if (view === 'scan') return <ReceptionScan container={container} onBack={() => setView('list')} onDone={onExit} />;
+  return <ReceptionList onPick={(c) => { setContainer(c); setView('scan'); }} onBack={onExit} />;
+}
+
+function DispatchFlow({ onExit }) {
+  const [view, setView] = useState('truck');
+  const [truck, setTruck] = useState(null);
+  const [driver, setDriver] = useState(null);
+  const [loadout, setLoadout] = useState({ items: [], sealed: false });
+  if (view === 'driver')  return <PickDriver truck={truck} onPick={(d) => { setDriver(d); setView('items'); }} onBack={() => setView('truck')} />;
+  if (view === 'items')   return <PickItems truck={truck} driver={driver} loadout={loadout} setLoadout={setLoadout} onBack={() => setView('driver')} onSeal={() => setView('handoff')} />;
+  if (view === 'handoff') return <Handoff truck={truck} driver={driver} loadout={loadout} onDone={onExit} />;
+  return <PickTruck onPick={(t) => { setTruck(t); setView('driver'); }} onBack={onExit} />;
+}
+
+window.AlmacenistaFlows = { ReceptionFlow, DispatchFlow };

@@ -183,7 +183,8 @@ function PortalMobileApp() {
   const me = account ?
   { name: account.name, company: account.company || account.name, markbox: account.markbox, rif: account.rif, segment: account.tipo === 'empresa' ? 'Empresa' : 'Persona', city: account.city || '—', shipments: 0 } :
   D.byMarkbox(PM_MARKBOX);
-  const ships = account ? [] : D.SHIPMENTS.filter((s) => s.client === PM_MARKBOX);
+  const _pmq = (() => { try { return (window.DTDData && window.DTDData.clientQuotes) ? window.DTDData.clientQuotes(PM_MARKBOX) : []; } catch (e) { return []; } })();
+  const ships = account ? [] : [..._pmq, ...D.SHIPMENTS.filter((s) => s.client === PM_MARKBOX)];
   const invs = account ? [] : D.INVOICES.filter((i) => i.client === PM_MARKBOX);
   const alertCount = ships.filter((s) => s.alert || s.status === 'liberado').length;
 
@@ -221,7 +222,6 @@ function PortalMobileApp() {
         {tab === 'more' && !sub && <X.MasScreen me={me} theme={theme} setTheme={setTheme} onLogout={() => {setLogged(false);setAuthView('welcome');setTab('home');}} onOpen={setSub} />}
         {tab === 'more' && sub === 'documentos' && <X.DocumentosScreen onBack={() => setSub(null)} ships={ships} />}
         {tab === 'more' && sub === 'referidos' && <X.ReferidosScreen onBack={() => setSub(null)} me={me} />}
-        {tab === 'more' && sub === 'reclamos' && <X.ReclamosScreen onBack={() => setSub(null)} />}
         {tab === 'more' && sub === 'soporte' && <X.SoporteScreen onBack={() => setSub(null)} />}
         {tab === 'more' && sub === 'perfil' && <X.PerfilScreen onBack={() => setSub(null)} me={me} />}
       </main>
@@ -743,7 +743,7 @@ function PMShipments({ ships, openDetail }) {
   const I = window.Icon;
   const U = window.ERPUI;
   const list = ships.filter((s) => {
-    if (filter === 'active' && ['entregado', 'cotizado'].includes(s.status)) return false;
+    if (filter === 'active' && s.status === 'entregado') return false;
     if (filter === 'delivered' && s.status !== 'entregado') return false;
     if (q && !s.id.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
@@ -759,7 +759,7 @@ function PMShipments({ ships, openDetail }) {
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--s-5)', overflowX: 'auto', paddingBottom: 2 }}>
-        <window.PM.Chip active={filter === 'active'} onClick={() => setFilter('active')} count={ships.filter((s) => !['entregado', 'cotizado'].includes(s.status)).length}>En curso</window.PM.Chip>
+        <window.PM.Chip active={filter === 'active'} onClick={() => setFilter('active')} count={ships.filter((s) => s.status !== 'entregado').length}>En curso</window.PM.Chip>
         <window.PM.Chip active={filter === 'all'} onClick={() => setFilter('all')} count={ships.length}>Todos</window.PM.Chip>
         <window.PM.Chip active={filter === 'delivered'} onClick={() => setFilter('delivered')} count={ships.filter((s) => s.status === 'entregado').length}>Entregados</window.PM.Chip>
       </div>
@@ -807,14 +807,85 @@ function PMShipCard({ s, onClick }) {
 // ════════════════════════════════════════════════════════════════
 // DETALLE · timeline vertical
 // ════════════════════════════════════════════════════════════════
+function pmLegalDate(iso) {
+  const [y, m, d] = iso.split('-');
+  const MM = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(m) - 1];
+  return `${parseInt(d)} ${MM} ${y}`;
+}
+function PMAcceptFlow({ quote, me, open, onClose, onAccepted }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const [checked, setChecked] = pmState(false);
+  const [viewing, setViewing] = pmState(null);
+  const docs = (window.LegalData && window.LegalData.currentDocs()) || [];
+  const close = () => { setChecked(false); setViewing(null); onClose(); };
+  const confirm = () => {
+    if (!checked) return;
+    const ev = {
+      id: 'AC-2026-' + String(Math.floor(215 + Math.random() * 80)).padStart(4, '0'),
+      client: me.company || me.name, markbox: me.markbox, quote: quote.id, orden: quote.id.replace('Q-', 'OS-'),
+      cbm: quote.cbm, weight: quote.weight, total: quote.amount,
+      docs: docs.map(d => [d.name, d.version]),
+      at: (() => { const n = new Date(); const p = x => String(x).padStart(2,'0'); return `${p(n.getDate())}/${p(n.getMonth()+1)}/${n.getFullYear()} ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`; })(),
+      ip: me.ip || '190.142.88.214',
+      hash: ('sha256:' + 'a1f' + Math.random().toString(16).slice(2,10) + 'c7' + Math.random().toString(16).slice(2,8)).slice(0,30),
+    };
+    try { if (window.LegalData) window.LegalData.ACCEPTANCES.unshift(ev); } catch (e) {}
+    onAccepted(ev);
+  };
+  return (
+    <React.Fragment>
+      <U.Modal open={open && !viewing} onClose={close} width={460} title="Aceptar cotización"
+        actions={<div style={{ display: 'flex', gap: 8, width: '100%' }}><U.Btn variant="ghost" full onClick={close}>Cancelar</U.Btn><U.Btn variant="primary" full disabled={!checked} onClick={confirm} icon={I.check(14)}>Confirmar</U.Btn></div>}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 12 }}>
+          <button onClick={() => setChecked(!checked)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12, padding: 14, textAlign: 'left', background: checked ? 'var(--wine-tint)' : 'var(--bg-surface)', border: 0 }}>
+            <span style={{ width: 22, height: 22, flexShrink: 0, marginTop: 1, borderRadius: 'var(--r-xs)', border: `2px solid ${checked ? 'var(--wine)' : 'var(--border-strong)'}`, background: checked ? 'var(--wine)' : 'var(--bg-surface)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{checked && I.check(13)}</span>
+            <div style={{ font: '600 12.5px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
+              He leído y acepto los{' '}
+              {docs[0] && <a onClick={(e) => { e.stopPropagation(); setViewing(docs[0]); }} style={{ color: 'var(--wine)', textDecoration: 'underline', fontWeight: 700 }}>Términos y Condiciones de DTD</a>}
+              {' '}y las{' '}
+              {docs[1] && <a onClick={(e) => { e.stopPropagation(); setViewing(docs[1]); }} style={{ color: 'var(--wine)', textDecoration: 'underline', fontWeight: 700 }}>Condiciones del Operador de Consolidación</a>}.</div>
+          </button>
+          <div style={{ borderTop: '1px solid var(--border)', padding: '9px 14px', display: 'flex', flexWrap: 'wrap', gap: 6, background: 'var(--bg-elevated)' }}>
+            {docs.map(d => <button key={d.key} onClick={() => setViewing(d)} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '4px 8px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)', font: '600 10px/1 var(--f-sans)', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}><span style={{ color: 'var(--wine)', display: 'flex' }}>{I.doc(10)}</span>{d.version} · vig. {pmLegalDate(d.effective)}</button>)}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
+          <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield(14)}</span>
+          <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Registramos tu aceptación como evidencia (cliente, cotización, versión, fecha/hora, IP y hash). Se pide en cada cotización.</div>
+        </div>
+      </U.Modal>
+      <U.Modal open={!!viewing} onClose={() => setViewing(null)} width={520} title={viewing ? `${viewing.name} · ${viewing.version}` : ''} actions={<U.Btn variant="primary" full onClick={() => setViewing(null)}>Cerrar</U.Btn>}>
+        {viewing && <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxHeight: 360, overflowY: 'auto', overflowX: 'hidden', paddingRight: 4 }}>
+          <div style={{ display: 'flex', gap: 8 }}><U.Badge tone="wine" size="sm">{viewing.version}</U.Badge><U.Badge tone="neutral" size="sm">Vigente desde {pmLegalDate(viewing.effective)}</U.Badge></div>
+          {viewing.body.map(([h, p], i) => <div key={i}><div style={{ font: '800 12.5px/1.3 var(--f-display)', color: 'var(--ink)', marginBottom: 4 }}>{h}</div><div style={{ font: '500 12px/1.6 var(--f-sans)', color: 'var(--ink-soft)' }}>{p}</div></div>)}
+        </div>}
+      </U.Modal>
+    </React.Fragment>
+  );
+}
 function PMDetail({ id, onBack }) {
   const D = window.ERPData;
   const U = window.ERPUI;
   const I = window.Icon;
-  const s = D.SHIPMENTS.find((x) => x.id === id);
+  const s = (() => { try { const q = (window.DTDData && window.DTDData.clientQuotes) ? window.DTDData.clientQuotes(PM_MARKBOX).find(x => x.id === id) : null; return q || D.SHIPMENTS.find((x) => x.id === id); } catch (e) { return D.SHIPMENTS.find((x) => x.id === id); } })();
+  const [accepting, setAccepting] = pmState(false);
+  const [evidence, setEvidence] = pmState(null);
+  const [acuse, setAcuse] = pmState(false);
   if (!s) return null;
   const flow = D.STATUS_FLOW;
   const cur = flow.indexOf(s.status);
+  const pmAccepted = (qid) => { try { return (window.LegalData && window.LegalData.ACCEPTANCES.some(a => a.quote === qid)); } catch (e) { return false; } };
+  const quote = { id: s.id.startsWith('Q-') ? s.id : 'Q-2026-' + s.id.slice(-4), route: `${D.origin(s.origin).name} → ${D.dest(s.destination).name}`, cbm: s.cbm, weight: s.weight, amount: s.value, type: s.type, total: '$' + (s.value || 0).toLocaleString('en-US') };
+  const meQ = { company: s.clientName, markbox: s.client, ip: '190.142.88.214' };
+  const _accForQuote = (() => { try { return (window.LegalData ? window.LegalData.ACCEPTANCES : []).filter(a => a.quote === quote.id); } catch (e) { return []; } })();
+  const acceptedCurrent = !!evidence || _accForQuote.some(a => Number(a.cbm) === Number(s.cbm) && Number(a.weight) === Number(s.weight));
+  const priorDiff = (!acceptedCurrent && _accForQuote.length > 0) ? _accForQuote[0] : null;
+  const inReview = s.status === 'cotizado' && s.quoteStage === 'en-proceso';
+  const needsAccept = (s.status === 'cotizado' || s.status === 'recibido CN') && !acceptedCurrent && !inReview;
+  const isMeasured = s.status === 'recibido CN';
+  const isReaccept = !!priorDiff;
+  const fmtUsd = (n) => '$' + (Number(n) || 0).toLocaleString('en-US');
 
   return (
     <div>
@@ -825,6 +896,20 @@ function PMDetail({ id, onBack }) {
           <U.Badge tone="neutral" size="md">{s.type}</U.Badge>
           <span style={{ font: '600 12px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{s.cbm} CBM</span>
         </div>
+
+        {inReview &&
+        <div style={{ display: 'flex', gap: 12, padding: 14, marginBottom: 'var(--s-5)', background: 'var(--info-bg)', borderRadius: 'var(--r-lg)', borderLeft: '3px solid var(--info)' }}>
+            <span style={{ color: 'var(--info)', flexShrink: 0 }}>{I.clock ? I.clock(18) : I.info(18)}</span>
+            <div><div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>Cotización en proceso</div><div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>Tu agente está preparando la cotización formal{s.quoteRef ? ` (ref. ${s.quoteRef})` : ''}. Te avisamos apenas esté lista para aceptar.</div></div>
+          </div>
+        }
+
+        {needsAccept &&
+        <div style={{ display: 'flex', gap: 12, padding: 14, marginBottom: 'var(--s-5)', background: 'var(--wine-tint)', borderRadius: 'var(--r-lg)', borderLeft: '3px solid var(--wine)' }}>
+            <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{I.shield(18)}</span>
+            <div><div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida cambió · re-aceptación' : (isMeasured ? 'Llegó y se midió · falta tu aceptación' : 'Cotización pendiente')}</div><div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>{isReaccept ? 'Aceptaste el estimado pero la medida real cambió. Confirmá la nueva cotización para emitir la factura.' : (isMeasured ? `Medimos tu carga (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá la cotización con la medida real para emitir tu factura.` : 'Aceptá los términos para generar tu orden de servicio.')}</div>{isReaccept && <div style={{ display: 'flex', gap: 10, marginTop: 10, font: '600 12px/1.3 var(--f-mono)' }}><span style={{ color: 'var(--ink-soft)', textDecoration: 'line-through' }}>{priorDiff.cbm} m³ · {fmtUsd(priorDiff.total)}</span><span style={{ color: 'var(--wine)' }}>→</span><span style={{ color: 'var(--ink)', fontWeight: 800 }}>{s.cbm} m³ · {fmtUsd(s.value)}</span></div>}</div>
+          </div>
+        }
 
         {s.alert &&
         <div style={{ display: 'flex', gap: 12, padding: 14, marginBottom: 'var(--s-5)', background: 'var(--warning-bg)', borderRadius: 'var(--r-lg)', borderLeft: '3px solid var(--warning)' }}>
@@ -864,9 +949,26 @@ function PMDetail({ id, onBack }) {
         </window.PM.Section>
 
         <div style={{ display: 'flex', gap: 10 }}>
-          <U.Btn variant="secondary" full icon={I.download(14)}>Descargar docs</U.Btn>
-          <U.Btn variant="primary" full icon={I.chat(14)}>Contactar agente</U.Btn>
+          {inReview ? (
+            <U.Btn variant="secondary" full icon={I.clock ? I.clock(14) : I.info(14)} disabled>En revisión por tu agente</U.Btn>
+          ) : needsAccept ? (
+            <U.Btn variant="primary" full icon={I.check(14)} onClick={() => setAccepting(true)}>{isReaccept ? 'Revisar y re-aceptar' : (isMeasured ? 'Aceptar · medida real' : 'Aceptar cotización')}</U.Btn>
+          ) : (
+            <React.Fragment>
+              {evidence && <U.Btn variant="secondary" full icon={I.shield(14)} onClick={() => setAcuse(true)}>Ver acuse</U.Btn>}
+              <U.Btn variant="secondary" full icon={I.download(14)}>Descargar docs</U.Btn>
+              <U.Btn variant="primary" full icon={I.chat(14)}>Contactar agente</U.Btn>
+            </React.Fragment>
+          )}
         </div>
+
+        <PMAcceptFlow quote={quote} me={meQ} open={accepting} onClose={() => setAccepting(false)} onAccepted={(ev) => { setAccepting(false); setEvidence(ev); setAcuse(true); }} />
+        <U.Modal open={acuse} onClose={() => setAcuse(false)} width={460} title="Orden generada" actions={<U.Btn variant="primary" full onClick={() => setAcuse(false)} icon={I.check(14)}>Entendido</U.Btn>}>
+          {evidence && (() => {
+            const Row = ({ k, v }) => <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', borderTop: '1px solid var(--border)' }}><span style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', flexShrink: 0 }}>{k}</span><span style={{ font: '600 11.5px/1.4 var(--f-mono)', color: 'var(--ink)', textAlign: 'right', wordBreak: 'break-all' }}>{v}</span></div>;
+            return <div><div style={{ textAlign: 'center', padding: '4px 0 14px' }}><div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{I.check(26)}</div><div style={{ font: '900 18px/1.1 var(--f-display)', color: 'var(--ink)' }}>Cotización aceptada</div><div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>Orden <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{evidence.orden}</code> generada.</div></div><div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '2px 14px 12px' }}><Row k="Cliente" v={`${evidence.client} · ${evidence.markbox}`} /><Row k="Cotización" v={evidence.quote} />{evidence.docs.map((d, i) => <Row key={i} k={i === 0 ? 'Documentos' : ''} v={`${d[0]} ${d[1]}`} />)}<Row k="Fecha / hora" v={evidence.at} /><Row k="IP" v={evidence.ip} /><Row k="Hash" v={evidence.hash} /></div></div>;
+          })()}
+        </U.Modal>
       </div>
     </div>);
 

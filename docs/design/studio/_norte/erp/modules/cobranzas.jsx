@@ -307,7 +307,7 @@ function CobroModal({ open, onClose, item }) {
                 </div>
                 <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 4 }}>Detectada automática · editable si la negociaste distinto.</div>
               </div>
-              <input type="number" value={rate} onChange={(e) => setRate(e.target.value)} style={{ width: 96, padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--wine)', background: 'var(--bg-surface)', color: 'var(--ink)', font: '700 14px/1 var(--f-mono)', boxSizing: 'border-box' }} />
+              <window.ERPUI.CalcInput value={rate} onChange={(e) => setRate(e.target.value)} style={{ width: 96, padding: '8px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--wine)', background: 'var(--bg-surface)', color: 'var(--ink)', font: '700 14px/1 var(--f-mono)', boxSizing: 'border-box' }} />
             </div>
           )}
 
@@ -316,17 +316,17 @@ function CobroModal({ open, onClose, item }) {
               {esUsd ? 'Monto a cobrar (US$)' : `Monto que entra a caja (${acct.currency})`}
             </div>
             {esUsd ? (
-              <input type="number" value={montoUsd} onChange={(e) => setMontoUsd(e.target.value)} style={inputBox} />
+              <window.ERPUI.CalcInput value={montoUsd} onChange={(e) => setMontoUsd(e.target.value)} style={inputBox} />
             ) : (
               <React.Fragment>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                   <div>
                     <div style={{ font: '600 9px/1 var(--f-sans)', color: 'var(--ink-mute)', marginBottom: 4 }}>En {acct.currency}</div>
-                    <input type="number" value={Math.round(montoCur)} onChange={(e) => setMontoUsd(Number(e.target.value) / Number(rate || 1))} style={inputBox} />
+                    <window.ERPUI.CalcInput value={Math.round(montoCur)} onChange={(e) => setMontoUsd(Number(e.target.value) / Number(rate || 1))} style={inputBox} />
                   </div>
                   <div>
                     <div style={{ font: '600 9px/1 var(--f-sans)', color: 'var(--wine)', marginBottom: 4 }}>En US$ · se aplica a la factura</div>
-                    <input type="number" value={Math.round(Number(montoUsd))} onChange={(e) => setMontoUsd(e.target.value)} style={{ ...inputBox, borderColor: 'var(--wine)', color: 'var(--wine)' }} />
+                    <window.ERPUI.CalcInput value={Math.round(Number(montoUsd))} onChange={(e) => setMontoUsd(e.target.value)} style={{ ...inputBox, borderColor: 'var(--wine)', color: 'var(--wine)' }} />
                   </div>
                 </div>
                 <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>

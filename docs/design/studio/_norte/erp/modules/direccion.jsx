@@ -55,7 +55,7 @@ function ModuleDireccion({ goTo }) {
   // ── Alertas ──
   const alerts = [];
   if (overdue.length) alerts.push({ tone: 'danger', icon: 'invoice', t: `${overdue.length} ${overdue.length === 1 ? 'pago vencido' : 'pagos vencidos'} · ${fmt(overdueUsd)}`, to: () => goTo('tesoreria') });
-  if (reclamos) alerts.push({ tone: 'danger', icon: 'shield', t: `${reclamos} ${reclamos === 1 ? 'reclamo abierto' : 'reclamos abiertos'}`, to: () => goTo('conversaciones') });
+  if (reclamos) alerts.push({ tone: 'danger', icon: 'shield', t: `${reclamos} ${reclamos === 1 ? 'caso abierto' : 'casos abiertos'}`, to: () => goTo('conversaciones') });
   if (cutoffDays != null && cutoffDays <= 3) alerts.push({ tone: 'warning', icon: 'ship', t: `Cut-off ${nextCutoff.id} en ${cutoffDays}d · ${safe(() => N.carrier(nextCutoff.carrier).name, '')}`, to: () => goTo('naviera') });
   if (sinAsignar) alerts.push({ tone: 'warning', icon: 'chat', t: `${sinAsignar} ${sinAsignar === 1 ? 'conversación sin asignar' : 'conversaciones sin asignar'}`, to: () => goTo('conversaciones') });
   if (looseCbm > 20) alerts.push({ tone: 'info', icon: 'warehouse', t: `${looseCbm.toFixed(1)} CBM de carga suelta para consolidar en CN`, to: () => goTo('naviera') });
@@ -171,7 +171,7 @@ function ModuleDireccion({ goTo }) {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <MiniStat label="Conversaciones abiertas" value={convAbiertas} sub={`${sinAsignar} sin asignar`} icon={I.chat(16)} tone={sinAsignar ? 'warning' : 'neutral'} onClick={() => goTo('conversaciones')} />
-            <MiniStat label="Reclamos abiertos" value={reclamos} sub="requieren atención" icon={I.shield(16)} tone={reclamos ? 'danger' : 'success'} onClick={() => goTo('conversaciones')} />
+            <MiniStat label="Casos abiertos" value={reclamos} sub="requieren atención" icon={I.shield(16)} tone={reclamos ? 'danger' : 'success'} onClick={() => goTo('conversaciones')} />
           </div>
         </U.Card>
 

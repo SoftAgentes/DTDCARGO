@@ -22,6 +22,8 @@ const ADMIN_SECTIONS = [
   { group: 'INTERMEDIO', id: 'permissions', label: 'Permisos por rol',    icon: 'lock' },
   { group: 'INTERMEDIO', id: 'audit',       label: 'Audit log',           icon: 'eye' },
   { group: 'INTERMEDIO', id: 'numbering',   label: 'Numeración & legal',  icon: 'doc' },
+  { group: 'INTERMEDIO', id: 'legal-docs',  label: 'Documentos legales',  icon: 'doc' },
+  { group: 'INTERMEDIO', id: 'acceptances', label: 'Aceptaciones T&C',    icon: 'shield' },
   // Nivel pro
   { group: 'PRO',        id: 'api',         label: 'API keys & webhooks', icon: 'link' },
   { group: 'PRO',        id: 'workflows',   label: 'Workflows custom',    icon: 'radar' },
@@ -104,6 +106,8 @@ function ModuleAdmin() {
           {section === 'permissions' && <SectionPermissions />}
           {section === 'audit'       && <SectionAudit />}
           {section === 'numbering'   && <SectionNumbering />}
+          {section === 'legal-docs'  && (window.AdminLegalDocs ? <window.AdminLegalDocs /> : null)}
+          {section === 'acceptances' && (window.AdminAcceptances ? <window.AdminAcceptances /> : null)}
           {section === 'api'         && <SectionApi />}
           {section === 'workflows'   && <SectionWorkflows />}
           {section === 'import'      && <SectionImport />}
@@ -1116,6 +1120,7 @@ function SectionFeatures() {
         { k: 'cn_translation',    name: 'Traductor CN ↔ ES',         desc: 'Toggle de idioma + traducción de proveedores chinos.', module: 'almacén CN' },
         { k: 'comments',          name: 'Comentarios + @menciones',  desc: 'Hilos de comentarios en embarques/clientes/facturas con menciones.', module: 'global' },
         { k: 'portal_cliente',    name: 'Portal externo del cliente', desc: 'Permite que clientes se logueen y vean sus envíos. Si lo apagás, solo se comunica por email.', module: 'global' },
+        { k: 'referidos',         name: 'Programa de referidos',     desc: 'Programa de lealtad: el cliente recomienda DTD-Cargo con su código y gana crédito. Por defecto OFF — al cliente le aparece “Próximamente” en el portal hasta que lo actives.', module: 'portal cliente', defaultOn: false },
       ],
     },
     {

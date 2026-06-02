@@ -25,15 +25,15 @@ const SEED_EXPENSES = [
 
 // ── Categorías de gasto ───────────────────────────────────────
 const EXPENSE_CATS = [
-  { k: 'taxi',     label: 'Taxi/Transfer', icon: '🚕', tone: 'info' },
-  { k: 'comida',   label: 'Comida',         icon: '🍽',  tone: 'warning' },
-  { k: 'hotel',    label: 'Hotel',          icon: '🏨', tone: 'wine' },
-  { k: 'vuelo',    label: 'Vuelo',          icon: '✈',   tone: 'wine' },
-  { k: 'peaje',    label: 'Peaje',          icon: '🛣',  tone: 'neutral' },
-  { k: 'combustible', label: 'Combustible', icon: '⛽',  tone: 'warning' },
-  { k: 'aduana',   label: 'Aduana',         icon: '📋', tone: 'info' },
-  { k: 'cliente',  label: 'Visita cliente', icon: '🤝', tone: 'success' },
-  { k: 'otro',     label: 'Otro',           icon: '•',  tone: 'neutral' },
+  { k: 'taxi',     label: 'Taxi/Transfer', tone: 'info' },
+  { k: 'comida',   label: 'Comida',         tone: 'warning' },
+  { k: 'hotel',    label: 'Hotel',          tone: 'wine' },
+  { k: 'vuelo',    label: 'Vuelo',          tone: 'wine' },
+  { k: 'peaje',    label: 'Peaje',          tone: 'neutral' },
+  { k: 'combustible', label: 'Combustible', tone: 'warning' },
+  { k: 'aduana',   label: 'Aduana',         tone: 'info' },
+  { k: 'cliente',  label: 'Visita cliente', tone: 'success' },
+  { k: 'otro',     label: 'Otro',           tone: 'neutral' },
 ];
 
 // ── Helpers de localStorage ───────────────────────────────────
@@ -110,7 +110,7 @@ function MobileTopBar({ user }) {
       position: 'sticky', top: 0, zIndex: 30,
       paddingTop: 'max(14px, env(safe-area-inset-top))',
     }}>
-      <img src="assets/dtdcargo-icon-navy.png" alt="DTD" style={{ width: 28, height: 28, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} onError={(e) => e.target.style.display = 'none'} />
+      <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD-Cargo" style={{ height: 24, objectFit: 'contain' }} onError={(e) => e.target.style.display = 'none'} />
       <div style={{ flex: 1 }}>
         <div style={{ font: '700 10px/1 var(--f-sans)', color: 'rgba(255,255,255,0.55)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>DTD-Cargo · Mobile ERP</div>
         <div style={{ font: '500 12px/1 var(--f-sans)', color: 'rgba(255,255,255,0.85)', marginTop: 4 }}>{user.location}</div>
@@ -721,7 +721,7 @@ function ExpenseRow({ e }) {
         background: `var(--${cat.tone}-bg)`, color: `var(--${cat.tone})`,
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 18,
-      }}>{cat.icon}</div>
+      }}>{cat.label[0]}</div>
       <div style={{ minWidth: 0 }}>
         <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{cat.label}</div>
         <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -848,7 +848,7 @@ function NewExpenseModal({ user, onClose, onSave }) {
                 font: '600 12px/1 var(--f-sans)',
                 display: 'inline-flex', alignItems: 'center', gap: 5,
               }}>
-                <span>{c.icon}</span> {c.label}
+                {c.label}
               </button>
             ))}
           </div>

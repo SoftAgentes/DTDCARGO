@@ -51,7 +51,7 @@ function ModuleConversaciones({ goTo }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 14, marginBottom: 'var(--s-5)' }}>
         <U.KPI label="Abiertas" value={D.byStatus('abierto').length} delta={`${D.totalUnread()} mensajes sin leer`} tone="warning" icon={I.chat(18)} />
         <U.KPI label="Sin asignar" value={D.unassigned().length} delta="requieren agente" tone={D.unassigned().length ? 'danger' : 'success'} icon={I.users(18)} />
-        <U.KPI label="Reclamos abiertos" value={D.openReclamos().length} delta="prioridad alta" tone="danger" icon={I.warn(18)} />
+        <U.KPI label="Casos abiertos" value={D.openReclamos().length} delta="prioridad alta" tone="danger" icon={I.warn(18)} />
         <U.KPI label="Resueltas hoy" value={D.byStatus('resuelto').length} delta="cerradas con cliente" tone="success" icon={I.check(18)} />
       </div>
 

@@ -1,6 +1,7 @@
 /* global React */
 /* ── DTD · Operario VE · Mobile App (chofer entrega) ────────── */
 
+(function () {
 const { useState, useEffect, useRef } = React;
 
 function OperarioVEApp() {
@@ -113,14 +114,14 @@ function Login({ onLogin }) {
       display: 'flex', flexDirection: 'column', padding: '40px 24px', color: '#fff',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
-        <img src="assets/dtdcargo-icon-navy.png" alt="" style={{ width: 40, height: 40, filter: 'brightness(0) invert(1)' }} />
+        <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" style={{ height: 32, display: 'block' }} />
         <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>CHOFER</div>
       </div>
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>DTD-CARGO · OPERARIO VE</div>
-        <div style={{ font: '900 30px/1.05 var(--f-display)', color: '#fff', marginTop: 14, letterSpacing: '-0.025em' }}>Entregas DDP<br/>Venezuela 🚚</div>
-        <div style={{ font: '500 14px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>Ingresá tu PIN de 4 dígitos</div>
+        <div style={{ font: '900 26px/1.2 var(--f-display)', color: '#fff', marginTop: 14, letterSpacing: '-0.02em', maxWidth: '14ch' }}>Entregas DDP Venezuela</div>
+        <div style={{ font: '500 14px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>Ingresá tu PIN de 4 dígitos</div>
 
         <div style={{ display: 'flex', gap: 14, marginTop: 36 }}>
           {[0,1,2,3].map(i => (
@@ -180,7 +181,7 @@ function Home({ user, theme, setTheme, onStartRoute, onLogout }) {
       <div style={{ padding: 16, paddingBottom: 100 }}>
         <div style={{ marginBottom: 20 }}>
           <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>23 May 2026 · 09:42</div>
-          <div style={{ font: '900 24px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Hola, {user.name.split(' ')[0]} 🚚</div>
+          <div style={{ font: '900 24px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Hola, {user.name.split(' ')[0]}</div>
           <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Tenés 2 entregas pendientes hoy · 310 km</div>
         </div>
 
@@ -217,9 +218,9 @@ function Home({ user, theme, setTheme, onStartRoute, onLogout }) {
                   <span>{r.to}</span>
                 </div>
                 <div style={{ marginTop: 8, display: 'flex', gap: 14, font: '600 11px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>
-                  <span>📦 {r.boxes} cj</span>
-                  <span>📊 {r.cbm} CBM</span>
-                  <span>🛣 {r.distance} km</span>
+                  <span>{r.boxes} cj</span>
+                  <span>{r.cbm} CBM</span>
+                  <span>{r.distance} km</span>
                 </div>
               </button>
             );
@@ -228,7 +229,7 @@ function Home({ user, theme, setTheme, onStartRoute, onLogout }) {
       </div>
 
       <div style={{ position: 'fixed', bottom: 'env(safe-area-inset-bottom)', left: 0, right: 0, padding: '12px 16px 18px', background: 'linear-gradient(0deg, var(--bg-base) 50%, transparent 100%)', maxWidth: 480, margin: '0 auto' }}>
-        <BigButton label="Iniciar próxima ruta →" onClick={() => onStartRoute(routes.find(r => r.status === 'pendiente'))} icon={<span style={{ fontSize: 22 }}>🚚</span>} />
+        <BigButton label="Iniciar próxima ruta →" onClick={() => onStartRoute(routes.find(r => r.status === 'pendiente'))} icon={window.Icon.truck(20)} />
       </div>
 
       {Avisos && <Avisos.Sheet open={avisosOpen} onClose={() => setAvisosOpen(false)} t={tt} lang="es" items={avisos} onAction={onAviso} />}
@@ -279,9 +280,9 @@ function Step1Confirm({ route, delivery, setDelivery, onBack, onNext }) {
           <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>ENTREGA</div>
           <div style={{ font: '900 18px/1.1 var(--f-display)', color: 'var(--ink)', marginTop: 8, letterSpacing: '-0.01em' }}>{route?.client}</div>
           <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6, font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>
-            <div>📍 <b style={{ color: 'var(--ink)' }}>{route?.to}</b></div>
-            <div>📦 {route?.boxes} cajas · {route?.cbm} CBM</div>
-            <div>🛣 {route?.distance} km · ETA {route?.eta}</div>
+            <div><b style={{ color: 'var(--ink)' }}>{route?.to}</b></div>
+            <div>{route?.boxes} cajas · {route?.cbm} CBM</div>
+            <div>{route?.distance} km · ETA {route?.eta}</div>
           </div>
         </div>
 
@@ -289,7 +290,7 @@ function Step1Confirm({ route, delivery, setDelivery, onBack, onNext }) {
         <div style={{ marginBottom: 16 }}>
           {hasPhoto ? (
             <div style={{ position: 'relative', aspectRatio: '4/3', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <span style={{ fontSize: 64, opacity: 0.5 }}>🚛</span>
+              <span style={{ opacity: 0.4, color: 'var(--ink-mute)' }}>{window.Icon.truck(56)}</span>
               <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, padding: '6px 10px', background: 'var(--ink)', color: '#fff', borderRadius: 4, font: '600 10.5px/1 var(--f-mono)' }}>camion-cargado-{route?.shipment}.jpg</div>
               <button onClick={() => setDelivery({ ...delivery, confirmPhoto: null })} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: '50%', background: 'rgba(168,50,62,0.9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.close(14)}</button>
             </div>
@@ -307,7 +308,7 @@ function Step1Confirm({ route, delivery, setDelivery, onBack, onNext }) {
         </div>
 
         <div style={{ padding: '10px 12px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 8, font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-          <span style={{ color: 'var(--info)' }}>ℹ</span>
+          <span style={{ color: 'var(--info)', display: 'flex' }}>{window.Icon.info(15)}</span>
           La foto sirve como evidencia de que la carga salió del puerto en condiciones correctas.
         </div>
       </div>
@@ -350,7 +351,7 @@ function Step2Route({ route, onBack, onNext }) {
                   <animate attributeName="r" values="14;24;14" dur="2s" repeatCount="indefinite" />
                 </circle>
                 <circle r="10" fill="var(--wine)" stroke="#fff" strokeWidth="2.5" />
-                <text y="3" fontSize="10" textAnchor="middle">🚛</text>
+                <circle r="3.4" fill="#fff" />
               </g>
             </svg>
           </div>
@@ -409,7 +410,7 @@ function Step3Docs({ route, onBack, onNext }) {
 
       <div style={{ padding: '0 16px 100px' }}>
         <div style={{ padding: '10px 12px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 8, font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink)', marginBottom: 14 }}>
-          <span style={{ color: 'var(--info)' }}>ℹ</span>
+          <span style={{ color: 'var(--info)', display: 'flex' }}>{window.Icon.info(15)}</span>
           Descargá los 3 documentos en tu teléfono · entregá al cliente la factura impresa o digital.
         </div>
 
@@ -538,7 +539,7 @@ function Step4Signature({ route, delivery, setDelivery, onBack, onNext }) {
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-          <BigButton label="🔄 Borrar" onClick={clear} variant="secondary" />
+          <BigButton label="Borrar" onClick={clear} variant="secondary" />
         </div>
 
         <div className="eyebrow eyebrow-wine" style={{ marginBottom: 8 }}>O foto del documento firmado</div>
@@ -569,7 +570,7 @@ function Step5POD({ route, delivery, setDelivery, onBack, onSubmit }) {
           <div className="eyebrow eyebrow-wine" style={{ marginBottom: 10 }}>Foto carga descargada</div>
           {hasPhoto ? (
             <div style={{ position: 'relative', aspectRatio: '4/3', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
-              <span style={{ fontSize: 64, opacity: 0.5 }}>📦</span>
+              <span style={{ opacity: 0.4, color: 'var(--ink-mute)' }}>{window.Icon.box(56)}</span>
               <button onClick={() => setDelivery({ ...delivery, podPhoto: null })} style={{ position: 'absolute', top: 8, right: 8, width: 32, height: 32, borderRadius: '50%', background: 'rgba(168,50,62,0.9)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.close(14)}</button>
             </div>
           ) : (
@@ -745,7 +746,7 @@ function Step0Load({ route, onBack, onNext }) {
                       <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{d.client}</div>
                     </div>
                     <div style={{ font: '500 11px/1.2 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>
-                      📍 {d.address} · <code style={{ font: '600 10.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>{d.shipment}</code>
+                      {d.address} · <code style={{ font: '600 10.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>{d.shipment}</code>
                     </div>
                   </div>
                 </div>
@@ -771,7 +772,7 @@ function Step0Load({ route, onBack, onNext }) {
                 {isPartial && (
                   <div style={{ padding: '8px 10px', background: 'var(--warning-bg)', borderRadius: 'var(--r-sm)', marginTop: 4 }}>
                     <div style={{ font: '700 11px/1.2 var(--f-sans)', color: 'var(--warning)', marginBottom: 4 }}>
-                      ⚠️ Entrega parcial · {d.loadedBoxes}/{d.totalBoxes} cajas
+                      Entrega parcial · {d.loadedBoxes}/{d.totalBoxes} cajas
                     </div>
                     <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>
                       Restan <b>{remaining} cajas</b> en bodega como <code style={{ font: '700 10.5px/1 var(--f-mono)', color: 'var(--warning)' }}>{d.shipment}-P2</code>
@@ -803,7 +804,7 @@ function Step0Load({ route, onBack, onNext }) {
         {/* Helper banner */}
         {!canNext && (
           <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--warning-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 8, font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-            <span style={{ color: 'var(--warning)' }}>⚠</span>
+            <span style={{ color: 'var(--warning)', display: 'flex' }}>{window.Icon.warn(15)}</span>
             {!allChecked && `Faltan ${deliveries.filter(d => !checked[d.id]).length} clientes por confirmar carga`}
             {allChecked && needsReason.length > 0 && `${needsReason.length} parcial${needsReason.length > 1 ? 'es' : ''} sin motivo · indicar antes de continuar`}
           </div>
@@ -821,3 +822,21 @@ function Step0Load({ route, onBack, onNext }) {
     </div>
   );
 }
+
+// ── Flujo de entrega reutilizable para el shell multi-rol ─────
+// Arranca en s0 (cargar camión sellado) y corre hasta el POD final,
+// sin el login/home propios. onExit vuelve al home del modo Chofer.
+function DeliveryFlow({ route, onExit }) {
+  const [view, setView] = useState('s0');
+  const [delivery, setDelivery] = useState({ confirmPhoto: null, signature: null, podPhoto: null, receivedBy: '', receivedDoc: '', notes: '' });
+  if (view === 's1')   return <Step1Confirm route={route} delivery={delivery} setDelivery={setDelivery} onBack={() => setView('s0')} onNext={() => setView('s2')} />;
+  if (view === 's2')   return <Step2Route route={route} onBack={() => setView('s1')} onNext={() => setView('s3')} />;
+  if (view === 's3')   return <Step3Docs route={route} onBack={() => setView('s2')} onNext={() => setView('s4')} />;
+  if (view === 's4')   return <Step4Signature route={route} delivery={delivery} setDelivery={setDelivery} onBack={() => setView('s3')} onNext={() => setView('s5')} />;
+  if (view === 's5')   return <Step5POD route={route} delivery={delivery} setDelivery={setDelivery} onBack={() => setView('s4')} onSubmit={() => setView('done')} />;
+  if (view === 'done') return <Done route={route} onHome={onExit} />;
+  return <Step0Load route={route} onBack={onExit} onNext={() => setView('s1')} />;
+}
+
+window.OperarioVEFlows = { DeliveryFlow };
+})();

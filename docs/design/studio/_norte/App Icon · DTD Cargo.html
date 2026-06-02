@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD Cargo · App Icon</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@600;700;800;900&family=Sora:wght@600;700;800&family=Nunito+Sans:opsz,wght@6..12,500;6..12,600;6..12,700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); padding: 48px 40px 80px; }
+  .wrap { max-width: 1120px; margin: 0 auto; }
+  .eyebrow { font: 700 11px/1 var(--f-sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--wine); }
+  h1 { font: 800 34px/1.05 var(--f-display); letter-spacing: -0.025em; margin: 10px 0 6px; }
+  .sub { font: 500 14px/1.6 var(--f-sans); color: var(--ink-soft); max-width: 620px; }
+  .row { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-end; }
+  .sec { margin-top: 52px; }
+  .sec-h { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  .cap { font: 600 12px/1.4 var(--f-sans); color: var(--ink); margin-top: 12px; }
+  .cap small { display: block; font: 500 11px/1.4 var(--f-sans); color: var(--ink-mute); margin-top: 3px; }
+  .tag { display: inline-block; font: 700 9px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 8px; border-radius: 999px; margin-top: 8px; }
+
+  /* ── Icon master ── */
+  .ic { position: relative; overflow: hidden; flex-shrink: 0; }
+  .ic img { position: absolute; inset: 0; margin: auto; display: block; }
+  .squircle { border-radius: 22.4%; }
+  .circle { border-radius: 50%; }
+
+  /* backgrounds */
+  .bg-navy { background:
+      radial-gradient(120% 120% at 78% 84%, rgba(127,15,26,0.55) 0%, rgba(127,15,26,0) 52%),
+      linear-gradient(150deg, #1B2E55 0%, #0F1E3D 58%, #0A1730 100%); }
+  .bg-wine { background:
+      radial-gradient(120% 120% at 26% 18%, rgba(255,255,255,0.16) 0%, rgba(255,255,255,0) 46%),
+      linear-gradient(150deg, #9A1422 0%, #7F0F1A 60%, #5E0A12 100%); }
+  .bg-cream { background:
+      radial-gradient(120% 120% at 78% 84%, rgba(127,15,26,0.10) 0%, rgba(127,15,26,0) 55%),
+      linear-gradient(150deg, #FFFFFF 0%, #FBFAF7 60%, #F2F0EC 100%); }
+  .inner-stroke { box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), inset 0 0 0 1px rgba(255,255,255,0.05); }
+  .inner-stroke-dark { box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), inset 0 0 0 1px rgba(15,30,61,0.06); }
+  .drop { box-shadow: 0 18px 40px -12px rgba(15,30,61,0.45), 0 6px 14px -8px rgba(15,30,61,0.3); }
+
+  /* phone mocks */
+  .phone { width: 280px; border-radius: 38px; padding: 14px; background: #0B1428; box-shadow: 0 24px 60px -18px rgba(11,20,40,0.6); }
+  .screen { border-radius: 26px; overflow: hidden; aspect-ratio: 9/17; position: relative;
+    background: linear-gradient(165deg, #2A3F6B 0%, #16264A 50%, #0B1428 100%); }
+  .ios-grid { position: absolute; inset: 0; padding: 56px 28px 28px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px 18px; align-content: start; }
+  .ios-app { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .ios-app .ic { width: 100%; aspect-ratio: 1; }
+  .ios-app .lbl { font: 600 9px/1 var(--f-sans); color: rgba(255,255,255,0.92); text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+  .ghost { background: rgba(255,255,255,0.10); border-radius: 22.4%; aspect-ratio: 1; }
+  .ios-dock { position: absolute; left: 14px; right: 14px; bottom: 14px; height: 64px; border-radius: 26px; background: rgba(255,255,255,0.12); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: space-around; padding: 0 14px; }
+  .ios-dock .ghost { width: 42px; }
+  .statusbar { position: absolute; top: 0; left: 0; right: 0; height: 38px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; font: 700 11px/1 var(--f-mono); color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">DTD-CARGO · IDENTIDAD DE APP</div>
+  <h1>DTD Cargo · ícono de aplicación</h1>
+  <p class="sub">Nombre de instalación en App Store / Play Store: <b style="color:var(--ink)">DTD Cargo</b>. Un solo ícono para iPhone y Android, construido sobre el isólogo de marca (monograma D·P) en cream sobre navy con acento wine — alto contraste para leer nítido en pantalla de inicio.</p>
+
+  <!-- ── Direcciones ── -->
+  <div class="sec">
+    <div class="sec-h">3 direcciones · elegí una</div>
+    <div class="row">
+      <div>
+        <div class="ic squircle bg-navy inner-stroke drop" style="width:176px;height:176px">
+          <img src="assets/dtdcargo-isologo-mono-light.png" style="width:60%;height:60%;object-fit:contain" alt="DTD Cargo" />
+        </div>
+        <div class="cap">A · Navy + cream + glow wine <span class="tag" style="background:var(--wine-tint);color:var(--wine)">RECOMENDADO</span><small>Premium, serio, máxima legibilidad. Acento wine sutil abajo-derecha.</small></div>
+      </div>
+      <div>
+        <div class="ic squircle bg-wine inner-stroke drop" style="width:176px;height:176px">
+          <img src="assets/dtdcargo-isologo-mono-light.png" style="width:60%;height:60%;object-fit:contain" alt="DTD Cargo" />
+        </div>
+        <div class="cap">B · Wine sólido + cream<small>El más llamativo / "loud". Resalta entre íconos en la home.</small></div>
+      </div>
+      <div>
+        <div class="ic squircle bg-cream inner-stroke-dark drop" style="width:176px;height:176px">
+          <img src="assets/dtdcargo-isologo-primary.png" style="width:62%;height:62%;object-fit:contain" alt="DTD Cargo" />
+        </div>
+        <div class="cap">C · Cream + marca primary<small>Claro y limpio. Menos contraste sobre fondos claros.</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── iOS ── -->
+  <div class="sec">
+    <div class="sec-h">iPhone · pantalla de inicio (squircle iOS)</div>
+    <div class="row" style="align-items:flex-start">
+      <div class="phone">
+        <div class="screen">
+          <div class="statusbar"><span>9:41</span><span>5G</span></div>
+          <div class="ios-grid">
+            <div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div>
+            <div class="ios-app">
+              <div class="ic squircle bg-navy inner-stroke"><img src="assets/dtdcargo-isologo-mono-light.png" style="width:60%;height:60%;object-fit:contain" alt="" /></div>
+              <span class="lbl">DTD Cargo</span>
+            </div>
+            <div class="ghost"></div><div class="ghost"></div><div class="ghost"></div>
+            <div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div>
+          </div>
+          <div class="ios-dock"><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div><div class="ghost"></div></div>
+        </div>
+      </div>
+      <div style="flex:1;min-width:260px;padding-top:8px">
+        <div class="cap" style="font-size:13px">El label bajo el ícono dice <b>DTD Cargo</b> (máx. ~12 car. visibles en iOS — entra justo).</div>
+        <div class="cap" style="font-size:13px;margin-top:14px">Especificación de entrega:<small>· Master 1024×1024 px, sin transparencia, sin esquinas redondeadas (iOS aplica la máscara).<br>· Set: 180 (iPhone), 167/152 (iPad), 120, 80, 60, 58, 40, 29.<br>· Formato PNG, sRGB.</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Android ── -->
+  <div class="sec">
+    <div class="sec-h">Android · adaptive icon (círculo / squircle / rounded)</div>
+    <div class="row">
+      <div>
+        <div class="ic circle bg-navy inner-stroke drop" style="width:148px;height:148px">
+          <img src="assets/dtdcargo-isologo-mono-light.png" style="width:54%;height:54%;object-fit:contain" alt="DTD Cargo" />
+        </div>
+        <div class="cap">Círculo (Pixel)<small>Marca al 54% · safe-zone respetada</small></div>
+      </div>
+      <div>
+        <div class="ic squircle bg-navy inner-stroke drop" style="width:148px;height:148px">
+          <img src="assets/dtdcargo-isologo-mono-light.png" style="width:54%;height:54%;object-fit:contain" alt="DTD Cargo" />
+        </div>
+        <div class="cap">Squircle (Samsung)<small>Misma capa, distinta máscara OEM</small></div>
+      </div>
+      <div>
+        <div class="ic bg-navy inner-stroke drop" style="width:148px;height:148px;border-radius:30px">
+          <img src="assets/dtdcargo-isologo-mono-light.png" style="width:54%;height:54%;object-fit:contain" alt="DTD Cargo" />
+        </div>
+        <div class="cap">Rounded square<small>Foreground + background separables</small></div>
+      </div>
+      <div style="flex:1;min-width:220px;padding-top:8px">
+        <div class="cap" style="font-size:13px">Adaptive icon = <b>foreground</b> (marca cream) + <b>background</b> (navy+glow), cada uno 108×108 dp con safe-zone central de 66 dp. La marca al 54% asegura que ninguna máscara OEM la recorte.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Legibilidad ── -->
+  <div class="sec">
+    <div class="sec-h">Legibilidad · tamaños reales (dirección A)</div>
+    <div class="row" style="align-items:center;gap:22px">
+      <div style="text-align:center"><div class="ic squircle bg-navy inner-stroke" style="width:120px;height:120px"><img src="assets/dtdcargo-isologo-mono-light.png" style="width:60%;height:60%;object-fit:contain" alt="" /></div><div class="cap" style="text-align:center">120</div></div>
+      <div style="text-align:center"><div class="ic squircle bg-navy inner-stroke" style="width:80px;height:80px"><img src="assets/dtdcargo-isologo-mono-light.png" style="width:60%;height:60%;object-fit:contain" alt="" /></div><div class="cap" style="text-align:center">80</div></div>
+      <div style="text-align:center"><div class="ic squircle bg-navy inner-stroke" style="width:60px;height:60px"><img src="assets/dtdcargo-isologo-mono-light.png" style="width:60%;height:60%;object-fit:contain" alt="" /></div><div class="cap" style="text-align:center">60</div></div>
+      <div style="text-align:center"><div class="ic squircle bg-navy inner-stroke" style="width:40px;height:40px"><img src="assets/dtdcargo-isologo-mono-light.png" style="width:62%;height:62%;object-fit:contain" alt="" /></div><div class="cap" style="text-align:center">40</div></div>
+      <div style="text-align:center"><div class="ic squircle bg-navy inner-stroke" style="width:29px;height:29px"><img src="assets/dtdcargo-isologo-mono-light.png" style="width:64%;height:64%;object-fit:contain" alt="" /></div><div class="cap" style="text-align:center">29</div></div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

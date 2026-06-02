@@ -24,6 +24,7 @@ window.FEATURE_FLAG_DEFAULTS = {
   comments:          true,
   consolidation_partial: true,
   portal_cliente:    true,
+  referidos:         false,
   mobile_operator:   false,
   sustainability:    false,
   backup_auto:       true,

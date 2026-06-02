@@ -86,7 +86,7 @@ function SectionBrandSystem() {
             icon="spark"
             label="Abrir Logo Oficial · spec interactiva"
             sub="Carrusel de las 4 variantes · tweaks en vivo · spec técnica · descarga PNG por variante" />
-          <BrandLink href="Brand Book DTD v3.1.html"
+          <BrandLink href="Brand Book DTD v3.2.html"
             icon="doc"
             label="Brand Book completo"
             sub="Tipografía · paleta · iconografía · aplicaciones · mockups" accent="navy" />

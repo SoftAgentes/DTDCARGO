@@ -1,0 +1,388 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD · Login y Sesión · Operario</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="theme-color" content="#0F1E3D" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;600;700;800;900&family=Sora:wght@600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,500;6..12,600;6..12,700;6..12,800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+  html, body { margin: 0; height: 100%; background: var(--bg-base); }
+  * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+  button { font-family: inherit; cursor: pointer; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#0F1E3D"/>
+    <rect x="34" y="30" width="32" height="40" rx="5" fill="none" stroke="#C2747F" stroke-width="3"/>
+    <path d="M42 30v-5a8 8 0 0 1 16 0v5" fill="none" stroke="#C2747F" stroke-width="3"/>
+    <circle cx="50" cy="48" r="3.4" fill="#C2747F"/>
+    <rect x="48.5" y="50" width="3" height="9" rx="1.5" fill="#C2747F"/>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="erp/icons.jsx"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+
+<script type="text/babel">
+const { useState } = React;
+const I = window.Icon;
+
+/* ── Glyph propio · huella (4 arcos, iconográfico) ───────────── */
+function Fingerprint({ s = 26, color = 'currentColor' }) {
+  return (
+    <svg viewBox="0 0 24 24" width={s} height={s} fill="none" stroke={color} strokeWidth="1.6" strokeLinecap="round">
+      <path d="M4.5 11a7.5 7.5 0 0 1 15 0" />
+      <path d="M7.5 12a4.5 4.5 0 0 1 9 0v2.5" />
+      <path d="M10 12.2a2 2 0 0 1 4 0v4" />
+      <path d="M12 12.5v5.5" />
+    </svg>
+  );
+}
+
+/* ── Átomos de UI ────────────────────────────────────────────── */
+function Eyebrow({ children, tone = 'var(--wine)' }) {
+  return <div style={{ font: '700 10px/1 var(--f-sans)', color: tone, letterSpacing: '0.16em', textTransform: 'uppercase' }}>{children}</div>;
+}
+
+function StatusBar({ light }) {
+  const c = light ? 'rgba(255,255,255,0.85)' : 'var(--ink)';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 18px 4px', flexShrink: 0 }}>
+      <span style={{ font: `700 12px/1 var(--f-mono)`, color: c }}>6:42</span>
+      <div style={{ display: 'flex', gap: 5, alignItems: 'center', color: c }}>
+        <span style={{ font: '700 9px/1 var(--f-sans)', letterSpacing: '0.04em' }}>5G</span>
+        <div style={{ width: 22, height: 11, border: `1.4px solid ${c}`, borderRadius: 3, position: 'relative' }}>
+          <div style={{ position: 'absolute', inset: 1.5, right: 7, background: c, borderRadius: 1 }} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value, type = 'text', icon }) {
+  const [show, setShow] = useState(false);
+  const isPw = type === 'password';
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 50, padding: '0 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+        {icon && <span style={{ color: 'var(--ink-mute)', display: 'flex' }}>{icon}</span>}
+        <span style={{ flex: 1, font: `${isPw && !show ? '700' : '600'} 15px/1 ${isPw ? 'var(--f-mono)' : 'var(--f-sans)'}`, color: 'var(--ink)', letterSpacing: isPw && !show ? '0.18em' : 0 }}>
+          {isPw && !show ? '••••••••' : value}
+        </span>
+        {isPw && (
+          <button onClick={() => setShow(!show)} style={{ background: 'none', border: 0, color: 'var(--ink-mute)', display: 'flex', padding: 4 }}>{I.eye(16)}</button>
+        )}
+      </div>
+    </label>
+  );
+}
+
+function Toggle({ on }) {
+  return (
+    <div style={{ width: 42, height: 25, borderRadius: 999, background: on ? 'var(--wine)' : 'var(--border-strong)', position: 'relative', flexShrink: 0, transition: 'background .2s' }}>
+      <div style={{ position: 'absolute', top: 2.5, left: on ? 19.5 : 2.5, width: 20, height: 20, borderRadius: '50%', background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.25)', transition: 'left .2s' }} />
+    </div>
+  );
+}
+
+function ToggleRow({ title, sub, on }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+      <div style={{ flex: 1 }}>
+        <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{title}</div>
+        {sub && <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{sub}</div>}
+      </div>
+      <Toggle on={on} />
+    </div>
+  );
+}
+
+function Btn({ children, variant = 'primary' }) {
+  const v = {
+    primary: { bg: 'var(--wine)', fg: '#fff', bd: 'var(--wine)' },
+    light: { bg: 'rgba(255,255,255,0.95)', fg: 'var(--ink)', bd: 'transparent' },
+    ghost: { bg: 'var(--bg-surface)', fg: 'var(--wine)', bd: 'var(--wine)' },
+  }[variant];
+  return (
+    <div style={{ width: '100%', height: 50, borderRadius: 'var(--r-md)', background: v.bg, color: v.fg, border: `1px solid ${v.bd}`, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, font: '800 15px/1 var(--f-sans)', letterSpacing: '-0.01em' }}>{children}</div>
+  );
+}
+
+function PinDots({ filled = 0 }) {
+  return (
+    <div style={{ display: 'flex', gap: 14, justifyContent: 'center' }}>
+      {[0,1,2,3].map(i => (
+        <div key={i} style={{ width: 15, height: 15, borderRadius: '50%', background: i < filled ? 'var(--wine)' : 'transparent', border: `2px solid ${i < filled ? 'var(--wine)' : 'var(--border-strong)'}` }} />
+      ))}
+    </div>
+  );
+}
+
+function NumPad() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 56px)', gap: 12, justifyContent: 'center' }}>
+      {[1,2,3,4,5,6,7,8,9].map(n => (
+        <div key={n} style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 22px/1 var(--f-display)', color: 'var(--ink)' }}>{n}</div>
+      ))}
+      <div />
+      <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--bg-elevated)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 22px/1 var(--f-display)', color: 'var(--ink)' }}>0</div>
+      <div style={{ width: 56, height: 56, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-mute)' }}>{I.close(20)}</div>
+    </div>
+  );
+}
+
+function Screen({ children, style }) {
+  return (
+    <div style={{ width: '100%', height: '100%', background: 'var(--bg-base)', borderRadius: 26, overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', ...style }}>{children}</div>
+  );
+}
+
+/* ════════ 1 · PRIMER INGRESO ════════ */
+function S1Login() {
+  return (
+    <Screen>
+      {/* Navy hero */}
+      <div style={{ background: 'linear-gradient(135deg, var(--ink), #1F3055)', padding: '0 0 24px', flexShrink: 0 }}>
+        <StatusBar light />
+        <div style={{ padding: '14px 24px 0' }}>
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" style={{ height: 30, display: 'block' }} />
+          <div style={{ marginTop: 22 }}>
+            <Eyebrow tone="var(--wine-soft)">DTD-CARGO · OPERARIO</Eyebrow>
+            <div style={{ font: '800 26px/1.1 var(--f-display)', color: '#fff', marginTop: 8, letterSpacing: '-0.02em' }}>Iniciá sesión</div>
+          </div>
+        </div>
+      </div>
+      {/* Form */}
+      <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 14, flex: 1 }}>
+        <Field label="Usuario" value="rbriceno" icon={I.idcard(16)} />
+        <Field label="Contraseña" value="" type="password" icon={I.lock(16)} />
+        <ToggleRow on={true} title="Recordar este dispositivo" sub="Mantené la sesión iniciada acá. No vas a escribir la contraseña cada vez." />
+        <Btn>Entrar</Btn>
+        <div style={{ textAlign: 'center', marginTop: 'auto', font: '600 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
+          ¿Olvidaste la contraseña?<br/><span style={{ color: 'var(--wine)' }}>Pedí un reset a tu supervisor →</span>
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+/* ════════ 2 · DISPOSITIVO VINCULADO + CREAR PIN ════════ */
+function S2Trust() {
+  return (
+    <Screen>
+      <StatusBar />
+      <div style={{ padding: '8px 22px 20px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{I.shield(22)}</div>
+          <div>
+            <Eyebrow tone="var(--success)">DISPOSITIVO VINCULADO</Eyebrow>
+            <div style={{ font: '800 17px/1.15 var(--f-display)', color: 'var(--ink)', marginTop: 5, letterSpacing: '-0.01em' }}>Quedó vinculado a este teléfono</div>
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', marginBottom: 18 }}>
+          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
+            <b>Ramón Briceño · PFI.</b> Creá un PIN de 4 dígitos para entrar rápido. La contraseña ya no hace falta en este equipo.
+          </div>
+        </div>
+
+        <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 14 }}>Nuevo PIN</div>
+        <div style={{ marginBottom: 18 }}><PinDots filled={2} /></div>
+        <NumPad />
+
+        <div style={{ marginTop: 18 }}>
+          <ToggleRow on={true} title="Activar huella / Face ID" sub="Desbloqueo aún más rápido en el día a día." />
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+/* ════════ 3 · DESBLOQUEO DIARIO · PIN ════════ */
+function S3Unlock() {
+  return (
+    <Screen>
+      <StatusBar />
+      <div style={{ padding: '12px 22px 22px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+          <div style={{ width: 46, height: 46, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 15px/1 var(--f-display)', flexShrink: 0 }}>RB</div>
+          <div>
+            <div style={{ font: '800 19px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Hola, Ramón</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 4 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)' }} />
+              <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>Sesión activa · sin contraseña</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 14 }}>Ingresá tu PIN</div>
+        <div style={{ marginBottom: 18 }}><PinDots filled={3} /></div>
+        <NumPad />
+
+        <div style={{ marginTop: 'auto', paddingTop: 18, display: 'flex', flexDirection: 'column', gap: 12, alignItems: 'center' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 999, border: '1px solid var(--wine)', color: 'var(--wine)', font: '700 13px/1 var(--f-sans)' }}>
+            <Fingerprint s={18} /> Usar huella
+          </div>
+          <div style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>¿No sos Ramón? · Cerrar dispositivo</div>
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+/* ════════ 4 · DESBLOQUEO BIOMÉTRICO ════════ */
+function S4Bio() {
+  return (
+    <Screen style={{ background: 'linear-gradient(135deg, var(--ink), #1F3055)', border: 0 }}>
+      <StatusBar light />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 28 }}>
+        <div style={{ width: 108, height: 108, borderRadius: '50%', background: 'rgba(194,116,127,0.16)', border: '1px solid rgba(194,116,127,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--wine-soft)' }}>
+          <Fingerprint s={56} color="var(--wine-soft)" />
+        </div>
+        <div style={{ font: '800 21px/1.15 var(--f-display)', color: '#fff', marginTop: 26, letterSpacing: '-0.02em' }}>Desbloqueá con tu huella</div>
+        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>Tocá el sensor del teléfono para entrar.<br/>Tu sesión sigue guardada en este equipo.</div>
+      </div>
+      <div style={{ padding: '0 24px 30px' }}>
+        <div style={{ width: '100%', height: 48, borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 14px/1 var(--f-sans)' }}>Usar PIN</div>
+      </div>
+    </Screen>
+  );
+}
+
+/* ════════ 5 · SESIÓN EXPIRADA ════════ */
+function S5Expired() {
+  return (
+    <Screen>
+      <StatusBar />
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 26 }}>
+        <div style={{ width: 76, height: 76, borderRadius: '50%', background: 'var(--warning-bg)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{I.clock(34)}</div>
+        <div style={{ marginTop: 22 }}><Eyebrow tone="var(--warning)">SESIÓN EXPIRADA</Eyebrow></div>
+        <div style={{ font: '800 20px/1.2 var(--f-display)', color: 'var(--ink)', marginTop: 10, letterSpacing: '-0.02em' }}>Pasaron 90 días sin actividad</div>
+        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 10 }}>Por seguridad cerramos la sesión en este teléfono. Volvé a iniciar sesión una vez y listo.</div>
+      </div>
+      <div style={{ padding: '0 22px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <Btn><span style={{ display: 'inline-flex', marginRight: 2 }}>{I.refresh(15)}</span> Volver a iniciar sesión</Btn>
+        <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--success-bg)', borderRadius: 'var(--r-md)' }}>
+          <span style={{ color: 'var(--success)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield(15)}</span>
+          <span style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Tus datos siguen seguros — solo confirmamos que seas vos.</span>
+        </div>
+      </div>
+    </Screen>
+  );
+}
+
+/* ════════ 6 · ERP · RESET DE ACCESO (ADMIN) ════════ */
+function ErpBtn({ children, tone }) {
+  const c = { ghost: { bg: 'var(--bg-surface)', fg: 'var(--ink-soft)', bd: 'var(--border)' }, danger: { bg: 'var(--danger-bg)', fg: 'var(--danger)', bd: 'transparent' }, wine: { bg: 'var(--wine)', fg: '#fff', bd: 'var(--wine)' } }[tone] || {};
+  return <div style={{ padding: '9px 14px', borderRadius: 'var(--r-sm)', background: c.bg, color: c.fg, border: `1px solid ${c.bd}`, font: '700 12.5px/1 var(--f-sans)' }}>{children}</div>;
+}
+
+function S6Erp() {
+  return (
+    <div style={{ width: '100%', height: '100%', background: 'var(--bg-base)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* topbar */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 22px', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+        <span style={{ color: 'var(--wine)', display: 'flex' }}>{I.users(18)}</span>
+        <div style={{ font: '800 14px/1 var(--f-display)', color: 'var(--ink)' }}>Operarios PWA</div>
+        <span style={{ color: 'var(--ink-mute)' }}>{I.chevR(13)}</span>
+        <div style={{ font: '600 13px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>Gestión de acceso</div>
+      </div>
+
+      <div style={{ padding: 22, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* operator row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+          <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '800 14px/1 var(--f-display)', flexShrink: 0 }}>RB</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ font: '700 14px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Ramón Briceño</div>
+            <div style={{ font: '500 11.5px/1.3 var(--f-mono)', color: 'var(--ink-soft)', marginTop: 3 }}>Galaxy A24 · Operario Multi · PFI</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <ErpBtn tone="wine">Resetear PIN</ErpBtn>
+            <ErpBtn tone="ghost">Forzar re-login</ErpBtn>
+            <ErpBtn tone="danger">Revocar acceso</ErpBtn>
+          </div>
+        </div>
+
+        {/* result panel */}
+        <div style={{ padding: 18, background: 'var(--bg-surface)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <span style={{ color: 'var(--success)', display: 'flex' }}>{I.check(16)}</span>
+            <div style={{ font: '700 13px/1 var(--f-sans)', color: 'var(--ink)' }}>PIN temporal generado</div>
+          </div>
+          <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
+            <div>
+              <div style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>PIN temporal</div>
+              <code style={{ font: '800 26px/1 var(--f-mono)', color: 'var(--wine)', letterSpacing: '0.14em' }}>4821</code>
+            </div>
+            <div style={{ width: 1, height: 40, background: 'var(--border)' }} />
+            <div>
+              <div style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>Vence en</div>
+              <div style={{ font: '800 16px/1 var(--f-sans)', color: 'var(--ink)' }}>24 horas</div>
+            </div>
+            <div style={{ width: 1, height: 40, background: 'var(--border)' }} />
+            <div style={{ flex: 1, minWidth: 180 }}>
+              <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>El operario entra con este PIN y <b style={{ color: 'var(--ink)' }}>crea uno nuevo</b> en el primer acceso. No se envía ningún correo.</div>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
+          <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.info(15)}</span>
+          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
+            Para operarios la recuperación es <b>por admin</b> (no por email — muchos no tienen correo corporativo). Para clientes del <b>Portal</b> sí va la recuperación self-service por email/SMS.
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Canvas ─────────────────────────────────────────────────── */
+function NoteCard({ eyebrow, tone = 'var(--wine)', children }) {
+  return (
+    <div style={{ width: '100%', height: '100%', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderLeft: `4px solid ${tone}`, borderRadius: 'var(--r-md)', padding: 22, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <Eyebrow tone={tone}>{eyebrow}</Eyebrow>
+      <div style={{ font: '500 14px/1.65 var(--f-sans)', color: 'var(--ink)', marginTop: 14 }}>{children}</div>
+    </div>
+  );
+}
+
+const { DesignCanvas, DCSection, DCArtboard, DCPostIt } = window;
+
+function App() {
+  return (
+    <DesignCanvas>
+      <DCSection id="ciclo" title="App de operario · ciclo de sesión" subtitle="Un APK · contraseña una sola vez · después PIN o biometría">
+        <DCArtboard id="s1" label="1 · Primer ingreso" width={300} height={636}><S1Login /></DCArtboard>
+        <DCArtboard id="s2" label="2 · Dispositivo vinculado · crear PIN" width={300} height={636}><S2Trust /></DCArtboard>
+        <DCArtboard id="s3" label="3 · Desbloqueo diario · PIN" width={300} height={636}><S3Unlock /></DCArtboard>
+        <DCArtboard id="s4" label="4 · Desbloqueo biométrico" width={300} height={636}><S4Bio /></DCArtboard>
+        <DCArtboard id="s5" label="5 · Sesión expirada → re-login" width={300} height={636}><S5Expired /></DCArtboard>
+        <DCArtboard id="n1" label="Principio" width={272} height={636}><NoteCard tone="var(--wine)" eyebrow="LA REGLA DE ORO">Se graba la <b>sesión</b> (un token largo guardado en el equipo), <b>nunca</b> la contraseña. Contraseña una sola vez → sesión persistente → PIN o huella para el día a día.<br/><br/>El token se puede <b>revocar</b> desde el ERP en un toque; una contraseña guardada en el teléfono, no.</NoteCard></DCArtboard>
+      </DCSection>
+
+      <DCSection id="reset" title="ERP · reset de acceso (admin)" subtitle="Si el operario pierde el PIN/contraseña, se resuelve desde acá — sin correos">
+        <DCArtboard id="s6" label="6 · Reset desde el ERP" width={720} height={460}><S6Erp /></DCArtboard>
+        <DCArtboard id="n2" label="Por qué no email" width={300} height={460}><NoteCard tone="var(--ink)" eyebrow="RECUPERACIÓN POR ADMIN">Un almacenista o chofer suele <b>no tener correo corporativo</b>, así que la recuperación por email no sirve.<br/><br/>El admin resetea, genera un <b>PIN temporal</b> y el operario crea el suyo al entrar. Los <b>clientes del Portal</b> sí usan recuperación self-service por email/SMS.</NoteCard></DCArtboard>
+      </DCSection>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

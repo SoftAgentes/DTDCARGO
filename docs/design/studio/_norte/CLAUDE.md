@@ -194,6 +194,22 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 - En texto de cara al **cliente**, NUNCA uses "Shipping Mark" como término principal — siempre **MARKBOX**.
 - El **valor** del código no cambia nunca según contexto (`DTD-5532`, `DTD-5532-1-1`): lo único que cambia es la **etiqueta** con que lo nombramos.
 
+## 🏷 Terminología · Compra / Orden / Prealerta (regla de audiencia)
+
+> **Compra, Orden y Prealerta son el MISMO registro** — el pedido del cliente que avisa que
+> viene mercancía de China. Cambia solo la etiqueta según quién lee:
+
+| Contexto | Término que se muestra |
+|---|---|
+| **Cliente (Portal, app)** | **Compra** (CTA "Nueva compra") · anclado al concepto **prealerta** |
+| **Interno / operativo (ERP)** | **Orden** (`DTD-XXXX-x-x`) |
+| **Concepto puerta-a-puerta US/VE** | **Prealerta** (el cliente avisa que viene carga) |
+
+- En el portal, "Compra" es el CTA principal; se ancla "prealerta" en el subtítulo para que el
+  cliente acostumbrado al modelo casillero/courier reconozca el concepto. **No** renombrar el
+  CTA a "Compra / Prealerta".
+- El **valor** del registro no cambia según contexto: cambia solo la etiqueta.
+
 ---
 
 ## ✍️ Tono y voz
@@ -233,6 +249,11 @@ Si el usuario pide algo así, **avisarle** y proponer alternativa que respete el
 
 ## 📋 Convenciones de código
 
+- **Regla calculadora (sistema):** todo input numérico/monetario evalúa sumas/restas tipo
+  calculadora — el usuario escribe `32+1` y queda `33` (muestra "= 33" en vivo, colapsa al
+  total al salir). En el ERP web es automático en `ERPUI.Input` con `type="number"` (o prop
+  `calc`); en las apps de operario está en `MobileInput` con prop `calc`. Soporta decimales
+  y restas. No inventar otra mecánica de suma.
 - React + JSX inline (no JSX module mode). Componentes con PascalCase.
 - Estilos: **inline styles con tokens CSS** o classes del sistema. **No** Tailwind, **no** CSS-in-JS libs, **no** styled-components.
 - Archivos `.jsx` cargados via `<script type="text/babel" src=...>`.
@@ -277,8 +298,16 @@ preferís la alternativa?
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `Brand Book DTD v3.1.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro.
+- **Brand Book:** `Brand Book DTD v3.2.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro.
+- **Documentos legales:** carpeta `legal/` — T&C de DTD (cliente), Acuerdo con el operador de
+  consolidación (interno) y Brief de seguro (interno). Cada uno en `.md` (canónico, lo lee
+  Claude Code) + `.docx` (original para subir/firmar). Ver `legal/README.md`. La T&C v2.1 de
+  cara al cliente vive además embebida en `erp/modules/admin-legal.jsx` (`LEGAL_BODY.tyc`) y
+  el modal del Portal — si cambia, actualizar ambos y subir la versión.
 - Mock data en `erp/data.jsx`. Cualquier dato nuevo se agrega ahí y se expone vía `window.ERPData`.
+- **Backend (producción):** carpeta `backend/` — `API-CONTRACT.md` mapea cada seam
+  (`window.DTDData`/`DTDFlags`/`LegalData`) a su endpoint REST. El prototipo es 100% mock en el
+  navegador; para producto real se reescribe el cuerpo de los seams (misma firma, llama a la API).
 
 ---
 

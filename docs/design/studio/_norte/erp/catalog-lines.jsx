@@ -61,7 +61,7 @@
                 <input type="number" value={l.qty} min="0" onChange={(e) => upd(i, { qty: e.target.value })} style={numIn} />
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <span style={{ padding: '7px 6px', border: '1px solid var(--border)', borderRight: 0, borderRadius: 'var(--r-sm) 0 0 var(--r-sm)', background: 'var(--bg-elevated)', font: '700 11px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>$</span>
-                  <input type="number" value={l.rate} min="0" onChange={(e) => upd(i, { rate: e.target.value })} style={{ ...numIn, borderRadius: '0 var(--r-sm) var(--r-sm) 0' }} />
+                  <window.ERPUI.CalcInput value={l.rate} onChange={(e) => upd(i, { rate: e.target.value })} style={{ ...numIn, borderRadius: '0 var(--r-sm) var(--r-sm) 0' }} />
                 </div>
                 <span style={{ font: '800 12.5px/1 var(--f-mono)', color: 'var(--ink)', textAlign: 'right' }}>{fmt((Number(l.qty) || 0) * (Number(l.rate) || 0))}</span>
                 <button type="button" title="Quitar línea" onClick={() => rm(i)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--ink-mute)', font: '700 15px/1 var(--f-sans)', padding: 0 }}>×</button>
