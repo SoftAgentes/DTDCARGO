@@ -334,3 +334,16 @@ confirmadas pre-apply (`get_user_tenant_id`, `tenants`, `user_tenants.role/disab
    genérico; sumar = 1 `<CommentsThread …>` por detalle.
 
 → Pasa a `done` cuando se haga el push/deploy (1) y se verifique el E2E de UI.
+
+### Hallazgos del `/plan-eng-review` (2026-06-03)
+Review retrospectivo, 0 P1. **Accionados** (commit `b7f86b9`): href de la bandeja
+aterriza en el record (invoice/quote → `[code]`; fix typo `quote /cotizar→/cotizador`)
++ tests de las 4 server actions (cierra el 0% de cobertura de actions). **Diferidos a TODO:**
+- **[P3] orden+limit de `listComments`** devuelve los 500 MÁS VIEJOS (`ascending + limit(500)`)
+  → en hilos >500 oculta los recientes. Fix: traer `desc` + reverse. (`comments-queries.ts:58`)
+- **[P3] `toggleReaction`** read-modify-write: doble-click rápido puede dar error espurio
+  (lo salva el `unique`). No usa `ActionButton`. Aceptable por alta frecuencia.
+- **[P3] fallo silencioso** si falta `service_role`: `loadTenantUsers`→`[]` → dropdown de @
+  vacío sin aviso. (`comments-queries.ts:228`)
+- **[P2] badge de no-leídas + email/push de menciones** — ya listados arriba; el badge cruza
+  el carril integración (sidebar/chrome), coordinar.
