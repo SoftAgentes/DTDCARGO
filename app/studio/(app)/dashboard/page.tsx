@@ -19,6 +19,7 @@ import {
   getQuoteStatsThisMonth,
   getRecentActivity,
   getRecentQuotes,
+  navieraKpis,
 } from "@/lib/studio/dashboard-queries";
 import { computeAgentKpis } from "@/lib/studio/agent-queries";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -97,6 +98,7 @@ export default async function DashboardPage() {
     recentQuotes,
     recentActivity,
     agentKpis,
+    naviera,
   ] = await Promise.all([
     supabase.auth.getUser(),
     supabase
@@ -111,6 +113,7 @@ export default async function DashboardPage() {
     getRecentQuotes(supabase, 5),
     getRecentActivity(supabase, 6),
     computeAgentKpis(supabase),
+    navieraKpis(supabase),
   ]);
 
   const tenant = tenantLink;
@@ -190,6 +193,50 @@ export default async function DashboardPage() {
             value={operational.conAlerta}
             label="Con alerta"
             valueColor="var(--danger)"
+          />
+        </div>
+      </section>
+
+      {/* NAVIERA & CONSOLIDACIÓN · SDD-0047 */}
+      <section style={{ marginBottom: 28 }}>
+        <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+          Naviera & consolidación
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(4, 1fr)",
+            gap: 14,
+          }}
+        >
+          <KpiCard
+            value={naviera.consolidating}
+            label="Contenedores consolidando"
+            valueColor={naviera.consolidating > 0 ? "var(--warning)" : "var(--ink)"}
+            sub={
+              <Link
+                href="/studio/naviera"
+                style={{ color: "var(--wine)", textDecoration: "none", fontWeight: 600 }}
+              >
+                Gestionar →
+              </Link>
+            }
+          />
+          <KpiCard
+            value={`${naviera.looseCbm.toFixed(1)} CBM`}
+            label="Carga suelta sin asignar"
+            valueColor={naviera.looseCbm > 0 ? "var(--wine)" : "var(--ink)"}
+            sub={`${naviera.looseCount} embarque(s) en CN`}
+          />
+          <KpiCard
+            value={naviera.openSailings}
+            label="Salidas con espacio"
+            sub="Itinerarios abiertos / cut-off"
+          />
+          <KpiCard
+            value={naviera.looseCount}
+            label="Embarques por consolidar"
+            sub="Listos en almacén CN"
           />
         </div>
       </section>

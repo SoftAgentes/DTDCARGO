@@ -55,6 +55,7 @@ export const MODULES: ModuleDef[] = [
   { id: "qrqueue", group: "OPERACIÓN", label: "Cola de QR", labelKey: "chrome.sidebar.qr_queue", icon: "tag", slug: "/studio/cola-qr" },
   { id: "labels", group: "OPERACIÓN", label: "Etiquetas CN", labelKey: "chrome.sidebar.labels_cn", icon: "tag", slug: "/studio/etiquetas" },
   { id: "ve", group: "OPERACIÓN", label: "Almacén VE", labelKey: "chrome.sidebar.warehouse_ve", icon: "warehouse", slug: "/studio/ve" },
+  { id: "naviera", group: "OPERACIÓN", label: "Naviera & Consolidación", icon: "ship", slug: "/studio/naviera" },
   { id: "seniat", group: "OPERACIÓN", label: "Aduana SENIAT", labelKey: "chrome.sidebar.customs_seniat", icon: "shield", slug: "/studio/seniat" },
   { id: "tms", group: "OPERACIÓN", label: "TMS · Transporte", labelKey: "chrome.sidebar.tms", icon: "truck", slug: "/studio/tms" },
   { id: "despacho", group: "OPERACIÓN", label: "Despacho", labelKey: "chrome.sidebar.dispatch", icon: "truck", slug: "/studio/despacho" },

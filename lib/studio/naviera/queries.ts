@@ -13,9 +13,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   containerStats,
   type Booking,
+  type Carrier,
   type Consolidation,
   type ConsolidationItem,
   type ContainerStats,
+  type ContainerType,
+  type Port,
   type Sailing,
 } from "./types";
 
@@ -31,6 +34,15 @@ function num(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
+const CARRIER_COLUMNS =
+  "id, tenant_id, name, name_cn, scac, tone, active, notes, created_at, updated_at, deleted_at";
+
+const PORT_COLUMNS =
+  "id, tenant_id, code, name, name_cn, country, created_at";
+
+const CONTAINER_TYPE_COLUMNS =
+  "id, tenant_id, code, label, cbm_capacity, kg_capacity, display_order, created_at";
+
 const SAILING_COLUMNS =
   "id, tenant_id, carrier_id, vessel, voyage, pol, pod, etd, eta, cutoff, transit_days, status, space, notes, created_at, updated_at, deleted_at";
 
@@ -42,6 +54,47 @@ const CONSOLIDATION_COLUMNS =
 
 const ITEM_COLUMNS =
   "id, tenant_id, consolidation_id, shipment_id, client_markbox, client_name, supplier_name, cbm, weight_kg, pieces, created_at";
+
+function coerceCarrier(r: Record<string, unknown>): Carrier {
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    name: String(r.name ?? ""),
+    name_cn: (r.name_cn as string | null) ?? null,
+    scac: (r.scac as string | null) ?? null,
+    tone: String(r.tone ?? "neutral"),
+    active: r.active !== false,
+    notes: (r.notes as string | null) ?? null,
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+    deleted_at: (r.deleted_at as string | null) ?? null,
+  };
+}
+
+function coercePort(r: Record<string, unknown>): Port {
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    code: String(r.code ?? ""),
+    name: String(r.name ?? ""),
+    name_cn: (r.name_cn as string | null) ?? null,
+    country: String(r.country ?? "CN"),
+    created_at: String(r.created_at),
+  };
+}
+
+function coerceContainerType(r: Record<string, unknown>): ContainerType {
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    code: String(r.code ?? ""),
+    label: String(r.label ?? ""),
+    cbm_capacity: num(r.cbm_capacity),
+    kg_capacity: num(r.kg_capacity),
+    display_order: Math.round(num(r.display_order)),
+    created_at: String(r.created_at),
+  };
+}
 
 function coerceSailing(r: Record<string, unknown>): Sailing {
   return {
@@ -117,6 +170,52 @@ function coerceItem(r: Record<string, unknown>): ConsolidationItem {
   };
 }
 
+// ── Catálogos (carriers / ports / container_types) ─────────────
+
+/** Lista las navieras (vivas) del tenant para selects/labels. */
+export async function listCarriers(
+  supabase: SupabaseClient,
+  opts: { activeOnly?: boolean } = {},
+): Promise<Carrier[]> {
+  let query = supabase
+    .from("carriers")
+    .select(CARRIER_COLUMNS)
+    .order("name", { ascending: true })
+    .limit(2000);
+  if (opts.activeOnly) query = query.eq("active", true);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceCarrier);
+}
+
+/** Lista los puertos del tenant (catálogo CN/VE). */
+export async function listPorts(supabase: SupabaseClient): Promise<Port[]> {
+  const { data, error } = await supabase
+    .from("ports")
+    .select(PORT_COLUMNS)
+    .order("country", { ascending: true })
+    .order("code", { ascending: true })
+    .limit(2000);
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coercePort);
+}
+
+/** Lista el catálogo de tipos de contenedor del tenant (20GP/40GP/40HC). */
+export async function listContainerTypes(
+  supabase: SupabaseClient,
+): Promise<ContainerType[]> {
+  const { data, error } = await supabase
+    .from("container_types")
+    .select(CONTAINER_TYPE_COLUMNS)
+    .order("display_order", { ascending: true })
+    .limit(200);
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(
+    coerceContainerType,
+  );
+}
+
 // ── Sailings ───────────────────────────────────────────────────
 
 /** Lista los itinerarios (vivos) del tenant; abiertos/cut-off primero, luego por ETD. */
@@ -184,6 +283,47 @@ export type ConsolidationDetail = {
   items: ConsolidationItem[];
   stats: ContainerStats;
 };
+
+/**
+ * Lista todos los contenedores (vivos) con sus items + utilización ya calculada.
+ * Una sola query de items (in consolidation_ids) — evita N+1 al pintar la lista
+ * con la barra de utilización. Devuelve en el mismo orden que listConsolidations.
+ */
+export async function listConsolidationsWithStats(
+  supabase: SupabaseClient,
+  opts: { status?: string } = {},
+): Promise<ConsolidationDetail[]> {
+  const consolidations = await listConsolidations(supabase, opts);
+  if (consolidations.length === 0) return [];
+
+  const ids = consolidations.map((c) => c.id);
+  const { data: itemRows, error: itemErr } = await supabase
+    .from("consolidation_items")
+    .select(ITEM_COLUMNS)
+    .in("consolidation_id", ids)
+    .order("created_at", { ascending: true })
+    .limit(10000);
+  if (itemErr) throw itemErr;
+
+  const items = ((itemRows as Record<string, unknown>[] | null) ?? []).map(
+    coerceItem,
+  );
+  const byConsolidation = new Map<string, ConsolidationItem[]>();
+  for (const it of items) {
+    const list = byConsolidation.get(it.consolidation_id) ?? [];
+    list.push(it);
+    byConsolidation.set(it.consolidation_id, list);
+  }
+
+  return consolidations.map((consolidation) => {
+    const cItems = byConsolidation.get(consolidation.id) ?? [];
+    return {
+      consolidation,
+      items: cItems,
+      stats: containerStats(cItems, consolidation.container_type),
+    };
+  });
+}
 
 /**
  * Lee un contenedor por id con sus items y la utilización (containerStats sobre
@@ -303,4 +443,62 @@ export async function listLooseCargo(
     cbm: numOrNull(r.volume_m3),
     weight_kg: numOrNull(r.weight_kg),
   }));
+}
+
+// ── KPIs del dashboard (SDD-0014, Slice B) ─────────────────────
+
+/** KPIs de Naviera para el Dashboard del Studio (SDD-0014). */
+export type NavieraKpis = {
+  /** Contenedores en estado `consolidando` (abiertos para sumar carga). */
+  consolidating: number;
+  /** CBM total de carga suelta recibida en CN sin asignar a contenedor. */
+  looseCbm: number;
+  /** Cantidad de embarques sueltos sin asignar. */
+  looseCount: number;
+  /** Itinerarios con espacio (abierto / cutoff). */
+  openSailings: number;
+};
+
+/**
+ * Conteos agregados de Naviera para el Dashboard. Reusa los queries puros:
+ * contenedores consolidando + CBM suelto sin asignar. RLS filtra por tenant.
+ * Defensivo: si una tabla aún no existe (migración 0096 no aplicada en un env),
+ * devuelve ceros en vez de romper el dashboard entero.
+ */
+export async function navieraKpis(
+  supabase: SupabaseClient,
+): Promise<NavieraKpis> {
+  const empty: NavieraKpis = {
+    consolidating: 0,
+    looseCbm: 0,
+    looseCount: 0,
+    openSailings: 0,
+  };
+
+  try {
+    const [consolidating, loose, openSailings] = await Promise.all([
+      supabase
+        .from("consolidations")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "consolidando")
+        .is("deleted_at", null),
+      listLooseCargo(supabase),
+      supabase
+        .from("sailings")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["abierto", "cutoff"])
+        .is("deleted_at", null),
+    ]);
+
+    const looseCbm = loose.reduce((s, l) => s + (Number(l.cbm) || 0), 0);
+
+    return {
+      consolidating: consolidating.count ?? 0,
+      looseCbm: Math.round(looseCbm * 10) / 10,
+      looseCount: loose.length,
+      openSailings: openSailings.count ?? 0,
+    };
+  } catch {
+    return empty;
+  }
 }

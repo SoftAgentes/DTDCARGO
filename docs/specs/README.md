@@ -79,7 +79,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0044 | Tesorería — Proveedores + CxP + órdenes de pago + asiento del… | done | interno |
 | 0045 | Comentarios + @menciones transversales — hilo embebible en cu… | done | interno |
 | 0046 | Verificación de identidad de clientes — motor 2 vías (CNE céd… | done | interno |
-| 0047 | Naviera & Consolidación — carriers + itinerarios + bookings/B… | approved | interno |
+| 0047 | Naviera & Consolidación — carriers + itinerarios + bookings/B… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
