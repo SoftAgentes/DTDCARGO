@@ -173,3 +173,28 @@ docs/specs/README.md                                     ← reindex (docs:index
 - Auto bin-packing optimizer (V1 = utilización + asignación manual).
 - Costing & margen por contenedor (reparto de flete por CBM a cada cliente) → Bloque 5 / SDD Costing.
 - Tracking marítimo en vivo del vessel (Slice C).
+
+## 9. Estado de implementación
+
+**Slice A (foundation) implementado vía harness `/feature` (2026-06-03), reviewer APPROVED en 1 ronda.**
+
+Construido:
+- **Migración** `supabase/migrations/0096_naviera_consolidacion.sql` — 7 tablas
+  (`carriers`, `ports`, `container_types`, `sailings`, `bookings`, `consolidations`,
+  `consolidation_items`) con **RLS fail-closed por `tenant_id`** + 2 RPCs nuevos
+  `next_booking_code` (`BKG-YYYY-NNNN`) y `next_consolidation_ref` (`DTD-CONSOL-NNNN`),
+  patrón `next_quote_code` secuencial por tenant + **seed** de ports (6: NGB/YTN/SHA/NSA/PBL/LGU)
+  y container_types (3: 20GP/40GP/40HC).
+- **Tipos + queries** `lib/studio/naviera/{types,queries}.ts` — enums/labels/tones/validadores
+  (no Zod) + `containerStats` **calcado del Norte** (`cbmPct`/`kgPct`/`freeCbm`/`freeKg`/`clients`)
+  + lecturas (`listSailings`, `listBookings`, `listConsolidations`, `getConsolidation`,
+  `listLooseCargo`).
+- **31 tests** (Vitest) cubriendo los criterios de aceptación de Slice A.
+
+**Pendiente:**
+- **Slice B (UI operable end-to-end):** surface `app/studio/(app)/naviera/`, server actions,
+  drawer de asignación con guard de capacidad, wire al Dashboard (SDD-0014).
+- **Slice C (avanzado, gated):** scraping de itinerarios, emisión de BL como PDF, bin-packing optimizer.
+
+**Ops pendiente del founder:** aplicar `0096` a prod (aditiva, con RLS; **NO la aplicó el harness**)
++ verificar **RLS con 2 tenants** y correr el **rollback-test** al aplicar.
