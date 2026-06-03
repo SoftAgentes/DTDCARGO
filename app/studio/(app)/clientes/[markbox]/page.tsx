@@ -25,6 +25,8 @@ import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ClientDetailClient } from "../_components/ClientDetailClient";
 import { PortalAccessCard } from "../_components/PortalAccessCard";
 import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
+import { DocsPanel } from "@/app/studio/_components/documents/DocsPanel";
+import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
 
 export const metadata = { title: "Detalle cliente" };
 
@@ -60,6 +62,10 @@ export default async function ClienteDetallePage({
   const shipments = (await listShipmentsByMarkbox(supabase, markbox)) as ShipmentRow[];
   const portalAccess = await getClientPortalAccess(supabase, client.id);
   const portalApprovedAt = await getClientPortalApprovedAt(supabase, client.id);
+
+  // Documentos del DMS genérico (SDD-0049) adjuntos a este cliente — KYC, RIF,
+  // contratos, poderes. Coexiste con shipment_documents.
+  const dmsDocuments = await listDocumentsByEntity(supabase, "client", client.id);
 
   // SDD-0046: la verificación de identidad aplica a clientes self-registrados
   // o con foto de documento. El badge es advisory — nunca bloquea al cliente.
@@ -222,6 +228,23 @@ export default async function ClienteDetallePage({
               autoEnabled={autoVerifyEnabled}
             />
           )}
+
+          {/* Documentos del cliente (SDD-0049 · KYC/RIF/contratos) */}
+          <section
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: "var(--r-lg)",
+              padding: 20,
+            }}
+          >
+            <DocsPanel
+              entityType="client"
+              entityId={client.id}
+              documents={dmsDocuments}
+              title="Documentos · hub"
+            />
+          </section>
           </div>
 
           {/* Histórico de envíos */}

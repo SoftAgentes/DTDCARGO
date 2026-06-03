@@ -27,6 +27,8 @@ import {
   listShipmentDocuments,
   signDocumentUrls,
 } from "@/lib/studio/shipment-document-queries";
+import { DocsPanel } from "@/app/studio/_components/documents/DocsPanel";
+import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
 import {
   listComments,
@@ -59,6 +61,10 @@ export default async function ShipmentDetailPage({
     supabase,
     documents.map((d) => d.storage_path),
   );
+
+  // Documentos del DMS genérico (SDD-0049) adjuntos a este embarque. Coexiste
+  // con shipment_documents (portal-facing) — son repositorios separados.
+  const dmsDocuments = await listDocumentsByEntity(supabase, "shipment", id);
 
   // Comentarios internos del equipo (SDD-0045). Embed canónico del módulo.
   const authUser = await getUser();
@@ -206,6 +212,23 @@ export default async function ShipmentDetailPage({
               shipmentId={shipment.id}
               documents={documents}
               signedUrls={docUrls}
+            />
+          </section>
+          <section
+            style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+              padding: 24,
+            }}
+          >
+            <DocsPanel
+              entityType="shipment"
+              entityId={shipment.id}
+              documents={dmsDocuments}
+              title="Documentos internos · hub"
+              badge={{ tone: "neutral", label: "Interno" }}
+              subtitle="Adjuntos internos del equipo. Aparecen en el hub de Documentos; el cliente NO los ve."
             />
           </section>
         </div>

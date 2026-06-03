@@ -22,6 +22,8 @@ import {
   extFromMime,
   isAllowedDocumentMime,
   formatDocSize,
+  buildDocumentStoragePath,
+  canonicalContentType,
 } from "../types";
 
 describe("deriveDocStatus", () => {
@@ -265,5 +267,93 @@ describe("validateDocumentInput", () => {
     const res = validateDocumentInput({ ...base, validUntil: "2026-12-31" });
     expect(res.ok).toBe(true);
     if (res.ok) expect(res.value.validUntil).toBe("2026-12-31");
+  });
+});
+
+// ── buildDocumentStoragePath (Slice B · path construido SERVER-SIDE) ──
+describe("buildDocumentStoragePath", () => {
+  const TENANT = "11111111-1111-1111-1111-111111111111";
+  const ENTITY = "22222222-2222-2222-2222-222222222222";
+  const UUID = "33333333-3333-3333-3333-333333333333";
+
+  it("entidad concreta → {tenant}/{type}/{id}/{uuid}.{ext}", () => {
+    expect(
+      buildDocumentStoragePath({
+        tenantId: TENANT,
+        entityType: "shipment",
+        entityId: ENTITY,
+        uuid: UUID,
+        ext: "pdf",
+      }),
+    ).toBe(`${TENANT}/shipment/${ENTITY}/${UUID}.pdf`);
+  });
+
+  it("primer segmento del path = tenant (lo re-verifica la Storage RLS)", () => {
+    const path = buildDocumentStoragePath({
+      tenantId: TENANT,
+      entityType: "client",
+      entityId: ENTITY,
+      uuid: UUID,
+      ext: "jpg",
+    });
+    expect(path.split("/")[0]).toBe(TENANT);
+  });
+
+  it("entity_type 'none' → segmento literal 'none' (sin id)", () => {
+    expect(
+      buildDocumentStoragePath({
+        tenantId: TENANT,
+        entityType: "none",
+        entityId: null,
+        uuid: UUID,
+        ext: "zip",
+      }),
+    ).toBe(`${TENANT}/none/none/${UUID}.zip`);
+  });
+
+  it("entityId null con type ≠ none → segmento 'none' (defensa)", () => {
+    expect(
+      buildDocumentStoragePath({
+        tenantId: TENANT,
+        entityType: "invoice",
+        entityId: null,
+        uuid: UUID,
+        ext: "pdf",
+      }),
+    ).toBe(`${TENANT}/invoice/none/${UUID}.pdf`);
+  });
+});
+
+// ── canonicalContentType (Slice B · hardening: MIME servido = canónico del tipo,
+// NO el raw.type del cliente · SDD-0049 §9) ──────────────────────────
+describe("canonicalContentType", () => {
+  it("mapea cada mime de la whitelist a su content-type canónico", () => {
+    expect(canonicalContentType("application/pdf")).toBe("application/pdf");
+    expect(canonicalContentType("image/jpeg")).toBe("image/jpeg");
+    expect(canonicalContentType("image/png")).toBe("image/png");
+    expect(canonicalContentType("image/webp")).toBe("image/webp");
+    expect(
+      canonicalContentType(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ),
+    ).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    expect(
+      canonicalContentType(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ),
+    ).toBe(
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    );
+    expect(canonicalContentType("application/zip")).toBe("application/zip");
+  });
+
+  it("tipo renderizable inyectado (text/html, image/svg+xml) NUNCA se sirve como tal → octet-stream", () => {
+    // El cliente puede mandar raw.type=text/html aunque la whitelist lo rechace;
+    // si por error llegara a upload, el MIME servido jamás sería ejecutable inline.
+    expect(canonicalContentType("text/html")).toBe("application/octet-stream");
+    expect(canonicalContentType("image/svg+xml")).toBe(
+      "application/octet-stream",
+    );
+    expect(canonicalContentType("")).toBe("application/octet-stream");
   });
 });

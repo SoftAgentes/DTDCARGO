@@ -28,6 +28,26 @@ export function isAllowedDocumentMime(mime: string): boolean {
   return DOCUMENT_ALLOWED_MIME.has(mime);
 }
 
+/**
+ * Arma el path del object en el bucket `documents` (Slice B). SIEMPRE se llama
+ * server-side: el `tenantId` viene de get_user_tenant_id() y el `uuid` lo genera
+ * el servidor — el cliente NUNCA inyecta un path. Esquema:
+ *   {tenant_id}/{entity_type}/{entity_id|none}/{uuid}.{ext}
+ * El 1er segmento (tenant) lo re-verifica la Storage RLS por tenant.
+ * `none` o entity_id null → segmento literal "none".
+ */
+export function buildDocumentStoragePath(opts: {
+  tenantId: string;
+  entityType: DocumentEntityType;
+  entityId: string | null;
+  uuid: string;
+  ext: string;
+}): string {
+  const idSeg =
+    opts.entityType === "none" || !opts.entityId ? "none" : opts.entityId;
+  return `${opts.tenantId}/${opts.entityType}/${idSeg}/${opts.uuid}.${opts.ext}`;
+}
+
 /** Extensión canónica desde el content-type (para construir el path). */
 export function extFromMime(mime: string): string {
   switch (mime) {
@@ -48,6 +68,28 @@ export function extFromMime(mime: string): string {
     default:
       return "bin";
   }
+}
+
+/**
+ * Content-type CANÓNICO derivado de la extensión confiable (no del `raw.type`
+ * del cliente). Se sirve este MIME al subir el object para que el
+ * `Content-Type` de la signed URL sea el del tipo realmente esperado por la
+ * extensión, no el que el browser/atacante eligió (hardening · SDD-0049 §9).
+ * Si la extensión no está en el mapa confiable → octet-stream (no renderizable
+ * inline). NO fuerza download: PDF/imagen siguen abriéndose inline en el "Ver".
+ */
+const EXT_CONTENT_TYPE: Record<string, string> = {
+  pdf: "application/pdf",
+  jpg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  zip: "application/zip",
+};
+
+export function canonicalContentType(mime: string): string {
+  return EXT_CONTENT_TYPE[extFromMime(mime)] ?? "application/octet-stream";
 }
 
 // ── Entidades adjuntables (enum document_entity_type) ───────────

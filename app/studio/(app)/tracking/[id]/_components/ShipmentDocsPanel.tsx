@@ -71,13 +71,23 @@ export function ShipmentDocsPanel({
 
   return (
     <div>
-      <div className="studio-eyebrow" style={{ marginBottom: 4 }}>
-        Documentos
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 4,
+        }}
+      >
+        <span className="studio-eyebrow">Documentos del cliente · portal</span>
+        <Badge tone="info" size="sm">
+          Portal
+        </Badge>
       </div>
       <p
         style={{
           font: "500 11.5px/1.5 var(--f-sans)",
-          color: "var(--ink-mute)",
+          color: "var(--ink-soft)",
           margin: "0 0 14px",
         }}
       >

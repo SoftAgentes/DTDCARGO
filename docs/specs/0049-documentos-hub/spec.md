@@ -1,7 +1,7 @@
 ---
 sdd: "0049"
 title: "Documentos · Hub DMS — adjuntos polimórficos embebibles + carpeta central (Bloque 5)"
-status: approved
+status: done
 author: "Claude Code (carril Bloque 5 · Norte v2.4)"
 created: 2026-06-03
 updated: 2026-06-03
@@ -134,11 +134,35 @@ de Storage; se calca `shipment-docs` con path polimórfico.
       + `validateDocumentInput` (no Zod). Tests con stub SupabaseClient en `__tests__/`.
 - [x] `node scripts/verify.mjs` verde (634 tests, 43 files).
 
-### Slice B
-- [ ] Subir un PDF a un envío desde `<DocsPanel>` → aparece en el panel + en el hub bajo su carpeta.
-- [ ] Preview por signed-URL (no público); borrar (soft-delete + object).
-- [ ] Hub: navegar carpeta, buscar, filtrar por-vencer/pendiente/sin-vincular; deep-link al módulo.
-- [ ] `ui-ux-designer` sin hallazgos Alta.
+### Slice B (implementado · pendiente review + ui-ux-designer)
+- [x] Subir un PDF a un envío desde `<DocsPanel>` → aparece en el panel + en el hub bajo su carpeta
+      (`uploadDocument` con path construido SERVER-SIDE; el trigger DB valida la entidad).
+- [x] Preview por signed-URL (no público, TTL 60s, firmada on-demand server-side vía `signDocumentUrl`,
+      se abre en pestaña); borrar (soft-delete `deleted_at` + `storage.remove` del object, best-effort).
+- [x] Hub: árbol de carpetas (`FOLDERS` + `folderCounts`/`folderTreeCount`), buscar (`?q=`),
+      filtrar por-vencer/pendiente/sin-vincular (`?view=` → `expiring/pending/unlinkedDocuments`);
+      deep-link al módulo (`hubDeepLink` ← `LINK_KIND`).
+- [x] `ui-ux-designer` revisado: 1 Alta (botón "Buscar" con clase inexistente) **corregida** en el pase
+      de cierre; 2 nits de producto anotados (no aplicados, ver §9).
+
+> **Notas de implementación (Slice B · harness 2026-06-03):** gate `node scripts/verify.mjs` verde
+> (680 tests, 48 files).
+> - **Seguridad del path** (revisada adversarialmente): el `storage_path` lo arma SIEMPRE el servidor
+>   con `buildDocumentStoragePath({tenant=get_user_tenant_id(), type, id|none, uuid, ext})` — el
+>   cliente nunca lo inyecta; el 1er segmento = tenant lo re-verifica la Storage RLS. mime/size
+>   re-validados en la action (defensa en profundidad sobre el límite del bucket). `uploadDocument`
+>   hace rollback del object si el insert falla (incluye el rechazo del trigger `documents_validate_entity`
+>   sobre `entity_id` forjado). `signDocumentUrl` firma con el user client (TTL 60s) → cross-tenant no firma.
+> - **Deep-link V1:** enlaza a la RUTA BASE del módulo (`LINK_KIND.route`), no al detalle por id —
+>   la tabla guarda `entity_id` (uuid), no el code humano, y `client` se enruta por markbox. El detalle
+>   por code = V2.
+> - **Wiring demo:** `<DocsPanel>` montado en `tracking/[id]` (shipment) y `clientes/[markbox]` (client).
+>   Coexiste con `ShipmentDocsPanel` (0086, portal-facing) en el detalle del envío — repositorios separados (§4.1).
+> - **Sidebar:** el item `documents` ya apuntaba a `/studio/documentos` y estaba habilitado (sin cambio).
+> - **Archivos:** `documentos/{page,actions}.tsx` · `documentos/_components/{DocumentosHubClient.tsx,hub-helpers.ts}`
+>   (+ tests) · `_components/documents/DocsPanel.tsx` · `buildDocumentStoragePath` agregado a
+>   `lib/studio/documents/types.ts` (+ tests). El stub `DocumentosClient.tsx` se eliminó (su único botón
+>   "Generar BL" quedó inline en el hub).
 
 ## 6. Archivos a crear / editar (estimado)
 
@@ -169,3 +193,41 @@ docs/architecture/module-sdd-map.md · docs/specs/README.md ← al cerrar
 - Preview inline avanzado (visor PDF embebido) — V1 abre signed-URL en pestaña.
 - Surfacear adjuntos legacy (warehouse_receipt_photos, customs_documents) en el hub (V2).
 - Exposición de documents al Portal del cliente (el portal sigue con `shipment_documents`).
+
+## 9. Cierre (harness · 2026-06-03)
+
+**V1 completo (Slice A + Slice B).** `status: approved → done`.
+
+**Slice B vía harness** (implement → verify → review):
+- **Reviewer: APPROVED** (C1-C8 verdes; frontera intacta; coexistencia con `shipment_documents`
+  verificada; correctness adversarial OK). Sin cambios requeridos.
+- **Seguridad adversarial: PASS** — **0 explotable bloqueante** (sin cross-tenant, sin path traversal,
+  sin delete por path forjado, sin entity_id forjado [trigger DB], HTML/SVG fuera de la whitelist).
+  Path 100% server-side, RLS de tabla fail-closed, 4 Storage policies por tenant, doble validación
+  mime/size, rollback del object. 2 hardening como follow-up:
+  - **(1) `content_type` server-side — APLICADO.** `uploadDocument` ya NO sirve el `raw.type` crudo del
+    cliente; deriva el MIME con `canonicalContentType(raw.type)` (mapa confiable ext→mime). Si a futuro
+    entra un tipo renderizable a la whitelist, el `Content-Type` de la signed URL sigue siendo el canónico
+    del tipo esperado (mitiga XSS stored inline). NO fuerza download → preserva el "Ver" inline. Cubierto
+    por test (`canonicalContentType` → octet-stream para `text/html`/`image/svg+xml`).
+  - **(2) Object huérfano best-effort — documentado, no aplicado** (impacto práctico nulo: uuid aleatorio
+    no enumerable, no indexado, no firmable; job de reconciliación = overkill V1 · tech-debt).
+- **ui-ux-designer:** 1 Alta corregida — el botón "Buscar" del hub usaba `studio-btn-secondary`
+  (clase inexistente) → `studio-btn-ghost studio-btn-sm`. Además los 2 paneles de Documentos en el
+  detalle de envío quedaron diferenciados inequívocamente (riesgo: subir al panel equivocado):
+  `ShipmentDocsPanel` → eyebrow "Documentos del cliente · portal" + Badge `info` "Portal";
+  `DocsPanel` (nuevo) → eyebrow "Documentos internos · hub" + Badge `neutral` "Interno"; el subtítulo
+  distintivo (quién los ve) subió de `--ink-mute` a `--ink-soft`.
+
+**Nits de producto (anotados, NO aplicados en V1 — decisión de alcance):**
+- (a) El hub NO tiene botón "Subir documento" propio: la subida es solo desde el detalle de la entidad
+  (vía `<DocsPanel>` embebido). Decisión: el documento siempre nace ligado a su transacción.
+- (b) El deep-link de la tabla del hub va a la RUTA BASE del módulo, no a la fila/detalle exacto
+  (la tabla guarda `entity_id` uuid, no el code humano; `client` se enruta por markbox). Detalle por
+  code = V2.
+
+**Tech-debt:** tokenización de spacing transversal (varios px sueltos en los paneles/hub) + glyph de
+archivo (badge de extensión, sin ícono de tipo de documento).
+
+**Ops pendiente (founder):** aplicar `supabase/migrations/0097_documentos_hub.sql` a prod (Slice A; el
+trigger de validación polimórfica + las 4 Storage policies + el bucket privado). Sin DDL nuevo en Slice B.
