@@ -3,6 +3,13 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
+import { CONFIG } from "@/lib/calculadora";
+import { getPublicCbmRate } from "@/lib/public/rates-queries";
+
+// La tarifa pública cambia rara vez. ISR 300s como red de seguridad; además
+// las actions de /studio/tarifas hacen revalidatePath("/calculadora") → update
+// casi instantáneo cuando el admin marca/edita la tarifa pública.
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   title: "Calculadora de envíos LCL DDP",
@@ -22,7 +29,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function CalculadoraPage() {
+export default async function CalculadoraPage() {
+  // Tarifa pública real configurada en /studio/tarifas (o null → fallback al
+  // default de CONFIG, cero regresión). Vía RPC anon de retorno mínimo.
+  const serverRate = await getPublicCbmRate();
+  const baseRate = serverRate?.per_cbm && serverRate.per_cbm > 0
+    ? serverRate.per_cbm
+    : CONFIG.tarifaBaseCBM;
+
   return (
     <>
       <Nav />
@@ -34,7 +48,7 @@ export default function CalculadoraPage() {
             <span className="eyebrow">Calculadora · LCL DDP · China → Venezuela</span>
             <h1 className="sr-only">Calculadora de envíos LCL DDP</h1>
             <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[62ch]">
-              Tarifa base $800/CBM, hasta 500 kg/CBM sin recargo.{" "}
+              Tarifa base ${baseRate}/CBM, hasta {CONFIG.pesoIncluidoKg} kg/CBM sin recargo.{" "}
               <strong className="text-ink">
                 Financiamiento 100%: no pagás nada hasta que tu carga llegue a Venezuela.
               </strong>{" "}
@@ -46,7 +60,7 @@ export default function CalculadoraPage() {
         {/* Form + Resultado — visible apenas se carga la página */}
         <section className="pb-16 lg:pb-20">
           <div className="wrap max-w-[1100px]">
-            <CalculadoraForm />
+            <CalculadoraForm serverRate={serverRate} />
           </div>
         </section>
 
@@ -63,11 +77,11 @@ export default function CalculadoraPage() {
               </h3>
               <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-[14.5px] leading-[1.55] text-grey-700">
                 <Bloque
-                  titulo="$800 por CBM (m³)"
+                  titulo={`$${baseRate} por CBM (m³)`}
                   texto="Tarifa base de la modalidad LCL DDP (Less than Container Load, puerta a puerta con todo incluido). Aplica al volumen real de tu carga."
                 />
                 <Bloque
-                  titulo="500 kg/CBM incluidos"
+                  titulo={`${CONFIG.pesoIncluidoKg} kg/CBM incluidos`}
                   texto="Hasta ese peso por metro cúbico no hay recargo. Sobre eso, cobramos $1 por kilo de excedente. Si superás 600 kg/CBM, te orientamos a FCL."
                 />
                 <Bloque

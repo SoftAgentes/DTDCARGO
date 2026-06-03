@@ -151,6 +151,13 @@
   cursor: not-allowed;
 }
 
+/* Checkbox nativo del Studio: foco visible por teclado (WCAG 2.4.7).
+   El inline style no cubre pseudo-clases, por eso la regla vive acá. */
+.studio-checkbox:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
+
 .studio-input-mono {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-weight: 700;

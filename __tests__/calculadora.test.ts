@@ -230,6 +230,64 @@ describe("calcularEnvioLCL", () => {
     });
     expect(cot.precioBase).toBe(CONFIG.tarifaBaseCBM); // fallback
   });
+
+  // ── Piso mínimo: minChargeOverride (mínimo LCL real) vs CONFIG.minimoFacturable ──
+
+  it("aplica minChargeOverride como piso cuando el total queda por debajo", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 0.1, // base = 0.1 × 800 = 80
+      pesoKg: 20,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+      minChargeOverride: 380, // mínimo LCL real
+    });
+    expect(cot.precioBase).toBe(80);
+    expect(cot.total).toBe(380); // sube al piso real
+    expect(cot.ajusteMinimo).toBe(300); // 380 − 80, para que el desglose cuadre
+    // El desglose reconcilia: Σ ítems + ajusteMinimo = total.
+    const suma =
+      cot.precioBase +
+      cot.recargoExcedente +
+      cot.recargoCiudad +
+      cot.recargoEmbalaje +
+      cot.recargoBateria +
+      cot.descuentoSede +
+      cot.ajusteMinimo;
+    expect(suma).toBeCloseTo(cot.total, 2);
+  });
+
+  it("cae a CONFIG.minimoFacturable cuando NO hay minChargeOverride", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 0.01, // base = 8
+      pesoKg: 2,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.total).toBe(CONFIG.minimoFacturable); // 50
+  });
+
+  it("minChargeOverride no muerde cuando el total ya lo supera", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 1, // base = 800
+      pesoKg: 400,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+      minChargeOverride: 380,
+    });
+    expect(cot.total).toBe(800); // sin tocar
+    expect(cot.ajusteMinimo).toBe(0); // el piso no muerde → sin ajuste
+  });
+
+  it("ignora minChargeOverride si es 0 o negativo, cae al piso de CONFIG", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 0.01, // base = 8
+      pesoKg: 2,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+      minChargeOverride: 0, // inválido
+    });
+    expect(cot.total).toBe(CONFIG.minimoFacturable); // 50
+  });
 });
 
 describe("whatsappTextFromCotizacion", () => {

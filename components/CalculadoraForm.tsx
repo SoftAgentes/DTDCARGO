@@ -25,7 +25,22 @@ import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
  * directo (no dimensiones por caja) + peso. Toggles para baterías y carga
  * especial (esta última deriva al asesor).
  */
-export function CalculadoraForm() {
+/** Tarifa pública real (de /studio/tarifas vía RPC anon), o null → default CONFIG. */
+type ServerRate = {
+  per_cbm: number;
+  min_charge: number | null;
+  valid_until: string | null;
+} | null;
+
+export function CalculadoraForm({ serverRate }: { serverRate?: ServerRate }) {
+  // Tarifa base real o default de CONFIG (cero regresión si no hay pública).
+  const baseRate =
+    serverRate?.per_cbm && serverRate.per_cbm > 0
+      ? serverRate.per_cbm
+      : CONFIG.tarifaBaseCBM;
+  // Piso real (mínimo LCL comercial). Viaja al cálculo; no editable en V1.
+  const minChargeOverride = serverRate?.min_charge ?? undefined;
+
   const [form, setForm] = useState<EnvioInput>({
     cbmTotal: 0,
     pesoKg: 0,
@@ -33,7 +48,8 @@ export function CalculadoraForm() {
     ciudadId: "casco-central",
     bateria: false,
     cargaEspecial: false,
-    tarifaCBMOverride: CONFIG.tarifaBaseCBM,
+    tarifaCBMOverride: baseRate,
+    minChargeOverride,
   });
 
   const [cotizacion, setCotizacion] = useState<EnvioCotizacion | null>(null);
@@ -78,22 +94,22 @@ export function CalculadoraForm() {
                 onChange={(e) =>
                   update(
                     "tarifaCBMOverride",
-                    parseFloat(e.target.value) || CONFIG.tarifaBaseCBM,
+                    parseFloat(e.target.value) || baseRate,
                   )
                 }
-                placeholder={String(CONFIG.tarifaBaseCBM)}
+                placeholder={String(baseRate)}
                 className="flex-1 px-3 py-2 rounded-[8px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
               />
               <button
                 type="button"
-                onClick={() => update("tarifaCBMOverride", CONFIG.tarifaBaseCBM)}
+                onClick={() => update("tarifaCBMOverride", baseRate)}
                 className="text-[12px] font-semibold text-wine hover:text-wine-deep transition-colors whitespace-nowrap"
               >
-                Restaurar ${CONFIG.tarifaBaseCBM}
+                Restaurar ${baseRate}
               </button>
             </div>
             <p className="text-[11.5px] text-grey-500 mt-2 leading-[1.4]">
-              Tarifa estándar LCL DDP: ${CONFIG.tarifaBaseCBM}/CBM. Editá si tu
+              Tarifa estándar LCL DDP: ${baseRate}/CBM. Editá si tu
               cotización es distinta (negociación FCL, promoción, etc.).
             </p>
           </div>
@@ -404,6 +420,12 @@ function CotizacionDisplay({
                 label="Descuento entrega en Valencia"
                 value={cot.descuentoSede}
                 negative
+              />
+            )}
+            {cot.ajusteMinimo > 0 && (
+              <DesgloseRow
+                label="Ajuste a mínimo facturable (LCL)"
+                value={cot.ajusteMinimo}
               />
             )}
             <li className="flex justify-between border-t border-white/15 pt-2.5 mt-1 font-bold text-white">

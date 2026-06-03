@@ -147,6 +147,12 @@ export type EnvioInput = {
    * Útil cuando el cliente tiene una cotización negociada distinta a la pública.
    */
   tarifaCBMOverride?: number;
+  /**
+   * Override del piso mínimo cobrable (USD). Lo alimenta la tarifa pública
+   * real (`rates.min_charge` = mínimo LCL comercial) desde el server.
+   * Si no se provee (o es <= 0), se usa `CONFIG.minimoFacturable` (piso trivial).
+   */
+  minChargeOverride?: number;
 };
 
 export type EnvioCotizacion = {
@@ -162,7 +168,8 @@ export type EnvioCotizacion = {
   recargoEmbalaje: number;  // 0 o recargoEmbalajeEspecial
   recargoBateria: number;   // extra por el multiplicador de baterías (0 si no)
   descuentoSede: number;    // siempre negativo o 0
-  total: number;            // suma final, mínimo CONFIG.minimoFacturable
+  ajusteMinimo: number;     // ≥0 · cuánto sumó el piso mínimo (para que el desglose reconcilie)
+  total: number;            // suma final, piso = min_charge real o CONFIG.minimoFacturable
 
   /** Si hay algún problema/alerta para mostrar al usuario. */
   alerta?: {
@@ -275,13 +282,18 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
   const descuentoSede =
     ciudad.id === "valencia" ? -CONFIG.descuentoValencia : 0;
 
-  // 5.12 — Total
-  let total = fleteConBateria + descuentoSede;
+  // 5.12 — Total antes del piso (Σ de los ítems del desglose)
+  const totalSinPiso = fleteConBateria + descuentoSede;
 
-  // Aplicar piso mínimo
-  if (total < CONFIG.minimoFacturable) {
-    total = CONFIG.minimoFacturable;
-  }
+  // Piso mínimo. Si la tarifa pública trae un min_charge real (mínimo LCL
+  // comercial, ej. $380), ese es el piso; si no, el piso trivial de CONFIG.
+  const piso =
+    input.minChargeOverride != null && input.minChargeOverride > 0
+      ? input.minChargeOverride
+      : CONFIG.minimoFacturable;
+  const total = Math.max(totalSinPiso, piso);
+  // Cuánto sumó el piso → el desglose reconcilia: Σ ítems + ajusteMinimo = total.
+  const ajusteMinimo = roundUSD(Math.max(0, total - totalSinPiso));
 
   return {
     cbm,
@@ -292,6 +304,7 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
     recargoEmbalaje: roundUSD(recargoEmbalaje),
     recargoBateria,
     descuentoSede: roundUSD(descuentoSede),
+    ajusteMinimo,
     total: roundUSD(total),
     alerta,
     ciudad,
@@ -332,6 +345,7 @@ function cotizacionVacia(
     recargoEmbalaje: 0,
     recargoBateria: 0,
     descuentoSede: 0,
+    ajusteMinimo: 0,
     total: 0,
     alerta,
     ciudad: null,
