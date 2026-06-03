@@ -67,9 +67,14 @@ export default async function StudioAppLayout({
   // switcher, leer del switcher activo).
   const { data: tenantLink } = await supabase
     .from("user_tenants")
-    .select("region")
+    .select("region, role")
     .eq("user_id", user.id)
-    .maybeSingle<{ region: string | null }>();
+    .maybeSingle<{ region: string | null; role: string | null }>();
+
+  // Rol del user — el sidebar usa esto para mostrar items admin-only
+  // (ej: Dirección · tablero ejecutivo, SDD-0048). El gate real está en la
+  // ruta server; esto solo evita mostrar un link que daría redirect.
+  const isAdmin = tenantLink?.role === "admin";
 
   // Resolver locale activo. El override URL `?lang=` se aplica client-side
   // en LocaleProvider.
@@ -117,6 +122,7 @@ export default async function StudioAppLayout({
             <StudioSidebar
               featureFlags={featureFlags}
               expenseAlertCount={expenseAlertCount}
+              isAdmin={isAdmin}
             />
 
             <main

@@ -1,7 +1,7 @@
 ---
 sdd: "0048"
 title: "Dirección · Tablero ejecutivo — vista consolidada read-only, admin-only (Bloque 5)"
-status: approved
+status: done
 author: "Claude Code (carril Bloque 5 · Norte v2.4)"
 created: 2026-06-03
 updated: 2026-06-03
@@ -132,3 +132,54 @@ docs/specs/README.md                       ← reindex
 - Export CSV/PDF del resumen (V2).
 - Selector de período / comparativas mes-a-mes (V2).
 - Report builder / constructor (es otro módulo del Norte: `reports.jsx`, SDD futuro).
+
+## 9. Notas de implementación (2026-06-03)
+
+Implementado vía harness (`/feature`), read-only, sin migración ni server actions.
+
+**Agregados compuestos (nombres reales · NO se recalcula nada):**
+- P&L del mes → `profitAndLoss(accounts, balances)` (`accounting/reports.ts`) sobre
+  `listAccounts` + `accountBalances(supabase, { fromDate: 1°-del-mes })`.
+- Caja consolidada USD → suma de `balance` (saldos vivos) de las cuentas
+  `isCashAccount` (`payment-queries.ts`).
+- CxC + vencido CxC → `collectionKpis` (`payment-queries.ts`, módulo Cobranzas).
+- CxP + vencido CxP + caja → `treasuryKpis` (`treasury/bill-queries.ts`); forecast
+  desde `listBills` agrupado por `due_date` (4 ventanas de 7 días).
+- Naviera → `navieraKpis` (`naviera/queries.ts`) + `listSailings({status:'abierto'})`
+  para el próximo cut-off.
+- Operación → `getOperationalCounts` (`dashboard-queries.ts`, RPC); activos =
+  `enTransito + enAduana`.
+- Pipeline comercial → `listKommoLeads` (`kommo-queries.ts`); abiertos = `closed_at`
+  null; pipeline = suma de `price`.
+
+Derivados puros (testeados): posición neta (`netPosition`), cobertura%
+(`paymentCoveragePct`), margen (`netMarginPct`), forecast (`buildForecast`),
+alertas (`deriveAlerts`) — todo en `lib/studio/direccion/queries.ts`.
+
+**Gating admin:** ruta `app/studio/(app)/direccion/page.tsx` resuelve `user_tenants.role`;
+no-admin → `redirect('/studio/dashboard')` (mismo patrón que `/studio/usuarios`). El
+item de sidebar lleva `adminOnly: true` y solo se muestra si `isAdmin` (pasado por el
+layout). Grupo FINANZAS (no existe grupo "Inteligencia" en el sidebar actual).
+
+**Omitido (módulos inexistentes, §8):** tarjeta Servicio al cliente (Conversaciones) y
+mini-barras de tiers/referidos (Fidelización) — no se pintan placeholders muertos.
+
+**Tests:** `lib/studio/direccion/__tests__/queries.test.ts` (28) — posición neta,
+cobertura%, forecast por semana, derivación de alertas + 2 smokes de composición con
+stub de SupabaseClient. Cubren Acceptance §5.
+
+**Cierre (2026-06-03):** shippeado vía harness (implement → verify → review). Reviewer
+**APPROVED** y `ui-ux-designer` **sin hallazgos Alta**. Nits aplicados en el pase de
+cierre: (1) spacing → tokens `var(--s-*)` (snap al grid de 4px) en los 7 archivos del
+módulo; (2) dedup de `fmtUsd` (4 copias con signo negativo inconsistente → una sola en
+`lib/studio/direccion/queries.ts`, con minus tipográfico U+2212, importada por page y
+cards); (3) verificación de deep-links de salud financiera (CxC→Cobranzas, CxP/Vencido→
+Tesorería · sensato porque el vencido agrega CxP, que es pago urgente). Status →
+`done` (V1 completo). **V2** (forecast con ingresos esperados + export CSV/PDF +
+selector de período) queda en §8.
+
+**Tech-debt anotado (no bloqueante · pase de consistencia futuro):**
+- Primitiva `<Card>` del Studio: las 5 tarjetas repiten el mismo bloque inline
+  (`bg-surface` + `border` + `r-lg` + `padding`). Extraer a `_components/ui/Card.tsx`.
+- Clase `.studio-eyebrow` para el eyebrow uppercase (`700 10px/1 · letterSpacing 0.14em
+  · uppercase · var(--wine)/var(--ink-soft)`), hoy repetido inline en cada card.
