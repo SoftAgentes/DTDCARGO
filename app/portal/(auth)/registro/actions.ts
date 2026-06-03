@@ -186,6 +186,10 @@ export async function registerClientAction(
       // self-service entra como 'regular', que es además el default de la tabla.
       tier: "regular",
       cedula_photo_path: photoPath,
+      // SDD-0046: origen + tipo de documento (para la verificación de identidad).
+      // El self-registro siempre es canal 'portal'; doc_kind viene del form.
+      registration_channel: "portal",
+      doc_kind: input.kind,
       portal_approved_at: new Date().toISOString(),
       notes:
         input.kind === "empresa"
