@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 45 specs)
+### Índice de specs (generado · 46 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -83,6 +83,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0048 | Dirección · Tablero ejecutivo — vista consolidada read-only, … | done | interno |
 | 0049 | Documentos · Hub DMS — adjuntos polimórficos embebibles + car… | done | interno |
 | 0050 | Torre de control en /studio/debug — Estado + Bugs + Norte + R… | done | interno |
+| 0051 | Fidelización & Referidos — niveles por facturación (derivados… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
