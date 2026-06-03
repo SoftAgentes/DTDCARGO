@@ -17,7 +17,9 @@ export type Rate = {
   flat_rate: number | null;
   min_charge: number | null;
   transit_days: number | null;
+  valid_from: string | null;   // ISO date YYYY-MM-DD · par con valid_until
   valid_until: string | null;  // ISO date YYYY-MM-DD
+  is_public: boolean;          // marca la tarifa per_cbm pública del calculador
   notes: string | null;
   created_at: string;
   updated_at: string;
@@ -33,7 +35,9 @@ export type RateInput = {
   flat_rate: number | null;
   min_charge: number | null;
   transit_days: number | null;
+  valid_from: string | null;
   valid_until: string | null;
+  is_public: boolean;
   notes: string | null;
 };
 
@@ -120,10 +124,20 @@ export function validateRateInput(input: Partial<RateInput>): {
     errors.flat_rate = "Tarifa flat debe ser un número positivo.";
   }
 
-  if (input.valid_until) {
-    const d = new Date(input.valid_until);
-    if (Number.isNaN(d.getTime())) {
-      errors.valid_until = "Fecha de vigencia inválida.";
+  const validFromOk = input.valid_from
+    ? !Number.isNaN(new Date(input.valid_from).getTime())
+    : true;
+  const validUntilOk = input.valid_until
+    ? !Number.isNaN(new Date(input.valid_until).getTime())
+    : true;
+
+  if (!validFromOk) errors.valid_from = "Fecha de vigencia (desde) inválida.";
+  if (!validUntilOk) errors.valid_until = "Fecha de vigencia (hasta) inválida.";
+
+  // Invariante: si ambas fechas son válidas, valid_from no puede ser posterior a valid_until.
+  if (validFromOk && validUntilOk && input.valid_from && input.valid_until) {
+    if (new Date(input.valid_from) > new Date(input.valid_until)) {
+      errors.valid_from = "La vigencia 'desde' no puede ser posterior a 'hasta'.";
     }
   }
 
@@ -140,7 +154,9 @@ export function validateRateInput(input: Partial<RateInput>): {
       flat_rate: hasFlat ? input.flat_rate! : null,
       min_charge: input.min_charge ?? null,
       transit_days: input.transit_days ?? null,
+      valid_from: input.valid_from ?? null,
       valid_until: input.valid_until ?? null,
+      is_public: input.is_public ?? false,
       notes: input.notes?.trim() || null,
     },
   };

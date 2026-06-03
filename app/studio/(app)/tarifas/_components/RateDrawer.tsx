@@ -372,22 +372,95 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
             </div>
           </div>
 
-          {/* Vigencia */}
-          <div>
-            <label className="studio-label" htmlFor="valid_until">
-              Válida hasta
-            </label>
-            <input
-              id="valid_until"
-              name="valid_until"
-              type="date"
-              className="studio-input"
-              defaultValue={rate?.valid_until ?? ""}
-            />
-            {state.fieldErrors?.valid_until && (
-              <FieldError msg={state.fieldErrors.valid_until} />
-            )}
+          {/* Vigencia: desde / hasta */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 12,
+            }}
+          >
+            <div>
+              <label className="studio-label" htmlFor="valid_from">
+                Válida desde
+              </label>
+              <input
+                id="valid_from"
+                name="valid_from"
+                type="date"
+                className="studio-input"
+                defaultValue={rate?.valid_from ?? ""}
+              />
+              {state.fieldErrors?.valid_from && (
+                <FieldError msg={state.fieldErrors.valid_from} />
+              )}
+            </div>
+            <div>
+              <label className="studio-label" htmlFor="valid_until">
+                Válida hasta
+              </label>
+              <input
+                id="valid_until"
+                name="valid_until"
+                type="date"
+                className="studio-input"
+                defaultValue={rate?.valid_until ?? ""}
+              />
+              {state.fieldErrors?.valid_until && (
+                <FieldError msg={state.fieldErrors.valid_until} />
+              )}
+            </div>
           </div>
+
+          {/* Tarifa pública del calculador · solo aplica a tarifas per_cbm (LCL) */}
+          {mode$ === "per_cbm" && (
+            <label
+              htmlFor="is_public"
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 10,
+                padding: "12px 14px",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-sm)",
+                background: "var(--bg-elevated)",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                id="is_public"
+                name="is_public"
+                type="checkbox"
+                className="studio-checkbox"
+                defaultChecked={rate?.is_public ?? false}
+                style={{
+                  marginTop: 2,
+                  width: 16,
+                  height: 16,
+                  accentColor: "var(--wine)",
+                  cursor: "pointer",
+                }}
+              />
+              <span
+                style={{ display: "flex", flexDirection: "column", gap: 2 }}
+              >
+                <span
+                  style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}
+                >
+                  Tarifa pública del calculador
+                </span>
+                <span
+                  style={{
+                    font: "400 12px/1.4 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                  }}
+                >
+                  El calculador del sitio muestra esta tarifa por CBM y su
+                  mínimo. Solo una tarifa puede ser la pública.
+                </span>
+              </span>
+            </label>
+          )}
 
           {/* Notas */}
           <div>

@@ -58,9 +58,29 @@ function inputFromFormData(formData: FormData): Partial<RateInput> {
       const n = parseNumberOrNull(formData.get("transit_days"));
       return n == null ? null : Math.round(n);
     })(),
+    valid_from: parseStringOrNull(formData.get("valid_from")),
     valid_until: parseStringOrNull(formData.get("valid_until")),
+    is_public: (() => {
+      const v = formData.get("is_public");
+      return v === "on" || v === "true" || v === "1";
+    })(),
     notes: parseStringOrNull(formData.get("notes")),
   };
+}
+
+/** Mensaje amigable cuando se intenta marcar una 2ª tarifa como pública. */
+const PUBLIC_RATE_CONFLICT_MSG =
+  "Ya hay otra tarifa marcada como pública del calculador. Desmarcá esa primero.";
+
+/** ¿El error es la violación del índice único parcial de tarifa pública? */
+function isPublicRateConflict(
+  error: { code?: string; message?: string } | null,
+): boolean {
+  if (!error) return false;
+  return (
+    error.code === "23505" &&
+    (error.message ?? "").includes("rates_one_public_cbm")
+  );
 }
 
 export async function createRate(
@@ -94,19 +114,26 @@ export async function createRate(
       flat_rate: input!.flat_rate,
       min_charge: input!.min_charge,
       transit_days: input!.transit_days,
+      valid_from: input!.valid_from,
       valid_until: input!.valid_until,
+      is_public: input!.is_public,
       notes: input!.notes,
     })
     .select("id")
     .single<{ id: string }>();
 
   if (error || !inserted) {
+    if (isPublicRateConflict(error)) {
+      return { error: PUBLIC_RATE_CONFLICT_MSG };
+    }
     return {
       error: `No se pudo crear la tarifa: ${error?.message ?? "desconocido"}`,
     };
   }
 
   revalidatePath("/studio/tarifas");
+  // La tarifa pública alimenta el calculador del sitio → refrescar su cache ISR.
+  revalidatePath("/calculadora");
   return { ok: true, createdId: inserted.id };
 }
 
@@ -131,16 +158,23 @@ export async function updateRate(
       flat_rate: input!.flat_rate,
       min_charge: input!.min_charge,
       transit_days: input!.transit_days,
+      valid_from: input!.valid_from,
       valid_until: input!.valid_until,
+      is_public: input!.is_public,
       notes: input!.notes,
     })
     .eq("id", id);
 
   if (error) {
+    if (isPublicRateConflict(error)) {
+      return { error: PUBLIC_RATE_CONFLICT_MSG };
+    }
     return { error: `No se pudo guardar la tarifa: ${error.message}` };
   }
 
   revalidatePath("/studio/tarifas");
+  // La tarifa pública alimenta el calculador del sitio → refrescar su cache ISR.
+  revalidatePath("/calculadora");
   return { ok: true };
 }
 
@@ -159,5 +193,6 @@ export async function softDeleteRate(
   }
 
   revalidatePath("/studio/tarifas");
+  revalidatePath("/calculadora");
   return { ok: true };
 }

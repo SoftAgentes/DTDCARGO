@@ -1,0 +1,57 @@
+/**
+ * Queries públicas de tarifas para la calculadora del sitio (Fase 2).
+ *
+ * Llama a la RPC `public_cbm_rate` (SECURITY DEFINER, grant anon) que vive
+ * en `supabase/migrations/0101_rates_valid_from_is_public.sql`. Devuelve solo
+ * la tarifa per_cbm marcada `is_public` del tenant dtd, con retorno MÍNIMO
+ * (per_cbm + min_charge + valid_until) — sin filtrar info comercial.
+ *
+ * Si no hay tarifa pública marcada (o todo vencido / Supabase caído), devuelve
+ * null y el calculador cae al default hardcodeado de `lib/calculadora.ts`
+ * (cero regresión).
+ */
+
+import { getAnonClient } from "./supabase-anon";
+
+export type PublicCbmRate = {
+  /** Tarifa por CBM en USD (la base editable del calculador). */
+  per_cbm: number;
+  /** Mínimo cobrable LCL en USD (piso del calculador). null = sin piso comercial. */
+  min_charge: number | null;
+  /** Vigencia (ISO date YYYY-MM-DD). null = sin fecha de corte. */
+  valid_until: string | null;
+};
+
+/**
+ * Resuelve la tarifa pública del calculador (la marcada `is_public`).
+ * @returns la tarifa, o `null` si no hay ninguna vigente / hubo error.
+ */
+export async function getPublicCbmRate(): Promise<PublicCbmRate | null> {
+  // Nunca debe tirar: es una página pública de marketing. Cualquier falla
+  // (env faltante, Supabase caído, RPC ausente) → null → fallback a CONFIG.
+  try {
+    const supabase = getAnonClient();
+    const { data, error } = await supabase.rpc("public_cbm_rate");
+
+    if (error) {
+      console.error("[getPublicCbmRate] RPC error:", error.message);
+      return null;
+    }
+
+    // RPC retorna setof → array de 0 o 1 elemento.
+    const row = Array.isArray(data) ? data[0] : null;
+    if (!row || row.per_cbm == null) return null;
+
+    return {
+      per_cbm: Number(row.per_cbm),
+      min_charge: row.min_charge == null ? null : Number(row.min_charge),
+      valid_until: row.valid_until ?? null,
+    };
+  } catch (e) {
+    console.error(
+      "[getPublicCbmRate] error inesperado:",
+      e instanceof Error ? e.message : String(e),
+    );
+    return null;
+  }
+}

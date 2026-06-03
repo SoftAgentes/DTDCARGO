@@ -295,10 +295,22 @@ function RatesTable({
             e.currentTarget.style.background = "transparent";
           }}
         >
-          <span>
+          <span
+            style={{
+              display: "inline-flex",
+              flexDirection: "column",
+              gap: 4,
+              alignItems: "flex-start",
+            }}
+          >
             <Badge tone="wine" size="sm">
               {SERVICE_LABELS[rate.service].primary}
             </Badge>
+            {rate.is_public && (
+              <Badge tone="success" size="sm">
+                Pública · calc
+              </Badge>
+            )}
           </span>
           <span style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
             {rate.origin}
