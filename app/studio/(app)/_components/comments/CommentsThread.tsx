@@ -1,0 +1,315 @@
+"use client";
+
+/**
+ * CommentsThread (SDD-0045) — hilo de comentarios embebible en el detalle de
+ * cualquier entidad (embarque, cliente, factura…).
+ *
+ * Portado 1:1 del mockup del Norte (erp/modules/comments.jsx):
+ *  - composer con dropdown de @menciones (autocomplete contra users del tenant)
+ *  - hilo con chips de mención + reacciones (picker de 5) + avatar/rol/timestamp
+ *  - ⌘/Ctrl+Enter para enviar
+ *  - empty state
+ *
+ * Server actions: postComment / toggleReaction / editComment / deleteComment.
+ * Tras cada mutación llama router.refresh() para reconciliar con el server
+ * (V1 sin Realtime; el detalle es un server component que revalida).
+ *
+ * Marca: solo tokens var(--*), cero hex.
+ */
+
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Avatar } from "@/app/studio/_components/ui/Avatar";
+import { Icon } from "@/app/studio/_components/icons";
+import { MentionDropdown } from "./MentionDropdown";
+import { CommentItem } from "./CommentItem";
+import {
+  type CommentEntityType,
+  type CommentTenantUser,
+  type CommentWithMeta,
+  type ReactionEmoji,
+} from "@/lib/studio/comments/types";
+import {
+  postComment,
+  toggleReaction,
+  editComment,
+  deleteComment,
+} from "@/app/studio/(app)/_actions/comments";
+
+export function CommentsThread({
+  entityType,
+  entityId,
+  entityCode,
+  entityLabel = "registro",
+  users,
+  currentUser,
+  initialComments,
+}: {
+  entityType: CommentEntityType;
+  entityId: string;
+  entityCode: string | null;
+  entityLabel?: string;
+  users: CommentTenantUser[];
+  currentUser: CommentTenantUser;
+  initialComments: CommentWithMeta[];
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [text, setText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const comments = initialComments;
+
+  function refresh() {
+    startTransition(() => router.refresh());
+  }
+
+  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value;
+    setText(val);
+    const cursor = e.target.selectionStart;
+    const upToCursor = val.slice(0, cursor);
+    const m = upToCursor.match(/@([\p{L}.\s]*)$/u);
+    if (m) {
+      // recortamos al token actual (sin saltos a otra línea/palabra muy larga)
+      const tail = m[1].split("\n").pop() ?? "";
+      setMentionQuery(tail.trim());
+      setMentionOpen(true);
+    } else {
+      setMentionOpen(false);
+    }
+  }
+
+  function insertMention(user: CommentTenantUser) {
+    const el = textareaRef.current;
+    const cursor = el ? el.selectionStart : text.length;
+    const upToCursor = text.slice(0, cursor);
+    const after = text.slice(cursor);
+    const parts = user.name.trim().split(/\s+/);
+    const token = `@${parts[0]}${parts[1] ? " " + parts[1][0] + "." : ""} `;
+    const replaced = upToCursor.replace(/@[\p{L}.\s]*$/u, token);
+    setText(replaced + after);
+    setMentionOpen(false);
+    requestAnimationFrame(() => el?.focus());
+  }
+
+  async function send() {
+    const body = text.trim();
+    if (!body || pending) return;
+    setError(null);
+    const fd = new FormData();
+    fd.set("body", body);
+    const res = await postComment(entityType, entityId, entityCode, {}, fd);
+    if (res.ok) {
+      setText("");
+      refresh();
+    } else {
+      setError(res.error ?? res.fieldErrors?.body ?? "No se pudo publicar.");
+    }
+  }
+
+  async function onReact(commentId: string, emoji: ReactionEmoji) {
+    await toggleReaction(commentId, emoji);
+    refresh();
+  }
+
+  async function onEdit(commentId: string, body: string) {
+    const fd = new FormData();
+    fd.set("body", body);
+    const res = await editComment(commentId, {}, fd);
+    if (res.ok) refresh();
+    else setError(res.error ?? "No se pudo editar.");
+  }
+
+  async function onDelete(commentId: string) {
+    const res = await deleteComment(commentId);
+    if (res.ok) refresh();
+    else setError(res.error ?? "No se pudo eliminar.");
+  }
+
+  const authorIds = [...new Set(comments.map((c) => c.author_id).filter(Boolean))];
+
+  return (
+    <div>
+      {/* Header */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: 14,
+        }}
+      >
+        <div className="eyebrow eyebrow-wine">COMENTARIOS ({comments.length})</div>
+        {authorIds.length > 0 && (
+          <div style={{ display: "flex", gap: 4 }}>
+            {authorIds.slice(0, 4).map((uid) => {
+              const u = users.find((x) => x.id === uid);
+              return u ? (
+                <Avatar key={uid} initials={u.avatar} size={22} color="neutral" />
+              ) : null;
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Thread */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        {comments.length === 0 ? (
+          <div
+            style={{
+              padding: "24px 16px",
+              textAlign: "center",
+              background: "var(--bg-elevated)",
+              borderRadius: "var(--r-md)",
+              font: "500 12.5px/1.5 var(--f-sans)",
+              color: "var(--ink-mute)",
+            }}
+          >
+            Sin comentarios aún. Comentá abajo y @mencioná a alguien del equipo.
+          </div>
+        ) : (
+          comments.map((c) => (
+            <CommentItem
+              key={c.id}
+              comment={c}
+              users={users}
+              currentUserId={currentUser.id}
+              onReact={(emoji) => onReact(c.id, emoji)}
+              onEdit={(body) => onEdit(c.id, body)}
+              onDelete={() => onDelete(c.id)}
+            />
+          ))
+        )}
+      </div>
+
+      {error && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 10,
+            padding: "8px 12px",
+            background: "var(--danger-bg)",
+            border: "1px solid var(--danger)",
+            borderRadius: "var(--r-sm)",
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+          }}
+        >
+          {error}
+        </div>
+      )}
+
+      {/* Composer */}
+      <div
+        style={{
+          position: "relative",
+          background: "var(--bg-surface)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--r-md)",
+          padding: 10,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+          <Avatar initials={currentUser.avatar} size={28} color="wine" />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={handleChange}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                  e.preventDefault();
+                  void send();
+                }
+                if (e.key === "Escape") setMentionOpen(false);
+              }}
+              placeholder={`Comentá en este ${entityLabel}… usá @ para mencionar`}
+              rows={2}
+              style={{
+                width: "100%",
+                border: 0,
+                outline: "none",
+                resize: "vertical",
+                background: "transparent",
+                color: "var(--ink)",
+                font: "500 13px/1.5 var(--f-sans)",
+                minHeight: 44,
+              }}
+            />
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            paddingTop: 8,
+            borderTop: "1px solid var(--border)",
+            marginTop: 4,
+          }}
+        >
+          <button
+            type="button"
+            title="Mencionar (@)"
+            aria-label="Mencionar"
+            onClick={() => {
+              setText((t) => t + "@");
+              setMentionQuery("");
+              setMentionOpen(true);
+              textareaRef.current?.focus();
+            }}
+            style={{
+              width: 24,
+              height: 24,
+              color: "var(--ink-soft)",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "transparent",
+            }}
+          >
+            @
+          </button>
+          <span
+            style={{
+              marginLeft: "auto",
+              font: "500 10.5px/1 var(--f-sans)",
+              color: "var(--ink-mute)",
+            }}
+          >
+            ⌘ + Enter para enviar
+          </span>
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary"
+            onClick={() => void send()}
+            disabled={!text.trim() || pending}
+            style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+          >
+            Comentar {Icon.arrowR(11)}
+          </button>
+        </div>
+
+        {mentionOpen && (
+          <MentionDropdown
+            users={users}
+            query={mentionQuery}
+            onPick={insertMention}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
