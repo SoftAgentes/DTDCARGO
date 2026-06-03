@@ -34,6 +34,8 @@ interface ModuleDef {
   icon: IconName;
   slug: string; // ruta bajo /studio
   badge?: string; // Pendiente de cablear contra data real — ver SDD-0014/dashboard-queries
+  /** Visible solo para admin (la ruta también gatea). Ej: Dirección (SDD-0048). */
+  adminOnly?: boolean;
 }
 
 /** Group label → I18nKey para localización en sidebar headers. */
@@ -72,6 +74,7 @@ export const MODULES: ModuleDef[] = [
   { id: "rates", group: "COMERCIAL", label: "Tarifas", labelKey: "chrome.sidebar.rates", icon: "tag", slug: "/studio/tarifas" },
 
   // FINANZAS
+  { id: "direccion", group: "FINANZAS", label: "Dirección", icon: "chart", slug: "/studio/direccion", adminOnly: true },
   { id: "expenses", group: "FINANZAS", label: "Gastos", labelKey: "chrome.sidebar.expenses", icon: "calc", slug: "/studio/gastos" },
   { id: "invoices", group: "FINANZAS", label: "Facturación", labelKey: "chrome.sidebar.invoices", icon: "invoice", slug: "/studio/facturacion" },
   { id: "accounting", group: "FINANZAS", label: "Contabilidad", icon: "calc", slug: "/studio/contabilidad" },
@@ -111,11 +114,14 @@ interface Props {
   featureFlags?: FeatureFlags;
   /** Alertas de gastos activas (badge en el item "Gastos"). */
   expenseAlertCount?: number;
+  /** ¿El user es admin? Esconde items `adminOnly` cuando no lo es (SDD-0048). */
+  isAdmin?: boolean;
 }
 
 export function StudioSidebar({
   featureFlags,
   expenseAlertCount = 0,
+  isAdmin = false,
 }: Props = {}) {
   const pathname = usePathname();
   const t = useT();
@@ -171,7 +177,9 @@ export function StudioSidebar({
   // Filtrar módulos por feature flags ANTES de agrupar (esconder lo
   // desactivado del tenant). Módulos sin entry en MODULE_FLAG_MAP =
   // siempre visibles (core).
-  const visibleModules = MODULES.filter((m) => isModuleEnabled(m.id, flags));
+  const visibleModules = MODULES.filter(
+    (m) => isModuleEnabled(m.id, flags) && (!m.adminOnly || isAdmin),
+  );
 
   const grouped = GROUP_ORDER.map((g) => ({
     group: g,
