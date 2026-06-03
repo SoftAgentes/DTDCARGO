@@ -33,9 +33,12 @@ export default function CalculadoraPage() {
           <div className="wrap max-w-[1100px]">
             <span className="eyebrow">Calculadora · LCL DDP · China → Venezuela</span>
             <h1 className="sr-only">Calculadora de envíos LCL DDP</h1>
-            <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[60ch]">
-              Tarifa base $800/CBM, hasta 500 kg/CBM sin recargo. Estimado
-              inmediato — confirmá la tarifa final por WhatsApp.
+            <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[62ch]">
+              Tarifa base $800/CBM, hasta 500 kg/CBM sin recargo.{" "}
+              <strong className="text-ink">
+                Financiamiento 100%: no pagás nada hasta que tu carga llegue a Venezuela.
+              </strong>{" "}
+              Estimado inmediato — confirmá la tarifa final por WhatsApp.
             </p>
           </div>
         </section>
@@ -72,10 +75,15 @@ export default function CalculadoraPage() {
                   texto="Entregas en Valencia (-$50), Maracay y Caracas centro: tarifa plana. Para otras ciudades, sumamos $1/km desde el casco central."
                 />
                 <Bloque
-                  titulo="Embalaje estándar incluido"
-                  texto="Cajas de cartón sin recargo. Paletas o cajas de madera suman $60 por la manipulación adicional."
+                  titulo="Embalaje incluido"
+                  texto="Caja estándar sin recargo. Caja especial (madera o paleta) suma $50 por la manipulación adicional."
+                />
+                <Bloque
+                  titulo="Financiamiento 100%"
+                  texto="No pagás nada mientras tu carga viaja. La cobranza arranca cuando llega a Venezuela y la entrega es contra pago — todo incluido, sin sorpresas en aduana.*"
                 />
               </div>
+              <p className="mt-6 text-[12px] text-grey-500">*Aplican restricciones.</p>
             </div>
           </div>
         </section>

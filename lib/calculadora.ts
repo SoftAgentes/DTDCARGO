@@ -4,17 +4,21 @@
  * ═══════════════════════════════════════════════════════════════════
  *  ⚠️ TODO LO EDITABLE ESTÁ EN ESTE ARCHIVO, ARRIBA DEL CÓDIGO.
  *     Cambiá los números y la calculadora completa se ajusta.
+ *     (Fase 3: estos valores pasarán a configurarse desde el Studio.)
  * ═══════════════════════════════════════════════════════════════════
  *
  *  Lógica (resumen para no-devs):
- *  1. Volumen de la carga: largo × ancho × alto × cantidad cajas → CBM
- *  2. Densidad: peso / CBM
- *  3. Si densidad ≤ pesoIncluidoKg/CBM → precio = CBM × tarifaBase
+ *  1. El cliente ingresa el CBM total (m³) directo y el peso total (kg).
+ *  2. Densidad: peso / CBM.
+ *  3. Si densidad ≤ pesoIncluidoKg/CBM → precio = CBM × tarifaBase.
  *  4. Si densidad > pesoIncluidoKg/CBM y ≤ pesoMaxKg/CBM →
- *     precio = (CBM × tarifaBase) + (kg excedentes × recargoExcedenteKg)
- *  5. Si densidad > pesoMaxKg/CBM → alerta "contactanos para FCL"
- *  6. Recargos: embalaje madera/paleta + ciudad fuera del casco central
- *  7. Descuento sede: -$ si la ciudad de destino es Valencia
+ *     precio = (CBM × tarifaBase) + (kg excedentes × recargoExcedenteKg).
+ *  5. Si densidad > pesoMaxKg/CBM → alerta "contactanos para FCL".
+ *  6. Recargos: embalaje especial (madera/paleta) + ciudad fuera del casco central.
+ *  7. Baterías: multiplican el flete (×recargoBateriaMult).
+ *  8. Carga especial / peligrosa → no cotiza, deriva al asesor.
+ *  9. Descuento sede: -$ si la ciudad de destino es Valencia.
+ *  Orden: (base + excedente + ciudad + embalaje) × batería − descuento, luego piso.
  */
 
 // ────────────────────────────────────────────────────────────────────
@@ -42,10 +46,16 @@ export const CONFIG = {
   descuentoValencia: 50,
 
   /**
-   * Recargo por embalaje pesado/no estándar (madera o paleta) en USD.
+   * Recargo por embalaje especial (madera o paleta) en USD.
    * Aplica una sola vez, no por caja.
    */
-  recargoEmbalajeMadera: 60,
+  recargoEmbalajeEspecial: 50,
+
+  /**
+   * Multiplicador del flete cuando la carga lleva baterías (riesgo/manejo).
+   * 1.5 = +50% sobre el flete (antes del descuento de sede).
+   */
+  recargoBateriaMult: 1.5,
 
   /**
    * Distancia (km) hasta donde se considera "casco central" — entrega
@@ -60,7 +70,7 @@ export const CONFIG = {
   tarifaKmFueraCasco: 1,
 
   /** Precio mínimo facturable. Si la carga es muy chica, este es el piso. */
-  minimoFacturable: 100,
+  minimoFacturable: 50,
 } as const;
 
 // ────────────────────────────────────────────────────────────────────
@@ -82,6 +92,8 @@ export type Ciudad = {
 };
 
 export const CIUDADES: Ciudad[] = [
+  // Opción agrupada por default — cualquier punto del casco central, sin recargo
+  { id: "casco-central", label: "Casco central (Valencia · Maracay · Caracas)", km: 0, casco: true },
   // Casco central — flat tarifa base
   { id: "valencia",     label: "Valencia (sede)",  km: 0,   casco: true },
   { id: "maracay",      label: "Maracay",          km: 70,  casco: true },
@@ -105,12 +117,11 @@ export const CIUDADES: Ciudad[] = [
 // 3) EMBALAJES — RECARGOS POR TIPO
 // ────────────────────────────────────────────────────────────────────
 
-export type TipoEmbalaje = "carton" | "madera" | "paleta";
+export type TipoEmbalaje = "estandar" | "especial";
 
 export const EMBALAJES: { id: TipoEmbalaje; label: string; recargo: number }[] = [
-  { id: "carton",  label: "Cartón (estándar)",     recargo: 0 },
-  { id: "paleta",  label: "Sobre paleta (palet)",  recargo: CONFIG.recargoEmbalajeMadera },
-  { id: "madera",  label: "Caja de madera",        recargo: CONFIG.recargoEmbalajeMadera },
+  { id: "estandar", label: "Caja estándar",                recargo: 0 },
+  { id: "especial", label: "Caja especial (madera o paleta)", recargo: CONFIG.recargoEmbalajeEspecial },
 ];
 
 // ────────────────────────────────────────────────────────────────────
@@ -118,20 +129,18 @@ export const EMBALAJES: { id: TipoEmbalaje; label: string; recargo: number }[] =
 // ────────────────────────────────────────────────────────────────────
 
 export type EnvioInput = {
-  /** Largo de la caja en cm. */
-  largoCm: number;
-  /** Ancho de la caja en cm. */
-  anchoCm: number;
-  /** Alto de la caja en cm. */
-  altoCm: number;
-  /** Peso total de TODAS las cajas en kg. */
+  /** Volumen total del envío en m³ (CBM). El cliente ya lo conoce. */
+  cbmTotal: number;
+  /** Peso total de toda la carga en kg. */
   pesoKg: number;
-  /** Cantidad de cajas con las mismas dimensiones. */
-  cantidadCajas: number;
   /** Tipo de embalaje (afecta recargo). */
   embalaje: TipoEmbalaje;
   /** Ciudad de destino en Venezuela (slug de CIUDADES). */
   ciudadId: string;
+  /** La carga lleva baterías (multiplica el flete por `recargoBateriaMult`). */
+  bateria?: boolean;
+  /** Carga peligrosa / que requiere permisos especiales → no cotiza, deriva al asesor. */
+  cargaEspecial?: boolean;
   /**
    * Override de la tarifa base por CBM (USD).
    * Si no se provee, se usa `CONFIG.tarifaBaseCBM` (default $800).
@@ -150,13 +159,14 @@ export type EnvioCotizacion = {
   precioBase: number;       // CBM × tarifaBase
   recargoExcedente: number; // kg sobre pesoIncluido × recargoExcedenteKg
   recargoCiudad: number;    // km fuera del casco × tarifaKm
-  recargoEmbalaje: number;  // 0 o $60
+  recargoEmbalaje: number;  // 0 o recargoEmbalajeEspecial
+  recargoBateria: number;   // extra por el multiplicador de baterías (0 si no)
   descuentoSede: number;    // siempre negativo o 0
   total: number;            // suma final, mínimo CONFIG.minimoFacturable
 
   /** Si hay algún problema/alerta para mostrar al usuario. */
   alerta?: {
-    tipo: "peso_excedido" | "carga_invalida" | "ciudad_invalida";
+    tipo: "peso_excedido" | "carga_invalida" | "ciudad_invalida" | "carga_especial";
     mensaje: string;
   };
 
@@ -177,7 +187,17 @@ export type EnvioCotizacion = {
  * 100% testeable.
  */
 export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
-  // 5.1 — Validar entradas básicas
+  // 5.1 — Carga especial / peligrosa → no cotiza, deriva al asesor
+  if (input.cargaEspecial) {
+    return cotizacionVacia({
+      tipo: "carga_especial",
+      mensaje:
+        "Para carga especial, peligrosa o que requiere permisos de exportación, " +
+        "consultá con tu asesor — la cotizamos a medida.",
+    }, input);
+  }
+
+  // 5.2 — Validar destino
   const ciudad = CIUDADES.find((c) => c.id === input.ciudadId) ?? null;
   if (!ciudad) {
     return cotizacionVacia({
@@ -186,25 +206,19 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
     }, input);
   }
 
-  if (
-    input.largoCm <= 0 ||
-    input.anchoCm <= 0 ||
-    input.altoCm <= 0 ||
-    input.pesoKg <= 0 ||
-    input.cantidadCajas <= 0
-  ) {
+  // 5.3 — Validar carga
+  if (input.cbmTotal <= 0 || input.pesoKg <= 0) {
     return cotizacionVacia({
       tipo: "carga_invalida",
-      mensaje: "Las dimensiones, peso y cantidad deben ser mayores a cero.",
+      mensaje: "El CBM total y el peso deben ser mayores a cero.",
     }, input);
   }
 
-  // 5.2 — Calcular volumen (CBM) y densidad
-  const cbmPorCaja = (input.largoCm * input.anchoCm * input.altoCm) / 1_000_000;
-  const cbm = roundCBM(cbmPorCaja * input.cantidadCajas);
+  // 5.4 — Volumen (CBM) y densidad
+  const cbm = roundCBM(input.cbmTotal);
   const densidadKgM3 = input.pesoKg / cbm;
 
-  // 5.3 — Precio base por volumen
+  // 5.5 — Precio base por volumen
   // Si el usuario provee `tarifaCBMOverride`, se usa ese valor (debe ser >0).
   // Si no, fallback a CONFIG.tarifaBaseCBM.
   const tarifaCBM =
@@ -213,7 +227,7 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
       : CONFIG.tarifaBaseCBM;
   const precioBase = cbm * tarifaCBM;
 
-  // 5.4 — Recargo por excedente de peso (si aplica)
+  // 5.6 — Recargo por excedente de peso (si aplica)
   // Solo se cobra si la densidad supera pesoIncluidoKg.
   // Si supera pesoMaxKg, marcamos alerta para FCL/cotización personal.
   let recargoExcedente = 0;
@@ -236,28 +250,33 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
     recargoExcedente = roundUSD(kgExcedente * CONFIG.recargoExcedenteKg);
   }
 
-  // 5.5 — Recargo por ciudad fuera del casco central
+  // 5.7 — Recargo por ciudad fuera del casco central
   let recargoCiudad = 0;
   if (!ciudad.casco) {
     const kmFueraCasco = Math.max(0, ciudad.km - CONFIG.thresholdCascoKm);
     recargoCiudad = roundUSD(kmFueraCasco * CONFIG.tarifaKmFueraCasco);
   }
 
-  // 5.6 — Recargo por embalaje
+  // 5.8 — Recargo por embalaje
   const embalajeData = EMBALAJES.find((e) => e.id === input.embalaje);
   const recargoEmbalaje = embalajeData?.recargo ?? 0;
 
-  // 5.7 — Descuento si es Valencia
+  // 5.9 — Flete antes de baterías (base + recargos)
+  const fleteAntesBateria =
+    precioBase + recargoExcedente + recargoCiudad + recargoEmbalaje;
+
+  // 5.10 — Multiplicador por baterías (sobre el flete, antes del descuento)
+  const fleteConBateria = input.bateria
+    ? fleteAntesBateria * CONFIG.recargoBateriaMult
+    : fleteAntesBateria;
+  const recargoBateria = roundUSD(fleteConBateria - fleteAntesBateria);
+
+  // 5.11 — Descuento si es Valencia
   const descuentoSede =
     ciudad.id === "valencia" ? -CONFIG.descuentoValencia : 0;
 
-  // 5.8 — Total
-  let total =
-    precioBase +
-    recargoExcedente +
-    recargoCiudad +
-    recargoEmbalaje +
-    descuentoSede;
+  // 5.12 — Total
+  let total = fleteConBateria + descuentoSede;
 
   // Aplicar piso mínimo
   if (total < CONFIG.minimoFacturable) {
@@ -271,6 +290,7 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
     recargoExcedente: roundUSD(recargoExcedente),
     recargoCiudad: roundUSD(recargoCiudad),
     recargoEmbalaje: roundUSD(recargoEmbalaje),
+    recargoBateria,
     descuentoSede: roundUSD(descuentoSede),
     total: roundUSD(total),
     alerta,
@@ -310,6 +330,7 @@ function cotizacionVacia(
     recargoExcedente: 0,
     recargoCiudad: 0,
     recargoEmbalaje: 0,
+    recargoBateria: 0,
     descuentoSede: 0,
     total: 0,
     alerta,
@@ -332,15 +353,14 @@ export function whatsappTextFromCotizacion(
   const lines = [
     "Hola DTD Cargo, vi en la calculadora un estimado para mi envío:",
     "",
-    `• Dimensiones: ${input.largoCm}×${input.anchoCm}×${input.altoCm} cm`,
-    `• Cantidad de cajas: ${input.cantidadCajas}`,
+    `• CBM total: ${input.cbmTotal} m³`,
     `• Peso total: ${input.pesoKg} kg`,
-    `• CBM calculado: ${cot.cbm} m³`,
     `• Embalaje: ${EMBALAJES.find((e) => e.id === cot.embalaje)?.label}`,
+    `• Baterías: ${input.bateria ? "Sí" : "No"}`,
     `• Destino: ${ciudad}`,
     `• Estimado web: US$${cot.total.toFixed(2)}`,
     "",
-    "¿Me confirman tarifa final y tiempos?",
+    "¿Me confirman tarifa final y tiempos? (Financiamiento 100%, pago al llegar)",
   ];
   return lines.join("\n");
 }

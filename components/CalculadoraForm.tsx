@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   CONFIG,
   CIUDADES,
@@ -20,55 +20,30 @@ import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
  * Toda la lógica de pricing vive en lib/calculadora.ts. Este componente
  * solo gestiona el state del form, llama a calcularEnvioLCL(), y muestra
  * el desglose con un CTA de WhatsApp preconfigurado.
+ *
+ * El cliente que cotiza ya conoce su CBM total, así que pedimos el volumen
+ * directo (no dimensiones por caja) + peso. Toggles para baterías y carga
+ * especial (esta última deriva al asesor).
  */
 export function CalculadoraForm() {
   const [form, setForm] = useState<EnvioInput>({
-    largoCm: 0,
-    anchoCm: 0,
-    altoCm: 0,
+    cbmTotal: 0,
     pesoKg: 0,
-    cantidadCajas: 1,
-    embalaje: "carton",
-    ciudadId: "valencia",
+    embalaje: "estandar",
+    ciudadId: "casco-central",
+    bateria: false,
+    cargaEspecial: false,
     tarifaCBMOverride: CONFIG.tarifaBaseCBM,
   });
 
   const [cotizacion, setCotizacion] = useState<EnvioCotizacion | null>(null);
-
-  // ─── Diagrama de dimensiones — UX hover-first + click-to-repeat ───
-  // Mismo comportamiento que en CotizarForm: el SVG educativo aparece
-  // automáticamente la primera vez que el usuario hover sobre L/A/H,
-  // y vuelve a aparecer cada vez que clickea/foca uno de esos campos.
-  const [showDiagram, setShowDiagram] = useState(false);
-  const [hasShownViaHover, setHasShownViaHover] = useState(false);
-  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const showDiagramFor3s = () => {
-    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    setShowDiagram(true);
-    hideTimerRef.current = setTimeout(() => setShowDiagram(false), 3000);
-  };
-
-  const onDimensionsHover = () => {
-    if (!hasShownViaHover) {
-      setHasShownViaHover(true);
-      showDiagramFor3s();
-    }
-  };
-
-  useEffect(() => {
-    return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    };
-  }, []);
 
   function update<K extends keyof EnvioInput>(key: K, value: EnvioInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function handleCalcular() {
-    const result = calcularEnvioLCL(form);
-    setCotizacion(result);
+    setCotizacion(calcularEnvioLCL(form));
   }
 
   return (
@@ -111,9 +86,7 @@ export function CalculadoraForm() {
               />
               <button
                 type="button"
-                onClick={() =>
-                  update("tarifaCBMOverride", CONFIG.tarifaBaseCBM)
-                }
+                onClick={() => update("tarifaCBMOverride", CONFIG.tarifaBaseCBM)}
                 className="text-[12px] font-semibold text-wine hover:text-wine-deep transition-colors whitespace-nowrap"
               >
                 Restaurar ${CONFIG.tarifaBaseCBM}
@@ -125,90 +98,22 @@ export function CalculadoraForm() {
             </p>
           </div>
 
-          {/* Dimensiones por caja + diagrama flotante educativo (solo mobile)
-              Los labels Largo/Ancho/Alto van color-coded para matchear las
-              etiquetas del SVG educativo (wine/gold/ink respectivamente, mas
-              tenues para no competir con el form). Memoria espacial inmediata
-              entre el campo y el diagrama. */}
-          <div className="relative" onMouseEnter={onDimensionsHover}>
-            <div className="flex items-baseline justify-between mb-2">
-              <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
-                Dimensiones por caja (cm)
-              </span>
-              {/* En desktop el SVG vive permanentemente en el panel derecho,
-                  asi que el boton "Como medir?" solo aporta valor en mobile. */}
-              <button
-                type="button"
-                onClick={showDiagramFor3s}
-                className="lg:hidden text-[11.5px] font-medium text-wine hover:text-wine-deep underline underline-offset-2"
-              >
-                ¿Cómo medir?
-              </button>
-            </div>
-            <div className="grid grid-cols-3 gap-3">
-              <InputField
-                label="Largo"
-                value={form.largoCm}
-                onChange={(v) => update("largoCm", v)}
-                placeholder="60"
-                onTrigger={showDiagramFor3s}
-                labelColor="#C2747F"
-              />
-              <InputField
-                label="Ancho"
-                value={form.anchoCm}
-                onChange={(v) => update("anchoCm", v)}
-                placeholder="40"
-                onTrigger={showDiagramFor3s}
-                labelColor="#D4B077"
-              />
-              <InputField
-                label="Alto"
-                value={form.altoCm}
-                onChange={(v) => update("altoCm", v)}
-                placeholder="50"
-                onTrigger={showDiagramFor3s}
-                labelColor="#5C6B8E"
-              />
-            </div>
-
-            {/* Diagrama flotante: SOLO mobile (lg:hidden). En desktop esta
-                permanente en el panel derecho via DimensionsAmbientSVG. */}
-            <div
-              aria-hidden={!showDiagram}
-              className={`lg:hidden absolute left-1/2 -translate-x-1/2 top-full mt-3 z-30 w-full max-w-[420px] pointer-events-none transition-all duration-500 ease-out ${
-                showDiagram
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 -translate-y-2"
-              }`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/brand/dtdcargo-dimensions-box.svg"
-                alt="Diagrama: cómo medir el largo, ancho y alto de una caja"
-                width={600}
-                height={500}
-                className="w-full h-auto drop-shadow-[0_20px_40px_rgba(15,30,61,0.25)]"
-              />
-            </div>
-          </div>
-
-          {/* Peso + cantidad */}
+          {/* CBM total + peso */}
           <fieldset className="grid grid-cols-2 gap-3">
             <legend className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine mb-2 col-span-2">
-              Peso y cantidad
+              Tu carga
             </legend>
+            <InputField
+              label="CBM total (m³)"
+              value={form.cbmTotal}
+              onChange={(v) => update("cbmTotal", v)}
+              placeholder="2"
+            />
             <InputField
               label="Peso total (kg)"
               value={form.pesoKg}
               onChange={(v) => update("pesoKg", v)}
               placeholder="450"
-            />
-            <InputField
-              label="Cantidad de cajas"
-              value={form.cantidadCajas}
-              onChange={(v) => update("cantidadCajas", v)}
-              placeholder="1"
             />
           </fieldset>
 
@@ -221,7 +126,7 @@ export function CalculadoraForm() {
               {EMBALAJES.map((e) => (
                 <label
                   key={e.id}
-                  className="flex items-center gap-3 p-3 rounded-[10px] border border-grey-200 hover:border-ink cursor-pointer transition-colors"
+                  className="flex items-center gap-3 p-3 rounded-[10px] border border-grey-200 hover:border-ink cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2"
                 >
                   <input
                     type="radio"
@@ -238,6 +143,22 @@ export function CalculadoraForm() {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Opciones extra: baterías + carga especial */}
+          <div className="flex flex-col gap-2">
+            <ToggleField
+              label="Lleva baterías"
+              hint="Recargo por manejo (×1.5 sobre el flete)."
+              checked={!!form.bateria}
+              onChange={(v) => update("bateria", v)}
+            />
+            <ToggleField
+              label="Carga especial o peligrosa"
+              hint="Equipos, insumos médicos, alto valor o permisos de exportación."
+              checked={!!form.cargaEspecial}
+              onChange={(v) => update("cargaEspecial", v)}
+            />
           </div>
 
           {/* Ciudad destino */}
@@ -257,13 +178,13 @@ export function CalculadoraForm() {
               {CIUDADES.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
-                  {c.casco ? "" : ` (${c.km} km)`}
+                  {c.casco || c.id === "casco-central" ? "" : ` (${c.km} km)`}
                 </option>
               ))}
             </select>
             <p className="text-[12px] text-grey-500 mt-2">
               Casco central (Valencia, Maracay, Caracas): sin recargo. Otras
-              ciudades: +${CONFIG_TARIFA_KM_PUBLIC}/km desde el casco.
+              ciudades: +${CONFIG.tarifaKmFueraCasco}/km desde el casco.
             </p>
           </div>
 
@@ -278,26 +199,19 @@ export function CalculadoraForm() {
         </div>
       </div>
 
-      {/* Resultado o SVG ambiental educativo (solo desktop) */}
+      {/* Resultado o panel de financiamiento (pre-cálculo) */}
       <div className="flex flex-col">
         {cotizacion ? (
           <CotizacionDisplay cotizacion={cotizacion} input={form} />
         ) : (
-          // hidden lg:flex: en mobile no se muestra (el popover educativo
-          // ya cubre esa necesidad y un placeholder vacio agrega scroll
-          // innecesario). En desktop, el SVG vive aca como contenido ambiental
-          // hasta que el usuario calcule.
           <div className="hidden lg:flex h-full">
-            <DimensionsAmbientSVG />
+            <FinanciamientoPanel />
           </div>
         )}
       </div>
     </div>
   );
 }
-
-/** Solo para mostrar el valor en el helper. Si CONFIG cambia, hay que sincronizar acá. */
-const CONFIG_TARIFA_KM_PUBLIC = 1;
 
 // ─────────────────────────────────────────────
 // Subcomponentes
@@ -308,37 +222,21 @@ function InputField({
   value,
   onChange,
   placeholder,
-  onTrigger,
-  labelColor,
 }: {
   label: string;
   value: number;
   onChange: (n: number) => void;
   placeholder?: string;
-  /** Opcional: callback que dispara el popover del diagrama (solo en L/A/H). */
-  onTrigger?: () => void;
-  /**
-   * Opcional: color custom para el label (usado en L/A/H para matchear los
-   * colores del SVG educativo). Default: text-grey-700 via Tailwind class.
-   */
-  labelColor?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span
-        className={`text-[12.5px] font-semibold ${labelColor ? "" : "text-grey-700"}`}
-        style={labelColor ? { color: labelColor } : undefined}
-      >
-        {label}
-      </span>
+      <span className="text-[12.5px] font-semibold text-grey-700">{label}</span>
       <input
         type="number"
         min={0}
         step="any"
         value={value || ""}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
-        onClick={onTrigger}
-        onFocus={onTrigger}
         placeholder={placeholder}
         className="px-3 py-2.5 rounded-[10px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
       />
@@ -346,36 +244,61 @@ function InputField({
   );
 }
 
-/**
- * Placeholder ambiental del panel derecho (desktop only). En vez de mostrar
- * un empty-state generico, mostramos el SVG educativo de "como medir L/A/H"
- * como contenido permanente. Razon: el usuario llega a esta pagina sin saber
- * exactamente que medir, y el SVG responde esa pregunta antes de que la haga.
- * Cuando calcula, este componente se reemplaza por CotizacionDisplay.
- */
-function DimensionsAmbientSVG() {
+function ToggleField({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
-    <div className="card-shadow bg-paper border border-grey-200 rounded-[18px] p-7 lg:p-9 w-full flex flex-col items-center justify-center text-center min-h-[400px]">
-      <div className="text-[10.5px] font-bold tracking-[0.14em] uppercase text-wine mb-5">
-        ¿Cómo medir tu caja?
-      </div>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/brand/dtdcargo-dimensions-box.svg"
-        alt="Diagrama: cómo medir el largo, ancho y alto de una caja"
-        width={600}
-        height={500}
-        className="w-full h-auto max-w-[380px] mb-6 drop-shadow-[0_12px_24px_rgba(15,30,61,0.12)]"
+    <label className="flex items-start gap-3 p-3 rounded-[10px] border border-grey-200 hover:border-ink cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="accent-wine mt-0.5"
       />
+      <span className="flex flex-col">
+        <span className="text-[14px] text-ink">{label}</span>
+        <span className="text-[11.5px] text-grey-500 leading-[1.4]">{hint}</span>
+      </span>
+    </label>
+  );
+}
+
+/**
+ * Panel ambiental del lado derecho (desktop) mientras el cliente no calculó.
+ * Refuerza el gancho comercial: financiamiento 100%, pago al arribo.
+ */
+function FinanciamientoPanel() {
+  return (
+    <div className="card-shadow-dark bg-ink text-white rounded-[18px] p-7 lg:p-9 w-full flex flex-col justify-center min-h-[400px]">
+      <div className="eyebrow text-white/50">
+        Financiamiento 100%*
+      </div>
       <h3
-        className="text-[18px] leading-[1.2] text-ink mb-2"
+        className="mt-3 text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em]"
         style={{ fontFamily: "var(--font-archivo-black)" }}
       >
-        Largo × Ancho × Alto · en centímetros
+        No pagás nada hasta que tu carga llegue.
       </h3>
-      <p className="text-[13.5px] text-grey-500 leading-[1.55] max-w-[34ch]">
-        Medí cada caja por afuera. Si tenés cajas de distintos tamaños, usá
-        el promedio. Tu cotización aparece acá cuando calculás.
+      <p className="mt-4 text-[14.5px] leading-[1.55] text-white/80">
+        Cubrimos el viaje, la aduana y los impuestos. Cancelás al arribar a
+        Venezuela y recién ahí coordinamos la entrega — exactamente lo que
+        cotizaste.
+      </p>
+      <ul className="mt-5 flex flex-col gap-2 text-[13.5px] text-white/75 list-none p-0">
+        <li>· Tarifas en dólares (USD).</li>
+        <li>· Casco central (Valencia · Maracay · Caracas): sin recargo.</li>
+        <li>· Tu estimado aparece acá cuando calculás.</li>
+      </ul>
+      <p className="mt-6 text-[11.5px] text-white/45 leading-[1.45]">
+        *Aplican restricciones.
       </p>
     </div>
   );
@@ -397,40 +320,43 @@ function CotizacionDisplay({
 
   return (
     <div className="card-shadow-dark bg-ink text-white rounded-[18px] p-7 lg:p-9 flex flex-col gap-5">
-      <div className="eyebrow" style={{ color: "rgba(255,255,255,0.5)" }}>
+      <div className="eyebrow text-white/50">
         Estimado de tu envío
       </div>
 
-      {/* Precio destacado */}
-      <div>
-        <div className="flex items-baseline gap-2">
-          <span className="text-[14px] text-white/55">US$</span>
-          <span
-            className="text-[56px] leading-[1] text-white"
-            style={{ fontFamily: "var(--font-archivo-black)" }}
-          >
-            {cot.total.toFixed(0)}
-          </span>
-          <span className="text-[15px] text-white/55">aproximado</span>
-        </div>
-        {cot.cbm > 0 && (
-          <div className="text-[13.5px] text-white/65 mt-2">
-            {cot.cbm} CBM · {cot.densidadKgM3.toFixed(0)} kg/m³ · destino {cot.ciudad?.label}
+      {/* Precio destacado (solo si hay total) */}
+      {!hasAlerta && (
+        <div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-[14px] text-white/55">US$</span>
+            <span
+              className="text-[56px] leading-[1] text-white"
+              style={{ fontFamily: "var(--font-archivo-black)" }}
+            >
+              {cot.total.toFixed(0)}
+            </span>
+            <span className="text-[15px] text-white/55">aproximado</span>
           </div>
-        )}
-      </div>
+          {cot.cbm > 0 && (
+            <div className="text-[13.5px] text-white/65 mt-2">
+              {cot.cbm} CBM · {cot.densidadKgM3.toFixed(0)} kg/m³ · destino {cot.ciudad?.label}
+            </div>
+          )}
+          {/* Badge financiamiento */}
+          <div className="mt-3 inline-flex items-center gap-2 text-[12px] rounded-[8px] px-3 py-1.5 bg-white/10 text-white/85">
+            Financiamiento 100% · pagás al llegar a Venezuela*
+          </div>
+        </div>
+      )}
 
       {/* Alerta si hay */}
       {hasAlerta && (
         <div
-          className="p-4 rounded-[10px] border-l-[3px]"
-          style={{
-            background: "rgba(255,165,0,0.08)",
-            borderLeftColor: "#FFA500",
-          }}
+          className="p-4 rounded-[10px] border-l-[3px] border-status-warning"
+          style={{ background: "rgba(184,137,58,0.12)" }}
         >
-          <div className="text-[11px] font-bold tracking-[0.12em] uppercase mb-1" style={{ color: "#FFA500" }}>
-            ⚠️ Atención
+          <div className="text-[11px] font-bold tracking-[0.12em] uppercase mb-1 text-status-warning">
+            Atención
           </div>
           <p className="text-[13.5px] leading-[1.5] text-white/85">
             {cot.alerta!.mensaje}
@@ -451,7 +377,7 @@ function CotizacionDisplay({
             />
             {cot.recargoExcedente > 0 && (
               <DesgloseRow
-                label="Excedente de peso (>500 kg/CBM)"
+                label={`Excedente de peso (>${CONFIG.pesoIncluidoKg} kg/CBM)`}
                 value={cot.recargoExcedente}
               />
             )}
@@ -463,8 +389,14 @@ function CotizacionDisplay({
             )}
             {cot.recargoEmbalaje > 0 && (
               <DesgloseRow
-                label="Embalaje no estándar (paleta/madera)"
+                label="Embalaje especial (paleta/madera)"
                 value={cot.recargoEmbalaje}
+              />
+            )}
+            {cot.recargoBateria > 0 && (
+              <DesgloseRow
+                label="Recargo por baterías (×1.5)"
+                value={cot.recargoBateria}
               />
             )}
             {cot.descuentoSede < 0 && (
@@ -487,17 +419,17 @@ function CotizacionDisplay({
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="btn mt-2 inline-flex items-center justify-center gap-2"
-        style={{ background: "#25D366", color: "white" }}
+        className="btn bg-whatsapp text-white mt-2 inline-flex items-center justify-center gap-2"
       >
         <WhatsAppIcon size={20} />
-        Confirmar tarifa por WhatsApp
+        {hasAlerta ? "Consultar con un asesor" : "Confirmar tarifa por WhatsApp"}
       </a>
 
       <p className="text-[11.5px] text-white/45 leading-[1.45]">
         Este estimado es aproximado y refleja nuestra tarifa LCL DDP base.
         La tarifa final puede variar según tipo de mercancía, documentación
         del proveedor, fechas de salida y otros factores operativos.
+        *Aplican restricciones.
       </p>
     </div>
   );

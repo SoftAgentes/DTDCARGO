@@ -585,15 +585,15 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     id: "prepago",
-    term: "Prepago",
+    term: "Financiamiento 100%",
     acronym: "Modalidad de pago",
     category: "modalidad",
     body: [
-      "Indica cuándo pagas a DTD Cargo: al confirmar el envío, antes de que la carga salga. Esto es lo que nos permite cubrir por adelantado los aranceles e impuestos para que tu mercancía llegue sin trabas ni cobros sorpresa.",
+      "Indica cómo y cuándo pagas a DTD Cargo: te financiamos el viaje completo, así que no adelantas aranceles ni impuestos. La cobranza arranca cuando tu carga llega a Venezuela y pagas antes de recibirla — con la aduana y los impuestos ya incluidos.",
     ],
     analogy: {
       label: "Por qué importa",
-      text: "En otros esquemas (pago contra entrega), el cliente recibe sustos cuando la aduana cobra impuestos en destino. Con prepago, lo que cotizamos es lo que pagas — punto final.",
+      text: "En otros esquemas (pago contra entrega), la aduana te cobra de más en destino y te llevas el susto. Con nosotros, lo que cotizamos es lo que pagas — todo incluido, sin sorpresas en el puerto.",
     },
   },
 
