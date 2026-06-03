@@ -42,6 +42,13 @@ export interface CommentEntityMeta {
   href: (entityId: string, entityCode: string | null) => string;
 }
 
+// Entidades con ruta de detalle propia (aterrizan en el record):
+//   shipment → tracking/[id] · client → clientes/[markbox] ·
+//   invoice → facturacion/[code] · quote → cotizador/[code]
+// Las demás (dispatch/tesorería/cn/ve) son lista+drawer (sin ruta de record) →
+// aterrizan en la lista. Nota: este href también lo consume `revalidatePath`
+// en las actions, por eso NO lleva query string (`?highlight=`) — rompería el
+// revalidate (la query no es parte de la cache key de Next).
 export const COMMENT_ENTITY_LABELS: Record<CommentEntityType, CommentEntityMeta> = {
   shipment: {
     label: "Embarque",
@@ -53,11 +60,11 @@ export const COMMENT_ENTITY_LABELS: Record<CommentEntityType, CommentEntityMeta>
   },
   invoice: {
     label: "Factura",
-    href: () => `/studio/facturacion`,
+    href: (id, code) => (code ? `/studio/facturacion/${code}` : `/studio/facturacion`),
   },
   quote: {
     label: "Cotización",
-    href: () => `/studio/cotizar`,
+    href: (id, code) => (code ? `/studio/cotizador/${code}` : `/studio/cotizador`),
   },
   dispatch_order: {
     label: "Orden de despacho",
