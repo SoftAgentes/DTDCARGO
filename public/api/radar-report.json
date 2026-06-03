@@ -1,0 +1,53 @@
+{
+  "generatedAt": "2026-06-03",
+  "norteVersion": "v2.4",
+  "partA": {
+    "findings": [
+      {
+        "id": "perms-obsoletos",
+        "title": "Permisos obsoletos en .claude/settings podados",
+        "severity": "media",
+        "action": "Se removieron refs al path viejo `IA ANTROPIC\\dtd-cargo` y se acotaron wildcards demasiado amplios (`npm run *`) a comandos puntuales.",
+        "top": true
+      },
+      {
+        "id": "agents-drift",
+        "title": "Drift de versión del Norte en AGENTS.md resuelto",
+        "severity": "media",
+        "action": "El puntero `Protocolo UI handoff-first … hoy vX` quedó alineado al Norte vigente (v2.4); ya no apunta a una versión desactualizada."
+      },
+      {
+        "id": "verify-gate-flaky",
+        "title": "Gate `node scripts/verify.mjs` con worker flaky de Vitest en Windows",
+        "severity": "baja",
+        "action": "El error transitorio \"Vitest failed to find the runner\" es un worker caído, NO una regresión → re-correr el gate antes de asumir rojo."
+      }
+    ],
+    "estimatedTokenSavings": "~8%"
+  },
+  "partB": {
+    "counts": {
+      "built": 11,
+      "partial": 8,
+      "missing": 3,
+      "total": 22
+    },
+    "blocks": [
+      {
+        "name": "Bloque 1 · Financiero",
+        "remaining": "0%",
+        "note": "Facturación + Contabilidad en prod (SDD-0021/0040)."
+      },
+      {
+        "name": "Bloque 2 · Tesorería/Cobranzas",
+        "remaining": "15%",
+        "note": "Cobranzas en prod; Tesorería (0044) con deploy pendiente."
+      },
+      {
+        "name": "Bloque 3 · Fiscal",
+        "remaining": "60%",
+        "note": "Capa fiscal documentada, sin implementar."
+      }
+    ]
+  }
+}

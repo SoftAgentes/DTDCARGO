@@ -24,9 +24,11 @@ import {
 } from "@/lib/studio/integration-health";
 import { listBugsForAdmin } from "@/lib/studio/bug-queries";
 import { parseBugAdminFilters, type BugReport } from "@/lib/studio/bug-types";
+import { loadRadarReport } from "@/lib/studio/radar-types";
 import { DebugTabs, resolveDebugTab } from "./_components/DebugTabs";
 import { EstadoTab } from "./_components/EstadoTab";
 import { BugsTab } from "./_components/BugsTab";
+import { RadarTab } from "./_components/RadarTab";
 
 export const metadata: Metadata = {
   title: "Torre de control",
@@ -63,14 +65,20 @@ export default async function DebugPage({
   // Corremos en paralelo: deploys + health local + health prod (si no es prod)
   // + lista de bugs (read-only, ya filtrada por RLS según el caller).
   const bugsFilters = parseBugAdminFilters({ tab: "tabla" });
-  const [deploysResult, healthByKey, remoteHealth, bugs] = await Promise.all([
-    listRecentDeploys(10),
-    checkAllIntegrations(),
-    isProd
-      ? Promise.resolve<FetchRemoteResult>({ ok: false, error: "skip_in_prod" })
-      : fetchRemoteHealth(siteUrl),
-    loadBugs(supabase, bugsFilters),
-  ]);
+  const [deploysResult, healthByKey, remoteHealth, bugs, radarReport] =
+    await Promise.all([
+      listRecentDeploys(10),
+      checkAllIntegrations(),
+      isProd
+        ? Promise.resolve<FetchRemoteResult>({
+            ok: false,
+            error: "skip_in_prod",
+          })
+        : fetchRemoteHealth(siteUrl),
+      loadBugs(supabase, bugsFilters),
+      // Último informe del Radar (artefacto local en git); `null` si no existe.
+      loadRadarReport(),
+    ]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-6)" }}>
@@ -116,6 +124,7 @@ export default async function DebugPage({
           />
         }
         bugs={<BugsTab bugs={bugs} isAdmin={isAdmin} />}
+        radar={<RadarTab report={radarReport} env={s.env} />}
       />
     </div>
   );
