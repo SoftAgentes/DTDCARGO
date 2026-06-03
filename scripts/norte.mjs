@@ -342,6 +342,105 @@ const p2 = (n) => String(n).padStart(2, "0");
 const stamp = `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
 const wipDim = wip === 0 ? ' style="opacity:.55"' : ""; // atenúa el ítem "en obra" de la leyenda si no hay nada en obra
 
+// --- Vista "Datos": reconciliación de entidades (parseada de schema-reconciliation.md) ----
+// Fuente única de verdad = docs/architecture/schema-reconciliation.md (artefacto verificado).
+// No recomputamos acá; solo parseamos sus tablas. Si el archivo no existe → empty state.
+function loadReconciliation() {
+  let text;
+  try {
+    text = fs.readFileSync(path.join(ROOT, "docs/architecture/schema-reconciliation.md"), "utf8");
+  } catch {
+    return { found: false };
+  }
+  const EMO = { "✅": "built", "🟡": "partial", "❌": "missing" };
+  const entities = [], blocks = [];
+  let section = "";
+  for (const raw of text.split(/\r?\n/)) {
+    const h = raw.match(/^##\s+(.*)/);
+    if (h) { section = h[1].toLowerCase(); continue; }
+    if (!raw.trimStart().startsWith("|")) continue;
+    const cells = raw.split("|").slice(1, -1).map((c) => c.trim());
+    if (cells.length < 4 || /^-+$/.test(cells[0])) continue; // fila vacía o separador
+    if (section.includes("por entidad") && EMO[cells[1]]) {
+      entities.push({ cls: EMO[cells[1]], emoji: cells[1], name: cells[0], tables: cells[2], note: cells[3] });
+    } else if (section.includes("bloques") && /^\*\*/.test(cells[0])) {
+      blocks.push({ block: cells[0].replace(/\*\*/g, ""), name: cells[1], spec: cells[2], estado: cells[3].replace(/\*\*/g, "") });
+    }
+  }
+  const n = (x) => entities.filter((e) => e.cls === x).length;
+  return { found: true, entities, blocks, counts: { built: n("built"), partial: n("partial"), missing: n("missing"), total: entities.length } };
+}
+
+const recon = loadReconciliation();
+const dataHeaderKpi = recon.found
+  ? `${recon.counts.built}/${recon.counts.total} entidades con tabla real`
+  : "reconciliación ausente";
+
+const DATA_GROUPS = [
+  { cls: "built", label: "✅ Construido", hint: "tabla real fiel" },
+  { cls: "partial", label: "🟡 Parcial", hint: "existe pero fragmentado/incompleto" },
+  { cls: "missing", label: "❌ Falta", hint: "sin tabla" },
+];
+
+let dataView;
+if (!recon.found) {
+  dataView = `  <div class="empty-data">No se encontró <code>docs/architecture/schema-reconciliation.md</code>. Generá la reconciliación (corré <code>/radar</code> o el reconciliador de esquema) y regenerá el Norte con <code>node scripts/norte.mjs</code>.</div>`;
+} else {
+  const dc = recon.counts;
+  const dB = pctOf(dc.built, dc.total), dP = pctOf(dc.partial, dc.total);
+  const dM = dc.total ? Math.max(0, 100 - dB - dP) : 0;
+
+  const dataSections = DATA_GROUPS.map((g) => {
+    const items = recon.entities.filter((e) => e.cls === g.cls);
+    if (!items.length) return "";
+    const cards = items
+      .map((e) => `      <div class="card ${e.cls}">
+        <div class="card-top"><span class="name">${esc(e.name)}</span><span class="badge ${e.cls}">${esc(e.emoji)}</span></div>
+        <div class="card-meta">${e.tables && e.tables !== "—" ? esc(e.tables) : '<span class="nospec">sin tabla</span>'}</div>
+        <div class="card-note">${esc(trunc(e.note, 170))}</div>
+      </div>`)
+      .join("\n");
+    return `    <section class="group">
+      <h2><span class="group-title">${esc(g.label)} <span style="color:var(--ink-mute);font-weight:500">· ${esc(g.hint)}</span></span><span class="group-meta"><span class="group-count">${items.length}</span></span></h2>
+      <div class="cards">
+${cards}
+      </div>
+    </section>`;
+  }).join("\n");
+
+  const blocksTable = recon.blocks.length
+    ? `    <section class="group">
+      <h2><span class="group-title">Roadmap de Bloques financieros</span></h2>
+      <table class="blocks">
+        <thead><tr><th>Bloque</th><th>Nombre</th><th>Spec</th><th>Estado</th></tr></thead>
+        <tbody>
+${recon.blocks.map((b) => `          <tr><td class="bk">${esc(b.block)}</td><td>${esc(b.name)}</td><td class="sp">${esc(b.spec)}</td><td>${esc(b.estado)}</td></tr>`).join("\n")}
+        </tbody>
+      </table>
+    </section>`
+    : "";
+
+  dataView = `  <div class="progress-wrap data-head">
+    <div class="progress-head">
+      <div class="progress-pct">${dB}%<span>de entidades con tabla real</span></div>
+      <div class="progress-count">${dc.built}/${dc.total} entidades</div>
+    </div>
+    <div class="bar">
+      <i class="built" style="width:${dB}%"></i>
+      <i class="wip" style="width:${dP}%"></i>
+      <i class="missing" style="width:${dM}%"></i>
+    </div>
+    <div class="bar-legend">
+      <span><i style="background:var(--built)"></i>${dc.built} con tabla</span>
+      <span><i style="background:var(--wip)"></i>${dc.partial} parcial</span>
+      <span><i style="background:var(--danger)"></i>${dc.missing} falta</span>
+    </div>
+    <div class="meta-src">fuente: docs/architecture/schema-reconciliation.md · blueprint del Norte ↔ tablas Supabase reales</div>
+  </div>
+${dataSections}
+${blocksTable}`;
+}
+
 const html = `<!doctype html>
 <html lang="es">
 <head>
@@ -356,6 +455,7 @@ const html = `<!doctype html>
     --wine: #7F0F1A; --navy: #0F1E3D; --paper: #FBFAF7; --page: #FBFAF7; --surface: #FFFFFF;
     --ink: #0F1E3D; --ink-soft: #6B6B6B; --ink-mute: #9B9B9B; --border: #E8E6E2;
     --built: #1F8A5B; --wip: #B8893A; --design: #6B6B6B; --hover: #F2F0EC;
+    --danger: #A8323E;
     --on-navy: #B9C0D2; --on-navy-mute: #8E99B4;
   }
   /* Tema oscuro: el header sigue navy (ya era oscuro); flipea cuerpo + cards + texto.
@@ -365,7 +465,7 @@ const html = `<!doctype html>
     color-scheme: dark;
     --page: #0B1428; --surface: #16264A;
     --ink: #F2F0EC; --ink-soft: #A8B0C4; --ink-mute: #7E89A4; --border: #2A3A5C;
-    --built: #3FB984; --wip: #D4A85A; --design: #9BA6BE; --hover: #1F3055; --wine: #D89AA4;
+    --built: #3FB984; --wip: #D4A85A; --design: #9BA6BE; --hover: #1F3055; --wine: #D89AA4; --danger: #D9606C;
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--page); color: var(--ink);
@@ -465,6 +565,44 @@ const html = `<!doctype html>
   .card.built:has(.open.missing), .card.wip:has(.open.missing), .card.design:has(.open.missing) { border-color: var(--wine); }
 
   footer { max-width: 1100px; margin: 0 auto; padding: 0 32px 48px; color: var(--ink-mute); font-size: 12px; }
+
+  /* Tabs (switch de vistas) — viven en el header navy */
+  .tabs { display: flex; gap: 8px; margin: 18px 0 4px; }
+  .tab { appearance: none; cursor: pointer; background: rgba(255,255,255,.06); color: var(--on-navy);
+    border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 8px 18px;
+    font: 700 13px/1 'Archivo'; transition: background .12s ease, color .12s ease; }
+  .tab:hover { background: rgba(255,255,255,.14); color: var(--paper); }
+  .tab.active { background: var(--paper); color: var(--navy); border-color: var(--paper); }
+
+  /* Vistas conmutables */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Vista Datos: cabecera de progreso sobre fondo claro (no navy) */
+  #view-datos .data-head { max-width: 580px; margin: 0 0 28px; }
+  #view-datos .progress-pct { color: var(--ink); }
+  #view-datos .progress-pct span { color: var(--ink-mute); margin-left: 8px; font: 600 13px/1 'JetBrains Mono'; }
+  #view-datos .progress-count { color: var(--ink-mute); }
+  #view-datos .bar { background: var(--border); }
+  #view-datos .bar-legend { color: var(--ink-soft); }
+  #view-datos .meta-src { color: var(--ink-mute); }
+  .card-note { font: 500 12px/1.45 'Archivo'; color: var(--ink-soft); }
+
+  /* Estado "falta" (❌) — reusa la mecánica de badge/bar */
+  .bar > i.missing { background: var(--danger); }
+  .badge.missing { background: rgba(168,50,62,.12); color: var(--danger); }
+  .card.missing:hover { border-color: var(--danger); }
+
+  /* Tabla de Bloques financieros */
+  table.blocks { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  table.blocks th { text-align: left; font: 700 11px/1 'Archivo'; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-mute); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  table.blocks td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--ink-soft); }
+  table.blocks td.bk { font: 700 12px/1.3 'JetBrains Mono'; color: var(--wine); white-space: nowrap; }
+  table.blocks td.sp { font: 600 12px/1.3 'JetBrains Mono'; color: var(--ink-soft); white-space: nowrap; }
+
+  .empty-data { padding: 22px 24px; border: 1px dashed var(--border); border-radius: 10px; color: var(--ink-soft); }
+  .empty-data code { color: var(--wine); }
 </style>
 <script>
   // Tema inicial antes de pintar (evita flash): localStorage → preferencia del sistema.
@@ -486,6 +624,10 @@ const html = `<!doctype html>
     <div class="eyebrow">DTD Studio · Norte visual</div>
     <h1>A dónde vamos — y dónde estamos</h1>
     <p>Mapa de las pantallas-meta del proyecto. Cada tarjeta abre el mockup navegable; el badge dice en qué punto está cada módulo en la app real.</p>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" data-view="pantallas">🖥 Pantallas</button>
+      <button type="button" class="tab" data-view="datos">🗄 Datos</button>
+    </div>
     <div class="progress-wrap">
       <div class="progress-head">
         <div class="progress-pct">${pctBuilt}%<span>construido</span></div>
@@ -502,11 +644,13 @@ const html = `<!doctype html>
         <span><i style="background:var(--design)"></i>${design} en diseño</span>
       </div>
       <div class="meta-src">${NORTE_VERSION} · generado por scripts/norte.mjs · ${stamp}</div>
+      <div class="meta-src">Datos · ${dataHeaderKpi} → pestaña <b style="color:var(--paper)">🗄 Datos</b></div>
     </div>
   </div>
 ${recentBlock}
 </header>
 <main>
+  <section id="view-pantallas" class="view active">
   <div class="legend">
     <span class="legend-hint">Filtrar</span>
     <button type="button" class="legend-item" data-filter="built" title="Clic para mostrar/ocultar"><span class="badge built">✅ Construido</span> SDD cerrado o aprobado con código</button>
@@ -515,6 +659,10 @@ ${recentBlock}
     <button type="button" class="legend-item" data-filter="brand" title="Clic para mostrar/ocultar"><span class="badge brand">Marca</span> material de identidad</button>
   </div>
 ${sections}
+  </section>
+  <section id="view-datos" class="view">
+${dataView}
+  </section>
 </main>
 <footer>Norte vigente: <code>${esc(NORTE_REL)}</code> · estado derivado del <code>status</code> del SDD del módulo cruzado con la carpeta de código (mapa en <code>docs/architecture/module-sdd-map.md</code>).</footer>
 <script>
@@ -555,6 +703,29 @@ ${sections}
       sync();
     });
   })();
+
+  // Switch de vistas (Pantallas / Datos): alterna sección y recuerda la elegida.
+  (function () {
+    var tabs = document.querySelectorAll('.tab');
+    var views = {
+      pantallas: document.getElementById('view-pantallas'),
+      datos: document.getElementById('view-datos'),
+    };
+    function show(v) {
+      if (!views[v]) v = 'pantallas';
+      Object.keys(views).forEach(function (k) {
+        if (views[k]) views[k].classList.toggle('active', k === v);
+      });
+      tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.view === v); });
+      try { localStorage.setItem('norte-view', v); } catch (e) {}
+    }
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () { show(t.dataset.view); });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem('norte-view'); } catch (e) {}
+    show(saved === 'datos' ? 'datos' : 'pantallas');
+  })();
 </script>
 </body>
 </html>
@@ -563,7 +734,19 @@ ${sections}
 const OUT = path.join(NORTE_DIR, "_norte.html");
 fs.writeFileSync(OUT, html, "utf8");
 console.log(`[norte] generado: ${path.relative(ROOT, OUT)}`);
-console.log(`[norte] ${pctBuilt}% construido · ${built} listas · ${wip} en obra · ${design} en diseño (${total} módulos)`);
+
+// Snapshot horneado para la web (SDD-0050 Slice B): el Norte vive solo en local
+// (este script lee el filesystem del repo), pero podemos servir el HTML estático
+// en la web. Lo escribimos a public/norte.html para que `/studio/debug` → Norte
+// lo embeba en un <iframe src="/norte.html">. La copia es por `writeFileSync` del
+// mismo HTML (NO `cp`) para ser portable: el founder corre en Windows y Vercel es
+// Linux. El `postbuild` de package.json invoca solo `node scripts/norte.mjs`, así
+// que la copia ocurre en cada build sin shell-ismos. `public/` ya existe (marca/, m/).
+const PUBLIC_OUT = path.join(ROOT, "public", "norte.html");
+fs.writeFileSync(PUBLIC_OUT, html, "utf8");
+console.log(`[norte] snapshot web: ${path.relative(ROOT, PUBLIC_OUT)}`);
+console.log(`[norte] pantallas: ${pctBuilt}% construido · ${built} listas · ${wip} en obra · ${design} en diseño (${total} módulos)`);
+console.log(`[norte] datos: ${recon.found ? `${recon.counts.built}/${recon.counts.total} entidades con tabla real (${recon.counts.built}✅ ${recon.counts.partial}🟡 ${recon.counts.missing}❌)` : "schema-reconciliation.md no encontrado (vista Datos vacía)"}`);
 console.log(`[norte] movimiento reciente: ${recent.length} specs con fecha`);
 console.log(`[norte] servir:  npx --yes serve "${NORTE_REL}" -l 3010`);
 console.log(`[norte] abrir:   http://localhost:3010/_norte.html`);
