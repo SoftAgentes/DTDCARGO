@@ -94,6 +94,10 @@ docs/design/studio/_norte/scraps/
 docs/design/studio/_norte/screenshots/
 docs/design/studio/_norte/Brand Book v3.0 Package/
 docs/design/studio/_norte/_norte.html
+# Copia horneada del Norte para la web (SDD-0050): la genera `scripts/norte.mjs`
+# vía el `postbuild` de Vercel y, en local, corriendo el script a mano. Es un
+# artefacto de build (su `stamp` cambia en cada corrida → churn), no se versiona.
+public/norte.html
 
 # Harness: el progreso efímero (coordinación entre agentes) NO va a git; la historia vive en git log.
 # El resto del harness (CHECKPOINTS.md, config) SÍ se versiona.
