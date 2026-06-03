@@ -292,32 +292,52 @@ const pctDesign = total ? Math.max(0, 100 - pctBuilt - pctWip) : 0;
 
 // --- Movimiento reciente: últimas specs tocadas (por `updated`) ----------------------
 loadSpecs();
+
+// `now` se usa acá (fechas relativas) y abajo (timestamp de generación).
+const now = new Date();
+const relDate = (iso) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || "");
+  if (!m) return esc(iso || "");
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((today - d) / 86400000);
+  if (days <= 0) return "hoy";
+  if (days === 1) return "ayer";
+  if (days < 7) return `hace ${days}d`;
+  if (days < 28) return `hace ${Math.floor(days / 7)} sem`;
+  return iso.slice(5); // MM-DD para lo más viejo
+};
+
 const recent = [...specByNum.entries()]
   .map(([sdd, m]) => ({ sdd, ...m }))
   .filter((r) => r.updated)
   .sort((a, b) => (a.updated < b.updated ? 1 : a.updated > b.updated ? -1 : 0))
-  .slice(0, 5);
+  .slice(0, 10);
 
 const recentRows = recent
   .map(
-    (r) => `      <div class="row">
-        <span class="date">${esc(r.updated)}</span>
-        <span class="rsdd">SDD-${esc(r.sdd)}</span>
-        <span class="rtitle">${esc(trunc(r.title || "(sin título)", 34))}</span>
-        <i class="dot ${toneOf(r.status)}" title="${esc(r.status || "sin estado")}"></i>
-      </div>`
+    (r) => `        <div class="row" title="${esc(`SDD-${r.sdd} · ${r.title || "(sin título)"} · ${r.status || "sin estado"} · ${r.updated}`)}">
+          <i class="dot ${toneOf(r.status)}"></i>
+          <span class="rsdd">SDD-${esc(r.sdd)}</span>
+          <span class="rtitle">${esc(trunc(r.title || "(sin título)", 40))}</span>
+          <span class="rdate">${esc(relDate(r.updated))}</span>
+        </div>`
   )
   .join("\n");
 
 const recentBlock = recent.length
   ? `  <aside class="recent">
-    <span class="lbl">Movimiento reciente</span>
+    <div class="recent-head">
+      <span class="lbl">Movimiento reciente</span>
+      <span class="recent-count">${recent.length}</span>
+    </div>
+    <div class="feed">
 ${recentRows}
+    </div>
   </aside>`
   : "";
 
-// timestamp de generación (hora local del sistema)
-const now = new Date();
+// timestamp de generación (hora local del sistema) — `now` ya está definido arriba.
 const p2 = (n) => String(n).padStart(2, "0");
 const stamp = `${now.getFullYear()}-${p2(now.getMonth() + 1)}-${p2(now.getDate())} ${p2(now.getHours())}:${p2(now.getMinutes())}`;
 const wipDim = wip === 0 ? ' style="opacity:.55"' : ""; // atenúa el ítem "en obra" de la leyenda si no hay nada en obra
@@ -332,17 +352,31 @@ const html = `<!doctype html>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
 <style>
   :root {
-    --wine: #7F0F1A; --navy: #0F1E3D; --paper: #FBFAF7; --surface: #FFFFFF;
+    color-scheme: light;
+    --wine: #7F0F1A; --navy: #0F1E3D; --paper: #FBFAF7; --page: #FBFAF7; --surface: #FFFFFF;
     --ink: #0F1E3D; --ink-soft: #6B6B6B; --ink-mute: #9B9B9B; --border: #E8E6E2;
-    --built: #1F8A5B; --wip: #B8893A; --design: #6B6B6B;
+    --built: #1F8A5B; --wip: #B8893A; --design: #6B6B6B; --hover: #F2F0EC;
     --on-navy: #B9C0D2; --on-navy-mute: #8E99B4;
   }
+  /* Tema oscuro: el header sigue navy (ya era oscuro); flipea cuerpo + cards + texto.
+     --paper queda claro a propósito (es el TEXTO del header sobre navy); el fondo de
+     página usa --page. Paleta alineada al dark theme del Norte (_norte/CLAUDE.md). */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0B1428; --surface: #16264A;
+    --ink: #F2F0EC; --ink-soft: #A8B0C4; --ink-mute: #7E89A4; --border: #2A3A5C;
+    --built: #3FB984; --wip: #D4A85A; --design: #9BA6BE; --hover: #1F3055; --wine: #D89AA4;
+  }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--paper); color: var(--ink);
+  body { margin: 0; background: var(--page); color: var(--ink);
     font: 400 15px/1.5 'Archivo', system-ui, sans-serif; }
 
-  header { background: var(--navy); color: var(--paper); padding: 28px 32px;
+  header { position: relative; background: var(--navy); color: var(--paper); padding: 28px 32px;
     display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+  .theme-toggle { position: absolute; top: 20px; right: 24px; appearance: none; cursor: pointer;
+    background: rgba(255,255,255,.08); color: var(--on-navy); border: 1px solid rgba(255,255,255,.18);
+    border-radius: 999px; padding: 6px 14px; font: 600 12px/1 'Archivo'; transition: background .12s ease; }
+  .theme-toggle:hover { background: rgba(255,255,255,.16); color: var(--paper); }
   header .head-main { flex: 1 1 460px; min-width: 0; }
   header .eyebrow { font: 600 12px/1 'Archivo'; letter-spacing: .12em; text-transform: uppercase; color: var(--on-navy); }
   header h1 { font: 900 30px/1.1 'Archivo Black'; margin: 8px 0 6px; }
@@ -364,17 +398,31 @@ const html = `<!doctype html>
   .meta-src { margin-top: 16px; font: 500 11px/1 'JetBrains Mono'; color: var(--on-navy-mute); }
 
   /* Movimiento reciente */
-  header .recent { flex: 0 1 320px; min-width: 240px; }
-  header .recent .lbl { display: block; font: 600 11px/1 'Archivo'; letter-spacing: .12em; text-transform: uppercase; color: var(--on-navy-mute); margin-bottom: 12px; }
-  header .recent .row { display: grid; grid-template-columns: 78px 1fr 14px; gap: 10px; align-items: center;
-    font: 500 12px/1.5 'JetBrains Mono'; color: var(--on-navy); padding: 3px 0; }
-  header .recent .date { color: var(--on-navy-mute); }
-  header .recent .rsdd { color: var(--paper); font-weight: 600; }
-  header .recent .rtitle { color: var(--on-navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'Archivo'; }
-  header .recent .dot { width: 8px; height: 8px; border-radius: 999px; display: inline-block; }
+  header .recent { flex: 0 1 360px; min-width: 260px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 14px 8px 10px 16px; }
+  header .recent .recent-head { display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding-right: 8px; margin-bottom: 8px; }
+  header .recent .lbl { font: 600 11px/1 'Archivo'; letter-spacing: .12em; text-transform: uppercase; color: var(--on-navy-mute); }
+  header .recent .recent-count { font: 700 10px/1 'JetBrains Mono'; color: var(--on-navy-mute);
+    background: rgba(255,255,255,.07); border-radius: 999px; padding: 3px 7px; }
+  header .recent .feed { max-height: 168px; overflow-y: auto; padding-right: 6px; }
+  header .recent .feed::-webkit-scrollbar { width: 6px; }
+  header .recent .feed::-webkit-scrollbar-track { background: transparent; }
+  header .recent .feed::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 999px; }
+  header .recent .feed::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
+  header .recent .row { display: grid; grid-template-columns: 12px 64px 1fr auto; gap: 8px; align-items: center;
+    padding: 6px 6px; border-radius: 7px; transition: background .12s ease; cursor: default; }
+  header .recent .row:hover { background: rgba(255,255,255,.06); }
+  header .recent .row + .row { margin-top: 1px; }
+  header .recent .dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
   header .recent .dot.built { background: var(--built); }
   header .recent .dot.wip { background: var(--wip); }
   header .recent .dot.design { background: var(--on-navy-mute); }
+  header .recent .rsdd { font: 600 11px/1.4 'JetBrains Mono'; color: var(--paper); }
+  header .recent .rtitle { font: 500 12px/1.4 'Archivo'; color: var(--on-navy);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header .recent .rdate { font: 500 10.5px/1.4 'JetBrains Mono'; color: var(--on-navy-mute); text-align: right; white-space: nowrap; }
 
   main { max-width: 1100px; margin: 0 auto; padding: 28px 32px 64px; }
   .legend { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 24px; font-size: 13px; color: var(--ink-soft); }
@@ -382,7 +430,7 @@ const html = `<!doctype html>
   .legend-hint { font: 600 11px/1 'Archivo'; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-mute); }
   .legend-item { appearance: none; background: none; border: 0; margin: 0; padding: 4px 8px; border-radius: 6px;
     font: inherit; color: inherit; text-align: left; cursor: pointer; transition: opacity .12s ease, background .12s ease; }
-  .legend-item:hover { background: #F2F0EC; }
+  .legend-item:hover { background: var(--hover); }
   .legend-item.off { opacity: .38; }
   .legend-item.off .badge { filter: grayscale(.55); }
 
@@ -418,9 +466,22 @@ const html = `<!doctype html>
 
   footer { max-width: 1100px; margin: 0 auto; padding: 0 32px 48px; color: var(--ink-mute); font-size: 12px; }
 </style>
+<script>
+  // Tema inicial antes de pintar (evita flash): localStorage → preferencia del sistema.
+  (function () {
+    try {
+      var t = localStorage.getItem('norte-theme');
+      if (t !== 'dark' && t !== 'light') {
+        t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
 </head>
 <body>
 <header>
+  <button type="button" class="theme-toggle" aria-label="Cambiar tema claro/oscuro">Modo oscuro</button>
   <div class="head-main">
     <div class="eyebrow">DTD Studio · Norte visual</div>
     <h1>A dónde vamos — y dónde estamos</h1>
@@ -474,6 +535,24 @@ ${sections}
           g.style.display = anyVisible ? '' : 'none';
         });
       });
+    });
+  })();
+
+  // Toggle de tema: flipea data-theme en <html> y lo recuerda en localStorage.
+  (function () {
+    var tt = document.querySelector('.theme-toggle');
+    if (!tt) return;
+    function sync() {
+      var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      tt.textContent = dark ? 'Modo claro' : 'Modo oscuro';
+    }
+    sync();
+    tt.addEventListener('click', function () {
+      var next =
+        document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('norte-theme', next); } catch (e) {}
+      sync();
     });
   })();
 </script>
