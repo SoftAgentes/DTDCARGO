@@ -8,6 +8,7 @@ updated: 2026-05-23
 supersedes: null
 superseded_by: null
 related: ["0003"]
+confidencialidad: interno
 ---
 
 # DTD-0004 — Fase 1: Studio shell + Auth

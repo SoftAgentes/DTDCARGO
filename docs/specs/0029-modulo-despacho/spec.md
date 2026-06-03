@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0008", "0012", "0017", "0019", "0023", "0024", "0030"]
+confidencialidad: interno
 ---
 
 # DTD-0029 — Módulo de Despacho · cola priorizada + motor de reglas + pipeline 3-actor

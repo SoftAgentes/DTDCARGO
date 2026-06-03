@@ -19,6 +19,7 @@ implementation_commits:
 deferred:
   - "Fase 4.5 rrweb session replay (requiere pnpm add rrweb + storage upload)"
   - "Fase 5 notif 4 canales (depende SDD-0026 Resend Fase 2)"
+confidencialidad: interno
 ---
 
 # DTD-0036 — Bug Reporter · módulo interno de bug tracking

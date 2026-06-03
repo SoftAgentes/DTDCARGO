@@ -8,6 +8,7 @@ updated: 2026-05-23
 supersedes: null
 superseded_by: null
 related: ["0003", "0004"]
+confidencialidad: interno
 ---
 
 # DTD-0005 — Fase 2: Módulo Tracking

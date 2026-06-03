@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0005", "0006", "0010", "0011"]
+confidencialidad: interno
 ---
 
 # DTD-0012 — Embarques (vista comercial)

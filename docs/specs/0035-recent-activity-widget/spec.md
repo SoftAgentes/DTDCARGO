@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0002", "0014"]
+confidencialidad: interno
 ---
 
 # DTD-0035 — RecentActivity widget en Dashboard

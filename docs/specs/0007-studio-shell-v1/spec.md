@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0003", "0004", "0005", "0006"]
+confidencialidad: interno
 ---
 
 # DTD-0007 — Sprint 0.1: Studio Shell v1

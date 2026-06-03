@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0005", "0012", "0013", "0016"]
+confidencialidad: interno
 ---
 
 # DTD-0017 — Almacén VE

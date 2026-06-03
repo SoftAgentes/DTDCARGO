@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: []
+confidencialidad: interno
 ---
 
 # DTD-0001 — Sitio web público MVP de DTD·CARGO

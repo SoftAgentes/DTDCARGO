@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0008", "0020", "0027", "0031"]
+confidencialidad: interno
 ---
 
 # DTD-0033 — Cola de impresión QR · vista oficina + push del operario CN

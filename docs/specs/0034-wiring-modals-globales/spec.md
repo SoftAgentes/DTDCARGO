@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0007", "0026"]
+confidencialidad: interno
 ---
 
 # DTD-0034 — Wiring 9 conexiones rotas · modals globales

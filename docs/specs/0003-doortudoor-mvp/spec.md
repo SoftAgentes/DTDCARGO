@@ -8,6 +8,7 @@ updated: 2026-05-23
 supersedes: null
 superseded_by: null
 related: ["0001", "0002"]
+confidencialidad: interno
 ---
 
 # DTD-0003 — DoorTuDoor: arquitectura MVP del ERP interno

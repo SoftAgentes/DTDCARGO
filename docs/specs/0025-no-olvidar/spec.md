@@ -8,6 +8,7 @@ updated: 2026-05-24
 supersedes: null
 superseded_by: null
 related: ["0007"]
+confidencialidad: interno
 ---
 
 # DTD-0025 — No-Olvidar interno DTD-CARGO · envelope encryption + admin recovery

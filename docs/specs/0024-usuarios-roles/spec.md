@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0001", "0007", "0020", "0025", "0026"]
+confidencialidad: interno
 ---
 
 # DTD-0024 — Usuarios & Roles · V1 simple

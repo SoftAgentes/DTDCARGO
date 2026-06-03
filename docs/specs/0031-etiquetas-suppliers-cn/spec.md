@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0008", "0010", "0029"]
+confidencialidad: interno
 ---
 
 # DTD-0031 — Etiquetas para suppliers CN
