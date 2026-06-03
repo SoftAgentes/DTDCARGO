@@ -347,3 +347,19 @@ aterriza en el record (invoice/quote → `[code]`; fix typo `quote /cotizar→/c
   vacío sin aviso. (`comments-queries.ts:228`)
 - **[P2] badge de no-leídas + email/push de menciones** — ya listados arriba; el badge cruza
   el carril integración (sidebar/chrome), coordinar.
+
+### Hallazgos del `/codex challenge` (2026-06-03) + hardening
+Segunda opinión adversarial cross-model. Confirmó: **sin XSS, sin ReDoS**. Encontró huecos que el
+eng-review no vio (el patrón: la action valida, pero un cliente Supabase directo se la salta).
+**Cerrados** por `0093_comments_hardening.sql` (aplicada a prod + smoke-test verificado):
+- **[P1] entidad no validada in-tenant** — trigger `comments_validate_entity` (BEFORE INSERT) +
+  helper `comment_entity_in_tenant()` polimórfico sobre las 8 tablas → rechaza comentar entidades
+  inexistentes / wrong-type / de otro tenant (cubre todo cliente, no solo la action).
+- **[P1] mención a usuario fuera del tenant** — trigger `comment_mentions_validate` exige
+  `mentioned_user_id ∈ user_tenants` del tenant.
+- **[P2] `comment_mentions` mutable** — trigger `comment_mentions_freeze_immutable`: solo `read_at`
+  mutable (espejo del de `comments`).
+- **Blast radius:** intra-tenant (no breach cross-tenant; `comment.tenant_id` se fija server-side).
+**Quedan TODO (P2/P3 menores):** toggleReaction race (read-modify-write) · parser `startsWith`
+ambiguo (`@Ma` resuelve el primer match) · `parent_id` sin validar same-tenant/entity · `editComment`
+agrega menciones pero no remueve las viejas.
