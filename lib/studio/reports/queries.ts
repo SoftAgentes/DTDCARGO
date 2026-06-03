@@ -117,7 +117,12 @@ async function fetchShipments(
 /**
  * Mapa shipment_code → USD facturado en el rango. Una sola query de invoices
  * (vivas, con shipment_code) del período, normalizadas a USD (invoiceUsdAmount).
- * Suma cuando hay varias facturas para el mismo embarque. Excluye anuladas.
+ * Suma cuando hay varias facturas para el mismo embarque. Solo cuenta facturas
+ * BILLABLE (emitida/parcial/pagada/vencida) — excluye `borrador` (monto no
+ * emitido) y `anulada`, igual que invoiceKpis (invoice-queries) y Fidelización.
+ * Antes filtraba solo `.neq("anulada")`, lo que inflaba el revenue con borradores
+ * y no cuadraba con Facturación/Dirección (fix del bug detectado en la
+ * verificación adversarial de SDD-0052).
  */
 async function fetchRevenueByCode(
   supabase: SupabaseClient,
@@ -128,7 +133,7 @@ async function fetchRevenueByCode(
     .select("shipment_code, total_amount, currency, fx_rate, status")
     .is("deleted_at", null)
     .not("shipment_code", "is", null)
-    .neq("status", "anulada")
+    .in("status", ["emitida", "parcial", "pagada", "vencida"])
     .gte("created_at", range.from)
     .lte("created_at", `${range.to}T23:59:59.999Z`)
     .limit(20000);

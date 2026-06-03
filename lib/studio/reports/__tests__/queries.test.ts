@@ -35,6 +35,7 @@ type Recorded = {
   is: [string, unknown][];
   not: [string, unknown, unknown][];
   neq: [string, unknown][];
+  in: [string, unknown][];
 };
 
 function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
@@ -53,6 +54,7 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
         is: [],
         not: [],
         neq: [],
+        in: [],
       };
       const rec = calls[table];
       const result = { data: rows, error: null };
@@ -67,7 +69,7 @@ function stub(rowsByTable: Record<string, Record<string, unknown>[]>): {
         is: (c: string, v: unknown) => (rec.is.push([c, v]), chain),
         not: (c: string, op: unknown, v: unknown) => (rec.not.push([c, op, v]), chain),
         neq: (c: string, v: unknown) => (rec.neq.push([c, v]), chain),
-        in: () => chain,
+        in: (c: string, v: unknown) => (rec.in.push([c, v]), chain),
         then: (resolve: (v: typeof result) => unknown) =>
           Promise.resolve(result).then(resolve),
       };
@@ -92,8 +94,11 @@ describe("rango del período aplicado a las tablas", () => {
     expect(String(calls.shipments.lte[0][1])).toContain("2026-06-15");
 
     expect(calls.invoices.gte).toContainEqual(["created_at", "2025-06-15"]);
-    // invoices excluye anuladas y exige shipment_code.
-    expect(calls.invoices.neq).toContainEqual(["status", "anulada"]);
+    // invoices: solo BILLABLE (excluye borrador + anulada) + exige shipment_code.
+    expect(calls.invoices.in).toContainEqual([
+      "status",
+      ["emitida", "parcial", "pagada", "vencida"],
+    ]);
   });
 
   it("YTD arranca el 1° de enero", async () => {
