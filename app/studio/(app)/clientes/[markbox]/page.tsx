@@ -23,6 +23,7 @@ import {
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ClientDetailClient } from "../_components/ClientDetailClient";
 import { PortalAccessCard } from "../_components/PortalAccessCard";
+import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
 
 export const metadata = { title: "Detalle cliente" };
 
@@ -58,6 +59,21 @@ export default async function ClienteDetallePage({
   const shipments = (await listShipmentsByMarkbox(supabase, markbox)) as ShipmentRow[];
   const portalAccess = await getClientPortalAccess(supabase, client.id);
   const portalApprovedAt = await getClientPortalApprovedAt(supabase, client.id);
+
+  // SDD-0046: la verificación de identidad aplica a clientes self-registrados
+  // o con foto de documento. El badge es advisory — nunca bloquea al cliente.
+  const showIdentityCard =
+    client.registration_channel === "portal" || client.cedula_photo_path != null;
+
+  // Signed URL (60s) de la foto de cédula/RIF (bucket privado client-docs). La RLS
+  // de storage deja al admin del tenant leerla. Si no hay foto o el sign falla → null.
+  let identityPhotoUrl: string | null = null;
+  if (showIdentityCard && client.cedula_photo_path) {
+    const { data: signed } = await supabase.storage
+      .from("client-docs")
+      .createSignedUrl(client.cedula_photo_path, 60);
+    identityPhotoUrl = signed?.signedUrl ?? null;
+  }
 
   return (
     <div style={{ maxWidth: 1200 }}>
@@ -181,6 +197,21 @@ export default async function ClienteDetallePage({
             access={portalAccess}
             approvedAt={portalApprovedAt}
           />
+
+          {showIdentityCard && (
+            <IdentityVerificationCard
+              clientId={client.id}
+              markbox={client.markbox}
+              name={client.name}
+              docKind={client.doc_kind}
+              rif={client.rif}
+              docVerifyStatus={client.doc_verify_status}
+              docVerifySource={client.doc_verify_source}
+              docRegistryName={client.doc_registry_name}
+              docVerifiedAt={client.doc_verified_at}
+              photoUrl={identityPhotoUrl}
+            />
+          )}
           </div>
 
           {/* Histórico de envíos */}
