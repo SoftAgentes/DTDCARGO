@@ -37,6 +37,24 @@ const BUG_REPORT_COLUMNS =
  * RLS deja pasar todos los del tenant si el caller es admin, o solo los
  * propios si es reporter (que no debería usar esta query).
  */
+/**
+ * Limpia un término de búsqueda libre antes de interpolarlo en un filtro
+ * PostgREST `.or()`. Remueve los caracteres con significado estructural
+ * (`,` `(` `)` separan/agrupan condiciones · `"` `\` rompen el quoting) y
+ * los wildcards de LIKE que el usuario podría inyectar (`%` `*`). Sin esto,
+ * un search como `x,id.gt.0` inyecta condiciones arbitrarias al OR. No
+ * toca `.` ni `_` porque van dentro del valor (no rompen el parseo) y
+ * sirven para buscar folios/títulos reales. Acota el largo.
+ */
+function sanitizeSearchTerm(raw: string): string {
+  return raw
+    .trim()
+    .replace(/[,()*%"\\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 100);
+}
+
 export async function listBugsForAdmin(
   supabase: SupabaseClient,
   filters: BugAdminFilters,
@@ -69,10 +87,12 @@ export async function listBugsForAdmin(
   if (filters.reporter) query = query.eq("reporter_id", filters.reporter);
 
   if (filters.search) {
-    const q = filters.search.trim();
-    query = query.or(
-      `folio.ilike.%${q}%,title.ilike.%${q}%,description.ilike.%${q}%`,
-    );
+    const q = sanitizeSearchTerm(filters.search);
+    if (q) {
+      query = query.or(
+        `folio.ilike.%${q}%,title.ilike.%${q}%,description.ilike.%${q}%`,
+      );
+    }
   }
 
   const { data, error } = await query;

@@ -78,7 +78,9 @@ push a la rama.
 Test manual del drain:
 
 ```bash
-curl "https://dtdcargo.com/api/cron/push-drain?secret=<CRON_SECRET>"
+# El secret va por header (Authorization: Bearer), nunca por query-param.
+curl -H "Authorization: Bearer <CRON_SECRET>" \
+  "https://dtdcargo.com/api/cron/push-drain"
 # → {"ok":true,"processed":N,"delivered":M,"failed":K}
 ```
 

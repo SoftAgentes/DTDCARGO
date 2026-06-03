@@ -13,7 +13,11 @@
  * Auth: CRON_SECRET en header `Authorization: Bearer <secret>` (Vercel
  * Cron pasa el header con la value de `CRON_SECRET` del project env).
  *
- * Manual trigger (testing): GET con `?secret=<CRON_SECRET>&tenant_id=<uuid>`.
+ * Manual trigger (testing):
+ *   curl -H "Authorization: Bearer <CRON_SECRET>" \
+ *     "https://.../api/cron/ceo-brief?tenant_id=<uuid>"
+ * El secret SOLO se acepta por header — nunca por query-param (los query
+ * params terminan en logs de acceso, historial y referrers).
  *
  * Devuelve JSON con resultado por tenant. Idempotente · podés re-correrlo
  * el mismo día y manda otro brief (no hay dedup en V1).
@@ -90,13 +94,10 @@ function authorize(req: NextRequest): { ok: boolean; reason?: string } {
     return { ok: false, reason: "CRON_SECRET no configurado" };
   }
 
-  // Vercel Cron pasa "Authorization: Bearer <CRON_SECRET>".
+  // Solo por header: Vercel Cron pasa "Authorization: Bearer <CRON_SECRET>".
+  // El secret nunca se acepta por query-param (terminaría en logs/referrers).
   const auth = req.headers.get("authorization");
   if (auth === `Bearer ${secret}`) return { ok: true };
-
-  // Manual trigger (testing): ?secret=<value>
-  const url = new URL(req.url);
-  if (url.searchParams.get("secret") === secret) return { ok: true };
 
   return { ok: false, reason: "Forbidden" };
 }

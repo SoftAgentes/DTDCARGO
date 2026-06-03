@@ -17,6 +17,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { apiError } from "@/lib/http/api-error";
 import {
   listBugMessages,
   getBugDetail,
@@ -42,11 +43,7 @@ export async function GET(
     const messages = await listBugMessages(supabase, id);
     return NextResponse.json({ messages });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { error: "No pudimos listar mensajes.", detail: msg },
-      { status: 500 },
-    );
+    return apiError("No pudimos listar mensajes.", err, 500, "bugs:messages");
   }
 }
 
