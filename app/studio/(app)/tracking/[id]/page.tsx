@@ -27,6 +27,13 @@ import {
   listShipmentDocuments,
   signDocumentUrls,
 } from "@/lib/studio/shipment-document-queries";
+import { getUser } from "@/lib/auth/session";
+import {
+  listComments,
+  loadTenantUsers,
+} from "@/lib/studio/comments/comments-queries";
+import { CommentsThread } from "@/app/studio/(app)/_components/comments/CommentsThread";
+import type { CommentTenantUser } from "@/lib/studio/comments/types";
 
 export const metadata = {
   title: "Detalle envío",
@@ -52,6 +59,21 @@ export default async function ShipmentDetailPage({
     supabase,
     documents.map((d) => d.storage_path),
   );
+
+  // Comentarios internos del equipo (SDD-0045). Embed canónico del módulo.
+  const authUser = await getUser();
+  const tenantUsers = await loadTenantUsers(supabase);
+  const comments = authUser
+    ? await listComments(supabase, "shipment", id, tenantUsers, authUser.id)
+    : [];
+  const currentUser: CommentTenantUser | null = authUser
+    ? (tenantUsers.find((u) => u.id === authUser.id) ?? {
+        id: authUser.id,
+        name: "Yo",
+        avatar: "YO",
+        role: "Equipo",
+      })
+    : null;
 
   // Si esta en excepcion, buscar el evento mas reciente con status="exception"
   // para mostrar su nota en un banner arriba.
@@ -227,6 +249,29 @@ export default async function ShipmentDetailPage({
           </section>
         </aside>
       </div>
+
+      {/* Comentarios internos del equipo (SDD-0045) */}
+      {currentUser && (
+        <section
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            padding: 24,
+            marginTop: 20,
+          }}
+        >
+          <CommentsThread
+            entityType="shipment"
+            entityId={shipment.id}
+            entityCode={shipment.code}
+            entityLabel="embarque"
+            users={tenantUsers}
+            currentUser={currentUser}
+            initialComments={comments}
+          />
+        </section>
+      )}
 
       <FooterActions
         shipmentId={shipment.id}
