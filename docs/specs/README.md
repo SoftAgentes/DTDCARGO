@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 39 specs)
+### Índice de specs (generado · 40 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -77,6 +77,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0042 | Portal del Cliente — auth de cliente + mis envíos (V1) | in-progress | interno |
 | 0043 | Conector Kommo CRM — Alcance A (espejo read-only) | done | interno |
 | 0044 | Tesorería — Proveedores + CxP + órdenes de pago + asiento del… | done | interno |
+| 0045 | Comentarios + @menciones transversales — hilo embebible en cu… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

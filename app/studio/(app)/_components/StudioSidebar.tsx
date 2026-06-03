@@ -84,6 +84,7 @@ export const MODULES: ModuleDef[] = [
   { id: "noticias-web", group: "MARKETING", label: "Noticias Web", labelKey: "chrome.sidebar.noticias_web", icon: "doc", slug: "/studio/marketing/noticias-web" },
 
   // SISTEMA
+  { id: "mentions", group: "SISTEMA", label: "Menciones", icon: "bell", slug: "/studio/menciones" },
   { id: "mailing", group: "SISTEMA", label: "Mailing", labelKey: "chrome.sidebar.mailing", icon: "mail", slug: "/studio/mailing" },
   { id: "no-olvidar", group: "SISTEMA", label: "No-Olvidar", labelKey: "chrome.sidebar.no_olvidar", icon: "lock", slug: "/studio/no-olvidar" },
   { id: "users", group: "SISTEMA", label: "Usuarios", labelKey: "chrome.sidebar.users", icon: "shield", slug: "/studio/usuarios" },
