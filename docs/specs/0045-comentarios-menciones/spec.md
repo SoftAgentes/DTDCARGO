@@ -1,7 +1,7 @@
 ---
 sdd: "0045"
 title: "Comentarios + @menciones transversales — hilo embebible en cualquier entidad"
-status: in-progress
+status: done
 author: "Claude (carril operaciones)"
 created: 2026-06-03
 updated: 2026-06-03
