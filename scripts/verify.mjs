@@ -2,7 +2,7 @@
 /**
  * scripts/verify.mjs — Gate de verificación del harness DTD Cargo.
  *
- * Corre, en orden: lint → typecheck → test → docs:check.
+ * Corre, en orden: lint → rsc-boundary → typecheck → test → docs:check.
  * Es el "init.sh real" del proyecto, multiplataforma (Node, cero deps).
  *
  * Invoca cada binario con `node <entry>` DIRECTO (no vía `pnpm <script>`) a propósito:
@@ -21,6 +21,9 @@ const fail = (m) => console.log(`${C.red}[FAIL]${C.nc} ${m}`);
 // Cada check = un binario JS invocado con el mismo node que corre este script.
 const STEPS = [
   { name: "lint", argv: ["node_modules/eslint/bin/eslint.js", "."] },
+  // Frontera RSC: caza un server module que usa un VALOR de un módulo "use client"
+  // (typecheck/vitest no lo ven; explota 500 en runtime — ver SDD-0050). Cero deps, rápido.
+  { name: "rsc-boundary", argv: ["scripts/check-rsc-boundary.mjs"] },
   { name: "typecheck", argv: ["node_modules/typescript/bin/tsc", "--noEmit"] },
   { name: "test", argv: ["node_modules/vitest/vitest.mjs", "run"] },
   { name: "docs:check", argv: ["scripts/build-docs-index.mjs", "--check"] },
