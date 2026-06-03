@@ -25,7 +25,8 @@ import {
 import { listBugsForAdmin } from "@/lib/studio/bug-queries";
 import { parseBugAdminFilters, type BugReport } from "@/lib/studio/bug-types";
 import { loadRadarReport } from "@/lib/studio/radar-types";
-import { DebugTabs, resolveDebugTab } from "./_components/DebugTabs";
+import { DebugTabs } from "./_components/DebugTabs";
+import { resolveDebugTab } from "./_components/debug-tabs.shared";
 import { EstadoTab } from "./_components/EstadoTab";
 import { BugsTab } from "./_components/BugsTab";
 import { RadarTab } from "./_components/RadarTab";

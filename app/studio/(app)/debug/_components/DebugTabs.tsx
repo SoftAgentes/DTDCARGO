@@ -20,42 +20,21 @@ import { useRouter } from "next/navigation";
 import type { EnvName } from "@/lib/studio/env-status";
 import { NorteTab } from "./NorteTab";
 
-export type DebugTabKey = "estado" | "bugs" | "norte" | "radar";
+// Tipos + helpers puros viven en `debug-tabs.shared.ts` (server-safe, sin
+// "use client"): el page.tsx (server) los necesita para resolver la pestaña
+// activa. Acá los importamos para uso interno y los re-exportamos para que los
+// consumidores client (tabs, tests) sigan importando desde "./DebugTabs".
+import {
+  DEBUG_TABS,
+  isDebugTab,
+  modeDotColor,
+  resolveDebugTab,
+  type DebugTabKey,
+  type DebugTabMode,
+} from "./debug-tabs.shared";
 
-export type DebugTabMode = "vivo" | "snapshot" | "local";
-
-export const DEBUG_TABS: ReadonlyArray<{
-  key: DebugTabKey;
-  label: string;
-  /** Modo de la pestaña — declara qué tan "vivo" está su contenido en la web. */
-  mode: DebugTabMode;
-  modeLabel: string;
-}> = [
-  { key: "estado", label: "Estado", mode: "vivo", modeLabel: "vivo" },
-  { key: "bugs", label: "Bugs", mode: "vivo", modeLabel: "vivo" },
-  { key: "norte", label: "Norte", mode: "snapshot", modeLabel: "snapshot" },
-  { key: "radar", label: "Radar", mode: "local", modeLabel: "solo local" },
-];
-
-/**
- * Color del dot que indica el modo de la pestaña. Reemplaza al glyph de emoji
- * (🟢/🟡/⚪) que usa la spec para describir los modos: el sistema del Studio usa
- * dots de color tokenizados, no emojis decorativos (regla de marca C5). El
- * mapping semántico se mantiene: vivo→verde, snapshot→ámbar, local→neutral.
- */
-export function modeDotColor(mode: DebugTabMode): string {
-  if (mode === "vivo") return "var(--success)";
-  if (mode === "snapshot") return "var(--warning)";
-  return "var(--ink-mute)";
-}
-
-export function isDebugTab(v: string | undefined | null): v is DebugTabKey {
-  return v === "estado" || v === "bugs" || v === "norte" || v === "radar";
-}
-
-export function resolveDebugTab(raw: string | undefined | null): DebugTabKey {
-  return isDebugTab(raw) ? raw : "estado";
-}
+export { DEBUG_TABS, isDebugTab, modeDotColor, resolveDebugTab };
+export type { DebugTabKey, DebugTabMode };
 
 export function DebugTabs({
   active,
