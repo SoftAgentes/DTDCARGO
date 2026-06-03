@@ -85,6 +85,7 @@ export function IdentityVerificationCard({
   docRegistryName,
   docVerifiedAt,
   photoUrl,
+  autoEnabled,
 }: {
   clientId: string;
   markbox: string;
@@ -97,6 +98,12 @@ export function IdentityVerificationCard({
   docVerifiedAt: string | null;
   /** Signed URL (60s) de la foto de cédula/RIF, o null si no hay. */
   photoUrl: string | null;
+  /**
+   * ¿Hay un provider auto wired para este tipo de documento? (SDD-0046 V1
+   * manual-only). Si `false`, ocultamos el botón "Verificar con CNE/SENIAT" —
+   * siempre fallaría — y dejamos prominente el piso manual.
+   */
+  autoEnabled: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
@@ -263,38 +270,51 @@ export function IdentityVerificationCard({
         </p>
       )}
 
-      {/* Auto por tipo */}
-      <div style={{ display: "flex", marginBottom: 16 }}>
-        <ActionButton
-          variant="dark"
-          size="sm"
-          idleLabel={autoLabel}
-          loadingLabel="Verificando…"
-          successLabel="Verificación lista"
-          idleIcon={Icon.shield(14)}
-          successIcon={Icon.check(14)}
-          onAction={async () => {
-            const r = await verifyIdentityAction(clientId, markbox);
-            if (r.error) return { error: r.error };
-            if (r.result?.status === "unavailable") {
-              toast.warning(
-                isEmpresa
-                  ? "SENIAT no disponible — usá la consulta manual."
-                  : "El registro no respondió — usá la consulta manual.",
-              );
-            } else if (r.result?.status === "mismatch") {
-              toast.warning(
-                `El nombre no coincide con el registro · ${markbox}`,
-              );
-            } else if (r.result?.status === "ok") {
-              toast.success(`Identidad verificada · ${markbox}`);
-            }
-            return;
+      {/* Auto por tipo — solo si hay provider wired (V1 manual-only, §9). Si no,
+          una línea sobria que reenvía al piso manual, sin botón que siempre falla. */}
+      {autoEnabled ? (
+        <div style={{ display: "flex", marginBottom: 16 }}>
+          <ActionButton
+            variant="dark"
+            size="sm"
+            idleLabel={autoLabel}
+            loadingLabel="Verificando…"
+            successLabel="Verificación lista"
+            idleIcon={Icon.shield(14)}
+            successIcon={Icon.check(14)}
+            onAction={async () => {
+              const r = await verifyIdentityAction(clientId, markbox);
+              if (r.error) return { error: r.error };
+              if (r.result?.status === "unavailable") {
+                toast.warning(
+                  isEmpresa
+                    ? "SENIAT no disponible — usá la consulta manual."
+                    : "El registro no respondió — usá la consulta manual.",
+                );
+              } else if (r.result?.status === "mismatch") {
+                toast.warning(
+                  `El nombre no coincide con el registro · ${markbox}`,
+                );
+              } else if (r.result?.status === "ok") {
+                toast.success(`Identidad verificada · ${markbox}`);
+              }
+              return;
+            }}
+            onSuccess={() => router.refresh()}
+            onError={(m) => toast.error(m)}
+          />
+        </div>
+      ) : (
+        <p
+          style={{
+            font: "500 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: "0 0 16px",
           }}
-          onSuccess={() => router.refresh()}
-          onError={(m) => toast.error(m)}
-        />
-      </div>
+        >
+          Verificación automática no disponible — usá la consulta oficial abajo.
+        </p>
+      )}
 
       {/* Piso manual (siempre visible) */}
       <div

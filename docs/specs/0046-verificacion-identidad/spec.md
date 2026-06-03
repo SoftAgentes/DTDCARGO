@@ -262,3 +262,41 @@ cada verificación. El backfill (migración) cubre los clientes históricos por 
 
 **Slice C (RIF/SENIAT)** queda pendiente (gated por spike, ver §3 / §6). → Pasa a `done` cuando C
 esté shipped o se decida cerrar V1 sin el auto-SENIAT (la empresa ya tiene piso manual funcional).
+
+### 9.1 Cierre a V1 **manual-only** (decisión founder, 2026-06-03)
+
+Tras validar providers reales, el **auto (CNE + SENIAT) queda diferido**; V1 ships **manual-only**.
+El **piso manual** ya construido (deep-link a la consulta oficial + marca "corresponde / no
+corresponde" del asesor) es el camino V1 para **cédula Y empresa**.
+
+**Por qué (hallazgo de validación 2026-06-03):**
+- **No hay un wrapper CNE gratis hosteado confiable.** El de-facto megacreativo
+  (`api.megacreativo.com`) da **`ECONNREFUSED`** desde Vercel (US); las fuentes VE
+  (`cedula.com.ve` y demás) **geo-bloquean** las requests fuera de Venezuela. SENIAT (Slice C) ni
+  siquiera se construyó (CAPTCHA + OCR local, gated por spike).
+- Mostrar un botón "Verificar con CNE/SENIAT" que **siempre falla** confunde al asesor → mejor
+  ocultarlo y dejar el piso manual prominente.
+
+**Lo que cambió en el código (swap-ready):**
+- `lib/studio/identity/providers/cne-cedulave.ts`: **sin `IDENTITY_CNE_URL` configurada, `lookup`
+  devuelve `null` inmediato** (sin `fetch`, sin malgastar el timeout de 8 s) → el motor reporta
+  `unavailable` → piso manual. Se quitó el default falso (`api.cedula.com.ve/api/v1`). Cuando SÍ hay
+  `IDENTITY_CNE_URL`, el request sigue el **contrato de-facto megacreativo**:
+  `GET {base}/?nac={V|E}&dni={numero}` (query params, no el path `/{nac}/{num}`) y `parseRegistryName`
+  parsea el shape real `{ status, data: { fullname, name, lastname, … } }` (preferencia `fullname`;
+  `status` 404/303 → no encontrado, 306 → CNE offline → null), con fallbacks defensivos para otros
+  wrappers.
+- `lib/studio/identity/index.ts`: helpers de gating `isCneAutoEnabled()`
+  (`!!IDENTITY_CNE_URL`) · `isSeniatAutoEnabled()` (`false`, Slice C no construido) ·
+  `isAutoVerifyEnabled(docKind)` (persona/unknown → CNE; empresa → SENIAT). Funciones (no const)
+  para flipear el día que se configure un provider.
+- `clientes/[markbox]/page.tsx` calcula `autoEnabled = isAutoVerifyEnabled(client.doc_kind)`
+  server-side y lo pasa a `IdentityVerificationCard`, que **muestra el botón auto solo si
+  `autoEnabled`**; si no, una línea sobria ("Verificación automática no disponible — usá la consulta
+  oficial abajo") y el piso manual queda prominente. El resto de la card (foto, badge advisory,
+  cotejo, último estado) no cambia.
+
+**Swap futuro:** configurar `IDENTITY_CNE_URL` apuntando a un endpoint compatible con el shape
+megacreativo (self-host de un wrapper o proxy sin geo-bloqueo) habilita el auto-cédula **sin tocar
+código**. El auto-SENIAT espera el Slice C (spike OCR). El status sigue **`in-progress`** hasta que
+se cierre V1 formalmente o lleguen los providers.

@@ -8,6 +8,9 @@ import path from "path";
  * - `jsdom` environment para componentes React.
  * - Alias `@/*` espejado al de TypeScript para que los imports de tests
  *   funcionen igual que en el código (ej. `@/lib/text`).
+ * - Alias `server-only` → stub vacío: ese módulo lo provee el bundler de Next
+ *   (no existe en disco), así que sin el alias la resolución estática de
+ *   `import "server-only"` falla. Permite testear módulos server-only.
  * - `setupFiles` carga `@testing-library/jest-dom` para matchers DOM.
  * - `e2e/**` excluido para que Playwright corra por separado.
  */
@@ -16,6 +19,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      "server-only": path.resolve(__dirname, "vitest/server-only.stub.ts"),
     },
   },
   test: {

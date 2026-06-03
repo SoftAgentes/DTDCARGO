@@ -66,6 +66,43 @@ export function getCneProvider(): Promise<IdentityProvider> {
   return providerRegistry.getCneProvider();
 }
 
+// ── Gating del auto (V1 manual-only) ─────────────────────────────────────────
+// La verificación AUTO no está habilitada hasta que haya un provider confiable
+// wired. Hoy (2026-06-03): no hay wrapper CNE gratis hosteado utilizable (caído /
+// geo-restringido desde Vercel) y SENIAT (Slice C) no se construyó. Estos helpers
+// le dicen a la UI si mostrar el botón "Verificar con CNE/SENIAT" o degradar
+// directo al piso manual (en vez de ofrecer un botón que siempre falla).
+//
+// Son funciones (no const) a propósito: el flip a "habilitado" es trivial de
+// hacer (setear `IDENTITY_CNE_URL`, o cambiar `isSeniatAutoEnabled`) sin tocar la
+// firma. Solo válidas server-side (leen `process.env`).
+
+/** ¿Hay un provider CNE wired? → habilitado solo si `IDENTITY_CNE_URL` está seteada. */
+export function isCneAutoEnabled(): boolean {
+  return !!process.env.IDENTITY_CNE_URL && process.env.IDENTITY_CNE_URL.trim().length > 0;
+}
+
+/**
+ * ¿Hay auto-SENIAT (empresa)? Hoy `false` — Slice C (scrape + OCR del CAPTCHA) no
+ * se construyó. Función (no const) para flipear fácil cuando exista el provider.
+ */
+export function isSeniatAutoEnabled(): boolean {
+  return false;
+}
+
+/**
+ * ¿Mostrar el botón de verificación AUTOMÁTICA para este tipo de documento?
+ *   - persona / unknown / null → CNE (`isCneAutoEnabled`).
+ *   - empresa                  → SENIAT (`isSeniatAutoEnabled`).
+ * Si devuelve `false`, la UI degrada al piso manual sin ofrecer el botón auto.
+ */
+export function isAutoVerifyEnabled(
+  docKind: "persona" | "empresa" | null | "unknown",
+): boolean {
+  if (docKind === "empresa") return isSeniatAutoEnabled();
+  return isCneAutoEnabled();
+}
+
 /** Resuelve el tipo de documento: el persistido, o inferido del `rif`. */
 function resolveDocKind(
   rif: string | null,

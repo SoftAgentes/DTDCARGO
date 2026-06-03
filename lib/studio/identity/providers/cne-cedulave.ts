@@ -1,49 +1,65 @@
 /**
- * Provider CNE gratis — consulta el padrón electoral por cédula (SDD-0046 · Slice B).
+ * Provider CNE gratis — consulta el padrón electoral por cédula (SDD-0046).
  *
  * Server-only (hace `fetch` a un endpoint público de consulta de cédula del CNE).
  * Implementa `IdentityProvider`: recibe el número de cédula limpio y devuelve el
  * nombre que el registro tiene asociado, o `null` si no se encontró.
  *
- * Diseño:
- *   - **Base URL por env** `IDENTITY_CNE_URL` (default documentado abajo). El
- *     endpoint del CNE/wrappers cambia de host seguido; no lo hardcodeamos.
- *   - **Timeout corto** (AbortController, 8s) — el sitio gov es lento/intermitente.
- *   - **Nunca tira sin control**: ante red caída, status != 2xx, body raro o parse
- *     fallido devuelve `null`. El motor (`verifyIdentity`) lo trata como
- *     `unavailable` y degrada al piso manual. (Igual el motor envuelve en try/catch,
- *     pero acá ya no propagamos.)
+ * ── ESTADO V1: manual-only (auto diferido, código swap-ready) ──────────────────
+ * Validado 2026-06-03: **no hay un wrapper CNE gratis hosteado confiable**. Los de
+ * facto (megacreativo `api.megacreativo.com/public/cedula/...`, `cedula.com.ve`)
+ * están **caídos o geo-restringidos** — desde Vercel (US) el hosted da
+ * `ECONNREFUSED` y las fuentes VE bloquean por geografía. Por eso este provider
+ * **NO está wired por default**: sin `IDENTITY_CNE_URL` configurada, `lookup`
+ * devuelve `null` INMEDIATO (sin `fetch`, sin malgastar el timeout) → el motor
+ * (`verifyIdentity`) reporta `unavailable` → la UI cae al **piso manual** (deep-link
+ * a la consulta oficial + marca del asesor), que es el camino V1 para cédula Y
+ * empresa.
  *
- * NOTA (follow-up manual, como el spike SENIAT): la validación contra el endpoint
- * REAL vivo es trabajo manual posterior — el host/forma de respuesta del wrapper
- * CNE gratis varía y puede requerir ajustar `parseRegistryName`. La lógica + los
- * tests con provider mock son lo que cierra B1; NO bloqueamos en red acá.
+ * ── Swap-ready ─────────────────────────────────────────────────────────────────
+ * Cuando exista un endpoint compatible (self-host de un wrapper o un proxy sin
+ * geo-bloqueo), setear `IDENTITY_CNE_URL` apuntando a su base lo habilita sin
+ * tocar código. El request sigue el **contrato de-facto megacreativo /
+ * cedula.com.ve**:
+ *
+ *     GET {base}/?nac={V|E}&dni={numero}
+ *     → { status, data: { nac, dni, name, lastname, fullname, ... } }
+ *
+ * Diseño:
+ *   - **Sin default**: sin `IDENTITY_CNE_URL` → no se intenta nada (null inmediato).
+ *   - **Query params** `?nac=&dni=` (NO el path `/{nac}/{num}`).
+ *   - **Timeout corto** (AbortController, 8s) — el gov es lento/intermitente.
+ *   - **Nunca tira sin control**: red caída, status != 2xx, body raro, parse fail o
+ *     `status` de error en el body → `null`. El motor lo trata como `unavailable`.
  */
 
 import "server-only";
 import type { IdentityProvider } from "../types";
 import type { CedulaParts } from "../document";
 
-/**
- * Default del wrapper CNE gratis. Patrón `{base}/{nacionalidad}/{numero}` que
- * responde JSON con el nombre. Override con `IDENTITY_CNE_URL` cuando el host
- * cambie o se quiera apuntar a otro wrapper. Se valida contra el real como
- * follow-up manual (ver nota de cabecera).
- */
-const DEFAULT_CNE_URL = "https://api.cedula.com.ve/api/v1";
-
 /** Timeout de la consulta al registro (ms). El gov es lento → corto pero realista. */
 const LOOKUP_TIMEOUT_MS = 8_000;
 
 /**
- * Extrae el nombre/razón social de la respuesta del wrapper. Los wrappers CNE
- * gratis no comparten un esquema único, así que probamos las formas más comunes
- * de forma defensiva. Devuelve el nombre o `null` si la cédula no existe / el body
- * no trae nombre.
+ * Extrae el nombre/razón social de la respuesta del wrapper.
+ *
+ * Shape PRIMARIO (megacreativo / cedula.com.ve, el de-facto):
+ *   { status, data: { nac, dni, name, lastname, fullname, ... } }
+ *   - `data.fullname` preferido; fallback `data.name` + `data.lastname` juntos.
+ *   - `status` del body: 200 → ok · 404/303 → no encontrado · 306 → CNE offline.
+ *
+ * Para esos `status` de "no hay dato" devolvemos `null` aunque venga `data` vacío.
+ * Mantenemos fallbacks defensivos para otros wrappers (nombre/fullName/primer_*),
+ * pero el shape megacreativo manda.
  */
 export function parseRegistryName(body: unknown): string | null {
   if (!body || typeof body !== "object") return null;
   const o = body as Record<string, unknown>;
+
+  // Status del body (megacreativo): 200 ok · 404/303 no encontrado · 306 CNE caído.
+  // Solo cortamos cuando el status indica explícitamente "no hay dato".
+  const status = toStatusCode(o.status);
+  if (status === 404 || status === 303 || status === 306) return null;
 
   // Algunos wrappers anidan el dato en `data`.
   const data =
@@ -51,46 +67,76 @@ export function parseRegistryName(body: unknown): string | null {
       ? (o.data as Record<string, unknown>)
       : o;
 
-  // Forma 1: campo único con el nombre completo.
-  const directKeys = ["nombre", "name", "nombre_completo", "fullName"];
+  // Shape megacreativo primario: fullname directo.
+  const fullname = str(data.fullname);
+  if (fullname) return fullname;
+
+  // Shape megacreativo: name + lastname por separado.
+  const mcName = [str(data.name), str(data.lastname)]
+    .filter((x): x is string => x.length > 0)
+    .join(" ")
+    .trim();
+  if (mcName.length > 0) return mcName;
+
+  // Fallbacks defensivos para otros wrappers: campo único con el nombre completo.
+  const directKeys = ["nombre", "nombre_completo", "fullName"];
   for (const k of directKeys) {
-    const v = data[k];
-    if (typeof v === "string" && v.trim().length > 0) return v.trim();
+    const v = str(data[k]);
+    if (v) return v;
   }
 
-  // Forma 2: nombres + apellidos por separado.
-  const first = [data.primer_nombre, data.segundo_nombre]
-    .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+  // Fallback: nombres + apellidos por separado (esquema español viejo).
+  const first = [str(data.primer_nombre), str(data.segundo_nombre)]
+    .filter((x): x is string => x.length > 0)
     .join(" ");
-  const last = [data.primer_apellido, data.segundo_apellido]
-    .filter((x): x is string => typeof x === "string" && x.trim().length > 0)
+  const last = [str(data.primer_apellido), str(data.segundo_apellido)]
+    .filter((x): x is string => x.length > 0)
     .join(" ");
   const joined = [first, last].filter((s) => s.length > 0).join(" ").trim();
   if (joined.length > 0) return joined;
 
-  // Algunos wrappers marcan "no encontrado" con error/`null`.
   return null;
 }
 
+/** Coerce de `status` (number o string numérica) a número, o null si no aplica. */
+function toStatusCode(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string" && /^\d+$/.test(v.trim())) return Number(v.trim());
+  return null;
+}
+
+/** Devuelve el string trimmeado si es no-vacío, o "" si no es string útil. */
+function str(v: unknown): string {
+  return typeof v === "string" && v.trim().length > 0 ? v.trim() : "";
+}
+
 /**
- * Crea el provider CNE gratis. Recibe `parseCedula` ya aplicado afuera no — acá
- * recibe el número crudo (lo que pasa el motor); la nacionalidad ayuda a algunos
- * wrappers. La función `lookup` cumple el contrato de `IdentityProvider`.
+ * Crea el provider CNE gratis. La función `lookup` cumple el contrato de
+ * `IdentityProvider`: recibe el número de cédula crudo (lo que pasa el motor).
+ *
+ * **Sin `IDENTITY_CNE_URL` configurada → `lookup` devuelve `null` inmediato** (no
+ * hay endpoint confiable hosteado; ver cabecera). Con la env seteada, arma el
+ * request al contrato megacreativo (`?nac=&dni=`).
  */
 export function createCedulaVeProvider(): IdentityProvider {
-  const base = (process.env.IDENTITY_CNE_URL ?? DEFAULT_CNE_URL).replace(
-    /\/+$/,
-    "",
-  );
-
   return {
     async lookup(doc: string): Promise<{ registryName: string } | null> {
+      // Sin endpoint configurado no se intenta nada: el wrapper gratis hosteado
+      // está caído/geo-restringido. Degradamos a piso manual sin esperar timeout.
+      const rawBase = process.env.IDENTITY_CNE_URL;
+      if (!rawBase || rawBase.trim().length === 0) return null;
+      const base = rawBase.trim().replace(/\/+$/, "");
+
       // `doc` puede venir como "V12345678" o "12345678". Separamos nacionalidad
-      // (default V) + número para armar la URL del wrapper.
+      // (default V) + número para armar el query del wrapper.
       const parts = splitDoc(doc);
       if (!parts) return null;
 
-      const url = `${base}/${parts.nationality}/${parts.number}`;
+      const qs = new URLSearchParams({
+        nac: parts.nationality,
+        dni: parts.number,
+      });
+      const url = `${base}/?${qs.toString()}`;
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), LOOKUP_TIMEOUT_MS);
 
