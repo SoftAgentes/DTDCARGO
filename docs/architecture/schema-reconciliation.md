@@ -49,16 +49,17 @@
 | 13 | JournalEntry | ✅ | `journal_entries` | SDD-0040: asientos doble partida (borrador/asentado/anulado), `next_entry_code` A-YYYY-NNNN, asiento automático desde factura. |
 | 14 | JournalLine | ✅ | `journal_lines` | SDD-0040: líneas debe/haber (CHECK XOR). |
 | 15 | ExchangeRate | 🟡 | `tenant_fx_history` | FX CNY/USD acotado a expenses; no catálogo general BCV/paralelo/CNY. (`rates` = tarifas de flete, otro concepto.) |
-| 16 | Comment | ❌ | — | `bug_messages` es hilo acotado a bugs; no comentarios transversales con @menciones. |
+| 16 | Comment | ✅ | `comments` (+`comment_mentions`, `comment_reactions`) | SDD-0045: comentarios polimórficos (entity_type+entity_id, calca `entity_audit_log`) embebibles en cualquier detalle, @menciones (bandeja `/studio/menciones` + badge) y 5 reacciones. Interno (no portal). Generaliza `bug_messages` sin reemplazarlo. Migr `0090` + trigger de inmutabilidad. |
 | 17 | ScheduledEmail | 🟡 | dominio `mail_*` (`mail_logs/rules/templates/config`) | Motor de reglas event-driven existe; falta cola programada (`scheduledAt`). |
 | 18 | TmsIncident | ✅ | `tms_incidents` | TMS completo. |
 | 19 | Document | 🟡 | `customs_documents` · `bug_attachments` · `warehouse_receipt_photos` · `back_assets` | Sin DMS genérico `documents`; módulo `documentos` es stub. |
 | 20 | AuditLog | ✅ | `entity_audit_log` | + logs específicos (`no_olvidar_access_log`, `bug_timeline`). |
 
-**Resumen:** **12 ✅ · 6 🟡 · 2 ❌** (faltan: Container, Comment + completar los 6 parciales; Supplier cerrado **lite** por SDD-0044). El patrón: el backend real es **fuerte en operación/logística**
+**Resumen:** **13 ✅ · 6 🟡 · 1 ❌** (falta: Container + completar los 6 parciales; Supplier cerrado **lite** por SDD-0044, Comment por SDD-0045). El patrón: el backend real es **fuerte en operación/logística**
 (clientes, cotizaciones, envíos, almacenes CN/VE, despacho, TMS, aduana + infra: multi-tenant, agentes
-IA, mailing, bug reporter, push, auditoría). El hueco es **la mitad financiera/contable del ERP** +
-catálogos comerciales (Supplier, Container como entidad, Comment genérico).
+IA, mailing, bug reporter, push, auditoría). El hueco que queda es **Container como entidad**
+(Naviera/Consolidación, Bloque 4) + completar los parciales (Order comercial, Box unificado, ExchangeRate,
+ScheduledEmail, Document/DMS).
 
 ## Hacia dónde vamos — roadmap por bloques
 
