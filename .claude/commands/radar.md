@@ -70,9 +70,49 @@ Recomendaciones por fase · Bottleneck
 [vX.Y detectada · drift vs AGENTS.md · cambio desde la última corrida]
 ```
 
+## Artefacto para la torre de control · `public/api/radar-report.json` (SIEMPRE, al cerrar)
+
+Además del informe en chat, **escribí/actualizá** `public/api/radar-report.json` con el
+mismo informe en forma estructurada. Ese artefacto (versionado en git) es lo que la
+pestaña **Radar** de `/studio/debug` (SDD-0050) muestra en la web — el Radar no corre
+en la web, solo se ve su último informe local. La forma (validada por
+`lib/studio/radar-types.ts` → `isRadarReport`):
+
+```json
+{
+  "generatedAt": "YYYY-MM-DD",          // fecha ISO de esta corrida
+  "norteVersion": "vX.Y",               // la detectada en la Regla 0
+  "partA": {
+    "findings": [
+      {
+        "id": "kebab-id",               // estable, descriptivo
+        "title": "…",
+        "severity": "alta|media|baja",
+        "action": "acción concreta",
+        "top": true                      // opcional · solo en el hallazgo #1 (⭐)
+      }
+    ],
+    "estimatedTokenSavings": "~N%"       // ahorro estimado de tokens
+  },
+  "partB": {
+    "counts": { "built": N, "partial": N, "missing": N, "total": N },
+    "blocks": [                          // opcional · roadmap por Bloque
+      { "name": "Bloque X · …", "remaining": "N%", "note": "…" }
+    ]
+  }
+}
+```
+
+Reglas para el artefacto: solo datos reales (mismas reglas anti-invención del chat);
+`generatedAt` = fecha de hoy; `norteVersion` = la versión vigente detectada en la
+Regla 0; `partB.counts` = conteo de markers `✅`/`🟡`/`❌` de
+`docs/architecture/schema-reconciliation.md` (`built`/`partial`/`missing`, `total` = suma).
+Sobreescribí el archivo completo (no append). Esto NO es `git push` — solo dejás el
+artefacto en el árbol; el founder decide cuándo commitearlo.
+
 ## Cómo respondés
 
 - **Cero métricas inventadas:** si un dato no está en un archivo, escribí "no documentado".
 - Si el Norte avanzó de versión, **avisalo arriba** y recalculá la Parte B sobre la vigente.
 - Terse, español, porcentajes como `N%`, #1 con ⭐, sin jerga "F5/F1".
-- No commitees ni hagas `git push` — el radar solo reporta.
+- No commitees ni hagas `git push` — el radar solo reporta (y deja el artefacto JSON en el árbol).

@@ -1,7 +1,7 @@
 ---
 sdd: "0050"
 title: "Torre de control en /studio/debug — Estado + Bugs + Norte + Radar unificados (vivo/snapshot/local)"
-status: in-progress
+status: done
 author: "DTD Cargo"
 created: 2026-06-03
 updated: 2026-06-03
@@ -68,9 +68,11 @@ Sin mockup de Cloud Design (herramienta interna). Sigue el sistema del Studio (`
 ## 6. Slices (orden para el harness)
 - **Slice A — Shell de pestañas + Estado + Bugs (vivos).** ✅ **shipped 2026-06-03** (harness, APPROVED 1 ronda). Refactor de `/studio/debug` a tabbed (`?tab=`, default `estado`), cards movidas a `EstadoTab` (las 7, sin cambiar contenido), `BugsTab` read-only reusa `listBugsForAdmin` (RLS, cero SQL nuevo), `DebugTabs` con badges de modo tokenizados + placeholders Norte/Radar. 21 tests nuevos.
 - **Slice B — Norte snapshot.** ✅ **shipped 2026-06-03** (harness). `postbuild` en `package.json` = `node scripts/norte.mjs` (la copia a `public/norte.html` la hace el propio script con `fs.writeFileSync` — portable Windows↔Linux, sin `cp`). CSP `/norte.html` en `next.config.ts` (clon del header del Brand Book + `frame-ancestors 'self'` + noindex; el catch-all lo excluye con negative lookahead). `NorteTab` = `<iframe src="/norte.html">` (height `calc(100vh − 240px)`) + **banner de limitación mode-aware** (recibe `EnvName` desde el server vía `getEnvStatus`): web/preview/prod = ámbar "Snapshot del último deploy · links 'Abrir ↗' no funcionan (solo local)"; local = verde "Snapshot local · regenerá con `node scripts/norte.mjs`". Wireado en `DebugTabs` (el banner genérico de la pestaña Norte se omite porque `NorteTab` trae el suyo). 7 tests nuevos (`NorteTab.test.tsx` + smoke `scripts/__tests__/norte-bake.test.mjs`).
-- **Slice C — Radar artefacto.** Definir `public/api/radar-report.json`, extender `/radar` para escribirlo, `RadarTab` (lee artefacto + banner "no funcional en web").
+- **Slice C — Radar artefacto.** ✅ **shipped 2026-06-03** (harness). Artefacto `public/api/radar-report.json` versionado en git (sin migración) con SEED real (`norteVersion: "v2.4"`, `partB.counts {built:11, partial:8, missing:3, total:22}`, findings reales: permisos obsoletos podados + drift de AGENTS.md resuelto). Tipos + loader defensivo en `lib/studio/radar-types.ts` (`loadRadarReport` → `null` si falta/corrupto; `isRadarReport`/`reconCompletionPct`/`severityBadgeTone`). Skill `/radar` (`.claude/commands/radar.md`) extendida: al correr escribe/actualiza el JSON además del markdown en chat (instrucción de prompt). `RadarTab` (`app/studio/(app)/debug/_components/RadarTab.tsx`) lee el artefacto pasado como prop desde `page.tsx` (mismo patrón que los demás tabs vivos); render de partA (findings con severidad/acción/ahorro) + partB (counts + barra de reconciliación segmentada + bloques) usando primitivas del sistema (Badge/EmptyState). **Banner de limitación OBLIGATORIO mode-aware** (`getEnvStatus`): web/preview/prod = warning prominente "no es funcional en la web · último informe local · no se actualiza acá"; local = neutral suave "último informe local · regenerá con `/radar`". Edge sin artefacto (`report=null`): no rompe → banner + EmptyState con cómo generarlo. Wireado en `DebugTabs` reemplazando el placeholder Radar (banner genérico omitido para Norte/Radar porque traen el suyo). 19 tests nuevos (`RadarTab.test.tsx` + `radar-types.test.ts`).
 
 Cada slice pasa por `node scripts/verify.mjs` + reviewer del harness.
+
+**Cierre (2026-06-03):** las 3 slices shipped. `/studio/debug` es la torre de control con 4 pestañas: Estado + Bugs (vivos), Norte (snapshot de build) y Radar (artefacto local), cada una con su banner de modo. Spec `done`.
 
 ## 7. Verificación
 1. `node scripts/verify.mjs` verde antes y después de cada slice.

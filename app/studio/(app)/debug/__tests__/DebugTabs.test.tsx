@@ -39,6 +39,7 @@ function renderTabs(
       env={env}
       estado={<div data-testid="estado-content">CONTENIDO ESTADO</div>}
       bugs={<div data-testid="bugs-content">CONTENIDO BUGS</div>}
+      radar={<div data-testid="radar-content">CONTENIDO RADAR</div>}
     />,
   );
 }
@@ -123,11 +124,14 @@ describe("DebugTabs · contenido según tab activo", () => {
     expect(screen.getByText(/Snapshot/)).toBeInTheDocument();
   });
 
-  it("active=radar muestra placeholder con banner de solo local (sin slots vivos)", () => {
+  it("active=radar muestra el slot del RadarTab (Slice C), sin slots vivos ni banner genérico", () => {
     renderTabs("radar");
     expect(screen.queryByTestId("estado-content")).toBeNull();
-    expect(screen.getByText(/Modo solo local/)).toBeInTheDocument();
-    expect(screen.getAllByText(/Slice C/).length).toBeGreaterThan(0);
+    expect(screen.queryByTestId("bugs-content")).toBeNull();
+    // El RadarTab llega ya renderizado desde el server (trae su propio banner) →
+    // el banner genérico de modo NO se renderiza para Radar.
+    expect(screen.getByTestId("radar-content")).toBeInTheDocument();
+    expect(screen.queryByText(/Modo solo local/)).toBeNull();
   });
 });
 

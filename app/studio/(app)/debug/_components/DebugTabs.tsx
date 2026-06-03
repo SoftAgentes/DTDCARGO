@@ -18,7 +18,6 @@
 import { useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { EnvName } from "@/lib/studio/env-status";
-import { EmptyState } from "../../../_components/ui/EmptyState";
 import { NorteTab } from "./NorteTab";
 
 export type DebugTabKey = "estado" | "bugs" | "norte" | "radar";
@@ -62,12 +61,19 @@ export function DebugTabs({
   active,
   estado,
   bugs,
+  radar,
   env,
 }: {
   active: DebugTabKey;
   estado: ReactNode;
   bugs: ReactNode;
-  /** Entorno de ejecución — el banner del Norte es mode-aware (web vs local). */
+  /**
+   * Pestaña Radar (Slice C) — llega ya renderizada desde el server porque su
+   * informe se lee del filesystem (`public/api/radar-report.json`). Trae su
+   * PROPIO banner de limitación mode-aware → el genérico no se renderiza.
+   */
+  radar: ReactNode;
+  /** Entorno de ejecución — el banner del Norte/Radar es mode-aware (web vs local). */
   env: EnvName;
 }) {
   const router = useRouter();
@@ -139,15 +145,15 @@ export function DebugTabs({
       </div>
 
       {/* Banner de modo genérico para las pestañas que no traen el suyo propio.
-          Norte trae su PROPIO banner de limitación (mode-aware, en NorteTab) →
-          se omite el genérico acá para no duplicar. */}
-      {active !== "norte" && <ModeBanner active={active} />}
+          Norte y Radar traen su PROPIO banner de limitación (mode-aware, en
+          NorteTab/RadarTab) → se omite el genérico acá para no duplicar. */}
+      {active !== "norte" && active !== "radar" && <ModeBanner active={active} />}
 
       {/* Contenido de la pestaña activa */}
       {active === "estado" && estado}
       {active === "bugs" && bugs}
       {active === "norte" && <NorteTab env={env} />}
-      {active === "radar" && <RadarPlaceholder />}
+      {active === "radar" && radar}
     </div>
   );
 }
@@ -207,22 +213,5 @@ function ModeBanner({ active }: { active: DebugTabKey }) {
         {text}
       </span>
     </div>
-  );
-}
-
-function RadarPlaceholder() {
-  return (
-    <EmptyState
-      eyebrow="Radar · próximamente"
-      title="Informe del Radar — Slice C"
-      description={
-        <>
-          El Radar no es funcional en la web — corre solo en local con{" "}
-          <code style={{ fontFamily: "var(--f-mono)" }}>/radar</code> en Claude
-          Code. La lectura del último informe guardado se agrega en la Slice C;
-          los informes no aparecen ni se actualizan acá.
-        </>
-      }
-    />
   );
 }
