@@ -212,6 +212,36 @@ create policy "comment_reactions_service_role_all"
   on public.comment_reactions for all to service_role using (true) with check (true);
 
 -- ╔═══════════════════════════════════════════════════════════╗
+-- ║ 4b. INMUTABILIDAD · congelar columnas de identidad en UPDATE║
+-- ╚═══════════════════════════════════════════════════════════╝
+-- RLS no puede comparar contra OLD (no hay referencia al valor previo), por eso
+-- el WITH CHECK de comments_author_or_admin_update no impide que un UPDATE mueva
+-- el comentario a otra entidad, cambie su autor o su tenant. El grant de UPDATE
+-- es sobre toda la fila. Este trigger BEFORE UPDATE congela las columnas de
+-- identidad/estructura: SOLO body, edited_at y deleted_at son mutables (lo que
+-- editComment/deleteComment necesitan). (Hardening SDD-0045 · finding #3.)
+create or replace function public.comments_freeze_immutable()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.tenant_id   := old.tenant_id;
+  new.entity_type := old.entity_type;
+  new.entity_id   := old.entity_id;
+  new.entity_code := old.entity_code;
+  new.author_id   := old.author_id;
+  new.parent_id   := old.parent_id;
+  new.created_at  := old.created_at;
+  return new;
+end;
+$$;
+
+drop trigger if exists comments_freeze_immutable_trg on public.comments;
+create trigger comments_freeze_immutable_trg
+  before update on public.comments
+  for each row execute function public.comments_freeze_immutable();
+
+-- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 5. GRANTS                                                 ║
 -- ╚═══════════════════════════════════════════════════════════╝
 

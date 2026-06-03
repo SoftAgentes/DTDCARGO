@@ -316,9 +316,16 @@ mockup quedan diferidos (threading = §2 NO incluye).
 - Embed V1 en `app/studio/(app)/tracking/[id]/page.tsx` (detalle real del embarque).
 - Bandeja `app/studio/(app)/menciones/page.tsx` + `_components/MentionsInboxClient.tsx`.
 
-**Pendiente (no bloquea el merge del código):**
-1. **Founder aplica `0090_comments.sql` a prod** → recién ahí se verifica E2E (aislamiento RLS
-   cross-tenant, rechazo de CHECKs, uniques). El harness NO aplica migraciones a prod.
+**Migración aplicada a prod ✅ (2026-06-03):** `0090_comments.sql` aplicada al proyecto
+`xpfuzqombmjmxvprjgmi` (DoorTuDoor) vía MCP. **Verificada:** las 3 tablas con RLS ON + 14 policies
+(comments 5 · mentions 5 · reactions 4) + CHECKs (entity_type, body, emoji) + índices + grants;
+`get_advisors(security)` → **0 advisories sobre estas tablas, 0 errores** en la DB. Dependencias
+confirmadas pre-apply (`get_user_tenant_id`, `tenants`, `user_tenants.role/disabled_at`, `auth.users`).
+
+**Pendiente para quedar live + cerrar:**
+1. **Push/deploy del código** — el commit `9da4960` está local (sin push por decisión del founder).
+   La DB ya tiene las tablas, pero la UI (`<CommentsThread>`, `/studio/menciones`) no es visible al
+   usuario hasta `git push origin main` → deploy Vercel. *Hasta entonces el E2E de UI no se prueba.*
 2. **Coordinación con el carril finanzas (diferido por shared-dir):** ítem de sidebar
    `/studio/menciones` + badge de no-leídas en el chrome · fila en `module-sdd-map.md` · `Comment
    ❌→✅` en `schema-reconciliation.md` · regenerar `docs/specs/README.md` (`pnpm docs:index`).
@@ -326,4 +333,4 @@ mockup quedan diferidos (threading = §2 NO incluye).
 4. **Embed en más entidades** (cliente/factura/cotización/CxP/despacho) — el componente ya es
    genérico; sumar = 1 `<CommentsThread …>` por detalle.
 
-→ Pasa a `done` cuando el founder aplique la migración y se cierre la coordinación (1).
+→ Pasa a `done` cuando se haga el push/deploy (1) y se verifique el E2E de UI.

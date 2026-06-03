@@ -52,7 +52,7 @@ async function insertMentions(
     body: string;
   },
 ): Promise<string[]> {
-  const users = await loadTenantUsers(supabase);
+  const users = await loadTenantUsers(params.tenantId);
   const mentionedIds = parseMentions(params.body, users);
   if (mentionedIds.length === 0) return [];
 

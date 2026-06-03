@@ -13,7 +13,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getUser } from "@/lib/auth/session";
+import { getUser, getUserTenantId } from "@/lib/auth/session";
 import {
   listMyMentions,
   loadTenantUsers,
@@ -29,7 +29,8 @@ export default async function MencionesPage() {
   if (!user) redirect("/studio/login");
 
   const supabase = await createClient();
-  const users = await loadTenantUsers(supabase);
+  const tenantId = await getUserTenantId();
+  const users = tenantId ? await loadTenantUsers(tenantId) : [];
   const items = await listMyMentions(supabase, user.id, users, { limit: 100 });
 
   const unread = items.filter((i) => i.read_at === null).length;
