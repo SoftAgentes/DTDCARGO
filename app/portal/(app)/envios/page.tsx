@@ -36,7 +36,7 @@ export default async function PortalShipmentsPage() {
             Todavía no tenés envíos.
           </div>
           <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
-            Cuando confirmes tu primer envío con tu asesor, va a aparecer acá con
+            Cuando confirmes tu primera carga con tu asesor, va a aparecer acá con
             su estado.
           </p>
           <a
