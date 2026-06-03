@@ -125,7 +125,7 @@ IVA", desglose de IVA en Facturación. Reactivo vía `dtd-cfg-changed`. En backe
 | `Login y Sesión · Operario.html` | Spec visual de la lógica de sesión (6 estados) |
 | `BRAND-MIGRATION-2026-05.md` | Spec del sistema de logo (4 variantes, `ERPUI.Lockup`) |
 | `CHANGELOG.md` | Bitácora detallada (archivo+línea+razón) |
-| `backend/README.md` + `backend/API-CONTRACT.md` + `backend/prisma/schema.prisma` | Handoff de backend |
+| `backend/README.md` + `backend/API-CONTRACT.md` | Handoff de backend |
 
 ---
 
