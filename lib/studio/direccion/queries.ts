@@ -356,9 +356,13 @@ export async function getDireccionData(
       .reduce((s, a) => s + (liveBalances[a.id]?.balance ?? 0), 0),
   );
 
-  const cxc = cobranzas.porCobrar;
-  const cxp = tesoreria.porPagar;
-  const vencido = round2(cobranzas.vencido + tesoreria.vencido);
+  // CxC/CxP/vencido en USD REAL (decisión SDD-0052 r2): los saldos se normalizan
+  // a USD por documento (`*Usd`), NO la suma multi-moneda nativa que sería falsa
+  // (5.000.000 Bs + $5.000 ≠ $5.005.000). Mismo criterio que Reportes (aging) →
+  // Dirección y Reportes muestran el MISMO CxC/CxP/aging en USD.
+  const cxc = cobranzas.porCobrarUsd;
+  const cxp = tesoreria.porPagarUsd;
+  const vencido = round2(cobranzas.vencidoUsd + tesoreria.vencidoUsd);
 
   const finance: FinanceKpis = {
     ingresos,

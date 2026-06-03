@@ -54,13 +54,21 @@ anclada a `shipments` + `invoices` + naviera.
 4. **Export CSV y mapa SVG del corredor → diferidos.** El export va con el **Constructor (Slice C)**;
    el mapa del corredor es nice-to-have (Slice A usa charts simples tokenizados, no el SVG-map).
 5. **Slices:**
-   - **A (esta corrida)** = foundation `lib/studio/reports/` + UI: nav de categorías (Operacionales
-     activa; las otras 4 visibles pero deshabilitadas con "Próximamente · Slice B/C") + nivel-2
-     (Overview · Rutas · Navieras · Servicios) + selector de período.
-   - **B** = categorías **Comerciales** (Por cliente / Por agente) + **Contables/financieros**
-     (Estado de resultados / Aging / Cashflow) + **Combinados** (rentab. ruta / margen cliente /
-     costo CBM) — casi todo reuse de los agregados existentes.
-   - **C** = **Constructor** (report builder: fuente→agrupar→métrica→filtro) + **export CSV/PDF**.
+   - **A (hecha)** = foundation `lib/studio/reports/` + UI: nav de categorías (Operacionales
+     activa; las otras 4 deshabilitadas) + nivel-2 (Overview · Rutas · Navieras · Servicios) +
+     selector de período.
+   - **B** = SOLO los reportes con **fuente real** (verificado por barrido de schema): **Comerciales
+     → Por cliente** (ranking por facturación + por tier; reusa `clientsWithTier`/`clientAnnualBilling`
+     de 0051) + **Contables/financieros → Estado de resultados** (`profitAndLoss` 0040) **· Aging
+     CxC/CxP** (`collectionKpis`/`receivablesQueue` 0041 + treasury 0044) **· Cashflow facturado vs
+     cobrado** (`invoiceKpis` 0021 + cobros). Capa de presentación pura, **sin migración**.
+   - **C (diferido)** = lo que **hoy no tiene fuente real**, con su bloqueo documentado:
+     **Constructor** (report builder + export CSV/PDF) · **Combinados** (rentab. ruta / margen
+     cliente / costo-CBM) — **necesita costo directo por embarque**: el Norte lo *fabrica*
+     (`_ROUTE_COST=0.70`+jitter) y **NO lo replicamos**; existe un link parcial (`expenses.shipment_id`,
+     opcional/sparse) pero no alcanza para márgenes honestos · **Por agente** (`quotes` no tiene
+     campo de agente/owner; NPS sin fuente) · **Posición IVA** (depende de Fiscal/Bloque 3, no
+     construido).
 
 ## 4. Approach — Slice A (Operacionales + Overview)
 
@@ -107,6 +115,39 @@ anclada a `shipments` + `invoices` + naviera.
 - `queries.test.ts`: stub `SupabaseClient` que registra filtros → asserta rango por período aplicado
   a `shipments` e `invoices`, revenue mapeado por `shipment_code`, carrier desde bookings.
 
+## 4b. Approach — Slice B (Por cliente + Contables/financieros)
+
+> Capa de presentación pura: **reusa** los agregados ya construidos y testeados; **no recalcula
+> finanzas ni fabrica costos**. Sin migración. Solo se muestran reportes con fuente real.
+
+### `lib/studio/reports/queries.ts` (extender) + `types.ts`
+- **Por cliente** (`commercialByClient`): reusa `clientsWithTier(supabase, today)` (0051) → ranking
+  por `billedUsd` desc + distribución por tier. **NO "por segmento"** (la tabla `clients` no tiene
+  columna `segment`).
+- **Estado de resultados** (`incomeStatement`): reusa `profitAndLoss(supabase, range)` de
+  `lib/studio/accounting/reports.ts` (0040) **tal cual**; la vista solo formatea filas (ingresos,
+  CGS, utilidad bruta/operativa/neta + %). **No recalcular.**
+- **Aging CxC/CxP** (`agingReport`): CxC desde `receivablesQueue`/`collectionKpis`
+  (`lib/studio/payment-queries.ts`, 0041) → buckets (corriente / 1-30 / 31-60 / 60+); CxP desde
+  treasury (`lib/studio/treasury/bill-queries.ts` + `treasuryKpis`, 0044). EmptyState honesto si vacío.
+- **Cashflow facturado vs cobrado** (`cashflowReport`): serie mensual de facturado (invoices del
+  rango, USD-normalizado vía `invoiceUsdAmount`) vs cobrado (`payment_receipts`/`collectionKpis`),
+  + KPIs facturado/cobrado/por-cobrar/vencido (reusa `invoiceKpis` 0021 / `collectionKpis` 0041).
+- Período server-side por `?period=` (reusa `periodRange`). Confiar en RLS por tenant. Verificar
+  contra los tipos reales de cada agregado (no asumir el shape del Norte mock).
+
+### UI — `_components/ReportesClient.tsx` (extender)
+- Habilitar **Comerciales** y **Contables/financieros** (chips dejan de estar "Pronto");
+  **Combinados** y **Constructor** siguen "Pronto". Nivel-2: Comerciales → solo **Por cliente**
+  (NO "Por agente"); Contables → **Estado de resultados / Aging / Cashflow** (NO "Posición IVA").
+- Vistas tokenizadas con primitivas del sistema (tablas con barras, `KpiCard`, charts de
+  `charts.tsx`). Solo `var(--*)`. `page.tsx` carga el agregado del `?cat=`/`?rep=` activo.
+
+### Tests
+- Extender `queries.test.ts`/`types.test.ts`: aging buckets (bordes 0/30/60), cashflow mensual
+  (facturado vs cobrado + normalización), ranking por cliente (orden + tier), reuse correcto de los
+  agregados (mock de sus retornos). Gate verde.
+
 ## 5. Acceptance
 
 ### Slice A
@@ -121,14 +162,29 @@ anclada a `shipments` + `invoices` + naviera.
 - [ ] Período filtra server-side por `?period=`; revenue normalizado a USD.
 - [ ] `node scripts/verify.mjs` 🟢. **Sin migración** (no hay DDL en este módulo). `ui-ux-designer` OK.
 
-### Slice B / C
-- [ ] B: Comerciales + Contables + Combinados (reuse de profitAndLoss/collections/treasury/
-      clientsWithTier). · C: Constructor + export CSV.
+### Slice B
+- [x] Categorías **Comerciales** y **Contables/financieros** habilitadas; **Combinados** +
+      **Constructor** siguen "Pronto".
+- [x] **Por cliente**: ranking por facturación + distribución por tier (reusa `clientsWithTier`).
+      SIN "por segmento" (no hay columna) ni "Por agente" (no hay campo de agente) → omitidos.
+- [x] **Estado de resultados** reusa `profitAndLoss` (0040) sin recalcular; **Aging CxC/CxP** con
+      buckets desde `receivablesQueue`/`payablesQueue` (0041/0044); **Cashflow** facturado-vs-cobrado mensual.
+- [x] Período server-side; montos USD-normalizados; **EmptyState honesto** donde no hay datos.
+- [x] `node scripts/verify.mjs` 🟢. **Sin migración.** `ui-ux-designer` OK.
+
+### Slice C (diferido · con bloqueo documentado)
+- [ ] **Constructor** (builder fuente→agrupar→métrica→filtro + export CSV) · **Combinados**
+      (requiere costo directo por embarque **real**, NO fabricado) · **Por agente** (requiere
+      atribución de agente en `quotes`) · **Posición IVA** (requiere Fiscal/Bloque 3).
 
 ## 6. Fuera de alcance (respetar)
 
 - **NO migración / NO tablas nuevas** (capa de presentación).
-- **NO** Comerciales / Contables / Combinados / Constructor (Slices B/C).
+- **Slice B NO hace:** Combinados (rentab/margen/costo-CBM) ni Constructor → **Slice C** · "Por
+  agente" (sin campo de agente en `quotes`) · "por segmento" de clientes (sin columna `segment`) ·
+  Posición IVA (Fiscal/Bloque 3 inexistente). Se muestran deshabilitados o se omiten — **nunca con
+  datos fabricados** (regla §3.2: anclar a datos reales).
+- **NUNCA fabricar costo/margen** (el Norte usa `_ROUTE_COST=0.70`+jitter; **prohibido replicarlo**).
 - **NO** export CSV/PDF (Slice C) ni mapa SVG del corredor (nice-to-have).
 - **NO** métrica on-time (sin fuente; V2 necesita ETA/SLA).
 - **NO** recalcular cálculo financiero — Slice B reusa `profitAndLoss` etc. tal cual.
@@ -177,6 +233,62 @@ anclada a `shipments` + `invoices` + naviera.
   resistentes a refresh. Categorías nivel-1: Operacionales activa; las otras 4 deshabilitadas con
   Badge "Slice B"/"Slice C".
 
-**Pendiente:** Slices B (Comerciales/Contables/Combinados) y C (Constructor + export CSV).
+### Slice B — implementado (2026-06-04, vía harness)
 
-_(Slices B/C: las completa el implementer al cerrarlos.)_
+**Archivos (EXTIENDE Slice A, no reescribe la lógica existente):**
+- `lib/studio/reports/types.ts` — tipos de salida Slice B (`ClientRankRow`, `TierDistRow`,
+  `CommercialByClient`, `IncomeRow`, `IncomeStatement`, `AgingBucket`/`AgingSide`/`AgingItem`/
+  `AgingReport`, `CashflowPoint`/`CashflowReport`, `FlowItem`) + helpers puros testeables
+  (`classifyAging` bordes 0/30/60, `buildAgingSide`, `incomeStatementRows`, `monthlyCashflow`,
+  `AGING_BUCKETS`). Sigue server-safe.
+- `lib/studio/reports/queries.ts` — 4 funciones nuevas: `commercialByClient`, `incomeStatement`,
+  `agingReport`, `cashflowReport`. Solo COMPONEN agregados existentes (patrón Dirección 0048).
+- `app/studio/(app)/reportes/page.tsx` — ahora rutea por `?cat=` (op | com | con) y carga SOLO los
+  agregados de la categoría activa (menos round-trips por vista).
+- `app/studio/(app)/reportes/_components/ReportesClient.tsx` — chips nivel-1 ahora navegan por
+  `?cat=`; Comerciales + Contables operables; Combinados/Constructor "Pronto" (re-rotulados Slice C).
+  Tabs nivel-2 por categoría. Vistas nuevas: `ByClientView`, `IncomeStatementView`, `AgingView`,
+  `CashflowView` (+ `CashflowChart` barras agrupadas tokenizadas). Solo `var(--*)`, primitivas del
+  sistema (`KpiCard`, `Badge`, `EmptyState`, `Progress`, `Card`).
+- Tests: `__tests__/types.test.ts` (+10 casos: classifyAging, buildAgingSide, incomeStatementRows,
+  monthlyCashflow) + `__tests__/queries.test.ts` (+8 casos: commercialByClient, incomeStatement,
+  agingReport, cashflowReport). Total módulo: 809 tests verdes.
+
+**Descubrimientos de shape (verificados leyendo la firma REAL de cada agregado, no el mock del Norte):**
+- **`profitAndLoss(accounts, balances)` NO recibe un rango** — es una función PURA sobre el plan de
+  cuentas + saldos. `incomeStatement` lo compone EXACTAMENTE como Dirección (0048):
+  `listAccounts(supabase)` + `accountBalances(supabase, {fromDate: range.from, upToDate: range.to})`
+  → `profitAndLoss(...)`. El rango del período se aplica vía `accountBalances` (filtra
+  `journal_entries.entry_date`). `incomeStatementRows` solo arma las filas con % sobre ingresos —
+  NO recalcula nada.
+- **Aging: los buckets NO vienen dados** por `collectionKpis`/`treasuryKpis` (esos solo dan
+  `porCobrar`/`vencido` agregados). Se computan de `receivablesQueue` (CxC, 0041) y `payablesQueue`
+  (CxP, 0044), que SÍ exponen `{balance, daysOverdue}` por documento. `buildAgingSide` (puro) los
+  clasifica en corriente/1-30/31-60/60+. Por eso terminé reusando `receivablesQueue`/`payablesQueue`
+  (no los `*Kpis`); el spec mencionaba los KPIs pero las colas son la fuente correcta de los tramos.
+  El `balance` está en moneda de operación, igual que Dirección lo trata directo (criterio consistente).
+- **Cashflow:** facturado = `invoices` del rango por `created_at`, USD-normalizado vía
+  `invoiceUsdAmount` (mismo helper que Slice A · VES/fx, CNY→0), excluyendo `anulada`/`borrador`
+  (filtro en la query `.neq` + guard in-memory por robustez); cobrado = `payment_receipts` del rango
+  por `received_at`, misma normalización (su `currency` es `InvoiceCurrency`). `monthlyCashflow`
+  (puro) arma la serie continua de meses. KPIs `outstanding`/`overdue` = saldos VIVOS de `invoiceKpis`
+  (0021) — no del rango (son posición actual, documentado en la nota de la vista).
+- **Por cliente:** `clientsWithTier(supabase, now)` ya devuelve el ranking ordenado desc por
+  `billedUsd` (trailing-12m USD) + tier derivado. `commercialByClient` solo lo mapea a filas de UI +
+  arma la distribución por tier. La UI muestra el top-15 con barra de progreso + chips de nivel.
+
+**Qué se OMITIÓ y por qué (regla §3.2 / §6 · nunca datos fabricados):**
+- **"Por agente"** — `quotes` no tiene campo de agente/owner (verificado); NPS sin fuente.
+- **"Por segmento"** — `clients` no tiene columna `segment` (verificado).
+- **"Posición IVA"** — depende de Fiscal/Bloque 3, que no está construido.
+- **Combinados (rentab/margen/costo-CBM)** y **Constructor** quedan en Slice C: necesitan costo
+  directo por embarque REAL. El Norte lo fabrica (`_ROUTE_COST=0.70`+jitter) — **prohibido replicarlo**.
+- Donde no hay datos, cada vista cae a `EmptyState` honesto (Por cliente / Aging / Cashflow /
+  Estado de resultados).
+
+**Frontera RSC:** las 4 nuevas vistas viven dentro de `ReportesClient.tsx` (`"use client"`);
+`page.tsx` (server) sigue importando SOLO el componente. Tipos/helpers compartidos en `types.ts`
+(server-safe). El paso `rsc-boundary` del gate pasa (626 módulos escaneados, sin cruces).
+
+**Pendiente:** Slice C (Constructor + export CSV/PDF · Combinados · Por agente · Posición IVA),
+todos con bloqueo documentado (sin fuente real / depende de Bloque 3).

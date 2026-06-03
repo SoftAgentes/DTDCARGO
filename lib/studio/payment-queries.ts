@@ -12,6 +12,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Account } from "./account-types";
 import { computeBalance, type Invoice } from "./invoice-types";
+import { invoiceUsdAmount } from "./fidelizacion/types";
 import {
   type CollectionActivity,
   type PaymentReceipt,
@@ -130,8 +131,15 @@ export async function listActivities(
 /** Una factura con saldo en la cola de cobranza, enriquecida. */
 export type Receivable = {
   invoice: Invoice;
-  /** Saldo pendiente (total − pagado). */
+  /** Saldo pendiente (total − pagado), en la MONEDA DE OPERACIÓN de la factura. */
   balance: number;
+  /**
+   * Saldo pendiente normalizado a USD (decisión SDD-0052 r2): USD/USDT → 1:1 ·
+   * VES → /fx_rate (si fx_rate>0, sino 0) · CNY → 0. Misma normalización que
+   * `invoiceUsdAmount`. Para sumar/bucketizar aging y KPIs en USD real (el
+   * `balance` nativo es multi-moneda y NO se puede sumar como si fuera USD).
+   */
+  balanceUsd: number;
   /** Días vencido (>0 = vencido, <0 = faltan ese tanto, 0 = vence hoy). null sin due_date. */
   daysOverdue: number | null;
   /** Stage derivado para la cola. */
@@ -151,6 +159,22 @@ export function daysOverdue(
   const due = new Date(dueDate + "T00:00:00Z").getTime();
   const now = new Date(today + "T00:00:00Z").getTime();
   return Math.round((now - due) / 86400000);
+}
+
+/**
+ * Normaliza un saldo (en la moneda de la factura) a USD, con la MISMA
+ * convención que `invoiceUsdAmount` (decisión SDD-0052 r2): USD/USDT → 1:1 ·
+ * VES → /fx_rate (si fx_rate>0, sino 0) · CNY → 0. PURA.
+ */
+export function balanceToUsd(
+  balance: number,
+  invoice: Pick<Invoice, "currency" | "fx_rate">,
+): number {
+  return invoiceUsdAmount({
+    currency: invoice.currency,
+    total_amount: balance,
+    fx_rate: invoice.fx_rate,
+  });
 }
 
 /**
@@ -227,6 +251,7 @@ export function buildReceivablesQueue(
     out.push({
       invoice: inv,
       balance,
+      balanceUsd: round2(balanceToUsd(balance, inv)),
       daysOverdue: daysOverdue(inv.due_date, today),
       stage,
       lastActivity: activities[0] ?? null, // listActivities devuelve desc por created_at
@@ -288,12 +313,19 @@ export async function receivablesQueue(
 // ── KPIs ───────────────────────────────────────────────────────
 
 export type CollectionKpis = {
-  /** Saldo total por cobrar (todas las facturas con saldo, no anuladas). */
+  /** Saldo total por cobrar, en MONEDA DE OPERACIÓN sumada (multi-moneda · vista Cobranzas). */
   porCobrar: number;
-  /** Saldo de las vencidas. */
+  /** Saldo de las vencidas (moneda de operación sumada). */
   vencido: number;
-  /** Saldo comprometido en promesas vigentes. */
+  /** Saldo comprometido en promesas vigentes (moneda de operación sumada). */
   enPromesa: number;
+  /**
+   * Saldo total por cobrar normalizado a USD real (decisión SDD-0052 r2). Suma
+   * `balanceUsd` por documento — apto para cruzar con CxP/Dirección/Reportes.
+   */
+  porCobrarUsd: number;
+  /** Saldo vencido normalizado a USD real. */
+  vencidoUsd: number;
   /** Cantidad de casos abiertos (facturas con saldo). */
   casos: number;
   /** Tasa de cobro: % al día sobre el total por cobrar (0-100). */
@@ -305,18 +337,37 @@ export function computeCollectionKpis(queue: Receivable[]): CollectionKpis {
   let porCobrar = 0;
   let vencido = 0;
   let enPromesa = 0;
+  let porCobrarUsd = 0;
+  let vencidoUsd = 0;
   for (const r of queue) {
     porCobrar += r.balance;
-    if (r.stage === "vencido" || r.stage === "contactado") vencido += r.balance;
-    else if ((r.daysOverdue ?? 0) > 0 && r.stage !== "promesa") vencido += r.balance;
+    porCobrarUsd += r.balanceUsd;
+    const esVencido =
+      r.stage === "vencido" ||
+      r.stage === "contactado" ||
+      ((r.daysOverdue ?? 0) > 0 && r.stage !== "promesa");
+    if (esVencido) {
+      vencido += r.balance;
+      vencidoUsd += r.balanceUsd;
+    }
     if (r.stage === "promesa") enPromesa += r.balance;
   }
   porCobrar = round2(porCobrar);
   vencido = round2(vencido);
   enPromesa = round2(enPromesa);
+  porCobrarUsd = round2(porCobrarUsd);
+  vencidoUsd = round2(vencidoUsd);
   const tasaCobro =
     porCobrar > 0 ? Math.round((1 - vencido / porCobrar) * 100) : 100;
-  return { porCobrar, vencido, enPromesa, casos: queue.length, tasaCobro };
+  return {
+    porCobrar,
+    vencido,
+    enPromesa,
+    porCobrarUsd,
+    vencidoUsd,
+    casos: queue.length,
+    tasaCobro,
+  };
 }
 
 /** KPIs de cobranza del tenant (deriva de la cola). */

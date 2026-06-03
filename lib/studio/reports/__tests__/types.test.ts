@@ -13,9 +13,13 @@
 import { describe, it, expect } from "vitest";
 import {
   asPeriod,
+  buildAgingSide,
+  classifyAging,
   groupByRoute,
   groupByService,
+  incomeStatementRows,
   monthlyBuckets,
+  monthlyCashflow,
   periodRange,
   ratePerCbm,
   routeKey,
@@ -266,5 +270,147 @@ describe("monthlyBuckets", () => {
 
   it("rango invertido → []", () => {
     expect(monthlyBuckets([], { from: "2026-05-01", to: "2026-01-01" })).toEqual([]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Slice B — helpers puros (aging, income statement rows, cashflow)
+// ═══════════════════════════════════════════════════════════════
+
+// ── classifyAging ─────────────────────────────────────────────
+describe("classifyAging (bordes 0/30/60)", () => {
+  it("≤0 días (o null) → corriente", () => {
+    expect(classifyAging(0)).toBe("current");
+    expect(classifyAging(-5)).toBe("current");
+    expect(classifyAging(null)).toBe("current");
+  });
+  it("1–30 → b1_30 (bordes inclusivos)", () => {
+    expect(classifyAging(1)).toBe("b1_30");
+    expect(classifyAging(30)).toBe("b1_30");
+  });
+  it("31–60 → b31_60 (bordes inclusivos)", () => {
+    expect(classifyAging(31)).toBe("b31_60");
+    expect(classifyAging(60)).toBe("b31_60");
+  });
+  it("61+ → b60_plus", () => {
+    expect(classifyAging(61)).toBe("b60_plus");
+    expect(classifyAging(400)).toBe("b60_plus");
+  });
+});
+
+// ── buildAgingSide ────────────────────────────────────────────
+describe("buildAgingSide", () => {
+  it("suma saldos por bucket, total y vencido (todo lo no-corriente)", () => {
+    const side = buildAgingSide([
+      { balance: 100, daysOverdue: -3 }, // corriente
+      { balance: 200, daysOverdue: 10 }, // 1-30
+      { balance: 50, daysOverdue: 45 }, // 31-60
+      { balance: 300, daysOverdue: 90 }, // 60+
+      { balance: 0, daysOverdue: 5 }, // saldo 0 → ignorado
+    ]);
+    expect(side.total).toBe(650);
+    expect(side.overdue).toBe(550); // 200 + 50 + 300
+    const byId = Object.fromEntries(side.buckets.map((b) => [b.id, b]));
+    expect(byId.current.amount).toBe(100);
+    expect(byId.current.count).toBe(1);
+    expect(byId.b1_30.amount).toBe(200);
+    expect(byId.b31_60.amount).toBe(50);
+    expect(byId.b60_plus.amount).toBe(300);
+    // % sobre el total
+    expect(byId.current.pct).toBeCloseTo(15.4, 0);
+  });
+
+  it("vacío → total 0, buckets en 0, pct 0", () => {
+    const side = buildAgingSide([]);
+    expect(side.total).toBe(0);
+    expect(side.overdue).toBe(0);
+    expect(side.buckets).toHaveLength(4);
+    expect(side.buckets.every((b) => b.amount === 0 && b.pct === 0)).toBe(true);
+  });
+
+  it("saldo sin due_date (daysOverdue null) cuenta como corriente", () => {
+    const side = buildAgingSide([{ balance: 120, daysOverdue: null }]);
+    const current = side.buckets.find((b) => b.id === "current")!;
+    expect(current.amount).toBe(120);
+    expect(side.overdue).toBe(0);
+  });
+});
+
+// ── incomeStatementRows ───────────────────────────────────────
+describe("incomeStatementRows", () => {
+  it("arma 5 filas con % sobre ingresos sin recalcular el P&L", () => {
+    const rows = incomeStatementRows({
+      income: 10000,
+      cogs: 4000,
+      grossProfit: 6000,
+      expenses: 2000,
+      netIncome: 4000,
+    });
+    expect(rows.map((r) => r.label)).toEqual([
+      "Ingresos",
+      "Costo de ventas",
+      "Utilidad bruta",
+      "Gastos operativos",
+      "Utilidad neta",
+    ]);
+    expect(rows[0].pct).toBe(100);
+    expect(rows[1].pct).toBe(40); // cogs / income
+    expect(rows[2].amount).toBe(6000);
+    expect(rows[2].emphasis).toBe(true); // utilidad bruta resaltada
+    expect(rows[4].pct).toBe(40); // netIncome / income
+    expect(rows[4].emphasis).toBe(true);
+  });
+
+  it("ingresos 0 → pct null en todas las filas (sin división por cero)", () => {
+    const rows = incomeStatementRows({
+      income: 0,
+      cogs: 0,
+      grossProfit: 0,
+      expenses: 0,
+      netIncome: 0,
+    });
+    expect(rows.every((r) => r.pct === null)).toBe(true);
+  });
+});
+
+// ── monthlyCashflow ───────────────────────────────────────────
+describe("monthlyCashflow", () => {
+  it("serie continua facturado vs cobrado por mes (USD ya normalizado)", () => {
+    const billed = [
+      { dateIso: "2026-01-10", usd: 1000 },
+      { dateIso: "2026-01-20", usd: 500 },
+      { dateIso: "2026-03-05T00:00:00Z", usd: 800 },
+    ];
+    const collected = [
+      { dateIso: "2026-01-25", usd: 700 },
+      { dateIso: "2026-03-10", usd: 800 },
+    ];
+    const series = monthlyCashflow(billed, collected, {
+      from: "2026-01-01",
+      to: "2026-03-31",
+    });
+    expect(series.map((p) => p.month)).toEqual(["2026-01", "2026-02", "2026-03"]);
+    expect(series[0].billed).toBe(1500);
+    expect(series[0].collected).toBe(700);
+    expect(series[1].billed).toBe(0); // febrero vacío pero presente
+    expect(series[1].collected).toBe(0);
+    expect(series[2].billed).toBe(800);
+    expect(series[2].collected).toBe(800);
+    expect(series[0].label).toBe("ENE 26");
+  });
+
+  it("ignora items sin fecha y meses fuera del rango", () => {
+    const series = monthlyCashflow(
+      [
+        { dateIso: null, usd: 999 }, // sin fecha → ignorado
+        { dateIso: "2025-12-31", usd: 999 }, // fuera del rango
+        { dateIso: "2026-02-15", usd: 400 },
+      ],
+      [],
+      { from: "2026-02-01", to: "2026-02-28" },
+    );
+    expect(series).toHaveLength(1);
+    expect(series[0].billed).toBe(400);
+    expect(series[0].collected).toBe(0);
   });
 });

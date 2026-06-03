@@ -294,6 +294,7 @@ describe("getDireccionData — composición (smoke)", () => {
               id: "f1",
               tenant_id: "t",
               status: "emitida",
+              currency: "USD",
               total_amount: 4000,
               paid_amount: 0,
               due_date: "2026-06-20",

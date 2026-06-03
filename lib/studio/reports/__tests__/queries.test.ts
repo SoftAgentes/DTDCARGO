@@ -18,6 +18,10 @@
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  agingReport,
+  cashflowReport,
+  commercialByClient,
+  incomeStatement,
   operationalOverview,
   reportByCarrier,
   reportByRoute,
@@ -236,5 +240,214 @@ describe("reportByCarrier", () => {
     const { client } = stub({ bookings: [], sailings: [], carriers: [] });
     const rows = await reportByCarrier(client, "1A", TODAY);
     expect(rows).toEqual([]);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Slice B — Comerciales (Por cliente) + Contables/financieros
+// ═══════════════════════════════════════════════════════════════
+
+// Fecha de referencia para el trailing-12m de clientsWithTier.
+const NOW = new Date("2026-06-15T00:00:00Z");
+
+// ── commercialByClient (reusa clientsWithTier 0051) ────────────
+describe("commercialByClient", () => {
+  it("rankea por facturación USD-normalizada (desc) + tier derivado + distribución", async () => {
+    // clientsWithTier lee invoices (facturación trailing-12m) + clients.
+    const invoices = [
+      // Cliente Platinum (>= 300k): facturación grande dentro de los 12m.
+      { client_markbox: "DTD-1", currency: "USD", total_amount: 320000, fx_rate: null, status: "pagada", issued_at: "2026-05-01", created_at: "2026-05-01" },
+      // Cliente Bronze (< 50k).
+      { client_markbox: "DTD-2", currency: "USD", total_amount: 10000, fx_rate: null, status: "emitida", issued_at: "2026-04-01", created_at: "2026-04-01" },
+      // VES normalizada a USD: 73000 / 36.5 = 2000 (no mueve el tier de DTD-2).
+      { client_markbox: "DTD-2", currency: "VES", total_amount: 73000, fx_rate: 36.5, status: "emitida", issued_at: "2026-04-10", created_at: "2026-04-10" },
+      // Factura vieja (fuera de los 12m) → no cuenta.
+      { client_markbox: "DTD-1", currency: "USD", total_amount: 999999, fx_rate: null, status: "pagada", issued_at: "2024-01-01", created_at: "2024-01-01" },
+    ];
+    const clients = [
+      { id: "1", markbox: "DTD-1", name: "Alfa" },
+      { id: "2", markbox: "DTD-2", name: "Beta" },
+      { id: "3", markbox: "DTD-3", name: "Gamma" }, // sin facturación
+    ];
+    const { client } = stub({ invoices, clients });
+    const out = await commercialByClient(client, NOW);
+
+    expect(out.totalClients).toBe(3);
+    // Ranking: Alfa (320k) primero, Beta (12k) segundo, Gamma (0) tercero.
+    expect(out.ranking[0].name).toBe("Alfa");
+    expect(out.ranking[0].billedUsd).toBe(320000);
+    expect(out.ranking[0].tierLabel).toBe("Platinum");
+    expect(out.ranking[1].name).toBe("Beta");
+    expect(out.ranking[1].billedUsd).toBe(12000); // 10000 + 2000 (VES norm)
+    expect(out.ranking[1].tierLabel).toBe("Bronze");
+    expect(out.ranking[2].billedUsd).toBe(0);
+    // Distribución: 1 platinum + 2 bronze.
+    const dist = Object.fromEntries(out.tierDist.map((d) => [d.tierId, d.count]));
+    expect(dist.platinum).toBe(1);
+    expect(dist.bronze).toBe(2);
+    expect(out.totalBilledUsd).toBe(332000);
+  });
+
+  it("sin clientes → ranking vacío, totales en 0", async () => {
+    const { client } = stub({ invoices: [], clients: [] });
+    const out = await commercialByClient(client, NOW);
+    expect(out.totalClients).toBe(0);
+    expect(out.ranking).toEqual([]);
+    expect(out.totalBilledUsd).toBe(0);
+  });
+});
+
+// ── incomeStatement (reusa profitAndLoss 0040, NO recalcula) ───
+describe("incomeStatement", () => {
+  it("aplica el rango del período a journal_entries y formatea las filas del P&L", async () => {
+    // Cuentas raíz por tipo (I ingresos, CGS costo, G gasto) + sub-cuentas.
+    const accounts = [
+      { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
+      { id: "i1", code: "4.1", type: "I", parent_id: "i", is_postable: true },
+      { id: "c", code: "5", type: "CGS", parent_id: null, is_postable: false },
+      { id: "c1", code: "5.1", type: "CGS", parent_id: "c", is_postable: true },
+      { id: "g", code: "6", type: "G", parent_id: null, is_postable: false },
+      { id: "g1", code: "6.1", type: "G", parent_id: "g", is_postable: true },
+    ];
+    const journal_entries = [{ id: "e1" }];
+    const journal_lines = [
+      // Ingreso 10000 (crédito en cuenta I → saldo natural acreedor).
+      { account_id: "i1", debit: 0, credit: 10000 },
+      // Costo 4000 (débito en cuenta CGS).
+      { account_id: "c1", debit: 4000, credit: 0 },
+      // Gasto 2000 (débito en cuenta G).
+      { account_id: "g1", debit: 2000, credit: 0 },
+    ];
+    const { client, calls } = stub({ accounts, journal_entries, journal_lines });
+    const out = await incomeStatement(client, "YTD", NOW);
+
+    // El rango YTD (1° enero) se aplica a entry_date de journal_entries.
+    expect(calls.journal_entries.gte).toContainEqual(["entry_date", "2026-01-01"]);
+    expect(calls.journal_entries.lte).toContainEqual(["entry_date", "2026-06-15"]);
+
+    // P&L: ingresos 10000, cgs 4000, bruta 6000, gastos 2000, neta 4000.
+    expect(out.income).toBe(10000);
+    expect(out.netIncome).toBe(4000);
+    const byLabel = Object.fromEntries(out.rows.map((r) => [r.label, r]));
+    expect(byLabel["Utilidad bruta"].amount).toBe(6000);
+    expect(byLabel["Costo de ventas"].pct).toBe(40);
+    expect(byLabel["Utilidad neta"].amount).toBe(4000);
+  });
+
+  it("sin movimiento contable → income/netIncome 0 (EmptyState honesto)", async () => {
+    const accounts = [
+      { id: "i", code: "4", type: "I", parent_id: null, is_postable: false },
+    ];
+    const { client } = stub({ accounts, journal_entries: [], journal_lines: [] });
+    const out = await incomeStatement(client, "1A", NOW);
+    expect(out.income).toBe(0);
+    expect(out.netIncome).toBe(0);
+  });
+});
+
+// ── agingReport (reusa receivablesQueue 0041 + payablesQueue 0044) ──
+describe("agingReport", () => {
+  const TODAY_STR = "2026-06-15";
+
+  it("clasifica CxC y CxP en buckets por días vencido", async () => {
+    // CxC: facturas con saldo (total - paid > 0), no anuladas.
+    const invoices = [
+      // Corriente: vence en el futuro.
+      { id: "v1", status: "emitida", total_amount: 1000, paid_amount: 0, due_date: "2026-07-01", currency: "USD" },
+      // 1-30 vencido (10 días).
+      { id: "v2", status: "emitida", total_amount: 500, paid_amount: 0, due_date: "2026-06-05", currency: "USD" },
+      // 60+ vencido (~75 días).
+      { id: "v3", status: "vencida", total_amount: 300, paid_amount: 0, due_date: "2026-04-01", currency: "USD" },
+      // Pagada (sin saldo) → no entra.
+      { id: "v4", status: "pagada", total_amount: 900, paid_amount: 900, due_date: "2026-01-01", currency: "USD" },
+    ];
+    // CxP (supplier_bills): saldo > 0, no anuladas.
+    const supplier_bills = [
+      { id: "b1", supplier_id: "s1", status: "por_vencer", total_amount: 800, paid_amount: 0, due_date: "2026-08-01", issue_date: "2026-06-01", currency: "USD" },
+      { id: "b2", supplier_id: "s2", status: "vencida", total_amount: 200, paid_amount: 0, due_date: "2026-05-01", issue_date: "2026-04-01", currency: "USD" }, // ~45 días → 31-60
+    ];
+    const { client } = stub({
+      invoices,
+      collection_activities: [],
+      supplier_bills,
+      supplier_payments: [],
+    });
+    const out = await agingReport(client, TODAY_STR);
+
+    // CxC: total 1800 (1000 + 500 + 300), vencido 800 (500 + 300).
+    expect(out.cxc.total).toBe(1800);
+    expect(out.cxc.overdue).toBe(800);
+    const cxc = Object.fromEntries(out.cxc.buckets.map((b) => [b.id, b.amount]));
+    expect(cxc.current).toBe(1000);
+    expect(cxc.b1_30).toBe(500);
+    expect(cxc.b60_plus).toBe(300);
+
+    // CxP: total 1000 (800 + 200), vencido 200.
+    expect(out.cxp.total).toBe(1000);
+    expect(out.cxp.overdue).toBe(200);
+    const cxp = Object.fromEntries(out.cxp.buckets.map((b) => [b.id, b.amount]));
+    expect(cxp.current).toBe(800);
+    expect(cxp.b31_60).toBe(200);
+  });
+
+  it("sin saldos → buckets en 0 (EmptyState honesto)", async () => {
+    const { client } = stub({
+      invoices: [],
+      collection_activities: [],
+      supplier_bills: [],
+      supplier_payments: [],
+    });
+    const out = await agingReport(client, TODAY_STR);
+    expect(out.cxc.total).toBe(0);
+    expect(out.cxp.total).toBe(0);
+  });
+});
+
+// ── cashflowReport (facturado vs cobrado, USD-norm) ────────────
+describe("cashflowReport", () => {
+  it("serie mensual facturado (invoices) vs cobrado (payment_receipts), USD-norm", async () => {
+    const invoices = [
+      // Facturado: USD + VES normalizado.
+      { total_amount: 5000, currency: "USD", fx_rate: null, status: "emitida", issued_at: "2026-05-10", created_at: "2026-05-10", due_date: "2026-06-10", paid_amount: 0 },
+      { total_amount: 73000, currency: "VES", fx_rate: 36.5, status: "pagada", issued_at: "2026-05-20", created_at: "2026-05-20", due_date: "2026-06-20", paid_amount: 0 },
+      // Borrador → excluida del facturado.
+      { total_amount: 9999, currency: "USD", fx_rate: null, status: "borrador", issued_at: "2026-05-25", created_at: "2026-05-25", due_date: null, paid_amount: 0 },
+      // Fuera del rango 1A (issued_at < range.from) → excluida: verifica el filtro de
+      // rango IN-MEMORY por issued_at (antes lo cubría la aserción del filtro SQL).
+      { total_amount: 8000, currency: "USD", fx_rate: null, status: "emitida", issued_at: "2025-01-10", created_at: "2025-01-10", due_date: null, paid_amount: 0 },
+    ];
+    const payment_receipts = [
+      { amount: 3000, currency: "USD", fx_rate: null, received_at: "2026-05-15" },
+      { amount: 36500, currency: "VES", fx_rate: 36.5, received_at: "2026-05-28" }, // 1000 USD
+    ];
+    const { client, calls } = stub({ invoices, payment_receipts });
+    const out = await cashflowReport(client, "1A", TODAY);
+
+    // Rango 1A: payment_receipts filtra por received_at en SQL; invoices NO filtra
+    // por fecha en SQL — el rango se aplica in-memory por issued_at??created_at (ver
+    // totalBilled), para no perder filas con issued_at∈rango pero created_at∉.
+    expect(calls.invoices.gte ?? []).not.toContainEqual(["created_at", "2025-06-15"]);
+    expect(calls.payment_receipts.gte).toContainEqual(["received_at", "2025-06-15"]);
+    // payment_receipts NO excluye anuladas; invoices sí excluye anulada/borrador.
+    expect(calls.invoices.neq).toContainEqual(["status", "borrador"]);
+
+    // Facturado del período = 5000 + 2000 (VES norm) = 7000. La factura USD 8000 de
+    // 2025-01 (fuera de rango) NO suma → prueba la exclusión in-memory por issued_at.
+    expect(out.totalBilled).toBe(7000);
+    // Cobrado = 3000 + 1000 = 4000.
+    expect(out.totalCollected).toBe(4000);
+
+    const mayo = out.series.find((p) => p.month === "2026-05");
+    expect(mayo?.billed).toBe(7000);
+    expect(mayo?.collected).toBe(4000);
+  });
+
+  it("sin facturas ni cobros → totales 0 + serie continua", async () => {
+    const { client } = stub({ invoices: [], payment_receipts: [] });
+    const out = await cashflowReport(client, "3M", TODAY);
+    expect(out.totalBilled).toBe(0);
+    expect(out.totalCollected).toBe(0);
+    // 3M trailing → 3-4 meses en la serie.
+    expect(out.series.length).toBeGreaterThanOrEqual(3);
   });
 });

@@ -396,3 +396,248 @@ function sortByRevenueThenCount<T extends { revenue: number; count: number }>(
     return b.count - a.count;
   });
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Slice B — Comerciales (Por cliente) + Contables/financieros
+// ═══════════════════════════════════════════════════════════════
+//
+// Capa de presentación pura: tipos de salida + helpers testeables. Las queries
+// (queries.ts) reusan los agregados ya construidos (clientsWithTier 0051,
+// profitAndLoss 0040, collectionKpis/receivablesQueue 0041, treasuryKpis/
+// payablesQueue 0044, invoiceKpis 0021) — acá NO se recalcula finanza.
+
+// ── Comerciales · Por cliente ──────────────────────────────────
+
+/** Una fila del ranking comercial por cliente (facturación trailing-12m USD). */
+export type ClientRankRow = {
+  markbox: string;
+  name: string;
+  billedUsd: number;
+  tierId: string;
+  tierLabel: string;
+  tierTone: string; // BadgeTone (string libre, lo resuelve la UI)
+};
+
+/** Distribución de clientes por nivel (tier). */
+export type TierDistRow = {
+  tierId: string;
+  label: string;
+  tone: string;
+  count: number;
+  pct: number; // % sobre el total de clientes
+};
+
+/** Payload de "Por cliente": ranking + distribución por tier. */
+export type CommercialByClient = {
+  ranking: ClientRankRow[];
+  tierDist: TierDistRow[];
+  totalClients: number;
+  totalBilledUsd: number;
+};
+
+// ── Contables · Estado de resultados ───────────────────────────
+
+/** Una fila del estado de resultados (label + monto + % opcional sobre ingresos). */
+export type IncomeRow = {
+  label: string;
+  amount: number;
+  /** % sobre ingresos (null para la fila de ingresos misma o si no aplica). */
+  pct: number | null;
+  /** Resalta los subtotales (utilidad bruta/operativa/neta). */
+  emphasis: boolean;
+};
+
+/** Payload del estado de resultados: filas formateadas + período. */
+export type IncomeStatement = {
+  rows: IncomeRow[];
+  income: number;
+  netIncome: number;
+  range: DateRange;
+};
+
+// ── Contables · Aging CxC/CxP ──────────────────────────────────
+
+/** Un bucket de aging (corriente / 1-30 / 31-60 / 60+). */
+export type AgingBucket = {
+  id: "current" | "b1_30" | "b31_60" | "b60_plus";
+  label: string;
+  amount: number;
+  count: number;
+  pct: number; // % sobre el total del lado (CxC o CxP)
+};
+
+/** Una cara del reporte de aging (CxC o CxP). */
+export type AgingSide = {
+  total: number;
+  overdue: number;
+  buckets: AgingBucket[];
+};
+
+/** Payload del aging: CxC + CxP. */
+export type AgingReport = {
+  cxc: AgingSide;
+  cxp: AgingSide;
+};
+
+// ── Contables · Cashflow facturado vs cobrado ──────────────────
+
+/** Un punto de la serie mensual facturado-vs-cobrado (USD). */
+export type CashflowPoint = {
+  month: string; // "YYYY-MM"
+  label: string; // "ENE 26"
+  billed: number; // facturado en el mes (USD)
+  collected: number; // cobrado en el mes (USD)
+};
+
+/** Payload del cashflow: serie mensual + KPIs. */
+export type CashflowReport = {
+  series: CashflowPoint[];
+  totalBilled: number; // facturado del período (USD)
+  totalCollected: number; // cobrado del período (USD)
+  outstanding: number; // por cobrar (saldo vivo, invoiceKpis)
+  overdue: number; // vencido (saldo vivo, invoiceKpis)
+};
+
+// ── Helpers puros (testeables) ─────────────────────────────────
+
+/** IDs y labels de los buckets de aging (orden de presentación). */
+export const AGING_BUCKETS: { id: AgingBucket["id"]; label: string }[] = [
+  { id: "current", label: "Corriente" },
+  { id: "b1_30", label: "1–30 días" },
+  { id: "b31_60", label: "31–60 días" },
+  { id: "b60_plus", label: "60+ días" },
+];
+
+/**
+ * Clasifica un saldo en su bucket de aging según los días vencido.
+ *  - daysOverdue ≤ 0 (o null = sin vencimiento) → corriente (al día).
+ *  - 1–30  → b1_30
+ *  - 31–60 → b31_60
+ *  - 60+   → b60_plus
+ * PURA — testeable sin DB.
+ */
+export function classifyAging(daysOverdue: number | null): AgingBucket["id"] {
+  const d = daysOverdue ?? 0;
+  if (d <= 0) return "current";
+  if (d <= 30) return "b1_30";
+  if (d <= 60) return "b31_60";
+  return "b60_plus";
+}
+
+/** Mínimo que el aging necesita de un saldo (CxC o CxP). */
+export type AgingItem = { balance: number; daysOverdue: number | null };
+
+/**
+ * Construye una cara del aging (CxC o CxP) a partir de los saldos vivos.
+ * Suma cada saldo a su bucket; `overdue` = todo lo que no es corriente.
+ * PURA — testeable sin DB.
+ */
+export function buildAgingSide(items: AgingItem[]): AgingSide {
+  const acc = new Map<AgingBucket["id"], { amount: number; count: number }>();
+  for (const b of AGING_BUCKETS) acc.set(b.id, { amount: 0, count: 0 });
+
+  let total = 0;
+  let overdue = 0;
+  for (const it of items) {
+    const bal = Number(it.balance) || 0;
+    if (bal <= 0) continue;
+    const id = classifyAging(it.daysOverdue);
+    const bucket = acc.get(id)!;
+    bucket.amount += bal;
+    bucket.count += 1;
+    total += bal;
+    if (id !== "current") overdue += bal;
+  }
+
+  total = Math.round(total * 100) / 100;
+  overdue = Math.round(overdue * 100) / 100;
+
+  const buckets: AgingBucket[] = AGING_BUCKETS.map((b) => {
+    const v = acc.get(b.id)!;
+    const amount = Math.round(v.amount * 100) / 100;
+    return {
+      id: b.id,
+      label: b.label,
+      amount,
+      count: v.count,
+      pct: total > 0 ? Math.round((amount / total) * 1000) / 10 : 0,
+    };
+  });
+
+  return { total, overdue, buckets };
+}
+
+/**
+ * Filas formateadas de un estado de resultados a partir del P&L crudo
+ * (profitAndLoss de Contabilidad 0040). NO recalcula: solo arma las filas con %
+ * sobre ingresos. PURA — testeable sin DB.
+ */
+export function incomeStatementRows(pl: {
+  income: number;
+  cogs: number;
+  grossProfit: number;
+  expenses: number;
+  netIncome: number;
+}): IncomeRow[] {
+  const base = pl.income;
+  const pct = (n: number): number | null =>
+    base > 0 ? Math.round((n / base) * 1000) / 10 : null;
+
+  return [
+    { label: "Ingresos", amount: pl.income, pct: base > 0 ? 100 : null, emphasis: false },
+    { label: "Costo de ventas", amount: pl.cogs, pct: pct(pl.cogs), emphasis: false },
+    { label: "Utilidad bruta", amount: pl.grossProfit, pct: pct(pl.grossProfit), emphasis: true },
+    { label: "Gastos operativos", amount: pl.expenses, pct: pct(pl.expenses), emphasis: false },
+    { label: "Utilidad neta", amount: pl.netIncome, pct: pct(pl.netIncome), emphasis: true },
+  ];
+}
+
+/** Mínimo que el cashflow necesita de un movimiento (factura o cobro). */
+export type FlowItem = { dateIso: string | null; usd: number };
+
+/**
+ * Serie mensual facturado-vs-cobrado (USD) sobre el rango, alineada a los meses
+ * del período (serie continua, igual criterio que monthlyBuckets). Cada item ya
+ * viene USD-normalizado (lo hace la query con invoiceUsdAmount). PURA.
+ */
+export function monthlyCashflow(
+  billed: FlowItem[],
+  collected: FlowItem[],
+  range: DateRange,
+): CashflowPoint[] {
+  // Reusa la lista continua de meses construida por monthlyBuckets (sobre filas
+  // con created_at), pero acá sumamos USD. Construimos los meses del rango:
+  const start = new Date(`${range.from}T00:00:00Z`);
+  const end = new Date(`${range.to}T00:00:00Z`);
+  const months: string[] = [];
+  const cursor = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1));
+  const lastMonth = new Date(Date.UTC(end.getUTCFullYear(), end.getUTCMonth(), 1));
+  if (cursor.getTime() > lastMonth.getTime()) return [];
+  let guard = 0;
+  while (cursor.getTime() <= lastMonth.getTime() && guard < 36) {
+    months.push(monthKey(cursor));
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+    guard++;
+  }
+
+  const billedByMonth = new Map<string, number>();
+  const collectedByMonth = new Map<string, number>();
+  const tally = (items: FlowItem[], into: Map<string, number>) => {
+    for (const it of items) {
+      if (!it.dateIso) continue;
+      const t = new Date(it.dateIso);
+      if (Number.isNaN(t.getTime())) continue;
+      const key = monthKey(t);
+      into.set(key, (into.get(key) ?? 0) + (Number(it.usd) || 0));
+    }
+  };
+  tally(billed, billedByMonth);
+  tally(collected, collectedByMonth);
+
+  return months.map((key) => ({
+    month: key,
+    label: monthLabel(key),
+    billed: Math.round((billedByMonth.get(key) ?? 0) * 100) / 100,
+    collected: Math.round((collectedByMonth.get(key) ?? 0) * 100) / 100,
+  }));
+}

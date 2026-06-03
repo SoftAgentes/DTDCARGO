@@ -14,6 +14,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Account } from "../account-types";
 import { isCashAccount } from "../payment-queries";
+import { invoiceUsdAmount } from "../fidelizacion/types";
 import {
   billBalance,
   type SupplierBill,
@@ -147,8 +148,14 @@ export type PayableStage = "vencida" | "por_vencer" | "parcial" | "pagada";
 /** Una CxP con saldo en la cola, enriquecida. */
 export type Payable = {
   bill: SupplierBill;
-  /** Saldo pendiente (total − pagado). */
+  /** Saldo pendiente (total − pagado), en la MONEDA DE OPERACIÓN de la CxP. */
   balance: number;
+  /**
+   * Saldo pendiente normalizado a USD (decisión SDD-0052 r2): USD/USDT → 1:1 ·
+   * VES → /fx_rate (si fx_rate>0, sino 0) · CNY → 0. Misma normalización que
+   * `invoiceUsdAmount`. Para sumar/bucketizar aging y KPIs en USD real.
+   */
+  balanceUsd: number;
   /** Días vencido (>0 = vencido, <0 = faltan, 0 = vence hoy). null sin due_date. */
   daysOverdue: number | null;
   /** Stage derivado para la cola. */
@@ -164,6 +171,22 @@ export function daysOverdue(
   const due = new Date(dueDate + "T00:00:00Z").getTime();
   const now = new Date(today + "T00:00:00Z").getTime();
   return Math.round((now - due) / 86400000);
+}
+
+/**
+ * Normaliza un saldo de CxP (en la moneda de la bill) a USD, con la MISMA
+ * convención que `invoiceUsdAmount` (decisión SDD-0052 r2): USD/USDT → 1:1 ·
+ * VES → /fx_rate (si fx_rate>0, sino 0) · CNY → 0. PURA.
+ */
+export function billBalanceToUsd(
+  balance: number,
+  bill: Pick<SupplierBill, "currency" | "fx_rate">,
+): number {
+  return invoiceUsdAmount({
+    currency: bill.currency,
+    total_amount: balance,
+    fx_rate: bill.fx_rate,
+  });
 }
 
 /**
@@ -211,6 +234,7 @@ export function buildPayablesQueue(
     out.push({
       bill,
       balance,
+      balanceUsd: round2(billBalanceToUsd(balance, bill)),
       daysOverdue: daysOverdue(bill.due_date, today),
       stage: derivedStage({
         totalAmount: bill.total_amount,
@@ -243,10 +267,17 @@ export async function payablesQueue(
 // ── KPIs ───────────────────────────────────────────────────────
 
 export type TreasuryKpis = {
-  /** Saldo total por pagar (todas las CxP con saldo, no anuladas). */
+  /** Saldo total por pagar, en MONEDA DE OPERACIÓN sumada (multi-moneda · vista Tesorería). */
   porPagar: number;
-  /** Saldo de las vencidas. */
+  /** Saldo de las vencidas (moneda de operación sumada). */
   vencido: number;
+  /**
+   * Saldo total por pagar normalizado a USD real (decisión SDD-0052 r2). Suma
+   * `balanceUsd` por documento — apto para cruzar con CxC/Dirección/Reportes.
+   */
+  porPagarUsd: number;
+  /** Saldo vencido normalizado a USD real. */
+  vencidoUsd: number;
   /** Total pagado en el mes en curso (de las órdenes de pago vivas). */
   pagadoMes: number;
   /** Cantidad de proveedores con CxP con saldo. */
@@ -264,10 +295,16 @@ export function computeTreasuryKpis(
 ): TreasuryKpis {
   let porPagar = 0;
   let vencido = 0;
+  let porPagarUsd = 0;
+  let vencidoUsd = 0;
   const suppliers = new Set<string>();
   for (const p of queue) {
     porPagar += p.balance;
-    if (p.stage === "vencida") vencido += p.balance;
+    porPagarUsd += p.balanceUsd;
+    if (p.stage === "vencida") {
+      vencido += p.balance;
+      vencidoUsd += p.balanceUsd;
+    }
     suppliers.add(p.bill.supplier_id);
   }
 
@@ -282,6 +319,8 @@ export function computeTreasuryKpis(
   return {
     porPagar: round2(porPagar),
     vencido: round2(vencido),
+    porPagarUsd: round2(porPagarUsd),
+    vencidoUsd: round2(vencidoUsd),
     pagadoMes: round2(pagadoMes),
     proveedoresActivos: suppliers.size,
   };
