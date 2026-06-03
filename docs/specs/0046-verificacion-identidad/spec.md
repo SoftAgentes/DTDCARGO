@@ -300,3 +300,30 @@ corresponde" del asesor) es el camino V1 para **cédula Y empresa**.
 megacreativo (self-host de un wrapper o proxy sin geo-bloqueo) habilita el auto-cédula **sin tocar
 código**. El auto-SENIAT espera el Slice C (spike OCR). El status sigue **`in-progress`** hasta que
 se cierre V1 formalmente o lleguen los providers.
+
+---
+
+## Anexo · Unicidad de documento a nivel DB (2026-06-03)
+
+Complemento de "clientes reales, no basura" del lado de la **deduplicación dura**: un cliente por
+documento por tenant, **forzado en el motor** (no solo en la app). Antes el enforcement vivía solo en
+código y con huecos —`registerClientAction` dedupea con `ilike("rif", doc)` exact (no atrapa
+variantes de formato ni races), `createClientAction` no dedupea y `updateClientAction` puede editar el
+`rif` a uno duplicado.
+
+- **Migración 0095** (`0095_clients_rif_unique.sql`): índice **UNIQUE PARCIAL + FUNCIONAL
+  NORMALIZADO** `clients_tenant_doc_unique` sobre `public.clients
+  (tenant_id, upper(regexp_replace(rif,'[^A-Za-z0-9]','','g')))` con
+  `WHERE rif IS NOT NULL AND btrim(rif) <> '' AND deleted_at IS NULL`. Normaliza el documento (saca
+  puntos/guiones/espacios + uppercase) → `V-12.345.678` y `V12345678` colisionan; parcial (soft-deleted
+  no bloquean re-registro; null/vacío permitidos); por tenant. Pre-verificado en prod: **cero
+  duplicados** → entra limpio. NO aplicada a prod (la aplica el founder).
+- **Guard `23505`** (unique_violation de Postgres) en las 3 server actions, **antes** del error
+  genérico: `registerClientAction` → `fieldError` amable en `document` + rollback de la foto (backstop
+  del race que el `ilike` exact deja pasar); `createClientAction` → "Ya existe un cliente con ese
+  RIF/cédula en este tenant."; `updateClientAction` → "Ya existe otro cliente con ese RIF/cédula."
+- **Tests:** `app/portal/(auth)/registro/__tests__/register-unique-doc.test.ts` +
+  `app/studio/(app)/clientes/__tests__/client-unique-doc.test.ts`.
+
+**Follow-up (fuera de scope):** normalizar el `rif` on-write (storage canónico) y unificar el dedup
+`ilike` con la normalización del índice. Hoy el índice normalizado + el guard alcanzan.

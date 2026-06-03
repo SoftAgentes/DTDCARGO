@@ -277,6 +277,18 @@ export async function registerClientAction(
   if (clientErr || !clientRow) {
     // Rollback de la foto huérfana.
     await admin.storage.from(PHOTO_BUCKET).remove([photoPath]).catch(() => {});
+    // Backstop del race: el dedup `ilike` exact de arriba no atrapa variantes de
+    // formato (V-12.345.678 vs V12345678) ni inserts concurrentes; el índice
+    // clients_tenant_doc_unique (normalizado, por tenant) sí → unique_violation
+    // de Postgres (23505). Mismo mensaje que el dedup explícito de arriba.
+    if (clientErr?.code === "23505") {
+      return {
+        fieldErrors: {
+          document:
+            "Este documento ya tiene una cuenta en DTD Cargo. Entrá con tu MARKBOX o pedí recuperar tu contraseña.",
+        },
+      };
+    }
     console.error("[registerClientAction] insert clients error:", clientErr);
     return { error: `No pudimos crear tu cuenta: ${clientErr?.message ?? "error"}` };
   }

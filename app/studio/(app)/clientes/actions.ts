@@ -110,6 +110,11 @@ export async function createClientAction(
   });
 
   if (error) {
+    // Unique-violation del índice clients_tenant_doc_unique (documento normalizado
+    // por tenant) → mensaje amable en vez del error crudo de Postgres.
+    if (error.code === "23505") {
+      return { error: "Ya existe un cliente con ese RIF/cédula en este tenant." };
+    }
     return { error: `No se pudo crear el cliente: ${error.message}` };
   }
 
@@ -159,6 +164,11 @@ export async function updateClientAction(
     .eq("markbox", markbox);
 
   if (error) {
+    // Editar el rif a uno ya usado por otro cliente del tenant viola
+    // clients_tenant_doc_unique (documento normalizado) → 23505.
+    if (error.code === "23505") {
+      return { error: "Ya existe otro cliente con ese RIF/cédula." };
+    }
     return { error: `No se pudo guardar el cliente: ${error.message}` };
   }
 
