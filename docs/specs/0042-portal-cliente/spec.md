@@ -359,6 +359,16 @@ Cada (sub)fase: `node scripts/verify.mjs` verde + commit aislado + `ui-ux-design
 - **CNE automático** (consulta on-demand, sin hostear el padrón).
 - Reconciliar el público `app/registro/` (lead) con el `/portal/registro` (cuenta real) — apuntar el CTA "Regístrate" al nuevo flujo.
 
+### 10.4 Slice — Anti-abuso del registro público (honeypot + throttle por IP) — ✅ HECHO (2026-06-03)
+> Decisión founder 2026-06-03: el endpoint `/portal/registro` está LIVE y es público (registrante anónimo, corre con service_role). Anti-abuso **gratis, sin keys, sin fricción** para usuarios reales. Scope acotado: **solo** honeypot + throttle por IP en DB (sin Turnstile/captcha — diferido).
+
+Dos capas que corren **antes del trabajo pesado** en `registerClientAction`:
+- **Honeypot** — `RegisterForm.tsx` tiene un campo trampa oculto `name="empresa_web"` (off-screen `left:-9999px`, `tabIndex=-1`, `autoComplete="off"`, `aria-hidden` — NO `display:none`, que algunos bots detectan). Un humano nunca lo llena; un bot naive sí. La action lee el campo **primero de todo**: si llega no-vacío → **early return** `{ error: "No pudimos procesar tu registro. Probá de nuevo." }` genérico (no revela la trampa) **SIN escribir nada** (ni clients, ni auth, ni storage, ni throttle).
+- **Throttle por IP** — después de validar input + honeypot y de tener el admin client, antes de `next_markbox`/upload/inserts: lee la IP de `headers()` (`x-forwarded-for`[0] → `x-real-ip` → `"unknown"`), cuenta los intentos de esa IP en la última hora en `portal_registro_throttle`; si llegó al límite (**`REGISTRO_IP_LIMIT = 5` / `REGISTRO_WINDOW_MINUTES = 60`**, consts tuneables arriba del archivo) → `{ error: "Demasiados registros desde tu conexión. Probá de nuevo en un rato." }` sin crear nada. Si está por debajo → inserta la fila del intento y sigue el flujo normal. **Fail-open**: un error de lectura del throttle NO bloquea un alta legítima.
+- **Migración `0094_portal_registro_throttle.sql`** (aditiva, NO aplicada a prod): tabla `public.portal_registro_throttle` (`id uuid` / `ip text` / `created_at timestamptz`) + índice `(ip, created_at)` para el conteo por ventana. **Tabla privilegiada**: RLS **habilitada SIN policy** → cero acceso anon/authenticated; solo service_role la toca (bypassa RLS), espejando el patrón de buckets privados sin policy de INSERT pública. **Sin `tenant_id`** a propósito: el throttle es pre-cuenta (el cliente todavía no tiene tenant/MARKBOX) y la IP es global al endpoint público.
+- Editados: `app/portal/(auth)/registro/{actions.ts,RegisterForm.tsx}`. Nuevos: `supabase/migrations/0094_portal_registro_throttle.sql`, `app/portal/(auth)/registro/__tests__/register-antiabuse.test.ts`.
+- Tests Vitest (`register-antiabuse.test.ts`): honeypot lleno → rechazo benigno + CERO writes (no clients/createUser/upload/throttle); throttle `>= LIMIT` → rechazo sin writes (consulta el throttle pero no inserta el intento ni hace trabajo pesado); `< LIMIT` → registra el intento y procede (next_markbox + upload + insert clients). Mock de `next/headers` para la IP + fake admin client (sin red ni DB).
+
 ---
 
 ## Diseño (referencia)
