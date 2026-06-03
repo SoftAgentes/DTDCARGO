@@ -5,6 +5,15 @@
 
 export type ClientTier = "regular" | "vip" | "premium";
 
+/** Origen del alta del cliente (SDD-0046). */
+export type RegistrationChannel = "admin" | "portal";
+/** Tipo de documento del cliente (SDD-0046): cédula vs RIF. */
+export type ClientDocKind = "persona" | "empresa";
+/** Resultado advisory de la verificación de identidad (SDD-0046). */
+export type DocVerifyStatus = "ok" | "mismatch" | "unavailable";
+/** Fuente del resultado de verificación (SDD-0046). */
+export type DocVerifySource = "cne" | "seniat" | "manual";
+
 export type Client = {
   id: string;
   tenant_id: string;
@@ -20,6 +29,20 @@ export type Client = {
   lat: number | null;
   /** Longitud GPS. */
   lng: number | null;
+  /** SDD-0046: origen del alta · admin (asesor) | portal (self-registro). */
+  registration_channel: RegistrationChannel;
+  /** SDD-0046: tipo de documento · persona (cédula) | empresa (RIF). */
+  doc_kind: ClientDocKind | null;
+  /** SDD-0046: resultado advisory · null sin verificar | ok | mismatch | unavailable. */
+  doc_verify_status: DocVerifyStatus | null;
+  /** SDD-0046: fuente del resultado · cne | seniat | manual. */
+  doc_verify_source: DocVerifySource | null;
+  /** SDD-0046: nombre/razón social que devolvió el registro oficial. */
+  doc_registry_name: string | null;
+  /** SDD-0046: timestamp de la última verificación. */
+  doc_verified_at: string | null;
+  /** SDD-0042 Fase 6 / SDD-0046: path en client-docs de la foto de cédula/RIF. */
+  cedula_photo_path: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -67,6 +90,45 @@ export function tierBadgeTone(tier: ClientTier): "neutral" | "info" | "wine" {
       return "info";
     case "premium":
       return "wine";
+  }
+}
+
+/**
+ * Badge advisory del estado de verificación de identidad (SDD-0046).
+ *
+ * El badge es ADVISORY — nunca bloquea al cliente (§5.2). Tonos:
+ *   - sin verificar (null) → neutral
+ *   - corresponde (ok)     → success
+ *   - no corresponde (mismatch) → danger
+ *   - no disponible (unavailable) → warning
+ */
+export function docVerifyBadge(status: DocVerifyStatus | null): {
+  tone: "neutral" | "success" | "danger" | "warning";
+  label: string;
+} {
+  switch (status) {
+    case "ok":
+      return { tone: "success", label: "Corresponde" };
+    case "mismatch":
+      return { tone: "danger", label: "No corresponde" };
+    case "unavailable":
+      return { tone: "warning", label: "No disponible" };
+    default:
+      return { tone: "neutral", label: "Sin verificar" };
+  }
+}
+
+/** Label corto de la fuente de verificación (SDD-0046) — para "Verificado por …". */
+export function docVerifySourceLabel(source: DocVerifySource | null): string {
+  switch (source) {
+    case "cne":
+      return "CNE";
+    case "seniat":
+      return "SENIAT";
+    case "manual":
+      return "marca manual";
+    default:
+      return "—";
   }
 }
 

@@ -188,13 +188,15 @@ cada verificación. El backfill (migración) cubre los clientes históricos por 
 - [x] `node scripts/verify.mjs` VERDE (lint + typecheck + test + docs:check). Frontera público↔ERP
       intacta.
 
-### Slice B (futuro)
-- [ ] `verifyIdentity` con provider mock: `ok` / `mismatch` / `unavailable`, ruteo persona→CNE.
-- [ ] `verifyIdentityAction`: update de `doc_verify_*` + filtro `tenant_id` + alerta email en
-      `mismatch` (stub supabase/mail) + cache por `doc_verified_at`.
-- [ ] `IdentityVerificationCard` en el detalle del cliente (foto + badge advisory + "Verificar con
-      CNE" + piso manual); filtro "pendientes de revisar" en la lista. light+dark, solo `var(--*)`,
-      `ui-ux-designer`.
+### Slice B
+- [x] `verifyIdentity` con provider mock: `ok` / `mismatch` / `unavailable`, ruteo persona→CNE. (B1)
+- [x] `verifyIdentityAction`: update de `doc_verify_*` + filtro `tenant_id` + alerta email en
+      `mismatch` (stub supabase/mail) + cache por `doc_verified_at`. (B1)
+- [x] `IdentityVerificationCard` en el detalle del cliente (foto vía signed URL + badge advisory +
+      "Verificar con CNE"/"Verificar con SENIAT" por tipo + piso manual con deep-link CNE/SENIAT +
+      marcar corresponde/no corresponde); filtro/chip "pendientes de revisar" + badge advisory en la
+      row de la lista. Solo `var(--*)`, componentes del sistema (`Badge`/`ActionButton`). (B2 ·
+      `ui-ux-designer` pendiente pre-commit)
 
 ### Slice C (futuro, gated por spike)
 - [ ] Spike SENIAT reporta accuracy del OCR antes de construir el provider.
@@ -239,5 +241,24 @@ cada verificación. El backfill (migración) cubre los clientes históricos por 
   `__tests__/` (34 tests).
 - Wire en `app/portal/(auth)/registro/actions.ts` (insert setea `registration_channel` + `doc_kind`).
 
-**Slice B (cédula/CNE) y Slice C (RIF/SENIAT)** quedan pendientes (ver §3 / §6). → Pasa a `done`
-cuando B (y, si el spike lo habilita, C) estén shipped.
+**Slice B (cédula/CNE) implementado** vía harness `/feature` (2026-06-03), en dos sub-slices:
+- **B1 (backend)** — adapter server-only `lib/studio/identity/` (`types.ts`, `index.ts` con
+  `verifyIdentity` interceptable vía `providerRegistry.getCneProvider`, `providers/cne-cedulave.ts` +
+  hueco `cne-verifik.ts`) + server actions `verifyIdentityAction` / `markIdentityAction` en
+  `app/studio/(app)/clientes/actions.ts` (RLS + filtro `tenant_id`; alerta mismatch best-effort vía
+  `lib/studio/identity/notify-mismatch.ts`) + tests Vitest (provider mock + action).
+- **B2 (UI)** — `app/studio/(app)/clientes/_components/IdentityVerificationCard.tsx`: foto del
+  documento vía signed URL (bucket privado `client-docs`, `<img>` + `eslint-disable no-img-element`,
+  patrón del Studio para signed URLs), badge advisory (`docVerifyBadge` en `client-types`), cotejo
+  nombre cargado vs `doc_registry_name`, botón auto por tipo (CNE persona / SENIAT empresa →
+  `verifyIdentityAction`), piso manual siempre visible (deep-link CNE/SENIAT + marcar
+  corresponde/no → `markIdentityAction`), "Verificado por {fuente} · {fecha}". Render en
+  `clientes/[markbox]/page.tsx` debajo de `PortalAccessCard` (gate: `registration_channel='portal'`
+  o `cedula_photo_path`); signed URL generada server-side. Lista (`clientes/page.tsx` +
+  `ClientsClient.tsx`): chip toggle "Pendientes de revisar" (`?pending=1` →
+  `registration_channel='portal'` AND `doc_verify_status is null`) + badge advisory en la row de
+  self-registrados. Columnas SDD-0046 cableadas a `Client` type + `CLIENT_COLUMNS`. `ui-ux-designer`
+  pendiente pre-commit (regla del founder).
+
+**Slice C (RIF/SENIAT)** queda pendiente (gated por spike, ver §3 / §6). → Pasa a `done` cuando C
+esté shipped o se decida cerrar V1 sin el auto-SENIAT (la empresa ya tiene piso manual funcional).

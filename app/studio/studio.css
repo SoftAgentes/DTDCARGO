@@ -765,3 +765,15 @@
     animation: none;
   }
 }
+
+/* Thumbnail de documento (IdentityVerificationCard) · affordance de "se amplía".
+   La etiqueta "Ampliar" en la esquina es persistente; el hover suma elevación
+   + borde fuerte para reforzar que es clickeable. */
+.studio-doc-thumb:hover {
+  box-shadow: var(--shadow-sm);
+  border-color: var(--border-strong) !important;
+}
+.studio-doc-thumb:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}

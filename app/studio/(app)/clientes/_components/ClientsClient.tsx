@@ -14,6 +14,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
   CLIENT_TIER_OPTIONS,
+  docVerifyBadge,
   tierBadgeTone,
   tierLabel,
   type Client,
@@ -39,6 +40,9 @@ export function ClientsClient({
 
   const [q, setQ] = useState(params.get("q") ?? "");
   const [tier, setTier] = useState(params.get("tier") ?? "");
+  const pending = params.get("pending") === "1";
+  const hasActiveFilter =
+    !!filters.q || filters.tier !== "all" || !!filters.pendingReview;
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -48,15 +52,20 @@ export function ClientsClient({
   useEffect(() => {
     const currentQ = params.get("q") ?? "";
     if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q, tier }), 350);
+    const t = setTimeout(() => pushFilters({ q, tier, pending }), 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const pushFilters = (next: { q?: string; tier?: string }) => {
+  const pushFilters = (next: {
+    q?: string;
+    tier?: string;
+    pending?: boolean;
+  }) => {
     const s = new URLSearchParams();
     if (next.q && next.q.trim()) s.set("q", next.q.trim());
     if (next.tier) s.set("tier", next.tier);
+    if (next.pending) s.set("pending", "1");
     const qs = s.toString();
     startTransition(() => {
       router.push(qs ? `/studio/clientes?${qs}` : "/studio/clientes");
@@ -151,7 +160,19 @@ export function ClientsClient({
             ))}
           </select>
         </div>
-        {(q || tier) && (
+        <button
+          type="button"
+          className={`studio-btn studio-btn-sm ${
+            pending ? "studio-btn-dark" : "studio-btn-ghost"
+          }`}
+          style={{ height: 38 }}
+          aria-pressed={pending}
+          onClick={() => pushFilters({ q, tier, pending: !pending })}
+          title="Clientes que se registraron solos y todavía no verificaste"
+        >
+          Pendientes de revisar
+        </button>
+        {(q || tier || pending) && (
           <button
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -169,20 +190,26 @@ export function ClientsClient({
 
       {/* Tabla o empty */}
       {clients.length === 0 ? (
-        <EmptyState
-          eyebrow={filters.q || filters.tier !== "all" ? "Sin resultados" : "Catálogo vacío"}
-          title={
-            filters.q || filters.tier !== "all"
-              ? "Ningún cliente coincide con estos filtros."
-              : "Aún no cargaste clientes."
-          }
-          description={
-            filters.q || filters.tier !== "all"
-              ? "Probá ajustar los filtros o limpiá la búsqueda."
-              : "Creá el primer cliente. El MARKBOX se asigna automáticamente."
-          }
-          action={
-            !filters.q && filters.tier === "all" ? (
+        hasActiveFilter ? (
+          <EmptyState
+            eyebrow="Sin resultados"
+            title={
+              filters.pendingReview
+                ? "No hay clientes pendientes de revisar."
+                : "Ningún cliente coincide con estos filtros."
+            }
+            description={
+              filters.pendingReview
+                ? "Los clientes self-registrados ya verificados no aparecen acá."
+                : "Probá ajustar los filtros o limpiá la búsqueda."
+            }
+          />
+        ) : (
+          <EmptyState
+            eyebrow="Catálogo vacío"
+            title="Aún no cargaste clientes."
+            description="Creá el primer cliente. El MARKBOX se asigna automáticamente."
+            action={
               <button
                 type="button"
                 className="studio-btn studio-btn-primary"
@@ -190,9 +217,9 @@ export function ClientsClient({
               >
                 + Nuevo cliente
               </button>
-            ) : null
-          }
-        />
+            }
+          />
+        )
       ) : (
         <ClientsTable clients={clients} />
       )}
@@ -272,7 +299,17 @@ function ClientsTable({ clients }: { clients: Client[] }) {
               color: "var(--ink)",
             }}
           >
-            {c.name}
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              {c.name}
+              {/* SDD-0046: badge advisory de verificación · solo para self-registrados. */}
+              {c.registration_channel === "portal" && (
+                <Badge tone={docVerifyBadge(c.doc_verify_status).tone} size="sm">
+                  {docVerifyBadge(c.doc_verify_status).label}
+                </Badge>
+              )}
+            </span>
             {c.notes && (
               <div
                 style={{
