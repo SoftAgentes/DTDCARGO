@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0010", "0012"]
+confidencialidad: interno
 ---
 
 # DTD-0016 — Almacén CN

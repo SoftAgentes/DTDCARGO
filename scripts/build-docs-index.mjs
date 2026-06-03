@@ -30,7 +30,11 @@ function parseFrontMatter(text) {
   const end = text.indexOf("\n---", 3);
   if (end === -1) return null;
   const fm = {};
-  for (const line of text.slice(3, end).split(/\r?\n/)) {
+  for (const rawLine of text.slice(3, end).split(/\r?\n/)) {
+    // Stripear \r colgante: con CRLF, la última línea del frontmatter queda con
+    // un \r final (el slice corta antes del \n de cierre) y `(.*)$` no lo matchea
+    // (en regex JS `.` no incluye \r) → el último campo no se parseaba.
+    const line = rawLine.replace(/\r+$/, "");
     const m = line.match(/^([a-z_]+):\s*(.*)$/i);
     if (!m) continue;
     let v = m[2].trim();

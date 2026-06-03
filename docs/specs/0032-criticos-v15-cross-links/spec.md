@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0006", "0010", "0018", "0026", "0031"]
+confidencialidad: interno
 ---
 
 # DTD-0032 — Críticos v1.5 + cross-links cliente

@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0007", "0010", "0012", "0014", "0020", "0024", "0025"]
+confidencialidad: interno
 ---
 
 # DTD-0026 — Mailing & Notificaciones · Resend + Templates + Logs

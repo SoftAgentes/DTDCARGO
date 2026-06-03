@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0020", "0022", "0023", "0029"]
+confidencialidad: interno
 ---
 
 # DTD-0030 — Despacho · Apps móviles bodeguero VE + camionero VE

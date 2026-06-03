@@ -8,6 +8,7 @@ updated: 2026-06-02
 supersedes: null
 superseded_by: null
 related: ["0005", "0006", "0008", "0009", "0010"]
+confidencialidad: interno
 ---
 
 # DTD-0011 — Cotizador
