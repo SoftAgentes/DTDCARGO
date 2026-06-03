@@ -9,26 +9,23 @@ import {
 /**
  * Tests del cálculo de cotización LCL DDP.
  *
- * Cubre los casos críticos del pricing model:
+ * Modelo: el cliente ingresa CBM total + peso (no dimensiones).
  * - Carga normal (densidad <= 500 kg/CBM) → solo CBM × tarifaBase
  * - Excedente de peso (500-600 kg/CBM) → suma recargo
  * - Carga ultradensa (>600 kg/CBM) → alerta + estimado igual
- * - Destinos: Valencia (descuento), Maracay (casco), fuera del casco (km × $)
- * - Embalaje: cartón (0) vs paleta (+$60)
- * - Validación: dimensiones inválidas, ciudad inválida
+ * - Destinos: Valencia (descuento), Maracay/Caracas (casco), fuera del casco (km × $)
+ * - Embalaje: estándar (0) vs especial (+$50)
+ * - Baterías: ×1.5 sobre el flete
+ * - Carga especial/peligrosa → no cotiza, deriva al asesor
+ * - Validación: carga inválida (CBM/peso <= 0), ciudad inválida
  */
 describe("calcularEnvioLCL", () => {
-  // ─────────────────────────────────────────────────────────────────
-  // Caso normal: 1 CBM, 400 kg, Valencia, cartón
-  // ─────────────────────────────────────────────────────────────────
+  // Caso normal: 1 CBM, 400 kg, Valencia, estándar (con descuento sede)
   it("calcula correctamente una carga normal a Valencia (con descuento sede)", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100, // 100×100×100 = 1 CBM
+      cbmTotal: 1,
       pesoKg: 400, // < 500 kg/CBM → sin excedente
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "valencia",
     });
 
@@ -38,47 +35,36 @@ describe("calcularEnvioLCL", () => {
     expect(cot.recargoExcedente).toBe(0);
     expect(cot.recargoCiudad).toBe(0); // Valencia es casco
     expect(cot.recargoEmbalaje).toBe(0);
+    expect(cot.recargoBateria).toBe(0);
     expect(cot.descuentoSede).toBe(-50);
     expect(cot.total).toBe(750); // 800 - 50
     expect(cot.alerta).toBeUndefined();
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Excedente de peso: 1 CBM, 600 kg, Caracas
-  // densidad = 600 kg/CBM (en el límite)
-  // ─────────────────────────────────────────────────────────────────
+  // Excedente de peso: 1 CBM, 600 kg, Caracas (densidad = 600 kg/CBM, en el límite)
   it("aplica recargo de excedente cuando supera 500 kg/CBM", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 1,
       pesoKg: 600,
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "caracas",
     });
 
     expect(cot.cbm).toBe(1);
     expect(cot.densidadKgM3).toBe(600);
     expect(cot.precioBase).toBe(800);
-    // 100 kg de excedente × $1 = $100
-    expect(cot.recargoExcedente).toBe(100);
+    expect(cot.recargoExcedente).toBe(100); // 100 kg × $1
     expect(cot.recargoCiudad).toBe(0); // Caracas es casco
     expect(cot.total).toBe(900);
     expect(cot.alerta).toBeUndefined();
   });
 
-  // ─────────────────────────────────────────────────────────────────
   // Carga ultradensa: 1 CBM, 800 kg → alerta peso_excedido
-  // ─────────────────────────────────────────────────────────────────
   it("muestra alerta cuando la densidad supera 600 kg/CBM", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 1,
       pesoKg: 800, // 800 kg/CBM > 600 → alerta
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "caracas",
     });
 
@@ -87,18 +73,12 @@ describe("calcularEnvioLCL", () => {
     expect(cot.alerta?.mensaje).toContain("FCL");
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Recargo por ciudad fuera del casco central
-  // Barquisimeto está a 220 km → 20 km fuera del casco × $1 = $20
-  // ─────────────────────────────────────────────────────────────────
+  // Recargo por ciudad fuera del casco: Barquisimeto 220 km → 20 km × $1 = $20
   it("aplica recargo por km cuando la ciudad está fuera del casco central", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 1,
       pesoKg: 400,
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "barquisimeto", // 220 km, fuera del casco (threshold 200)
     });
 
@@ -106,35 +86,25 @@ describe("calcularEnvioLCL", () => {
     expect(cot.total).toBe(820); // 800 + 20
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Recargo por embalaje paleta
-  // ─────────────────────────────────────────────────────────────────
-  it("aplica recargo de $60 cuando embalaje es paleta o madera", () => {
+  // Recargo por embalaje especial (+$50)
+  it("aplica recargo de $50 cuando embalaje es especial (madera/paleta)", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 1,
       pesoKg: 400,
-      cantidadCajas: 1,
-      embalaje: "paleta",
+      embalaje: "especial",
       ciudadId: "caracas",
     });
 
-    expect(cot.recargoEmbalaje).toBe(60);
-    expect(cot.total).toBe(860); // 800 + 60
+    expect(cot.recargoEmbalaje).toBe(50);
+    expect(cot.total).toBe(850); // 800 + 50
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Múltiples cajas
-  // ─────────────────────────────────────────────────────────────────
-  it("multiplica el volumen por la cantidad de cajas", () => {
+  // CBM total fraccionario
+  it("calcula con CBM total fraccionario", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 50,
-      anchoCm: 50,
-      altoCm: 50, // 0.125 m³ × 4 = 0.5 CBM
+      cbmTotal: 0.5,
       pesoKg: 200,
-      cantidadCajas: 4,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "caracas",
     });
 
@@ -142,17 +112,55 @@ describe("calcularEnvioLCL", () => {
     expect(cot.precioBase).toBe(400); // 0.5 × 800
   });
 
-  // ─────────────────────────────────────────────────────────────────
+  // Destino "Casco central" (agrupado): sin recargo y SIN descuento Valencia
+  it("casco-central no tiene recargo por km ni descuento de sede", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 1,
+      pesoKg: 400,
+      embalaje: "estandar",
+      ciudadId: "casco-central",
+    });
+
+    expect(cot.recargoCiudad).toBe(0);
+    expect(cot.descuentoSede).toBe(0); // no es "valencia" explícita
+    expect(cot.total).toBe(800);
+  });
+
+  // Baterías: multiplican el flete ×1.5
+  it("aplica el multiplicador de baterías (×1.5) sobre el flete", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 1,
+      pesoKg: 400,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+      bateria: true,
+    });
+
+    // flete antes de batería = 800; con batería = 1200
+    expect(cot.recargoBateria).toBe(400);
+    expect(cot.total).toBe(1200);
+  });
+
+  // Carga especial / peligrosa → no cotiza, deriva al asesor
+  it("deriva al asesor cuando la carga es especial/peligrosa", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 1,
+      pesoKg: 400,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+      cargaEspecial: true,
+    });
+
+    expect(cot.alerta?.tipo).toBe("carga_especial");
+    expect(cot.total).toBe(0);
+  });
+
   // Validación: ciudad inválida
-  // ─────────────────────────────────────────────────────────────────
   it("retorna alerta cuando la ciudad no existe", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 1,
       pesoKg: 400,
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "marte", // no existe
     });
 
@@ -161,17 +169,12 @@ describe("calcularEnvioLCL", () => {
     expect(cot.total).toBe(0);
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Validación: dimensiones inválidas
-  // ─────────────────────────────────────────────────────────────────
-  it("retorna alerta cuando las dimensiones son <= 0", () => {
+  // Validación: CBM o peso <= 0
+  it("retorna alerta cuando el CBM total o el peso son <= 0", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 0,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 0,
       pesoKg: 400,
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "valencia",
     });
 
@@ -179,53 +182,37 @@ describe("calcularEnvioLCL", () => {
     expect(cot.total).toBe(0);
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Sanity: las ciudades del casco no tienen recargo
-  // ─────────────────────────────────────────────────────────────────
+  // Sanity: las ciudades del casco no tienen recargo por km
   it("las ciudades del casco central nunca tienen recargo por km", () => {
     const ciudadesCasco = CIUDADES.filter((c) => c.casco);
     for (const c of ciudadesCasco) {
       const cot = calcularEnvioLCL({
-        largoCm: 100,
-        anchoCm: 100,
-        altoCm: 100,
+        cbmTotal: 1,
         pesoKg: 400,
-        cantidadCajas: 1,
-        embalaje: "carton",
+        embalaje: "estandar",
         ciudadId: c.id,
       });
       expect(cot.recargoCiudad).toBe(0);
     }
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // El CONFIG es la fuente de verdad — los valores devueltos respetan
-  // las constantes
-  // ─────────────────────────────────────────────────────────────────
+  // CONFIG es la fuente de verdad
   it("respeta CONFIG.tarifaBaseCBM como base del cálculo", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 1,
       pesoKg: 100,
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "maracay",
     });
     expect(cot.precioBase).toBe(1 * CONFIG.tarifaBaseCBM);
   });
 
-  // ─────────────────────────────────────────────────────────────────
-  // Override de tarifa CBM (el cliente edita la tarifa estándar)
-  // ─────────────────────────────────────────────────────────────────
+  // Override de tarifa CBM
   it("usa tarifaCBMOverride cuando se provee un valor válido", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 1,
       pesoKg: 100,
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "maracay",
       tarifaCBMOverride: 650,
     });
@@ -235,12 +222,9 @@ describe("calcularEnvioLCL", () => {
 
   it("ignora tarifaCBMOverride si es 0 o negativo, cae al default", () => {
     const cot = calcularEnvioLCL({
-      largoCm: 100,
-      anchoCm: 100,
-      altoCm: 100,
+      cbmTotal: 1,
       pesoKg: 100,
-      cantidadCajas: 1,
-      embalaje: "carton",
+      embalaje: "estandar",
       ciudadId: "maracay",
       tarifaCBMOverride: 0, // inválido
     });
@@ -251,21 +235,16 @@ describe("calcularEnvioLCL", () => {
 describe("whatsappTextFromCotizacion", () => {
   it("genera un mensaje con todos los datos relevantes", () => {
     const input = {
-      largoCm: 60,
-      anchoCm: 40,
-      altoCm: 50,
+      cbmTotal: 2,
       pesoKg: 100,
-      cantidadCajas: 2,
-      embalaje: "carton" as const,
+      embalaje: "estandar" as const,
       ciudadId: "caracas",
     };
     const cot = calcularEnvioLCL(input);
     const text = whatsappTextFromCotizacion(cot, input);
 
     expect(text).toContain("DTD Cargo");
-    expect(text).toContain("60");
-    expect(text).toContain("40");
-    expect(text).toContain("50");
+    expect(text).toContain("2 m³");
     expect(text).toContain("100 kg");
     expect(text).toContain("Caracas");
     expect(text).toContain(`US$${cot.total.toFixed(2)}`);
