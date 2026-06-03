@@ -4,26 +4,32 @@
   "partA": {
     "findings": [
       {
-        "id": "perms-obsoletos",
-        "title": "Permisos obsoletos en .claude/settings podados",
+        "id": "flaky-vitest-worker",
+        "title": "Worker flaky de Vitest dispara falsos ROJOS en el Stop hook",
         "severity": "media",
-        "action": "Se removieron refs al path viejo `IA ANTROPIC\\dtd-cargo` y se acotaron wildcards demasiado amplios (`npm run *`) a comandos puntuales.",
+        "action": "Pasó varias veces hoy (\"failed to find the runner\" / \"reading 'config'\") bloqueando el cierre del harness sin regresion real. Mitigar en vitest.config: pool mas estable en Windows (forks/single) o retry de archivos, para que un crash transitorio no false-blockee el gate.",
         "top": true
       },
       {
-        "id": "agents-drift",
-        "title": "Drift de versión del Norte en AGENTS.md resuelto",
+        "id": "schema-reconciliation-stale",
+        "title": "schema-reconciliation.md desactualizado (snapshot 0096, repo en 0100)",
         "severity": "media",
-        "action": "El puntero `Protocolo UI handoff-first … hoy vX` quedó alineado al Norte vigente (v2.4); ya no apunta a una versión desactualizada."
+        "action": "Desde el snapshot shippearon SDD-0051/0052/0053 + migr 0097/0098/0100. Naviera (Bloque 4) ya esta done (UI existe), no \"en construccion\". Regenerar el reconciliador para que la Parte B y la vista Datos del Norte no mientan."
       },
       {
-        "id": "verify-gate-flaky",
-        "title": "Gate `node scripts/verify.mjs` con worker flaky de Vitest en Windows",
+        "id": "effort-xhigh-global",
+        "title": "effortLevel `xhigh` global encarece tareas mecanicas",
+        "severity": "media",
+        "action": "Bajar a Sonnet / effort menor para renames, doc-index, formato; reservar xhigh+Opus para harness/specs/auditorias."
+      },
+      {
+        "id": "perms-wildcards-cross-project",
+        "title": "Wildcards amplios + dirs cruzados en ~/.claude/settings.json",
         "severity": "baja",
-        "action": "El error transitorio \"Vitest failed to find the runner\" es un worker caído, NO una regresión → re-correr el gate antes de asumir rojo."
+        "action": "`npm run *` / `npx tsc *` / `npm install *` siguen abiertos y ni aplican (el proyecto usa pnpm); `Read(Desktop/**)` muy amplio; additionalDirectories cruza a `IA ANTROPIC\\Factroia`. Acotar/quitar."
       }
     ],
-    "estimatedTokenSavings": "~8%"
+    "estimatedTokenSavings": "~10%"
   },
   "partB": {
     "counts": {
@@ -34,19 +40,29 @@
     },
     "blocks": [
       {
-        "name": "Bloque 1 · Financiero",
+        "name": "Bloque 1-2 · Financiero (Facturacion/Contab/Cobranzas/Tesoreria)",
         "remaining": "0%",
-        "note": "Facturación + Contabilidad en prod (SDD-0021/0040)."
+        "note": "SDD-0021/0040/0041/0044 done en prod."
       },
       {
-        "name": "Bloque 2 · Tesorería/Cobranzas",
-        "remaining": "15%",
-        "note": "Cobranzas en prod; Tesorería (0044) con deploy pendiente."
+        "name": "Bloque 3 · Fiscal SENIAT",
+        "remaining": "100%",
+        "note": "Libro Ventas/Compras + IVA + retenciones: criticidad legal VE, sin spec ni tablas. Bloque grande mas atrasado."
       },
       {
-        "name": "Bloque 3 · Fiscal",
-        "remaining": "60%",
-        "note": "Capa fiscal documentada, sin implementar."
+        "name": "Bloque 4 · Naviera & Consolidacion",
+        "remaining": "0%",
+        "note": "SDD-0047 Slice A+B shipped (UI /studio/naviera existe). La reconciliacion stale lo daba en construccion."
+      },
+      {
+        "name": "Bloque 5 · Comercial (Direccion/Docs/Fidelizacion/Reportes/Costing)",
+        "remaining": "~25% (est.)",
+        "note": "0048/0049/0051/0052 done; SDD-0053 Costing Slice A shipped (desbloquea Reportes Combinados). Falta Reportes Slice C + Costing Slice B-C."
+      },
+      {
+        "name": "Capa legal + inbox portal (3 entidades missing)",
+        "remaining": "100%",
+        "note": "LegalDoc + LegalAcceptance + PortalInboxEvent: hueco keystone, mantiene Invoice en partial (gate AUT-04). Sin tabla. Sin avance este dia."
       }
     ]
   }
