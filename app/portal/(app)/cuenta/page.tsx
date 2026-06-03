@@ -4,6 +4,7 @@ import { getPortalClient } from "@/lib/portal/portal-queries";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { WhatsAppIcon } from "@/components/Icon";
+import { ChangePasswordCard } from "./ChangePasswordCard";
 
 export const metadata: Metadata = { title: "Mi cuenta" };
 
@@ -96,6 +97,9 @@ export default async function PortalAccountPage() {
               <WhatsAppIcon size={18} /> Actualizar mis datos
             </a>
           </div>
+
+          {/* Cambio de contraseña OPCIONAL (SDD-0042 Fase 6) */}
+          <ChangePasswordCard />
         </div>
 
         {/* ── Tu MARKBOX para tus proveedores (el VALOR) ── */}
