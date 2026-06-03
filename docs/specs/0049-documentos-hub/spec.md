@@ -71,6 +71,16 @@ embebible (subir/listar/preview signed-URL) + página `/studio/documentos` (árb
   `pendingDocuments`, `unlinkedDocuments`.
 - **NO** en Slice A: upload/delete actions, UI, embed, hub page.
 
+> **Notas de implementación (Slice A · harness 2026-06-03):** migración `0097_documentos_hub.sql`
+> (LOCAL, no aplicada a prod) + `lib/studio/documents/{types,queries}.ts` + tests.
+> - `document_status` (enum persistido) = `firmado/vigente/pendiente/borrador`. `vencido`/`por-vencer`
+>   se **derivan** de `valid_until` en `deriveDocStatus()` — NO viven en el enum (§4.4).
+> - Mapa `entity_type → tabla` del helper/trigger de validación: `shipment→shipments` ·
+>   `invoice→invoices` · `supplier_bill→supplier_bills` · `supplier_payment→supplier_payments` ·
+>   `journal_entry→journal_entries` · `client→clients` · `supplier→suppliers` ·
+>   `consolidation→consolidations` · `booking→bookings` (todas con `tenant_id` + `deleted_at`).
+> - CHECK `documents_entity_id_coherent`: `none ⇒ entity_id null`; cualquier otro `⇒ entity_id not null`.
+
 ### Slice B — Operable: panel embebible + hub + wiring · NO en Slice A
 
 - **Server actions** `app/studio/(app)/documentos/actions.ts` (`"use server"` + validate + tenant
@@ -112,13 +122,17 @@ de Storage; se calca `shipment-docs` con path polimórfico.
 
 ## 5. Acceptance
 
-### Slice A
-- [ ] Migración aplica limpia + rollback-test; `documents` con RLS por tenant; bucket `documents`
-      privado + Storage RLS por tenant (1er segmento = tenant_id).
-- [ ] Trigger rechaza insert con `entity_id` inexistente / de otro tenant / wrong-type (probado);
-      `none` pasa.
-- [ ] `listDocumentsByEntity` / `listAllDocuments` / `folderCounts` / `expiring` (test con stub).
-- [ ] `node scripts/verify.mjs` verde.
+### Slice A ✅ (implementado · pendiente review + aplicar a prod)
+- [x] Migración `0097_documentos_hub.sql` escrita; `documents` con RLS fail-closed por tenant; bucket
+      `documents` privado (10 MB, 7 mimes) + 4 Storage policies por tenant (1er segmento = tenant_id).
+      *(NO aplicada a prod — la aplica el founder.)*
+- [x] Trigger `documents_validate_entity` (BEFORE INSERT/UPDATE) + helper `document_entity_in_tenant()`
+      rechazan `entity_id` inexistente / de otro tenant / wrong-type; `none`/`null` pasan. CHECK
+      `documents_entity_id_coherent` fuerza la coherencia entity_type↔entity_id.
+- [x] `lib/studio/documents/{types,queries}.ts` — `listDocumentsByEntity` / `listAllDocuments` /
+      `folderCounts` / `expiringDocuments` / `pendingDocuments` / `unlinkedDocuments` + `deriveDocStatus`
+      + `validateDocumentInput` (no Zod). Tests con stub SupabaseClient en `__tests__/`.
+- [x] `node scripts/verify.mjs` verde (634 tests, 43 files).
 
 ### Slice B
 - [ ] Subir un PDF a un envío desde `<DocsPanel>` → aparece en el panel + en el hub bajo su carpeta.
