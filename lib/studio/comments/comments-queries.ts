@@ -11,6 +11,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/lib/db/admin";
 import type {
   Comment,
   CommentEntityType,
@@ -139,7 +140,7 @@ export async function listMyMentions(
     .from("comment_mentions")
     .select(
       "id, comment_id, read_at, created_at, " +
-        "comment:comments(entity_type, entity_id, entity_code, body, author_id)",
+        "comment:comments(entity_type, entity_id, entity_code, body, author_id, deleted_at)",
     )
     .eq("mentioned_user_id", currentUserId)
     .order("created_at", { ascending: false })
@@ -164,6 +165,7 @@ export async function listMyMentions(
           entity_code: string | null;
           body: string;
           author_id: string | null;
+          deleted_at: string | null;
         }
       | Array<{
           entity_type: CommentEntityType;
@@ -171,6 +173,7 @@ export async function listMyMentions(
           entity_code: string | null;
           body: string;
           author_id: string | null;
+          deleted_at: string | null;
         }>
       | null;
   };
@@ -182,7 +185,10 @@ export async function listMyMentions(
       const comment = Array.isArray(r.comment)
         ? (r.comment[0] ?? null)
         : r.comment;
-      if (!comment) return null;
+      // Excluir menciones cuyo comentario fue soft-deleted: el comentario ya no
+      // existe para el equipo, no debe seguir en la bandeja (la fila de mención
+      // queda en DB por auditoría, pero no se lista).
+      if (!comment || comment.deleted_at) return null;
       const u = comment.author_id ? userMap.get(comment.author_id) : undefined;
       return {
         mention_id: r.id,
@@ -201,24 +207,40 @@ export async function listMyMentions(
 
 /**
  * Carga los usuarios del tenant (id → name/avatar/role) para enriquecer los
- * comentarios y alimentar el autocomplete de @menciones. Usa el client regular
- * (RLS filtra por tenant). Combina user_tenants (rol) + user_profiles (nombre).
+ * comentarios y alimentar el autocomplete de @menciones. Combina user_tenants
+ * (rol) + user_profiles (nombre).
  *
- * El email de auth.users NO es accesible vía RLS, así que si el perfil no tiene
- * nombre cargado se cae a un placeholder legible ("Usuario").
+ * ⚠️ Usa el ADMIN client (service_role) filtrado por `tenant_id` explícito, NO
+ * el client RLS: la policy SELECT de `user_tenants` para `authenticated` es
+ * `user_id = auth.uid()` (cada user ve SOLO su propia fila). Con el client
+ * regular esta lista traería únicamente al caller → las @menciones a
+ * compañeros nunca se resolverían y el dropdown solo se mostraría a uno mismo.
+ * Mismo patrón que `listMembers` (user-queries): admin client + filtro de
+ * tenant obligatorio. (Ver memoria rls_policies_maybesingle_anti_pattern.)
+ *
+ * Defensivo: si el `service_role` no está configurado, devuelve [] (degrada
+ * sin romper el comentario ni la página). El email de auth.users no se usa acá.
  */
 export async function loadTenantUsers(
-  supabase: SupabaseClient,
+  tenantId: string,
 ): Promise<CommentTenantUser[]> {
-  const { data, error } = await supabase
+  let admin: SupabaseClient;
+  try {
+    admin = createAdminClient();
+  } catch {
+    return [];
+  }
+
+  const { data, error } = await admin
     .from("user_tenants")
     .select(
       "user_id, role, disabled_at, profile:user_profiles(first_name, last_name)",
     )
+    .eq("tenant_id", tenantId)
     .is("disabled_at", null)
     .limit(500);
 
-  if (error) throw error;
+  if (error) return [];
 
   type Row = {
     user_id: string;

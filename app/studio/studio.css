@@ -458,6 +458,18 @@
   background: var(--wine-tint);
 }
 
+/* Chip de @mención en comentarios (SDD-0045). Wine-tint + texto wine, igual
+   que el mockup. El contenido ya viene escapado por renderMentionHtml (el body
+   se escapa ANTES de inyectar el span), así que es seguro estilarlo así. */
+.mention-chip {
+  background: var(--wine-tint);
+  color: var(--wine);
+  font-weight: 600;
+  padding: 0 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 /* ───────────────────────────────────────────────────────────
    Tracking — grid del detalle (2 cols desktop, 1 col mobile)
    ─────────────────────────────────────────────────────────── */

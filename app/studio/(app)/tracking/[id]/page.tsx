@@ -27,7 +27,7 @@ import {
   listShipmentDocuments,
   signDocumentUrls,
 } from "@/lib/studio/shipment-document-queries";
-import { getUser } from "@/lib/auth/session";
+import { getUser, getUserTenantId } from "@/lib/auth/session";
 import {
   listComments,
   loadTenantUsers,
@@ -62,7 +62,8 @@ export default async function ShipmentDetailPage({
 
   // Comentarios internos del equipo (SDD-0045). Embed canónico del módulo.
   const authUser = await getUser();
-  const tenantUsers = await loadTenantUsers(supabase);
+  const tenantId = await getUserTenantId();
+  const tenantUsers = tenantId ? await loadTenantUsers(tenantId) : [];
   const comments = authUser
     ? await listComments(supabase, "shipment", id, tenantUsers, authUser.id)
     : [];
