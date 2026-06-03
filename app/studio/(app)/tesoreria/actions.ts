@@ -1,0 +1,237 @@
+/**
+ * Server actions del módulo Tesorería (SDD-0044).
+ *
+ * - createSupplier / updateSupplier: alta/edición de proveedor-lite (PRV-NNNN).
+ * - createBill: crea la CxP + asiento de causación (delega en createBillFor).
+ * - voidBill: anula una CxP sin pagos (status anulada + anula su asiento).
+ * - registerPayment: registra el pago (orden OP- + saldo + asiento del pago).
+ * - voidPayment: anula una orden de pago (revierte saldo + anula su asiento).
+ * - getBillHistory: lee los pagos de una CxP (para el historial del drawer).
+ *
+ * Sin Zod: validación con `validate*Input()` propio. Las acciones sensibles
+ * (CxP, pago, anulaciones) escriben en entity_audit_log via treasury-actions
+ * (entity_type 'supplier'/'supplier_bill'/'supplier_payment', migración 0088).
+ */
+
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { createAdminClient } from "@/lib/db/admin";
+import { createClient } from "@/lib/db/server";
+import {
+  createBillFor,
+  registerPaymentFor,
+  voidBillFor,
+  voidPaymentFor,
+} from "@/lib/studio/treasury/treasury-actions";
+import {
+  validateSupplierInput,
+  type BillInput,
+  type SupplierInput,
+  type SupplierPaymentInput,
+} from "@/lib/studio/treasury/types";
+import type { SupplierPayment } from "@/lib/studio/treasury/types";
+
+// ── Proveedores ────────────────────────────────────────────────
+
+/** Audit best-effort de alta/edición de proveedor (no bloquea). */
+async function auditSupplier(
+  tenantId: string,
+  supplierId: string,
+  actorId: string | null,
+  eventType: string,
+  payload: Record<string, unknown>,
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await admin.from("entity_audit_log").insert({
+      tenant_id: tenantId,
+      entity_type: "supplier",
+      entity_id: supplierId,
+      actor_type: "user",
+      actor_id: actorId,
+      event_type: eventType,
+      payload,
+    });
+  } catch (e) {
+    console.error("[auditSupplier] no se pudo registrar audit:", e);
+  }
+}
+
+export async function createSupplier(
+  raw: Partial<SupplierInput>,
+): Promise<{ ok?: boolean; error?: string; supplierCode?: string }> {
+  const supabase = await createClient();
+
+  const { input, fieldErrors } = validateSupplierInput(raw);
+  if (fieldErrors) {
+    const first = Object.values(fieldErrors)[0];
+    return { error: first ?? "Datos del proveedor inválidos." };
+  }
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  const { data: codeData, error: codeErr } = await supabase.rpc(
+    "next_supplier_code",
+    { p_tenant_id: link.tenant_id },
+  );
+  if (codeErr || !codeData) {
+    return { error: "No se pudo generar el código del proveedor." };
+  }
+  const supplierCode = String(codeData);
+
+  const { data: inserted, error } = await supabase
+    .from("suppliers")
+    .insert({
+      tenant_id: link.tenant_id,
+      supplier_code: supplierCode,
+      name: input!.name,
+      name_cn: input!.nameCn,
+      type: input!.type,
+      country: input!.country,
+      default_currency: input!.defaultCurrency,
+      payment_channel: input!.paymentChannel,
+      contact_name: input!.contactName,
+      contact_phone: input!.contactPhone,
+      contact_email: input!.contactEmail,
+      tax_id: input!.taxId,
+      notes: input!.notes,
+    })
+    .select("id")
+    .single();
+  if (error || !inserted) {
+    return { error: `No se pudo crear el proveedor: ${error?.message}` };
+  }
+
+  const { data: user } = await supabase.auth.getUser();
+  await auditSupplier(
+    link.tenant_id,
+    inserted.id,
+    user.user?.id ?? null,
+    "supplier_created",
+    { supplier_code: supplierCode, name: input!.name, type: input!.type },
+  );
+
+  revalidatePath("/studio/tesoreria");
+  return { ok: true, supplierCode };
+}
+
+export async function updateSupplier(
+  supplierId: string,
+  raw: Partial<SupplierInput>,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { input, fieldErrors } = validateSupplierInput(raw);
+  if (fieldErrors) {
+    const first = Object.values(fieldErrors)[0];
+    return { error: first ?? "Datos del proveedor inválidos." };
+  }
+
+  const { error } = await supabase
+    .from("suppliers")
+    .update({
+      name: input!.name,
+      name_cn: input!.nameCn,
+      type: input!.type,
+      country: input!.country,
+      default_currency: input!.defaultCurrency,
+      payment_channel: input!.paymentChannel,
+      contact_name: input!.contactName,
+      contact_phone: input!.contactPhone,
+      contact_email: input!.contactEmail,
+      tax_id: input!.taxId,
+      notes: input!.notes,
+    })
+    .eq("id", supplierId);
+  if (error) return { error: `No se pudo actualizar el proveedor: ${error.message}` };
+
+  revalidatePath("/studio/tesoreria");
+  return { ok: true };
+}
+
+// ── CxP ────────────────────────────────────────────────────────
+
+export async function createBill(
+  raw: Partial<BillInput>,
+): Promise<{ ok?: boolean; error?: string; billCode?: string }> {
+  const supabase = await createClient();
+  const result = await createBillFor(supabase, raw);
+  if (!result.ok) {
+    const firstFieldError = result.fieldErrors
+      ? Object.values(result.fieldErrors)[0]
+      : undefined;
+    return {
+      error: result.error ?? firstFieldError ?? "No se pudo crear la CxP.",
+    };
+  }
+  revalidatePath("/studio/tesoreria");
+  revalidatePath("/studio/contabilidad");
+  return { ok: true, billCode: result.billCode };
+}
+
+export async function voidBill(
+  billId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const r = await voidBillFor(supabase, billId);
+  if (!r.ok) return { error: r.error };
+  revalidatePath("/studio/tesoreria");
+  revalidatePath("/studio/contabilidad");
+  return { ok: true };
+}
+
+// ── Pagos ──────────────────────────────────────────────────────
+
+export async function registerPayment(
+  billId: string,
+  payload: Partial<SupplierPaymentInput>,
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  paymentCode?: string;
+  fullyPaid?: boolean;
+}> {
+  const supabase = await createClient();
+  const result = await registerPaymentFor(supabase, billId, payload);
+  if (!result.ok) {
+    const firstFieldError = result.fieldErrors
+      ? Object.values(result.fieldErrors)[0]
+      : undefined;
+    return {
+      error: result.error ?? firstFieldError ?? "No se pudo registrar el pago.",
+    };
+  }
+  revalidatePath("/studio/tesoreria");
+  revalidatePath("/studio/contabilidad");
+  return {
+    ok: true,
+    paymentCode: result.paymentCode,
+    fullyPaid: result.fullyPaid,
+  };
+}
+
+export async function voidPayment(
+  paymentId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const r = await voidPaymentFor(supabase, paymentId);
+  if (!r.ok) return { error: r.error };
+  revalidatePath("/studio/tesoreria");
+  revalidatePath("/studio/contabilidad");
+  return { ok: true };
+}
+
+/** Lee los pagos de una CxP (para el historial del drawer). Serializable. */
+export async function getBillHistory(
+  billId: string,
+): Promise<{ payments: SupplierPayment[] }> {
+  const supabase = await createClient();
+  const { listPayments } = await import("@/lib/studio/treasury/bill-queries");
+  const payments = await listPayments(supabase, { billId });
+  return { payments };
+}

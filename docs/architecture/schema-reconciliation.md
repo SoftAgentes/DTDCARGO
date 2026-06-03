@@ -37,7 +37,7 @@
 | 1 | Tenant | ✅ | `tenants` | Multi-tenant raíz (1 seed: `dtd`). |
 | 2 | User | 🟡 | `auth.users` + `user_tenants` + `user_profiles` + `operario_pins` | Identidad en Supabase Auth (no tabla `users` propia). Rol en `user_tenants`. |
 | 3 | Client | ✅ | `clients` | MARKBOX `DTD-NNNN`, geo, foto fachada. |
-| 4 | Supplier | ❌ | — | Módulo `proveedores` = placeholder. Proveedor CN hoy se infiere en recepciones/etiquetas. |
+| 4 | Supplier | ✅ | `suppliers` | SDD-0044 (Tesorería): proveedor-lite `PRV-NNNN` (type proveedor_cn/naviera/agente_aduanal/servicio/otro), atado a las CxP (`supplier_bills`) y órdenes de pago (`supplier_payments`). Cierra el hueco como **lite** (no es el módulo de proveedores completo de Bloque 5; el stub `/studio/proveedores` queda como está). |
 | 5 | Order | 🟡 | `dispatch_orders` (+`dispatch_order_packages`) | Eso es **orden de despacho/entrega VE**, no el "pedido comercial" del blueprint (`MARKBOX-prov-compra`). |
 | 6 | Shipment | ✅ | `shipments` (+`shipment_events`) | Núcleo. |
 | 7 | Box | 🟡 | `warehouse_receipt_items` (CN) · `warehouse_receipt_ve_boxes` (VE) · `dispatch_order_packages` | Concepto **fragmentado por superficie**, no unificado como `Box`. |
@@ -55,7 +55,7 @@
 | 19 | Document | 🟡 | `customs_documents` · `bug_attachments` · `warehouse_receipt_photos` · `back_assets` | Sin DMS genérico `documents`; módulo `documentos` es stub. |
 | 20 | AuditLog | ✅ | `entity_audit_log` | + logs específicos (`no_olvidar_access_log`, `bug_timeline`). |
 
-**Resumen:** **11 ✅ · 6 🟡 · 3 ❌** (faltan: Supplier, Container, Comment + completar los 6 parciales). El patrón: el backend real es **fuerte en operación/logística**
+**Resumen:** **12 ✅ · 6 🟡 · 2 ❌** (faltan: Container, Comment + completar los 6 parciales; Supplier cerrado **lite** por SDD-0044). El patrón: el backend real es **fuerte en operación/logística**
 (clientes, cotizaciones, envíos, almacenes CN/VE, despacho, TMS, aduana + infra: multi-tenant, agentes
 IA, mailing, bug reporter, push, auditoría). El hueco es **la mitad financiera/contable del ERP** +
 catálogos comerciales (Supplier, Container como entidad, Comment genérico).
@@ -68,7 +68,7 @@ La UI ya está diseñada en el Norte; el blueprint da el shape de datos; **const
 | Bloque | Qué | Entidades que cierra | SDD |
 |---|---|---|---|
 | **1 · Núcleo financiero ⭐** | Facturación (`Invoice`) → asiento automático → Contabilidad (`Account` + `JournalEntry/Line`, plan de cuentas, diario/mayor, P&L, balance) | Invoice, Account, JournalEntry, JournalLine | SDD-0021 (reservado) + nuevo SDD Contabilidad |
-| **2 · Flujo de caja** | Cobranzas (CxC, registrar pago baja saldo) + Tesorería (CxP, multi-moneda USD/VES/USDT/CNY, remesas a China, aprobación multi-firma) | — (usa Invoice + cuentas de caja) | nuevos SDD |
+| **2 · Flujo de caja** | Cobranzas ✅ (CxC, SDD-0041) + Tesorería ✅ lite (CxP `supplier_bills` + órdenes de pago `supplier_payments` + asiento causación/pago, multi-moneda USD/VES/USDT/CNY, remesas a China; **sin** multi-firma → Fase 2) — **Bloque 2.2 done (SDD-0044)** | Supplier (lite) | SDD-0041 ✅ · SDD-0044 ✅ |
 | **3 · Fiscal (si IVA ON)** | Libro de Ventas desde facturas emitidas, retenciones, TXT/XML SENIAT. Toggle `tenants.iva_enabled` | — | nuevo SDD |
 | **4 · Logística avanzada** | Naviera + Consolidación (entidad `Container`, bin-packing LCL→FCL por CBM/peso) + emisión BL | Container | nuevo SDD |
 | **5 · Cierre comercial/BI** | Proveedores CN (entidad `Supplier`), Costing & Margen, Reportes/Dirección (tablero ejecutivo), Conversaciones (omnichannel), Fidelización/Referidos, Documentos Hub (`Document` genérico), Comentarios transversales (`Comment`) | Supplier, Document, Comment | SDD-0022 (Costing) + SDD-0023 (Reportes) + nuevos |
