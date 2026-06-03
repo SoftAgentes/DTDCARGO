@@ -1,0 +1,370 @@
+/**
+ * Queries de CxP y pagos del módulo Tesorería (SDD-0044).
+ *
+ * Funciones puras que reciben un SupabaseClient. RLS filtra por tenant_id.
+ *
+ * La cola de CxP (`buildPayablesQueue`) se DERIVA de las CxP con saldo
+ * (no es una tabla nueva): bills con `total_amount - paid_amount > 0` y
+ * status ≠ anulada, enriquecidas con aging (días vencido) + stage derivado.
+ *
+ * Espejo de payment-queries.ts (Cobranzas). El stage acá es por estado de la
+ * CxP (vencida/por_vencer/parcial/pagada), no por gestión.
+ */
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Account } from "../account-types";
+import { isCashAccount } from "../payment-queries";
+import {
+  billBalance,
+  type SupplierBill,
+  type SupplierPayment,
+} from "./types";
+
+function num(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+function numOrNull(v: unknown): number | null {
+  if (v == null) return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? n : null;
+}
+function round2(n: number): number {
+  return Math.round((n + Number.EPSILON) * 100) / 100;
+}
+
+const BILL_COLUMNS =
+  "id, tenant_id, bill_code, supplier_id, supplier_name, concept, expense_account_id, currency, fx_rate, total_amount, paid_amount, status, issue_date, due_date, reference, shipment_id, journal_entry_id, notes, created_at, updated_at, deleted_at";
+
+const PAYMENT_COLUMNS =
+  "id, tenant_id, payment_code, bill_id, supplier_id, supplier_name, amount, currency, fx_rate, method, cash_account_id, reference, paid_at, journal_entry_id, notes, created_at, deleted_at";
+
+function coerceBill(row: Record<string, unknown>): SupplierBill {
+  return {
+    id: String(row.id),
+    tenant_id: String(row.tenant_id),
+    bill_code: String(row.bill_code),
+    supplier_id: String(row.supplier_id),
+    supplier_name: String(row.supplier_name ?? ""),
+    concept: (row.concept as string | null) ?? null,
+    expense_account_id: String(row.expense_account_id),
+    currency: (row.currency as SupplierBill["currency"]) ?? "USD",
+    fx_rate: numOrNull(row.fx_rate),
+    total_amount: num(row.total_amount),
+    paid_amount: num(row.paid_amount),
+    status: (row.status as SupplierBill["status"]) ?? "pendiente",
+    issue_date: String(row.issue_date),
+    due_date: String(row.due_date),
+    reference: (row.reference as string | null) ?? null,
+    shipment_id: (row.shipment_id as string | null) ?? null,
+    journal_entry_id: (row.journal_entry_id as string | null) ?? null,
+    notes: (row.notes as string | null) ?? null,
+    created_at: String(row.created_at),
+    updated_at: String(row.updated_at),
+    deleted_at: (row.deleted_at as string | null) ?? null,
+  };
+}
+
+function coercePayment(row: Record<string, unknown>): SupplierPayment {
+  return {
+    id: String(row.id),
+    tenant_id: String(row.tenant_id),
+    payment_code: String(row.payment_code),
+    bill_id: String(row.bill_id),
+    supplier_id: String(row.supplier_id),
+    supplier_name: String(row.supplier_name ?? ""),
+    amount: num(row.amount),
+    currency: (row.currency as SupplierPayment["currency"]) ?? "USD",
+    fx_rate: numOrNull(row.fx_rate),
+    method: String(row.method ?? "transferencia"),
+    cash_account_id: String(row.cash_account_id),
+    reference: (row.reference as string | null) ?? null,
+    paid_at: String(row.paid_at),
+    journal_entry_id: (row.journal_entry_id as string | null) ?? null,
+    notes: (row.notes as string | null) ?? null,
+    created_at: String(row.created_at),
+    deleted_at: (row.deleted_at as string | null) ?? null,
+  };
+}
+
+// ── Bills ─────────────────────────────────────────────────────
+
+/** Lista las CxP (vivas) del tenant, opcionalmente de un proveedor. */
+export async function listBills(
+  supabase: SupabaseClient,
+  opts: { supplierId?: string } = {},
+): Promise<SupplierBill[]> {
+  let query = supabase
+    .from("supplier_bills")
+    .select(BILL_COLUMNS)
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .order("created_at", { ascending: false })
+    .limit(2000);
+  if (opts.supplierId) query = query.eq("supplier_id", opts.supplierId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceBill);
+}
+
+/** Lee una CxP por id. null si no existe (o RLS la oculta). */
+export async function getBill(
+  supabase: SupabaseClient,
+  id: string,
+): Promise<SupplierBill | null> {
+  const { data, error } = await supabase
+    .from("supplier_bills")
+    .select(BILL_COLUMNS)
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw error;
+  return data ? coerceBill(data as Record<string, unknown>) : null;
+}
+
+/** Lista los pagos (vivos) del tenant, opcionalmente de una CxP. */
+export async function listPayments(
+  supabase: SupabaseClient,
+  opts: { billId?: string } = {},
+): Promise<SupplierPayment[]> {
+  let query = supabase
+    .from("supplier_payments")
+    .select(PAYMENT_COLUMNS)
+    .order("paid_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (opts.billId) query = query.eq("bill_id", opts.billId);
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coercePayment);
+}
+
+// ── Cola de CxP (derivada) ─────────────────────────────────────
+
+/** Stage derivado de la cola de CxP. NO se persiste — se deriva del saldo + vencimiento. */
+export type PayableStage = "vencida" | "por_vencer" | "parcial" | "pagada";
+
+/** Una CxP con saldo en la cola, enriquecida. */
+export type Payable = {
+  bill: SupplierBill;
+  /** Saldo pendiente (total − pagado). */
+  balance: number;
+  /** Días vencido (>0 = vencido, <0 = faltan, 0 = vence hoy). null sin due_date. */
+  daysOverdue: number | null;
+  /** Stage derivado para la cola. */
+  stage: PayableStage;
+};
+
+/** Días entre `due_date` y hoy (positivo = vencido). null si no hay due_date. */
+export function daysOverdue(
+  dueDate: string | null,
+  today: string = new Date().toISOString().slice(0, 10),
+): number | null {
+  if (!dueDate) return null;
+  const due = new Date(dueDate + "T00:00:00Z").getTime();
+  const now = new Date(today + "T00:00:00Z").getTime();
+  return Math.round((now - due) / 86400000);
+}
+
+/**
+ * Deriva el stage de una CxP. PURA — testeable sin DB.
+ *
+ * Prioridad:
+ *  - pagada: saldo ≤ 0.
+ *  - vencida: due_date < hoy con saldo.
+ *  - parcial: 0 < paid < total y no vencida.
+ *  - por_vencer: tiene saldo, no vencida, sin pagos.
+ */
+export function derivedStage(args: {
+  totalAmount: number;
+  paidAmount: number;
+  balance: number;
+  dueDate: string | null;
+  today?: string;
+}): PayableStage {
+  const today = args.today ?? new Date().toISOString().slice(0, 10);
+  if (round2(args.balance) <= 0) return "pagada";
+
+  const overdue = !!args.dueDate && args.dueDate < today;
+  if (overdue) return "vencida";
+
+  if (round2(args.paidAmount) > 0) return "parcial";
+  return "por_vencer";
+}
+
+/**
+ * Construye la cola de CxP a partir de un set de bills. PURA — testeable sin DB.
+ *
+ * Solo CxP con saldo > 0 y status ≠ anulada. Ordenadas por días vencido
+ * descendente (las más atrasadas arriba), luego por saldo descendente.
+ */
+export function buildPayablesQueue(
+  bills: SupplierBill[],
+  today: string = new Date().toISOString().slice(0, 10),
+): Payable[] {
+  const out: Payable[] = [];
+  for (const bill of bills) {
+    if (bill.status === "anulada") continue;
+    const balance = billBalance(bill);
+    if (balance <= 0) continue;
+
+    out.push({
+      bill,
+      balance,
+      daysOverdue: daysOverdue(bill.due_date, today),
+      stage: derivedStage({
+        totalAmount: bill.total_amount,
+        paidAmount: bill.paid_amount,
+        balance,
+        dueDate: bill.due_date,
+        today,
+      }),
+    });
+  }
+
+  out.sort((a, b) => {
+    const da = a.daysOverdue ?? -99999;
+    const db = b.daysOverdue ?? -99999;
+    if (da !== db) return db - da;
+    return b.balance - a.balance;
+  });
+  return out;
+}
+
+/** Cola de cuentas por pagar del tenant: CxP con saldo, enriquecidas con aging. */
+export async function payablesQueue(
+  supabase: SupabaseClient,
+  today: string = new Date().toISOString().slice(0, 10),
+): Promise<Payable[]> {
+  const bills = await listBills(supabase);
+  return buildPayablesQueue(bills, today);
+}
+
+// ── KPIs ───────────────────────────────────────────────────────
+
+export type TreasuryKpis = {
+  /** Saldo total por pagar (todas las CxP con saldo, no anuladas). */
+  porPagar: number;
+  /** Saldo de las vencidas. */
+  vencido: number;
+  /** Total pagado en el mes en curso (de las órdenes de pago vivas). */
+  pagadoMes: number;
+  /** Cantidad de proveedores con CxP con saldo. */
+  proveedoresActivos: number;
+};
+
+/**
+ * Computa KPIs a partir de la cola + los pagos del mes. PURA — testeable sin DB.
+ * `payments` ya viene filtrado a pagos vivos; el mes se deriva de `today`.
+ */
+export function computeTreasuryKpis(
+  queue: Payable[],
+  payments: Pick<SupplierPayment, "amount" | "paid_at">[] = [],
+  today: string = new Date().toISOString().slice(0, 10),
+): TreasuryKpis {
+  let porPagar = 0;
+  let vencido = 0;
+  const suppliers = new Set<string>();
+  for (const p of queue) {
+    porPagar += p.balance;
+    if (p.stage === "vencida") vencido += p.balance;
+    suppliers.add(p.bill.supplier_id);
+  }
+
+  const month = today.slice(0, 7); // YYYY-MM
+  let pagadoMes = 0;
+  for (const pay of payments) {
+    if ((pay.paid_at ?? "").slice(0, 7) === month) {
+      pagadoMes += Number(pay.amount) || 0;
+    }
+  }
+
+  return {
+    porPagar: round2(porPagar),
+    vencido: round2(vencido),
+    pagadoMes: round2(pagadoMes),
+    proveedoresActivos: suppliers.size,
+  };
+}
+
+/** KPIs de tesorería del tenant (deriva de la cola + pagos del mes). */
+export async function treasuryKpis(
+  supabase: SupabaseClient,
+  today: string = new Date().toISOString().slice(0, 10),
+): Promise<TreasuryKpis> {
+  const [queue, payments] = await Promise.all([
+    payablesQueue(supabase, today),
+    listPayments(supabase),
+  ]);
+  return computeTreasuryKpis(queue, payments, today);
+}
+
+// ── Cuentas (selects del drawer) ───────────────────────────────
+
+/**
+ * ¿Es una cuenta válida para imputar el costo/gasto de una CxP? Cuenta
+ * postable de tipo costo de ventas / gasto: `qbo_type` en
+ * ('Cost of Goods Sold','Expense','Other Expense') o code que empieza con
+ * `5.` / `6.`. PURA.
+ */
+export function isExpenseAccount(
+  acct: Pick<Account, "code" | "qbo_type" | "is_postable">,
+): boolean {
+  if (!acct.is_postable) return false;
+  if (
+    acct.qbo_type === "Cost of Goods Sold" ||
+    acct.qbo_type === "Expense" ||
+    acct.qbo_type === "Other Expense"
+  ) {
+    return true;
+  }
+  return acct.code.startsWith("5.") || acct.code.startsWith("6.");
+}
+
+const ACCOUNT_COLUMNS =
+  "id, tenant_id, code, name, type, parent_id, qbo_type, is_postable, notes, created_at, updated_at";
+
+function coerceAccount(r: Record<string, unknown>): Account {
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    code: String(r.code),
+    name: String(r.name),
+    type: r.type as Account["type"],
+    parent_id: (r.parent_id as string | null) ?? null,
+    qbo_type: (r.qbo_type as string | null) ?? null,
+    is_postable: Boolean(r.is_postable),
+    notes: (r.notes as string | null) ?? null,
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+  };
+}
+
+async function listAccounts(supabase: SupabaseClient): Promise<Account[]> {
+  const { data, error } = await supabase
+    .from("accounts")
+    .select(ACCOUNT_COLUMNS)
+    .limit(1000);
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceAccount);
+}
+
+/** Lista las cuentas de costo/gasto postables del tenant (para el select de CxP). */
+export async function listExpenseAccounts(
+  supabase: SupabaseClient,
+): Promise<Account[]> {
+  const accounts = await listAccounts(supabase);
+  return accounts
+    .filter(isExpenseAccount)
+    .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
+}
+
+/** Lista las cuentas de caja/banco postables del tenant (para el select del pago). */
+export async function listCashAccounts(
+  supabase: SupabaseClient,
+): Promise<Account[]> {
+  const accounts = await listAccounts(supabase);
+  return accounts
+    .filter(isCashAccount)
+    .sort((a, b) => (a.code < b.code ? -1 : a.code > b.code ? 1 : 0));
+}

@@ -9,7 +9,12 @@
 
 export type EntryStatus = "borrador" | "asentado" | "anulado";
 
-export type EntrySource = "manual" | "invoice" | "receipt";
+export type EntrySource =
+  | "manual"
+  | "invoice"
+  | "receipt"
+  | "supplier_bill"
+  | "supplier_payment";
 
 /** Una línea persistida de un asiento (con join opcional a la cuenta). */
 export type JournalLine = {
@@ -34,6 +39,8 @@ export type JournalEntry = {
   source: EntrySource;
   invoice_id: string | null;
   receipt_id: string | null;
+  bill_id: string | null;
+  supplier_payment_id: string | null;
   posted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -99,6 +106,8 @@ export function entryStatusBadgeTone(
 export function entrySourceLabel(source: EntrySource): string {
   if (source === "invoice") return "Factura";
   if (source === "receipt") return "Cobro";
+  if (source === "supplier_bill") return "Causación CxP";
+  if (source === "supplier_payment") return "Pago a proveedor";
   return "Manual";
 }
 

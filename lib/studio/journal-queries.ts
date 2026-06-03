@@ -17,7 +17,7 @@ import type {
 } from "./journal-types";
 
 const ENTRY_COLUMNS =
-  "id, tenant_id, entry_code, entry_date, memo, status, source, invoice_id, receipt_id, posted_at, created_at, updated_at, deleted_at";
+  "id, tenant_id, entry_code, entry_date, memo, status, source, invoice_id, receipt_id, bill_id, supplier_payment_id, posted_at, created_at, updated_at, deleted_at";
 
 export type JournalFilters = {
   status?: EntryStatus | "all";
@@ -35,6 +35,8 @@ function coerceEntry(row: Record<string, unknown>): JournalEntry {
     source: (row.source as JournalEntry["source"]) ?? "manual",
     invoice_id: (row.invoice_id as string | null) ?? null,
     receipt_id: (row.receipt_id as string | null) ?? null,
+    bill_id: (row.bill_id as string | null) ?? null,
+    supplier_payment_id: (row.supplier_payment_id as string | null) ?? null,
     posted_at: (row.posted_at as string | null) ?? null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
