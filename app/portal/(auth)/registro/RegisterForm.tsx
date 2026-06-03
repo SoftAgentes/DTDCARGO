@@ -494,6 +494,28 @@ function Step3({
       <input type="hidden" name="address" value={data.address} />
       <input type="hidden" name="reference" value={data.reference} />
 
+      {/*
+        Honeypot anti-bot (SDD-0042 §10). Campo trampa con nombre inocuo: un
+        humano nunca lo ve ni lo llena (off-screen, tabIndex -1, aria-hidden);
+        un bot naive que rellena todos los inputs sí. Si llega no-vacío, la
+        server action descarta el alta sin escribir nada. Off-screen a propósito
+        (NO display:none, que algunos bots detectan y saltean).
+      */}
+      <div
+        aria-hidden="true"
+        style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}
+      >
+        <label htmlFor="empresa_web">No completar este campo</label>
+        <input
+          id="empresa_web"
+          type="text"
+          name="empresa_web"
+          tabIndex={-1}
+          autoComplete="off"
+          defaultValue=""
+        />
+      </div>
+
       <SectionLabel>Confirmá tus datos</SectionLabel>
 
       <SummaryCard eyebrow={isCompany ? "Empresa" : "Persona natural"}>

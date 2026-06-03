@@ -8,6 +8,14 @@
  * contraseña inicial = cédula/RIF). El gate de aprobación de la Fase 5 queda en
  * stand-by — el insert setea `portal_approved_at = now()`.
  *
+ * Anti-abuso (SDD-0042 §10): el endpoint es público (registrante anónimo), así
+ * que ANTES del trabajo pesado hay dos capas gratis (sin keys):
+ *   0.  honeypot — campo trampa oculto del form; si llega no-vacío → bot →
+ *       respuesta genérica sin escribir nada (ni throttle).
+ *   2b. throttle por IP — se cuentan los intentos recientes de la IP en
+ *       portal_registro_throttle; si llegó al límite → rechazo sin crear nada;
+ *       si no, se registra el intento y se sigue.
+ *
  * Flujo (los pasos 7-9 son best-effort: un fallo en email NO rompe el alta):
  *   1. validar (validateRegisterInput, sin Zod)
  *   2. dedup por documento (clients del tenant con lower(rif)=doc o lower(cedula_*))
@@ -24,6 +32,7 @@
  * foto. Sin SUPABASE_SERVICE_ROLE_KEY el alta no puede completarse (error claro).
  */
 
+import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/db/admin";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
@@ -33,6 +42,16 @@ import {
   type RegisterActionState,
   type RegisterInput,
 } from "@/lib/portal/register-types";
+
+// ── Anti-abuso (SDD-0042 §10): honeypot + throttle por IP en DB ──────────────
+// Honeypot: campo trampa oculto del form (RegisterForm.tsx). Un humano nunca lo
+// llena; un bot naive sí → si llega no-vacío, descartamos el alta sin escribir
+// nada (ni clients, ni auth, ni storage, ni throttle).
+const HONEYPOT_FIELD = "empresa_web";
+// Throttle: máximo de altas por IP dentro de la ventana. Tuneables.
+const REGISTRO_IP_LIMIT = 5;
+const REGISTRO_WINDOW_MINUTES = 60;
+const THROTTLE_TABLE = "portal_registro_throttle";
 
 const PHOTO_BUCKET = "client-docs";
 const PHOTO_MAX_BYTES = 8 * 1024 * 1024; // 8MB
@@ -81,10 +100,41 @@ function parseForm(formData: FormData): Partial<RegisterInput> {
   };
 }
 
+/**
+ * IP del request para el throttle. Vercel setea `x-forwarded-for` (lista
+ * separada por comas; el primero es el cliente, no los proxies). Fallback a
+ * `x-real-ip`. Si no hay ninguno → "unknown" (no bloqueamos por no tener IP,
+ * pero igual contamos: muchos "unknown" comparten cubo, lo cual es aceptable
+ * para un anti-abuso liviano sin keys).
+ */
+async function getRequestIp(): Promise<string> {
+  try {
+    const h = await headers();
+    const xff = h.get("x-forwarded-for");
+    if (xff) {
+      const first = xff.split(",")[0]?.trim();
+      if (first) return first;
+    }
+    const real = h.get("x-real-ip")?.trim();
+    if (real) return real;
+  } catch {
+    // headers() fuera de un request scope → tratar como desconocida.
+  }
+  return "unknown";
+}
+
 export async function registerClientAction(
   _prev: RegisterActionState,
   formData: FormData,
 ): Promise<RegisterActionState> {
+  // 0. Honeypot anti-bot (SDD-0042 §10) — ANTES de cualquier trabajo o write.
+  //    Si el campo trampa llega no-vacío, es un bot: respondemos algo genérico
+  //    que no revela la trampa y NO escribimos nada (ni throttle).
+  const honeypot = String(formData.get(HONEYPOT_FIELD) ?? "").trim();
+  if (honeypot) {
+    return { error: "No pudimos procesar tu registro. Probá de nuevo." };
+  }
+
   // 1. Validar
   const { input, fieldErrors } = validateRegisterInput(parseForm(formData));
   if (fieldErrors) return { fieldErrors };
@@ -110,6 +160,30 @@ export async function registerClientAction(
       error: "El registro no está disponible ahora. Probá de nuevo en un rato.",
     };
   }
+
+  // 2b. Throttle por IP (SDD-0042 §10) — DESPUÉS de validar input + honeypot,
+  //     ANTES del trabajo pesado (next_markbox consume correlativo; upload e
+  //     inserts escriben). Contamos los intentos recientes de esta IP; si llegó
+  //     al límite, rechazamos sin crear nada. Si está por debajo, registramos
+  //     este intento y seguimos. service_role bypassa RLS de la tabla.
+  const ip = await getRequestIp();
+  const windowStart = new Date(
+    Date.now() - REGISTRO_WINDOW_MINUTES * 60 * 1000,
+  ).toISOString();
+  const { count: recentCount, error: throttleErr } = await admin
+    .from(THROTTLE_TABLE)
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  // Fail-open ante un error de lectura del throttle: no bloqueamos un alta
+  // legítima por un fallo de infraestructura del propio anti-abuso.
+  if (!throttleErr && (recentCount ?? 0) >= REGISTRO_IP_LIMIT) {
+    return {
+      error: "Demasiados registros desde tu conexión. Probá de nuevo en un rato.",
+    };
+  }
+  // Registrar el intento (best-effort: si falla el insert, el alta sigue).
+  await admin.from(THROTTLE_TABLE).insert({ ip });
 
   // 3. Resolver el tenant operativo de DTD (hoy uno solo; multi-tenant signup = futuro).
   const { data: tenantRow, error: tenantErr } = await admin
