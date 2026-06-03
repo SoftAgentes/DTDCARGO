@@ -1,16 +1,17 @@
 "use client";
 
 /**
- * Orquestador client del módulo Reportes & Analytics (SDD-0052 · Slice A).
+ * Orquestador client del módulo Reportes & Analytics (SDD-0052 · Slices A+B).
  *
  * Estructura (Norte erp/modules/reports.jsx, anclada a datos reales):
- *  - Nivel 1: chips de categoría. Operacionales ACTIVA; las otras 4
- *    (Comerciales/Contables/Combinados/Constructor) deshabilitadas con rótulo
- *    "Próximamente · Slice B/C".
- *  - Nivel 2: tabs Overview / Rutas / Navieras / Servicios (por URL ?rep=).
+ *  - Nivel 1: chips de categoría. Operacionales · Comerciales · Contables &
+ *    financieros ACTIVAS; Combinados + Constructor deshabilitadas ("Pronto" ·
+ *    Slice C). Navega por URL ?cat=.
+ *  - Nivel 2: tabs por categoría (por URL ?rep=).
  *  - Selector de período en el header (por URL ?period=).
  *
- * Solo primitivas del sistema + tokens var(--*). on-time OMITIDO (sin fuente).
+ * Solo primitivas del sistema + tokens var(--*). Nunca se fabrica costo/margen
+ * (regla §3.2): lo que no tiene fuente real va a EmptyState honesto u omitido.
  * Todos los agregados llegan ya calculados desde el server (page.tsx).
  */
 
@@ -18,10 +19,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useTransition } from "react";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { Badge } from "@/app/studio/_components/ui/Badge";
+import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import {
   PERIOD_OPTIONS,
+  type AgingReport,
+  type AgingSide,
   type CarrierRow,
+  type CashflowReport,
+  type CommercialByClient,
+  type IncomeStatement,
   type OperationalOverview,
   type ReportPeriod,
   type RouteRow,
@@ -29,16 +35,25 @@ import {
 } from "@/lib/studio/reports/types";
 import { VolumeBars, Donut, Progress, type DonutSlice } from "./charts";
 
-type OpReport = "overview" | "routes" | "carriers" | "services";
+type Category = "op" | "com" | "con";
 
-const OP_TABS: { value: OpReport; label: string }[] = [
-  { value: "overview", label: "Overview" },
-  { value: "routes", label: "Por ruta" },
-  { value: "carriers", label: "Por naviera" },
-  { value: "services", label: "Por servicio" },
-];
+// Tabs nivel-2 por categoría (value = ?rep=).
+const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
+  op: [
+    { value: "overview", label: "Overview" },
+    { value: "routes", label: "Por ruta" },
+    { value: "carriers", label: "Por naviera" },
+    { value: "services", label: "Por servicio" },
+  ],
+  com: [{ value: "by-client", label: "Por cliente" }],
+  con: [
+    { value: "income", label: "Estado de resultados" },
+    { value: "aging", label: "Aging CxC/CxP" },
+    { value: "cashflow", label: "Cashflow" },
+  ],
+};
 
-// Categorías nivel-1. Solo "op" operable en Slice A.
+// Categorías nivel-1. op/com/con operables (Slices A+B); mix/build "Pronto".
 const CATEGORIES: {
   id: string;
   label: string;
@@ -46,9 +61,9 @@ const CATEGORIES: {
   slice: string | null; // null = activa
 }[] = [
   { id: "op", label: "Operacionales", count: 4, slice: null },
-  { id: "com", label: "Comerciales", count: 2, slice: "Slice B" },
-  { id: "con", label: "Contables & financieros", count: 3, slice: "Slice B" },
-  { id: "mix", label: "Combinados", count: 3, slice: "Slice B" },
+  { id: "com", label: "Comerciales", count: 1, slice: null },
+  { id: "con", label: "Contables & financieros", count: 3, slice: null },
+  { id: "mix", label: "Combinados", count: 3, slice: "Slice C" },
   { id: "build", label: "Constructor", count: 1, slice: "Slice C" },
 ];
 
@@ -59,32 +74,67 @@ const fmtUsd = (n: number) =>
       ? `$${Math.round(n / 1000)}K`
       : `$${Math.round(n).toLocaleString("en-US")}`;
 
+const fmtUsdFull = (n: number) => {
+  const sign = n < 0 ? "−" : "";
+  return `${sign}$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
+};
+
 const fmtNum = (n: number) => Math.round(n).toLocaleString("en-US");
+
+// Resuelve el rep activo dentro de la categoría (default = primer tab).
+function resolveRep(category: Category, raw: string | undefined): string {
+  const tabs = TABS_BY_CATEGORY[category];
+  return tabs.some((t) => t.value === raw) ? (raw as string) : tabs[0].value;
+}
 
 export function ReportesClient({
   period,
-  report,
+  category,
+  rep,
   overview,
   routes,
   carriers,
   services,
+  byClient,
+  income,
+  aging,
+  cashflow,
 }: {
   period: ReportPeriod;
-  report: OpReport;
-  overview: OperationalOverview;
-  routes: RouteRow[];
-  carriers: CarrierRow[];
-  services: ServiceRow[];
+  category: Category;
+  rep?: string;
+  // Operacionales (Slice A)
+  overview?: OperationalOverview;
+  routes?: RouteRow[];
+  carriers?: CarrierRow[];
+  services?: ServiceRow[];
+  // Comerciales (Slice B)
+  byClient?: CommercialByClient;
+  // Contables (Slice B)
+  income?: IncomeStatement;
+  aging?: AgingReport;
+  cashflow?: CashflowReport;
 }) {
   const router = useRouter();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  const navigate = (next: { period?: ReportPeriod; rep?: OpReport }) => {
+  const activeRep = resolveRep(category, rep);
+
+  const navigate = (next: {
+    period?: ReportPeriod;
+    cat?: Category;
+    rep?: string;
+  }) => {
     const s = new URLSearchParams(params.toString());
     if (next.period) s.set("period", next.period);
+    if (next.cat) {
+      s.set("cat", next.cat);
+      s.delete("rep"); // al cambiar de categoría, default = primer tab
+    }
     if (next.rep) {
-      if (next.rep === "overview") s.delete("rep");
+      const tabs = TABS_BY_CATEGORY[next.cat ?? category];
+      if (next.rep === tabs[0].value) s.delete("rep");
       else s.set("rep", next.rep);
     }
     const qs = s.toString();
@@ -92,6 +142,19 @@ export function ReportesClient({
       router.push(qs ? `/studio/reportes?${qs}` : "/studio/reportes");
     });
   };
+
+  const tabs = TABS_BY_CATEGORY[category];
+
+  // El selector de período es INERTE en las vistas que NO filtran por rango:
+  //  - Comerciales · Por cliente → ranking trailing 12 meses (a hoy).
+  //  - Contables · Aging → posición a hoy (saldos vivos).
+  // En esas vistas mostramos un rótulo fijo en vez de un select que no hace nada.
+  const inertReason =
+    category === "com"
+      ? "trailing 12m"
+      : category === "con" && activeRep === "aging"
+        ? "a hoy"
+        : null;
 
   return (
     <div style={{ maxWidth: 1280, opacity: isPending ? 0.6 : 1, transition: "opacity 120ms" }}>
@@ -122,16 +185,14 @@ export function ReportesClient({
               maxWidth: "70ch",
             }}
           >
-            Performance operativa sobre datos reales del ERP. Embarques, CBM
-            movido y revenue facturado, cruzados por ruta, naviera y servicio.
+            Performance del ERP sobre datos reales. Operación, comercial y
+            finanzas cruzados — facturado, cobrado, aging y rentabilidad
+            facturada, sin estimaciones inventadas.
           </p>
         </div>
 
-        {/* Selector de período (navega por URL) */}
-        <label
-          style={{ display: "flex", flexDirection: "column", gap: 4 }}
-          aria-label="Período del reporte"
-        >
+        {/* Selector de período (navega por URL). Inerte → rótulo fijo. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span
             style={{
               font: "700 9.5px/1 var(--f-sans)",
@@ -142,25 +203,47 @@ export function ReportesClient({
           >
             Período
           </span>
-          <select
-            className="studio-input"
-            value={period}
-            onChange={(e) => navigate({ period: e.target.value as ReportPeriod })}
-            style={{ width: 180 }}
-          >
-            {PERIOD_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </label>
+          {inertReason ? (
+            <div
+              title="Esta vista no filtra por período"
+              style={{
+                width: 180,
+                height: 38,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "0 12px",
+                borderRadius: "var(--r-md)",
+                border: "1px dashed var(--border-strong)",
+                background: "var(--bg-elevated)",
+                font: "600 12.5px/1 var(--f-sans)",
+                color: "var(--ink-mute)",
+              }}
+            >
+              <span>· {inertReason}</span>
+            </div>
+          ) : (
+            <select
+              className="studio-input"
+              aria-label="Período del reporte"
+              value={period}
+              onChange={(e) => navigate({ period: e.target.value as ReportPeriod })}
+              style={{ width: 180 }}
+            >
+              {PERIOD_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {/* Nivel 1 · categorías */}
       <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
         {CATEGORIES.map((c) => {
-          const active = c.id === "op";
+          const active = c.id === category;
           const disabled = c.slice != null;
           return (
             <button
@@ -168,6 +251,9 @@ export function ReportesClient({
               type="button"
               disabled={disabled}
               title={disabled ? `Próximamente · ${c.slice}` : undefined}
+              onClick={() =>
+                !disabled && !active && navigate({ cat: c.id as Category })
+              }
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -175,7 +261,7 @@ export function ReportesClient({
                 height: 38,
                 padding: "0 16px",
                 borderRadius: "var(--r-md)",
-                cursor: disabled ? "not-allowed" : "pointer",
+                cursor: disabled ? "not-allowed" : active ? "default" : "pointer",
                 background: active ? "var(--wine)" : "var(--bg-surface)",
                 color: active
                   ? "var(--ink-inv)"
@@ -207,7 +293,7 @@ export function ReportesClient({
         })}
       </div>
 
-      {/* Nivel 2 · reporte dentro de Operacionales */}
+      {/* Nivel 2 · reporte dentro de la categoría */}
       <div
         role="tablist"
         style={{
@@ -218,8 +304,8 @@ export function ReportesClient({
           flexWrap: "wrap",
         }}
       >
-        {OP_TABS.map((t) => {
-          const on = t.value === report;
+        {tabs.map((t) => {
+          const on = t.value === activeRep;
           return (
             <button
               key={t.value}
@@ -245,11 +331,33 @@ export function ReportesClient({
         })}
       </div>
 
-      {/* Vistas */}
-      {report === "overview" && <OverviewView overview={overview} />}
-      {report === "routes" && <RoutesView routes={routes} />}
-      {report === "carriers" && <CarriersView carriers={carriers} />}
-      {report === "services" && <ServicesView services={services} />}
+      {/* Vistas · Operacionales (Slice A) */}
+      {category === "op" && activeRep === "overview" && overview && (
+        <OverviewView overview={overview} />
+      )}
+      {category === "op" && activeRep === "routes" && routes && (
+        <RoutesView routes={routes} />
+      )}
+      {category === "op" && activeRep === "carriers" && carriers && (
+        <CarriersView carriers={carriers} />
+      )}
+      {category === "op" && activeRep === "services" && services && (
+        <ServicesView services={services} />
+      )}
+
+      {/* Vistas · Comerciales (Slice B) */}
+      {category === "com" && byClient && <ByClientView data={byClient} />}
+
+      {/* Vistas · Contables & financieros (Slice B) */}
+      {category === "con" && activeRep === "income" && income && (
+        <IncomeStatementView income={income} />
+      )}
+      {category === "con" && activeRep === "aging" && aging && (
+        <AgingView aging={aging} />
+      )}
+      {category === "con" && activeRep === "cashflow" && cashflow && (
+        <CashflowView cashflow={cashflow} />
+      )}
     </div>
   );
 }
@@ -430,7 +538,7 @@ function RoutesView({ routes }: { routes: RouteRow[] }) {
         rightFrom={1}
         rightTo={3}
       />
-      {routes.map((r, i) => (
+      {routes.map((r) => (
         <div
           key={r.key}
           style={{
@@ -571,6 +679,431 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
         </div>
       </Card>
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Slice B — Comerciales · Por cliente
+// ═══════════════════════════════════════════════════════════════
+function ByClientView({ data }: { data: CommercialByClient }) {
+  if (data.totalClients === 0) {
+    return (
+      <EmptyState
+        eyebrow="Por cliente"
+        title="Todavía no hay clientes"
+        description="Cuando registres clientes y emitas facturas, vas a ver acá el ranking por facturación y la distribución por nivel."
+      />
+    );
+  }
+
+  const ranked = data.ranking.filter((r) => r.billedUsd > 0);
+  const maxBilled = Math.max(1, ...ranked.map((r) => r.billedUsd));
+  const top = ranked.slice(0, 15);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* KPIs */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <KpiCard value={fmtNum(data.totalClients)} label="Clientes" sub="en cartera" valueColor="var(--wine)" />
+        <KpiCard value={fmtNum(ranked.length)} label="Con facturación" sub="últimos 12 meses" />
+        <KpiCard value={fmtUsd(data.totalBilledUsd)} label="Facturado" sub="trailing 12m · USD" valueColor="var(--success)" />
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(360px, 2fr) minmax(240px, 1fr)",
+          gap: 16,
+          alignItems: "start",
+        }}
+      >
+        {/* Ranking */}
+        <Card eyebrow="Ranking por facturación" style={{ padding: 0 }}>
+          {ranked.length === 0 ? (
+            <div style={{ padding: "18px 20px", font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+              Hay clientes pero ninguno con facturación en los últimos 12 meses.
+            </div>
+          ) : (
+            <>
+              <HeaderRow
+                cols="40px 1fr 90px 1fr"
+                labels={["#", "Cliente", "Nivel", "Facturado 12m"]}
+                rightFrom={3}
+                rightTo={3}
+              />
+              {top.map((r, i) => (
+                <div
+                  key={r.markbox || r.name || i}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "40px 1fr 90px 1fr",
+                    gap: 14,
+                    alignItems: "center",
+                    padding: "12px 18px",
+                    borderTop: "1px solid var(--border)",
+                  }}
+                >
+                  <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                    {i + 1}
+                  </span>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ font: "700 13px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {r.name || "Sin nombre"}
+                    </div>
+                    {r.markbox && (
+                      <div style={{ font: "600 10.5px/1.2 var(--f-mono)", color: "var(--ink-mute)" }}>
+                        {r.markbox}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <Badge tone={r.tierTone as BadgeTone} size="sm">
+                      {r.tierLabel}
+                    </Badge>
+                  </div>
+                  <div>
+                    <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--ink)" }}>
+                      {fmtUsd(r.billedUsd)}
+                    </span>
+                    <div style={{ marginTop: 5 }}>
+                      <Progress value={(r.billedUsd / maxBilled) * 100} tone="var(--wine)" height={3} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
+        </Card>
+
+        {/* Distribución por tier */}
+        <Card eyebrow="Distribución por nivel">
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {data.tierDist.map((t) => (
+              <div key={t.tierId}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                  <Badge tone={t.tone as BadgeTone} size="sm">
+                    {t.label}
+                  </Badge>
+                  <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
+                    {t.count} · {t.pct}%
+                  </span>
+                </div>
+                <Progress value={t.pct} tone="var(--wine)" height={8} />
+              </div>
+            ))}
+          </div>
+          <p style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "14px 0 0" }}>
+            El nivel se deriva de la facturación de los últimos 12 meses
+            (USD-normalizada). Sin segmentación ni atribución de agente: esas
+            métricas no tienen fuente real todavía.
+          </p>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Slice B — Contables · Estado de resultados
+// ═══════════════════════════════════════════════════════════════
+function IncomeStatementView({ income }: { income: IncomeStatement }) {
+  const empty = income.income === 0 && income.netIncome === 0;
+  if (empty) {
+    return (
+      <EmptyState
+        eyebrow="Estado de resultados"
+        title="Sin movimiento contable en el período"
+        description="Cuando haya asientos asentados (ingresos, costos y gastos) en el rango, vas a ver acá el estado de resultados gerencial en USD."
+      />
+    );
+  }
+
+  return (
+    <Card eyebrow="Estado de resultados" title="Gerencial · USD funcional" style={{ maxWidth: 680, padding: 0 }}>
+      <div style={{ padding: "0 0 8px" }}>
+        {income.rows.map((row) => (
+          <div
+            key={row.label}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 130px 70px",
+              gap: 12,
+              alignItems: "center",
+              padding: "13px 20px",
+              borderTop: "1px solid var(--border)",
+              background: row.emphasis ? "var(--bg-elevated)" : "transparent",
+            }}
+          >
+            <span
+              style={{
+                font: `${row.emphasis ? "800" : "500"} 13px/1.2 var(--f-sans)`,
+                color: row.emphasis ? "var(--ink)" : "var(--ink-soft)",
+              }}
+            >
+              {row.label}
+            </span>
+            <span
+              style={{
+                font: `${row.emphasis ? "900" : "700"} 14px/1 var(--f-mono)`,
+                color:
+                  row.amount < 0
+                    ? "var(--danger)"
+                    : row.emphasis
+                      ? "var(--ink)"
+                      : "var(--ink-soft)",
+                textAlign: "right",
+              }}
+            >
+              {fmtUsdFull(row.amount)}
+            </span>
+            <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-mute)", textAlign: "right" }}>
+              {row.pct != null ? `${row.pct}%` : "—"}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p style={{ font: "500 11px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: "8px 20px 16px" }}>
+        Cálculo reusado de Contabilidad sobre los saldos del período
+        ({income.range.from} → {income.range.to}). Reporte gerencial, no fiscal.
+      </p>
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Slice B — Contables · Aging CxC/CxP
+// ═══════════════════════════════════════════════════════════════
+function AgingView({ aging }: { aging: AgingReport }) {
+  const empty = aging.cxc.total === 0 && aging.cxp.total === 0;
+  if (empty) {
+    return (
+      <EmptyState
+        eyebrow="Aging CxC/CxP"
+        title="Sin saldos por cobrar ni por pagar"
+        description="Cuando haya facturas con saldo (CxC) o cuentas por pagar abiertas (CxP), vas a ver acá la antigüedad de saldos por tramo."
+      />
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(380px, 1fr))", gap: 16 }}>
+        <AgingSideCard
+          eyebrow="Cuentas por cobrar"
+          title="Antigüedad de CxC"
+          side={aging.cxc}
+          emptyLabel="Sin saldos por cobrar."
+        />
+        <AgingSideCard
+          eyebrow="Cuentas por pagar"
+          title="Antigüedad de CxP"
+          side={aging.cxp}
+          emptyLabel="Sin saldos por pagar."
+        />
+      </div>
+      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        Saldos normalizados a USD (VES por fx del documento).{" "}
+        <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
+        Vencido por días (≥1 día desde el vencimiento); Cobranzas pondera además
+        las promesas de pago vigentes, por eso su vencido puede ser menor.
+      </p>
+    </div>
+  );
+}
+
+function AgingSideCard({
+  eyebrow,
+  title,
+  side,
+  emptyLabel,
+}: {
+  eyebrow: string;
+  title: string;
+  side: AgingSide;
+  emptyLabel: string;
+}) {
+  // Tono por tramo: escala semántica del sistema (corriente neutro → atención →
+  // alarma), no un color por tramo inventado.
+  const tones: Record<string, string> = {
+    current: "var(--ink-soft)",
+    b1_30: "var(--info)",
+    b31_60: "var(--warning)",
+    b60_plus: "var(--danger)",
+  };
+
+  return (
+    <Card eyebrow={eyebrow} title={title}>
+      {side.total === 0 ? (
+        <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+          {emptyLabel}
+        </div>
+      ) : (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+            <div>
+              <div style={{ font: "900 26px/1 var(--f-display)", color: "var(--ink)", letterSpacing: "-0.02em" }}>
+                {fmtUsdFull(side.total)}
+              </div>
+              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+                Total
+              </div>
+            </div>
+            <div style={{ textAlign: "right" }}>
+              <div
+                style={{
+                  font: "800 18px/1 var(--f-mono)",
+                  color: side.overdue > 0 ? "var(--danger)" : "var(--ink-soft)",
+                }}
+              >
+                {fmtUsdFull(side.overdue)}
+              </div>
+              <div style={{ font: "600 11px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
+                Vencido
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {side.buckets.map((b) => (
+              <div key={b.id}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                  <span style={{ font: "600 12px/1.2 var(--f-sans)", color: "var(--ink)" }}>
+                    {b.label}
+                  </span>
+                  <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
+                    {fmtUsdFull(b.amount)} · {b.pct}%
+                  </span>
+                </div>
+                <Progress value={b.pct} tone={tones[b.id]} height={8} />
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </Card>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Slice B — Contables · Cashflow facturado vs cobrado
+// ═══════════════════════════════════════════════════════════════
+function CashflowView({ cashflow }: { cashflow: CashflowReport }) {
+  const hasData =
+    cashflow.totalBilled > 0 ||
+    cashflow.totalCollected > 0 ||
+    cashflow.outstanding > 0;
+  if (!hasData) {
+    return (
+      <EmptyState
+        eyebrow="Cashflow"
+        title="Sin facturación ni cobros en el período"
+        description="Cuando emitas facturas y registres cobros, vas a ver acá la serie mensual de facturado vs cobrado y el saldo por cobrar."
+      />
+    );
+  }
+
+  const pendiente = Math.max(0, cashflow.totalBilled - cashflow.totalCollected);
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* KPIs */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <KpiCard value={fmtUsd(cashflow.totalBilled)} label="Facturado" sub="en el período" valueColor="var(--wine)" />
+        <KpiCard value={fmtUsd(cashflow.totalCollected)} label="Cobrado" sub="en el período" valueColor="var(--success)" />
+        <KpiCard value={fmtUsd(cashflow.outstanding)} label="Por cobrar" sub="saldo vivo total" />
+        <KpiCard value={fmtUsd(cashflow.overdue)} label="Vencido" sub="saldo vivo" valueColor="var(--danger)" />
+      </div>
+
+      <Card eyebrow="Facturado vs cobrado" title="Serie mensual · USD">
+        <CashflowChart series={cashflow.series} />
+      </Card>
+
+      <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+        Facturado y cobrado del período se normalizan a USD (VES por fx de la
+        factura/recibo). <strong style={{ color: "var(--ink-soft)", fontWeight: 700 }}>CNY no incluido en V1.</strong>{" "}
+        Por cobrar y vencido son saldos vivos totales (no del rango). Diferencia
+        facturado − cobrado del período: {fmtUsd(pendiente)}.
+      </p>
+    </div>
+  );
+}
+
+// Gráfico de barras agrupadas (facturado vs cobrado) tokenizado, sin libs.
+function CashflowChart({ series }: { series: CashflowReport["series"] }) {
+  if (series.length === 0) {
+    return (
+      <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+        Sin movimientos en el período.
+      </div>
+    );
+  }
+  const W = 760;
+  const H = 220;
+  const pad = 32;
+  const plotH = H - 40;
+  const max = Math.max(
+    1,
+    ...series.map((p) => Math.max(p.billed, p.collected)),
+  );
+  const gw = (W - pad * 2) / series.length;
+
+  return (
+    <div>
+      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }} role="img" aria-label="Facturado vs cobrado por mes">
+        {[0, 0.25, 0.5, 0.75, 1].map((p, i) => (
+          <line
+            key={i}
+            x1={pad}
+            x2={W - pad}
+            y1={H - 24 - p * plotH}
+            y2={H - 24 - p * plotH}
+            stroke="var(--border)"
+            strokeWidth="1"
+            strokeDasharray={i === 0 ? "0" : "2 4"}
+          />
+        ))}
+        {series.map((p, i) => {
+          const bh = (p.billed / max) * plotH;
+          const ch = (p.collected / max) * plotH;
+          const x = pad + i * gw;
+          const bw = gw * 0.32;
+          return (
+            <g key={p.month}>
+              <rect x={x + gw * 0.14} y={H - 24 - bh} width={bw} height={Math.max(0, bh)} fill="var(--wine)" rx="2" />
+              <rect x={x + gw * 0.14 + bw + 3} y={H - 24 - ch} width={bw} height={Math.max(0, ch)} fill="var(--success)" rx="2" />
+              <text x={x + gw / 2} y={H - 8} fontFamily="var(--f-sans)" fontSize="9" fontWeight="600" fill="var(--ink-mute)" textAnchor="middle">
+                {p.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{ display: "flex", gap: 18, marginTop: 8 }}>
+        <LegendDot color="var(--wine)" label="Facturado" />
+        <LegendDot color="var(--success)" label="Cobrado" />
+      </div>
+    </div>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>
+      <span style={{ width: 10, height: 10, borderRadius: 2, background: color }} />
+      <span style={{ font: "600 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>{label}</span>
+    </span>
   );
 }
 

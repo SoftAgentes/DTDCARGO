@@ -14,6 +14,7 @@ import { describe, it, expect } from "vitest";
 import type { Account } from "../account-types";
 import type { Invoice } from "../invoice-types";
 import {
+  balanceToUsd,
   buildReceivablesQueue,
   computeCollectionKpis,
   daysOverdue,

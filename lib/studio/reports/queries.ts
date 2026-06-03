@@ -18,22 +18,40 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { invoiceUsdAmount } from "@/lib/studio/fidelizacion/types";
+import { clientsWithTier } from "@/lib/studio/fidelizacion/queries";
+import { listAccounts, accountBalances } from "@/lib/studio/account-queries";
+import { profitAndLoss } from "@/lib/studio/accounting/reports";
+import { receivablesQueue } from "@/lib/studio/payment-queries";
+import { payablesQueue } from "@/lib/studio/treasury/bill-queries";
+import { invoiceKpis } from "@/lib/studio/invoice-queries";
 import {
+  buildAgingSide,
   groupByRoute,
   groupByService,
+  incomeStatementRows,
   monthlyBuckets,
+  monthlyCashflow,
   periodRange,
   transitDays,
+  type AgingItem,
+  type AgingReport,
   type CarrierRow,
+  type CashflowReport,
+  type ClientRankRow,
+  type CommercialByClient,
   type DateRange,
+  type FlowItem,
+  type IncomeStatement,
   type OperationalOverview,
   type PortSplitRow,
   type ReportPeriod,
   type ReportShipment,
   type RouteRow,
   type ServiceRow,
+  type TierDistRow,
   type TransitByPortRow,
 } from "./types";
+import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
 import type { ShipmentService } from "@/lib/shared/shipment-public";
 
 // ── Estados "activos" (en curso) para el KPI de Overview ───────
@@ -329,4 +347,228 @@ export async function reportByCarrier(
   } catch {
     return [];
   }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Slice B — Comerciales (Por cliente) + Contables/financieros
+// ═══════════════════════════════════════════════════════════════
+//
+// Capa de presentación pura: REUSA los agregados ya construidos y testeados.
+// NO recalcula finanzas ni fabrica costos (regla §3.2 / §6). Solo se muestran
+// reportes con fuente real. RLS filtra por tenant en cada agregado reusado.
+
+// ── Comerciales · Por cliente ──────────────────────────────────
+
+/**
+ * Ranking comercial por cliente + distribución por tier. REUSA
+ * `clientsWithTier` (0051): facturación trailing-12m USD-normalizada + tier
+ * derivado, ya ordenada desc por facturación. NO "por segmento" (la tabla
+ * `clients` no tiene columna segment) ni "por agente" (sin campo de agente).
+ *
+ * `today` = ahora; determinístico para tests.
+ */
+export async function commercialByClient(
+  supabase: SupabaseClient,
+  today?: Date,
+): Promise<CommercialByClient> {
+  const clients = await clientsWithTier(supabase, today ?? new Date());
+
+  const ranking: ClientRankRow[] = clients.map((c) => ({
+    markbox: c.markbox,
+    name: c.name,
+    billedUsd: Math.round(c.billedUsd * 100) / 100,
+    tierId: c.tier.id,
+    tierLabel: c.tier.label,
+    tierTone: c.tier.tone,
+  }));
+
+  const totalClients = clients.length;
+  const totalBilledUsd =
+    Math.round(clients.reduce((s, c) => s + c.billedUsd, 0) * 100) / 100;
+
+  // Distribución por tier (en orden de aparición de los tiers en el ranking,
+  // estable: bronze < silver < gold < platinum según billedUsd derivado).
+  const order: string[] = [];
+  const counts = new Map<string, { label: string; tone: string; count: number }>();
+  for (const c of clients) {
+    const id = c.tier.id;
+    if (!counts.has(id)) {
+      counts.set(id, { label: c.tier.label, tone: c.tier.tone, count: 0 });
+      order.push(id);
+    }
+    counts.get(id)!.count += 1;
+  }
+  const tierDist: TierDistRow[] = order.map((id) => {
+    const v = counts.get(id)!;
+    return {
+      tierId: id,
+      label: v.label,
+      tone: v.tone,
+      count: v.count,
+      pct:
+        totalClients > 0
+          ? Math.round((v.count / totalClients) * 1000) / 10
+          : 0,
+    };
+  });
+
+  return { ranking, tierDist, totalClients, totalBilledUsd };
+}
+
+// ── Contables · Estado de resultados ───────────────────────────
+
+/**
+ * Estado de resultados del período. REUSA `profitAndLoss` (Contabilidad 0040)
+ * TAL CUAL sobre los saldos del rango: NO recalcula. Compone igual que Dirección
+ * (0048): listAccounts + accountBalances({fromDate, upToDate}) → profitAndLoss.
+ * La vista solo formatea filas con % sobre ingresos (incomeStatementRows).
+ */
+export async function incomeStatement(
+  supabase: SupabaseClient,
+  period: ReportPeriod,
+  today?: Date,
+): Promise<IncomeStatement> {
+  const range = periodRange(period, today);
+  const [accounts, balances] = await Promise.all([
+    listAccounts(supabase),
+    accountBalances(supabase, { fromDate: range.from, upToDate: range.to }),
+  ]);
+  const pl = profitAndLoss(accounts, balances);
+  return {
+    rows: incomeStatementRows(pl),
+    income: pl.income,
+    netIncome: pl.netIncome,
+    range,
+  };
+}
+
+// ── Contables · Aging CxC/CxP ──────────────────────────────────
+
+/**
+ * Reporte de aging CxC/CxP en USD real. REUSA `receivablesQueue` (Cobranzas
+ * 0041) para CxC y `payablesQueue` (Tesorería 0044) para CxP. Los buckets
+ * (corriente / 1-30 / 31-60 / 60+) se COMPUTAN del `daysOverdue` que cada cola
+ * provee (buildAgingSide, puro), sumando el saldo NORMALIZADO a USD
+ * (`balanceUsd`, decisión SDD-0052 r2) — el `balance` nativo es multi-moneda y
+ * NO se puede sumar como si fuera USD. CNY → 0 (consistente con cashflow).
+ * EmptyState honesto: si vacío, buckets en 0.
+ *
+ * `today` (YYYY-MM-DD) determinístico para tests.
+ */
+export async function agingReport(
+  supabase: SupabaseClient,
+  today: string = new Date().toISOString().slice(0, 10),
+): Promise<AgingReport> {
+  const [cxcQueue, cxpQueue] = await Promise.all([
+    receivablesQueue(supabase, today),
+    payablesQueue(supabase, today),
+  ]);
+
+  // Bucketiza por el SALDO EN USD (no el balance multi-moneda).
+  const cxcItems: AgingItem[] = cxcQueue.map((r) => ({
+    balance: r.balanceUsd,
+    daysOverdue: r.daysOverdue,
+  }));
+  const cxpItems: AgingItem[] = cxpQueue.map((p) => ({
+    balance: p.balanceUsd,
+    daysOverdue: p.daysOverdue,
+  }));
+
+  return {
+    cxc: buildAgingSide(cxcItems),
+    cxp: buildAgingSide(cxpItems),
+  };
+}
+
+// ── Contables · Cashflow facturado vs cobrado ──────────────────
+
+/**
+ * Cashflow del período: serie mensual de FACTURADO vs COBRADO, ambos
+ * USD-normalizados vía invoiceUsdAmount (VES/fx; CNY → 0). KPIs por-cobrar/vencido
+ * REUSAN `invoiceKpis` (Facturación 0021, saldos vivos · no del rango). NO
+ * recalcula montos: solo agrega y normaliza. EmptyState honesto si la serie es plana.
+ *
+ * FACTURADO usa la MISMA fecha de referencia para el filtro de rango y el bucket
+ * (`issued_at ?? created_at`, consistente con `invoiceKpis`/`clientAnnualBilling`)
+ * — antes filtraba por `created_at` pero bucketizaba por `issued_at`, lo que
+ * descuadraba el total (KPI) con las barras (serie). El filtro de rango y el
+ * agrupado mensual se hacen IN-MEMORY sobre ese mismo `refDate` → total = Σ serie.
+ */
+export async function cashflowReport(
+  supabase: SupabaseClient,
+  period: ReportPeriod,
+  today?: Date,
+): Promise<CashflowReport> {
+  const range = periodRange(period, today);
+
+  const [invRes, recRes, kpis] = await Promise.all([
+    // Sin filtro de rango en SQL: el rango se aplica in-memory sobre
+    // `issued_at ?? created_at` (el filtro SQL por una sola columna perdería las
+    // filas cuyo issued_at cae en rango pero created_at no, o viceversa).
+    supabase
+      .from("invoices")
+      .select("total_amount, currency, fx_rate, status, issued_at, created_at")
+      .is("deleted_at", null)
+      .neq("status", "anulada")
+      .neq("status", "borrador")
+      .limit(20000),
+    supabase
+      .from("payment_receipts")
+      .select("amount, currency, fx_rate, received_at")
+      .is("deleted_at", null)
+      .gte("received_at", range.from)
+      .lte("received_at", range.to)
+      .limit(20000),
+    invoiceKpis(supabase),
+  ]);
+
+  if (invRes.error) throw invRes.error;
+  if (recRes.error) throw recRes.error;
+
+  // Facturado: una fila por factura, fecha de referencia = issued_at (o
+  // created_at). El filtro de estado va en la query (.neq) y se repite en memoria
+  // por robustez. El rango se filtra por la MISMA fecha que bucketiza la serie
+  // (refDate ∈ [from, to]), de modo que el total cuadra con la suma de las barras.
+  const billed: FlowItem[] = [];
+  let totalBilled = 0;
+  for (const row of (invRes.data as Record<string, unknown>[] | null) ?? []) {
+    const status = String(row.status ?? "");
+    if (status === "anulada" || status === "borrador") continue;
+    const refDate =
+      ((row.issued_at as string | null) ?? (row.created_at as string | null)) ??
+      null;
+    const refDay = refDate?.slice(0, 10) ?? null;
+    // Filtro de rango in-memory sobre la fecha de referencia (inclusive).
+    if (!refDay || refDay < range.from || refDay > range.to) continue;
+    const usd = invoiceUsdAmount({
+      currency: row.currency as InvoiceCurrency,
+      total_amount: num(row.total_amount),
+      fx_rate: numOrNull(row.fx_rate),
+    });
+    if (usd <= 0) continue;
+    billed.push({ dateIso: refDate, usd });
+    totalBilled += usd;
+  }
+
+  // Cobrado: una fila por recibo, fecha = received_at, USD-norm (misma lógica).
+  const collected: FlowItem[] = [];
+  let totalCollected = 0;
+  for (const row of (recRes.data as Record<string, unknown>[] | null) ?? []) {
+    const usd = invoiceUsdAmount({
+      currency: row.currency as InvoiceCurrency,
+      total_amount: num(row.amount),
+      fx_rate: numOrNull(row.fx_rate),
+    });
+    if (usd <= 0) continue;
+    collected.push({ dateIso: (row.received_at as string | null) ?? null, usd });
+    totalCollected += usd;
+  }
+
+  return {
+    series: monthlyCashflow(billed, collected, range),
+    totalBilled: Math.round(totalBilled * 100) / 100,
+    totalCollected: Math.round(totalCollected * 100) / 100,
+    outstanding: kpis.outstanding,
+    overdue: kpis.overdue,
+  };
 }
