@@ -1,7 +1,7 @@
 ---
 sdd: "0047"
 title: "Naviera & Consolidación — carriers + itinerarios + bookings/BL + consolidación LCL→FCL (Bloque 4)"
-status: approved
+status: done
 author: "Claude Code (carril Bloque 4 · Norte v2.4)"
 created: 2026-06-03
 updated: 2026-06-03
@@ -191,10 +191,35 @@ Construido:
   `listLooseCargo`).
 - **31 tests** (Vitest) cubriendo los criterios de aceptación de Slice A.
 
-**Pendiente:**
-- **Slice B (UI operable end-to-end):** surface `app/studio/(app)/naviera/`, server actions,
-  drawer de asignación con guard de capacidad, wire al Dashboard (SDD-0014).
-- **Slice C (avanzado, gated):** scraping de itinerarios, emisión de BL como PDF, bin-packing optimizer.
+**Slice B (UI operable) implementado vía harness `/feature` (2026-06-03), reviewer APPROVED +
+`ui-ux-designer` sin hallazgos Alta (2 nits aplicados: placeholder de contenedor vacío a
+left-align; KPIs duplicados quitados del tab Carga suelta).**
+
+Construido:
+- **Surface** `app/studio/(app)/naviera/` (`page.tsx` Server Component + `NavieraClient`) con
+  header + 4 KPIs globales y **4 vistas**:
+  - **Itinerarios:** lista de sailings (abiertos/cut-off arriba) + alta/edición **manual** (`SailingDrawer`).
+  - **Consolidación ⭐** (default): lista de contenedores con mini-barra de utilización + detalle
+    con **2 barras CBM/peso** (`UtilizationBar`), items consolidados, espacio libre, "+ Asignar carga"
+    (`AssignCargoDrawer` con preview en vivo + **guard de capacidad advisory**), cerrar/zarpar.
+  - **Carga suelta:** tabla de candidatos derivados (`listLooseCargo`) + CTA "Ir a consolidación →".
+  - **Reservas (bookings):** alta + tabla con BL marítimo, drawer (`BookingDrawer`) con captura
+    **manual** de `bl_number`, modo FCL/LCL, tipo de contenedor.
+- **Server Actions** `actions.ts` (`"use server"` + validación `validate*Input()` no Zod +
+  `revalidatePath`): crear/editar/cambiar-estado de sailing, booking y consolidation;
+  asignar/quitar item; `closeConsolidation`/`linkConsolidation`/`assignLooseCargo` (guard advisory,
+  no bloquea).
+- **`UtilizationBar`** con tokens (`var(--success)` <80 / `var(--warning)` 80-100 / `var(--wine)`
+  >100), cero hex, `role="progressbar"`.
+- **Wire al Dashboard (SDD-0014):** `navieraKpis` re-exportado en `dashboard-queries.ts` + sección
+  "Naviera & consolidación" con 4 KpiCards en `dashboard/page.tsx`.
+- **Sidebar:** item `naviera` en grupo OPERACIÓN (icono `ship`, `/studio/naviera`), módulo core.
+- **10 tests** (Vitest) Slice B: `capacity-guard` (7) + `naviera-kpis` (3).
+
+**Slice C queda diferido / futuro (spike-gated)** — igual que el Slice C de SDD-0046: scraping de
+itinerarios de las navieras, emisión de BL como PDF / Documentos Hub, y auto bin-packing optimizer.
+NO implementado en V1.
 
 **Ops pendiente del founder:** aplicar `0096` a prod (aditiva, con RLS; **NO la aplicó el harness**)
-+ verificar **RLS con 2 tenants** y correr el **rollback-test** al aplicar.
++ verificar **RLS con 2 tenants**, correr el **rollback-test** y validar el **E2E con DB real**
+(crear sailing→booking→consolidation, asignar carga suelta, ver la barra reflejar el CBM%).

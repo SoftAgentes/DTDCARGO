@@ -39,6 +39,7 @@
 | Cobranzas | 0041 | `app/studio/(app)/cobranzas/` | `lib/studio/payment-*`, `collections-actions`, `accounting/receipt-posting` |
 | Tesorería | 0044 | `app/studio/(app)/tesoreria/` | `lib/studio/treasury/` (types, supplier-queries, bill-queries, treasury-actions), `accounting/{bill-posting,supplier-payment-posting}` · `supabase/migrations/0088_tesoreria.sql` |
 | Despacho | 0029, 0030 | `app/studio/(app)/despacho/` + `app/m/ve/{bodeguero,camionero}/` | `lib/studio/dispatch-*`, `notify/` |
+| Naviera & Consolidación | 0047 | `app/studio/(app)/naviera/` | `lib/studio/naviera/` |
 | Etiquetas suppliers CN | 0031 | `app/studio/(app)/etiquetas/` | (labels) |
 | QR print queue | 0033 | `app/studio/(app)/cola-qr/` | `lib/studio/qr-queue-*` |
 | Wiring modals globales | 0034 | `app/studio/_components/wiring/` | — |

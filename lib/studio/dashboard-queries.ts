@@ -8,6 +8,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Quote } from "./quote-types";
 
+// Re-export del KPI de Naviera (SDD-0047, Slice B) — el dashboard lo importa
+// desde acá junto al resto de los KPIs del resumen. La query vive en su módulo
+// (lib/studio/naviera/queries) para no duplicar la lógica derivada.
+export { navieraKpis, type NavieraKpis } from "./naviera/queries";
+
 export type OperationalCounts = {
   enTransito: number;
   enAduana: number;

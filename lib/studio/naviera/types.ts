@@ -339,6 +339,47 @@ export function containerStats(
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
+// ║ Guard de capacidad · ADVISORY (§4.4) — PURO, testeable     ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+export type CapacityWarning = {
+  /** true si tras agregar la pieza el CBM o el kg superan la capacidad. */
+  over: boolean;
+  cbmPct: number;
+  kgPct: number;
+  /** Aviso para la UI (null si no hay sobre-capacidad). */
+  message: string | null;
+};
+
+/**
+ * Guard de capacidad ADVISORY (§4.4): calcula la utilización resultante de
+ * sumar `incoming` a los `existing` items para el `containerType`. NO bloquea —
+ * solo devuelve un aviso cuando el resultado supera la capacidad del tipo.
+ * PURO: testeable sin DB. Se reusa en la server action `assignLooseCargo`.
+ */
+export function evaluateCapacity(
+  existing: StatItem[],
+  incoming: StatItem,
+  containerType: string | null,
+): CapacityWarning {
+  const stats = containerStats([...existing, incoming], containerType);
+  const overCbm = stats.cap != null && stats.cbmPct > 100;
+  const overKg = stats.cap != null && stats.kgPct > 100;
+  const over = overCbm || overKg;
+
+  let message: string | null = null;
+  if (over) {
+    const parts: string[] = [];
+    if (overCbm) parts.push(`CBM al ${stats.cbmPct.toFixed(0)}%`);
+    if (overKg) parts.push(`peso al ${stats.kgPct.toFixed(0)}%`);
+    message = `El contenedor queda sobre-capacidad (${parts.join(
+      " · ",
+    )}). Se asignó igual; reacomodá si hace falta.`;
+  }
+  return { over, cbmPct: stats.cbmPct, kgPct: stats.kgPct, message };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
 // ║ Códigos correlativos (espejos en TS para test sin DB)     ║
 // ╚═══════════════════════════════════════════════════════════╝
 
