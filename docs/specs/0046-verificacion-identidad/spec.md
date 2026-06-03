@@ -1,7 +1,7 @@
 ---
 sdd: "0046"
 title: "Verificación de identidad de clientes — motor 2 vías (CNE cédula + SENIAT RIF), advisory"
-status: in-progress
+status: done
 author: "DTD Cargo"
 created: 2026-06-03
 updated: 2026-06-03
@@ -260,8 +260,10 @@ cada verificación. El backfill (migración) cubre los clientes históricos por 
   self-registrados. Columnas SDD-0046 cableadas a `Client` type + `CLIENT_COLUMNS`. `ui-ux-designer`
   pendiente pre-commit (regla del founder).
 
-**Slice C (RIF/SENIAT)** queda pendiente (gated por spike, ver §3 / §6). → Pasa a `done` cuando C
-esté shipped o se decida cerrar V1 sin el auto-SENIAT (la empresa ya tiene piso manual funcional).
+**Slice C (RIF/SENIAT)** queda **diferido** (gated por spike, ver §3 / §6). Spec cerrado a `done`
+el 2026-06-03 por la decisión §9.1 (cierre V1 **manual-only**, la empresa ya tiene piso manual
+funcional); Slice C reabre como spec futura si el spike de SENIAT prospera. **Ops pendiente del
+founder:** aplicar `0092_identity_verification.sql` a prod (aditiva/nullable, sin RLS).
 
 ### 9.1 Cierre a V1 **manual-only** (decisión founder, 2026-06-03)
 
@@ -298,8 +300,8 @@ corresponde" del asesor) es el camino V1 para **cédula Y empresa**.
 
 **Swap futuro:** configurar `IDENTITY_CNE_URL` apuntando a un endpoint compatible con el shape
 megacreativo (self-host de un wrapper o proxy sin geo-bloqueo) habilita el auto-cédula **sin tocar
-código**. El auto-SENIAT espera el Slice C (spike OCR). El status sigue **`in-progress`** hasta que
-se cierre V1 formalmente o lleguen los providers.
+código**. El auto-SENIAT espera el Slice C (spike OCR). **Status: `done`** — V1 manual-only cerrada
+el 2026-06-03; el auto-cédula/SENIAT reabre como spec futura cuando lleguen los providers.
 
 ---
 
