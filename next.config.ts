@@ -134,6 +134,28 @@ const nextConfig: NextConfig = {
       },
       { key: "X-Robots-Tag", value: "noindex, nofollow" },
     ];
+    // `/norte.html` sirve el Norte visual horneado en el build (SDD-0050 Slice B):
+    // HTML estático autocontenido que `/studio/debug` → Norte embebe en un iframe.
+    // Misma CSP permisiva acotada que el Brand Book (fuentes Google Fonts + inline/
+    // eval para sus scripts vanilla de tabs/tema/filtros) + `frame-ancestors 'self'`
+    // (lo enmarca la torre de control) + noindex (artefacto interno). El catch-all de
+    // abajo lo excluye (negative lookahead) para no pisarle los headers estrictos.
+    const norteHeaders = [
+      { key: "Content-Security-Policy", value: brandBookCspHeader },
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      {
+        key: "Permissions-Policy",
+        value:
+          "camera=(), microphone=(), geolocation=(), payment=(), usb=(), gyroscope=(), magnetometer=(), accelerometer=()",
+      },
+      {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      },
+      { key: "X-Robots-Tag", value: "noindex, nofollow" },
+    ];
     return [
       {
         source: "/m/:path*",
@@ -144,7 +166,11 @@ const nextConfig: NextConfig = {
         headers: marcaHeaders,
       },
       {
-        source: "/:path((?!m/|marca/).*)",
+        source: "/norte.html",
+        headers: norteHeaders,
+      },
+      {
+        source: "/:path((?!m/|marca/|norte\\.html).*)",
         headers: securityHeaders,
       },
     ];

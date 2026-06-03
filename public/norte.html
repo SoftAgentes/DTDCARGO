@@ -1,0 +1,773 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>Norte · DTD Studio (v2.4c)</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    color-scheme: light;
+    --wine: #7F0F1A; --navy: #0F1E3D; --paper: #FBFAF7; --page: #FBFAF7; --surface: #FFFFFF;
+    --ink: #0F1E3D; --ink-soft: #6B6B6B; --ink-mute: #9B9B9B; --border: #E8E6E2;
+    --built: #1F8A5B; --wip: #B8893A; --design: #6B6B6B; --hover: #F2F0EC;
+    --danger: #A8323E;
+    --on-navy: #B9C0D2; --on-navy-mute: #8E99B4;
+  }
+  /* Tema oscuro: el header sigue navy (ya era oscuro); flipea cuerpo + cards + texto.
+     --paper queda claro a propósito (es el TEXTO del header sobre navy); el fondo de
+     página usa --page. Paleta alineada al dark theme del Norte (_norte/CLAUDE.md). */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0B1428; --surface: #16264A;
+    --ink: #F2F0EC; --ink-soft: #A8B0C4; --ink-mute: #7E89A4; --border: #2A3A5C;
+    --built: #3FB984; --wip: #D4A85A; --design: #9BA6BE; --hover: #1F3055; --wine: #D89AA4; --danger: #D9606C;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--page); color: var(--ink);
+    font: 400 15px/1.5 'Archivo', system-ui, sans-serif; }
+
+  header { position: relative; background: var(--navy); color: var(--paper); padding: 28px 32px;
+    display: flex; gap: 40px; flex-wrap: wrap; align-items: flex-start; }
+  .theme-toggle { position: absolute; top: 20px; right: 24px; appearance: none; cursor: pointer;
+    background: rgba(255,255,255,.08); color: var(--on-navy); border: 1px solid rgba(255,255,255,.18);
+    border-radius: 999px; padding: 6px 14px; font: 600 12px/1 'Archivo'; transition: background .12s ease; }
+  .theme-toggle:hover { background: rgba(255,255,255,.16); color: var(--paper); }
+  header .head-main { flex: 1 1 460px; min-width: 0; }
+  header .eyebrow { font: 600 12px/1 'Archivo'; letter-spacing: .12em; text-transform: uppercase; color: var(--on-navy); }
+  header h1 { font: 900 30px/1.1 'Archivo Black'; margin: 8px 0 6px; }
+  header p { margin: 0; color: var(--on-navy); font-size: 14px; max-width: 600px; }
+
+  /* Barra de progreso global */
+  .progress-wrap { margin-top: 24px; max-width: 580px; }
+  .progress-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .progress-pct { font: 900 38px/1 'Archivo Black'; color: var(--paper); }
+  .progress-pct span { font: 600 14px/1 'JetBrains Mono'; color: var(--on-navy); margin-left: 8px; }
+  .progress-count { font: 600 12px/1 'JetBrains Mono'; color: var(--on-navy); white-space: nowrap; }
+  .bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,.09); }
+  .bar > i { display: block; height: 100%; }
+  .bar > i.built { background: var(--built); }
+  .bar > i.wip { background: var(--wip); }
+  .bar > i.design { background: var(--design); }
+  .bar-legend { display: flex; gap: 16px; margin-top: 12px; font: 600 12px/1 'JetBrains Mono'; color: var(--on-navy); }
+  .bar-legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+  .meta-src { margin-top: 16px; font: 500 11px/1 'JetBrains Mono'; color: var(--on-navy-mute); }
+
+  /* Movimiento reciente */
+  header .recent { flex: 0 1 360px; min-width: 260px;
+    background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px; padding: 14px 8px 10px 16px; }
+  header .recent .recent-head { display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; padding-right: 8px; margin-bottom: 8px; }
+  header .recent .lbl { font: 600 11px/1 'Archivo'; letter-spacing: .12em; text-transform: uppercase; color: var(--on-navy-mute); }
+  header .recent .recent-count { font: 700 10px/1 'JetBrains Mono'; color: var(--on-navy-mute);
+    background: rgba(255,255,255,.07); border-radius: 999px; padding: 3px 7px; }
+  header .recent .feed { max-height: 168px; overflow-y: auto; padding-right: 6px; }
+  header .recent .feed::-webkit-scrollbar { width: 6px; }
+  header .recent .feed::-webkit-scrollbar-track { background: transparent; }
+  header .recent .feed::-webkit-scrollbar-thumb { background: rgba(255,255,255,.16); border-radius: 999px; }
+  header .recent .feed::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.28); }
+  header .recent .row { display: grid; grid-template-columns: 12px 64px 1fr auto; gap: 8px; align-items: center;
+    padding: 6px 6px; border-radius: 7px; transition: background .12s ease; cursor: default; }
+  header .recent .row:hover { background: rgba(255,255,255,.06); }
+  header .recent .row + .row { margin-top: 1px; }
+  header .recent .dot { width: 7px; height: 7px; border-radius: 999px; display: inline-block; }
+  header .recent .dot.built { background: var(--built); }
+  header .recent .dot.wip { background: var(--wip); }
+  header .recent .dot.design { background: var(--on-navy-mute); }
+  header .recent .rsdd { font: 600 11px/1.4 'JetBrains Mono'; color: var(--paper); }
+  header .recent .rtitle { font: 500 12px/1.4 'Archivo'; color: var(--on-navy);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header .recent .rdate { font: 500 10.5px/1.4 'JetBrains Mono'; color: var(--on-navy-mute); text-align: right; white-space: nowrap; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 32px 64px; }
+  .legend { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 24px; font-size: 13px; color: var(--ink-soft); }
+  .legend .badge { margin-right: 6px; }
+  .legend-hint { font: 600 11px/1 'Archivo'; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-mute); }
+  .legend-item { appearance: none; background: none; border: 0; margin: 0; padding: 4px 8px; border-radius: 6px;
+    font: inherit; color: inherit; text-align: left; cursor: pointer; transition: opacity .12s ease, background .12s ease; }
+  .legend-item:hover { background: var(--hover); }
+  .legend-item.off { opacity: .38; }
+  .legend-item.off .badge { filter: grayscale(.55); }
+
+  .group { margin-bottom: 32px; }
+  .group h2 { font: 800 16px/1.2 'Archivo'; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .group-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .group-meta { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+  .bar.mini { width: 120px; height: 6px; }
+  .group-count { font: 600 12px/1 'JetBrains Mono'; color: var(--ink-mute); }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px;
+    transition: border-color .12s ease, box-shadow .12s ease; }
+  .card:hover { border-color: var(--ink-mute); box-shadow: 0 1px 3px rgba(15,30,61,.06); }
+  .card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .card .name { font-weight: 600; font-size: 14px; }
+  .card-meta { font: 500 11px/1.4 'JetBrains Mono'; color: var(--ink-mute); margin-bottom: 10px; overflow-wrap: anywhere; word-break: normal; }
+  .card-meta .sdd { color: var(--wine); }
+  .card-meta code { color: var(--ink-soft); }
+  .card-meta .nospec { font-style: italic; }
+
+  .badge { font: 600 11px/1 'Archivo'; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+  .badge.built { background: rgba(31,138,91,.12); color: var(--built); }
+  .badge.wip { background: rgba(184,137,58,.14); color: var(--wip); }
+  .badge.design { background: rgba(107,107,107,.12); color: var(--design); }
+  .badge.brand { background: rgba(127,15,26,.10); color: var(--wine); }
+  .open { display: inline-block; font: 600 13px/1 'Archivo'; color: var(--wine); text-decoration: none; }
+  .open:hover { text-decoration: underline; }
+  .open.missing { color: var(--wine); font-style: italic; }
+  /* card con archivo faltante = anomalía de integridad: que salte */
+  .card.built:has(.open.missing), .card.wip:has(.open.missing), .card.design:has(.open.missing) { border-color: var(--wine); }
+
+  footer { max-width: 1100px; margin: 0 auto; padding: 0 32px 48px; color: var(--ink-mute); font-size: 12px; }
+
+  /* Tabs (switch de vistas) — viven en el header navy */
+  .tabs { display: flex; gap: 8px; margin: 18px 0 4px; }
+  .tab { appearance: none; cursor: pointer; background: rgba(255,255,255,.06); color: var(--on-navy);
+    border: 1px solid rgba(255,255,255,.18); border-radius: 999px; padding: 8px 18px;
+    font: 700 13px/1 'Archivo'; transition: background .12s ease, color .12s ease; }
+  .tab:hover { background: rgba(255,255,255,.14); color: var(--paper); }
+  .tab.active { background: var(--paper); color: var(--navy); border-color: var(--paper); }
+
+  /* Vistas conmutables */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Vista Datos: cabecera de progreso sobre fondo claro (no navy) */
+  #view-datos .data-head { max-width: 580px; margin: 0 0 28px; }
+  #view-datos .progress-pct { color: var(--ink); }
+  #view-datos .progress-pct span { color: var(--ink-mute); margin-left: 8px; font: 600 13px/1 'JetBrains Mono'; }
+  #view-datos .progress-count { color: var(--ink-mute); }
+  #view-datos .bar { background: var(--border); }
+  #view-datos .bar-legend { color: var(--ink-soft); }
+  #view-datos .meta-src { color: var(--ink-mute); }
+  .card-note { font: 500 12px/1.45 'Archivo'; color: var(--ink-soft); }
+
+  /* Estado "falta" (❌) — reusa la mecánica de badge/bar */
+  .bar > i.missing { background: var(--danger); }
+  .badge.missing { background: rgba(168,50,62,.12); color: var(--danger); }
+  .card.missing:hover { border-color: var(--danger); }
+
+  /* Tabla de Bloques financieros */
+  table.blocks { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 4px; }
+  table.blocks th { text-align: left; font: 700 11px/1 'Archivo'; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--ink-mute); padding: 8px 10px; border-bottom: 1px solid var(--border); }
+  table.blocks td { padding: 9px 10px; border-bottom: 1px solid var(--border); vertical-align: top; color: var(--ink-soft); }
+  table.blocks td.bk { font: 700 12px/1.3 'JetBrains Mono'; color: var(--wine); white-space: nowrap; }
+  table.blocks td.sp { font: 600 12px/1.3 'JetBrains Mono'; color: var(--ink-soft); white-space: nowrap; }
+
+  .empty-data { padding: 22px 24px; border: 1px dashed var(--border); border-radius: 10px; color: var(--ink-soft); }
+  .empty-data code { color: var(--wine); }
+</style>
+<script>
+  // Tema inicial antes de pintar (evita flash): localStorage → preferencia del sistema.
+  (function () {
+    try {
+      var t = localStorage.getItem('norte-theme');
+      if (t !== 'dark' && t !== 'light') {
+        t = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  })();
+</script>
+</head>
+<body>
+<header>
+  <button type="button" class="theme-toggle" aria-label="Cambiar tema claro/oscuro">Modo oscuro</button>
+  <div class="head-main">
+    <div class="eyebrow">DTD Studio · Norte visual</div>
+    <h1>A dónde vamos — y dónde estamos</h1>
+    <p>Mapa de las pantallas-meta del proyecto. Cada tarjeta abre el mockup navegable; el badge dice en qué punto está cada módulo en la app real.</p>
+    <div class="tabs" role="tablist">
+      <button type="button" class="tab active" data-view="pantallas">🖥 Pantallas</button>
+      <button type="button" class="tab" data-view="datos">🗄 Datos</button>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-head">
+        <div class="progress-pct">50%<span>construido</span></div>
+        <div class="progress-count">10/20 módulos</div>
+      </div>
+      <div class="bar">
+        <i class="built" style="width:50%"></i>
+        <i class="wip" style="width:0%"></i>
+        <i class="design" style="width:50%"></i>
+      </div>
+      <div class="bar-legend">
+        <span><i style="background:var(--built)"></i>10 listas</span>
+        <span style="opacity:.55"><i style="background:var(--wip)"></i>0 en obra</span>
+        <span><i style="background:var(--design)"></i>10 en diseño</span>
+      </div>
+      <div class="meta-src">v2.4c · generado por scripts/norte.mjs · 2026-06-03 13:34</div>
+      <div class="meta-src">Datos · 11/22 entidades con tabla real → pestaña <b style="color:var(--paper)">🗄 Datos</b></div>
+    </div>
+  </div>
+  <aside class="recent">
+    <div class="recent-head">
+      <span class="lbl">Movimiento reciente</span>
+      <span class="recent-count">10</span>
+    </div>
+    <div class="feed">
+        <div class="row" title="SDD-0042 · Portal del Cliente — auth de cliente + mis envíos (V1) · in-progress · 2026-06-05">
+          <i class="dot wip"></i>
+          <span class="rsdd">SDD-0042</span>
+          <span class="rtitle">Portal del Cliente — auth de cliente + …</span>
+          <span class="rdate">hoy</span>
+        </div>
+        <div class="row" title="SDD-0044 · Tesorería — Proveedores + CxP + órdenes de pago + asiento del pago (Bloque 2.2) · done · 2026-06-03">
+          <i class="dot built"></i>
+          <span class="rsdd">SDD-0044</span>
+          <span class="rtitle">Tesorería — Proveedores + CxP + órdenes…</span>
+          <span class="rdate">hoy</span>
+        </div>
+        <div class="row" title="SDD-0045 · Comentarios + @menciones transversales — hilo embebible en cualquier entidad · done · 2026-06-03">
+          <i class="dot built"></i>
+          <span class="rsdd">SDD-0045</span>
+          <span class="rtitle">Comentarios + @menciones transversales …</span>
+          <span class="rdate">hoy</span>
+        </div>
+        <div class="row" title="SDD-0046 · Verificación de identidad de clientes — motor 2 vías (CNE cédula + SENIAT RIF), advisory · done · 2026-06-03">
+          <i class="dot built"></i>
+          <span class="rsdd">SDD-0046</span>
+          <span class="rtitle">Verificación de identidad de clientes —…</span>
+          <span class="rdate">hoy</span>
+        </div>
+        <div class="row" title="SDD-0047 · Naviera &amp; Consolidación — carriers + itinerarios + bookings/BL + consolidación LCL→FCL (Bloque 4) · done · 2026-06-03">
+          <i class="dot built"></i>
+          <span class="rsdd">SDD-0047</span>
+          <span class="rtitle">Naviera &amp; Consolidación — carriers + it…</span>
+          <span class="rdate">hoy</span>
+        </div>
+        <div class="row" title="SDD-0048 · Dirección · Tablero ejecutivo — vista consolidada read-only, admin-only (Bloque 5) · done · 2026-06-03">
+          <i class="dot built"></i>
+          <span class="rsdd">SDD-0048</span>
+          <span class="rtitle">Dirección · Tablero ejecutivo — vista c…</span>
+          <span class="rdate">hoy</span>
+        </div>
+        <div class="row" title="SDD-0049 · Documentos · Hub DMS — adjuntos polimórficos embebibles + carpeta central (Bloque 5) · approved · 2026-06-03">
+          <i class="dot built"></i>
+          <span class="rsdd">SDD-0049</span>
+          <span class="rtitle">Documentos · Hub DMS — adjuntos polimór…</span>
+          <span class="rdate">hoy</span>
+        </div>
+        <div class="row" title="SDD-0050 · Torre de control en /studio/debug — Estado + Bugs + Norte + Radar unificados (vivo/snapshot/local) · in-progress · 2026-06-03">
+          <i class="dot wip"></i>
+          <span class="rsdd">SDD-0050</span>
+          <span class="rtitle">Torre de control en /studio/debug — Est…</span>
+          <span class="rdate">hoy</span>
+        </div>
+        <div class="row" title="SDD-0001 · Sitio web público MVP de DTD·CARGO · done · 2026-06-02">
+          <i class="dot built"></i>
+          <span class="rsdd">SDD-0001</span>
+          <span class="rtitle">Sitio web público MVP de DTD·CARGO</span>
+          <span class="rdate">ayer</span>
+        </div>
+        <div class="row" title="SDD-0002 · Calculadora de Flete Terrestre Venezuela · done · 2026-06-02">
+          <i class="dot built"></i>
+          <span class="rsdd">SDD-0002</span>
+          <span class="rtitle">Calculadora de Flete Terrestre Venezuela</span>
+          <span class="rdate">ayer</span>
+        </div>
+    </div>
+  </aside>
+</header>
+<main>
+  <section id="view-pantallas" class="view active">
+  <div class="legend">
+    <span class="legend-hint">Filtrar</span>
+    <button type="button" class="legend-item" data-filter="built" title="Clic para mostrar/ocultar"><span class="badge built">✅ Construido</span> SDD cerrado o aprobado con código</button>
+    <button type="button" class="legend-item" data-filter="wip" title="Clic para mostrar/ocultar"><span class="badge wip">🚧 En construcción</span> SDD en progreso o aprobado sin código aún</button>
+    <button type="button" class="legend-item" data-filter="design" title="Clic para mostrar/ocultar"><span class="badge design">📋 Diseño</span> solo mockup, falta construir</button>
+    <button type="button" class="legend-item" data-filter="brand" title="Clic para mostrar/ocultar"><span class="badge brand">Marca</span> material de identidad</button>
+  </div>
+    <section class="group">
+      <h2><span class="group-title">ERP · Studio (admin)</span><span class="group-meta">
+        <span class="bar mini"><i class="built" style="width:100%"></i><i class="wip" style="width:0%"></i><i class="design" style="width:0%"></i></span>
+        <span class="group-count">1/1</span>
+      </span></h2>
+      <div class="cards">
+      <div class="card built">
+        <div class="card-top"><span class="name">DTD Studio · ERP (completo)</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0004</span> · <code>app/studio/(app)</code></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">Despacho</span><span class="group-meta">
+        <span class="bar mini"><i class="built" style="width:100%"></i><i class="wip" style="width:0%"></i><i class="design" style="width:0%"></i></span>
+        <span class="group-count">1/1</span>
+      </span></h2>
+      <div class="cards">
+      <div class="card built">
+        <div class="card-top"><span class="name">Despacho · Vista 3</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0029</span> · <code>app/studio/(app)/despacho</code></div>
+        <a class="open" href="./Despacho%20%C2%B7%20Vista%203.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">Portal del Cliente</span><span class="group-meta">
+        <span class="bar mini"><i class="built" style="width:33%"></i><i class="wip" style="width:0%"></i><i class="design" style="width:67%"></i></span>
+        <span class="group-count">1/3</span>
+      </span></h2>
+      <div class="cards">
+      <div class="card design">
+        <div class="card-top"><span class="name">Portal del Cliente</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./Portal%20del%20Cliente.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Modo Cliente (impersonación admin)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./Modo%20Cliente.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Registro de cliente</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0024</span> · <code>app/invitar</code></div>
+        <a class="open" href="./Registro%20Cliente.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">Móvil · Operarios</span><span class="group-meta">
+        <span class="bar mini"><i class="built" style="width:100%"></i><i class="wip" style="width:0%"></i><i class="design" style="width:0%"></i></span>
+        <span class="group-count">7/7</span>
+      </span></h2>
+      <div class="cards">
+      <div class="card built">
+        <div class="card-top"><span class="name">Mobile ERP</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span> · <code>app/m/erp</code></div>
+        <a class="open" href="./Mobile%20ERP.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Operario CN</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0016</span> · <code>app/m/cn</code></div>
+        <a class="open" href="./Operario%20CN.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Operario VE</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0017</span> · <code>app/m/ve</code></div>
+        <a class="open" href="./Operario%20VE.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Operario · App (multi-rol)</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0030</span> · <code>app/m</code></div>
+        <a class="open" href="./Operario%20%C2%B7%20App.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Login y Sesión · Operario</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0030</span> · <code>app/m</code></div>
+        <a class="open" href="./Login%20y%20Sesi%C3%B3n%20%C2%B7%20Operario.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Almacenista VE</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0030</span> · <code>app/m/ve/bodeguero</code></div>
+        <a class="open" href="./Almacenista%20VE.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Transportista</span><span class="badge built">✅ Construido</span></div>
+        <div class="card-meta"><span class="sdd">SDD-0030</span> · <code>app/m/ve/camionero</code></div>
+        <a class="open" href="./Transportista.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">Perfiles individuales</span><span class="group-meta">
+        <span class="bar mini"><i class="built" style="width:0%"></i><i class="wip" style="width:0%"></i><i class="design" style="width:100%"></i></span>
+        <span class="group-count">0/5</span>
+      </span></h2>
+      <div class="cards">
+      <div class="card design">
+        <div class="card-top"><span class="name">Perfil · Usuario interno</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./pantallas/usuario-perfil.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Perfil · Agente aduanal</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./pantallas/agente-perfil.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Perfil · Camión</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./pantallas/camion-perfil.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Perfil · Chofer</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./pantallas/chofer-perfil.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Estado de cuenta</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./pantallas/estado-cuenta.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">Cross-módulo &amp; productividad (v1.9)</span><span class="group-meta">
+        <span class="bar mini"><i class="built" style="width:0%"></i><i class="wip" style="width:0%"></i><i class="design" style="width:100%"></i></span>
+        <span class="group-count">0/3</span>
+      </span></h2>
+      <div class="cards">
+      <div class="card design">
+        <div class="card-top"><span class="name">Tu día (bandeja personal)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./pantallas/tu-dia.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">AI Copilot (chat sobre datos)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./pantallas/copilot.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Hilo de comentario expandido</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./pantallas/hilo-comentario.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">ERP · Módulos nuevos (v1.9.1 · finanzas / fiscal / CRM)</span><span class="group-meta"><span class="group-count">10 módulos · fuera del %</span></span></h2>
+      <div class="cards">
+      <div class="card design">
+        <div class="card-top"><span class="name">Cobranzas (CxC vencidas)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Tesorería (pagos a proveedores CN)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Fiscal · SENIAT (IVA / retenciones)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Naviera &amp; Consolidación</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Conversaciones (bandeja unificada)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Fidelización &amp; Referidos</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Documentos · Hub central</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Dirección · Tablero ejecutivo</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Flujo de trabajo (workflow view)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Legal · T&amp;C / Acuerdos (admin-legal · v2.4c)</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./DTD%20Studio%20%C2%B7%20ERP.html" target="_blank" rel="noopener">Ver en ERP ↗</a>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">Nuevo en v2.3-v2.4c · proceso · propuestas · legal</span><span class="group-meta"><span class="group-count">6 módulos · fuera del %</span></span></h2>
+      <div class="cards">
+      <div class="card design">
+        <div class="card-top"><span class="name">Mapa de Proceso</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./Mapa%20de%20Proceso.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Guía del Mapa de Proceso</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./Gu%C3%ADa%20del%20Mapa%20de%20Proceso.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Portal Cliente · Mobile</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./Portal%20Cliente%20Mobile.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Propuesta · Servicios y Tarifas</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./Propuesta%20%C2%B7%20Servicios%20y%20Tarifas.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">Aceptación T&amp;C · Cotización</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./Aceptaci%C3%B3n%20T&C%20%C2%B7%20Cotizaci%C3%B3n.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card design">
+        <div class="card-top"><span class="name">App Icon · DTD Cargo</span><span class="badge design">📋 Diseño</span></div>
+        <div class="card-meta"><span class="nospec">sin spec</span></div>
+        <a class="open" href="./App%20Icon%20%C2%B7%20DTD%20Cargo.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">Marca</span></h2>
+      <div class="cards">
+      <div class="card brand">
+        <div class="card-top"><span class="name">Brand Book v3.2</span><span class="badge brand">Marca</span></div>
+        
+        <a class="open" href="./Brand%20Book%20DTD%20v3.2.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card brand">
+        <div class="card-top"><span class="name">Logo Oficial</span><span class="badge brand">Marca</span></div>
+        
+        <a class="open" href="./Logo%20Oficial.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card brand">
+        <div class="card-top"><span class="name">Iconos de Perfil</span><span class="badge brand">Marca</span></div>
+        
+        <a class="open" href="./Iconos%20de%20Perfil.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      <div class="card brand">
+        <div class="card-top"><span class="name">Aplicaciones de Marca</span><span class="badge brand">Marca</span></div>
+        
+        <a class="open" href="./Aplicaciones%20de%20Marca.html" target="_blank" rel="noopener">Abrir ↗</a>
+      </div>
+      </div>
+    </section>
+  </section>
+  <section id="view-datos" class="view">
+  <div class="progress-wrap data-head">
+    <div class="progress-head">
+      <div class="progress-pct">50%<span>de entidades con tabla real</span></div>
+      <div class="progress-count">11/22 entidades</div>
+    </div>
+    <div class="bar">
+      <i class="built" style="width:50%"></i>
+      <i class="wip" style="width:36%"></i>
+      <i class="missing" style="width:14%"></i>
+    </div>
+    <div class="bar-legend">
+      <span><i style="background:var(--built)"></i>11 con tabla</span>
+      <span><i style="background:var(--wip)"></i>8 parcial</span>
+      <span><i style="background:var(--danger)"></i>3 falta</span>
+    </div>
+    <div class="meta-src">fuente: docs/architecture/schema-reconciliation.md · blueprint del Norte ↔ tablas Supabase reales</div>
+  </div>
+    <section class="group">
+      <h2><span class="group-title">✅ Construido <span style="color:var(--ink-mute);font-weight:500">· tabla real fiel</span></span><span class="group-meta"><span class="group-count">11</span></span></h2>
+      <div class="cards">
+      <div class="card built">
+        <div class="card-top"><span class="name">Tenant</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`tenants`, `user_tenants`</div>
+        <div class="card-note">Multi-tenant raíz (`0001`). `markboxPrefix` no es columna (prefijo `DTD-` en `next_markbox()`).</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Client (MARKBOX)</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`clients`</div>
+        <div class="card-note">`0006` + enriquecida: `rif`/`doc_verify_*` (`0092`), `rif` unique (`0095`). status/last_login del portal viven en `client_users` (`0080`).</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Quote / Cotización</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`quotes`</div>
+        <div class="card-note">`0007`, máquina de estados draft→sent→accepted + `next_quote_code()`.</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Shipment / Embarque</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`shipments`, `shipment_events`</div>
+        <div class="card-note">`0002` + timeline. `shipment_documents` (`0086`). Contenedor DTDU → capa naviera (`0096`).</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Payment / Cobro-Pago</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`payment_receipts`, `supplier_payments`</div>
+        <div class="card-note">Cobro (`0079`) + pago a proveedor (`0088`).</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Reception / Recepción CN</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`warehouses_cn`, `warehouse_receipts_cn`, `warehouse_receipt_items`, `warehouse_receipt_events`, `warehouse_receipt_photos`</div>
+        <div class="card-note">`0008` + fotos (`0022`). Cabecera+items+eventos+fotos.</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Dispatch / Despacho</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`dispatch_orders`, `dispatch_order_packages`, `qr_print_orders`</div>
+        <div class="card-note">`0024` + cola QR (`0027`).</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Route / Ruta del chofer</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`dispatch_routes`, `tms_routes`</div>
+        <div class="card-note">`0024` (R-YYYY-NNNN, paradas) + TMS (`0011`).</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Delivery / POD</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`dispatch_pods`, `shipments`</div>
+        <div class="card-note">`0025` + columnas POD/GPS en shipments (`0009`/`0068`).</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">Rate / Tarifa (config)</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`rates`</div>
+        <div class="card-note">`0005`: per_cbm/flat/min_charge + RLS por tenant + seed 6 rutas.</div>
+      </div>
+      <div class="card built">
+        <div class="card-top"><span class="name">FeatureFlag</span><span class="badge built">✅</span></div>
+        <div class="card-meta">`feature_flags`</div>
+        <div class="card-note">`0042`: per-tenant en DB (superior al blueprint legacy que decía localStorage).</div>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">🟡 Parcial <span style="color:var(--ink-mute);font-weight:500">· existe pero fragmentado/incompleto</span></span><span class="group-meta"><span class="group-count">8</span></span></h2>
+      <div class="cards">
+      <div class="card partial">
+        <div class="card-top"><span class="name">User / Profile (Auth+sesión)</span><span class="badge partial">🟡</span></div>
+        <div class="card-meta">`user_profiles`, `user_invitations`, `user_tenants`, `operario_pins`, `tms_drivers`</div>
+        <div class="card-note">Concepto repartido (identidad/rol, PIN, conductor). Auth (token) lo maneja Supabase Auth, no tabla propia. Sin modelo unificado con `deviceId`/`vehicle`/`site`.</div>
+      </div>
+      <div class="card partial">
+        <div class="card-top"><span class="name">Invoice / Factura</span><span class="badge partial">🟡</span></div>
+        <div class="card-meta">`invoices`</div>
+        <div class="card-note">La **tabla** está 100% built (`0077`, F-YYYY-NNNN, total, status, paid). El `partial` es por el **gate legal (AUT-04)** — &quot;exige aceptación legal vigente&quot; — que NO está …</div>
+      </div>
+      <div class="card partial">
+        <div class="card-top"><span class="name">SyncBatch (outbox offline)</span><span class="badge partial">🟡</span></div>
+        <div class="card-meta">`outbox_push_events`</div>
+        <div class="card-note">`0066` es push de **salida** (server→device). NO existe cola offline-first de **entrada** del operario; el patrón se maneja client-side.</div>
+      </div>
+      <div class="card partial">
+        <div class="card-top"><span class="name">File / Archivo</span><span class="badge partial">🟡</span></div>
+        <div class="card-meta">`warehouse_receipt_photos`, `bug_attachments`, `shipment_documents`, `back_assets`, `expenses`, `dispatch_pods`</div>
+        <div class="card-note">No hay tabla genérica `File`; cada dominio referencia el binario por path/URL a Supabase Storage (`expenses.receipt_path`, etc.). Concepto cumplido pero fragmentado.</div>
+      </div>
+      <div class="card partial">
+        <div class="card-top"><span class="name">Route catalog / Rutas (config)</span><span class="badge partial">🟡</span></div>
+        <div class="card-meta">`rates`, `dispatch_routes`, `dispatch_city_catalog`</div>
+        <div class="card-note">La plantilla de costo multi-componente CN→VE (freight/customs/transport/handling/insurance/commission) **NO existe** como columnas: `rates` solo tiene per_cbm/flat/min.</div>
+      </div>
+      <div class="card partial">
+        <div class="card-top"><span class="name">City / Ciudad (config)</span><span class="badge partial">🟡</span></div>
+        <div class="card-meta">`ve_locality_catalog`, `dispatch_city_catalog`</div>
+        <div class="card-note">Destino VE bien modelado (estados/ciudades/CP). **Falta catálogo de origen CN** (ciudades/puertos de China). `ports` (`0096`) cubre puertos marítimos.</div>
+      </div>
+      <div class="card partial">
+        <div class="card-top"><span class="name">Rule / Regla (config)</span><span class="badge partial">🟡</span></div>
+        <div class="card-meta">`dispatch_rules`, `mail_rules`</div>
+        <div class="card-note">No hay catálogo genérico `rules`. Reglas especializadas por dominio (despacho, mailing).</div>
+      </div>
+      <div class="card partial">
+        <div class="card-top"><span class="name">Notification (WhatsApp/Email/Push)</span><span class="badge partial">🟡</span></div>
+        <div class="card-meta">`mail_*` (logs/templates/rules/config/blacklist/signatures), `outbox_push_events`, `bug_notifications`, `user_notification_prefs`</div>
+        <div class="card-note">Email con infra completa (`0018`). Push (`0066`). **WhatsApp NO tiene tabla de salida** persistida (es deep-link/handoff); Telegram tampoco. Sin tabla única multi-canal.</div>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">❌ Falta <span style="color:var(--ink-mute);font-weight:500">· sin tabla</span></span><span class="group-meta"><span class="group-count">3</span></span></h2>
+      <div class="cards">
+      <div class="card missing">
+        <div class="card-top"><span class="name">LegalDoc / Documento legal</span><span class="badge missing">❌</span></div>
+        <div class="card-meta"><span class="nospec">sin tabla</span></div>
+        <div class="card-note">Confirmado por barrido completo: ninguna tabla `legal_docs`/`terms`/`tos`/`consent`. No hay T&amp;C / Condiciones del Operador versionadas en DB.</div>
+      </div>
+      <div class="card missing">
+        <div class="card-top"><span class="name">LegalAcceptance / Aceptación T&amp;C</span><span class="badge missing">❌</span></div>
+        <div class="card-meta"><span class="nospec">sin tabla</span></div>
+        <div class="card-note">Ninguna tabla de aceptaciones (AC-YYYY-NNNN, hash, ip, server-time). El gate AUT-04 no está respaldado.</div>
+      </div>
+      <div class="card missing">
+        <div class="card-top"><span class="name">PortalInboxEvent / Bandeja del portal</span><span class="badge missing">❌</span></div>
+        <div class="card-meta"><span class="nospec">sin tabla</span></div>
+        <div class="card-note">Ninguna tabla de eventos cliente→ERP con badge `read`. El portal (`0080`/`0091`/`0094`) cubre auth/registro/throttle; `comments` (`0090`) es hilo interno del Studio, no …</div>
+      </div>
+      </div>
+    </section>
+    <section class="group">
+      <h2><span class="group-title">Roadmap de Bloques financieros</span></h2>
+      <table class="blocks">
+        <thead><tr><th>Bloque</th><th>Nombre</th><th>Spec</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td class="bk">1.1</td><td>Facturación (núcleo financiero)</td><td class="sp">SDD-0021</td><td>✅ done</td></tr>
+          <tr><td class="bk">1.2</td><td>Contabilidad (plan de cuentas + diario/mayor + P&amp;L/Balance)</td><td class="sp">SDD-0040</td><td>✅ done</td></tr>
+          <tr><td class="bk">2.1</td><td>Cobranzas (recibos + asiento del cobro + CxC)</td><td class="sp">SDD-0041</td><td>✅ done</td></tr>
+          <tr><td class="bk">2.2</td><td>Tesorería (Proveedores + CxP + órdenes de pago + asiento)</td><td class="sp">SDD-0044</td><td>✅ done</td></tr>
+          <tr><td class="bk">3</td><td>Fiscal · SENIAT (Libro Ventas/Compras, retenciones, IVA)</td><td class="sp">—</td><td>⏳ pendiente · sin spec</td></tr>
+          <tr><td class="bk">4</td><td>Naviera &amp; Consolidación (carriers + bookings/BL + LCL→FCL)</td><td class="sp">SDD-0047</td><td>🟡 approved · en construcción (no done; tablas `consolidations`/`bookings`/`ports` en `0096`)</td></tr>
+          <tr><td class="bk">5</td><td>Comercial / Costing &amp; margen + Documentos Hub (DMS)</td><td class="sp">SDD-0022 (reservado)</td><td>⏳ pendiente · sin spec</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </section>
+</main>
+<footer>Norte vigente: <code>docs/design/studio/_norte</code> · estado derivado del <code>status</code> del SDD del módulo cruzado con la carpeta de código (mapa en <code>docs/architecture/module-sdd-map.md</code>).</footer>
+<script>
+  // Filtro por estado: clic en un ítem de la leyenda muestra/oculta sus cards.
+  // Vanilla, sin deps. Las secciones que quedan sin cards visibles se ocultan.
+  (function () {
+    document.querySelectorAll('.legend-item').forEach(function (b) {
+      b.addEventListener('click', function () {
+        b.classList.toggle('off');
+        var hidden = b.classList.contains('off');
+        document.querySelectorAll('.card.' + b.dataset.filter).forEach(function (c) {
+          c.style.display = hidden ? 'none' : '';
+        });
+        document.querySelectorAll('.group').forEach(function (g) {
+          var anyVisible = Array.prototype.some.call(g.querySelectorAll('.card'), function (c) {
+            return c.style.display !== 'none';
+          });
+          g.style.display = anyVisible ? '' : 'none';
+        });
+      });
+    });
+  })();
+
+  // Toggle de tema: flipea data-theme en <html> y lo recuerda en localStorage.
+  (function () {
+    var tt = document.querySelector('.theme-toggle');
+    if (!tt) return;
+    function sync() {
+      var dark = document.documentElement.getAttribute('data-theme') === 'dark';
+      tt.textContent = dark ? 'Modo claro' : 'Modo oscuro';
+    }
+    sync();
+    tt.addEventListener('click', function () {
+      var next =
+        document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem('norte-theme', next); } catch (e) {}
+      sync();
+    });
+  })();
+
+  // Switch de vistas (Pantallas / Datos): alterna sección y recuerda la elegida.
+  (function () {
+    var tabs = document.querySelectorAll('.tab');
+    var views = {
+      pantallas: document.getElementById('view-pantallas'),
+      datos: document.getElementById('view-datos'),
+    };
+    function show(v) {
+      if (!views[v]) v = 'pantallas';
+      Object.keys(views).forEach(function (k) {
+        if (views[k]) views[k].classList.toggle('active', k === v);
+      });
+      tabs.forEach(function (t) { t.classList.toggle('active', t.dataset.view === v); });
+      try { localStorage.setItem('norte-view', v); } catch (e) {}
+    }
+    tabs.forEach(function (t) {
+      t.addEventListener('click', function () { show(t.dataset.view); });
+    });
+    var saved = null;
+    try { saved = localStorage.getItem('norte-view'); } catch (e) {}
+    show(saved === 'datos' ? 'datos' : 'pantallas');
+  })();
+</script>
+</body>
+</html>
