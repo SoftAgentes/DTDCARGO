@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 
 /**
  * Navegación del portal autenticado (client — estado activo por `usePathname`).
- * Tres secciones: Envíos, Facturas, Cuenta. Etiquetas cortas para que entren en
- * mobile sin romper el header de 68px.
+ * Inicio (dashboard) · Mis envíos · Facturas · Documentos · Cuenta. Etiquetas
+ * cortas para que entren en mobile sin romper el header de 68px. (Proveedores /
+ * Referidos / Soporte del Norte son slices futuros — no se incluyen.)
  */
 const LINKS: {
   href: string;
@@ -15,8 +16,13 @@ const LINKS: {
 }[] = [
   {
     href: "/portal",
-    label: "Envíos",
-    match: (p) => p === "/portal" || p.startsWith("/portal/envios"),
+    label: "Inicio",
+    match: (p) => p === "/portal",
+  },
+  {
+    href: "/portal/envios",
+    label: "Mis envíos",
+    match: (p) => p.startsWith("/portal/envios"),
   },
   {
     href: "/portal/facturas",

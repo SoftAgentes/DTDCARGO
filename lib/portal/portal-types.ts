@@ -98,6 +98,74 @@ export type PortalShipmentRow = {
   updatedAt: string;
 };
 
+// ─────────────────────────────────────────────────────────────
+// Dashboard de Inicio (SDD-0042 · Fase 5 · Norte PortalHome)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Estados TERMINALES de un envío (ya no "activo" / en curso). Fuente única para
+ * el gate de "envíos activos" del dashboard. `arrived_destination` se cuenta como
+ * terminal del lado del cliente (ya llegó a bodega VE; la milla final la maneja la
+ * operación, pero para el cliente el viaje internacional terminó).
+ */
+export const TERMINAL_SHIPMENT_STATUSES: ReadonlySet<ShipmentStatus> = new Set<
+  ShipmentStatus
+>(["delivered", "cancelled", "arrived_destination"]);
+
+/** ¿El envío sigue "activo" (en curso) de cara al dashboard? */
+export function isActiveShipmentStatus(status: ShipmentStatus): boolean {
+  return !TERMINAL_SHIPMENT_STATUSES.has(status);
+}
+
+/**
+ * Resultado del gate de activación del portal (Fase 5.1). `activated` true si el
+ * asesor aprobó la cuenta (`portal_approved_at`) O si el cliente ya tiene ≥1 envío
+ * (prueba de cliente real → auto-desbloqueo). `reason` indica qué destrabó.
+ */
+export type PortalActivation = {
+  activated: boolean;
+  reason: "approved" | "has_shipments" | null;
+};
+
+/**
+ * Las 4 métricas del dashboard de Inicio (Norte PortalHome). Sólo data que SÍ
+ * existe: envíos (status) + facturas (montos). NO incluye contenedor/buque/ETA
+ * real (Tier 1 Naviera, no construido).
+ */
+export type PortalDashboardKpis = {
+  /** Envíos en curso (status no terminal). */
+  activeShipments: number;
+  /** Entregados (`delivered`) en el año calendario actual. */
+  deliveredYtd: number;
+  /** Σ total_amount de facturas no-borrador (acumulado, moneda dominante). */
+  invoicedTotal: number;
+  /** Σ (total_amount − paid_amount) de facturas no-borrador. */
+  outstandingBalance: number;
+  /** Moneda dominante de las facturas (la de mayor total facturado); USD si no hay. */
+  currency: InvoiceCurrency;
+  /** ¿Hay facturas en más de una moneda? (los montos se muestran en la dominante). */
+  mixedCurrencies: boolean;
+  /** Cuántas facturas tienen saldo pendiente (> 0). */
+  pendingInvoiceCount: number;
+};
+
+/**
+ * El "Próximo arribo" del dashboard (DEGRADADO · Norte hero card). El envío activo
+ * más reciente, con la ETA estimada (heurística honesta). SIN contenedor/buque/
+ * progreso/mapa — esa data es Tier 1 Naviera (no construida). Si no hay envío
+ * activo → null (el card se oculta).
+ */
+export type PortalNextArrival = {
+  id: string;
+  code: string;
+  service: ShipmentService;
+  status: ShipmentStatus;
+  origin: string | null;
+  destination: string | null;
+  /** ETA ISO estimada (`estimatePortalEta`); null si no aplica. */
+  etaIso: string | null;
+};
+
 /**
  * Detalle de UN envío del cliente (read-only, Fase 2).
  *

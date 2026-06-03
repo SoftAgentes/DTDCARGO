@@ -12,6 +12,7 @@ import {
   getClientByMarkbox,
   listShipmentsByMarkbox,
   getClientPortalAccess,
+  getClientPortalApprovedAt,
 } from "@/lib/studio/client-queries";
 import { tierBadgeTone, tierLabel } from "@/lib/studio/client-types";
 import {
@@ -56,6 +57,7 @@ export default async function ClienteDetallePage({
 
   const shipments = (await listShipmentsByMarkbox(supabase, markbox)) as ShipmentRow[];
   const portalAccess = await getClientPortalAccess(supabase, client.id);
+  const portalApprovedAt = await getClientPortalApprovedAt(supabase, client.id);
 
   return (
     <div style={{ maxWidth: 1200 }}>
@@ -177,6 +179,7 @@ export default async function ClienteDetallePage({
             markbox={client.markbox}
             email={client.email}
             access={portalAccess}
+            approvedAt={portalApprovedAt}
           />
           </div>
 

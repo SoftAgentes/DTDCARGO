@@ -13,12 +13,22 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  PortalActivation,
   PortalClient,
+  PortalDashboardKpis,
   PortalDocument,
   PortalInvoiceDetail,
   PortalInvoiceRow,
+  PortalNextArrival,
   PortalShipmentDetail,
   PortalShipmentRow,
+} from "./portal-types";
+import {
+  estimatePortalEta,
+  isActiveShipmentStatus,
+  type InvoiceCurrency,
+  type ShipmentService,
+  type ShipmentStatus,
 } from "./portal-types";
 
 /**
@@ -262,4 +272,177 @@ export async function listMyDocuments(
       shipmentCode: ship?.code ?? null,
     };
   });
+}
+
+// ─────────────────────────────────────────────────────────────
+// Dashboard de Inicio (SDD-0042 · Fase 5 · Norte PortalHome)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Gate de activación del portal (Fase 5.1). El cliente ve el dashboard si:
+ *   - el asesor aprobó su cuenta (`clients.portal_approved_at` != null), O
+ *   - ya tiene ≥1 envío con su markbox (prueba de cliente real → auto-desbloqueo).
+ *
+ * Resuelve el client_id del portal vía la helper AISLADA (`get_portal_client_id`)
+ * para leer `portal_approved_at`, y cuenta envíos por markbox (filtrado EXPLÍCITO,
+ * como el resto del archivo). Si el principal no es cliente del portal → no activado.
+ */
+export async function getPortalActivation(
+  supabase: SupabaseClient,
+): Promise<PortalActivation> {
+  const { data: portalClientId, error: idErr } =
+    await supabase.rpc("get_portal_client_id");
+  if (idErr || !portalClientId) return { activated: false, reason: null };
+
+  // ¿Aprobado por un asesor?
+  const { data: clientRow } = await supabase
+    .from("clients")
+    .select("portal_approved_at")
+    .eq("id", portalClientId as string)
+    .maybeSingle();
+
+  if (clientRow && (clientRow.portal_approved_at as string | null)) {
+    return { activated: true, reason: "approved" };
+  }
+
+  // ¿Tiene al menos 1 envío? (auto-desbloqueo por primera carga real)
+  const markbox = await portalMarkbox(supabase);
+  if (!markbox) return { activated: false, reason: null };
+
+  const { count, error: countErr } = await supabase
+    .from("shipments")
+    .select("id", { count: "exact", head: true })
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null);
+
+  if (!countErr && (count ?? 0) >= 1) {
+    return { activated: true, reason: "has_shipments" };
+  }
+
+  return { activated: false, reason: null };
+}
+
+/** Año calendario (UTC) — para el filtro "Entregados YTD". Aislado para testear. */
+function currentYearUtc(now: Date = new Date()): number {
+  return now.getUTCFullYear();
+}
+
+/**
+ * Las 4 KPIs del dashboard (Fase 5.2). Calcula sobre la MISMA data que ya leen
+ * `listMyShipments` / `listMyInvoices` (filtrado por markbox), pero agregando.
+ * Reusa esas queries para no duplicar el filtrado de aislamiento.
+ *
+ * - Envíos activos: status NO terminal.
+ * - Entregados YTD: `delivered` con `updated_at` en el año actual.
+ * - Facturado: Σ total_amount de facturas no-borrador (en la moneda dominante).
+ * - Saldo pendiente: Σ (total − paid) de facturas no-borrador (moneda dominante).
+ *
+ * Sumar montos cruzando monedas sería incorrecto → agregamos por moneda y
+ * reportamos la DOMINANTE (mayor total), igual criterio que la página de facturas.
+ */
+export async function getDashboardKpis(
+  supabase: SupabaseClient,
+  now: Date = new Date(),
+): Promise<PortalDashboardKpis> {
+  const [shipments, invoices] = await Promise.all([
+    listMyShipments(supabase),
+    listMyInvoices(supabase),
+  ]);
+
+  const year = currentYearUtc(now);
+  const activeShipments = shipments.filter((s) =>
+    isActiveShipmentStatus(s.status),
+  ).length;
+  const deliveredYtd = shipments.filter((s) => {
+    if (s.status !== "delivered") return false;
+    const t = new Date(s.updatedAt);
+    return !Number.isNaN(t.getTime()) && t.getUTCFullYear() === year;
+  }).length;
+
+  // Agregar montos por moneda → elegir dominante.
+  const byCurrency = new Map<
+    InvoiceCurrency,
+    { total: number; balance: number }
+  >();
+  let pendingInvoiceCount = 0;
+  for (const inv of invoices) {
+    const e = byCurrency.get(inv.currency) ?? { total: 0, balance: 0 };
+    e.total += inv.total;
+    const bal = Math.max(0, inv.total - inv.paid);
+    e.balance += bal;
+    if (bal > 0) pendingInvoiceCount += 1;
+    byCurrency.set(inv.currency, e);
+  }
+  const currencies = [...byCurrency.keys()];
+  const currency =
+    currencies
+      .slice()
+      .sort(
+        (a, b) => (byCurrency.get(b)?.total ?? 0) - (byCurrency.get(a)?.total ?? 0),
+      )[0] ?? ("USD" as InvoiceCurrency);
+  const agg = byCurrency.get(currency) ?? { total: 0, balance: 0 };
+
+  return {
+    activeShipments,
+    deliveredYtd,
+    invoicedTotal: agg.total,
+    outstandingBalance: agg.balance,
+    currency,
+    mixedCurrencies: currencies.length > 1,
+    pendingInvoiceCount,
+  };
+}
+
+/**
+ * El "Próximo arribo" del dashboard (Fase 5.2 · DEGRADADO). El envío ACTIVO más
+ * reciente del cliente (orden por updated_at desc, ya garantizado por
+ * `listMyShipments`), con ETA estimada. Sin contenedor/buque/progreso (Tier 1
+ * Naviera, no construido). Null si no hay envío activo → el card se oculta.
+ *
+ * NOTA: `listMyShipments` no trae `created_at` (la ETA se estima sobre createdAt).
+ * Hacemos una lectura puntual del envío elegido para obtener createdAt +
+ * arrived_destination_at y estimar honestamente. Filtrado EXPLÍCITO por markbox.
+ */
+export async function getNextArrival(
+  supabase: SupabaseClient,
+): Promise<PortalNextArrival | null> {
+  const markbox = await portalMarkbox(supabase);
+  if (!markbox) return null;
+
+  const { data, error } = await supabase
+    .from("shipments")
+    .select(
+      "id, code, shipment_service, status, origin, destination, arrived_destination_at, created_at",
+    )
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null)
+    .order("updated_at", { ascending: false })
+    .limit(50);
+
+  if (error || !data) return null;
+
+  const next = data.find((r) =>
+    isActiveShipmentStatus(r.status as ShipmentStatus),
+  );
+  if (!next) return null;
+
+  const service = next.shipment_service as ShipmentService;
+  const status = next.status as ShipmentStatus;
+  const etaIso = estimatePortalEta({
+    status,
+    service,
+    arrivedDestinationAt:
+      (next.arrived_destination_at as string | null) ?? null,
+    createdAt: next.created_at as string,
+  });
+
+  return {
+    id: next.id as string,
+    code: next.code as string,
+    service,
+    status,
+    origin: (next.origin as string | null) ?? null,
+    destination: (next.destination as string | null) ?? null,
+    etaIso,
+  };
 }
