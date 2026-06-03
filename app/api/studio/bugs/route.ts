@@ -13,6 +13,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { apiError } from "@/lib/http/api-error";
 import { createBugForReporter } from "@/lib/studio/bug-create";
 import {
   parseBugAdminFilters,
@@ -59,11 +60,7 @@ export async function GET(request: NextRequest) {
         : await listBugsForReporter(supabase, userResp.user.id);
     return NextResponse.json({ bugs });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { error: "No pudimos listar los bugs.", detail: msg },
-      { status: 500 },
-    );
+    return apiError("No pudimos listar los bugs.", err, 500, "bugs:list");
   }
 }
 

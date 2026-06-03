@@ -17,6 +17,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { apiError } from "@/lib/http/api-error";
 
 interface PushSubscriptionPayload {
   endpoint: string;
@@ -62,11 +63,7 @@ export async function POST(request: NextRequest) {
   );
 
   if (error) {
-    console.error("[push subscribe] upsert failed:", error.message);
-    return NextResponse.json(
-      { error: `No se pudo guardar la subscription: ${error.message}` },
-      { status: 500 },
-    );
+    return apiError("No se pudo guardar la subscription.", error, 500, "push:subscribe");
   }
 
   return NextResponse.json({ ok: true });
@@ -89,11 +86,7 @@ export async function DELETE() {
     .eq("user_id", userResp.user.id);
 
   if (error) {
-    console.error("[push unsubscribe] update failed:", error.message);
-    return NextResponse.json(
-      { error: `No se pudo desuscribir: ${error.message}` },
-      { status: 500 },
-    );
+    return apiError("No se pudo desuscribir.", error, 500, "push:unsubscribe");
   }
 
   return NextResponse.json({ ok: true });

@@ -40,10 +40,16 @@ export async function POST(
           : error.code === "P0002" || error.code === "P0003"
             ? 409
             : 500;
-    return NextResponse.json(
-      { error: error.message, code: error.code },
-      { status },
-    );
+    const message =
+      status === 404
+        ? "Bug no encontrado."
+        : status === 403
+          ? "No tenés permiso para tomar este bug."
+          : status === 409
+            ? "El bug no está en un estado que permita tomarlo."
+            : "No pudimos tomar el bug.";
+    if (status === 500) console.error("[bugs:take] rpc error:", error);
+    return NextResponse.json({ error: message }, { status });
   }
 
   return NextResponse.json({ ok: true, bug: data });

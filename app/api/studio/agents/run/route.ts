@@ -32,6 +32,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { apiError } from "@/lib/http/api-error";
 import { runAgent } from "@/lib/studio/agents/runtime/orchestrator";
 import { createLLMClient } from "@/lib/studio/agents/runtime/llm-client-factory";
 import {
@@ -97,11 +98,7 @@ export async function POST(request: Request) {
   try {
     supabaseAdmin = createAdminClient();
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    return NextResponse.json(
-      { error: `Runtime no configurado: ${msg}` },
-      { status: 500 },
-    );
+    return apiError("Runtime no configurado.", e, 500, "agents:run:config");
   }
 
   // Ejecutar
@@ -138,11 +135,6 @@ export async function POST(request: Request) {
         { status: err.httpStatus },
       );
     }
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[/api/studio/agents/run] runtime error:", err);
-    return NextResponse.json(
-      { error: `Runtime error: ${message}` },
-      { status: 500 },
-    );
+    return apiError("Error al ejecutar el agente.", err, 500, "agents:run");
   }
 }

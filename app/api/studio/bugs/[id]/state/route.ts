@@ -64,10 +64,18 @@ export async function PATCH(
           : error.code === "P0002" || error.code === "P0003"
             ? 409
             : 500;
-    return NextResponse.json(
-      { error: error.message, code: error.code },
-      { status },
-    );
+    const message =
+      error.code === "P0001"
+        ? "Bug no encontrado."
+        : error.code === "42501"
+          ? "No tenés permiso para cambiar el estado de este bug."
+          : error.code === "P0002"
+            ? "El bug ya está en un estado final."
+            : error.code === "P0003"
+              ? "Esa transición de estado no está permitida."
+              : "No pudimos cambiar el estado del bug.";
+    if (status === 500) console.error("[bugs:state] rpc error:", error);
+    return NextResponse.json({ error: message }, { status });
   }
 
   // SDD-0036 F5 · email notif al reportador (best-effort, no rompe respuesta)

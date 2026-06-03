@@ -10,6 +10,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { apiError } from "@/lib/http/api-error";
 import { getUserTenantId } from "@/lib/auth/session";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
 
@@ -46,10 +47,7 @@ export async function GET(_request: NextRequest) {
     .limit(100);
 
   if (error) {
-    return NextResponse.json(
-      { error: "No pudimos leer los envíos.", detail: error.message },
-      { status: 500 },
-    );
+    return apiError("No pudimos leer los envíos.", error, 500, "shipments:list");
   }
 
   return NextResponse.json({ shipments: data ?? [] });
@@ -114,10 +112,7 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
-    return NextResponse.json(
-      { error: "No pudimos crear el envío.", detail: error.message },
-      { status: 500 },
-    );
+    return apiError("No pudimos crear el envío.", error, 500, "shipments:create");
   }
 
   return NextResponse.json({ shipment: data }, { status: 201 });

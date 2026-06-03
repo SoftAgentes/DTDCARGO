@@ -6,8 +6,11 @@
  *  2. Inline tras encolar (fire-and-forget desde las server actions) ·
  *     push casi-instantáneo sin esperar al cron.
  *
- * Auth: CRON_SECRET en `Authorization: Bearer <secret>` (Vercel Cron) o
- * `?secret=<value>` (testing manual). Mismo patrón que ceo-brief.
+ * Auth: CRON_SECRET en `Authorization: Bearer <secret>` (Vercel Cron y
+ * testing manual con curl -H). Mismo patrón que ceo-brief. El secret SOLO
+ * por header — nunca por query-param (terminan en logs/referrers). El
+ * disparo inline tras encolar NO pega a este endpoint: llama
+ * drainOperarioPushOutbox() in-process, así que no necesita el secret.
  *
  * Idempotente: marca sent_at en cada envío OK, así una segunda corrida no
  * re-envía. Eventos sin subscription destino se marcan sent (no se
@@ -26,8 +29,6 @@ function authorize(req: NextRequest): { ok: boolean; reason?: string } {
   if (!secret) return { ok: false, reason: "CRON_SECRET no configurado" };
   const auth = req.headers.get("authorization");
   if (auth === `Bearer ${secret}`) return { ok: true };
-  const url = new URL(req.url);
-  if (url.searchParams.get("secret") === secret) return { ok: true };
   return { ok: false, reason: "Forbidden" };
 }
 

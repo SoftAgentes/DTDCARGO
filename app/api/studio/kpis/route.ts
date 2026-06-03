@@ -12,6 +12,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { apiError } from "@/lib/http/api-error";
 import type { ShipmentStatus } from "@/lib/studio/shipment-types";
 
 export type DashboardKPIs = {
@@ -36,10 +37,7 @@ export async function GET() {
     .select("status");
 
   if (error) {
-    return NextResponse.json(
-      { error: "No pudimos leer KPIs.", detail: error.message },
-      { status: 500 },
-    );
+    return apiError("No pudimos leer KPIs.", error, 500, "kpis");
   }
 
   const counts: DashboardKPIs = {

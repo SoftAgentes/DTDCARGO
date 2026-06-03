@@ -11,6 +11,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { apiError } from "@/lib/http/api-error";
 import {
   getShipmentById,
   getShipmentEvents,
@@ -62,11 +63,7 @@ export async function GET(
     const events = await getShipmentEvents(supabase, id);
     return NextResponse.json({ shipment, events });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Error desconocido.";
-    return NextResponse.json(
-      { error: "No pudimos leer el envío.", detail: message },
-      { status: 500 },
-    );
+    return apiError("No pudimos leer el envío.", err, 500, "shipments:get");
   }
 }
 
@@ -120,10 +117,7 @@ export async function PATCH(
     if (error.code === "PGRST116") {
       return NextResponse.json({ error: "Envío no encontrado." }, { status: 404 });
     }
-    return NextResponse.json(
-      { error: "No pudimos guardar los cambios.", detail: error.message },
-      { status: 500 },
-    );
+    return apiError("No pudimos guardar los cambios.", error, 500, "shipments:patch");
   }
   return NextResponse.json({ shipment: data });
 }
@@ -142,10 +136,7 @@ export async function DELETE(
     .eq("id", id);
 
   if (error) {
-    return NextResponse.json(
-      { error: "No pudimos eliminar el envío.", detail: error.message },
-      { status: 500 },
-    );
+    return apiError("No pudimos eliminar el envío.", error, 500, "shipments:delete");
   }
   return NextResponse.json({ ok: true });
 }

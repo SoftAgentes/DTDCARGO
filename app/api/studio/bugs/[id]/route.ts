@@ -14,6 +14,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/db/server";
+import { apiError } from "@/lib/http/api-error";
 import {
   getBugDetail,
   getBugTechData,
@@ -87,11 +88,7 @@ export async function GET(
       timeline,
     });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json(
-      { error: "No pudimos leer el bug.", detail: msg },
-      { status: 500 },
-    );
+    return apiError("No pudimos leer el bug.", err, 500, "bugs:get");
   }
 }
 
@@ -153,10 +150,7 @@ export async function PATCH(
         { status: 403 },
       );
     }
-    return NextResponse.json(
-      { error: "No pudimos actualizar el bug.", detail: error.message },
-      { status: 500 },
-    );
+    return apiError("No pudimos actualizar el bug.", error, 500, "bugs:patch");
   }
 
   return NextResponse.json({ bug: data });

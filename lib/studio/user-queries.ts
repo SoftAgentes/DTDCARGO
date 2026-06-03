@@ -32,19 +32,19 @@ const EMPTY_KPIS: UserKpis = {
 // ─── Members ────────────────────────────────────────────────
 
 export interface ListMembersFilters {
+  /**
+   * Filter explícito por tenant_id. **Obligatorio**: el caller suele usar
+   * service_role / admin client (que bypassea RLS y vería miembros de
+   * TODOS los tenants). Volverlo requerido evita el footgun de omitirlo y
+   * filtrar cross-tenant. Con el client regular RLS ya filtra, pero
+   * pasarlo igual es defensa en profundidad.
+   */
+  tenantId: string;
   role?: StudioUserRole;
   includeDisabled?: boolean;
   search?: string;
   limit?: number;
   offset?: number;
-  /**
-   * Filter explícito por tenant_id. Obligatorio cuando el caller usa
-   * service_role / admin client (que bypassea RLS y vería rows de
-   * otros tenants). Cuando el caller usa el client regular, RLS ya
-   * filtra a las rows visibles, pero pasarlo de todas formas es
-   * defensa en profundidad y no rompe nada.
-   */
-  tenantId?: string;
 }
 
 /**
@@ -64,7 +64,7 @@ export interface ListMembersFilters {
  */
 export async function listMembers(
   supabase: SupabaseClient,
-  filters: ListMembersFilters = {},
+  filters: ListMembersFilters,
 ): Promise<UserMembershipWithProfile[]> {
   let q = supabase
     .from("user_tenants")
@@ -73,7 +73,9 @@ export async function listMembers(
     )
     .order("created_at", { ascending: false });
 
-  if (filters.tenantId) q = q.eq("tenant_id", filters.tenantId);
+  // Filtro por tenant SIEMPRE aplicado (tenantId es requerido). Con admin
+  // client esto es lo único que evita ver miembros de otros tenants.
+  q = q.eq("tenant_id", filters.tenantId);
   if (filters.role) q = q.eq("role", filters.role);
   if (!filters.includeDisabled) q = q.is("disabled_at", null);
 
