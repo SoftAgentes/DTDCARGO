@@ -1,7 +1,9 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { lookupEmailByMarkbox } from "@/lib/portal/portal-queries";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
@@ -63,4 +65,82 @@ export async function requestMagicLink(
   }
 
   return { sent: true, email };
+}
+
+// ── Login MARKBOX + contraseña (SDD-0042 Fase 6 · slice 10.2, método primario) ──
+
+export type PortalPasswordLoginState = {
+  error?: string;
+  /** Se pidió reset de contraseña con éxito (mensaje "revisá tu correo"). */
+  resetSent?: boolean;
+};
+
+/**
+ * Resuelve el email del cliente a partir de su MARKBOX (admin client, bypass RLS:
+ * el lookup es pre-sesión). Delega en la query pura `lookupEmailByMarkbox`. Si el
+ * admin client no está configurado, devuelve null → error genérico.
+ */
+async function emailForMarkbox(markbox: string): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    return await lookupEmailByMarkbox(admin, markbox);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Login con MARKBOX + contraseña. Lookup email por markbox → signInWithPassword
+ * (setea las cookies SSR vía el server client, igual que el resto del portal).
+ * Errores GENÉRICOS: no revelamos si el MARKBOX existe ni si la clave es la que
+ * falla. La página redirige a `/portal` cuando `ok`.
+ */
+export async function loginWithMarkbox(
+  _prev: PortalPasswordLoginState,
+  formData: FormData,
+): Promise<PortalPasswordLoginState> {
+  const markbox = String(formData.get("markbox") ?? "").trim().toUpperCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!markbox || !password) {
+    return { error: "Ingresá tu MARKBOX y tu contraseña." };
+  }
+
+  const email = await emailForMarkbox(markbox);
+  // Mensaje único para "no existe" y "clave incorrecta" (anti-enumeración).
+  const GENERIC = "MARKBOX o contraseña incorrectos.";
+  if (!email) return { error: GENERIC };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { error: GENERIC };
+
+  // Éxito: cookies SSR seteadas → al portal. `redirect` lanza NEXT_REDIRECT
+  // (lo maneja el framework; no es un error de la action).
+  redirect("/portal");
+}
+
+/**
+ * "¿Olvidaste tu contraseña?" — manda un email de recuperación al correo del
+ * MARKBOX. Responde SIEMPRE con éxito (no revela si el MARKBOX existe); si no hay
+ * match, simplemente no se manda nada.
+ */
+export async function resetPasswordByMarkbox(
+  _prev: PortalPasswordLoginState,
+  formData: FormData,
+): Promise<PortalPasswordLoginState> {
+  const markbox = String(formData.get("markbox") ?? "").trim().toUpperCase();
+  if (!markbox) {
+    return { error: "Ingresá tu MARKBOX para recuperar la contraseña." };
+  }
+
+  const email = await emailForMarkbox(markbox);
+  if (email) {
+    const supabase = await createClient();
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${SITE_URL}/portal/callback`,
+    });
+  }
+  // Siempre "enviado" — no revelamos si el MARKBOX existe.
+  return { resetSent: true };
 }

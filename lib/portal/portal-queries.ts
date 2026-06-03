@@ -43,6 +43,35 @@ async function portalMarkbox(supabase: SupabaseClient): Promise<string | null> {
 }
 
 /**
+ * Resuelve el EMAIL de un cliente del portal a partir de su MARKBOX (login con
+ * MARKBOX + contraseña · SDD-0042 Fase 6). Sólo `client_users` con acceso ACTIVO.
+ * Devuelve null si no hay match → el caller responde con un error GENÉRICO (no
+ * revela si el MARKBOX existe; anti-enumeración).
+ *
+ * Función PURA que recibe el `SupabaseClient` (el caller le pasa el admin client:
+ * el lookup ocurre PRE-sesión, sin auth.uid()). Embebe `clients!inner(markbox)`
+ * para filtrar por el markbox del cliente vinculado.
+ */
+export async function lookupEmailByMarkbox(
+  supabase: SupabaseClient,
+  markbox: string,
+): Promise<string | null> {
+  const normalized = markbox.trim().toUpperCase();
+  if (!normalized) return null;
+
+  const { data, error } = await supabase
+    .from("client_users")
+    .select("email, clients!inner(markbox)")
+    .eq("clients.markbox", normalized)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle<{ email: string }>();
+
+  if (error || !data) return null;
+  return data.email ?? null;
+}
+
+/**
  * El cliente vinculado al `auth.uid()` actual (su propio registro `clients`).
  * Devuelve null si la sesión no está habilitada como portal.
  *

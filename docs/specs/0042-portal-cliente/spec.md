@@ -4,7 +4,7 @@ title: "Portal del Cliente — auth de cliente + mis envíos (V1)"
 status: in-progress
 author: "founder"
 created: 2026-06-02
-updated: 2026-06-04
+updated: 2026-06-05
 supersedes: null
 superseded_by: null
 related: ["0010", "0013", "0021", "0024", "0026"]
@@ -308,6 +308,56 @@ Cada (sub)fase: `node scripts/verify.mjs` verde + commit aislado + `ui-ux-design
 - **Cambio de login a MARKBOX + contraseña** + **auto-registro 3 pasos** (datos + foto cédula/RIF → dirección VE → confirma, con MARKBOX secuencial automático) + "¿olvidaste tu contraseña?". Reemplaza el magic-link. Es lo que dispara el estado "pendiente" del gate de forma orgánica. Hoy, sin auto-registro, el "pendiente" se simula: admin invita → cuenta sin aprobar → espera hasta aprobar/primera carga.
 - "Próximo arribo" completo (contenedor/buque/ETA real/progreso/mapa) → depende de **Tier 1 Naviera/Container**.
 - Dedup/validación de identidad en el alta (RIF requerido + único) → SDD chico aparte.
+
+---
+
+## 10. Fase 6 — Registro self-service + auth MARKBOX/contraseña
+
+> Decisión founder 2026-06-03 (reemplaza el magic-link como modelo principal). Referencia Norte: `docs/design/studio/_norte/portal/registro.jsx` (4 pasos) + `app.jsx` `PortalLogin`.
+
+### 10.0 Decisiones fijadas
+- **Cuenta ACTIVA al registrarse** — el gate de Fase 5 queda EN STAND-BY (sigue en código, reusable). El registro setea `clients.portal_approved_at = now()` → el cliente entra directo, sin pantalla de espera.
+- **Login = MARKBOX + contraseña.** Cédula (persona) / RIF (empresa) = **contraseña inicial**. Cambio de clave **OPCIONAL** (no forzado).
+- **Email de bienvenida SIN la clave** (solo MARKBOX + instrucciones + link).
+- **Identidad: foto de cédula/RIF OBLIGATORIA** (upload) + **revisión MANUAL** del asesor. CNE automático = diferido.
+- **Dedup por cédula/RIF** (no duplicar clientes).
+- **Superficie:** todo en `app/portal/(auth)/` (Supabase-backed). El público enlaza con `<Link href="/portal/registro">` (navegación, no import → no viola la frontera).
+
+### 10.1 Slice — Registro self-service + cuenta activa — ✅ HECHO (2026-06-05)
+- **Implementado** vía el harness `/feature` (implement→verify, gate VERDE). Form multi-paso `app/portal/(auth)/registro/{page.tsx,RegisterForm.tsx,actions.ts}` (4 pasos Datos+foto / Dirección VE / Confirmar / Listo) con la **estética real del portal** (paper/white card + `btn-primary` + JetBrains Mono scoped para códigos — NO el inline-style/Sora del Norte JSX, que es referencia de LAYOUT). `registerClientAction` corre TODO con **admin client** (el registrante es anónimo → bypass RLS para insert clients/client_users + upload de foto). Cuenta queda ACTIVA (`portal_approved_at = now()`), MARKBOX al instante, password inicial = cédula/RIF. Welcome email reusa `sendWelcomeEmail` (template `welcome_markbox`, que YA es sin-clave: sólo markbox + portal_link). Pantalla "Listo" muestra MARKBOX + Usuario(=MARKBOX)/Contraseña(=cédula, "recomendado cambiar") + "Ir al portal".
+  - **Desvíos del plan (decisiones de implementación):**
+    1. **Migración fue `0091_portal_self_register.sql`** (no "siguiente estimado" — los libres saltaban a 0091 tras 0090_comments). Aditiva: `clients.cedula_photo_path text` + bucket privado `client-docs` (8MB, imágenes) + storage RLS espejando `shipment-docs` (0086): service_role escribe (el alta sube con service_role), admin del tenant lee/borra por `tenant_id`=1er segmento del path, cero anon/público. **NO aplicada a prod.**
+    2. **`tier` = `'regular'`, no `'standard'`** — el enum `client_tier` (0006) es `regular|vip|premium`; no existe `'standard'`. Se usa `'regular'` (el default de la tabla). *(La spec decía 'standard'; corregido al enum real.)*
+    3. **Dedup contra `clients.rif`** — el módulo Clientes guarda el documento (cédula O RIF) en la columna `rif`. El alta normaliza el documento a canónico (`V-12345678` / `J-12345678-9`) y compara `ilike("rif", doc.toLowerCase())` scopeado al tenant. La cédula se persiste también en `rif` (consistente con el seed de 0006, que mete `V-12345678` en `rif`).
+    4. **Foto OBLIGATORIA, entregada y funcionando** (sube a `client-docs` con path `{tenant}/{markbox}/{uuid}.{ext}`, rollback si falla el insert). La **revisión admin** de la foto sigue siendo trabajo futuro (§10.3).
+    5. **Side-effects best-effort**: si `createUser` falla porque el email ya tiene cuenta de auth, el cliente IGUAL queda creado con MARKBOX → warning "entrá con tu MARKBOX o recuperá la clave"; el alta no se rompe. Idem el welcome email.
+  - Nuevos: `supabase/migrations/0091_portal_self_register.sql`, `app/portal/(auth)/registro/{page,RegisterForm,actions}.tsx/.ts`, `lib/portal/register-types.ts`, `lib/portal/__tests__/register.test.ts`. Editado: `app/portal/(auth)/login/LoginForm.tsx` (link "Creá tu cuenta" → `/portal/registro`).
+  - Tests Vitest (`register.test.ts`): validación persona/empresa, normalización del documento (=password) canónico, dedup case-insensitive colapsa el mismo doc, `composeAddress`.
+- **(Diseño original del slice, abajo.)** **`app/portal/(auth)/registro/`** — form multi-paso (estética del portal, reusa componentes):
+  - **Paso 1 DATOS:** tipo persona/empresa · nombre (+ razón social si empresa) · cédula/RIF (mono) · **foto cédula/RIF (upload obligatorio)** · email (obligatorio) · WhatsApp (obligatorio) · tel. oficina (opcional). **Dedup en vivo** por documento.
+  - **Paso 2 DIRECCIÓN VE:** cascada estado→municipio→ciudad→CP→barrio→dirección (reusa **`lib/data/venezuela-catalog.ts`**) + referencia (opcional).
+  - **Paso 3 CONFIRMAR** · **Paso 4 LISTO:** muestra MARKBOX + Usuario(=MARKBOX) / Contraseña(=cédula, "recomendado cambiar") + "Ir al portal". *(Copy: NO decir "cuenta en revisión" — la cuenta está activa; el MARKBOX va en las cajas ya.)*
+- **Server action `registerClientAction`** (`app/portal/(auth)/registro/actions.ts`):
+  1. valida (validate*Input propio, no Zod) → 2. **dedup** (clients por `lower(cedula/rif)` del tenant; si existe → error + opción recuperar/reset) → 3. resolver **tenant** (el único operativo de DTD; multi-tenant signup = futuro) → 4. `rpc('next_markbox', {p_tenant_id})` → 5. subir foto a **Storage privado** → 6. insert `clients` **activo** (`portal_approved_at = now()`, tier 'standard') → 7. `auth.admin.createUser({ email, password: cedula, email_confirm: true })` (patrón de `app/invitar/[token]/actions.ts`) → 8. insert `client_users` (auth_user_id, status 'active', email, markbox) → 9. **welcome email SIN clave** (reusa el mailing existente) → devuelve markbox.
+- **Migración** (correlativo siguiente libre): `alter table clients add column if not exists cedula_photo_path text` + bucket privado de Storage `client-docs` (insert en `storage.buckets`) + policies (`storage.objects`: admin del tenant lee; cero acceso público/anon). Patrón de storage ya existe (expenses receipt / bug replays).
+- **Tests:** dedup bloquea doc repetido · registro crea client activo + markbox + client_users active · password = cédula.
+
+### 10.2 Slice — Login MARKBOX + contraseña — ✅ HECHO (2026-06-05)
+- **Implementado.** `app/portal/(auth)/login/{LoginForm,actions}.ts(x)`: el form **MARKBOX + contraseña** es ahora el método **primario** (el magic-link por email quedó como alternativa colapsable). `loginWithMarkbox`: lookup `email` por markbox → `signInWithPassword` (cookies SSR vía server client) → `redirect("/portal")` server-side en éxito. Errores **genéricos** ("MARKBOX o contraseña incorrectos") tanto si el markbox no existe como si la clave falla (anti-enumeración). **"¿Olvidaste tu contraseña?"** (`resetPasswordByMarkbox`) pide el MARKBOX y manda `resetPasswordForEmail` al correo asociado; responde SIEMPRE "revisá tu correo" sin revelar si existe.
+- **Lookup extraído a `lib/portal/portal-queries.ts` (`lookupEmailByMarkbox`)** — query pura `(SupabaseClient, markbox) → email|null` (sólo `client_users` con `status='active'`, embebe `clients!inner(markbox)`, normaliza markbox a mayúsculas). La server action le pasa el admin client (el lookup es pre-sesión). Hacerla pura la vuelve testeable con el stub estándar de la suite (sin `vi.mock`, que el repo no usa).
+- **Cambio de contraseña OPCIONAL** desde "Mi cuenta": `changePortalPasswordAction` (`app/portal/actions.ts`, `auth.updateUser({password})`, mín. 8 chars + confirmación) + `ChangePasswordCard` (colapsable) en `app/portal/(app)/cuenta/page.tsx`. No forzado: la clave inicial (cédula/RIF) vale indefinidamente.
+  - Nuevos: `app/portal/(app)/cuenta/ChangePasswordCard.tsx`. Editados: `app/portal/(auth)/login/{LoginForm.tsx,actions.ts}` (+`loginWithMarkbox`/`resetPasswordByMarkbox`), `app/portal/actions.ts` (+`changePortalPasswordAction`), `app/portal/(app)/cuenta/page.tsx` (+card), `lib/portal/portal-queries.ts` (+`lookupEmailByMarkbox`).
+  - Tests Vitest (`login-markbox.test.ts`): lookup markbox→email (filtros `status=active` + `clients.markbox`), normaliza a mayúsculas, markbox inexistente/vacío/error → null (→ error genérico aguas arriba).
+- **⚠️ Setup founder pendiente para el E2E real:** Supabase → Auth → SMTP/Resend para que los emails (welcome, reset, magic-link) entreguen + `{SITE_URL}/portal/callback` en Redirect URLs (ya pedido en Fase 1b; el reset y el magic-link lo necesitan). El login MARKBOX+contraseña NO depende de email para entrar.
+- **(Diseño original del slice, abajo.)**
+- **`app/portal/(auth)/login/`** — agregar form **MARKBOX + contraseña** (primario). Server action: lookup `email` por `markbox` (admin client, clients por markbox) → `signInWithPassword(email, password)` → cookies SSR. **"¿Olvidaste tu contraseña?"** → reset por email (Supabase `resetPasswordForEmail`). Mantener el magic-link existente como alternativa/fallback.
+- **Cambio de contraseña OPCIONAL** desde "Mi cuenta" (`updateUser({password})`), no forzado.
+- **Tests:** lookup markbox→email · login OK con cédula · markbox inexistente → error genérico.
+
+### 10.3 Fuera de scope (próximo / a planear)
+- **Vista admin "clientes nuevos / revisión"** (CRM: cómo llegó el lead + interés) + **botón "Verificar con CNE"** (corresponde / no corresponde / página caída) → se PLANEA aparte (idea founder 2026-06-03). La aprobación admin NO es gate (el cliente ya está activo) — es item de trabajo interno.
+- **CNE automático** (consulta on-demand, sin hostear el padrón).
+- Reconciliar el público `app/registro/` (lead) con el `/portal/registro` (cuenta real) — apuntar el CTA "Regístrate" al nuevo flujo.
 
 ---
 

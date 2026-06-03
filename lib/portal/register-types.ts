@@ -1,0 +1,190 @@
+/**
+ * Tipos + validación del registro self-service del Portal (SDD-0042 Fase 6).
+ *
+ * Validación MANUAL (patrón del proyecto — sin Zod): `validateRegisterInput()`
+ * devuelve `{ input, fieldErrors }` igual que `validateClientInput`. El documento
+ * (cédula persona / RIF empresa) es la CONTRASEÑA inicial → se normaliza para que
+ * el cliente pueda entrar tipeando lo mismo que registró.
+ *
+ * Reusa `RIF_REGEX` / `formatRif` de `lib/studio/client-types` para el RIF (el
+ * portal está fuera de la frontera ESLint público↔ERP). La cédula tiene su propio
+ * formato VE (V/E-dígitos).
+ */
+import { RIF_REGEX, formatRif } from "@/lib/studio/client-types";
+
+export type ClientKind = "persona" | "empresa";
+
+/** Datos validados del alta self-service (lo que la server action persiste). */
+export type RegisterInput = {
+  kind: ClientKind;
+  /** Nombre de la persona / nombre de contacto (empresa). */
+  name: string;
+  /** Razón social (solo empresa). Null para persona. */
+  company: string | null;
+  /**
+   * Documento de identidad CANÓNICO: cédula "V-12345678" (persona) o RIF
+   * "J-12345678-9" (empresa). Es la contraseña inicial del cliente.
+   */
+  document: string;
+  email: string;
+  /** WhatsApp (obligatorio) — es el canal por el que se contacta al cliente. */
+  whatsapp: string;
+  /** Teléfono de oficina/fijo (opcional, no WhatsApp). */
+  officePhone: string | null;
+  // Dirección VE (cascada del catálogo).
+  state: string;
+  municipio: string;
+  city: string;
+  postalCode: string;
+  barrio: string;
+  address: string;
+  reference: string | null;
+};
+
+/**
+ * Cédula venezolana: prefijo V (venezolano) o E (extranjero) + 6 a 9 dígitos.
+ * Acepta con o sin guión ("V-12345678" o "V12345678"). Case-insensitive.
+ */
+export const CEDULA_REGEX = /^[VEve]-?\d{6,9}$/;
+
+/**
+ * Normaliza una cédula a canónico "V-12345678" (prefijo mayúscula + guión).
+ * Asume que ya pasó CEDULA_REGEX.
+ */
+export function formatCedula(raw: string): string {
+  const clean = raw.replace(/[-\s]/g, "").toUpperCase();
+  return `${clean[0]}-${clean.slice(1)}`;
+}
+
+/**
+ * Normaliza el documento a su forma canónica (la que se usa como contraseña).
+ * Persona → `formatCedula`, empresa → `formatRif`. Devuelve null si no matchea
+ * el formato esperado para el tipo.
+ */
+export function normalizeDocument(kind: ClientKind, raw: string): string | null {
+  const trimmed = raw.trim();
+  if (kind === "empresa") {
+    return RIF_REGEX.test(trimmed) ? formatRif(trimmed) : null;
+  }
+  return CEDULA_REGEX.test(trimmed) ? formatCedula(trimmed) : null;
+}
+
+export type RegisterFieldKey =
+  | "name"
+  | "company"
+  | "document"
+  | "email"
+  | "whatsapp"
+  | "officePhone"
+  | "state"
+  | "municipio"
+  | "city"
+  | "postalCode"
+  | "barrio"
+  | "address";
+
+export type RegisterActionState = {
+  ok?: boolean;
+  /** Error general (no de campo). */
+  error?: string;
+  fieldErrors?: Partial<Record<RegisterFieldKey, string>>;
+  /** En éxito, el server devuelve el markbox generado para la pantalla "Listo". */
+  markbox?: string;
+  /** Warning soft (ej: welcome email no se pudo encolar) — no rompe el alta. */
+  warning?: string;
+};
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Validación manual del alta self-service. Devuelve `input` canónico o
+ * `fieldErrors`. NO chequea dedup (eso es una query, va en la server action).
+ */
+export function validateRegisterInput(partial: Partial<RegisterInput>): {
+  input?: RegisterInput;
+  fieldErrors?: RegisterActionState["fieldErrors"];
+} {
+  const errors: RegisterActionState["fieldErrors"] = {};
+
+  const kind: ClientKind = partial.kind === "empresa" ? "empresa" : "persona";
+  const isCompany = kind === "empresa";
+
+  const name = partial.name?.trim() ?? "";
+  if (!name) errors.name = "Indicá el nombre.";
+  else if (name.length > 200) errors.name = "El nombre es demasiado largo (máx 200).";
+
+  let company: string | null = null;
+  if (isCompany) {
+    company = partial.company?.trim() || null;
+    if (!company) errors.company = "Indicá la razón social.";
+  }
+
+  const documentRaw = partial.document?.trim() ?? "";
+  const document = documentRaw ? normalizeDocument(kind, documentRaw) : null;
+  if (!documentRaw) {
+    errors.document = isCompany ? "Indicá el RIF." : "Indicá la cédula.";
+  } else if (!document) {
+    errors.document = isCompany
+      ? "RIF inválido. Formato: J-12345678-9."
+      : "Cédula inválida. Formato: V-12345678.";
+  }
+
+  const email = partial.email?.trim().toLowerCase() || "";
+  if (!email) errors.email = "Indicá el email.";
+  else if (!EMAIL_REGEX.test(email)) errors.email = "Email inválido.";
+
+  const whatsapp = partial.whatsapp?.trim() || "";
+  if (!whatsapp) errors.whatsapp = "Indicá tu WhatsApp.";
+
+  const state = partial.state?.trim() || "";
+  if (!state) errors.state = "Elegí el estado.";
+  const municipio = partial.municipio?.trim() || "";
+  if (!municipio) errors.municipio = "Elegí el municipio.";
+  const city = partial.city?.trim() || "";
+  if (!city) errors.city = "Elegí la ciudad.";
+  const postalCode = partial.postalCode?.trim() || "";
+  if (!postalCode) errors.postalCode = "Indicá el código postal.";
+  const barrio = partial.barrio?.trim() || "";
+  if (!barrio) errors.barrio = "Indicá el barrio / urbanización.";
+  const address = partial.address?.trim() || "";
+  if (!address) errors.address = "Indicá la dirección detallada.";
+
+  if (Object.keys(errors).length > 0) {
+    return { fieldErrors: errors };
+  }
+
+  return {
+    input: {
+      kind,
+      name,
+      company,
+      document: document!,
+      email,
+      whatsapp,
+      officePhone: partial.officePhone?.trim() || null,
+      state,
+      municipio,
+      city,
+      postalCode,
+      barrio,
+      address,
+      reference: partial.reference?.trim() || null,
+    },
+  };
+}
+
+/**
+ * Compone la dirección de una sola línea que se guarda en `clients.address`
+ * (la columna es texto plano; el detalle estructurado VE se concatena legible).
+ * Ej: "Av. principal, edif. X · Urb. La Esmeralda · Valencia, Carabobo · CP 2001".
+ */
+export function composeAddress(input: RegisterInput): string {
+  const parts = [
+    input.address,
+    input.barrio,
+    `${input.city}, ${input.state}`,
+    `CP ${input.postalCode}`,
+  ];
+  if (input.reference) parts.push(`Ref: ${input.reference}`);
+  return parts.join(" · ");
+}
