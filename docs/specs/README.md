@@ -81,7 +81,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0046 | Verificación de identidad de clientes — motor 2 vías (CNE céd… | done | interno |
 | 0047 | Naviera & Consolidación — carriers + itinerarios + bookings/B… | done | interno |
 | 0048 | Dirección · Tablero ejecutivo — vista consolidada read-only, … | done | interno |
-| 0049 | Documentos · Hub DMS — adjuntos polimórficos embebibles + car… | approved | interno |
+| 0049 | Documentos · Hub DMS — adjuntos polimórficos embebibles + car… | done | interno |
 | 0050 | Torre de control en /studio/debug — Estado + Bugs + Norte + R… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.

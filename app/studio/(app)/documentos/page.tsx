@@ -1,86 +1,96 @@
 /**
- * /studio/documentos — Documentos (placeholder con wiring de "Generar BL").
+ * /studio/documentos — Hub central de Documentos (DMS · SDD-0049 Slice B).
  *
- * El módulo completo de Documentos (repo de BL/AWB/packing por embarque)
- * llega en un SDD futuro. Mientras tanto, el botón "Generar BL" del
- * SDD-0034 wiring abre el modal que crea el código mock.
+ * Server Component: lee TODO el repositorio del tenant (RLS filtra) + los conteos
+ * por carpeta + los tres conjuntos de filtro (por-vencer / pendientes / sin-vincular),
+ * y delega la navegación (árbol + búsqueda + chips) a DocumentosHubClient.
+ *
+ * Reemplaza el stub. Reusa los queries puros de lib/studio/documents (Slice A):
+ * listAllDocuments / folderCounts / expiringDocuments / pendingDocuments /
+ * unlinkedDocuments. Deep-link a la transacción via LINK_KIND.
  */
 
-import { DocumentosClient } from "./_components/DocumentosClient";
+import { createClient } from "@/lib/db/server";
+import {
+  listAllDocuments,
+  folderCounts,
+  expiringDocuments,
+  pendingDocuments,
+  unlinkedDocuments,
+} from "@/lib/studio/documents/queries";
+import type { DocumentRow } from "@/lib/studio/documents/types";
+import { DocumentosHubClient } from "./_components/DocumentosHubClient";
 
 export const metadata = { title: "Documentos · DTD Studio" };
 
-export default function DocumentosPage() {
-  return (
-    <div style={{ maxWidth: 1100 }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 24,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <span className="studio-eyebrow">Finanzas · Documentos</span>
-          <h1
-            className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
-          >
-            Documentos
-          </h1>
-          <p
-            style={{
-              font: "400 13px/1.4 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: 0,
-              maxWidth: "76ch",
-            }}
-          >
-            BL, AWB, packing list, certificados — repositorio por envío.{" "}
-            <span style={{ color: "var(--ink-mute)" }}>
-              Módulo completo en SDD futuro. Mientras tanto, generá un Bill of
-              Lading desde el botón de la derecha.
-            </span>
-          </p>
-        </div>
-        <DocumentosClient />
-      </div>
+export type HubView = "all" | "por-vencer" | "pendientes" | "sin-vincular";
 
-      <div
-        style={{
-          padding: 60,
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-md)",
-          textAlign: "center",
-        }}
-      >
-        <div
-          style={{
-            font: "800 16px/1.2 var(--f-display)",
-            color: "var(--ink)",
-            marginBottom: 8,
-          }}
-        >
-          Repositorio completo · próximamente
-        </div>
-        <p
-          style={{
-            font: "500 12.5px/1.4 var(--f-sans)",
-            color: "var(--ink-soft)",
-            margin: 0,
-            maxWidth: "44ch",
-            marginInline: "auto",
-          }}
-        >
-          Por ahora podés generar un BL desde el botón de arriba. La biblioteca
-          completa con AWB, packing list y certificados llega cuando se
-          implemente el spec correspondiente.
-        </p>
-      </div>
-    </div>
+const VIEWS: ReadonlySet<string> = new Set([
+  "all",
+  "por-vencer",
+  "pendientes",
+  "sin-vincular",
+]);
+
+/** Fecha de hoy en ISO YYYY-MM-DD (para el filtro de vencimiento). */
+function todayIso(): string {
+  const d = new Date();
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+export default async function DocumentosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; folder?: string; view?: string }>;
+}) {
+  const sp = await searchParams;
+  const q = (sp.q ?? "").trim();
+  const folder = (sp.folder ?? "all").trim() || "all";
+  const view: HubView = VIEWS.has(sp.view ?? "all")
+    ? (sp.view as HubView)
+    : "all";
+
+  const supabase = await createClient();
+  const today = todayIso();
+
+  // Conteos del árbol + KPIs (siempre globales, sin filtro de vista).
+  const [counts, expiring, pending, unlinked] = await Promise.all([
+    folderCounts(supabase),
+    expiringDocuments(supabase, today),
+    pendingDocuments(supabase),
+    unlinkedDocuments(supabase),
+  ]);
+
+  // Filas a mostrar: la vista activa decide la fuente; folder + q solo aplican
+  // a la vista "all" (los filtros especiales ya traen su subconjunto).
+  let rows: DocumentRow[];
+  if (view === "por-vencer") {
+    rows = expiring;
+  } else if (view === "pendientes") {
+    rows = pending;
+  } else if (view === "sin-vincular") {
+    rows = unlinked;
+  } else {
+    rows = await listAllDocuments(supabase, { folder, q });
+  }
+
+  return (
+    <DocumentosHubClient
+      rows={rows}
+      counts={counts}
+      folder={folder}
+      view={view}
+      q={q}
+      today={today}
+      kpis={{
+        total: counts.all ?? 0,
+        expiring: expiring.length,
+        pending: pending.length,
+        unlinked: unlinked.length,
+      }}
+    />
   );
 }
