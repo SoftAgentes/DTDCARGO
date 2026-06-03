@@ -5,7 +5,11 @@ import { useRouter } from "next/navigation";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import type { ClientPortalAccess } from "@/lib/studio/client-queries";
-import { invitePortalAction, revokePortalAction } from "../actions";
+import {
+  approvePortalAction,
+  invitePortalAction,
+  revokePortalAction,
+} from "../actions";
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
@@ -30,14 +34,18 @@ export function PortalAccessCard({
   markbox,
   email,
   access,
+  approvedAt,
 }: {
   clientId: string;
   markbox: string;
   email: string | null;
   access: ClientPortalAccess | null;
+  /** clients.portal_approved_at — null = pendiente de revisión (SDD-0042 Fase 5). */
+  approvedAt?: string | null;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const approved = approvedAt != null;
 
   const status = access?.status ?? null;
   const tone =
@@ -148,6 +156,65 @@ export function PortalAccessCard({
                 onAction={async () => {
                   setError(null);
                   return revokePortalAction(clientId, markbox);
+                }}
+                onSuccess={() => router.refresh()}
+                onError={setError}
+              />
+            )}
+          </div>
+
+          {/* ── Activación del dashboard (SDD-0042 Fase 5 · gate) ── */}
+          <div
+            style={{
+              marginTop: 16,
+              paddingTop: 16,
+              borderTop: "1px solid var(--border)",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 10,
+                marginBottom: 10,
+              }}
+            >
+              <span className="studio-eyebrow">Dashboard del cliente</span>
+              <Badge tone={approved ? "success" : "warning"} size="md">
+                {approved ? "Aprobada" : "Pendiente"}
+              </Badge>
+            </div>
+            <p
+              style={{
+                font: "500 12.5px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+                margin: "0 0 12px",
+              }}
+            >
+              {approved ? (
+                <>
+                  Aprobada el {fmt(approvedAt!)}. Ve su dashboard completo (envíos,
+                  KPIs, saldo) al entrar al portal.
+                </>
+              ) : (
+                <>
+                  Hasta aprobarla, el cliente entra al portal pero ve una pantalla
+                  de espera. También se desbloquea sola con su{" "}
+                  <b style={{ color: "var(--ink)" }}>primera carga</b>.
+                </>
+              )}
+            </p>
+            {!approved && (
+              <ActionButton
+                variant="dark"
+                size="sm"
+                idleLabel="Aprobar cuenta"
+                loadingLabel="Aprobando…"
+                successLabel="Cuenta aprobada"
+                onAction={async () => {
+                  setError(null);
+                  return approvePortalAction(clientId, markbox);
                 }}
                 onSuccess={() => router.refresh()}
                 onError={setError}

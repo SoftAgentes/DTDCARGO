@@ -126,6 +126,26 @@ export async function getClientPortalAccess(
 }
 
 /**
+ * Aprobación de portal del cliente (SDD-0042 Fase 5 · gate de activación).
+ * `clients.portal_approved_at` — null = pendiente de revisión. El cliente igual
+ * destraba el dashboard con su primera carga; esto sólo refleja la aprobación
+ * manual del asesor. RLS filtra por tenant.
+ */
+export async function getClientPortalApprovedAt(
+  supabase: SupabaseClient,
+  clientId: string,
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("clients")
+    .select("portal_approved_at")
+    .eq("id", clientId)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return (data.portal_approved_at as string | null) ?? null;
+}
+
+/**
  * Parsea filtros desde searchParams del URL (?tier=&q=).
  */
 export function parseClientFiltersFromSearchParams(

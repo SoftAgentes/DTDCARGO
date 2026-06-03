@@ -4,7 +4,7 @@ title: "Portal del Cliente — auth de cliente + mis envíos (V1)"
 status: in-progress
 author: "founder"
 created: 2026-06-02
-updated: 2026-06-03
+updated: 2026-06-04
 supersedes: null
 superseded_by: null
 related: ["0010", "0013", "0021", "0024", "0026"]
@@ -266,5 +266,50 @@ Cada (sub)fase: `node scripts/verify.mjs` verde + commit aislado + `ui-ux-design
 
 ---
 
+## 9. Fase 5 (Norte) — Inicio/Dashboard del cliente + gate de activación
+
+> Origen: el founder mostró el Norte (`portal/app.jsx` → `PortalHome`) como target ("así debería quedar", 2026-06-02). Trae el **dashboard rico de Inicio** + el **gate de activación**. Se construye **sobre el auth actual (magic-link)**; el cambio a MARKBOX+contraseña+auto-registro es fase fundacional aparte (§9.5). Decisión de sesión: **dashboard primero, auth después**.
+
+### 9.1 Gate de activación (regla founder 2026-06-02)
+- El registro self-service da **MARKBOX al instante** (lo necesita para marcar cajas en China YA), pero la cuenta queda **pendiente de revisión**.
+- El cliente **puede entrar** (login OK) pero **no ve el dashboard** hasta activarse.
+- **Activación = `clients.portal_approved_at IS NOT NULL` OR `(envíos con ese client_markbox) ≥ 1`** (cualquiera de las dos destraba). La primera carga = prueba de cliente real → auto-desbloqueo aunque no se haya revisado.
+- No activada → **pantalla de bienvenida/espera** (copy: *"Todavía no puedes ver tu dashboard hasta que un asesor te apruebe o realices tu primera carga."*).
+- Schema: migración `0087_portal_approval.sql` → `alter table public.clients add column portal_approved_at timestamptz` + RPC `portal_approve_client(p_client_id)` SECURITY DEFINER (admin del tenant) que lo setea. Sin tocar RLS existente. *(El correlativo real fue **0087**, no 0084 — la spec lo estimó antes de cargar Kommo 0082-0085 + shipment_documents 0086.)*
+- Admin: botón **"Aprobar cuenta"** en `PortalAccessCard` (`/studio/clientes/[markbox]`) → llama la RPC. Muestra estado: pendiente / aprobada / (auto-activa por carga).
+
+### 9.2 Slice 5.1 — Gate + pantalla de espera — ✅ HECHO (2026-06-04)
+- `lib/portal/portal-queries.ts`: `getPortalActivation(supabase)` → `{ activated: boolean, reason: 'approved' | 'has_shipments' | null }` (resuelve `get_portal_client_id()` para leer `portal_approved_at`; si no, cuenta envíos por markbox vía `portalMarkbox` con `count: 'exact', head: true`).
+- `app/portal/(app)/page.tsx` (Inicio): no activada → `<PortalPending>` (holding screen brand-correcto del portal: paper/wine, MARKBOX prominente + copy exacto *"Todavía no puedes ver tu dashboard hasta que un asesor te apruebe o realices tu primera carga."* + CTA WhatsApp al asesor); activada → `<PortalDashboard>` (slice 5.2).
+- **Admin:** botón **"Aprobar cuenta"** (variant `dark`) en `PortalAccessCard` → `approvePortalAction` → RPC `portal_approve_client`. Badge de estado **Pendiente / Aprobada** (con fecha). El card explica que también se desbloquea sola con la primera carga.
+- **Routing:** `(app)/page.tsx` pasó a ser Inicio; la lista "Mis envíos" se reubicó a `(app)/envios/page.tsx` (funcionalidad intacta; el detalle `envios/[code]` ya existía). `PortalNav` ahora: **Inicio · Mis envíos · Facturas · Documentos · Cuenta**.
+- **Acceptance:** cliente sin aprobar y sin envíos → ve espera; al aprobarlo el admin **o** al crearle 1 envío → ve dashboard. Tests Vitest del gate (`activation.test.ts`, 4 casos: pendiente, aprobado, con-envíos, principal no-cliente).
+- Nuevos: `supabase/migrations/0087_portal_approval.sql`, `app/portal/_components/PortalPending.tsx`, `app/portal/(app)/envios/page.tsx`, `lib/portal/__tests__/activation.test.ts`. Editados: `lib/portal/portal-queries.ts` (+`getPortalActivation`), `lib/portal/portal-types.ts` (+`PortalActivation`, +`TERMINAL_SHIPMENT_STATUSES`/`isActiveShipmentStatus`), `app/portal/(app)/page.tsx`, `app/portal/_components/PortalNav.tsx`, `app/studio/(app)/clientes/actions.ts` (+`approvePortalAction`), `app/studio/(app)/clientes/_components/PortalAccessCard.tsx`, `app/studio/(app)/clientes/[markbox]/page.tsx`, `lib/studio/client-queries.ts` (+`getClientPortalApprovedAt`).
+
+### 9.3 Slice 5.2 — Inicio/Dashboard (con la data que SÍ existe) — ✅ HECHO (2026-06-04)
+- `<PortalDashboard>` (`app/portal/(app)/_components/PortalDashboard.tsx`) con los widgets del Norte, **piel del portal** (paper/wine + clases del sitio público, sólo `var(--*)`; el PortalHome del Norte es referencia de LAYOUT, no de tipografía — NO se introdujo Sora/Nunito nuevo). Queries `getDashboardKpis` + `getNextArrival` en `portal-queries.ts` (reusan `listMyShipments`/`listMyInvoices`, filtrado por markbox). Saludo fecha es-VE + "Hola {primer nombre}" + "{N} envíos activos · {M} factura(s) pendiente(s)". 4 KPIs (activos no-terminal · entregados YTD · facturado Σ no-borrador moneda dominante · saldo Σ total−paid). "Próximo arribo" DEGRADADO (code/ruta/estado/ETA; SIN contenedor/buque/progreso/mapa = Tier 1 Naviera) ocultando lo ausente; preview 4 envíos (reusa `ShipmentRow`) + "Ver todos" → `/portal/envios`; card "Saldo pendiente" → `/portal/facturas`; card "Tu asesor" DEGRADADO (sin `clients.advisor_id` → contacto público CRM WhatsApp, TODO marcado). Botones "Nueva compra"/"Nueva cotización" presentes pero deshabilitados ("Próximamente" = slices 5.6/5.7). Tests Vitest `dashboard.test.ts` (KPIs + nextArrival, monedas mixtas, aislamiento).
+- (Detalle original del slice abajo.)
+- El Inicio del portal (`/portal`) con los widgets del Norte:
+  - Saludo: fecha es-VE + "Hola {primer nombre}", "{N} envíos activos · {M} factura(s) pendiente(s)".
+  - **4 KPIs:** Envíos activos (status no terminal) · Entregados YTD (`delivered` del año) · Facturado (Σ `total_amount` de invoices no-`borrador`) · Saldo pendiente (Σ `total_amount − paid_amount`).
+  - **Card "Próximo arribo" (DEGRADADO):** próximo envío activo (code, ruta origen→destino, estado, ETA estimada vía `estimatePortalEta`). ⚠️ **Sin** contenedor `DTDU-…`/buque/progreso%/mapa animado — eso es **Tier 1 Naviera/Container (no construido)**; el card oculta lo ausente y no inventa data. Cuando llegue Naviera, se enriquece.
+  - **"Tus envíos"** preview (3-4, link a Mis envíos + al detalle).
+  - **Saldo pendiente** + botón "Ver facturas".
+  - **Card "Tu agente" (DEGRADADO):** no hay campo asesor-asignado → usa el contacto único público (CRM WhatsApp `+58 412 166 8021`) hasta que exista `clients.advisor_id`. *(TODO marcado.)*
+- Queries nuevas en `lib/portal/portal-queries.ts`: `getDashboardKpis`, `getNextArrival`. Reusa `listMyShipments` / `listMyInvoices`.
+- Botones "Nueva compra" / "Nueva cotización" presentes pero a placeholder/"próximamente" (son slices 5.6/5.7).
+- **Brand:** el portal es capa **sistema** del Norte → seguir guardrails (`var(--*)`, fuentes del sistema). Pasar por `ui-ux-designer` antes del commit.
+- **Acceptance:** con DTD-1007 + 1 envío + 1 factura seed, los 4 KPIs cuadran, el card de próximo arribo muestra el envío, el preview lista, el saldo sale de invoices. `node scripts/verify.mjs` verde.
+
+### 9.4 Slices siguientes (no en 5.1/5.2)
+- **5.3** Tus proveedores · **5.4** Referidos · **5.5** Soporte · **5.6** "Nueva compra" (prealerta) · **5.7** "Nueva cotización". Cada uno su slice con verify+review.
+
+### 9.5 Fuera de scope (fase fundacional aparte, §futuro)
+- **Cambio de login a MARKBOX + contraseña** + **auto-registro 3 pasos** (datos + foto cédula/RIF → dirección VE → confirma, con MARKBOX secuencial automático) + "¿olvidaste tu contraseña?". Reemplaza el magic-link. Es lo que dispara el estado "pendiente" del gate de forma orgánica. Hoy, sin auto-registro, el "pendiente" se simula: admin invita → cuenta sin aprobar → espera hasta aprobar/primera carga.
+- "Próximo arribo" completo (contenedor/buque/ETA real/progreso/mapa) → depende de **Tier 1 Naviera/Container**.
+- Dedup/validación de identidad en el alta (RIF requerido + único) → SDD chico aparte.
+
+---
+
 ## Diseño (referencia)
-Mockups del Norte vigente (Cloud Design v2.4): `docs/design/studio/_norte/Portal del Cliente.html`, `Portal Cliente Mobile.html`, `Modo Cliente.html`. Tokens/branding: `BRAND.md` + `lib/shared/shipment-public.ts` (labels/colores de estado, fuente única público↔ERP).
+Mockups del Norte vigente (Cloud Design v2.4): `docs/design/studio/_norte/Portal del Cliente.html`, `Portal Cliente Mobile.html`, `Modo Cliente.html`. El dashboard de Fase 5 = `docs/design/studio/_norte/portal/app.jsx` (`PortalHome`/`PortalTopbar`). Tokens/branding: `BRAND.md` + `lib/shared/shipment-public.ts` (labels/colores de estado, fuente única público↔ERP).

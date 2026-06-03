@@ -249,3 +249,25 @@ export async function revokePortalAction(
   revalidatePath(`/studio/clientes/${markbox}`);
   return { ok: true };
 }
+
+/**
+ * Aprobar la cuenta del cliente para que vea el dashboard del portal (SDD-0042
+ * Fase 5 · gate de activación). Llama la RPC `portal_approve_client` (SECURITY
+ * DEFINER, membresía de tenant) que setea `clients.portal_approved_at = now()`.
+ */
+export async function approvePortalAction(
+  clientId: string,
+  markbox: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("portal_approve_client", {
+    p_client_id: clientId,
+  });
+
+  if (error) {
+    return { error: `No se pudo aprobar la cuenta: ${error.message}` };
+  }
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}
