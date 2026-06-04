@@ -41,6 +41,7 @@ import {
   type CarrierRow,
   type CashflowReport,
   type ClientRankRow,
+  type CombinedReport,
   type CommercialByClient,
   type DateRange,
   type FlowItem,
@@ -70,6 +71,13 @@ import {
   type BuilderRow,
   type ReportSourceId,
 } from "./builder-types";
+import {
+  costingRows,
+  costingTotals,
+  marginByRoute,
+  marginByClient,
+  costPerCbmByRoute,
+} from "@/lib/studio/costing/queries";
 
 // ── Estados "activos" (en curso) para el KPI de Overview ───────
 // Embarque que aún se está moviendo (no draft, no terminal).
@@ -775,6 +783,46 @@ export async function builderRows(
   const range = periodRange(period, today);
   if (source === "invoices") return invoiceBuilderRows(supabase, range);
   return shipmentBuilderRows(supabase, range);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Slice C — Combinados (rentabilidad REAL · cruce operación × finanzas)
+// ═══════════════════════════════════════════════════════════════
+//
+// Reusa Costing (SDD-0053) tal cual: `costingRows` cruza cada embarque con su
+// REVENUE real (invoices, USD-normalizado, sin borrador) + su COSTO real
+// (`shipment_costs`). El margen = revenue − costo (cero si el embarque no tiene
+// costos cargados). NUNCA se fabrica costo (el Norte usa _ROUTE_COST=0.70+jitter
+// → prohibido replicarlo, §3.2/§6).
+
+/**
+ * Combinados del período (rentabilidad REAL): compone `costingRows` (Costing
+ * 0053) sobre el rango del período de Reportes y deriva las 3 vistas con los
+ * helpers PUROS de Costing. Si ningún embarque del período tiene costos
+ * cargados → `withCosts === 0` (la UI muestra un EmptyState honesto que enlaza a
+ * /studio/costing, en vez de tablas de margen donde el costo es 0 por todos lados).
+ *
+ * Read-only, RLS por tenant (vía costingRows). Sin migración (reusa
+ * `shipment_costs` de 0100, ya en prod).
+ */
+export async function combinedReport(
+  supabase: SupabaseClient,
+  period: ReportPeriod,
+  today?: Date,
+): Promise<CombinedReport> {
+  const range = periodRange(period, today);
+  const rows = await costingRows(supabase, { from: range.from, to: range.to });
+
+  const withCosts = rows.filter((r) => r.costs != null).length;
+
+  return {
+    totals: costingTotals(rows),
+    byRoute: marginByRoute(rows),
+    byClient: marginByClient(rows),
+    byCbm: costPerCbmByRoute(rows),
+    withCosts,
+    shipments: rows.length,
+  };
 }
 
 // Mantiene a REPORT_SOURCES como dependencia consciente del módulo (la query y la
