@@ -170,6 +170,164 @@ describe("operationalOverview", () => {
     const marzo = ov.monthly.find((m) => m.month === "2026-03");
     expect(marzo?.count).toBe(1);
   });
+
+  it("KPI revenue EXCLUYE facturas huérfanas y cuadra con la suma de las filas", async () => {
+    // Factura "huérfana": shipment_code que NO matchea ningún embarque del rango.
+    // Antes inflaba el KPI (sumaba TODO el mapa) pero no aparecía en ninguna fila.
+    const invoicesConHuerfana = [
+      ...invoices,
+      { shipment_code: "ZZ-NO-EXISTE", total_amount: 99999, currency: "USD", fx_rate: null, status: "emitida" },
+    ];
+
+    const ov = await operationalOverview(
+      stub({ shipments, invoices: invoicesConHuerfana }).client,
+      "1A",
+      TODAY,
+    );
+    const routes = await reportByRoute(
+      stub({ shipments, invoices: invoicesConHuerfana }).client,
+      "1A",
+      TODAY,
+    );
+    const services = await reportByService(
+      stub({ shipments, invoices: invoicesConHuerfana }).client,
+      "1A",
+      TODAY,
+    );
+
+    // KPI = revenue atribuible a los embarques (8000 + 2000 + 1000) — sin la
+    // huérfana (99999). El antiguo bug daba 110999.
+    expect(ov.revenueUsd).toBe(11000);
+
+    // KPI == Σ revenue de las filas (por construcción, mismo cálculo).
+    const sumRoutes = routes.reduce((s, r) => s + r.revenue, 0);
+    const sumServices = services.reduce((s, r) => s + r.revenue, 0);
+    expect(sumRoutes).toBe(ov.revenueUsd);
+    expect(sumServices).toBe(ov.revenueUsd);
+  });
+
+  it("KPI == Σ filas al centavo con facturas VES sub-centavo (redondeo total-vs-serie)", async () => {
+    // Embarques en rutas Y servicios distintos → cada uno cae en su propia fila.
+    const vesShipments = [
+      {
+        id: "v1", code: "V1", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 5,
+        created_at: "2026-05-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+      {
+        id: "v2", code: "V2", origin: "Shenzhen", destination: "La Guaira",
+        shipment_service: "puerta_a_puerta_DDP", status: "in_transit", volume_m3: 5,
+        created_at: "2026-05-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+    ];
+    // VES/fx=3 → 10000/3 = 3333.3333… USD (sub-centavo). Si el KPI sumara crudo y
+    // redondeara una vez (6666.67) mientras las filas redondean por grupo
+    // (3333.33 + 3333.33 = 6666.66), divergirían 1 centavo. El redondeo del mapa
+    // por code los alinea: KPI == Σ filas exacto.
+    const vesInvoices = [
+      { shipment_code: "V1", total_amount: 10000, currency: "VES", fx_rate: 3, status: "emitida" },
+      { shipment_code: "V2", total_amount: 10000, currency: "VES", fx_rate: 3, status: "emitida" },
+    ];
+
+    const ov = await operationalOverview(
+      stub({ shipments: vesShipments, invoices: vesInvoices }).client, "1A", TODAY,
+    );
+    const routes = await reportByRoute(
+      stub({ shipments: vesShipments, invoices: vesInvoices }).client, "1A", TODAY,
+    );
+    const services = await reportByService(
+      stub({ shipments: vesShipments, invoices: vesInvoices }).client, "1A", TODAY,
+    );
+
+    expect(ov.revenueUsd).toBe(6666.66);
+    expect(routes.reduce((s, r) => s + r.revenue, 0)).toBe(ov.revenueUsd);
+    expect(services.reduce((s, r) => s + r.revenue, 0)).toBe(ov.revenueUsd);
+  });
+});
+
+// ── Chips "sin asignar": unassigned + orphanRevenueUsd ─────────
+describe("operationalOverview · indicadores sin asignar", () => {
+  it("unassigned cuenta embarques sin client_name (null o vacío); con cliente NO cuenta", async () => {
+    const shipments = [
+      // Sin cliente (null) → cuenta.
+      {
+        id: "1", code: "U1", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        client_name: null,
+        created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+      // Sin cliente (string vacío tras trim) → cuenta.
+      {
+        id: "2", code: "U2", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 2.5,
+        client_name: "   ",
+        created_at: "2026-03-02T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+      // Con cliente → NO cuenta.
+      {
+        id: "3", code: "C1", origin: "Shenzhen", destination: "La Guaira",
+        shipment_service: "reserva_FCL", status: "shipped", volume_m3: 40,
+        client_name: "Acme SA",
+        created_at: "2026-03-03T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+    ];
+    const ov = await operationalOverview(stub({ shipments, invoices: [] }).client, "1A", TODAY);
+
+    expect(ov.unassigned.count).toBe(2);
+    expect(ov.unassigned.cbm).toBe(12.5); // 10 + 2.5
+  });
+
+  it("orphanRevenueUsd = monto huérfano; revenueUsd lo EXCLUYE y sigue = Σ filas", async () => {
+    const shipments = [
+      {
+        id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        client_name: "Acme",
+        created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+      {
+        id: "2", code: "B1", origin: "Shenzhen", destination: "La Guaira",
+        shipment_service: "reserva_FCL", status: "shipped", volume_m3: 40,
+        client_name: "Beta",
+        created_at: "2026-03-02T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+    ];
+    const invoices = [
+      { shipment_code: "A1", total_amount: 3000, currency: "USD", fx_rate: null, status: "emitida" },
+      { shipment_code: "B1", total_amount: 9000, currency: "USD", fx_rate: null, status: "emitida" },
+      // Huérfana: code que NO matchea ningún embarque del rango.
+      { shipment_code: "ZZ-NO-EXISTE", total_amount: 1500, currency: "USD", fx_rate: null, status: "emitida" },
+    ];
+
+    const ov = await operationalOverview(stub({ shipments, invoices }).client, "1A", TODAY);
+    const routes = await reportByRoute(stub({ shipments, invoices }).client, "1A", TODAY);
+
+    // KPI = revenue atribuible a embarques del rango (3000 + 9000), excluye la huérfana.
+    expect(ov.revenueUsd).toBe(12000);
+    // El huérfano = la factura sin embarque del rango.
+    expect(ov.orphanRevenueUsd).toBe(1500);
+    // Invariante intacto: KPI = Σ filas.
+    expect(routes.reduce((s, r) => s + r.revenue, 0)).toBe(ov.revenueUsd);
+  });
+
+  it("sin huérfanas ni embarques sin cliente → ambos indicadores en 0", async () => {
+    const shipments = [
+      {
+        id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        client_name: "Acme",
+        created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+    ];
+    const invoices = [
+      { shipment_code: "A1", total_amount: 3000, currency: "USD", fx_rate: null, status: "emitida" },
+    ];
+    const ov = await operationalOverview(stub({ shipments, invoices }).client, "1A", TODAY);
+
+    expect(ov.orphanRevenueUsd).toBe(0);
+    expect(ov.unassigned.count).toBe(0);
+    expect(ov.unassigned.cbm).toBe(0);
+  });
 });
 
 // ── reportByRoute / reportByService usan revenue join ──────────

@@ -70,14 +70,16 @@ export function periodRange(
   }
 
   // trailing N meses → restamos meses sobre una copia en UTC.
+  // Clampeamos el día al último día válido del mes destino: si `today` cae en
+  // 29-31 y el mes destino es más corto, JS rotaría al mes siguiente
+  // (ej: 31-mar − 1M → Date.UTC(2026, 1, 31) = "31 de febrero" → ~3-mar, mal).
+  // `Date.UTC(y, m + 1, 0)` = día 0 del mes siguiente = último día del destino.
   const months = period === "1M" ? 1 : period === "3M" ? 3 : 12;
-  const from = new Date(
-    Date.UTC(
-      today.getUTCFullYear(),
-      today.getUTCMonth() - months,
-      today.getUTCDate(),
-    ),
-  );
+  const y = today.getUTCFullYear();
+  const m = today.getUTCMonth() - months;
+  const d = today.getUTCDate();
+  const lastDayOfTarget = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+  const from = new Date(Date.UTC(y, m, Math.min(d, lastDayOfTarget)));
   return { from: iso(from), to };
 }
 
@@ -147,6 +149,20 @@ export type OperationalOverview = {
   monthly: MonthlyVolumePoint[];
   portSplit: PortSplitRow[];
   transitByPort: TransitByPortRow[];
+  /**
+   * Revenue facturado del rango que NO cae en ningún embarque del rango (factura
+   * "huérfana": su `shipment_code` no matchea un embarque del período, típico de
+   * una factura emitida este mes para un embarque creado el mes pasado). =
+   * Σ(revenueByCode) − revenueUsd. 0 cuando no hay huérfanas. Informativo: el KPI
+   * `revenueUsd` lo EXCLUYE a propósito (mide la operación de embarques); este chip
+   * evita que ese dinero quede oculto.
+   */
+  orphanRevenueUsd: number;
+  /**
+   * Embarques del rango SIN cliente asignado (`client_name` null o vacío) — "cajas
+   * sin dueño" que igual se despachan. Informativo, no alarma.
+   */
+  unassigned: { count: number; cbm: number };
 };
 
 // ── Forma mínima de un shipment para los helpers ───────────────
@@ -164,6 +180,7 @@ export type ReportShipment = {
   shipment_service: ShipmentService;
   status: string;
   cbm: number | null;
+  client_name: string | null;
   created_at: string; // ISO
   arrived_destination_at: string | null;
   delivered_at: string | null;
@@ -301,8 +318,13 @@ function avgTransitOf(rows: ReportShipment[]): number | null {
   return Math.round((sum / ds.length) * 10) / 10;
 }
 
-/** Revenue USD de un grupo, sumando por shipment.code en el mapa de facturas. */
-function revenueOf(
+/**
+ * Revenue USD de un grupo, sumando por shipment.code en el mapa de facturas.
+ * Exportado (antes privado) para que el KPI del Overview operacional use el MISMO
+ * cálculo que las filas (revenue atribuible a los embarques presentes) → KPI = Σ
+ * filas por construcción. Ver `operationalOverview` en queries.ts.
+ */
+export function revenueOf(
   rows: ReportShipment[],
   revenueByCode: Map<string, number>,
 ): number {
