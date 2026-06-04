@@ -194,8 +194,10 @@ export function ParametrosPanel({
                       />
                       <p
                         style={{
+                          // --ink-soft (no --ink-mute): el hint es texto legible y
+                          // --ink-mute (#9B9B9B) no pasa WCAG AA sobre fondo claro.
                           font: "400 11.5px/1.4 var(--f-sans)",
-                          color: err ? "var(--danger)" : "var(--ink-mute)",
+                          color: err ? "var(--danger)" : "var(--ink-soft)",
                           margin: "4px 0 0",
                         }}
                       >
