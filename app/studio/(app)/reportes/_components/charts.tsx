@@ -7,9 +7,56 @@
  *  - <VolumeBars>  serie mensual de embarques (barra) + CBM (línea overlay).
  *  - <Donut>       repartición (mix de servicios) con leyenda.
  *  - <Progress>    barra de progreso horizontal (reusada en tablas).
+ *  - <HeaderRow>   cabecera de tabla tokenizada (reusada por todas las vistas).
  */
 
 import type { MonthlyVolumePoint } from "@/lib/studio/reports/types";
+
+// ── Cabecera de tabla (reusable) ───────────────────────────────
+// Grid de rótulos de columna; alinea a la derecha el rango [rightFrom, rightTo].
+export function HeaderRow({
+  cols,
+  labels,
+  rightFrom,
+  rightTo,
+}: {
+  cols: string;
+  labels: string[];
+  rightFrom?: number;
+  rightTo?: number;
+}) {
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: cols,
+        padding: "10px 18px",
+        gap: 14,
+        background: "var(--bg-elevated)",
+        borderBottom: "1px solid var(--border)",
+      }}
+    >
+      {labels.map((h, i) => {
+        const right =
+          rightFrom != null && rightTo != null && i >= rightFrom && i <= rightTo;
+        return (
+          <span
+            key={`${i}-${h}`}
+            style={{
+              font: "700 10px/1 var(--f-sans)",
+              color: "var(--ink-soft)",
+              letterSpacing: "0.1em",
+              textTransform: "uppercase",
+              textAlign: right ? "right" : "left",
+            }}
+          >
+            {h}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
 
 // ── Barra de progreso (reusable) ───────────────────────────────
 export function Progress({

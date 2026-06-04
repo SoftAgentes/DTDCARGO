@@ -41,7 +41,7 @@ import {
   type BuilderRow,
   type ReportSourceId,
 } from "@/lib/studio/reports/builder-types";
-import { VolumeBars, Donut, Progress, type DonutSlice } from "./charts";
+import { VolumeBars, Donut, Progress, HeaderRow, type DonutSlice } from "./charts";
 import { BuilderView } from "./BuilderView";
 
 type Category = "op" | "com" | "con" | "build" | "mix";
@@ -1496,46 +1496,3 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
 }
 
 // ── Header de tabla reusable ───────────────────────────────────
-function HeaderRow({
-  cols,
-  labels,
-  rightFrom,
-  rightTo,
-}: {
-  cols: string;
-  labels: string[];
-  rightFrom?: number;
-  rightTo?: number;
-}) {
-  return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: cols,
-        padding: "10px 18px",
-        gap: 14,
-        background: "var(--bg-elevated)",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      {labels.map((h, i) => {
-        const right =
-          rightFrom != null && rightTo != null && i >= rightFrom && i <= rightTo;
-        return (
-          <span
-            key={h}
-            style={{
-              font: "700 10px/1 var(--f-sans)",
-              color: "var(--ink-soft)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              textAlign: right ? "right" : "left",
-            }}
-          >
-            {h}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
