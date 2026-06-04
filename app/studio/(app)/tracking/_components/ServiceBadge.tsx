@@ -1,7 +1,8 @@
 /**
  * Badge del servicio comercial (4 productos DTD).
  *
- * Convencion de marca: "Puerta a Puerta DDP" siempre con "prepago" en chico.
+ * El sub viene de SERVICE_LABELS; para DDP es "Financiamiento 100%"
+ * (reemplazó al viejo "prepago", retirado 2026-06-04 del copy de marketing).
  *
  * Refactor visual (post-audit gráfico):
  *   - Primary subido a 12px (era 11px) para mejor ratio jerárquico vs sub.

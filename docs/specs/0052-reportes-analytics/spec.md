@@ -172,10 +172,14 @@ anclada a `shipments` + `invoices` + naviera.
 - [x] Período server-side; montos USD-normalizados; **EmptyState honesto** donde no hay datos.
 - [x] `node scripts/verify.mjs` 🟢. **Sin migración.** `ui-ux-designer` OK.
 
-### Slice C (diferido · con bloqueo documentado)
-- [ ] **Constructor** (builder fuente→agrupar→métrica→filtro + export CSV) · **Combinados**
-      (requiere costo directo por embarque **real**, NO fabricado) · **Por agente** (requiere
-      atribución de agente en `quotes`) · **Posición IVA** (requiere Fiscal/Bloque 3).
+### Slice C (parcial)
+- [x] **Constructor** (builder fuente→agrupar→métrica→filtro + export CSV) — **V1 implementado** 2026-06-04
+      (rama `feat/reportes-c`): 2 fuentes (Embarques, Facturas) sobre datos reales, agregación pura, export CSV
+      client-side, guardar reportes en localStorage. Categoría "Constructor" habilitada en `ReportesClient`.
+- [x] **Combinados** (rentab. ruta / margen cliente / costo-CBM) — **implementado** 2026-06-04 (rama `feat/reportes-c`):
+      3 vistas reusando `costingRows`/`costingTotals`/`marginByRoute` de Costing (0053) + nuevos `marginByClient`/costo-CBM
+      puros. **Costo REAL de `shipment_costs`** (cero `_ROUTE_COST` fabricado); `EmptyState` honesto si no hay costos. Sin migración.
+- [ ] **Por agente** (requiere atribución de agente en `quotes`, inexistente) · **Posición IVA** (requiere Fiscal/Bloque 3) · **export PDF**.
 
 ## 6. Fuera de alcance (respetar)
 
@@ -317,3 +321,39 @@ todos con bloqueo documentado (sin fuente real / depende de Bloque 3).
    como 2 chips informativos sutiles (`Badge` neutral → quitado por ui-ux, solo texto; tono `--ink-soft`,
    visibles solo si > 0). Aclaración de modelo: **toda factura tiene cliente** (`invoices.client_name NOT
    NULL`) → "factura huérfana" = sin embarque-en-rango (desfase de fecha), distinto de "embarque sin cliente".
+
+### Slice C · Constructor — V1 (2026-06-04 · rama `feat/reportes-c`, vía harness)
+
+- **`lib/studio/reports/builder-types.ts`** (puro, server-safe): `REPORT_SOURCES` (2 fuentes — Embarques + Facturas —
+  cada una con `dims`/`metrics {agg: count|sum|avg, money?}`/`filters`, todas ancladas a campos REALES, cero fabricado),
+  `buildReport(rows, {dimKey, metric, filter})` → `{rows:[{label,value,count}], total}` (agrupa+agrega, ordena desc,
+  sin NaN), `buildReportCsv` (escapa comas/comillas). **`queries.ts`**: query del builder que trae la fuente del período
+  (reusa `fetchShipments`+`revenueByCode` para enriquecer revenue; facturas USD-norm). **`BuilderView.tsx`** (`"use client"`):
+  selectores fuente→dim→métrica→filtro + tabla agrupada con barras tokenizadas + export CSV (Blob client-side) + guardar
+  reportes en `localStorage` (SSR-safe). Categoría **Constructor** habilitada en `ReportesClient` (dejó de estar "Pronto").
+- **Sin migración** (presentación pura). Reviewer APPROVED + ui-ux OK. Fix aplicado: contraste AA del conteo (`--ink-mute`→`--ink-soft`).
+- **Nits ui-ux dejados (no bloqueantes, pulido de coherencia futura):** ~~la tabla de resultado no usa el `HeaderRow` del
+  módulo (sin rótulos de columna en pantalla; el CSV sí los lleva)~~ · ~~`EmptyState` primitivo para "fuente vacía" vs
+  "filtro dejó 0 grupos"~~ · ~~target+hover del `×` en los chips guardados~~ → **3 resueltos 2026-06-04** (ver abajo).
+- **Pendiente de Slice C:** Combinados (desbloqueado por Costing) · Por-agente (bloqueado) · Posición IVA (Bloque 3) · export PDF.
+
+### Slice C · Constructor — pulido nits ui-ux (2026-06-04)
+
+Los 3 nits que el Constructor V1 dejó documentados se cerraron (gate verde · `ui-ux-designer` OK · sin migración):
+
+1. **`HeaderRow` en la tabla de resultado.** Se **movió `HeaderRow` de `ReportesClient.tsx` (local) a `charts.tsx`**
+   (módulo compartido del slice, donde ya vive `Progress`) y se exportó — fuente única, sin import circular
+   (`ReportesClient` → importa `BuilderView`, ambos importan de `./charts`). La tabla del builder ahora rotula columnas
+   en pantalla (`[dim, "", "Conteo", métrica]`, cols 2-3 a la derecha) con la misma geometría que `RoutesView`/`CarriersView`
+   (`padding 18` horizontal · `gap 14` · `borderTop` entre filas, 1ª sin borde porque el `HeaderRow` ya trae `borderBottom`).
+2. **`EmptyState` diferenciado y honesto.** Se reemplazó el `<div>` genérico por la primitiva `<EmptyState>` (patrón del módulo)
+   que **reemplaza el card entero** (no se anida → evita card-in-card, igual que `RoutesView`) y distingue 3 casos:
+   (a) fuente sin registros en el período, (b) filtro activo (`filterVal !== "all"`) que dejó 0 grupos → muestra
+   `filterField.label = filterVal`, (c) borde: hay registros pero ninguno aporta a la agrupación/métrica.
+3. **`×` de chips guardados accesible.** Componente local `RemoveButton` con touch target 28×28 (`display:grid; placeItems:center`;
+   < 32 del estándar a propósito por ser `×` en pill compacto, > 24 WCAG 2.2), hover/focus vía estado local
+   (`onMouseEnter/Leave/Focus/Blur` → `var(--danger-bg)`/`var(--danger)`; inline styles no soportan pseudo-clases), `aria-label` + `title`.
+
+**Decisión que sobrevive:** el `rightFrom={2}` del `HeaderRow` es correcto (la columna de barra es índice **1** = label vacío;
+"Conteo" en 2 y la métrica en 3 sí van a la derecha, alineadas con sus celdas). Solo cambios de presentación; tests del módulo
+intactos (1057 verdes en el repo).
