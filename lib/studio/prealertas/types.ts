@@ -1,15 +1,15 @@
 /**
  * Tipos TypeScript del módulo Portal · Compras (prealertas) + Proveedores
- * (SDD-0057, Slice A). Matchea el schema de
- * supabase/migrations/0105_portal_compras.sql.
+ * (SDD-0057). Matchea el schema de supabase/migrations/0105_portal_compras.sql.
  *
  * Dos entidades:
- *  - `Supplier`  · proveedor chino del cliente (suppliers_cn).
- *  - `Prealerta` · compra = aviso pre-arribo (prealertas), con código DTD-XXXX-N
- *                  por cliente → por caja DTD-XXXX-N-M (shipping mark de SDD-0031).
+ *  - `Supplier`  · proveedor chino del cliente (suppliers_cn). Cada proveedor
+ *                  tiene un nº por cliente (`supplier_seq`: #1, #2, …).
+ *  - `Prealerta` · compra = aviso pre-arribo (prealertas), con el código del
+ *                  Norte `DTD-{clientNo}-{supplier_seq}-{order_seq}`. Por caja se
+ *                  rotula el MISMO code + "Caja M/N" (shipping mark de SDD-0031).
  *
- * Sin server actions / UI acá (eso es Slice B/C). Helpers PUROS + validadores
- * manuales (no Zod, patrón del repo).
+ * Helpers PUROS + validadores manuales (no Zod, patrón del repo).
  */
 
 // ── Tonos de badge (set del sistema) ──────────────────────────
@@ -59,18 +59,106 @@ export function isPrealertaStatus(v: unknown): v is PrealertaStatus {
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
-// ║ Código por caja (shipping mark · SDD-0031)                ║
+// ║ Código de la compra (esquema del Norte)                   ║
 // ╚═══════════════════════════════════════════════════════════╝
 
 /**
- * Arma el código por caja a partir del código de la prealerta + el número de
- * caja. `boxCode("DTD-5532-3", 2)` → `"DTD-5532-3-2"`. Es el shipping mark que
- * el cliente le pega a cada bulto y que SDD-0031 imprime en las etiquetas.
- * `boxN` se normaliza a entero ≥ 1 (boxes > 9 se soportan: DTD-5532-3-12).
+ * Número de cliente desde el MARKBOX (`DTD-5532` → `"5532"`). El code del Norte
+ * usa este segmento como `clientNo`. Si el MARKBOX no tiene el patrón esperado,
+ * cae al MARKBOX completo (normalizado) para no romper — la red es el
+ * `unique(tenant, code)`.
  */
-export function boxCode(prealertaCode: string, boxN: number): string {
-  const m = Math.max(1, Math.trunc(Number(boxN) || 1));
-  return `${prealertaCode}-${m}`;
+export function clientNoFromMarkbox(markbox: string): string {
+  const norm = (markbox ?? "").trim().toUpperCase();
+  const parts = norm.split("-");
+  return parts.length >= 2 && parts[1] ? parts[1] : norm;
+}
+
+/**
+ * Arma el código de la compra con el esquema del Norte
+ * `DTD-{clientNo}-{supplier_seq}-{order_seq}`:
+ *  - `clientNo`     = nº de cliente del MARKBOX.
+ *  - `supplier_seq` = nº de proveedor por cliente (#1, #2, …).
+ *  - `order_seq`    = nº de compra de ese (cliente, proveedor).
+ * `buildPrealertaCode("DTD-5532", 3, 2)` → `"DTD-5532-3-2"`. Los seq se
+ * normalizan a entero ≥ 1 (sin padding; soporta > 9).
+ */
+export function buildPrealertaCode(
+  markbox: string,
+  supplierSeq: number,
+  orderSeq: number,
+): string {
+  const clientNo = clientNoFromMarkbox(markbox);
+  const s = Math.max(1, Math.trunc(Number(supplierSeq) || 1));
+  const o = Math.max(1, Math.trunc(Number(orderSeq) || 1));
+  return `DTD-${clientNo}-${s}-${o}`;
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Etiquetas por caja (shipping mark · SDD-0031)             ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+/** Una etiqueta imprimible: el MISMO code de la compra + "Caja boxN/totalBoxes". */
+export type BoxLabel = {
+  /** code de la compra (igual en todas las cajas; NO lleva la caja como segmento). */
+  code: string;
+  /** nº de esta caja (1..totalBoxes). */
+  boxN: number;
+  /** total de cajas de la compra. */
+  totalBoxes: number;
+};
+
+/**
+ * Arma la lista de etiquetas de una compra: una por caja, todas con el MISMO
+ * `code` + su `boxN/totalBoxes`. El nº de caja NO es un 5º segmento del código
+ * (el Norte muestra el code + "Caja M/N" como texto). `boxes` se normaliza a
+ * entero ≥ 1.
+ */
+export function buildLabels(code: string, boxes: number): BoxLabel[] {
+  const total = Math.max(1, Math.trunc(Number(boxes) || 1));
+  return Array.from({ length: total }, (_, i) => ({
+    code,
+    boxN: i + 1,
+    totalBoxes: total,
+  }));
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Vista de proveedor para el Portal ("Tus proveedores")     ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+/** Proveedor + su nº de compras + el próximo código (lista del portal). */
+export type SupplierView = {
+  id: string;
+  supplierSeq: number;
+  name: string;
+  /** nº de compras vivas registradas a este proveedor. */
+  orderCount: number;
+  /** código que tendría la PRÓXIMA compra a este proveedor. */
+  nextCode: string;
+};
+
+/**
+ * Combina los proveedores del cliente con sus compras para la lista del portal:
+ * para cada proveedor, cuenta cuántas compras (vivas) tiene y arma el código de
+ * la próxima (`order_seq = orderCount + 1`). Helper PURO (testeable): recibe la
+ * cuenta de compras por `supplier_id` ya resuelta por el caller.
+ */
+export function summarizeSuppliers(
+  markbox: string,
+  suppliers: { id: string; supplier_seq: number; name: string }[],
+  orderCountBySupplierId: Record<string, number>,
+): SupplierView[] {
+  return suppliers.map((s) => {
+    const orderCount = orderCountBySupplierId[s.id] ?? 0;
+    return {
+      id: s.id,
+      supplierSeq: s.supplier_seq,
+      name: s.name,
+      orderCount,
+      nextCode: buildPrealertaCode(markbox, s.supplier_seq, orderCount + 1),
+    };
+  });
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -81,6 +169,7 @@ export type Supplier = {
   id: string;
   tenant_id: string;
   client_markbox: string;
+  supplier_seq: number;
   name: string;
   city: string | null;
   wechat: string | null;
