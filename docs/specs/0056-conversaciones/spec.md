@@ -1,7 +1,7 @@
 ---
 sdd: "0056"
 title: "Conversaciones · bandeja unificada (WhatsApp + email + portal)"
-status: draft
+status: in-progress
 author: "founder"
 created: 2026-06-04
 updated: 2026-06-04
@@ -123,18 +123,49 @@ conversation_messages
   negocio), con verificación de firma + idempotencia.
 - Migración numerada con tablas + enums + RLS + (opcional) RPC correlativo.
 
-## Decisiones abiertas
+## Decisiones (resueltas por el founder)
 
-1. **Granularidad del hilo:** ¿1 conversación por **cliente** (todos los canales en un hilo) o 1
-   por **cliente×canal**? El mockup del Norte filtra por canal → sugiere por-canal, pero "un solo
-   hilo por cliente" es el gancho del subtítulo. **Propuesta:** por cliente×canal en datos, vista
-   unificable por cliente en la UI (lo mejor de ambos). Confirmar con founder.
-2. **Email inbound (Fase 2):** ¿Resend inbound (si lo soporta el plan) vs IMAP propio vs un relay?
-   Definir al llegar a Fase 2.
-3. **WhatsApp (Fase 3):** número/línea (¿el CRM WhatsApp `+58 412 166 8021` existente?), cuenta de
-   Meta Business, plantillas. Es setup founder pesado — gate explícito antes de Fase 3.
-4. **SLA:** ¿timers/alertas por tiempo sin responder en V1 o diferido? Propuesta: mostrar
-   "antigüedad" en V1, alertas de SLA en una fase posterior.
+1. **Granularidad del hilo:** ✅ **cliente×canal en datos**, vista unificable por cliente en la UI.
+   Implementado: índice único parcial `conversations_client_channel_live_idx (tenant, client,
+   channel) where deleted_at is null` (un hilo VIVO por cliente×canal).
+2. **Email inbound (Fase 2):** ⏸ diferido. El enum `channel` ya contempla `email`; la ingesta
+   (Resend inbound vs IMAP vs relay) se define al llegar a Fase 2. `insertInboundMessage`
+   (idempotente por `external_msg_id`) queda listo + testeado para el webhook.
+3. **WhatsApp (Fase 3):** ⏸ diferido. Gate founder pesado (Meta Business + plantillas + número).
+4. **SLA:** ✅ V1 muestra **antigüedad** (`relativeAge`); timers/alertas de SLA quedan para una
+   fase posterior.
+
+## Fase 1 · notas de implementación (2026-06-04)
+
+Shippeada vía harness en el worktree `feat/conversaciones`. Núcleo + canal Portal, sin
+integraciones externas.
+
+- **Migración `0106_conversaciones.sql`** (NO aplicada a prod): enums `conversation_channel` /
+  `conversation_status` / `conversation_direction`; tablas `conversations` + `conversation_messages`
+  con RLS por `tenant_id` (equipo del tenant) + FKs reales + `external_msg_id` unique parcial
+  (idempotencia inbound) + `unread_count`/`last_message_at` denormalizados. RPC `next_conversation_ref`
+  (`C-YYYY-NNNN`). RPC SECURITY DEFINER `portal_post_message(p_body)` = único punto de entrada del
+  cliente del portal (no tiene policy directa sobre las tablas).
+- **`lib/studio/conversaciones/`**: `conversations-types.ts` (enums + validators sin Zod + helpers
+  label/badge tone + `filterConversations` + `relativeAge`), `conversations-queries.ts`
+  (`listConversations`, `computeConversationKpis`/`aggregateKpis`, `listAssignableAgents`,
+  `getClientContext`/`aggregateOutstanding`), `messages-queries.ts` (`listMessages`,
+  `insertOutboundMessage`, `insertInboundMessage` idempotente).
+- **`app/studio/(app)/conversaciones/`**: `page.tsx` (fetch server) + `actions.ts`
+  (`sendReplyAction` → si el cliente tiene email sale por Resend; `setStatusAction`, `assignAction`,
+  `markCaseAction`) + `_components/` (`ConversacionesClient` con Realtime via `useRealtimeRefresh`
+  sobre `conversation_messages` + `ConversationList` + `ConversationThread`). Detalle del hilo
+  (mensajes + contexto cliente) servido lazy por `app/api/studio/conversaciones/[id]/route.ts`.
+- **Canal Portal**: `app/portal/(app)/mensajes/` (page + form + action fina que llama
+  `portal_post_message`) + nav link en `PortalNav`. El hilo del cliente se lee con admin client
+  scopeado por `client_id` (`lib/portal/portal-conversation-queries.ts`).
+- **Sidebar**: entry `Conversaciones` en grupo COMERCIAL (`StudioSidebar.tsx`).
+- **Tests**: `lib/studio/conversaciones/__tests__/conversaciones.test.ts` (39 casos: validators,
+  filtros, KPIs, saldo, label/tone, antigüedad, idempotencia inbound).
+
+**Pendiente founder:** aplicar `0106` a prod (MCP / SQL editor). Para que el Realtime + el envío por
+email del agente funcionen en runtime, las tablas ya están en `supabase_realtime` por RLS y el
+envío reusa `mail_config` del tenant (Resend ya configurado).
 
 ## Adjuntos
 
