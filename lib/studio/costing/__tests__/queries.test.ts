@@ -18,9 +18,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   costingRows,
   costingTotals,
+  costPerCbmByRoute,
   listShipmentCosts,
+  marginByClient,
   marginByRoute,
   revenueByShipment,
+  NO_CLIENT_LABEL,
   type CostingRow,
 } from "../queries";
 
@@ -253,5 +256,154 @@ describe("marginByRoute", () => {
     expect(Number.isNaN(routes[0].marginPct)).toBe(false);
     expect(routes[0].margin).toBe(-100);
     expect(routes[0].tone).toBe("warning");
+  });
+});
+
+// ── marginByClient (pura) · Reportes Combinados ───────────────
+/** Row con client_name + volume_m3 (las vistas de cliente/CBM los necesitan). */
+function crow(p: {
+  id: string;
+  client?: string | null;
+  origin?: string;
+  destination?: string;
+  cbm?: number | null;
+  revenue: number;
+  costs?: Partial<Record<string, number>>;
+}): CostingRow {
+  const c = {
+    freight: 0,
+    customs: 0,
+    transport: 0,
+    handling: 0,
+    insurance: 0,
+    commission: 0,
+    other: 0,
+    ...(p.costs ?? {}),
+  };
+  const totalCost =
+    c.freight + c.customs + c.transport + c.handling + c.insurance + c.commission + c.other;
+  const margin = p.revenue - totalCost;
+  const marginPct = p.revenue > 0 ? (margin / p.revenue) * 100 : 0;
+  return {
+    shipment: {
+      id: p.id,
+      client_name: p.client === undefined ? "Acme" : p.client,
+      origin: p.origin ?? "YIW",
+      destination: p.destination ?? "PBL",
+      volume_m3: p.cbm === undefined ? 10 : p.cbm,
+    } as CostingRow["shipment"],
+    costs: null,
+    eco: { ...c, revenue: p.revenue, totalCost, margin, marginPct },
+  };
+}
+
+describe("marginByClient", () => {
+  it("agrupa por client_name, agrega revenue/cost/margin, ordena desc por margen", () => {
+    const rows = [
+      // Globex: 2 envíos → rev 9000, cost 4000 → margen 5000
+      crow({ id: "A", client: "Globex", revenue: 6000, costs: { freight: 2500 } }),
+      crow({ id: "B", client: "Globex", revenue: 3000, costs: { freight: 1500 } }),
+      // Acme: 1 envío → rev 12000, cost 3000 → margen 9000
+      crow({ id: "C", client: "Acme", revenue: 12000, costs: { freight: 3000 } }),
+    ];
+    const out = marginByClient(rows);
+
+    expect(out).toHaveLength(2);
+    // ordenado desc por margen absoluto → Acme (9000) primero
+    expect(out[0].client).toBe("Acme");
+    expect(out[0].count).toBe(1);
+    expect(out[0].revenue).toBe(12000);
+    expect(out[0].cost).toBe(3000);
+    expect(out[0].margin).toBe(9000);
+    expect(out[0].marginPct).toBeCloseTo(75, 6);
+    expect(out[0].tone).toBe("success");
+
+    expect(out[1].client).toBe("Globex");
+    expect(out[1].revenue).toBe(9000);
+    expect(out[1].cost).toBe(4000);
+    expect(out[1].margin).toBe(5000);
+  });
+
+  it("embarques sin cliente → 'Sin cliente asignado' agrupados", () => {
+    const rows = [
+      crow({ id: "A", client: null, revenue: 1000, costs: { freight: 200 } }),
+      crow({ id: "B", client: "", revenue: 500, costs: { freight: 100 } }),
+      crow({ id: "C", client: "   ", revenue: 300, costs: {} }),
+    ];
+    const out = marginByClient(rows);
+    expect(out).toHaveLength(1);
+    expect(out[0].client).toBe(NO_CLIENT_LABEL);
+    expect(out[0].count).toBe(3);
+    expect(out[0].revenue).toBe(1800);
+    expect(out[0].cost).toBe(300);
+    expect(out[0].margin).toBe(1500);
+  });
+
+  it("cliente con revenue 0 → marginPct 0 (sin NaN), tone warning si margen 0", () => {
+    const rows = [crow({ id: "Z", client: "Zin", revenue: 0, costs: {} })];
+    const out = marginByClient(rows);
+    expect(out[0].marginPct).toBe(0);
+    expect(Number.isNaN(out[0].marginPct)).toBe(false);
+    expect(out[0].margin).toBe(0);
+    expect(out[0].tone).toBe("warning"); // ≥0
+  });
+
+  it("revenue 0 con costo → margen negativo, tone danger", () => {
+    const rows = [crow({ id: "Z", client: "Zin", revenue: 0, costs: { freight: 50 } })];
+    const out = marginByClient(rows);
+    expect(out[0].marginPct).toBe(0); // sin revenue → % no se calcula (0, no NaN)
+    expect(out[0].margin).toBe(-50);
+  });
+});
+
+// ── costPerCbmByRoute (pura) · Reportes Combinados ────────────
+describe("costPerCbmByRoute", () => {
+  it("agrupa por ruta, deriva $/CBM ingreso y costo, ordena desc por revenuePerCbm", () => {
+    const rows = [
+      // YIW→PBL: 2 envíos, cbm 10+5=15, rev 15000, cost 9000
+      //   → costPerCbm 600, revenuePerCbm 1000, marginPerCbm 400
+      crow({ id: "A", origin: "YIW", destination: "PBL", cbm: 10, revenue: 10000, costs: { freight: 6000 } }),
+      crow({ id: "B", origin: "YIW", destination: "PBL", cbm: 5, revenue: 5000, costs: { freight: 3000 } }),
+      // SZX→LGU: 1 envío, cbm 20, rev 4000, cost 2000
+      //   → costPerCbm 100, revenuePerCbm 200, marginPerCbm 100
+      crow({ id: "C", origin: "SZX", destination: "LGU", cbm: 20, revenue: 4000, costs: { freight: 2000 } }),
+    ];
+    const out = costPerCbmByRoute(rows);
+
+    expect(out).toHaveLength(2);
+    // ordenado desc por revenuePerCbm → YIW→PBL (1000) primero
+    expect(out[0].origin).toBe("YIW");
+    expect(out[0].cbm).toBe(15);
+    expect(out[0].costPerCbm).toBeCloseTo(600, 6);
+    expect(out[0].revenuePerCbm).toBeCloseTo(1000, 6);
+    expect(out[0].marginPerCbm).toBeCloseTo(400, 6);
+
+    expect(out[1].origin).toBe("SZX");
+    expect(out[1].costPerCbm).toBeCloseTo(100, 6);
+    expect(out[1].revenuePerCbm).toBeCloseTo(200, 6);
+  });
+
+  it("CBM 0 → costPerCbm/revenuePerCbm 0 (sin Infinity/NaN)", () => {
+    const rows = [
+      crow({ id: "A", origin: "X", destination: "Y", cbm: 0, revenue: 5000, costs: { freight: 1000 } }),
+    ];
+    const out = costPerCbmByRoute(rows);
+    expect(out[0].cbm).toBe(0);
+    expect(out[0].costPerCbm).toBe(0);
+    expect(out[0].revenuePerCbm).toBe(0);
+    expect(out[0].marginPerCbm).toBe(0);
+    expect(Number.isFinite(out[0].costPerCbm)).toBe(true);
+    expect(Number.isNaN(out[0].revenuePerCbm)).toBe(false);
+  });
+
+  it("volume_m3 null/negativo → CBM tratado como 0 (sin Infinity)", () => {
+    const rows = [
+      crow({ id: "A", origin: "X", destination: "Y", cbm: null, revenue: 5000, costs: { freight: 1000 } }),
+      crow({ id: "B", origin: "X", destination: "Y", cbm: -3, revenue: 0, costs: {} }),
+    ];
+    const out = costPerCbmByRoute(rows);
+    expect(out[0].cbm).toBe(0);
+    expect(out[0].costPerCbm).toBe(0);
+    expect(out[0].revenuePerCbm).toBe(0);
   });
 });
