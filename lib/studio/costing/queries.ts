@@ -353,5 +353,31 @@ export async function listRouteCostTemplates(
   return ((data as Record<string, unknown>[] | null) ?? []).map(coerceTemplate);
 }
 
+/**
+ * Tasa BCV más reciente para el toggle VES de la UI (display-only · Slice B).
+ * Toma el `fx_rate` de la última factura en VES (real). null si no hay ninguna →
+ * la UI cae a `DEFAULT_VES_RATE`. No hay aún pantalla de Tasas (SDD-0030); usar
+ * la factura más reciente es la mejor fuente real disponible.
+ */
+export async function latestVesFxRate(
+  supabase: SupabaseClient,
+): Promise<number | null> {
+  const { data, error } = await supabase
+    .from("invoices")
+    .select("fx_rate, issued_at, created_at")
+    .eq("currency", "VES")
+    .not("fx_rate", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  if (error) throw error;
+
+  for (const r of (data as Record<string, unknown>[] | null) ?? []) {
+    const n = Number(r.fx_rate);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
 // Re-export del helper de suma para la UI (Slice B).
 export { totalCost };

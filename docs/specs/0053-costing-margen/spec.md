@@ -125,7 +125,7 @@ embarque/ruta/cliente**, con su pantalla `/studio/costing`.
 - [x] `node scripts/verify.mjs` 🟢. Migración `0100` **NO** aplicada a prod en esta corrida (la aplica el founder).
 
 ### Slice B / C
-- [ ] B: `/studio/costing` tabs Overview/Ranking/Breakdown/Routes + Cost Editor + toggle USD/VES + `saveShipmentCosts`.
+- [x] B: `/studio/costing` tabs Overview/Ranking/Breakdown/Routes + Cost Editor + toggle USD/VES + `saveShipmentCosts`.
 - [ ] C: Templates CRUD + auto-prefill + Forecast + export CSV.
 
 ## 6. Fuera de alcance (respetar)
@@ -168,3 +168,31 @@ embarque/ruta/cliente**, con su pantalla `/studio/costing`.
   `marginPct = revenue>0 ? margin/revenue*100 : 0` → replicado exacto. `invoices` traen tanto `shipment_id`
   (FK, puede ser null) como `shipment_code` → revenue se acumula en ambos mapas y se resuelve id-primero.
   `BadgeTone` no tiene tono "danger-extra"; `marginTone` devuelve solo el subset `success/info/warning/danger`.
+
+### Slice B — cerrado (gate 🟢, APPROVED por el reviewer + ui-ux OK, sin push)
+
+- **`app/studio/(app)/costing/page.tsx`** — reemplaza el stub `EmptyState`. Server component `force-dynamic`:
+  carga `costingRows` + `costingTotals` + `marginByRoute` (Slice A) + `latestVesFxRate`, pasa props al client.
+  Frontera RSC limpia (importa solo el componente client; el gate `rsc-boundary` pasó).
+- **`app/studio/(app)/costing/actions.ts`** — `"use server" saveShipmentCosts`: parsing manual de `FormData` →
+  `validateCostInput` (Slice A, **no Zod**) → resuelve `tenant_id` desde `user_tenants` (patrón `createRate` de
+  Tarifas) → **upsert** en `shipment_costs` `onConflict: tenant_id,shipment_id` → `revalidatePath`. Devuelve
+  `CostActionState` (`ok`/`error`/`fieldErrors`). La defensa cross-tenant real ya está en el trigger de 0100.
+- **`_components/CostingClient.tsx`** (`"use client"`) — orquestador: KPIs (`KpiCard`), toggle USD/VES
+  (`SegmentedControl`, display-only), 4 tabs. Overview (composición + top/peores), Ranking (tabla + select de
+  orden + lápiz por fila), Breakdown (barras por categoría con `colorToken`), Routes (`marginByRoute` + `Badge`
+  por `marginTone`). Empty states diferenciados por tab. Hover en filas Ranking/Routes + botón editar (ajuste ui-ux).
+- **`_components/CostEditorDrawer.tsx`** (`"use client"`) — `DrawerShell` + `DrawerFooter` (form HTML5 `id` +
+  `<button form>`, sin `requestSubmit` hack). Header navy (`--ink-inv-mute`, no `rgba(255,…)`) con revenue/costo/
+  margen **recalculados en vivo** (`shipmentEconomics` sobre estado controlado), 7 `NumericInput` (USD), notas,
+  `useActionState(saveShipmentCosts)`; re-monta con `key={shipment.id}` (sin sync-via-efecto). Cierra + `router.refresh()` al `ok`.
+- **`lib/studio/costing/ui.ts`** (helpers PUROS server-safe): `resolveDisplayRate`/`DEFAULT_VES_RATE` (36.45),
+  `asRankingSort`/`RANKING_SORTS`/`sortRanking` (sin mutar), `topAndWorst` (sin solape, ignora rev 0),
+  `breakdownRows` (% sobre costo, 0 si costo 0), `costPctOfRevenue` (clamp 0..100).
+- **`lib/studio/costing/queries.ts`** — agregado `latestVesFxRate(supabase)`: `fx_rate` de la última factura en VES
+  (real); null si no hay → la UI cae al `DEFAULT_VES_RATE`. Mejor fuente real hasta que exista la pantalla de Tasas (0030).
+- **Tests** `lib/studio/costing/__tests__/ui.test.ts` (20 nuevos): rate-fallback, orden de ranking, top/worst,
+  breakdown %, costPctOfRevenue, `latestVesFxRate`. Gate verde: **940 tests** (920 previos + 20).
+- **Marca/UX:** solo tokens `var(--*)` (los hex del mock NO se copiaron — `colorToken` de `COST_CATEGORIES`);
+  primitivas del sistema; cero AI slop (se removieron los emojis 🏆/⚠️ del mock). `ui-ux-designer` → OK para commit;
+  sus 2 quick wins de hover + el texto del KPI en VES se incorporaron. Migración 0100 sigue **sin aplicar a prod**.
