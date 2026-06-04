@@ -19,6 +19,40 @@ import {
   type ShipmentService,
 } from "@/lib/shared/shipment-public";
 
+// Re-export TYPE-ONLY de Combinados (Slice C): el client component importa estos
+// tipos desde acá (server-safe, sin Supabase). Es un re-export de SOLO tipos →
+// se borra en build, NO arrastra `@supabase/*` a este módulo ni al cliente.
+import type {
+  ClientMarginRow,
+  CostingTotals,
+  RouteCbmRow,
+  RouteMarginRow,
+} from "@/lib/studio/costing/queries";
+
+export type {
+  ClientMarginRow,
+  CostingTotals,
+  RouteCbmRow,
+  RouteMarginRow,
+};
+
+/**
+ * Payload de la categoría Combinados (Slice C): las 3 vistas de rentabilidad
+ * REAL + KPIs (totales de Costing) + flags de cobertura de costos. Lo arma
+ * `combinedReport` (queries.ts) reusando `costingRows`. Acá vive solo el TIPO
+ * (server-safe), para que el client component lo importe sin tocar Supabase.
+ */
+export type CombinedReport = {
+  totals: CostingTotals;
+  byRoute: RouteMarginRow[];
+  byClient: ClientMarginRow[];
+  byCbm: RouteCbmRow[];
+  /** # de embarques del período que tienen una fila de costos cargada. */
+  withCosts: number;
+  /** # total de embarques (vivos) del período. */
+  shipments: number;
+};
+
 // ── Período ────────────────────────────────────────────────────
 
 export type ReportPeriod = "1M" | "3M" | "1A" | "YTD";

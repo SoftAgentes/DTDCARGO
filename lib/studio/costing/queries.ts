@@ -323,6 +323,125 @@ export function marginByRoute(rows: CostingRow[]): RouteMarginRow[] {
     .sort((a, b) => b.marginPct - a.marginPct);
 }
 
+// ── Margen por cliente (Reportes · Combinados) ────────────────
+/** Etiqueta para los embarques sin cliente asignado. */
+export const NO_CLIENT_LABEL = "Sin cliente asignado";
+
+export type ClientMarginRow = {
+  client: string;
+  count: number;
+  revenue: number;
+  cost: number;
+  margin: number;
+  marginPct: number;
+  tone: MarginTone;
+};
+
+/**
+ * Margen por cliente (PURA): espejo de `marginByRoute` pero agrupando por
+ * `shipment.client_name` (los sin cliente → "Sin cliente asignado"). Suma
+ * revenue/cost de costos REALES (`shipment_costs`), deriva margen + %. Sin NaN
+ * (marginPct 0 si revenue 0). Orden descendente por margen absoluto.
+ *
+ * Espejo de `ReportsMargenCliente` del Norte, pero con costo REAL (no el
+ * `_ROUTE_COST=0.70`+jitter fabricado del mock).
+ */
+export function marginByClient(rows: CostingRow[]): ClientMarginRow[] {
+  const byClient = new Map<
+    string,
+    { client: string; count: number; revenue: number; cost: number }
+  >();
+
+  for (const { shipment, eco } of rows) {
+    const name = (shipment.client_name ?? "").trim();
+    const client = name || NO_CLIENT_LABEL;
+    const cur = byClient.get(client) ?? { client, count: 0, revenue: 0, cost: 0 };
+    cur.count += 1;
+    cur.revenue += eco.revenue;
+    cur.cost += eco.totalCost;
+    byClient.set(client, cur);
+  }
+
+  return [...byClient.values()]
+    .map((r) => {
+      const margin = r.revenue - r.cost;
+      const marginPct = r.revenue > 0 ? (margin / r.revenue) * 100 : 0;
+      return { ...r, margin, marginPct, tone: marginTone(marginPct) };
+    })
+    .sort((a, b) => b.margin - a.margin);
+}
+
+// ── Costo por CBM (Reportes · Combinados) ─────────────────────
+export type RouteCbmRow = {
+  origin: string;
+  destination: string;
+  count: number;
+  cbm: number;
+  revenue: number;
+  cost: number;
+  /** Costo unitario por CBM (cost / cbm; 0 si cbm ≤ 0). */
+  costPerCbm: number;
+  /** Revenue unitario por CBM (revenue / cbm; 0 si cbm ≤ 0). */
+  revenuePerCbm: number;
+  /** Margen unitario por CBM (revenuePerCbm − costPerCbm). */
+  marginPerCbm: number;
+};
+
+/** CBM de un embarque (vive en `volume_m3`); 0 si nulo/no finito. */
+function shipmentCbm(shipment: { volume_m3: number | null }): number {
+  const v = Number(shipment.volume_m3);
+  return Number.isFinite(v) && v > 0 ? v : 0;
+}
+
+/**
+ * Costo (y revenue) unitario por CBM agrupado por ruta `origin→destination`
+ * (PURA), desde los costos REALES. costPerCbm/revenuePerCbm = total / CBM, 0 si
+ * CBM ≤ 0 (sin Infinity/NaN). Orden descendente por revenuePerCbm.
+ *
+ * Espejo de `ReportsCostoCBM` del Norte, con costo REAL (sin fabricarlo).
+ */
+export function costPerCbmByRoute(rows: CostingRow[]): RouteCbmRow[] {
+  const byRoute = new Map<
+    string,
+    {
+      origin: string;
+      destination: string;
+      count: number;
+      cbm: number;
+      revenue: number;
+      cost: number;
+    }
+  >();
+
+  for (const { shipment, eco } of rows) {
+    const origin = shipment.origin ?? "";
+    const destination = shipment.destination ?? "";
+    const key = `${origin}→${destination}`;
+    const cur =
+      byRoute.get(key) ??
+      { origin, destination, count: 0, cbm: 0, revenue: 0, cost: 0 };
+    cur.count += 1;
+    cur.cbm += shipmentCbm(shipment);
+    cur.revenue += eco.revenue;
+    cur.cost += eco.totalCost;
+    byRoute.set(key, cur);
+  }
+
+  return [...byRoute.values()]
+    .map((r) => {
+      const costPerCbm = r.cbm > 0 ? r.cost / r.cbm : 0;
+      const revenuePerCbm = r.cbm > 0 ? r.revenue / r.cbm : 0;
+      return {
+        ...r,
+        cbm: Math.round(r.cbm * 10) / 10,
+        costPerCbm,
+        revenuePerCbm,
+        marginPerCbm: revenuePerCbm - costPerCbm,
+      };
+    })
+    .sort((a, b) => b.revenuePerCbm - a.revenuePerCbm);
+}
+
 // ── Templates por ruta ────────────────────────────────────────
 const TEMPLATE_COLUMNS =
   "id, tenant_id, name, origin, destination, shipment_service, freight, customs, transport, handling, insurance, commission, other, active, notes, created_at, updated_at, deleted_at";
