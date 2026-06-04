@@ -2,8 +2,10 @@ import { describe, it, expect } from "vitest";
 import {
   CONFIG,
   CIUDADES,
+  DEFAULT_PARAMS,
   calcularEnvioLCL,
   whatsappTextFromCotizacion,
+  type CalcParams,
 } from "@/lib/calculadora";
 
 /**
@@ -287,6 +289,102 @@ describe("calcularEnvioLCL", () => {
       minChargeOverride: 0, // inválido
     });
     expect(cot.total).toBe(CONFIG.minimoFacturable); // 50
+  });
+});
+
+// ── Fase 3 Slice A · reglas configurables vía CalcParams ──────────────
+// El 2º arg de calcularEnvioLCL son las reglas escalares reales (de
+// /studio/tarifas › Parámetros). Default = DEFAULT_PARAMS (= CONFIG), por eso
+// todos los tests de arriba siguen pasando sin tocarse.
+describe("calcularEnvioLCL con params configurables", () => {
+  const withParams = (over: Partial<CalcParams>): CalcParams => ({
+    ...DEFAULT_PARAMS,
+    ...over,
+  });
+
+  it("DEFAULT_PARAMS reproduce exactamente el comportamiento de CONFIG", () => {
+    const input = {
+      cbmTotal: 1,
+      pesoKg: 600,
+      embalaje: "especial" as const,
+      ciudadId: "barquisimeto",
+      bateria: true,
+    };
+    const sinParams = calcularEnvioLCL(input);
+    const conDefault = calcularEnvioLCL(input, DEFAULT_PARAMS);
+    expect(conDefault).toEqual(sinParams);
+  });
+
+  it("usa params.pesoIncluidoKg como umbral de excedente", () => {
+    // Umbral bajado a 300 → 400 kg en 1 CBM ya excede por 100 kg.
+    const cot = calcularEnvioLCL(
+      { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "caracas" },
+      withParams({ pesoIncluidoKg: 300 }),
+    );
+    expect(cot.recargoExcedente).toBe(100); // (400 − 300) × $1
+    expect(cot.total).toBe(900);
+  });
+
+  it("usa params.recargoExcedenteKg para el precio del excedente", () => {
+    const cot = calcularEnvioLCL(
+      { cbmTotal: 1, pesoKg: 600, embalaje: "estandar", ciudadId: "caracas" },
+      withParams({ recargoExcedenteKg: 2 }),
+    );
+    expect(cot.recargoExcedente).toBe(200); // 100 kg × $2
+    expect(cot.total).toBe(1000);
+  });
+
+  it("usa params.pesoMaxKg para decidir la alerta de carga ultradensa", () => {
+    // Tope subido a 700 → 650 kg/CBM ya no alerta (solo cobra excedente).
+    const cot = calcularEnvioLCL(
+      { cbmTotal: 1, pesoKg: 650, embalaje: "estandar", ciudadId: "caracas" },
+      withParams({ pesoMaxKg: 700 }),
+    );
+    expect(cot.alerta).toBeUndefined();
+    expect(cot.recargoExcedente).toBe(150); // (650 − 500) × $1
+  });
+
+  it("usa params.descuentoValencia", () => {
+    const cot = calcularEnvioLCL(
+      { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "valencia" },
+      withParams({ descuentoValencia: 80 }),
+    );
+    expect(cot.descuentoSede).toBe(-80);
+    expect(cot.total).toBe(720); // 800 − 80
+  });
+
+  it("usa params.recargoEmbalajeEspecial", () => {
+    const cot = calcularEnvioLCL(
+      { cbmTotal: 1, pesoKg: 400, embalaje: "especial", ciudadId: "caracas" },
+      withParams({ recargoEmbalajeEspecial: 75 }),
+    );
+    expect(cot.recargoEmbalaje).toBe(75);
+    expect(cot.total).toBe(875);
+  });
+
+  it("usa params.recargoBateriaMult", () => {
+    const cot = calcularEnvioLCL(
+      {
+        cbmTotal: 1,
+        pesoKg: 400,
+        embalaje: "estandar",
+        ciudadId: "caracas",
+        bateria: true,
+      },
+      withParams({ recargoBateriaMult: 2 }),
+    );
+    expect(cot.recargoBateria).toBe(800); // 800 × 2 − 800
+    expect(cot.total).toBe(1600);
+  });
+
+  it("usa params.thresholdCascoKm y tarifaKmFueraCasco", () => {
+    // Casco a 100 km, $2/km → Barquisimeto (220) paga (220 − 100) × 2.
+    const cot = calcularEnvioLCL(
+      { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "barquisimeto" },
+      withParams({ thresholdCascoKm: 100, tarifaKmFueraCasco: 2 }),
+    );
+    expect(cot.recargoCiudad).toBe(240); // 120 km × $2
+    expect(cot.total).toBe(1040);
   });
 });
 
