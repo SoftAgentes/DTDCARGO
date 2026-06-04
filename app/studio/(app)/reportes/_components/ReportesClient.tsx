@@ -400,6 +400,7 @@ export function ReportesClient({
           key={builderSource}
           source={builderSource}
           rows={builderData}
+          period={period}
           onSource={(src) => navigate({ src })}
         />
       )}

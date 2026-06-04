@@ -30,6 +30,7 @@ import {
   type BuilderRow,
   type ReportSourceId,
 } from "@/lib/studio/reports/builder-types";
+import { PERIOD_OPTIONS, type ReportPeriod } from "@/lib/studio/reports/types";
 import { Progress, HeaderRow } from "./charts";
 
 const STORAGE_KEY = "dtd_saved_reports_v1";
@@ -126,13 +127,17 @@ function RemoveButton({ onClick }: { onClick: () => void }) {
 export function BuilderView({
   source,
   rows,
+  period,
   onSource,
 }: {
   source: ReportSourceId;
   rows: BuilderRow[];
+  period: ReportPeriod;
   onSource: (src: ReportSourceId) => void;
 }) {
   const src = REPORT_SOURCES[source];
+  const periodLabel =
+    PERIOD_OPTIONS.find((o) => o.value === period)?.label ?? period;
 
   // Estado local de la combinación (la fuente vive en la URL; al cambiarla el
   // componente se remonta vía key={source} → estos vuelven a 0/all sin efecto).
@@ -201,6 +206,13 @@ export function BuilderView({
       buildReportCsv(result, { dim: dim.label, metric: metric.label }),
       "text/csv;charset=utf-8",
     );
+
+  // PDF = diálogo de impresión del navegador ("Guardar como PDF") sobre un
+  // layout solo-impresión (#dtd-report-print), mismo patrón que Etiquetas
+  // (sin lib de PDF). El @media print de abajo oculta el resto de la app.
+  const exportPdf = () => {
+    if (typeof window !== "undefined") window.print();
+  };
 
   const saveReport = () => {
     const rep: SavedReport = {
@@ -355,6 +367,15 @@ export function BuilderView({
             disabled={result.rows.length === 0}
             onAction={async () => {
               exportCsv();
+            }}
+          />
+          <ActionButton
+            variant="ghost"
+            idleLabel="Exportar PDF"
+            successLabel={null}
+            disabled={result.rows.length === 0}
+            onAction={async () => {
+              exportPdf();
             }}
           />
           <ActionButton
@@ -570,6 +591,141 @@ export function BuilderView({
         facturas se normalizan a USD (VES por fx; CNY → 0). Los reportes guardados
         viven en este navegador (no se comparten ni se sincronizan).
       </p>
+
+      {/* Layout SOLO-impresión · "Exportar PDF" = window.print() (patrón
+          Etiquetas). Oculto en pantalla (display:none); el @media print de
+          abajo oculta el resto de la app y muestra solo este bloque, con la
+          tabla COMPLETA (no el top-20 de pantalla), igual que el CSV. */}
+      {result.rows.length > 0 && (
+        <div id="dtd-report-print">
+          <div className="rpt-eyebrow">DTD Cargo · Constructor de reportes</div>
+          <div className="rpt-brand">{src.label}</div>
+          <div className="rpt-title">{title}</div>
+          <div className="rpt-meta">
+            Agrupado por <strong>{dim.label}</strong> · métrica{" "}
+            <strong>{metric.label}</strong> ({aggLabel}) · filtro{" "}
+            <strong>
+              {filterField && filterVal !== "all"
+                ? `${filterField.label} = ${filterVal}`
+                : "ninguno"}
+            </strong>{" "}
+            · período <strong>{periodLabel}</strong> ·{" "}
+            <strong>{result.rows.length}</strong>{" "}
+            {result.rows.length === 1 ? "grupo" : "grupos"}
+          </div>
+          <table className="rpt-table">
+            <thead>
+              <tr>
+                <th>{dim.label}</th>
+                <th className="rpt-num">Conteo</th>
+                <th className="rpt-num">{metric.label}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.rows.map((r, i) => (
+                <tr key={`p-${r.label}-${i}`}>
+                  <td>{r.label}</td>
+                  <td className="rpt-num">{r.count}</td>
+                  <td className="rpt-num">{fmtV(r.value)}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Total</td>
+                <td className="rpt-num">—</td>
+                <td className="rpt-num">{fmtV(result.total)}</td>
+              </tr>
+            </tfoot>
+          </table>
+          <div className="rpt-foot">
+            Datos reales del período. Revenue de embarques y montos de facturas
+            normalizados a USD (VES por fx; CNY → 0). Generado desde DTD Studio.
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        #dtd-report-print { display: none; }
+        @media print {
+          body * { visibility: hidden !important; }
+          #dtd-report-print, #dtd-report-print * { visibility: visible !important; }
+          #dtd-report-print {
+            /* El reporte impreso es SIEMPRE light, sin importar el tema de
+               pantalla: re-anclamos los tokens a su valor canónico de :root
+               (no son hex inventados — son los del token light) para que dark
+               mode no sangre texto gris/bordes invisibles al papel. */
+            --ink: #0F1E3D;
+            --ink-soft: #6B6B6B;
+            --wine: #7F0F1A;
+            --border: #E8E6E2;
+            --bg-surface: #FFFFFF;
+            display: block !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            color: var(--ink);
+            background: var(--bg-surface);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          @page { size: A4; margin: 16mm; }
+          #dtd-report-print .rpt-eyebrow {
+            font: 700 9px/1 var(--f-sans);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--wine);
+          }
+          #dtd-report-print .rpt-brand {
+            font: 900 17px/1 var(--f-display);
+            color: var(--ink);
+            margin-top: 3px;
+          }
+          #dtd-report-print .rpt-title {
+            font: 900 22px/1.15 var(--f-display);
+            color: var(--ink);
+            margin: 18px 0 5px;
+          }
+          #dtd-report-print .rpt-meta {
+            font: 500 11px/1.5 var(--f-sans);
+            color: var(--ink-soft);
+            margin: 0 0 16px;
+          }
+          #dtd-report-print .rpt-meta strong { color: var(--ink); font-weight: 700; }
+          #dtd-report-print .rpt-table { width: 100%; border-collapse: collapse; }
+          #dtd-report-print .rpt-table thead { display: table-header-group; }
+          #dtd-report-print .rpt-table tr { break-inside: avoid; }
+          #dtd-report-print .rpt-table th {
+            text-align: left;
+            font: 700 9px/1 var(--f-sans);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--ink-soft);
+            border-bottom: 1.5px solid var(--ink);
+            padding: 8px;
+          }
+          #dtd-report-print .rpt-table td {
+            font: 500 11px/1.3 var(--f-sans);
+            color: var(--ink);
+            border-bottom: 1px solid var(--border);
+            padding: 7px 8px;
+          }
+          #dtd-report-print .rpt-num { text-align: right; font-family: var(--f-mono); }
+          #dtd-report-print .rpt-table tfoot td {
+            font-weight: 800;
+            border-top: 1.5px solid var(--ink);
+            border-bottom: none;
+          }
+          #dtd-report-print .rpt-foot {
+            font: 500 9.5px/1.5 var(--f-sans);
+            color: var(--ink-soft);
+            margin-top: 18px;
+            border-top: 1px solid var(--border);
+            padding-top: 8px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

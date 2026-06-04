@@ -179,7 +179,9 @@ anclada a `shipments` + `invoices` + naviera.
 - [x] **Combinados** (rentab. ruta / margen cliente / costo-CBM) — **implementado** 2026-06-04 (rama `feat/reportes-c`):
       3 vistas reusando `costingRows`/`costingTotals`/`marginByRoute` de Costing (0053) + nuevos `marginByClient`/costo-CBM
       puros. **Costo REAL de `shipment_costs`** (cero `_ROUTE_COST` fabricado); `EmptyState` honesto si no hay costos. Sin migración.
-- [ ] **Por agente** (requiere atribución de agente en `quotes`, inexistente) · **Posición IVA** (requiere Fiscal/Bloque 3) · **export PDF**.
+- [x] **Export PDF** del Constructor — **implementado 2026-06-04** (`window.print()` sobre layout solo-impresión, patrón
+      `etiquetas`, **sin lib de PDF**). Ver §7.
+- [ ] **Por agente** (requiere atribución de agente en `quotes`, inexistente) · **Posición IVA** (requiere Fiscal/Bloque 3).
 
 ## 6. Fuera de alcance (respetar)
 
@@ -357,3 +359,22 @@ Los 3 nits que el Constructor V1 dejó documentados se cerraron (gate verde · `
 **Decisión que sobrevive:** el `rightFrom={2}` del `HeaderRow` es correcto (la columna de barra es índice **1** = label vacío;
 "Conteo" en 2 y la métrica en 3 sí van a la derecha, alineadas con sus celdas). Solo cambios de presentación; tests del módulo
 intactos (1057 verdes en el repo).
+
+### Slice C · Constructor — export PDF (2026-06-04)
+
+- **Enfoque:** `window.print()` sobre un layout **solo-impresión** (`#dtd-report-print`) + stylesheet `@media print` que oculta
+  el resto de la app (`body * { visibility:hidden }` + target `position:absolute` visible) — **mismo patrón que `etiquetas`,
+  CERO lib de PDF** (el repo no tiene jsPDF/puppeteer; decisión de no agregar dep). El usuario hace "Guardar como PDF" desde
+  el diálogo del navegador.
+- **UI:** botón `Exportar PDF` (`ActionButton variant="ghost"`, `successLabel={null}` porque abre diálogo, no descarga in-place),
+  `disabled` sin resultados, a la izquierda del primary `Guardar` (Regla 8). `BuilderView` recibe `period` (nuevo prop desde
+  `ReportesClient`) → label legible vía `PERIOD_OPTIONS` en el encabezado.
+- **Documento:** encabezado marca + título + metadata (agrupación/métrica/agg/filtro/período/nº grupos) + `<table>` semántica
+  con la tabla **COMPLETA** (no el top-20 de pantalla, igual que el CSV) thead/tbody/tfoot(Total) + nota de honestidad.
+  `@page A4 margin 16mm`, `thead { display: table-header-group }` (repite header por página), `tr { break-inside: avoid }`.
+- **Fix ui-ux (alto):** el documento impreso **re-ancla los tokens a su valor light de `:root`** dentro de `@media print`
+  (`--ink/--ink-soft/--wine/--border/--bg-surface`) para que **dark mode no sangre texto gris/bordes invisibles al papel** —
+  el reporte exportado es siempre light (artefacto externo). `print-color-adjust: exact` para el acento wine.
+- **Riesgo residual conocido (medio, a ojear con datos reales):** el patrón `visibility:hidden` + `position:absolute` (heredado
+  de `etiquetas`) puede dejar página fantasma con tablas muy largas (igual que el precedente). Si aparece con +60 grupos →
+  portalear el target a `document.body` + `body > *:not(#dtd-report-print){display:none}`. Sin migración. Gate verde · ui-ux OK.
