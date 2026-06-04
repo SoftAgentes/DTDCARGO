@@ -114,7 +114,7 @@ Slice A deja la **fundación verificable**.
 - [x] `lib/studio/legal/`: `sealAcceptance` → hash SHA-256 canónico + server-sella at/ip;
       `hasValidAcceptance` resuelve el gate por medida; validadores.
 - [x] Tests verdes (hash determinístico, measureMatches, gate, validación).
-- [x] `node scripts/verify.mjs` 🟢. Migración **NO** aplicada a prod.
+- [x] `node scripts/verify.mjs` 🟢. Migración `0102` **aplicada a prod** (2026-06-03, verificada).
 
 ### Slice B / C
 - [x] B: módulo admin `/studio/legal` (read-only, admin-only) — versionado de docs (repositorio +
@@ -137,7 +137,7 @@ Slice A deja la **fundación verificable**.
 
 ### Slice A (foundation) — cerrado · gate 🟢 (905/905 tests, 41 nuevos en `lib/studio/legal/`)
 
-**Esquema real (`supabase/migrations/0102_capa_legal.sql`, aditiva · NO aplicada a prod):**
+**Esquema real (`supabase/migrations/0102_capa_legal.sql`, aditiva · aplicada a prod 2026-06-03):**
 - `legal_docs(id, tenant_id→tenants, key, name, audience[cliente|interno, CHECK], version,
   effective_date, status[vigente|archivada, CHECK], sections int, body jsonb=[[heading,párrafo]],
   created_at)`. `unique(tenant_id,key,version)`. Índice parcial **`legal_docs_current_uniq` on
