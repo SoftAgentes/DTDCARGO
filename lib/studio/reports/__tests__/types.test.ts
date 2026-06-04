@@ -60,6 +60,32 @@ describe("periodRange", () => {
     const feb = new Date("2026-02-05T00:00:00Z");
     expect(periodRange("3M", feb)).toEqual({ from: "2025-11-05", to: "2026-02-05" });
   });
+
+  // Fin de mes: clampear el día al último válido del mes destino (no desbordar).
+  it("fin de mes: 31-mar 1M → 28-feb (no desborda a marzo)", () => {
+    const mar31 = new Date("2026-03-31T00:00:00Z");
+    expect(periodRange("1M", mar31)).toEqual({ from: "2026-02-28", to: "2026-03-31" });
+  });
+
+  it("fin de mes: 31-may 1M → 30-abr", () => {
+    const may31 = new Date("2026-05-31T00:00:00Z");
+    expect(periodRange("1M", may31)).toEqual({ from: "2026-04-30", to: "2026-05-31" });
+  });
+
+  it("fin de mes: 31-dic 3M → 30-sep", () => {
+    const dic31 = new Date("2026-12-31T00:00:00Z");
+    expect(periodRange("3M", dic31)).toEqual({ from: "2026-09-30", to: "2026-12-31" });
+  });
+
+  it("año bisiesto: 29-feb-2024 1M → 29-ene-2024 (mes destino tiene el día)", () => {
+    const feb29 = new Date("2024-02-29T00:00:00Z");
+    expect(periodRange("1M", feb29)).toEqual({ from: "2024-01-29", to: "2024-02-29" });
+  });
+
+  it("año bisiesto: 29-feb-2024 1A → 28-feb-2023 (feb no-bisiesto clampea a 28)", () => {
+    const feb29 = new Date("2024-02-29T00:00:00Z");
+    expect(periodRange("1A", feb29)).toEqual({ from: "2023-02-28", to: "2024-02-29" });
+  });
 });
 
 describe("asPeriod", () => {

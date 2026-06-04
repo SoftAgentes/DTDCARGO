@@ -292,3 +292,19 @@ anclada a `shipments` + `invoices` + naviera.
 
 **Pendiente:** Slice C (Constructor + export CSV/PDF · Combinados · Por agente · Posición IVA),
 todos con bloqueo documentado (sin fuente real / depende de Bloque 3).
+
+### Fixes menores 2026-06-04 (post-shipping · rama `feat/reportes-fix`, vía harness + auditoría adversarial)
+
+1. **`periodRange` desbordaba de mes en días 29-31** (`lib/studio/reports/types.ts`): los períodos
+   trailing (1M/3M/1A) hacían `Date.UTC(y, m − N, día)` con día 29-31 → JS rotaba al mes siguiente
+   (ej. 31-mar − 1M daba ~3-mar en vez de 28-feb). Fix: clamp del día al último día del mes destino
+   (`Math.min(día, lastDayOfTarget)`). YTD intacto. +5 tests de borde (bisiesto, transición de año).
+2. **KPI revenue del Overview no cuadraba con la suma de las filas** (`operationalOverview`): el KPI
+   sumaba TODO `revenueByCode` (incluía facturas **huérfanas** sin embarque en el rango); ahora usa
+   `revenueOf(shipments, revenueByCode)` (exportada de `types.ts`) → KPI = revenue atribuible a los
+   embarques del período = Σ filas. El revenue huérfano (factura emitida tarde, embarque de otro
+   período) no desaparece: aparece en las vistas Contables (`incomeStatement`/`cashflowReport`).
+   **Refinamiento (auditoría adversarial):** `fetchRevenueByCode` ahora redondea cada total por code a
+   2 decimales → KPI (Σ embarques) y filas (Σ por grupo) cuadran **al centavo** con facturas VES
+   sub-centavo (antes divergían ~centavos por redondeo total-vs-serie; misma norma que `cashflowReport`).
+   Test VES dedicado verifica el invariante.
