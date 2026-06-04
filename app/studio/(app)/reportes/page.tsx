@@ -27,6 +27,7 @@ import {
   agingReport,
   cashflowReport,
   builderRows,
+  combinedReport,
 } from "@/lib/studio/reports/queries";
 import { asPeriod } from "@/lib/studio/reports/types";
 import { asSourceId } from "@/lib/studio/reports/builder-types";
@@ -35,10 +36,15 @@ import { ReportesClient } from "./_components/ReportesClient";
 export const metadata = { title: "Reportes & Analytics" };
 export const dynamic = "force-dynamic";
 
-type Category = "op" | "com" | "con" | "build";
+type Category = "op" | "com" | "con" | "build" | "mix";
 
 function asCategory(raw: unknown): Category {
-  return raw === "com" || raw === "con" || raw === "build" ? raw : "op";
+  return raw === "com" ||
+    raw === "con" ||
+    raw === "build" ||
+    raw === "mix"
+    ? raw
+    : "op";
 }
 
 export default async function ReportesPage({
@@ -86,6 +92,21 @@ export default async function ReportesPage({
         income={income}
         aging={aging}
         cashflow={cashflow}
+      />
+    );
+  }
+
+  if (category === "mix") {
+    // Combinados (Slice C): rentabilidad REAL del período. Compone costingRows
+    // (Costing 0053) — revenue real + costo real de `shipment_costs`. NUNCA se
+    // fabrica costo (§3.2). Una sola query (costingRows) cruza todo.
+    const combined = await combinedReport(supabase, period);
+    return (
+      <ReportesClient
+        period={period}
+        category="mix"
+        rep={rep}
+        combined={combined}
       />
     );
   }

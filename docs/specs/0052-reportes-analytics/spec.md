@@ -176,9 +176,10 @@ anclada a `shipments` + `invoices` + naviera.
 - [x] **Constructor** (builder fuente→agrupar→métrica→filtro + export CSV) — **V1 implementado** 2026-06-04
       (rama `feat/reportes-c`): 2 fuentes (Embarques, Facturas) sobre datos reales, agregación pura, export CSV
       client-side, guardar reportes en localStorage. Categoría "Constructor" habilitada en `ReportesClient`.
-- [ ] **Combinados** (rentab. ruta / margen cliente / costo-CBM) — **DESBLOQUEADO** por SDD-0053 Costing
-      (`shipment_costs` reales en prod); pendiente de implementar.
-- [ ] **Por agente** (requiere atribución de agente en `quotes`, inexistente) · **Posición IVA** (requiere Fiscal/Bloque 3).
+- [x] **Combinados** (rentab. ruta / margen cliente / costo-CBM) — **implementado** 2026-06-04 (rama `feat/reportes-c`):
+      3 vistas reusando `costingRows`/`costingTotals`/`marginByRoute` de Costing (0053) + nuevos `marginByClient`/costo-CBM
+      puros. **Costo REAL de `shipment_costs`** (cero `_ROUTE_COST` fabricado); `EmptyState` honesto si no hay costos. Sin migración.
+- [ ] **Por agente** (requiere atribución de agente en `quotes`, inexistente) · **Posición IVA** (requiere Fiscal/Bloque 3) · **export PDF**.
 
 ## 6. Fuera de alcance (respetar)
 

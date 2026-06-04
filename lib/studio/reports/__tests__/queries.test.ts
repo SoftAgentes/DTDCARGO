@@ -20,6 +20,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   agingReport,
   cashflowReport,
+  combinedReport,
   commercialByClient,
   incomeStatement,
   operationalOverview,
@@ -612,5 +613,101 @@ describe("cashflowReport", () => {
     expect(out.totalCollected).toBe(0);
     // 3M trailing → 3-4 meses en la serie.
     expect(out.series.length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// Slice C — Combinados (rentabilidad REAL · combinedReport)
+// ═══════════════════════════════════════════════════════════════
+describe("combinedReport (Combinados · rentabilidad real)", () => {
+  it("compone costingRows del período: revenue real, costo real de shipment_costs, sin fabricar", async () => {
+    const { client } = stub({
+      shipments: [
+        { id: "s1", code: "SH-1", client_name: "Acme", origin: "YIW", destination: "PBL", volume_m3: 10, deleted_at: null },
+        { id: "s2", code: "SH-2", client_name: "Globex", origin: "YIW", destination: "PBL", volume_m3: 5, deleted_at: null },
+        // s3 sin costos cargados → costo 0
+        { id: "s3", code: "SH-3", client_name: "Acme", origin: "SZX", destination: "LGU", volume_m3: 8, deleted_at: null },
+      ],
+      shipment_costs: [
+        { shipment_id: "s1", freight: 4000, customs: 0, transport: 0, handling: 0, insurance: 0, commission: 0, other: 0 },
+        { shipment_id: "s2", freight: 2000, customs: 0, transport: 0, handling: 0, insurance: 0, commission: 0, other: 0 },
+      ],
+      invoices: [
+        // En rango (1A trailing a 2026-06-15): revenue real por shipment_id.
+        { shipment_id: "s1", shipment_code: "SH-1", currency: "USD", total_amount: 10000, fx_rate: null, status: "pagada", issued_at: "2026-05-01", created_at: "2026-05-01" },
+        { shipment_id: "s2", shipment_code: "SH-2", currency: "USD", total_amount: 6000, fx_rate: null, status: "emitida", issued_at: "2026-05-01", created_at: "2026-05-01" },
+        { shipment_id: "s3", shipment_code: "SH-3", currency: "USD", total_amount: 4000, fx_rate: null, status: "pagada", issued_at: "2026-05-01", created_at: "2026-05-01" },
+        // BORRADOR → excluido del revenue (whitelist BILLABLE).
+        { shipment_id: "s1", shipment_code: "SH-1", currency: "USD", total_amount: 9999, fx_rate: null, status: "borrador", issued_at: "2026-05-01", created_at: "2026-05-01" },
+      ],
+    });
+
+    const out = await combinedReport(client, "1A", TODAY);
+
+    // 3 embarques vivos; 2 con costos cargados.
+    expect(out.shipments).toBe(3);
+    expect(out.withCosts).toBe(2);
+
+    // Totales reales: revenue 20000, cost 6000 (borrador NO suma).
+    expect(out.totals.revenue).toBe(20000);
+    expect(out.totals.cost).toBe(6000);
+    expect(out.totals.margin).toBe(14000);
+
+    // Margen por cliente: Acme = s1+s3 (rev 14000, cost 4000), Globex = s2.
+    const acme = out.byClient.find((c) => c.client === "Acme");
+    expect(acme?.revenue).toBe(14000);
+    expect(acme?.cost).toBe(4000);
+    expect(acme?.margin).toBe(10000);
+
+    // Margen por ruta: YIW→PBL agrega s1+s2.
+    const yiw = out.byRoute.find((r) => r.origin === "YIW" && r.destination === "PBL");
+    expect(yiw?.count).toBe(2);
+    expect(yiw?.revenue).toBe(16000);
+    expect(yiw?.cost).toBe(6000);
+
+    // Costo por CBM: YIW→PBL cbm 15, cost 6000 → 400/CBM.
+    const yiwCbm = out.byCbm.find((r) => r.origin === "YIW" && r.destination === "PBL");
+    expect(yiwCbm?.cbm).toBe(15);
+    expect(yiwCbm?.costPerCbm).toBeCloseTo(400, 6);
+  });
+
+  it("revenue fuera del período NO entra (el rango se pasa a costingRows)", async () => {
+    const { client } = stub({
+      shipments: [
+        { id: "s1", code: "SH-1", client_name: "Acme", origin: "YIW", destination: "PBL", volume_m3: 10, deleted_at: null },
+      ],
+      shipment_costs: [
+        { shipment_id: "s1", freight: 1000, customs: 0, transport: 0, handling: 0, insurance: 0, commission: 0, other: 0 },
+      ],
+      invoices: [
+        // Fuera del rango 1M (a 2026-06-15 → desde ~2026-05-15): emitida en 2026-01.
+        { shipment_id: "s1", shipment_code: "SH-1", currency: "USD", total_amount: 8000, fx_rate: null, status: "pagada", issued_at: "2026-01-01", created_at: "2026-01-01" },
+      ],
+    });
+
+    const out = await combinedReport(client, "1M", TODAY);
+    // El revenue de enero queda fuera del período 1M → revenue 0, costo 1000.
+    expect(out.totals.revenue).toBe(0);
+    expect(out.totals.cost).toBe(1000);
+    expect(out.totals.margin).toBe(-1000);
+  });
+
+  it("sin costos cargados → withCosts 0 (la UI muestra EmptyState honesto)", async () => {
+    const { client } = stub({
+      shipments: [
+        { id: "s1", code: "SH-1", client_name: "Acme", origin: "YIW", destination: "PBL", volume_m3: 10, deleted_at: null },
+      ],
+      shipment_costs: [],
+      invoices: [
+        { shipment_id: "s1", shipment_code: "SH-1", currency: "USD", total_amount: 5000, fx_rate: null, status: "pagada", issued_at: "2026-05-01", created_at: "2026-05-01" },
+      ],
+    });
+
+    const out = await combinedReport(client, "1A", TODAY);
+    expect(out.withCosts).toBe(0);
+    expect(out.shipments).toBe(1);
+    // El costo es 0 pero el revenue real sí entra (margen = ingreso completo).
+    expect(out.totals.cost).toBe(0);
+    expect(out.totals.revenue).toBe(5000);
   });
 });
