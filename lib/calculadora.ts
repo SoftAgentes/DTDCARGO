@@ -231,10 +231,16 @@ export type EnvioCotizacion = {
  * Toda la lógica de pricing vive en CONFIG + CIUDADES. Esta función
  * solo aplica las reglas; no hace fetch, no toca DOM, no muta estado.
  * 100% testeable.
+ *
+ * `params` (reglas escalares) y `ciudades` (lista de destinos) llegan como
+ * args con default (DEFAULT_PARAMS / CIUDADES): el sitio público les inyecta
+ * lo de la DB (calculator_settings / calculator_cities) o cae a los defaults
+ * hardcodeados — cero regresión cuando no hay config.
  */
 export function calcularEnvioLCL(
   input: EnvioInput,
   params: CalcParams = DEFAULT_PARAMS,
+  ciudades: Ciudad[] = CIUDADES,
 ): EnvioCotizacion {
   // 5.1 — Carga especial / peligrosa → no cotiza, deriva al asesor
   if (input.cargaEspecial) {
@@ -246,8 +252,10 @@ export function calcularEnvioLCL(
     }, input);
   }
 
-  // 5.2 — Validar destino
-  const ciudad = CIUDADES.find((c) => c.id === input.ciudadId) ?? null;
+  // 5.2 — Validar destino. La lista de ciudades llega como 3er arg (Fase 3
+  // Slice B): el sitio le inyecta las de la DB (calculator_cities) o, si no hay,
+  // el array CIUDADES por default → cero regresión y función pura testeable.
+  const ciudad = ciudades.find((c) => c.id === input.ciudadId) ?? null;
   if (!ciudad) {
     return cotizacionVacia({
       tipo: "ciudad_invalida",

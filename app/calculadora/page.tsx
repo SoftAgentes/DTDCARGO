@@ -3,10 +3,11 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
-import { CONFIG, DEFAULT_PARAMS } from "@/lib/calculadora";
+import { CONFIG, CIUDADES, DEFAULT_PARAMS } from "@/lib/calculadora";
 import {
   getPublicCbmRate,
   getPublicCalculatorConfig,
+  getPublicCalculatorCities,
 } from "@/lib/public/rates-queries";
 
 // La tarifa pública cambia rara vez. ISR 300s como red de seguridad; además
@@ -36,15 +37,18 @@ export default async function CalculadoraPage() {
   // Tarifa pública real (base + piso) y reglas escalares (Fase 3), ambas
   // configuradas en /studio/tarifas. Vía RPCs anon de retorno mínimo. Si no hay
   // config, todo cae a los defaults de CONFIG/DEFAULT_PARAMS (cero regresión).
-  const [serverRate, serverConfig] = await Promise.all([
+  const [serverRate, serverConfig, serverCities] = await Promise.all([
     getPublicCbmRate(),
     getPublicCalculatorConfig(),
+    getPublicCalculatorCities(),
   ]);
   const baseRate = serverRate?.per_cbm && serverRate.per_cbm > 0
     ? serverRate.per_cbm
     : CONFIG.tarifaBaseCBM;
   // Reglas reales (peso incluido, $/kg, descuento, etc.) o defaults.
   const params = serverConfig ?? DEFAULT_PARAMS;
+  // Ciudades reales (de /studio/tarifas › Ciudades) o el array hardcoded.
+  const ciudades = serverCities.length > 0 ? serverCities : CIUDADES;
 
   return (
     <>
@@ -69,7 +73,11 @@ export default async function CalculadoraPage() {
         {/* Form + Resultado — visible apenas se carga la página */}
         <section className="pb-16 lg:pb-20">
           <div className="wrap max-w-[1100px]">
-            <CalculadoraForm serverRate={serverRate} serverConfig={serverConfig} />
+            <CalculadoraForm
+              serverRate={serverRate}
+              serverConfig={serverConfig}
+              ciudades={ciudades}
+            />
           </div>
         </section>
 

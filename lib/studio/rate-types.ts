@@ -7,6 +7,11 @@
 
 import type { ShipmentService } from "./shipment-types";
 
+/** Lifecycle de la tarifa (Fase 3 Slice C, SDD-0055). */
+export type RateStatus = "draft" | "published" | "archived";
+
+export const RATE_STATUSES: RateStatus[] = ["draft", "published", "archived"];
+
 export type Rate = {
   id: string;
   tenant_id: string;
@@ -20,11 +25,37 @@ export type Rate = {
   valid_from: string | null;   // ISO date YYYY-MM-DD · par con valid_until
   valid_until: string | null;  // ISO date YYYY-MM-DD
   is_public: boolean;          // marca la tarifa per_cbm pública del calculador
+  status: RateStatus;          // draft | published | archived
   notes: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
 };
+
+/** Label + tono de badge por estado de tarifa (para la UI). */
+export function rateStatusLabel(status: RateStatus): string {
+  switch (status) {
+    case "draft":
+      return "Borrador";
+    case "published":
+      return "Publicada";
+    case "archived":
+      return "Archivada";
+  }
+}
+
+export function rateStatusTone(
+  status: RateStatus,
+): "neutral" | "success" | "warning" {
+  switch (status) {
+    case "draft":
+      return "warning";
+    case "published":
+      return "success";
+    case "archived":
+      return "neutral";
+  }
+}
 
 /** Subset de Rate que un usuario puede editar (todo menos id/tenant_id/timestamps). */
 export type RateInput = {
