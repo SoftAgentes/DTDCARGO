@@ -31,6 +31,7 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
+import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
 import { type PaymentMethod } from "@/lib/studio/payment-types";
 import {
   calcInvoiceTotals,
@@ -175,6 +176,55 @@ function addDaysISO(baseISO: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Gate legal AUT-04 (SDD-0054 · Slice B) — modo ADVISORY.
+ *
+ * Decisión del founder ("advisory → duro al cerrar C"): el gate se cablea AHORA
+ * pero AVISA, no bloquea. El productor de aceptaciones reales (Slice C) todavía
+ * no existe; un bloqueo duro dejaría TODA factura DDP sin poder emitirse. Queda
+ * listo para volverse bloqueo duro cuando Slice C produzca aceptaciones.
+ *
+ * Devuelve:
+ *   · required       = la factura nace de un embarque DDP (puerta_a_puerta_DDP).
+ *                      Si no hay shipment o no es DDP ⇒ false (no aplica el gate).
+ *   · hasAcceptance  = (solo si required) hay una aceptación T&C vigente del
+ *                      cliente que matchee la MEDIDA real del embarque + el total.
+ *
+ * El match va por MARKBOX + medida (cbm/weight del shipment) + total
+ * (base_amount, pre-IVA), porque la factura no enlaza al client_id ni al
+ * quote_code de la aceptación.
+ */
+async function evaluateLegalGate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  args: { tenantId: string; shipmentId: string | null; totalForMatch: number },
+): Promise<{ required: boolean; hasAcceptance: boolean }> {
+  if (!args.shipmentId) return { required: false, hasAcceptance: false };
+
+  const { data: shipment } = await supabase
+    .from("shipments")
+    .select("shipment_service, client_markbox, volume_m3, weight_kg")
+    .eq("id", args.shipmentId)
+    .maybeSingle<{
+      shipment_service: string;
+      client_markbox: string | null;
+      volume_m3: number | null;
+      weight_kg: number | null;
+    }>();
+
+  const required = shipment?.shipment_service === "puerta_a_puerta_DDP";
+  if (!required) return { required: false, hasAcceptance: false };
+
+  const hasAcceptance = await hasValidAcceptanceForMarkbox(supabase, {
+    tenantId: args.tenantId,
+    clientMarkbox: shipment?.client_markbox ?? "",
+    cbm: Number(shipment?.volume_m3 ?? 0),
+    weight: Number(shipment?.weight_kg ?? 0),
+    total: args.totalForMatch,
+  });
+
+  return { required: true, hasAcceptance };
+}
+
 export async function createInvoice(
   _prev: InvoiceActionState,
   formData: FormData,
@@ -234,6 +284,22 @@ export async function createInvoice(
   }
 
   if (emitNow) {
+    // Gate legal AUT-04 (advisory). Create-and-emit NO tiene confirm inline (no
+    // hay un drawer donde meter el banner sin romper el flujo) → si es un DDP sin
+    // aceptación vigente, EMITE IGUAL y deja el rastro `legal_ack: "override"` en
+    // la auditoría. Gap conocido de V1 (advisory): el override del create-and-emit
+    // es implícito; el confirm explícito vive en el detalle (emitInvoice).
+    const gate = await evaluateLegalGate(supabase, {
+      tenantId,
+      shipmentId: input!.shipment_id,
+      totalForMatch: totals.base,
+    });
+    const legalAck = !gate.required
+      ? "n/a"
+      : gate.hasAcceptance
+        ? "valid"
+        : "override";
+
     // SDD-0040: asiento automático de venta al emitir (también al crear-y-emitir).
     await postInvoiceJournalEntryForInvoice({
       tenantId,
@@ -249,7 +315,12 @@ export async function createInvoice(
       inserted.id,
       await currentUserId(supabase),
       "issued",
-      { invoice_code, total_amount: totals.total, on_create: true },
+      {
+        invoice_code,
+        total_amount: totals.total,
+        on_create: true,
+        ...(gate.required ? { legal_ack: legalAck } : {}),
+      },
     );
   }
 
@@ -310,13 +381,19 @@ export async function updateInvoice(
 
 export async function emitInvoice(
   id: string,
-): Promise<{ ok?: boolean; error?: string }> {
+  legalOverride?: boolean,
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  needsLegalAck?: boolean;
+  warning?: string;
+}> {
   const supabase = await createClient();
 
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select(
-      "id, tenant_id, status, invoice_code, due_date, base_amount, iva_amount, total_amount",
+      "id, tenant_id, status, invoice_code, shipment_id, due_date, base_amount, iva_amount, total_amount",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -324,6 +401,7 @@ export async function emitInvoice(
       tenant_id: string;
       status: string;
       invoice_code: string;
+      shipment_id: string | null;
       due_date: string | null;
       base_amount: number;
       iva_amount: number;
@@ -332,6 +410,24 @@ export async function emitInvoice(
   if (readErr || !current) return { error: "Factura no encontrada." };
   if (current.status !== "borrador") {
     return { error: "Solo las facturas en borrador pueden emitirse." };
+  }
+
+  // Gate legal AUT-04 (SDD-0054 · Slice B) — ADVISORY. Si es un embarque DDP sin
+  // aceptación T&C vigente, NO mutamos y devolvemos needsLegalAck: el detalle
+  // muestra un banner y deja al operador emitir igual con override (queda en la
+  // auditoría como `legal_ack: "override"`). El total a matchear = base_amount
+  // (pre-IVA, comparable al total_usd aceptado).
+  const gate = await evaluateLegalGate(supabase, {
+    tenantId: current.tenant_id,
+    shipmentId: current.shipment_id,
+    totalForMatch: Number(current.base_amount),
+  });
+  if (gate.required && !gate.hasAcceptance && !legalOverride) {
+    return {
+      needsLegalAck: true,
+      warning:
+        "Este embarque DDP no tiene una aceptación de T&C vigente del cliente. Podés emitir igual (queda registrado en la auditoría).",
+    };
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -358,12 +454,19 @@ export async function emitInvoice(
     entryDate: today,
   });
 
+  // legal_ack: "valid" (había aceptación), "override" (DDP sin aceptación,
+  // emitido igual), o se omite si no es DDP (gate no aplica).
+  const legalAck = gate.hasAcceptance ? "valid" : "override";
   await auditInvoice(
     current.tenant_id,
     current.id,
     await currentUserId(supabase),
     "issued",
-    { invoice_code: current.invoice_code, total_amount: current.total_amount },
+    {
+      invoice_code: current.invoice_code,
+      total_amount: current.total_amount,
+      ...(gate.required ? { legal_ack: legalAck } : {}),
+    },
   );
 
   revalidatePath("/studio/facturacion");

@@ -61,8 +61,27 @@ export function InvoiceDetailClient({
   const [error, setError] = useState<string | null>(null);
   const [confirmVoid, setConfirmVoid] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  // Gate legal AUT-04 (SDD-0054 · Slice B) — advisory. Cuando emitInvoice avisa
+  // que el embarque DDP no tiene aceptación T&C vigente, guardamos el warning y
+  // mostramos un banner con un segundo botón "Emitir igual" (override).
+  const [legalAck, setLegalAck] = useState<string | null>(null);
 
   const balance = computeBalance(invoice);
+
+  // Sentinel: emitInvoice avisó que falta la aceptación T&C (DDP). No es error
+  // ni emisión — interrumpe el flash de éxito del ActionButton sin pintar el
+  // banner rojo de error (el aviso ya se muestra como banner warning aparte).
+  const LEGAL_ACK_SENTINEL = "__needs_legal_ack__";
+
+  function onEmitSuccess() {
+    setLegalAck(null);
+    toast.success(`Factura ${invoice.invoice_code} emitida`, {
+      link: {
+        href: `/studio/facturacion?tab=pending&highlight=${encodeURIComponent(invoice.invoice_code)}&hl-tone=success`,
+        label: "Ver en Por cobrar",
+      },
+    });
+  }
 
   return (
     <>
@@ -101,17 +120,22 @@ export function InvoiceDetailClient({
             }
             onAction={async () => {
               setError(null);
-              return emitInvoice(invoice.id);
+              const r = await emitInvoice(invoice.id);
+              // Advisory: no es error ni emisión — pedir confirmación legal.
+              // Throw el sentinel para que el ActionButton NO entre en flash
+              // verde (no se emitió). onError lo intercepta y no lo muestra.
+              if (r.needsLegalAck) {
+                setLegalAck(r.warning ?? "Falta la aceptación de T&C del cliente.");
+                throw new Error(LEGAL_ACK_SENTINEL);
+              }
+              if (r.error) return { error: r.error };
+              return undefined;
             }}
-            onSuccess={() =>
-              toast.success(`Factura ${invoice.invoice_code} emitida`, {
-                link: {
-                  href: `/studio/facturacion?tab=pending&highlight=${encodeURIComponent(invoice.invoice_code)}&hl-tone=success`,
-                  label: "Ver en Por cobrar",
-                },
-              })
-            }
-            onError={setError}
+            onSuccess={onEmitSuccess}
+            onError={(msg) => {
+              if (msg === LEGAL_ACK_SENTINEL) return; // ya mostrado como banner warning
+              setError(msg);
+            }}
           />
         )}
 
@@ -203,6 +227,75 @@ export function InvoiceDetailClient({
         >
           {error}
         </p>
+      )}
+
+      {legalAck && (
+        <div
+          role="alert"
+          style={{
+            margin: "0 0 12px",
+            padding: "12px 14px",
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning)",
+            borderRadius: "var(--r-md)",
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            <span
+              style={{ color: "var(--warning)", display: "flex", flexShrink: 0, marginTop: 1 }}
+            >
+              {Icon.warn(16)}
+            </span>
+            <div>
+              <div
+                style={{
+                  font: "700 12.5px/1.3 var(--f-sans)",
+                  color: "var(--ink)",
+                  marginBottom: 4,
+                }}
+              >
+                Falta la aceptación de T&C del cliente
+              </div>
+              <p
+                style={{
+                  font: "500 12px/1.5 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  margin: 0,
+                }}
+              >
+                {legalAck} Si emitís, queda registrado en la auditoría de la
+                factura como emisión sin aceptación vigente.
+              </p>
+            </div>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              onClick={() => setLegalAck(null)}
+            >
+              Cancelar
+            </button>
+            <ActionButton
+              variant="warning"
+              size="sm"
+              idleLabel="Emitir igual (sin aceptación)"
+              loadingLabel="Emitiendo…"
+              successLabel="Factura emitida"
+              idleIcon={Icon.check(14)}
+              successIcon={Icon.check(14)}
+              onAction={async () => {
+                setError(null);
+                return emitInvoice(invoice.id, true);
+              }}
+              onSuccess={onEmitSuccess}
+              onError={setError}
+            />
+          </div>
+        </div>
       )}
 
       {editing && (
