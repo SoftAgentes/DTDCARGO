@@ -32,8 +32,8 @@
  * foto. Sin SUPABASE_SERVICE_ROLE_KEY el alta no puede completarse (error claro).
  */
 
-import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/db/admin";
+import { getRequestIp } from "@/lib/http/request-ip";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import {
@@ -98,29 +98,6 @@ function parseForm(formData: FormData): Partial<RegisterInput> {
     address: (formData.get("address") as string | null) ?? undefined,
     reference: (formData.get("reference") as string | null) ?? undefined,
   };
-}
-
-/**
- * IP del request para el throttle. Vercel setea `x-forwarded-for` (lista
- * separada por comas; el primero es el cliente, no los proxies). Fallback a
- * `x-real-ip`. Si no hay ninguno → "unknown" (no bloqueamos por no tener IP,
- * pero igual contamos: muchos "unknown" comparten cubo, lo cual es aceptable
- * para un anti-abuso liviano sin keys).
- */
-async function getRequestIp(): Promise<string> {
-  try {
-    const h = await headers();
-    const xff = h.get("x-forwarded-for");
-    if (xff) {
-      const first = xff.split(",")[0]?.trim();
-      if (first) return first;
-    }
-    const real = h.get("x-real-ip")?.trim();
-    if (real) return real;
-  } catch {
-    // headers() fuera de un request scope → tratar como desconocida.
-  }
-  return "unknown";
 }
 
 export async function registerClientAction(

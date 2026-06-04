@@ -213,9 +213,19 @@ function canonicalDocs(docs: DocRef[]): DocRef[] {
   );
 }
 
-/** Redondea a 3 decimales para que la medida sea estable en el payload. */
-function round3(v: number): number {
-  return Math.round((Number(v) + Number.EPSILON) * 1000) / 1000;
+/**
+ * Redondea a `decimals` decimales para que la dimensión sea estable en el
+ * payload. Round-3 (m-5): la precisión del hash DEBE casar con la del storage de
+ * `legal_acceptances` (0102) — si no, una fila con una cifra de más se hashea
+ * distinto a lo que la DB persiste y el gate recomputa otro hash y descarta la
+ * fila válida (falso-negativo silencioso). Precisiones reales:
+ *   · cbm        → numeric(12,3) → 3 decimales
+ *   · weight_kg  → numeric(12,2) → 2 decimales
+ *   · total_usd  → numeric(14,2) → 2 decimales
+ */
+function roundTo(v: number, decimals: number): number {
+  const f = 10 ** decimals;
+  return Math.round((Number(v) + Number.EPSILON) * f) / f;
 }
 
 /**
@@ -256,9 +266,11 @@ export function acceptanceHashPayload(ev: AcceptanceEvidence): string {
   const canonical = {
     client_markbox: String(ev.client_markbox),
     quote_code: String(ev.quote_code),
-    cbm: round3(ev.cbm),
-    weight_kg: round3(ev.weight_kg),
-    total_usd: round3(ev.total_usd),
+    // m-5: precisión alineada al storage (0102) — cbm(12,3) / weight(12,2) /
+    // total(14,2). Así el hash sellado == el hash recomputado desde la fila.
+    cbm: roundTo(ev.cbm, 3),
+    weight_kg: roundTo(ev.weight_kg, 2),
+    total_usd: roundTo(ev.total_usd, 2),
     docs: canonicalDocs(ev.docs).map((d) => ({
       key: d.key,
       version: d.version,
