@@ -91,6 +91,17 @@ export function acceptanceHash(
  *
  * PURA: mismas entradas ⇒ mismo output (mismo hash). `now` es un Date que la
  * action pasa como `new Date()` y el test fija.
+ *
+ * INVARIANTE (M-2 · round-3): `accepted_at` SIEMPRE se sella con precisión de
+ * MILISEGUNDOS (`Date.toISOString()` → `…000Z`, 3 cifras). El hash incluye
+ * `accepted_at`, y el gate (queries.ts) lo recomputa desde la fila canonizándolo
+ * con `new Date(raw).toISOString()` (también ms). Por eso TODA inserción en
+ * `legal_acceptances` DEBE sellar `accepted_at` EXPLÍCITO con este valor — NO
+ * confiar en el `default now()` de la columna timestamptz: Postgres lo guardaría
+ * con MICROsegundos (6 cifras), que `new Date(raw)` trunca a ms al recomputar →
+ * el hash no matchearía → la fila válida se descartaría (falso-negativo
+ * silencioso del gate). La action de Slice C inserta `accepted_at: seal.accepted_at`
+ * explícito; cualquier seed/import/migración futura debe hacer lo mismo.
  */
 export function sealAcceptance(
   input: AcceptanceInput,

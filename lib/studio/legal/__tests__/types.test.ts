@@ -105,10 +105,31 @@ describe("acceptanceHashPayload", () => {
     expect(p1).not.toBe(p2);
   });
 
-  it("redondea la medida a 3 decimales (diferencias sub-mili no cambian payload)", () => {
+  it("redondea cbm a 3 decimales (diferencias sub-mili no cambian payload)", () => {
     const p1 = acceptanceHashPayload({ ...baseEvidence, cbm: 7.0001 });
     const p2 = acceptanceHashPayload({ ...baseEvidence, cbm: 7.0002 });
     expect(p1).toBe(p2);
+  });
+
+  // m-5: la precisión del hash casa con la del storage (0102): weight_kg y
+  // total_usd son numeric(_,2) → el payload los redondea a 2 decimales, así una
+  // 3ª cifra (que la DB truncaría) NO produce un hash distinto al recomputado.
+  it("redondea weight_kg a 2 decimales (3ª cifra no cambia payload)", () => {
+    const p1 = acceptanceHashPayload({ ...baseEvidence, weight_kg: 2800.001 });
+    const p2 = acceptanceHashPayload({ ...baseEvidence, weight_kg: 2800.004 });
+    expect(p1).toBe(p2);
+  });
+
+  it("redondea total_usd a 2 decimales (3ª cifra no cambia payload)", () => {
+    const p1 = acceptanceHashPayload({ ...baseEvidence, total_usd: 5600.001 });
+    const p2 = acceptanceHashPayload({ ...baseEvidence, total_usd: 5600.004 });
+    expect(p1).toBe(p2);
+  });
+
+  it("cbm SÍ distingue la 3ª cifra (numeric(12,3), no se trunca a 2)", () => {
+    const p1 = acceptanceHashPayload({ ...baseEvidence, cbm: 7.001 });
+    const p2 = acceptanceHashPayload({ ...baseEvidence, cbm: 7.002 });
+    expect(p1).not.toBe(p2);
   });
 
   it("no muta el array de docs que recibe", () => {

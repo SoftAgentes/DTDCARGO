@@ -46,6 +46,24 @@ import {
 
 const VALID_CURRENCIES: InvoiceCurrency[] = ["USD", "VES", "USDT", "CNY"];
 
+/**
+ * ── FLAG · Gate legal AUT-04: advisory ⇄ bloqueo duro (SDD-0054 · §3.1 / §3.1-bis)
+ *
+ * `false` (ADVISORY, modo actual): si un embarque DDP no tiene aceptación T&C
+ * vigente, el operador VE el aviso pero PUEDE emitir igual (queda
+ * `legal_ack: "override"` en la auditoría).
+ *
+ * `true` (BLOQUEO DURO): emitir una factura DDP sin aceptación vigente queda
+ * PROHIBIDO (la action no muta y no ofrece override).
+ *
+ * Se deja en `false` a propósito al shipear Slice C: el día que se activa el flujo
+ * de aceptación NO hay aceptaciones previas en prod (cero adopción) → un bloqueo
+ * duro inmediato congelaría TODA factura DDP en vuelo. El FOUNDER lo pone en `true`
+ * cuando haya adopción (clientes aceptando por el Portal). Cambiar SOLO esta
+ * constante alcanza para el flip — el resto del gate ya está cableado.
+ */
+const LEGAL_GATE_HARD_BLOCK = false;
+
 function parseNumberOrNull(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;
   const s = String(v).trim();
@@ -191,12 +209,24 @@ function addDaysISO(baseISO: string, days: number): string {
  *                      cliente que matchee la MEDIDA real del embarque + el total.
  *
  * El match va por MARKBOX + medida (cbm/weight del shipment) + total
- * (base_amount, pre-IVA), porque la factura no enlaza al client_id ni al
- * quote_code de la aceptación.
+ * (base_amount, pre-IVA) + la ORDEN puntual (`orderRef`), porque la factura no
+ * enlaza al client_id ni al quote_code de la aceptación.
+ *
+ * M-1 (round-3): se pasa `orderRef = invoice.shipment_code` para atar el gate a
+ * ESTA orden y no a cualquier factura del cliente con la misma terna. La action
+ * de Slice C sella `quote_code = shipment_code`, así que el match es 1:1. Para
+ * DDP el `shipment_code` SIEMPRE está poblado (la factura DDP siempre nace de un
+ * shipment); si por alguna razón fuese null/vacío, NO se pasa orderRef y el gate
+ * cae al comportamiento previo (match por terna) — no rompe la emisión existente.
  */
 async function evaluateLegalGate(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  args: { tenantId: string; shipmentId: string | null; totalForMatch: number },
+  args: {
+    tenantId: string;
+    shipmentId: string | null;
+    shipmentCode: string | null;
+    totalForMatch: number;
+  },
 ): Promise<{ required: boolean; hasAcceptance: boolean }> {
   if (!args.shipmentId) return { required: false, hasAcceptance: false };
 
@@ -214,12 +244,17 @@ async function evaluateLegalGate(
   const required = shipment?.shipment_service === "puerta_a_puerta_DDP";
   if (!required) return { required: false, hasAcceptance: false };
 
+  // orderRef = shipment_code de la factura (= quote_code que selló Slice C). Vacío
+  // ⇒ no se ata a la orden (legacy). Para DDP siempre está poblado.
+  const orderRef = String(args.shipmentCode ?? "").trim() || undefined;
+
   const hasAcceptance = await hasValidAcceptanceForMarkbox(supabase, {
     tenantId: args.tenantId,
     clientMarkbox: shipment?.client_markbox ?? "",
     cbm: Number(shipment?.volume_m3 ?? 0),
     weight: Number(shipment?.weight_kg ?? 0),
     total: args.totalForMatch,
+    orderRef,
   });
 
   return { required: true, hasAcceptance };
@@ -252,8 +287,27 @@ export async function createInvoice(
   }
   const invoice_code = String(codeData);
 
-  const emitNow = String(formData.get("emit_on_create") ?? "") === "true";
+  const emitNowRequested = String(formData.get("emit_on_create") ?? "") === "true";
   const today = new Date().toISOString().slice(0, 10);
+
+  // Gate legal AUT-04 (SDD-0054). Se evalúa ANTES del insert para decidir si el
+  // create-and-emit de un DDP puede realmente emitir.
+  //   · ADVISORY (flag off, modo actual): create-and-emit NO tiene confirm inline
+  //     → si es DDP sin aceptación, EMITE IGUAL y deja `legal_ack: "override"`.
+  //   · BLOQUEO DURO (flag on, §3.1): un DDP sin aceptación NO se emite al crear →
+  //     cae a BORRADOR (el cliente acepta por el Portal y luego se emite). Así el
+  //     create-and-emit nunca puentea el gate cuando está en modo duro.
+  const gate = emitNowRequested
+    ? await evaluateLegalGate(supabase, {
+        tenantId,
+        shipmentId: input!.shipment_id,
+        shipmentCode: input!.shipment_code,
+        totalForMatch: totals.base,
+      })
+    : { required: false, hasAcceptance: false };
+  const hardBlocked =
+    emitNowRequested && LEGAL_GATE_HARD_BLOCK && gate.required && !gate.hasAcceptance;
+  const emitNow = emitNowRequested && !hardBlocked;
 
   const { data: inserted, error } = await supabase
     .from("invoices")
@@ -284,16 +338,6 @@ export async function createInvoice(
   }
 
   if (emitNow) {
-    // Gate legal AUT-04 (advisory). Create-and-emit NO tiene confirm inline (no
-    // hay un drawer donde meter el banner sin romper el flujo) → si es un DDP sin
-    // aceptación vigente, EMITE IGUAL y deja el rastro `legal_ack: "override"` en
-    // la auditoría. Gap conocido de V1 (advisory): el override del create-and-emit
-    // es implícito; el confirm explícito vive en el detalle (emitInvoice).
-    const gate = await evaluateLegalGate(supabase, {
-      tenantId,
-      shipmentId: input!.shipment_id,
-      totalForMatch: totals.base,
-    });
     const legalAck = !gate.required
       ? "n/a"
       : gate.hasAcceptance
@@ -393,7 +437,7 @@ export async function emitInvoice(
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select(
-      "id, tenant_id, status, invoice_code, shipment_id, due_date, base_amount, iva_amount, total_amount",
+      "id, tenant_id, status, invoice_code, shipment_id, shipment_code, due_date, base_amount, iva_amount, total_amount",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -402,6 +446,7 @@ export async function emitInvoice(
       status: string;
       invoice_code: string;
       shipment_id: string | null;
+      shipment_code: string | null;
       due_date: string | null;
       base_amount: number;
       iva_amount: number;
@@ -420,14 +465,26 @@ export async function emitInvoice(
   const gate = await evaluateLegalGate(supabase, {
     tenantId: current.tenant_id,
     shipmentId: current.shipment_id,
+    shipmentCode: current.shipment_code,
     totalForMatch: Number(current.base_amount),
   });
-  if (gate.required && !gate.hasAcceptance && !legalOverride) {
-    return {
-      needsLegalAck: true,
-      warning:
-        "Este embarque DDP no tiene una aceptación de T&C vigente del cliente. Podés emitir igual (queda registrado en la auditoría).",
-    };
+  if (gate.required && !gate.hasAcceptance) {
+    // BLOQUEO DURO (flag on, SDD-0054 §3.1): sin aceptación vigente NO se emite y
+    // NO se ofrece override (el cliente debe aceptar por el Portal · Slice C).
+    if (LEGAL_GATE_HARD_BLOCK) {
+      return {
+        error:
+          "No se puede emitir: este embarque DDP no tiene una aceptación de T&C vigente del cliente. Pedile que acepte los términos desde el Portal.",
+      };
+    }
+    // ADVISORY (flag off, modo actual): se avisa pero el operador puede emitir igual.
+    if (!legalOverride) {
+      return {
+        needsLegalAck: true,
+        warning:
+          "Este embarque DDP no tiene una aceptación de T&C vigente del cliente. Podés emitir igual (queda registrado en la auditoría).",
+      };
+    }
   }
 
   const today = new Date().toISOString().slice(0, 10);

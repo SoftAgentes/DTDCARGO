@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import {
   getPortalClient,
   getPortalActivation,
@@ -7,8 +8,10 @@ import {
   getNextArrival,
   listMyShipments,
 } from "@/lib/portal/portal-queries";
+import { listPendingAcceptanceInvoices } from "@/lib/portal/portal-legal-queries";
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboard } from "./_components/PortalDashboard";
+import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -37,12 +40,44 @@ export default async function PortalHomePage() {
     listMyShipments(supabase),
   ]);
 
+  // Órdenes DDP en borrador esperando aceptación de T&C (SDD-0054 · Slice C). El
+  // portal OCULTA los borradores → se leen con el admin client, scopeado EXPLÍCITO
+  // por tenant + markbox (identidad ya resuelta por sesión vía getPortalClient).
+  const pendingAcceptance = await loadPendingAcceptance(client.id, client.markbox);
+
   return (
-    <PortalDashboard
-      client={client}
-      kpis={kpis}
-      nextArrival={nextArrival}
-      shipments={shipments}
-    />
+    <div className="flex flex-col gap-7">
+      {pendingAcceptance.length > 0 ? (
+        <PendingAcceptanceCard pending={pendingAcceptance} />
+      ) : null}
+      <PortalDashboard
+        client={client}
+        kpis={kpis}
+        nextArrival={nextArrival}
+        shipments={shipments}
+      />
+    </div>
   );
+}
+
+/**
+ * Carga las órdenes pendientes de aceptación con el admin client. Resuelve el
+ * tenant del cliente (por su id, ya verificado por sesión) y delega en
+ * `listPendingAcceptanceInvoices` (que scopea por tenant + markbox). Best-effort:
+ * un fallo del admin client no debe romper el dashboard → devuelve [].
+ */
+async function loadPendingAcceptance(clientId: string, markbox: string) {
+  try {
+    const admin = createAdminClient();
+    const { data: row } = await admin
+      .from("clients")
+      .select("tenant_id")
+      .eq("id", clientId)
+      .maybeSingle<{ tenant_id: string }>();
+    const tenantId = String(row?.tenant_id ?? "").trim();
+    if (!tenantId) return [];
+    return await listPendingAcceptanceInvoices(admin, { tenantId, markbox });
+  } catch {
+    return [];
+  }
 }
