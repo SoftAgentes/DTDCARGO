@@ -149,6 +149,20 @@ export type OperationalOverview = {
   monthly: MonthlyVolumePoint[];
   portSplit: PortSplitRow[];
   transitByPort: TransitByPortRow[];
+  /**
+   * Revenue facturado del rango que NO cae en ningún embarque del rango (factura
+   * "huérfana": su `shipment_code` no matchea un embarque del período, típico de
+   * una factura emitida este mes para un embarque creado el mes pasado). =
+   * Σ(revenueByCode) − revenueUsd. 0 cuando no hay huérfanas. Informativo: el KPI
+   * `revenueUsd` lo EXCLUYE a propósito (mide la operación de embarques); este chip
+   * evita que ese dinero quede oculto.
+   */
+  orphanRevenueUsd: number;
+  /**
+   * Embarques del rango SIN cliente asignado (`client_name` null o vacío) — "cajas
+   * sin dueño" que igual se despachan. Informativo, no alarma.
+   */
+  unassigned: { count: number; cbm: number };
 };
 
 // ── Forma mínima de un shipment para los helpers ───────────────
@@ -166,6 +180,7 @@ export type ReportShipment = {
   shipment_service: ShipmentService;
   status: string;
   cbm: number | null;
+  client_name: string | null;
   created_at: string; // ISO
   arrived_destination_at: string | null;
   delivered_at: string | null;

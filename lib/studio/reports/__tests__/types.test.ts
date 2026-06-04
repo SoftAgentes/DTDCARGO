@@ -178,6 +178,7 @@ function ship(p: Partial<ReportShipment>): ReportShipment {
     shipment_service: (p.shipment_service ?? "consolidacion") as ShipmentService,
     status: p.status ?? "in_transit",
     cbm: p.cbm ?? 1,
+    client_name: p.client_name ?? "Cliente Demo",
     created_at: p.created_at ?? "2026-03-01T00:00:00Z",
     arrived_destination_at: p.arrived_destination_at ?? null,
     delivered_at: p.delivered_at ?? null,

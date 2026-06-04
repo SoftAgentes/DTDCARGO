@@ -245,6 +245,91 @@ describe("operationalOverview", () => {
   });
 });
 
+// ── Chips "sin asignar": unassigned + orphanRevenueUsd ─────────
+describe("operationalOverview · indicadores sin asignar", () => {
+  it("unassigned cuenta embarques sin client_name (null o vacío); con cliente NO cuenta", async () => {
+    const shipments = [
+      // Sin cliente (null) → cuenta.
+      {
+        id: "1", code: "U1", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        client_name: null,
+        created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+      // Sin cliente (string vacío tras trim) → cuenta.
+      {
+        id: "2", code: "U2", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 2.5,
+        client_name: "   ",
+        created_at: "2026-03-02T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+      // Con cliente → NO cuenta.
+      {
+        id: "3", code: "C1", origin: "Shenzhen", destination: "La Guaira",
+        shipment_service: "reserva_FCL", status: "shipped", volume_m3: 40,
+        client_name: "Acme SA",
+        created_at: "2026-03-03T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+    ];
+    const ov = await operationalOverview(stub({ shipments, invoices: [] }).client, "1A", TODAY);
+
+    expect(ov.unassigned.count).toBe(2);
+    expect(ov.unassigned.cbm).toBe(12.5); // 10 + 2.5
+  });
+
+  it("orphanRevenueUsd = monto huérfano; revenueUsd lo EXCLUYE y sigue = Σ filas", async () => {
+    const shipments = [
+      {
+        id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        client_name: "Acme",
+        created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+      {
+        id: "2", code: "B1", origin: "Shenzhen", destination: "La Guaira",
+        shipment_service: "reserva_FCL", status: "shipped", volume_m3: 40,
+        client_name: "Beta",
+        created_at: "2026-03-02T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+    ];
+    const invoices = [
+      { shipment_code: "A1", total_amount: 3000, currency: "USD", fx_rate: null, status: "emitida" },
+      { shipment_code: "B1", total_amount: 9000, currency: "USD", fx_rate: null, status: "emitida" },
+      // Huérfana: code que NO matchea ningún embarque del rango.
+      { shipment_code: "ZZ-NO-EXISTE", total_amount: 1500, currency: "USD", fx_rate: null, status: "emitida" },
+    ];
+
+    const ov = await operationalOverview(stub({ shipments, invoices }).client, "1A", TODAY);
+    const routes = await reportByRoute(stub({ shipments, invoices }).client, "1A", TODAY);
+
+    // KPI = revenue atribuible a embarques del rango (3000 + 9000), excluye la huérfana.
+    expect(ov.revenueUsd).toBe(12000);
+    // El huérfano = la factura sin embarque del rango.
+    expect(ov.orphanRevenueUsd).toBe(1500);
+    // Invariante intacto: KPI = Σ filas.
+    expect(routes.reduce((s, r) => s + r.revenue, 0)).toBe(ov.revenueUsd);
+  });
+
+  it("sin huérfanas ni embarques sin cliente → ambos indicadores en 0", async () => {
+    const shipments = [
+      {
+        id: "1", code: "A1", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 10,
+        client_name: "Acme",
+        created_at: "2026-03-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+    ];
+    const invoices = [
+      { shipment_code: "A1", total_amount: 3000, currency: "USD", fx_rate: null, status: "emitida" },
+    ];
+    const ov = await operationalOverview(stub({ shipments, invoices }).client, "1A", TODAY);
+
+    expect(ov.orphanRevenueUsd).toBe(0);
+    expect(ov.unassigned.count).toBe(0);
+    expect(ov.unassigned.cbm).toBe(0);
+  });
+});
+
 // ── reportByRoute / reportByService usan revenue join ──────────
 describe("reportByRoute / reportByService", () => {
   const shipments = [
