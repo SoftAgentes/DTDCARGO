@@ -5,11 +5,13 @@ import {
   CONFIG,
   CIUDADES,
   EMBALAJES,
+  DEFAULT_PARAMS,
   calcularEnvioLCL,
   whatsappTextFromCotizacion,
   type EnvioInput,
   type EnvioCotizacion,
   type TipoEmbalaje,
+  type CalcParams,
 } from "@/lib/calculadora";
 import { CONTACT } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
@@ -32,7 +34,14 @@ type ServerRate = {
   valid_until: string | null;
 } | null;
 
-export function CalculadoraForm({ serverRate }: { serverRate?: ServerRate }) {
+export function CalculadoraForm({
+  serverRate,
+  serverConfig,
+}: {
+  serverRate?: ServerRate;
+  /** Reglas escalares reales (Fase 3 Slice A) o null → defaults de CONFIG. */
+  serverConfig?: CalcParams | null;
+}) {
   // Tarifa base real o default de CONFIG (cero regresión si no hay pública).
   const baseRate =
     serverRate?.per_cbm && serverRate.per_cbm > 0
@@ -40,6 +49,8 @@ export function CalculadoraForm({ serverRate }: { serverRate?: ServerRate }) {
       : CONFIG.tarifaBaseCBM;
   // Piso real (mínimo LCL comercial). Viaja al cálculo; no editable en V1.
   const minChargeOverride = serverRate?.min_charge ?? undefined;
+  // Reglas escalares: las reales (de /studio/tarifas › Parámetros) o defaults.
+  const params = serverConfig ?? DEFAULT_PARAMS;
 
   const [form, setForm] = useState<EnvioInput>({
     cbmTotal: 0,
@@ -59,7 +70,7 @@ export function CalculadoraForm({ serverRate }: { serverRate?: ServerRate }) {
   }
 
   function handleCalcular() {
-    setCotizacion(calcularEnvioLCL(form));
+    setCotizacion(calcularEnvioLCL(form, params));
   }
 
   return (
@@ -139,25 +150,30 @@ export function CalculadoraForm({ serverRate }: { serverRate?: ServerRate }) {
               Embalaje
             </label>
             <div className="flex flex-col gap-2">
-              {EMBALAJES.map((e) => (
-                <label
-                  key={e.id}
-                  className="flex items-center gap-3 p-3 rounded-[10px] border border-grey-200 hover:border-ink cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2"
-                >
-                  <input
-                    type="radio"
-                    name="embalaje"
-                    value={e.id}
-                    checked={form.embalaje === e.id}
-                    onChange={() => update("embalaje", e.id as TipoEmbalaje)}
-                    className="accent-wine"
-                  />
-                  <span className="text-[14px] text-ink flex-1">{e.label}</span>
-                  {e.recargo > 0 && (
-                    <span className="text-[12px] text-grey-500">+${e.recargo}</span>
-                  )}
-                </label>
-              ))}
+              {EMBALAJES.map((e) => {
+                // Recargo real (configurable) — no el default estático de EMBALAJES.
+                const recargo =
+                  e.id === "especial" ? params.recargoEmbalajeEspecial : 0;
+                return (
+                  <label
+                    key={e.id}
+                    className="flex items-center gap-3 p-3 rounded-[10px] border border-grey-200 hover:border-ink cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2"
+                  >
+                    <input
+                      type="radio"
+                      name="embalaje"
+                      value={e.id}
+                      checked={form.embalaje === e.id}
+                      onChange={() => update("embalaje", e.id as TipoEmbalaje)}
+                      className="accent-wine"
+                    />
+                    <span className="text-[14px] text-ink flex-1">{e.label}</span>
+                    {recargo > 0 && (
+                      <span className="text-[12px] text-grey-500">+${recargo}</span>
+                    )}
+                  </label>
+                );
+              })}
             </div>
           </div>
 
@@ -165,7 +181,7 @@ export function CalculadoraForm({ serverRate }: { serverRate?: ServerRate }) {
           <div className="flex flex-col gap-2">
             <ToggleField
               label="Lleva baterías"
-              hint="Recargo por manejo (×1.5 sobre el flete)."
+              hint={`Recargo por manejo (×${params.recargoBateriaMult} sobre el flete).`}
               checked={!!form.bateria}
               onChange={(v) => update("bateria", v)}
             />
@@ -200,7 +216,7 @@ export function CalculadoraForm({ serverRate }: { serverRate?: ServerRate }) {
             </select>
             <p className="text-[12px] text-grey-500 mt-2">
               Casco central (Valencia, Maracay, Caracas): sin recargo. Otras
-              ciudades: +${CONFIG.tarifaKmFueraCasco}/km desde el casco.
+              ciudades: +${params.tarifaKmFueraCasco}/km desde el casco.
             </p>
           </div>
 
@@ -218,7 +234,7 @@ export function CalculadoraForm({ serverRate }: { serverRate?: ServerRate }) {
       {/* Resultado o panel de financiamiento (pre-cálculo) */}
       <div className="flex flex-col">
         {cotizacion ? (
-          <CotizacionDisplay cotizacion={cotizacion} input={form} />
+          <CotizacionDisplay cotizacion={cotizacion} input={form} params={params} />
         ) : (
           <div className="hidden lg:flex h-full">
             <FinanciamientoPanel />
@@ -323,9 +339,11 @@ function FinanciamientoPanel() {
 function CotizacionDisplay({
   cotizacion,
   input,
+  params,
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
+  params: CalcParams;
 }) {
   const cot = cotizacion;
   const hasAlerta = !!cot.alerta;
@@ -393,7 +411,7 @@ function CotizacionDisplay({
             />
             {cot.recargoExcedente > 0 && (
               <DesgloseRow
-                label={`Excedente de peso (>${CONFIG.pesoIncluidoKg} kg/CBM)`}
+                label={`Excedente de peso (>${params.pesoIncluidoKg} kg/CBM)`}
                 value={cot.recargoExcedente}
               />
             )}
@@ -411,7 +429,7 @@ function CotizacionDisplay({
             )}
             {cot.recargoBateria > 0 && (
               <DesgloseRow
-                label="Recargo por baterías (×1.5)"
+                label={`Recargo por baterías (×${params.recargoBateriaMult})`}
                 value={cot.recargoBateria}
               />
             )}

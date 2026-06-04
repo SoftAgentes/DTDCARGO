@@ -3,8 +3,11 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
-import { CONFIG } from "@/lib/calculadora";
-import { getPublicCbmRate } from "@/lib/public/rates-queries";
+import { CONFIG, DEFAULT_PARAMS } from "@/lib/calculadora";
+import {
+  getPublicCbmRate,
+  getPublicCalculatorConfig,
+} from "@/lib/public/rates-queries";
 
 // La tarifa pública cambia rara vez. ISR 300s como red de seguridad; además
 // las actions de /studio/tarifas hacen revalidatePath("/calculadora") → update
@@ -30,12 +33,18 @@ export const metadata: Metadata = {
 };
 
 export default async function CalculadoraPage() {
-  // Tarifa pública real configurada en /studio/tarifas (o null → fallback al
-  // default de CONFIG, cero regresión). Vía RPC anon de retorno mínimo.
-  const serverRate = await getPublicCbmRate();
+  // Tarifa pública real (base + piso) y reglas escalares (Fase 3), ambas
+  // configuradas en /studio/tarifas. Vía RPCs anon de retorno mínimo. Si no hay
+  // config, todo cae a los defaults de CONFIG/DEFAULT_PARAMS (cero regresión).
+  const [serverRate, serverConfig] = await Promise.all([
+    getPublicCbmRate(),
+    getPublicCalculatorConfig(),
+  ]);
   const baseRate = serverRate?.per_cbm && serverRate.per_cbm > 0
     ? serverRate.per_cbm
     : CONFIG.tarifaBaseCBM;
+  // Reglas reales (peso incluido, $/kg, descuento, etc.) o defaults.
+  const params = serverConfig ?? DEFAULT_PARAMS;
 
   return (
     <>
@@ -48,7 +57,7 @@ export default async function CalculadoraPage() {
             <span className="eyebrow">Calculadora · LCL DDP · China → Venezuela</span>
             <h1 className="sr-only">Calculadora de envíos LCL DDP</h1>
             <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[62ch]">
-              Tarifa base ${baseRate}/CBM, hasta {CONFIG.pesoIncluidoKg} kg/CBM sin recargo.{" "}
+              Tarifa base ${baseRate}/CBM, hasta {params.pesoIncluidoKg} kg/CBM sin recargo.{" "}
               <strong className="text-ink">
                 Financiamiento 100%: no pagás nada hasta que tu carga llegue a Venezuela.
               </strong>{" "}
@@ -60,7 +69,7 @@ export default async function CalculadoraPage() {
         {/* Form + Resultado — visible apenas se carga la página */}
         <section className="pb-16 lg:pb-20">
           <div className="wrap max-w-[1100px]">
-            <CalculadoraForm serverRate={serverRate} />
+            <CalculadoraForm serverRate={serverRate} serverConfig={serverConfig} />
           </div>
         </section>
 
@@ -81,16 +90,16 @@ export default async function CalculadoraPage() {
                   texto="Tarifa base de la modalidad LCL DDP (Less than Container Load, puerta a puerta con todo incluido). Aplica al volumen real de tu carga."
                 />
                 <Bloque
-                  titulo={`${CONFIG.pesoIncluidoKg} kg/CBM incluidos`}
-                  texto="Hasta ese peso por metro cúbico no hay recargo. Sobre eso, cobramos $1 por kilo de excedente. Si superás 600 kg/CBM, te orientamos a FCL."
+                  titulo={`${params.pesoIncluidoKg} kg/CBM incluidos`}
+                  texto={`Hasta ese peso por metro cúbico no hay recargo. Sobre eso, cobramos $${params.recargoExcedenteKg} por kilo de excedente. Si superás ${params.pesoMaxKg} kg/CBM, te orientamos a FCL.`}
                 />
                 <Bloque
                   titulo="Casco central sin recargo"
-                  texto="Entregas en Valencia (-$50), Maracay y Caracas centro: tarifa plana. Para otras ciudades, sumamos $1/km desde el casco central."
+                  texto={`Entregas en Valencia (-$${params.descuentoValencia}), Maracay y Caracas centro: tarifa plana. Para otras ciudades, sumamos $${params.tarifaKmFueraCasco}/km desde el casco central.`}
                 />
                 <Bloque
                   titulo="Embalaje incluido"
-                  texto="Caja estándar sin recargo. Caja especial (madera o paleta) suma $50 por la manipulación adicional."
+                  texto={`Caja estándar sin recargo. Caja especial (madera o paleta) suma $${params.recargoEmbalajeEspecial} por la manipulación adicional.`}
                 />
                 <Bloque
                   titulo="Financiamiento 100%"

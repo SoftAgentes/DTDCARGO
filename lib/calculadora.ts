@@ -74,6 +74,41 @@ export const CONFIG = {
 } as const;
 
 // ────────────────────────────────────────────────────────────────────
+// 1b) PARÁMETROS CONFIGURABLES DESDE EL STUDIO (Fase 3 Slice A)
+//     Las reglas escalares del calculador pueden venir de la DB
+//     (/studio/tarifas › Parámetros → tabla calculator_settings). El cálculo
+//     recibe un `CalcParams`; si no se provee, usa DEFAULT_PARAMS (= CONFIG),
+//     así nada se rompe cuando no hay config en la DB (cero regresión).
+//
+//     OJO: la tarifa base por CBM y el piso mínimo NO están acá — viajan por
+//     `EnvioInput.tarifaCBMOverride` / `minChargeOverride` (los alimenta
+//     rates.is_public, Fase 2). CalcParams son solo las REGLAS.
+// ────────────────────────────────────────────────────────────────────
+
+export type CalcParams = {
+  pesoIncluidoKg: number;
+  pesoMaxKg: number;
+  recargoExcedenteKg: number;
+  descuentoValencia: number;
+  recargoEmbalajeEspecial: number;
+  recargoBateriaMult: number;
+  thresholdCascoKm: number;
+  tarifaKmFueraCasco: number;
+};
+
+/** Defaults = los valores históricos de CONFIG. Fallback cuando no hay config en DB. */
+export const DEFAULT_PARAMS: CalcParams = {
+  pesoIncluidoKg: CONFIG.pesoIncluidoKg,
+  pesoMaxKg: CONFIG.pesoMaxKg,
+  recargoExcedenteKg: CONFIG.recargoExcedenteKg,
+  descuentoValencia: CONFIG.descuentoValencia,
+  recargoEmbalajeEspecial: CONFIG.recargoEmbalajeEspecial,
+  recargoBateriaMult: CONFIG.recargoBateriaMult,
+  thresholdCascoKm: CONFIG.thresholdCascoKm,
+  tarifaKmFueraCasco: CONFIG.tarifaKmFueraCasco,
+};
+
+// ────────────────────────────────────────────────────────────────────
 // 2) CIUDADES DE VENEZUELA — KM DESDE VALENCIA CENTRO
 //    👉 Editá / agregá ciudades acá. Los `km` se usan para calcular el
 //       recargo por distancia. `casco: true` = entrega flat sin recargo
@@ -193,7 +228,10 @@ export type EnvioCotizacion = {
  * solo aplica las reglas; no hace fetch, no toca DOM, no muta estado.
  * 100% testeable.
  */
-export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
+export function calcularEnvioLCL(
+  input: EnvioInput,
+  params: CalcParams = DEFAULT_PARAMS,
+): EnvioCotizacion {
   // 5.1 — Carga especial / peligrosa → no cotiza, deriva al asesor
   if (input.cargaEspecial) {
     return cotizacionVacia({
@@ -240,33 +278,34 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
   let recargoExcedente = 0;
   let alerta: EnvioCotizacion["alerta"] | undefined;
 
-  if (densidadKgM3 > CONFIG.pesoMaxKg) {
+  if (densidadKgM3 > params.pesoMaxKg) {
     // Carga ultra densa — alerta + estimación del peso máximo aceptable
     alerta = {
       tipo: "peso_excedido",
-      mensaje: `Tu carga tiene ${densidadKgM3.toFixed(0)} kg/CBM, supera el máximo de ${CONFIG.pesoMaxKg} kg/CBM. Necesitás FCL o cotización personalizada — escribinos por WhatsApp.`,
+      mensaje: `Tu carga tiene ${densidadKgM3.toFixed(0)} kg/CBM, supera el máximo de ${params.pesoMaxKg} kg/CBM. Necesitás FCL o cotización personalizada — escribinos por WhatsApp.`,
     };
     // Igual calculamos un estimado para que vea el rango
-    const kgIncluidos = cbm * CONFIG.pesoIncluidoKg;
+    const kgIncluidos = cbm * params.pesoIncluidoKg;
     const kgExcedente = Math.max(0, input.pesoKg - kgIncluidos);
-    recargoExcedente = kgExcedente * CONFIG.recargoExcedenteKg;
-  } else if (densidadKgM3 > CONFIG.pesoIncluidoKg) {
+    recargoExcedente = kgExcedente * params.recargoExcedenteKg;
+  } else if (densidadKgM3 > params.pesoIncluidoKg) {
     // Zona normal de excedente (500-600 kg/CBM)
-    const kgIncluidos = cbm * CONFIG.pesoIncluidoKg;
+    const kgIncluidos = cbm * params.pesoIncluidoKg;
     const kgExcedente = input.pesoKg - kgIncluidos;
-    recargoExcedente = roundUSD(kgExcedente * CONFIG.recargoExcedenteKg);
+    recargoExcedente = roundUSD(kgExcedente * params.recargoExcedenteKg);
   }
 
   // 5.7 — Recargo por ciudad fuera del casco central
   let recargoCiudad = 0;
   if (!ciudad.casco) {
-    const kmFueraCasco = Math.max(0, ciudad.km - CONFIG.thresholdCascoKm);
-    recargoCiudad = roundUSD(kmFueraCasco * CONFIG.tarifaKmFueraCasco);
+    const kmFueraCasco = Math.max(0, ciudad.km - params.thresholdCascoKm);
+    recargoCiudad = roundUSD(kmFueraCasco * params.tarifaKmFueraCasco);
   }
 
-  // 5.8 — Recargo por embalaje
-  const embalajeData = EMBALAJES.find((e) => e.id === input.embalaje);
-  const recargoEmbalaje = embalajeData?.recargo ?? 0;
+  // 5.8 — Recargo por embalaje (especial = madera/paleta). Se computa desde
+  // params (configurable), no desde EMBALAJES (que solo aporta labels al form).
+  const recargoEmbalaje =
+    input.embalaje === "especial" ? params.recargoEmbalajeEspecial : 0;
 
   // 5.9 — Flete antes de baterías (base + recargos)
   const fleteAntesBateria =
@@ -274,13 +313,13 @@ export function calcularEnvioLCL(input: EnvioInput): EnvioCotizacion {
 
   // 5.10 — Multiplicador por baterías (sobre el flete, antes del descuento)
   const fleteConBateria = input.bateria
-    ? fleteAntesBateria * CONFIG.recargoBateriaMult
+    ? fleteAntesBateria * params.recargoBateriaMult
     : fleteAntesBateria;
   const recargoBateria = roundUSD(fleteConBateria - fleteAntesBateria);
 
   // 5.11 — Descuento si es Valencia
   const descuentoSede =
-    ciudad.id === "valencia" ? -CONFIG.descuentoValencia : 0;
+    ciudad.id === "valencia" ? -params.descuentoValencia : 0;
 
   // 5.12 — Total antes del piso (Σ de los ítems del desglose)
   const totalSinPiso = fleteConBateria + descuentoSede;
