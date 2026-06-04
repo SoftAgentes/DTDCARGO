@@ -69,7 +69,7 @@ const ACTIVE_STATUSES = [
 ];
 
 const SHIPMENT_COLUMNS =
-  "id, code, origin, destination, shipment_service, status, volume_m3, created_at, arrived_destination_at, delivered_at";
+  "id, code, origin, destination, shipment_service, status, volume_m3, client_name, created_at, arrived_destination_at, delivered_at";
 
 function num(v: unknown): number {
   const n = Number(v);
@@ -90,6 +90,7 @@ function coerceShipment(r: Record<string, unknown>): ReportShipment {
     shipment_service: r.shipment_service as ShipmentService,
     status: String(r.status ?? ""),
     cbm: numOrNull(r.volume_m3),
+    client_name: (r.client_name as string | null) ?? null,
     created_at: String(r.created_at),
     arrived_destination_at: (r.arrived_destination_at as string | null) ?? null,
     delivered_at: (r.delivered_at as string | null) ?? null,
@@ -194,6 +195,32 @@ export async function operationalOverview(
   // las facturas), no a esta.
   const revenueUsd = revenueOf(shipments, revenueByCode);
 
+  // Revenue HUÉRFANO = facturado del rango que no cae en ningún embarque del rango
+  // (factura cuyo shipment_code no matchea un embarque del período). = Σ(todo el
+  // mapa de facturas) − revenueUsd (revenue atribuible a embarques presentes).
+  // Equivale a la suma de las entradas de revenueByCode cuyo code no está en el set
+  // de codes de los embarques. Mismo criterio de redondeo (2 decimales). 0 cuando no
+  // hay huérfanas. NO entra al KPI revenueUsd (a propósito): este chip lo expone al
+  // lado para que ese dinero no quede oculto.
+  let totalInvoiced = 0;
+  for (const usd of revenueByCode.values()) totalInvoiced += usd;
+  const orphanRevenueUsd =
+    Math.round((totalInvoiced - revenueUsd) * 100) / 100;
+
+  // Embarques SIN cliente asignado (caja sin dueño): client_name null o vacío.
+  let unassignedCount = 0;
+  let unassignedCbm = 0;
+  for (const s of shipments) {
+    if ((s.client_name ?? "").trim() === "") {
+      unassignedCount += 1;
+      unassignedCbm += Number(s.cbm) || 0;
+    }
+  }
+  const unassigned = {
+    count: unassignedCount,
+    cbm: Math.round(unassignedCbm * 10) / 10,
+  };
+
   const active = shipments.filter((s) =>
     ACTIVE_STATUSES.includes(s.status),
   ).length;
@@ -210,6 +237,8 @@ export async function operationalOverview(
     monthly,
     portSplit,
     transitByPort,
+    orphanRevenueUsd,
+    unassigned,
   };
 }
 

@@ -308,3 +308,12 @@ todos con bloqueo documentado (sin fuente real / depende de Bloque 3).
    2 decimales → KPI (Σ embarques) y filas (Σ por grupo) cuadran **al centavo** con facturas VES
    sub-centavo (antes divergían ~centavos por redondeo total-vs-serie; misma norma que `cashflowReport`).
    Test VES dedicado verifica el invariante.
+3. **Chips "sin asignar" en el Overview** (decisión founder: que el valor que no entra al KPI no quede
+   oculto, sin inflar el KPI): `operationalOverview` expone 2 campos **aditivos** (el KPI de revenue sigue
+   limpio = Σ filas): **`orphanRevenueUsd`** = `(Σ todo revenueByCode) − revenueUsd` (revenue facturado
+   cuyo embarque cae fuera del rango; 0 si no hay), y **`unassigned: {count, cbm}`** = embarques del rango
+   **sin cliente** (`client_name` null/vacío — la "caja sin dueño" que se despacha igual; requirió sumar
+   `client_name` a `SHIPMENT_COLUMNS`/`ReportShipment`/`coerceShipment`). En `ReportesClient` se muestran
+   como 2 chips informativos sutiles (`Badge` neutral → quitado por ui-ux, solo texto; tono `--ink-soft`,
+   visibles solo si > 0). Aclaración de modelo: **toda factura tiene cliente** (`invoices.client_name NOT
+   NULL`) → "factura huérfana" = sin embarque-en-rango (desfase de fecha), distinto de "embarque sin cliente".

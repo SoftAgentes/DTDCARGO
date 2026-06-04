@@ -415,6 +415,11 @@ function Card({
 // ── Overview ───────────────────────────────────────────────────
 function OverviewView({ overview }: { overview: OperationalOverview }) {
   const SERVICE_NONE = overview.shipments === 0;
+  // Chips informativos de "sin asignar": nada queda oculto pero el KPI de revenue
+  // (= revenue atribuible a embarques del rango) sigue limpio. Solo se muestran
+  // cuando hay algo que reportar (no ensuciar la vista limpia).
+  const showUnassigned = overview.unassigned.count > 0;
+  const showOrphan = overview.orphanRevenueUsd > 0;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div
@@ -429,6 +434,50 @@ function OverviewView({ overview }: { overview: OperationalOverview }) {
         <KpiCard value={fmtUsd(overview.revenueUsd)} label="Revenue" sub="facturado · USD" valueColor="var(--success)" />
         <KpiCard value={fmtNum(overview.active)} label="Activos" sub="en curso ahora" />
       </div>
+
+      {(showUnassigned || showOrphan) && (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: -10 }}>
+          {showUnassigned && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 12px",
+                borderRadius: "var(--r-md)",
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                font: "500 12px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              Sin cliente asignado · {fmtNum(overview.unassigned.count)}{" "}
+              {overview.unassigned.count === 1 ? "embarque" : "embarques"} ·{" "}
+              {fmtNum(overview.unassigned.cbm)} CBM
+            </span>
+          )}
+          {showOrphan && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "7px 12px",
+                borderRadius: "var(--r-md)",
+                border: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                font: "500 12px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              Facturado sin embarque del período ·{" "}
+              <strong style={{ font: "700 12px/1 var(--f-mono)", color: "var(--ink)" }}>
+                {fmtUsd(overview.orphanRevenueUsd)}
+              </strong>
+            </span>
+          )}
+        </div>
+      )}
 
       <div
         style={{
