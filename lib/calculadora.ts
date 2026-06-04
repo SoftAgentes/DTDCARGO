@@ -42,8 +42,12 @@ export const CONFIG = {
    */
   recargoExcedenteKg: 1,
 
-  /** Descuento si el destino es Valencia (la sede DTD). USD. */
-  descuentoValencia: 50,
+  /**
+   * Descuento si el destino es Valencia (la sede DTD). USD.
+   * 0 = sin descuento (regla vigente desde 2026-06-04; el -$50 quedó obsoleto).
+   * Configurable desde /studio/tarifas › Parámetros.
+   */
+  descuentoValencia: 0,
 
   /**
    * Recargo por embalaje especial (madera o paleta) en USD.
@@ -317,9 +321,12 @@ export function calcularEnvioLCL(
     : fleteAntesBateria;
   const recargoBateria = roundUSD(fleteConBateria - fleteAntesBateria);
 
-  // 5.11 — Descuento si es Valencia
+  // 5.11 — Descuento si es Valencia (solo si hay descuento configurado > 0;
+  // el guard evita -0 cuando descuentoValencia es 0).
   const descuentoSede =
-    ciudad.id === "valencia" ? -params.descuentoValencia : 0;
+    ciudad.id === "valencia" && params.descuentoValencia > 0
+      ? -params.descuentoValencia
+      : 0;
 
   // 5.12 — Total antes del piso (Σ de los ítems del desglose)
   const totalSinPiso = fleteConBateria + descuentoSede;

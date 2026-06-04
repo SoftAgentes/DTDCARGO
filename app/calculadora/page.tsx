@@ -95,7 +95,7 @@ export default async function CalculadoraPage() {
                 />
                 <Bloque
                   titulo="Casco central sin recargo"
-                  texto={`Entregas en Valencia (-$${params.descuentoValencia}), Maracay y Caracas centro: tarifa plana. Para otras ciudades, sumamos $${params.tarifaKmFueraCasco}/km desde el casco central.`}
+                  texto={`${params.descuentoValencia > 0 ? `Entregas en Valencia (-$${params.descuentoValencia}), Maracay` : "Valencia, Maracay"} y Caracas centro: tarifa plana. Para otras ciudades, sumamos $${params.tarifaKmFueraCasco}/km desde el casco central.`}
                 />
                 <Bloque
                   titulo="Embalaje incluido"

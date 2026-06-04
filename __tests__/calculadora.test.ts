@@ -22,8 +22,11 @@ import {
  * - Validación: carga inválida (CBM/peso <= 0), ciudad inválida
  */
 describe("calcularEnvioLCL", () => {
-  // Caso normal: 1 CBM, 400 kg, Valencia, estándar (con descuento sede)
-  it("calcula correctamente una carga normal a Valencia (con descuento sede)", () => {
+  // Caso normal: 1 CBM, 400 kg, Valencia, estándar.
+  // Regla actualizada 2026-06-04: Valencia ya NO tiene descuento de sede
+  // (descuentoValencia default = 0). El mecanismo sigue (configurable), pero
+  // por default Valencia cobra igual que el resto del casco.
+  it("calcula una carga normal a Valencia sin descuento de sede (default 0)", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
       pesoKg: 400, // < 500 kg/CBM → sin excedente
@@ -38,8 +41,8 @@ describe("calcularEnvioLCL", () => {
     expect(cot.recargoCiudad).toBe(0); // Valencia es casco
     expect(cot.recargoEmbalaje).toBe(0);
     expect(cot.recargoBateria).toBe(0);
-    expect(cot.descuentoSede).toBe(-50);
-    expect(cot.total).toBe(750); // 800 - 50
+    expect(cot.descuentoSede).toBe(0); // sin descuento (regla actualizada)
+    expect(cot.total).toBe(800); // sin rebaja
     expect(cot.alerta).toBeUndefined();
   });
 
