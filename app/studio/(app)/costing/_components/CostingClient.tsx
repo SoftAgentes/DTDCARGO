@@ -21,11 +21,14 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { SegmentedControl } from "@/app/studio/_components/ui/SegmentedControl";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Icon } from "@/app/studio/_components/icons";
+import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import {
   COST_CATEGORIES,
   fmtMoney,
   marginTone,
+  totalCost,
   type DisplayCurrency,
+  type RouteCostTemplate,
 } from "@/lib/studio/costing/types";
 import type {
   CostingRow,
@@ -35,38 +38,67 @@ import type {
 import {
   asRankingSort,
   breakdownRows,
+  buildCostingCsv,
   costPctOfRevenue,
+  FORECAST_BUCKET_LABEL,
   RANKING_SORTS,
   resolveDisplayRate,
   sortRanking,
   topAndWorst,
+  type Forecast,
+  type ForecastRow,
   type RankingSort,
 } from "@/lib/studio/costing/ui";
 import { CostEditorDrawer } from "./CostEditorDrawer";
+import { TemplateDrawer } from "./TemplateDrawer";
 
-type Tab = "overview" | "ranking" | "breakdown" | "routes";
+type Tab = "overview" | "ranking" | "breakdown" | "routes" | "templates" | "forecast";
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "overview", label: "Overview" },
   { value: "ranking", label: "Ranking de embarques" },
   { value: "breakdown", label: "Desglose por categoría" },
   { value: "routes", label: "Margen por ruta" },
+  { value: "templates", label: "Templates por ruta" },
+  { value: "forecast", label: "Forecast pipeline" },
 ];
+
+/** Descarga un archivo de texto en el cliente (sin lib externa). */
+function downloadTextFile(filename: string, content: string, mime: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+type TemplateEditorState =
+  | { mode: "create" }
+  | { mode: "edit"; template: RouteCostTemplate };
 
 export function CostingClient({
   rows,
   totals,
   routes,
+  templates,
+  forecast,
   vesRate,
 }: {
   rows: CostingRow[];
   totals: CostingTotals;
   routes: RouteMarginRow[];
+  templates: RouteCostTemplate[];
+  forecast: Forecast;
   vesRate: number | null;
 }) {
   const [tab, setTab] = useState<Tab>("overview");
   const [currency, setCurrency] = useState<DisplayCurrency>("USD");
   const [editor, setEditor] = useState<CostingRow | null>(null);
+  const [tplEditor, setTplEditor] = useState<TemplateEditorState | null>(null);
 
   const rate = resolveDisplayRate(vesRate);
   // Formateador de display según el toggle (USD passthrough · VES × tasa).
@@ -81,24 +113,13 @@ export function CostingClient({
     [rows],
   );
 
-  if (rows.length === 0) {
-    return (
-      <div style={{ maxWidth: 1280 }}>
-        <Header
-          currency={currency}
-          onCurrency={setCurrency}
-          rate={rate}
-          hasRows={false}
-          onEdit={undefined}
-        />
-        <EmptyState
-          eyebrow="Costing & Margen"
-          title="Todavía no hay embarques para costear"
-          description="Cuando registres embarques vas a poder cargar sus costos por categoría y ver el margen real contra la facturación."
-        />
-      </div>
+  const hasRows = rows.length > 0;
+  const exportCsv = () =>
+    downloadTextFile(
+      `costing-${new Date().toISOString().slice(0, 10)}.csv`,
+      buildCostingCsv(sortRanking(rows, "margin-pct-desc")),
+      "text/csv;charset=utf-8",
     );
-  }
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -106,44 +127,47 @@ export function CostingClient({
         currency={currency}
         onCurrency={setCurrency}
         rate={rate}
-        hasRows
-        onEdit={() => setEditor(rows[0])}
+        hasRows={hasRows}
+        onEdit={hasRows ? () => setEditor(rows[0]) : undefined}
+        onExport={hasRows ? exportCsv : undefined}
       />
 
       {/* KPIs */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: 14,
-          marginBottom: 20,
-        }}
-      >
-        <KpiCard
-          value={money(totals.revenue)}
-          label="Revenue total"
-          sub={currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
-          valueColor="var(--wine)"
-        />
-        <KpiCard
-          value={money(totals.cost)}
-          label="Costo total"
-          sub={`${Math.round(costPctOfRevenue(totals))}% del revenue`}
-          valueColor="var(--warning)"
-        />
-        <KpiCard
-          value={money(totals.margin)}
-          label="Margen bruto"
-          sub={`${totals.avgMarginPct.toFixed(1)}% promedio`}
-          valueColor={totals.margin < 0 ? "var(--danger)" : "var(--success)"}
-        />
-        <KpiCard
-          value={`${profitable}/${rows.length}`}
-          label="Embarques OK"
-          sub={losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida"}
-          valueColor={losing > 0 ? "var(--danger)" : "var(--success)"}
-        />
-      </div>
+      {hasRows && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: 14,
+            marginBottom: 20,
+          }}
+        >
+          <KpiCard
+            value={money(totals.revenue)}
+            label="Revenue total"
+            sub={currency === "USD" ? "facturado · USD canónico" : "facturado · en Bs."}
+            valueColor="var(--wine)"
+          />
+          <KpiCard
+            value={money(totals.cost)}
+            label="Costo total"
+            sub={`${Math.round(costPctOfRevenue(totals))}% del revenue`}
+            valueColor="var(--warning)"
+          />
+          <KpiCard
+            value={money(totals.margin)}
+            label="Margen bruto"
+            sub={`${totals.avgMarginPct.toFixed(1)}% promedio`}
+            valueColor={totals.margin < 0 ? "var(--danger)" : "var(--success)"}
+          />
+          <KpiCard
+            value={`${profitable}/${rows.length}`}
+            label="Embarques OK"
+            sub={losing > 0 ? `${losing} en pérdida` : "ninguno en pérdida"}
+            valueColor={losing > 0 ? "var(--danger)" : "var(--success)"}
+          />
+        </div>
+      )}
 
       {/* Tabs */}
       <div
@@ -183,20 +207,49 @@ export function CostingClient({
         })}
       </div>
 
-      {tab === "overview" && (
+      {/* Tabs de embarques: empty-state si todavía no hay embarques. */}
+      {(tab === "overview" || tab === "ranking" || tab === "breakdown" || tab === "routes") &&
+        !hasRows && (
+          <EmptyState
+            eyebrow="Costing & Margen"
+            title="Todavía no hay embarques para costear"
+            description="Cuando registres embarques vas a poder cargar sus costos por categoría y ver el margen real contra la facturación. Mientras tanto podés definir Templates por ruta para prellenar costos."
+          />
+        )}
+
+      {hasRows && tab === "overview" && (
         <OverviewView rows={rows} totals={totals} money={money} />
       )}
-      {tab === "ranking" && (
+      {hasRows && tab === "ranking" && (
         <RankingView rows={rows} money={money} onEdit={setEditor} />
       )}
-      {tab === "breakdown" && <BreakdownView totals={totals} money={money} />}
-      {tab === "routes" && <RoutesView routes={routes} money={money} />}
+      {hasRows && tab === "breakdown" && <BreakdownView totals={totals} money={money} />}
+      {hasRows && tab === "routes" && <RoutesView routes={routes} money={money} />}
+
+      {tab === "templates" && (
+        <TemplatesView
+          templates={templates}
+          money={money}
+          onNew={() => setTplEditor({ mode: "create" })}
+          onEdit={(t) => setTplEditor({ mode: "edit", template: t })}
+        />
+      )}
+      {tab === "forecast" && <ForecastView forecast={forecast} money={money} />}
 
       {editor && (
         <CostEditorDrawer
           key={editor.shipment.id}
           row={editor}
           onClose={() => setEditor(null)}
+        />
+      )}
+
+      {tplEditor && (
+        <TemplateDrawer
+          key={tplEditor.mode === "edit" ? tplEditor.template.id : "new"}
+          mode={tplEditor.mode}
+          template={tplEditor.mode === "edit" ? tplEditor.template : undefined}
+          onClose={() => setTplEditor(null)}
         />
       )}
     </div>
@@ -210,12 +263,14 @@ function Header({
   rate,
   hasRows,
   onEdit,
+  onExport,
 }: {
   currency: DisplayCurrency;
   onCurrency: (c: DisplayCurrency) => void;
   rate: number;
   hasRows: boolean;
   onEdit?: () => void;
+  onExport?: () => void;
 }) {
   return (
     <div
@@ -273,6 +328,18 @@ function Header({
             ]}
           />
         </div>
+        {hasRows && onExport && (
+          <ActionButton
+            variant="ghost"
+            size="default"
+            idleLabel="Exportar CSV"
+            idleIcon={Icon.download(14)}
+            successLabel={null}
+            onAction={async () => {
+              onExport();
+            }}
+          />
+        )}
         {hasRows && onEdit && (
           <ActionButton
             variant="primary"
@@ -810,5 +877,390 @@ function RoutesView({ routes, money }: { routes: RouteMarginRow[]; money: Money 
         </div>
       ))}
     </Card>
+  );
+}
+
+// ── Templates por ruta ─────────────────────────────────────────
+function serviceLabel(service: RouteCostTemplate["shipment_service"]): string {
+  if (!service) return "Cualquier servicio";
+  const l = SERVICE_LABELS[service];
+  return l.sub ? `${l.primary} (${l.sub})` : l.primary;
+}
+
+function TemplatesView({
+  templates,
+  money,
+  onNew,
+  onEdit,
+}: {
+  templates: RouteCostTemplate[];
+  money: Money;
+  onNew: () => void;
+  onEdit: (t: RouteCostTemplate) => void;
+}) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <Card style={{ padding: 18 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+          <span style={{ color: "var(--info)", marginTop: 3, flexShrink: 0 }}>
+            {Icon.info(15)}
+          </span>
+          <div style={{ flex: 1, minWidth: 240 }}>
+            <div style={{ font: "800 14px/1.2 var(--f-display)", color: "var(--ink)" }}>
+              ¿Para qué sirven los templates?
+            </div>
+            <div
+              style={{
+                font: "500 12.5px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+                marginTop: 6,
+                maxWidth: "70ch",
+              }}
+            >
+              Definí costos default por <strong>ruta + servicio</strong>. Cuando
+              registres un embarque nuevo en esa combinación, los costos se
+              prellenan automáticamente. Después ajustás si hay diferencias
+              específicas.
+            </div>
+          </div>
+          <ActionButton
+            variant="primary"
+            size="default"
+            idleLabel="Nuevo template"
+            idleIcon={Icon.plus(13)}
+            successLabel={null}
+            onAction={async () => {
+              onNew();
+            }}
+          />
+        </div>
+      </Card>
+
+      {templates.length === 0 ? (
+        <EmptyState
+          eyebrow="Templates por ruta"
+          title="Todavía no hay templates"
+          description="Creá un template de costos por ruta para prellenar el costeo de los embarques nuevos de esa combinación."
+        />
+      ) : (
+        <Card style={{ overflow: "hidden" }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1.4fr 90px 90px 90px 90px 90px 90px 90px 100px 44px",
+              padding: "10px 18px",
+              gap: 8,
+              background: "var(--bg-elevated)",
+              borderBottom: "1px solid var(--border)",
+            }}
+          >
+            {["Ruta · Servicio", "Flete", "Aduana", "Transp.", "Handling", "Seguro", "Comis.", "Otros", "Costo total", ""].map(
+              (h, i) => (
+                <span
+                  key={h || i}
+                  style={{
+                    font: "700 10px/1 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    textAlign: i === 0 ? "left" : i === 9 ? "center" : "right",
+                  }}
+                >
+                  {h}
+                </span>
+              ),
+            )}
+          </div>
+          {templates.map((t) => {
+            const total = totalCost(t);
+            const routeBits = [t.origin, t.destination].filter(Boolean);
+            const route = routeBits.length === 2 ? `${t.origin} → ${t.destination}` : "Cualquier ruta";
+            return (
+              <div
+                key={t.id}
+                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
+                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1.4fr 90px 90px 90px 90px 90px 90px 90px 100px 44px",
+                  padding: "12px 18px",
+                  gap: 8,
+                  alignItems: "center",
+                  borderTop: "1px solid var(--border)",
+                  transition: "background 120ms",
+                  opacity: t.active ? 1 : 0.55,
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        font: "700 13px/1.2 var(--f-sans)",
+                        color: "var(--ink)",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {t.name}
+                    </span>
+                    {!t.active && (
+                      <Badge tone="neutral" size="sm">
+                        Inactivo
+                      </Badge>
+                    )}
+                  </div>
+                  <div style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}>
+                    {route} · {serviceLabel(t.shipment_service)}
+                  </div>
+                </div>
+                <TplCell v={money(t.freight)} />
+                <TplCell v={money(t.customs)} />
+                <TplCell v={money(t.transport)} />
+                <TplCell v={money(t.handling)} />
+                <TplCell v={money(t.insurance)} />
+                <TplCell v={money(t.commission)} />
+                <TplCell v={money(t.other)} />
+                <span style={{ font: "800 13px/1 var(--f-mono)", color: "var(--wine)", textAlign: "right" }}>
+                  {money(total)}
+                </span>
+                <div style={{ textAlign: "center" }}>
+                  <button
+                    type="button"
+                    onClick={() => onEdit(t)}
+                    title="Editar template"
+                    aria-label={`Editar template ${t.name}`}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "var(--wine)")}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = "var(--ink-soft)")}
+                    style={{
+                      background: "transparent",
+                      border: 0,
+                      color: "var(--ink-soft)",
+                      cursor: "pointer",
+                      padding: 6,
+                      display: "inline-flex",
+                    }}
+                  >
+                    {Icon.edit(13)}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function TplCell({ v }: { v: string }) {
+  return (
+    <span style={{ font: "600 11.5px/1 var(--f-mono)", color: "var(--ink-soft)", textAlign: "right" }}>
+      {v}
+    </span>
+  );
+}
+
+// ── Forecast del pipeline ──────────────────────────────────────
+function ForecastView({ forecast, money }: { forecast: Forecast; money: Money }) {
+  const { rows, totals } = forecast;
+
+  if (rows.length === 0) {
+    return (
+      <EmptyState
+        eyebrow="Forecast pipeline"
+        title="Sin pipeline para proyectar"
+        description="Cuando tengas cotizaciones aceptadas (pendientes de embarcar) o enviadas, vas a ver acá el revenue, costo y margen proyectados del pipeline."
+      />
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* Resumen proyectado · navy */}
+      <div
+        style={{
+          background: "var(--ink)",
+          borderRadius: "var(--r-lg)",
+          padding: "20px 22px",
+        }}
+      >
+        <div
+          style={{
+            font: "700 10px/1 var(--f-sans)",
+            color: "var(--ink-inv-soft)",
+            letterSpacing: "0.14em",
+            textTransform: "uppercase",
+          }}
+        >
+          Forecast · pipeline en cierre
+        </div>
+        <div
+          style={{
+            font: "900 18px/1.1 var(--f-display)",
+            color: "var(--ink-inv)",
+            marginTop: 6,
+            marginBottom: 18,
+          }}
+        >
+          Margen proyectado del pipeline
+        </div>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 16,
+          }}
+        >
+          <ForecastMetric label="Revenue proyectado" value={money(totals.revenue)} color="var(--ink-inv)" />
+          <ForecastMetric label="Costo proyectado" value={money(totals.cost)} color="var(--warning)" />
+          <ForecastMetric
+            label="Margen proyectado"
+            value={money(totals.margin)}
+            color={totals.margin < 0 ? "var(--wine-soft)" : "var(--success)"}
+          />
+          <ForecastMetric
+            label="Margen % estimado"
+            value={`${totals.marginPct.toFixed(1)}%`}
+            color="var(--ink-inv)"
+          />
+        </div>
+        <div
+          style={{
+            marginTop: 18,
+            paddingTop: 14,
+            borderTop: "1px solid var(--border-side)",
+            font: "500 12px/1.5 var(--f-sans)",
+            color: "var(--ink-inv-mute)",
+          }}
+        >
+          Sobre {totals.acceptedCount} cotizaciones aceptadas pendientes de
+          embarcar + {totals.pendingCount} enviadas esperando respuesta. El costo
+          sale de un template de ruta cuando existe; si no, se estima.
+        </div>
+      </div>
+
+      {/* Listado de cotizaciones del pipeline */}
+      <Card style={{ overflow: "hidden" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "120px 1fr 110px 110px 110px 96px",
+            padding: "10px 18px",
+            gap: 12,
+            background: "var(--bg-elevated)",
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          {["Cotización", "Cliente · Ruta", "Revenue", "Costo est.", "Margen est.", "Origen"].map((h, i) => (
+            <span
+              key={h}
+              style={{
+                font: "700 10px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+                textAlign: i >= 2 && i <= 4 ? "right" : "left",
+              }}
+            >
+              {h}
+            </span>
+          ))}
+        </div>
+        {rows.map((r) => (
+          <ForecastRowItem key={r.quote.id} row={r} money={money} />
+        ))}
+      </Card>
+    </div>
+  );
+}
+
+function ForecastMetric({ label, value, color }: { label: string; value: string; color: string }) {
+  return (
+    <div>
+      <div
+        style={{
+          font: "700 10px/1 var(--f-sans)",
+          color: "var(--ink-inv-mute)",
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ font: "900 22px/1 var(--f-mono)", color, marginTop: 8 }}>{value}</div>
+    </div>
+  );
+}
+
+function ForecastRowItem({ row, money }: { row: ForecastRow; money: Money }) {
+  const q = row.quote;
+  const route =
+    q.origin && q.destination ? `${q.origin} → ${q.destination}` : "—";
+  const isLoss = row.margin < 0;
+  return (
+    <div
+      onMouseEnter={(e) => (e.currentTarget.style.background = "var(--bg-elevated)")}
+      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "120px 1fr 110px 110px 110px 96px",
+        padding: "12px 18px",
+        gap: 12,
+        alignItems: "center",
+        borderTop: "1px solid var(--border)",
+        transition: "background 120ms",
+      }}
+    >
+      <div>
+        <code style={{ font: "800 11.5px/1 var(--f-mono)", color: "var(--ink)" }}>
+          {q.quote_code}
+        </code>
+        <div style={{ marginTop: 4 }}>
+          <Badge tone={row.bucket === "accepted" ? "success" : "info"} size="sm">
+            {row.bucket === "accepted" ? "Aceptada" : "Enviada"}
+          </Badge>
+        </div>
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            font: "600 12.5px/1.2 var(--f-sans)",
+            color: "var(--ink)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {q.client_name}
+        </div>
+        <div
+          style={{ font: "500 11px/1.2 var(--f-sans)", color: "var(--ink-soft)", marginTop: 2 }}
+          title={FORECAST_BUCKET_LABEL[row.bucket]}
+        >
+          {serviceLabel(q.service)} · {route}
+        </div>
+      </div>
+      <span style={{ font: "700 13px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
+        {money(row.revenue)}
+      </span>
+      <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--warning)", textAlign: "right" }}>
+        {money(row.cost)}
+      </span>
+      <span
+        style={{
+          font: "800 13px/1 var(--f-mono)",
+          color: isLoss ? "var(--danger)" : "var(--success)",
+          textAlign: "right",
+        }}
+      >
+        {money(row.margin)}
+      </span>
+      <div>
+        <Badge tone={row.fromTemplate ? "neutral" : "warning"} size="sm">
+          {row.fromTemplate ? "Template" : "Estimado"}
+        </Badge>
+      </div>
+    </div>
   );
 }

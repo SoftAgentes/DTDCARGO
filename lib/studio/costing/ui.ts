@@ -8,7 +8,14 @@
  */
 
 import type { CostingRow, CostingTotals } from "./queries";
-import type { CostCategoryKey } from "./types";
+import {
+  matchTemplate,
+  templateKey,
+  totalCost,
+  type CostCategoryKey,
+  type RouteCostTemplate,
+} from "./types";
+import type { Quote } from "@/lib/studio/quote-types";
 
 // ── Tasa BCV de display (USD↔VES, display-only) ───────────────
 /**
@@ -123,3 +130,226 @@ export function costPctOfRevenue(totals: CostingTotals): number {
   const pct = (totals.cost / totals.revenue) * 100;
   return Math.max(0, Math.min(100, pct));
 }
+
+// ── Forecast del pipeline (Forecast tab · Slice C) ────────────
+/**
+ * Margen estimado por defecto (fracción del revenue) cuando NO hay un template
+ * que matchee la ruta+servicio de la cotización. El Norte (`ForecastSection`)
+ * asume ~22% de margen (costo = revenue × 0.78). Lo replicamos: si no podemos
+ * estimar el costo real desde un template, usamos este factor.
+ */
+export const DEFAULT_FORECAST_MARGIN_PCT = 22;
+
+/** ¿La cotización todavía está en el pipeline (cuenta para el forecast)? */
+export type ForecastBucket = "accepted" | "pending";
+
+/**
+ * Etiqueta del estado del pipeline para el forecast:
+ *  - `accepted` = aceptada, pendiente de embarcar (alta confianza).
+ *  - `pending`  = enviada, esperando respuesta (pipeline abierto).
+ */
+export const FORECAST_BUCKET_LABEL: Record<ForecastBucket, string> = {
+  accepted: "Aceptada · pendiente de embarcar",
+  pending: "Enviada · esperando respuesta",
+};
+
+export type ForecastRow = {
+  quote: Quote;
+  bucket: ForecastBucket;
+  revenue: number;
+  /** Costo estimado: del template que matchea, o revenue × (1 − margen default). */
+  cost: number;
+  margin: number;
+  marginPct: number;
+  /** true si el costo salió de un template real (no de la estimación %). */
+  fromTemplate: boolean;
+  /** Nombre del template usado (para mostrar la fuente del estimado). */
+  templateName: string | null;
+};
+
+export type ForecastTotals = {
+  revenue: number;
+  cost: number;
+  margin: number;
+  marginPct: number;
+  acceptedCount: number;
+  pendingCount: number;
+};
+
+export type Forecast = {
+  rows: ForecastRow[];
+  totals: ForecastTotals;
+};
+
+function finite(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/** Bucket de una cotización para el forecast (null = no entra al pipeline). */
+function quoteBucket(q: Quote): ForecastBucket | null {
+  // Aceptada y todavía no convertida en embarque → pendiente de embarcar.
+  if (q.status === "accepted" && !q.converted_to_shipment_id) return "accepted";
+  // Enviada (esperando respuesta) → pipeline abierto.
+  if (q.status === "sent") return "pending";
+  return null;
+}
+
+/**
+ * Estima el costo de una cotización. Si hay un template que matchea su
+ * `origin + destination + service`, usa la suma de las 7 categorías del template.
+ * Si no, estima con el margen default (costo = revenue × (1 − margen/100)).
+ * PURA.
+ */
+export function estimateQuoteCost(
+  q: Quote,
+  templates: RouteCostTemplate[],
+): { cost: number; fromTemplate: boolean; templateName: string | null } {
+  const tpl = matchTemplate(templates, {
+    origin: q.origin,
+    destination: q.destination,
+    shipment_service: q.service,
+  });
+  if (tpl) {
+    return { cost: totalCost(tpl), fromTemplate: true, templateName: tpl.name };
+  }
+  const revenue = finite(q.total_usd);
+  const cost = revenue * (1 - DEFAULT_FORECAST_MARGIN_PCT / 100);
+  return { cost, fromTemplate: false, templateName: null };
+}
+
+/**
+ * Proyección de margen sobre el pipeline (cotizaciones aceptadas pendientes de
+ * embarcar + enviadas esperando respuesta). Cruza cada cotización con los
+ * templates de costo por ruta para estimar su costo; cae al margen default si
+ * no hay template. PURA. Espejo de `ForecastSection` del Norte, anclado a las
+ * cotizaciones reales (`quotes`) en vez del mock.
+ */
+export function buildForecast(
+  quotes: Quote[],
+  templates: RouteCostTemplate[],
+): Forecast {
+  const rows: ForecastRow[] = [];
+
+  for (const q of quotes) {
+    const bucket = quoteBucket(q);
+    if (!bucket) continue;
+
+    const revenue = finite(q.total_usd);
+    const { cost, fromTemplate, templateName } = estimateQuoteCost(q, templates);
+    const margin = revenue - cost;
+    const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
+
+    rows.push({
+      quote: q,
+      bucket,
+      revenue,
+      cost,
+      margin,
+      marginPct,
+      fromTemplate,
+      templateName,
+    });
+  }
+
+  // Orden: aceptadas primero (más confianza), luego por revenue desc.
+  rows.sort((a, b) => {
+    if (a.bucket !== b.bucket) return a.bucket === "accepted" ? -1 : 1;
+    return b.revenue - a.revenue;
+  });
+
+  let revenue = 0;
+  let cost = 0;
+  let acceptedCount = 0;
+  let pendingCount = 0;
+  for (const r of rows) {
+    revenue += r.revenue;
+    cost += r.cost;
+    if (r.bucket === "accepted") acceptedCount += 1;
+    else pendingCount += 1;
+  }
+  const margin = revenue - cost;
+  const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
+
+  return {
+    rows,
+    totals: { revenue, cost, margin, marginPct, acceptedCount, pendingCount },
+  };
+}
+
+// ── Export CSV del Ranking de costeo (Slice C) ────────────────
+/** Escapa un valor para una celda CSV (comillas, comas, saltos de línea). */
+export function csvCell(value: unknown): string {
+  const s = value == null ? "" : String(value);
+  if (/[",\n\r]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+/** Encabezados del CSV exportado (USD canónico, 1 columna por categoría). */
+export const COSTING_CSV_HEADERS = [
+  "Codigo",
+  "Cliente",
+  "Origen",
+  "Destino",
+  "Servicio",
+  "Revenue USD",
+  "Flete",
+  "Aduana",
+  "Transporte",
+  "Handling",
+  "Seguro",
+  "Comision",
+  "Otros",
+  "Costo total USD",
+  "Margen USD",
+  "Margen %",
+] as const;
+
+/** Redondea a 2 decimales (números de plata estables en el CSV). */
+function round2(n: number): number {
+  return Math.round(finite(n) * 100) / 100;
+}
+
+/** Una fila CSV (array de celdas crudas, sin escapar) desde una CostingRow. */
+export function costingCsvRow(row: CostingRow): (string | number)[] {
+  const e = row.eco;
+  const s = row.shipment;
+  return [
+    s.code ?? "",
+    s.client_name ?? "",
+    s.origin ?? "",
+    s.destination ?? "",
+    s.shipment_service ?? "",
+    round2(e.revenue),
+    round2(e.freight),
+    round2(e.customs),
+    round2(e.transport),
+    round2(e.handling),
+    round2(e.insurance),
+    round2(e.commission),
+    round2(e.other),
+    round2(e.totalCost),
+    round2(e.margin),
+    round2(e.marginPct),
+  ];
+}
+
+/**
+ * Arma el contenido CSV completo del Ranking de costeo (todas las columnas en
+ * USD canónico — el toggle VES es solo display y no aplica al export). PURA, sin
+ * lib externa. Las filas se exportan en el orden recibido.
+ */
+export function buildCostingCsv(rows: CostingRow[]): string {
+  const lines: string[] = [];
+  lines.push(COSTING_CSV_HEADERS.map(csvCell).join(","));
+  for (const row of rows) {
+    lines.push(costingCsvRow(row).map(csvCell).join(","));
+  }
+  return lines.join("\r\n");
+}
+
+// Re-export del helper de match para que el hook de auto-prefill (tracking) y
+// los tests compartan exactamente la misma lógica que la UI/forecast.
+export { matchTemplate, templateKey };

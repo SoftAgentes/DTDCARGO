@@ -21,6 +21,7 @@ import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-type
 import { getDefaultInitialStatus } from "@/lib/studio/shipment-state-machine";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
+import { prefillShipmentCostsFromTemplate } from "@/lib/studio/costing/queries";
 
 const VALID_SERVICES: ShipmentService[] = [
   "consolidacion",
@@ -138,8 +139,20 @@ export async function createShipment(
       clientName: client_name,
       sourceRef: { kind: "shipment", id: created.id },
     });
+
+    // Auto-prefill de costos desde el template de ruta que matchee (SDD-0053
+    // Slice C). ADITIVO + BEST-EFFORT: si no hay template o el insert falla, NO
+    // bloquea ni revienta la creación del embarque (la fn no lanza; el unique
+    // (tenant_id, shipment_id) se respeta con ignoreDuplicates).
+    await prefillShipmentCostsFromTemplate(admin, tenantId, {
+      id: created.id,
+      origin,
+      destination,
+      shipment_service,
+    });
   }
 
+  revalidatePath("/studio/costing");
   revalidatePath("/studio/tracking");
   revalidatePath("/studio/resumen");
   redirect("/studio/tracking");

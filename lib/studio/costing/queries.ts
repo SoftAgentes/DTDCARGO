@@ -14,6 +14,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   invoiceUsdAmount,
   marginTone,
+  matchTemplate,
   shipmentEconomics,
   totalCost,
   type CostCategoryKey,
@@ -22,8 +23,10 @@ import {
   type ShipmentCosts,
   type ShipmentEconomics,
 } from "./types";
+import type { ShipmentService } from "@/lib/studio/shipment-types";
 import type { InvoiceCurrency, InvoiceStatus } from "@/lib/studio/invoice-types";
 import type { Shipment } from "@/lib/studio/shipment-types";
+import type { Quote, QuoteStatus } from "@/lib/studio/quote-types";
 
 const COST_KEYS: CostCategoryKey[] = [
   "freight",
@@ -377,6 +380,105 @@ export async function latestVesFxRate(
     if (Number.isFinite(n) && n > 0) return n;
   }
   return null;
+}
+
+// ── Forecast del pipeline (Slice C) ───────────────────────────
+/**
+ * Estados de cotización que entran al forecast: `accepted` (pendiente de
+ * embarcar) y `sent` (esperando respuesta). El bucketing fino (y descartar las
+ * aceptadas ya convertidas) lo hace `buildForecast` en ui.ts; acá solo se
+ * acota la query para no traer borradores/rechazadas/vencidas.
+ */
+const FORECAST_QUOTE_STATUSES: QuoteStatus[] = ["accepted", "sent"];
+
+const FORECAST_QUOTE_COLUMNS =
+  "id, tenant_id, quote_code, client_markbox, client_name, service, origin, destination, cbm, weight_kg, boxes, packaging, rate_per_cbm, flat_rate, rate_used_id, subtotal_usd, packaging_cost, total_usd, status, valid_until, sent_at, accepted_at, converted_to_shipment_id, notes, created_at, updated_at, deleted_at";
+
+/**
+ * Cotizaciones del pipeline para el forecast (aceptadas + enviadas), no
+ * borradas. RLS por tenant. El cruce con templates y el cálculo del margen
+ * proyectado son puros (`buildForecast` en ui.ts).
+ */
+export async function forecastQuotes(
+  supabase: SupabaseClient,
+): Promise<Quote[]> {
+  const { data, error } = await supabase
+    .from("quotes")
+    .select(FORECAST_QUOTE_COLUMNS)
+    .in("status", FORECAST_QUOTE_STATUSES)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(500);
+
+  if (error) throw error;
+  return (data as Quote[] | null) ?? [];
+}
+
+// ── Auto-prefill de costos al crear un embarque (Slice C) ─────
+export type PrefillShipment = {
+  id: string;
+  origin: string | null;
+  destination: string | null;
+  shipment_service: ShipmentService | null;
+};
+
+export type PrefillResult =
+  | { prefilled: true; templateId: string }
+  | { prefilled: false; reason: "no-template" | "exists" | "error" };
+
+/**
+ * Auto-prefill BEST-EFFORT del costeo de un embarque recién creado: si hay un
+ * template de costo por ruta que matchea su `origin + destination + service`,
+ * crea su fila `shipment_costs` con los 7 defaults del template.
+ *
+ * Garantías (la creación del embarque NO debe romperse por esto):
+ *  - Si NO hay template match → no inserta, devuelve `no-template`.
+ *  - Respeta el unique `(tenant_id, shipment_id)`: usa `onConflict` con
+ *    `ignoreDuplicates` → NO pisa una fila de costos ya existente.
+ *  - NUNCA lanza: cualquier error de lectura/escritura se traga y devuelve
+ *    `error` (el caller lo ignora). El defensor real cross-tenant es el trigger
+ *    de 0100.
+ *
+ * Recibe un cliente con privilegios suficientes para escribir `shipment_costs`
+ * del tenant (admin client desde la action) + el `tenantId` explícito.
+ */
+export async function prefillShipmentCostsFromTemplate(
+  supabase: SupabaseClient,
+  tenantId: string,
+  shipment: PrefillShipment,
+): Promise<PrefillResult> {
+  try {
+    const templates = await listRouteCostTemplates(supabase);
+    const tpl = matchTemplate(templates, {
+      origin: shipment.origin,
+      destination: shipment.destination,
+      shipment_service: shipment.shipment_service,
+    });
+    if (!tpl) return { prefilled: false, reason: "no-template" };
+
+    const { error } = await supabase.from("shipment_costs").upsert(
+      {
+        tenant_id: tenantId,
+        shipment_id: shipment.id,
+        freight: tpl.freight,
+        customs: tpl.customs,
+        transport: tpl.transport,
+        handling: tpl.handling,
+        insurance: tpl.insurance,
+        commission: tpl.commission,
+        other: tpl.other,
+        notes: `Prellenado desde template "${tpl.name}".`,
+        deleted_at: null,
+      },
+      { onConflict: "tenant_id,shipment_id", ignoreDuplicates: true },
+    );
+
+    if (error) return { prefilled: false, reason: "error" };
+    return { prefilled: true, templateId: tpl.id };
+  } catch {
+    // Best-effort: jamás propaga (no romper la creación del embarque).
+    return { prefilled: false, reason: "error" };
+  }
 }
 
 // Re-export del helper de suma para la UI (Slice B).
