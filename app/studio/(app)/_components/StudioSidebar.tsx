@@ -92,6 +92,7 @@ export const MODULES: ModuleDef[] = [
   { id: "mentions", group: "SISTEMA", label: "Menciones", icon: "bell", slug: "/studio/menciones" },
   { id: "mailing", group: "SISTEMA", label: "Mailing", labelKey: "chrome.sidebar.mailing", icon: "mail", slug: "/studio/mailing" },
   { id: "no-olvidar", group: "SISTEMA", label: "No-Olvidar", labelKey: "chrome.sidebar.no_olvidar", icon: "lock", slug: "/studio/no-olvidar" },
+  { id: "legal", group: "SISTEMA", label: "Legal · T&C", icon: "doc", slug: "/studio/legal", adminOnly: true },
   { id: "users", group: "SISTEMA", label: "Usuarios", labelKey: "chrome.sidebar.users", icon: "shield", slug: "/studio/usuarios" },
   { id: "operarios", group: "SISTEMA", label: "Operarios PWA", labelKey: "chrome.sidebar.operarios_pwa", icon: "users", slug: "/studio/operarios" },
   { id: "bugs", group: "SISTEMA", label: "Bug Tracker", labelKey: "chrome.sidebar.bugs", icon: "shield", slug: "/studio/bugs" },

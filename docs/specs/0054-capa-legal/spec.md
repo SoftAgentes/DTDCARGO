@@ -1,10 +1,10 @@
 ---
 sdd: "0054"
-title: "Capa legal — documentos versionados + aceptaciones inmutables (gate AUT-04); Slice A = foundation"
-status: approved
+title: "Capa legal — documentos versionados + aceptaciones inmutables (gate AUT-04); Slice A = foundation · Slice B = admin + gate advisory"
+status: in-progress
 author: "Claude Code (carril legal · Norte v2.4)"
 created: 2026-06-03
-updated: 2026-06-05
+updated: 2026-06-04
 supersedes: null
 superseded_by: null
 related: ["0021", "0011", "0042", "0046", "0016", "0045"]
@@ -43,6 +43,12 @@ DDP **bloqueada** sin aceptación vigente).
 1. **Gate AUT-04 = bloqueo duro** (no advisory), tal como el Norte: emitir la factura DDP exige una
    aceptación **vigente** del cliente para esa cotización, **atada a la medida** (cbm/weight/total).
    (A diferencia de 0046 identidad, que es advisory — acá es compliance que **bloquea**.)
+   - **§3.1-bis · "Advisory → duro al cerrar C" (decisión founder, Slice B):** el gate se **cablea en
+     Slice B** pero arranca en modo **ADVISORY** (avisa, no bloquea), porque el productor de
+     aceptaciones reales es Slice C (todavía no existe). Un bloqueo duro hoy dejaría TODA factura DDP sin
+     poder emitirse. El gate queda **listo** para volverse bloqueo duro cuando Slice C produzca
+     aceptaciones — y entonces se honra §3.1 (bloqueo). El override del operador **siempre queda en la
+     auditoría** (`legal_ack: "override"`), así que la decisión es trazable aún en advisory.
 2. **Aceptaciones INMUTABLES (append-only):** ni UPDATE ni DELETE (triggers DB que los rechazan). Es
    prueba legal. Publicar una nueva versión de doc **no reescribe** aceptaciones previas (conservan su
    versión histórica).
@@ -111,10 +117,14 @@ Slice A deja la **fundación verificable**.
 - [x] `node scripts/verify.mjs` 🟢. Migración **NO** aplicada a prod.
 
 ### Slice B / C
-- [ ] B: módulo admin "Aceptaciones T&C" (versionado de docs + bitácora) + **wire del gate en
-      Facturación** (bloquea `draft→emitida` sin aceptación vigente) → flips `Invoice` partial→built.
+- [x] B: módulo admin `/studio/legal` (read-only, admin-only) — versionado de docs (repositorio +
+      histórico + modal "Ver" del body) + bitácora de aceptaciones (KPIs + búsqueda + filtro + modal de
+      Evidencia) — + **wire del gate en Facturación** en modo **ADVISORY** (avisa, no bloquea; ver
+      decisión §3.1-bis). Flips `Invoice` partial→built (el gate existe y audita, listo para bloqueo duro
+      cuando Slice C lo respalde).
 - [ ] C: flujo de aceptación del cliente (Portal/cotización: medida + casilla T&C + evidencia + POST
-      que server-sella). Toca Portal con cuidado de la frontera.
+      que server-sella). Toca Portal con cuidado de la frontera. **Al cerrar C, el gate pasa de advisory
+      a bloqueo duro** (decisión §3.1).
 
 ## 6. Fuera de alcance (respetar)
 - **NO UI** en Slice A (admin → B, cliente → C). **NO wire del gate en Facturación** (Slice B). **NO**
@@ -247,3 +257,50 @@ filtraba por tenant. Round-2 cierra eso (gate `node scripts/verify.mjs` 🟢, 91
   del `unique(tenant, code)`. **NO se cambia el patrón ahora.** La action de registro de **Slice C debe
   REINTENTAR** ante un choque de `unique(tenant_id, acceptance_code)` (correlativo legal **sin huecos**):
   re-leer el próximo código y re-insertar. Documentado también en el comentario del RPC en `0102`.
+
+### Slice B (admin + gate advisory) — cerrado · gate 🟢 (948 tests; +17 nuevos en `lib/studio/legal/`)
+
+> **Modo del gate: ADVISORY** ("advisory → duro al cerrar C", §3.1-bis). Sin migración (es una compuerta
+> de lectura + audit sobre `invoices`; no se tocó su schema ni su máquina de estados). NO aplicado a prod.
+
+**Gate por MARKBOX (`lib/studio/legal/queries.ts`):**
+- La factura DDP (`invoices`, 0077) NO tiene `client_id` ni `quote_code` — el gate de Slice A
+  (`hasValidAcceptance`) matchea por esos campos. Por eso Slice B agrega **`hasValidAcceptanceForMarkbox`**
+  que matchea por **`client_markbox` + medida**: el MARKBOX está denormalizado en la factura, la medida
+  (`cbm`/`weight`) sale del **shipment** (`volume_m3`/`weight_kg`) y el total a comparar = **`base_amount`**
+  (pre-IVA, comparable al `total_usd` aceptado).
+- **Cero drift entre gates:** la validación de una fila de aceptación (tenant explícito + hash
+  load-bearing recomputado desde la fila + docs vigentes + medida con tol clampeada ≤ 0.02) se extrajo a
+  un único helper privado **`acceptanceRowValid`**, usado por AMBOS gates. `hasValidAcceptance` se
+  refactorizó para usarlo **sin cambiar su comportamiento** (sus tests de Slice A siguen verdes; +2 tests
+  de no-regresión nuevos). Fail-closed sin tenant/markbox (no toca la DB).
+- **`listLegalDocs`** (nueva): TODOS los docs (vigente + archivada), `key` asc / `version` desc — para el
+  repositorio del admin.
+
+**Wire en Facturación (`app/studio/(app)/facturacion/actions.ts`):** helper interno `evaluateLegalGate`
+→ `{ required, hasAcceptance }`. `required = shipment.shipment_service === 'puerta_a_puerta_DDP'`
+(sin shipment o no-DDP ⇒ `required=false`, el gate no aplica → non-DDP / sin shipment emiten igual que
+hoy). `emitInvoice(id, legalOverride?)`: si `required && !hasAcceptance && !legalOverride` ⇒ **no muta** y
+devuelve `{ needsLegalAck, warning }`. Si emite con override (sin aceptación) ⇒ audita
+`legal_ack: "override"`; con aceptación ⇒ `legal_ack: "valid"`; non-DDP ⇒ no agrega el campo.
+**`createInvoice` (emit-on-create):** para no meter un confirm en el drawer, si es DDP sin aceptación
+**emite igual** y audita `legal_ack: "override"` — **gap conocido de V1 (advisory):** el create-and-emit no
+tiene confirm inline; el confirm explícito vive en el detalle (`emitInvoice`).
+
+**UI (`InvoiceDetailClient.tsx`):** el botón "Emitir factura" llama `emitInvoice(id)`; si vuelve
+`needsLegalAck`, NO trata como error ni emite — muestra un **banner warning** (tokens `var(--warning*)`)
+con el aviso + un segundo `<ActionButton variant="warning">` "Emitir igual (sin aceptación)" que llama
+`emitInvoice(id, true)`. (Detalle: el caso advisory throwea un sentinel interno que el ActionButton
+intercepta en `onError` para NO disparar el flash verde de éxito ni el banner rojo de error.)
+
+**Módulo admin `/studio/legal`** (server `force-dynamic`, **admin-only** con el patrón exacto de
+`direccion/page.tsx`: `user_tenants.role === 'admin'`, no-admin → `redirect("/studio/dashboard")`).
+`LegalClient` con 2 tabs: **Documentos** (repositorio versionado por `key` + histórico en tabla + modal
+"Ver" con el `body`) y **Aceptaciones** (3 KPIs: total / este mes / en versión vigente · búsqueda · filtro
+por documento · tabla de acuses · modal de Evidencia: cliente/markbox, cotización, docs+versión, medida,
+fecha/hora, IP, hash). Read-only (sin "Nueva versión" en este slice). Primitivas reales del Studio
+(`Badge`/`EmptyState`/`KpiCard`/`Icon`/tokens), **no** los `ERPUI.*` del mockup. Entry "Legal · T&C" en el
+sidebar (grupo SISTEMA, **adminOnly**).
+
+**Pendiente:** Slice C (flujo de aceptación del cliente que *produce* las aceptaciones) → recién ahí el
+gate puede pasar de advisory a **bloqueo duro** (§3.1). Founder: aplicar `0102` a prod.
