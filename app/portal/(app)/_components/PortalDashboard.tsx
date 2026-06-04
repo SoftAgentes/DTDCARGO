@@ -59,8 +59,14 @@ export function PortalDashboard({
           </p>
         </div>
         <div className="flex flex-wrap gap-2.5">
-          {/* Slices 5.6 / 5.7 — presentes pero deshabilitados ("Próximamente"). */}
-          <SoonButton label="Nueva compra" />
+          {/* SDD-0057 Slice B — "Nueva compra" ya operativo (Tus proveedores). */}
+          <Link
+            href="/portal/proveedores"
+            className="btn btn-primary inline-flex items-center gap-1.5"
+          >
+            Nueva compra <ArrowIcon size={15} />
+          </Link>
+          {/* Slice 5.7 — cotización aún deshabilitada ("Próximamente"). */}
           <SoonButton label="Nueva cotización" />
         </div>
       </div>

@@ -50,9 +50,13 @@ secuencial por cliente, accesibles desde el **Portal** (el cliente crea/ve) y el
    principales (lección [[0042]]: el cliente del portal no está en `user_tenants`). Donde la RLS
    del cliente no alcance para insertar, la action del portal usa **admin client** scopeado
    explícito por el markbox de sesión (patrón [[project_sdd0054_capa_legal]] Slice C).
-3. **Código de compra:** `DTD-XXXX-N` (N = secuencial de compra del cliente) → por caja
-   `DTD-XXXX-N-M` (M = caja 1..boxes), que es el **shipping mark** que ya imprime SDD-0031.
-   RPC `next_prealerta_seq(client)` secuencial por cliente.
+3. **Código de compra (esquema del Norte, reconciliado en Slice B):**
+   `DTD-{clientNo}-{supplier_seq}-{order_seq}` — `clientNo` del MARKBOX,
+   `supplier_seq` = nº de proveedor POR CLIENTE (#1, #2, …), `order_seq` = nº de compra de
+   ESE (cliente, proveedor). RPCs `next_supplier_seq(client)` + `next_order_seq(client,
+   supplier)`. El **número de caja NO va en el código**: por caja se rotula el MISMO `code`
+   + "Caja M/N" como texto (es el shipping mark que imprime SDD-0031).
+   *(El borrador de Slice A usaba `DTD-XXXX-N` + por-caja `-M`; se descartó al reconciliar.)*
 4. **Reusa etiquetas (SDD-0031):** desde una compra se generan las etiquetas con su código +
    boxes + el `warehouses_cn` destino. El selector de supplier de `/studio/etiquetas` pasa de
    input libre a dropdown de `suppliers_cn` (cierra D6 de 0031) — en Slice C.
@@ -112,7 +116,7 @@ secuencial por cliente, accesibles desde el **Portal** (el cliente crea/ve) y el
 - [x] **Frontera:** nada del sitio público; el portal es superficie Supabase (permitido).
 
 ### Slice B / C
-- [ ] B: portal "Tus proveedores" + "Nueva compra" (código + etiquetas) + "Mis compras";
+- [x] B: portal "Tus proveedores" + "Nueva compra" (código + etiquetas) + "Mis compras";
       habilita el CTA del dashboard.
 - [ ] C: `/studio/proveedores` backeado + cola de prealertas entrantes + dropdown de supplier
       en `/studio/etiquetas` (cierra D6 de 0031).
@@ -174,3 +178,54 @@ secuencial por cliente, accesibles desde el **Portal** (el cliente crea/ve) y el
 - **Pendiente Slice B/C** (sin tocar acá): UI del portal (proveedores + nueva compra + mis
   compras), action con reintento ante choque de `code`, backear `/studio/proveedores` + cola
   de prealertas entrantes, dropdown de supplier en `/studio/etiquetas` (cierra D6 de 0031).
+
+### Slice B — Portal UI (2026-06-04, worktree `feat/portal`)
+
+**Reconciliación de la fundación (migración `0105` editada in-place — sigue SIN prod):**
+- El código pasó del borrador `DTD-XXXX-N` al esquema del Norte
+  `DTD-{clientNo}-{supplier_seq}-{order_seq}` (`PortalSuppliers` en `_norte/portal/app.jsx`):
+  cada proveedor tiene un nº POR CLIENTE y cada compra a ese proveedor incrementa el order#.
+  - `suppliers_cn`: + columna `supplier_seq int not null` + `unique(tenant_id, client_markbox,
+    supplier_seq)`. RPC **`next_supplier_seq(p_client_markbox)`** (próximo nº de proveedor;
+    cuenta el `max(supplier_seq)` incluyendo borrados → no reusa números todavía rotulados).
+  - `prealertas.code` = `DTD-{clientNo}-{supplier_seq}-{order_seq}`. **`next_prealerta_seq`
+    reemplazada por `next_order_seq(p_client_markbox, p_supplier_id)`** (cuenta las prealertas
+    vivas de ese proveedor para ese cliente + 1). Se mantiene `unique(tenant_id, code)` como
+    red anti-race → la action reintenta ante `23505`.
+  - El **número de caja NO es un 5º segmento**: `lib/studio/prealertas/types.ts` reemplazó
+    `boxCode(code, n)` por `buildPrealertaCode(markbox, supplierSeq, orderSeq)` +
+    `buildLabels(code, totalBoxes)` → `[{code, boxN, totalBoxes}]` (mismo code en todas las
+    cajas, "Caja M/N" como texto). Helpers nuevos: `clientNoFromMarkbox`, `summarizeSuppliers`
+    (proveedor + nº de compras + próximo código para la lista del portal). Tests actualizados.
+
+**Portal UI (estética real paper/wine, tokens `var(--*)`, es-VE / voseo, sentence-case):**
+- **`app/portal/(app)/proveedores/`** — "Tus proveedores": header + "Nueva compra" (primary) +
+  explicador del Norte + card "Por qué registrar a tu proveedor importa" (Rapidez/Control
+  total) + mensaje verde + lista de proveedores (`#n`, nombre, N compras, próximo código,
+  "Re-comprar") + alta inline de proveedor + **modal "Nueva compra"** (proveedor existente o
+  nuevo → descripción → cajas → valor opcional → tracking opcional → crea la prealerta → muestra
+  el **código** + CTA "Generar etiquetas"). `SuppliersClient` (client) + `actions.ts`.
+- **`app/portal/(app)/compras/`** — "Mis compras": listado read-only de prealertas (código,
+  proveedor, descripción, cajas, estado con `PrealertaStatusBadge`), recientes primero; cada
+  fila linkea a sus etiquetas.
+- **Etiquetas (V1 básico):** `app/portal/(app)/compras/[code]/etiquetas` → vista imprimible
+  (`LabelsClient`): una etiqueta por caja con "SHIPPING TO DTD-CARGO" + el code + "Caja M/N" +
+  nombre del cliente + placeholder de QR; botón "Descargar / imprimir" (`window.print()` con
+  CSS `@media print` que aísla la grilla). **Diferido (TODO comentado):** adjuntar packing
+  list / factura / fotos antes de generar (paso "docs" del `LabelGenerator` del Norte).
+- **Dashboard:** el CTA "Nueva compra" (antes deshabilitado "Próximamente") ahora linkea a
+  `/portal/proveedores`. **`PortalNav`:** + ítem "Compras" (cubre proveedores + compras).
+
+**Server actions** (`proveedores/actions.ts`, `"use server"`): `createSupplierAction` /
+`updateSupplierAction` (validan con `validateSupplierInput`) · `createPrealertaAction`
+(`validatePrealertaInput`; resuelve markbox vía `get_portal_client_markbox`, arma el code con
+`next_order_seq` + `buildPrealertaCode`, **reintenta hasta 5× ante `23505`** recomputando el
+order_seq). Usan el **client de SESIÓN** (`createClient`) — la RLS doble de 0105 permite la
+escritura del cliente; service_role queda de respaldo. `revalidatePath` de `/portal`,
+`/portal/proveedores`, `/portal/compras`. Sin Zod; anti doble-submit con `pending`.
+
+**Gate `node scripts/verify.mjs` VERDE** desde el worktree (lint 0 errores · rsc-boundary ·
+typecheck · 1056 tests · docs:check). Migración `0105` **NO** aplicada a prod. Sin push.
+
+**Pendiente Slice C** (sin tocar acá): backear `/studio/proveedores` + cola de prealertas
+entrantes para el operador + dropdown de supplier en `/studio/etiquetas` (cierra D6 de 0031).

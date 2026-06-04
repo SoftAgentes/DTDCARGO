@@ -31,7 +31,7 @@ function num(v: unknown): number {
 }
 
 const SUPPLIER_COLUMNS =
-  "id, tenant_id, client_markbox, name, city, wechat, contact, notes, deleted_at, created_at, updated_at";
+  "id, tenant_id, client_markbox, supplier_seq, name, city, wechat, contact, notes, deleted_at, created_at, updated_at";
 
 const PREALERTA_COLUMNS =
   "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, boxes, est_value_usd, status, received_at, shipment_id, deleted_at, created_at, updated_at";
@@ -41,6 +41,7 @@ function coerceSupplier(r: Record<string, unknown>): Supplier {
     id: String(r.id),
     tenant_id: String(r.tenant_id),
     client_markbox: String(r.client_markbox ?? ""),
+    supplier_seq: Math.round(num(r.supplier_seq)),
     name: String(r.name ?? ""),
     city: (r.city as string | null) ?? null,
     wechat: (r.wechat as string | null) ?? null,
@@ -86,7 +87,7 @@ export async function listSuppliers(
     .from("suppliers_cn")
     .select(SUPPLIER_COLUMNS)
     .is("deleted_at", null)
-    .order("name", { ascending: true })
+    .order("supplier_seq", { ascending: true })
     .limit(2000);
   if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
 
@@ -120,6 +121,28 @@ export async function listPrealertas(
   return ((data as Record<string, unknown>[] | null) ?? []).map(
     coercePrealerta,
   );
+}
+
+/**
+ * UNA compra del cliente del portal por su `code`. Filtra por code + markbox: si
+ * el code no es suyo (o no existe) → null → la página llama `notFound()`. Misma
+ * defensa en profundidad que el resto del portal (markbox explícito + RLS).
+ */
+export async function getPrealertaByCode(
+  supabase: SupabaseClient,
+  code: string,
+  opts: { markbox: string },
+): Promise<Prealerta | null> {
+  const { data, error } = await supabase
+    .from("prealertas")
+    .select(PREALERTA_COLUMNS)
+    .eq("code", code)
+    .eq("client_markbox", opts.markbox)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return coercePrealerta(data as Record<string, unknown>);
 }
 
 // ── Stats del operador ─────────────────────────────────────────

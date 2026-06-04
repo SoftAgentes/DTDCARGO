@@ -1,15 +1,19 @@
 /**
- * Tests del módulo Portal · Compras (prealertas) + Proveedores (SDD-0057,
- * Slice A). Cubre los criterios de aceptación §5 Slice A: validadores
- * (name/description vacíos, boxes 0/negativo, status inválido, est_value
- * negativo), `boxCode` (incl. boxes > 9), y los helpers label/tone por status.
+ * Tests del módulo Portal · Compras (prealertas) + Proveedores (SDD-0057).
+ * Cubre validadores (name/description vacíos, boxes 0/negativo, status inválido,
+ * est_value negativo), el armado del código del Norte
+ * `DTD-{clientNo}-{supplier_seq}-{order_seq}`, la lista de etiquetas por caja, el
+ * resumen de proveedores y los helpers label/tone por status.
  */
 
 import { describe, it, expect } from "vitest";
 import {
   validateSupplierInput,
   validatePrealertaInput,
-  boxCode,
+  clientNoFromMarkbox,
+  buildPrealertaCode,
+  buildLabels,
+  summarizeSuppliers,
   prealertaStatusLabel,
   prealertaStatusTone,
   isPrealertaStatus,
@@ -158,29 +162,108 @@ describe("validatePrealertaInput", () => {
 });
 
 // ╔═══════════════════════════════════════════════════════════╗
-// ║ boxCode · shipping mark por caja                          ║
+// ║ clientNoFromMarkbox                                        ║
 // ╚═══════════════════════════════════════════════════════════╝
 
-describe("boxCode", () => {
-  it("arma DTD-XXXX-N-M", () => {
-    expect(boxCode("DTD-5532-3", 2)).toBe("DTD-5532-3-2");
+describe("clientNoFromMarkbox", () => {
+  it("extrae el nº de cliente del MARKBOX", () => {
+    expect(clientNoFromMarkbox("DTD-5532")).toBe("5532");
   });
 
-  it("soporta boxes > 9 (sin padding)", () => {
-    expect(boxCode("DTD-5532-3", 12)).toBe("DTD-5532-3-12");
+  it("normaliza a mayúsculas y recorta espacios", () => {
+    expect(clientNoFromMarkbox("  dtd-1001  ")).toBe("1001");
   });
 
-  it("normaliza boxN < 1 a 1", () => {
-    expect(boxCode("DTD-5532-3", 0)).toBe("DTD-5532-3-1");
-    expect(boxCode("DTD-5532-3", -3)).toBe("DTD-5532-3-1");
+  it("cae al MARKBOX completo si no tiene el patrón esperado", () => {
+    expect(clientNoFromMarkbox("ABC123")).toBe("ABC123");
+    expect(clientNoFromMarkbox("DTD-")).toBe("DTD-");
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ buildPrealertaCode · DTD-{clientNo}-{supplier_seq}-{order} ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+describe("buildPrealertaCode", () => {
+  it("arma el código del Norte", () => {
+    expect(buildPrealertaCode("DTD-5532", 3, 2)).toBe("DTD-5532-3-2");
   });
 
-  it("trunca boxN fraccionario", () => {
-    expect(boxCode("DTD-5532-3", 4.9)).toBe("DTD-5532-3-4");
+  it("soporta seq > 9 (sin padding)", () => {
+    expect(buildPrealertaCode("DTD-5532", 12, 27)).toBe("DTD-5532-12-27");
   });
 
-  it("maneja boxN no numérico cayendo a 1", () => {
-    expect(boxCode("DTD-5532-3", Number("x"))).toBe("DTD-5532-3-1");
+  it("normaliza seq < 1 a 1 y trunca fraccionarios", () => {
+    expect(buildPrealertaCode("DTD-5532", 0, -3)).toBe("DTD-5532-1-1");
+    expect(buildPrealertaCode("DTD-5532", 2.9, 4.2)).toBe("DTD-5532-2-4");
+  });
+
+  it("normaliza el MARKBOX (mayúsculas)", () => {
+    expect(buildPrealertaCode("dtd-1001", 1, 1)).toBe("DTD-1001-1-1");
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ buildLabels · etiquetas por caja (mismo code + Caja M/N)   ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+describe("buildLabels", () => {
+  it("arma una etiqueta por caja, todas con el MISMO code", () => {
+    const labels = buildLabels("DTD-5532-3-2", 3);
+    expect(labels).toHaveLength(3);
+    expect(labels.map((l) => l.code)).toEqual([
+      "DTD-5532-3-2",
+      "DTD-5532-3-2",
+      "DTD-5532-3-2",
+    ]);
+    expect(labels.map((l) => l.boxN)).toEqual([1, 2, 3]);
+    expect(labels.every((l) => l.totalBoxes === 3)).toBe(true);
+  });
+
+  it("el nº de caja NO es un 5º segmento del código", () => {
+    const labels = buildLabels("DTD-5532-3-2", 2);
+    expect(labels[1].code).toBe("DTD-5532-3-2"); // no "DTD-5532-3-2-2"
+  });
+
+  it("normaliza boxes < 1 a 1 caja", () => {
+    expect(buildLabels("DTD-5532-3-2", 0)).toHaveLength(1);
+    expect(buildLabels("DTD-5532-3-2", -5)).toHaveLength(1);
+  });
+
+  it("trunca boxes fraccionario", () => {
+    expect(buildLabels("DTD-5532-3-2", 4.9)).toHaveLength(4);
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ summarizeSuppliers · lista del portal                     ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+describe("summarizeSuppliers", () => {
+  const suppliers = [
+    { id: "s1", supplier_seq: 1, name: "Yiwu Standard Co" },
+    { id: "s2", supplier_seq: 2, name: "Shenzhen Lights Ltd" },
+  ];
+
+  it("cuenta compras y arma el próximo código por proveedor", () => {
+    const views = summarizeSuppliers("DTD-5532", suppliers, { s1: 2, s2: 1 });
+    expect(views[0]).toMatchObject({
+      supplierSeq: 1,
+      orderCount: 2,
+      nextCode: "DTD-5532-1-3",
+    });
+    expect(views[1]).toMatchObject({
+      supplierSeq: 2,
+      orderCount: 1,
+      nextCode: "DTD-5532-2-2",
+    });
+  });
+
+  it("proveedor sin compras → orderCount 0, próximo código termina en 1", () => {
+    const views = summarizeSuppliers("DTD-5532", suppliers, {});
+    expect(views[0].orderCount).toBe(0);
+    expect(views[0].nextCode).toBe("DTD-5532-1-1");
+    expect(views[1].nextCode).toBe("DTD-5532-2-1");
   });
 });
 
