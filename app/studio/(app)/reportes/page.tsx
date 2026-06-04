@@ -26,17 +26,19 @@ import {
   incomeStatement,
   agingReport,
   cashflowReport,
+  builderRows,
 } from "@/lib/studio/reports/queries";
 import { asPeriod } from "@/lib/studio/reports/types";
+import { asSourceId } from "@/lib/studio/reports/builder-types";
 import { ReportesClient } from "./_components/ReportesClient";
 
 export const metadata = { title: "Reportes & Analytics" };
 export const dynamic = "force-dynamic";
 
-type Category = "op" | "com" | "con";
+type Category = "op" | "com" | "con" | "build";
 
 function asCategory(raw: unknown): Category {
-  return raw === "com" || raw === "con" ? raw : "op";
+  return raw === "com" || raw === "con" || raw === "build" ? raw : "op";
 }
 
 export default async function ReportesPage({
@@ -84,6 +86,23 @@ export default async function ReportesPage({
         income={income}
         aging={aging}
         cashflow={cashflow}
+      />
+    );
+  }
+
+  if (category === "build") {
+    // El constructor carga las filas de la fuente activa (?src=); el agregado
+    // (dim/métrica/filtro) lo arma el client sobre estas filas (sin volver al
+    // server por cada combinación).
+    const source = asSourceId(single("src"));
+    const rows = await builderRows(supabase, source, period);
+    return (
+      <ReportesClient
+        period={period}
+        category="build"
+        rep={rep}
+        builderSource={source}
+        builderData={rows}
       />
     );
   }

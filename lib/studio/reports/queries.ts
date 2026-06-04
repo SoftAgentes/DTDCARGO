@@ -33,6 +33,8 @@ import {
   monthlyCashflow,
   periodRange,
   revenueOf,
+  routeLabel,
+  serviceLabel,
   transitDays,
   type AgingItem,
   type AgingReport,
@@ -52,8 +54,22 @@ import {
   type TierDistRow,
   type TransitByPortRow,
 } from "./types";
-import type { InvoiceCurrency } from "@/lib/studio/invoice-types";
-import type { ShipmentService } from "@/lib/shared/shipment-public";
+import {
+  currencyLabel,
+  statusLabel as invoiceStatusLabel,
+  type InvoiceCurrency,
+  type InvoiceStatus,
+} from "@/lib/studio/invoice-types";
+import {
+  STATUS_LABELS,
+  type ShipmentService,
+  type ShipmentStatus,
+} from "@/lib/shared/shipment-public";
+import {
+  REPORT_SOURCES,
+  type BuilderRow,
+  type ReportSourceId,
+} from "./builder-types";
 
 // ── Estados "activos" (en curso) para el KPI de Overview ───────
 // Embarque que aún se está moviendo (no draft, no terminal).
@@ -621,3 +637,146 @@ export async function cashflowReport(
     overdue: kpis.overdue,
   };
 }
+
+// ═══════════════════════════════════════════════════════════════
+// Slice C — Constructor (report builder)
+// ═══════════════════════════════════════════════════════════════
+//
+// Trae las filas de la fuente elegida en el período, YA APLANADAS al shape
+// BuilderRow (dims resueltas a labels, métricas a número, filtros a string) →
+// `buildReport` (builder-types.ts) agrega/filtra sin tocar la DB. Anclado a
+// campos REALES (§3.2): NO fabrica costos/márgenes/segmentos. RLS por tenant.
+
+const EMPTY_LABEL = "Sin asignar";
+
+/**
+ * Filas del constructor para EMBARQUES: reusa `fetchShipments` +
+ * `fetchRevenueByCode` (el mismo join por shipment_code que el resto de
+ * Reportes; sin N+1). Cada fila enriquece su Revenue USD desde el mapa.
+ *  - dims: client (client_name) · route (origen→destino) · status · service.
+ *  - metrics: count (=1 por fila) · cbm (volume_m3) · revenue (USD del join).
+ */
+async function shipmentBuilderRows(
+  supabase: SupabaseClient,
+  range: DateRange,
+): Promise<BuilderRow[]> {
+  const [shipments, revenueByCode] = await Promise.all([
+    fetchShipments(supabase, range),
+    fetchRevenueByCode(supabase, range),
+  ]);
+
+  return shipments.map((s) => {
+    const statusKnown = STATUS_LABELS[s.status as ShipmentStatus];
+    const clientName = (s.client_name ?? "").trim() || EMPTY_LABEL;
+    return {
+      dims: {
+        client: clientName,
+        route: routeLabel(s.origin, s.destination),
+        status: statusKnown ?? s.status,
+        service: serviceLabel(s.shipment_service),
+      },
+      metrics: {
+        cbm: Number(s.cbm) || 0,
+        revenue: revenueByCode.get(s.code) ?? 0,
+      },
+      // Los filtros usan el MISMO label que la dimensión (filtrar por lo que se ve).
+      filters: {
+        status: statusKnown ?? s.status,
+        service: serviceLabel(s.shipment_service),
+      },
+    };
+  });
+}
+
+const INVOICE_BUILDER_COLUMNS =
+  "client_name, currency, fx_rate, total_amount, paid_amount, status, issued_at, created_at";
+
+/**
+ * Filas del constructor para FACTURAS: una query simple del período (por
+ * issued_at ?? created_at, consistente con cashflow/Facturación), USD-normalizada.
+ *  - dims: client (client_name) · status · currency.
+ *  - metrics: count · amount (total USD) · balance (saldo = total − pagado, USD).
+ * Excluye `anulada` (no representa monto vivo). El saldo USD escala el pendiente
+ * en moneda por la misma tasa USD que el total (fx del documento; CNY → 0).
+ */
+async function invoiceBuilderRows(
+  supabase: SupabaseClient,
+  range: DateRange,
+): Promise<BuilderRow[]> {
+  const { data, error } = await supabase
+    .from("invoices")
+    .select(INVOICE_BUILDER_COLUMNS)
+    .is("deleted_at", null)
+    .neq("status", "anulada")
+    .limit(20000);
+  if (error) throw error;
+
+  const rows: BuilderRow[] = [];
+  for (const r of (data as Record<string, unknown>[] | null) ?? []) {
+    const statusVal = r.status as InvoiceStatus;
+    // Excluir anuladas (el .neq de la query + guard in-memory por robustez,
+    // misma norma que cashflowReport).
+    if (statusVal === "anulada") continue;
+
+    const refDate =
+      ((r.issued_at as string | null) ?? (r.created_at as string | null)) ??
+      null;
+    const refDay = refDate?.slice(0, 10) ?? null;
+    if (!refDay || refDay < range.from || refDay > range.to) continue;
+
+    const currency = r.currency as InvoiceCurrency;
+    const total = num(r.total_amount);
+    const fx = numOrNull(r.fx_rate);
+    const amountUsd = invoiceUsdAmount({
+      currency,
+      total_amount: total,
+      fx_rate: fx,
+    });
+    // Saldo en moneda = total − pagado; lo normalizamos a USD con la MISMA tasa
+    // (reusar invoiceUsdAmount sobre el saldo en moneda del documento).
+    const balanceMoney = Math.max(0, total - num(r.paid_amount));
+    const balanceUsd = invoiceUsdAmount({
+      currency,
+      total_amount: balanceMoney,
+      fx_rate: fx,
+    });
+
+    const clientName = (r.client_name as string | null)?.trim() || EMPTY_LABEL;
+    rows.push({
+      dims: {
+        client: clientName,
+        status: invoiceStatusLabel(statusVal),
+        currency: currencyLabel(currency),
+      },
+      metrics: {
+        amount: Math.round(amountUsd * 100) / 100,
+        balance: Math.round(balanceUsd * 100) / 100,
+      },
+      filters: {
+        status: invoiceStatusLabel(statusVal),
+        currency: currencyLabel(currency),
+      },
+    });
+  }
+  return rows;
+}
+
+/**
+ * Filas aplanadas de la fuente elegida en el período. Despacha a la query
+ * concreta (embarques/facturas). El constructor (builder-types.ts) agrega/
+ * filtra/exporta sobre estas filas SIN volver a la DB.
+ */
+export async function builderRows(
+  supabase: SupabaseClient,
+  source: ReportSourceId,
+  period: ReportPeriod,
+  today?: Date,
+): Promise<BuilderRow[]> {
+  const range = periodRange(period, today);
+  if (source === "invoices") return invoiceBuilderRows(supabase, range);
+  return shipmentBuilderRows(supabase, range);
+}
+
+// Mantiene a REPORT_SOURCES como dependencia consciente del módulo (la query y la
+// UI comparten el mismo catálogo; el import explícito evita drift de keys).
+export { REPORT_SOURCES };

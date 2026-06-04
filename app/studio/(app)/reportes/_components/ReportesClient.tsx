@@ -33,9 +33,14 @@ import {
   type RouteRow,
   type ServiceRow,
 } from "@/lib/studio/reports/types";
+import {
+  type BuilderRow,
+  type ReportSourceId,
+} from "@/lib/studio/reports/builder-types";
 import { VolumeBars, Donut, Progress, type DonutSlice } from "./charts";
+import { BuilderView } from "./BuilderView";
 
-type Category = "op" | "com" | "con";
+type Category = "op" | "com" | "con" | "build";
 
 // Tabs nivel-2 por categoría (value = ?rep=).
 const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
@@ -51,9 +56,11 @@ const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
     { value: "aging", label: "Aging CxC/CxP" },
     { value: "cashflow", label: "Cashflow" },
   ],
+  // El Constructor no tiene nivel-2 (la fuente/dim/métrica se eligen dentro).
+  build: [],
 };
 
-// Categorías nivel-1. op/com/con operables (Slices A+B); mix/build "Pronto".
+// Categorías nivel-1. op/com/con/build operables (Slices A+B+C); mix "Pronto".
 const CATEGORIES: {
   id: string;
   label: string;
@@ -63,8 +70,8 @@ const CATEGORIES: {
   { id: "op", label: "Operacionales", count: 4, slice: null },
   { id: "com", label: "Comerciales", count: 1, slice: null },
   { id: "con", label: "Contables & financieros", count: 3, slice: null },
+  { id: "build", label: "Constructor", count: 2, slice: null },
   { id: "mix", label: "Combinados", count: 3, slice: "Slice C" },
-  { id: "build", label: "Constructor", count: 1, slice: "Slice C" },
 ];
 
 const fmtUsd = (n: number) =>
@@ -82,8 +89,10 @@ const fmtUsdFull = (n: number) => {
 const fmtNum = (n: number) => Math.round(n).toLocaleString("en-US");
 
 // Resuelve el rep activo dentro de la categoría (default = primer tab).
+// El Constructor no tiene tabs nivel-2 → "" (la vista no depende del rep).
 function resolveRep(category: Category, raw: string | undefined): string {
   const tabs = TABS_BY_CATEGORY[category];
+  if (tabs.length === 0) return "";
   return tabs.some((t) => t.value === raw) ? (raw as string) : tabs[0].value;
 }
 
@@ -99,6 +108,8 @@ export function ReportesClient({
   income,
   aging,
   cashflow,
+  builderSource,
+  builderData,
 }: {
   period: ReportPeriod;
   category: Category;
@@ -114,6 +125,9 @@ export function ReportesClient({
   income?: IncomeStatement;
   aging?: AgingReport;
   cashflow?: CashflowReport;
+  // Constructor (Slice C)
+  builderSource?: ReportSourceId;
+  builderData?: BuilderRow[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -125,17 +139,23 @@ export function ReportesClient({
     period?: ReportPeriod;
     cat?: Category;
     rep?: string;
+    src?: ReportSourceId;
   }) => {
     const s = new URLSearchParams(params.toString());
     if (next.period) s.set("period", next.period);
     if (next.cat) {
       s.set("cat", next.cat);
       s.delete("rep"); // al cambiar de categoría, default = primer tab
+      s.delete("src"); // y reseteamos la fuente del constructor
     }
     if (next.rep) {
       const tabs = TABS_BY_CATEGORY[next.cat ?? category];
-      if (next.rep === tabs[0].value) s.delete("rep");
+      if (tabs.length > 0 && next.rep === tabs[0].value) s.delete("rep");
       else s.set("rep", next.rep);
+    }
+    if (next.src) {
+      if (next.src === "shipments") s.delete("src"); // default
+      else s.set("src", next.src);
     }
     const qs = s.toString();
     startTransition(() => {
@@ -293,7 +313,8 @@ export function ReportesClient({
         })}
       </div>
 
-      {/* Nivel 2 · reporte dentro de la categoría */}
+      {/* Nivel 2 · reporte dentro de la categoría (el Constructor no tiene tabs) */}
+      {tabs.length > 0 && (
       <div
         role="tablist"
         style={{
@@ -330,6 +351,7 @@ export function ReportesClient({
           );
         })}
       </div>
+      )}
 
       {/* Vistas · Operacionales (Slice A) */}
       {category === "op" && activeRep === "overview" && overview && (
@@ -357,6 +379,17 @@ export function ReportesClient({
       )}
       {category === "con" && activeRep === "cashflow" && cashflow && (
         <CashflowView cashflow={cashflow} />
+      )}
+
+      {/* Vista · Constructor (Slice C) · key=source → remonta y resetea los
+          selectores (dim/métrica/filtro) al cambiar de fuente, sin efecto. */}
+      {category === "build" && builderSource && builderData && (
+        <BuilderView
+          key={builderSource}
+          source={builderSource}
+          rows={builderData}
+          onSource={(src) => navigate({ src })}
+        />
       )}
     </div>
   );

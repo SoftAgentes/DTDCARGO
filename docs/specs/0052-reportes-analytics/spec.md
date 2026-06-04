@@ -172,10 +172,13 @@ anclada a `shipments` + `invoices` + naviera.
 - [x] Período server-side; montos USD-normalizados; **EmptyState honesto** donde no hay datos.
 - [x] `node scripts/verify.mjs` 🟢. **Sin migración.** `ui-ux-designer` OK.
 
-### Slice C (diferido · con bloqueo documentado)
-- [ ] **Constructor** (builder fuente→agrupar→métrica→filtro + export CSV) · **Combinados**
-      (requiere costo directo por embarque **real**, NO fabricado) · **Por agente** (requiere
-      atribución de agente en `quotes`) · **Posición IVA** (requiere Fiscal/Bloque 3).
+### Slice C (parcial)
+- [x] **Constructor** (builder fuente→agrupar→métrica→filtro + export CSV) — **V1 implementado** 2026-06-04
+      (rama `feat/reportes-c`): 2 fuentes (Embarques, Facturas) sobre datos reales, agregación pura, export CSV
+      client-side, guardar reportes en localStorage. Categoría "Constructor" habilitada en `ReportesClient`.
+- [ ] **Combinados** (rentab. ruta / margen cliente / costo-CBM) — **DESBLOQUEADO** por SDD-0053 Costing
+      (`shipment_costs` reales en prod); pendiente de implementar.
+- [ ] **Por agente** (requiere atribución de agente en `quotes`, inexistente) · **Posición IVA** (requiere Fiscal/Bloque 3).
 
 ## 6. Fuera de alcance (respetar)
 
@@ -317,3 +320,18 @@ todos con bloqueo documentado (sin fuente real / depende de Bloque 3).
    como 2 chips informativos sutiles (`Badge` neutral → quitado por ui-ux, solo texto; tono `--ink-soft`,
    visibles solo si > 0). Aclaración de modelo: **toda factura tiene cliente** (`invoices.client_name NOT
    NULL`) → "factura huérfana" = sin embarque-en-rango (desfase de fecha), distinto de "embarque sin cliente".
+
+### Slice C · Constructor — V1 (2026-06-04 · rama `feat/reportes-c`, vía harness)
+
+- **`lib/studio/reports/builder-types.ts`** (puro, server-safe): `REPORT_SOURCES` (2 fuentes — Embarques + Facturas —
+  cada una con `dims`/`metrics {agg: count|sum|avg, money?}`/`filters`, todas ancladas a campos REALES, cero fabricado),
+  `buildReport(rows, {dimKey, metric, filter})` → `{rows:[{label,value,count}], total}` (agrupa+agrega, ordena desc,
+  sin NaN), `buildReportCsv` (escapa comas/comillas). **`queries.ts`**: query del builder que trae la fuente del período
+  (reusa `fetchShipments`+`revenueByCode` para enriquecer revenue; facturas USD-norm). **`BuilderView.tsx`** (`"use client"`):
+  selectores fuente→dim→métrica→filtro + tabla agrupada con barras tokenizadas + export CSV (Blob client-side) + guardar
+  reportes en `localStorage` (SSR-safe). Categoría **Constructor** habilitada en `ReportesClient` (dejó de estar "Pronto").
+- **Sin migración** (presentación pura). Reviewer APPROVED + ui-ux OK. Fix aplicado: contraste AA del conteo (`--ink-mute`→`--ink-soft`).
+- **Nits ui-ux dejados (no bloqueantes, pulido de coherencia futura):** la tabla de resultado no usa el `HeaderRow` del
+  módulo (sin rótulos de columna en pantalla; el CSV sí los lleva) · `EmptyState` primitivo para "fuente vacía" vs
+  "filtro dejó 0 grupos" · target+hover del `×` en los chips guardados.
+- **Pendiente de Slice C:** Combinados (desbloqueado por Costing) · Por-agente (bloqueado) · Posición IVA (Bloque 3) · export PDF.
