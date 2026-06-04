@@ -170,6 +170,79 @@ describe("operationalOverview", () => {
     const marzo = ov.monthly.find((m) => m.month === "2026-03");
     expect(marzo?.count).toBe(1);
   });
+
+  it("KPI revenue EXCLUYE facturas huérfanas y cuadra con la suma de las filas", async () => {
+    // Factura "huérfana": shipment_code que NO matchea ningún embarque del rango.
+    // Antes inflaba el KPI (sumaba TODO el mapa) pero no aparecía en ninguna fila.
+    const invoicesConHuerfana = [
+      ...invoices,
+      { shipment_code: "ZZ-NO-EXISTE", total_amount: 99999, currency: "USD", fx_rate: null, status: "emitida" },
+    ];
+
+    const ov = await operationalOverview(
+      stub({ shipments, invoices: invoicesConHuerfana }).client,
+      "1A",
+      TODAY,
+    );
+    const routes = await reportByRoute(
+      stub({ shipments, invoices: invoicesConHuerfana }).client,
+      "1A",
+      TODAY,
+    );
+    const services = await reportByService(
+      stub({ shipments, invoices: invoicesConHuerfana }).client,
+      "1A",
+      TODAY,
+    );
+
+    // KPI = revenue atribuible a los embarques (8000 + 2000 + 1000) — sin la
+    // huérfana (99999). El antiguo bug daba 110999.
+    expect(ov.revenueUsd).toBe(11000);
+
+    // KPI == Σ revenue de las filas (por construcción, mismo cálculo).
+    const sumRoutes = routes.reduce((s, r) => s + r.revenue, 0);
+    const sumServices = services.reduce((s, r) => s + r.revenue, 0);
+    expect(sumRoutes).toBe(ov.revenueUsd);
+    expect(sumServices).toBe(ov.revenueUsd);
+  });
+
+  it("KPI == Σ filas al centavo con facturas VES sub-centavo (redondeo total-vs-serie)", async () => {
+    // Embarques en rutas Y servicios distintos → cada uno cae en su propia fila.
+    const vesShipments = [
+      {
+        id: "v1", code: "V1", origin: "Yiwu", destination: "Pto Cabello",
+        shipment_service: "consolidacion", status: "in_transit", volume_m3: 5,
+        created_at: "2026-05-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+      {
+        id: "v2", code: "V2", origin: "Shenzhen", destination: "La Guaira",
+        shipment_service: "puerta_a_puerta_DDP", status: "in_transit", volume_m3: 5,
+        created_at: "2026-05-01T00:00:00Z", arrived_destination_at: null, delivered_at: null,
+      },
+    ];
+    // VES/fx=3 → 10000/3 = 3333.3333… USD (sub-centavo). Si el KPI sumara crudo y
+    // redondeara una vez (6666.67) mientras las filas redondean por grupo
+    // (3333.33 + 3333.33 = 6666.66), divergirían 1 centavo. El redondeo del mapa
+    // por code los alinea: KPI == Σ filas exacto.
+    const vesInvoices = [
+      { shipment_code: "V1", total_amount: 10000, currency: "VES", fx_rate: 3, status: "emitida" },
+      { shipment_code: "V2", total_amount: 10000, currency: "VES", fx_rate: 3, status: "emitida" },
+    ];
+
+    const ov = await operationalOverview(
+      stub({ shipments: vesShipments, invoices: vesInvoices }).client, "1A", TODAY,
+    );
+    const routes = await reportByRoute(
+      stub({ shipments: vesShipments, invoices: vesInvoices }).client, "1A", TODAY,
+    );
+    const services = await reportByService(
+      stub({ shipments: vesShipments, invoices: vesInvoices }).client, "1A", TODAY,
+    );
+
+    expect(ov.revenueUsd).toBe(6666.66);
+    expect(routes.reduce((s, r) => s + r.revenue, 0)).toBe(ov.revenueUsd);
+    expect(services.reduce((s, r) => s + r.revenue, 0)).toBe(ov.revenueUsd);
+  });
 });
 
 // ── reportByRoute / reportByService usan revenue join ──────────
