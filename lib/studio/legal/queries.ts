@@ -1,11 +1,19 @@
 /**
- * Queries de la Capa Legal (SDD-0054 · Slice A).
+ * Queries de la Capa Legal (SDD-0054 · Slice A + Slice B).
  *
  * Funciones que reciben un SupabaseClient y confían en RLS por tenant. Cubren:
- *   · currentClientDocs   = los docs vigentes de cara al cliente (entran al gate).
- *   · listAcceptances     = la bitácora de aceptaciones (orden desc), filtrable.
- *   · hasValidAcceptance  = el GATE AUT-04: ¿existe una aceptación de este cliente
- *                           para esta cotización cuya MEDIDA matchee la vigente?
+ *   · currentClientDocs            = los docs vigentes de cara al cliente (gate).
+ *   · listLegalDocs                = TODOS los docs (vigente + archivada), para el
+ *                                    repositorio del admin (Slice B).
+ *   · listAcceptances              = la bitácora de aceptaciones (orden desc).
+ *   · hasValidAcceptance           = el GATE AUT-04 por client_id + quote_code.
+ *   · hasValidAcceptanceForMarkbox = el MISMO gate, pero matcheando por
+ *                                    client_markbox (Slice B: la factura no tiene
+ *                                    client_id ni quote_code, solo el markbox).
+ *
+ * Slice B (round-2 preservado): la validación de una FILA de aceptación
+ * (tenant + hash load-bearing + docs vigentes + medida) vive en un único helper
+ * privado `acceptanceRowValid`, usado por AMBOS gates → cero drift entre ellos.
  *
  * `numeric` de Supabase llega como string → se coerce a number en cada lectura.
  * `body`/`docs` (jsonb) pueden llegar como objeto ya parseado o como string.
@@ -61,20 +69,49 @@ function coerceDoc(row: Record<string, unknown>): LegalDoc {
  * Documentos vigentes de cara al cliente (status=vigente · audience=cliente).
  * Son los que el cliente acepta en la cotización y los que entran al gate.
  *
- * `tenantId` (round-2): si se pasa, se filtra explícitamente por tenant — no se
- * confía solo en RLS (el gate corre como service_role, que la apaga; sin esto el
- * mapa de versiones vigentes mezclaría tenants).
+ * `tenantId` (round-3 · m-6): REQUERIDO. Se filtra explícitamente por tenant — no
+ * se confía solo en RLS (el gate corre como service_role, que la apaga). Si fuera
+ * opcional, un caller que lo olvide corriendo con admin client recibiría las docs
+ * vigentes de TODOS los tenants → `requiredVersions` envenenado (cross-tenant). El
+ * typechecker fuerza pasarlo en cada call-site.
  */
 export async function currentClientDocs(
+  supabase: SupabaseClient,
+  tenantId: string,
+): Promise<LegalDoc[]> {
+  const tid = String(tenantId ?? "").trim();
+  // Sin tenant no se puede acotar el set vigente → fail-closed (lista vacía).
+  if (!tid) return [];
+
+  const { data, error } = await supabase
+    .from("legal_docs")
+    .select(DOC_COLUMNS)
+    .eq("status", "vigente")
+    .eq("audience", "cliente")
+    .eq("tenant_id", tid)
+    .order("key", { ascending: true });
+
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceDoc);
+}
+
+/**
+ * TODOS los documentos legales del tenant — vigentes Y archivadas — para el
+ * repositorio del admin (Slice B). Orden: `key` asc, luego `version` desc, así
+ * cada doc agrupa sus versiones con la última arriba. NO filtra por audience ni
+ * por status: el admin ve el histórico completo.
+ *
+ * `tenantId` (round-2): si se pasa, se filtra explícitamente por tenant.
+ */
+export async function listLegalDocs(
   supabase: SupabaseClient,
   tenantId?: string,
 ): Promise<LegalDoc[]> {
   let q = supabase
     .from("legal_docs")
     .select(DOC_COLUMNS)
-    .eq("status", "vigente")
-    .eq("audience", "cliente")
-    .order("key", { ascending: true });
+    .order("key", { ascending: true })
+    .order("version", { ascending: false });
 
   const tid = String(tenantId ?? "").trim();
   if (tid) q = q.eq("tenant_id", tid);
@@ -167,6 +204,79 @@ const MAX_GATE_TOL = 0.02;
 const GATE_COLUMNS =
   "client_markbox, quote_code, docs, cbm, weight_kg, total_usd, ip, accepted_at, hash";
 
+/** Clampea la tolerancia que el caller pide a [0, MAX_GATE_TOL]. */
+function clampGateTol(tol: number | undefined): number {
+  return Math.min(
+    Math.max(Number.isFinite(tol) ? (tol as number) : 0, 0),
+    MAX_GATE_TOL,
+  );
+}
+
+/**
+ * ÚNICA validación de una fila de aceptación — la usan AMBOS gates
+ * (`hasValidAcceptance` por client_id+quote_code y `hasValidAcceptanceForMarkbox`
+ * por client_markbox), así no hay drift entre ellos. Round-2 íntegro:
+ *
+ *  (2) hash LOAD-BEARING — recomputa `hashEvidence` desde los campos de la PROPIA
+ *      fila (canonizando `accepted_at`, ver más abajo) y lo compara con `row.hash`.
+ *      Si no matchea ⇒ evidencia forjada/corrupta ⇒ no vale.
+ *  (3) docs vigentes — la aceptación debe cubrir TODAS las keys de cara al cliente
+ *      en su versión vigente (`requiredVersions`). Re-versión ⇒ re-aceptación.
+ *  (4) medida — la aceptada coincide con la vigente (`measureMatches`, `tol` ya
+ *      clampeada por el caller).
+ *
+ * El filtro (1) tenant + el filtro por identidad (client_id / client_markbox +
+ * quote_code) los aplica la query de cada gate ANTES de llegar acá.
+ */
+function acceptanceRowValid(
+  raw: Record<string, unknown>,
+  requiredVersions: Map<string, string>,
+  current: Measure,
+  tol: number,
+): boolean {
+  const docs = parseJson<DocRef[]>(raw.docs, []);
+  const ip = raw.ip == null ? null : String(raw.ip);
+  // accepted_at: la DB (timestamptz) lo devuelve como `…+00:00`; el sello lo hasheó
+  // con `toISOString()` (`…000Z`). Canonizamos a la forma del sello para que el hash
+  // recompute matchee — sin esto TODA fila real fallaría el match (el gate verde no
+  // cubre la frontera con la DB real: el stub usaba el mismo formato a ambos lados).
+  // INVARIANTE (M-2 · round-3): `new Date(raw).toISOString()` produce MILISEGUNDOS.
+  // Esto SOLO reproduce el hash sellado si la fila guardó `accepted_at` en ms — lo
+  // que pasa si se selló EXPLÍCITO (ver seal.ts). Una fila con MICROsegundos (p.ej.
+  // por `default now()` en un seed/import) se truncaría a ms acá y NO matchearía →
+  // falso-negativo silencioso. Toda inserción debe sellar accepted_at vía el seal.
+  const acceptedAtRaw = raw.accepted_at == null ? "" : String(raw.accepted_at);
+  const acceptedAtDate = acceptedAtRaw ? new Date(acceptedAtRaw) : null;
+  const acceptedAt =
+    acceptedAtDate && !Number.isNaN(acceptedAtDate.getTime())
+      ? acceptedAtDate.toISOString()
+      : acceptedAtRaw;
+  const measure: Measure = {
+    cbm: num(raw.cbm),
+    weight_kg: num(raw.weight_kg),
+    total_usd: num(raw.total_usd),
+  };
+
+  // (2) Hash load-bearing: recomputar desde la propia fila y comparar.
+  const recomputed = hashEvidence({
+    client_markbox: String(raw.client_markbox ?? ""),
+    quote_code: String(raw.quote_code ?? ""),
+    docs,
+    cbm: measure.cbm,
+    weight_kg: measure.weight_kg,
+    total_usd: measure.total_usd,
+    ip,
+    accepted_at: acceptedAt,
+  });
+  if (recomputed !== String(raw.hash ?? "")) return false; // forjada/corrupta
+
+  // (3) Docs vigentes: cubrir TODAS las keys de cliente en su versión vigente.
+  if (!coversCurrentDocs(docs, requiredVersions)) return false;
+
+  // (4) Medida: la aceptada coincide con la vigente.
+  return measureMatches(measure, current, tol);
+}
+
 /**
  * GATE AUT-04 (bloqueo duro de Facturación, Slice B). Round-2: el hash es
  * LOAD-BEARING y el gate es ÍNTEGRO. Para que una aceptación cuente, TODO esto:
@@ -225,48 +335,104 @@ export async function hasValidAcceptance(
     weight_kg: num(query.weight),
     total_usd: num(query.total),
   };
-  const tol = Math.min(
-    Math.max(Number.isFinite(query.tol) ? (query.tol as number) : 0, 0),
-    MAX_GATE_TOL,
-  );
+  const tol = clampGateTol(query.tol);
 
   for (const raw of (data as Record<string, unknown>[] | null) ?? []) {
-    const docs = parseJson<DocRef[]>(raw.docs, []);
-    const ip = raw.ip == null ? null : String(raw.ip);
-    // accepted_at: la DB (timestamptz) lo devuelve como `…+00:00`; el sello lo hasheó
-    // con `toISOString()` (`…000Z`). Canonizamos a la forma del sello para que el hash
-    // recompute matchee — sin esto TODA fila real fallaría el match (el gate verde no
-    // cubre la frontera con la DB real: el stub usaba el mismo formato a ambos lados).
-    const acceptedAtRaw = raw.accepted_at == null ? "" : String(raw.accepted_at);
-    const acceptedAtDate = acceptedAtRaw ? new Date(acceptedAtRaw) : null;
-    const acceptedAt =
-      acceptedAtDate && !Number.isNaN(acceptedAtDate.getTime())
-        ? acceptedAtDate.toISOString()
-        : acceptedAtRaw;
-    const measure: Measure = {
-      cbm: num(raw.cbm),
-      weight_kg: num(raw.weight_kg),
-      total_usd: num(raw.total_usd),
-    };
+    if (acceptanceRowValid(raw, requiredVersions, current, tol)) return true;
+  }
 
-    // (2) Hash load-bearing: recomputar desde la propia fila y comparar.
-    const recomputed = hashEvidence({
-      client_markbox: String(raw.client_markbox ?? ""),
-      quote_code: String(raw.quote_code ?? ""),
-      docs,
-      cbm: measure.cbm,
-      weight_kg: measure.weight_kg,
-      total_usd: measure.total_usd,
-      ip,
-      accepted_at: acceptedAt,
-    });
-    if (recomputed !== String(raw.hash ?? "")) continue; // evidencia forjada/corrupta
+  return false;
+}
 
-    // (3) Docs vigentes: cubrir TODAS las keys de cliente en su versión vigente.
-    if (!coversCurrentDocs(docs, requiredVersions)) continue;
+export type GateByMarkboxQuery = {
+  /** Tenant explícito (round-2). Mismo motivo que en GateQuery. */
+  tenantId: string;
+  /** MARKBOX denormalizado del cliente — lo que la factura SÍ tiene. */
+  clientMarkbox: string;
+  cbm: number;
+  weight: number;
+  total: number;
+  /**
+   * Referencia de la ORDEN puntual (round-3 · M-1). Cuando llega no-vacío, EXIGE
+   * que la aceptación tenga `quote_code === orderRef` — así la aceptación queda
+   * atada a ESTA orden, no solo a la terna (markbox, medida, total). Sin esto,
+   * una aceptación es FUNGIBLE entre facturas distintas del mismo cliente que
+   * casualmente compartan cbm+weight+base_amount (debilita "aceptó ESTA orden").
+   *
+   * Granularidad = la ORDEN (shipment_code), NO el invoice_id: dos facturas del
+   * MISMO shipment (re-emisión) comparten aceptación (misma orden); facturas de
+   * shipments DISTINTOS no. La action de Slice C sella `quote_code = shipment_code`
+   * (o el invoice_code si no hubiera shipment). Para DDP el shipment SIEMPRE existe,
+   * así que el caller de Facturación pasa `orderRef = invoice.shipment_code`.
+   *
+   * Si se omite (undefined/vacío) ⇒ comportamiento previo (match por terna): no
+   * rompe la emisión non-DDP / sin shipment / sin shipment_code.
+   */
+  orderRef?: string;
+  /** Tolerancia relativa de la medida (default 0). Clamp server-side ≤ 0.02. */
+  tol?: number;
+};
 
-    // (4) Medida: la aceptada coincide con la vigente.
-    if (measureMatches(measure, current, tol)) return true;
+/**
+ * GATE AUT-04 por MARKBOX (Slice B). Espeja TODA la seguridad de
+ * `hasValidAcceptance` (round-2) pero matchea la aceptación por `client_markbox`
+ * en vez de `client_id` + `quote_code` — porque la factura DDP NO tiene ni el
+ * client_id ni el quote_code, solo el MARKBOX denormalizado + la medida (que
+ * sale del shipment) + el total (base_amount, pre-IVA, comparable al total_usd
+ * aceptado).
+ *
+ * Garantías preservadas (vía el helper compartido `acceptanceRowValid`):
+ *   (1) tenant explícito `.eq("tenant_id", tenantId)` — no se confía solo en RLS.
+ *   (2) hash LOAD-BEARING (recomputado desde la fila).
+ *   (3) docs vigentes (cubre TODAS las keys de cliente en su versión vigente).
+ *   (4) medida con `measureMatches` + `tol` clampeada ≤ 0.02.
+ *   (5) ORDEN puntual (round-3 · M-1): si `query.orderRef` llega no-vacío, la
+ *       aceptación DEBE tener ese `quote_code` (= shipment_code sellado). Cierra
+ *       la fungibilidad cross-factura de una aceptación con la misma terna.
+ *
+ * Sin tenantId o clientMarkbox ⇒ false (fail-closed, sin tocar la DB).
+ */
+export async function hasValidAcceptanceForMarkbox(
+  supabase: SupabaseClient,
+  query: GateByMarkboxQuery,
+): Promise<boolean> {
+  const tenantId = String(query.tenantId ?? "").trim();
+  const clientMarkbox = String(query.clientMarkbox ?? "").trim();
+  if (!tenantId || !clientMarkbox) return false;
+
+  const vigentes = await currentClientDocs(supabase, tenantId);
+  if (vigentes.length === 0) return false; // fail-closed
+  const requiredVersions = new Map<string, string>(
+    vigentes.map((d) => [d.key, d.version]),
+  );
+
+  let q = supabase
+    .from("legal_acceptances")
+    .select(GATE_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("client_markbox", clientMarkbox);
+
+  // M-1: si el caller pasa la referencia de la ORDEN puntual, la aceptación DEBE
+  // tener ese `quote_code` (sellado = shipment_code) — así no es fungible entre
+  // facturas del mismo cliente con la misma terna. Vacío ⇒ match por terna (legacy).
+  const orderRef = String(query.orderRef ?? "").trim();
+  if (orderRef) q = q.eq("quote_code", orderRef);
+
+  const { data, error } = await q
+    .order("accepted_at", { ascending: false })
+    .limit(500);
+
+  if (error) throw error;
+
+  const current: Measure = {
+    cbm: num(query.cbm),
+    weight_kg: num(query.weight),
+    total_usd: num(query.total),
+  };
+  const tol = clampGateTol(query.tol);
+
+  for (const raw of (data as Record<string, unknown>[] | null) ?? []) {
+    if (acceptanceRowValid(raw, requiredVersions, current, tol)) return true;
   }
 
   return false;

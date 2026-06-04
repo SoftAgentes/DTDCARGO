@@ -19,6 +19,12 @@ import {
   type RateInput,
 } from "@/lib/studio/rate-types";
 import type { ShipmentService } from "@/lib/studio/shipment-types";
+import {
+  CALC_FIELDS,
+  validateCalculatorSettingsInput,
+  type CalculatorSettingsActionState,
+  type CalculatorSettingsInput,
+} from "@/lib/studio/calculator-settings-types";
 
 const VALID_SERVICES: ShipmentService[] = [
   "consolidacion",
@@ -193,6 +199,84 @@ export async function softDeleteRate(
   }
 
   revalidatePath("/studio/tarifas");
+  revalidatePath("/calculadora");
+  return { ok: true };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Parámetros del calculador (Fase 3 Slice A) · tabla calculator_settings.
+// Upsert singleton por tenant. Alimenta el calculador público.
+// ─────────────────────────────────────────────────────────────
+
+/** camelCase (CalcParams) → columna snake_case de calculator_settings. */
+const SETTINGS_COLUMN: Record<keyof CalculatorSettingsInput, string> = {
+  pesoIncluidoKg: "peso_incluido_kg",
+  pesoMaxKg: "peso_max_kg",
+  recargoExcedenteKg: "recargo_excedente_kg",
+  descuentoValencia: "descuento_valencia",
+  recargoEmbalajeEspecial: "recargo_embalaje_especial",
+  recargoBateriaMult: "recargo_bateria_mult",
+  thresholdCascoKm: "threshold_casco_km",
+  tarifaKmFueraCasco: "tarifa_km_fuera_casco",
+};
+
+function settingsFromFormData(
+  formData: FormData,
+): Partial<CalculatorSettingsInput> {
+  const out: Partial<CalculatorSettingsInput> = {};
+  for (const f of CALC_FIELDS) {
+    out[f.key] = parseNumberOrNull(formData.get(f.key)) ?? undefined;
+  }
+  return out;
+}
+
+export async function saveCalculatorSettingsAction(
+  _prev: CalculatorSettingsActionState,
+  formData: FormData,
+): Promise<CalculatorSettingsActionState> {
+  const supabase = await createClient();
+
+  const partial = settingsFromFormData(formData);
+  const { input, fieldErrors } = validateCalculatorSettingsInput(partial);
+  if (fieldErrors) return { fieldErrors };
+
+  // Resolver el usuario y su tenant. Filtramos user_tenants por user_id: tras
+  // la migración 0040 ese listado expone a TODOS los miembros del tenant, así
+  // que un maybeSingle() sin filtro rompería con >1 usuario.
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return { error: "Sesión no válida." };
+
+  const { data: link, error: linkErr } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .eq("user_id", userId)
+    .maybeSingle<{ tenant_id: string }>();
+  if (linkErr || !link?.tenant_id) {
+    return { error: "No se pudo resolver el tenant del usuario." };
+  }
+
+  // Construir el payload snake_case desde el input validado. tenant_id y
+  // updated_by son server-controlled (no vienen del form) — el `with check`
+  // de la RLS además impide upsertear la fila de otro tenant.
+  const row: Record<string, unknown> = {
+    tenant_id: link.tenant_id,
+    updated_by: userId,
+  };
+  for (const f of CALC_FIELDS) {
+    row[SETTINGS_COLUMN[f.key]] = input![f.key];
+  }
+
+  const { error } = await supabase
+    .from("calculator_settings")
+    .upsert(row, { onConflict: "tenant_id" });
+
+  if (error) {
+    return { error: `No se pudieron guardar los parámetros: ${error.message}` };
+  }
+
+  revalidatePath("/studio/tarifas");
+  // Los parámetros alimentan el calculador del sitio → refrescar su cache ISR.
   revalidatePath("/calculadora");
   return { ok: true };
 }

@@ -18,20 +18,26 @@ import {
 } from "@/lib/studio/rate-types";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import type { RateFilters } from "@/lib/studio/rate-queries";
+import type { CalculatorSettings } from "@/lib/studio/calculator-settings-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { RateDrawer } from "./RateDrawer";
+import { ParametrosPanel } from "./ParametrosPanel";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; rate: Rate };
+type Tab = "tarifas" | "parametros";
 
 export function TarifasClient({
   rates,
   filters,
+  settings,
 }: {
   rates: Rate[];
   filters: RateFilters;
+  settings: CalculatorSettings | null;
 }) {
+  const [tab, setTab] = useState<Tab>("tarifas");
   const router = useRouter();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -109,25 +115,56 @@ export function TarifasClient({
             por ruta y vigencia. El Cotizador las consume para sugerir precios.
           </p>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <button
-            type="button"
-            className="studio-btn studio-btn-ghost"
-            disabled
-            title="Próximamente"
-          >
-            Exportar tarifario
-          </button>
-          <button
-            type="button"
-            className="studio-btn studio-btn-primary"
-            onClick={() => setDrawer({ mode: "create" })}
-          >
-            + Nueva tarifa
-          </button>
-        </div>
+        {tab === "tarifas" && (
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost"
+              disabled
+              title="Próximamente"
+            >
+              Exportar tarifario
+            </button>
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary"
+              onClick={() => setDrawer({ mode: "create" })}
+            >
+              + Nueva tarifa
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* Tabs · Tarifas (catálogo) | Parámetros (reglas del calculador) */}
+      <div
+        role="tablist"
+        aria-label="Secciones de tarifas"
+        style={{
+          display: "flex",
+          gap: 4,
+          marginBottom: 22,
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        <TabButton
+          id="tab-tarifas"
+          controls="panel-tarifas"
+          active={tab === "tarifas"}
+          onClick={() => setTab("tarifas")}
+          label="Tarifas"
+        />
+        <TabButton
+          id="tab-parametros"
+          controls="panel-parametros"
+          active={tab === "parametros"}
+          onClick={() => setTab("parametros")}
+          label="Parámetros del calculador"
+        />
+      </div>
+
+      {tab === "tarifas" && (
+        <div role="tabpanel" id="panel-tarifas" aria-labelledby="tab-tarifas">
       {/* Toolbar */}
       <div
         style={{
@@ -219,6 +256,14 @@ export function TarifasClient({
       ) : (
         <RatesTable rates={rates} onEdit={(rate) => setDrawer({ mode: "edit", rate })} />
       )}
+        </div>
+      )}
+
+      {tab === "parametros" && (
+        <div role="tabpanel" id="panel-parametros" aria-labelledby="tab-parametros">
+          <ParametrosPanel settings={settings} />
+        </div>
+      )}
 
       {/* Drawer crear/editar */}
       {drawer && (
@@ -229,6 +274,47 @@ export function TarifasClient({
         />
       )}
     </div>
+  );
+}
+
+// ── Tabs ──────────────────────────────────────────────────────
+
+function TabButton({
+  id,
+  controls,
+  active,
+  onClick,
+  label,
+}: {
+  id: string;
+  controls: string;
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      id={id}
+      aria-controls={controls}
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        appearance: "none",
+        background: "transparent",
+        border: 0,
+        padding: "10px 14px",
+        marginBottom: -1,
+        cursor: "pointer",
+        font: `${active ? 700 : 500} 13px/1 var(--f-sans)`,
+        color: active ? "var(--ink)" : "var(--ink-soft)",
+        borderBottom: `2px solid ${active ? "var(--wine)" : "transparent"}`,
+        transition: "color 0.12s, border-color 0.12s",
+      }}
+    >
+      {label}
+    </button>
   );
 }
 

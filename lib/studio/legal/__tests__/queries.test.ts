@@ -112,7 +112,7 @@ describe("currentClientDocs", () => {
       },
     ];
 
-    const docs = await currentClientDocs(stub({ legal_docs }));
+    const docs = await currentClientDocs(stub({ legal_docs }), "tn");
     expect(docs).toHaveLength(2);
     const keys = docs.map((d) => d.key).sort();
     expect(keys).toEqual(["operador", "tyc"]);
@@ -124,7 +124,14 @@ describe("currentClientDocs", () => {
   });
 
   it("sin docs → array vacío", async () => {
-    const docs = await currentClientDocs(stub({ legal_docs: [] }));
+    const docs = await currentClientDocs(stub({ legal_docs: [] }), "tn");
+    expect(docs).toHaveLength(0);
+  });
+
+  it("m-6: tenantId vacío → fail-closed (array vacío, no toca la DB)", async () => {
+    // Sin tenant NO se acota el set vigente → con admin client (RLS off) se
+    // mezclarían docs de todos los tenants. Por eso fail-closed.
+    const docs = await currentClientDocs(stub({ legal_docs: [] }), "  ");
     expect(docs).toHaveLength(0);
   });
 });

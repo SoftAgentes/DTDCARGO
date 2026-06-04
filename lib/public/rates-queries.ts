@@ -12,6 +12,7 @@
  */
 
 import { getAnonClient } from "./supabase-anon";
+import type { CalcParams } from "@/lib/calculadora";
 
 export type PublicCbmRate = {
   /** Tarifa por CBM en USD (la base editable del calculador). */
@@ -50,6 +51,58 @@ export async function getPublicCbmRate(): Promise<PublicCbmRate | null> {
   } catch (e) {
     console.error(
       "[getPublicCbmRate] error inesperado:",
+      e instanceof Error ? e.message : String(e),
+    );
+    return null;
+  }
+}
+
+/**
+ * Resuelve las REGLAS escalares del calculador (Fase 3 Slice A) que el admin
+ * configura en /studio/tarifas › Parámetros (tabla calculator_settings).
+ *
+ * Llama a la RPC `public_calculator_config` (anon, security definer, grant anon)
+ * de `supabase/migrations/0103_calculator_settings.sql`. Retorno MÍNIMO: solo
+ * las 8 reglas, sin tenant_id ni timestamps.
+ *
+ * Si no hay fila configurada (o Supabase caído / RPC ausente) devuelve null y
+ * el calculador cae a `DEFAULT_PARAMS` de `lib/calculadora.ts` (cero regresión).
+ *
+ * @returns las reglas como `CalcParams`, o `null` si no hay config / hubo error.
+ */
+export async function getPublicCalculatorConfig(): Promise<CalcParams | null> {
+  // Nunca debe tirar: página pública de marketing. Cualquier falla → null.
+  try {
+    const supabase = getAnonClient();
+    const { data, error } = await supabase.rpc("public_calculator_config");
+
+    if (error) {
+      console.error("[getPublicCalculatorConfig] RPC error:", error.message);
+      return null;
+    }
+
+    // RPC retorna setof → array de 0 o 1 elemento.
+    const row = Array.isArray(data) ? data[0] : null;
+    if (!row) return null;
+
+    // Mapeo snake_case (DB) → camelCase (CalcParams). Cualquier campo no
+    // numérico/ausente invalida la config entera → null (fallback seguro).
+    const params: CalcParams = {
+      pesoIncluidoKg: Number(row.peso_incluido_kg),
+      pesoMaxKg: Number(row.peso_max_kg),
+      recargoExcedenteKg: Number(row.recargo_excedente_kg),
+      descuentoValencia: Number(row.descuento_valencia),
+      recargoEmbalajeEspecial: Number(row.recargo_embalaje_especial),
+      recargoBateriaMult: Number(row.recargo_bateria_mult),
+      thresholdCascoKm: Number(row.threshold_casco_km),
+      tarifaKmFueraCasco: Number(row.tarifa_km_fuera_casco),
+    };
+    if (Object.values(params).some((v) => !Number.isFinite(v))) return null;
+
+    return params;
+  } catch (e) {
+    console.error(
+      "[getPublicCalculatorConfig] error inesperado:",
       e instanceof Error ? e.message : String(e),
     );
     return null;

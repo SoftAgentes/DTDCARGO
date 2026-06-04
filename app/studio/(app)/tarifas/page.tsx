@@ -12,6 +12,7 @@ import {
   listRates,
   parseRateFiltersFromSearchParams,
 } from "@/lib/studio/rate-queries";
+import { getCalculatorSettings } from "@/lib/studio/calculator-settings-queries";
 import { TarifasClient } from "./_components/TarifasClient";
 
 export const metadata = { title: "Tarifas" };
@@ -25,7 +26,10 @@ export default async function TarifasPage({
   const filters = parseRateFiltersFromSearchParams(rawParams);
 
   const supabase = await createClient();
-  const rates = await listRates(supabase, filters);
+  const [rates, settings] = await Promise.all([
+    listRates(supabase, filters),
+    getCalculatorSettings(supabase),
+  ]);
 
-  return <TarifasClient rates={rates} filters={filters} />;
+  return <TarifasClient rates={rates} filters={filters} settings={settings} />;
 }
