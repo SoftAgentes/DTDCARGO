@@ -1,7 +1,7 @@
 ---
 sdd: "0054"
-title: "Capa legal — documentos versionados + aceptaciones inmutables (gate AUT-04); Slice A = foundation · Slice B = admin + gate advisory"
-status: in-progress
+title: "Capa legal — documentos versionados + aceptaciones inmutables (gate AUT-04); Slice A = foundation · Slice B = admin + gate advisory · Slice C = aceptación del cliente en el Portal"
+status: done
 author: "Claude Code (carril legal · Norte v2.4)"
 created: 2026-06-03
 updated: 2026-06-04
@@ -122,9 +122,14 @@ Slice A deja la **fundación verificable**.
       Evidencia) — + **wire del gate en Facturación** en modo **ADVISORY** (avisa, no bloquea; ver
       decisión §3.1-bis). Flips `Invoice` partial→built (el gate existe y audita, listo para bloqueo duro
       cuando Slice C lo respalde).
-- [ ] C: flujo de aceptación del cliente (Portal/cotización: medida + casilla T&C + evidencia + POST
-      que server-sella). Toca Portal con cuidado de la frontera. **Al cerrar C, el gate pasa de advisory
-      a bloqueo duro** (decisión §3.1).
+- [x] C: flujo de aceptación del cliente en el **Portal** (medida + casilla T&C + evidencia + server-sello).
+      Decisión founder = **Opción B "factura borrador, monto exacto"**: el operador crea la factura DDP en
+      **borrador** → el cliente la ve en el Portal como "pendiente de aceptar T&C" → acepta el **monto
+      EXACTO** (base_amount, pre-IVA) + la medida del envío → el operador emite (el gate de Slice B la
+      reconoce). El gate de Facturación **queda en ADVISORY** (no se flipa a bloqueo duro en esta corrida);
+      el flip vive en una constante `LEGAL_GATE_HARD_BLOCK = false` trivialmente toggleable (ver §7 · el
+      founder la activa cuando haya adopción). Toca Portal respetando la frontera (el Portal SÍ puede usar
+      Supabase). Gate 🟢 (969 tests; +21 nuevos).
 
 ## 6. Fuera de alcance (respetar)
 - **NO UI** en Slice A (admin → B, cliente → C). **NO wire del gate en Facturación** (Slice B). **NO**
@@ -302,5 +307,125 @@ fecha/hora, IP, hash). Read-only (sin "Nueva versión" en este slice). Primitiva
 (`Badge`/`EmptyState`/`KpiCard`/`Icon`/tokens), **no** los `ERPUI.*` del mockup. Entry "Legal · T&C" en el
 sidebar (grupo SISTEMA, **adminOnly**).
 
-**Pendiente:** Slice C (flujo de aceptación del cliente que *produce* las aceptaciones) → recién ahí el
-gate puede pasar de advisory a **bloqueo duro** (§3.1). Founder: aplicar `0102` a prod.
+**Pendiente al cerrar Slice B:** Slice C (flujo de aceptación del cliente que *produce* las aceptaciones)
+→ cerrado abajo. Founder: aplicar `0102` a prod.
+
+### Slice C (aceptación del cliente en el Portal) — cerrado · gate 🟢 (969 tests; +21 nuevos)
+
+> **Decisión founder: Opción B — "factura borrador, monto exacto".** El operador crea la factura DDP en
+> **borrador** → el cliente la ve en el Portal como "pendiente de aceptar T&C" → acepta el **monto EXACTO**
+> (`base_amount`, pre-IVA) + la medida del envío → el operador emite (el gate-by-markbox de Slice B la
+> reconoce 1:1). Calca el flujo del Norte (reliquidar→aceptar→emitir). **Sin migración** (`0102` ya está en
+> prod). **NO** aplicado a prod / **NO** pusheado.
+
+**Descubrimiento (el borrador NO aparece en "Mis facturas").** El Portal OCULTA los borradores
+(`listMyInvoices`/`getMyInvoice` filtran `.neq("status","borrador")` + la RLS del portal los excluye), así
+que el borrador pendiente se lee con el **admin client** (`createAdminClient`), scopeado EXPLÍCITO por
+`tenant_id` + `client_markbox` + `status='borrador'` + shipment DDP. Dos queries nuevas en
+**`lib/portal/portal-legal-queries.ts`** (puras, reciben el admin client):
+`listPendingAcceptanceInvoices` (card del dashboard) y `getPendingAcceptanceInvoice` (página de
+aceptación). Ambas cruzan contra `hasValidAcceptanceForMarkbox` (el gate de Slice B) y EXCLUYEN las que ya
+tienen aceptación vigente → idempotencia visible (una orden aceptada deja de aparecer).
+
+**RLS / identidad (insert SOLO vía admin client).** La policy de insert de `legal_acceptances` exige
+`tenant_id = get_user_tenant_id()`, que da **NULL** para un cliente del Portal → el cliente **no puede
+insertar por su RLS**. Patrón: la **identidad se resuelve PRIMERO con el client de SESIÓN**
+(`getPortalClient` → `{id, markbox, …}` + `tenant_id` de `clients`), y **recién después el admin client
+escribe**, scopeando TODO explícito (service_role bypassa RLS = defensa en profundidad, no atajo).
+
+**Server action `registerAcceptanceAction`** (`app/portal/(app)/facturas/[code]/aceptar/actions.ts`,
+`"use server"`): identidad por sesión → admin client → lee la orden borrador DDP + medida del shipment →
+**idempotencia pre-check** (`hasValidAcceptanceForMarkbox` con la medida + `base_amount`: si ya hay
+aceptación vigente → ok "ya aceptada" sin insertar) → valida el **checkbox** (fieldError si falta) →
+**IP del edge** (helper compartido) → `validateAcceptanceInput` + `sealAcceptance(input, docs, ip,
+new Date())` con `cbm`=`shipment.volume_m3`, `weight_kg`=`shipment.weight_kg`, `total_usd`=
+`invoice.base_amount`, `quote_code`=`shipment_code` (ref de la orden; si no, `invoice_code`),
+`docs`=**TODAS** las vigentes cliente (`currentClientDocs`) → `next_acceptance_code` (admin) con
+**reintento ante `23505` de `unique(tenant, acceptance_code)`** (correlativo legal sin huecos, hasta 5
+veces) → insert; si el `23505` es por `unique(tenant, hash)` (misma evidencia) → idempotente ok →
+`revalidatePath` del Portal. **idempotency_key** determinístico (`inv:<id>|docs:<key@version,…>`) como
+metadato; la idempotencia REAL es el `unique(tenant, hash)`.
+
+**Helper de IP compartido (`lib/http/request-ip.ts`).** Extraído de `registro/actions.ts` (ahora ambos lo
+reusan): `resolveRequestIp(Headers)` (PURO, testeable) + `getRequestIp()` (lee `next/headers`). Para
+**evidencia legal** se confía en el **PRIMER `x-forwarded-for`** porque detrás de Vercel el edge SETEA esa
+cadena anteponiendo la IP que observó en el borde (el XFF crudo del cliente queda DESPUÉS); fallback
+`x-real-ip` → `"unknown"`. Guarda anti-spoof: si la cadena trae **> 8 saltos** (anómala) no se confía en el
+primero y se cae a `x-real-ip`/`unknown`.
+
+**UI del Portal (estilo del Portal, no primitivas del Studio).**
+- Página `app/portal/(app)/facturas/[code]/aceptar/page.tsx` (server): resuelve cliente + orden; si no
+  aplica → `redirect("/portal/facturas")`. Render: resumen de la orden (subtotal/IVA/total + lines + envío
+  con cbm/peso) + el **cuerpo de los dos documentos vigentes** (`<details>` colapsables desde
+  `legal_docs.body`) + `<AcceptanceForm>` (client) con **checkbox** + botón "Aceptar y confirmar"
+  (anti-doble-submit vía `pending` de `useActionState`). En éxito → confirmación con el **acuse
+  `AC-YYYY-NNNN`**.
+- Card de descubrimiento `PendingAcceptanceCard` en el dashboard (`app/portal/(app)/page.tsx`): si hay
+  pendientes, "Tenés N órden(es) esperando tu aceptación de T&C" con CTA a la única (o lista si son varias).
+  Tono atención (dorado `--color-status-warning`, no wine). Solo tokens `var(--*)`, copy es-VE
+  sentence-case sin emojis.
+
+**Gate de Facturación = ADVISORY (NO flip a bloqueo duro en esta corrida).** Flipear a duro el día que se
+shippea Slice C bloquearía TODA factura DDP en vuelo (cero aceptaciones previas en prod). El flip queda
+**trivialmente toggleable** en una sola constante comentada **`LEGAL_GATE_HARD_BLOCK = false`** en
+`facturacion/actions.ts`: con `true`, `emitInvoice` de un DDP sin aceptación **no muta y no ofrece
+override**, y `createInvoice` con emit-on-create **cae a borrador** (nunca puentea el gate). El **founder lo
+pone en `true`** cuando haya adopción (clientes aceptando por el Portal). Honra §3.1 (bloqueo duro) sin el
+riesgo de §3.1-bis.
+
+**Tests (Vitest, +21).** El **round-trip** (`lib/studio/legal/__tests__/acceptance-roundtrip.test.ts`) es el
+más importante: sella una aceptación EXACTAMENTE como la produce la action (medida del shipment +
+`base_amount` + todas las docs vigentes) y asierta que `hasValidAcceptanceForMarkbox` devuelve **true** →
+prueba que Slice C produce aceptaciones que el gate de Slice B SÍ reconoce; + negativos (docs incompletos
+→ false, medida/total distintos → false). Helper de IP
+(`lib/http/__tests__/request-ip.test.ts`): primer XFF / fallback / unknown / cadena anómala. Lógica pura de
+`listPendingAcceptanceInvoices`/`getPendingAcceptanceInvoice`
+(`lib/portal/__tests__/portal-legal-queries.test.ts`): borrador+DDP+sin-aceptación pasa; emitida / non-DDP
+/ ya-aceptada no.
+
+**Gaps conocidos (V1).** (1) El gate sigue advisory hasta que el founder flipee la constante. (2) El flujo
+asume el shipment con `volume_m3`/`weight_kg` ya cargados (la reliquidación con medida real es trabajo del
+operador en CN, fuera de este slice). (3) No hay notificación push/email al cliente cuando aparece una orden
+pendiente (la descubre al entrar al dashboard) — futuro. (4) La página de aceptación no descarga PDF de los
+T&C (los muestra inline colapsables) — coherente con el resto del Portal.
+
+### Slice C · ROUND 2 — endurecimiento (auditoría adversarial)
+
+Auditoría read-only: **0 críticos · 2 medios · 4 menores** (los ejes de acceso —IDOR/escalada/cross-tenant—
+quedaron cerrados; los hallazgos son de evidencia/robustez). Atendidos:
+
+- **M-1 · la aceptación no estaba atada a la ORDEN puntual.** El gate-by-markbox matcheaba solo por
+  `(tenant, client_markbox, medida, total, docs vigentes)` → una aceptación era **fungible** entre facturas
+  distintas del mismo cliente con la misma terna (cbm+weight+base_amount). **Fix:** `GateByMarkboxQuery` ahora
+  acepta `orderRef?`; cuando llega no-vacío, la query EXIGE `quote_code === orderRef` (filtro
+  `.eq("quote_code", orderRef)`). `evaluateLegalGate` (Facturación) pasa `orderRef = invoice.shipment_code` —
+  la action de Slice C sella `quote_code = shipment_code`, así que el match es 1:1. **Granularidad = la ORDEN
+  (shipment_code), no el invoice_id:** dos facturas del MISMO shipment (re-emisión) comparten aceptación (misma
+  orden); facturas de shipments DISTINTOS no. Las queries de descubrimiento + el pre-check de la action también
+  pasan `orderRef` (coherencia: una aceptación de otra orden ya no oculta esta ni la da por aceptada). Si
+  `shipment_code` fuese null/vacío (non-DDP / sin shipment), NO se pasa `orderRef` → cae al match por terna
+  (legacy, no rompe la emisión existente). Para DDP el `shipment_code` SIEMPRE está poblado. Test round-trip +
+  negativo cross-shipment.
+- **m-5 · precisión del hash vs storage.** El payload canónico redondeaba las 3 dimensiones a 3 decimales,
+  pero `legal_acceptances` es `cbm numeric(12,3)` / `weight_kg numeric(12,2)` / `total_usd numeric(14,2)`. Si
+  un valor traía 3ª cifra en weight/total, el sello hasheaba distinto a lo que la DB persiste → el gate
+  recomputaba otro hash y descartaba la fila válida (falso-negativo silencioso). **Fix:** `roundTo` por
+  dimensión — `cbm`→3, `weight_kg`→2, `total_usd`→2 decimales. Seguro hacerlo ahora (cero aceptaciones en prod
+  al shippear Slice C).
+- **m-6 · `currentClientDocs` con `tenantId` opcional.** Footgun: un caller que lo olvide corriendo con admin
+  client (RLS off) recibiría docs vigentes de TODOS los tenants → `requiredVersions` envenenado. **Fix:**
+  `tenantId` ahora REQUERIDO (sin `?`); el typechecker lo fuerza. Vacío ⇒ fail-closed (`[]`).
+
+**Documentados (limitaciones aceptadas, sin cambio de runtime):**
+- **M-2 · precisión sub-ms de `accepted_at`.** El sello usa SIEMPRE milisegundos (`Date.toISOString()`) y la
+  action inserta `accepted_at` EXPLÍCITO (no `default now()`), así que la recomputación del gate matchea.
+  INVARIANTE comentada en `seal.ts` + `queries.ts`: toda inserción en `legal_acceptances` debe sellar
+  `accepted_at` en ms vía el seal — NO confiar en `default now()` (Postgres guardaría microsegundos → el
+  `new Date(raw)` los truncaría a ms → el hash recomputado no matchearía → falso-negativo silencioso). Aplica a
+  seeds/imports/migraciones futuras.
+- **m-3 · doble-submit concurrente.** Dos submits del mismo form en ms distintos producen 2 filas válidas
+  (difieren solo en ms/ip/code). Daño NULO: la factura se emite una vez y ambas filas son evidencia
+  consistente; el front-end ya mitiga con `disabled={pending}`. Limitación aceptada (comentada en la action).
+- **m-4 · IP solo confiable detrás del edge de Vercel.** En self-host / preview sin edge, el primer XFF es
+  spoofeable. La IP es campo de EVIDENCIA, no de control de acceso (no gatea nada). Si se self-hostea, derivar
+  la IP de un header FIRMADO por el proxy de confianza. Comentado en `lib/http/request-ip.ts`.
