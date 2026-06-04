@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 49 specs)
+### Índice de specs (generado · 50 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -86,7 +86,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0051 | Fidelización & Referidos — niveles por facturación (derivados… | done | interno |
 | 0052 | Reportes & Analytics — capa de presentación sobre agregados e… | approved | interno |
 | 0053 | Costing & Margen — costo editable por embarque (7 categorías)… | done | interno |
-| 0054 | Capa legal — documentos versionados + aceptaciones inmutables… | approved | interno |
+| 0054 | Capa legal — documentos versionados + aceptaciones inmutables… | done | interno |
+| 0055 | Calculadora — configuración desde el Studio (Fase 3): ciudade… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

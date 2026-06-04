@@ -12,7 +12,7 @@
  */
 
 import { getAnonClient } from "./supabase-anon";
-import type { CalcParams } from "@/lib/calculadora";
+import type { CalcParams, Ciudad } from "@/lib/calculadora";
 
 export type PublicCbmRate = {
   /** Tarifa por CBM en USD (la base editable del calculador). */
@@ -106,5 +106,50 @@ export async function getPublicCalculatorConfig(): Promise<CalcParams | null> {
       e instanceof Error ? e.message : String(e),
     );
     return null;
+  }
+}
+
+/**
+ * Resuelve las CIUDADES de destino del calculador (Fase 3 Slice B) que el admin
+ * configura en /studio/tarifas › Ciudades (tabla calculator_cities).
+ *
+ * Llama a la RPC `public_calculator_cities` (anon, security definer, grant anon)
+ * de `supabase/migrations/0104_calculator_cities_rate_status.sql`. Retorno
+ * MÍNIMO: slug + label + km + casco, sin tenant_id ni columnas internas.
+ *
+ * Si no hay filas (o Supabase caído / RPC ausente) devuelve `[]` y el caller cae
+ * al array `CIUDADES` de `lib/calculadora.ts` (cero regresión).
+ *
+ * @returns la lista como `Ciudad[]`, o `[]` si no hay config / hubo error.
+ */
+export async function getPublicCalculatorCities(): Promise<Ciudad[]> {
+  // Nunca debe tirar: página pública de marketing. Cualquier falla → [].
+  try {
+    const supabase = getAnonClient();
+    const { data, error } = await supabase.rpc("public_calculator_cities");
+
+    if (error) {
+      console.error("[getPublicCalculatorCities] RPC error:", error.message);
+      return [];
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const ciudades: Ciudad[] = [];
+    for (const row of rows) {
+      // slug (DB) → id (Ciudad). Descartamos filas con slug/label vacíos o km
+      // no numérico (defensa: una fila corrupta no debe romper el form).
+      const id = typeof row?.slug === "string" ? row.slug.trim() : "";
+      const label = typeof row?.label === "string" ? row.label.trim() : "";
+      const km = Number(row?.km);
+      if (!id || !label || !Number.isFinite(km)) continue;
+      ciudades.push({ id, label, km, casco: Boolean(row?.casco) });
+    }
+    return ciudades;
+  } catch (e) {
+    console.error(
+      "[getPublicCalculatorCities] error inesperado:",
+      e instanceof Error ? e.message : String(e),
+    );
+    return [];
   }
 }

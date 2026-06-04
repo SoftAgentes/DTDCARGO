@@ -17,7 +17,7 @@ export type RateFilters = {
 };
 
 const RATE_COLUMNS =
-  "id, tenant_id, service, origin, destination, per_cbm, flat_rate, min_charge, transit_days, valid_from, valid_until, is_public, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, service, origin, destination, per_cbm, flat_rate, min_charge, transit_days, valid_from, valid_until, is_public, status, notes, created_at, updated_at, deleted_at";
 
 /**
  * Lista de tarifas con filtros opcionales. RLS filtra por tenant.
