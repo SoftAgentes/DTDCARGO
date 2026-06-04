@@ -16,9 +16,12 @@ import { createClient } from "@/lib/db/server";
 import {
   costingRows,
   costingTotals,
+  forecastQuotes,
   latestVesFxRate,
+  listRouteCostTemplates,
   marginByRoute,
 } from "@/lib/studio/costing/queries";
+import { buildForecast } from "@/lib/studio/costing/ui";
 import { CostingClient } from "./_components/CostingClient";
 
 export const metadata = { title: "Costing & Margen" };
@@ -27,19 +30,24 @@ export const dynamic = "force-dynamic";
 export default async function CostingPage() {
   const supabase = await createClient();
 
-  const [rows, vesRate] = await Promise.all([
+  const [rows, vesRate, templates, quotes] = await Promise.all([
     costingRows(supabase),
     latestVesFxRate(supabase),
+    listRouteCostTemplates(supabase),
+    forecastQuotes(supabase),
   ]);
 
   const totals = costingTotals(rows);
   const routes = marginByRoute(rows);
+  const forecast = buildForecast(quotes, templates);
 
   return (
     <CostingClient
       rows={rows}
       totals={totals}
       routes={routes}
+      templates={templates}
+      forecast={forecast}
       vesRate={vesRate}
     />
   );

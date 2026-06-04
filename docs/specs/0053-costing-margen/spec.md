@@ -1,7 +1,7 @@
 ---
 sdd: "0053"
 title: "Costing & Margen — costo editable por embarque (7 categorías) + templates por ruta + margen vs revenue (Bloque 5 · Finanzas); Slice A = foundation"
-status: approved
+status: done
 author: "Claude Code (carril Bloque 5 · Norte v2.4)"
 created: 2026-06-04
 updated: 2026-06-04
@@ -126,7 +126,7 @@ embarque/ruta/cliente**, con su pantalla `/studio/costing`.
 
 ### Slice B / C
 - [x] B: `/studio/costing` tabs Overview/Ranking/Breakdown/Routes + Cost Editor + toggle USD/VES + `saveShipmentCosts`.
-- [ ] C: Templates CRUD + auto-prefill + Forecast + export CSV.
+- [x] C: Templates CRUD + auto-prefill + Forecast + export CSV.
 
 ## 6. Fuera de alcance (respetar)
 
@@ -196,3 +196,27 @@ embarque/ruta/cliente**, con su pantalla `/studio/costing`.
 - **Marca/UX:** solo tokens `var(--*)` (los hex del mock NO se copiaron — `colorToken` de `COST_CATEGORIES`);
   primitivas del sistema; cero AI slop (se removieron los emojis 🏆/⚠️ del mock). `ui-ux-designer` → OK para commit;
   sus 2 quick wins de hover + el texto del KPI en VES se incorporaron. Migración 0100 sigue **sin aplicar a prod**.
+
+### Slice C — cerrado (gate 🟢, APPROVED por el reviewer + ui-ux OK, sin push) → spec `done`
+
+- **Templates CRUD** — tab **"Templates por ruta"** en `CostingClient.tsx` (lista + drawer) + `TemplateDrawer.tsx`
+  (calca `CostEditorDrawer`: `DrawerShell` + form HTML5 + 7 `NumericInput` + total navy en vivo + soft-delete con
+  confirmación inline, sin `window.confirm`). Server actions en `costing/actions.ts`: `createTemplate`/`updateTemplate`/
+  `softDeleteTemplate` (`"use server"` + parsing manual + `validateTemplateInput`, **no Zod** + `revalidatePath`).
+  Sobre `route_cost_templates` (ya en 0100, **sin migración nueva**); aislamiento por RLS (`updateTemplate`/`softDeleteTemplate`
+  filtran por `id` confiando en RLS, consistente con Slice B — defensa-en-profundidad `tenant_id` explícito = deuda transversal anotada).
+- **Forecast pipeline** — tab **"Forecast pipeline"**: query nueva en `queries.ts` que cruza cotizaciones de
+  `quote-queries.ts` (aceptadas + pipeline) con templates por ruta; cada fila marca procedencia del costo
+  (`Template` vs `Estimado`). Bloque navy traducido del mock SIN el gradiente/`#fff`/`rgba(255,…)` (tokens `--ink`/`--ink-inv*`).
+- **Export CSV** — `buildCostingCsv` (puro, en `ui.ts`) + descarga client-side (`Blob`, sin lib nueva); botón
+  `ActionButton variant="ghost"` en el header, gated por `hasRows`, nombre con fecha ISO.
+- **Auto-prefill** (toca `tracking/nuevo/actions.ts:147-152`, único archivo fuera de `costing/` — lo manda la spec):
+  `prefillShipmentCostsFromTemplate` (`queries.ts:453-481`) **best-effort** (try/catch que nunca lanza,
+  `onConflict: tenant_id,shipment_id` + `ignoreDuplicates`). Aditivo dentro del `if (created)` existente; NO cambia
+  la firma ni el comportamiento de la creación de embarques (verificado por el reviewer).
+- **Tests** `lib/studio/costing/__tests__/sliceC.test.ts` (19 nuevos): forecast math + match template↔cotización,
+  CSV builder, validación de las template actions, matcheo del prefill. Gate verde: **959 tests** (940 previos + 19).
+- **Nits de ui-ux dejados a propósito** (no bloqueantes): doble línea borderTop en filas nuevas (consistente con
+  Ranking ya aprobado en B); densidad de la tabla de Templates con 10 columnas (verificar en runtime con datos reales
+  — fletes China→VE de 4-5 dígitos; el `Card` recorta por `overflow:hidden`, candidato a wrapper `overflowX:auto` si desborda).
+  Migración 0100 sigue **sin aplicar a prod**: la pantalla lee de `shipment_costs`/`route_cost_templates` → aplicar 0100 ANTES de pushear.
