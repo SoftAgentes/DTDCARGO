@@ -26,16 +26,25 @@ import {
   type AgingSide,
   type CarrierRow,
   type CashflowReport,
+  type ClientMarginRow,
+  type CombinedReport,
   type CommercialByClient,
   type IncomeStatement,
   type OperationalOverview,
   type ReportPeriod,
+  type RouteCbmRow,
+  type RouteMarginRow,
   type RouteRow,
   type ServiceRow,
 } from "@/lib/studio/reports/types";
-import { VolumeBars, Donut, Progress, type DonutSlice } from "./charts";
+import {
+  type BuilderRow,
+  type ReportSourceId,
+} from "@/lib/studio/reports/builder-types";
+import { VolumeBars, Donut, Progress, HeaderRow, type DonutSlice } from "./charts";
+import { BuilderView } from "./BuilderView";
 
-type Category = "op" | "com" | "con";
+type Category = "op" | "com" | "con" | "build" | "mix";
 
 // Tabs nivel-2 por categoría (value = ?rep=).
 const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
@@ -51,9 +60,16 @@ const TABS_BY_CATEGORY: Record<Category, { value: string; label: string }[]> = {
     { value: "aging", label: "Aging CxC/CxP" },
     { value: "cashflow", label: "Cashflow" },
   ],
+  // El Constructor no tiene nivel-2 (la fuente/dim/métrica se eligen dentro).
+  build: [],
+  mix: [
+    { value: "rent-route", label: "Rentabilidad por ruta" },
+    { value: "margin-client", label: "Margen por cliente" },
+    { value: "cost-cbm", label: "Costo por CBM" },
+  ],
 };
 
-// Categorías nivel-1. op/com/con operables (Slices A+B); mix/build "Pronto".
+// Categorías nivel-1. op/com/con/build/mix operables (Slices A+B+C); todo activo.
 const CATEGORIES: {
   id: string;
   label: string;
@@ -63,8 +79,8 @@ const CATEGORIES: {
   { id: "op", label: "Operacionales", count: 4, slice: null },
   { id: "com", label: "Comerciales", count: 1, slice: null },
   { id: "con", label: "Contables & financieros", count: 3, slice: null },
-  { id: "mix", label: "Combinados", count: 3, slice: "Slice C" },
-  { id: "build", label: "Constructor", count: 1, slice: "Slice C" },
+  { id: "build", label: "Constructor", count: 2, slice: null },
+  { id: "mix", label: "Combinados", count: 3, slice: null },
 ];
 
 const fmtUsd = (n: number) =>
@@ -82,8 +98,10 @@ const fmtUsdFull = (n: number) => {
 const fmtNum = (n: number) => Math.round(n).toLocaleString("en-US");
 
 // Resuelve el rep activo dentro de la categoría (default = primer tab).
+// El Constructor no tiene tabs nivel-2 → "" (la vista no depende del rep).
 function resolveRep(category: Category, raw: string | undefined): string {
   const tabs = TABS_BY_CATEGORY[category];
+  if (tabs.length === 0) return "";
   return tabs.some((t) => t.value === raw) ? (raw as string) : tabs[0].value;
 }
 
@@ -99,6 +117,9 @@ export function ReportesClient({
   income,
   aging,
   cashflow,
+  builderSource,
+  builderData,
+  combined,
 }: {
   period: ReportPeriod;
   category: Category;
@@ -114,6 +135,11 @@ export function ReportesClient({
   income?: IncomeStatement;
   aging?: AgingReport;
   cashflow?: CashflowReport;
+  // Constructor (Slice C)
+  builderSource?: ReportSourceId;
+  builderData?: BuilderRow[];
+  // Combinados (Slice C)
+  combined?: CombinedReport;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -125,17 +151,23 @@ export function ReportesClient({
     period?: ReportPeriod;
     cat?: Category;
     rep?: string;
+    src?: ReportSourceId;
   }) => {
     const s = new URLSearchParams(params.toString());
     if (next.period) s.set("period", next.period);
     if (next.cat) {
       s.set("cat", next.cat);
       s.delete("rep"); // al cambiar de categoría, default = primer tab
+      s.delete("src"); // y reseteamos la fuente del constructor
     }
     if (next.rep) {
       const tabs = TABS_BY_CATEGORY[next.cat ?? category];
-      if (next.rep === tabs[0].value) s.delete("rep");
+      if (tabs.length > 0 && next.rep === tabs[0].value) s.delete("rep");
       else s.set("rep", next.rep);
+    }
+    if (next.src) {
+      if (next.src === "shipments") s.delete("src"); // default
+      else s.set("src", next.src);
     }
     const qs = s.toString();
     startTransition(() => {
@@ -293,7 +325,8 @@ export function ReportesClient({
         })}
       </div>
 
-      {/* Nivel 2 · reporte dentro de la categoría */}
+      {/* Nivel 2 · reporte dentro de la categoría (el Constructor no tiene tabs) */}
+      {tabs.length > 0 && (
       <div
         role="tablist"
         style={{
@@ -330,6 +363,7 @@ export function ReportesClient({
           );
         })}
       </div>
+      )}
 
       {/* Vistas · Operacionales (Slice A) */}
       {category === "op" && activeRep === "overview" && overview && (
@@ -357,6 +391,23 @@ export function ReportesClient({
       )}
       {category === "con" && activeRep === "cashflow" && cashflow && (
         <CashflowView cashflow={cashflow} />
+      )}
+
+      {/* Vista · Constructor (Slice C) · key=source → remonta y resetea los
+          selectores (dim/métrica/filtro) al cambiar de fuente, sin efecto. */}
+      {category === "build" && builderSource && builderData && (
+        <BuilderView
+          key={builderSource}
+          source={builderSource}
+          rows={builderData}
+          period={period}
+          onSource={(src) => navigate({ src })}
+        />
+      )}
+
+      {/* Vistas · Combinados (Slice C) · rentabilidad REAL desde Costing */}
+      {category === "mix" && combined && (
+        <CombinedView combined={combined} rep={activeRep} />
       )}
     </div>
   );
@@ -1156,47 +1207,293 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
-// ── Header de tabla reusable ───────────────────────────────────
-function HeaderRow({
-  cols,
-  labels,
-  rightFrom,
-  rightTo,
+// ═══════════════════════════════════════════════════════════════
+// Slice C — Combinados · rentabilidad REAL (revenue real − costo real)
+// ═══════════════════════════════════════════════════════════════
+//
+// COSTO REAL desde `shipment_costs` (Costing 0053), NUNCA fabricado. Si ningún
+// embarque del período tiene costos cargados → EmptyState honesto que enlaza a
+// /studio/costing (no se muestran tablas de margen donde el costo es 0 en todo).
+
+const fmtPct = (n: number) => `${n >= 0 ? "" : "−"}${Math.abs(Math.round(n))}%`;
+
+// Color del monto de margen: binario verde/rojo, consistente con Costing
+// (los 4 tonos de marginTone quedan solo en el Badge de margen %).
+const marginColor = (margin: number) =>
+  margin < 0 ? "var(--danger)" : "var(--success)";
+
+function CombinedView({
+  combined,
+  rep,
 }: {
-  cols: string;
-  labels: string[];
-  rightFrom?: number;
-  rightTo?: number;
+  combined: CombinedReport;
+  rep: string;
+}) {
+  // Sin costos cargados en el período → EmptyState honesto (regla §3.2).
+  if (combined.withCosts === 0) {
+    return (
+      <EmptyState
+        eyebrow="Combinados"
+        title="Sin costos cargados en el período"
+        description="La rentabilidad real cruza el revenue facturado con el costo directo por embarque. Cargá costos por embarque en /studio/costing para ver margen por ruta, por cliente y por CBM. No se estima ni se inventa el costo."
+      />
+    );
+  }
+
+  if (rep === "margin-client") {
+    return <MarginClientView combined={combined} />;
+  }
+  if (rep === "cost-cbm") {
+    return <CostCbmView combined={combined} />;
+  }
+  return <RentRouteView combined={combined} />;
+}
+
+// KPIs compartidos por las vistas de Combinados (totales reales de Costing).
+function CombinedKpis({ combined }: { combined: CombinedReport }) {
+  const t = combined.totals;
+  const coveragePct =
+    combined.shipments > 0
+      ? Math.round((combined.withCosts / combined.shipments) * 100)
+      : 0;
+  return (
+    <>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <KpiCard value={fmtUsd(t.revenue)} label="Ingreso" sub="facturado · USD" valueColor="var(--success)" />
+        <KpiCard value={fmtUsd(t.cost)} label="Costo directo" sub={`${t.revenue > 0 ? Math.round((t.cost / t.revenue) * 100) : 0}% sobre ingreso`} valueColor="var(--warning)" />
+        <KpiCard value={fmtUsdFull(t.margin)} label="Margen bruto" sub={`${fmtPct(t.avgMarginPct)} margen`} valueColor="var(--wine)" />
+        <KpiCard value={fmtNum(combined.withCosts)} label="Con costos" sub={`${coveragePct}% de ${fmtNum(combined.shipments)} embarques`} />
+      </div>
+      {combined.withCosts < combined.shipments && (
+        <p style={{ font: "500 11.5px/1.5 var(--f-sans)", color: "var(--ink-mute)", margin: 0 }}>
+          {fmtNum(combined.shipments - combined.withCosts)} embarque
+          {combined.shipments - combined.withCosts === 1 ? "" : "s"} del período
+          sin costos cargados cuentan como costo 0 (margen = ingreso completo).
+          Cargalos en /studio/costing para una rentabilidad fiel. Costo real, sin
+          estimaciones.
+        </p>
+      )}
+    </>
+  );
+}
+
+// Tabla de margen (ruta o cliente) tokenizada: ingreso / costo / margen / %.
+function MarginTable({
+  label0,
+  rows,
+}: {
+  label0: string;
+  rows: {
+    key: string;
+    name: string;
+    sub: string;
+    count: number;
+    revenue: number;
+    cost: number;
+    margin: number;
+    marginPct: number;
+    tone: RouteMarginRow["tone"];
+  }[];
 }) {
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: cols,
-        padding: "10px 18px",
-        gap: 14,
-        background: "var(--bg-elevated)",
-        borderBottom: "1px solid var(--border)",
-      }}
-    >
-      {labels.map((h, i) => {
-        const right =
-          rightFrom != null && rightTo != null && i >= rightFrom && i <= rightTo;
-        return (
-          <span
-            key={h}
-            style={{
-              font: "700 10px/1 var(--f-sans)",
-              color: "var(--ink-soft)",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase",
-              textAlign: right ? "right" : "left",
-            }}
-          >
-            {h}
+    <Card eyebrow="Rentabilidad · revenue real − costo real" style={{ padding: 0 }}>
+      <HeaderRow
+        cols="1.6fr 110px 110px 120px 70px"
+        labels={[label0, "Ingreso", "Costo dir.", "Margen", "%"]}
+        rightFrom={1}
+        rightTo={4}
+      />
+      {rows.map((r) => (
+        <div
+          key={r.key}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1.6fr 110px 110px 120px 70px",
+            padding: "13px 18px",
+            gap: 14,
+            alignItems: "center",
+            borderTop: "1px solid var(--border)",
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ font: "700 12.5px/1.2 var(--f-sans)", color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {r.name}
+            </div>
+            {r.sub && (
+              <div style={{ font: "500 10.5px/1.2 var(--f-mono)", color: "var(--ink-mute)", marginTop: 2 }}>
+                {r.sub}
+              </div>
+            )}
+          </div>
+          <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
+            {fmtUsd(r.revenue)}
           </span>
-        );
-      })}
+          <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
+            {fmtUsd(r.cost)}
+          </span>
+          <span style={{ font: "800 13px/1 var(--f-mono)", textAlign: "right", color: marginColor(r.margin) }}>
+            {fmtUsdFull(r.margin)}
+          </span>
+          <span style={{ textAlign: "right" }}>
+            <Badge tone={r.tone as BadgeTone} size="sm">
+              {fmtPct(r.marginPct)}
+            </Badge>
+          </span>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+// ── Combinados · Rentabilidad por ruta ─────────────────────────
+function RentRouteView({ combined }: { combined: CombinedReport }) {
+  const rows = combined.byRoute.map((r: RouteMarginRow) => ({
+    key: `${r.origin}→${r.destination}`,
+    name: `${r.origin || "—"} → ${r.destination || "—"}`,
+    sub: `${r.count} embarque${r.count === 1 ? "" : "s"}`,
+    count: r.count,
+    revenue: r.revenue,
+    cost: r.cost,
+    margin: r.margin,
+    marginPct: r.marginPct,
+    tone: r.tone,
+  }));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <CombinedKpis combined={combined} />
+      {rows.length === 0 ? (
+        <EmptyState
+          eyebrow="Rentabilidad por ruta"
+          title="Sin rutas para el período"
+          description="Cambiá el período o cargá embarques con origen y destino para ver el margen por corredor."
+        />
+      ) : (
+        <MarginTable label0="Ruta CN → VE" rows={rows} />
+      )}
     </div>
   );
 }
+
+// ── Combinados · Margen por cliente ────────────────────────────
+function MarginClientView({ combined }: { combined: CombinedReport }) {
+  const rows = combined.byClient.map((r: ClientMarginRow) => ({
+    key: r.client,
+    name: r.client,
+    sub: `${r.count} envío${r.count === 1 ? "" : "s"}`,
+    count: r.count,
+    revenue: r.revenue,
+    cost: r.cost,
+    margin: r.margin,
+    marginPct: r.marginPct,
+    tone: r.tone,
+  }));
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <CombinedKpis combined={combined} />
+      {rows.length === 0 ? (
+        <EmptyState
+          eyebrow="Margen por cliente"
+          title="Sin clientes para el período"
+          description="Cuando haya embarques con costos cargados, vas a ver acá el margen agregado por cliente."
+        />
+      ) : (
+        <MarginTable label0="Cliente" rows={rows} />
+      )}
+    </div>
+  );
+}
+
+// ── Combinados · Costo por CBM ─────────────────────────────────
+function CostCbmView({ combined }: { combined: CombinedReport }) {
+  const rows = combined.byCbm;
+  if (rows.length === 0 || rows.every((r) => r.cbm <= 0)) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <CombinedKpis combined={combined} />
+        <EmptyState
+          eyebrow="Costo por CBM"
+          title="Sin CBM registrado en el período"
+          description="El rendimiento por CBM necesita el volumen (m³) de los embarques. Cargá el volumen y los costos por embarque para ver el costo y margen por metro cúbico."
+        />
+      </div>
+    );
+  }
+
+  const maxMargin = Math.max(1, ...rows.map((r) => r.marginPerCbm));
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <CombinedKpis combined={combined} />
+      <Card eyebrow="Rendimiento por CBM · ingreso y costo por metro cúbico" style={{ padding: 0 }}>
+        <div style={{ padding: "14px 18px 12px", borderBottom: "1px solid var(--border)" }}>
+          <p style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+            Cuánto rinde cada CBM por ruta — clave para el pricing de carga
+            consolidada. Costo real por embarque, sin estimaciones.
+          </p>
+        </div>
+        <HeaderRow
+          cols="1.5fr 90px 110px 110px 1fr"
+          labels={["Ruta", "CBM", "$/CBM ing.", "$/CBM costo", "Margen / CBM"]}
+          rightFrom={1}
+          rightTo={3}
+        />
+        {rows.map((r: RouteCbmRow) => {
+          const m = r.marginPerCbm;
+          return (
+            <div
+              key={`${r.origin}→${r.destination}`}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1.5fr 90px 110px 110px 1fr",
+                padding: "13px 18px",
+                gap: 14,
+                alignItems: "center",
+                borderTop: "1px solid var(--border)",
+              }}
+            >
+              <span style={{ font: "600 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+                {r.origin || "—"} → {r.destination || "—"}
+              </span>
+              <span style={{ font: "600 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
+                {r.cbm.toFixed(1)}
+              </span>
+              <span style={{ font: "700 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink)" }}>
+                {fmtUsd(r.revenuePerCbm)}
+              </span>
+              <span style={{ font: "600 12px/1 var(--f-mono)", textAlign: "right", color: "var(--ink-soft)" }}>
+                {fmtUsd(r.costPerCbm)}
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ flex: 1 }}>
+                  <Progress
+                    value={(Math.max(0, m) / maxMargin) * 100}
+                    tone={m < 0 ? "var(--danger)" : "var(--wine)"}
+                    height={8}
+                  />
+                </div>
+                <span
+                  style={{
+                    font: "800 12px/1 var(--f-mono)",
+                    color: m < 0 ? "var(--danger)" : "var(--success)",
+                    minWidth: 56,
+                    textAlign: "right",
+                  }}
+                >
+                  {fmtUsdFull(m)}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </Card>
+    </div>
+  );
+}
+
+// ── Header de tabla reusable ───────────────────────────────────
