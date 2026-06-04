@@ -332,7 +332,28 @@ todos con bloqueo documentado (sin fuente real / depende de Bloque 3).
   selectores fuente→dim→métrica→filtro + tabla agrupada con barras tokenizadas + export CSV (Blob client-side) + guardar
   reportes en `localStorage` (SSR-safe). Categoría **Constructor** habilitada en `ReportesClient` (dejó de estar "Pronto").
 - **Sin migración** (presentación pura). Reviewer APPROVED + ui-ux OK. Fix aplicado: contraste AA del conteo (`--ink-mute`→`--ink-soft`).
-- **Nits ui-ux dejados (no bloqueantes, pulido de coherencia futura):** la tabla de resultado no usa el `HeaderRow` del
-  módulo (sin rótulos de columna en pantalla; el CSV sí los lleva) · `EmptyState` primitivo para "fuente vacía" vs
-  "filtro dejó 0 grupos" · target+hover del `×` en los chips guardados.
+- **Nits ui-ux dejados (no bloqueantes, pulido de coherencia futura):** ~~la tabla de resultado no usa el `HeaderRow` del
+  módulo (sin rótulos de columna en pantalla; el CSV sí los lleva)~~ · ~~`EmptyState` primitivo para "fuente vacía" vs
+  "filtro dejó 0 grupos"~~ · ~~target+hover del `×` en los chips guardados~~ → **3 resueltos 2026-06-04** (ver abajo).
 - **Pendiente de Slice C:** Combinados (desbloqueado por Costing) · Por-agente (bloqueado) · Posición IVA (Bloque 3) · export PDF.
+
+### Slice C · Constructor — pulido nits ui-ux (2026-06-04)
+
+Los 3 nits que el Constructor V1 dejó documentados se cerraron (gate verde · `ui-ux-designer` OK · sin migración):
+
+1. **`HeaderRow` en la tabla de resultado.** Se **movió `HeaderRow` de `ReportesClient.tsx` (local) a `charts.tsx`**
+   (módulo compartido del slice, donde ya vive `Progress`) y se exportó — fuente única, sin import circular
+   (`ReportesClient` → importa `BuilderView`, ambos importan de `./charts`). La tabla del builder ahora rotula columnas
+   en pantalla (`[dim, "", "Conteo", métrica]`, cols 2-3 a la derecha) con la misma geometría que `RoutesView`/`CarriersView`
+   (`padding 18` horizontal · `gap 14` · `borderTop` entre filas, 1ª sin borde porque el `HeaderRow` ya trae `borderBottom`).
+2. **`EmptyState` diferenciado y honesto.** Se reemplazó el `<div>` genérico por la primitiva `<EmptyState>` (patrón del módulo)
+   que **reemplaza el card entero** (no se anida → evita card-in-card, igual que `RoutesView`) y distingue 3 casos:
+   (a) fuente sin registros en el período, (b) filtro activo (`filterVal !== "all"`) que dejó 0 grupos → muestra
+   `filterField.label = filterVal`, (c) borde: hay registros pero ninguno aporta a la agrupación/métrica.
+3. **`×` de chips guardados accesible.** Componente local `RemoveButton` con touch target 28×28 (`display:grid; placeItems:center`;
+   < 32 del estándar a propósito por ser `×` en pill compacto, > 24 WCAG 2.2), hover/focus vía estado local
+   (`onMouseEnter/Leave/Focus/Blur` → `var(--danger-bg)`/`var(--danger)`; inline styles no soportan pseudo-clases), `aria-label` + `title`.
+
+**Decisión que sobrevive:** el `rightFrom={2}` del `HeaderRow` es correcto (la columna de barra es índice **1** = label vacío;
+"Conteo" en 2 y la métrica en 3 sí van a la derecha, alineadas con sus celdas). Solo cambios de presentación; tests del módulo
+intactos (1057 verdes en el repo).

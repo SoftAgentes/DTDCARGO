@@ -20,6 +20,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import {
   REPORT_SOURCES,
   asSourceId,
@@ -29,7 +30,7 @@ import {
   type BuilderRow,
   type ReportSourceId,
 } from "@/lib/studio/reports/builder-types";
-import { Progress } from "./charts";
+import { Progress, HeaderRow } from "./charts";
 
 const STORAGE_KEY = "dtd_saved_reports_v1";
 
@@ -82,6 +83,45 @@ const selWrap: React.CSSProperties = {
   flexDirection: "column",
   gap: 5,
 };
+
+/**
+ * Botón `×` para quitar un reporte guardado. Touch target 28×28: < 32 del
+ * estándar de botones del Studio a propósito (es un `×` en pill compacto, no
+ * una acción de primer nivel), pero > 24 del mínimo WCAG 2.2 SC 2.5.8. Hover/
+ * focus tokenizado sin tocar el CSS global: el hover vive en estado local
+ * (idioma del módulo) porque inline styles no soportan pseudo-clases.
+ */
+function RemoveButton({ onClick }: { onClick: () => void }) {
+  const [hot, setHot] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      onMouseEnter={() => setHot(true)}
+      onMouseLeave={() => setHot(false)}
+      onFocus={() => setHot(true)}
+      onBlur={() => setHot(false)}
+      title="Eliminar"
+      aria-label="Eliminar reporte guardado"
+      style={{
+        appearance: "none",
+        width: 28,
+        height: 28,
+        display: "grid",
+        placeItems: "center",
+        borderRadius: "var(--r-pill)",
+        border: "none",
+        cursor: "pointer",
+        background: hot ? "var(--danger-bg)" : "transparent",
+        color: hot ? "var(--danger)" : "var(--ink-mute)",
+        font: "700 14px/1 var(--f-sans)",
+        transition: "background 0.15s, color 0.15s",
+      }}
+    >
+      ×
+    </button>
+  );
+}
 
 export function BuilderView({
   source,
@@ -328,115 +368,146 @@ export function BuilderView({
         </div>
       </div>
 
-      {/* Resultado */}
-      <div
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          overflow: "hidden",
-        }}
-      >
+      {/* Resultado — EmptyState honesto (fuente vacía vs filtro sin grupos) o tabla */}
+      {result.rows.length === 0 ? (
+        rows.length === 0 ? (
+          <EmptyState
+            eyebrow={src.label}
+            title="Sin datos en el período"
+            description="No hay registros de esta fuente en el rango seleccionado. Cambiá el período en el header o cargá datos para construir el reporte."
+          />
+        ) : filterField && filterVal !== "all" ? (
+          <EmptyState
+            eyebrow="Filtro sin resultados"
+            title="El filtro no dejó grupos"
+            description={
+              <>
+                Ningún registro cumple{" "}
+                <strong>
+                  {filterField.label} = {filterVal}
+                </strong>
+                . Ajustá o quitá el filtro para ver datos.
+              </>
+            }
+          />
+        ) : (
+          <EmptyState
+            eyebrow={src.label}
+            title="Sin grupos para esta combinación"
+            description="La fuente tiene registros, pero ninguno aporta a esta agrupación/métrica en el período."
+          />
+        )
+      ) : (
         <div
           style={{
-            padding: "16px 20px 14px",
-            borderBottom: "1px solid var(--border)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: 16,
-            flexWrap: "wrap",
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            overflow: "hidden",
           }}
         >
-          <div>
-            <div style={{ font: "900 15px/1.1 var(--f-display)", color: "var(--ink)" }}>
-              {title}
-            </div>
-            <div
-              style={{
-                font: "500 11.5px/1 var(--f-sans)",
-                color: "var(--ink-mute)",
-                marginTop: 4,
-              }}
-            >
-              {result.rows.length}{" "}
-              {result.rows.length === 1 ? "grupo" : "grupos"} · total {fmtV(result.total)}
-            </div>
-          </div>
-          <Badge tone="wine" size="md">
-            {aggLabel}
-          </Badge>
-        </div>
-
-        {result.rows.length === 0 ? (
           <div
             style={{
-              padding: 40,
-              textAlign: "center",
-              font: "500 13px/1.4 var(--f-sans)",
-              color: "var(--ink-mute)",
+              padding: "16px 20px 14px",
+              borderBottom: "1px solid var(--border)",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 16,
+              flexWrap: "wrap",
             }}
           >
-            Sin datos para esta combinación en el período.
-          </div>
-        ) : (
-          <div style={{ padding: "18px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-            {result.rows.slice(0, 20).map((r, i) => (
+            <div>
+              <div style={{ font: "900 15px/1.1 var(--f-display)", color: "var(--ink)" }}>
+                {title}
+              </div>
               <div
-                key={`${r.label}-${i}`}
                 style={{
-                  display: "grid",
-                  gridTemplateColumns: "minmax(120px, 200px) 1fr 70px 110px",
-                  gap: 12,
-                  alignItems: "center",
+                  font: "500 11.5px/1 var(--f-sans)",
+                  color: "var(--ink-mute)",
+                  marginTop: 4,
                 }}
               >
-                <span
-                  title={r.label}
-                  style={{
-                    font: "600 12.5px/1.3 var(--f-sans)",
-                    color: "var(--ink)",
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {r.label}
-                </span>
-                <Progress
-                  value={(r.value / maxV) * 100}
-                  tone={i === 0 ? "var(--wine)" : "var(--wine-soft)"}
-                  height={18}
-                />
-                <span
-                  style={{
-                    font: "500 11px/1 var(--f-mono)",
-                    color: "var(--ink-soft)",
-                    textAlign: "right",
-                  }}
-                >
-                  {r.count}
-                </span>
-                <span
-                  style={{
-                    font: "800 12.5px/1 var(--f-mono)",
-                    color: "var(--ink)",
-                    textAlign: "right",
-                  }}
-                >
-                  {fmtV(r.value)}
-                </span>
+                {result.rows.length}{" "}
+                {result.rows.length === 1 ? "grupo" : "grupos"} · total {fmtV(result.total)}
               </div>
-            ))}
-            {result.rows.length > 20 && (
-              <div style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)", marginTop: 4 }}>
-                Mostrando los 20 grupos de mayor valor · el CSV exporta los{" "}
-                {result.rows.length}.
-              </div>
-            )}
+            </div>
+            <Badge tone="wine" size="md">
+              {aggLabel}
+            </Badge>
           </div>
-        )}
-      </div>
+
+          <HeaderRow
+            cols="minmax(120px, 200px) 1fr 70px 110px"
+            labels={[dim.label, "", "Conteo", metric.label]}
+            rightFrom={2}
+            rightTo={3}
+          />
+
+          {result.rows.slice(0, 20).map((r, i) => (
+            <div
+              key={`${r.label}-${i}`}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "minmax(120px, 200px) 1fr 70px 110px",
+                gap: 14,
+                padding: "12px 18px",
+                alignItems: "center",
+                borderTop: i === 0 ? "none" : "1px solid var(--border)",
+              }}
+            >
+              <span
+                title={r.label}
+                style={{
+                  font: "600 12.5px/1.3 var(--f-sans)",
+                  color: "var(--ink)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {r.label}
+              </span>
+              <Progress
+                value={(r.value / maxV) * 100}
+                tone={i === 0 ? "var(--wine)" : "var(--wine-soft)"}
+                height={18}
+              />
+              <span
+                style={{
+                  font: "500 11px/1 var(--f-mono)",
+                  color: "var(--ink-soft)",
+                  textAlign: "right",
+                }}
+              >
+                {r.count}
+              </span>
+              <span
+                style={{
+                  font: "800 12.5px/1 var(--f-mono)",
+                  color: "var(--ink)",
+                  textAlign: "right",
+                }}
+              >
+                {fmtV(r.value)}
+              </span>
+            </div>
+          ))}
+          {result.rows.length > 20 && (
+            <div
+              style={{
+                padding: "12px 18px",
+                borderTop: "1px solid var(--border)",
+                font: "500 11px/1 var(--f-sans)",
+                color: "var(--ink-mute)",
+              }}
+            >
+              Mostrando los 20 grupos de mayor valor · el CSV exporta los{" "}
+              {result.rows.length}.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Reportes guardados */}
       {saved.length > 0 && (
@@ -467,7 +538,7 @@ export function BuilderView({
                   display: "inline-flex",
                   alignItems: "center",
                   gap: 8,
-                  padding: "7px 10px 7px 12px",
+                  padding: "3px 4px 3px 12px",
                   background: "var(--bg-elevated)",
                   borderRadius: "var(--r-pill)",
                   border: "1px solid var(--border)",
@@ -487,23 +558,7 @@ export function BuilderView({
                 >
                   {r.title}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => delSaved(r.id)}
-                  title="Eliminar"
-                  aria-label="Eliminar reporte guardado"
-                  style={{
-                    appearance: "none",
-                    background: "transparent",
-                    border: "none",
-                    cursor: "pointer",
-                    color: "var(--ink-mute)",
-                    font: "700 13px/1 var(--f-sans)",
-                    display: "inline-flex",
-                  }}
-                >
-                  ×
-                </button>
+                <RemoveButton onClick={() => delSaved(r.id)} />
               </span>
             ))}
           </div>
