@@ -225,13 +225,29 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
       `invoice_currency`: RMB no está en ese enum).
     - `statement_line_id` en `supplier_charges` queda `uuid` SIN FK (la tabla destino es de Slice B).
   - **NO incluye:** `partner_statements`, motor de reconciliación, ninguna UI.
-- **Slice B — Reconciliación + cuenta corriente (UI).** Tablas `partner_statements` +
-  `partner_statement_lines` + `reconciliation.ts` (motor de match) + vistas: saldo neto USD/RMB, timeline
-  de entries, importar estado de cuenta + cola de match/discrepancias, cargos + notas de crédito.
-  Requiere **pasada de diseño** (no hay mockup → §7). *Aquí vive el dolor de mayor ROI (reconciliación).*
-  - **Follow-up del review de Slice A:** `supplier_credit_notes` no valida `charge_id` cross-tenant por
-    trigger (hoy acotado solo por RLS). Agregar helper `charge_in_tenant()` + trigger BEFORE INSERT/UPDATE
-    al construir Slice B (cierra el mismo patrón de defensa-en-DB que las tablas de Slice A).
+- **Slice B1 — Backend de reconciliación (SIN UI).** ✅ **implementado (harness `/feature`).**
+  Migración `0112_partner_statements.sql` (se **cede `0111`** a SDD-0060 Documentos Versionado, que la tomó
+  en paralelo): tablas `partner_statements` + `partner_statement_lines` (+ RLS fail-closed por tenant +
+  triggers cross-tenant `statement_in_tenant`/`charge_in_tenant`/`ledger_entry_in_tenant`) + FK diferida
+  `supplier_charges.statement_line_id → partner_statement_lines` (0110 la dejó sin constraint) + **trigger
+  `charge_in_tenant()` sobre `supplier_credit_notes`** (cierra el follow-up del review de Slice A).
+  `lib/studio/partner-finance/`: `reconciliation.ts` (motor de match PURO y DETERMINISTA — monto exacto +
+  ventana de fecha ±N días → `alta`; monto exacto sin fecha cercana / fuzzy CN → `media`; aproximado →
+  `baja`; clasifica `discrepancia`/`solo_en_estado`/`solo_en_erp`; consumo único de candidatos, greedy por
+  confianza; sin `Date.now` — fechas/ventanas por parámetro) + `statements-queries.ts` (`createStatement`,
+  `addStatementLines`, `listStatements`, `getStatementWithLines`, `applyMatchDecision`, `closeStatement`
+  que marca `reconciled=true` en los cargos atados vía `markChargesReconciled` de `charges-queries`).
+  Tipos/validators de statements/lines viven en `types.ts` (sección Slice B1). **+37 tests** (motor 30 +
+  queries 7; objetivo era ≥25) → gate `node scripts/verify.mjs` verde end-to-end. **Aislado: no toca nada
+  fuera de `partner-finance/` + su migración.** **Decisiones de implementación:**
+    - `reconcileStatement` también reporta los `unmatched_charge_ids`/`unmatched_ledger_entry_ids` del ERP
+      que ninguna línea consumió (= candidatos a `solo_en_erp`; la línea-fantasma se materializa en B2).
+    - el monto comparable del ledger se elige por moneda de la línea (`RMB → amount_rmb`, resto `amount_usd`).
+    - **⚠️ pendiente: founder aplica `0112` a prod.**
+- **Slice B2 — UI `/studio/financiero-china`.** Cuenta corriente (saldo neto USD/RMB + timeline
+  debit/credit/runBalance) + cola de reconciliación (subir estado de cuenta → match auto → confirmar/
+  corregir/rechazar → cerrar período) + cargos + notas de crédito. **Diseño anclado** (§7).
+  *Aquí vive el dolor de mayor ROI (reconciliación).*
 - **Slice C — Avanzado.** Conversiones/forex como revenue (UI + KPI de spread), tablero de claim offsets,
   alertas PP/CA (`due_date` vencido), export de asiento para QuickBooks.
 
@@ -239,10 +255,16 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
 
 ## 7. Diseño
 
-⚠️ **DESIGN-CHECK:** no hay mockup aprobado de este módulo. El norte vigente (`docs/design/studio/_norte/`,
-ver versión viva al tope de `_norte/HANDOFF.md`) lista el bloque financiero China en su mapa de módulos
-pendientes pero **sin pantalla diseñada**. Antes de construir Slice B (UI) hay que pasar por
-`ui-ux-designer` / pedir handoff a Cloud Design. Slice A no toca UI → no bloquea.
+✅ **DESIGN-CHECK resuelto (2026-06-05)** — la UI de Slice B2 ancla a dos patrones probados del Norte
+vigente (`docs/design/studio/_norte/`, v2.4), que se adaptan al contexto socio China (son versiones
+cliente/banco; el shell UX transfiere directo):
+- **`erp/modules/conciliacion.jsx`** → cola de reconciliación: subir extracto → matches auto-sugeridos
+  con confianza alta/media/baja → confirmar/rechazar/manual → exportar. KPIs + tabs + balance strip +
+  detail panel con búsqueda de match manual.
+- **`pantallas/estado-cuenta.jsx`** → cuenta corriente: `MovementsTable` con saldo corriente
+  (debit/credit/**runBalance**) + `RatesBanner` (tasas + spread + "asientos @ source").
+
+Al construir Slice B2 igual pasa por `ui-ux-designer` (check liviano). Slice A/B1 no tocan UI → no bloquean.
 
 ## 8. Confidencialidad
 
