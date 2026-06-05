@@ -93,10 +93,15 @@ export async function sendReplyAction(
   // El hilo debe ser del tenant (RLS lo garantiza en la lectura).
   const { data: conv } = await supabase
     .from("conversations")
-    .select("id, client_id, channel")
+    .select("id, client_id, channel, external_ref")
     .eq("id", input!.conversation_id)
     .is("deleted_at", null)
-    .maybeSingle<{ id: string; client_id: string; channel: string }>();
+    .maybeSingle<{
+      id: string;
+      client_id: string;
+      channel: string;
+      external_ref: string | null;
+    }>();
   if (!conv) return { error: "Conversación no encontrada." };
 
   const inserted = await insertOutboundMessage(supabase, {
@@ -118,12 +123,26 @@ export async function sendReplyAction(
 
   if (client?.email) {
     try {
+      // Threading (SDD-0056 Fase 2): si el hilo nació de un email entrante, su
+      // external_ref guarda el Message-ID RFC del primer email del cliente
+      // (`<...>`). Lo referenciamos con In-Reply-To/References para que la
+      // respuesta del agente caiga en el mismo hilo de la casilla del cliente.
+      // Solo lo usamos si es un Message-ID con forma RFC válida; si es null o no
+      // empieza con `<` (dato viejo/sucio) → no seteamos headers (un valor
+      // incorrecto rompe el agrupamiento en Gmail/Outlook).
+      const rfcRef = conv.external_ref?.trim();
+      const threadHeaders =
+        conv.channel === "email" && rfcRef && rfcRef.startsWith("<") && rfcRef.endsWith(">")
+          ? { "In-Reply-To": rfcRef, References: rfcRef }
+          : undefined;
+
       const result = await sendEmail(createAdminClient(), tenantId, {
         to: client.email,
         to_name: client.name,
         subject: `DTD Cargo · respuesta de tu asesor`,
         html: replyEmailHtml(client.name, input!.body, agent.name),
         metadata: { source: "conversaciones", conversation_id: conv.id },
+        headers: threadHeaders,
       });
       emailSent = result.ok;
     } catch {

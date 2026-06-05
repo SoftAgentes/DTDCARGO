@@ -36,6 +36,13 @@ export type SendEmailInput = {
   vars?: Record<string, string>;
   /** Metadata extra que va al mail_log (no al provider). */
   metadata?: Record<string, unknown>;
+  /**
+   * Headers extra para el provider (NO van al mail_log). Caso de uso: threading
+   * de email entrante (SDD-0056 Fase 2) → `In-Reply-To` / `References` con el
+   * Message-ID del email original, para que el cliente vea la respuesta en el
+   * mismo hilo de su casilla.
+   */
+  headers?: Record<string, string>;
 };
 
 export type SendEmailResult =
@@ -173,6 +180,7 @@ export async function sendEmail(
     cc: input.cc,
     bcc: input.bcc,
     reply_to: config.reply_to ?? undefined,
+    headers: input.headers && Object.keys(input.headers).length > 0 ? input.headers : undefined,
     tags: [
       { name: "tenant_id", value: tenantId },
       ...(input.templateSlug
