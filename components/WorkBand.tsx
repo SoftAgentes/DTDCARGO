@@ -6,16 +6,45 @@ import type { CSSProperties } from "react";
  * remoto). Va después de <YiwuAdvantage />. Server component: <video> con
  * autoPlay/muted/loop/playsInline es HTML puro, no necesita "use client".
  *
- * El clip es VERTICAL (filmado con teléfono) → layout de 2 columnas: copy a la
- * izquierda, video enmarcado tipo reel a la derecha. El frame fija el aspect
- * (64/91 ≈ el ratio del clip) para que el <video> absolute lo llene y para que,
- * en prefers-reduced-motion, el poster fijo conserve la altura (ver globals.css
- * .work-band-frame / .work-band-video). Assets en public/videos/ (mp4 + webm +
- * poster), recortados desde material real (sin marcas de terceros).
+ * SEO: un único título descriptivo (con keywords DTD Cargo / puerta a puerta /
+ * Yiwu-China) se reusa en el nombre de archivo, el alt/title del <video> y el
+ * VideoObject (JSON-LD). Esa coherencia de señal es la buena práctica real —
+ * NO el mismo texto idéntico en todos los assets (eso sería keyword stuffing).
+ *
+ * El clip es VERTICAL → layout de 2 columnas; el frame fija aspect 64/91 para
+ * que el <video> absolute lo llene y, en prefers-reduced-motion, el poster fijo
+ * conserve la altura (ver globals.css .work-band-frame / .work-band-video).
  */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
+
+/** Base del nombre de archivo = título SEO en kebab-case (sin acentos). */
+const VIDEO_BASE = "/videos/bodega-dtd-cargo-yiwu-china-puerta-a-puerta";
+
+/** Mismo título legible para alt / title / VideoObject.name. */
+const VIDEO_TITLE =
+  "Bodega de DTD Cargo en Yiwu, China — carga consolidada puerta a puerta a Venezuela";
+
+const VIDEO_DESC =
+  "Equipo propio de DTD Cargo consolidando, embalando y asegurando carga en su bodega de Yiwu (China) para envío puerta a puerta (DDP) a Venezuela.";
+
+const videoJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "VideoObject",
+  name: VIDEO_TITLE,
+  description: VIDEO_DESC,
+  thumbnailUrl: [`${SITE_URL}${VIDEO_BASE}-poster.jpg`],
+  contentUrl: `${SITE_URL}${VIDEO_BASE}.mp4`,
+  uploadDate: "2026-06-05",
+  publisher: { "@type": "Organization", name: "DTD Cargo", url: SITE_URL },
+};
+
 export function WorkBand() {
   return (
     <section className="py-20 lg:py-25 bg-paper" id="operacion">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(videoJsonLd) }}
+      />
       <div className="wrap">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center lg:items-start">
           <div>
@@ -31,7 +60,7 @@ export function WorkBand() {
           <figure className="m-0 mx-auto w-full max-w-[340px]">
             <div
               className="work-band-frame relative aspect-[64/91] rounded-[20px] overflow-hidden card-shadow border border-grey-200 bg-ink"
-              style={{ "--wb-poster": "url('/videos/yiwu-poster.jpg')" } as CSSProperties}
+              style={{ "--wb-poster": `url('${VIDEO_BASE}-poster.jpg')` } as CSSProperties}
             >
               <video
                 className="work-band-video absolute inset-0 h-full w-full object-cover"
@@ -40,15 +69,16 @@ export function WorkBand() {
                 loop
                 playsInline
                 preload="metadata"
-                poster="/videos/yiwu-poster.jpg"
-                aria-label="Equipo de DTD Cargo consolidando y asegurando carga en la bodega de Yiwu, China"
+                poster={`${VIDEO_BASE}-poster.jpg`}
+                title={VIDEO_TITLE}
+                aria-label={VIDEO_TITLE}
               >
-                <source src="/videos/yiwu.webm" type="video/webm" />
-                <source src="/videos/yiwu.mp4" type="video/mp4" />
+                <source src={`${VIDEO_BASE}.webm`} type="video/webm" />
+                <source src={`${VIDEO_BASE}.mp4`} type="video/mp4" />
               </video>
             </div>
             <figcaption className="mt-3 text-[13px] text-grey-500 text-center">
-              Bodega DTD Cargo · Yiwu, China.
+              Bodega de DTD Cargo · Yiwu, China — carga puerta a puerta a Venezuela.
             </figcaption>
           </figure>
         </div>
