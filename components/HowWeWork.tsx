@@ -39,7 +39,17 @@ export function HowWeWork() {
               >
                 {s.n} / 04
               </div>
-              <h3 className="h-card text-ink mb-2">{s.title}</h3>
+              <h3 className={`h-card text-ink ${s.tag ? "mb-1" : "mb-2"}`}>
+                {s.title}
+              </h3>
+              {s.tag && (
+                <div
+                  className="text-[12.5px] font-semibold tracking-[0.02em] mb-2.5"
+                  style={{ color: "var(--color-wine)" }}
+                >
+                  {s.tag}
+                </div>
+              )}
               <p className="text-[14px] leading-[1.55] text-grey-500">
                 {s.copy}
               </p>
