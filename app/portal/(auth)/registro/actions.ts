@@ -196,8 +196,12 @@ export async function registerClientAction(
     };
   }
 
-  // 4. MARKBOX atómico.
-  const { data: markboxData, error: markboxErr } = await admin.rpc("next_markbox", {
+  // 4. MARKBOX atómico. Usamos la variante *_service (migr 0109): el registro
+  //    self-service es anónimo → admin client (service_role) SIN tenant
+  //    autenticado, y `next_markbox()` exige uno vía assert_tenant_match()
+  //    (42501). next_markbox_service() tiene la misma lógica sin ese guard y
+  //    EXECUTE restringido a service_role (no es forjable desde el navegador).
+  const { data: markboxData, error: markboxErr } = await admin.rpc("next_markbox_service", {
     p_tenant_id: tenantId,
   });
   if (markboxErr || !markboxData) {

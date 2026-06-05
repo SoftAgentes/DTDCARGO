@@ -223,9 +223,9 @@ describe("registerClientAction · throttle por IP", () => {
 
     await registerClientAction({}, validForm());
 
-    // Registró el intento y avanzó: resolvió tenant + next_markbox + upload.
+    // Registró el intento y avanzó: resolvió tenant + next_markbox_service + upload.
     expect(ops.calls.has(`${THROTTLE}:insert`)).toBe(true);
-    expect(ops.rpcNames).toContain("next_markbox");
+    expect(ops.rpcNames).toContain("next_markbox_service");
     expect(ops.uploads.length).toBeGreaterThan(0);
     expect(ops.calls.has("clients:insert")).toBe(true);
   });
