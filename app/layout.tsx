@@ -43,7 +43,7 @@ export const metadata: Metadata = {
     "inspección de fábrica Yiwu",
     "Yiwu Venezuela",
     "Incoterms 2020",
-    "FCL BL propio",
+    "FCL contenedor completo",
     "consolidación LCL China",
     "courier aéreo China",
     "import China Venezuela DDP",
@@ -154,7 +154,7 @@ const jsonLd = {
     {
       "@type": "OpeningHoursSpecification",
       dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "08:00",
+      opens: "09:00",
       closes: "17:00",
     },
   ],

@@ -112,8 +112,8 @@ export function ServicesGrid({ noHead = false, items = SERVICES_FEATURED }: Prop
             </div>
             <p className="lead max-w-[36ch]">
               Suite completa entre China y Venezuela: desde sourcing y QC en
-              Yiwu hasta entrega puerta a puerta en Caracas. Sin
-              sub-contratistas opacos.
+              Yiwu hasta entrega puerta a puerta en Caracas. Un solo
+              responsable de coordinación de principio a fin.
             </p>
           </div>
         )}

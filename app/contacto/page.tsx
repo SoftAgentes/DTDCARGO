@@ -128,7 +128,7 @@ export default function ContactoPage() {
                 </h3>
                 <p className="text-[14.5px] text-white/70 leading-[1.5]">
                   Envíanos un WhatsApp y un asesor humano te contesta en
-                  minutos durante horario comercial.
+                  minutos. Atendemos todos los días 8:00–20:00 (GMT-4).
                 </p>
                 <a
                   href={`https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(

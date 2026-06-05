@@ -31,7 +31,7 @@ import {
 export const metadata: Metadata = {
   title: "Servicios",
   description:
-    "16 servicios entre Yiwu y Valencia: FCL con BL propio, consolidación LCL, sourcing, QC, courier aéreo, registro de marca, visado, aduana y last mile.",
+    "16 servicios entre Yiwu y Valencia: FCL (contenedor completo), consolidación LCL, sourcing, QC, courier aéreo (próximamente), registro de marca, visado, aduana y last mile.",
   alternates: { canonical: "/servicios" },
   openGraph: {
     title: "Servicios · DTD Cargo",
