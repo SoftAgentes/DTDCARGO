@@ -4,7 +4,7 @@ title: "Conversaciones · bandeja unificada (WhatsApp + email + portal)"
 status: in-progress
 author: "founder"
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-06-05
 supersedes: null
 superseded_by: null
 related: ["0026", "0042", "0043", "0045"]
@@ -128,9 +128,10 @@ conversation_messages
 1. **Granularidad del hilo:** ✅ **cliente×canal en datos**, vista unificable por cliente en la UI.
    Implementado: índice único parcial `conversations_client_channel_live_idx (tenant, client,
    channel) where deleted_at is null` (un hilo VIVO por cliente×canal).
-2. **Email inbound (Fase 2):** ⏸ diferido. El enum `channel` ya contempla `email`; la ingesta
-   (Resend inbound vs IMAP vs relay) se define al llegar a Fase 2. `insertInboundMessage`
-   (idempotente por `external_msg_id`) queda listo + testeado para el webhook.
+2. **Email inbound (Fase 2):** ✅ **resuelto: Resend Inbound** (mismo proveedor que el saliente,
+   dominio ya verificado — NO IMAP, NO Cloudflare). Webhook `email.received` (solo metadata) +
+   Received Emails API (baja el cuerpo por `email_id`). Threading al hilo `channel='email'` del
+   cliente. Ver "Fase 2 · notas de implementación".
 3. **WhatsApp (Fase 3):** ⏸ diferido. Gate founder pesado (Meta Business + plantillas + número).
 4. **SLA:** ✅ V1 muestra **antigüedad** (`relativeAge`); timers/alertas de SLA quedan para una
    fase posterior.
@@ -167,11 +168,60 @@ integraciones externas.
 email del agente funcionen en runtime, las tablas ya están en `supabase_realtime` por RLS y el
 envío reusa `mail_config` del tenant (Resend ya configurado).
 
+## Fase 2 · notas de implementación (2026-06-05)
+
+Email entrante vía **Resend Inbound** (decisión #2). Shippeada vía harness en el worktree
+`feat/conversaciones`. **Sin migración** (code-only sobre el schema 0106): el admin client
+service_role bypassa RLS y reusa `conversation_messages.external_msg_id` (idempotencia inbound) +
+el índice único parcial cliente×canal.
+
+- **Contrato real de Resend (verificado en docs 2026-06-05):** el webhook `email.received` trae
+  **solo metadata** (`email_id`, `from`, `to`, `subject`, `message_id`, `attachments`); el cuerpo se
+  baja aparte con `GET https://api.resend.com/emails/receiving/{email_id}` (Received Emails API,
+  Bearer `RESEND_API_KEY`). La idempotencia usa `email_id` (estable, lo asigna Resend) como
+  `external_msg_id`, no el header `message_id` del remitente.
+- **Core provider-agnóstico** `lib/studio/conversaciones/inbound-email.ts` (`ingestInboundEmail`,
+  puro, recibe admin `SupabaseClient`): resuelve cliente por `clients.email` (case-insensitive,
+  vivo) → `unmatched` (0 matches, NO inserta: `client_id` es NOT NULL) · `ambiguous` (mismo email en
+  >1 tenant, sin mapa tenant↔dominio receptor no se adivina) · si 1 tenant → reusa/crea el hilo
+  `channel='email'` (RPC `next_conversation_ref`, maneja race 23505 re-seleccionando) → inserta
+  inbound idempotente (`duplicate` si el `email_id` ya existe) → bump unread/last_message_at +
+  reabre si estaba `resuelto` (mismo comportamiento que `portal_post_message`).
+- **Adapter** `lib/studio/conversaciones/resend-inbound-adapter.ts`: aísla TODO el parsing
+  Resend-específico (webhook + Received Email → input del core). `parseFromAddress` (display name +
+  address), `bodyFromEmail` (prefiere `text`, deriva de `html` con strip básico). Swappable si
+  cambia el proveedor.
+- **Webhook** `app/api/conversaciones/email/route.ts` (fino, sin lógica de negocio): verifica firma
+  Svix (reusa `verifyResendWebhookSignature` del webhook de delivery) → adapter → fetch cuerpo
+  (`resendGetReceivedEmail` agregada a `lib/studio/mail/resend-api.ts`) → `ingestInboundEmail`.
+  Responde **200** en todos los desenlaces válidos (ingested/duplicate/unmatched/ambiguous) para que
+  Resend no reintente en loop; `!= 200` solo si falta secret (503), firma inválida (401) o falla
+  bajar el cuerpo (502). Errores con `apiError` (no filtra detail en prod).
+- **Reply threading:** al crear el hilo email se siembra `conversations.external_ref` con el
+  `email_id`/Message-ID del primer email; `sendReplyAction` setea `In-Reply-To`/`References` (vía
+  `headers` agregado a `sendEmail`) para hilos `channel='email'`, así la respuesta cae en el mismo
+  hilo de la casilla del cliente.
+- **Tests:** `lib/studio/conversaciones/__tests__/inbound-email.test.ts` (18 casos: core
+  ingested/append+bump/reabre-resuelto/duplicate/unmatched/ambiguous/race-23505/body-vacío +
+  helpers + adapter fixture/parse/html→text).
+
+**Setup founder (no automatizable):** ver `docs/runbooks/setup-resend-inbound.md`. En síntesis:
+MX en un **subdominio receptor** (NO pisar el MX de envío, prioridad baja) + webhook `email.received`
+a `{SITE_URL}/api/conversaciones/email` + `RESEND_INBOUND_WEBHOOK_SECRET` (cae a `RESEND_WEBHOOK_SECRET`
+si falta) + `RESEND_API_KEY` con lectura. ⚠️ Resend Inbound puede requerir un **plan específico**
+(confirmar en el dashboard). El código queda listo y testeado con mocks aunque el setup no esté.
+
+**Fuera de Fase 2:** WhatsApp (Fase 3) · auto-crear lead/cliente desde un remitente desconocido
+(decisión futura del founder; por ahora `unmatched` se descarta + log) · adjuntos (el webhook trae
+solo metadata de adjuntos; bajar el binario por la Attachments API queda como follow-up).
+
 ## Adjuntos
 
 Mockups → el Norte ya tiene la fuente (`conversaciones.jsx` v1.9.1). Si se generan diagramas de
 datos propios del spec → `docs/specs/0056-conversaciones/assets/`.
 
 ---
-<!-- Estado: draft. Próximo paso sugerido: revisar alcance/fases con founder (plan-eng-review),
-     luego Fase 1 vía harness. NO empezar implementación hasta aprobar el spec. -->
+<!-- Estado: in-progress. Fase 1 (núcleo + canal Portal) y Fase 2 (email entrante · Resend Inbound)
+     shippeadas vía harness. Pendiente: Fase 3 (WhatsApp · Meta Cloud API, gate founder pesado). El
+     spec pasa a 'done' cuando cierre la Fase 3 o el founder decida congelar el alcance en email. -->
+

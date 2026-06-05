@@ -83,6 +83,62 @@ export async function resendSend(input: ResendSendInput): Promise<ResendSendResu
 }
 
 // ─────────────────────────────────────────────────────────────
+// Received Emails API (inbound · SDD-0056 Fase 2)
+// ─────────────────────────────────────────────────────────────
+
+export type ResendFetchResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string; code?: string };
+
+/**
+ * Trae un email recibido (inbound) por su `email_id`.
+ *
+ * El webhook `email.received` solo manda metadata; el cuerpo (text/html/headers)
+ * se baja con este GET. Auth: `RESEND_API_KEY`. Si no hay key → `mock_no_key`
+ * (igual que resendSend) para no romper local/CI.
+ *
+ * GET https://api.resend.com/emails/receiving/:email_id
+ * Docs: https://resend.com/docs/api-reference/emails/retrieve-received-email
+ */
+export async function resendGetReceivedEmail<T = unknown>(
+  emailId: string,
+): Promise<ResendFetchResult<T>> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return { ok: false, error: "mock_no_key" };
+  if (!emailId || !emailId.trim()) {
+    return { ok: false, error: "email_id vacío" };
+  }
+
+  try {
+    const res = await fetch(
+      `${RESEND_API_BASE}/emails/receiving/${encodeURIComponent(emailId.trim())}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${apiKey}` },
+      },
+    );
+    if (!res.ok) {
+      let errBody: { message?: string; name?: string } = {};
+      try {
+        errBody = (await res.json()) as { message?: string; name?: string };
+      } catch {
+        // body no es JSON
+      }
+      return {
+        ok: false,
+        error: errBody.message ?? `HTTP ${res.status} ${res.statusText}`,
+        code: errBody.name ?? String(res.status),
+      };
+    }
+    const data = (await res.json()) as T;
+    return { ok: true, data };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ok: false, error: `network: ${msg}` };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
 // Webhook signature verification (Svix-style HMAC)
 // ─────────────────────────────────────────────────────────────
 
