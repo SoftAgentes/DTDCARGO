@@ -16,7 +16,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
-import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
@@ -27,7 +26,7 @@ import type {
   KommoPipelineRow,
   KommoStatusRow,
 } from "@/lib/studio/kommo-types";
-import { convertLeadToClientAction } from "../actions";
+import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
 
 const GRID = "1.6fr 1fr 0.85fr 104px 176px";
 
@@ -95,8 +94,15 @@ export function KommoClient({
     setConverted((prev) => ({ ...convertedLeads, ...prev }));
   }, [convertedLeads]);
 
+  // Lead que se está convirtiendo (abre el drawer del picker de contacto).
+  const [convertingLead, setConvertingLead] = useState<{
+    id: number;
+    name: string;
+  } | null>(null);
+
   const onConverted = (leadId: number, markbox: string, created: boolean) => {
     setConverted((prev) => ({ ...prev, [leadId]: markbox }));
+    setConvertingLead(null); // cierra el drawer
     toast.success(
       `Cliente ${markbox} ${created ? "creado" : "vinculado"} desde el lead`,
       {
@@ -321,7 +327,9 @@ export function KommoClient({
             statusName={statusName}
             subdomain={overview.subdomain}
             converted={converted}
-            onConverted={onConverted}
+            onConvertClick={(l) =>
+              setConvertingLead({ id: l.id, name: l.name || "(sin nombre)" })
+            }
           />
         )}
       </div>
@@ -336,6 +344,14 @@ export function KommoClient({
         Mostrando hasta 200 leads (más recientes primero). Datos espejados de Kommo
         · solo lectura.
       </p>
+
+      {convertingLead && (
+        <ConvertLeadDrawer
+          lead={convertingLead}
+          onClose={() => setConvertingLead(null)}
+          onConverted={onConverted}
+        />
+      )}
     </div>
   );
 }
@@ -346,14 +362,14 @@ function LeadsTable({
   statusName,
   subdomain,
   converted,
-  onConverted,
+  onConvertClick,
 }: {
   leads: KommoLeadRow[];
   pipelineName: Map<number, string>;
   statusName: Map<string, string>;
   subdomain: string | null;
   converted: Record<number, string>;
-  onConverted: (leadId: number, markbox: string, created: boolean) => void;
+  onConvertClick: (lead: KommoLeadRow) => void;
 }) {
   return (
     <div
@@ -469,22 +485,15 @@ function LeadsTable({
                   </Badge>
                 </Link>
               ) : (
-                <ActionButton
-                  variant="dark"
-                  size="sm"
-                  idleLabel="Convertir a cliente"
-                  // successLabel null a propósito: el rastro persistente es el
-                  // Badge del MARKBOX (la row pasa a mostrarlo) + el toast, no un
-                  // flash efímero (regla de trazabilidad del Studio).
-                  successLabel={null}
-                  onAction={async () => {
-                    const res = await convertLeadToClientAction(l.id);
-                    if (res?.error) return { error: res.error };
-                    if (res?.markbox) {
-                      onConverted(l.id, res.markbox, res.created ?? false);
-                    }
-                  }}
-                />
+                // Abre el drawer del picker de contacto (acción no mutante →
+                // botón plano; el convert real lo dispara el drawer).
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-dark studio-btn-sm"
+                  onClick={() => onConvertClick(l)}
+                >
+                  Convertir a cliente
+                </button>
               )}
             </span>
           </div>

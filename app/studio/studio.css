@@ -470,6 +470,19 @@
 .studio-row-hover:hover {
   background: var(--bg-elevated);
 }
+/* Item seleccionable de lista (picker de contacto Kommo, SDD-0058). El borde y
+   el fondo de selección van inline (ganan por especificidad), así que el
+   feedback de hover/focus va por box-shadow/outline (que no se setean inline). */
+.kommo-contact-pick {
+  transition: box-shadow 0.12s;
+}
+.kommo-contact-pick:hover {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+.kommo-contact-pick:focus-visible {
+  outline: 2px solid var(--wine);
+  outline-offset: 2px;
+}
 /* Tintes persistentes (Cobranzas): mantienen la clase studio-tracking-row
    intacta para conservar hover + focus-visible. El :hover/:focus de arriba
    gana por especificidad (.studio-tracking-row:hover = 0,2,0 vs

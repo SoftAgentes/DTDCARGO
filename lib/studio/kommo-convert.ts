@@ -18,6 +18,45 @@ export type ConvertLeadResult = {
   error?: string;
 };
 
+/** Datos de contacto para prefillear el cliente (Slice B; vienen del contacto elegido). */
+export type ContactPrefill = { name?: string; email?: string; phone?: string };
+
+/** Un contacto del espejo Kommo con email/teléfono ya parseados, para el picker. */
+export type KommoContactPick = {
+  id: number;
+  name: string;
+  email: string | null;
+  phone: string | null;
+};
+
+/**
+ * Extrae email + teléfono (primer valor de cada uno) de los `custom_fields` crudos
+ * de un contacto Kommo. Forma real (verificada en prod): un array de
+ * `{ field_code, values: [{ value }] }` con códigos EMAIL / PHONE (multitext).
+ * Tolera formas inesperadas (devuelve null). PURO.
+ */
+export function parseContactFields(customFields: unknown): {
+  email: string | null;
+  phone: string | null;
+} {
+  let email: string | null = null;
+  let phone: string | null = null;
+  if (Array.isArray(customFields)) {
+    for (const f of customFields) {
+      if (!f || typeof f !== "object") continue;
+      const code = String((f as { field_code?: unknown }).field_code ?? "").toUpperCase();
+      const values = (f as { values?: unknown }).values;
+      const raw = Array.isArray(values)
+        ? (values[0] as { value?: unknown })?.value
+        : null;
+      if (raw == null || raw === "") continue;
+      if (code === "EMAIL" && !email) email = String(raw);
+      else if (code === "PHONE" && !phone) phone = String(raw);
+    }
+  }
+  return { email, phone };
+}
+
 /**
  * Map `kommo_lead_id → markbox` de los leads (entre los `leadIds` dados) que ya
  * tienen un cliente vivo. Para que la UI marque cada row como "Convertir" vs
@@ -44,6 +83,38 @@ export async function listConvertedLeadIds(
 }
 
 /**
+ * Busca contactos del espejo Kommo por nombre (ilike), con email/teléfono ya
+ * parseados de sus `custom_fields`. Para el picker de "Convertir a cliente"
+ * (Slice B). Sin término → los más recientes. RLS filtra por tenant. PURA.
+ */
+export async function searchKommoContacts(
+  supabase: SupabaseClient,
+  q: string,
+  limit = 20,
+): Promise<KommoContactPick[]> {
+  let query = supabase
+    .from("kommo_contacts")
+    .select("id, name, custom_fields")
+    .order("kommo_updated_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+
+  const term = (q ?? "").trim();
+  if (term) {
+    const safe = term.replace(/[,()%]/g, " ").replace(/\s+/g, " ").trim();
+    query = query.ilike("name", `%${safe}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (
+    (data as { id: number; name: string | null; custom_fields: unknown }[] | null) ?? []
+  ).map((c) => {
+    const { email, phone } = parseContactFields(c.custom_fields);
+    return { id: c.id, name: c.name ?? `Contacto ${c.id}`, email, phone };
+  });
+}
+
+/**
  * Convierte un lead del espejo Kommo en cliente DTD. Idempotente por lead: si el
  * lead ya tiene cliente vivo, devuelve ese MARKBOX sin insertar. El cliente nace
  * operativo (`tier='regular'`, `registration_channel='kommo'`), SIN portal
@@ -54,6 +125,7 @@ export async function convertLead(
   supabase: SupabaseClient,
   tenantId: string,
   leadId: number,
+  prefill: ContactPrefill = {},
 ): Promise<ConvertLeadResult> {
   if (!Number.isFinite(leadId) || leadId <= 0) return { error: "Lead inválido." };
 
@@ -86,16 +158,25 @@ export async function convertLead(
   if (mErr || !markboxData) return { error: "No se pudo generar el MARKBOX." };
   const markbox = String(markboxData);
 
-  // 4. Insert del cliente operativo.
-  const name = (lead.name ?? "").trim() || `Lead Kommo ${leadId}`;
-  const { error: insErr } = await supabase.from("clients").insert({
+  // 4. Insert del cliente operativo. El nombre del contacto (Slice B) gana sobre
+  //    el del lead (que suele ser "Lead #NNNN"); email/teléfono solo si vienen.
+  const name =
+    (prefill.name ?? "").trim() ||
+    (lead.name ?? "").trim() ||
+    `Lead Kommo ${leadId}`;
+  const insertRow: Record<string, unknown> = {
     tenant_id: tenantId,
     markbox,
     name,
     kommo_lead_id: leadId,
     tier: "regular",
     registration_channel: "kommo",
-  });
+  };
+  const email = (prefill.email ?? "").trim();
+  const phone = (prefill.phone ?? "").trim();
+  if (email) insertRow.email = email;
+  if (phone) insertRow.phone = phone;
+  const { error: insErr } = await supabase.from("clients").insert(insertRow);
   if (insErr) {
     // Race: dos conversiones del mismo lead a la vez → el índice único parcial
     // (clients_kommo_lead_unique) rebota el segundo. Re-leemos y devolvemos el ya creado.
