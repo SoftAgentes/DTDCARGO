@@ -16,10 +16,14 @@
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import { useMemo, useTransition } from "react";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { downloadTextFile } from "@/app/studio/_components/ui/download";
+import { Icon } from "@/app/studio/_components/icons";
+import { buildViewCsv } from "@/lib/studio/reports/export-csv";
 import {
   PERIOD_OPTIONS,
   type AgingReport,
@@ -188,6 +192,38 @@ export function ReportesClient({
         ? "a hoy"
         : null;
 
+  // CSV de la vista activa (op/com/con/mix). null = nada que exportar (vista
+  // vacía). El Constructor (build) se autogestiona dentro de BuilderView.
+  const viewCsv = useMemo(
+    () =>
+      buildViewCsv({
+        category,
+        rep: activeRep,
+        overview,
+        routes,
+        carriers,
+        services,
+        byClient,
+        income,
+        aging,
+        cashflow,
+        combined,
+      }),
+    [
+      category,
+      activeRep,
+      overview,
+      routes,
+      carriers,
+      services,
+      byClient,
+      income,
+      aging,
+      cashflow,
+      combined,
+    ],
+  );
+
   return (
     <div style={{ maxWidth: 1280, opacity: isPending ? 0.6 : 1, transition: "opacity 120ms" }}>
       {/* Header */}
@@ -223,8 +259,32 @@ export function ReportesClient({
           </p>
         </div>
 
-        {/* Selector de período (navega por URL). Inerte → rótulo fijo. */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {/* Export CSV de la vista activa + selector de período */}
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+          {category !== "build" && (
+            <ActionButton
+              variant="ghost"
+              size="sm"
+              idleLabel="Exportar CSV"
+              idleIcon={Icon.download(14)}
+              successLabel="Descargado"
+              successIcon={Icon.check(14)}
+              disabled={!viewCsv}
+              title={
+                viewCsv
+                  ? "Exportar la vista activa a CSV"
+                  : "No hay datos para exportar en esta vista"
+              }
+              onAction={async () => {
+                if (!viewCsv) {
+                  return { error: "No hay datos para exportar en esta vista." };
+                }
+                downloadTextFile(viewCsv.filename, viewCsv.content);
+              }}
+            />
+          )}
+          {/* Selector de período (navega por URL). Inerte → rótulo fijo. */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           <span
             style={{
               font: "700 9.5px/1 var(--f-sans)",
@@ -269,6 +329,7 @@ export function ReportesClient({
               ))}
             </select>
           )}
+          </div>
         </div>
       </div>
 

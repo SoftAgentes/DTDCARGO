@@ -21,6 +21,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import {
   REPORT_SOURCES,
   asSourceId,
@@ -58,19 +59,6 @@ function readSaved(): SavedReport[] {
   } catch {
     return [];
   }
-}
-
-/** Descarga un archivo de texto en el cliente (sin lib externa). */
-function downloadTextFile(filename: string, content: string, mime: string) {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
 }
 
 const lblS: React.CSSProperties = {

@@ -378,3 +378,19 @@ intactos (1057 verdes en el repo).
 - **Riesgo residual conocido (medio, a ojear con datos reales):** el patrón `visibility:hidden` + `position:absolute` (heredado
   de `etiquetas`) puede dejar página fantasma con tablas muy largas (igual que el precedente). Si aparece con +60 grupos →
   portalear el target a `document.body` + `body > *:not(#dtd-report-print){display:none}`. Sin migración. Gate verde · ui-ux OK.
+
+### Slice C · Export CSV en TODAS las vistas (2026-06-04)
+
+- **Hueco:** solo el Constructor exportaba; las vistas fijas (Operacionales · Comerciales · Contables · Combinados) no tenían
+  export. Ahora **un solo botón "Exportar CSV"** en el header (junto al selector de período) exporta la vista activa.
+- **`lib/studio/reports/export-csv.ts`** (puro, server-safe, testeable): dispatcher `buildViewCsv({category, rep, data})` →
+  `{filename, content}` o `null` (vista vacía / Constructor, que se autogestiona). Reusa `csvCell` del builder. Cubre overview
+  (serie mensual), por ruta/naviera/servicio, por cliente (ranking billed>0), estado de resultados, aging (CxC+CxP con columna
+  `Lado`), cashflow, y combinados (rentab. ruta / margen cliente / costo-CBM según rep). Números **crudos** (sin `$`/`K`/`M`)
+  para que la planilla sume. `rowsToCsv` + `reportFilename` (slug kebab + ISO). +17 tests.
+- **`app/studio/_components/ui/download.ts`** (nuevo, compartido): `downloadTextFile` con **BOM UTF-8** — sin él Excel/Windows
+  (entorno del operador) rompe `→`/`m³`/acentos de los encabezados. **El Constructor (BuilderView) migró a este helper** →
+  deja de duplicar `downloadTextFile` y gana el BOM en su propio CSV de paso.
+- **UI:** `<ActionButton variant="ghost" size="sm">` con `Icon.download`, `disabled` (+`title` explicativo) cuando no hay datos;
+  **oculto** en el Constructor. Espeja el export de Costing. Sin migración. Gate verde · `ui-ux-designer` OK (BOM = su "big win").
+- **Pendiente (paso 2):** export **PDF** de estas mismas vistas fijas (hoy solo el Constructor tiene PDF).
