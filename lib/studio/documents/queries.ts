@@ -13,15 +13,17 @@ import {
   subIds,
   type DocumentEntityType,
   type DocumentRow,
+  type DocumentVersionRow,
 } from "./types";
 
 const COLUMNS =
-  "id, tenant_id, entity_type, entity_id, folder, doc_type, name, storage_path, content_type, size_bytes, status, valid_until, uploaded_by, created_at, updated_at, deleted_at";
+  "id, tenant_id, entity_type, entity_id, folder, doc_type, name, storage_path, content_type, size_bytes, status, valid_until, uploaded_by, created_at, updated_at, deleted_at, root_id, version_no, supersedes_id, is_current, version_note";
 
 /**
  * Documentos adjuntos a una entidad concreta (el panel embebible de Slice B),
  * recientes primero. `none` no aplica acá (un documento sin entidad no se
- * consulta por entidad).
+ * consulta por entidad). Solo la versión VIGENTE de cada cadena (SDD-0060):
+ * las versiones históricas viven en el "Historial" (listDocumentVersions).
  */
 export async function listDocumentsByEntity(
   supabase: SupabaseClient,
@@ -33,6 +35,7 @@ export async function listDocumentsByEntity(
     .select(COLUMNS)
     .eq("entity_type", entityType)
     .eq("entity_id", entityId)
+    .eq("is_current", true)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -50,9 +53,11 @@ export async function listAllDocuments(
   supabase: SupabaseClient,
   opts: { folder?: string; q?: string } = {},
 ): Promise<DocumentRow[]> {
+  // Solo la versión vigente de cada cadena (SDD-0060): el hub no lista históricas.
   let query = supabase
     .from("documents")
     .select(COLUMNS)
+    .eq("is_current", true)
     .is("deleted_at", null);
 
   if (opts.folder && opts.folder !== "all") {
@@ -83,9 +88,11 @@ export async function listAllDocuments(
 export async function folderCounts(
   supabase: SupabaseClient,
 ): Promise<Record<string, number>> {
+  // Cuenta solo versiones vigentes (SDD-0060): una cadena = 1 documento lógico.
   const { data, error } = await supabase
     .from("documents")
     .select("folder")
+    .eq("is_current", true)
     .is("deleted_at", null);
 
   const counts: Record<string, number> = { all: 0 };
@@ -111,9 +118,11 @@ export async function expiringDocuments(
 ): Promise<DocumentRow[]> {
   const limit = addDays(today, windowDays);
 
+  // Solo la versión vigente (SDD-0060): el vencimiento que importa es el actual.
   const { data, error } = await supabase
     .from("documents")
     .select(COLUMNS)
+    .eq("is_current", true)
     .is("deleted_at", null)
     .not("valid_until", "is", null)
     .lte("valid_until", limit)
@@ -127,10 +136,12 @@ export async function expiringDocuments(
 export async function pendingDocuments(
   supabase: SupabaseClient,
 ): Promise<DocumentRow[]> {
+  // Solo la versión vigente (SDD-0060): el estado de la cadena es el actual.
   const { data, error } = await supabase
     .from("documents")
     .select(COLUMNS)
     .eq("status", "pendiente")
+    .eq("is_current", true)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -142,15 +153,42 @@ export async function pendingDocuments(
 export async function unlinkedDocuments(
   supabase: SupabaseClient,
 ): Promise<DocumentRow[]> {
+  // Solo la versión vigente (SDD-0060): las históricas no aparecen sueltas.
   const { data, error } = await supabase
     .from("documents")
     .select(COLUMNS)
     .eq("entity_type", "none")
+    .eq("is_current", true)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
   if (error || !data) return [];
   return data as DocumentRow[];
+}
+
+/**
+ * Historial completo de una cadena de versiones (SDD-0060): TODAS las versiones
+ * no borradas con el mismo `root_id`, ordenadas de la más nueva a la más vieja
+ * (version_no desc). A diferencia de los listados, NO filtra `is_current` — el
+ * "Historial" muestra justamente las históricas + la vigente (marcada). La RLS
+ * de tabla acota al tenant (no se agrega filtro de tenant acá, igual que el
+ * resto del Studio).
+ */
+export async function listDocumentVersions(
+  supabase: SupabaseClient,
+  rootId: string,
+): Promise<DocumentVersionRow[]> {
+  const { data, error } = await supabase
+    .from("documents")
+    .select(
+      "id, version_no, name, size_bytes, content_type, status, version_note, uploaded_by, created_at, storage_path, is_current",
+    )
+    .eq("root_id", rootId)
+    .is("deleted_at", null)
+    .order("version_no", { ascending: false });
+
+  if (error || !data) return [];
+  return data as DocumentVersionRow[];
 }
 
 /** Suma N días a una fecha ISO (YYYY-MM-DD) → ISO (YYYY-MM-DD). */

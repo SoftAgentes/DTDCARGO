@@ -24,6 +24,8 @@ import {
   formatDocSize,
   buildDocumentStoragePath,
   canonicalContentType,
+  versionLabel,
+  validateVersionInput,
 } from "../types";
 
 describe("deriveDocStatus", () => {
@@ -81,6 +83,81 @@ describe("deriveDocStatus", () => {
     expect(
       deriveDocStatus({ status: "vigente", valid_until: "no-es-fecha" }, today),
     ).toBe("vigente");
+  });
+});
+
+describe("versionLabel (SDD-0060)", () => {
+  it("formatea el correlativo como v{n}", () => {
+    expect(versionLabel(1)).toBe("v1");
+    expect(versionLabel(2)).toBe("v2");
+    expect(versionLabel(12)).toBe("v12");
+  });
+});
+
+describe("validateVersionInput (SDD-0060 Slice B)", () => {
+  const base = {
+    name: "BL COSCO rev2",
+    contentType: "application/pdf",
+    sizeBytes: 2048,
+    status: "vigente" as const,
+    validUntil: null,
+    docType: "BL marítimo",
+    versionNote: "corregido el monto",
+  };
+
+  it("acepta un input válido y lo normaliza (sin entity/folder: se heredan)", () => {
+    const res = validateVersionInput(base);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.value.name).toBe("BL COSCO rev2");
+      expect(res.value.versionNote).toBe("corregido el monto");
+      expect(res.value.status).toBe("vigente");
+      // no expone entity_type/entity_id/folder (los hereda la RPC)
+      expect("entityType" in res.value).toBe(false);
+      expect("folder" in res.value).toBe(false);
+    }
+  });
+
+  it("nota vacía → null", () => {
+    const res = validateVersionInput({ ...base, versionNote: "   " });
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.value.versionNote).toBeNull();
+  });
+
+  it("rechaza nombre vacío", () => {
+    const res = validateVersionInput({ ...base, name: "  " });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.errors.name).toBeTruthy();
+  });
+
+  it("rechaza mime no permitido", () => {
+    const res = validateVersionInput({ ...base, contentType: "text/html" });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.errors.contentType).toBeTruthy();
+  });
+
+  it("rechaza tamaño sobre el límite de 10 MB", () => {
+    const res = validateVersionInput({ ...base, sizeBytes: 11 * 1024 * 1024 });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.errors.sizeBytes).toBeTruthy();
+  });
+
+  it("rechaza status fuera del enum", () => {
+    const res = validateVersionInput({ ...base, status: "vencido" as never });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.errors.status).toBeTruthy();
+  });
+
+  it("rechaza valid_until con formato inválido", () => {
+    const res = validateVersionInput({ ...base, validUntil: "31/12/2026" });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.errors.validUntil).toBeTruthy();
+  });
+
+  it("rechaza nota > 280 caracteres", () => {
+    const res = validateVersionInput({ ...base, versionNote: "x".repeat(281) });
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.errors.versionNote).toBeTruthy();
   });
 });
 
