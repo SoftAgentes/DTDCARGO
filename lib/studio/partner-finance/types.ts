@@ -868,6 +868,226 @@ export function validateClaimOffsetInput(
   };
 }
 
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ partner_statements + lines (SDD-0059 · Slice B1)          ║
+// ╚═══════════════════════════════════════════════════════════╝
+// Estado de cuenta del socio China importado para un período + sus líneas,
+// cada una con su match_status (lo propone el motor de match en
+// reconciliation.ts; lo resuelve el operador en Slice B2).
+
+export type StatementStatus = "importado" | "reconciliando" | "cerrado";
+
+export const STATEMENT_STATUSES: StatementStatus[] = [
+  "importado",
+  "reconciliando",
+  "cerrado",
+];
+
+export const STATEMENT_STATUS_META: Record<
+  StatementStatus,
+  { label: string; tone: BadgeTone }
+> = {
+  importado: { label: "Importado", tone: "info" },
+  reconciliando: { label: "Reconciliando", tone: "warning" },
+  cerrado: { label: "Cerrado", tone: "success" },
+};
+
+export function statementStatusLabel(s: string): string {
+  return STATEMENT_STATUS_META[s as StatementStatus]?.label ?? s;
+}
+export function statementStatusTone(s: string): BadgeTone {
+  return STATEMENT_STATUS_META[s as StatementStatus]?.tone ?? "neutral";
+}
+export function isStatementStatus(v: unknown): v is StatementStatus {
+  return (
+    typeof v === "string" && (STATEMENT_STATUSES as string[]).includes(v)
+  );
+}
+
+// ── match_status de una línea ─────────────────────────────────
+export type MatchStatus =
+  | "sin_match"
+  | "match_auto"
+  | "match_manual"
+  | "discrepancia"
+  | "solo_en_estado"
+  | "solo_en_erp";
+
+export const MATCH_STATUSES: MatchStatus[] = [
+  "sin_match",
+  "match_auto",
+  "match_manual",
+  "discrepancia",
+  "solo_en_estado",
+  "solo_en_erp",
+];
+
+export const MATCH_STATUS_META: Record<
+  MatchStatus,
+  { label: string; tone: BadgeTone }
+> = {
+  sin_match: { label: "Sin match", tone: "neutral" },
+  match_auto: { label: "Match automático", tone: "success" },
+  match_manual: { label: "Match manual", tone: "info" },
+  discrepancia: { label: "Discrepancia", tone: "danger" },
+  solo_en_estado: { label: "Solo en el estado", tone: "warning" },
+  solo_en_erp: { label: "Solo en el ERP", tone: "warning" },
+};
+
+export function matchStatusLabel(s: string): string {
+  return MATCH_STATUS_META[s as MatchStatus]?.label ?? s;
+}
+export function matchStatusTone(s: string): BadgeTone {
+  return MATCH_STATUS_META[s as MatchStatus]?.tone ?? "neutral";
+}
+export function isMatchStatus(v: unknown): v is MatchStatus {
+  return typeof v === "string" && (MATCH_STATUSES as string[]).includes(v);
+}
+
+// ── confianza del match ───────────────────────────────────────
+export type MatchConfidence = "alta" | "media" | "baja";
+
+export const MATCH_CONFIDENCES: MatchConfidence[] = ["alta", "media", "baja"];
+
+export const MATCH_CONFIDENCE_META: Record<
+  MatchConfidence,
+  { label: string; tone: BadgeTone }
+> = {
+  alta: { label: "Alta", tone: "success" },
+  media: { label: "Media", tone: "warning" },
+  baja: { label: "Baja", tone: "danger" },
+};
+
+export function matchConfidenceLabel(c: string): string {
+  return MATCH_CONFIDENCE_META[c as MatchConfidence]?.label ?? c;
+}
+export function matchConfidenceTone(c: string): BadgeTone {
+  return MATCH_CONFIDENCE_META[c as MatchConfidence]?.tone ?? "neutral";
+}
+export function isMatchConfidence(v: unknown): v is MatchConfidence {
+  return typeof v === "string" && (MATCH_CONFIDENCES as string[]).includes(v);
+}
+
+/** Fila persistida de partner_statements. */
+export type PartnerStatement = {
+  id: string;
+  tenant_id: string;
+  supplier_id: string;
+  period_label: string;
+  imported_at: string;
+  source_file_document_id: string | null;
+  total_usd: number;
+  total_rmb: number;
+  status: StatementStatus;
+  created_at: string;
+  deleted_at: string | null;
+};
+
+/** Fila persistida de partner_statement_lines. */
+export type PartnerStatementLine = {
+  id: string;
+  tenant_id: string;
+  statement_id: string;
+  raw_description: string;
+  raw_description_cn: string | null;
+  amount: number;
+  currency: PartnerCurrency;
+  line_date: string | null;
+  match_status: MatchStatus;
+  matched_charge_id: string | null;
+  matched_ledger_entry_id: string | null;
+  match_confidence: MatchConfidence | null;
+  note: string | null;
+  created_at: string;
+  deleted_at: string | null;
+};
+
+/** Estado de cuenta + sus líneas (getStatementWithLines). */
+export type PartnerStatementWithLines = PartnerStatement & {
+  lines: PartnerStatementLine[];
+};
+
+// ── Validadores de import ─────────────────────────────────────
+export type StatementInput = {
+  supplier_id: string;
+  period_label: string;
+  source_file_document_id: string | null;
+  total_usd: number;
+  total_rmb: number;
+};
+
+export function validateStatementInput(
+  raw: Partial<Record<string, unknown>>,
+): ValidationResult<StatementInput> {
+  const errors: Record<string, string> = {};
+
+  const supplierId = String(raw.supplier_id ?? "").trim();
+  if (!supplierId) errors.supplier_id = "Indicá el socio (proveedor).";
+
+  const periodLabel = String(raw.period_label ?? "").trim();
+  if (!periodLabel) errors.period_label = "Indicá el período del estado.";
+
+  const totalUsd = Number(raw.total_usd ?? 0);
+  if (!Number.isFinite(totalUsd) || totalUsd < 0) {
+    errors.total_usd = "Total USD inválido.";
+  }
+  const totalRmb = Number(raw.total_rmb ?? 0);
+  if (!Number.isFinite(totalRmb) || totalRmb < 0) {
+    errors.total_rmb = "Total RMB inválido.";
+  }
+
+  if (Object.keys(errors).length > 0) return { ok: false, fieldErrors: errors };
+
+  return {
+    ok: true,
+    input: {
+      supplier_id: supplierId,
+      period_label: periodLabel,
+      source_file_document_id: strOrNull(raw.source_file_document_id),
+      total_usd: round2(totalUsd),
+      total_rmb: round2(totalRmb),
+    },
+  };
+}
+
+export type StatementLineInput = {
+  raw_description: string;
+  raw_description_cn: string | null;
+  amount: number;
+  currency: PartnerCurrency;
+  line_date: string | null;
+};
+
+export function validateStatementLineInput(
+  raw: Partial<Record<string, unknown>>,
+): ValidationResult<StatementLineInput> {
+  const errors: Record<string, string> = {};
+
+  const description = String(raw.raw_description ?? "").trim();
+  if (!description) errors.raw_description = "La línea necesita descripción.";
+
+  const amount = Number(raw.amount ?? NaN);
+  if (!Number.isFinite(amount)) {
+    errors.amount = "Monto de la línea inválido.";
+  }
+
+  const currency = String(raw.currency ?? "USD").trim();
+  if (!isPartnerCurrency(currency)) errors.currency = "Moneda inválida.";
+
+  if (Object.keys(errors).length > 0) return { ok: false, fieldErrors: errors };
+
+  return {
+    ok: true,
+    input: {
+      raw_description: description,
+      raw_description_cn: strOrNull(raw.raw_description_cn),
+      amount: round2(amount),
+      currency: currency as PartnerCurrency,
+      line_date: strOrNull(raw.line_date),
+    },
+  };
+}
+
 // ── helper local ──────────────────────────────────────────────
 function strOrNull(v: unknown): string | null {
   if (v == null) return null;

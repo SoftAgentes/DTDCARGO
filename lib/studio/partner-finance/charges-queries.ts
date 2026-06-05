@@ -224,6 +224,25 @@ export async function applyCreditNote(
   return { note, net_amount: updated?.net_amount ?? 0 };
 }
 
+/**
+ * Marca un set de cargos como `reconciled = true` (al cerrar un estado de
+ * cuenta — SDD-0059 Slice B1). Idempotente; no-op si la lista viene vacía. RLS
+ * por tenant. Append-safe: sólo toca el flag, no el estado del cargo.
+ */
+export async function markChargesReconciled(
+  supabase: SupabaseClient,
+  chargeIds: string[],
+): Promise<void> {
+  const ids = chargeIds.filter((id) => typeof id === "string" && id.length > 0);
+  if (ids.length === 0) return;
+  const { error } = await supabase
+    .from("supplier_charges")
+    .update({ reconciled: true })
+    .in("id", ids)
+    .is("deleted_at", null);
+  if (error) throw error;
+}
+
 /** Notas de crédito vivas de un cargo. RLS por tenant. */
 export async function listCreditNotes(
   supabase: SupabaseClient,
