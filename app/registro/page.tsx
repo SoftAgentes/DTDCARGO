@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
-import { RegistroForm } from "@/components/RegistroForm";
+import { ArrowIcon } from "@/components/Icon";
 
 export const metadata: Metadata = {
   title: "Registro de cliente",
   description:
-    "Date de alta como cliente de DTD Cargo y obtené tu MARKBOX — el código que identifica tus cajas en nuestra bodega de Yiwu. Un asesor te asigna tu código y te contacta por WhatsApp.",
+    "Date de alta como cliente de DTD Cargo y obtené tu MARKBOX al instante — el código que identifica tus cajas en nuestra bodega de Yiwu. Registro online en minutos; un asesor activa tu cuenta.",
   keywords: [
     "registro cliente DTD Cargo",
     "darse de alta importador China Venezuela",
@@ -26,13 +27,13 @@ export const metadata: Metadata = {
 const STEPS = [
   {
     n: "01",
-    title: "Te registrás",
-    copy: "Dejás tus datos en el formulario — un minuto, sin costo de alta.",
+    title: "Te registrás online",
+    copy: "Completás el formulario con tus datos, una foto de tu cédula o RIF y tu dirección de entrega. Un par de minutos, sin costo de alta.",
   },
   {
     n: "02",
-    title: "Te asignamos tu MARKBOX",
-    copy: "Un asesor te da de alta y te pasa tu código de cliente DTD-XXXX por WhatsApp.",
+    title: "Obtenés tu MARKBOX al instante",
+    copy: "Al terminar, el sistema te genera tu código de cliente DTD-XXXX en el momento. Tu cuenta queda en revisión y un asesor la activa.",
   },
   {
     n: "03",
@@ -60,8 +61,8 @@ export default function RegistroPage() {
             </h1>
             <p className="lead mt-6">
               El MARKBOX es tu código de cliente: identifica tus cajas en nuestra
-              bodega de Yiwu para que nada se mezcle ni se pierda. Registrate y un
-              asesor te lo asigna.
+              bodega de Yiwu para que nada se mezcle ni se pierda. Registrate online
+              y lo obtenés al instante.
             </p>
           </div>
         </section>
@@ -113,8 +114,37 @@ export default function RegistroPage() {
               </div>
             </div>
 
-            {/* Formulario */}
-            <RegistroForm />
+            {/* CTA → registro self-service real (Portal). El sitio público no puede
+                tocar Supabase (frontera público↔ERP), así que el alta vive en
+                /portal/registro y desde acá funneleamos hacia ahí. */}
+            <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9 self-start flex flex-col gap-5">
+              <span className="eyebrow" style={{ color: "var(--color-wine)" }}>
+                Registro online
+              </span>
+              <h2
+                className="text-[26px] leading-[1.05] tracking-[-0.02em] text-ink"
+                style={{ fontFamily: "var(--font-archivo-black)" }}
+              >
+                Creá tu cuenta en minutos.
+              </h2>
+              <p className="text-[14.5px] text-grey-700 leading-[1.6]">
+                Registro online rápido: tus datos, una foto de tu cédula o RIF y la
+                dirección de entrega. Al terminar generamos tu MARKBOX al instante y
+                tu cuenta queda en revisión — un asesor la activa enseguida.
+              </p>
+              <Link href="/portal/registro" className="btn btn-primary h-14 mt-1">
+                Empezar registro <ArrowIcon />
+              </Link>
+              <p className="text-[13px] text-grey-500 leading-[1.5]">
+                ¿Ya tenés cuenta?{" "}
+                <Link
+                  href="/portal/login"
+                  className="font-semibold text-wine hover:text-wine-deep"
+                >
+                  Acceder
+                </Link>
+              </p>
+            </div>
           </div>
         </section>
       </main>

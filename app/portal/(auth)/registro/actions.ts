@@ -3,10 +3,12 @@
 /**
  * Registro self-service del Portal del Cliente (SDD-0042 Fase 6 · slice 10.1).
  *
- * El cliente se da de alta SOLO (sin invitación admin) y queda con cuenta
- * ACTIVA: MARKBOX al instante + cuenta de auth (login = MARKBOX + contraseña,
- * contraseña inicial = cédula/RIF). El gate de aprobación de la Fase 5 queda en
- * stand-by — el insert setea `portal_approved_at = now()`.
+ * El cliente se da de alta SOLO (sin invitación admin): MARKBOX al instante +
+ * cuenta de auth (login = MARKBOX + contraseña, contraseña inicial = cédula/RIF).
+ * La cuenta nace PENDIENTE (sin `portal_approved_at`) → el gate de activación de
+ * la Fase 5 le muestra PortalPending hasta que un asesor la apruebe o llegue su
+ * primera carga (regla founder). El cliente puede entrar y ver su MARKBOX, pero
+ * no el dashboard.
  *
  * Anti-abuso (SDD-0042 §10): el endpoint es público (registrante anónimo), así
  * que ANTES del trabajo pesado hay dos capas gratis (sin keys):
@@ -22,7 +24,7 @@
  *   3. resolver el tenant operativo de DTD
  *   4. rpc next_markbox → MARKBOX atómico
  *   5. subir la foto de cédula/RIF a Storage privado (bucket client-docs)
- *   6. insert clients ACTIVO (portal_approved_at=now, tier 'regular', cedula_photo_path)
+ *   6. insert clients PENDIENTE (sin portal_approved_at, tier 'regular', cedula_photo_path)
  *   7. auth.admin.createUser({ email, password: <documento>, email_confirm: true })
  *   8. insert client_users (auth_user_id, status 'active', email)
  *   9. welcome email SIN la clave (reusa sendWelcomeEmail · template welcome_markbox)
@@ -222,7 +224,8 @@ export async function registerClientAction(
     return { error: "No pudimos guardar tu foto de identidad. Probá de nuevo." };
   }
 
-  // 6. Insert del cliente ACTIVO (portal_approved_at = now, tier standard, foto).
+  // 6. Insert del cliente PENDIENTE (sin portal_approved_at → gate Fase 5 activo;
+  //    tier regular, foto).
   const { data: clientRow, error: clientErr } = await admin
     .from("clients")
     .insert({
@@ -241,7 +244,9 @@ export async function registerClientAction(
       // El self-registro siempre es canal 'portal'; doc_kind viene del form.
       registration_channel: "portal",
       doc_kind: input.kind,
-      portal_approved_at: new Date().toISOString(),
+      // SIN portal_approved_at: la cuenta nace PENDIENTE → el gate de activación
+      // (Fase 5) muestra PortalPending hasta que un asesor la apruebe o llegue la
+      // 1ª carga. getPortalActivation() resuelve null → no activada (regla founder).
       notes:
         input.kind === "empresa"
           ? `Contacto: ${input.name}${input.officePhone ? ` · Tel. oficina: ${input.officePhone}` : ""}`

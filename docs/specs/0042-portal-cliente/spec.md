@@ -316,7 +316,7 @@ Cada (sub)fase: `node scripts/verify.mjs` verde + commit aislado + `ui-ux-design
 > Decisión founder 2026-06-03 (reemplaza el magic-link como modelo principal). Referencia Norte: `docs/design/studio/_norte/portal/registro.jsx` (4 pasos) + `app.jsx` `PortalLogin`.
 
 ### 10.0 Decisiones fijadas
-- **Cuenta ACTIVA al registrarse** — el gate de Fase 5 queda EN STAND-BY (sigue en código, reusable). El registro setea `clients.portal_approved_at = now()` → el cliente entra directo, sin pantalla de espera.
+- ~~**Cuenta ACTIVA al registrarse** — el gate de Fase 5 queda EN STAND-BY; el registro setea `clients.portal_approved_at = now()` → el cliente entra directo.~~ → **REVERTIDO 2026-06-04 (ver §10.5).** La cuenta nace **PENDIENTE** (el registro NO setea `portal_approved_at`) → el gate de Fase 5 vuelve a estar ACTIVO: el cliente entra y ve `PortalPending` hasta que un asesor apruebe o llegue su 1ª carga. Reinstaura la regla founder original de §9.1 (2026-06-02).
 - **Login = MARKBOX + contraseña.** Cédula (persona) / RIF (empresa) = **contraseña inicial**. Cambio de clave **OPCIONAL** (no forzado).
 - **Email de bienvenida SIN la clave** (solo MARKBOX + instrucciones + link).
 - **Identidad: foto de cédula/RIF OBLIGATORIA** (upload) + **revisión MANUAL** del asesor. CNE automático = diferido.
@@ -336,7 +336,7 @@ Cada (sub)fase: `node scripts/verify.mjs` verde + commit aislado + `ui-ux-design
 - **(Diseño original del slice, abajo.)** **`app/portal/(auth)/registro/`** — form multi-paso (estética del portal, reusa componentes):
   - **Paso 1 DATOS:** tipo persona/empresa · nombre (+ razón social si empresa) · cédula/RIF (mono) · **foto cédula/RIF (upload obligatorio)** · email (obligatorio) · WhatsApp (obligatorio) · tel. oficina (opcional). **Dedup en vivo** por documento.
   - **Paso 2 DIRECCIÓN VE:** cascada estado→municipio→ciudad→CP→barrio→dirección (reusa **`lib/data/venezuela-catalog.ts`**) + referencia (opcional).
-  - **Paso 3 CONFIRMAR** · **Paso 4 LISTO:** muestra MARKBOX + Usuario(=MARKBOX) / Contraseña(=cédula, "recomendado cambiar") + "Ir al portal". *(Copy: NO decir "cuenta en revisión" — la cuenta está activa; el MARKBOX va en las cajas ya.)*
+  - **Paso 3 CONFIRMAR** · **Paso 4 LISTO:** muestra MARKBOX + Usuario(=MARKBOX) / Contraseña(=cédula, "recomendado cambiar") + "Ir al portal". *(2026-06-04: el copy AHORA SÍ dice **"cuenta en revisión"** — gate reactivado, §10.5. El MARKBOX igual va en las cajas ya.)*
 - **Server action `registerClientAction`** (`app/portal/(auth)/registro/actions.ts`):
   1. valida (validate*Input propio, no Zod) → 2. **dedup** (clients por `lower(cedula/rif)` del tenant; si existe → error + opción recuperar/reset) → 3. resolver **tenant** (el único operativo de DTD; multi-tenant signup = futuro) → 4. `rpc('next_markbox', {p_tenant_id})` → 5. subir foto a **Storage privado** → 6. insert `clients` **activo** (`portal_approved_at = now()`, tier 'standard') → 7. `auth.admin.createUser({ email, password: cedula, email_confirm: true })` (patrón de `app/invitar/[token]/actions.ts`) → 8. insert `client_users` (auth_user_id, status 'active', email, markbox) → 9. **welcome email SIN clave** (reusa el mailing existente) → devuelve markbox.
 - **Migración** (correlativo siguiente libre): `alter table clients add column if not exists cedula_photo_path text` + bucket privado de Storage `client-docs` (insert en `storage.buckets`) + policies (`storage.objects`: admin del tenant lee; cero acceso público/anon). Patrón de storage ya existe (expenses receipt / bug replays).
@@ -355,9 +355,9 @@ Cada (sub)fase: `node scripts/verify.mjs` verde + commit aislado + `ui-ux-design
 - **Tests:** lookup markbox→email · login OK con cédula · markbox inexistente → error genérico.
 
 ### 10.3 Fuera de scope (próximo / a planear)
-- **Vista admin "clientes nuevos / revisión"** (CRM: cómo llegó el lead + interés) + **botón "Verificar con CNE"** (corresponde / no corresponde / página caída) → se PLANEA aparte (idea founder 2026-06-03). La aprobación admin NO es gate (el cliente ya está activo) — es item de trabajo interno.
+- **Vista admin "clientes nuevos / revisión"** (CRM: cómo llegó el lead + interés) + **botón "Verificar con CNE"** (corresponde / no corresponde / página caída) → se PLANEA aparte (idea founder 2026-06-03). ~~La aprobación admin NO es gate (el cliente ya está activo)~~ → **2026-06-04: la aprobación admin SÍ ES el gate** (§10.5): el botón "Aprobar cuenta" (que ya existe en `PortalAccessCard`) destraba el dashboard del cliente pendiente.
 - **CNE automático** (consulta on-demand, sin hostear el padrón).
-- Reconciliar el público `app/registro/` (lead) con el `/portal/registro` (cuenta real) — apuntar el CTA "Regístrate" al nuevo flujo.
+- ~~Reconciliar el público `app/registro/` (lead) con el `/portal/registro` (cuenta real)~~ → **✅ HECHO 2026-06-04 (§10.5)**: el `/registro` público funnelea al `/portal/registro` real.
 
 ### 10.4 Slice — Anti-abuso del registro público (honeypot + throttle por IP) — ✅ HECHO (2026-06-03)
 > Decisión founder 2026-06-03: el endpoint `/portal/registro` está LIVE y es público (registrante anónimo, corre con service_role). Anti-abuso **gratis, sin keys, sin fricción** para usuarios reales. Scope acotado: **solo** honeypot + throttle por IP en DB (sin Turnstile/captcha — diferido).
@@ -368,6 +368,27 @@ Dos capas que corren **antes del trabajo pesado** en `registerClientAction`:
 - **Migración `0094_portal_registro_throttle.sql`** (aditiva, NO aplicada a prod): tabla `public.portal_registro_throttle` (`id uuid` / `ip text` / `created_at timestamptz`) + índice `(ip, created_at)` para el conteo por ventana. **Tabla privilegiada**: RLS **habilitada SIN policy** → cero acceso anon/authenticated; solo service_role la toca (bypassa RLS), espejando el patrón de buckets privados sin policy de INSERT pública. **Sin `tenant_id`** a propósito: el throttle es pre-cuenta (el cliente todavía no tiene tenant/MARKBOX) y la IP es global al endpoint público.
 - Editados: `app/portal/(auth)/registro/{actions.ts,RegisterForm.tsx}`. Nuevos: `supabase/migrations/0094_portal_registro_throttle.sql`, `app/portal/(auth)/registro/__tests__/register-antiabuse.test.ts`.
 - Tests Vitest (`register-antiabuse.test.ts`): honeypot lleno → rechazo benigno + CERO writes (no clients/createUser/upload/throttle); throttle `>= LIMIT` → rechazo sin writes (consulta el throttle pero no inserta el intento ni hace trabajo pesado); `< LIMIT` → registra el intento y procede (next_markbox + upload + insert clients). Mock de `next/headers` para la IP + fake admin client (sin red ni DB).
+
+### 10.5 Gate reactivado + reconciliación del `/registro` público — ✅ HECHO (2026-06-04)
+
+> **Decisión founder 2026-06-04 (supersede la de 2026-06-03 "cuenta activa", §10.0).** Reinstaura el gate de
+> activación de §9.1 (2026-06-02) para el registro self-service + conecta el `/registro` público con el flujo real.
+> **Sin migración** (solo comportamiento + copy). Gate verde · `ui-ux-designer` OK.
+
+**1 · El gate vuelve a gatear** (`app/portal/(auth)/registro/actions.ts`): el insert de `clients` **ya NO setea
+`portal_approved_at = now()`** → la cuenta nace **PENDIENTE**. `getPortalActivation()` (Fase 5.1) resuelve `null` →
+`{activated:false}` → el cliente entra (login MARKBOX+contraseña OK) y ve `PortalPending` (que ya existía, escrito para
+este modelo) hasta que un asesor pulse **"Aprobar cuenta"** (`approvePortalAction`/`portal_approve_client`, ya existentes)
+**o** llegue su 1ª carga (auto-desbloqueo por `≥1 envío`). Copy alineado: `RegisterForm` Paso 3 (confirmar) y Paso 4
+(Listo) dicen **"cuenta en revisión"** en vez de "activa", con nota de que el MARKBOX ya sirve para las cajas. Los tests
+del registro no asertaban `portal_approved_at` → siguen verdes.
+
+**2 · El `/registro` público funnelea al flujo real** (`app/registro/page.tsx`): el form **mock**
+(`components/RegistroForm.tsx`, que generaba un `DTD-REG` falso + handoff de WhatsApp y **no persistía nada**) se
+**eliminó**; en su lugar un **CTA** ("Empezar registro" → `<Link href="/portal/registro">`) + "Acceder" → `/portal/login`.
+Copy del explainer/hero/metadata actualizado al modelo self-service ("MARKBOX al instante · cuenta en revisión"). El
+sitio público **no toca Supabase** (frontera): solo navega por URL al `/portal/registro` (superficie Supabase-backed). Cierra
+el pendiente de §10.3.
 
 ---
 
