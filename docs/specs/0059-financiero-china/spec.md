@@ -229,6 +229,9 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
   `partner_statement_lines` + `reconciliation.ts` (motor de match) + vistas: saldo neto USD/RMB, timeline
   de entries, importar estado de cuenta + cola de match/discrepancias, cargos + notas de crédito.
   Requiere **pasada de diseño** (no hay mockup → §7). *Aquí vive el dolor de mayor ROI (reconciliación).*
+  - **Follow-up del review de Slice A:** `supplier_credit_notes` no valida `charge_id` cross-tenant por
+    trigger (hoy acotado solo por RLS). Agregar helper `charge_in_tenant()` + trigger BEFORE INSERT/UPDATE
+    al construir Slice B (cierra el mismo patrón de defensa-en-DB que las tablas de Slice A).
 - **Slice C — Avanzado.** Conversiones/forex como revenue (UI + KPI de spread), tablero de claim offsets,
   alertas PP/CA (`due_date` vencido), export de asiento para QuickBooks.
 
