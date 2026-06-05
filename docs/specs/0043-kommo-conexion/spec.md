@@ -1,10 +1,10 @@
 ---
 sdd: "0043"
-title: "Conector Kommo CRM — Alcance A (espejo read-only)"
-status: done
+title: "Conector Kommo CRM — Alcance A (espejo read-only) + Alcance B (webhooks)"
+status: in-progress
 author: "founder"
 created: 2026-06-02
-updated: 2026-06-02
+updated: 2026-06-05
 supersedes: null
 superseded_by: null
 related: []
@@ -75,6 +75,42 @@ Kommo es el CRM externo que DTD usa hoy. Este módulo lo conecta como **fuente d
 - M3 "no pisar con `updated_at` más viejo" es no-op (suficiente en Alcance A; relevante con webhooks fuera de orden).
 - `KOMMO_API_REFERENCE.md` no está en el repo; el modelo de la API v4 quedó validado contra la API real durante el E2E.
 - El gate `node scripts/verify.mjs` no cubre Deno (1ª Edge Function del repo).
+
+## Alcance B · Webhooks (push en vivo)
+
+> Se monta sobre las MISMAS tablas `kommo_*` del Alcance A, sin reescribir el pull. El pull diario de pg_cron (`kommo_run_sync`) queda como **backstop de reconciliación**.
+
+### Qué incluye
+
+- Edge Function `supabase/functions/kommo-webhook/` (Deno, `verify_jwt = OFF`): recibe el POST form-urlencoded de Kommo cuando un lead/contacto cambia y espeja el cambio en segundos.
+- Lógica **pura y testeable** en `supabase/functions/_shared/` (dentro del árbol que Supabase Edge Functions bundlea; cubierta por Vitest dentro de `node scripts/verify.mjs`):
+  - `kommo-webhook-parse.ts` · `parseKommoWebhookPayload(formBody)` → eventos `{entity, action, id}` + `subdomain` + `accountId`. Parsea el form-urlencoded anidado de Kommo (`leads[add][0][id]`, `…[update]`, `…[status]`, `…[delete]`, `contacts[…]`, `account[subdomain|id]`), ignora ruido y **deduplica por (entity,id) con la acción más fuerte** (delete > status > update > add).
+  - `kommo-mapping.ts` · `mapLeadRow` / `mapContactRow` / `epochToIso` → la **misma forma de fila** que el sync read-only. `sync.ts` fue refactorizado para importar estas funciones (single source of truth; extracción mecánica, comportamiento idéntico). Deno y Vitest comparten el módulo TS. Vive en `supabase/functions/_shared/` (no en `lib/`) porque las Edge Functions de Supabase solo bundlean código dentro de `supabase/functions/`.
+- Migración `0107_kommo_webhook_guard.sql` · trigger `BEFORE UPDATE` en `kommo_leads` y `kommo_contacts` que descarta updates con `kommo_updated_at` más viejo (orden fuera de secuencia).
+
+### Flujo del webhook
+
+1. **Auth**: `?secret=` vs `KOMMO_WEBHOOK_SECRET` (comparación de longitud-constante). 403 si no matchea — único 4xx.
+2. Parsea el body; sin eventos → 200.
+3. Resuelve la conexión por `account[subdomain]` → `tenant_id` + token (Vault vía `kommo_get_token`). Sin conexión/token → **200** (no 4xx, para que Kommo no reintente en loop), con log.
+4. add/update/status → `kommoFetch` la entidad por id → `map*Row` → `upsertRows` (reusado de `sync.ts`). delete → borra la fila (`tenant_id`+`id`).
+5. Registra en `sync_logs` (`entity` = `webhook_leads` / `webhook_contacts`) y **resetea `kommo_connections.status='active'` + `last_error=null`** en éxito.
+6. Responde 200 salvo secret inválido (403) o error interno irrecuperable (500). Errores logueados sin filtrar secretos.
+
+### Qué arregla de la deuda conocida (Alcance A)
+
+- **Deuda #1** (`status='error'` bloquea el próximo invoke): el webhook resetea `status='active'` en cada éxito → la conexión se destraba sola.
+- **Deuda #2** ("no pisar con `updated_at` más viejo" era no-op): ahora lo fuerza el trigger de la migr 0107 a nivel DB, cubriendo webhooks fuera de orden.
+
+### Fuera de alcance (Alcance B)
+
+Escribir en Kommo · mapeo Kommo→entidades de negocio (cliente/envío/contenedor) · OAuth multi-cliente · adjuntos de Kommo · UI nueva grande.
+
+### Notas de despliegue
+
+- La function y la migración **NO** se aplican desde el harness — las aplica el founder por MCP.
+- Setup del founder (secret de la function + config del webhook en Kommo): `docs/runbooks/setup-kommo-webhook.md`.
+- El gate `node scripts/verify.mjs` cubre el parser + el mapping + los tests (Node); la Edge Function Deno queda excluida del gate (tsconfig + eslint) como en Alcance A.
 
 ## Adjuntos
 
