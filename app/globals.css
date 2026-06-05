@@ -267,6 +267,12 @@
   transform: translateY(-2px);
 }
 
+/* El frame del video (WorkBand) usa .card-shadow por estética, pero NO es
+   interactivo → sin lift en hover (si no, el clip "salta" al pasar el mouse). */
+.work-band-frame:hover {
+  transform: none;
+}
+
 /* Para cards sobre fondo navy (YiwuAdvantage, TrackingPreview, footer) */
 .card-shadow-dark {
   box-shadow:
@@ -525,6 +531,16 @@
   }
   .card-shadow:hover {
     transform: none;
+  }
+  /* WorkBand: WCAG 2.2.2 — el CSS no pausa un <video> autoplay, así que lo
+     ocultamos y el frame queda con el poster fijo (mantiene altura por aspect). */
+  .work-band-video {
+    display: none;
+  }
+  .work-band-frame {
+    background-image: var(--wb-poster);
+    background-size: cover;
+    background-position: center;
   }
   .fab-stack,
   .fab-stack[data-scrolled="true"],
