@@ -22,15 +22,23 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import {
   DOCUMENTS_BUCKET,
+  DOCUMENT_MAX_BYTES,
   buildDocumentStoragePath,
   canonicalContentType,
   extFromMime,
   isAllowedDocumentMime,
   validateDocumentInput,
+  validateVersionInput,
   type DocumentEntityType,
   type DocumentInput,
   type DocumentStatus,
+  type DocumentVersionRow,
 } from "@/lib/studio/documents/types";
+import { listDocumentVersions } from "@/lib/studio/documents/queries";
+
+/** UUID v4-ish (mismo patrón que validateDocumentInput; usado para root_id). */
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type DocActionState = {
   ok?: boolean;
@@ -146,6 +154,139 @@ export async function uploadDocument(
   return { ok: true };
 }
 
+/**
+ * Sube una NUEVA VERSIÓN a una cadena existente (SDD-0060 Slice B). Append-only:
+ * el object viejo NO se toca; se sube uno nuevo (uuid nuevo, mismo path scheme) y
+ * la RPC `add_document_version` flipea is_current + inserta en una transacción.
+ *
+ * Hereda entity_type/entity_id/folder de la cabeza vigente (lo hace la RPC) — el
+ * form solo trae los metadatos editables de la revisión: name, doc_type, status,
+ * valid_until, version_note + el archivo en `file`. El path lo arma el servidor
+ * con el entity_type de la cabeza (lo leemos antes para construirlo).
+ *
+ * Rollback del object si la RPC falla (mismo patrón que uploadDocument). Bajo
+ * concurrencia, la RPC puede devolver `no_data_found` (2ª subida simultánea a la
+ * misma cadena, la cabeza ya cambió) → se traduce a un mensaje de "reintentá".
+ */
+export async function addDocumentVersion(
+  rootId: string,
+  formData: FormData,
+): Promise<DocActionState> {
+  const supabase = await createClient();
+
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Sesión expirada. Volvé a entrar." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  if (!rootId || !UUID_RE.test(rootId)) {
+    return { error: "Cadena de versiones inválida." };
+  }
+
+  const raw = formData.get("file");
+  if (!(raw instanceof File) || raw.size === 0) {
+    return { fieldErrors: { file: "Elegí un archivo." } };
+  }
+  if (!isAllowedDocumentMime(raw.type)) {
+    return {
+      fieldErrors: {
+        file: "Formato no permitido (PDF, imagen, xlsx, docx o zip).",
+      },
+    };
+  }
+  if (raw.size > DOCUMENT_MAX_BYTES) {
+    return { fieldErrors: { file: "El archivo supera el límite de 10 MB." } };
+  }
+
+  // Leemos la cabeza vigente de la cadena para (a) heredar el entity_type al armar
+  // el path SERVER-SIDE y (b) fallar temprano si la cadena no existe / no es del
+  // tenant (la RPC vuelve a validar fail-closed con lock; esto es defensa previa).
+  const { data: head } = await supabase
+    .from("documents")
+    .select("root_id, entity_type, entity_id, name")
+    .eq("root_id", rootId)
+    .eq("is_current", true)
+    .is("deleted_at", null)
+    .maybeSingle<{
+      root_id: string;
+      entity_type: DocumentEntityType;
+      entity_id: string | null;
+      name: string;
+    }>();
+  if (!head?.root_id) {
+    return { error: "No se encontró el documento a versionar." };
+  }
+
+  // Validamos los metadatos de la NUEVA versión. entity_type/entity_id/folder NO
+  // se validan acá: la RPC los HEREDA de la cabeza vigente (§4.4).
+  const validated = validateVersionInput({
+    name: ((formData.get("name") as string) || raw.name || head.name || "").trim(),
+    contentType: raw.type,
+    sizeBytes: raw.size,
+    status: ((formData.get("status") as string) || "vigente") as DocumentStatus,
+    validUntil: (formData.get("valid_until") as string) || null,
+    docType: (formData.get("doc_type") as string) || null,
+    versionNote: (formData.get("version_note") as string) || null,
+  });
+  if (!validated.ok) {
+    return { fieldErrors: validated.errors };
+  }
+  const input = validated.value;
+
+  // Path SERVER-SIDE con uuid NUEVO (el object viejo se conserva — append-only).
+  const ext = extFromMime(raw.type);
+  const path = buildDocumentStoragePath({
+    tenantId,
+    entityType: head.entity_type,
+    entityId: head.entity_id,
+    uuid: crypto.randomUUID(),
+    ext,
+  });
+  const contentType = canonicalContentType(raw.type);
+
+  const { error: upErr } = await supabase.storage
+    .from(DOCUMENTS_BUCKET)
+    .upload(path, raw, { contentType, upsert: false });
+  if (upErr) return { error: `No se pudo subir: ${upErr.message}` };
+
+  // Flip + insert ATÓMICO vía RPC (tenant-safe, hereda entity/folder de la cabeza).
+  const { error: rpcErr } = await supabase.rpc("add_document_version", {
+    p_root: rootId,
+    p_storage_path: path,
+    p_name: input.name,
+    p_content_type: contentType,
+    p_size_bytes: raw.size,
+    p_status: input.status,
+    p_valid_until: input.validUntil,
+    p_doc_type: input.docType,
+    p_version_note: input.versionNote,
+  });
+  if (rpcErr) {
+    // rollback del object si no se pudo encadenar la versión.
+    await supabase.storage.from(DOCUMENTS_BUCKET).remove([path]);
+    return { error: versionRpcErrorMessage(rpcErr) };
+  }
+
+  revalidateDocuments(head.entity_type, head.entity_id);
+  return { ok: true };
+}
+
+/**
+ * Traduce el error crudo de la RPC `add_document_version` a un mensaje de UI.
+ * `no_data_found` = la cabeza vigente ya cambió bajo concurrencia (2ª subida
+ * simultánea) → la cadena no matchea el estado esperado: reintentar resuelve.
+ */
+function versionRpcErrorMessage(err: { code?: string; message?: string }): string {
+  if (err.code === "no_data_found" || /no_data_found/i.test(err.message ?? "")) {
+    return "La versión cambió mientras subías. Reintentá.";
+  }
+  if (err.code === "42501" || /insufficient_privilege/i.test(err.message ?? "")) {
+    return "No tenés permiso para versionar este documento.";
+  }
+  return `No se pudo registrar la versión: ${err.message ?? "error desconocido"}`;
+}
+
 /** Soft-delete (deleted_at) + borra el object del bucket (best-effort). */
 export async function deleteDocument(id: string): Promise<DocActionState> {
   const supabase = await createClient();
@@ -258,6 +399,20 @@ export async function signDocumentUrl(
     .createSignedUrl(storagePath, SIGNED_URL_TTL_SECONDS);
   if (error || !data) return null;
   return data.signedUrl;
+}
+
+/**
+ * Historial completo de versiones de una cadena (SDD-0060 Slice B). Server
+ * action read-only que envuelve listDocumentVersions (la RLS de tabla acota al
+ * tenant) — lo consume el drawer "Historial" on-open. Devuelve [] ante input
+ * inválido (defensa) o cadena vacía.
+ */
+export async function listDocumentVersionsAction(
+  rootId: string,
+): Promise<DocumentVersionRow[]> {
+  if (!rootId || !UUID_RE.test(rootId)) return [];
+  const supabase = await createClient();
+  return listDocumentVersions(supabase, rootId);
 }
 
 /** Revalida el hub + el detalle de la entidad adjunta (si tiene módulo). */
