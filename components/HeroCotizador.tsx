@@ -64,7 +64,7 @@ export function HeroCotizador() {
         </button>
       </form>
       <p className="mt-2.5 text-[12.5px] text-grey-500 max-w-[620px]">
-        Un asesor en Valencia te responde con presupuesto inicial · Lun–Vie 8:00–18:00 hora VE
+        Un asesor en Valencia te responde con presupuesto inicial · Lun–Vie 9:00–17:00 hora VE
       </p>
     </>
   );

@@ -7,7 +7,7 @@ import { CotizarForm } from "@/components/CotizarForm";
 export const metadata: Metadata = {
   title: "Cotiza tu envío",
   description:
-    "Cotización cerrada DDP en 24 horas. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido.",
+    "Cotización inicial DDP en ~24h hábiles, sujeta a confirmación de volumen y peso reales. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido.",
   alternates: { canonical: "/cotizar" },
   openGraph: {
     title: "Cotiza tu envío · DTD Cargo",
@@ -27,13 +27,14 @@ export default function CotizarPage() {
               className="h-display mt-5"
               style={{ fontSize: "clamp(36px, 5vw, 64px)" }}
             >
-              Tarifa cerrada
+              Cotización inicial
               <br />
-              <span style={{ color: "var(--color-wine)" }}>en 24 horas.</span>
+              <span style={{ color: "var(--color-wine)" }}>en ~24h hábiles.</span>
             </h1>
             <p className="lead mt-6">
-              Recibe una cotización DDP con flete, aduana, impuestos y entrega
-              incluidos. Sin letra chica. Sin sorpresas.
+              Recibe una estimación DDP con flete, aduana, impuestos y entrega
+              incluidos. El precio final lo confirma tu asesor según el volumen
+              y peso reales.
             </p>
             <div className="mt-8 flex flex-col gap-4 text-[15px] text-grey-700">
               <div className="flex items-start gap-3">

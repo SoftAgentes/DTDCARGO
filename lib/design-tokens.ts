@@ -168,7 +168,8 @@ export const CONTACT = {
     whatsapp: "+58 412 166 8021",
     whatsappRaw: "584121668021",
     email: "Vzla@dtdcargo.com",
-    hours: "Lun a Vie · 8:00 – 17:00 (GMT-4)",
+    hours: "Lun a Vie · 9:00 – 17:00 (GMT-4)",
+    whatsappHours: "Todos los días · 8:00 – 20:00 (GMT-4)",
   },
   cn: {
     label: "China",
@@ -617,7 +618,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     category: "documento",
     body: [
       "Documento legal emitido por la naviera que actúa como contrato de transporte, recibo de la mercancía y título de propiedad de la carga. Indica quién es el shipper (exportador), el consignee (destinatario), y describe la mercancía.",
-      "Quien tiene el BL original tiene el derecho a retirar la carga en destino. Por eso emitir el BL a nombre del proveedor en China expone al cliente a desvíos — DTD Cargo emite los BL a nuestro nombre como exportador, con tu empresa como consignatario único.",
+      "Quien tiene el BL original tiene el derecho a retirar la carga en destino, por eso es un documento crítico. Definí siempre con tu operador logístico a nombre de quién se emite el BL, según el tipo de envío.",
     ],
   },
   {
@@ -728,7 +729,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 // ──────────────────────────────────────────────────────────────────
 
 export const HERO = {
-  eyebrow: "Logística end-to-end · Desde 2008",
+  eyebrow: "Logística end-to-end · Desde 2010",
   /**
    * Tagline oficial v3.0 (mayo 2026). Fuente:
    *   docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html § 02
@@ -753,7 +754,7 @@ export const HERO = {
    */
   subClaim: "Construyendo confianza cliente a cliente, contenedor a contenedor.",
   subtitle:
-    "Carga suelta DDP puerta a puerta, agente de compra en territorio, registro de marca y visa de negocios. Tu operación China-LATAM con un único responsable.",
+    "Carga suelta DDP puerta a puerta, agente de compra en territorio, registro de marca y visa de negocios. Tu operación China-LATAM con un único punto de contacto.",
   search: {
     originPlaceholder: "Origen — país, ciudad o fábrica",
     originDefault: "China",
@@ -797,7 +798,7 @@ export const STATS = [
   {
     num: "24",
     suffix: "HS",
-    label: "Cotización cerrada garantizada",
+    label: "Cotización inicial estimada",
   },
   {
     // Yiwu (China) + Valencia (Venezuela) — corregido vs Brand Book HTML que
