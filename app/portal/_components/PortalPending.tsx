@@ -57,8 +57,9 @@ export function PortalPending({
         </div>
 
         <p className="mt-6 text-[15px] text-grey-700 leading-[1.6]">
-          Todavía no puedes ver tu dashboard hasta que un asesor te apruebe o
-          realices tu primera carga.
+          Tu panel se desbloquea apenas un asesor active tu cuenta o llegue tu
+          primera carga. Mientras tanto, tu MARKBOX ya sirve para marcar tus cajas
+          en China.
         </p>
 
         <div className="mt-7 pt-6 border-t border-grey-200">

@@ -557,9 +557,10 @@ function Step3({
         className="rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[13px] text-grey-700 leading-[1.5]"
         style={{ borderColor: "var(--color-wine)" }}
       >
-        Al confirmar generamos tu <strong className="text-ink">MARKBOX</strong> y tu
-        cuenta queda <strong className="text-ink">activa</strong>. Vas a poder entrar
-        al portal enseguida.
+        Al confirmar generamos tu <strong className="text-ink">MARKBOX</strong> al
+        instante. Tu cuenta queda <strong className="text-ink">en revisión</strong> —
+        un asesor la activa (o se activa sola con tu primera carga). Ya vas a poder
+        usar tu MARKBOX con tus proveedores.
       </div>
 
       {(error || fieldErrors?.document) && (
@@ -609,7 +610,7 @@ function StepDone({
       </div>
       <div>
         <div className="text-[18px] font-bold text-ink">
-          Tu cuenta está activa{firstName ? `, ${firstName}` : ""}.
+          Tu cuenta quedó creada{firstName ? `, ${firstName}` : ""}.
         </div>
         <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[42ch]">
           Este es tu código MARKBOX. Guardalo: vas a usarlo mucho, y es lo que tus
@@ -673,6 +674,15 @@ function StepDone({
           {warning}
         </p>
       )}
+
+      <p
+        className="w-full rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55] text-left"
+        style={{ borderColor: "var(--color-wine)" }}
+      >
+        <strong className="text-ink">Tu cuenta está en revisión.</strong> Vas a poder
+        ver tu panel apenas un asesor la active o llegue tu primera carga. Mientras
+        tanto, tu MARKBOX ya sirve para marcar tus cajas con tus proveedores.
+      </p>
 
       <Link href="/portal/login" className="btn btn-primary w-full">
         Ir al portal <ArrowIcon />
