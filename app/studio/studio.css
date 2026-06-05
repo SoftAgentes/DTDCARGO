@@ -454,6 +454,22 @@
   outline-offset: -2px;
   background: var(--studio-paper-2);
 }
+/* Link discreto en celdas de tabla (nombre que linkea sin ensuciar la grilla):
+   subraya solo al hover/focus. SDD-0058 (Kommo lead → cliente). */
+.studio-link-quiet {
+  color: var(--ink);
+  text-decoration: none;
+}
+.studio-link-quiet:hover,
+.studio-link-quiet:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* Hover de fila NO clickeable: feedback de posición en tablas densas sin
+   prometer que la fila entera es un target (no cambia el cursor). */
+.studio-row-hover:hover {
+  background: var(--bg-elevated);
+}
 /* Tintes persistentes (Cobranzas): mantienen la clase studio-tracking-row
    intacta para conservar hover + focus-visible. El :hover/:focus de arriba
    gana por especificidad (.studio-tracking-row:hover = 0,2,0 vs
