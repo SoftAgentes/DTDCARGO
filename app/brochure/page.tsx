@@ -5,6 +5,7 @@ import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { YiwuAdvantage } from "@/components/YiwuAdvantage";
 import { HowWeWork } from "@/components/HowWeWork";
 import { Philosophy } from "@/components/Philosophy";
+import { WorkBand } from "@/components/WorkBand";
 import { ServicesByOffice } from "@/components/brochure/ServicesByOffice";
 import { DownloadPdfButton } from "@/components/brochure/DownloadPdfButton";
 import {
@@ -124,6 +125,9 @@ export default function BrochurePage() {
 
         {/* 3 · Yiwu — ventaja estratégica (reuso) */}
         <YiwuAdvantage />
+
+        {/* 3b · Operación real en Yiwu (clip de bodega) */}
+        <WorkBand />
 
         {/* 4-5 · Los 16 servicios (héroe DDP + 4 grupos) */}
         <ServicesByOffice />

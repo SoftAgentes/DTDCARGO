@@ -103,3 +103,7 @@ public/norte.html
 # Harness: el progreso efímero (coordinación entre agentes) NO va a git; la historia vive en git log.
 # El resto del harness (CHECKPOINTS.md, config) SÍ se versiona.
 .harness/progress/
+
+# Triage temporal de fotos de operación (originales con PII: caras, matrículas).
+# Material de trabajo para curar el set web; las elegidas van a public/fotos/. Nunca a git.
+.tmp-foto-analisis/
