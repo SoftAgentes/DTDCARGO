@@ -11,12 +11,15 @@
  *   destino inexistente).
  */
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import type { CSSProperties } from "react";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import type { KommoFilters } from "@/lib/studio/kommo-queries";
 import type {
   KommoLeadRow,
@@ -24,8 +27,9 @@ import type {
   KommoPipelineRow,
   KommoStatusRow,
 } from "@/lib/studio/kommo-types";
+import { convertLeadToClientAction } from "../actions";
 
-const GRID = "1.7fr 1.1fr 1fr 110px";
+const GRID = "1.6fr 1fr 0.85fr 104px 176px";
 
 function fmtDate(iso: string | null): string {
   if (!iso) return "—";
@@ -66,16 +70,43 @@ export function KommoClient({
   statuses,
   leads,
   filters,
+  convertedLeads,
 }: {
   overview: KommoOverview;
   pipelines: KommoPipelineRow[];
   statuses: KommoStatusRow[];
   leads: KommoLeadRow[];
   filters: KommoFilters;
+  /** kommo_lead_id → markbox de los leads ya convertidos en cliente. */
+  convertedLeads: Record<number, string>;
 }) {
   const router = useRouter();
   const params = useSearchParams();
+  const toast = useToast();
   const [isPending, startTransition] = useTransition();
+
+  // Estado local de convertidos: parte del prop del server y se actualiza
+  // optimista al convertir (la action revalida, pero el client no re-fetcha solo).
+  // El merge prioriza `prev` (lo optimista local) sobre el server: asume que la
+  // conversión es MONOTÓNICA (una vez convertido, sigue convertido), por eso no
+  // se "des-convierte" aunque el server tarde en reflejarlo.
+  const [converted, setConverted] = useState(convertedLeads);
+  useEffect(() => {
+    setConverted((prev) => ({ ...convertedLeads, ...prev }));
+  }, [convertedLeads]);
+
+  const onConverted = (leadId: number, markbox: string, created: boolean) => {
+    setConverted((prev) => ({ ...prev, [leadId]: markbox }));
+    toast.success(
+      `Cliente ${markbox} ${created ? "creado" : "vinculado"} desde el lead`,
+      {
+        link: {
+          href: `/studio/clientes/${markbox}?highlight=${markbox}&hl-tone=warm`,
+          label: "Ver en Clientes",
+        },
+      },
+    );
+  };
 
   const [q, setQ] = useState(params.get("q") ?? "");
   const [pipeline, setPipeline] = useState(params.get("pipeline") ?? "");
@@ -289,6 +320,8 @@ export function KommoClient({
             pipelineName={pipelineName}
             statusName={statusName}
             subdomain={overview.subdomain}
+            converted={converted}
+            onConverted={onConverted}
           />
         )}
       </div>
@@ -312,11 +345,15 @@ function LeadsTable({
   pipelineName,
   statusName,
   subdomain,
+  converted,
+  onConverted,
 }: {
   leads: KommoLeadRow[];
   pipelineName: Map<number, string>;
   statusName: Map<string, string>;
   subdomain: string | null;
+  converted: Record<number, string>;
+  onConverted: (leadId: number, markbox: string, created: boolean) => void;
 }) {
   return (
     <div
@@ -346,6 +383,7 @@ function LeadsTable({
         <span>Embudo</span>
         <span>Etapa</span>
         <span>Actualizado</span>
+        <span style={{ textAlign: "right" }}>Cliente DTD</span>
       </div>
 
       {leads.map((l, i) => {
@@ -358,33 +396,47 @@ function LeadsTable({
             : "—";
         const embudo =
           l.pipeline_id != null ? pipelineName.get(l.pipeline_id) ?? "—" : "—";
+        const markbox = converted[l.id];
 
-        const rowStyle: CSSProperties = {
-          display: "grid",
-          gridTemplateColumns: GRID,
-          gap: 12,
-          padding: "14px 20px",
-          borderTop: i > 0 ? "1px solid var(--border)" : 0,
-          alignItems: "center",
-          textDecoration: "none",
-          color: "inherit",
+        const nameStyle: CSSProperties = {
+          font: "600 13px/1.3 var(--f-sans)",
+          color: "var(--ink)",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         };
+        const nameContent = l.name || "(sin nombre)";
 
-        const cells = (
-          <>
-            <span
-              style={{
-                font: "600 13px/1.3 var(--f-sans)",
-                color: "var(--ink)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {l.name || (
-                <span style={{ color: "var(--ink-mute)" }}>(sin nombre)</span>
-              )}
-            </span>
+        return (
+          <div
+            key={l.id}
+            className="studio-row-hover"
+            style={{
+              display: "grid",
+              gridTemplateColumns: GRID,
+              gap: 12,
+              padding: "12px 20px",
+              borderTop: i > 0 ? "1px solid var(--border)" : 0,
+              alignItems: "center",
+            }}
+          >
+            {/* Nombre → abre el lead en Kommo (si hay subdominio) */}
+            {href ? (
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Abrir el lead en Kommo (pestaña nueva)"
+                className="studio-link-quiet"
+                style={nameStyle}
+              >
+                {nameContent}
+              </a>
+            ) : (
+              <span style={{ ...nameStyle, color: l.name ? "var(--ink)" : "var(--ink-mute)" }}>
+                {nameContent}
+              </span>
+            )}
             <span
               style={{
                 font: "500 12.5px/1.3 var(--f-sans)",
@@ -401,31 +453,40 @@ function LeadsTable({
                 {etapa}
               </Badge>
             </span>
-            <span
-              style={{
-                font: "500 11.5px/1 var(--f-sans)",
-                color: "var(--ink-soft)",
-              }}
-            >
+            <span style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
               {fmtDate(l.kommo_updated_at)}
             </span>
-          </>
-        );
-
-        return href ? (
-          <a
-            key={l.id}
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="studio-tracking-row"
-            style={rowStyle}
-          >
-            {cells}
-          </a>
-        ) : (
-          <div key={l.id} style={rowStyle}>
-            {cells}
+            {/* Acción: convertir a cliente o Badge del MARKBOX ya vinculado */}
+            <span style={{ display: "flex", justifyContent: "flex-end" }}>
+              {markbox ? (
+                <Link
+                  href={`/studio/clientes/${markbox}`}
+                  title="Ver el cliente en el Studio"
+                  style={{ textDecoration: "none" }}
+                >
+                  <Badge tone="success" size="sm">
+                    {markbox}
+                  </Badge>
+                </Link>
+              ) : (
+                <ActionButton
+                  variant="dark"
+                  size="sm"
+                  idleLabel="Convertir a cliente"
+                  // successLabel null a propósito: el rastro persistente es el
+                  // Badge del MARKBOX (la row pasa a mostrarlo) + el toast, no un
+                  // flash efímero (regla de trazabilidad del Studio).
+                  successLabel={null}
+                  onAction={async () => {
+                    const res = await convertLeadToClientAction(l.id);
+                    if (res?.error) return { error: res.error };
+                    if (res?.markbox) {
+                      onConverted(l.id, res.markbox, res.created ?? false);
+                    }
+                  }}
+                />
+              )}
+            </span>
           </div>
         );
       })}

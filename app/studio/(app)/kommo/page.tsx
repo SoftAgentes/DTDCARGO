@@ -11,6 +11,7 @@ import {
   listKommoStatuses,
   parseKommoFiltersFromSearchParams,
 } from "@/lib/studio/kommo-queries";
+import { listConvertedLeadIds } from "@/lib/studio/kommo-convert";
 import { KommoClient } from "./_components/KommoClient";
 
 export const metadata = { title: "Kommo CRM" };
@@ -30,6 +31,11 @@ export default async function KommoPage({
     listKommoStatuses(supabase),
     listKommoLeads(supabase, filters),
   ]);
+  // Qué leads visibles ya son clientes (para marcar "Convertir" vs Badge MARKBOX).
+  const convertedLeads = await listConvertedLeadIds(
+    supabase,
+    leads.map((l) => l.id),
+  );
 
   return (
     <KommoClient
@@ -38,6 +44,7 @@ export default async function KommoPage({
       statuses={statuses}
       leads={leads}
       filters={filters}
+      convertedLeads={convertedLeads}
     />
   );
 }
