@@ -1,7 +1,7 @@
 ---
 sdd: "0058"
 title: "Kommo lead → cliente — puente CRM↔ERP (convertir un lead del espejo Kommo en cliente DTD con MARKBOX)"
-status: in-progress
+status: done
 author: "Claude Code (carril Kommo · continuación SDD-0043)"
 created: 2026-06-04
 updated: 2026-06-05
@@ -152,5 +152,37 @@ con MARKBOX autogenerado + link `kommo_lead_id`, idempotente por lead.
 tablas usan `sm`), hover de fila sutil, comentario del merge optimista monotónico. Nits Low diferidos (fmtDate con año,
 icono externo en el nombre).
 
-**Pendiente:** founder aplica `0108` a prod · **Slice B** (prefill de email/teléfono/dirección desde el contacto de
-Kommo — necesita mirrorear el link lead↔contacto en el sync de SDD-0043).
+**Pendiente:** founder aplica `0108` a prod.
+
+### Slice B — implementado (2026-06-05, approach "picker manual" · sin infra)
+
+> **Decisión founder 2026-06-05:** en vez de mirrorear el link lead↔contacto (que tocaba las Edge Functions de
+> SDD-0043 + re-sync), el asesor **elige el contacto** en un drawer. Funciona sobre los datos ya espejados, **sin
+> migración ni cambio de Edge Functions**.
+
+**Hallazgo de datos (verificado en prod vía MCP):** el **email/teléfono viven SOLO en el contacto**
+(`kommo_contacts.custom_fields`, códigos `EMAIL`/`PHONE`, type multitext); los **leads NO traen datos de contacto**
+(sus custom_fields son tracking/UTM/finanzas; solo 30/2.659 tienen alguno) y su **nombre suele ser inútil**
+("Lead #NNNN" — el nombre real está en el contacto). **Kommo NO tiene dirección** (campos de contacto =
+Email/Teléfono/Posición/T&C) → la dirección sigue manual en Clientes. El espejo **no guarda el link lead↔contacto**
+→ por eso el match lo hace la persona.
+
+**Archivos:**
+- `lib/studio/kommo-convert.ts` — `parseContactFields(custom_fields)` (extrae email+teléfono del primer valor de cada
+  code, tolera formas raras) + `searchKommoContacts(supabase, q)` (ilike por nombre, email/teléfono parseados, RLS por
+  tenant) + `convertLead` ahora acepta `prefill?: {name,email,phone}` (el nombre del contacto gana sobre el del lead;
+  email/teléfono solo si vienen).
+- `app/studio/(app)/kommo/actions.ts` — `searchKommoContactsAction(q)` + `convertLeadToClientAction(leadId, prefill?)`.
+- `app/studio/(app)/kommo/_components/ConvertLeadDrawer.tsx` (NUEVO) — `DrawerShell` + búsqueda server-side debounced
+  (guard de race con `reqId`, carga inicial inmediata) + lista de contactos seleccionables (`aria-pressed`, borde wine
+  + Badge "Elegido") + **un solo botón contextual** ("Convertir con <contacto>" / "Convertir sin contacto", fix ui-ux).
+- `KommoClient.tsx` — el botón de la row ahora abre el drawer (acción no mutante → botón plano); el convert real lo
+  dispara el drawer; el `onConverted` del padre cierra el drawer + actualiza el Badge + dispara el toast.
+- `studio.css` — `.kommo-contact-pick:hover/:focus-visible` (affordance + fix AA 2.4.7; el borde/fondo inline ganan,
+  por eso hover=box-shadow y focus=outline).
+- Tests: +7 en `kommo-convert.test.ts` (parseContactFields casos borde, searchKommoContacts mapeo, convertLead con
+  prefill — el nombre del contacto gana + email/phone en el insert). Gate verde (1240 tests). `ui-ux-designer` OK
+  (fixes aplicados: 1 botón contextual + focus-visible).
+
+**Sin migración, sin cambio de Edge Functions, sin re-sync.** El "approach A" (mirrorear el link automáticamente)
+queda como mejora futura si se quiere quitar el paso manual.
