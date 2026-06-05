@@ -75,7 +75,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0040 | Contabilidad — plan de cuentas + diario/mayor + P&L/Balance +… | done | interno |
 | 0041 | Cobranzas — recibos de pago + asiento del cobro + cola CxC (B… | done | interno |
 | 0042 | Portal del Cliente — auth de cliente + mis envíos (V1) | in-progress | interno |
-| 0043 | Conector Kommo CRM — Alcance A (espejo read-only) | done | interno |
+| 0043 | Conector Kommo CRM — Alcance A (espejo read-only) + Alcance B… | in-progress | interno |
 | 0044 | Tesorería — Proveedores + CxP + órdenes de pago + asiento del… | done | interno |
 | 0045 | Comentarios + @menciones transversales — hilo embebible en cu… | done | interno |
 | 0046 | Verificación de identidad de clientes — motor 2 vías (CNE céd… | done | interno |
