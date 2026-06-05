@@ -812,11 +812,12 @@ export const STATS = [
 // CÓMO TRABAJAMOS — 4 pasos del flujo operativo
 // ──────────────────────────────────────────────────────────────────
 
-export const STEPS = [
+export const STEPS: { n: string; title: string; copy: string; tag?: string }[] = [
   {
     n: "01",
-    title: "Cotiza DDP",
-    copy: "Envíanos el link de Alibaba o la ficha del producto. Cotización inicial en ~24h hábiles, sujeta a confirmación de volumen y peso reales.",
+    title: "Cotizá por CBM",
+    tag: "Puerta a puerta · DDP",
+    copy: "Envíanos el link de Alibaba o la ficha. Te cotizamos por volumen (CBM), modalidad DDP: todo incluido. Estimación inicial en ~24h hábiles, sujeta a volumen y peso reales.",
   },
   {
     n: "02",
@@ -833,7 +834,7 @@ export const STEPS = [
     title: "Entregamos",
     copy: "Aduana e impuestos a nuestro nombre. Entregamos en tu puerta con factura final.",
   },
-] as const;
+];
 
 // ──────────────────────────────────────────────────────────────────
 // HISTORIA — 5 hitos (2008 → 2016) — fuente: brochure "Nuestra Historia"
