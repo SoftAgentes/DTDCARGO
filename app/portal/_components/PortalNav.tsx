@@ -35,6 +35,11 @@ const LINKS: {
     match: (p) => p.startsWith("/portal/documentos"),
   },
   {
+    href: "/portal/mensajes",
+    label: "Mensajes",
+    match: (p) => p.startsWith("/portal/mensajes"),
+  },
+  {
     href: "/portal/cuenta",
     label: "Cuenta",
     match: (p) => p.startsWith("/portal/cuenta"),
