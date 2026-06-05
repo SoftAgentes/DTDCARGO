@@ -15,6 +15,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { markChargesReconciled } from "./charges-queries";
+import { countLines } from "./reconciliation-view";
 import {
   num,
   type MatchConfidence,
@@ -187,18 +188,33 @@ export async function applyMatchDecision(
  * Cierra un estado de cuenta: status → 'cerrado' y marca `reconciled = true` en
  * todos los cargos atados a sus líneas (matched_charge_id de las líneas vivas).
  * Reusa markChargesReconciled de charges-queries. RLS por tenant.
+ *
+ * Guard server-side (no confiar sólo en el botón disabled del cliente): si
+ * quedan líneas vivas "a revisar" (sugerencias auto sin confirmar — el mismo
+ * `canClose` que computa la UI con countLines) NO se cierra; lanza error.
  */
 export async function closeStatement(
   supabase: SupabaseClient,
   statementId: string,
 ): Promise<void> {
-  // 1. Cargos atados a las líneas vivas de este estado.
+  // 1. Líneas vivas del estado (status + cargo atado).
   const { data: lineData, error: lineErr } = await supabase
     .from("partner_statement_lines")
-    .select("matched_charge_id")
+    .select("match_status, matched_charge_id")
     .eq("statement_id", statementId)
     .is("deleted_at", null);
   if (lineErr) throw lineErr;
+
+  const liveLines = ((lineData as Record<string, unknown>[] | null) ?? []).map(
+    (r) => ({ match_status: r.match_status as MatchStatus }),
+  );
+
+  // 2. Guard de cierre: si quedan líneas a revisar, no se cierra.
+  if (!countLines(liveLines).canClose) {
+    throw new Error(
+      "Quedan líneas a revisar en este estado: confirmá o rechazá las sugerencias antes de cerrar el período.",
+    );
+  }
 
   const chargeIds = Array.from(
     new Set(
@@ -208,10 +224,10 @@ export async function closeStatement(
     ),
   );
 
-  // 2. Marcar esos cargos como reconciliados.
+  // 3. Marcar esos cargos como reconciliados.
   await markChargesReconciled(supabase, chargeIds);
 
-  // 3. Cerrar el estado.
+  // 4. Cerrar el estado.
   const { error } = await supabase
     .from("partner_statements")
     .update({ status: "cerrado" })

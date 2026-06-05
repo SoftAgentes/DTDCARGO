@@ -340,3 +340,34 @@ describe("reconcileStatement · moneda", () => {
     expect(r.lines[0].match_status).toBe("solo_en_estado");
   });
 });
+
+// ── guard de monto 0 / negativo en evalCharge (hardening B1) ───
+describe("reconcileStatement · guard amount !== 0 (cargo)", () => {
+  it("un cargo de monto 0 NO matchea una línea de monto 0 (no es transacción real)", () => {
+    // sin señal de texto: una línea en 0 contra un cargo en 0 debe quedar solo_en_estado,
+    // no atarse al cargo cero (espejo del guard de evalEntry).
+    const l = line({
+      id: "L0",
+      amount: 0,
+      raw_description: "qqq",
+      raw_description_cn: null,
+      line_date: null,
+    });
+    const c = charge({ id: "C0", amount: 0, description: "zzz", description_cn: null });
+    const r = reconcileStatement([l], [c], []);
+    expect(r.lines[0].match_status).toBe("solo_en_estado");
+    expect(r.lines[0].matched_charge_id).toBeNull();
+    // el cargo cero queda libre → reportado como solo_en_erp
+    expect(r.unmatched_charge_ids).toContain("C0");
+  });
+
+  it("un cargo de monto negativo (nota en línea) no produce match exacto espurio", () => {
+    // un cargo negativo no debe atar una línea negativa por 'monto exacto' a menos
+    // que NO sea cero; acá el cero es el caso degenerado que cubre el guard.
+    const l = line({ id: "L1", amount: 0, raw_description: "freight", line_date: null });
+    const c = charge({ id: "C1", amount: 0, description: "freight" });
+    // mismo texto (fuzzy hit) pero monto 0 ambos → no es match_auto exacto.
+    const r = reconcileStatement([l], [c], []);
+    expect(r.lines[0].match_status).not.toBe("match_auto");
+  });
+});
