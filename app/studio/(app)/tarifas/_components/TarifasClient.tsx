@@ -14,30 +14,44 @@ import { useEffect, useState, useTransition } from "react";
 import {
   RATE_SERVICE_OPTIONS,
   formatRate,
+  rateStatusLabel,
+  rateStatusTone,
   type Rate,
 } from "@/lib/studio/rate-types";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import type { RateFilters } from "@/lib/studio/rate-queries";
 import type { CalculatorSettings } from "@/lib/studio/calculator-settings-types";
+import type { CalculatorCity } from "@/lib/studio/calculator-cities-types";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
 import { RateDrawer } from "./RateDrawer";
 import { ParametrosPanel } from "./ParametrosPanel";
+import { CiudadesPanel } from "./CiudadesPanel";
+import { ImportRatesDrawer } from "./ImportRatesDrawer";
+import { publishRateAction, archiveRateAction } from "../actions";
 
 type DrawerState = null | { mode: "create" } | { mode: "edit"; rate: Rate };
-type Tab = "tarifas" | "parametros";
+type Tab = "tarifas" | "ciudades" | "parametros";
 
 export function TarifasClient({
   rates,
   filters,
   settings,
+  cities,
+  isAdmin,
 }: {
   rates: Rate[];
   filters: RateFilters;
   settings: CalculatorSettings | null;
+  cities: CalculatorCity[];
+  isAdmin: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("tarifas");
+  const [importOpen, setImportOpen] = useState(false);
   const router = useRouter();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -120,10 +134,9 @@ export function TarifasClient({
             <button
               type="button"
               className="studio-btn studio-btn-ghost"
-              disabled
-              title="Próximamente"
+              onClick={() => setImportOpen(true)}
             >
-              Exportar tarifario
+              Importar tarifas
             </button>
             <button
               type="button"
@@ -153,6 +166,13 @@ export function TarifasClient({
           active={tab === "tarifas"}
           onClick={() => setTab("tarifas")}
           label="Tarifas"
+        />
+        <TabButton
+          id="tab-ciudades"
+          controls="panel-ciudades"
+          active={tab === "ciudades"}
+          onClick={() => setTab("ciudades")}
+          label="Ciudades"
         />
         <TabButton
           id="tab-parametros"
@@ -259,6 +279,12 @@ export function TarifasClient({
         </div>
       )}
 
+      {tab === "ciudades" && (
+        <div role="tabpanel" id="panel-ciudades" aria-labelledby="tab-ciudades">
+          <CiudadesPanel cities={cities} isAdmin={isAdmin} />
+        </div>
+      )}
+
       {tab === "parametros" && (
         <div role="tabpanel" id="panel-parametros" aria-labelledby="tab-parametros">
           <ParametrosPanel settings={settings} />
@@ -273,6 +299,9 @@ export function TarifasClient({
           onClose={() => setDrawer(null)}
         />
       )}
+
+      {/* Importador masivo */}
+      {importOpen && <ImportRatesDrawer onClose={() => setImportOpen(false)} />}
     </div>
   );
 }
@@ -320,6 +349,8 @@ function TabButton({
 
 // ── Tabla ─────────────────────────────────────────────────────
 
+const RATES_GRID = "170px 1fr 1fr 130px 90px 110px 230px";
+
 function RatesTable({
   rates,
   onEdit,
@@ -327,6 +358,17 @@ function RatesTable({
   rates: Rate[];
   onEdit: (rate: Rate) => void;
 }) {
+  const toast = useToast();
+  const router = useRouter();
+  const flashClassFor = useRowHighlight();
+
+  // Resalta la row en verde tras un cambio de estado (publicar/archivar).
+  const highlightSuccess = (id: string) => {
+    router.push(
+      `/studio/tarifas?highlight=${encodeURIComponent(id)}&hl-tone=success`,
+    );
+  };
+
   return (
     <div
       style={{
@@ -340,7 +382,7 @@ function RatesTable({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "180px 1fr 1fr 140px 110px 90px 110px 80px",
+          gridTemplateColumns: RATES_GRID,
           gap: 12,
           padding: "12px 20px",
           background: "var(--bg-elevated)",
@@ -356,17 +398,18 @@ function RatesTable({
         <span>Destino</span>
         <span style={{ textAlign: "right" }}>Tarifa</span>
         <span style={{ textAlign: "right" }}>Min charge</span>
-        <span style={{ textAlign: "right" }}>Tránsito</span>
         <span>Vigencia</span>
-        <span></span>
+        <span style={{ textAlign: "right" }}>Estado · acciones</span>
       </div>
 
       {rates.map((rate, i) => (
         <div
           key={rate.id}
+          data-row-id={rate.id}
+          className={flashClassFor(rate.id)}
           style={{
             display: "grid",
-            gridTemplateColumns: "180px 1fr 1fr 140px 110px 90px 110px 80px",
+            gridTemplateColumns: RATES_GRID,
             gap: 12,
             padding: "14px 20px",
             borderTop: i > 0 ? "1px solid var(--border)" : 0,
@@ -392,7 +435,7 @@ function RatesTable({
             <Badge tone="wine" size="sm">
               {SERVICE_LABELS[rate.service].primary}
             </Badge>
-            {rate.is_public && (
+            {rate.status === "published" && rate.is_public && (
               <Badge tone="success" size="sm">
                 Pública · calc
               </Badge>
@@ -424,22 +467,59 @@ function RatesTable({
           </span>
           <span
             style={{
-              font: "600 12.5px/1 var(--f-mono)",
-              color: "var(--ink)",
-              textAlign: "right",
-            }}
-          >
-            {rate.transit_days != null ? `${rate.transit_days}d` : "—"}
-          </span>
-          <span
-            style={{
               font: "500 11.5px/1 var(--f-mono)",
               color: "var(--ink-soft)",
             }}
           >
             {rate.valid_until ?? "—"}
           </span>
-          <span style={{ display: "inline-flex", gap: 4, justifyContent: "flex-end" }}>
+
+          {/* Estado + acciones de lifecycle + editar */}
+          <span
+            style={{
+              display: "inline-flex",
+              gap: 6,
+              justifyContent: "flex-end",
+              alignItems: "center",
+              flexWrap: "wrap",
+            }}
+          >
+            <Badge tone={rateStatusTone(rate.status)} size="sm">
+              {rateStatusLabel(rate.status)}
+            </Badge>
+
+            {rate.status === "draft" && (
+              <ActionButton
+                variant="primary"
+                size="xs"
+                idleLabel="Publicar"
+                loadingLabel="…"
+                successLabel="Publicada"
+                successIcon={Icon.check(12)}
+                onAction={() => publishRateAction(rate.id)}
+                onError={(m) => toast.error(m)}
+                onSuccess={() => {
+                  toast.success("Tarifa publicada");
+                  highlightSuccess(rate.id);
+                }}
+              />
+            )}
+            {rate.status !== "archived" && (
+              <ActionButton
+                variant="ghost"
+                size="xs"
+                idleLabel="Archivar"
+                loadingLabel="…"
+                successLabel={null}
+                onAction={() => archiveRateAction(rate.id)}
+                onError={(m) => toast.error(m)}
+                onSuccess={() => {
+                  toast.success("Tarifa archivada");
+                  highlightSuccess(rate.id);
+                }}
+              />
+            )}
+
             <button
               type="button"
               onClick={() => onEdit(rate)}
@@ -466,25 +546,6 @@ function RatesTable({
               }}
             >
               {Icon.edit(13)}
-            </button>
-            <button
-              type="button"
-              disabled
-              title="Duplicar (próximamente)"
-              aria-label="Duplicar tarifa"
-              style={{
-                width: 28,
-                height: 28,
-                display: "grid",
-                placeItems: "center",
-                borderRadius: "var(--r-sm)",
-                color: "var(--ink-mute)",
-                background: "transparent",
-                cursor: "not-allowed",
-                opacity: 0.5,
-              }}
-            >
-              {Icon.copy(13)}
             </button>
           </span>
         </div>

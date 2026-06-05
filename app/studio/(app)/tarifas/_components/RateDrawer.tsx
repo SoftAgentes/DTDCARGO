@@ -13,12 +13,22 @@ import { useRouter } from "next/navigation";
 import {
   RATE_SERVICE_OPTIONS,
   priceMode,
+  rateStatusLabel,
+  rateStatusTone,
   type Rate,
   type RateActionState,
 } from "@/lib/studio/rate-types";
 import type { ShipmentService } from "@/lib/studio/shipment-types";
-import { createRate, softDeleteRate, updateRate } from "../actions";
+import {
+  archiveRateAction,
+  createRate,
+  publishRateAction,
+  softDeleteRate,
+  updateRate,
+} from "../actions";
 import { Icon } from "@/app/studio/_components/icons";
+import { Badge } from "@/app/studio/_components/ui/Badge";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
@@ -130,7 +140,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15, 30, 61, 0.55)",
+        background: "var(--scrim)",
         zIndex: 100,
         display: "flex",
         justifyContent: "flex-end",
@@ -160,13 +170,20 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
             flexShrink: 0,
           }}
         >
-          <h2
-            id="rate-drawer-title"
-            className="studio-display"
-            style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
-          >
-            {title}
-          </h2>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+            <h2
+              id="rate-drawer-title"
+              className="studio-display"
+              style={{ fontSize: 18, margin: 0, color: "var(--ink)" }}
+            >
+              {title}
+            </h2>
+            {mode === "edit" && rate && (
+              <Badge tone={rateStatusTone(rate.status)} size="sm">
+                {rateStatusLabel(rate.status)}
+              </Badge>
+            )}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -513,8 +530,39 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
             flexShrink: 0,
           }}
         >
-          {/* Left: soft delete solo en mode edit */}
-          <div>
+          {/* Left: lifecycle (publicar/archivar) + soft delete, solo en edit */}
+          <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+            {mode === "edit" && rate && rate.status === "draft" && (
+              <ActionButton
+                variant="primary"
+                size="sm"
+                idleLabel="Publicar"
+                loadingLabel="Publicando…"
+                successLabel="Publicada"
+                successIcon={Icon.check(13)}
+                onAction={() => publishRateAction(rate.id)}
+                onError={setCreateError}
+                onSuccess={() => {
+                  toast.success("Tarifa publicada");
+                  onClose();
+                }}
+              />
+            )}
+            {mode === "edit" && rate && rate.status !== "archived" && (
+              <ActionButton
+                variant="ghost"
+                size="sm"
+                idleLabel="Archivar"
+                loadingLabel="Archivando…"
+                successLabel={null}
+                onAction={() => archiveRateAction(rate.id)}
+                onError={setCreateError}
+                onSuccess={() => {
+                  toast.success("Tarifa archivada");
+                  onClose();
+                }}
+              />
+            )}
             {mode === "edit" && rate && (
               confirmDelete ? (
                 <div style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>

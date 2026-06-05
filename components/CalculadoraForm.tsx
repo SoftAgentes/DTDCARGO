@@ -12,6 +12,7 @@ import {
   type EnvioCotizacion,
   type TipoEmbalaje,
   type CalcParams,
+  type Ciudad,
 } from "@/lib/calculadora";
 import { CONTACT } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
@@ -37,10 +38,13 @@ type ServerRate = {
 export function CalculadoraForm({
   serverRate,
   serverConfig,
+  ciudades,
 }: {
   serverRate?: ServerRate;
   /** Reglas escalares reales (Fase 3 Slice A) o null → defaults de CONFIG. */
   serverConfig?: CalcParams | null;
+  /** Ciudades reales (Fase 3 Slice B) o undefined → fallback a CIUDADES. */
+  ciudades?: Ciudad[];
 }) {
   // Tarifa base real o default de CONFIG (cero regresión si no hay pública).
   const baseRate =
@@ -51,12 +55,19 @@ export function CalculadoraForm({
   const minChargeOverride = serverRate?.min_charge ?? undefined;
   // Reglas escalares: las reales (de /studio/tarifas › Parámetros) o defaults.
   const params = serverConfig ?? DEFAULT_PARAMS;
+  // Ciudades: las reales (de /studio/tarifas › Ciudades) o el array hardcoded.
+  const cityList = ciudades && ciudades.length > 0 ? ciudades : CIUDADES;
+  // Destino inicial: la 1ª ciudad de la lista (o casco-central si existe).
+  const defaultCiudadId =
+    cityList.find((c) => c.id === "casco-central")?.id ??
+    cityList[0]?.id ??
+    "casco-central";
 
   const [form, setForm] = useState<EnvioInput>({
     cbmTotal: 0,
     pesoKg: 0,
     embalaje: "estandar",
-    ciudadId: "casco-central",
+    ciudadId: defaultCiudadId,
     bateria: false,
     cargaEspecial: false,
     tarifaCBMOverride: baseRate,
@@ -70,7 +81,7 @@ export function CalculadoraForm({
   }
 
   function handleCalcular() {
-    setCotizacion(calcularEnvioLCL(form, params));
+    setCotizacion(calcularEnvioLCL(form, params, cityList));
   }
 
   return (
@@ -207,7 +218,7 @@ export function CalculadoraForm({
               onChange={(e) => update("ciudadId", e.target.value)}
               className="w-full px-4 py-3 rounded-[10px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
             >
-              {CIUDADES.map((c) => (
+              {cityList.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
                   {c.casco || c.id === "casco-central" ? "" : ` (${c.km} km)`}
