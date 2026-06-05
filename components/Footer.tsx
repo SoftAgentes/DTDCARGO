@@ -188,6 +188,9 @@ export function Footer() {
             <Link href="/registro" className="hover:text-white transition-colors">
               Registro de cliente
             </Link>
+            <Link href="/brochure" className="hover:text-white transition-colors">
+              Brochure
+            </Link>
             <Link href="/brand" className="hover:text-white transition-colors">
               Kit de marca
             </Link>

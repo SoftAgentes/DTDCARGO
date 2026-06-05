@@ -226,8 +226,8 @@ export const SERVICES_CN: Service[] = [
     slug: "reserva-contenedores",
     title: "Reserva de contenedores FCL",
     subtitle: "FCL directo desde fábrica de tu proveedor",
-    copy: "Coordinamos la reserva del buque, posicionamos el contenedor vacío en la fábrica de tu proveedor y embarcamos. Nosotros figuramos como exportador en el BL; tú quedas como consignatario único.",
-    benefit: "Tu proveedor no puede desviar la carga",
+    copy: "Coordinamos la reserva del buque, posicionamos el contenedor vacío en la fábrica de tu proveedor y embarcamos. Gestionamos la documentación de exportación para que tu carga salga en regla.",
+    benefit: "Coordinación directa fábrica–buque",
     icon: "Container",
     location: "cn",
   },
@@ -235,7 +235,7 @@ export const SERVICES_CN: Service[] = [
     slug: "consolidacion-bodega-yiwu",
     title: "Consolidación FCL en bodega propia",
     subtitle: "Cuando consolidás varios proveedores",
-    copy: "Tus proveedores chinos envían a nuestra bodega propia en Yiwu. Ahí inspeccionamos, etiquetamos y consolidamos todo en un solo contenedor (FCL) o en grupaje (LCL). Sale unificado, con un único BL y un solo responsable.",
+    copy: "Tus proveedores chinos envían a nuestra bodega propia en Yiwu. Ahí inspeccionamos, etiquetamos y consolidamos todo en un solo contenedor (FCL) o en grupaje (LCL). Sale unificado, con un solo punto de contacto.",
     benefit: "Una sola carga desde múltiples proveedores",
     icon: "Warehouse",
     location: "cn",
@@ -276,7 +276,7 @@ export const SERVICES_CN: Service[] = [
   {
     slug: "muestras-courier",
     title: "Envío de muestras y courier aéreo",
-    copy: "Envíos urgentes por DHL/UPS/FedEx desde Yiwu: muestras pre-producción, documentos, lotes pequeños críticos.",
+    copy: "Envíos urgentes por DHL/UPS/FedEx desde Yiwu: muestras pre-producción, documentos, lotes pequeños críticos. Courier aéreo temporalmente no disponible.",
     benefit: "Velocidad cuando importa",
     icon: "Box",
     location: "cn",
@@ -346,7 +346,7 @@ export const SERVICES_VE: Service[] = [
   {
     slug: "transito-aduana",
     title: "Tránsito de aduana y desaduanaje",
-    copy: "Coordinamos el paso de tu mercancía por aduana venezolana. Equipo local que conoce la normativa vigente para nacionalizar carga aérea o marítima.",
+    copy: "Coordinamos el paso de tu mercancía por aduana venezolana. Equipo local que conoce la normativa vigente para nacionalizar tu carga marítima.",
     benefit: "Nacionalización sin demoras",
     icon: "Shield",
     location: "ve",
@@ -816,7 +816,7 @@ export const STEPS = [
   {
     n: "01",
     title: "Cotiza DDP",
-    copy: "Envíanos el link de Alibaba o la ficha del producto. Cotización cerrada en 24 hs incluyendo todo.",
+    copy: "Envíanos el link de Alibaba o la ficha del producto. Cotización inicial en ~24h hábiles, sujeta a confirmación de volumen y peso reales.",
   },
   {
     n: "02",
