@@ -16,13 +16,13 @@ import type {
   KommoLead,
   KommoPipeline,
 } from "./types.ts";
+// SDD-0043 Alcance B · mapeo compartido (single source of truth con kommo-webhook + Vitest).
+import { mapContactRow, mapLeadRow } from "../_shared/kommo-mapping.ts";
 
 const errMsg = (e: unknown) => (e instanceof Error ? e.message : String(e));
-const epochToIso = (s?: number | null) =>
-  s ? new Date(s * 1000).toISOString() : null;
 
 /** M3 — upsert por chunks, idempotente por onConflict. Refresca synced_at en cada corrida. */
-async function upsertRows(
+export async function upsertRows(
   supabase: SupabaseClient,
   table: string,
   rows: Record<string, unknown>[],
@@ -190,15 +190,7 @@ export async function syncAll(
         token,
         "contacts",
       );
-      const rows = items.map((c) => ({
-        tenant_id: t,
-        id: c.id,
-        name: c.name ?? null,
-        responsible_user_id: c.responsible_user_id ?? null,
-        kommo_created_at: epochToIso(c.created_at),
-        kommo_updated_at: epochToIso(c.updated_at),
-        custom_fields: c.custom_fields_values ?? [],
-      }));
+      const rows = items.map((c) => mapContactRow(c, t));
       return {
         fetched: items.length,
         upserted: await upsertRows(supabase, "kommo_contacts", rows),
@@ -210,19 +202,7 @@ export async function syncAll(
   results.push(
     await logged(supabase, conn, "leads", async () => {
       const items = await paginateTwoPass<KommoLead>(baseUrl, token, "leads");
-      const rows = items.map((l) => ({
-        tenant_id: t,
-        id: l.id,
-        name: l.name ?? null,
-        status_id: l.status_id ?? null,
-        pipeline_id: l.pipeline_id ?? null,
-        price: l.price ?? null,
-        responsible_user_id: l.responsible_user_id ?? null,
-        kommo_created_at: epochToIso(l.created_at),
-        kommo_updated_at: epochToIso(l.updated_at),
-        closed_at: epochToIso(l.closed_at),
-        custom_fields: l.custom_fields_values ?? [],
-      }));
+      const rows = items.map((l) => mapLeadRow(l, t));
       return {
         fetched: items.length,
         upserted: await upsertRows(supabase, "kommo_leads", rows),
