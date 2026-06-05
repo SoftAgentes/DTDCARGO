@@ -36,8 +36,8 @@ type Props = {
   items?: readonly Service[];
 };
 
-/** Render de una card individual (reutilizable en las dos filas del grid) */
-function ServiceCard({ s }: { s: Service }) {
+/** Render de una card individual (reutilizable en las dos filas del grid y en /brochure) */
+export function ServiceCard({ s }: { s: Service }) {
   const IconComponent = iconMap[s.icon as keyof typeof iconMap] ?? BoxIcon;
   const isDark = s.featured;
   return (
