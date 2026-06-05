@@ -90,7 +90,17 @@ const nextConfig: NextConfig = {
   // Bloquea que el sitio dependa accidentalmente del repo del ERP.
   // Si alguien importa de "hailuway-erp" → error de bundling.
   experimental: {
-    // (placeholder por si más adelante necesitamos turbo opts)
+    serverActions: {
+      // El registro del Portal (`/portal/registro`) sube la foto de cédula/RIF
+      // por Server Action (RegisterForm → `fd.set("cedula_photo", photo)`). El
+      // default de Next es 1 MB: una foto de teléfono (2-5 MB) excede el límite
+      // del framework ANTES de que corra la action, y el browser muestra
+      // "This page couldn't load" (413/500) en vez del error amable. La action
+      // valida hasta 8 MB (PHOTO_MAX_BYTES); 12 MB cubre esos 8 MB + el resto
+      // del form con holgura, dejando que el check de 8 MB sí se alcance y
+      // devuelva su mensaje amable cuando la foto pasa de 8.
+      bodySizeLimit: "12mb",
+    },
   },
   // Permite que Supabase Storage sirva imágenes vía next/image.
   images: {
