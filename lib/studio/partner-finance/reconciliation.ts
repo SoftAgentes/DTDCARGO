@@ -219,7 +219,9 @@ function evalCharge(
   const fuzzy = Math.max(fuzzyCn, fuzzyEs);
   const textHit = fuzzy >= FUZZY_THRESHOLD;
 
-  if (exact) {
+  // Un cargo de monto 0 no es un match real (espejo del guard de evalEntry):
+  // dos ceros "coinciden" pero no representan una transacción atable.
+  if (exact && num(charge.amount) !== 0) {
     const days = daysBetween(line.line_date, charge.charged_on);
     const inWindow = days != null && days <= opts.dateWindowDays;
     if (inWindow) {
@@ -256,7 +258,7 @@ function evalCharge(
       textHit: true,
     };
   }
-  if (close) {
+  if (close && num(charge.amount) !== 0) {
     // monto aproximado (dentro de tolerancia) → baja.
     return {
       kind: "charge",

@@ -244,10 +244,16 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
       que ninguna línea consumió (= candidatos a `solo_en_erp`; la línea-fantasma se materializa en B2).
     - el monto comparable del ledger se elige por moneda de la línea (`RMB → amount_rmb`, resto `amount_usd`).
     - **⚠️ pendiente: founder aplica `0112` a prod.**
-- **Slice B2 — UI `/studio/financiero-china`.** Cuenta corriente (saldo neto USD/RMB + timeline
-  debit/credit/runBalance) + cola de reconciliación (subir estado de cuenta → match auto → confirmar/
-  corregir/rechazar → cerrar período) + cargos + notas de crédito. **Diseño anclado** (§7).
-  *Aquí vive el dolor de mayor ROI (reconciliación).*
+- **Slice B2 — UI `/studio/financiero-china`.** ✅ **implementado (harness `/feature`, reviewer + ui-ux OK).**
+  Módulo Studio admin-only con 3 vistas en tabs: **cola de reconciliación** (importar estado vía drawer →
+  match auto `reconcileStatement` → confirmar/corregir/rechazar/match-manual → cerrar período gateado,
+  espejo de `conciliacion.jsx`) + **cuenta corriente** (saldo neto USD/RMB + timeline debit/credit/
+  runBalance, espejo de `estado-cuenta.jsx`) + **cargos + notas de crédito** (`net_amount` derivado,
+  aplicar nota → `corregido`). 9 server actions (`"use server"` + validate*Input + revalidatePath),
+  ~11 componentes, helper puro `reconciliation-view.ts`, entrada en `StudioSidebar`. **Pulido aplicado:**
+  guard server-side de cierre + hover/teclado en filas + `toast` en mutaciones. **Pendiente: parser
+  CSV/XLSX del estado de cuenta** (alta manual de líneas en V1; upload → Slice C). *Aquí vive el dolor de
+  mayor ROI (reconciliación).*
 - **Slice C — Avanzado.** Conversiones/forex como revenue (UI + KPI de spread), tablero de claim offsets,
   alertas PP/CA (`due_date` vencido), export de asiento para QuickBooks.
 

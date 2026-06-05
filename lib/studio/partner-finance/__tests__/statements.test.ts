@@ -322,4 +322,21 @@ describe("closeStatement", () => {
     expect(chargeUpd).toBeUndefined();
     expect(stmtUpd?.payload.status).toBe("cerrado");
   });
+
+  it("guard server-side: rechaza cerrar si quedan líneas a revisar (match_auto)", async () => {
+    const captured: Captured = { inserts: [], updates: [] };
+    const s = stub(
+      {
+        partner_statement_lines: [
+          { match_status: "match_manual", matched_charge_id: "ch-1" },
+          // sugerencia auto sin confirmar → "a revisar" → bloquea el cierre.
+          { match_status: "match_auto", matched_charge_id: "ch-2" },
+        ],
+      },
+      captured,
+    );
+    await expect(closeStatement(s, "st-3")).rejects.toThrow(/a revisar/i);
+    // No debe haber cerrado el estado ni tocado los cargos.
+    expect(captured.updates).toHaveLength(0);
+  });
 });
