@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Archivo, Archivo_Black, Noto_Sans_SC } from "next/font/google";
 import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
+import { Analytics } from "@/components/Analytics";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -188,7 +189,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }

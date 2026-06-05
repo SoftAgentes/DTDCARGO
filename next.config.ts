@@ -25,14 +25,18 @@ const isDev = process.env.NODE_ENV === "development";
  * - `base-uri 'self'`: previene inyección de <base href="evil"> que cambiaría todos
  *   los relative paths a un dominio atacante.
  * - `form-action 'self'`: forms solo pueden POSTear al mismo origen.
+ * - Google Analytics (GA4 · gtag.js, `components/Analytics.tsx`): `googletagmanager.com`
+ *   en script-src (carga el loader); `*.google-analytics.com` + `*.analytics.google.com`
+ *   en connect-src (beacons de eventos) y en img-src (pixel fallback cuando el beacon
+ *   no está disponible). Sin esto el CSP bloquea gtag.js en prod.
  */
 const cspHeader = [
   `default-src 'self'`,
-  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ""}`,
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
-  `img-src 'self' data: blob: https://*.supabase.co`,
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isDev ? " ws: wss:" : ""}`,
+  `img-src 'self' data: blob: https://*.supabase.co https://*.google-analytics.com https://www.googletagmanager.com`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com${isDev ? " ws: wss:" : ""}`,
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,
