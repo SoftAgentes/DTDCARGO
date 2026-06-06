@@ -1,0 +1,113 @@
+// ──────────────────────────────────────────────────────────────────
+// GEO-ZONAS — páginas locales "Importar de China a {zona}"
+// ──────────────────────────────────────────────────────────────────
+// Contenido GENUINO por zona (no doorway pages): cada una consolida ciudad +
+// estado y describe la entrega con datos reales (km desde la bodega de Valencia,
+// casco central, municipios reales). Generado y verificado adversarialmente
+// (sin datos inventados, sin texto duplicable). Fuente única para el template
+// app/importar-de-china/[ciudad]/page.tsx, el sitemap y los links internos.
+//
+// Para sumar una zona: agregá un objeto acá (con su contenido verificado) — la
+// ruta, el sitemap y los cross-links se generan solos.
+
+export type GeoZona = {
+  /** Slug = segmento de URL (/importar-de-china/{slug}) y key. */
+  slug: string;
+  /** Ciudad principal (la más buscada). */
+  ciudad: string;
+  /** Estado que también cubre (para capturar ambas keywords). */
+  estado: string;
+  /** Km desde la bodega de Valencia (de lib/calculadora). */
+  km: number;
+  /** Si entra en el flat del casco central (sin recargo por distancia). */
+  casco: boolean;
+  metaTitle: string;
+  metaDescription: string;
+  h1: string;
+  /** 1-2 frases específicas de la zona (municipios reales, no plantilla). */
+  anguloLocal: string;
+  /** 1 frase sobre la entrega según km/casco. */
+  notaEntrega: string;
+};
+
+export const GEO_ZONAS: GeoZona[] = [
+  {
+    slug: "valencia",
+    ciudad: "Valencia",
+    estado: "Carabobo",
+    km: 0,
+    casco: true,
+    metaTitle: "Importar de China a Valencia, Carabobo | DTD Cargo",
+    metaDescription:
+      "Importar de China a Valencia, estado Carabobo: carga consolidada DDP puerta a puerta. Bodega propia en la ciudad, entrega sin recargo y pagás cuando llega.",
+    h1: "Importar de China a Valencia (Carabobo)",
+    anguloLocal:
+      "Valencia es nuestra casa: la bodega propia está aquí mismo, a 0 km de tu puerta. Recibimos tu carga de China y la entregamos en el casco central de Valencia, Naguanagua o San Diego sin recargo por distancia, y movemos también para Guacara, Los Guayos y Puerto Cabello.",
+    notaEntrega:
+      "Al estar nuestra bodega en la propia Valencia, entregamos en el casco central a 0 km, sin recargo por distancia.",
+  },
+  {
+    slug: "maracay",
+    ciudad: "Maracay",
+    estado: "Aragua",
+    km: 70,
+    casco: true,
+    metaTitle: "Importar de China a Maracay, Aragua | DTD Cargo",
+    metaDescription:
+      "Importar de China a Maracay, estado Aragua: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica. Pagás cuando llega.",
+    h1: "Importar de China a Maracay (Aragua)",
+    anguloLocal:
+      "Maracay y todo el eje de Aragua mueven mercancía china a diario: el comercio del centro, los repuestos de Turmero y la distribución que sube por Cagua y La Victoria. Desde nuestra bodega en Valencia, a 70 km, la zona nos queda al lado, así que tu carga consolidada llega rápido y sin las vueltas de un intermediario remoto.",
+    notaEntrega:
+      "Maracay entra en nuestro casco central de entrega: a 70 km de la bodega de Valencia, dejamos tu carga en el casco central sin recargo por distancia.",
+  },
+  {
+    slug: "maracaibo",
+    ciudad: "Maracaibo",
+    estado: "Zulia",
+    km: 410,
+    casco: false,
+    metaTitle: "Importar de China a Maracaibo, Zulia | DTD Cargo",
+    metaDescription:
+      "Importar de China a Maracaibo, Zulia: carga consolidada DDP puerta a puerta. Pagás cuando llega, inspección en fábrica y last-mile hasta tu puerta.",
+    h1: "Importar de China a Maracaibo, Zulia",
+    anguloLocal:
+      "El Zulia mueve comercio fuerte: desde los mayoristas de Maracaibo y San Francisco hasta los proveedores de la zona petrolera de Cabimas y Ciudad Ojeda, traer mercancía de China consolidada te baja el costo por kilo frente a comprar suelto. Nosotros movemos tu carga desde Yiwu hasta el lago, con el last-mile coordinado al municipio que sea.",
+    notaEntrega:
+      "Maracaibo está a 410 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y el recargo por km lo ves al instante en la calculadora.",
+  },
+  {
+    slug: "caracas",
+    ciudad: "Caracas",
+    estado: "Distrito Capital y Miranda",
+    km: 150,
+    casco: true,
+    metaTitle: "Importar de China a Caracas y Miranda | DTD Cargo",
+    metaDescription:
+      "Importar de China a Caracas, Distrito Capital y Miranda: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) y entrega en el casco central.",
+    h1: "Importar de China a Caracas (Distrito Capital y Miranda)",
+    anguloLocal:
+      "Caracas no es una sola jurisdicción: tu carga puede ir al casco de Libertador en el Distrito Capital o cruzar a Miranda hacia Chacao, Baruta o Petare, y nosotros coordinamos el last-mile a cualquiera de esos municipios sin que tengas que mover un dedo. También llegamos al eje Guarenas-Guatire y a Los Teques cuando tu proveedor en China despacha hacia la Gran Caracas.",
+    notaEntrega:
+      "Caracas entra en nuestro casco central de entrega: a 150 km de nuestra bodega de Valencia, llevamos tu carga hasta tu puerta sin recargo por distancia.",
+  },
+  {
+    slug: "barquisimeto",
+    ciudad: "Barquisimeto",
+    estado: "Lara",
+    km: 220,
+    casco: false,
+    metaTitle: "Importar de China a Barquisimeto (Lara) | DTD Cargo",
+    metaDescription:
+      "Importar de China a Barquisimeto, Lara: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+    h1: "Importar de China a Barquisimeto, estado Lara",
+    anguloLocal:
+      "Barquisimeto es el punto de distribución del centro-occidente, así que mucha de la carga que traemos de China termina surtiendo comercios y talleres de Cabudare, Quíbor y El Tocuyo. Consolidamos tu mercancía en Yiwu y la movemos en LCL hasta la zona, sin que tengas que armar contenedor completo.",
+    notaEntrega:
+      "Barquisimeto queda a 220 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
+  },
+];
+
+export function getGeoZona(slug: string): GeoZona | null {
+  return GEO_ZONAS.find((z) => z.slug === slug) ?? null;
+}

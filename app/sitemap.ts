@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { listPublishedPosts } from "@/lib/news/queries";
+import { GEO_ZONAS } from "@/lib/geo-zonas";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -14,6 +15,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/contacto`,  lastModified: now, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/track`,     lastModified: now, priority: 0.7, changeFrequency: "monthly" },
   ];
+
+  // Páginas geo-locales "Importar de China a {zona}" (fuente: lib/geo-zonas)
+  for (const z of GEO_ZONAS) {
+    routes.push({
+      url: `${base}/importar-de-china/${z.slug}`,
+      lastModified: now,
+      priority: 0.7,
+      changeFrequency: "monthly",
+    });
+  }
 
   // Posts individuales · ahora DB-backed (Plan v4 Phase F)
   const posts = await listPublishedPosts();
