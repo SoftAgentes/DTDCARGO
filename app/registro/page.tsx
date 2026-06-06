@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -16,12 +17,12 @@ export const metadata: Metadata = {
     "abrir cuenta DTD Cargo",
   ],
   alternates: { canonical: "/registro" },
-  openGraph: {
+  ...socialMeta({
     title: "Registro de cliente · DTD Cargo",
     description:
       "Date de alta y obtené tu MARKBOX para empezar a importar de China con DTD Cargo.",
-    url: "/registro",
-  },
+    path: "/registro",
+  }),
 };
 
 const STEPS = [

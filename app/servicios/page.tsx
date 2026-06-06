@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -34,10 +35,12 @@ export const metadata: Metadata = {
   description:
     "16 servicios entre Yiwu y Valencia: FCL (contenedor completo), consolidación LCL, sourcing, QC, courier aéreo (próximamente), registro de marca, visado, aduana y last mile.",
   alternates: { canonical: "/servicios" },
-  openGraph: {
+  ...socialMeta({
     title: "Servicios · DTD Cargo",
-    url: "/servicios",
-  },
+    description:
+      "16 servicios entre Yiwu y Valencia: FCL (contenedor completo), consolidación LCL, sourcing, QC, courier aéreo (próximamente), registro de marca, visado, aduana y last mile.",
+    path: "/servicios",
+  }),
 };
 
 const iconMap = {

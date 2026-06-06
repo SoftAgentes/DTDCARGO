@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -9,10 +10,12 @@ export const metadata: Metadata = {
   description:
     "Ingresa tu BL, AWB o código DTDU y consulta el estado en tiempo real de tu envío DTD Cargo. Sin registro, sin fricción.",
   alternates: { canonical: "/track" },
-  openGraph: {
+  ...socialMeta({
     title: "Rastrear envío · DTD Cargo",
-    url: "/track",
-  },
+    description:
+      "Ingresa tu BL, AWB o código DTDU y consulta el estado en tiempo real de tu envío DTD Cargo. Sin registro, sin fricción.",
+    path: "/track",
+  }),
 };
 
 export default function TrackPage() {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -28,7 +29,12 @@ export const metadata: Metadata = {
   description:
     "Carga consolidada DDP puerta a puerta China → Venezuela. 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2010.",
   alternates: { canonical: "/brochure" },
-  openGraph: { title: "Brochure · DTD Cargo", url: "/brochure" },
+  ...socialMeta({
+    title: "Brochure · DTD Cargo",
+    description:
+      "Carga consolidada DDP puerta a puerta China → Venezuela. 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2010.",
+    path: "/brochure",
+  }),
 };
 
 const WA_COTIZAR = buildWhatsAppLink(

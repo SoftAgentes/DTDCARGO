@@ -5,7 +5,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { NewsDisclaimer } from "@/components/NewsDisclaimer";
-import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { buildWhatsAppLink, BRAND_ASSETS } from "@/lib/design-tokens";
 import {
   NEWS_CATEGORIES_V4,
   gradientToCss,
@@ -52,6 +52,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url: `/noticias/${slug}`,
       publishedTime: post.date,
       authors: [post.author_name],
+      images: [BRAND_ASSETS.ogImage],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description,
+      images: [BRAND_ASSETS.ogImage],
     },
     keywords: [
       ...(post.focus_keyword ? [post.focus_keyword] : []),

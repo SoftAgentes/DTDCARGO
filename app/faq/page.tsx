@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -20,10 +21,12 @@ export const metadata: Metadata = {
     "preguntas frecuentes importación",
   ],
   alternates: { canonical: "/faq" },
-  openGraph: {
+  ...socialMeta({
     title: "Preguntas frecuentes · DTD Cargo",
-    url: "/faq",
-  },
+    description:
+      "Todo sobre importar de China a Venezuela con DTD Cargo: qué es DDP puerta a puerta, cuándo se paga (Financiamiento 100%), consolidado vs contenedor, aduana, tiempos y seguimiento.",
+    path: "/faq",
+  }),
 };
 
 const faqJsonLd = {
