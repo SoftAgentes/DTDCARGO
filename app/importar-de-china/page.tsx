@@ -7,6 +7,7 @@ import { HowWeWork } from "@/components/HowWeWork";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { GEO_ZONAS } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { socialMeta } from "@/lib/seo-og";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -25,12 +26,12 @@ export const metadata: Metadata = {
   description:
     "Importá de China a Venezuela puerta a puerta: carga consolidada DDP, financiamiento 100% (pagás cuando llega) y entrega en tu ciudad. Cobertura nacional desde nuestra bodega en Valencia.",
   alternates: { canonical: "/importar-de-china" },
-  openGraph: {
+  ...socialMeta({
     title: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",
     description:
       "Cobertura nacional puerta a puerta de China a Venezuela. Elegí tu ciudad.",
-    url: "/importar-de-china",
-  },
+    path: "/importar-de-china",
+  }),
 };
 
 export default function ImportarHubPage() {
