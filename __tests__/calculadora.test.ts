@@ -162,6 +162,63 @@ describe("calcularEnvioLCL", () => {
     expect(cot.total).toBe(0);
   });
 
+  // Límite de contenedor por CBM: > 68 m³ → más que un contenedor, deriva al asesor
+  it("deriva al asesor cuando el CBM total supera 68", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 70, // > 68
+      pesoKg: 5000,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta?.tipo).toBe("contenedor_excedido");
+    expect(cot.alerta?.mensaje).toContain("más que un contenedor");
+    expect(cot.total).toBe(0);
+  });
+
+  it("68 CBM exacto NO dispara el límite de contenedor", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 68, // en el límite, válido
+      pesoKg: 5000,
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta?.tipo).not.toBe("contenedor_excedido");
+    expect(cot.total).toBeGreaterThan(0);
+  });
+
+  // Límite de contenedor por peso: > 27.000 kg → deriva al asesor
+  it("deriva al asesor cuando el peso supera 27.000 kg", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 50, // dentro de límite de CBM
+      pesoKg: 27001, // > 27.000
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta?.tipo).toBe("peso_contenedor_excedido");
+    expect(cot.alerta?.mensaje).toContain("peso permitido por contenedor");
+    expect(cot.total).toBe(0);
+  });
+
+  it("27.000 kg exacto NO dispara el límite de peso de contenedor", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 50,
+      pesoKg: 27000, // en el límite, válido
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta?.tipo).not.toBe("peso_contenedor_excedido");
+  });
+
+  it("el límite de CBM prima sobre el de peso si ambos exceden", () => {
+    const cot = calcularEnvioLCL({
+      cbmTotal: 80, // > 68
+      pesoKg: 30000, // > 27.000
+      embalaje: "estandar",
+      ciudadId: "caracas",
+    });
+    expect(cot.alerta?.tipo).toBe("contenedor_excedido");
+  });
+
   // Validación: ciudad inválida
   it("retorna alerta cuando la ciudad no existe", () => {
     const cot = calcularEnvioLCL({
