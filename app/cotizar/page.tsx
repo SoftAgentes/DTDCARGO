@@ -9,12 +9,12 @@ import { CotizarForm } from "@/components/CotizarForm";
 export const metadata: Metadata = {
   title: "Cotiza tu envío",
   description:
-    "Cotización inicial DDP en ~24h hábiles, sujeta a confirmación de volumen y peso reales. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido.",
+    "Cotización inicial DDP en ~24h hábiles. Ingresá origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
   alternates: { canonical: "/cotizar" },
   ...socialMeta({
     title: "Cotiza tu envío · DTD Cargo",
     description:
-      "Cotización inicial DDP en ~24h hábiles, sujeta a confirmación de volumen y peso reales. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido.",
+      "Cotización inicial DDP en ~24h hábiles. Ingresá origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
     path: "/cotizar",
   }),
 };
