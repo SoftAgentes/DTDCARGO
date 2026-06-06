@@ -33,7 +33,7 @@ const videoJsonLd = {
   description: VIDEO_DESC,
   thumbnailUrl: [`${SITE_URL}${VIDEO_BASE}-poster.jpg`],
   contentUrl: `${SITE_URL}${VIDEO_BASE}.mp4`,
-  uploadDate: "2026-06-05",
+  uploadDate: "2026-06-05T12:00:00-04:00",
   publisher: { "@type": "Organization", name: "DTD Cargo", url: SITE_URL },
 };
 
