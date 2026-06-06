@@ -1,17 +1,18 @@
+import type { CSSProperties } from "react";
 import Image from "next/image";
 
 /**
- * Galería "El sello DoorTuDoor" — 2 fotos reales de la operación en China con
- * la marca DTD/DoorTuDoor visible (precinto en el contenedor + carga marcada).
- * Complementa <WorkBand /> (video): el video muestra la operación en movimiento,
- * la galería el detalle del sello de marca. Server component (solo <Image>).
+ * Sección "El sello DoorTuDoor" — la marca DTD/DoorTuDoor visible en la
+ * operación real en China. Dos partes:
+ *   1) Fotos del precinto en el contenedor (detalle estático).
+ *   2) Clips verticales (mudos, loop) del marcado en movimiento: la cinta de
+ *      embalaje DoorTuDoor y el shipping mark "DTD-…" en los pallets.
+ * Server component (Image + <video> HTML nativo, sin "use client"). Los videos
+ * reusan el patrón de <WorkBand /> (clases .work-band-frame / .work-band-video
+ * en globals.css: sin lift en hover + poster fijo en prefers-reduced-motion).
  *
- * Las fotos tienen aspect distinto (una 4:3, otra 3:4); van en contenedores 4:3
- * uniformes con object-cover para que el grid quede balanceado. El logo queda
- * dentro del recorte en ambas (en of_06 a la derecha, en of_05 al centro).
- *
- * SEO: nombre de archivo + alt descriptivos con keywords (DTD Cargo · puerta a
- * puerta · China-Venezuela), únicos por foto. Assets en public/fotos/.
+ * SEO: nombre de archivo + alt/title con keywords (DTD Cargo · puerta a puerta ·
+ * China-Venezuela), únicos por asset. Fotos en public/fotos/, videos en public/videos/.
  */
 const PHOTOS = [
   {
@@ -23,6 +24,19 @@ const PHOTOS = [
     src: "/fotos/precinto-doortudoor-contenedor-dtd-cargo-puerta-a-puerta-china-venezuela.jpg",
     alt: "Precinto DoorTuDoor de DTD Cargo en la puerta del contenedor — carga puerta a puerta de China a Venezuela",
     caption: "El sello DoorTuDoor en cada contenedor",
+  },
+];
+
+const VIDEOS = [
+  {
+    base: "/videos/cinta-embalaje-doortudoor-dtd-cargo-puerta-a-puerta-china-venezuela",
+    alt: "Cajas selladas con la cinta de embalaje DoorTuDoor de DTD Cargo en la bodega de China — carga puerta a puerta a Venezuela",
+    caption: "Cinta DoorTuDoor en cada bulto",
+  },
+  {
+    base: "/videos/shipping-mark-dtd-pallets-dtd-cargo-puerta-a-puerta-china-venezuela",
+    alt: "Pallets con el shipping mark DTD en la bodega de China — carga consolidada puerta a puerta a Venezuela",
+    caption: "Tu shipping mark DTD en cada pallet",
   },
 ];
 
@@ -54,6 +68,37 @@ export function OperationGallery() {
               </div>
               <figcaption className="mt-3 text-[13px] text-grey-500">
                 {p.caption}
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+
+        {/* El sello en movimiento — clips verticales, mudos, en loop */}
+        <p className="eyebrow mt-10">El sello, en movimiento</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4 max-w-[300px] sm:max-w-[520px]">
+          {VIDEOS.map((v) => (
+            <figure key={v.base} className="m-0">
+              <div
+                className="work-band-frame relative aspect-[9/16] rounded-[18px] overflow-hidden card-shadow border border-grey-300 bg-ink"
+                style={{ "--wb-poster": `url('${v.base}-poster.jpg')` } as CSSProperties}
+              >
+                <video
+                  className="work-band-video absolute inset-0 h-full w-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  preload="metadata"
+                  poster={`${v.base}-poster.jpg`}
+                  title={v.alt}
+                  aria-label={v.alt}
+                >
+                  <source src={`${v.base}.webm`} type="video/webm" />
+                  <source src={`${v.base}.mp4`} type="video/mp4" />
+                </video>
+              </div>
+              <figcaption className="mt-3 text-[13px] text-grey-500">
+                {v.caption}
               </figcaption>
             </figure>
           ))}
