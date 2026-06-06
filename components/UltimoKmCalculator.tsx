@@ -11,6 +11,8 @@ import {
   type ModoCotizacionTerrestre,
 } from "@/lib/data/tarifas-terrestres-vzla";
 import { calcularFleteTerrestre } from "@/lib/calc/fleteTerrestre";
+import { DecimalInput } from "@/components/DecimalInput";
+import { CONFIG } from "@/lib/calculadora";
 
 /**
  * Calculadora del "último km" en Venezuela.
@@ -163,41 +165,43 @@ export function UltimoKmCalculator() {
           <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-grey-500">
             Peso (kg)
           </span>
-          <input
-            type="number"
-            min={0}
-            step="0.1"
+          <DecimalInput
             value={pesoKg}
-            onChange={(e) => setPesoKg(Number(e.target.value))}
+            onValueChange={setPesoKg}
             className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-semibold text-ink text-center"
           />
+          {pesoKg > CONFIG.pesoMaxContenedorKg && (
+            <span className="text-[11.5px] leading-[1.4] font-medium text-status-warning">
+              Esto es más que el peso permitido por contenedor; consulte a su
+              asesor
+            </span>
+          )}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-grey-500">
             Volumen (m³)
           </span>
-          <input
-            type="number"
-            min={0}
-            step="0.01"
+          <DecimalInput
             value={volumenM3}
-            onChange={(e) => setVolumenM3(Number(e.target.value))}
+            onValueChange={setVolumenM3}
             placeholder="opcional"
             className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-semibold text-ink text-center"
           />
+          {volumenM3 > CONFIG.cbmMaxContenedor && (
+            <span className="text-[11.5px] leading-[1.4] font-medium text-status-warning">
+              Eso es más que un contenedor. Consulte a su asesor
+            </span>
+          )}
         </label>
 
         <label className="flex flex-col gap-2">
           <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-grey-500">
             Valor declarado USD
           </span>
-          <input
-            type="number"
-            min={0}
-            step="1"
+          <DecimalInput
             value={valorDeclaradoUsd}
-            onChange={(e) => setValorDeclaradoUsd(Number(e.target.value))}
+            onValueChange={setValorDeclaradoUsd}
             placeholder="para seguro"
             className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-semibold text-ink text-center"
           />
