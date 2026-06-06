@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -28,10 +29,12 @@ export const metadata: Metadata = {
     "precio envío China Valencia",
   ],
   alternates: { canonical: "/calculadora" },
-  openGraph: {
+  ...socialMeta({
     title: "Calculadora de envíos LCL DDP · DTD Cargo",
-    url: "/calculadora",
-  },
+    description:
+      "Calcula tu envío China → Venezuela en segundos. Tarifa LCL DDP por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
+    path: "/calculadora",
+  }),
 };
 
 export default async function CalculadoraPage() {

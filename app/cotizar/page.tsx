@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -10,10 +11,12 @@ export const metadata: Metadata = {
   description:
     "Cotización inicial DDP en ~24h hábiles, sujeta a confirmación de volumen y peso reales. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido.",
   alternates: { canonical: "/cotizar" },
-  openGraph: {
+  ...socialMeta({
     title: "Cotiza tu envío · DTD Cargo",
-    url: "/cotizar",
-  },
+    description:
+      "Cotización inicial DDP en ~24h hábiles, sujeta a confirmación de volumen y peso reales. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido.",
+    path: "/cotizar",
+  }),
 };
 
 export default function CotizarPage() {

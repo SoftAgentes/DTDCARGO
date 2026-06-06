@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -13,10 +14,12 @@ export const metadata: Metadata = {
   description:
     "Habla con DTD Cargo. Oficinas propias en Yiwu (China) y Valencia (Venezuela). WhatsApp directo, info@dtdcargo.com, respuesta en menos de 24 horas.",
   alternates: { canonical: "/contacto" },
-  openGraph: {
+  ...socialMeta({
     title: "Contacto · DTD Cargo",
-    url: "/contacto",
-  },
+    description:
+      "Habla con DTD Cargo. Oficinas propias en Yiwu (China) y Valencia (Venezuela). WhatsApp directo, info@dtdcargo.com, respuesta en menos de 24 horas.",
+    path: "/contacto",
+  }),
 };
 
 export default function ContactoPage() {

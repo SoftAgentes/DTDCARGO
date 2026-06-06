@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { JetBrains_Mono } from "next/font/google";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -33,12 +34,12 @@ export const metadata: Metadata = {
     "press kit DTD Cargo",
   ],
   alternates: { canonical: "/brand" },
-  openGraph: {
+  ...socialMeta({
     title: "Kit de marca · DTD Cargo",
     description:
       "Logos, colores y tipografía oficiales de DTD Cargo, con sus reglas de uso.",
-    url: "/brand",
-  },
+    path: "/brand",
+  }),
 };
 
 // ── Datos del kit (fuente: lib/design-tokens.ts + BRAND.md v3.0) ──────────

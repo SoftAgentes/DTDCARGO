@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -22,10 +23,12 @@ export const metadata: Metadata = {
     "tutorial importación",
   ],
   alternates: { canonical: "/noticias" },
-  openGraph: {
+  ...socialMeta({
     title: "Noticias y guías · DTD Cargo",
-    url: "/noticias",
-  },
+    description:
+      "Tutoriales, novedades operativas y análisis del corredor logístico China-Venezuela. Guías de Incoterms, tiempos de tránsito, regulaciones aduaneras y más.",
+    path: "/noticias",
+  }),
 };
 
 export default async function NoticiasPage() {

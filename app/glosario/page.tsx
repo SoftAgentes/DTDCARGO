@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
@@ -25,10 +26,12 @@ export const metadata: Metadata = {
     "términos importación China",
   ],
   alternates: { canonical: "/glosario" },
-  openGraph: {
+  ...socialMeta({
     title: "Glosario de comercio exterior · DTD Cargo",
-    url: "/glosario",
-  },
+    description:
+      "Los términos de logística e importación China-Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, MARKBOX y más.",
+    path: "/glosario",
+  }),
 };
 
 export default function GlosarioPage() {
