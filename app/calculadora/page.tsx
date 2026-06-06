@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
 import { CONFIG, CIUDADES, DEFAULT_PARAMS } from "@/lib/calculadora";
 import {
@@ -53,6 +54,12 @@ export default async function CalculadoraPage() {
   return (
     <>
       <Nav />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", path: "/" },
+          { name: "Calculadora", path: "/calculadora" },
+        ]}
+      />
       <main className="bg-paper min-h-screen">
         {/* Encabezado compacto — el form aparece casi inmediato al cargar.
             H1 mantenido para SEO/accesibilidad pero visualmente discreto. */}
