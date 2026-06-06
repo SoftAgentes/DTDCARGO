@@ -29,14 +29,18 @@ const isDev = process.env.NODE_ENV === "development";
  *   en script-src (carga el loader); `*.google-analytics.com` + `*.analytics.google.com`
  *   en connect-src (beacons de eventos) y en img-src (pixel fallback cuando el beacon
  *   no está disponible). Sin esto el CSP bloquea gtag.js en prod.
+ * - Google Ads (conversión Click WhatsApp, `AW-561290482`, mismo `Analytics.tsx`):
+ *   `googleadservices.com` (pings de conversión + linker), `googleads.g.doubleclick.net`
+ *   (remarketing) y `www.google.com` en img-src/connect-src (+ googleadservices en
+ *   script-src). Sin esto el CSP bloquea los pings de conversión a Google Ads.
  */
 const cspHeader = [
   `default-src 'self'`,
-  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com${isDev ? " 'unsafe-eval'" : ""}`,
+  `script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.googleadservices.com${isDev ? " 'unsafe-eval'" : ""}`,
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self' data:`,
-  `img-src 'self' data: blob: https://*.supabase.co https://*.google-analytics.com https://www.googletagmanager.com`,
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com${isDev ? " ws: wss:" : ""}`,
+  `img-src 'self' data: blob: https://*.supabase.co https://*.google-analytics.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com`,
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://www.google.com${isDev ? " ws: wss:" : ""}`,
   `frame-ancestors 'none'`,
   `base-uri 'self'`,
   `form-action 'self'`,
