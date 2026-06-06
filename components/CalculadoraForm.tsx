@@ -222,8 +222,7 @@ export function CalculadoraForm({
               ))}
             </select>
             <p className="text-[12px] text-grey-500 mt-2">
-              Casco central (Valencia, Maracay, Caracas): sin recargo. Otras
-              ciudades: +${params.tarifaKmFueraCasco}/km desde el casco.
+              Casco central (Valencia, Maracay, Caracas): sin recargo.
             </p>
           </div>
 

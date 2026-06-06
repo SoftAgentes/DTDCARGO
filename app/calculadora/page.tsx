@@ -52,7 +52,14 @@ export default async function CalculadoraPage() {
   // Reglas reales (peso incluido, $/kg, descuento, etc.) o defaults.
   const params = serverConfig ?? DEFAULT_PARAMS;
   // Ciudades reales (de /studio/tarifas › Ciudades) o el array hardcoded.
-  const ciudades = serverCities.length > 0 ? serverCities : CIUDADES;
+  // Selector público acotado al CASCO CENTRAL (sin recargo): el precio por km
+  // de las demás ciudades está en revisión (tarifa cambiante), así que por
+  // ahora solo ofrecemos la zona sin recargo. Las ciudades fuera del casco
+  // siguen en la DB/CIUDADES (para el cálculo y el admin); acá solo no se
+  // listan. Para reactivarlas, quitar este .filter. (pedido founder 2026-06-06)
+  const ciudades = (serverCities.length > 0 ? serverCities : CIUDADES).filter(
+    (c) => c.casco,
+  );
 
   return (
     <>
@@ -113,7 +120,7 @@ export default async function CalculadoraPage() {
                 />
                 <Bloque
                   titulo="Casco central sin recargo"
-                  texto={`${params.descuentoValencia > 0 ? `Entregas en Valencia (-$${params.descuentoValencia}), Maracay` : "Valencia, Maracay"} y Caracas centro: tarifa plana. Para otras ciudades, sumamos $${params.tarifaKmFueraCasco}/km desde el casco central.`}
+                  texto={`${params.descuentoValencia > 0 ? `Entregas en Valencia (-$${params.descuentoValencia}), Maracay` : "Valencia, Maracay"} y Caracas centro: tarifa plana.`}
                 />
                 <Bloque
                   titulo="Embalaje incluido"
