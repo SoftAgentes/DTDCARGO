@@ -7,6 +7,7 @@ import { HowWeWork } from "@/components/HowWeWork";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { GEO_ZONAS, getGeoZona } from "@/lib/geo-zonas";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { socialMeta } from "@/lib/seo-og";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
@@ -33,11 +34,11 @@ export async function generateMetadata({
     title: { absolute: z.metaTitle },
     description: z.metaDescription,
     alternates: { canonical: `/importar-de-china/${z.slug}` },
-    openGraph: {
+    ...socialMeta({
       title: z.metaTitle,
       description: z.metaDescription,
-      url: `/importar-de-china/${z.slug}`,
-    },
+      path: `/importar-de-china/${z.slug}`,
+    }),
   };
 }
 
