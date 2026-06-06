@@ -142,12 +142,22 @@ export function CalculadoraForm({
               value={form.cbmTotal}
               onChange={(v) => update("cbmTotal", v)}
               placeholder="2"
+              warning={
+                form.cbmTotal > CONFIG.cbmMaxContenedor
+                  ? "Eso es más que un contenedor. Consulte a su asesor"
+                  : null
+              }
             />
             <InputField
               label="Peso total (kg)"
               value={form.pesoKg}
               onChange={(v) => update("pesoKg", v)}
               placeholder="450"
+              warning={
+                form.pesoKg > CONFIG.pesoMaxContenedorKg
+                  ? "Esto es más que el peso permitido por contenedor; consulte a su asesor"
+                  : null
+              }
             />
           </fieldset>
 
@@ -260,11 +270,14 @@ function InputField({
   value,
   onChange,
   placeholder,
+  warning,
 }: {
   label: string;
   value: number;
   onChange: (n: number) => void;
   placeholder?: string;
+  /** Aviso inline (ámbar) bajo el campo, ej. cuando supera un límite. */
+  warning?: string | null;
 }) {
   return (
     <label className="flex flex-col gap-1.5">
@@ -273,8 +286,17 @@ function InputField({
         value={value}
         onValueChange={onChange}
         placeholder={placeholder}
-        className="px-3 py-2.5 rounded-[10px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
+        className={`px-3 py-2.5 rounded-[10px] border text-[15px] text-ink bg-white focus:outline-none ${
+          warning
+            ? "border-status-warning focus:border-status-warning"
+            : "border-grey-200 focus:border-ink"
+        }`}
       />
+      {warning && (
+        <span className="text-[11.5px] leading-[1.4] font-medium text-status-warning">
+          {warning}
+        </span>
+      )}
     </label>
   );
 }

@@ -75,6 +75,19 @@ export const CONFIG = {
 
   /** Precio mínimo facturable. Si la carga es muy chica, este es el piso. */
   minimoFacturable: 50,
+
+  /**
+   * CBM total máximo cotizable por la calculadora (LCL). Sobre esto, la carga
+   * ya no entra en un contenedor estándar → deriva al asesor (FCL).
+   * (~68 m³ ≈ capacidad de un 40' HC).
+   */
+  cbmMaxContenedor: 68,
+
+  /**
+   * Peso total máximo cotizable (kg). Sobre esto supera el peso admitido por
+   * contenedor → deriva al asesor.
+   */
+  pesoMaxContenedorKg: 27000,
 } as const;
 
 // ────────────────────────────────────────────────────────────────────
@@ -212,7 +225,13 @@ export type EnvioCotizacion = {
 
   /** Si hay algún problema/alerta para mostrar al usuario. */
   alerta?: {
-    tipo: "peso_excedido" | "carga_invalida" | "ciudad_invalida" | "carga_especial";
+    tipo:
+      | "peso_excedido"
+      | "carga_invalida"
+      | "ciudad_invalida"
+      | "carga_especial"
+      | "contenedor_excedido"
+      | "peso_contenedor_excedido";
     mensaje: string;
   };
 
@@ -268,6 +287,22 @@ export function calcularEnvioLCL(
     return cotizacionVacia({
       tipo: "carga_invalida",
       mensaje: "El CBM total y el peso deben ser mayores a cero.",
+    }, input);
+  }
+
+  // 5.3b — Límites absolutos de un contenedor. Sobre esto la carga ya no es LCL
+  // → deriva al asesor (FCL). El CBM prima sobre el peso si ambos exceden.
+  if (input.cbmTotal > CONFIG.cbmMaxContenedor) {
+    return cotizacionVacia({
+      tipo: "contenedor_excedido",
+      mensaje: "Eso es más que un contenedor. Consulte a su asesor",
+    }, input);
+  }
+  if (input.pesoKg > CONFIG.pesoMaxContenedorKg) {
+    return cotizacionVacia({
+      tipo: "peso_contenedor_excedido",
+      mensaje:
+        "Esto es más que el peso permitido por contenedor; consulte a su asesor",
     }, input);
   }
 
