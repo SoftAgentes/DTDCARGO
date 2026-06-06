@@ -1,5 +1,5 @@
-import type { CSSProperties } from "react";
 import Image from "next/image";
+import { LazyVideo } from "./LazyVideo";
 
 /**
  * Sección "El sello DoorTuDoor" — la marca DTD/DoorTuDoor visible en la
@@ -78,25 +78,11 @@ export function OperationGallery() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-4 max-w-[300px] sm:max-w-[520px]">
           {VIDEOS.map((v) => (
             <figure key={v.base} className="m-0">
-              <div
-                className="work-band-frame relative aspect-[9/16] rounded-[18px] overflow-hidden card-shadow border border-grey-300 bg-ink"
-                style={{ "--wb-poster": `url('${v.base}-poster.jpg')` } as CSSProperties}
-              >
-                <video
-                  className="work-band-video absolute inset-0 h-full w-full object-cover"
-                  autoPlay
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                  poster={`${v.base}-poster.jpg`}
-                  title={v.alt}
-                  aria-label={v.alt}
-                >
-                  <source src={`${v.base}.webm`} type="video/webm" />
-                  <source src={`${v.base}.mp4`} type="video/mp4" />
-                </video>
-              </div>
+              <LazyVideo
+                base={v.base}
+                title={v.alt}
+                frameClassName="work-band-frame relative aspect-[9/16] rounded-[18px] overflow-hidden card-shadow border border-grey-300 bg-ink"
+              />
               <figcaption className="mt-3 text-[13px] text-grey-500">
                 {v.caption}
               </figcaption>
