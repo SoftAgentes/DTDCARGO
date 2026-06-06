@@ -1,4 +1,4 @@
-import type { CSSProperties } from "react";
+import { LazyVideo } from "./LazyVideo";
 
 /**
  * Banda "Operación real · Yiwu" — clip mudo en loop del equipo cargando un
@@ -56,25 +56,11 @@ export function WorkBand() {
         </div>
 
         <figure className="m-0 mt-12 max-w-[1040px]">
-          <div
-            className="work-band-frame relative aspect-video rounded-[20px] overflow-hidden card-shadow border border-grey-200 bg-ink"
-            style={{ "--wb-poster": `url('${VIDEO_BASE}-poster.jpg')` } as CSSProperties}
-          >
-            <video
-              className="work-band-video absolute inset-0 h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-              preload="metadata"
-              poster={`${VIDEO_BASE}-poster.jpg`}
-              title={VIDEO_TITLE}
-              aria-label={VIDEO_TITLE}
-            >
-              <source src={`${VIDEO_BASE}.webm`} type="video/webm" />
-              <source src={`${VIDEO_BASE}.mp4`} type="video/mp4" />
-            </video>
-          </div>
+          <LazyVideo
+            base={VIDEO_BASE}
+            title={VIDEO_TITLE}
+            frameClassName="work-band-frame relative aspect-video rounded-[20px] overflow-hidden card-shadow border border-grey-200 bg-ink"
+          />
           <figcaption className="mt-3 text-[13px] text-grey-500">
             Carga consolidada saliendo de nuestra bodega en Yiwu, China — DTD Cargo.
           </figcaption>
