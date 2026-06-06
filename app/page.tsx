@@ -5,6 +5,7 @@ import { Stats } from "@/components/Stats";
 import { ServicesGrid } from "@/components/ServicesGrid";
 import { YiwuAdvantage } from "@/components/YiwuAdvantage";
 import { WorkBand } from "@/components/WorkBand";
+import { OperationGallery } from "@/components/OperationGallery";
 import { Timeline } from "@/components/Timeline";
 import { HowWeWork } from "@/components/HowWeWork";
 import { TrackingPreview } from "@/components/TrackingPreview";
@@ -35,6 +36,7 @@ export default function HomePage() {
         <ServicesGrid />
         <YiwuAdvantage />
         <WorkBand />
+        <OperationGallery />
         <Timeline />
         <TrackingPreview />
         <Philosophy />

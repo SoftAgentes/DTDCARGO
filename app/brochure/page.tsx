@@ -6,6 +6,7 @@ import { YiwuAdvantage } from "@/components/YiwuAdvantage";
 import { HowWeWork } from "@/components/HowWeWork";
 import { Philosophy } from "@/components/Philosophy";
 import { WorkBand } from "@/components/WorkBand";
+import { OperationGallery } from "@/components/OperationGallery";
 import { ServicesByOffice } from "@/components/brochure/ServicesByOffice";
 import { DownloadPdfButton } from "@/components/brochure/DownloadPdfButton";
 import {
@@ -128,6 +129,9 @@ export default function BrochurePage() {
 
         {/* 3b · Operación real en Yiwu (clip de bodega) */}
         <WorkBand />
+
+        {/* 3c · El sello DoorTuDoor (fotos de marca en la operación) */}
+        <OperationGallery />
 
         {/* 4-5 · Los 16 servicios (héroe DDP + 4 grupos) */}
         <ServicesByOffice />
