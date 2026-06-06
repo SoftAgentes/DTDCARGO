@@ -151,6 +151,51 @@ export const GEO_ZONAS: GeoZona[] = [
     notaEntrega:
       "Puerto Ordaz es uno de los destinos más lejanos que cubrimos, a 770 km de nuestra bodega en Valencia y fuera del casco central, así que coordinamos el last-mile hasta tu puerta con el recargo por km que ves al instante en la calculadora.",
   },
+  {
+    slug: "san-cristobal",
+    ciudad: "San Cristóbal",
+    estado: "Táchira",
+    km: 580,
+    casco: false,
+    metaTitle: "Importar de China a San Cristóbal, Táchira | DTD Cargo",
+    metaDescription:
+      "Importar de China a San Cristóbal, estado Táchira: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+    h1: "Importar de China a San Cristóbal (Táchira)",
+    anguloLocal:
+      "San Cristóbal es el corazón comercial de los Andes y la puerta de la frontera: la capital de Táchira surte tiendas y talleres de Táriba, La Concordia y todo el eje que baja hacia San Antonio y Ureña. Traer tu mercancía de China consolidada te conviene frente a comprar suelto del otro lado de la frontera, y nosotros movemos tu carga desde Yiwu hasta el Táchira con el last-mile coordinado al municipio que sea.",
+    notaEntrega:
+      "San Cristóbal queda a 580 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
+  },
+  {
+    slug: "merida",
+    ciudad: "Mérida",
+    estado: "Mérida",
+    km: 520,
+    casco: false,
+    metaTitle: "Importar de China a Mérida | DTD Cargo",
+    metaDescription:
+      "Importar de China a Mérida, estado Mérida: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+    h1: "Importar de China a Mérida (estado Mérida)",
+    anguloLocal:
+      "Mérida mezcla la ciudad universitaria de los Andes con el comercio agrícola que baja por El Vigía y Ejido: desde insumos y herramientas hasta lo que surte las tiendas del casco merideño, mucho de eso sale de China. Consolidamos tu mercancía en Yiwu y la traemos en LCL hasta la cordillera, sin que tengas que armar un contenedor completo ni depender de un intermediario remoto.",
+    notaEntrega:
+      "Mérida queda a 520 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
+  },
+  {
+    slug: "punto-fijo",
+    ciudad: "Punto Fijo",
+    estado: "Falcón",
+    km: 290,
+    casco: false,
+    metaTitle: "Importar de China a Punto Fijo, Falcón | DTD Cargo",
+    metaDescription:
+      "Importar de China a Punto Fijo y Coro, Falcón: carga consolidada DDP puerta a puerta. Pagás cuando llega, inspección en fábrica y last-mile a tu puerta.",
+    h1: "Importar de China a Punto Fijo (Falcón)",
+    anguloLocal:
+      "Punto Fijo es el polo comercial de la península de Paraguaná, y junto con Punta Cardón y Los Taques concentra buena parte del movimiento del estado; más al sur, Coro suma el comercio de la capital falconiana. Mucha de la carga que traemos de China surte esas tiendas, y nosotros consolidamos tu mercancía en Yiwu y la movemos en LCL hasta Falcón.",
+    notaEntrega:
+      "Punto Fijo está a 290 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y el recargo por km lo ves al instante en la calculadora.",
+  },
 ];
 
 export function getGeoZona(slug: string): GeoZona | null {
