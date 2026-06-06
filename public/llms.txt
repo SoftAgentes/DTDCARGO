@@ -1,14 +1,54 @@
-# DTDCARGO (DoorTuDoor)
+# DTD Cargo (DoorTuDoor)
 
-> Logística internacional puerta a puerta entre China y Venezuela: carga
-> consolidada, sourcing, inspección y envío door-to-door para importadores
-> hispanohablantes.
+> Agente de carga (freight forwarder) puerta a puerta entre China y Venezuela,
+> operando desde 2010. Especialistas en carga consolidada DDP — todo incluido y
+> pagás cuando llega — para importadores y comercios. Equipo y bodega propios en
+> Yiwu (China) y Valencia (Venezuela), con inspección de mercancía en fábrica
+> antes de embarcar. Lema: "Con confianza, de China a tu puerta."
 
-## Servicios
-- Envíos consolidados China → Venezuela (marítimo y aéreo)
-- Sourcing y compra asistida en China
-- Inspección de mercancía
-- Entrega puerta a puerta
+## Qué hace DTD Cargo
+- Carga consolidada (LCL) China → Venezuela puerta a puerta en modalidad DDP (Delivered Duty Paid): el precio incluye flete internacional, aduana e impuestos; el cliente recibe en su dirección sin hacer trámites.
+- Contenedor completo (FCL) para grandes volúmenes.
+- Carga aérea para envíos urgentes.
+- Agente de compra / sourcing en China: ubicación de fábricas y proveedores, negociación y pago.
+- Inspección de mercancía en la fábrica en China antes de embarcar (control de calidad, anti-estafa).
+- Seguimiento de cada envío mediante un código de cliente propio (MARKBOX / shipping mark "DTD-…").
 
-## Enlaces
+## Diferenciadores
+- Financiamiento 100%: el cliente paga cuando la carga llega a Venezuela, no por adelantado.
+- Operación propia en ambos extremos: oficina y bodega en Yiwu (Zhejiang, China) y en Valencia (Carabobo, Venezuela). No es un intermediario remoto.
+- Un solo punto de contacto coordina todo el envío de principio a fin.
+- Más de 15 años de trayectoria (desde 2010).
+
+## Para quién
+- Importadores, mayoristas y comercios en Venezuela que compran mercancía en China: autopartes y repuestos, electrónica y tecnología, textil y calzado, ferretería, hogar, equipos, entre otros rubros.
+
+## Rutas y cobertura
+- Origen: China (base de operaciones en Yiwu, Zhejiang).
+- Destino: toda Venezuela (sede en Valencia, Carabobo).
+- Modalidades: marítimo consolidado (LCL), contenedor completo (FCL) y aéreo.
+
+## Preguntas frecuentes
+- ¿Qué significa puerta a puerta DDP? DTD se encarga del flete, la aduana y los impuestos, y entrega la mercancía en la dirección del cliente en Venezuela. El cliente no hace trámites aduaneros.
+- ¿Cuándo se paga? Con Financiamiento 100%, el pago es cuando la carga llega a Venezuela.
+- ¿Inspeccionan la mercancía? Sí, se revisa en la fábrica en China antes de embarcar.
+- ¿Cuánto tarda? Depende de la modalidad (marítimo consolidado vs aéreo) y la ruta; se confirma al cotizar.
+- ¿Desde cuándo operan? Desde 2010.
+- ¿Cómo cotizo? Por WhatsApp o desde la web (ver Contacto y Enlaces).
+
+## Contacto
+- WhatsApp (cotizaciones y atención): +58 412 166 8021
 - Sitio web: https://dtdcargo.com
+
+## Enlaces útiles
+- Cotizar un envío: https://dtdcargo.com/cotizar
+- Servicios: https://dtdcargo.com/servicios
+- Brochure (PDF): https://dtdcargo.com/brochure
+- Calculadora de volumen (CBM): https://dtdcargo.com/calculadora
+- Rastrear envío: https://dtdcargo.com/track
+- Glosario de términos de importación: https://dtdcargo.com/glosario
+- Noticias y guías de importación China-Venezuela: https://dtdcargo.com/noticias
+
+## Notas
+- Idioma del sitio: español (es-VE).
+- Términos relacionados que describen el servicio: importar de China a Venezuela, agente de carga China Venezuela, consolidado China, DDP puerta a puerta, sourcing en Yiwu, courier China Venezuela.
