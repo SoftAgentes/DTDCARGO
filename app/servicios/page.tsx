@@ -3,6 +3,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { HowWeWork } from "@/components/HowWeWork";
+import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import {
   SERVICES_CN,
   SERVICES_VE,
@@ -53,10 +54,50 @@ const iconMap = {
   Truck: TruckIcon,
 } as const;
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
+
+/**
+ * OfferCatalog (schema.org) — lista de servicios de DTD para que Google/IA
+ * sepan exactamente qué ofrece la empresa. Deriva de SERVICES_CN/VE (única
+ * fuente de verdad); cada uno es un Service con su ancla en esta página.
+ */
+const serviciosJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "OfferCatalog",
+  name: "Servicios de DTD Cargo — China a Venezuela",
+  provider: { "@type": "LocalBusiness", name: "DTD Cargo", url: SITE_URL },
+  itemListElement: [...SERVICES_CN, ...SERVICES_VE].map((s, i) => ({
+    "@type": "Offer",
+    position: i + 1,
+    itemOffered: {
+      "@type": "Service",
+      name: s.title,
+      description: s.copy,
+      serviceType: s.title,
+      url: `${SITE_URL}/servicios#${s.slug}`,
+      areaServed: [
+        { "@type": "Country", name: "Venezuela" },
+        { "@type": "Country", name: "China" },
+      ],
+      provider: { "@type": "LocalBusiness", name: "DTD Cargo" },
+    },
+  })),
+};
+
 export default function ServiciosPage() {
   return (
     <>
       <Nav />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviciosJsonLd) }}
+      />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", path: "/" },
+          { name: "Servicios", path: "/servicios" },
+        ]}
+      />
       <main>
         {/* Hero */}
         <section className="py-16 lg:py-24 bg-paper">
