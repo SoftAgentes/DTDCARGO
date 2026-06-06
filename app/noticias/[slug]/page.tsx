@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
   const description = post.meta_description || post.excerpt;
   return {
-    title: post.title,
+    title: { absolute: post.title },
     description,
     alternates: { canonical: `/noticias/${slug}` },
     openGraph: {

@@ -84,7 +84,7 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: true,
     metaTitle: "Importar de China a Caracas y Miranda | DTD Cargo",
     metaDescription:
-      "Importar de China a Caracas, Distrito Capital y Miranda: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) y entrega en el casco central.",
+      "Importar de China a Caracas, Distrito Capital y Miranda: carga consolidada DDP puerta a puerta, financiamiento 100% y entrega en el casco central.",
     h1: "Importar de China a Caracas (Distrito Capital y Miranda)",
     anguloLocal:
       "Caracas no es una sola jurisdicción: tu carga puede ir al casco de Libertador en el Distrito Capital o cruzar a Miranda hacia Chacao, Baruta o Petare, y nosotros coordinamos el last-mile a cualquiera de esos municipios sin que tengas que mover un dedo. También llegamos al eje Guarenas-Guatire y a Los Teques cuando tu proveedor en China despacha hacia la Gran Caracas.",
@@ -114,7 +114,7 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: false,
     metaTitle: "Importar de China a Puerto La Cruz, Anzoátegui | DTD Cargo",
     metaDescription:
-      "Importar de China a Puerto La Cruz y Barcelona, Anzoátegui: carga consolidada DDP puerta a puerta. Pagás cuando llega, inspección en fábrica y last-mile a tu puerta.",
+      "Importar de China a Puerto La Cruz y Barcelona, Anzoátegui: carga consolidada DDP puerta a puerta, financiamiento 100% y last-mile a tu puerta.",
     h1: "Importar de China a Puerto La Cruz (Anzoátegui)",
     anguloLocal:
       "Puerto La Cruz no se mueve sola: forma un solo eje urbano con Barcelona, Lechería y Guanta, y entre las cuatro concentran el comercio costero de Anzoátegui. Buena parte de la carga que traemos de China surte las tiendas de la zona y baja también hacia El Tigre y Anaco, en el sur del estado. Nosotros consolidamos tu mercancía en Yiwu y la movemos en LCL hasta la costa oriental, sin las vueltas de un intermediario remoto.",
@@ -144,7 +144,7 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: false,
     metaTitle: "Importar de China a Puerto Ordaz, Bolívar | DTD Cargo",
     metaDescription:
-      "Importar de China a Puerto Ordaz y Ciudad Guayana, Bolívar: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+      "Importar de China a Puerto Ordaz y Ciudad Guayana, Bolívar: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica.",
     h1: "Importar de China a Puerto Ordaz (Bolívar)",
     anguloLocal:
       "Puerto Ordaz y San Félix forman Ciudad Guayana, el polo industrial pesado del sur: siderúrgica, aluminio y minería mueven una demanda constante de insumos, maquinaria y repuestos que muchas veces salen de China. Traemos tu carga consolidada desde Yiwu hasta Guayana y coordinamos también la entrega hacia Ciudad Bolívar y Upata cuando tu proveedor despacha hacia el estado.",
@@ -189,7 +189,7 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: false,
     metaTitle: "Importar de China a Punto Fijo, Falcón | DTD Cargo",
     metaDescription:
-      "Importar de China a Punto Fijo y la península de Paraguaná, Falcón: carga consolidada DDP puerta a puerta. Pagás cuando llega, inspección en fábrica y last-mile a tu puerta.",
+      "Importar de China a Punto Fijo y Paraguaná, Falcón: carga consolidada DDP puerta a puerta, financiamiento 100% y last-mile a tu puerta.",
     h1: "Importar de China a Punto Fijo (Falcón)",
     anguloLocal:
       "Punto Fijo es el polo comercial de la península de Paraguaná, y junto con Punta Cardón y Los Taques concentra buena parte del movimiento del estado; más al sur, Coro suma el comercio de la capital falconiana. Mucha de la carga que traemos de China surte esas tiendas, y nosotros consolidamos tu mercancía en Yiwu y la movemos en LCL hasta Falcón.",
@@ -204,7 +204,7 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: false,
     metaTitle: "Importar de China a Coro, Falcón | DTD Cargo",
     metaDescription:
-      "Importar de China a Coro (Santa Ana de Coro), estado Falcón: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+      "Importar de China a Coro (Santa Ana de Coro), Falcón: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica.",
     h1: "Importar de China a Coro (Falcón)",
     anguloLocal:
       "Coro, la capital de Falcón, mueve el comercio del norte del estado: desde el casco histórico de Santa Ana de Coro hasta La Vela y el eje que conecta con la península, las tiendas se surten de mercancía que muchas veces llega de China. Consolidamos tu carga en Yiwu y la traemos en LCL hasta Falcón, sin que tengas que armar un contenedor completo ni depender de un intermediario remoto.",
@@ -234,7 +234,7 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: false,
     metaTitle: "Importar de China a Ciudad Bolívar | DTD Cargo",
     metaDescription:
-      "Importar de China a Ciudad Bolívar, estado Bolívar: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+      "Importar de China a Ciudad Bolívar, estado Bolívar: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica.",
     h1: "Importar de China a Ciudad Bolívar (Bolívar)",
     anguloLocal:
       "Ciudad Bolívar, capital del estado, es el paso histórico del Orinoco y centro de servicios del sur: su comercio surte tanto a la ciudad como a las poblaciones que dependen de ella a lo largo del río. Traemos tu carga consolidada desde Yiwu hasta el estado Bolívar y coordinamos también la entrega hacia Ciudad Guayana cuando tu proveedor despacha hacia la región.",
