@@ -106,6 +106,51 @@ export const GEO_ZONAS: GeoZona[] = [
     notaEntrega:
       "Barquisimeto queda a 220 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
   },
+  {
+    slug: "puerto-la-cruz",
+    ciudad: "Puerto La Cruz",
+    estado: "Anzoátegui",
+    km: 430,
+    casco: false,
+    metaTitle: "Importar de China a Puerto La Cruz, Anzoátegui | DTD Cargo",
+    metaDescription:
+      "Importar de China a Puerto La Cruz y Barcelona, Anzoátegui: carga consolidada DDP puerta a puerta. Pagás cuando llega, inspección en fábrica y last-mile a tu puerta.",
+    h1: "Importar de China a Puerto La Cruz (Anzoátegui)",
+    anguloLocal:
+      "Puerto La Cruz no se mueve sola: forma un solo eje urbano con Barcelona, Lechería y Guanta, y entre las cuatro concentran el comercio costero de Anzoátegui. Buena parte de la carga que traemos de China surte las tiendas de la zona y baja también hacia El Tigre y Anaco, en el sur del estado. Nosotros consolidamos tu mercancía en Yiwu y la movemos en LCL hasta la costa oriental, sin las vueltas de un intermediario remoto.",
+    notaEntrega:
+      "Puerto La Cruz está a 430 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y el recargo por km lo ves al instante en la calculadora.",
+  },
+  {
+    slug: "maturin",
+    ciudad: "Maturín",
+    estado: "Monagas",
+    km: 650,
+    casco: false,
+    metaTitle: "Importar de China a Maturín, Monagas | DTD Cargo",
+    metaDescription:
+      "Importar de China a Maturín, estado Monagas: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+    h1: "Importar de China a Maturín (Monagas)",
+    anguloLocal:
+      "Maturín es el motor comercial del oriente: la capital de Monagas surte los comercios del centro, los repuestos de la zona petrolera de Punta de Mata y Caripito, y la distribución que sube hacia Caripe y Temblador. Consolidamos tu carga en Yiwu y la traemos en LCL hasta el oriente, sin que tengas que armar un contenedor completo ni depender de un intermediario remoto.",
+    notaEntrega:
+      "Maturín queda a unos 650 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
+  },
+  {
+    slug: "puerto-ordaz",
+    ciudad: "Puerto Ordaz",
+    estado: "Bolívar",
+    km: 770,
+    casco: false,
+    metaTitle: "Importar de China a Puerto Ordaz, Bolívar | DTD Cargo",
+    metaDescription:
+      "Importar de China a Puerto Ordaz y Ciudad Guayana, Bolívar: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+    h1: "Importar de China a Puerto Ordaz (Bolívar)",
+    anguloLocal:
+      "Puerto Ordaz y San Félix forman Ciudad Guayana, el polo industrial pesado del sur: siderúrgica, aluminio y minería mueven una demanda constante de insumos, maquinaria y repuestos que muchas veces salen de China. Traemos tu carga consolidada desde Yiwu hasta Guayana y coordinamos también la entrega hacia Ciudad Bolívar y Upata cuando tu proveedor despacha hacia el estado.",
+    notaEntrega:
+      "Puerto Ordaz es uno de los destinos más lejanos que cubrimos, a 770 km de nuestra bodega en Valencia y fuera del casco central, así que coordinamos el last-mile hasta tu puerta con el recargo por km que ves al instante en la calculadora.",
+  },
 ];
 
 export function getGeoZona(slug: string): GeoZona | null {
