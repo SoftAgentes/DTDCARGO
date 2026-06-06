@@ -8,6 +8,8 @@ import {
   DEFAULT_PARAMS,
   calcularEnvioLCL,
   whatsappTextFromCotizacion,
+  sanitizeDecimalText,
+  parseDecimalInput,
   type EnvioInput,
   type EnvioCotizacion,
   type TipoEmbalaje,
@@ -107,17 +109,11 @@ export function CalculadoraForm({
             </label>
             <div className="flex items-center gap-2">
               <span className="text-grey-500 text-[15px] font-medium">$</span>
-              <input
+              <DecimalInput
                 id="tarifa-cbm"
-                type="number"
-                min={1}
-                step="any"
-                value={form.tarifaCBMOverride || ""}
-                onChange={(e) =>
-                  update(
-                    "tarifaCBMOverride",
-                    parseFloat(e.target.value) || baseRate,
-                  )
+                value={form.tarifaCBMOverride ?? 0}
+                onValueChange={(n) =>
+                  update("tarifaCBMOverride", n > 0 ? n : baseRate)
                 }
                 placeholder={String(baseRate)}
                 className="flex-1 px-3 py-2 rounded-[8px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
@@ -274,16 +270,69 @@ function InputField({
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-[12.5px] font-semibold text-grey-700">{label}</span>
-      <input
-        type="number"
-        min={0}
-        step="any"
-        value={value || ""}
-        onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+      <DecimalInput
+        value={value}
+        onValueChange={onChange}
         placeholder={placeholder}
         className="px-3 py-2.5 rounded-[10px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
       />
     </label>
+  );
+}
+
+/**
+ * Input numérico decimal tolerante a coma o punto (es-VE escribe "2,5").
+ *
+ * Mantiene un buffer de TEXTO crudo en vez de un `<input type="number">`
+ * controlado por un número: así el separador decimal no se borra a mitad de
+ * tipeo (bug histórico: `type="number"` + `parseFloat(value)||0` comía el "."
+ * y rechazaba la coma → "solo toma enteros"). `inputMode="decimal"` levanta el
+ * teclado numérico en móvil. El valor numérico viaja al padre vía onValueChange.
+ */
+function DecimalInput({
+  value,
+  onValueChange,
+  id,
+  placeholder,
+  className,
+}: {
+  value: number;
+  onValueChange: (n: number) => void;
+  id?: string;
+  placeholder?: string;
+  className?: string;
+}) {
+  const [text, setText] = useState(() => (value ? String(value) : ""));
+
+  // Re-sincroniza el buffer cuando el valor numérico cambia desde afuera (ej.
+  // el botón "Restaurar $X"). Patrón "ajustar estado durante el render" de
+  // React (sin useEffect → sin cascada de renders). El tipeo normal no lo
+  // dispara: ahí el valor parseado del texto ya == value, así que no resetea.
+  const [lastValue, setLastValue] = useState(value);
+  if (value !== lastValue) {
+    setLastValue(value);
+    const parsed = parseDecimalInput(text);
+    const same = Number.isNaN(parsed) ? value === 0 : parsed === value;
+    if (!same) setText(value ? String(value) : "");
+  }
+
+  function handleChange(raw: string) {
+    const clean = sanitizeDecimalText(raw);
+    setText(clean);
+    const n = parseDecimalInput(clean);
+    onValueChange(Number.isFinite(n) ? n : 0);
+  }
+
+  return (
+    <input
+      id={id}
+      type="text"
+      inputMode="decimal"
+      value={text}
+      onChange={(e) => handleChange(e.target.value)}
+      placeholder={placeholder}
+      className={className}
+    />
   );
 }
 

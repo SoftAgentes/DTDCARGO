@@ -5,6 +5,8 @@ import {
   DEFAULT_PARAMS,
   calcularEnvioLCL,
   whatsappTextFromCotizacion,
+  sanitizeDecimalText,
+  parseDecimalInput,
   type CalcParams,
 } from "@/lib/calculadora";
 
@@ -407,5 +409,54 @@ describe("whatsappTextFromCotizacion", () => {
     expect(text).toContain("100 kg");
     expect(text).toContain("Caracas");
     expect(text).toContain(`US$${cot.total.toFixed(2)}`);
+  });
+});
+
+// ── Entrada decimal de los campos del form (coma o punto) ─────────────
+// Regresión: la calculadora "solo tomaba enteros". Causa: el input numérico
+// controlado comía el separador decimal y rechazaba la coma (es-VE).
+describe("sanitizeDecimalText", () => {
+  it("deja pasar dígitos y un separador decimal mientras se tipea", () => {
+    expect(sanitizeDecimalText("2")).toBe("2");
+    expect(sanitizeDecimalText("2,")).toBe("2,"); // coma intermedia preservada
+    expect(sanitizeDecimalText("2.")).toBe("2.");
+    expect(sanitizeDecimalText("2,5")).toBe("2,5");
+    expect(sanitizeDecimalText("2.5")).toBe("2.5");
+  });
+
+  it("descarta separadores extra (deja solo el primero)", () => {
+    expect(sanitizeDecimalText("1.2.3")).toBe("1.23");
+    expect(sanitizeDecimalText("1,2,3")).toBe("1,23");
+    expect(sanitizeDecimalText("2,5.5")).toBe("2,55");
+  });
+
+  it("ignora letras y símbolos", () => {
+    expect(sanitizeDecimalText("ab12,5x")).toBe("12,5");
+    expect(sanitizeDecimalText("$ 800")).toBe("800");
+    expect(sanitizeDecimalText("")).toBe("");
+  });
+});
+
+describe("parseDecimalInput", () => {
+  it("acepta coma como separador decimal (es-VE)", () => {
+    expect(parseDecimalInput("2,5")).toBe(2.5);
+    expect(parseDecimalInput("0,75")).toBe(0.75);
+    expect(parseDecimalInput("450,25")).toBe(450.25);
+  });
+
+  it("acepta punto como separador decimal", () => {
+    expect(parseDecimalInput("2.5")).toBe(2.5);
+    expect(parseDecimalInput("800")).toBe(800);
+  });
+
+  it("tolera un separador final a mitad de tipeo", () => {
+    expect(parseDecimalInput("2,")).toBe(2);
+    expect(parseDecimalInput("2.")).toBe(2);
+  });
+
+  it("devuelve NaN cuando no hay número (el llamador decide el fallback)", () => {
+    expect(parseDecimalInput("")).toBeNaN();
+    expect(parseDecimalInput(",")).toBeNaN();
+    expect(parseDecimalInput("abc")).toBeNaN();
   });
 });
