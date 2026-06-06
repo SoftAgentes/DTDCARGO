@@ -217,7 +217,7 @@ export const GEO_ZONAS: GeoZona[] = [
     estado: "Nueva Esparta",
     km: 540,
     casco: false,
-    metaTitle: "Importar de China a Isla Margarita, Nueva Esparta | DTD Cargo",
+    metaTitle: "Importar de China a Isla Margarita | DTD Cargo",
     metaDescription:
       "Importar de China a Isla Margarita (Porlamar), Nueva Esparta: carga consolidada DDP puerta a puerta. Coordinamos el cruce a la isla y entregamos en tu puerta.",
     h1: "Importar de China a Isla Margarita (Nueva Esparta)",
