@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import {
   GLOSSARY_TERMS,
   GLOSSARY_CATEGORIES,
@@ -34,6 +35,12 @@ export default function GlosarioPage() {
   return (
     <>
       <Nav />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", path: "/" },
+          { name: "Glosario", path: "/glosario" },
+        ]}
+      />
       <main className="bg-paper">
         {/* Hero */}
         <section className="py-16 lg:py-24">

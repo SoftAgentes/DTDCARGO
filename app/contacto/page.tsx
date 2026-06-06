@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { ContactoForm } from "@/components/ContactoForm";
 import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import { CONTACT, buildGoogleMapsLink } from "@/lib/design-tokens";
@@ -22,6 +23,12 @@ export default function ContactoPage() {
   return (
     <>
       <Nav />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", path: "/" },
+          { name: "Contacto", path: "/contacto" },
+        ]}
+      />
       <main className="bg-paper">
         <section className="py-16 lg:py-24">
           <div className="wrap">
