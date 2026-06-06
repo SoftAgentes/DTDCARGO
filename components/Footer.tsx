@@ -191,6 +191,9 @@ export function Footer() {
             <Link href="/brochure" className="hover:text-white transition-colors">
               Brochure
             </Link>
+            <Link href="/faq" className="hover:text-white transition-colors">
+              Preguntas frecuentes
+            </Link>
             <Link href="/brand" className="hover:text-white transition-colors">
               Kit de marca
             </Link>

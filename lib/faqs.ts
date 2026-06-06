@@ -1,0 +1,82 @@
+// ──────────────────────────────────────────────────────────────────
+// FAQ — Preguntas frecuentes de DTD Cargo (página /faq)
+// ──────────────────────────────────────────────────────────────────
+// Contenido generado y verificado adversarialmente (sin datos inventados:
+// nada de tiempos en días, precios ni cifras forjadas — los tiempos/costos se
+// remiten a la cotización). Fuente única para la página /faq (UI + FAQPage
+// schema.org) y para reutilizar donde haga falta. Voz criolla-profesional (VE).
+
+export type Faq = { pregunta: string; respuesta: string };
+
+export const FAQS: Faq[] = [
+  {
+    pregunta:
+      "¿Qué significa DDP puerta a puerta y qué incluye el precio cuando importo de China con DTD Cargo?",
+    respuesta:
+      "DDP puerta a puerta significa que nosotros nos encargamos de todo: el precio ya incluye el flete desde China, la aduana y los impuestos, y te entregamos la mercancía en tu propia dirección en Venezuela. Tú no tienes que pelear con la aduana ni hacer trámites; nosotros llevamos la carga hasta tu puerta. El monto se calcula por volumen (CBM) y destino en nuestra calculadora o al cotizarte por WhatsApp.",
+  },
+  {
+    pregunta:
+      "¿Cuál es la diferencia entre consolidado (LCL) y contenedor completo (FCL) para traer mercancía de China a Venezuela?",
+    respuesta:
+      "En el consolidado marítimo (LCL) tu carga viaja junto a la de otros importadores y pagás solo por el volumen que ocupás (CBM), ideal cuando no tenés mercancía para llenar un contenedor. El contenedor completo (FCL) es para cuando tenés volumen suficiente y preferís un contenedor entero para vos. Ambas son DDP puerta a puerta; cuál te conviene depende de cuánta carga tengas, y te orientamos al cotizar.",
+  },
+  {
+    pregunta:
+      "¿Quién paga la aduana y los impuestos, y cuándo tengo que pagarle a DTD Cargo?",
+    respuesta:
+      "La aduana y los impuestos ya van incluidos en el precio DDP, así que no recibís cobros sorpresa ni tenés que gestionar nada con la aduana: de eso nos encargamos nosotros. Además, con el Financiamiento 100% pagás cuando la carga llega a Venezuela, no por adelantado. El costo total se calcula según el volumen (CBM) y tu destino.",
+  },
+  {
+    pregunta:
+      "Con DTD Cargo, ¿cuándo tengo que pagar la mercancía que traigo de China?",
+    respuesta:
+      "Con el Financiamiento 100% pagás cuando tu carga llega a Venezuela, no antes. Nosotros financiamos el flete, la aduana y los impuestos durante todo el trayecto desde China, y vos cancelás al momento de la entrega bajo la modalidad DDP puerta a puerta.",
+  },
+  {
+    pregunta:
+      "¿Tengo que adelantar plata o dar un depósito para mandar a buscar mi carga en China?",
+    respuesta:
+      "El esquema de Financiamiento 100% está pensado para que no tengas que adelantar el costo del envío: pagás al llegar la mercancía a Venezuela. Lo que adelantes depende de tu caso (por ejemplo, si usás nuestro servicio de compra asistida para pagarle al proveedor en China), así que lo mejor es confirmar las condiciones con un asesor por WhatsApp antes de embarcar.",
+  },
+  {
+    pregunta:
+      "¿Cómo calculan el costo del envío desde China, por peso o por volumen?",
+    respuesta:
+      "El costo del consolidado marítimo se calcula por volumen (CBM, metros cúbicos) y por el destino dentro de Venezuela, no por peso. Podés sacar una estimación en la calculadora online metiendo tu volumen y a dónde va, o pedir la cotización exacta por WhatsApp. El monto final y los tiempos se confirman al cotizar según la modalidad y la ruta.",
+  },
+  {
+    pregunta:
+      "¿Cuánto tarda en llegar mi carga de China a Venezuela con DTD Cargo?",
+    respuesta:
+      "El tiempo depende de la modalidad y la ruta: no es lo mismo un consolidado marítimo (LCL) que un contenedor completo (FCL), ni todas las rutas demoran igual. Apenas armamos tu cotización te confirmamos el tránsito estimado para tu caso puntual. Escribinos por WhatsApp o usá la calculadora online y lo aterrizamos con vos.",
+  },
+  {
+    pregunta:
+      "¿A qué ciudades de Venezuela entregan y cómo funciona si no estoy en Valencia?",
+    respuesta:
+      "Entregamos en toda Venezuela. Tenemos bodega y equipo propios en Valencia, que es nuestra sede; si estás en otra ciudad coordinamos el last-mile hasta tu dirección. Como manejamos DDP puerta a puerta, la carga te llega hasta donde estés sin que tengas que ir a buscarla a un puerto o terminal.",
+  },
+  {
+    pregunta: "¿Puedo hacerle seguimiento a mi envío para saber dónde va?",
+    respuesta:
+      "Sí. En la sección Rastrear de la web metés tu BL (Bill of Lading) o tu código DTDU y ves los eventos del envío en vivo, sin necesidad de registrarte. Si no tenés el código a la mano, escribinos por WhatsApp y te lo buscamos para que le hagás seguimiento.",
+  },
+  {
+    pregunta: "¿DTD Cargo revisa la mercancía antes de embarcarla desde China?",
+    respuesta:
+      "Sí. Antes de embarcar hacemos inspección de la mercancía en la propia fábrica del proveedor, para verificar que lo que despachamos sea lo que compraste. Tenemos equipo y bodega propios en Yiwu, así que el control lo hace gente nuestra en China, no un tercero a distancia.",
+  },
+  {
+    pregunta:
+      "¿DTD Cargo tiene oficina propia en China y en Venezuela o es un intermediario?",
+    respuesta:
+      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela), con más de 15 años operando. No somos un intermediario remoto: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
+  },
+  {
+    pregunta:
+      "¿DTD Cargo me ayuda a comprar en China y qué tipo de productos puedo importar?",
+    respuesta:
+      "Sí, ofrecemos sourcing y compra asistida en China: te ayudamos a ubicar al proveedor y gestionar la compra antes de consolidar la carga. Para los rubros que podés importar, lo mejor es consultarlo por WhatsApp con tu lista, porque depende del producto y la normativa; te confirmamos viabilidad y la modalidad (consolidado marítimo o contenedor completo) al cotizar.",
+  },
+];
