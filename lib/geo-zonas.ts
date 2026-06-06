@@ -189,12 +189,57 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: false,
     metaTitle: "Importar de China a Punto Fijo, Falcón | DTD Cargo",
     metaDescription:
-      "Importar de China a Punto Fijo y Coro, Falcón: carga consolidada DDP puerta a puerta. Pagás cuando llega, inspección en fábrica y last-mile a tu puerta.",
+      "Importar de China a Punto Fijo y la península de Paraguaná, Falcón: carga consolidada DDP puerta a puerta. Pagás cuando llega, inspección en fábrica y last-mile a tu puerta.",
     h1: "Importar de China a Punto Fijo (Falcón)",
     anguloLocal:
       "Punto Fijo es el polo comercial de la península de Paraguaná, y junto con Punta Cardón y Los Taques concentra buena parte del movimiento del estado; más al sur, Coro suma el comercio de la capital falconiana. Mucha de la carga que traemos de China surte esas tiendas, y nosotros consolidamos tu mercancía en Yiwu y la movemos en LCL hasta Falcón.",
     notaEntrega:
       "Punto Fijo está a 290 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta y el recargo por km lo ves al instante en la calculadora.",
+  },
+  {
+    slug: "coro",
+    ciudad: "Coro",
+    estado: "Falcón",
+    km: 260,
+    casco: false,
+    metaTitle: "Importar de China a Coro, Falcón | DTD Cargo",
+    metaDescription:
+      "Importar de China a Coro (Santa Ana de Coro), estado Falcón: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+    h1: "Importar de China a Coro (Falcón)",
+    anguloLocal:
+      "Coro, la capital de Falcón, mueve el comercio del norte del estado: desde el casco histórico de Santa Ana de Coro hasta La Vela y el eje que conecta con la península, las tiendas se surten de mercancía que muchas veces llega de China. Consolidamos tu carga en Yiwu y la traemos en LCL hasta Falcón, sin que tengas que armar un contenedor completo ni depender de un intermediario remoto.",
+    notaEntrega:
+      "Coro queda a 260 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
+  },
+  {
+    slug: "margarita",
+    ciudad: "Isla Margarita",
+    estado: "Nueva Esparta",
+    km: 540,
+    casco: false,
+    metaTitle: "Importar de China a Isla Margarita, Nueva Esparta | DTD Cargo",
+    metaDescription:
+      "Importar de China a Isla Margarita (Porlamar), Nueva Esparta: carga consolidada DDP puerta a puerta. Coordinamos el cruce a la isla y entregamos en tu puerta.",
+    h1: "Importar de China a Isla Margarita (Nueva Esparta)",
+    anguloLocal:
+      "Margarita vive del comercio: Porlamar, Pampatar y La Asunción concentran tiendas que se surten todo el año, y mucho de eso llega de China. Como es una isla, el last-mile incluye el cruce en ferry desde tierra firme, y nosotros lo coordinamos para que tu mercancía consolidada en Yiwu termine en tu puerta en Nueva Esparta sin que tengas que mover un dedo.",
+    notaEntrega:
+      "Isla Margarita está a unos 540 km de nuestra bodega en Valencia contando el cruce a la isla, fuera del casco central, así que coordinamos el last-mile —ferry incluido— y el recargo por distancia lo ves al instante en la calculadora.",
+  },
+  {
+    slug: "ciudad-bolivar",
+    ciudad: "Ciudad Bolívar",
+    estado: "Bolívar",
+    km: 700,
+    casco: false,
+    metaTitle: "Importar de China a Ciudad Bolívar | DTD Cargo",
+    metaDescription:
+      "Importar de China a Ciudad Bolívar, estado Bolívar: carga consolidada DDP puerta a puerta, financiamiento 100% (pagás cuando llega) e inspección en fábrica.",
+    h1: "Importar de China a Ciudad Bolívar (Bolívar)",
+    anguloLocal:
+      "Ciudad Bolívar, capital del estado, es el paso histórico del Orinoco y centro de servicios del sur: su comercio surte tanto a la ciudad como a las poblaciones que dependen de ella a lo largo del río. Traemos tu carga consolidada desde Yiwu hasta el estado Bolívar y coordinamos también la entrega hacia Ciudad Guayana cuando tu proveedor despacha hacia la región.",
+    notaEntrega:
+      "Ciudad Bolívar queda a 700 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
   },
 ];
 
