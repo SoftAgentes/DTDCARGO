@@ -92,6 +92,14 @@ export function Footer() {
               ))}
               <li>
                 <Link
+                  href="/importar-de-china"
+                  className="text-[14.5px] font-medium text-white/85 hover:text-white transition-colors"
+                >
+                  Importar de China a tu ciudad
+                </Link>
+              </li>
+              <li>
+                <Link
                   href="/servicios#ve"
                   className="text-[13px] text-white/55 hover:text-white transition-colors"
                 >

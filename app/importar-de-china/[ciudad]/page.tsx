@@ -163,6 +163,15 @@ export default async function ImportarCiudadPage({
                 </li>
               ))}
             </ul>
+            <p className="mt-5">
+              <a
+                href="/importar-de-china"
+                className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-wine hover:text-wine-deep transition-colors"
+              >
+                Ver todas las ciudades que cubrimos{" "}
+                <ArrowIcon size={14} />
+              </a>
+            </p>
           </div>
         </section>
 
