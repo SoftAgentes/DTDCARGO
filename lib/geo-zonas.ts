@@ -241,6 +241,66 @@ export const GEO_ZONAS: GeoZona[] = [
     notaEntrega:
       "Ciudad Bolívar queda a 700 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
   },
+  {
+    slug: "acarigua",
+    ciudad: "Acarigua",
+    estado: "Portuguesa",
+    km: 175,
+    casco: false,
+    metaTitle: "Importar de China a Acarigua-Araure, Portuguesa | DTD Cargo",
+    metaDescription:
+      "Importar de China a Acarigua y Araure, Portuguesa: carga consolidada DDP puerta a puerta, financiamiento 100% y last-mile a tu puerta.",
+    h1: "Importar de China a Acarigua y Araure (Portuguesa)",
+    anguloLocal:
+      "Acarigua y Araure forman el eje comercial de Portuguesa, el granero de Venezuela: entre la agroindustria del arroz y el maíz y el comercio que surte a Guanare y Turén, mucha de la maquinaria, los repuestos y la mercancía llegan de China. Consolidamos tu carga en Yiwu y la movemos en LCL hasta los llanos, sin que tengas que armar un contenedor completo.",
+    notaEntrega:
+      "Acarigua y Araure están a unos 175 km de nuestra bodega en Valencia, sobre el eje de los llanos; coordinamos el last-mile hasta tu puerta y el costo lo ves al instante en la calculadora.",
+  },
+  {
+    slug: "valera",
+    ciudad: "Valera",
+    estado: "Trujillo",
+    km: 360,
+    casco: false,
+    metaTitle: "Importar de China a Valera, Trujillo | DTD Cargo",
+    metaDescription:
+      "Importar de China a Valera, estado Trujillo: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica.",
+    h1: "Importar de China a Valera (Trujillo)",
+    anguloLocal:
+      "Valera es el corazón comercial de Trujillo —más movida que la propia capital del estado— y el paso del comercio andino que sube hacia Boconó, La Puerta y la ciudad de Trujillo. Buena parte de lo que surte esas tiendas llega de China, y nosotros consolidamos tu mercancía en Yiwu y la traemos en LCL hasta los Andes, sin las vueltas de un intermediario remoto.",
+    notaEntrega:
+      "Valera queda a unos 360 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
+  },
+  {
+    slug: "cumana",
+    ciudad: "Cumaná",
+    estado: "Sucre",
+    km: 560,
+    casco: false,
+    metaTitle: "Importar de China a Cumaná, Sucre | DTD Cargo",
+    metaDescription:
+      "Importar de China a Cumaná, estado Sucre: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica.",
+    h1: "Importar de China a Cumaná (Sucre)",
+    anguloLocal:
+      "Cumaná, la capital de Sucre y una de las ciudades más antiguas del continente, vive del comercio costero y la pesca; su mercado y sus tiendas se surten de mercancía que muchas veces llega de China, y más al este Carúpano suma el movimiento de la península de Paria. Consolidamos tu carga en Yiwu y la traemos en LCL hasta el oriente, sin que tengas que armar un contenedor completo.",
+    notaEntrega:
+      "Cumaná queda a unos 560 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
+  },
+  {
+    slug: "san-fernando",
+    ciudad: "San Fernando de Apure",
+    estado: "Apure",
+    km: 370,
+    casco: false,
+    metaTitle: "Importar de China a San Fernando de Apure | DTD Cargo",
+    metaDescription:
+      "Importar de China a San Fernando de Apure: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica.",
+    h1: "Importar de China a San Fernando de Apure (Apure)",
+    anguloLocal:
+      "San Fernando de Apure, capital del estado y puerto sobre el río Apure, es el centro comercial del llano profundo: surte el comercio ganadero y a las poblaciones que dependen de la ciudad río abajo. Traer mercancía de China consolidada te conviene frente a comprar suelto, y nosotros movemos tu carga desde Yiwu hasta el llano con el last-mile coordinado hasta tu puerta.",
+    notaEntrega:
+      "San Fernando de Apure queda a unos 370 km de nuestra bodega en Valencia, fuera del casco central, así que coordinamos el last-mile hasta tu puerta con un recargo por km que ves al instante en la calculadora.",
+  },
 ];
 
 export function getGeoZona(slug: string): GeoZona | null {
