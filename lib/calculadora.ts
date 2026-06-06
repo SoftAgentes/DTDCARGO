@@ -413,6 +413,45 @@ function cotizacionVacia(
 //    por WhatsApp" con todos los datos del cálculo ya completos.
 // ────────────────────────────────────────────────────────────────────
 
+// ────────────────────────────────────────────────────────────────────
+// 8) PARSEO DE ENTRADA DECIMAL (UI) — acepta coma o punto (es-VE)
+//    El cliente venezolano escribe "2,5"; otros "2.5". Los campos del form
+//    aceptan AMBOS. Estas funciones son puras → testeables sin DOM.
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * Limpia el texto de un campo decimal: deja solo dígitos y UN separador
+ * decimal (el primero que aparezca, coma o punto). Pensado para el onChange
+ * del input, para mantener visible lo que el usuario tipea ("2", "2,", "2,5",
+ * "2.5") sin que un valor numérico controlado le borre el separador a mitad
+ * de tipeo. Cualquier separador extra se descarta.
+ *
+ * Ej: "2,5" → "2,5" · "2." → "2." · "1.2.3" → "1.23" · "ab12,5x" → "12,5"
+ */
+export function sanitizeDecimalText(raw: string): string {
+  let s = raw.replace(/[^\d.,]/g, "");
+  const firstSep = s.search(/[.,]/);
+  if (firstSep !== -1) {
+    const head = s.slice(0, firstSep + 1);
+    const tail = s.slice(firstSep + 1).replace(/[.,]/g, "");
+    s = head + tail;
+  }
+  return s;
+}
+
+/**
+ * Convierte el texto de un campo decimal a número, aceptando coma o punto
+ * como separador decimal. Devuelve NaN si no hay número parseable (campo
+ * vacío, solo el separador, etc.) — el llamador decide el fallback.
+ *
+ * Ej: "2,5" → 2.5 · "2.5" → 2.5 · "2." → 2 · "" → NaN · "," → NaN
+ */
+export function parseDecimalInput(raw: string): number {
+  const normalized = sanitizeDecimalText(raw).replace(",", ".");
+  if (normalized === "" || normalized === ".") return NaN;
+  return parseFloat(normalized);
+}
+
 export function whatsappTextFromCotizacion(
   cot: EnvioCotizacion,
   input: EnvioInput,
