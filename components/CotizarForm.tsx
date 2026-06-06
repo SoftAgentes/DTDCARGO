@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { ORIGINS, DESTINATIONS, CONTACT } from "@/lib/design-tokens";
+import { parseDecimalInput } from "@/lib/calculadora";
 import { ArrowIcon } from "./Icon";
 import { UltimoKmCalculator } from "./UltimoKmCalculator";
 
@@ -65,11 +66,17 @@ export function CotizarForm() {
     try {
       // MOCK: simulamos llamada al ERP. Reemplazar cuando los endpoints estén listos.
       await new Promise((r) => setTimeout(r, 900));
-      const peso = Number(payload.peso ?? 0);
+      // Parseo tolerante a coma o punto (es-VE escribe "120,5"). Los campos son
+      // type="text" inputMode="decimal", así que la coma llega cruda en FormData.
+      const num = (v: FormDataEntryValue | undefined) => {
+        const n = parseDecimalInput(String(v ?? ""));
+        return Number.isFinite(n) ? n : 0;
+      };
+      const peso = num(payload.peso);
       // L × A × H en cm → m³ (dividir entre 1.000.000)
-      const largo = Number(payload.largo ?? 0);
-      const ancho = Number(payload.ancho ?? 0);
-      const alto = Number(payload.alto ?? 0);
+      const largo = num(payload.largo);
+      const ancho = num(payload.ancho);
+      const alto = num(payload.alto);
       const volumen = (largo * ancho * alto) / 1_000_000;
       const factor = payload.modo === "aereo" ? 6 : 1.3;
       const base = Math.max(peso, volumen * 167) * factor + 220;
@@ -186,9 +193,9 @@ export function CotizarForm() {
 
       <Row label="Peso (kg)">
         <input
-          type="number"
+          type="text"
+          inputMode="decimal"
           name="peso"
-          min={1}
           required
           placeholder="120"
           className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
@@ -347,9 +354,9 @@ function DimInput({
         {label}
       </span>
       <input
-        type="number"
+        type="text"
+        inputMode="decimal"
         name={name}
-        min={1}
         required
         placeholder={placeholder}
         onClick={onTrigger}
