@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -102,9 +103,9 @@ export default async function ImportarCiudadPage({
               <a href={wa} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
                 <WhatsAppIcon size={18} /> Cotizar por WhatsApp
               </a>
-              <a href="/calculadora" className="btn btn-ghost">
+              <Link href="/calculadora" className="btn btn-ghost">
                 Calcular mi envío <ArrowIcon size={16} />
-              </a>
+              </Link>
             </div>
           </div>
         </section>
@@ -154,24 +155,24 @@ export default async function ImportarCiudadPage({
             <ul className="mt-4 flex flex-wrap gap-2.5 list-none p-0">
               {otras.map((o) => (
                 <li key={o.slug}>
-                  <a
+                  <Link
                     href={`/importar-de-china/${o.slug}`}
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-white border border-grey-200 text-[14px] font-semibold text-ink hover:border-ink transition-colors"
                   >
                     {o.ciudad}{" "}
                     <span className="text-grey-500 font-normal">· {o.estado}</span>
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>
             <p className="mt-5">
-              <a
+              <Link
                 href="/importar-de-china"
                 className="inline-flex items-center gap-1.5 text-[14px] font-semibold text-wine hover:text-wine-deep transition-colors"
               >
                 Ver todas las ciudades que cubrimos{" "}
                 <ArrowIcon size={14} />
-              </a>
+              </Link>
             </p>
           </div>
         </section>
