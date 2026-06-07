@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 /**
- * SDD-0059 Fase A — renames de calculadoras públicas.
+ * SDD-0061 Fase A — renames de calculadoras públicas.
  *
  * Valida (a nivel de fuente, sin levantar Next) los criterios de `acceptance`
  * de la spec Fase A: `/cotizar` → `/estimacion` (+ 301), la calculadora terrestre
@@ -17,7 +17,7 @@ import { resolve } from "node:path";
 const root = resolve(__dirname, "..", "..", "..");
 const read = (rel: string) => readFileSync(resolve(root, rel), "utf8");
 
-describe("SDD-0059 Fase A · ruta /estimacion (ex /cotizar)", () => {
+describe("SDD-0061 Fase A · ruta /estimacion (ex /cotizar)", () => {
   it("la página /estimacion existe y la vieja /cotizar ya no", () => {
     expect(existsSync(resolve(root, "app/estimacion/page.tsx"))).toBe(true);
     expect(existsSync(resolve(root, "app/cotizar/page.tsx"))).toBe(false);
@@ -44,7 +44,7 @@ describe("SDD-0059 Fase A · ruta /estimacion (ex /cotizar)", () => {
   });
 });
 
-describe("SDD-0059 Fase A · calculadora terrestre a página propia", () => {
+describe("SDD-0061 Fase A · calculadora terrestre a página propia", () => {
   it("/calculadora-terrestre existe y monta UltimoKmCalculator", () => {
     expect(existsSync(resolve(root, "app/calculadora-terrestre/page.tsx"))).toBe(
       true,
@@ -65,7 +65,7 @@ describe("SDD-0059 Fase A · calculadora terrestre a página propia", () => {
   });
 });
 
-describe("SDD-0059 Fase A · SEO / no romper", () => {
+describe("SDD-0061 Fase A · SEO / no romper", () => {
   it("next.config.ts redirige /cotizar → /estimacion (301 permanente)", () => {
     const cfg = read("next.config.ts");
     expect(cfg).toContain("async redirects()");

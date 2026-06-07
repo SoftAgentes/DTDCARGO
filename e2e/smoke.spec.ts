@@ -40,7 +40,7 @@ test.describe("rutas públicas críticas", () => {
   });
 
   test("/cotizar redirige (301) a /estimacion", async ({ page }) => {
-    // SDD-0059 Fase A: el URL viejo conserva SEO vía 301 permanente.
+    // SDD-0061 Fase A: el URL viejo conserva SEO vía 301 permanente.
     await page.goto("/cotizar");
     await expect(page).toHaveURL(/\/estimacion$/);
     await expect(page).toHaveTitle(/Estimaci/);

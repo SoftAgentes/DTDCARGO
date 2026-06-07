@@ -1,5 +1,5 @@
 ---
-sdd: "0059"
+sdd: "0061"
 title: "Estimado → Orden de venta (modelo QuickBooks): retira 'cotización', captura el estimado web en el ERP y lo vincula al registro del cliente"
 status: draft
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
@@ -11,7 +11,9 @@ related: ["0001", "0002", "0011", "0021", "0040", "0041", "0044", "0042", "0046"
 confidencialidad: interno
 ---
 
-# DTD-0059 — Estimado → Orden de venta (modelo QuickBooks)
+# DTD-0061 — Estimado → Orden de venta (modelo QuickBooks)
+
+> **Nota de numeración (2026-06-07):** renumerado de **0059 → 0061**. El 0059 colisionaba con `0059-financiero-china` y el 0060 con `0060-documentos-versionado` (ambos en `feat/brochure`, sin mergear), más `0059-registro-correos-aviso` en `feat/registro-correos`. 0061 verificado libre en las 4 ramas/worktrees. Migraciones de este SDD usan **0113+** (0110-0112 ya tomadas en otras ramas).
 
 > Alinea el ERP al **flujo documental de QuickBooks** y **retira la palabra "cotización" de todo el sistema**:
 > el documento provisional se llama **Estimado** (ex-"cotizador"), el confirmado **Orden de venta** (nuevo).
@@ -116,7 +118,7 @@ Orden de venta (confirmada) → Embarque (operar) + Factura (cobrar) → Cobranz
   `proxy.ts:16,103`. Tests: `e2e/smoke.spec.ts:31-32,84`. Comentarios sueltos (`DecimalInput`, `UltimoKmCalculator`, `lib/design-tokens.ts`).
 
 ### Fase B — Estimado web → ERP + registro (near-term · puntos 1 y 2 del founder)
-- **Migración aditiva** `supabase/migrations/NNNN_estimado_web.sql`: estimado de prospecto sobre `quotes` —
+- **Migración aditiva** `supabase/migrations/0113_estimado_web.sql` (usar **0113+** — 0110-0112 ya tomadas en otras ramas; re-chequear al implementar): estimado de prospecto sobre `quotes` —
   `client_markbox` nullable + `prospect_email`/`prospect_whatsapp` + `nota` + `source` (`web`/`manual`) + estado/flag
   "por revisar". RPC de código `EST-YYYY-NNNN` (ver Fase C; coordinar con el rename de `next_quote_code`).
 - `app/api/public/estimacion/route.ts` (NUEVO): persiste el estimado vía admin client (server-side, boundary-safe).
