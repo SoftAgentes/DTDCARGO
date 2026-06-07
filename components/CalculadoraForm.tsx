@@ -290,8 +290,10 @@ export function CalculadoraForm({
           arriba para el CTA de WhatsApp). En móvil, handleCalcular hace scroll. */}
       <div
         ref={resultRef}
-        className={`flex flex-col ${cotizacion ? "lg:sticky lg:self-start lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto" : ""}`}
+        className={`flex flex-col gap-4 ${cotizacion ? "lg:sticky lg:self-start lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto" : ""}`}
       >
+        {/* Contenedor 40'HC que se llena con el CBM — siempre visible, en vivo. */}
+        <ContainerFill cbm={form.cbmTotal} max={CONFIG.cbmMaxContenedor} />
         {cotizacion ? (
           <CotizacionDisplay cotizacion={cotizacion} input={form} params={params} vibrate={vibratePrice} />
         ) : (
@@ -372,6 +374,92 @@ function ToggleField({
 }
 
 /**
+ * Contenedor 40'HC que se LLENA con el CBM. El relleno wine escala con
+ * `cbm/max` vía `transform: scaleX()` (no `width %`, que tranca la transición).
+ * Recortado al cuerpo del contenedor (esquinas redondeadas) + corrugado vertical
+ * + puerta a la derecha. Muestra el % lleno; sobre el máximo → "100%+".
+ */
+function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
+  const ratio = max > 0 ? Math.min(Math.max(cbm, 0) / max, 1) : 0;
+  const pct = max > 0 ? Math.round((Math.max(cbm, 0) / max) * 100) : 0;
+  const over = cbm > max;
+  return (
+    <div className="bg-white border border-grey-200 rounded-[18px] p-4 lg:p-5">
+      <div className="flex items-baseline justify-between mb-3">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
+          Tu contenedor
+        </span>
+        <span className="text-[12px] text-grey-500">
+          <span className="num font-semibold text-ink">{over ? "100%+" : `${pct}%`}</span> lleno
+        </span>
+      </div>
+      {/* Ratio ~4:1 (contenedor 40'HC), corrugado denso + cornerposts → lee
+          inequívocamente como contenedor marítimo. El relleno wine escala con
+          el CBM vía scaleX (no width %). */}
+      <svg
+        viewBox="0 0 360 104"
+        className="w-full h-auto"
+        role="img"
+        aria-label={
+          over
+            ? "Tu carga supera la capacidad de un contenedor"
+            : `Tu carga ocupa ${pct}% de un contenedor`
+        }
+      >
+        <defs>
+          <clipPath id="cont-body">
+            <rect x="6" y="10" width="324" height="80" rx="7" />
+          </clipPath>
+        </defs>
+        {/* Relleno wine + corrugado, recortados al cuerpo */}
+        <g clipPath="url(#cont-body)">
+          <rect
+            x="6"
+            y="10"
+            width="324"
+            height="80"
+            fill="var(--color-wine)"
+            style={{
+              transformBox: "fill-box",
+              transformOrigin: "left",
+              transform: `scaleX(${ratio})`,
+              transition: "transform 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+            }}
+          />
+          {Array.from({ length: 18 }).map((_, i) => (
+            <line
+              key={i}
+              x1={26 + i * 16}
+              y1="10"
+              x2={26 + i * 16}
+              y2="90"
+              stroke="var(--color-ink)"
+              strokeWidth="1.5"
+              opacity="0.16"
+            />
+          ))}
+        </g>
+        {/* Marco del cuerpo */}
+        <rect x="6" y="10" width="324" height="80" rx="7" fill="none" stroke="var(--color-ink)" strokeWidth="3" />
+        {/* Cornerposts (marcos verticales de esquina — pista ISO #1) */}
+        <line x1="11" y1="12" x2="11" y2="88" stroke="var(--color-ink)" strokeWidth="4.5" />
+        <line x1="325" y1="12" x2="325" y2="88" stroke="var(--color-ink)" strokeWidth="4.5" />
+        {/* Puerta derecha + manijas */}
+        <line x1="284" y1="12" x2="284" y2="88" stroke="var(--color-ink)" strokeWidth="2" opacity="0.55" />
+        <line x1="300" y1="34" x2="300" y2="66" stroke="var(--color-ink)" strokeWidth="3" opacity="0.55" strokeLinecap="round" />
+        <line x1="314" y1="34" x2="314" y2="66" stroke="var(--color-ink)" strokeWidth="3" opacity="0.55" strokeLinecap="round" />
+        {/* Patas */}
+        <rect x="26" y="90" width="22" height="8" rx="2" fill="var(--color-ink)" />
+        <rect x="288" y="90" width="22" height="8" rx="2" fill="var(--color-ink)" />
+      </svg>
+      <p className="text-[11.5px] text-grey-500 leading-[1.4] mt-2">
+        Se llena con tu CBM (un contenedor son <span className="num">68</span> m³).
+      </p>
+    </div>
+  );
+}
+
+/**
  * Panel ambiental del lado derecho (desktop) mientras el cliente no calculó.
  * Refuerza el gancho comercial: financiamiento 100%, pago al arribo.
  */
@@ -424,7 +512,10 @@ function CotizacionDisplay({
   const whatsappUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(whatsappText)}`;
 
   return (
-    <div className="card-shadow-dark bg-ink text-white rounded-[18px] p-7 lg:p-9 flex flex-col gap-5">
+    <div
+      className="card-shadow-dark text-white rounded-[18px] p-7 lg:p-9 flex flex-col gap-5"
+      style={{ background: "linear-gradient(150deg, var(--color-ink), #1F3055)" }}
+    >
       <div className="eyebrow text-white/50">
         Estimado de tu envío
       </div>
@@ -446,7 +537,9 @@ function CotizacionDisplay({
           </div>
           {cot.cbm > 0 && (
             <div className="text-[13.5px] text-white/65 mt-2">
-              {cot.cbm} CBM · {cot.densidadKgM3.toFixed(0)} kg/m³ · destino {cot.ciudad?.label}
+              <span className="num">{cot.cbm}</span> CBM ·{" "}
+              <span className="num">{cot.densidadKgM3.toFixed(0)}</span> kg/m³ · destino{" "}
+              {cot.ciudad?.label}
             </div>
           )}
           {/* Badge financiamiento — destacado y con micro-animación (breathing
@@ -523,7 +616,7 @@ function CotizacionDisplay({
             )}
             <li className="flex justify-between border-t border-white/15 pt-2.5 mt-1 font-bold text-white">
               <span>Total estimado</span>
-              <span>US$ {cot.total.toFixed(2)}</span>
+              <span className="num">US$ {cot.total.toFixed(2)}</span>
             </li>
           </ul>
         </div>
@@ -581,7 +674,7 @@ function DesgloseRow({
   return (
     <li className="flex justify-between text-white/80">
       <span className="text-white/70">{label}</span>
-      <span className={negative ? "text-status-success" : ""}>
+      <span className={`num ${negative ? "text-status-success" : ""}`}>
         {negative ? "" : "+"}US$ {value.toFixed(2)}
       </span>
     </li>

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Sora, Nunito_Sans, JetBrains_Mono } from "next/font/google";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -11,6 +12,30 @@ import {
   getPublicCalculatorConfig,
   getPublicCalculatorCities,
 } from "@/lib/public/rates-queries";
+
+// Tipografía de CAPA SISTEMA (Norte v2.4) SOLO para la calculadora: Sora
+// (display) + Nunito Sans (cuerpo) + JetBrains Mono (números). El resto del
+// sitio público sigue en Archivo. La clase `.calc-sys` (globals.css) redefine
+// --font-archivo / --font-archivo-black → Nunito/Sora sin tocar el JSX del form;
+// los números usan --font-mono directo. Decisión founder 2026-06-06.
+const sora = Sora({
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800"],
+  variable: "--font-sora",
+  display: "swap",
+});
+const nunito = Nunito_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-nunito",
+  display: "swap",
+});
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 // La tarifa pública cambia rara vez. ISR 300s como red de seguridad; además
 // las actions de /studio/tarifas hacen revalidatePath("/calculadora") → update
@@ -87,9 +112,13 @@ export default async function CalculadoraPage() {
           </div>
         </section>
 
-        {/* Form + Resultado — visible apenas se carga la página */}
+        {/* Form + Resultado — visible apenas se carga la página. La calculadora
+            usa la tipografía de SISTEMA (Sora/Nunito/Mono) vía `.calc-sys`; el
+            resto de la página sigue en Archivo. */}
         <section className="pb-16 lg:pb-20">
-          <div className="wrap max-w-[1100px]">
+          <div
+            className={`wrap max-w-[1100px] ${sora.variable} ${nunito.variable} ${jetbrains.variable} calc-sys`}
+          >
             <CalculadoraForm
               serverRate={serverRate}
               serverConfig={serverConfig}
