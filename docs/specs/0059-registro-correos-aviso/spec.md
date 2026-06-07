@@ -144,3 +144,23 @@ rama/worktree `feat/registro-correos`. **LOCAL — sin push/deploy** (lo hace el
 **Gates externos para que rinda en prod** (ya satisfechos según estado conocido): Resend vivo con
 `test_mode=false` (envío real activo desde 2026-05-27); admins con `telegram_chat_id` linkeado reciben
 también el aviso por Telegram (los que no, solo email).
+
+## 10. Seguimiento (founder 2026-06-07): cuenta ACTIVA al registrar + saludo del welcome
+
+Aprobado por el founder en la misma sesión (avanzar #1 y #2 de las notas no bloqueantes):
+
+1. **Cuenta ACTIVA al registrar (#1 · pivot founder 2026-06-03).** `registerClientAction` ahora setea
+   `clients.portal_approved_at = now()` en el insert → la cuenta nace **activa**, el cliente entra directo
+   al portal **sin pantalla de espera** (`PortalPending`). Reconcilia el template `welcome_markbox` (que
+   ya decía "tu cuenta está activa") con la realidad. El **gate de activación** (`getPortalActivation`,
+   `PortalPending`) **NO se borra** — sigue válido para cuentas pendientes viejas / creadas por admin; solo
+   el alta self-service nace aprobada. La verificación de identidad (foto + revisión manual del asesor,
+   SDD-0046) corre aparte y **NO bloquea** el acceso. Copy del form actualizada (RegisterForm: paso de
+   confirmación + pantalla de éxito ya no dicen "en revisión"; la de éxito explica el login = MARKBOX +
+   documento). El **alta admin** (`createClientAction`) queda **sin cambios** (el admin aprueba si quiere).
+2. **Saludo del welcome por razón social (#2).** El correo de bienvenida saluda con `input.company ?? input.name`
+   (= el nombre con el que queda el cliente en el sistema): razón social si es empresa, nombre si es persona.
+
+Tests: `app/portal/(auth)/registro/__tests__/register-active-welcome.test.ts` (cuenta activa + saludo
+persona/empresa). Sin migración (la columna `portal_approved_at` ya existe, migr 0087). Cambio de copy en
+`RegisterForm.tsx` = solo texto (sin cambio visual/estructural).

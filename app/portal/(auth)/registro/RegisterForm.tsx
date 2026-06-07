@@ -558,9 +558,8 @@ function Step3({
         style={{ borderColor: "var(--color-wine)" }}
       >
         Al confirmar generamos tu <strong className="text-ink">MARKBOX</strong> al
-        instante. Tu cuenta queda <strong className="text-ink">en revisión</strong> —
-        un asesor la activa (o se activa sola con tu primera carga). Ya vas a poder
-        usar tu MARKBOX con tus proveedores.
+        instante y tu cuenta queda <strong className="text-ink">activa</strong> —
+        entrás directo al portal. Ya vas a poder usar tu MARKBOX con tus proveedores.
       </div>
 
       {(error || fieldErrors?.document) && (
@@ -679,9 +678,9 @@ function StepDone({
         className="w-full rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55] text-left"
         style={{ borderColor: "var(--color-wine)" }}
       >
-        <strong className="text-ink">Tu cuenta está en revisión.</strong> Vas a poder
-        ver tu panel apenas un asesor la active o llegue tu primera carga. Mientras
-        tanto, tu MARKBOX ya sirve para marcar tus cajas con tus proveedores.
+        <strong className="text-ink">Tu cuenta ya está activa.</strong> Entrá al
+        portal con tu MARKBOX — tu contraseña inicial es tu documento (cédula/RIF).
+        Tu MARKBOX ya sirve para marcar tus cajas con tus proveedores.
       </p>
 
       <Link href="/portal/login" className="btn btn-primary w-full">
