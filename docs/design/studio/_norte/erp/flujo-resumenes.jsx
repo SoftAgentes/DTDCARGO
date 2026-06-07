@@ -12,8 +12,8 @@
   const usd = (v) => '$' + Math.round(v || 0).toLocaleString('en-US');
   const ERP = (hash) => 'DTD Studio · ERP.html' + (hash ? '#' + hash : '');
 
-  // ── Vínculos cliente ↔ cotización ↔ envío ↔ factura ──────────
-  const quotesOf = (code) => (D().QUOTES || []).filter((q) => q.client === code);
+  // ── Vínculos cliente ↔ estimado ↔ envío ↔ factura ──────────
+  const estimadosOf = (code) => (D().ESTIMADOS || []).filter((q) => q.client === code);
   const shipsOf = (code) => (D().SHIPMENTS || []).filter((s) => s.client === code);
   const invsOf = (code) => (D().INVOICES || []).filter((i) => i.client === code);
 
@@ -59,22 +59,22 @@
     },
 
     'com-quote': () => {
-      const qs = D().QUOTES || [];
-      const open = qs.filter((q) => ['enviada', 'borrador'].includes(q.status));
+      const qs = D().ESTIMADOS || [];
+      const open = qs.filter((q) => ['enviado', 'borrador'].includes(q.status));
       const byType = {};open.forEach((q) => byType[q.type] = (byType[q.type] || 0) + 1);
       const top = Object.entries(byType).sort((a, b) => b[1] - a[1]);
       return {
         kpis: [
         { k: 'En gestión', v: open.length, tone: 'info' },
-        { k: 'Aceptadas', v: qs.filter((q) => q.status === 'aceptada').length, tone: 'success' }],
+        { k: 'Aceptados', v: qs.filter((q) => q.status === 'aceptado').length, tone: 'success' }],
 
         groupTitle: 'Por servicio',
         groups: top.map(([k, v]) => ({ label: k, value: v })),
         records: open.slice(0, 4).map((q) => ({
           icon: 'calc', title: q.id, sub: q.clientName + ' · ' + q.type,
-          right: usd(q.totalUSD), tone: q.status === 'enviada' ? 'info' : 'neutral', chip: q.status, href: ERP('quotes')
+          right: usd(q.totalUSD), tone: q.status === 'enviado' ? 'info' : 'neutral', chip: q.status, href: ERP('estimados')
         })),
-        action: { kind: 'link', label: 'Abrir cotizador', href: ERP('quotes') }
+        action: { kind: 'link', label: 'Abrir estimador', href: ERP('estimados') }
       };
     },
 
@@ -88,8 +88,8 @@
 
         recordsTitle: 'Últimos registros · y a qué están atados',
         records: recent.map((c) => {
-          const q = quotesOf(c.markbox).length,sh = shipsOf(c.markbox).length;
-          const links = [q ? q + ' cotiz.' : null, sh ? sh + ' env.' : null].filter(Boolean).join(' · ') || 'sin vínculos aún';
+          const q = estimadosOf(c.markbox).length,sh = shipsOf(c.markbox).length;
+          const links = [q ? q + ' estim.' : null, sh ? sh + ' env.' : null].filter(Boolean).join(' · ') || 'sin vínculos aún';
           return {
             icon: 'users', title: c.name, sub: c.company + ' · ' + c.markbox,
             right: links, tone: c.status === 'pending' ? 'warning' : 'neutral',

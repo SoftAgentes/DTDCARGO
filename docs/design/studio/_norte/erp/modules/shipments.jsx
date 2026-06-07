@@ -55,7 +55,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
       );
     }
     if (tab !== 'all') {
-      if (tab === 'active') rows = rows.filter(s => !['entregado', 'cotizado'].includes(s.status));
+      if (tab === 'active') rows = rows.filter(s => !['entregado', 'estimado'].includes(s.status));
       else if (tab === 'delivered') rows = rows.filter(s => s.status === 'entregado');
       else if (tab === 'alerts') rows = rows.filter(s => s.alert);
     }
@@ -131,7 +131,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
 
   const tabs = [
     { value: 'all', label: 'Todos', count: baseShipments.length },
-    { value: 'active', label: 'Activos', count: baseShipments.filter(s => !['entregado', 'cotizado'].includes(s.status)).length },
+    { value: 'active', label: 'Activos', count: baseShipments.filter(s => !['entregado', 'estimado'].includes(s.status)).length },
     { value: 'delivered', label: 'Entregados', count: baseShipments.filter(s => s.status === 'entregado').length },
     { value: 'alerts', label: 'Con alertas', count: baseShipments.filter(s => s.alert).length },
   ];
@@ -194,7 +194,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
             <label style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }}>Estado</label>
             <U.Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} options={[
               { value: 'all', label: 'Todos los estados' },
-              'cotizado', 'confirmado', 'recibido CN', 'consolidado', 'zarpado', 'tránsito', 'aduana VE', 'liberado', 'entregado',
+              'estimado', 'confirmado', 'recibido CN', 'consolidado', 'zarpado', 'tránsito', 'aduana VE', 'liberado', 'entregado',
             ]} />
           </div>
           <div>
@@ -209,7 +209,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
         <U.EmptyState
           icon={window.Icon.box(22)}
           title="No hay embarques que coincidan"
-          body="Ajustá los filtros o creá un embarque nuevo desde una cotización aceptada."
+          body="Ajustá los filtros o creá un embarque nuevo desde un estimado aceptado."
           action={<U.Btn variant="primary" onClick={() => { setSearch(''); setTab('all'); setTypeFilter('all'); }}>Limpiar filtros</U.Btn>}
         />
       ) : viewMode === 'kanban' ? (
@@ -265,7 +265,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
         open={drawerKind === 'create'}
         onClose={() => { setDrawerKind(null); setView('list'); }}
         title="Nuevo embarque"
-        subtitle="Generar a partir de una cotización aceptada o desde cero"
+        subtitle="Generar a partir de un estimado aceptado o desde cero"
         width={640}
         actions={
           <>
@@ -524,7 +524,7 @@ function ShipmentForm() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ color: 'var(--info)' }}>{window.Icon.info(14)}</span>
           <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            El embarque queda en estado <b>cotizado</b>. Se actualiza automáticamente al recibir la mercadería en almacén CN.
+            El embarque queda en estado <b>estimado</b>. Se actualiza automáticamente al recibir la mercadería en almacén CN.
           </div>
         </div>
       </div>

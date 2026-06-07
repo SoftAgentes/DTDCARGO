@@ -25,9 +25,14 @@ const KPI_CATALOG = [
   { id: 'pendingCollect',  label: 'Por cobrar',        icon: 'invoice',   tone: 'info',    cat: 'Finanzas' },
   // Comercial
   { id: 'newLeads',        label: 'Leads nuevos',      icon: 'spark',     tone: 'info',    cat: 'Comercial' },
-  { id: 'wonQuotes',       label: 'Cotizaciones ganadas (mes)', icon: 'check', tone: 'success', cat: 'Comercial' },
+  { id: 'wonEstimados',       label: 'Estimados ganadas (mes)', icon: 'check', tone: 'success', cat: 'Comercial' },
   { id: 'activeClients',   label: 'Clientes activos',  icon: 'users',     tone: 'neutral', cat: 'Comercial' },
   { id: 'avgTicket',       label: 'Ticket promedio',   icon: 'tag',       tone: 'wine',    cat: 'Comercial' },
+  // Nómina / RRHH
+  { id: 'nominaNeto',      label: 'Neto del corte',    icon: 'cash',      tone: 'success', cat: 'Nómina' },
+  { id: 'nominaPrestamos', label: 'Saldo préstamos',   icon: 'wallet',    tone: 'warning', cat: 'Nómina' },
+  { id: 'nominaAusencias', label: 'Ausencias del mes', icon: 'warn',      tone: 'danger',  cat: 'Nómina' },
+  { id: 'nominaEmpleados', label: 'Empleados activos', icon: 'users',     tone: 'info',    cat: 'Nómina' },
 ];
 
 // Valores extra que no están en ERPData.KPIS — inlined acá.
@@ -39,15 +44,16 @@ const WIDGET_CATALOG = [
   { id: 'activeShipments', label: 'Embarques en curso',          side: 'left',  desc: 'Tabla preview ordenada por ETA' },
   { id: 'alerts',          label: 'Atención requerida',          side: 'right', desc: 'ETA en riesgo, facturas vencidas, etc.' },
   { id: 'recentActivity',  label: 'Actividad reciente',          side: 'right', desc: 'Últimas notificaciones' },
-  { id: 'quickActions',    label: 'Acciones rápidas',            side: 'right', desc: 'Crear cotización, cliente, recepción…' },
+  { id: 'quickActions',    label: 'Acciones rápidas',            side: 'right', desc: 'Crear estimado, cliente, recepción…' },
   { id: 'tmsStatus',       label: 'Estado de flota (TMS)',       side: 'right', desc: 'Camiones disponibles vs en ruta' },
   { id: 'upcomingEta',     label: 'Próximos ETA',                side: 'right', desc: 'Embarques que llegan esta semana' },
+  { id: 'nominaResumen',   label: 'Nómina · resumen',            side: 'right', desc: 'Estado del corte, neto, préstamos y ausencias' },
 ];
 
 // ── Config por defecto ────────────────────────────────────────
 const DEFAULT_CONFIG = {
   kpis: ['shipmentsActive', 'onTime', 'monthRevenue', 'newLeads', 'invoicesDue', 'cbmInTransit'],
-  widgets: ['chart', 'activeShipments', 'alerts', 'recentActivity', 'quickActions'],
+  widgets: ['chart', 'activeShipments', 'alerts', 'nominaResumen', 'recentActivity', 'quickActions'],
   chartPeriod: '1A',
 };
 
@@ -85,15 +91,15 @@ function _tenantKpis() {
   const invs  = D.byTenant(D.INVOICES) || [];
   const clis  = D.byTenant(D.CLIENTS) || [];
   const leads = D.byTenant(D.LEADS) || [];
-  const quotes = D.byTenant(D.QUOTES) || [];
-  const active = ships.filter(s => !['entregado', 'cotizado'].includes(s.status));
+  const quotes = D.byTenant(D.ESTIMADOS) || [];
+  const active = ships.filter(s => !['entregado', 'estimado'].includes(s.status));
   const inTransit = ships.filter(s => ['zarpado', 'tránsito', 'aduana VE'].includes(s.status));
   const cbm = Math.round(inTransit.reduce((a, s) => a + (s.cbm || 0), 0));
   const revenue = invs.reduce((a, i) => a + (i.amount || 0), 0);
   const outstanding = invs.reduce((a, i) => a + (i.balance || 0), 0);
   const dueCount = invs.filter(i => i.balance > 0).length;
   const activeClients = clis.filter(c => c.status === 'active').length;
-  const won = quotes.filter(q => q.status === 'aceptada').length;
+  const won = quotes.filter(q => q.status === 'aceptado').length;
   const eco = ships.reduce((a, s) => { const e = D.shipmentEconomics(s); a.rev += e.revenue; a.mar += e.margin; return a; }, { rev: 0, mar: 0 });
   const marginPct = eco.rev > 0 ? (eco.mar / eco.rev) * 100 : 0;
   const ticket = invs.length ? revenue / invs.length : 0;
@@ -106,7 +112,7 @@ function _tenantKpis() {
     pendingCollect:  { value: k(outstanding), delta: `${dueCount} fac. con saldo`, tone: 'info' },
     newLeads:        { value: leads.length, delta: 'en pipeline', tone: 'info' },
     activeClients:   { value: activeClients, delta: `${clis.length} cuentas`, tone: 'neutral' },
-    wonQuotes:       { value: won, delta: `${quotes.length} cotizaciones`, tone: 'success' },
+    wonEstimados:       { value: won, delta: `${quotes.length} estimados`, tone: 'success' },
     marginYTD:       { value: marginPct.toFixed(1) + '%', delta: 'sobre embarques', tone: 'wine' },
     avgTicket:       { value: k(ticket), delta: 'por factura', tone: 'wine' },
   };
@@ -114,6 +120,29 @@ function _tenantKpis() {
 
 function resolveKpiValue(id) {
   const D = window.ERPData;
+  // KPIs de Nómina (vienen de NominaData, no del tenant)
+  if (id.startsWith('nomina') && window.NominaData) {
+    const N = window.NominaData;
+    const rate = (window.ERPRates && window.ERPRates.read) ? window.ERPRates.read().bcv : 36.45;
+    const emps = N.EMPLOYEES.filter(e => !e.inactive);
+    if (id === 'nominaNeto') {
+      const neto = emps.reduce((s, e) => { const r = N.calcRecibo(e, 40); return s + (r.netoFinal != null ? r.netoFinal : r.neto); }, 0);
+      return { value: '$' + (neto / 1000).toFixed(1) + 'K', delta: `${emps.length} empleados`, tone: 'success' };
+    }
+    if (id === 'nominaPrestamos') {
+      const saldo = N.allLoans().filter(l => l.status === 'activo').reduce((s, l) => s + N.loanBalance(l), 0);
+      const n = N.allLoans().filter(l => l.status === 'activo').length;
+      return { value: '$' + saldo.toFixed(0), delta: `${n} activo${n === 1 ? '' : 's'}`, tone: saldo > 0 ? 'warning' : 'success' };
+    }
+    if (id === 'nominaAusencias') {
+      const aus = emps.reduce((s, e) => s + N.attSummary(e.id, 2026, 4).ausente, 0);
+      return { value: aus, delta: 'en mayo', tone: aus > 0 ? 'danger' : 'success' };
+    }
+    if (id === 'nominaEmpleados') {
+      const pend = N.pendingRegs ? N.pendingRegs().length : 0;
+      return { value: emps.length, delta: pend > 0 ? `${pend} por aprobar` : 'sin pendientes', tone: 'info' };
+    }
+  }
   // Si operamos OTRA empresa (no la home), los KPIs se recalculan filtrados
   if (D.currentTenant && !D.isHomeTenant?.() && D.currentTenant() !== 'all') {
     const tk = _tenantKpis();
@@ -135,7 +164,7 @@ function ModuleDashboard({ goTo }) {
   const [editorOpen, setEditorOpen] = React.useState(false);
 
   const mask = (v) => hideValues ? '•••••' : v;
-  const activeShipments = D.byTenant(D.SHIPMENTS).filter(s => !['entregado', 'cotizado'].includes(s.status));
+  const activeShipments = D.byTenant(D.SHIPMENTS).filter(s => !['entregado', 'estimado'].includes(s.status));
 
   const visibleKpis = config.kpis
     .map(id => ({ meta: KPI_CATALOG.find(k => k.id === id), data: resolveKpiValue(id) }))
@@ -165,7 +194,7 @@ function ModuleDashboard({ goTo }) {
             }}>{I.eye(15)}</button>
             <U.Btn variant="secondary" icon={I.edit(13)} onClick={() => setEditorOpen(true)}>Configurar</U.Btn>
             <U.Btn variant="secondary" icon={I.download(14)}>Exportar</U.Btn>
-            <U.Btn variant="primary" icon={I.plus(14)} onClick={() => goTo('quotes', null, 'create')}>Nueva cotización</U.Btn>
+            <U.Btn variant="primary" icon={I.plus(14)} onClick={() => goTo('estimados', null, 'create')}>Nuevo estimado</U.Btn>
           </>
         }
       />
@@ -235,6 +264,7 @@ function Widget({ id, goTo, config, updateConfig, hideValues }) {
   if (id === 'quickActions')    return <QuickActionsWidget goTo={goTo} />;
   if (id === 'tmsStatus')       return <TMSStatusWidget goTo={goTo} />;
   if (id === 'upcomingEta')     return <UpcomingEtaWidget goTo={goTo} />;
+  if (id === 'nominaResumen')   return <NominaResumenWidget goTo={goTo} />;
   return null;
 }
 
@@ -270,7 +300,7 @@ function ActiveShipmentsWidget({ goTo, hideValues }) {
   const D = window.ERPData;
   const U = window.ERPUI;
   const I = window.Icon;
-  const activeShipments = D.byTenant(D.SHIPMENTS).filter(s => !['entregado', 'cotizado'].includes(s.status));
+  const activeShipments = D.byTenant(D.SHIPMENTS).filter(s => !['entregado', 'estimado'].includes(s.status));
   const mask = (v) => hideValues ? '•••' : v;
   return (
     <U.Card padded={false}>
@@ -322,7 +352,7 @@ function AlertsWidget() {
     { icon: I.warn(14),    tone: 'warning', t: 'ETA en riesgo · DTDU-419032', m: '+2 días estimados · Polar' },
     { icon: I.invoice(14), tone: 'danger',  t: 'F-2026-0418 vencida hace 10d', m: 'Acindar · $84.200' },
     { icon: I.doc(14),     tone: 'info',    t: '2 documentos pendientes de firma', m: 'Tech Solutions · BL + Factura' },
-    { icon: I.users(14),   tone: 'wine',    t: '3 leads sin asignar', m: 'Recibidos hoy del cotizador' },
+    { icon: I.users(14),   tone: 'wine',    t: '3 leads sin asignar', m: 'Recibidos hoy del estimador' },
   ];
   return (
     <U.Card padded>
@@ -350,7 +380,7 @@ function AlertsWidget() {
 function RecentActivityWidget({ goTo }) {
   const D = window.ERPData;
   const U = window.ERPUI;
-  const typeToMod = { tracking: 'tracking', sales: 'quotes', finance: 'invoices', alert: 'tracking', crm: 'leads', warehouse: 'cn' };
+  const typeToMod = { tracking: 'tracking', sales: 'estimados', finance: 'invoices', alert: 'tracking', crm: 'leads', warehouse: 'cn' };
   return (
     <U.Card padded>
       <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>ACTIVIDAD RECIENTE</div>
@@ -392,7 +422,7 @@ function QuickActionsWidget({ goTo }) {
   const U = window.ERPUI;
   const I = window.Icon;
   const items = [
-    { l: 'Nueva cotización', i: 'calc',      to: 'quotes' },
+    { l: 'Nuevo estimado', i: 'calc',      to: 'estimados' },
     { l: 'Nuevo cliente',    i: 'users',     to: 'clients' },
     { l: 'Recepción CN',     i: 'warehouse', to: 'cn' },
     { l: 'Crear factura',    i: 'invoice',   to: 'invoices' },
@@ -466,7 +496,7 @@ function UpcomingEtaWidget({ goTo }) {
   const U = window.ERPUI;
   const I = window.Icon;
   const next = D.byTenant(D.SHIPMENTS)
-    .filter(s => !['entregado', 'cotizado'].includes(s.status) && s.eta)
+    .filter(s => !['entregado', 'estimado'].includes(s.status) && s.eta)
     .sort((a, b) => (a.eta || '').localeCompare(b.eta || ''))
     .slice(0, 4);
   return (
@@ -806,6 +836,60 @@ function Switch({ checked, onChange }) {
         transition: 'left var(--dur-fast) var(--ease)',
       }} />
     </button>
+  );
+}
+
+// ── Widget de Nómina · resumen del corte ──────────────────────
+function NominaResumenWidget({ goTo }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const N = window.NominaData;
+  if (!N) return null;
+  const rate = (window.ERPRates && window.ERPRates.read) ? window.ERPRates.read().bcv : 36.45;
+  const label = 'Mayo 2026';
+  const emps = N.EMPLOYEES.filter(e => !e.inactive);
+  const neto = emps.reduce((s, e) => { const r = N.calcRecibo(e, 40); return s + (r.netoFinal != null ? r.netoFinal : r.neto); }, 0);
+  const saldo = N.allLoans().filter(l => l.status === 'activo').reduce((s, l) => s + N.loanBalance(l), 0);
+  const aus = emps.reduce((s, e) => s + N.attSummary(e.id, 2026, 4).ausente, 0);
+  const pend = N.pendingRegs ? N.pendingRegs().length : 0;
+  const pst = N.getPeriodStatus(label);
+  const P_STEPS = { borrador: { label: 'Borrador', tone: 'neutral' }, confirmado: { label: 'Confirmado', tone: 'info' }, pagado: { label: 'Pagado', tone: 'success' } };
+  const pcur = P_STEPS[pst.status] || P_STEPS.borrador;
+  const fmt = (n) => '$' + (n / 1000).toFixed(1) + 'K';
+
+  const Stat = ({ label, value, tone, onClick }) => (
+    <button onClick={onClick} style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 'var(--r-md)', background: 'var(--bg-elevated)', cursor: 'pointer', transition: 'background var(--dur-fast) var(--ease)' }}
+      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--wine-tint)'}
+      onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-elevated)'}>
+      <div style={{ font: `800 17px/1 var(--f-display)`, color: tone ? `var(--${tone})` : 'var(--ink)' }}>{value}</div>
+      <div style={{ font: '500 10.5px/1.2 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 5 }}>{label}</div>
+    </button>
+  );
+
+  return (
+    <U.Card padded>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div className="eyebrow eyebrow-wine">NÓMINA · {label.toUpperCase()}</div>
+        <button onClick={() => goTo('nomina')} style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--wine)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+          Ir a nómina {I.arrowR(10)}
+        </button>
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        <span style={{ font: '500 11.5px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>Estado del corte:</span>
+        <U.Badge tone={pcur.tone} size="sm" dot>{pcur.label}</U.Badge>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+        <Stat label="Neto del corte" value={fmt(neto)} tone="success" onClick={() => goTo('nomina')} />
+        <Stat label="Saldo préstamos" value={'$' + saldo.toFixed(0)} tone={saldo > 0 ? 'warning' : 'success'} onClick={() => goTo('nomina')} />
+        <Stat label="Ausencias · mayo" value={aus} tone={aus > 0 ? 'danger' : 'success'} onClick={() => goTo('nomina')} />
+        <Stat label={pend > 0 ? 'Solicitudes' : 'Empleados'} value={pend > 0 ? pend : emps.length} tone={pend > 0 ? 'wine' : 'info'} onClick={() => goTo('nomina')} />
+      </div>
+      {pend > 0 && (
+        <div style={{ marginTop: 12, padding: '9px 12px', borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', font: '600 11.5px/1.3 var(--f-sans)', color: 'var(--wine)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {I.bell ? I.bell(13) : null} {pend} registro{pend === 1 ? '' : 's'} de empleado por aprobar
+        </div>
+      )}
+    </U.Card>
   );
 }
 

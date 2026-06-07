@@ -9,7 +9,7 @@ Cada documento existe en **dos formatos**:
 |---|---|---|---|
 | **Términos y Condiciones de DTD** | v2.1 · 1 may 2026 | **Cliente** (Portal/app · aceptación obligatoria por cotización) | `Terminos-Condiciones-DTD-v2.1.md` · `DTDCARGO_Terminos_Condiciones_DTD_v2.1.docx` |
 | **Acuerdo de Servicios de Consolidación y Embarque** | borrador · ES/中文 | **Interno** (contrato B2B con el operador de consolidación en China) | `Acuerdo-Operador-Consolidacion-ES-ZH.md` · `DTDCARGO_Acuerdo_Operador_Consolidacion_ES_ZH.docx` |
-| **Brief de seguro de carga** | ES/中文 | **Interno** (encargo al operador para cotizar póliza con aseguradoras CN) | `Brief-Seguro-Operador-ES-ZH.md` · `DTDCARGO_Brief_Seguro_Operador_ES_ZH.docx` |
+| **Brief de seguro de carga** | ES/中文 | **Interno** (encargo al operador para estimar póliza con aseguradoras CN) | `Brief-Seguro-Operador-ES-ZH.md` · `DTDCARGO_Brief_Seguro_Operador_ES_ZH.docx` |
 
 ## Reglas de uso
 - **De cara al cliente** solo va la **T&C v2.1** (y, cuando exista, las Condiciones del Operador

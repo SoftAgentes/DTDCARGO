@@ -1,7 +1,7 @@
 /* global React */
-/* ── DTD ERP · Cotizador ────────────────────────────────────── */
+/* ── DTD ERP · Estimador ────────────────────────────────────── */
 
-function ModuleQuotes({ goTo, view, setView, selectedId, setSelectedId }) {
+function ModuleEstimados({ goTo, view, setView, selectedId, setSelectedId }) {
   const D = window.ERPData;
   const U = window.ERPUI;
   const [search, setSearch] = React.useState('');
@@ -14,7 +14,7 @@ function ModuleQuotes({ goTo, view, setView, selectedId, setSelectedId }) {
   }, [view, selectedId]);
 
   const filtered = React.useMemo(() => {
-    let rows = D.byTenant(D.QUOTES);
+    let rows = D.byTenant(D.ESTIMADOS);
     if (status !== 'all') rows = rows.filter(q => q.status === status);
     if (search) {
       const q = search.toLowerCase();
@@ -23,9 +23,9 @@ function ModuleQuotes({ goTo, view, setView, selectedId, setSelectedId }) {
     return rows;
   }, [search, status]);
 
-  const detailRecord = D.QUOTES.find(q => q.id === selectedId);
+  const detailRecord = D.ESTIMADOS.find(q => q.id === selectedId);
 
-  const statusTone = { borrador: 'neutral', enviada: 'info', aceptada: 'success', rechazada: 'danger', vencida: 'warning' };
+  const statusTone = { borrador: 'neutral', enviado: 'info', aceptado: 'success', rechazado: 'danger', vencido: 'warning' };
 
   const columns = [
     { label: 'ID', key: 'id', render: (r) => <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--ink)' }}>{r.id}</code>, width: 140 },
@@ -46,12 +46,12 @@ function ModuleQuotes({ goTo, view, setView, selectedId, setSelectedId }) {
   return (
     <div>
       <U.PageHeader
-        title="Cotizador"
-        subtitle="LCL DDP a $800/CBM · FCL con tarifa cerrada. Cotizá en menos de 60 segundos."
+        title="Estimador"
+        subtitle="LCL DDP a $800/CBM · FCL con tarifa cerrada. Estimá en menos de 60 segundos."
         actions={
           <>
             <U.Btn variant="secondary" icon={window.Icon.download(14)}>Exportar</U.Btn>
-            <U.Btn variant="primary" icon={window.Icon.plus(14)} onClick={() => { setView('create'); setDrawerKind('create'); }}>Nueva cotización</U.Btn>
+            <U.Btn variant="primary" icon={window.Icon.plus(14)} onClick={() => { setView('create'); setDrawerKind('create'); }}>Nuevo estimado</U.Btn>
           </>
         }
       />
@@ -64,15 +64,15 @@ function ModuleQuotes({ goTo, view, setView, selectedId, setSelectedId }) {
           <U.Select value={status} onChange={(e)=>setStatus(e.target.value)} style={{ width: 160 }} options={[
             { value: 'all', label: 'Todos los estados' },
             { value: 'borrador', label: 'Borradores' },
-            { value: 'enviada', label: 'Enviadas' },
-            { value: 'aceptada', label: 'Aceptadas' },
-            { value: 'rechazada', label: 'Rechazadas' },
+            { value: 'enviado', label: 'Enviados' },
+            { value: 'aceptado', label: 'Aceptados' },
+            { value: 'rechazado', label: 'Rechazados' },
           ]} />
         }
       />
 
       {filtered.length === 0 ? (
-        <U.EmptyState icon={window.Icon.calc(22)} title="No hay cotizaciones" body="Creá una cotización nueva. Las aceptadas se convierten automáticamente en embarques." action={<U.Btn variant="primary" onClick={() => { setView('create'); setDrawerKind('create'); }}>Nueva cotización</U.Btn>} />
+        <U.EmptyState icon={window.Icon.calc(22)} title="No hay estimados" body="Creá un estimado nueva. Las aceptadas se convierten automáticamente en embarques." action={<U.Btn variant="primary" onClick={() => { setView('create'); setDrawerKind('create'); }}>Nuevo estimado</U.Btn>} />
       ) : (
         <U.Table columns={columns} rows={filtered} onRowClick={(r) => { setSelectedId(r.id); setView('detail'); setDrawerKind('detail'); }} />
       )}
@@ -80,7 +80,7 @@ function ModuleQuotes({ goTo, view, setView, selectedId, setSelectedId }) {
       <U.Drawer
         open={drawerKind === 'create'}
         onClose={() => { setDrawerKind(null); setView('list'); }}
-        title="Nueva cotización"
+        title="Nuevo estimado"
         subtitle="Calculá el total en vivo. Al enviarla queda registrada y se notifica al cliente."
         width={680}
         actions={
@@ -206,7 +206,7 @@ function QuoteCalculator() {
           </div>
 
           <U.Input label="Tarifa por CBM" value={rate} onChange={(e)=>setRate(e.target.value)} prefix="$" suffix="USD/CBM" mono
-            hint="Tarifa estándar LCL DDP: $800/CBM. Editá si tu cotización es distinta (FCL prorrateado, promo, etc.)" />
+            hint="Tarifa estándar LCL DDP: $800/CBM. Editá si tu estimado es distinta (FCL prorrateado, promo, etc.)" />
         </>
       )}
 
@@ -282,4 +282,4 @@ function QuoteDetail({ q }) {
   );
 }
 
-window.ModuleQuotes = ModuleQuotes;
+window.ModuleEstimados = ModuleEstimados;

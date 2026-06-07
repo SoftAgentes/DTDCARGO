@@ -22,6 +22,340 @@ Formato:
 
 <!-- Las entradas nuevas se agregan acá arriba -->
 
+## 2026-06-07 · 🪪 Tarjeta de presentación + celebración MARKBOX + branding v3.5 + chequeo de handoff
+
+Sesión de branding + producto + preparación de handoff a Claude Code.
+
+### ✅ Hecho en esta sesión
+
+- **Tarjeta de presentación (NUEVO · pieza oficial de marca):** `Tarjeta de Presentación.html`.
+  Doble cara, 85×55 mm con sangrado 3 mm. Frente en Papel DTD con el lockup canónico (isólogo
+  `primary` + wordmark Archivo Black: DTD wine / Cargo navy), spine wine a sangre, datos de la
+  persona (Sora/Nunito Sans) y contacto en JetBrains Mono. Dorso navy con isólogo `reverse`,
+  tagline "Con Confianza, de China a tu puerta." y **QR vCard** (librería qrcode-generator,
+  módulos navy sobre tile cream). Plantilla por empleado (3 perfiles, incl. bilingüe ZH con
+  Noto Sans SC), selector en vivo, spec de imprenta (tintas CMYK/Pantone de referencia,
+  tipografías) e **imposición con marcas de corte** + botón de impresión 1:1 + descarga `.vcf`.
+  Reusa `erp/tokens.css` y `assets/dtdcargo-isologo-*.png`. Sin colores/fuentes fuera del sistema.
+- **Celebración del MARKBOX al registrar la compra (producto):** `portal/registro.jsx`.
+  En la pantalla de éxito, cuando el cliente registra su compra inline, la **tarjeta roja del
+  MARKBOX de arriba reacciona**: muta de `DTD-XXXX` a `DTD-XXXX-1-1` (markbox·proveedor·compra),
+  badge verde de check, eyebrow "compra registrada", send-line ("este es el código que le mandás
+  a tu proveedor"), banner de felicitación y animación dentro del sistema (pop + ring `--success`
+  + shimmer + swap; respeta `prefers-reduced-motion`). Nuevo componente `MarkboxCard` + estado
+  `purchase` lifteado a `StepSuccess` + callback `onRegistered` en `SuccessPurchaseCTA`. El banner
+  "faltan pasos" ahora se oculta también cuando la compra se registró inline (`!purchase`).
+  Keyframes en `Registro Cliente.html`. Sin emojis en mensajes de éxito (regla de tono).
+- **Branding → v3.5:** `Brand Book DTD v3.2.html` subido de v3.4 a **v3.5** (portada, footer, cierre,
+  changelog). Tarjeta agregada como pieza **13** del grid de aplicaciones, al índice de recursos
+  (badge `TP`) y a "lo que falta consolidar" (✓). CLAUDE.md actualizado con la pieza + datos de
+  contacto oficiales.
+- **Chequeo de handoff:** auditados links internos `href/src` (todos los `.html`/`.jsx`/`.css`/
+  imágenes resuelven a archivos existentes); **sin** marcadores de conflicto (`<<<<<<<`/`=======`/
+  `>>>>>>>`); QR del dorso corregido (antes el CSS pintaba fondo + módulos en `--ink` → ilegible).
+
+### ⏳ Pendiente / Backlog
+
+- **Colateral impreso** (comparte layout/sistema con la tarjeta): membrete A4 · credencial/carnet con
+  lanyard · uniforme · vinilos de camión · roll-up/banner · sello + firma de correo.
+- Carpeta huérfana `tarjeta/` (3 PNGs duplicados de `assets/`, sin HTML que la use) — eliminada en
+  esta sesión para limpiar el handoff.
+
+## 2026-06-06 · 🧾 Bitácora · auditoría de calculadoras + backlog del cotizador (sin tocar producto)
+
+Sesión de análisis y registro. **No se modificó producto** (ERP/portal): se relevó el estado de las
+calculadoras/cotizadores y se dejó asentado el backlog que surgió de comparar con el sitio web vivo
+(`dtdcargo.com/calculadora` y `dtdcargo.com/cotizar`). Commit de continuidad.
+
+### ✅ Hecho / confirmado en esta sesión
+
+- **Inventario de cotizadores existentes (2):**
+  1. **Cotizador interno del ERP** — `erp/modules/quotes.jsx · QuoteCalculator`. Staff-facing:
+     servicio (LCL DDP / FCL 20' / 40'HC), buscador Cliente·MARKBOX, origen/destino, dimensiones por
+     caja, peso, embalaje, **tarifa $/CBM editable**, servicios adicionales del catálogo, **Total DDP**
+     (flete + aduana + impuestos, válida 30 días). **Sin botón de WhatsApp.**
+  2. **Cotizador Exprés del Portal (móvil)** — `portal/mobile-extra.jsx · CotizadorScreen`.
+     Client-facing: ruta CN→VE, servicio, CBM → **estimado DDP** + tránsito. **Publica al bridge**
+     (`pushPortalEvent kind:'cotizacion'`) → entra al ERP como lead/cotización; estado de éxito con
+     referencia rastreable `SOL-2026-XXX`. CTA actual = "Solicitar cotización formal" (in-app).
+  - Ambos son **marítimos DDP puerta a puerta (CN→VE)**. El lead queda integrado en CRM
+    (`source: 'Web · cotizador'`).
+- **Verificado** que el cierre Portal→ERP de la sesión previa (v2.3) sigue intacto sobre la base actual
+  (v2.5): `portalInbox` + `pushPortalEvent`/`markPortalRead`/`tenantForMarkbox` en `erp/data-bridge.jsx`,
+  suscripción + badge numérico + filtro `byTenant` en `DTD Studio · ERP.html` / `erp/shell.jsx`, y los
+  tres emisores (registro web+móvil, cotizador, re-compra). Mapeado a backend en `backend/API-CONTRACT.md §5`.
+
+### ⏳ Pendiente / Backlog (priorizar con el usuario)
+
+**Brecha vs. sitio web vivo (2 piezas que el sitio tiene y el proyecto NO):**
+
+1. **`/calculadora` pública con botón de WhatsApp** — calculadora de marketing/atención rápida cuyo CTA
+   arma un **deep-link `wa.me` con el mensaje del cliente + los datos calculados**. Hoy NO existe el flujo
+   *cotización → WhatsApp prellenado* (lo único con `wa.me` es el share de referidos en `portal/app.jsx`).
+   - *Decisiones abiertas:* ¿segundo CTA dentro del **Cotizador Exprés** existente o **landing pública
+     `/calculadora`** separada del portal logueado? ¿a qué número cae el `wa.me` (agente del lead vs.
+     número central DTD)? ¿también publica al bridge?
+2. **`/cotizar` · calculadora de Última Milla (terrestre VE)** — quoting del **tramo terrestre** de cara al
+   cliente. Hoy existe la lógica **operativa** de última milla (carga de camión, CBM, ocupación, rutas en
+   TMS/Bodeguero) pero **no** una **calculadora de tarifa terrestre**. Las dos calculadoras actuales son
+   solo el leg marítimo.
+   - *Decisiones abiertas:* variables reales del `/cotizar` (peso/volumen, ciudad origen-destino dentro de
+     VE, tipo de vehículo, $/km o tabla por zona). Replicar fiel si se pasa la lógica/screenshot; si no,
+     mock realista marcable.
+
+**Mejoras de producto propuestas (de mensaje previo, pendientes de priorización):**
+
+3. **Cotizador y "Pedir re-compra" del móvil al bridge** — ✅ **ya hecho** en v2.3 (queda registrado como
+   cerrado; era parte del backlog original).
+4. **Badge/aviso en el ERP de registro nuevo del portal** — ✅ **ya hecho** en v2.3 (badge numérico +
+   ítems del portal accionables en el Topbar).
+5. **#14 Multi-tenant** — ✅ confirmado: el portal móvil respeta el tenant (vista single-client, eventos
+   etiquetados por `tenantId` derivado del prefijo MARKBOX, ERP filtra con `byTenant`).
+6. **PWA · "Instalar app" real** — ⏳ **pendiente de DEPLOY** (no codeable acá). Artefactos completos y
+   verificados (`manifest.webmanifest`, `sw.js`, `assets/pwa-icon-192/512.png`, `beforeinstallprompt`);
+   el prompt + service worker **requieren contexto seguro (HTTPS)** → falta **publicar en hosting HTTPS**.
+
+**Notas:** entrada puramente documental — cero cambios de código, cero riesgo de marca. La próxima sesión
+arranca eligiendo 1 y 2 (las brechas reales vs. el sitio); 3/4/5 ya están cerrados, 6 es un paso de infra.
+
+
+
+## 2026-06-06 · 🎨 Brand v3.3 · stickers redondos + entregables sociales
+
+Sesión de identidad social y entregables binarios. Sin tocar producto (ERP/portal) salvo enlaces.
+
+**Archivos nuevos:**
+- `Portadas Redes · DTD-Cargo.html` — propuestas de cabecera YouTube (2048×1152) + Facebook (851×315), 3 direcciones, áreas seguras, descarga PNG a tamaño real, viabilidad de logo animado por plataforma.
+- `Portada Animada FB · DTD-Cargo.html` — video de portada 1250×463 en loop (ruta CN→VE), con botón "Grabar video" que exporta **MP4 nativo** (MediaRecorder) + modo `?embed=1`.
+- `assets/portada-fb-poster.png` — póster estático de la portada animada (para el self-contained, offline).
+- `favicon-pack/` — set completo (favicon.ico 16·32·48, PNG 16/32/48, apple-touch 180, android 192/512, maskable 512, site.webmanifest, README, preview HTML).
+- `Comprobante WhatsApp · DTD-Cargo.html` — comprobante vertical 1080×1920 para mandar como foto.
+- `brandbook-icons/*.png` (15) — íconos de perfil reales renderizados (8 roles + 7 grupos) para la sección 07 del Brand Book.
+
+**Archivos modificados:**
+- `Aplicaciones de Marca.html` · sección 12 · sticker pack ahora **redondo + transparente** (512×512, aro blanco WhatsApp), spec de formato + export real `.webp`/`.png` (canvas, sin libs). Thumbnail bundler agregado.
+- `Brand Book DTD v3.2.html` · versión visible **v3.2 → v3.3** (portada, sidebar, cierre, footer, changelog); sección 07 íconos reales; sección 09 fotográfica completa; "Confianza" mayúscula; enlaces a portadas; íconos de perfil.
+- `erp/shell.jsx`, `portal/app.jsx`, `erp/modules/admin.jsx` · migración del isólogo viejo (`dtdcargo-icon-navy.png` + filtros) al sistema oficial v1.0 (primary/reverse por tema, sin filtros).
+- `assets/container.svg` · wordmark `CARGO` → `Cargo`.
+- `erp/tokens.css` · clases `.dtd-iso-auto`/`.dtd-iso-ondark` + tokens de wordmark por tema.
+- Tagline "Con **C**onfianza, de China a tu puerta." propagado a 13 archivos de producto + `CLAUDE.md`.
+- Self-contained regenerados (Brand Book + Aplicaciones de Marca).
+
+**Eliminado:** `assets/dtdcargo-icon-navy.png` (raster viejo, ya sin referencias vivas).
+
+**Notas:** los nombres de archivo del Brand Book se mantienen en `v3.2` para no romper enlaces; solo cambió la versión mostrada a v3.3. Pendiente de los 12 entregables binarios: favicon ✓, factura/comprobante ✓, sticker pack ✓ — falta el ZPL (etiqueta de bodega), en curso.
+
+
+
+## 2026-06-02 · 🏁 RELEASE v2.5 · Finanzas completas + Nómina + App del Empleado
+
+Consolidación de toda la sesión. Auditoría de integración pasada (cuadre exacto, cero cuentas
+faltantes, todos los puentes postean cuadrado). Título del ERP: v2.4 → **v2.5**.
+
+**Incluye (detalle en las entradas de abajo):**
+1. **Libros contables reconectados** al plan real + harmonizados con los libros fiscales.
+2. **Escritura contable completa:** nuevo asiento, registrar pago/gasto, editar/eliminar asiento,
+   editar/inactivar cuentas.
+3. **Cierre de ejercicio + diferencia cambiaria automática.**
+4. **Activos fijos + depreciación.**
+5. **Provisiones fiscales** (ISLR · municipal · ajuste por inflación).
+6. **Puentes:** Fiscal→Contabilidad, y subdiario→mayor (cobranzas, tesorería, conciliación).
+7. **Nómina:** pago en VES / contabilidad en USD (forex) + comunicaciones RRHH→empleado.
+8. **Rol `Empleado`** (RBAC → solo Nómina) + 3 usuarios enlazados a sus fichas.
+9. **App del Empleado** (teléfono dedicado): login, recibo, inbox de comunicaciones con "Acuso
+   recibo", perfil.
+
+**Auditoría 2026-06-02 (eval_js):** Balance A 220.173 = P 41.628 + Pat 178.545 (ok). Cuentas
+referenciadas por todos los builders existen en el plan. Stress test de puentes (pago, ISLR,
+depreciación, nómina, conciliación) → todos cuadran y el balance se mantiene.
+
+---
+
+## 2026-06-02 · 📱 v1.0 · App del Empleado (teléfono dedicado)
+
+**Opción B:** app de teléfono propia para el empleado (autoservicio de nómina), espejando el
+patrón del Portal del Cliente.
+
+**Archivos nuevos:**
+- App del Empleado.html · shell PWA (tokens + react + icons + data + rates + nomina-data + app).
+- empleado/app.jsx · `window.EmpleadoApp`: login propio (autentica contra USERS rol Empleado →
+  empId), marco de teléfono + status bar + tab bar, y 4 pantallas:
+  - **Inicio:** saludo, tarjeta de pago (neto Bs + ref USD/BCV), pendientes por confirmar, accesos.
+  - **Recibo:** desglose (asignaciones / deducciones SSO·RPE·FAOV / neto Bs+USD) + compartir WhatsApp.
+  - **Mensajes (inbox):** comunicaciones de RRHH (recibo/aviso/llamado/amonestación) con no-leído;
+    detalle con "Acuso recibo" (ack) para llamados y amonestaciones.
+  - **Perfil:** ficha + cerrar sesión.
+
+**Modelo:** reusa `NominaData` (calcRecibo, commsFor, markComm, waLink) y `ERPRates`. Sesión en
+localStorage (`dtd-emp-session` = empId). Login demo con 3 empleados (Yolanda/Daniela/Luis). Pago
+en bolívares, referencia en USD. **Pendiente / a definir:** push real, adjuntar PDF del recibo,
+historial de períodos anteriores.
+
+---
+
+## 2026-06-02 · 👷 v2.5 · Rol Empleado + Comunicaciones de nómina
+
+**Formalización del autoservicio del empleado** (reusa el RBAC existente):
+- erp/data.jsx · `ROLE_MODULES['Empleado'] = ['nomina']` → un usuario con rol Empleado, al
+  hacer login, ve SOLO el módulo Nómina y aterriza directo ahí (mecanismo ya soportado por el
+  shell: `role !== 'Admin' ? ROLE_MODULES[role] : '*'`). Agregados 3 usuarios-empleado
+  (`u-101/102/103`) con `empId` que enlaza `USERS → EMPLOYEES`. Scope `self`.
+- erp/modules/users.jsx · rol "Empleado" en la card de Roles y Permisos, el filtro y el form
+  de invitación.
+
+**Comunicaciones RRHH → empleado** (le llega a su app):
+- erp/modules/nomina-data.jsx · modelo `COMM_*`: tipos recibo / aviso / llamado de atención /
+  amonestación, con `commsFor`/`allComms`/`createComm`/`markComm` (read/ack) y `commWaLink`.
+- erp/modules/nomina.jsx · pestaña "Comunicaciones" (lado RRHH): historial con estado
+  enviado/leído/confirmado + drawer "Nueva comunicación" (empleado, tipo, asunto, mensaje,
+  opción de reenviar por WhatsApp).
+
+**Modelo:** el empleado puede o no tener acceso general; con rol Empleado queda acotado a Nómina.
+Las comunicaciones se entregan in-app (inbox del empleado) y opcionalmente por WhatsApp.
+**Pendiente / a definir con el usuario:** la app del empleado en sí (inbox/recibo del lado del
+empleado) — falta decidir si es una vista del ERP acotada por rol o una app de teléfono dedicada
+(como el portal del cliente).
+
+---
+
+## 2026-06-02 · 👷 v2.5 · Rol Empleado + Comunicaciones de nómina
+
+**Formalización del autoservicio del empleado** (reusa el RBAC existente):
+- erp/data.jsx · `ROLE_MODULES['Empleado'] = ['nomina']` → un usuario con rol Empleado, al
+  hacer login, ve SOLO el módulo Nómina y aterriza directo ahí (mecanismo ya soportado por el
+  shell: `role !== 'Admin' ? ROLE_MODULES[role] : '*'`). Agregados 3 usuarios-empleado
+  (`u-101/102/103`) con `empId` que enlaza `USERS → EMPLOYEES`. Scope `self`.
+- erp/modules/users.jsx · rol "Empleado" en la card de Roles y Permisos, el filtro y el form
+  de invitación.
+
+**Comunicaciones RRHH → empleado** (le llega a su app):
+- erp/modules/nomina-data.jsx · modelo `COMM_*`: tipos recibo / aviso / llamado de atención /
+  amonestación, con `commsFor`/`allComms`/`createComm`/`markComm` (read/ack) y `commWaLink`.
+- erp/modules/nomina.jsx · pestaña "Comunicaciones" (lado RRHH): historial con estado
+  enviado/leído/confirmado + drawer "Nueva comunicación" (empleado, tipo, asunto, mensaje,
+  opción de reenviar por WhatsApp).
+
+**Modelo:** el empleado puede o no tener acceso general; con rol Empleado queda acotado a Nómina.
+Las comunicaciones se entregan in-app (inbox del empleado) y opcionalmente por WhatsApp.
+**Pendiente / a definir con el usuario:** la app del empleado en sí (inbox/recibo del lado del
+empleado) — falta decidir si es una vista del ERP acotada por rol o una app de teléfono dedicada
+(como el portal del cliente).
+
+---
+
+## 2026-06-02 · 🔗 v2.5 · Conciliación bancaria → mayor
+
+**Archivos modificados:**
+- erp/modules/contabilidad-data.jsx · `findEntryByRef`, `reconcileBankMovement` (exportados).
+- erp/modules/conciliacion.jsx · al confirmar un match ahora se concilia contra el mayor:
+  `confirmMatch` / `postToLedger`, badge "→ AS-XXXX · ligado/creado/borrador posteado" en la
+  fila y footer del detalle, botón "Contabilizar al mayor" cuando hace falta desbloquear.
+
+**Modelo (correcto contablemente):** conciliar **liga** el movimiento del extracto a su asiento
+existente (match por `ref` bancaria) sin duplicar; si el asiento está en **borrador** lo **postea**
+(borrador→contabilizado); y si el movimiento no está en libros **crea** el asiento (crédito → débito
+banco 1.04.01 / crédito CxC 1.05.01 · débito → débito CxP 2.01.06 / crédito banco). Crear/postear
+requiere "Edición abierta"; ligar no muta el mayor. Verificado: los 3 modos andan y el balance cuadra.
+
+---
+
+## 2026-06-02 · 💵 v2.5 · Nómina (pago en VES · contabilidad en USD)
+
+**Archivos nuevos:**
+- erp/modules/nomina-data.jsx · empleados (seed) + cálculo de recibo (sueldo indexado USD,
+  deducciones SSO 4% / RPE 0,5% / FAOV 1%), asiento contable y armador de mensaje WhatsApp.
+  Expone `window.NominaData`.
+- erp/modules/nomina.jsx · `ModuleNomina` con tabs: Nómina del período · Empleados · Envío
+  por WhatsApp.
+
+**Archivos modificados:**
+- DTD Studio · ERP.html · agregados `<script>` de nomina-data/nomina + `nomina: window.ModuleNomina`
+  en el moduleMap.
+- erp/shell.jsx · ítem de sidebar `nomina` (grupo FINANZAS).
+
+**Modelo:** sueldos indexados en USD, pago en **bolívares** (neto × BCV), contabilidad en **USD
+funcional**. El asiento de nómina: débito `6.09.04` (gasto) · crédito `2.08` (aportes retenidos)
+· crédito `1.01.02` (banco VES) por el neto, con `forex` (monto Bs + tasa BCV). Sección WhatsApp:
+recibo en bolívares por empleado con link `wa.me` (versión básica). Verificado: asiento cuadra y
+el balance se mantiene tras contabilizar. **Pendiente:** detalle adicional de la sección WhatsApp
+(a definir por el usuario).
+
+---
+
+## 2026-06-02 · 🧾 v2.5 · Contabilidad: reconexión de libros + escritura
+
+**Resumen:** el módulo de Contabilidad dejó de ser solo lectura. Primero se reconectó el plan
+de cuentas real con los asientos/reportes (estaban en cero), y luego se activaron las altas,
+ediciones y bajas (asientos, pagos, gastos y cuentas).
+
+**Archivos nuevos:**
+- erp/modules/contabilidad-forms.jsx · drawers de escritura (Nuevo asiento manual + edición,
+  Registrar pago, Registrar gasto). Expone `window.ContabForms`.
+
+**Archivos modificados (qué + razón):**
+- erp/modules/contabilidad-data.jsx
+  - Remapeados los 14 patrones de cuenta de los asientos seed al plan real (CxC→1.05.01,
+    banco USD→1.04.01, VES→1.01.02, flete marítimo→4.09.03.02, DDP→4.09.02.02,
+    costos→5.07.x, gastos→6.02/6.09.04/6.13/6.18.02). Agregada cuenta `2.01.08 IVA DÉBITO FISCAL`.
+  - Helpers de saldo reescritos **leaf-aware** (`isLeaf`, `directBalance`, `postedAccounts`,
+    `typeTotal`): postean/suman a cualquier nivel sin doble conteo. `accountBalance` recursivo;
+    `calculatePL`/`calculateBS` recalculados.
+  - **Bug crítico arreglado:** `getAccount` global chocaba con el de `tesoreria-data.jsx`
+    (la última definición ganaba) → los saldos daban 0. Renombrado a `cdGetAccount` /
+    `tesGetAccount` (claves exportadas intactas).
+  - Capa editable del libro diario: `SEED_ENTRIES` (fábrica) + overrides en localStorage
+    (`dtd_journal_v25`) → `createEntry`/`updateEntry`/`deleteEntry`/`nextEntryId`.
+  - Cuentas nuevas en el plan: `1.18 IVA crédito fiscal`, `2.01.09 IVA por pagar (SENIAT)`,
+    `2.01.10 retenciones por pagar`.
+  - Helpers de activos fijos: `FIXED_ASSETS` (seed), `assetDepreciation`, `createAsset`,
+    `buildDepreciationEntry`.
+  - Helpers de provisiones/puentes: `buildProvisionEntry`, `buildRetencionesEntry`,
+    `buildIvaSettlementEntry`, `pendingCollections`/`pendingPayments`/`postCollection`/`postPayment`.
+  - Helpers de cierre: `foreignPositions`, `buildRevaluationEntry`, `buildClosingEntry`,
+    `readClose`/`writeClose` (marcador de período).
+  - Edición/inactivación de cuentas: overrides en localStorage (`dtd_coa_overrides_v25`) →
+    `updateAccount`/`setAccountActive` (las cuentas del seed no se borran; se inactivan).
+- erp/modules/contabilidad.jsx (v1.1 → v2.5)
+  - Dashboard: tarjetas de caja por rubro real (1.04/1.01/1.03/1.02) + CxC 1.05 / CxP 2.01.
+    CFReport sobre cuentas de caja reales. BSReport reescrito al nuevo shape agrupado por rubro.
+    CoA tab muestra saldo por hoja.
+  - Cableado de escritura: botón "Nuevo asiento", acciones rápidas "Registrar pago/gasto",
+    "Editar"/"Eliminar" en el detalle del asiento (respeta modo seguro), próximo nº dinámico.
+  - Plan de cuentas: botón "Editar" por cuenta hoja + `EditAccountDrawer`, filtro
+    "Ocultar inactivas", badges "Inactiva"/"Propia".
+  - Nueva pestaña **"Cierre & ajustes"** (`CierreTab`): (a) diferencia cambiaria · revalúa las
+    cuentas monetarias VES/CNY a tasa de cierre y postea la diferencia a 6.04; (b) cierre de
+    ejercicio · cancela ingresos/costos/gastos contra Ganancias Retenidas (3.04). Marcador de
+    cierre en localStorage (`dtd_period_close_v25`).  - Nueva pestaña **"Activos fijos"** (`AssetsTab` + `AssetDrawer`): registro de bienes de uso
+    con depreciación lineal (costo/acumulada/neto/mensual) y botón "Contabilizar depreciación"
+    (débito 6.06 / crédito 1.11). Seed de 4 activos + alta de nuevos.
+  - Nueva pestaña **"Por contabilizar"** (`PorContabilizarTab`): puente subdiario→mayor ·
+    contabiliza cobros (Cobranzas/Tesorería → débito banco/crédito CxC 1.05.01) y pagos
+    (órdenes de Tesorería → débito CxP 2.01.06/crédito banco), con tracking de posteo.
+  - `CierreTab` → card **Provisiones fiscales** (`ProvisionesFiscales`): ISLR (6.16/2.01.03),
+    municipal (6.14.04/2.01.04), ajuste por inflación (6.14.05/2.01.07).
+
+- erp/modules/fiscal.jsx · `ContabilizarFiscal`: puente Fiscal→Contabilidad en Declaración IVA
+  (cuota a 2.01.08/1.18/2.01.09) y Retenciones (a 2.01.06/2.01.10/2.01.03).
+
+- erp/modules/tesoreria-data.jsx · `getAccount`→`tesGetAccount`; campos `coa` actualizados al
+  plan real (1.04.01/1.01.02/1.04.02/1.03.02/1.03.01/1.02.01).
+- erp/modules/direccion.jsx · `accountBalance('1.1.10')` → `'1.05.01'` (CxC).
+- DTD Studio · ERP.html · línea ~114 · agregado `<script src="erp/modules/contabilidad-forms.jsx">`.
+
+**Cuadre verificado:** Activo $198.920 = Pasivo $39.890 + Patrimonio $159.030 · Ingresos
+$249.310 · Utilidad neta $159.030. Alta/edición/baja de asientos preservan el cuadre.
+
+**Pendiente (sección contable):** nómina (se hace al final).
+
+**Harmonización libros↔fiscal (2026-06-02):** el seed contable se completó para igualar los libros
+fiscales — agregadas las facturas F-2026-0402 (Pereira) y F-2026-0421 (Tech, exento), y desglosado
+el IVA crédito (1.18) en las compras gravadas (agente, alquiler, comisiones + licencias de software).
+Resultado: IVA débito en libros = $41.628 y crédito = $1.053, idénticos a los libros fiscales; la
+"Contabilizar declaración IVA" ahora cancela exactamente 2.01.08 y 1.18 contra IVA por pagar (2.01.09).
+
+---
+
 ## 2026-06-02 · 🧹 Auditoría + limpieza + handoff a Claude Code
 
 - **Auditoría completa:** 37 módulos del ERP + todos los entrypoints (portales, apps de

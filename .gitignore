@@ -95,6 +95,15 @@ docs/design/studio/_norte/scraps/
 docs/design/studio/_norte/screenshots/
 docs/design/studio/_norte/Brand Book v3.0 Package/
 docs/design/studio/_norte/_norte.html
+# Brand Book "self-contained" v3.2 (base64 embebido, ~30 MB entre el HTML suelto
+# y la carpeta) — versión para enviar. El repo guarda la versión liviana que
+# referencia assets/ ("Brand Book DTD v3.2.html"). Estos no se versionan.
+docs/design/studio/_norte/DTD-Brand-Book-v3.2-selfcontained/
+docs/design/studio/_norte/Brand Book DTD v3.2 - self-contained.html
+# Blueprint Prisma que Cloud Design re-incluye en cada handoff. Decisión founder
+# 2026-06-03: backend NATIVO Supabase, NO Prisma → schema.prisma fuera de git
+# (borrado permanente; se re-excluye solo en cada NORTE-SYNC).
+docs/design/studio/_norte/backend/prisma/
 # Copia horneada del Norte para la web (SDD-0050): la genera `scripts/norte.mjs`
 # vía el `postbuild` de Vercel y, en local, corriendo el script a mano. Es un
 # artefacto de build (su `stamp` cambia en cada corrida → churn), no se versiona.

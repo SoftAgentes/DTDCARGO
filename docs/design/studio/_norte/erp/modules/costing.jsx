@@ -576,18 +576,18 @@ function Cell({ v }) {
 function ForecastSection() {
   const D = window.ERPData;
   const U = window.ERPUI;
-  // Pipeline: shipments in cotizado/confirmado/recibido CN status + accepted quotes
-  const pipeline = D.byTenant(D.SHIPMENTS).filter(s => ['cotizado', 'confirmado', 'recibido CN', 'consolidado'].includes(s.status))
+  // Pipeline: shipments in estimado/confirmado/recibido CN status + accepted quotes
+  const pipeline = D.byTenant(D.SHIPMENTS).filter(s => ['estimado', 'confirmado', 'recibido CN', 'consolidado'].includes(s.status))
     .map(s => ({ ship: s, eco: D.shipmentEconomics(s) }));
-  const acceptedQuotes = D.byTenant(D.QUOTES).filter(q => q.status === 'aceptada');
+  const acceptedEstimados = D.byTenant(D.ESTIMADOS).filter(q => q.status === 'aceptado');
 
-  const projRevenue = pipeline.reduce((a, x) => a + x.eco.revenue, 0) + acceptedQuotes.reduce((a, q) => a + q.totalUSD, 0);
-  const projCost    = pipeline.reduce((a, x) => a + x.eco.totalCost, 0) + acceptedQuotes.reduce((a, q) => a + q.totalUSD * 0.78, 0); // ~22% margen estimado
+  const projRevenue = pipeline.reduce((a, x) => a + x.eco.revenue, 0) + acceptedEstimados.reduce((a, q) => a + q.totalUSD, 0);
+  const projCost    = pipeline.reduce((a, x) => a + x.eco.totalCost, 0) + acceptedEstimados.reduce((a, q) => a + q.totalUSD * 0.78, 0); // ~22% margen estimado
   const projMargin  = projRevenue - projCost;
   const projMarginPct = projRevenue > 0 ? (projMargin / projRevenue) * 100 : 0;
 
   // Por status
-  const byStatus = ['cotizado', 'confirmado', 'recibido CN', 'consolidado'].map(st => {
+  const byStatus = ['estimado', 'confirmado', 'recibido CN', 'consolidado'].map(st => {
     const items = pipeline.filter(x => x.ship.status === st);
     return { status: st, count: items.length, revenue: items.reduce((s, x) => s + x.eco.revenue, 0), margin: items.reduce((s, x) => s + x.eco.margin, 0) };
   });
@@ -613,7 +613,7 @@ function ForecastSection() {
         </div>
 
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid rgba(255,255,255,0.1)', font: '500 12px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.7)' }}>
-          Basado en {pipeline.length} embarques en pipeline + {acceptedQuotes.length} cotizaciones aceptadas pendientes de embarcar. Confianza ~85% (asume todos cierran).
+          Basado en {pipeline.length} embarques en pipeline + {acceptedEstimados.length} estimados aceptadas pendientes de embarcar. Confianza ~85% (asume todos cierran).
         </div>
       </U.Card>
 
@@ -642,12 +642,12 @@ function ForecastSection() {
       </U.Card>
 
       {/* Accepted quotes pending shipment */}
-      {acceptedQuotes.length > 0 && (
+      {acceptedEstimados.length > 0 && (
         <U.Card padded={false}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)' }}>
-            <div className="eyebrow eyebrow-wine">{acceptedQuotes.length} COTIZACIONES ACEPTADAS · PENDIENTES DE EMBARCAR</div>
+            <div className="eyebrow eyebrow-wine">{acceptedEstimados.length} ESTIMADOS ACEPTADAS · PENDIENTES DE EMBARCAR</div>
           </div>
-          {acceptedQuotes.map((q, i) => {
+          {acceptedEstimados.map((q, i) => {
             const estMargin = q.totalUSD * 0.22;
             return (
               <div key={q.id} style={{
