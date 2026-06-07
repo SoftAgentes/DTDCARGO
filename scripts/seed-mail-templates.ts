@@ -35,7 +35,7 @@ interface MailTemplateSeed {
  * con {{snake_case}}. Se auto-extraen al UPSERT (no hace falta listarlas).
  *
  * Estos templates cubren los 6 flujos críticos del Studio:
- *  - Cotizaciones (enviada / aceptada)
+ *  - Estimados (enviado / aceptado)
  *  - Facturación (emitida / vencida)
  *  - Operación (embarque creado / arribado)
  *  - Cliente (bienvenida)
@@ -44,32 +44,32 @@ interface MailTemplateSeed {
 const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
   {
     slug: "quote_sent",
-    name: "Cotización enviada",
+    name: "Estimado enviado",
     category: "comercial",
     channel: "email",
-    subject: "Cotización DTD Cargo · {{quote_code}} · {{customer_name}}",
+    subject: "Estimado DTD Cargo · {{quote_code}} · {{customer_name}}",
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
-      <p>Te adjuntamos la cotización <strong>{{quote_code}}</strong> con el desglose del flete puerta a puerta.</p>
+      <p>Te adjuntamos el estimado <strong>{{quote_code}}</strong> con el desglose del flete puerta a puerta.</p>
       <table style="border-collapse:collapse;font:14px Archivo,sans-serif;margin:16px 0;">
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Ruta</td><td style="padding:6px 12px;color:#0F1E3D;">{{origin}} → {{destination}}</td></tr>
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Servicio</td><td style="padding:6px 12px;color:#0F1E3D;">{{service}}</td></tr>
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Volumen</td><td style="padding:6px 12px;color:#0F1E3D;">{{cbm}} CBM</td></tr>
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Total</td><td style="padding:6px 12px;color:#7F0F1A;font-weight:bold;">USD {{total_usd}}</td></tr>
       </table>
-      <p>La cotización es válida por <strong>{{validity_days}}</strong> días.</p>
+      <p>El estimado es válido por <strong>{{validity_days}}</strong> días.</p>
       <p>Cualquier ajuste, contestá este correo y lo coordinamos.</p>
     `),
   },
   {
     slug: "quote_accepted",
-    name: "Cotización aceptada · confirmación",
+    name: "Estimado aceptado · confirmación",
     category: "comercial",
     channel: "email",
-    subject: "Cotización {{quote_code}} confirmada — siguiente paso",
+    subject: "Estimado {{quote_code}} confirmado — siguiente paso",
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
-      <p>Recibimos tu confirmación de la cotización <strong>{{quote_code}}</strong>. Vamos a abrir el embarque y te enviamos el código de seguimiento en las próximas <strong>24 horas hábiles</strong>.</p>
+      <p>Recibimos tu confirmación del estimado <strong>{{quote_code}}</strong>. Vamos a abrir el embarque y te enviamos el código de seguimiento en las próximas <strong>24 horas hábiles</strong>.</p>
       <p>Mientras tanto, podés ir preparando:</p>
       <ul style="font:14px Archivo,sans-serif;color:#0F1E3D;">
         <li>Packing list final</li>

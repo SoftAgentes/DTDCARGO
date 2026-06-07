@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Wrapper client del detalle de cotización.
+ * Wrapper client del detalle de un estimado.
  *
  * Maneja:
  * - Estado del drawer de edit (solo cuando status=draft)
@@ -189,7 +189,7 @@ export function QuoteDetailClient({
           <ActionButton
             variant="primary"
             size="sm"
-            idleLabel="Enviar cotización"
+            idleLabel="Enviar estimado"
             loadingLabel="Enviando…"
             successLabel="Enviado al cliente"
             idleIcon={Icon.mail(14)}
@@ -197,8 +197,8 @@ export function QuoteDetailClient({
             successMs={SENT_SUCCESS_MS}
             title={(s) =>
               s === "success"
-                ? "Email enviado al cliente y cotización marcada como enviada"
-                : "Manda el email al cliente con la cotización y la marca como enviada"
+                ? "Email enviado al cliente y estimado marcado como enviado"
+                : "Manda el email al cliente con el estimado y lo marca como enviado"
             }
             onAction={async () => {
               setError(null);
@@ -208,7 +208,7 @@ export function QuoteDetailClient({
               setJustSent(true);
               setTimeout(() => setJustSent(false), SENT_SUCCESS_MS);
               toast.success(
-                `Cotización ${quote.quote_code} enviada al cliente`,
+                `Estimado ${quote.quote_code} enviado al cliente`,
                 {
                   link: {
                     href: `/studio/cotizador?status=sent&highlight=${encodeURIComponent(quote.quote_code)}`,
@@ -234,7 +234,7 @@ export function QuoteDetailClient({
                 return markQuoteRejected(quote.id);
               }}
               onSuccess={() =>
-                toast.info(`Cotización ${quote.quote_code} marcada como rechazada`, {
+                toast.info(`Estimado ${quote.quote_code} marcado como rechazado`, {
                   link: {
                     href: `/studio/cotizador?status=rejected&highlight=${encodeURIComponent(quote.quote_code)}`,
                     label: "Ver en Rechazadas",
@@ -248,7 +248,7 @@ export function QuoteDetailClient({
               size="sm"
               idleLabel="Aceptada"
               loadingLabel="Marcando…"
-              successLabel="Cotización aceptada"
+              successLabel="Estimado aceptado"
               successIcon={Icon.check(14)}
               onAction={async () => {
                 setError(null);
@@ -256,7 +256,7 @@ export function QuoteDetailClient({
               }}
               onSuccess={() =>
                 toast.success(
-                  `Cotización ${quote.quote_code} aceptada · lista para convertir`,
+                  `Estimado ${quote.quote_code} aceptado · listo para convertir`,
                   {
                     link: {
                       href: `/studio/cotizador?status=accepted&highlight=${encodeURIComponent(quote.quote_code)}`,
@@ -295,7 +295,7 @@ export function QuoteDetailClient({
                   if (r.error) return { error: r.error };
                   if (r.shipmentId) {
                     toast.success(
-                      `Cotización ${quote.quote_code} convertida a embarque`,
+                      `Estimado ${quote.quote_code} convertido a embarque`,
                       {
                         link: {
                           href: `/studio/tracking/${r.shipmentId}`,
@@ -324,7 +324,7 @@ export function QuoteDetailClient({
               type="button"
               className="studio-btn studio-btn-primary studio-btn-sm"
               onClick={() => setConfirmConvert(true)}
-              title="Crea un embarque del Tracking con los datos de la cotización"
+              title="Crea un embarque del Tracking con los datos del estimado"
             >
               Convertir a embarque →
             </button>

@@ -1,5 +1,5 @@
 /**
- * Detalle de cotización — card total + datos + acciones + link a shipment.
+ * Detalle de un estimado — card total + datos + acciones + link a shipment.
  *
  * SDD-0011. Server component lee la quote por code. Las acciones se delegan
  * al QuoteDetailClient.
@@ -21,7 +21,7 @@ import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { QuoteDetailClient } from "../_components/QuoteDetailClient";
 
-export const metadata = { title: "Detalle cotización" };
+export const metadata = { title: "Detalle estimado" };
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-VE", {
@@ -128,7 +128,7 @@ export default async function QuoteDetailPage({
               color: "var(--ink)",
             }}
           >
-            ✓ Esta cotización ya fue convertida a un embarque.
+            ✓ Este estimado ya fue convertido a un embarque.
           </span>
           <Link
             href={`/studio/tracking/${quote.converted_to_shipment_id}`}
@@ -157,7 +157,7 @@ export default async function QuoteDetailPage({
             textTransform: "uppercase",
           }}
         >
-          Total cotizado
+          Total estimado
         </div>
         <div
           style={{

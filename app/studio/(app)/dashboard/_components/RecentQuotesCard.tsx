@@ -1,7 +1,7 @@
 /**
  * RecentQuotesCard · Dashboard (SDD-0014)
  *
- * Server component que renderiza la card "Cotizaciones recientes" del
+ * Server component que renderiza la card "Estimados recientes" del
  * dashboard. Server porque no necesita interacción client (los <Link>
  * de Next se hidratan solos).
  */
@@ -38,7 +38,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
           gap: 10,
         }}
       >
-        <span className="studio-eyebrow">Cotizaciones recientes</span>
+        <span className="studio-eyebrow">Estimados recientes</span>
         <Link
           href="/studio/cotizador"
           style={{
@@ -61,7 +61,7 @@ export function RecentQuotesCard({ quotes }: { quotes: RecentQuoteRow[] }) {
             textAlign: "center",
           }}
         >
-          Aún no hay cotizaciones.{" "}
+          Aún no hay estimados.{" "}
           <Link
             href="/studio/cotizador"
             style={{

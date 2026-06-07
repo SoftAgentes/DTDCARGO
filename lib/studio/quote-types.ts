@@ -1,5 +1,5 @@
 /**
- * Tipos TypeScript del módulo Cotizador (SDD-0011).
+ * Tipos TypeScript del módulo Estimados (ex-Cotizador · SDD-0011, renombrado en SDD-0061).
  * Matchea schema de supabase/migrations/0007_quotes.sql.
  */
 

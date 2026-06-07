@@ -8,7 +8,7 @@
  *      versión vigente + histórico de versiones en tabla. Botón "Ver" abre un
  *      modal con el body completo del doc.
  *   2. Aceptaciones — KPIs + búsqueda + filtro por documento + tabla de acuses +
- *      modal de detalle con la Evidencia (cliente/markbox, cotización, docs+
+ *      modal de detalle con la Evidencia (cliente/markbox, estimado, docs+
  *      versión, fecha/hora, IP, hash).
  *
  * NO publica versiones nuevas (futuro). Usa primitivas reales del Studio
@@ -420,7 +420,7 @@ function DocsView({ docs }: { docs: LegalDoc[] }) {
         </span>
         <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink)" }}>
           Al publicar una nueva versión, las aceptaciones previas conservan su
-          versión histórica (no se reescriben). Las cotizaciones nuevas pedirán
+          versión histórica (no se reescriben). Los estimados nuevos pedirán
           aceptar la versión vigente.
         </div>
       </div>
@@ -661,7 +661,7 @@ function AcceptancesView({
             id="acc-search"
             type="text"
             className="studio-input"
-            placeholder="Acuse, MARKBOX, cotización, IP…"
+            placeholder="Acuse, MARKBOX, estimado, IP…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -697,7 +697,7 @@ function AcceptancesView({
           }
           description={
             acceptances.length === 0
-              ? "Cuando un cliente acepte los T&C de una cotización, el acuse aparecerá acá (inmutable y auditado)."
+              ? "Cuando un cliente acepte los T&C de un estimado, el acuse aparecerá acá (inmutable y auditado)."
               : "Probá ajustar la búsqueda o el filtro de documento."
           }
         />
@@ -726,7 +726,7 @@ function AcceptancesView({
           >
             <span>Acuse</span>
             <span>Cliente</span>
-            <span>Cotización</span>
+            <span>Estimado</span>
             <span>Documentos</span>
             <span>Fecha / hora</span>
             <span />
@@ -963,7 +963,7 @@ function AcceptanceModal({
             Evidencia
           </div>
           <EvidenceRow k="Cliente / MARKBOX" v={a.client_markbox ?? "—"} />
-          <EvidenceRow k="Cotización" v={a.quote_code ?? "—"} />
+          <EvidenceRow k="Estimado" v={a.quote_code ?? "—"} />
           {a.docs.length > 0 ? (
             a.docs.map((d, k) => (
               <EvidenceRow

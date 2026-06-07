@@ -77,7 +77,7 @@ export function RulesView({ rules, templates }: Props) {
           Configurá reglas para disparar emails automáticos cuando ocurre un
           evento (ej: al crear un embarque, mandar shipment_created al
           cliente). Las reglas activas se ejecutan en tiempo real desde los
-          hooks en cotizador y tracking. Envíos best-effort: si Resend falla,
+          hooks en Estimados y tracking. Envíos best-effort: si Resend falla,
           la operación principal no se rompe.
         </p>
         <button

@@ -8,7 +8,7 @@
  * component puede disparar un toast:
  *
  *   const toast = useToast();
- *   toast.success("Cotización Q-2026-0005 enviada", {
+ *   toast.success("Estimado EST-2026-0005 enviado", {
  *     link: { href: "/studio/cotizador?filter=sent", label: "Ver en Enviadas" },
  *     durationMs: 6000,
  *   });

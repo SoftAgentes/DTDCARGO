@@ -130,7 +130,7 @@ export function validateAcceptanceInput(
 
   const quoteCode = String(raw.quote_code ?? "").trim();
   if (!quoteCode) {
-    errors.quote_code = "Indicá la cotización que se acepta.";
+    errors.quote_code = "Indicá el estimado que se acepta.";
   }
 
   if (!Array.isArray(docs) || docs.length === 0) {
@@ -282,7 +282,7 @@ export function acceptanceHashPayload(ev: AcceptanceEvidence): string {
 }
 
 // ── Match de medida (el corazón del gate AUT-04) ──────────────
-/** Medida atada a una aceptación / a la cotización vigente. */
+/** Medida atada a una aceptación / al estimado vigente. */
 export type Measure = {
   cbm: number;
   weight_kg: number;

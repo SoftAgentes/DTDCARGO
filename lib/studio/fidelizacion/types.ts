@@ -45,7 +45,7 @@ export const TIERS: Tier[] = [
     benefits: [
       "−5% en almacenaje",
       "Prioridad media en consolidación",
-      "Cotización en 12 h",
+      "Estimado en 12 h",
     ],
   },
   {

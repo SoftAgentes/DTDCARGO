@@ -1,5 +1,5 @@
 /**
- * Helpers de query reutilizables para el módulo Cotizador (SDD-0011).
+ * Helpers de query reutilizables para el módulo Estimados (ex-Cotizador · SDD-0011, renombrado en SDD-0061).
  *
  * RLS filtra por tenant_id automáticamente.
  */

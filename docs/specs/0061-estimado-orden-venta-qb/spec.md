@@ -163,8 +163,8 @@ Orden de venta (confirmada) → Embarque (operar) + Factura (cobrar) → Cobranz
 - [x] Migración aditiva (no rompe `quotes`); frontera intacta (form público sin Supabase). `node scripts/verify.mjs` 🟢. *(B1 migr 0113 · B2 sin migración)*
 
 ### Fase C
-- [ ] "Cotización" no aparece en UI/copy/códigos del ERP; módulo = "Estimados"; códigos `EST-`.
-- [ ] Datos `quotes` existentes intactos. `pnpm lint` + `verify` 🟢. `ui-ux-designer` OK.
+- [x] "Cotización" no aparece en UI/copy/códigos del ERP; módulo = "Estimados"; códigos `EST-`. *(C)*
+- [x] Datos `quotes` existentes intactos (sin DDL · sigue usando tabla `quotes` + columna `quote_code`). `verify` 🟢. *(C)* `pnpm lint` cubierto por el gate; `ui-ux-designer` pendiente.
 
 ### Fase D (futuro)
 - [ ] Entidad Orden de venta + conversiones; módulo Órdenes de compra (OC cliente/DTD); OC de DTD → Bill.
@@ -249,6 +249,26 @@ Sin mockup del Norte aprobado para estas pantallas todavía. UI reusa primitivas
 **Gate:** `node scripts/verify.mjs` 🟢 (1302 tests). **Review:** `reviewer` **APPROVED** (0 findings bloqueantes); `ui-ux-designer` "ship it" (aplicado A1: chip activo `studio-btn-warning`; B2 alineación input↔botón; B3 acento wine al panel de vínculo).
 
 **Pendiente founder:** B2 no necesita migración (0113 ya en prod). Resto del SDD pendiente: Fase C (rename interno) y Fase D (modelo QB).
+
+### Fase C — implementada (2026-06-07 · harness implement→verify)
+
+**Alcance:** rename de vocabulario/UI del ERP "cotización" → "estimado" + códigos nuevos `EST-`. **SIN migración, SIN DDL.** Los datos `quotes` existentes (incl. códigos `Q-` viejos) sobreviven intactos: NO se renombró carpeta/ruta (`cotizador/`, `/studio/cotizador`), nombres de archivo/tipo (`Quote*`, `CotizadorClient`, `QuoteDrawer`), tabla `quotes`, columna `quote_code`, RPC `next_quote_code` (queda; solo dejó de usarse para códigos nuevos), eventos de mailing `quote_sent`/`quote_accepted`, ni los slugs de template `quote_sent`/`quote_accepted` (reglas vivas en prod).
+
+**Archivos (copy/labels + código del generador):**
+- **Módulo Estimados** `app/studio/(app)/cotizador/`: `page.tsx` (`metadata.title` → "Estimados"), `[code]/page.tsx` ("Detalle estimado" + "Total estimado" + "Este estimado ya fue convertido…"), `_components/CotizadorClient.tsx` (h1 "Estimados.", "+ Nuevo estimado", empty states), `_components/QuoteDrawer.tsx` (título "Nuevo/Editar estimado", toasts, SplitAction labels, "Total estimado"), `_components/QuoteDetailClient.tsx` (enviar/aceptar/convertir → "estimado"), `actions.ts` (**RPC `next_quote_code` → `next_estimate_code`** en `createQuote` + mensajes de error).
+- **Sidebar + i18n:** `_components/StudioSidebar.tsx` (`label` "Cotizador"→"Estimados"); `lib/i18n/es-VE/chrome.ts` ("Estimados") + `lib/i18n/zh-CN/chrome.ts` (报价→估价).
+- **Dashboard:** `RecentQuotesCard.tsx` ("Estimados recientes"), `RecentActivityCard.tsx` (status `quoted` label "Cotizado"→"Estimado"), `page.tsx` (KPIs "Estimados del mes"/"Total estimado").
+- **Mail (solo labels/copy, identificadores intactos):** `lib/studio/mail-types.ts` (`RULE_EVENT_LABELS.quote_sent/accepted` + `CATEGORY_DEFAULT_SUBJECT.comercial`), `lib/studio/mail-sample-vars.ts` (sample `quote_code` → `EST-2026-0042`), `scripts/seed-mail-templates.ts` (name/subject/body de `quote_sent`/`quote_accepted`, **slug intacto**), `mailing/_components/RulesView.tsx`.
+- **Otros labels ERP:** `costing/_components/CostingClient.tsx` + `lib/studio/costing/{ui,queries}.ts` (incl. `FORECAST_BUCKET_LABEL` ahora masculino), `legal/_components/LegalClient.tsx` + `lib/studio/legal/{types,queries}.ts`, `lib/studio/comments/types.ts` (`COMMENT_ENTITY_LABELS.quote.label` → "Estimado"), `lib/studio/bug-module-name.ts` (display "Estimados"), `lib/studio/fidelizacion/types.ts`, `lib/studio/user-types.ts` (ROLE_DESCRIPTIONS), `lib/studio/calculator-settings-types.ts`, `usuarios/`, `tarifas/`, `embarques/` empty states, `debug/_components/EstadoTab.tsx`, primitivas `ActionButton`/`SplitActionButton`/`ToastProvider` (doc-comments).
+- **Tests:** `app/studio/(app)/cotizador/__tests__/fase-c-rename.test.ts` (NUEVO) — asserta labels nuevos, `next_estimate_code` en `createQuote`, slugs de mailing intactos, y que en el módulo solo quedan refs a la ruta/identificador (no copy). Descripciones de `sliceC.test.ts`/`legal/queries.test.ts` actualizadas.
+- **Spec 0011:** nota de renombre (vocabulario) al tope; `updated` bump. Title del índice sin cambios (es histórico de Sprint 1).
+
+**Decisiones:**
+- `next_estimate_code` ya existía (creada en B1, migr 0113, grant a `authenticated`) → `createQuote` (cliente RLS del Studio) la invoca con `p_tenant_id`. Códigos `Q-` viejos coexisten (la RPC cuenta solo `EST-%`).
+- "estimado" es masculino → se ajustó el género de labels heredados de "cotización" (femenino): "aceptada/enviada" → "aceptado/enviado" en forecast y dashboard.
+- **No tocado el sitio público** (`/estimacion`, `/calculadora`, `components/` raíz, tests de calculadora públicos): es otra pista (marca-sensible, Fase A).
+
+**Gate:** `node scripts/verify.mjs` 🟢. **Pendiente review:** `reviewer` + `ui-ux-designer` (copy del módulo). **Pendiente:** Fase D (modelo QB).
 
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->
