@@ -10,14 +10,14 @@
   const LIST = [
   {
     id: 'AUT-01', from: 'com-lead', to: 'com-quote', category: 'Comercial',
-    trigger: 'El cliente solicita una cotización (web · WhatsApp · WeChat)',
-    action: 'Genera la cotización DDP y la envía al cliente',
-    detail: 'Toma tarifa de Servicios & Tarifas, arma el PDF en el Cotizador y lo envía.',
-    modules: ['Cotizador', 'Servicios & Tarifas'],
+    trigger: 'El cliente solicita un estimado (web · WhatsApp · WeChat)',
+    action: 'Genera el estimado DDP y la envía al cliente',
+    detail: 'Toma tarifa de Servicios & Tarifas, arma el PDF en el Estimador y lo envía.',
+    modules: ['Estimador', 'Servicios & Tarifas'],
     channels: ['correo', 'portal'], auto: true, runs: 38
   },  {
     id: 'AUT-02', from: 'com-client', to: 'op-pedido', category: 'Comercial → Operación',
-    trigger: 'La cotización se acepta',
+    trigger: 'El estimado se acepta',
     action: 'Crea la orden de pedido y asigna MARKBOX',
     detail: 'Genera OP-2026-XXXX en Embarques · órdenes y la deja en seguimiento.',
     modules: ['Clientes', 'Embarques · órdenes'],
@@ -34,7 +34,7 @@
   {
     id: 'AUT-04', from: 'op-recibir', to: 'con-factura', category: 'Operación → Contabilidad',
     trigger: 'El pedido se recibe en el almacén de China',
-    action: 'Emite la factura DDP — solo si el cliente aceptó la cotización con medida real',
+    action: 'Emite la factura DDP — solo si el cliente aceptó el estimado con medida real',
     detail: 'Lo que llega se factura, pero la emisión queda BLOQUEADA hasta que exista aceptación registrada (AUT-04a). Con la firma, pasa el borrador a F-2026-XXXX.',
     modules: ['Almacén CN', 'Facturación'],
     conditions: [{ field: 'aceptacion', op: '=', value: 'registrada' }],
@@ -43,9 +43,9 @@
   {
     id: 'AUT-04a', from: 'op-recibir', to: 'com-quote', category: 'Operación → Comercial',
     trigger: 'El pedido se recibe y mide en el almacén de China (CBM/peso real)',
-    action: 'Genera o reliquida la cotización formal con la medida real y la manda a aceptar',
-    detail: 'Con el CBM/peso real arma la cotización firme. Si no había cotización previa, la crea; si había y la medida difiere, reliquida. El cliente la acepta (casilla T&C + evidencia) ANTES de facturar — ese es el momento de la firma.',
-    modules: ['Almacén CN', 'Cotizador', 'Aceptaciones T&C'],
+    action: 'Genera o reliquida el estimado formal con la medida real y la manda a aceptar',
+    detail: 'Con el CBM/peso real arma el estimado firme. Si no había estimado previa, la crea; si había y la medida difiere, reliquida. El cliente la acepta (casilla T&C + evidencia) ANTES de facturar — ese es el momento de la firma.',
+    modules: ['Almacén CN', 'Estimador', 'Aceptaciones T&C'],
     channels: ['portal', 'app', 'correo'], auto: true, runs: 14
   },
   {
@@ -115,17 +115,17 @@
 
   // ── Registro de ejecuciones (log) ────────────────────────────
   const LOG = [
-  { id: 'AUT-04a', at: 'hace 10 min', summary: 'Recibido y medido en CN · cotización a aceptar · BriceñoTex', artifact: 'Q-2026-0423', module: 'Cotizador' },
+  { id: 'AUT-04a', at: 'hace 10 min', summary: 'Recibido y medido en CN · estimado a aceptar · BriceñoTex', artifact: 'E-2026-0423', module: 'Estimador' },
   { id: 'AUT-04', at: 'hace 12 min', summary: 'Pedido recibido en CN · BriceñoTex', artifact: 'F-2026-0433', module: 'Facturación' },
-  { id: 'AUT-01', at: 'hace 38 min', summary: 'Cotización solicitada · Manuel Quintero', artifact: 'Q-2026-0422', module: 'Cotizador' },
+  { id: 'AUT-01', at: 'hace 38 min', summary: 'Estimado solicitado · Manuel Quintero', artifact: 'E-2026-0422', module: 'Estimador' },
   { id: 'AUT-08', at: 'hace 1 h', summary: 'POD confirmado · Castro Hermanos', artifact: 'COB-2026-0188', module: 'Cobranzas' },
   { id: 'AUT-05', at: 'hace 2 h', summary: 'Booking COSCO PISCES · Acindar', artifact: 'CXP-2026-0191', module: 'Tesorería' },
-  { id: 'AUT-02', at: 'hace 3 h', summary: 'Cotización aceptada · Imp. Pereira', artifact: 'OP-2026-0313', module: 'Embarques · órdenes' },
+  { id: 'AUT-02', at: 'hace 3 h', summary: 'Estimado aceptado · Imp. Pereira', artifact: 'OP-2026-0313', module: 'Embarques · órdenes' },
   { id: 'AUT-03', at: 'hace 3 h', summary: 'Orden creada · Imp. Pereira', artifact: 'borrador F-2026-0434', module: 'Facturación' },
-  { id: 'AUT-01', at: 'hace 5 h', summary: 'Cotización solicitada · Sánchez Cosmetics', artifact: 'Q-2026-0421', module: 'Cotizador' },
+  { id: 'AUT-01', at: 'hace 5 h', summary: 'Estimado solicitado · Sánchez Cosmetics', artifact: 'E-2026-0421', module: 'Estimador' },
   { id: 'AUT-04', at: 'ayer', summary: 'Pedido recibido en CN · Tech Solutions', artifact: 'F-2026-0432', module: 'Facturación' },
   { id: 'AUT-08', at: 'ayer', summary: 'POD confirmado · Vargas & Asoc', artifact: 'COB-2026-0185', module: 'Cobranzas' },
-  { id: 'AUT-01', at: 'ayer', summary: 'Cotización solicitada · Daniela Linares', artifact: 'Q-2026-0420', module: 'Cotizador' }];
+  { id: 'AUT-01', at: 'ayer', summary: 'Estimado solicitado · Daniela Linares', artifact: 'E-2026-0420', module: 'Estimador' }];
 
 
   window.FlowRules = {

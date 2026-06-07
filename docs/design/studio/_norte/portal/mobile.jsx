@@ -84,7 +84,7 @@ function PortalMobileApp() {
   const [tab, setTab] = pmState('home');
   const [detail, setDetail] = pmState(null); // shipment id
   const [sub, setSub] = pmState(null); // subpantalla en "Más"
-  const [quote, setQuote] = pmState(false); // overlay cotizador
+  const [quote, setQuote] = pmState(false); // overlay estimador
   const [notif, setNotif] = pmState(false);
   const [welcome, setWelcome] = pmState(false);
   const [refreshing, setRefreshing] = pmState(false);
@@ -183,7 +183,7 @@ function PortalMobileApp() {
   const me = account ?
   { name: account.name, company: account.company || account.name, markbox: account.markbox, rif: account.rif, segment: account.tipo === 'empresa' ? 'Empresa' : 'Persona', city: account.city || '—', shipments: 0 } :
   D.byMarkbox(PM_MARKBOX);
-  const _pmq = (() => { try { return (window.DTDData && window.DTDData.clientQuotes) ? window.DTDData.clientQuotes(PM_MARKBOX) : []; } catch (e) { return []; } })();
+  const _pmq = (() => { try { return (window.DTDData && window.DTDData.clientEstimados) ? window.DTDData.clientEstimados(PM_MARKBOX) : []; } catch (e) { return []; } })();
   const ships = account ? [] : [..._pmq, ...D.SHIPMENTS.filter((s) => s.client === PM_MARKBOX)];
   const invs = account ? [] : D.INVOICES.filter((i) => i.client === PM_MARKBOX);
   const alertCount = ships.filter((s) => s.alert || s.status === 'liberado').length;
@@ -204,7 +204,7 @@ function PortalMobileApp() {
 
   if (quote) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--ink)' }}>
-      <X.CotizadorScreen onBack={() => setQuote(false)} me={me} />
+      <X.EstimadorScreen onBack={() => setQuote(false)} me={me} />
     </div>);
 
 
@@ -289,7 +289,7 @@ function PMWelcome({ open, onClose, me }) {
   const items = [
   { icon: 'ship', tone: 'wine', t: 'Seguí tu carga', d: 'Tracking en vivo de cada embarque, etapa por etapa.' },
   { icon: 'invoice', tone: 'warning', t: 'Pagá y subí comprobante', d: 'Tus facturas con desglose, sin llamadas.' },
-  { icon: 'calc', tone: 'info', t: 'Cotizá al instante', d: 'Estimación DDP puerta a puerta desde el teléfono.' },
+  { icon: 'calc', tone: 'info', t: 'Estimá al instante', d: 'Estimación DDP puerta a puerta desde el teléfono.' },
   { icon: 'warehouse', tone: 'success', t: 'Comprá en China', d: 'Nueva compra o recompra a tus fábricas con tu MARKBOX.' }];
 
   return (
@@ -384,7 +384,7 @@ function PMIntro({ onLogin, onRegister }) {
   const props = [
   { icon: 'ship', t: 'Tracking en vivo' },
   { icon: 'invoice', t: 'Pagá sin llamadas' },
-  { icon: 'calc', t: 'Cotizá al instante' }];
+  { icon: 'calc', t: 'Estimá al instante' }];
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, var(--ink), #1F3055)', color: '#fff', padding: '0 24px' }}>
@@ -392,7 +392,7 @@ function PMIntro({ onLogin, onRegister }) {
         <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD-Cargo" style={{ height: 64, objectFit: 'contain', alignSelf: 'flex-start', marginBottom: 32 }} onError={(e) => {e.target.style.display = 'none';}} />
         <h1 style={{ font: '900 36px/1.05 var(--f-display)', letterSpacing: '-0.03em', margin: '0 0 14px' }}>Tu carga,<br />en tu bolsillo.</h1>
         <p style={{ font: '500 15px/1.55 var(--f-sans)', color: 'rgba(255,255,255,0.72)', margin: '0 0 32px', maxWidth: 340 }}>
-          El portal de DTD-Cargo para importar desde China sin intermediarios. Con confianza, de China a tu puerta.
+          El portal de DTD-Cargo para importar desde China sin intermediarios. Con Confianza, de China a tu puerta.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {props.map((p, i) =>
@@ -597,7 +597,7 @@ function PMLogin({ onLogin, onRegister, onBack }) {
 function PMHome({ me, ships, invs, go, openDetail, openQuote, verified, inReview, onVerify }) {
   const D = window.ERPData;
   const I = window.Icon;
-  const active = ships.filter((s) => !['entregado', 'cotizado'].includes(s.status));
+  const active = ships.filter((s) => !['entregado', 'estimado'].includes(s.status));
   const next = ships.find((s) => s.status === 'tránsito') || ships.find((s) => s.status === 'aduana VE') || active[0];
   const outstanding = invs.reduce((s, i) => s + i.balance, 0);
 
@@ -674,7 +674,7 @@ function PMHome({ me, ships, invs, go, openDetail, openQuote, verified, inReview
       {/* Acciones rápidas */}
       <window.PM.Section title="ACCIONES RÁPIDAS">
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <PMAction icon="calc" label="Cotizar DDP" desc="Estimar nuevo envío" tone="info" onClick={openQuote} />
+          <PMAction icon="calc" label="Crear estimado" desc="Estimar nuevo envío" tone="info" onClick={openQuote} />
           <PMAction icon="warehouse" label="Comprar en China" desc="Nueva compra o recompra" tone="wine" onClick={() => go('suppliers')} />
           <PMAction icon="invoice" label="Pagar factura" desc={outstanding > 0 ? `$${(outstanding / 1000).toFixed(1)}K pendiente` : 'Al día'} tone="warning" onClick={() => go('pay')} />
           <PMAction icon="chat" label="Hablar con agente" desc="Martina · en línea" tone="success" onClick={() => go('more')} />
@@ -823,7 +823,7 @@ function PMAcceptFlow({ quote, me, open, onClose, onAccepted }) {
     if (!checked) return;
     const ev = {
       id: 'AC-2026-' + String(Math.floor(215 + Math.random() * 80)).padStart(4, '0'),
-      client: me.company || me.name, markbox: me.markbox, quote: quote.id, orden: quote.id.replace('Q-', 'OS-'),
+      client: me.company || me.name, markbox: me.markbox, quote: quote.id, orden: quote.id.replace('E-', 'OV-'),
       cbm: quote.cbm, weight: quote.weight, total: quote.amount,
       docs: docs.map(d => [d.name, d.version]),
       at: (() => { const n = new Date(); const p = x => String(x).padStart(2,'0'); return `${p(n.getDate())}/${p(n.getMonth()+1)}/${n.getFullYear()} ${p(n.getHours())}:${p(n.getMinutes())}:${p(n.getSeconds())}`; })(),
@@ -835,7 +835,7 @@ function PMAcceptFlow({ quote, me, open, onClose, onAccepted }) {
   };
   return (
     <React.Fragment>
-      <U.Modal open={open && !viewing} onClose={close} width={460} title="Aceptar cotización"
+      <U.Modal open={open && !viewing} onClose={close} width={460} title="Aceptar estimado"
         actions={<div style={{ display: 'flex', gap: 8, width: '100%' }}><U.Btn variant="ghost" full onClick={close}>Cancelar</U.Btn><U.Btn variant="primary" full disabled={!checked} onClick={confirm} icon={I.check(14)}>Confirmar</U.Btn></div>}>
         <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 12 }}>
           <button onClick={() => setChecked(!checked)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12, padding: 14, textAlign: 'left', background: checked ? 'var(--wine-tint)' : 'var(--bg-surface)', border: 0 }}>
@@ -852,7 +852,7 @@ function PMAcceptFlow({ quote, me, open, onClose, onAccepted }) {
         </div>
         <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
           <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield(14)}</span>
-          <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Registramos tu aceptación como evidencia (cliente, cotización, versión, fecha/hora, IP y hash). Se pide en cada cotización.</div>
+          <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Registramos tu aceptación como evidencia (cliente, estimado, versión, fecha/hora, IP y hash). Se pide en cada estimado.</div>
         </div>
       </U.Modal>
       <U.Modal open={!!viewing} onClose={() => setViewing(null)} width={520} title={viewing ? `${viewing.name} · ${viewing.version}` : ''} actions={<U.Btn variant="primary" full onClick={() => setViewing(null)}>Cerrar</U.Btn>}>
@@ -868,7 +868,7 @@ function PMDetail({ id, onBack }) {
   const D = window.ERPData;
   const U = window.ERPUI;
   const I = window.Icon;
-  const s = (() => { try { const q = (window.DTDData && window.DTDData.clientQuotes) ? window.DTDData.clientQuotes(PM_MARKBOX).find(x => x.id === id) : null; return q || D.SHIPMENTS.find((x) => x.id === id); } catch (e) { return D.SHIPMENTS.find((x) => x.id === id); } })();
+  const s = (() => { try { const q = (window.DTDData && window.DTDData.clientEstimados) ? window.DTDData.clientEstimados(PM_MARKBOX).find(x => x.id === id) : null; return q || D.SHIPMENTS.find((x) => x.id === id); } catch (e) { return D.SHIPMENTS.find((x) => x.id === id); } })();
   const [accepting, setAccepting] = pmState(false);
   const [evidence, setEvidence] = pmState(null);
   const [acuse, setAcuse] = pmState(false);
@@ -876,13 +876,13 @@ function PMDetail({ id, onBack }) {
   const flow = D.STATUS_FLOW;
   const cur = flow.indexOf(s.status);
   const pmAccepted = (qid) => { try { return (window.LegalData && window.LegalData.ACCEPTANCES.some(a => a.quote === qid)); } catch (e) { return false; } };
-  const quote = { id: s.id.startsWith('Q-') ? s.id : 'Q-2026-' + s.id.slice(-4), route: `${D.origin(s.origin).name} → ${D.dest(s.destination).name}`, cbm: s.cbm, weight: s.weight, amount: s.value, type: s.type, total: '$' + (s.value || 0).toLocaleString('en-US') };
+  const quote = { id: s.id.startsWith('E-') ? s.id : 'E-2026-' + s.id.slice(-4), route: `${D.origin(s.origin).name} → ${D.dest(s.destination).name}`, cbm: s.cbm, weight: s.weight, amount: s.value, type: s.type, total: '$' + (s.value || 0).toLocaleString('en-US') };
   const meQ = { company: s.clientName, markbox: s.client, ip: '190.142.88.214' };
   const _accForQuote = (() => { try { return (window.LegalData ? window.LegalData.ACCEPTANCES : []).filter(a => a.quote === quote.id); } catch (e) { return []; } })();
   const acceptedCurrent = !!evidence || _accForQuote.some(a => Number(a.cbm) === Number(s.cbm) && Number(a.weight) === Number(s.weight));
   const priorDiff = (!acceptedCurrent && _accForQuote.length > 0) ? _accForQuote[0] : null;
-  const inReview = s.status === 'cotizado' && s.quoteStage === 'en-proceso';
-  const needsAccept = (s.status === 'cotizado' || s.status === 'recibido CN') && !acceptedCurrent && !inReview;
+  const inReview = s.status === 'estimado' && s.quoteStage === 'en-proceso';
+  const needsAccept = (s.status === 'estimado' || s.status === 'recibido CN') && !acceptedCurrent && !inReview;
   const isMeasured = s.status === 'recibido CN';
   const isReaccept = !!priorDiff;
   const fmtUsd = (n) => '$' + (Number(n) || 0).toLocaleString('en-US');
@@ -900,14 +900,14 @@ function PMDetail({ id, onBack }) {
         {inReview &&
         <div style={{ display: 'flex', gap: 12, padding: 14, marginBottom: 'var(--s-5)', background: 'var(--info-bg)', borderRadius: 'var(--r-lg)', borderLeft: '3px solid var(--info)' }}>
             <span style={{ color: 'var(--info)', flexShrink: 0 }}>{I.clock ? I.clock(18) : I.info(18)}</span>
-            <div><div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>Cotización en proceso</div><div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>Tu agente está preparando la cotización formal{s.quoteRef ? ` (ref. ${s.quoteRef})` : ''}. Te avisamos apenas esté lista para aceptar.</div></div>
+            <div><div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>Estimado en proceso</div><div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>Tu agente está preparando el estimado formal{s.quoteRef ? ` (ref. ${s.quoteRef})` : ''}. Te avisamos apenas esté lista para aceptar.</div></div>
           </div>
         }
 
         {needsAccept &&
         <div style={{ display: 'flex', gap: 12, padding: 14, marginBottom: 'var(--s-5)', background: 'var(--wine-tint)', borderRadius: 'var(--r-lg)', borderLeft: '3px solid var(--wine)' }}>
             <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{I.shield(18)}</span>
-            <div><div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida cambió · re-aceptación' : (isMeasured ? 'Llegó y se midió · falta tu aceptación' : 'Cotización pendiente')}</div><div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>{isReaccept ? 'Aceptaste el estimado pero la medida real cambió. Confirmá la nueva cotización para emitir la factura.' : (isMeasured ? `Medimos tu carga (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá la cotización con la medida real para emitir tu factura.` : 'Aceptá los términos para generar tu orden de servicio.')}</div>{isReaccept && <div style={{ display: 'flex', gap: 10, marginTop: 10, font: '600 12px/1.3 var(--f-mono)' }}><span style={{ color: 'var(--ink-soft)', textDecoration: 'line-through' }}>{priorDiff.cbm} m³ · {fmtUsd(priorDiff.total)}</span><span style={{ color: 'var(--wine)' }}>→</span><span style={{ color: 'var(--ink)', fontWeight: 800 }}>{s.cbm} m³ · {fmtUsd(s.value)}</span></div>}</div>
+            <div><div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida cambió · re-aceptación' : (isMeasured ? 'Llegó y se midió · falta tu aceptación' : 'Estimado pendiente')}</div><div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>{isReaccept ? 'Aceptaste el estimado pero la medida real cambió. Confirmá la nuevo estimado para emitir la factura.' : (isMeasured ? `Medimos tu carga (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá el estimado con la medida real para emitir tu factura.` : 'Aceptá los términos para generar tu orden de servicio.')}</div>{isReaccept && <div style={{ display: 'flex', gap: 10, marginTop: 10, font: '600 12px/1.3 var(--f-mono)' }}><span style={{ color: 'var(--ink-soft)', textDecoration: 'line-through' }}>{priorDiff.cbm} m³ · {fmtUsd(priorDiff.total)}</span><span style={{ color: 'var(--wine)' }}>→</span><span style={{ color: 'var(--ink)', fontWeight: 800 }}>{s.cbm} m³ · {fmtUsd(s.value)}</span></div>}</div>
           </div>
         }
 
@@ -952,7 +952,7 @@ function PMDetail({ id, onBack }) {
           {inReview ? (
             <U.Btn variant="secondary" full icon={I.clock ? I.clock(14) : I.info(14)} disabled>En revisión por tu agente</U.Btn>
           ) : needsAccept ? (
-            <U.Btn variant="primary" full icon={I.check(14)} onClick={() => setAccepting(true)}>{isReaccept ? 'Revisar y re-aceptar' : (isMeasured ? 'Aceptar · medida real' : 'Aceptar cotización')}</U.Btn>
+            <U.Btn variant="primary" full icon={I.check(14)} onClick={() => setAccepting(true)}>{isReaccept ? 'Revisar y re-aceptar' : (isMeasured ? 'Aceptar · medida real' : 'Aceptar estimado')}</U.Btn>
           ) : (
             <React.Fragment>
               {evidence && <U.Btn variant="secondary" full icon={I.shield(14)} onClick={() => setAcuse(true)}>Ver acuse</U.Btn>}
@@ -966,7 +966,7 @@ function PMDetail({ id, onBack }) {
         <U.Modal open={acuse} onClose={() => setAcuse(false)} width={460} title="Orden generada" actions={<U.Btn variant="primary" full onClick={() => setAcuse(false)} icon={I.check(14)}>Entendido</U.Btn>}>
           {evidence && (() => {
             const Row = ({ k, v }) => <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, padding: '8px 0', borderTop: '1px solid var(--border)' }}><span style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', flexShrink: 0 }}>{k}</span><span style={{ font: '600 11.5px/1.4 var(--f-mono)', color: 'var(--ink)', textAlign: 'right', wordBreak: 'break-all' }}>{v}</span></div>;
-            return <div><div style={{ textAlign: 'center', padding: '4px 0 14px' }}><div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{I.check(26)}</div><div style={{ font: '900 18px/1.1 var(--f-display)', color: 'var(--ink)' }}>Cotización aceptada</div><div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>Orden <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{evidence.orden}</code> generada.</div></div><div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '2px 14px 12px' }}><Row k="Cliente" v={`${evidence.client} · ${evidence.markbox}`} /><Row k="Cotización" v={evidence.quote} />{evidence.docs.map((d, i) => <Row key={i} k={i === 0 ? 'Documentos' : ''} v={`${d[0]} ${d[1]}`} />)}<Row k="Fecha / hora" v={evidence.at} /><Row k="IP" v={evidence.ip} /><Row k="Hash" v={evidence.hash} /></div></div>;
+            return <div><div style={{ textAlign: 'center', padding: '4px 0 14px' }}><div style={{ width: 52, height: 52, borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>{I.check(26)}</div><div style={{ font: '900 18px/1.1 var(--f-display)', color: 'var(--ink)' }}>Estimado aceptado</div><div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>Orden <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{evidence.orden}</code> generada.</div></div><div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '2px 14px 12px' }}><Row k="Cliente" v={`${evidence.client} · ${evidence.markbox}`} /><Row k="Estimado" v={evidence.quote} />{evidence.docs.map((d, i) => <Row key={i} k={i === 0 ? 'Documentos' : ''} v={`${d[0]} ${d[1]}`} />)}<Row k="Fecha / hora" v={evidence.at} /><Row k="IP" v={evidence.ip} /><Row k="Hash" v={evidence.hash} /></div></div>;
           })()}
         </U.Modal>
       </div>

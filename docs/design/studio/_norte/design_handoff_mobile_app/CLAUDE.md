@@ -214,7 +214,7 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 ## ✍️ Tono y voz
 
-- **Tagline oficial:** **"Con confianza, de China a tu puerta."** — antepone el valor diferencial (confianza) a la promesa funcional. NO usar la versión vieja "De China a tu puerta. Sin intermediarios."
+- **Tagline oficial:** **"Con Confianza, de China a tu puerta."** — antepone el valor diferencial (confianza) a la promesa funcional. NO usar la versión vieja "De China a tu puerta. Sin intermediarios."
 - **Sub-claim / filosofía:** "Construyendo confianza cliente a cliente, contenedor a contenedor."
 - **Castellano rioplatense/venezolano neutro** — usá voseo si encaja (vos / sos / arrancá / mirá).
 - **Verbos directos** en CTAs: "Cotizar DDP", "Crear embarque", "Enviar correo". **NUNCA** "Click acá", "Enviar formulario", "Submit".

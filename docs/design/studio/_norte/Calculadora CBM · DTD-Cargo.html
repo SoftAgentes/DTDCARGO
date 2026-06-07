@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DTD-Cargo · Calculadora CBM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Branding (Archivo / Archivo Black) · el sistema (Sora/Nunito/JetBrains Mono) lo importa tokens.css -->
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="erp/tokens.css" />
+<style>
+  html, body { min-height: 100%; }
+  body { margin: 0; background: var(--bg-base); display: flex; align-items: center; justify-content: center; padding: var(--s-8); }
+  #root { width: 100%; max-width: 880px; }
+  @media (max-width: 720px) {
+    #root > div { grid-template-columns: 1fr !important; }
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#0F1E3D" />
+    <rect x="22" y="36" width="40" height="28" fill="#7F0F1A" />
+    <rect x="22" y="36" width="56" height="28" fill="none" stroke="#fff" stroke-width="2.5" />
+    <text x="50" y="84" text-anchor="middle" fill="#fff" font-family="Archivo Black, sans-serif" font-size="13" font-weight="900">CBM</text>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Bridge de datos · publica el estimado al ERP/CRM (lead + badge). Compartido vía localStorage del mismo origen. -->
+<script src="erp/data-bridge.jsx"></script>
+
+<script type="text/babel" src="calc/cbm-variants.jsx"></script>
+<script type="text/babel">
+  ReactDOM.createRoot(document.getElementById('root')).render(<window.CalcLCL />);
+</script>
+</body>
+</html>

@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Etiqueta de bodega · ZPL — DTD-Cargo</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Sora:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --wine:#7F0F1A; --wine-deep:#5E0A12; --ink:#0F1E3D; --ink2:#1F3055; --cream:#FBFAF7;
+  --bg:#FBFAF7; --surface:#FFFFFF; --elevated:#F2F0EC; --border:#E8E6E2;
+  --ink-soft:#6B6B6B; --ink-mute:#9B9B9B;
+  --f-sans:'Nunito Sans',system-ui,sans-serif; --f-display:'Sora',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,monospace; --f-brand:'Archivo Black',sans-serif;
+  --r-md:7px; --r-lg:10px; --s-4:16px; --s-6:24px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-sans);line-height:1.55}
+.wrap{max-width:1080px;margin:0 auto;padding:40px 24px 80px}
+.eyebrow{font:700 11px/1 var(--f-sans);letter-spacing:.16em;text-transform:uppercase;color:var(--wine);margin-bottom:10px}
+h1{font-family:var(--f-display);font-weight:800;font-size:28px;letter-spacing:-.02em;margin:0 0 6px}
+.lead{font-size:15px;color:var(--ink-soft);max-width:70ch;margin:0 0 28px}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;margin-bottom:24px;padding:16px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg)}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font:700 10px/1 var(--f-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+.field input{font-family:var(--f-mono);font-size:14px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r-md);background:var(--bg);color:var(--ink);min-width:160px}
+.field input:focus{outline:2px solid var(--wine);outline-offset:1px;border-color:var(--wine)}
+.dpi-note{margin-left:auto;font:500 11px/1.5 var(--f-mono);color:var(--ink-mute);text-align:right}
+
+.split{display:grid;grid-template-columns:auto 1fr;gap:28px;align-items:start}
+@media(max-width:860px){.split{grid-template-columns:1fr}}
+
+/* ── Label preview · 10×15cm (4×6") ── */
+.stage{display:flex;flex-direction:column;gap:10px;align-items:center}
+.stage .cap{font:600 11px/1 var(--f-mono);color:var(--ink-mute);letter-spacing:.06em}
+.label{width:320px;height:480px;background:#fff;border:1px solid var(--border);box-shadow:0 12px 40px rgba(15,30,61,.16);
+  padding:22px;display:flex;flex-direction:column;color:#000}
+.label .lhead{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0F1E3D;padding-bottom:12px}
+.label .lhead .brand{display:flex;align-items:center;gap:8px}
+.label .lhead .brand img{height:30px;width:auto;display:block}
+.label .lhead .brand .wm{font-family:var(--f-brand);font-size:17px;letter-spacing:-.02em;color:#0F1E3D;line-height:1}
+.label .lhead .brand .wm .sp{display:inline-block;width:.12em}
+.label .lhead .kind{font:700 8px/1.3 var(--f-mono);color:#7F0F1A;letter-spacing:.12em;text-align:right;text-transform:uppercase}
+
+.label .mk-lbl{font:700 11px/1 var(--f-sans);letter-spacing:.16em;text-transform:uppercase;color:#6B6B6B;margin-top:20px}
+.label .mk{font-family:var(--f-brand);font-size:58px;line-height:.9;letter-spacing:-.03em;color:#0F1E3D;margin-top:4px}
+
+.label .barcode{margin-top:18px}
+.label .barcode svg{width:100%;height:90px;display:block}
+.label .barcode .hr{font-family:var(--f-mono);font-weight:700;font-size:15px;letter-spacing:.28em;text-align:center;color:#0F1E3D;margin-top:4px}
+
+.label .fields{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px 14px;border-top:1px solid #E8E6E2;padding-top:12px}
+.label .fields .f{display:flex;flex-direction:column}
+.label .fields .f .k{font:700 7.5px/1.3 var(--f-sans);letter-spacing:.1em;text-transform:uppercase;color:#9B9B9B}
+.label .fields .f .v{font-family:var(--f-mono);font-weight:600;font-size:11px;color:#0F1E3D}
+.label .fields .f.wide{grid-column:1 / -1}
+.label .lfoot{margin-top:12px;border-top:1px solid #E8E6E2;padding-top:8px;display:flex;justify-content:space-between;align-items:center}
+.label .lfoot .tag{font-family:var(--f-mono);font-weight:600;font-size:8px;color:#7F0F1A;letter-spacing:.04em}
+.label .lfoot .rif{font-family:var(--f-mono);font-size:8px;color:#9B9B9B}
+
+/* ── ZPL code ── */
+.zpl-wrap{display:flex;flex-direction:column;gap:10px;min-width:0}
+.zpl-head{display:flex;align-items:center;gap:12px}
+.zpl-head h3{font-family:var(--f-display);font-weight:700;font-size:15px;margin:0}
+.zpl-head .sp{flex:1}
+.btn{font:700 12px/1 var(--f-sans);padding:9px 14px;border-radius:var(--r-md);border:1px solid var(--border);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn:hover{background:var(--elevated)}
+.btn.primary{background:var(--wine);color:#fff;border-color:var(--wine)}
+.btn.primary:hover{background:var(--wine-deep)}
+pre.zpl{margin:0;background:var(--ink);color:#E8ECF5;border-radius:var(--r-md);padding:18px;overflow:auto;
+  font:500 12px/1.65 var(--f-mono);max-height:560px;white-space:pre;tab-size:2}
+pre.zpl .cmd{color:#7FC7FF}
+pre.zpl .cm{color:#6E7896}
+pre.zpl .fd{color:#FBD38D}
+.hint{font-size:12px;color:var(--ink-soft);background:var(--elevated);border-radius:var(--r-md);padding:12px 14px}
+.hint code{font-family:var(--f-mono);background:rgba(15,30,61,.06);padding:1px 5px;border-radius:3px;color:var(--wine-deep)}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:#fff;
+  padding:11px 18px;border-radius:var(--r-md);font:600 13px/1 var(--f-sans);opacity:0;transition:.25s;pointer-events:none;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">DTD-Cargo · entregable binario</div>
+  <h1>Etiqueta de bodega · ZPL</h1>
+  <p class="lead">Etiqueta interna <b>10 × 15 cm (4 × 6")</b> para impresora térmica Zebra a 203 dpi. MARKBOX grande + código de barras Code 128. Editá el MARKBOX y se actualizan el preview y el ZPL.</p>
+
+  <div class="toolbar">
+    <div class="field">
+      <label for="mk">MARKBOX</label>
+      <input id="mk" value="DTD-5532" maxlength="16" autocomplete="off"/>
+    </div>
+    <div class="field">
+      <label for="cliente">Cliente</label>
+      <input id="cliente" value="Acindar Comercial CA" maxlength="28" autocomplete="off"/>
+    </div>
+    <div class="field">
+      <label for="bultos">Bulto</label>
+      <input id="bultos" value="1 / 4" maxlength="10" autocomplete="off"/>
+    </div>
+    <div class="dpi-note">203 dpi · 812 × 1218 dots<br/>~100 mm × 150 mm</div>
+  </div>
+
+  <div class="split">
+    <div class="stage">
+      <span class="cap">Vista previa · 4 × 6"</span>
+      <div class="label" id="label">
+        <div class="lhead">
+          <div class="brand">
+            <img src="assets/dtdcargo-isologo-primary.png" alt="DTD"/>
+            <span class="wm"><span style="color:#7F0F1A">DTD</span><span class="sp"></span>Cargo</span>
+          </div>
+          <div class="kind">Etiqueta<br/>de bodega</div>
+        </div>
+
+        <div class="mk-lbl">MARKBOX</div>
+        <div class="mk" id="mk-out">DTD-5532</div>
+
+        <div class="barcode">
+          <svg id="bc" viewBox="0 0 300 90" preserveAspectRatio="none"></svg>
+          <div class="hr" id="bc-hr">DTD-5532</div>
+        </div>
+
+        <div class="fields">
+          <div class="f wide"><span class="k">Cliente</span><span class="v" id="f-cli">Acindar Comercial CA</span></div>
+          <div class="f"><span class="k">Ruta</span><span class="v">Yiwu → PBL</span></div>
+          <div class="f"><span class="k">Bulto</span><span class="v" id="f-bul">1 / 4</span></div>
+          <div class="f"><span class="k">Container</span><span class="v">DTDU-472816</span></div>
+          <div class="f"><span class="k">Fecha</span><span class="v" id="f-fecha">06·06·2026</span></div>
+        </div>
+
+        <div class="lfoot">
+          <span class="tag">Con Confianza, de China a tu puerta.</span>
+          <span class="rif">J-40558712-0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="zpl-wrap">
+      <div class="zpl-head">
+        <h3>Código ZPL</h3>
+        <span class="sp"></span>
+        <button class="btn" id="dl-zpl">↓ .zpl</button>
+        <button class="btn primary" id="copy-zpl">⧉ Copiar</button>
+      </div>
+      <pre class="zpl" id="zpl"></pre>
+      <div class="hint">Pegá este código en tu software Zebra (ZebraDesigner, Browser Print) o envialo directo a la impresora. <code>^BCN,180,Y</code> genera el Code 128 real al imprimir; el preview de la izquierda es ilustrativo. Ajustá <code>^PW</code>/<code>^LL</code> si tu rollo es de otra medida.</div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copiado</div>
+
+<script>
+// ── Code128B encoder (para el preview ilustrativo) ──
+const C128 = ["212222","222122","222221","121223","121322","131222","122213","122312","132212","221213","221312","231212","112232","122132","122231","113222","123122","123221","223211","221132","221231","213212","223112","312131","311222","321122","321221","312212","322112","322211","212123","212321","232121","111323","131123","131321","112313","132113","132311","211313","231113","231311","112133","112331","132131","113123","113321","133121","313121","211331","231131","213113","213311","213131","311123","311321","331121","312113","312311","332111","314111","221411","431111","111224","111422","121124","121421","141122","141221","112214","112412","122114","122411","142112","142211","241211","221114","413111","241112","134111","111242","121142","121241","114212","124112","124211","411212","421112","421211","212141","214121","412121","111143","111341","131141","114113","114311","411113","411311","113141","114131","311141","411131","211412","211214","211232","2331112"];
+function encode128B(data){
+  let sum = 104, codes = [104];
+  for (let i=0;i<data.length;i++){ const v = data.charCodeAt(i)-32; codes.push(v); sum += v*(i+1); }
+  codes.push(sum % 103);
+  codes.push(106);
+  return codes.map(c => C128[c]).join('');
+}
+function drawBarcode(data){
+  const widths = encode128B(data);
+  let total = 0; for (const ch of widths) total += parseInt(ch,10);
+  const svg = document.getElementById('bc');
+  const H = 90, mod = 300/total;
+  let x = 0, bar = true, rects = '';
+  for (const ch of widths){
+    const w = parseInt(ch,10)*mod;
+    if (bar) rects += '<rect x="'+x.toFixed(2)+'" y="0" width="'+w.toFixed(2)+'" height="'+H+'" fill="#0F1E3D"/>';
+    x += w; bar = !bar;
+  }
+  svg.innerHTML = rects;
+}
+
+// ── ZPL generator (203 dpi · 812×1218) ──
+function esc(s){ return String(s).replace(/\^/g,' ').replace(/~/g,'-'); }
+function buildZPL(d){
+  return [
+    '^XA',
+    '^CI28                      ; UTF-8',
+    '^PW812                     ; ancho 4" @203dpi',
+    '^LL1218                    ; alto 6" @203dpi',
+    '^LH0,0',
+    '',
+    '; --- Encabezado de marca ---',
+    '^FO40,40^A0N,46,46^FDDTD-Cargo^FS',
+    '^FO40,92^A0N,26,26^FDEtiqueta de bodega^FS',
+    '^FO40,134^GB732,3,3^FS',
+    '',
+    '; --- MARKBOX (hero) ---',
+    '^FO40,180^A0N,34,34^FDMARKBOX^FS',
+    '^FO40,220^A0N,150,150^FD'+esc(d.mk)+'^FS',
+    '',
+    '; --- Codigo de barras Code 128 ---',
+    '^FO40,400^BY4,3.0,180',
+    '^BCN,180,Y,N,N^FD'+esc(d.mk)+'^FS',
+    '',
+    '; --- Datos logisticos ---',
+    '^FO40,640^A0N,28,28^FDCliente: '+esc(d.cliente)+'^FS',
+    '^FO40,684^A0N,28,28^FDRuta: Yiwu -> PBL      Bulto: '+esc(d.bultos)+'^FS',
+    '^FO40,728^A0N,28,28^FDContainer: DTDU-472816^FS',
+    '^FO40,772^A0N,28,28^FDFecha: '+esc(d.fecha)+'^FS',
+    '^FO40,828^GB732,2,2^FS',
+    '',
+    '; --- Pie ---',
+    '^FO40,850^A0N,22,22^FDCon Confianza, de China a tu puerta.^FS',
+    '^FO40,882^A0N,20,20^FDDTD-Cargo C.A. - RIF J-40558712-0^FS',
+    '^XZ'
+  ].join('\n');
+}
+function highlight(zpl){
+  return zpl
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/(\^[A-Z][A-Z0-9]*)/g,'<span class="cmd">$1</span>')
+    .replace(/(;[^\n]*)/g,'<span class="cm">$1</span>')
+    .replace(/(\^FD)([^\^]*)/g,'$1<span class="fd">$2</span>');
+}
+
+function refresh(){
+  const d = {
+    mk: (document.getElementById('mk').value || 'DTD-0000').toUpperCase().trim(),
+    cliente: document.getElementById('cliente').value || '—',
+    bultos: document.getElementById('bultos').value || '1 / 1',
+    fecha: '06·06·2026'
+  };
+  document.getElementById('mk-out').textContent = d.mk;
+  document.getElementById('bc-hr').textContent = d.mk;
+  document.getElementById('f-cli').textContent = d.cliente;
+  document.getElementById('f-bul').textContent = d.bultos;
+  drawBarcode(d.mk);
+  const zpl = buildZPL(d);
+  document.getElementById('zpl').innerHTML = highlight(zpl);
+  document.getElementById('zpl').dataset.raw = zpl;
+}
+['mk','cliente','bultos'].forEach(id => document.getElementById(id).addEventListener('input', refresh));
+
+function showToast(t){ const el=document.getElementById('toast'); el.textContent=t; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),1800); }
+document.getElementById('copy-zpl').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(document.getElementById('zpl').dataset.raw); showToast('ZPL copiado'); }
+  catch(e){ showToast('No se pudo copiar'); }
+});
+document.getElementById('dl-zpl').addEventListener('click', () => {
+  const raw = document.getElementById('zpl').dataset.raw;
+  const mk = document.getElementById('mk').value.toUpperCase().trim() || 'DTD';
+  const blob = new Blob([raw], {type:'text/plain'});
+  const u = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = u; a.download = 'DTDCargo-etiqueta-'+mk+'.zpl'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(u), 2000);
+  showToast('Descargando .zpl');
+});
+
+refresh();
+</script>
+
+<template id="__bundler_thumbnail" data-bg-color="#0F1E3D">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="14" width="60" height="72" rx="4" fill="#FBFAF7"/><text x="50" y="40" text-anchor="middle" font-family="Archivo Black, sans-serif" font-weight="900" font-size="13" fill="#0F1E3D">DTD</text><g fill="#0F1E3D"><rect x="28" y="52" width="3" height="24"/><rect x="34" y="52" width="2" height="24"/><rect x="39" y="52" width="4" height="24"/><rect x="46" y="52" width="2" height="24"/><rect x="51" y="52" width="3" height="24"/><rect x="57" y="52" width="2" height="24"/><rect x="62" y="52" width="4" height="24"/><rect x="69" y="52" width="2" height="24"/></g></svg>
+</template>
+</body>
+</html>

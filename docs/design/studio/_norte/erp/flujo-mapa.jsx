@@ -15,7 +15,7 @@ function _ships(...st) {const D = window.ERPData;return D ? D.SHIPMENTS.filter((
 // Badge por nodo → número de pendientes (o null si no aplica / no hay dato).
 const BADGE = {
   'com-lead': () => _n(_safe(() => window.ERPData.LEADS.filter((l) => !['ganado', 'perdido', 'cerrado'].includes(l.stage)).length)),
-  'com-quote': () => _n(_safe(() => window.ERPData.QUOTES.filter((q) => q.status === 'enviada').length)),
+  'com-quote': () => _n(_safe(() => window.ERPData.ESTIMADOS.filter((q) => q.status === 'enviado').length)),
   'com-client': () => _n(_safe(() => window.ERPData.CLIENTS.filter((c) => c.status === 'pending').length)),
   'op-recibir': () => _n(_safe(() => _ships('recibido CN'))),
   'op-pedido': () => _n(_safe(() => _ships('confirmado'))),
@@ -38,13 +38,13 @@ const BADGE = {
 
 // Desglose opcional por nodo (datos en vivo del ERP). Devuelve {title, total, rows:[{label,value}]}.
 const DETAIL = {
-  // Cotizaciones abiertas agrupadas por servicio (campo `type` del cotizador).
+  // Estimados abiertas agrupadas por servicio (campo `type` del estimador).
   'com-quote': () => _safe(() => {
-    const open = window.ERPData.QUOTES.filter((q) => ['enviada', 'borrador'].includes(q.status));
+    const open = window.ERPData.ESTIMADOS.filter((q) => ['enviado', 'borrador'].includes(q.status));
     const byType = {};
     open.forEach((q) => {byType[q.type] = (byType[q.type] || 0) + 1;});
     const rows = Object.entries(byType).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value }));
-    return rows.length ? { title: 'Cotizaciones en gestión por servicio', total: open.length, rows } : null;
+    return rows.length ? { title: 'Estimados en gestión por servicio', total: open.length, rows } : null;
   })
 };
 
@@ -99,12 +99,12 @@ const MARK = { info: 'mk-info', wine: 'mk-wine', success: 'mk-success', warning:
 // ── Nodos (pasos del proceso) ─────────────────────────────────
 const NODES = [
 // Comercial
-{ id: 'com-lead', lane: 0, slot: 0, icon: 'spark', label: 'Lead · oportunidad', role: 'Comercial', trig: 'Entra un contacto por web, referido o WhatsApp.', next: 'Cotización DDP', mod: 'CRM · Leads' },
-{ id: 'com-quote', lane: 0, slot: 1, icon: 'calc', label: 'Cotización DDP', role: 'Comercial', trig: 'El lead pide precio puerta a puerta.', next: 'Cliente · MARKBOX', mod: 'Cotizador' },
-{ id: 'com-client', lane: 0, slot: 2, icon: 'users', label: 'Cliente · MARKBOX', role: 'Comercial', trig: 'El cliente acepta la cotización y se le asigna MARKBOX.', next: 'Recepción CN + Factura', mod: 'Clientes' },
+{ id: 'com-lead', lane: 0, slot: 0, icon: 'spark', label: 'Lead · oportunidad', role: 'Comercial', trig: 'Entra un contacto por web, referido o WhatsApp.', next: 'Estimado DDP', mod: 'CRM · Leads' },
+{ id: 'com-quote', lane: 0, slot: 1, icon: 'calc', label: 'Estimado DDP', role: 'Comercial', trig: 'El lead pide precio puerta a puerta.', next: 'Cliente · MARKBOX', mod: 'Estimador' },
+{ id: 'com-client', lane: 0, slot: 2, icon: 'users', label: 'Cliente · MARKBOX', role: 'Comercial', trig: 'El cliente acepta el estimado y se le asigna MARKBOX.', next: 'Recepción CN + Factura', mod: 'Clientes' },
 { id: 'com-post', lane: 0, slot: 12, icon: 'spark', label: 'Postventa · fidelización', role: 'Comercial', trig: 'La entrega se completó y el cliente quedó al día.', next: 'Nuevo ciclo · referidos', mod: 'Fidelización' },
 // Operatividad
-{ id: 'op-pedido', lane: 1, slot: 2, icon: 'clock', label: 'Orden de pedido', role: 'Operaciones · Comercial', trig: 'La cotización se vuelve real: el cliente confirma (o la creamos nosotros al saber que tiene mercadería y armamos el grupo de búsqueda). Acá se le sigue el rastro a lo que está en tránsito y todavía no llegó a China — qué pasó y por qué. Cuando llega, sale de la lista.', next: 'Recepción · China', mod: 'Embarques · órdenes' },
+{ id: 'op-pedido', lane: 1, slot: 2, icon: 'clock', label: 'Orden de pedido', role: 'Operaciones · Comercial', trig: 'El estimado se vuelve real: el cliente confirma (o la creamos nosotros al saber que tiene mercadería y armamos el grupo de búsqueda). Acá se le sigue el rastro a lo que está en tránsito y todavía no llegó a China — qué pasó y por qué. Cuando llega, sale de la lista.', next: 'Recepción · China', mod: 'Embarques · órdenes' },
 { id: 'op-recibir', lane: 1, slot: 3, icon: 'warehouse', label: 'Recepción · China', role: 'Almacén CN', trig: 'Llega mercadería del proveedor con el MARKBOX del cliente.', next: 'Etiqueta QR', mod: 'Almacén CN' },
 { id: 'op-qr', lane: 1, slot: 4, icon: 'tag', label: 'Etiqueta QR', role: 'Almacén CN', trig: 'Bulto recibido, pesado y medido (CBM).', next: 'Consolidación', mod: 'Cola de QR' },
 { id: 'op-consol', lane: 1, slot: 5, icon: 'box', label: 'Consolidación', role: 'Operaciones', trig: 'Hay volumen suficiente para llenar contenedor.', next: 'Booking · zarpe', mod: 'Naviera & Consol.' },
@@ -123,11 +123,43 @@ const NODES = [
 { id: 'con-cobrofin', lane: 2, slot: 11, icon: 'invoice', label: 'Cobro de saldo', role: 'Contabilidad', trig: 'Se confirma la entrega (POD).', next: 'Conciliación & cierre', mod: 'Cobranzas' },
 { id: 'con-cierre', lane: 2, slot: 12, icon: 'chart', label: 'Conciliación · cierre', role: 'Contabilidad', trig: 'Cobros y pagos del embarque están completos.', next: 'Postventa', mod: 'Contabilidad' },
 // Servicio al cliente
-{ id: 'sc-conv', lane: 3, slot: 2, icon: 'chat', label: 'Atención · conversaciones', role: 'Soporte · CX', trig: 'El cliente escribe por WhatsApp, correo o el portal (consulta, seguimiento, cotización).', next: 'Reclamos · incidencias', mod: 'Conversaciones' },
+{ id: 'sc-conv', lane: 3, slot: 2, icon: 'chat', label: 'Atención · conversaciones', role: 'Soporte · CX', trig: 'El cliente escribe por WhatsApp, correo o el portal (consulta, seguimiento, estimado).', next: 'Reclamos · incidencias', mod: 'Conversaciones' },
 { id: 'sc-reclamo', lane: 3, slot: 8, icon: 'warn', label: 'Reclamos · incidencias', role: 'Soporte · CX', trig: 'Surge un faltante, demora o problema de entrega que hay que resolver.', next: 'Resolución · CSAT', mod: 'Reclamos' },
 { id: 'sc-csat', lane: 3, slot: 12, icon: 'star', label: 'Resolución · CSAT', role: 'Soporte · CX', trig: 'El caso se cierra y se mide la satisfacción del cliente.', next: 'Postventa · fidelización', mod: 'CX · CSAT' }];
 
 const NODE_BY = Object.fromEntries(NODES.map((n) => [n.id, n]));
+
+// ── Nodo → módulo del ERP (mapa = lanzador) ───────────────────
+// Cada paso del proceso abre el módulo donde se opera. El CTA del
+// panel hace deep-link al ERP (#mod=<id>); el ERP lee el hash al
+// cargar y navega. `verb` es la acción que arranca (estilo QB Home).
+const NODE_ROUTE = {
+  'com-lead':     { mod: 'leads',          label: 'Leads · CRM',          verb: 'Gestionar leads' },
+  'com-quote':    { mod: 'estimados',         label: 'Estimador',            verb: 'Crear estimado' },
+  'com-client':   { mod: 'clients',        label: 'Clientes',             verb: 'Abrir clientes' },
+  'com-post':     { mod: 'fidelizacion',   label: 'Fidelización',         verb: 'Abrir fidelización' },
+  'op-pedido':    { mod: 'shipments',      label: 'Embarques · órdenes',  verb: 'Ver órdenes' },
+  'op-recibir':   { mod: 'cn',             label: 'Almacén CN',           verb: 'Recibir en China' },
+  'op-qr':        { mod: 'qrqueue',        label: 'Cola de QR',           verb: 'Imprimir etiquetas' },
+  'op-consol':    { mod: 'naviera',        label: 'Naviera & Consol.',    verb: 'Consolidar' },
+  'op-booking':   { mod: 'naviera',        label: 'Naviera & Consol.',    verb: 'Reservar booking' },
+  'op-transito':  { mod: 'tracking',       label: 'Tracking',             verb: 'Seguir tránsito' },
+  'op-aduana':    { mod: 'seniat',         label: 'Aduana · SENIAT',      verb: 'Gestionar aduana' },
+  'op-veware':    { mod: 've',             label: 'Almacén VE',           verb: 'Abrir almacén VE' },
+  'op-despacho':  { mod: 'despacho',       label: 'Despacho',             verb: 'Despachar última milla' },
+  'op-entrega':   { mod: 'tracking',       label: 'Tracking',             verb: 'Confirmar entrega' },
+  'con-factura':  { mod: 'invoices',       label: 'Facturación',          verb: 'Emitir factura DDP' },
+  'con-cobro1':   { mod: 'cobranzas',      label: 'Cobranzas',            verb: 'Registrar cobro' },
+  'con-cxpflete': { mod: 'tesoreria',      label: 'Tesorería',            verb: 'Cargar CxP flete' },
+  'con-cxpad':    { mod: 'tesoreria',      label: 'Tesorería',            verb: 'Cargar CxP aduana' },
+  'con-cxplocal': { mod: 'tesoreria',      label: 'Tesorería',            verb: 'Cargar CxP transporte' },
+  'con-cobrofin': { mod: 'cobranzas',      label: 'Cobranzas',            verb: 'Cobrar saldo' },
+  'con-cierre':   { mod: 'contab',         label: 'Contabilidad',         verb: 'Conciliar y cerrar' },
+  'sc-conv':      { mod: 'conversaciones', label: 'Conversaciones',       verb: 'Abrir conversaciones' },
+  'sc-reclamo':   { mod: 'conversaciones', label: 'Reclamos',             verb: 'Gestionar reclamos' },
+  'sc-csat':      { mod: 'conversaciones', label: 'CX · CSAT',            verb: 'Medir CSAT' }
+};
+const erpHref = (modId) => 'DTD Studio \u00B7 ERP.html#mod=' + modId;
 
 // Conectores dentro de un mismo carril (flujo del departamento).
 const INTRA = [
@@ -191,7 +223,7 @@ const BANDS = [
 const META = {
   'com-lead': () => _safe(() => [{ k: 'En pipeline', v: window.ERPData.LEADS.filter((l) => !['ganado', 'perdido', 'cerrado'].includes(l.stage)).length }, { k: 'Fuente', v: 'Web · referidos' }]),
   'com-quote': () => _safe(() => {
-    const open = window.ERPData.QUOTES.filter((q) => ['enviada', 'borrador'].includes(q.status));
+    const open = window.ERPData.ESTIMADOS.filter((q) => ['enviado', 'borrador'].includes(q.status));
     const byType = {};open.forEach((q) => {byType[q.type] = (byType[q.type] || 0) + 1;});
     return Object.entries(byType).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => ({ k, v }));
   }),
@@ -361,7 +393,7 @@ function ProcessMapApp() {
     'con-cxpad': () => 'CXP-2026-' + (192 + Math.floor(Math.random() * 9)),
     'con-cxplocal': () => 'CXP-2026-' + (192 + Math.floor(Math.random() * 9)),
     'op-pedido': () => 'OP-2026-' + (314 + Math.floor(Math.random() * 9)),
-    'com-quote': () => 'Q-2026-' + (423 + Math.floor(Math.random() * 9)),
+    'com-quote': () => 'E-2026-' + (423 + Math.floor(Math.random() * 9)),
     'com-post': () => 'POST-2026-' + (40 + Math.floor(Math.random() * 9))
   };
   const runRule = (rule) => {
@@ -425,7 +457,7 @@ function ProcessMapApp() {
           </h1>
           <p style={{ margin: '8px 0 0', font: '500 13.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', maxWidth: 640 }}>
             Las tres líneas de negocio y, en punteado, las líneas de enlace que las atan: dónde un
-            departamento le pasa el trabajo al siguiente. Con confianza, de China a tu puerta.
+            departamento le pasa el trabajo al siguiente. Con Confianza, de China a tu puerta.
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -742,6 +774,7 @@ function DetailPanel({ node, onClose }) {
   const lane = LANES[node.lane];
   const ac = `var(--${lane.tone})`;
   const sum = window.FlowSummaries ? window.FlowSummaries.get(node.id) : null;
+  const route = NODE_ROUTE[node.id];
   const [modal, setModal] = useState(null); // {items} para enviar
   const [toast, setToast] = useState(null);
 
@@ -771,6 +804,24 @@ function DetailPanel({ node, onClose }) {
 
       {/* Cuerpo */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* CTA primario · abrir el módulo en el ERP (mapa = lanzador) */}
+        {route &&
+        <a href={erpHref(route.mod)} style={{
+          display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', borderRadius: 'var(--r-md)',
+          background: 'var(--wine)', color: '#fff', boxShadow: 'var(--shadow-sm)', textDecoration: 'none',
+          transition: 'background var(--dur-fast) var(--ease)'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--wine-deep)'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--wine)'}>
+          <span style={{ width: 30, height: 30, borderRadius: 'var(--r-sm)', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(255,255,255,0.16)', color: '#fff' }}>{I[node.icon]?.(16) || I.box(16)}</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', font: '700 13px/1.15 var(--f-sans)' }}>{route.verb}</span>
+            <span style={{ display: 'block', font: '600 10px/1.2 var(--f-sans)', color: 'rgba(255,255,255,0.78)', marginTop: 2 }}>Abrir {route.label} en el ERP</span>
+          </span>
+          {I.external(15)}
+        </a>
+        }
+
         {/* KPIs (2 indicadores) */}
         {sum?.kpis &&
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -783,7 +834,7 @@ function DetailPanel({ node, onClose }) {
           </div>
         }
 
-        {/* Desglose por servicio (cotizaciones) */}
+        {/* Desglose por servicio (estimados) */}
         {sum?.groups && sum.groups.length > 0 &&
         <div>
             <div style={{ font: '700 10px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 8 }}>{sum.groupTitle}</div>
@@ -817,18 +868,18 @@ function DetailPanel({ node, onClose }) {
           </div>
         }
 
-        {/* Acción del nodo */}
+        {/* Acción contextual del nodo (secundaria · el CTA primario abre el módulo) */}
         {sum?.action &&
         <div style={{ marginTop: 2 }}>
             {sum.action.kind === 'send' ?
           <button onClick={() => setModal({ items: sum.action.items })} style={{
-            width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 14px',
-            borderRadius: 'var(--r-md)', background: 'var(--wine)', color: '#fff', font: '700 13px/1 var(--f-sans)', boxShadow: 'var(--shadow-sm)'
+            width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 14px',
+            borderRadius: 'var(--r-md)', background: 'var(--bg-surface)', color: 'var(--wine)', border: '1.5px solid var(--wine)', font: '700 13px/1 var(--f-sans)'
           }}>{I.mail(15)} {sum.action.label}</button> :
 
           <a href={sum.action.href} style={{
-            width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px 14px',
-            borderRadius: 'var(--r-md)', background: 'var(--wine)', color: '#fff', font: '700 13px/1 var(--f-sans)', boxShadow: 'var(--shadow-sm)'
+            width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '11px 14px',
+            borderRadius: 'var(--r-md)', background: 'var(--bg-surface)', color: 'var(--wine)', border: '1.5px solid var(--wine)', font: '700 13px/1 var(--f-sans)'
           }}>{I.arrowR(15)} {sum.action.label}</a>
           }
           </div>

@@ -7,7 +7,7 @@ function MailingRules() {
   const [audience, setAudience] = React.useState('client'); // 'client' | 'internal'
 
   const rulesClient = [
-    { trigger: 'Cotización · creada y enviada',         action: '"Cotización enviada"',         channel: 'email',    delay: 'inmediato', active: true },
+    { trigger: 'Estimado · creado y enviado',         action: '"Estimado enviado"',         channel: 'email',    delay: 'inmediato', active: true },
     { trigger: 'Embarque · estado → "zarpado"',          action: '"Embarque confirmado"',         channel: 'email',    delay: 'inmediato', active: true },
     { trigger: 'Embarque · ETA estimada se atrasa +1d', action: '"ETA en riesgo"',               channel: 'email+wa', delay: 'inmediato', active: true },
     { trigger: 'Embarque · estado → "entregado" / POD',  action: '"POD firmado"',                 channel: 'email',    delay: 'inmediato', active: true },
@@ -18,9 +18,9 @@ function MailingRules() {
   ];
 
   const rulesInternal = [
-    { trigger: 'Lead · creado (web/cotizador)',          action: 'Notificar al owner asignado',    channel: 'inapp+email', delay: 'inmediato', active: true },
+    { trigger: 'Lead · creado (web/estimador)',          action: 'Notificar al owner asignado',    channel: 'inapp+email', delay: 'inmediato', active: true },
     { trigger: 'Lead · sin contacto > 7 días',           action: 'Recordatorio al owner + Slack',  channel: 'inapp+slack', delay: '09:00 AM',  active: true },
-    { trigger: 'Cotización · aceptada',                  action: 'Crear embarque + notificar ops', channel: 'inapp',       delay: 'inmediato', active: true },
+    { trigger: 'Estimado · aceptada',                  action: 'Crear embarque + notificar ops', channel: 'inapp',       delay: 'inmediato', active: true },
     { trigger: 'Embarque · alerta ETA',                  action: 'Notificar a Operaciones VE',     channel: 'inapp+email', delay: 'inmediato', active: true },
     { trigger: 'Almacén CN · incidencia',                action: 'Alerta a Op. CN + admin',         channel: 'inapp+wa',    delay: 'inmediato', active: true },
     { trigger: 'Factura · 7+ días vencida',              action: 'Notificar a Contabilidad + comercial', channel: 'inapp+email', delay: '09:00 AM', active: true },
@@ -55,7 +55,7 @@ function MailingRules() {
               <U.Badge tone="wine" size="sm">{rulesClient.length}</U.Badge>
             </div>
             <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-              Notificaciones que reciben los clientes sobre sus envíos, cotizaciones y facturas. Email + WhatsApp.
+              Notificaciones que reciben los clientes sobre sus envíos, estimados y facturas. Email + WhatsApp.
             </div>
           </button>
           <button onClick={() => setAudience('internal')} style={{

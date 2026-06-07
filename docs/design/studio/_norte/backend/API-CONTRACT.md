@@ -44,19 +44,19 @@ Seam: `window.DTDData.clients` (store) + helpers de MARKBOX.
 
 ---
 
-## 3 · Cotizaciones (cotizador → cotización formal → aceptación)
-Seam: `pushPortalQuote()`, `clientQuotes()` (store `portalQuotes`) + estados de embarque.
+## 3 · Estimados (estimador → estimado formal → aceptación)
+Seam: `pushPortalQuote()`, `clientEstimados()` (store `portalQuotes`) + estados de embarque.
 
 | Acción | Endpoint | Notas |
 |---|---|---|
-| Solicitar (cotizador exprés) | `POST /quotes/requests` `{ markbox, origin, dest, service, cbm, estimate }` | crea la cotización formal con `id` `Q-2026-XXXX`, `quoteStage:'en-proceso'` (no aceptable aún). Devuelve `ref` `SOL-2026-XXX` |
+| Solicitar (estimador exprés) | `POST /quotes/requests` `{ markbox, origin, dest, service, cbm, estimate }` | crea el estimado formal con `id` `E-2026-XXXX`, `quoteStage:'en-proceso'` (no aceptable aún). Devuelve `ref` `SOL-2026-XXX` |
 | Listar del cliente | `GET /quotes?client={markbox}` | aparecen en "Mis envíos" |
 | Finalizar (agente) | `PATCH /quotes/{id}` `{ quoteStage:'lista', amount, cbm, weight }` | la deja **aceptable** |
 | Reliquidar por medida real (CN) | `PATCH /quotes/{id}` `{ cbm, weight, amount, measured:true }` | si difiere de lo aceptado → exige **re-aceptación** (AUT-04a) |
 
-**Estados de embarque** (`status`): `cotizado` → `recibido CN` → `consolidado` → `tránsito`
+**Estados de embarque** (`status`): `estimado` → `recibido CN` → `consolidado` → `tránsito`
 → `aduana VE` → `liberado` → `entregado`. El **contenedor `DTDU-XXXXXX` se asigna al
-consolidar** (antes el id es `Q-2026-XXXX`, sin contenedor).
+consolidar** (antes el id es `E-2026-XXXX`, sin contenedor).
 
 ---
 
@@ -101,7 +101,7 @@ Seam: `cnInbox` + estado local de las apps. **Offline-first.**
 
 | Acción | Endpoint | Notas |
 |---|---|---|
-| Recepción CN | `GET /receptions` · `POST /receptions` `{ markbox, boxes, cbm, weight, ranges[], flags[], photos[] }` | escaneo + medición; dispara reliquidación de cotización |
+| Recepción CN | `GET /receptions` · `POST /receptions` `{ markbox, boxes, cbm, weight, ranges[], flags[], photos[] }` | escaneo + medición; dispara reliquidación de estimado |
 | Despacho / armar camión | `POST /dispatches` `{ truck, driver, items[] }` | pase QR |
 | Rutas del chofer | `GET /routes?assignee=me&day=today` · `POST /routes/{id}/confirm` | el chofer confirma la carga asignada |
 | POD / entrega | `POST /deliveries/{id}/pod` `{ signature, photo, receivedBy }` | |
@@ -131,14 +131,70 @@ Seam: `sendWelcomeEmail()`, `emailsSent` (log), quick replies de Conversaciones.
 
 ---
 
+## 10 · Nómina (RRHH · LOTTT · admin web + app del empleado)
+Seam: `window.NominaData` (store `localStorage` `dtd_nomina_*`). Hoy **el cálculo corre en el
+navegador** (`calcRecibo`, `calcLiquidacion`); en producción **el cálculo debe moverse al
+servidor** — es la frontera de seguridad y la fuente de verdad fiscal/legal.
+
+### Reglas de cálculo (parámetros LOTTT)
+Seam: `loadRules()` / `saveRules()` (store `dtd_nomina_rules_v25`).
+
+| Acción | Endpoint | Notas |
+|---|---|---|
+| Leer reglas vigentes | `GET /payroll/rules` | parámetros LOTTT (método de días, SML, cestaticket, bono de guerra, %s de deducción y tope, recargos, provisiones, prestaciones) |
+| Actualizar reglas | `PUT /payroll/rules` `{ ...params, vigencia }` | versiona por `vigencia`; **cada corte congela** las reglas usadas (auditable). No se reescribe lo histórico |
+
+### Empleados y auto-registro (con aprobación)
+Seam: `EMPLOYEES`, `submitRegistration()`, `approveRegistration()`, `empLogins()`.
+
+| Acción | Endpoint | Notas |
+|---|---|---|
+| Listar / ficha / expediente | `GET /payroll/employees` · `GET /payroll/employees/{id}` | filtrado por tenant |
+| Crear / editar | `POST /payroll/employees` · `PATCH /payroll/employees/{id}` | el empleado puede editar **solo** su contacto y banco (gate server-side); sueldo/cargo los fija RRHH |
+| Link de invitación | `POST /payroll/invites` `{ cargo?, dept? }` · `POST /payroll/invites/{token}/revoke` | token de auto-registro; expira y se revoca server-side |
+| Enviar registro (público) | `POST /payroll/registrations` `{ token?, datos, foto }` | queda **pendiente**; la foto de cédula va a object storage (dato sensible) |
+| Aprobar / rechazar | `POST /payroll/registrations/{id}/approve` `{ salarioUsd, dept }` · `POST .../reject` `{ motivo }` | aprobar crea ficha + **login del empleado** + comunicación de bienvenida |
+
+### Corte de nómina y recibos
+Seam: `calcRecibo()`, `payrollRuns()`, `recordPayrollRun()`, `getPeriodStatus()`.
+
+| Acción | Endpoint | Notas |
+|---|---|---|
+| Previsualizar corte | `GET /payroll/runs/preview?period=` | **calculado server-side** sobre reglas vigentes + asistencia + préstamos del período |
+| Confirmar / pagar | `POST /payroll/runs` `{ period }` → `PATCH /payroll/runs/{id}` `{ status }` | estados `borrador → confirmado → pagado`; congela reglas y tasa BCV del corte |
+| Comprobante de pago | `POST /payroll/runs/{id}/proof` (multipart) | sube comprobante a object storage |
+| Recibo del empleado | `GET /payroll/receipts?employee=me&period=` | desglose LOTTT (salarial / no salarial / deducciones / cuota préstamo / total a cobrar) |
+| Exportar | `GET /payroll/runs/{id}/export.csv` | para el contador |
+
+### Préstamos · asistencia · liquidación · amonestaciones · prestadores
+| Acción | Endpoint | Notas |
+|---|---|---|
+| Préstamos | `GET/POST /payroll/loans` · `POST /payroll/loans/{id}/payments` | la cuota se descuenta **automáticamente** en el corte hasta saldar |
+| Asistencia | `GET /payroll/attendance?employee=&month=` · `PUT /payroll/attendance/{employee}/{date}` | estado del día + horas extra/resta |
+| Feriados | `GET/POST/DELETE /payroll/holidays` | nacionales VE + propios del tenant |
+| Liquidación | `POST /payroll/settlements/preview` `{ employee, causa, fecha, bonoVoluntario }` | **calculado server-side**; devuelve legal vs contingente + exposición. Cifra **estimada** hasta validación contable |
+| Finiquito | `POST /payroll/settlements/{id}` → PDF | documento a object storage |
+| Amonestaciones | `POST /payroll/warnings` `{ employee, causaArt79, relato, testigos[] }` | notifica al empleado; requiere **acuse de recibo** |
+| Prestadores / pagos por sesión | `GET/POST /payroll/contractors` · `POST /payroll/contractors/{id}/payments` | freelance, fuera de la nómina fija |
+
+> **⚠ Validación contable pendiente (ver handoff).** Antes de producción, el cálculo
+> server-side debe cerrar: (1) prorrateo mensual/quincenal del recibo; (2) tope de estimado
+> IVSS (5 SM) / RPE (10 SM); (3) base de deducción = salario normal (qué bonos son salariales);
+> (4) **salario integral** para prestaciones (alícuotas de utilidades + bono vacacional, Art. 142);
+> (5) monetización de horas extra en el recibo. Los puntos 3 y 4 son **criterio del contador**.
+
+---
+
 ## Orden de implementación sugerido
 1. **Auth + sesión + multi-tenant** (base de todo).
 2. **Clientes + MARKBOX secuencial** server-side.
-3. **Cotizaciones + aceptación legal** (con evidencia inmutable real) → **gate de facturación**.
+3. **Estimados + aceptación legal** (con evidencia inmutable real) → **gate de facturación**.
 4. **Facturación / tesorería**.
 5. **Operación CN + sync offline** (apps de operario) + **object storage**.
 6. **Config + feature flags a nivel tenant**.
 7. **Notificaciones** (WhatsApp/email/push).
+8. **Nómina** (reglas + cálculo server-side + recibos/liquidación). Requiere **validación
+   contable previa** de los 5 puntos de la sección 10. Independiente del resto: puede ir en paralelo.
 
 > Regla transversal: **el servidor es la frontera de seguridad.** La app decide *qué muestra*;
 > el backend decide *qué permite* (verifica tenant + permisos en cada request).

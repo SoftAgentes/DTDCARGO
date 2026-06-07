@@ -9,7 +9,7 @@ const TIERS = [
   { id: 'bronze',   label: 'Bronze',   tone: 'neutral', min: 0,      color: 'var(--ink-soft)',
     benefits: ['Soporte estándar', 'Tracking en portal', 'Etiquetas bilingües'] },
   { id: 'silver',   label: 'Silver',   tone: 'info',    min: 50000,  color: 'var(--info)',
-    benefits: ['−5% en almacenaje', 'Prioridad media en consolidación', 'Cotización en 12 h'] },
+    benefits: ['−5% en almacenaje', 'Prioridad media en consolidación', 'Estimado en 12 h'] },
   { id: 'gold',     label: 'Gold',     tone: 'warning', min: 150000, color: 'var(--warning)',
     benefits: ['−10% en almacenaje', 'Agente comercial dedicado', 'Cupo prioritario en contenedor', 'Crédito 15 días'] },
   { id: 'platinum', label: 'Platinum', tone: 'wine',    min: 300000, color: 'var(--wine)',

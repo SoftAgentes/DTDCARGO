@@ -4,6 +4,57 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v2.5 — cargada 2026-06-07 (handoff de Cloud Design · Tarjeta de Presentación + celebración MARKBOX + Brand Book v3.5 + nómina)
+
+Fuente: carpeta `Downloads/DTD-Cargo · Proyecto Completo · Handoff v2.5` (extraída, ~70 MB). Supersede v2.4c.
+**Cloud Design bumpeó el encabezado:** `HANDOFF.md` tope = `🟢 Estado actual · v2.5 (2026-06-07)`. git (mirror):
+rc=3 · **95 nuevos · 68 modificados · 2 borrados · 1 rename** · empaque a la raíz de la carpeta.
+
+**Nuevo ⭐:**
+- **Tarjeta de Presentación** (`Tarjeta de Presentación.html`): doble cara 85×55 mm + sangrado, lockup canónico,
+  **QR vCard**, 3 perfiles (uno bilingüe 中文), imposición con marcas de corte + descarga `.vcf`. Reusa
+  `erp/tokens.css` + isólogos de `assets/`. Entró al Brand Book como pieza **#13**.
+- **Celebración del MARKBOX** en `portal/registro.jsx`: al registrar la compra inline, la tarjeta roja muta
+  `DTD-XXXX` → `DTD-XXXX-1-1` (markbox·proveedor·compra) con animación (pop + ring `--success`; respeta
+  `prefers-reduced-motion`). Nuevo `MarkboxCard`.
+- **Brand Book → v3.5** (dentro de `Brand Book DTD v3.2.html`; el nombre de archivo no cambió).
+- **Nómina (surface nueva):** `App del Empleado.html` + `HANDOFF-NOMINA.md`.
+- **Auditoría calc/cotizador** (entrada 06-06, solo bitácora) → **rename `erp/modules/quotes.jsx` → `estimados.jsx`**
+  (lo detectó git como R).
+- **Colateral operativo/marketing nuevo:** `Calculadora CBM`, `Etiqueta Bodega ZPL`, `Comprobante WhatsApp`,
+  `Reporte`, `Portada Animada FB`, `Portadas Redes`, `Póster Reseñas`, `Sticker Pack`; carpetas nuevas
+  `brandbook-icons/ calc/ empleado/ factura-template/ favicon-pack/ marketing/ redes/ zpl-label/`;
+  `manifest.webmanifest` + `sw.js` (PWA del prototipo de Cloud Design).
+
+**Removió:** `assets/dtdcargo-icon-navy.png` (verificado: sin refs colgantes). **Purgado por el mirror:**
+`CHANGELOG-sesion.md` (estaba consolidado en `CHANGELOG.md` desde hace varias cargas).
+
+**Drift de backend (re-aplicado):** la carga re-introdujo `backend/prisma/schema.prisma` (blueprint Prisma
+517 líneas). Decisión founder 2026-06-03 = **backend NATIVO Supabase, NO Prisma** → schema.prisma **re-removido**
+y `backend/prisma/` agregado al `.gitignore` (para que no vuelva a trackearse en próximos syncs). Se conservan
+los docs buenos `backend/{README,API-CONTRACT}.md`.
+
+**Terminología (drift recurrente):** la carga trajo de vuelta Bodeguero/Camionero → re-aplicado el rename
+**Almacenista/Transportista**: **10 archivos renombrados** (2 HTML + 3 `.jsx` ×2 por el duplicado en
+`design_handoff_mobile_app/`) + **sweep de texto en 36** (capitalizado/minúscula) + **2 mayúsculas** (badge de
+rol `BODEGUERO`→`ALMACENISTA`), **salvo `CHANGELOG.md` histórico**. Paths de código reales (`app/m/ve/bodeguero`)
+NO se tocaron.
+
+**`norte.mjs`:** v2.4c→**v2.5**; GROUPS: Marca (**+Tarjeta de Presentación**), **grupo nuevo "Nuevo en v2.5 ·
+operativo · nómina · colateral"** (9 pantallas `ref:true` → no diluyen el %). Overlay **50% (10/20)** sin cambio
+(las nuevas son referencia/marca).
+
+**Para el radar del founder:** (1) **Brand Book v3.5 → propagar a la web** `/marca/brand-book` (regla
+brand-to-web). (2) **App del Empleado + HANDOFF-NOMINA = módulo NÓMINA nuevo del ERP** (candidato a SDD).
+(3) `estimados.jsx` (ex `quotes.jsx`) — el cotizador interno cambió de nombre. (4) Tarjeta = pieza imprimible
+de marca, no es pantalla de app.
+
+**Peso (fuera de git):** + **Brand Book self-contained v3.2** (carpeta `DTD-Brand-Book-v3.2-selfcontained/`
+~19.9 MB + `Brand Book DTD v3.2 - self-contained.html` ~10.8 MB) agregados al `.gitignore`; `uploads/` (25.7 MB),
+`scraps/`, `screenshots/` no se copiaron. `_norte/` en disco = **12.3 MB**. Sigue fuera: `_norte.html`, `Brand Book v3.0 Package/`.
+
+---
+
 ## v2.4c — cargada 2026-06-02 (handoff de Cloud Design · capa LEGAL + handoff mobile dedicado + Brand Book v3.2)
 
 Fuente: `Downloads/DTD-Cargo Proyecto Completo (handoff v2.4c).zip` (~18 MB). Supersede v2.4b. A diferencia
