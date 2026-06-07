@@ -29,7 +29,7 @@ function RoleCard({ role }) {
 
   const exportPNG = async (size) => {
     // Build standalone SVG (without animations baked in)
-    const inner = svgRef.current?.querySelector('.icon-shell.is-static svg');
+    const inner = svgRef.current?.querySelector('.icon-shell:not(.is-interactive) svg');
     if (!inner) return;
     const xml = new XMLSerializer().serializeToString(inner);
     const wrapped = '<?xml version="1.0" encoding="UTF-8"?>' + xml;
@@ -56,7 +56,7 @@ function RoleCard({ role }) {
   };
 
   const copySVG = () => {
-    const inner = svgRef.current?.querySelector('.icon-shell.is-static svg');
+    const inner = svgRef.current?.querySelector('.icon-shell:not(.is-interactive) svg');
     if (!inner) return;
     const xml = new XMLSerializer().serializeToString(inner);
     navigator.clipboard.writeText(xml);
@@ -73,6 +73,7 @@ function RoleCard({ role }) {
             </IconShell>
           </div>
           <div className="avatar-label">Fijo</div>
+          <div className="avatar-sub" style={{ font: '500 9.5px/1.3 var(--f-mono)', color: 'var(--ink-mute)', marginTop: 2 }}>ejemplo fijo · PNG</div>
         </div>
         <div>
           <div className="role-avatar">
@@ -81,6 +82,7 @@ function RoleCard({ role }) {
             </IconShell>
           </div>
           <div className="avatar-label">Interactivo</div>
+          <div className="avatar-sub" style={{ font: '500 9.5px/1.3 var(--f-mono)', color: 'var(--ink-mute)', marginTop: 2 }}>interactivo · SVG animado</div>
         </div>
       </div>
       <div className="role-body">
@@ -91,10 +93,13 @@ function RoleCard({ role }) {
           <span className="role-num"><span className="wa">WA</span> {role.wa}</span>
           <span className="role-num"><span className="wc">微信</span> {role.wc}</span>
         </div>
-        <div className="role-actions" style={{ marginTop: 12 }}>
-          <button className="btn primary" onClick={() => exportPNG(512)}>↓ PNG 512</button>
-          <button className="btn" onClick={() => exportPNG(1024)}>↓ PNG 1024</button>
-          <button className="btn" onClick={copySVG}>⧉ SVG</button>
+        <p className="role-help" style={{ font: '400 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '14px 0 6px' }}>
+          El <strong>PNG</strong> es la imagen quieta del ícono (una foto) — la que usás en WhatsApp, el CRM o un avatar. <strong>512</strong> y <strong>1024</strong> son el tamaño en píxeles (1024 = más grande/nítido). El <strong>SVG</strong> es la versión <strong>interactiva</strong>: vectorial y con la animación del rol — para web/apps, no para WhatsApp.
+        </p>
+        <div className="role-actions" style={{ marginTop: 4 }}>
+          <button className="btn primary" onClick={() => exportPNG(512)}>↓ PNG 512 · fijo</button>
+          <button className="btn" onClick={() => exportPNG(1024)}>↓ PNG 1024 · fijo</button>
+          <button className="btn" onClick={copySVG}>⧉ SVG · interactivo</button>
         </div>
       </div>
     </div>

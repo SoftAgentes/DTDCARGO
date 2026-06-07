@@ -32,7 +32,7 @@ function PortalApp() {
   }} />;
 
   const me = D.CLIENTS.find(c => c.markbox === DEMO_MARKBOX);
-  const _pq = (() => { try { return (window.DTDData && window.DTDData.clientQuotes) ? window.DTDData.clientQuotes(DEMO_MARKBOX) : []; } catch (e) { return []; } })();
+  const _pq = (() => { try { return (window.DTDData && window.DTDData.clientEstimados) ? window.DTDData.clientEstimados(DEMO_MARKBOX) : []; } catch (e) { return []; } })();
   const myShipments = [..._pq, ...D.SHIPMENTS.filter(s => s.client === DEMO_MARKBOX)];
   const myInvoices = D.INVOICES.filter(i => i.client === DEMO_MARKBOX);
 
@@ -101,7 +101,7 @@ function PortalLogin({ onLogin }) {
               Tus envíos<br/>desde China,<br/><span style={{ color: 'var(--wine-soft)' }}>en un click.</span>
             </div>
             <div style={{ marginTop: 22, font: '500 14px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.7)', maxWidth: '36ch' }}>
-              Cotizá, embarcá y rastreá tus cargas DDP. Facturas, documentos y soporte directo con tu agente.
+              Estimá, embarcá y rastreá tus cargas DDP. Facturas, documentos y soporte directo con tu agente.
             </div>
             <div style={{ marginTop: 28, display: 'flex', gap: 18 }}>
               {[
@@ -279,17 +279,18 @@ function PortalTopbar({ me, view, setView, onLogout, theme, setTheme }) {
 }
 
 function PortalLogo({ white }) {
+  // white → superficie navy fija (hero login): siempre reverse + cream.
+  // sin white → sigue el tema (primary/wine en light, reverse/cream en dark).
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <img src="assets/dtdcargo-icon-navy.png" alt="DTD-Cargo"
-        style={{
-          width: 32, height: 32, objectFit: 'contain',
-          filter: white ? 'brightness(0) invert(1)' : 'none',
-        }}
-      />
-      <div style={{ font: '900 19px/1 var(--f-display)', letterSpacing: '-0.02em' }}>
-        <span style={{ color: white ? '#C2747F' : 'var(--wine)' }}>DTD</span>
-        <span style={{ color: white ? '#fff' : 'var(--ink)' }}>CARGO</span>
+      <span className={'dtd-iso ' + (white ? 'dtd-iso-ondark' : 'dtd-iso-auto')} style={{ width: 32, height: 32 }}>
+        <img className="iso-primary" src="assets/dtdcargo-isologo-primary.png" alt="DTD Cargo" />
+        <img className="iso-reverse" src="assets/dtdcargo-isologo-reverse.png" alt="" />
+      </span>
+      <div style={{ font: '900 19px/1 var(--f-display)', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>
+        <span style={{ color: white ? '#F2F0EC' : 'var(--wordmark-dtd)' }}>DTD</span>
+        <span style={{ display: 'inline-block', width: '0.15em' }}></span>
+        <span style={{ color: white ? '#F2F0EC' : 'var(--wordmark-cargo)' }}>Cargo</span>
       </div>
     </div>
   );
@@ -299,7 +300,7 @@ function PortalLogo({ white }) {
 function PortalHome({ me, ships, invs, setView, setDetail }) {
   const D = window.ERPData;
   const U = window.ERPUI;
-  const active = ships.filter(s => !['entregado','cotizado'].includes(s.status));
+  const active = ships.filter(s => !['entregado','estimado'].includes(s.status));
   const inTransit = ships.find(s => s.status === 'tránsito') || active[0];
   const outstanding = invs.reduce((s,i) => s+i.balance, 0);
 
@@ -315,7 +316,7 @@ function PortalHome({ me, ships, invs, setView, setDetail }) {
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
           <window.ERPUI.Btn variant="secondary" icon={window.Icon.plus(14)} onClick={() => setView('suppliers')}>Nueva compra · nuevo código</window.ERPUI.Btn>
-          <window.ERPUI.Btn variant="primary" icon={window.Icon.plus(14)}>Nueva cotización</window.ERPUI.Btn>
+          <window.ERPUI.Btn variant="primary" icon={window.Icon.plus(14)}>Nuevo estimado</window.ERPUI.Btn>
         </div>
       </div>
 
@@ -485,7 +486,7 @@ function PortalShipments({ ships, setDetail }) {
   return (
     <div>
       <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Mis envíos</h1>
-      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>{ships.length} embarques totales · {ships.filter(s => !['entregado','cotizado'].includes(s.status)).length} en curso</p>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>{ships.length} embarques totales · {ships.filter(s => !['entregado','estimado'].includes(s.status)).length} en curso</p>
 
       <U.Tabs value={tab} onChange={setTab} items={[
         { value: 'all',       label: 'Todos',      count: ships.length },
@@ -528,7 +529,7 @@ function PortalShipments({ ships, setDetail }) {
   );
 }
 
-// ── Aceptación legal de cotización (T&C + Operador) ──────────
+// ── Aceptación legal de estimado (T&C + Operador) ──────────
 function pFmtLegalDate(iso) {
   const [y, m, d] = iso.split('-');
   const MM = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(m) - 1];
@@ -581,7 +582,7 @@ function PortalAcceptModal({ quote, me, open, onClose, onAccepted }) {
     const evidence = {
       id: 'AC-2026-' + String(Math.floor(215 + Math.random() * 80)).padStart(4, '0'),
       client: me.company || me.name, markbox: me.markbox,
-      quote: quote.id, orden: quote.id.replace('Q-', 'OS-'),
+      quote: quote.id, orden: quote.id.replace('E-', 'OV-'),
       cbm: quote.cbm, weight: quote.weight, total: quote.amount,
       docs: docs.map(d => [d.name, d.version]),
       at: pNowStamp(), ip: me.ip || '190.142.88.214', hash: pFakeHash(),
@@ -592,7 +593,7 @@ function PortalAcceptModal({ quote, me, open, onClose, onAccepted }) {
 
   return (
     <React.Fragment>
-      <U.Modal open={open && !viewing} onClose={close} width={560} title="Aceptar cotización"
+      <U.Modal open={open && !viewing} onClose={close} width={560} title="Aceptar estimado"
         actions={
           <div style={{ display: 'flex', gap: 8, width: '100%', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 6 }}>{I.lock(13)} Paso obligatorio</span>
@@ -636,7 +637,7 @@ function PortalAcceptModal({ quote, me, open, onClose, onAccepted }) {
         <div style={{ display: 'flex', gap: 10, marginTop: 14, padding: '11px 13px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
           <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield(15)}</span>
           <div style={{ font: '500 11.5px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
-            Al confirmar registramos tu aceptación como evidencia legal: cliente, cotización, documento y versión, fecha/hora, IP y un hash de integridad. Se solicita en <b>cada</b> cotización.
+            Al confirmar registramos tu aceptación como evidencia legal: cliente, estimado, documento y versión, fecha/hora, IP y un hash de integridad. Se solicita en <b>cada</b> estimado.
           </div>
         </div>
       </U.Modal>
@@ -660,7 +661,7 @@ function PortalAcuseModal({ evidence, open, onClose }) {
       actions={<U.Btn variant="primary" full onClick={onClose} icon={I.check(14)}>Entendido</U.Btn>}>
       <div style={{ textAlign: 'center', padding: '6px 0 18px' }}>
         <div style={{ width: 60, height: 60, borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>{I.check(30)}</div>
-        <div style={{ font: '900 20px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Cotización aceptada</div>
+        <div style={{ font: '900 20px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Estimado aceptado</div>
         <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>
           Generamos la orden <code style={{ font: '800 13px/1 var(--f-mono)', color: 'var(--wine)' }}>{evidence.orden}</code> ligada a las versiones aceptadas.
         </div>
@@ -668,7 +669,7 @@ function PortalAcuseModal({ evidence, open, onClose }) {
       <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '4px 16px 14px' }}>
         <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', padding: '14px 0 6px' }}>Acuse de aceptación · evidencia</div>
         <Row k="Cliente" v={`${evidence.client} · ${evidence.markbox}`} />
-        <Row k="Cotización" v={evidence.quote} />
+        <Row k="Estimado" v={evidence.quote} />
         {evidence.docs.map((d, i) => <Row key={i} k={i === 0 ? 'Documentos' : ''} v={`${d[0]} ${d[1]}`} />)}
         <Row k="Fecha / hora" v={evidence.at} />
         <Row k="IP" v={evidence.ip} />
@@ -682,7 +683,7 @@ function PortalAcuseModal({ evidence, open, onClose }) {
 function PortalShipmentDetail({ id, onBack }) {
   const D = window.ERPData;
   const U = window.ERPUI;
-  const s = (() => { try { const q = (window.DTDData && window.DTDData.clientQuotes) ? window.DTDData.clientQuotes(DEMO_MARKBOX).find(x => x.id === id) : null; return q || D.SHIPMENTS.find(x => x.id === id); } catch (e) { return D.SHIPMENTS.find(x => x.id === id); } })();
+  const s = (() => { try { const q = (window.DTDData && window.DTDData.clientEstimados) ? window.DTDData.clientEstimados(DEMO_MARKBOX).find(x => x.id === id) : null; return q || D.SHIPMENTS.find(x => x.id === id); } catch (e) { return D.SHIPMENTS.find(x => x.id === id); } })();
   const [accepting, setAccepting] = pUseState(false);
   const [evidence, setEvidence] = pUseState(null);
   const [acuse, setAcuse] = pUseState(false);
@@ -691,7 +692,7 @@ function PortalShipmentDetail({ id, onBack }) {
   const cur = flow.indexOf(s.status);
   const pLegalAccepted = (qid) => { try { return (window.LegalData && window.LegalData.ACCEPTANCES.some(a => a.quote === qid)); } catch (e) { return false; } };
   const quote = {
-    id: s.id.startsWith('Q-') ? s.id : 'Q-2026-' + s.id.slice(-4), route: `${D.origin(s.origin).name} → ${D.dest(s.destination).name}`,
+    id: s.id.startsWith('E-') ? s.id : 'E-2026-' + s.id.slice(-4), route: `${D.origin(s.origin).name} → ${D.dest(s.destination).name}`,
     cbm: s.cbm, weight: s.weight, amount: s.value, type: s.type, total: '$' + (s.value || 0).toLocaleString('en-US'),
   };
   const meQ = { company: s.clientName, markbox: s.client, ip: '190.142.88.214' };
@@ -699,8 +700,8 @@ function PortalShipmentDetail({ id, onBack }) {
   const accForQuote = (() => { try { return (window.LegalData ? window.LegalData.ACCEPTANCES : []).filter(a => a.quote === quote.id); } catch (e) { return []; } })();
   const acceptedCurrent = !!evidence || accForQuote.some(a => Number(a.cbm) === Number(s.cbm) && Number(a.weight) === Number(s.weight));
   const priorDiff = (!acceptedCurrent && accForQuote.length > 0) ? accForQuote[0] : null; // aceptó antes, pero la medida cambió
-  const inReview = s.status === 'cotizado' && s.quoteStage === 'en-proceso'; // recién solicitada · el agente la prepara
-  const needsAccept = (s.status === 'cotizado' || s.status === 'recibido CN') && !acceptedCurrent && !inReview;
+  const inReview = s.status === 'estimado' && s.quoteStage === 'en-proceso'; // recién solicitada · el agente la prepara
+  const needsAccept = (s.status === 'estimado' || s.status === 'recibido CN') && !acceptedCurrent && !inReview;
   const isMeasured = s.status === 'recibido CN';
   const isReaccept = !!priorDiff;
   const fmtUsd = (n) => '$' + (Number(n) || 0).toLocaleString('en-US');
@@ -727,7 +728,7 @@ function PortalShipmentDetail({ id, onBack }) {
           ) : needsAccept ? (
             <React.Fragment>
               <U.Btn variant="secondary" icon={window.Icon.download(14)}>Descargar PDF</U.Btn>
-              <U.Btn variant="primary" icon={window.Icon.check(14)} onClick={() => setAccepting(true)}>{isReaccept ? 'Revisar y re-aceptar' : (isMeasured ? 'Aceptar cotización · medida real' : 'Aceptar cotización')}</U.Btn>
+              <U.Btn variant="primary" icon={window.Icon.check(14)} onClick={() => setAccepting(true)}>{isReaccept ? 'Revisar y re-aceptar' : (isMeasured ? 'Aceptar estimado · medida real' : 'Aceptar estimado')}</U.Btn>
             </React.Fragment>
           ) : (
             <React.Fragment>
@@ -744,9 +745,9 @@ function PortalShipmentDetail({ id, onBack }) {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <span style={{ color: 'var(--info)', flexShrink: 0, marginTop: 1 }}>{window.Icon.clock ? window.Icon.clock(18) : window.Icon.info(18)}</span>
             <div style={{ flex: 1 }}>
-              <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>Cotización en proceso</div>
+              <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>Estimado en proceso</div>
               <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>
-                Recibimos tu solicitud y tu agente está preparando la cotización formal{s.quoteRef ? ` (ref. ${s.quoteRef})` : ''}. Te avisamos apenas esté lista para aceptar.
+                Recibimos tu solicitud y tu agente está preparando el estimado formal{s.quoteRef ? ` (ref. ${s.quoteRef})` : ''}. Te avisamos apenas esté lista para aceptar.
               </div>
             </div>
           </div>
@@ -758,13 +759,13 @@ function PortalShipmentDetail({ id, onBack }) {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
             <span style={{ color: 'var(--wine)', flexShrink: 0, marginTop: 1 }}>{window.Icon.shield(18)}</span>
             <div style={{ flex: 1 }}>
-              <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida real cambió · re-aceptación requerida' : (isMeasured ? 'Tu carga llegó y se midió · falta tu aceptación' : 'Cotización pendiente de aceptación')}</div>
+              <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida real cambió · re-aceptación requerida' : (isMeasured ? 'Tu carga llegó y se midió · falta tu aceptación' : 'Estimado pendiente de aceptación')}</div>
               <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>
                 {isReaccept
-                  ? 'Aceptaste una cotización por la medida estimada, pero al medir tu carga en China el volumen/peso real cambió. Confirmá la nueva cotización para que emitamos la factura. La factura no se emite hasta que aceptes la diferencia.'
+                  ? 'Aceptaste un estimado por la medida estimada, pero al medir tu carga en China el volumen/peso real cambió. Confirmá la nuevo estimado para que emitamos la factura. La factura no se emite hasta que aceptes la diferencia.'
                   : (isMeasured
-                    ? `Recibimos tu carga en China y medimos el volumen y peso reales (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá la cotización con la medida real para que emitamos tu factura DDP. La factura no se emite hasta que firmes.`
-                    : 'Revisá la cotización y aceptá los términos para generar tu orden de servicio.')}
+                    ? `Recibimos tu carga en China y medimos el volumen y peso reales (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá el estimado con la medida real para que emitamos tu factura DDP. La factura no se emite hasta que firmes.`
+                    : 'Revisá el estimado y aceptá los términos para generar tu orden de servicio.')}
               </div>
               {isReaccept && (
                 <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
@@ -1132,7 +1133,7 @@ function PortalReferidos({ me }) {
     setCopied(true); setTimeout(() => setCopied(false), 1600);
   };
   const share = () => {
-    const txt = `Importá de China con DTD-Cargo y usá mi código ${code} para ${fmt(F.REFERRAL_RULES.referredReward)} de descuento en tu primer embarque. Con confianza, de China a tu puerta.`;
+    const txt = `Importá de China con DTD-Cargo y usá mi código ${code} para ${fmt(F.REFERRAL_RULES.referredReward)} de descuento en tu primer embarque. Con Confianza, de China a tu puerta.`;
     window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
   };
 

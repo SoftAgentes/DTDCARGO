@@ -135,7 +135,7 @@
       <tr><td>Operación</td><td>Almacén VE (con scope)</td><td><span class="pill pill-ok">OK</span></td></tr>
       <tr><td>Operación</td><td>TMS · Transporte interno VE</td><td><span class="pill pill-ok">OK</span></td></tr>
       <tr><td>Operación</td><td>Aduana SENIAT · Workflow</td><td><span class="pill pill-ok">OK</span></td></tr>
-      <tr><td>Comercial</td><td>Cotizador (calculadora DDP en vivo)</td><td><span class="pill pill-ok">OK</span></td></tr>
+      <tr><td>Comercial</td><td>Estimador (calculadora DDP en vivo)</td><td><span class="pill pill-ok">OK</span></td></tr>
       <tr><td>Comercial</td><td>Clientes & MARKBOX</td><td><span class="pill pill-ok">OK</span></td></tr>
       <tr><td>Comercial</td><td>CRM · Leads (Kanban + Tabla + Timeline)</td><td><span class="pill pill-ok">OK</span></td></tr>
       <tr><td>Comercial</td><td>Proveedores CN (WeChat, ratings)</td><td><span class="pill pill-ok">OK</span></td></tr>
@@ -207,7 +207,7 @@
 <section class="page">
   <div class="eyebrow">SECCIÓN 3</div>
   <h1 style="margin-top: 8px;">Handoff a Claude Code</h1>
-  <p class="lead" style="margin: 18px 0;">Claude Code lee este reporte + CLAUDE.md + HANDOFF.md al iniciar cada sesión. La regla principal: <b>nunca inventar pantallas sin diseño aprobado</b>.</p>
+  <p class="lead" style="margin: 18px 0;">Claude Code lee este reporte + <code>CLAUDE.md</code> + <code>HANDOFF.md</code> + <code>CHANGELOG.md</code> al iniciar cada sesión. La regla principal: <b>nunca inventar pantallas sin diseño aprobado</b>, y <b>no rehacer lo existente</b> (verificar contra el changelog).</p>
 
   <h2>La regla de oro · DESIGN-CHECK</h2>
   <p>Cuando el usuario pida modificar o crear algo que <b>NO</b> tiene diseño aprobado en HANDOFF.md, Claude Code debe mostrar este aviso antes de codear:</p>
@@ -225,54 +225,37 @@ B) Construir intentando seguir el sistema, con riesgo
 
   <p>Espera confirmación antes de aplicar la opción B.</p>
 
-  <h2>Lo que falta diseñar (próximos sprints)</h2>
+  <h2>Estado del backlog de diseño · al 6 de junio de 2026</h2>
+  <p>El backlog de pantallas que figuraba pendiente en mayo está <b>cerrado</b>. El prototipo de alta fidelidad está completo y persistido en <code>localStorage</code>; <b>lo único que falta para lanzar es el backend real</b> (<code>backend/README.md</code>).</p>
 
-  <h3>🔴 Visuales que no existen</h3>
-  <ol>
-    <li>Perfil individual de Chofer (TMS)</li>
-    <li>Perfil individual de Camión (TMS)</li>
-    <li>Perfil individual de Agente Aduanal (SENIAT)</li>
-    <li>Perfil individual de Usuario (cross-módulo)</li>
-    <li>Cola de impresión QR · vista oficina</li>
-    <li>Editor de Dashboard (configurar KPIs)</li>
-    <li>Bandeja unificada de tareas "Tu día"</li>
-    <li>Estado de cuenta detallado del cliente</li>
-    <li>Conciliación bancaria</li>
-    <li>Vista "modo cliente real" preview</li>
-    <li>Modal "Adjuntar archivo" rico</li>
-    <li>AI Copilot conversacional</li>
-    <li>Auditoría con drill-down a registros afectados</li>
-  </ol>
-
-  <h3>🟡 Funcional sin backend</h3>
+  <h3>🟢 Diseño cerrado (antes pendiente)</h3>
   <ul>
-    <li>Toggles de "Casos de uso ON/OFF" no esconden módulos (solo visual)</li>
-    <li>Cola de impresión QR no recibe órdenes desde móvil</li>
-    <li>"Programar", "Adjuntar" en Compose — placeholders</li>
-    <li>OAuth Google/Microsoft en SMTP setup — no real</li>
-    <li>"Sincronizar" en HS/AES — animación visual</li>
-    <li>"Generar BL" en Documentos — sin flow real</li>
+    <li>Perfiles individuales: <b>Chofer</b>, <b>Camión</b>, <b>Agente Aduanal</b> y <b>Usuario</b> — montan como overlay interno (<code>pantallas/*.jsx</code>)</li>
+    <li><b>Cola de impresión QR</b> · vista oficina (<code>qr-queue.jsx</code>)</li>
+    <li><b>Bandeja unificada "Tu día"</b> · <b>Estado de cuenta</b> detallado · <b>Modo cliente</b> preview · <b>Hilos</b> de conversación · <b>AI Copilot</b> conversacional</li>
+    <li><b>Conciliación bancaria</b> (<code>conciliacion.jsx</code>) · <b>Auditoría</b> con drill-down (<code>audit-log.jsx</code>)</li>
+    <li>Pulido sin-backend: skeletons, hide-values (persistido + tablas/gráficos), drag&amp;drop de calendario, envío programado, multi-tenant cliente, notificaciones clickeables</li>
   </ul>
 
-  <h3>🟢 Pulido pendiente</h3>
-  <ul>
-    <li>Dashboard activity reciente clickeable</li>
-    <li>Topbar bell notifications clickeables</li>
-    <li>HideValues aplicado también a tablas y gráficos</li>
-    <li>Persistencia del ojo en localStorage</li>
-    <li>Drag de eventos en Calendar para reprogramar</li>
-    <li>Costing comparativa mes vs mes anterior</li>
-  </ul>
+  <h3>🔵 Suite que creció desde mayo</h3>
+  <p>Además de cerrar el backlog, se sumaron módulos de finanzas y operación: <b>Tesorería</b>, <b>Cobranzas</b>, <b>Contabilidad</b>, <b>Fiscal · SENIAT</b> (toggle IVA), <b>Nómina</b>, <b>Naviera &amp; Consolidación</b>, <b>Conversaciones</b>, <b>Documentos · Hub (DMS)</b>, <b>Dirección · tablero ejecutivo</b>, <b>Flujo de trabajo</b> y <b>Fidelización/Referidos</b>. Detalle archivo+línea+razón en <code>CHANGELOG.md</code>.</p>
 
-  <h2>Orden sugerido</h2>
+  <h3>🔴 Lo único pendiente · backend real</h3>
+  <p>El seam de datos ya está definido (<code>window.DTDApi</code> / <code>window.DTDAuth</code>, <code>erp/api/client.jsx</code>, toggle <code>mock|rest</code>); no se cambia su firma al portar. Cada módulo es candidato a endpoint. Lo que pide cada uno:</p>
   <table>
-    <thead><tr><th>Sprint</th><th>Foco</th><th>Items</th></tr></thead>
+    <thead><tr><th>Capa</th><th>Backend que pide</th></tr></thead>
     <tbody>
-      <tr><td>A</td><td>Visuales nuevas</td><td>Editor Dashboard · cola QR oficina · perfiles individuales</td></tr>
-      <tr><td>B</td><td>Conexiones</td><td>Feature flags reales · móvil ↔ ERP sync · cola QR conectada</td></tr>
-      <tr><td>C</td><td>Profundidad</td><td>Estado cuenta · conciliación · audit drill-down · AI Copilot</td></tr>
+      <tr><td>Tesorería / Cobranzas</td><td>Caja multi-moneda (USD/VES/USDT/CNY), CxP/CxC, órdenes de pago + multi-firma, registrar pago que baje saldo</td></tr>
+      <tr><td>Naviera</td><td>Itinerarios (sailings + cut-off), bookings/BL, bin-packing LCL→FCL</td></tr>
+      <tr><td>Conversaciones</td><td>WhatsApp Business API, IMAP/SMTP, webhooks, SLA</td></tr>
+      <tr><td>Documentos (DMS)</td><td>Subida real, preview, OCR, versionado, doc↔transacción</td></tr>
+      <tr><td>Fiscal · SENIAT</td><td>Libros Ventas/Compras, retenciones, declaración IVA (TXT/XML) — solo si toggle IVA ON</td></tr>
+      <tr><td>Móvil ↔ ERP</td><td>Sync de cola QR, recepción/POD, sesión persistente por rol (<code>HANDOFF-MOBILE.md</code>)</td></tr>
     </tbody>
   </table>
+  <blockquote>
+    <b>Actualizado el 6 de junio de 2026.</b> Estado canónico vigente en <code>HANDOFF.md</code> (v2.4) y bitácora en <code>CHANGELOG.md</code>. Esta sección reemplaza el backlog de diseño de la versión del 23 de mayo, ya completado.
+  </blockquote>
 </section>
 
 <!-- PAGE 4 — Stack -->

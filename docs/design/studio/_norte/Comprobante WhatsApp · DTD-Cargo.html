@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Comprobante WhatsApp · DTD-Cargo</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Sora:wght@600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --wine:#7F0F1A; --wine-deep:#5E0A12; --wine-soft:#C2747F;
+  --ink:#0F1E3D; --ink2:#1F3055; --cream:#FBFAF7;
+  --success:#1F8A5B;
+  --f-sans:'Nunito Sans',system-ui,sans-serif;
+  --f-display:'Sora',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  --f-brand:'Archivo Black',sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#5a5f6b;font-family:var(--f-sans);-webkit-font-smoothing:antialiased}
+
+.bar{max-width:540px;margin:0 auto;padding:18px 0 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.bar .eyebrow{font:700 10.5px/1 var(--f-sans);letter-spacing:.16em;text-transform:uppercase;color:#fff;opacity:.85}
+.bar .sp{flex:1}
+.bar .note{font-size:11px;color:rgba(255,255,255,.6)}
+.bar button{font:700 12px/1 var(--f-sans);color:#fff;background:var(--wine);border:none;padding:9px 14px;border-radius:7px;cursor:pointer}
+.bar button:hover{background:var(--wine-deep)}
+.bar button.alt{background:rgba(255,255,255,.14)}
+.bar button.alt:hover{background:rgba(255,255,255,.24)}
+
+/* 1080×1920 → shown at half (540×960) */
+.card{width:540px;height:960px;margin:16px auto 60px;position:relative;overflow:hidden;
+  background:var(--cream);box-shadow:0 24px 70px rgba(0,0,0,.4)}
+
+/* header band */
+.head{position:relative;background:linear-gradient(155deg,var(--ink),var(--ink2));color:var(--cream);
+  padding:34px 36px 30px;overflow:hidden}
+.head .meander{position:absolute;inset:0;opacity:1;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%23FFFFFF' stroke-opacity='0.05' stroke-width='4'/></svg>");
+  background-repeat:repeat;background-size:50px 50px}
+.head .brand{position:relative;display:flex;align-items:center;gap:11px;z-index:2}
+.head .brand img{height:38px;width:auto;display:block}
+.head .brand .wm{font-family:var(--f-brand);font-size:22px;letter-spacing:-.02em;line-height:1;color:var(--cream)}
+.head .brand .wm .sp{display:inline-block;width:.14em}
+.head .doc{position:relative;z-index:2;margin-top:22px;display:flex;align-items:flex-end;justify-content:space-between;gap:12px}
+.head .doc .lbl{font:700 11px/1 var(--f-sans);letter-spacing:.14em;text-transform:uppercase;color:rgba(251,250,247,.6)}
+.head .doc .num{font-family:var(--f-mono);font-weight:700;font-size:19px;color:var(--cream);margin-top:6px}
+.head .doc .paid{font:800 11px/1 var(--f-sans);letter-spacing:.06em;text-transform:uppercase;
+  background:rgba(31,138,91,.22);color:#6BE0A8;border:1px solid rgba(31,138,91,.5);padding:7px 12px;border-radius:999px}
+
+/* body */
+.body{padding:30px 36px 0}
+.who{display:flex;justify-content:space-between;gap:16px;padding-bottom:20px;border-bottom:1px solid #E8E6E2}
+.who .k{font:700 9.5px/1 var(--f-sans);letter-spacing:.12em;text-transform:uppercase;color:#9B9B9B;margin-bottom:6px}
+.who .nm{font-family:var(--f-display);font-weight:700;font-size:15px;color:var(--ink)}
+.who .mono{font-family:var(--f-mono);font-size:12px;color:var(--ink);margin-top:3px}
+.who .mono b{color:var(--wine)}
+.who .right{text-align:right}
+
+/* route visual */
+.route{display:flex;align-items:center;gap:12px;padding:22px 0;border-bottom:1px solid #E8E6E2}
+.route .pt{display:flex;flex-direction:column;gap:3px}
+.route .pt .city{font-family:var(--f-display);font-weight:700;font-size:16px;color:var(--ink)}
+.route .pt .sub{font:500 11px/1 var(--f-mono);color:#9B9B9B}
+.route .pt.r{text-align:right;align-items:flex-end}
+.route .line{flex:1;position:relative;height:2px;background:repeating-linear-gradient(90deg,var(--wine-soft) 0 7px,transparent 7px 15px)}
+.route .line::after{content:"›";position:absolute;right:-4px;top:-13px;color:var(--wine);font-size:22px;font-weight:700}
+.route .line .ship{position:absolute;left:42%;top:-9px;width:18px;height:18px;border-radius:50%;background:var(--ink);display:grid;place-items:center;color:var(--cream);font-size:9px}
+
+/* line items */
+.items{padding:18px 0 6px}
+.item{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:11px 0}
+.item .desc{font-weight:600;font-size:14px;color:var(--ink)}
+.item .sub{font-size:11.5px;color:#9B9B9B;margin-top:2px}
+.item .amt{font-family:var(--f-mono);font-weight:600;font-size:13.5px;color:var(--ink);white-space:nowrap}
+
+/* totals */
+.tot{margin-top:8px;padding:18px 22px;background:#F2F0EC;border-radius:12px}
+.tot .row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:#6B6B6B}
+.tot .row .v{font-family:var(--f-mono);font-weight:600;color:var(--ink)}
+.tot .row.disc .v{color:var(--success)}
+.tot .grand{margin-top:8px;padding-top:14px;border-top:2px solid var(--ink);display:flex;justify-content:space-between;align-items:baseline}
+.tot .grand .k{font-family:var(--f-display);font-weight:800;font-size:16px;color:var(--ink)}
+.tot .grand .v{font-family:var(--f-mono);font-weight:700;font-size:24px;color:var(--wine)}
+.tot .bs{text-align:right;font:500 11px/1 var(--f-mono);color:#9B9B9B;margin-top:6px}
+
+/* footer */
+.foot{position:absolute;left:0;right:0;bottom:0;padding:22px 36px 26px;background:var(--ink);color:var(--cream);
+  display:flex;align-items:center;justify-content:space-between;gap:16px}
+.foot .pay{font-size:11px;line-height:1.5;color:rgba(251,250,247,.74)}
+.foot .pay b{color:var(--cream)}
+.foot .tag{font-family:var(--f-display);font-weight:700;font-size:12px;color:var(--wine-soft);text-align:right;max-width:14ch}
+
+@media print{
+  @page{size:540px 960px;margin:0}
+  body{background:#fff}.bar{display:none}.card{margin:0;box-shadow:none}
+}
+.card,.card *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+</style>
+</head>
+<body>
+
+<div class="bar">
+  <span class="eyebrow">DTD-Cargo · comprobante WhatsApp</span>
+  <span class="sp"></span>
+  <span class="note">1080×1920 · mandá como foto</span>
+  <button class="alt" onclick="window.print()">↓ PDF</button>
+  <button id="dl">↓ Descargar PNG</button>
+</div>
+
+<div class="card" id="card">
+
+  <div class="head">
+    <div class="meander"></div>
+    <div class="brand">
+      <img src="marketing/dtdcargo-isologo-reverse.png" alt="DTD Cargo"/>
+      <span class="wm">DTD<span class="sp"></span>Cargo</span>
+    </div>
+    <div class="doc">
+      <div>
+        <div class="lbl">Comprobante de servicio</div>
+        <div class="num">F-2026-0412</div>
+      </div>
+      <span class="paid">✓ Pagado</span>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="who">
+      <div>
+        <div class="k">Cliente</div>
+        <div class="nm">Acindar Comercial CA</div>
+        <div class="mono">MARKBOX · <b>DTD-5452</b></div>
+      </div>
+      <div class="right">
+        <div class="k">Fecha</div>
+        <div class="nm" style="font-size:14px;">06·06·2026</div>
+        <div class="mono">Valencia, VE</div>
+      </div>
+    </div>
+
+    <div class="route">
+      <div class="pt">
+        <span class="city">Yiwu</span>
+        <span class="sub">CN · YIW</span>
+      </div>
+      <div class="line"><span class="ship">▸</span></div>
+      <div class="pt r">
+        <span class="city">Pto. Cabello</span>
+        <span class="sub">VE · PBL</span>
+      </div>
+    </div>
+
+    <div class="items">
+      <div class="item">
+        <div><div class="desc">Flete marítimo FCL 20'</div><div class="sub">28,4 CBM · DTDU-472816</div></div>
+        <div class="amt">$2.840,00</div>
+      </div>
+      <div class="item">
+        <div><div class="desc">Servicio DDP · puerta a puerta</div><div class="sub">Aduana + nacionalización + entrega</div></div>
+        <div class="amt">$1.260,00</div>
+      </div>
+      <div class="item">
+        <div><div class="desc">Seguro de carga all-risk</div><div class="sub">Valor declarado $84.200</div></div>
+        <div class="amt">$421,00</div>
+      </div>
+      <div class="item">
+        <div><div class="desc">Consolidación e inspección QC</div><div class="sub">Yiwu · verificación Shipping Mark</div></div>
+        <div class="amt">$180,00</div>
+      </div>
+    </div>
+
+    <div class="tot">
+      <div class="row"><span>Subtotal</span><span class="v">$4.701,00</span></div>
+      <div class="row disc"><span>Descuento cliente recurrente (5%)</span><span class="v">−$235,05</span></div>
+      <div class="row"><span>IVA (16%)</span><span class="v">$714,55</span></div>
+      <div class="grand"><span class="k">Total pagado</span><span class="v">$5.180,50</span></div>
+      <div class="bs">Bs. 188.572,20 · tasa BCV 36,40</div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <div class="pay"><b>DTD-Cargo C.A.</b> · RIF J-40558712-0<br/>Comprobante válido · consultá tu envío en el portal</div>
+    <div class="tag">Con Confianza, de China a tu puerta.</div>
+  </div>
+
+</div>
+
+<script>
+document.getElementById('dl').addEventListener('click', async function(){
+  var btn=this, prev=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+  try{
+    await document.fonts.ready;
+    var card=document.getElementById('card');
+    var SC=2; // 540×960 → 1080×1920
+    var w=card.offsetWidth, h=card.offsetHeight;
+    // Use html-to-image if present; otherwise fallback to print
+    if(window.htmlToImage){
+      var url=await window.htmlToImage.toPng(card,{pixelRatio:SC,width:w,height:h,cacheBust:true});
+      var a=document.createElement('a'); a.href=url; a.download='DTDCargo-Comprobante-F-2026-0412.png'; a.click();
+    } else {
+      window.print();
+    }
+  }catch(e){ alert('No se pudo generar el PNG. Usá el botón PDF.'); }
+  finally{ btn.disabled=false; btn.textContent=prev; }
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.js" onerror="document.getElementById('dl').textContent='↓ PDF (sin red)'"></script>
+
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0F1E3D"/><rect x="26" y="20" width="48" height="60" rx="6" fill="#FBFAF7"/><text x="50" y="56" font-family="Archivo Black, sans-serif" font-size="16" fill="#7F0F1A" text-anchor="middle">$</text></svg>
+</template>
+</body>
+</html>

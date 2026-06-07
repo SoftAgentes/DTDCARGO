@@ -419,7 +419,7 @@ function MasScreen({ me, theme, setTheme, onLogout, onOpen }) {
 
       <window.ERPUI.Btn variant="ghost" full onClick={onLogout} style={{ color: 'var(--danger)' }}>Cerrar sesión</window.ERPUI.Btn>
       <div style={{ textAlign: 'center', marginTop: 'var(--s-6)', font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
-        DTD-Cargo · Portal Cliente v2.3<br />Con confianza, de China a tu puerta.
+        DTD-Cargo · Portal Cliente v2.3<br />Con Confianza, de China a tu puerta.
       </div>
     </div>
   );
@@ -724,9 +724,9 @@ function FacturaDetail({ inv, onDone }) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// COTIZADOR EXPRÉS · estimación DDP desde el teléfono
+// ESTIMADOR EXPRÉS · estimación DDP desde el teléfono
 // ════════════════════════════════════════════════════════════════
-function CotizadorScreen({ onBack, me }) {
+function EstimadorScreen({ onBack, me }) {
   const D = window.ERPData;
   const U = window.ERPUI;
   const I = window.Icon;
@@ -760,7 +760,7 @@ function CotizadorScreen({ onBack, me }) {
 
   return (
     <div>
-      <window.PM.SubHeader title="Cotizar DDP" subtitle="Estimación al instante · puerta a puerta" onBack={onBack} />
+      <window.PM.SubHeader title="Crear estimado" subtitle="Estimación al instante · puerta a puerta" onBack={onBack} />
       <div style={{ padding: '16px 16px 24px' }}>
         <window.PM.Section title="RUTA">
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
@@ -810,7 +810,7 @@ function CotizadorScreen({ onBack, me }) {
               <span style={{ font: '700 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Solicitud enviada</span>
             </div>
             <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>
-              Tu agente prepara la cotización formal. La vas a ver en <b>Mis envíos</b> como <b>“Cotización en proceso”</b> y te avisamos cuando esté lista para aceptar.
+              Tu agente prepara el estimado formal. La vas a ver en <b>Mis envíos</b> como <b>“Estimado en proceso”</b> y te avisamos cuando esté lista para aceptar.
             </div>
             <div style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)' }}>
               <span style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Referencia</span>
@@ -819,27 +819,27 @@ function CotizadorScreen({ onBack, me }) {
           </div>
         ) : (
           <U.Btn variant="primary" full icon={I.mail(14)} onClick={() => {
-            // Publica la solicitud al bridge → el ERP la ve como lead/cotización entrante
+            // Publica la solicitud al bridge → el ERP la ve como lead/estimado entrante
             try {
               const route = `${D.origin(origin).name} → ${D.dest(dest).name}`;
               window.DTDData && window.DTDData.pushPortalEvent && window.DTDData.pushPortalEvent({
                 kind: 'cotizacion', tone: 'info', markbox: me.markbox,
-                title: 'Cotización solicitada · ' + (me.name || me.markbox),
+                title: 'Estimado solicitada · ' + (me.name || me.markbox),
                 detail: `${service} · ${route} · estimado $${estimate.toLocaleString()}`,
                 channel: 'portal-mobile',
                 meta: { origin, dest, service, cbm: service === 'LCL DDP' ? cbm : null, estimate, transit },
               });
-            } catch (e) { console.error('[cotizador] pushPortalEvent falló:', e); }
+            } catch (e) { console.error('[estimador] pushPortalEvent falló:', e); }
             const _ref = 'SOL-2026-' + String(Math.floor(100 + Math.random() * 900));
             try {
               window.DTDData && window.DTDData.pushPortalQuote && window.DTDData.pushPortalQuote({
                 markbox: me.markbox, clientName: me.name || me.markbox,
                 origin, dest, service, cbm: service === 'LCL DDP' ? cbm : null, estimate, ref: _ref,
               });
-            } catch (e) { console.error('[cotizador] pushPortalQuote falló:', e); }
+            } catch (e) { console.error('[estimador] pushPortalQuote falló:', e); }
             setReqRef(_ref);
             setSent(true);
-          }}>Solicitar cotización formal</U.Btn>
+          }}>Solicitar estimado formal</U.Btn>
         )}
         <p style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '12px 0 0', textAlign: 'center' }}>Estimación referencial. El precio final lo confirma tu agente según la mercadería.</p>
       </div>
@@ -850,5 +850,5 @@ function CotizadorScreen({ onBack, me }) {
 window.PMExtra = {
   PagarScreen, ProveedoresScreen, MasScreen,
   DocumentosScreen, ReferidosScreen, SoporteScreen, PerfilScreen,
-  CotizadorScreen, NotifSheet,
+  EstimadorScreen, NotifSheet,
 };

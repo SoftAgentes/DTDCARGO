@@ -43,7 +43,7 @@ function ModuleConversaciones({ goTo }) {
       <U.PageHeader
         eyebrow="COMERCIAL · ATENCIÓN AL CLIENTE"
         title="Conversaciones"
-        subtitle="Bandeja unificada · WhatsApp, email y portal en un solo hilo por cliente. Con confianza, de China a tu puerta."
+        subtitle="Bandeja unificada · WhatsApp, email y portal en un solo hilo por cliente. Con Confianza, de China a tu puerta."
         actions={<U.Btn variant="primary" icon={I.plus(14)}>Nueva conversación</U.Btn>}
       />
 

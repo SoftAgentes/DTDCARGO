@@ -26,12 +26,12 @@ function cnyToUsd(cny) {
 // ── Cuentas de tesorería · saldos por moneda ──────────────────
 // balanceUsd = saldo expresado en USD (moneda funcional).
 const CASH_ACCOUNTS = [
-  { id: 'acc-usd-merc',  name: 'Banco Mercantil · USD',   short: 'Mercantil USD', currency: 'USD',  coa: '1.1.01', balance: 184260, balanceUsd: 184260, tone: 'wine',    kind: 'banco',  detail: 'Cuenta operativa principal · cobros de clientes' },
-  { id: 'acc-ves-banesco', name: 'Banco Banesco · VES',   short: 'Banesco VES',   currency: 'VES',  coa: '1.1.02', balance: 9842000, balanceUsd: 270014, tone: 'info',  kind: 'banco',  detail: 'Pagos locales · nómina · servicios VE' },
-  { id: 'acc-usdt',      name: 'USDT · TRC20',            short: 'USDT TRC20',    currency: 'USDT', coa: '1.1.03', balance: 96400,  balanceUsd: 96400,  tone: 'success', kind: 'cripto', detail: 'Wallet corporativa · remesas rápidas a China' },
-  { id: 'acc-cny-boc',   name: 'Bank of China · CNY',     short: 'BoC CNY',       currency: 'CNY',  coa: '1.1.06', balance: 421800, balanceUsd: 58747,  tone: 'warning', kind: 'banco',  detail: 'Cuenta puente en China · pago a proveedores 中国' },
-  { id: 'acc-cny-alipay', name: 'Alipay Business · CNY',  short: 'Alipay CNY',    currency: 'CNY',  coa: '1.1.07', balance: 88600,  balanceUsd: 12340,  tone: 'neutral', kind: 'cripto', detail: 'Pagos chicos a fábricas · 1688 / Alibaba' },
-  { id: 'acc-cash-usd',  name: 'Caja Chica · USD',        short: 'Caja USD',      currency: 'USD',  coa: '1.1.04', balance: 4200,   balanceUsd: 4200,   tone: 'neutral', kind: 'caja',   detail: 'Gastos menores oficina Valencia' },
+  { id: 'acc-usd-merc',  name: 'Banco Mercantil · USD',   short: 'Mercantil USD', currency: 'USD',  coa: '1.04.01', balance: 184260, balanceUsd: 184260, tone: 'wine',    kind: 'banco',  detail: 'Cuenta operativa principal · cobros de clientes' },
+  { id: 'acc-ves-banesco', name: 'Banco Banesco · VES',   short: 'Banesco VES',   currency: 'VES',  coa: '1.01.02', balance: 9842000, balanceUsd: 270014, tone: 'info',  kind: 'banco',  detail: 'Pagos locales · nómina · servicios VE' },
+  { id: 'acc-usdt',      name: 'USDT · TRC20',            short: 'USDT TRC20',    currency: 'USDT', coa: '1.04.02', balance: 96400,  balanceUsd: 96400,  tone: 'success', kind: 'cripto', detail: 'Wallet corporativa · remesas rápidas a China' },
+  { id: 'acc-cny-boc',   name: 'Bank of China · CNY',     short: 'BoC CNY',       currency: 'CNY',  coa: '1.03.02', balance: 421800, balanceUsd: 58747,  tone: 'warning', kind: 'banco',  detail: 'Cuenta puente en China · pago a proveedores 中国' },
+  { id: 'acc-cny-alipay', name: 'Alipay Business · CNY',  short: 'Alipay CNY',    currency: 'CNY',  coa: '1.03.01', balance: 88600,  balanceUsd: 12340,  tone: 'neutral', kind: 'cripto', detail: 'Pagos chicos a fábricas · 1688 / Alibaba' },
+  { id: 'acc-cash-usd',  name: 'Caja Chica · USD',        short: 'Caja USD',      currency: 'USD',  coa: '1.02.01', balance: 4200,   balanceUsd: 4200,   tone: 'neutral', kind: 'caja',   detail: 'Gastos menores oficina Valencia' },
 ];
 
 // ── Beneficiarios (a quién le pagamos) ────────────────────────
@@ -112,7 +112,7 @@ const PO_STATUS = {
 const TODAY = '2026-05-24';
 
 function getPayee(id) { return PAYEES.find(p => p.id === id); }
-function getAccount(id) { return CASH_ACCOUNTS.find(a => a.id === id); }
+function tesGetAccount(id) { return CASH_ACCOUNTS.find(a => a.id === id); }
 
 function daysUntil(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
@@ -193,7 +193,7 @@ function cashOutForecast() {
 window.TesoreriaData = {
   CASH_ACCOUNTS, PAYEES, PAYABLES, PAYMENT_ORDERS,
   PAYEE_TYPE, PAYABLE_STATUS, PO_STATUS, PO_METHOD,
-  getPayee, getAccount, daysUntil, outstandingUsd,
+  getPayee, getAccount: tesGetAccount, daysUntil, outstandingUsd,
   cashByCurrency, totalCashUsd, openPayables, totalOpenUsd,
   cashDeposits, cashDeposit, accBalance, accBalanceUsd, accountDepositsUsd, accountDepositsOrig,
   overduePayables, dueSoon, openByType, cashOutForecast,

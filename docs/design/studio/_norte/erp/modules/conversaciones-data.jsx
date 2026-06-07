@@ -13,7 +13,7 @@ const CHANNELS = {
 // ── Tipo de conversación ──────────────────────────────────────
 const CONV_TYPE = {
   consulta:    { label: 'Consulta',    tone: 'neutral' },
-  cotizacion:  { label: 'Cotización',  tone: 'info'    },
+  cotizacion:  { label: 'Estimado',  tone: 'info'    },
   seguimiento: { label: 'Seguimiento', tone: 'success' },
   incidencia:  { label: 'Incidencia',  tone: 'warning' },
   reclamo:     { label: 'Caso',     tone: 'danger'  },
@@ -52,8 +52,8 @@ const CONVERSATIONS = [
     id: 'CV-2039', markbox: 'DTD-5418', client: 'Imp. Pereira', channel: 'email', type: 'cotizacion',
     status: 'pendiente', assignedTo: 'u-003', priority: 'media', shipment: null, unread: 0, lastAt: 'hace 1 h',
     messages: [
-      { dir: 'in',  author: 'Adriana Pereira', at: 'Ayer 17:10', text: 'Necesito cotización DDP para 12 CBM de iluminación LED desde Shenzhen a La Guaira.' },
-      { dir: 'out', author: 'Diego Núñez',     at: 'Ayer 18:02', text: 'Adriana, con gusto. ¿Tenés el valor FOB de la mercancía para calcular aranceles? Te armo la cotización DDP completa.' },
+      { dir: 'in',  author: 'Adriana Pereira', at: 'Ayer 17:10', text: 'Necesito estimado DDP para 12 CBM de iluminación LED desde Shenzhen a La Guaira.' },
+      { dir: 'out', author: 'Diego Núñez',     at: 'Ayer 18:02', text: 'Adriana, con gusto. ¿Tenés el valor FOB de la mercancía para calcular aranceles? Te armo el estimado DDP completa.' },
     ],
   },
   {
@@ -93,8 +93,8 @@ const CONVERSATIONS = [
     id: 'CV-2034', markbox: 'DTD-5215', client: 'Ortiz Cosmetics', channel: 'whatsapp', type: 'cotizacion',
     status: 'resuelto', assignedTo: 'u-002', priority: 'media', shipment: null, unread: 0, lastAt: 'Ayer',
     messages: [
-      { dir: 'in',  author: 'Valentina Ortiz', at: 'Ayer 14:00', text: 'Me pasás la cotización para 6 CBM de cosmética?' },
-      { dir: 'out', author: 'Martina Acuña',   at: 'Ayer 14:30', text: 'Listo Valentina, te envié la cotización DDP por email. Incluye el certificado sanitario.' },
+      { dir: 'in',  author: 'Valentina Ortiz', at: 'Ayer 14:00', text: 'Me pasás el estimado para 6 CBM de cosmética?' },
+      { dir: 'out', author: 'Martina Acuña',   at: 'Ayer 14:30', text: 'Listo Valentina, te envié el estimado DDP por email. Incluye el certificado sanitario.' },
       { dir: 'in',  author: 'Valentina Ortiz', at: 'Ayer 15:10', text: 'Aprobada, procedan. 👍' },
     ],
   },
@@ -106,7 +106,7 @@ const QUICK_REPLIES = [
   { id: 'qr-2', label: 'ETA en proceso', text: 'Estamos verificando el estatus de tu embarque con la naviera. Te confirmo el ETA en breve.' },
   { id: 'qr-3', label: 'Tracking portal', text: 'Podés seguir tu embarque en tiempo real desde el portal del cliente con tu MARKBOX.' },
   { id: 'qr-4', label: 'Caso abierto', text: 'Abrí tu caso y lo estoy revisando con el equipo de almacén. Te mantengo al tanto.' },
-  { id: 'qr-5', label: 'Cierre', text: '¿Hay algo más en lo que pueda ayudarte? Quedamos atentos. Con confianza, de China a tu puerta.' },
+  { id: 'qr-5', label: 'Cierre', text: '¿Hay algo más en lo que pueda ayudarte? Quedamos atentos. Con Confianza, de China a tu puerta.' },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────

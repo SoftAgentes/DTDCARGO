@@ -35,7 +35,7 @@ Estos 4 PNGs son la nueva fuente de verdad. **No usar ningún otro** isólogo en
 
 Estos referenciaban el isólogo viejo. **Reemplazar todas las referencias antes de borrar**.
 
-- `assets/dtdcargo-icon-navy.png` — raster viejo de 1080 × 720. Borrar cuando todas las referencias estén migradas.
+- ~~`assets/dtdcargo-icon-navy.png` — raster viejo de 1080 × 720.~~ **ELIMINADO (2026-06-05)** — todas las referencias migradas al sistema v1.0 (ERP, Portal, operario). Ya no existe en el proyecto.
 
 Referencias actuales detectadas (auditoría a fecha 2026-05-26):
 

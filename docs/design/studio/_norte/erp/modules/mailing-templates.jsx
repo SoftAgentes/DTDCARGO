@@ -163,8 +163,8 @@ function TemplateEditor({ t }) {
       eta: sampleShip?.eta || '12 JUN 2026', etd: sampleShip?.etd || '14 MAY 2026',
       cbm: sampleShip?.cbm, transit_days: 38,
       tracking_link: 'https://dtdcargo.com/track/' + sampleShip?.id,
-      quote_id: 'Q-2026-0418', total_usd: '14,200', valid_until: '21 JUN 2026',
-      accept_link: 'https://dtdcargo.com/q/Q-2026-0418',
+      quote_id: 'E-2026-0418', total_usd: '14,200', valid_until: '21 JUN 2026',
+      accept_link: 'https://dtdcargo.com/q/E-2026-0418',
       invoice_id: 'F-2026-0418', amount: '84,200', days: 10,
       agent_name: 'Martina Acuña', portal_link: 'https://app.dtdcargo.com',
       signed_by: 'Carlos Méndez', delay_days: 2, delay_reason: 'congestión Canal de Panamá',
@@ -186,7 +186,7 @@ function TemplateEditor({ t }) {
         </div>
 
         <U.Select label="Categoría" value={category} onChange={(e)=>setCategory(e.target.value)}
-          options={['Cotizaciones', 'Operativo', 'Alertas', 'Onboarding', 'Finanzas']} />
+          options={['Estimados', 'Operativo', 'Alertas', 'Onboarding', 'Finanzas']} />
 
         {/* Lang tabs */}
         <div>

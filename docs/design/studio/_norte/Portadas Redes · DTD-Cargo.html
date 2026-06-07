@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Portadas · Facebook + YouTube — DTD-Cargo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Sora:wght@600;700;800&family=Nunito+Sans:wght@600;700;800&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet" media="all" id="cn-font"/>
+<style>
+:root{
+  --wine:#7F0F1A; --wine-deep:#5E0A12; --wine-soft:#C2747F;
+  --bg-base:#FBFAF7; --bg-surface:#FFFFFF; --bg-elevated:#F2F0EC; --bg-sidebar:#0F1E3D;
+  --ink:#0F1E3D; --ink-soft:#6B6B6B; --ink-mute:#9B9B9B; --border:#E8E6E2;
+  --success:#1F8A5B; --warning:#B8893A; --danger:#A8323E; --info:#2A6FDB;
+  --cream:#FBFAF7;
+  --s-1:4px;--s-2:8px;--s-3:12px;--s-4:16px;--s-5:20px;--s-6:24px;--s-8:32px;--s-10:40px;--s-12:48px;--s-16:64px;
+  --r-xs:3px;--r-sm:5px;--r-md:7px;--r-lg:10px;--r-xl:14px;--r-pill:999px;
+  --shadow-xs:0 1px 2px rgba(15,30,61,.06);
+  --shadow-sm:0 2px 6px rgba(15,30,61,.08);
+  --shadow-md:0 6px 18px rgba(15,30,61,.10);
+  --shadow-lg:0 18px 50px rgba(15,30,61,.16);
+  --f-sans:'Nunito Sans',system-ui,sans-serif;
+  --f-display:'Sora','Nunito Sans',sans-serif;
+  --f-mono:'JetBrains Mono',ui-monospace,monospace;
+  --f-brand:'Archivo',system-ui,sans-serif;
+  --f-brand-display:'Archivo Black','Archivo',sans-serif;
+  --f-cn:'Noto Sans SC','PingFang SC','Microsoft YaHei','Hiragino Sans GB','Nunito Sans',sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg-base);color:var(--ink);font-family:var(--f-sans);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+
+/* ── Top bar ─────────────────────────────────────── */
+.topbar{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:var(--s-5);
+  padding:var(--s-3) var(--s-6);background:rgba(251,250,247,.86);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border)}
+.tb-brand{display:flex;align-items:center;gap:var(--s-3);font-family:var(--f-brand-display);font-size:18px;letter-spacing:-.02em}
+.tb-brand img{height:30px;width:auto;display:block}
+.tb-brand .dtd{color:var(--wine)} .tb-brand .cargo{color:var(--ink)} .tb-brand .sp{display:inline-block;width:.14em}
+.tb-nav{display:flex;gap:var(--s-2);margin-left:var(--s-4)}
+.tb-nav a{font:600 12px/1 var(--f-sans);color:var(--ink-soft);text-decoration:none;padding:var(--s-2) var(--s-3);border-radius:var(--r-pill)}
+.tb-nav a:hover{background:var(--bg-elevated);color:var(--ink)}
+.tb-spacer{flex:1}
+.tb-toggle{display:flex;align-items:center;gap:var(--s-2);font:600 12px/1 var(--f-sans);color:var(--ink-soft);cursor:pointer;user-select:none}
+.tb-toggle .sw{width:38px;height:22px;border-radius:var(--r-pill);background:var(--border);position:relative;transition:background .18s}
+.tb-toggle .sw::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:var(--shadow-xs);transition:transform .18s}
+body.show-safe .tb-toggle .sw{background:var(--wine)}
+body.show-safe .tb-toggle .sw::after{transform:translateX(16px)}
+
+/* ── Layout ─────────────────────────────────────── */
+.wrap{max-width:1040px;margin:0 auto;padding:var(--s-12) var(--s-6) var(--s-16)}
+.eyebrow{font:700 11px/1 var(--f-sans);letter-spacing:.16em;text-transform:uppercase;color:var(--wine);margin-bottom:var(--s-3)}
+h1{font-family:var(--f-display);font-weight:800;font-size:34px;line-height:1.1;letter-spacing:-.02em;margin:0 0 var(--s-3)}
+h2{font-family:var(--f-display);font-weight:700;font-size:23px;letter-spacing:-.01em;margin:0 0 var(--s-2)}
+h3{font-family:var(--f-display);font-weight:700;font-size:16px;margin:0 0 var(--s-2)}
+.lead{font-size:17px;color:var(--ink-soft);max-width:70ch;margin:0 0 var(--s-4);text-wrap:pretty}
+p{text-wrap:pretty}
+section{margin-top:var(--s-16);scroll-margin-top:72px}
+.sec-head{margin-bottom:var(--s-6)}
+.sec-head .num{font:700 12px/1 var(--f-mono);color:var(--ink-mute);letter-spacing:.1em}
+
+/* ── Callout ─────────────────────────────────────── */
+.callout{border:1px solid var(--border);border-left:3px solid var(--wine);background:var(--bg-surface);
+  border-radius:var(--r-md);padding:var(--s-5) var(--s-6);box-shadow:var(--shadow-xs);margin-top:var(--s-4)}
+.callout h3{margin-bottom:var(--s-3)}
+.callout ul{margin:0;padding-left:1.1em}
+.callout li{margin:var(--s-1) 0;color:var(--ink-soft)}
+.callout li b{color:var(--ink)}
+
+/* ── Banner frame ─────────────────────────────────── */
+.dir-block{margin-top:var(--s-10)}
+.dir-head{display:flex;align-items:baseline;gap:var(--s-3);margin-bottom:var(--s-3);flex-wrap:wrap}
+.dir-tag{font:700 11px/1 var(--f-mono);color:#fff;background:var(--ink);border-radius:var(--r-xs);padding:5px 8px;letter-spacing:.06em}
+.dir-name{font-family:var(--f-display);font-weight:700;font-size:18px}
+.dir-blurb{color:var(--ink-soft);font-size:14px;max-width:64ch;margin:0 0 var(--s-4)}
+.banner-meta{display:flex;gap:var(--s-4);flex-wrap:wrap;margin-top:var(--s-3);font:500 11.5px/1.4 var(--f-mono);color:var(--ink-soft)}
+.banner-meta span{display:inline-flex;align-items:center;gap:6px}
+.banner-meta b{color:var(--ink)}
+.dl-banner{margin-left:auto;font:700 11px/1 var(--f-sans);color:#fff;background:var(--wine);border:none;
+  padding:8px 14px;border-radius:var(--r-pill);cursor:pointer;letter-spacing:.01em;box-shadow:var(--shadow-xs);transition:background .15s}
+.dl-banner:hover{background:var(--wine-deep)}
+.dl-banner:disabled{opacity:.6;cursor:progress}
+
+.frame{position:relative;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow-md);border:1px solid var(--border);background:#000}
+.frame.yt{width:100%;aspect-ratio:2048/1152}
+.frame.fb{width:100%;aspect-ratio:851/315}
+
+/* the banner canvas; container queries drive internal scale */
+.banner{position:absolute;inset:0;container-type:size;overflow:hidden}
+.banner .field{position:absolute;inset:0}
+
+/* meander (回/雷纹) pattern field */
+.meander{background-repeat:repeat;background-size:7.4cqh 7.4cqh}
+.meander.light{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%230F1E3D' stroke-opacity='0.07' stroke-width='4'/></svg>")}
+.meander.dark{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%23FFFFFF' stroke-opacity='0.06' stroke-width='4'/></svg>")}
+
+.grad-navy{background:linear-gradient(135deg,var(--ink),#1F3055)}
+.bg-paper{background:var(--bg-base)}
+.bg-navy{background:var(--ink)}
+
+/* central lockup */
+.lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:4.5cqh;z-index:3;max-width:90%}
+.lock .iso{height:25cqh;width:auto;aspect-ratio:741/764;display:block;filter:drop-shadow(0 1cqh 2cqh rgba(0,0,0,.10))}
+.lock.on-dark .iso{filter:drop-shadow(0 1cqh 3cqh rgba(0,0,0,.35))}
+.lock .txt{display:flex;flex-direction:column;gap:1.4cqh}
+.lock .wm{font-family:var(--f-brand-display);font-weight:900;font-size:12.5cqh;line-height:.86;letter-spacing:-.02em;white-space:nowrap}
+.lock .wm .sp{display:inline-block;width:.14em}
+.lock.on-light .wm .dtd{color:var(--wine)} .lock.on-light .wm .cargo{color:var(--ink)}
+.lock.on-dark .wm .dtd,.lock.on-dark .wm .cargo{color:var(--cream)}
+.lock .tag{font-family:var(--f-display);font-weight:600;font-size:4cqh;letter-spacing:.005em}
+.lock.on-light .tag{color:var(--ink-soft)} .lock.on-dark .tag{color:rgba(251,250,247,.82)}
+.lock .tag .em{color:var(--wine)} .lock.on-dark .tag .em{color:var(--wine-soft)}
+
+/* route motif (China → Venezuela) */
+.route{position:absolute;inset:0;z-index:2;pointer-events:none}
+.route svg{width:100%;height:100%;display:block}
+.route .endpt{font-family:var(--f-mono);font-weight:600}
+
+/* split / photo direction */
+.plate{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:3;
+  background:rgba(15,30,61,.92);border-radius:3cqh;padding:7cqh 9cqh;display:flex;align-items:center;gap:5cqh;
+  box-shadow:0 2cqh 6cqh rgba(0,0,0,.35);border:1px solid rgba(251,250,247,.10)}
+.plate .iso{height:26cqh;width:auto;aspect-ratio:741/764;display:block}
+.plate .txt{display:flex;flex-direction:column;gap:1.4cqh}
+.plate .wm{font-family:var(--f-brand-display);font-weight:900;font-size:13cqh;line-height:.86;letter-spacing:-.02em;white-space:nowrap;color:var(--cream)}
+.plate .wm .sp{display:inline-block;width:.14em}
+.plate .tag{font-family:var(--f-display);font-weight:600;font-size:4.2cqh;color:rgba(251,250,247,.82)}
+.plate .tag .em{color:var(--wine-soft)}
+
+image-slot{position:absolute;inset:0;width:100%;height:100%;z-index:1;--is-bg:var(--bg-elevated)}
+.slot-dragon{position:absolute;top:0;right:0;width:46%;height:100%;z-index:1}
+
+/* eyebrow chip inside banner */
+.bchip{position:absolute;z-index:3;font-family:var(--f-sans);font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;font-size:3.3cqh;padding:1.6cqh 3cqh;border-radius:var(--r-pill)}
+.bchip.tl{top:6cqh;left:7cqh} .bchip.bc{bottom:6cqh;left:50%;transform:translateX(-50%)}
+.bchip.light{background:rgba(15,30,61,.06);color:var(--ink)}
+.bchip.dark{background:rgba(251,250,247,.12);color:var(--cream)}
+.bchip .cn{font-family:var(--f-cn)}
+
+/* ── Safe-zone overlays ──────────────────────────── */
+.safe{position:absolute;z-index:8;pointer-events:none;display:none;border:1.5px dashed rgba(168,50,62,.9);
+  border-radius:2px}
+.safe .lbl{position:absolute;top:-9px;left:8px;background:var(--danger);color:#fff;font:700 9px/1 var(--f-mono);
+  letter-spacing:.04em;padding:3px 5px;border-radius:2px;white-space:nowrap}
+.safe.alt{border-color:rgba(184,137,58,.95)}
+.safe.alt .lbl{background:var(--warning);top:auto;bottom:-9px;left:auto;right:8px}
+body.show-safe .safe{display:block}
+/* YouTube: all-device safe 1235×338 of 2048×1152 → 60.3% × 29.3%; mobile 1546×423 → 75.5% × 36.7% */
+.frame.yt .safe.alldev{left:19.85%;top:35.35%;width:60.3%;height:29.3%}
+.frame.yt .safe.mobile{left:12.25%;top:31.65%;width:75.5%;height:36.7%}
+/* Facebook: mobile visible 640×360 region; safe central ≈ 75% width, full height on 851×315 upload */
+.frame.fb .safe.mobile{left:12.4%;top:0;width:75.2%;height:100%}
+
+/* ── Tables ─────────────────────────────────────── */
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:var(--s-4);margin-top:var(--s-5)}
+.verdict{border:1px solid var(--border);border-radius:var(--r-lg);background:var(--bg-surface);
+  padding:var(--s-6);box-shadow:var(--shadow-xs)}
+.verdict .pf{display:flex;align-items:center;gap:var(--s-3);margin-bottom:var(--s-4)}
+.verdict .pf .ic{width:34px;height:34px;border-radius:var(--r-md);display:grid;place-items:center;flex:none;color:#fff}
+.verdict .pf .ic.yt{background:#FF0000} .verdict .pf .ic.fb{background:#0866FF}
+.verdict .pf .nm{font-family:var(--f-display);font-weight:700;font-size:16px}
+.badge{display:inline-flex;align-items:center;gap:6px;font:700 11px/1 var(--f-sans);padding:5px 9px;border-radius:var(--r-pill)}
+.badge.ok{background:rgba(31,138,91,.12);color:var(--success)}
+.badge.no{background:rgba(168,50,62,.12);color:var(--danger)}
+.badge.partial{background:rgba(184,137,58,.14);color:var(--warning)}
+.verdict ul{margin:var(--s-4) 0 0;padding-left:1.05em}
+.verdict li{margin:6px 0;color:var(--ink-soft);font-size:13.5px}
+.verdict li b{color:var(--ink)}
+
+table.spec{width:100%;border-collapse:collapse;margin-top:var(--s-4);font-size:13.5px;background:var(--bg-surface);
+  border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden}
+table.spec th,table.spec td{text-align:left;padding:var(--s-3) var(--s-4);border-bottom:1px solid var(--border);vertical-align:top}
+table.spec thead th{background:var(--bg-elevated);font-family:var(--f-display);font-weight:700;font-size:12px;letter-spacing:.02em}
+table.spec tbody tr:last-child td{border-bottom:none}
+table.spec td:first-child{font-weight:600;color:var(--ink);width:30%}
+table.spec code{font-family:var(--f-mono);font-size:12px;background:var(--bg-elevated);padding:1px 5px;border-radius:var(--r-xs);color:var(--wine-deep)}
+
+.palette{display:flex;flex-wrap:wrap;gap:var(--s-3);margin-top:var(--s-4)}
+.sw{display:flex;flex-direction:column;gap:6px;width:108px}
+.sw .chip{height:54px;border-radius:var(--r-md);border:1px solid var(--border)}
+.sw .nm{font:700 11px/1 var(--f-sans)} .sw .hx{font:500 11px/1 var(--f-mono);color:var(--ink-soft)}
+
+.type-row{display:flex;flex-wrap:wrap;gap:var(--s-6);margin-top:var(--s-4)}
+.type-card{border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--s-5);background:var(--bg-surface);min-width:220px;flex:1}
+.type-card .role{font:700 10px/1 var(--f-sans);letter-spacing:.12em;text-transform:uppercase;color:var(--wine);margin-bottom:var(--s-2)}
+.type-card .face{font-family:var(--f-display);font-size:24px;font-weight:700}
+.type-card .face.brand{font-family:var(--f-brand-display)}
+.type-card .face.body{font-family:var(--f-sans)}
+.type-card .face.mono{font-family:var(--f-mono);font-size:19px}
+.type-card .use{font-size:12.5px;color:var(--ink-soft);margin-top:var(--s-2)}
+
+.note{font-size:12.5px;color:var(--ink-mute);margin-top:var(--s-3)}
+.foot{margin-top:var(--s-16);padding-top:var(--s-6);border-top:1px solid var(--border);color:var(--ink-mute);font-size:12.5px}
+.assume{display:inline-block;font:700 10px/1 var(--f-sans);letter-spacing:.06em;color:var(--warning);
+  background:rgba(184,137,58,.12);padding:3px 7px;border-radius:var(--r-xs);margin-right:6px;text-transform:uppercase}
+@media(max-width:720px){.cmp{grid-template-columns:1fr}.wrap{padding:var(--s-8) var(--s-4)}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-brand">
+    <img src="assets/dtdcargo-isologo-primary.png" alt="DTD"/>
+    <span><span class="dtd">DTD</span><span class="sp"></span><span class="cargo">Cargo</span></span>
+  </div>
+  <nav class="tb-nav">
+    <a href="#viabilidad">Viabilidad</a>
+    <a href="#youtube">YouTube</a>
+    <a href="#facebook">Facebook</a>
+    <a href="#specs">Specs</a>
+  </nav>
+  <div class="tb-spacer"></div>
+  <label class="tb-toggle" id="safeToggle">
+    <span class="sw"></span>
+    <span>Áreas seguras</span>
+  </label>
+</div>
+
+<div class="wrap">
+
+  <div class="eyebrow">DTD-Cargo · Identidad social</div>
+  <h1>Portadas para Facebook y YouTube</h1>
+  <p class="lead">Tres direcciones de cabecera construidas sobre el sistema de marca DTD-Cargo —
+    isólogo + wordmark <b>DTD Cargo</b>, paleta navy / wine / paper y el patrón <span style="font-family:var(--f-cn)">回</span>纹
+    (meandro) como guiño a China. Cada dirección se muestra en el lienzo de <b>YouTube</b> (2048×1152) y de
+    <b>Facebook</b> (851×315), con las áreas seguras superpuestas. Más abajo: la evaluación de logo
+    animado/interactivo por plataforma y la hoja de especificaciones.</p>
+
+  <div class="callout">
+    <h3>Lo que analicé de tus imágenes</h3>
+    <ul>
+      <li>Tu canal <b>DoorTuDoor (@doortudoor)</b> usa hoy un banner con un <b>dragón chino</b> sobre un campo de patrón <b>回 (meandro)</b> gris claro — el mismo concepto China→Venezuela de la marca.</li>
+      <li>La foto de perfil ya es el <b>isólogo oficial</b> (la D con el swoosh wine) sobre círculo blanco — coherente con el sistema v1.0.</li>
+      <li>YouTube te pide banner <b>2048×1152</b> (máx. 6 MB) y foto <b>98×98</b> mín. (PNG/GIF estático). El dragón actual queda parcialmente fuera del área segura en escritorio/móvil.</li>
+    </ul>
+    <p class="note"><span class="assume">Supuesto</span>Mantengo el concepto China→Venezuela, pero llevo el dragón a un rol opcional (slot de imagen) y priorizo el patrón <span style="font-family:var(--f-cn)">回</span> + isólogo, que sí entran en el sistema de marca. Si querés conservar el dragón como protagonista, lo soltás en el slot de la Dirección B / C.</p>
+  </div>
+
+  <!-- ══ VIABILIDAD ══ -->
+  <section id="viabilidad">
+    <div class="sec-head">
+      <div class="num">01 — EVALUACIÓN</div>
+      <h2>¿Logo animado o interactivo? Qué permite cada plataforma</h2>
+      <p class="lead" style="font-size:15px;margin-top:var(--s-2)">La cabecera de ambas plataformas es un <b>medio pasivo</b>: ninguna soporta un logo
+        “interactivo” real (hover, click, estados). La diferencia está en el <b>movimiento</b>.</p>
+    </div>
+
+    <div class="cmp">
+      <div class="verdict">
+        <div class="pf">
+          <span class="ic yt">▶</span>
+          <span class="nm">YouTube — banner del canal</span>
+        </div>
+        <span class="badge no">✕ Animación no soportada</span>
+        &nbsp;<span class="badge no">✕ Interactivo no</span>
+        <ul>
+          <li>El banner es <b>imagen estática</b>: JPG / PNG / BMP. Un <b>GIF se muestra congelado</b> (no anima).</li>
+          <li>No admite <b>video</b> ni capas con hover/click en la cabecera.</li>
+          <li><b>Alternativa con movimiento:</b> el <b>tráiler del canal</b> (video que se autoreproduce en la pestaña Principal) y los <b>intros/outros</b> de tus videos. Ahí sí va el logo animado.</li>
+        </ul>
+      </div>
+
+      <div class="verdict">
+        <div class="pf">
+          <span class="ic fb">f</span>
+          <span class="nm">Facebook — portada de Página</span>
+        </div>
+        <span class="badge ok">✓ Video de portada</span>
+        &nbsp;<span class="badge partial">~ Interactivo limitado</span>
+        <ul>
+          <li>Las <b>Páginas</b> admiten <b>video de portada</b> (no perfiles personales): <code>1250×463</code>, <b>20–90 s</b>, en loop → un <b>logo animado sí es viable</b>. <a href="Portada Animada FB · DTD-Cargo.html" style="color:var(--wine);font-weight:700">Ver la portada animada →</a></li>
+          <li>No hay hover/click sobre el video; “interactivo” real solo existe dentro de publicaciones o en tu web.</li>
+          <li>Si no subís video, la portada es imagen estática <code>851×315</code> (escritorio) / <code>640×360</code> (móvil).</li>
+        </ul>
+      </div>
+    </div>
+
+    <table class="spec">
+      <thead><tr><th>Capacidad</th><th>YouTube (banner)</th><th>Facebook (portada de Página)</th></tr></thead>
+      <tbody>
+        <tr><td>Imagen estática</td><td>Sí — recomendado</td><td>Sí</td></tr>
+        <tr><td>GIF animado</td><td>No (se ve congelado)</td><td>No en portada</td></tr>
+        <tr><td>Video / logo en movimiento</td><td>No en el banner · sí en tráiler del canal</td><td><b>Sí</b> — video de portada <code>1250×463</code>, 20–90 s</td></tr>
+        <tr><td>Interactivo (hover/click)</td><td>No</td><td>No</td></tr>
+        <tr><td>Conclusión</td><td>Entregar <b>PNG estático</b> a tope de calidad</td><td>Entregar <b>PNG</b> + opcional <b>MP4 en loop</b></td></tr>
+      </tbody>
+    </table>
+    <p class="note"><span class="assume">Supuesto</span>Las plataformas ajustan estas reglas con el tiempo; verificá las specs oficiales de YouTube y Meta antes de la carga final. Prioricé las especificaciones oficiales vigentes y, ante conflicto imagen↔plataforma, mando la plataforma (recorto/centro el logo a la zona segura).</p>
+  </section>
+
+  <!-- ══ YOUTUBE ══ -->
+  <section id="youtube">
+    <div class="sec-head">
+      <div class="num">02 — YOUTUBE · 2048 × 1152</div>
+      <h2>Banner del canal — 3 direcciones</h2>
+      <p class="lead" style="font-size:15px;margin-top:var(--s-2)">Activá <b>“Áreas seguras”</b> (arriba a la derecha): la caja <span style="color:var(--danger);font-weight:700">roja</span> es lo visible en
+        <b>todos los dispositivos</b> (incluido TV, 1235×338) — ahí va el logo y el texto. La caja <span style="color:var(--warning);font-weight:700">ámbar</span> es el recorte de
+        <b>escritorio/móvil</b> (1546×423).</p>
+    </div>
+    <div id="yt-host"></div>
+  </section>
+
+  <!-- ══ FACEBOOK ══ -->
+  <section id="facebook">
+    <div class="sec-head">
+      <div class="num">03 — FACEBOOK · 851 × 315</div>
+      <h2>Portada de Página — 3 direcciones</h2>
+      <p class="lead" style="font-size:15px;margin-top:var(--s-2)">La caja <span style="color:var(--warning);font-weight:700">ámbar</span> marca lo que ve <b>móvil</b> (recorta los lados): el logo y el claim
+        viven centrados. En escritorio, la foto de perfil de la Página se monta sobre la esquina inferior izquierda — esa zona se deja respirar.</p>
+    </div>
+    <div id="fb-host"></div>
+  </section>
+
+  <!-- ══ SPECS ══ -->
+  <section id="specs">
+    <div class="sec-head">
+      <div class="num">04 — ENTREGABLES</div>
+      <h2>Especificaciones de producción</h2>
+    </div>
+
+    <h3 style="margin-top:var(--s-2)">YouTube</h3>
+    <table class="spec">
+      <tbody>
+        <tr><td>Lienzo de carga</td><td><code>2048 × 1152 px</code> (16:9), mínimo recomendado. Máx. <b>6 MB</b>.</td></tr>
+        <tr><td>Zona segura (todos los dispositivos)</td><td><code>1235 × 338 px</code> centrada — logo y texto solo aquí.</td></tr>
+        <tr><td>Visible escritorio</td><td>~<code>2560 × 423 px</code> · móvil ~<code>1546 × 423 px</code> · TV: lienzo completo.</td></tr>
+        <tr><td>Formato</td><td>PNG (nítido) o JPG sRGB. Sin animación.</td></tr>
+        <tr><td>Foto de perfil</td><td><code>98 × 98 px</code> mín. (subir <code>800 × 800</code>), PNG/GIF estático, máx. 4 MB → usar isólogo sobre círculo blanco.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:var(--s-8)">Facebook (Página)</h3>
+    <table class="spec">
+      <tbody>
+        <tr><td>Portada — pantalla</td><td>Escritorio <code>851 × 315 px</code> · móvil <code>640 × 360 px</code>.</td></tr>
+        <tr><td>Portada — carga recomendada</td><td><code>1702 × 630 px</code> (2× de 851×315, mismo ratio 2.70), PNG/JPG sRGB. Así se ve nítido en pantallas retina.</td></tr>
+        <tr><td>Zona segura</td><td>Mantener logo/claim en el central ~<code>640 × 312 px</code> (lo que comparten escritorio y móvil).</td></tr>
+        <tr><td>Video de portada (opcional)</td><td><code>1250 × 463 px</code>, <b>20–90 s</b>, MP4/MOV, en loop. Para el logo animado. <a href="Portada Animada FB · DTD-Cargo.html" style="color:var(--wine);font-weight:700">Ver portada animada →</a></td></tr>
+        <tr><td>Foto de perfil</td><td><code>170 × 170 px</code> escritorio (subir <code>500 × 500</code>+), se recorta en círculo → isólogo centrado.</td></tr>
+      </tbody>
+    </table>
+
+    <h3 style="margin-top:var(--s-8)">Paleta</h3>
+    <div class="palette">
+      <div class="sw"><div class="chip" style="background:#0F1E3D"></div><span class="nm">Navy / Ink</span><span class="hx">#0F1E3D</span></div>
+      <div class="sw"><div class="chip" style="background:#7F0F1A"></div><span class="nm">Wine</span><span class="hx">#7F0F1A</span></div>
+      <div class="sw"><div class="chip" style="background:#C2747F"></div><span class="nm">Wine soft</span><span class="hx">#C2747F</span></div>
+      <div class="sw"><div class="chip" style="background:#FBFAF7"></div><span class="nm">Paper</span><span class="hx">#FBFAF7</span></div>
+      <div class="sw"><div class="chip" style="background:#F2F0EC"></div><span class="nm">Elevated</span><span class="hx">#F2F0EC</span></div>
+    </div>
+    <p class="note">Sin gradientes coloridos. Único gradiente permitido: navy → ink (<code>#0F1E3D → #1F3055</code>), usado en la Dirección A.</p>
+
+    <h3 style="margin-top:var(--s-8)">Tipografía</h3>
+    <div class="type-row">
+      <div class="type-card"><div class="role">Wordmark · branding</div><div class="face brand">DTD Cargo</div><div class="use">Archivo Black · 900. Solo el logo: DTD wine, Cargo navy (o cream sobre fondo oscuro).</div></div>
+      <div class="type-card"><div class="role">Títulos / claim</div><div class="face">Con Confianza</div><div class="use">Sora 600–800. Claims y titulares dentro del banner.</div></div>
+      <div class="type-card"><div class="role">Cuerpo / etiquetas</div><div class="face body">de China a tu puerta</div><div class="use">Nunito Sans 400–800. Texto de apoyo.</div></div>
+      <div class="type-card"><div class="role">Códigos / ruta</div><div class="face mono">中国 → VE</div><div class="use">JetBrains Mono + Noto Sans SC para el guiño bilingüe.</div></div>
+    </div>
+  </section>
+
+  <div class="foot">
+    DTD-Cargo · sistema de marca v1.0 — “Con Confianza, de China a tu puerta.”<br/>
+    Maqueta de propuestas. Las direcciones admiten tu dragón o fotos reales en los slots (arrastrá una imagen).
+    Cuando elijas una, exporto el PNG al tamaño exacto de cada plataforma (y el MP4 de portada para Facebook si querés el logo animado).
+  </div>
+</div>
+
+<script src="redes/image-slot.js"></script>
+<script>
+const ISO_PRIMARY = 'assets/dtdcargo-isologo-primary.png';
+const ISO_REVERSE = 'assets/dtdcargo-isologo-reverse.png';
+
+const WM = '<span class="dtd">DTD</span><span class="sp"></span><span class="cargo">Cargo</span>';
+const TAG = 'Con Confianza, de China a tu puerta.';
+const TAG_EM = 'Con <span class="em">Confianza</span>, de China a tu puerta.';
+
+// Route motif SVG (China → Venezuela arc), colors per theme
+function routeSVG(dark){
+  const line = dark ? '#C2747F' : '#7F0F1A';
+  const dot = dark ? '#FBFAF7' : '#0F1E3D';
+  const txt = dark ? 'rgba(251,250,247,.7)' : 'rgba(15,30,61,.55)';
+  return `<div class="route"><svg viewBox="0 0 1000 300" preserveAspectRatio="none">
+    <path d="M120 215 Q 500 70 880 150" fill="none" stroke="${line}" stroke-width="2.2" stroke-dasharray="7 9" opacity=".55"/>
+    <circle cx="120" cy="215" r="6" fill="${dot}"/><circle cx="880" cy="150" r="6" fill="${line}"/>
+  </svg></div>`;
+}
+
+// Direction configs
+const DIRS = [
+  {
+    tag:'A', name:'Meandro Navy', theme:'dark',
+    blurb:'Premium e institucional. Fondo navy con gradiente navy→ink permitido, patrón 回 tono-sobre-tono y una ruta punteada China→Venezuela. Isólogo reverse + wordmark cream. La opción más “marca”.',
+    build(p){
+      return `
+        <div class="field grad-navy"></div>
+        <div class="field meander dark"></div>
+        ${routeSVG(true)}
+        <div class="bchip tl dark"><span class="cn">回</span> 中国 → Venezuela</div>
+        <div class="lock on-dark">
+          <img class="iso" src="${ISO_REVERSE}" alt="isólogo"/>
+          <div class="txt">
+            <div class="wm">${WM}</div>
+            <div class="tag">${TAG_EM}</div>
+          </div>
+        </div>`;
+    }
+  },
+  {
+    tag:'B', name:'Paper Oriente', theme:'light',
+    blurb:'Claro y luminoso, en la línea de tu banner actual pero dentro del sistema: fondo paper con campo 回 gris suave e isólogo primary. Slot opcional a la derecha para tu dragón o una foto.',
+    build(p){
+      const slotId = 'dragon-' + p;
+      return `
+        <div class="field bg-paper"></div>
+        <div class="field meander light"></div>
+        <image-slot class="slot-dragon" id="${slotId}" shape="rect" fit="contain"
+          placeholder="Soltá tu dragón / foto"></image-slot>
+        <div class="bchip tl light"><span class="cn">回</span> 中国 → Venezuela</div>
+        <div class="lock on-light" style="left:42%">
+          <img class="iso" src="${ISO_PRIMARY}" alt="isólogo"/>
+          <div class="txt">
+            <div class="wm">${WM}</div>
+            <div class="tag">${TAG_EM}</div>
+          </div>
+        </div>`;
+    }
+  },
+  {
+    tag:'C', name:'Contenedor', theme:'photo',
+    blurb:'Foto real protagonista (puerto, contenedores, almacén CN). Soltá tu imagen y el logo vive en una placa navy centrada, siempre dentro de la zona segura en cualquier dispositivo.',
+    build(p){
+      const slotId = 'photo-' + p;
+      return `
+        <image-slot id="${slotId}" shape="rect" fit="cover" placeholder="Soltá una foto de puerto / contenedores / almacén"></image-slot>
+        <div class="plate">
+          <img class="iso" src="${ISO_REVERSE}" alt="isólogo"/>
+          <div class="txt">
+            <div class="wm">${WM}</div>
+            <div class="tag">${TAG_EM}</div>
+          </div>
+        </div>`;
+    }
+  }
+];
+
+const SAFE_YT = `
+  <div class="safe mobile"><span class="lbl">Escritorio / móvil · 1546×423</span></div>
+  <div class="safe alldev"><span class="lbl">Zona segura · todos los dispositivos · 1235×338</span></div>`;
+const SAFE_FB = `
+  <div class="safe mobile"><span class="lbl">Visible en móvil · 640×360</span></div>`;
+
+function renderHost(hostId, platform){
+  const host = document.getElementById(hostId);
+  const isYT = platform === 'yt';
+  const dims = isYT ? '2048 × 1152 px' : '851 × 315 px (carga 1702×630)';
+  host.innerHTML = DIRS.map(d => `
+    <div class="dir-block">
+      <div class="dir-head">
+        <span class="dir-tag">DIR ${d.tag}</span>
+        <span class="dir-name">${d.name}</span>
+      </div>
+      <p class="dir-blurb">${d.blurb}</p>
+      <div class="frame ${platform}" id="frame-${platform}-${d.tag}">
+        <div class="banner">${d.build(platform + d.tag)}</div>
+        ${isYT ? SAFE_YT : SAFE_FB}
+      </div>
+      <div class="banner-meta">
+        <span>📐 <b>${dims}</b></span>
+        <span>🎨 ${d.theme === 'dark' ? 'Navy + cream' : d.theme === 'light' ? 'Paper + wine/navy' : 'Foto + placa navy'}</span>
+        <span>🔤 Archivo Black · Sora</span>
+        <button class="dl-banner" data-frame="frame-${platform}-${d.tag}" data-plat="${platform}" data-name="DTDCargo-${platform === 'yt' ? 'YouTube' : 'Facebook'}-${d.name.replace(/ /g,'')}">↓ Descargar PNG</button>
+      </div>
+    </div>`).join('');
+}
+
+renderHost('yt-host','yt');
+renderHost('fb-host','fb');
+
+// ── Exportar PNG a tamaño real con CANVAS (fuentes ya cargadas, sin red) ──
+const EXPORT_DIM = { yt: { w: 2048, h: 1152 }, fb: { w: 1702, h: 630 } };
+const COL = { ink:'#0F1E3D', ink2:'#1F3055', wine:'#7F0F1A', wineSoft:'#C2747F',
+  paper:'#FBFAF7', cream:'#FBFAF7', inkSoft:'#6B6B6B' };
+const _imgCache = {};
+function loadImg(src){
+  if (_imgCache[src]) return _imgCache[src];
+  _imgCache[src] = new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
+  return _imgCache[src];
+}
+async function ensureFonts(){
+  try{
+    await Promise.all([
+      document.fonts.load("900 120px 'Archivo Black'"),
+      document.fonts.load("700 60px 'Sora'"),
+      document.fonts.load("600 60px 'Sora'"),
+      document.fonts.load("700 40px 'Nunito Sans'"),
+    ]);
+    await document.fonts.ready;
+  }catch(e){}
+}
+// 回-meander tile (path del SVG, 64×64 viewBox)
+function meanderTile(ctx, ox, oy, s){
+  const P=[[6,58],[6,14],[50,14],[50,50],[22,50],[22,26],[38,26],[38,42]];
+  ctx.beginPath();
+  ctx.moveTo(ox+P[0][0]*s, oy+P[0][1]*s);
+  for(let i=1;i<P.length;i++) ctx.lineTo(ox+P[i][0]*s, oy+P[i][1]*s);
+  ctx.stroke();
+}
+function drawMeander(ctx, W, H, color, alpha){
+  const t = H*0.074, s = t/64;
+  ctx.save(); ctx.globalAlpha=alpha; ctx.strokeStyle=color; ctx.lineWidth=4*s; ctx.lineJoin='miter';
+  for(let y=-t; y<H+t; y+=t) for(let x=-t; x<W+t; x+=t) meanderTile(ctx,x,y,s);
+  ctx.restore();
+}
+function drawRoute(ctx, W, H, dark){
+  const X=x=>x*W/1000, Y=y=>y*H/300;
+  ctx.save();
+  ctx.strokeStyle = dark?COL.wineSoft:COL.wine; ctx.globalAlpha=.55;
+  ctx.lineWidth=Math.max(2, H*0.0073); ctx.setLineDash([H*0.023, H*0.03]);
+  ctx.beginPath(); ctx.moveTo(X(120),Y(215)); ctx.quadraticCurveTo(X(500),Y(70),X(880),Y(150)); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha=1;
+  ctx.fillStyle = dark?COL.cream:COL.ink; ctx.beginPath(); ctx.arc(X(120),Y(215),H*0.02,0,7); ctx.fill();
+  ctx.fillStyle = dark?COL.wineSoft:COL.wine; ctx.beginPath(); ctx.arc(X(880),Y(150),H*0.02,0,7); ctx.fill();
+  ctx.restore();
+}
+// Mide y dibuja "DTD Cargo" (Archivo Black). Devuelve ancho total.
+function wordmark(ctx, x, yMid, size, dtdColor, cargoColor, draw){
+  ctx.save();
+  ctx.font = "900 "+size+"px 'Archivo Black','Archivo',sans-serif";
+  ctx.textBaseline='middle'; ctx.textAlign='left';
+  if('letterSpacing' in ctx) ctx.letterSpacing = (-0.02*size)+'px';
+  const wDTD = ctx.measureText('DTD').width;
+  const wCargo = ctx.measureText('Cargo').width;
+  const gap = 0.15*size;
+  if(draw){
+    ctx.fillStyle=dtdColor; ctx.fillText('DTD', x, yMid);
+    ctx.fillStyle=cargoColor; ctx.fillText('Cargo', x+wDTD+gap, yMid);
+  }
+  ctx.restore();
+  return wDTD+gap+wCargo;
+}
+// Tagline "Con Confianza, de China a tu puerta." con Confianza enfatizada
+function tagline(ctx, x, yMid, size, baseColor, emColor, draw){
+  ctx.save();
+  ctx.font = "600 "+size+"px 'Sora',sans-serif";
+  ctx.textBaseline='middle'; ctx.textAlign='left';
+  if('letterSpacing' in ctx) ctx.letterSpacing = '0px';
+  const parts=[['Con ',baseColor],['Confianza',emColor],[', de China a tu puerta.',baseColor]];
+  let cx=x;
+  for(const [txt,col] of parts){ if(draw){ ctx.fillStyle=col; ctx.fillText(txt,cx,yMid); } cx+=ctx.measureText(txt).width; }
+  ctx.restore();
+  return cx-x;
+}
+async function renderBanner(tag, plat){
+  await ensureFonts();
+  const {w:W,h:H} = EXPORT_DIM[plat];
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const ctx=c.getContext('2d');
+  const dir = DIRS.find(d=>d.tag===tag);
+  const isPhoto = dir.theme==='photo';
+  const dark = dir.theme==='dark' || isPhoto;
+
+  // fondo
+  if(dir.theme==='light'){ ctx.fillStyle=COL.paper; ctx.fillRect(0,0,W,H); }
+  else if(dir.theme==='dark'){ const g=ctx.createLinearGradient(0,0,W,H); g.addColorStop(0,COL.ink); g.addColorStop(1,COL.ink2); ctx.fillStyle=g; ctx.fillRect(0,0,W,H); }
+  else { ctx.fillStyle=COL.ink; ctx.fillRect(0,0,W,H); }       // C: navy sólido (placeholder de foto)
+
+  drawMeander(ctx, W, H, dark?'#FFFFFF':COL.ink, dark?0.06:0.07);
+  if(dir.theme!=='light') drawRoute(ctx, W, H, true);
+  else drawRoute(ctx, W, H, false);
+
+  // lockup centrado
+  const iso = await loadImg(dark?ISO_REVERSE:ISO_PRIMARY);
+  const isoH = H*0.25, isoW = isoH*(741/764);
+  const wmSize = H*0.125, tgSize = H*0.044;
+  const gapIT = H*0.05, colGap = H*0.022;
+  const wmW = wordmark(ctx,0,0,wmSize,'#000','#000',false);
+  const tgW = tagline(ctx,0,0,tgSize,'#000','#000',false);
+  const colW = Math.max(wmW,tgW);
+  const colH = wmSize + colGap + tgSize;
+  const groupW = isoW + gapIT + colW;
+  const groupH = Math.max(isoH, colH);
+  let ox = (W-groupW)/2, oy=(H-groupH)/2;
+
+  // placa para C
+  if(isPhoto){
+    const padX=H*0.09, padY=H*0.07, pw=groupW+padX*2, ph=groupH+padY*2;
+    const px=(W-pw)/2, py=(H-ph)/2;
+    ctx.save(); ctx.fillStyle='rgba(15,30,61,0.92)';
+    if(ctx.roundRect){ ctx.beginPath(); ctx.roundRect(px,py,pw,ph,H*0.03); ctx.fill(); }
+    else ctx.fillRect(px,py,pw,ph);
+    ctx.strokeStyle='rgba(251,250,247,0.10)'; ctx.lineWidth=2; if(ctx.roundRect){ctx.stroke();}
+    ctx.restore();
+  }
+
+  const isoY = (H-isoH)/2;
+  ctx.drawImage(iso, ox, isoY, isoW, isoH);
+  const colX = ox+isoW+gapIT;
+  const colTop = (H-colH)/2;
+  const dtdCol = dark?COL.cream:COL.wine, cargoCol = dark?COL.cream:COL.ink;
+  wordmark(ctx, colX, colTop+wmSize/2, wmSize, dtdCol, cargoCol, true);
+  const tgBase = dark?'rgba(251,250,247,0.82)':COL.inkSoft;
+  const tgEm = dark?COL.wineSoft:COL.wine;
+  tagline(ctx, colX, colTop+wmSize+colGap+tgSize/2, tgSize, tgBase, tgEm, true);
+
+  return c;
+}
+async function exportBanner(btn){
+  const prev=btn.textContent; btn.disabled=true; btn.textContent='Generando…';
+  try{
+    const tag = btn.dataset.frame.split('-').pop();
+    const canvas = await renderBanner(tag, btn.dataset.plat);
+    canvas.toBlob(blob=>{ const u=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=u; a.download=btn.dataset.name+'.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(u),2000); },'image/png');
+  }catch(e){ alert('No se pudo generar el PNG: '+e); }
+  finally{ btn.disabled=false; btn.textContent=prev; }
+}
+window.renderBanner = renderBanner;
+document.querySelectorAll('.dl-banner').forEach(b => b.addEventListener('click', () => exportBanner(b)));
+
+document.getElementById('safeToggle').addEventListener('click', () => {
+  document.body.classList.toggle('show-safe');
+});
+
+// __PREVIEW_TEMP__
+// __PREVIEW_TEMP_END__
+</script>
+
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0F1E3D"/><rect x="22" y="34" width="56" height="32" rx="4" fill="#FBFAF7"/><text x="50" y="56" font-family="Archivo Black, sans-serif" font-size="15" fill="#7F0F1A" text-anchor="middle">DTD</text></svg>
+</template>
+
+</body>
+</html>

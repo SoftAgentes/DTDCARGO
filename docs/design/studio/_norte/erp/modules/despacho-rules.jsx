@@ -424,7 +424,7 @@
     );
   }
 
-  // ── Switch pill (iOS-style) ──────────────────────────────────
+  // ── Switch pill (iOV-style) ──────────────────────────────────
   function SwitchPill({ on, onChange }) {
     return (
       <button

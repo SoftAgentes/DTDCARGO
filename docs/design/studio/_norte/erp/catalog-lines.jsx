@@ -2,7 +2,7 @@
 /* ── ERPUI.CatalogLines · líneas de servicio/tarifa desde el catálogo ──
    Cada línea referencia un ítem de ERPData.CATALOG y toma su TARIFA VIGENTE.
    Editable: cantidad + precio (override). Calcula subtotal y lo informa via
-   onChange(lines, subtotal). Lo usan Factura y Cotización. */
+   onChange(lines, subtotal). Lo usan Factura y Estimado. */
 (function () {
   const { useState, useEffect, useRef } = React;
 

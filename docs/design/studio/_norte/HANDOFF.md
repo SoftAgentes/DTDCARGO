@@ -15,7 +15,7 @@
 
 ---
 
-## 🟢 Estado actual · v2.4 (2026-06-01)
+## 🟢 Estado actual · v2.5 (2026-06-07)
 
 Prototipo funcional de **alta fidelidad** (React in-HTML, sin build). Todo "anda"
 con mock data realista persistida en `localStorage`. **No hay backend todavía.**
@@ -23,6 +23,11 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
 - **Pulido sin-backend:** cerrado (skeletons, hide-values, drag&drop, scheduled send,
   multi-tenant *cliente*, perfiles, Tu día, Modo cliente, hilos, AI Copilot…).
 - **Consolidación de repo (v2.4):** cerrada — ver abajo.
+- **Lo último (v2.5 · 2026-06-07):** celebración del MARKBOX al registrar la compra en el
+  Portal (`portal/registro.jsx`), **tarjeta de presentación** como pieza oficial de marca
+  (`Tarjeta de Presentación.html`), **Brand Book → v3.5**, y un chequeo de links/conflictos
+  para este handoff. Detalle completo en `CHANGELOG.md` (entrada 2026-06-07). La versión del
+  ERP en el sidebar se alineó a **v2.5** (los módulos de contabilidad/nómina/backend ya lo estaban).
 - **Lo único que falta para lanzar es el backend real** → `backend/README.md`.
 
 ### Lo que cerró v2.4 (sesión de consolidación)
@@ -125,7 +130,7 @@ IVA", desglose de IVA en Facturación. Reactivo vía `dtd-cfg-changed`. En backe
 | `Login y Sesión · Operario.html` | Spec visual de la lógica de sesión (6 estados) |
 | `BRAND-MIGRATION-2026-05.md` | Spec del sistema de logo (4 variantes, `ERPUI.Lockup`) |
 | `CHANGELOG.md` | Bitácora detallada (archivo+línea+razón) |
-| `backend/README.md` + `backend/API-CONTRACT.md` | Handoff de backend |
+| `backend/README.md` + `backend/API-CONTRACT.md` + `backend/prisma/schema.prisma` | Handoff de backend |
 
 ---
 
