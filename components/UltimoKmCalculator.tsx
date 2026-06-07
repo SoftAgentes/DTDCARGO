@@ -17,7 +17,7 @@ import { CONFIG } from "@/lib/calculadora";
 /**
  * Calculadora del "último km" en Venezuela.
  *
- * Vive en su propia página `/calculadora-terrestre` (SDD-0059 Fase A; antes era
+ * Vive en su propia página `/calculadora-terrestre` (SDD-0061 Fase A; antes era
  * una sección embebida en `/cotizar`). El cliente trae carga del exterior y
  * opcionalmente estima el flete terrestre interno (Puerto Cabello → su destino)
  * sin tener que escribir por WhatsApp. `/estimacion` linkea acá.
