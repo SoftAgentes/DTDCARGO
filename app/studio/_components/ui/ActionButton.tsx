@@ -18,7 +18,7 @@
  *
  *   <ActionButton
  *     variant="primary"
- *     idleLabel="Enviar cotización"
+ *     idleLabel="Enviar estimado"
  *     loadingLabel="Enviando…"
  *     successLabel="Enviado al cliente"
  *     idleIcon={Icon.mail(14)}
@@ -36,12 +36,12 @@
  * — no se silencian.
  *
  * Cuándo usar este componente:
- *   - Mandar emails (welcome, factura, cotización, invitación)
+ *   - Mandar emails (welcome, factura, estimado, invitación)
  *   - Convertir estados que disparan side-effects (draft→sent dispara
  *     mail-rule-engine, sent→accepted, etc.)
  *   - Crear asientos contables, facturas SENIAT, DIM
  *   - Transferencias, payments, link de pago
- *   - Convertir cotización a embarque
+ *   - Convertir estimado a embarque
  *   - Marcar despachos / entregas (cambian timeline + cobros)
  *
  * Cuándo NO usarlo:
@@ -177,7 +177,7 @@ export function ActionButton({
 
   // Anuncio para screen readers · `aria-live="polite"` no interrumpe,
   // espera al próximo break para anunciar el cambio. Solo emite contenido
-  // cuando NO está idle (sino spamearía "Enviar cotización" cada mount).
+  // cuando NO está idle (sino spamearía "Enviar estimado" cada mount).
   const liveAnnouncement =
     state === "loading"
       ? effectiveLoadingLabel

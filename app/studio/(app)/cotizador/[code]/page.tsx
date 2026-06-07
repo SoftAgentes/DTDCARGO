@@ -1,5 +1,5 @@
 /**
- * Detalle de cotización — card total + datos + acciones + link a shipment.
+ * Detalle de un estimado — card total + datos + acciones + link a shipment.
  *
  * SDD-0011. Server component lee la quote por code. Las acciones se delegan
  * al QuoteDetailClient.
@@ -9,8 +9,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getQuoteByCode } from "@/lib/studio/quote-queries";
+import { findKommoContactsByPhone } from "@/lib/studio/kommo-convert";
 import {
   isExpired,
+  isUnlinkedWebEstimate,
   packagingLabel,
   statusBadgeTone,
   statusLabel,
@@ -19,7 +21,7 @@ import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { QuoteDetailClient } from "../_components/QuoteDetailClient";
 
-export const metadata = { title: "Detalle cotización" };
+export const metadata = { title: "Detalle estimado" };
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("es-VE", {
@@ -42,6 +44,15 @@ export default async function QuoteDetailPage({
 
   const expired = isExpired(quote);
   const displayStatus = expired ? "expired" : quote.status;
+  const unlinkedWeb = isUnlinkedWebEstimate(quote);
+
+  // SDD-0061 Slice 4 — para un estimado web sin vincular, cruzar el teléfono del
+  // prospecto con el espejo de Kommo (advisory; evita abrir bandeja duplicada).
+  const kommoMatches = unlinkedWeb
+    ? await findKommoContactsByPhone(supabase, quote.prospect_whatsapp).catch(
+        () => [],
+      )
+    : [];
 
   return (
     <div style={{ maxWidth: 1100 }}>
@@ -60,7 +71,7 @@ export default async function QuoteDetailPage({
         <span style={{ fontSize: 14 }}>←</span> Volver al listado
       </Link>
 
-      <QuoteDetailClient quote={quote} />
+      <QuoteDetailClient quote={quote} kommoMatches={kommoMatches} />
 
       {/* Header */}
       <div
@@ -117,7 +128,7 @@ export default async function QuoteDetailPage({
               color: "var(--ink)",
             }}
           >
-            ✓ Esta cotización ya fue convertida a un embarque.
+            ✓ Este estimado ya fue convertido a un embarque.
           </span>
           <Link
             href={`/studio/tracking/${quote.converted_to_shipment_id}`}
@@ -146,7 +157,7 @@ export default async function QuoteDetailPage({
             textTransform: "uppercase",
           }}
         >
-          Total cotizado
+          Total estimado
         </div>
         <div
           style={{
@@ -208,7 +219,11 @@ export default async function QuoteDetailPage({
         }}
       >
         <Field label="Cliente" value={quote.client_name} />
-        <Field label="MARKBOX" value={quote.client_markbox} mono />
+        <Field
+          label="MARKBOX"
+          value={quote.client_markbox ?? "— sin vincular —"}
+          mono
+        />
         <Field label="Servicio" value={SERVICE_LABELS[quote.service].primary} />
         <Field
           label="Tarifa"
@@ -252,6 +267,65 @@ export default async function QuoteDetailPage({
           mono
         />
       </section>
+
+      {/* SDD-0061 — datos del prospecto (estimado capturado de la web). */}
+      {quote.source === "web" && (
+        <section
+          style={{
+            marginTop: 20,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            padding: 24,
+          }}
+        >
+          <div
+            className="studio-eyebrow"
+            style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}
+          >
+            Prospecto · capturado de la web
+            <Badge tone="info" size="sm">
+              web
+            </Badge>
+          </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 14,
+            }}
+          >
+            <Field label="Nombre" value={quote.prospect_name ?? "—"} />
+            <Field label="WhatsApp / teléfono" value={quote.prospect_whatsapp ?? "—"} mono />
+            <Field label="Email" value={quote.prospect_email ?? "—"} />
+          </div>
+          {quote.nota && (
+            <div style={{ marginTop: 16 }}>
+              <div
+                style={{
+                  font: "600 10.5px/1.3 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  marginBottom: 6,
+                }}
+              >
+                Nota del prospecto
+              </div>
+              <p
+                style={{
+                  font: "500 13px/1.5 var(--f-sans)",
+                  color: "var(--ink)",
+                  margin: 0,
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {quote.nota}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       {quote.notes && (
         <section

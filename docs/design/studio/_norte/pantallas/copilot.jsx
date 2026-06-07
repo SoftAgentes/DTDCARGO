@@ -11,7 +11,7 @@ function buildContext(D) {
   const ships = D.SHIPMENTS.map(s => `${s.id} | ${s.clientName} | ${s.type} | ${s.origin}→${s.destination} | ${s.cbm}CBM | estado:${s.status} | ETA:${s.eta || '—'} | $${s.value}`).join('\n');
   const inv = D.INVOICES.map(i => `${i.id} | ${i.clientName} | $${i.amount} | vence:${i.due} | estado:${i.status}`).join('\n');
   const cli = D.CLIENTS.map(c => `${c.markbox} | ${c.name} | ${c.company} | ${c.city} | ${c.shipments} envíos | facturado:$${c.billed} | ${c.status}`).join('\n');
-  const quotes = D.QUOTES.map(q => `${q.id} | ${q.clientName} | ${q.type} | $${q.totalUSD} | estado:${q.status} | agente:${q.agent}`).join('\n');
+  const quotes = D.ESTIMADOS.map(q => `${q.id} | ${q.clientName} | ${q.type} | $${q.totalUSD} | estado:${q.status} | agente:${q.agent}`).join('\n');
   return `Sos el Copilot de DTD-Cargo, un asistente operativo dentro del ERP de una empresa de logística China→Venezuela.
 Respondé SOLO con base en los datos de abajo. Si te preguntan algo que no está en los datos, decilo claramente. Sé conciso, directo y usá castellano rioplatense/venezolano neutro (voseo). Para códigos (DTDU-, DTD-, F-) escribilos entre backticks. Para montos usá $ y miles con K cuando ayude. Nunca inventes números que no estén en los datos.
 
@@ -24,7 +24,7 @@ ${inv}
 === CLIENTES (MARKBOX) ===
 ${cli}
 
-=== COTIZACIONES ===
+=== ESTIMADOS ===
 ${quotes}
 
 Hoy es sábado 31 de mayo de 2026.`;
@@ -35,7 +35,7 @@ const SUGGESTIONS = [
   '¿Cuánto nos debe Acindar y desde cuándo?',
   '¿Qué cliente factura más este mes?',
   'Resumime los embarques que requieren acción',
-  '¿Qué cotizaciones siguen sin respuesta?',
+  '¿Qué estimados siguen sin respuesta?',
 ];
 
 // Mini-markdown → HTML (bold, code, line breaks)
@@ -54,7 +54,7 @@ function Copilot() {
 
   const context = React.useMemo(() => buildContext(D), []);
   const [messages, setMessages] = cpState([
-    { role: 'assistant', content: '¡Hola! Soy tu **Copilot de DTD-Cargo**. Puedo responderte sobre embarques, clientes, facturas y cotizaciones — todo en vivo desde el ERP. Preguntame lo que necesites o tocá una sugerencia abajo.' },
+    { role: 'assistant', content: '¡Hola! Soy tu **Copilot de DTD-Cargo**. Puedo responderte sobre embarques, clientes, facturas y estimados — todo en vivo desde el ERP. Preguntame lo que necesites o tocá una sugerencia abajo.' },
   ]);
   const [input, setInput] = cpState('');
   const [loading, setLoading] = cpState(false);

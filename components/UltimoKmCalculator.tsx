@@ -17,9 +17,10 @@ import { CONFIG } from "@/lib/calculadora";
 /**
  * Calculadora del "último km" en Venezuela.
  *
- * Pensada como sección OPCIONAL dentro del formulario /cotizar. El cliente
- * trae carga del exterior y opcionalmente cotiza el flete terrestre interno
- * (Puerto Cabello → su destino) sin tener que escribir por WhatsApp.
+ * Vive en su propia página `/calculadora-terrestre` (SDD-0061 Fase A; antes era
+ * una sección embebida en `/cotizar`). El cliente trae carga del exterior y
+ * opcionalmente estima el flete terrestre interno (Puerto Cabello → su destino)
+ * sin tener que escribir por WhatsApp. `/estimacion` linkea acá.
  *
  * UX:
  * - Origen default = Valencia (sede DTD)
@@ -73,10 +74,10 @@ export function UltimoKmCalculator() {
   const hayError = !!resultado.error;
 
   return (
-    <div className="border-t-2 border-grey-200 pt-7 mt-2">
+    <div>
       <div className="flex items-baseline justify-between mb-4">
         <span className="eyebrow inline-flex">
-          <span className="mr-1.5">🚛</span> Último km en Venezuela (opcional)
+          <span className="mr-1.5">🚛</span> Último km en Venezuela
         </span>
         <span className="text-[11.5px] text-grey-500">Estimación referencial · DTD Cargo</span>
       </div>

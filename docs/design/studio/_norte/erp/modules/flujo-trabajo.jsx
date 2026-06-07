@@ -24,9 +24,10 @@ function LANES() {
       roles: ['Admin', 'Comercial'],
       nodes: [
         { label: 'Leads', icon: 'spark', to: ['leads'], badge: () => _n(_safe(() => D.LEADS.filter(l => l.stage === 'nuevo').length)) },
-        { label: 'Cotizar', icon: 'calc', to: ['quotes'] },
+        { label: 'Estimado', icon: 'calc', to: ['estimados'] },
         { label: 'Cliente', icon: 'users', to: ['clients'] },
-        { label: 'Facturar', icon: 'invoice', to: ['invoices'] },
+        { label: 'Orden de venta', icon: 'clock', to: ['shipments'] },
+        { label: 'Factura', icon: 'invoice', to: ['invoices'] },
       ],
     },
     {
@@ -40,7 +41,7 @@ function LANES() {
       ],
     },
     {
-      id: 'operacion', label: 'Operación', sub: 'Mover la carga', icon: 'ship', tone: 'wine',
+      id: 'operacion', label: 'Operaciones', sub: 'Mover la carga', icon: 'ship', tone: 'wine', finance: true,
       roles: ['Admin', 'Operaciones', 'Almacén CN', 'Almacén VE'],
       nodes: [
         { label: 'Recibir en CN', icon: 'warehouse', to: ['cn'] },
@@ -63,7 +64,7 @@ function LANES() {
       ],
     },
     {
-      id: 'cierre', label: 'Cierre & reportes', sub: 'Contabilizar', icon: 'chart', tone: 'wine',
+      id: 'cierre', label: 'Cierre y reportes', sub: 'Contabilizar', icon: 'chart', tone: 'wine',
       roles: ['Admin', 'Contabilidad'], finance: true,
       nodes: [
         { label: 'Banco', icon: 'check', to: ['reconcile'] },

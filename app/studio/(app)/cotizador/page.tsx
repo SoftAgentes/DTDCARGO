@@ -1,5 +1,5 @@
 /**
- * Cotizador — lista de cotizaciones.
+ * Estimados — lista de estimados.
  *
  * SDD-0011. Reemplaza el placeholder.
  *
@@ -14,7 +14,7 @@ import {
 } from "@/lib/studio/quote-queries";
 import { CotizadorClient } from "./_components/CotizadorClient";
 
-export const metadata = { title: "Cotizador" };
+export const metadata = { title: "Estimados" };
 
 export default async function CotizadorPage({
   searchParams,

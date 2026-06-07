@@ -486,15 +486,15 @@
         <PurchaseCTA data={data} update={update} />
 
         {/* ── Instrucción operativa · regla de caja huérfana ──────────────
-              Si la caja llega a China con el MARKBOX pero SIN proveedor /
-              grupo WeChat asociado, el almacén CN la marca automáticamente
-              como "caja huérfana por falta de datos": sabemos quién es el
-              cliente, pero no de qué proveedor (grupo WeChat) viene.
-              ⚠ BACKEND: el registro del proveedor de acá (PurchaseCTA) debe
-              conectarse al pipeline del almacén CN — mapear MARKBOX ↔ grupo
-              WeChat ↔ proveedor — para que la asociación sea automática en
-              recepción. Ver erp/data.jsx (SUPPLIER_CLIENTS.wechatGroup) y el
-              módulo Almacén CN. */}
+               Si la caja llega a China con el MARKBOX pero SIN proveedor /
+               grupo WeChat asociado, el almacén CN la marca automáticamente
+               como "caja huérfana por falta de datos": sabemos quién es el
+               cliente, pero no de qué proveedor (grupo WeChat) viene.
+               ⚠ BACKEND: el registro del proveedor de acá (PurchaseCTA) debe
+               conectarse al pipeline del almacén CN — mapear MARKBOX ↔ grupo
+               WeChat ↔ proveedor — para que la asociación sea automática en
+               recepción. Ver erp/data.jsx (SUPPLIER_CLIENTS.wechatGroup) y el
+               módulo Almacén CN. */}
         {data.supplierName ?
         <div style={{ padding: '10px 12px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(13)}</span>
@@ -515,10 +515,60 @@
 
   }
 
+  // ── Tarjeta roja del MARKBOX · reacciona al registrar la compra ──
+  // Estados: 'TU MARKBOX' (solo código de cliente) → al registrar proveedor
+  // + compra muta a MARKBOX-1-1 y, si el registro fue en vivo (purchase),
+  // dispara la celebración (pop + ring success + badge + shimmer + swap).
+  function MarkboxCard({ markbox, data, purchase }) {
+    const I = window.Icon;
+    const registered = purchase || (data.supplierName ? { supplier: data.supplierName, orderCode: `${markbox}-1-1` } : null);
+    const code = registered ? registered.orderCode : markbox;
+    const celebrate = !!purchase; // solo el registro en vivo anima
+    const tone = 'rgba(255,255,255,0.65)';
+    return (
+      <div className={celebrate ? 'markbox-card celebrate' : 'markbox-card'} style={{
+        position: 'relative', width: '100%', maxWidth: 480, boxSizing: 'border-box',
+        padding: '24px 36px', background: 'var(--wine)', color: '#fff',
+        borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)'
+      }}>
+        {celebrate && <span className="markbox-shimmer" aria-hidden="true" />}
+        {celebrate &&
+        <span className="markbox-badge" style={{
+          position: 'absolute', top: -12, right: -12, width: 36, height: 36, borderRadius: '50%',
+          background: 'var(--success)', color: '#fff', display: 'inline-flex', alignItems: 'center',
+          justifyContent: 'center', boxShadow: '0 4px 12px rgba(31,138,91,0.45)', border: '2px solid #fff'
+        }}>{I.check(18)}</span>
+        }
+        <div style={{ position: 'relative', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>
+          {registered ? celebrate ? 'Tu MARKBOX · compra registrada' : 'Tu MARKBOX · proveedor · compra' : 'Tu MARKBOX'}
+        </div>
+        <code key={code} className={celebrate ? 'markbox-code swap' : 'markbox-code'} style={{ position: 'relative', font: '900 36px/1 var(--f-mono)', color: '#fff', letterSpacing: '-0.02em' }}>{code}</code>
+        {registered &&
+        <div style={{ position: 'relative', marginTop: 12, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
+          <span style={{ font: '500 11px/1.4 var(--f-sans)', color: tone }}>MARKBOX <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>{markbox}</b></span>
+          <span style={{ font: '500 11px/1.4 var(--f-sans)', color: tone }}>Proveedor ID <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>1</b>{registered.supplier ? ` · ${registered.supplier}` : ''}</span>
+          <span style={{ font: '500 11px/1.4 var(--f-sans)', color: tone }}>Compra <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>1</b></span>
+        </div>
+        }
+        {celebrate &&
+        <div style={{ position: 'relative', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.18)', display: 'flex', gap: 8, alignItems: 'flex-start', font: '600 11.5px/1.5 var(--f-sans)', color: '#fff' }}>
+          <span style={{ flexShrink: 0, marginTop: 1, color: 'var(--wine-soft)' }}>{I.arrowR(13)}</span>
+          <span>Este es el código que le mandás a tu proveedor ahora — va en la etiqueta de cada caja.</span>
+        </div>
+        }
+      </div>);
+
+  }
+
   function StepSuccess({ data, markbox, emailSent }) {
     const U = window.ERPUI;
     const I = window.Icon;
     const [showGuide, setShowGuide] = useState(false);
+    // ── Compra registrada en vivo desde esta pantalla (CTA de abajo) ──
+    // Cuando el cliente genera el código de compra inline, la tarjeta
+    // roja de arriba reacciona: muta al código con proveedor + compra
+    // (MARKBOX-1-1) y dispara la celebración.
+    const [purchase, setPurchase] = useState(null);
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', textAlign: 'center', paddingTop: 20 }}>
         <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--success)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I.check(40)}</div>
@@ -529,26 +579,23 @@
           </div>
         </div>
 
-        <div style={{
-          padding: '24px 36px',
-          background: 'var(--wine)', color: '#fff',
-          borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-lg)'
-        }}>
-          <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>{data.supplierName ? 'TU MARKBOX · PROVEEDOR · COMPRA' : 'TU MARKBOX'}</div>
-          <code style={{ font: '900 36px/1 var(--f-mono)', color: '#fff', letterSpacing: '-0.02em' }}>{data.supplierName ? `${markbox}-1-1` : markbox}</code>
-          {data.supplierName &&
-          <div style={{ marginTop: 12, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-              <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.65)' }}>MARKBOX <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>{markbox}</b></span>
-              <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.65)' }}>Proveedor ID <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>1</b> · {data.supplierName}</span>
-              <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.65)' }}>Compra <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>1</b></span>
-            </div>
-          }
+        <MarkboxCard markbox={markbox} data={data} purchase={purchase} />
+
+        {/* Banner de felicitación · aparece al registrar la compra inline */}
+        {purchase &&
+        <div className="celebrate-banner" style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--success-bg)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 12, alignItems: 'flex-start', boxSizing: 'border-box' }}>
+          <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--success)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{I.check(16)}</span>
+          <div>
+            <div style={{ font: '800 14px/1.25 var(--f-display)', color: 'var(--success)' }}>¡Felicitaciones! Tu compra quedó registrada</div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Está completo: mandale el código de arriba a tu proveedor y ya podés entrar a tu portal.</div>
+          </div>
         </div>
+        }
 
         <div style={{ width: '100%', maxWidth: 360 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <CopyCodeButton data={data} markbox={markbox} />
-            <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {try{sessionStorage.setItem('dtd-from-registro','1');}catch(e){} window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
+            <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {try {sessionStorage.setItem('dtd-from-registro', '1');} catch (e) {}window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
           </div>
         </div>
 
@@ -565,8 +612,9 @@
           </div>
         </div>
 
-        {/* Faltan pasos para la trazabilidad · solo si no registró proveedor */}
-        {!data.supplierName &&
+        {/* Faltan pasos para la trazabilidad · solo si no registró proveedor
+            (ni en el paso 3 ni inline acá) */}
+        {!data.supplierName && !purchase &&
         <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--wine)', flexShrink: 0, marginTop: 1 }}>{I.info(16)}</span>
             <div>
@@ -678,7 +726,7 @@
         </div>
 
         {/* CTA · registrar compra acá (no lleva al portal: aún no hay clave) */}
-        <SuccessPurchaseCTA data={data} markbox={markbox} />
+        <SuccessPurchaseCTA data={data} markbox={markbox} onRegistered={(info) => setPurchase(info)} />
       </div>);
 
   }
@@ -752,7 +800,7 @@
   }
 
   // ── CTA en éxito · registrar compra inline + clave = cédula ──
-  function SuccessPurchaseCTA({ data, markbox }) {
+  function SuccessPurchaseCTA({ data, markbox, onRegistered }) {
     const U = window.ERPUI;
     const I = window.Icon;
     const [open, setOpen] = useState(false);
@@ -836,7 +884,7 @@
             <span style={{ font: '600 12px/1.2 var(--f-sans)', color: docs.fotos ? 'var(--success)' : 'var(--ink)' }}>Fotos de mercancía {docs.fotos ? `· ${docs.fotos}` : ''}</span>
           </button>
         </div>
-        <U.Btn variant="primary" full size="lg" icon={I.check(15)} style={{ marginTop: 14 }} onClick={() => setDone(true)} disabled={!supplier.trim()}>Generar mi código de compra</U.Btn>
+        <U.Btn variant="primary" full size="lg" icon={I.check(15)} style={{ marginTop: 14 }} onClick={() => {setDone(true);if (onRegistered) onRegistered({ supplier: supplier.trim(), orderCode });}} disabled={!supplier.trim()}>Generar mi código de compra</U.Btn>
       </U.Card>);
 
   }

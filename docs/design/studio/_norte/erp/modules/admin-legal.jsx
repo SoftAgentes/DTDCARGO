@@ -31,15 +31,15 @@
 
   // ── Registro de aceptaciones (bitácora) ───────────────────────
   const ACCEPTANCES = [
-    { id: 'AC-2026-0220', client: 'Acindar Comercial', markbox: 'DTD-5452', quote: 'Q-2026-2310', orden: 'OS-2026-2310', cbm: 7.0, weight: 2800, total: 5600, at: '29/05/2026 10:15:33', ip: '190.142.88.214', docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:2310e7a14f9d80' },
-    { id: 'AC-2026-0214', client: 'Acindar Comercial', markbox: 'DTD-5452', quote: 'Q-2026-0118', orden: 'OS-2026-0118', at: '02/06/2026 09:41:12', ip: '190.142.88.214', docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:a1f9c7e2b04d8a' },
-    { id: 'AC-2026-0213', client: 'Vargas & Asoc',     markbox: 'DTD-5418', quote: 'Q-2026-0117', orden: 'OS-2026-0117', at: '01/06/2026 17:22:08', ip: '186.92.14.77',   docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:7c3e1a9f25b0d4' },
-    { id: 'AC-2026-0212', client: 'Imp. Pereira',       markbox: 'DTD-5390', quote: 'Q-2026-0114', orden: 'OS-2026-0114', at: '31/05/2026 11:05:44', ip: '190.202.55.13',  docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:e2b0c7a14f9d83' },
-    { id: 'AC-2026-0211', client: 'Castro Hermanos',    markbox: 'DTD-5354', quote: 'Q-2026-0109', orden: 'OS-2026-0109', at: '28/05/2026 14:48:30', ip: '201.249.33.92',  docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:0d4f8a1c7e2b95' },
-    { id: 'AC-2026-0207', client: 'Polar Distribución', markbox: 'DTD-5301', quote: 'Q-2026-0102', orden: 'OS-2026-0102', at: '22/05/2026 08:12:55', ip: '190.142.10.5',   docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:b95d4f0a1c7e23' },
-    { id: 'AC-2026-0198', client: 'Acindar Comercial',  markbox: 'DTD-5452', quote: 'Q-2026-0094', orden: 'OS-2026-0094', at: '14/05/2026 16:30:19', ip: '190.142.88.214', docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:1c7e2b0d4f8a96' },
-    { id: 'AC-2026-0185', client: 'Vargas & Asoc',      markbox: 'DTD-5418', quote: 'Q-2026-0081', orden: 'OS-2026-0081', at: '29/04/2026 10:02:41', ip: '186.92.14.77',   docs: [['Términos y Condiciones de DTD', 'v2.0'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:f8a96b1c7e2b0d' },
-    { id: 'AC-2026-0172', client: 'Imp. Pereira',       markbox: 'DTD-5390', quote: 'Q-2026-0068', orden: 'OS-2026-0068', at: '12/04/2026 13:19:07', ip: '190.202.55.13',  docs: [['Términos y Condiciones de DTD', 'v2.0'], ['Condiciones del Operador de Consolidación', 'v1.3']], hash: 'sha256:6b1c7e2b0d4f8a' },
+    { id: 'AC-2026-0220', client: 'Acindar Comercial', markbox: 'DTD-5452', quote: 'E-2026-2310', orden: 'OV-2026-2310', cbm: 7.0, weight: 2800, total: 5600, at: '29/05/2026 10:15:33', ip: '190.142.88.214', docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:2310e7a14f9d80' },
+    { id: 'AC-2026-0214', client: 'Acindar Comercial', markbox: 'DTD-5452', quote: 'E-2026-0118', orden: 'OV-2026-0118', at: '02/06/2026 09:41:12', ip: '190.142.88.214', docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:a1f9c7e2b04d8a' },
+    { id: 'AC-2026-0213', client: 'Vargas & Asoc',     markbox: 'DTD-5418', quote: 'E-2026-0117', orden: 'OV-2026-0117', at: '01/06/2026 17:22:08', ip: '186.92.14.77',   docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:7c3e1a9f25b0d4' },
+    { id: 'AC-2026-0212', client: 'Imp. Pereira',       markbox: 'DTD-5390', quote: 'E-2026-0114', orden: 'OV-2026-0114', at: '31/05/2026 11:05:44', ip: '190.202.55.13',  docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:e2b0c7a14f9d83' },
+    { id: 'AC-2026-0211', client: 'Castro Hermanos',    markbox: 'DTD-5354', quote: 'E-2026-0109', orden: 'OV-2026-0109', at: '28/05/2026 14:48:30', ip: '201.249.33.92',  docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:0d4f8a1c7e2b95' },
+    { id: 'AC-2026-0207', client: 'Polar Distribución', markbox: 'DTD-5301', quote: 'E-2026-0102', orden: 'OV-2026-0102', at: '22/05/2026 08:12:55', ip: '190.142.10.5',   docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:b95d4f0a1c7e23' },
+    { id: 'AC-2026-0198', client: 'Acindar Comercial',  markbox: 'DTD-5452', quote: 'E-2026-0094', orden: 'OV-2026-0094', at: '14/05/2026 16:30:19', ip: '190.142.88.214', docs: [['Términos y Condiciones de DTD', 'v2.1'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:1c7e2b0d4f8a96' },
+    { id: 'AC-2026-0185', client: 'Vargas & Asoc',      markbox: 'DTD-5418', quote: 'E-2026-0081', orden: 'OV-2026-0081', at: '29/04/2026 10:02:41', ip: '186.92.14.77',   docs: [['Términos y Condiciones de DTD', 'v2.0'], ['Condiciones del Operador de Consolidación', 'v1.4']], hash: 'sha256:f8a96b1c7e2b0d' },
+    { id: 'AC-2026-0172', client: 'Imp. Pereira',       markbox: 'DTD-5390', quote: 'E-2026-0068', orden: 'OV-2026-0068', at: '12/04/2026 13:19:07', ip: '190.202.55.13',  docs: [['Términos y Condiciones de DTD', 'v2.0'], ['Condiciones del Operador de Consolidación', 'v1.3']], hash: 'sha256:6b1c7e2b0d4f8a' },
   ];
 
   window.LegalData = { LEGAL_DOCS, ACCEPTANCES };
@@ -199,7 +199,7 @@
         <div style={{ display: 'flex', gap: 10, padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
           <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield(15)}</span>
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            Al publicar una <b>nueva versión</b>, las aceptaciones previas conservan su versión histórica (no se reescriben). Las cotizaciones nuevas pedirán aceptar la versión vigente.
+            Al publicar una <b>nueva versión</b>, las aceptaciones previas conservan su versión histórica (no se reescriben). Los estimados nuevos pedirán aceptar la versión vigente.
           </div>
         </div>
       </div>
@@ -251,7 +251,7 @@
         <U.Card padded>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 220 }}>
-              <U.Input label="Buscar" placeholder="Cliente, MARKBOX, cotización, orden, IP…" value={search} onChange={(e) => setSearch(e.target.value)} prefix={I.search ? null : null} />
+              <U.Input label="Buscar" placeholder="Cliente, MARKBOX, estimado, orden, IP…" value={search} onChange={(e) => setSearch(e.target.value)} prefix={I.search ? null : null} />
             </div>
             <div style={{ minWidth: 240 }}>
               <U.Select label="Documento" value={docFilter} onChange={(e) => setDocFilter(e.target.value)}
@@ -263,7 +263,7 @@
         {/* tabla */}
         <U.Card padded={false}>
           <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 130px 150px 150px 40px', gap: 10, padding: '11px 16px', background: 'var(--bg-elevated)', font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-            <span>Acuse</span><span>Cliente</span><span>Cotización</span><span>Documentos</span><span>Fecha / hora</span><span></span>
+            <span>Acuse</span><span>Cliente</span><span>Estimado</span><span>Documentos</span><span>Fecha / hora</span><span></span>
           </div>
           {filtered.map((a, i) => (
             <button key={a.id} onClick={() => setSel(a)} style={{ width: '100%', display: 'grid', gridTemplateColumns: '120px 1fr 130px 150px 150px 40px', gap: 10, padding: '12px 16px', alignItems: 'center', borderTop: '1px solid var(--border)', background: 'var(--bg-surface)', textAlign: 'left', cursor: 'pointer' }}
@@ -311,7 +311,7 @@
                 <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '4px 16px 12px' }}>
                   <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', padding: '14px 0 4px' }}>Evidencia</div>
                   <Row k="Cliente" v={`${sel.client} · ${sel.markbox}`} />
-                  <Row k="Cotización" v={sel.quote} />
+                  <Row k="Estimado" v={sel.quote} />
                   <Row k="Orden generada" v={sel.orden} />
                   {sel.docs.map(([n, v], k) => <Row key={k} k={k === 0 ? 'Documentos' : ''} v={`${n} ${v}`} />)}
                   <Row k="Fecha / hora" v={sel.at} />

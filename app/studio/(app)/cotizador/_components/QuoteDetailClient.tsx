@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Wrapper client del detalle de cotización.
+ * Wrapper client del detalle de un estimado.
  *
  * Maneja:
  * - Estado del drawer de edit (solo cuando status=draft)
@@ -10,17 +10,20 @@
  */
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   canConvertToShipment,
   isEditable,
+  isUnlinkedWebEstimate,
   type Quote,
 } from "@/lib/studio/quote-types";
+import type { KommoContactPick } from "@/lib/studio/kommo-convert";
 import {
   convertQuoteToShipment,
+  linkEstimateToClientAction,
   markQuoteAccepted,
   markQuoteRejected,
   markQuoteSent,
@@ -29,7 +32,13 @@ import { QuoteDrawer } from "./QuoteDrawer";
 
 const SENT_SUCCESS_MS = 2500;
 
-export function QuoteDetailClient({ quote }: { quote: Quote }) {
+export function QuoteDetailClient({
+  quote,
+  kommoMatches = [],
+}: {
+  quote: Quote;
+  kommoMatches?: KommoContactPick[];
+}) {
   const router = useRouter();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
@@ -41,8 +50,122 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
   // operador vea la confirmación.
   const [justSent, setJustSent] = useState(false);
 
+  // SDD-0061 Slice 3 — vínculo manual del estimado web a un cliente por MARKBOX.
+  const [markboxInput, setMarkboxInput] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linking, startLinking] = useTransition();
+  const canLink = isUnlinkedWebEstimate(quote);
+
+  function handleLink() {
+    const markbox = markboxInput.trim();
+    if (!markbox) {
+      setLinkError("Indicá el MARKBOX del cliente.");
+      return;
+    }
+    setLinkError(null);
+    startLinking(async () => {
+      const r = await linkEstimateToClientAction(quote.id, markbox);
+      if (r.error) {
+        setLinkError(r.error);
+        return;
+      }
+      toast.success(`Estimado ${quote.quote_code} vinculado a ${markbox.toUpperCase()}`);
+      router.refresh();
+    });
+  }
+
   return (
     <>
+      {canLink && (
+        <section
+          style={{
+            marginBottom: 16,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderLeft: "3px solid var(--wine)",
+            borderRadius: "var(--r-lg)",
+            padding: 20,
+          }}
+        >
+          <div className="studio-eyebrow" style={{ marginBottom: 6 }}>
+            Vincular a cliente
+          </div>
+          <p
+            style={{
+              font: "400 12.5px/1.45 var(--f-sans)",
+              color: "var(--ink-soft)",
+              margin: "0 0 12px",
+              maxWidth: "64ch",
+            }}
+          >
+            Este estimado se capturó de la web y aún no tiene cliente. Ingresá el
+            MARKBOX del cliente ya registrado para vincularlo.
+          </p>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              type="text"
+              className="studio-input"
+              placeholder="DTD-0001"
+              value={markboxInput}
+              onChange={(e) => setMarkboxInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleLink();
+              }}
+              disabled={linking}
+              style={{ width: 200, textTransform: "uppercase", fontFamily: "var(--f-mono)" }}
+              aria-label="MARKBOX del cliente"
+            />
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary studio-btn-sm"
+              style={{ height: 38 }}
+              onClick={handleLink}
+              disabled={linking}
+            >
+              {linking ? "Vinculando…" : "Vincular"}
+            </button>
+          </div>
+
+          {kommoMatches.length > 0 && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "10px 12px",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-sm)",
+                font: "500 12px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              <strong style={{ color: "var(--ink)" }}>
+                Coincide con Kommo:
+              </strong>{" "}
+              este teléfono ya figura en {kommoMatches.length} contacto
+              {kommoMatches.length > 1 ? "s" : ""} de Kommo
+              {" ("}
+              {kommoMatches.slice(0, 3).map((c) => c.name).join(", ")}
+              {kommoMatches.length > 3 ? "…" : ""}
+              {"). "}
+              Revisá antes de crear un cliente duplicado.
+            </div>
+          )}
+
+          {linkError && (
+            <p
+              role="alert"
+              style={{
+                font: "500 12px/1.4 var(--f-sans)",
+                color: "var(--danger)",
+                margin: "12px 0 0",
+              }}
+            >
+              {linkError}
+            </p>
+          )}
+        </section>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -66,7 +189,7 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
           <ActionButton
             variant="primary"
             size="sm"
-            idleLabel="Enviar cotización"
+            idleLabel="Enviar estimado"
             loadingLabel="Enviando…"
             successLabel="Enviado al cliente"
             idleIcon={Icon.mail(14)}
@@ -74,8 +197,8 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
             successMs={SENT_SUCCESS_MS}
             title={(s) =>
               s === "success"
-                ? "Email enviado al cliente y cotización marcada como enviada"
-                : "Manda el email al cliente con la cotización y la marca como enviada"
+                ? "Email enviado al cliente y estimado marcado como enviado"
+                : "Manda el email al cliente con el estimado y lo marca como enviado"
             }
             onAction={async () => {
               setError(null);
@@ -85,7 +208,7 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
               setJustSent(true);
               setTimeout(() => setJustSent(false), SENT_SUCCESS_MS);
               toast.success(
-                `Cotización ${quote.quote_code} enviada al cliente`,
+                `Estimado ${quote.quote_code} enviado al cliente`,
                 {
                   link: {
                     href: `/studio/cotizador?status=sent&highlight=${encodeURIComponent(quote.quote_code)}`,
@@ -111,7 +234,7 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
                 return markQuoteRejected(quote.id);
               }}
               onSuccess={() =>
-                toast.info(`Cotización ${quote.quote_code} marcada como rechazada`, {
+                toast.info(`Estimado ${quote.quote_code} marcado como rechazado`, {
                   link: {
                     href: `/studio/cotizador?status=rejected&highlight=${encodeURIComponent(quote.quote_code)}`,
                     label: "Ver en Rechazadas",
@@ -125,7 +248,7 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
               size="sm"
               idleLabel="Aceptada"
               loadingLabel="Marcando…"
-              successLabel="Cotización aceptada"
+              successLabel="Estimado aceptado"
               successIcon={Icon.check(14)}
               onAction={async () => {
                 setError(null);
@@ -133,7 +256,7 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
               }}
               onSuccess={() =>
                 toast.success(
-                  `Cotización ${quote.quote_code} aceptada · lista para convertir`,
+                  `Estimado ${quote.quote_code} aceptado · listo para convertir`,
                   {
                     link: {
                       href: `/studio/cotizador?status=accepted&highlight=${encodeURIComponent(quote.quote_code)}`,
@@ -172,7 +295,7 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
                   if (r.error) return { error: r.error };
                   if (r.shipmentId) {
                     toast.success(
-                      `Cotización ${quote.quote_code} convertida a embarque`,
+                      `Estimado ${quote.quote_code} convertido a embarque`,
                       {
                         link: {
                           href: `/studio/tracking/${r.shipmentId}`,
@@ -201,7 +324,7 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
               type="button"
               className="studio-btn studio-btn-primary studio-btn-sm"
               onClick={() => setConfirmConvert(true)}
-              title="Crea un embarque del Tracking con los datos de la cotización"
+              title="Crea un embarque del Tracking con los datos del estimado"
             >
               Convertir a embarque →
             </button>

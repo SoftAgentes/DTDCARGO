@@ -43,8 +43,8 @@
   // Tenants gestionados por la plataforma
   // Set de módulos activos por tenant (mock · gestionable)
   const TENANTS = [
-    { id: 'dtd-ca',    name: 'DTD-Cargo CA',       region: 'Caracas · Valencia', admin: 'Yusneidy Rojas',  users: 9,  status: 'active',    plan: 'Enterprise', active: ['dashboard','shipments','tracking','clients','users','admin','cn','ve','despacho','labels','qrqueue','calendar','quotes','leads','suppliers','rates','invoices','contab','reconcile','seniat','tms','costing','operarios','vault','reports'] },
-    { id: 'dtd-zulia', name: 'DTD-Cargo Zulia',    region: 'Maracaibo',          admin: 'Pedro Finol',     users: 4,  status: 'active',    plan: 'Pro',        active: ['dashboard','shipments','tracking','clients','users','admin','cn','ve','despacho','calendar','quotes','leads','suppliers','rates','invoices','contab'] },
+    { id: 'dtd-ca',    name: 'DTD-Cargo CA',       region: 'Caracas · Valencia', admin: 'Yusneidy Rojas',  users: 9,  status: 'active',    plan: 'Enterprise', active: ['dashboard','shipments','tracking','clients','users','admin','cn','ve','despacho','labels','qrqueue','calendar','estimados','leads','suppliers','rates','invoices','contab','reconcile','seniat','tms','costing','operarios','vault','reports'] },
+    { id: 'dtd-zulia', name: 'DTD-Cargo Zulia',    region: 'Maracaibo',          admin: 'Pedro Finol',     users: 4,  status: 'active',    plan: 'Pro',        active: ['dashboard','shipments','tracking','clients','users','admin','cn','ve','despacho','calendar','estimados','leads','suppliers','rates','invoices','contab'] },
     { id: 'dtd-occ',   name: 'DTD-Cargo Occidente',region: 'Barquisimeto',       admin: '— sin asignar',   users: 0,  status: 'onboarding', plan: 'Pro',        active: ['dashboard','shipments','tracking','clients','users','admin'] },
   ];
 
@@ -61,7 +61,7 @@
       { id: 'qrqueue', label: 'Cola de QR' }, { id: 'calendar', label: 'Calendario' },
     ]},
     { group: 'Comercial & Finanzas', minPlan: 'Pro', items: [
-      { id: 'quotes', label: 'Cotizador' }, { id: 'leads', label: 'CRM · Leads' },
+      { id: 'estimados', label: 'Estimador' }, { id: 'leads', label: 'CRM · Leads' },
       { id: 'suppliers', label: 'Proveedores CN' }, { id: 'rates', label: 'Tarifas' },
       { id: 'invoices', label: 'Facturación' }, { id: 'contab', label: 'Contabilidad' },
       { id: 'reconcile', label: 'Conciliación bancaria' },
@@ -213,7 +213,7 @@
     const U = window.ERPUI;
     const I = window.Icon;
     const [step, setStep] = useState(1);
-    const [data, setData] = useState({ name: '', region: '', plan: 'Pro', rif: '', adminName: '', adminEmail: '', modules: ['shipments', 'tracking', 'cn', 've', 'quotes', 'clients', 'invoices'] });
+    const [data, setData] = useState({ name: '', region: '', plan: 'Pro', rif: '', adminName: '', adminEmail: '', modules: ['shipments', 'tracking', 'cn', 've', 'estimados', 'clients', 'invoices'] });
     const set = (k, v) => setData(d => ({ ...d, [k]: v }));
 
     const STEPS = ['Datos del tenant', 'Plan & módulos', 'Administrador de Tenant', 'Confirmar'];
@@ -230,7 +230,7 @@
         { id: 'qrqueue', label: 'Cola de QR' }, { id: 'calendar', label: 'Calendario' },
       ]},
       { group: 'Comercial & Finanzas', minPlan: 'Pro', items: [
-        { id: 'quotes', label: 'Cotizador' }, { id: 'leads', label: 'CRM · Leads' },
+        { id: 'estimados', label: 'Estimador' }, { id: 'leads', label: 'CRM · Leads' },
         { id: 'suppliers', label: 'Proveedores CN' }, { id: 'rates', label: 'Tarifas' },
         { id: 'invoices', label: 'Facturación' }, { id: 'contab', label: 'Contabilidad' },
         { id: 'reconcile', label: 'Conciliación bancaria' },

@@ -333,7 +333,7 @@ function SectionRates() {
         <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10 }}>
           <span style={{ color: 'var(--info)' }}>{window.Icon.info(13)}</span>
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            Las cotizaciones se mantienen en USD. La conversión a VES solo aplica en facturas locales según la fuente seleccionada.
+            Los estimados se mantienen en USD. La conversión a VES solo aplica en facturas locales según la fuente seleccionada.
           </div>
         </div>
       </U.Card>
@@ -562,12 +562,39 @@ function SectionAppearance() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           {['Logo principal', 'Favicon'].map(label => (
             <div key={label} style={{ padding: 18, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', textAlign: 'center' }}>
-              <img src="assets/dtdcargo-icon-navy.png" alt="" style={{ width: 64, height: 64, margin: '0 auto 12px', objectFit: 'contain' }} />
+              <span className="dtd-iso dtd-iso-auto" style={{ width: 64, height: 64, margin: '0 auto 12px' }}>
+                <img className="iso-primary" src="assets/dtdcargo-isologo-primary.png" alt="" />
+                <img className="iso-reverse" src="assets/dtdcargo-isologo-reverse.png" alt="" />
+              </span>
               <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</div>
               <div style={{ marginTop: 10, display: 'flex', gap: 6, justifyContent: 'center' }}>
                 <U.Btn variant="secondary" size="sm" icon={window.Icon.upload(12)}>Reemplazar</U.Btn>
               </div>
             </div>
+          ))}
+        </div>
+      </U.Card>
+
+      <U.Card padded>
+        <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>RECURSOS DE MARCA</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { t: 'Logo Oficial', s: '4 variantes · descarga PNG (isólogo y apilado)', href: 'Logo Oficial.html' },
+            { t: 'Portadas Redes · YouTube + Facebook', s: '3 direcciones · áreas seguras · descarga a tamaño real', href: 'Portadas Redes · DTD-Cargo.html' },
+            { t: 'Portada Animada · Facebook', s: 'Video de portada 1250×463 · graba MP4 nativo', href: 'Portada Animada FB · DTD-Cargo.html' },
+            { t: 'Brand Book v3.3', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v3.2.html' },
+          ].map(r => (
+            <a key={r.href} href={r.href} target="_blank" rel="noopener" style={{
+              display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textDecoration: 'none',
+              background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
+            }}>
+              <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 'var(--r-sm)', background: 'var(--bg-sidebar)', color: 'var(--cream, #FBFAF7)', display: 'grid', placeItems: 'center', font: '900 13px/1 var(--f-brand-display)' }}>D</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', font: '700 13px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{r.t}</span>
+                <span style={{ display: 'block', font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)' }}>{r.s}</span>
+              </span>
+              <span style={{ color: 'var(--ink-mute)', font: '600 14px/1 var(--f-sans)' }}>↗</span>
+            </a>
           ))}
         </div>
       </U.Card>
@@ -615,13 +642,13 @@ function SectionPermissions() {
   const roles = ['Admin. Tenant', 'Comercial', 'Operaciones', 'Contabilidad', 'Almacén CN', 'Soporte'];
   const modules = [
     'Dashboard', 'Embarques', 'Tracking', 'Calendario', 'Almacén CN', 'Almacén VE',
-    'Cotizador', 'Clientes', 'CRM Leads', 'Tarifas', 'Facturación', 'Documentos',
+    'Estimador', 'Clientes', 'CRM Leads', 'Tarifas', 'Facturación', 'Documentos',
     'Reportes', 'Mailing', 'Vault', 'Usuarios', 'Administración',
   ];
   // Permission matrix: V=view, C=create, E=edit, D=delete
   const perms = {
     Admin:         modules.reduce((a, m) => ({ ...a, [m]: 'VCED' }), {}),
-    Comercial:     { 'Dashboard': 'V', 'Embarques': 'V', 'Tracking': 'V', 'Calendario': 'V', 'Cotizador': 'VCE', 'Clientes': 'VCE', 'CRM Leads': 'VCED', 'Tarifas': 'V', 'Facturación': 'V', 'Documentos': 'V', 'Reportes': 'V', 'Mailing': 'V' },
+    Comercial:     { 'Dashboard': 'V', 'Embarques': 'V', 'Tracking': 'V', 'Calendario': 'V', 'Estimador': 'VCE', 'Clientes': 'VCE', 'CRM Leads': 'VCED', 'Tarifas': 'V', 'Facturación': 'V', 'Documentos': 'V', 'Reportes': 'V', 'Mailing': 'V' },
     Operaciones:   { 'Dashboard': 'V', 'Embarques': 'VCE', 'Tracking': 'VE', 'Calendario': 'V', 'Almacén CN': 'V', 'Almacén VE': 'VCE', 'Clientes': 'V', 'Documentos': 'VC', 'Mailing': 'V' },
     Contabilidad:  { 'Dashboard': 'V', 'Embarques': 'V', 'Facturación': 'VCED', 'Documentos': 'VC', 'Clientes': 'V', 'Reportes': 'V', 'Tarifas': 'V' },
     'Almacén CN':  { 'Dashboard': 'V', 'Almacén CN': 'VCE', 'Embarques': 'V' },
@@ -693,7 +720,7 @@ function SectionAudit() {
   const [actionFilter, setActionFilter] = _aUseState('all');
 
   const logs = [
-    { time: 'hace 4 min',  user: 'Martina A.',  action: 'edit',   target: 'Cotización Q-2026-0421', detail: 'cambió total de $8,400 a $9,200' },
+    { time: 'hace 4 min',  user: 'Martina A.',  action: 'edit',   target: 'Estimado E-2026-0421', detail: 'cambió total de $8,400 a $9,200' },
     { time: 'hace 18 min', user: 'Carlos V.',   action: 'create', target: 'Cliente DTD-5475',      detail: 'creó cliente: Mendoza & Cía CA' },
     { time: 'hace 1 h',    user: 'Yusneidy P.', action: 'edit',   target: 'Embarque DTDU-419032',   detail: 'estado: aduana VE → liberado' },
     { time: 'hace 2 h',    user: 'Andrés B.',   action: 'create', target: 'Factura F-2026-0445',    detail: 'emitida por $54,300' },
@@ -701,7 +728,7 @@ function SectionAudit() {
     { time: 'hace 4 h',    user: 'Diego N.',    action: 'edit',   target: 'Lead L-0140',             detail: 'movió de "nuevo" a "demo"' },
     { time: 'hace 5 h',    user: 'Carlos V.',   action: 'config', target: 'Sistema · Mailing',       detail: 'activó proveedor Gmail Workspace' },
     { time: 'hace 8 h',    user: 'Wang H.',     action: 'create', target: 'Recepción CN-2026-2842', detail: 'recibió 18 cajas en YIW-A1' },
-    { time: 'ayer 17:42',  user: 'Martina A.',  action: 'delete', target: 'Cotización Q-2026-0410', detail: 'eliminó borrador' },
+    { time: 'ayer 17:42',  user: 'Martina A.',  action: 'delete', target: 'Estimado E-2026-0410', detail: 'eliminó borrador' },
     { time: 'ayer 16:18',  user: 'Carlos V.',   action: 'config', target: 'Usuario u-008',           detail: 'invitó: Carolina Méndez (Soporte)' },
     { time: 'ayer 14:05',  user: 'Andrés B.',   action: 'edit',   target: 'Factura F-2026-0391',    detail: 'registró pago $156,800 · saldo 0' },
     { time: 'ayer 11:30',  user: 'Sistema',     action: 'auto',   target: 'Cron · backup diario',    detail: 'backup completo a S3 · 4.2GB' },
@@ -783,7 +810,7 @@ function SectionNumbering() {
           {[
             { label: 'MARKBOX cliente',  format: 'DTD-NNNN',     next: 'DTD-5476', counter: 5475 },
             { label: 'Embarques',        format: 'DTDU-NNNNNN',   next: 'DTDU-472817', counter: 472816 },
-            { label: 'Cotizaciones',     format: 'Q-YYYY-NNNN',   next: 'Q-2026-0422', counter: 421 },
+            { label: 'Estimados',     format: 'Q-YYYY-NNNN',   next: 'E-2026-0422', counter: 421 },
             { label: 'Facturas',         format: 'F-YYYY-NNNN',   next: 'F-2026-0446', counter: 445 },
             { label: 'Recepciones CN',   format: 'CN-YYYY-NNNN',  next: 'CN-2026-2843', counter: 2842 },
             { label: 'Recepciones VE',   format: 'VE-YYYY-NNNN',  next: 'VE-2026-1183', counter: 1182 },
@@ -922,7 +949,7 @@ function SectionApi() {
             {[
               { method: 'GET',  path: '/shipments',           desc: 'Listar embarques (paginado)' },
               { method: 'GET',  path: '/shipments/{id}',      desc: 'Detalle de un embarque + eventos' },
-              { method: 'POST', path: '/quotes',              desc: 'Crear cotización · devuelve total DDP' },
+              { method: 'POST', path: '/quotes',              desc: 'Crear estimado · devuelve total DDP' },
               { method: 'POST', path: '/shipments/{id}/track', desc: 'Push de evento operativo' },
               { method: 'GET',  path: '/invoices',            desc: 'Listar facturas del cliente autenticado' },
             ].map((e, i) => {
@@ -1104,7 +1131,7 @@ function SectionFeatures() {
       label: 'Servicios operativos',
       items: [
         { k: 'customs_seniat',    name: 'Aduana SENIAT · workflow',  desc: 'Checklist DUA, agente aduanal, tracking de liberación. Activá si DTD-Cargo hace el trámite aduanero (sino el agente externo lo hace).', module: 'embarques' },
-        { k: 'cargo_insurance',   name: 'Seguro de carga',           desc: 'Cotización y emisión de seguro por embarque. Algunos clientes lo piden, otros traen seguro propio.', module: 'embarques' },
+        { k: 'cargo_insurance',   name: 'Seguro de carga',           desc: 'Estimado y emisión de seguro por embarque. Algunos clientes lo piden, otros traen seguro propio.', module: 'embarques' },
         { k: 'warehouse_location', name: 'Ubicación en bodega · pasillo · zona · estante', desc: 'Muestra al almacenista/transportista la ubicación física exacta del paquete en bodega VE. Útil para bodegas grandes con sistema de localizaciones. Por defecto OFF — DTD-Cargo aún no usa codificación interna de bodega.', module: 'almacén VE · almacenista', defaultOn: false },
                 { k: 'consolidation_partial', name: 'Consolidación parcial', desc: 'Permite partir un envío en P1/P2 cuando no entra completo. Recomendado para todos los freight forwarders.', module: 'almacén CN' },
         { k: 'hs_autodetect',     name: 'Auto-detección HS · IA',    desc: 'Detecta código HS desde fotos de la caja. Útil cuando el supplier no lo provee.', module: 'almacén CN' },
@@ -1447,7 +1474,7 @@ function CodesSyncHeader({ source }) {
                   { who: 'Operaciones', cond: 'cualquier cambio',      ch: 'in-app + email', def: true },
                   { who: 'Contabilidad', cond: 'cambios de arancel ≥ 5pts', ch: 'in-app + email + WhatsApp', def: true },
                   { who: 'Dirección',   cond: 'solo cambios críticos', ch: 'email semanal · digest', def: true },
-                  { who: 'Comercial',   cond: 'cambios que afectan cotizaciones activas', ch: 'in-app', def: false },
+                  { who: 'Comercial',   cond: 'cambios que afectan estimados activas', ch: 'in-app', def: false },
                 ].map((n, i) => (
                   <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-sm)', cursor: 'pointer' }}>
                     <input type="checkbox" defaultChecked={n.def} style={{ accentColor: 'var(--wine)' }} />

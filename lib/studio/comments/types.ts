@@ -63,7 +63,7 @@ export const COMMENT_ENTITY_LABELS: Record<CommentEntityType, CommentEntityMeta>
     href: (id, code) => (code ? `/studio/facturacion/${code}` : `/studio/facturacion`),
   },
   quote: {
-    label: "Cotización",
+    label: "Estimado",
     href: (id, code) => (code ? `/studio/cotizador/${code}` : `/studio/cotizador`),
   },
   dispatch_order: {

@@ -10,7 +10,7 @@
   const DICT = [
     // Módulos / navegación
     ['Dashboard', '仪表板'], ['Embarques', '货运'], ['Tracking', '追踪'],
-    ['Clientes', '客户'], ['Cotizador', '报价'], ['Cotizaciones', '报价单'],
+    ['Clientes', '客户'], ['Estimador', '报价'], ['Estimados', '报价单'],
     ['Almacén CN', '中国仓库'], ['Almacén VE', '委内瑞拉仓库'], ['Almacén', '仓库'],
     ['Despacho', '发货'], ['Proveedores CN', '中国供应商'], ['Proveedores', '供应商'],
     ['Facturación', '开票'], ['Contabilidad', '会计'], ['Tarifas', '费率'],
@@ -35,7 +35,7 @@
     ['Nueva campaña', '新活动'], ['Hacer parcial', '部分拆分'], ['partir envío', '拆分货物'],
     // Estados de embarque
     ['pendiente consolidación', '待合并'], ['consolidado', '已合并'],
-    ['cotizado', '已报价'], ['confirmado', '已确认'], ['recibido CN', '中国已收'],
+    ['estimado', '已报价'], ['confirmado', '已确认'], ['recibido CN', '中国已收'],
     ['zarpado', '已起航'], ['tránsito', '运输中'], ['en tránsito', '运输中'],
     ['aduana VE', '委内瑞拉海关'], ['liberado', '已放行'], ['entregado', '已交付'],
     ['en aduana', '海关中'], ['listo para retiro', '可提货'], ['en reparto', '派送中'],

@@ -232,7 +232,7 @@ export function roleLabel(r: StudioUserRole): string {
 
 export const ROLE_DESCRIPTIONS: Record<StudioUserRole, string> = {
   admin: "Acceso total al Studio. Puede invitar / desactivar usuarios y cambiar roles.",
-  commercial: "Cotizador, clientes, embarques, CRM. Sin acceso a finanzas ni admin.",
+  commercial: "Estimados, clientes, embarques, CRM. Sin acceso a finanzas ni admin.",
   operations: "Almacén CN/VE, tracking, calendario, TMS, SENIAT. Operación day-to-day.",
   accounting: "Facturación, costing, reportes financieros. Read en operativo.",
   warehouse: "Acceso al almacén asignado (CN o VE). Recepción y despacho.",

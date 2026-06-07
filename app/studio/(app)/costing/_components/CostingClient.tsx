@@ -1070,7 +1070,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
       <EmptyState
         eyebrow="Forecast pipeline"
         title="Sin pipeline para proyectar"
-        description="Cuando tengas cotizaciones aceptadas (pendientes de embarcar) o enviadas, vas a ver acá el revenue, costo y margen proyectados del pipeline."
+        description="Cuando tengas estimados aceptados (pendientes de embarcar) o enviados, vas a ver acá el revenue, costo y margen proyectados del pipeline."
       />
     );
   }
@@ -1134,13 +1134,13 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
             color: "var(--ink-inv-mute)",
           }}
         >
-          Sobre {totals.acceptedCount} cotizaciones aceptadas pendientes de
-          embarcar + {totals.pendingCount} enviadas esperando respuesta. El costo
+          Sobre {totals.acceptedCount} estimados aceptados pendientes de
+          embarcar + {totals.pendingCount} enviados esperando respuesta. El costo
           sale de un template de ruta cuando existe; si no, se estima.
         </div>
       </div>
 
-      {/* Listado de cotizaciones del pipeline */}
+      {/* Listado de estimados del pipeline */}
       <Card style={{ overflow: "hidden" }}>
         <div
           style={{
@@ -1152,7 +1152,7 @@ function ForecastView({ forecast, money }: { forecast: Forecast; money: Money })
             borderBottom: "1px solid var(--border)",
           }}
         >
-          {["Cotización", "Cliente · Ruta", "Revenue", "Costo est.", "Margen est.", "Origen"].map((h, i) => (
+          {["Estimado", "Cliente · Ruta", "Revenue", "Costo est.", "Margen est.", "Origen"].map((h, i) => (
             <span
               key={h}
               style={{

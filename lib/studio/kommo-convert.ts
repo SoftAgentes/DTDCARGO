@@ -10,6 +10,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { normalizePhone, phonesMatch } from "./estimado-linking";
 
 export type ConvertLeadResult = {
   ok?: true;
@@ -112,6 +113,43 @@ export async function searchKommoContacts(
     const { email, phone } = parseContactFields(c.custom_fields);
     return { id: c.id, name: c.name ?? `Contacto ${c.id}`, email, phone };
   });
+}
+
+/**
+ * Slice 4 (SDD-0061) — cruce con el lead/contacto de Kommo POR TELÉFONO. Para un
+ * estimado web, busca si el prospecto ya es un contacto de Kommo (mismo número),
+ * y así evitar abrir una bandeja duplicada. Read-only sobre el espejo (RLS por
+ * tenant). PURA respecto del client de Supabase.
+ *
+ * El teléfono vive en `kommo_contacts.custom_fields` (jsonb anidado), no en una
+ * columna → no se puede filtrar en SQL con un índice. Traemos los `limit` más
+ * recientes y filtramos por sufijo de dígitos en JS (advisory, no hot-path). Si
+ * el match estuviera fuera de los `limit` recientes, no aparece — es una ayuda,
+ * no una garantía (un match exhaustivo pediría des-anidar el teléfono a columna).
+ */
+export async function findKommoContactsByPhone(
+  supabase: SupabaseClient,
+  phone: string | null | undefined,
+  limit = 500,
+): Promise<KommoContactPick[]> {
+  if (normalizePhone(phone).length < 7) return [];
+  const { data, error } = await supabase
+    .from("kommo_contacts")
+    .select("id, name, custom_fields")
+    .order("kommo_updated_at", { ascending: false, nullsFirst: false })
+    .limit(limit);
+  if (error) throw error;
+
+  const out: KommoContactPick[] = [];
+  for (const c of (data as
+    | { id: number; name: string | null; custom_fields: unknown }[]
+    | null) ?? []) {
+    const { email, phone: cphone } = parseContactFields(c.custom_fields);
+    if (cphone && phonesMatch(cphone, phone)) {
+      out.push({ id: c.id, name: c.name ?? `Contacto ${c.id}`, email, phone: cphone });
+    }
+  }
+  return out;
 }
 
 /**

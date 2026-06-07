@@ -209,7 +209,7 @@ function MailingCompose() {
           <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>ENVÍOS RECIENTES</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
-              { to: 'cmendez@acindar.ve',   subject: 'Cotización DTD-Cargo · Q-2026-0418', time: 'hace 4 min' },
+              { to: 'cmendez@acindar.ve',   subject: 'Estimado DTD-Cargo · E-2026-0418', time: 'hace 4 min' },
               { to: 'apereira@imp-pereira.com', subject: 'Tu carga zarpó · DTDU-472816', time: 'hace 18 min' },
               { to: 'lfernandez@polar.com.ve', subject: 'ETA en riesgo · DTDU-419032', time: 'hace 1 h' },
             ].map((e, i) => (

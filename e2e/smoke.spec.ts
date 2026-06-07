@@ -28,15 +28,29 @@ test.describe("rutas públicas críticas", () => {
     await expect(page.locator("body")).toContainText(/FCL|DDP/);
   });
 
-  test("/cotizar muestra el formulario", async ({ page }) => {
-    await page.goto("/cotizar");
-    await expect(page).toHaveTitle(/Cotiza/);
+  test("/estimacion muestra el formulario", async ({ page }) => {
+    await page.goto("/estimacion");
+    await expect(page).toHaveTitle(/Estimaci/);
     await expect(page.locator("form")).toBeVisible();
     // Inputs clave deben existir (volumen fue reemplazado por L/A/H en feat 1f35ab9)
     await expect(page.locator('input[name="peso"]')).toBeVisible();
     await expect(page.locator('input[name="largo"]')).toBeVisible();
     await expect(page.locator('input[name="ancho"]')).toBeVisible();
     await expect(page.locator('input[name="alto"]')).toBeVisible();
+  });
+
+  test("/cotizar redirige (301) a /estimacion", async ({ page }) => {
+    // SDD-0061 Fase A: el URL viejo conserva SEO vía 301 permanente.
+    await page.goto("/cotizar");
+    await expect(page).toHaveURL(/\/estimacion$/);
+    await expect(page).toHaveTitle(/Estimaci/);
+  });
+
+  test("/calculadora-terrestre carga standalone", async ({ page }) => {
+    await page.goto("/calculadora-terrestre");
+    await expect(page).toHaveTitle(/terrestre/i);
+    // La calc terrestre tiene su selector de origen (ciudad VZLA) y destino.
+    await expect(page.locator("body")).toContainText(/Último km|Venezuela/i);
   });
 
   test("/contacto muestra emails y WhatsApp", async ({ page }) => {
@@ -81,7 +95,9 @@ test.describe("SEO essentials", () => {
     expect(r.status()).toBe(200);
     const xml = await r.text();
     expect(xml).toContain("/servicios");
-    expect(xml).toContain("/cotizar");
+    expect(xml).toContain("/estimacion");
+    expect(xml).toContain("/calculadora-terrestre");
+    expect(xml).not.toContain("/cotizar");
   });
 });
 

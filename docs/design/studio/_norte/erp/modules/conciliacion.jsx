@@ -53,12 +53,38 @@ function ModuleConciliacion({ goTo }) {
   const [detail, setDetail] = React.useState(null);
 
   const { statement, decisions } = state;
+  const BANK_COA = '1.04.01'; // Banesco USD
 
   const setDecision = (id, patch) => {
     setState(s => ({
       ...s,
       decisions: { ...s.decisions, [id]: { ...s.decisions[id], ...patch } },
     }));
+  };
+
+  // Confirmar match → liga/postea/crea el asiento en el mayor
+  const confirmMatch = (m, extra) => {
+    const C = window.ContabilidadData;
+    let ledger = null;
+    if (C && C.reconcileBankMovement) {
+      const existing = C.findEntryByRef(m.ref);
+      const needsMutation = !existing || existing.status === 'borrador';
+      const unlocked = C.isUnlocked ? C.isUnlocked() : false;
+      if (needsMutation && !unlocked) {
+        ledger = { mode: existing ? 'needs-post' : 'needs-create' };
+      } else {
+        ledger = C.reconcileBankMovement(m, BANK_COA);
+      }
+    }
+    setDecision(m.id, { status: 'matched', ...(extra || {}), ledger });
+  };
+  // Reintentar la contabilización (cuando hacía falta desbloquear)
+  const postToLedger = (m) => {
+    const C = window.ContabilidadData;
+    if (!C || !C.reconcileBankMovement) return;
+    if (C.isUnlocked && !C.isUnlocked()) { alert('Activá "Edición abierta" en Contabilidad (header del módulo) para contabilizar.'); return; }
+    const ledger = C.reconcileBankMovement(m, BANK_COA);
+    setDecision(m.id, { ledger });
   };
 
   const movs = statement.movements.map(m => ({ ...m, decision: decisions[m.id] || { status: 'pending' } }));
@@ -129,9 +155,10 @@ function ModuleConciliacion({ goTo }) {
                   m={m}
                   active={detail === m.id}
                   onClick={() => setDetail(m.id === detail ? null : m.id)}
-                  onMatch={() => setDecision(m.id, { status: 'matched' })}
+                  onMatch={() => confirmMatch(m)}
                   onReject={() => setDecision(m.id, { status: 'rejected' })}
                   onManual={() => setDecision(m.id, { status: 'manual' })}
+                  onPostLedger={() => postToLedger(m)}
                 />
               ))}
             </div>
@@ -144,6 +171,8 @@ function ModuleConciliacion({ goTo }) {
             m={mv}
             onClose={() => setDetail(null)}
             setDecision={(patch) => setDecision(mv.id, patch)}
+            confirmMatch={(extra) => confirmMatch(mv, extra)}
+            postToLedger={() => postToLedger(mv)}
           />;
         })()}
       </div>
@@ -182,13 +211,15 @@ function BalanceStrip({ statement, totalCredit, totalDebit }) {
 }
 
 // ── Movement row ─────────────────────────────────────────────
-function MovementRow({ m, active, onClick, onMatch, onReject, onManual }) {
+function MovementRow({ m, active, onClick, onMatch, onReject, onManual, onPostLedger }) {
   const U = window.ERPUI;
   const I = window.Icon;
   const sug = m.suggested;
   const dec = m.decision;
   const isPending = dec.status === 'pending';
   const isMatched = dec.status === 'matched';
+  const ledger = dec.ledger;
+  const ledgerLabel = ledger && (ledger.mode === 'linked' ? 'ligado' : ledger.mode === 'created' ? 'asiento creado' : ledger.mode === 'posted-draft' ? 'borrador posteado' : null);
 
   return (
     <div
@@ -263,7 +294,13 @@ function MovementRow({ m, active, onClick, onMatch, onReject, onManual }) {
             <U.Btn size="sm" variant="secondary" onClick={onClick}>Buscar match</U.Btn>
           )}
           {isMatched && (
-            <U.Badge tone="success" dot>✓ conciliado</U.Badge>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 5 }}>
+              <U.Badge tone="success" dot>✓ conciliado</U.Badge>
+              {ledgerLabel && <code style={{ font: '600 9.5px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>→ {ledger.entryId} · {ledgerLabel}</code>}
+              {ledger && (ledger.mode === 'needs-create' || ledger.mode === 'needs-post') && (
+                <U.Btn size="sm" variant="secondary" icon={I.check(11)} onClick={onPostLedger}>Contabilizar al mayor</U.Btn>
+              )}
+            </div>
           )}
           {dec.status === 'rejected' && (
             <U.Badge tone="danger" dot>rechazado</U.Badge>
@@ -278,7 +315,7 @@ function MovementRow({ m, active, onClick, onMatch, onReject, onManual }) {
 }
 
 // ── Movement detail panel ────────────────────────────────────
-function MovementDetail({ m, onClose, setDecision }) {
+function MovementDetail({ m, onClose, setDecision, confirmMatch, postToLedger }) {
   const U = window.ERPUI;
   const I = window.Icon;
   const D = window.ERPData;
@@ -350,7 +387,7 @@ function MovementDetail({ m, onClose, setDecision }) {
           />
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 220, overflowY: 'auto' }}>
             {candidates.map(inv => (
-              <button key={inv.id} onClick={() => setDecision({ status: 'matched', manualMatch: inv.id })} style={{
+              <button key={inv.id} onClick={() => confirmMatch({ manualMatch: inv.id })} style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '8px 10px', borderRadius: 'var(--r-md)',
                 background: 'var(--bg-elevated)', textAlign: 'left',
@@ -378,8 +415,17 @@ function MovementDetail({ m, onClose, setDecision }) {
 
       {/* Action footer */}
       <footer style={{ padding: '14px 18px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-base)' }}>
+        {m.decision.ledger && m.decision.ledger.entryId && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 10px', background: 'var(--success-bg)', borderRadius: 'var(--r-md)' }}>
+            <span style={{ font: '600 11px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Asiento en el mayor</span>
+            <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--success)' }}>{m.decision.ledger.entryId}</code>
+          </div>
+        )}
+        {m.decision.ledger && (m.decision.ledger.mode === 'needs-create' || m.decision.ledger.mode === 'needs-post') && (
+          <U.Btn variant="secondary" full icon={I.check(13)} onClick={postToLedger}>Contabilizar al mayor</U.Btn>
+        )}
         {m.suggested && m.decision.status === 'pending' && (
-          <U.Btn variant="primary" full icon={I.check(13)} onClick={() => setDecision({ status: 'matched' })}>Confirmar sugerencia</U.Btn>
+          <U.Btn variant="primary" full icon={I.check(13)} onClick={() => confirmMatch()}>Confirmar sugerencia</U.Btn>
         )}
         <U.Btn variant="secondary" full onClick={() => setDecision({ status: 'manual' })}>Marcar como manual</U.Btn>
         <U.Btn variant="ghost" full style={{ color: 'var(--danger)' }} onClick={() => setDecision({ status: 'rejected' })}>Rechazar movimiento</U.Btn>
