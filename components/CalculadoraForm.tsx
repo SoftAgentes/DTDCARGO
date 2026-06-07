@@ -509,12 +509,14 @@ function CotizacionDisplay({
         </p>
       )}
 
-      {/* CTA WhatsApp */}
+      {/* CTA WhatsApp. `.btn` ya da inline-flex + center + gap. En desktop usa
+          self-center (auto-ancho, ícono+texto ajustados, sin verde flotando);
+          en móvil estira a full-width para mejor target táctil. */}
       <a
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="btn bg-whatsapp text-white inline-flex items-center justify-center gap-2"
+        className="btn bg-whatsapp text-white lg:self-center"
       >
         <WhatsAppIcon size={20} />
         {hasAlerta ? "Consultar con un asesor" : "Enviar mi cotización por WhatsApp"}
