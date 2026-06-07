@@ -50,8 +50,17 @@ export function CalculadoraForm({
     serverRate?.per_cbm && serverRate.per_cbm > 0
       ? serverRate.per_cbm
       : CONFIG.tarifaBaseCBM;
-  // Piso real (mínimo LCL comercial). Viaja al cálculo; no editable en V1.
+  // Piso real (mínimo facturable). Viaja al cálculo y define el punto de cruce.
   const minChargeOverride = serverRate?.min_charge ?? undefined;
+  const minCharge =
+    minChargeOverride && minChargeOverride > 0
+      ? minChargeOverride
+      : CONFIG.minimoFacturable;
+  // Punto de cruce: CBM donde el cálculo (CBM × tarifa) iguala al mínimo. Por
+  // debajo se cobra el piso. Se DERIVA de la tarifa → si cambia per_cbm, el
+  // cruce se reacomoda solo (nada hardcodeado).
+  const crossoverCbm = baseRate > 0 ? minCharge / baseRate : 0;
+  const crossoverLabel = parseFloat(crossoverCbm.toFixed(4)).toString();
   // Reglas escalares: las reales (de /studio/tarifas › Parámetros) o defaults.
   const params = serverConfig ?? DEFAULT_PARAMS;
   // Ciudades: las reales (de /studio/tarifas › Ciudades) o el array hardcoded.
@@ -178,7 +187,9 @@ export function CalculadoraForm({
               warning={
                 form.cbmTotal > CONFIG.cbmMaxContenedor
                   ? "Eso es más que un contenedor. Consulte a su asesor"
-                  : null
+                  : form.cbmTotal > 0 && form.cbmTotal < crossoverCbm
+                    ? `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`
+                    : null
               }
             />
             <InputField
