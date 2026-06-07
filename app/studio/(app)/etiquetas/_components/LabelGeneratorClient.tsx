@@ -14,11 +14,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { FORMATS, Label, type LabelFormat, warehouseAddress } from "./Label";
 import { SupplierMessageModal } from "./SupplierMessageModal";
-import type { LabelClient, LabelWarehouseCn } from "../page";
+import type { LabelClient, LabelSupplier, LabelWarehouseCn } from "../page";
+
+// Sentinela del dropdown: "Otro / a mano" → mantiene los campos libres
+// (fallback graceful cuando el cliente no tiene proveedores cargados o el
+// supplier no está en la tabla todavía).
+const SUPPLIER_FREEFORM = "__freeform__";
 
 interface Props {
   clients: LabelClient[];
   warehouses: LabelWarehouseCn[];
+  suppliers: LabelSupplier[];
   preselectMarkbox?: string;
 }
 
@@ -68,6 +74,7 @@ export function LabelGeneratorClient(props: Props) {
 function LabelGeneratorInner({
   clients,
   warehouses,
+  suppliers,
   preselectMarkbox,
 }: Props) {
   const initialMarkbox =
@@ -76,6 +83,7 @@ function LabelGeneratorInner({
 
   const [clientMarkbox, setClientMarkbox] = useState(initialMarkbox);
   const [warehouseId, setWarehouseId] = useState(warehouses[0].id);
+  const [supplierId, setSupplierId] = useState<string>(SUPPLIER_FREEFORM);
   const [supplierContact, setSupplierContact] = useState("");
   const [supplierContactCn, setSupplierContactCn] = useState("");
   const [supplierCity, setSupplierCity] = useState("");
@@ -87,6 +95,34 @@ function LabelGeneratorInner({
   const [formatId, setFormatId] = useState<LabelFormat["id"]>("a4-8up");
   const [qr, setQr] = useState(true);
   const [msgOpen, setMsgOpen] = useState(false);
+
+  // Proveedores del cliente seleccionado (suppliers_cn es por cliente).
+  const clientSuppliers = useMemo(
+    () => suppliers.filter((s) => s.client_markbox === clientMarkbox),
+    [suppliers, clientMarkbox],
+  );
+
+  // Al cambiar de cliente, el supplier elegido deja de ser válido → volver a
+  // "Otro / a mano" (no auto-borra lo tipeado a mano, solo el select).
+  useEffect(() => {
+    if (
+      supplierId !== SUPPLIER_FREEFORM &&
+      !clientSuppliers.some((s) => s.id === supplierId)
+    ) {
+      setSupplierId(SUPPLIER_FREEFORM);
+    }
+  }, [clientSuppliers, supplierId]);
+
+  // Al elegir un proveedor del dropdown, autocompletar los campos del mensaje.
+  function selectSupplier(id: string) {
+    setSupplierId(id);
+    if (id === SUPPLIER_FREEFORM) return;
+    const s = clientSuppliers.find((sup) => sup.id === id);
+    if (!s) return;
+    setSupplierContact(s.contact ?? s.name);
+    setSupplierCity(s.city ?? "");
+    setSupplierWechat(s.wechat ?? "");
+  }
 
   // Auto-sugerir warehouse según ciudad del supplier
   useEffect(() => {
@@ -253,17 +289,41 @@ function LabelGeneratorInner({
             </div>
           </Card>
 
-          {/* Supplier free-form */}
+          {/* Supplier · dropdown de suppliers_cn + free-form */}
           <Card eyebrow="SUPPLIER · OPCIONAL">
+            <label
+              className="studio-label"
+              htmlFor="lg-supplier"
+              style={{ display: "block", marginBottom: 4 }}
+            >
+              Proveedor del cliente
+            </label>
+            <select
+              id="lg-supplier"
+              className="studio-input"
+              value={supplierId}
+              onChange={(e) => selectSupplier(e.target.value)}
+            >
+              {clientSuppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                  {s.city ? ` · ${s.city}` : ""}
+                </option>
+              ))}
+              <option value={SUPPLIER_FREEFORM}>Otro / a mano</option>
+            </select>
             <p
               style={{
                 font: "500 11.5px/1.4 var(--f-sans)",
                 color: "var(--ink-mute)",
-                margin: "0 0 10px",
+                margin: "8px 0 10px",
               }}
             >
-              Sin tabla de suppliers todavía. Completá los datos manualmente
-              para que el mensaje del supplier salga con info correcta.
+              {clientSuppliers.length === 0
+                ? "Este cliente todavía no registró proveedores desde su portal. Completá los datos a mano para el mensaje del supplier."
+                : supplierId === SUPPLIER_FREEFORM
+                  ? "Elegí un proveedor cargado o completá los datos a mano para el mensaje del supplier."
+                  : "Datos del proveedor cargado — editalos si hace falta para este envío."}
             </p>
             <Field
               label="Nombre contacto"
