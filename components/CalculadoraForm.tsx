@@ -128,6 +128,27 @@ export function CalculadoraForm({
     setCalcTick((t) => t + 1);
   }
 
+  // Aviso de peso (simétrico al del CBM): el máximo de peso depende del CBM.
+  // Por cada m³ entran `pesoIncluidoKg` kg sin recargo; sobre eso, $/kg de
+  // excedente; sobre `pesoMaxKg`/CBM ya es demasiado denso (FCL). Todo se
+  // deriva del CBM que puso el cliente + los parámetros (nada hardcodeado).
+  const pesoWarning = ((): string | null => {
+    if (form.pesoKg > CONFIG.pesoMaxContenedorKg)
+      return "Esto es más que el peso permitido por contenedor; consulte a su asesor";
+    if (form.cbmTotal <= 0 || form.pesoKg <= 0) return null;
+    const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
+    const maxSinRecargo = form.cbmTotal * params.pesoIncluidoKg;
+    const maxDenso = form.cbmTotal * params.pesoMaxKg;
+    if (form.pesoKg > maxDenso)
+      return `Para ${fmt(form.cbmTotal)} m³, más de ${fmt(maxDenso)} kg es demasiado denso — consultá con tu asesor (FCL).`;
+    if (form.pesoKg > maxSinRecargo) {
+      const exceso = form.pesoKg - maxSinRecargo;
+      const recargo = exceso * params.recargoExcedenteKg;
+      return `El máximo de peso sin recargo para ${fmt(form.cbmTotal)} m³ es ${fmt(maxSinRecargo)} kg. Te pasás por ${fmt(exceso)} kg → +$${fmt(recargo)} ($${params.recargoExcedenteKg}/kg extra).`;
+    }
+    return null;
+  })();
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-12">
       {/* Form */}
@@ -197,11 +218,7 @@ export function CalculadoraForm({
               value={form.pesoKg}
               onChange={(v) => update("pesoKg", v)}
               placeholder="450"
-              warning={
-                form.pesoKg > CONFIG.pesoMaxContenedorKg
-                  ? "Esto es más que el peso permitido por contenedor; consulte a su asesor"
-                  : null
-              }
+              warning={pesoWarning}
             />
           </fieldset>
 
