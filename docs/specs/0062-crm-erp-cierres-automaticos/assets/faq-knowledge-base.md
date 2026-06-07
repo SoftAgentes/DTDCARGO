@@ -1,0 +1,165 @@
+# Base de conocimiento FAQ — DTD CARGO (reestructurada)
+
+> Fuente para Kommo (AI Agent + Respuestas sugeridas) y, opcionalmente, el sitio público.
+> Reestructura del `DTDCARGO-Kommo-KnowledgeSource.docx` original (SDD-0062).
+> **Cambios vs. original:** reordenado por frecuencia real (análisis de 401 conversaciones) · `"prepago/prepagado"` → **`Financiamiento 100%`** (regla de marca) · enlace a la calculadora · captura de email en cotización · secciones admin fusionadas · **5 secciones nuevas** (Validación, Verificación, Compra asistida, Cursos, Seguimiento) marcadas `[FILL]`.
+> Tono: español venezolano, cálido, claro y breve. Cada respuesta cierra invitando a continuar.
+
+---
+
+## A · Comercial (alta frecuencia)
+
+### 1. Cómo iniciar un envío (registro · Markbox)
+**Preguntas:** ¿Cómo empiezo a enviar con ustedes? · Ya compré en China, ¿ahora qué hago? · ¿Cómo registro mi compra? · ¿Cómo me registro como cliente? · ¿Qué tengo que hacer para enviar? · Ya hice mi compra en 1688, ¿cuál es el siguiente paso? · ¿Cómo abro una cuenta? · ¿Qué es una pre-alerta? · ¿Qué es el casillero? · ¿Qué es el Markbox? · Cómo empiezo a importar.
+
+**Respuesta (aprobada · corta):** ¡Hola! Súper fácil 👇 Regístrate en **dtdcargo.com/registro**: al instante recibes tu **Markbox** (para marcar tus cajas en China), tu **portal de seguimiento** y las **pre-alertas**. ¿Te paso el enlace o prefieres que un asesor te guíe?
+
+### 2. Cotización y tarifas (CBM)
+**Preguntas:** ¿Cuánto cuesta enviar de China a Venezuela? · ¿Cuánto me sale traer mercancía de China? · ¿Cómo cobran el flete? · ¿Cobran por peso o por volumen? · ¿Cuánto cobran por CBM? · ¿Qué precio tiene el envío? · ¿Cuánto cuesta un contenedor completo? · ¿Tienen servicio aéreo? · ¿Qué es DDP? · ¿Cuál es el costo del envío marítimo?
+
+**Habilidad de respuesta:** DIRIGIR A LA HERRAMIENTA (la calculadora tiene la lógica + tarifa viva). La IA **NO cotiza en el chat** (evita números viejos e ida y vuelta).
+
+**Respuesta:** ¡Hola! El costo depende del **volumen (CBM)** de tu carga, y lo bueno es que **lo calculas tú mismo al instante** en nuestra calculadora, que ya tiene la **tarifa vigente**: 👉 **dtdcargo.com/calculadora**. Solo metes las medidas de tus cajas y te da el estimado en segundos.
+Trabajamos envíos **marítimos**: LCL (carga suelta puerta a puerta), FCL (contenedor completo) y **DDP — Financiamiento 100%** (pagas pocos días antes de la entrega). El aéreo está temporalmente desactivado.
+Para **contenedor completo (FCL), carga especial o una cotización formal**, déjame tu **correo** y un asesor te la arma a medida. ¿Te sirve la calculadora o prefieres que te cotice un asesor?
+
+> *Notas internas: (1) NO hardcodear tarifas $ ni la regla CBM en el chat — eso vive en la calculadora (dtdcargo.com/calculadora). (2) El pedido de email alimenta la reactivación (SDD-0062 · Slice D). (3) FCL/carga especial/DDP no están en la calculadora pública → ahí sí escala a asesor.*
+
+### 3. Tiempos de tránsito
+**Preguntas:** ¿Cuánto tarda en llegar de China a Venezuela? · ¿Cuánto tiempo demora el envío? · ¿En cuánto tiempo llega mi carga? · ¿Cuántos días tarda el barco? · ¿Cuánto se demora la mercancía? · ¿Cuánto tiempo de tránsito marítimo? · Cuánto dura el envío.
+
+**Respuesta (aprobada · corta):** ¡Hola! Sin cuentos: tu carga va en **barco**, así que tarda **60 a 90 días** (flete interno en China + la espera de la próxima salida, cada 15-21 días + la travesía marítima). Puede variar por aduana o clima. ¿Quieres seguir tu envío? Regístrate en **dtdcargo.com/registro** y lo ves en tu portal.
+
+### 4. Cómo enviar a nuestra bodega en China
+**Preguntas:** ¿A qué dirección le digo a mi proveedor que envíe? · ¿Cuál es la dirección de su bodega en China? · ¿Dónde envía mi proveedor la mercancía? · ¿Cómo marco mis cajas? · ¿Qué dirección le doy a mi proveedor chino? · ¿Cómo identifico mis cajas en su almacén? · ¿Qué instrucciones le doy a mi proveedor?
+
+**Respuesta (aprobada):** ¡Hola! Para que tu proveedor te cotice el flete interno (**FOB** o **EXW**), pásale esta dirección de **referencia**. 👇 **Copia y pégasela a tu proveedor:**
+
+📋 **Yiwu Port Phase II, Warehouse 2, No. 2, Yiwu City, Zhejiang, China**
+
+Con eso te cotiza el costo hasta nuestra bodega. Ojo: es **solo de referencia para cotizar**. La **dirección completa para enviar** (con el detalle de cargo) + tus **códigos QR del Markbox** los recibes al **registrarte** y generar tu pre-alerta: **dtdcargo.com/registro**.
+
+> *Nota interna: dirección de referencia = la completa SIN el detalle "(Cargo 7-11)", que se entrega solo al registrar/pre-alertar. Decisión founder 2026-06-07.*
+
+### 5. Incoterms: FOB y EXW
+**Preguntas:** ¿Qué es FOB? · ¿Qué es EXW? · ¿Qué diferencia hay entre FOB y EXW? · Mi proveedor me dio precio FOB/EXW, ¿qué hago? · ¿Qué es un Incoterm? · ¿Quién paga el flete interno en China? · ¿El precio incluye llevar al puerto? · No entiendo los términos de mi proveedor.
+
+**Respuesta (aprobada · corta):** ¡Hola! Sencillo:
+🔹 **FOB:** el proveedor **incluye** el flete interno en China (llevar la carga hasta nuestra bodega). Te cotiza con la dirección de referencia.
+🔹 **EXW:** el precio es **solo la mercancía** en su fábrica; el flete interno **lo pagas tú**.
+En resumen: con FOB lo cubre el proveedor; con EXW lo cubres tú. Saberlo te ayuda a **comparar precios reales**. ¿Tu proveedor te lo dio en FOB o EXW? Te ayudo a ver tu costo total.
+
+### 6. Métodos de pago
+**Preguntas:** ¿Qué métodos de pago aceptan? · ¿Puedo pagar con tarjeta/Visa/Mastercard? · ¿Puedo pagar con enlace o QR? · ¿Aceptan PayPal? · ¿Cómo/dónde pago la compra o el servicio?
+
+**Respuesta (aprobada · corta):** ¡Hola! Trabajamos varias divisas:
+💵 **USD:** Zelle · Wire · efectivo en oficina
+🇻🇪 **Bs:** Pago Móvil · transferencia
+🟡 **USDT:** Binance
+🇨🇳 **Yuan:** efectivo en China · Alipay · WeChat Pay · transferencia
+Para los **datos exactos** según tu envío, un asesor te los pasa de forma segura. Y al **registrarte**, puedes aclarar cualquier otra información — la encuentras en tu sección de **preguntas y respuestas**: **dtdcargo.com/registro**.
+
+> *Nota interna: cierre reutilizable — "al registrarte, lo demás está en tu sección de preguntas y respuestas del portal" (patrón dirigir-a-herramienta + portal). Decisión founder 2026-06-07.*
+
+---
+
+## B · Servicios (secciones nuevas — requieren datos del founder)
+
+### 7. Validación de proveedores  `[FILL]`
+**Preguntas:** ¿Validan proveedores en China? · ¿Cómo sé si mi proveedor es confiable? · ¿Hacen verificación de fábrica? · ¿Qué incluye la validación de proveedor? · ¿Cuánto cuesta validar un proveedor? · ¿Validación digital o presencial?
+
+**Respuesta:** `[FILL: founder — qué incluye (digital vs presencial), qué entregan (reporte/fotos/visita), tiempos, cómo se cobra/precio, cómo se solicita]`
+
+### 8. Verificación de mercancía  `[FILL]`
+**Preguntas:** ¿Revisan la mercancía antes de enviarla? · ¿Hacen inspección de calidad? · ¿Verifican cantidad y estado de mi pedido? · ¿Qué incluye la verificación de mercancía? · ¿Cuánto cuesta? · ¿Toman fotos/video?
+
+**Respuesta:** `[FILL: founder — qué se inspecciona (cantidad/calidad/medidas), entregable (fotos/video/reporte), tiempos, precio/cómo se cobra, cómo se solicita]`
+
+### 9. Compra asistida  `[FILL]`
+**Preguntas:** ¿Me ayudan a comprar en China? · No sé comprar en 1688/Alibaba, ¿me asisten? · ¿Compran por mí? · ¿Qué es la compra asistida? · ¿Cuánto cobran por la compra asistida? · ¿Negocian con el proveedor por mí?
+
+**Respuesta:** `[FILL: founder — qué cubre (búsqueda/negociación/pago al proveedor/gestión), qué necesitan del cliente, comisión/precio, proceso paso a paso, cómo empezar]`
+
+### 10. Cursos  `[FILL]`
+**Preguntas:** ¿Dan cursos de importación? · ¿Cómo me inscribo al curso? · ¿Cuánto cuesta el curso? · ¿Qué incluye el curso? · ¿Es online o presencial? · ¿Cuándo es el próximo curso?
+
+**Respuesta:** `[FILL: founder — temario, modalidad (online/presencial), duración, precio, cómo inscribirse, próximas fechas]`
+
+### 11. Seguimiento / Tracking
+**Preguntas:** ¿Cómo rastreo mi envío? · ¿Dónde veo el estado de mi carga? · ¿Tienen tracking? · ¿Cómo sé dónde va mi mercancía? · Quiero el estado de mi pedido.
+
+**Respuesta (aprobada):** ¡Hola! Sigue tu carga así: con tu **código** en **dtdcargo.com/track**, o desde tu **portal** (**dtdcargo.com/portal**), donde ves cada etapa de tus pre-alertas y envíos. ¿No tienes el código a mano? Pásame tu **Markbox** y un asesor te ubica el estado.
+
+---
+
+## C · Empresa e información general
+
+### 12. Ubicación (oficinas)
+**Preguntas:** ¿Cómo puedo llegar? · ¿Cuál es la dirección de tu oficina? · ¿En qué zona/ciudad están? · ¿Cómo puedo contactarte?
+
+**Respuesta:** ¡Hola! Con gusto te oriento.
+- **Venezuela:** oficina en **Valencia**. Mapa: https://maps.app.goo.gl/76T5MAeeTyynwV1M6 · datos de contacto en el pie de **www.dtdcargo.com** o en "Contáctenos".
+- **China:** bodegas en **Yiwu**. La dirección exacta se entrega a clientes registrados (cada envío tiene su proceso). Si ya compraste, regístrate en **www.dtdcargo.com/registro** y te indicamos dirección y pasos.
+¿Puedo ayudarte en algo más?
+
+### 13. Horario laboral
+**Preguntas:** ¿Cuáles son sus horarios de atención? · ¿Qué días abren? · ¿Trabajan fines de semana? · ¿A qué hora abren/cierran?
+
+**Respuesta:** ¡Hola! Nuestros horarios:
+- **Oficina (Venezuela):** lunes a viernes, 9:00 a.m. a 5:00 p.m.
+- **WhatsApp:** todos los días, 8:00 a.m. a 8:00 p.m.
+Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, así que es muy probable que te respondamos incluso fuera de horario. ¿En qué te ayudamos?
+
+### 14. Experiencia de la empresa
+**Preguntas:** ¿Hace cuánto operan? · ¿Cuántos años llevan en el mercado? · ¿Cuál es su experiencia? · ¿Desde qué año operan?
+
+**Respuesta:** ¡Hola! **DTD CARGO opera desde 2008** en logística internacional puerta a puerta entre China y Venezuela, con carga consolidada. Acompañamos todo el proceso: compra, consolidación y envío hasta destino. Más en **www.dtdcargo.com**. ¿En qué puedo ayudarte?
+
+### 15. DoorTuDoor y DTD CARGO (misma empresa)
+**Preguntas:** ¿DoorTuDoor y DTD Cargo son lo mismo? · ¿Son la misma empresa? · ¿Qué significa DTD? · ¿Por qué dos nombres? · En Instagram son DoorTuDoor pero la web es DTD Cargo.
+
+**Respuesta:** ¡Hola! Sí, **somos la misma empresa**. **DoorTuDoor** es el nombre con que nacimos como marca, y evolucionamos a **DTD CARGO** ("DTD" = abreviación de DoorTuDoor). Por eso nos ves como "DoorTuDoor" en redes y "DTD CARGO" en la web: mismo equipo, mismo servicio. Puedes confiar en cualquiera de los dos nombres. ¿En qué te ayudamos?
+
+---
+
+## D · Postventa, soporte y administrativas (fusionadas)
+
+### 16. Descuentos y ofertas (fusión de "Venta" + "Descuento")
+**Preguntas:** ¿Tienen descuentos/ofertas? · ¿Puedo pedir un descuento? · ¿Ofrecen mejor precio por volumen? · ¿Hay promociones vigentes?
+
+**Respuesta (aprobada):** ¡Hola! Sí 👍 De hecho **premiamos el volumen y la frecuencia**: mientras **más CBM** traigas, mejor tarifa, y nuestros **clientes frecuentes** tienen las mejores condiciones. Cuéntame: ¿cuántos **CBM** (o medidas) llevas y a qué **ciudad**? Calcula tu base en **dtdcargo.com/calculadora** y déjame tu **correo** para que un asesor te arme la tarifa con tu descuento. Si importas seguido, te conviene **registrarte** (**dtdcargo.com/registro**): guardas tu historial y haces recompra fácil con mejores condiciones.
+
+> *Nota interna: objetivo de negocio PRIORITARIO (founder 2026-06-07) = clientes FRECUENTES y de ALTO volumen. El agente debe identificar/nutrir ese perfil e incentivar el registro para retención/recompra.*
+
+### 17. Reembolsos, devoluciones y garantía (fusión de 3 secciones)
+**Preguntas:** ¿Puedo obtener un reembolso? · ¿Cuáles son sus políticas de reembolso? · Mi carga llegó dañada/incompleta. · ¿Cuándo recupero mi dinero? · ¿Sus servicios tienen garantía? · ¿Qué cubre la garantía?
+
+**Respuesta (aprobada · escalar, sin afirmar política):** ¡Hola! Lamento mucho el inconveniente con tu carga 🙏. Tu caso es importante y queremos resolverlo bien. Cada situación de pérdida o daño se revisa **según las condiciones del servicio**, así que déjame conectarte con un **asesor** que lo atiende personalmente. Si ya eres cliente, también puedes abrir tu caso en **dtdcargo.com/portal**, sección **Soporte**. ¿Te paso con un asesor ahora?
+
+> *Nota interna: el bot NO afirma la política de reembolso (crédito vs efectivo) ni explica el seguro externo — eso lo maneja el asesor con contexto. Habilidad = escalar con empatía. Decisión founder 2026-06-07.*
+
+### 18. Soporte: dificultades y sugerencias
+**Preguntas:** ¿Cómo reporto un problema? · No puedo acceder a la sección. · Tengo una sugerencia/idea para mejorar.
+
+**Respuesta:** ¡Hola! Lamentamos el inconveniente y agradecemos tus sugerencias. Si ya eres cliente, entra a **www.dtdcargo.com/portal**, sección **Soporte**, registra tu caso y dale seguimiento. Si no tienes acceso o necesitas ayuda para ingresar, escríbenos por aquí y un asesor te orienta enseguida. ¿En qué te ayudamos?
+
+### 19. Reseñas
+**Preguntas:** ¿Cómo dejo una opinión/reseña del servicio? · ¿Dónde dejo un comentario?
+
+**Respuesta:** ¡Hola! Nos encantaría conocer tu opinión. Puedes compartir tu experiencia por aquí o etiquetándonos: Instagram **@doortudoor_** · TikTok **@doortudoor**. ¡Gracias por ayudarnos a mejorar!
+
+### 20. Redes sociales
+**Preguntas:** ¿Tienen redes sociales? · ¿Cuál es su Instagram/Facebook? · ¿Dónde los sigo?
+
+**Respuesta:** ¡Hola! Síguenos: Instagram **https://www.instagram.com/doortudoor_/** · TikTok **https://www.tiktok.com/@doortudoor** · YouTube **https://www.youtube.com/@doortudoor** · WhatsApp **https://api.whatsapp.com/send/?phone=584121668021**. Novedades en **https://dtdcargo.com/noticias**. ¿En qué podemos ayudarte?
+
+### 21. Newsletter y darse de baja (fusión)
+**Preguntas:** ¿Cómo me suscribo al newsletter? · ¿Cómo me doy de baja del boletín? · ¿Cómo recibo sus actualizaciones?
+
+**Respuesta:** ¡Hola! Por ahora **no manejamos boletín ni newsletter** por correo, así que no hay nada a qué suscribirse ni de qué darte de baja. Para novedades, visita **https://dtdcargo.com/noticias**. Si en algún momento no deseas recibir nuestros mensajes, avísanos por aquí y lo gestionamos. ¿Te ayudo en algo más?
+
+---
+
+### Pendiente de datos del founder (secciones `[FILL]`)
+7. Validación de proveedores · 8. Verificación de mercancía · 9. Compra asistida · 10. Cursos · 11. Tracking (confirmar).
+Para cada una necesito: **qué incluye · entregable · tiempos · precio/cómo se cobra · cómo se solicita**.

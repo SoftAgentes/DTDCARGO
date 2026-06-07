@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SDD-0062 — CRM Kommo + ERP · Informe ejecutivo (datos reales)</title>
+<style>
+:root{--azul:#0a3d62;--azul2:#1e6091;--acento:#e58e26;--verde:#27ae60;--rojo:#c0392b;--amarillo:#f1c40f;--gris:#f4f6f8;--txt:#2c3e50;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Tahoma,sans-serif;color:var(--txt);background:var(--gris);line-height:1.55}
+header{background:linear-gradient(135deg,var(--azul),var(--azul2));color:#fff;padding:28px 24px}
+header h1{font-size:1.7rem;margin-bottom:4px}
+header p{opacity:.9;font-size:.95rem}
+.badge{display:inline-block;background:rgba(255,255,255,.18);padding:3px 10px;border-radius:20px;font-size:.78rem;margin-top:8px;margin-right:4px}
+nav{position:sticky;top:0;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,.08);z-index:10;display:flex;flex-wrap:wrap;gap:4px;padding:8px 16px}
+nav button{border:none;background:transparent;padding:10px 14px;cursor:pointer;font-size:.88rem;border-radius:6px;color:var(--azul);font-weight:600;transition:.2s}
+nav button:hover{background:var(--gris)}
+nav button.active{background:var(--azul);color:#fff}
+main{max-width:1000px;margin:0 auto;padding:24px}
+section{display:none;animation:fade .4s}
+section.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+h2{color:var(--azul);margin-bottom:14px;padding-bottom:8px;border-bottom:2px solid var(--acento)}
+h3{color:var(--azul2);margin:18px 0 8px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:16px 0}
+.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-left:4px solid var(--acento)}
+.card .num{font-size:2rem;font-weight:700;color:var(--azul)}
+.card .lbl{font-size:.85rem;color:#666}
+.card.alert{border-left-color:var(--rojo)} .card.alert .num{color:var(--rojo)}
+.card.ok{border-left-color:var(--verde)} .card.ok .num{color:var(--verde)}
+.bar-row{display:flex;align-items:center;gap:10px;margin:7px 0}
+.bar-row .name{width:230px;font-size:.88rem}
+.bar-track{flex:1;background:#e6eaed;border-radius:6px;height:22px;overflow:hidden}
+.bar-fill{height:100%;border-radius:6px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:.78rem;font-weight:600;transition:width 1s ease}
+.pct{width:70px;text-align:right;font-size:.85rem;font-weight:600}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.06);margin:12px 0}
+th,td{padding:11px 14px;text-align:left;font-size:.9rem;border-bottom:1px solid #eef1f3}
+th{background:var(--azul);color:#fff;font-weight:600}
+tr:hover td{background:#f9fbfc}
+.tag{padding:2px 9px;border-radius:12px;font-size:.75rem;font-weight:600;color:#fff;white-space:nowrap}
+.t-alta{background:var(--rojo)} .t-media{background:var(--acento)} .t-baja{background:#95a5a6}
+.t-ok{background:var(--verde)} .t-def{background:var(--rojo)}
+.step{display:flex;gap:14px;margin:14px 0;background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.step .n{flex-shrink:0;width:34px;height:34px;border-radius:50%;background:var(--acento);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.step .c h4{color:var(--azul);margin-bottom:3px}
+.step .c p{font-size:.9rem;color:#555}
+.note{background:#fff8e6;border-left:4px solid var(--amarillo);padding:14px 18px;border-radius:8px;margin:16px 0;font-size:.9rem}
+.alert-box{background:#fdecea;border-left:4px solid var(--rojo);padding:14px 18px;border-radius:8px;margin:16px 0;font-size:.9rem}
+.ok-box{background:#eafaf1;border-left:4px solid var(--verde);padding:14px 18px;border-radius:8px;margin:16px 0;font-size:.9rem}
+.m3d{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:18px 0}
+.m3d .box{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 6px rgba(0,0,0,.06);border-top:5px solid var(--acento)}
+.m3d .box h4{color:var(--azul);font-size:1.15rem;margin-bottom:6px}
+.m3d .box .letra{font-size:2.4rem;font-weight:800;color:var(--acento);line-height:1}
+.m3d .box p{font-size:.88rem;color:#555;margin-top:6px}
+.pend li{margin:6px 0 6px 18px;font-size:.9rem}
+footer{text-align:center;padding:20px;color:#888;font-size:.82rem}
+.src{font-size:.75rem;color:#999}
+@media(max-width:600px){.bar-row .name{width:130px}nav button{padding:8px 9px;font-size:.8rem}}
+</style></head><body>
+<header>
+<h1>SDD-0062 — CRM Kommo + ERP · Informe ejecutivo</h1>
+<p>Reestructuración para cierres automáticos · integración Kommo↔ERP (DTD Studio) · China→Venezuela</p>
+<span class="badge">Corte: 07 jun 2026</span><span class="badge">Datos reales (espejo Kommo, sin PII)</span><span class="badge">Híbrido: Kommo = canal · ERP = cerebro</span>
+</header>
+<nav>
+<button class="active" data-t="resumen">📊 Resumen</button>
+<button data-t="diag">🔬 Diagnóstico real</button>
+<button data-t="embudos">🔻 Embudos</button>
+<button data-t="m3d">🎯 Metodología 3D</button>
+<button data-t="auto">⚙️ Automatización</button>
+<button data-t="wa">📱 WhatsApp + Email</button>
+<button data-t="ia">🤖 IAs Kommo</button>
+<button data-t="bots">🔧 Bots</button>
+<button data-t="plan">🗺️ Plan & Métricas</button>
+</nav>
+<main>
+
+<section id="resumen" class="active">
+<h2>Resumen ejecutivo</h2>
+<div class="cards">
+<div class="card alert"><div class="num">2.029</div><div class="lbl">Leads muertos en "Atención al cliente" (mediana 349 días sin moverse)</div></div>
+<div class="card alert"><div class="num">$0</div><div class="lbl">Valor asignado · 0 de 2.675 leads</div></div>
+<div class="card alert"><div class="num">0,04%</div><div class="lbl">Conversión real · 3 leads cerrados de 2.675</div></div>
+<div class="card alert"><div class="num">5,5%</div><div class="lbl">Contactos con email · 149 de 2.700</div></div>
+</div>
+<div class="alert-box"><strong>Diagnóstico:</strong> DTD CARGO no tiene problema de captación, sino de <strong>avance y cierre</strong>. El embudo está tapado: el 86% del cuello lleva más de medio año sin moverse, ningún lead tiene valor, y casi no hay cierres. Además <strong>un solo usuario posee el 99,9% de los leads</strong> (no hay reparto) y <strong>solo el 5,5% tiene email</strong> (sin canal de reactivación sin restricciones).</div>
+<div class="ok-box"><strong>La salida (híbrido, sin más bots):</strong> Kommo se queda como canal de WhatsApp + embudo, con su <strong>IA nativa (AI Agent)</strong> haciendo el triage en vivo. El <strong>ERP propio</strong> aporta lo que Kommo no: asignar valor real al lead, capturar email, y reactivar a los dormidos por <strong>email</strong> (canal sin las restricciones de WhatsApp). Rutina operativa simple: <strong>Metodología 3D — Depurar → Dirigir → Decidir</strong>.</div>
+</section>
+
+<section id="diag">
+<h2>Diagnóstico con datos reales (Fase 0)</h2>
+<p class="src">Corte 07 jun 2026 · SQL read-only sobre el espejo Kommo en Supabase (sin PII, solo agregados). Reemplaza los "[PENDIENTE: requiere export/API]" del documento original con números duros.</p>
+
+<h3>1 · Antigüedad del cuello — "Atención al cliente" (2.029 leads)</h3>
+<table><thead><tr><th>Sin moverse</th><th>Leads</th><th>%</th></tr></thead><tbody>
+<tr><td>&gt; 30 días</td><td>1.941</td><td>96%</td></tr>
+<tr><td>&gt; 90 días</td><td>1.860</td><td>92%</td></tr>
+<tr><td>&gt; 180 días</td><td>1.752</td><td><strong>86%</strong></td></tr>
+<tr><td>&gt; 365 días</td><td>753</td><td>37%</td></tr>
+</tbody></table>
+<div class="note"><strong>Mediana: 349 días sin movimiento</strong> (~11,5 meses). El más viejo, sin tocar desde abril 2024. <strong>No es un backlog: es un cementerio</strong> → la mayoría ya no es reactivable por WhatsApp (ventana de 24h cerrada hace meses), solo por email.</div>
+
+<h3>2 · Valor, conversión, asesores, email</h3>
+<table><thead><tr><th>Métrica</th><th>Real</th><th>Lectura</th></tr></thead><tbody>
+<tr><td>Leads con valor &gt; 0</td><td><strong>0 de 2.675</strong></td><td>Pipeline inmedible, vuela a ciegas</td></tr>
+<tr><td>Leads cerrados (ganado/perdido)</td><td><strong>3</strong> (1 / 2) = 0,04%</td><td>El CRM no cierra (o no marca el cierre)</td></tr>
+<tr><td>Concentración por asesor</td><td><strong>1 usuario = 2.673 (99,9%)</strong></td><td>1 persona no da seguimiento a ese volumen</td></tr>
+<tr><td>Contactos con email</td><td><strong>149 de 2.700 (5,5%)</strong></td><td>La reactivación por email hoy solo alcanza al 5,5%</td></tr>
+<tr><td>Contactos con teléfono</td><td>1.448 (54%)</td><td>—</td></tr>
+<tr><td>Atribución (UTM/fbclid/gclid)</td><td><strong>vacía</strong> (30/2.675 con algún campo)</td><td>No se sabe de qué canal vienen</td></tr>
+</tbody></table>
+<div class="note"><strong>Gap pendiente:</strong> el tiempo de respuesta por asesor no es medible desde el espejo (no trae timestamps de mensajes); requiere la API de eventos de Kommo o el módulo de conversaciones del ERP.</div>
+</section>
+
+<section id="embudos">
+<h2>Mapa de embudos (datos reales)</h2>
+<table><thead><tr><th>Embudo</th><th>Leads</th><th>Cuello de botella</th></tr></thead><tbody>
+<tr><td>Embudo de ventas</td><td>2.067</td><td>2.029 en "Atención al cliente"</td></tr>
+<tr><td>Embudo Carga</td><td>240</td><td>177 en "trae próximamente"</td></tr>
+<tr><td>Compra asistida</td><td>232</td><td>231 en "Contacto inicial"</td></tr>
+<tr><td>Cursos</td><td>95</td><td>95 en "Negociación"</td></tr>
+<tr><td>Verificación de mercancía</td><td>15</td><td>15 en "Negociación"</td></tr>
+<tr><td>Validación de proveedores</td><td>13</td><td>5 digital + 7 presencial</td></tr>
+<tr><td>+ 4 chicos (Carga China Ofidoc, VISA China, Investig. productos, Sam)</td><td>13</td><td>—</td></tr>
+<tr><td><strong>TOTAL</strong></td><td><strong>2.675</strong></td><td>—</td></tr>
+</tbody></table>
+<div class="note">El documento original contaba 6 embudos; el espejo muestra <strong>10 pipelines</strong> (4 chicos extra). Casi todo el peso (2.067) está en el embudo principal y casi todo eso, atascado.</div>
+<h3>Distribución</h3><div id="chart"></div>
+</section>
+
+<section id="m3d">
+<h2>Metodología 3D: Depurar → Dirigir → Decidir</h2>
+<p>Una rutina semanal simple que cualquier asesor puede seguir. No necesita más bots — la ejecutan la IA y las reglas existentes.</p>
+<div class="m3d">
+<div class="box"><div class="letra">1</div><h4>Depurar</h4><p>Clasificar cada lead: <strong>caliente</strong> (cotiza ya), <strong>tibio</strong> (pide info), <strong>frío/ruido</strong> (cortesías, spam). El ruido (42%) se cierra de inmediato para destapar el embudo.</p></div>
+<div class="box"><div class="letra">2</div><h4>Dirigir</h4><p>Ningún lead más de X días en una etapa sin acción. Caliente → cotización en &lt;24h. Si no responde tras 2 intentos → "perdido". El embudo siempre se mueve.</p></div>
+<div class="box"><div class="letra">3</div><h4>Decidir</h4><p>A cada lead que avanza se le asigna un <strong>valor</strong> (para que el pipeline muestre dinero, no $0). Revisión semanal de "Atención al cliente": mover o cerrar. Nada queda flotando.</p></div>
+</div>
+</section>
+
+<section id="auto">
+<h2>Mapa de automatización (3D → herramientas)</h2>
+<p>Cada movimiento de la 3D lo ejecuta una herramienta concreta — la IA reemplaza a los bots de calificación, no a las reglas básicas.</p>
+<table><thead><tr><th>Movimiento 3D</th><th>Qué hace</th><th>Herramienta</th></tr></thead><tbody>
+<tr><td><strong>Depurar</strong></td><td>Clasificar y sacar el ruido (42%)</td><td><strong>Kommo AI Agent</strong> (clasifica/taggea/mueve/escala en vivo) + regla de Kommo para auto-cerrar cortesías</td></tr>
+<tr><td><strong>Dirigir</strong></td><td>SLA, mover el embudo, 2 intentos → perdido</td><td><strong>Reglas de Kommo (Digital Pipeline)</strong> + señal del ERP "lead sin estimado tras X días" → mueve etapa vía <strong>write-back</strong></td></tr>
+<tr><td><strong>Decidir</strong></td><td>Asignar valor real ($, no $0)</td><td><strong>Value-sync del ERP</strong>: <code>estimado.total_usd</code> → <code>kommo_leads.price</code> + tablero en /studio/kommo</td></tr>
+</tbody></table>
+<h3>Reparto Kommo (canal) vs ERP (cerebro)</h3>
+<table><thead><tr><th>Tarea</th><th>Lo hace</th></tr></thead><tbody>
+<tr><td>Conversación, triage en vivo, captura de email, SLA-nudge, FAQ</td><td><span class="tag t-ok">Kommo AI Agent</span></td></tr>
+<tr><td>Valor / write-back, email marketing y reactivación, dedup/identidad, scoring con datos, diagnóstico</td><td><span class="tag t-media">ERP (DTD Studio)</span></td></tr>
+</tbody></table>
+</section>
+
+<section id="wa">
+<h2>WhatsApp + Email — reactivación correcta</h2>
+<div class="alert-box"><strong>El mito de las 24h:</strong> solo un mensaje <em>del cliente</em> reinicia la ventana — un mensaje tuyo <strong>no la extiende</strong>. "Escribir antes de las 24h para mantener vivo el chat 2-3 días" <strong>no funciona</strong>, y mandar relleno viola la política (riesgo de ban). <span class="src">[verificado contra docs de Meta]</span></div>
+<h3>Qué se puede / qué no</h3>
+<table><thead><tr><th></th><th>Dentro de la ventana 24h</th><th>Fuera (cerrada)</th></tr></thead><tbody>
+<tr><td>Texto libre / botones / Flows</td><td>✅ gratis</td><td>❌ no se entrega</td></tr>
+<tr><td>Reactivar un dormido</td><td>—</td><td>❌ solo <strong>plantilla MARKETING</strong> (opt-in + se cobra/mensaje)</td></tr>
+</tbody></table>
+<div class="note"><strong>Reactivar ~2.000 dormidos por WhatsApp = riesgo ALTO de ban</strong> y contamina el número CRM primario (límite por Business Portfolio). El canal correcto para los que se fueron es el <strong>email</strong>: sin ventana, sin tier, sin ban. <strong>Pero hoy solo 5,5% tiene email</strong> → capturar email es la prioridad.</div>
+<h3>Playbook correcto</h3>
+<div class="step"><div class="n">1</div><div class="c"><h4>Dentro de la ventana: botones de respuesta rápida</h4><p>"Cotizar" / "Estado de envío" / "Asesor". Cada toque = mensaje del cliente → reinicia 24h <strong>gratis</strong>.</p></div></div>
+<div class="step"><div class="n">2</div><div class="c"><h4>Capturar el email</h4><p>WhatsApp Flow (formulario in-chat) o el AI Agent lo pide y lo guarda · o "Registrarse con Google" en la web (Gmail verificado al instante).</p></div></div>
+<div class="step"><div class="n">3</div><div class="c"><h4>Reactivar por email (Resend)</h4><p>El puente Kommo→<code>clients.email</code>→mailing ya existe. Email = reactivación ilimitada sin quemar el número.</p></div></div>
+</section>
+
+<section id="ia">
+<h2>Las 3 IAs de Kommo (y el reparto)</h2>
+<table><thead><tr><th>IA</th><th>Qué hace</th><th>Plan</th><th>¿Acciona?</th></tr></thead><tbody>
+<tr><td><strong>AI Agent</strong></td><td>Bot autónomo "When→Do": responde, setea campos, mueve etapa, taggea, lanza Salesbot, escala. Español ✓</td><td>Add-on (trial 14d)</td><td><span class="tag t-ok">Sí, 8 acciones</span></td></tr>
+<tr><td><strong>AI Suggestions</strong></td><td>Sugiere respuestas al asesor desde tu base de conocimiento</td><td>Pro (~$45/u)</td><td><span class="tag t-baja">Asiste</span></td></tr>
+<tr><td><strong>AI Summary + Rewriter</strong></td><td>Resume el chat / reescribe tono</td><td>Base (~$15/u)</td><td><span class="tag t-baja">Asiste</span></td></tr>
+</tbody></table>
+<div class="ok-box"><strong>Por qué cambia el plan:</strong> como el AI Agent <em>sí toma acciones</em> donde vive la conversación, hace el <strong>Depurar conversacional</strong> nativamente (clasifica/taggea/mueve) y puede <strong>capturar el email</strong> en un campo. Eso <strong>encoge</strong> el trabajo de IA del ERP: el ERP se reenfoca a lo que necesita datos verdad (valor, dedup, scoring, email marketing).</div>
+<div class="note"><strong>Cautela:</strong> el AI Agent es costo recurrente y está en maduración/beta → evaluarlo en el <strong>trial de 14 días</strong> y no poner una dependencia dura sin fallback. Gaps a confirmar: ¿API para leer sus salidas?, ¿con qué LLM corre (privacidad)?, costo real con N asesores.</div>
+</section>
+
+<section id="bots">
+<h2>Inventario de Salesbots</h2>
+<table><thead><tr><th>Bot</th><th>Función</th><th>Estado</th></tr></thead><tbody>
+<tr><td>Bienvenida horario oficina</td><td>Menú por letra</td><td><span class="tag t-media">Fuga ~25%</span></td></tr>
+<tr><td>Asignar asesor</td><td>Ruteo + Round Robin</td><td><span class="tag t-media">No reparte (99,9% en 1)</span></td></tr>
+<tr><td>Solicitud de datos · Carga marítima · Asesorías · Validaciones · Atención</td><td>Núcleo</td><td><span class="tag t-ok">OK</span></td></tr>
+<tr><td>Cursos</td><td>—</td><td><span class="tag t-def">Mensaje vacío</span></td></tr>
+<tr><td>NPS Bot</td><td>Encuesta satisfacción</td><td><span class="tag t-def">0 lanz. + error envío</span></td></tr>
+</tbody></table>
+<div class="note"><strong>Regla Carga marítima:</strong> facturación mínima 0,20 CBM; tarifa especial desde 5 CBM. · <strong>⚠️ Riesgo:</strong> si se repara NPS (dispara "al cerrar") y luego se cierran los 2.029 en masa → blast masivo. Orden seguro: desactivar automations que mandan mensajes antes de cualquier bulk.</div>
+</section>
+
+<section id="plan">
+<h2>Plan por fases & métricas</h2>
+<div class="step"><div class="n">0</div><div class="c"><h4>Diagnóstico real ✅</h4><p>SQL sobre el espejo Kommo (este informe).</p></div></div>
+<div class="step"><div class="n">1</div><div class="c"><h4>Informe (spec SDD-0062 + este HTML) ✅</h4><p>Diagnóstico, automatización, integración, plan.</p></div></div>
+<div class="step"><div class="n">2</div><div class="c"><h4>Slice D — captura de email + reactivación</h4><p>Opt-in trazable + dedup + campaña Resend a dormidos. Arranca primero.</p></div></div>
+<div class="step"><div class="n">3</div><div class="c"><h4>Config Kommo (vía Chrome, supervisada)</h4><p>Reparar NPS/Cursos, reparto Round Robin, etapa "&gt;24h", auto-cierre ruido, evaluar AI Agent (trial).</p></div></div>
+<div class="step"><div class="n">4</div><div class="c"><h4>Write-back → Value-sync → Scoring</h4><p>Slice A (dry-run) → Slice B (apaga el $0) → Slice C (scoring ERP).</p></div></div>
+<h3>Métricas de éxito</h3>
+<table><thead><tr><th>Métrica</th><th>Hoy</th><th>Objetivo</th></tr></thead><tbody>
+<tr><td>Leads con valor &gt; 0</td><td>0%</td><td>&gt;80% de los activos</td></tr>
+<tr><td>Leads &gt;30 días sin acción en "Atención"</td><td>96%</td><td>&lt;10%</td></tr>
+<tr><td>Contactos con email</td><td>5,5%</td><td>&gt;40% en 6 meses</td></tr>
+<tr><td>Conversión registrada</td><td>0,04%</td><td>medible y creciente</td></tr>
+<tr><td>Reparto de cartera</td><td>99,9% en 1 usuario</td><td>distribuido</td></tr>
+</tbody></table>
+</section>
+
+</main>
+<footer>DTD CARGO · SDD-0062 · Documento de trabajo interno · Datos reales del espejo Kommo (sin PII) · 07 jun 2026</footer>
+<script>
+var btns=document.querySelectorAll('nav button'),secs=document.querySelectorAll('section');
+btns.forEach(function(b){b.addEventListener('click',function(){
+btns.forEach(function(x){x.classList.remove('active')});secs.forEach(function(x){x.classList.remove('active')});
+b.classList.add('active');document.getElementById(b.dataset.t).classList.add('active');window.scrollTo({top:0,behavior:'smooth'});})});
+var data=[['Embudo de ventas',2067,'#c0392b'],['Embudo Carga',240,'#e58e26'],['Compra asistida',232,'#1e6091'],['Cursos',95,'#27ae60'],['Verificación mercancía',15,'#8e44ad'],['Validación proveedores',13,'#16a085']];
+var max=2067;var chart=document.getElementById('chart');
+data.forEach(function(d){var n=d[0],v=d[1],c=d[2];var row=document.createElement('div');row.className='bar-row';
+row.innerHTML='<div class="name">'+n+'</div><div class="bar-track"><div class="bar-fill" style="background:'+c+';width:0"></div></div><div class="pct">'+v+'</div>';
+chart.appendChild(row);setTimeout(function(){row.querySelector('.bar-fill').style.width=(v/max*100)+'%';},150);});
+</script></body></html>
