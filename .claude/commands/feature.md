@@ -10,6 +10,11 @@ Orquesta una feature de punta a punta con orden **estructural** (no confía en q
 
 ## Procedimiento (seguir al pie de la letra)
 
+0. **Aislamiento (worktree).** Confirmá que estás en el worktree del lane, **NO en `main`**: `git branch --show-current` debe dar `feat/<slug>`, no `main`.
+   - Si estás en `main` (o la carpeta principal `DTDCargo`) → **PARÁ.** Una feature nueva NO se implementa en `main` (ahí se mezcla con todo y choca con otras ventanas). Creá el lane aislado: `node scripts/harness-worktree.mjs start <slug>`, abrí una ventana en `DTD-worktrees/<slug>`, y corré `/feature` **ahí**.
+   - El gate `node scripts/verify.mjs` corre igual desde cualquier worktree (tras el `pnpm install` que `start` ya hace).
+   - ⚠️ Plan mode NO crea el worktree solo — este paso es manual (o vía `start`).
+
 1. **Pre-check.** Corré `node scripts/verify.mjs`. Si está 🔴 → PARÁ y reportá (el repo debe estar verde antes de empezar). Leé `AGENTS.md`, la spec indicada y `.harness/CHECKPOINTS.md`.
 
 2. **Implement.** Lanzá el subagente `implementer` con la spec/feature. Esperá su respuesta de una línea: `done -> .harness/progress/impl_<feature>.md` (o `blocked -> …`).
@@ -22,11 +27,12 @@ Orquesta una feature de punta a punta con orden **estructural** (no confía en q
    - `CHANGES_REQUESTED` → devolvé los findings al `implementer` (volvé al paso 2).
    - `APPROVED` → seguí al cierre.
 
-5. **Cierre.** El `implementer` actualiza el spec SDD (spec-anchored). Resumí al founder: qué se hizo, qué validó el reviewer, y proponé el commit (`feat(studio): SDD-NNNN — …`). **NO commitees ni `git push` sin OK del founder.**
+5. **Cierre.** El `implementer` actualiza el spec SDD (spec-anchored). Resumí al founder: qué se hizo, qué validó el reviewer, y proponé el commit (`feat(studio): SDD-NNNN — …`). **NO commitees ni `git push` sin OK del founder.** Tras el commit + merge a main + tu OK, limpiá el lane: `node scripts/harness-worktree.mjs finish <slug> --delete-branch` (remueve el worktree manejando el long-path de Windows; **NO** pushea).
 
 6. **Freno.** Máximo **3 rondas** implement↔review. Si se agotan sin verde+aprobado → PARÁ y mostrá al founder dónde se trabó. **No fuerces un `done`.**
 
 ## Invariantes
+- Una feature nueva vive en **su worktree** (`harness-worktree start <slug>`), nunca directo en `main`. El número de SDD/migración se elige mirando **todas** las ramas/worktrees, no solo el índice de `main`.
 - El orden `implement → verify → review` es fijo. El `reviewer` NUNCA corre antes de que `node scripts/verify.mjs` pase.
 - Estado efímero en `.harness/progress/` (gitignored). Historia permanente en `git log`.
 - Nunca: migraciones a prod · cruzar/relajar la frontera público↔ERP · `git push` / deploy automático.
