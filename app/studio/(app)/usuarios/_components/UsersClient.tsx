@@ -331,7 +331,7 @@ const MODULES_BY_ROLE: Record<StudioUserRole, string[]> = {
     "Config del Studio",
   ],
   commercial: [
-    "Cotizador",
+    "Estimados",
     "Clientes",
     "CRM y leads",
     "Embarques (lectura)",

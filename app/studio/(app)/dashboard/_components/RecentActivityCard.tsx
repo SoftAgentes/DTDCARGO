@@ -15,7 +15,7 @@ import type { RecentActivityItem } from "@/lib/studio/dashboard-queries";
 
 const STATUS_LABELS: Record<string, string> = {
   draft: "Borrador",
-  quoted: "Cotizado",
+  quoted: "Estimado",
   confirmed: "Confirmado",
   in_transit: "En tránsito",
   customs: "En aduana",

@@ -173,7 +173,7 @@ describe("buildForecast", () => {
     expect(Number.isFinite(totals.marginPct)).toBe(true);
   });
 
-  it("sin cotizaciones en pipeline → forecast vacío", () => {
+  it("sin estimados en pipeline → forecast vacío", () => {
     const { rows, totals } = buildForecast([], [tpl()]);
     expect(rows).toHaveLength(0);
     expect(totals.revenue).toBe(0);

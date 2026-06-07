@@ -60,7 +60,7 @@ const MODULE_LABELS: Record<string, string> = {
   "aduana-seniat": "Aduana SENIAT",
   tms: "TMS · Transporte",
   despacho: "Despacho",
-  cotizador: "Cotizador",
+  cotizador: "Estimados",
   clientes: "Clientes",
   "crm-leads": "CRM · Leads",
   proveedores: "Proveedores CN",

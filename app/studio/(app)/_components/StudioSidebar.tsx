@@ -66,7 +66,7 @@ export const MODULES: ModuleDef[] = [
   { id: "admin-rutas", group: "OPERACIÓN", label: "Rutas y ciudades", labelKey: "chrome.sidebar.routes_cities", icon: "radar", slug: "/studio/admin/rutas" },
 
   // COMERCIAL
-  { id: "quotes", group: "COMERCIAL", label: "Cotizador", labelKey: "chrome.sidebar.quotes", icon: "calc", slug: "/studio/cotizador" },
+  { id: "quotes", group: "COMERCIAL", label: "Estimados", labelKey: "chrome.sidebar.quotes", icon: "calc", slug: "/studio/cotizador" },
   { id: "clients", group: "COMERCIAL", label: "Clientes", labelKey: "chrome.sidebar.clients", icon: "users", slug: "/studio/clientes" },
   { id: "conversaciones", group: "COMERCIAL", label: "Conversaciones", icon: "mail", slug: "/studio/conversaciones" },
   { id: "leads", group: "COMERCIAL", label: "CRM · Leads", labelKey: "chrome.sidebar.leads", icon: "spark", slug: "/studio/leads" },

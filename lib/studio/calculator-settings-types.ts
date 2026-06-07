@@ -125,7 +125,7 @@ export const CALC_FIELDS: CalcFieldMeta[] = [
   {
     key: "cbmMaxContenedor",
     label: "CBM máximo (un contenedor)",
-    hint: "CBM total máximo que cotiza la calculadora. Sobre esto deriva al asesor (FCL).",
+    hint: "CBM total máximo que estima la calculadora. Sobre esto deriva al asesor (FCL).",
     kind: "decimal",
     unit: "m³",
     precision: 0,
@@ -134,7 +134,7 @@ export const CALC_FIELDS: CalcFieldMeta[] = [
   {
     key: "pesoMaxContenedorKg",
     label: "Peso máximo (un contenedor)",
-    hint: "Peso total máximo que cotiza la calculadora. Sobre esto deriva al asesor.",
+    hint: "Peso total máximo que estima la calculadora. Sobre esto deriva al asesor.",
     kind: "weight",
     precision: 0,
     min: 0.01,

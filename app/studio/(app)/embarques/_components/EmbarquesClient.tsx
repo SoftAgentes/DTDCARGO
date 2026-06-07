@@ -355,7 +355,7 @@ export function EmbarquesClient({
           description={
             q
               ? "Probá ajustar los términos de búsqueda."
-              : "Creá envíos desde el Cotizador (convertir cotización aceptada) o desde /tracking/nuevo."
+              : "Creá envíos desde Estimados (convertir estimado aceptado) o desde /tracking/nuevo."
           }
         />
       ) : (

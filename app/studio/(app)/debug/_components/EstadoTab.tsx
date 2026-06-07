@@ -52,7 +52,7 @@ const INTEGRATION_DESCRIPTIONS: Record<IntegrationKey, string> = {
   telegramWebhook: "Recepción de mensajes del bot (linkeo, comandos).",
   anthropic: "Features con Claude (LLM Agent, AI assist).",
   openrouter: "Proveedor LLM alternativo · GPT/Gemini/Llama via single API.",
-  hailuway: "ERP HailuWay externo · usado por sitio público (cotizar, track).",
+  hailuway: "ERP HailuWay externo · usado por sitio público (estimacion, track).",
 };
 
 function statusBadge(s: IntegrationStatus) {

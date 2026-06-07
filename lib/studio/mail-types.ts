@@ -308,7 +308,7 @@ function isValidEmail(s: string): boolean {
   return EMAIL_RE.test(s.trim());
 }
 
-/** Convierte "Cotización enviada" → "cotizacion_enviada". */
+/** Convierte "Estimado enviado" → "estimado_enviado". */
 export function slugFromName(name: string): string {
   return name
     .normalize("NFD")
@@ -588,8 +588,8 @@ export const RULE_EVENT_LABELS: Record<MailRuleEvent, string> = {
   shipment_created: "Embarque creado",
   shipment_arrived: "Embarque arribado",
   shipment_consolidated_cn: "Contenedor consolidado (CN)",
-  quote_sent: "Cotización enviada",
-  quote_accepted: "Cotización aceptada",
+  quote_sent: "Estimado enviado",
+  quote_accepted: "Estimado aceptado",
   invoice_emitted: "Factura emitida",
   invoice_overdue: "Factura vencida",
   no_olvidar_recovery_requested: "Recovery del No-Olvidar",
@@ -677,7 +677,7 @@ export function formatLogTime(iso: string | null): string {
  */
 export const CATEGORY_DEFAULT_SUBJECT: Record<MailCategory, string> = {
   operativo: "[DTD Cargo] {{shipment_code}} · Actualización",
-  comercial: "Cotización DTD Cargo para {{customer_name}}",
+  comercial: "Estimado DTD Cargo para {{customer_name}}",
   cobranza: "Recordatorio · Factura {{invoice_code}} pendiente",
   cliente: "DTD Cargo · {{topic}}",
   interno: "[Interno] {{topic}}",

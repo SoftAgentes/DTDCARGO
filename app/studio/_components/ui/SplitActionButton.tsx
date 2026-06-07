@@ -5,7 +5,7 @@
  * alternativas, con memoria de la última opción elegida (Regla 5 del
  * estándar de botones · ver app/studio/CLAUDE.md).
  *
- * Patrón: el operador hace varias cotizaciones seguidas. Cada cotización
+ * Patrón: el operador hace varios estimados seguidos. Cada estimado
  * puede terminar con "Crear y cerrar" (default), "Crear y dejar abierta"
  * (para revisar/imprimir), o "Crear y empezar otra" (para batch rápido).
  * El componente recuerda la última que usó y la convierte en default,

@@ -399,7 +399,7 @@ describe("hasValidAcceptance", () => {
     expect(await hasValidAcceptance(db([partial]), gate)).toBe(false);
   });
 
-  it("(c) rechaza cross-tenant: misma cotización/cliente, tenant distinto", async () => {
+  it("(c) rechaza cross-tenant: mismo estimado/cliente, tenant distinto", async () => {
     // aceptación íntegra pero de OTRO tenant (lo que pasaría con service_role
     // si no se filtrara tenant_id explícito).
     const otherTenant = row({
@@ -458,7 +458,7 @@ describe("hasValidAcceptance", () => {
     expect(await hasValidAcceptance(db([a]), { ...gate, cbm: 9 })).toBe(false);
   });
 
-  it("false cuando no hay aceptación para esa cotización", async () => {
+  it("false cuando no hay aceptación para ese estimado", async () => {
     const a = row({
       id: "a1",
       client_id: "c1",

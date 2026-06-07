@@ -4,7 +4,7 @@ title: "DoorTuDoor — Cotizador (Sprint 1 completo)"
 status: done
 author: "founder"
 created: 2026-05-24
-updated: 2026-06-02
+updated: 2026-06-07
 supersedes: null
 superseded_by: null
 related: ["0005", "0006", "0008", "0009", "0010"]
@@ -12,6 +12,13 @@ confidencialidad: interno
 ---
 
 # DTD-0011 — Cotizador
+
+> **Renombrado a "Estimados" (vocabulario · SDD-0061 Fase C, 2026-06-07).** En la UI el
+> módulo y el documento ahora se llaman **estimado** (códigos nuevos `EST-YYYY-NNNN` vía
+> `next_estimate_code`); este spec conserva los identificadores internos que NO cambian
+> (carpeta `cotizador/`, ruta `/studio/cotizador`, tabla `quotes`, columna `quote_code`,
+> tipos `Quote*`, eventos de mailing `quote_sent`/`quote_accepted`). Donde abajo dice
+> "cotización"/"cotizador" como término de negocio, leer **estimado**.
 
 > **Cierre del Sprint 1 (Comercial mínimo).** Conecta Tarifas (SDD-0008)
 > + Clientes (SDD-0010) en quotes guardables como entidad. El operador

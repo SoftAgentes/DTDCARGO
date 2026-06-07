@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Orquestador client del módulo Cotizador (SDD-0011).
+ * Orquestador client del módulo Estimados (ex-Cotizador · SDD-0011, renombrado en SDD-0061).
  */
 
 import Link from "next/link";
@@ -86,7 +86,7 @@ export function CotizadorClient({
             className="studio-display"
             style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
           >
-            Cotizador.
+            Estimados.
           </h1>
           <p
             style={{
@@ -114,7 +114,7 @@ export function CotizadorClient({
             className="studio-btn studio-btn-primary"
             onClick={() => setShowCreate(true)}
           >
-            + Nueva cotización
+            + Nuevo estimado
           </button>
         </div>
       </div>
@@ -205,13 +205,13 @@ export function CotizadorClient({
           eyebrow={hasFilters ? "Sin resultados" : "Catálogo vacío"}
           title={
             hasFilters
-              ? "Ninguna cotización coincide con estos filtros."
-              : "Aún no hay cotizaciones."
+              ? "Ningún estimado coincide con estos filtros."
+              : "Aún no hay estimados."
           }
           description={
             hasFilters
               ? "Probá ajustar los filtros o limpiá la búsqueda."
-              : "Creá tu primera cotización. El total se calcula en vivo con la tarifa del catálogo."
+              : "Creá tu primer estimado. El total se calcula en vivo con la tarifa del catálogo."
           }
           action={
             !hasFilters ? (
@@ -220,7 +220,7 @@ export function CotizadorClient({
                 className="studio-btn studio-btn-primary"
                 onClick={() => setShowCreate(true)}
               >
-                + Nueva cotización
+                + Nuevo estimado
               </button>
             ) : null
           }
