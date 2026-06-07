@@ -270,5 +270,23 @@ Sin mockup del Norte aprobado para estas pantallas todavía. UI reusa primitivas
 
 **Gate:** `node scripts/verify.mjs` 🟢. **Pendiente review:** `reviewer` + `ui-ux-designer` (copy del módulo). **Pendiente:** Fase D (modelo QB).
 
+### Fase B2.5 — unificación del registro en `/registro` (2026-06-07 · harness)
+
+**Por qué:** había DOS "registro" → confusión. `/registro` (público) era una página de **marketing sin formulario** que apuntaba a `/portal/registro` (el form real que genera el MARKBOX). Las CTAs "Registrate" del sitio (Hero/Nav/Footer/JoinCTA) caían en la página de marketing → parecía que "no generaba markbox". **Verificado en prod (read-only): el backend NO estaba roto** (RPCs `next_markbox`/`next_markbox_service` + columnas + 3 altas reales por portal en 21 días). El problema era 100% el **funnel/routing**.
+
+**Decisión founder:** un solo punto de alta = **`dtdcargo.com/registro`** = el form real.
+
+**Cambios (move, no reescritura):**
+- `git mv` del form del portal → público: `app/portal/(auth)/registro/{RegisterForm.tsx,actions.ts,__tests__/*}` → `app/registro/` (renames, historia preservada; los tests resuelven `../actions` igual).
+- `app/registro/page.tsx`: de marketing → **el form** (SEO/canonical preservado + check "ya logueado → /portal" + captura `?est=` B2 + chrome público Nav/Footer).
+- `app/portal/(auth)/registro/page.tsx`: ahora **redirect a `/registro`** (compat de links viejos: CTAs de calculadora, welcome email, bookmarks; preserva `?est=`).
+- Refs `/portal/registro` → `/registro`: `EstimacionForm.tsx`, `CalculadoraForm.tsx` (CTAs con `?est=`), `LoginForm.tsx` ("Creá tu cuenta"). `next.config.ts` (comentario; `bodySizeLimit` 12mb es global → cubre `/registro`).
+
+**Decisión de frontera (documentada):** `app/registro/` pasa a ser una **ruta pública Supabase-backed**. La frontera ESLint NO la restringe (la lista cubre `estimacion/track/calculadora/...` + `components/`, no `registro`). Mismo patrón sancionado que **`app/invitar/`** (AGENTS.md: "ruta pública que usa DB por diseño"). El sitio de marketing sigue Supabase-free; solo `/registro` (alta de cuenta) toca DB, contenido en su propia ruta.
+
+**Gate:** `node scripts/verify.mjs` 🟢 (incl. rsc-boundary + tests movidos). `main` intacto.
+
+**Diferido (analizado · NO en esta pista) — Sync Norte v2.4 · Registro:** el form vivo está detrás del Norte `Registro Cliente.html` v2.4: (1) **foto de la fachada** (paso dirección), (2) **"¿Ya tenés una compra?"** = prealerta opcional al firmar + lógica anti "caja huérfana", (3) "Listo" enriquecido (copiar para proveedor, guía código+sticker, CTA prealerta). Va por handoff-first + ui-ux, coherente con el modelo OV↔prealerta (Fase D).
+
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->

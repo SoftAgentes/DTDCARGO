@@ -99,8 +99,9 @@ const nextConfig: NextConfig = {
   // Si alguien importa de "hailuway-erp" → error de bundling.
   experimental: {
     serverActions: {
-      // El registro del Portal (`/portal/registro`) sube la foto de cédula/RIF
-      // por Server Action (RegisterForm → `fd.set("cedula_photo", photo)`). El
+      // El registro del cliente (`/registro`, unificado en SDD-0061 B2.5) sube la
+      // foto de cédula/RIF por Server Action (RegisterForm → `fd.set("cedula_photo", photo)`).
+      // bodySizeLimit es global (no por-ruta), así que cubre /registro igual. El
       // default de Next es 1 MB: una foto de teléfono (2-5 MB) excede el límite
       // del framework ANTES de que corra la action, y el browser muestra
       // "This page couldn't load" (413/500) en vez del error amable. La action

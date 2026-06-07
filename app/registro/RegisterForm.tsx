@@ -2,7 +2,6 @@
 
 import { useActionState, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { BrandMark } from "@/components/BrandMark";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
 import { VE_STATES } from "@/lib/data/venezuela-catalog";
 import {
@@ -70,10 +69,6 @@ export function RegisterForm({ est }: { est?: string }) {
   return (
     <div className="grid place-items-center px-5 py-12">
       <div className="w-full max-w-[560px]">
-        <div className="flex justify-center mb-8">
-          <BrandMark variant="primary" size={46} />
-        </div>
-
         <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 sm:p-9">
           <span className="eyebrow">Portal del cliente</span>
           <h1
