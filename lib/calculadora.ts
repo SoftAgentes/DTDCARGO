@@ -492,17 +492,39 @@ export function whatsappTextFromCotizacion(
   input: EnvioInput,
 ): string {
   const ciudad = cot.ciudad?.label ?? "destino";
-  const lines = [
-    "Hola DTD Cargo, vi en la calculadora un estimado para mi envío:",
-    "",
+  const embalaje =
+    EMBALAJES.find((e) => e.id === cot.embalaje)?.label ?? "Caja estándar";
+  // Datos que el cliente calculó. Esta es la pieza clave: el mensaje viaja con
+  // la cotización al WhatsApp del negocio (y de ahí al CRM), así el asesor ve
+  // exactamente lo que el cliente estimó en la web.
+  const datos = [
     `• CBM total: ${input.cbmTotal} m³`,
     `• Peso total: ${input.pesoKg} kg`,
-    `• Embalaje: ${EMBALAJES.find((e) => e.id === cot.embalaje)?.label}`,
+    `• Embalaje: ${embalaje}`,
     `• Baterías: ${input.bateria ? "Sí" : "No"}`,
     `• Destino: ${ciudad}`,
+  ];
+
+  // Caso que deriva al asesor (carga especial, supera el contenedor, etc.):
+  // no hay un precio válido para mostrar → pedimos cotización a medida.
+  if (cot.alerta) {
+    return [
+      "Acabo de cotizar en tu calculadora y necesito asesoría con mi carga:",
+      "",
+      ...datos,
+      "",
+      cot.alerta.mensaje,
+      "",
+      "¿Me ayudan con una cotización a medida?",
+    ].join("\n");
+  }
+
+  return [
+    "Acabo de cotizar en tu calculadora. Esto es lo que estoy calculando:",
+    "",
+    ...datos,
     `• Estimado web: US$${cot.total.toFixed(2)}`,
     "",
-    "¿Me confirman tarifa final y tiempos? (Financiamiento 100%, pago al llegar)",
-  ];
-  return lines.join("\n");
+    "¿Me confirman la tarifa final y los tiempos? (Financiamiento 100%, pago al llegar)",
+  ].join("\n");
 }

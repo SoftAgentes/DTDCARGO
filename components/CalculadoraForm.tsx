@@ -405,8 +405,10 @@ function CotizacionDisplay({
               {cot.cbm} CBM · {cot.densidadKgM3.toFixed(0)} kg/m³ · destino {cot.ciudad?.label}
             </div>
           )}
-          {/* Badge financiamiento */}
-          <div className="mt-3 inline-flex items-center gap-2 text-[12px] rounded-[8px] px-3 py-1.5 bg-white/10 text-white/85">
+          {/* Badge financiamiento — destacado y con micro-animación (breathing
+              + dot "vivo") para llamar la atención sobre el gancho comercial. */}
+          <div className="fin-badge mt-4 inline-flex items-center gap-2.5 text-[13.5px] font-semibold rounded-[12px] px-4 py-2.5 bg-white/15 text-white">
+            <span className="fin-badge-dot" aria-hidden="true" />
             Financiamiento 100% · pagás al llegar a Venezuela*
           </div>
         </div>

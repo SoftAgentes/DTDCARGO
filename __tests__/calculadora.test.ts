@@ -461,11 +461,27 @@ describe("whatsappTextFromCotizacion", () => {
     const cot = calcularEnvioLCL(input);
     const text = whatsappTextFromCotizacion(cot, input);
 
-    expect(text).toContain("DTD Cargo");
+    expect(text).toContain("calculadora");
+    expect(text).toContain("Esto es lo que estoy calculando");
     expect(text).toContain("2 m³");
     expect(text).toContain("100 kg");
     expect(text).toContain("Caracas");
     expect(text).toContain(`US$${cot.total.toFixed(2)}`);
+  });
+
+  it("para una carga que deriva al asesor, el mensaje pide cotización a medida (sin precio)", () => {
+    const input = {
+      cbmTotal: 70, // supera el contenedor → alerta
+      pesoKg: 5000,
+      embalaje: "estandar" as const,
+      ciudadId: "caracas",
+    };
+    const cot = calcularEnvioLCL(input);
+    const text = whatsappTextFromCotizacion(cot, input);
+    expect(text).toContain("necesito asesoría");
+    expect(text).toContain("cotización a medida");
+    expect(text).toContain("70 m³"); // los datos calculados igual viajan
+    expect(text).not.toContain("Estimado web"); // no muestra un precio inválido
   });
 });
 
