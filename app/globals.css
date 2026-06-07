@@ -50,10 +50,18 @@
    CJK (Noto SC) quedan igual. Sin capas (@layer) → gana al body de @layer base.
    Decisión founder 2026-06-02 (seguir el Norte).
    ────────────────────────────────────────────────────────────────── */
-.portal-sys {
+.portal-sys,
+.calc-sys {
   --font-archivo: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
   --font-archivo-black: var(--font-sora), "Sora", var(--font-nunito), system-ui, sans-serif;
   font-family: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
+}
+
+/* Números de la calculadora en JetBrains Mono (tabular). Se aplica con la clase
+   `.num` sobre cualquier cifra (CBM, kg, $, tarifa) dentro de `.calc-sys`. */
+.calc-sys .num {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-feature-settings: "tnum" 1;
 }
 
 /* Scroll horizontal sin barra visible (nav del portal en mobile, etc.). */
