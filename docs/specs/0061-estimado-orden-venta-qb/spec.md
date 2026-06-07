@@ -203,5 +203,27 @@ Sin mockup del Norte aprobado para estas pantallas todavía. UI reusa primitivas
 
 **Diferido (fuera de Fase A):** comentarios en `lib/design-tokens.ts:121` (lock de otra ventana, lane SDD-0060), `AGENTS.md` tabla integraciones, `public/brand/README.md` (docs); nit ui-ux BAJO preexistente: emoji 🚛 decorativo en `UltimoKmCalculator` (no es regresión de esta fase).
 
+### Fase B — Slice B1 implementado (2026-06-07 · harness implement→verify)
+
+**Alcance B1** (puntos 1 y 2 del founder): capturar el estimado web en el ERP + modal nota/contacto + botón de doble acción. **EXCLUIDO (Slice B2, no tocado):** linkeo automático al registro (`?est=`/teléfono+email), búsqueda por `EST` + "Vincular a cliente" en el módulo, cruce Kommo, mail a prospecto, rename interno cotización→estimado (Fase C).
+
+**Archivos:**
+- `supabase/migrations/0113_estimado_web.sql` (NUEVO, aditiva, **NO aplicada a prod**): `quotes.client_markbox` → NULLABLE; cols `prospect_name`/`prospect_email`/`prospect_whatsapp`/`nota` + `source` (`studio`|`web`, default `studio`, CHECK) + índice `quotes_tenant_source_idx`; RPC `next_estimate_code(uuid)` → `EST-YYYY-NNNN` (cuenta solo `EST-%`, padding 4, `security definer`, grants a authenticated+service_role).
+- `lib/public/estimado-web.ts` (NUEVO, **lógica pura boundary-safe**, sin imports de DB): `validateEstimadoInput` (sin Zod), `buildEstimadoRow` (payload calc → fila `quotes` llenando TODOS los NOT NULL), `buildEstimadoWhatsAppMessage` (base + nota + EST), `serviceForCalc`.
+- `app/api/public/estimacion/route.ts` (NUEVO, route handler fino): POST → valida → resuelve tenant DTD → `next_estimate_code` → insert vía `createAdminClient()` → `{ ok, estimateCode }` / `apiError`. **Único puente público↔ERP de la feature.**
+- `components/EstimadoModal.tsx` (NUEVO): modal sobrio (nota opcional + nombre + teléfono), tokens de marca + Archivo, fetch POST + fallback (abre WhatsApp aunque el POST falle).
+- `components/CalculadoraForm.tsx` (LCL `/calculadora`): el CTA con precio válido abre el modal (pide los 3); el CTA de alerta sigue como link directo a WhatsApp (no hay estimado que capturar).
+- `components/EstimacionForm.tsx` (`/estimacion`): "Estimar ahora" calcula el rango y abre el modal prefilleado (nombre/teléfono del form); el mock `DTD-LEAD-XXXX` efímero pasó a ser el `EST-XXXX` real del ERP en la pantalla de éxito.
+- `lib/public/__tests__/estimado-web.test.ts` (NUEVO, 14 it): mapeo payload→row (LCL + aéreo), validación (campos faltantes, monto inválido, calc inválida, defaults, coma decimal), armado del mensaje WhatsApp con nota+EST.
+
+**Decisiones de implementación:**
+- **`tenant_id`:** resuelto en el route handler con el mismo patrón que `app/portal/(auth)/registro/actions.ts` — primer tenant por `created_at` (DTD es hoy single-tenant operativo). NO se hardcodeó UUID.
+- **NOT NULL de `quotes` (`client_name`, `service`, `origin`, `destination`, `subtotal_usd`, `total_usd`, `packaging`):** **NO se aflojaron** — se LLENAN en el insert vía `buildEstimadoRow`. `client_name` = snapshot del nombre del prospecto; `service` = `puerta_a_puerta_DDP` (producto comercial de la web para las 3 calc); `origin`/`destination` de la calc o defaults (`China`/`Venezuela`); `subtotal_usd`/`total_usd` del estimado; `packaging` de la calc o `carton`.
+- **RLS:** insert con admin client (service_role) que bypassa RLS → sin policy nueva. `quotes` no tiene FORCE RLS (verificado en 0007) → service_role pasa limpio. RLS de lectura del Studio intacta.
+
+**Gate:** `node scripts/verify.mjs` 🟢 (1284 tests).
+
+**Pendiente founder:** aplicar `0113` a prod. **Pendiente review:** `reviewer` + `ui-ux-designer` (modal nuevo).
+
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->
