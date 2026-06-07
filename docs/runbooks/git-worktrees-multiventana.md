@@ -16,19 +16,22 @@
 
 ---
 
-## 2. Estructura (carpetas hermanas en el Escritorio)
+## 2. Estructura (contenedor `DTD-worktrees\` — decisión founder)
+
+Los worktrees van **agrupados en un contenedor**, NO sueltos en el Escritorio:
 
 ```
 C:\Users\Trabajo\Desktop\
-├─ DTDCargo\           → main             (integración + deploy · NO editar features acá)
-├─ DTDCargo-calc\      → feat/calculadora  (lane Calculadora)
-├─ DTDCargo-lambda\    → feat/lambda       (lane Lambda)
-├─ DTDCargo-legal\     → feat/capa-legal   (lane Capa Legal · cuando haga falta)
-└─ DTDCargo-costing\   → feat/costing-b    (existente)
+├─ DTDCargo\                  → main           (integración + deploy · NO editar features acá)
+└─ DTD-worktrees\
+   ├─ brochure\               → feat/brochure  (lane Brochure)
+   └─ seo\                    → chore/seo-faq   (lane SEO / Calculadora)
 ```
 
 - `DTDCargo\` (main) = ventana de **integración**: la ÚNICA que mergea y pushea.
+- Los worktrees **siempre afuera de `DTDCargo\`** (el contenedor lo cumple), **nunca anidados adentro** (si no, tsc/eslint/vitest del repo escanean la copia → caos).
 - **Granularidad sana:** una carpeta por **lane activo** (no por los 20 módulos), y **ramas cortas por tarea** adentro (`feat/<tema>`), mergeando a `main` seguido. Ramas largas por módulo = drift + merge hell (evitar).
+- **Clasificación (regla founder):** ante cada tarea nueva, primero se decide a qué lane/worktree pertenece (público→`seo` · brochure→`brochure` · módulo Studio nuevo→worktree nuevo); recién ahí se abre/usa esa ventana. El trabajo lo hace la ventana de ESE escritorio.
 
 ---
 
@@ -36,14 +39,14 @@ C:\Users\Trabajo\Desktop\
 
 **Crear una carpeta-worktree con una rama nueva** (desde `DTDCargo\`):
 ```
-git worktree add ../DTDCargo-<tema> -b feat/<tema>
+git worktree add ../DTD-worktrees/<tema> -b feat/<tema>
 ```
 
 **Dejarla lista para correr** (node_modules y `.env` NO se comparten):
 ```
-cd ../DTDCargo-<tema>
+cd ../DTD-worktrees/<tema>
 pnpm install
-copy ..\DTDCargo\.env.local .env.local
+copy ..\..\DTDCargo\.env.local .env.local
 ```
 > `pnpm install` en un worktree es rápido: pnpm hardlinkea desde su store global, casi sin disco extra.
 
@@ -72,7 +75,7 @@ git push
 
 **Limpiar cuando la tarea terminó:**
 ```
-git worktree remove ../DTDCargo-<tema>
+git worktree remove ../DTD-worktrees/<tema>
 git branch -d feat/<tema>
 ```
 
@@ -95,6 +98,8 @@ git branch -d feat/<tema>
 - **Migraciones SQL:** cada rama toma el **siguiente número libre mirando TODAS las ramas** (no solo la suya). Dos ramas con el mismo número = choque al mergear.
 - **Mergeá seguido y chico.** Una rama que vive días se aleja de `main` y acumula conflictos.
 - **El push/deploy sale SOLO de `main`**, desde `DTDCargo\`, con tu OK.
+- **Namespace de memoria:** abrir Claude en una carpeta-worktree usa una **memoria propia** (el `MEMORY.md` del proyecto se indexa por ruta y NO viaja; el `AGENTS.md`/`CLAUDE.md` sí, viven en el repo). El trabajo que se apoya fuerte en memoria conviene hacerlo desde `DTDCargo\` (integración).
+- **Footgun de upstream:** si creás la rama desde `origin/main` (`-b X origin/main`) queda *trackeando* `main` → un `git push` pelado puede publicar. Correr `git branch --unset-upstream` en la rama nueva.
 
 ---
 
