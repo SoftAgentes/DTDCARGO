@@ -47,10 +47,10 @@ export function Footer() {
 
           {/* Servicios CN */}
           <div>
-            <h4 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px] inline-flex items-center gap-2">
+            <h2 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px] inline-flex items-center gap-2">
               <FlagCN size={18} className="flex-shrink-0" />
               <span>Servicios Yiwu</span>
-            </h4>
+            </h2>
             <ul className="flex flex-col gap-3 list-none p-0">
               {topCN.map((s) => (
                 <li key={s.slug}>
@@ -75,10 +75,10 @@ export function Footer() {
 
           {/* Servicios VE */}
           <div>
-            <h4 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px] inline-flex items-center gap-2">
+            <h2 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px] inline-flex items-center gap-2">
               <FlagVE size={18} className="flex-shrink-0" />
               <span>Servicios Venezuela</span>
-            </h4>
+            </h2>
             <ul className="flex flex-col gap-3 list-none p-0">
               {topVE.map((s) => (
                 <li key={s.slug}>
@@ -111,9 +111,9 @@ export function Footer() {
 
           {/* Contacto */}
           <div>
-            <h4 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px]">
+            <h2 className="text-[12.5px] font-bold tracking-[0.12em] uppercase text-white/50 mb-[18px]">
               Contacto
-            </h4>
+            </h2>
             <ul className="flex flex-col gap-3 list-none p-0">
               <li className="text-[14.5px]">
                 <a
