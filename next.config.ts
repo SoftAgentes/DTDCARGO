@@ -193,6 +193,18 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    return [
+      // SDD-0059 Fase A: `/cotizar` se renombró a `/estimacion` (vocabulario QB:
+      // "cotización" se retira). 301 permanente para no perder el SEO ni los
+      // links externos al URL viejo.
+      {
+        source: "/cotizar",
+        destination: "/estimacion",
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       // Digital Asset Links del TWA operario. Android lo busca en

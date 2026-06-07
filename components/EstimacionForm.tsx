@@ -5,13 +5,12 @@ import Link from "next/link";
 import { ORIGINS, DESTINATIONS, CONTACT } from "@/lib/design-tokens";
 import { parseDecimalInput } from "@/lib/calculadora";
 import { ArrowIcon } from "./Icon";
-import { UltimoKmCalculator } from "./UltimoKmCalculator";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
 /**
- * Formulario completo de cotización. En MVP usa un mock que simula la respuesta
- * — cuando el ERP exponga `POST {ERP}/api/public/cotizar` y `POST /leads`,
+ * Formulario completo de estimación. En MVP usa un mock que simula la respuesta
+ * — cuando el ERP exponga `POST {ERP}/api/public/estimacion` y `POST /leads`,
  * cambiamos `mockSubmit` por `fetch(...)`.
  *
  * Dimensiones: el usuario ingresa Largo × Ancho × Alto en cm y se calcula
@@ -22,7 +21,7 @@ type Status = "idle" | "submitting" | "success" | "error";
  * usuario hover por primera vez sobre los campos L/A/H (auto-hide a 3s),
  * y vuelve a aparecer cada vez que clickean en uno de esos campos.
  */
-export function CotizarForm() {
+export function EstimacionForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [estimate, setEstimate] = useState<{
     low: number;
@@ -96,7 +95,7 @@ export function CotizarForm() {
     return (
       <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-8 lg:p-10">
         <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[0.12em] uppercase text-wine">
-          ✓ Cotización generada
+          ✓ Estimación generada
         </div>
         <div
           className="mt-4 text-[40px] lg:text-[56px] leading-none text-ink"
@@ -110,7 +109,7 @@ export function CotizarForm() {
         </div>
         <p className="mt-6 text-[14.5px] text-grey-700 leading-[1.55]">
           Este es un rango referencial. Un asesor te contactará en menos de
-          24 hs con la cotización cerrada DDP — incluyendo flete, aduana,
+          24 hs con la estimación cerrada DDP — incluyendo flete, aduana,
           impuestos y entrega.
         </p>
         <div className="mt-3 text-[12px] tracking-[0.08em] uppercase text-grey-500">
@@ -119,7 +118,7 @@ export function CotizarForm() {
         <div className="mt-7 flex flex-wrap gap-3">
           <a
             href={`https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
-              `Hola, acabo de cotizar y mi lead es ${estimate.leadId}. Quiero confirmar mi envío.`
+              `Hola, acabo de estimar y mi lead es ${estimate.leadId}. Quiero confirmar mi envío.`
             )}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -287,15 +286,27 @@ export function CotizarForm() {
         </Row>
       </div>
 
-      {/* Calculadora opcional del ultimo km en Venezuela */}
-      <UltimoKmCalculator />
+      {/* Enlace contextual a la calculadora del último km (ahora en su propia
+          página). La calc terrestre salió de este form en SDD-0059 Fase A. */}
+      <Link
+        href="/calculadora-terrestre"
+        className="flex items-center justify-between gap-3 rounded-[10px] border border-grey-200 bg-grey-100 px-4 py-3 text-[13.5px] text-grey-700 transition-colors hover:border-wine hover:text-wine"
+      >
+        <span>
+          <strong className="text-ink">¿Necesitás el flete interno en Venezuela?</strong>{" "}
+          Calculá el último km hasta tu ciudad.
+        </span>
+        <span className="inline-flex items-center gap-1.5 flex-shrink-0 font-semibold text-wine">
+          Calculadora terrestre <ArrowIcon />
+        </span>
+      </Link>
 
       <button
         type="submit"
         disabled={status === "submitting"}
         className="btn btn-primary h-14 mt-3 disabled:opacity-60 disabled:cursor-wait"
       >
-        {status === "submitting" ? "Calculando…" : "Cotizar ahora"}{" "}
+        {status === "submitting" ? "Calculando…" : "Estimar ahora"}{" "}
         {status !== "submitting" && <ArrowIcon />}
       </button>
 
@@ -306,7 +317,7 @@ export function CotizarForm() {
       )}
 
       <p className="text-[12.5px] text-grey-500 leading-[1.5]">
-        Al cotizar aceptás que un asesor te contacte por email o WhatsApp.
+        Al estimar aceptás que un asesor te contacte por email o WhatsApp.
         No compartimos tus datos con terceros.
       </p>
     </form>

@@ -7,7 +7,7 @@ import { FlagCN, FlagVE, WhatsAppIcon } from "./Icon";
 /**
  * Cotizador inline del Hero — versión MVP.
  *
- * Mientras el ERP no exponga `POST /api/public/cotizar` con respuesta real,
+ * Mientras el ERP no exponga `POST /api/public/estimacion` con respuesta real,
  * el cotizador NO simula precios falsos. En su lugar, abre WhatsApp con un
  * mensaje pre-rellenado que interpola origen y destino de los inputs.
  *
@@ -15,7 +15,7 @@ import { FlagCN, FlagVE, WhatsAppIcon } from "./Icon";
  * declarada y puede dar tarifa real en minutos.
  *
  * Cuando el ERP esté listo, basta cambiar `onSubmit` para hacer `router.push`
- * a `/cotizar?origen=X&destino=Y` con el form ya pre-llenado.
+ * a `/estimacion?origen=X&destino=Y` con el form ya pre-llenado.
  */
 export function HeroCotizador() {
   const [origen, setOrigen] = useState<string>(HERO.search.originDefault);

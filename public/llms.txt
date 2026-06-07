@@ -41,7 +41,7 @@
 - Sitio web: https://dtdcargo.com
 
 ## Enlaces útiles
-- Cotizar un envío: https://dtdcargo.com/cotizar
+- Estimar un envío: https://dtdcargo.com/estimacion
 - Servicios: https://dtdcargo.com/servicios
 - Brochure (PDF): https://dtdcargo.com/brochure
 - Calculadora de volumen (CBM): https://dtdcargo.com/calculadora

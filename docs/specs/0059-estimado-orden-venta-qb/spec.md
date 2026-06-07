@@ -186,5 +186,20 @@ Sin mockup del Norte aprobado para estas pantallas todavía. UI reusa primitivas
 - Plan estratégico aprobado (origen de esta spec): `.claude/plans/title-flujo-de-registro-mossy-dongarra.md`.
 - Referencia visual del flujo QuickBooks: foto del founder (Vendors/Customers/Employees) — adjuntar a `assets/` si se quiere versionar.
 
+## 10. Notas de implementación
+
+### Fase A — implementada (2026-06-07 · harness implement→verify→review)
+
+**Archivos:**
+- `app/cotizar/` → `app/estimacion/` (`git mv`); `components/CotizarForm.tsx` → `components/EstimacionForm.tsx` (export `CotizarForm`→`EstimacionForm`). Metadata "Estimación inicial" + canonical/og/breadcrumb `/estimacion`; eyebrow "Estimación" (fix ui-ux); copy "cotización"→"estimación".
+- `app/calculadora-terrestre/page.tsx` (NUEVO) — monta `<UltimoKmCalculator/>` standalone (hero + `card-shadow`); se sacó la sección embebida de `EstimacionForm` y se dejó un **enlace contextual** sobrio hacia la terrestre. `UltimoKmCalculator` perdió el `border-t-2` y el "(opcional)" (ya no es sección embebida).
+- SEO: `next.config.ts` `redirects()` 301 `/cotizar`→`/estimacion`; `app/sitemap.ts` (cambia + agrega terrestre); `scripts/seed-mail-templates.ts`, `public/llms.txt` actualizados.
+- Allowlists: `eslint.config.mjs` (`app/estimacion/**` + `app/calculadora-terrestre/**`); `proxy.ts` (solo comentarios — el matcher cubre `/studio` y `/back`, el sitio público no pasa por el proxy).
+- Tests: `app/estimacion/__tests__/fase-a-renames.test.ts` (NUEVO, 10 it) + `e2e/smoke.spec.ts` (301 + terrestre + sitemap). Gate `node scripts/verify.mjs` 🟢 (1262 tests).
+
+**Review:** `reviewer` APPROVED · `ui-ux-designer` "ship it" (aplicado: eyebrow `Estima`→`Estimación`).
+
+**Diferido (fuera de Fase A):** comentarios en `lib/design-tokens.ts:121` (lock de otra ventana, lane SDD-0060), `AGENTS.md` tabla integraciones, `public/brand/README.md` (docs); nit ui-ux BAJO preexistente: emoji 🚛 decorativo en `UltimoKmCalculator` (no es regresión de esta fase).
+
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->
