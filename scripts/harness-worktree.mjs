@@ -185,6 +185,11 @@ function cmdStart({ slug, from, dryRun }) {
 
 /** Remueve el worktree; si falla por el long-path de Windows, hace fallback. */
 function removeWorktreeRobust(wt) {
+  // OJO: `git worktree remove` DESREGISTRA el worktree y RECIÉN DESPUÉS borra la carpeta;
+  // si falla por el long-path, ya quedó desregistrado → un chequeo posterior daría
+  // falso-negativo y dejaría la carpeta huérfana. Por eso capturamos el estado ANTES.
+  // (lo cazó el dogfood: el guard que chequeaba después rompía el caso real)
+  const wasRegistered = isRegisteredWorktree(wt);
   let r = git(["worktree", "remove", wt]);
   if (r.code === 0) return true;
 
@@ -194,10 +199,9 @@ function removeWorktreeRobust(wt) {
     die(`El worktree ${wt} tiene cambios sin commitear. Commiteá/descartá primero.`);
   }
 
-  // GUARD DESTRUCTIVO: solo nukeamos si git TODAVÍA reconoce a `wt` como worktree
-  // (el remove falló por el long-path, NO porque sea una carpeta cualquiera homónima
-  // o una huérfana de un prune). Si no, NO borramos a ciegas. (review adversarial)
-  if (!isRegisteredWorktree(wt)) {
+  // GUARD DESTRUCTIVO: solo nukeamos si ERA un worktree registrado (antes del remove).
+  // Una carpeta cualquiera homónima (que git nunca registró) NO se borra a ciegas.
+  if (!wasRegistered) {
     die(`${wt} no es un worktree registrado de git — no lo borro a ciegas. Si es basura, borrala a mano.`);
   }
 
