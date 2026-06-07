@@ -212,7 +212,7 @@ export function EstimacionForm() {
             código del estimado para vincularlo automáticamente a la cuenta. */}
         {estimate.estimateCode && (
           <Link
-            href={`/portal/registro?est=${encodeURIComponent(estimate.estimateCode)}`}
+            href={`/registro?est=${encodeURIComponent(estimate.estimateCode)}`}
             className="mt-4 flex items-center justify-between gap-3 rounded-[10px] border border-grey-200 bg-grey-100 px-4 py-3 text-[13.5px] text-grey-700 transition-colors hover:border-wine hover:text-wine"
           >
             <span>

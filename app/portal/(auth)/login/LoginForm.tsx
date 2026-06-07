@@ -183,7 +183,7 @@ export function LoginForm({
         <p className="text-center mt-6 text-[13.5px] text-grey-500">
           ¿Todavía no sos cliente?{" "}
           <Link
-            href="/portal/registro"
+            href="/registro"
             className="font-semibold text-wine hover:text-wine-deep"
           >
             Creá tu cuenta

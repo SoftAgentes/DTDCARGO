@@ -307,7 +307,7 @@ export function CalculadoraForm({
             </p>
           </div>
           <Link
-            href={`/portal/registro?est=${encodeURIComponent(savedEstimateCode)}`}
+            href={`/registro?est=${encodeURIComponent(savedEstimateCode)}`}
             className="btn btn-primary flex-shrink-0"
           >
             Crear cuenta <ArrowIcon />
