@@ -393,7 +393,7 @@ function CotizacionDisplay({
           <div className="flex items-baseline gap-2">
             <span className="text-[14px] text-white/55">US$</span>
             <span
-              className="text-[56px] leading-[1] text-status-success"
+              className="text-[56px] leading-[1] text-whatsapp"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
               {cot.total.toFixed(0)}
