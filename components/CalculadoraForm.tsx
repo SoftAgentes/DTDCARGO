@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   CONFIG,
   CIUDADES,
-  EMBALAJES,
   DEFAULT_PARAMS,
   calcularEnvioLCL,
   whatsappTextFromCotizacion,
   type EnvioInput,
   type EnvioCotizacion,
-  type TipoEmbalaje,
   type CalcParams,
   type Ciudad,
 } from "@/lib/calculadora";
@@ -75,14 +73,39 @@ export function CalculadoraForm({
     minChargeOverride,
   });
 
-  const [cotizacion, setCotizacion] = useState<EnvioCotizacion | null>(null);
+  // El estimado se activa con "Calcular envío" y luego queda VIVO: cualquier
+  // cambio del form (incluido el toggle de baterías que vive debajo del CTA)
+  // recalcula solo, para que el precio mostrado nunca quede desactualizado.
+  // Antes del primer cálculo, `cotizacion` es null (no se muestra nada).
+  const [activo, setActivo] = useState(false);
+  const cotizacion = useMemo(
+    () => (activo ? calcularEnvioLCL(form, params, cityList) : null),
+    [activo, form, params, cityList],
+  );
+
+  // En móvil el resultado cae debajo del form (1 columna): cada vez que se
+  // toca "Calcular envío" llevamos al usuario directo al estimado. En desktop
+  // el panel es sticky (te sigue al scrollear), así que no movemos el scroll.
+  const resultRef = useRef<HTMLDivElement>(null);
+  const [calcTick, setCalcTick] = useState(0);
+  useEffect(() => {
+    if (calcTick === 0) return;
+    if (typeof window === "undefined" || window.innerWidth >= 1024) return;
+    const el = resultRef.current;
+    if (!el) return;
+    // Offset para despejar el nav sticky (~76px) y que el header del estimado
+    // no quede tapado. scrollIntoView no contempla el nav fijo.
+    const y = el.getBoundingClientRect().top + window.scrollY - 88;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }, [calcTick]);
 
   function update<K extends keyof EnvioInput>(key: K, value: EnvioInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function handleCalcular() {
-    setCotizacion(calcularEnvioLCL(form, params, cityList));
+    setActivo(true);
+    setCalcTick((t) => t + 1);
   }
 
   return (
@@ -160,49 +183,17 @@ export function CalculadoraForm({
             />
           </fieldset>
 
-          {/* Embalaje */}
-          <div>
-            <label className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine mb-2 block">
-              Embalaje
-            </label>
-            <div className="flex flex-col gap-2">
-              {EMBALAJES.map((e) => {
-                // Recargo real (configurable) — no el default estático de EMBALAJES.
-                const recargo =
-                  e.id === "especial" ? params.recargoEmbalajeEspecial : 0;
-                return (
-                  <label
-                    key={e.id}
-                    className="flex items-center gap-3 p-3 rounded-[10px] border border-grey-200 hover:border-ink cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2"
-                  >
-                    <input
-                      type="radio"
-                      name="embalaje"
-                      value={e.id}
-                      checked={form.embalaje === e.id}
-                      onChange={() => update("embalaje", e.id as TipoEmbalaje)}
-                      className="accent-wine"
-                    />
-                    <span className="text-[14px] text-ink flex-1">{e.label}</span>
-                    {recargo > 0 && (
-                      <span className="text-[12px] text-grey-500">+${recargo}</span>
-                    )}
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Opciones extra: baterías + carga especial */}
+          {/* Embalaje especial + carga especial. La caja estándar es el default
+              (no se muestra); solo se marca lo que aplica. */}
           <div className="flex flex-col gap-2">
             <ToggleField
-              label="Lleva baterías"
-              hint={`Recargo por manejo (×${params.recargoBateriaMult} sobre el flete).`}
-              checked={!!form.bateria}
-              onChange={(v) => update("bateria", v)}
+              label={`Embalaje especial (madera o paleta) +$${params.recargoEmbalajeEspecial}`}
+              hint="Marcá solo si tu carga necesita paleta o caja de madera."
+              checked={form.embalaje === "especial"}
+              onChange={(v) => update("embalaje", v ? "especial" : "estandar")}
             />
             <ToggleField
-              label="Carga especial o peligrosa"
+              label="Carga especial o de alto valor"
               hint="Equipos, insumos médicos, alto valor o permisos de exportación."
               checked={!!form.cargaEspecial}
               onChange={(v) => update("cargaEspecial", v)}
@@ -243,11 +234,25 @@ export function CalculadoraForm({
           >
             Calcular envío <ArrowIcon />
           </button>
+
+          {/* Baterías — debajo del CTA: el recargo ×1.5 sigue aplicando, pero se
+              de-prioriza visualmente (decisión founder, no es factor primario). */}
+          <ToggleField
+            label="Lleva baterías"
+            hint={`Recargo por manejo (×${params.recargoBateriaMult} sobre el flete).`}
+            checked={!!form.bateria}
+            onChange={(v) => update("bateria", v)}
+          />
         </div>
       </div>
 
-      {/* Resultado o panel de financiamiento (pre-cálculo) */}
-      <div className="flex flex-col">
+      {/* Resultado o panel de financiamiento (pre-cálculo). Post-cálculo el
+          panel es sticky en desktop: te sigue al scrollear (no hay que volver
+          arriba para el CTA de WhatsApp). En móvil, handleCalcular hace scroll. */}
+      <div
+        ref={resultRef}
+        className={`flex flex-col ${cotizacion ? "lg:sticky lg:self-start lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto" : ""}`}
+      >
         {cotizacion ? (
           <CotizacionDisplay cotizacion={cotizacion} input={form} params={params} />
         ) : (
