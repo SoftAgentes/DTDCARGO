@@ -225,7 +225,7 @@ export function CalculadoraForm({
               htmlFor="ciudad"
               className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500 mb-2 block"
             >
-              Destino · Casco Central
+              Destino en Venezuela
             </label>
             <select
               id="ciudad"
@@ -236,7 +236,6 @@ export function CalculadoraForm({
               {cityList.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.label}
-                  {c.casco || c.id === "casco-central" ? "" : ` (${c.km} km)`}
                 </option>
               ))}
             </select>
@@ -249,9 +248,7 @@ export function CalculadoraForm({
           <ResultPanel
             cotizacion={cotizacion}
             input={form}
-            params={params}
             tieneCarga={tieneCarga}
-            baseRate={baseRate}
           />
         </div>
       </div>
@@ -434,30 +431,24 @@ function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
 }
 
 /**
- * Panel del resultado: total (gradiente navy) + desglose + badge financiamiento
- * + nudge "ya está lista" (vibración mínima) + CTA WhatsApp + microcopy.
- * Maneja 3 estados: vacío (sin CBM/peso), deriva al asesor (alerta), normal.
+ * Panel del resultado: total (gradiente navy) + badge financiamiento + nudge
+ * "ya está lista" (vibración mínima) + CTA WhatsApp + microcopy. Maneja 3
+ * estados: vacío (sin CBM/peso), deriva al asesor (alerta), normal. Muestra
+ * SOLO el monto total — sin desglose itemizado (el recargo por distancia es
+ * interno y va dentro del total, decisión founder).
  */
 function ResultPanel({
   cotizacion: cot,
   input,
-  params,
   tieneCarga,
-  baseRate,
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
-  params: CalcParams;
   tieneCarga: boolean;
-  baseRate: number;
 }) {
   const hasAlerta = !!cot.alerta && tieneCarga;
   const money = (n: number) =>
     `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
-  const tarifa =
-    input.tarifaCBMOverride && input.tarifaCBMOverride > 0
-      ? input.tarifaCBMOverride
-      : baseRate;
   const whatsappText = whatsappTextFromCotizacion(cot, input);
   const whatsappUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(whatsappText)}`;
 
@@ -508,51 +499,6 @@ function ResultPanel({
         )}
       </div>
 
-      {/* Desglose (solo cotización normal) */}
-      {tieneCarga && !hasAlerta && cot.cbm > 0 && (
-        <div className="flex flex-col gap-2.5">
-          <DesgloseRow
-            label="Volumen base"
-            sub={`${cot.cbm} CBM × ${money(tarifa)}`}
-            value={money(cot.precioBase)}
-          />
-          {cot.recargoExcedente > 0 && (
-            <DesgloseRow
-              label="Excedente de peso"
-              sub={`> ${params.pesoIncluidoKg} kg/CBM`}
-              value={money(cot.recargoExcedente)}
-            />
-          )}
-          {cot.recargoEmbalaje > 0 && (
-            <DesgloseRow label="Embalaje especial" value={money(cot.recargoEmbalaje)} />
-          )}
-          {cot.recargoBateria > 0 && (
-            <DesgloseRow
-              label="Recargo por baterías"
-              sub={`×${params.recargoBateriaMult}`}
-              value={money(cot.recargoBateria)}
-            />
-          )}
-          {cot.descuentoSede < 0 && (
-            <DesgloseRow
-              label="Descuento Valencia"
-              value={`−${money(cot.descuentoSede)}`}
-              negative
-            />
-          )}
-          {cot.ajusteMinimo > 0 && (
-            <DesgloseRow
-              label="Ajuste a mínimo facturable"
-              value={money(cot.ajusteMinimo)}
-            />
-          )}
-          <div className="border-t border-grey-200 pt-2.5 mt-0.5 flex items-baseline justify-between font-bold text-ink">
-            <span className="text-[14px]">Total estimado</span>
-            <span className="num text-[15px]">{money(cot.total)}</span>
-          </div>
-        </div>
-      )}
-
       {/* Badge financiamiento (pill verde claro) */}
       {!hasAlerta && (
         <div
@@ -601,33 +547,5 @@ function ResultPanel({
         </>
       )}
     </>
-  );
-}
-
-function DesgloseRow({
-  label,
-  sub,
-  value,
-  negative = false,
-}: {
-  label: string;
-  sub?: string;
-  value: string;
-  negative?: boolean;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="flex flex-col">
-        <span className="text-[13.5px] text-grey-700">{label}</span>
-        {sub && <span className="num text-[11.5px] text-grey-500">{sub}</span>}
-      </span>
-      <span
-        className={`num text-[13.5px] font-semibold ${
-          negative ? "text-status-success" : "text-ink"
-        }`}
-      >
-        {value}
-      </span>
-    </div>
   );
 }

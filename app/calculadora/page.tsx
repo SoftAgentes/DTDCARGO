@@ -71,15 +71,10 @@ export default async function CalculadoraPage() {
     getPublicCalculatorConfig(),
     getPublicCalculatorCities(),
   ]);
-  // Ciudades reales (de /studio/tarifas › Ciudades) o el array hardcoded.
-  // Selector público acotado al CASCO CENTRAL (sin recargo): el precio por km
-  // de las demás ciudades está en revisión (tarifa cambiante), así que por
-  // ahora solo ofrecemos la zona sin recargo. Las ciudades fuera del casco
-  // siguen en la DB/CIUDADES (para el cálculo y el admin); acá solo no se
-  // listan. Para reactivarlas, quitar este .filter. (pedido founder 2026-06-06)
-  const ciudades = (serverCities.length > 0 ? serverCities : CIUDADES).filter(
-    (c) => c.casco,
-  );
+  // Ciudades reales (de /studio/tarifas › Ciudades) o el array hardcoded. El
+  // cálculo aplica el recargo por distancia a las de fuera del casco de forma
+  // interna; no se expone en la UI (decisión founder 2026-06-06).
+  const ciudades = serverCities.length > 0 ? serverCities : CIUDADES;
 
   return (
     <>
