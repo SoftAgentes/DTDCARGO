@@ -203,6 +203,50 @@ const nextConfig: NextConfig = {
         destination: "/estimacion",
         permanent: true,
       },
+      // Migración de dominio doortudoor.com → dtdcargo.com (Search Console
+      // "Cambio de dirección" activo, 2026-06-07). El 301 del dominio viejo es
+      // path-preserving, pero estas páginas del sitio VIEJO no tienen slug
+      // equivalente en el nuevo → caían en 404 tras el redirect, perdiendo su
+      // equity SEO. Las mapeamos a la página nueva más relevante (verificadas
+      // 200 + orígenes 404). Datos: reporte Rendimiento de la propiedad
+      // doortudoor.com (impresiones 3 meses entre paréntesis).
+      {
+        // Artículo "cómo calcular CBM" — la de más equity (397 impresiones).
+        source: "/como-calcular-metro-cubico-cbm-de-la-mercancia",
+        destination: "/calculadora",
+        permanent: true,
+      },
+      {
+        // "Nosotros" — el sitio nuevo no tiene página About; la historia de la
+        // empresa vive en el home (21 impresiones).
+        source: "/nosotros",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        // Definición incoterm CIF → glosario (18 impresiones).
+        source: "/significado-del-incoterm-cif",
+        destination: "/glosario",
+        permanent: true,
+      },
+      {
+        // "Mi cuenta" del sitio viejo → portal del cliente (15 impresiones).
+        source: "/mi-cuenta",
+        destination: "/portal",
+        permanent: true,
+      },
+      {
+        // "Qué es un envío puerta a puerta" (definicional) → glosario (12 impr).
+        source: "/que-es-un-envio-puerta-a-puerta",
+        destination: "/glosario",
+        permanent: true,
+      },
+      {
+        // Definición incoterm EXW → glosario (10 impresiones).
+        source: "/icoterm-exw",
+        destination: "/glosario",
+        permanent: true,
+      },
     ];
   },
   async rewrites() {
