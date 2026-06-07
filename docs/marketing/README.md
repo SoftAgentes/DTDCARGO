@@ -22,7 +22,7 @@
 - **2 campañas PAUSADAS** (reactivables): **DoorTuDoor Trafico** (Búsqueda, la probada, 4.231 conv) · **Importar de China-Venezuela** (Smart). **7 removidas** (archivo).
 - Conversión **"Click WhatsApp"** (`AW-561290482/qbu2CILjn7ocEPK50osC`) cableada en `components/Analytics.tsx`.
 - **Dominio de las Final URLs: ✅ MIGRADO al nuevo (2026-06-07).** Smart → `dtdcargo.com`. Search probada → `dtdcargo.com/estimacion` + sus **3 sitelinks** (`/servicios`, `/`, `/calculadora`). Campaña sigue **pausada**.
-- **Reestructura pendiente** (prioridad 3): ad groups + keywords (frase/exacta, no solo amplia) + negativas + RSAs nuevas. Ver [`plan-accion-digital.md`](plan-accion-digital.md).
+- **Reestructura (prioridad 3): copy-paste-ready en [`ads-reestructura-search.md`](ads-reestructura-search.md)** — 6 grupos temáticos + keywords frase/exacta + lista de negativas + RSAs + disciplina anti-pausa.
 - ⚠️ **Cambiar la Final URL de un anuncio = SEO-neutral** (los ads son pagos, no afectan ranking orgánico).
 
 ### 📊 Analítica — GA4 + GTM
