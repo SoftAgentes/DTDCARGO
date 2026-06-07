@@ -78,6 +78,11 @@ function quote(over: Partial<Quote> = {}): Quote {
     accepted_at: null,
     converted_to_shipment_id: null,
     notes: null,
+    prospect_name: null,
+    prospect_email: null,
+    prospect_whatsapp: null,
+    nota: null,
+    source: "studio",
     created_at: "2026-06-01",
     updated_at: "2026-06-01",
     deleted_at: null,
@@ -168,7 +173,7 @@ describe("buildForecast", () => {
     expect(Number.isFinite(totals.marginPct)).toBe(true);
   });
 
-  it("sin cotizaciones en pipeline → forecast vacío", () => {
+  it("sin estimados en pipeline → forecast vacío", () => {
     const { rows, totals } = buildForecast([], [tpl()]);
     expect(rows).toHaveLength(0);
     expect(totals.revenue).toBe(0);

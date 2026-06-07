@@ -2,7 +2,7 @@
  * Helpers de query reutilizables para el módulo Tarifas (SDD-0008).
  *
  * RLS filtra por tenant_id automáticamente — no se pasa tenant_id como param.
- * El módulo Cotizador (SDD-0011) consumirá listRates() para sugerir precios.
+ * El módulo Estimados (SDD-0011) consume listRates() para sugerir precios.
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";

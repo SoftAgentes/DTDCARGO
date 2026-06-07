@@ -2,7 +2,7 @@
 <html lang="es" data-theme="light">
 <head>
 <meta charset="utf-8" />
-<title>DTD-Cargo · Registro de cliente · v2.3</title>
+<title>DTD-Cargo · Registro de cliente · v2.4</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -18,6 +18,31 @@
   .guide-pulse { animation: guide-glow 2s ease-in-out infinite; }
   .guide-pulse:hover { animation: none; background: var(--wine-tint) !important; }
   .guide-arrow-bounce { animation: guide-arrow-h 1.6s ease-in-out infinite; }
+
+  /* ── Celebración · la tarjeta MARKBOX al registrar la compra ── */
+  @keyframes markbox-pop { 0% { transform: scale(1); } 28% { transform: scale(1.045); } 62% { transform: scale(0.992); } 100% { transform: scale(1); } }
+  @keyframes markbox-ring {
+    0%   { box-shadow: var(--shadow-lg), 0 0 0 0 rgba(31,138,91,0.55); }
+    70%  { box-shadow: var(--shadow-lg), 0 0 0 18px rgba(31,138,91,0); }
+    100% { box-shadow: var(--shadow-lg), 0 0 0 0 rgba(31,138,91,0); }
+  }
+  .markbox-card.celebrate { animation: markbox-pop 620ms var(--ease) both, markbox-ring 1600ms ease-out 1; }
+  @keyframes markbox-badge-in { from { opacity: 0; transform: scale(0.4) rotate(-18deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+  .markbox-badge { animation: markbox-badge-in 520ms 180ms var(--ease) both; }
+  @keyframes markbox-code-swap { from { opacity: 0; transform: translateY(8px); filter: blur(3px); } to { opacity: 1; transform: translateY(0); filter: blur(0); } }
+  .markbox-code.swap { display: inline-block; animation: markbox-code-swap 520ms var(--ease) both; }
+  .markbox-shimmer { position: absolute; inset: 0; overflow: hidden; border-radius: var(--r-lg); pointer-events: none; }
+  .markbox-shimmer::before {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 38%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,0.22), transparent);
+    transform: translateX(-130%); animation: markbox-shimmer-sweep 1100ms 240ms ease-out 1;
+  }
+  @keyframes markbox-shimmer-sweep { to { transform: translateX(230%); } }
+  @keyframes celebrate-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  .celebrate-banner { animation: celebrate-rise 520ms 140ms var(--ease) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .markbox-card.celebrate, .markbox-badge, .markbox-code.swap, .markbox-shimmer::before, .celebrate-banner { animation: none !important; }
+  }
 </style>
 </head>
 <body>

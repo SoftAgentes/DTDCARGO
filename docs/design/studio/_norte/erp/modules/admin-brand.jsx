@@ -188,7 +188,7 @@ function SectionBrandApps() {
   const U = window.ERPUI;
   const apps = [
     { id: 'favicon',     label: 'Favicon set',           sub: 'Web, PWA, Apple touch · 16/32/64/180 px', icon: 'globe' },
-    { id: 'doc',         label: 'Header de documentos',  sub: 'Factura, cotización, remito, recibo',       icon: 'invoice' },
+    { id: 'doc',         label: 'Header de documentos',  sub: 'Factura, estimado, remito, recibo',       icon: 'invoice' },
     { id: 'seal',        label: 'Sello jurídico',        sub: 'Contratos, NDAs, autorizaciones',          icon: 'shield' },
     { id: 'email',       label: 'Firma de email',        sub: 'HTML embebible · Gmail / Outlook',         icon: 'mail' },
     { id: 'spinner',     label: 'Loading spinner',       sub: 'Estados de carga del ERP y apps móviles',  icon: 'refresh' },

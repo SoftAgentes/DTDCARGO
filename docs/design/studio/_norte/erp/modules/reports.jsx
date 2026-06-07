@@ -276,17 +276,17 @@ function ReportsClients({ goTo }) {
 function ReportsAgents() {
   const U = window.ERPUI;
   const agents = [
-    { name: 'Martina Acuña',  avatar: 'MA', quotes: 142, won: 84, revenue: 1240000, conv: 59, tickets: 84,  nps: 9.2 },
-    { name: 'Diego Núñez',    avatar: 'DN', quotes:  98, won: 51, revenue:  820000, conv: 52, tickets: 51,  nps: 8.8 },
-    { name: 'Carolina Méndez', avatar: 'CM', quotes:  42, won: 18, revenue:  280000, conv: 43, tickets: 22,  nps: 9.4 },
+    { name: 'Martina Acuña',  avatar: 'MA', estimados: 142, won: 84, revenue: 1240000, conv: 59, tickets: 84,  nps: 9.2 },
+    { name: 'Diego Núñez',    avatar: 'DN', estimados:  98, won: 51, revenue:  820000, conv: 52, tickets: 51,  nps: 8.8 },
+    { name: 'Carolina Méndez', avatar: 'CM', estimados:  42, won: 18, revenue:  280000, conv: 43, tickets: 22,  nps: 9.4 },
   ];
   const maxRev = Math.max(...agents.map(a => a.revenue));
 
   return (
     <div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 'var(--s-6)' }}>
-        <U.KPI label="Cotizaciones" value={agents.reduce((s,a)=>s+a.quotes,0)} delta="+18 esta sem" tone="wine" />
-        <U.KPI label="Ganadas" value={agents.reduce((s,a)=>s+a.won,0)} delta={`${Math.round(agents.reduce((s,a)=>s+a.won,0)/agents.reduce((s,a)=>s+a.quotes,0)*100)}% conv. promedio`} tone="success" />
+        <U.KPI label="Estimados" value={agents.reduce((s,a)=>s+a.estimados,0)} delta="+18 esta sem" tone="wine" />
+        <U.KPI label="Ganadas" value={agents.reduce((s,a)=>s+a.won,0)} delta={`${Math.round(agents.reduce((s,a)=>s+a.won,0)/agents.reduce((s,a)=>s+a.estimados,0)*100)}% conv. promedio`} tone="success" />
         <U.KPI label="Revenue equipo" value={`$${(agents.reduce((s,a)=>s+a.revenue,0)/1e6).toFixed(2)}M`} delta="YTD" tone="info" />
         <U.KPI label="NPS comercial" value="9.1" delta="↑ 0.4 vs Q4" tone="success" />
       </div>
@@ -296,7 +296,7 @@ function ReportsAgents() {
           <div className="eyebrow eyebrow-wine">PERFORMANCE POR AGENTE</div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '60px 1fr 80px 80px 80px 100px 70px', padding: '10px 18px', gap: 14, borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
-          {['', 'Agente', 'Cotiz.', 'Ganadas', 'Conv.', 'Revenue', 'NPS'].map(h => (
+          {['', 'Agente', 'Estim.', 'Ganadas', 'Conv.', 'Revenue', 'NPS'].map(h => (
             <span key={h} style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</span>
           ))}
         </div>
@@ -311,7 +311,7 @@ function ReportsAgents() {
               <div style={{ font: '700 13.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{a.name}</div>
               <div style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{a.tickets} clientes asignados</div>
             </div>
-            <span className="mono" style={{ font: '700 14px/1 var(--f-mono)', color: 'var(--ink)' }}>{a.quotes}</span>
+            <span className="mono" style={{ font: '700 14px/1 var(--f-mono)', color: 'var(--ink)' }}>{a.estimados}</span>
             <span className="mono" style={{ font: '700 14px/1 var(--f-mono)', color: 'var(--ink)' }}>{a.won}</span>
             <span className="mono" style={{ font: '700 14px/1 var(--f-mono)', color: a.conv >= 55 ? 'var(--success)' : 'var(--warning)' }}>{a.conv}%</span>
             <div>
@@ -813,7 +813,7 @@ function ReportsIVA({ goTo }) {
 const _ROUTE_COST = { default: 0.70 };
 function _shipAgg() {
   const D = window.ERPData;
-  const ships = (D?.SHIPMENTS || []).filter(s => !['cotizado'].includes(s.status));
+  const ships = (D?.SHIPMENTS || []).filter(s => !['estimado'].includes(s.status));
   return ships.map(s => {
     const revenue = s.value || 0;
     const ratio = _ROUTE_COST[`${s.origin}-${s.destination}`] || _ROUTE_COST.default;

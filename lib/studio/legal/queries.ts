@@ -67,7 +67,7 @@ function coerceDoc(row: Record<string, unknown>): LegalDoc {
 
 /**
  * Documentos vigentes de cara al cliente (status=vigente · audience=cliente).
- * Son los que el cliente acepta en la cotización y los que entran al gate.
+ * Son los que el cliente acepta en el estimado y los que entran al gate.
  *
  * `tenantId` (round-3 · m-6): REQUERIDO. Se filtra explícitamente por tenant — no
  * se confía solo en RLS (el gate corre como service_role, que la apaga). Si fuera

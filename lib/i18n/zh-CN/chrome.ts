@@ -75,7 +75,7 @@ export const chrome: ChromeDict = {
   "chrome.sidebar.routes_cities": "路线与城市",
   "chrome.sidebar.consolidation": "拼柜",
   // 商务 (COMERCIAL)
-  "chrome.sidebar.quotes": "报价",
+  "chrome.sidebar.quotes": "估价",
   "chrome.sidebar.clients": "客户",
   "chrome.sidebar.leads": "CRM · 潜在客户",
   "chrome.sidebar.suppliers_cn": "中国供应商",

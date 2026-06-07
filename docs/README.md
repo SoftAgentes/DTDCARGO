@@ -20,6 +20,7 @@ No buscamos certificación — adoptamos la **disciplina**. Cada documento contr
 | Explicación "cómo funciona el sistema" | `docs/architecture/` |
 | Decisión "por qué elegimos X" (ADR) | `docs/architecture/decisions/` |
 | Mockup / handoff / logo / asset visual | `docs/design/<producto>/<version>/` (ver su README) |
+| Marketing / SEO / Ads / analítica / contenido / captación | `docs/marketing/` (ver su README) |
 | Contrato / NDA firmado | `docs/legal/` (binario **fuera de git** → Drive + puntero) |
 | Planilla de costos / tarifa | `docs/operaciones/` |
 | Transcripción de sesión | `docs/archive/` (no crece sin control) |
@@ -65,6 +66,7 @@ docs/
 ├── legal/             ← contratos/NDA (punteros; binarios en Drive)  [se crea en fase B]
 ├── operaciones/       ← costos/tarifas                                [se crea en fase B]
 ├── design/            ← material visual (ver docs/design/README.md)
+├── marketing/         ← SEO/Ads/analítica/CRM/contenido (ver docs/marketing/README.md)
 └── archive/           ← transcripciones de sesión
 ```
 

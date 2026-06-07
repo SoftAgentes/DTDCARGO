@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v2.4c"; // handoff Cloud Design (capa legal: T&C v2.1 + acuerdos ES-中文 + admin-legal + Aceptación T&C; handoff mobile dedicado; Brand Book v3.2; removió Operario Multi + Brand Book v3.1)
+const NORTE_VERSION = "v2.5"; // handoff Cloud Design (Tarjeta de Presentación + QR vCard; celebración MARKBOX en registro; Brand Book → v3.5 dentro del v3.2.html; auditoría calc/cotizador; HANDOFF-NOMINA + App del Empleado; +operativo/colateral: ZPL, comprobante WA, reporte, redes/sticker)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -123,9 +123,27 @@ const GROUPS = [
     ],
   },
   {
+    // v2.5: piezas nuevas de Cloud Design — operativas (app del empleado/nómina, calculadora CBM,
+    // etiqueta ZPL de bodega, comprobante WhatsApp, reporte) + colateral de marketing/redes.
+    // ref:true → se listan y abren como referencia de diseño, NO diluyen el % construido.
+    title: "Nuevo en v2.5 · operativo · nómina · colateral",
+    screens: [
+      { name: "App del Empleado (nómina)", file: "App del Empleado.html", ref: true },
+      { name: "Calculadora CBM", file: "Calculadora CBM · DTD-Cargo.html", ref: true },
+      { name: "Etiqueta Bodega · ZPL", file: "Etiqueta Bodega ZPL · DTD-Cargo.html", ref: true },
+      { name: "Comprobante WhatsApp", file: "Comprobante WhatsApp · DTD-Cargo.html", ref: true },
+      { name: "Reporte operativo", file: "Reporte DTD-Cargo.html", ref: true },
+      { name: "Portada Animada FB", file: "Portada Animada FB · DTD-Cargo.html", ref: true },
+      { name: "Portadas Redes", file: "Portadas Redes · DTD-Cargo.html", ref: true },
+      { name: "Póster Reseñas", file: "Póster Reseñas · DTD-Cargo.html", ref: true },
+      { name: "Sticker Pack", file: "Sticker Pack · DTD-Cargo.html", ref: true },
+    ],
+  },
+  {
     title: "Marca",
     screens: [
       { name: "Brand Book v3.2", file: "Brand Book DTD v3.2.html", kind: "brand" },
+      { name: "Tarjeta de Presentación", file: "Tarjeta de Presentación.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
       { name: "Aplicaciones de Marca", file: "Aplicaciones de Marca.html", kind: "brand" },

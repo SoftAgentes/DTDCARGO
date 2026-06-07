@@ -99,8 +99,9 @@ const nextConfig: NextConfig = {
   // Si alguien importa de "hailuway-erp" → error de bundling.
   experimental: {
     serverActions: {
-      // El registro del Portal (`/portal/registro`) sube la foto de cédula/RIF
-      // por Server Action (RegisterForm → `fd.set("cedula_photo", photo)`). El
+      // El registro del cliente (`/registro`, unificado en SDD-0061 B2.5) sube la
+      // foto de cédula/RIF por Server Action (RegisterForm → `fd.set("cedula_photo", photo)`).
+      // bodySizeLimit es global (no por-ruta), así que cubre /registro igual. El
       // default de Next es 1 MB: una foto de teléfono (2-5 MB) excede el límite
       // del framework ANTES de que corra la action, y el browser muestra
       // "This page couldn't load" (413/500) en vez del error amable. La action
@@ -190,6 +191,62 @@ const nextConfig: NextConfig = {
       {
         source: "/:path((?!m/|marca/|norte\\.html).*)",
         headers: securityHeaders,
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      // SDD-0061 Fase A: `/cotizar` se renombró a `/estimacion` (vocabulario QB:
+      // "cotización" se retira). 301 permanente para no perder el SEO ni los
+      // links externos al URL viejo.
+      {
+        source: "/cotizar",
+        destination: "/estimacion",
+        permanent: true,
+      },
+      // Migración de dominio doortudoor.com → dtdcargo.com (Search Console
+      // "Cambio de dirección" activo, 2026-06-07). El 301 del dominio viejo es
+      // path-preserving, pero estas páginas del sitio VIEJO no tienen slug
+      // equivalente en el nuevo → caían en 404 tras el redirect, perdiendo su
+      // equity SEO. Las mapeamos a la página nueva más relevante (verificadas
+      // 200 + orígenes 404). Datos: reporte Rendimiento de la propiedad
+      // doortudoor.com (impresiones 3 meses entre paréntesis).
+      {
+        // Artículo "cómo calcular CBM" — la de más equity (397 impresiones).
+        source: "/como-calcular-metro-cubico-cbm-de-la-mercancia",
+        destination: "/calculadora",
+        permanent: true,
+      },
+      {
+        // "Nosotros" — el sitio nuevo no tiene página About; la historia de la
+        // empresa vive en el home (21 impresiones).
+        source: "/nosotros",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        // Definición incoterm CIF → glosario (18 impresiones).
+        source: "/significado-del-incoterm-cif",
+        destination: "/glosario",
+        permanent: true,
+      },
+      {
+        // "Mi cuenta" del sitio viejo → portal del cliente (15 impresiones).
+        source: "/mi-cuenta",
+        destination: "/portal",
+        permanent: true,
+      },
+      {
+        // "Qué es un envío puerta a puerta" (definicional) → glosario (12 impr).
+        source: "/que-es-un-envio-puerta-a-puerta",
+        destination: "/glosario",
+        permanent: true,
+      },
+      {
+        // Definición incoterm EXW → glosario (10 impresiones).
+        source: "/icoterm-exw",
+        destination: "/glosario",
+        permanent: true,
       },
     ];
   },

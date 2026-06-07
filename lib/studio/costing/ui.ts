@@ -134,23 +134,23 @@ export function costPctOfRevenue(totals: CostingTotals): number {
 // ── Forecast del pipeline (Forecast tab · Slice C) ────────────
 /**
  * Margen estimado por defecto (fracción del revenue) cuando NO hay un template
- * que matchee la ruta+servicio de la cotización. El Norte (`ForecastSection`)
+ * que matchee la ruta+servicio del estimado. El Norte (`ForecastSection`)
  * asume ~22% de margen (costo = revenue × 0.78). Lo replicamos: si no podemos
  * estimar el costo real desde un template, usamos este factor.
  */
 export const DEFAULT_FORECAST_MARGIN_PCT = 22;
 
-/** ¿La cotización todavía está en el pipeline (cuenta para el forecast)? */
+/** ¿El estimado todavía está en el pipeline (cuenta para el forecast)? */
 export type ForecastBucket = "accepted" | "pending";
 
 /**
  * Etiqueta del estado del pipeline para el forecast:
- *  - `accepted` = aceptada, pendiente de embarcar (alta confianza).
- *  - `pending`  = enviada, esperando respuesta (pipeline abierto).
+ *  - `accepted` = aceptado, pendiente de embarcar (alta confianza).
+ *  - `pending`  = enviado, esperando respuesta (pipeline abierto).
  */
 export const FORECAST_BUCKET_LABEL: Record<ForecastBucket, string> = {
-  accepted: "Aceptada · pendiente de embarcar",
-  pending: "Enviada · esperando respuesta",
+  accepted: "Aceptado · pendiente de embarcar",
+  pending: "Enviado · esperando respuesta",
 };
 
 export type ForecastRow = {
@@ -186,7 +186,7 @@ function finite(v: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Bucket de una cotización para el forecast (null = no entra al pipeline). */
+/** Bucket de un estimado para el forecast (null = no entra al pipeline). */
 function quoteBucket(q: Quote): ForecastBucket | null {
   // Aceptada y todavía no convertida en embarque → pendiente de embarcar.
   if (q.status === "accepted" && !q.converted_to_shipment_id) return "accepted";
@@ -196,7 +196,7 @@ function quoteBucket(q: Quote): ForecastBucket | null {
 }
 
 /**
- * Estima el costo de una cotización. Si hay un template que matchea su
+ * Estima el costo de un estimado. Si hay un template que matchea su
  * `origin + destination + service`, usa la suma de las 7 categorías del template.
  * Si no, estima con el margen default (costo = revenue × (1 − margen/100)).
  * PURA.
@@ -219,11 +219,11 @@ export function estimateQuoteCost(
 }
 
 /**
- * Proyección de margen sobre el pipeline (cotizaciones aceptadas pendientes de
- * embarcar + enviadas esperando respuesta). Cruza cada cotización con los
+ * Proyección de margen sobre el pipeline (estimados aceptados pendientes de
+ * embarcar + enviados esperando respuesta). Cruza cada estimado con los
  * templates de costo por ruta para estimar su costo; cae al margen default si
- * no hay template. PURA. Espejo de `ForecastSection` del Norte, anclado a las
- * cotizaciones reales (`quotes`) en vez del mock.
+ * no hay template. PURA. Espejo de `ForecastSection` del Norte, anclado a los
+ * estimados reales (`quotes`) en vez del mock.
  */
 export function buildForecast(
   quotes: Quote[],

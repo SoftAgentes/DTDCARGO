@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>DTD Studio · ERP · v2.4</title>
+<title>DTD Studio · ERP · v2.5</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -64,7 +64,7 @@
 <script type="text/babel" src="erp/modules/dashboard.jsx"></script>
 <script type="text/babel" src="erp/modules/shipments.jsx"></script>
 <script type="text/babel" src="erp/modules/clients.jsx"></script>
-<script type="text/babel" src="erp/modules/quotes.jsx"></script>
+<script type="text/babel" src="erp/modules/estimados.jsx"></script>
 <script type="text/babel" src="erp/modules/tracking.jsx"></script>
 <script type="text/babel" src="erp/modules/invoices.jsx"></script>
 <script type="text/babel" src="erp/modules/documents.jsx"></script>
@@ -111,6 +111,7 @@
 <script type="text/babel" src="erp/modules/conciliacion.jsx"></script>
 <script type="text/babel" src="erp/modules/audit-log.jsx"></script>
 <script type="text/babel" src="erp/modules/contabilidad-data.jsx"></script>
+<script type="text/babel" src="erp/modules/contabilidad-forms.jsx"></script>
 <script type="text/babel" src="erp/modules/contabilidad.jsx"></script>
 <script type="text/babel" src="erp/modules/tesoreria-data.jsx"></script>
 <script type="text/babel" src="erp/modules/tesoreria.jsx"></script>
@@ -129,6 +130,8 @@
 <script type="text/babel" src="erp/modules/dtd-config.jsx"></script>
 <script type="text/babel" src="erp/modules/cobranzas-data.jsx"></script>
 <script type="text/babel" src="erp/modules/cobranzas.jsx"></script>
+<script type="text/babel" src="erp/modules/nomina-data.jsx"></script>
+<script type="text/babel" src="erp/modules/nomina.jsx"></script>
 <script type="text/babel" src="erp/modules/label-generator.jsx"></script>
 <script type="text/babel" src="propuesta/servicios-tarifas.jsx"></script>
 <script type="text/babel" src="erp/modules/wiring.jsx"></script>
@@ -167,7 +170,7 @@ function App() {
   const [tenantTick, setTenantTick] = useState(0);
   const [portalInbox, setPortalInbox] = useState([]);
 
-  // Bandeja del portal (registros, cotizaciones, re-compras entrantes).
+  // Bandeja del portal (registros, estimados, re-compras entrantes).
   // Se suscribe al bridge compartido (localStorage) que publican el portal
   // web + móvil. Se filtra por tenant antes de mostrarse (multi-tenant).
   useEffect(() => {
@@ -253,6 +256,18 @@ function App() {
     window.scrollTo({ top: 0 });
   }, []);
 
+  // Deep-link: abrir un módulo desde el hash (#mod=<id>), p.ej. al venir
+  // desde el Mapa de proceso (cada nodo lanza su módulo del ERP).
+  useEffect(() => {
+    const applyHash = () => {
+      const m = /[#&]mod=([\w-]+)/.exec(window.location.hash || '');
+      if (m && m[1]) goTo(m[1]);
+    };
+    applyHash();
+    window.addEventListener('hashchange', applyHash);
+    return () => window.removeEventListener('hashchange', applyHash);
+  }, [goTo]);
+
   const onPaletteSelect = useCallback((modId, recordId) => {
     setPaletteOpen(false);
     goTo(modId, recordId, recordId ? 'detail' : 'list');
@@ -266,7 +281,7 @@ function App() {
     dashboard:  window.ModuleDashboard,
     shipments:  window.ModuleShipments,
     clients:    window.ModuleClients,
-    quotes:     window.ModuleQuotes,
+    estimados:  window.ModuleEstimados,
     tracking:   window.ModuleTracking,
     calendar:   window.ModuleCalendar,
     invoices:   window.ModuleInvoices,
@@ -292,6 +307,7 @@ function App() {
     qrqueue:    window.ModuleQrQueue,
     reconcile:  window.ModuleConciliacion,
     contab:     window.ModuleContabilidad,
+    nomina:     window.ModuleNomina,
     tesoreria:  window.ModuleTesoreria,
     naviera:    window.ModuleNaviera,
     conversaciones: window.ModuleConversaciones,
@@ -339,7 +355,7 @@ function App() {
           })()}
           onPortalAction={(n) => {
             if (window.DTDData?.markPortalRead) window.DTDData.markPortalRead([n.id]);
-            const mod = n.kind === 'cotizacion' ? 'quotes' : n.kind === 'recompra' ? 'suppliers' : 'clients';
+            const mod = n.kind === 'cotizacion' ? 'estimados' : n.kind === 'recompra' ? 'suppliers' : 'clients';
             goTo(mod);
           }}
           onPortalClear={() => { if (window.DTDData?.markPortalRead) window.DTDData.markPortalRead(); }}

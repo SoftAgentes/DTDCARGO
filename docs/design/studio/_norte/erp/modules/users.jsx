@@ -59,7 +59,7 @@ function TenantUsers({ view, setView }) {
     return rows;
   }, [search, roleFilter]);
 
-  const roleColors = { 'Administrador de Tenant': 'wine', Admin: 'wine', Comercial: 'info', Operaciones: 'warning', Contabilidad: 'success', 'Almacén CN': 'neutral', Soporte: 'neutral' };
+  const roleColors = { 'Administrador de Tenant': 'wine', Admin: 'wine', Comercial: 'info', Operaciones: 'warning', Contabilidad: 'success', 'Almacén CN': 'neutral', Soporte: 'neutral', Empleado: 'info' };
   const roleLabel = (r) => r === 'Admin' ? 'Administrador de Tenant' : r;
 
   const columns = [
@@ -104,11 +104,12 @@ function TenantUsers({ view, setView }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           {[
             { name: 'Administrador de Tenant', count: 1, perms: 'Todos los módulos del tenant · gestión usuarios internos · facturación · config' },
-            { name: 'Comercial', count: 2, perms: 'Cotizador · Clientes · CRM · ver embarques · ver tarifas' },
+            { name: 'Comercial', count: 2, perms: 'Estimador · Clientes · CRM · ver embarques · ver tarifas' },
             { name: 'Operaciones', count: 2, perms: 'Embarques · Tracking · Almacén CN/VE · Documentos' },
             { name: 'Contabilidad', count: 1, perms: 'Facturación · Pagos · Reportes · ver embarques (lectura)' },
             { name: 'Almacén CN', count: 1, perms: 'Solo Almacén CN · recepciones · consolidación' },
             { name: 'Soporte', count: 1, perms: 'Solo lectura · clientes · tracking · documentos' },
+            { name: 'Empleado', count: 3, perms: 'Autoservicio · solo Nómina · recibo de pago y comunicaciones (amonestaciones / llamados)' },
           ].map(r => (
             <div key={r.name} style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
@@ -128,7 +129,7 @@ function TenantUsers({ view, setView }) {
         filters={
           <U.Select value={roleFilter} onChange={(e)=>setRoleFilter(e.target.value)} style={{ width: 160 }} options={[
             { value: 'all', label: 'Todos los roles' },
-            'Admin', 'Comercial', 'Operaciones', 'Contabilidad', 'Almacén CN', 'Soporte',
+            'Admin', 'Comercial', 'Operaciones', 'Contabilidad', 'Almacén CN', 'Soporte', 'Empleado',
           ]} />
         }
       />
@@ -195,7 +196,7 @@ function InviteForm() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <U.Select label="Rol" value={role} onChange={(e) => { setRole(e.target.value); setScope([]); }}
-          options={['Admin', 'Comercial', 'Operaciones', 'Contabilidad', 'Almacén CN', 'Almacén VE', 'Soporte']} />
+          options={['Admin', 'Comercial', 'Operaciones', 'Contabilidad', 'Almacén CN', 'Almacén VE', 'Soporte', 'Empleado']} />
         <U.Select label="Equipo" options={['Dirección', 'Ventas', 'Op. CN', 'Op. VE', 'Finanzas', 'CX']} />
       </div>
 

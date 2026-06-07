@@ -20,8 +20,8 @@ const DEFAULTS: Record<string, string> = {
   agent_name: "Sam",
   reporter_name: "María Pérez",
 
-  // Comercial / cotizaciones
-  quote_code: "Q-2026-0042",
+  // Comercial / estimados
+  quote_code: "EST-2026-0042",
   validity_days: "15",
   service: "Puerta a Puerta DDP",
 

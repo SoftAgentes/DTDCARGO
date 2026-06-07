@@ -197,7 +197,7 @@ function SectionWhatsApp() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14, marginBottom: 16 }}>
         <U.Field label="Número Business" value={wa?.account} mono />
         <U.Field label="Cuenta verificada" value="Sí · Meta Business Manager" />
-        <U.Field label="Templates aprobados" value="4 · cotización, ETA, POD, demora" />
+        <U.Field label="Templates aprobados" value="4 · estimado, ETA, POD, demora" />
         <U.Field label="Mensajes 30d" value={`${wa?.sent30d || 0} enviados`} mono />
       </div>
 
@@ -242,7 +242,7 @@ function SectionLimits() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {[
           { l: 'Alertas críticas (ETA en riesgo) ignoran horarios', def: true },
-          { l: 'Cotizaciones se envían inmediatamente sin throttle',  def: true },
+          { l: 'Estimados se envían inmediatamente sin throttle',  def: true },
           { l: 'Cuenta atrás SLA suspende límites diarios',           def: false },
         ].map(o => (
           <label key={o.l} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', cursor: 'pointer' }}>

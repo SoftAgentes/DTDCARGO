@@ -4,7 +4,7 @@
 function ModuleTracking({ goTo, selectedId, setSelectedId }) {
   const D = window.ERPData;
   const U = window.ERPUI;
-  const active = D.SHIPMENTS.filter(s => !['entregado', 'cotizado'].includes(s.status));
+  const active = D.SHIPMENTS.filter(s => !['entregado', 'estimado'].includes(s.status));
   const [selectedShip, setSelectedShip] = React.useState(selectedId || active[0]?.id);
 
   const ship = active.find(s => s.id === selectedShip) || active[0];

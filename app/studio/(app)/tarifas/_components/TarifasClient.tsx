@@ -126,7 +126,7 @@ export function TarifasClient({
             }}
           >
             LCL cobrado por CBM. FCL como tarifa cerrada por contenedor. Editables
-            por ruta y vigencia. El Cotizador las consume para sugerir precios.
+            por ruta y vigencia. Los Estimados las consumen para sugerir precios.
           </p>
         </div>
         {tab === "tarifas" && (
@@ -259,7 +259,7 @@ export function TarifasClient({
           description={
             filters.q || filters.service !== "all"
               ? "Probá ajustar los filtros o limpiá la búsqueda."
-              : "Agregá tarifas por ruta para que el Cotizador y la Facturación las usen automáticamente."
+              : "Agregá tarifas por ruta para que los Estimados y la Facturación las usen automáticamente."
           }
           action={
             !filters.q && filters.service === "all" ? (

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * QuoteDrawer — calculator + form para crear/editar cotización (SDD-0011).
+ * QuoteDrawer — calculator + form para crear/editar un estimado (SDD-0011).
  *
  * - Cards de servicio (LCL/FCL) que cambian el modo del calculator
  * - Cliente: MARKBOX + nombre con lookup blando (warning si no está en catálogo)
@@ -124,7 +124,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
   };
 
   /**
-   * Crea una cotización llamando createQuote directamente (sin useActionState)
+   * Crea un estimado llamando createQuote directamente (sin useActionState)
    * y ejecuta el comportamiento `postAction` según la opción elegida en el
    * SplitActionButton:
    *
@@ -160,13 +160,13 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
       return { error: firstErr };
     }
     if (!result.ok || !result.createdCode) {
-      const m = "No se pudo crear la cotización.";
+      const m = "No se pudo crear el estimado.";
       setCreateError(m);
       return { error: m };
     }
     const code = result.createdCode;
     if (postAction === "close") {
-      toast.success(`Cotización ${code} creada`, {
+      toast.success(`Estimado ${code} creado`, {
         link: {
           href: `/studio/cotizador/${code}`,
           label: "Abrir detalle",
@@ -177,11 +177,11 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
       );
       onClose();
     } else if (postAction === "open") {
-      toast.success(`Cotización ${code} creada · abriendo detalle`);
+      toast.success(`Estimado ${code} creado · abriendo detalle`);
       router.push(`/studio/cotizador/${code}`);
       onClose();
     } else if (postAction === "reset") {
-      toast.success(`Cotización ${code} creada · empezá la siguiente`, {
+      toast.success(`Estimado ${code} creado · empezá el siguiente`, {
         link: {
           href: `/studio/cotizador?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
           label: "Ver en listado",
@@ -199,7 +199,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
     // un toast más suave sin navegación (el detail page revalida sola).
     if (mode === "create" && state.createdCode) {
       const code = state.createdCode;
-      toast.success(`Cotización ${code} creada`, {
+      toast.success(`Estimado ${code} creado`, {
         link: {
           href: `/studio/cotizador/${code}`,
           label: "Abrir detalle",
@@ -211,7 +211,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
         `/studio/cotizador?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
       );
     } else if (mode === "edit" && quote) {
-      toast.success(`Cotización ${quote.quote_code} actualizada`);
+      toast.success(`Estimado ${quote.quote_code} actualizado`);
     }
     onClose();
   }, [state.ok, state.createdCode, mode, quote, router, toast, onClose]);
@@ -255,7 +255,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
     if (!origin && suggestedRate.origin) setOrigin(suggestedRate.origin);
   };
 
-  const title = mode === "create" ? "Nueva cotización" : "Editar cotización";
+  const title = mode === "create" ? "Nuevo estimado" : "Editar estimado";
 
   return (
     <div
@@ -817,7 +817,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                   textAlign: "right",
                 }}
               >
-                Total cotizado<br />
+                Total estimado<br />
                 <span style={{ color: "var(--wine-soft)", fontWeight: 700 }}>
                   Válida hasta {validUntil}
                 </span>
@@ -909,10 +909,10 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                     key: "create-and-close",
                     idleLabel: "Crear y cerrar",
                     loadingLabel: "Creando…",
-                    successLabel: "Cotización creada",
+                    successLabel: "Estimado creado",
                     successIcon: Icon.check(14),
                     description:
-                      "Crea la cotización y vuelve al listado con la nueva resaltada.",
+                      "Crea el estimado y vuelve al listado con el nuevo resaltado.",
                     onAction: () => createWithPostAction("close"),
                   },
                   {
@@ -922,7 +922,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                     successLabel: "Abriendo detalle",
                     successIcon: Icon.check(14),
                     description:
-                      "Crea la cotización y abre su detalle para revisar o enviar al cliente.",
+                      "Crea el estimado y abre su detalle para revisar o enviar al cliente.",
                     onAction: () => createWithPostAction("open"),
                   },
                   {
@@ -932,7 +932,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
                     successLabel: "Lista la siguiente",
                     successIcon: Icon.check(14),
                     description:
-                      "Crea la cotización, limpia los campos y deja este drawer abierto para batch rápido.",
+                      "Crea el estimado, limpia los campos y deja este drawer abierto para batch rápido.",
                     onAction: () => createWithPostAction("reset"),
                   },
                 ]}

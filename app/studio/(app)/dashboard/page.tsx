@@ -4,8 +4,8 @@
  * Layout:
  *  - Header con saludo + tenant
  *  - Sección "Operativo": 4 KPIs (En tránsito / En aduana / Entregados / Con alerta)
- *  - Sección "Comercial · este mes": 4 KPIs (Clientes / Cotizaciones / Total $ / Tarifas)
- *  - Grid 2 cols: Card "Operación activa" + Card "Cotizaciones recientes"
+ *  - Sección "Comercial · este mes": 4 KPIs (Clientes / Estimados / Total $ / Tarifas)
+ *  - Grid 2 cols: Card "Operación activa" + Card "Estimados recientes"
  *
  * Todo server-fetched en paralelo. RLS filtra por tenant automáticamente.
  */
@@ -267,17 +267,17 @@ export default async function DashboardPage() {
           />
           <KpiCard
             value={quoteStats.countSent + quoteStats.countAccepted}
-            label="Cotizaciones del mes"
-            sub={`${quoteStats.countSent} enviadas · ${quoteStats.countAccepted} aceptadas`}
+            label="Estimados del mes"
+            sub={`${quoteStats.countSent} enviados · ${quoteStats.countAccepted} aceptados`}
           />
           <KpiCard
             value={`$${formatMoney(quoteStats.totalSentAndAccepted)}`}
-            label="Total cotizado"
+            label="Total estimado"
             valueColor="var(--wine)"
             sub={
               quoteStats.countAccepted > 0
-                ? `de las cuales $${formatMoney(quoteStats.totalAccepted)} aceptado`
-                : "ninguna aceptada todavía"
+                ? `de los cuales $${formatMoney(quoteStats.totalAccepted)} aceptado`
+                : "ninguno aceptado todavía"
             }
           />
           <KpiCard
@@ -310,7 +310,7 @@ export default async function DashboardPage() {
           <ActiveOperationCard total={operational.total} />
         )}
 
-        {/* Cotizaciones recientes */}
+        {/* Estimados recientes */}
         <RecentQuotesCard quotes={recentQuotes} />
 
         {/* Actividad reciente */}

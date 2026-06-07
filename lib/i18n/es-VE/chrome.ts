@@ -70,7 +70,7 @@ export const chrome = {
   "chrome.sidebar.routes_cities": "Rutas y ciudades",
   "chrome.sidebar.consolidation": "Consolidación",
   // COMERCIAL
-  "chrome.sidebar.quotes": "Cotizador",
+  "chrome.sidebar.quotes": "Estimados",
   "chrome.sidebar.clients": "Clientes",
   "chrome.sidebar.leads": "CRM · Leads",
   "chrome.sidebar.suppliers_cn": "Proveedores CN",

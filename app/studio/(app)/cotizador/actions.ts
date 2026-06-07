@@ -1,5 +1,5 @@
 /**
- * Server actions del módulo Cotizador (SDD-0011).
+ * Server actions del módulo Estimados (ex-Cotizador · SDD-0011, renombrado en SDD-0061).
  *
  * State machine:
  *   draft → sent → accepted → (convert) → shipment
@@ -25,7 +25,10 @@ import {
   type QuoteActionState,
   type QuoteInput,
 } from "@/lib/studio/quote-types";
-import { suggestRateForQuote } from "@/lib/studio/quote-queries";
+import {
+  linkEstimateToClient,
+  suggestRateForQuote,
+} from "@/lib/studio/quote-queries";
 import type { Rate } from "@/lib/studio/rate-types";
 import {
   type ShipmentService,
@@ -102,13 +105,14 @@ export async function createQuote(
     return { error: "No se pudo resolver el tenant del usuario." };
   }
 
-  // Generar quote_code atómico
+  // Generar el código del estimado atómico (EST-YYYY-NNNN, SDD-0061 Fase C).
+  // La columna sigue siendo `quote_code` (sin DDL); solo cambia el prefijo.
   const { data: codeData, error: codeErr } = await supabase.rpc(
-    "next_quote_code",
+    "next_estimate_code",
     { p_tenant_id: link.tenant_id },
   );
   if (codeErr || !codeData) {
-    return { error: "No se pudo generar el código de cotización." };
+    return { error: "No se pudo generar el código del estimado." };
   }
   const quote_code = String(codeData);
 
@@ -145,7 +149,7 @@ export async function createQuote(
   });
 
   if (error) {
-    return { error: `No se pudo crear la cotización: ${error.message}` };
+    return { error: `No se pudo crear el estimado: ${error.message}` };
   }
 
   revalidatePath("/studio/cotizador");
@@ -166,10 +170,10 @@ export async function updateQuote(
     .eq("id", id)
     .maybeSingle();
   if (readErr || !current) {
-    return { error: "Cotización no encontrada." };
+    return { error: "Estimado no encontrado." };
   }
   if (current.status !== "draft") {
-    return { error: "Solo las cotizaciones en borrador pueden editarse." };
+    return { error: "Solo los estimados en borrador pueden editarse." };
   }
 
   const partial = inputFromFormData(formData);
@@ -227,7 +231,7 @@ async function transitionStatus(
   const { data: current, error: readErr } = await supabase
     .from("quotes")
     .select(
-      "id, tenant_id, status, quote_code, client_name, client_markbox, service, origin, destination, cbm, total_usd, valid_until",
+      "id, tenant_id, status, quote_code, client_name, client_markbox, prospect_email, service, origin, destination, cbm, total_usd, valid_until",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -237,6 +241,7 @@ async function transitionStatus(
       quote_code: string;
       client_name: string | null;
       client_markbox: string | null;
+      prospect_email: string | null;
       service: ShipmentService;
       origin: string | null;
       destination: string | null;
@@ -244,7 +249,7 @@ async function transitionStatus(
       total_usd: number | null;
       valid_until: string | null;
     }>();
-  if (readErr || !current) return { error: "Cotización no encontrada." };
+  if (readErr || !current) return { error: "Estimado no encontrado." };
 
   if (current.status !== from) {
     return {
@@ -298,6 +303,8 @@ async function transitionStatus(
         validity_days: String(validityDays),
       },
       clientMarkbox: current.client_markbox,
+      // SDD-0061: estimado web sin markbox → el mail va al prospecto.
+      prospectEmail: current.prospect_email,
       clientName: current.client_name,
       sourceRef: { kind: "quote", id: current.id },
     });
@@ -337,13 +344,13 @@ export async function convertQuoteToShipment(
     )
     .eq("id", id)
     .maybeSingle();
-  if (readErr || !quote) return { error: "Cotización no encontrada." };
+  if (readErr || !quote) return { error: "Estimado no encontrado." };
 
   if (quote.status !== "accepted") {
-    return { error: "Solo cotizaciones aceptadas pueden convertirse." };
+    return { error: "Solo estimados aceptados pueden convertirse." };
   }
   if (quote.converted_to_shipment_id) {
-    return { error: "Esta cotización ya fue convertida a un embarque." };
+    return { error: "Este estimado ya fue convertido a un embarque." };
   }
 
   // Generar code del shipment basado en counter de shipments del tenant
@@ -367,7 +374,7 @@ export async function convertQuoteToShipment(
       status: "draft",
       weight_kg: quote.weight_kg,
       volume_m3: quote.cbm,
-      notes: `Convertido desde cotización ${quote.quote_code} · Total $${Number(quote.total_usd).toFixed(2)}${quote.notes ? `\n\n${quote.notes}` : ""}`,
+      notes: `Convertido desde estimado ${quote.quote_code} · Total $${Number(quote.total_usd).toFixed(2)}${quote.notes ? `\n\n${quote.notes}` : ""}`,
     })
     .select("id")
     .single();
@@ -386,6 +393,23 @@ export async function convertQuoteToShipment(
   revalidatePath(`/studio/cotizador/${quote.quote_code}`);
   revalidatePath("/studio/tracking");
   return { ok: true, shipmentId: shipment.id };
+}
+
+/**
+ * SDD-0061 Fase B2 · Slice 3 — vínculo manual de un estimado web a un cliente
+ * por MARKBOX (red de seguridad para los casos ambiguos que no resolvió el
+ * vínculo automático del registro). La validación vive en la query pura.
+ */
+export async function linkEstimateToClientAction(
+  quoteId: string,
+  markbox: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const result = await linkEstimateToClient(supabase, quoteId, markbox);
+  if (result.error) return { error: result.error };
+
+  revalidatePath("/studio/cotizador");
+  return { ok: true };
 }
 
 export async function softDeleteQuote(

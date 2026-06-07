@@ -503,10 +503,10 @@ export async function latestVesFxRate(
 
 // ── Forecast del pipeline (Slice C) ───────────────────────────
 /**
- * Estados de cotización que entran al forecast: `accepted` (pendiente de
- * embarcar) y `sent` (esperando respuesta). El bucketing fino (y descartar las
- * aceptadas ya convertidas) lo hace `buildForecast` en ui.ts; acá solo se
- * acota la query para no traer borradores/rechazadas/vencidas.
+ * Estados de estimado que entran al forecast: `accepted` (pendiente de
+ * embarcar) y `sent` (esperando respuesta). El bucketing fino (y descartar los
+ * aceptados ya convertidos) lo hace `buildForecast` en ui.ts; acá solo se
+ * acota la query para no traer borradores/rechazados/vencidos.
  */
 const FORECAST_QUOTE_STATUSES: QuoteStatus[] = ["accepted", "sent"];
 
@@ -514,8 +514,8 @@ const FORECAST_QUOTE_COLUMNS =
   "id, tenant_id, quote_code, client_markbox, client_name, service, origin, destination, cbm, weight_kg, boxes, packaging, rate_per_cbm, flat_rate, rate_used_id, subtotal_usd, packaging_cost, total_usd, status, valid_until, sent_at, accepted_at, converted_to_shipment_id, notes, created_at, updated_at, deleted_at";
 
 /**
- * Cotizaciones del pipeline para el forecast (aceptadas + enviadas), no
- * borradas. RLS por tenant. El cruce con templates y el cálculo del margen
+ * Estimados del pipeline para el forecast (aceptados + enviados), no
+ * borrados. RLS por tenant. El cruce con templates y el cálculo del margen
  * proyectado son puros (`buildForecast` en ui.ts).
  */
 export async function forecastQuotes(

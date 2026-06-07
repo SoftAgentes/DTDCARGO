@@ -4,7 +4,7 @@
 const { useState } = React;
 
 const LANE_DOC = [
-{ label: 'Comercial', tone: 'info', icon: 'spark', resp: 'Ventas · CRM', desc: 'Capta el lead, cotiza puerta a puerta (DDP) y convierte al cliente con su MARKBOX. Cierra y, al final del ciclo, fideliza.' },
+{ label: 'Comercial', tone: 'info', icon: 'spark', resp: 'Ventas · CRM', desc: 'Capta el lead, estima puerta a puerta (DDP) y convierte al cliente con su MARKBOX. Cierra y, al final del ciclo, fideliza.' },
 { label: 'Operatividad', tone: 'wine', icon: 'ship', resp: 'Operaciones · Almacenes', desc: 'Mueve la carga de China a Venezuela: orden de pedido, recepción en CN, consolidación, zarpe, tránsito, aduana, almacén VE y última milla.' },
 { label: 'Contabilidad', tone: 'success', icon: 'invoice', resp: 'Finanzas', desc: 'Factura lo que llega, cobra el anticipo y el saldo, registra las CxP (naviera, aduana, transportes) y concilia el cierre del embarque.' },
 { label: 'Servicio al cliente', tone: 'warning', icon: 'chat', resp: 'Soporte · CX', desc: 'Atiende conversaciones (WhatsApp, correo, portal), gestiona casos e incidencias y cierra los casos midiendo la satisfacción (CSAT).' }];
@@ -51,7 +51,7 @@ function GuideApp() {
             <h1 style={{ margin: 0, font: '800 30px/1.05 var(--f-display)', letterSpacing: '-0.02em' }}>Mapa de Proceso · cómo funciona</h1>
             <p style={{ margin: '10px 0 0', font: '500 14px/1.6 var(--f-sans)', color: 'var(--ink-soft)', maxWidth: 640 }}>
               El flujo de trabajo de extremo a extremo: las cuatro líneas de negocio, los enlaces que las atan y el motor de
-              automatizaciones. Con confianza, de China a tu puerta.
+              automatizaciones. Con Confianza, de China a tu puerta.
             </p>
           </div>
           <div style={{ display: 'flex', gap: 8 }} className="g-noprint">

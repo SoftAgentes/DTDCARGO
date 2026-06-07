@@ -3,9 +3,9 @@
 
 const { useState: _lUseState, useMemo: _lUseMemo, useRef: _lUseRef } = React;
 
-const STAGES = ['nuevo', 'cotización', 'demo', 'propuesta', 'ganado', 'descartado'];
+const STAGES = ['nuevo', 'estimado', 'demo', 'propuesta', 'ganado', 'descartado'];
 const STAGE_COLOR = {
-  nuevo: 'info', cotización: 'wine', demo: 'warning',
+  nuevo: 'info', estimado: 'wine', demo: 'warning',
   propuesta: 'wine', ganado: 'success', descartado: 'neutral',
 };
 
@@ -317,7 +317,7 @@ function KanbanLeads({ leads, onMove, onOpen }) {
 function LeadCard({ l, onClick, onDragStart, onDragEnd, isDragging }) {
   const U = window.ERPUI;
   const sourceIcon = {
-    'Web · cotizador': 'calc', 'Instagram': 'globe', 'LinkedIn': 'shield',
+    'Web · estimador': 'calc', 'Instagram': 'globe', 'LinkedIn': 'shield',
     'Referido': 'star', 'Google Ads': 'spark'
   }[l.source] || 'spark';
   const ownerInitials = l.owner.split(' ').map(w => w[0]).slice(0, 2).join('');
@@ -401,7 +401,7 @@ function TimelineLeads({ leads, onOpen }) {
       </div>
       {sorted.map((l, i) => {
         const sourceIcon = {
-          'Web · cotizador': 'calc', 'Instagram': 'globe', 'LinkedIn': 'shield',
+          'Web · estimador': 'calc', 'Instagram': 'globe', 'LinkedIn': 'shield',
           'Referido': 'star', 'Google Ads': 'spark'
         }[l.source] || 'spark';
         return (
@@ -429,7 +429,7 @@ function TimelineLeads({ leads, onOpen }) {
               <span style={{ color: 'var(--success)' }}>{window.Icon.check(18)}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>Cliente creado · {lead.convertedMarkbox}</div>
-                <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>El MARKBOX se asignó automáticamente. Ya podés crear cotizaciones y embarques para este cliente.</div>
+                <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>El MARKBOX se asignó automáticamente. Ya podés crear estimados y embarques para este cliente.</div>
               </div>
               <U.Btn variant="primary" size="sm" iconRight={window.Icon.arrowR(12)} onClick={() => { onClose(); window.__erpGoTo?.('clients', lead.convertedMarkbox, 'detail'); }}>Abrir cliente</U.Btn>
             </div>

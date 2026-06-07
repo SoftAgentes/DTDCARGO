@@ -178,7 +178,7 @@
           <div style={{ padding: 16, background: 'var(--success-bg)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--success)' }}>{ic('check', 18)}</span>
             <div style={{ font: '500 12.5px/1.55 var(--f-sans)', color: 'var(--ink)' }}>
-              Regla <b>{rname}</b> creada · {cust} · {isFixed ? `precio fijo ${fmt(val)}` : `${dir.toLowerCase()} ${val}%`}{needsN ? ` cuando ${cond} ${condN}` : ''}{round !== 'Sin redondeo' ? ` · redondeo ${round}` : ''}. Se aplica sobre la tarifa vigente al cotizar.
+              Regla <b>{rname}</b> creada · {cust} · {isFixed ? `precio fijo ${fmt(val)}` : `${dir.toLowerCase()} ${val}%`}{needsN ? ` cuando ${cond} ${condN}` : ''}{round !== 'Sin redondeo' ? ` · redondeo ${round}` : ''}. Se aplica sobre la tarifa vigente al estimar.
             </div>
           </div>
         ) : (
@@ -285,7 +285,7 @@
         )}
         {view === 'reglas' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Ajustes automáticos de precio por cliente, volumen o temporada — se aplican sobre la tarifa vigente al cotizar.</div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Ajustes automáticos de precio por cliente, volumen o temporada — se aplican sobre la tarifa vigente al estimar.</div>
             {RULES.map(([t, d, tone]) => (
               <div key={t} style={row}>
                 <span style={{ color: 'var(--wine)' }}>{ic('tag', 15, 'box')}</span>
@@ -662,7 +662,7 @@
               <div style={{ font: '800 9.5px/1 var(--f-sans)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--wine)' }}>Parte contable</div>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                 <input type="checkbox" checked readOnly style={{ accentColor: 'var(--wine)', width: 15, height: 15, marginTop: 2 }} />
-                <span style={{ font: '600 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Lo vendo a clientes <span style={{ color: 'var(--ink-mute)', fontWeight: 500 }}>· aparece en cotizaciones y facturas</span></span>
+                <span style={{ font: '600 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Lo vendo a clientes <span style={{ color: 'var(--ink-mute)', fontWeight: 500 }}>· aparece en estimados y facturas</span></span>
               </label>
               <div><Label>Descripción de venta</Label><input value={sellDesc} onChange={(e) => setSellDesc(e.target.value)} placeholder="Texto que ve el cliente en la factura" style={inputBox} /></div>
               {!isGroup && (

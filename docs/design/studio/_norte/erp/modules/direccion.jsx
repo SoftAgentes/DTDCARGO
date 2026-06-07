@@ -22,7 +22,7 @@ function ModuleDireccion({ goTo }) {
   const ingresos = safe(() => pl.totalIngresos, 0);
   const utilidad = safe(() => pl.utilidadNeta, 0);
   const margen = ingresos ? (utilidad / ingresos) * 100 : 0;
-  const cxc = safe(() => C.accountBalance('1.1.10'), 0);
+  const cxc = safe(() => C.accountBalance('1.05.01'), 0);
   const caja = safe(() => T.totalCashUsd(), 0);
   const cxp = safe(() => T.totalOpenUsd(), 0);
   const overdue = safe(() => T.overduePayables(), []);
@@ -33,7 +33,7 @@ function ModuleDireccion({ goTo }) {
 
   // ── Operación ──
   const ships = safe(() => D.SHIPMENTS, []);
-  const activos = ships.filter(s => !['entregado', 'liberado', 'cotizado'].includes(s.status));
+  const activos = ships.filter(s => !['entregado', 'liberado', 'estimado'].includes(s.status));
   const enRuta = activos.reduce((s, x) => s + (x.value || 0), 0);
   const consol = safe(() => N.consolidating(), []);
   const utilMedia = consol.length ? consol.reduce((s, c) => s + safe(() => N.containerStats(c).cbmPct, 0), 0) / consol.length : 0;
