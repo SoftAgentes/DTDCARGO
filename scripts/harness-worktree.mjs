@@ -1,6 +1,7 @@
-#!/usr/bin/env node
 /**
  * scripts/harness-worktree.mjs — gestión de worktrees del harness DTD Cargo.
+ * (sin shebang a propósito: se importa desde tests y vite/rolldown no tolera
+ *  el shebang al hoistear los imports; se invoca con `node scripts/...`.)
  *
  * Aísla cada feature/lane en su propia carpeta (worktree) para que el trabajo
  * NUNCA caiga en `main` (la rama de integración). Implementa la pieza
