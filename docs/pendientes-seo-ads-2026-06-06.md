@@ -1,7 +1,8 @@
 # Pendientes — SEO · Ads · Performance (sesión 2026-06-06)
 
-> Checklist para ir tachando. Lo de hoy YA está en prod (main); esto es lo que **falta**.
-> Archivo de trabajo (sin trackear en git). Borralo o commitealo cuando quieras.
+> ⚠️ **SUPERADO (2026-06-07).** Este checklist quedó atrasado. El estado actual + el plan de acción vivo están en **[`docs/marketing/plan-accion-digital.md`](marketing/plan-accion-digital.md)** (incorpora todo lo de hoy: migración de dominio, rename, GA4 verificado, Ads migrado, etc.). Se conserva como registro histórico.
+>
+> Checklist original (sesión 06-06):
 
 ---
 

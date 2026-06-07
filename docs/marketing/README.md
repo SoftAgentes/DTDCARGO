@@ -7,6 +7,7 @@
 ## Cómo usar este tree
 
 - **Punto de entrada = este README** (índice + estado + reglas).
+- **Plan maestro de acción** (digital + Google Ads, con la auditoría de los 4 activos + las 5 prioridades y su estado): [`plan-accion-digital.md`](plan-accion-digital.md).
 - **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
 - La **memoria del agente** (cross-sesión) referencia este tree como fuente de verdad; este tree es lo versionado y compartido por git.
 - El **puntero en `AGENTS.md`** (sección Marketing) hace que todos los agentes lleguen acá automáticamente.
@@ -20,13 +21,21 @@
 - Cuenta **"Dooortudoor services"** (ocid `579348138`).
 - **2 campañas PAUSADAS** (reactivables): **DoorTuDoor Trafico** (Búsqueda, la probada, 4.231 conv) · **Importar de China-Venezuela** (Smart). **7 removidas** (archivo).
 - Conversión **"Click WhatsApp"** (`AW-561290482/qbu2CILjn7ocEPK50osC`) cableada en `components/Analytics.tsx`.
-- **Dominio de las Final URLs:** Smart → `dtdcargo.com` (nuevo ✅); Search probada → `https://doortudoor.com/` (viejo ⚠️, migrar a `dtdcargo.com/estimacion` al reactivar — recrea el RSA).
+- **Dominio de las Final URLs: ✅ MIGRADO al nuevo (2026-06-07).** Smart → `dtdcargo.com`. Search probada → `dtdcargo.com/estimacion` + sus **3 sitelinks** (`/servicios`, `/`, `/calculadora`). Campaña sigue **pausada**.
+- **Reestructura (prioridad 3): copy-paste-ready en [`ads-reestructura-search.md`](ads-reestructura-search.md)** — 6 grupos temáticos + keywords frase/exacta + lista de negativas + RSAs + disciplina anti-pausa.
 - ⚠️ **Cambiar la Final URL de un anuncio = SEO-neutral** (los ads son pagos, no afectan ranking orgánico).
 
 ### 📊 Analítica — GA4 + GTM
 - Sin contenedores GTM en código → **gtag.js directo**: GA4 `G-25CD7BZH98` + Ads `AW-561290482` en `components/Analytics.tsx`.
 - **GA NO carga en rutas privadas** (`/studio /portal /m /back /invitar`) → evita mandar PII a Google.
-- **Pendiente:** re-apuntar el flujo de datos del dominio viejo `doortudoor.com → dtdcargo.com` + borrar **2 contenedores GTM sin uso** (la baja la hace el founder; eliminar data es manual). Ver memoria `project_google_analytics_ga4`.
+- ✅ **Flujo verificado en dtdcargo.com (2026-06-07):** propiedad única "dtdcargo.com" (cuenta DTD Cargo `396905128`), stream → `https://dtdcargo.com`, recibiendo datos. Cuenta vieja "DoorTuDoor" (`208873909`) = dormida.
+- **Pendiente (founder):** borrar **2 contenedores GTM sin uso** (`GTM-KWRDZS4`, `GTM-PD3JF2GW`) — no se usan (es gtag directo). Ver memoria `project_google_analytics_ga4`.
+
+### 📱 Redes / Canales sociales (auditoría 2026-06)
+- **Instagram `@doortudoor_`** — 5.003 seguidores · 128 posts · audiencia activa · destacados por intención (Q&A, Servicios, Visa) + reels educativos. 🟢 **El canal más fuerte** (fuente de contenido para reciclar).
+- **YouTube `@doortudoor`** — 223 subs · 11 videos (podcast sobre China). 🔴 Abandonado → reactivar reciclando IG (prioridad 5).
+- **Google Business Profile (Valencia)** — ⏳ verificar + reseñas (prioridad 2, founder). Tracción local.
+- Detalle/plan en [`plan-accion-digital.md`](plan-accion-digital.md).
 
 ### 🤝 CRM — Kommo
 Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuente externa, no el CRM de prod. Ver memoria `project_sdd0043_kommo_connector`.
