@@ -13,7 +13,7 @@ import { sanitizeDecimalText, parseDecimalInput } from "@/lib/calculadora";
  * teclado numérico en móvil. El valor numérico viaja al padre vía onValueChange.
  *
  * Compartido por la calculadora LCL (/calculadora) y la del último km
- * (/cotizar) — fuente única para no duplicar la lógica del separador.
+ * (/calculadora-terrestre) — fuente única para no duplicar la lógica del separador.
  */
 export function DecimalInput({
   value,

@@ -13,8 +13,9 @@
  *    (admin/disenador/editor) lo hace requireAnyBackRole() en el layout
  *    protegido — acá solo gatekeep sesión vs no-sesión.
  *
- * El sitio público (/, /calculadora, /cotizar, /servicios, /contacto, /track)
- * queda intocado y con cero overhead (matcher abajo no los incluye).
+ * El sitio público (/, /calculadora, /calculadora-terrestre, /estimacion,
+ * /servicios, /contacto, /track) queda intocado y con cero overhead (matcher
+ * abajo no los incluye).
  *
  * Referencia oficial: https://supabase.com/docs/guides/auth/server-side/nextjs
  * Next.js 16 proxy: https://nextjs.org/docs/messages/middleware-to-proxy
@@ -100,7 +101,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   // Solo correr en rutas /studio/** y /back/**.
-  // El sitio publico (/, /calculadora, /cotizar, /servicios, /contacto, /track, etc.)
-  // queda intocado y con cero overhead.
+  // El sitio publico (/, /calculadora, /calculadora-terrestre, /estimacion,
+  // /servicios, /contacto, /track, etc.) queda intocado y con cero overhead.
   matcher: ["/studio/:path*", "/back/:path*"],
 };

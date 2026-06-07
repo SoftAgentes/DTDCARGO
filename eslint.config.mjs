@@ -31,10 +31,11 @@ const eslintConfig = defineConfig([
     // Marketing + tracking público + componentes raíz: cero código del ERP, cero @supabase.
     // (app/invitar/ NO está acá: es onboarding del Studio y usa DB por diseño.)
     files: [
-      "app/cotizar/**",
+      "app/estimacion/**",
       "app/track/**",
       "app/contacto/**",
       "app/calculadora/**",
+      "app/calculadora-terrestre/**",
       "app/servicios/**",
       "app/noticias/**",
       "app/glosario/**",

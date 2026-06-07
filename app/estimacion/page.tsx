@@ -4,40 +4,40 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
-import { CotizarForm } from "@/components/CotizarForm";
+import { EstimacionForm } from "@/components/EstimacionForm";
 
 export const metadata: Metadata = {
-  title: "Cotiza tu envío",
+  title: "Estimación inicial",
   description:
-    "Cotización inicial DDP en ~24h hábiles. Ingresá origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
-  alternates: { canonical: "/cotizar" },
+    "Estimación inicial DDP en ~24h hábiles. Ingresá origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
+  alternates: { canonical: "/estimacion" },
   ...socialMeta({
-    title: "Cotiza tu envío · DTD Cargo",
+    title: "Estimación inicial · DTD Cargo",
     description:
-      "Cotización inicial DDP en ~24h hábiles. Ingresá origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
-    path: "/cotizar",
+      "Estimación inicial DDP en ~24h hábiles. Ingresá origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
+    path: "/estimacion",
   }),
 };
 
-export default function CotizarPage() {
+export default function EstimacionPage() {
   return (
     <>
       <Nav />
       <BreadcrumbJsonLd
         items={[
           { name: "Inicio", path: "/" },
-          { name: "Cotizar", path: "/cotizar" },
+          { name: "Estimación", path: "/estimacion" },
         ]}
       />
       <main className="py-16 lg:py-24 bg-paper min-h-screen">
         <div className="wrap grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-12 lg:gap-16">
           <div>
-            <span className="eyebrow">Cotiza</span>
+            <span className="eyebrow">Estimación</span>
             <h1
               className="h-display mt-5"
               style={{ fontSize: "clamp(36px, 5vw, 64px)" }}
             >
-              Cotización inicial
+              Estimación inicial
               <br />
               <span style={{ color: "var(--color-wine)" }}>en ~24h hábiles.</span>
             </h1>
@@ -80,7 +80,7 @@ export default function CotizarPage() {
             </div>
           </div>
 
-          <CotizarForm />
+          <EstimacionForm />
         </div>
       </main>
       <Footer />
