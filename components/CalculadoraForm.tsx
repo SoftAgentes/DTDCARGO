@@ -99,12 +99,23 @@ export function CalculadoraForm({
     window.scrollTo({ top: y, behavior: "smooth" });
   }, [calcTick]);
 
+  // Vibración mínima del precio: arranca 5 s DESPUÉS de que el cliente cotiza
+  // (le damos tiempo a leer el número, y recién ahí el precio "pide" atención).
+  // Se resetea en cada nuevo cálculo.
+  const [vibratePrice, setVibratePrice] = useState(false);
+  useEffect(() => {
+    if (calcTick === 0) return;
+    const t = setTimeout(() => setVibratePrice(true), 5000);
+    return () => clearTimeout(t);
+  }, [calcTick]);
+
   function update<K extends keyof EnvioInput>(key: K, value: EnvioInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
   function handleCalcular() {
     setActivo(true);
+    setVibratePrice(false); // reset: vuelve a esperar 5 s antes de vibrar
     setCalcTick((t) => t + 1);
   }
 
@@ -254,7 +265,7 @@ export function CalculadoraForm({
         className={`flex flex-col ${cotizacion ? "lg:sticky lg:self-start lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto" : ""}`}
       >
         {cotizacion ? (
-          <CotizacionDisplay cotizacion={cotizacion} input={form} params={params} />
+          <CotizacionDisplay cotizacion={cotizacion} input={form} params={params} vibrate={vibratePrice} />
         ) : (
           <div className="hidden lg:flex h-full">
             <FinanciamientoPanel />
@@ -369,10 +380,13 @@ function CotizacionDisplay({
   cotizacion,
   input,
   params,
+  vibrate,
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
   params: CalcParams;
+  /** Activa la vibración mínima del precio (5 s post-cálculo). */
+  vibrate: boolean;
 }) {
   const cot = cotizacion;
   const hasAlerta = !!cot.alerta;
@@ -393,7 +407,9 @@ function CotizacionDisplay({
           <div className="flex items-baseline gap-2">
             <span className="text-[14px] text-white/55">US$</span>
             <span
-              className="text-[56px] leading-[1] text-whatsapp"
+              className={`text-[56px] leading-[1] text-white inline-block ${
+                vibrate ? "price-vibrate" : ""
+              }`}
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
               {cot.total.toFixed(0)}

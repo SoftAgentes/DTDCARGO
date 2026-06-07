@@ -500,6 +500,22 @@
   }
 }
 
+/* Vibración MÍNIMA del precio del estimado — micro-temblor sutil. Se activa
+   con la clase .price-vibrate (la agrega el JS 5s después de cotizar). Calmo la
+   mayoría del ciclo + un temblorcito breve. reduced-motion lo neutraliza. */
+.price-vibrate {
+  animation: price-vibrate 2.6s ease-in-out infinite;
+}
+
+@keyframes price-vibrate {
+  0%, 86%, 100% { transform: translateX(0); }
+  89% { transform: translateX(-2px); }
+  91% { transform: translateX(2px); }
+  93% { transform: translateX(-2px); }
+  95% { transform: translateX(2px); }
+  97% { transform: translateX(-1px); }
+}
+
 /* ──────────────────────────────────────────────────────────────────
    FAB Instagram — secundario, aparece arriba del WA al expandir el menú.
    Anim "born from dot": transform-origin bottom-right + translate(5,7) lo posiciona
