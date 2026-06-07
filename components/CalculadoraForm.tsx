@@ -407,7 +407,7 @@ function CotizacionDisplay({
           )}
           {/* Badge financiamiento — destacado y con micro-animación (breathing
               + dot "vivo") para llamar la atención sobre el gancho comercial. */}
-          <div className="fin-badge mt-4 inline-flex items-center gap-2.5 text-[13.5px] font-semibold rounded-[12px] px-4 py-2.5 bg-white/15 text-white">
+          <div className="fin-badge mt-4 inline-flex items-center gap-2.5 text-[13.5px] font-semibold rounded-[12px] px-4 py-2.5 bg-white/20 text-white">
             <span className="fin-badge-dot" aria-hidden="true" />
             Financiamiento 100% · pagás al llegar a Venezuela*
           </div>
