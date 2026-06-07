@@ -451,37 +451,52 @@
    ────────────────────────────────────────────────────────────────── */
 
 .fin-badge {
-  animation: fin-badge-pulse 2.1s ease-in-out infinite;
+  animation: fin-badge-attn 3.2s ease-in-out infinite;
 }
 
-@keyframes fin-badge-pulse {
-  0%, 100% {
-    transform: scale(1);
+/* Ciclo de atención: calmo ~55% del tiempo, luego un "shake" (vibración) con
+   burst de glow, y vuelve a calmar. Más intenso que un breathing simple, para
+   que el gancho comercial salte a la vista (pedido founder). */
+@keyframes fin-badge-attn {
+  0%, 55%, 100% {
+    transform: translateX(0) scale(1);
     box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
-  50% {
-    transform: scale(1.045);
-    box-shadow: 0 0 22px 2px rgba(255, 255, 255, 0.22);
+  60% {
+    transform: scale(1.07);
+    box-shadow: 0 0 28px 5px rgba(255, 255, 255, 0.34);
+  }
+  64% { transform: translateX(-3px) scale(1.04); }
+  68% { transform: translateX(3px) scale(1.04); }
+  72% { transform: translateX(-3px) scale(1.04); }
+  76% { transform: translateX(3px) scale(1.04); }
+  80% {
+    transform: translateX(0) scale(1.07);
+    box-shadow: 0 0 28px 5px rgba(255, 255, 255, 0.34);
+  }
+  90% {
+    transform: translateX(0) scale(1);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
 }
 
 .fin-badge-dot {
-  width: 7px;
-  height: 7px;
+  width: 8px;
+  height: 8px;
   border-radius: 9999px;
   background: #fff;
   flex-shrink: 0;
-  animation: fin-badge-dot 1.5s ease-in-out infinite;
+  animation: fin-badge-dot 1.1s ease-in-out infinite;
 }
 
 @keyframes fin-badge-dot {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.6);
   }
   50% {
-    transform: scale(0.6);
-    box-shadow: 0 0 0 7px rgba(255, 255, 255, 0);
+    transform: scale(0.55);
+    box-shadow: 0 0 0 9px rgba(255, 255, 255, 0);
   }
 }
 
