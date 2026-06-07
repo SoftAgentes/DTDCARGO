@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
-import { CONFIG, CIUDADES, DEFAULT_PARAMS } from "@/lib/calculadora";
+import { CIUDADES } from "@/lib/calculadora";
 import {
   getPublicCbmRate,
   getPublicCalculatorConfig,
@@ -71,11 +71,6 @@ export default async function CalculadoraPage() {
     getPublicCalculatorConfig(),
     getPublicCalculatorCities(),
   ]);
-  const baseRate = serverRate?.per_cbm && serverRate.per_cbm > 0
-    ? serverRate.per_cbm
-    : CONFIG.tarifaBaseCBM;
-  // Reglas reales (peso incluido, $/kg, descuento, etc.) o defaults.
-  const params = serverConfig ?? DEFAULT_PARAMS;
   // Ciudades reales (de /studio/tarifas › Ciudades) o el array hardcoded.
   // Selector público acotado al CASCO CENTRAL (sin recargo): el precio por km
   // de las demás ciudades está en revisión (tarifa cambiante), así que por
@@ -120,61 +115,9 @@ export default async function CalculadoraPage() {
             />
           </div>
         </section>
-
-        {/* FAQ — Cómo se calcula */}
-        <section className="pb-20">
-          <div className="wrap max-w-[860px]">
-            <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-8 lg:p-10">
-              <span className="eyebrow inline-flex">¿Cómo funciona?</span>
-              <h3
-                className="mt-4 text-[24px] lg:text-[28px] leading-[1.15] tracking-[-0.01em] text-ink"
-                style={{ fontFamily: "var(--font-archivo-black)" }}
-              >
-                Tarifa transparente, sin sorpresas.
-              </h3>
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 text-[14.5px] leading-[1.55] text-grey-700">
-                <Bloque
-                  titulo={`$${baseRate} por CBM (m³)`}
-                  texto="Tarifa base de la modalidad LCL DDP (Less than Container Load, puerta a puerta con todo incluido). Aplica al volumen real de tu carga."
-                />
-                <Bloque
-                  titulo={`${params.pesoIncluidoKg} kg/CBM incluidos`}
-                  texto={`Hasta ese peso por metro cúbico no hay recargo. Sobre eso, cobramos $${params.recargoExcedenteKg} por kilo de excedente. Si superás ${params.pesoMaxKg} kg/CBM, te orientamos a FCL.`}
-                />
-                <Bloque
-                  titulo="Casco central sin recargo"
-                  texto={`${params.descuentoValencia > 0 ? `Entregas en Valencia (-$${params.descuentoValencia}), Maracay` : "Valencia, Maracay"} y Caracas centro: tarifa plana.`}
-                />
-                <Bloque
-                  titulo="Embalaje incluido"
-                  texto={`Caja estándar sin recargo. Caja especial (madera o paleta) suma $${params.recargoEmbalajeEspecial} por la manipulación adicional.`}
-                />
-                <Bloque
-                  titulo="Financiamiento 100%"
-                  texto="No pagás nada mientras tu carga viaja. La cobranza arranca cuando llega a Venezuela y la entrega es contra pago — todo incluido, sin sorpresas en aduana.*"
-                />
-              </div>
-              <p className="mt-6 text-[12px] text-grey-500">*Aplican restricciones.</p>
-            </div>
-          </div>
-        </section>
       </main>
       <Footer />
       <WhatsAppFAB />
     </>
-  );
-}
-
-function Bloque({ titulo, texto }: { titulo: string; texto: string }) {
-  return (
-    <div>
-      <div
-        className="text-[15px] mb-1.5 text-ink"
-        style={{ fontFamily: "var(--font-archivo-black)" }}
-      >
-        {titulo}
-      </div>
-      <p>{texto}</p>
-    </div>
   );
 }
