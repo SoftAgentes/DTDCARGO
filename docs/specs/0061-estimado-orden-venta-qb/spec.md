@@ -1,7 +1,7 @@
 ---
 sdd: "0061"
 title: "Estimado → Orden de venta (modelo QuickBooks): retira 'cotización', captura el estimado web en el ERP y lo vincula al registro del cliente"
-status: draft
+status: in-progress
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
 created: 2026-06-07
 updated: 2026-06-07
@@ -156,11 +156,11 @@ Orden de venta (confirmada) → Embarque (operar) + Factura (cobrar) → Cobranz
 - [ ] `pnpm lint` 🟢 (frontera + allowlists). `e2e/smoke.spec.ts` verde con rutas nuevas. `ui-ux-designer` OK.
 
 ### Fase B
-- [ ] Modal de nota (+ nombre/teléfono en `/calculadora`) antes del envío; el WhatsApp incluye nota + datos + `EST-XXXX`.
-- [ ] Un clic crea el Estimado en el ERP ("web · por revisar") **y** abre WhatsApp; el estimado persiste sin depender del envío.
-- [ ] CTA opcional de registro con `?est=`; al registrarse, vínculo automático (o por teléfono+email exacto).
-- [ ] Búsqueda por número de estimado + "Vincular a cliente" en el ERP.
-- [ ] Migración aditiva (no rompe `quotes`); frontera intacta (form público sin Supabase). `node scripts/verify.mjs` 🟢.
+- [x] Modal de nota (+ nombre/teléfono en `/calculadora`) antes del envío; el WhatsApp incluye nota + datos + `EST-XXXX`. *(B1)*
+- [x] Un clic crea el Estimado en el ERP ("web · por revisar") **y** abre WhatsApp; el estimado persiste sin depender del envío. *(B1)*
+- [x] CTA opcional de registro con `?est=`; al registrarse, vínculo automático (o por teléfono+email exacto). *(B2)*
+- [x] Búsqueda por número de estimado + "Vincular a cliente" en el ERP. *(B2)*
+- [x] Migración aditiva (no rompe `quotes`); frontera intacta (form público sin Supabase). `node scripts/verify.mjs` 🟢. *(B1 migr 0113 · B2 sin migración)*
 
 ### Fase C
 - [ ] "Cotización" no aparece en UI/copy/códigos del ERP; módulo = "Estimados"; códigos `EST-`.
@@ -224,6 +224,31 @@ Sin mockup del Norte aprobado para estas pantallas todavía. UI reusa primitivas
 **Gate:** `node scripts/verify.mjs` 🟢 (1284 tests).
 
 **Pendiente founder:** aplicar `0113` a prod. **Pendiente review:** `reviewer` + `ui-ux-designer` (modal nuevo).
+
+### Fase B — Slice B2 implementado (2026-06-07 · harness implement→verify→review)
+
+**Alcance B2** (puntos 1-5 de "Fase B"): vínculo estimado web ↔ cliente (automático por código + por datos, manual desde el módulo), búsqueda + cola "web · por revisar", cruce con Kommo por teléfono, mail a prospecto. **SIN migración nueva** — todo se monta sobre el schema de `0113` (B1). **EXCLUIDO:** Fase C (rename interno cotización→estimado) y Fase D (modelo QB).
+
+**Archivos (16: 2 nuevos + 14 modificados):**
+- `lib/studio/estimado-linking.ts` (NUEVO, **lógica pura boundary-safe**, sin Supabase): `normalizePhone`/`phonesMatch` (compara los **últimos 10 dígitos** = número nacional VE, tolera `+58`/`0`/bare sin falsos positivos por prefijo), `emailsMatch` (exacto case-insensitive), `prospectMatches` (Slice 2: exige teléfono **Y** email), `resolveClientRecipientEmail` (Slice 5: override → markbox → prospecto).
+- `lib/studio/__tests__/estimado-linking.test.ts` (NUEVO, 18 it): cubre los 4 predicados incl. casos de formato de teléfono, email vacío, match parcial, y la cascada de destinatario.
+- `lib/studio/quote-queries.ts`: `QUOTE_COLUMNS` + `prospect_*`/`nota`/`source`; filtro `source` (`web`/`studio`/`web_review` = web sin vincular); búsqueda por `prospect_*`; **3 funciones de vínculo** — `linkEstimateByCode` (Slice 1), `linkEstimatesByContact` (Slice 2, narrow por email en DB + `prospectMatches` en JS), `linkEstimateToClient` (Slice 3 manual, valida cliente-en-tenant + snapshot del nombre). Todas idempotentes: solo tocan `source='web'` + `client_markbox is null` + vivas, con guard anti-race en el UPDATE.
+- `lib/studio/quote-types.ts`: `Quote.client_markbox` → **nullable**; cols nuevas; `QuoteSource`; helper `isUnlinkedWebEstimate`.
+- `app/portal/(auth)/registro/{page,RegisterForm,actions}.tsx/.ts`: **Slice 1+2** — `page` lee `?est=` (capado 40 chars) → `RegisterForm` (aviso sobrio + hidden `est`) → `actions` paso **6b** (best-effort en try/catch, NO rompe el alta): `linkEstimateByCode` primero, si no `linkEstimatesByContact`.
+- `components/EstimacionForm.tsx` + `components/CalculadoraForm.tsx`: **Slice 1 (CTA público)** — "Registrate y obtené tu MARKBOX" → `/portal/registro?est=EST-XXXX` (en el success de EstimacionForm; banner post-estimado en CalculadoraForm). **Boundary-safe**: solo `<Link>`, cero imports del ERP.
+- `app/studio/(app)/cotizador/`: **Slice 3 UI** — `_components/CotizadorClient.tsx` (chip "Web · por revisar" en `studio-btn-warning` + badge "Web · sin vincular"), `[code]/page.tsx` (sección "Prospecto · capturado de la web" + nota + MARKBOX "— sin vincular —"), `_components/QuoteDetailClient.tsx` (panel "Vincular a cliente" con acento wine + advisory Kommo), `actions.ts` (`linkEstimateToClientAction`).
+- `lib/studio/kommo-convert.ts`: **Slice 4** — `findKommoContactsByPhone` (reusa `parseContactFields` + `phonesMatch`; advisory, cap 500 recientes — el teléfono vive en `custom_fields` jsonb, no en columna).
+- `lib/studio/mail/mail-rule-engine.ts` + `cotizador/actions.ts`: **Slice 5** — `FireMailEventInput.prospectEmail` resuelto vía `resolveClientRecipientEmail`; `transitionStatus` pasa `prospect_email` → un estimado web sin markbox le manda el mail al prospecto.
+- `lib/studio/costing/__tests__/sliceC.test.ts`: fixture `Quote` actualizado con las cols nuevas (typecheck).
+
+**Decisiones de implementación:**
+- **Sin migración:** B2 no toca DDL — `client_markbox` nullable, `prospect_*`/`nota`/`source` y el índice `quotes_tenant_source_idx` ya vienen de `0113`.
+- **Slice 2 = teléfono Y email** (decisión founder §3.6): `prospectMatches` exige ambos; un estimado sin email no se vincula por datos (queda para código o manual).
+- **Frontera intacta:** el linkeo lo hacen el admin client del registro (Slices 1/2) y el client RLS del Studio (Slice 3); los componentes públicos solo agregan un `<Link>`.
+
+**Gate:** `node scripts/verify.mjs` 🟢 (1302 tests). **Review:** `reviewer` **APPROVED** (0 findings bloqueantes); `ui-ux-designer` "ship it" (aplicado A1: chip activo `studio-btn-warning`; B2 alineación input↔botón; B3 acento wine al panel de vínculo).
+
+**Pendiente founder:** B2 no necesita migración (0113 ya en prod). Resto del SDD pendiente: Fase C (rename interno) y Fase D (modelo QB).
 
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->
