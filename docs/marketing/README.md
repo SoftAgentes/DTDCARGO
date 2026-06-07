@@ -1,0 +1,68 @@
+# Marketing — DTD Cargo
+
+> **Tree canónico de TODO lo externo para captar clientes:** SEO, publicidad (Google Ads), analítica (GA4/GTM), CRM, contenido, captación de leads, marca→web.
+>
+> **Convención (decisión founder, 2026-06-07):** todo lo de marketing / publicidad / SEO que hagamos **de aquí en adelante vive en este tree** (`docs/marketing/`). Cualquier agente que trabaje un tema de marketing **rutea acá**. El material que ya existe en otras carpetas **NO se mueve** — se **indexa** más abajo (sección "Material existente").
+
+## Cómo usar este tree
+
+- **Punto de entrada = este README** (índice + estado + reglas).
+- **Logs detallados por área** en archivos hermanos a medida que crezca: [`seo.md`](seo.md) (activo), `ads.md`, `analytics.md`, … (se crean al tocar cada área).
+- La **memoria del agente** (cross-sesión) referencia este tree como fuente de verdad; este tree es lo versionado y compartido por git.
+- El **puntero en `AGENTS.md`** (sección Marketing) hace que todos los agentes lleguen acá automáticamente.
+
+## Áreas
+
+### 🔍 SEO — detalle en [`seo.md`](seo.md)
+**Estado (2026-06-07):** dominio migrado `doortudoor.com → dtdcargo.com` (301 path-preserving + "Cambio de dirección" de Search Console **activo**). Rename `/cotizar → /estimacion` (308). 18 geo-páginas "Importar de China a {ciudad}". Sitemap 35 URLs. 6 redirects de recuperación de páginas viejas huérfanas. → ver `seo.md` para la cronología completa y las reglas.
+
+### 📣 Publicidad — Google Ads
+- Cuenta **"Dooortudoor services"** (ocid `579348138`).
+- **2 campañas PAUSADAS** (reactivables): **DoorTuDoor Trafico** (Búsqueda, la probada, 4.231 conv) · **Importar de China-Venezuela** (Smart). **7 removidas** (archivo).
+- Conversión **"Click WhatsApp"** (`AW-561290482/qbu2CILjn7ocEPK50osC`) cableada en `components/Analytics.tsx`.
+- **Dominio de las Final URLs:** Smart → `dtdcargo.com` (nuevo ✅); Search probada → `https://doortudoor.com/` (viejo ⚠️, migrar a `dtdcargo.com/estimacion` al reactivar — recrea el RSA).
+- ⚠️ **Cambiar la Final URL de un anuncio = SEO-neutral** (los ads son pagos, no afectan ranking orgánico).
+
+### 📊 Analítica — GA4 + GTM
+- Sin contenedores GTM en código → **gtag.js directo**: GA4 `G-25CD7BZH98` + Ads `AW-561290482` en `components/Analytics.tsx`.
+- **GA NO carga en rutas privadas** (`/studio /portal /m /back /invitar`) → evita mandar PII a Google.
+- **Pendiente:** re-apuntar el flujo de datos del dominio viejo `doortudoor.com → dtdcargo.com` + borrar **2 contenedores GTM sin uso** (la baja la hace el founder; eliminar data es manual). Ver memoria `project_google_analytics_ga4`.
+
+### 🤝 CRM — Kommo
+Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuente externa, no el CRM de prod. Ver memoria `project_sdd0043_kommo_connector`.
+
+### 📝 Contenido / Captación de leads
+- **Alta de cliente web = `/registro`** (form mock + handoff WhatsApp con código `DTD-REG`; un asesor asigna el MARKBOX). Ver `project_public_registro_lead`.
+- **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
+- **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.
+
+### 🎨 Marca → Web
+Brand Book v3.x; kit `/brand`; Brand Book privado `/marca/brand-book`. Fuentes web = Archivo (Nunito/Sora es capa ERP, no toca la web). Ver `feedback_norte_brand_to_web`.
+
+## Material existente (NO mover — solo enlazar)
+
+| Qué | Dónde |
+|---|---|
+| Checklist SEO/Ads (jun-2026) | `docs/pendientes-seo-ads-2026-06-06.md` |
+| Brand Books | `docs/design/brand-book/` · `docs/design/studio/_norte/` |
+| SEO contenido (geo-páginas, 2026-06-06) | memoria `project_session_2026_06_06_seo_contenido` |
+| SEO post-rename + migración dominio (2026-06-07) | memoria `project_session_2026_06_07` |
+| GA4 setup | memoria `project_google_analytics_ga4` |
+| Kommo CRM | memoria `project_sdd0043_kommo_connector` |
+| Lead capture `/registro` | memoria `project_public_registro_lead` |
+| Marca → web | memoria `feedback_norte_brand_to_web` |
+| Modelo de productos | memoria `brand_product_model_dtd` |
+
+## 🛡️ Reglas que NO se rompen
+
+1. **Nunca quitar el 301** `doortudoor.com → dtdcargo.com` (transfiere la autoridad SEO).
+2. **No dejar expirar `doortudoor.com`** — registrado + redirigiendo ≥1 año (idealmente indefinido).
+3. **`doortudoor.com` NO debe volver a servir contenido propio** (sería duplicado / autoridad dividida).
+4. **GA/analítica NO en rutas privadas** (PII → viola ToS de GA).
+5. Anuncios pagos ≠ SEO orgánico: la Final URL de un ad no afecta ranking.
+
+## Pendientes
+
+- [ ] **Google Ads:** migrar Final URL de la Search probada → `dtdcargo.com/estimacion`; decidir reactivación (des-pausar = gasta).
+- [ ] **GA4/GTM:** re-apuntar el stream `doortudoor.com → dtdcargo.com` + borrar 2 contenedores GTM sin uso.
+- [ ] **SEO:** monitorear el traspaso del "Cambio de dirección" (~180 días) en Search Console.
