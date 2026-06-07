@@ -10,6 +10,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   QUOTE_STATUS_OPTIONS,
   isExpired,
+  isUnlinkedWebEstimate,
   statusBadgeTone,
   statusLabel,
   type Quote,
@@ -33,8 +34,14 @@ export function CotizadorClient({
   const [isPending, startTransition] = useTransition();
   const [showCreate, setShowCreate] = useState(false);
 
+  const hasFilters =
+    !!filters.q ||
+    filters.status !== "all" ||
+    (!!filters.source && filters.source !== "all");
+
   const [q, setQ] = useState(params.get("q") ?? "");
   const [status, setStatus] = useState(params.get("status") ?? "");
+  const source = params.get("source") ?? "";
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
@@ -44,15 +51,16 @@ export function CotizadorClient({
   useEffect(() => {
     const currentQ = params.get("q") ?? "";
     if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q, status }), 350);
+    const t = setTimeout(() => pushFilters({ q, status, source }), 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const pushFilters = (next: { q?: string; status?: string }) => {
+  const pushFilters = (next: { q?: string; status?: string; source?: string }) => {
     const s = new URLSearchParams();
     if (next.q && next.q.trim()) s.set("q", next.q.trim());
     if (next.status) s.set("status", next.status);
+    if (next.source) s.set("source", next.source);
     const qs = s.toString();
     startTransition(() => {
       router.push(qs ? `/studio/cotizador?${qs}` : "/studio/cotizador");
@@ -157,7 +165,26 @@ export function CotizadorClient({
             ))}
           </select>
         </div>
-        {(q || status) && (
+        {/* SDD-0061: cola de estimados web sin vincular ("web · por revisar"). */}
+        <button
+          type="button"
+          className={`studio-btn studio-btn-sm ${
+            source === "web_review" ? "studio-btn-warning" : "studio-btn-ghost"
+          }`}
+          style={{ height: 38 }}
+          aria-pressed={source === "web_review"}
+          onClick={() =>
+            pushFilters({
+              q,
+              status,
+              source: source === "web_review" ? "" : "web_review",
+            })
+          }
+          title="Estimados capturados de la web que todavía no se vincularon a un cliente"
+        >
+          Web · por revisar
+        </button>
+        {(q || status || source) && (
           <button
             type="button"
             className="studio-btn studio-btn-ghost studio-btn-sm"
@@ -175,19 +202,19 @@ export function CotizadorClient({
 
       {quotes.length === 0 ? (
         <EmptyState
-          eyebrow={filters.q || filters.status !== "all" ? "Sin resultados" : "Catálogo vacío"}
+          eyebrow={hasFilters ? "Sin resultados" : "Catálogo vacío"}
           title={
-            filters.q || filters.status !== "all"
+            hasFilters
               ? "Ninguna cotización coincide con estos filtros."
               : "Aún no hay cotizaciones."
           }
           description={
-            filters.q || filters.status !== "all"
+            hasFilters
               ? "Probá ajustar los filtros o limpiá la búsqueda."
               : "Creá tu primera cotización. El total se calcula en vivo con la tarifa del catálogo."
           }
           action={
-            !filters.q && filters.status === "all" ? (
+            !hasFilters ? (
               <button
                 type="button"
                 className="studio-btn studio-btn-primary"
@@ -285,17 +312,25 @@ function QuotesTable({ quotes }: { quotes: Quote[] }) {
               }}
             >
               <div style={{ fontWeight: 700, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {quote.client_name}
+                {quote.client_name || quote.prospect_name || "—"}
               </div>
-              <div
-                style={{
-                  font: "600 11px/1 var(--f-mono)",
-                  color: "var(--wine)",
-                  marginTop: 3,
-                }}
-              >
-                {quote.client_markbox}
-              </div>
+              {isUnlinkedWebEstimate(quote) ? (
+                <div style={{ marginTop: 4 }}>
+                  <Badge tone="warning" size="sm" dot>
+                    Web · sin vincular
+                  </Badge>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    font: "600 11px/1 var(--f-mono)",
+                    color: "var(--wine)",
+                    marginTop: 3,
+                  }}
+                >
+                  {quote.client_markbox}
+                </div>
+              )}
             </div>
             <span
               style={{

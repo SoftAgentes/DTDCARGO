@@ -10,17 +10,20 @@
  */
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   canConvertToShipment,
   isEditable,
+  isUnlinkedWebEstimate,
   type Quote,
 } from "@/lib/studio/quote-types";
+import type { KommoContactPick } from "@/lib/studio/kommo-convert";
 import {
   convertQuoteToShipment,
+  linkEstimateToClientAction,
   markQuoteAccepted,
   markQuoteRejected,
   markQuoteSent,
@@ -29,7 +32,13 @@ import { QuoteDrawer } from "./QuoteDrawer";
 
 const SENT_SUCCESS_MS = 2500;
 
-export function QuoteDetailClient({ quote }: { quote: Quote }) {
+export function QuoteDetailClient({
+  quote,
+  kommoMatches = [],
+}: {
+  quote: Quote;
+  kommoMatches?: KommoContactPick[];
+}) {
   const router = useRouter();
   const toast = useToast();
   const [editing, setEditing] = useState(false);
@@ -41,8 +50,122 @@ export function QuoteDetailClient({ quote }: { quote: Quote }) {
   // operador vea la confirmación.
   const [justSent, setJustSent] = useState(false);
 
+  // SDD-0061 Slice 3 — vínculo manual del estimado web a un cliente por MARKBOX.
+  const [markboxInput, setMarkboxInput] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [linking, startLinking] = useTransition();
+  const canLink = isUnlinkedWebEstimate(quote);
+
+  function handleLink() {
+    const markbox = markboxInput.trim();
+    if (!markbox) {
+      setLinkError("Indicá el MARKBOX del cliente.");
+      return;
+    }
+    setLinkError(null);
+    startLinking(async () => {
+      const r = await linkEstimateToClientAction(quote.id, markbox);
+      if (r.error) {
+        setLinkError(r.error);
+        return;
+      }
+      toast.success(`Estimado ${quote.quote_code} vinculado a ${markbox.toUpperCase()}`);
+      router.refresh();
+    });
+  }
+
   return (
     <>
+      {canLink && (
+        <section
+          style={{
+            marginBottom: 16,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderLeft: "3px solid var(--wine)",
+            borderRadius: "var(--r-lg)",
+            padding: 20,
+          }}
+        >
+          <div className="studio-eyebrow" style={{ marginBottom: 6 }}>
+            Vincular a cliente
+          </div>
+          <p
+            style={{
+              font: "400 12.5px/1.45 var(--f-sans)",
+              color: "var(--ink-soft)",
+              margin: "0 0 12px",
+              maxWidth: "64ch",
+            }}
+          >
+            Este estimado se capturó de la web y aún no tiene cliente. Ingresá el
+            MARKBOX del cliente ya registrado para vincularlo.
+          </p>
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <input
+              type="text"
+              className="studio-input"
+              placeholder="DTD-0001"
+              value={markboxInput}
+              onChange={(e) => setMarkboxInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleLink();
+              }}
+              disabled={linking}
+              style={{ width: 200, textTransform: "uppercase", fontFamily: "var(--f-mono)" }}
+              aria-label="MARKBOX del cliente"
+            />
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary studio-btn-sm"
+              style={{ height: 38 }}
+              onClick={handleLink}
+              disabled={linking}
+            >
+              {linking ? "Vinculando…" : "Vincular"}
+            </button>
+          </div>
+
+          {kommoMatches.length > 0 && (
+            <div
+              style={{
+                marginTop: 14,
+                padding: "10px 12px",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-sm)",
+                font: "500 12px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              <strong style={{ color: "var(--ink)" }}>
+                Coincide con Kommo:
+              </strong>{" "}
+              este teléfono ya figura en {kommoMatches.length} contacto
+              {kommoMatches.length > 1 ? "s" : ""} de Kommo
+              {" ("}
+              {kommoMatches.slice(0, 3).map((c) => c.name).join(", ")}
+              {kommoMatches.length > 3 ? "…" : ""}
+              {"). "}
+              Revisá antes de crear un cliente duplicado.
+            </div>
+          )}
+
+          {linkError && (
+            <p
+              role="alert"
+              style={{
+                font: "500 12px/1.4 var(--f-sans)",
+                color: "var(--danger)",
+                margin: "12px 0 0",
+              }}
+            >
+              {linkError}
+            </p>
+          )}
+        </section>
+      )}
+
       <div
         style={{
           display: "flex",

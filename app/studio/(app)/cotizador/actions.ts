@@ -25,7 +25,10 @@ import {
   type QuoteActionState,
   type QuoteInput,
 } from "@/lib/studio/quote-types";
-import { suggestRateForQuote } from "@/lib/studio/quote-queries";
+import {
+  linkEstimateToClient,
+  suggestRateForQuote,
+} from "@/lib/studio/quote-queries";
 import type { Rate } from "@/lib/studio/rate-types";
 import {
   type ShipmentService,
@@ -227,7 +230,7 @@ async function transitionStatus(
   const { data: current, error: readErr } = await supabase
     .from("quotes")
     .select(
-      "id, tenant_id, status, quote_code, client_name, client_markbox, service, origin, destination, cbm, total_usd, valid_until",
+      "id, tenant_id, status, quote_code, client_name, client_markbox, prospect_email, service, origin, destination, cbm, total_usd, valid_until",
     )
     .eq("id", id)
     .maybeSingle<{
@@ -237,6 +240,7 @@ async function transitionStatus(
       quote_code: string;
       client_name: string | null;
       client_markbox: string | null;
+      prospect_email: string | null;
       service: ShipmentService;
       origin: string | null;
       destination: string | null;
@@ -298,6 +302,8 @@ async function transitionStatus(
         validity_days: String(validityDays),
       },
       clientMarkbox: current.client_markbox,
+      // SDD-0061: estimado web sin markbox → el mail va al prospecto.
+      prospectEmail: current.prospect_email,
       clientName: current.client_name,
       sourceRef: { kind: "quote", id: current.id },
     });
@@ -386,6 +392,23 @@ export async function convertQuoteToShipment(
   revalidatePath(`/studio/cotizador/${quote.quote_code}`);
   revalidatePath("/studio/tracking");
   return { ok: true, shipmentId: shipment.id };
+}
+
+/**
+ * SDD-0061 Fase B2 · Slice 3 — vínculo manual de un estimado web a un cliente
+ * por MARKBOX (red de seguridad para los casos ambiguos que no resolvió el
+ * vínculo automático del registro). La validación vive en la query pura.
+ */
+export async function linkEstimateToClientAction(
+  quoteId: string,
+  markbox: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+  const result = await linkEstimateToClient(supabase, quoteId, markbox);
+  if (result.error) return { error: result.error };
+
+  revalidatePath("/studio/cotizador");
+  return { ok: true };
 }
 
 export async function softDeleteQuote(

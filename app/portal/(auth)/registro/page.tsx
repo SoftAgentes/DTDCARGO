@@ -24,7 +24,11 @@ const jetbrainsMono = JetBrains_Mono({
  * El cliente se da de alta solo y obtiene su MARKBOX al instante con cuenta
  * ACTIVA (no "en revisión"). Si ya hay una sesión de portal vinculada → al portal.
  */
-export default async function PortalRegisterPage() {
+export default async function PortalRegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -34,9 +38,15 @@ export default async function PortalRegisterPage() {
     if (client) redirect("/portal");
   }
 
+  // SDD-0061 Fase B2 — el CTA de las calculadoras llega como ?est=EST-XXXX. Se
+  // pasa al form (hidden) para vincular el estimado web al cliente al crearse.
+  const raw = await searchParams;
+  const estRaw = Array.isArray(raw.est) ? raw.est[0] : raw.est;
+  const est = (estRaw ?? "").trim().slice(0, 40) || undefined;
+
   return (
     <div className={`${jetbrainsMono.variable} min-h-screen bg-paper`}>
-      <RegisterForm />
+      <RegisterForm est={est} />
     </div>
   );
 }

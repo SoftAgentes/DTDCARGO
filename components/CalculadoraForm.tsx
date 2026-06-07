@@ -12,9 +12,10 @@ import {
   type CalcParams,
   type Ciudad,
 } from "@/lib/calculadora";
+import Link from "next/link";
 import { DecimalInput } from "@/components/DecimalInput";
 import { CONTACT } from "@/lib/design-tokens";
-import { WhatsAppIcon } from "@/components/Icon";
+import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { EstimadoModal, type EstimadoContact } from "@/components/EstimadoModal";
 import { buildEstimadoWhatsAppMessage } from "@/lib/public/estimado-web";
 
@@ -75,6 +76,8 @@ export function CalculadoraForm({
 
   // SDD-0061 Fase B1 · modal de captura del estimado web (nota + nombre + tel).
   const [modalOpen, setModalOpen] = useState(false);
+  // SDD-0061 Fase B2 · código del estimado guardado (para el CTA de registro).
+  const [savedEstimateCode, setSavedEstimateCode] = useState<string | null>(null);
 
   function update<K extends keyof EnvioInput>(key: K, value: EnvioInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -124,6 +127,7 @@ export function CalculadoraForm({
     });
     const url = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(text)}`;
     window.open(url, "_blank", "noopener,noreferrer");
+    setSavedEstimateCode(estimateCode);
     setModalOpen(false);
   }
 
@@ -284,6 +288,32 @@ export function CalculadoraForm({
         </p>
       </div>
     </div>
+
+      {/* SDD-0061 Fase B2 — confirmación post-estimado + CTA opcional de registro
+          (baja fricción). Solo si el ERP devolvió código (si falló, no hay qué
+          vincular). */}
+      {savedEstimateCode && (
+        <div className="mt-4 card-shadow bg-white border border-grey-200 rounded-[14px] p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex-1">
+            <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
+              Estimado guardado ·{" "}
+              <span style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}>
+                {savedEstimateCode}
+              </span>
+            </div>
+            <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.45]">
+              <strong className="text-ink">Registrate y obtené tu MARKBOX.</strong>{" "}
+              Vinculamos este estimado a tu cuenta automáticamente.
+            </p>
+          </div>
+          <Link
+            href={`/portal/registro?est=${encodeURIComponent(savedEstimateCode)}`}
+            className="btn btn-primary flex-shrink-0"
+          >
+            Crear cuenta <ArrowIcon />
+          </Link>
+        </div>
+      )}
 
       <EstimadoModal
         open={modalOpen}

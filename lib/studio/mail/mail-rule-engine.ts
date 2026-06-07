@@ -23,6 +23,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmail } from "./send-email";
+import { resolveClientRecipientEmail } from "@/lib/studio/estimado-linking";
 import type { MailRuleEvent } from "@/lib/studio/mail-types";
 
 export interface FireMailEventInput {
@@ -33,6 +34,12 @@ export interface FireMailEventInput {
   clientMarkbox?: string | null;
   /** Override directo. Saltea el lookup por markbox. */
   clientEmail?: string | null;
+  /**
+   * SDD-0061: fallback para estimados WEB sin MARKBOX. Si el destinatario es
+   * `client` y no hay email por override ni por markbox, se le escribe al
+   * prospecto (prospect_email del estimado web).
+   */
+  prospectEmail?: string | null;
   /** to_name del mail_log (opcional). */
   clientName?: string | null;
   /** Trazabilidad: queda en mail_logs.metadata. */
@@ -90,16 +97,22 @@ export async function fireMailEvent(
     const needsClient = rules.some((r) => r.recipient_kind === "client");
     const needsInternal = rules.some((r) => r.recipient_kind === "internal");
 
-    let resolvedClientEmail: string | null = input.clientEmail ?? null;
-    if (!resolvedClientEmail && needsClient && input.clientMarkbox) {
+    let markboxEmail: string | null = null;
+    if (!input.clientEmail && needsClient && input.clientMarkbox) {
       const { data: client } = await supabaseAdmin
         .from("clients")
         .select("email")
         .eq("tenant_id", tenantId)
         .eq("markbox", input.clientMarkbox)
         .maybeSingle<{ email: string | null }>();
-      resolvedClientEmail = client?.email ?? null;
+      markboxEmail = client?.email ?? null;
     }
+    // Override → markbox → prospecto (estimado web sin markbox).
+    const resolvedClientEmail = resolveClientRecipientEmail({
+      clientEmail: input.clientEmail,
+      markboxEmail,
+      prospectEmail: input.prospectEmail,
+    });
 
     let adminEmails: string[] = [];
     if (needsInternal) {

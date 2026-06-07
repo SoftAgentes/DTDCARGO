@@ -39,6 +39,10 @@ import { getRequestIp } from "@/lib/http/request-ip";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import {
+  linkEstimateByCode,
+  linkEstimatesByContact,
+} from "@/lib/studio/quote-queries";
+import {
   validateRegisterInput,
   composeAddress,
   type RegisterActionState,
@@ -277,6 +281,29 @@ export async function registerClientAction(
     }
     console.error("[registerClientAction] insert clients error:", clientErr);
     return { error: `No pudimos crear tu cuenta: ${clientErr?.message ?? "error"}` };
+  }
+
+  // 6b. SDD-0061 Fase B2 — vincular el estimado web a este cliente recién creado.
+  //     Best-effort (un fallo NO rompe el alta): primero por código EST- (camino
+  //     feliz, llega como ?est= en el CTA → hidden), si no por datos exactos
+  //     (teléfono + email del registro). client_name se snapshotea al nombre real.
+  const clientDisplayName = input.company ?? input.name;
+  try {
+    const estCode = String(formData.get("est") ?? "").trim();
+    const linkedByCode = estCode
+      ? await linkEstimateByCode(admin, tenantId, estCode, markbox, clientDisplayName)
+      : false;
+    if (!linkedByCode) {
+      await linkEstimatesByContact(
+        admin,
+        tenantId,
+        { email: input.email, phone: input.whatsapp },
+        markbox,
+        clientDisplayName,
+      );
+    }
+  } catch (linkErr) {
+    console.error("[registerClientAction] vínculo de estimado web falló:", linkErr);
   }
 
   // 7. Crear la cuenta de auth · contraseña inicial = documento (cédula/RIF).

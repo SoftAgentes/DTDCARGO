@@ -12,11 +12,19 @@ export type QuoteStatus =
   | "rejected"
   | "expired";
 
+/** SDD-0061: origen del estimado. `web` = capturado de la calculadora pública. */
+export type QuoteSource = "studio" | "web";
+
 export type Quote = {
   id: string;
   tenant_id: string;
   quote_code: string;
-  client_markbox: string;
+  /**
+   * MARKBOX del cliente. NULLABLE desde SDD-0061 (0113): un estimado web de un
+   * PROSPECTO todavía no tiene cuenta → null hasta que se vincula (auto por
+   * código/datos en el registro, o manual desde el módulo).
+   */
+  client_markbox: string | null;
   client_name: string;
   service: ShipmentService;
   origin: string;
@@ -37,10 +45,23 @@ export type Quote = {
   accepted_at: string | null;
   converted_to_shipment_id: string | null;
   notes: string | null;
+  // SDD-0061 Fase B1 — datos del prospecto web (null en quotes del Studio).
+  prospect_name: string | null;
+  prospect_email: string | null;
+  prospect_whatsapp: string | null;
+  nota: string | null;
+  source: QuoteSource;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
 };
+
+/** ¿Es un estimado web todavía sin vincular a un cliente (MARKBOX)? */
+export function isUnlinkedWebEstimate(
+  quote: Pick<Quote, "source" | "client_markbox">,
+): boolean {
+  return quote.source === "web" && !quote.client_markbox;
+}
 
 /** Lo que el operador edita (sin code, status, timestamps, conversion link). */
 export type QuoteInput = {

@@ -52,7 +52,7 @@ const EMPTY: FormData0 = {
 
 const STEP_LABELS = ["Datos", "Dirección", "Confirmar", "Listo"];
 
-export function RegisterForm() {
+export function RegisterForm({ est }: { est?: string }) {
   const [state, action, pending] = useActionState(registerClientAction, initial);
   const [step, setStep] = useState(1);
   const [data, setData] = useState<FormData0>(EMPTY);
@@ -82,6 +82,22 @@ export function RegisterForm() {
           >
             {done ? "Bienvenido a DTD Cargo." : "Creá tu cuenta."}
           </h1>
+
+          {!done && est && (
+            <div
+              className="mt-4 rounded-[10px] bg-paper border-l-[3px] px-4 py-2.5 text-[12.5px] text-grey-700 leading-[1.5]"
+              style={{ borderColor: "var(--color-wine)" }}
+            >
+              Vamos a vincular tu estimado{" "}
+              <strong
+                className="text-ink"
+                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+              >
+                {est}
+              </strong>{" "}
+              a esta cuenta.
+            </div>
+          )}
 
           {!done && <StepBar current={currentStep} />}
 
@@ -114,6 +130,7 @@ export function RegisterForm() {
             <Step3
               data={data}
               photo={photo}
+              est={est}
               action={action}
               pending={pending}
               error={state.error}
@@ -450,6 +467,7 @@ function Step2({
 function Step3({
   data,
   photo,
+  est,
   action,
   pending,
   error,
@@ -458,6 +476,7 @@ function Step3({
 }: {
   data: FormData0;
   photo: File | null;
+  est?: string;
   action: (formData: FormData) => void;
   pending: boolean;
   error?: string;
@@ -493,6 +512,8 @@ function Step3({
       <input type="hidden" name="barrio" value={barrio} />
       <input type="hidden" name="address" value={data.address} />
       <input type="hidden" name="reference" value={data.reference} />
+      {/* SDD-0061: código del estimado web a vincular (vacío si no vino del CTA). */}
+      <input type="hidden" name="est" value={est ?? ""} />
 
       {/*
         Honeypot anti-bot (SDD-0042 §10). Campo trampa con nombre inocuo: un
