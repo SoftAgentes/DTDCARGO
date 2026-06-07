@@ -501,16 +501,33 @@ function CotizacionDisplay({
         </div>
       )}
 
+      {/* Nudge "ya casi está" (gancho B) — solo en el estimado real. El mensaje
+          de WhatsApp ya va pre-armado, así que "enviar" se siente como un clic. */}
+      {!hasAlerta && (
+        <p className="text-[13.5px] text-white text-center leading-[1.4] -mb-1">
+          Tu cotización ya está lista — <span className="font-semibold">solo falta enviarla.</span>
+        </p>
+      )}
+
       {/* CTA WhatsApp */}
       <a
         href={whatsappUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="btn bg-whatsapp text-white mt-2 inline-flex items-center justify-center gap-2"
+        className="btn bg-whatsapp text-white inline-flex items-center justify-center gap-2"
       >
         <WhatsAppIcon size={20} />
-        {hasAlerta ? "Consultar con un asesor" : "Confirmar tarifa por WhatsApp"}
+        {hasAlerta ? "Consultar con un asesor" : "Enviar mi cotización por WhatsApp"}
       </a>
+
+      {/* Microcopy anti-fricción (gancho A) — desarma el miedo a comprometerse. */}
+      {!hasAlerta && (
+        <p className="text-[12.5px] text-white/85 leading-[1.5] -mt-1 text-center">
+          <span className="font-semibold text-white">Sin compromiso.</span> Un asesor
+          te responde en minutos y te confirma la tarifa final — financiamiento 100%,
+          pagás al llegar.
+        </p>
+      )}
 
       <p className="text-[11.5px] text-white/45 leading-[1.45]">
         Este estimado es aproximado y refleja nuestra tarifa LCL DDP base.
