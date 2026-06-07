@@ -111,6 +111,10 @@ export type CalcParams = {
   recargoBateriaMult: number;
   thresholdCascoKm: number;
   tarifaKmFueraCasco: number;
+  /** CBM total máximo cotizable (LCL). Sobre esto → deriva al asesor (FCL). */
+  cbmMaxContenedor: number;
+  /** Peso total máximo cotizable (kg). Sobre esto → deriva al asesor. */
+  pesoMaxContenedorKg: number;
 };
 
 /** Defaults = los valores históricos de CONFIG. Fallback cuando no hay config en DB. */
@@ -123,6 +127,8 @@ export const DEFAULT_PARAMS: CalcParams = {
   recargoBateriaMult: CONFIG.recargoBateriaMult,
   thresholdCascoKm: CONFIG.thresholdCascoKm,
   tarifaKmFueraCasco: CONFIG.tarifaKmFueraCasco,
+  cbmMaxContenedor: CONFIG.cbmMaxContenedor,
+  pesoMaxContenedorKg: CONFIG.pesoMaxContenedorKg,
 };
 
 // ────────────────────────────────────────────────────────────────────
@@ -292,13 +298,13 @@ export function calcularEnvioLCL(
 
   // 5.3b — Límites absolutos de un contenedor. Sobre esto la carga ya no es LCL
   // → deriva al asesor (FCL). El CBM prima sobre el peso si ambos exceden.
-  if (input.cbmTotal > CONFIG.cbmMaxContenedor) {
+  if (input.cbmTotal > params.cbmMaxContenedor) {
     return cotizacionVacia({
       tipo: "contenedor_excedido",
       mensaje: "Eso es más que un contenedor. Consulte a su asesor",
     }, input);
   }
-  if (input.pesoKg > CONFIG.pesoMaxContenedorKg) {
+  if (input.pesoKg > params.pesoMaxContenedorKg) {
     return cotizacionVacia({
       tipo: "peso_contenedor_excedido",
       mensaje:

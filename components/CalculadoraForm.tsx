@@ -85,7 +85,7 @@ export function CalculadoraForm({
 
   // Aviso del CBM: mínimo (punto de cruce) o máximo (contenedor).
   const cbmWarning =
-    form.cbmTotal > CONFIG.cbmMaxContenedor
+    form.cbmTotal > params.cbmMaxContenedor
       ? "Eso es más que un contenedor. Consulte a su asesor."
       : form.cbmTotal > 0 && form.cbmTotal < crossoverCbm
         ? `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`
@@ -93,7 +93,7 @@ export function CalculadoraForm({
 
   // Aviso del peso (simétrico al del CBM): máximo de peso según el CBM.
   const pesoWarning = ((): string | null => {
-    if (form.pesoKg > CONFIG.pesoMaxContenedorKg)
+    if (form.pesoKg > params.pesoMaxContenedorKg)
       return "Esto es más que el peso permitido por contenedor; consulte a su asesor.";
     if (form.cbmTotal <= 0 || form.pesoKg <= 0) return null;
     const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
@@ -244,7 +244,7 @@ export function CalculadoraForm({
 
         {/* ── COLUMNA DERECHA · RESULTADO ── */}
         <div className="p-6 lg:p-9 bg-paper flex flex-col gap-4">
-          <ContainerFill cbm={form.cbmTotal} max={CONFIG.cbmMaxContenedor} />
+          <ContainerFill cbm={form.cbmTotal} max={params.cbmMaxContenedor} />
           <ResultPanel
             cotizacion={cotizacion}
             input={form}

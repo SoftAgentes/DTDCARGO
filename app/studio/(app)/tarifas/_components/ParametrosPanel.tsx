@@ -46,6 +46,10 @@ const GROUPS: { title: string; keys: FieldKey[] }[] = [
     title: "Distancia · casco central",
     keys: ["thresholdCascoKm", "tarifaKmFueraCasco"],
   },
+  {
+    title: "Límites del contenedor",
+    keys: ["cbmMaxContenedor", "pesoMaxContenedorKg"],
+  },
 ];
 
 const FIELD_BY_KEY = Object.fromEntries(

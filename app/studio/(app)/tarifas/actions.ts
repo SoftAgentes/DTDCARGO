@@ -228,6 +228,8 @@ const SETTINGS_COLUMN: Record<keyof CalculatorSettingsInput, string> = {
   recargoBateriaMult: "recargo_bateria_mult",
   thresholdCascoKm: "threshold_casco_km",
   tarifaKmFueraCasco: "tarifa_km_fuera_casco",
+  cbmMaxContenedor: "cbm_max_contenedor",
+  pesoMaxContenedorKg: "peso_max_contenedor_kg",
 };
 
 function settingsFromFormData(

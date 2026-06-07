@@ -96,6 +96,8 @@ export async function getPublicCalculatorConfig(): Promise<CalcParams | null> {
       recargoBateriaMult: Number(row.recargo_bateria_mult),
       thresholdCascoKm: Number(row.threshold_casco_km),
       tarifaKmFueraCasco: Number(row.tarifa_km_fuera_casco),
+      cbmMaxContenedor: Number(row.cbm_max_contenedor),
+      pesoMaxContenedorKg: Number(row.peso_max_contenedor_kg),
     };
     if (Object.values(params).some((v) => !Number.isFinite(v))) return null;
 
