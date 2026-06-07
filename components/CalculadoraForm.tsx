@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   CONFIG,
   CIUDADES,
@@ -14,20 +14,17 @@ import {
 } from "@/lib/calculadora";
 import { DecimalInput } from "@/components/DecimalInput";
 import { CONTACT } from "@/lib/design-tokens";
-import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
+import { WhatsAppIcon } from "@/components/Icon";
 
 /**
  * Calculadora LCL DDP — UI del formulario + render del resultado.
  *
- * Toda la lógica de pricing vive en lib/calculadora.ts. Este componente
- * solo gestiona el state del form, llama a calcularEnvioLCL(), y muestra
- * el desglose con un CTA de WhatsApp preconfigurado.
- *
- * El cliente que cotiza ya conoce su CBM total, así que pedimos el volumen
- * directo (no dimensiones por caja) + peso. Toggles para baterías y carga
- * especial (esta última deriva al asesor).
+ * Diseño Cloud Design (Fase 2, 2026-06-06): una sola card en 2 columnas con
+ * divisor — izquierda = entrada (header + tarifa + carga + opciones + destino),
+ * derecha = resultado (contenedor que se llena + panel del total + desglose +
+ * badge + nudge + CTA). 100% EN VIVO: sin botón "Calcular", el estimado se
+ * recalcula con cada cambio. Toda la lógica de pricing vive en lib/calculadora.ts.
  */
-/** Tarifa pública real (de /studio/tarifas vía RPC anon), o null → default CONFIG. */
 type ServerRate = {
   per_cbm: number;
   min_charge: number | null;
@@ -40,9 +37,7 @@ export function CalculadoraForm({
   ciudades,
 }: {
   serverRate?: ServerRate;
-  /** Reglas escalares reales (Fase 3 Slice A) o null → defaults de CONFIG. */
   serverConfig?: CalcParams | null;
-  /** Ciudades reales (Fase 3 Slice B) o undefined → fallback a CIUDADES. */
   ciudades?: Ciudad[];
 }) {
   // Tarifa base real o default de CONFIG (cero regresión si no hay pública).
@@ -50,22 +45,16 @@ export function CalculadoraForm({
     serverRate?.per_cbm && serverRate.per_cbm > 0
       ? serverRate.per_cbm
       : CONFIG.tarifaBaseCBM;
-  // Piso real (mínimo facturable). Viaja al cálculo y define el punto de cruce.
   const minChargeOverride = serverRate?.min_charge ?? undefined;
   const minCharge =
     minChargeOverride && minChargeOverride > 0
       ? minChargeOverride
       : CONFIG.minimoFacturable;
-  // Punto de cruce: CBM donde el cálculo (CBM × tarifa) iguala al mínimo. Por
-  // debajo se cobra el piso. Se DERIVA de la tarifa → si cambia per_cbm, el
-  // cruce se reacomoda solo (nada hardcodeado).
+  // Punto de cruce: CBM donde el cálculo iguala al mínimo. Derivado de la tarifa.
   const crossoverCbm = baseRate > 0 ? minCharge / baseRate : 0;
   const crossoverLabel = parseFloat(crossoverCbm.toFixed(4)).toString();
-  // Reglas escalares: las reales (de /studio/tarifas › Parámetros) o defaults.
   const params = serverConfig ?? DEFAULT_PARAMS;
-  // Ciudades: las reales (de /studio/tarifas › Ciudades) o el array hardcoded.
   const cityList = ciudades && ciudades.length > 0 ? ciudades : CIUDADES;
-  // Destino inicial: la 1ª ciudad de la lista (o casco-central si existe).
   const defaultCiudadId =
     cityList.find((c) => c.id === "casco-central")?.id ??
     cityList[0]?.id ??
@@ -82,59 +71,30 @@ export function CalculadoraForm({
     minChargeOverride,
   });
 
-  // El estimado se activa con "Calcular envío" y luego queda VIVO: cualquier
-  // cambio del form (incluido el toggle de baterías que vive debajo del CTA)
-  // recalcula solo, para que el precio mostrado nunca quede desactualizado.
-  // Antes del primer cálculo, `cotizacion` es null (no se muestra nada).
-  const [activo, setActivo] = useState(false);
-  const cotizacion = useMemo(
-    () => (activo ? calcularEnvioLCL(form, params, cityList) : null),
-    [activo, form, params, cityList],
-  );
-
-  // En móvil el resultado cae debajo del form (1 columna): cada vez que se
-  // toca "Calcular envío" llevamos al usuario directo al estimado. En desktop
-  // el panel es sticky (te sigue al scrollear), así que no movemos el scroll.
-  const resultRef = useRef<HTMLDivElement>(null);
-  const [calcTick, setCalcTick] = useState(0);
-  useEffect(() => {
-    if (calcTick === 0) return;
-    if (typeof window === "undefined" || window.innerWidth >= 1024) return;
-    const el = resultRef.current;
-    if (!el) return;
-    // Offset para despejar el nav sticky (~76px) y que el header del estimado
-    // no quede tapado. scrollIntoView no contempla el nav fijo.
-    const y = el.getBoundingClientRect().top + window.scrollY - 88;
-    window.scrollTo({ top: y, behavior: "smooth" });
-  }, [calcTick]);
-
-  // Vibración mínima del precio: arranca 5 s DESPUÉS de que el cliente cotiza
-  // (le damos tiempo a leer el número, y recién ahí el precio "pide" atención).
-  // Se resetea en cada nuevo cálculo.
-  const [vibratePrice, setVibratePrice] = useState(false);
-  useEffect(() => {
-    if (calcTick === 0) return;
-    const t = setTimeout(() => setVibratePrice(true), 5000);
-    return () => clearTimeout(t);
-  }, [calcTick]);
-
   function update<K extends keyof EnvioInput>(key: K, value: EnvioInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
-  function handleCalcular() {
-    setActivo(true);
-    setVibratePrice(false); // reset: vuelve a esperar 5 s antes de vibrar
-    setCalcTick((t) => t + 1);
-  }
+  // Estimado SIEMPRE en vivo (no hay botón Calcular). Si falta CBM/peso, la
+  // función devuelve una alerta "carga_invalida" que tratamos como estado vacío.
+  const cotizacion = useMemo(
+    () => calcularEnvioLCL(form, params, cityList),
+    [form, params, cityList],
+  );
+  const tieneCarga = form.cbmTotal > 0 && form.pesoKg > 0;
 
-  // Aviso de peso (simétrico al del CBM): el máximo de peso depende del CBM.
-  // Por cada m³ entran `pesoIncluidoKg` kg sin recargo; sobre eso, $/kg de
-  // excedente; sobre `pesoMaxKg`/CBM ya es demasiado denso (FCL). Todo se
-  // deriva del CBM que puso el cliente + los parámetros (nada hardcodeado).
+  // Aviso del CBM: mínimo (punto de cruce) o máximo (contenedor).
+  const cbmWarning =
+    form.cbmTotal > CONFIG.cbmMaxContenedor
+      ? "Eso es más que un contenedor. Consulte a su asesor."
+      : form.cbmTotal > 0 && form.cbmTotal < crossoverCbm
+        ? `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`
+        : null;
+
+  // Aviso del peso (simétrico al del CBM): máximo de peso según el CBM.
   const pesoWarning = ((): string | null => {
     if (form.pesoKg > CONFIG.pesoMaxContenedorKg)
-      return "Esto es más que el peso permitido por contenedor; consulte a su asesor";
+      return "Esto es más que el peso permitido por contenedor; consulte a su asesor.";
     if (form.cbmTotal <= 0 || form.pesoKg <= 0) return null;
     const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
     const maxSinRecargo = form.cbmTotal * params.pesoIncluidoKg;
@@ -150,28 +110,53 @@ export function CalculadoraForm({
   })();
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-12">
-      {/* Form */}
-      <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9">
-        <h2
-          className="text-[20px] lg:text-[22px] leading-[1.15] tracking-[-0.01em] text-ink mb-6"
-          style={{ fontFamily: "var(--font-archivo-black)" }}
-        >
-          Calculá tu envío
-        </h2>
-
-        <div className="flex flex-col gap-5">
-          {/* Costo CBM (editable) — el cliente puede usar la tarifa estándar
-              o ingresar una negociada distinta */}
-          <div className="bg-paper border border-grey-200 rounded-[12px] p-4">
-            <label
-              htmlFor="tarifa-cbm"
-              className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine mb-2 block"
+    <div className="card-shadow bg-white border border-grey-200 rounded-[20px] overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-2">
+        {/* ── COLUMNA IZQUIERDA · ENTRADA ── */}
+        <div className="p-6 lg:p-9 lg:border-r border-grey-200 flex flex-col gap-5">
+          {/* Wordmark + eyebrow */}
+          <div className="flex items-center justify-between gap-3">
+            <span
+              className="text-[19px] leading-none"
+              style={{ fontFamily: "var(--font-brand-display)" }}
             >
-              Costo CBM (USD)
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-grey-500 text-[15px] font-medium">$</span>
+              <span className="text-wine">DTD</span>{" "}
+              <span className="text-ink">Cargo</span>
+            </span>
+            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
+              Calculadora LCL DDP
+            </span>
+          </div>
+
+          {/* Título + subtítulo */}
+          <div>
+            <h2
+              className="text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-ink"
+              style={{ fontFamily: "var(--font-archivo-black)" }}
+            >
+              Cotizá tu carga China → Venezuela
+            </h2>
+            <p className="mt-2.5 text-[14px] text-grey-700 leading-[1.5]">
+              Puerta a puerta, financiamiento 100%. Indicá tu volumen y peso y te
+              damos un estimado al instante.
+            </p>
+          </div>
+
+          {/* Tarifa de CBM */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <label
+                htmlFor="tarifa-cbm"
+                className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500"
+              >
+                Tarifa de CBM
+              </label>
+              <span className="text-[9.5px] font-bold tracking-[0.08em] uppercase text-wine bg-wine/10 rounded-[6px] px-2 py-[3px]">
+                Auto · editable
+              </span>
+            </div>
+            <div className="flex items-center gap-2 rounded-[12px] border border-grey-200 px-3.5 h-[52px] bg-white focus-within:border-ink transition-colors">
+              <span className="text-grey-500 text-[16px] font-medium">$</span>
               <DecimalInput
                 id="tarifa-cbm"
                 value={form.tarifaCBMOverride ?? 0}
@@ -179,79 +164,74 @@ export function CalculadoraForm({
                   update("tarifaCBMOverride", n > 0 ? n : baseRate)
                 }
                 placeholder={String(baseRate)}
-                className="flex-1 px-3 py-2 rounded-[8px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
+                className="num flex-1 min-w-0 bg-transparent text-[18px] font-semibold text-ink outline-none"
               />
-              <button
-                type="button"
-                onClick={() => update("tarifaCBMOverride", baseRate)}
-                className="text-[12px] font-semibold text-wine hover:text-wine-deep transition-colors whitespace-nowrap"
-              >
-                Restaurar ${baseRate}
-              </button>
+              <span className="text-[12px] text-grey-500 whitespace-nowrap">
+                USD/CBM
+              </span>
             </div>
-            <p className="text-[11.5px] text-grey-500 mt-2 leading-[1.4]">
-              Tarifa estándar LCL DDP: ${baseRate}/CBM. Editá si tu
-              cotización es distinta (negociación FCL, promoción, etc.).
+            <p className="text-[11.5px] text-grey-500 mt-1.5 leading-[1.4]">
+              La genera el sistema. Ajustala si tu cotización es distinta.
             </p>
           </div>
 
-          {/* CBM total + peso */}
-          <fieldset className="grid grid-cols-2 gap-3">
-            <legend className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine mb-2 col-span-2">
-              Tu carga
-            </legend>
-            <InputField
-              label="CBM total (m³)"
+          {/* CBM total + Peso total */}
+          <div className="grid grid-cols-2 gap-3">
+            <BigInput
+              label="CBM total"
+              suffix="m³"
               value={form.cbmTotal}
               onChange={(v) => update("cbmTotal", v)}
-              placeholder="2"
-              warning={
-                form.cbmTotal > CONFIG.cbmMaxContenedor
-                  ? "Eso es más que un contenedor. Consulte a su asesor"
-                  : form.cbmTotal > 0 && form.cbmTotal < crossoverCbm
-                    ? `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`
-                    : null
-              }
+              placeholder="12"
+              warning={cbmWarning}
             />
-            <InputField
-              label="Peso total (kg)"
+            <BigInput
+              label="Peso total"
+              suffix="kg"
               value={form.pesoKg}
               onChange={(v) => update("pesoKg", v)}
-              placeholder="450"
+              placeholder="4800"
               warning={pesoWarning}
             />
-          </fieldset>
+          </div>
 
-          {/* Embalaje especial + carga especial. La caja estándar es el default
-              (no se muestra); solo se marca lo que aplica. */}
-          <div className="flex flex-col gap-2">
-            <ToggleField
-              label={`Embalaje especial (madera o paleta) +$${params.recargoEmbalajeEspecial}`}
-              hint="Marcá solo si tu carga necesita paleta o caja de madera."
+          {/* Opciones (switches) */}
+          <div className="flex flex-col gap-2.5">
+            <SwitchField
+              label="Embalaje especial"
+              hint="Madera o paleta"
+              badge={`+$${params.recargoEmbalajeEspecial}`}
               checked={form.embalaje === "especial"}
               onChange={(v) => update("embalaje", v ? "especial" : "estandar")}
             />
-            <ToggleField
+            <SwitchField
+              label="Lleva baterías"
+              hint="Recargo por manejo de litio"
+              badge={`×${params.recargoBateriaMult}`}
+              checked={!!form.bateria}
+              onChange={(v) => update("bateria", v)}
+            />
+            <SwitchField
               label="Carga especial o de alto valor"
-              hint="Equipos, insumos médicos, alto valor o permisos de exportación."
+              hint="Frágil, peligrosa o con permisos — la vemos a medida"
               checked={!!form.cargaEspecial}
               onChange={(v) => update("cargaEspecial", v)}
             />
           </div>
 
-          {/* Ciudad destino */}
+          {/* Destino */}
           <div>
             <label
               htmlFor="ciudad"
-              className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine mb-2 block"
+              className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500 mb-2 block"
             >
-              Ciudad de destino
+              Destino · Casco Central
             </label>
             <select
               id="ciudad"
               value={form.ciudadId}
               onChange={(e) => update("ciudadId", e.target.value)}
-              className="w-full px-4 py-3 rounded-[10px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
+              className="w-full px-3.5 h-[52px] rounded-[12px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
             >
               {cityList.map((c) => (
                 <option key={c.id} value={c.id}>
@@ -260,47 +240,31 @@ export function CalculadoraForm({
                 </option>
               ))}
             </select>
-            <p className="text-[12px] text-grey-500 mt-2">
-              Casco central (Valencia, Maracay, Caracas): sin recargo.
-            </p>
           </div>
+        </div>
 
-          {/* CTA Calcular */}
-          <button
-            type="button"
-            onClick={handleCalcular}
-            className="btn btn-primary w-full mt-2"
-          >
-            Calcular envío <ArrowIcon />
-          </button>
-
-          {/* Baterías — debajo del CTA: el recargo ×1.5 sigue aplicando, pero se
-              de-prioriza visualmente (decisión founder, no es factor primario). */}
-          <ToggleField
-            label="Lleva baterías"
-            hint={`Recargo por manejo (×${params.recargoBateriaMult} sobre el flete).`}
-            checked={!!form.bateria}
-            onChange={(v) => update("bateria", v)}
+        {/* ── COLUMNA DERECHA · RESULTADO ── */}
+        <div className="p-6 lg:p-9 bg-paper flex flex-col gap-4">
+          <ContainerFill cbm={form.cbmTotal} max={CONFIG.cbmMaxContenedor} />
+          <ResultPanel
+            cotizacion={cotizacion}
+            input={form}
+            params={params}
+            tieneCarga={tieneCarga}
+            baseRate={baseRate}
           />
         </div>
       </div>
 
-      {/* Resultado o panel de financiamiento (pre-cálculo). Post-cálculo el
-          panel es sticky en desktop: te sigue al scrollear (no hay que volver
-          arriba para el CTA de WhatsApp). En móvil, handleCalcular hace scroll. */}
-      <div
-        ref={resultRef}
-        className={`flex flex-col gap-4 ${cotizacion ? "lg:sticky lg:self-start lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto" : ""}`}
-      >
-        {/* Contenedor 40'HC que se llena con el CBM — siempre visible, en vivo. */}
-        <ContainerFill cbm={form.cbmTotal} max={CONFIG.cbmMaxContenedor} />
-        {cotizacion ? (
-          <CotizacionDisplay cotizacion={cotizacion} input={form} params={params} vibrate={vibratePrice} />
-        ) : (
-          <div className="hidden lg:flex h-full">
-            <FinanciamientoPanel />
-          </div>
-        )}
+      {/* Nota al pie · ancho completo */}
+      <div className="border-t border-grey-200 px-6 lg:px-9 py-4">
+        <p className="text-[11.5px] text-grey-500 leading-[1.5]">
+          <strong className="text-grey-700">* Financiamiento 100%:</strong> pagás
+          el flete al llegar a Venezuela. <strong className="text-grey-700">Aplican
+          restricciones.</strong>{" "}
+          Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
+          puerta).
+        </p>
       </div>
     </div>
   );
@@ -310,35 +274,44 @@ export function CalculadoraForm({
 // Subcomponentes
 // ─────────────────────────────────────────────
 
-function InputField({
+/** Input grande con sufijo (m³/kg) y aviso inline ámbar. Número en mono. */
+function BigInput({
   label,
+  suffix,
   value,
   onChange,
   placeholder,
   warning,
 }: {
   label: string;
+  suffix: string;
   value: number;
   onChange: (n: number) => void;
   placeholder?: string;
-  /** Aviso inline (ámbar) bajo el campo, ej. cuando supera un límite. */
   warning?: string | null;
 }) {
   return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-[12.5px] font-semibold text-grey-700">{label}</span>
-      <DecimalInput
-        value={value}
-        onValueChange={onChange}
-        placeholder={placeholder}
-        className={`px-3 py-2.5 rounded-[10px] border text-[15px] text-ink bg-white focus:outline-none ${
+    <label className="flex flex-col gap-1.5 min-w-0">
+      <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+        {label}
+      </span>
+      <div
+        className={`flex items-center gap-2 rounded-[12px] border px-3.5 h-[60px] bg-white transition-colors ${
           warning
-            ? "border-status-warning focus:border-status-warning"
-            : "border-grey-200 focus:border-ink"
+            ? "border-status-warning"
+            : "border-grey-200 focus-within:border-ink"
         }`}
-      />
+      >
+        <DecimalInput
+          value={value}
+          onValueChange={onChange}
+          placeholder={placeholder}
+          className="num flex-1 min-w-0 bg-transparent text-[24px] font-bold text-ink outline-none"
+        />
+        <span className="text-[13px] text-grey-500 whitespace-nowrap">{suffix}</span>
+      </div>
       {warning && (
-        <span className="text-[11.5px] leading-[1.4] font-medium text-status-warning">
+        <span className="text-[11px] leading-[1.35] font-medium text-status-warning">
           {warning}
         </span>
       )}
@@ -346,337 +319,315 @@ function InputField({
   );
 }
 
-function ToggleField({
+/** Toggle tipo switch (iOS-like) con label + hint + badge opcional. */
+function SwitchField({
   label,
   hint,
+  badge,
   checked,
   onChange,
 }: {
   label: string;
   hint: string;
+  badge?: string;
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="flex items-start gap-3 p-3 rounded-[10px] border border-grey-200 hover:border-ink cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="accent-wine mt-0.5"
-      />
-      <span className="flex flex-col">
-        <span className="text-[14px] text-ink">{label}</span>
-        <span className="text-[11.5px] text-grey-500 leading-[1.4]">{hint}</span>
+    <label
+      className={`flex items-center gap-3 p-3.5 rounded-[12px] border cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-ink focus-within:outline-offset-2 ${
+        checked ? "border-wine bg-wine/5" : "border-grey-200 hover:border-grey-500"
+      }`}
+    >
+      <span
+        className={`relative inline-flex shrink-0 h-[26px] w-[46px] rounded-full transition-colors ${
+          checked ? "bg-wine" : "bg-grey-300"
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          onChange={(e) => onChange(e.target.checked)}
+          className="sr-only"
+        />
+        <span
+          className={`absolute top-[3px] h-[20px] w-[20px] rounded-full bg-white shadow transition-all ${
+            checked ? "left-[23px]" : "left-[3px]"
+          }`}
+        />
       </span>
+      <span className="flex flex-col flex-1 min-w-0">
+        <span className="text-[14px] font-semibold text-ink leading-[1.2]">
+          {label}
+        </span>
+        <span className="text-[11.5px] text-grey-500 leading-[1.35]">{hint}</span>
+      </span>
+      {badge && (
+        <span className="num text-[12px] font-semibold text-grey-500 whitespace-nowrap">
+          {badge}
+        </span>
+      )}
     </label>
   );
 }
 
 /**
- * Contenedor 40'HC que se LLENA con el CBM. El relleno wine escala con
- * `cbm/max` vía `transform: scaleX()` (no `width %`, que tranca la transición).
- * Recortado al cuerpo del contenedor (esquinas redondeadas) + corrugado vertical
- * + puerta a la derecha. Muestra el % lleno; sobre el máximo → "100%+".
+ * Contenedor 40'HC que se LLENA con el CBM. El relleno wine escala con `cbm/max`
+ * vía `transform: scaleX()` (no `width %`). Corrugado vertical de fondo, "% LLENO"
+ * centrado, y una "puerta" como segmento aparte a la derecha.
  */
 function ContainerFill({ cbm, max }: { cbm: number; max: number }) {
   const ratio = max > 0 ? Math.min(Math.max(cbm, 0) / max, 1) : 0;
   const pct = max > 0 ? Math.round((Math.max(cbm, 0) / max) * 100) : 0;
   const over = cbm > max;
   return (
-    <div className="bg-white border border-grey-200 rounded-[18px] p-4 lg:p-5">
-      <div className="flex items-baseline justify-between mb-3">
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
-          Tu contenedor
+    <div>
+      <div className="flex items-baseline justify-between gap-3 mb-2.5">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+          En un contenedor 40&apos;HC
         </span>
-        <span className="text-[12px] text-grey-500">
-          <span className="num font-semibold text-ink">{over ? "100%+" : `${pct}%`}</span> lleno
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+          <span className="num">{max}</span> CBM
         </span>
       </div>
-      {/* Ratio ~4:1 (contenedor 40'HC), corrugado denso + cornerposts → lee
-          inequívocamente como contenedor marítimo. El relleno wine escala con
-          el CBM vía scaleX (no width %). */}
-      <svg
-        viewBox="0 0 360 104"
-        className="w-full h-auto"
-        role="img"
-        aria-label={
-          over
-            ? "Tu carga supera la capacidad de un contenedor"
-            : `Tu carga ocupa ${pct}% de un contenedor`
-        }
-      >
-        <defs>
-          <clipPath id="cont-body">
-            <rect x="6" y="10" width="324" height="80" rx="7" />
-          </clipPath>
-        </defs>
-        {/* Relleno wine + corrugado, recortados al cuerpo */}
-        <g clipPath="url(#cont-body)">
-          <rect
-            x="6"
-            y="10"
-            width="324"
-            height="80"
-            fill="var(--color-wine)"
+      <div className="flex gap-2 items-stretch h-[140px]">
+        {/* Cuerpo del contenedor */}
+        <div className="relative flex-1 rounded-[12px] border-2 border-ink overflow-hidden bg-white">
+          {/* Corrugado vertical */}
+          <div
+            className="absolute inset-0"
             style={{
-              transformBox: "fill-box",
+              backgroundImage:
+                "repeating-linear-gradient(90deg, transparent 0, transparent 13px, rgba(15,30,61,0.10) 13px, rgba(15,30,61,0.10) 14px)",
+            }}
+          />
+          {/* Relleno wine (scaleX desde la izquierda) */}
+          <div
+            className="absolute inset-y-0 left-0 w-full bg-wine"
+            style={{
               transformOrigin: "left",
               transform: `scaleX(${ratio})`,
               transition: "transform 600ms cubic-bezier(0.4, 0, 0.2, 1)",
             }}
           />
-          {Array.from({ length: 18 }).map((_, i) => (
-            <line
-              key={i}
-              x1={26 + i * 16}
-              y1="10"
-              x2={26 + i * 16}
-              y2="90"
-              stroke="var(--color-ink)"
-              strokeWidth="1.5"
-              opacity="0.16"
-            />
-          ))}
-        </g>
-        {/* Marco del cuerpo */}
-        <rect x="6" y="10" width="324" height="80" rx="7" fill="none" stroke="var(--color-ink)" strokeWidth="3" />
-        {/* Cornerposts (marcos verticales de esquina — pista ISO #1) */}
-        <line x1="11" y1="12" x2="11" y2="88" stroke="var(--color-ink)" strokeWidth="4.5" />
-        <line x1="325" y1="12" x2="325" y2="88" stroke="var(--color-ink)" strokeWidth="4.5" />
-        {/* Puerta derecha + manijas */}
-        <line x1="284" y1="12" x2="284" y2="88" stroke="var(--color-ink)" strokeWidth="2" opacity="0.55" />
-        <line x1="300" y1="34" x2="300" y2="66" stroke="var(--color-ink)" strokeWidth="3" opacity="0.55" strokeLinecap="round" />
-        <line x1="314" y1="34" x2="314" y2="66" stroke="var(--color-ink)" strokeWidth="3" opacity="0.55" strokeLinecap="round" />
-        {/* Patas */}
-        <rect x="26" y="90" width="22" height="8" rx="2" fill="var(--color-ink)" />
-        <rect x="288" y="90" width="22" height="8" rx="2" fill="var(--color-ink)" />
-      </svg>
-      <p className="text-[11.5px] text-grey-500 leading-[1.4] mt-2">
-        Se llena con tu CBM (un contenedor son <span className="num">68</span> m³).
-      </p>
+          {/* % lleno centrado */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span
+              className="num text-[34px] leading-none text-ink"
+              style={{ fontFamily: "var(--font-archivo-black)" }}
+            >
+              {over ? "100%+" : `${pct}%`}
+            </span>
+            <span className="text-[10.5px] font-bold tracking-[0.16em] uppercase text-grey-500 mt-1">
+              Lleno
+            </span>
+          </div>
+        </div>
+        {/* Puerta del contenedor */}
+        <div className="w-[40px] rounded-[12px] border-2 border-ink flex items-center justify-center gap-1.5">
+          <span className="block w-[3px] h-[44px] rounded bg-ink/45" />
+          <span className="block w-[3px] h-[44px] rounded bg-ink/45" />
+        </div>
+      </div>
     </div>
   );
 }
 
 /**
- * Panel ambiental del lado derecho (desktop) mientras el cliente no calculó.
- * Refuerza el gancho comercial: financiamiento 100%, pago al arribo.
+ * Panel del resultado: total (gradiente navy) + desglose + badge financiamiento
+ * + nudge "ya está lista" (vibración mínima) + CTA WhatsApp + microcopy.
+ * Maneja 3 estados: vacío (sin CBM/peso), deriva al asesor (alerta), normal.
  */
-function FinanciamientoPanel() {
-  return (
-    <div className="card-shadow-dark bg-ink text-white rounded-[18px] p-7 lg:p-9 w-full flex flex-col justify-center min-h-[400px]">
-      <div className="eyebrow text-white/50">
-        Financiamiento 100%*
-      </div>
-      <h3
-        className="mt-3 text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em]"
-        style={{ fontFamily: "var(--font-archivo-black)" }}
-      >
-        No pagás nada hasta que tu carga llegue.
-      </h3>
-      <p className="mt-4 text-[14.5px] leading-[1.55] text-white/80">
-        Cubrimos el viaje, la aduana y los impuestos. Cancelás al arribar a
-        Venezuela y recién ahí coordinamos la entrega — exactamente lo que
-        cotizaste.
-      </p>
-      <ul className="mt-5 flex flex-col gap-2 text-[13.5px] text-white/75 list-none p-0">
-        <li>· Tarifas en dólares (USD).</li>
-        <li>· Casco central (Valencia · Maracay · Caracas): sin recargo.</li>
-        <li>· Tu estimado aparece acá cuando calculás.</li>
-      </ul>
-      <p className="mt-6 text-[11.5px] text-white/45 leading-[1.45]">
-        *Aplican restricciones.
-      </p>
-    </div>
-  );
-}
-
-function CotizacionDisplay({
-  cotizacion,
+function ResultPanel({
+  cotizacion: cot,
   input,
   params,
-  vibrate,
+  tieneCarga,
+  baseRate,
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
   params: CalcParams;
-  /** Activa la vibración mínima del precio (5 s post-cálculo). */
-  vibrate: boolean;
+  tieneCarga: boolean;
+  baseRate: number;
 }) {
-  const cot = cotizacion;
-  const hasAlerta = !!cot.alerta;
-
-  // Mensaje pre-armado para WhatsApp
+  const hasAlerta = !!cot.alerta && tieneCarga;
+  const money = (n: number) =>
+    `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
+  const tarifa =
+    input.tarifaCBMOverride && input.tarifaCBMOverride > 0
+      ? input.tarifaCBMOverride
+      : baseRate;
   const whatsappText = whatsappTextFromCotizacion(cot, input);
   const whatsappUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(whatsappText)}`;
 
   return (
-    <div
-      className="card-shadow-dark text-white rounded-[18px] p-7 lg:p-9 flex flex-col gap-5"
-      style={{ background: "linear-gradient(150deg, var(--color-ink), #1F3055)" }}
-    >
-      <div className="eyebrow text-white/50">
-        Estimado de tu envío
-      </div>
-
-      {/* Precio destacado (solo si hay total) */}
-      {!hasAlerta && (
-        <div>
-          <div className="flex items-baseline gap-2">
-            <span className="text-[14px] text-white/55">US$</span>
-            <span
-              className={`text-[56px] leading-[1] text-white inline-block ${
-                vibrate ? "price-vibrate" : ""
-              }`}
-              style={{ fontFamily: "var(--font-archivo-black)" }}
-            >
-              {cot.total.toFixed(0)}
-            </span>
-            <span className="text-[15px] text-white/55">aproximado</span>
-          </div>
-          {cot.cbm > 0 && (
-            <div className="text-[13.5px] text-white/65 mt-2">
-              <span className="num">{cot.cbm}</span> CBM ·{" "}
-              <span className="num">{cot.densidadKgM3.toFixed(0)}</span> kg/m³ · destino{" "}
-              {cot.ciudad?.label}
-            </div>
-          )}
-          {/* Badge financiamiento — destacado y con micro-animación (breathing
-              + dot "vivo") para llamar la atención sobre el gancho comercial. */}
-          <div className="fin-badge mt-4 inline-flex items-center gap-2.5 text-[13.5px] font-semibold rounded-[12px] px-4 py-2.5 bg-white/20 text-white">
-            <span className="fin-badge-dot" aria-hidden="true" />
-            Financiamiento 100% · pagás al llegar a Venezuela*
-          </div>
-        </div>
-      )}
-
-      {/* Alerta si hay */}
-      {hasAlerta && (
+    <>
+      {/* Panel del total (gradiente navy) */}
+      <div
+        className="rounded-[16px] p-5 lg:p-6 text-white"
+        style={{ background: "linear-gradient(150deg, var(--color-ink), #1F3055)" }}
+      >
         <div
-          className="p-4 rounded-[10px] border-l-[3px] border-status-warning"
-          style={{ background: "rgba(184,137,58,0.12)" }}
+          className="text-[11px] font-bold tracking-[0.12em] uppercase"
+          style={{ color: "rgba(255,255,255,0.5)" }}
         >
-          <div className="text-[11px] font-bold tracking-[0.12em] uppercase mb-1 text-status-warning">
-            Atención
-          </div>
-          <p className="text-[13.5px] leading-[1.5] text-white/85">
+          Total estimado
+        </div>
+        {!tieneCarga ? (
+          <p
+            className="mt-2 text-[14.5px] leading-[1.5]"
+            style={{ color: "rgba(255,255,255,0.8)" }}
+          >
+            Ingresá tu CBM y peso para ver el estimado al instante.
+          </p>
+        ) : hasAlerta ? (
+          <p
+            className="mt-2 text-[14.5px] leading-[1.5]"
+            style={{ color: "rgba(255,255,255,0.9)" }}
+          >
             {cot.alerta!.mensaje}
           </p>
-        </div>
-      )}
-
-      {/* Desglose */}
-      {!hasAlerta && cot.cbm > 0 && (
-        <div className="border-t border-white/10 pt-5">
-          <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-white/55 mb-3">
-            Desglose
+        ) : (
+          <div className="mt-1.5 flex items-end justify-between gap-3 flex-wrap">
+            <span
+              className="num text-[44px] lg:text-[52px] leading-none text-white"
+              style={{ fontFamily: "var(--font-archivo-black)" }}
+            >
+              {money(cot.total)}
+            </span>
+            <span
+              className="text-[12px] leading-[1.4] text-right"
+              style={{ color: "rgba(255,255,255,0.55)" }}
+            >
+              aprox · DDP
+              <br />
+              puerta a puerta
+            </span>
           </div>
-          <ul className="flex flex-col gap-2 text-[13.5px] list-none p-0">
+        )}
+      </div>
+
+      {/* Desglose (solo cotización normal) */}
+      {tieneCarga && !hasAlerta && cot.cbm > 0 && (
+        <div className="flex flex-col gap-2.5">
+          <DesgloseRow
+            label="Volumen base"
+            sub={`${cot.cbm} CBM × ${money(tarifa)}`}
+            value={money(cot.precioBase)}
+          />
+          {cot.recargoExcedente > 0 && (
             <DesgloseRow
-              label={`Volumen base (${cot.cbm} CBM × $${(input.tarifaCBMOverride && input.tarifaCBMOverride > 0 ? input.tarifaCBMOverride : CONFIG.tarifaBaseCBM)})`}
-              value={cot.precioBase}
+              label="Excedente de peso"
+              sub={`> ${params.pesoIncluidoKg} kg/CBM`}
+              value={money(cot.recargoExcedente)}
             />
-            {cot.recargoExcedente > 0 && (
-              <DesgloseRow
-                label={`Excedente de peso (>${params.pesoIncluidoKg} kg/CBM)`}
-                value={cot.recargoExcedente}
-              />
-            )}
-            {cot.recargoCiudad > 0 && (
-              <DesgloseRow
-                label={`Distancia fuera del casco central (${cot.ciudad?.km} km)`}
-                value={cot.recargoCiudad}
-              />
-            )}
-            {cot.recargoEmbalaje > 0 && (
-              <DesgloseRow
-                label="Embalaje especial (paleta/madera)"
-                value={cot.recargoEmbalaje}
-              />
-            )}
-            {cot.recargoBateria > 0 && (
-              <DesgloseRow
-                label={`Recargo por baterías (×${params.recargoBateriaMult})`}
-                value={cot.recargoBateria}
-              />
-            )}
-            {cot.descuentoSede < 0 && (
-              <DesgloseRow
-                label="Descuento entrega en Valencia"
-                value={cot.descuentoSede}
-                negative
-              />
-            )}
-            {cot.ajusteMinimo > 0 && (
-              <DesgloseRow
-                label="Ajuste a mínimo facturable (LCL)"
-                value={cot.ajusteMinimo}
-              />
-            )}
-            <li className="flex justify-between border-t border-white/15 pt-2.5 mt-1 font-bold text-white">
-              <span>Total estimado</span>
-              <span className="num">US$ {cot.total.toFixed(2)}</span>
-            </li>
-          </ul>
+          )}
+          {cot.recargoEmbalaje > 0 && (
+            <DesgloseRow label="Embalaje especial" value={money(cot.recargoEmbalaje)} />
+          )}
+          {cot.recargoBateria > 0 && (
+            <DesgloseRow
+              label="Recargo por baterías"
+              sub={`×${params.recargoBateriaMult}`}
+              value={money(cot.recargoBateria)}
+            />
+          )}
+          {cot.descuentoSede < 0 && (
+            <DesgloseRow
+              label="Descuento Valencia"
+              value={`−${money(cot.descuentoSede)}`}
+              negative
+            />
+          )}
+          {cot.ajusteMinimo > 0 && (
+            <DesgloseRow
+              label="Ajuste a mínimo facturable"
+              value={money(cot.ajusteMinimo)}
+            />
+          )}
+          <div className="border-t border-grey-200 pt-2.5 mt-0.5 flex items-baseline justify-between font-bold text-ink">
+            <span className="text-[14px]">Total estimado</span>
+            <span className="num text-[15px]">{money(cot.total)}</span>
+          </div>
         </div>
       )}
 
-      {/* Nudge "ya casi está" (gancho B) — solo en el estimado real. El mensaje
-          de WhatsApp ya va pre-armado, así que "enviar" se siente como un clic. */}
+      {/* Badge financiamiento (pill verde claro) */}
       {!hasAlerta && (
-        <p className="text-[13.5px] text-white text-center leading-[1.4] -mb-1">
-          Tu cotización ya está lista — <span className="font-semibold">solo falta enviarla.</span>
-        </p>
+        <div
+          className="inline-flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-[13px] font-semibold text-ink"
+          style={{ background: "rgba(31,138,91,0.12)" }}
+        >
+          <span className="fin-badge-dot-green" aria-hidden="true" />
+          Financiamiento 100%* · pagás al llegar a Venezuela
+        </div>
       )}
 
-      {/* CTA WhatsApp. `.btn` ya da inline-flex + center + gap. En desktop usa
-          self-center (auto-ancho, ícono+texto ajustados, sin verde flotando);
-          en móvil estira a full-width para mejor target táctil. */}
-      <a
-        href={whatsappUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn bg-whatsapp text-white lg:self-center"
-      >
-        <WhatsAppIcon size={20} />
-        {hasAlerta ? "Consultar con un asesor" : "Enviar mi cotización por WhatsApp"}
-      </a>
+      {/* Empuja el CTA al fondo cuando hay espacio (desktop sticky/altura) */}
+      <div className="flex-1 min-h-[8px]" />
 
-      {/* Microcopy anti-fricción (gancho A) — desarma el miedo a comprometerse. */}
-      {!hasAlerta && (
-        <p className="text-[12.5px] text-white/85 leading-[1.5] -mt-1 text-center">
-          <span className="font-semibold text-white">Sin compromiso.</span> Un asesor
-          te responde en minutos y te confirma la tarifa final — financiamiento 100%,
-          pagás al llegar.
-        </p>
+      {tieneCarga && (
+        <>
+          {/* Nudge "ya está lista" — pill navy con vibración mínima + flecha */}
+          {!hasAlerta && (
+            <div className="flex flex-col items-center -mb-1">
+              <div className="nudge-vibrate w-full rounded-[12px] bg-ink text-white text-center text-[13.5px] leading-[1.35] py-3 px-4">
+                Tu cotización ya está lista —{" "}
+                <strong>solo falta enviarla.</strong>
+              </div>
+              <svg width="22" height="11" viewBox="0 0 22 11" fill="none" aria-hidden="true">
+                <path d="M2 1l9 8 9-8" stroke="var(--color-ink)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+          )}
+
+          {/* CTA WhatsApp */}
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn bg-whatsapp text-white"
+          >
+            <WhatsAppIcon size={20} />
+            {hasAlerta ? "Consultar con un asesor" : "Cotizar por WhatsApp"}
+          </a>
+
+          {/* Microcopy */}
+          <p className="text-[11.5px] text-grey-500 text-center leading-[1.45]">
+            Tu mensaje se arma solo con estos datos. Con Confianza, de China a tu
+            puerta.
+          </p>
+        </>
       )}
-
-      <p className="text-[11.5px] text-white/45 leading-[1.45]">
-        Este estimado es aproximado y refleja nuestra tarifa LCL DDP base.
-        La tarifa final puede variar según tipo de mercancía, documentación
-        del proveedor, fechas de salida y otros factores operativos.
-        *Aplican restricciones.
-      </p>
-    </div>
+    </>
   );
 }
 
 function DesgloseRow({
   label,
+  sub,
   value,
   negative = false,
 }: {
   label: string;
-  value: number;
+  sub?: string;
+  value: string;
   negative?: boolean;
 }) {
   return (
-    <li className="flex justify-between text-white/80">
-      <span className="text-white/70">{label}</span>
-      <span className={`num ${negative ? "text-status-success" : ""}`}>
-        {negative ? "" : "+"}US$ {value.toFixed(2)}
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="flex flex-col">
+        <span className="text-[13.5px] text-grey-700">{label}</span>
+        {sub && <span className="num text-[11.5px] text-grey-500">{sub}</span>}
       </span>
-    </li>
+      <span
+        className={`num text-[13.5px] font-semibold ${
+          negative ? "text-status-success" : "text-ink"
+        }`}
+      >
+        {value}
+      </span>
+    </div>
   );
 }

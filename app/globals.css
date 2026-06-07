@@ -64,6 +64,29 @@
   font-feature-settings: "tnum" 1;
 }
 
+/* Pill "tu cotización ya está lista" del estimado — vibración MÍNIMA y sutil,
+   un micro-temblor cada ~3.4s para empujar al CTA. reduced-motion la neutraliza. */
+.nudge-vibrate {
+  animation: nudge-vibrate 3.4s ease-in-out infinite;
+}
+@keyframes nudge-vibrate {
+  0%, 82%, 100% { transform: translateX(0); }
+  85% { transform: translateX(-1.5px); }
+  88% { transform: translateX(1.5px); }
+  91% { transform: translateX(-1.5px); }
+  94% { transform: translateX(1.5px); }
+  97% { transform: translateX(0); }
+}
+
+/* Dot verde del badge de financiamiento (pill verde claro). */
+.fin-badge-dot-green {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: var(--color-status-success);
+  flex-shrink: 0;
+}
+
 /* Scroll horizontal sin barra visible (nav del portal en mobile, etc.). */
 .no-scrollbar {
   -ms-overflow-style: none;
