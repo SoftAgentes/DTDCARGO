@@ -4,14 +4,40 @@ import { useState, useRef, useEffect, type FormEvent } from "react";
 import Link from "next/link";
 import { ORIGINS, DESTINATIONS, CONTACT } from "@/lib/design-tokens";
 import { parseDecimalInput } from "@/lib/calculadora";
-import { ArrowIcon } from "./Icon";
+import {
+  buildEstimadoWhatsAppMessage,
+  type EstimadoCalcKind,
+} from "@/lib/public/estimado-web";
+import { EstimadoModal, type EstimadoContact } from "./EstimadoModal";
+import { ArrowIcon, CheckIcon } from "./Icon";
 
 type Status = "idle" | "submitting" | "success" | "error";
 
+/** Datos del estimado calculado al submit, que viajan al modal + al ERP. */
+type EstimateDraft = {
+  low: number;
+  high: number;
+  mid: number;
+  days: string;
+  calc: EstimadoCalcKind;
+  origen: string;
+  destino: string;
+  peso: number;
+  volumen: number;
+  descripcion: string;
+  nombre: string;
+  email: string;
+  whatsapp: string;
+};
+
 /**
- * Formulario completo de estimación. En MVP usa un mock que simula la respuesta
- * — cuando el ERP exponga `POST {ERP}/api/public/estimacion` y `POST /leads`,
- * cambiamos `mockSubmit` por `fetch(...)`.
+ * Formulario completo de estimación.
+ *
+ * SDD-0061 Fase B1: al "Estimar ahora" se calcula el rango y se abre el modal de
+ * captura (nota + contacto prefilleado). El modal hace POST a
+ * `/api/public/estimacion` (crea el estimado en el ERP con EST-XXXX) y abre
+ * WhatsApp con el mensaje + nota + EST. El `leadId` mock pasó a ser el EST real
+ * del ERP. Si el POST falla, igual se abre WhatsApp (fallback) con EST nulo.
  *
  * Dimensiones: el usuario ingresa Largo × Ancho × Alto en cm y se calcula
  * el volumen en m³ al submit ((L×A×H) / 1.000.000). Esto es más amigable
@@ -27,8 +53,14 @@ export function EstimacionForm() {
     low: number;
     high: number;
     days: string;
-    leadId: string;
+    // null = el POST falló y el ERP no asignó código todavía. NO mostramos un
+    // código placeholder falso (EST-PENDIENTE) como si fuera real.
+    estimateCode: string | null;
   } | null>(null);
+
+  // SDD-0061 Fase B1 · borrador calculado + modal de captura.
+  const [draft, setDraft] = useState<EstimateDraft | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   // ─── Diagrama de dimensiones — UX hover-first + click-to-repeat ───
   const [showDiagram, setShowDiagram] = useState(false);
@@ -56,46 +88,87 @@ export function EstimacionForm() {
     };
   }, []);
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus("submitting");
     const formData = new FormData(e.currentTarget);
     const payload = Object.fromEntries(formData.entries());
 
-    try {
-      // MOCK: simulamos llamada al ERP. Reemplazar cuando los endpoints estén listos.
-      await new Promise((r) => setTimeout(r, 900));
-      // Parseo tolerante a coma o punto (es-VE escribe "120,5"). Los campos son
-      // type="text" inputMode="decimal", así que la coma llega cruda en FormData.
-      const num = (v: FormDataEntryValue | undefined) => {
-        const n = parseDecimalInput(String(v ?? ""));
-        return Number.isFinite(n) ? n : 0;
-      };
-      const peso = num(payload.peso);
-      // L × A × H en cm → m³ (dividir entre 1.000.000)
-      const largo = num(payload.largo);
-      const ancho = num(payload.ancho);
-      const alto = num(payload.alto);
-      const volumen = (largo * ancho * alto) / 1_000_000;
-      const factor = payload.modo === "aereo" ? 6 : 1.3;
-      const base = Math.max(peso, volumen * 167) * factor + 220;
-      setEstimate({
-        low: Math.round(base * 0.9),
-        high: Math.round(base * 1.15),
-        days: payload.modo === "aereo" ? "5-10 días" : "30-45 días",
-        leadId: `DTD-LEAD-${Date.now().toString(36).toUpperCase().slice(-6)}`,
-      });
-      setStatus("success");
-    } catch {
-      setStatus("error");
-    }
+    // Parseo tolerante a coma o punto (es-VE escribe "120,5"). Los campos son
+    // type="text" inputMode="decimal", así que la coma llega cruda en FormData.
+    const num = (v: FormDataEntryValue | undefined) => {
+      const n = parseDecimalInput(String(v ?? ""));
+      return Number.isFinite(n) ? n : 0;
+    };
+    const peso = num(payload.peso);
+    // L × A × H en cm → m³ (dividir entre 1.000.000)
+    const largo = num(payload.largo);
+    const ancho = num(payload.ancho);
+    const alto = num(payload.alto);
+    const volumen = (largo * ancho * alto) / 1_000_000;
+    const aereo = payload.modo === "aereo";
+    const factor = aereo ? 6 : 1.3;
+    const base = Math.max(peso, volumen * 167) * factor + 220;
+
+    setDraft({
+      low: Math.round(base * 0.9),
+      high: Math.round(base * 1.15),
+      mid: Math.round(base),
+      days: aereo ? "5-10 días" : "30-45 días",
+      calc: aereo ? "aereo" : "maritimo",
+      origen: String(payload.origen ?? ""),
+      destino: String(payload.destino ?? ""),
+      peso,
+      volumen,
+      descripcion: String(payload.descripcion ?? ""),
+      nombre: String(payload.nombre ?? ""),
+      email: String(payload.email ?? ""),
+      whatsapp: String(payload.whatsapp ?? ""),
+    });
+    setStatus("idle");
+    setModalOpen(true);
+  }
+
+  // Confirmar desde el modal: el estimado ya quedó en el ERP (estimateCode o
+  // null si falló). Mostramos la pantalla de éxito y abrimos WhatsApp.
+  function handleConfirm(contact: EstimadoContact, estimateCode: string | null) {
+    if (!draft) return;
+    const base = [
+      "Hola, acabo de estimar mi envío en la web:",
+      "",
+      `• Modo: ${draft.calc === "aereo" ? "Aéreo" : "Marítimo (LCL)"}`,
+      `• Origen: ${draft.origen}`,
+      `• Destino: ${draft.destino}`,
+      `• Peso: ${draft.peso} kg`,
+      `• Volumen aprox: ${draft.volumen.toFixed(3)} m³`,
+      ...(draft.descripcion ? [`• Mercancía: ${draft.descripcion}`] : []),
+      `• Estimado web: US$${draft.low.toLocaleString("en-US")} – ${draft.high.toLocaleString("en-US")}`,
+      "",
+      "¿Me confirman la tarifa final y los tiempos?",
+    ].join("\n");
+    const text = buildEstimadoWhatsAppMessage({
+      baseMessage: base,
+      nota: contact.nota,
+      estimateCode,
+    });
+    const url = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+
+    setEstimate({
+      low: draft.low,
+      high: draft.high,
+      days: draft.days,
+      estimateCode,
+    });
+    setStatus("success");
+    setModalOpen(false);
   }
 
   if (status === "success" && estimate) {
     return (
       <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-8 lg:p-10">
         <div className="inline-flex items-center gap-2 text-[12px] font-bold tracking-[0.12em] uppercase text-wine">
-          ✓ Estimación generada
+          <CheckIcon size={16} className="text-wine" />
+          Estimación generada
         </div>
         <div
           className="mt-4 text-[40px] lg:text-[56px] leading-none text-ink"
@@ -113,12 +186,16 @@ export function EstimacionForm() {
           impuestos y entrega.
         </p>
         <div className="mt-3 text-[12px] tracking-[0.08em] uppercase text-grey-500">
-          Lead #{estimate.leadId}
+          {estimate.estimateCode
+            ? `Estimado #${estimate.estimateCode}`
+            : "Tu asesor te asigna el código al confirmar."}
         </div>
         <div className="mt-7 flex flex-wrap gap-3">
           <a
             href={`https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
-              `Hola, acabo de estimar y mi lead es ${estimate.leadId}. Quiero confirmar mi envío.`
+              estimate.estimateCode
+                ? `Hola, mi código de estimado es ${estimate.estimateCode}. Quiero confirmar mi envío.`
+                : "Hola, acabo de generar un estimado en la web y quiero confirmar mi envío."
             )}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -135,6 +212,7 @@ export function EstimacionForm() {
   }
 
   return (
+    <>
     <form
       onSubmit={onSubmit}
       className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9 flex flex-col gap-5"
@@ -212,7 +290,7 @@ export function EstimacionForm() {
             onClick={showDiagramFor3s}
             className="text-[11.5px] font-medium text-wine hover:text-wine-deep underline underline-offset-2"
           >
-            Como medir?
+            ¿Cómo medir?
           </button>
         </div>
         <div className="grid grid-cols-3 gap-3">
@@ -303,16 +381,14 @@ export function EstimacionForm() {
 
       <button
         type="submit"
-        disabled={status === "submitting"}
-        className="btn btn-primary h-14 mt-3 disabled:opacity-60 disabled:cursor-wait"
+        className="btn btn-primary h-14 mt-3"
       >
-        {status === "submitting" ? "Calculando…" : "Estimar ahora"}{" "}
-        {status !== "submitting" && <ArrowIcon />}
+        Estimar ahora <ArrowIcon />
       </button>
 
       {status === "error" && (
         <p className="text-[13.5px] text-wine">
-          Algo falló. Inténtalo de nuevo o escríbenos por WhatsApp.
+          Algo falló. Probá de nuevo o escribinos por WhatsApp.
         </p>
       )}
 
@@ -321,6 +397,27 @@ export function EstimacionForm() {
         No compartimos tus datos con terceros.
       </p>
     </form>
+
+      <EstimadoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        initialNombre={draft?.nombre ?? ""}
+        initialTelefono={draft?.whatsapp ?? ""}
+        onConfirm={handleConfirm}
+        buildPayload={() => ({
+          calc: draft?.calc ?? "maritimo",
+          origin: draft?.origen ?? "China",
+          destination: draft?.destino ?? "Venezuela",
+          weightKg: draft?.peso ?? null,
+          cbm: draft?.volumen ?? null,
+          packaging: "carton",
+          // El form da un rango; persistimos el punto medio como total estimado.
+          totalUsd: draft?.mid ?? 0,
+          subtotalUsd: draft?.mid ?? 0,
+          prospectEmail: draft?.email ?? null,
+        })}
+      />
+    </>
   );
 }
 

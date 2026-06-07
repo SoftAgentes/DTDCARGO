@@ -15,6 +15,8 @@ import {
 import { DecimalInput } from "@/components/DecimalInput";
 import { CONTACT } from "@/lib/design-tokens";
 import { WhatsAppIcon } from "@/components/Icon";
+import { EstimadoModal, type EstimadoContact } from "@/components/EstimadoModal";
+import { buildEstimadoWhatsAppMessage } from "@/lib/public/estimado-web";
 
 /**
  * Calculadora LCL DDP — UI del formulario + render del resultado.
@@ -71,6 +73,9 @@ export function CalculadoraForm({
     minChargeOverride,
   });
 
+  // SDD-0061 Fase B1 · modal de captura del estimado web (nota + nombre + tel).
+  const [modalOpen, setModalOpen] = useState(false);
+
   function update<K extends keyof EnvioInput>(key: K, value: EnvioInput[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
@@ -109,7 +114,21 @@ export function CalculadoraForm({
     return null;
   })();
 
+  // Confirmar desde el modal: ya tenemos el EST del ERP (o null), abrimos wa.me.
+  function handleConfirm(contact: EstimadoContact, estimateCode: string | null) {
+    const base = whatsappTextFromCotizacion(cotizacion, form);
+    const text = buildEstimadoWhatsAppMessage({
+      baseMessage: base,
+      nota: contact.nota,
+      estimateCode,
+    });
+    const url = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+    setModalOpen(false);
+  }
+
   return (
+    <>
     <div className="card-shadow bg-white border border-grey-200 rounded-[20px] overflow-hidden">
       <div className="grid grid-cols-1 lg:grid-cols-2">
         {/* ── COLUMNA IZQUIERDA · ENTRADA ── */}
@@ -249,6 +268,7 @@ export function CalculadoraForm({
             cotizacion={cotizacion}
             input={form}
             tieneCarga={tieneCarga}
+            onEstimar={() => setModalOpen(true)}
           />
         </div>
       </div>
@@ -264,6 +284,23 @@ export function CalculadoraForm({
         </p>
       </div>
     </div>
+
+      <EstimadoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onConfirm={handleConfirm}
+        buildPayload={() => ({
+          calc: "lcl",
+          origin: "China",
+          destination: cotizacion.ciudad?.label ?? "Venezuela",
+          cbm: form.cbmTotal,
+          weightKg: form.pesoKg,
+          packaging: form.embalaje === "especial" ? "madera" : "carton",
+          totalUsd: cotizacion.total,
+          subtotalUsd: cotizacion.total,
+        })}
+      />
+    </>
   );
 }
 
@@ -441,14 +478,19 @@ function ResultPanel({
   cotizacion: cot,
   input,
   tieneCarga,
+  onEstimar,
 }: {
   cotizacion: EnvioCotizacion;
   input: EnvioInput;
   tieneCarga: boolean;
+  /** Abre el modal de captura del estimado web (caso con precio válido). */
+  onEstimar: () => void;
 }) {
   const hasAlerta = !!cot.alerta && tieneCarga;
   const money = (n: number) =>
     `$${Math.round(Math.abs(n)).toLocaleString("en-US")}`;
+  // Caso "deriva al asesor" (carga especial / fuera de contenedor): no hay un
+  // estimado que capturar → CTA directo a WhatsApp con el texto de la alerta.
   const whatsappText = whatsappTextFromCotizacion(cot, input);
   const whatsappUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(whatsappText)}`;
 
@@ -528,16 +570,28 @@ function ResultPanel({
             </div>
           )}
 
-          {/* CTA WhatsApp */}
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn bg-whatsapp text-white"
-          >
-            <WhatsAppIcon size={20} />
-            {hasAlerta ? "Consultar con un asesor" : "Cotizar por WhatsApp"}
-          </a>
+          {/* CTA WhatsApp · con precio válido abre el modal de captura del
+              estimado (POST al ERP + wa.me); con alerta va directo a WhatsApp. */}
+          {hasAlerta ? (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn bg-whatsapp text-white"
+            >
+              <WhatsAppIcon size={20} />
+              Consultar con un asesor
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={onEstimar}
+              className="btn bg-whatsapp text-white"
+            >
+              <WhatsAppIcon size={20} />
+              Enviar por WhatsApp
+            </button>
+          )}
 
           {/* Microcopy */}
           <p className="text-[11.5px] text-grey-500 text-center leading-[1.45]">
