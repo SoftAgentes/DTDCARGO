@@ -37,6 +37,7 @@
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
+import { notifyNewClientToAdmin } from "@/lib/studio/new-client-notify";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import {
   validateRegisterInput,
@@ -319,8 +320,8 @@ export async function registerClientAction(
     console.error("[registerClientAction] insert client_users error:", linkErr);
   }
 
-  // 9. Email de bienvenida SIN la clave (template welcome_markbox: solo markbox +
-  //    link al portal). Best-effort.
+  // 9. Email de bienvenida al CLIENTE con su MARKBOX (SIN la clave; template
+  //    welcome_markbox). Envío real vía Resend (SDD-0059). Best-effort.
   let warning: string | undefined;
   const welcome = await sendWelcomeEmail(admin, tenantId, {
     markbox,
@@ -328,9 +329,24 @@ export async function registerClientAction(
     email: input.email,
   });
   if (!welcome.ok) {
-    warning = "Cuenta creada. El email de bienvenida no se pudo encolar.";
+    warning = "Cuenta creada. El email de bienvenida no se pudo enviar.";
     console.warn("[registerClientAction] welcome email failed:", welcome.error);
   }
+
+  // 10. Aviso interno al EQUIPO: entró un cliente nuevo (SDD-0059). Best-effort —
+  //     no rompe el alta ni depende del welcome. Solo en el alta self-service:
+  //     el alta admin la inicia un humano que ya conoce al cliente.
+  await notifyNewClientToAdmin(admin, tenantId, {
+    markbox,
+    name: input.company ?? input.name,
+    contactName: input.kind === "empresa" ? input.name : null,
+    document: input.document,
+    email: input.email,
+    whatsapp: input.whatsapp,
+    city: input.city,
+    state: input.state,
+    channel: "portal",
+  });
 
   return { ok: true, markbox, warning };
 }

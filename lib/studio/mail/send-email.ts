@@ -4,7 +4,7 @@
  * Flujo:
  *   1. Lee mail_config del tenant (test_mode + from_email + blacklist check)
  *   2. Lee template por slug (si templateSlug se provee)
- *   3. Render variables {{var}} con renderTemplate (reusa welcome-email.ts)
+ *   3. Render variables {{var}} con renderTemplate (lib/studio/mail/render-template)
  *   4. Check blacklist (mail_blacklist por tenant + email)
  *   5. Insert mail_log con status='queued'
  *   6. Llama resendSend
@@ -18,7 +18,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { renderTemplate } from "../welcome-email";
+import { renderTemplate } from "./render-template";
 import { resendSend, type ResendSendInput } from "./resend-api";
 
 export type SendEmailInput = {

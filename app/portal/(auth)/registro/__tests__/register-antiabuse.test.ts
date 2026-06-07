@@ -136,6 +136,10 @@ vi.mock("@/lib/studio/welcome-email", () => ({
   sendWelcomeEmail: async () => ({ ok: true }),
 }));
 
+vi.mock("@/lib/studio/new-client-notify", () => ({
+  notifyNewClientToAdmin: async () => {},
+}));
+
 // Import del SUT después de los mocks.
 import { registerClientAction } from "../actions";
 
