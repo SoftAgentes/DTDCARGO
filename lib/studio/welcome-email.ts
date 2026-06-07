@@ -1,18 +1,26 @@
 /**
- * Email de bienvenida al crear cliente (SDD-0032).
+ * Email de bienvenida al crear cliente (SDD-0032 · entrega real SDD-0059).
  *
- * Lee template `welcome_markbox` de `mail_templates` (seedeado por
- * 0026_welcome_email_template_seed.sql), renderiza variables y
- * registra el envío en `mail_logs` con status='queued'.
+ * Lee el template `welcome_markbox` (seedeado por 0026_welcome_email_template_seed.sql)
+ * y lo ENVÍA de verdad por Resend delegando en `sendEmail` (lib/studio/mail/send-email).
  *
- * V1 NO envía email real — espera que Resend esté configurado en V2.
- * El log queda como "queued" hasta que un job/worker lo procese.
+ * Antes (V1) solo encolaba un `mail_logs` con status='queued' y nunca enviaba →
+ * el cliente recibía su MARKBOX en pantalla pero nunca por correo. Ahora pasa
+ * por el mismo pipeline que el resto de los emails del Studio: mail_config
+ * (test_mode + from) + blacklist + Resend + `mail_logs` status='sent'.
+ *
+ * Best-effort: NUNCA tira excepción — la creación del cliente NO debe romperse
+ * si el email falla. Mantiene la firma y el contrato de retorno previos para no
+ * tocar los call sites (registro self-service + alta admin).
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { sendEmail } from "./mail/send-email";
 
 const TEMPLATE_SLUG = "welcome_markbox";
-const PORTAL_BASE = "https://portal.dtdcargo.com";
+
+/** Base del sitio (el portal del cliente vive en una ruta de este dominio). */
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
 export type WelcomeEmailInput = {
   markbox: string;
@@ -25,35 +33,26 @@ export type WelcomeEmailResult =
   | { ok: false; error: string };
 
 /**
- * Renderiza `{{var_name}}` reemplazando por valor en `vars`.
- * Si una var no existe, deja el placeholder visible (debug-friendly).
+ * Link al portal para el correo de bienvenida → `{SITE_URL}/portal/login`.
+ *
+ * El portal NO vive en un subdominio `portal.dtdcargo.com` (no existe ese
+ * rewrite/redirect en next.config; aun resolviéndolo, no hay ruta `/[markbox]`).
+ * Todo el código referencia `/portal/login` en el dominio principal: ahí entra
+ * el cliente con su MARKBOX + contraseña inicial (= su documento).
  */
-export function renderTemplate(body: string, vars: Record<string, string>): string {
-  return body.replace(/\{\{(\w+)\}\}/g, (_, k: string) =>
-    vars[k] != null ? vars[k] : `{{${k}}}`,
-  );
+export function portalLoginUrl(): string {
+  return `${SITE_URL}/portal/login`;
 }
 
 /**
- * Genera el link al portal del cliente desde el MARKBOX.
- * Ej: `DTD-5452` → `https://portal.dtdcargo.com/dtd-5452`
- */
-export function portalLinkFromMarkbox(markbox: string): string {
-  return `${PORTAL_BASE}/${markbox.toLowerCase()}`;
-}
-
-/**
- * Dispara el email de bienvenida (registro en mail_logs).
+ * Dispara el email de bienvenida (envío real vía Resend).
  *
- * Llamada desde server actions (createClientAction). Recibe el supabase
- * client ya autenticado del caller para mantener la transacción/RLS
- * coherente con el tenant resuelto.
- *
- * @returns log_id en éxito o error string en falla. NUNCA tira excepción —
- * la creación del cliente NO debe romperse si el email falla.
+ * @param supabaseAdmin cliente service_role — el INSERT en `mail_logs` está
+ *   bloqueado para `authenticated`; ambos callers pasan `createAdminClient()`.
+ * @returns `log_id` en éxito o `error` string en falla. NUNCA tira excepción.
  */
 export async function sendWelcomeEmail(
-  supabase: SupabaseClient,
+  supabaseAdmin: SupabaseClient,
   tenantId: string,
   client: WelcomeEmailInput,
 ): Promise<WelcomeEmailResult> {
@@ -61,69 +60,18 @@ export async function sendWelcomeEmail(
     return { ok: false, error: "cliente sin email" };
   }
 
-  // 1. Leer template
-  const { data: template, error: tErr } = await supabase
-    .from("mail_templates")
-    .select("id, slug, subject, body_html, variables, active")
-    .eq("tenant_id", tenantId)
-    .eq("slug", TEMPLATE_SLUG)
-    .maybeSingle<{
-      id: string;
-      slug: string;
-      subject: string;
-      body_html: string;
-      variables: string[];
-      active: boolean;
-    }>();
+  const result = await sendEmail(supabaseAdmin, tenantId, {
+    templateSlug: TEMPLATE_SLUG,
+    to: client.email,
+    to_name: client.name,
+    vars: {
+      client_name: client.name,
+      markbox: client.markbox,
+      portal_link: portalLoginUrl(),
+    },
+    metadata: { source: "welcome_markbox" },
+  });
 
-  if (tErr) {
-    return { ok: false, error: `error leyendo template: ${tErr.message}` };
-  }
-  if (!template) {
-    return {
-      ok: false,
-      error:
-        "template welcome_markbox no encontrado · aplicá la migration 0026_welcome_email_template_seed.sql",
-    };
-  }
-  if (!template.active) {
-    return { ok: false, error: "template welcome_markbox desactivado" };
-  }
-
-  // 2. Render
-  const vars: Record<string, string> = {
-    client_name: client.name,
-    markbox: client.markbox,
-    portal_link: portalLinkFromMarkbox(client.markbox),
-  };
-  const subject = renderTemplate(template.subject, vars);
-  const body_html = renderTemplate(template.body_html, vars);
-
-  // 3. Insert en mail_logs (status='queued' · sin Resend en V1)
-  // NOTA: el insert necesita service_role porque la policy de mail_logs
-  // bloquea INSERT desde authenticated. En V2, cuando Resend esté en
-  // un worker server-side, se hace allí directo.
-  // Por ahora usamos el caller's supabase (que debe correr con service_role
-  // si llega de un server action que NO depende de auth.uid del browser).
-  const { data: log, error: lErr } = await supabase
-    .from("mail_logs")
-    .insert({
-      tenant_id: tenantId,
-      template_id: template.id,
-      template_slug: template.slug,
-      to_email: client.email.trim(),
-      to_name: client.name,
-      subject,
-      rendered_variables: vars,
-      status: "queued",
-      metadata: { source: "createClient", body_preview: body_html.slice(0, 200) },
-    })
-    .select("id")
-    .single<{ id: string }>();
-
-  if (lErr || !log) {
-    return { ok: false, error: `error registrando log: ${lErr?.message}` };
-  }
-
-  return { ok: true, log_id: log.id };
+  if (result.ok) return { ok: true, log_id: result.logId };
+  return { ok: false, error: result.error };
 }
