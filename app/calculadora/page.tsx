@@ -96,19 +96,13 @@ export default async function CalculadoraPage() {
         ]}
       />
       <main className="bg-paper min-h-screen">
-        {/* Encabezado compacto — el form aparece casi inmediato al cargar.
-            H1 mantenido para SEO/accesibilidad pero visualmente discreto. */}
-        <section className="pt-8 pb-5 lg:pt-12 lg:pb-6">
+        {/* H1 sr-only para SEO/accesibilidad — el título visible vive dentro de
+            la card de la calculadora (header de la columna izquierda). */}
+        <section className="pt-6 lg:pt-10">
           <div className="wrap max-w-[1100px]">
-            <span className="eyebrow">Calculadora · LCL DDP · China → Venezuela</span>
-            <h1 className="sr-only">Calculadora de envíos LCL DDP</h1>
-            <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[62ch]">
-              Tarifa base ${baseRate}/CBM, hasta {params.pesoIncluidoKg} kg/CBM sin recargo.{" "}
-              <strong className="text-ink">
-                Financiamiento 100%: no pagás nada hasta que tu carga llegue a Venezuela.
-              </strong>{" "}
-              Estimado inmediato — confirmá la tarifa final por WhatsApp.
-            </p>
+            <h1 className="sr-only">
+              Calculadora de envíos LCL DDP — China → Venezuela
+            </h1>
           </div>
         </section>
 
