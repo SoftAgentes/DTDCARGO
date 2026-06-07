@@ -122,6 +122,23 @@ export const CALC_FIELDS: CalcFieldMeta[] = [
     unit: "/km",
     min: 0,
   },
+  {
+    key: "cbmMaxContenedor",
+    label: "CBM máximo (un contenedor)",
+    hint: "CBM total máximo que cotiza la calculadora. Sobre esto deriva al asesor (FCL).",
+    kind: "decimal",
+    unit: "m³",
+    precision: 0,
+    min: 0.01,
+  },
+  {
+    key: "pesoMaxContenedorKg",
+    label: "Peso máximo (un contenedor)",
+    hint: "Peso total máximo que cotiza la calculadora. Sobre esto deriva al asesor.",
+    kind: "weight",
+    precision: 0,
+    min: 0.01,
+  },
 ];
 
 /**
@@ -180,6 +197,8 @@ export function validateCalculatorSettingsInput(
       recargoBateriaMult: input.recargoBateriaMult!,
       thresholdCascoKm: input.thresholdCascoKm!,
       tarifaKmFueraCasco: input.tarifaKmFueraCasco!,
+      cbmMaxContenedor: input.cbmMaxContenedor!,
+      pesoMaxContenedorKg: input.pesoMaxContenedorKg!,
     },
   };
 }

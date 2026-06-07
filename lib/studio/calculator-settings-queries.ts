@@ -19,6 +19,8 @@ type SettingsRow = {
   recargo_bateria_mult: number | string;
   threshold_casco_km: number | string;
   tarifa_km_fuera_casco: number | string;
+  cbm_max_contenedor: number | string;
+  peso_max_contenedor_kg: number | string;
   updated_at: string;
   updated_by: string | null;
 };
@@ -36,7 +38,7 @@ export async function getCalculatorSettings(
   const { data, error } = await supabase
     .from("calculator_settings")
     .select(
-      "tenant_id, peso_incluido_kg, peso_max_kg, recargo_excedente_kg, descuento_valencia, recargo_embalaje_especial, recargo_bateria_mult, threshold_casco_km, tarifa_km_fuera_casco, updated_at, updated_by",
+      "tenant_id, peso_incluido_kg, peso_max_kg, recargo_excedente_kg, descuento_valencia, recargo_embalaje_especial, recargo_bateria_mult, threshold_casco_km, tarifa_km_fuera_casco, cbm_max_contenedor, peso_max_contenedor_kg, updated_at, updated_by",
     )
     .maybeSingle<SettingsRow>();
 
@@ -52,6 +54,8 @@ export async function getCalculatorSettings(
     recargoBateriaMult: Number(data.recargo_bateria_mult),
     thresholdCascoKm: Number(data.threshold_casco_km),
     tarifaKmFueraCasco: Number(data.tarifa_km_fuera_casco),
+    cbmMaxContenedor: Number(data.cbm_max_contenedor),
+    pesoMaxContenedorKg: Number(data.peso_max_contenedor_kg),
     updated_at: data.updated_at,
     updated_by: data.updated_by,
   };
