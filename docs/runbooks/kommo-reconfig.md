@@ -85,3 +85,27 @@ El conocimiento y la IA **ya existen** pero **no están enchufados al canal del 
 
 ### Bitácora (cont.)
 | 2026-06-07 | Revisión del AI Agent: confirmado "DTD Cargo asistente de ventas" activo **solo en Instagram**; builder no editado (esperar fin del crawl + revisar juntos). Borrador de instrucciones preparado ↑ | Claude (Chrome) |
+
+---
+
+## 🔖 Punto de retoma — FAQ de la IA de Kommo (sesión 4281fb30 · 2026-06-07)
+
+**Qué es:** reestructuración del *knowledge base* del AI Agent de Kommo (lo que responde la IA).
+- **Archivo de trabajo:** [`../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md`](../specs/0062-crm-erp-cierres-automaticos/assets/faq-knowledge-base.md)
+- **Origen:** `DTDCARGO_Kommo_KnowledgeSource (1).docx` (descargado de Kommo el 2026-06-07 16:29, en `Downloads/`).
+- **Destino final:** convertir el `.md` aprobado → DOCX → re-subir a Kommo como Fuente de conocimiento (reemplaza el de 20 secciones).
+
+**Formato de revisión (sección por sección):**
+1. **Pregunta(s)** que hace el cliente.
+2. **Respuesta actual** (la que dice hoy en Kommo).
+3. **Respuesta sugerida** (nueva).
+4. **El porqué** de la sugerida.
+→ El founder **aprueba o ajusta**, y se pasa a la siguiente.
+
+**Estado (21 secciones):**
+- ✅ **Aprobadas y escritas (16):** #1-6 (Comercial), #11 Tracking, #12-15 (Empresa), #16-21 (Postventa).
+- ⏳ **#7 Validación · #8 Verificación · #9 Compra asistida** → borradores listos (de `lib/faqs.ts` / `lib/design-tokens.ts` / `app/servicios`, **precio diferido al asesor**); **esperan ajustes del founder** antes de escribir en el `.md`.
+  - **Duda abierta a resolver:** ¿el servicio lo hace **equipo propio en Yiwu** o la **empresa aliada** (la de los informes de inspección, cuidar sus logos)? Eso cambia el "lo hace gente nuestra, no un tercero".
+- ⏳ **#10 Cursos** → sin datos en el repo; el **founder traerá** temario · modalidad (online/presencial) · duración · precio · inscripción · próximas fechas.
+
+**Siguiente paso (a las 6:00):** ajustar #7/#8/#9 + datos de #10 → reescribir → FAQ **21/21** → DOCX → re-subir a Kommo → extender el AI Agent (hoy solo Instagram) al **WhatsApp 8021** (lever #1).
