@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tarjeta de Presentación · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Sora:wght@400;500;600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root{
+    --mm: 4.85px;                 /* unidad escalable: 1mm en pantalla */
+    --cw: calc(85 * var(--mm));   /* ancho tarjeta */
+    --ch: calc(55 * var(--mm));   /* alto tarjeta  */
+    --cream: #F2F0EC;
+  }
+  *{ box-sizing: border-box; }
+  html,body{ margin:0; }
+  body{
+    background: var(--bg-base);
+    color: var(--ink);
+    font-family: var(--f-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap{ max-width: 1080px; margin: 0 auto; padding: 56px 32px 96px; }
+
+  /* ── Encabezado de página ─────────────────────────────── */
+  .eyebrow{ font: 700 12px/1 var(--f-sans); letter-spacing:.14em; text-transform:uppercase; color: var(--wine); }
+  h1{ font: 800 40px/1.04 var(--f-display); letter-spacing:-.02em; margin: 14px 0 0; color: var(--ink); }
+  .lead{ font: 400 16px/1.6 var(--f-sans); color: var(--ink-soft); max-width: 640px; margin: 16px 0 0; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap: 8px; margin-top: 22px; }
+  .chip{ font: 600 11.5px/1 var(--f-mono); letter-spacing:.02em; color: var(--ink-soft);
+    background: var(--bg-surface); border:1px solid var(--border); border-radius: var(--r-pill); padding: 7px 12px; }
+
+  .section{ margin-top: 64px; }
+  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; gap: 24px; margin-bottom: 26px; }
+  .section-head .num{ font: 700 11px/1 var(--f-mono); letter-spacing:.1em; text-transform:uppercase; color: var(--wine); margin-bottom: 10px; }
+  .section-head h2{ font: 700 24px/1.1 var(--f-display); letter-spacing:-.01em; margin:0; color: var(--ink); }
+  .section-head p{ font: 400 13.5px/1.55 var(--f-sans); color: var(--ink-soft); margin:0; max-width: 380px; text-align:right; }
+
+  /* ── Escenario de las tarjetas ────────────────────────── */
+  .stage{
+    background:
+      radial-gradient(120% 90% at 50% 0%, #fff 0%, var(--bg-elevated) 78%);
+    border:1px solid var(--border);
+    border-radius: var(--r-xl);
+    padding: 56px 40px;
+    display:flex; gap: 48px; flex-wrap:wrap; justify-content:center; align-items:center;
+  }
+  .card-stack{ display:flex; flex-direction:column; align-items:center; gap: 12px; }
+  .card-stack .tag{ font: 600 11px/1 var(--f-mono); letter-spacing:.08em; text-transform:uppercase; color: var(--ink-mute); }
+
+  /* La tarjeta */
+  .card{
+    width: var(--cw); height: var(--ch);
+    border-radius: calc(1.5 * var(--mm));
+    overflow:hidden; position:relative;
+    box-shadow: 0 calc(6*var(--mm)) calc(12*var(--mm)) -4px rgba(15,30,61,.28), 0 2px 6px rgba(15,30,61,.16);
+    transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s;
+  }
+  .card:hover{ transform: translateY(-6px) rotate(-.4deg); box-shadow: 0 calc(9*var(--mm)) calc(18*var(--mm)) -4px rgba(15,30,61,.34), 0 3px 8px rgba(15,30,61,.2); }
+
+  /* FRENTE · papel */
+  .face-front{ background: var(--bg-base); display:flex; }
+  .spine{ width: calc(3*var(--mm)); height:100%; background: var(--wine); flex:0 0 auto; }
+  .front-body{ flex:1; padding: calc(5*var(--mm)) calc(5*var(--mm)) calc(4.6*var(--mm)) calc(4.4*var(--mm));
+    display:flex; flex-direction:column; justify-content:space-between; }
+
+  .lockup{ display:flex; align-items:center; gap: calc(2.2*var(--mm)); }
+  .lockup img{ height: calc(9*var(--mm)); width:auto; display:block; }
+  .wordmark{ font-family: var(--f-brand-display); font-weight: 900; letter-spacing:-.02em;
+    font-size: calc(5.1*var(--mm)); line-height:1; white-space:nowrap; }
+  .wordmark .dtd{ color: var(--wine); }
+  .wordmark .cargo{ color: var(--ink); }
+  .wordmark .gap{ display:inline-block; width:.15em; }
+
+  .person{ }
+  .person .name{ font: 700 calc(4.3*var(--mm))/1.05 var(--f-display); letter-spacing:-.01em; color: var(--ink); }
+  .person .name .cn{ font-family: var(--f-cn); font-weight:700; margin-left:.4em; font-size:.82em; color: var(--ink-soft); }
+  .person .role{ font: 800 calc(2.35*var(--mm))/1.2 var(--f-sans); letter-spacing:.12em; text-transform:uppercase;
+    color: var(--wine); margin-top: calc(1.2*var(--mm)); }
+  .person .role .cn{ font-family: var(--f-cn); font-weight:500; letter-spacing:.04em; text-transform:none; }
+  .contact{ margin-top: calc(3.2*var(--mm)); display:flex; flex-direction:column; gap: calc(1.15*var(--mm)); }
+  .contact .ln{ display:flex; align-items:center; gap: calc(1.8*var(--mm));
+    font: 500 calc(2.5*var(--mm))/1.25 var(--f-mono); color: var(--ink-soft); }
+  .contact .ln .k{ color: var(--wine); font-weight:700; width: calc(2.6*var(--mm)); flex:0 0 auto;
+    font-size: calc(2.1*var(--mm)); letter-spacing:.02em; }
+  .rif{ margin-top: calc(2.6*var(--mm)); font: 500 calc(2.05*var(--mm))/1 var(--f-mono);
+    letter-spacing:.04em; color: var(--ink-mute); }
+
+  /* DORSO · navy */
+  .face-back{ background: var(--bg-sidebar); display:flex; flex-direction:column;
+    padding: calc(5*var(--mm)); color: var(--cream); position:relative; }
+  .back-hero{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap: calc(2.6*var(--mm)); text-align:center; }
+  .back-hero img{ height: calc(15*var(--mm)); width:auto; }
+  .tagline{ font: 600 calc(2.85*var(--mm))/1.35 var(--f-display); letter-spacing:.005em;
+    color: var(--cream); max-width: calc(58*var(--mm)); }
+  .tagline b{ color:#fff; font-weight:800; }
+  .back-foot{ display:flex; justify-content:space-between; align-items:flex-end; gap: calc(3*var(--mm));
+    border-top: 1px solid rgba(242,240,236,.18); padding-top: calc(3*var(--mm)); }
+  .back-foot .web{ display:flex; flex-direction:column; gap: calc(1*var(--mm)); }
+  .back-foot .web .l{ font: 600 calc(2.45*var(--mm))/1.2 var(--f-mono); color: var(--cream); letter-spacing:.02em; }
+  .back-foot .web .s{ font: 500 calc(2.05*var(--mm))/1.2 var(--f-mono); color: rgba(242,240,236,.6); letter-spacing:.02em; }
+  .qr-tile{ background: var(--cream); border-radius: calc(1.2*var(--mm)); padding: calc(1.3*var(--mm));
+    width: calc(15*var(--mm)); height: calc(15*var(--mm)); flex:0 0 auto; }
+  .qr-tile svg{ display:block; width:100%; height:100%; }
+  .qr-tile svg rect{ fill: transparent !important; }
+  .qr-tile svg path{ fill: var(--ink) !important; }
+  .qr-cap{ position:absolute; right: calc(5*var(--mm)); bottom: calc(16.4*var(--mm));
+    font: 600 calc(1.7*var(--mm))/1 var(--f-mono); color: rgba(242,240,236,.55);
+    letter-spacing:.06em; text-transform:uppercase; }
+
+  /* ── Selector de equipo ───────────────────────────────── */
+  .people{ display:flex; flex-wrap:wrap; gap: 10px; margin: 0 0 28px; }
+  .pbtn{ display:flex; align-items:center; gap: 11px; cursor:pointer;
+    background: var(--bg-surface); border:1px solid var(--border); border-radius: var(--r-lg);
+    padding: 10px 14px 10px 11px; transition: border-color .18s, box-shadow .18s, transform .18s; }
+  .pbtn:hover{ border-color: var(--wine-soft); }
+  .pbtn[aria-pressed="true"]{ border-color: var(--wine); box-shadow: 0 0 0 1px var(--wine), var(--shadow-sm); }
+  .pbtn .ini{ width: 34px; height: 34px; border-radius: var(--r-pill); flex:0 0 auto;
+    display:grid; place-items:center; font: 800 13px/1 var(--f-display); color:#fff; background: var(--ink); letter-spacing:-.02em; }
+  .pbtn[aria-pressed="true"] .ini{ background: var(--wine); }
+  .pbtn .tx{ text-align:left; }
+  .pbtn .tx .n{ font: 700 13.5px/1.1 var(--f-sans); color: var(--ink); }
+  .pbtn .tx .r{ font: 600 11px/1.2 var(--f-sans); color: var(--ink-soft); margin-top:2px; }
+
+  /* ── Spec sheet ───────────────────────────────────────── */
+  .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .panel{ background: var(--bg-surface); border:1px solid var(--border); border-radius: var(--r-xl); padding: 26px 26px 24px; }
+  .panel h3{ font: 700 13px/1 var(--f-sans); letter-spacing:.06em; text-transform:uppercase; color: var(--ink-soft); margin:0 0 18px; }
+  .spec{ display:flex; justify-content:space-between; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--border); }
+  .spec:last-child{ border-bottom:0; }
+  .spec .k{ font: 500 13px/1.4 var(--f-sans); color: var(--ink-soft); }
+  .spec .v{ font: 600 12.5px/1.4 var(--f-mono); color: var(--ink); text-align:right; }
+  .swatches{ display:flex; flex-direction:column; gap: 12px; }
+  .sw{ display:flex; align-items:center; gap: 14px; }
+  .sw .chip-c{ width: 46px; height: 46px; border-radius: var(--r-md); flex:0 0 auto; border:1px solid rgba(15,30,61,.1); }
+  .sw .nm{ font: 700 13px/1.2 var(--f-sans); color: var(--ink); }
+  .sw .vals{ font: 500 11.5px/1.4 var(--f-mono); color: var(--ink-soft); margin-top: 3px; }
+
+  /* ── Imposición / pliego de imprenta ──────────────────── */
+  .sheet-note{ font: 400 13px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0 0 22px; max-width: 560px; }
+  .impo{ --mm: 3.5px; background: var(--bg-elevated); border:1px dashed var(--border); border-radius: var(--r-lg);
+    padding: 64px; display:flex; gap: 64px; justify-content:center; flex-wrap:wrap; }
+  .crop{ position:relative; }
+  .crop::before, .crop::after, .crop > .cm{ content:""; position:absolute; background: var(--ink-soft); }
+  .cmark{ position:absolute; width:0; height:0; }
+  .crop .ln-h{ position:absolute; height:1px; width: calc(4*var(--mm)); background: var(--ink-soft); }
+  .crop .ln-v{ position:absolute; width:1px; height: calc(4*var(--mm)); background: var(--ink-soft); }
+  .crop .tl-h{ top:-1px; left: calc(-5*var(--mm)); } .crop .tl-v{ left:-1px; top: calc(-5*var(--mm)); }
+  .crop .tr-h{ top:-1px; right: calc(-5*var(--mm)); } .crop .tr-v{ right:-1px; top: calc(-5*var(--mm)); }
+  .crop .bl-h{ bottom:-1px; left: calc(-5*var(--mm)); } .crop .bl-v{ left:-1px; bottom: calc(-5*var(--mm)); }
+  .crop .br-h{ bottom:-1px; right: calc(-5*var(--mm)); } .crop .br-v{ right:-1px; bottom: calc(-5*var(--mm)); }
+
+  /* Botonera */
+  .actions{ display:flex; gap: 12px; margin-top: 28px; flex-wrap:wrap; }
+  .btn{ font: 700 13px/1 var(--f-sans); padding: 12px 18px; border-radius: var(--r-md); cursor:pointer;
+    border:1px solid var(--border); background: var(--bg-surface); color: var(--ink); transition: all .16s; }
+  .btn:hover{ background: var(--bg-elevated); }
+  .btn.primary{ background: var(--wine); border-color: var(--wine); color:#fff; }
+  .btn.primary:hover{ background: var(--wine-deep); border-color: var(--wine-deep); }
+  .btn.dark{ background: var(--ink); border-color: var(--ink); color:#fff; }
+
+  .foot-note{ margin-top: 18px; font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); max-width: 620px; }
+  .foot-note code{ font: 600 11.5px var(--f-mono); color: var(--ink-soft); background: var(--bg-elevated); padding: 1px 6px; border-radius: var(--r-xs); }
+
+  @media (max-width: 760px){
+    :root{ --mm: 3.7px; }
+    .grid2{ grid-template-columns: 1fr; }
+    .section-head{ flex-direction:column; align-items:flex-start; }
+    .section-head p{ text-align:left; }
+  }
+
+  /* ── Print: solo el pliego, a tamaño real ─────────────── */
+  @media print{
+    @page{ size: auto; margin: 14mm; }
+    body{ background:#fff; }
+    .wrap > *:not(#print-area){ display:none !important; }
+    #print-area{ display:block !important; }
+    .impo{ --mm: 1mm; background:#fff; border:0; padding:0; gap: 10mm; }
+    .card{ box-shadow:none; }
+    .card:hover{ transform:none; }
+  }
+  #print-area{ display:none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Encabezado -->
+  <div class="eyebrow">Aplicación de marca · Colateral impreso</div>
+  <h1>Tarjeta de presentación</h1>
+  <p class="lead">Sistema de tarjeta a doble cara para el equipo DTD-Cargo. Frente en papel natural con el lockup canónico y los datos de la persona; dorso navy con el isólogo, el tagline y un QR que guarda el contacto (vCard). Mismo layout para toda la organización — solo cambian nombre, cargo y datos.</p>
+  <div class="meta-row">
+    <span class="chip">85 × 55 mm</span>
+    <span class="chip">Sangrado 3 mm</span>
+    <span class="chip">Doble cara · 4/4</span>
+    <span class="chip">Stock 350 g natural</span>
+    <span class="chip">QR vCard dinámico</span>
+  </div>
+
+  <!-- 01 · Las tarjetas -->
+  <div class="section">
+    <div class="section-head">
+      <div><div class="num">01 / Pieza</div><h2>Frente y dorso</h2></div>
+      <p>Elegí una persona del equipo para ver sus datos en vivo. Pasá el mouse para levantar la tarjeta.</p>
+    </div>
+
+    <div class="people" id="people"></div>
+
+    <div class="stage">
+      <div class="card-stack">
+        <div class="card face-front" id="card-front">
+          <div class="spine"></div>
+          <div class="front-body">
+            <div class="lockup">
+              <img src="assets/dtdcargo-isologo-primary.png" alt="Isólogo DTD-Cargo" />
+              <span class="wordmark"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
+            </div>
+            <div class="person">
+              <div class="name" id="f-name"></div>
+              <div class="role" id="f-role"></div>
+              <div class="contact" id="f-contact"></div>
+              <div class="rif">RIF J-410322887 · DTD-Cargo C.A.</div>
+            </div>
+          </div>
+        </div>
+        <div class="tag">Frente</div>
+      </div>
+
+      <div class="card-stack">
+        <div class="card face-back" id="card-back">
+          <div class="back-hero">
+            <img src="assets/dtdcargo-isologo-reverse.png" alt="Isólogo DTD-Cargo reverse" />
+            <div class="tagline">Con <b>Confianza</b>, de China a tu puerta.</div>
+          </div>
+          <div class="qr-cap">vCard</div>
+          <div class="back-foot">
+            <div class="web">
+              <span class="l" id="b-web">dtdcargo.com</span>
+              <span class="s" id="b-phone"></span>
+            </div>
+            <div class="qr-tile" id="qr"></div>
+          </div>
+        </div>
+        <div class="tag">Dorso</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 02 · Especificaciones -->
+  <div class="section">
+    <div class="section-head">
+      <div><div class="num">02 / Para imprenta</div><h2>Especificaciones</h2></div>
+      <p>Entregá el arte con sangrado y marcas de corte. Tintas de referencia — confirmá la conversión con tu impresor.</p>
+    </div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>Medidas y producción</h3>
+        <div class="spec"><span class="k">Tamaño final (trim)</span><span class="v">85 × 55 mm</span></div>
+        <div class="spec"><span class="k">Caja de sangrado</span><span class="v">91 × 61 mm</span></div>
+        <div class="spec"><span class="k">Sangrado / corte</span><span class="v">3 mm</span></div>
+        <div class="spec"><span class="k">Margen de seguridad</span><span class="v">4 mm</span></div>
+        <div class="spec"><span class="k">Esquinas</span><span class="v">Rectas · radio 1.5 mm</span></div>
+        <div class="spec"><span class="k">Resolución</span><span class="v">300 dpi · CMYK</span></div>
+        <div class="spec"><span class="k">Papel</span><span class="v">350 g natural / fine</span></div>
+        <div class="spec"><span class="k">Acabado</span><span class="v">Mate + UV spot en isólogo</span></div>
+        <div class="spec"><span class="k">Caras</span><span class="v">4/4 (full color ambas)</span></div>
+      </div>
+      <div class="panel">
+        <h3>Tintas de marca</h3>
+        <div class="swatches">
+          <div class="sw"><div class="chip-c" style="background:#7F0F1A"></div>
+            <div><div class="nm">Wine · acento primario</div><div class="vals">HEX #7F0F1A · CMYK 30 / 100 / 85 / 38 · ~PANTONE 188 C</div></div></div>
+          <div class="sw"><div class="chip-c" style="background:#0F1E3D"></div>
+            <div><div class="nm">Navy / Ink · dorso y texto</div><div class="vals">HEX #0F1E3D · CMYK 100 / 85 / 40 / 45 · ~PANTONE 539 C</div></div></div>
+          <div class="sw"><div class="chip-c" style="background:#FBFAF7"></div>
+            <div><div class="nm">Paper · base del frente</div><div class="vals">HEX #FBFAF7 · stock natural, sin tinta de fondo</div></div></div>
+          <div class="sw"><div class="chip-c" style="background:#F2F0EC"></div>
+            <div><div class="nm">Cream · tile QR sobre navy</div><div class="vals">HEX #F2F0EC · CMYK 3 / 3 / 5 / 0</div></div></div>
+        </div>
+        <h3 style="margin-top:24px">Tipografías</h3>
+        <div class="spec"><span class="k">Wordmark</span><span class="v">Archivo Black 900</span></div>
+        <div class="spec"><span class="k">Nombre</span><span class="v">Sora 700</span></div>
+        <div class="spec"><span class="k">Cargo</span><span class="v">Nunito Sans 800</span></div>
+        <div class="spec"><span class="k">Datos de contacto</span><span class="v">JetBrains Mono 500</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 03 · Imposición -->
+  <div class="section" id="print-area">
+    <div class="section-head">
+      <div><div class="num">03 / Pliego</div><h2>Imposición con marcas de corte</h2></div>
+      <p>Vista a tamaño real con sangrado y marcas de corte. Imprimí esta página para una prueba 1:1.</p>
+    </div>
+    <p class="sheet-note">Cada tarjeta se muestra con su caja de sangrado (91 × 61 mm) y marcas de corte en las cuatro esquinas. Al imprimir, solo se incluye este pliego, a escala 1:1.</p>
+    <div class="impo">
+      <div class="crop">
+        <div class="ln-h tl-h"></div><div class="ln-v tl-v"></div>
+        <div class="ln-h tr-h"></div><div class="ln-v tr-v"></div>
+        <div class="ln-h bl-h"></div><div class="ln-v bl-v"></div>
+        <div class="ln-h br-h"></div><div class="ln-v br-v"></div>
+        <div class="card face-front" id="card-front2">
+          <div class="spine"></div>
+          <div class="front-body">
+            <div class="lockup">
+              <img src="assets/dtdcargo-isologo-primary.png" alt="" />
+              <span class="wordmark"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
+            </div>
+            <div class="person">
+              <div class="name" id="f-name2"></div>
+              <div class="role" id="f-role2"></div>
+              <div class="contact" id="f-contact2"></div>
+              <div class="rif">RIF J-410322887 · DTD-Cargo C.A.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="crop">
+        <div class="ln-h tl-h"></div><div class="ln-v tl-v"></div>
+        <div class="ln-h tr-h"></div><div class="ln-v tr-v"></div>
+        <div class="ln-h bl-h"></div><div class="ln-v bl-v"></div>
+        <div class="ln-h br-h"></div><div class="ln-v br-v"></div>
+        <div class="card face-back" id="card-back2">
+          <div class="back-hero">
+            <img src="assets/dtdcargo-isologo-reverse.png" alt="" />
+            <div class="tagline">Con <b>Confianza</b>, de China a tu puerta.</div>
+          </div>
+          <div class="qr-cap">vCard</div>
+          <div class="back-foot">
+            <div class="web">
+              <span class="l" id="b-web2">dtdcargo.com</span>
+              <span class="s" id="b-phone2"></span>
+            </div>
+            <div class="qr-tile" id="qr2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" onclick="window.print()">⎙ Imprimir prueba 1:1</button>
+      <button class="btn dark" id="dl-vcard">↓ Descargar vCard (.vcf)</button>
+    </div>
+    <p class="foot-note">El QR codifica un <code>vCard 3.0</code> con teléfono, email, web y dirección de la persona seleccionada — al escanearlo, el contacto se guarda directo en el teléfono. Para producción, exportá cada tarjeta como PDF/X-1a desde el arte vectorial.</p>
+  </div>
+
+</div>
+
+<script>
+/* ── Datos del equipo (mock realista DTD-Cargo) ─────────── */
+var TEAM = [
+  {
+    ini: 'YM', name: 'Yoselin Marcano', cn: '',
+    role: 'Fundadora & Directora', roleCn: '',
+    phone: '+58 412 414 7886', email: 'yoselin@dtdcargo.com',
+    web: 'dtdcargo.com', adr: 'Av. Bolívar Norte 14, Valencia · VE',
+    adrParts: { street:'Av. Bolívar Norte 14', city:'Valencia', region:'Carabobo', country:'Venezuela' }
+  },
+  {
+    ini: 'DO', name: 'Daniel Ortega', cn: '',
+    role: 'Ejecutivo de Cuenta', roleCn: '',
+    phone: '+58 414 322 1190', email: 'daniel@dtdcargo.com',
+    web: 'dtdcargo.com', adr: 'Av. Bolívar Norte 14, Valencia · VE',
+    adrParts: { street:'Av. Bolívar Norte 14', city:'Valencia', region:'Carabobo', country:'Venezuela' }
+  },
+  {
+    ini: 'WL', name: 'Wei Lin', cn: '魏琳',
+    role: 'Coordinadora China', roleCn: '中国协调',
+    phone: '+86 138 2890 4471', email: 'weilin@dtdcargo.com',
+    web: 'dtdcargo.com', adr: 'Yiwu · Zhejiang · 中国',
+    adrParts: { street:'Futian Market District', city:'Yiwu', region:'Zhejiang', country:'China' }
+  }
+];
+
+var KEYS = { tel:'T', mail:'E', web:'W', adr:'A' };
+
+function vcardText(p){
+  var nameParts = p.name.split(' ');
+  var last = nameParts.slice(1).join(' '), first = nameParts[0];
+  return [
+    'BEGIN:VCARD','VERSION:3.0',
+    'N:'+last+';'+first+';;;',
+    'FN:'+p.name,
+    'ORG:DTD-Cargo C.A.',
+    'TITLE:'+p.role,
+    'TEL;TYPE=CELL:'+p.phone,
+    'EMAIL;TYPE=WORK:'+p.email,
+    'URL:https://'+p.web,
+    'ADR;TYPE=WORK:;;'+p.adrParts.street+';'+p.adrParts.city+';'+p.adrParts.region+';;'+p.adrParts.country,
+    'END:VCARD'
+  ].join('\n');
+}
+
+function makeQR(el, text){
+  var qr = qrcode(0, 'M');
+  qr.addData(text);
+  qr.make();
+  el.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 0, scalable: true });
+}
+
+function contactHTML(p){
+  function ln(k, v){ return '<div class="ln"><span class="k">'+k+'</span><span>'+v+'</span></div>'; }
+  return ln(KEYS.tel, p.phone) + ln(KEYS.mail, p.email) + ln(KEYS.web, p.web) + ln(KEYS.adr, p.adr);
+}
+
+var current = 0;
+
+function render(i){
+  current = i;
+  var p = TEAM[i];
+  var nameHTML = p.name + (p.cn ? '<span class="cn">'+p.cn+'</span>' : '');
+  var roleHTML = p.role + (p.roleCn ? ' <span class="cn">· '+p.roleCn+'</span>' : '');
+
+  ['', '2'].forEach(function(s){
+    var n = document.getElementById('f-name'+s); if(n) n.innerHTML = nameHTML;
+    var r = document.getElementById('f-role'+s); if(r) r.innerHTML = roleHTML;
+    var c = document.getElementById('f-contact'+s); if(c) c.innerHTML = contactHTML(p);
+    var ph = document.getElementById('b-phone'+s); if(ph) ph.textContent = p.phone;
+    var q = document.getElementById('qr'+s); if(q) makeQR(q, vcardText(p));
+  });
+
+  document.querySelectorAll('.pbtn').forEach(function(b, k){
+    b.setAttribute('aria-pressed', k === i ? 'true' : 'false');
+  });
+}
+
+/* Botones de equipo */
+(function(){
+  var host = document.getElementById('people');
+  TEAM.forEach(function(p, i){
+    var b = document.createElement('button');
+    b.className = 'pbtn'; b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+    b.innerHTML = '<span class="ini">'+p.ini+'</span><span class="tx"><span class="n">'+
+      (p.cn ? p.name+' '+p.cn : p.name)+'</span><span class="r">'+p.role+'</span></span>';
+    b.addEventListener('click', function(){ render(i); });
+    host.appendChild(b);
+  });
+  render(0);
+})();
+
+/* Descargar vCard */
+document.getElementById('dl-vcard').addEventListener('click', function(){
+  var p = TEAM[current];
+  var blob = new Blob([vcardText(p)], { type: 'text/vcard' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = p.name.replace(/\s+/g,'-').toLowerCase() + '-dtdcargo.vcf';
+  document.body.appendChild(a); a.click(); a.remove();
+});
+</script>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" fill="#0F1E3D"/>
+  <rect x="30" y="38" width="40" height="26" rx="2" fill="#F2F0EC"/>
+  <rect x="30" y="38" width="4" height="26" fill="#7F0F1A"/>
+  <text x="52" y="55" font-family="Archivo Black, sans-serif" font-weight="900" font-size="9" fill="#0F1E3D" text-anchor="middle">DTD</text>
+</svg>
+</template>
+</body>
+</html>

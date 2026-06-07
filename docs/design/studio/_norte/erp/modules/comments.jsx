@@ -14,7 +14,7 @@ const _initialComments = {
     { id: 'c11', author: 'u-002', body: 'Sí, mandá el template "ETA en riesgo". @Luis F. ya está al tanto?', mentions: ['u-003'], at: 'hace 2 h', reactions: {} },
   ],
   'DTD-5452': [
-    { id: 'c20', author: 'u-002', body: 'Carlos Méndez pidió cotización para FCL40 desde Yiwu para julio. Volumen aprox 60 CBM.', mentions: [], at: 'hace 1 día', reactions: { '👀': ['u-001'] } },
+    { id: 'c20', author: 'u-002', body: 'Carlos Méndez pidió estimado para FCL40 desde Yiwu para julio. Volumen aprox 60 CBM.', mentions: [], at: 'hace 1 día', reactions: { '👀': ['u-001'] } },
   ],
   'F-2026-0418': [
     { id: 'c30', author: 'u-006', body: 'Factura vencida hace 10 días. @Martina A. podés llamar al cliente?', mentions: ['u-002'], at: 'hace 4 h', reactions: {} },

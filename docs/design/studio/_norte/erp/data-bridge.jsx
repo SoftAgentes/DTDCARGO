@@ -61,7 +61,7 @@
   const emailsSent = makeStore('dtd-emails-sent', []);
 
   // G · Bandeja del Portal (eventos entrantes del cliente → ERP)
-  // Registros nuevos, cotizaciones exprés y re-compras publicados desde el
+  // Registros nuevos, estimados exprés y re-compras publicados desde el
   // portal (web + móvil). El ERP los muestra como notificaciones con badge
   // para aprobar/atender. En prod = endpoint /portal-inbox del backend.
   const portalInbox = makeStore('dtd-portal-inbox', []);
@@ -76,22 +76,22 @@
     return t ? t.id : 'dtd';
   }
 
-  // H · Cotizaciones formales generadas desde el portal (cotizador exprés).
-  // Cada solicitud del cliente crea aquí un envío shape con status 'cotizado'
-  // que aparece en "Mis envíos" como "Cotización en proceso" y, al ser revisada
-  // por el agente, pasa a 'cotizado' (lista para aceptar). En prod = /quotes.
+  // H · Estimados formales generadas desde el portal (estimador exprés).
+  // Cada solicitud del cliente crea aquí un envío shape con status 'estimado'
+  // que aparece en "Mis envíos" como "Estimado en proceso" y, al ser revisada
+  // por el agente, pasa a 'estimado' (lista para aceptar). En prod = /quotes.
   const portalQuotes = makeStore('dtd-portal-quotes', []);
 
-  // Crea la cotización formal a partir de la solicitud del cotizador.
+  // Crea el estimado formal a partir de la solicitud del estimador.
   // req: { markbox, clientName, origin, dest, service, cbm, estimate }
   function pushPortalQuote(req) {
     const seq = String(900 + ((portalQuotes.read() || []).length) + Math.floor(Math.random() * 90));
     const ship = {
-      id: 'Q-2026-' + seq, type: req.service || 'LCL DDP',
+      id: 'E-2026-' + seq, type: req.service || 'LCL DDP',
       client: req.markbox, clientName: req.clientName || req.markbox,
       origin: req.origin, destination: req.dest,
       cbm: Number(req.cbm) || 0, weight: 0, value: Number(req.estimate) || 0,
-      status: 'cotizado', etd: null, eta: null, progress: 0, vessel: null, container: null,
+      status: 'estimado', etd: null, eta: null, progress: 0, vessel: null, container: null,
       invoice: null, billed: false, paid: false, alert: null,
       quoteStage: 'en-proceso', quoteRef: req.ref || null, createdAt: new Date().toISOString(),
     };
@@ -100,8 +100,8 @@
     return ship;
   }
 
-  // Envíos extra (cotizaciones del portal) de un MARKBOX, para mergear con SHIPMENTS.
-  function clientQuotes(markbox) {
+  // Envíos extra (estimados del portal) de un MARKBOX, para mergear con SHIPMENTS.
+  function clientEstimados(markbox) {
     return (portalQuotes.read() || []).filter(q => q.client === markbox);
   }
 
@@ -263,8 +263,8 @@
     sendWelcomeEmail, renderTemplate,
     // Portal inbox (eventos cliente → ERP)
     pushPortalEvent, markPortalRead, tenantForMarkbox,
-    // Cotizaciones formales generadas desde el portal
-    pushPortalQuote, clientQuotes,
+    // Estimados formales generadas desde el portal
+    pushPortalQuote, clientEstimados,
     resetAll: () => {
       ['dtd-cn-inbox','dtd-clients','dtd-rules','dtd-routes','dtd-cities','dtd-rates','dtd-emails-sent','dtd-portal-inbox','dtd-portal-quotes'].forEach(k => {
         localStorage.removeItem(k);

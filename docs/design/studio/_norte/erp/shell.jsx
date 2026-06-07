@@ -25,7 +25,7 @@ const MODULES = [
   { id: 'seniat',     group: 'OPERACIÓN',  label: 'Aduana SENIAT',  icon: 'shield' },
   { id: 'tms',        group: 'OPERACIÓN',  label: 'TMS · Transporte', icon: 'route' },
 
-  { id: 'quotes',     group: 'COMERCIAL',  label: 'Cotizador',      icon: 'calc' },
+  { id: 'estimados',     group: 'COMERCIAL',  label: 'Estimador',      icon: 'calc' },
   { id: 'clients',    group: 'COMERCIAL',  label: 'Clientes',       icon: 'users',     badge: '187' },
   { id: 'conversaciones', group: 'COMERCIAL', label: 'Conversaciones', icon: 'chat',    badge: '5' },
   { id: 'leads',      group: 'COMERCIAL',  label: 'CRM · Leads',    icon: 'spark' },
@@ -36,6 +36,7 @@ const MODULES = [
   { id: 'invoices',   group: 'FINANZAS',   label: 'Facturación',    icon: 'invoice',   badge: '4' },
   { id: 'cobranzas',  group: 'FINANZAS',   label: 'Cobranzas',      icon: 'cash' },
   { id: 'contab',     group: 'FINANZAS',   label: 'Contabilidad',   icon: 'ledger' },
+  { id: 'nomina',     group: 'FINANZAS',   label: 'Nómina',         icon: 'idcard' },
   { id: 'tesoreria',  group: 'FINANZAS',   label: 'Tesorería',      icon: 'wallet' },
   { id: 'reconcile',  group: 'FINANZAS',   label: 'Conciliación',   icon: 'reconcile' },
   { id: 'documents',  group: 'FINANZAS',   label: 'Documentos',     icon: 'doc' },
@@ -60,15 +61,13 @@ const PARENTS = {
 
 // Logo (compact for sidebar)
 function DTDLogo({ collapsed = false, dark = true }) {
+  const sz = collapsed ? 28 : 30;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <img src="assets/dtdcargo-icon-navy.png" alt="DTD-Cargo"
-        style={{
-          width: collapsed ? 28 : 30, height: collapsed ? 28 : 30, objectFit: 'contain',
-          filter: dark ? 'brightness(0) invert(1)' : 'none',
-          flexShrink: 0,
-        }}
-      />
+      <span className="dtd-iso dtd-iso-auto" style={{ width: sz, height: sz }}>
+        <img className="iso-primary" src="assets/dtdcargo-isologo-primary.png" alt="DTD-Cargo" />
+        <img className="iso-reverse" src="assets/dtdcargo-isologo-reverse.png" alt="" />
+      </span>
       {!collapsed && (
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.1 }}>
           <span style={{ font: '900 17px/1 var(--f-display)', letterSpacing: '-0.02em' }}>
@@ -76,7 +75,7 @@ function DTDLogo({ collapsed = false, dark = true }) {
             <span style={{ color: 'var(--ink-nav)' }}>STUDIO</span>
           </span>
           <span style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-nav-soft)', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 4 }}>
-            ERP · v2.4
+            ERP · v2.5
           </span>
         </div>
       )}
@@ -553,7 +552,7 @@ function CompanyBanner() {
 // emiten 'dtd-create-catalog' para que Servicios&Tarifas abra el tipo.
 const CREATE_GROUPS = [
   { g: 'Comercial', items: [
-    ['Cotización DDP', 'quotes', 'create'],
+    ['Estimado DDP', 'estimados', 'create'],
     ['Cliente (MARKBOX)', 'clients', 'create'],
     ['Lead / oportunidad', 'leads', 'create'],
     ['Registrar cobro', 'cobranzas', 'list'],
@@ -743,7 +742,7 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
               </div>
               <div style={{ maxHeight: 360, overflowY: 'auto' }}>
                 {notifications.map(n => {
-                  const actionLabel = n.kind === 'cotizacion' ? 'Ver cotización' : n.kind === 'recompra' ? 'Ver compras' : n.kind === 'cne-alert' ? 'Ver cliente' : 'Aprobar registro';
+                  const actionLabel = n.kind === 'cotizacion' ? 'Ver estimado' : n.kind === 'recompra' ? 'Ver compras' : n.kind === 'cne-alert' ? 'Ver cliente' : 'Aprobar registro';
                   return (
                   <div key={n.id} style={{
                     padding: '12px 18px', borderBottom: '1px solid var(--border)',

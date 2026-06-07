@@ -3,7 +3,7 @@
 /* ── Perfil de usuario interno · componente principal ────────── */
 
 const MOD_LABELS = {
-  dashboard: 'Dashboard', shipments: 'Embarques', clients: 'Clientes', quotes: 'Cotizador',
+  dashboard: 'Dashboard', shipments: 'Embarques', clients: 'Clientes', estimados: 'Estimador',
   tracking: 'Tracking', calendar: 'Calendario', invoices: 'Facturación', documents: 'Documentos',
   cn: 'Almacén CN', ve: 'Almacén VE', despacho: 'Despacho', leads: 'Leads', mailing: 'Mailing',
   rates: 'Tarifas', users: 'Usuarios', reports: 'Reportes', costing: 'Costing', tms: 'TMS',

@@ -157,7 +157,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
               ctx: { client: detailRecord, label: detailRecord?.company }
             })}>Email</U.Btn>
             <U.Btn variant="secondary" icon={window.Icon.edit(13)}>Editar</U.Btn>
-            <U.Btn variant="primary" icon={window.Icon.calc(13)} onClick={() => goTo('quotes', null, 'create')}>Nueva cotización</U.Btn>
+            <U.Btn variant="primary" icon={window.Icon.calc(13)} onClick={() => goTo('estimados', null, 'create')}>Nuevo estimado</U.Btn>
           </>
         }
       >

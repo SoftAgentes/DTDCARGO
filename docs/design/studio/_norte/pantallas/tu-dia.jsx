@@ -2,11 +2,11 @@
 /* global React */
 /* ── Tu día · bandeja personal cross-módulo, consciente del rol ─ */
 /* Standalone para review. Cada usuario ve SU día (deriva de datos    */
-/* reales: SHIPMENTS, INVOICES, QUOTES, NOTIFS). Wiring al ERP: TODO.  */
+/* reales: SHIPMENTS, INVOICES, ESTIMADOS, NOTIFS). Wiring al ERP: TODO.  */
 
 const TD_MOD_LABELS = {
   dashboard: 'Dashboard', shipments: 'Embarques', invoices: 'Facturación', cn: 'Almacén CN',
-  ve: 'Almacén VE', despacho: 'Despacho', quotes: 'Cotizador', leads: 'Leads', clients: 'Clientes',
+  ve: 'Almacén VE', despacho: 'Despacho', estimados: 'Estimador', leads: 'Leads', clients: 'Clientes',
   reconcile: 'Conciliación', contab: 'Contabilidad', tms: 'TMS', documents: 'Documentos', users: 'Usuarios',
 };
 
@@ -14,7 +14,7 @@ const GROUPS = {
   approvals: { label: 'Aprobaciones', icon: 'check',     tone: 'wine' },
   shipments: { label: 'Embarques que requieren acción', icon: 'box', tone: 'info' },
   invoices:  { label: 'Cobranzas', icon: 'invoice',      tone: 'warning' },
-  quotes:    { label: 'Cotizaciones por seguir', icon: 'box', tone: 'info' },
+  estimados:    { label: 'Estimados por seguir', icon: 'box', tone: 'info' },
   alerts:    { label: 'Alertas operativas', icon: 'radar', tone: 'danger' },
   notifs:    { label: 'Notificaciones', icon: 'bell',    tone: 'neutral' },
 };
@@ -67,11 +67,11 @@ function generateTasks(user, D) {
     });
   }
 
-  // 4 · Cotizaciones por seguir (Comercial / Admin)
+  // 4 · Estimados por seguir (Comercial / Admin)
   if (can('Comercial')) {
-    D.QUOTES.filter(q => (isAdmin || q.agent === user.name) && ['enviada', 'borrador'].includes(q.status)).slice(0, 5).forEach(q => {
+    D.ESTIMADOS.filter(q => (isAdmin || q.agent === user.name) && ['enviada', 'borrador'].includes(q.status)).slice(0, 5).forEach(q => {
       tasks.push({
-        group: 'quotes', priority: q.status === 'enviada' ? 2 : 3, mod: 'quotes', code: q.id,
+        group: 'estimados', priority: q.status === 'enviada' ? 2 : 3, mod: 'estimados', code: q.id,
         title: `${q.id} · ${q.clientName}`,
         sub: q.status === 'enviada' ? `Enviada · $${(q.totalUSD/1000).toFixed(1)}K · sin respuesta` : `Borrador sin enviar · $${(q.totalUSD/1000).toFixed(1)}K`,
         badge: q.status, action: q.status === 'enviada' ? 'Dar seguimiento' : 'Completar',
@@ -100,7 +100,7 @@ function daysTo(dateStr) {
   return Math.round((new Date(dateStr).getTime() - today) / 86400000);
 }
 function notifMod(type) {
-  return { tracking: 'shipments', sales: 'quotes', finance: 'invoices', alert: 'shipments', crm: 'leads', warehouse: 'cn' }[type] || 'dashboard';
+  return { tracking: 'shipments', sales: 'estimados', finance: 'invoices', alert: 'shipments', crm: 'leads', warehouse: 'cn' }[type] || 'dashboard';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -123,7 +123,7 @@ function TuDia({ userId: pid } = {}) {
   const actionable = tasks.filter(t => t.group !== 'notifs');
   const grouped = {};
   tasks.forEach((t, i) => { (grouped[t.group] = grouped[t.group] || []).push({ ...t, _i: allTasks.indexOf(t) }); });
-  const order = ['approvals', 'alerts', 'shipments', 'invoices', 'quotes', 'notifs'];
+  const order = ['approvals', 'alerts', 'shipments', 'invoices', 'estimados', 'notifs'];
 
   const firstName = user.name.split(' ')[0];
   const hour = 9;
@@ -298,7 +298,7 @@ function QuickLinks({ role }) {
   const I = window.Icon;
   const byRole = {
     'Admin':        [['dashboard', 'Dashboard'], ['users', 'Usuarios'], ['reports', 'Reportes']],
-    'Comercial':    [['quotes', 'Nueva cotización'], ['leads', 'Leads'], ['clients', 'Clientes']],
+    'Comercial':    [['estimados', 'Nuevo estimado'], ['leads', 'Leads'], ['clients', 'Clientes']],
     'Operaciones':  [['cn', 'Almacén CN'], ['despacho', 'Despacho'], ['tms', 'TMS']],
     'Contabilidad': [['invoices', 'Facturación'], ['reconcile', 'Conciliación'], ['contab', 'Contabilidad']],
     'Almacén CN':   [['cn', 'Almacén CN'], ['qrqueue', 'Cola QR'], ['labels', 'Etiquetas']],

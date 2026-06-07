@@ -103,8 +103,45 @@ function DeclaracionView({ ves }) {
             </div>
           ))}
         </U.Card>
+
+        <ContabilizarFiscal kind="iva" />
       </div>
     </div>
+  );
+}
+
+// ── Puente Fiscal → Contabilidad (botón de contabilización) ───
+function ContabilizarFiscal({ kind }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const C = window.ContabilidadData;
+  const R = window.ERPRates;
+  if (!C || !C.buildIvaSettlementEntry) return null;
+  const isUnlocked = C.isUnlocked ? C.isUnlocked() : true;
+  const preview = kind === 'iva' ? C.buildIvaSettlementEntry('2026-05-31') : C.buildRetencionesEntry('2026-05-31');
+  const total = preview ? preview.lines.reduce((s, l) => s + (l.debit || 0), 0) : 0;
+  const label = kind === 'iva' ? 'Contabilizar declaración IVA' : 'Contabilizar retenciones';
+  const post = () => {
+    if (!isUnlocked) { alert('Activá "Edición abierta" en Contabilidad (header) para contabilizar.'); return; }
+    const entry = kind === 'iva' ? C.buildIvaSettlementEntry('2026-05-31') : C.buildRetencionesEntry('2026-05-31');
+    if (!entry) { alert('Sin montos para contabilizar en el período.'); return; }
+    C.createEntry(entry);
+    alert(`Asiento generado · ${entry.concept} (${R.fmtUsd(total)}).`);
+  };
+  return (
+    <U.Card padded>
+      <div className="eyebrow eyebrow-wine" style={{ marginBottom: 8 }}>PUENTE A CONTABILIDAD</div>
+      <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 12 }}>
+        {kind === 'iva'
+          ? 'Genera el asiento de la cuota: débito IVA débito (2.01.08) · crédito IVA crédito (1.18) · neto a IVA por pagar (2.01.09).'
+          : 'Genera el asiento de retenciones: débito a proveedores (2.01.06) · crédito retención IVA (2.01.10) e ISLR (2.01.03).'}
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ font: '900 16px/1 var(--f-display)', color: 'var(--wine)' }}>{R.fmtUsd(total)}</span>
+        <U.Btn variant="primary" size="sm" icon={I.check(13)} disabled={!preview} onClick={post}>{label}</U.Btn>
+      </div>
+      {!isUnlocked && <div style={{ font: '500 10.5px/1.4 var(--f-sans)', color: 'var(--warning)', marginTop: 8 }}>Requiere "Edición abierta" en Contabilidad.</div>}
+    </U.Card>
   );
 }
 
@@ -217,6 +254,9 @@ function RetencionesView({ ves }) {
         <U.KPI label="Retención ISLR emitida" value={R.fmtUsd(rt.islr)} delta="honorarios y servicios" tone="info" icon={window.Icon.invoice(18)} />
       </div>
       <BookTable cols={cols} rows={F.RETENCIONES} totals={totals} />
+      <div style={{ marginTop: 14 }}>
+        <ContabilizarFiscal kind="retenciones" />
+      </div>
     </div>
   );
 }
