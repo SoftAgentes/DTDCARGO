@@ -168,8 +168,44 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 
 ---
 
-### ✅ FAQ completo (21/21)
-Todas las secciones tienen respuesta aprobada. Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
+## E · Producto, pago y cobertura (cobertura ampliada · 2026-06-08)
+> Secciones nuevas que cierran huecos detectados al cruzar el FAQ con el sitio público (`lib/faqs.ts`), el catálogo de 19 servicios y los 4 productos. Grounded en contenido real de DTD (sin inventar).
+
+### 22. DDP y Financiamiento 100% (qué incluye · cuándo se paga)
+**Preguntas:** ¿Qué es DDP? · ¿Qué incluye el precio DDP? · ¿Cuándo pago mi mercancía? · ¿Tengo que adelantar o dar depósito? · ¿Qué es el Financiamiento 100%? · ¿Pago por adelantado?
+
+**Respuesta (aprobada · captura email):** ¡Hola! **DDP puerta a puerta** = nos encargamos de todo: el precio ya incluye **flete + aduana + impuestos**, y te entregamos en tu dirección en Venezuela. Y con el **Financiamiento 100%** pagas **cuando tu carga llega a Venezuela**, no por adelantado (nosotros financiamos el trayecto). *(Si usas compra asistida para pagarle al proveedor en China, eso se confirma aparte con el asesor.)* El monto se calcula por **volumen (CBM)** y destino: míralo en **dtdcargo.com/calculadora** o déjame tu **correo** y un asesor te lo arma. ¿Te ayudo a calcularlo?
+
+> *Nota interna: el diferenciador #1 de DTD. NO hardcodear montos (van en la calculadora). "prepago/prepagado" → "Financiamiento 100%" (regla de marca).*
+
+### 23. Aduana e impuestos
+**Preguntas:** ¿Quién paga la aduana? · ¿El precio incluye impuestos? · ¿Tengo que hacer trámites de aduana? · ¿Hay cobros sorpresa? · ¿Me nacionalizan la carga?
+
+**Respuesta (aprobada · captura email):** ¡Hola! Tranquilo: con **DDP la aduana y los impuestos ya van incluidos** en el precio — **no hay cobros sorpresa** ni tienes que gestionar nada con la aduana, de eso nos encargamos nosotros. Tú solo recibes tu mercancía en tu puerta. El costo total se calcula por **CBM** y destino en **dtdcargo.com/calculadora**; déjame tu **correo** y un asesor te lo detalla. ¿Te cotizo?
+
+### 24. Cobertura de entrega (¿a qué ciudades?)
+**Preguntas:** ¿A qué ciudades entregan? · ¿Entregan en toda Venezuela? · ¿Llega a mi ciudad (Caracas/Maracaibo/etc.)? · ¿Y si no estoy en Valencia? · ¿La entrega es a domicilio?
+
+**Respuesta (aprobada · captura email):** ¡Hola! **Entregamos en toda Venezuela** 🇻🇪. Nuestra sede y bodega están en **Valencia**, y si estás en otra ciudad coordinamos el **last-mile hasta tu dirección** — como es **puerta a puerta**, no tienes que ir a buscar la carga a ningún puerto. Dime tu **ciudad** y tu **correo** y un asesor te confirma la entrega para tu caso. ¿A dónde llegaría tu carga?
+
+### 25. Qué puedo importar (productos restringidos)
+**Preguntas:** ¿Qué productos puedo importar? · ¿Puedo traer baterías/líquidos/comida/cosméticos? · ¿Hay productos prohibidos? · ¿Puedo traer réplicas o productos de marca? · ¿Qué no puedo enviar?
+
+**Respuesta (aprobada · captura email):** ¡Hola! Traemos una gran variedad de productos, pero **algunos rubros tienen restricciones** (por normativa o por ser carga peligrosa: ciertas baterías, líquidos, aerosoles, alimentos, réplicas de marca, etc.). Para no fallar, **pásame tu lista de productos** y tu **correo**, y un asesor te confirma **qué sí se puede** y la mejor modalidad. ¿Me dices qué quieres traer?
+
+> *Nota interna: NUNCA afirmar una lista cerrada de prohibidos (varía por normativa/caso) → siempre escalar al asesor con la lista del cliente. Captura email + producto.*
+
+### 26. Consolidado (LCL) y juntar varios proveedores
+**Preguntas:** ¿Qué es carga consolidada / LCL? · ¿Pueden juntar mi mercancía de varios proveedores? · ¿No lleno un contenedor, igual me traen? · ¿Cómo funciona el consolidado? · ¿Diferencia entre consolidado y contenedor completo?
+
+**Respuesta (aprobada · captura email):** ¡Hola! En el **consolidado marítimo (LCL)** tu carga viaja junto a la de otros importadores y **pagas solo por el volumen que ocupas (CBM)** — ideal cuando no llenas un contenedor. Y sí: **juntamos en nuestra bodega de Yiwu la mercancía de tus distintos proveedores** en un solo envío. Si tienes mucho volumen, te conviene un **contenedor completo (FCL)**; te orientamos al cotizar. Calcula tu CBM en **dtdcargo.com/calculadora** y déjame tu **correo** para armarte la opción. ¿Cuántos proveedores juntarías?
+
+---
+
+### ✅ FAQ completo (26/26)
+Todas las secciones tienen respuesta aprobada (21 base + 5 de cobertura ampliada). Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
+
+**Huecos de menor prioridad — pendientes de decisión (NO redactados aún):** Reserva FCL (dedicada) · Seguro de carga (proactivo) · Documentos/requisitos de importación · servicios de nicho (registro de marca · visado chino · lab testing/permisología · etiquetado/Amazon FBA · almacenaje). ⚠️ **Contradicción a resolver:** el bot dice "aéreo desactivado" pero la web vende "courier aéreo de muestras". Confirmar también si **transporte terrestre** entra al FAQ.
 
 ### Puntos de negocio pendientes de definir (no bloquean el FAQ)
 - **#7/#8 — link de inspección:** página web con menú de servicios + precios (tarifas) + muestra del reporte branded; **stand by** (mientras tanto lo envía el asesor). Plantillas listas: "Inspección de Producto (PSI)" + "Inspección de Fábrica".
