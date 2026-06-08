@@ -148,7 +148,7 @@ export default function GlosarioPage() {
               </h3>
               <p className="mt-3 text-[14.5px] text-grey-700 leading-[1.55] max-w-[48ch] mx-auto">
                 Si hay alguna sigla, documento o concepto que no encontraste
-                acá, escribinos. Te lo explicamos en simple y, de paso, lo
+                acá, escríbenos. Te lo explicamos en simple y, de paso, lo
                 agregamos al glosario.
               </p>
               <a

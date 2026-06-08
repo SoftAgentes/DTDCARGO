@@ -280,7 +280,7 @@ export function CalculadoraForm({
       {/* Nota al pie · ancho completo */}
       <div className="border-t border-grey-200 px-6 lg:px-9 py-4">
         <p className="text-[11.5px] text-grey-500 leading-[1.5]">
-          <strong className="text-grey-700">* Financiamiento 100%:</strong> pagás
+          <strong className="text-grey-700">* Financiamiento 100%:</strong> pagas
           el flete al llegar a Venezuela. <strong className="text-grey-700">Aplican
           restricciones.</strong>{" "}
           Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
@@ -302,7 +302,7 @@ export function CalculadoraForm({
               </span>
             </div>
             <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.45]">
-              <strong className="text-ink">Registrate y obtené tu MARKBOX.</strong>{" "}
+              <strong className="text-ink">Regístrate y obtén tu MARKBOX.</strong>{" "}
               Vinculamos este estimado a tu cuenta automáticamente.
             </p>
           </div>
@@ -578,7 +578,7 @@ function ResultPanel({
           style={{ background: "rgba(31,138,91,0.12)" }}
         >
           <span className="fin-badge-dot-green" aria-hidden="true" />
-          Financiamiento 100%* · pagás al llegar a Venezuela
+          Financiamiento 100%* · pagas al llegar a Venezuela
         </div>
       )}
 

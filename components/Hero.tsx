@@ -68,9 +68,9 @@ export function Hero() {
               href="/registro"
               className="font-semibold text-wine hover:text-wine-deep underline underline-offset-2 decoration-1"
             >
-              Registrate como cliente
+              Regístrate como cliente
             </Link>{" "}
-            y obtené tu MARKBOX.
+            y obtén tu MARKBOX.
           </p>
         </div>
 

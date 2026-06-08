@@ -6,7 +6,7 @@
  * REGISTRO EXPRESS (founder 2026-06-07): el alta pide SOLO lo mínimo para emitir el
  * MARKBOX y poder contactar al cliente — tipo · nombre · documento · email ·
  * WhatsApp → MARKBOX al instante. La FOTO de cédula y la DIRECCIÓN de entrega se
- * DIFIEREN a "Completá tu perfil" dentro del portal (`/portal/perfil`), donde se
+ * DIFIEREN a "Completa tu perfil" dentro del portal (`/portal/perfil`), donde se
  * piden antes de la 1ª compra; el asesor revisa la foto antes de operar de verdad.
  * Esto baja la fricción del lead de WhatsApp SIN perder la validación: el número de
  * documento sigue obligatorio (dedup + identidad básica + contraseña inicial).
@@ -91,7 +91,7 @@ export async function registerClientAction(
   //    que no revela la trampa y NO escribimos nada (ni throttle).
   const honeypot = String(formData.get(HONEYPOT_FIELD) ?? "").trim();
   if (honeypot) {
-    return { error: "No pudimos procesar tu registro. Probá de nuevo." };
+    return { error: "No pudimos procesar tu registro. Prueba de nuevo." };
   }
 
   // 1. Validar (express: tipo/nombre/documento/email/WhatsApp).
@@ -104,7 +104,7 @@ export async function registerClientAction(
     admin = createAdminClient();
   } catch {
     return {
-      error: "El registro no está disponible ahora. Probá de nuevo en un rato.",
+      error: "El registro no está disponible ahora. Prueba de nuevo en un rato.",
     };
   }
 
@@ -126,7 +126,7 @@ export async function registerClientAction(
   // legítima por un fallo de infraestructura del propio anti-abuso.
   if (!throttleErr && (recentCount ?? 0) >= REGISTRO_IP_LIMIT) {
     return {
-      error: "Demasiados registros desde tu conexión. Probá de nuevo en un rato.",
+      error: "Demasiados registros desde tu conexión. Prueba de nuevo en un rato.",
     };
   }
   // Registrar el intento (best-effort: si falla el insert, el alta sigue).
@@ -159,7 +159,7 @@ export async function registerClientAction(
   if (dup) {
     return {
       fieldErrors: {
-        document: `Este ${input.kind === "empresa" ? "RIF" : "cédula"} ya tiene una cuenta en DTD Cargo. Si sos vos, entrá con tu MARKBOX o pedí recuperar tu contraseña.`,
+        document: `Este ${input.kind === "empresa" ? "RIF" : "cédula"} ya tiene una cuenta en DTD Cargo. Si eres tú, entra con tu MARKBOX o pide recuperar tu contraseña.`,
       },
     };
   }
@@ -173,16 +173,16 @@ export async function registerClientAction(
     p_tenant_id: tenantId,
   });
   if (markboxErr || !markboxData) {
-    return { error: "No pudimos generar tu código. Probá de nuevo." };
+    return { error: "No pudimos generar tu código. Prueba de nuevo." };
   }
   const markbox = String(markboxData);
   if (!validateMarkboxFormat(markbox)) {
-    return { error: "No pudimos generar tu código. Probá de nuevo." };
+    return { error: "No pudimos generar tu código. Prueba de nuevo." };
   }
 
   // 5. Insert del cliente ACTIVO (portal_approved_at = now → sin pantalla de
   //    espera; tier regular). SIN foto ni dirección: el REGISTRO EXPRESS las
-  //    DIFIERE a "Completá tu perfil" (/portal/perfil), donde se piden antes de la
+  //    DIFIERE a "Completa tu perfil" (/portal/perfil), donde se piden antes de la
   //    1ª compra y el asesor revisa la foto. Por eso cedula_photo_path/address
   //    nacen null (ambas columnas son nullable).
   const { data: clientRow, error: clientErr } = await admin
@@ -228,7 +228,7 @@ export async function registerClientAction(
       return {
         fieldErrors: {
           document:
-            "Este documento ya tiene una cuenta en DTD Cargo. Entrá con tu MARKBOX o pedí recuperar tu contraseña.",
+            "Este documento ya tiene una cuenta en DTD Cargo. Entrá con tu MARKBOX o pide recuperar tu contraseña.",
         },
       };
     }
@@ -274,7 +274,7 @@ export async function registerClientAction(
       return {
         markbox,
         warning:
-          "Tu cuenta quedó creada, pero ese email ya tenía acceso. Entrá con tu MARKBOX o pedí recuperar tu contraseña.",
+          "Tu cuenta quedó creada, pero ese email ya tenía acceso. Entrá con tu MARKBOX o pide recuperar tu contraseña.",
       };
     }
     console.error("[registerClientAction] createUser error:", authErr);

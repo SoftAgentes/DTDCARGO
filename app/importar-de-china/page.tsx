@@ -84,7 +84,7 @@ export default function ImportarHubPage() {
             <p className="lead mt-6 max-w-[60ch]">
               Traemos tu carga consolidada de China puerta a puerta a todo el
               país: flete, aduana e impuestos incluidos (DDP), financiamiento
-              100% —pagás cuando llega— y entrega coordinada hasta tu ciudad.
+              100% —pagas cuando llega— y entrega coordinada hasta tu ciudad.
               Todo sale de nuestra bodega propia en Valencia, donde recibimos la
               mercancía desde Yiwu.
             </p>
@@ -113,7 +113,7 @@ export default function ImportarHubPage() {
             </h2>
             <p className="lead mt-5 max-w-[64ch]">
               Cada ciudad tiene su página con el detalle de la entrega. Si la
-              tuya no está en la lista, igual llegamos: escribinos y coordinamos
+              tuya no está en la lista, igual llegamos: escríbenos y coordinamos
               el last-mile hasta tu puerta.
             </p>
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

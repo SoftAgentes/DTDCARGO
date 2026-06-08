@@ -45,7 +45,7 @@ export default function ContactoPage() {
               <span style={{ color: "var(--color-wine)" }}>te responde.</span>
             </h1>
             <p className="lead mt-6">
-              Sin call center, sin tickets, sin handoffs. Escribinos por el
+              Sin call center, sin tickets, sin handoffs. Escríbenos por el
               canal que prefieras y un asesor humano te responde en menos de
               24 horas.
             </p>
@@ -134,7 +134,7 @@ export default function ContactoPage() {
                   className="text-[26px] leading-[1.1] tracking-[-0.01em]"
                   style={{ fontFamily: "var(--font-archivo-black)" }}
                 >
-                  ¿Necesitás respuesta ya?
+                  ¿Necesitas respuesta ya?
                 </h3>
                 <p className="text-[14.5px] text-white/70 leading-[1.5]">
                   Envíanos un WhatsApp y un asesor humano te contesta en

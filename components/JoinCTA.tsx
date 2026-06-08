@@ -3,7 +3,7 @@ import { ArrowIcon } from "./Icon";
 
 /**
  * Banda de cierre del home (antes del footer): conversión a alta de cliente.
- * CTA contextual de "Registrate" — la decisión de IA fue NO saturar el nav con
+ * CTA contextual de "Regístrate" — la decisión de IA fue NO saturar el nav con
  * registro y empujarlo fuerte acá + en el Hero. El "Acceder al portal" se suma
  * a esta banda cuando exista la pantalla de login (SDD-0042 Fase 1b).
  */
@@ -20,7 +20,7 @@ export function JoinCTA() {
               className="mt-4 text-white text-[30px] lg:text-[40px] leading-[1.05]"
               style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
             >
-              Registrate y obtené{" "}
+              Regístrate y obtén{" "}
               <br className="hidden lg:inline" />
               tu MARKBOX.
             </h2>
@@ -32,7 +32,7 @@ export function JoinCTA() {
           </div>
           <div className="lg:justify-self-end">
             <Link href="/registro" className="btn btn-primary w-full lg:w-auto">
-              Registrate como cliente <ArrowIcon />
+              Regístrate como cliente <ArrowIcon />
             </Link>
           </div>
         </div>

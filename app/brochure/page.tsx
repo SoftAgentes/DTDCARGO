@@ -79,7 +79,7 @@ export default function BrochurePage() {
             </h1>
             <p className="lead mt-6" style={{ fontSize: "19px" }}>
               Carga consolidada DDP puerta a puerta entre China y Venezuela.
-              Todo incluido — y pagás cuando llega a Venezuela.
+              Todo incluido — y pagas cuando llega a Venezuela.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a

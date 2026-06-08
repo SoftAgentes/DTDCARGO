@@ -33,7 +33,7 @@ const EMPTY: FormData0 = {
 /**
  * Registro EXPRESS (founder 2026-06-07). Un solo paso, lo mínimo para emitir el
  * MARKBOX y poder contactar al cliente: tipo · nombre · documento · email ·
- * WhatsApp. La foto de cédula y la dirección de entrega se DIFIEREN a "Completá tu
+ * WhatsApp. La foto de cédula y la dirección de entrega se DIFIEREN a "Completa tu
  * perfil" dentro del portal (`/portal/perfil`), donde se piden antes de la 1ª
  * compra. Baja la fricción del lead de WhatsApp sin perder el dedup ni la
  * identidad básica (el documento sigue obligatorio = contraseña inicial).
@@ -63,7 +63,7 @@ export function RegisterForm({ est }: { est?: string }) {
 
           {!done && (
             <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
-              En un minuto tenés tu MARKBOX para empezar a marcar tus cajas en China.
+              En un minuto tienes tu MARKBOX para empezar a marcar tus cajas en China.
             </p>
           )}
 
@@ -108,7 +108,7 @@ export function RegisterForm({ est }: { est?: string }) {
 
         {!done && (
           <p className="text-center mt-6 text-[13.5px] text-grey-500">
-            ¿Ya tenés cuenta?{" "}
+            ¿Ya tienes cuenta?{" "}
             <Link href="/portal/login" className="font-semibold text-wine hover:text-wine-deep">
               Entrá acá
             </Link>
@@ -276,7 +276,7 @@ function ExpressForm({
       >
         Generamos tu <strong className="text-ink">MARKBOX</strong> al instante y tu
         cuenta queda <strong className="text-ink">activa</strong>. Antes de tu primera
-        compra completás tu perfil (foto de cédula + dirección de entrega) desde el
+        compra completas tu perfil (foto de cédula + dirección de entrega) desde el
         portal.
       </div>
 

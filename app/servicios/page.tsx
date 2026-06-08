@@ -256,7 +256,7 @@ export default function ServiciosPage() {
                   trabajando juntas.
                 </>
               }
-              lead="No elegís entre opciones. Tu envío pasa por dos oficinas que se coordinan internamente, y vos siempre hablás con una sola persona del equipo."
+              lead="No eliges entre opciones. Tu envío pasa por dos oficinas que se coordinan internamente, y tú siempre hablas con una sola persona del equipo."
             />
 
             {/* Dos oficinas (peers) — cada una con los servicios que ejecuta sola */}
@@ -297,7 +297,7 @@ export default function ServiciosPage() {
                 >
                   <strong className="text-white">Yiwu ejecuta</strong> el trabajo en
                   China, <strong className="text-white">Valencia te lo coordina</strong>{" "}
-                  con vos. Los dos equipos hablan entre sí — vos solo hablás con uno.
+                  contigo. Los dos equipos hablan entre sí — tú solo hablas con uno.
                 </p>
                 <ul className="mt-5 flex flex-wrap justify-center gap-2 list-none p-0">
                   {SERVICES_OWNERSHIP.both.map((s) => (
