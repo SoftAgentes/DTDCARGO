@@ -131,7 +131,7 @@ const jsonLd = {
       foundingDate: "2010",
       email: CONTACT.emailGeneral,
       telephone: CONTACT.ve.phone,
-      sameAs: [CONTACT.instagram.url],
+      sameAs: [CONTACT.instagram.url, CONTACT.youtube.url],
       address: [
         {
           "@type": "PostalAddress",
