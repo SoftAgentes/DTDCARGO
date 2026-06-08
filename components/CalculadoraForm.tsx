@@ -743,6 +743,16 @@ function ResultPanel({
             </span>
           </div>
         )}
+        {tieneCarga && !hasAlerta && (
+          <p
+            className="mt-3 text-[12.5px] leading-[1.5]"
+            style={{ color: "rgba(255,255,255,0.65)" }}
+          >
+            <span style={{ color: "rgba(255,255,255,0.6)" }}>Incluye:</span>{" "}
+            flete marítimo · aduana · impuestos · entrega en{" "}
+            {cot.ciudad?.label ?? "destino"}.
+          </p>
+        )}
       </div>
 
       {/* Badge financiamiento (pill verde claro) */}
