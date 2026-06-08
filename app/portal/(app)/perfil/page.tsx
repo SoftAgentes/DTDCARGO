@@ -32,7 +32,7 @@ export default async function PortalProfilePage() {
       </h1>
       <p className="lead mt-3 max-w-[60ch]">
         Para tu primera compra necesitamos dos cosas: la foto de tu cédula o RIF (para
-        verificar tu identidad) y tu dirección de entrega en Venezuela. Lo hacés una
+        verificar tu identidad) y tu dirección de entrega en Venezuela. Lo haces una
         sola vez.
       </p>
 
@@ -41,7 +41,7 @@ export default async function PortalProfilePage() {
           className="mt-6 rounded-[12px] bg-white border border-grey-200 border-l-[3px] px-5 py-4 max-w-[640px] text-[13.5px] text-grey-700 leading-[1.55]"
           style={{ borderLeftColor: "var(--color-status-success)" }}
         >
-          Tu perfil ya está completo. Podés actualizar tu dirección o reemplazar la
+          Tu perfil ya está completo. Puedes actualizar tu dirección o reemplazar la
           foto cuando quieras.
         </div>
       )}

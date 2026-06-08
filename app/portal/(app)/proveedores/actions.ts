@@ -62,7 +62,7 @@ export async function createSupplierAction(
 
   const supabase = await createClient();
   const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   // Próximo nº de proveedor del cliente (RPC resuelve el tenant del caller).
   const { data: seqData, error: seqErr } = await supabase.rpc(
@@ -125,7 +125,7 @@ export async function updateSupplierAction(
 
   const supabase = await createClient();
   const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   // El UPDATE pasa por la RLS (using/check por markbox) — scopeamos explícito
   // por id + markbox (defensa en profundidad).
@@ -181,7 +181,7 @@ export async function createPrealertaAction(
 
   const supabase = await createClient();
   const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
   const tenantId = tenantData ? String(tenantData) : null;

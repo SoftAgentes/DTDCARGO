@@ -54,7 +54,7 @@ export function LoginForm({
             className="mt-4 text-[28px] lg:text-[32px] leading-[1.08] text-ink"
             style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
           >
-            Entrá a tu cuenta.
+            Entra a tu cuenta.
           </h1>
 
           {notice && (
@@ -119,7 +119,7 @@ export function LoginForm({
 
                 <p className="text-[12px] text-grey-500 leading-[1.5]">
                   Tu usuario es tu MARKBOX. La contraseña inicial es tu cédula (o RIF
-                  si sos empresa).
+                  si eres empresa).
                 </p>
               </form>
 
@@ -152,7 +152,7 @@ export function LoginForm({
                         required
                         autoComplete="email"
                         inputMode="email"
-                        placeholder="vos@empresa.com"
+                        placeholder="tu@empresa.com"
                         disabled={magicPending}
                         className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
                       />
@@ -185,13 +185,13 @@ export function LoginForm({
           )}
         </div>
 
-        <p className="text-center mt-6 text-[13.5px] text-grey-500">
-          ¿Todavía no sos cliente?{" "}
+        <p className="text-center mt-6 text-[14px] text-grey-500">
+          ¿Todavía no eres cliente?{" "}
           <Link
             href="/registro"
-            className="font-semibold text-wine hover:text-wine-deep"
+            className="text-[17px] font-bold text-wine hover:text-wine-deep underline underline-offset-2"
           >
-            Creá tu cuenta
+            Crea tu cuenta
           </Link>
         </p>
       </div>
@@ -239,7 +239,7 @@ function ForgotPassword({ pending, error }: { pending: boolean; error?: string }
         disabled={pending}
         className="text-[12.5px] font-semibold text-wine hover:text-wine-deep disabled:opacity-60 text-left"
       >
-        {pending ? "Enviando…" : "Mandame el enlace de recuperación"}
+        {pending ? "Enviando…" : "Envíame el enlace de recuperación"}
       </button>
     </div>
   );
@@ -254,7 +254,7 @@ function ResetSent() {
       >
         <CheckIcon size={20} />
       </div>
-      <div className="text-[16px] font-bold text-ink">Revisá tu correo</div>
+      <div className="text-[16px] font-bold text-ink">Revisa tu correo</div>
       <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
         Si ese MARKBOX tiene una cuenta, te mandamos un enlace para cambiar la
         contraseña. Puede tardar un par de minutos.
@@ -282,8 +282,8 @@ function MagicSent({
       </div>
       <div className="text-[16px] font-bold text-ink">Te enviamos el enlace</div>
       <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
-        Abrí el correo que mandamos a <strong className="text-ink">{email}</strong> y
-        clickeá el enlace para entrar.
+        Abre el correo que mandamos a <strong className="text-ink">{email}</strong> y
+        haz clic en el enlace para entrar.
       </p>
       <form action={action} className="mt-4">
         <input type="hidden" name="email" value={email} />

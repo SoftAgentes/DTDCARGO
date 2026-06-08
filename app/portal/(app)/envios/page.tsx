@@ -27,13 +27,13 @@ export default async function PortalShipmentsPage() {
       </h1>
       <p className="lead mt-3">
         Seguí el estado de tus cargas en tiempo real. Para cambios o dudas,
-        escribile a tu asesor por WhatsApp.
+        escríbele a tu asesor por WhatsApp.
       </p>
 
       {shipments.length === 0 ? (
         <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
           <div className="text-[16px] font-bold text-ink">
-            Todavía no tenés envíos.
+            Todavía no tienes envíos.
           </div>
           <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
             Cuando confirmes tu primera carga con tu asesor, va a aparecer acá con

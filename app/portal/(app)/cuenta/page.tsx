@@ -104,7 +104,7 @@ export default async function PortalAccountPage() {
                   : !completeness.hasPhoto
                     ? "subir la foto de tu cédula / RIF"
                     : "cargar tu dirección de entrega"}
-                . Lo necesitás antes de tu primera compra.
+                . Lo necesitas antes de tu primera compra.
               </p>
               <Link
                 href="/portal/perfil"
@@ -118,8 +118,8 @@ export default async function PortalAccountPage() {
           {/* Nota read-only + CTA de corrección */}
           <div className="mt-8 pt-6 border-t border-grey-200">
             <p className="text-[13.5px] text-grey-700 leading-[1.55]">
-              ¿Algún dato desactualizado? Escribile a tu asesor y lo corregimos
-              por vos.
+              ¿Algún dato desactualizado? Escríbele a tu asesor y lo corregimos
+              por ti.
             </p>
             <a
               href={waUpdate}
@@ -180,7 +180,7 @@ export default async function PortalAccountPage() {
             <Step
               n="01"
               title="Le pasás tu MARKBOX al proveedor"
-              copy="Cuando hagas el pedido, mandale tu código por WeChat o donde te comuniques con él."
+              copy="Cuando hagas el pedido, mándale tu código por WeChat o donde te comuniques con él."
             />
             <Step
               n="02"

@@ -39,7 +39,7 @@ export default async function PortalMensajesPage() {
         Mensajes
       </h1>
       <p className="mt-3 text-[14px] text-grey-700 leading-[1.55] max-w-[60ch]">
-        Escribile a tu asesor de DTD Cargo. Te respondemos por acá y, si tenés
+        Escríbele a tu asesor de DTD Cargo. Te respondemos por acá y, si tienes
         email registrado, también te llega por correo.
       </p>
 

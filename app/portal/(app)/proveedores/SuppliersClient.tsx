@@ -50,7 +50,7 @@ export function SuppliersClient({
           </h1>
           <p className="lead mt-3 max-w-[64ch]">
             Cada <strong className="text-ink">compra</strong> es una{" "}
-            <strong className="text-wine">prealerta</strong>: nos avisás que viene
+            <strong className="text-wine">prealerta</strong>: nos avisas que viene
             mercancía de China para esperarla y procesarla más rápido. Generá el
             código y las etiquetas para tus proveedores, o re-comprale a uno que ya
             tengas.

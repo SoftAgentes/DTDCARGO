@@ -32,7 +32,7 @@ export function ProfileIncompleteCard({
           </div>
           <p className="mt-1.5 text-[14px] text-grey-700 leading-[1.55]">
             Antes de tu primera compra necesitamos {missingText}. Te toma un par de
-            minutos y lo hacés una sola vez.
+            minutos y lo haces una sola vez.
           </p>
         </div>
         <Link

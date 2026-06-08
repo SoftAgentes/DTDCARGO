@@ -144,7 +144,7 @@ export function ProfileForm({
           Tu cédula o RIF
         </h2>
         <p className="mt-2 text-[13.5px] text-grey-700 leading-[1.55]">
-          Subí una foto legible. La revisa tu asesor para verificar tu identidad
+          Sube una foto legible. La revisa tu asesor para verificar tu identidad
           antes de tu primera carga — queda privada, solo la ve el equipo de DTD.
         </p>
 
@@ -153,13 +153,13 @@ export function ProfileForm({
             className="mt-4 rounded-[10px] bg-paper border-l-[3px] px-4 py-2.5 text-[12.5px] text-grey-700 leading-[1.5]"
             style={{ borderColor: "var(--color-status-success)" }}
           >
-            Ya tenés una foto cargada. Subí una nueva solo si querés reemplazarla.
+            Ya tienes una foto cargada. Sube una nueva solo si quieres reemplazarla.
           </div>
         )}
 
         <PhotoUpload value={photo} onChange={setPhoto} error={tried && !photoOk} />
         {tried && !photoOk && (
-          <p className="mt-1.5 text-[12.5px] text-wine">{state.fieldErrors?.photo ?? "Tenés que subir la foto."}</p>
+          <p className="mt-1.5 text-[12.5px] text-wine">{state.fieldErrors?.photo ?? "Tienes que subir la foto."}</p>
         )}
         {!tried && state.fieldErrors?.photo && (
           <p className="mt-1.5 text-[12.5px] text-wine">{state.fieldErrors.photo}</p>
@@ -394,10 +394,10 @@ function PhotoUpload({
       <span className="text-[13px] text-grey-700 leading-[1.4]">
         {value ? (
           <>
-            <strong className="text-ink">{value.name}</strong> — tocá para cambiar
+            <strong className="text-ink">{value.name}</strong> — toca para cambiar
           </>
         ) : (
-          "Subí una foto legible · anverso y reverso si aplica (JPG/PNG, máx 8 MB)"
+          "Sube una foto legible · anverso y reverso si aplica (JPG/PNG, máx 8 MB)"
         )}
       </span>
     </label>
