@@ -217,13 +217,8 @@ const nextConfig: NextConfig = {
         destination: "/calculadora",
         permanent: true,
       },
-      {
-        // "Nosotros" — el sitio nuevo no tiene página About; la historia de la
-        // empresa vive en el home (21 impresiones).
-        source: "/nosotros",
-        destination: "/",
-        permanent: true,
-      },
+      // `/nosotros` se reclamó: ahora es la página real "Sobre Nosotros"
+      // (app/nosotros/page.tsx). Ya no redirige al home — recupera su SEO propio.
       {
         // Definición incoterm CIF → glosario (18 impresiones).
         source: "/significado-del-incoterm-cif",
