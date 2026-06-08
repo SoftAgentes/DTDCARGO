@@ -302,7 +302,7 @@ export function CalculadoraForm({
               </span>
             </div>
             <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.45]">
-              <strong className="text-ink">Regístrate y obtén tu MARKBOX.</strong>{" "}
+              <strong className="text-ink">Regístrate y obtén tu Shipping Mark.</strong>{" "}
               Vinculamos este estimado a tu cuenta automáticamente.
             </p>
           </div>

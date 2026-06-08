@@ -9,7 +9,7 @@
 const PILARES = [
   "Puerta a puerta",
   "Aduana e impuestos gestionados",
-  "Carga identificada con MARKBOX",
+  "Carga identificada con Shipping Mark",
   "Tracking en vivo",
   "Equipo en Yiwu y Valencia",
 ];
