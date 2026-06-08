@@ -273,7 +273,7 @@ export function calcularEnvioLCL(
       tipo: "carga_especial",
       mensaje:
         "Para carga especial, peligrosa o que requiere permisos de exportación, " +
-        "consultá con tu asesor — la cotizamos a medida.",
+        "consulta con tu asesor — la cotizamos a medida.",
     }, input);
   }
 

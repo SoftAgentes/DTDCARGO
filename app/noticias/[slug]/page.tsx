@@ -164,7 +164,7 @@ export default async function NewsPostPage({ params }: Props) {
           <section className="py-16 lg:py-20 border-t border-grey-200">
             <div className="wrap max-w-[1100px]">
               <h2 className="text-[14px] font-bold tracking-[0.14em] uppercase text-wine mb-8">
-                Seguí leyendo
+                Sigue leyendo
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {related.map((p) => (

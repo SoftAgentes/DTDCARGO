@@ -44,7 +44,7 @@ const WA_COTIZAR = buildWhatsAppLink(
 const WHY = [
   {
     t: "Financiamiento 100%",
-    d: "Pagás cuando tu carga llega a Venezuela. Sin adelantar todo.",
+    d: "Pagas cuando tu carga llega a Venezuela. Sin adelantar todo.",
   },
   {
     t: "Equipo y bodega propios",

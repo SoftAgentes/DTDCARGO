@@ -70,7 +70,7 @@ export async function createSupplierAction(
     { p_client_markbox: markbox },
   );
   if (seqErr || seqData == null) {
-    return { error: "No pudimos registrar el proveedor. Probá de nuevo." };
+    return { error: "No pudimos registrar el proveedor. Prueba de nuevo." };
   }
   const supplierSeq = Number(seqData);
 
@@ -95,7 +95,7 @@ export async function createSupplierAction(
 
   if (insErr || !row) {
     console.error("[createSupplierAction] insert error:", insErr);
-    return { error: "No pudimos registrar el proveedor. Probá de nuevo." };
+    return { error: "No pudimos registrar el proveedor. Prueba de nuevo." };
   }
 
   revalidatePortal();
@@ -144,7 +144,7 @@ export async function updateSupplierAction(
 
   if (updErr) {
     console.error("[updateSupplierAction] update error:", updErr);
-    return { error: "No pudimos guardar los cambios. Probá de nuevo." };
+    return { error: "No pudimos guardar los cambios. Prueba de nuevo." };
   }
 
   revalidatePortal();
@@ -238,10 +238,10 @@ export async function createPrealertaAction(
       continue;
     }
     console.error("[createPrealertaAction] insert error:", insErr);
-    return { error: "No pudimos registrar la compra. Probá de nuevo." };
+    return { error: "No pudimos registrar la compra. Prueba de nuevo." };
   }
 
   return {
-    error: lastError ?? "No pudimos registrar la compra. Probá de nuevo.",
+    error: lastError ?? "No pudimos registrar la compra. Prueba de nuevo.",
   };
 }

@@ -43,7 +43,7 @@ export async function changePortalPasswordAction(
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    return { error: "No pudimos cambiar la contraseña. Probá de nuevo." };
+    return { error: "No pudimos cambiar la contraseña. Prueba de nuevo." };
   }
   return { ok: true };
 }

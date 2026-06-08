@@ -221,7 +221,7 @@ export default function InspeccionPage() {
               ¿Quieres el detalle técnico?
             </h2>
             <p className="lead mt-5 max-w-[54ch]">
-              Las siglas de la industria, en palabras simples. Abrí solo lo que
+              Las siglas de la industria, en palabras simples. Abre solo lo que
               te interese.
             </p>
 
@@ -247,7 +247,7 @@ export default function InspeccionPage() {
                 className="text-[26px] lg:text-[36px] leading-[1.1] tracking-[-0.01em]"
                 style={{ fontFamily: "var(--font-archivo-black)" }}
               >
-                Comprá en China con confianza.
+                Compra en China con confianza.
               </h2>
               <p className="mt-4 text-[15px] lg:text-[17px] leading-[1.5] text-white/80 max-w-[52ch] mx-auto">
                 Solicitá tu cotización de inspección hoy. Un asesor en español te

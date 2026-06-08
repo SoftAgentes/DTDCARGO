@@ -87,7 +87,7 @@ export default async function PortalAccountPage() {
             />
           </dl>
 
-          {/* Completá tu perfil (campos diferidos del registro express: foto +
+          {/* Completa tu perfil (campos diferidos del registro express: foto +
               dirección). A diferencia del resto del perfil — mediado por el asesor
               — estos los carga el propio cliente. */}
           {!completeness.complete && (
@@ -110,7 +110,7 @@ export default async function PortalAccountPage() {
                 href="/portal/perfil"
                 className="btn btn-primary mt-4 inline-flex items-center gap-2"
               >
-                Completá tu perfil <ArrowIcon />
+                Completa tu perfil <ArrowIcon />
               </Link>
             </div>
           )}
@@ -179,7 +179,7 @@ export default async function PortalAccountPage() {
           <ol className="mt-6 flex flex-col gap-4 list-none p-0">
             <Step
               n="01"
-              title="Le pasás tu MARKBOX al proveedor"
+              title="Le pasas tu MARKBOX al proveedor"
               copy="Cuando hagas el pedido, mándale tu código por WeChat o donde te comuniques con él."
             />
             <Step

@@ -111,7 +111,7 @@ export function ContactoForm() {
           Acelerar respuesta por WhatsApp
         </a>
         <p className="text-[12px] text-grey-500 mt-3 leading-[1.5]">
-          Al clickear, abrís WhatsApp con tu mensaje pre-cargado. Llega
+          Al clickear, abres WhatsApp con tu mensaje pre-cargado. Llega
           directo a un asesor con todos tus datos.
         </p>
       </div>
@@ -199,7 +199,7 @@ export function ContactoForm() {
       )}
 
       <p className="text-[12.5px] text-grey-500 leading-[1.5]">
-        Al enviar aceptás que un asesor te contacte por email o WhatsApp.
+        Al enviar aceptas que un asesor te contacte por email o WhatsApp.
       </p>
     </form>
   );

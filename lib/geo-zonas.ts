@@ -54,7 +54,7 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: true,
     metaTitle: "Importar de China a Maracay, Aragua | DTD Cargo",
     metaDescription:
-      "Importar de China a Maracay, estado Aragua: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica. Pagás cuando llega.",
+      "Importar de China a Maracay, estado Aragua: carga consolidada DDP puerta a puerta, financiamiento 100% e inspección en fábrica. Pagas cuando llega.",
     h1: "Importar de China a Maracay (Aragua)",
     anguloLocal:
       "Maracay y todo el eje de Aragua mueven mercancía china a diario: el comercio del centro, los repuestos de Turmero y la distribución que sube por Cagua y La Victoria. Desde nuestra bodega en Valencia, a 70 km, la zona nos queda al lado, así que tu carga consolidada llega rápido y sin las vueltas de un intermediario remoto.",
@@ -69,7 +69,7 @@ export const GEO_ZONAS: GeoZona[] = [
     casco: false,
     metaTitle: "Importar de China a Maracaibo, Zulia | DTD Cargo",
     metaDescription:
-      "Importar de China a Maracaibo, Zulia: carga consolidada DDP puerta a puerta. Pagás cuando llega, inspección en fábrica y last-mile hasta tu puerta.",
+      "Importar de China a Maracaibo, Zulia: carga consolidada DDP puerta a puerta. Pagas cuando llega, inspección en fábrica y last-mile hasta tu puerta.",
     h1: "Importar de China a Maracaibo, Zulia",
     anguloLocal:
       "El Zulia mueve comercio fuerte: desde los mayoristas de Maracaibo y San Francisco hasta los proveedores de la zona petrolera de Cabimas y Ciudad Ojeda, traer mercancía de China consolidada te baja el costo por kilo frente a comprar suelto. Nosotros movemos tu carga desde Yiwu hasta el lago, con el last-mile coordinado al municipio que sea.",

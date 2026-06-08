@@ -355,7 +355,7 @@ export async function getPortalActivation(
 /**
  * Completitud del perfil del cliente del portal (REGISTRO EXPRESS · founder
  * 2026-06-07). El alta express difiere foto + dirección; acá leemos si ya están
- * cargadas para nudgear "Completá tu perfil" (antes de la 1ª compra).
+ * cargadas para nudgear "Completa tu perfil" (antes de la 1ª compra).
  *
  * Resuelve el client_id del portal vía la helper AISLADA (`get_portal_client_id`)
  * y lee SU PROPIA fila (la RLS del portal le permite leer su row de clients). Solo

@@ -9,12 +9,12 @@ import { EstimacionForm } from "@/components/EstimacionForm";
 export const metadata: Metadata = {
   title: "Estimación inicial",
   description:
-    "Estimación inicial DDP en ~24h hábiles. Ingresá origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
+    "Estimación inicial DDP en ~24h hábiles. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
   alternates: { canonical: "/estimacion" },
   ...socialMeta({
     title: "Estimación inicial · DTD Cargo",
     description:
-      "Estimación inicial DDP en ~24h hábiles. Ingresá origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
+      "Estimación inicial DDP en ~24h hábiles. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
     path: "/estimacion",
   }),
 };
@@ -73,7 +73,7 @@ export default function EstimacionPage() {
                   style={{ background: "var(--color-wine)" }}
                 />
                 <span>
-                  <strong className="text-ink">¿Pagás impuestos?</strong> Sí,
+                  <strong className="text-ink">¿Pagas impuestos?</strong> Sí,
                   todo incluido en la tarifa final.
                 </span>
               </div>

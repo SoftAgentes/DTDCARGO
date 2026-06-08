@@ -108,11 +108,11 @@ export function CalculadoraForm({
     const maxSinRecargo = form.cbmTotal * params.pesoIncluidoKg;
     const maxDenso = form.cbmTotal * params.pesoMaxKg;
     if (form.pesoKg > maxDenso)
-      return `Para ${fmt(form.cbmTotal)} m³, más de ${fmt(maxDenso)} kg es demasiado denso — consultá con tu asesor (FCL).`;
+      return `Para ${fmt(form.cbmTotal)} m³, más de ${fmt(maxDenso)} kg es demasiado denso — consulta con tu asesor (FCL).`;
     if (form.pesoKg > maxSinRecargo) {
       const exceso = form.pesoKg - maxSinRecargo;
       const recargo = exceso * params.recargoExcedenteKg;
-      return `El máximo de peso sin recargo para ${fmt(form.cbmTotal)} m³ es ${fmt(maxSinRecargo)} kg. Te pasás por ${fmt(exceso)} kg → +$${fmt(recargo)} ($${params.recargoExcedenteKg}/kg extra).`;
+      return `El máximo de peso sin recargo para ${fmt(form.cbmTotal)} m³ es ${fmt(maxSinRecargo)} kg. Te pasas por ${fmt(exceso)} kg → +$${fmt(recargo)} ($${params.recargoExcedenteKg}/kg extra).`;
     }
     return null;
   })();
@@ -542,7 +542,7 @@ function ResultPanel({
             className="mt-2 text-[14.5px] leading-[1.5]"
             style={{ color: "rgba(255,255,255,0.8)" }}
           >
-            Ingresá tu CBM y peso para ver el estimado al instante.
+            Ingresa tu CBM y peso para ver el estimado al instante.
           </p>
         ) : hasAlerta ? (
           <p

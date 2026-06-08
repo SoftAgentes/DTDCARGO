@@ -1,7 +1,7 @@
 "use server";
 
 /**
- * "Completá tu perfil" (REGISTRO EXPRESS · founder 2026-06-07).
+ * "Completa tu perfil" (REGISTRO EXPRESS · founder 2026-06-07).
  *
  * El alta express difiere la FOTO de cédula y la DIRECCIÓN de entrega; acá el
  * cliente las completa desde el portal (se piden antes de la 1ª compra; el asesor
@@ -69,7 +69,7 @@ export async function completeProfileAction(
   try {
     admin = createAdminClient();
   } catch {
-    return { error: "No está disponible ahora. Probá de nuevo en un rato." };
+    return { error: "No está disponible ahora. Prueba de nuevo en un rato." };
   }
 
   // 3. Estado actual (scopeado al id ya verificado por sesión): tenant + markbox
@@ -84,7 +84,7 @@ export async function completeProfileAction(
       cedula_photo_path: string | null;
     }>();
   if (clientErr || !clientRow) {
-    return { error: "No pudimos cargar tu cuenta. Probá de nuevo." };
+    return { error: "No pudimos cargar tu cuenta. Prueba de nuevo." };
   }
   const hasExistingPhoto = !!String(clientRow.cedula_photo_path ?? "").trim();
 
@@ -118,7 +118,7 @@ export async function completeProfileAction(
     );
     if (up.error || !up.path) {
       console.error("[completeProfileAction] foto upload error:", up.error);
-      return { error: "No pudimos guardar tu foto. Probá de nuevo." };
+      return { error: "No pudimos guardar tu foto. Prueba de nuevo." };
     }
     newPhotoPath = up.path;
   }
@@ -137,7 +137,7 @@ export async function completeProfileAction(
       await admin.storage.from(PHOTO_BUCKET).remove([newPhotoPath]).catch(() => {});
     }
     console.error("[completeProfileAction] update clients error:", updErr);
-    return { error: "No pudimos guardar tus datos. Probá de nuevo." };
+    return { error: "No pudimos guardar tus datos. Prueba de nuevo." };
   }
 
   // 7. Best-effort: borrar la foto vieja reemplazada (no dejar PII colgada).

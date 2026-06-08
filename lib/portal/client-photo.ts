@@ -2,7 +2,7 @@
  * Foto de identidad del cliente (cédula/RIF) → Storage privado.
  *
  * Antes vivía inline en el registro self-service. Con el REGISTRO EXPRESS (founder
- * 2026-06-07) la foto se DIFIERE a "Completá tu perfil" dentro del portal, así que
+ * 2026-06-07) la foto se DIFIERE a "Completa tu perfil" dentro del portal, así que
  * la lógica de validación + subida se factoriza acá para que la consuma la server
  * action del perfil (`app/portal/(app)/perfil/actions.ts`).
  *
@@ -50,7 +50,7 @@ export type PhotoValidation =
  */
 export function validatePhotoFile(raw: FormDataEntryValue | null): PhotoValidation {
   if (!(raw instanceof File) || raw.size <= 0) {
-    return { ok: false, error: "Subí la foto de tu cédula/RIF." };
+    return { ok: false, error: "Sube la foto de tu cédula/RIF." };
   }
   if (!PHOTO_ALLOWED_MIME.has(raw.type)) {
     return { ok: false, error: "Formato de foto inválido (JPG/PNG/WebP/HEIC)." };

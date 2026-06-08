@@ -70,7 +70,7 @@ export default async function AcceptTermsPage({ params }: Props) {
           className="h-display mt-3"
           style={{ fontSize: "clamp(26px, 4vw, 40px)" }}
         >
-          Confirmá tu orden
+          Confirma tu orden
         </h1>
         <p className="lead mt-2 max-w-[60ch]">
           Antes de emitir tu factura, necesitamos que aceptes los términos y

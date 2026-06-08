@@ -32,7 +32,7 @@ const EMPTY: AddressForm = {
 };
 
 /**
- * Form de "Completá tu perfil" (REGISTRO EXPRESS · founder 2026-06-07): la foto de
+ * Form de "Completa tu perfil" (REGISTRO EXPRESS · founder 2026-06-07): la foto de
  * cédula/RIF + la dirección de entrega VE que el alta express difirió. La foto es
  * obligatoria solo si todavía no hay una (prop `hasPhoto`). Cascada estado →
  * municipio → ciudad → barrio del catálogo VE.

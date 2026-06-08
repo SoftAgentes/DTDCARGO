@@ -9,7 +9,7 @@
  * REGISTRO EXPRESS (founder 2026-06-07): el alta pide SOLO lo mínimo para emitir el
  * MARKBOX y poder contactar al cliente — tipo · nombre · documento · email ·
  * WhatsApp. La FOTO de cédula y la DIRECCIÓN de entrega quedan DIFERIDAS a
- * "Completá tu perfil" dentro del portal (se requieren antes de la 1ª compra; el
+ * "Completa tu perfil" dentro del portal (se requieren antes de la 1ª compra; el
  * asesor revisa la foto antes de operar). Por eso este archivo separa:
  *   - `RegisterInput` / `validateRegisterInput`  → el alta express.
  *   - `AddressInput`  / `validateAddressInput`    → la dirección VE (perfil).
@@ -48,7 +48,7 @@ export type RegisterInput = {
 
 /**
  * Dirección de entrega en Venezuela (cascada del catálogo). DIFERIDA del alta: se
- * completa en "Completá tu perfil". Obligatoria recién al completar el perfil
+ * completa en "Completa tu perfil". Obligatoria recién al completar el perfil
  * (antes de la 1ª compra), no al registrarse.
  */
 export type AddressInput = {
@@ -117,7 +117,7 @@ export type RegisterActionState = {
   warning?: string;
 };
 
-/** Estado de la server action "Completá tu perfil" (foto + dirección · perfil). */
+/** Estado de la server action "Completa tu perfil" (foto + dirección · perfil). */
 export type ProfileActionState = {
   ok?: boolean;
   /** Error general (no de campo). */
@@ -187,7 +187,7 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
 }
 
 /**
- * Validación manual de la dirección VE (perfil · "Completá tu perfil"). Devuelve
+ * Validación manual de la dirección VE (perfil · "Completa tu perfil"). Devuelve
  * `input` o `fieldErrors`. Acá la dirección SÍ es obligatoria (completar el perfil
  * = cargar la dirección de entrega completa).
  */

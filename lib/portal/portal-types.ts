@@ -129,7 +129,7 @@ export type PortalActivation = {
 
 /**
  * Completitud del perfil del cliente (REGISTRO EXPRESS · founder 2026-06-07). El
- * alta express difiere la FOTO de cédula y la DIRECCIÓN de entrega a "Completá tu
+ * alta express difiere la FOTO de cédula y la DIRECCIÓN de entrega a "Completa tu
  * perfil" (`/portal/perfil`); ambas se piden antes de la 1ª compra y el asesor
  * revisa la foto antes de operar. `complete` = tiene foto Y dirección. Es ORTOGONAL
  * a `PortalActivation` (la cuenta nace activa; el perfil puede estar incompleto).

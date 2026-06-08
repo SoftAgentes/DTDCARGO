@@ -28,7 +28,7 @@ export async function sendPortalMessageAction(
   const { error } = await supabase.rpc("portal_post_message", { p_body: body });
 
   if (error) {
-    return { error: "No pudimos enviar tu mensaje. Probá de nuevo." };
+    return { error: "No pudimos enviar tu mensaje. Prueba de nuevo." };
   }
 
   revalidatePath("/portal/mensajes");

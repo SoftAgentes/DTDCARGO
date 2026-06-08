@@ -400,7 +400,7 @@ export function EstimacionForm() {
       )}
 
       <p className="text-[12.5px] text-grey-500 leading-[1.5]">
-        Al estimar aceptás que un asesor te contacte por email o WhatsApp.
+        Al estimar aceptas que un asesor te contacte por email o WhatsApp.
         No compartimos tus datos con terceros.
       </p>
     </form>
