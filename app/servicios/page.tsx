@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -121,6 +122,62 @@ export default function ServiciosPage() {
               control de fábrica y consolidación en Yiwu, trámites locales y
               entrega final desde Valencia. Tú hablas con un solo equipo.
             </p>
+          </div>
+        </section>
+
+        {/* Inspección en China — línea destacada. Deep-dive en subpágina propia
+            para sumar la categoría sin saturar el brochure de logística. */}
+        <section className="pt-2 lg:pt-4" id="inspeccion">
+          <div className="wrap">
+            <Link
+              href="/servicios/inspeccion"
+              className="group block card-shadow bg-ink text-white rounded-[20px] p-7 lg:p-10 transition-all hover:-translate-y-0.5"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-7 lg:gap-12 lg:items-center">
+                <div>
+                  <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.14em] uppercase text-wine-soft">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full bg-wine-soft"
+                      aria-hidden
+                    />
+                    Nuevo · Inspección en China
+                  </span>
+                  <h2
+                    className="mt-4 text-[26px] lg:text-[36px] leading-[1.08] tracking-[-0.01em] text-white"
+                    style={{ fontFamily: "var(--font-archivo-black)" }}
+                  >
+                    Verificá tu mercancía en la fábrica,
+                    <br />
+                    <span className="text-wine-soft">antes de embarcar.</span>
+                  </h2>
+                  <p className="mt-4 text-[14.5px] lg:text-[15.5px] leading-[1.55] text-white/80 max-w-[54ch]">
+                    Inspección pre-embarque, auditoría de fábrica, laboratorio y
+                    preparación para Amazon — con reporte en español y fotos. Un
+                    solo socio para tu logística y tu control de calidad.
+                  </p>
+                  <span className="mt-6 inline-flex items-center gap-2 text-[14.5px] font-semibold text-white group-hover:text-wine-soft">
+                    Conocé el servicio <ArrowIcon size={15} />
+                  </span>
+                </div>
+                <ul className="flex flex-col gap-3 list-none m-0">
+                  {[
+                    "Revisamos en origen, antes de pagar el saldo",
+                    "Reporte claro con fotos, en español",
+                    "Atención en español desde Yiwu",
+                  ].map((t) => (
+                    <li
+                      key={t}
+                      className="flex items-start gap-3 text-[14px] leading-[1.45] text-white/85"
+                    >
+                      <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-white/10 text-white">
+                        <CheckIcon size={13} />
+                      </span>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Link>
           </div>
         </section>
 
