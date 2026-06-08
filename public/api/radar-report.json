@@ -1,68 +1,68 @@
 {
-  "generatedAt": "2026-06-03",
-  "norteVersion": "v2.4",
+  "generatedAt": "2026-06-07",
+  "norteVersion": "v2.5",
   "partA": {
     "findings": [
       {
-        "id": "flaky-vitest-worker",
-        "title": "Worker flaky de Vitest dispara falsos ROJOS en el Stop hook",
+        "id": "effort-xhigh-global",
+        "title": "effortLevel `xhigh` global encarece tareas mecánicas",
         "severity": "media",
-        "action": "Pasó varias veces hoy (\"failed to find the runner\" / \"reading 'config'\") bloqueando el cierre del harness sin regresion real. Mitigar en vitest.config: pool mas estable en Windows (forks/single) o retry de archivos, para que un crash transitorio no false-blockee el gate.",
+        "action": "settings.json (user) tiene effortLevel xhigh para todo. Tareas mecánicas (NORTE-SYNC, doc-index, renames, sweeps, regen de reconciliación) no lo necesitan. Bajar a Sonnet/effort menor para mecánico; reservar xhigh+Opus para harness/specs/auditorías.",
         "top": true
       },
       {
-        "id": "schema-reconciliation-stale",
-        "title": "schema-reconciliation.md desactualizado (snapshot 0096, repo en 0100)",
+        "id": "flaky-vitest-worker",
+        "title": "Gate Stop (verify.mjs) con worker flaky de Vitest en Windows",
         "severity": "media",
-        "action": "Desde el snapshot shippearon SDD-0051/0052/0053 + migr 0097/0098/0100. Naviera (Bloque 4) ya esta done (UI existe), no \"en construccion\". Regenerar el reconciliador para que la Parte B y la vista Datos del Norte no mientan."
-      },
-      {
-        "id": "effort-xhigh-global",
-        "title": "effortLevel `xhigh` global encarece tareas mecanicas",
-        "severity": "media",
-        "action": "Bajar a Sonnet / effort menor para renames, doc-index, formato; reservar xhigh+Opus para harness/specs/auditorias."
+        "action": "Stop hook = node scripts/harness-verify-hook.mjs (timeout 180s) → scripts/verify.mjs. El crash transitorio 'failed to find the runner' da falsos ROJOS sin regresión (re-correr). Mitigar en vitest.config: pool más estable en Windows (forks/single) o retry de archivos."
       },
       {
         "id": "perms-wildcards-cross-project",
         "title": "Wildcards amplios + dirs cruzados en ~/.claude/settings.json",
         "severity": "baja",
-        "action": "`npm run *` / `npx tsc *` / `npm install *` siguen abiertos y ni aplican (el proyecto usa pnpm); `Read(Desktop/**)` muy amplio; additionalDirectories cruza a `IA ANTROPIC\\Factroia`. Acotar/quitar."
+        "action": "`Bash(npm run *)` / `npx tsc *` / `npm install *` no aplican (el proyecto usa pnpm); `Read(//c/Users/Trabajo/Desktop/**)` muy amplio; additionalDirectories cruza a otro proyecto (`IA ANTROPIC\\Factroia`). Podar los npm/tsc, acotar el Read, quitar los dirs cruzados que no se usen."
+      },
+      {
+        "id": "schema-reconciliation-resuelto",
+        "title": "schema-reconciliation.md regenerada 0096→0113 (RESUELTO esta corrida)",
+        "severity": "baja",
+        "action": "Era el hallazgo #1 de la corrida previa (snapshot stale, sub-reportaba). Regenerada hoy contra migraciones reales hasta 0113: 11/8/3 → 16/6/0 (50%→73%), 0 entidades sin tabla, Bloque 4 corregido a done. La vista Datos del Norte y la Parte B ya no mienten. Commit 7225a3f en main (sin push)."
       }
     ],
-    "estimatedTokenSavings": "~10%"
+    "estimatedTokenSavings": "~10-15%"
   },
   "partB": {
     "counts": {
-      "built": 11,
-      "partial": 8,
-      "missing": 3,
+      "built": 16,
+      "partial": 6,
+      "missing": 0,
       "total": 22
     },
     "blocks": [
       {
-        "name": "Bloque 1-2 · Financiero (Facturacion/Contab/Cobranzas/Tesoreria)",
+        "name": "Bloque 1-2 · Financiero (Facturación/Contab/Cobranzas/Tesorería)",
         "remaining": "0%",
         "note": "SDD-0021/0040/0041/0044 done en prod."
       },
       {
-        "name": "Bloque 3 · Fiscal SENIAT",
+        "name": "Bloque 3 · Fiscal SENIAT (Libro Ventas/Compras, IVA, retenciones)",
         "remaining": "100%",
-        "note": "Libro Ventas/Compras + IVA + retenciones: criticidad legal VE, sin spec ni tablas. Bloque grande mas atrasado."
+        "note": "BOTTLENECK vigente. Solo existe 0018-aduana-seniat (aduana, no libros IVA). Sin spec dedicada ni tablas. Criticidad legal VE. Bloque grande más atrasado."
       },
       {
-        "name": "Bloque 4 · Naviera & Consolidacion",
+        "name": "Bloque 4 · Naviera & Consolidación",
         "remaining": "0%",
-        "note": "SDD-0047 Slice A+B shipped (UI /studio/naviera existe). La reconciliacion stale lo daba en construccion."
+        "note": "SDD-0047 done (carriers/bookings/consolidations/sailings/ports/container_types + /studio/naviera). Corregido en la reconciliación 0113 (antes la daba 'en construcción')."
       },
       {
-        "name": "Bloque 5 · Comercial (Direccion/Docs/Fidelizacion/Reportes/Costing)",
-        "remaining": "~25% (est.)",
-        "note": "0048/0049/0051/0052 done; SDD-0053 Costing Slice A shipped (desbloquea Reportes Combinados). Falta Reportes Slice C + Costing Slice B-C."
+        "name": "Bloque 5 · Comercial (Dirección/Docs/Fidelización/Reportes/Costing/Legal)",
+        "remaining": "~15% (est.)",
+        "note": "0048/0049/0051/0053/0054 done, 0052 Reportes approved. Falta Reportes Slice C + Costing Slice B-C."
       },
       {
-        "name": "Capa legal + inbox portal (3 entidades missing)",
-        "remaining": "100%",
-        "note": "LegalDoc + LegalAcceptance + PortalInboxEvent: hueco keystone, mantiene Invoice en partial (gate AUT-04). Sin tabla. Sin avance este dia."
+        "name": "Capa legal + inbox portal (antes 3 entidades 'missing')",
+        "remaining": "~17% (1 en 🟡)",
+        "note": "RESUELTO en gran parte: SDD-0054 capa-legal done (migr 0102) → LegalDoc + LegalAcceptance ✅ (destraba Invoice). Queda PortalInboxEvent en 🟡 (prealertas + conversations; SDD-0057 in-progress)."
       }
     ]
   }
