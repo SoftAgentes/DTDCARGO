@@ -3,6 +3,14 @@
 /**
  * Registro self-service del Portal del Cliente (SDD-0042 Fase 6 · slice 10.1).
  *
+ * REGISTRO EXPRESS (founder 2026-06-07): el alta pide SOLO lo mínimo para emitir el
+ * MARKBOX y poder contactar al cliente — tipo · nombre · documento · email ·
+ * WhatsApp → MARKBOX al instante. La FOTO de cédula y la DIRECCIÓN de entrega se
+ * DIFIEREN a "Completá tu perfil" dentro del portal (`/portal/perfil`), donde se
+ * piden antes de la 1ª compra; el asesor revisa la foto antes de operar de verdad.
+ * Esto baja la fricción del lead de WhatsApp SIN perder la validación: el número de
+ * documento sigue obligatorio (dedup + identidad básica + contraseña inicial).
+ *
  * El cliente se da de alta SOLO (sin invitación admin): MARKBOX al instante +
  * cuenta de auth (login = MARKBOX + contraseña, contraseña inicial = cédula/RIF).
  * La cuenta nace ACTIVA (`portal_approved_at = now`, founder 2026-06-07 · SDD-0059):
@@ -18,20 +26,22 @@
  *       portal_registro_throttle; si llegó al límite → rechazo sin crear nada;
  *       si no, se registra el intento y se sigue.
  *
- * Flujo (los pasos 7-9 son best-effort: un fallo en email NO rompe el alta):
+ * Flujo (los pasos finales son best-effort: un fallo en email NO rompe el alta):
  *   1. validar (validateRegisterInput, sin Zod)
- *   2. dedup por documento (clients del tenant con lower(rif)=doc o lower(cedula_*))
+ *   2. dedup por documento (clients del tenant con lower(rif)=doc)
  *   3. resolver el tenant operativo de DTD
- *   4. rpc next_markbox → MARKBOX atómico
- *   5. subir la foto de cédula/RIF a Storage privado (bucket client-docs)
- *   6. insert clients ACTIVO (portal_approved_at = now, tier 'regular', cedula_photo_path)
+ *   4. rpc next_markbox_service → MARKBOX atómico
+ *   5. insert clients ACTIVO (portal_approved_at = now, tier 'regular'; SIN foto
+ *      ni dirección — se completan en el perfil)
+ *   6. vincular el estimado web (best-effort)
  *   7. auth.admin.createUser({ email, password: <documento>, email_confirm: true })
  *   8. insert client_users (auth_user_id, status 'active', email)
  *   9. welcome email SIN la clave (reusa sendWelcomeEmail · template welcome_markbox)
+ *  10. aviso interno al equipo (best-effort)
  *
  * Todo el alta corre con el admin client (service_role): el registrante es
- * anónimo y necesita bypassear RLS para insertar clients/client_users + subir la
- * foto. Sin SUPABASE_SERVICE_ROLE_KEY el alta no puede completarse (error claro).
+ * anónimo y necesita bypassear RLS para insertar clients/client_users. Sin
+ * SUPABASE_SERVICE_ROLE_KEY el alta no puede completarse (error claro).
  */
 
 import { createAdminClient } from "@/lib/db/admin";
@@ -45,7 +55,6 @@ import {
 } from "@/lib/studio/quote-queries";
 import {
   validateRegisterInput,
-  composeAddress,
   type RegisterActionState,
   type RegisterInput,
 } from "@/lib/portal/register-types";
@@ -53,39 +62,12 @@ import {
 // ── Anti-abuso (SDD-0042 §10): honeypot + throttle por IP en DB ──────────────
 // Honeypot: campo trampa oculto del form (RegisterForm.tsx). Un humano nunca lo
 // llena; un bot naive sí → si llega no-vacío, descartamos el alta sin escribir
-// nada (ni clients, ni auth, ni storage, ni throttle).
+// nada (ni clients, ni auth, ni throttle).
 const HONEYPOT_FIELD = "empresa_web";
 // Throttle: máximo de altas por IP dentro de la ventana. Tuneables.
 const REGISTRO_IP_LIMIT = 5;
 const REGISTRO_WINDOW_MINUTES = 60;
 const THROTTLE_TABLE = "portal_registro_throttle";
-
-const PHOTO_BUCKET = "client-docs";
-const PHOTO_MAX_BYTES = 8 * 1024 * 1024; // 8MB
-const PHOTO_ALLOWED_MIME = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
-]);
-
-function mimeToExt(mime: string): string {
-  switch (mime) {
-    case "image/jpeg":
-      return "jpg";
-    case "image/png":
-      return "png";
-    case "image/webp":
-      return "webp";
-    case "image/heic":
-      return "heic";
-    case "image/heif":
-      return "heif";
-    default:
-      return "bin";
-  }
-}
 
 function parseForm(formData: FormData): Partial<RegisterInput> {
   const kindRaw = String(formData.get("kind") ?? "persona");
@@ -97,13 +79,6 @@ function parseForm(formData: FormData): Partial<RegisterInput> {
     email: (formData.get("email") as string | null) ?? undefined,
     whatsapp: (formData.get("whatsapp") as string | null) ?? undefined,
     officePhone: (formData.get("office_phone") as string | null) ?? undefined,
-    state: (formData.get("state") as string | null) ?? undefined,
-    municipio: (formData.get("municipio") as string | null) ?? undefined,
-    city: (formData.get("city") as string | null) ?? undefined,
-    postalCode: (formData.get("postal_code") as string | null) ?? undefined,
-    barrio: (formData.get("barrio") as string | null) ?? undefined,
-    address: (formData.get("address") as string | null) ?? undefined,
-    reference: (formData.get("reference") as string | null) ?? undefined,
   };
 }
 
@@ -119,22 +94,10 @@ export async function registerClientAction(
     return { error: "No pudimos procesar tu registro. Probá de nuevo." };
   }
 
-  // 1. Validar
+  // 1. Validar (express: tipo/nombre/documento/email/WhatsApp).
   const { input, fieldErrors } = validateRegisterInput(parseForm(formData));
   if (fieldErrors) return { fieldErrors };
   if (!input) return { error: "Datos inválidos." };
-
-  // Foto de identidad OBLIGATORIA — validar antes de gastar correlativo.
-  const photoRaw = formData.get("cedula_photo");
-  if (!(photoRaw instanceof File) || photoRaw.size <= 0) {
-    return { fieldErrors: { document: "Subí la foto de tu cédula/RIF." } };
-  }
-  if (!PHOTO_ALLOWED_MIME.has(photoRaw.type)) {
-    return { fieldErrors: { document: "Formato de foto inválido (JPG/PNG/WebP/HEIC)." } };
-  }
-  if (photoRaw.size > PHOTO_MAX_BYTES) {
-    return { fieldErrors: { document: "Foto demasiado pesada (máx 8 MB)." } };
-  }
 
   let admin;
   try {
@@ -146,10 +109,10 @@ export async function registerClientAction(
   }
 
   // 2b. Throttle por IP (SDD-0042 §10) — DESPUÉS de validar input + honeypot,
-  //     ANTES del trabajo pesado (next_markbox consume correlativo; upload e
-  //     inserts escriben). Contamos los intentos recientes de esta IP; si llegó
-  //     al límite, rechazamos sin crear nada. Si está por debajo, registramos
-  //     este intento y seguimos. service_role bypassa RLS de la tabla.
+  //     ANTES del trabajo pesado (next_markbox consume correlativo; los inserts
+  //     escriben). Contamos los intentos recientes de esta IP; si llegó al
+  //     límite, rechazamos sin crear nada. Si está por debajo, registramos este
+  //     intento y seguimos. service_role bypassa RLS de la tabla.
   const ip = await getRequestIp();
   const windowStart = new Date(
     Date.now() - REGISTRO_WINDOW_MINUTES * 60 * 1000,
@@ -217,24 +180,11 @@ export async function registerClientAction(
     return { error: "No pudimos generar tu código. Probá de nuevo." };
   }
 
-  // 5. Subir la foto a Storage privado. Path: {tenant_id}/{markbox}/{uuid}.{ext}
-  const ext = mimeToExt(photoRaw.type);
-  const photoPath = `${tenantId}/${markbox}/${crypto.randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await photoRaw.arrayBuffer());
-  const { error: uploadErr } = await admin.storage
-    .from(PHOTO_BUCKET)
-    .upload(photoPath, buffer, {
-      contentType: photoRaw.type,
-      cacheControl: "31536000",
-      upsert: false,
-    });
-  if (uploadErr) {
-    console.error("[registerClientAction] foto upload error:", uploadErr);
-    return { error: "No pudimos guardar tu foto de identidad. Probá de nuevo." };
-  }
-
-  // 6. Insert del cliente ACTIVO (portal_approved_at = now → sin pantalla de
-  //    espera; tier regular, foto).
+  // 5. Insert del cliente ACTIVO (portal_approved_at = now → sin pantalla de
+  //    espera; tier regular). SIN foto ni dirección: el REGISTRO EXPRESS las
+  //    DIFIERE a "Completá tu perfil" (/portal/perfil), donde se piden antes de la
+  //    1ª compra y el asesor revisa la foto. Por eso cedula_photo_path/address
+  //    nacen null (ambas columnas son nullable).
   const { data: clientRow, error: clientErr } = await admin
     .from("clients")
     .insert({
@@ -243,12 +193,14 @@ export async function registerClientAction(
       name: input.company ?? input.name,
       email: input.email,
       phone: input.whatsapp,
-      address: composeAddress(input),
+      // Dirección DIFERIDA al perfil → null al alta.
+      address: null,
       rif: input.document,
       // El enum client_tier es regular|vip|premium (sin 'standard'): el alta
       // self-service entra como 'regular', que es además el default de la tabla.
       tier: "regular",
-      cedula_photo_path: photoPath,
+      // Foto DIFERIDA al perfil → null al alta.
+      cedula_photo_path: null,
       // SDD-0046: origen + tipo de documento (para la verificación de identidad).
       // El self-registro siempre es canal 'portal'; doc_kind viene del form.
       registration_channel: "portal",
@@ -268,8 +220,6 @@ export async function registerClientAction(
     .select("id")
     .single<{ id: string }>();
   if (clientErr || !clientRow) {
-    // Rollback de la foto huérfana.
-    await admin.storage.from(PHOTO_BUCKET).remove([photoPath]).catch(() => {});
     // Backstop del race: el dedup `ilike` exact de arriba no atrapa variantes de
     // formato (V-12.345.678 vs V12345678) ni inserts concurrentes; el índice
     // clients_tenant_doc_unique (normalizado, por tenant) sí → unique_violation
@@ -286,10 +236,10 @@ export async function registerClientAction(
     return { error: `No pudimos crear tu cuenta: ${clientErr?.message ?? "error"}` };
   }
 
-  // 6b. SDD-0061 Fase B2 — vincular el estimado web a este cliente recién creado.
-  //     Best-effort (un fallo NO rompe el alta): primero por código EST- (camino
-  //     feliz, llega como ?est= en el CTA → hidden), si no por datos exactos
-  //     (teléfono + email del registro). client_name se snapshotea al nombre real.
+  // 6. SDD-0061 Fase B2 — vincular el estimado web a este cliente recién creado.
+  //    Best-effort (un fallo NO rompe el alta): primero por código EST- (camino
+  //    feliz, llega como ?est= en el CTA → hidden), si no por datos exactos
+  //    (teléfono + email del registro). client_name se snapshotea al nombre real.
   const clientDisplayName = input.company ?? input.name;
   try {
     const estCode = String(formData.get("est") ?? "").trim();
@@ -374,8 +324,8 @@ export async function registerClientAction(
     document: input.document,
     email: input.email,
     whatsapp: input.whatsapp,
-    city: input.city,
-    state: input.state,
+    city: null,
+    state: null,
     channel: "portal",
   });
 

@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import {
+  getPortalClient,
+  getProfileCompleteness,
+} from "@/lib/portal/portal-queries";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
-import { WhatsAppIcon } from "@/components/Icon";
+import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { ChangePasswordCard } from "./ChangePasswordCard";
 
 export const metadata: Metadata = { title: "Mi cuenta" };
@@ -28,6 +32,7 @@ export default async function PortalAccountPage() {
   const client = await getPortalClient(supabase);
   if (!client) return null;
 
+  const completeness = await getProfileCompleteness(supabase);
   const supplierMark = buildPortalSupplierMark(client.markbox);
   const waUpdate = buildWhatsAppLink(
     `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y necesito actualizar un dato de mi cuenta.`,
@@ -81,6 +86,34 @@ export default async function PortalAccountPage() {
               empty="Sin dirección de entrega cargada"
             />
           </dl>
+
+          {/* Completá tu perfil (campos diferidos del registro express: foto +
+              dirección). A diferencia del resto del perfil — mediado por el asesor
+              — estos los carga el propio cliente. */}
+          {!completeness.complete && (
+            <div
+              className="mt-6 rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
+              style={{ borderLeftColor: "var(--color-status-warning)" }}
+            >
+              <div className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "var(--color-status-warning)" }}>
+                Perfil incompleto
+              </div>
+              <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55]">
+                Te falta {!completeness.hasPhoto && !completeness.hasAddress
+                  ? "tu foto de identidad y tu dirección de entrega"
+                  : !completeness.hasPhoto
+                    ? "subir la foto de tu cédula / RIF"
+                    : "cargar tu dirección de entrega"}
+                . Lo necesitás antes de tu primera compra.
+              </p>
+              <Link
+                href="/portal/perfil"
+                className="btn btn-primary mt-4 inline-flex items-center gap-2"
+              >
+                Completá tu perfil <ArrowIcon />
+              </Link>
+            </div>
+          )}
 
           {/* Nota read-only + CTA de corrección */}
           <div className="mt-8 pt-6 border-t border-grey-200">
