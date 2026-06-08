@@ -4,6 +4,7 @@ import { Hero } from "@/components/Hero";
 import { TrustBar } from "@/components/TrustBar";
 import { Stats } from "@/components/Stats";
 import { PuertaAPuerta } from "@/components/PuertaAPuerta";
+import { ShippingMark } from "@/components/ShippingMark";
 import { ServicesGrid } from "@/components/ServicesGrid";
 import { YiwuAdvantage } from "@/components/YiwuAdvantage";
 import { WorkBand } from "@/components/WorkBand";
@@ -37,6 +38,7 @@ export default function HomePage() {
         <Stats />
         <PuertaAPuerta />
         <HowWeWork />
+        <ShippingMark />
         <ServicesGrid />
         <YiwuAdvantage />
         <WorkBand />
