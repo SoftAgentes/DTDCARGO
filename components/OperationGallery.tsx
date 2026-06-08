@@ -50,7 +50,7 @@ export function OperationGallery() {
           <p className="lead mt-6">
             Cada caja y cada contenedor sale precintado y marcado por nosotros en
             China. Así sabes que tu mercancía la maneja DTD Cargo — de la fábrica
-            a tu puerta, sin intermediarios.
+            a tu puerta, con un solo equipo responsable de tu carga.
           </p>
         </div>
 

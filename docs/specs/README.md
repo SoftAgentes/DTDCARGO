@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 57 specs)
+### Índice de specs (generado · 58 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -95,6 +95,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | in-progress | interno |
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
 | 0063 | Servicios a fondo (sitio público) — fichas incluye/no-incluye… | in-progress | interno |
+| 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0060 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

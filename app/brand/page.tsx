@@ -348,7 +348,7 @@ export default function BrandPage() {
                   >
                     <CheckIcon size={16} />
                   </span>
-                  <h3 className="text-[16px] font-bold text-ink">Hacé</h3>
+                  <h3 className="text-[16px] font-bold text-ink">Haz</h3>
                 </div>
                 <ul className="flex flex-col gap-3 list-none p-0">
                   {DOS.map((d) => (
@@ -373,7 +373,7 @@ export default function BrandPage() {
                   >
                     <CloseIcon size={15} />
                   </span>
-                  <h3 className="text-[16px] font-bold text-ink">Evitá</h3>
+                  <h3 className="text-[16px] font-bold text-ink">Evita</h3>
                 </div>
                 <ul className="flex flex-col gap-3 list-none p-0">
                   {DONTS.map((d) => (
@@ -473,7 +473,7 @@ export default function BrandPage() {
                 <ul className="mt-6 flex flex-col gap-4 list-none p-0">
                   {[
                     ["Castellano venezolano neutro", "Cercano y directo, sin jerga innecesaria."],
-                    ["CTAs con verbos", "“Cotizar DDP”, “Rastrear envío” — nunca “Click acá”."],
+                    ["CTAs con verbos", "“Cotizar puerta a puerta”, “Rastrear envío” — nunca “Click acá”."],
                     ["Cero AI slop", "Sin gradientes coloridos, sin emojis decorativos, sin glassmorphism."],
                     ["Tagline vigente", "Usar la v3.0 — no la vieja “De China a tu puerta. Sin intermediarios.”."],
                   ].map(([t, d]) => (

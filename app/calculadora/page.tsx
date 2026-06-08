@@ -43,7 +43,7 @@ const jetbrains = JetBrains_Mono({
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Calculadora de envíos LCL DDP",
+  title: "Calculadora de envíos puerta a puerta (LCL · DDP)",
   description:
     "Calcula tu envío China → Venezuela en segundos. Tarifa LCL DDP por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
   keywords: [
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/calculadora" },
   ...socialMeta({
-    title: "Calculadora de envíos LCL DDP · DTD Cargo",
+    title: "Calculadora de envíos puerta a puerta (LCL · DDP) · DTD Cargo",
     description:
       "Calcula tu envío China → Venezuela en segundos. Tarifa LCL DDP por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
     path: "/calculadora",
@@ -91,7 +91,7 @@ export default async function CalculadoraPage() {
         <section className="pt-6 lg:pt-10">
           <div className="wrap max-w-[1100px]">
             <h1 className="sr-only">
-              Calculadora de envíos LCL DDP — China → Venezuela
+              Calculadora de envíos puerta a puerta — China → Venezuela
             </h1>
           </div>
         </section>

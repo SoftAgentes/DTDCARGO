@@ -4,48 +4,47 @@ import { HERO, BRAND_ASSETS } from "@/lib/design-tokens";
 import { HeroCotizador } from "./HeroCotizador";
 
 /**
- * Hero principal — slogan + cotizador inline + ilustración contenedor.
- * Copy y assets configurables desde `lib/design-tokens.ts` constant `HERO`.
- * Estructura visual portada del Brand Book DTD § Hero.
+ * Hero principal — kicker (tagline) + H1 de acción + cotizador inline + ilustración.
+ * Copy configurable desde `lib/design-tokens.ts` constant `HERO`.
+ *
+ * SDD-0064 (2026-06-08): "puerta a puerta" es el protagonista; el tagline v3.0
+ * pasa a kicker y el H1 es de acción ("Importa desde China hasta tu puerta").
+ * DDP queda como aclaración técnica en el microcopy. Ver BRAND-EXCEPTION en HERO.
  */
 export function Hero() {
   return (
     <section className="relative py-15 lg:py-[60px] lg:pb-20 overflow-hidden">
       <div className="wrap grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 items-center">
         <div>
-          <span className="eyebrow">{HERO.eyebrow}</span>
-          {/*
-           * H1 · tagline oficial v3.0 (mayo 2026):
-           *   "Con confianza, / de China a tu puerta."
-           *
-           * Spec del brand book: línea 1 en wine (#7F0F1A) como antesala del
-           * valor diferencial, línea 2 en ink (default) como la promesa
-           * funcional. Ambas mismo peso visual — la jerarquía la da el color,
-           * no el tamaño (a diferencia del v2.x que tenía 3 líneas con stepped
-           * hierarchy + kicker).
-           */}
-          <h1 className="h-display mt-5 leading-[0.95]">
-            {HERO.headline.map((line, i) => (
-              <span
-                key={i}
-                className="block"
-                style={{
-                  fontSize: "clamp(40px, 6.2vw, 92px)",
-                  color:
-                    line.accent === "wine"
-                      ? "var(--color-wine)"
-                      : line.accent === "grey"
-                        ? "var(--color-grey-700)"
-                        : undefined,
-                  marginTop: i > 0 ? "-0.04em" : undefined,
-                }}
-              >
-                {line.text}
-              </span>
-            ))}
+          {/* Kicker = tagline de marca v3.0: "Con confianza," en wine + resto
+              en ink (tratamiento del brand book). Sub-tagline, NO eyebrow gris. */}
+          <p className="text-[15px] lg:text-[16px] font-semibold leading-tight">
+            <span style={{ color: "var(--color-wine)" }}>{HERO.kicker.accent}</span>{" "}
+            <span style={{ color: "var(--color-ink)" }}>{HERO.kicker.rest}</span>
+          </p>
+
+          {/* H1 de acción — "tu puerta en Venezuela" en wine (acento de marca) */}
+          <h1 className="h-display mt-4 leading-[1.02]">
+            <span
+              className="block"
+              style={{ fontSize: "clamp(34px, 4.8vw, 64px)" }}
+            >
+              {HERO.title.lead}
+            </span>
+            <span
+              className="block"
+              style={{
+                fontSize: "clamp(34px, 4.8vw, 64px)",
+                color: "var(--color-wine)",
+                marginTop: "-0.02em",
+              }}
+            >
+              {HERO.title.accent}
+            </span>
           </h1>
+
           <p
-            className="mt-6 mb-8 text-[17px] leading-[1.55] max-w-[48ch]"
+            className="mt-6 mb-8 text-[17px] leading-[1.55] max-w-[52ch]"
             style={{ color: "var(--color-grey-500)" }}
           >
             {HERO.subtitle}
@@ -54,15 +53,20 @@ export function Hero() {
           {/* Cotizador inline — abre WhatsApp con mensaje pre-rellenado (origen/destino) */}
           <HeroCotizador />
 
-          <div className="flex flex-wrap gap-6 mt-6 text-[13.5px] font-medium text-grey-500">
-            {HERO.trustMarks.map((mark) => (
-              <span key={mark}>✓ {mark}</span>
-            ))}
-          </div>
+          {/* Microcopy: explica puerta a puerta y deja DDP como aclaración */}
+          <p className="mt-4 text-[13px] leading-[1.5] text-grey-500 max-w-[50ch]">
+            {HERO.microcopy}
+          </p>
 
-          {/* CTA secundario: alta de cliente. La acción primaria del hero es el
-              cotizador (WhatsApp); esto queda subordinado como link de texto. */}
-          <p className="mt-6 text-[14px] text-grey-500">
+          {/* Acciones secundarias: rastrear carga + alta de cliente */}
+          <p className="mt-5 text-[14px] text-grey-500">
+            <Link
+              href="/track"
+              className="font-semibold text-wine hover:text-wine-deep underline underline-offset-2 decoration-1"
+            >
+              Rastrear carga
+            </Link>{" "}
+            ·{" "}
             ¿Vas a importar seguido?{" "}
             <Link
               href="/registro"
@@ -92,7 +96,7 @@ export function Hero() {
               boxShadow:
                 "0 14px 30px -10px rgba(127,15,26,0.55), 0 0 0 6px rgba(127,15,26,0.10)",
             }}
-            aria-label={`${HERO.badge.main} ${HERO.badge.sub}`}
+            aria-label="Cobertura puerta a puerta de extremo a extremo"
           >
             <div>
               <div className="text-[22px] leading-none">{HERO.badge.main}</div>

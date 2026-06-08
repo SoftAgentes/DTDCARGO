@@ -379,7 +379,7 @@ export function EstimacionForm() {
       >
         <span>
           <strong className="text-ink">¿Necesitas el flete interno en Venezuela?</strong>{" "}
-          Calculá el último km hasta tu ciudad.
+          Calcula el último km hasta tu ciudad.
         </span>
         <span className="inline-flex items-center gap-1.5 flex-shrink-0 font-semibold text-wine">
           Calculadora terrestre <ArrowIcon />

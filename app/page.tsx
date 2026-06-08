@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/components/Hero";
+import { TrustBar } from "@/components/TrustBar";
 import { Stats } from "@/components/Stats";
+import { PuertaAPuerta } from "@/components/PuertaAPuerta";
 import { ServicesGrid } from "@/components/ServicesGrid";
 import { YiwuAdvantage } from "@/components/YiwuAdvantage";
 import { WorkBand } from "@/components/WorkBand";
@@ -31,7 +33,9 @@ export default function HomePage() {
       <Nav />
       <main>
         <Hero />
+        <TrustBar />
         <Stats />
+        <PuertaAPuerta />
         <HowWeWork />
         <ServicesGrid />
         <YiwuAdvantage />

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: "%s · DTD Cargo",
   },
   description:
-    "Logística end-to-end China → Venezuela desde 2008. Carga DDP puerta a puerta, agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
+    "Logística end-to-end China → Venezuela desde 2008. Carga puerta a puerta todo incluido (DDP), agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
   applicationName: "DTD Cargo",
   authors: [{ name: "DTD Cargo" }],
   keywords: [

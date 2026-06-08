@@ -54,7 +54,7 @@ const VALORES = [
   { t: "Confianza", d: "El motor de todo; cada envío la construye." },
   { t: "Seguridad", d: "Tu mercancía custodiada de la fábrica a tu puerta." },
   { t: "Puntualidad", d: "Una cadencia que puedes planificar." },
-  { t: "Transparencia", d: "Precios y estado del envío claros, sin sorpresas." },
+  { t: "Transparencia", d: "Precios y estado del envío claros, con menos imprevistos." },
   {
     t: "Cercanía",
     d: "Un solo punto de contacto, con presencia real en ambos extremos.",
@@ -174,7 +174,7 @@ export default function NosotrosPage() {
               Gente nuestra, de la fábrica a tu puerta.
             </h2>
             <p className="lead mt-6 max-w-[58ch]">
-              No somos un intermediario remoto. Tenemos oficina y bodega propias
+              Operamos con equipo propio en ambos extremos. Tenemos oficina y bodega propias
               en los dos puntos clave de la ruta — por eso podemos responder por
               cada envío de principio a fin.
             </p>
