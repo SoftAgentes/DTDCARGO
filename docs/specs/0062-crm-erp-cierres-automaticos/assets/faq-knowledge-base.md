@@ -65,20 +65,26 @@ Para los **datos exactos** según tu envío, un asesor te los pasa de forma segu
 
 ## B · Servicios (secciones nuevas — requieren datos del founder)
 
-### 7. Validación de proveedores  `[FILL]`
+### 7. Validación de proveedores
 **Preguntas:** ¿Validan proveedores en China? · ¿Cómo sé si mi proveedor es confiable? · ¿Hacen verificación de fábrica? · ¿Qué incluye la validación de proveedor? · ¿Cuánto cuesta validar un proveedor? · ¿Validación digital o presencial?
 
-**Respuesta:** `[FILL: founder — qué incluye (digital vs presencial), qué entregan (reporte/fotos/visita), tiempos, cómo se cobra/precio, cómo se solicita]`
+**Respuesta (aprobada · captura email + link):** ¡Hola! Sí ✅ Validamos proveedores y fábricas en China para que compres seguro: **auditoría de legitimidad** (validez legal, capacidad, instalaciones) e **inspección pre-producción y pre-embarque**. Déjame tu **correo**: validamos tus datos y un asesor te pasa el **link** donde ves los **servicios de inspección con sus precios** y un ejemplo del reporte. ¿Me dejas tu correo y lo revisamos?
 
-### 8. Verificación de mercancía  `[FILL]`
+> *Nota interna: el "link" muestra el menú de servicios de inspección con precios (tarifas etiquetadas) + la muestra del reporte branded. Página/link **EN CONSTRUCCIÓN (stand by)** → mientras tanto el asesor lo envía a mano. Plantillas de reporte listas: **"Inspección de Producto (PSI)"** + **"Inspección de Fábrica (auditoría /100)"** (samples branded HTML en Downloads del founder). Captura de email obligatoria. Decisión founder 2026-06-08.*
+
+### 8. Verificación de mercancía
 **Preguntas:** ¿Revisan la mercancía antes de enviarla? · ¿Hacen inspección de calidad? · ¿Verifican cantidad y estado de mi pedido? · ¿Qué incluye la verificación de mercancía? · ¿Cuánto cuesta? · ¿Toman fotos/video?
 
-**Respuesta:** `[FILL: founder — qué se inspecciona (cantidad/calidad/medidas), entregable (fotos/video/reporte), tiempos, precio/cómo se cobra, cómo se solicita]`
+**Respuesta (aprobada · captura email + link):** ¡Hola! Sí ✅ Antes de embarcar **inspeccionamos tu mercancía en la fábrica del proveedor** para confirmar que lo que sale sea **lo que compraste**: cantidad, calidad y especificaciones contra tu ficha técnica, con **muestreo AQL** y **evidencia fotográfica**. Déjame tu **correo**: validamos tus datos y un asesor te pasa el **link** donde ves los **servicios de inspección con sus precios** y un ejemplo del reporte. ¿Me dejas tu correo y activamos la inspección?
 
-### 9. Compra asistida  `[FILL]`
+> *Nota interna: corresponde al reporte **"Inspección de Producto (PSI)"** (muestreo AQL + galería de defectos + conformidad). Mismo patrón #7: captura email obligatoria + link con precios (stand by, lo envía el asesor) + ejemplo del reporte branded. Decisión founder 2026-06-08.*
+
+### 9. Compra asistida
 **Preguntas:** ¿Me ayudan a comprar en China? · No sé comprar en 1688/Alibaba, ¿me asisten? · ¿Compran por mí? · ¿Qué es la compra asistida? · ¿Cuánto cobran por la compra asistida? · ¿Negocian con el proveedor por mí?
 
-**Respuesta:** `[FILL: founder — qué cubre (búsqueda/negociación/pago al proveedor/gestión), qué necesitan del cliente, comisión/precio, proceso paso a paso, cómo empezar]`
+**Respuesta (aprobada · captura email):** ¡Hola! Sí ✅ Con la **compra asistida** somos tu **departamento de compras en China**: te ayudamos a **ubicar al proveedor, negociar y gestionar la compra** (incluso **pagarle al proveedor**) antes de consolidar tu carga. Mándame tu **lista de productos** por aquí y tu **correo**, y un asesor te confirma **viabilidad, modalidad y costo**. ¿Empezamos con tu lista?
+
+> *Nota interna (⚠️ PENDIENTE de definir — founder 2026-06-08): en compra asistida **el proveedor lo pone DTD (red propia)** — el bot NUNCA revela datos/contacto del proveedor; DTD ubica, negocia, paga y gestiona por dentro (protege contra que el cliente compre directo). Falta decidir el modelo comercial: margen vs comisión, cómo se cobra, hasta dónde se le cuenta al cliente. La frase "ubicar al proveedor" se mantiene porque describe el servicio, no entrega el contacto.*
 
 ### 10. Cursos  `[FILL]`
 **Preguntas:** ¿Dan cursos de importación? · ¿Cómo me inscribo al curso? · ¿Cuánto cuesta el curso? · ¿Qué incluye el curso? · ¿Es online o presencial? · ¿Cuándo es el próximo curso?
@@ -161,5 +167,9 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 ---
 
 ### Pendiente de datos del founder (secciones `[FILL]`)
-7. Validación de proveedores · 8. Verificación de mercancía · 9. Compra asistida · 10. Cursos · 11. Tracking (confirmar).
+10. Cursos.
+
+### Puntos de negocio pendientes de definir (no bloquean el FAQ)
+- **#7/#8 — link de inspección:** página web con menú de servicios + precios (tarifas) + muestra del reporte branded; **stand by** (mientras tanto lo envía el asesor). Plantillas listas: "Inspección de Producto (PSI)" + "Inspección de Fábrica".
+- **#9 — compra asistida:** proveedor propio de DTD (no se revela contacto); falta decidir modelo comercial (margen/comisión/cobro).
 Para cada una necesito: **qué incluye · entregable · tiempos · precio/cómo se cobra · cómo se solicita**.
