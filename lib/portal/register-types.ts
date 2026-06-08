@@ -6,6 +6,16 @@
  * (cédula persona / RIF empresa) es la CONTRASEÑA inicial → se normaliza para que
  * el cliente pueda entrar tipeando lo mismo que registró.
  *
+ * REGISTRO EXPRESS (founder 2026-06-07): el alta pide SOLO lo mínimo para emitir el
+ * MARKBOX y poder contactar al cliente — tipo · nombre · documento · email ·
+ * WhatsApp. La FOTO de cédula y la DIRECCIÓN de entrega quedan DIFERIDAS a
+ * "Completá tu perfil" dentro del portal (se requieren antes de la 1ª compra; el
+ * asesor revisa la foto antes de operar). Por eso este archivo separa:
+ *   - `RegisterInput` / `validateRegisterInput`  → el alta express.
+ *   - `AddressInput`  / `validateAddressInput`    → la dirección VE (perfil).
+ * La identidad básica + el dedup se conservan: el número de documento es
+ * obligatorio al alta (es la contraseña inicial y la clave del dedup).
+ *
  * Reusa `RIF_REGEX` / `formatRif` de `lib/studio/client-types` para el RIF (el
  * portal está fuera de la frontera ESLint público↔ERP). La cédula tiene su propio
  * formato VE (V/E-dígitos).
@@ -14,7 +24,10 @@ import { RIF_REGEX, formatRif } from "@/lib/studio/client-types";
 
 export type ClientKind = "persona" | "empresa";
 
-/** Datos validados del alta self-service (lo que la server action persiste). */
+/**
+ * Datos validados del alta self-service EXPRESS (lo que la server action persiste
+ * al registrar). La dirección NO está acá — se difiere al perfil (`AddressInput`).
+ */
 export type RegisterInput = {
   kind: ClientKind;
   /** Nombre de la persona / nombre de contacto (empresa). */
@@ -31,7 +44,14 @@ export type RegisterInput = {
   whatsapp: string;
   /** Teléfono de oficina/fijo (opcional, no WhatsApp). */
   officePhone: string | null;
-  // Dirección VE (cascada del catálogo).
+};
+
+/**
+ * Dirección de entrega en Venezuela (cascada del catálogo). DIFERIDA del alta: se
+ * completa en "Completá tu perfil". Obligatoria recién al completar el perfil
+ * (antes de la 1ª compra), no al registrarse.
+ */
+export type AddressInput = {
   state: string;
   municipio: string;
   city: string;
@@ -75,7 +95,10 @@ export type RegisterFieldKey =
   | "document"
   | "email"
   | "whatsapp"
-  | "officePhone"
+  | "officePhone";
+
+/** Campos de la dirección VE (perfil). */
+export type AddressFieldKey =
   | "state"
   | "municipio"
   | "city"
@@ -94,11 +117,21 @@ export type RegisterActionState = {
   warning?: string;
 };
 
+/** Estado de la server action "Completá tu perfil" (foto + dirección · perfil). */
+export type ProfileActionState = {
+  ok?: boolean;
+  /** Error general (no de campo). */
+  error?: string;
+  fieldErrors?: Partial<Record<AddressFieldKey | "photo", string>>;
+};
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Validación manual del alta self-service. Devuelve `input` canónico o
- * `fieldErrors`. NO chequea dedup (eso es una query, va en la server action).
+ * Validación manual del alta self-service EXPRESS. Devuelve `input` canónico o
+ * `fieldErrors`. Pide SOLO tipo/nombre/documento/email/WhatsApp (la dirección y la
+ * foto se difieren al perfil). NO chequea dedup (eso es una query, va en la server
+ * action).
  */
 export function validateRegisterInput(partial: Partial<RegisterInput>): {
   input?: RegisterInput;
@@ -136,6 +169,34 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
   const whatsapp = partial.whatsapp?.trim() || "";
   if (!whatsapp) errors.whatsapp = "Indicá tu WhatsApp.";
 
+  if (Object.keys(errors).length > 0) {
+    return { fieldErrors: errors };
+  }
+
+  return {
+    input: {
+      kind,
+      name,
+      company,
+      document: document!,
+      email,
+      whatsapp,
+      officePhone: partial.officePhone?.trim() || null,
+    },
+  };
+}
+
+/**
+ * Validación manual de la dirección VE (perfil · "Completá tu perfil"). Devuelve
+ * `input` o `fieldErrors`. Acá la dirección SÍ es obligatoria (completar el perfil
+ * = cargar la dirección de entrega completa).
+ */
+export function validateAddressInput(partial: Partial<AddressInput>): {
+  input?: AddressInput;
+  fieldErrors?: ProfileActionState["fieldErrors"];
+} {
+  const errors: ProfileActionState["fieldErrors"] = {};
+
   const state = partial.state?.trim() || "";
   if (!state) errors.state = "Elegí el estado.";
   const municipio = partial.municipio?.trim() || "";
@@ -155,13 +216,6 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
 
   return {
     input: {
-      kind,
-      name,
-      company,
-      document: document!,
-      email,
-      whatsapp,
-      officePhone: partial.officePhone?.trim() || null,
       state,
       municipio,
       city,
@@ -178,7 +232,7 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
  * (la columna es texto plano; el detalle estructurado VE se concatena legible).
  * Ej: "Av. principal, edif. X · Urb. La Esmeralda · Valencia, Carabobo · CP 2001".
  */
-export function composeAddress(input: RegisterInput): string {
+export function composeAddress(input: AddressInput): string {
   const parts = [
     input.address,
     input.barrio,
