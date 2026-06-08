@@ -276,8 +276,8 @@ export const SERVICES_CN: Service[] = [
   },
   {
     slug: "muestras-courier",
-    title: "Envío de muestras y courier aéreo",
-    copy: "Envíos urgentes por DHL/UPS/FedEx desde Yiwu: muestras pre-producción, documentos, lotes pequeños críticos. Courier aéreo temporalmente no disponible.",
+    title: "Envío de muestras y documentos",
+    copy: "Envíos urgentes por DHL/UPS/FedEx desde Yiwu: muestras pre-producción, documentos y lotes pequeños críticos. (El flete aéreo de carga está temporalmente suspendido; la carga va por vía marítima.)",
     benefit: "Velocidad cuando importa",
     icon: "Box",
     location: "cn",
@@ -384,7 +384,7 @@ export const SERVICES_MATRIX = [
   { service: "Lab testing y permisología", cn: "Ejecución completa", ve: "—" },
   { service: "Compra asistida / sourcing", cn: "Ejecución completa", ve: "Asesoría previa" },
   { service: "Asesoría pagos a proveedores", cn: "Ejecución completa", ve: "Asesoría de pago" },
-  { service: "Envío de muestras / courier aéreo", cn: "Ejecución completa", ve: "—" },
+  { service: "Envío de muestras y documentos", cn: "Ejecución completa", ve: "—" },
   { service: "Registro de marca en China", cn: "Ejecución legal", ve: "Coordinación y documentos" },
   { service: "Trámite de visado chino", cn: "—", ve: "Gestión completa" },
   { service: "Documentos importación / aduana", cn: "—", ve: "Gestión completa" },
@@ -900,7 +900,7 @@ export const TIMELINE = [
   {
     year: "2024",
     title: "Ampliación a 10 servicios",
-    copy: "Sumamos etiquetado, envío de muestras y courier aéreo a la suite logística.",
+    copy: "Sumamos etiquetado y courier de muestras y documentos a la suite logística.",
   },
   {
     year: "2026",

@@ -34,12 +34,12 @@ import {
 export const metadata: Metadata = {
   title: "Servicios",
   description:
-    "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, courier aéreo, registro de marca, visado, aduana y last mile.",
+    "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, registro de marca, visado, aduana y last mile.",
   alternates: { canonical: "/servicios" },
   ...socialMeta({
     title: "Servicios · DTD Cargo",
     description:
-      "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, courier aéreo, registro de marca, visado, aduana y last mile.",
+      "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, registro de marca, visado, aduana y last mile.",
     path: "/servicios",
   }),
 };

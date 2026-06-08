@@ -46,7 +46,6 @@ export const metadata: Metadata = {
     "Incoterms 2020",
     "FCL contenedor completo",
     "consolidación LCL China",
-    "courier aéreo China",
     "import China Venezuela DDP",
   ],
   openGraph: {
