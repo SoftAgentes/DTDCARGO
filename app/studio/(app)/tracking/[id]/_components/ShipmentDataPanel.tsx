@@ -101,7 +101,7 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
         </div>
         <div>
           <label className="studio-label" htmlFor="client_markbox">
-            <span style={{ marginRight: 6 }}>🔒</span> MARKBOX
+            <span style={{ marginRight: 6 }}>🔒</span> Shipping Mark
           </label>
           <input
             id="client_markbox"
@@ -111,7 +111,7 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
             placeholder="—"
             readOnly
             disabled
-            title="El MARKBOX viene de la base de clientes (futuro: sync con Excel)"
+            title="El Shipping Mark viene de la base de clientes (futuro: sync con Excel)"
           />
         </div>
       </div>
@@ -123,7 +123,7 @@ export function ShipmentDataPanel({ shipment }: { shipment: Shipment }) {
           letterSpacing: "0.02em",
         }}
       >
-        Cliente y MARKBOX vienen de la base de clientes — no se editan acá.
+        Cliente y Shipping Mark vienen de la base de clientes — no se editan acá.
       </p>
 
       <div

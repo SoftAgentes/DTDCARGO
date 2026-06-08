@@ -337,7 +337,7 @@ export const QUICK_REPLIES: { id: string; label: string; text: string }[] = [
   {
     id: "qr-3",
     label: "Tracking portal",
-    text: "Podés seguir tu embarque en tiempo real desde el portal del cliente con tu MARKBOX.",
+    text: "Podés seguir tu embarque en tiempo real desde el portal del cliente con tu Shipping Mark.",
   },
   {
     id: "qr-4",

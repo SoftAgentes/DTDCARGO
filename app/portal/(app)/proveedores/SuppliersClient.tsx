@@ -208,7 +208,7 @@ function WarehouseAddressCard({ markbox }: { markbox: string }) {
       </div>
       <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[70ch]">
         Dásela a tu proveedor — o cárgala en Alibaba como dirección de recepción —
-        para que tu mercancía llegue a nuestra bodega en Yiwu. Tu MARKBOX ya va en
+        para que tu mercancía llegue a nuestra bodega en Yiwu. Tu Shipping Mark ya va en
         el nombre: es lo que nos deja saber que la caja es tuya.
       </p>
       <pre

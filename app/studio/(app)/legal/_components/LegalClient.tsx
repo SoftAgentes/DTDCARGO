@@ -661,7 +661,7 @@ function AcceptancesView({
             id="acc-search"
             type="text"
             className="studio-input"
-            placeholder="Acuse, MARKBOX, estimado, IP…"
+            placeholder="Acuse, Shipping Mark, estimado, IP…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -962,7 +962,7 @@ function AcceptanceModal({
           >
             Evidencia
           </div>
-          <EvidenceRow k="Cliente / MARKBOX" v={a.client_markbox ?? "—"} />
+          <EvidenceRow k="Cliente / Shipping Mark" v={a.client_markbox ?? "—"} />
           <EvidenceRow k="Estimado" v={a.quote_code ?? "—"} />
           {a.docs.length > 0 ? (
             a.docs.map((d, k) => (

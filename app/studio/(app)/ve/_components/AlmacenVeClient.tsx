@@ -98,7 +98,7 @@ export function AlmacenVeClient({ rows, filters: _filters }: Props) {
             id="ve-q"
             type="search"
             className="studio-input"
-            placeholder="Code, cliente, MARKBOX, dirección…"
+            placeholder="Code, cliente, Shipping Mark, dirección…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />

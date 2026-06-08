@@ -318,7 +318,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
                 color: "var(--ink-soft)",
               }}
             >
-              El MARKBOX se asigna automáticamente al crear el cliente.
+              El Shipping Mark se asigna automáticamente al crear el cliente.
             </div>
           )}
 

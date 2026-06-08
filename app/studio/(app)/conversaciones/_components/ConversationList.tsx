@@ -106,7 +106,7 @@ export function ConversationList({
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar cliente o MARKBOX…"
+            placeholder="Buscar cliente o Shipping Mark…"
             style={{
               flex: 1,
               height: "100%",

@@ -103,12 +103,12 @@ export async function loginWithMarkbox(
   const password = String(formData.get("password") ?? "");
 
   if (!markbox || !password) {
-    return { error: "Ingresa tu MARKBOX y tu contraseña." };
+    return { error: "Ingresa tu Shipping Mark y tu contraseña." };
   }
 
   const email = await emailForMarkbox(markbox);
   // Mensaje único para "no existe" y "clave incorrecta" (anti-enumeración).
-  const GENERIC = "MARKBOX o contraseña incorrectos.";
+  const GENERIC = "Shipping Mark o contraseña incorrectos.";
   if (!email) return { error: GENERIC };
 
   const supabase = await createClient();
@@ -131,7 +131,7 @@ export async function resetPasswordByMarkbox(
 ): Promise<PortalPasswordLoginState> {
   const markbox = String(formData.get("markbox") ?? "").trim().toUpperCase();
   if (!markbox) {
-    return { error: "Ingresa tu MARKBOX para recuperar la contraseña." };
+    return { error: "Ingresa tu Shipping Mark para recuperar la contraseña." };
   }
 
   const email = await emailForMarkbox(markbox);

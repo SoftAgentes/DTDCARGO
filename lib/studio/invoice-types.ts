@@ -252,7 +252,7 @@ export function validateInvoiceInput(input: Partial<InvoiceInput>): {
   const errors: InvoiceActionState["fieldErrors"] = {};
 
   if (!input.client_markbox?.trim())
-    errors.client_markbox = "Indicá el MARKBOX del cliente.";
+    errors.client_markbox = "Indicá el Shipping Mark del cliente.";
   if (!input.client_name?.trim())
     errors.client_name = "Indicá el nombre del cliente.";
 

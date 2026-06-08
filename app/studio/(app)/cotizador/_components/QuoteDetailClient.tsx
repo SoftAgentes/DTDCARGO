@@ -59,7 +59,7 @@ export function QuoteDetailClient({
   function handleLink() {
     const markbox = markboxInput.trim();
     if (!markbox) {
-      setLinkError("Indicá el MARKBOX del cliente.");
+      setLinkError("Indicá el Shipping Mark del cliente.");
       return;
     }
     setLinkError(null);
@@ -99,7 +99,7 @@ export function QuoteDetailClient({
             }}
           >
             Este estimado se capturó de la web y aún no tiene cliente. Ingresá el
-            MARKBOX del cliente ya registrado para vincularlo.
+            Shipping Mark del cliente ya registrado para vincularlo.
           </p>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <input
@@ -113,7 +113,7 @@ export function QuoteDetailClient({
               }}
               disabled={linking}
               style={{ width: 200, textTransform: "uppercase", fontFamily: "var(--f-mono)" }}
-              aria-label="MARKBOX del cliente"
+              aria-label="Shipping Mark del cliente"
             />
             <button
               type="button"

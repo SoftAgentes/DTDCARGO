@@ -210,7 +210,7 @@ export function validateQuoteInput(input: Partial<QuoteInput>): {
 
   if (!input.service) errors.service = "Elegí un servicio.";
   if (!input.client_markbox?.trim())
-    errors.client_markbox = "Indicá el MARKBOX del cliente.";
+    errors.client_markbox = "Indicá el Shipping Mark del cliente.";
   if (!input.client_name?.trim())
     errors.client_name = "Indicá el nombre del cliente.";
   if (!input.origin?.trim()) errors.origin = "Indicá el origen.";

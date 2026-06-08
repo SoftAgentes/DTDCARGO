@@ -101,7 +101,7 @@ export const chrome = {
 
   // ── Topbar ───────────────────────────────────────────────
   "chrome.topbar.module": "Módulo",
-  "chrome.topbar.search_placeholder": "Buscar embarques, clientes, MARKBOX…",
+  "chrome.topbar.search_placeholder": "Buscar embarques, clientes, Shipping Mark…",
   "chrome.topbar.search_aria": "Buscar en el Studio (atajo: {key}+K)",
   "chrome.topbar.theme_toggle": "Cambiar tema",
   "chrome.topbar.theme_to_light": "Cambiar a modo claro",
@@ -117,7 +117,7 @@ export const chrome = {
   "chrome.topbar.search_modal_placeholder": "Búsqueda global (próximamente)",
   "chrome.topbar.search_modal_title": "Búsqueda global llegará en Sprint 6.4.",
   "chrome.topbar.search_modal_hint":
-    "Mientras tanto, navegá desde el sidebar para encontrar embarques, clientes, MARKBOX y demás.",
+    "Mientras tanto, navegá desde el sidebar para encontrar embarques, clientes, Shipping Mark y demás.",
 
   // ── Toasts genéricos ─────────────────────────────────────
   "chrome.toast.success": "Listo",

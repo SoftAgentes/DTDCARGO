@@ -291,7 +291,7 @@ export function Label({
               marginBottom: 2,
             }}
           >
-            MARKBOX · 货主代码
+            Shipping Mark · 货主代码
           </div>
           <div
             style={{

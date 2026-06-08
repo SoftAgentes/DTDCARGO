@@ -1209,7 +1209,7 @@ function Step4Confirm({
             highlight={reception.orphan ? "warning" : undefined}
           />
           {!reception.orphan && reception.client && (
-            <SummaryRow label="MARKBOX" value={reception.client} mono />
+            <SummaryRow label="Shipping Mark" value={reception.client} mono />
           )}
           <SummaryRow label={t(lang, "pwa.receipt.supplier_label")} value={reception.supplier || "—"} />
           <SummaryRow label={t(lang, "pwa.receipt.boxes_short")} value={reception.boxes} mono />
