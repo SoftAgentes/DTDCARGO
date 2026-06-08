@@ -21,9 +21,12 @@ const MONO = { fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace"
 export function LoginForm({
   notice,
   authedNotBound,
+  prefillMarkbox,
 }: {
   notice: string | null;
   authedNotBound: boolean;
+  /** MARKBOX que llega por query (?markbox=) desde el registro — prerellena el usuario. */
+  prefillMarkbox?: string;
 }) {
   // Método primario: MARKBOX + contraseña. Magic-link queda como alternativa.
   const [showMagic, setShowMagic] = useState(false);
@@ -77,6 +80,7 @@ export function LoginForm({
                     type="text"
                     name="markbox"
                     required
+                    defaultValue={prefillMarkbox}
                     autoComplete="username"
                     placeholder="DTD-1234"
                     disabled={pwdPending}
@@ -93,6 +97,7 @@ export function LoginForm({
                     type="password"
                     name="password"
                     required
+                    autoFocus={!!prefillMarkbox}
                     autoComplete="current-password"
                     placeholder="Tu cédula o RIF"
                     disabled={pwdPending}

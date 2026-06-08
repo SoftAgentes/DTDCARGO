@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon, CheckIcon } from "@/components/Icon";
 import {
@@ -58,7 +58,7 @@ export function RegisterForm({ est }: { est?: string }) {
             className="mt-3 text-[26px] sm:text-[30px] leading-[1.08] text-ink"
             style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
           >
-            {done ? "Bienvenido a DTD Cargo." : "Creá tu cuenta."}
+            {done ? "Bienvenido a DTD Cargo." : "Crea tu cuenta."}
           </h1>
 
           {!done && (
@@ -89,6 +89,7 @@ export function RegisterForm({ est }: { est?: string }) {
               document={normalizeDocument(data.kind, data.document) ?? data.document}
               kind={data.kind}
               firstName={data.name.split(" ")[0]}
+              email={data.email}
               warning={state.warning}
             />
           ) : (
@@ -302,14 +303,30 @@ function StepDone({
   document,
   kind,
   firstName,
+  email,
   warning,
 }: {
   markbox: string;
   document: string;
   kind: ClientKind;
   firstName: string;
+  email: string;
   warning?: string;
 }) {
+  // La cédula/RIF es la contraseña inicial. Se muestra difuminada por privacidad
+  // (capturas / pantalla compartida): primer y último carácter nítidos, el medio
+  // borroso. Botón "Mostrar" para revelarla.
+  const [revealed, setRevealed] = useState(false);
+  // Fade-in del aviso de "correo enviado" al montar (feedback interactivo).
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    setShown(true);
+  }, []);
+
+  const head = document.slice(0, 3);
+  const mid = document.length > 4 ? document.slice(3, -1) : "";
+  const tail = document.length > 4 ? document.slice(-1) : "";
+
   return (
     <div className="mt-6 flex flex-col items-center text-center gap-5">
       <div
@@ -319,25 +336,52 @@ function StepDone({
         <CheckIcon size={32} />
       </div>
       <div>
-        <div className="text-[18px] font-bold text-ink">
-          Tu cuenta quedó creada{firstName ? `, ${firstName}` : ""}.
+        <div
+          className="text-[20px] sm:text-[22px] text-ink"
+          style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.01em" }}
+        >
+          ¡Felicitaciones{firstName ? `, ${firstName}` : ""}!
         </div>
         <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[42ch]">
-          Este es tu código MARKBOX. Guardalo: vas a usarlo mucho, y es lo que tus
-          proveedores escriben en cada caja.
+          Tu cuenta quedó creada. Este es tu código MARKBOX — guárdalo, vas a usarlo
+          mucho: es lo que tus proveedores escriben en cada caja.
         </p>
       </div>
 
-      {/* Tarjeta MARKBOX */}
+      {/* Confirmación interactiva: correo de bienvenida enviado (fade-in al montar) */}
+      {!warning && (
+        <div
+          className={`w-full rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.5] text-left flex items-start gap-2.5 transition-all duration-500 ${
+            shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1.5"
+          }`}
+          style={{ borderColor: "var(--color-status-success)" }}
+        >
+          <span
+            className="mt-0.5 flex-shrink-0"
+            style={{ color: "var(--color-status-success)" }}
+          >
+            <CheckIcon size={15} />
+          </span>
+          <span>
+            <strong className="text-ink">Correo de bienvenida enviado</strong>
+            {email ? ` a ${email}` : ""}. Si no lo ves en unos minutos, revisa la
+            carpeta de spam / correo no deseado.
+          </span>
+        </div>
+      )}
+
+      {/* Tarjeta MARKBOX — hero: más grande + entrada con fade y glow "se abre y se apaga" */}
       <div
-        className="w-full rounded-[14px] px-6 py-6"
+        className={`markbox-celebrate w-full rounded-[16px] px-6 py-7 transition-all duration-500 ${
+          shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
+        }`}
         style={{ background: "var(--color-wine)", color: "#fff" }}
       >
         <div className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: "var(--color-wine-soft)" }}>
           Tu MARKBOX
         </div>
         <div
-          className="mt-2 text-[34px] leading-none"
+          className="mt-2 text-[44px] sm:text-[52px] leading-none"
           style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace", letterSpacing: "-0.01em" }}
         >
           {markbox}
@@ -362,11 +406,34 @@ function StepDone({
             <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
               Contraseña
             </div>
-            <div
-              className="mt-1 text-[15px] font-bold text-ink"
-              style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-            >
-              {document}
+            <div className="mt-1 flex items-center gap-2">
+              <span
+                className="text-[15px] font-bold text-ink"
+                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+              >
+                {revealed ? (
+                  document
+                ) : (
+                  <>
+                    <span className="sr-only">
+                      Contraseña oculta — usa Mostrar para verla
+                    </span>
+                    <span aria-hidden>
+                      {head}
+                      <span style={{ filter: "blur(5px)", userSelect: "none" }}>{mid}</span>
+                      {tail}
+                    </span>
+                  </>
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => setRevealed((v) => !v)}
+                aria-label={revealed ? "Ocultar contraseña" : "Mostrar contraseña"}
+                className="text-[11px] font-semibold uppercase tracking-[0.08em] text-wine hover:text-wine-deep rounded px-1 py-0.5 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+              >
+                {revealed ? "Ocultar" : "Mostrar"}
+              </button>
             </div>
             <div className="mt-1 text-[11px] text-grey-500 leading-[1.4]">
               Es tu {kind === "empresa" ? "RIF" : "cédula"} · recomendado cambiarla
@@ -389,13 +456,16 @@ function StepDone({
         className="w-full rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55] text-left"
         style={{ borderColor: "var(--color-wine)" }}
       >
-        <strong className="text-ink">Tu cuenta ya está activa.</strong> Entrá al
+        <strong className="text-ink">Tu cuenta ya está activa.</strong> Entra al
         portal con tu MARKBOX. Antes de tu primera compra te vamos a pedir que
-        completes tu perfil (foto de cédula + dirección de entrega) — lo hacés desde
+        completes tu perfil (foto de cédula + dirección de entrega) — lo haces desde
         el portal en un par de minutos.
       </p>
 
-      <Link href="/portal/login" className="btn btn-primary w-full">
+      <Link
+        href={`/portal/login?markbox=${encodeURIComponent(markbox)}`}
+        className="btn btn-primary w-full"
+      >
         Ir al portal <ArrowIcon />
       </Link>
     </div>
