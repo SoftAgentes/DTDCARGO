@@ -293,6 +293,14 @@ function ExpressForm({
         {pending ? "Creando tu cuenta…" : "Crear cuenta y generar Shipping Mark"}
         {!pending && <CheckIcon size={16} />}
       </button>
+
+      {/* Aviso de privacidad — confianza en el punto de captura de datos
+          (SDD-0064 Fase 5). Sin enlaces a páginas legales aún inexistentes. */}
+      <p className="mt-4 text-[12.5px] leading-[1.5] text-grey-500 max-w-[54ch]">
+        Solicitamos estos datos para identificar tu carga, evitar errores de
+        entrega y cumplir con los procesos logísticos y documentales. No
+        compartimos tu información salvo obligaciones operativas o legales.
+      </p>
     </form>
   );
 }
