@@ -32,5 +32,11 @@ export default async function PortalLoginPage({
           ? "Ese enlace no es válido. Pedí uno nuevo."
           : null;
 
-  return <LoginForm notice={notice} authedNotBound={!!user} />;
+  return (
+    <LoginForm
+      notice={notice}
+      authedNotBound={!!user}
+      prefillMarkbox={sp.markbox}
+    />
+  );
 }
