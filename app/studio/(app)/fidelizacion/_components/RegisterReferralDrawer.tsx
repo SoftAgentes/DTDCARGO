@@ -69,7 +69,7 @@ export function RegisterReferralDrawer({ onClose }: { onClose: () => void }) {
         {state.error && <FormError message={state.error} />}
 
         <Field
-          label="MARKBOX del cliente que refiere"
+          label="Shipping Mark del cliente que refiere"
           error={state.fieldErrors?.referrer_markbox}
         >
           <input

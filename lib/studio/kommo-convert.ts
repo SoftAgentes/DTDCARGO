@@ -193,7 +193,7 @@ export async function convertLead(
   const { data: markboxData, error: mErr } = await supabase.rpc("next_markbox", {
     p_tenant_id: tenantId,
   });
-  if (mErr || !markboxData) return { error: "No se pudo generar el MARKBOX." };
+  if (mErr || !markboxData) return { error: "No se pudo generar el Shipping Mark." };
   const markbox = String(markboxData);
 
   // 4. Insert del cliente operativo. El nombre del contacto (Slice B) gana sobre

@@ -236,7 +236,7 @@ function LabelGeneratorInner({
           }}
         >
           {/* Cliente */}
-          <Card eyebrow="CLIENTE · MARKBOX">
+          <Card eyebrow="CLIENTE · SHIPPING MARK">
             <label className="studio-label" htmlFor="lg-client">
               Cliente
             </label>
@@ -266,7 +266,7 @@ function LabelGeneratorInner({
                 className="studio-eyebrow"
                 style={{ color: "var(--wine)", marginBottom: 4 }}
               >
-                MARKBOX
+                Shipping Mark
               </div>
               <code
                 style={{

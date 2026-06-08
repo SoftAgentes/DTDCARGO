@@ -164,7 +164,7 @@ export function RulesClient({
           <>
             Modo: <b>{PAYMENT_POLICY_LABELS[policy]}</b>
             {policy === "credito_whitelist" &&
-              ` · ${whitelist.split(/[,\n]/).filter((s) => s.trim()).length} markboxes en whitelist`}
+              ` · ${whitelist.split(/[,\n]/).filter((s) => s.trim()).length} Shipping Marks en whitelist`}
             {policy === "hold" && holdUntil && ` · vence ${holdUntil}`}
             {policy === "hold" && !holdUntil && ` · sin fecha · indefinido`}
           </>
@@ -202,7 +202,7 @@ export function RulesClient({
                 </div>
                 {p === "credito_whitelist" && (
                   <div style={{ font: "500 11px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 4 }}>
-                    Solo los MARKBOX en la whitelist pueden despacharse sin pago completo.
+                    Solo los Shipping Mark en la whitelist pueden despacharse sin pago completo.
                   </div>
                 )}
               </div>
@@ -213,7 +213,7 @@ export function RulesClient({
         {policy === "credito_whitelist" && (
           <div style={{ marginTop: 16 }}>
             <label className="studio-label" htmlFor="whitelist-input">
-              Markboxes habilitados sin pago
+              Shipping Marks habilitados sin pago
             </label>
             <textarea
               id="whitelist-input"
@@ -416,23 +416,23 @@ export function RulesClient({
 
       {/* VIP markboxes · plegable */}
       <Card
-        title="MARKBOX VIP"
+        title="Shipping Mark VIP"
         eyebrow="LISTA MANUAL · ALTERNATIVA AL TIER"
         collapsible
         defaultOpen={false}
         summary={
           <>
-            {vipMarkboxes.split(/[,\n]/).filter((s) => s.trim()).length} markboxes
+            {vipMarkboxes.split(/[,\n]/).filter((s) => s.trim()).length} Shipping Marks
             cargados
           </>
         }
       >
         <p style={hintStyle}>
-          Markboxes que reciben el peso VIP aunque no estén marcados como Gold/Platinum
+          Shipping Marks que reciben el peso VIP aunque no estén marcados como Gold/Platinum
           en Clientes. Útil si el módulo de tiers no está alineado con tu prioridad real.
         </p>
         <label className="studio-label" htmlFor="vip-input" style={{ marginTop: 12 }}>
-          Markboxes VIP
+          Shipping Marks VIP
         </label>
         <textarea
           id="vip-input"

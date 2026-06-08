@@ -353,7 +353,7 @@ export function validateReceiptInput(input: Partial<WarehouseReceiptInput>): {
 
   if (!is_orphan && !client_markbox) {
     errors.client_markbox =
-      "Indicá el MARKBOX del cliente, o marcala como caja huérfana.";
+      "Indicá el Shipping Mark del cliente, o marcala como caja huérfana.";
   }
 
   // Supplier (obligatorio salvo huérfana sin supplier conocido)

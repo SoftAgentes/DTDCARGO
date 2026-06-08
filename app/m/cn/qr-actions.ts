@@ -54,7 +54,7 @@ export async function pushQrPrintForReceiptAction(
   if (r.is_orphan || !markbox) {
     return {
       ok: false,
-      error: "Caja huérfana sin MARKBOX · asigná cliente antes de imprimir QR.",
+      error: "Caja huérfana sin Shipping Mark · asigná cliente antes de imprimir QR.",
     };
   }
   if (!r.boxes || r.boxes <= 0) {
@@ -83,7 +83,7 @@ export async function pushQrPrintForReceiptAction(
 function humanizeQrError(msg: string): string {
   if (msg.includes("P0001")) return "Operario no encontrado.";
   if (msg.includes("P0002")) return "Operario inactivo.";
-  if (msg.includes("P0003")) return "Falta MARKBOX.";
+  if (msg.includes("P0003")) return "Falta Shipping Mark.";
   if (msg.includes("P0004")) return "Cantidad de bultos inválida.";
   return msg;
 }

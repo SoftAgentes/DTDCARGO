@@ -236,7 +236,7 @@ const PROGRAM_STEPS = [
   {
     n: "1",
     t: "El cliente comparte su código",
-    d: "Cada MARKBOX tiene un código de referido único (ej. REF-5452) que comparte por WhatsApp o el portal.",
+    d: "Cada Shipping Mark tiene un código de referido único (ej. REF-5452) que comparte por WhatsApp o el portal.",
   },
   {
     n: "2",
@@ -933,8 +933,8 @@ function ClientesTab({
       <div style={{ marginBottom: 16, maxWidth: 320 }}>
         <input
           className="studio-input"
-          aria-label="Buscar cliente o MARKBOX"
-          placeholder="Buscar cliente o MARKBOX…"
+          aria-label="Buscar cliente o Shipping Mark"
+          placeholder="Buscar cliente o Shipping Mark…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />

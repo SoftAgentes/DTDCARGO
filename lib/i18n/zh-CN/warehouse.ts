@@ -36,7 +36,7 @@ export const warehouse: WarehouseDict = {
   // ── 筛选 / Toolbar ───────────────────────────────────────
   "warehouse_cn.filter.search_label": "搜索",
   "warehouse_cn.filter.search_placeholder":
-    "单号、客户、MARKBOX、供应商…",
+    "单号、客户、唛头 (Shipping Mark)、供应商…",
   "warehouse_cn.filter.hub_label": "仓库",
   "warehouse_cn.filter.hub_all": "所有仓库",
   "warehouse_cn.filter.status_label": "状态",
@@ -151,8 +151,8 @@ export const warehouse: WarehouseDict = {
   "warehouse_cn.drawer.section_status": "货物状态",
   "warehouse_cn.drawer.warehouse_placeholder": "选择接收货物的仓库…",
   "warehouse_cn.drawer.client_placeholder": "选择客户…",
-  "warehouse_cn.drawer.client_label": "客户 · MARKBOX",
-  "warehouse_cn.drawer.orphan_toggle_on": "标记为无主货（无 MARKBOX）",
+  "warehouse_cn.drawer.client_label": "客户 · 唛头 (Shipping Mark)",
+  "warehouse_cn.drawer.orphan_toggle_on": "标记为无主货（无 唛头 (Shipping Mark)）",
   "warehouse_cn.drawer.orphan_toggle_off": "返回已知客户",
   "warehouse_cn.drawer.supplier_placeholder": "供应商名称或谁送来的…",
   "warehouse_cn.drawer.orphan_label": "无主货（无客户）",
@@ -183,7 +183,7 @@ export const warehouse: WarehouseDict = {
   "warehouse_cn.supplier.lang_cn": "中文",
 
   // ── 抽屉 · 无主货部分 ─────────────────────────────────────
-  "warehouse_cn.drawer.orphan_toggle": "无 MARKBOX 码？· 标记为无主货",
+  "warehouse_cn.drawer.orphan_toggle": "无唛头 (Shipping Mark) 码？· 标记为无主货",
   "warehouse_cn.drawer.orphan_badge": "无主货箱",
   "warehouse_cn.drawer.orphan_code_note": "· 将分配",
   "warehouse_cn.drawer.orphan_disable": "取消",

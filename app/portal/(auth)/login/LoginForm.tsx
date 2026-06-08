@@ -74,7 +74,7 @@ export function LoginForm({
               <form action={pwdAction} className="mt-6 flex flex-col gap-4">
                 <label className="flex flex-col gap-2">
                   <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-grey-500">
-                    Tu MARKBOX
+                    Tu Shipping Mark
                   </span>
                   <input
                     type="text"
@@ -118,7 +118,7 @@ export function LoginForm({
                 </button>
 
                 <p className="text-[12px] text-grey-500 leading-[1.5]">
-                  Tu usuario es tu MARKBOX. La contraseña inicial es tu cédula (o RIF
+                  Tu usuario es tu Shipping Mark. La contraseña inicial es tu cédula (o RIF
                   si eres empresa).
                 </p>
               </form>
@@ -221,7 +221,7 @@ function ForgotPassword({ pending, error }: { pending: boolean; error?: string }
     <div className="rounded-[10px] bg-paper border border-grey-200 p-3.5 flex flex-col gap-2.5">
       <label className="flex flex-col gap-1.5">
         <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
-          Tu MARKBOX
+          Tu Shipping Mark
         </span>
         <input
           type="text"
@@ -256,7 +256,7 @@ function ResetSent() {
       </div>
       <div className="text-[16px] font-bold text-ink">Revisa tu correo</div>
       <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
-        Si ese MARKBOX tiene una cuenta, te mandamos un enlace para cambiar la
+        Si ese Shipping Mark tiene una cuenta, te mandamos un enlace para cambiar la
         contraseña. Puede tardar un par de minutos.
       </p>
     </div>
