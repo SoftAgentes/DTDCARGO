@@ -70,7 +70,7 @@ export default function FaqPage() {
             </h1>
             <p className="lead mt-6 max-w-[60ch]">
               Las preguntas que más nos hacen los importadores, respondidas claro.
-              Si te queda alguna, escribinos por WhatsApp y te la resolvemos.
+              Si te queda alguna, escríbenos por WhatsApp y te la resolvemos.
             </p>
           </div>
         </section>
@@ -110,7 +110,7 @@ export default function FaqPage() {
               </p>
               <div className="mt-6 flex flex-wrap gap-3 justify-center">
                 <a href={WA} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
-                  <WhatsAppIcon size={18} /> Escribinos por WhatsApp
+                  <WhatsAppIcon size={18} /> Escríbenos por WhatsApp
                 </a>
                 <a
                   href="/calculadora"

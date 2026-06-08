@@ -55,7 +55,7 @@ export default function TrackPage() {
                 href="/contacto"
                 className="underline hover:text-wine-soft"
               >
-                Escribinos
+                Escríbenos
               </a>{" "}
               y te lo buscamos en menos de 1 hora.
             </p>

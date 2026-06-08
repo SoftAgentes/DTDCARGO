@@ -12,7 +12,7 @@ import { RegisterForm } from "./RegisterForm";
 export const metadata: Metadata = {
   title: "Registro de cliente",
   description:
-    "Date de alta como cliente de DTD Cargo y obtené tu MARKBOX al instante — el código que identifica tus cajas en nuestra bodega de Yiwu. Registro online en minutos; un asesor activa tu cuenta.",
+    "Date de alta como cliente de DTD Cargo y obtén tu MARKBOX al instante — el código que identifica tus cajas en nuestra bodega de Yiwu. Registro online en minutos; un asesor activa tu cuenta.",
   keywords: [
     "registro cliente DTD Cargo",
     "darse de alta importador China Venezuela",
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     title: "Registro de cliente · DTD Cargo",
     description:
-      "Date de alta y obtené tu MARKBOX para empezar a importar de China con DTD Cargo.",
+      "Date de alta y obtén tu MARKBOX para empezar a importar de China con DTD Cargo.",
     path: "/registro",
   }),
 };

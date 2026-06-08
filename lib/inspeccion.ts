@@ -33,8 +33,8 @@ export const INSPECCION_HERO = {
 export const INSPECCION_STEPS: { n: string; title: string; copy: string }[] = [
   {
     n: "01",
-    title: "Elegís y cotizás",
-    copy: "Seleccionás el tipo de inspección y completás un formulario corto: nombre, contacto, país y producto. Sin datos de pago en la web.",
+    title: "Eliges y cotizas",
+    copy: "Seleccionas el tipo de inspección y completas un formulario corto: nombre, contacto, país y producto. Sin datos de pago en la web.",
   },
   {
     n: "02",

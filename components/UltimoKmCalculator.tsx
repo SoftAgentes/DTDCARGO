@@ -83,8 +83,8 @@ export function UltimoKmCalculator() {
       </div>
 
       <p className="text-[13px] text-grey-500 leading-[1.5] mb-5">
-        Si querés ver una estimación del costo de entrega desde el puerto hasta
-        tu ciudad en Venezuela, completá los campos. Es una <strong>tarifa de referencia</strong>
+        Si quieres ver una estimación del costo de entrega desde el puerto hasta
+        tu ciudad en Venezuela, completa los campos. Es una <strong>tarifa de referencia</strong>
         — la final te la cierra el asesor por WhatsApp.
       </p>
 

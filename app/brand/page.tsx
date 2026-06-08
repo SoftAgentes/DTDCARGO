@@ -173,7 +173,7 @@ const DOS = [
   "Dejá un clearspace de 2× la altura del trazo alrededor.",
   "Tamaño mínimo 24px de alto en digital.",
   "El wordmark “DTD Cargo” siempre en Archivo Black.",
-  "Sobre fondo oscuro, usá Reverse o Mono light.",
+  "Sobre fondo oscuro, usa Reverse o Mono light.",
 ];
 
 const DOWNLOADS = [
@@ -208,7 +208,7 @@ export default function BrandPage() {
                 </h1>
                 <p className="lead mt-6">
                   Logos, colores y tipografía oficiales de DTD Cargo — con las
-                  reglas para usarlos bien. Si sos socio, proveedor o prensa,
+                  reglas para usarlos bien. Si eres socio, proveedor o prensa,
                   descargá lo que necesites desde acá.
                 </p>
 
@@ -494,8 +494,8 @@ export default function BrandPage() {
             <span className="eyebrow">Descargas</span>
             <h2 className="h-section mt-4">Bajá los assets.</h2>
             <p className="lead mt-4">
-              PNG con transparencia, listos para usar. ¿Necesitás vectores (SVG),
-              versiones de impresión o el Brand Book completo? Escribinos.
+              PNG con transparencia, listos para usar. ¿Necesitas vectores (SVG),
+              versiones de impresión o el Brand Book completo? Escríbenos.
             </p>
 
             <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

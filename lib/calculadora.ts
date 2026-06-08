@@ -133,7 +133,7 @@ export const DEFAULT_PARAMS: CalcParams = {
 
 // ────────────────────────────────────────────────────────────────────
 // 2) CIUDADES DE VENEZUELA — KM DESDE VALENCIA CENTRO
-//    👉 Editá / agregá ciudades acá. Los `km` se usan para calcular el
+//    👉 Editá / agrega ciudades acá. Los `km` se usan para calcular el
 //       recargo por distancia. `casco: true` = entrega flat sin recargo
 //       extra por km (Valencia, Maracay, Caracas son casco por default).
 // ────────────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ export const CIUDADES: Ciudad[] = [
   { id: "punto-fijo",   label: "Punto Fijo",       km: 290, casco: false },
   { id: "coro",         label: "Coro",             km: 260, casco: false },
   // Margarita (isla) — caso especial: mismo cálculo por km pero advertir
-  // que cruza ferry. Editá el km si querés que pague más por la travesía.
+  // que cruza ferry. Editá el km si quieres que pague más por la travesía.
   { id: "margarita",    label: "Isla Margarita",   km: 540, casco: false },
 ];
 
@@ -335,7 +335,7 @@ export function calcularEnvioLCL(
     // Carga ultra densa — alerta + estimación del peso máximo aceptable
     alerta = {
       tipo: "peso_excedido",
-      mensaje: `Tu carga tiene ${densidadKgM3.toFixed(0)} kg/CBM, supera el máximo de ${params.pesoMaxKg} kg/CBM. Necesitás FCL o cotización personalizada — escribinos por WhatsApp.`,
+      mensaje: `Tu carga tiene ${densidadKgM3.toFixed(0)} kg/CBM, supera el máximo de ${params.pesoMaxKg} kg/CBM. Necesitas FCL o cotización personalizada — escríbenos por WhatsApp.`,
     };
     // Igual calculamos un estimado para que vea el rango
     const kgIncluidos = cbm * params.pesoIncluidoKg;

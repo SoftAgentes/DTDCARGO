@@ -259,7 +259,7 @@ export const SERVICES_CN: Service[] = [
   {
     slug: "consolidacion-bodega-yiwu",
     title: "Consolidación FCL en bodega propia",
-    subtitle: "Cuando consolidás varios proveedores",
+    subtitle: "Cuando consolidas varios proveedores",
     copy: "Tus proveedores chinos envían a nuestra bodega propia en Yiwu. Ahí inspeccionamos, etiquetamos y consolidamos todo en un solo contenedor (FCL) o en grupaje (LCL). Sale unificado, con un solo punto de contacto.",
     benefit: "Una sola carga desde múltiples proveedores",
     icon: "Warehouse",
@@ -348,7 +348,7 @@ export const SERVICES_VE: Service[] = [
     slug: "visado-chino",
     title: "Gestión de trámites de visado chino",
     copy: "Asesoría documental, diligencia de formularios, coordinación con consulado y toma de fotografía en nuestras oficinas. Todo el trámite desde Valencia, no necesitas ir a China.",
-    benefit: "Cero burocracia para vos",
+    benefit: "Cero burocracia para ti",
     icon: "Passport",
     location: "ve",
   },
@@ -685,7 +685,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "Estimated Time of Departure",
     category: "tracking",
     body: [
-      "Fecha estimada de salida del buque desde el puerto de origen (en nuestro corredor: Ningbo o Shanghai). Una vez confirmado el ETD, podés calcular el tránsito típico de 30–40 días hasta Venezuela.",
+      "Fecha estimada de salida del buque desde el puerto de origen (en nuestro corredor: Ningbo o Shanghai). Una vez confirmado el ETD, puedes calcular el tránsito típico de 30–40 días hasta Venezuela.",
     ],
   },
   {
@@ -694,7 +694,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "DTD Universal · formato propio",
     category: "tracking",
     body: [
-      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo usás en /track para ver el estado en tiempo real.",
+      "Código interno de DTD Cargo que identifica un envío de extremo a extremo. Formato: `DTDU-NNNNNN-XXXX`. Te lo damos al confirmar la cotización y lo usas en /track para ver el estado en tiempo real.",
       "El DTDU agrupa el BL marítimo, los documentos de aduana y el last mile bajo un solo identificador — más cómodo que recordar múltiples números.",
     ],
   },

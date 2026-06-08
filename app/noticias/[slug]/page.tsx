@@ -193,7 +193,7 @@ function ComingSoonBlock({ post }: { post: NewsPostRow }) {
       </h2>
       <p className="mt-3 text-[14.5px] text-grey-700 leading-[1.55] max-w-[52ch]">
         Mientras tanto, si necesitas información sobre este tema para tu
-        operación, escribinos por WhatsApp y un asesor te explica los puntos
+        operación, escríbenos por WhatsApp y un asesor te explica los puntos
         clave en minutos.
       </p>
       <a

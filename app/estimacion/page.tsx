@@ -53,7 +53,7 @@ export default function EstimacionPage() {
                   style={{ background: "var(--color-wine)" }}
                 />
                 <span>
-                  <strong className="text-ink">¿No conocés el peso/volumen?</strong>{" "}
+                  <strong className="text-ink">¿No conoces el peso/volumen?</strong>{" "}
                   Pega el link de Alibaba y nuestro equipo lo calcula.
                 </span>
               </div>
