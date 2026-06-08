@@ -136,6 +136,7 @@ const jsonLd = {
           streetAddress: CONTACT.ve.address,
           addressLocality: "Valencia",
           addressRegion: "Carabobo",
+          postalCode: CONTACT.ve.postalCode,
           addressCountry: "VE",
         },
         {
@@ -143,6 +144,7 @@ const jsonLd = {
           streetAddress: CONTACT.cn.address,
           addressLocality: "Yiwu",
           addressRegion: "Zhejiang",
+          postalCode: CONTACT.cn.postalCode,
           addressCountry: "CN",
         },
       ],

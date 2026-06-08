@@ -168,6 +168,8 @@ export const CONTACT = {
     city: "Valencia, Carabobo",
     address: "Edificio Kokuy, Av. Bolívar Norte",
     addressFull: "Edificio Kokuy, Av. Bolívar Norte. Valencia, Carabobo, Venezuela",
+    postalCode: "2001", // Valencia, Carabobo — para schema.org PostalAddress
+
     /**
      * Link directo al pin de Google Maps con el logo y la info verificada de DTD.
      * Más confiable que una búsqueda por dirección (que puede caer en otra
@@ -188,6 +190,7 @@ export const CONTACT = {
     address: "Yiwu Port Phase II, Warehouse 2, No. 2 (Cargo 7-11)",
     addressFull:
       "Yiwu Port Phase II, Warehouse 2, No. 2 (Cargo 7-11), Yiwu City, Zhejiang, China",
+    postalCode: "322000", // Yiwu, Zhejiang — para schema.org PostalAddress
     /**
      * Dirección oficial en caracteres chinos — para WeChat / proveedores locales.
      * Fuente: Brand Book DTD v1.0 § 19 (China Supplier Clip).
