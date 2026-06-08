@@ -102,7 +102,7 @@ El conocimiento y la IA **ya existen** pero **no están enchufados al canal del 
 4. **El porqué** de la sugerida.
 → El founder **aprueba o ajusta**, y se pasa a la siguiente.
 
-**Estado: ✅ FAQ 26/26 COMPLETO** (2026-06-08) — 21 base + **5 de cobertura ampliada** (#22 DDP/Financiamiento · #23 Aduana · #24 Cobertura entrega · #25 Qué importar · #26 Consolidado LCL), tras análisis de huecos vs sitio público + catálogo de servicios.
+**Estado: ✅ FAQ 27/27 COMPLETO** (2026-06-08) — 21 base + **6 de cobertura ampliada** (#22 DDP/Financiamiento · #23 Aduana · #24 Cobertura entrega · #25 Qué importar · #26 Consolidado LCL · #27 Aéreo suspendido), tras análisis de huecos vs sitio público + catálogo de servicios. ⚠️ Tarea pública aparte: quitar "courier aéreo" del sitio (aéreo suspendido).
 - **#7/#8 Validación/Verificación:** patrón captura-email + **link** de servicios de inspección con precios (página **stand by** → lo envía el asesor). Plantillas de reporte listas: **"Inspección de Producto (PSI)"** + **"Inspección de Fábrica (auditoría /100)"** (samples branded HTML en Downloads del founder).
 - **#9 Compra asistida:** **el proveedor lo pone DTD (red propia)** → el bot no revela contacto. Modelo comercial (margen/comisión/cobro) **pendiente de definir**.
 - **#10 Cursos:** "por ahora no hay, déjame tu correo" (lista de espera) → actualizar al lanzar.

@@ -200,12 +200,20 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 
 **Respuesta (aprobada · captura email):** ¡Hola! En el **consolidado marítimo (LCL)** tu carga viaja junto a la de otros importadores y **pagas solo por el volumen que ocupas (CBM)** — ideal cuando no llenas un contenedor. Y sí: **juntamos en nuestra bodega de Yiwu la mercancía de tus distintos proveedores** en un solo envío. Si tienes mucho volumen, te conviene un **contenedor completo (FCL)**; te orientamos al cotizar. Calcula tu CBM en **dtdcargo.com/calculadora** y déjame tu **correo** para armarte la opción. ¿Cuántos proveedores juntarías?
 
+### 27. Envío aéreo y muestras
+**Preguntas:** ¿Hacen envío aéreo? · ¿Pueden traerme una muestra por avión? · ¿Tienen courier aéreo? · ¿Envío rápido por avión? · ¿Cuánto cuesta el aéreo?
+
+**Respuesta (aprobada · captura email):** ¡Hola! Por ahora el **envío aéreo está suspendido** — trabajamos envíos **marítimos** (consolidado LCL y contenedor completo FCL). Apenas se reactive te avisamos: déjame tu **correo** y te escribo cuando vuelva el aéreo. Mientras, si tu carga puede ir por barco, te ayudo a cotizarla. ¿Te calculo el marítimo?
+
+> *Nota interna: aéreo **SUSPENDIDO** (founder 2026-06-08), captura email = lista de espera. ⚠️ El sitio público /servicios aún anuncia "courier aéreo de muestras" → desalineado: corregir en la web (tarea aparte).*
+
 ---
 
-### ✅ FAQ completo (26/26)
-Todas las secciones tienen respuesta aprobada (21 base + 5 de cobertura ampliada). Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
+### ✅ FAQ completo (27/27)
+Todas las secciones tienen respuesta aprobada (21 base + 6 de cobertura ampliada). Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
 
-**Huecos de menor prioridad — pendientes de decisión (NO redactados aún):** Reserva FCL (dedicada) · Seguro de carga (proactivo) · Documentos/requisitos de importación · servicios de nicho (registro de marca · visado chino · lab testing/permisología · etiquetado/Amazon FBA · almacenaje). ⚠️ **Contradicción a resolver:** el bot dice "aéreo desactivado" pero la web vende "courier aéreo de muestras". Confirmar también si **transporte terrestre** entra al FAQ.
+**Huecos de menor prioridad — pendientes de decisión (NO redactados aún):** Reserva FCL (dedicada) · Seguro de carga (proactivo) · Documentos/requisitos de importación · ¿**transporte terrestre** entra al FAQ? · servicios de nicho (registro de marca · visado chino · lab testing/permisología · etiquetado/Amazon FBA · almacenaje).
+**Tarea pública aparte:** quitar/marcar "courier aéreo" en el sitio (`app/servicios` + `lib/design-tokens.ts` SERVICES_CN) porque el aéreo está suspendido.
 
 ### Puntos de negocio pendientes de definir (no bloquean el FAQ)
 - **#7/#8 — link de inspección:** página web con menú de servicios + precios (tarifas) + muestra del reporte branded; **stand by** (mientras tanto lo envía el asesor). Plantillas listas: "Inspección de Producto (PSI)" + "Inspección de Fábrica".
