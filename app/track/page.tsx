@@ -8,12 +8,12 @@ import { TrackInput } from "@/components/TrackInput";
 export const metadata: Metadata = {
   title: "Rastrear envío",
   description:
-    "Ingresa tu BL, AWB o código DTDU y consulta el estado en tiempo real de tu envío DTD Cargo. Sin registro, sin fricción.",
+    "Ingresa tu BL o código DTDU y consulta el estado en tiempo real de tu envío DTD Cargo. Sin registro, sin fricción.",
   alternates: { canonical: "/track" },
   ...socialMeta({
     title: "Rastrear envío · DTD Cargo",
     description:
-      "Ingresa tu BL, AWB o código DTDU y consulta el estado en tiempo real de tu envío DTD Cargo. Sin registro, sin fricción.",
+      "Ingresa tu BL o código DTDU y consulta el estado en tiempo real de tu envío DTD Cargo. Sin registro, sin fricción.",
     path: "/track",
   }),
 };
@@ -43,7 +43,7 @@ export default function TrackPage() {
               className="text-[17px] leading-[1.55] mt-6 max-w-[48ch]"
               style={{ color: "rgba(255,255,255,0.7)" }}
             >
-              Ingresa tu BL (Bill of Lading), AWB (Air Waybill) o código DTDU.
+              Ingresa tu BL (Bill of Lading) o tu código DTDU.
               Eventos en tiempo real, sin registro, sin fricción.
             </p>
             <div className="mt-8">

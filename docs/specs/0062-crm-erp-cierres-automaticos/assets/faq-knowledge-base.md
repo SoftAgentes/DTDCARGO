@@ -203,9 +203,9 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 ### 27. Envío aéreo y muestras
 **Preguntas:** ¿Hacen envío aéreo? · ¿Pueden traerme una muestra por avión? · ¿Tienen courier aéreo? · ¿Envío rápido por avión? · ¿Cuánto cuesta el aéreo?
 
-**Respuesta (aprobada · captura email):** ¡Hola! Por ahora el **envío aéreo está suspendido** — trabajamos envíos **marítimos** (consolidado LCL y contenedor completo FCL). Apenas se reactive te avisamos: déjame tu **correo** y te escribo cuando vuelva el aéreo. Mientras, si tu carga puede ir por barco, te ayudo a cotizarla. ¿Te calculo el marítimo?
+**Respuesta (aprobada · captura email):** ¡Hola! Por ahora el **flete aéreo de carga está suspendido** — la carga va por vía **marítima** (consolidado LCL y contenedor completo FCL). Lo que **sí mantenemos activo** es el **courier express de muestras y documentos** pequeños (DHL/UPS/FedEx desde Yiwu): muestras pre-producción, documentos y lotes pequeños críticos — eso es paquetería urgente, **no carga aérea**. Apenas se reactive el aéreo de carga te avisamos: déjame tu **correo**. Y si tu carga puede ir por barco, te ayudo a cotizarla. ¿Te calculo el marítimo o necesitas enviar una muestra?
 
-> *Nota interna: aéreo **SUSPENDIDO** (founder 2026-06-08), captura email = lista de espera. ⚠️ El sitio público /servicios aún anuncia "courier aéreo de muestras" → desalineado: corregir en la web (tarea aparte).*
+> *Nota interna: flete aéreo de CARGA **SUSPENDIDO** (founder 2026-06-08); courier de muestras/documentos **ACTIVO**. Captura email = lista de espera del aéreo. ✅ Coherencia web RESUELTA (SDD-0063): la web ya distingue courier de muestras (activo) de carga aérea (suspendida) en `lib/design-tokens.ts` SERVICES_CN, `/servicios`, `public/llms.txt` y una FAQ nueva en `lib/faqs.ts`.*
 
 ### 28. Dirección para recibir compras de Alibaba / 1688
 **Preguntas:** ¿Cómo registro mi dirección para que mis paquetes lleguen por Alibaba u otra plataforma 1688? · ¿Qué dirección pongo en Alibaba / 1688 / Taobao? · ¿A dónde envío mis compras online de China? · ¿Cuál es la dirección de recepción de la bodega en China? · ¿Cómo le digo a mi proveedor a dónde enviar? · Dirección de entrega para mis pedidos de Alibaba
@@ -226,7 +226,7 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 Todas las secciones tienen respuesta aprobada (21 base + 7 de cobertura ampliada). Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
 
 **Huecos de menor prioridad — pendientes de decisión (NO redactados aún):** Reserva FCL (dedicada) · Seguro de carga (proactivo) · Documentos/requisitos de importación · ¿**transporte terrestre** entra al FAQ? · servicios de nicho (registro de marca · visado chino · lab testing/permisología · etiquetado/Amazon FBA · almacenaje).
-**Tarea pública aparte:** quitar/marcar "courier aéreo" en el sitio (`app/servicios` + `lib/design-tokens.ts` SERVICES_CN) porque el aéreo está suspendido.
+**Tarea pública aparte:** ✅ HECHA (SDD-0063, 2026-06-08). La web ya diferencia el courier de muestras/documentos (activo) del flete aéreo de carga (suspendido); el copy de `lib/design-tokens.ts` SERVICES_CN ya era correcto y se reforzó en `/servicios`, `public/llms.txt`, `/track` (se quitó AWB) y `lib/faqs.ts`. NO reabrir.
 
 ### Puntos de negocio pendientes de definir (no bloquean el FAQ)
 - **#7/#8 — link de inspección:** página web con menú de servicios + precios (tarifas) + muestra del reporte branded; **stand by** (mientras tanto lo envía el asesor). Plantillas listas: "Inspección de Producto (PSI)" + "Inspección de Fábrica".

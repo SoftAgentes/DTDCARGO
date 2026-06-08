@@ -21,7 +21,7 @@ import {
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
 const DESCRIPTION =
-  "Logística y trading puerta a puerta China–Venezuela desde 2010 (+15 años). Equipo propio en Yiwu y Valencia. Nuestra historia, misión y valores.";
+  "Logística y trading puerta a puerta China–Venezuela desde 2008. Equipo propio en Yiwu y Valencia. Nuestra historia, misión y valores.";
 
 export const metadata: Metadata = {
   title: "Sobre Nosotros",
@@ -154,7 +154,7 @@ export default function NosotrosPage() {
                 <p className="mt-4 text-[17px] leading-[1.6] text-grey-700">
                   Ser el referente en logística entre China y Venezuela: la forma
                   más confiable, económica y rápida de importar puerta a puerta.
-                  Con equipo propio en Yiwu y Valencia, +15 años de trayectoria y
+                  Con equipo propio en Yiwu y Valencia, trayectoria desde 2008 y
                   tecnología propia, hacemos que importar sea simple, transparente
                   y rentable.
                 </p>

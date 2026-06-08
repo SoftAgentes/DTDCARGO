@@ -113,7 +113,7 @@ export function EstimacionForm() {
       low: Math.round(base * 0.9),
       high: Math.round(base * 1.15),
       mid: Math.round(base),
-      days: "30-45 días",
+      days: "60-90 días puerta a puerta",
       calc: "maritimo",
       origen: String(payload.origen ?? ""),
       destino: String(payload.destino ?? ""),

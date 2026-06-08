@@ -157,10 +157,10 @@ export function CalculadoraForm({
               className="text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-ink"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
-              Cotizá tu carga China → Venezuela
+              Cotiza tu carga China → Venezuela
             </h2>
             <p className="mt-2.5 text-[14px] text-grey-700 leading-[1.5]">
-              Puerta a puerta, financiamiento 100%. Indicá tu volumen y peso y te
+              Puerta a puerta, financiamiento 100%. Indica tu volumen y peso y te
               damos un estimado al instante.
             </p>
           </div>

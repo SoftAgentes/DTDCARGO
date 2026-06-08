@@ -194,7 +194,7 @@ export default function InspeccionPage() {
             >
               Tres familias de servicios,{" "}
               <span style={{ color: "var(--color-wine)" }}>
-                según lo que necesités.
+                según lo que necesitas.
               </span>
             </h2>
             <p className="lead mt-5 max-w-[54ch]">
@@ -250,7 +250,7 @@ export default function InspeccionPage() {
                 Compra en China con confianza.
               </h2>
               <p className="mt-4 text-[15px] lg:text-[17px] leading-[1.5] text-white/80 max-w-[52ch] mx-auto">
-                Solicitá tu cotización de inspección hoy. Un asesor en español te
+                Solicita tu cotización de inspección hoy. Un asesor en español te
                 responde con los pasos y el costo de tu caso.
               </p>
               <div className="mt-7 flex justify-center">

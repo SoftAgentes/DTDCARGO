@@ -24,12 +24,12 @@ export const metadata: Metadata = {
     absolute: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",
   },
   description:
-    "Importá de China a Venezuela puerta a puerta: carga consolidada DDP, financiamiento 100% y entrega en tu ciudad. Cobertura nacional desde Valencia.",
+    "Importa de China a Venezuela puerta a puerta: carga consolidada DDP, financiamiento 100% y entrega en tu ciudad. Cobertura nacional desde Valencia.",
   alternates: { canonical: "/importar-de-china" },
   ...socialMeta({
     title: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",
     description:
-      "Cobertura nacional puerta a puerta de China a Venezuela. Elegí tu ciudad.",
+      "Cobertura nacional puerta a puerta de China a Venezuela. Elige tu ciudad.",
     path: "/importar-de-china",
   }),
 };
@@ -107,7 +107,7 @@ export default function ImportarHubPage() {
         {/* Grid de ciudades */}
         <section className="py-16 lg:py-20 bg-white">
           <div className="wrap max-w-[1000px]">
-            <span className="eyebrow">Elegí tu ciudad</span>
+            <span className="eyebrow">Elige tu ciudad</span>
             <h2 className="h-section mt-4">
               Entregamos en {zonas.length} ciudades de Venezuela.
             </h2>

@@ -71,7 +71,13 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿DTD Cargo tiene oficina propia en China y en Venezuela o es un intermediario?",
     respuesta:
-      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela), con más de 15 años operando. No somos un intermediario remoto: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
+      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela), operando desde 2008. No somos un intermediario remoto: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
+  },
+  {
+    pregunta:
+      "¿DTD Cargo hace envíos aéreos de China a Venezuela?",
+    respuesta:
+      "El flete aéreo de carga está temporalmente suspendido: hoy movemos la carga por vía marítima (consolidado LCL y contenedor completo FCL), siempre puerta a puerta. Lo que sí mantenemos activo es el courier express de muestras y documentos pequeños por DHL, UPS o FedEx desde Yiwu (muestras pre-producción, documentos y lotes pequeños críticos) — eso es paquetería urgente, no carga aérea. Si necesitas enviar una muestra o un documento, escríbenos por WhatsApp y lo coordinamos.",
   },
   {
     pregunta:

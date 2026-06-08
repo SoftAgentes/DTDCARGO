@@ -169,7 +169,7 @@ const DONTS = [
 ];
 
 const DOS = [
-  "Elegí la variante según el fondo (ver la tabla de arriba).",
+  "Elige la variante según el fondo (ver la tabla de arriba).",
   "Deja un clearspace de 2× la altura del trazo alrededor.",
   "Tamaño mínimo 24px de alto en digital.",
   "El wordmark “DTD Cargo” siempre en Archivo Black.",
@@ -269,7 +269,7 @@ export default function BrandPage() {
             <span className="eyebrow">El isólogo</span>
             <h2 className="h-section mt-4">4 variantes oficiales.</h2>
             <p className="lead mt-4">
-              Una por tipo de fondo. Elegí la que corresponde según el contraste
+              Una por tipo de fondo. Elige la que corresponde según el contraste
               — nunca recolorees el logo con filtros: ya existe la variante nativa.
             </p>
 

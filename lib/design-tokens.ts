@@ -3,8 +3,8 @@
  * + Brochure_DTD_Cargo_China_Venezuela.docx (contenido editorial).
  *
  * Estos tokens espejan 1:1 las CSS custom properties definidas en globals.css.
- * Úsalos desde TSX cuando necesités el valor (ej. estilos inline, props, etc.).
- * Para clases utilitarias, preferí los tokens de Tailwind (@theme en globals.css).
+ * Úsalos desde TSX cuando necesites el valor (ej. estilos inline, props, etc.).
+ * Para clases utilitarias, prefiere los tokens de Tailwind (@theme en globals.css).
  */
 
 export const DTD = {
@@ -258,7 +258,7 @@ export const SERVICES_CN: Service[] = [
   },
   {
     slug: "consolidacion-bodega-yiwu",
-    title: "Consolidación FCL en bodega propia",
+    title: "Consolidación en bodega propia (LCL/FCL)",
     subtitle: "Cuando consolidas varios proveedores",
     copy: "Tus proveedores chinos envían a nuestra bodega propia en Yiwu. Ahí inspeccionamos, etiquetamos y consolidamos todo en un solo contenedor (FCL) o en grupaje (LCL). Sale unificado, con un solo punto de contacto.",
     benefit: "Una sola carga desde múltiples proveedores",
@@ -293,7 +293,7 @@ export const SERVICES_CN: Service[] = [
   {
     slug: "lab-permisologia",
     title: "Lab testing y permisología en China",
-    copy: "Coordinamos pruebas de laboratorio (RoHS, CE, FDA, SGS) y gestión de permisos requeridos para exportación.",
+    copy: "Coordinamos pruebas de laboratorio (RoHS, CE, FDA y otros) y gestión de permisos requeridos para exportación.",
     benefit: "Certificación lista para destino",
     icon: "Shield",
     location: "cn",
@@ -309,8 +309,8 @@ export const SERVICES_CN: Service[] = [
   {
     slug: "compra-asistida",
     title: "Compra asistida",
-    copy: "Actuamos como tu departamento de compras en China: ubicación y negociación.",
-    benefit: "Ahorro de tiempo, acceso directo",
+    copy: "Actuamos como tu departamento de compras en China: ubicamos, negociamos y gestionamos la compra por ti.",
+    benefit: "Ahorro de tiempo, compras sin enredos",
     icon: "Cart",
     location: "cn",
   },
@@ -371,7 +371,7 @@ export const SERVICES_VE: Service[] = [
   {
     slug: "transito-aduana",
     title: "Tránsito de aduana y desaduanaje",
-    copy: "Coordinamos el paso de tu mercancía por aduana venezolana. Equipo local que conoce la normativa vigente para nacionalizar tu carga marítima.",
+    copy: "Bajo DDP nos encargamos del paso de tu carga por la aduana venezolana y de la nacionalización: la aduana y los impuestos ya van incluidos en tu precio, sin cobros sorpresa. Equipo local que conoce la normativa vigente.",
     benefit: "Nacionalización sin demoras",
     icon: "Shield",
     location: "ve",
@@ -642,7 +642,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     category: "documento",
     body: [
       "Documento legal emitido por la naviera que actúa como contrato de transporte, recibo de la mercancía y título de propiedad de la carga. Indica quién es el shipper (exportador), el consignee (destinatario), y describe la mercancía.",
-      "Quien tiene el BL original tiene el derecho a retirar la carga en destino, por eso es un documento crítico. Definí siempre con tu operador logístico a nombre de quién se emite el BL, según el tipo de envío.",
+      "Quien tiene el BL original tiene el derecho a retirar la carga en destino, por eso es un documento crítico. Define siempre con tu operador logístico a nombre de quién se emite el BL, según el tipo de envío.",
     ],
   },
   {
@@ -685,7 +685,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     acronym: "Estimated Time of Departure",
     category: "tracking",
     body: [
-      "Fecha estimada de salida del buque desde el puerto de origen (en nuestro corredor: Ningbo o Shanghai). Una vez confirmado el ETD, puedes calcular el tránsito típico de 30–40 días hasta Venezuela.",
+      "Fecha estimada de salida del buque desde el puerto de origen (en nuestro corredor: Ningbo o Shanghai). Una vez confirmado el ETD, la travesía marítima puerto a puerto suele tomar 30–40 días; el tránsito total puerta a puerta es mayor, porque también se suma el flete interno en China, la espera de la próxima salida (cada 15-21 días) y el despacho aduanero más el last-mile en Venezuela.",
     ],
   },
   {
@@ -708,8 +708,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
       "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu MARKBOX. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
     ],
     analogy: {
-      label: "Lo encontrás en",
-      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes MARKBOX, lo solicitás por WhatsApp.",
+      label: "Lo encuentras en",
+      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes MARKBOX, lo solicitas por WhatsApp.",
     },
   },
 
@@ -753,7 +753,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 // ──────────────────────────────────────────────────────────────────
 
 export const HERO = {
-  eyebrow: "Logística end-to-end · Desde 2010",
+  eyebrow: "Logística end-to-end · Desde 2008",
   /**
    * Tagline oficial v3.0 (mayo 2026). Fuente:
    *   docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html § 02
@@ -840,7 +840,7 @@ export const STATS = [
 export const STEPS: { n: string; title: string; copy: string; tag?: string }[] = [
   {
     n: "01",
-    title: "Cotizá por CBM",
+    title: "Cotiza por CBM",
     tag: "Puerta a puerta · DDP",
     copy: "Envíanos el link de Alibaba o la ficha. Te cotizamos por volumen (CBM), modalidad DDP: todo incluido. Estimación inicial en ~24h hábiles, sujeta a volumen y peso reales.",
   },
