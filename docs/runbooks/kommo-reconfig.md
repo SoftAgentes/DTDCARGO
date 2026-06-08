@@ -102,10 +102,9 @@ El conocimiento y la IA **ya existen** pero **no están enchufados al canal del 
 4. **El porqué** de la sugerida.
 → El founder **aprueba o ajusta**, y se pasa a la siguiente.
 
-**Estado (21 secciones):**
-- ✅ **Aprobadas y escritas (16):** #1-6 (Comercial), #11 Tracking, #12-15 (Empresa), #16-21 (Postventa).
-- ⏳ **#7 Validación · #8 Verificación · #9 Compra asistida** → borradores listos (de `lib/faqs.ts` / `lib/design-tokens.ts` / `app/servicios`, **precio diferido al asesor**); **esperan ajustes del founder** antes de escribir en el `.md`.
-  - **Duda abierta a resolver:** ¿el servicio lo hace **equipo propio en Yiwu** o la **empresa aliada** (la de los informes de inspección, cuidar sus logos)? Eso cambia el "lo hace gente nuestra, no un tercero".
-- ⏳ **#10 Cursos** → sin datos en el repo; el **founder traerá** temario · modalidad (online/presencial) · duración · precio · inscripción · próximas fechas.
+**Estado (21 secciones): ✅ FAQ 21/21 COMPLETO** (2026-06-08).
+- **#7/#8 Validación/Verificación:** patrón captura-email + **link** de servicios de inspección con precios (página **stand by** → lo envía el asesor). Plantillas de reporte listas: **"Inspección de Producto (PSI)"** + **"Inspección de Fábrica (auditoría /100)"** (samples branded HTML en Downloads del founder).
+- **#9 Compra asistida:** **el proveedor lo pone DTD (red propia)** → el bot no revela contacto. Modelo comercial (margen/comisión/cobro) **pendiente de definir**.
+- **#10 Cursos:** "por ahora no hay, déjame tu correo" (lista de espera) → actualizar al lanzar.
 
-**Siguiente paso (a las 6:00):** ajustar #7/#8/#9 + datos de #10 → reescribir → FAQ **21/21** → DOCX → re-subir a Kommo → extender el AI Agent (hoy solo Instagram) al **WhatsApp 8021** (lever #1).
+**Siguiente paso:** convertir el `.md` → **DOCX** → re-subir a Kommo (reemplaza el knowledge source de 20 secciones) → afinar el AI Agent (auto-guardar email + tono) → extenderlo de Instagram al **WhatsApp 8021** (lever #1). Pendientes de negocio (no bloquean): **link/web de inspección** + **modelo de compra asistida**.
