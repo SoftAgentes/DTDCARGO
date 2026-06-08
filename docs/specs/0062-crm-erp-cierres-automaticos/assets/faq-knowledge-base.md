@@ -207,10 +207,23 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 
 > *Nota interna: aéreo **SUSPENDIDO** (founder 2026-06-08), captura email = lista de espera. ⚠️ El sitio público /servicios aún anuncia "courier aéreo de muestras" → desalineado: corregir en la web (tarea aparte).*
 
+### 28. Dirección para recibir compras de Alibaba / 1688
+**Preguntas:** ¿Cómo registro mi dirección para que mis paquetes lleguen por Alibaba u otra plataforma 1688? · ¿Qué dirección pongo en Alibaba / 1688 / Taobao? · ¿A dónde envío mis compras online de China? · ¿Cuál es la dirección de recepción de la bodega en China? · ¿Cómo le digo a mi proveedor a dónde enviar? · Dirección de entrega para mis pedidos de Alibaba
+
+**Respuesta (aprobada · captura email):** ¡Hola! Para que tus compras de **Alibaba / 1688 / Taobao** lleguen a nuestra bodega en China, pon ESTA dirección como destino del pedido, con **tu código MARKBOX en el nombre del destinatario** (así sabemos que la caja es tuya):
+收货人 / Nombre: DTD Cargo - [tu MARKBOX]  (ej. DTD-1014)
+电话 / Teléfono: +86 180 0689 1419
+地址 / Dirección: 浙江省义乌市义乌港二期直通仓2栋2号货7-货11
+邮编 / Código postal: 322000
+仓库联系人 / Contacto de bodega: 小孙
+¿Aún no tienes tu MARKBOX? Regístrate gratis en dtdcargo.com/registro (te lo dan al instante) y déjame tu correo. ¿Te paso el enlace?
+
+> *Nota interna: dirección de recepción REAL para Alibaba/1688/Taobao (provista por founder 2026-06-08). El nombre del destinatario lleva el MARKBOX del cliente → necesita registrarse. ⚠️ Revisar coherencia con #4 "Cómo enviar a nuestra bodega" (hoy defiere la dirección completa al registro); el founder decidió darla abierta para el flujo Alibaba.*
+
 ---
 
-### ✅ FAQ completo (27/27)
-Todas las secciones tienen respuesta aprobada (21 base + 6 de cobertura ampliada). Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
+### ✅ FAQ completo (28/28)
+Todas las secciones tienen respuesta aprobada (21 base + 7 de cobertura ampliada). Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
 
 **Huecos de menor prioridad — pendientes de decisión (NO redactados aún):** Reserva FCL (dedicada) · Seguro de carga (proactivo) · Documentos/requisitos de importación · ¿**transporte terrestre** entra al FAQ? · servicios de nicho (registro de marca · visado chino · lab testing/permisología · etiquetado/Amazon FBA · almacenaje).
 **Tarea pública aparte:** quitar/marcar "courier aéreo" en el sitio (`app/servicios` + `lib/design-tokens.ts` SERVICES_CN) porque el aéreo está suspendido.
