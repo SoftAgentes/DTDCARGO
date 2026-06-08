@@ -161,9 +161,10 @@ export const CONTACT = {
     url: "https://www.instagram.com/doortudoor_",
   },
   youtube: {
-    // Handle YouTube SIN guion bajo (distinto al de Instagram). Verificado 200.
+    // sameAs usa la URL por ID del canal (PERMANENTE) — sobrevive a renombres de
+    // nombre y de handle. ID verificado 200 (canal "DoorTuDoor" → "DTD Cargo").
     handle: "@doortudoor",
-    url: "https://www.youtube.com/@doortudoor",
+    url: "https://www.youtube.com/channel/UCzUeKxFb47h5yImw5xiJ-gg",
   },
   // Email general (fuente brochure)
   emailGeneral: "info@dtdcargo.com",
