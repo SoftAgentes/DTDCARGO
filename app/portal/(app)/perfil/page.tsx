@@ -6,10 +6,10 @@ import {
 } from "@/lib/portal/portal-queries";
 import { ProfileForm } from "./ProfileForm";
 
-export const metadata: Metadata = { title: "Completá tu perfil" };
+export const metadata: Metadata = { title: "Completa tu perfil" };
 
 /**
- * "Completá tu perfil" (REGISTRO EXPRESS · founder 2026-06-07). El alta express
+ * "Completa tu perfil" (REGISTRO EXPRESS · founder 2026-06-07). El alta express
  * difiere la foto de cédula + la dirección de entrega; acá el cliente las completa.
  * Se piden antes de la 1ª compra (el asesor revisa la foto antes de operar).
  *
@@ -28,7 +28,7 @@ export default async function PortalProfilePage() {
     <div>
       <span className="eyebrow">Tu cuenta</span>
       <h1 className="h-display mt-3" style={{ fontSize: "clamp(30px, 4.5vw, 48px)" }}>
-        Completá tu perfil.
+        Completa tu perfil.
       </h1>
       <p className="lead mt-3 max-w-[60ch]">
         Para tu primera compra necesitamos dos cosas: la foto de tu cédula o RIF (para

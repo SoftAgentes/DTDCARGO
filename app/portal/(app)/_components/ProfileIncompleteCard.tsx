@@ -28,7 +28,7 @@ export function ProfileIncompleteCard({
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
         <div className="min-w-0">
           <div className="text-[11px] font-bold tracking-[0.14em] uppercase" style={{ color: "var(--color-status-warning)" }}>
-            Completá tu perfil
+            Completa tu perfil
           </div>
           <p className="mt-1.5 text-[14px] text-grey-700 leading-[1.55]">
             Antes de tu primera compra necesitamos {missingText}. Te toma un par de

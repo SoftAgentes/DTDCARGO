@@ -26,7 +26,7 @@ export default async function PortalShipmentsPage() {
         Mis envíos.
       </h1>
       <p className="lead mt-3">
-        Seguí el estado de tus cargas en tiempo real. Para cambios o dudas,
+        Sigue el estado de tus cargas en tiempo real. Para cambios o dudas,
         escríbele a tu asesor por WhatsApp.
       </p>
 

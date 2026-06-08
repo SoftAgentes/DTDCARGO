@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowIcon, CheckIcon, ShieldIcon, TruckIcon } from "@/components/Icon";
+import { CONTACT } from "@/lib/design-tokens";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
@@ -27,8 +28,10 @@ const prealertaInitial: PrealertaActionState = {};
  */
 export function SuppliersClient({
   suppliers,
+  markbox,
 }: {
   suppliers: SupplierView[];
+  markbox: string;
 }) {
   // Modal "Nueva compra" — null cerrado; objeto = proveedor preseleccionado (o vacío).
   const [purchaseFor, setPurchaseFor] = useState<SupplierView | null | "new">(
@@ -51,9 +54,9 @@ export function SuppliersClient({
           <p className="lead mt-3 max-w-[64ch]">
             Cada <strong className="text-ink">compra</strong> es una{" "}
             <strong className="text-wine">prealerta</strong>: nos avisas que viene
-            mercancía de China para esperarla y procesarla más rápido. Generá el
-            código y las etiquetas para tus proveedores, o re-comprale a uno que ya
-            tengas.
+            mercancía de China para esperarla y procesarla más rápido. Genera el
+            código y las etiquetas para tus proveedores, o vuelve a comprarle a uno
+            que ya tengas.
           </p>
         </div>
         <button
@@ -71,7 +74,7 @@ export function SuppliersClient({
           Por qué registrar a tu proveedor importa
         </div>
         <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[70ch]">
-          En comercio internacional, cómo gestionás tu información define qué tan
+          En comercio internacional, cómo gestionas tu información define qué tan
           rápido y seguro llega tu mercancía.
         </p>
         <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -103,10 +106,13 @@ export function SuppliersClient({
           <CheckIcon size={13} />
         </span>
         <p className="text-[13px] text-grey-700 leading-[1.5]">
-          Copiá el código y enviáselo SOLO al proveedor — a nosotros nos llega
+          Copia el código y envíaselo SOLO al proveedor — a nosotros nos llega
           automático al registrarlo.
         </p>
       </div>
+
+      {/* ── Dirección de nuestra bodega CN para tus proveedores (copy-paste) ── */}
+      <WarehouseAddressCard markbox={markbox} />
 
       {/* ── Lista de proveedores ── */}
       {suppliers.length === 0 ? (
@@ -115,7 +121,7 @@ export function SuppliersClient({
             Todavía no registraste proveedores.
           </div>
           <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
-            Agregá tu primer proveedor chino para generar su código y las
+            Agrega tu primer proveedor chino para generar su código y las
             etiquetas que va a pegar en cada caja.
           </p>
         </div>
@@ -167,6 +173,58 @@ export function SuppliersClient({
           onClose={() => setPurchaseFor(null)}
         />
       )}
+    </div>
+  );
+}
+
+// ── Dirección de la bodega en China (copy-paste, con el MARKBOX del cliente) ──
+function WarehouseAddressCard({ markbox }: { markbox: string }) {
+  const [copied, setCopied] = useState(false);
+  const cn = CONTACT.cn;
+  // El MARKBOX va en el nombre → así la bodega identifica de quién es la caja.
+  const text = [
+    `收货人 / Nombre: DTD Cargo - ${markbox}`,
+    `电话 / Teléfono: ${cn.phone}`,
+    `地址 / Dirección: 浙江省${cn.addressCjk}`,
+    `邮编 / Código postal: ${cn.postalCode}`,
+    `仓库联系人: ${cn.contactPersonCjk}`,
+  ].join("\n");
+
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard no disponible (contexto no seguro): el texto igual está visible
+      // para copiar a mano.
+    }
+  }
+
+  return (
+    <div className="mt-5 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-7">
+      <div className="text-[15px] font-bold text-ink">
+        Dirección de nuestra bodega en China
+      </div>
+      <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[70ch]">
+        Dásela a tu proveedor — o cárgala en Alibaba como dirección de recepción —
+        para que tu mercancía llegue a nuestra bodega en Yiwu. Tu MARKBOX ya va en
+        el nombre: es lo que nos deja saber que la caja es tuya.
+      </p>
+      <pre
+        className="mt-4 rounded-[12px] bg-grey-100 px-4 py-3.5 text-[12.5px] text-ink leading-[1.7] whitespace-pre-wrap break-words"
+        style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+      >
+        {text}
+      </pre>
+      <button
+        type="button"
+        onClick={copy}
+        className="btn btn-primary mt-3 inline-flex items-center gap-2"
+      >
+        {copied ? "¡Copiado!" : "Copiar dirección"}
+        {copied && <CheckIcon size={15} />}
+      </button>
     </div>
   );
 }
@@ -352,7 +410,7 @@ function NewPurchaseModal({
           <div>
             <div className="eyebrow">Nueva compra</div>
             <div className="mt-1 text-[18px] font-bold text-ink">
-              {done ? "Compra registrada" : "Registrá tu compra"}
+              {done ? "Compra registrada" : "Registra tu compra"}
             </div>
           </div>
           <button
@@ -543,7 +601,7 @@ function PurchaseDone({ code, onClose }: { code: string; onClose: () => void }) 
           Tu compra quedó registrada.
         </div>
         <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[40ch]">
-          Este es el código de tu compra. Generá las etiquetas y enviáselas a tu
+          Este es el código de tu compra. Genera las etiquetas y envíaselas a tu
           proveedor para que las pegue en cada caja.
         </p>
       </div>

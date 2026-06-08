@@ -80,7 +80,7 @@ describe("validatePhotoFile — foto de identidad", () => {
   it("rechaza si no hay archivo", () => {
     expect(validatePhotoFile(null)).toEqual({
       ok: false,
-      error: expect.stringMatching(/subí la foto/i),
+      error: expect.stringMatching(/sube la foto/i),
     });
   });
 

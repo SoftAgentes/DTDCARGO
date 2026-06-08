@@ -41,7 +41,7 @@ export default async function PortalPurchasesPage() {
             Mis compras.
           </h1>
           <p className="lead mt-3 max-w-[60ch]">
-            Cada compra que registrás nos avisa que viene mercancía de China. Acá
+            Cada compra que registras nos avisa que viene mercancía de China. Acá
             ves el estado de todas y vuelves a generar sus etiquetas.
           </p>
         </div>
@@ -59,7 +59,7 @@ export default async function PortalPurchasesPage() {
             Todavía no registraste compras.
           </div>
           <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
-            Registrá tu primera compra desde Tus proveedores para obtener su
+            Registra tu primera compra desde Tus proveedores para obtener su
             código y las etiquetas.
           </p>
           <Link

@@ -51,5 +51,5 @@ export default async function PortalSuppliersPage() {
     orderCountBySupplierId,
   );
 
-  return <SuppliersClient suppliers={views} />;
+  return <SuppliersClient suppliers={views} markbox={client.markbox} />;
 }

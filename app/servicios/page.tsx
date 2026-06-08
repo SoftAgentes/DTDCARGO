@@ -146,7 +146,7 @@ export default function ServiciosPage() {
                     className="mt-4 text-[26px] lg:text-[36px] leading-[1.08] tracking-[-0.01em] text-white"
                     style={{ fontFamily: "var(--font-archivo-black)" }}
                   >
-                    Verificá tu mercancía en la fábrica,
+                    Verifica tu mercancía en la fábrica,
                     <br />
                     <span className="text-wine-soft">antes de embarcar.</span>
                   </h2>

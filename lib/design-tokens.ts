@@ -67,7 +67,7 @@ export const SHADOWS = {
  *   docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html
  *   docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md
  *
- * El isólogo oficial v3.0 tiene 4 variantes según el fondo. Usá `<BrandMark>`
+ * El isólogo oficial v3.0 tiene 4 variantes según el fondo. Usa `<BrandMark>`
  * desde `components/BrandMark.tsx` que abstrae la selección de variante.
  */
 export const BRAND_ASSETS = {
@@ -550,7 +550,7 @@ export type GlossaryTerm = {
   category: GlossaryCategory;
   /** Párrafos del cuerpo del entry. Soporta `<b>` inline para énfasis. */
   body: string[];
-  /** Callout opcional "Cómo lo vivís" / "Por qué importa" / "Ejemplo real" */
+  /** Callout opcional "Cómo lo vives" / "Por qué importa" / "Ejemplo real" */
   analogy?: { label: string; text: string };
 };
 

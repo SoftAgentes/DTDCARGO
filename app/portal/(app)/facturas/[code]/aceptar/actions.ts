@@ -65,7 +65,7 @@ export async function registerAcceptanceAction(
   try {
     admin = createAdminClient();
   } catch {
-    return { error: "No pudimos procesar la aceptación ahora. Probá de nuevo en un rato." };
+    return { error: "No pudimos procesar la aceptación ahora. Prueba de nuevo en un rato." };
   }
 
   // 2. tenant_id del cliente + la factura borrador DDP + medida del shipment.
@@ -127,7 +127,7 @@ export async function registerAcceptanceAction(
   if (accepted !== "on" && accepted !== "true") {
     return {
       fieldError:
-        "Tienes que marcar la casilla para confirmar que aceptás los términos.",
+        "Tienes que marcar la casilla para confirmar que aceptas los términos.",
     };
   }
 
@@ -181,7 +181,7 @@ export async function registerAcceptanceAction(
       { p_tenant: tenantId },
     );
     if (codeErr || !codeData) {
-      return { error: "No pudimos generar el acuse. Probá de nuevo." };
+      return { error: "No pudimos generar el acuse. Prueba de nuevo." };
     }
     const acceptanceCode = String(codeData);
 
@@ -224,11 +224,11 @@ export async function registerAcceptanceAction(
       continue;
     }
 
-    return { error: "No pudimos registrar la aceptación. Probá de nuevo." };
+    return { error: "No pudimos registrar la aceptación. Prueba de nuevo." };
   }
 
   // Agotados los reintentos del correlativo: probable carrera transitoria.
-  return { error: "No pudimos registrar la aceptación ahora. Probá de nuevo en un rato." };
+  return { error: "No pudimos registrar la aceptación ahora. Prueba de nuevo en un rato." };
 }
 
 /** Revalida las rutas del portal afectadas por una aceptación nueva. */

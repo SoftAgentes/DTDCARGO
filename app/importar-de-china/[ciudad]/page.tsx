@@ -131,7 +131,7 @@ export default async function ImportarCiudadPage({
             <h2 className="h-section mt-4">De China a {z.ciudad}, con confianza.</h2>
             <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-5">
               {[
-                { t: "Financiamiento 100%", d: "Pagás cuando tu carga llega a Venezuela, no por adelantado." },
+                { t: "Financiamiento 100%", d: "Pagas cuando tu carga llega a Venezuela, no por adelantado." },
                 { t: "Inspección en fábrica", d: "Verificamos tu mercancía en China antes de embarcar. Cero estafas." },
                 { t: "Equipo y bodega propios", d: "Operación propia en Yiwu y Valencia. No somos un intermediario remoto." },
                 { t: "Un solo punto de contacto", d: `Una persona coordina todo tu envío hasta ${z.ciudad}.` },
