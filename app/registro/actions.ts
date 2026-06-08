@@ -5,10 +5,10 @@
  *
  * El cliente se da de alta SOLO (sin invitación admin): MARKBOX al instante +
  * cuenta de auth (login = MARKBOX + contraseña, contraseña inicial = cédula/RIF).
- * La cuenta nace PENDIENTE (sin `portal_approved_at`) → el gate de activación de
- * la Fase 5 le muestra PortalPending hasta que un asesor la apruebe o llegue su
- * primera carga (regla founder). El cliente puede entrar y ver su MARKBOX, pero
- * no el dashboard.
+ * La cuenta nace ACTIVA (`portal_approved_at = now`, founder 2026-06-07 · SDD-0059):
+ * el cliente entra directo al portal con su MARKBOX, sin pantalla de espera. La
+ * verificación de identidad (foto + revisión manual del asesor, SDD-0046) corre
+ * aparte y NO bloquea el acceso.
  *
  * Anti-abuso (SDD-0042 §10): el endpoint es público (registrante anónimo), así
  * que ANTES del trabajo pesado hay dos capas gratis (sin keys):
@@ -24,7 +24,7 @@
  *   3. resolver el tenant operativo de DTD
  *   4. rpc next_markbox → MARKBOX atómico
  *   5. subir la foto de cédula/RIF a Storage privado (bucket client-docs)
- *   6. insert clients PENDIENTE (sin portal_approved_at, tier 'regular', cedula_photo_path)
+ *   6. insert clients ACTIVO (portal_approved_at = now, tier 'regular', cedula_photo_path)
  *   7. auth.admin.createUser({ email, password: <documento>, email_confirm: true })
  *   8. insert client_users (auth_user_id, status 'active', email)
  *   9. welcome email SIN la clave (reusa sendWelcomeEmail · template welcome_markbox)
@@ -37,6 +37,7 @@
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
+import { notifyNewClientToAdmin } from "@/lib/studio/new-client-notify";
 import { validateMarkboxFormat } from "@/lib/studio/markbox-utils";
 import {
   linkEstimateByCode,
@@ -232,8 +233,8 @@ export async function registerClientAction(
     return { error: "No pudimos guardar tu foto de identidad. Probá de nuevo." };
   }
 
-  // 6. Insert del cliente PENDIENTE (sin portal_approved_at → gate Fase 5 activo;
-  //    tier regular, foto).
+  // 6. Insert del cliente ACTIVO (portal_approved_at = now → sin pantalla de
+  //    espera; tier regular, foto).
   const { data: clientRow, error: clientErr } = await admin
     .from("clients")
     .insert({
@@ -252,9 +253,11 @@ export async function registerClientAction(
       // El self-registro siempre es canal 'portal'; doc_kind viene del form.
       registration_channel: "portal",
       doc_kind: input.kind,
-      // SIN portal_approved_at: la cuenta nace PENDIENTE → el gate de activación
-      // (Fase 5) muestra PortalPending hasta que un asesor la apruebe o llegue la
-      // 1ª carga. getPortalActivation() resuelve null → no activada (regla founder).
+      // Cuenta ACTIVA al registrar (founder 2026-06-07 · SDD-0059): el cliente
+      // entra directo al portal, sin pantalla de espera. getPortalActivation() ve
+      // portal_approved_at != null → activada. La revisión de identidad (foto +
+      // asesor, SDD-0046) corre aparte y NO bloquea el acceso.
+      portal_approved_at: new Date().toISOString(),
       notes:
         input.kind === "empresa"
           ? `Contacto: ${input.name}${input.officePhone ? ` · Tel. oficina: ${input.officePhone}` : ""}`
@@ -346,18 +349,35 @@ export async function registerClientAction(
     console.error("[registerClientAction] insert client_users error:", linkErr);
   }
 
-  // 9. Email de bienvenida SIN la clave (template welcome_markbox: solo markbox +
-  //    link al portal). Best-effort.
+  // 9. Email de bienvenida al CLIENTE con su MARKBOX (SIN la clave; template
+  //    welcome_markbox). Envío real vía Resend (SDD-0059). Best-effort.
+  //    Saluda con la razón social si es empresa (= el nombre con el que queda el
+  //    cliente en el sistema), si no con el nombre de la persona.
   let warning: string | undefined;
   const welcome = await sendWelcomeEmail(admin, tenantId, {
     markbox,
-    name: input.name,
+    name: input.company ?? input.name,
     email: input.email,
   });
   if (!welcome.ok) {
-    warning = "Cuenta creada. El email de bienvenida no se pudo encolar.";
+    warning = "Cuenta creada. El email de bienvenida no se pudo enviar.";
     console.warn("[registerClientAction] welcome email failed:", welcome.error);
   }
+
+  // 10. Aviso interno al EQUIPO: entró un cliente nuevo (SDD-0059). Best-effort —
+  //     no rompe el alta ni depende del welcome. Solo en el alta self-service:
+  //     el alta admin la inicia un humano que ya conoce al cliente.
+  await notifyNewClientToAdmin(admin, tenantId, {
+    markbox,
+    name: input.company ?? input.name,
+    contactName: input.kind === "empresa" ? input.name : null,
+    document: input.document,
+    email: input.email,
+    whatsapp: input.whatsapp,
+    city: input.city,
+    state: input.state,
+    channel: "portal",
+  });
 
   return { ok: true, markbox, warning };
 }
