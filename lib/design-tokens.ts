@@ -141,7 +141,7 @@ export function buildGoogleMapsLink(fullAddress: string): string {
 
 export const CONTACT = {
   // String de marca para el footer (NO es la razón social legal)
-  legalName: "DTD CARGO · Doortudoor Services",
+  legalName: "DTD Cargo · DoorTuDoor Services",
   // Nombre público limpio para schema.org (name / knowledge graph)
   brandName: "DTD Cargo",
   /**
@@ -270,7 +270,7 @@ export const SERVICES_CN: Service[] = [
     slug: "chequeo-etiquetado",
     title: "Inspección y etiquetado de mercancía",
     copy: "Verificación física contra ficha técnica antes del embarque, más etiquetado y marcado según requerimientos del cliente o normativa de destino.",
-    benefit: "Cero sorpresas a destino",
+    benefit: "Menos imprevistos a destino",
     icon: "Check",
     location: "cn",
   },
@@ -348,7 +348,7 @@ export const SERVICES_VE: Service[] = [
     slug: "visado-chino",
     title: "Gestión de trámites de visado chino",
     copy: "Asesoría documental, diligencia de formularios, coordinación con consulado y toma de fotografía en nuestras oficinas. Todo el trámite desde Valencia, no necesitas ir a China.",
-    benefit: "Cero burocracia para ti",
+    benefit: "Sin que tengas que lidiar con el papeleo",
     icon: "Passport",
     location: "ve",
   },
@@ -618,7 +618,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     ],
     analogy: {
       label: "Por qué importa",
-      text: "En otros esquemas (pago contra entrega), la aduana te cobra de más en destino y te llevas el susto. Con nosotros, lo que cotizamos es lo que pagas — todo incluido, sin sorpresas en el puerto.",
+      text: "En otros esquemas (pago contra entrega), la aduana te cobra de más en destino y te llevas el susto. Con nosotros, lo que cotizamos es lo que pagas — todo incluido, con menos imprevistos en el puerto.",
     },
   },
 
@@ -753,32 +753,33 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 // ──────────────────────────────────────────────────────────────────
 
 export const HERO = {
-  eyebrow: "Logística end-to-end · Desde 2008",
   /**
-   * Tagline oficial v3.0 (mayo 2026). Fuente:
-   *   docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html § 02
+   * Kicker = tagline oficial v3.0 (mayo 2026) "Con confianza, de China a tu
+   * puerta.". SDD-0064 (decisión founder 2026-06-08): el tagline pasa de H1 a
+   * KICKER y el H1 ahora es de ACCIÓN ("Importa desde China hasta tu puerta"),
+   * para claridad + SEO + conversión, dejando "DDP" como aclaración secundaria.
    *
-   * Antes (v2.x): "De China a tu puerta. Sin intermediarios."
-   * Ahora (v3.0): "Con confianza, / de China a tu puerta."
-   *
-   * Por qué cambió (del brand book): "antepone el valor diferencial (confianza,
-   * construida cliente a cliente) antes que la promesa funcional. La voz pasa
-   * de transaccional a relacional, sin perder claridad."
-   *
-   * Layout: 2 líneas (NO hay 3ra "kicker"). Primera línea en wine, segunda
-   * en color default (ink/navy).
+   * BRAND-EXCEPTION: BRAND.md define el tagline como el H1 del hero. Acá se
+   * conserva el tagline pero como kicker (no como H1) — autorizado por el
+   * founder el 2026-06-08 (regla estratégica: "el cliente entiende puerta a
+   * puerta; DDP es la metodología técnica que lo hace posible").
    */
-  headline: [
-    { text: "Con confianza,", accent: "wine" as const },
-    { text: "de China a tu puerta.", accent: null },
-  ],
+  kicker: { accent: "Con confianza,", rest: "de China a tu puerta." },
+  /** H1 de acción. `accent` se renderiza en wine. */
+  title: {
+    lead: "Importa desde China",
+    accent: "hasta tu puerta en Venezuela.",
+  },
+  subtitle:
+    "Coordinamos recepción, inspección, consolidación, aduana, impuestos y entrega final — con un solo equipo responsable.",
+  /** Microcopy bajo el cotizador: lidera "puerta a puerta", DDP como aclaración. */
+  microcopy:
+    "Servicio puerta a puerta con aduana e impuestos gestionados según cotización (modalidad DDP).",
   /**
    * Sub-claim (voz interna · filosofía operativa). NO se renderiza en el hero;
    * se usa en footer y otros copy secundarios donde aplique.
    */
   subClaim: "Construyendo confianza cliente a cliente, contenedor a contenedor.",
-  subtitle:
-    "Carga suelta DDP puerta a puerta, agente de compra en territorio, registro de marca y visa de negocios. Tu operación China-LATAM con un único punto de contacto.",
   search: {
     originPlaceholder: "Origen — país, ciudad o fábrica",
     originDefault: "China",
@@ -786,10 +787,13 @@ export const HERO = {
     destDefault: "Venezuela",
     cta: "Cotizar por WhatsApp",
   },
-  /** 3 trust marks debajo del cotizador */
+  /**
+   * Beneficios para clientes de VOLUMEN. SDD-0064: salen del hero/barra de
+   * confianza → van en una sección comercial de volumen (Fase posterior).
+   */
   trustMarks: [
     "Tarifa mejorada por +10 CBM",
-    "Inspección gratis +20 CBM",
+    "Inspección sin costo +20 CBM",
     "Equipo propio en Yiwu & Valencia",
   ],
   /** Badge circular sobre el contenedor — "360°" = cobertura, no rotación literal */
@@ -958,9 +962,9 @@ export const YIWU_ADVANTAGES: YiwuAdvantage[] = [
   },
   {
     title: "Precios directos de fábrica",
-    copy: "Proximidad a fabricantes y clusters de producción. Eliminamos intermediarios y garantizamos márgenes competitivos.",
-    metric: "0",
-    metricLabel: "intermediarios",
+    copy: "Proximidad a fabricantes y clusters de producción. Comprar en el origen ayuda a conseguir mejores precios.",
+    metric: "Origen",
+    metricLabel: "precio de fábrica",
   },
   {
     title: "Flexibilidad de volumen",

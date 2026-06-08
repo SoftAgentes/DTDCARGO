@@ -27,12 +27,12 @@ import {
 export const metadata: Metadata = {
   title: "Brochure",
   description:
-    "Carga consolidada DDP puerta a puerta China → Venezuela. 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
+    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
     title: "Brochure · DTD Cargo",
     description:
-      "Carga consolidada DDP puerta a puerta China → Venezuela. 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
+      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
     path: "/brochure",
   }),
 };
@@ -44,15 +44,15 @@ const WA_COTIZAR = buildWhatsAppLink(
 const WHY = [
   {
     t: "Financiamiento 100%",
-    d: "Pagas cuando tu carga llega a Venezuela. Sin adelantar todo.",
+    d: "Con Financiamiento 100% pagas cuando tu carga llega a Venezuela, sujeto a aprobación.",
   },
   {
     t: "Equipo y bodega propios",
-    d: "Oficinas en Yiwu (China) y Valencia. No somos un intermediario remoto.",
+    d: "Oficinas en Yiwu (China) y Valencia: operación propia en ambos extremos.",
   },
   {
     t: "Inspección en fábrica",
-    d: "Verificamos tu mercancía antes de embarcar. Cero estafas.",
+    d: "Verificamos tu mercancía antes de embarcar para reducir el riesgo de fraude.",
   },
   {
     t: "Un solo punto de contacto",
@@ -78,8 +78,9 @@ export default function BrochurePage() {
               de China a tu puerta.
             </h1>
             <p className="lead mt-6" style={{ fontSize: "19px" }}>
-              Carga consolidada DDP puerta a puerta entre China y Venezuela.
-              Todo incluido — y pagas cuando llega a Venezuela.
+              Carga consolidada puerta a puerta entre China y Venezuela, todo
+              incluido (DDP). Y con Financiamiento 100% pagas cuando llega a
+              Venezuela (sujeto a aprobación).
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a

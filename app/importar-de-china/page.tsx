@@ -74,7 +74,7 @@ export default function ImportarHubPage() {
         {/* Hero */}
         <section className="py-16 lg:py-24 bg-paper">
           <div className="wrap max-w-[920px]">
-            <span className="eyebrow">Cobertura nacional · DDP puerta a puerta</span>
+            <span className="eyebrow">Cobertura nacional · Puerta a puerta</span>
             <h1
               className="h-display mt-5"
               style={{ fontSize: "clamp(34px, 5.5vw, 68px)" }}
@@ -84,7 +84,8 @@ export default function ImportarHubPage() {
             <p className="lead mt-6 max-w-[60ch]">
               Traemos tu carga consolidada de China puerta a puerta a todo el
               país: flete, aduana e impuestos incluidos (DDP), financiamiento
-              100% —pagas cuando llega— y entrega coordinada hasta tu ciudad.
+              100% sujeto a aprobación —pagas cuando llega— y entrega coordinada
+              hasta tu ciudad.
               Todo sale de nuestra bodega propia en Valencia, donde recibimos la
               mercancía desde Yiwu.
             </p>

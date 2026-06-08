@@ -140,7 +140,7 @@ export async function registerClientAction(
     .limit(1)
     .maybeSingle<{ id: string }>();
   if (tenantErr || !tenantRow?.id) {
-    return { error: "No pudimos resolver tu cuenta. Contactá a tu asesor." };
+    return { error: "No pudimos resolver tu cuenta. Contacta a tu asesor." };
   }
   const tenantId = tenantRow.id;
 

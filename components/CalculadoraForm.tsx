@@ -147,7 +147,7 @@ export function CalculadoraForm({
               <span className="text-ink">Cargo</span>
             </span>
             <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
-              Calculadora LCL DDP
+              Calculadora puerta a puerta
             </span>
           </div>
 
@@ -160,8 +160,8 @@ export function CalculadoraForm({
               Cotiza tu carga China → Venezuela
             </h2>
             <p className="mt-2.5 text-[14px] text-grey-700 leading-[1.5]">
-              Puerta a puerta, financiamiento 100%. Indica tu volumen y peso y te
-              damos un estimado al instante.
+              Puerta a puerta, financiamiento 100% (sujeto a aprobación). Indica
+              tu volumen y peso y te damos un estimado al instante.
             </p>
           </div>
 

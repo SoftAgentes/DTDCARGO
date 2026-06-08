@@ -16,8 +16,8 @@
 - Seguimiento de cada envío mediante un código de cliente propio (MARKBOX / shipping mark "DTD-…").
 
 ## Diferenciadores
-- Financiamiento 100%: el cliente paga cuando la carga llega a Venezuela, no por adelantado.
-- Operación propia en ambos extremos: oficina y bodega en Yiwu (Zhejiang, China) y en Valencia (Carabobo, Venezuela). No es un intermediario remoto.
+- Financiamiento 100% (sujeto a aprobación): el cliente paga cuando la carga llega a Venezuela, no por adelantado.
+- Operación propia en ambos extremos: oficina y bodega en Yiwu (Zhejiang, China) y en Valencia (Carabobo, Venezuela). Un solo equipo responde por la carga de punta a punta.
 - Un solo punto de contacto coordina todo el envío de principio a fin.
 - Más de 15 años de trayectoria (operando desde 2008).
 

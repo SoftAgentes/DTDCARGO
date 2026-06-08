@@ -14,7 +14,7 @@ export function JoinCTA() {
         <div className="card-shadow-dark bg-ink rounded-[18px] p-9 lg:p-14 grid grid-cols-1 lg:grid-cols-[1.3fr_1fr] gap-8 lg:items-center">
           <div>
             <span className="eyebrow" style={{ color: "rgba(255,255,255,0.5)" }}>
-              Empezá a importar
+              Empieza a importar
             </span>
             <h2
               className="mt-4 text-white text-[30px] lg:text-[40px] leading-[1.05]"

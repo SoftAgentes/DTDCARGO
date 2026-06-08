@@ -9,12 +9,12 @@ import { EstimacionForm } from "@/components/EstimacionForm";
 export const metadata: Metadata = {
   title: "Estimación inicial",
   description:
-    "Estimación inicial DDP en ~24h hábiles. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
+    "Estimación inicial puerta a puerta en ~24h hábiles. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido —flete, aduana e impuestos (DDP)— sujeta a medidas reales.",
   alternates: { canonical: "/estimacion" },
   ...socialMeta({
     title: "Estimación inicial · DTD Cargo",
     description:
-      "Estimación inicial DDP en ~24h hábiles. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido (sujeta a medidas reales).",
+      "Estimación inicial puerta a puerta en ~24h hábiles. Ingresa origen, destino, peso y volumen y te devolvemos una estimación con todo incluido —flete, aduana e impuestos (DDP)— sujeta a medidas reales.",
     path: "/estimacion",
   }),
 };
@@ -42,9 +42,9 @@ export default function EstimacionPage() {
               <span style={{ color: "var(--color-wine)" }}>en ~24h hábiles.</span>
             </h1>
             <p className="lead mt-6">
-              Recibe una estimación DDP con flete, aduana, impuestos y entrega
-              incluidos. El precio final lo confirma tu asesor según el volumen
-              y peso reales.
+              Recibe una estimación puerta a puerta con flete, aduana, impuestos
+              y entrega incluidos (DDP). El precio final lo confirma tu asesor
+              según el volumen y peso reales.
             </p>
             <div className="mt-8 flex flex-col gap-4 text-[15px] text-grey-700">
               <div className="flex items-start gap-3">

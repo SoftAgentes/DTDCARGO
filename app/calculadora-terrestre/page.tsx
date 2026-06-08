@@ -9,12 +9,12 @@ import { UltimoKmCalculator } from "@/components/UltimoKmCalculator";
 export const metadata: Metadata = {
   title: "Calculadora de flete terrestre en Venezuela",
   description:
-    "Calculá el costo del último km en Venezuela: flete terrestre desde Puerto Cabello / Valencia hasta tu ciudad. Tarifa de referencia; la final la cierra tu asesor por WhatsApp.",
+    "Calcula el costo del último km en Venezuela: flete terrestre desde Puerto Cabello / Valencia hasta tu ciudad. Tarifa de referencia; la final la cierra tu asesor por WhatsApp.",
   alternates: { canonical: "/calculadora-terrestre" },
   ...socialMeta({
     title: "Calculadora de flete terrestre en Venezuela · DTD Cargo",
     description:
-      "Calculá el costo del último km en Venezuela: flete terrestre desde Puerto Cabello / Valencia hasta tu ciudad. Tarifa de referencia; la final la cierra tu asesor por WhatsApp.",
+      "Calcula el costo del último km en Venezuela: flete terrestre desde Puerto Cabello / Valencia hasta tu ciudad. Tarifa de referencia; la final la cierra tu asesor por WhatsApp.",
     path: "/calculadora-terrestre",
   }),
 };
@@ -41,7 +41,7 @@ export default function CalculadoraTerrestrePage() {
             <span style={{ color: "var(--color-wine)" }}>en Venezuela.</span>
           </h1>
           <p className="lead mt-6">
-            Estimá el costo de entrega desde el puerto hasta tu ciudad. Es una
+            Estima el costo de entrega desde el puerto hasta tu ciudad. Es una
             tarifa de referencia — la final te la cierra el asesor por WhatsApp.
           </p>
 

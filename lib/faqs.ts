@@ -25,13 +25,13 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿Quién paga la aduana y los impuestos, y cuándo tengo que pagarle a DTD Cargo?",
     respuesta:
-      "La aduana y los impuestos ya van incluidos en el precio DDP, así que no recibes cobros sorpresa ni tienes que gestionar nada con la aduana: de eso nos encargamos nosotros. Además, con el Financiamiento 100% pagas cuando la carga llega a Venezuela, no por adelantado. El costo total se calcula según el volumen (CBM) y tu destino.",
+      "La aduana y los impuestos ya van incluidos en el precio DDP, así que no recibes cobros sorpresa ni tienes que gestionar nada con la aduana: de eso nos encargamos nosotros. Además, con el Financiamiento 100% (sujeto a aprobación) pagas cuando la carga llega a Venezuela, no por adelantado. El costo total se calcula según el volumen (CBM) y tu destino.",
   },
   {
     pregunta:
       "Con DTD Cargo, ¿cuándo tengo que pagar la mercancía que traigo de China?",
     respuesta:
-      "Con el Financiamiento 100% pagas cuando tu carga llega a Venezuela, no antes. Nosotros financiamos el flete, la aduana y los impuestos durante todo el trayecto desde China, y tú cancelas al momento de la entrega bajo la modalidad DDP puerta a puerta.",
+      "Con el Financiamiento 100% (sujeto a aprobación) pagas cuando tu carga llega a Venezuela, no antes. Nosotros financiamos el flete, la aduana y los impuestos durante todo el trayecto desde China, y tú cancelas al momento de la entrega bajo la modalidad DDP puerta a puerta.",
   },
   {
     pregunta:
@@ -71,7 +71,7 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿DTD Cargo tiene oficina propia en China y en Venezuela o es un intermediario?",
     respuesta:
-      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela), operando desde 2008. No somos un intermediario remoto: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
+      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela), operando desde 2008: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
   },
   {
     pregunta:
