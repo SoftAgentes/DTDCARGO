@@ -160,6 +160,11 @@ export const CONTACT = {
     // URL canónica sin tracking params — limpio para schema.org sameAs.
     url: "https://www.instagram.com/doortudoor_",
   },
+  youtube: {
+    // Handle YouTube SIN guion bajo (distinto al de Instagram). Verificado 200.
+    handle: "@doortudoor",
+    url: "https://www.youtube.com/@doortudoor",
+  },
   // Email general (fuente brochure)
   emailGeneral: "info@dtdcargo.com",
   // Sedes
