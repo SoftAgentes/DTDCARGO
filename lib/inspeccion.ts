@@ -23,7 +23,7 @@ export const INSPECCION_HERO = {
     "Un solo socio para tu logística y tu control de calidad.",
     "Atención en español, con presencia directa en Yiwu, China.",
   ],
-  ctaLabel: "Solicitá tu cotización de inspección",
+  ctaLabel: "Solicita tu cotización de inspección",
   /** Mensaje pre-armado para el CTA de WhatsApp. */
   ctaMessage:
     "Hola DTD Cargo, quiero cotizar una inspección de calidad en China. Mi producto es:",
