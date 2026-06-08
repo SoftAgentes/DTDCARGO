@@ -129,10 +129,22 @@ export function Nav() {
         }}
       >
         <div className="wrap flex items-center justify-between h-[76px]">
-          <BrandMark asLink />
+          {/* Logo · lockup más compacto en móvil (<sm) para no chocar con el
+              cluster hamburguesa + CTA; tamaño pleno en sm+. `shrink-0` evita
+              que el flex comprima el wordmark y lo monte sobre el menú (mismo
+              componente, mismas proporciones/colores — solo cambia el tamaño). */}
+          <span className="flex items-center shrink-0 sm:hidden">
+            <BrandMark asLink size={30} />
+          </span>
+          <span className="hidden sm:flex items-center shrink-0">
+            <BrandMark asLink size={38} />
+          </span>
 
-          {/* Desktop nav (lg+ para evitar que 6 links + logo + botón compriman) */}
-          <div className="hidden lg:flex items-center gap-x-6 xl:gap-x-8">
+          {/* Desktop nav: full horizontal solo en xl+ (1280px). Por debajo el
+              contenido (6 links + Acceder + CTA + logo) no entra en el ancho
+              útil de .wrap (maxw 1280 → ~1160px usables) y se montaba sobre el
+              logo → usamos el drawer hamburguesa hasta xl. */}
+          <div className="hidden xl:flex items-center gap-x-4">
             {links.map((l) => {
               const active = isLinkActive(pathname, l.href);
               return (
@@ -140,7 +152,7 @@ export function Nav() {
                   key={l.href}
                   href={l.href}
                   aria-current={active ? "page" : undefined}
-                  className={`text-[14.5px] px-3 py-2 rounded-md transition-colors whitespace-nowrap ${
+                  className={`text-[14.5px] px-2.5 py-2 rounded-md transition-colors whitespace-nowrap ${
                     active
                       ? "text-wine font-bold bg-wine/30"
                       : "text-ink font-medium hover:text-wine hover:bg-wine/15"
@@ -155,7 +167,7 @@ export function Nav() {
             })}
             <Link
               href="/portal/login"
-              className="text-[14.5px] px-3 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
+              className="text-[14.5px] px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
             >
               Acceder
             </Link>
@@ -164,8 +176,8 @@ export function Nav() {
             </Link>
           </div>
 
-          {/* Mobile + tablet: hamburger + Contacto (<lg = <1024px) */}
-          <div className="lg:hidden flex items-center gap-2">
+          {/* Mobile + tablet + laptop angosto: hamburger + Contacto (<xl = <1280px) */}
+          <div className="xl:hidden flex items-center gap-2">
             <button
               ref={hamburgerRef}
               type="button"
@@ -203,7 +215,7 @@ export function Nav() {
       <div
         onClick={close}
         aria-hidden
-        className={`lg:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${
+        className={`xl:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         style={{ background: "rgba(15,30,61,0.45)" }}
@@ -217,7 +229,7 @@ export function Nav() {
         aria-modal="true"
         aria-label="Menú de navegación"
         aria-hidden={!open}
-        className={`lg:hidden fixed top-0 right-0 bottom-0 z-[70] w-[82vw] max-w-[360px] bg-paper flex flex-col transition-transform duration-300 ease-out ${
+        className={`xl:hidden fixed top-0 right-0 bottom-0 z-[70] w-[82vw] max-w-[360px] bg-paper flex flex-col transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{
