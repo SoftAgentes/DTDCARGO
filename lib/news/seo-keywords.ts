@@ -104,12 +104,6 @@ export const SEO_KEYWORDS_LIBRARY: KeywordEntry[] = [
     priority: 3,
   },
   {
-    keyword: "courier aéreo china venezuela",
-    intent: "transaccional",
-    why: "Modalidad rápida",
-    priority: 3,
-  },
-  {
     keyword: "inspección fábrica china",
     intent: "transaccional",
     why: "Servicio QC pre-embarque",
