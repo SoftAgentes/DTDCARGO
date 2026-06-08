@@ -126,6 +126,8 @@ const jsonLd = {
       slogan: "Con confianza, de China a tu puerta.",
       description:
         "Operación logística integral China–Venezuela desde 2010 (+15 años): carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con confianza, de China a tu puerta.",
+      // priceRange es opcional; en freight no hay tier fijo → texto honesto (no "$$").
+      priceRange: "Cotización a medida según volumen y ruta",
       foundingDate: "2010",
       email: CONTACT.emailGeneral,
       telephone: CONTACT.ve.phone,
