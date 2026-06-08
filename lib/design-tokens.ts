@@ -700,16 +700,16 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     id: "markbox",
-    term: "MARKBOX",
-    acronym: "Código de cliente · formato DTD-XXXX",
+    term: "Shipping Mark",
+    acronym: "唛头 (shipping mark) · código del cliente DTD-XXXX",
     category: "tracking",
     body: [
       "Código único que se le asigna a cada cliente al darse de alta con DTD Cargo. Sirve para identificar quién es el dueño de cada caja que llega a nuestra bodega en Yiwu.",
-      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu MARKBOX. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
+      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu Shipping Mark. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
     ],
     analogy: {
       label: "Lo encuentras en",
-      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes MARKBOX, lo solicitas por WhatsApp.",
+      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes Shipping Mark, lo solicitas por WhatsApp.",
     },
   },
 

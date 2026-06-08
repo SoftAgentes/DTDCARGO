@@ -13,7 +13,7 @@
 - Courier express de muestras y documentos pequeños (DHL/UPS/FedEx) desde Yiwu para envíos urgentes. Esto es paquetería de muestras/documentos, NO carga aérea: el flete aéreo de carga está temporalmente suspendido y la carga va por vía marítima.
 - Agente de compra / sourcing en China: ubicación de fábricas y proveedores, negociación y pago.
 - Inspección de mercancía en la fábrica en China antes de embarcar (control de calidad, anti-estafa).
-- Seguimiento de cada envío mediante un código de cliente propio (MARKBOX / shipping mark "DTD-…").
+- Seguimiento de cada envío mediante un código de cliente propio (Shipping Mark "DTD-…").
 
 ## Diferenciadores
 - Financiamiento 100% (sujeto a aprobación): el cliente paga cuando la carga llega a Venezuela, no por adelantado.

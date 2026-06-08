@@ -144,7 +144,7 @@ const TYPE = [
   },
   {
     name: "JetBrains Mono",
-    role: "Códigos · MARKBOX, contenedores, facturas",
+    role: "Códigos · Shipping Mark, contenedores, facturas",
     sample: "DTDU-000123",
     fontVar: "var(--font-jetbrains-mono)",
     note: "Para todo dato técnico o código de tracking.",

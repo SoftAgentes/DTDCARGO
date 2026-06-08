@@ -63,7 +63,7 @@ export function RegisterForm({ est }: { est?: string }) {
 
           {!done && (
             <p className="mt-2 text-[14px] text-grey-700 leading-[1.55]">
-              En un minuto tienes tu MARKBOX para empezar a marcar tus cajas en China.
+              En un minuto tienes tu Shipping Mark para empezar a marcar tus cajas en China.
             </p>
           )}
 
@@ -275,7 +275,7 @@ function ExpressForm({
         className="rounded-[10px] bg-paper border-l-[3px] px-4 py-3 text-[12.5px] text-grey-700 leading-[1.55]"
         style={{ borderColor: "var(--color-wine)" }}
       >
-        Generamos tu <strong className="text-ink">MARKBOX</strong> al instante y tu
+        Generamos tu <strong className="text-ink">Shipping Mark</strong> al instante y tu
         cuenta queda <strong className="text-ink">activa</strong>. Antes de tu primera
         compra completas tu perfil (foto de cédula + dirección de entrega) desde el
         portal.
@@ -290,7 +290,7 @@ function ExpressForm({
         disabled={pending}
         className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
       >
-        {pending ? "Creando tu cuenta…" : "Crear cuenta y generar MARKBOX"}
+        {pending ? "Creando tu cuenta…" : "Crear cuenta y generar Shipping Mark"}
         {!pending && <CheckIcon size={16} />}
       </button>
     </form>
@@ -343,7 +343,7 @@ function StepDone({
           ¡Felicitaciones{firstName ? `, ${firstName}` : ""}!
         </div>
         <p className="mt-2 text-[14px] text-grey-700 leading-[1.55] max-w-[42ch]">
-          Tu cuenta quedó creada. Este es tu código MARKBOX — guárdalo, vas a usarlo
+          Tu cuenta quedó creada. Este es tu código Shipping Mark — guárdalo, vas a usarlo
           mucho: es lo que tus proveedores escriben en cada caja.
         </p>
       </div>
@@ -378,7 +378,7 @@ function StepDone({
         style={{ background: "var(--color-wine)", color: "#fff" }}
       >
         <div className="text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: "var(--color-wine-soft)" }}>
-          Tu MARKBOX
+          Tu Shipping Mark · 唛头 (la marca que va en tus cajas)
         </div>
         <div
           className="mt-2 text-[44px] sm:text-[52px] leading-none"
@@ -457,7 +457,7 @@ function StepDone({
         style={{ borderColor: "var(--color-wine)" }}
       >
         <strong className="text-ink">Tu cuenta ya está activa.</strong> Entra al
-        portal con tu MARKBOX. Antes de tu primera compra te vamos a pedir que
+        portal con tu Shipping Mark. Antes de tu primera compra te vamos a pedir que
         completes tu perfil (foto de cédula + dirección de entrega) — lo haces desde
         el portal en un par de minutos.
       </p>
