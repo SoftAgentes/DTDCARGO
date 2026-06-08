@@ -79,4 +79,10 @@ export const FAQS: Faq[] = [
     respuesta:
       "Sí, ofrecemos sourcing y compra asistida en China: te ayudamos a ubicar al proveedor y gestionar la compra antes de consolidar la carga. Para los rubros que puedes importar, lo mejor es consultarlo por WhatsApp con tu lista, porque depende del producto y la normativa; te confirmamos viabilidad y la modalidad (consolidado marítimo o contenedor completo) al cotizar.",
   },
+  {
+    pregunta:
+      "¿Cómo pongo la dirección de DTD Cargo en China (Alibaba) para que mi proveedor envíe a la bodega?",
+    respuesta:
+      "Cuando registres tu dirección de recepción en Alibaba (o se la pases a tu proveedor), usa la dirección de nuestra bodega en Yiwu y pon TU código MARKBOX en el nombre — eso es lo que nos permite saber que la caja es tuya cuando llega. Llénalo campo por campo así: País/región → China. Nombre o empresa → DTD Cargo - tu MARKBOX (por ejemplo DTD-1014). Teléfono (+86) → 18006891419. Dirección → 义乌港二期直通仓2栋2号货7-货11. Estado/provincia → 浙江省 (Zhejiang). Ciudad → 义乌市 (Yiwu; en el selector suele aparecer bajo 金华市, Jinhua). Código postal → 322000. La dirección va en chino porque es para el transporte dentro de China. Si tu MARKBOX no aparece en el nombre, tu mercancía llega a la bodega pero no podemos identificar de quién es, así que no lo olvides. Si tienes dudas, escríbenos por WhatsApp y te ayudamos a dejarla bien cargada.",
+  },
 ];
