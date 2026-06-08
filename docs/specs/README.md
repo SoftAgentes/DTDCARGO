@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 55 specs)
+### Índice de specs (generado · 56 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -93,6 +93,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0058 | Kommo lead → cliente — puente CRM↔ERP (convertir un lead del … | done | interno |
 | 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | in-progress | interno |
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
+| 0064 | Orden de venta (Sales Order · modelo QuickBooks): el estimado… | draft | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0059, 0060 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0059, 0060, 0063 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
