@@ -140,8 +140,19 @@ export function buildGoogleMapsLink(fullAddress: string): string {
 }
 
 export const CONTACT = {
-  // Nombre legal completo
+  // String de marca para el footer (NO es la razón social legal)
   legalName: "DTD CARGO · Doortudoor Services",
+  // Nombre público limpio para schema.org (name / knowledge graph)
+  brandName: "DTD Cargo",
+  /**
+   * Entidad legal REAL — SOLO para schema.org (legalName/taxID/founder).
+   * NUNCA mostrar en texto visible del sitio (regla de marca del founder).
+   */
+  legalEntity: {
+    legalName: "INVERSIONES DTD SERVICES, C.A",
+    taxID: "J-50648869-8", // RIF — público por diseño (sale en el HTML source)
+    founder: "José Méndez", // representante legal
+  },
   // Web y social
   web: "www.dtdcargo.com",
   instagram: {

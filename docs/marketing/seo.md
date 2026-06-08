@@ -18,6 +18,7 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 - **Calculadora terrestre:** `app/calculadora-terrestre/page.tsx` + `components/UltimoKmCalculator.tsx` + tarifas en `lib/data/tarifas-terrestres-vzla.ts` (~80 destinos por zona 1-11, validado por operaciones DTD).
 - **OG/social:** `lib/seo-og.ts` (`socialMeta`).
 - **Redirects:** `next.config.ts` → `redirects()`.
+- **Identidad de entidad (GEO):** `@graph` JSON-LD en `app/layout.tsx` — `#organization` (`LocalBusiness` con `legalName`/`taxID`/`founder`) + `#website`. Los publishers (VideoObject en `WorkBand.tsx`, NewsArticle) referencian `#organization` por `@id` → una sola entidad. Identidad pública/legal canónica = [`identidad.md`](identidad.md).
 
 ## Cronología
 
@@ -65,6 +66,18 @@ Cola larga (~30 páginas más, <10 impr c/u) = SEO despreciable, no se redirige 
 3. **`doortudoor.com` NO debe volver a servir contenido propio.**
 4. Al renombrar/eliminar una ruta pública con SEO → **siempre 301** del slug viejo (como `/cotizar`).
 5. Anuncios pagos no afectan el SEO orgánico.
+
+## 🤖 Checklist SEO/GEO para agentes
+
+Antes de tocar SEO o identidad, revisar:
+- [ ] **Una sola entidad:** todo nodo `Organization`/publisher referencia `#organization` por `@id` (no redeclarar "DTD Cargo" suelto). Fuente = `@graph` en `app/layout.tsx`.
+- [ ] **Nombre público = "DTD Cargo"**; razón social y RIF **solo** en `legalName`/`taxID`, nunca en texto visible.
+- [ ] **Año = 2010** (`foundingDate`) + narrativa "+15 años". No cambiar.
+- [ ] **301 `doortudoor.com`** intacto · dominio viejo sin expirar · sin contenido propio ahí.
+- [ ] **GA fuera de rutas privadas** (`/studio /portal /m /back /invitar`).
+- [ ] Rename de ruta con SEO → **301** del slug viejo en `next.config.ts`.
+- [ ] Validar el schema en Rich Results Test antes de cerrar.
+- [ ] `SearchAction` solo si existe un buscador real (hoy no hay).
 
 ## Pendiente / monitoreo
 
