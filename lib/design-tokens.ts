@@ -166,6 +166,10 @@ export const CONTACT = {
     handle: "@doortudoor",
     url: "https://www.youtube.com/channel/UCzUeKxFb47h5yImw5xiJ-gg",
   },
+  tiktok: {
+    handle: "@doortudoor",
+    url: "https://www.tiktok.com/@doortudoor",
+  },
   // Email general (fuente brochure)
   emailGeneral: "info@dtdcargo.com",
   // Sedes
