@@ -9,16 +9,16 @@
  *
  *  Lógica (resumen para no-devs):
  *  1. El cliente ingresa el CBM total (m³) directo y el peso total (kg).
- *  2. Densidad: peso / CBM.
- *  3. Si densidad ≤ pesoIncluidoKg/CBM → precio = CBM × tarifaBase.
- *  4. Si densidad > pesoIncluidoKg/CBM y ≤ pesoMaxKg/CBM →
- *     precio = (CBM × tarifaBase) + (kg excedentes × recargoExcedenteKg).
- *  5. Si densidad > pesoMaxKg/CBM → alerta "contactanos para FCL".
- *  6. Recargos: embalaje especial (madera/paleta) + ciudad fuera del casco central.
- *  7. Baterías: multiplican el flete (×recargoBateriaMult).
- *  8. Carga especial / peligrosa → no cotiza, deriva al asesor.
- *  9. Descuento sede: -$ si la ciudad de destino es Valencia.
- *  Orden: (base + excedente + ciudad + embalaje) × batería − descuento, luego piso.
+ *  2. Precio = CBM × tarifaBase. El PESO no afecta el precio: una caja de
+ *     0,3 CBM que pese 1000 kg cuesta lo mismo que una liviana (sin recargo
+ *     por densidad — decisión founder 2026-06-08).
+ *  3. El peso solo está capeado en términos ABSOLUTOS: sobre 27.000 kg
+ *     (peso de un contenedor) → deriva al asesor. Sin límite por densidad.
+ *  4. Recargos: embalaje especial (madera/paleta) + ciudad fuera del casco central.
+ *  5. Baterías: multiplican el flete (×recargoBateriaMult).
+ *  6. Carga especial / peligrosa → no cotiza, deriva al asesor.
+ *  7. Descuento sede: -$ si la ciudad de destino es Valencia.
+ *  Orden: (base + ciudad + embalaje) × batería − descuento, luego piso.
  */
 
 // ────────────────────────────────────────────────────────────────────
@@ -221,7 +221,7 @@ export type EnvioCotizacion = {
 
   /** Cargos individuales (todos en USD, para mostrar desglose). */
   precioBase: number;       // CBM × tarifaBase
-  recargoExcedente: number; // kg sobre pesoIncluido × recargoExcedenteKg
+  recargoExcedente: number; // SIEMPRE 0 desde 2026-06-08 (sin recargo por densidad). Se conserva en el desglose para reconciliar.
   recargoCiudad: number;    // km fuera del casco × tarifaKm
   recargoEmbalaje: number;  // 0 o recargoEmbalajeEspecial
   recargoBateria: number;   // extra por el multiplicador de baterías (0 si no)
@@ -312,7 +312,8 @@ export function calcularEnvioLCL(
     }, input);
   }
 
-  // 5.4 — Volumen (CBM) y densidad
+  // 5.4 — Volumen (CBM) y densidad (la densidad ya solo se reporta para
+  // mostrar; NO afecta el precio ni dispara alertas — ver 5.6).
   const cbm = roundCBM(input.cbmTotal);
   const densidadKgM3 = input.pesoKg / cbm;
 
@@ -325,28 +326,15 @@ export function calcularEnvioLCL(
       : CONFIG.tarifaBaseCBM;
   const precioBase = cbm * tarifaCBM;
 
-  // 5.6 — Recargo por excedente de peso (si aplica)
-  // Solo se cobra si la densidad supera pesoIncluidoKg.
-  // Si supera pesoMaxKg, marcamos alerta para FCL/cotización personal.
-  let recargoExcedente = 0;
-  let alerta: EnvioCotizacion["alerta"] | undefined;
-
-  if (densidadKgM3 > params.pesoMaxKg) {
-    // Carga ultra densa — alerta + estimación del peso máximo aceptable
-    alerta = {
-      tipo: "peso_excedido",
-      mensaje: `Tu carga tiene ${densidadKgM3.toFixed(0)} kg/CBM, supera el máximo de ${params.pesoMaxKg} kg/CBM. Necesitas FCL o cotización personalizada — escríbenos por WhatsApp.`,
-    };
-    // Igual calculamos un estimado para que vea el rango
-    const kgIncluidos = cbm * params.pesoIncluidoKg;
-    const kgExcedente = Math.max(0, input.pesoKg - kgIncluidos);
-    recargoExcedente = kgExcedente * params.recargoExcedenteKg;
-  } else if (densidadKgM3 > params.pesoIncluidoKg) {
-    // Zona normal de excedente (500-600 kg/CBM)
-    const kgIncluidos = cbm * params.pesoIncluidoKg;
-    const kgExcedente = input.pesoKg - kgIncluidos;
-    recargoExcedente = roundUSD(kgExcedente * params.recargoExcedenteKg);
-  }
+  // 5.6 — Peso: SIN recargo por densidad (decisión founder 2026-06-08).
+  // El peso ya no afecta el precio ni tiene límite por densidad: una carga
+  // densa (ej. 0,3 CBM @ 1000 kg) cotiza igual que una liviana. El único
+  // límite del peso es el tope ABSOLUTO de contenedor (27.000 kg), validado
+  // arriba en 5.3b. Por eso el excedente queda en 0 siempre.
+  // (CalcParams.pesoIncluidoKg / pesoMaxKg / recargoExcedenteKg siguen
+  //  existiendo para no romper calculator_settings, pero ya no se aplican.)
+  const recargoExcedente = 0;
+  const alerta: EnvioCotizacion["alerta"] | undefined = undefined;
 
   // 5.7 — Recargo por ciudad fuera del casco central
   let recargoCiudad = 0;
@@ -360,7 +348,9 @@ export function calcularEnvioLCL(
   const recargoEmbalaje =
     input.embalaje === "especial" ? params.recargoEmbalajeEspecial : 0;
 
-  // 5.9 — Flete antes de baterías (base + recargos)
+  // 5.9 — Flete antes de baterías (base + recargos; `recargoExcedente` es 0
+  // siempre desde 2026-06-08, queda en la suma solo para que el desglose
+  // reconcilie Σ ítems = total).
   const fleteAntesBateria =
     precioBase + recargoExcedente + recargoCiudad + recargoEmbalaje;
 
@@ -491,6 +481,37 @@ export function parseDecimalInput(raw: string): number {
   const normalized = sanitizeDecimalText(raw).replace(",", ".");
   if (normalized === "" || normalized === ".") return NaN;
   return parseFloat(normalized);
+}
+
+// ────────────────────────────────────────────────────────────────────
+// 8b) CBM A PARTIR DE MEDIDAS (UI) — para el cliente que no sabe su CBM
+//     El cliente que no conoce su volumen lo deriva de las dimensiones de
+//     una caja (cm) × cantidad de cajas. Función pura → testeable sin DOM.
+// ────────────────────────────────────────────────────────────────────
+
+/**
+ * Calcula el CBM total a partir de las medidas de una caja (en cm) y la
+ * cantidad de cajas iguales.
+ *
+ *   CBM por caja  = (alto × ancho × largo) / 1.000.000
+ *   CBM total     = CBM por caja × cantidad de cajas
+ *
+ * Devuelve 0 si cualquier medida o la cantidad no es un número positivo
+ * finito (campo vacío, 0, negativo, NaN) — así el llamador puede asignar el
+ * resultado directo sin romper el cálculo aguas abajo.
+ *
+ * Ej: 40 × 30 × 60 cm × 10 cajas → 0,072 m³/caja → 0,72 CBM.
+ */
+export function cbmFromDimensions(
+  altoCm: number,
+  anchoCm: number,
+  largoCm: number,
+  cajas: number,
+): number {
+  const dims = [altoCm, anchoCm, largoCm, cajas];
+  if (dims.some((n) => !Number.isFinite(n) || n <= 0)) return 0;
+  const cbmPorCaja = (altoCm * anchoCm * largoCm) / 1_000_000;
+  return roundCBM(cbmPorCaja * cajas);
 }
 
 export function whatsappTextFromCotizacion(
