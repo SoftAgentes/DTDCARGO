@@ -111,7 +111,7 @@ export function RegisterForm({ est }: { est?: string }) {
           <p className="text-center mt-6 text-[13.5px] text-grey-500">
             ¿Ya tienes cuenta?{" "}
             <Link href="/portal/login" className="font-semibold text-wine hover:text-wine-deep">
-              Entrá acá
+              Entra aquí
             </Link>
           </p>
         )}
@@ -207,13 +207,13 @@ function ExpressForm({
         <TypeCard
           active={!isCompany}
           label="Persona natural"
-          desc="Importás a título personal"
+          desc="Importas a título personal"
           onClick={() => patch({ kind: "persona" })}
         />
         <TypeCard
           active={isCompany}
           label="Empresa"
-          desc="Importás para tu negocio"
+          desc="Importas para tu negocio"
           onClick={() => patch({ kind: "empresa" })}
         />
       </div>

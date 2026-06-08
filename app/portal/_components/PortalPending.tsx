@@ -64,7 +64,7 @@ export function PortalPending({
 
         <div className="mt-7 pt-6 border-t border-grey-200">
           <p className="text-[13.5px] text-grey-700 leading-[1.55]">
-            ¿Querés que activemos tu cuenta ahora? Escribile a tu asesor y lo
+            ¿Quieres que activemos tu cuenta ahora? Escríbele a tu asesor y lo
             resolvemos.
           </p>
           <a

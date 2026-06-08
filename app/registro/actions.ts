@@ -228,7 +228,7 @@ export async function registerClientAction(
       return {
         fieldErrors: {
           document:
-            "Este documento ya tiene una cuenta en DTD Cargo. Entrá con tu MARKBOX o pide recuperar tu contraseña.",
+            "Este documento ya tiene una cuenta en DTD Cargo. Entra con tu MARKBOX o pide recuperar tu contraseña.",
         },
       };
     }
@@ -274,14 +274,14 @@ export async function registerClientAction(
       return {
         markbox,
         warning:
-          "Tu cuenta quedó creada, pero ese email ya tenía acceso. Entrá con tu MARKBOX o pide recuperar tu contraseña.",
+          "Tu cuenta quedó creada, pero ese email ya tenía acceso. Entra con tu MARKBOX o pide recuperar tu contraseña.",
       };
     }
     console.error("[registerClientAction] createUser error:", authErr);
     return {
       markbox,
       warning:
-        "Tu cuenta quedó creada con tu MARKBOX, pero no pudimos activar el login automático. Pedí recuperar tu contraseña desde el login.",
+        "Tu cuenta quedó creada con tu MARKBOX, pero no pudimos activar el login automático. Pide recuperar tu contraseña desde el login.",
     };
   }
 

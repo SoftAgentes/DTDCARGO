@@ -42,7 +42,7 @@ export default async function PortalPurchasesPage() {
           </h1>
           <p className="lead mt-3 max-w-[60ch]">
             Cada compra que registrás nos avisa que viene mercancía de China. Acá
-            ves el estado de todas y volvés a generar sus etiquetas.
+            ves el estado de todas y vuelves a generar sus etiquetas.
           </p>
         </div>
         <Link

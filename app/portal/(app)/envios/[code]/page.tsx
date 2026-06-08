@@ -114,7 +114,7 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
 
           <div className="mt-8 pt-6 border-t border-grey-200">
             <p className="text-[13.5px] text-grey-700 leading-[1.55]">
-              ¿Necesitás un cambio o tenés una duda sobre este envío? Escribile a
+              ¿Necesitás un cambio o tienes una duda sobre este envío? Escríbele a
               tu asesor.
             </p>
             <a

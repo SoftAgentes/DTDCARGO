@@ -58,7 +58,7 @@ export async function registerAcceptanceAction(
   const session = await createClient();
   const client = await getPortalClient(session);
   if (!client) {
-    return { error: "Tu sesión expiró o no sos un cliente del portal. Volvé a entrar." };
+    return { error: "Tu sesión expiró o no eres un cliente del portal. Vuelve a entrar." };
   }
 
   let admin;
@@ -127,7 +127,7 @@ export async function registerAcceptanceAction(
   if (accepted !== "on" && accepted !== "true") {
     return {
       fieldError:
-        "Tenés que marcar la casilla para confirmar que aceptás los términos.",
+        "Tienes que marcar la casilla para confirmar que aceptás los términos.",
     };
   }
 

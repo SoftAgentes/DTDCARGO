@@ -55,7 +55,7 @@ export async function completeProfileAction(
   const { data: portalClientId, error: idErr } =
     await supabase.rpc("get_portal_client_id");
   if (idErr || !portalClientId) {
-    return { error: "Tu sesión expiró. Volvé a entrar al portal." };
+    return { error: "Tu sesión expiró. Vuelve a entrar al portal." };
   }
   const clientId = portalClientId as string;
 
@@ -92,7 +92,7 @@ export async function completeProfileAction(
   const photoRaw = formData.get("cedula_photo");
   const photoProvided = photoRaw instanceof File && photoRaw.size > 0;
   if (!photoProvided && !hasExistingPhoto) {
-    errors.photo = "Subí la foto de tu cédula/RIF.";
+    errors.photo = "Sube la foto de tu cédula/RIF.";
   }
   let newPhoto: File | null = null;
   if (photoProvided) {

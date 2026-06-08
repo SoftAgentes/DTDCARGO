@@ -44,7 +44,7 @@ export async function requestMagicLink(
     if (!data) {
       return {
         error:
-          "Ese email todavía no tiene el portal habilitado. Pedile a tu asesor que te invite — o registrate si sos nuevo.",
+          "Ese email todavía no tiene el portal habilitado. Pídele a tu asesor que te invite — o regístrate si eres nuevo.",
       };
     }
   } catch {
@@ -71,7 +71,7 @@ export async function requestMagicLink(
 
 export type PortalPasswordLoginState = {
   error?: string;
-  /** Se pidió reset de contraseña con éxito (mensaje "revisá tu correo"). */
+  /** Se pidió reset de contraseña con éxito (mensaje "revisa tu correo"). */
   resetSent?: boolean;
 };
 

@@ -39,7 +39,7 @@ export async function changePortalPasswordAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!user) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
