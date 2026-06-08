@@ -2,7 +2,7 @@
 
 > Fuente para Kommo (AI Agent + Respuestas sugeridas) y, opcionalmente, el sitio público.
 > Reestructura del `DTDCARGO-Kommo-KnowledgeSource.docx` original (SDD-0062).
-> **Cambios vs. original:** reordenado por frecuencia real (análisis de 401 conversaciones) · `"prepago/prepagado"` → **`Financiamiento 100%`** (regla de marca) · enlace a la calculadora · captura de email en cotización · secciones admin fusionadas · **5 secciones nuevas** (Validación, Verificación, Compra asistida, Cursos, Seguimiento) marcadas `[FILL]`.
+> **Cambios vs. original:** reordenado por frecuencia real (análisis de 401 conversaciones) · `"prepago/prepagado"` → **`Financiamiento 100%`** (regla de marca) · enlace a la calculadora · captura de email en cotización · secciones admin fusionadas · **5 secciones nuevas** (Validación, Verificación, Compra asistida, Cursos, Seguimiento) ya redactadas.
 > Tono: español venezolano, cálido, claro y breve. Cada respuesta cierra invitando a continuar.
 
 ---
@@ -86,10 +86,12 @@ Para los **datos exactos** según tu envío, un asesor te los pasa de forma segu
 
 > *Nota interna (⚠️ PENDIENTE de definir — founder 2026-06-08): en compra asistida **el proveedor lo pone DTD (red propia)** — el bot NUNCA revela datos/contacto del proveedor; DTD ubica, negocia, paga y gestiona por dentro (protege contra que el cliente compre directo). Falta decidir el modelo comercial: margen vs comisión, cómo se cobra, hasta dónde se le cuenta al cliente. La frase "ubicar al proveedor" se mantiene porque describe el servicio, no entrega el contacto.*
 
-### 10. Cursos  `[FILL]`
+### 10. Cursos
 **Preguntas:** ¿Dan cursos de importación? · ¿Cómo me inscribo al curso? · ¿Cuánto cuesta el curso? · ¿Qué incluye el curso? · ¿Es online o presencial? · ¿Cuándo es el próximo curso?
 
-**Respuesta:** `[FILL: founder — temario, modalidad (online/presencial), duración, precio, cómo inscribirse, próximas fechas]`
+**Respuesta (aprobada · captura email):** ¡Hola! Por ahora **no tenemos cursos disponibles**, pero estamos por **activarlos muy pronto** 🚀. Déjame tu **correo** y te aviso apenas abramos el próximo curso (**presencial u online**). ¿Me lo dejas?
+
+> *Nota interna: cursos por activar; la captura de email arma la **lista de espera** para avisar al lanzar. Actualizar esta sección cuando haya temario/modalidad/precio/fechas. Decisión founder 2026-06-08.*
 
 ### 11. Seguimiento / Tracking
 **Preguntas:** ¿Cómo rastreo mi envío? · ¿Dónde veo el estado de mi carga? · ¿Tienen tracking? · ¿Cómo sé dónde va mi mercancía? · Quiero el estado de mi pedido.
@@ -166,8 +168,8 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 
 ---
 
-### Pendiente de datos del founder (secciones `[FILL]`)
-10. Cursos.
+### ✅ FAQ completo (21/21)
+Todas las secciones tienen respuesta aprobada. Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
 
 ### Puntos de negocio pendientes de definir (no bloquean el FAQ)
 - **#7/#8 — link de inspección:** página web con menú de servicios + precios (tarifas) + muestra del reporte branded; **stand by** (mientras tanto lo envía el asesor). Plantillas listas: "Inspección de Producto (PSI)" + "Inspección de Fábrica".
