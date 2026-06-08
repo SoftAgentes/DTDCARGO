@@ -12,6 +12,7 @@ import {
   buildWhatsAppLink,
 } from "@/lib/design-tokens";
 import { ServiciosDetalle } from "@/components/ServiciosDetalle";
+import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import {
   CheckIcon,
@@ -105,6 +106,11 @@ export default function ServiciosPage() {
             </p>
           </div>
         </section>
+
+        <RespuestaRapida
+          pregunta="¿Qué servicios ofrece DTD Cargo para importar de China a Venezuela?"
+          respuesta="DTD Cargo lleva tu mercancía puerta a puerta de China a Venezuela en modalidad DDP —flete, aduana e impuestos incluidos— con consolidación e inspección en su bodega propia de Yiwu. Sobre esa base ofrece servicios complementarios: verificación de proveedores, compra asistida, control de calidad, laboratorio y permisología, registro de marca, visado de negocios, documentos de importación, desaduanaje y entrega final (last mile)."
+        />
 
         {/* Inspección en China — línea destacada. Deep-dive en subpágina propia
             para sumar la categoría sin saturar el brochure de logística. */}
