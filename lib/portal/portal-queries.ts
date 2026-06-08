@@ -22,6 +22,7 @@ import type {
   PortalNextArrival,
   PortalShipmentDetail,
   PortalShipmentRow,
+  ProfileCompleteness,
 } from "./portal-types";
 import {
   estimatePortalEta,
@@ -349,6 +350,42 @@ export async function getPortalActivation(
   }
 
   return { activated: false, reason: null };
+}
+
+/**
+ * Completitud del perfil del cliente del portal (REGISTRO EXPRESS · founder
+ * 2026-06-07). El alta express difiere foto + dirección; acá leemos si ya están
+ * cargadas para nudgear "Completá tu perfil" (antes de la 1ª compra).
+ *
+ * Resuelve el client_id del portal vía la helper AISLADA (`get_portal_client_id`)
+ * y lee SU PROPIA fila (la RLS del portal le permite leer su row de clients). Solo
+ * deriva booleanos — el `cedula_photo_path` es un puntero a Storage privado, el
+ * archivo en sí queda protegido por el bucket. Si el principal no es cliente del
+ * portal → todo false (no se le ofrece completar nada).
+ */
+export async function getProfileCompleteness(
+  supabase: SupabaseClient,
+): Promise<ProfileCompleteness> {
+  const empty: ProfileCompleteness = {
+    hasPhoto: false,
+    hasAddress: false,
+    complete: false,
+  };
+
+  const { data: portalClientId, error: idErr } =
+    await supabase.rpc("get_portal_client_id");
+  if (idErr || !portalClientId) return empty;
+
+  const { data, error } = await supabase
+    .from("clients")
+    .select("cedula_photo_path, address")
+    .eq("id", portalClientId as string)
+    .maybeSingle();
+  if (error || !data) return empty;
+
+  const hasPhoto = !!String((data.cedula_photo_path as string | null) ?? "").trim();
+  const hasAddress = !!String((data.address as string | null) ?? "").trim();
+  return { hasPhoto, hasAddress, complete: hasPhoto && hasAddress };
 }
 
 /** Año calendario (UTC) — para el filtro "Entregados YTD". Aislado para testear. */
