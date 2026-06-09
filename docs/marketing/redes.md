@@ -37,7 +37,7 @@ Marca pública = **DTD Cargo**; handle Instagram **@doortudoor_**; canal YouTube
 1. **Seleccionar** — elegir el reel/Q&A de IG con mejor desempeño (guardados/compartidos > likes; los compartidos predicen valor de búsqueda).
 2. **Limpiar** — exportar sin la marca de agua de IG (re-subir desde el archivo original; YouTube penaliza watermark de otra plataforma en el feed de Shorts). Sin logos de IG visibles.
 3. **Re-titular para búsqueda** — el título IG (casual) ≠ título YouTube (keyword-first). Ver "SEO de YouTube".
-4. **Cerrar con CTA** — última frase o texto: *"Calculá tu envío en dtdcargo.com"* o *"Escríbenos por WhatsApp"*. Nunca dejar el video sin salida.
+4. **Cerrar con CTA** — última frase o texto: *"Calcula tu envío en dtdcargo.com"* o *"Escríbenos por WhatsApp"*. Nunca dejar el video sin salida.
 5. **Publicar + enlazar** — descripción con link a la página relevante del sitio + a WhatsApp. Asignar a playlist.
 
 ### SEO de YouTube (lo que cambia vs IG)

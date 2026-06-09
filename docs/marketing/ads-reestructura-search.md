@@ -1,7 +1,7 @@
 # Google Ads — Reestructura de la campaña de Búsqueda
 
 > Copy-paste-ready para cargar en Google Ads. Parte de [Marketing](README.md) · plan en [`plan-accion-digital.md`](plan-accion-digital.md).
-> **Regla de oro:** trabajá **sobre la campaña existente `DoorTuDoor Trafico`** (NO crees una nueva) → conserva el historial de 4.231 conversiones que alimenta el Smart Bidding. Pausá el grupo viejo, agregá los nuevos.
+> **Regla de oro:** trabaja **sobre la campaña existente `DoorTuDoor Trafico`** (NO crees una nueva) → conserva el historial de 4.231 conversiones que alimenta el Smart Bidding. Pausa el grupo viejo, agrega los nuevos.
 
 ## 0. Por qué así (arregla los hallazgos de la auditoría)
 - ❌ Solo concordancia amplia sin negativas → ✅ **frase + exacta** + lista de negativas compartida.
@@ -10,11 +10,11 @@
 
 ## 1. Configuración de la campaña
 - **Campaña:** `DoorTuDoor Trafico` (la existente) · tipo Búsqueda · objetivo **Clientes potenciales**.
-- **Ubicación:** Venezuela (si querés, +bid en Valencia/Carabobo, Caracas, Maracaibo). **Idioma:** Español.
+- **Ubicación:** Venezuela (si quieres, +bid en Valencia/Carabobo, Caracas, Maracaibo). **Idioma:** Español.
 - **Redes:** Búsqueda **sí**; "Socios de búsqueda" y "Display" → **NO** (al inicio, evita desperdicio).
-- **Puja:** arrancá en **Maximizar clics** con un CPC máx. tope (ej. $0.15) los primeros ~7 días para juntar datos; cuando haya ~15-20 conversiones, cambiá a **Maximizar conversiones**. *(La conversión "Click WhatsApp" ya está midiendo.)*
+- **Puja:** arranca en **Maximizar clics** con un CPC máx. tope (ej. $0.15) los primeros ~7 días para juntar datos; cuando haya ~15-20 conversiones, cambia a **Maximizar conversiones**. *(La conversión "Click WhatsApp" ya está midiendo.)*
 - **URL final de la campaña / anuncios:** `https://dtdcargo.com/estimacion`.
-- **Pasos previos:** pausá el grupo viejo `Grupo de anuncios 1` (las keywords amplias) en vez de borrarlo.
+- **Pasos previos:** pausa el grupo viejo `Grupo de anuncios 1` (las keywords amplias) en vez de borrarlo.
 
 ## 2. Lista de palabras clave negativas (compartida — Biblioteca compartida → Listas de negativas)
 Crear lista **"Negativas DTD core"** y asociarla a la campaña:
@@ -31,7 +31,7 @@ rastrear, rastreo, trackear, seguimiento, "donde esta mi pedido", reclamo, estaf
 # Dropshipping how-to
 "como hacer dropshipping", "que es dropshipping"
 ```
-> Revisá los **Términos de búsqueda** cada 3-4 días la primera semana y agregá negativas de lo que no convierte.
+> Revisa los **Términos de búsqueda** cada 3-4 días la primera semana y agrega negativas de lo que no convierte.
 
 ## 3. Grupos de anuncios
 
@@ -94,18 +94,18 @@ rastrear, rastreo, trackear, seguimiento, "donde esta mi pedido", reclamo, estaf
 
 ## 4. Anuncios responsivos (RSA)
 
-> Límites Google: **títulos ≤30 caracteres** (hasta 15), **descripciones ≤90** (hasta 4). Verificá el contador en la UI. Sugerencia: fijá ("pin") el título de marca en Posición 1 solo si querés que aparezca siempre; si no, dejalos sin fijar para que Google optimice.
+> Límites Google: **títulos ≤30 caracteres** (hasta 15), **descripciones ≤90** (hasta 4). Verifica el contador en la UI. Sugerencia: fija ("pin") el título de marca en Posición 1 solo si quieres que aparezca siempre; si no, déjalos sin fijar para que Google optimice.
 
-### Pool de títulos (sirven para todos los grupos — mezclá + agregá el keyword del grupo)
+### Pool de títulos (sirven para todos los grupos — mezcla + agrega el keyword del grupo)
 ```
 Importar de China a Venezuela
 Puerta a Puerta desde China
-Pagás Cuando Llega (DDP)
+Pagas Cuando Llega (DDP)
 18 Años de Experiencia
 Ruta Directa desde Yiwu
 Bodega Propia en Valencia
 Financiamiento 100%
-Cotizá Hoy por WhatsApp
+Cotiza Hoy por WhatsApp
 Inspección en Fábrica
 De China a Tu Puerta
 Compra Segura en China
@@ -117,30 +117,30 @@ China a Venezuela Sin Vueltas
 
 ### Descripciones (sirven para todos)
 ```
-Traemos tu carga de China a tu puerta en Venezuela. DDP: pagás cuando llega. Cotizá ya.
-18 años de experiencia, ruta directa desde Yiwu y bodega propia en Valencia. Escribinos.
+Traemos tu carga de China a tu puerta en Venezuela. DDP: pagas cuando llega. Cotiza ya.
+18 años de experiencia, ruta directa desde Yiwu y bodega propia en Valencia. Escríbenos.
 Carga consolidada o contenedor completo. Inspección en fábrica y financiamiento 100%.
-De Yiwu a tu puerta sin complicaciones. Asesoría por WhatsApp. Pagás cuando recibís.
+De Yiwu a tu puerta sin complicaciones. Asesoría por WhatsApp. Pagas cuando recibes.
 ```
 
-### Títulos específicos por grupo (sumá 2-3 con el keyword del grupo)
+### Títulos específicos por grupo (suma 2-3 con el keyword del grupo)
 - **G1:** `Importar de China Fácil` · `Tu Importación China-Vzla`
 - **G2:** `Envío Puerta a Puerta DDP` · `China a Tu Puerta DDP`
 - **G3:** `Tu Agente de Carga en China` · `Agente de Compras en Yiwu`
-- **G4:** `Carga Consolidada China` · `Importá Sin Contenedor`
+- **G4:** `Carga Consolidada China` · `Importa Sin Contenedor`
 - **G5:** `Contenedor desde China` · `FCL China a Venezuela`
-- **G6:** `Cotizá tu Envío de China` · `Calculá tu Flete Online`
+- **G6:** `Cotiza tu Envío de China` · `Calcula tu Flete Online`
 
-> Por grupo: armá 1 RSA con ~10-12 títulos del pool + 2-3 títulos específicos + las 4 descripciones. URL final `/estimacion`. (Opcional: un 2º RSA por grupo variando el ángulo.)
+> Por grupo: arma 1 RSA con ~10-12 títulos del pool + 2-3 títulos específicos + las 4 descripciones. URL final `/estimacion`. (Opcional: un 2º RSA por grupo variando el ángulo.)
 
 ## 5. Extensiones (recursos) — ya migradas a dtdcargo.com ✅
-Sitelinks activos: **Nuestros Servicios** (`/servicios`) · **Inicio** (`/`) · **Calcula tu metro cúbico** (`/calculadora`). Sumá:
-- **Texto destacado:** `Pagás cuando llega` · `18 años de experiencia` · `Ruta directa Yiwu` · `Bodega en Valencia`.
+Sitelinks activos: **Nuestros Servicios** (`/servicios`) · **Inicio** (`/`) · **Calcula tu metro cúbico** (`/calculadora`). Suma:
+- **Texto destacado:** `Pagas cuando llega` · `18 años de experiencia` · `Ruta directa Yiwu` · `Bodega en Valencia`.
 - **Llamada:** `+58 241 414 7886` (Lun-Vie 9-17).
 - **Fragmento estructurado** (tipo "Servicios"): Consolidación, Puerta a puerta DDP, Contenedor FCL, Transporte terrestre.
 
 ## 6. Disciplina post-lanzamiento (lo que más te costó)
-1. **NO pausar la campaña** una vez activa (reinicia el aprendizaje). Si necesitás frenar gasto, bajá el presupuesto, no la pauses.
-2. Dejá correr **≥2 semanas** antes de juzgar. El Smart Bidding necesita datos.
-3. Revisá **Términos de búsqueda** cada 3-4 días → sumá negativas, no toques pujas a mano.
-4. Cuando junte conversiones, pasá a **Maximizar conversiones** (la conversión WhatsApp ya mide).
+1. **NO pausar la campaña** una vez activa (reinicia el aprendizaje). Si necesitas frenar gasto, baja el presupuesto, no la pauses.
+2. Deja correr **≥2 semanas** antes de juzgar. El Smart Bidding necesita datos.
+3. Revisa **Términos de búsqueda** cada 3-4 días → suma negativas, no toques pujas a mano.
+4. Cuando junte conversiones, pasa a **Maximizar conversiones** (la conversión WhatsApp ya mide).

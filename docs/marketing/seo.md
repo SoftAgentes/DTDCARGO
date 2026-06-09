@@ -57,7 +57,7 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 
 Cola larga (~30 páginas más, <10 impr c/u) = SEO despreciable, no se redirige individualmente.
 
-**Geo↔calc:** se suavizó el texto `notaEntrega` de los 15 geos non-casco (sacó "recargo por km" + "al instante en la calculadora": impreciso + Cumaná/San Fernando no están en la calc) → "podés estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp".
+**Geo↔calc:** se suavizó el texto `notaEntrega` de los 15 geos non-casco (sacó "recargo por km" + "al instante en la calculadora": impreciso + Cumaná/San Fernando no están en la calc) → "puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp".
 
 ## 🛡️ Reglas SEO que NO se rompen
 

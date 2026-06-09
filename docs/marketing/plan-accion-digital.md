@@ -27,7 +27,7 @@
 - **Resta (tú):** confirmar en Google Ads que la conversión figure **"Activa"** (tarda horas). Borrar 2 contenedores GTM sin uso (`GTM-KWRDZS4`, `GTM-PD3JF2GW`) — no se usan (es gtag directo).
 
 ### 2. Verificar Google Business Profile (Valencia) + reseñas → ⏳ **TÚ**
-- GBP requiere validación de dirección (postal/teléfono) → solo lo hacés vos.
+- GBP requiere validación de dirección (postal/teléfono) → solo lo haces tú.
 - Reseñas: mandar el link de Google a clientes conformes por WhatsApp. Tracción local gratis.
 
 ### 3. Reactivar + reestructurar la campaña SIN volver a pausarla → 🟡 **PREPARADO, falta reestructura**
