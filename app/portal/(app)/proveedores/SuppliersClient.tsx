@@ -1,9 +1,17 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowIcon, CheckIcon, ShieldIcon, TruckIcon } from "@/components/Icon";
+import {
+  ArrowIcon,
+  CheckIcon,
+  DocIcon,
+  ShieldIcon,
+  TruckIcon,
+} from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
+import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
+import { ShareProviderButton } from "../../_components/ShareProviderButton";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
@@ -59,13 +67,7 @@ export function SuppliersClient({
             que ya tengas.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setPurchaseFor("new")}
-          className="btn btn-primary inline-flex items-center gap-2 flex-shrink-0"
-        >
-          Nueva compra <ArrowIcon size={15} />
-        </button>
+        <NewPurchaseButton onClick={() => setPurchaseFor("new")} />
       </div>
 
       {/* ── Por qué registrar importa ── */}
@@ -394,6 +396,8 @@ function NewPurchaseModal({
   }, [newSupplierState.ok, newSupplierState.supplierId]);
 
   const done = !!state.ok && !!state.prealertaCode;
+  const selectedWechat =
+    suppliers.find((s) => s.id === supplierId)?.wechat ?? "";
 
   return (
     <div
@@ -408,7 +412,18 @@ function NewPurchaseModal({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-grey-200">
           <div>
-            <div className="eyebrow">Nueva compra</div>
+            <div className="eyebrow">
+              Nueva compra
+              <span
+                className="normal-case tracking-normal text-grey-500"
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+                  fontSize: 10,
+                }}
+              >
+                · prealerta
+              </span>
+            </div>
             <div className="mt-1 text-[18px] font-bold text-ink">
               {done ? "Compra registrada" : "Registra tu compra"}
             </div>
@@ -425,7 +440,11 @@ function NewPurchaseModal({
 
         <div className="p-6">
           {done ? (
-            <PurchaseDone code={state.prealertaCode!} onClose={onClose} />
+            <PurchaseDone
+              code={state.prealertaCode!}
+              shareToken={state.shareToken}
+              onClose={onClose}
+            />
           ) : (
             <>
               {/* Selector de proveedor */}
@@ -491,6 +510,32 @@ function NewPurchaseModal({
               {/* Form de la compra */}
               <form action={action} className="mt-5 flex flex-col gap-4">
                 <input type="hidden" name="supplierId" value={supplierId} />
+
+                {/* WeChat del proveedor: ID/número O captura del contacto */}
+                <div>
+                  <FieldLabel>WeChat del proveedor</FieldLabel>
+                  <input
+                    type="text"
+                    name="supplierWechat"
+                    key={supplierId}
+                    defaultValue={selectedWechat}
+                    placeholder="WeChat ID o número — opcional"
+                    disabled={pending}
+                    className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+                  />
+                  <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
+                    ¿Prefieres no escribir el ID? Sube una captura (screenshot) del
+                    contacto de WeChat del proveedor — su ID o código QR.
+                  </p>
+                  <div className="mt-2">
+                    <FileField
+                      name="doc_whatsapp"
+                      label="Captura de WeChat (screenshot)"
+                      accept="image/*"
+                      disabled={pending}
+                    />
+                  </div>
+                </div>
 
                 <div>
                   <FieldLabel>Descripción de la compra</FieldLabel>
@@ -561,6 +606,37 @@ function NewPurchaseModal({
                   />
                 </div>
 
+                {/* Adjuntos opcionales de la compra */}
+                <div className="rounded-[12px] border border-grey-200 p-4">
+                  <FieldLabel>Adjuntos (opcional)</FieldLabel>
+                  <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
+                    No son obligatorios, pero si los subes nos ayudas a saber qué
+                    traes y cuánto vale, procesamos tu compra más rápido y te quedan
+                    de recordatorio en tu portal.
+                  </p>
+                  <div className="mt-3 flex flex-col gap-2">
+                    <FileField
+                      name="doc_packing"
+                      label="Packing list"
+                      accept="image/*,application/pdf"
+                      disabled={pending}
+                    />
+                    <FileField
+                      name="doc_factura"
+                      label="Factura del proveedor"
+                      accept="image/*,application/pdf"
+                      disabled={pending}
+                    />
+                    <FileField
+                      name="doc_fotos"
+                      label="Fotos del producto"
+                      accept="image/*"
+                      multiple
+                      disabled={pending}
+                    />
+                  </div>
+                </div>
+
                 {state.fieldErrors?.supplierId && (
                   <p className="text-[12.5px] text-wine">
                     {state.fieldErrors.supplierId}
@@ -587,7 +663,15 @@ function NewPurchaseModal({
   );
 }
 
-function PurchaseDone({ code, onClose }: { code: string; onClose: () => void }) {
+function PurchaseDone({
+  code,
+  shareToken,
+  onClose,
+}: {
+  code: string;
+  shareToken?: string;
+  onClose: () => void;
+}) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
       <div
@@ -600,24 +684,18 @@ function PurchaseDone({ code, onClose }: { code: string; onClose: () => void }) 
         <div className="text-[16px] font-bold text-ink">
           Tu compra quedó registrada.
         </div>
-        <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[40ch]">
-          Este es el código de tu compra. Genera las etiquetas y envíaselas a tu
-          proveedor para que las pegue en cada caja.
+        <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[42ch]">
+          Compártele el link a tu proveedor: trae la dirección de la bodega y las
+          etiquetas, las baja él directo. No tienes que descargar ni reenviar nada.
         </p>
       </div>
 
-      <div
-        className="w-full rounded-[14px] px-6 py-5"
-        style={{ background: "var(--color-wine)", color: "#fff" }}
-      >
-        <div
-          className="text-[10px] font-bold tracking-[0.18em] uppercase"
-          style={{ color: "var(--color-wine-soft)" }}
-        >
-          Código de la compra
+      <div className="w-full rounded-[14px] px-6 py-5 bg-white border border-grey-200">
+        <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-grey-500">
+          Código de la compra · prealerta
         </div>
         <div
-          className="mt-2 text-[28px] leading-none"
+          className="mt-2 text-[28px] leading-none text-ink"
           style={{
             fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
             letterSpacing: "-0.01em",
@@ -627,12 +705,21 @@ function PurchaseDone({ code, onClose }: { code: string; onClose: () => void }) 
         </div>
       </div>
 
+      {shareToken ? (
+        <div className="w-full text-left">
+          <div className="text-[12px] font-bold text-ink mb-2">
+            Compartir con tu proveedor
+          </div>
+          <ShareProviderButton token={shareToken} />
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
         <Link
           href={`/portal/compras/${encodeURIComponent(code)}/etiquetas`}
-          className="btn btn-primary inline-flex items-center justify-center gap-2"
+          className="btn btn-ghost inline-flex items-center justify-center gap-2"
         >
-          Generar etiquetas <ArrowIcon size={15} />
+          Ver mis etiquetas <ArrowIcon size={15} />
         </Link>
         <button type="button" onClick={onClose} className="btn btn-ghost">
           Listo
@@ -673,5 +760,77 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
     <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
       {children}
     </span>
+  );
+}
+
+/**
+ * Campo de archivo sobrio (label estilizado + input oculto). Muestra el/los
+ * nombre(s) elegido(s) y vira a verde cuando hay selección. El `<input>` va con
+ * su `name` dentro del `<form action={...}>` → el archivo viaja en el FormData al
+ * server action (subida server-side). `multiple` para las fotos.
+ */
+function FileField({
+  name,
+  label,
+  accept,
+  multiple,
+  disabled,
+}: {
+  name: string;
+  label: string;
+  accept: string;
+  multiple?: boolean;
+  disabled?: boolean;
+}) {
+  const id = useId();
+  const [names, setNames] = useState<string[]>([]);
+  const has = names.length > 0;
+  return (
+    <div>
+      <label
+        htmlFor={id}
+        className={`flex items-center gap-2.5 px-3.5 py-3 min-h-[44px] rounded-[10px] border text-[13px] transition-colors peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--color-ink)] ${
+          disabled ? "opacity-60 cursor-not-allowed" : "cursor-pointer"
+        }`}
+        style={{
+          borderColor: has
+            ? "var(--color-status-success)"
+            : "var(--color-grey-200)",
+          background: has ? "var(--color-paper)" : "#fff",
+        }}
+      >
+        <span
+          className="flex-shrink-0"
+          style={{
+            color: has ? "var(--color-status-success)" : "var(--color-grey-500)",
+          }}
+        >
+          {has ? <CheckIcon size={15} /> : <DocIcon size={15} />}
+        </span>
+        <span className="min-w-0 truncate font-medium text-ink">
+          {has
+            ? names.length > 2
+              ? `${names.length} archivos`
+              : names.join(", ")
+            : label}
+        </span>
+        <span className="ml-auto flex-shrink-0 text-[11px] font-semibold uppercase tracking-[0.08em] text-grey-500">
+          {has ? "Cambiar" : "Subir"}
+        </span>
+      </label>
+      <input
+        id={id}
+        type="file"
+        name={name}
+        accept={accept}
+        multiple={multiple}
+        disabled={disabled}
+        className="peer sr-only"
+        onChange={(e) => {
+          const fs = e.target.files;
+          setNames(fs ? Array.from(fs).map((f) => f.name) : []);
+        }}
+      />
+    </div>
   );
 }

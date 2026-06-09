@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v2.5"; // handoff Cloud Design (Tarjeta de Presentación + QR vCard; celebración MARKBOX en registro; Brand Book → v3.5 dentro del v3.2.html; auditoría calc/cotizador; HANDOFF-NOMINA + App del Empleado; +operativo/colateral: ZPL, comprobante WA, reporte, redes/sticker)
+const NORTE_VERSION = "v2.5"; // handoff Cloud Design (2026-06-08 sync: Inspección fábrica/producto/baterías + plantillas + Reportes de Inspección; calc CBM-por-medidas con toggle ▶/▼ + HANDOFF-CBM-MEDIDAS; Brand Book v3.5; operativo/nómina + colateral: App del Empleado, ZPL, comprobante WA, reporte, redes/sticker)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -140,9 +140,23 @@ const GROUPS = [
     ],
   },
   {
+    // v2.5: control de calidad en China antes de embarcar (inspección de fábrica / producto /
+    // producto·baterías) + sus plantillas + el reporte consolidado. Mockups sin código/SDD aún
+    // → ref:true (se listan y abren como referencia de diseño, NO diluyen el % construido).
+    title: "Inspección de calidad · China (v2.5)",
+    screens: [
+      { name: "Inspección de Fábrica", file: "Inspección de Fábrica · DTD.html", ref: true },
+      { name: "Inspección de Producto", file: "Inspección de Producto · DTD.html", ref: true },
+      { name: "Inspección de Producto · Baterías", file: "Inspección de Producto · Baterías · DTD.html", ref: true },
+      { name: "Reportes de Inspección", file: "Reportes de Inspección · DTD.html", ref: true },
+      { name: "Plantilla · Inspección de Fábrica", file: "Plantilla · Inspección de Fábrica.html", ref: true },
+      { name: "Plantilla · Inspección de Producto", file: "Plantilla · Inspección de Producto.html", ref: true },
+    ],
+  },
+  {
     title: "Marca",
     screens: [
-      { name: "Brand Book v3.2", file: "Brand Book DTD v3.2.html", kind: "brand" },
+      { name: "Brand Book v3.5", file: "Brand Book DTD v3.5.html", kind: "brand" },
       { name: "Tarjeta de Presentación", file: "Tarjeta de Presentación.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },

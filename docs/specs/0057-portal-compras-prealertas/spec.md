@@ -4,7 +4,7 @@ title: "Portal — Compras/Prealertas + Proveedores del cliente (cierra el códi
 status: in-progress
 author: "Claude Code (carril portal · worktree feat/portal)"
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-06-09
 supersedes: null
 superseded_by: null
 related: ["0042", "0031", "0008", "0010"]
@@ -229,3 +229,42 @@ typecheck · 1056 tests · docs:check). Migración `0105` **NO** aplicada a prod
 
 **Pendiente Slice C** (sin tocar acá): backear `/studio/proveedores` + cola de prealertas
 entrantes para el operador + dropdown de supplier en `/studio/etiquetas` (cierra D6 de 0031).
+
+---
+
+### Extensión — Terminología compra↔prealerta + adjuntos de la compra (2026-06-09 · sesión con founder, worktree `chore/retoques`)
+
+**Decisión del founder + consulta `ui-ux-designer`.** Dos pistas sobre el flujo de compras del portal:
+
+**1. Terminología "compra" ↔ "prealerta" (vincularlas SIEMPRE).** El público objetivo (importadores del modelo puerta-a-puerta EE.UU.) ya dice "prealerta"; el lead nuevo entiende "compra". Patrón decidido (UX, alineado al Norte → **sin drift**): **ancla = "compra"** (Archivo), **traducción = "prealerta"** (JetBrains Mono, gris). Los dos términos viajan juntos en el mismo control.
+- **Disparador** `<NewPurchaseButton>` (NUEVO, `app/portal/_components/`): compacto (~40px, ghost bordeado vino, "+" en círculo) con 2 líneas "Nueva compra" / "= prealerta", `aria-label` completo. **Idéntico** en `/proveedores` (botón) y `/compras` (link) — antes eran dos `btn-primary` de 48px.
+- **Modal:** eyebrow "Nueva compra · prealerta"; éxito "Código de la compra · prealerta".
+- **Registro** (`app/registro/RegisterForm.tsx`): el párrafo de éxito ahora planta compra↔prealerta antes del CTA (sin 2º botón que compita — decisión UX).
+
+**2. Adjuntos de la compra subibles POR EL CLIENTE** (cierra el TODO "paso docs" de las etiquetas). El cliente adjunta (todo **opcional**) packing list / factura / fotos del producto + **captura de WhatsApp/WeChat del proveedor** y/o su **número/ID** (`suppliers_cn.wechat`, reusado). Motivo del screenshot: proveedores que no quieren que copien su número.
+- **Migración `0118_prealerta_documents.sql`** (NUEVA, **NO aplicada a prod**): tabla `prealerta_documents` (calca `shipment_documents` 0086) + enum `prealerta_doc_type` (packing/factura/foto/whatsapp) + bucket privado `prealerta-docs` (PDF+imágenes incl. heic/heif) + RLS (equipo por tenant · **cliente LEE por markbox** · service_role). **La subida la hace el server action con admin client** (el cliente NO toca Storage; lee vía signed URLs server-side). Path `{tenant}/{prealerta_id}/{uuid}.{ext}`.
+- **`lib/studio/prealertas/types.ts`:** helpers puros (`PrealertaDocType`, labels, `isAllowedPrealertaDocMime`, `prealertaDocExtFromMime`, `buildPrealertaDocPath`, `PrealertaDocument`) + `wechat` en `SupplierView`/`summarizeSuppliers` (prefill en re-compra).
+- **`actions.ts`:** `createPrealertaAction` ahora captura el id de la prealerta, guarda el WeChat del proveedor y sube los adjuntos (best-effort, no bloquea el alta; rollback del object si falla el insert; tope `MAX_FOTOS=8`).
+- **`SuppliersClient.tsx`:** campo "WeChat/WhatsApp del proveedor" + sección "Adjuntos (opcional)" + primitiva `FileField` (label estilizado + input `peer sr-only` con focus ring ink, `min-h-44`).
+- **`compras/[code]/etiquetas/page.tsx`:** sección read-only "Lo que adjuntaste a esta compra" (signed URLs server-side, `print:hidden`).
+- **`lib/studio/prealertas/queries.ts`:** `listPrealertaDocuments` (defensivo si 0118 sin aplicar).
+
+**Divergencias del Norte (DESIGN-CHECK · `Sync Norte pendiente`):** (1) adjuntos **todos opcionales** — el Norte (`_norte/portal/app.jsx:1619-1646`) hace el packing list obligatorio para generar el código; (2) **captura/número de WhatsApp del proveedor** no existe en el Norte; (3) modal en **un solo paso** con sección opcional, en vez del 2-pasos (docs→labels) del Norte. Cuando Cloud Design espeje estas pantallas, alinear el Norte.
+
+**Review:** `ui-ux-designer` "ship it" (aplicado: focus ring del FileField a11y, `min-h-44`, copys grey-700, nombre de archivo en ink). **Gate `node scripts/verify.mjs` VERDE** (1508 tests).
+
+> **Estado prod:** migraciones `0117`+`0118` **aplicadas a prod** (MCP, verificadas) + mergeadas (PR #13). Botón "Nueva compra · = prealerta" extendido al dashboard (PR #14). Sección de captura del proveedor pasó a **solo WeChat** + copy más claro (PR #15).
+
+### Extensión — Link del proveedor `/p/{token}` + template (2026-06-09 · continuación)
+
+Cierra el flujo **DTD → proveedor**: el cliente comparte UN link y el proveedor chino se baja todo solo (en vez de descargar y reenviar).
+
+- **Migración `0119_prealerta_share_token.sql`** (NUEVA, **NO aplicada a prod** al escribir): `prealertas.share_token uuid` (default `gen_random_uuid()`, unique) — token no adivinable; las filas existentes reciben token vía default.
+- **`app/p/[token]/`** (NUEVO, ruta **pública** Supabase-backed, fuera de la frontera ESLint como `/registro`): `page.tsx` (lee por token con admin client, `noindex`) + `ProviderShareClient.tsx` (bilingüe **中文/Español**: dirección de bodega CN con el shipping mark + etiquetas imprimibles + **descarga del template** packing list/factura). CJK en **Noto Sans SC** (`var(--font-noto-sc)`; estaba cargada sin aplicar) + `lang="zh"/"es"`.
+- **`public/templates/dtd-packing-list-invoice.xlsx`** (NUEVO, 26 KB): template único de DTD (packing + factura + instrucciones), descarga directa desde la página del proveedor. Actualizar = commit.
+- **`ShareProviderButton.tsx`** (NUEVO): "Compartir con tu proveedor" (copiar link `/p/{token}` + WhatsApp con mensaje bilingüe). Usado en el éxito de la compra (`PurchaseDone`, ahora acción principal — panel del código a neutro) y en `etiquetas/page.tsx`.
+- **`lib/studio/prealertas/`:** `Prealerta.share_token` + `getProviderShareByToken` (admin, por token, defensivo) + `PrealertaActionState.shareToken`; el action devuelve el token.
+
+**Fase futura:** template **pre-llenado** con código/shipping mark del cliente (hoy es estático). **Divergencia Norte:** la página pública del proveedor no existe en el Norte (`Sync Norte pendiente`).
+
+**Review:** `ui-ux-designer` "ship it" (aplicado #1 Noto Sans SC al CJK — crítico, #5 panel del código neutro, + `overflow-x-auto` dirección, línea de caja 9px). **Gate VERDE.** Migración `0119` pendiente de aplicar a prod.

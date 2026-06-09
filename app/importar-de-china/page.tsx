@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     absolute: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",
   },
   description:
-    "Importa de China a Venezuela puerta a puerta: carga consolidada DDP, financiamiento 100% y entrega en tu ciudad. Cobertura nacional desde Valencia.",
+    "Importa de China a Venezuela puerta a puerta: carga consolidada DDP, pagas al llegar y entrega en tu ciudad. Cobertura nacional desde Valencia.",
   alternates: { canonical: "/importar-de-china" },
   ...socialMeta({
     title: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",
@@ -83,8 +83,8 @@ export default function ImportarHubPage() {
             </h1>
             <p className="lead mt-6 max-w-[60ch]">
               Traemos tu carga consolidada de China puerta a puerta a todo el
-              país: flete, aduana e impuestos incluidos (DDP), financiamiento
-              100% sujeto a aprobación —pagas cuando llega— y entrega coordinada
+              país: flete, aduana e impuestos incluidos (DDP), pagas cuando
+              llega —no por adelantado— y entrega coordinada
               hasta tu ciudad.
               Todo sale de nuestra bodega propia en Valencia, donde recibimos la
               mercancía desde Yiwu.

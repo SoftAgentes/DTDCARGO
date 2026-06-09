@@ -190,7 +190,7 @@ export const CONTACT = {
     phoneRaw: "+582414147886",
     whatsapp: "+58 412 166 8021",
     whatsappRaw: "584121668021",
-    email: "Vzla@dtdcargo.com",
+    email: "info@dtdcargo.com", // unificado al buzón general (vzla@ es alias del mismo correo en Hostinger)
     hours: "Lun a Vie · 9:00 – 17:00 (GMT-4)",
     whatsappHours: "Todos los días · 8:00 – 20:00 (GMT-4)",
   },
@@ -610,11 +610,11 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     id: "prepago",
-    term: "Financiamiento 100%",
+    term: "Pagas al llegar",
     acronym: "Modalidad de pago",
     category: "modalidad",
     body: [
-      "Indica cómo y cuándo pagas a DTD Cargo: te financiamos el viaje completo, así que no adelantas aranceles ni impuestos. La cobranza arranca cuando tu carga llega a Venezuela y pagas antes de recibirla — con la aduana y los impuestos ya incluidos.",
+      "Indica cómo y cuándo pagas a DTD Cargo: pagas cuando tu carga llega a Venezuela, no por adelantado — con la aduana y los impuestos ya incluidos. Pueden aplicar restricciones según el caso.",
     ],
     analogy: {
       label: "Por qué importa",

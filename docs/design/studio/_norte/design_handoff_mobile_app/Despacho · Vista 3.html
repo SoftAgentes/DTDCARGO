@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>DTD · Bodeguero · Despacho</title>
+<title>DTD · Almacenista · Despacho</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="theme-color" content="#060D1C" />
@@ -106,7 +106,7 @@
 <script type="text/babel" src="erp/data-bridge.jsx"></script>
 <script type="text/babel" src="erp/components.jsx"></script>
 <script type="text/babel" src="erp/od-bridge.jsx"></script>
-<script type="text/babel" src="operario/bodeguero-despacho.jsx"></script>
+<script type="text/babel" src="operario/almacenista-despacho.jsx"></script>
 
 <script type="text/babel">
   const { useState } = React;
@@ -116,7 +116,7 @@
 
     return (
       <div>
-        <div className="preview-bar" data-screen-label="03 Bodeguero · Despacho">
+        <div className="preview-bar" data-screen-label="03 Almacenista · Despacho">
           <span className="label">Vista</span>
           <div className="seg" role="tablist">
             <button
@@ -135,7 +135,7 @@
         {mode === 'single' ? (
           <div className="stage-single">
             <div className="phone-frame">
-              <window.BodegueroDespacho />
+              <window.AlmacenistaDespacho />
             </div>
           </div>
         ) : (
@@ -143,13 +143,13 @@
             <div>
               <div className="phone-label"><span className="swatch" style={{ background: '#FBFAF7', border: '1px solid rgba(0,0,0,0.2)' }}></span>Light</div>
               <div className="phone-frame">
-                <window.BodegueroDespacho fixedTheme="light" />
+                <window.AlmacenistaDespacho fixedTheme="light" />
               </div>
             </div>
             <div>
               <div className="phone-label"><span className="swatch" style={{ background: '#0B1428' }}></span>Dark</div>
               <div className="phone-frame">
-                <window.BodegueroDespacho fixedTheme="dark" />
+                <window.AlmacenistaDespacho fixedTheme="dark" />
               </div>
             </div>
           </div>

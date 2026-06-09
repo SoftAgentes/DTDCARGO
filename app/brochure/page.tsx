@@ -28,12 +28,12 @@ import {
 export const metadata: Metadata = {
   title: "Brochure",
   description:
-    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
+    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2008.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
     title: "Brochure · DTD Cargo",
     description:
-      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
+      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2008.",
     path: "/brochure",
   }),
 };
@@ -44,8 +44,8 @@ const WA_COTIZAR = buildWhatsAppLink(
 
 const WHY = [
   {
-    t: "Financiamiento 100%",
-    d: "Con Financiamiento 100% pagas cuando tu carga llega a Venezuela, sujeto a aprobación.",
+    t: "Pagas al llegar",
+    d: "Pagas cuando tu carga llega a Venezuela, no por adelantado. Pueden aplicar restricciones.",
   },
   {
     t: "Equipo y bodega propios",
@@ -80,8 +80,8 @@ export default function BrochurePage() {
             </h1>
             <p className="lead mt-6" style={{ fontSize: "19px" }}>
               Carga consolidada puerta a puerta entre China y Venezuela, todo
-              incluido (DDP). Y con Financiamiento 100% pagas cuando llega a
-              Venezuela (sujeto a aprobación).
+              incluido (DDP). Y pagas cuando llega a
+              Venezuela, no por adelantado.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
@@ -95,7 +95,7 @@ export default function BrochurePage() {
               <DownloadPdfButton />
             </div>
             <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-[13.5px] font-semibold text-grey-700">
-              <span>Financiamiento 100%</span>
+              <span>Pagas al llegar</span>
               <span>Equipo propio en Yiwu &amp; Valencia</span>
               <span>Inspección antes de embarcar</span>
             </div>

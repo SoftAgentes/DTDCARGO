@@ -185,7 +185,7 @@ const DOWNLOADS = [
   { label: "Favicon", sub: "PNG · 32×32", href: BRAND_ASSETS.favicon32 },
 ];
 
-const ASSETS_EMAIL = CONTACT.ve.email; // Vzla@dtdcargo.com — pedidos de fuentes
+const ASSETS_EMAIL = CONTACT.ve.email; // info@dtdcargo.com — pedidos de fuentes
 
 export default function BrandPage() {
   return (

@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 /**
  * Navegación del portal autenticado (client — estado activo por `usePathname`).
- * Inicio (dashboard) · Mis envíos · Compras · Facturas · Documentos · Cuenta.
+ * Inicio (dashboard) · Mis envíos · Estimados · Compras · Facturas · Documentos · Mensajes · Cuenta.
  * Etiquetas cortas para que entren en mobile sin romper el header de 68px.
  * "Compras" (SDD-0057) cubre Tus proveedores + Mis compras. (Referidos / Soporte
  * del Norte son slices futuros — no se incluyen.)
@@ -24,6 +24,11 @@ const LINKS: {
     href: "/portal/envios",
     label: "Mis envíos",
     match: (p) => p.startsWith("/portal/envios"),
+  },
+  {
+    href: "/portal/estimados",
+    label: "Estimados",
+    match: (p) => p.startsWith("/portal/estimados"),
   },
   {
     href: "/portal/proveedores",

@@ -30,6 +30,7 @@ import {
 const ESTADO_LABEL: Record<string, string> = {
   suspendido: "Suspendido",
   "a-pedido": "A pedido",
+  proximamente: "Próximamente",
 };
 
 export function ServiciosDetalle() {
@@ -116,7 +117,10 @@ function FichaDetalle({ service }: { service: ServicioDetalle }) {
   return (
     <details
       id={service.slug}
-      className="brochure-group scroll-mt-28 card-shadow bg-white border border-grey-200 rounded-[14px] overflow-hidden group"
+      open={service.destacado}
+      className={`brochure-group scroll-mt-28 card-shadow bg-white border rounded-[14px] overflow-hidden group ${
+        service.destacado ? "border-wine" : "border-grey-200"
+      }`}
     >
       <summary className="cursor-pointer px-6 py-5 flex items-start gap-4 select-none">
         <span className="flex-shrink-0 mt-0.5">
@@ -127,6 +131,11 @@ function FichaDetalle({ service }: { service: ServicioDetalle }) {
             <span className="text-[16.5px] lg:text-[18px] font-extrabold leading-[1.2] tracking-[-0.01em] text-ink">
               {service.titulo}
             </span>
+            {service.destacado && (
+              <span className="text-[10.5px] font-bold tracking-[0.06em] uppercase px-2 py-0.5 rounded-md bg-wine text-white">
+                Principal
+              </span>
+            )}
             {estado !== "activo" && (
               <span className="text-[10.5px] font-bold tracking-[0.06em] uppercase px-2 py-0.5 rounded-md bg-grey-100 text-grey-700">
                 {ESTADO_LABEL[estado]}

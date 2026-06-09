@@ -25,19 +25,19 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿Quién paga la aduana y los impuestos, y cuándo tengo que pagarle a DTD Cargo?",
     respuesta:
-      "La aduana y los impuestos ya van incluidos en el precio DDP, así que no recibes cobros sorpresa ni tienes que gestionar nada con la aduana: de eso nos encargamos nosotros. Además, con el Financiamiento 100% (sujeto a aprobación) pagas cuando la carga llega a Venezuela, no por adelantado. El costo total se calcula según el volumen (CBM) y tu destino.",
+      "La aduana y los impuestos ya van incluidos en el precio DDP, así que no recibes cobros sorpresa ni tienes que gestionar nada con la aduana: de eso nos encargamos nosotros. Además, pagas cuando la carga llega a Venezuela, no por adelantado (pueden aplicar restricciones). El costo total se calcula según el volumen (CBM) y tu destino.",
   },
   {
     pregunta:
       "Con DTD Cargo, ¿cuándo tengo que pagar la mercancía que traigo de China?",
     respuesta:
-      "Con el Financiamiento 100% (sujeto a aprobación) pagas cuando tu carga llega a Venezuela, no antes. Nosotros financiamos el flete, la aduana y los impuestos durante todo el trayecto desde China, y tú cancelas al momento de la entrega bajo la modalidad DDP puerta a puerta.",
+      "Pagas cuando tu carga llega a Venezuela, no antes: bajo la modalidad DDP puerta a puerta, el flete, la aduana y los impuestos van incluidos en el precio y cancelas al momento de la entrega. Pueden aplicar restricciones según el caso.",
   },
   {
     pregunta:
       "¿Tengo que adelantar plata o dar un depósito para mandar a buscar mi carga en China?",
     respuesta:
-      "El esquema de Financiamiento 100% está pensado para que no tengas que adelantar el costo del envío: pagas al llegar la mercancía a Venezuela. Lo que adelantes depende de tu caso (por ejemplo, si usas nuestro servicio de compra asistida para pagarle al proveedor en China), así que lo mejor es confirmar las condiciones con un asesor por WhatsApp antes de embarcar.",
+      "La idea es que no tengas que adelantar el costo del envío: pagas al llegar la mercancía a Venezuela (pueden aplicar restricciones). Lo que adelantes depende de tu caso (por ejemplo, si usas nuestro servicio de compra asistida para pagarle al proveedor en China), así que lo mejor es confirmar las condiciones con un asesor por WhatsApp antes de embarcar.",
   },
   {
     pregunta:
