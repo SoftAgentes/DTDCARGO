@@ -76,11 +76,7 @@ export default function ContactoPage() {
                     label: `${CONTACT.ve.whatsapp} · WhatsApp`,
                     href: `https://wa.me/${CONTACT.ve.whatsappRaw}`,
                   },
-                  {
-                    kind: "email",
-                    label: CONTACT.ve.email,
-                    href: `mailto:${CONTACT.ve.email}`,
-                  },
+                  // Email unificado: se muestra una sola vez en la tarjeta "Email general" (info@).
                 ]}
               />
               <OfficeCard
