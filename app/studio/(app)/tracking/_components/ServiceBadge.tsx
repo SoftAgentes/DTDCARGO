@@ -1,8 +1,8 @@
 /**
  * Badge del servicio comercial (4 productos DTD).
  *
- * El sub viene de SERVICE_LABELS; para DDP es "Financiamiento 100%"
- * (reemplazó al viejo "prepago", retirado 2026-06-04 del copy de marketing).
+ * El sub viene de SERVICE_LABELS; para DDP es "Pagas al llegar"
+ * (reemplazó a "Financiamiento 100%" 2026-06-09 por riesgo legal del término).
  *
  * Refactor visual (post-audit gráfico):
  *   - Primary subido a 12px (era 11px) para mejor ratio jerárquico vs sub.

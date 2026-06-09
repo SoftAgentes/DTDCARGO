@@ -183,8 +183,8 @@ export function CalculadoraForm({
               Cotiza tu carga China → Venezuela
             </h2>
             <p className="mt-2.5 text-[14px] text-grey-700 leading-[1.5]">
-              Puerta a puerta, financiamiento 100% (sujeto a aprobación). Indica
-              tu volumen y peso y te damos un estimado al instante.
+              Puerta a puerta, pagas al llegar. Indica tu volumen y peso y te
+              damos un estimado al instante.
             </p>
           </div>
 
@@ -317,9 +317,9 @@ export function CalculadoraForm({
       {/* Nota al pie · ancho completo */}
       <div className="border-t border-grey-200 px-6 lg:px-9 py-4">
         <p className="text-[11.5px] text-grey-500 leading-[1.5]">
-          <strong className="text-grey-700">* Financiamiento 100%:</strong> pagas
-          el flete al llegar a Venezuela. <strong className="text-grey-700">Aplican
-          restricciones.</strong>{" "}
+          <strong className="text-grey-700">* Pagas al llegar:</strong> pagas
+          el flete cuando tu carga llega a Venezuela. <strong className="text-grey-700">Pueden
+          aplicar restricciones.</strong>{" "}
           Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
           puerta).
         </p>
@@ -771,7 +771,7 @@ function ResultPanel({
           style={{ background: "rgba(31,138,91,0.12)" }}
         >
           <span className="fin-badge-dot-green" aria-hidden="true" />
-          Financiamiento 100%* · pagas al llegar a Venezuela
+          Pagas al llegar* · cuando tu carga llega a Venezuela
         </div>
       )}
 
