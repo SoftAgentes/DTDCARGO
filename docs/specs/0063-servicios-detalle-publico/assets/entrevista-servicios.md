@@ -15,7 +15,7 @@
 ## TANDA 1 — Eje de transporte marítimo (DICTADO founder 2026-06-09 · pendiente de confirmar)
 
 > El eje NO se organiza por "familia" sino por **MODALIDAD DE TRANSPORTE**. Las distingue 1
-> variable maestra: **dónde TERMINA la responsabilidad de DTD** (+ quién recibe el Bill of
+> variable maestra: **hasta dónde llega el servicio de DTD** (+ quién recibe el Bill of
 > Lading + si la aduana va incluida). Precios = **ejemplos por CBM, hoy, referenciales — NO se
 > publican** (la web va por calculadora/asesor). Reestructura el grupo `maritimo` del scaffold.
 
@@ -23,7 +23,7 @@
 - Contenedor **compartido** (LCL, ~8 clientes DDP por contenedor); DTD consolida en bodega Yiwu.
 - Cliente **no recibe NINGÚN documento** (ni BL): DTD nacionaliza a su nombre. El cliente **solo
   firma la prueba de entrega (POD)**. *(No hay obligación documental → se formaliza en la doc legal.)*
-- **Responsabilidad DTD: hasta la PUERTA**, **incluida hasta el casco central** de la ciudad;
+- **El servicio de DTD llega hasta la PUERTA**, **incluido hasta el casco central** de la ciudad;
   **fuera del casco central = cobro adicional** (lógica de zonas ya en `lib/geo-zonas.ts`).
 - **Aduana + impuestos INCLUIDOS** (DDP). Paga **al llegar** (Financiamiento 100%).
 - Precio ejemplo: **~800 USD/CBM**.
@@ -31,7 +31,7 @@
 ### B. LCL Consolidado — variación más económica, **NO es DDP** (ficha NUEVA, falta slug)
 - Contenedor **compartido** (~8 clientes); **cada cliente con su Bill of Lading SEPARADO** dentro
   del **Bill Master**.
-- **Responsabilidad DTD TERMINA al entregar el BL** al cliente en Venezuela. El cliente hace el
+- **El servicio de DTD llega hasta entregar el BL** al cliente en Venezuela. El cliente hace el
   resto (o contrata add-ons).
 - **Aduana NO incluida.** Si contrata el add-on de aduana (D): el cliente **paga sus planillas
   DIRECTO a la aduana** (DTD no cobra la aduana), da **nombre/empresa + carta poder** para que DTD
@@ -78,7 +78,7 @@
 ### Tramo: Recepción en bodega Yiwu (E2)
 1. **Revisión de mercancía al recibir** — abrir las cajas, revisar la mercancía **y contar/chequear
    la cantidad vs la factura** del proveedor (**es UN solo servicio**). Por defecto **NO se abren las
-   cajas**; solo a pedido (al abrir, DTD asume responsabilidad sobre faltantes).
+   cajas**; solo a pedido (al abrir, DTD verifica y deja constancia de faltantes con fotos).
 2. **Etiquetado por piezas** — etiquetar las piezas; **se cobra POR PIEZA**. Normalmente va después
    de la revisión.
 3. **Cajas defectuosas / reempaque** — reempacar las cajas que llegan defectuosas. Costo mínimo,
@@ -128,7 +128,11 @@
 
 ---
 
-## TANDA 3 — Trámites y legal (mayormente sede Venezuela)
+## TANDA 3 — Trámites y legal (DICTADO founder 2026-06-09)
+
+> Estructura: **visado y registro de marca van SUELTOS** (trámites independientes, no dependen de
+> importar con DTD). **Documentos de importación NO se vende solo → va DENTRO del servicio de
+> aduana** (`transito-aduana`).
 
 ### 11. `visado-chino` — Visado de negocios chino
 - ✅ Asesoría documental, formularios, coordinación consulado, foto en oficina; todo desde Valencia.
@@ -138,9 +142,10 @@
 - ✅ Gestión de PI ante CNIPA; coordinación + documentos desde Venezuela.
 - ❓ FALTA: incluye/no incluye · honorarios + tasas oficiales · tiempos (meses) · qué entrega.
 
-### 13. `documentos-importacion` — Documentos de importación
+### 13. `documentos-importacion` — Documentos de importación → **SUB de aduana** (no suelto)
 - ✅ Elabora/revisa/tramita facturas de embarque, declaraciones, certificados, normativa.
-- ❓ FALTA: ¿suelto o dentro de DDP? · qué NO cubre · precio · tiempos.
+- ✅ CONFIRMADO: **va dentro del servicio de aduana** (`transito-aduana`), no es un producto aparte.
+- ❓ FALTA: qué NO cubre · tiempos.
 
 ---
 
