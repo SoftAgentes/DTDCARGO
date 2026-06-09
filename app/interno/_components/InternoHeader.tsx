@@ -9,7 +9,7 @@ import { signOut } from "../actions";
 
 export function InternoHeader({ email }: { email?: string }) {
   return (
-    <header className="sticky top-0 z-20 bg-paper/95 backdrop-blur border-b border-grey-200">
+    <header className="sticky top-0 z-30 bg-paper/95 backdrop-blur border-b border-grey-200">
       <div className="wrap flex items-center justify-between gap-4 h-[64px]">
         <Link
           href="/interno"

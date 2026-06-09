@@ -29,7 +29,7 @@ export function QuickDownloads({
   ];
 
   return (
-    <section id="descargas-rapidas" className="scroll-mt-[80px] bg-paper border-t border-grey-200 py-8 lg:py-10">
+    <section id="descargas-rapidas" className="scroll-mt-[116px] bg-paper border-t border-grey-200 py-8 lg:py-10">
       <div className="wrap">
         <div
           className="rounded-[18px] border border-grey-200 bg-white p-6 lg:p-7"
