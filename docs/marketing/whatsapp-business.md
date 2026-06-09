@@ -8,7 +8,7 @@
 > detalle de servicios en [`lib/servicios-detalle.ts`](../../lib/servicios-detalle.ts) (DTD-0063,
 > dictado founder 2026-06-09) · buenas prácticas WhatsApp Business 2025/2026 (ver fuentes al pie).
 >
-> **Estado:** 🟡 PARA EJECUTAR — faltan 3 datos del founder (email · horario · nº transporte).
+> **Estado:** 🟢 LISTA PARA EJECUTAR — los 3 datos del founder ya están confirmados (email · horario · nº transporte). Falta solo la ejecución manual en los teléfonos + 3 fotos (ver sección 5).
 
 ---
 
@@ -228,25 +228,34 @@ texto, fuente Archivo, fondo navy de marca).
 | **③ FCL Bodega** | "Contenedor completo · 7 días gratis · 40–55 días" | ✅ `public/fotos/carga-contenedor-precinto-…​.jpg` | [ ] |
 | **④ FCL Fábrica** | "Directo de fábrica · carga segura" | ✅ `public/fotos/precinto-doortudoor-contenedor-…​.jpg` | [ ] |
 | **⑤ Aduana** | "Nacionalización · 5–6 días hábiles" | 🟡 aprox.: `carga-contenedor-precinto` (no hay foto de aduana/puerto) | [ ] |
-| **⑥ Inspección** | "Inspección en fábrica antes de embarcar" | ❌ **falta** — operario revisando producto en fábrica | [ ] |
-| **⑦ Compra asistida** | "Tu departamento de compras en China" | ❌ **falta** — mercado Yiwu / asesor negociando | [ ] |
-| **⑧ Terrestre** | "Transporte nacional · Próximamente" | ❌ **falta** — gandola/camión en carretera VE | [ ] |
+| **⑥ Inspección** | "Inspección en fábrica antes de embarcar" | ✅ banco externo: `supervisor-inspeccion-fabrica-portapapeles.jpg` (stock) · **mejor:** frame de `videos-redes/reels-oplus/reel-2-inspectora-packing-list.mp4` (operación real DTD) | [ ] |
+| **⑦ Compra asistida** | "Tu departamento de compras en China" | ✅ banco externo: `Yiwu-market.jpg` — vista aérea del Mercado Internacional de Yiwu ⭐ | [ ] |
+| **⑧ Terrestre** | "Transporte nacional · Próximamente" | ✅ banco externo: `fila-contenedores-carretera.jpg` o `contenedores-sobre-camiones-logistica.jpg` | [ ] |
 
 > ✅ **Banco SEO real disponible** (`public/fotos/` + `public/videos/`): 5 fotos de operación con
 > marca DoorTuDoor visible (equipo cargando, precinto, shipping mark, cinta, contenedor). Cubren
 > portada + DDP + LCL + FCL Bodega + FCL Fábrica. La cinta-embalaje sirve para reempaque/⑤.
 >
-> ❌ **Faltan 3 fotos:** inspección en fábrica · compra asistida (mercado Yiwu) · transporte
-> terrestre. Para esos: pedirlas al equipo (banco del grupo Marketing / China) o usar una tarjeta
-> de solo-marca (logo + ícono) hasta tener la foto real.
+> ✅ **Las 3 que faltaban ya aparecieron** en el banco externo de marca (`Desktop/COSAS DEL BRANDING
+> Y REDES`): inspección (`supervisor-inspeccion-fabrica-portapapeles.jpg` o, mejor, un frame del reel
+> real `reels-oplus/reel-2-inspectora-packing-list.mp4`) · compra asistida (`Yiwu-market.jpg`,
+> aéreo del mercado de Yiwu) · transporte terrestre (`fila-contenedores-carretera.jpg`). Ese banco
+> también trae fotos reales de operación (`O+ Connect/`, `WhatsApp.../FOTOS DTD/`, `equipo
+> doortudoor trabajando.png`) y reels listos para redes (`videos-redes/`).
+>
+> ➡️ **Para el catálogo:** cargás el archivo directo en el generador (no hace falta meterlo al repo).
+> Si querés sumarlas al banco web (`public/fotos/`), copiar **solo** fotos de operación/marca con
+> nombre kebab-case. ⚠️ **NUNCA copiar al repo** las cédulas, pasaporte, tarjetas de cliente,
+> `QR_Sam`, cartas WeChat ni la carpeta de docs legales de esa misma carpeta — son PII.
 >
 > **Estilo unificado:** mismo tratamiento en las 8 → franja inferior navy con el logo a la
 > izquierda + el dato clave a la derecha. Así el catálogo se ve como un set, no fotos sueltas.
 >
 > 🛠️ **Generador listo:** abrí [`assets/whatsapp-catalogo-plantillas.html`](assets/whatsapp-catalogo-plantillas.html)
-> en el navegador → las 8 tarjetas + portada ya traen el marco de marca. Cargás la foto real de
-> cada servicio, editás título/dato si hace falta, y **Descargar PNG** (1080×1080). El marco navy
-> + logo + overlay ya están aplicados (colores y logo de marca).
+> en el navegador → las 8 tarjetas + portada **enfocadas en el servicio** (foto arriba + franja navy
+> con el título del servicio y un dato simple; **sin logo** — la marca va en la metadata del PNG).
+> Cargás la foto real de cada servicio, editás título/dato si hace falta, y **Descargar PNG**
+> (1080×1080). Cada PNG sale con metadata de procedencia (`Copyright`, `Source: dtdcargo.com`, etc.).
 
 ---
 
