@@ -4,6 +4,36 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v2.5 · re-sync 2026-06-08 (handoff posterior · Inspecciones + calc CBM-por-medidas + Brand Book v3.5)
+
+Re-sincronización desde un ZIP posterior de Cloud Design (`Downloads/DTD-Cargo (2).zip`, ~117 MB crudo).
+Supersede en contenido a la carga v2.5 del 06-07 (abajo). Hecha desde el worktree `feat/calculadora` y
+llevada a main por **rebase + push FF** (commit `d7d8008`; NORTE-SYNC `b1e11b0`). El gate quedó verde.
+
+**Nuevo ⭐:**
+- **Inspección de calidad (China):** `Inspección de Fábrica · DTD.html`, `Inspección de Producto · DTD.html`,
+  `Inspección de Producto · Baterías · DTD.html`, `Reportes de Inspección · DTD.html` + plantillas
+  (`Plantilla · Inspección de {Fábrica,Producto}.html`) + assets `assets/insp-*` y `reportes/`. Agregadas al
+  índice (`scripts/norte.mjs`) como grupo **"Inspección de calidad · China (v2.5)"**, `ref` (no cuentan en el %).
+- **Calculadora CBM por medidas:** `calc/cbm-variants.jsx` con el **toggle ▶/▼ único** (abre y cierra desde el
+  mismo control) + `HANDOFF-CBM-MEDIDAS.md` + `PROMPT-CLAUDE-CODE-CBM-MEDIDAS.md`. → **portado a la web pública**
+  (`components/CalculadoraForm.tsx`, mismo push).
+- **Brand Book v3.5** ahora es archivo propio `Brand Book DTD v3.5.html` (la carga 06-07 lo tenía dentro de
+  `v3.2.html`). El índice apunta a v3.5.
+
+**Exclusión por regla (no a git):** `uploads/`, `_archivo/uploads/` (PDFs de inspección ~12 MB c/u, mp4, PNGs
+pegados) y `*.prisma`. Sync vía `tar --exclude` (no hay rsync en git-bash Windows). `_norte/` 14→23 MB.
+
+**⚠️ Deuda introducida por este re-sync (pendiente de limpiar):**
+- **Drift de terminología re-introducido:** el ZIP de Cloud Design usa Bodeguero/Camionero; este sync (sin
+  re-aplicar el rename) **sobreescribió** los `.jsx` que la carga 06-07 había renombrado a
+  Almacenista/Transportista, y **agregó** `Bodeguero VE.html` / `Camionero.html` → ahora **coexisten** con
+  `Almacenista VE.html` / `Transportista.html` (duplicados). El índice navegable sigue apuntando a
+  Almacenista/Transportista (correcto). **Pendiente:** re-aplicar el rename + borrar los duplicados Bodeguero/Camionero.
+- **`Brand Book DTD v3.2.html` huérfano:** quedó en disco al renombrar Cloud Design a v3.5.html (tar sin
+  `--delete`). Candidato a borrar.
+- `schema.prisma` NO volvió (excluido + bloqueado por `.gitignore`).
+
 ## v2.5 — cargada 2026-06-07 (handoff de Cloud Design · Tarjeta de Presentación + celebración MARKBOX + Brand Book v3.5 + nómina)
 
 Fuente: carpeta `Downloads/DTD-Cargo · Proyecto Completo · Handoff v2.5` (extraída, ~70 MB). Supersede v2.4c.
