@@ -78,7 +78,7 @@ export function PortalDashboard({
       <div className="mt-7 grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi label="Envíos activos" value={String(kpis.activeShipments)} sub="en curso" />
         <Kpi
-          label="Entregados YTD"
+          label="Entregados"
           value={String(kpis.deliveredYtd)}
           sub={`${new Date().getFullYear()} acumulado`}
         />
@@ -283,7 +283,7 @@ function AgentCard({ client }: { client: PortalClient }) {
         Tu asesor
       </div>
       <p className="mt-3 text-[13.5px] text-grey-700 leading-[1.55]">
-        Tu asesor DTD te acompaña en cada carga. Escribinos por WhatsApp para
+        Tu asesor DTD te acompaña en cada carga. Escríbenos por WhatsApp para
         cotizar, prealertar una compra o resolver cualquier duda.
       </p>
       <div

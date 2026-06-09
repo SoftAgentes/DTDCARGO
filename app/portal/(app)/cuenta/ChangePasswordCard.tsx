@@ -67,7 +67,7 @@ export function ChangePasswordCard() {
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
-              Repetí la contraseña
+              Repite la contraseña
             </span>
             <input
               type="password"
