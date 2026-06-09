@@ -2,7 +2,7 @@
  * Server actions para el login del Studio.
  *
  * signIn(): autentica al operador contra Supabase Auth.
- * Si OK → redirect a /studio/resumen.
+ * Si OK → redirect al `?next=` validado (o /studio/resumen por default).
  * Si error → devuelve el mensaje para mostrar en el form.
  */
 
@@ -16,12 +16,23 @@ export type SignInState = {
   error?: string;
 };
 
+/**
+ * Solo permitimos redirect a rutas internas del propio sitio. Debe empezar con
+ * "/" pero NO con "//" ni "/\" (eso sería un host externo → open-redirect).
+ */
+function safeNext(raw: FormDataEntryValue | null): string {
+  const v = String(raw ?? "");
+  if (v.startsWith("/") && !v.startsWith("//") && !v.startsWith("/\\")) return v;
+  return "/studio/resumen";
+}
+
 export async function signIn(
   _prevState: SignInState,
   formData: FormData,
 ): Promise<SignInState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = safeNext(formData.get("next"));
 
   if (!email || !password) {
     return { error: "Completá email y contraseña." };
@@ -39,5 +50,5 @@ export async function signIn(
   }
 
   revalidatePath("/", "layout");
-  redirect("/studio/resumen");
+  redirect(next);
 }

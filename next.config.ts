@@ -196,6 +196,17 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // El kit de marca dejó de ser público: la marca ahora vive en la zona
+      // interna gateada `/interno/marca` (login del ERP). El `/brand` viejo
+      // (indexado) redirige al home para no dejar un 404 a quien lo tenga
+      // guardado. Los PNG estáticos en `public/brand/*` siguen sirviéndose
+      // (el sitio los usa en nav/footer/og/favicon) — el redirect es exacto a
+      // `/brand`, no afecta `/brand/<archivo>.png`.
+      {
+        source: "/brand",
+        destination: "/",
+        permanent: true,
+      },
       // SDD-0061 Fase A: `/cotizar` se renombró a `/estimacion` (vocabulario QB:
       // "cotización" se retira). 301 permanente para no perder el SEO ni los
       // links externos al URL viejo.
