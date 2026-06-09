@@ -178,16 +178,18 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Carga y consolidación del contenedor completo (FCL).",
       "Despacho de exportación en China.",
       "Reserva del contenedor y del flete.",
+      "Almacenaje gratis los primeros 7 días en la bodega de Yiwu.",
     ],
     noIncluye: [
       "Gestión en Venezuela (aduana, transporte): la manejas tú, o la sumas como servicio de aduana opcional.",
+      "Almacenaje después de los primeros 7 días gratis: tiene un costo adicional.",
     ],
-    precio: "",
+    precio: "Se cotiza con un asesor por WhatsApp.",
     comoSolicitar:
       "El FCL se cotiza con un asesor (no está en la calculadora pública). Escríbenos por WhatsApp.",
-    tiempos: "",
+    tiempos:
+      "40 a 55 días aproximados: al ser contenedor completo, no espera la próxima salida consolidada.",
     estado: "activo",
-    _pendiente: ["incluye finos (almacenaje/reempaque)", "precio/condición", "tiempos"],
   },
   {
     slug: "reserva-contenedores",
@@ -204,12 +206,12 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     noIncluye: [
       "Gestión en Venezuela (aduana, transporte): la manejas tú, o la sumas como servicio de aduana opcional.",
     ],
-    precio: "",
+    precio: "Se cotiza con un asesor por WhatsApp.",
     comoSolicitar: "Se cotiza con un asesor. Escríbenos por WhatsApp.",
-    tiempos: "",
+    tiempos:
+      "40 a 55 días aproximados: al ser contenedor completo, no espera la próxima salida consolidada.",
     estado: "activo",
     nota: "Seguridad: al salir el BL a nuestro nombre como shipper, el proveedor no puede desviar ni cambiar el destino del contenedor.",
-    _pendiente: ["precio/condición", "tiempos"],
   },
   {
     slug: "transporte-terrestre",
