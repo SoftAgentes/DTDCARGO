@@ -70,10 +70,13 @@
   (corrige el "5 CBM" del FAQ/runbook de Kommo).
 
 ### ❓ Aún por dictar (TANDA 1)
-- **DDP: COMPLETO ✅** · **LCL Consolidado: COMPLETO ✅** (tiempos 60-90 hasta entregar el BL;
-  precio por CBM con asesor; **seguro NO se menciona en la web** — si preguntan, "no incluye").
-- **FCL Bodega · FCL Fábrica · Terrestre · Aduana:** falta `noIncluye` + `precio`/condición + `tiempos`.
-- Precios 550/FCL: referenciales internos, NO se publican.
+- **DDP ✅ · LCL Consolidado ✅ · FCL Bodega ✅ · FCL Fábrica ✅** — COMPLETOS.
+  - LCL: 60-90 días hasta entregar el BL; precio por CBM con asesor.
+  - FCL: **40-55 días aprox** (contenedor completo, sin espera de salida consolidada); precio con
+    asesor; **FCL Bodega: 7 días de almacenaje gratis, después costo extra**.
+  - **Seguro: NO se menciona en la web** en ninguna modalidad — si preguntan, "no incluye".
+- **Terrestre · Aduana:** falta `noIncluye` + `precio`/condición + `tiempos`.
+- Precios FCL/LCL: referenciales internos, NO se publican.
 
 ---
 
