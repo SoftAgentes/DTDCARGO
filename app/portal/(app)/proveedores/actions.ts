@@ -351,8 +351,8 @@ export async function createPrealertaAction(
         est_value_usd: input.estValueUsd,
         status: "anunciada",
       })
-      .select("id")
-      .single<{ id: string }>();
+      .select("id, share_token")
+      .single<{ id: string; share_token: string | null }>();
 
     if (!insErr && insRow) {
       // WeChat/WhatsApp del proveedor (número o ID): si lo cargó, lo guardamos en
@@ -376,7 +376,11 @@ export async function createPrealertaAction(
       });
 
       revalidatePortal();
-      return { ok: true, prealertaCode: code };
+      return {
+        ok: true,
+        prealertaCode: code,
+        shareToken: insRow.share_token ?? undefined,
+      };
     }
     if (insErr.code === "23505") {
       // Choque de código → otra compra ganó la carrera; reintentamos.

@@ -11,6 +11,7 @@ import {
 } from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
+import { ShareProviderButton } from "../../_components/ShareProviderButton";
 import type { SupplierView } from "@/lib/studio/prealertas/types";
 import {
   createSupplierAction,
@@ -439,7 +440,11 @@ function NewPurchaseModal({
 
         <div className="p-6">
           {done ? (
-            <PurchaseDone code={state.prealertaCode!} onClose={onClose} />
+            <PurchaseDone
+              code={state.prealertaCode!}
+              shareToken={state.shareToken}
+              onClose={onClose}
+            />
           ) : (
             <>
               {/* Selector de proveedor */}
@@ -605,8 +610,9 @@ function NewPurchaseModal({
                 <div className="rounded-[12px] border border-grey-200 p-4">
                   <FieldLabel>Adjuntos (opcional)</FieldLabel>
                   <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
-                    No son obligatorios, pero si los subís te quedan de recordatorio
-                    en tu portal y agilizamos el proceso de tu compra.
+                    No son obligatorios, pero si los subes nos ayudas a saber qué
+                    traes y cuánto vale, procesamos tu compra más rápido y te quedan
+                    de recordatorio en tu portal.
                   </p>
                   <div className="mt-3 flex flex-col gap-2">
                     <FileField
@@ -657,7 +663,15 @@ function NewPurchaseModal({
   );
 }
 
-function PurchaseDone({ code, onClose }: { code: string; onClose: () => void }) {
+function PurchaseDone({
+  code,
+  shareToken,
+  onClose,
+}: {
+  code: string;
+  shareToken?: string;
+  onClose: () => void;
+}) {
   return (
     <div className="flex flex-col items-center text-center gap-5">
       <div
@@ -670,24 +684,18 @@ function PurchaseDone({ code, onClose }: { code: string; onClose: () => void }) 
         <div className="text-[16px] font-bold text-ink">
           Tu compra quedó registrada.
         </div>
-        <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[40ch]">
-          Este es el código de tu compra. Genera las etiquetas y envíaselas a tu
-          proveedor para que las pegue en cada caja.
+        <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.5] max-w-[42ch]">
+          Compártele el link a tu proveedor: trae la dirección de la bodega y las
+          etiquetas, las baja él directo. No tienes que descargar ni reenviar nada.
         </p>
       </div>
 
-      <div
-        className="w-full rounded-[14px] px-6 py-5"
-        style={{ background: "var(--color-wine)", color: "#fff" }}
-      >
-        <div
-          className="text-[10px] font-bold tracking-[0.18em] uppercase"
-          style={{ color: "var(--color-wine-soft)" }}
-        >
+      <div className="w-full rounded-[14px] px-6 py-5 bg-white border border-grey-200">
+        <div className="text-[10px] font-bold tracking-[0.18em] uppercase text-grey-500">
           Código de la compra · prealerta
         </div>
         <div
-          className="mt-2 text-[28px] leading-none"
+          className="mt-2 text-[28px] leading-none text-ink"
           style={{
             fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
             letterSpacing: "-0.01em",
@@ -697,12 +705,21 @@ function PurchaseDone({ code, onClose }: { code: string; onClose: () => void }) 
         </div>
       </div>
 
+      {shareToken ? (
+        <div className="w-full text-left">
+          <div className="text-[12px] font-bold text-ink mb-2">
+            Compartir con tu proveedor
+          </div>
+          <ShareProviderButton token={shareToken} />
+        </div>
+      ) : null}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 w-full">
         <Link
           href={`/portal/compras/${encodeURIComponent(code)}/etiquetas`}
-          className="btn btn-primary inline-flex items-center justify-center gap-2"
+          className="btn btn-ghost inline-flex items-center justify-center gap-2"
         >
-          Generar etiquetas <ArrowIcon size={15} />
+          Ver mis etiquetas <ArrowIcon size={15} />
         </Link>
         <button type="button" onClick={onClose} className="btn btn-ghost">
           Listo
