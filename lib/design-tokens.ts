@@ -190,7 +190,7 @@ export const CONTACT = {
     phoneRaw: "+582414147886",
     whatsapp: "+58 412 166 8021",
     whatsappRaw: "584121668021",
-    email: "Vzla@dtdcargo.com",
+    email: "info@dtdcargo.com", // unificado al buzón general (vzla@ es alias del mismo correo en Hostinger)
     hours: "Lun a Vie · 9:00 – 17:00 (GMT-4)",
     whatsappHours: "Todos los días · 8:00 – 20:00 (GMT-4)",
   },
