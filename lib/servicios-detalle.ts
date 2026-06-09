@@ -157,13 +157,14 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Aduana e impuestos en Venezuela: los gestionas tú, o los sumas aparte (servicio de aduana).",
       "Servicios portuarios, transporte interno y demás gastos hasta el destino.",
     ],
-    precio: "", // [FALTA] referencia interna ~550/CBM — NO publicar
+    // precio: referencia interna ~550/CBM — NO se publica el monto
+    precio: "Se cotiza por volumen (CBM) con un asesor por WhatsApp.",
     comoSolicitar:
       "Escríbenos por WhatsApp para cotizar tu carga consolidada LCL.",
-    tiempos: "",
+    tiempos:
+      "60 a 90 días hasta que tu carga llega a Venezuela y te entregamos el Bill of Lading.",
     estado: "activo",
     nota: "El servicio de DTD llega hasta entregarte el Bill of Lading en Venezuela; el desaduanaje es un servicio adicional opcional.",
-    _pendiente: ["precio (referencial, no publicar)", "tiempos"],
   },
   {
     slug: "consolidacion-bodega-yiwu",
