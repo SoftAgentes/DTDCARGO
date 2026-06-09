@@ -70,8 +70,9 @@
   (corrige el "5 CBM" del FAQ/runbook de Kommo).
 
 ### ❓ Aún por dictar (TANDA 1)
-- **DDP: COMPLETO ✅** (incluye / no-incluye / precio / tiempos cerrados).
-- **LCL · FCL Bodega · FCL Fábrica · Terrestre · Aduana:** falta `noIncluye` + `precio`/condición + `tiempos`.
+- **DDP: COMPLETO ✅** · **LCL Consolidado: COMPLETO ✅** (tiempos 60-90 hasta entregar el BL;
+  precio por CBM con asesor; **seguro NO se menciona en la web** — si preguntan, "no incluye").
+- **FCL Bodega · FCL Fábrica · Terrestre · Aduana:** falta `noIncluye` + `precio`/condición + `tiempos`.
 - Precios 550/FCL: referenciales internos, NO se publican.
 
 ---
