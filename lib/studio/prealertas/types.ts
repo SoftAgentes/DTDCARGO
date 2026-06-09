@@ -286,6 +286,8 @@ export type Prealerta = {
   status: PrealertaStatus;
   received_at: string | null;
   shipment_id: string | null;
+  /** SDD-0057 ext: token del link público del proveedor (/p/{share_token}). */
+  share_token: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;
@@ -355,6 +357,8 @@ export type PrealertaActionState = {
   error?: string;
   fieldErrors?: Partial<Record<keyof PrealertaInput, string>>;
   prealertaCode?: string;
+  /** Token del link público del proveedor (para "Compartir con mi proveedor"). */
+  shareToken?: string;
 };
 
 /**

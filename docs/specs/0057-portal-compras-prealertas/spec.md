@@ -251,4 +251,20 @@ entrantes para el operador + dropdown de supplier en `/studio/etiquetas` (cierra
 
 **Divergencias del Norte (DESIGN-CHECK · `Sync Norte pendiente`):** (1) adjuntos **todos opcionales** — el Norte (`_norte/portal/app.jsx:1619-1646`) hace el packing list obligatorio para generar el código; (2) **captura/número de WhatsApp del proveedor** no existe en el Norte; (3) modal en **un solo paso** con sección opcional, en vez del 2-pasos (docs→labels) del Norte. Cuando Cloud Design espeje estas pantallas, alinear el Norte.
 
-**Review:** `ui-ux-designer` "ship it" (aplicado: focus ring del FileField a11y, `min-h-44`, copys grey-700, nombre de archivo en ink). **Gate `node scripts/verify.mjs` VERDE** (1508 tests). Migraciones `0117`+`0118` **NO** aplicadas a prod. Sin push.
+**Review:** `ui-ux-designer` "ship it" (aplicado: focus ring del FileField a11y, `min-h-44`, copys grey-700, nombre de archivo en ink). **Gate `node scripts/verify.mjs` VERDE** (1508 tests).
+
+> **Estado prod:** migraciones `0117`+`0118` **aplicadas a prod** (MCP, verificadas) + mergeadas (PR #13). Botón "Nueva compra · = prealerta" extendido al dashboard (PR #14). Sección de captura del proveedor pasó a **solo WeChat** + copy más claro (PR #15).
+
+### Extensión — Link del proveedor `/p/{token}` + template (2026-06-09 · continuación)
+
+Cierra el flujo **DTD → proveedor**: el cliente comparte UN link y el proveedor chino se baja todo solo (en vez de descargar y reenviar).
+
+- **Migración `0119_prealerta_share_token.sql`** (NUEVA, **NO aplicada a prod** al escribir): `prealertas.share_token uuid` (default `gen_random_uuid()`, unique) — token no adivinable; las filas existentes reciben token vía default.
+- **`app/p/[token]/`** (NUEVO, ruta **pública** Supabase-backed, fuera de la frontera ESLint como `/registro`): `page.tsx` (lee por token con admin client, `noindex`) + `ProviderShareClient.tsx` (bilingüe **中文/Español**: dirección de bodega CN con el shipping mark + etiquetas imprimibles + **descarga del template** packing list/factura). CJK en **Noto Sans SC** (`var(--font-noto-sc)`; estaba cargada sin aplicar) + `lang="zh"/"es"`.
+- **`public/templates/dtd-packing-list-invoice.xlsx`** (NUEVO, 26 KB): template único de DTD (packing + factura + instrucciones), descarga directa desde la página del proveedor. Actualizar = commit.
+- **`ShareProviderButton.tsx`** (NUEVO): "Compartir con tu proveedor" (copiar link `/p/{token}` + WhatsApp con mensaje bilingüe). Usado en el éxito de la compra (`PurchaseDone`, ahora acción principal — panel del código a neutro) y en `etiquetas/page.tsx`.
+- **`lib/studio/prealertas/`:** `Prealerta.share_token` + `getProviderShareByToken` (admin, por token, defensivo) + `PrealertaActionState.shareToken`; el action devuelve el token.
+
+**Fase futura:** template **pre-llenado** con código/shipping mark del cliente (hoy es estático). **Divergencia Norte:** la página pública del proveedor no existe en el Norte (`Sync Norte pendiente`).
+
+**Review:** `ui-ux-designer` "ship it" (aplicado #1 Noto Sans SC al CJK — crítico, #5 panel del código neutro, + `overflow-x-auto` dirección, línea de caja 9px). **Gate VERDE.** Migración `0119` pendiente de aplicar a prod.

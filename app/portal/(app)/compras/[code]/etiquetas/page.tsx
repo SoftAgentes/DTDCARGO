@@ -15,6 +15,7 @@ import {
 } from "@/lib/studio/prealertas/types";
 import { DocIcon } from "@/components/Icon";
 import { LabelsClient } from "./LabelsClient";
+import { ShareProviderButton } from "../../../../_components/ShareProviderButton";
 
 export const metadata: Metadata = { title: "Etiquetas" };
 
@@ -102,6 +103,22 @@ export default async function PortalLabelsPage({
         description={prealerta.description}
         labels={labels}
       />
+
+      {prealerta.share_token && (
+        <div className="mt-8 print:hidden card-shadow bg-white border border-grey-200 rounded-[16px] p-6">
+          <div className="text-[15px] font-bold text-ink">
+            Compartir con tu proveedor
+          </div>
+          <p className="mt-1.5 text-[13px] text-grey-700 leading-[1.5] max-w-[60ch]">
+            Mándale este link a tu proveedor: trae la dirección de la bodega y
+            estas etiquetas para que las baje él directo, sin que tengas que
+            descargar ni reenviar nada.
+          </p>
+          <div className="mt-4">
+            <ShareProviderButton token={prealerta.share_token} />
+          </div>
+        </div>
+      )}
 
       {(signedDocs.length > 0 || supplierWechat) && (
         <div className="mt-10 print:hidden">
