@@ -143,11 +143,11 @@ Decisión V1: **mostrar siempre** (chip neutral discreto). Ajustable en ui-ux.
 
 ## 5. Acceptance
 
-### Slice A ✅ (foundation — sin UI; implementado 2026-06-05, NO aplicado a prod)
+### Slice A ✅ (foundation — sin UI; implementado 2026-06-05, aplicado a prod 2026-06-08)
 - [x] Migración `0111`: 5 columnas en `documents` + backfill (toda fila previa = `root_id=id`,
       `version_no=1`, `is_current=true`) + `root_id not null` + índice único parcial
       `one_current_per_root` + índice `documents_chain_idx` + RPC `add_document_version`
-      `SECURITY DEFINER` tenant-safe. *(NO aplicada a prod — la aplica el founder.)*
+      `SECURITY DEFINER` tenant-safe. *(aplicada a prod 2026-06-08 vía MCP.)*
 - [x] La RPC rechaza cadena de otro tenant / inexistente / borrada (fail-closed, `for update`
       lock anti-carrera); hereda `entity_type`/`entity_id`/`folder` de la cabeza; flip
       `is_current=false` en la actual + insert con `version_no=max+1`/`supersedes_id` → deja
@@ -160,7 +160,7 @@ Decisión V1: **mostrar siempre** (chip neutral discreto). Ajustable en ui-ux.
 - [x] Tests del stub cubren cadena (v1→v2→v3), invariante 1-current, ocultamiento de no-current,
       `versionLabel`. `node scripts/verify.mjs` verde (1313 tests).
 
-### Slice B ✅ (operable — implementado 2026-06-05; migración 0116 NO aplicada a prod aún)
+### Slice B ✅ (operable — implementado 2026-06-05; migración 0116 aplicada a prod 2026-06-08)
 - [x] Desde `<DocsPanel>`: "Subir nueva versión" de un PDF → el panel/hub muestran la nueva (la vieja
       desaparece del listado por el filtro `is_current` de Slice A pero sigue en el historial); badge
       `v{n}` junto a cada documento (chip neutral mono, mostrado siempre · §4.5). Acción con
@@ -209,9 +209,8 @@ Decisión V1: **mostrar siempre** (chip neutral discreto). Ajustable en ui-ux.
   misma razón, el **row-flash no aplica** en el panel embebido: el documento ya está visible y su chip
   cambia solo (no hay navegación ni listado destino al que resaltar). Cumple la regla de "Trazabilidad
   visual" de `app/studio/CLAUDE.md` por el camino correcto para este caso (rastro in-place, no toast-con-link).
-- **Pendiente founder:** aplicar `supabase/migrations/0116_documentos_versionado.sql` a prod (lo hace el
-  founder, no el harness). Sin la migración, la columna `root_id`/`is_current` y la RPC no existen en
-  prod → la feature no opera hasta aplicarla.
+- **✅ Aplicada a prod 2026-06-08** (`supabase/migrations/0116_documentos_versionado.sql`, vía MCP). La
+  columna `root_id`/`is_current` y la RPC `add_document_version` ya existen en prod → la feature opera.
 
 ## 6. Archivos a crear / editar (estimado)
 
