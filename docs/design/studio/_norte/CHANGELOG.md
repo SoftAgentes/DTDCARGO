@@ -22,6 +22,40 @@ Formato:
 
 <!-- Las entradas nuevas se agregan acá arriba -->
 
+## 2026-06-08 · 🧮 Calculadora CBM por medidas (alto × ancho × largo + cajas)
+
+Feature pedida por el equipo, validada en sandbox y **promovida a producción** (es la
+calculadora oficial para avanzar).
+
+### ✅ Hecho en esta sesión
+
+- **Forma alternativa de obtener el CBM (NUEVO):** en `calc/cbm-variants.jsx` (`window.CalcLCL`,
+  monta en `Calculadora CBM · DTD-Cargo.html`). Debajo del campo **CBM total** hay un link
+  discreto *"¿No sabés tu CBM? Calculalo con las medidas"*, **oculto por defecto**. Al abrir
+  despliega un panel (`DimPanel`) con **Alto · Ancho · Largo (cm)** + **Cantidad de cajas**.
+  Calcula `(alto×ancho×largo)/1.000.000 = m³/caja`, `× cajas = CBM total`, y **asigna el CBM
+  automáticamente** (efecto de un solo sentido: medidas → `cbm`, sin loop). Con el panel activo
+  el campo CBM queda `readOnly` con tag `auto · medidas`. Cerrar el panel libera el campo y
+  conserva el último valor. El CBM calculado entra al mismo `computeQuote` → respeta punto de
+  cruce, tope contenedor (68), densidad (600), excedente de peso, piso $50 y derivación a asesor.
+
+**Archivos nuevos:**
+- `HANDOFF-CBM-MEDIDAS.md` · spec de la lógica para Claude Code (queda como referencia; ya integrada).
+
+**Archivos modificados (línea + razón):**
+- `calc/cbm-variants.jsx` · helper `computeDims`, componente `DimPanel`, prop `readOnly` en
+  `NumField`, estado `showDims/altoStr/anchoStr/largoStr/cajasStr` + `useEffect` de autoasignado,
+  y disparador + panel en el render bajo la fila CBM/Peso. Keyframe `dtd-dim-open` en la inyección CSS.
+
+**Borrados (consolidación · single source of truth):**
+- `calc/cbm-medidas.jsx` y `Calculadora CBM · Prueba medidas.html` (sandbox de validación, ya mergeado).
+
+**Notas:** copy en **voseo** para igualar el resto de la calculadora (pendiente la decisión global
+tuteo vs. voseo del `CLAUDE.md`, que toda la calculadora viola hoy). Autoasignado en vivo (sin botón
+"Usar este CBM"), según pedido original. Sin colores/fuentes/tokens fuera del sistema.
+
+---
+
 ## 2026-06-07 · 🪪 Tarjeta de presentación + celebración MARKBOX + branding v3.5 + chequeo de handoff
 
 Sesión de branding + producto + preparación de handoff a Claude Code.
