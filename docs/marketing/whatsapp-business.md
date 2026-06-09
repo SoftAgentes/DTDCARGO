@@ -219,22 +219,26 @@ carga real) → es lo más creíble y anti-genérico. Si no hay foto propia, pla
 logo + ícono + título. Cada imagen **cuadrada 1080×1080** con un **dato clave en overlay** (poco
 texto, fuente Archivo, fondo navy de marca).
 
-| Asset | Imagen sugerida (concepto) | Dato/overlay encima | Fuente ideal | Listo |
-|---|---|---|---|---|
-| **Foto de perfil (×8)** | Isologo DTD sobre fondo navy | — (solo logo) | `public/brand/dtdcargo-isologo-primary.png` | [ ] |
-| **Portada / banner** | Contenedores en puerto o mapa China→VE con flecha | "China → Venezuela · puerta a puerta" | Foto propia / stock | [ ] |
-| **① DDP** ⭐ | Pallet/caja entregándose en la puerta del cliente, o flecha 🇨🇳→🇨🇳 | "Todo incluido · pagas al llegar · 60–90 días" | Foto entrega real | [ ] |
-| **② LCL** | Bodega con cajas de varios clientes apiladas (carga mixta) | "Carga compartida · con tu BL propio" | Foto bodega Yiwu | [ ] |
-| **③ FCL Bodega** | Contenedor abierto llenándose de cajas en la bodega | "Contenedor completo · 7 días almacenaje gratis · 40–55 días" | Foto bodega Yiwu | [ ] |
-| **④ FCL Fábrica** | Contenedor cargándose en la fábrica / camión con contenedor | "Directo de fábrica · BL a nuestro nombre = carga segura" | Foto operación | [ ] |
-| **⑤ Aduana** | Contenedor en puerto con grúa, o sello/documentos de aduana | "Nacionalización · 5–6 días hábiles" | Foto puerto / stock | [ ] |
-| **⑥ Inspección** | Operario revisando producto con checklist/lupa en fábrica | "Inspección en fábrica antes de embarcar" | Foto inspección real | [ ] |
-| **⑦ Compra asistida** | Mercado mayorista de Yiwu / asesor negociando con proveedor | "Tu departamento de compras en China" | Foto Yiwu / equipo | [ ] |
-| **⑧ Terrestre** | Gandola/camión de carga en carretera venezolana | "Transporte nacional · Próximamente" | Foto propia / stock | [ ] |
+| Asset | Dato/overlay encima | Foto real del repo (banco SEO) | Listo |
+|---|---|---|---|
+| **Foto de perfil (×8)** | — (solo logo) | `public/brand/dtdcargo-isologo-primary.png` | [ ] |
+| **Portada / banner** | "China → Venezuela · puerta a puerta" | ✅ `public/videos/equipo-cargando-contenedor-…-poster.jpg` | [ ] |
+| **① DDP** ⭐ | "Todo incluido · pagas al llegar · 60–90 días" | ✅ `equipo-cargando-contenedor-…-poster.jpg` (o carga-contenedor) | [ ] |
+| **② LCL** | "Carga compartida · con tu BL propio" | ✅ `public/videos/shipping-mark-dtd-pallets-…-poster.jpg` | [ ] |
+| **③ FCL Bodega** | "Contenedor completo · 7 días gratis · 40–55 días" | ✅ `public/fotos/carga-contenedor-precinto-…​.jpg` | [ ] |
+| **④ FCL Fábrica** | "Directo de fábrica · carga segura" | ✅ `public/fotos/precinto-doortudoor-contenedor-…​.jpg` | [ ] |
+| **⑤ Aduana** | "Nacionalización · 5–6 días hábiles" | 🟡 aprox.: `carga-contenedor-precinto` (no hay foto de aduana/puerto) | [ ] |
+| **⑥ Inspección** | "Inspección en fábrica antes de embarcar" | ❌ **falta** — operario revisando producto en fábrica | [ ] |
+| **⑦ Compra asistida** | "Tu departamento de compras en China" | ❌ **falta** — mercado Yiwu / asesor negociando | [ ] |
+| **⑧ Terrestre** | "Transporte nacional · Próximamente" | ❌ **falta** — gandola/camión en carretera VE | [ ] |
 
-> 💡 **Banco de fotos:** las 29 imágenes del grupo "Marketing DOOR TU DOOR" + las fotos de bodega
-> y operación que ya tienen son la mejor fuente. Para las que falten o para unificar el estilo
-> (mismo marco navy + logo + overlay), las puedo bosquejar en **modo diseñador**.
+> ✅ **Banco SEO real disponible** (`public/fotos/` + `public/videos/`): 5 fotos de operación con
+> marca DoorTuDoor visible (equipo cargando, precinto, shipping mark, cinta, contenedor). Cubren
+> portada + DDP + LCL + FCL Bodega + FCL Fábrica. La cinta-embalaje sirve para reempaque/⑤.
+>
+> ❌ **Faltan 3 fotos:** inspección en fábrica · compra asistida (mercado Yiwu) · transporte
+> terrestre. Para esos: pedirlas al equipo (banco del grupo Marketing / China) o usar una tarjeta
+> de solo-marca (logo + ícono) hasta tener la foto real.
 >
 > **Estilo unificado:** mismo tratamiento en las 8 → franja inferior navy con el logo a la
 > izquierda + el dato clave a la derecha. Así el catálogo se ve como un set, no fotos sueltas.
