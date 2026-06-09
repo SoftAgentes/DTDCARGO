@@ -6,6 +6,7 @@ import { ColorSwatch } from "../../_components/ColorSwatch";
 import { ToolCard, ToolCardPlaceholder } from "../../_components/ToolCard";
 import { InternoBreadcrumb } from "../../_components/InternoBreadcrumb";
 import { QuickDownloads } from "../../_components/QuickDownloads";
+import { SectionNav, type NavItem } from "../../_components/SectionNav";
 import { DTD, BRAND_ASSETS, CONTACT, SHADOWS } from "@/lib/design-tokens";
 
 /**
@@ -36,14 +37,15 @@ export const metadata: Metadata = {
 const BRAND_BOOK = "/marca/brand-book-v3.2.html";
 const BRAND_BOOK_VERSION = "v3.2";
 
-const ANCHORS = [
-  { href: "#brandbook", label: "Brand Book" },
-  { href: "#herramientas", label: "Herramientas" },
-  { href: "#logos", label: "Logo" },
-  { href: "#uso", label: "Uso correcto" },
-  { href: "#color", label: "Color" },
-  { href: "#tipografia", label: "Tipografía" },
-  { href: "#descargas", label: "Descargas" },
+const NAV: NavItem[] = [
+  { id: "descargas-rapidas", label: "Descargas" },
+  { id: "brandbook", label: "Brand Book" },
+  { id: "herramientas", label: "Herramientas" },
+  { id: "logos", label: "Logo" },
+  { id: "uso", label: "Uso correcto" },
+  { id: "color", label: "Color" },
+  { id: "tipografia", label: "Tipografía" },
+  { id: "descargas", label: "Assets" },
 ];
 
 const LOGOS = [
@@ -131,11 +133,15 @@ const ASSETS_EMAIL = CONTACT.ve.email;
 export default function MarcaHubPage() {
   return (
     <main className={jetbrainsMono.variable}>
-      <div className="wrap pt-6">
+      <div className="wrap pt-6 pb-4">
         <InternoBreadcrumb
           items={[{ href: "/interno", label: "Recursos internos" }, { label: "Marca" }]}
         />
       </div>
+
+      {/* Menú de secciones sticky — siempre visible, resalta dónde estás */}
+      <SectionNav items={NAV} />
+
       {/* ── Hero ─────────────────────────────────────────────── */}
       <section className="bg-paper pt-8 pb-14 lg:pt-10 lg:pb-24">
         <div className="wrap">
@@ -162,17 +168,6 @@ export default function MarcaHubPage() {
                 </a>
               </div>
 
-              <nav className="mt-8 flex flex-wrap gap-2" aria-label="Secciones del centro de marca">
-                {ANCHORS.map((a) => (
-                  <a
-                    key={a.href}
-                    href={a.href}
-                    className="text-[12.5px] font-semibold text-grey-700 border border-grey-200 rounded-full px-3.5 py-1.5 hover:border-ink hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 transition-colors"
-                  >
-                    {a.label}
-                  </a>
-                ))}
-              </nav>
             </div>
 
             <div
@@ -200,7 +195,7 @@ export default function MarcaHubPage() {
       <QuickDownloads brandBook={BRAND_BOOK} brandBookVersion={BRAND_BOOK_VERSION} />
 
       {/* ── Brand Book embebido ──────────────────────────────── */}
-      <section id="brandbook" className="scroll-mt-[80px] py-14 lg:py-20 border-t border-grey-200">
+      <section id="brandbook" className="scroll-mt-[116px] py-14 lg:py-20 border-t border-grey-200">
         <div className="wrap">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -238,7 +233,7 @@ export default function MarcaHubPage() {
       </section>
 
       {/* ── Herramientas ─────────────────────────────────────── */}
-      <section id="herramientas" className="scroll-mt-[80px] py-14 lg:py-20 border-t border-grey-200">
+      <section id="herramientas" className="scroll-mt-[116px] py-14 lg:py-20 border-t border-grey-200">
         <div className="wrap">
           <span className="eyebrow">Herramientas de marca</span>
           <h2 className="h-section mt-4">Listas para usar.</h2>
@@ -261,7 +256,7 @@ export default function MarcaHubPage() {
       </section>
 
       {/* ── Logo · 4 variantes ───────────────────────────────── */}
-      <section id="logos" className="scroll-mt-[80px] py-14 lg:py-20 border-t border-grey-200">
+      <section id="logos" className="scroll-mt-[116px] py-14 lg:py-20 border-t border-grey-200">
         <div className="wrap">
           <span className="eyebrow">El isólogo</span>
           <h2 className="h-section mt-4">4 variantes oficiales.</h2>
@@ -311,7 +306,7 @@ export default function MarcaHubPage() {
       </section>
 
       {/* ── Uso correcto ─────────────────────────────────────── */}
-      <section id="uso" className="scroll-mt-[80px] py-14 lg:py-20 border-t border-grey-200">
+      <section id="uso" className="scroll-mt-[116px] py-14 lg:py-20 border-t border-grey-200">
         <div className="wrap">
           <span className="eyebrow">Uso correcto</span>
           <h2 className="h-section mt-4">Lo que sí y lo que no.</h2>
@@ -355,7 +350,7 @@ export default function MarcaHubPage() {
       </section>
 
       {/* ── Color ────────────────────────────────────────────── */}
-      <section id="color" className="scroll-mt-[80px] py-14 lg:py-20 border-t border-grey-200">
+      <section id="color" className="scroll-mt-[116px] py-14 lg:py-20 border-t border-grey-200">
         <div className="wrap">
           <span className="eyebrow">Paleta de color</span>
           <h2 className="h-section mt-4">Vino, navy y papel.</h2>
@@ -380,7 +375,7 @@ export default function MarcaHubPage() {
       </section>
 
       {/* ── Tipografía ───────────────────────────────────────── */}
-      <section id="tipografia" className="scroll-mt-[80px] py-14 lg:py-20 border-t border-grey-200">
+      <section id="tipografia" className="scroll-mt-[116px] py-14 lg:py-20 border-t border-grey-200">
         <div className="wrap">
           <span className="eyebrow">Tipografía</span>
           <h2 className="h-section mt-4">Cuatro familias, ninguna más.</h2>
@@ -403,7 +398,7 @@ export default function MarcaHubPage() {
       </section>
 
       {/* ── Descargas ────────────────────────────────────────── */}
-      <section id="descargas" className="scroll-mt-[80px] py-14 lg:py-20 border-t border-grey-200">
+      <section id="descargas" className="scroll-mt-[116px] py-14 lg:py-20 border-t border-grey-200">
         <div className="wrap">
           <span className="eyebrow">Descargas</span>
           <h2 className="h-section mt-4">Baja los assets.</h2>
