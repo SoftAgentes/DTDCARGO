@@ -8,7 +8,7 @@ const WINE_D = "M133.5 138.8C133.9 137.3 148.9 138.9 156.6 139.5C164.2 140.2 171
 /* Paleta interna del sistema de íconos · derivada de tokens DTD */
 const ROLE_THEME = {
   almacenista:   { bg: '#0F1E3D', fg: '#FBFAF7', accent: '#C2747F', label: 'Almacenista',   tag: 'Bodega · VE' },
-  transportista: { bg: '#7F0F1A', fg: '#FBFAF7', accent: '#F2F0EC', label: 'Transportista', tag: 'Camionero' },
+  transportista: { bg: '#7F0F1A', fg: '#FBFAF7', accent: '#F2F0EC', label: 'Transportista', tag: 'Transportista' },
   logistica:     { bg: '#F2F0EC', fg: '#0F1E3D', accent: '#7F0F1A', label: 'Logística',     tag: 'Routing · CN→VE' },
   administracion:{ bg: '#0F1E3D', fg: '#FBFAF7', accent: '#7F0F1A', label: 'Administración', tag: 'Back office' },
   contabilidad:  { bg: '#FBFAF7', fg: '#0F1E3D', accent: '#7F0F1A', label: 'Contabilidad',  tag: 'F-2026' },

@@ -40,7 +40,7 @@ Estos referenciaban el isólogo viejo. **Reemplazar todas las referencias antes 
 Referencias actuales detectadas (auditoría a fecha 2026-05-26):
 
 ```
-operario/bodeguero.jsx:92                                src="assets/dtdcargo-icon-navy.png"
+operario/almacenista.jsx:92                                src="assets/dtdcargo-icon-navy.png"
 operario/ve.jsx:116                                      src="assets/dtdcargo-icon-navy.png"
 portal/app-standalone.jsx:257                            src="assets/dtdcargo-icon-navy.png"
 handoff/SDD-2026-05-25-sesion/source/erp/shell.jsx:47    src="assets/dtdcargo-icon-navy.png"
@@ -227,7 +227,7 @@ Auditoría exhaustiva del codebase a 2026-05-26. Cada item tiene un patrón de b
 ### Críticos (rompen el branding)
 
 - [ ] **`Brand Book DTD v2.4.html`** — ~30 usos de `DTD_LOGO` base64 + `DTDCARGO`. Reemplazar todos por `<Lockup>` o `<img src="assets/dtdcargo-isologo-{variant}.png">` según el contexto del fondo. Eliminar la const `DTD_LOGO`. Regenerar/borrar el bundle `Brand Book DTD v2.2 · standalone.html` (es un fork viejo).
-- [ ] **`operario/bodeguero.jsx:92`** — fondo es `linear-gradient(... var(--ink) ...)` (oscuro). Cambiar a `<Lockup variant="reverse" size={40} orientation="isologo-only" />`. Eliminar el filtro `brightness(0) invert(1)`.
+- [ ] **`operario/almacenista.jsx:92`** — fondo es `linear-gradient(... var(--ink) ...)` (oscuro). Cambiar a `<Lockup variant="reverse" size={40} orientation="isologo-only" />`. Eliminar el filtro `brightness(0) invert(1)`.
 - [ ] **`operario/ve.jsx:116`** — mismo caso. `variant="reverse"`, eliminar filtro CSS.
 - [ ] **`portal/app-standalone.jsx:257`** — actualmente usa `dtdcargo-icon-navy.png` con fallback. Cambiar a `dtdcargo-isologo-primary.png` (el portal va sobre fondo light). Si el header es dark, usar reverse.
 - [ ] **`handoff/SDD-2026-05-25-sesion/source/erp/shell.jsx:47`** — ERP sidebar. El sidebar es navy oscuro → `variant="reverse"`, `orientation="isologo-only"`.
@@ -281,7 +281,7 @@ Valores derivados de iteración con el equipo. Si Cloud Code ve un lockup con va
 2. Abrir `Brand Book DTD v2.4.html` — todos los lockups deben verse coherentes con `Logo Oficial.html`. No debe haber ninguna variante "DTDCARGO" (una palabra) ni ningún uso de `var(--wine-soft)` en el texto "DTD".
 3. Abrir `DTD Studio · ERP.html` — sidebar muestra el isólogo reverse (cream) sobre navy.
 4. Abrir `Portal del Cliente.html` — header muestra el lockup primary completo.
-5. Abrir `Operario Multi.html` (bodeguero, conductor, transportista) — todos usan reverse.
+5. Abrir `Operario Multi.html` (almacenista, conductor, transportista) — todos usan reverse.
 6. Buscar `DTDCARGO` y `dtdcargo-icon-navy` en el proyecto — 0 resultados.
 
 ---
