@@ -447,10 +447,12 @@ type DimsKey = "alto" | "ancho" | "largo" | "cajas";
 type Dims = Record<DimsKey, number>;
 
 /**
- * Panel colapsable "¿No sabes tu CBM?". Link discreto que despliega 4 campos
- * (alto/ancho/largo en cm + cantidad de cajas). El CBM se deriva en vivo en el
- * padre (efecto de un sentido) y se asigna a "CBM total" — acá solo se editan
- * las medidas. Cerrar libera el CBM para edición manual (conserva el valor).
+ * Panel colapsable "¿No sabes tu CBM?". Un único toggle (flecha ▶ que rota al
+ * abrir) despliega y colapsa 4 campos (alto/ancho/largo en cm + cantidad de
+ * cajas) — abre Y cierra desde el mismo control, sin un botón de cierre aparte.
+ * El CBM se deriva en vivo en el padre (efecto de un sentido) y se asigna a
+ * "CBM total" — acá solo se editan las medidas. Cerrar libera el CBM para
+ * edición manual (conserva el valor).
  */
 function CbmPorMedidas({
   open,
@@ -466,59 +468,66 @@ function CbmPorMedidas({
   const cbmCaja = cbmFromDimensions(dims.alto, dims.ancho, dims.largo, 1);
   const cbmTotal = cbmFromDimensions(dims.alto, dims.ancho, dims.largo, dims.cajas);
 
-  if (!open) {
-    return (
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Toggle único: abre Y cierra desde el mismo control. La flecha ▶ rota a
+          ▼ (90°) cuando el panel está abierto. Reemplaza el par link-abrir +
+          texto-gris-cerrar que escondía el cierre (diseño Norte v2.5). */}
       <button
         type="button"
-        onClick={() => onToggle(true)}
-        className="self-start text-[13px] font-medium text-wine underline underline-offset-2 hover:text-ink transition-colors"
+        onClick={() => onToggle(!open)}
+        aria-expanded={open}
+        className="self-start inline-flex items-center gap-2 text-[13px] font-bold text-wine hover:text-ink transition-colors rounded-[4px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
       >
-        ¿No sabes tu CBM? Calcúlalo con las medidas
-      </button>
-    );
-  }
-
-  return (
-    <div className="rounded-[14px] border border-grey-200 bg-paper p-4 flex flex-col gap-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
-          CBM por medidas
-        </span>
-        <button
-          type="button"
-          onClick={() => onToggle(false)}
-          className="text-[12px] font-medium text-grey-500 hover:text-ink transition-colors"
+        <span
+          aria-hidden="true"
+          className="text-[10px] leading-none transition-transform duration-150"
+          style={{ transform: open ? "rotate(90deg)" : "none" }}
         >
-          Prefiero escribir el CBM a mano
-        </button>
-      </div>
+          ▶
+        </span>
+        {open
+          ? "Prefiero escribir el CBM a mano"
+          : "¿No sabes tu CBM? Calcúlalo con las medidas"}
+      </button>
 
-      <div className="grid grid-cols-3 gap-2.5">
-        <DimInput label="Alto" suffix="cm" value={dims.alto} onChange={(v) => onDimChange("alto", v)} placeholder="40" />
-        <DimInput label="Ancho" suffix="cm" value={dims.ancho} onChange={(v) => onDimChange("ancho", v)} placeholder="30" />
-        <DimInput label="Largo" suffix="cm" value={dims.largo} onChange={(v) => onDimChange("largo", v)} placeholder="60" />
-      </div>
+      {open && (
+        <div className="rounded-[14px] border border-grey-200 bg-paper p-4 flex flex-col gap-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+              Medidas de tu caja
+            </span>
+            <span className="text-[11px] text-grey-500">en centímetros</span>
+          </div>
 
-      <DimInput
-        label="Cantidad de cajas"
-        value={dims.cajas}
-        onChange={(v) => onDimChange("cajas", v)}
-        placeholder="1"
-      />
+          <div className="grid grid-cols-3 gap-2.5">
+            <DimInput label="Alto" suffix="cm" value={dims.alto} onChange={(v) => onDimChange("alto", v)} placeholder="40" />
+            <DimInput label="Ancho" suffix="cm" value={dims.ancho} onChange={(v) => onDimChange("ancho", v)} placeholder="30" />
+            <DimInput label="Largo" suffix="cm" value={dims.largo} onChange={(v) => onDimChange("largo", v)} placeholder="60" />
+          </div>
 
-      <p className="text-[11.5px] text-grey-500 leading-[1.45]">
-        {cbmTotal > 0 ? (
-          <>
-            <span className="num font-semibold text-grey-700">{cbmCaja} m³</span> por
-            caja ×{" "}
-            <span className="num font-semibold text-grey-700">{dims.cajas}</span> ={" "}
-            <span className="num font-semibold text-ink">{cbmTotal} m³</span> — ya
-            cargado arriba.
-          </>
-        ) : (
-          "Indica alto, ancho y largo (cm) y la cantidad de cajas iguales."
-        )}
-      </p>
+          <DimInput
+            label="Cantidad de cajas"
+            value={dims.cajas}
+            onChange={(v) => onDimChange("cajas", v)}
+            placeholder="1"
+          />
+
+          <p className="text-[11.5px] text-grey-500 leading-[1.45]">
+            {cbmTotal > 0 ? (
+              <>
+                <span className="num font-semibold text-grey-700">{cbmCaja} m³</span> por
+                caja ×{" "}
+                <span className="num font-semibold text-grey-700">{dims.cajas}</span> ={" "}
+                <span className="num font-semibold text-ink">{cbmTotal} m³</span> — ya
+                cargado arriba.
+              </>
+            ) : (
+              "Completa alto, ancho, largo y la cantidad de cajas y calculamos tu CBM al instante."
+            )}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
