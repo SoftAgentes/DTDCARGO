@@ -350,7 +350,7 @@ describe("listDocumentVersions (historial de la cadena)", () => {
 
   it("invariante: a lo sumo una versión vigente en la cadena", async () => {
     // La invariante real la fuerza el índice único parcial one_current_per_root
-    // (migración 0111). Acá verificamos que el historial reportado sea coherente
+    // (migración 0116). Acá verificamos que el historial reportado sea coherente
     // con esa invariante: exactamente una fila is_current=true.
     const { client } = makeClient({
       documents: [

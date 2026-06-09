@@ -40,7 +40,7 @@
 -- reconciliación / ninguna UI / alertas PP-CA / export QuickBooks → Slice B/C.
 --
 -- ⚠️ NO se aplica a prod desde acá (lo hace el founder).
--- Número de migración: 0110 (siguiente libre tras 0109).
+-- Número de migración: 0114 (SDD-0059 Slice A, al integrar a main desde brochure).
 -- ─────────────────────────────────────────────────────────────
 
 -- ╔═══════════════════════════════════════════════════════════╗
@@ -547,7 +547,7 @@ where t.slug = 'dtd'
   and parent.code = left(child.code, length(child.code) - position('.' in reverse(child.code)));
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0110_financiero_china.sql
--- Aplicar con: supabase migration apply 0110 · o MCP apply_migration
+-- Fin migración 0114_financiero_china.sql
+-- Aplicar con: supabase migration apply 0114 · o MCP apply_migration
 -- (lo hace el founder; el harness NO aplica a prod).
 -- ─────────────────────────────────────────────────────────────
