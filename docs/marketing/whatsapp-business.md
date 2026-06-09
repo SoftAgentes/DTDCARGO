@@ -9,6 +9,8 @@
 > dictado founder 2026-06-09) · buenas prácticas WhatsApp Business 2025/2026 (ver fuentes al pie).
 >
 > **Estado:** 🟢 LISTA PARA EJECUTAR — los 3 datos del founder ya están confirmados (email · horario · nº transporte). Falta solo la ejecución manual en los teléfonos + 3 fotos (ver sección 5).
+>
+> 🛠️ **Herramienta de autoservicio (lo que reenvías al equipo):** [`assets/whatsapp-business-guia.html`](assets/whatsapp-business-guia.html) — guía interactiva **por número**: elegís tu teléfono y te muestra qué le toca, con botón **Copiar** en cada campo (perfil, 8 ítems del catálogo, bienvenida/ausencia, 9 respuestas rápidas, etiquetas) + descarga de la foto de perfil y link al generador de imágenes. Este `.md` sigue siendo el **canon** de los textos; la guía los renderiza.
 
 ---
 
