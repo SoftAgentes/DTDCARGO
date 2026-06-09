@@ -18,8 +18,10 @@ import {
   currencyLabel,
 } from "@/lib/studio/invoice-types";
 import type { ShipmentDocType } from "@/lib/studio/shipment-document-types";
+import type { QuoteStatus, QuoteSource } from "@/lib/studio/quote-types";
 
 export type { ShipmentService, ShipmentStatus };
+export type { QuoteStatus, QuoteSource };
 export {
   SERVICE_LABELS,
   STATUS_LABELS,
@@ -347,3 +349,74 @@ export type PortalDocument = {
   createdAt: string;
   shipmentCode: string | null;
 };
+
+// ─────────────────────────────────────────────────────────────
+// Estimados del portal (SDD-0061 · read-only)
+//
+// El cliente ve TODOS los estimados ligados a su MARKBOX: los que generó en la
+// calculadora pública (source='web', ya vinculados a su cuenta) Y los que le armó
+// un asesor en el ERP (source='studio'). Reusa el enum/estado del módulo
+// Estimados del Studio (lib/studio/quote-types) — misma fuente de verdad. El
+// portal está FUERA de la frontera ESLint público↔ERP (superficie autenticada
+// Supabase-backed), así que puede importar de `@/lib/studio`, igual que envíos y
+// facturas.
+// ─────────────────────────────────────────────────────────────
+
+/** Una fila de "Estimados" del portal (read-only). */
+export type PortalEstimateRow = {
+  id: string;
+  /** EST-YYYY-NNNN (o Q- de estimados viejos del Studio). */
+  code: string;
+  status: QuoteStatus;
+  /** `web` = lo hizo el cliente en la calculadora; `studio` = lo armó un asesor. */
+  source: QuoteSource;
+  service: ShipmentService;
+  origin: string | null;
+  destination: string | null;
+  /** Monto estimado en USD (las calculadoras públicas cotizan en USD). */
+  totalUsd: number;
+  /** Nota que el cliente dejó al estimar (sólo en los web). */
+  nota: string | null;
+  /** Si ya se convirtió en embarque, su id (→ "Convertido en envío"). */
+  convertedToShipmentId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Label de estado de estimado de cara al CLIENTE. "estimado" es masculino y los
+ * estados internos ("Borrador"/"Enviada") suenan a jerga del equipo → se mapean a
+ * lenguaje del cliente: el `draft` de un estimado web ("por revisar" en el ERP)
+ * para el cliente es **"En revisión"** (su asesor lo está mirando). El resto se
+ * traduce a masculino.
+ */
+export function portalEstimateStatusLabel(status: QuoteStatus): string {
+  switch (status) {
+    case "draft":
+      return "En revisión";
+    case "sent":
+      return "Enviado";
+    case "accepted":
+      return "Aceptado";
+    case "rejected":
+      return "Rechazado";
+    case "expired":
+      return "Vencido";
+  }
+}
+
+/** Tono del badge de estado de estimado (reusa la paleta de `INVOICE_TONE_COLOR`). */
+export function portalEstimateStatusTone(status: QuoteStatus): InvoiceBadgeTone {
+  switch (status) {
+    case "draft":
+      return "info";
+    case "sent":
+      return "info";
+    case "accepted":
+      return "success";
+    case "rejected":
+      return "danger";
+    case "expired":
+      return "warning";
+  }
+}

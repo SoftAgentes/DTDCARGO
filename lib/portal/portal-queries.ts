@@ -17,6 +17,7 @@ import type {
   PortalClient,
   PortalDashboardKpis,
   PortalDocument,
+  PortalEstimateRow,
   PortalInvoiceDetail,
   PortalInvoiceRow,
   PortalNextArrival,
@@ -302,6 +303,47 @@ export async function listMyDocuments(
       shipmentCode: ship?.code ?? null,
     };
   });
+}
+
+/**
+ * Estimados del cliente logueado (SDD-0061 · portal read-only), recientes
+ * primero. Devuelve TODOS los estimados ligados a su markbox: los que generó en
+ * la calculadora pública (source='web', ya vinculados) Y los que le armó un asesor
+ * (source='studio'). Filtra EXPLÍCITO por markbox (defensa en profundidad, como el
+ * resto del archivo) + la policy "quotes portal self read" (migr 0117). Hasta 100.
+ */
+export async function listMyEstimates(
+  supabase: SupabaseClient,
+): Promise<PortalEstimateRow[]> {
+  const markbox = await portalMarkbox(supabase);
+  if (!markbox) return [];
+
+  const { data, error } = await supabase
+    .from("quotes")
+    .select(
+      "id, quote_code, status, source, service, origin, destination, total_usd, nota, converted_to_shipment_id, created_at, updated_at",
+    )
+    .eq("client_markbox", markbox)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  if (error || !data) return [];
+
+  return data.map((r) => ({
+    id: r.id as string,
+    code: r.quote_code as string,
+    status: r.status as PortalEstimateRow["status"],
+    source: r.source as PortalEstimateRow["source"],
+    service: r.service as PortalEstimateRow["service"],
+    origin: (r.origin as string | null) ?? null,
+    destination: (r.destination as string | null) ?? null,
+    totalUsd: Number(r.total_usd ?? 0),
+    nota: (r.nota as string | null) ?? null,
+    convertedToShipmentId: (r.converted_to_shipment_id as string | null) ?? null,
+    createdAt: r.created_at as string,
+    updatedAt: r.updated_at as string,
+  }));
 }
 
 // ─────────────────────────────────────────────────────────────
