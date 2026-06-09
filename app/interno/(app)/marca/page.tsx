@@ -5,6 +5,7 @@ import { ArrowIcon, CheckIcon, DownloadIcon, CloseIcon } from "@/components/Icon
 import { ColorSwatch } from "../../_components/ColorSwatch";
 import { ToolCard, ToolCardPlaceholder } from "../../_components/ToolCard";
 import { InternoBreadcrumb } from "../../_components/InternoBreadcrumb";
+import { QuickDownloads } from "../../_components/QuickDownloads";
 import { DTD, BRAND_ASSETS, CONTACT, SHADOWS } from "@/lib/design-tokens";
 
 /**
@@ -194,6 +195,9 @@ export default function MarcaHubPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Descargas rápidas ────────────────────────────────── */}
+      <QuickDownloads brandBook={BRAND_BOOK} brandBookVersion={BRAND_BOOK_VERSION} />
 
       {/* ── Brand Book embebido ──────────────────────────────── */}
       <section id="brandbook" className="scroll-mt-[80px] py-14 lg:py-20 border-t border-grey-200">

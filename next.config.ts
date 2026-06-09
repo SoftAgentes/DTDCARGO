@@ -121,6 +121,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // El route handler de descargas del hub de marca (`/interno/marca/d/[bundle]`)
+  // arma zips leyendo archivos de disco; en prod el tracer no los incluye solo —
+  // hay que declararlos para que viajen en el bundle de la función.
+  outputFileTracingIncludes: {
+    "/interno/marca/d/[bundle]": [
+      "./public/brand/**",
+      "./public/marca/brand-book-v3.2.html",
+      "./public/marca/herramientas/**",
+      "./docs/marketing/whatsapp-business.md",
+    ],
+  },
   async headers() {
     // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y
     // geolocalización (GPS camionero · GpsBlock) en same-origin. El resto del
