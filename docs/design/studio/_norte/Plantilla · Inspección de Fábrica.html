@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD-Cargo · Plantilla · Inspección de Fábrica (vacía)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="erp/tokens.css" rel="stylesheet" />
+<link href="reportes/report.css" rel="stylesheet" />
+<style>
+  .tpl-ban { background: var(--info-bg); color: var(--info); border:1px solid var(--info); border-radius:var(--r-md); padding:8px 13px; font:600 10px/1.4 var(--f-sans); margin-bottom:var(--s-4); }
+  .en { color: var(--ink-mute); font-weight:500; }
+  .chk-sq { display:inline-block; width:12px; height:12px; border:1.5px solid var(--border-strong); border-radius:3px; vertical-align:-2px; margin-right:3px; }
+  .opt { display:inline-flex; gap:14px; flex-wrap:wrap; font-size:10px; }
+</style>
+</head>
+<body class="report">
+
+<div class="toolbar no-print">
+  <span class="tb-brand">DTD&nbsp;Cargo · Plantilla <small>— Inspección de Fábrica (para proveedor)</small></span>
+  <span class="sp"></span>
+  <span class="hint">Formato vacío · imprimir o completar digital</span>
+  <button onclick="window.print()">Imprimir / Guardar PDF</button>
+</div>
+
+<!-- ════════════════ HOJA 1 ════════════════ -->
+<section class="sheet" data-screen-label="Plantilla Fábrica · 1">
+  <header class="rp-head">
+    <div class="rp-lockup">
+      <span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span>
+      <div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div>
+    </div>
+    <div class="rp-meta">
+      <div class="doc-type">Inspección de Fábrica</div>
+      <dl>
+        <dt>Plantilla / Template</dt><dd>v1.0</dd>
+        <dt>Servicio N.º</dt><dd class="mono">DTD-FA-________</dd>
+        <dt>Fecha · Date</dt><dd class="mono">__ /__ /____</dd>
+      </dl>
+    </div>
+  </header>
+
+  <div class="eyebrow">Reporte de Auditoría de Fábrica · Factory Audit</div>
+  <h1 class="rp-title">Plantilla de inspección de fábrica</h1>
+  <p class="rp-title-sub">Auditoría de planta en sitio. <span class="en">On-site factory audit. 工厂现场审核。</span></p>
+
+  <div class="tpl-ban">Adjunte: licencia comercial, fotos de planta y maquinaria, organigrama y carta bancaria sellada. <span class="en">Attach: business license, plant &amp; machinery photos, org chart, stamped bank letter. 请附营业执照、车间及设备照片、组织架构图、银行盖章函。</span></div>
+
+  <h2 class="sec"><span class="sec-no">1</span> Perfil · validez legal · Legal validity</h2>
+  <table class="dt">
+    <tr><th style="width:33%">Campo · Field</th><th>Dato · Value</th><th style="width:33%">Campo · Field</th><th>Dato · Value</th></tr>
+    <tr><td>Nombre proveedor · Supplier name</td><td><div class="fill"></div></td><td>Nombre registrado (local)</td><td><div class="fill"></div></td></tr>
+    <tr><td>N.º licencia comercial</td><td><div class="fill"></div></td><td>Año establecimiento · Est. year</td><td><div class="fill"></div></td></tr>
+    <tr><td>Representante legal</td><td><div class="fill"></div></td><td>Capital registrado · Reg. capital</td><td><div class="fill"></div></td></tr>
+    <tr><td>Dirección registrada · Address</td><td colspan="3"><div class="fill"></div></td></tr>
+    <tr><td>Tipo de empresa · Company type</td><td colspan="3"><span class="opt"><span><span class="chk-sq"></span>Fabricante · Manufactory</span><span><span class="chk-sq"></span>Comercial · Trading</span><span><span class="chk-sq"></span>Combinada · Combined</span></span></td></tr>
+    <tr><td>¿Producto del cliente en alcance?</td><td><span class="opt"><span><span class="chk-sq"></span>Sí</span><span><span class="chk-sq"></span>No</span></span></td><td>¿En lista de operación anormal?</td><td><span class="opt"><span><span class="chk-sq"></span>Sí</span><span><span class="chk-sq"></span>No</span></span></td></tr>
+  </table>
+
+  <h3 class="sub">Resumen del edificio · Building overview</h3>
+  <table class="dt">
+    <tr><th>Área construida total (m²)</th><th>N.º edificios</th><th>Oficinas (m²)</th><th>Producción (m²)</th><th>Almacén (m²)</th></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+  </table>
+
+  <h3 class="sub">Información bancaria · Bank account</h3>
+  <table class="dt">
+    <tr><th style="width:25%">Beneficiario · Beneficiary</th><td><div class="fill"></div></td><th style="width:18%">Banco · Bank</th><td><div class="fill"></div></td></tr>
+    <tr><th>N.º cuenta (USD) · Account no.</th><td><div class="fill"></div></td><th>¿Sello de empresa? · Company seal?</th><td><span class="opt"><span><span class="chk-sq"></span>Sí</span><span><span class="chk-sq"></span>No</span></span></td></tr>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">2</span> Recursos humanos · Human resource</h2>
+  <table class="dt">
+    <tr><th>Departamento · Department</th><th class="num">Según fábrica</th><th class="num">Hallazgo real</th><th>Departamento · Department</th><th class="num">Según fábrica</th><th class="num">Hallazgo real</th></tr>
+    <tbody id="hr-blank"></tbody>
+  </table>
+  <div class="pageno">Plantilla · Inspección de Fábrica · pág. 1</div>
+</section>
+
+<!-- ════════════════ HOJA 2 ════════════════ -->
+<section class="sheet" data-screen-label="Plantilla Fábrica · 2">
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Fábrica</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-FA-________</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">3</span> Producto y mercado · Product &amp; market</h2>
+  <table class="dt">
+    <tr><th style="width:33%">Productos principales · Main products</th><td colspan="3"><div class="fill"></div></td></tr>
+    <tr><th>Producto de interés del cliente</th><td><div class="fill"></div></td><th style="width:20%">Licencia exportación · Export lic.</th><td><span class="opt"><span><span class="chk-sq"></span>Vigente</span><span><span class="chk-sq"></span>No</span></span></td></tr>
+    <tr><th>% exportación · % export</th><td><div class="fill"></div></td><th>% OEM</th><td><div class="fill"></div></td></tr>
+  </table>
+  <h3 class="sub">Facturación últimos 3 años · Turnover (USD)</h3>
+  <table class="dt">
+    <tr><th>Año · Year</th><th class="num">Facturación · Turnover</th><th>Top mercados · Top markets</th><th class="num">% volumen</th></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">4</span> Instalaciones y maquinaria · Facilities &amp; machinery</h2>
+  <div class="chk" style="display:grid;grid-template-columns:1fr 1fr;gap:0 var(--s-6);margin-bottom:var(--s-3);">
+    <div class="it"><span class="box"></span><span class="lab">Línea ordenada · Tidy line</span></div>
+    <div class="it"><span class="box"></span><span class="lab">Bien iluminada · Well lit</span></div>
+    <div class="it"><span class="box"></span><span class="lab">Ventilada · Ventilated</span></div>
+    <div class="it"><span class="box"></span><span class="lab">Suministro eléctrico estable</span></div>
+  </div>
+  <table class="dt">
+    <tr><th>Máquina · Machine</th><th class="num">Cant. · Qty</th><th>Estado · State</th><th>Máquina · Machine</th><th class="num">Cant. · Qty</th><th>Estado · State</th></tr>
+    <tbody id="mach-blank"></tbody>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">5</span> Requerimientos del cliente · Client requirements</h2>
+  <table class="dt">
+    <tr><th style="width:50%">Pregunta · Question</th><th>Respuesta / hallazgo · Answer / finding</th></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">6</span> Evidencia fotográfica · Photos</h2>
+  <p class="tpl-hint" style="margin-bottom:8px;">Edificio, oficina, showroom, producción, maquinaria, laboratorio, almacén. <span class="en">Building, office, showroom, production, machinery, lab, warehouse.</span></p>
+  <div class="gal g4">
+    <div class="fill-box" style="aspect-ratio:4/3"></div><div class="fill-box" style="aspect-ratio:4/3"></div><div class="fill-box" style="aspect-ratio:4/3"></div><div class="fill-box" style="aspect-ratio:4/3"></div>
+  </div>
+
+  <div style="display:flex;gap:var(--s-8);margin-top:var(--s-5);">
+    <div style="flex:1;"><div class="tpl-hint">Auditor · Auditor</div><div class="fill" style="margin-top:16px;"></div></div>
+    <div style="flex:1;"><div class="tpl-hint">Firma · Signature</div><div class="fill" style="margin-top:16px;"></div></div>
+    <div style="flex:1;"><div class="tpl-hint">Puntaje final · Final score</div><div class="fill" style="margin-top:16px;"></div></div>
+  </div>
+
+  <div class="rp-foot">
+    <div class="eyebrow" style="margin-bottom:8px;">Servicios de Control de Calidad DTD-Cargo</div>
+    <div class="svc" id="svc-tpl-fab"></div>
+    <div class="foot-bar">
+      <div class="foot-brand"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div class="tag">Con Confianza, de China a tu puerta.<small>info@dtdcargo.com · +58 241 414 7886</small></div></div>
+      <div class="foot-contact"><b>DTD&nbsp;Cargo</b> · RIF&nbsp;J-410322887<br/>Av.&nbsp;Bolívar&nbsp;Norte&nbsp;14, Valencia</div>
+    </div>
+  </div>
+  <div class="pageno">Plantilla · Inspección de Fábrica · pág. 2</div>
+</section>
+
+<script src="reportes/report-data.js"></script>
+<script>
+  renderServicios('svc-tpl-fab','fab');
+  let hr='';
+  const deps=['Administración','RRHH · HR','Ventas · Sales','Financiero · Finance','Producción · Production','Ingeniería · R&D','Calidad · Quality','Otros · Others'];
+  for(let i=0;i<deps.length;i+=2){
+    hr += `<tr><td>${deps[i]}</td><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td><td>${deps[i+1]||''}</td><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td></tr>`;
+  }
+  document.getElementById('hr-blank').innerHTML = hr;
+  let mb='';
+  for(let i=0;i<6;i++) mb += '<tr><td><div class="fill"></div></td><td class="num"><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td class="num"><div class="fill"></div></td><td><div class="fill"></div></td></tr>';
+  document.getElementById('mach-blank').innerHTML = mb;
+</script>
+</body>
+</html>

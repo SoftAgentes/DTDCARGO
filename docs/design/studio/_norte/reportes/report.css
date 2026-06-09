@@ -1,0 +1,310 @@
+/* ══════════════════════════════════════════════════════════════
+   DTD-Cargo · Reportes de Inspección · hoja compartida
+   Reusa erp/tokens.css (única fuente de verdad de color/spacing/
+   tipografía del sistema). Solo agrega lo específico de reportes
+   A4 impresos: sello, marca de agua, redacción, tablas, footer.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Lienzo / página A4 ─────────────────────────────────────── */
+body.report {
+  background: #6B6B6B;
+  font-family: var(--f-sans);
+  color: var(--ink);
+  padding: 24px 0;
+}
+.sheet {
+  position: relative;
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto 18px;
+  background: var(--bg-surface);
+  box-shadow: var(--shadow-lg);
+  padding: 16mm 15mm 22mm;
+  overflow: hidden;
+}
+.sheet > * { position: relative; z-index: 1; }
+
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body.report { background: #fff; padding: 0; margin: 0; }
+  .sheet {
+    margin: 0; box-shadow: none; page-break-after: always;
+    width: 210mm; min-height: 297mm;
+  }
+  .sheet:last-child { page-break-after: auto; }
+  .no-print { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ── Cabecera de página (lockup + meta) ─────────────────────── */
+.rp-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--s-6);
+  padding-bottom: var(--s-4);
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: var(--s-6);
+}
+.rp-lockup { display: flex; align-items: center; gap: 12px; }
+.rp-lockup .dtd-iso { width: 38px; height: 39px; }
+.rp-lockup .dtd-iso img { width: 100%; height: 100%; object-fit: contain; }
+.wordmark {
+  font-family: var(--f-brand-display);
+  font-weight: 900; letter-spacing: -0.02em; line-height: 1;
+  font-size: 21px;
+}
+.wordmark .w-dtd { color: var(--wine); }
+.wordmark .w-sep { display: inline-block; width: 0.15em; }
+.wordmark .w-cargo { color: var(--ink); }
+.rp-lockup .lk-sub {
+  font: 600 9px/1.1 var(--f-sans);
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-soft); margin-top: 3px;
+}
+.rp-meta { text-align: right; font-size: 10.5px; color: var(--ink-soft); }
+.rp-meta .doc-type {
+  font: 700 11px/1.2 var(--f-display);
+  color: var(--ink); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.rp-meta .mono { font-family: var(--f-mono); color: var(--ink); font-weight: 600; }
+.rp-meta dl { margin: 6px 0 0; display: grid; grid-template-columns: max-content max-content; justify-content: end; column-gap: 14px; row-gap: 3px; }
+.rp-meta dt { color: var(--ink-mute); text-align: right; white-space: nowrap; }
+.rp-meta dd { margin: 0; color: var(--ink); font-weight: 600; text-align: right; }
+
+/* ── Títulos / eyebrows ─────────────────────────────────────── */
+.eyebrow {
+  font: 700 10px/1 var(--f-sans);
+  letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine);
+}
+h1.rp-title {
+  font: 800 26px/1.1 var(--f-display);
+  color: var(--ink); margin: 4px 0 2px; letter-spacing: -0.01em;
+}
+.rp-title-sub { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 var(--s-5); }
+h2.sec {
+  font: 700 14px/1.2 var(--f-display);
+  color: var(--ink); margin: var(--s-6) 0 var(--s-3);
+  padding-bottom: 6px; border-bottom: 1px solid var(--border-strong);
+  display: flex; align-items: center; gap: 8px;
+}
+h2.sec .sec-no {
+  font-family: var(--f-mono); font-size: 11px; color: #fff;
+  background: var(--ink); border-radius: var(--r-sm);
+  padding: 2px 7px; font-weight: 700;
+}
+h3.sub { font: 700 11.5px/1.2 var(--f-sans); color: var(--ink); margin: var(--s-4) 0 var(--s-2); letter-spacing: 0.01em; }
+
+/* ── Tablas de datos ────────────────────────────────────────── */
+table.dt { width: 100%; border-collapse: collapse; font-size: 11px; margin: var(--s-2) 0 var(--s-4); }
+table.dt th, table.dt td {
+  border: 1px solid var(--border-strong);
+  padding: 6px 9px; text-align: left; vertical-align: top;
+}
+table.dt th {
+  background: var(--bg-elevated); color: var(--ink);
+  font-weight: 700; font-size: 10px; letter-spacing: 0.02em;
+}
+table.dt td.mono, table.dt .mono { font-family: var(--f-mono); font-weight: 600; }
+table.dt tr:nth-child(even) td { background: #FCFBF9; }
+table.dt td.num { text-align: right; font-family: var(--f-mono); }
+.kv { display: grid; grid-template-columns: 190px 1fr; font-size: 11px; border: 1px solid var(--border-strong); border-radius: var(--r-md); overflow: hidden; }
+.kv > div { padding: 6px 10px; border-bottom: 1px solid var(--border); }
+.kv .k { background: var(--bg-elevated); color: var(--ink-soft); font-weight: 600; }
+.kv .v { color: var(--ink); font-weight: 600; }
+.kv > div:nth-last-child(-n+2) { border-bottom: 0; }
+
+/* ── KPIs ───────────────────────────────────────────────────── */
+.kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-3); margin: var(--s-4) 0; }
+.kpi { border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: 10px 12px; background: var(--bg-surface); }
+.kpi .lab { font: 700 9px/1.2 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.kpi .val { font: 800 22px/1 var(--f-display); color: var(--ink); margin-top: 5px; font-variant-numeric: tabular-nums; }
+.kpi .val.mono { font-family: var(--f-mono); font-weight: 700; font-size: 18px; }
+.kpi .unit { font-size: 10px; color: var(--ink-soft); font-weight: 600; }
+
+/* ── Badges / chips ─────────────────────────────────────────── */
+.badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font: 700 10px/1 var(--f-sans); letter-spacing: 0.03em;
+  padding: 4px 9px; border-radius: var(--r-pill); white-space: nowrap;
+}
+.badge .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.badge.success { color: var(--success); background: var(--success-bg); }
+.badge.warning { color: var(--warning); background: var(--warning-bg); }
+.badge.danger  { color: var(--danger);  background: var(--danger-bg); }
+.badge.info    { color: var(--info);    background: var(--info-bg); }
+.badge.wine    { color: var(--wine);    background: var(--wine-tint); }
+.badge.neutral { color: var(--neutral); background: var(--neutral-bg); }
+.badge.lg { font-size: 12px; padding: 6px 13px; }
+
+/* ── Sello "Control de Calidad DTD" ─────────────────────────── */
+.qc-seal { width: 132px; height: 132px; transform: rotate(-7deg); flex-shrink: 0; }
+.qc-seal svg { width: 100%; height: 100%; overflow: visible; }
+.qc-seal .ring  { fill: none; stroke: var(--ink); }
+.qc-seal .arc-text { font: 700 13.2px/1 var(--f-display); letter-spacing: 0.06em; fill: var(--ink); text-transform: uppercase; }
+.qc-seal .arc-small { font: 700 8.6px/1 var(--f-sans); letter-spacing: 0.22em; fill: var(--wine); }
+.qc-seal .seal-iso { width: 46px; height: 47px; }
+.seal-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.seal-wrap .seal-meta { font: 600 8px/1.3 var(--f-mono); color: var(--ink-soft); text-align: center; letter-spacing: 0.02em; }
+
+/* ── Marca de agua SAMPLE ───────────────────────────────────── */
+.wm {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.wm span {
+  font: 900 150px/0.9 var(--f-brand-display);
+  color: rgba(127,15,26,0.07);
+  letter-spacing: 0.08em; transform: rotate(-32deg);
+  white-space: nowrap; text-transform: uppercase;
+}
+/* franja diagonal repetida sutil para reforzar "no oficial" */
+.sample-band {
+  position: absolute; top: 18px; right: -54px; z-index: 3;
+  background: var(--wine); color: #fff;
+  font: 800 10px/1 var(--f-sans); letter-spacing: 0.18em; text-transform: uppercase;
+  padding: 6px 64px; transform: rotate(45deg);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Redacción visible pero sutil de datos sensibles ────────── */
+.redact {
+  display: inline-block; position: relative;
+  background: repeating-linear-gradient(45deg, #EFEDE8, #EFEDE8 7px, #E6E3DD 7px, #E6E3DD 14px);
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+  color: transparent; border-radius: var(--r-xs); user-select: none;
+  padding: 0 8px; min-width: 64px; vertical-align: middle;
+}
+.redact::after {
+  content: attr(data-tag); position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font: 600 8.3px/1 var(--f-sans); letter-spacing: 0.03em; color: var(--ink-mute);
+  white-space: nowrap;
+}
+.redact-block {
+  position: relative; border: 1px dashed var(--border-strong); border-radius: var(--r-md);
+  background: var(--bg-elevated); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; text-align: center;
+  color: var(--ink-soft); padding: var(--s-4); min-height: 90px;
+}
+.redact-block .rb-title { font: 700 10px/1.2 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-soft); }
+.redact-block .rb-sub { font: 500 9px/1.3 var(--f-sans); color: var(--ink-mute); max-width: 26ch; }
+.redact-photo { position: relative; }
+.redact-photo .rp-tag {
+  position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: flex-start;
+  background: linear-gradient(to top, rgba(15,30,61,0.42), rgba(15,30,61,0.06) 58%);
+  color: #fff; text-align: left;
+  font: 600 8.5px/1.3 var(--f-sans); letter-spacing: 0.03em; text-transform: none;
+  padding: 8px 9px;
+}
+
+/* ── Galería de fotos ───────────────────────────────────────── */
+.gal { display: grid; gap: var(--s-3); }
+.gal.g2 { grid-template-columns: repeat(2, 1fr); }
+.gal.g3 { grid-template-columns: repeat(3, 1fr); }
+.gal.g4 { grid-template-columns: repeat(4, 1fr); }
+.shot { border: 1px solid var(--border-strong); border-radius: var(--r-md); overflow: hidden; background: var(--bg-elevated); break-inside: avoid; }
+.shot .img { aspect-ratio: 4/3; overflow: hidden; background: #d9d6d1; }
+.shot .img img { width: 100%; height: 100%; object-fit: cover; }
+.shot .cap { padding: 5px 8px; font-size: 9.5px; color: var(--ink-soft); display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.shot .cap .n { font-family: var(--f-mono); font-weight: 600; color: var(--ink-mute); }
+.shot .cap .lab { font-weight: 600; color: var(--ink); }
+.shot.def .cap { border-top: 2px solid var(--warning); }
+.shot.def.major .cap { border-top-color: var(--danger); }
+
+/* ── Notas / callouts ───────────────────────────────────────── */
+.note { border-left: 3px solid var(--ink); background: var(--bg-elevated); padding: 10px 14px; border-radius: 0 var(--r-md) var(--r-md) 0; font-size: 11px; color: var(--ink-soft); margin: var(--s-3) 0; }
+.note.wine { border-left-color: var(--wine); background: var(--wine-tint); }
+.note strong { color: var(--ink); }
+ol.cmt { margin: var(--s-2) 0; padding-left: 0; counter-reset: c; list-style: none; font-size: 11px; }
+ol.cmt li { position: relative; padding: 5px 0 5px 30px; border-bottom: 1px solid var(--border); color: var(--ink-soft); }
+ol.cmt li::before { counter-increment: c; content: counter(c); position: absolute; left: 0; top: 5px; width: 20px; height: 20px; background: var(--ink); color: #fff; border-radius: 50%; font: 700 10px/20px var(--f-mono); text-align: center; }
+
+/* ── Score gauge (auditoría de fábrica) ─────────────────────── */
+.score-hero { display: flex; align-items: center; gap: var(--s-8); padding: var(--s-5) 0; }
+.gauge { position: relative; width: 150px; height: 150px; flex-shrink: 0; }
+.gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.gauge .g-bg { fill: none; stroke: var(--bg-elevated); }
+.gauge .g-fg { fill: none; stroke: var(--success); stroke-linecap: round; }
+.gauge .g-val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.gauge .g-num { font: 800 38px/1 var(--f-display); color: var(--ink); }
+.gauge .g-den { font: 600 11px/1 var(--f-sans); color: var(--ink-mute); margin-top: 2px; }
+
+.bench { display: grid; gap: 8px; flex: 1; }
+.bench .row { display: grid; grid-template-columns: 140px 1fr 46px; align-items: center; gap: 10px; font-size: 11px; }
+.bench .row .lab { color: var(--ink-soft); font-weight: 600; }
+.bench .bar { height: 10px; background: var(--bg-elevated); border-radius: var(--r-pill); overflow: hidden; }
+.bench .bar i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--ink); }
+.bench .row.me .bar i { background: var(--wine); }
+.bench .num { font-family: var(--f-mono); font-weight: 700; text-align: right; color: var(--ink); }
+
+/* tabla de puntaje por sección */
+.scoretab .barcell { width: 40%; }
+.scoretab .mini { height: 8px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; }
+.scoretab .mini i { display: block; height: 100%; background: var(--success); border-radius: 999px; }
+.scoretab .mini i.warn { background: var(--warning); }
+
+/* ── Checklist ──────────────────────────────────────────────── */
+.chk { font-size: 11px; }
+.chk .it { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+.chk .box { width: 15px; height: 15px; border: 1.5px solid var(--border-strong); border-radius: 3px; flex-shrink: 0; position: relative; }
+.chk .box.on { background: var(--ink); border-color: var(--ink); }
+.chk .box.on::after { content: ""; position: absolute; left: 4px; top: 1px; width: 4px; height: 8px; border: solid #fff; border-width: 0 2px 2px 0; transform: rotate(45deg); }
+.chk .it .lab { color: var(--ink); }
+.chk .it .res { margin-left: auto; }
+
+/* línea para rellenar (plantillas en blanco) */
+.fill { border-bottom: 1.5px solid var(--border-strong); min-height: 22px; }
+.fill-box { border: 1.5px solid var(--border-strong); border-radius: var(--r-sm); min-height: 30px; background: repeating-linear-gradient(135deg, transparent, transparent 11px, #F4F2EE 11px, #F4F2EE 12px); }
+.fill-cell { color: var(--ink-mute); font-style: normal; }
+.tpl-hint { font: 600 9px/1.3 var(--f-sans); color: var(--ink-mute); letter-spacing: 0.02em; }
+td .fill, td .fill-box { width: 100%; }
+
+/* ── Footer de servicios (colillas) ─────────────────────────── */
+.rp-foot {
+  margin-top: var(--s-8);
+  border-top: 2px solid var(--ink);
+  padding-top: var(--s-4);
+}
+.svc {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: var(--s-2);
+  margin-bottom: var(--s-4);
+}
+.svc .s {
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: 8px 9px; background: var(--bg-surface); position: relative;
+}
+.svc .s.on { border-color: var(--success); background: var(--success-bg); }
+.svc .s .svc-active {
+  position: absolute; top: -8px; right: -8px; width: 21px; height: 21px;
+  background: var(--success); border-radius: 50%; box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; justify-content: center; border: 1.5px solid var(--bg-surface);
+}
+.svc .s .svc-active svg { width: 12px; height: 12px; display: block; }
+.svc .s .st { font: 700 9.5px/1.2 var(--f-sans); color: var(--ink); letter-spacing: 0.01em; }
+.svc .s .sd { font: 500 8.2px/1.25 var(--f-sans); color: var(--ink-soft); margin-top: 3px; }
+.svc .s.on .st { color: var(--success); }
+.foot-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); }
+.foot-brand { display: flex; align-items: center; gap: 9px; }
+.foot-brand .dtd-iso { width: 26px; height: 27px; }
+.foot-brand .tag { font: 700 10px/1.2 var(--f-display); color: var(--ink); }
+.foot-brand .tag small { display: block; font: 500 8.5px/1.2 var(--f-sans); color: var(--ink-soft); letter-spacing: 0.02em; }
+.foot-contact { font: 500 8.6px/1.5 var(--f-mono); color: var(--ink-soft); text-align: right; }
+.foot-contact b { color: var(--ink); font-weight: 700; }
+.pageno { position: absolute; bottom: 8mm; right: 15mm; font: 600 8.5px/1 var(--f-mono); color: var(--ink-mute); z-index: 1; }
+
+/* ── Barra de control (no imprime) ──────────────────────────── */
+.toolbar {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg-sidebar); color: #fff;
+  padding: 10px 18px; margin-bottom: 18px;
+}
+.toolbar .tb-brand { font: 700 12px/1 var(--f-display); letter-spacing: 0.02em; }
+.toolbar .tb-brand small { color: rgba(255,255,255,0.6); font-weight: 500; }
+.toolbar .sp { flex: 1; }
+.toolbar button {
+  background: rgba(255,255,255,0.1); color: #fff; border-radius: var(--r-sm);
+  padding: 7px 14px; font: 600 11px/1 var(--f-sans); display: inline-flex; align-items: center; gap: 6px;
+  transition: background var(--dur) var(--ease);
+}
+.toolbar button:hover { background: var(--wine); }
+.toolbar .hint { font-size: 10px; color: rgba(255,255,255,0.5); }

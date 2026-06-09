@@ -582,7 +582,7 @@ function SectionAppearance() {
             { t: 'Logo Oficial', s: '4 variantes · descarga PNG (isólogo y apilado)', href: 'Logo Oficial.html' },
             { t: 'Portadas Redes · YouTube + Facebook', s: '3 direcciones · áreas seguras · descarga a tamaño real', href: 'Portadas Redes · DTD-Cargo.html' },
             { t: 'Portada Animada · Facebook', s: 'Video de portada 1250×463 · graba MP4 nativo', href: 'Portada Animada FB · DTD-Cargo.html' },
-            { t: 'Brand Book v3.3', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v3.2.html' },
+            { t: 'Brand Book v3.5', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v3.5.html' },
           ].map(r => (
             <a key={r.href} href={r.href} target="_blank" rel="noopener" style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textDecoration: 'none',
@@ -1132,7 +1132,7 @@ function SectionFeatures() {
       items: [
         { k: 'customs_seniat',    name: 'Aduana SENIAT · workflow',  desc: 'Checklist DUA, agente aduanal, tracking de liberación. Activá si DTD-Cargo hace el trámite aduanero (sino el agente externo lo hace).', module: 'embarques' },
         { k: 'cargo_insurance',   name: 'Seguro de carga',           desc: 'Estimado y emisión de seguro por embarque. Algunos clientes lo piden, otros traen seguro propio.', module: 'embarques' },
-        { k: 'warehouse_location', name: 'Ubicación en bodega · pasillo · zona · estante', desc: 'Muestra al almacenista/transportista la ubicación física exacta del paquete en bodega VE. Útil para bodegas grandes con sistema de localizaciones. Por defecto OFF — DTD-Cargo aún no usa codificación interna de bodega.', module: 'almacén VE · almacenista', defaultOn: false },
+        { k: 'warehouse_location', name: 'Ubicación en bodega · pasillo · zona · estante', desc: 'Muestra al bodeguero/transportista la ubicación física exacta del paquete en bodega VE. Útil para bodegas grandes con sistema de localizaciones. Por defecto OFF — DTD-Cargo aún no usa codificación interna de bodega.', module: 'almacén VE · bodeguero', defaultOn: false },
                 { k: 'consolidation_partial', name: 'Consolidación parcial', desc: 'Permite partir un envío en P1/P2 cuando no entra completo. Recomendado para todos los freight forwarders.', module: 'almacén CN' },
         { k: 'hs_autodetect',     name: 'Auto-detección HS · IA',    desc: 'Detecta código HS desde fotos de la caja. Útil cuando el supplier no lo provee.', module: 'almacén CN' },
         { k: 'sustainability',    name: 'Tracking CO₂ · sostenibilidad', desc: 'Calcula emisiones por embarque. Algunos clientes corporativos lo exigen.', module: 'reportes' },
