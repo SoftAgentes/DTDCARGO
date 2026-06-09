@@ -2,7 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function robots(): MetadataRoute.Robots {
   const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
-  const disallow = ["/track/", "/marca/"]; // tracking individual + material de marca interno
+  // tracking individual + material de marca interno + zona interna del equipo
+  const disallow = ["/track/", "/marca/", "/interno/"];
   return {
     rules: [
       // Crawlers de IA: permitidos explícitamente (señal deliberada de opt-in).
