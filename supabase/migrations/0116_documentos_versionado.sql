@@ -23,8 +23,8 @@
 -- del índice único; centraliza la herencia de entity_type/entity_id/folder
 -- de la cabeza vigente (la nueva versión NO se re-parametriza).
 --
--- ⚠️ NO se aplica a prod desde acá (lo hace el founder / MCP). Número 0111
---    (0110 lo toma SDD-0059). Aditiva: ALTER ADD COLUMN con default seguro,
+-- ⚠️ NO se aplica a prod desde acá (lo hace el founder / MCP). Número 0116
+--    (SDD-0060, al integrar a main desde brochure). Aditiva: ALTER ADD COLUMN con default seguro,
 --    sin DDL destructivo.
 -- ─────────────────────────────────────────────────────────────
 
@@ -182,6 +182,6 @@ grant execute on function public.add_document_version(
 ) to authenticated;
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0111_documentos_versionado.sql
--- Aplicar con: supabase migration apply 0111 · o MCP apply_migration
+-- Fin migración 0116_documentos_versionado.sql
+-- Aplicar con: supabase migration apply 0116 · o MCP apply_migration
 -- ─────────────────────────────────────────────────────────────

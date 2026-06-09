@@ -15,7 +15,7 @@
 --                              solo_en_estado/solo_en_erp) + a qué cargo o entry
 --                              del ERP quedó atada + confianza (alta/media/baja).
 --
--- + RLS fail-closed por tenant_id (patrón get_user_tenant_id, 0096/0100/0110).
+-- + RLS fail-closed por tenant_id (patrón get_user_tenant_id, 0096/0100/0114).
 -- + Validación de integridad cross-tenant en la DB (lección 0045/0093):
 --   helper charge_in_tenant() + ledger_entry_in_tenant() + statement_in_tenant()
 --   + triggers BEFORE INSERT/UPDATE → un cliente PostgREST directo no puede
@@ -26,13 +26,13 @@
 --
 -- Aditiva: reusa get_user_tenant_id() (0001), touch_updated_at() (0002),
 -- suppliers (0088), documents (0097), supplier_charges / partner_ledger_entries
--- (0110). Engancha supplier_charges.statement_line_id (que 0110 dejó SIN FK)
+-- (0114). Engancha supplier_charges.statement_line_id (que 0114 dejó SIN FK)
 -- → ahora se le agrega la FK diferida a partner_statement_lines.
 --
 -- NO incluye: ninguna UI / server action / página → Slice B2.
 --
 -- ⚠️ NO se aplica a prod desde acá (lo hace el founder).
--- Número de migración: 0112 (0111 cedida a SDD-0060 Documentos Versionado).
+-- Número de migración: 0115 (SDD-0059 Slice B1, junto con 0114).
 -- ─────────────────────────────────────────────────────────────
 
 -- ╔═══════════════════════════════════════════════════════════╗
@@ -72,8 +72,8 @@ create index partner_statements_tenant_status_idx
 -- ╚═══════════════════════════════════════════════════════════╝
 -- Una fila = una línea del estado de cuenta del socio. El motor de match
 -- (lib/reconciliation.ts) propone match_status + matched ids + confianza; el
--- operador resuelve en Slice B2. matched_charge_id → supplier_charges (0110),
--- matched_ledger_entry_id → partner_ledger_entries (0110), ambos nullable y
+-- operador resuelve en Slice B2. matched_charge_id → supplier_charges (0114),
+-- matched_ledger_entry_id → partner_ledger_entries (0114), ambos nullable y
 -- set null si el destino se borra. statement_id cascade (borrar el estado
 -- borra sus líneas).
 create table public.partner_statement_lines (
@@ -125,7 +125,7 @@ create index psl_matched_entry_idx
 -- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 3. FK diferida: supplier_charges.statement_line_id        ║
 -- ╚═══════════════════════════════════════════════════════════╝
--- 0110 dejó supplier_charges.statement_line_id como uuid SIN FK porque la
+-- 0114 dejó supplier_charges.statement_line_id como uuid SIN FK porque la
 -- tabla destino (partner_statement_lines) era de Slice B. Ahora existe → se
 -- agrega la FK (set null si la línea del estado se borra). Idempotente.
 do $$
@@ -240,7 +240,7 @@ create trigger psl_validate_refs_trg
   for each row execute function public.partner_statement_line_validate_refs();
 
 -- Trigger de validación de la cabecera del estado: supplier_id del mismo
--- tenant. Reusa supplier_in_tenant() (0110).
+-- tenant. Reusa supplier_in_tenant() (0114).
 create or replace function public.partner_statement_validate_refs()
 returns trigger
 language plpgsql
@@ -295,7 +295,7 @@ grant execute on function public.ledger_entry_in_tenant(uuid, uuid)  to authenti
 grant execute on function public.statement_in_tenant(uuid, uuid)     to authenticated;
 
 -- ╔═══════════════════════════════════════════════════════════╗
--- ║ 6. RLS · fail-closed por tenant_id (patrón 0096/0100/0110)║
+-- ║ 6. RLS · fail-closed por tenant_id (patrón 0096/0100/0114)║
 -- ╚═══════════════════════════════════════════════════════════╝
 alter table public.partner_statements      enable row level security;
 alter table public.partner_statement_lines enable row level security;
@@ -317,7 +317,7 @@ create policy "partner_statement_lines service_role all"
   on public.partner_statement_lines for all to service_role using (true) with check (true);
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0112_partner_statements.sql
--- Aplicar con: supabase migration apply 0112 · o MCP apply_migration
+-- Fin migración 0115_partner_statements.sql
+-- Aplicar con: supabase migration apply 0115 · o MCP apply_migration
 -- (lo hace el founder; el harness NO aplica a prod).
 -- ─────────────────────────────────────────────────────────────

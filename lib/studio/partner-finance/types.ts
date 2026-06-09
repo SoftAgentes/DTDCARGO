@@ -1,7 +1,7 @@
 /**
  * Tipos + helpers puros del módulo Financiero con el Socio China
  * (SDD-0059 · Slice A). Matchea el schema de
- * supabase/migrations/0110_financiero_china.sql.
+ * supabase/migrations/0114_financiero_china.sql.
  *
  * Cinco entidades:
  *  - `PartnerLedgerEntry`  · cuenta corriente bilateral (USD+RMB, saldo neto

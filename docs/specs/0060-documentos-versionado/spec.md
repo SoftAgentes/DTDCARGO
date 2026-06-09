@@ -45,7 +45,7 @@ vía RPC `SECURITY DEFINER` tenant-safe.
 
 ### Slice A — Foundation: schema de cadena + RPC atómica + queries (sin UI) ← arranca acá
 
-- **Migración** `0111_documentos_versionado.sql` (número libre — `0110` lo toma SDD-0059):
+- **Migración** `0116_documentos_versionado.sql` (renumerada de `0111` al integrar a main):
   - **Columnas nuevas en `public.documents`** (todas con default seguro para el backfill):
     - `root_id uuid` — cabeza lógica de la cadena (la v1 apunta a sí misma).
     - `version_no int not null default 1` — correlativo dentro de la cadena (1, 2, 3…).
@@ -160,7 +160,7 @@ Decisión V1: **mostrar siempre** (chip neutral discreto). Ajustable en ui-ux.
 - [x] Tests del stub cubren cadena (v1→v2→v3), invariante 1-current, ocultamiento de no-current,
       `versionLabel`. `node scripts/verify.mjs` verde (1313 tests).
 
-### Slice B ✅ (operable — implementado 2026-06-05; migración 0111 NO aplicada a prod aún)
+### Slice B ✅ (operable — implementado 2026-06-05; migración 0116 NO aplicada a prod aún)
 - [x] Desde `<DocsPanel>`: "Subir nueva versión" de un PDF → el panel/hub muestran la nueva (la vieja
       desaparece del listado por el filtro `is_current` de Slice A pero sigue en el historial); badge
       `v{n}` junto a cada documento (chip neutral mono, mostrado siempre · §4.5). Acción con
@@ -209,14 +209,14 @@ Decisión V1: **mostrar siempre** (chip neutral discreto). Ajustable en ui-ux.
   misma razón, el **row-flash no aplica** en el panel embebido: el documento ya está visible y su chip
   cambia solo (no hay navegación ni listado destino al que resaltar). Cumple la regla de "Trazabilidad
   visual" de `app/studio/CLAUDE.md` por el camino correcto para este caso (rastro in-place, no toast-con-link).
-- **Pendiente founder:** aplicar `supabase/migrations/0111_documentos_versionado.sql` a prod (lo hace el
+- **Pendiente founder:** aplicar `supabase/migrations/0116_documentos_versionado.sql` a prod (lo hace el
   founder, no el harness). Sin la migración, la columna `root_id`/`is_current` y la RPC no existen en
   prod → la feature no opera hasta aplicarla.
 
 ## 6. Archivos a crear / editar (estimado)
 
 ```
-supabase/migrations/0111_documentos_versionado.sql        ← Slice A (NEW)
+supabase/migrations/0116_documentos_versionado.sql        ← Slice A (NEW)
 lib/studio/documents/types.ts                             ← Slice A (EDIT: columnas + helpers)
 lib/studio/documents/queries.ts                           ← Slice A (EDIT: filtro is_current + listDocumentVersions)
 lib/studio/documents/__tests__/*                          ← Slice A (EDIT/NEW)

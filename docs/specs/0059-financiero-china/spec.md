@@ -75,7 +75,7 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
 
 ### Incluye
 
-#### Backend (Supabase) — migración `0110_financiero_china.sql` (o siguiente libre)
+#### Backend (Supabase) — migración `0114_financiero_china.sql`
 
 - **`partner_ledger_entries`** — cuenta corriente bilateral con el socio:
   `id, tenant_id, supplier_id (FK suppliers, el socio China), entry_code (PLE-YYYY-NNNN),
@@ -203,12 +203,12 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
 ## 6. Slices (para el harness `/feature`)
 
 - **Slice A — Foundation de datos (backend, SIN UI).** ✅ **implementado (harness `/feature`).**
-  - Migración `0110_financiero_china.sql`: tablas `partner_ledger_entries`, `supplier_charges`,
+  - Migración `0114_financiero_china.sql`: tablas `partner_ledger_entries`, `supplier_charges`,
     `supplier_credit_notes`, `currency_conversions`, `supplier_claim_offsets` + columna `bill_kind` en
     `supplier_bills` + RLS fail-closed por tenant + triggers cross-tenant (`supplier_in_tenant` /
     `container_in_tenant` vía `partner_finance_validate_refs`) + RPC `next_partner_ledger_code`. Altas de
     plan de cuentas (§5): `2.1.7` Cuenta corriente Socio China · `4.6` Ingresos por cambio de moneda ·
-    `5.10` Costo de mercancía pagada a fábrica. **⚠️ pendiente: founder aplica `0110` a prod.**
+    `5.10` Costo de mercancía pagada a fábrica. **⚠️ pendiente: founder aplica `0114` a prod.**
   - `lib/studio/partner-finance/`: `types.ts`, `ledger-queries.ts`, `charges-queries.ts`
     (incl. `net_amount` derivado + aplicar nota de crédito), `conversions-queries.ts`,
     `claim-offsets-queries.ts`, `posting.ts` (asientos DR/CR en estilo `accounting/`).
@@ -226,10 +226,9 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
     - `statement_line_id` en `supplier_charges` queda `uuid` SIN FK (la tabla destino es de Slice B).
   - **NO incluye:** `partner_statements`, motor de reconciliación, ninguna UI.
 - **Slice B1 — Backend de reconciliación (SIN UI).** ✅ **implementado (harness `/feature`).**
-  Migración `0112_partner_statements.sql` (se **cede `0111`** a SDD-0060 Documentos Versionado, que la tomó
-  en paralelo): tablas `partner_statements` + `partner_statement_lines` (+ RLS fail-closed por tenant +
+  Migración `0115_partner_statements.sql` (renumerada de `0112` al integrar a main): tablas `partner_statements` + `partner_statement_lines` (+ RLS fail-closed por tenant +
   triggers cross-tenant `statement_in_tenant`/`charge_in_tenant`/`ledger_entry_in_tenant`) + FK diferida
-  `supplier_charges.statement_line_id → partner_statement_lines` (0110 la dejó sin constraint) + **trigger
+  `supplier_charges.statement_line_id → partner_statement_lines` (0114 la dejó sin constraint) + **trigger
   `charge_in_tenant()` sobre `supplier_credit_notes`** (cierra el follow-up del review de Slice A).
   `lib/studio/partner-finance/`: `reconciliation.ts` (motor de match PURO y DETERMINISTA — monto exacto +
   ventana de fecha ±N días → `alta`; monto exacto sin fecha cercana / fuzzy CN → `media`; aproximado →
