@@ -196,7 +196,7 @@ export function EditarRecepcionClient({
             </div>
             <div>
               <label className="studio-label" htmlFor="ed-markbox">
-                MARKBOX
+                Shipping Mark
               </label>
               <input
                 id="ed-markbox"

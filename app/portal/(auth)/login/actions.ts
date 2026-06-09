@@ -29,7 +29,7 @@ export async function requestMagicLink(
 ): Promise<PortalLoginState> {
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   if (!email || !email.includes("@") || email.length < 5) {
-    return { error: "Ingresá un email válido." };
+    return { error: "Ingresa un email válido." };
   }
 
   try {
@@ -44,7 +44,7 @@ export async function requestMagicLink(
     if (!data) {
       return {
         error:
-          "Ese email todavía no tiene el portal habilitado. Pedile a tu asesor que te invite — o registrate si sos nuevo.",
+          "Ese email todavía no tiene el portal habilitado. Pídele a tu asesor que te invite — o regístrate si eres nuevo.",
       };
     }
   } catch {
@@ -61,7 +61,7 @@ export async function requestMagicLink(
   });
 
   if (error) {
-    return { error: "No pudimos enviar el enlace ahora. Probá de nuevo en un rato." };
+    return { error: "No pudimos enviar el enlace ahora. Prueba de nuevo en un rato." };
   }
 
   return { sent: true, email };
@@ -71,7 +71,7 @@ export async function requestMagicLink(
 
 export type PortalPasswordLoginState = {
   error?: string;
-  /** Se pidió reset de contraseña con éxito (mensaje "revisá tu correo"). */
+  /** Se pidió reset de contraseña con éxito (mensaje "revisa tu correo"). */
   resetSent?: boolean;
 };
 
@@ -103,12 +103,12 @@ export async function loginWithMarkbox(
   const password = String(formData.get("password") ?? "");
 
   if (!markbox || !password) {
-    return { error: "Ingresá tu MARKBOX y tu contraseña." };
+    return { error: "Ingresa tu Shipping Mark y tu contraseña." };
   }
 
   const email = await emailForMarkbox(markbox);
   // Mensaje único para "no existe" y "clave incorrecta" (anti-enumeración).
-  const GENERIC = "MARKBOX o contraseña incorrectos.";
+  const GENERIC = "Shipping Mark o contraseña incorrectos.";
   if (!email) return { error: GENERIC };
 
   const supabase = await createClient();
@@ -131,7 +131,7 @@ export async function resetPasswordByMarkbox(
 ): Promise<PortalPasswordLoginState> {
   const markbox = String(formData.get("markbox") ?? "").trim().toUpperCase();
   if (!markbox) {
-    return { error: "Ingresá tu MARKBOX para recuperar la contraseña." };
+    return { error: "Ingresa tu Shipping Mark para recuperar la contraseña." };
   }
 
   const email = await emailForMarkbox(markbox);

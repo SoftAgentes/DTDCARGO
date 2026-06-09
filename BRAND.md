@@ -191,7 +191,7 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 ## ✍️ Tono y voz
 
-- **Castellano rioplatense/venezolano neutro** — usá voseo si encaja (vos / sos / arrancá / mirá).
+- **Castellano venezolano neutro, tuteo** — usar "tú" (recibes, rastrea, cotiza, confirma). **Sin voseo** (nada de vos / sos / arrancá / mirá). *(Regla del founder 2026-06-08: en Venezuela no se usa voseo. Aplica a copy de marca y a la comunicación de los agentes.)*
 - **Verbos directos** en CTAs: "Cotizar DDP", "Crear embarque", "Enviar correo". **NUNCA** "Click acá", "Enviar formulario", "Submit".
 - Sin emoji en UI de producto **a menos que la marca lo apruebe**. Si necesitás un símbolo, usá un icono del set `window.Icon`.
 - Sin signos de exclamación múltiples. Sin mayúsculas sostenidas (excepto en eyebrows que ya lo hacen vía `text-transform: uppercase`).

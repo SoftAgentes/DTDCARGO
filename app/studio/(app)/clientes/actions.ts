@@ -84,7 +84,7 @@ export async function createClientAction(
     { p_tenant_id: link.tenant_id },
   );
   if (markboxErr || !markboxData) {
-    return { error: "No se pudo generar el MARKBOX." };
+    return { error: "No se pudo generar el Shipping Mark." };
   }
   const markbox = String(markboxData);
 

@@ -71,14 +71,14 @@ export default async function PortalInvoicesPage() {
         Mis facturas.
       </h1>
       <p className="lead mt-3">
-        Tu estado de cuenta y comprobantes. Para dudas o pagos, escribile a tu
+        Tu estado de cuenta y comprobantes. Para dudas o pagos, escríbele a tu
         asesor por WhatsApp.
       </p>
 
       {invoices.length === 0 ? (
         <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
           <div className="text-[16px] font-bold text-ink">
-            Todavía no tenés facturas.
+            Todavía no tienes facturas.
           </div>
           <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
             Cuando tu asesor emita una factura a tu nombre, va a aparecer acá con
@@ -107,7 +107,7 @@ export default async function PortalInvoicesPage() {
           </div>
           {mixed && (
             <p className="mt-3 text-[12px] text-grey-500">
-              Montos en {primary}. Tenés facturas en otras monedas — abrí cada una
+              Montos en {primary}. Tienes facturas en otras monedas — abre cada una
               para ver su detalle.
             </p>
           )}

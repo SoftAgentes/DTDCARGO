@@ -128,6 +128,22 @@ export type PortalActivation = {
 };
 
 /**
+ * Completitud del perfil del cliente (REGISTRO EXPRESS · founder 2026-06-07). El
+ * alta express difiere la FOTO de cédula y la DIRECCIÓN de entrega a "Completa tu
+ * perfil" (`/portal/perfil`); ambas se piden antes de la 1ª compra y el asesor
+ * revisa la foto antes de operar. `complete` = tiene foto Y dirección. Es ORTOGONAL
+ * a `PortalActivation` (la cuenta nace activa; el perfil puede estar incompleto).
+ */
+export type ProfileCompleteness = {
+  /** ¿Subió la foto de cédula/RIF? (`clients.cedula_photo_path` no vacío). */
+  hasPhoto: boolean;
+  /** ¿Cargó la dirección de entrega VE? (`clients.address` no vacío). */
+  hasAddress: boolean;
+  /** Las dos: foto + dirección. */
+  complete: boolean;
+};
+
+/**
  * Las 4 métricas del dashboard de Inicio (Norte PortalHome). Sólo data que SÍ
  * existe: envíos (status) + facturas (montos). NO incluye contenedor/buque/ETA
  * real (Tier 1 Naviera, no construido).

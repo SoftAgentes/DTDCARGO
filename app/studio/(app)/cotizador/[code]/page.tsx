@@ -220,7 +220,7 @@ export default async function QuoteDetailPage({
       >
         <Field label="Cliente" value={quote.client_name} />
         <Field
-          label="MARKBOX"
+          label="Shipping Mark"
           value={quote.client_markbox ?? "— sin vincular —"}
           mono
         />

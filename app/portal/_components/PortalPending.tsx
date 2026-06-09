@@ -29,7 +29,7 @@ export function PortalPending({
         Hola {firstName}.
       </h1>
       <p className="lead mt-3 max-w-[58ch]">
-        Tu cuenta ya está creada y tu MARKBOX está listo para marcar tus cajas en
+        Tu cuenta ya está creada y tu Shipping Mark está listo para marcar tus cajas en
         China.
       </p>
 
@@ -43,7 +43,7 @@ export function PortalPending({
         {/* MARKBOX prominente — el cliente lo necesita YA para sus cajas */}
         <div className="mt-4 rounded-[12px] bg-paper border border-grey-200 p-5 inline-flex flex-col">
           <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
-            Tu MARKBOX
+            Tu Shipping Mark
           </div>
           <div
             className="mt-1.5 text-[28px] sm:text-[32px] leading-none text-ink"
@@ -58,13 +58,13 @@ export function PortalPending({
 
         <p className="mt-6 text-[15px] text-grey-700 leading-[1.6]">
           Tu panel se desbloquea apenas un asesor active tu cuenta o llegue tu
-          primera carga. Mientras tanto, tu MARKBOX ya sirve para marcar tus cajas
+          primera carga. Mientras tanto, tu Shipping Mark ya sirve para marcar tus cajas
           en China.
         </p>
 
         <div className="mt-7 pt-6 border-t border-grey-200">
           <p className="text-[13.5px] text-grey-700 leading-[1.55]">
-            ¿Querés que activemos tu cuenta ahora? Escribile a tu asesor y lo
+            ¿Quieres que activemos tu cuenta ahora? Escríbele a tu asesor y lo
             resolvemos.
           </p>
           <a

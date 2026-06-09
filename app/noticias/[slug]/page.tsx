@@ -164,7 +164,7 @@ export default async function NewsPostPage({ params }: Props) {
           <section className="py-16 lg:py-20 border-t border-grey-200">
             <div className="wrap max-w-[1100px]">
               <h2 className="text-[14px] font-bold tracking-[0.14em] uppercase text-wine mb-8">
-                Seguí leyendo
+                Sigue leyendo
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {related.map((p) => (
@@ -193,7 +193,7 @@ function ComingSoonBlock({ post }: { post: NewsPostRow }) {
       </h2>
       <p className="mt-3 text-[14.5px] text-grey-700 leading-[1.55] max-w-[52ch]">
         Mientras tanto, si necesitas información sobre este tema para tu
-        operación, escribinos por WhatsApp y un asesor te explica los puntos
+        operación, escríbenos por WhatsApp y un asesor te explica los puntos
         clave en minutos.
       </p>
       <a

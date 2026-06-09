@@ -49,8 +49,8 @@ export function OperationGallery() {
           <h2 className="h-section mt-4">El sello DoorTuDoor en tu carga.</h2>
           <p className="lead mt-6">
             Cada caja y cada contenedor sale precintado y marcado por nosotros en
-            China. Así sabés que tu mercancía la maneja DTD Cargo — de la fábrica
-            a tu puerta, sin intermediarios.
+            China. Así sabes que tu mercancía la maneja DTD Cargo — de la fábrica
+            a tu puerta, con un solo equipo responsable de tu carga.
           </p>
         </div>
 

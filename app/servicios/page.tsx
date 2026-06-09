@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -6,25 +7,15 @@ import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { HowWeWork } from "@/components/HowWeWork";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import {
-  SERVICES_CN,
-  SERVICES_VE,
   SERVICES_OWNERSHIP,
   INCOTERMS,
   buildWhatsAppLink,
-  type Service,
 } from "@/lib/design-tokens";
+import { ServiciosDetalle } from "@/components/ServiciosDetalle";
+import { RespuestaRapida } from "@/components/RespuestaRapida";
+import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import {
-  BoxIcon,
-  CartIcon,
-  ShieldIcon,
-  StampIcon,
-  PassportIcon,
-  ContainerIcon,
-  WarehouseIcon,
   CheckIcon,
-  PaymentIcon,
-  DocIcon,
-  TruckIcon,
   ArrowIcon,
   FlagCN,
   FlagVE,
@@ -33,50 +24,42 @@ import {
 export const metadata: Metadata = {
   title: "Servicios",
   description:
-    "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, courier aéreo, registro de marca, visado, aduana y last mile.",
+    "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, registro de marca, visado, aduana y last mile.",
   alternates: { canonical: "/servicios" },
   ...socialMeta({
     title: "Servicios · DTD Cargo",
     description:
-      "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, courier aéreo, registro de marca, visado, aduana y last mile.",
+      "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, registro de marca, visado, aduana y last mile.",
     path: "/servicios",
   }),
 };
-
-const iconMap = {
-  Box: BoxIcon,
-  Cart: CartIcon,
-  Shield: ShieldIcon,
-  Stamp: StampIcon,
-  Passport: PassportIcon,
-  Container: ContainerIcon,
-  Warehouse: WarehouseIcon,
-  Check: CheckIcon,
-  Payment: PaymentIcon,
-  Doc: DocIcon,
-  Truck: TruckIcon,
-} as const;
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
 /**
  * OfferCatalog (schema.org) — lista de servicios de DTD para que Google/IA
- * sepan exactamente qué ofrece la empresa. Deriva de SERVICES_CN/VE (única
- * fuente de verdad); cada uno es un Service con su ancla en esta página.
+ * sepan exactamente qué ofrece la empresa. Deriva de SERVICIOS_DETALLE (fichas
+ * a fondo, SDD-0063); la descripción estructurada incluye el resumen + qué
+ * incluye, para que el crawl del AI Agent tome info certera.
  */
 const serviciosJsonLd = {
   "@context": "https://schema.org",
   "@type": "OfferCatalog",
   name: "Servicios de DTD Cargo — China a Venezuela",
   provider: { "@type": "LocalBusiness", name: "DTD Cargo", url: SITE_URL },
-  itemListElement: [...SERVICES_CN, ...SERVICES_VE].map((s, i) => ({
+  itemListElement: SERVICIOS_DETALLE.map((s, i) => ({
     "@type": "Offer",
     position: i + 1,
     itemOffered: {
       "@type": "Service",
-      name: s.title,
-      description: s.copy,
-      serviceType: s.title,
+      name: s.titulo,
+      description: [
+        s.resumen,
+        s.incluye.length ? `Incluye: ${s.incluye.join("; ")}.` : "",
+      ]
+        .filter(Boolean)
+        .join(" "),
+      serviceType: s.titulo,
       url: `${SITE_URL}/servicios#${s.slug}`,
       areaServed: [
         { "@type": "Country", name: "Venezuela" },
@@ -124,67 +107,71 @@ export default function ServiciosPage() {
           </div>
         </section>
 
-        {/* Sede China */}
-        <section className="py-16 lg:py-20" id="cn">
-          <div className="wrap">
-            <SectionHeader
-              flag="🇨🇳"
-              eyebrow="Yiwu · 义乌"
-              title={
-                <>
-                  Desde nuestra oficina
-                  <br />
-                  <span style={{ color: "var(--color-wine)" }}>
-                    propia en China.
-                  </span>
-                </>
-              }
-              lead="Suite de servicios logísticos, comerciales y de control de calidad ejecutados directamente desde la bodega estratégica en Yiwu. Visita de fábrica, consolidación y QC en horas, no en días."
-            />
+        <RespuestaRapida
+          pregunta="¿Qué servicios ofrece DTD Cargo para importar de China a Venezuela?"
+          respuesta="DTD Cargo lleva tu mercancía puerta a puerta de China a Venezuela en modalidad DDP —flete, aduana e impuestos incluidos— con consolidación e inspección en su bodega propia de Yiwu. Sobre esa base ofrece servicios complementarios: verificación de proveedores, compra asistida, control de calidad, laboratorio y permisología, registro de marca, visado de negocios, documentos de importación, desaduanaje y entrega final (last mile)."
+        />
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-12">
-              {SERVICES_CN.map((s) => (
-                <ServiceCard key={s.slug} service={s} />
-              ))}
-            </div>
+        {/* Inspección en China — línea destacada. Deep-dive en subpágina propia
+            para sumar la categoría sin saturar el brochure de logística. */}
+        <section className="pt-2 lg:pt-4" id="inspeccion">
+          <div className="wrap">
+            <Link
+              href="/servicios/inspeccion"
+              className="group block card-shadow bg-ink text-white rounded-[20px] p-7 lg:p-10 transition-all hover:-translate-y-0.5"
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-7 lg:gap-12 lg:items-center">
+                <div>
+                  <span className="inline-flex items-center gap-2 text-[11px] font-bold tracking-[0.14em] uppercase text-wine-soft">
+                    <span
+                      className="w-1.5 h-1.5 rounded-full bg-wine-soft"
+                      aria-hidden
+                    />
+                    Nuevo · Inspección en China
+                  </span>
+                  <h2
+                    className="mt-4 text-[26px] lg:text-[36px] leading-[1.08] tracking-[-0.01em] text-white"
+                    style={{ fontFamily: "var(--font-archivo-black)" }}
+                  >
+                    Verifica tu mercancía en la fábrica,
+                    <br />
+                    <span className="text-wine-soft">antes de embarcar.</span>
+                  </h2>
+                  <p className="mt-4 text-[14.5px] lg:text-[15.5px] leading-[1.55] text-white/80 max-w-[54ch]">
+                    Inspección pre-embarque, auditoría de fábrica, laboratorio y
+                    preparación para Amazon — con reporte en español y fotos. Un
+                    solo socio para tu logística y tu control de calidad.
+                  </p>
+                  <span className="mt-6 inline-flex items-center gap-2 text-[14.5px] font-semibold text-white group-hover:text-wine-soft">
+                    Conoce el servicio <ArrowIcon size={15} />
+                  </span>
+                </div>
+                <ul className="flex flex-col gap-3 list-none m-0">
+                  {[
+                    "Revisamos en origen, antes de pagar el saldo",
+                    "Reporte claro con fotos, en español",
+                    "Atención en español desde Yiwu",
+                  ].map((t) => (
+                    <li
+                      key={t}
+                      className="flex items-start gap-3 text-[14px] leading-[1.45] text-white/85"
+                    >
+                      <span className="mt-0.5 w-5 h-5 rounded-full grid place-items-center flex-shrink-0 bg-white/10 text-white">
+                        <CheckIcon size={13} />
+                      </span>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </Link>
           </div>
         </section>
 
-        {/* Sede Venezuela */}
-        <section className="py-16 lg:py-20 bg-paper" id="ve">
-          <div className="wrap">
-            <SectionHeader
-              flag="🇻🇪"
-              eyebrow="Valencia · Carabobo"
-              title={
-                <>
-                  Desde nuestra oficina
-                  <br />
-                  <span style={{ color: "var(--color-wine)" }}>
-                    en Venezuela.
-                  </span>
-                </>
-              }
-              lead="Centro de operaciones para trámites locales, asesoría migratoria y documental, y la logística de última milla que conecta tu negocio con la carga que viene de China."
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mt-12">
-              {SERVICES_VE.map((s) => (
-                <ServiceCard key={s.slug} service={s} />
-              ))}
-            </div>
-
-            <div className="card-shadow mt-10 p-6 lg:p-8 bg-white border border-grey-200 rounded-[14px]">
-              <p className="text-[14.5px] leading-[1.6] text-grey-700">
-                <strong className="text-ink">Nota importante:</strong> aunque
-                muchos de estos trámites tienen como destino final China, su
-                gestión documental, asesoría y seguimiento se realiza desde
-                nuestras oficinas en Valencia. Atendemos personalmente, sin
-                necesidad de que viajes.
-              </p>
-            </div>
-          </div>
-        </section>
+        {/* Servicios en detalle — fichas desplegables (SDD-0063).
+            Reemplaza las dos grillas de tarjetas cortas (Sede CN / Sede VE) por
+            fichas a fondo con incluye/no-incluye/precio/cómo/tiempos. */}
+        <ServiciosDetalle />
 
         {/* Mapa de operación — dos oficinas + puente de coordinación */}
         <section className="py-16 lg:py-20" id="matriz">
@@ -199,7 +186,7 @@ export default function ServiciosPage() {
                   trabajando juntas.
                 </>
               }
-              lead="No elegís entre opciones. Tu envío pasa por dos oficinas que se coordinan internamente, y vos siempre hablás con una sola persona del equipo."
+              lead="No eliges entre opciones. Tu envío pasa por dos oficinas que se coordinan internamente, y tú siempre hablas con una sola persona del equipo."
             />
 
             {/* Dos oficinas (peers) — cada una con los servicios que ejecuta sola */}
@@ -240,7 +227,7 @@ export default function ServiciosPage() {
                 >
                   <strong className="text-white">Yiwu ejecuta</strong> el trabajo en
                   China, <strong className="text-white">Valencia te lo coordina</strong>{" "}
-                  con vos. Los dos equipos hablan entre sí — vos solo hablás con uno.
+                  contigo. Los dos equipos hablan entre sí — tú solo hablas con uno.
                 </p>
                 <ul className="mt-5 flex flex-wrap justify-center gap-2 list-none p-0">
                   {SERVICES_OWNERSHIP.both.map((s) => (
@@ -366,75 +353,6 @@ function SectionHeader({
       </div>
       <p className="lead max-w-[40ch]">{lead}</p>
     </div>
-  );
-}
-
-function ServiceCard({ service }: { service: Service }) {
-  const IconComponent =
-    iconMap[service.icon as keyof typeof iconMap] ?? BoxIcon;
-  return (
-    <article
-      id={service.slug}
-      className={`scroll-mt-24 rounded-[18px] p-7 lg:p-8 border transition-all hover:-translate-y-0.5 ${
-        service.featured
-          ? "bg-ink text-white border-ink"
-          : "card-shadow bg-white border-grey-200 hover:border-ink"
-      }`}
-    >
-      <div className="flex items-start gap-5">
-        <div
-          className={`w-12 h-12 rounded-xl grid place-items-center flex-shrink-0 ${
-            service.featured ? "bg-white/10 text-white" : "bg-grey-100 text-ink"
-          }`}
-        >
-          <IconComponent size={24} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className={`text-[19px] lg:text-[21px] font-extrabold leading-[1.15] tracking-[-0.01em] ${service.subtitle ? "mb-0.5" : "mb-2"}`}>
-            {service.title}
-          </h3>
-          {service.subtitle && (
-            <div
-              className={`text-[12.5px] leading-[1.3] mb-3 ${
-                service.featured ? "text-white/55" : "text-grey-500"
-              }`}
-            >
-              {service.subtitle}
-            </div>
-          )}
-          <p
-            className={`text-[14.5px] leading-[1.55] mb-4 ${
-              service.featured ? "text-white/75" : "text-grey-700"
-            }`}
-          >
-            {service.copy}
-          </p>
-          <div
-            className={`inline-flex items-center gap-2 text-[12.5px] font-semibold tracking-[0.04em] uppercase px-3 py-1.5 rounded-md ${
-              service.featured
-                ? "bg-wine-soft/20 text-white"
-                : "bg-wine/10 text-wine"
-            }`}
-          >
-            <span>✓</span> {service.benefit}
-          </div>
-        </div>
-      </div>
-      <div className="mt-5 flex gap-3 pt-5 border-t border-grey-200/30">
-        <a
-          href={buildWhatsAppLink(
-            `Hola DTD Cargo, me interesa el servicio: ${service.title}. ¿Me pueden cotizar?`
-          )}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`text-[13.5px] font-semibold inline-flex items-center gap-1.5 ${
-            service.featured ? "text-white hover:text-wine-soft" : "text-wine hover:text-wine-deep"
-          }`}
-        >
-          Cotiza este servicio <ArrowIcon size={14} />
-        </a>
-      </div>
-    </article>
   );
 }
 

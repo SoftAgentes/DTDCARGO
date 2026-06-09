@@ -260,7 +260,7 @@ export default async function InvoiceDetailPage({
           href={`/studio/clientes/${invoice.client_markbox}`}
         />
         <FieldLink
-          label="MARKBOX"
+          label="Shipping Mark"
           value={invoice.client_markbox}
           href={`/studio/clientes/${invoice.client_markbox}`}
           mono

@@ -11,7 +11,7 @@ const HERO = BY_SLUG["dtd-services-lcl"];
 
 /**
  * Los otros 15 servicios agrupados por función (jerarquía C de la design
- * review), en orden de viaje del cliente: comprás → controlás → movés → tramitás.
+ * review), en orden de viaje del cliente: compras → controlas → mueves → tramitas.
  */
 const GROUPS: { title: string; slugs: string[] }[] = [
   { title: "Compra y pagos en China", slugs: ["compra-asistida", "asesoria-pagos"] },

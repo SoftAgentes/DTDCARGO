@@ -29,7 +29,7 @@ export function Footer() {
           <div>
             <BrandMark onDark size={48} />
             <p className="mt-4 text-[14.5px] leading-[1.5] text-white/60 max-w-[36ch]">
-              Puente logístico entre China y Venezuela. Operando desde 2010,
+              Puente logístico entre China y Venezuela. Operando desde 2008,
               construyendo confianza cliente a cliente, contenedor a
               contenedor.
             </p>
@@ -64,7 +64,7 @@ export function Footer() {
               ))}
               <li>
                 <Link
-                  href="/servicios#cn"
+                  href="/servicios#detalle"
                   className="text-[13px] text-white/55 hover:text-white transition-colors"
                 >
                   + Ver todos →
@@ -100,7 +100,7 @@ export function Footer() {
               </li>
               <li>
                 <Link
-                  href="/servicios#ve"
+                  href="/servicios#detalle"
                   className="text-[13px] text-white/55 hover:text-white transition-colors"
                 >
                   + Ver todos →

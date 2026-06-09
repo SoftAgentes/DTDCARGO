@@ -125,7 +125,7 @@ export function validateAcceptanceInput(
 
   const markbox = String(raw.client_markbox ?? "").trim();
   if (!markbox) {
-    errors.client_markbox = "Indicá el MARKBOX del cliente.";
+    errors.client_markbox = "Indicá el Shipping Mark del cliente.";
   }
 
   const quoteCode = String(raw.quote_code ?? "").trim();

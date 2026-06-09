@@ -101,7 +101,7 @@ export function ClientsClient({
               maxWidth: "62ch",
             }}
           >
-            Catálogo del tenant. MARKBOX como ID estable. El detalle muestra
+            Catálogo del tenant. Shipping Mark como ID estable. El detalle muestra
             el historial de envíos.
           </p>
         </div>
@@ -134,7 +134,7 @@ export function ClientsClient({
             id="client-q"
             type="search"
             className="studio-input"
-            placeholder="Nombre, MARKBOX, email, teléfono, RIF…"
+            placeholder="Nombre, Shipping Mark, email, teléfono, RIF…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
@@ -208,7 +208,7 @@ export function ClientsClient({
           <EmptyState
             eyebrow="Catálogo vacío"
             title="Aún no cargaste clientes."
-            description="Creá el primer cliente. El MARKBOX se asigna automáticamente."
+            description="Creá el primer cliente. El Shipping Mark se asigna automáticamente."
             action={
               <button
                 type="button"
@@ -260,7 +260,7 @@ function ClientsTable({ clients }: { clients: Client[] }) {
           color: "var(--ink-soft)",
         }}
       >
-        <span>MARKBOX</span>
+        <span>Shipping Mark</span>
         <span>Nombre</span>
         <span>Tier</span>
         <span>Contacto</span>

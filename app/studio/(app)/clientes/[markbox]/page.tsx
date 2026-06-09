@@ -286,7 +286,7 @@ export default async function ClienteDetallePage({
                   textAlign: "center",
                 }}
               >
-                Sin envíos registrados con este MARKBOX todavía.
+                Sin envíos registrados con este Shipping Mark todavía.
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>

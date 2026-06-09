@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { getPortalClient } from "@/lib/portal/portal-queries";
+import {
+  getPortalClient,
+  getProfileCompleteness,
+} from "@/lib/portal/portal-queries";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
-import { WhatsAppIcon } from "@/components/Icon";
+import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { ChangePasswordCard } from "./ChangePasswordCard";
 
 export const metadata: Metadata = { title: "Mi cuenta" };
@@ -28,6 +32,7 @@ export default async function PortalAccountPage() {
   const client = await getPortalClient(supabase);
   if (!client) return null;
 
+  const completeness = await getProfileCompleteness(supabase);
   const supplierMark = buildPortalSupplierMark(client.markbox);
   const waUpdate = buildWhatsAppLink(
     `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y necesito actualizar un dato de mi cuenta.`,
@@ -50,7 +55,7 @@ export default async function PortalAccountPage() {
           {/* MARKBOX prominente — es SU identificador */}
           <div className="pb-6 border-b border-grey-200">
             <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
-              Tu MARKBOX
+              Tu Shipping Mark
             </div>
             <div
               className="mt-2 text-[30px] sm:text-[36px] leading-none text-wine"
@@ -82,11 +87,39 @@ export default async function PortalAccountPage() {
             />
           </dl>
 
+          {/* Completa tu perfil (campos diferidos del registro express: foto +
+              dirección). A diferencia del resto del perfil — mediado por el asesor
+              — estos los carga el propio cliente. */}
+          {!completeness.complete && (
+            <div
+              className="mt-6 rounded-[12px] bg-paper border border-grey-200 border-l-[3px] p-5"
+              style={{ borderLeftColor: "var(--color-status-warning)" }}
+            >
+              <div className="text-[11px] font-bold tracking-[0.12em] uppercase" style={{ color: "var(--color-status-warning)" }}>
+                Perfil incompleto
+              </div>
+              <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55]">
+                Te falta {!completeness.hasPhoto && !completeness.hasAddress
+                  ? "tu foto de identidad y tu dirección de entrega"
+                  : !completeness.hasPhoto
+                    ? "subir la foto de tu cédula / RIF"
+                    : "cargar tu dirección de entrega"}
+                . Lo necesitas antes de tu primera compra.
+              </p>
+              <Link
+                href="/portal/perfil"
+                className="btn btn-primary mt-4 inline-flex items-center gap-2"
+              >
+                Completa tu perfil <ArrowIcon />
+              </Link>
+            </div>
+          )}
+
           {/* Nota read-only + CTA de corrección */}
           <div className="mt-8 pt-6 border-t border-grey-200">
             <p className="text-[13.5px] text-grey-700 leading-[1.55]">
-              ¿Algún dato desactualizado? Escribile a tu asesor y lo corregimos
-              por vos.
+              ¿Algún dato desactualizado? Escríbele a tu asesor y lo corregimos
+              por ti.
             </p>
             <a
               href={waUpdate}
@@ -108,7 +141,7 @@ export default async function PortalAccountPage() {
           style={{ borderLeftColor: "var(--color-wine)" }}
         >
           <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
-            Tu MARKBOX para tus proveedores
+            Tu Shipping Mark para tus proveedores
           </div>
           <h2
             className="mt-2 text-[20px] sm:text-[23px] leading-[1.15] tracking-[-0.02em] text-ink"
@@ -118,12 +151,12 @@ export default async function PortalAccountPage() {
           </h2>
 
           <p className="mt-4 text-[14.5px] text-grey-700 leading-[1.6]">
-            Cuando le pidas mercancía a tu proveedor en China, pasale tu MARKBOX.
-            Él lo escribe en <strong className="text-ink">cada caja</strong> como{" "}
+            Cuando le pidas mercancía a tu proveedor en China, pasale tu{" "}
             <span style={{ fontFamily: "var(--font-noto-sc), var(--font-archivo)" }}>
               Shipping Mark (唛头)
             </span>
-            . Así, cuando tu mercancía llega a nuestra bodega de Yiwu, sabemos al
+            . Él lo escribe en <strong className="text-ink">cada caja</strong>.
+            Así, cuando tu mercancía llega a nuestra bodega de Yiwu, sabemos al
             instante que es tuya y no se mezcla ni se pierde.
           </p>
 
@@ -146,18 +179,18 @@ export default async function PortalAccountPage() {
           <ol className="mt-6 flex flex-col gap-4 list-none p-0">
             <Step
               n="01"
-              title="Le pasás tu MARKBOX al proveedor"
-              copy="Cuando hagas el pedido, mandale tu código por WeChat o donde te comuniques con él."
+              title="Le pasas tu Shipping Mark al proveedor"
+              copy="Cuando hagas el pedido, mándale tu código por WeChat o donde te comuniques con él."
             />
             <Step
               n="02"
               title="Lo escribe en cada caja"
-              copy="El proveedor rotula cada bulto con tu MARKBOX antes de despacharlo a nuestra bodega de Yiwu."
+              copy="El proveedor rotula cada bulto con tu Shipping Mark antes de despacharlo a nuestra bodega de Yiwu."
             />
             <Step
               n="03"
               title="Llega identificada a la bodega"
-              copy="Al recibirla, la asociamos a tu cuenta por el MARKBOX y empieza a verse en Mis envíos."
+              copy="Al recibirla, la asociamos a tu cuenta por el Shipping Mark y empieza a verse en Mis envíos."
             />
           </ol>
         </div>

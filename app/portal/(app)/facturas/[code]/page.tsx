@@ -173,7 +173,7 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
               Descargar PDF · próximamente
             </button>
             <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
-              ¿Una duda con esta factura o necesitás el comprobante? Escribile a tu
+              ¿Una duda con esta factura o necesitas el comprobante? Escríbele a tu
               asesor.
             </p>
             <a

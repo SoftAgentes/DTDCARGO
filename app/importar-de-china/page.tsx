@@ -24,12 +24,12 @@ export const metadata: Metadata = {
     absolute: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",
   },
   description:
-    "Importá de China a Venezuela puerta a puerta: carga consolidada DDP, financiamiento 100% y entrega en tu ciudad. Cobertura nacional desde Valencia.",
+    "Importa de China a Venezuela puerta a puerta: carga consolidada DDP, financiamiento 100% y entrega en tu ciudad. Cobertura nacional desde Valencia.",
   alternates: { canonical: "/importar-de-china" },
   ...socialMeta({
     title: "Importar de China a Venezuela, ciudad por ciudad | DTD Cargo",
     description:
-      "Cobertura nacional puerta a puerta de China a Venezuela. Elegí tu ciudad.",
+      "Cobertura nacional puerta a puerta de China a Venezuela. Elige tu ciudad.",
     path: "/importar-de-china",
   }),
 };
@@ -74,7 +74,7 @@ export default function ImportarHubPage() {
         {/* Hero */}
         <section className="py-16 lg:py-24 bg-paper">
           <div className="wrap max-w-[920px]">
-            <span className="eyebrow">Cobertura nacional · DDP puerta a puerta</span>
+            <span className="eyebrow">Cobertura nacional · Puerta a puerta</span>
             <h1
               className="h-display mt-5"
               style={{ fontSize: "clamp(34px, 5.5vw, 68px)" }}
@@ -84,7 +84,8 @@ export default function ImportarHubPage() {
             <p className="lead mt-6 max-w-[60ch]">
               Traemos tu carga consolidada de China puerta a puerta a todo el
               país: flete, aduana e impuestos incluidos (DDP), financiamiento
-              100% —pagás cuando llega— y entrega coordinada hasta tu ciudad.
+              100% sujeto a aprobación —pagas cuando llega— y entrega coordinada
+              hasta tu ciudad.
               Todo sale de nuestra bodega propia en Valencia, donde recibimos la
               mercancía desde Yiwu.
             </p>
@@ -107,13 +108,13 @@ export default function ImportarHubPage() {
         {/* Grid de ciudades */}
         <section className="py-16 lg:py-20 bg-white">
           <div className="wrap max-w-[1000px]">
-            <span className="eyebrow">Elegí tu ciudad</span>
+            <span className="eyebrow">Elige tu ciudad</span>
             <h2 className="h-section mt-4">
               Entregamos en {zonas.length} ciudades de Venezuela.
             </h2>
             <p className="lead mt-5 max-w-[64ch]">
               Cada ciudad tiene su página con el detalle de la entrega. Si la
-              tuya no está en la lista, igual llegamos: escribinos y coordinamos
+              tuya no está en la lista, igual llegamos: escríbenos y coordinamos
               el last-mile hasta tu puerta.
             </p>
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

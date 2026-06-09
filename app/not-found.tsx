@@ -28,7 +28,7 @@ export default function NotFound() {
             en el océano.
           </h1>
           <p className="lead mx-auto mt-5">
-            No encontramos la página que buscás. Volvé al inicio o usá el
+            No encontramos la página que buscas. Vuelve al inicio o usa el
             buscador de tracking en la home.
           </p>
           <div className="mt-8 flex justify-center gap-3">

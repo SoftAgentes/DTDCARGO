@@ -37,7 +37,7 @@ export function ChangePasswordCard() {
       ) : !open ? (
         <div className="mt-2">
           <p className="text-[13.5px] text-grey-700 leading-[1.55]">
-            Tu contraseña es tu cédula o RIF. Podés cambiarla cuando quieras —
+            Tu contraseña es tu cédula o RIF. Puedes cambiarla cuando quieras —
             no es obligatorio.
           </p>
           <button

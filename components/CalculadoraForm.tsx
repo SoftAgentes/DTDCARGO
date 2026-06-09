@@ -6,6 +6,7 @@ import {
   CIUDADES,
   DEFAULT_PARAMS,
   calcularEnvioLCL,
+  cbmFromDimensions,
   whatsappTextFromCotizacion,
   type EnvioInput,
   type EnvioCotizacion,
@@ -83,43 +84,65 @@ export function CalculadoraForm({
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  // Panel "CBM por medidas": para el cliente que no sabe su CBM y lo deriva de
+  // las dimensiones de una caja × cantidad. Oculto por defecto. Mientras está
+  // abierto, "CBM total" es read-only y se DERIVA de las medidas (un solo
+  // sentido: medidas → CBM, sin efecto ni loop). Al cerrar, congelamos el
+  // último valor en el form para que quede editable a mano.
+  const [cbmPanelOpen, setCbmPanelOpen] = useState(false);
+  const [dims, setDims] = useState({ alto: 0, ancho: 0, largo: 0, cajas: 1 });
+
+  // CBM derivado de las medidas (puro, en render — no useEffect → sin warning
+  // de cascading renders ni riesgo de loop).
+  const cbmDesdeMedidas = cbmFromDimensions(
+    dims.alto,
+    dims.ancho,
+    dims.largo,
+    dims.cajas,
+  );
+
+  // Form efectivo que alimenta el cálculo: con el panel abierto, el CBM total
+  // viene de las medidas; cerrado, del valor escrito a mano en `form`.
+  const effectiveForm: EnvioInput = cbmPanelOpen
+    ? { ...form, cbmTotal: cbmDesdeMedidas }
+    : form;
+
+  // Cerrar el panel: congela el último CBM calculado en el form (queda editable
+  // a mano) y libera el campo. Abrir: solo despliega; el CBM lo deriva el render.
+  function toggleCbmPanel(open: boolean) {
+    if (!open) update("cbmTotal", cbmDesdeMedidas);
+    setCbmPanelOpen(open);
+  }
+
   // Estimado SIEMPRE en vivo (no hay botón Calcular). Si falta CBM/peso, la
   // función devuelve una alerta "carga_invalida" que tratamos como estado vacío.
   const cotizacion = useMemo(
-    () => calcularEnvioLCL(form, params, cityList),
-    [form, params, cityList],
+    () => calcularEnvioLCL(effectiveForm, params, cityList),
+    [effectiveForm, params, cityList],
   );
-  const tieneCarga = form.cbmTotal > 0 && form.pesoKg > 0;
+  const tieneCarga = effectiveForm.cbmTotal > 0 && effectiveForm.pesoKg > 0;
 
-  // Aviso del CBM: mínimo (punto de cruce) o máximo (contenedor).
+  // Aviso del CBM: mínimo (punto de cruce) o máximo (contenedor). Usa el CBM
+  // efectivo (derivado de medidas si el panel está abierto).
+  const effectiveCbm = effectiveForm.cbmTotal;
   const cbmWarning =
-    form.cbmTotal > params.cbmMaxContenedor
+    effectiveCbm > params.cbmMaxContenedor
       ? "Eso es más que un contenedor. Consulte a su asesor."
-      : form.cbmTotal > 0 && form.cbmTotal < crossoverCbm
+      : effectiveCbm > 0 && effectiveCbm < crossoverCbm
         ? `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`
         : null;
 
-  // Aviso del peso (simétrico al del CBM): máximo de peso según el CBM.
-  const pesoWarning = ((): string | null => {
-    if (form.pesoKg > params.pesoMaxContenedorKg)
-      return "Esto es más que el peso permitido por contenedor; consulte a su asesor.";
-    if (form.cbmTotal <= 0 || form.pesoKg <= 0) return null;
-    const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
-    const maxSinRecargo = form.cbmTotal * params.pesoIncluidoKg;
-    const maxDenso = form.cbmTotal * params.pesoMaxKg;
-    if (form.pesoKg > maxDenso)
-      return `Para ${fmt(form.cbmTotal)} m³, más de ${fmt(maxDenso)} kg es demasiado denso — consultá con tu asesor (FCL).`;
-    if (form.pesoKg > maxSinRecargo) {
-      const exceso = form.pesoKg - maxSinRecargo;
-      const recargo = exceso * params.recargoExcedenteKg;
-      return `El máximo de peso sin recargo para ${fmt(form.cbmTotal)} m³ es ${fmt(maxSinRecargo)} kg. Te pasás por ${fmt(exceso)} kg → +$${fmt(recargo)} ($${params.recargoExcedenteKg}/kg extra).`;
-    }
-    return null;
-  })();
+  // Aviso del peso: SOLO el tope absoluto de contenedor. El peso ya no tiene
+  // límite por densidad ni recargo (decisión founder 2026-06-08) — una carga
+  // densa cotiza igual que una liviana.
+  const pesoWarning =
+    form.pesoKg > params.pesoMaxContenedorKg
+      ? "Esto es más que el peso permitido por contenedor; consulta a tu asesor."
+      : null;
 
   // Confirmar desde el modal: ya tenemos el EST del ERP (o null), abrimos wa.me.
   function handleConfirm(contact: EstimadoContact, estimateCode: string | null) {
-    const base = whatsappTextFromCotizacion(cotizacion, form);
+    const base = whatsappTextFromCotizacion(cotizacion, effectiveForm);
     const text = buildEstimadoWhatsAppMessage({
       baseMessage: base,
       nota: contact.nota,
@@ -147,7 +170,7 @@ export function CalculadoraForm({
               <span className="text-ink">Cargo</span>
             </span>
             <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-wine">
-              Calculadora LCL DDP
+              Calculadora puerta a puerta
             </span>
           </div>
 
@@ -157,11 +180,11 @@ export function CalculadoraForm({
               className="text-[26px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-ink"
               style={{ fontFamily: "var(--font-archivo-black)" }}
             >
-              Cotizá tu carga China → Venezuela
+              Cotiza tu carga China → Venezuela
             </h2>
             <p className="mt-2.5 text-[14px] text-grey-700 leading-[1.5]">
-              Puerta a puerta, financiamiento 100%. Indicá tu volumen y peso y te
-              damos un estimado al instante.
+              Puerta a puerta, financiamiento 100% (sujeto a aprobación). Indica
+              tu volumen y peso y te damos un estimado al instante.
             </p>
           </div>
 
@@ -203,10 +226,12 @@ export function CalculadoraForm({
             <BigInput
               label="CBM total"
               suffix="m³"
-              value={form.cbmTotal}
+              value={effectiveForm.cbmTotal}
               onChange={(v) => update("cbmTotal", v)}
               placeholder="12"
               warning={cbmWarning}
+              readOnly={cbmPanelOpen}
+              tag={cbmPanelOpen ? "auto · medidas" : undefined}
             />
             <BigInput
               label="Peso total"
@@ -217,6 +242,18 @@ export function CalculadoraForm({
               warning={pesoWarning}
             />
           </div>
+
+          {/* Panel "¿No sabes tu CBM?" — derivar el CBM de las medidas. Oculto
+              por defecto; el link discreto lo despliega. Mientras está abierto,
+              "CBM total" queda read-only y se alimenta SOLO desde acá. */}
+          <CbmPorMedidas
+            open={cbmPanelOpen}
+            dims={dims}
+            onToggle={toggleCbmPanel}
+            onDimChange={(key, value) =>
+              setDims((prev) => ({ ...prev, [key]: value }))
+            }
+          />
 
           {/* Opciones (switches) */}
           <div className="flex flex-col gap-2.5">
@@ -267,10 +304,10 @@ export function CalculadoraForm({
 
         {/* ── COLUMNA DERECHA · RESULTADO ── */}
         <div className="p-6 lg:p-9 bg-paper flex flex-col gap-4">
-          <ContainerFill cbm={form.cbmTotal} max={params.cbmMaxContenedor} />
+          <ContainerFill cbm={effectiveForm.cbmTotal} max={params.cbmMaxContenedor} />
           <ResultPanel
             cotizacion={cotizacion}
-            input={form}
+            input={effectiveForm}
             tieneCarga={tieneCarga}
             onEstimar={() => setModalOpen(true)}
           />
@@ -280,7 +317,7 @@ export function CalculadoraForm({
       {/* Nota al pie · ancho completo */}
       <div className="border-t border-grey-200 px-6 lg:px-9 py-4">
         <p className="text-[11.5px] text-grey-500 leading-[1.5]">
-          <strong className="text-grey-700">* Financiamiento 100%:</strong> pagás
+          <strong className="text-grey-700">* Financiamiento 100%:</strong> pagas
           el flete al llegar a Venezuela. <strong className="text-grey-700">Aplican
           restricciones.</strong>{" "}
           Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a
@@ -302,7 +339,7 @@ export function CalculadoraForm({
               </span>
             </div>
             <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.45]">
-              <strong className="text-ink">Registrate y obtené tu MARKBOX.</strong>{" "}
+              <strong className="text-ink">Regístrate y obtén tu Shipping Mark.</strong>{" "}
               Vinculamos este estimado a tu cuenta automáticamente.
             </p>
           </div>
@@ -323,9 +360,9 @@ export function CalculadoraForm({
           calc: "lcl",
           origin: "China",
           destination: cotizacion.ciudad?.label ?? "Venezuela",
-          cbm: form.cbmTotal,
-          weightKg: form.pesoKg,
-          packaging: form.embalaje === "especial" ? "madera" : "carton",
+          cbm: effectiveForm.cbmTotal,
+          weightKg: effectiveForm.pesoKg,
+          packaging: effectiveForm.embalaje === "especial" ? "madera" : "carton",
           totalUsd: cotizacion.total,
           subtotalUsd: cotizacion.total,
         })}
@@ -338,7 +375,11 @@ export function CalculadoraForm({
 // Subcomponentes
 // ─────────────────────────────────────────────
 
-/** Input grande con sufijo (m³/kg) y aviso inline ámbar. Número en mono. */
+/**
+ * Input grande con sufijo (m³/kg) y aviso inline ámbar. Número en mono.
+ * `readOnly` lo bloquea (lo alimenta otra fuente, ej. el panel de medidas) y
+ * `tag` muestra el origen del valor (ej. "auto · medidas") junto al label.
+ */
 function BigInput({
   label,
   suffix,
@@ -346,6 +387,8 @@ function BigInput({
   onChange,
   placeholder,
   warning,
+  readOnly,
+  tag,
 }: {
   label: string;
   suffix: string;
@@ -353,25 +396,42 @@ function BigInput({
   onChange: (n: number) => void;
   placeholder?: string;
   warning?: string | null;
+  readOnly?: boolean;
+  tag?: string;
 }) {
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
-      <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
-        {label}
+      <span className="flex items-center gap-2 min-w-0">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+          {label}
+        </span>
+        {tag && (
+          <span className="text-[9px] font-bold tracking-[0.06em] uppercase text-wine bg-wine/10 rounded-[5px] px-1.5 py-[2px] whitespace-nowrap">
+            {tag}
+          </span>
+        )}
       </span>
       <div
-        className={`flex items-center gap-2 rounded-[12px] border px-3.5 h-[60px] bg-white transition-colors ${
+        className={`flex items-center gap-2 rounded-[12px] border px-3.5 h-[60px] transition-colors ${
           warning
-            ? "border-status-warning"
-            : "border-grey-200 focus-within:border-ink"
+            ? "border-status-warning bg-white"
+            : readOnly
+              ? "border-grey-200 bg-paper"
+              : "border-grey-200 bg-white focus-within:border-ink"
         }`}
       >
-        <DecimalInput
-          value={value}
-          onValueChange={onChange}
-          placeholder={placeholder}
-          className="num flex-1 min-w-0 bg-transparent text-[24px] font-bold text-ink outline-none"
-        />
+        {readOnly ? (
+          <span className="num flex-1 min-w-0 text-[24px] font-bold text-ink truncate">
+            {value > 0 ? value : <span className="text-grey-300">{placeholder}</span>}
+          </span>
+        ) : (
+          <DecimalInput
+            value={value}
+            onValueChange={onChange}
+            placeholder={placeholder}
+            className="num flex-1 min-w-0 bg-transparent text-[24px] font-bold text-ink outline-none"
+          />
+        )}
         <span className="text-[13px] text-grey-500 whitespace-nowrap">{suffix}</span>
       </div>
       {warning && (
@@ -379,6 +439,120 @@ function BigInput({
           {warning}
         </span>
       )}
+    </label>
+  );
+}
+
+type DimsKey = "alto" | "ancho" | "largo" | "cajas";
+type Dims = Record<DimsKey, number>;
+
+/**
+ * Panel colapsable "¿No sabes tu CBM?". Link discreto que despliega 4 campos
+ * (alto/ancho/largo en cm + cantidad de cajas). El CBM se deriva en vivo en el
+ * padre (efecto de un sentido) y se asigna a "CBM total" — acá solo se editan
+ * las medidas. Cerrar libera el CBM para edición manual (conserva el valor).
+ */
+function CbmPorMedidas({
+  open,
+  dims,
+  onToggle,
+  onDimChange,
+}: {
+  open: boolean;
+  dims: Dims;
+  onToggle: (open: boolean) => void;
+  onDimChange: (key: DimsKey, value: number) => void;
+}) {
+  const cbmCaja = cbmFromDimensions(dims.alto, dims.ancho, dims.largo, 1);
+  const cbmTotal = cbmFromDimensions(dims.alto, dims.ancho, dims.largo, dims.cajas);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => onToggle(true)}
+        className="self-start text-[13px] font-medium text-wine underline underline-offset-2 hover:text-ink transition-colors"
+      >
+        ¿No sabes tu CBM? Calcúlalo con las medidas
+      </button>
+    );
+  }
+
+  return (
+    <div className="rounded-[14px] border border-grey-200 bg-paper p-4 flex flex-col gap-3.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
+          CBM por medidas
+        </span>
+        <button
+          type="button"
+          onClick={() => onToggle(false)}
+          className="text-[12px] font-medium text-grey-500 hover:text-ink transition-colors"
+        >
+          Prefiero escribir el CBM a mano
+        </button>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2.5">
+        <DimInput label="Alto" suffix="cm" value={dims.alto} onChange={(v) => onDimChange("alto", v)} placeholder="40" />
+        <DimInput label="Ancho" suffix="cm" value={dims.ancho} onChange={(v) => onDimChange("ancho", v)} placeholder="30" />
+        <DimInput label="Largo" suffix="cm" value={dims.largo} onChange={(v) => onDimChange("largo", v)} placeholder="60" />
+      </div>
+
+      <DimInput
+        label="Cantidad de cajas"
+        value={dims.cajas}
+        onChange={(v) => onDimChange("cajas", v)}
+        placeholder="1"
+      />
+
+      <p className="text-[11.5px] text-grey-500 leading-[1.45]">
+        {cbmTotal > 0 ? (
+          <>
+            <span className="num font-semibold text-grey-700">{cbmCaja} m³</span> por
+            caja ×{" "}
+            <span className="num font-semibold text-grey-700">{dims.cajas}</span> ={" "}
+            <span className="num font-semibold text-ink">{cbmTotal} m³</span> — ya
+            cargado arriba.
+          </>
+        ) : (
+          "Indica alto, ancho y largo (cm) y la cantidad de cajas iguales."
+        )}
+      </p>
+    </div>
+  );
+}
+
+/** Campo chico para una medida (alto/ancho/largo/cajas). Reusa DecimalInput. */
+function DimInput({
+  label,
+  suffix,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  suffix?: string;
+  value: number;
+  onChange: (n: number) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="flex flex-col gap-1.5 min-w-0">
+      <span className="text-[10.5px] font-bold tracking-[0.1em] uppercase text-grey-500">
+        {label}
+      </span>
+      <div className="flex items-center gap-1.5 rounded-[10px] border border-grey-200 px-3 h-[46px] bg-white focus-within:border-ink transition-colors">
+        <DecimalInput
+          value={value}
+          onValueChange={onChange}
+          placeholder={placeholder}
+          className="num flex-1 min-w-0 bg-transparent text-[16px] font-semibold text-ink outline-none"
+        />
+        {suffix && (
+          <span className="text-[12px] text-grey-500 whitespace-nowrap">{suffix}</span>
+        )}
+      </div>
     </label>
   );
 }
@@ -542,7 +716,7 @@ function ResultPanel({
             className="mt-2 text-[14.5px] leading-[1.5]"
             style={{ color: "rgba(255,255,255,0.8)" }}
           >
-            Ingresá tu CBM y peso para ver el estimado al instante.
+            Ingresa tu CBM y peso para ver el estimado al instante.
           </p>
         ) : hasAlerta ? (
           <p
@@ -569,6 +743,16 @@ function ResultPanel({
             </span>
           </div>
         )}
+        {tieneCarga && !hasAlerta && (
+          <p
+            className="mt-3 text-[12.5px] leading-[1.5]"
+            style={{ color: "rgba(255,255,255,0.65)" }}
+          >
+            <span style={{ color: "rgba(255,255,255,0.6)" }}>Incluye:</span>{" "}
+            flete marítimo · aduana · impuestos · entrega en{" "}
+            {cot.ciudad?.label ?? "destino"}.
+          </p>
+        )}
       </div>
 
       {/* Badge financiamiento (pill verde claro) */}
@@ -578,7 +762,7 @@ function ResultPanel({
           style={{ background: "rgba(31,138,91,0.12)" }}
         >
           <span className="fin-badge-dot-green" aria-hidden="true" />
-          Financiamiento 100%* · pagás al llegar a Venezuela
+          Financiamiento 100%* · pagas al llegar a Venezuela
         </div>
       )}
 

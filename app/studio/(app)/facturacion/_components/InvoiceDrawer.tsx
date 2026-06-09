@@ -282,7 +282,7 @@ export function InvoiceDrawer({ mode, invoice, ivaOn, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="ivd-markbox">
-                MARKBOX <span style={{ color: "var(--wine)" }}>*</span>
+                Shipping Mark <span style={{ color: "var(--wine)" }}>*</span>
               </label>
               <input
                 id="ivd-markbox"

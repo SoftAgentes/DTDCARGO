@@ -25,12 +25,18 @@ export default async function PortalLoginPage({
 
   const notice =
     sp.status === "nohabilitado"
-      ? "Iniciaste sesión, pero ese email todavía no tiene el portal habilitado. Pedile a tu asesor que te invite."
+      ? "Iniciaste sesión, pero ese email todavía no tiene el portal habilitado. Pídele a tu asesor que te invite."
       : sp.error === "expired"
-        ? "El enlace venció o ya se usó. Pedí uno nuevo."
+        ? "El enlace venció o ya se usó. Pide uno nuevo."
         : sp.error === "link"
-          ? "Ese enlace no es válido. Pedí uno nuevo."
+          ? "Ese enlace no es válido. Pide uno nuevo."
           : null;
 
-  return <LoginForm notice={notice} authedNotBound={!!user} />;
+  return (
+    <LoginForm
+      notice={notice}
+      authedNotBound={!!user}
+      prefillMarkbox={sp.markbox}
+    />
+  );
 }

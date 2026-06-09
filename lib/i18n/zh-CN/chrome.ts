@@ -106,7 +106,7 @@ export const chrome: ChromeDict = {
 
   // ── Topbar ───────────────────────────────────────────────
   "chrome.topbar.module": "模块",
-  "chrome.topbar.search_placeholder": "搜索货运、客户、MARKBOX…",
+  "chrome.topbar.search_placeholder": "搜索货运、客户、唛头 (Shipping Mark)…",
   "chrome.topbar.search_aria": "在 Studio 中搜索（快捷键 {key}+K）",
   "chrome.topbar.theme_toggle": "切换主题",
   "chrome.topbar.theme_to_light": "切换到浅色模式",
@@ -122,7 +122,7 @@ export const chrome: ChromeDict = {
   "chrome.topbar.search_modal_placeholder": "全局搜索（即将推出）",
   "chrome.topbar.search_modal_title": "全局搜索将在 Sprint 6.4 中推出。",
   "chrome.topbar.search_modal_hint":
-    "在此之前，请使用侧边栏查找货运、客户、MARKBOX 等。",
+    "在此之前，请使用侧边栏查找货运、客户、唛头 (Shipping Mark) 等。",
 
   // ── Toasts genéricos ─────────────────────────────────────
   "chrome.toast.success": "完成",

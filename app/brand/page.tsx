@@ -25,7 +25,7 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Kit de marca",
   description:
-    "Logos, colores y tipografía oficiales de DTD Cargo, con sus reglas de uso. Descargá el isólogo en sus 4 variantes, la paleta de color y la tipografía de la marca.",
+    "Logos, colores y tipografía oficiales de DTD Cargo, con sus reglas de uso. Descarga el isólogo en sus 4 variantes, la paleta de color y la tipografía de la marca.",
   keywords: [
     "kit de marca DTD Cargo",
     "logo DTD Cargo",
@@ -144,7 +144,7 @@ const TYPE = [
   },
   {
     name: "JetBrains Mono",
-    role: "Códigos · MARKBOX, contenedores, facturas",
+    role: "Códigos · Shipping Mark, contenedores, facturas",
     sample: "DTDU-000123",
     fontVar: "var(--font-jetbrains-mono)",
     note: "Para todo dato técnico o código de tracking.",
@@ -169,11 +169,11 @@ const DONTS = [
 ];
 
 const DOS = [
-  "Elegí la variante según el fondo (ver la tabla de arriba).",
-  "Dejá un clearspace de 2× la altura del trazo alrededor.",
+  "Elige la variante según el fondo (ver la tabla de arriba).",
+  "Deja un clearspace de 2× la altura del trazo alrededor.",
   "Tamaño mínimo 24px de alto en digital.",
   "El wordmark “DTD Cargo” siempre en Archivo Black.",
-  "Sobre fondo oscuro, usá Reverse o Mono light.",
+  "Sobre fondo oscuro, usa Reverse o Mono light.",
 ];
 
 const DOWNLOADS = [
@@ -208,8 +208,8 @@ export default function BrandPage() {
                 </h1>
                 <p className="lead mt-6">
                   Logos, colores y tipografía oficiales de DTD Cargo — con las
-                  reglas para usarlos bien. Si sos socio, proveedor o prensa,
-                  descargá lo que necesites desde acá.
+                  reglas para usarlos bien. Si eres socio, proveedor o prensa,
+                  descarga lo que necesites desde acá.
                 </p>
 
                 <div className="mt-7 flex flex-wrap gap-3">
@@ -269,7 +269,7 @@ export default function BrandPage() {
             <span className="eyebrow">El isólogo</span>
             <h2 className="h-section mt-4">4 variantes oficiales.</h2>
             <p className="lead mt-4">
-              Una por tipo de fondo. Elegí la que corresponde según el contraste
+              Una por tipo de fondo. Elige la que corresponde según el contraste
               — nunca recolorees el logo con filtros: ya existe la variante nativa.
             </p>
 
@@ -348,7 +348,7 @@ export default function BrandPage() {
                   >
                     <CheckIcon size={16} />
                   </span>
-                  <h3 className="text-[16px] font-bold text-ink">Hacé</h3>
+                  <h3 className="text-[16px] font-bold text-ink">Haz</h3>
                 </div>
                 <ul className="flex flex-col gap-3 list-none p-0">
                   {DOS.map((d) => (
@@ -373,7 +373,7 @@ export default function BrandPage() {
                   >
                     <CloseIcon size={15} />
                   </span>
-                  <h3 className="text-[16px] font-bold text-ink">Evitá</h3>
+                  <h3 className="text-[16px] font-bold text-ink">Evita</h3>
                 </div>
                 <ul className="flex flex-col gap-3 list-none p-0">
                   {DONTS.map((d) => (
@@ -398,7 +398,7 @@ export default function BrandPage() {
             <span className="eyebrow">Paleta de color</span>
             <h2 className="h-section mt-4">Vino, navy y papel.</h2>
             <p className="lead mt-4">
-              Tocá cualquier color para copiar el hex. Estos son los tokens
+              Toca cualquier color para copiar el hex. Estos son los tokens
               reales del sitio — nada de hex inventados fuera de la paleta.
             </p>
 
@@ -473,7 +473,7 @@ export default function BrandPage() {
                 <ul className="mt-6 flex flex-col gap-4 list-none p-0">
                   {[
                     ["Castellano venezolano neutro", "Cercano y directo, sin jerga innecesaria."],
-                    ["CTAs con verbos", "“Cotizar DDP”, “Rastrear envío” — nunca “Click acá”."],
+                    ["CTAs con verbos", "“Cotizar puerta a puerta”, “Rastrear envío” — nunca “Click acá”."],
                     ["Cero AI slop", "Sin gradientes coloridos, sin emojis decorativos, sin glassmorphism."],
                     ["Tagline vigente", "Usar la v3.0 — no la vieja “De China a tu puerta. Sin intermediarios.”."],
                   ].map(([t, d]) => (
@@ -492,10 +492,10 @@ export default function BrandPage() {
         <section id="descargas" className="scroll-mt-24 py-16 lg:py-20 border-t border-grey-200">
           <div className="wrap">
             <span className="eyebrow">Descargas</span>
-            <h2 className="h-section mt-4">Bajá los assets.</h2>
+            <h2 className="h-section mt-4">Baja los assets.</h2>
             <p className="lead mt-4">
-              PNG con transparencia, listos para usar. ¿Necesitás vectores (SVG),
-              versiones de impresión o el Brand Book completo? Escribinos.
+              PNG con transparencia, listos para usar. ¿Necesitas vectores (SVG),
+              versiones de impresión o el Brand Book completo? Escríbenos.
             </p>
 
             <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

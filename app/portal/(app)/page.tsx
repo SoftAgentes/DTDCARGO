@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/db/admin";
 import {
   getPortalClient,
   getPortalActivation,
+  getProfileCompleteness,
   getDashboardKpis,
   getNextArrival,
   listMyShipments,
@@ -12,6 +13,7 @@ import { listPendingAcceptanceInvoices } from "@/lib/portal/portal-legal-queries
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboard } from "./_components/PortalDashboard";
 import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
+import { ProfileIncompleteCard } from "./_components/ProfileIncompleteCard";
 
 export const metadata: Metadata = { title: "Inicio" };
 
@@ -34,10 +36,11 @@ export default async function PortalHomePage() {
     return <PortalPending name={client.name} markbox={client.markbox} />;
   }
 
-  const [kpis, nextArrival, shipments] = await Promise.all([
+  const [kpis, nextArrival, shipments, profile] = await Promise.all([
     getDashboardKpis(supabase),
     getNextArrival(supabase),
     listMyShipments(supabase),
+    getProfileCompleteness(supabase),
   ]);
 
   // Órdenes DDP en borrador esperando aceptación de T&C (SDD-0054 · Slice C). El
@@ -49,6 +52,12 @@ export default async function PortalHomePage() {
     <div className="flex flex-col gap-7">
       {pendingAcceptance.length > 0 ? (
         <PendingAcceptanceCard pending={pendingAcceptance} />
+      ) : null}
+      {!profile.complete ? (
+        <ProfileIncompleteCard
+          hasPhoto={profile.hasPhoto}
+          hasAddress={profile.hasAddress}
+        />
       ) : null}
       <PortalDashboard
         client={client}

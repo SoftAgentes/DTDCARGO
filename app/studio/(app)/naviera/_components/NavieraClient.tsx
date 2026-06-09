@@ -742,7 +742,7 @@ function ContainerDetail({
         ) : (
           <>
             <HeaderRow grid={ITEM_GRID}>
-              <span>MARKBOX</span>
+              <span>Shipping Mark</span>
               <span>Cliente · proveedor</span>
               <span>Bultos</span>
               <span style={{ textAlign: "right" }}>CBM</span>
@@ -946,7 +946,7 @@ function LooseCargoTab({
       <TableShell>
         <HeaderRow grid={LOOSE_GRID}>
           <span>Embarque</span>
-          <span>MARKBOX</span>
+          <span>Shipping Mark</span>
           <span>Cliente</span>
           <span style={{ textAlign: "right" }}>CBM</span>
           <span style={{ textAlign: "right" }}>Peso</span>

@@ -212,7 +212,7 @@ export function validateReferralInput(raw: Partial<ReferralInput>): {
 
   const referrerMarkbox = String(raw.referrer_markbox ?? "").trim();
   if (!referrerMarkbox) {
-    errors.referrer_markbox = "Indicá el MARKBOX del cliente que refiere.";
+    errors.referrer_markbox = "Indicá el Shipping Mark del cliente que refiere.";
   }
 
   const referredName = String(raw.referred_name ?? "").trim();

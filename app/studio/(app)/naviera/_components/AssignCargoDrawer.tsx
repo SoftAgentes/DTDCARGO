@@ -218,7 +218,7 @@ export function AssignCargoDrawer({
         </Field>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-          <Field label="MARKBOX" optional>
+          <Field label="Shipping Mark" optional>
             <input
               className="studio-input studio-input-mono"
               placeholder="DTD-5418"

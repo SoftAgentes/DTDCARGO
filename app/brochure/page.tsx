@@ -27,12 +27,12 @@ import {
 export const metadata: Metadata = {
   title: "Brochure",
   description:
-    "Carga consolidada DDP puerta a puerta China → Venezuela. 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2010.",
+    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
     title: "Brochure · DTD Cargo",
     description:
-      "Carga consolidada DDP puerta a puerta China → Venezuela. 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2010.",
+      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
     path: "/brochure",
   }),
 };
@@ -44,15 +44,15 @@ const WA_COTIZAR = buildWhatsAppLink(
 const WHY = [
   {
     t: "Financiamiento 100%",
-    d: "Pagás cuando tu carga llega a Venezuela. Sin adelantar todo.",
+    d: "Con Financiamiento 100% pagas cuando tu carga llega a Venezuela, sujeto a aprobación.",
   },
   {
     t: "Equipo y bodega propios",
-    d: "Oficinas en Yiwu (China) y Valencia. No somos un intermediario remoto.",
+    d: "Oficinas en Yiwu (China) y Valencia: operación propia en ambos extremos.",
   },
   {
     t: "Inspección en fábrica",
-    d: "Verificamos tu mercancía antes de embarcar. Cero estafas.",
+    d: "Verificamos tu mercancía antes de embarcar para reducir el riesgo de fraude.",
   },
   {
     t: "Un solo punto de contacto",
@@ -71,15 +71,16 @@ export default function BrochurePage() {
         {/* 1 · Portada / Hero */}
         <section className="bg-paper pt-14 pb-14 lg:pt-24 lg:pb-20">
           <div className="wrap max-w-[920px]">
-            <span className="eyebrow">Carga China → Venezuela · Desde 2010</span>
+            <span className="eyebrow">Carga China → Venezuela · Desde 2008</span>
             <h1 className="h-display mt-6" style={{ fontSize: "clamp(40px, 6.5vw, 76px)" }}>
               <span style={{ color: "var(--color-wine)" }}>Con confianza,</span>
               <br />
               de China a tu puerta.
             </h1>
             <p className="lead mt-6" style={{ fontSize: "19px" }}>
-              Carga consolidada DDP puerta a puerta entre China y Venezuela.
-              Todo incluido — y pagás cuando llega a Venezuela.
+              Carga consolidada puerta a puerta entre China y Venezuela, todo
+              incluido (DDP). Y con Financiamiento 100% pagas cuando llega a
+              Venezuela (sujeto a aprobación).
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
@@ -107,7 +108,7 @@ export default function BrochurePage() {
             <h2 className="h-section mt-4">Más de 15 años de trayectoria.</h2>
             <p className="lead mt-3 max-w-[60ch]">
               De importadores a referente logístico entre China y América
-              Latina. Operando desde 2010, contenedor a contenedor.
+              Latina. Operando desde 2008, contenedor a contenedor.
             </p>
             <ol className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 list-none p-0">
               {TIMELINE.map((t) => (

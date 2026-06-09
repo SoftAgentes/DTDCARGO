@@ -54,7 +54,8 @@ export function YiwuAdvantage() {
             style={{ color: "rgba(255,255,255,0.7)" }}
           >
             No es solo nuestra sede: es nuestro activo competitivo. Operar
-            desde Yiwu nos diferencia de cualquier intermediario remoto.
+            desde Yiwu —con bodega y equipo propios— nos diferencia: operamos
+            directo en el origen.
           </p>
         </div>
 

@@ -6,6 +6,7 @@ import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
+import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { CIUDADES } from "@/lib/calculadora";
 import {
   getPublicCbmRate,
@@ -43,7 +44,7 @@ const jetbrains = JetBrains_Mono({
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "Calculadora de envíos LCL DDP",
+  title: "Calculadora de envíos puerta a puerta (LCL · DDP)",
   description:
     "Calcula tu envío China → Venezuela en segundos. Tarifa LCL DDP por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
   keywords: [
@@ -55,7 +56,7 @@ export const metadata: Metadata = {
   ],
   alternates: { canonical: "/calculadora" },
   ...socialMeta({
-    title: "Calculadora de envíos LCL DDP · DTD Cargo",
+    title: "Calculadora de envíos puerta a puerta (LCL · DDP) · DTD Cargo",
     description:
       "Calcula tu envío China → Venezuela en segundos. Tarifa LCL DDP por CBM, peso, destino y tipo de embalaje. Sin registro, sin compromiso.",
     path: "/calculadora",
@@ -91,7 +92,7 @@ export default async function CalculadoraPage() {
         <section className="pt-6 lg:pt-10">
           <div className="wrap max-w-[1100px]">
             <h1 className="sr-only">
-              Calculadora de envíos LCL DDP — China → Venezuela
+              Calculadora de envíos puerta a puerta — China → Venezuela
             </h1>
           </div>
         </section>
@@ -110,6 +111,11 @@ export default async function CalculadoraPage() {
             />
           </div>
         </section>
+
+        <RespuestaRapida
+          pregunta="¿Cuánto cuesta traer mercancía de China a Venezuela?"
+          respuesta="El envío marítimo se cobra por volumen (CBM) y ciudad de destino, puerta a puerta y todo incluido (flete, aduana e impuestos). Calcula tu estimado al instante con la herramienta de arriba; la tarifa final la confirma un asesor por WhatsApp según el producto, el peso y el volumen reales."
+        />
       </main>
       <Footer />
       <WhatsAppFAB />
