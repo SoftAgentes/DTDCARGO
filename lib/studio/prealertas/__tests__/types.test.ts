@@ -342,7 +342,7 @@ describe("helpers de adjuntos de compra", () => {
 
   it("hay label legible para cada tipo", () => {
     expect(PREALERTA_DOC_TYPE_LABEL.packing).toMatch(/packing/i);
-    expect(PREALERTA_DOC_TYPE_LABEL.whatsapp).toMatch(/whatsapp/i);
+    expect(PREALERTA_DOC_TYPE_LABEL.whatsapp).toMatch(/wechat/i);
   });
 
   it("acepta solo mimes de imagen/pdf permitidos", () => {

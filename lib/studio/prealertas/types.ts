@@ -179,7 +179,9 @@ export const PREALERTA_DOC_TYPE_LABEL: Record<PrealertaDocType, string> = {
   packing: "Packing list",
   factura: "Factura del proveedor",
   foto: "Foto del producto",
-  whatsapp: "WhatsApp del proveedor",
+  // El valor del enum sigue siendo 'whatsapp' (interno, sin migración), pero de
+  // cara al cliente es la captura del contacto de WeChat del proveedor.
+  whatsapp: "Captura de WeChat",
 };
 
 export function isPrealertaDocType(v: unknown): v is PrealertaDocType {
