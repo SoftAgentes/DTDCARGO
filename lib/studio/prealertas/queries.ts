@@ -158,6 +158,7 @@ export type ProviderShareData = {
   markbox: string;
   clientName: string | null;
   supplierName: string | null;
+  supplierWechat: string | null;
 };
 
 /**
@@ -193,13 +194,15 @@ export async function getProviderShareByToken(
       .maybeSingle<{ name: string }>();
 
     let supplierName: string | null = null;
+    let supplierWechat: string | null = null;
     if (p.supplier_id) {
       const { data: s } = await supabase
         .from("suppliers_cn")
-        .select("name")
+        .select("name, wechat")
         .eq("id", p.supplier_id)
-        .maybeSingle<{ name: string }>();
+        .maybeSingle<{ name: string; wechat: string | null }>();
       supplierName = s?.name ?? null;
+      supplierWechat = s?.wechat ?? null;
     }
 
     return {
@@ -209,6 +212,7 @@ export async function getProviderShareByToken(
       markbox: p.client_markbox,
       clientName: c?.name ?? null,
       supplierName,
+      supplierWechat,
     };
   } catch {
     return null;
