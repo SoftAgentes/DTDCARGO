@@ -38,6 +38,7 @@ export default async function ProviderSharePage({
 
   return (
     <ProviderShareClient
+      token={token}
       code={data.code}
       description={data.description}
       markbox={data.markbox}

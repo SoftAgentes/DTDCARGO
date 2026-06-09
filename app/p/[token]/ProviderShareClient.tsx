@@ -21,6 +21,7 @@ const MONO_CJK =
  * (Fase 2: + descarga del template de packing list/factura.)
  */
 export function ProviderShareClient({
+  token,
   code,
   description,
   markbox,
@@ -28,6 +29,7 @@ export function ProviderShareClient({
   supplierName,
   labels,
 }: {
+  token: string;
   code: string;
   description: string;
   markbox: string;
@@ -180,18 +182,18 @@ export function ProviderShareClient({
             className="mt-1.5 text-[12.5px] text-grey-700 leading-[1.55] max-w-[52ch]"
             lang="zh"
           >
-            下载这个 Excel，按里面的说明填写，和货物一起发给我们。
+            这个 Excel 已经填好唛头和参考号。请补充货物明细，和货物一起发给我们。
             <span lang="es" className="block text-grey-500 mt-1">
-              Descarga este Excel, complétalo según las instrucciones que trae y
-              envíalo con la mercancía.
+              Este Excel ya viene con el Shipping Mark y la referencia. Completa el
+              detalle de la mercancía y envíalo con la carga.
             </span>
           </p>
           <a
-            href="/templates/dtd-packing-list-invoice.xlsx"
+            href={`/p/${token}/packlist`}
             download
             className="btn btn-primary mt-3 inline-flex items-center gap-2"
           >
-            下载模板 · Descargar template <DownloadIcon size={15} />
+            下载装箱单 · Descargar packing list <DownloadIcon size={15} />
           </a>
         </section>
       </div>
