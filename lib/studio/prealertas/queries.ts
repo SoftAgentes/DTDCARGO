@@ -13,6 +13,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   type Prealerta,
+  type PrealertaDocType,
+  type PrealertaDocument,
   type PrealertaStatus,
   type Supplier,
   PREALERTA_STATUSES,
@@ -143,6 +145,56 @@ export async function getPrealertaByCode(
 
   if (error || !data) return null;
   return coercePrealerta(data as Record<string, unknown>);
+}
+
+// ── Adjuntos de la compra (prealerta_documents · migr 0118) ─────
+
+const PREALERTA_DOC_COLUMNS =
+  "id, tenant_id, prealerta_id, client_markbox, doc_type, storage_path, file_name, content_type, size_bytes, created_at";
+
+function coercePrealertaDocument(r: Record<string, unknown>): PrealertaDocument {
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    prealerta_id: String(r.prealerta_id),
+    client_markbox: String(r.client_markbox ?? ""),
+    doc_type: (r.doc_type as PrealertaDocType) ?? "foto",
+    storage_path: String(r.storage_path ?? ""),
+    file_name: String(r.file_name ?? ""),
+    content_type: (r.content_type as string | null) ?? null,
+    size_bytes: numOrNull(r.size_bytes),
+    created_at: String(r.created_at),
+  };
+}
+
+/**
+ * Adjuntos de UNA compra (más viejos primero). El cliente del portal pasa
+ * `markbox` (defensa en profundidad + la policy "portal self read"). Defensivo:
+ * si la tabla aún no existe (0118 sin aplicar en un env) devuelve [] en vez de
+ * romper la página de etiquetas.
+ */
+export async function listPrealertaDocuments(
+  supabase: SupabaseClient,
+  opts: { prealertaId: string; markbox?: string },
+): Promise<PrealertaDocument[]> {
+  try {
+    let query = supabase
+      .from("prealerta_documents")
+      .select(PREALERTA_DOC_COLUMNS)
+      .eq("prealerta_id", opts.prealertaId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(100);
+    if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data as Record<string, unknown>[] | null) ?? []).map(
+      coercePrealertaDocument,
+    );
+  } catch {
+    return [];
+  }
 }
 
 // ── Stats del operador ─────────────────────────────────────────
