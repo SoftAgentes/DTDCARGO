@@ -63,10 +63,16 @@
 - **LCL/FCL:** el transporte/entrega va **dentro del servicio de aduana** como **extra opcional**.
 - **Transporte terrestre = servicio APARTE** (no es el last-mile suelto). Ficha propia.
 - **C2:** corrección — era **"reserva de contenedor"** (con la naviera), no "reserva aduanal".
+- **DDP no incluye seguro** (se contrata aparte). Carga especial/peligrosa/sobredimensionada =
+  **costos extra aparte**, NO es exclusión del DDP base.
+- **Tarifa y CBM mínimo del DDP** = atados a la **calculadora** (cruce configurable en
+  `/studio/tarifas`, modificable). NO hardcodear en la ficha. **Tarifa especial desde 10 CBM**
+  (corrige el "5 CBM" del FAQ/runbook de Kommo).
 
 ### ❓ Aún por dictar (TANDA 1)
-- Precios 800/550: ¿"desde"/referenciales por CBM? (solo modelo interno; NO se publican).
-- `noIncluye` y `tiempos` finos por modalidad (para las fichas).
+- **DDP: COMPLETO ✅** (incluye / no-incluye / precio / tiempos cerrados).
+- **LCL · FCL Bodega · FCL Fábrica · Terrestre · Aduana:** falta `noIncluye` + `precio`/condición + `tiempos`.
+- Precios 550/FCL: referenciales internos, NO se publican.
 
 ---
 

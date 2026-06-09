@@ -73,7 +73,7 @@ El conocimiento y la IA **ya existen** pero **no están enchufados al canal del 
 
 **Qué haces (When → Do):**
 - **Saludo/consulta general** → responder con la base de conocimiento; ofrecer los 4 servicios: consolidación, puerta a puerta DDP (Financiamiento 100%), reserva FCL, transporte terrestre.
-- **Piden precio/cotización** → pedir CBM o medidas/peso + origen y destino; explicar la regla marítima (**mín. 0,20 CBM; tarifa especial desde 5 CBM**); orientar a la calculadora; mover el lead a la etapa de cotización/asesoría.
+- **Piden precio/cotización** → pedir CBM o medidas/peso + origen y destino; explicar la regla marítima (**mín. 0,20 CBM; tarifa especial desde 10 CBM**); orientar a la calculadora; mover el lead a la etapa de cotización/asesoría.
 - **Capturar email (prioridad · acción GLOBAL)** → cada vez que el cliente dé su correo (en CUALQUIER pregunta), **guardarlo en el campo Email del CONTACTO** + tag `email_optin`, **asociado a su número de cliente (Markbox)** si ya está registrado (vincular al contacto existente, no duplicar). Es UNA sola acción del agente que cubre todos los "déjame tu correo". (Habilita la reactivación por email — Slice D.)
 - **Estado de envío** → si dan código de tracking, orientar a dtdcargo.com/track.
 - **Ruido/cortesía/spam** → responder cordial y breve; taggear `ruido` (apoya el Depurar).
