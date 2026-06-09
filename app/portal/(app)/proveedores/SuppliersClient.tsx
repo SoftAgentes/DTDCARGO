@@ -8,7 +8,6 @@ import {
   DocIcon,
   ShieldIcon,
   TruckIcon,
-  WhatsAppIcon,
 } from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
@@ -507,28 +506,27 @@ function NewPurchaseModal({
               <form action={action} className="mt-5 flex flex-col gap-4">
                 <input type="hidden" name="supplierId" value={supplierId} />
 
-                {/* WeChat / WhatsApp del proveedor (número o ID) + captura */}
+                {/* WeChat del proveedor: ID/número O captura del contacto */}
                 <div>
-                  <FieldLabel>WeChat / WhatsApp del proveedor</FieldLabel>
+                  <FieldLabel>WeChat del proveedor</FieldLabel>
                   <input
                     type="text"
                     name="supplierWechat"
                     key={supplierId}
                     defaultValue={selectedWechat}
-                    placeholder="Número o ID — opcional"
+                    placeholder="WeChat ID o número — opcional"
                     disabled={pending}
                     className="mt-1.5 w-full h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink disabled:opacity-60 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
                   />
                   <p className="mt-1.5 text-[11.5px] text-grey-700 leading-[1.45]">
-                    Si el proveedor no quiere que copies su número, subí una captura
-                    de tu chat.
+                    ¿Prefieres no escribir el ID? Sube una captura (screenshot) del
+                    contacto de WeChat del proveedor — su ID o código QR.
                   </p>
                   <div className="mt-2">
                     <FileField
                       name="doc_whatsapp"
-                      label="Captura de WhatsApp"
+                      label="Captura de WeChat (screenshot)"
                       accept="image/*"
-                      icon="whatsapp"
                       disabled={pending}
                     />
                   </div>
@@ -760,14 +758,12 @@ function FileField({
   accept,
   multiple,
   disabled,
-  icon = "doc",
 }: {
   name: string;
   label: string;
   accept: string;
   multiple?: boolean;
   disabled?: boolean;
-  icon?: "doc" | "whatsapp";
 }) {
   const id = useId();
   const [names, setNames] = useState<string[]>([]);
@@ -792,13 +788,7 @@ function FileField({
             color: has ? "var(--color-status-success)" : "var(--color-grey-500)",
           }}
         >
-          {has ? (
-            <CheckIcon size={15} />
-          ) : icon === "whatsapp" ? (
-            <WhatsAppIcon size={15} />
-          ) : (
-            <DocIcon size={15} />
-          )}
+          {has ? <CheckIcon size={15} /> : <DocIcon size={15} />}
         </span>
         <span className="min-w-0 truncate font-medium text-ink">
           {has
