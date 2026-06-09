@@ -11,6 +11,7 @@ import {
 } from "@/lib/portal/portal-types";
 import { ShipmentRow } from "../../_components/ShipmentRow";
 import { StatusBadge } from "../../_components/StatusBadge";
+import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
 
 /**
  * Inicio / dashboard del cliente (SDD-0042 · Fase 5.2 · Norte PortalHome).
@@ -58,14 +59,9 @@ export function PortalDashboard({
             {pendingWord}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          {/* SDD-0057 Slice B — "Nueva compra" ya operativo (Tus proveedores). */}
-          <Link
-            href="/portal/proveedores"
-            className="btn btn-primary inline-flex items-center gap-1.5"
-          >
-            Nueva compra <ArrowIcon size={15} />
-          </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* SDD-0057 — "Nueva compra · = prealerta" (control único del portal). */}
+          <NewPurchaseButton href="/portal/proveedores" />
           {/* Slice 5.7 — cotización aún deshabilitada ("Próximamente"). */}
           <SoonButton label="Nueva cotización" />
         </div>
