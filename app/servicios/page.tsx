@@ -21,15 +21,16 @@ import {
   FlagVE,
 } from "@/components/Icon";
 
+const SERVICE_META_DESC =
+  "Servicios entre Yiwu y Valencia: puerta a puerta DDP, LCL, FCL, aduana, inspección, sourcing, registro de marca, visado y transporte terrestre.";
+
 export const metadata: Metadata = {
   title: "Servicios",
-  description:
-    "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, registro de marca, visado, aduana y last mile.",
+  description: SERVICE_META_DESC,
   alternates: { canonical: "/servicios" },
   ...socialMeta({
     title: "Servicios · DTD Cargo",
-    description:
-      "16 servicios entre Yiwu y Valencia: FCL, consolidación LCL, sourcing, QC, registro de marca, visado, aduana y last mile.",
+    description: SERVICE_META_DESC,
     path: "/servicios",
   }),
 };
@@ -97,7 +98,7 @@ export default function ServiciosPage() {
               <br />
               <span style={{ color: "var(--color-wine)" }}>Dos sedes.</span>
               <br />
-              16 servicios.
+              De la fábrica a tu puerta.
             </h1>
             <p className="lead mt-6 max-w-[56ch]">
               Cada servicio se ejecuta donde tiene mejor sentido operativo:
