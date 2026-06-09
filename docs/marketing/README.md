@@ -48,6 +48,7 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
 - **Alta de cliente web = `/registro`** (form mock + handoff WhatsApp con código `DTD-REG`; un asesor asigna el MARKBOX). Ver `project_public_registro_lead`.
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.
+- **WhatsApp Business — guía de configuración de perfiles corporativos** (logo, datos, web, catálogo de servicios por número): [`whatsapp-business.md`](whatsapp-business.md). 🟡 para llenar.
 
 ### 🎨 Marca → Web
 Brand Book v3.x; kit `/brand`; Brand Book privado `/marca/brand-book`. Fuentes web = Archivo (Nunito/Sora es capa ERP, no toca la web). Ver `feedback_norte_brand_to_web`.
