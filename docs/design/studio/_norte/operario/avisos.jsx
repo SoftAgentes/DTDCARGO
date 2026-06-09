@@ -255,7 +255,7 @@
     { id: 've-01', kind: 'qr', day: 'ayer', time: '17:25',
       title: 'Documentos de ruta listos', body: 'Guías y packing list de las 2 rutas de hoy descargados al dispositivo.' },
   ]);
-  // Bodeguero VE · contenedores por recibir, camiones por armar
+  // Almacenista VE · contenedores por recibir, camiones por armar
   A.seedBodega = () => ([
     { id: 'bo-05', kind: 'cierre', day: 'hoy', time: '08:55',
       title: '2 contenedores por recibir hoy', body: 'YIW-2026-06 y CAN-2026-03 arriban a Puerto Cabello. Preparáte para descarga.', code: 'YIW-2026-06' },
@@ -268,7 +268,7 @@
     { id: 'bo-01', kind: 'sync', day: 'ayer', time: '18:20',
       title: 'Cierre de jornada · 142 cajas', body: '68.4 CBM movidos · 0 incidencias reportadas al almacén central.' },
   ]);
-  // Camionero · gemelo del chofer VE, foco en ruta activa
+  // Transportista · gemelo del chofer VE, foco en ruta activa
   A.seedCamion = () => ([
     { id: 'ca-05', kind: 'od', day: 'hoy', time: '09:30',
       title: 'Ruta del día · 4 entregas', body: 'Valencia · ZI Acindar como destino principal. Salida estimada 07:30.', code: 'DTDU-472816' },

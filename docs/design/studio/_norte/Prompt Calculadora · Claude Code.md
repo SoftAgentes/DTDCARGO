@@ -24,7 +24,7 @@ Es la pieza de captación: de WhatsApp el dato va al negocio y al CRM.
   (navy, texto y paneles), `--bg-base #FBFAF7`, semánticos `--success/--warning/--danger/--info`.
   Único gradiente permitido: navy → `#1F3055` (panel del total).
 - **WhatsApp verde `#25D366`:** SOLO en el botón de WhatsApp (identidad de la
-  plataforma; ya hay precedente en `operario/bodeguero.jsx`). En el resto, wine/ink.
+  plataforma; ya hay precedente en `operario/almacenista.jsx`). En el resto, wine/ink.
 - **Tipografía:** sistema → **Nunito Sans** (`--f-sans`, cuerpo) + **Sora**
   (`--f-display`, títulos/KPIs) + **JetBrains Mono** (`--f-mono`, todos los números:
   CBM, kg, $, tarifa). Branding → wordmark **"DTD Cargo"** en **Archivo Black**
