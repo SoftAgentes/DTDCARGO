@@ -85,7 +85,7 @@ export default async function AcceptTermsPage({ params }: Props) {
           {docs.length === 0 ? (
             <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
               <p className="text-[13.5px] text-grey-700">
-                No hay términos vigentes para mostrar en este momento. Contactá a
+                No hay términos vigentes para mostrar en este momento. Contacta a
                 tu asesor.
               </p>
             </div>
