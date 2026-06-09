@@ -208,7 +208,7 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
     `supplier_bills` + RLS fail-closed por tenant + triggers cross-tenant (`supplier_in_tenant` /
     `container_in_tenant` vía `partner_finance_validate_refs`) + RPC `next_partner_ledger_code`. Altas de
     plan de cuentas (§5): `2.1.7` Cuenta corriente Socio China · `4.6` Ingresos por cambio de moneda ·
-    `5.10` Costo de mercancía pagada a fábrica. **⚠️ pendiente: founder aplica `0114` a prod.**
+    `5.10` Costo de mercancía pagada a fábrica. **✅ aplicada a prod 2026-06-08.**
   - `lib/studio/partner-finance/`: `types.ts`, `ledger-queries.ts`, `charges-queries.ts`
     (incl. `net_amount` derivado + aplicar nota de crédito), `conversions-queries.ts`,
     `claim-offsets-queries.ts`, `posting.ts` (asientos DR/CR en estilo `accounting/`).
@@ -242,7 +242,7 @@ un estado externo, y el modelo de **corrección** (charges/credit_notes) que 004
     - `reconcileStatement` también reporta los `unmatched_charge_ids`/`unmatched_ledger_entry_ids` del ERP
       que ninguna línea consumió (= candidatos a `solo_en_erp`; la línea-fantasma se materializa en B2).
     - el monto comparable del ledger se elige por moneda de la línea (`RMB → amount_rmb`, resto `amount_usd`).
-    - **⚠️ pendiente: founder aplica `0112` a prod.**
+    - **✅ aplicada a prod 2026-06-08 (migración `0115`).**
 - **Slice B2 — UI `/studio/financiero-china`.** ✅ **implementado (harness `/feature`, reviewer + ui-ux OK).**
   Módulo Studio admin-only con 3 vistas en tabs: **cola de reconciliación** (importar estado vía drawer →
   match auto `reconcileStatement` → confirmar/corregir/rechazar/match-manual → cerrar período gateado,
