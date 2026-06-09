@@ -300,7 +300,7 @@ preferís la alternativa?
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
 - **Brand Book:** `Brand Book DTD v3.5.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro.
-- **Colateral impreso de marca:** `Tarjeta de Presentación.html` — tarjeta a doble cara (85×55 mm, sangrado 3 mm), lockup canónico + datos por persona, dorso navy con isólogo + tagline + QR vCard, spec de imprenta e imposición. Usa `erp/tokens.css` + `assets/dtdcargo-isologo-*.png`. Pendiente del set impreso: membrete A4, credencial/carnet, uniforme, vinilos de camión, roll-up. **No** inventar datos de contacto: RIF `J-410322887`, Av. Bolívar Norte 14 (Valencia), `info@dtdcargo.com` (correo de branding · 2026-06), `+58 241 414 7886`.
+- **Colateral impreso de marca:** `Tarjeta de Presentación.html` — tarjeta a doble cara (85×55 mm, sangrado 3 mm), lockup canónico + datos por persona, dorso navy con isólogo + tagline + QR vCard, spec de imprenta e imposición. Usa `erp/tokens.css` + `assets/dtdcargo-isologo-*.png`. Pendiente del set impreso: membrete A4, credencial/carnet, uniforme, vinilos de camión, roll-up. **No** inventar datos de contacto: RIF `J-50648869-8`, Av. Bolívar Norte 14 (Valencia), `info@dtdcargo.com` (correo de branding · 2026-06), `+58 241 414 7886`.
 - **Documentos legales:** carpeta `legal/` — T&C de DTD (cliente), Acuerdo con el operador de
   consolidación (interno) y Brief de seguro (interno). Cada uno en `.md` (canónico, lo lee
   Claude Code) + `.docx` (original para subir/firmar). Ver `legal/README.md`. La T&C v2.1 de

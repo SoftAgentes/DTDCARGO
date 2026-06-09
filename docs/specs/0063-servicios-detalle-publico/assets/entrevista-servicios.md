@@ -128,7 +128,22 @@
    mini-servicios de bodega) — verificación física del producto vs ficha técnica (PSI / pre-embarque).
 3. **Auditoría y control de calidad** (`auditoria-calidad`) — auditorías de fábrica online/presenciales + QC.
 4. **Lab testing y permisología** (`lab-permisologia`) — ensayos RoHS/CE/FDA/SGS + permisos de exportación.
-- ❓ Por sub: incluye/no-incluye · precio (¿stand-by → asesor?) · entregable (reporte) · tiempos.
+
+**Modelo operativo (DICTADO founder 2026-06-09):**
+- **Marca blanca / reventa:** la inspección la EJECUTAN empresas terceras en China (V-Trust / QIMA /
+  SGS / CIS / WEINSPECTION / HQTS) que generan su reporte crudo; **DTD lo re-captura/rellena en el
+  ERP** y emite un **reporte DTD-branded** (white-label). **NUNCA** se nombran los proveedores ni la
+  entidad china (**"Canopy"**). DTD = cost-plus interno.
+- **Entregable:** reporte DTD-branded — **Auditoría de Fábrica /100** o **Inspección de Producto
+  (PSI / AQL)** — con fotos, en español. Plantillas en `docs/design/studio/_norte/` (`reportes/`).
+- **Precio:** stand-by → lo cotiza el asesor (cost-plus, NO se publica).
+- **Web:** el "ver ejemplo de reporte" de `/servicios/inspeccion` ya está **editado por diseño**
+  (usar ese, no crear).
+- **ERP (Fase 2 · Studio):** falta el **generador de reportes** — form para rellenar los datos del
+  reporte del tercero → output DTD-branded. Proyecto aparte (no es la web pública SDD-0063).
+- ⚠️ **RIF en los reportes = `J-50648869-8`** (canónico). Los samples del Norte tienen
+  `J-410322887` (incorrecto) → corregir en diseño antes de usarlos.
+- 🔒 **Confidencial:** el PDF crudo del tercero (fábrica, banco, "Canopy", IDs) NUNCA va a git/web.
 
 ### B · Servicios sueltos
 5. **Compra asistida / sourcing** (`compra-asistida`) — depto. de compras en China
