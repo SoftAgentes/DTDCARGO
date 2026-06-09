@@ -100,11 +100,11 @@ rastrear, rastreo, trackear, seguimiento, "donde esta mi pedido", reclamo, estaf
 ```
 Importar de China a Venezuela
 Puerta a Puerta desde China
-Pagas Cuando Llega (DDP)
+Pagas al Llegar (DDP)
 18 Años de Experiencia
 Ruta Directa desde Yiwu
 Bodega Propia en Valencia
-Financiamiento 100%
+Sin Pago por Adelantado
 Cotiza Hoy por WhatsApp
 Inspección en Fábrica
 De China a Tu Puerta
@@ -117,9 +117,9 @@ China a Venezuela Sin Vueltas
 
 ### Descripciones (sirven para todos)
 ```
-Traemos tu carga de China a tu puerta en Venezuela. DDP: pagas cuando llega. Cotiza ya.
+Traemos tu carga de China a tu puerta en Venezuela. DDP: pagas al llegar. Cotiza ya.
 18 años de experiencia, ruta directa desde Yiwu y bodega propia en Valencia. Escríbenos.
-Carga consolidada o contenedor completo. Inspección en fábrica y financiamiento 100%.
+Carga consolidada o contenedor completo. Inspección en fábrica y asesoría en China.
 De Yiwu a tu puerta sin complicaciones. Asesoría por WhatsApp. Pagas cuando recibes.
 ```
 
@@ -135,7 +135,7 @@ De Yiwu a tu puerta sin complicaciones. Asesoría por WhatsApp. Pagas cuando rec
 
 ## 5. Extensiones (recursos) — ya migradas a dtdcargo.com ✅
 Sitelinks activos: **Nuestros Servicios** (`/servicios`) · **Inicio** (`/`) · **Calcula tu metro cúbico** (`/calculadora`). Suma:
-- **Texto destacado:** `Pagas cuando llega` · `18 años de experiencia` · `Ruta directa Yiwu` · `Bodega en Valencia`.
+- **Texto destacado:** `Pagas al llegar` · `18 años de experiencia` · `Ruta directa Yiwu` · `Bodega en Valencia`.
 - **Llamada:** `+58 241 414 7886` (Lun-Vie 9-17).
 - **Fragmento estructurado** (tipo "Servicios"): Consolidación, Puerta a puerta DDP, Contenedor FCL, Transporte terrestre.
 
