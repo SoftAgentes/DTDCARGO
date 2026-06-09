@@ -124,7 +124,8 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Consolidación en nuestra bodega de Yiwu de la mercancía de tus proveedores.",
     ],
     noIncluye: [
-      // grounded: dictado founder (casco central incluido; fuera = recargo)
+      // grounded: dictado founder 2026-06-09
+      "El seguro de carga: se contrata aparte.",
       "Entregas fuera del casco central de la ciudad: tienen un costo adicional.",
     ],
     // grounded: precio por CBM vía calculadora (FAQ §2/§22). NO publicar el monto.
@@ -137,7 +138,8 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "60 a 90 días puerta a puerta: flete interno en China + espera de la próxima salida (cada 15-21 días) + travesía marítima + aduana y entrega en Venezuela.",
     estado: "activo",
     nota: "Es el servicio insignia de DTD; el resto de los servicios son complementarios o variantes de transporte.",
-    _pendiente: ["umbral de mejora por volumen"],
+    // La tarifa y el CBM mínimo salen de la calculadora (cruce configurable en
+    // /studio/tarifas); la tarifa especial arranca desde 10 CBM. No se hardcodea acá.
   },
   {
     slug: "lcl-consolidado",
