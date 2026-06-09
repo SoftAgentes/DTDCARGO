@@ -28,7 +28,7 @@
  * Coherencia obligatoria con el FAQ: la web y el FAQ deben decir lo mismo.
  */
 
-export type ServicioEstado = "activo" | "suspendido" | "a-pedido";
+export type ServicioEstado = "activo" | "suspendido" | "a-pedido" | "proximamente";
 
 export type ServicioDetalle = {
   /** Ancla — coincide con el slug de SERVICES_CN/SERVICES_VE (continuidad de #hash). */
@@ -217,20 +217,16 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     slug: "transporte-terrestre",
     titulo: "Transporte terrestre nacional",
     sede: "ve",
-    // grounded: copy actual + calculadora-terrestre (lib/data/tarifas-terrestres-vzla.ts)
+    // estado "proximamente" (founder 2026-06-09). La calculadora-terrestre sí está live.
     resumen:
-      "Transporte de carga por vía terrestre dentro de Venezuela. Servicio independiente para mover tu mercancía entre ciudades o hasta tu destino final.",
-    incluye: [
-      "Transporte de carga por carretera entre ciudades de Venezuela.",
-    ],
+      "Transporte de carga por vía terrestre dentro de Venezuela, para mover tu mercancía entre ciudades o hasta tu destino final.",
+    incluye: [],
     noIncluye: [],
-    precio:
-      "Se calcula por zona y destino. Estima en dtdcargo.com/calculadora-terrestre o pídele la cotización a un asesor.",
-    comoSolicitar:
-      "Estima tu tramo en la calculadora terrestre o escríbenos por WhatsApp.",
+    precio: "",
+    comoSolicitar: "",
     tiempos: "",
-    estado: "activo",
-    _pendiente: ["incluye/noIncluye finos", "tiempos"],
+    estado: "proximamente",
+    nota: "Disponible próximamente.",
   },
   {
     slug: "transito-aduana",
@@ -248,13 +244,13 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "El pago de las planillas de aduana e impuestos: lo pagas tú directamente a la aduana.",
       "Servicios portuarios y transporte interno, que se facturan aparte.",
     ],
-    precio: "",
+    precio:
+      "El costo se cotiza según el valor del contenedor (por valorización de la factura). Como intervienen muchos factores, un asesor te da el aproximado por WhatsApp.",
     comoSolicitar:
       "Súmalo a tu carga LCL o FCL: escríbenos por WhatsApp con tu nombre o el de tu empresa para iniciar el trámite.",
-    tiempos: "",
+    tiempos: "Nacionalización de 5 a 6 días hábiles.",
     estado: "activo",
     nota: "Incluido en el servicio puerta a puerta DDP; opcional (adicional) en LCL y FCL.",
-    _pendiente: ["qué NO cubre finos", "tiempos de nacionalización"],
   },
   {
     slug: "documentos-importacion",

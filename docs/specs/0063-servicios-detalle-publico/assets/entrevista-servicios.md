@@ -75,7 +75,11 @@
   - FCL: **40-55 días aprox** (contenedor completo, sin espera de salida consolidada); precio con
     asesor; **FCL Bodega: 7 días de almacenaje gratis, después costo extra**.
   - **Seguro: NO se menciona en la web** en ninguna modalidad — si preguntan, "no incluye".
-- **Terrestre · Aduana:** falta `noIncluye` + `precio`/condición + `tiempos`.
+- **Aduana ✅** COMPLETO: precio por **valorización de la factura** (no se publica; el asesor da el
+  aproximado, muchos factores varían); **nacionalización 5-6 días hábiles**; incluye el paquete completo.
+- **Transporte terrestre: "Próximamente"** (founder 2026-06-09) → ficha en `/servicios` con badge
+  **Próximamente** (sin detalle aún); la **calculadora-terrestre sigue live**. Detallar al activarlo.
+- ✅ **TANDA 1 (eje de transporte): CERRADA.**
 - Precios FCL/LCL: referenciales internos, NO se publican.
 
 ---

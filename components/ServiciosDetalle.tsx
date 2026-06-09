@@ -30,6 +30,7 @@ import {
 const ESTADO_LABEL: Record<string, string> = {
   suspendido: "Suspendido",
   "a-pedido": "A pedido",
+  proximamente: "Próximamente",
 };
 
 export function ServiciosDetalle() {
