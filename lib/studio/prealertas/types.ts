@@ -132,6 +132,8 @@ export type SupplierView = {
   id: string;
   supplierSeq: number;
   name: string;
+  /** WeChat / WhatsApp del proveedor (número o ID); null si no se cargó. */
+  wechat: string | null;
   /** nº de compras vivas registradas a este proveedor. */
   orderCount: number;
   /** código que tendría la PRÓXIMA compra a este proveedor. */
@@ -146,7 +148,7 @@ export type SupplierView = {
  */
 export function summarizeSuppliers(
   markbox: string,
-  suppliers: { id: string; supplier_seq: number; name: string }[],
+  suppliers: { id: string; supplier_seq: number; name: string; wechat?: string | null }[],
   orderCountBySupplierId: Record<string, number>,
 ): SupplierView[] {
   return suppliers.map((s) => {
@@ -155,11 +157,100 @@ export function summarizeSuppliers(
       id: s.id,
       supplierSeq: s.supplier_seq,
       name: s.name,
+      wechat: s.wechat ?? null,
       orderCount,
       nextCode: buildPrealertaCode(markbox, s.supplier_seq, orderCount + 1),
     };
   });
 }
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Adjuntos de la compra (prealerta_documents · migr 0118)    ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+/**
+ * Tipo de adjunto de una compra. El cliente puede subir (opcional) el packing
+ * list, la factura del proveedor, fotos del producto y una captura del WhatsApp/
+ * WeChat del proveedor (para que no tenga que copiar el número).
+ */
+export type PrealertaDocType = "packing" | "factura" | "foto" | "whatsapp";
+
+export const PREALERTA_DOC_TYPE_LABEL: Record<PrealertaDocType, string> = {
+  packing: "Packing list",
+  factura: "Factura del proveedor",
+  foto: "Foto del producto",
+  whatsapp: "WhatsApp del proveedor",
+};
+
+export function isPrealertaDocType(v: unknown): v is PrealertaDocType {
+  return v === "packing" || v === "factura" || v === "foto" || v === "whatsapp";
+}
+
+/** Bucket privado de los adjuntos de compra (migr 0118). */
+export const PREALERTA_DOC_BUCKET = "prealerta-docs";
+/** Límite por archivo: 10 MB (matchea el file_size_limit del bucket). */
+export const PREALERTA_DOC_MAX_BYTES = 10 * 1024 * 1024;
+
+/** Mimes permitidos (matchea allowed_mime_types del bucket · incl. heic/heif de iPhone). */
+export const PREALERTA_DOC_ALLOWED_MIME: ReadonlySet<string> = new Set([
+  "application/pdf",
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+]);
+
+export function isAllowedPrealertaDocMime(mime: string): boolean {
+  return PREALERTA_DOC_ALLOWED_MIME.has(mime);
+}
+
+/** Extensión canónica desde el content-type confiable (para armar el path). */
+export function prealertaDocExtFromMime(mime: string): string {
+  switch (mime) {
+    case "application/pdf":
+      return "pdf";
+    case "image/jpeg":
+      return "jpg";
+    case "image/png":
+      return "png";
+    case "image/webp":
+      return "webp";
+    case "image/heic":
+      return "heic";
+    case "image/heif":
+      return "heif";
+    default:
+      return "bin";
+  }
+}
+
+/**
+ * Path del object en el bucket `prealerta-docs`. SIEMPRE server-side: el
+ * `tenantId` viene de la sesión y el `uuid` lo genera el servidor — el cliente
+ * NUNCA inyecta el path. Esquema: {tenant_id}/{prealerta_id}/{uuid}.{ext}.
+ */
+export function buildPrealertaDocPath(opts: {
+  tenantId: string;
+  prealertaId: string;
+  uuid: string;
+  ext: string;
+}): string {
+  return `${opts.tenantId}/${opts.prealertaId}/${opts.uuid}.${opts.ext}`;
+}
+
+export type PrealertaDocument = {
+  id: string;
+  tenant_id: string;
+  prealerta_id: string;
+  client_markbox: string;
+  doc_type: PrealertaDocType;
+  storage_path: string;
+  file_name: string;
+  content_type: string | null;
+  size_bytes: number | null;
+  created_at: string;
+};
 
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Filas persistidas                                         ║

@@ -465,9 +465,12 @@ function StepDone({
         style={{ borderColor: "var(--color-wine)" }}
       >
         <strong className="text-ink">Tu cuenta ya está activa.</strong> Entra al
-        portal con tu Shipping Mark. Antes de tu primera compra te vamos a pedir que
-        completes tu perfil (foto de cédula + dirección de entrega) — lo haces desde
-        el portal en un par de minutos.
+        portal con tu Shipping Mark. Ahí registras cada{" "}
+        <strong className="text-ink">compra</strong> que le haces a un proveedor
+        chino — eso es tu <strong className="text-wine">prealerta</strong>: nos
+        avisa que viene mercancía y la procesamos más rápido. Antes de tu primera
+        compra te pediremos completar tu perfil (foto de cédula + dirección de
+        entrega), un par de minutos desde el portal.
       </p>
 
       <Link
