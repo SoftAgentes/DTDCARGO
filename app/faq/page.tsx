@@ -11,11 +11,11 @@ import { WhatsAppIcon, ArrowIcon } from "@/components/Icon";
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
   description:
-    "Importar de China a Venezuela con DTD Cargo: qué es DDP puerta a puerta, cuándo se paga (Financiamiento 100%), consolidado vs contenedor, aduana y tiempos.",
+    "Importar de China a Venezuela con DTD Cargo: qué es DDP puerta a puerta, cuándo se paga (pagas al llegar), consolidado vs contenedor, aduana y tiempos.",
   keywords: [
     "importar de China a Venezuela",
     "DDP puerta a puerta",
-    "Financiamiento 100%",
+    "pagas al llegar",
     "consolidado LCL FCL",
     "cuánto tarda carga China Venezuela",
     "preguntas frecuentes importación",
@@ -24,7 +24,7 @@ export const metadata: Metadata = {
   ...socialMeta({
     title: "Preguntas frecuentes · DTD Cargo",
     description:
-      "Importar de China a Venezuela con DTD Cargo: qué es DDP puerta a puerta, cuándo se paga (Financiamiento 100%), consolidado vs contenedor, aduana y tiempos.",
+      "Importar de China a Venezuela con DTD Cargo: qué es DDP puerta a puerta, cuándo se paga (pagas al llegar), consolidado vs contenedor, aduana y tiempos.",
     path: "/faq",
   }),
 };

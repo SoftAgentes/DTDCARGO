@@ -110,7 +110,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
   // ── Grupo: transporte ────────────────────────────────────────────
   {
     slug: "dtd-services-lcl",
-    titulo: "Puerta a puerta DDP · Financiamiento 100%",
+    titulo: "Puerta a puerta DDP · Pagas al llegar",
     sede: "ambas",
     destacado: true,
     // grounded: FAQ §22/§23/§24/§26 + dictado founder 2026-06-09
@@ -120,7 +120,7 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
       "Flete marítimo internacional desde China hasta Venezuela.",
       "Aduana e impuestos a nuestro nombre (DDP): sin cobros sorpresa.",
       "Entrega puerta a puerta — incluida hasta el casco central de la ciudad.",
-      "Financiamiento 100%: pagas cuando la carga llega a Venezuela, no por adelantado.",
+      "Pagas al llegar: pagas cuando la carga llega a Venezuela, no por adelantado (pueden aplicar restricciones).",
       "Consolidación en nuestra bodega de Yiwu de la mercancía de tus proveedores.",
     ],
     noIncluye: [

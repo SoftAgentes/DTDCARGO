@@ -552,6 +552,6 @@ export function whatsappTextFromCotizacion(
     ...datos,
     `• Estimado web: US$${cot.total.toFixed(2)}`,
     "",
-    "¿Me confirman la tarifa final y los tiempos? (Financiamiento 100%, pago al llegar)",
+    "¿Me confirman la tarifa final y los tiempos? (pagas al llegar)",
   ].join("\n");
 }
