@@ -996,6 +996,26 @@ export const PHILOSOPHY = {
 } as const;
 
 // ──────────────────────────────────────────────────────────────────
+// TESTIMONIOS — clientes reales (la sección se auto-oculta si está vacío)
+// ──────────────────────────────────────────────────────────────────
+
+export type Testimonial = {
+  /** La frase del cliente, verbatim. */
+  quote: string;
+  /** Nombre de la persona o del comercio. */
+  name: string;
+  /** Contexto corto: ciudad · rubro. */
+  detail: string;
+  /** Ruta opcional a foto/logo en public/ (ej. "/testimonios/x.jpg"). */
+  photo?: string;
+};
+
+export const TESTIMONIALS: Testimonial[] = [
+  // Sin testimonios reales todavía. El material entregado solo tenía
+  // placeholders de la plantilla (no clientes de DTD). Cargar reales acá.
+];
+
+// ──────────────────────────────────────────────────────────────────
 // COTIZADOR — orígenes y destinos sugeridos
 // ──────────────────────────────────────────────────────────────────
 

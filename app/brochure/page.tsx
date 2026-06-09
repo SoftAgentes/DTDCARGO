@@ -8,6 +8,7 @@ import { HowWeWork } from "@/components/HowWeWork";
 import { Philosophy } from "@/components/Philosophy";
 import { WorkBand } from "@/components/WorkBand";
 import { OperationGallery } from "@/components/OperationGallery";
+import { Testimonials } from "@/components/Testimonials";
 import { ServicesByOffice } from "@/components/brochure/ServicesByOffice";
 import { DownloadPdfButton } from "@/components/brochure/DownloadPdfButton";
 import {
@@ -197,6 +198,9 @@ export default function BrochurePage() {
 
         {/* 9 · Filosofía (reuso) */}
         <Philosophy />
+
+        {/* 9b · Testimonios (la sección se auto-oculta sin reseñas reales) */}
+        <Testimonials />
 
         {/* 10 · Cierre / contacto */}
         <section className="py-20 bg-ink text-white">
