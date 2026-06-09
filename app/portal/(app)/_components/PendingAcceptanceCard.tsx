@@ -31,8 +31,8 @@ export function PendingAcceptanceCard({
       </div>
       <div className="mt-2.5 text-[16px] font-bold text-ink">
         {count === 1
-          ? "Tenés 1 orden esperando tu aceptación de T&C."
-          : `Tenés ${count} órdenes esperando tu aceptación de T&C.`}
+          ? "Tienes 1 orden esperando tu aceptación de T&C."
+          : `Tienes ${count} órdenes esperando tu aceptación de T&C.`}
       </div>
       <p className="mt-1.5 text-[13.5px] text-grey-700 leading-[1.55] max-w-[56ch]">
         Para que podamos emitir tu factura de puerta a puerta DDP (prepago),

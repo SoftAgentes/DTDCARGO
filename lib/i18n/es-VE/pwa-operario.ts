@@ -55,7 +55,7 @@ export const pwaOperario = {
   "pwa.receipt.marks_ph": "Ej: ACINDAR-VLN-04 · etiqueta china",
   "pwa.receipt.brought_by": "¿Quién la trajo?",
   "pwa.receipt.brought_by_ph": "Chofer o courier",
-  "pwa.receipt.search_client": "Buscar cliente · MARKBOX",
+  "pwa.receipt.search_client": "Buscar cliente · Shipping Mark",
   "pwa.receipt.no_matches": "Sin coincidencias",
   "pwa.receipt.orphan_toggle": "Caja sin código · huérfana",
 

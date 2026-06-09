@@ -1,25 +1,28 @@
 /**
- * Tests del registro self-service del Portal (SDD-0042 Fase 6 · slice 10.1).
+ * Tests del registro self-service del Portal (SDD-0042 Fase 6 · slice 10.1) tras el
+ * REGISTRO EXPRESS (founder 2026-06-07).
  *
- * Cubre los criterios de aceptación de la spec §10.1:
+ * El alta express valida SOLO lo mínimo (tipo/nombre/documento/email/WhatsApp); la
+ * dirección VE se difiere a "Completá tu perfil" (`validateAddressInput`). Cubre:
  *  - validación + normalización del documento (cédula persona / RIF empresa),
  *    que ES la contraseña inicial → password = cédula/RIF canónico.
- *  - dedup: el documento canónico se compara en minúsculas (la server action
- *    bloquea si ya existe en clients del tenant).
+ *  - el alta express NO exige dirección (la difiere).
+ *  - validateAddressInput: la dirección SÍ es obligatoria al completar el perfil.
  *  - composeAddress: arma la dirección de una línea que se guarda en clients.
  *
- * La server action `registerClientAction` orquesta admin client + Storage + RPC;
- * acá testeamos las funciones PURAS que deciden el alta (validación, normalización
- * del documento = contraseña, dirección), igual que el resto de la suite del portal
- * stubea/aísla la capa pura. El insert/createUser real lo cubre el E2E del founder.
+ * Las server actions (`registerClientAction` / `completeProfileAction`) orquestan
+ * admin client + Storage + RPC; acá testeamos las funciones PURAS que deciden el
+ * alta y el perfil, igual que el resto de la suite del portal aísla la capa pura.
  */
 import { describe, it, expect } from "vitest";
 import {
   validateRegisterInput,
+  validateAddressInput,
   normalizeDocument,
   formatCedula,
   composeAddress,
   type RegisterInput,
+  type AddressInput,
 } from "../register-types";
 
 const VALID_PERSONA: Partial<RegisterInput> = {
@@ -28,21 +31,22 @@ const VALID_PERSONA: Partial<RegisterInput> = {
   document: "V-12345678",
   email: "Carlos@Empresa.com",
   whatsapp: "+58 412 1668021",
-  state: "Carabobo",
-  municipio: "Valencia",
-  city: "Valencia",
-  postalCode: "2001",
-  barrio: "El Viñedo",
-  address: "Av. Bolívar, edif. Tía Mary, piso 3",
 };
 
-describe("validateRegisterInput — persona", () => {
+describe("validateRegisterInput — alta express (persona)", () => {
   it("normaliza email a minúsculas y devuelve input canónico", () => {
     const { input, fieldErrors } = validateRegisterInput(VALID_PERSONA);
     expect(fieldErrors).toBeUndefined();
     expect(input?.email).toBe("carlos@empresa.com");
     expect(input?.document).toBe("V-12345678");
     expect(input?.company).toBeNull();
+  });
+
+  it("NO exige dirección (se difiere al perfil)", () => {
+    // El express no pide estado/ciudad/etc: con los 5 campos mínimos pasa.
+    const { input, fieldErrors } = validateRegisterInput(VALID_PERSONA);
+    expect(fieldErrors).toBeUndefined();
+    expect(input).toBeDefined();
   });
 
   it("la contraseña inicial = el documento canónico (cédula)", () => {
@@ -66,13 +70,13 @@ describe("validateRegisterInput — persona", () => {
     expect(fieldErrors?.whatsapp).toBeDefined();
   });
 
-  it("falla si falta algún campo de dirección VE", () => {
-    const { fieldErrors } = validateRegisterInput({ ...VALID_PERSONA, city: "" });
-    expect(fieldErrors?.city).toBeDefined();
+  it("falla con email inválido", () => {
+    const { fieldErrors } = validateRegisterInput({ ...VALID_PERSONA, email: "no-es-email" });
+    expect(fieldErrors?.email).toBeDefined();
   });
 });
 
-describe("validateRegisterInput — empresa", () => {
+describe("validateRegisterInput — alta express (empresa)", () => {
   const VALID_EMPRESA: Partial<RegisterInput> = {
     ...VALID_PERSONA,
     kind: "empresa",
@@ -131,9 +135,37 @@ describe("dedup — comparación case-insensitive del documento canónico", () =
   });
 });
 
+const VALID_ADDRESS: Partial<AddressInput> = {
+  state: "Carabobo",
+  municipio: "Valencia",
+  city: "Valencia",
+  postalCode: "2001",
+  barrio: "El Viñedo",
+  address: "Av. Bolívar, edif. Tía Mary, piso 3",
+};
+
+describe("validateAddressInput — dirección del perfil (obligatoria al completar)", () => {
+  it("devuelve input con la dirección completa", () => {
+    const { input, fieldErrors } = validateAddressInput(VALID_ADDRESS);
+    expect(fieldErrors).toBeUndefined();
+    expect(input?.city).toBe("Valencia");
+    expect(input?.reference).toBeNull();
+  });
+
+  it("falla si falta algún campo de dirección VE", () => {
+    const { fieldErrors } = validateAddressInput({ ...VALID_ADDRESS, city: "" });
+    expect(fieldErrors?.city).toBeDefined();
+  });
+
+  it("falla si falta la dirección detallada", () => {
+    const { fieldErrors } = validateAddressInput({ ...VALID_ADDRESS, address: "" });
+    expect(fieldErrors?.address).toBeDefined();
+  });
+});
+
 describe("composeAddress — dirección de una línea para clients.address", () => {
   it("concatena calle · barrio · ciudad,estado · CP", () => {
-    const { input } = validateRegisterInput(VALID_PERSONA);
+    const { input } = validateAddressInput(VALID_ADDRESS);
     const addr = composeAddress(input!);
     expect(addr).toContain("Av. Bolívar, edif. Tía Mary, piso 3");
     expect(addr).toContain("El Viñedo");
@@ -142,8 +174,8 @@ describe("composeAddress — dirección de una línea para clients.address", () 
   });
 
   it("incluye la referencia si se cargó", () => {
-    const { input } = validateRegisterInput({
-      ...VALID_PERSONA,
+    const { input } = validateAddressInput({
+      ...VALID_ADDRESS,
       reference: "Frente a la panadería",
     });
     expect(composeAddress(input!)).toContain("Ref: Frente a la panadería");

@@ -38,7 +38,7 @@ export const warehouse = {
   // ── Filtros / Toolbar ────────────────────────────────────
   "warehouse_cn.filter.search_label": "Buscar",
   "warehouse_cn.filter.search_placeholder":
-    "Recibo, cliente, MARKBOX, supplier…",
+    "Recibo, cliente, Shipping Mark, supplier…",
   "warehouse_cn.filter.hub_label": "Hub",
   "warehouse_cn.filter.hub_all": "Todos los hubs",
   "warehouse_cn.filter.status_label": "Estado",
@@ -157,8 +157,8 @@ export const warehouse = {
   "warehouse_cn.drawer.section_status": "Estado de la mercadería",
   "warehouse_cn.drawer.warehouse_placeholder": "Seleccioná el hub que recibió la caja…",
   "warehouse_cn.drawer.client_placeholder": "Seleccioná cliente…",
-  "warehouse_cn.drawer.client_label": "Cliente · MARKBOX",
-  "warehouse_cn.drawer.orphan_toggle_on": "Marcar como huérfana (sin MARKBOX)",
+  "warehouse_cn.drawer.client_label": "Cliente · Shipping Mark",
+  "warehouse_cn.drawer.orphan_toggle_on": "Marcar como huérfana (sin Shipping Mark)",
   "warehouse_cn.drawer.orphan_toggle_off": "Volver a cliente conocido",
   "warehouse_cn.drawer.supplier_placeholder":
     "Nombre del proveedor o quién la trajo…",
@@ -191,7 +191,7 @@ export const warehouse = {
 
   // ── Drawer · Orphan section ──────────────────────────────
   "warehouse_cn.drawer.orphan_toggle":
-    "¿Sin código MARKBOX? · marcar como caja huérfana",
+    "¿Sin código Shipping Mark? · marcar como caja huérfana",
   "warehouse_cn.drawer.orphan_badge": "Caja huérfana",
   "warehouse_cn.drawer.orphan_code_note": "· se asignará",
   "warehouse_cn.drawer.orphan_disable": "Desactivar",

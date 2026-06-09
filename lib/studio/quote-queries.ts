@@ -242,7 +242,7 @@ export async function linkEstimateToClient(
   markboxRaw: string,
 ): Promise<{ ok?: true; error?: string }> {
   const markbox = (markboxRaw ?? "").trim().toUpperCase();
-  if (!markbox) return { error: "Indicá el MARKBOX del cliente." };
+  if (!markbox) return { error: "Indicá el Shipping Mark del cliente." };
 
   // 1. El cliente debe existir (RLS filtra por tenant).
   const { data: client, error: cErr } = await supabase

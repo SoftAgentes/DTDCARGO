@@ -119,7 +119,7 @@ export function PortalDashboard({
           {preview.length === 0 ? (
             <div className="px-6 py-10 text-center">
               <div className="text-[16px] font-bold text-ink">
-                Todavía no tenés envíos.
+                Todavía no tienes envíos.
               </div>
               <p className="mt-1.5 text-[13px] text-grey-700 max-w-[42ch] mx-auto leading-[1.5]">
                 Cuando confirmes tu primera carga, va a aparecer acá con su

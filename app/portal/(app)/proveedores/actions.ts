@@ -62,7 +62,7 @@ export async function createSupplierAction(
 
   const supabase = await createClient();
   const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   // Próximo nº de proveedor del cliente (RPC resuelve el tenant del caller).
   const { data: seqData, error: seqErr } = await supabase.rpc(
@@ -70,7 +70,7 @@ export async function createSupplierAction(
     { p_client_markbox: markbox },
   );
   if (seqErr || seqData == null) {
-    return { error: "No pudimos registrar el proveedor. Probá de nuevo." };
+    return { error: "No pudimos registrar el proveedor. Prueba de nuevo." };
   }
   const supplierSeq = Number(seqData);
 
@@ -95,7 +95,7 @@ export async function createSupplierAction(
 
   if (insErr || !row) {
     console.error("[createSupplierAction] insert error:", insErr);
-    return { error: "No pudimos registrar el proveedor. Probá de nuevo." };
+    return { error: "No pudimos registrar el proveedor. Prueba de nuevo." };
   }
 
   revalidatePortal();
@@ -125,7 +125,7 @@ export async function updateSupplierAction(
 
   const supabase = await createClient();
   const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   // El UPDATE pasa por la RLS (using/check por markbox) — scopeamos explícito
   // por id + markbox (defensa en profundidad).
@@ -144,7 +144,7 @@ export async function updateSupplierAction(
 
   if (updErr) {
     console.error("[updateSupplierAction] update error:", updErr);
-    return { error: "No pudimos guardar los cambios. Probá de nuevo." };
+    return { error: "No pudimos guardar los cambios. Prueba de nuevo." };
   }
 
   revalidatePortal();
@@ -181,7 +181,7 @@ export async function createPrealertaAction(
 
   const supabase = await createClient();
   const markbox = await portalMarkbox(supabase);
-  if (!markbox) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
   const tenantId = tenantData ? String(tenantData) : null;
@@ -238,10 +238,10 @@ export async function createPrealertaAction(
       continue;
     }
     console.error("[createPrealertaAction] insert error:", insErr);
-    return { error: "No pudimos registrar la compra. Probá de nuevo." };
+    return { error: "No pudimos registrar la compra. Prueba de nuevo." };
   }
 
   return {
-    error: lastError ?? "No pudimos registrar la compra. Probá de nuevo.",
+    error: lastError ?? "No pudimos registrar la compra. Prueba de nuevo.",
   };
 }

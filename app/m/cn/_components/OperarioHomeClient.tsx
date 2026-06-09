@@ -902,8 +902,8 @@ function ReceiptSearchBox({
         onChange={(e) => setValue(e.target.value)}
         placeholder={t(
           lang,
-          "Buscar por código, MARKBOX, cliente…",
-          "按编号、MARKBOX、客户搜索…",
+          "Buscar por código, Shipping Mark, cliente…",
+          "按编号、唛头 (Shipping Mark)、客户搜索…",
         )}
         aria-label={t(lang, "Buscar recepciones", "搜索接收")}
         className="studio-input"
@@ -958,8 +958,8 @@ function NoSearchResults({ lang, query }: { lang: Lang; query: string }) {
     >
       {t(
         lang,
-        `Sin resultados para "${query}". Probá con el código o MARKBOX.`,
-        `未找到 "${query}" 的结果。请尝试编号或 MARKBOX。`,
+        `Sin resultados para "${query}". Probá con el código o Shipping Mark.`,
+        `未找到 "${query}" 的结果。请尝试编号或 唛头 (Shipping Mark)。`,
       )}
     </div>
   );

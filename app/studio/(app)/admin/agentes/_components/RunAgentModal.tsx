@@ -194,7 +194,7 @@ export function RunAgentModal({
               }}
             >
               Para Tracking Concierge: <code style={{ fontFamily: "var(--f-mono)" }}>{`{"query": "..."}`}</code>{" "}
-              con código S-YYYY-NNNN o MARKBOX DTD-NNNN dentro.
+              con código S-YYYY-NNNN o Shipping Mark DTD-NNNN dentro.
             </p>
           </div>
 

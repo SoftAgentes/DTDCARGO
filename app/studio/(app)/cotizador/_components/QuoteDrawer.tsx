@@ -418,7 +418,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
           >
             <div>
               <label className="studio-label" htmlFor="qd-markbox">
-                MARKBOX <span style={{ color: "var(--wine)" }}>*</span>
+                Shipping Mark <span style={{ color: "var(--wine)" }}>*</span>
               </label>
               <input
                 id="qd-markbox"

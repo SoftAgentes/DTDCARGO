@@ -240,7 +240,7 @@ export function FacturacionClient({
             id="inv-q"
             type="search"
             className="studio-input"
-            placeholder="Factura, cliente, MARKBOX, embarque…"
+            placeholder="Factura, cliente, Shipping Mark, embarque…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />

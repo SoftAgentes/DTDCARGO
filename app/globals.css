@@ -534,6 +534,17 @@
 /* Vibración MÍNIMA del precio del estimado — micro-temblor sutil. Se activa
    con la clase .price-vibrate (la agrega el JS 5s después de cotizar). Calmo la
    mayoría del ciclo + un temblorcito breve. reduced-motion lo neutraliza. */
+/* Celebración seria del MARKBOX al crearse la cuenta: glow wine que "se abre y se
+   apaga" (expande y se desvanece · 2 pulsos · luego reposo). Serio, no festivo.
+   El reset global de prefers-reduced-motion (más abajo) lo desactiva. */
+.markbox-celebrate {
+  animation: markbox-glow 1.4s ease-in-out 0.25s 2 both;
+}
+@keyframes markbox-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(127, 15, 26, 0); }
+  50%      { box-shadow: 0 0 0 12px rgba(127, 15, 26, 0.18); }
+}
+
 .price-vibrate {
   animation: price-vibrate 2.6s ease-in-out infinite;
 }

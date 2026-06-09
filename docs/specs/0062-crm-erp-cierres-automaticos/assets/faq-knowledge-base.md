@@ -9,10 +9,10 @@
 
 ## A · Comercial (alta frecuencia)
 
-### 1. Cómo iniciar un envío (registro · Markbox)
-**Preguntas:** ¿Cómo empiezo a enviar con ustedes? · Ya compré en China, ¿ahora qué hago? · ¿Cómo registro mi compra? · ¿Cómo me registro como cliente? · ¿Qué tengo que hacer para enviar? · Ya hice mi compra en 1688, ¿cuál es el siguiente paso? · ¿Cómo abro una cuenta? · ¿Qué es una pre-alerta? · ¿Qué es el casillero? · ¿Qué es el Markbox? · Cómo empiezo a importar.
+### 1. Cómo iniciar un envío (registro · Shipping Mark)
+**Preguntas:** ¿Cómo empiezo a enviar con ustedes? · Ya compré en China, ¿ahora qué hago? · ¿Cómo registro mi compra? · ¿Cómo me registro como cliente? · ¿Qué tengo que hacer para enviar? · Ya hice mi compra en 1688, ¿cuál es el siguiente paso? · ¿Cómo abro una cuenta? · ¿Qué es una pre-alerta? · ¿Qué es el casillero? · ¿Qué es el Shipping Mark (Markbox)? · Cómo empiezo a importar.
 
-**Respuesta (aprobada · corta):** ¡Hola! Súper fácil 👇 Regístrate en **dtdcargo.com/registro**: al instante recibes tu **Markbox** (para marcar tus cajas en China), tu **portal de seguimiento** y las **pre-alertas**. ¿Te paso el enlace o prefieres que un asesor te guíe?
+**Respuesta (aprobada · corta):** ¡Hola! Súper fácil 👇 Regístrate en **dtdcargo.com/registro**: al instante recibes tu **Shipping Mark** (唛头, para marcar tus cajas en China), tu **portal de seguimiento** y las **pre-alertas**. ¿Te paso el enlace o prefieres que un asesor te guíe?
 
 ### 2. Cotización y tarifas (CBM)
 **Preguntas:** ¿Cuánto cuesta enviar de China a Venezuela? · ¿Cuánto me sale traer mercancía de China? · ¿Cómo cobran el flete? · ¿Cobran por peso o por volumen? · ¿Cuánto cobran por CBM? · ¿Qué precio tiene el envío? · ¿Cuánto cuesta un contenedor completo? · ¿Tienen servicio aéreo? · ¿Qué es DDP? · ¿Cuál es el costo del envío marítimo?
@@ -37,7 +37,7 @@ Para **contenedor completo (FCL), carga especial o una cotización formal**, dé
 
 📋 **Yiwu Port Phase II, Warehouse 2, No. 2, Yiwu City, Zhejiang, China**
 
-Con eso te cotiza el costo hasta nuestra bodega. Ojo: es **solo de referencia para cotizar**. La **dirección completa para enviar** (con el detalle de cargo) + tus **códigos QR del Markbox** los recibes al **registrarte** y generar tu pre-alerta: **dtdcargo.com/registro**.
+Con eso te cotiza el costo hasta nuestra bodega. Ojo: es **solo de referencia para cotizar**. La **dirección completa para enviar** (con el detalle de cargo) + tus **códigos QR del Shipping Mark** los recibes al **registrarte** y generar tu pre-alerta: **dtdcargo.com/registro**.
 
 > *Nota interna: dirección de referencia = la completa SIN el detalle "(Cargo 7-11)", que se entrega solo al registrar/pre-alertar. Decisión founder 2026-06-07.*
 
@@ -96,7 +96,7 @@ Para los **datos exactos** según tu envío, un asesor te los pasa de forma segu
 ### 11. Seguimiento / Tracking
 **Preguntas:** ¿Cómo rastreo mi envío? · ¿Dónde veo el estado de mi carga? · ¿Tienen tracking? · ¿Cómo sé dónde va mi mercancía? · Quiero el estado de mi pedido.
 
-**Respuesta (aprobada):** ¡Hola! Sigue tu carga así: con tu **código** en **dtdcargo.com/track**, o desde tu **portal** (**dtdcargo.com/portal**), donde ves cada etapa de tus pre-alertas y envíos. ¿No tienes el código a mano? Pásame tu **Markbox** y un asesor te ubica el estado.
+**Respuesta (aprobada):** ¡Hola! Sigue tu carga así: con tu **código** en **dtdcargo.com/track**, o desde tu **portal** (**dtdcargo.com/portal**), donde ves cada etapa de tus pre-alertas y envíos. ¿No tienes el código a mano? Pásame tu **Shipping Mark** y un asesor te ubica el estado.
 
 ---
 
@@ -203,17 +203,30 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 ### 27. Envío aéreo y muestras
 **Preguntas:** ¿Hacen envío aéreo? · ¿Pueden traerme una muestra por avión? · ¿Tienen courier aéreo? · ¿Envío rápido por avión? · ¿Cuánto cuesta el aéreo?
 
-**Respuesta (aprobada · captura email):** ¡Hola! Por ahora el **envío aéreo está suspendido** — trabajamos envíos **marítimos** (consolidado LCL y contenedor completo FCL). Apenas se reactive te avisamos: déjame tu **correo** y te escribo cuando vuelva el aéreo. Mientras, si tu carga puede ir por barco, te ayudo a cotizarla. ¿Te calculo el marítimo?
+**Respuesta (aprobada · captura email):** ¡Hola! Por ahora el **flete aéreo de carga está suspendido** — la carga va por vía **marítima** (consolidado LCL y contenedor completo FCL). Lo que **sí mantenemos activo** es el **courier express de muestras y documentos** pequeños (DHL/UPS/FedEx desde Yiwu): muestras pre-producción, documentos y lotes pequeños críticos — eso es paquetería urgente, **no carga aérea**. Apenas se reactive el aéreo de carga te avisamos: déjame tu **correo**. Y si tu carga puede ir por barco, te ayudo a cotizarla. ¿Te calculo el marítimo o necesitas enviar una muestra?
 
-> *Nota interna: aéreo **SUSPENDIDO** (founder 2026-06-08), captura email = lista de espera. ⚠️ El sitio público /servicios aún anuncia "courier aéreo de muestras" → desalineado: corregir en la web (tarea aparte).*
+> *Nota interna: flete aéreo de CARGA **SUSPENDIDO** (founder 2026-06-08); courier de muestras/documentos **ACTIVO**. Captura email = lista de espera del aéreo. ✅ Coherencia web RESUELTA (SDD-0063): la web ya distingue courier de muestras (activo) de carga aérea (suspendida) en `lib/design-tokens.ts` SERVICES_CN, `/servicios`, `public/llms.txt` y una FAQ nueva en `lib/faqs.ts`.*
+
+### 28. Dirección para recibir compras de Alibaba / 1688
+**Preguntas:** ¿Cómo registro mi dirección para que mis paquetes lleguen por Alibaba u otra plataforma 1688? · ¿Qué dirección pongo en Alibaba / 1688 / Taobao? · ¿A dónde envío mis compras online de China? · ¿Cuál es la dirección de recepción de la bodega en China? · ¿Cómo le digo a mi proveedor a dónde enviar? · Dirección de entrega para mis pedidos de Alibaba
+
+**Respuesta (aprobada · captura email):** ¡Hola! Para que tus compras de **Alibaba / 1688 / Taobao** lleguen a nuestra bodega en China, pon ESTA dirección como destino del pedido, con **tu código Shipping Mark (唛头) en el nombre del destinatario** (así sabemos que la caja es tuya):
+收货人 / Nombre: DTD Cargo - [tu Shipping Mark]  (ej. DTD-1014)
+电话 / Teléfono: +86 180 0689 1419
+地址 / Dirección: 浙江省义乌市义乌港二期直通仓2栋2号货7-货11
+邮编 / Código postal: 322000
+仓库联系人 / Contacto de bodega: 小孙
+¿Aún no tienes tu Shipping Mark? Regístrate gratis en dtdcargo.com/registro (te lo dan al instante) y déjame tu correo. ¿Te paso el enlace?
+
+> *Nota interna: dirección de recepción REAL para Alibaba/1688/Taobao (provista por founder 2026-06-08). El nombre del destinatario lleva el MARKBOX del cliente → necesita registrarse. ⚠️ Revisar coherencia con #4 "Cómo enviar a nuestra bodega" (hoy defiere la dirección completa al registro); el founder decidió darla abierta para el flujo Alibaba.*
 
 ---
 
-### ✅ FAQ completo (27/27)
-Todas las secciones tienen respuesta aprobada (21 base + 6 de cobertura ampliada). Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
+### ✅ FAQ completo (28/28)
+Todas las secciones tienen respuesta aprobada (21 base + 7 de cobertura ampliada). Sin `[FILL]` pendientes. Listo para convertir a DOCX y subir a Kommo (reemplaza el knowledge source de 20 secciones).
 
 **Huecos de menor prioridad — pendientes de decisión (NO redactados aún):** Reserva FCL (dedicada) · Seguro de carga (proactivo) · Documentos/requisitos de importación · ¿**transporte terrestre** entra al FAQ? · servicios de nicho (registro de marca · visado chino · lab testing/permisología · etiquetado/Amazon FBA · almacenaje).
-**Tarea pública aparte:** quitar/marcar "courier aéreo" en el sitio (`app/servicios` + `lib/design-tokens.ts` SERVICES_CN) porque el aéreo está suspendido.
+**Tarea pública aparte:** ✅ HECHA (SDD-0063, 2026-06-08). La web ya diferencia el courier de muestras/documentos (activo) del flete aéreo de carga (suspendido); el copy de `lib/design-tokens.ts` SERVICES_CN ya era correcto y se reforzó en `/servicios`, `public/llms.txt`, `/track` (se quitó AWB) y `lib/faqs.ts`. NO reabrir.
 
 ### Puntos de negocio pendientes de definir (no bloquean el FAQ)
 - **#7/#8 — link de inspección:** página web con menú de servicios + precios (tarifas) + muestra del reporte branded; **stand by** (mientras tanto lo envía el asesor). Plantillas listas: "Inspección de Producto (PSI)" + "Inspección de Fábrica".

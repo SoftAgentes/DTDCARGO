@@ -51,7 +51,7 @@ export const pwaOperario: PwaOperarioDict = {
   "pwa.receipt.marks_ph": "例: ACINDAR-VLN-04 · 中文标签",
   "pwa.receipt.brought_by": "谁送的?",
   "pwa.receipt.brought_by_ph": "司机或快递",
-  "pwa.receipt.search_client": "查找客户 · MARKBOX",
+  "pwa.receipt.search_client": "查找客户 · 唛头 (Shipping Mark)",
   "pwa.receipt.no_matches": "无匹配",
   "pwa.receipt.orphan_toggle": "无编码 · 孤箱",
 

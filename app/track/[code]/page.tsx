@@ -344,7 +344,7 @@ function NotFoundView({ code }: { code: string }) {
         <h2 className="h-section">No encontramos tu envío</h2>
         <p className="lead mx-auto mt-4">
           El código <strong className="text-ink">{code}</strong> no coincide con
-          ninguno de nuestros envíos activos. Revisá la ortografía o escribinos
+          ninguno de nuestros envíos activos. Revisa la ortografía o escríbenos
           por WhatsApp y te ayudamos a buscarlo.
         </p>
         <div className="mt-8 flex justify-center gap-3">

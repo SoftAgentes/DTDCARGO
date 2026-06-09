@@ -136,11 +136,15 @@ vi.mock("@/lib/studio/welcome-email", () => ({
   sendWelcomeEmail: async () => ({ ok: true }),
 }));
 
+vi.mock("@/lib/studio/new-client-notify", () => ({
+  notifyNewClientToAdmin: async () => {},
+}));
+
 // Import del SUT después de los mocks.
 import { registerClientAction } from "../actions";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
-/** FormData válida para persona, con foto (File no-vacío). */
+/** FormData válida para el alta EXPRESS (persona): solo los 5 campos mínimos. */
 function validForm(overrides: Record<string, string> = {}): FormData {
   const f = new FormData();
   f.set("kind", "persona");
@@ -148,15 +152,8 @@ function validForm(overrides: Record<string, string> = {}): FormData {
   f.set("document", "V-12345678");
   f.set("email", "carlos@empresa.com");
   f.set("whatsapp", "+58 412 1668021");
-  f.set("state", "Carabobo");
-  f.set("municipio", "Valencia");
-  f.set("city", "Valencia");
-  f.set("postal_code", "2001");
-  f.set("barrio", "El Viñedo");
-  f.set("address", "Av. Bolívar, edif. Tía Mary, piso 3");
   for (const [k, v] of Object.entries(overrides)) f.set(k, v);
-  // Foto obligatoria.
-  f.set("cedula_photo", new File([new Uint8Array([1, 2, 3])], "cedula.jpg", { type: "image/jpeg" }));
+  // Registro EXPRESS: la foto + dirección se difieren al perfil → no van en el alta.
   return f;
 }
 
@@ -223,10 +220,10 @@ describe("registerClientAction · throttle por IP", () => {
 
     await registerClientAction({}, validForm());
 
-    // Registró el intento y avanzó: resolvió tenant + next_markbox_service + upload.
+    // Registró el intento y avanzó: resolvió tenant + next_markbox_service + insert.
+    // (Express: ya NO sube foto al alta → no se chequea storage.upload.)
     expect(ops.calls.has(`${THROTTLE}:insert`)).toBe(true);
     expect(ops.rpcNames).toContain("next_markbox_service");
-    expect(ops.uploads.length).toBeGreaterThan(0);
     expect(ops.calls.has("clients:insert")).toBe(true);
   });
 

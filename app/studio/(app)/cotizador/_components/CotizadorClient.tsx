@@ -139,7 +139,7 @@ export function CotizadorClient({
             id="quote-q"
             type="search"
             className="studio-input"
-            placeholder="Código, cliente, MARKBOX, ruta…"
+            placeholder="Código, cliente, Shipping Mark, ruta…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />

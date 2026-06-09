@@ -149,13 +149,13 @@ export default function InspeccionPage() {
               className="h-section mt-4"
               style={{ fontSize: "clamp(26px, 3.6vw, 42px)" }}
             >
-              Simple para vos,{" "}
+              Simple para ti,{" "}
               <span style={{ color: "var(--color-wine)" }}>
                 coordinado por dentro.
               </span>
             </h2>
             <p className="lead mt-5 max-w-[54ch]">
-              Vos solo elegís, cotizás y recibís el reporte. La coordinación con
+              Tú solo eliges, cotizas y recibes el reporte. La coordinación con
               la red de inspectores en China la manejamos nosotros.
             </p>
 
@@ -194,12 +194,12 @@ export default function InspeccionPage() {
             >
               Tres familias de servicios,{" "}
               <span style={{ color: "var(--color-wine)" }}>
-                según lo que necesités.
+                según lo que necesitas.
               </span>
             </h2>
             <p className="lead mt-5 max-w-[54ch]">
               Desde una revisión puntual antes de embarcar hasta una auditoría
-              completa de fábrica. Si no sabés cuál te conviene, te asesoramos.
+              completa de fábrica. Si no sabes cuál te conviene, te asesoramos.
             </p>
 
             <div className="mt-12 flex flex-col gap-10">
@@ -218,10 +218,10 @@ export default function InspeccionPage() {
               className="h-section mt-4"
               style={{ fontSize: "clamp(24px, 3.2vw, 36px)" }}
             >
-              ¿Querés el detalle técnico?
+              ¿Quieres el detalle técnico?
             </h2>
             <p className="lead mt-5 max-w-[54ch]">
-              Las siglas de la industria, en palabras simples. Abrí solo lo que
+              Las siglas de la industria, en palabras simples. Abre solo lo que
               te interese.
             </p>
 
@@ -247,10 +247,10 @@ export default function InspeccionPage() {
                 className="text-[26px] lg:text-[36px] leading-[1.1] tracking-[-0.01em]"
                 style={{ fontFamily: "var(--font-archivo-black)" }}
               >
-                Comprá en China con confianza.
+                Compra en China con confianza.
               </h2>
               <p className="mt-4 text-[15px] lg:text-[17px] leading-[1.5] text-white/80 max-w-[52ch] mx-auto">
-                Solicitá tu cotización de inspección hoy. Un asesor en español te
+                Solicita tu cotización de inspección hoy. Un asesor en español te
                 responde con los pasos y el costo de tu caso.
               </p>
               <div className="mt-7 flex justify-center">

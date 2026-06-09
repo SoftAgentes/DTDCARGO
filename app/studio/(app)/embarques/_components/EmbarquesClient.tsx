@@ -255,7 +255,7 @@ export function EmbarquesClient({
             id="emb-q"
             type="search"
             className="studio-input"
-            placeholder="Cliente, MARKBOX, código, ruta…"
+            placeholder="Cliente, Shipping Mark, código, ruta…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />

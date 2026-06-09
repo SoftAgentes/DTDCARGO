@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: "%s · DTD Cargo",
   },
   description:
-    "Logística end-to-end China → Venezuela desde 2010. Carga DDP puerta a puerta, agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
+    "Logística end-to-end China → Venezuela desde 2008. Carga puerta a puerta todo incluido (DDP), agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
   applicationName: "DTD Cargo",
   authors: [{ name: "DTD Cargo" }],
   keywords: [
@@ -46,7 +46,6 @@ export const metadata: Metadata = {
     "Incoterms 2020",
     "FCL contenedor completo",
     "consolidación LCL China",
-    "courier aéreo China",
     "import China Venezuela DDP",
   ],
   openGraph: {
@@ -56,7 +55,7 @@ export const metadata: Metadata = {
     siteName: "DTD Cargo",
     title: "DTD Cargo — Con confianza, de China a tu puerta.",
     description:
-      "Logística end-to-end China → Venezuela operando desde 2010. Construyendo confianza cliente a cliente, contenedor a contenedor.",
+      "Logística end-to-end China → Venezuela operando desde 2008. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [
       {
         url: BRAND_ASSETS.ogImage,
@@ -70,7 +69,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "DTD Cargo — Con confianza, de China a tu puerta.",
     description:
-      "Logística end-to-end China → Venezuela operando desde 2010. Construyendo confianza cliente a cliente, contenedor a contenedor.",
+      "Logística end-to-end China → Venezuela operando desde 2008. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [BRAND_ASSETS.ogImage],
   },
   icons: {
@@ -89,74 +88,110 @@ export const metadata: Metadata = {
   },
 };
 
+// @id estable de la entidad EMPRESA. Los publishers de VideoObject (WorkBand)
+// y NewsArticle lo referencian para que Google/IA lean UNA sola entidad
+// consolidada (no varias "DTD Cargo" sueltas).
+const ORG_ID = `${SITE_URL}/#organization`;
+
 /**
- * Schema.org JSON-LD para SEO local (Google/Bing rich results).
+ * Schema.org JSON-LD — grafo de entidad para SEO + GEO (Google / motores de IA).
  *
- * Tipo MovingCompany es el más específico de Schema.org para logística
- * door-to-door internacional. Hereda de LocalBusiness y agrega areaServed.
+ * Dos nodos enlazados por @id:
+ *  · #organization (LocalBusiness, subtipo de Organization): la EMPRESA. Aporta
+ *    identidad de empresa + señales locales (dirección, horarios, mapa). La
+ *    identidad legal (legalName/taxID/founder) vive SOLO acá, no en texto visible.
+ *  · #website (WebSite): el SITIO, con publisher → #organization.
+ *
+ * Sin SearchAction: el sitio no tiene buscador (añadirlo sería inválido).
  */
 const jsonLd = {
   "@context": "https://schema.org",
-  // LocalBusiness es el tipo correcto para freight forwarding / logistics B2B.
-  // MovingCompany (anterior) es específicamente para mudanzas residenciales — no nuestro caso.
-  "@type": "LocalBusiness",
-  name: CONTACT.legalName,
-  url: SITE_URL,
-  // Para Google Knowledge Panel usamos el isólogo oficial v3.0 variante primary
-  // (navy + wine sobre fondo claro — el más universal).
-  logo: `${SITE_URL}${BRAND_ASSETS.isologoPrimary}`,
-  image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
-  description:
-    "Logística end-to-end China → Venezuela operando desde 2010. Con confianza, de China a tu puerta — construyendo confianza cliente a cliente, contenedor a contenedor.",
-  foundingDate: "2010",
-  email: CONTACT.emailGeneral,
-  telephone: CONTACT.ve.phone,
-  sameAs: [CONTACT.instagram.url],
-  address: [
+  "@graph": [
     {
-      "@type": "PostalAddress",
-      streetAddress: CONTACT.ve.address,
-      addressLocality: "Valencia",
-      addressRegion: "Carabobo",
-      addressCountry: "VE",
-    },
-    {
-      "@type": "PostalAddress",
-      streetAddress: CONTACT.cn.address,
-      addressLocality: "Yiwu",
-      addressRegion: "Zhejiang",
-      addressCountry: "CN",
-    },
-  ],
-  hasMap: CONTACT.ve.mapsUrl,
-  contactPoint: [
-    {
-      "@type": "ContactPoint",
-      contactType: "customer service",
+      // LocalBusiness es el tipo correcto para freight forwarding / logistics B2B
+      // (subtipo de Organization → vale como identidad de empresa para el knowledge graph).
+      "@type": "LocalBusiness",
+      "@id": ORG_ID,
+      name: CONTACT.brandName,
+      alternateName: ["DoorTuDoor", "Doortudoor Services"],
+      // Identidad legal real — solo en el schema, nunca en texto visible.
+      legalName: CONTACT.legalEntity.legalName,
+      taxID: CONTACT.legalEntity.taxID,
+      founder: { "@type": "Person", name: CONTACT.legalEntity.founder },
+      url: SITE_URL,
+      // Para Google Knowledge Panel usamos el isólogo oficial v3.0 variante primary
+      // (navy + wine sobre fondo claro — el más universal).
+      logo: `${SITE_URL}${BRAND_ASSETS.isologoPrimary}`,
+      image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
+      slogan: "Con confianza, de China a tu puerta.",
+      description:
+        "Operación logística integral China–Venezuela desde 2008: carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con confianza, de China a tu puerta.",
+      // priceRange es opcional; en freight no hay tier fijo → texto honesto (no "$$").
+      priceRange: "Cotización a medida según volumen y ruta",
+      // 2008 = inicios comerciales en China (año de fundación canónico, FAQ §14 +
+      // decisión founder 2026-06-08). Hitos posteriores: 2010 empresa de carga
+      // formalizada · 2015 expansión a Venezuela (DTD Services LCL).
+      foundingDate: "2008",
+      email: CONTACT.emailGeneral,
       telephone: CONTACT.ve.phone,
-      email: CONTACT.ve.email,
-      areaServed: "VE",
-      availableLanguage: ["es"],
+      sameAs: [CONTACT.instagram.url, CONTACT.youtube.url, CONTACT.tiktok.url],
+      address: [
+        {
+          "@type": "PostalAddress",
+          streetAddress: CONTACT.ve.address,
+          addressLocality: "Valencia",
+          addressRegion: "Carabobo",
+          postalCode: CONTACT.ve.postalCode,
+          addressCountry: "VE",
+        },
+        {
+          "@type": "PostalAddress",
+          streetAddress: CONTACT.cn.address,
+          addressLocality: "Yiwu",
+          addressRegion: "Zhejiang",
+          postalCode: CONTACT.cn.postalCode,
+          addressCountry: "CN",
+        },
+      ],
+      hasMap: CONTACT.ve.mapsUrl,
+      contactPoint: [
+        {
+          "@type": "ContactPoint",
+          contactType: "customer service",
+          telephone: CONTACT.ve.phone,
+          email: CONTACT.ve.email,
+          areaServed: "VE",
+          availableLanguage: ["es", "en"],
+        },
+        {
+          "@type": "ContactPoint",
+          contactType: "warehouse",
+          telephone: CONTACT.cn.phone,
+          email: CONTACT.cn.email,
+          areaServed: "CN",
+          availableLanguage: ["zh"],
+        },
+      ],
+      areaServed: [
+        { "@type": "Country", name: "Venezuela" },
+        { "@type": "Country", name: "China" },
+      ],
+      openingHoursSpecification: [
+        {
+          "@type": "OpeningHoursSpecification",
+          dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+          opens: "09:00",
+          closes: "17:00",
+        },
+      ],
     },
     {
-      "@type": "ContactPoint",
-      contactType: "warehouse",
-      telephone: CONTACT.cn.phone,
-      email: CONTACT.cn.email,
-      areaServed: "CN",
-      availableLanguage: ["zh"],
-    },
-  ],
-  areaServed: [
-    { "@type": "Country", name: "Venezuela" },
-    { "@type": "Country", name: "China" },
-  ],
-  openingHoursSpecification: [
-    {
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-      opens: "09:00",
-      closes: "17:00",
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: CONTACT.brandName,
+      inLanguage: "es-VE",
+      publisher: { "@id": ORG_ID },
     },
   ],
 };

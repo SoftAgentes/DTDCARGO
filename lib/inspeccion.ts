@@ -16,14 +16,14 @@ export const INSPECCION_HERO = {
   /** Línea 1 (ink) + línea 2 (wine) — patrón del hero de marca. */
   headline: "Inspección de calidad en China,",
   headlineAccent: "antes de embarcar.",
-  lead: "No solo movemos tu carga puerta a puerta: también verificamos que lo que comprás cumpla con lo que esperás. A través de nuestra red de inspectores acreditados en China, revisamos tu mercancía en la fábrica antes del envío — para que evites sorpresas, reduzcas riesgos y compres con tranquilidad.",
+  lead: "No solo movemos tu carga puerta a puerta: también verificamos que lo que compras cumpla con lo que esperas. A través de nuestra red de inspectores acreditados en China, revisamos tu mercancía en la fábrica antes del envío — para que evites sorpresas, reduzcas riesgos y compres con tranquilidad.",
   benefits: [
     "Revisamos tu mercancía en origen, antes de pagar el saldo o embarcar.",
     "Te entregamos un reporte claro, con fotos y resultados, en español.",
     "Un solo socio para tu logística y tu control de calidad.",
     "Atención en español, con presencia directa en Yiwu, China.",
   ],
-  ctaLabel: "Solicitá tu cotización de inspección",
+  ctaLabel: "Solicita tu cotización de inspección",
   /** Mensaje pre-armado para el CTA de WhatsApp. */
   ctaMessage:
     "Hola DTD Cargo, quiero cotizar una inspección de calidad en China. Mi producto es:",
@@ -33,8 +33,8 @@ export const INSPECCION_HERO = {
 export const INSPECCION_STEPS: { n: string; title: string; copy: string }[] = [
   {
     n: "01",
-    title: "Elegís y cotizás",
-    copy: "Seleccionás el tipo de inspección y completás un formulario corto: nombre, contacto, país y producto. Sin datos de pago en la web.",
+    title: "Eliges y cotizas",
+    copy: "Seleccionas el tipo de inspección y completas un formulario corto: nombre, contacto, país y producto. Sin datos de pago en la web.",
   },
   {
     n: "02",
@@ -48,7 +48,7 @@ export const INSPECCION_STEPS: { n: string; title: string; copy: string }[] = [
   },
   {
     n: "04",
-    title: "Recibís el reporte",
+    title: "Recibes el reporte",
     copy: "Te entregamos el informe con fotos y resultados, traducido al español si hace falta, para que decidas con información clara.",
   },
   {

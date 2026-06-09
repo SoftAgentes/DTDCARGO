@@ -87,6 +87,8 @@ export function NewsArticleJsonLd({ post }: Props) {
     author: [author],
     publisher: {
       "@type": "Organization",
+      // @id → consolida con el nodo #organization del root layout (una sola entidad).
+      "@id": `${siteUrl}/#organization`,
       name: "DTD Cargo",
       url: siteUrl,
       logo: {

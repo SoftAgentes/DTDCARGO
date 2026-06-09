@@ -158,7 +158,7 @@ export function Timeline() {
           <div>
             <span className="eyebrow">Nuestra historia</span>
             <h2 className="h-section mt-4">
-              Más de 15 años
+              Desde 2008
               <br />
               <span style={{ color: "var(--color-wine)" }}>nos respaldan.</span>
             </h2>

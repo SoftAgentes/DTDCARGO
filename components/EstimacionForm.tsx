@@ -105,16 +105,16 @@ export function EstimacionForm() {
     const ancho = num(payload.ancho);
     const alto = num(payload.alto);
     const volumen = (largo * ancho * alto) / 1_000_000;
-    const aereo = payload.modo === "aereo";
-    const factor = aereo ? 6 : 1.3;
+    // Aéreo retirado: el flete aéreo de carga está suspendido → solo marítimo.
+    const factor = 1.3;
     const base = Math.max(peso, volumen * 167) * factor + 220;
 
     setDraft({
       low: Math.round(base * 0.9),
       high: Math.round(base * 1.15),
       mid: Math.round(base),
-      days: aereo ? "5-10 días" : "30-45 días",
-      calc: aereo ? "aereo" : "maritimo",
+      days: "60-90 días puerta a puerta",
+      calc: "maritimo",
       origen: String(payload.origen ?? ""),
       destino: String(payload.destino ?? ""),
       peso,
@@ -135,7 +135,7 @@ export function EstimacionForm() {
     const base = [
       "Hola, acabo de estimar mi envío en la web:",
       "",
-      `• Modo: ${draft.calc === "aereo" ? "Aéreo" : "Marítimo (LCL)"}`,
+      `• Modo: Marítimo (LCL)`,
       `• Origen: ${draft.origen}`,
       `• Destino: ${draft.destino}`,
       `• Peso: ${draft.peso} kg`,
@@ -216,7 +216,7 @@ export function EstimacionForm() {
             className="mt-4 flex items-center justify-between gap-3 rounded-[10px] border border-grey-200 bg-grey-100 px-4 py-3 text-[13.5px] text-grey-700 transition-colors hover:border-wine hover:text-wine"
           >
             <span>
-              <strong className="text-ink">Registrate y obtené tu MARKBOX.</strong>{" "}
+              <strong className="text-ink">Regístrate y obtén tu Shipping Mark.</strong>{" "}
               Tu estimado queda guardado y vinculado a tu cuenta.
             </span>
             <span className="inline-flex items-center gap-1.5 flex-shrink-0 font-semibold text-wine">
@@ -234,28 +234,18 @@ export function EstimacionForm() {
       onSubmit={onSubmit}
       className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9 flex flex-col gap-5"
     >
-      <Row label="Modo de envío">
-        <div className="grid grid-cols-2 gap-2.5">
-          {[
-            { v: "maritimo", l: "Marítimo (LCL)" },
-            { v: "aereo", l: "Aéreo" },
-          ].map((opt) => (
-            <label
-              key={opt.v}
-              className="flex items-center justify-center h-12 rounded-[10px] border border-grey-200 cursor-pointer has-[:checked]:border-wine has-[:checked]:bg-wine/5 has-[:checked]:text-wine font-semibold text-[14px] transition-colors"
-            >
-              <input
-                type="radio"
-                name="modo"
-                value={opt.v}
-                defaultChecked={opt.v === "maritimo"}
-                className="sr-only"
-              />
-              {opt.l}
-            </label>
-          ))}
+      {/* No usar <Row>: el chip es un dato de estado, no un control → no va en <label>. */}
+      <div className="flex flex-col gap-2">
+        <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-grey-500">
+          Modo de envío
+        </span>
+        <div
+          className="flex items-center h-12 px-3.5 rounded-[10px] bg-grey-100 text-[14.5px] font-medium text-grey-700"
+          title="Servicio aéreo temporalmente no disponible"
+        >
+          Marítimo (LCL)
         </div>
-      </Row>
+      </div>
 
       <Row label="Origen">
         <select
@@ -388,8 +378,8 @@ export function EstimacionForm() {
         className="flex items-center justify-between gap-3 rounded-[10px] border border-grey-200 bg-grey-100 px-4 py-3 text-[13.5px] text-grey-700 transition-colors hover:border-wine hover:text-wine"
       >
         <span>
-          <strong className="text-ink">¿Necesitás el flete interno en Venezuela?</strong>{" "}
-          Calculá el último km hasta tu ciudad.
+          <strong className="text-ink">¿Necesitas el flete interno en Venezuela?</strong>{" "}
+          Calcula el último km hasta tu ciudad.
         </span>
         <span className="inline-flex items-center gap-1.5 flex-shrink-0 font-semibold text-wine">
           Calculadora terrestre <ArrowIcon />
@@ -405,12 +395,12 @@ export function EstimacionForm() {
 
       {status === "error" && (
         <p className="text-[13.5px] text-wine">
-          Algo falló. Probá de nuevo o escribinos por WhatsApp.
+          Algo falló. Prueba de nuevo o escríbenos por WhatsApp.
         </p>
       )}
 
       <p className="text-[12.5px] text-grey-500 leading-[1.5]">
-        Al estimar aceptás que un asesor te contacte por email o WhatsApp.
+        Al estimar aceptas que un asesor te contacte por email o WhatsApp.
         No compartimos tus datos con terceros.
       </p>
     </form>

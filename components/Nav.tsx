@@ -279,7 +279,7 @@ export function Nav() {
             );
           })}
 
-          {/* Cuenta · Acceder al portal + Registrate */}
+          {/* Cuenta · Acceder al portal + Regístrate */}
           <Link
             href="/portal/login"
             onClick={close}
@@ -292,7 +292,7 @@ export function Nav() {
             onClick={close}
             className="text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-wine font-bold hover:bg-wine/15 transition-colors"
           >
-            Registrate como cliente
+            Regístrate como cliente
           </Link>
         </nav>
 

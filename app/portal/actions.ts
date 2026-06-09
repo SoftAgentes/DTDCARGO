@@ -39,11 +39,11 @@ export async function changePortalPasswordAction(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!user) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   const { error } = await supabase.auth.updateUser({ password });
   if (error) {
-    return { error: "No pudimos cambiar la contraseña. Probá de nuevo." };
+    return { error: "No pudimos cambiar la contraseña. Prueba de nuevo." };
   }
   return { ok: true };
 }

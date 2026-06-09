@@ -216,7 +216,7 @@ export function CreateShipmentForm({
           </div>
           <div>
             <label htmlFor="client_markbox" className="studio-label">
-              MARKBOX
+              Shipping Mark
             </label>
             <input
               id="client_markbox"

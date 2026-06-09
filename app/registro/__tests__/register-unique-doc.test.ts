@@ -6,8 +6,10 @@
  * que el dedup `ilike` exact deja pasar. Cuando el insert de `clients` los viola,
  * Postgres devuelve unique_violation (error.code === "23505"). La action debe:
  *   - devolver el fieldError amable en `document` (mismo copy que el dedup),
- *   - hacer rollback de la foto huérfana (storage.remove),
  *   - NO crear la cuenta de auth (createUser).
+ *
+ * (Registro EXPRESS: la foto se difiere al perfil → ya no hay foto huérfana que
+ * rollbackear; el insert de `clients` falla sin haber subido nada.)
  *
  * El admin client, next/headers y el welcome email se mockean — sin red ni DB.
  * El fake admin fuerza el insert de `clients` a fallar con 23505 y registra
@@ -117,14 +119,8 @@ function validForm(overrides: Record<string, string> = {}): FormData {
   f.set("document", "V-12345678");
   f.set("email", "carlos@empresa.com");
   f.set("whatsapp", "+58 412 1668021");
-  f.set("state", "Carabobo");
-  f.set("municipio", "Valencia");
-  f.set("city", "Valencia");
-  f.set("postal_code", "2001");
-  f.set("barrio", "El Viñedo");
-  f.set("address", "Av. Bolívar, edif. Tía Mary, piso 3");
   for (const [k, v] of Object.entries(overrides)) f.set(k, v);
-  f.set("cedula_photo", new File([new Uint8Array([1, 2, 3])], "cedula.jpg", { type: "image/jpeg" }));
+  // Registro EXPRESS: foto + dirección se difieren al perfil → no van en el alta.
   return f;
 }
 
@@ -147,9 +143,6 @@ describe("registerClientAction · unicidad de documento (índice DB · 23505)", 
     expect(res.ok).toBeUndefined();
     expect(res.markbox).toBeUndefined();
     expect(res.error).toBeUndefined();
-
-    // Rollback de la foto huérfana.
-    expect(ops.removed.length).toBeGreaterThan(0);
 
     // No se creó la cuenta de auth.
     expect(ops.createUserCalls).toBe(0);

@@ -577,7 +577,7 @@ function TrackingScreen({ shipments }: { shipments: MobileShipment[] }) {
       <SearchBar
         value={search}
         onChange={setSearch}
-        placeholder="Buscar por código, cliente, MARKBOX…"
+        placeholder="Buscar por código, cliente, Shipping Mark…"
       />
 
       <div
@@ -1209,7 +1209,7 @@ function ClientsScreen({
       <SearchBar
         value={search}
         onChange={setSearch}
-        placeholder="Buscar por MARKBOX, nombre, email, teléfono…"
+        placeholder="Buscar por Shipping Mark, nombre, email, teléfono…"
       />
 
       <div
@@ -1225,7 +1225,7 @@ function ClientsScreen({
             title={search ? "Sin resultados" : "Sin clientes en cartera"}
             desc={
               search
-                ? "Probá con otro nombre o MARKBOX."
+                ? "Probá con otro nombre o Shipping Mark."
                 : "Agregá clientes desde /studio/clientes en desktop."
             }
           />

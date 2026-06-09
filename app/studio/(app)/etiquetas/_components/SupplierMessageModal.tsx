@@ -57,7 +57,7 @@ export function SupplierMessageModal({
 
 Adjunto te paso ${totalLabels} etiquetas DTD Cargo para ${totalBoxes} cajas${copiesNote}. Pegalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).
 
-MARKBOX del cliente: ${client.markbox}
+Shipping Mark del cliente: ${client.markbox}
 Cliente: ${client.name}${client.company ? " · " + client.company : ""}
 Total cajas: ${totalBoxes}
 Etiquetas por caja: ${copiesPerBox}
@@ -71,7 +71,7 @@ DTD Cargo`;
 
 附件是 ${totalLabels} 张 DTD Cargo 标签，用于 ${totalBoxes} 个箱子${copiesNoteCn}。请在发到我们仓库 ${warehouse.code}（${warehouse.city_cn}）之前贴好。
 
-客户编号 (MARKBOX): ${client.markbox}
+客户编号 (Shipping Mark): ${client.markbox}
 客户名称: ${client.name}
 总箱数: ${totalBoxes}
 每箱标签数: ${copiesPerBox}
@@ -105,7 +105,7 @@ DTD Cargo 国际货运`;
 
   const mailtoHref = supplier.email
     ? `mailto:${encodeURIComponent(supplier.email)}?subject=${encodeURIComponent(
-        `DTD Cargo · ${totalBoxes} etiquetas · MARKBOX ${client.markbox}`,
+        `DTD Cargo · ${totalBoxes} etiquetas · Shipping Mark ${client.markbox}`,
       )}&body=${encodeURIComponent(msgEs + "\n\n— — —\n\n" + msgCn)}`
     : null;
 
