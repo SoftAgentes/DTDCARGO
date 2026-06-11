@@ -122,7 +122,7 @@ export function OperarioHomeClient({
     toast.info(
       t(
         lang,
-        "Abrí una recepción y tocá “Imprimir QR”.",
+        "Abre una recepción y toca “Imprimir QR”.",
         "打开一条接收记录并点击“打印QR”。",
       ),
     );
@@ -201,7 +201,7 @@ export function OperarioHomeClient({
                 )
               : t(
                   lang,
-                  `Hoy llevás ${today.receipts} ${today.receipts === 1 ? "recepción" : "recepciones"} · ${today.boxes} ${today.boxes === 1 ? "caja" : "cajas"} · ${today.cbm} CBM`,
+                  `Hoy llevas ${today.receipts} ${today.receipts === 1 ? "recepción" : "recepciones"} · ${today.boxes} ${today.boxes === 1 ? "caja" : "cajas"} · ${today.cbm} CBM`,
                   `今日已收 ${today.receipts} 件 · ${today.boxes} 箱 · ${today.cbm} CBM`,
                 )}
           </p>
@@ -798,7 +798,7 @@ function ReceiptDetailModal({
               )
             : t(
                 lang,
-                "Vista resumida. Para editar abrí el Studio web.",
+                "Vista resumida. Para editar abre el Studio web.",
                 "摘要视图。如需编辑请打开 Studio 网页。",
               )}
         </p>
@@ -958,7 +958,7 @@ function NoSearchResults({ lang, query }: { lang: Lang; query: string }) {
     >
       {t(
         lang,
-        `Sin resultados para "${query}". Probá con el código o Shipping Mark.`,
+        `Sin resultados para "${query}". Prueba con el código o Shipping Mark.`,
         `未找到 "${query}" 的结果。请尝试编号或 唛头 (Shipping Mark)。`,
       )}
     </div>
@@ -980,7 +980,7 @@ function EmptyRecents({ lang }: { lang: Lang }) {
     >
       {t(
         lang,
-        "Aún no hay recepciones en este hub. Tocá + Nueva recepción para empezar.",
+        "Aún no hay recepciones en este hub. Toca + Nueva recepción para empezar.",
         "本仓库暂无接收记录。点击 + 新接收 开始。",
       )}
     </div>

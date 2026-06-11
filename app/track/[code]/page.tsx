@@ -9,7 +9,7 @@
  * vive en supabase/migrations/0059_public_track_rpc.sql.
  *
  * UI: mantiene el lenguaje visual del sitio público (NO Studio dark).
- * Sumá foto POD si delivered + WhatsApp share con mensaje pre-poblado.
+ * Suma foto POD si delivered + WhatsApp share con mensaje pre-poblado.
  */
 
 import type { Metadata } from "next";

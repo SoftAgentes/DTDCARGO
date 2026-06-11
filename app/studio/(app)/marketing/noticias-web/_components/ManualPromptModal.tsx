@@ -29,7 +29,7 @@ interface Props {
   subtitle?: string;
   /** El prompt completo ya armado (single source = lib/news/prompts.ts) */
   prompt: string;
-  /** Placeholder de la textarea (ej "Pegá el JSON de Claude...") */
+  /** Placeholder de la textarea (ej "Pega el JSON de Claude...") */
   placeholder?: string;
   /** Hint visible sobre la textarea (ej "Esperamos {headlines:[...]}") */
   inputHint?: string;
@@ -191,7 +191,7 @@ export function ManualPromptModal({
               onChange={(e) => setText(e.target.value)}
               rows={8}
               disabled={loading}
-              placeholder={placeholder ?? "Pegá acá la respuesta de Claude..."}
+              placeholder={placeholder ?? "Pega acá la respuesta de Claude..."}
               className="w-full bg-white border border-grey-200 rounded-lg p-3 text-[13px] text-ink placeholder:text-grey-500 focus:outline-none focus:border-wine transition-colors resize-y font-mono leading-relaxed disabled:opacity-60"
             />
             {error && (

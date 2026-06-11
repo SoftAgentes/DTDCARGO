@@ -345,7 +345,7 @@ export function validateUpdateItemInput(
   const allCipher = partial.ciphertext && partial.nonce && partial.dek_encrypted && partial.dek_nonce;
   if (hasCipher && !allCipher) {
     fieldErrors.ciphertext =
-      "Si re-cifrás, mandá los 4 campos (ciphertext+nonce+dek_encrypted+dek_nonce) juntos";
+      "Si re-cifras, manda los 4 campos (ciphertext+nonce+dek_encrypted+dek_nonce) juntos";
   }
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
   return { input: partial as UpdateItemInput };

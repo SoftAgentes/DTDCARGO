@@ -110,8 +110,8 @@ export function EstimadoModal({
 
   async function handleConfirm() {
     const nextErrors: { nombre?: string; telefono?: string } = {};
-    if (!nombre.trim()) nextErrors.nombre = "Decinos tu nombre.";
-    if (!telefono.trim()) nextErrors.telefono = "Decinos tu WhatsApp o teléfono.";
+    if (!nombre.trim()) nextErrors.nombre = "Dinos tu nombre.";
+    if (!telefono.trim()) nextErrors.telefono = "Dinos tu WhatsApp o teléfono.";
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 

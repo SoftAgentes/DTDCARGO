@@ -400,7 +400,7 @@ function EmptyOperationalCard() {
           margin: "0 auto",
         }}
       >
-        Empezá creando el primer envío para que los conteos arriba se
+        Empieza creando el primer envío para que los conteos arriba se
         llenen con datos reales.
       </p>
       <div>

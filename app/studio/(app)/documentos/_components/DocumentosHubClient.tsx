@@ -583,7 +583,7 @@ export function DocumentosHubClient({
               >
                 {q
                   ? `Sin resultados para “${q}”.`
-                  : "Sin documentos en esta vista. Subí adjuntos desde el detalle de un envío o cliente — se clasifican solos acá."}
+                  : "Sin documentos en esta vista. Sube adjuntos desde el detalle de un envío o cliente — se clasifican solos acá."}
               </div>
             )}
           </div>

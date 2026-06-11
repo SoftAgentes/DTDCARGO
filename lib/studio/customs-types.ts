@@ -270,7 +270,7 @@ export function validateFilingInput(
     .map((h) => h.trim())
     .filter(Boolean);
   if (hs_codes.length === 0) {
-    errors.hs_codes = "Agregá al menos 1 HS code.";
+    errors.hs_codes = "Agrega al menos 1 HS code.";
   } else if (hs_codes.some((h) => !HS_RE.test(h))) {
     errors.hs_codes = "Formato HS inválido (esperado 0000.00 o 0000.00.00).";
   }

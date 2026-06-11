@@ -18,7 +18,7 @@ export const bugReporter = {
   "bug.fab.corner_label_bottom_right": "Abajo derecha",
   "bug.fab.corner_menu_heading": "Mover botón a",
   "bug.fab.corner_menu_aria": "Mover botón de bugs a otra esquina",
-  "bug.fab.corner_menu_tip": "Tip: arrastrá el botón para moverlo.",
+  "bug.fab.corner_menu_tip": "Tip: arrastra el botón para moverlo.",
   "bug.fab.corner_menu_close": "Cerrar",
   "bug.fab.drag_target_here": "Aquí",
 
@@ -47,7 +47,7 @@ export const bugReporter = {
     "Qué intentabas hacer, qué pasó, qué esperabas que pasara.",
   "bug.modal.translation_label": "Traducción al español (opcional)",
   "bug.modal.translation_placeholder":
-    "Si lo escribiste en chino, traducí título y descripción acá para que el equipo VE lo accione más rápido.",
+    "Si lo escribiste en chino, traduce título y descripción acá para que el equipo VE lo accione más rápido.",
   "bug.modal.attached_label_module": "Módulo:",
   "bug.modal.attached_label_url": "URL:",
   "bug.modal.attached_label_build": "Build:",

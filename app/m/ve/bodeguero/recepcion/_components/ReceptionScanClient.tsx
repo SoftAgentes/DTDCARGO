@@ -322,7 +322,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
               hint={
                 missing > 0
                   ? `Faltan ${missing} caja${missing === 1 ? "" : "s"}`
-                  : "Todas las cajas escaneadas · podés sellar"
+                  : "Todas las cajas escaneadas · puedes sellar"
               }
             />
           </section>
@@ -651,7 +651,7 @@ function ConfirmIncidentModal({
           <strong style={{ color: "var(--danger)" }}>
             {missing} caja{missing === 1 ? "" : "s"} sin escanear
           </strong>
-          . El supervisor revisa los faltantes después. ¿Confirmás?
+          . El supervisor revisa los faltantes después. ¿Confirmas?
         </p>
 
         <label

@@ -173,7 +173,7 @@ export function KeywordPanel({
               </ul>
               <p className="text-[11px] text-grey-500 leading-snug">
                 Sugerencias del bot · Claude va a orientar el contenido a
-                resolverlos. Eliminá los que no apliquen.
+                resolverlos. Elimina los que no apliquen.
               </p>
             </div>
           )}

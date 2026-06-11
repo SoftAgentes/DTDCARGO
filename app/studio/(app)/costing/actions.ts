@@ -122,7 +122,7 @@ async function resolveTenantId(
 
 /** Mensaje cuando ya existe un template para la misma ruta+servicio vivo. */
 const TEMPLATE_CONFLICT_MSG =
-  "Ya hay un template para esa combinación de ruta y servicio. Editá ese o borralo primero.";
+  "Ya hay un template para esa combinación de ruta y servicio. Edita ese o bórralo primero.";
 
 /** ¿El error es la violación del índice único parcial de ruta del template? */
 function isTemplateConflict(error: {

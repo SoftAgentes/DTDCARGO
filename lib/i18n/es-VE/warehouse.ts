@@ -74,10 +74,10 @@ export const warehouse = {
   // ── Empty state ──────────────────────────────────────────
   "warehouse_cn.empty.title": "Sin recepciones todavía",
   "warehouse_cn.empty.description":
-    "Cuando llegue mercadería a un hub CN, registrala con + Nueva recepción.",
+    "Cuando llegue mercadería a un hub CN, regístrala con + Nueva recepción.",
   "warehouse_cn.empty.filtered_title": "No hay recepciones que coincidan",
   "warehouse_cn.empty.filtered_description":
-    "Ajustá los filtros o limpiá la búsqueda para ver todo.",
+    "Ajusta los filtros o limpia la búsqueda para ver todo.",
 
   // ── Row actions menu ─────────────────────────────────────
   "warehouse_cn.row.action_change_status": "Cambiar estado",
@@ -88,18 +88,18 @@ export const warehouse = {
   "warehouse_cn.row.action_delete": "Eliminar",
   "warehouse_cn.row.destination_required":
     "Ciudad destino es obligatoria para consolidar.",
-  "warehouse_cn.row.destination_choose": "Elegí ciudad",
+  "warehouse_cn.row.destination_choose": "Elige ciudad",
   "warehouse_cn.row.consolidating": "Consolidando…",
   "warehouse_cn.row.empty_catalog":
-    "Catálogo del tenant vacío — agregá ciudades primero.",
+    "Catálogo del tenant vacío — agrega ciudades primero.",
   "warehouse_cn.row.aria_actions": "Acciones de la recepción",
   "warehouse_cn.row.back": "← Volver",
   "warehouse_cn.row.destination_city_label": "Ciudad destino",
-  "warehouse_cn.row.destination_choose_option": "— Elegí ciudad —",
+  "warehouse_cn.row.destination_choose_option": "— Elige ciudad —",
   "warehouse_cn.row.city_placeholder": "ej: Valencia",
   "warehouse_cn.row.consolidate_submit": "Consolidar",
   "warehouse_cn.row.empty_catalog_hint":
-    "Catálogo del tenant vacío. Seedealo desde /studio/admin/rutas tab Ciudades para elegir de una lista.",
+    "Catálogo del tenant vacío. Seedéalo desde /studio/admin/rutas tab Ciudades para elegir de una lista.",
 
   // ── Bulk actions bar ─────────────────────────────────────
   "warehouse_cn.bulk.selected_count": "{count} seleccionadas",
@@ -127,7 +127,7 @@ export const warehouse = {
   // ── New Receipt Drawer ───────────────────────────────────
   "warehouse_cn.drawer.title": "Nueva recepción",
   "warehouse_cn.drawer.subtitle":
-    "Cargá mercadería que llegó a un hub CN. El código se asigna automático.",
+    "Carga mercadería que llegó a un hub CN. El código se asigna automático.",
   "warehouse_cn.drawer.submit_close": "Registrar y cerrar",
   "warehouse_cn.drawer.submit_open": "Registrar y abrir recibo",
   "warehouse_cn.drawer.submit_next": "Registrar y siguiente paquete",
@@ -155,8 +155,8 @@ export const warehouse = {
   "warehouse_cn.drawer.section_totals": "Totales",
   "warehouse_cn.drawer.section_notes": "Notas internas",
   "warehouse_cn.drawer.section_status": "Estado de la mercadería",
-  "warehouse_cn.drawer.warehouse_placeholder": "Seleccioná el hub que recibió la caja…",
-  "warehouse_cn.drawer.client_placeholder": "Seleccioná cliente…",
+  "warehouse_cn.drawer.warehouse_placeholder": "Selecciona el hub que recibió la caja…",
+  "warehouse_cn.drawer.client_placeholder": "Selecciona cliente…",
   "warehouse_cn.drawer.client_label": "Cliente · Shipping Mark",
   "warehouse_cn.drawer.orphan_toggle_on": "Marcar como huérfana (sin Shipping Mark)",
   "warehouse_cn.drawer.orphan_toggle_off": "Volver a cliente conocido",
@@ -174,18 +174,18 @@ export const warehouse = {
   "warehouse_cn.drawer.notes_placeholder": "Notas internas (opcional)",
   "warehouse_cn.drawer.supplier_label_bi": "Proveedor (CN o ES)",
   "warehouse_cn.drawer.supplier_translate": "Traducir CN → ES / ES → CN",
-  "warehouse_cn.drawer.supplier_paste_translation": "Pegá la traducción…",
+  "warehouse_cn.drawer.supplier_paste_translation": "Pega la traducción…",
   "warehouse_cn.supplier.placeholder": "Nombre del supplier · 中文 o español",
   "warehouse_cn.supplier.translate_btn": "Traducir {direction}",
   "warehouse_cn.supplier.translate_title": "Cargar traducción {direction}",
   "warehouse_cn.supplier.translation_label": "Traducción {direction}",
   "warehouse_cn.supplier.translation_label_optional": "Traducción (opcional)",
   "warehouse_cn.supplier.remove_translation": "Quitar traducción",
-  "warehouse_cn.supplier.paste_placeholder": "Pegá la traducción en {lang}…",
+  "warehouse_cn.supplier.paste_placeholder": "Pega la traducción en {lang}…",
   "warehouse_cn.supplier.translation_note":
-    "V1: pegá la traducción manualmente (de WeChat, Alibaba, tu contacto). Auto-traducción IA viene en SDD futuro.",
+    "V1: pega la traducción manualmente (de WeChat, Alibaba, tu contacto). Auto-traducción IA viene en SDD futuro.",
   "warehouse_cn.supplier.bilingual_hint":
-    "Podés escribir en chino o español · te ofrecemos cargar la traducción al otro idioma.",
+    "Puedes escribir en chino o español · te ofrecemos cargar la traducción al otro idioma.",
   "warehouse_cn.supplier.lang_es": "español",
   "warehouse_cn.supplier.lang_cn": "中文",
 
@@ -203,7 +203,7 @@ export const warehouse = {
   "warehouse_cn.drawer.orphan_brought_label": "¿Quién la trajo?",
   "warehouse_cn.drawer.orphan_brought_placeholder": "Chofer / transportista",
   "warehouse_cn.drawer.orphan_suspected_label": "Posible cliente (sospecha)",
-  "warehouse_cn.drawer.orphan_suspected_placeholder": "Si tenés idea…",
+  "warehouse_cn.drawer.orphan_suspected_placeholder": "Si tienes idea…",
 
   // ── Drawer · Items / Totales / Notas ─────────────────────
   "warehouse_cn.drawer.items_title": "Items en la caja",

@@ -46,7 +46,7 @@ export function SupplierMessageModal({
 
   const copiesNote =
     copiesPerBox > 1
-      ? ` (${copiesPerBox} etiquetas por caja, pegá una en cada cara para que no se pierda la trazabilidad si una se tapa o maltrata)`
+      ? ` (${copiesPerBox} etiquetas por caja, pega una en cada cara para que no se pierda la trazabilidad si una se tapa o maltrata)`
       : "";
   const copiesNoteCn =
     copiesPerBox > 1
@@ -170,7 +170,7 @@ DTD Cargo 国际货运`;
               margin: 0,
             }}
           >
-            Copiá uno de los dos mensajes y mandalo por WeChat o email junto con
+            Copia uno de los dos mensajes y mándalo por WeChat o email junto con
             el PDF de etiquetas.
           </p>
 
@@ -217,7 +217,7 @@ DTD Cargo 国际货运`;
                 type="button"
                 className="studio-btn studio-btn-primary"
                 disabled
-                title="Cargá el email del supplier en el panel para habilitar"
+                title="Carga el email del supplier en el panel para habilitar"
               >
                 Abrir en email
               </button>

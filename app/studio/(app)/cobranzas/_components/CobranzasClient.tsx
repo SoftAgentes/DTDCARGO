@@ -108,8 +108,8 @@ export function CobranzasClient({
               maxWidth: "62ch",
             }}
           >
-            Cola de cobranza sobre las facturas con saldo. Registrá cobros (con
-            recibo y asiento), seguí promesas de pago y la gestión queda en el
+            Cola de cobranza sobre las facturas con saldo. Registra cobros (con
+            recibo y asiento), sigue promesas de pago y la gestión queda en el
             historial.
           </p>
         </div>
@@ -200,7 +200,7 @@ export function CobranzasClient({
           description={
             receivables.length === 0
               ? "Cuando emitas facturas, las que tengan saldo aparecerán acá para gestionar el cobro."
-              : "Probá cambiar el filtro de estado."
+              : "Prueba cambiar el filtro de estado."
           }
         />
       ) : (

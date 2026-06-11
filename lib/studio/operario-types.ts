@@ -141,7 +141,7 @@ export function validateCreateReceiptInput(
 
   if (!partial.is_orphan) {
     if (!partial.client_markbox || partial.client_markbox.trim().length === 0) {
-      return { error: "Falta MARKBOX del cliente" };
+      return { error: "Falta Shipping Mark del cliente" };
     }
   }
 

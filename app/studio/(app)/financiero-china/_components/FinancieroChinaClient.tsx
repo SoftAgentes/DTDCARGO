@@ -131,7 +131,7 @@ export function FinancieroChinaClient({
         <EmptyState
           eyebrow="Sin socio"
           title="No hay proveedores de China cargados todavía."
-          description="Cargá el Socio Logístico China en Proveedores CN (país CN) para empezar a llevar su cuenta corriente y reconciliar su estado de cuenta."
+          description="Carga el Socio Logístico China en Proveedores CN (país CN) para empezar a llevar su cuenta corriente y reconciliar su estado de cuenta."
         />
       ) : (
         <>

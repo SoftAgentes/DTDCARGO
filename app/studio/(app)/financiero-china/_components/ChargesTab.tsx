@@ -128,7 +128,7 @@ export function ChargesTab({
         <EmptyState
           eyebrow="Sin cargos"
           title="Este socio no tiene cargos registrados."
-          description="Cargá las líneas de cargo que factura el socio (flete, sobrepeso, BL, inspección). Cuando llegue una corrección, aplicá una nota de crédito y el monto neto se recalcula solo."
+          description="Carga las líneas de cargo que factura el socio (flete, sobrepeso, BL, inspección). Cuando llegue una corrección, aplica una nota de crédito y el monto neto se recalcula solo."
         />
       ) : (
         <div

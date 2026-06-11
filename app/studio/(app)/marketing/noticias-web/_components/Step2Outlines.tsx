@@ -96,12 +96,12 @@ export function Step2Outlines({
       {/* Instrucción */}
       <div>
         <span className="eyebrow">
-          Elegí una arquitectura — 3 enfoques alternativos
+          Elige una arquitectura — 3 enfoques alternativos
         </span>
         <p className="text-[12.5px] text-grey-500 mt-1.5 max-w-[80ch]">
           Claude propuso 3 maneras distintas de estructurar el artículo. Cada
           una arranca de la misma idea pero la organiza con un ángulo distinto.
-          Elegí la que mejor calza con lo que querés transmitir. Podés editar
+          Elige la que mejor calza con lo que quieres transmitir. Puedes editar
           la elegida inline.
         </p>
       </div>
@@ -335,7 +335,7 @@ export function Step2Outlines({
             ? "Redactando artículo completo…"
             : hasSelection
               ? `Redactar artículo con ${outlines[selectedOutlineIdx].sections.length} secciones`
-              : "Elegí una arquitectura primero"}
+              : "Elige una arquitectura primero"}
         </button>
         {error && (
           <p className="text-[13px] text-[color:var(--color-status-danger)]">

@@ -74,7 +74,7 @@ export function NorteTab({ env }: { env: EnvName }) {
             <strong style={{ color: "var(--ink)" }}>Snapshot local.</strong>{" "}
             Regeneralo con{" "}
             <code style={{ fontFamily: "var(--f-mono)" }}>node scripts/norte.mjs</code>.
-            La versión navegable completa la servís en{" "}
+            La versión navegable completa la sirves en{" "}
             <code style={{ fontFamily: "var(--f-mono)" }}>:3010</code>.
           </span>
         )}

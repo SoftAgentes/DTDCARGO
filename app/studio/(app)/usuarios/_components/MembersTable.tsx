@@ -147,7 +147,7 @@ function MemberRow({
             </span>
             {isSelf && (
               <span style={{ fontSize: 10, color: "var(--ink-soft)" }}>
-                (vos)
+                (tú)
               </span>
             )}
           </div>

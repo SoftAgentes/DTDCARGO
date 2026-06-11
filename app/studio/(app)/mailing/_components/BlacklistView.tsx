@@ -87,7 +87,7 @@ export function BlacklistView({ blacklist }: Props) {
         >
           Emails que NO reciben más mensajes del Studio. El webhook de Resend
           agrega automáticamente los rebotes (bounce) y reportes de spam
-          (complaint). También podés agregar manualmente abajo (ej: clientes
+          (complaint). También puedes agregar manualmente abajo (ej: clientes
           que pidieron no recibir más comunicaciones).
         </div>
 
@@ -233,7 +233,7 @@ export function BlacklistView({ blacklist }: Props) {
         <EmptyState
           eyebrow="Sin entradas"
           title="La blacklist está vacía"
-          description="Cuando se reciba el primer bounce o complaint vía webhook, va a aparecer acá automáticamente. También podés agregar manualmente con el form de arriba."
+          description="Cuando se reciba el primer bounce o complaint vía webhook, va a aparecer acá automáticamente. También puedes agregar manualmente con el form de arriba."
         />
       ) : (
         <div

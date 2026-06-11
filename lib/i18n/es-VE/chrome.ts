@@ -3,7 +3,7 @@
  * topbar, drawers, badges, acciones genéricas) en español Venezuela.
  *
  * Las keys siguen namespace `chrome.<area>.<concept>`. Cuando agregues
- * una key acá DEBÉS agregarla también en zh-CN/chrome.ts con la misma
+ * una key acá DEBES agregarla también en zh-CN/chrome.ts con la misma
  * key — el tipo I18nKey es derivado del shape de es-VE.
  */
 
@@ -117,7 +117,7 @@ export const chrome = {
   "chrome.topbar.search_modal_placeholder": "Búsqueda global (próximamente)",
   "chrome.topbar.search_modal_title": "Búsqueda global llegará en Sprint 6.4.",
   "chrome.topbar.search_modal_hint":
-    "Mientras tanto, navegá desde el sidebar para encontrar embarques, clientes, Shipping Mark y demás.",
+    "Mientras tanto, navega desde el sidebar para encontrar embarques, clientes, Shipping Mark y demás.",
 
   // ── Toasts genéricos ─────────────────────────────────────
   "chrome.toast.success": "Listo",
@@ -135,7 +135,7 @@ export const chrome = {
   // ── Empty states ─────────────────────────────────────────
   "chrome.empty.no_results": "Sin resultados",
   "chrome.empty.no_results_hint":
-    "Ajustá los filtros o agregá un registro nuevo.",
+    "Ajusta los filtros o agrega un registro nuevo.",
 } as const satisfies Record<string, string>;
 
 /**

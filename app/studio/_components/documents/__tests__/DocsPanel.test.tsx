@@ -118,7 +118,7 @@ describe("DocsPanel · subir nueva versión", () => {
 
   it("rechazo de validación ({ fieldErrors }) → muestra banner de error, NO dispara toast de éxito ni cierra el form", async () => {
     // El server rechaza con fieldErrors (mime/size/nombre); subimos un PDF válido
-    // para pasar el guard local "Elegí un archivo" y llegar a addDocumentVersion.
+    // para pasar el guard local "Elige un archivo" y llegar a addDocumentVersion.
     mockAddDocumentVersion.mockResolvedValue({
       fieldErrors: { file: "Formato no permitido (PDF, imagen, xlsx, docx o zip)." },
     });

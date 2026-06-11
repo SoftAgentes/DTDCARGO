@@ -290,7 +290,7 @@ function IncomingTab({
         <EmptyState
           eyebrow="Sin entrantes"
           title="No hay prealertas entrantes ahora."
-          description='Todas las compras están recibidas, consolidadas o canceladas. Tocá "Todas" para ver el historial completo.'
+          description='Todas las compras están recibidas, consolidadas o canceladas. Toca "Todas" para ver el historial completo.'
         />
       ) : (
         <TableShell>

@@ -194,7 +194,7 @@ export function EstadoTab({
           deploysResult.reason === "mock_no_token" ? (
             <div style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55 }}>
               <p style={{ margin: "0 0 var(--s-3) 0" }}>
-                Para ver el historial de deploys del proyecto Vercel necesitás
+                Para ver el historial de deploys del proyecto Vercel necesitas
                 setear estas env vars (mismas que usa el bot del escritorio):
               </p>
               <ul style={{ margin: 0, paddingLeft: "var(--s-5)" }}>
@@ -263,7 +263,7 @@ export function EstadoTab({
               </p>
               <p style={{ margin: "var(--s-2) 0 0 0", fontSize: 12 }}>
                 Razón típica: el endpoint <code style={{ fontFamily: "var(--f-mono)" }}>/api/debug/health</code> aún no está deployado a producción.
-                Subí los cambios pendientes con el bot y volvé a recargar.
+                Sube los cambios pendientes con el bot y vuelve a recargar.
               </p>
             </div>
           )}
@@ -409,8 +409,8 @@ export function EstadoTab({
             controlado sin romper el flujo, pero no envía nada al exterior).
           </p>
           <p style={{ color: "var(--ink-soft)", fontSize: 13, lineHeight: 1.55, marginTop: "var(--s-3)" }}>
-            Si querés que tu local mande mails y bots <strong>reales</strong>{" "}
-            (cuidado, salen a clientes reales), instalá Vercel CLI y corré:
+            Si quieres que tu local mande mails y bots <strong>reales</strong>{" "}
+            (cuidado, salen a clientes reales), instala Vercel CLI y corre:
           </p>
           <pre
             style={{
@@ -423,7 +423,7 @@ export function EstadoTab({
               overflow: "auto",
             }}
           >{`# OJO: el último comando sobrescribe tu .env.local actual.
-# Si lo necesitás, hacé backup antes:
+# Si lo necesitas, haz backup antes:
 cp .env.local .env.local.backup
 
 pnpm add -g vercel

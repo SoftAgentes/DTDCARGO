@@ -92,7 +92,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
     const addr = addressInput?.value.trim();
     if (!addr) {
       setGeoStatus("error");
-      setGeoError("Cargá una dirección primero.");
+      setGeoError("Carga una dirección primero.");
       return;
     }
     setGeoStatus("loading");
@@ -166,7 +166,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
     if (result.fieldErrors) {
       const firstErr =
         Object.values(result.fieldErrors).find((v) => !!v) ??
-        "Revisá los campos.";
+        "Revisa los campos.";
       setCreateError(firstErr);
       return { error: firstErr };
     }
@@ -192,7 +192,7 @@ export function ClientDrawer({ mode, client, onClose }: Props) {
       router.push(`/studio/clientes/${markbox}`);
       onClose();
     } else if (postAction === "reset") {
-      toast.success(`Cliente ${markbox} creado · empezá el siguiente`, {
+      toast.success(`Cliente ${markbox} creado · empieza el siguiente`, {
         link: {
           href: `/studio/clientes?highlight=${encodeURIComponent(markbox)}&hl-tone=warm`,
           label: "Ver en listado",

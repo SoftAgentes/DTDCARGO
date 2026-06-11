@@ -48,7 +48,7 @@ export function LoginForm({ next }: { next?: string }) {
             margin: "12px 0 32px",
           }}
         >
-          Entrá al <span style={{ color: "#C2747F" }}>Studio</span>.
+          Entra al <span style={{ color: "#C2747F" }}>Studio</span>.
         </h1>
 
         <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -63,7 +63,7 @@ export function LoginForm({ next }: { next?: string }) {
               type="email"
               autoComplete="email"
               required
-              placeholder="vos@dtdcargo.com"
+              placeholder="tu@dtdcargo.com"
               disabled={isPending}
               className="studio-input-dark"
             />
@@ -181,7 +181,7 @@ export function LoginForm({ next }: { next?: string }) {
             href="mailto:bigbonnysam@gmail.com"
             style={{ color: "#C2747F", textDecoration: "none" }}
           >
-            Escribile a Sam
+            Escríbele a Sam
           </a>
           .
         </div>

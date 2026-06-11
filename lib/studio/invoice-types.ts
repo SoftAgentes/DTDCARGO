@@ -263,7 +263,7 @@ export function validateInvoiceInput(input: Partial<InvoiceInput>): {
 
   const lines = normalizeLines(input.lines);
   if (lines.length === 0) {
-    errors.lines = "Agregá al menos una línea con descripción y monto.";
+    errors.lines = "Agrega al menos una línea con descripción y monto.";
   } else if (
     lines.every((l) => l.qty * l.unitPrice <= 0)
   ) {

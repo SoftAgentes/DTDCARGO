@@ -493,7 +493,7 @@ export function FilingDetailDrawer({
                 margin: "8px 0 0",
               }}
             >
-              V1 sin upload real · marcá OK cuando el documento físico/escaneado
+              V1 sin upload real · marca OK cuando el documento físico/escaneado
               existe en otro sistema. Upload directo a Storage llega en SDD-0018.1.
             </p>
           </div>

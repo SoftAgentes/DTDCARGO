@@ -419,7 +419,9 @@ visual" arriba. Mínimo:
 - **Sentence case**, no UPPERCASE: "Enviar cotización" ✓ · "ENVIAR" ✗.
 - Verbos directos: "Enviar", "Crear", "Aceptar", "Marcar despachado".
 - **Cero emojis decorativos** en CTAs. (✓ check icon vía Icon.check sí.)
-- Castellano rioplatense/venezolano: "Enviá", "Marcá", "Aceptá".
+- Castellano venezolano neutro — TUTEO, cero voseo: "Envía", "Marca",
+  "Acepta" (nunca "Enviá/Marcá/Aceptá"; el voseo es argentino, no se habla
+  en Venezuela).
 - Estado loading: gerundio + ellipsis: "Enviando…", "Procesando…",
   "Marcando…".
 - Estado success: participio pasado: "Enviado al cliente",
@@ -519,7 +521,9 @@ donde el user podrá elegir formato VE (`12.323,50`) vs US
 ## Convenciones operativas
 
 - **MARKBOX** = ID estable de cliente, formato `DTD-NNNN`. Autogenerado por
-  `supabase.rpc("next_markbox", { p_tenant_id })` — nunca lo asignás manual.
+  `supabase.rpc("next_markbox", { p_tenant_id })` — nunca lo asignas manual.
+  De cara al usuario el nombre visible es **"Shipping Mark"** (SDD-0065);
+  `markbox` queda SOLO como identificador interno (columnas, RPCs, props).
 - **Multi-tenant**: todas las tablas tienen `tenant_id` con RLS. Resolver
   siempre desde `user_tenants` en cada server action.
 - **Soft delete**: nunca `DELETE`. Setear `deleted_at = now()` (acción
@@ -529,7 +533,7 @@ donde el user podrá elegir formato VE (`12.323,50`) vs US
 - **Sentence case** en CTAs: `+ Nueva cotización`, no `+ NUEVA COTIZACIÓN`
   (regla BRAND §Tono). El único uppercase válido es eyebrows con
   `text-transform: uppercase` vía CSS.
-- **Idioma**: castellano rioplatense/venezolano (vos, "che", "embarque").
+- **Idioma**: castellano venezolano neutro (tuteo, cero voseo; "embarque").
   Términos comerciales en mayúscula solo si son acrónimos (DDP, LCL, FCL,
   CBM, RIF, IGTF, IVA, SENIAT, MARKBOX, DUA, HS, ETA).
 

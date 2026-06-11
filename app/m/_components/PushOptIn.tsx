@@ -229,7 +229,7 @@ export function PushOptIn({
               marginTop: 2,
             }}
           >
-            {tt(lang, "Activá desde el navegador", "请在浏览器设置中开启")}
+            {tt(lang, "Activa desde el navegador", "请在浏览器设置中开启")}
           </span>
         )}
       </span>

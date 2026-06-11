@@ -213,7 +213,7 @@ export function CostingClient({
           <EmptyState
             eyebrow="Costing & Margen"
             title="Todavía no hay embarques para costear"
-            description="Cuando registres embarques vas a poder cargar sus costos por categoría y ver el margen real contra la facturación. Mientras tanto podés definir Templates por ruta para prellenar costos."
+            description="Cuando registres embarques vas a poder cargar sus costos por categoría y ver el margen real contra la facturación. Mientras tanto puedes definir Templates por ruta para prellenar costos."
           />
         )}
 
@@ -736,7 +736,7 @@ function BreakdownView({ totals, money }: { totals: CostingTotals; money: Money 
       <EmptyState
         eyebrow="Desglose por categoría"
         title="Sin costos cargados"
-        description="Cargá los costos de tus embarques desde el Cost Editor para ver el desglose por categoría."
+        description="Carga los costos de tus embarques desde el Cost Editor para ver el desglose por categoría."
       />
     );
   }
@@ -917,9 +917,9 @@ function TemplatesView({
                 maxWidth: "70ch",
               }}
             >
-              Definí costos default por <strong>ruta + servicio</strong>. Cuando
+              Define costos default por <strong>ruta + servicio</strong>. Cuando
               registres un embarque nuevo en esa combinación, los costos se
-              prellenan automáticamente. Después ajustás si hay diferencias
+              prellenan automáticamente. Después ajustas si hay diferencias
               específicas.
             </div>
           </div>
@@ -940,7 +940,7 @@ function TemplatesView({
         <EmptyState
           eyebrow="Templates por ruta"
           title="Todavía no hay templates"
-          description="Creá un template de costos por ruta para prellenar el costeo de los embarques nuevos de esa combinación."
+          description="Crea un template de costos por ruta para prellenar el costeo de los embarques nuevos de esa combinación."
         />
       ) : (
         <Card style={{ overflow: "hidden" }}>

@@ -68,7 +68,7 @@ export async function PATCH(
       error.code === "P0001"
         ? "Bug no encontrado."
         : error.code === "42501"
-          ? "No tenés permiso para cambiar el estado de este bug."
+          ? "No tienes permiso para cambiar el estado de este bug."
           : error.code === "P0002"
             ? "El bug ya está en un estado final."
             : error.code === "P0003"

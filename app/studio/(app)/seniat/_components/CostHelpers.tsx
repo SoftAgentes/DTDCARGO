@@ -63,7 +63,7 @@ export function CostHelpers({ onApplyIgtf, onApplyIva }: Props) {
               marginTop: 3,
             }}
           >
-            Ingresá el valor base de la mercadería y aplicá las tasas.
+            Ingresa el valor base de la mercadería y aplica las tasas.
           </div>
         </div>
       </div>

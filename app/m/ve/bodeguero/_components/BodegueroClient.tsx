@@ -250,7 +250,7 @@ function OdList({
             margin: 0,
           }}
         >
-          Cuando el admin asigne ODs nuevas las vas a ver acá. Refrescá la
+          Cuando el admin asigne ODs nuevas las vas a ver acá. Refresca la
           pantalla para chequear.
         </p>
       </div>
@@ -1075,7 +1075,7 @@ function SplitModal({
           {reason === "otro" && (
             <div>
               <label className="studio-label" htmlFor="split-text">
-                Especificá
+                Especifica
               </label>
               <input
                 id="split-text"
@@ -1485,7 +1485,7 @@ function ReassignModal({
                   marginBottom: 8,
                 }}
               >
-                ¿Confirmás la reasignación? Acción destructiva.
+                ¿Confirmas la reasignación? Acción destructiva.
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button

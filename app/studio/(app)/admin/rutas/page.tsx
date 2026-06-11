@@ -54,7 +54,7 @@ export default async function AdminRoutesPage() {
               maxWidth: "76ch",
             }}
           >
-            Configurá las rutas operativas y el catálogo de ciudades destino.
+            Configura las rutas operativas y el catálogo de ciudades destino.
             Las rutas se usan al armar Órdenes de Despacho. Las ciudades alimentan
             los formularios de cliente y de carga.
           </p>

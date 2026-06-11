@@ -91,7 +91,7 @@ export async function createClientAction(
   // SDD-0032: defensive double check del formato post-RPC
   if (!validateMarkboxFormat(markbox)) {
     return {
-      error: `MARKBOX inválido generado: ${markbox}. Verificá el RPC next_markbox.`,
+      error: `Shipping Mark inválido generado: ${markbox}. Verifica el RPC next_markbox.`,
     };
   }
 
@@ -192,7 +192,7 @@ export async function geocodeClientAddressAction(
 > {
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { ok: false, error: "Iniciá sesión primero." };
+  if (!userResp.user) return { ok: false, error: "Inicia sesión primero." };
 
   // Default a Venezuela (la mayoría de clientes están allá). Si la
   // dirección incluye otro país, Nominatim igual lo intenta — el
@@ -234,7 +234,7 @@ export async function invitePortalAction(
 
   if (error) {
     const msg = error.message.includes("no tiene email")
-      ? "El cliente no tiene email — agregalo antes de habilitar el portal."
+      ? "El cliente no tiene email — agrégalo antes de habilitar el portal."
       : `No se pudo habilitar el portal: ${error.message}`;
     return { error: msg };
   }
@@ -305,7 +305,7 @@ export async function verifyIdentityAction(
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   // Tenant del usuario (para el filtro defensivo del UPDATE + la alerta).
   const { data: link } = await supabase
@@ -383,7 +383,7 @@ export async function markIdentityAction(
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { data: link } = await supabase
     .from("user_tenants")

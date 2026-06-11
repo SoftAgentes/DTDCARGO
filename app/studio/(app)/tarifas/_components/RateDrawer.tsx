@@ -101,7 +101,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
     if (result.fieldErrors) {
       const firstErr =
         Object.values(result.fieldErrors).find((v) => !!v) ??
-        "Revisá los campos.";
+        "Revisa los campos.";
       setCreateError(firstErr);
       return { error: firstErr };
     }
@@ -118,7 +118,7 @@ export function RateDrawer({ mode, rate, onClose }: Props) {
       );
       onClose();
     } else if (postAction === "reset") {
-      toast.success("Tarifa creada · cargá la siguiente", {
+      toast.success("Tarifa creada · carga la siguiente", {
         link: {
           href: `/studio/tarifas?highlight=${encodeURIComponent(id)}&hl-tone=warm`,
           label: "Ver en listado",

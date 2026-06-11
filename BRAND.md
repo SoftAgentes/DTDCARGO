@@ -144,7 +144,7 @@ Tres familias, **ninguna otra**:
 ### Reglas
 - **Archivo Black** se usa SOLO para títulos y display (H1, H2 grandes, KPI values, codes destacados).
 - **Archivo regular** para todo el body, labels, buttons.
-- **JetBrains Mono** para códigos: MARKBOX (`DTD-XXXX`), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
+- **JetBrains Mono** para códigos: Shipping Mark (`DTD-XXXX` — nombre visible "Shipping Mark", SDD-0065; `markbox` solo como identificador interno), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
 - **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
 
 ### ❌ Fuentes PROHIBIDAS
@@ -228,7 +228,7 @@ Si el usuario pide algo así, **avisarle** y proponer alternativa que respete el
 - Estilos: **inline styles con tokens CSS** o classes del sistema. **No** Tailwind, **no** CSS-in-JS libs, **no** styled-components.
 - Archivos `.jsx` cargados via `<script type="text/babel" src=...>`.
 - Cada componente que se reutiliza globalmente se expone en `window.*` (ej: `window.ERPUI`, `window.Icon`, `window.ERPData`).
-- Mock data realista de DTD Cargo: rutas CN→VE, MARKBOX `DTD-XXXX`, containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
+- Mock data realista de DTD Cargo: rutas CN→VE, Shipping Mark `DTD-XXXX`, containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
 
 ---
 

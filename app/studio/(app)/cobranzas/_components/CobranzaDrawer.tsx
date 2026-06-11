@@ -752,7 +752,7 @@ function HistorySection({
           Bitácora de gestión · {activities.length}
         </div>
         {activities.length === 0 ? (
-          <EmptyBox text="Sin gestiones registradas. Usá los botones de arriba para registrar el seguimiento." />
+          <EmptyBox text="Sin gestiones registradas. Usa los botones de arriba para registrar el seguimiento." />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
             {activities.map((a, i) => (

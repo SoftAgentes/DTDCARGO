@@ -59,7 +59,7 @@ export function EditOperarioDrawer({
   return (
     <DrawerShell
       title={`Editar · ${operario.display_name}`}
-      subtitle="No toca el PIN. Usá Reset PIN si necesitás cambiarlo."
+      subtitle="No toca el PIN. Usa Reset PIN si necesitas cambiarlo."
       onClose={onClose}
       pending={isPending}
       width={560}

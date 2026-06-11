@@ -416,7 +416,7 @@ export function validateDocumentInput(
 
   const folder = (raw.folder ?? "").trim();
   if (!folder) {
-    errors.folder = "Elegí una carpeta.";
+    errors.folder = "Elige una carpeta.";
   } else if (!FOLDER_SUB_IDS.has(folder)) {
     errors.folder = "Carpeta inexistente.";
   }

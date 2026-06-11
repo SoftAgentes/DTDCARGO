@@ -698,7 +698,7 @@ function AcceptancesView({
           description={
             acceptances.length === 0
               ? "Cuando un cliente acepte los T&C de un estimado, el acuse aparecerá acá (inmutable y auditado)."
-              : "Probá ajustar la búsqueda o el filtro de documento."
+              : "Prueba ajustar la búsqueda o el filtro de documento."
           }
         />
       ) : (

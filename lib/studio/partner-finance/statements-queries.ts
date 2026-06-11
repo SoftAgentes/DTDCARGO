@@ -212,7 +212,7 @@ export async function closeStatement(
   // 2. Guard de cierre: si quedan líneas a revisar, no se cierra.
   if (!countLines(liveLines).canClose) {
     throw new Error(
-      "Quedan líneas a revisar en este estado: confirmá o rechazá las sugerencias antes de cerrar el período.",
+      "Quedan líneas a revisar en este estado: confirma o rechaza las sugerencias antes de cerrar el período.",
     );
   }
 

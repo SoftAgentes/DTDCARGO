@@ -59,7 +59,7 @@ export type ClientUserStatus = "invited" | "active" | "revoked";
 /** El cliente logueado (su propio registro, vía RLS del portal). */
 export type PortalClient = {
   id: string;
-  /** Código de cliente DTD-XXXX (de cara al cliente: "MARKBOX", nunca "Shipping Mark"). */
+  /** Código de cliente DTD-XXXX (nombre visible: "Shipping Mark" — SDD-0065; `markbox` es solo el identificador interno). */
   markbox: string;
   name: string;
   email: string | null;
@@ -74,10 +74,10 @@ export type PortalClient = {
 
 /**
  * El texto exacto que el cliente le pide a su proveedor en China que escriba en
- * **cada caja** como Shipping Mark (唛头): su MARKBOX. Así la mercancía llega
- * identificada a la bodega de Yiwu y se sabe de quién es. Es el VALOR del perfil
- * (de cara al cliente el término es "MARKBOX"; sólo al hablar del proveedor se
- * nombra "Shipping Mark").
+ * **cada caja** como Shipping Mark (唛头): su código DTD-XXXX. Así la mercancía
+ * llega identificada a la bodega de Yiwu y se sabe de quién es. Es el VALOR del
+ * perfil. (Nombre visible en TODA la UI: "Shipping Mark" — SDD-0065; `markbox`
+ * queda solo como identificador interno de código/DB.)
  *
  * Función pura (testeable, reusable por un botón "copiar" del lado cliente) que
  * NORMALIZA el código a como se rotula físicamente: en mayúsculas y sin espacios

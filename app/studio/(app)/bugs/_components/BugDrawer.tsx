@@ -448,7 +448,7 @@ function ConversationTab({
             minLength={1}
             maxLength={4000}
             rows={4}
-            placeholder="Escribí tu respuesta…"
+            placeholder="Escribe tu respuesta…"
             disabled={replyPending}
             style={{
               padding: 12,
@@ -749,16 +749,16 @@ function ActionsTab({
         >
           {copyStatus === "copying" && "Generando…"}
           {copyStatus === "ok" && "✓ Copiado al clipboard"}
-          {copyStatus === "err" && "Error · reintentá"}
+          {copyStatus === "err" && "Error · reintenta"}
           {copyStatus === "idle" && "Copiar prompt para Claude Code"}
         </button>
         <p style={{ margin: "8px 0 0", fontSize: 11, color: "var(--ink-soft)" }}>
-          Pegá el prompt en Claude Code (otra ventana), revisá el fix que te propone
-          y aplicalo vos. Cuando lo commitees usá{" "}
+          Pega el prompt en Claude Code (otra ventana), revisa el fix que te propone
+          y aplícalo tú. Cuando lo commitees usa{" "}
           <code style={{ fontFamily: "var(--font-mono, monospace)", color: "var(--wine)" }}>
             fix: {bug.folio}
           </code>{" "}
-          como convención de trazabilidad. <strong>Después</strong> cambiá el estado a
+          como convención de trazabilidad. <strong>Después</strong> cambia el estado a
           “Resuelto” a mano desde acá — no hay cierre automático.
         </p>
       </section>

@@ -50,7 +50,7 @@ const ACCESS_DENIED_HTML = `<!doctype html>
     <span class="badge">DTD Cargo · Interno</span>
     <h1>Acceso <span>restringido</span></h1>
     <p>Esta presentación interna requiere un token de acceso.</p>
-    <p>Si formás parte del equipo DTD, pedile el link completo a Sam o consultá el archivo standalone que se compartió por WhatsApp.</p>
+    <p>Si formas parte del equipo DTD, pídele el link completo a Sam o consulta el archivo standalone que se compartió por WhatsApp.</p>
     <p style="margin-top:32px;font-size:13px;color:rgba(255,255,255,0.4)">URL esperada: <code>/admin/cbm-estudio?token=XXX</code></p>
     <p style="margin-top:24px"><a href="/">Volver al sitio público</a></p>
   </div>

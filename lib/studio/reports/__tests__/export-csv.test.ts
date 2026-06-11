@@ -124,7 +124,7 @@ describe("buildViewCsv · Comerciales · por cliente", () => {
     };
     const csv = buildViewCsv({ category: "com", rep: "by-client", byClient: data, today: TODAY });
     const lines = csv!.content.split("\r\n");
-    expect(lines[0]).toBe("#,MARKBOX,Cliente,Nivel,Facturado USD 12m");
+    expect(lines[0]).toBe("#,Shipping Mark,Cliente,Nivel,Facturado USD 12m");
     expect(lines[1]).toBe("1,DTD-0001,Acme,Oro,5000");
     expect(lines).toHaveLength(2); // Zeta (billed 0) excluido
   });

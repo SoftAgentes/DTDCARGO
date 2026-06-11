@@ -186,7 +186,7 @@ export function StateActionsPanel({
             margin: 0,
           }}
         >
-          Sin acciones sugeridas. Usá &quot;Agregar evento manual&quot; abajo.
+          Sin acciones sugeridas. Usa &quot;Agregar evento manual&quot; abajo.
         </p>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

@@ -65,12 +65,12 @@ export function Step0Brief({ initialBrief, onSubmit, onError }: Props) {
           className="mt-3 text-ink"
           style={{ fontSize: 22, fontWeight: 800, lineHeight: 1.2 }}
         >
-          ¿Sobre qué <span className="text-wine">querés escribir</span>?
+          ¿Sobre qué <span className="text-wine">quieres escribir</span>?
         </h2>
         <p className="mt-2 text-[13.5px] text-grey-500 max-w-[70ch] leading-relaxed">
-          Contale el tema, pegale links de referencia si los tenés, y dejá claro
+          Cuéntale el tema, pégale links de referencia si los tienes, y deja claro
           qué se debe llevar el lector. El tipo editorial, la categoría y el
-          tono los sugiere Claude automáticamente — los podés editar después.
+          tono los sugiere Claude automáticamente — los puedes editar después.
         </p>
       </div>
 
