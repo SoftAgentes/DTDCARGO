@@ -9,13 +9,13 @@ import { test, expect } from "@playwright/test";
  */
 
 test.describe("rutas públicas críticas", () => {
-  test("/ renderiza hero con DTD Cargo (v3.0 wordmark + tagline)", async ({ page }) => {
+  test("/ renderiza hero con DTD Cargo (wordmark + tagline del brand book)", async ({ page }) => {
     await page.goto("/");
-    // v3.0 brand: "DTD Cargo" (dos palabras, Cargo capitalizado). Antes era
+    // Brand book: "DTD Cargo" (dos palabras, Cargo capitalizado). Antes era
     // "DTD·CARGO" (con middot, CARGO todo mayúsculas).
     await expect(page).toHaveTitle(/DTD\s+Cargo/);
-    // Nuevo tagline en hero: "Con confianza, de China a tu puerta."
-    await expect(page.locator("h1")).toContainText("Con confianza");
+    // Tagline: "Con Confianza, de China a tu puerta." (C mayúscula, 2026-06-05).
+    await expect(page.locator("h1")).toContainText("Con Confianza");
     await expect(page.locator("h1")).toContainText("de China a tu puerta");
     // El cotizador del hero sigue mencionando China.
     await expect(page.locator("body")).toContainText(/China|Yiwu|cotizar/i);

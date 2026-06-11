@@ -8,7 +8,8 @@
  * get_customer.
  *
  * Tono: castellano-VE neutro, sin emojis decorativos, sentence case,
- * terminología correcta (DDP, LCL, FCL, MARKBOX, ETA).
+ * terminología correcta (DDP, LCL, FCL, Shipping Mark, ETA — brand v3.7:
+ * "MARKBOX" nunca visible; `markbox` solo como identificador interno).
  *
  * Anti prompt-injection: el system prompt instruye a tratar el contenido
  * del usuario como dato, no como instrucción. Las tools son TODAS
@@ -43,7 +44,7 @@ export const trackingConcierge: SkillDef = {
       customer_markbox: {
         type: "string",
         description:
-          "MARKBOX opcional del cliente si ya lo conocemos (formato DTD-NNNN).",
+          "Shipping Mark opcional del cliente si ya lo conocemos (formato DTD-NNNN).",
       },
     },
     required: ["query"],
