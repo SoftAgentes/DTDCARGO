@@ -112,7 +112,7 @@ export function TesoreriaClient({
               maxWidth: "62ch",
             }}
           >
-            Cola de pagos sobre las cuentas por pagar a proveedores. Causá la CxP
+            Cola de pagos sobre las cuentas por pagar a proveedores. Causa la CxP
             (con asiento), registra la orden de pago (que baja el saldo y asienta
             la salida de caja) y sigue las remesas a China.
           </p>

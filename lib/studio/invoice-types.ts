@@ -252,9 +252,9 @@ export function validateInvoiceInput(input: Partial<InvoiceInput>): {
   const errors: InvoiceActionState["fieldErrors"] = {};
 
   if (!input.client_markbox?.trim())
-    errors.client_markbox = "Indicá el Shipping Mark del cliente.";
+    errors.client_markbox = "Indica el Shipping Mark del cliente.";
   if (!input.client_name?.trim())
-    errors.client_name = "Indicá el nombre del cliente.";
+    errors.client_name = "Indica el nombre del cliente.";
 
   const currency =
     input.currency && VALID_CURRENCIES.includes(input.currency)
@@ -278,7 +278,7 @@ export function validateInvoiceInput(input: Partial<InvoiceInput>): {
   if (currency === "VES") {
     const fx = Number(input.fx_rate);
     if (!Number.isFinite(fx) || fx <= 0) {
-      errors.fx_rate = "Indicá la tasa BCV para facturar en bolívares.";
+      errors.fx_rate = "Indica la tasa BCV para facturar en bolívares.";
     }
   }
 

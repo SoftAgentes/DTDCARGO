@@ -55,14 +55,14 @@ export function SupplierMessageModal({
 
   const msgEs = `Hola ${supplier.contactName || "equipo"},
 
-Adjunto te paso ${totalLabels} etiquetas DTD Cargo para ${totalBoxes} cajas${copiesNote}. Pegalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).
+Adjunto te paso ${totalLabels} etiquetas DTD Cargo para ${totalBoxes} cajas${copiesNote}. Pégalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).
 
 Shipping Mark del cliente: ${client.markbox}
 Cliente: ${client.name}${client.company ? " · " + client.company : ""}
 Total cajas: ${totalBoxes}
 Etiquetas por caja: ${copiesPerBox}
 
-Cualquier duda escribime por WeChat: ${warehouse.wechat}
+Cualquier duda escríbeme por WeChat: ${warehouse.wechat}
 
 Gracias!
 DTD Cargo`;

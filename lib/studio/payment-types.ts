@@ -618,7 +618,7 @@ export function validateActivityInput(input: Partial<ActivityInput>): {
     errors.nextFollowup = "Fecha de seguimiento inválida (YYYY-MM-DD).";
   }
   if (kind === "promesa" && !promisedDate) {
-    errors.promisedDate = "Indicá la fecha comprometida de la promesa.";
+    errors.promisedDate = "Indica la fecha comprometida de la promesa.";
   }
 
   const promisedAmount =

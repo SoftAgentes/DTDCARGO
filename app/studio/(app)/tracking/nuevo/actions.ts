@@ -114,7 +114,7 @@ export async function createShipment(
         fieldErrors: { code: "Código repetido." },
       };
     }
-    return { error: "No pudimos crear el envío. Intentá de nuevo." };
+    return { error: "No pudimos crear el envío. Intenta de nuevo." };
   }
 
   // Disparar reglas de mailing para shipment_created (best-effort, no rompe op).

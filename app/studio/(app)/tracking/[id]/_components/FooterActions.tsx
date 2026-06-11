@@ -92,7 +92,7 @@ export function FooterActions({
   const handleDelete = () => {
     // Doble verificacion: tipeo del code debe ser exacto
     if (deleteTypedCode.trim() !== shipmentCode) {
-      setError(`Tipeá el código exacto del envío: ${shipmentCode}`);
+      setError(`Escribe el código exacto del envío: ${shipmentCode}`);
       return;
     }
     setError(null);
@@ -133,7 +133,7 @@ export function FooterActions({
           type="button"
           onClick={() => setModal("delete")}
           className="studio-btn studio-btn-ghost studio-btn-sm"
-          title="Oculta el envío y sus eventos del listado (soft delete). No se borra de la base de datos — puede recuperarse desde Supabase si hace falta. Pedirá tipear el código del envío para confirmar."
+          title="Oculta el envío y sus eventos del listado (soft delete). No se borra de la base de datos — puede recuperarse desde Supabase si hace falta. Pedirá escribir el código del envío para confirmar."
         >
           Eliminar envío
         </button>
@@ -281,7 +281,7 @@ export function FooterActions({
             </p>
 
             <label className="studio-label" htmlFor="delete-typed-code">
-              Para confirmar, tipeá el código del envío:{" "}
+              Para confirmar, escribe el código del envío:{" "}
               <span
                 style={{
                   font: "700 11.5px/1 var(--f-mono)",

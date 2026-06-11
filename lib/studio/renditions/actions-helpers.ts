@@ -202,7 +202,7 @@ export async function emitRenditionFor(
       if (bcode === "23505") {
         return {
           error:
-            "Uno o más recibos ya fueron incluidos en otra rendición. Recargá el período e intentá de nuevo.",
+            "Uno o más recibos ya fueron incluidos en otra rendición. Recarga el período e intenta de nuevo.",
         };
       }
       return {
@@ -264,7 +264,7 @@ export async function voidRenditionFor(
 ): Promise<VoidRenditionResult> {
   const reason = String(reasonRaw ?? "").trim();
   if (!reason) {
-    return { error: "Indicá el motivo de la anulación." };
+    return { error: "Indica el motivo de la anulación." };
   }
 
   const { tenantId, userId, error: authError } = await resolveAdminTenant(

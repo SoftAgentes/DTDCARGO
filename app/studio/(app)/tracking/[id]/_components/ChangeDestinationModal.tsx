@@ -91,7 +91,7 @@ export function ChangeDestinationModal({ shipment, onClose }: Props) {
     setServerError(null);
 
     const errors: Record<string, string> = {};
-    if (!newDest.trim()) errors.newDestination = "Indicá el nuevo destino.";
+    if (!newDest.trim()) errors.newDestination = "Indica el nuevo destino.";
     if (newDest.trim().toLowerCase() === currentDest.toLowerCase())
       errors.newDestination = "El nuevo destino es igual al actual.";
     const feeN = Number(fee);

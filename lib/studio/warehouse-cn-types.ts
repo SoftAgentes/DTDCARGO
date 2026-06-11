@@ -345,7 +345,7 @@ export function validateReceiptInput(input: Partial<WarehouseReceiptInput>): {
 
   // Warehouse
   const warehouse_id = input.warehouse_id?.trim() ?? "";
-  if (!warehouse_id) errors.warehouse_id = "Indicá el almacén.";
+  if (!warehouse_id) errors.warehouse_id = "Indica el almacén.";
 
   // Cliente vs huérfana (XOR-ish)
   const is_orphan = !!input.is_orphan;
@@ -353,13 +353,13 @@ export function validateReceiptInput(input: Partial<WarehouseReceiptInput>): {
 
   if (!is_orphan && !client_markbox) {
     errors.client_markbox =
-      "Indicá el Shipping Mark del cliente, o marcala como caja huérfana.";
+      "Indica el Shipping Mark del cliente, o márcala como caja huérfana.";
   }
 
   // Supplier (obligatorio salvo huérfana sin supplier conocido)
   const supplier_name = input.supplier_name?.trim() || null;
   if (!is_orphan && !supplier_name) {
-    errors.supplier_name = "Indicá el supplier del que recibiste la caja.";
+    errors.supplier_name = "Indica el supplier del que recibiste la caja.";
   }
 
   // Boxes

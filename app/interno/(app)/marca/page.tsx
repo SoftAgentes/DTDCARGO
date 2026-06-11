@@ -431,7 +431,7 @@ export default function MarcaHubPage() {
                 ¿Falta un archivo fuente?
               </h3>
               <p className="mt-2 text-[14.5px] text-white/70 leading-[1.55] max-w-[52ch]">
-                Pedí los vectores (SVG) o versiones de impresión y te los pasamos.
+                Pide los vectores (SVG) o versiones de impresión y te los pasamos.
               </p>
             </div>
             <a
