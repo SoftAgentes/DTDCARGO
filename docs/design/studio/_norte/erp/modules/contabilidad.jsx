@@ -793,7 +793,7 @@ function NewAccountDrawer({ open, onClose }) {
             <div>
               <Label>Métodos de pago que recibe</Label>
               <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -2, marginBottom: 8 }}>
-                Marcá los que entran a esta cuenta. Uno queda <b>por defecto</b> (se usa al cobrar/pagar sin tener que elegirlo); el resto quedan opcionales.
+                Marca los que entran a esta cuenta. Uno queda <b>por defecto</b> (se usa al cobrar/pagar sin tener que elegirlo); el resto quedan opcionales.
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {C.PAYMENT_METHODS.map(m => {

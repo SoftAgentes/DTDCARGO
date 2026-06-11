@@ -1642,7 +1642,7 @@ function LabelGenerator({ code, me, onClose }) {
         <div style={{ padding: 22 }}>
           {phase === 'docs' && (
             <div>
-              <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Paso 1 · Adjuntá la compra</div>
+              <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Paso 1 · Adjunta la compra</div>
               <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 14px' }}>
                 Antes de generar el código, sube los documentos de la compra. <b>El packing list es lo mínimo</b> — fotos y factura son recomendables para mejor trazabilidad.
               </p>

@@ -383,7 +383,7 @@ function PMIntro({ onLogin, onRegister }) {
   const I = window.Icon;
   const props = [
   { icon: 'ship', t: 'Tracking en vivo' },
-  { icon: 'invoice', t: 'Pagá sin llamadas' },
+  { icon: 'invoice', t: 'Paga sin llamadas' },
   { icon: 'calc', t: 'Estima al instante' }];
 
   return (

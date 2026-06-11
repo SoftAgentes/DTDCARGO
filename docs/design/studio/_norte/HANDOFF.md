@@ -82,11 +82,11 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
   SearchSelect, CatalogLines`, columnas configurables).
 - **Apps de operario · reuso de flujos:** las apps móviles exponen sus sub-flujos para
   que el launcher multi-rol (`Operario Multi.html`) los reuse sin re-login ni rediseño:
-  `operario/almacenista.jsx` → `window.AlmacenistaFlows = { ReceptionFlow, DispatchFlow }`;
+  `operario/bodeguero.jsx` → `window.BodegueroFlows = { ReceptionFlow, DispatchFlow }`;
   `operario/ve.jsx` (envuelto en IIFE) → `window.OperarioVEFlows = { DeliveryFlow }`.
   **Regla:** todo `.jsx` que se co-cargue con otro va en IIFE (escape solo `window.X`),
   porque los scripts Babel comparten scope global y los helpers homónimos (`Steps`,
-  `Login`, `MobileHeader`…) se pisan. `ve.jsx` ya migró; `almacenista.jsx` sigue en
+  `Login`, `MobileHeader`…) se pisan. `ve.jsx` ya migró; `bodeguero.jsx` sigue en
   scope global (funciona porque su par, `ve.jsx`, está aislado).
 
 ---
@@ -125,7 +125,7 @@ IVA", desglose de IVA en Facturación. Reactivo vía `dtd-cfg-changed`. En backe
 | `Portal del Cliente.html` + `portal/app.jsx` | Portal externo del cliente |
 | `Registro Cliente.html` + `portal/registro.jsx` | Alta de cliente |
 | `Portal Cliente Mobile.html`, `Mobile ERP.html` | Versiones móviles |
-| `Operario CN/VE/Multi.html`, `Almacenista VE.html`, `Transportista.html` | Apps de operario |
+| `Operario CN/VE/Multi.html`, `Bodeguero VE.html`, `Camionero.html` | Apps de operario |
 | `Despacho · Vista 3.html`, `Mapa de Proceso.html` | Operación / proceso |
 | `Brand Book DTD v3.7.html`, `Logo Oficial.html`, `Iconos de Perfil.html`, `Aplicaciones de Marca.html` | Identidad |
 | `CLAUDE.md` | **Guardrails de marca — LEER PRIMERO** |

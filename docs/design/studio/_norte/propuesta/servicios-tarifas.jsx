@@ -360,7 +360,7 @@
             </div>
             <h1 style={{ font: '900 30px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.025em', margin: '0 0 8px' }}>Servicios y Tarifas</h1>
             <p style={{ font: '500 14px/1.6 var(--f-sans)', color: 'var(--ink-soft)', margin: 0, maxWidth: 760 }}>
-              Catálogo de lo que DTD ofrece, con la lógica de QuickBooks adaptada al negocio. Es interactivo: probá <b>Nuevo</b> (elegir tipo) y clic en una fila para ver la <b>tarifa con su historial</b>.
+              Catálogo de lo que DTD ofrece, con la lógica de QuickBooks adaptada al negocio. Es interactivo: prueba <b>Nuevo</b> (elegir tipo) y clic en una fila para ver la <b>tarifa con su historial</b>.
             </p>
           </div>
         </header>}
@@ -514,7 +514,7 @@
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
-          {comps.length === 0 && <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Todavía no agregaste componentes. Escribí arriba o tocá el campo para ver todos.</div>}
+          {comps.length === 0 && <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Todavía no agregaste componentes. Escribe arriba o toca el campo para ver todos.</div>}
           {comps.map(c => { const x = byCode(c); if (!x) return null; return (
             <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--wine)', background: 'var(--wine-tint)' }}>
               <Thumb item={x} size={24} />
@@ -707,7 +707,7 @@
                   {purchased && (
                     <div>
                       <Label hint="sin efecto contable · solo sugerencia">Proveedor sugerido</Label>
-                      <window.ERPUI.SearchSelect value={supplier} placeholder="Buscá o crea un proveedor…" createLabel="Crear proveedor"
+                      <window.ERPUI.SearchSelect value={supplier} placeholder="Busca o crea un proveedor…" createLabel="Crear proveedor"
                         onChange={(v) => setSupplier(v)}
                         onCreate={(name) => { const n = (name || '').trim(); if (!n) return; setNewSupps(x => x.includes(n) ? x : [...x, n]); setSupplier(n); }}
                         options={[...SUPPLIERS_CN, ...newSupps].map(s => ({ value: s, label: s, sub: newSupps.includes(s) ? 'Proveedor nuevo' : 'Proveedor CN' }))} />
@@ -899,7 +899,7 @@
                 <div style={{ padding: 14, border: '1px solid var(--wine)', borderRadius: 'var(--r-lg)', background: 'var(--wine-tint)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div>
                     <Label>Proveedor</Label>
-                    <window.ERPUI.SearchSelect value={npName} placeholder="Buscá o crea un proveedor…" createLabel="Crear proveedor"
+                    <window.ERPUI.SearchSelect value={npName} placeholder="Busca o crea un proveedor…" createLabel="Crear proveedor"
                       onChange={(v) => setNpName(v)}
                       onCreate={(name) => { const n = (name || '').trim(); if (!n) return; setNewSupps(x => x.includes(n) ? x : [...x, n]); setNpName(n); }}
                       options={[...PROVIDERS, ...SUPPLIERS_CN, ...newSupps].filter((s, i, a) => a.indexOf(s) === i).map(s => ({ value: s, label: s, sub: newSupps.includes(s) ? 'Proveedor nuevo' : 'Proveedor' }))} />

@@ -346,7 +346,7 @@ Maps: https://maps.app.goo.gl/dtd-pbl-valencia`
               style={{ width: '100%', padding: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink)', outline: 'none', resize: 'vertical' }}
             />
             <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--info-bg)', borderRadius: 'var(--r-sm)', font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-              Incluye link de Google Maps con el destino y resumen de la carga. Editá antes de enviar si necesitas.
+              Incluye link de Google Maps con el destino y resumen de la carga. Edita antes de enviar si necesitas.
             </div>
             <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <BigButton label="Cancelar" onClick={onClose} variant="secondary" />
@@ -411,7 +411,7 @@ function PickItems({ truck, driver, loadout, setLoadout, onBack, onSeal }) {
           <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 999, overflow: 'hidden' }}>
             <div style={{ width: `${Math.min(100, usage)}%`, height: '100%', background: usage > 100 ? 'var(--danger)' : usage > 90 ? 'var(--warning)' : 'var(--wine-soft)' }} />
           </div>
-          {usage > 100 && <div style={{ marginTop: 6, font: '700 11px/1.3 var(--f-sans)', color: 'var(--warning)' }}>Excede capacidad · marcá parciales</div>}
+          {usage > 100 && <div style={{ marginTop: 6, font: '700 11px/1.3 var(--f-sans)', color: 'var(--warning)' }}>Excede capacidad · marca parciales</div>}
         </div>
       </div>
 

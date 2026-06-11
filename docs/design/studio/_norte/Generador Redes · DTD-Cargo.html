@@ -271,7 +271,7 @@
       <div class="fld"><label>Pill de la web (texto)</label><input type="text" id="st-web-in" value="dtdcargo.com" oninput="txt('st-web',this.value)"></div>
       <label class="chk"><input type="checkbox" checked onchange="show('st-web',this.checked)"> Mostrar pill de la web</label>
       <label class="chk"><input type="checkbox" id="st-safe-chk" checked onchange="safeGuides(this.checked)"> Ver guías de área segura (no salen en el PNG)</label>
-      <p class="hint"><b>Áreas seguras:</b> dejá los íconos de IG/WhatsApp/FB fuera de las zonas punteadas. Sirve para Story de Instagram/Facebook y Estado de WhatsApp.</p>
+      <p class="hint"><b>Áreas seguras:</b> deja los íconos de IG/WhatsApp/FB fuera de las zonas punteadas. Sirve para Story de Instagram/Facebook y Estado de WhatsApp.</p>
     </div>
   </div>
 
@@ -337,7 +337,7 @@
         <button id="qr-copy" class="alt" onclick="copyLink()">⧉ Copiar link</button>
         <button class="wine" onclick="dl('qr','qr-card', 1080,1080)">⬇ Descargar tarjeta QR</button>
       </div>
-      <p class="hint">El QR lleva al destino elegido. Pega el link en bio, ads o web; o imprimí la tarjeta. <b>No</b> le pongas color de marca al QR — el negro/blanco es lo que mejor escanea.</p>
+      <p class="hint">El QR lleva al destino elegido. Pega el link en bio, ads o web; o imprime la tarjeta. <b>No</b> le pongas color de marca al QR — el negro/blanco es lo que mejor escanea.</p>
     </div>
   </div>
 
@@ -695,7 +695,7 @@ function renderMs(){
     p.rows.forEach(r=>{ html+='<div class="ms-row"><span class="nm">'+r[0]+'<small>'+r[1]+'</small></span><span class="px">'+r[2]+'<small>'+r[3]+'</small></span></div>'; });
     html+='</div></div>';
   });
-  html+='<div class="ms-note"><span class="lbl">Áreas seguras · verticales 1080×1920</span>Dejá el texto importante <b>fuera de los bordes</b>: arriba ~250&nbsp;px (perfil, hora, íconos) y abajo ~310&nbsp;px (barra de respuesta / botones). En el generador, la pestaña <b>Story / Estado</b> ya marca estas zonas con guías punteadas que no salen en el PNG. Regla simple: <b>el dato clave, siempre centrado vertical</b>.</div>';
+  html+='<div class="ms-note"><span class="lbl">Áreas seguras · verticales 1080×1920</span>Deja el texto importante <b>fuera de los bordes</b>: arriba ~250&nbsp;px (perfil, hora, íconos) y abajo ~310&nbsp;px (barra de respuesta / botones). En el generador, la pestaña <b>Story / Estado</b> ya marca estas zonas con guías punteadas que no salen en el PNG. Regla simple: <b>el dato clave, siempre centrado vertical</b>.</div>';
   html+='</div>';
   wrap.innerHTML=html;
 }

@@ -6,6 +6,18 @@
 
 ## v2.5 · carga 2026-06-10 — **marca sincronizada a Brand Book v3.7 · sync 2026-06-10**
 
+> *Nota de reconciliación 2026-06-11:* dos lanes hicieron este sync en paralelo (PR #18 + worktree
+> practical-tesla); esta entrada consolida ambos. **Deltas exclusivos del lane B que también
+> entraron:** RIF canónico aplicado DENTRO de los 2 `.docx` legales (`legal/DTDCARGO_Acuerdo_
+> Operador…` + `…Terminos_Condiciones_DTD_v2.1.docx`, editados en su XML y verificados) · 97
+> fixes voseo→tuteo adicionales en `_norte/` (escapes del barrido de Cloud Design) · pack
+> "12 redondos"→"17" en `Aplicaciones de Marca` · `_archivo/uploads/` (79 MB) a `.gitignore`.
+> **Terminología (resolución final):** archivos/rutas técnicas = `bodeguero/camionero` (como
+> `app/m/ve/*`, no se renombran); texto visible de los mockups = "Almacenista/Transportista"
+> (sweep de main, 3ª re-aplicación, alineado al dato del SYNC "Almacenista y Transportista =
+> misma persona"). ⚠️ Pendiente Cloud Design: espejar RIF/voseo en su origen + regenerar
+> PNG/PDF exportados con RIF horneado + frase residual del pack viejo ("se vea redondo").
+
 Fuente: `Downloads/DTD-Cargo.zip` (133.9 MB crudo, 955 entradas → 747 archivos / 21 MB tras exclusiones de regla:
 `uploads/`, `_archivo/uploads/`, `backend/prisma/`, `scraps/`, `.design-canvas.state.json`) + `Downloads/Brand Book
 DTD v3.7 · standalone.html` (12 MB, autocontenido → publicado a la web, ver abajo). El ZIP trae su propio

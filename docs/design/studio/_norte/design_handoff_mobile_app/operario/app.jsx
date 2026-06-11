@@ -430,7 +430,7 @@ function Step1Photos({ t, reception, setReception, onBack, onNext }) {
 
   return (
     <div>
-      <MobileHeader title={t('1 de 4 · Fotos', '1/4 · 拍照')} subtitle={t('Tomá 3 fotos mínimo', '至少拍3张照片')} back={onBack} />
+      <MobileHeader title={t('1 de 4 · Fotos', '1/4 · 拍照')} subtitle={t('Toma 3 fotos mínimo', '至少拍3张照片')} back={onBack} />
       <Steps current={1} />
 
       <div style={{ padding: '0 16px 100px' }}>
@@ -478,7 +478,7 @@ function Step1Photos({ t, reception, setReception, onBack, onNext }) {
         }
 
         <div style={{ marginTop: 14, font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
-          {t('Tomá: 1) frente con etiqueta · 2) supplier label · 3) contenido · 4) daños si hay', '拍摄：1) 正面带标签 · 2) 供应商标签 · 3) 内容 · 4) 损坏（如有）')}
+          {t('Toma: 1) frente con etiqueta · 2) supplier label · 3) contenido · 4) daños si hay', '拍摄：1) 正面带标签 · 2) 供应商标签 · 3) 内容 · 4) 损坏（如有）')}
         </div>
       </div>
 
@@ -674,7 +674,7 @@ function Step3Data({ t, reception, setReception, onBack, onNext }) {
           }
           <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>{ranges.length === 0
             ? t('¿Un solo artículo? Describilo acá. Si la caja trae cosas distintas, toca “Rango” y se separa por número de caja.', '单一物品？在此描述。如箱内不同，点“范围”按箱号分开。')
-            : t('Editá la descripción de cada rango abajo. Peso y CBM por rango son opcionales (vacío = prorrateo).', '在下方编辑每个范围的描述。每个范围的重量和体积可选（留空=分摊）。')}</div>
+            : t('Edita la descripción de cada rango abajo. Peso y CBM por rango son opcionales (vacío = prorrateo).', '在下方编辑每个范围的描述。每个范围的重量和体积可选（留空=分摊）。')}</div>
         </div>
 
         {ranges.length > 0 &&
@@ -726,7 +726,7 @@ function Step3Data({ t, reception, setReception, onBack, onNext }) {
           return (
             <div style={{ padding: 14, background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
               <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t('Alertas de carga', '货物警报')}</div>
-              <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', margin: '4px 0 12px' }}>{t('Opcional · marcá si la mercancía tiene algún tema', '可选 · 如有问题请标记')}</div>
+              <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', margin: '4px 0 12px' }}>{t('Opcional · marca si la mercancía tiene algún tema', '可选 · 如有问题请标记')}</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {CATS.map((c) => {
                   const on = flags.includes(c.id);
@@ -920,7 +920,7 @@ function DispatchFlow({ t, lang, onBack, onDone }) {
         {step === 0 &&
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ padding: 14, background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-              {t('Antes de cargar: revisa el precinto del contenedor vacío y tomá varias fotos. Asegurate de que esté en buen estado.', '装货前: 检查空柜的铅封并拍摄多张照片。确保其状态良好。')}
+              {t('Antes de cargar: revisa el precinto del contenedor vacío y toma varias fotos. Asegúrate de que esté en buen estado.', '装货前: 检查空柜的铅封并拍摄多张照片。确保其状态良好。')}
             </div>
 
             <div>
@@ -1210,7 +1210,7 @@ function PrintQRSheet({ open, onClose, t, lang }) {
             <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8, maxWidth: '34ch', margin: '8px auto 0' }}>
               {target === 'local' ?
             t(`${boxes} etiquetas QR · ~30 seg`, `${boxes}张QR标签 · 约30秒`) :
-            t(`Sube a la oficina, conectá por Bluetooth e imprimí las ${boxes} etiquetas tú mismo.`, `上楼到办公室，通过蓝牙连接并自行打印${boxes}张标签。`)}
+            t(`Sube a la oficina, conecta por Bluetooth e imprime las ${boxes} etiquetas tú mismo.`, `上楼到办公室，通过蓝牙连接并自行打印${boxes}张标签。`)}
             </div>
             <code style={{ display: 'block', marginTop: 12, font: '700 13px/1 var(--f-mono)', color: 'var(--wine)' }}>QR-2026-{1042 + Math.floor(Math.random() * 100)}</code>
             <div style={{ marginTop: 22 }}>

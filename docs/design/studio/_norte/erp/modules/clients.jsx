@@ -135,7 +135,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
         <U.EmptyState
           icon={window.Icon.users(22)}
           title="No hay clientes que coincidan"
-          body="Ajustá los filtros o registrá un cliente nuevo. El código Shipping Mark se asigna automáticamente."
+          body="Ajusta los filtros o registra un cliente nuevo. El código Shipping Mark se asigna automáticamente."
           action={<U.Btn variant="primary" icon={window.Icon.plus(13)} onClick={() => { setView('create'); setDrawerKind('create'); }}>Crear cliente</U.Btn>}
         />
       ) : (

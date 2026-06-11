@@ -41,7 +41,7 @@
 
         {lines.length === 0 && (
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginBottom: 10 }}>
-            {emptyHint || 'Agregá servicios del catálogo. Cada línea toma su tarifa vigente; puedes ajustar cantidad y precio.'}
+            {emptyHint || 'Agrega servicios del catálogo. Cada línea toma su tarifa vigente; puedes ajustar cantidad y precio.'}
           </div>
         )}
 

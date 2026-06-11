@@ -1,6 +1,6 @@
 /* global window */
 /* ── DTD ERP · OD Bridge (localStorage shared pipeline) ─────── */
-/* Conecta Admin Despacho ↔ Almacenista ↔ Transportista vía localStorage. */
+/* Conecta Admin Despacho ↔ Bodeguero ↔ Camionero vía localStorage. */
 /* En producción esto se reemplaza por WebSockets / SSE.            */
 
 (function () {

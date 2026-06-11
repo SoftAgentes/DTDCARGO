@@ -81,6 +81,7 @@ CoWork/
 # Lo pesado/ruido queda FUERA (no infla el repo): capturas de referencia,
 # screenshots de trabajo, paquete de marca embebido y el índice generado.
 docs/design/studio/_norte/uploads/
+docs/design/studio/_norte/_archivo/uploads/
 docs/design/studio/_norte/scraps/
 docs/design/studio/_norte/screenshots/
 docs/design/studio/_norte/_norte.html

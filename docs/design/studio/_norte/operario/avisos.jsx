@@ -24,7 +24,7 @@
   // ── Seed realista DTD-Cargo (YIW-A1) ────────────────────────
   const seed = (t) => ([
     { id: 'av-09', kind: 'cierre', day: 'hoy', time: '09:38', tref: '08:38',
-      title: t('Contenedor YIW-2026-08 al 92% · cerrá pronto', '集装箱 YIW-2026-08 已达92% · 请尽快关闭'),
+      title: t('Contenedor YIW-2026-08 al 92% · cierra pronto', '集装箱 YIW-2026-08 已达92% · 请尽快关闭'),
       body: t('46.2 / 50 CBM consolidados. Faltan ~3.8 CBM para el cierre y zarpe.', '已合并 46.2 / 50 CBM。距关闭发运还差约 3.8 CBM。'),
       code: 'YIW-2026-08', cta: t('Ir a modo despacho', '前往发货模式'), act: 'dispatch' },
     { id: 'av-08', kind: 'incidencia', day: 'hoy', time: '09:12', tref: '09:12',
@@ -33,7 +33,7 @@
       code: 'DTD-5452' },
     { id: 'av-07', kind: 'od', day: 'hoy', time: '08:50', tref: '08:50',
       title: t('OD-472816 recibida desde admin', '已从管理员接收 OD-472816'),
-      body: t('Valencia · ZI Acindar · 4 paradas · ~18 CBM. Asigná camión cuando esté lista la bodega.', 'Valencia · ZI Acindar · 4站 · 约18 CBM。仓库就绪后分配卡车。'),
+      body: t('Valencia · ZI Acindar · 4 paradas · ~18 CBM. Asigna camión cuando esté lista la bodega.', 'Valencia · ZI Acindar · 4站 · 约18 CBM。仓库就绪后分配卡车。'),
       code: 'DTDU-472816' },
     { id: 'av-06', kind: 'qr', day: 'hoy', time: '08:21', tref: '08:21',
       title: t('Etiquetas QR listas · Imp. Pereira', 'QR标签就绪 · Imp. Pereira'),
@@ -255,7 +255,7 @@
     { id: 've-01', kind: 'qr', day: 'ayer', time: '17:25',
       title: 'Documentos de ruta listos', body: 'Guías y packing list de las 2 rutas de hoy descargados al dispositivo.' },
   ]);
-  // Almacenista VE · contenedores por recibir, camiones por armar
+  // Bodeguero VE · contenedores por recibir, camiones por armar
   A.seedBodega = () => ([
     { id: 'bo-05', kind: 'cierre', day: 'hoy', time: '08:55',
       title: '2 contenedores por recibir hoy', body: 'YIW-2026-06 y CAN-2026-03 arriban a Puerto Cabello. Preparáte para descarga.', code: 'YIW-2026-06' },
@@ -268,7 +268,7 @@
     { id: 'bo-01', kind: 'sync', day: 'ayer', time: '18:20',
       title: 'Cierre de jornada · 142 cajas', body: '68.4 CBM movidos · 0 incidencias reportadas al almacén central.' },
   ]);
-  // Transportista · gemelo del chofer VE, foco en ruta activa
+  // Camionero · gemelo del chofer VE, foco en ruta activa
   A.seedCamion = () => ([
     { id: 'ca-05', kind: 'od', day: 'hoy', time: '09:30',
       title: 'Ruta del día · 4 entregas', body: 'Valencia · ZI Acindar como destino principal. Salida estimada 07:30.', code: 'DTDU-472816' },

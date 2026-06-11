@@ -655,7 +655,7 @@ function KpiEditor({ config, toggleKpi, moveKpi }) {
             border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-md)',
             font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-mute)',
           }}>
-            No hay KPIs seleccionados. Agregá alguno desde la lista de abajo.
+            No hay KPIs seleccionados. Agrega alguno desde la lista de abajo.
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

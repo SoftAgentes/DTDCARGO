@@ -91,7 +91,7 @@ function _buildPrompt(kind, country, sources, excludeNames) {
       `- "start": fecha inicio "YYYY-MM-DD" en 2026\n` +
       `- "end": fecha fin "YYYY-MM-DD" en 2026 (igual a start si es de un solo día)\n` +
       `- "sourceDomain": dominio de la fuente oficial más probable\n` +
-      `- "confidence": "alta" | "media" | "baja". "alta" para feriados fijos y confirmados; "media" si la fecha es móvil o aproximada; "baja" si es incierta. Procurá VARIAR el nivel.\n` +
+      `- "confidence": "alta" | "media" | "baja". "alta" para feriados fijos y confirmados; "media" si la fecha es móvil o aproximada; "baja" si es incierta. Procura VARIAR el nivel.\n` +
       `- "evidence": una frase corta en español sobre el feriado y su impacto operativo\n\n` +
       `Respondé SOLO con el array JSON, sin texto adicional ni markdown.`);
 
@@ -108,7 +108,7 @@ function _buildPrompt(kind, country, sources, excludeNames) {
     `- "start": fecha inicio "YYYY-MM-DD" en 2026\n` +
     `- "end": fecha fin "YYYY-MM-DD" en 2026\n` +
     `- "sourceDomain": dominio de la fuente más probable\n` +
-    `- "confidence": "alta" | "media" | "baja". Asigná "alta" solo a ferias reconocidas y recurrentes con fecha confirmada (ej. ferias emblemáticas anuales); "media" si la edición existe pero la fecha es aproximada; "baja" si el evento es incierto o poco documentado. Procurá VARIAR el nivel entre las ferias, no pongas todas igual.\n` +
+    `- "confidence": "alta" | "media" | "baja". Asigna "alta" solo a ferias reconocidas y recurrentes con fecha confirmada (ej. ferias emblemáticas anuales); "media" si la edición existe pero la fecha es aproximada; "baja" si el evento es incierto o poco documentado. Procura VARIAR el nivel entre las ferias, no pongas todas igual.\n` +
     `- "evidence": una frase corta en español sobre dónde se anuncia o por qué es relevante\n\n` +
     `Respondé SOLO con el array JSON, sin texto adicional ni markdown.`);
 

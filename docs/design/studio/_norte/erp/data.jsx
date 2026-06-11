@@ -299,7 +299,7 @@ const MAIL_TEMPLATES = [
     sent: 12, opened: '83%', clicked: '41%', updated: 'hace 1 mes',
     active: true,
     langs: { es: true, en: false, zh: false },
-    body: { es: `{{client_name}},\n\nTe recordamos que la factura **{{invoice_id}}** por **${'${{amount}}'}** se encuentra vencida hace **{{days}} días**.\n\nPodés regularizar el saldo desde el portal o contactando a finanzas@dtdcargo.com.\n\nGracias.` }
+    body: { es: `{{client_name}},\n\nTe recordamos que la factura **{{invoice_id}}** por **${'${{amount}}'}** se encuentra vencida hace **{{days}} días**.\n\nPuedes regularizar el saldo desde el portal o contactando a finanzas@dtdcargo.com.\n\nGracias.` }
   },
   {
     id: 'm-07', name: 'Aviso ETA · WhatsApp',
@@ -701,7 +701,7 @@ const THREADS = {
         { id: 'r1', author: 'u-005', at: 'hace 2 días', body: '@Martina A. recibido. Lo estoy monitoreando — ETA Pto Cabello sigue para el 12 jun. En cuanto el agente confirme liberación te aviso acá mismo.', mentions: ['u-002'], reactions: { '✓': ['u-002'] }, replies: [
           { id: 'r1a', author: 'u-002', at: 'hace 1 día', body: 'Perfecto, gracias. Dejo agendado el flete tentativo para el 13.', mentions: [], reactions: {}, replies: [] },
         ] },
-        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegurate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
+        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegúrate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
           { id: 'r2a', author: 'u-003', at: 'hace 5 h', body: 'Coordinado. Chofer Luis Hernández (T-001) confirmado para el 13 a primera hora.', mentions: [], reactions: { '🔥': ['u-001', 'u-002'] }, replies: [] },
         ] },
       ],

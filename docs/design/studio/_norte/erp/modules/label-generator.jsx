@@ -545,7 +545,7 @@
                   ))}
                 </div>
                 <div style={{ marginTop: 6, font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
-                  Imprimí la misma etiqueta {copiesPerBox} {copiesPerBox === 1 ? 'vez' : 'veces'} por caja para pegar en {copiesPerBox === 1 ? 'una cara' : copiesPerBox === 2 ? 'dos caras' : copiesPerBox === 3 ? 'tres caras' : 'cuatro caras'} · si una se tapa o maltrata, las otras mantienen la trazabilidad.
+                  Imprime la misma etiqueta {copiesPerBox} {copiesPerBox === 1 ? 'vez' : 'veces'} por caja para pegar en {copiesPerBox === 1 ? 'una cara' : copiesPerBox === 2 ? 'dos caras' : copiesPerBox === 3 ? 'tres caras' : 'cuatro caras'} · si una se tapa o maltrata, las otras mantienen la trazabilidad.
                 </div>
               </div>
 

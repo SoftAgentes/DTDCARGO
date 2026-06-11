@@ -591,7 +591,7 @@ function ReglasDrawer({ open, onClose }) {
           <div>
             <div style={{ font: '700 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>El sistema ya trae las reglas configuradas según la ley vigente.</div>
             <div style={{ font: '500 11.5px/1.55 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
-              Editá un valor solo si la ley cambió o tu empresa aplica otra política. Lo que toques acá recalcula toda la nómina. Cada corte que confirmes <b>congela</b> las reglas vigentes, así los recibos históricos no se mueven.
+              Edita un valor solo si la ley cambió o tu empresa aplica otra política. Lo que toques acá recalcula toda la nómina. Cada corte que confirmes <b>congela</b> las reglas vigentes, así los recibos históricos no se mueven.
             </div>
           </div>
         </div>
@@ -837,7 +837,7 @@ function RegistroReviewDrawer({ regId, onClose }) {
   React.useEffect(() => { if (reg) { setSueldo(''); setDept(reg.dept || ''); setRejecting(false); setMotivo(''); } }, [regId]);
 
   const approve = () => {
-    if (!(Number(sueldo) > 0)) { alert('Asigná un sueldo mensual en USD para aprobar.'); return; }
+    if (!(Number(sueldo) > 0)) { alert('Asigna un sueldo mensual en USD para aprobar.'); return; }
     N.approveRegistration(reg.id, { salarioUsd: Number(sueldo), dept });
     onClose();
   };
@@ -962,7 +962,7 @@ function PrestamosTab() {
         <U.Card padded>
           <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--ink-mute)' }}>
             <div style={{ font: '600 13px/1.3 var(--f-sans)', color: 'var(--ink-soft)' }}>Sin préstamos registrados</div>
-            <div style={{ font: '500 11.5px/1.5 var(--f-sans)', marginTop: 5 }}>Registrá un adelanto o préstamo y la cuota se descontará sola en cada nómina.</div>
+            <div style={{ font: '500 11.5px/1.5 var(--f-sans)', marginTop: 5 }}>Registra un adelanto o préstamo y la cuota se descontará sola en cada nómina.</div>
           </div>
         </U.Card>
       ) : (
@@ -1302,7 +1302,7 @@ function AmonestacionWizard({ open, onClose }) {
 
       {step === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Registrá al menos un testigo (se recomiendan dos).</div>
+          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Registra al menos un testigo (se recomiendan dos).</div>
           {[['Testigo 1', t1, setT1], ['Testigo 2 (opcional)', t2, setT2]].map(([lbl, val, setVal]) => (
             <div key={lbl}>
               <Lbl>{lbl}</Lbl>

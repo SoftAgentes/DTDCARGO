@@ -66,8 +66,8 @@ const GROUPS = [
       { name: "Operario VE", file: "Operario VE.html", code: "app/m/ve", sdd: "0017" },
       { name: "Operario · App (multi-rol)", file: "Operario · App.html", code: "app/m", sdd: "0030" },
       { name: "Login y Sesión · Operario", file: "Login y Sesión · Operario.html", code: "app/m", sdd: "0030" },
-      { name: "Almacenista VE", file: "Almacenista VE.html", code: "app/m/ve/bodeguero", sdd: "0030" },
-      { name: "Transportista", file: "Transportista.html", code: "app/m/ve/camionero", sdd: "0030" },
+      { name: "Bodeguero VE", file: "Bodeguero VE.html", code: "app/m/ve/bodeguero", sdd: "0030" },
+      { name: "Camionero", file: "Camionero.html", code: "app/m/ve/camionero", sdd: "0030" },
     ],
   },
   {
@@ -163,6 +163,7 @@ const GROUPS = [
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
       { name: "Aplicaciones de Marca", file: "Aplicaciones de Marca.html", kind: "brand" },
+      { name: "Sticker Pack (17)", file: "Sticker Pack · DTD-Cargo.html", kind: "brand" },
       { name: "Banco de Fotos", file: "Banco de Fotos · DTD-Cargo.html", kind: "brand" },
       { name: "Colateral Impreso", file: "Colateral Impreso · DTD-Cargo.html", kind: "brand" },
     ],

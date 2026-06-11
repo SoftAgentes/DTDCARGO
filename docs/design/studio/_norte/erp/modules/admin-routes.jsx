@@ -291,7 +291,7 @@
             <U.EmptyState
               icon={I.truck(22)}
               title="No hay rutas con esos filtros"
-              body="Ajustá los filtros o creá una ruta nueva."
+              body="Ajusta los filtros o crea una ruta nueva."
               action={<U.Btn variant="primary" icon={I.plus(14)} onClick={onNew}>Nueva ruta</U.Btn>}
             />
           )}
