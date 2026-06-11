@@ -100,7 +100,7 @@ En `calc/cbm-variants.jsx`, dentro del grid de entrada, **envolver** la fila
   {/* Disparador · oculto por defecto */}
   <button onClick={() => setShowDims(v => !v)} style={{ /* link wine, ver cbm-variants.jsx */ }}>
     <span style={{ transform: showDims ? 'rotate(90deg)' : 'none' }}>▶</span>
-    {showDims ? 'Prefiero escribir el CBM a mano' : '¿No sabés tu CBM? Calculalo con las medidas'}
+    {showDims ? 'Prefiero escribir el CBM a mano' : '¿No sabes tu CBM? Calculalo con las medidas'}
   </button>
 
   {showDims && <div style={{ marginTop:12 }}>
@@ -143,7 +143,7 @@ No cambia ningún uso actual (la prop es opcional).
    un handler en un `<Btn variant="soft">Usar este CBM</Btn>`.
 2. **Voz tuteo vs. voseo.** El copy del disparador está en **voseo** ("Calculalo")
    para igualar el resto de la calculadora, que hoy está en voseo
-   ("Cotizá", "Indicá", "pagás"). ⚠ `CLAUDE.md` exige **tuteo**. Toda la calculadora
+   ("Cotiza", "Indica", "pagas"). ⚠ `CLAUDE.md` exige **tuteo**. Toda la calculadora
    viola esta regla hoy; **decisión global pendiente**. Si se unifica a tuteo, el copy
    pasa a "¿No sabes tu CBM? Calcúlalo con las medidas".
 

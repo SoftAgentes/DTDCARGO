@@ -30,7 +30,7 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "DTD Cargo — Con confianza, de China a tu puerta.",
+    default: "DTD Cargo — Con Confianza, de China a tu puerta.",
     template: "%s · DTD Cargo",
   },
   description:
@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     locale: "es_VE",
     url: SITE_URL,
     siteName: "DTD Cargo",
-    title: "DTD Cargo — Con confianza, de China a tu puerta.",
+    title: "DTD Cargo — Con Confianza, de China a tu puerta.",
     description:
       "Logística end-to-end China → Venezuela operando desde 2008. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [
@@ -61,13 +61,13 @@ export const metadata: Metadata = {
         url: BRAND_ASSETS.ogImage,
         width: 1200,
         height: 630,
-        alt: "DTD Cargo — Con confianza, de China a tu puerta",
+        alt: "DTD Cargo — Con Confianza, de China a tu puerta",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "DTD Cargo — Con confianza, de China a tu puerta.",
+    title: "DTD Cargo — Con Confianza, de China a tu puerta.",
     description:
       "Logística end-to-end China → Venezuela operando desde 2008. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [BRAND_ASSETS.ogImage],
@@ -119,13 +119,13 @@ const jsonLd = {
       taxID: CONTACT.legalEntity.taxID,
       founder: { "@type": "Person", name: CONTACT.legalEntity.founder },
       url: SITE_URL,
-      // Para Google Knowledge Panel usamos el isólogo oficial v3.0 variante primary
+      // Para Google Knowledge Panel usamos el isólogo oficial (brand book) variante primary
       // (navy + wine sobre fondo claro — el más universal).
       logo: `${SITE_URL}${BRAND_ASSETS.isologoPrimary}`,
       image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
-      slogan: "Con confianza, de China a tu puerta.",
+      slogan: "Con Confianza, de China a tu puerta.",
       description:
-        "Operación logística integral China–Venezuela desde 2008: carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con confianza, de China a tu puerta.",
+        "Operación logística integral China–Venezuela desde 2008: carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con Confianza, de China a tu puerta.",
       // priceRange es opcional; en freight no hay tier fijo → texto honesto (no "$$").
       priceRange: "Cotización a medida según volumen y ruta",
       // 2008 = inicios comerciales en China (año de fundación canónico, FAQ §14 +

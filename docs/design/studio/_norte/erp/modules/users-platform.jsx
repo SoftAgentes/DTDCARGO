@@ -424,7 +424,7 @@
             );
           })}
           <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', paddingTop: 4 }}>
-            Los módulos Core no se pueden desactivar. Para habilitar grupos superiores, subí el plan del tenant.
+            Los módulos Core no se pueden desactivar. Para habilitar grupos superiores, sube el plan del tenant.
           </div>
         </div>
       </U.Drawer>

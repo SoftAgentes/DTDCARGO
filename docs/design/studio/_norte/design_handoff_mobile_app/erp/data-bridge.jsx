@@ -44,7 +44,7 @@
   // A · Pipeline CN → Despacho
   const cnInbox = makeStore('dtd-cn-inbox', []);
 
-  // B · Clientes registrados (MARKBOX shared)
+  // B · Clientes registrados (Shipping Mark shared)
   const clients = makeStore('dtd-clients', []);
 
   // C · Reglas de prioridad persistentes
@@ -61,12 +61,12 @@
   const emailsSent = makeStore('dtd-emails-sent', []);
 
   // G · Bandeja del Portal (eventos entrantes del cliente → ERP)
-  // Registros nuevos, cotizaciones exprés y re-compras publicados desde el
+  // Registros nuevos, estimados exprés y re-compras publicados desde el
   // portal (web + móvil). El ERP los muestra como notificaciones con badge
   // para aprobar/atender. En prod = endpoint /portal-inbox del backend.
   const portalInbox = makeStore('dtd-portal-inbox', []);
 
-  // Deriva el tenant (empresa) desde el prefijo del MARKBOX (DTD-/AND-/…).
+  // Deriva el tenant (empresa) desde el prefijo del Shipping Mark (DTD-/AND-/…).
   // Respeta multi-tenant: cada evento queda etiquetado para que el ERP solo
   // lo muestre en la empresa correcta (ver erp/data.jsx byTenant).
   function tenantForMarkbox(markbox) {
@@ -76,22 +76,22 @@
     return t ? t.id : 'dtd';
   }
 
-  // H · Cotizaciones formales generadas desde el portal (cotizador exprés).
-  // Cada solicitud del cliente crea aquí un envío shape con status 'cotizado'
-  // que aparece en "Mis envíos" como "Cotización en proceso" y, al ser revisada
-  // por el agente, pasa a 'cotizado' (lista para aceptar). En prod = /quotes.
+  // H · Estimados formales generadas desde el portal (estimador exprés).
+  // Cada solicitud del cliente crea aquí un envío shape con status 'estimado'
+  // que aparece en "Mis envíos" como "Estimado en proceso" y, al ser revisada
+  // por el agente, pasa a 'estimado' (lista para aceptar). En prod = /quotes.
   const portalQuotes = makeStore('dtd-portal-quotes', []);
 
-  // Crea la cotización formal a partir de la solicitud del cotizador.
+  // Crea el estimado formal a partir de la solicitud del estimador.
   // req: { markbox, clientName, origin, dest, service, cbm, estimate }
   function pushPortalQuote(req) {
     const seq = String(900 + ((portalQuotes.read() || []).length) + Math.floor(Math.random() * 90));
     const ship = {
-      id: 'Q-2026-' + seq, type: req.service || 'LCL DDP',
+      id: 'E-2026-' + seq, type: req.service || 'LCL DDP',
       client: req.markbox, clientName: req.clientName || req.markbox,
       origin: req.origin, destination: req.dest,
       cbm: Number(req.cbm) || 0, weight: 0, value: Number(req.estimate) || 0,
-      status: 'cotizado', etd: null, eta: null, progress: 0, vessel: null, container: null,
+      status: 'estimado', etd: null, eta: null, progress: 0, vessel: null, container: null,
       invoice: null, billed: false, paid: false, alert: null,
       quoteStage: 'en-proceso', quoteRef: req.ref || null, createdAt: new Date().toISOString(),
     };
@@ -100,8 +100,8 @@
     return ship;
   }
 
-  // Envíos extra (cotizaciones del portal) de un MARKBOX, para mergear con SHIPMENTS.
-  function clientQuotes(markbox) {
+  // Envíos extra (estimados del portal) de un Shipping Mark, para mergear con SHIPMENTS.
+  function clientEstimados(markbox) {
     return (portalQuotes.read() || []).filter(q => q.client === markbox);
   }
 
@@ -127,7 +127,7 @@
     portalInbox.write(cur.map(e => (!set || set.has(e.id)) ? { ...e, read: true } : e));
   }
 
-  // ── MARKBOX helpers (validación + secuencial server-side) ──
+  // ── Shipping Mark helpers (validación + secuencial server-side) ──
   // Formato oficial: DTD-XXXX o DTD-XXXXX (4 o 5 dígitos)
   // Ver CLAUDE.md y portal/registro.jsx para nomenclatura completa.
   const MARKBOX_REGEX = /^DTD-\d{4,5}$/;
@@ -201,7 +201,7 @@
   }
 
   // ── Email helpers (mock pero traceable) ─────────────────────
-  // Renderiza template m-05 'Bienvenida MARKBOX' con substituciones
+  // Renderiza template m-05 'Bienvenida Shipping Mark' con substituciones
   // y pushea entrada al log de emails enviados.
   function renderTemplate(body, vars) {
     return body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] != null ? vars[k] : `{{${k}}}`);
@@ -245,7 +245,7 @@
         action: 'auto',
         module: 'Mailing',
         actor: { id: 'system', name: 'Sistema · auto', role: 'auto' },
-        target: { kind: 'email', id: entry.id, label: `Bienvenida MARKBOX → ${client.markbox}` },
+        target: { kind: 'email', id: entry.id, label: `Bienvenida Shipping Mark → ${client.markbox}` },
         detail: `Email m-05 enviado a ${client.email}`,
       });
       localStorage.setItem(auditKey, JSON.stringify(audit.slice(0, 500)));
@@ -255,7 +255,7 @@
 
   window.DTDData = {
     cnInbox, clients, rules, routes, cities, rates, emailsSent, portalInbox,
-    // MARKBOX
+    // Shipping Mark
     validateMarkboxFormat, isMarkboxUnique, nextMarkbox,
     // Lookup + CNE
     findClientByDoc, cneVerify,
@@ -263,8 +263,8 @@
     sendWelcomeEmail, renderTemplate,
     // Portal inbox (eventos cliente → ERP)
     pushPortalEvent, markPortalRead, tenantForMarkbox,
-    // Cotizaciones formales generadas desde el portal
-    pushPortalQuote, clientQuotes,
+    // Estimados formales generadas desde el portal
+    pushPortalQuote, clientEstimados,
     resetAll: () => {
       ['dtd-cn-inbox','dtd-clients','dtd-rules','dtd-routes','dtd-cities','dtd-rates','dtd-emails-sent','dtd-portal-inbox','dtd-portal-quotes'].forEach(k => {
         localStorage.removeItem(k);

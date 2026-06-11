@@ -5,7 +5,7 @@ navegador (datos mock en `localStorage` vía `window.DTDData`, auth mock, flags 
 Para producción hay que poner un backend detrás de los *seams* existentes.
 
 - **`API-CONTRACT.md`** — el contrato: cada seam del prototipo → su endpoint REST (auth,
-  clientes/MARKBOX, cotizaciones, **aceptación legal con evidencia**, bandeja del portal,
+  clientes/Shipping Mark, cotizaciones, **aceptación legal con evidencia**, bandeja del portal,
   facturación, operación CN + sync offline, config/flags, notificaciones) + orden de
   implementación.
 

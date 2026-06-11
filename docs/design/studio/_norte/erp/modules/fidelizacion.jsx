@@ -125,7 +125,7 @@ function DashboardTab({ goTo, setTab }) {
         <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>CÓMO FUNCIONA EL PROGRAMA</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
           {[
-            { n: '1', t: 'El cliente comparte su código', d: 'Cada MARKBOX tiene un código de referido único (ej. REF-5452) que comparte por WhatsApp o el portal.' },
+            { n: '1', t: 'El cliente comparte su código', d: 'Cada Shipping Mark tiene un código de referido único (ej. REF-5452) que comparte por WhatsApp o el portal.' },
             { n: '2', t: 'El referido importa', d: `Al registrarse y hacer su primer embarque, el referido recibe ${window.ERPRates.fmtUsd(F.REFERRAL_RULES.referredReward)} de descuento.` },
             { n: '3', t: 'Ambos ganan', d: `Quien refiere recibe ${window.ERPRates.fmtUsd(F.REFERRAL_RULES.referrerReward)} de crédito acreditado a su próxima factura.` },
           ].map(s => (
@@ -350,7 +350,7 @@ function ClientesTab({ goTo }) {
 
   return (
     <div>
-      <U.Toolbar search={search} onSearchChange={setSearch} searchPlaceholder="Buscar cliente o MARKBOX…" />
+      <U.Toolbar search={search} onSearchChange={setSearch} searchPlaceholder="Buscar cliente o Shipping Mark…" />
 
       <U.Card padded={false}>
         <div style={{

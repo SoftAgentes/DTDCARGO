@@ -16,7 +16,7 @@ Los `.html`/`.jsx` de este bundle son **referencias de diseño hechas en HTML** 
 que muestran el look y el comportamiento buscado, **no código de producción para copiar
 tal cual**. La tarea es **recrear estos diseños en el entorno del codebase destino**
 (React Native, Flutter, Swift/Kotlin, PWA, etc.) usando sus patrones y librerías. Si aún
-no existe entorno, elegí el más adecuado (para "un APK multiplataforma offline-first", una
+no existe entorno, elige el más adecuado (para "un APK multiplataforma offline-first", una
 PWA instalable o React Native/Capacitor son buenas opciones) e implementá ahí.
 
 Son **React in-HTML sin build** (Babel en el navegador) montados sobre el sistema de
@@ -43,7 +43,7 @@ Canvas con 6 estados, cada uno una pantalla de teléfono (≈300×636):
 
 1. **Primer ingreso** — hero navy (gradiente `--ink → #1F3055`) con logo `-reverse`;
    campos Usuario + Contraseña (con toggle ojo), toggle **"Recordar este dispositivo"** (ON),
-   botón **Entrar** (wine), link "¿Olvidaste la contraseña? → Pedí un reset a tu supervisor".
+   botón **Entrar** (wine), link "¿Olvidaste la contraseña? → Pide un reset a tu supervisor".
 2. **Dispositivo vinculado + crear PIN** — badge éxito + "Quedó vinculado a este teléfono",
    teclado numérico, dots de PIN, toggle "Activar huella / Face ID".
 3. **Desbloqueo diario · PIN** — avatar "RB", "Hola, Ramón · Sesión activa · sin contraseña",
@@ -58,7 +58,7 @@ Canvas con 6 estados, cada uno una pantalla de teléfono (≈300×636):
 
 ### B. Apps/flujos de operario (prototipos completos)
 - **`Operario · App.html`** — **APK único (entry oficial):** login usuario+contraseña → auth
-  mock → ruteo por rol → multi-rol abre picker "¿Qué hacés hoy?" (Soy almacenista / Soy
+  mock → ruteo por rol → multi-rol abre picker "¿Qué haces hoy?" (Soy almacenista / Soy
   transportista) → home del modo, con sesión persistente (PIN). **Modo Bodega** = Recibir
   contenedor + Despachar camión; **Modo Chofer** = Rutas asignadas + Iniciar ruta. Cambio
   de modo en el menú ☰.
@@ -120,7 +120,7 @@ Referencias renderizadas fieles:
 - `05-transportista.png` — home del transportista (ruta del día + GPS).
 
 > Las pantallas de **login** de cada app de operario (navy hero + teclado PIN) están
-> representadas fielmente en `01-sesion-canvas.png`. Para ver cada app completa, abrí su
+> representadas fielmente en `01-sesion-canvas.png`. Para ver cada app completa, abre su
 > `.html` (los thumbnails por-app se omiten: el generador de miniaturas no carga la
 > webfont Sora y parte el título del hero, un artefacto de captura — el render real es
 > correcto).
@@ -132,7 +132,7 @@ Referencias renderizadas fieles:
   `Operario CN.html`, `Despacho · Vista 3.html`.
 - **Lógica:** `operario/{app,ve,almacenista,almacenista-despacho,transportista,avisos}.jsx`.
 - **Sistema de diseño:** `erp/{tokens.css, icons.jsx, data.jsx, components.jsx, data-bridge.jsx, od-bridge.jsx, rates.jsx}`.
-- **Assets:** `assets/dtdcargo-isologo-*.png`, `assets/dtdcargo-icon-navy.png`.
+- **Assets:** `assets/dtdcargo-isologo-*.png` (sistema oficial v1.0; el raster viejo `dtdcargo-icon-navy.png` fue eliminado).
 
 > Los `.html` referencian `erp/…`, `operario/…`, `design-canvas.jsx` y `assets/…` con rutas
 > relativas, preservadas en este bundle para que abran en el navegador.

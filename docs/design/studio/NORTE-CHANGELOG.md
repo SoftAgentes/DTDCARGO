@@ -4,6 +4,64 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v2.5 · carga 2026-06-10 — **marca sincronizada a Brand Book v3.7 · sync 2026-06-10**
+
+Fuente: `Downloads/DTD-Cargo.zip` (133.9 MB crudo, 955 entradas → 747 archivos / 21 MB tras exclusiones de regla:
+`uploads/`, `_archivo/uploads/`, `backend/prisma/`, `scraps/`, `.design-canvas.state.json`) + `Downloads/Brand Book
+DTD v3.7 · standalone.html` (12 MB, autocontenido → publicado a la web, ver abajo). El ZIP trae su propio
+`SYNC-NORTE-2026-06-10.md` (instrucciones de Cloud Design) — **aplicado completo**. El HANDOFF no bumpea
+versión (sigue v2.5); lo que sube de versión es el **Brand Book: v3.5 → v3.7**.
+
+**Regla de gobernanza nueva (CLAUDE.md del Norte §El Brand Book vigente es UNO solo):** queda únicamente el
+book de mayor versión en la raíz (`Brand Book DTD v3.7.html`); los anteriores se eliminan. **`Brand Book DTD
+v3.5.html` borrado.** Historial de cambios = changelog interno del book.
+
+**Lenguaje (masivo, hecho por Cloud Design en el Norte):**
+- **MARKBOX → Shipping Mark, término ÚNICO en todos los contextos** (decisión founder 2026-06-10; ≈56 archivos).
+  Claves de código intactas (`markbox:`, `c.markbox`, `MARKBOX_REGEX`…). Cara a proveedor: "Shipping Mark (唛头)".
+- Voseo → tuteo venezolano (≈95 archivos; excepción intencional: ejemplos ❌ del Voice & tone del book).
+- Timeline 2026 del book: "12+ modalidades · plataforma digital" (se quitó "ERP propio" — no revelar desarrollo interno).
+
+**Nuevo ⭐:** `Banco de Fotos · DTD-Cargo.html` (slots por categoría para el foto-shoot) · `Colateral Impreso ·
+DTD-Cargo.html` (membrete A4 + credencial CR-80 + vinilo camión + roll-up con spec de imprenta) · `Generador
+Redes` (flujo red-primero + QR multidestino + generador YouTube) · `Generador Catálogo WhatsApp` · `Uniformes ·
+DTD-Cargo.html` (+ `uniforms/*.jsx`) · `WeChat · Perfil DTD-Cargo.html` (+ `wechat/*`) · `erp/modules/
+estudio-redes.jsx` (calendario de contenido + seam `dtd-etiquetas-contenido`) · Sticker Pack ahora 17 piezas
+con texto (pack de 12 redondos eliminado) · `assets/foto-contenedor-real.jpg`.
+
+**Archivado/eliminado:** `Aceptación T&C · Cotización.html`, `Modo Cliente.html`, `Reporte DTD-Cargo.html` →
+`_archivo/` (la lógica vive en el ERP/Portal) · `_icons-partial.html` eliminado · 6 JSON temp de `assets/insp-hab/`.
+
+**Drift recurrente re-aplicado (3ª vez):** la carga volvió a traer Bodeguero/Camionero → **10 archivos
+renombrados** (2 HTML + 3 `.jsx`, ×2 por `design_handoff_mobile_app/`) + sweep de texto en **35 archivos**
+(0 restos; rutas reales `app/m/ve/bodeguero|camionero` y `CHANGELOG.md` histórico protegidos). Dato nuevo de la
+carga: Almacenista y Transportista = la misma persona, `+58 424 950 8848`.
+
+**Índice (`scripts/norte.mjs`):** book → v3.7; Marca + Banco de Fotos + Colateral Impreso; grupo nuevo
+"carga 2026-06-10 · marketing · colateral" (`ref:true`); 3 paths re-apuntados a `_archivo/`.
+
+**Brand→web (regla `feedback_norte_brand_to_web`, mismo push):** standalone v3.7 publicado como
+`public/marca/brand-book-v3.2.html` → **`brand-book-v3.7.html`** (visor `/marca/brand-book` + hub
+`/interno/marca` + zips gateados actualizados). Purga total de copias/referencias pre-3.7 en el repo
+(BRAND.md, AGENTS.md, comentarios de código) — gate "cero referencias" permanente en `/radar` (Regla 0.5).
+
+**RIF único `J-50648869-8` (decisión founder 2026-06-10):** se borraron los 4 RIF viejos que traía el
+paquete de Cloud Design — `J-410322887` (marca/sello/inspecciones/tarjeta/colateral/CLAUDE.md),
+`J-40558712-0` (factura demo/ZPL/comprobante WhatsApp), `J-40551122-3` (forma IVA `fiscal.jsx`),
+`J-50220185-8` (acuerdo operador) → **29 reemplazos en 17 archivos de `_norte`** + el book publicado
+(`public/marca/brand-book-v3.7.html`). RIF mock de clientes demo intactos. El RIF NO va en texto visible
+del sitio público (solo en el schema, regla `identidad.md`); acá aplica al material de marca del Norte.
+Pendiente Cloud Design: espejar en origen + regenerar PNG/PDF exportados con el RIF horneado.
+
+**Carpetas históricas ELIMINADAS del working tree (decisión founder 2026-06-10 — la historia vive en git;
+recuperar = `git log --oneline -- "<path>"` + checkout):** `docs/design/brand-book/` (v3.0 completo),
+`docs/design/studio/v1.7-claude-design/` (22 MB), `docs/design/studio/_archivo-v1.3.1-claude-design/` (45 MB),
+`docs/design/studio/_archivo-v1.6-claude-design/`, `docs/design/_archivo-v1-studio/` (21 MB),
+`docs/design/handoffs-archive/` (solo README; los ZIPs nunca estuvieron en git), `docs/design/AUDIT-v1.7.md`.
+**Excepción conservada:** `docs/design/studio/bug-reporter-v1.4.1/` — handoff del módulo Bug Reporter,
+enlazado por la spec SDD-0036 (registro de spec, no copia de marca). Limpieza colateral: `.gitignore`,
+`tsconfig.json` y `eslint.config.mjs` sin entradas muertas (`_handoff_preview`, `BANDBOOK V1`, archive zips).
+
 ## v2.5 · re-sync 2026-06-08 (handoff posterior · Inspecciones + calc CBM-por-medidas + Brand Book v3.5)
 
 Re-sincronización desde un ZIP posterior de Cloud Design (`Downloads/DTD-Cargo (2).zip`, ~117 MB crudo).

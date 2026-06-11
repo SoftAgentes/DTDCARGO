@@ -85,7 +85,7 @@
           >
             {I.upload(28)}
             <div style={{ font: '700 14px/1.3 var(--f-sans)', color: 'var(--ink)' }}>
-              Arrastrá archivos acá o hacé click
+              Arrastrá archivos acá o haz click
             </div>
             <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
               PDF, DOCX, XLSX, imágenes hasta 25 MB · múltiples archivos OK
@@ -222,7 +222,7 @@
             display: 'flex', alignItems: 'flex-start', gap: 8,
           }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(13)}</span>
-            <span>Se enviará el <b>{date}</b> a las <b>{time}</b> ({tz.split('/').pop()}). Podés cancelar el envío desde Borradores hasta 5 min antes.</span>
+            <span>Se enviará el <b>{date}</b> a las <b>{time}</b> ({tz.split('/').pop()}). Puedes cancelar el envío desde Borradores hasta 5 min antes.</span>
           </div>
         </div>
       </U.Modal>
@@ -670,7 +670,7 @@
                 Conectado correctamente
               </div>
               <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8, maxWidth: 360, margin: '8px auto 0' }}>
-                Los emails se van a enviar usando tu cuenta de {providerName}. Podés revocar el acceso desde Mailing → Configuración.
+                Los emails se van a enviar usando tu cuenta de {providerName}. Puedes revocar el acceso desde Mailing → Configuración.
               </div>
             </div>
           )}

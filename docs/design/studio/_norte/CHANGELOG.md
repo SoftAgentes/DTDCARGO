@@ -1,5 +1,16 @@
 # Changelog · v1.1+
 
+## 2026-06-10 · Estudio de Redes (ERP) + generador unificado
+
+**Archivos nuevos:**
+- erp/modules/estudio-redes.jsx — módulo Administración → Marca → Estudio de Redes: **calendario de contenido operativo** (zarpes/llegadas reales de `ERPData.SHIPMENTS` — solo contenedor/ruta/fechas, nunca cliente ni valor — + ferias Cantón/Yiwu, feriados CN/VE y fechas comerciales 2026; botón «Crear pieza» abre el Generador Redes con la plantilla prellenada vía URL params) + **registro pieza→campaña** (lee el seam `localStorage['dtd-piezas-log']`, asigna campañas del mock de Publicidad activa, sin flujo de aprobación).
+
+**Archivos modificados:**
+- Generador Redes · DTD-Cargo.html — tab 9 «⊞ Catálogo WhatsApp» (embebe el generador de catálogo con `?embed=1`); `logPieza()` asienta cada PNG descargado en `dtd-piezas-log`; prefill desde URL (`?tab&t&k&badge&eg&dd&mm&cta`).
+- Generador Catálogo WhatsApp · DTD-Cargo.html — modo `?embed=1` (oculta header) + registro de descargas en el mismo seam.
+- erp/modules/admin.jsx + DTD Studio · ERP.html — sección MARCA «Estudio de Redes» (icon radar) + script tag.
+- Brand Book DTD v3.7.html — §08: card «Estudio de Redes · en el ERP»; links del catálogo ahora apuntan al generador unificado.
+
 Cada entrada describe qué se hizo en esta sesión y qué archivos viejos (si alguno) se tocaron.
 
 Formato:
@@ -21,6 +32,27 @@ Formato:
 ---
 
 <!-- Las entradas nuevas se agregan acá arriba -->
+
+## 2026-06-08 · ☎️ Actualización de teléfonos de contacto
+
+Directorio de teléfonos cotejado contra el sistema. La mayoría ya coincidía
+(`iconos-perfiles/showcase.jsx` es la fuente de los teléfonos por depto; la calculadora
+usa el de CRM `+58 412 166 8021`, correcto). Cambios aplicados:
+
+- `iconos-perfiles/showcase.jsx` · **Compras** → `+58 412 454 5325` (antes placeholder).
+  El número que tenía el **Sub-CEO** se liberó (era el de Compras); Sub-CEO queda con
+  placeholder `+58 412 100 0006` (`// TODO: número real del Sub-CEO pendiente`).
+- `factura-template/Factura · DTD-Cargo.html` · footer → oficina `+58 241 414 7886`
+  (antes `+58 241-XXX-XXXX`); **Pago móvil** → `0414-887-0000` (Contabilidad, antes
+  `0414-XXXXXXX`). ⚠ Confirmar con banco que el pago móvil va a ese número.
+
+**Sin tocar:** teléfonos de empleados/choferes en `nomina-data.jsx` y `bodeguero.jsx`
+(data de ejemplo, no contactos reales). **Transporte** se deja en `+58 412 495 0884`
+(número real pendiente de confirmar). **RIF:** la unificación quedó RESUELTA en la carga
+2026-06-10 — RIF único `J-50648869-8` en todo el Norte (se borraron los 4 viejos que
+circulaban, incl. el de la factura demo). Ver entrada del sync 2026-06-10.
+
+---
 
 ## 2026-06-08 · 🧮 Calculadora CBM por medidas (alto × ancho × largo + cajas)
 
@@ -56,7 +88,7 @@ tuteo vs. voseo del `CLAUDE.md`, que toda la calculadora viola hoy). Autoasignad
 
 ---
 
-## 2026-06-07 · 🪪 Tarjeta de presentación + celebración MARKBOX + branding v3.5 + chequeo de handoff
+## 2026-06-07 · 🪪 Tarjeta de presentación + celebración Shipping Mark + branding v3.5 + chequeo de handoff
 
 Sesión de branding + producto + preparación de handoff a Claude Code.
 
@@ -71,9 +103,9 @@ Sesión de branding + producto + preparación de handoff a Claude Code.
   Noto Sans SC), selector en vivo, spec de imprenta (tintas CMYK/Pantone de referencia,
   tipografías) e **imposición con marcas de corte** + botón de impresión 1:1 + descarga `.vcf`.
   Reusa `erp/tokens.css` y `assets/dtdcargo-isologo-*.png`. Sin colores/fuentes fuera del sistema.
-- **Celebración del MARKBOX al registrar la compra (producto):** `portal/registro.jsx`.
+- **Celebración del Shipping Mark al registrar la compra (producto):** `portal/registro.jsx`.
   En la pantalla de éxito, cuando el cliente registra su compra inline, la **tarjeta roja del
-  MARKBOX de arriba reacciona**: muta de `DTD-XXXX` a `DTD-XXXX-1-1` (markbox·proveedor·compra),
+  Shipping Mark de arriba reacciona**: muta de `DTD-XXXX` a `DTD-XXXX-1-1` (markbox·proveedor·compra),
   badge verde de check, eyebrow "compra registrada", send-line ("este es el código que le mandás
   a tu proveedor"), banner de felicitación y animación dentro del sistema (pop + ring `--success`
   + shimmer + swap; respeta `prefers-reduced-motion`). Nuevo componente `MarkboxCard` + estado
@@ -105,7 +137,7 @@ calculadoras/cotizadores y se dejó asentado el backlog que surgió de comparar 
 
 - **Inventario de cotizadores existentes (2):**
   1. **Cotizador interno del ERP** — `erp/modules/quotes.jsx · QuoteCalculator`. Staff-facing:
-     servicio (LCL DDP / FCL 20' / 40'HC), buscador Cliente·MARKBOX, origen/destino, dimensiones por
+     servicio (LCL DDP / FCL 20' / 40'HC), buscador Cliente·Shipping Mark, origen/destino, dimensiones por
      caja, peso, embalaje, **tarifa $/CBM editable**, servicios adicionales del catálogo, **Total DDP**
      (flete + aduana + impuestos, válida 30 días). **Sin botón de WhatsApp.**
   2. **Cotizador Exprés del Portal (móvil)** — `portal/mobile-extra.jsx · CotizadorScreen`.
@@ -144,7 +176,7 @@ calculadoras/cotizadores y se dejó asentado el backlog que surgió de comparar 
 4. **Badge/aviso en el ERP de registro nuevo del portal** — ✅ **ya hecho** en v2.3 (badge numérico +
    ítems del portal accionables en el Topbar).
 5. **#14 Multi-tenant** — ✅ confirmado: el portal móvil respeta el tenant (vista single-client, eventos
-   etiquetados por `tenantId` derivado del prefijo MARKBOX, ERP filtra con `byTenant`).
+   etiquetados por `tenantId` derivado del prefijo Shipping Mark, ERP filtra con `byTenant`).
 6. **PWA · "Instalar app" real** — ⏳ **pendiente de DEPLOY** (no codeable acá). Artefactos completos y
    verificados (`manifest.webmanifest`, `sw.js`, `assets/pwa-icon-192/512.png`, `beforeinstallprompt`);
    el prompt + service worker **requieren contexto seguro (HTTPS)** → falta **publicar en hosting HTTPS**.
@@ -409,7 +441,7 @@ Resultado: IVA débito en libros = $41.628 y crédito = $1.053, idénticos a los
 
 Nueva carpeta `backend/`: `API-CONTRACT.md` mapea **cada seam del prototipo**
 (`window.DTDData` stores + funciones, `window.DTDFlags`, `window.LegalData`, auth del
-`Operario · App`) a su endpoint REST: auth+sesión multi-tenant, clientes/MARKBOX secuencial,
+`Operario · App`) a su endpoint REST: auth+sesión multi-tenant, clientes/Shipping Mark secuencial,
 cotizaciones (cotizador→formal→aceptación, reliquidación CN), **aceptación legal con evidencia
 inmutable (IP+hash+timestamp server-side)**, bandeja del portal, facturación + gate, operación
 CN + **sync offline** (outbox), config/feature-flags a nivel tenant, notificaciones
@@ -656,7 +688,7 @@ Investigado (couriers puerta-a-puerta US/VE): "prealerta" = el cliente avisa que
 mercancía. Es el mismo registro que la "Compra" (cliente) y la "Orden" (interno).
 `portal/app.jsx · PortalSuppliers`: subtítulo reescrito anclando el concepto ("Cada compra
 es una prealerta…"), manteniendo "Nueva compra" como CTA. `CLAUDE.md`: nueva sección de
-terminología Compra/Orden/Prealerta (regla por audiencia, como MARKBOX/Shipping Mark).
+terminología Compra/Orden/Prealerta (regla por audiencia, como Shipping Mark/Shipping Mark).
 
 ---
 
@@ -1040,7 +1072,7 @@ Se cerró la última pieza grande de la deuda rec 3: las pantallas full-page que
 
 **Llamadas reemplazadas (`window.open` → `__erpOverlay`):** `erp/shell.jsx` (Tu día ×2, Copilot, "Ver mi perfil completo", **Modo cliente**), `erp/modules/comments.jsx` (hilo), `erp/modules/users.jsx` (perfil al click de fila), **`erp/modules/clients.jsx` (estado de cuenta)**.
 
-> **Addendum (mismo día):** se sumaron las 2 pantallas que habían quedado fuera, completando las **6**: **`estadocuenta`** (estado de cuenta del cliente · `window.EstadoCuenta`, abre desde el drawer de Clientes) y **`modocliente`** (vista previa del portal). `Modo Cliente.html` se refactorizó: el componente inline `ModoCliente` se extrajo a `pantallas/modo-cliente.jsx` con **estilos inline** (self-contained · ya no depende del `<style>` del HTML), acepta `markbox` + `embedded`, y en modo embebido el botón "Salir del modo" llama a `__erpCloseOverlay` (en standalone sigue siendo link al ERP). El overlay de `modocliente` monta el `<iframe>` al `Portal del Cliente.html?as=MARKBOX` (verificado: el portal carga dentro del iframe). Ambas IIFE-wrapped. Ya **no queda ningún `window.open` de pantallas** — las 6 viven dentro del ERP.
+> **Addendum (mismo día):** se sumaron las 2 pantallas que habían quedado fuera, completando las **6**: **`estadocuenta`** (estado de cuenta del cliente · `window.EstadoCuenta`, abre desde el drawer de Clientes) y **`modocliente`** (vista previa del portal). `Modo Cliente.html` se refactorizó: el componente inline `ModoCliente` se extrajo a `pantallas/modo-cliente.jsx` con **estilos inline** (self-contained · ya no depende del `<style>` del HTML), acepta `markbox` + `embedded`, y en modo embebido el botón "Salir del modo" llama a `__erpCloseOverlay` (en standalone sigue siendo link al ERP). El overlay de `modocliente` monta el `<iframe>` al `Portal del Cliente.html?as=Shipping Mark` (verificado: el portal carga dentro del iframe). Ambas IIFE-wrapped. Ya **no queda ningún `window.open` de pantallas** — las 6 viven dentro del ERP.
 
 **Pantallas adaptadas (props + aislamiento):**
 - `TuDia`/`UsuarioPerfil` aceptan `userId`; `HiloComentario` acepta `threadKey` + `embedded` (guarda `history.replaceState` en modo embebido). Fallback a URL param cuando no hay prop → el standalone sigue igual.
@@ -1151,7 +1183,7 @@ un aviso accionable cuando entra actividad nueva desde el portal.
 **1 · Cotizador y "Pedir re-compra" del móvil ahora publican al bridge** (antes solo el registro lo hacía):
 - `erp/data-bridge.jsx` · nuevo store `portalInbox` (`dtd-portal-inbox`) + helpers `pushPortalEvent(evt)`,
   `markPortalRead(ids?)` y `tenantForMarkbox(markbox)`. Cada evento se auto-tagea con `id/ts/read/tenantId`
-  (el `tenantId` se deriva del prefijo del MARKBOX vía `ERPData.TENANTS`). Expuestos en `window.DTDData`
+  (el `tenantId` se deriva del prefijo del Shipping Mark vía `ERPData.TENANTS`). Expuestos en `window.DTDData`
   + agregado a `resetAll`.
 - `portal/mobile-extra.jsx` · `CotizadorScreen` "Solicitar cotización formal" → `pushPortalEvent({kind:'cotizacion'…})`
   con ruta/servicio/estimado. `ProveedoresScreen` "Pedir re-compra" (antes sin onClick) → `pushPortalEvent({kind:'recompra'…})`
@@ -1170,7 +1202,7 @@ un aviso accionable cuando entra actividad nueva desde el portal.
 **3 · Multi-tenant (#14) — el portal móvil respeta el tenant:** confirmado. El portal móvil es vista
 single-client (`PM_MARKBOX = DTD-5452`, impersonación `?as=` solo acepta `DTD-####`), así que sus datos ya
 están aislados por cliente. Los eventos que emite quedan etiquetados con el `tenantId` derivado del prefijo
-del MARKBOX, y el ERP los filtra con `byTenant` antes de mostrarlos → no hay fuga cross-empresa.
+del Shipping Mark, y el ERP los filtra con `byTenant` antes de mostrarlos → no hay fuga cross-empresa.
 
 **4 · PWA "Instalar app" — install-ready, falta el hosting HTTPS (no codeable acá):** verificado que están
 todos los artefactos (`manifest.webmanifest` válido, `sw.js`, `assets/pwa-icon-192/512.png`, handler
@@ -1193,7 +1225,7 @@ fuentes del sistema). Cero hex inventados, cero AI slop.
 
 ## 2026-05-31 · v2.2 · Fix registro móvil atado al backend canónico + consolidación de changelogs
 
-**La falla (encontrada y corregida):** el registro del **Portal Cliente Mobile** generaba el MARKBOX
+**La falla (encontrada y corregida):** el registro del **Portal Cliente Mobile** generaba el Shipping Mark
 con un fallback random local y **NO publicaba el cliente al bridge compartido** — los registros
 hechos en el celular nunca llegaban al ERP. Causa raíz: `Portal Cliente Mobile.html` no cargaba
 `erp/data-bridge.jsx`, así que `window.DTDData` no existía en esa página.
@@ -1255,7 +1287,7 @@ flujo: lo que el cliente compra en China entra como **orden esperada** y el alma
 
 **Archivos viejos modificados:**
 - `erp/data.jsx` · nuevo dataset **`ORDERS`** (5 órdenes reales, atadas a cliente + `supplierId`):
-  code `MARKBOX-proveedor-compra` (= grupo WeChat + nº de compra), boxes/cbm/weight declarados,
+  code `Shipping Mark-proveedor-compra` (= grupo WeChat + nº de compra), boxes/cbm/weight declarados,
   flags `packing`/`invoice`, status (`por verificar`/`en camino`/`verificada`), eta, goods.
   Tagged `tenantId` vía `_byClient`. Exportado en `window.ERPData`.
 - `erp/modules/cn.jsx`:
@@ -1286,17 +1318,17 @@ sin integrar). Es la parte autocontenida (no depende de modelar `ORDERS`).
 **Archivos viejos modificados:**
 - `erp/data.jsx` · `SUPPLIER_CLIENTS` · agregado campo **`wechatGroup`** a cada relación
   cliente↔proveedor (el grupo WeChat es POR par: cada cliente abre su propio grupo con cada
-  supplier). Código `MARKBOX-N` (N = orden del proveedor en la lista del cliente): `DTD-5452-1`,
+  supplier). Código `Shipping Mark-N` (N = orden del proveedor en la lista del cliente): `DTD-5452-1`,
   `DTD-5452-2`, etc. Datos reales, deterministas.
 - `erp/modules/suppliers.jsx`:
   - `ModuleSuppliers` · **renombrado** el header a "Proveedores de clientes · CN · 客户供应商" +
     subtítulo reformulado + **banner aclaratorio** (wine-tint): estos proveedores son de los
     *clientes*; la deuda de la empresa vive en **Tesorería · CxP**.
   - `SupplierDetail` · la lista de clientes pasó a "{n} CLIENTES DTD · GRUPOS WECHAT"; cada fila
-    muestra el **chip del código de grupo WeChat** (`wechatGroup`) junto al MARKBOX. Grid recompuesto
+    muestra el **chip del código de grupo WeChat** (`wechatGroup`) junto al Shipping Mark. Grid recompuesto
     (se sacó la columna "desde" para dar lugar al chip).
   - `SupplierForm` · nueva sección **"GRUPO WECHAT · CLIENTE"**: Select de cliente (byTenant) +
-    **preview del código auto-generado** (`MARKBOX-N`, calculado de `SUPPLIER_CLIENTS`). Form ahora
+    **preview del código auto-generado** (`Shipping Mark-N`, calculado de `SUPPLIER_CLIENTS`). Form ahora
     stateful (`client` + `useMemo`).
 
 **Verificado:** módulo abre, header/banner correctos, drawer de Yiwu Standard muestra 3 clientes con
@@ -1317,15 +1349,15 @@ modelar `ORDERS`) · B · Cobro → Caja (cobranzas/tesorería).
 
 **Funcionalidad:**
 - Bottom-nav 5 tabs (Inicio · Envíos · Pagar · Comprar en China · Más). Reusa tokens + ERPUI + ERPData + Icon.
-- **Auth de 2 niveles** (pedido del usuario): registro completo → ENTRA al app SIN MARKBOX; verificación (dirección + cédula/fachada) → estado "en revisión" → MARKBOX asignado (aprobación simulada ~6s). Cuenta + sesión persistidas en localStorage (sobrevive refresh). Login pre-carga el MARKBOX guardado.
+- **Auth de 2 niveles** (pedido del usuario): registro completo → ENTRA al app SIN Shipping Mark; verificación (dirección + cédula/fachada) → estado "en revisión" → Shipping Mark asignado (aprobación simulada ~6s). Cuenta + sesión persistidas en localStorage (sobrevive refresh). Login pre-carga el Shipping Mark guardado.
 - **Cotizador exprés** DDP usando `ERPData.RATES`. **Detalle de factura** con desglose + subir comprobante.
-- **Gate por MARKBOX**: "Comprar en China" bloqueado sin verificar / en revisión.
+- **Gate por Shipping Mark**: "Comprar en China" bloqueado sin verificar / en revisión.
 
 **Feedback de equipo (Sam) aplicado:**
 - Verificación: dirección por **cascada estado→ciudad→municipio** vía `ERPUI.SearchSelect` (sin texto libre) + **código postal automático** (dataset VE en `PM_GEO`). Dirección exacta = único campo libre (placeholder "Ej. …"). Explicación de "¿Por qué la fachada?".
 - CP alineado al tamaño de los selects (38px / 13px mono).
 - Botón de Inicio "Comprar en China · Nueva compra o recompra".
-- Intro educativa en "Comprar en China" (seguimiento de compras, registrar proveedor, todo por código, valor de organización, explicación del sistema de codificación MARKBOX/caja/DTDU). Dismissible + reabrible vía ⓘ.
+- Intro educativa en "Comprar en China" (seguimiento de compras, registrar proveedor, todo por código, valor de organización, explicación del sistema de codificación Shipping Mark/caja/DTDU). Dismissible + reabrible vía ⓘ.
 
 **Archivos viejos modificados:**
 - `Portal Cliente Mobile.html` · carga `nuevo/search-select.jsx` antes de `portal/mobile-extra.jsx`.
@@ -1434,7 +1466,7 @@ sobre el repo. Acá quedó la base lista para que el backend se enchufe sin toca
 
 **Archivos nuevos:**
 - `backend/prisma/schema.prisma` · esquema **multi-tenant** completo derivado 1:1 de los shapes
-  mock (`window.ERPData`): Tenant, User (tenantId NULL = Plataforma), Client (MARKBOX único por
+  mock (`window.ERPData`): Tenant, User (tenantId NULL = Plataforma), Client (Shipping Mark único por
   tenant), Supplier, Order (seq por proveedor), Shipment (`DTDU-`), Box (flags), Container,
   WarehouseEvent (fotos S3), Invoice (`F-2026-`, fxRate BCV), Quote, Account (plan jerárquico),
   JournalEntry/Line, ExchangeRate, Comment (threads), ScheduledEmail, TmsIncident, Document, AuditLog.
@@ -1629,7 +1661,7 @@ los módulos vivos — espera OK del usuario para wirear.
 - **A · Almacén CN → pestaña "Esperadas / en camino"**: las órdenes que el cliente registra al
   comprar en China entran como esperadas (proveedor + packing list + factura que declaran cajas/CBM/
   peso). Drawer **Verificar**: el almacén rectifica sumatorias y confirma docs → la orden pasa a
-  "Recibidas". Seguimiento automático. Código `MARKBOX-proveedor-compra` (ej. `DTD-5452-1-1`) **es** el
+  "Recibidas". Seguimiento automático. Código `Shipping Mark-proveedor-compra` (ej. `DTD-5452-1-1`) **es** el
   nombre del grupo WeChat.
 - **B · Cobranzas → Caja**: al registrar el cobro se elige **cuenta de caja** (USD/USDT/VES) + **método**;
   baja el saldo de la factura y **entra como ingreso** a Tesorería (posición de caja se actualiza).
@@ -1845,7 +1877,7 @@ es **tabbed**: **Resumen** (todo lo que ya existía) + **Embarques históricos**
   Estados: el más reciente en `tránsito`, el siguiente en `aduana VE`, resto `entregado` (1 `incidencia`).
 - **NUEVO** `SupplierShipments` · KPI strip (embarques / CBM / valor FOB del filtro) + 2 filtros
   (**estado**: todos/entregado/tránsito/aduana/incidencia · **período**: todo/3/6/12 meses) + tabla
-  (código DTDU, cliente+MARKBOX+fecha, CBM, valor, badge de estado). Fila clickeable → `goTo('shipments', id)`.
+  (código DTDU, cliente+Shipping Mark+fecha, CBM, valor, badge de estado). Fila clickeable → `goTo('shipments', id)`.
   EmptyState cuando el filtro no devuelve nada. `ShipKPI` helper.
 
 **Brand-check:** solo tokens + ERPUI (`Tabs`/`Select`/`Badge`/`EmptyState`) + JetBrains Mono en códigos.
@@ -1880,7 +1912,7 @@ VE / Bodeguero / Camionero. Expone `window.OperarioAvisos`:
   trae `act` (`dispatch`/`print`) navega a esa acción del Home.
 - **6 tipos** (sin emoji, íconos del set `window.Icon`): `cierre` (warning·ship),
   `od` (info·truck), `incidencia` (danger·warn), `qr` (wine·tag), `mensaje` (ink·chat),
-  `sync` (success·check). Seed de 8 avisos realistas DTD-Cargo (YIW-A1, MARKBOX, OD, CBM 50).
+  `sync` (success·check). Seed de 8 avisos realistas DTD-Cargo (YIW-A1, Shipping Mark, OD, CBM 50).
 
 ### Wiring en Operario CN
 
@@ -2239,7 +2271,7 @@ solapados (coherente con la recomendación anti-sprawl).
   (abiertas, sin asignar, reclamos). Expuesto en `window.ConversacionesData`.
 - `nuevo/modules/conversaciones.jsx` · bandeja de 2 paneles:
   - **Lista** (360px): buscador + filtros de estado (tabs) + canal (chips), tarjetas con
-    canal, no-leídos, último mensaje, tipo, MARKBOX, agente asignado.
+    canal, no-leídos, último mensaje, tipo, Shipping Mark, agente asignado.
   - **Hilo**: header con cliente + badges + links a cliente/embarque + selects de asignación
     y estado; burbujas in/out estilo chat; quick replies desplegables; composer con textarea
     (⌘↵ envía) que agrega la respuesta al hilo en vivo (demo, estado local).
@@ -2301,7 +2333,7 @@ modela y suma el corazón de la operación LCL→FCL.
   - **Itinerarios:** tabla de sailings filtrable por naviera (ruta, ETD, cut-off, tránsito, espacio).
   - **Reservas:** bookings con BL marítimo + drawer con mapa de ruta POL→POD, embarques vinculados.
   - **Consolidación:** master-detail · selector de contenedor + ocupación CBM/peso con barras,
-    tabla de carga consolidada por cliente (MARKBOX, proveedor, piezas, CBM, % del contenedor),
+    tabla de carga consolidada por cliente (Shipping Mark, proveedor, piezas, CBM, % del contenedor),
     hint de CBM libre antes del cut-off. **El núcleo LCL→FCL.**
 
 **Archivos viejos modificados:**
@@ -2469,7 +2501,7 @@ Sesión Claude Design. Tres frentes: branding (Logo Oficial), UX de tablas (gest
 
 **Portal / Registro (registro-v2.jsx, app.jsx):**
 - Guía "Nomenclatura · cómo funciona" reescrita: diagrama del código, explicación de código-de-proveedor + compra correlativa, formato de etiqueta (sin numeración manual de cajas).
-- Caja de acceso (Usuario/Contraseña MARKBOX) y botón "Ir al portal" → verde (`var(--success)`), por pedido de revisión.
+- Caja de acceso (Usuario/Contraseña Shipping Mark) y botón "Ir al portal" → verde (`var(--success)`), por pedido de revisión.
 
 **Operario CN (operario/app.jsx):**
 - Botón "Imprimir códigos QR": subtítulos aclarados (elegir cliente → cola de impresión local u oficina).
@@ -2487,9 +2519,9 @@ En una sola sesión de diseño se cerraron 4 releases:
 
 | Release | Qué hace | Archivos |
 |---|---|---|
-| **v1.4** | Generador de etiquetas PDF bilingüe ES/中文 para suppliers CN (MARKBOX + Box X/Y + QR mock + 4 formatos de papel + print stylesheet) | `nuevo/modules/label-generator.jsx` |
+| **v1.4** | Generador de etiquetas PDF bilingüe ES/中文 para suppliers CN (Shipping Mark + Box X/Y + QR mock + 4 formatos de papel + print stylesheet) | `nuevo/modules/label-generator.jsx` |
 | **v1.4.1** | Control "Etiquetas por caja" (×1 a ×4) para trazabilidad redundante | `label-generator.jsx` |
-| **v1.5** | **CRÍTICO**: validación MARKBOX server-side (`validateMarkboxFormat`/`isMarkboxUnique`/`nextMarkbox`) + email bienvenida real (template m-05 → log al bridge + audit) + 2 cross-links nuevos en drawer Cliente (Estado de cuenta / Etiquetas) + storage listener en Cola QR para refresh real-time | `data-bridge.jsx`, `clients.jsx`, `qr-queue.jsx`, `portal/registro.jsx` |
+| **v1.5** | **CRÍTICO**: validación Shipping Mark server-side (`validateMarkboxFormat`/`isMarkboxUnique`/`nextMarkbox`) + email bienvenida real (template m-05 → log al bridge + audit) + 2 cross-links nuevos en drawer Cliente (Estado de cuenta / Etiquetas) + storage listener en Cola QR para refresh real-time | `data-bridge.jsx`, `clients.jsx`, `qr-queue.jsx`, `portal/registro.jsx` |
 | **v1.6** | 9 conexiones rotas wireadas en un módulo único `wiring.jsx`: Adjuntar archivo · Programar envío · Mi perfil · Cambiar contraseña · Atajos de teclado · Generar BL · OAuth Google/Microsoft · HS/AES sync persistente · Actividad reciente Dashboard clickeable · Mailing Logs leyendo bridge | `wiring.jsx`, `mailing-compose.jsx`, `documents.jsx`, `mailing-config.jsx`, `shell.jsx`, `admin.jsx`, `dashboard.jsx`, `mailing-logs.jsx` |
 
 **Pendientes para próxima sesión** (ver detalle al final de este CHANGELOG):
@@ -2559,7 +2591,7 @@ Agregado en `erp/modules/clients.jsx` (línea ~131, `actions` del drawer detalle
 
 En `nuevo/modules/qr-queue.jsx` (hook `useQrOrders`) agregado segundo `useEffect` que escucha el evento `storage` del navegador. Cuando otro tab (la app Operario CN) escribe al key `dtd_qrqueue_v1`, el ERP detecta el cambio y re-lee el state automáticamente — sin refresh manual. El evento `storage` no dispara en el tab que escribió, así que no genera loops con el `useEffect` de persistencia.
 
-### 3 · MARKBOX · validación server-side (crítico #2)
+### 3 · Shipping Mark · validación server-side (crítico #2)
 
 Agregado en `erp/data-bridge.jsx` (window.DTDData):
 - `MARKBOX_REGEX = /^DTD-\d{4,5}$/` — formato oficial (4 o 5 dígitos)
@@ -2576,7 +2608,7 @@ Agregado en `erp/data-bridge.jsx`:
 - Store `emailsSent` (key `dtd-emails-sent`)
 - `renderTemplate(body, vars)` — substituye `{{var}}` por valores
 - `sendWelcomeEmail(client)`:
-  - Lee template **m-05 'Bienvenida MARKBOX'** de `window.ERPData.MAIL_TEMPLATES`
+  - Lee template **m-05 'Bienvenida Shipping Mark'** de `window.ERPData.MAIL_TEMPLATES`
   - Substituye `{{client_name}}`, `{{markbox}}`, `{{portal_link}}` (este último: `https://portal.dtdcargo.com/{markbox.lower}`)
   - Pushea entrada `{id, to, toName, template, templateName, subject, body, sentAt, status: 'sent', markbox, channel: 'email'}` al log
   - Pushea entrada `auto` al audit log (`dtd_audit_log_v1` localStorage)
@@ -2594,7 +2626,7 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 
 - `erp/modules/clients.jsx` · línea ~131 · agregados 2 botones cross-link al drawer detalle
 - `nuevo/modules/qr-queue.jsx` · línea ~34 · agregado `useEffect` con `storage` listener
-- `erp/data-bridge.jsx` · línea ~60 · agregado store `emailsSent`, helpers MARKBOX, helper sendWelcomeEmail, expuestos en `window.DTDData`
+- `erp/data-bridge.jsx` · línea ~60 · agregado store `emailsSent`, helpers Shipping Mark, helper sendWelcomeEmail, expuestos en `window.DTDData`
 - `portal/registro.jsx` · líneas ~42 (state) + ~52 (submit) + ~110 (render) + ~410 (StepSuccess email card) · usa nextMarkbox() + sendWelcomeEmail() + UI con feedback de envío
 
 ### Quick win descartado
@@ -2604,7 +2636,7 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 ### TODOs pendientes para próximas sesiones
 
 - Mostrar los emails de `emailsSent` en el módulo Mailing → Logs (hoy solo se persisten en localStorage, el módulo Logs sigue mostrando data mock hardcodeada).
-- Validar MARKBOX format en el form mismo (Step1 muestra el campo cédula/RIF, pero el MARKBOX no se ingresa — se genera. Si en algún momento el admin quiere asignar uno manual, el `validateMarkboxFormat` está listo).
+- Validar Shipping Mark format en el form mismo (Step1 muestra el campo cédula/RIF, pero el Shipping Mark no se ingresa — se genera. Si en algún momento el admin quiere asignar uno manual, el `validateMarkboxFormat` está listo).
 - Mover los seed `WAREHOUSES_CN` de `nuevo/modules/label-generator.jsx` a `erp/data.jsx` al consolidar v1.5.
 
 ---
@@ -2613,7 +2645,7 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 
 **Cambio en `nuevo/modules/label-generator.jsx`:**
 - Agregado control "Etiquetas por caja" (×1 / ×2 / ×3 / ×4) en la card "CAJAS · BOX X/Y". Default: ×2 (recomendado).
-- El generador ahora duplica la misma etiqueta N veces consecutivas. Las copias son **idénticas** (mismo MARKBOX, mismo Box X/Y, mismo QR) — no se marcan como "copia 1 de 3" porque las cajas se descargan en orden arbitrario.
+- El generador ahora duplica la misma etiqueta N veces consecutivas. Las copias son **idénticas** (mismo Shipping Mark, mismo Box X/Y, mismo QR) — no se marcan como "copia 1 de 3" porque las cajas se descargan en orden arbitrario.
 - **Razón operativa:** durante la descarga del contenedor en VE, una sola etiqueta por caja se puede tapar con otra caja, romperse al manipular o mancharse. Pegando 2-4 copias en distintas caras de la misma caja se garantiza la trazabilidad.
 - Helper `boxesInRange` calculado aparte para mostrar el desglose "N cajas × M copias = X etiquetas".
 - El resumen del preview ahora muestra una segunda línea con "N cajas × M copias".
@@ -2632,7 +2664,7 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 **Estructura del módulo:**
 - Layout 2 columnas: panel config (360px sticky) + preview escalado a tamaño real (mm).
 - **Config panel:**
-  - Cliente: selector de `D.CLIENTS` · muestra card wine con MARKBOX grande, nombre, empresa.
+  - Cliente: selector de `D.CLIENTS` · muestra card wine con Shipping Mark grande, nombre, empresa.
   - Supplier (opcional): selector de `D.SUPPLIERS` · al elegir, auto-sugiere almacén CN destino según ciudad del supplier (Yiwu→YIW-A1, Guangzhou/Shanghai→GZ-B2, Shenzhen→SZ-C1).
   - Almacén CN destino: dropdown de 3 hubs (YIW-A1, GZ-B2, SZ-C1) — editable.
   - Cajas: Box inicial (X) + Total cajas (Y) con preview de rango "X/Y hasta Y/Y".
@@ -2647,7 +2679,7 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 **Diseño de la etiqueta (componente Label):**
 - Border navy 1.2px, padding adaptativo según tamaño (compacto vs full).
 - Header bilingüe: "SHIPPING TO · DTD-CARGO" + "寄至：DTD-Cargo 国际货运" + chip wine con código del almacén (YIW-A1/GZ-B2/SZ-C1).
-- Cuerpo: 2 cols → izquierda eyebrow "MARKBOX · 货主代码" + código mono grande wine (36px full, 26px compacto) + nombre + empresa. Derecha: QR mock 78px / 54px.
+- Cuerpo: 2 cols → izquierda eyebrow "Shipping Mark · 货主代码" + código mono grande wine (36px full, 26px compacto) + nombre + empresa. Derecha: QR mock 78px / 54px.
 - Banner dark navy con "BOX · 箱号" + número X/Y grande mono.
 - Footer bilingüe con dirección china del almacén + contacto chino (王亮 Wang Liang, etc.) + WeChat. En formato compacto solo ciudad CN + WeChat.
 
@@ -2664,7 +2696,7 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 **Mensaje al supplier (modal):**
 - Botón "Mensaje al supplier" en header → modal con 2 bloques: ES + 中文.
 - Cada bloque renderea texto en mono cn (`Noto Sans SC`) o sans · botón "Copiar" que usa `navigator.clipboard` con feedback "Copiado" 1.8s.
-- Botón "Abrir en Compose" llama a `window.openQuickEmail` (si existe) con `to`, `subject` (`DTD-Cargo · {N} etiquetas · MARKBOX {markbox}`), `body` con ES + CN concatenados.
+- Botón "Abrir en Compose" llama a `window.openQuickEmail` (si existe) con `to`, `subject` (`DTD-Cargo · {N} etiquetas · Shipping Mark {markbox}`), `body` con ES + CN concatenados.
 
 **Mock data inlined (debería moverse a `erp/data.jsx` al consolidar):**
 - `WAREHOUSES_CN`: 3 hubs CN con dirección china real, contacto chino bilingüe, teléfono, WeChat.
@@ -2680,9 +2712,9 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 - Sin emojis, sin gradientes, sin glassmorphism.
 
 **TODOs pendientes para próximas sesiones:**
-- Soporte para imprimir etiquetas para varios MARKBOX en la misma plancha (split LCL).
+- Soporte para imprimir etiquetas para varios Shipping Mark en la misma plancha (split LCL).
 - Generar QR escaneable real (necesita librería externa — `qrcode.js` o similar). Hoy es mock visual.
-- Vincular al detalle de Cliente (`erp/modules/clients.jsx` drawer) con botón "Generar etiquetas para este cliente" que abra el módulo con el MARKBOX preseleccionado vía `goTo('labels', markbox)`.
+- Vincular al detalle de Cliente (`erp/modules/clients.jsx` drawer) con botón "Generar etiquetas para este cliente" que abra el módulo con el Shipping Mark preseleccionado vía `goTo('labels', markbox)`.
 - Vincular al portal del cliente — que el cliente pueda autogenerar sus etiquetas sin pedirlas al admin.
 - Persistir en bridge cuántas etiquetas se generaron y para qué supplier (audit log).
 
@@ -2727,7 +2759,7 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
     - Toggle `📍 Cerca tuyo · Todos · 187`
     - Banner de geo-permission mock con ubicación del user
     - Search bar
-    - Lista de clientes con avatar + MARKBOX + ciudad + **distancia mock** (m/km, tone "cerca/lejos") + chip de embarques/facturado + 3 botones de acción: Llamar (tel:), WhatsApp (deeplink con texto pre-armado), Visitar
+    - Lista de clientes con avatar + Shipping Mark + ciudad + **distancia mock** (m/km, tone "cerca/lejos") + chip de embarques/facturado + 3 botones de acción: Llamar (tel:), WhatsApp (deeplink con texto pre-armado), Visitar
   - **ExpensesScreen** + **NewExpenseModal**:
     - Botón flotante `+` en el header
     - 2 summary cards: Total (USD + Bs. ref) · Cobrable al cliente
@@ -2941,7 +2973,7 @@ Sacado el emoji 📨 (brand-check: prohibido emoji decorativo en UI de producto)
 - nuevo/pantallas/estado-cuenta.html — Shell HTML.
 - nuevo/pantallas/estado-cuenta.jsx — Vista profunda de la cuenta corriente del cliente. Incluye:
   - Top bar sticky con breadcrumb ERP / Clientes / Estado de cuenta + selector (6 clientes con data detallada)
-  - Hero card con avatar, badges (status, segmento, alerta de mora), MARKBOX, RIF, embarques, facturado total. CTAs: Generar PDF · Registrar pago · Enviar recordatorio
+  - Hero card con avatar, badges (status, segmento, alerta de mora), Shipping Mark, RIF, embarques, facturado total. CTAs: Generar PDF · Registrar pago · Enviar recordatorio
   - 4 KPIs: Saldo actual, Deuda vencida, Crédito disponible, DPP (días promedio de pago vs meta SLA)
   - **Aging chart** — distribución por bucket (0-30, 31-60, 61-90, 90+) con stacked bar + 4 boxes de detalle
   - Columna izquierda (2/3):
@@ -3268,7 +3300,7 @@ Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
 - **Home del bodeguero** post-cierre con resumen de última OD + 2 sub-modos
 - **Modo Despachar al camión** (LIFO): banner ruta + timeline de ciudades + cola priorizada por ciudad
 - **Modo Recibir mercancía**: selector tipo (mono-cliente / LCL) → lista de contenedores ordenada (sin abrir → en curso → completado) → detalle del contenedor seleccionado
-- **Demo escáner**: cámara mock con reticle, animación scan, detección de MARKBOX a los ~2.4s, actualiza packing list, auto-cierra
+- **Demo escáner**: cámara mock con reticle, animación scan, detección de Shipping Mark a los ~2.4s, actualiza packing list, auto-cierra
 - Card de paquete actual con bloque SENIAT (HS + AES + descripción)
 - Carga fraccionada (P1/P2) con modal de split, badges, sección "Próximo viaje" en bodega
 - Botón "Cerrar carga · entregar al camionero" cuando termina el viaje
@@ -3385,7 +3417,7 @@ Camionero.html
 4. Registrar módulo Despacho en `ERPShell.MODULES` para que aparezca en sidebar
 5. Carga fraccionada P2 genera 2da OD automática
 6. Multi-tenant: filtrado real de datos por tenant
-7. Registro de clientes (signup) con MARKBOX auto-generado + foto cédula + foto fachada
+7. Registro de clientes (signup) con Shipping Mark auto-generado + foto cédula + foto fachada
 8. Geocoding real (Google Maps / Mapbox)
 9. Push notifications reales (FCM/APNs)
 10. Reportes / dashboard del módulo despacho
@@ -3428,14 +3460,14 @@ Camionero.html
 - Step 1: tipo persona/empresa · nombre · cédula/RIF · foto identidad · email · teléfono + WhatsApp toggle
 - Step 2: Estado → Municipio → Ciudad → Barrio en cascada usando `window.VECatalog`, auto-fill de código postal, dirección detallada, punto de referencia, **foto fachada** (que luego usa el camionero)
 - Step 3: review completo de datos
-- Step 4 éxito: MARKBOX generado random (`DTD-XXXX`) en card wine destacada
+- Step 4 éxito: Shipping Mark generado random (`DTD-XXXX`) en card wine destacada
 - Mensaje "Bienvenido a la familia de DoorTuDoor Cargo"
-- **Guía visual de codificación MARKBOX** (1 min) plegable con 4 pasos:
-  - Pasale el MARKBOX al proveedor chino
-  - Formato de etiqueta visual (mockup con MARKBOX real)
+- **Guía visual de codificación Shipping Mark** (1 min) plegable con 4 pasos:
+  - Pasale el Shipping Mark al proveedor chino
+  - Formato de etiqueta visual (mockup con Shipping Mark real)
   - Numerá las cajas Box X/Y
   - Qué pasa después (almacén CN → consolidación → zarpe → aduana → entrega)
-- **Botón "Cómo usar tu MARKBOX"** con animación pulsante wine + chevron rebotando para captar atención
+- **Botón "Cómo usar tu Shipping Mark"** con animación pulsante wine + chevron rebotando para captar atención
 - Email preview con mención de la guía adjunta
 
 ### Pipeline bridge cerrado
@@ -3481,7 +3513,7 @@ CHANGELOG-sesion.md
 - ~~Carga fraccionada P2 genera 2da OD~~
 - ~~Cancelar OD desde admin~~
 - ~~Registrar Despacho en sidebar del ERP~~
-- ~~Registro de clientes con MARKBOX + foto cédula + foto fachada~~
+- ~~Registro de clientes con Shipping Mark + foto cédula + foto fachada~~
 
 ## 📅 Addendum #2 · cierre final de sesión
 
@@ -3491,8 +3523,8 @@ CHANGELOG-sesion.md
 - Almacén CN tiene helper `liberarADespacho(rec)` que publica al inbox
 
 ### B · Registro → Clientes shared
-- Registro publica al bridge con MARKBOX secuencial (no random)
-- Transportista lee `photoFachada` por MARKBOX del bridge clientes
+- Registro publica al bridge con Shipping Mark secuencial (no random)
+- Transportista lee `photoFachada` por Shipping Mark del bridge clientes
 
 ### C · Reglas Vista 2 → persistencia
 - `despacho-rules.jsx` guarda pesos/policy/rules en bridge al hacer "Guardar"
@@ -3551,8 +3583,8 @@ liberarADespacho()→  cnInbox subscribe
 ```
 
 ### Pendientes 8-10 para próxima sesión
-8. **Validación MARKBOX server-side** (secuencial real + check duplicados)
-9. **Generación de etiquetas PDF** para suppliers chinos con MARKBOX + Box X/Y
+8. **Validación Shipping Mark server-side** (secuencial real + check duplicados)
+9. **Generación de etiquetas PDF** para suppliers chinos con Shipping Mark + Box X/Y
 10. **Email de bienvenida real** (template m-05 ya está en `erp/data.jsx`)
 11. **Geocoding API real** (Google Maps / Mapbox)
 12. **Push notifications reales** (FCM / APNs)
@@ -3608,7 +3640,7 @@ Resumen completo de todo lo construido en esta sesión sobre el ERP DTD-Cargo.
 - **Home del bodeguero** post-cierre con resumen de última OD + 2 sub-modos
 - **Modo Despachar al camión** (LIFO): banner ruta + timeline de ciudades + cola priorizada por ciudad
 - **Modo Recibir mercancía**: selector tipo (mono-cliente / LCL) → lista de contenedores ordenada (sin abrir → en curso → completado) → detalle del contenedor seleccionado
-- **Demo escáner**: cámara mock con reticle, animación scan, detección de MARKBOX a los ~2.4s, actualiza packing list, auto-cierra
+- **Demo escáner**: cámara mock con reticle, animación scan, detección de Shipping Mark a los ~2.4s, actualiza packing list, auto-cierra
 - Card de paquete actual con bloque SENIAT (HS + AES + descripción)
 - Carga fraccionada (P1/P2) con modal de split, badges, sección "Próximo viaje" en bodega
 - Botón "Cerrar carga · entregar al camionero" cuando termina el viaje
@@ -3725,7 +3757,7 @@ Camionero.html
 4. Registrar módulo Despacho en `ERPShell.MODULES` para que aparezca en sidebar
 5. Carga fraccionada P2 genera 2da OD automática
 6. Multi-tenant: filtrado real de datos por tenant
-7. Registro de clientes (signup) con MARKBOX auto-generado + foto cédula + foto fachada
+7. Registro de clientes (signup) con Shipping Mark auto-generado + foto cédula + foto fachada
 8. Geocoding real (Google Maps / Mapbox)
 9. Push notifications reales (FCM/APNs)
 10. Reportes / dashboard del módulo despacho
@@ -3768,14 +3800,14 @@ Camionero.html
 - Step 1: tipo persona/empresa · nombre · cédula/RIF · foto identidad · email · teléfono + WhatsApp toggle
 - Step 2: Estado → Municipio → Ciudad → Barrio en cascada usando `window.VECatalog`, auto-fill de código postal, dirección detallada, punto de referencia, **foto fachada** (que luego usa el camionero)
 - Step 3: review completo de datos
-- Step 4 éxito: MARKBOX generado random (`DTD-XXXX`) en card wine destacada
+- Step 4 éxito: Shipping Mark generado random (`DTD-XXXX`) en card wine destacada
 - Mensaje "Bienvenido a la familia de DoorTuDoor Cargo"
-- **Guía visual de codificación MARKBOX** (1 min) plegable con 4 pasos:
-  - Pasale el MARKBOX al proveedor chino
-  - Formato de etiqueta visual (mockup con MARKBOX real)
+- **Guía visual de codificación Shipping Mark** (1 min) plegable con 4 pasos:
+  - Pasale el Shipping Mark al proveedor chino
+  - Formato de etiqueta visual (mockup con Shipping Mark real)
   - Numerá las cajas Box X/Y
   - Qué pasa después (almacén CN → consolidación → zarpe → aduana → entrega)
-- **Botón "Cómo usar tu MARKBOX"** con animación pulsante wine + chevron rebotando para captar atención
+- **Botón "Cómo usar tu Shipping Mark"** con animación pulsante wine + chevron rebotando para captar atención
 - Email preview con mención de la guía adjunta
 
 ### Pipeline bridge cerrado
@@ -3821,7 +3853,7 @@ CHANGELOG-sesion.md
 - ~~Carga fraccionada P2 genera 2da OD~~
 - ~~Cancelar OD desde admin~~
 - ~~Registrar Despacho en sidebar del ERP~~
-- ~~Registro de clientes con MARKBOX + foto cédula + foto fachada~~
+- ~~Registro de clientes con Shipping Mark + foto cédula + foto fachada~~
 
 ## 📅 Addendum #2 · cierre final de sesión
 
@@ -3831,8 +3863,8 @@ CHANGELOG-sesion.md
 - Almacén CN tiene helper `liberarADespacho(rec)` que publica al inbox
 
 ### B · Registro → Clientes shared
-- Registro publica al bridge con MARKBOX secuencial (no random)
-- Transportista lee `photoFachada` por MARKBOX del bridge clientes
+- Registro publica al bridge con Shipping Mark secuencial (no random)
+- Transportista lee `photoFachada` por Shipping Mark del bridge clientes
 
 ### C · Reglas Vista 2 → persistencia
 - `despacho-rules.jsx` guarda pesos/policy/rules en bridge al hacer "Guardar"
@@ -3891,8 +3923,8 @@ liberarADespacho()→  cnInbox subscribe
 ```
 
 ### Pendientes 8-10 para próxima sesión
-8. **Validación MARKBOX server-side** (secuencial real + check duplicados)
-9. **Generación de etiquetas PDF** para suppliers chinos con MARKBOX + Box X/Y
+8. **Validación Shipping Mark server-side** (secuencial real + check duplicados)
+9. **Generación de etiquetas PDF** para suppliers chinos con Shipping Mark + Box X/Y
 10. **Email de bienvenida real** (template m-05 ya está en `erp/data.jsx`)
 11. **Geocoding API real** (Google Maps / Mapbox)
 12. **Push notifications reales** (FCM / APNs)

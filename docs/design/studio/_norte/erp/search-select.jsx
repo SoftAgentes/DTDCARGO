@@ -4,7 +4,7 @@
    · Escribir = filtra en vivo.  · ↑/↓ + Enter para navegar.
    · Siempre "+ Agregar nuevo" arriba (crea sin salir del formulario).
    · options: [{ value, label, sub, group, indent }]
-   Uso: <ERPUI.SearchSelect value=… onChange=(v)=>… options=… onCreate=()=>… createLabel="Agregar a Cliente" placeholder="Seleccioná…" /> */
+   Uso: <ERPUI.SearchSelect value=… onChange=(v)=>… options=… onCreate=()=>… createLabel="Agregar a Cliente" placeholder="Selecciona…" /> */
 (function () {
   const { useState, useRef, useEffect } = React;
 
@@ -31,13 +31,13 @@
             <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Nota</div>
             <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={3} placeholder="Notas internas del cliente (opcional)" style={{ width: '100%', padding: '9px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--ink)', font: '500 12.5px/1.4 var(--f-sans)', resize: 'vertical' }} />
           </div>
-          <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Se asigna MARKBOX <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{code}</code>. Al guardar, vuelve a la factura con el cliente ya seleccionado.</div>
+          <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Se asigna Shipping Mark <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{code}</code>. Al guardar, vuelve a la factura con el cliente ya seleccionado.</div>
         </div>
       </U.Drawer>);
 
   }
 
-  function SearchSelect({ value, onChange, options = [], onCreate, createLabel = 'Agregar nuevo', placeholder = 'Buscá o seleccioná…', label, quickCreateClient }) {
+  function SearchSelect({ value, onChange, options = [], onCreate, createLabel = 'Agregar nuevo', placeholder = 'Busca o selecciona…', label, quickCreateClient }) {
     const [open, setOpen] = useState(false);
     const [q, setQ] = useState('');
     const [hi, setHi] = useState(0);
@@ -101,7 +101,7 @@
         }}>
             <div style={{ padding: 8, borderBottom: '1px solid var(--border)' }}>
               <input ref={inputRef} value={q} onChange={(e) => {setQ(e.target.value);setOpen(true);}} onKeyDown={onKey}
-            placeholder={'Buscá…'} style={{
+            placeholder={'Busca…'} style={{
               width: '100%', height: 34, padding: '0 10px', border: '1px solid var(--border)',
               borderRadius: 'var(--r-sm)', background: 'var(--bg-base)', color: 'var(--ink)',
               font: '500 13px/1 var(--f-sans)', outline: 'none'

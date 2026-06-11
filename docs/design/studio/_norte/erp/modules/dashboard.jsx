@@ -181,8 +181,8 @@ function ModuleDashboard({ goTo }) {
         eyebrow="Operación · 23 May 2026"
         title="Buenos días, Carlos."
         subtitle={D.currentTenant && !D.isHomeTenant?.() && D.currentTenant() !== 'all'
-          ? `Tenés ${activeShipments.length} embarques activos, ${(D.byTenant(D.INVOICES).filter(i => i.balance > 0)).length} facturas por cobrar y ${D.byTenant(D.LEADS).length} leads en pipeline.`
-          : 'Tenés 24 embarques activos, 4 facturas por cobrar y 18 leads nuevos esta semana.'}
+          ? `Tienes ${activeShipments.length} embarques activos, ${(D.byTenant(D.INVOICES).filter(i => i.balance > 0)).length} facturas por cobrar y ${D.byTenant(D.LEADS).length} leads en pipeline.`
+          : 'Tienes 24 embarques activos, 4 facturas por cobrar y 18 leads nuevos esta semana.'}
         actions={
           <>
             <button onClick={() => setHideValues(!hideValues)} title={hideValues ? 'Mostrar valores' : 'Ocultar valores'} style={{
@@ -217,8 +217,8 @@ function ModuleDashboard({ goTo }) {
         <div style={{ marginBottom: 'var(--s-6)' }}>
           <U.EmptyState
             icon={I.dashboard(24)}
-            title="No tenés KPIs visibles"
-            body="Activá al menos uno desde Configurar dashboard."
+            title="No tienes KPIs visibles"
+            body="Activa al menos uno desde Configurar dashboard."
             action={<U.Btn variant="primary" icon={I.edit(13)} onClick={() => setEditorOpen(true)}>Configurar dashboard</U.Btn>}
           />
         </div>

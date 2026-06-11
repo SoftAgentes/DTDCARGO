@@ -2,7 +2,7 @@
  * Badge primitive · DTD Studio
  *
  * Pill con tono (success/warning/danger/info/wine/neutral) y opcional dot.
- * Diseño (v1.7): docs/design/studio/v1.7-claude-design/project/erp/components.jsx
+ * Diseño (Norte): docs/design/studio/_norte/erp/components.jsx
  */
 
 import type { CSSProperties, ReactNode } from "react";
