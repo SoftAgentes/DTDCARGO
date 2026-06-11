@@ -686,7 +686,7 @@
             {celebrating
               ? <React.Fragment>{I.check(20)} {mode === 'cargar' ? '¡Cargado!' : '¡Despachado!'}</React.Fragment>
               : confirming
-                ? <React.Fragment>{I.check(20)} Tocá de nuevo para confirmar</React.Fragment>
+                ? <React.Fragment>{I.check(20)} Toca de nuevo para confirmar</React.Fragment>
                 : <React.Fragment>{I.truck(18)} {mode === 'cargar' ? 'Cargado al camión' : 'Marcar despachado'} · {pkg.boxes} caja{pkg.boxes === 1 ? '' : 's'}</React.Fragment>}
           </button>
           {pkg.boxes > 1 && !celebrating && (
@@ -1231,7 +1231,7 @@
     function startScan() {
       setScannerOpen(true);
       setScanResult(null);
-      // Mock: a los 2.4s "detectamos" un MARKBOX al azar de los pendientes
+      // Mock: a los 2.4s "detectamos" un Shipping Mark al azar de los pendientes
       setTimeout(() => {
         const candidates = expected.filter(e => e.scanned < e.boxes);
         if (candidates.length === 0) {
@@ -1301,7 +1301,7 @@
       return (
         <div>
           <button onClick={() => setType(null)} style={{ marginTop: 14, marginBottom: 12, font: '600 12px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>← Otro tipo</button>
-          <div style={{ marginBottom: 12, font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{title} · elegí cuál procesar</div>
+          <div style={{ marginBottom: 12, font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{title} · elige cuál procesar</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {list.map(c => {
               if (type === 'mono') {
@@ -1393,13 +1393,13 @@
         {statusOf(c) === 'en-curso' && (
           <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: 'var(--r-md)', font: '500 12px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(13)}</span>
-            <span><b>Contenedor en curso.</b> Otro operario lo está procesando ahora mismo. Podés ver el contenido esperado pero no escanear desde acá.</span>
+            <span><b>Contenedor en curso.</b> Otro operario lo está procesando ahora mismo. Puedes ver el contenido esperado pero no escanear desde acá.</span>
           </div>
         )}
         {statusOf(c) === 'completado' && (
           <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: 'var(--r-md)', font: '500 12px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.check(13)}</span>
-            <span><b>Contenedor completado.</b> Todas las cajas ya fueron escaneadas. Acá podés ver el desglose final por cliente.</span>
+            <span><b>Contenedor completado.</b> Todas las cajas ya fueron escaneadas. Acá puedes ver el desglose final por cliente.</span>
           </div>
         )}
 
@@ -1431,7 +1431,7 @@
   }
 
 
-  // ── Scanner overlay (simula cámara + lectura MARKBOX) ────────
+  // ── Scanner overlay (simula cámara + lectura Shipping Mark) ────────
   function ScannerOverlay({ onClose, result }) {
     const I = window.Icon;
     return (
@@ -1543,7 +1543,7 @@
               </React.Fragment>
             ) : (
               <React.Fragment>
-                <div style={{ font: '700 13px/1.2 var(--f-sans)', color: '#fff' }}>Apuntá el lector al código MARKBOX</div>
+                <div style={{ font: '700 13px/1.2 var(--f-sans)', color: '#fff' }}>Apuntá el lector al código Shipping Mark</div>
                 <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>Mantené la caja dentro del recuadro. La detección tarda ~3s.</div>
               </React.Fragment>
             )}
@@ -1597,7 +1597,7 @@
   function ModeToggle({ mode, onChange }) {
     const I = window.Icon;
     const opts = [
-      { id: 'cargar',    label: 'Despachar al camión', sub: 'cargá al camión en orden LIFO', icon: I.truck },
+      { id: 'cargar',    label: 'Despachar al camión', sub: 'carga al camión en orden LIFO', icon: I.truck },
       { id: 'despachar', label: 'Recibir mercancía',   sub: 'escanea cajas del contenedor',  icon: I.box },
     ];
     return (
@@ -1642,7 +1642,7 @@
             display: 'flex', alignItems: 'flex-start', gap: 6,
           }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(11)}</span>
-            <span>Cargá <b>primero lo que va más lejos</b> (Caracas) para que quede al fondo. Lo último que cargás (Maracay) se baja primero del camión.</span>
+            <span>Carga <b>primero lo que va más lejos</b> (Caracas) para que quede al fondo. Lo último que cargás (Maracay) se baja primero del camión.</span>
           </div>
         )}
       </div>

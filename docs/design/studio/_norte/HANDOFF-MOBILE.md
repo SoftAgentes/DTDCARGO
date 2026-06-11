@@ -51,7 +51,7 @@ Al recibir el perfil del login, la app rutea por `role`:
 ### Caso especial · multi-rol (tenant DTDSTUDIO)
 El mismo operario a veces es **almacenista** (Modo Bodega) y a veces **transportista**
 (Modo Chofer). El perfil trae **2 roles habilitados** → la app muestra el picker
-"¿Qué hacés hoy?" y al elegir entra al **home de trabajo de ese modo** (no a una pantalla
+"¿Qué haces hoy?" y al elegir entra al **home de trabajo de ese modo** (no a una pantalla
 de cambio de modo). El **cambio de modo** vive en el menú ☰, no en el centro.
 
 - **Modo Bodega** (= "Soy almacenista") → 2 acciones: **Recibir contenedor** + **Despachar camión**.
@@ -160,7 +160,7 @@ Todas son React in-HTML (sin build), montan sobre `erp/tokens.css` + `erp/icons.
 | **Transportista** | `Transportista.html` | `operario/transportista.jsx` *(IIFE)* | Ruta activa con GPS, foto de fachada, llegada y POD por parada, alerta de ubicación. |
 | **Operario · App** | `Operario · App.html` | reusa `almacenista.jsx` + `ve.jsx` | **APK único** (reemplaza a Operario Multi): login usuario+contraseña → auth mock → ruteo por rol → multi-rol abre picker → Modo Bodega / Chofer, con sesión persistente (PIN). |
 | **Mobile ERP** | `Mobile ERP.html` | `mobile/app.jsx` | **No es para operarios** — vista móvil del usuario ERP (Admin/Comercial): tracking, clientes cerca, gastos rápidos. |
-| **Portal Cliente Mobile** | `Portal Cliente Mobile.html` | `portal/app.jsx` | Portal del **cliente** en móvil (MARKBOX, embarques, estado de cuenta). |
+| **Portal Cliente Mobile** | `Portal Cliente Mobile.html` | `portal/app.jsx` | Portal del **cliente** en móvil (Shipping Mark, embarques, estado de cuenta). |
 
 ### Reuso de flujos (seam ya construido)
 Para que el launcher multi-rol reuse pantallas sin re-login ni rediseño, las apps exponen
@@ -225,7 +225,7 @@ Cada llamada va con `Authorization: Bearer <accessToken>`; el backend **verifica
   **`-reverse`** (nunca `filter: invert` sobre el isólogo). Ver `BRAND-MIGRATION-2026-05.md`.
 - **Íconos:** `window.Icon` (`erp/icons.jsx`) — nunca emoji decorativo en UI de producto.
 - **Componentes:** `window.ERPUI` primero; inventar solo con `/* TODO: brand-review */`.
-- **Códigos (mono):** MARKBOX `DTD-XXXX` (cara al cliente) / Shipping Mark 唛头 (cara al
+- **Códigos (mono):** Shipping Mark `DTD-XXXX` (cara al cliente) / Shipping Mark 唛头 (cara al
   proveedor CN, mismo valor), containers `DTDU-XXXXXX`, rutas `R-2026-XXXX`.
 - **Tono:** castellano rioplatense/venezolano neutro, voseo, verbos directos en CTAs
   ("Confirmar ruta", "Recibir contenedor"). Sin emoji ni exclamaciones múltiples en UI.
@@ -244,5 +244,5 @@ Cada llamada va con `Authorization: Bearer <accessToken>`; el backend **verifica
 7. **Empaquetado**: PWA instalable o wrapper (Capacitor/TWA) — un solo build para todos
    los tenants.
 
-> Regla transversal: **no rehacer lo existente.** Verificá contra `CHANGELOG.md`; si hay
+> Regla transversal: **no rehacer lo existente.** Verifica contra `CHANGELOG.md`; si hay
 > duda, preguntá. Avisá antes de violar una regla de marca (formato `BRAND-CHECK` en `CLAUDE.md`).

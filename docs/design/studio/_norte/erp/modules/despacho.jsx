@@ -389,7 +389,7 @@
         <U.PageHeader
           eyebrow="OPERACIONES · VENEZUELA"
           title="Orden de Despacho"
-          subtitle="Cola priorizada de paquetes en bodega VE listos para reparto. El motor de reglas asigna un score 0-100; podés reordenar manualmente y enviar el lote a la app del almacenista."
+          subtitle="Cola priorizada de paquetes en bodega VE listos para reparto. El motor de reglas asigna un score 0-100; puedes reordenar manualmente y enviar el lote a la app del almacenista."
           actions={
             <React.Fragment>
               {manual && (
@@ -422,7 +422,7 @@
         <U.Toolbar
           search={search}
           onSearchChange={setSearch}
-          searchPlaceholder="Buscar # orden, cliente, MARKBOX, ciudad…"
+          searchPlaceholder="Buscar # orden, cliente, Shipping Mark, ciudad…"
           filters={
             <React.Fragment>
               <U.Select value={fCity} onChange={(e) => setFCity(e.target.value)} style={{ width: 170 }} options={[
@@ -1386,7 +1386,7 @@
             ))}
             {(active.length + recent.length) === 0 && (
               <div style={{ padding: 18, textAlign: 'center', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
-                Todavía no hay órdenes hoy. Seleccioná paquetes y enviá al almacenista.
+                Todavía no hay órdenes hoy. Selecciona paquetes y envía al almacenista.
               </div>
             )}
           </div>

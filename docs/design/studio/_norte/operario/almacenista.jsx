@@ -313,7 +313,7 @@ Tenemos un despacho para hoy:
 📦 Carga: ~18 CBM · 4 paradas
 ⏰ Salida estimada: hoy 07:30
 
-¿Tenés disponibilidad para hacer la ruta?
+¿Tienes disponibilidad para hacer la ruta?
 
 Maps: https://maps.app.goo.gl/dtd-pbl-valencia`
   );
@@ -346,7 +346,7 @@ Maps: https://maps.app.goo.gl/dtd-pbl-valencia`
               style={{ width: '100%', padding: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink)', outline: 'none', resize: 'vertical' }}
             />
             <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--info-bg)', borderRadius: 'var(--r-sm)', font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-              Incluye link de Google Maps con el destino y resumen de la carga. Editá antes de enviar si necesitás.
+              Incluye link de Google Maps con el destino y resumen de la carga. Editá antes de enviar si necesitas.
             </div>
             <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <BigButton label="Cancelar" onClick={onClose} variant="secondary" />
@@ -493,7 +493,7 @@ function PickItems({ truck, driver, loadout, setLoadout, onBack, onSeal }) {
           <div style={{ width: '100%', maxWidth: 320, aspectRatio: '1', background: 'var(--ink)', borderRadius: 'var(--r-md)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', inset: 30, border: '3px solid var(--wine-soft)', borderRadius: 8 }} />
             <div style={{ position: 'absolute', left: 30, right: 30, top: '50%', height: 2, background: 'var(--wine)', boxShadow: '0 0 16px var(--wine)', animation: 'erp-shimmer 2s infinite linear' }} />
-            <div style={{ position: 'absolute', bottom: 20, left: 0, right: 0, textAlign: 'center', font: '700 12px/1 var(--f-sans)', color: '#fff' }}>Escaneá el QR del bulto</div>
+            <div style={{ position: 'absolute', bottom: 20, left: 0, right: 0, textAlign: 'center', font: '700 12px/1 var(--f-sans)', color: '#fff' }}>Escanea el QR del bulto</div>
           </div>
         </div>
       )}

@@ -81,7 +81,7 @@ function SignatureEditor({ user, sig, onTest }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
             <div className="eyebrow eyebrow-wine">LAYOUT</div>
-            <div style={{ font: '900 16px/1.2 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>Elegí el formato de tu firma</div>
+            <div style={{ font: '900 16px/1.2 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>Elige el formato de tu firma</div>
           </div>
           <U.Btn variant="secondary" size="sm" icon={window.Icon.copy(13)}>Copiar HTML</U.Btn>
         </div>

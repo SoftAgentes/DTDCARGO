@@ -125,7 +125,7 @@ function EALogin({ onLogin, onRegister }) {
   const submit = () => {
     const u = users.find(x => x.email.toLowerCase() === email.trim().toLowerCase());
     if (!u) { setErr('No encontramos una cuenta de empleado con ese correo.'); eaHaptic(20); return; }
-    if (!pw.trim()) { setErr('Ingresá tu contraseña.'); return; }
+    if (!pw.trim()) { setErr('Ingresa tu contraseña.'); return; }
     setErr('');
     onLogin(u.empId);
   };
@@ -160,7 +160,7 @@ function EALogin({ onLogin, onRegister }) {
         <button onClick={onRegister} style={{ width: '100%', padding: '13px', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.22)', background: 'rgba(255,255,255,0.06)', color: '#fff', font: '700 13.5px/1 var(--f-sans)', cursor: 'pointer' }}>Registrarme como empleado</button>
 
         <div style={{ marginTop: 22, padding: '12px 14px', borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}>
-          <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Demo · tocá para entrar</div>
+          <div style={{ font: '700 9.5px/1 var(--f-sans)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8 }}>Demo · toca para entrar</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
             {users.map(u => {
               const e = eaEmpById(u.empId);
@@ -222,8 +222,8 @@ function EAInicio({ emp, go }) {
         <div onClick={() => go('mensajes')} style={{ cursor: 'pointer', marginTop: 16, display: 'flex', gap: 12, padding: '14px 16px', borderRadius: 'var(--r-lg)', background: 'var(--warning-bg)', borderLeft: '3px solid var(--warning)' }}>
           <span style={{ color: 'var(--warning)', flexShrink: 0 }}>{window.Icon.shield ? window.Icon.shield(18) : '!'}</span>
           <div>
-            <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Tenés {pend.length} comunicación{pend.length > 1 ? 'es' : ''} por confirmar</div>
-            <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Abrí Mensajes y tocá "Acuso recibo".</div>
+            <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Tienes {pend.length} comunicación{pend.length > 1 ? 'es' : ''} por confirmar</div>
+            <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Abre Mensajes y toca "Acuso recibo".</div>
           </div>
         </div>
       )}
@@ -275,7 +275,7 @@ function EAInicio({ emp, go }) {
       <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', margin: '24px 0 12px' }}>Últimas comunicaciones</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {comms.slice(0, 3).map(c => <EACommRow key={c.id} c={c} onClick={() => go('mensajes')} />)}
-        {comms.length === 0 && <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>No tenés comunicaciones todavía.</div>}
+        {comms.length === 0 && <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>No tienes comunicaciones todavía.</div>}
       </div>
     </div>
   );
@@ -449,7 +449,7 @@ function EACommDetail({ c, onBack }) {
         <button onClick={ack} style={{ marginTop: 24, width: '100%', padding: '14px', borderRadius: 'var(--r-md)', border: 'none', background: 'var(--wine)', color: '#fff', font: '700 14px/1 var(--f-sans)', cursor: 'pointer' }}>Acuso recibo</button>
       ) : c.ack ? (
         <div style={{ marginTop: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px', borderRadius: 'var(--r-md)', background: 'var(--success-bg)', color: 'var(--success)', font: '700 13px/1 var(--f-sans)' }}>
-          {window.Icon.check ? window.Icon.check(15) : '✓'} Confirmado por vos
+          {window.Icon.check ? window.Icon.check(15) : '✓'} Confirmado por tú
         </div>
       ) : null}
     </div>
@@ -517,7 +517,7 @@ function EAPerfil({ emp, onLogout }) {
           <div>
             <span style={elbl}>Banco</span>
             <select value={f.banco} onChange={(e) => set('banco', e.target.value)} style={{ ...field, appearance: 'none' }}>
-              <option value="">Elegí tu banco…</option>
+              <option value="">Elige tu banco…</option>
               {(N.VE_BANKS || []).map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>
@@ -605,7 +605,7 @@ function EARegistro({ token, onCancel, onDone }) {
 
   const valid = f.name.trim() && f.cedula.trim() && f.phone.trim() && /\S+@\S+/.test(f.email) && f.cargo.trim();
   const submit = () => {
-    if (!valid) { setErr('Completá nombre, cédula, WhatsApp, un correo válido y el cargo.'); eaHaptic(20); return; }
+    if (!valid) { setErr('Completa nombre, cédula, WhatsApp, un correo válido y el cargo.'); eaHaptic(20); return; }
     N.submitRegistration({ ...f, name: f.name.trim(), email: f.email.trim(), token: linkValid ? token : null });
     eaHaptic(16);
     onDone();
@@ -630,7 +630,7 @@ function EARegistro({ token, onCancel, onDone }) {
 
         <div style={{ font: '800 24px/1.1 var(--f-display)', color: 'var(--ink)', marginTop: 8 }}>Registro de empleado</div>
         <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>
-          Cargá tus datos. Un administrador los revisa y aprueba tu acceso. Te avisamos cuando esté listo.
+          Carga tus datos. Un administrador los revisa y aprueba tu acceso. Te avisamos cuando esté listo.
         </div>
         {linkValid && (
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, marginTop: 12, padding: '6px 11px', borderRadius: 'var(--r-pill)', background: 'var(--success-bg)', color: 'var(--success)' }}>
@@ -670,7 +670,7 @@ function EARegistro({ token, onCancel, onDone }) {
           <div>
             <span style={lbl}>Banco</span>
             <select value={f.banco} onChange={(e) => set('banco', e.target.value)} style={{ ...field, appearance: 'none' }}>
-              <option value="">Elegí tu banco…</option>
+              <option value="">Elige tu banco…</option>
               {(N.VE_BANKS || []).map(b => <option key={b} value={b}>{b}</option>)}
             </select>
           </div>

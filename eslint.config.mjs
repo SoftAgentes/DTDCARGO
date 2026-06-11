@@ -15,7 +15,6 @@ const eslintConfig = defineConfig([
     // docs/mockups legacy rompen el lint del repo principal). También cubre
     // commands/settings de `.claude`, que no son código de la app.
     ".claude/**",
-    "_handoff_preview/**",
     // Documentación + mockups de handoff (Claude Design *.jsx congelados,
     // brand-books, etc.): material de referencia, NO código de la app. No se
     // lintea (genera cientos de jsx-no-undef/no-unescaped en snippets que no

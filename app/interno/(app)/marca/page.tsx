@@ -17,9 +17,11 @@ import { DTD, BRAND_ASSETS, CONTACT, SHADOWS } from "@/lib/design-tokens";
  * herramientas de WhatsApp Business. El acceso queda restringido a usuarios del
  * ERP (guard en `(app)/layout.tsx`) + noindex (layout raíz).
  *
- * Brand Book: placeholder v3.2 (lo que hay en disco). Cuando Cloud Design entregue
- * v3.5 desde Norte → copiar el HTML a `public/marca/brand-book-v3.5.html` y cambiar
- * la const `BRAND_BOOK`. El iframe hereda la CSP relajada de `/marca/*` (next.config).
+ * Brand Book: el vigente es UNO solo (gobernanza v3.7). Cuando llegue un book
+ * nuevo desde el Norte → copiar el standalone a `public/marca/brand-book-vX.Y.html`,
+ * borrar el anterior y actualizar `BRAND_BOOK`/`BRAND_BOOK_VERSION` acá, `FILE`
+ * en el visor (`app/marca/brand-book/page.tsx`) y `outputFileTracingIncludes`
+ * (next.config.ts). El iframe hereda la CSP relajada de `/marca/*` (next.config).
  */
 
 const jetbrainsMono = JetBrains_Mono({
@@ -34,8 +36,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const BRAND_BOOK = "/marca/brand-book-v3.2.html";
-const BRAND_BOOK_VERSION = "v3.2";
+const BRAND_BOOK = "/marca/brand-book-v3.7.html";
+const BRAND_BOOK_VERSION = "v3.7";
 
 const NAV: NavItem[] = [
   { id: "descargas-rapidas", label: "Descargas" },
@@ -96,7 +98,7 @@ const PALETTE: { group: string; swatches: { token: string; hex: string; role: st
 
 const TYPE = [
   { name: "Archivo Black", role: "Display · títulos, H1/H2, KPI", sample: "DTD Cargo", fontVar: "var(--font-archivo-black)", note: "Solo para títulos y números destacados." },
-  { name: "Archivo", role: "Texto · cuerpo, labels, botones", sample: "Con confianza.", fontVar: "var(--font-archivo)", note: "Pesos 300–900. Todo el cuerpo del sitio." },
+  { name: "Archivo", role: "Texto · cuerpo, labels, botones", sample: "Con Confianza.", fontVar: "var(--font-archivo)", note: "Pesos 300–900. Todo el cuerpo del sitio." },
   { name: "JetBrains Mono", role: "Códigos · Shipping Mark, contenedores, facturas", sample: "DTDU-000123", fontVar: "var(--font-jetbrains-mono)", note: "Para todo dato técnico o código de tracking." },
   { name: "Noto Sans SC", role: "Chino mandarín · direcciones CN", sample: "义乌 · 门到门", fontVar: "var(--font-noto-sc)", note: "Solo para texto en chino." },
 ];
@@ -179,7 +181,7 @@ export default function MarcaHubPage() {
                 className="mt-8 text-[22px] lg:text-[26px] leading-[1.15]"
                 style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
               >
-                <span style={{ color: "var(--color-wine)" }}>Con confianza,</span>
+                <span style={{ color: "var(--color-wine)" }}>Con Confianza,</span>
                 <br />
                 <span style={{ color: "var(--color-ink)" }}>de China a tu puerta.</span>
               </div>

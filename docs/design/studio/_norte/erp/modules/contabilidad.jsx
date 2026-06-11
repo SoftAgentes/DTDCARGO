@@ -34,7 +34,7 @@ function ModuleContabilidad({ goTo }) {
   const closeDrawer = () => setDrawer(null);
   const Forms = window.ContabForms || {};
   const askDelete = (id) => {
-    if (!unlocked) { alert('Activá "Edición abierta" para eliminar asientos.'); return; }
+    if (!unlocked) { alert('Activa "Edición abierta" para eliminar asientos.'); return; }
     if (window.confirm('¿Eliminar el asiento ' + id + '? Queda registrado en el audit log.')) {
       C.deleteEntry(id);
     }
@@ -103,7 +103,7 @@ function FlujoTab({ goTo }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)' }}>
         <span style={{ color: 'var(--wine)', display: 'inline-flex' }}>{I.flow ? I.flow(18) : I.chart(18)}</span>
         <span style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-          El ciclo contable de DTD-Cargo de un vistazo. Hacé click en cualquier paso para ir a la acción · los números en rojo marcan pendientes.
+          El ciclo contable de DTD-Cargo de un vistazo. Haz click en cualquier paso para ir a la acción · los números en rojo marcan pendientes.
         </span>
       </div>
       {window.WorkflowMap
@@ -447,7 +447,7 @@ function JournalDetailDrawer({ entry, onClose, unlocked, onEdit, onDelete }) {
         }}>
           <span style={{ color: 'var(--warning)' }}>{I.shield(14)}</span>
           <span style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-            <strong>Modo seguro activo.</strong> Activá "Edición abierta" en el header con la contraseña de Contabilidad o Admin para editar.
+            <strong>Modo seguro activo.</strong> Activa "Edición abierta" en el header con la contraseña de Contabilidad o Admin para editar.
           </span>
         </div>
       )}
@@ -735,7 +735,7 @@ function NewAccountDrawer({ open, onClose }) {
         </div> :
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ padding: '10px 13px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            El <b>tipo</b> define dónde cae en los estados (activo, pasivo…); el <b>detalle</b> afina el comportamiento. Si elegís <b>Banco</b> o <b>Caja</b>, podés vincularle los métodos de pago que recibe.
+            El <b>tipo</b> define dónde cae en los estados (activo, pasivo…); el <b>detalle</b> afina el comportamiento. Si eliges <b>Banco</b> o <b>Caja</b>, puedes vincularle los métodos de pago que recibe.
           </div>
 
           <div>
@@ -887,7 +887,7 @@ function EditAccountDrawer({ code, unlocked, onClose }) {
         <div style={{ padding: '10px 12px', marginBottom: 16, background: 'var(--warning-bg)', borderLeft: '3px solid var(--warning)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ color: 'var(--warning)' }}>{I.shield(14)}</span>
           <span style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-            <strong>Modo seguro activo.</strong> Activá "Edición abierta" en el header para guardar cambios.
+            <strong>Modo seguro activo.</strong> Activa "Edición abierta" en el header para guardar cambios.
           </span>
         </div>
       )}
@@ -1267,7 +1267,7 @@ function PorContabilizarTab({ unlocked }) {
   const pendCob = cobros.filter(c => !c.posted);
   const pendPag = pagos.filter(p => !p.posted);
 
-  const guard = () => { if (!unlocked) { alert('Activá "Edición abierta" en el header para contabilizar.'); return false; } return true; };
+  const guard = () => { if (!unlocked) { alert('Activa "Edición abierta" en el header para contabilizar.'); return false; } return true; };
   const postAllCob = () => { if (!guard()) return; let n = 0; pendCob.forEach(c => { if (C.postCollection(c)) n++; }); alert(n ? `${n} cobro(s) contabilizado(s).` : 'Nada por contabilizar.'); };
   const postAllPag = () => { if (!guard()) return; let n = 0; pendPag.forEach(p => { if (C.postPayment(p)) n++; }); alert(n ? `${n} pago(s) contabilizado(s).` : 'Nada por contabilizar.'); };
 
@@ -1366,7 +1366,7 @@ function AssetsTab({ unlocked }) {
   const totMonthly = rows.filter(r => r.d.elapsed < r.a.months).reduce((s, r) => s + r.d.monthly, 0);
 
   const postDep = () => {
-    if (!unlocked) { alert('Activá "Edición abierta" en el header para contabilizar la depreciación.'); return; }
+    if (!unlocked) { alert('Activa "Edición abierta" en el header para contabilizar la depreciación.'); return; }
     const entry = C.buildDepreciationEntry(depDate);
     if (!entry) { alert('No hay depreciación pendiente para el período.'); return; }
     C.createEntry(entry);
@@ -1502,7 +1502,7 @@ function CierreTab({ unlocked }) {
   const fxNet = Math.round(fxRows.reduce((s, r) => s + r.diff, 0) * 100) / 100;
   const hasFx = fxRows.some(r => r.diff !== 0);
 
-  const guard = () => { if (!unlocked) { alert('Activá "Edición abierta" en el header para generar asientos de cierre.'); return false; } return true; };
+  const guard = () => { if (!unlocked) { alert('Activa "Edición abierta" en el header para generar asientos de cierre.'); return false; } return true; };
 
   const postFx = () => {
     if (!guard()) return;
@@ -1529,7 +1529,7 @@ function CierreTab({ unlocked }) {
         <div style={{ padding: '11px 14px', background: 'var(--warning-bg)', borderLeft: '3px solid var(--warning)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ color: 'var(--warning)' }}>{I.shield(15)}</span>
           <span style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-            <strong>Modo seguro.</strong> Para generar los asientos de cierre, activá "Edición abierta" en el header.
+            <strong>Modo seguro.</strong> Para generar los asientos de cierre, activa "Edición abierta" en el header.
           </span>
         </div>
       )}
@@ -1640,11 +1640,11 @@ function ProvisionesFiscales({ unlocked, pl }) {
   const isAmount = c.defRate == null;
   const monto = isAmount ? (Number(base) || 0) : Math.round((Number(base) || 0) * (Number(rate) || 0) / 100 * 100) / 100;
   const acc = (code) => C.getAccount(code);
-  const guard = () => { if (!unlocked) { alert('Activá "Edición abierta" en el header para contabilizar la provisión.'); return false; } return true; };
+  const guard = () => { if (!unlocked) { alert('Activa "Edición abierta" en el header para contabilizar la provisión.'); return false; } return true; };
   const post = () => {
     if (!guard()) return;
     const entry = C.buildProvisionEntry(kind, base, rate, date);
-    if (!entry) { alert('Ingresá una base/monto válido.'); return; }
+    if (!entry) { alert('Ingresa una base/monto válido.'); return; }
     C.createEntry(entry);
     alert(`Provisión ${c.label} contabilizada · ${R.fmtUsd(monto)}.`);
   };

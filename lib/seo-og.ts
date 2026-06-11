@@ -23,7 +23,7 @@ const OG_IMAGE = {
   url: BRAND_ASSETS.ogImage, // metadataBase (layout) lo vuelve absoluto
   width: 1200,
   height: 630,
-  alt: "DTD Cargo — Con confianza, de China a tu puerta",
+  alt: "DTD Cargo — Con Confianza, de China a tu puerta",
 };
 
 export function socialMeta(opts: {

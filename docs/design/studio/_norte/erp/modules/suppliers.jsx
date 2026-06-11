@@ -312,7 +312,7 @@ function SupplierForm({ open, onClose }) {
   const D = window.ERPData;
   const [client, setClient] = _sUseState('');
 
-  // El código del grupo WeChat se genera solo: MARKBOX-N (N = nº de proveedor del cliente).
+  // El código del grupo WeChat se genera solo: Shipping Mark-N (N = nº de proveedor del cliente).
   const groupCode = _sUseMemo(() => {
     if (!client) return null;
     const n = D.SUPPLIER_CLIENTS.filter(sc => sc.clientMarkbox === client).length + 1;
@@ -363,7 +363,7 @@ function SupplierForm({ open, onClose }) {
             </div>
           ) : (
             <div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink-soft)' }}>
-              Elegí un cliente y el código del grupo WeChat (<code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>MARKBOX-N</code>) se genera automáticamente.
+              Elige un cliente y el código del grupo WeChat (<code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>Shipping Mark-N</code>) se genera automáticamente.
             </div>
           )}
         </div>

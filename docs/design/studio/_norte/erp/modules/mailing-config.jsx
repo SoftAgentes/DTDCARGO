@@ -169,7 +169,7 @@ function ProviderSetup({ p }) {
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ color: 'var(--warning)' }}>{window.Icon.warn(13)}</span>
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            Verificá el dominio en {p.name} y agregá los registros SPF/DKIM antes de activar.
+            Verifica el dominio en {p.name} y agregá los registros SPF/DKIM antes de activar.
           </div>
         </div>
       </div>

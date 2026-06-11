@@ -18,6 +18,7 @@ const ADMIN_SECTIONS = [
   { group: 'MARCA',      id: 'brand-icons', label: 'Íconos de perfil',    icon: 'users' },
   { group: 'MARCA',      id: 'brand-apps',  label: 'Aplicaciones de marca',icon: 'tag' },
   { group: 'MARCA',      id: 'brand-ads',   label: 'Publicidad activa',   icon: 'flame' },
+  { group: 'MARCA',      id: 'brand-studio',label: 'Estudio de Redes',    icon: 'radar' },
   // Nivel intermedio
   { group: 'INTERMEDIO', id: 'permissions', label: 'Permisos por rol',    icon: 'lock' },
   { group: 'INTERMEDIO', id: 'audit',       label: 'Audit log',           icon: 'eye' },
@@ -102,6 +103,7 @@ function ModuleAdmin() {
           {section === 'brand-icons' && (window.AdminBrandIcons ? <window.AdminBrandIcons /> : null)}
           {section === 'brand-apps'  && (window.AdminBrandApps ? <window.AdminBrandApps /> : null)}
           {section === 'brand-ads'   && (window.AdminBrandAds ? <window.AdminBrandAds /> : null)}
+          {section === 'brand-studio'&& (window.AdminEstudioRedes ? <window.AdminEstudioRedes /> : null)}
           {section === 'routes'      && (window.AdminSectionRoutes ? <window.AdminSectionRoutes /> : <div style={{ padding: 20, color: 'var(--ink-soft)' }}>Cargando administrador de rutas…</div>)}
           {section === 'permissions' && <SectionPermissions />}
           {section === 'audit'       && <SectionAudit />}
@@ -203,6 +205,7 @@ function SectionMasterData() {
     { value: 'tiers',     label: 'Tiers',         count: 4 },
     { value: 'services',  label: 'Servicios',     count: 4 },
     { value: 'statuses',  label: 'Estados',       count: 9 },
+    { value: 'content-tags', label: 'Etiquetas de contenido', count: 15 },
     { value: 'doctypes',  label: 'Documentos',    count: 4 },
     { value: 'hscodes',   label: 'HS codes · OMA',count: 12 },
     { value: 'aes',       label: 'AES · Arancel VE', count: 10 },
@@ -268,7 +271,7 @@ function SectionMasterData() {
     ],
   };
 
-  const items = lists[tab];
+  const items = lists[tab] || [];
   const isSyncedList = tab === 'hscodes' || tab === 'aes';
 
   return (
@@ -277,6 +280,7 @@ function SectionMasterData() {
 
       {isSyncedList && <CodesSyncHeader source={tab} />}
 
+      {tab === 'content-tags' ? (window.ContentTagsAdmin ? <window.ContentTagsAdmin /> : <div style={{ padding: 20, color: 'var(--ink-soft)' }}>Cargando etiquetas…</div>) : (
       <U.Card padded={false}>
         <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div className="eyebrow eyebrow-wine">{items.length} ITEMS{isSyncedList ? ' · sincronizados' : ''}</div>
@@ -302,6 +306,7 @@ function SectionMasterData() {
           ))}
         </div>
       </U.Card>
+      )}
     </div>
   );
 }
@@ -389,7 +394,7 @@ function ScrapersCard() {
         <div>
           <div className="eyebrow eyebrow-wine">FUENTES DE SCRAPING · AUTOMÁTICO</div>
           <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6, maxWidth: '64ch' }}>
-            Páginas web que el sistema consulta automáticamente para traer la tasa de cambio. La frecuencia se configura arriba. Podés activar/desactivar cada fuente o forzar sync manual.
+            Páginas web que el sistema consulta automáticamente para traer la tasa de cambio. La frecuencia se configura arriba. Puedes activar/desactivar cada fuente o forzar sync manual.
           </div>
         </div>
         <U.Btn variant="primary" size="sm" icon={I.refresh(12)} onClick={syncAll} disabled={syncing}>{syncing === 'all' ? 'Sincronizando…' : 'Sincronizar todo'}</U.Btn>
@@ -582,7 +587,7 @@ function SectionAppearance() {
             { t: 'Logo Oficial', s: '4 variantes · descarga PNG (isólogo y apilado)', href: 'Logo Oficial.html' },
             { t: 'Portadas Redes · YouTube + Facebook', s: '3 direcciones · áreas seguras · descarga a tamaño real', href: 'Portadas Redes · DTD-Cargo.html' },
             { t: 'Portada Animada · Facebook', s: 'Video de portada 1250×463 · graba MP4 nativo', href: 'Portada Animada FB · DTD-Cargo.html' },
-            { t: 'Brand Book v3.5', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v3.5.html' },
+            { t: 'Brand Book v3.7', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v3.7.html' },
           ].map(r => (
             <a key={r.href} href={r.href} target="_blank" rel="noopener" style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textDecoration: 'none',
@@ -603,7 +608,7 @@ function SectionAppearance() {
         <div className="eyebrow eyebrow-wine" style={{ marginBottom: 6 }}>PALETA DE MARCA</div>
         <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 12 }}>
           Los colores oficiales no se pueden modificar — están bloqueados por reglas de marca (ver CLAUDE.md).
-          Para alternar entre temas claro/oscuro usá Tweaks.
+          Para alternar entre temas claro/oscuro usa Tweaks.
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
           {[
@@ -808,7 +813,7 @@ function SectionNumbering() {
         <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>FORMATOS DE NUMERACIÓN</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {[
-            { label: 'MARKBOX cliente',  format: 'DTD-NNNN',     next: 'DTD-5476', counter: 5475 },
+            { label: 'Shipping Mark cliente',  format: 'DTD-NNNN',     next: 'DTD-5476', counter: 5475 },
             { label: 'Embarques',        format: 'DTDU-NNNNNN',   next: 'DTDU-472817', counter: 472816 },
             { label: 'Estimados',     format: 'Q-YYYY-NNNN',   next: 'E-2026-0422', counter: 421 },
             { label: 'Facturas',         format: 'F-YYYY-NNNN',   next: 'F-2026-0446', counter: 445 },
@@ -1039,7 +1044,7 @@ function SectionImport() {
         <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>IMPORTAR DESDE EXCEL/CSV</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {[
-            { l: 'Clientes',  i: 'users',    desc: 'Cargar clientes en lote con MARKBOX' },
+            { l: 'Clientes',  i: 'users',    desc: 'Cargar clientes en lote con Shipping Mark' },
             { l: 'Embarques', i: 'box',      desc: 'Importar embarques históricos' },
             { l: 'Tarifas',   i: 'tag',      desc: 'Subir tarifario completo' },
             { l: 'Facturas',  i: 'invoice',  desc: 'Importar facturación histórica' },
@@ -1130,7 +1135,7 @@ function SectionFeatures() {
     {
       label: 'Servicios operativos',
       items: [
-        { k: 'customs_seniat',    name: 'Aduana SENIAT · workflow',  desc: 'Checklist DUA, agente aduanal, tracking de liberación. Activá si DTD-Cargo hace el trámite aduanero (sino el agente externo lo hace).', module: 'embarques' },
+        { k: 'customs_seniat',    name: 'Aduana SENIAT · workflow',  desc: 'Checklist DUA, agente aduanal, tracking de liberación. Activa si DTD-Cargo hace el trámite aduanero (sino el agente externo lo hace).', module: 'embarques' },
         { k: 'cargo_insurance',   name: 'Seguro de carga',           desc: 'Estimado y emisión de seguro por embarque. Algunos clientes lo piden, otros traen seguro propio.', module: 'embarques' },
         { k: 'warehouse_location', name: 'Ubicación en bodega · pasillo · zona · estante', desc: 'Muestra al almacenista/transportista la ubicación física exacta del paquete en bodega VE. Útil para bodegas grandes con sistema de localizaciones. Por defecto OFF — DTD-Cargo aún no usa codificación interna de bodega.', module: 'almacén VE · almacenista', defaultOn: false },
                 { k: 'consolidation_partial', name: 'Consolidación parcial', desc: 'Permite partir un envío en P1/P2 cuando no entra completo. Recomendado para todos los freight forwarders.', module: 'almacén CN' },
@@ -1181,7 +1186,7 @@ function SectionFeatures() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto auto', gap: 18, alignItems: 'center' }}>
           <div>
             <div style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>FEATURE FLAGS · CASOS DE USO</div>
-            <div style={{ font: '900 18px/1.1 var(--f-display)', color: '#fff', marginTop: 6 }}>Activá solo lo que tu empresa usa</div>
+            <div style={{ font: '900 18px/1.1 var(--f-display)', color: '#fff', marginTop: 6 }}>Activa solo lo que tu empresa usa</div>
             <div style={{ marginTop: 8, font: '500 12px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.65)', maxWidth: '52ch' }}>
               No todos los freight forwarders necesitan todo. Si <b style={{ color: '#fff' }}>no manejás aduana SENIAT</b> internamente (lo hace un agente externo), apagá ese módulo y desaparece del ERP. Lo mismo con seguro de carga, sostenibilidad, etc.
             </div>
@@ -1227,7 +1232,7 @@ function SectionFeatures() {
       <div style={{ padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10 }}>
         <span style={{ color: 'var(--info)' }}>{window.Icon.info(13)}</span>
         <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-          Apagar un caso de uso <b>oculta</b> sus botones y módulos del ERP completo · no borra data. Podés re-activarlo en cualquier momento y todo vuelve a aparecer.
+          Apagar un caso de uso <b>oculta</b> sus botones y módulos del ERP completo · no borra data. Puedes re-activarlo en cualquier momento y todo vuelve a aparecer.
         </div>
       </div>
     </div>

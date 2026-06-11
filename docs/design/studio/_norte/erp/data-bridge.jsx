@@ -44,7 +44,7 @@
   // A · Pipeline CN → Despacho
   const cnInbox = makeStore('dtd-cn-inbox', []);
 
-  // B · Clientes registrados (MARKBOX shared)
+  // B · Clientes registrados (Shipping Mark shared)
   const clients = makeStore('dtd-clients', []);
 
   // C · Reglas de prioridad persistentes
@@ -66,7 +66,7 @@
   // para aprobar/atender. En prod = endpoint /portal-inbox del backend.
   const portalInbox = makeStore('dtd-portal-inbox', []);
 
-  // Deriva el tenant (empresa) desde el prefijo del MARKBOX (DTD-/AND-/…).
+  // Deriva el tenant (empresa) desde el prefijo del Shipping Mark (DTD-/AND-/…).
   // Respeta multi-tenant: cada evento queda etiquetado para que el ERP solo
   // lo muestre en la empresa correcta (ver erp/data.jsx byTenant).
   function tenantForMarkbox(markbox) {
@@ -100,7 +100,7 @@
     return ship;
   }
 
-  // Envíos extra (estimados del portal) de un MARKBOX, para mergear con SHIPMENTS.
+  // Envíos extra (estimados del portal) de un Shipping Mark, para mergear con SHIPMENTS.
   function clientEstimados(markbox) {
     return (portalQuotes.read() || []).filter(q => q.client === markbox);
   }
@@ -127,7 +127,7 @@
     portalInbox.write(cur.map(e => (!set || set.has(e.id)) ? { ...e, read: true } : e));
   }
 
-  // ── MARKBOX helpers (validación + secuencial server-side) ──
+  // ── Shipping Mark helpers (validación + secuencial server-side) ──
   // Formato oficial: DTD-XXXX o DTD-XXXXX (4 o 5 dígitos)
   // Ver CLAUDE.md y portal/registro.jsx para nomenclatura completa.
   const MARKBOX_REGEX = /^DTD-\d{4,5}$/;
@@ -201,7 +201,7 @@
   }
 
   // ── Email helpers (mock pero traceable) ─────────────────────
-  // Renderiza template m-05 'Bienvenida MARKBOX' con substituciones
+  // Renderiza template m-05 'Bienvenida Shipping Mark' con substituciones
   // y pushea entrada al log de emails enviados.
   function renderTemplate(body, vars) {
     return body.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] != null ? vars[k] : `{{${k}}}`);
@@ -245,7 +245,7 @@
         action: 'auto',
         module: 'Mailing',
         actor: { id: 'system', name: 'Sistema · auto', role: 'auto' },
-        target: { kind: 'email', id: entry.id, label: `Bienvenida MARKBOX → ${client.markbox}` },
+        target: { kind: 'email', id: entry.id, label: `Bienvenida Shipping Mark → ${client.markbox}` },
         detail: `Email m-05 enviado a ${client.email}`,
       });
       localStorage.setItem(auditKey, JSON.stringify(audit.slice(0, 500)));
@@ -255,7 +255,7 @@
 
   window.DTDData = {
     cnInbox, clients, rules, routes, cities, rates, emailsSent, portalInbox,
-    // MARKBOX
+    // Shipping Mark
     validateMarkboxFormat, isMarkboxUnique, nextMarkbox,
     // Lookup + CNE
     findClientByDoc, cneVerify,

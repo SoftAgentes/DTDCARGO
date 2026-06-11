@@ -262,7 +262,7 @@
     { id: 'bo-04', kind: 'od', day: 'hoy', time: '08:30',
       title: '3 camiones por armar', body: 'Acindar, Industrias Polar y Vargas & Asoc esperan despacho. Ocupación sugerida 90%+.' },
     { id: 'bo-03', kind: 'incidencia', day: 'hoy', time: '08:02',
-      title: 'Carga parcial pendiente de motivo', body: 'DTD-5392 quedó en parcial sin razón registrada. Completá antes de despachar.', code: 'DTD-5392' },
+      title: 'Carga parcial pendiente de motivo', body: 'DTD-5392 quedó en parcial sin razón registrada. Completa antes de despachar.', code: 'DTD-5392' },
     { id: 'bo-02', kind: 'mensaje', day: 'hoy', time: '07:35',
       title: 'Mensaje de Operaciones', body: '"Priorizá Industrias Polar, el cliente reclama demora de 12 días."', from: 'Coordinación VE' },
     { id: 'bo-01', kind: 'sync', day: 'ayer', time: '18:20',
