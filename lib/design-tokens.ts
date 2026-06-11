@@ -205,10 +205,14 @@ export const CONTACT = {
      * Dirección oficial en caracteres chinos — para WeChat / proveedores locales.
      * Fuente: Brand Book DTD v1.0 § 19 (China Supplier Clip).
      */
-    addressCjk: "义乌市义乌港二期直通仓2栋2号货7--货11",
-    /** Encargado de bodega — 小孙 (Xiao Sun) */
-    contactPersonCjk: "小孙",
-    contactPersonPinyin: "Xiao Sun",
+    addressCjk: "浙江省义乌市义乌港二期直通仓2栋2号 货7-货11",
+    /** Provincia y ciudad en chino — para formularios tipo Alibaba (selectores separados). */
+    provinceCjk: "浙江省", // Zhejiang
+    cityCjk: "义乌市", // Yiwu — en los selectores aparece bajo 金华市 (Jinhua)
+    cityParentCjk: "金华市", // Jinhua (prefectura a la que pertenece Yiwu)
+    /** Encargado de bodega — 林冠 (Lin Guan) */
+    contactPersonCjk: "林冠",
+    contactPersonPinyin: "Lin Guan",
     /** Teléfono local · formato internacional para tel: link */
     phone: "+86 180 0689 1419",
     phoneRaw: "+8618006891419",
@@ -218,7 +222,7 @@ export const CONTACT = {
     hours: "Lun a Sáb · 9:00 – 17:30 (GMT+8)",
     /** Horario en chino — para el clip de WeChat. */
     hoursCjk: "周一至周六上午9点到下午5点半",
-    email: "China@dtdcargo.com",
+    email: "info@dtdcargo.com", // unificado al buzón general (antes China@; canónico en minúsculas)
   },
 } as const;
 
