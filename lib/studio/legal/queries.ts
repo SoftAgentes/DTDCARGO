@@ -1,5 +1,5 @@
 /**
- * Queries de la Capa Legal (SDD-0054 · Slice A + Slice B).
+ * Queries de la Capa Legal (SDD-0054 · Slices A/B + SDD-0067 · evidencia v2).
  *
  * Funciones que reciben un SupabaseClient y confían en RLS por tenant. Cubren:
  *   · currentClientDocs            = los docs vigentes de cara al cliente (gate).
@@ -10,10 +10,16 @@
  *   · hasValidAcceptanceForMarkbox = el MISMO gate, pero matcheando por
  *                                    client_markbox (Slice B: la factura no tiene
  *                                    client_id ni quote_code, solo el markbox).
+ *   · getAcceptanceEvidence /      = expediente de UNA aceptación (fila completa
+ *     listAcceptanceEvidenceByQuote  + hash recomputado + cliente) y de TODA una
+ *                                    orden — para el export JSON + la vista
+ *                                    imprimible (SDD-0067).
  *
  * Slice B (round-2 preservado): la validación de una FILA de aceptación
  * (tenant + hash load-bearing + docs vigentes + medida) vive en un único helper
  * privado `acceptanceRowValid`, usado por AMBOS gates → cero drift entre ellos.
+ * v2: la canonización fila→evidencia + el recompute del hash viven en
+ * `rowHashVerified`, compartido por los gates Y el export → una sola verdad.
  *
  * `numeric` de Supabase llega como string → se coerce a number en cada lectura.
  * `body`/`docs` (jsonb) pueden llegar como objeto ya parseado o como string.
@@ -123,7 +129,7 @@ export async function listLegalDocs(
 }
 
 const ACCEPTANCE_COLUMNS =
-  "id, tenant_id, acceptance_code, client_id, client_markbox, quote_code, docs, cbm, weight_kg, total_usd, accepted_at, ip, hash, idempotency_key, created_at";
+  "id, tenant_id, acceptance_code, client_id, client_markbox, quote_code, docs, cbm, weight_kg, total_usd, accepted_at, ip, user_agent, merchant_declaration, invoice_id, hash, idempotency_key, created_at";
 
 function coerceAcceptance(row: Record<string, unknown>): LegalAcceptance {
   return {
@@ -132,6 +138,9 @@ function coerceAcceptance(row: Record<string, unknown>): LegalAcceptance {
     cbm: numOrNull(row.cbm),
     weight_kg: numOrNull(row.weight_kg),
     total_usd: numOrNull(row.total_usd),
+    user_agent: row.user_agent == null ? null : String(row.user_agent),
+    merchant_declaration: row.merchant_declaration === true,
+    invoice_id: row.invoice_id == null ? null : String(row.invoice_id),
   };
 }
 
@@ -200,9 +209,9 @@ export type GateQuery = {
 /** Tope de tolerancia que el gate acepta del caller (round-2: no se confía en él). */
 const MAX_GATE_TOL = 0.02;
 
-/** Columnas que el gate necesita para recomputar el hash desde la fila. */
+/** Columnas que el gate necesita para recomputar el hash desde la fila (v2). */
 const GATE_COLUMNS =
-  "client_markbox, quote_code, docs, cbm, weight_kg, total_usd, ip, accepted_at, hash";
+  "client_markbox, quote_code, docs, cbm, weight_kg, total_usd, ip, user_agent, merchant_declaration, accepted_at, hash";
 
 /** Clampea la tolerancia que el caller pide a [0, MAX_GATE_TOL]. */
 function clampGateTol(tol: number | undefined): number {
@@ -213,13 +222,62 @@ function clampGateTol(tol: number | undefined): number {
 }
 
 /**
+ * Recompute del hash v2 desde una fila de `legal_acceptances` — ÚNICA
+ * canonización fila→evidencia. La usan los gates (vía `acceptanceRowValid`) y
+ * el export de evidencia (`getAcceptanceEvidence`/`listAcceptanceEvidenceByQuote`)
+ * → la verificación que ve el abogado es EXACTAMENTE la que aplica el gate.
+ *
+ * - accepted_at: la DB (timestamptz) lo devuelve como `…+00:00`; el sello lo
+ *   hasheó con `toISOString()` (`…000Z`). Canonizamos a la forma del sello para
+ *   que el recompute matchee — sin esto TODA fila real fallaría el match.
+ *   INVARIANTE (M-2 · round-3): `new Date(raw).toISOString()` produce
+ *   MILISEGUNDOS. Esto SOLO reproduce el hash sellado si la fila guardó
+ *   `accepted_at` en ms — lo que pasa si se selló EXPLÍCITO (ver seal.ts). Una
+ *   fila con MICROsegundos (p.ej. por `default now()` en un seed/import) se
+ *   truncaría a ms acá y NO matchearía → falso-negativo silencioso. Toda
+ *   inserción debe sellar accepted_at vía el seal.
+ * - user_agent (v2): se toma AS-IS de la fila (sin re-sanear) — el sello
+ *   persiste exactamente lo que hasheó, así CUALQUIER tamper post-hoc del
+ *   user_agent cambia el recompute y la fila se descarta (fail-closed).
+ * - merchant_declaration (v2): boolean estricto (`=== true`); cualquier
+ *   corrupción recomputa false → hash distinto → descartada.
+ * - invoice_id NO participa (metadato forense fuera del hash).
+ */
+function rowHashVerified(raw: Record<string, unknown>): boolean {
+  const docs = parseJson<DocRef[]>(raw.docs, []);
+  const ip = raw.ip == null ? null : String(raw.ip);
+  const userAgent = raw.user_agent == null ? null : String(raw.user_agent);
+  const acceptedAtRaw = raw.accepted_at == null ? "" : String(raw.accepted_at);
+  const acceptedAtDate = acceptedAtRaw ? new Date(acceptedAtRaw) : null;
+  const acceptedAt =
+    acceptedAtDate && !Number.isNaN(acceptedAtDate.getTime())
+      ? acceptedAtDate.toISOString()
+      : acceptedAtRaw;
+
+  const recomputed = hashEvidence({
+    client_markbox: String(raw.client_markbox ?? ""),
+    quote_code: String(raw.quote_code ?? ""),
+    docs,
+    cbm: num(raw.cbm),
+    weight_kg: num(raw.weight_kg),
+    total_usd: num(raw.total_usd),
+    ip,
+    user_agent: userAgent,
+    merchant_declaration: raw.merchant_declaration === true,
+    accepted_at: acceptedAt,
+  });
+  return recomputed === String(raw.hash ?? "");
+}
+
+/**
  * ÚNICA validación de una fila de aceptación — la usan AMBOS gates
  * (`hasValidAcceptance` por client_id+quote_code y `hasValidAcceptanceForMarkbox`
  * por client_markbox), así no hay drift entre ellos. Round-2 íntegro:
  *
  *  (2) hash LOAD-BEARING — recomputa `hashEvidence` desde los campos de la PROPIA
- *      fila (canonizando `accepted_at`, ver más abajo) y lo compara con `row.hash`.
- *      Si no matchea ⇒ evidencia forjada/corrupta ⇒ no vale.
+ *      fila (`rowHashVerified`, v2: incluye user_agent + merchant_declaration) y
+ *      lo compara con `row.hash`. Si no matchea ⇒ evidencia forjada/corrupta ⇒
+ *      no vale.
  *  (3) docs vigentes — la aceptación debe cubrir TODAS las keys de cara al cliente
  *      en su versión vigente (`requiredVersions`). Re-versión ⇒ re-aceptación.
  *  (4) medida — la aceptada coincide con la vigente (`measureMatches`, `tol` ya
@@ -234,46 +292,19 @@ function acceptanceRowValid(
   current: Measure,
   tol: number,
 ): boolean {
+  // (2) Hash load-bearing: recomputar desde la propia fila y comparar.
+  if (!rowHashVerified(raw)) return false; // forjada/corrupta
+
+  // (3) Docs vigentes: cubrir TODAS las keys de cliente en su versión vigente.
   const docs = parseJson<DocRef[]>(raw.docs, []);
-  const ip = raw.ip == null ? null : String(raw.ip);
-  // accepted_at: la DB (timestamptz) lo devuelve como `…+00:00`; el sello lo hasheó
-  // con `toISOString()` (`…000Z`). Canonizamos a la forma del sello para que el hash
-  // recompute matchee — sin esto TODA fila real fallaría el match (el gate verde no
-  // cubre la frontera con la DB real: el stub usaba el mismo formato a ambos lados).
-  // INVARIANTE (M-2 · round-3): `new Date(raw).toISOString()` produce MILISEGUNDOS.
-  // Esto SOLO reproduce el hash sellado si la fila guardó `accepted_at` en ms — lo
-  // que pasa si se selló EXPLÍCITO (ver seal.ts). Una fila con MICROsegundos (p.ej.
-  // por `default now()` en un seed/import) se truncaría a ms acá y NO matchearía →
-  // falso-negativo silencioso. Toda inserción debe sellar accepted_at vía el seal.
-  const acceptedAtRaw = raw.accepted_at == null ? "" : String(raw.accepted_at);
-  const acceptedAtDate = acceptedAtRaw ? new Date(acceptedAtRaw) : null;
-  const acceptedAt =
-    acceptedAtDate && !Number.isNaN(acceptedAtDate.getTime())
-      ? acceptedAtDate.toISOString()
-      : acceptedAtRaw;
+  if (!coversCurrentDocs(docs, requiredVersions)) return false;
+
+  // (4) Medida: la aceptada coincide con la vigente.
   const measure: Measure = {
     cbm: num(raw.cbm),
     weight_kg: num(raw.weight_kg),
     total_usd: num(raw.total_usd),
   };
-
-  // (2) Hash load-bearing: recomputar desde la propia fila y comparar.
-  const recomputed = hashEvidence({
-    client_markbox: String(raw.client_markbox ?? ""),
-    quote_code: String(raw.quote_code ?? ""),
-    docs,
-    cbm: measure.cbm,
-    weight_kg: measure.weight_kg,
-    total_usd: measure.total_usd,
-    ip,
-    accepted_at: acceptedAt,
-  });
-  if (recomputed !== String(raw.hash ?? "")) return false; // forjada/corrupta
-
-  // (3) Docs vigentes: cubrir TODAS las keys de cliente en su versión vigente.
-  if (!coversCurrentDocs(docs, requiredVersions)) return false;
-
-  // (4) Medida: la aceptada coincide con la vigente.
   return measureMatches(measure, current, tol);
 }
 
@@ -455,4 +486,116 @@ function coversCurrentDocs(
     if (accepted.get(key) !== version) return false;
   }
   return true;
+}
+
+// ════════════════════════════════════════════════════════════
+// Export de evidencia (SDD-0067) · expediente para el abogado
+// ════════════════════════════════════════════════════════════
+
+/** Datos mínimos del cliente para el expediente (nombre + Shipping Mark). */
+export type EvidenceClient = {
+  id: string;
+  name: string | null;
+  markbox: string | null;
+};
+
+/**
+ * Una aceptación lista para exportar: fila completa + verificación de
+ * integridad recomputada server-side + datos del cliente.
+ *
+ * `hash_verified` usa el MISMO recompute que el gate (`rowHashVerified` →
+ * `hashEvidence`): si acá dice true, el gate también la aceptaría como íntegra
+ * (faltarían solo docs-vigentes + medida, que son vigencia, no integridad).
+ */
+export type AcceptanceEvidenceExport = {
+  acceptance: LegalAcceptance;
+  hash_verified: boolean;
+  client: EvidenceClient | null;
+};
+
+/** Lookup best-effort del cliente (la evidencia se exporta aunque falte). */
+async function evidenceClientFor(
+  supabase: SupabaseClient,
+  tenantId: string,
+  clientId: string | null,
+): Promise<EvidenceClient | null> {
+  if (!clientId) return null;
+  const { data } = await supabase
+    .from("clients")
+    .select("id, name, markbox")
+    .eq("tenant_id", tenantId)
+    .eq("id", clientId)
+    .maybeSingle<EvidenceClient>();
+  return data ?? null;
+}
+
+/** Mapea una fila cruda a su export (coerce + recompute + cliente). */
+async function toEvidenceExport(
+  supabase: SupabaseClient,
+  tenantId: string,
+  raw: Record<string, unknown>,
+): Promise<AcceptanceEvidenceExport> {
+  const acceptance = coerceAcceptance(raw);
+  return {
+    acceptance,
+    hash_verified: rowHashVerified(raw),
+    client: await evidenceClientFor(supabase, tenantId, acceptance.client_id),
+  };
+}
+
+/**
+ * Expediente de UNA aceptación por su `acceptance_code` (AC-YYYY-NNNN), para el
+ * export JSON y la vista imprimible. Tenant EXPLÍCITO (el caller admin corre con
+ * sesión + RLS, pero no se confía solo en eso — mismo criterio round-2 de los
+ * gates). null si no existe / vacíos (fail-closed).
+ */
+export async function getAcceptanceEvidence(
+  supabase: SupabaseClient,
+  args: { tenantId: string; code: string },
+): Promise<AcceptanceEvidenceExport | null> {
+  const tenantId = String(args.tenantId ?? "").trim();
+  const code = String(args.code ?? "").trim();
+  if (!tenantId || !code) return null;
+
+  const { data, error } = await supabase
+    .from("legal_acceptances")
+    .select(ACCEPTANCE_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("acceptance_code", code)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  return toEvidenceExport(supabase, tenantId, data as Record<string, unknown>);
+}
+
+/**
+ * Expediente de TODA una orden: TODAS las aceptaciones cuyo `quote_code` es la
+ * ref de la orden (= shipment_code que sella el Portal), orden desc. Para el
+ * export por OPERACIÓN (`?quote=` del route handler). [] si vacíos (fail-closed).
+ */
+export async function listAcceptanceEvidenceByQuote(
+  supabase: SupabaseClient,
+  args: { tenantId: string; quoteCode: string },
+): Promise<AcceptanceEvidenceExport[]> {
+  const tenantId = String(args.tenantId ?? "").trim();
+  const quoteCode = String(args.quoteCode ?? "").trim();
+  if (!tenantId || !quoteCode) return [];
+
+  const { data, error } = await supabase
+    .from("legal_acceptances")
+    .select(ACCEPTANCE_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("quote_code", quoteCode)
+    .order("accepted_at", { ascending: false })
+    .limit(500);
+
+  if (error) throw error;
+
+  const out: AcceptanceEvidenceExport[] = [];
+  for (const raw of (data as Record<string, unknown>[] | null) ?? []) {
+    out.push(await toEvidenceExport(supabase, tenantId, raw));
+  }
+  return out;
 }

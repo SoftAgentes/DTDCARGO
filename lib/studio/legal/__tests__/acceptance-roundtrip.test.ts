@@ -74,9 +74,14 @@ function docsTable(versions: DocRef[] = VIGENTES): Record<string, unknown>[] {
   }));
 }
 
+const UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0) AppleWebKit/605.1.15 Safari/604.1";
+
 /**
  * Produce una fila `legal_acceptances` EXACTAMENTE como lo haría la action de
- * Slice C: validar input → sellar con seal.ts → mapear el sello a columnas DB.
+ * Slice C (v2 · SDD-0067): validar input (con la declaración de comerciante del
+ * checkbox 2) → sellar con seal.ts (user_agent de headers()) → mapear el sello
+ * a columnas DB (incluidas user_agent / merchant_declaration / invoice_id).
  */
 function sealedRowAsActionWould(opts: {
   cbm: number;
@@ -93,6 +98,9 @@ function sealedRowAsActionWould(opts: {
       cbm: opts.cbm,
       weight_kg: opts.weightKg,
       total_usd: opts.baseAmount, // ← base_amount (pre-IVA), como la action
+      user_agent: UA, // ← la action lo lee de headers(), nunca del form
+      merchant_declaration: true, // ← checkbox 2 validado por la action
+      invoice_id: "inv-1",
       idempotency_key: "inv:x|docs:y",
     },
     opts.docs,
@@ -101,7 +109,7 @@ function sealedRowAsActionWould(opts: {
 
   const ip = "190.142.88.214";
   const now = new Date("2026-06-04T12:00:00.000Z");
-  const seal = sealAcceptance(input, opts.docs, ip, now);
+  const seal = sealAcceptance(input, opts.docs, ip, UA, now);
 
   return {
     id: "a1",
@@ -116,13 +124,19 @@ function sealedRowAsActionWould(opts: {
     total_usd: seal.total_usd,
     accepted_at: seal.accepted_at,
     ip: seal.ip,
+    user_agent: seal.user_agent,
+    merchant_declaration: seal.merchant_declaration,
+    invoice_id: seal.invoice_id,
     hash: seal.hash,
   };
 }
 
 describe("round-trip Slice C → gate Slice B", () => {
-  it("true: el gate RECONOCE una aceptación sellada como la produce la action (orderRef = shipment_code)", async () => {
-    // Shipment: cbm 7, weight 2800. Factura base_amount = 5600.
+  it("true: el gate RECONOCE una aceptación v2 sellada como la produce la action (orderRef = shipment_code)", async () => {
+    // Shipment: cbm 7, weight 2800. Factura base_amount = 5600. El sello v2
+    // incluye user_agent + merchant_declaration en el hash — y el gate los
+    // recomputa desde la fila: si este test pasa, sello y verificación v2
+    // están alineados de punta a punta.
     const row = sealedRowAsActionWould({
       cbm: 7,
       weightKg: 2800,
@@ -144,6 +158,31 @@ describe("round-trip Slice C → gate Slice B", () => {
       orderRef: "S-2026-0042",
     });
     expect(ok).toBe(true);
+  });
+
+  it("v2 · false: fila v2 con user_agent alterado POST-HOC → hash no matchea → gate false", async () => {
+    // La evidencia es LOAD-BEARING también sobre el user_agent (SDD-0067): la
+    // misma fila que el gate acepta íntegra deja de valer si alguien le muta el
+    // user_agent después del sello (aunque la medida siga coincidiendo).
+    const row = sealedRowAsActionWould({
+      cbm: 7,
+      weightKg: 2800,
+      baseAmount: 5600,
+      docs: VIGENTES,
+      quoteRef: "S-2026-0042",
+    });
+    const tampered = { ...row, user_agent: `${row.user_agent} (editado)` };
+    const db = stub({ legal_acceptances: [tampered], legal_docs: docsTable() });
+
+    const ok = await hasValidAcceptanceForMarkbox(db, {
+      tenantId: TENANT,
+      clientMarkbox: MARKBOX,
+      cbm: 7,
+      weight: 2800,
+      total: 5600,
+      orderRef: "S-2026-0042",
+    });
+    expect(ok).toBe(false);
   });
 
   it("M-1 · false: aceptación de OTRO shipment (misma terna) NO cubre esta orden", async () => {
