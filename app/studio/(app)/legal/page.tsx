@@ -20,6 +20,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
 import { listLegalDocs, listAcceptances } from "@/lib/studio/legal/queries";
 import type { DocRef } from "@/lib/studio/legal/types";
 import { LegalClient } from "./_components/LegalClient";
@@ -84,6 +85,7 @@ export default async function LegalPage() {
       acceptances={acceptances}
       currentVersions={Object.fromEntries(currentVersions)}
       kpis={{ total, thisMonth, onCurrent: onCurrentCount }}
+      gateHardBlock={LEGAL_GATE_HARD_BLOCK}
     />
   );
 }

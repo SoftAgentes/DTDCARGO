@@ -128,7 +128,7 @@ export function validateRateInput(input: Partial<RateInput>): {
 } {
   const errors: RateActionState["fieldErrors"] = {};
 
-  if (!input.service) errors.service = "Elegí un servicio.";
+  if (!input.service) errors.service = "Elige un servicio.";
   if (!input.origin || !input.origin.trim()) errors.origin = "Indicá el origen.";
   if (!input.destination || !input.destination.trim())
     errors.destination = "Indicá el destino.";
@@ -136,7 +136,7 @@ export function validateRateInput(input: Partial<RateInput>): {
   const hasPerCbm = input.per_cbm != null && Number.isFinite(input.per_cbm) && input.per_cbm > 0;
   const hasFlat = input.flat_rate != null && Number.isFinite(input.flat_rate) && input.flat_rate > 0;
   if (!hasPerCbm && !hasFlat) {
-    errors.per_cbm = "Tenés que indicar tarifa por CBM o flat.";
+    errors.per_cbm = "Tienes que indicar tarifa por CBM o flat.";
   }
 
   if (input.transit_days != null && (!Number.isFinite(input.transit_days) || input.transit_days < 0)) {

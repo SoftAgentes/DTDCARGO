@@ -242,7 +242,7 @@ export function ShipmentDetailDrawer({
           >
             Esta vista es de solo lectura. Para cambiar el estado, editar
             campos, agregar eventos al timeline, cambiar el destino o
-            cancelar el envío, ingresá al Tracking.
+            cancelar el envío, ingresa al Tracking.
           </div>
         </div>
 

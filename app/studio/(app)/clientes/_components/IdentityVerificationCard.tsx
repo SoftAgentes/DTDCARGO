@@ -288,8 +288,8 @@ export function IdentityVerificationCard({
               if (r.result?.status === "unavailable") {
                 toast.warning(
                   isEmpresa
-                    ? "SENIAT no disponible — usá la consulta manual."
-                    : "El registro no respondió — usá la consulta manual.",
+                    ? "SENIAT no disponible — usa la consulta manual."
+                    : "El registro no respondió — usa la consulta manual.",
                 );
               } else if (r.result?.status === "mismatch") {
                 toast.warning(
@@ -312,7 +312,7 @@ export function IdentityVerificationCard({
             margin: "0 0 16px",
           }}
         >
-          Verificación automática no disponible — usá la consulta oficial abajo.
+          Verificación automática no disponible — usa la consulta oficial abajo.
         </p>
       )}
 
@@ -333,7 +333,7 @@ export function IdentityVerificationCard({
             margin: "0 0 12px",
           }}
         >
-          Abrí el registro oficial, compará el nombre con la foto, y marcá el
+          Abre el registro oficial, compara el nombre con la foto, y marca el
           resultado a ojo.
         </p>
 

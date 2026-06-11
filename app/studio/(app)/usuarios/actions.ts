@@ -169,7 +169,7 @@ export async function disableUserAction(
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "user_signin_required" };
 
-  // Anti-lockout client-side: no podés desactivarte a vos mismo si sos
+  // Anti-lockout client-side: no puedes desactivarte a ti mismo si eres
   // el último admin. El RPC studio_change_user_role tiene este check; acá
   // lo replicamos para disable (que es semántica distinta).
   if (targetUserId === userResp.user.id) {
@@ -236,7 +236,7 @@ export async function revokeInvitationAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { error } = await supabase
     .from("user_invitations")
@@ -288,7 +288,7 @@ export async function updateMyProfileAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   // UPDATE (no upsert): row siempre existe por trigger handle_new_user del
   // auth.users → public.user_profiles. Policy user_profiles_no_direct_insert
@@ -364,15 +364,15 @@ export async function updateMyPreferencesAction(
   const lat = latRaw === "invalid" ? null : latRaw;
   const lng = lngRaw === "invalid" ? null : lngRaw;
   if ((lat === null) !== (lng === null)) {
-    fieldErrors.operating_lat ??= "Cargá lat y lng juntos.";
-    fieldErrors.operating_lng ??= "Cargá lat y lng juntos.";
+    fieldErrors.operating_lat ??= "Carga lat y lng juntos.";
+    fieldErrors.operating_lng ??= "Carga lat y lng juntos.";
   }
 
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   // UPDATE (no upsert): mismo patrón que updateMyProfileAction para evitar
   // el INSERT branch bloqueado por user_profiles_no_direct_insert.
@@ -413,7 +413,7 @@ export async function linkTelegramAccountAction(): Promise<{
 }> {
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   // Generar code unique (retry hasta 5x si choca con índice unique)
   let linkCode: string | null = null;
@@ -438,7 +438,7 @@ export async function linkTelegramAccountAction(): Promise<{
   }
 
   if (!linkCode) {
-    return { error: "No se pudo generar un código único. Reintentá." };
+    return { error: "No se pudo generar un código único. Reintenta." };
   }
 
   return {
@@ -454,7 +454,7 @@ export async function unlinkTelegramAccountAction(): Promise<{
 }> {
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { error } = await supabase
     .from("user_profiles")

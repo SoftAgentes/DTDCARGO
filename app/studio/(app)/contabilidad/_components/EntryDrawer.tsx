@@ -286,7 +286,7 @@ export function EntryDrawer({ postableAccounts, onClose }: Props) {
                     }
                     aria-label={`Cuenta línea ${idx + 1}`}
                   >
-                    <option value="">— Elegí una cuenta —</option>
+                    <option value="">— Elige una cuenta —</option>
                     {sortedAccounts.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.code} · {a.name}

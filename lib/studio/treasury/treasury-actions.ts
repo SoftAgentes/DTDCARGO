@@ -228,7 +228,7 @@ export async function voidBillFor(
   if (bill.status === "anulada") return { error: "Esta CxP ya está anulada." };
   if (Number(bill.paid_amount) > 0) {
     return {
-      error: "No se puede anular una CxP con pagos. Anulá primero las órdenes de pago.",
+      error: "No se puede anular una CxP con pagos. Anula primero las órdenes de pago.",
     };
   }
 

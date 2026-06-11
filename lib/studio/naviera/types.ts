@@ -601,7 +601,7 @@ export function validateConsolidationInput(
 
   const containerTypeRaw = (input.containerType ?? "").trim();
   if (!containerTypeRaw) {
-    errors.containerType = "Elegí el tipo de contenedor.";
+    errors.containerType = "Elige el tipo de contenedor.";
   } else if (!isContainerTypeCode(containerTypeRaw)) {
     errors.containerType = "Tipo de contenedor inválido (20GP/40GP/40HC).";
   }

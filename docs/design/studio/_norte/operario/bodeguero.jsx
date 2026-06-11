@@ -1,9 +1,9 @@
 /* global React */
-/* ── DTD · Bodeguero VE · Mobile (arma camiones) ────────────── */
+/* ── DTD · Almacenista VE · Mobile (arma camiones) ────────────── */
 
 const { useState, useEffect } = React;
 
-function BodegueroApp() {
+function AlmacenistaApp() {
   const [view, setView] = useState('login');
   const [user, setUser] = useState(null);
   const [theme, setTheme] = useState('light');
@@ -90,7 +90,7 @@ function Login({ onLogin }) {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, var(--ink) 0%, #1F3055 100%)', display: 'flex', flexDirection: 'column', padding: '40px 24px', color: '#fff' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
         <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" style={{ height: 32, display: 'block' }} />
-        <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>BODEGUERO</div>
+        <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>ALMACENISTA</div>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>BODEGA · ALMACÉN VE</div>
@@ -569,7 +569,7 @@ function Handoff({ truck, driver, loadout, onDone }) {
   );
 }
 
-window.BodegueroApp = BodegueroApp;
+window.AlmacenistaApp = AlmacenistaApp;
 
 // ── Reception list ─────────────────────────────────
 function ReceptionList({ onPick, onBack }) {
@@ -789,7 +789,7 @@ function ReceptionScan({ container, onBack, onDone }) {
 
 // ── Flujos reutilizables para el shell multi-rol ─────────────
 // Exponen los sub-flujos de Recepción y Despacho SIN el login/home
-// propios de BodegueroApp, para incrustarlos en otra app
+// propios de AlmacenistaApp, para incrustarlos en otra app
 // (p. ej. Operario Multi). onExit vuelve al home del modo.
 function ReceptionFlow({ onExit }) {
   const [view, setView] = useState('list');
@@ -809,4 +809,4 @@ function DispatchFlow({ onExit }) {
   return <PickTruck onPick={(t) => { setTruck(t); setView('driver'); }} onBack={onExit} />;
 }
 
-window.BodegueroFlows = { ReceptionFlow, DispatchFlow };
+window.AlmacenistaFlows = { ReceptionFlow, DispatchFlow };

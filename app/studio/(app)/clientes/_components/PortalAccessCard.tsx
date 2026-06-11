@@ -84,7 +84,7 @@ export function PortalAccessCard({
 
       {!email ? (
         <p style={{ font: "500 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-          Agregá un email al cliente para poder habilitar su acceso al portal.
+          Agrega un email al cliente para poder habilitar su acceso al portal.
         </p>
       ) : (
         <>
@@ -115,7 +115,7 @@ export function PortalAccessCard({
               </>
             )}
             {status === "revoked" && (
-              <>Acceso revocado. Podés volver a invitarlo cuando quieras.</>
+              <>Acceso revocado. Puedes volver a invitarlo cuando quieras.</>
             )}
           </p>
 

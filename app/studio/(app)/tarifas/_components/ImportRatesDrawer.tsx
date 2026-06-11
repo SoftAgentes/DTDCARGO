@@ -3,7 +3,7 @@
 /**
  * ImportRatesDrawer — importador masivo de tarifas (Fase 3 Slice C, SDD-0055).
  *
- * Pegá un CSV de tarifas en el textarea → "Validar" muestra una preview por
+ * Pega un CSV de tarifas en el textarea → "Validar" muestra una preview por
  * fila (válidas / inválidas / duplicadas) → "Importar como borrador" inserta
  * las válidas como `status=draft` (NO van live; se revisan y publican aparte).
  * Dedup por (service, origin, destination) dentro del CSV y contra la DB.
@@ -135,7 +135,7 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
                 margin: 0,
               }}
             >
-              Pegá un CSV con encabezado. Columnas:{" "}
+              Pega un CSV con encabezado. Columnas:{" "}
               <code style={{ font: "500 11.5px/1 var(--f-mono)", color: "var(--ink)" }}>
                 service, origin, destination, per_cbm, flat_rate, min_charge,
                 transit_days, valid_from, valid_until, notes

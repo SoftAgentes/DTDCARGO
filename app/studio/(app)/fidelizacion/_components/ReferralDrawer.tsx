@@ -323,7 +323,7 @@ export function ReferralDrawer({
               onAction={() => accreditReferral(referral.id)}
               onSuccess={() =>
                 afterMutation(
-                  `Crédito de ${fmtUsd(REFERRAL_RULES.referrerReward)} acreditado a ${referral.referrer_markbox} · aplicalo a mano en la próxima factura`,
+                  `Crédito de ${fmtUsd(REFERRAL_RULES.referrerReward)} acreditado a ${referral.referrer_markbox} · aplícalo a mano en la próxima factura`,
                 )
               }
               onError={setError}

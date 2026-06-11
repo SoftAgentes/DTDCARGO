@@ -4,13 +4,17 @@ import { DownloadIcon } from "@/components/Icon";
 /**
  * Visor del Brand Book DTD v3.7 — material de marca INTERNO (noindex).
  *
- * El archivo (`public/marca/brand-book-v3.7.html`, standalone de Cloud Design)
- * es autocontenido (imágenes en base64) y carga las fuentes Nunito Sans / Sora /
- * Archivo desde Google Fonts (CDN). Se sirve TAL CUAL (regla del founder: "no
- * modifiques contenido, colores, fuentes ni logo") a pantalla completa en un
- * <iframe>; el botón "Descargar" vive en este marco, no en el archivo. Únicos
- * deltas vs el origen (NORTE-SYNC 2026-06-10): RIF unificado `J-50648869-8`,
- * 1 voseo→tuteo y el href de descarga del isólogo reapuntado a `/brand/`.
+ * El archivo (`public/marca/brand-book-v3.7.html`) es el standalone autocontenido
+ * que entrega Cloud Design (assets en base64; solo carga fuentes desde Google
+ * Fonts CDN). Se respeta TAL CUAL (regla del founder: "no modifiques contenido,
+ * colores, fuentes ni logo"): se sirve intacto a pantalla completa en un
+ * <iframe>; el botón "Descargar" vive en este marco, no en el archivo.
+ *
+ * Al llegar un book nuevo desde el Norte: copiar el standalone a
+ * `public/marca/brand-book-vX.Y.html`, borrar el anterior (el book vigente es
+ * UNO solo — gobernanza v3.7) y actualizar `FILE` acá, la const `BRAND_BOOK`
+ * del hub (`app/interno/(app)/marca/page.tsx`) y `outputFileTracingIncludes`
+ * (next.config.ts).
  *
  * La CSP de `/marca/*` (next.config.ts) está relajada SOLO para ese prefijo:
  * data:/blob: + inline/eval para los assets, y fonts.googleapis/gstatic para las

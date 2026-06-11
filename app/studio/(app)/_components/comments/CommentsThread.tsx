@@ -234,7 +234,7 @@ export function CommentsThread({
                 }
                 if (e.key === "Escape") setMentionOpen(false);
               }}
-              placeholder={`Comentá en este ${entityLabel}… usá @ para mencionar`}
+              placeholder={`Comenta en este ${entityLabel}… usa @ para mencionar`}
               rows={2}
               style={{
                 width: "100%",

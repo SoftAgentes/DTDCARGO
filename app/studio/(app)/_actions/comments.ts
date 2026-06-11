@@ -223,7 +223,7 @@ export async function deleteComment(
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", commentId);
 
-  if (error) return { ok: false, error: "No se pudo eliminar (¿sos el autor o admin?)." };
+  if (error) return { ok: false, error: "No se pudo eliminar (¿eres el autor o admin?)." };
 
   revalidatePath(
     entityHref(current.entity_type, current.entity_id, current.entity_code),

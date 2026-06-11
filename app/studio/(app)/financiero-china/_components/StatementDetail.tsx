@@ -250,7 +250,7 @@ export function StatementDetail({
               disabled={pending || !counts.canClose}
               title={
                 !counts.canClose
-                  ? "Resolvé las líneas a revisar antes de cerrar"
+                  ? "Resuelve las líneas a revisar antes de cerrar"
                   : "Cerrar el período y marcar los cargos como reconciliados"
               }
             >

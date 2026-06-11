@@ -23,7 +23,7 @@
 
 // ────────────────────────────────────────────────────────────────────
 // 1) CONFIG GENERAL — TARIFAS Y UMBRALES
-//    👉 Editá estos números para ajustar precios y reglas.
+//    👉 Edita estos números para ajustar precios y reglas.
 // ────────────────────────────────────────────────────────────────────
 
 export const CONFIG = {
@@ -133,7 +133,7 @@ export const DEFAULT_PARAMS: CalcParams = {
 
 // ────────────────────────────────────────────────────────────────────
 // 2) CIUDADES DE VENEZUELA — KM DESDE VALENCIA CENTRO
-//    👉 Editá / agrega ciudades acá. Los `km` se usan para calcular el
+//    👉 Edita / agrega ciudades acá. Los `km` se usan para calcular el
 //       recargo por distancia. `casco: true` = entrega flat sin recargo
 //       extra por km (Valencia, Maracay, Caracas son casco por default).
 // ────────────────────────────────────────────────────────────────────
@@ -167,7 +167,7 @@ export const CIUDADES: Ciudad[] = [
   { id: "punto-fijo",   label: "Punto Fijo",       km: 290, casco: false },
   { id: "coro",         label: "Coro",             km: 260, casco: false },
   // Margarita (isla) — caso especial: mismo cálculo por km pero advertir
-  // que cruza ferry. Editá el km si quieres que pague más por la travesía.
+  // que cruza ferry. Edita el km si quieres que pague más por la travesía.
   { id: "margarita",    label: "Isla Margarita",   km: 540, casco: false },
 ];
 

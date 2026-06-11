@@ -35,7 +35,7 @@ export async function signIn(
   const next = safeNext(formData.get("next"));
 
   if (!email || !password) {
-    return { error: "Completá email y contraseña." };
+    return { error: "Completa email y contraseña." };
   }
 
   const supabase = await createClient();

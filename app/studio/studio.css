@@ -454,6 +454,12 @@
   outline-offset: -2px;
   background: var(--studio-paper-2);
 }
+/* Fila-botón (<button> reseteado): el background base va por CLASE, nunca
+   inline, para que el :hover/:focus-visible de arriba gane por especificidad
+   (0,2,0 vs 0,1,0). Bitácora de Legal (SDD-0067). */
+.studio-row-btn {
+  background: var(--bg-surface);
+}
 /* Link discreto en celdas de tabla (nombre que linkea sin ensuciar la grilla):
    subraya solo al hover/focus. SDD-0058 (Kommo lead → cliente). */
 .studio-link-quiet {

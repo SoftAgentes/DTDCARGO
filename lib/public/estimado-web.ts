@@ -119,10 +119,10 @@ export function validateEstimadoInput(
   if (!calc) fieldErrors.calc = "Calculadora de origen inválida.";
 
   const prospectName = trimOrNull(payload.prospectName);
-  if (!prospectName) fieldErrors.prospectName = "Decinos tu nombre.";
+  if (!prospectName) fieldErrors.prospectName = "Dinos tu nombre.";
 
   const prospectWhatsapp = trimOrNull(payload.prospectWhatsapp);
-  if (!prospectWhatsapp) fieldErrors.prospectWhatsapp = "Decinos tu WhatsApp o teléfono.";
+  if (!prospectWhatsapp) fieldErrors.prospectWhatsapp = "Dinos tu WhatsApp o teléfono.";
 
   const totalUsd = num(payload.totalUsd);
   if (totalUsd == null || totalUsd <= 0) {

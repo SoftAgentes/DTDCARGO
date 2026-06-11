@@ -111,7 +111,7 @@ export default async function SeniatPage({
             IGTF, IVA. Checklist documental de 7 items y tracking de
             liberación con timeline 6-step.{" "}
             <span style={{ color: "var(--ink-mute)" }}>
-              Cada trámite se gestiona desde su fila — abrí el detalle para
+              Cada trámite se gestiona desde su fila — abre el detalle para
               cargar costos y marcar documentos.
             </span>
           </p>

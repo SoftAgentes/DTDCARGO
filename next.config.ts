@@ -48,12 +48,11 @@ const cspHeader = [
 ].join("; ");
 
 /**
- * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book (material de marca
- * interno). El v3.7 standalone es autocontenido (imágenes en base64) y carga las
- * fuentes Nunito Sans / Sora / Archivo desde Google Fonts (CDN) — por eso
- * `style-src`/`font-src` permiten `fonts.googleapis`/`fonts.gstatic`. `img`/`connect`
- * con `data:`/`blob:` + inline/eval para los assets embebidos. El resto del sitio
- * mantiene la CSP estricta.
+ * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book vigente (material de
+ * marca interno). El standalone embebe sus assets en base64 y carga las fuentes
+ * desde Google Fonts (CDN) — por eso `style-src`/`font-src` permiten
+ * `fonts.googleapis`/`fonts.gstatic`. `img`/`connect` con `data:`/`blob:`
+ * + inline/eval para los assets embebidos. El resto del sitio mantiene la CSP estricta.
  */
 const brandBookCspHeader = [
   `default-src 'self'`,
@@ -144,8 +143,8 @@ const nextConfig: NextConfig = {
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
-    // `/marca/*` sirve el Brand Book v3.1 (HTML autocontenido, material de marca
-    // interno): CSP permisiva + framing same-origin (lo enmarca el visor) +
+    // `/marca/*` sirve el Brand Book vigente (HTML autocontenido, material de
+    // marca interno): CSP permisiva + framing same-origin (lo enmarca el visor) +
     // noindex, TODO acotado a este prefijo. El catch-all de abajo lo excluye
     // (negative lookahead) para que no le pise estos headers con los estrictos.
     const marcaHeaders = [

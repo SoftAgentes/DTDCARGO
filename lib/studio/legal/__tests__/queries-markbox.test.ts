@@ -86,7 +86,8 @@ function docsTable(
   }));
 }
 
-/** Fila íntegra de legal_acceptances: hash recomputado desde su evidencia. */
+/** Fila íntegra de legal_acceptances (evidencia v2 · SDD-0067): hash
+ *  recomputado desde su evidencia, incluyendo user_agent + declaración. */
 function row(opts: {
   id: string;
   tenant_id?: string;
@@ -98,6 +99,8 @@ function row(opts: {
   weight_kg: number;
   total_usd: number;
   ip?: string | null;
+  user_agent?: string | null;
+  merchant_declaration?: boolean;
   accepted_at?: string;
   /** Si se da, sobreescribe el hash (evidencia forjada). */
   hash?: string;
@@ -107,6 +110,8 @@ function row(opts: {
   const quote_code = opts.quote_code ?? "Q-1";
   const docs = opts.docs ?? VIGENTES;
   const ip = opts.ip ?? "190.142.88.214";
+  const user_agent = opts.user_agent !== undefined ? opts.user_agent : "UA/1.0";
+  const merchant_declaration = opts.merchant_declaration ?? true;
   const accepted_at = opts.accepted_at ?? "2026-05-29T10:00:00.000Z";
   const goodHash = hashEvidence({
     client_markbox,
@@ -116,6 +121,8 @@ function row(opts: {
     weight_kg: opts.weight_kg,
     total_usd: opts.total_usd,
     ip,
+    user_agent,
+    merchant_declaration,
     accepted_at,
   });
   return {
@@ -129,6 +136,8 @@ function row(opts: {
     weight_kg: opts.weight_kg,
     total_usd: opts.total_usd,
     ip,
+    user_agent,
+    merchant_declaration,
     accepted_at,
     hash: opts.hash ?? goodHash,
   };
@@ -179,6 +188,30 @@ describe("hasValidAcceptanceForMarkbox", () => {
       hash: "deadbeef".repeat(8),
     });
     expect(await hasValidAcceptanceForMarkbox(db([forged]), gate)).toBe(false);
+  });
+
+  it("v2: user_agent alterado post-hoc → false (la huella lo cubre)", async () => {
+    const good = row({
+      id: "a1",
+      cbm: 7,
+      weight_kg: 2800,
+      total_usd: 5600,
+      user_agent: "Mozilla/5.0 Chrome/126.0",
+    });
+    const tampered = { ...good, user_agent: null };
+    expect(await hasValidAcceptanceForMarkbox(db([tampered]), gate)).toBe(false);
+  });
+
+  it("v2: merchant_declaration flipeada post-hoc → false", async () => {
+    const good = row({
+      id: "a1",
+      cbm: 7,
+      weight_kg: 2800,
+      total_usd: 5600,
+      merchant_declaration: true,
+    });
+    const tampered = { ...good, merchant_declaration: false };
+    expect(await hasValidAcceptanceForMarkbox(db([tampered]), gate)).toBe(false);
   });
 
   it("false: versión de doc no vigente (stale)", async () => {

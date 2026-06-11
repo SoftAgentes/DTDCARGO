@@ -66,7 +66,7 @@ export function DispatchQueueTable({
           }}
         >
           {rules.payment_policy === "estricto"
-            ? "No hay paquetes pagados listos para despacho. Si tu política es estricta, revisalo en Reglas."
+            ? "No hay paquetes pagados listos para despacho. Si tu política es estricta, revísalo en Reglas."
             : "No hay paquetes recibidos en bodega VE. Las recepciones del operario CN aparecen acá cuando llegan."}
         </p>
       </div>

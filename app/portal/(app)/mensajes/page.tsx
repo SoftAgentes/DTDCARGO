@@ -68,7 +68,7 @@ export default async function PortalMensajesPage() {
                     {m.body}
                   </div>
                   <span className="text-[11px] text-grey-500 px-1">
-                    {out ? `${m.authorName ?? "DTD Cargo"} · ` : "Vos · "}
+                    {out ? `${m.authorName ?? "DTD Cargo"} · ` : "Tú · "}
                     {fmtDate(m.sentAt)}
                   </span>
                 </div>

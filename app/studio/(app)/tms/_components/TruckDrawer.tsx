@@ -70,7 +70,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             name="vehicle_type"
             value={vehicleType}
             onChange={setVehicleType}
-            options={[{ value: "", label: "Seleccioná tipo…" }, ...VEHICLE_TYPE_OPTIONS.map((v) => ({ value: v, label: v }))]}
+            options={[{ value: "", label: "Selecciona tipo…" }, ...VEHICLE_TYPE_OPTIONS.map((v) => ({ value: v, label: v }))]}
           />
         </div>
         <FieldText
@@ -86,7 +86,7 @@ export function TruckDrawer({ onClose }: { onClose: () => void }) {
             name="hub_code"
             value={hubCode}
             onChange={setHubCode}
-            options={[{ value: "", label: "Seleccioná hub…" }, ...TMS_HUBS.map((h) => ({ value: h.code, label: `${h.code} · ${h.name}` }))]}
+            options={[{ value: "", label: "Selecciona hub…" }, ...TMS_HUBS.map((h) => ({ value: h.code, label: `${h.code} · ${h.name}` }))]}
           />
           <FieldSelect
             label="Propiedad"

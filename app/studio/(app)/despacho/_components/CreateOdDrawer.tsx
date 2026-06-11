@@ -183,7 +183,7 @@ export function CreateOdDrawer({
             onChange={(e) => setRouteId(e.target.value)}
             style={{ marginTop: 6 }}
           >
-            <option value="">— Elegí ruta —</option>
+            <option value="">— Elige ruta —</option>
             {routeFilteredByHub.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.route_code} · {r.name} ({r.origin_city} → {r.destination_city})
@@ -198,7 +198,7 @@ export function CreateOdDrawer({
                 marginTop: 6,
               }}
             >
-              No hay rutas activas en {hub}. Creá una en{" "}
+              No hay rutas activas en {hub}. Crea una en{" "}
               <a href="/studio/admin/rutas" style={{ color: "var(--wine)" }}>
                 Rutas y ciudades
               </a>
@@ -219,7 +219,7 @@ export function CreateOdDrawer({
             onChange={(e) => setTruckId(e.target.value)}
             style={{ marginTop: 6 }}
           >
-            <option value="">— Elegí camión —</option>
+            <option value="">— Elige camión —</option>
             {truckFilteredByHub.map((t) => (
               <option key={t.id} value={t.id}>
                 {t.plate} · {t.brand ?? "—"} · cap {t.capacity_kg ?? "—"} kg / {t.capacity_cbm ?? "—"} cbm
@@ -240,7 +240,7 @@ export function CreateOdDrawer({
             onChange={(e) => setDriverId(e.target.value)}
             style={{ marginTop: 6 }}
           >
-            <option value="">— Elegí chofer —</option>
+            <option value="">— Elige chofer —</option>
             {driverFilteredByHub.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name} {d.rating != null ? `· ★ ${d.rating}` : ""}
@@ -293,7 +293,7 @@ export function CreateOdDrawer({
                   color: "var(--danger)",
                 }}
               >
-                Excede capacidad. Quitá paquetes o cargá menos cajas (parcial P2).
+                Excede capacidad. Quita paquetes o carga menos cajas (parcial P2).
               </div>
             )}
           </div>

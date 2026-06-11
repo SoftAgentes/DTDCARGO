@@ -328,7 +328,7 @@ export function RulesClient({
       {/* Opcionales · plegable */}
       <Card
         title="Reglas opcionales"
-        eyebrow="ACTIVÁ SI VALE"
+        eyebrow="ACTIVA SI VALE"
         collapsible
         defaultOpen={false}
         summary={

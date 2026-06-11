@@ -685,7 +685,7 @@ function RoutesView({ routes }: { routes: RouteRow[] }) {
       <EmptyState
         eyebrow="Por ruta"
         title="Sin embarques en el período"
-        description="Cambiá el período o cargá embarques con origen y destino para ver el detalle por corredor."
+        description="Cambia el período o carga embarques con origen y destino para ver el detalle por corredor."
       />
     );
   }
@@ -796,7 +796,7 @@ function ServicesView({ services }: { services: ServiceRow[] }) {
       <EmptyState
         eyebrow="Por servicio"
         title="Sin embarques en el período"
-        description="Cambiá el período o cargá embarques para ver el mix por tipo de servicio."
+        description="Cambia el período o carga embarques para ver el mix por tipo de servicio."
       />
     );
   }
@@ -1296,7 +1296,7 @@ function CombinedView({
       <EmptyState
         eyebrow="Combinados"
         title="Sin costos cargados en el período"
-        description="La rentabilidad real cruza el revenue facturado con el costo directo por embarque. Cargá costos por embarque en /studio/costing para ver margen por ruta, por cliente y por CBM. No se estima ni se inventa el costo."
+        description="La rentabilidad real cruza el revenue facturado con el costo directo por embarque. Carga costos por embarque en /studio/costing para ver margen por ruta, por cliente y por CBM. No se estima ni se inventa el costo."
       />
     );
   }
@@ -1432,7 +1432,7 @@ function RentRouteView({ combined }: { combined: CombinedReport }) {
         <EmptyState
           eyebrow="Rentabilidad por ruta"
           title="Sin rutas para el período"
-          description="Cambiá el período o cargá embarques con origen y destino para ver el margen por corredor."
+          description="Cambia el período o carga embarques con origen y destino para ver el margen por corredor."
         />
       ) : (
         <MarginTable label0="Ruta CN → VE" rows={rows} />
@@ -1480,7 +1480,7 @@ function CostCbmView({ combined }: { combined: CombinedReport }) {
         <EmptyState
           eyebrow="Costo por CBM"
           title="Sin CBM registrado en el período"
-          description="El rendimiento por CBM necesita el volumen (m³) de los embarques. Cargá el volumen y los costos por embarque para ver el costo y margen por metro cúbico."
+          description="El rendimiento por CBM necesita el volumen (m³) de los embarques. Carga el volumen y los costos por embarque para ver el costo y margen por metro cúbico."
         />
       </div>
     );

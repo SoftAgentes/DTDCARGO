@@ -98,7 +98,7 @@ export function QuoteDetailClient({
               maxWidth: "64ch",
             }}
           >
-            Este estimado se capturó de la web y aún no tiene cliente. Ingresá el
+            Este estimado se capturó de la web y aún no tiene cliente. Ingresa el
             Shipping Mark del cliente ya registrado para vincularlo.
           </p>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -147,7 +147,7 @@ export function QuoteDetailClient({
               {kommoMatches.slice(0, 3).map((c) => c.name).join(", ")}
               {kommoMatches.length > 3 ? "…" : ""}
               {"). "}
-              Revisá antes de crear un cliente duplicado.
+              Revisa antes de crear un cliente duplicado.
             </div>
           )}
 

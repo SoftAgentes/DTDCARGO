@@ -75,7 +75,7 @@ export function LibroMayorTab({
             value={ledgerAccountId ?? ""}
             onChange={(e) => selectAccount(e.target.value)}
           >
-            <option value="">— Elegí una cuenta —</option>
+            <option value="">— Elige una cuenta —</option>
             {postable.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.code} · {a.name}
@@ -108,7 +108,7 @@ export function LibroMayorTab({
       {!ledgerAccountId || !ledger ? (
         <EmptyState
           eyebrow="Libro mayor"
-          title="Elegí una cuenta para ver sus movimientos."
+          title="Elige una cuenta para ver sus movimientos."
           description="El mayor muestra los movimientos de asientos asentados con saldo corrido."
         />
       ) : ledger.movements.length === 0 ? (

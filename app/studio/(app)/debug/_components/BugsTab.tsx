@@ -92,7 +92,7 @@ export function BugsTab({ bugs, isAdmin }: BugsTabProps) {
           }}
         >
           Vista read-only del Bug Reporter (SDD-0036). Para tomar, conversar o
-          resolver un bug, abrí el módulo completo.
+          resolver un bug, abre el módulo completo.
         </p>
 
         {bugs.length === 0 ? (

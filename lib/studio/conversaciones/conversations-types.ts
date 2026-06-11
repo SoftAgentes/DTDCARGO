@@ -256,7 +256,7 @@ export function validateSendReplyInput(
   const conversation_id = input.conversation_id?.trim();
   if (!conversation_id) errors.conversation_id = "Falta el ID de la conversación.";
   const body = input.body?.trim();
-  if (!body) errors.body = "Escribí una respuesta.";
+  if (!body) errors.body = "Escribe una respuesta.";
   if (body && body.length > 4000) errors.body = "El mensaje es muy largo (máx 4000).";
   if (Object.keys(errors).length > 0) return { fieldErrors: errors };
   return { input: { conversation_id: conversation_id!, body: body! } };
@@ -337,7 +337,7 @@ export const QUICK_REPLIES: { id: string; label: string; text: string }[] = [
   {
     id: "qr-3",
     label: "Tracking portal",
-    text: "Podés seguir tu embarque en tiempo real desde el portal del cliente con tu Shipping Mark.",
+    text: "Puedes seguir tu embarque en tiempo real desde el portal del cliente con tu Shipping Mark.",
   },
   {
     id: "qr-4",
@@ -347,6 +347,6 @@ export const QUICK_REPLIES: { id: string; label: string; text: string }[] = [
   {
     id: "qr-5",
     label: "Cierre",
-    text: "¿Hay algo más en lo que pueda ayudarte? Quedamos atentos. Con confianza, de China a tu puerta.",
+    text: "¿Hay algo más en lo que pueda ayudarte? Quedamos atentos. Con Confianza, de China a tu puerta.",
   },
 ];

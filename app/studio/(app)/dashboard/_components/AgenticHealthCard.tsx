@@ -5,7 +5,7 @@
  * alimentada por `computeAgentKpis()`. Server component.
  *
  * Estados:
- *  - active === 0 → border dashed + CTA "Instalá tu primer agente"
+ *  - active === 0 → border dashed + CTA "Instala tu primer agente"
  *  - active > 0   → border sólido + 4 mini-KPIs (Activos / Runs hoy /
  *                   Aprobaciones / Gasto MTD)
  *
@@ -65,7 +65,7 @@ export function AgenticHealthCard({ kpis }: { kpis: AgentKpis }) {
           >
             {noneActive ? (
               <>
-                Tenés <strong style={{ color: "var(--ink)" }}>{kpis.installed}</strong>{" "}
+                Tienes <strong style={{ color: "var(--ink)" }}>{kpis.installed}</strong>{" "}
                 {kpis.installed === 1 ? "agente instalado" : "agentes instalados"}{" "}
                 pero ninguno activo. Activalos desde{" "}
                 <strong style={{ color: "var(--ink)" }}>Instalados</strong>.
@@ -194,7 +194,7 @@ function EmptyAgenticCard({ pendingApprovals }: { pendingApprovals: number }) {
             letterSpacing: "-0.01em",
           }}
         >
-          Todavía no tenés agentes instalados.
+          Todavía no tienes agentes instalados.
         </div>
         <p
           style={{
@@ -204,7 +204,7 @@ function EmptyAgenticCard({ pendingApprovals }: { pendingApprovals: number }) {
             margin: 0,
           }}
         >
-          Empezá con <strong style={{ color: "var(--ink)" }}>Tracking Concierge</strong>
+          Empieza con <strong style={{ color: "var(--ink)" }}>Tracking Concierge</strong>
           {" "}— responde consultas de carga en español-VE usando el tracking real
           del Studio. Read-only, sin riesgo de escritura.
           {pendingApprovals > 0 && (
@@ -222,7 +222,7 @@ function EmptyAgenticCard({ pendingApprovals }: { pendingApprovals: number }) {
         href="/studio/admin/agentes"
         className="studio-btn studio-btn-primary studio-btn-sm"
       >
-        Instalá tu primer agente →
+        Instala tu primer agente →
       </Link>
     </section>
   );

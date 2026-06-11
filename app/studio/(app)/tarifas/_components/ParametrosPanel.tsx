@@ -6,7 +6,7 @@
  * Edita las REGLAS escalares del calculador público LCL DDP (peso incluido,
  * $/kg excedente, descuento Valencia, ×baterías, km del casco, $/km, embalaje
  * especial). La tarifa base ($/CBM) y el piso NO se editan acá — son la tarifa
- * pública del calculador, en la pestaña Tarifas (marcá una tarifa como
+ * pública del calculador, en la pestaña Tarifas (marca una tarifa como
  * "Pública · calc"). Publicación instantánea: al guardar, revalidatePath
  * refresca el calculador del sitio.
  *
@@ -138,10 +138,10 @@ export function ParametrosPanel({
             margin: 0,
           }}
         >
-          Acá editás las <strong style={{ color: "var(--ink)" }}>reglas</strong> del
+          Acá editas las <strong style={{ color: "var(--ink)" }}>reglas</strong> del
           calculador público. La <strong style={{ color: "var(--ink)" }}>tarifa
           base ($/CBM)</strong> y el <strong style={{ color: "var(--ink)" }}>piso
-          mínimo</strong> viven en la pestaña <em>Tarifas</em>: marcá una tarifa por
+          mínimo</strong> viven en la pestaña <em>Tarifas</em>: marca una tarifa por
           CBM como <em>Pública · calc</em>.
           {usingDefaults && (
             <>

@@ -248,7 +248,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                 onChange={(e) => setShipmentId(e.target.value)}
                 required
               >
-                <option value="">Seleccioná un shipment elegible…</option>
+                <option value="">Selecciona un shipment elegible…</option>
                 {shipments.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.code} · {s.client_name ?? "—"}
@@ -281,7 +281,7 @@ export function CreateFilingDrawer({ agents, shipments, onClose }: Props) {
                 onChange={(e) => setPortCode(e.target.value)}
                 required
               >
-                <option value="">Seleccioná puerto…</option>
+                <option value="">Selecciona puerto…</option>
                 {VE_PORTS.map((p) => (
                   <option key={p.code} value={p.code}>
                     {p.code} · {p.name}

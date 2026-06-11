@@ -73,7 +73,7 @@ export default async function ColaQrPage({
             }}
           >
             Órdenes de impresión que el operario del PWA mandó a la oficina.
-            Seleccioná varias para imprimir en lote, marcá impresas y
+            Selecciona varias para imprimir en lote, marca impresas y
             entregadas. Auto-refresh cada 30s.
           </p>
         </div>

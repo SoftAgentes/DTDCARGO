@@ -17,9 +17,11 @@
 
 ---
 
-## 🖼 Logo y wordmark · sistema oficial v3.0 (mayo 2026)
+## 🖼 Logo y wordmark · sistema oficial
 
-> Spec completa: [`docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md`](docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md) y [`Logo Oficial.html`](docs/design/brand-book/v3.0/proyecto/Logo%20Oficial.html).
+> **Fuente de verdad = el Brand Book vigente del Norte** (el de mayor versión en
+> [`docs/design/studio/_norte/`](docs/design/studio/_norte/), hoy **v3.7** — regla de gobernanza: el book vigente es UNO solo).
+> Spec del logo: [`docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md`](docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md) y [`Logo Oficial.html`](docs/design/studio/_norte/Logo%20Oficial.html).
 > Implementación en este repo: [`components/BrandMark.tsx`](components/BrandMark.tsx).
 
 ### Las 4 variantes oficiales del isólogo
@@ -62,15 +64,16 @@ import { BrandMark } from "@/components/BrandMark";
 
 ---
 
-## ✨ Tagline oficial v3.0 (mayo 2026)
+## ✨ Tagline oficial
 
 ```
-Con confianza,
+Con Confianza,
 de China a tu puerta.
 ```
 
-- Línea 1 (`Con confianza,`) → color **wine** `#7F0F1A`
+- Línea 1 (`Con Confianza,`) → color **wine** `#7F0F1A`
 - Línea 2 (`de China a tu puerta.`) → color **ink/navy** (default)
+- **Casing (2026-06-05 · autorizado por el founder):** "Confianza" va con **C mayúscula** — palabra-valor de marca. Aplica en UI, portal, emails, brand book, piezas sociales y metadata SEO. El sub-claim y los "niveles de confianza" siguen en minúscula.
 - 2 líneas. **NO** hay tercera línea kicker como v2.x ("Sin intermediarios" desapareció).
 
 **Sub-claim** (voz interna, footer y copy secundario, no para hero):
@@ -85,7 +88,7 @@ Source of truth en código: `HERO.headline` en [`lib/design-tokens.ts`](lib/desi
 
 ## 🎨 Sistema de color · ÚNICA fuente de verdad
 
-Los colores viven en `erp/tokens.css`. **Nunca** uses hex literales en HTML/JSX cuando exista un token equivalente.
+Los valores canónicos viven en el Norte (`docs/design/studio/_norte/erp/tokens.css`); en este repo los equivalentes están en `app/globals.css` / `lib/design-tokens.ts` (web) y `app/studio/tokens.css` (Studio). **Nunca** uses hex literales en HTML/JSX cuando exista un token equivalente.
 
 ### Light theme
 ```
@@ -144,7 +147,7 @@ Tres familias, **ninguna otra**:
 ### Reglas
 - **Archivo Black** se usa SOLO para títulos y display (H1, H2 grandes, KPI values, codes destacados).
 - **Archivo regular** para todo el body, labels, buttons.
-- **JetBrains Mono** para códigos: MARKBOX (`DTD-XXXX`), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
+- **JetBrains Mono** para códigos: Shipping Mark (`DTD-XXXX` — nombre visible "Shipping Mark", SDD-0065; `markbox` solo como identificador interno), container IDs (`DTDU-XXXXXX`), factura IDs (`F-2026-XXXX`), HS codes, RIF, tarifas, fechas/horas en tablas.
 - **Noto Sans SC** SOLO para texto en chino mandarín (direcciones de almacén CN, nombres bilingües).
 
 ### ❌ Fuentes PROHIBIDAS
@@ -228,7 +231,7 @@ Si el usuario pide algo así, **avisarle** y proponer alternativa que respete el
 - Estilos: **inline styles con tokens CSS** o classes del sistema. **No** Tailwind, **no** CSS-in-JS libs, **no** styled-components.
 - Archivos `.jsx` cargados via `<script type="text/babel" src=...>`.
 - Cada componente que se reutiliza globalmente se expone en `window.*` (ej: `window.ERPUI`, `window.Icon`, `window.ERPData`).
-- Mock data realista de DTD Cargo: rutas CN→VE, MARKBOX `DTD-XXXX`, containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
+- Mock data realista de DTD Cargo: rutas CN→VE, Shipping Mark `DTD-XXXX`, containers `DTDU-XXXXXX`, RIF venezolano, nombres verosímiles.
 
 ---
 
@@ -268,7 +271,7 @@ preferís la alternativa?
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `Brand Book DTD v2.4.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro.
+- **Brand Book:** `docs/design/studio/_norte/Brand Book DTD v3.7.html` (vigente; el book es UNO solo) — fuente de verdad de la identidad visual. Publicado privado en `/marca/brand-book`. **No** mezclar pantallas de producto adentro.
 - Mock data en `erp/data.jsx`. Cualquier dato nuevo se agrega ahí y se expone vía `window.ERPData`.
 
 ---

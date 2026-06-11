@@ -91,7 +91,7 @@ export async function markPrintedAction(
 ): Promise<QrQueueActionState> {
   const supabase = await createClient();
   const ids = parseIdsList(formData);
-  if (ids.length === 0) return { fieldErrors: { ids: "Seleccioná al menos 1 orden." } };
+  if (ids.length === 0) return { fieldErrors: { ids: "Selecciona al menos 1 orden." } };
 
   const { error, data: updated } = await supabase
     .from("qr_print_orders")
@@ -116,7 +116,7 @@ export async function markDeliveredAction(
 ): Promise<QrQueueActionState> {
   const supabase = await createClient();
   const ids = parseIdsList(formData);
-  if (ids.length === 0) return { fieldErrors: { ids: "Seleccioná al menos 1 orden." } };
+  if (ids.length === 0) return { fieldErrors: { ids: "Selecciona al menos 1 orden." } };
 
   const { error, data: updated } = await supabase
     .from("qr_print_orders")

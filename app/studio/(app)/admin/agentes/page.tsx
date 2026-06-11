@@ -182,7 +182,7 @@ function CatalogContent({ skills }: { skills: Awaited<ReturnType<typeof listSkil
       <EmptyState
         eyebrow="Catálogo vacío"
         title="No hay skills disponibles"
-        description="El seed inicial no se aplicó o todas las skills están desactivadas. Verificá la migración 0015_agents.sql."
+        description="El seed inicial no se aplicó o todas las skills están desactivadas. Verifica la migración 0015_agents.sql."
       />
     );
   }
@@ -208,7 +208,7 @@ function InstalledContent({ agents }: { agents: AgentWithSkill[] }) {
       <EmptyState
         eyebrow="Sin agentes instalados"
         title="Todavía no instalaste ninguna skill"
-        description="Andá al catálogo, elegí una skill y dale 'Instalar'. Quedará en status apagado hasta que vos la actives."
+        description="Ve al catálogo, elige una skill y presiona 'Instalar'. Quedará en status apagado hasta que tú la actives."
         action={
           <Link
             href="/studio/admin/agentes?tab=catalog"
@@ -360,7 +360,7 @@ function RunsContent({ runs }: { runs: AgentRunWithAgent[] }) {
       <EmptyState
         eyebrow="Sin runs todavía"
         title="No hay ejecuciones registradas"
-        description="Cada vez que un agente ejecute (manual, cron, webhook o evento), queda acá con tokens, costo, latencia, tools usadas y output. Activá un agente y ejecutalo desde Instalados para ver el primer run."
+        description="Cada vez que un agente ejecute (manual, cron, webhook o evento), queda acá con tokens, costo, latencia, tools usadas y output. Activa un agente y ejecútalo desde Instalados para ver el primer run."
         action={
           <Link
             href="/studio/admin/agentes?tab=installed"

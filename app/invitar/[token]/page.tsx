@@ -53,7 +53,7 @@ export default async function InvitarPage({
     return (
       <InvitationError
         title="Invitación ya aceptada"
-        reason="Esta invitación ya fue usada. Iniciá sesión normalmente desde /studio/login."
+        reason="Esta invitación ya fue usada. Inicia sesión normalmente desde /studio/login."
         ctaHref="/studio/login"
         ctaLabel="Iniciar sesión"
       />

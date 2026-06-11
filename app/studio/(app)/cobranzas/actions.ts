@@ -1,11 +1,16 @@
 /**
- * Server actions del módulo Cobranzas (SDD-0041).
+ * Server actions del módulo Cobranzas (SDD-0041 + SDD-0068).
  *
  * - registerCollection: registra un cobro sobre una factura (delega en la
- *   lógica compartida `registerCollectionFor`: recibo + saldo + asiento).
+ *   lógica compartida `registerCollectionFor`: recibo + saldo + asiento +
+ *   pagador + fund_class).
+ * - registerUnidentifiedPayment: pago SIN referencia (cláusula 7.3) → recibo
+ *   sin factura + asiento a la cuenta puente "Fondos por identificar".
+ * - identifyPayment: identificación RETROACTIVA de un sin-ref contra una
+ *   factura (conserva received_at + reclasifica, decisión #6).
  * - logActivity: registra una gestión de cobranza (contacto/promesa/nota/
  *   recordatorio).
- * - voidReceipt: anula un recibo (revierte saldo + anula su asiento).
+ * - voidReceipt: anula un recibo (revierte saldo + anula sus asientos).
  *
  * Sin Zod: validación con `validate*Input()` propio. Las acciones sensibles
  * (cobro, anular recibo) escriben en entity_audit_log via la lógica compartida
@@ -17,13 +22,16 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import {
+  identifyPaymentFor,
   registerCollectionFor,
+  registerUnidentifiedPaymentFor,
   voidReceiptFor,
 } from "@/lib/studio/collections-actions";
 import {
   validateActivityInput,
   type ActivityInput,
   type PaymentInput,
+  type UnidentifiedPaymentInput,
 } from "@/lib/studio/payment-types";
 
 /**
@@ -54,6 +62,60 @@ export async function registerCollection(
   revalidatePath("/studio/cobranzas");
   revalidatePath("/studio/facturacion");
   return { ok: true, receiptCode: result.receiptCode, fullyPaid: result.fullyPaid };
+}
+
+/**
+ * Registra un pago que llegó SIN referencia (SDD-0068 #2 · cláusula 7.3):
+ * recibo sin factura, snapshots de cliente NULL, asiento a la cuenta puente.
+ * Devuelve el primer fieldError aplanado (el drawer valida client-side).
+ */
+export async function registerUnidentifiedPayment(
+  payload: Partial<UnidentifiedPaymentInput>,
+): Promise<{ ok?: boolean; error?: string; receiptCode?: string }> {
+  const supabase = await createClient();
+  const result = await registerUnidentifiedPaymentFor(supabase, payload);
+
+  if (!result.ok) {
+    const firstFieldError = result.fieldErrors
+      ? Object.values(result.fieldErrors)[0]
+      : undefined;
+    return {
+      error:
+        result.error ?? firstFieldError ?? "No se pudo registrar el pago.",
+    };
+  }
+
+  revalidatePath("/studio/cobranzas");
+  return { ok: true, receiptCode: result.receiptCode };
+}
+
+/**
+ * Identifica un pago sin referencia contra una factura (SDD-0068 #3 ·
+ * decisión #6): conserva `received_at` original (imputación retroactiva),
+ * aplica el saldo y reclasifica el asiento.
+ */
+export async function identifyPayment(
+  receiptId: string,
+  invoiceId: string,
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  receiptCode?: string;
+  invoiceCode?: string;
+  fullyPaid?: boolean;
+}> {
+  const supabase = await createClient();
+  const result = await identifyPaymentFor(supabase, receiptId, invoiceId);
+  if (!result.ok) return { error: result.error };
+
+  revalidatePath("/studio/cobranzas");
+  revalidatePath("/studio/facturacion");
+  return {
+    ok: true,
+    receiptCode: result.receiptCode,
+    invoiceCode: result.invoiceCode,
+    fullyPaid: result.fullyPaid,
+  };
 }
 
 /**

@@ -10,7 +10,7 @@
  * - Notifications icon (placeholder, 0 notifs)
  * - User menu dropdown con avatar + email + role + Cerrar sesión
  *
- * Diseño (v1.7): docs/design/studio/v1.7-claude-design/project/erp/shell.jsx (Topbar)
+ * Diseño (Norte): docs/design/studio/_norte/erp/shell.jsx (Topbar)
  */
 
 import { useTransition, useEffect, useRef, useState } from "react";

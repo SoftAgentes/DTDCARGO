@@ -266,7 +266,7 @@ export function InvoiceDetailClient({
                   margin: 0,
                 }}
               >
-                {legalAck} Si emitís, queda registrado en la auditoría de la
+                {legalAck} Si emites, queda registrado en la auditoría de la
                 factura como emisión sin aceptación vigente.
               </p>
             </div>

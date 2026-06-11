@@ -252,7 +252,7 @@ export async function linkEstimateToClient(
     .is("deleted_at", null)
     .maybeSingle<{ markbox: string; name: string }>();
   if (cErr) return { error: "No pudimos validar el cliente." };
-  if (!client) return { error: `No existe un cliente con MARKBOX ${markbox}.` };
+  if (!client) return { error: `No existe un cliente con Shipping Mark ${markbox}.` };
 
   // 2. El estimado debe ser web y seguir sin vincular (defensa server-side).
   const { data: quote, error: qErr } = await supabase

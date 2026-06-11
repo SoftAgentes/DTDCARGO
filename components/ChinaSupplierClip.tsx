@@ -1,23 +1,23 @@
 "use client";
 
 import { useState } from "react";
-import { CONTACT } from "@/lib/design-tokens";
+import { CONTACT, FONT_MONO } from "@/lib/design-tokens";
 
 /**
  * China Supplier Clip — texto pre-formateado para que el cliente lo copie y
- * pegue en WeChat al hablar con su proveedor chino. Restaurado del Brand Book
- * DTD v1.0 § 19 · Registro de cliente · MARKBOX.
+ * pegue en WeChat al hablar con su proveedor chino. Origen: brand book
+ * § Registro de cliente · Shipping Mark.
  *
  * Incluye:
  * - Dirección de bodega en caracteres chinos (义乌)
- * - Teléfono del encargado de bodega (小孙)
+ * - Teléfono del encargado de bodega (林冠 / Lin Guan)
  * - Horario de recepción
- * - Código MARKBOX del cliente (formato DTD-XXXX)
+ * - Código Shipping Mark del cliente (formato DTD-XXXX)
  *
  * El proveedor chino lee este texto en WeChat y sabe exactamente dónde
  * entregar la carga y cómo marcarla con el código que identifica al cliente.
  *
- * MARKBOX: código único del cliente generado al alta. Sistema de identificación
+ * Shipping Mark: código único del cliente generado al alta. Sistema de identificación
  * end-to-end (cotizaciones, embarques, facturación, tracking). Mientras el ERP
  * no tenga el flujo de alta listo, el input acepta el código manualmente o usa
  * `DTD-XXXX` como placeholder visible.
@@ -80,10 +80,7 @@ export function ChinaSupplierClip() {
           placeholder={placeholder}
           maxLength={50}
           className="h-11 px-3.5 rounded-[8px] bg-white/10 border border-white/15 outline-none text-[14px] font-semibold tracking-[0.04em] text-white placeholder:text-white/30 focus:border-wine-soft"
-          style={{
-            fontFamily:
-              "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
-          }}
+          style={{ fontFamily: FONT_MONO }}
           aria-label="Código Shipping Mark del cliente"
         />
       </div>

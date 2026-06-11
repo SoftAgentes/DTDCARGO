@@ -88,7 +88,7 @@ export async function sendReplyAction(
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
   const agent = await resolveAgent(supabase);
-  if (!agent) return { error: "Tu sesión expiró. Volvé a entrar." };
+  if (!agent) return { error: "Tu sesión expiró. Vuelve a entrar." };
 
   // El hilo debe ser del tenant (RLS lo garantiza en la lectura).
   const { data: conv } = await supabase

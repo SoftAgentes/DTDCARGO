@@ -286,7 +286,7 @@ export function AssignCargoDrawer({
           <Badge tone="info" size="sm">
             advisory
           </Badge>{" "}
-          — si superás el CBM o el peso del tipo, igual se asigna y queda avisado.
+          — si superas el CBM o el peso del tipo, igual se asigna y queda avisado.
         </p>
       </form>
 

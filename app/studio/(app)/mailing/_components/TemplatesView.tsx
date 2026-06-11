@@ -36,7 +36,7 @@ export function TemplatesView({ templates }: Props) {
       <EmptyState
         eyebrow="Sin templates"
         title="No hay templates en este tenant"
-        description="Corré `pnpm seed` para seedear los 10 templates oficiales."
+        description="Corre `pnpm seed` para seedear los 10 templates oficiales."
       />
     );
   }
