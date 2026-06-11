@@ -26,10 +26,14 @@ Shipping Mark + protocolo §Sincronización).
   "los 12 .webp" → 512×512 / **17** (el pack oficial es 17 con texto). ⚠️ La frase
   "se vea redondo sobre cualquier chat" quedó — revisar copy en Cloud Design.
 
-**⚠️ Para Cloud Design / founder:** el CLAUDE.md del paquete trae RIF `J-410322887` como
-dato de contacto y la factura demo emite con `J-40558712-0`; el canónico de identidad es
-`J-50648869-8` (`docs/marketing/identidad.md` — solo en schema, nunca visible). La
-"unificación de RIF" sigue pendiente (ya lo notaba la entrada 2026-06-08).
+**✅ RIF unificado (decisión founder, mismo día):** `J-50648869-8` es el ÚNICO RIF de DTD.
+Reemplazados los 4 que circulaban: `J-410322887` (marca/sello/inspecciones/tarjeta/
+colateral/CLAUDE.md), `J-40558712-0` (factura emisora/ZPL/comprobante WhatsApp),
+`J-40551122-3` (forma IVA, `fiscal.jsx`), `J-50220185-8` (acuerdo operador + T&C, `.md`
+**y `.docx`**) — 33 reemplazos en 19 archivos + 2 `.docx` legales + brand-books archivados
+(v3.0/v1.7). Los RIF mock de clientes/proveedores demo (`J-30xxx…`) quedan tal cual.
+**Cloud Design:** espejar en el origen + regenerar los PNG/PDF exportados (`uploads/`) que
+tengan el RIF viejo horneado.
 
 ## 2026-06-10 · Estudio de Redes (ERP) + generador unificado
 
