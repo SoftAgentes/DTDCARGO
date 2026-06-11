@@ -50,5 +50,14 @@ El Excel oficial 入仓单 ya usa `客户唛头 SHIPPING MARK` → la web era la
 Cruza Studio/Portal → **branch dedicado** (`feat/rename-shipping-mark`), separado de `feat/servicios-detalle-publico` (que tiene el trabajo público de SDD-0064). Sin push sin OK del founder.
 
 ## Pendiente de confirmar
-- Presentación exacta del término ("Shipping Mark" a secas vs con glosa español/唛头).
+- ~~Presentación exacta del término~~ → **CONFIRMADO por el Norte (NORTE-SYNC 2026-06-10,
+  `SYNC-NORTE-2026-06-10.md` §3 + CLAUDE.md §Terminología):** "Shipping Mark" es **término
+  ÚNICO en TODOS los contextos** (cliente, proveedor, interno, marketing); de cara a
+  proveedor chino puede acompañarse "(唛头)". MARKBOX queda eliminado del lenguaje visual
+  (la "regla de contexto" cliente=MARKBOX quedó anulada). Claves de código `markbox` intactas.
 - Branch dedicado vs continuar en el actual.
+
+> **Estado real (verificado 2026-06-10):** quedan ~56 ocurrencias visibles de "MARKBOX" en
+> `app/` (Portal login/cuenta, Studio clientes/cotizador/cn, registro, móvil CN) + display
+> en `components/` y `lib/faqs`/i18n — zonas 2-4 enteras y parte de la 1 pendientes. El
+> brand vivo (zona 5) ya quedó en Shipping Mark con el book v3.7 publicado hoy.

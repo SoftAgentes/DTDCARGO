@@ -21,7 +21,7 @@
 | Shell + Auth | 0004, 0007 | `app/studio/(app)/` shell, `(auth)/login` | `lib/auth/session.ts`, `proxy.ts` |
 | Tracking / Embarques | 0005, 0006, 0012, 0013 | `app/studio/(app)/{tracking,embarques}/` | `lib/studio/shipment-*`, `tracking-progress` |
 | Cambio de destino | 0009 | (dentro de tracking) | `lib/studio/destination-change.ts` |
-| Tarifas | 0008 | `app/studio/(app)/tarifas/` | `lib/studio/rate-*` |
+| Tarifas (+ config calculadora pública) | 0008, 0055 | `app/studio/(app)/tarifas/` | `lib/studio/rate-*`, `calculator-cities-*` · `supabase/migrations/{0103,0104}` |
 | Clientes + MARKBOX | 0010 | `app/studio/(app)/clientes/` | `lib/studio/client-*` |
 | Cotizador | 0011 | `app/studio/(app)/cotizador/` | `lib/studio/quote-*` |
 | Dashboard | 0014 | `app/studio/(app)/resumen/` | `lib/studio/dashboard-queries.ts` |
