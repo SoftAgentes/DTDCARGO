@@ -1,10 +1,10 @@
 ---
 sdd: "0065"
 title: "Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visible, identificador interno intacto)"
-status: in-progress
+status: done
 author: "equipo DTD + founder + Claude Code"
 created: 2026-06-08
-updated: 2026-06-08
+updated: 2026-06-10
 supersedes: null
 superseded_by: null
 related: ["0010","0042","0064"]
@@ -57,7 +57,27 @@ Cruza Studio/Portal → **branch dedicado** (`feat/rename-shipping-mark`), separ
   (la "regla de contexto" cliente=MARKBOX quedó anulada). Claves de código `markbox` intactas.
 - Branch dedicado vs continuar en el actual.
 
-> **Estado real (verificado 2026-06-10):** quedan ~56 ocurrencias visibles de "MARKBOX" en
-> `app/` (Portal login/cuenta, Studio clientes/cotizador/cn, registro, móvil CN) + display
-> en `components/` y `lib/faqs`/i18n — zonas 2-4 enteras y parte de la 1 pendientes. El
-> brand vivo (zona 5) ya quedó en Shipping Mark con el book v3.7 publicado hoy.
+## Cierre (2026-06-10)
+
+**Auditoría con contexto de las ~56 ocurrencias "MARKBOX" en `app/` + `components/` + `lib/`:**
+el conteo engañaba — **prácticamente todas son comentarios de código** (`//`, `/* */`, JSDoc)
+o **identificadores** (`markbox` campo, `DEMO_MARKBOX`/`PM_MARKBOX`/`MARKBOX_REGEX`,
+`prefillMarkbox`, `lookupEmailByMarkbox`, `get_portal_client_markbox`) — todos **fuera de
+alcance por la regla del spec** (solo strings renderizados; identificadores intactos).
+
+**El display de cara al usuario YA estaba migrado** a "Shipping Mark" en sesiones previas
+(zonas 1 público + 3 portal, vía el rediseño/SDD-0064): 95 ocurrencias de "Shipping Mark" en
+`app/`. `lib/faqs.ts`, `app/glosario`, `components/ChinaSupplierClip`, `lib/i18n` (es-VE/zh-CN)
+y el móvil `/m` renderizan "Shipping Mark"; el brand vivo (zona 5) cerró con el book **v3.7**
+(2026-06-10).
+
+**Lo único que quedaba renderizado** era 1 párrafo en Studio — `app/studio/(app)/etiquetas/page.tsx`
+("Plancha PDF … con MARKBOX del cliente") → corregido a "el Shipping Mark del cliente"
+(+ 2 voseos del mismo bloque: `Mandala`→`Mándala`, `elegí`→`elige`, regla de tuteo). Además
+se actualizó el comentario obsoleto de `app/portal/(app)/cuenta/page.tsx` que documentaba la
+**regla anulada** ("de cara al cliente el término es MARKBOX") — el Norte la reemplazó por
+término único (NORTE-SYNC 2026-06-10).
+
+**Decisión:** los comentarios e identificadores `markbox` del código **se quedan** (coherentes
+con el identificador interno, que NO cambia — decisión #2 del spec). Barrerlos sería ruido sin
+valor de usuario. El alcance de **display de usuario está cumplido** → spec `done`. Gate verde.

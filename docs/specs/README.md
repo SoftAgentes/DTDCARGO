@@ -97,7 +97,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
 | 0063 | Servicios a fondo (sitio público) — fichas incluye/no-incluye… | in-progress | interno |
 | 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
-| 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | in-progress | interno |
+| 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | done | interno |
 | 0066 | Generador de reportes de inspección en el ERP (white-label · … | proposed | interno |
 | 0068 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 

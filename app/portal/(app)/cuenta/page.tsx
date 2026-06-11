@@ -19,11 +19,11 @@ export const metadata: Metadata = { title: "Mi cuenta" };
  * datos acá (los cambia su asesor). Por eso todo es read-only + un CTA de
  * WhatsApp para pedir correcciones.
  *
- * El VALOR de la página es la sección "Tu MARKBOX para tus proveedores": le
- * recuerda al cliente que su MARKBOX es lo que el proveedor en China escribe en
- * cada caja como Shipping Mark (唛头), para que la mercancía llegue identificada
- * a la bodega de Yiwu. (De cara al cliente el término es MARKBOX; "Shipping Mark"
- * sólo aparece al nombrar lo que hace el proveedor.)
+ * El VALOR de la página es la sección "Tu Shipping Mark para tus proveedores": le
+ * recuerda al cliente que su Shipping Mark (唛头) es lo que el proveedor en China
+ * escribe en cada caja, para que la mercancía llegue identificada a la bodega de
+ * Yiwu. (Término único en toda superficie de usuario desde el NORTE-SYNC 2026-06-10;
+ * el identificador interno de código sigue siendo `markbox`.)
  */
 export default async function PortalAccountPage() {
   const supabase = await createClient();
@@ -52,7 +52,7 @@ export default async function PortalAccountPage() {
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1.05fr] gap-6 lg:gap-8 items-start">
         {/* ── Datos del cliente (read-only) ── */}
         <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-          {/* MARKBOX prominente — es SU identificador */}
+          {/* Shipping Mark prominente — es SU identificador */}
           <div className="pb-6 border-b border-grey-200">
             <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
               Tu Shipping Mark
@@ -135,7 +135,7 @@ export default async function PortalAccountPage() {
           <ChangePasswordCard />
         </div>
 
-        {/* ── Tu MARKBOX para tus proveedores (el VALOR) ── */}
+        {/* ── Tu Shipping Mark para tus proveedores (el VALOR) ── */}
         <div
           className="card-shadow bg-white border border-grey-200 rounded-[18px] border-l-[3px] p-6 sm:p-8"
           style={{ borderLeftColor: "var(--color-wine)" }}
