@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { jetbrainsMono } from "@/lib/fonts";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -11,15 +11,9 @@ import { WhatsAppIcon, ArrowIcon } from "@/components/Icon";
 import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 
 // JetBrains Mono (mono de marca) para los valores copiables de la guía Alibaba
-// (Shipping Mark, teléfono, código postal, email). Mismo patrón que
-// /calculadora: la página monta la variable --font-mono y el componente la
-// referencia vía FONT_MONO (lib/design-tokens). El resto sigue en Archivo.
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-mono",
-  display: "swap",
-});
+// (Shipping Mark, teléfono, código postal, email): la página monta --font-mono
+// con la instancia única de lib/fonts.ts y el componente la referencia vía
+// FONT_MONO (lib/design-tokens). El resto sigue en Archivo.
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
@@ -75,7 +69,7 @@ export default function FaqPage() {
         ]}
       />
 
-      <main className={`bg-paper ${jetbrains.variable}`}>
+      <main className={`bg-paper ${jetbrainsMono.variable}`}>
         {/* Hero */}
         <section className="py-16 lg:py-20">
           <div className="wrap max-w-[820px]">
