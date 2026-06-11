@@ -43,8 +43,16 @@ carga: Almacenista y Transportista = la misma persona, `+58 424 950 8848`.
 **Brand→web (regla `feedback_norte_brand_to_web`, mismo push):** standalone v3.7 publicado como
 `public/marca/brand-book-v3.2.html` → **`brand-book-v3.7.html`** (visor `/marca/brand-book` + hub
 `/interno/marca` + zips gateados actualizados). Purga total de copias/referencias pre-3.7 en el repo
-(BRAND.md, AGENTS.md, comentarios de código, `docs/design/brand-book/v3.0/` eliminado) — gate "cero
-referencias" en `/radar`.
+(BRAND.md, AGENTS.md, comentarios de código) — gate "cero referencias" permanente en `/radar` (Regla 0.5).
+
+**Carpetas históricas ELIMINADAS del working tree (decisión founder 2026-06-10 — la historia vive en git;
+recuperar = `git log --oneline -- "<path>"` + checkout):** `docs/design/brand-book/` (v3.0 completo),
+`docs/design/studio/v1.7-claude-design/` (22 MB), `docs/design/studio/_archivo-v1.3.1-claude-design/` (45 MB),
+`docs/design/studio/_archivo-v1.6-claude-design/`, `docs/design/_archivo-v1-studio/` (21 MB),
+`docs/design/handoffs-archive/` (solo README; los ZIPs nunca estuvieron en git), `docs/design/AUDIT-v1.7.md`.
+**Excepción conservada:** `docs/design/studio/bug-reporter-v1.4.1/` — handoff del módulo Bug Reporter,
+enlazado por la spec SDD-0036 (registro de spec, no copia de marca). Limpieza colateral: `.gitignore`,
+`tsconfig.json` y `eslint.config.mjs` sin entradas muertas (`_handoff_preview`, `BANDBOOK V1`, archive zips).
 
 ## v2.5 · re-sync 2026-06-08 (handoff posterior · Inspecciones + calc CBM-por-medidas + Brand Book v3.5)
 
