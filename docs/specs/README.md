@@ -92,7 +92,6 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0057 | Portal — Compras/Prealertas + Proveedores del cliente (cierra… | done | interno |
 | 0058 | Kommo lead → cliente — puente CRM↔ERP (convertir un lead del … | done | interno |
 | 0059 | Financiero con el Socio Logístico China — libro mayor bilater… | in-progress | confidencial |
-| 0059 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 | 0060 | Documentos · Versionado — revisiones append-only sobre el Hub… | done | interno |
 | 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | in-progress | interno |
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
@@ -100,6 +99,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
 | 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | in-progress | interno |
 | 0066 | Generador de reportes de inspección en el ERP (white-label · … | proposed | interno |
+| 0068 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0067 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
