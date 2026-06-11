@@ -7,7 +7,7 @@ import { HeroCotizador } from "./HeroCotizador";
  * Hero principal — kicker (tagline) + H1 de acción + cotizador inline + ilustración.
  * Copy configurable desde `lib/design-tokens.ts` constant `HERO`.
  *
- * SDD-0064 (2026-06-08): "puerta a puerta" es el protagonista; el tagline v3.0
+ * SDD-0064 (2026-06-08): "puerta a puerta" es el protagonista; el tagline
  * pasa a kicker y el H1 es de acción ("Importa desde China hasta tu puerta").
  * DDP queda como aclaración técnica en el microcopy. Ver BRAND-EXCEPTION en HERO.
  */
@@ -16,7 +16,7 @@ export function Hero() {
     <section className="relative py-15 lg:py-[60px] lg:pb-20 overflow-hidden">
       <div className="wrap grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 items-center">
         <div>
-          {/* Kicker = tagline de marca v3.0: "Con confianza," en wine + resto
+          {/* Kicker = tagline de marca: "Con Confianza," en wine + resto
               en ink (tratamiento del brand book). Sub-tagline, NO eyebrow gris. */}
           <p className="text-[15px] lg:text-[16px] font-semibold leading-tight">
             <span style={{ color: "var(--color-wine)" }}>{HERO.kicker.accent}</span>{" "}

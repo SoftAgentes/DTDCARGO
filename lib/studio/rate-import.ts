@@ -141,7 +141,7 @@ export function parseRatesCsv(csv: string): RateImportPreview {
       validCount: 0,
       invalidCount: 0,
       duplicateCount: 0,
-      error: "El CSV está vacío. Pegá al menos el encabezado y una fila.",
+      error: "El CSV está vacío. Pega al menos el encabezado y una fila.",
     };
   }
 
@@ -202,7 +202,7 @@ export function parseRatesCsv(csv: string): RateImportPreview {
       return {
         line,
         raw: dl.text,
-        error: `Servicio inválido: "${serviceRaw}". Usá uno de: ${VALID_SERVICES.join(", ")}.`,
+        error: `Servicio inválido: "${serviceRaw}". Usa uno de: ${VALID_SERVICES.join(", ")}.`,
       };
     }
     const service = serviceRaw as ShipmentService;
@@ -258,14 +258,14 @@ export function parseRatesCsv(csv: string): RateImportPreview {
     const vu = parseDate(get("valid_until"));
     if (!vf.ok) {
       invalidCount++;
-      return { line, raw: dl.text, error: "valid_from inválida (usá YYYY-MM-DD)." };
+      return { line, raw: dl.text, error: "valid_from inválida (usa YYYY-MM-DD)." };
     }
     if (!vu.ok) {
       invalidCount++;
       return {
         line,
         raw: dl.text,
-        error: "valid_until inválida (usá YYYY-MM-DD).",
+        error: "valid_until inválida (usa YYYY-MM-DD).",
       };
     }
     if (vf.value && vu.value && new Date(vf.value) > new Date(vu.value)) {

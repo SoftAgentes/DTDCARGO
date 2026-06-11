@@ -58,8 +58,8 @@ export function LibroDiarioTab({
           title="Aún no hay asientos en el diario."
           description={
             noAccounts
-              ? "Primero necesitás un plan de cuentas con cuentas postables para poder asentar."
-              : "Cargá tu primer asiento de doble partida (debe = haber). Las facturas emitidas también generan su asiento acá."
+              ? "Primero necesitas un plan de cuentas con cuentas postables para poder asentar."
+              : "Carga tu primer asiento de doble partida (debe = haber). Las facturas emitidas también generan su asiento acá."
           }
           action={
             !noAccounts ? (

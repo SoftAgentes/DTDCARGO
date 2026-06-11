@@ -123,7 +123,7 @@ export function ConvertLeadDrawer({
             }}
           >
             El nombre, email y teléfono del cliente se toman del contacto que elijas
-            (Kommo no trae dirección → la completás después en Clientes).
+            (Kommo no trae dirección → la completas después en Clientes).
           </p>
         </div>
 

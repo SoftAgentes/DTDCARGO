@@ -1,12 +1,25 @@
 import type { Metadata } from "next";
+import { JetBrains_Mono } from "next/font/google";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
-import { FAQS } from "@/lib/faqs";
+import { FAQS, FAQ_CATEGORIAS } from "@/lib/faqs";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { WhatsAppIcon, ArrowIcon } from "@/components/Icon";
+import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
+
+// JetBrains Mono (mono de marca) para los valores copiables de la guía Alibaba
+// (Shipping Mark, teléfono, código postal, email). Mismo patrón que
+// /calculadora: la página monta la variable --font-mono y el componente la
+// referencia vía FONT_MONO (lib/design-tokens). El resto sigue en Archivo.
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
@@ -19,6 +32,10 @@ export const metadata: Metadata = {
     "consolidado LCL FCL",
     "cuánto tarda carga China Venezuela",
     "preguntas frecuentes importación",
+    "casillero en China",
+    "bodega en Yiwu",
+    "dirección Alibaba bodega",
+    "Shipping Mark",
   ],
   alternates: { canonical: "/faq" },
   ...socialMeta({
@@ -58,7 +75,7 @@ export default function FaqPage() {
         ]}
       />
 
-      <main className="bg-paper">
+      <main className={`bg-paper ${jetbrains.variable}`}>
         {/* Hero */}
         <section className="py-16 lg:py-20">
           <div className="wrap max-w-[820px]">
@@ -75,27 +92,62 @@ export default function FaqPage() {
           </div>
         </section>
 
-        {/* Acordeón de FAQs (details nativo — sin JS) */}
+        {/* Guía destacada: dirección de la bodega en Alibaba (F4 — lo más
+            preguntado en el CRM: "¿tienen casillero en China?") */}
+        <section id="guia-alibaba" className="pb-14 lg:pb-16 scroll-mt-24">
+          <div className="wrap max-w-[820px]">
+            <span className="eyebrow">Guía destacada</span>
+            <h2 className="h-card mt-3">
+              Cómo poner la dirección de la bodega en Alibaba
+            </h2>
+            <p className="mt-3 mb-6 text-[14.5px] leading-[1.65] text-grey-700 max-w-[62ch]">
+              Copia y pega cada campo tal cual (en chino, sin traducir) en el
+              formulario de direcciones de Alibaba — o pásaselo directo a tu
+              proveedor. Con tu Shipping Mark en el destinatario, tu compra
+              queda identificada apenas llega a nuestra bodega de Yiwu.
+            </p>
+            <AlibabaAddressGuide />
+          </div>
+        </section>
+
+        {/* Acordeón de FAQs (details nativo — sin JS), agrupado por categoría
+            con subheads eyebrow. El FAQPage schema de arriba NO se agrupa:
+            sigue plano con las 23 preguntas. */}
         <section className="pb-16 lg:pb-20">
           <div className="wrap max-w-[820px]">
-            {FAQS.map((f, i) => (
-              <details
-                key={i}
-                className="group mb-3 rounded-[14px] border border-grey-200 bg-white px-5 card-shadow"
-              >
-                <summary className="flex items-start justify-between gap-4 cursor-pointer list-none py-5 rounded-[14px] [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft">
-                  <span className="text-[16px] lg:text-[17px] font-extrabold leading-[1.35] text-ink">
-                    {f.pregunta}
-                  </span>
-                  <span className="mt-0.5 flex-shrink-0 text-[22px] leading-none text-wine transition-transform duration-200 group-open:rotate-45">
-                    +
-                  </span>
-                </summary>
-                <p className="-mt-1 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
-                  {f.respuesta}
-                </p>
-              </details>
-            ))}
+            <span className="eyebrow">Todas las preguntas</span>
+            <h2 className="h-card mt-3">Respuestas, una por una</h2>
+            {FAQ_CATEGORIAS.map((cat, ci) => {
+              const items = FAQS.filter((f) => f.categoria === cat.id);
+              if (items.length === 0) return null;
+              return (
+                <div
+                  key={cat.id}
+                  id={cat.id}
+                  className={`scroll-mt-24 ${ci === 0 ? "mt-6" : "mt-10"}`}
+                >
+                  <h3 className="eyebrow mb-4">{cat.label}</h3>
+                  {items.map((f) => (
+                    <details
+                      key={f.pregunta}
+                      className="group mb-3 rounded-[14px] border border-grey-200 bg-white px-5 card-shadow"
+                    >
+                      <summary className="flex items-start justify-between gap-4 cursor-pointer list-none py-5 rounded-[14px] [&::-webkit-details-marker]:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft">
+                        <span className="text-[16px] lg:text-[17px] font-extrabold leading-[1.35] text-ink">
+                          {f.pregunta}
+                        </span>
+                        <span className="mt-0.5 flex-shrink-0 text-[22px] leading-none text-wine transition-transform duration-200 group-open:rotate-45">
+                          +
+                        </span>
+                      </summary>
+                      <p className="-mt-1 pb-5 text-[14.5px] leading-[1.65] text-grey-700">
+                        {f.respuesta}
+                      </p>
+                    </details>
+                  ))}
+                </div>
+              );
+            })}
           </div>
         </section>
 

@@ -41,7 +41,7 @@ export async function advanceBugStateAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { error } = await supabase.rpc("bug_advance_state", {
     p_bug_id: bugId,
@@ -74,7 +74,7 @@ export async function takeBugAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { error } = await supabase.rpc("bug_advance_state", {
     p_bug_id: bugId,
@@ -231,7 +231,7 @@ export async function replyBugMessageAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { data: link } = await supabase
     .from("user_tenants")

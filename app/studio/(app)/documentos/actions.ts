@@ -70,14 +70,14 @@ export async function uploadDocument(
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Sesión expirada. Volvé a entrar." };
+  if (!userResp.user) return { error: "Sesión expirada. Vuelve a entrar." };
 
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
   const raw = formData.get("file");
   if (!(raw instanceof File) || raw.size === 0) {
-    return { fieldErrors: { file: "Elegí un archivo." } };
+    return { fieldErrors: { file: "Elige un archivo." } };
   }
   // Re-validación de archivo (el bucket ya lo acota; defensa en profundidad).
   if (!isAllowedDocumentMime(raw.type)) {
@@ -175,7 +175,7 @@ export async function addDocumentVersion(
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Sesión expirada. Volvé a entrar." };
+  if (!userResp.user) return { error: "Sesión expirada. Vuelve a entrar." };
 
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
@@ -186,7 +186,7 @@ export async function addDocumentVersion(
 
   const raw = formData.get("file");
   if (!(raw instanceof File) || raw.size === 0) {
-    return { fieldErrors: { file: "Elegí un archivo." } };
+    return { fieldErrors: { file: "Elige un archivo." } };
   }
   if (!isAllowedDocumentMime(raw.type)) {
     return {
@@ -279,10 +279,10 @@ export async function addDocumentVersion(
  */
 function versionRpcErrorMessage(err: { code?: string; message?: string }): string {
   if (err.code === "no_data_found" || /no_data_found/i.test(err.message ?? "")) {
-    return "La versión cambió mientras subías. Reintentá.";
+    return "La versión cambió mientras subías. Reintenta.";
   }
   if (err.code === "42501" || /insufficient_privilege/i.test(err.message ?? "")) {
-    return "No tenés permiso para versionar este documento.";
+    return "No tienes permiso para versionar este documento.";
   }
   return `No se pudo registrar la versión: ${err.message ?? "error desconocido"}`;
 }

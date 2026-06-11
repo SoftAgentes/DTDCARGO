@@ -3,7 +3,7 @@
  * REGISTRO EXPRESS (founder 2026-06-07).
  *
  * El alta express valida SOLO lo mínimo (tipo/nombre/documento/email/WhatsApp); la
- * dirección VE se difiere a "Completá tu perfil" (`validateAddressInput`). Cubre:
+ * dirección VE se difiere a "Completa tu perfil" (`validateAddressInput`). Cubre:
  *  - validación + normalización del documento (cédula persona / RIF empresa),
  *    que ES la contraseña inicial → password = cédula/RIF canónico.
  *  - el alta express NO exige dirección (la difiere).

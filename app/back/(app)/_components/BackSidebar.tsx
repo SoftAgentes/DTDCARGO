@@ -27,7 +27,7 @@ const NAV: readonly NavItem[] = [
 
 /**
  * Sidebar del back (cliente). Filtra los nav items según los roles
- * del user — si no podés hacer algo, no lo ves en el menú.
+ * del user — si no puedes hacer algo, no lo ves en el menú.
  *
  * RLS de Supabase + helpers requireBackRole() son la defensa real;
  * el filtrado acá es solo UX para no confundir al user con links

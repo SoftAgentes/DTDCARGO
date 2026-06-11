@@ -170,7 +170,7 @@ export function ReconciliationTab({
         <EmptyState
           eyebrow="Sin estados"
           title="No hay estados de cuenta importados todavía."
-          description="Importá el estado de cuenta que manda el Administrador China para reconciliarlo línea por línea contra los cargos y el libro mayor. El sistema sugiere los matches; vos confirmás."
+          description="Importa el estado de cuenta que manda el Administrador China para reconciliarlo línea por línea contra los cargos y el libro mayor. El sistema sugiere los matches; tú confirmas."
         />
       ) : (
         <div

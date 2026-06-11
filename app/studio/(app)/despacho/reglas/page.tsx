@@ -48,7 +48,7 @@ export default async function DispatchRulesPage() {
               maxWidth: "76ch",
             }}
           >
-            Configurá la política de pago y los pesos del motor de scoring que
+            Configura la política de pago y los pesos del motor de scoring que
             ordena la cola de paquetes en bodega. Los cambios se aplican al
             instante a la cola de <strong>/studio/despacho</strong>.
           </p>

@@ -1,32 +1,48 @@
 "use client";
 
 /**
- * Orquestador client del módulo Cobranzas (SDD-0041).
+ * Orquestador client del módulo Cobranzas (SDD-0041 + SDD-0068).
  *
  * Header + 4 KPIs (Por cobrar · Vencido · En promesa · Tasa de cobro) +
- * filtro por stage + cola de CxC (tabla con aging + stage) + drawer del
- * receivable (registrar cobro / gestión + historial).
+ * card de separación de fondos del mandato (third_party vs local_revenue,
+ * insumo de la rendición SDD-D) + bandeja "Sin identificar" (pagos
+ * recibido_sin_ref con acción Identificar) + filtro por stage + cola de CxC
+ * (tabla con aging + stage) + drawer del receivable (registrar cobro con
+ * pagador / gestión + historial con links al recibo imprimible).
  *
  * La cola se deriva de las facturas con saldo (no es una tabla). El stage
  * (vencido/promesa/contactado/al-día/pagado) se calcula server-side.
  */
 
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
+  applicationStatusLabel,
+  applicationStatusTone,
   COB_STAGES,
   collectionKindLabel,
+  fundClassLabel,
+  fundClassTone,
+  paymentMethodLabel,
   stageLabel,
   stageTone,
+  type PaymentReceipt,
   type ReceivableStage,
 } from "@/lib/studio/payment-types";
 import type {
   CollectionKpis,
+  FundsSeparation,
   Receivable,
 } from "@/lib/studio/payment-queries";
 import { CobranzaDrawer, type CashAccountOption } from "./CobranzaDrawer";
+import { IdentifyPaymentDrawer } from "./IdentifyPaymentDrawer";
+import { UnidentifiedPaymentDrawer } from "./UnidentifiedPaymentDrawer";
 
 function fmtMoney(n: number): string {
   return n.toLocaleString("en-US", {
@@ -58,13 +74,21 @@ export function CobranzasClient({
   receivables,
   kpis,
   cashAccounts,
+  unidentified,
+  separation,
 }: {
   receivables: Receivable[];
   kpis: CollectionKpis;
   cashAccounts: CashAccountOption[];
+  unidentified: PaymentReceipt[];
+  separation: FundsSeparation;
 }) {
+  const router = useRouter();
+  const toast = useToast();
   const [stageFilter, setStageFilter] = useState<StageFilter>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showUnidentified, setShowUnidentified] = useState(false);
+  const [identifying, setIdentifying] = useState<PaymentReceipt | null>(null);
 
   const rows = receivables.filter((r) =>
     stageFilter === "all"
@@ -108,8 +132,8 @@ export function CobranzasClient({
               maxWidth: "62ch",
             }}
           >
-            Cola de cobranza sobre las facturas con saldo. Registrá cobros (con
-            recibo y asiento), seguí promesas de pago y la gestión queda en el
+            Cola de cobranza sobre las facturas con saldo. Registra cobros (con
+            recibo y asiento), sigue promesas de pago y la gestión queda en el
             historial.
           </p>
         </div>
@@ -121,6 +145,14 @@ export function CobranzasClient({
             title="Próximamente · recordatorio masivo por email"
           >
             Recordatorio masivo
+          </button>
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary"
+            onClick={() => setShowUnidentified(true)}
+          >
+            <span style={{ display: "inline-flex" }}>{Icon.plus(14)}</span>
+            Pago sin identificar
           </button>
         </div>
       </div>
@@ -159,6 +191,17 @@ export function CobranzasClient({
           sub="Al día sobre el total por cobrar"
         />
       </div>
+
+      {/* Separación de fondos del mandato (SDD-0068 · insumo de SDD-D) */}
+      <FundsSeparationCard separation={separation} />
+
+      {/* Pagos sin identificar (recibido_sin_ref · cláusula 7.3) */}
+      {unidentified.length > 0 && (
+        <UnidentifiedSection
+          receipts={unidentified}
+          onIdentify={(r) => setIdentifying(r)}
+        />
+      )}
 
       {/* Filtro por stage */}
       <div
@@ -200,7 +243,7 @@ export function CobranzasClient({
           description={
             receivables.length === 0
               ? "Cuando emitas facturas, las que tengan saldo aparecerán acá para gestionar el cobro."
-              : "Probá cambiar el filtro de estado."
+              : "Prueba cambiar el filtro de estado."
           }
         />
       ) : (
@@ -218,7 +261,282 @@ export function CobranzasClient({
           onClose={() => setSelectedId(null)}
         />
       )}
+
+      {showUnidentified && (
+        <UnidentifiedPaymentDrawer
+          cashAccounts={cashAccounts}
+          onClose={() => setShowUnidentified(false)}
+          onDone={(receiptCode) => {
+            toast.success(
+              `Pago sin identificar registrado${receiptCode ? ` · recibo ${receiptCode}` : ""}`,
+              receiptCode
+                ? {
+                    link: {
+                      href: `/studio/cobranzas/recibo/${encodeURIComponent(receiptCode)}`,
+                      label: "Ver recibo",
+                    },
+                  }
+                : undefined,
+            );
+            setShowUnidentified(false);
+            router.refresh();
+          }}
+        />
+      )}
+
+      {identifying && (
+        <IdentifyPaymentDrawer
+          receipt={identifying}
+          receivables={receivables}
+          onClose={() => setIdentifying(null)}
+          onDone={(invoiceCode, fullyPaid) => {
+            toast.success(
+              `Pago ${identifying.receipt_code} identificado${invoiceCode ? ` · aplicado a ${invoiceCode}` : ""}${fullyPaid ? " · factura saldada" : ""}`,
+              {
+                link: {
+                  href: `/studio/cobranzas/recibo/${encodeURIComponent(identifying.receipt_code)}`,
+                  label: "Ver recibo",
+                },
+              },
+            );
+            setIdentifying(null);
+            router.refresh();
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+function fmtUsd(n: number): string {
+  return n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
+/**
+ * Card de separación de fondos (SDD-0068): lo recaudado del período por
+ * clase — fondos de terceros (Operadora) vs ingreso local (DTD Services) —
+ * normalizado a USD. Insumo directo de la rendición quincenal (SDD-D).
+ */
+function FundsSeparationCard({ separation }: { separation: FundsSeparation }) {
+  return (
+    <section
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        padding: "16px 20px",
+        marginBottom: 20,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 12,
+          flexWrap: "wrap",
+          marginBottom: 12,
+        }}
+      >
+        <span className="studio-eyebrow">Separación de fondos · mandato</span>
+        <span
+          style={{
+            font: "500 10.5px/1 var(--f-mono)",
+            color: "var(--ink-mute)",
+          }}
+        >
+          {separation.from} → {separation.to} · USD
+        </span>
+      </div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 14,
+        }}
+      >
+        <div>
+          <div
+            style={{
+              font: "800 20px/1 var(--f-mono)",
+              color: "var(--info)",
+            }}
+          >
+            ${fmtUsd(separation.thirdPartyUsd)}
+          </div>
+          <div
+            style={{
+              font: "600 11px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 5,
+            }}
+          >
+            Fondos de terceros · recaudado por cuenta de la Operadora
+          </div>
+        </div>
+        <div>
+          <div
+            style={{
+              font: "800 20px/1 var(--f-mono)",
+              color: "var(--success)",
+            }}
+          >
+            ${fmtUsd(separation.localRevenueUsd)}
+          </div>
+          <div
+            style={{
+              font: "600 11px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 5,
+            }}
+          >
+            Ingreso local · servicios de DTD Services
+          </div>
+        </div>
+        <div>
+          <div
+            style={{
+              font: "800 20px/1 var(--f-mono)",
+              color:
+                separation.unidentifiedUsd > 0
+                  ? "var(--warning)"
+                  : "var(--ink)",
+            }}
+          >
+            ${fmtUsd(separation.unidentifiedUsd)}
+          </div>
+          <div
+            style={{
+              font: "600 11px/1.4 var(--f-sans)",
+              color: "var(--ink-soft)",
+              marginTop: 5,
+            }}
+          >
+            Sin identificar · {separation.unidentifiedCount} pago(s) en cuenta
+            puente
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Bandeja de pagos sin identificar, con acción Identificar + link al recibo. */
+function UnidentifiedSection({
+  receipts,
+  onIdentify,
+}: {
+  receipts: PaymentReceipt[];
+  onIdentify: (r: PaymentReceipt) => void;
+}) {
+  return (
+    <section
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--warning)",
+        borderRadius: "var(--r-lg)",
+        overflow: "hidden",
+        marginBottom: 20,
+      }}
+    >
+      <div
+        style={{
+          padding: "12px 20px",
+          background: "var(--warning-bg)",
+          borderBottom: "1px solid var(--border)",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          flexWrap: "wrap",
+        }}
+      >
+        <span
+          style={{
+            font: "700 11px/1 var(--f-sans)",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            color: "var(--ink)",
+          }}
+        >
+          Sin identificar · {receipts.length}
+        </span>
+        <span
+          style={{
+            font: "500 11px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+          }}
+        >
+          Fondos en cuenta sin cruce — no liberan ni suspenden plazos hasta
+          identificarse (cláusula 7.3).
+        </span>
+      </div>
+      {receipts.map((r, i) => (
+        <div
+          key={r.id}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            padding: "12px 20px",
+            borderTop: i > 0 ? "1px solid var(--border)" : 0,
+            flexWrap: "wrap",
+          }}
+        >
+          <span
+            style={{
+              font: "700 12px/1 var(--f-mono)",
+              color: "var(--ink)",
+            }}
+          >
+            {r.receipt_code}
+          </span>
+          <Badge tone={applicationStatusTone(r.application_status)} size="sm" dot>
+            {applicationStatusLabel(r.application_status)}
+          </Badge>
+          <Badge tone={fundClassTone(r.fund_class)} size="sm">
+            {fundClassLabel(r.fund_class)}
+          </Badge>
+          <span
+            style={{
+              font: "500 11px/1.3 var(--f-sans)",
+              color: "var(--ink-soft)",
+              flex: 1,
+              minWidth: 160,
+            }}
+          >
+            {paymentMethodLabel(r.method)} · recibido el {r.received_at}
+            {r.reference ? ` · ref ${r.reference}` : ""}
+          </span>
+          <span
+            style={{
+              font: "800 13px/1 var(--f-mono)",
+              color: "var(--ink)",
+            }}
+          >
+            ${fmtUsd(r.amount)} {r.currency}
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Link
+              href={`/studio/cobranzas/recibo/${encodeURIComponent(r.receipt_code)}`}
+              className="studio-btn studio-btn-ghost studio-btn-xs"
+            >
+              Ver recibo
+            </Link>
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary studio-btn-xs"
+              onClick={() => onIdentify(r)}
+            >
+              Identificar
+            </button>
+          </div>
+        </div>
+      ))}
+    </section>
   );
 }
 

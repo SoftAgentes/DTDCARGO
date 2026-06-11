@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import Link from "next/link";
 import { CheckIcon, ArrowIcon } from "@/components/Icon";
+import type { AcceptanceCopy } from "@/lib/studio/legal/acceptance-copy";
 import {
   registerAcceptanceAction,
   type AcceptanceFormState,
@@ -11,13 +12,23 @@ import {
 const initial: AcceptanceFormState = {};
 
 /**
- * Casilla de aceptación + botón de confirmación (SDD-0054 · Slice C).
+ * Modal de aceptación (SDD-0054 · Slice C + SDD-0067): copy LITERAL de
+ * COPY_LEGAL_UI.md §1 (con el fallback pre-v3 — los textos llegan ya armados
+ * por `buildAcceptanceCopy`, fuente única). DOS checkboxes obligatorios con
+ * fieldError individual; la validación dura vive en el server (la action
+ * responde el error por casilla). El servidor sella accepted_at/ip/user_agent/
+ * hash — acá solo se marcan las casillas y se confirma.
  *
- * El servidor sella accepted_at/ip/hash — acá solo se marca la casilla y se
- * confirma. Anti-doble-submit con el `pending` de useActionState (botón disabled
- * + label en gerundio). En éxito → confirmación con el acuse AC-YYYY-NNNN.
+ * Anti-doble-submit con el `pending` de useActionState (controles disabled +
+ * label en gerundio). En éxito → confirmación con el acuse AC-YYYY-NNNN.
  */
-export function AcceptanceForm({ invoiceCode }: { invoiceCode: string }) {
+export function AcceptanceForm({
+  invoiceCode,
+  copy,
+}: {
+  invoiceCode: string;
+  copy: AcceptanceCopy;
+}) {
   const action = registerAcceptanceAction.bind(null, invoiceCode);
   const [state, formAction, pending] = useActionState(action, initial);
 
@@ -27,7 +38,10 @@ export function AcceptanceForm({ invoiceCode }: { invoiceCode: string }) {
         <div className="flex items-start gap-3">
           <span
             className="mt-0.5 w-8 h-8 rounded-full grid place-items-center flex-shrink-0"
-            style={{ background: "var(--color-status-success)", color: "#fff" }}
+            style={{
+              background: "var(--color-status-success)",
+              color: "var(--color-white)",
+            }}
           >
             <CheckIcon size={18} />
           </span>
@@ -75,26 +89,74 @@ export function AcceptanceForm({ invoiceCode }: { invoiceCode: string }) {
       action={formAction}
       className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8"
     >
-      <label className="flex items-start gap-3 cursor-pointer">
+      {/* Título + cuerpo del modal (COPY_LEGAL_UI.md §1) */}
+      <h2 className="text-[17px] font-bold text-ink">{copy.title}</h2>
+      <p className="mt-2 text-[13.5px] text-grey-700 leading-[1.55]">
+        {copy.body}
+      </p>
+      <a
+        href="#documentos-legales"
+        className="mt-1.5 inline-block text-[13px] font-semibold text-wine hover:underline"
+      >
+        {copy.readLinkLabel}
+      </a>
+
+      {/* Checkbox 1 · lectura y aceptación de los documentos */}
+      <label className="mt-5 flex items-start gap-3 cursor-pointer">
         <input
           type="checkbox"
-          name="accept"
-          required
+          name="accept_docs"
           disabled={pending}
+          aria-invalid={state.fieldErrors?.accept_docs ? true : undefined}
+          aria-describedby={
+            state.fieldErrors?.accept_docs ? "err-accept-docs" : undefined
+          }
           className="mt-1 w-[18px] h-[18px] flex-shrink-0 accent-wine"
           style={{ accentColor: "var(--color-wine)" }}
         />
         <span className="text-[14px] text-ink leading-[1.55]">
-          Acepto los Términos y Condiciones y las Condiciones del Operador en sus
-          versiones vigentes, y confirmo el monto y la medida de esta orden.
+          {copy.checkbox1}
         </span>
       </label>
-
-      {state.fieldError ? (
-        <p className="mt-3 text-[13px] text-wine leading-[1.4]">
-          {state.fieldError}
+      {state.fieldErrors?.accept_docs ? (
+        <p
+          id="err-accept-docs"
+          role="alert"
+          className="mt-2 ml-[30px] text-[13px] text-wine leading-[1.4]"
+        >
+          {state.fieldErrors.accept_docs}
         </p>
       ) : null}
+
+      {/* Checkbox 2 · declaración de comerciante (siempre visible) */}
+      <label className="mt-4 flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          name="accept_merchant"
+          disabled={pending}
+          aria-invalid={state.fieldErrors?.accept_merchant ? true : undefined}
+          aria-describedby={
+            state.fieldErrors?.accept_merchant
+              ? "err-accept-merchant"
+              : undefined
+          }
+          className="mt-1 w-[18px] h-[18px] flex-shrink-0 accent-wine"
+          style={{ accentColor: "var(--color-wine)" }}
+        />
+        <span className="text-[14px] text-ink leading-[1.55]">
+          {copy.checkbox2}
+        </span>
+      </label>
+      {state.fieldErrors?.accept_merchant ? (
+        <p
+          id="err-accept-merchant"
+          role="alert"
+          className="mt-2 ml-[30px] text-[13px] text-wine leading-[1.4]"
+        >
+          {state.fieldErrors.accept_merchant}
+        </p>
+      ) : null}
+
       {state.error ? (
         <div
           className="mt-4 rounded-[12px] border px-4 py-3 text-[13px] leading-[1.5]"
@@ -114,12 +176,17 @@ export function AcceptanceForm({ invoiceCode }: { invoiceCode: string }) {
           disabled={pending}
           className="btn btn-primary disabled:opacity-60 disabled:cursor-wait"
         >
-          {pending ? "Registrando…" : "Aceptar y confirmar"}
+          {pending ? "Registrando…" : copy.submitLabel}
         </button>
         <Link href="/portal/facturas" className="btn btn-ghost">
-          Cancelar
+          {copy.backLabel}
         </Link>
       </div>
+
+      {/* Texto probatorio bajo los botones (§1, literal) */}
+      <p className="mt-4 text-[11.5px] text-grey-500 leading-[1.5]">
+        {copy.legalFooter}
+      </p>
     </form>
   );
 }

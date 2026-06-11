@@ -168,7 +168,7 @@ export function DocsPanel({
             marginBottom: 16,
           }}
         >
-          Sin documentos adjuntos. Usá el formulario de abajo para subir el BL,
+          Sin documentos adjuntos. Usa el formulario de abajo para subir el BL,
           packing, factura, certificado, etc.
         </div>
       ) : (
@@ -335,7 +335,7 @@ export function DocsPanel({
               defaultValue=""
             >
               <option value="" disabled>
-                Elegí una carpeta…
+                Elige una carpeta…
               </option>
               {folderOptions.map((o) => (
                 <option key={o.id} value={o.id}>
@@ -617,7 +617,7 @@ function VersionUpload({ doc }: { doc: DocumentRow }) {
           onAction={async () => {
             setError(null);
             const file = fileRef.current?.files?.[0];
-            if (!file) return { error: "Elegí un archivo." };
+            if (!file) return { error: "Elige un archivo." };
             const fd = new FormData();
             fd.set("file", file);
             const note = noteRef.current?.value ?? "";

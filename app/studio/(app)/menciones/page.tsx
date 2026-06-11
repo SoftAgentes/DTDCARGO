@@ -55,14 +55,14 @@ export default async function MencionesPage() {
         >
           {items.length === 0
             ? "Cuando alguien te @mencione en un comentario, aparece acá."
-            : `${unread} sin leer · ${items.length} en total. Tocá una mención para ir al registro.`}
+            : `${unread} sin leer · ${items.length} en total. Toca una mención para ir al registro.`}
         </p>
       </div>
 
       {items.length === 0 ? (
         <EmptyState
           eyebrow="Bandeja vacía"
-          title="No tenés menciones"
+          title="No tienes menciones"
           description="Cuando un compañero te mencione con @ en un comentario, vas a verlo acá con un enlace directo al registro."
         />
       ) : (

@@ -50,7 +50,7 @@ export async function createExpenseAction(
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const partial: Partial<CreateExpenseInput> = {
     amount: Number(formData.get("amount") ?? 0),
@@ -161,7 +161,7 @@ export async function updateExpenseAction(
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const partial: Partial<CreateExpenseInput> = {
     amount: Number(formData.get("amount") ?? 0),
@@ -193,7 +193,7 @@ export async function updateExpenseAction(
     return { error: "No se pudo cargar el gasto." };
   }
   if (existing.user_id !== userResp.user.id) {
-    return { error: "Solo podés editar tus propios gastos." };
+    return { error: "Solo puedes editar tus propios gastos." };
   }
 
   // Manejo de foto
@@ -278,7 +278,7 @@ export async function softDeleteExpenseAction(
   const supabase = await createClient();
 
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { data: existing, error: loadErr } = await supabase
     .from("expenses")
@@ -288,7 +288,7 @@ export async function softDeleteExpenseAction(
 
   if (loadErr || !existing) return { error: "Gasto no encontrado." };
   if (existing.user_id !== userResp.user.id) {
-    return { error: "Solo podés eliminar tus propios gastos." };
+    return { error: "Solo puedes eliminar tus propios gastos." };
   }
 
   const { error: updateErr } = await supabase

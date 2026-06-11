@@ -107,7 +107,7 @@ export async function sendEmail(
     if (!template) {
       return {
         ok: false,
-        error: `template '${input.templateSlug}' no encontrado · corré 'pnpm seed' para seedear`,
+        error: `template '${input.templateSlug}' no encontrado · corre 'pnpm seed' para seedear`,
       };
     }
     if (!template.active) {

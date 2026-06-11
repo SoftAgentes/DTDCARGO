@@ -12,10 +12,9 @@
  * - dangerouslySetInnerHTML en un Page no ejecuta los <script> tags
  * - Servir el HTML completo como text/html es la forma limpia
  *
- * Para actualizar el contenido:
- * 1. Editar `_handoff_preview/transporte-cbm-china-venezuela/index.html`
- * 2. Copiar a `app/admin/cbm-estudio/content.html`
- * 3. Push → Vercel re-deploya
+ * Para actualizar el contenido: editar `app/admin/cbm-estudio/content.html`
+ * (copia canónica en el repo; el HTML original del handoff quedó fuera del
+ * repo) y push → Vercel re-deploya.
  */
 
 import { promises as fs } from "fs";
@@ -50,7 +49,7 @@ const ACCESS_DENIED_HTML = `<!doctype html>
     <span class="badge">DTD Cargo · Interno</span>
     <h1>Acceso <span>restringido</span></h1>
     <p>Esta presentación interna requiere un token de acceso.</p>
-    <p>Si formás parte del equipo DTD, pedile el link completo a Sam o consultá el archivo standalone que se compartió por WhatsApp.</p>
+    <p>Si formas parte del equipo DTD, pídele el link completo a Sam o consulta el archivo standalone que se compartió por WhatsApp.</p>
     <p style="margin-top:32px;font-size:13px;color:rgba(255,255,255,0.4)">URL esperada: <code>/admin/cbm-estudio?token=XXX</code></p>
     <p style="margin-top:24px"><a href="/">Volver al sitio público</a></p>
   </div>

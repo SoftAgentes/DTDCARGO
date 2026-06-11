@@ -2,7 +2,7 @@
 /* ── DTD ERP · Despacho · Vista 1 (Admin desktop) ─────────────── */
 /* Panel donde el admin/op manager prioriza paquetes pendientes,    */
 /* los reordena manualmente si hace falta, y los manda a la app del */
-/* bodeguero en lotes.                                              */
+/* almacenista en lotes.                                              */
 
 (function () {
   const { useState, useMemo, useEffect } = React;
@@ -13,7 +13,7 @@
   // tier viene de CLIENTS.tier — solo Gold/Platinum cuentan como "VIP" para scoring.
   // Cada paquete lleva barrio + distanceToStopKm (vendrá del geocoding · mock hoy)
   // Cada paquete lleva weight + volume + descripción de mercancía (para SENIAT,
-  // aduana, bodeguero, camionero). Datos llenados por oficina CN al recibir.
+  // aduana, almacenista, transportista). Datos llenados por oficina CN al recibir.
   const PKGS = [
     { order: 'DTD-2026-0142', client: 'Carlos Méndez',     markbox: 'DTD-5452', city: 'Valencia',     barrio: 'Naguanagua',     pay: 'pagado',    days: 18, tier: 'Gold',     ageRoute: 5, distanceToStopKm: null, boxes: 12, weightKg: 980,  volumeCBM: 6.4, hsCode: '8517.12', description: 'Cables eléctricos blindados 2.5mm + conectores industriales · 12 cajas estandarizadas' },
     { order: 'DTD-2026-0150', client: 'Manuel Quintero',   markbox: 'DTD-5476', city: 'Valencia',     barrio: 'El Viñedo',      pay: 'pagado',    days: 5,  tier: null,       ageRoute: 5, distanceToStopKm: null, boxes: 8, weightKg: 540, volumeCBM: 3.8, hsCode: '9405.40', description: 'Lámparas LED de pared 24W · 8 cajas con drivers' },
@@ -332,7 +332,7 @@
       setSelected(selected.includes(id) ? selected.filter(x => x !== id) : [...selected, id]);
     }
 
-    // ── Send to bodeguero ───────────────────────────────────────
+    // ── Send to almacenista ───────────────────────────────────────
     function sendBatch(ids) {
       const list = ids && ids.length ? ids : filtered.slice(0, 10).map(r => r.order);
       setPendingBatch(list);
@@ -360,7 +360,7 @@
       setOrders([newOrder, ...orders]);
       setRows(rows.filter(r => !list.includes(r.order)));
       setSelected(selected.filter(id => !list.includes(id)));
-      setToast(`${newOrder.id} · ${list.length} paquetes · ${truck.plate} · ${driver.name.split(' ')[0]} → bodeguero`);
+      setToast(`${newOrder.id} · ${list.length} paquetes · ${truck.plate} · ${driver.name.split(' ')[0]} → almacenista`);
       setAssignModalOpen(false);
       setPendingBatch(null);
     }
@@ -389,7 +389,7 @@
         <U.PageHeader
           eyebrow="OPERACIONES · VENEZUELA"
           title="Orden de Despacho"
-          subtitle="Cola priorizada de paquetes en bodega VE listos para reparto. El motor de reglas asigna un score 0-100; puedes reordenar manualmente y enviar el lote a la app del bodeguero."
+          subtitle="Cola priorizada de paquetes en bodega VE listos para reparto. El motor de reglas asigna un score 0-100; puedes reordenar manualmente y enviar el lote a la app del almacenista."
           actions={
             <React.Fragment>
               {manual && (
@@ -402,8 +402,8 @@
               </U.Btn>
               <U.Btn variant="primary" size="md" icon={I.truck(14)} onClick={() => sendBatch(selected)}>
                 {selected.length > 0
-                  ? `Enviar ${selected.length} al bodeguero`
-                  : 'Enviar TOP 10 al bodeguero'}
+                  ? `Enviar ${selected.length} al almacenista`
+                  : 'Enviar TOP 10 al almacenista'}
               </U.Btn>
             </React.Fragment>
           }
@@ -1112,7 +1112,7 @@
           ))}
         </div>
         <div style={{ marginTop: 8, font: '500 11px/1.4 var(--f-sans)', color: 'var(--info)' }}>
-          ✓ Cada paquete viaja con su HS code + descripción al alcance del chofer (app camionero · vista detalle). Si te detienen, mostrás el resumen al fiscal.
+          ✓ Cada paquete viaja con su HS code + descripción al alcance del chofer (app transportista · vista detalle). Si te detienen, mostrás el resumen al fiscal.
         </div>
       </div>
     );
@@ -1176,13 +1176,13 @@
       <U.Modal
         open
         onClose={onClose}
-        title="Enviar lote al bodeguero"
+        title="Enviar lote al almacenista"
         width={680}
         actions={
           <React.Fragment>
             <U.Btn variant="ghost" onClick={onClose}>Cancelar</U.Btn>
             <U.Btn variant="primary" icon={I.truck(13)} onClick={() => onConfirm({ routeId, truckId, driverId })} disabled={!ready}>
-              Confirmar y enviar al bodeguero
+              Confirmar y enviar al almacenista
             </U.Btn>
           </React.Fragment>
         }
@@ -1386,7 +1386,7 @@
             ))}
             {(active.length + recent.length) === 0 && (
               <div style={{ padding: 18, textAlign: 'center', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
-                Todavía no hay órdenes hoy. Selecciona paquetes y envía al bodeguero.
+                Todavía no hay órdenes hoy. Selecciona paquetes y envía al almacenista.
               </div>
             )}
           </div>

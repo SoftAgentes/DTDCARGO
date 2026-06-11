@@ -289,7 +289,7 @@ export async function detectBriefIntent(
   if (!guard.ok) return guard;
 
   const cleanTopic = brief.topic.trim();
-  if (!cleanTopic) return { ok: false, error: "Ingresá un tema en el brief" };
+  if (!cleanTopic) return { ok: false, error: "Ingresa un tema en el brief" };
   if (cleanTopic.length > 500) {
     return { ok: false, error: "El tema es demasiado largo (máx 500 chars)" };
   }
@@ -342,7 +342,7 @@ export async function detectBriefIntent(
     ) {
       return {
         ok: false,
-        error: "Claude devolvió un formato inesperado. Reintentá.",
+        error: "Claude devolvió un formato inesperado. Reintenta.",
       };
     }
     const tipo = parsed.tipo as NewsTipo;
@@ -388,7 +388,7 @@ export async function detectCategory(
   if (!guard.ok) return guard;
 
   const cleanTopic = topic.trim();
-  if (!cleanTopic) return { ok: false, error: "Ingresá un tema" };
+  if (!cleanTopic) return { ok: false, error: "Ingresa un tema" };
   if (cleanTopic.length > 500) {
     return { ok: false, error: "El tema es demasiado largo (máx 500 chars)" };
   }
@@ -411,7 +411,7 @@ export async function detectCategory(
     if (!parsed || typeof parsed.categoria !== "string") {
       return {
         ok: false,
-        error: "Claude devolvió un formato inesperado. Reintentá.",
+        error: "Claude devolvió un formato inesperado. Reintenta.",
       };
     }
     const catInfo = NEWS_CATEGORIES_V4[parsed.categoria as NewsCategoria];
@@ -447,7 +447,7 @@ export async function suggestKeywords(
 
   const cleanTopic = topic.trim();
   if (!cleanTopic) {
-    return { ok: false, error: "Ingresá un tema antes de sugerir keywords" };
+    return { ok: false, error: "Ingresa un tema antes de sugerir keywords" };
   }
 
   const prompt = buildSuggestKeywordsPrompt(cleanTopic, categoria);
@@ -469,7 +469,7 @@ export async function suggestKeywords(
     if (!parsed || typeof parsed.focus_keyword !== "string") {
       return {
         ok: false,
-        error: "Claude devolvió un formato inesperado. Reintentá.",
+        error: "Claude devolvió un formato inesperado. Reintenta.",
       };
     }
     const focus = parsed.focus_keyword.trim();
@@ -512,7 +512,7 @@ export async function generateHeadlines(
   if (!guard.ok) return guard;
 
   const cleanTopic = topic.trim();
-  if (!cleanTopic) return { ok: false, error: "Ingresá un tema o titular base" };
+  if (!cleanTopic) return { ok: false, error: "Ingresa un tema o titular base" };
   if (cleanTopic.length > 500) {
     return { ok: false, error: "El tema es demasiado largo (máx 500 chars)" };
   }
@@ -553,7 +553,7 @@ Devolvé SOLO JSON válido con este shape exacto, sin prosa adicional ni bloques
     if (!parsed || !Array.isArray(parsed.headlines)) {
       return {
         ok: false,
-        error: "Claude devolvió un formato inesperado. Reintentá.",
+        error: "Claude devolvió un formato inesperado. Reintenta.",
       };
     }
     const headlines = parsed.headlines
@@ -610,7 +610,7 @@ Devolvé SOLO JSON válido con este shape exacto, sin prosa adicional ni bloques
     if (!parsed || !Array.isArray(parsed.bullets)) {
       return {
         ok: false,
-        error: "Claude devolvió un formato inesperado. Reintentá.",
+        error: "Claude devolvió un formato inesperado. Reintenta.",
       };
     }
     const bullets = parsed.bullets
@@ -622,7 +622,7 @@ Devolvé SOLO JSON válido con este shape exacto, sin prosa adicional ni bloques
     if (bullets.length < 4) {
       return {
         ok: false,
-        error: "Se generaron muy pocas secciones. Reintentá.",
+        error: "Se generaron muy pocas secciones. Reintenta.",
       };
     }
     return { ok: true, bullets };
@@ -672,7 +672,7 @@ export async function generateOutlines(
     if (!parsed || !Array.isArray(parsed.outlines)) {
       return {
         ok: false,
-        error: "Claude devolvió un formato inesperado. Reintentá.",
+        error: "Claude devolvió un formato inesperado. Reintenta.",
       };
     }
     const outlines: OutlineItem[] = parsed.outlines
@@ -709,7 +709,7 @@ export async function generateOutlines(
       .slice(0, 3);
 
     if (outlines.length === 0) {
-      return { ok: false, error: "No se obtuvieron outlines válidos. Reintentá." };
+      return { ok: false, error: "No se obtuvieron outlines válidos. Reintenta." };
     }
     return { ok: true, outlines };
   } catch (e) {
@@ -734,7 +734,7 @@ export async function generateArticle(
   const cleanHeadline = headline.trim();
   if (!cleanHeadline) return { ok: false, error: "Falta el titular" };
   if (sections.length === 0) {
-    return { ok: false, error: "Seleccioná al menos 1 sección" };
+    return { ok: false, error: "Selecciona al menos 1 sección" };
   }
 
   const prompt = buildGenerateArticlePrompt(

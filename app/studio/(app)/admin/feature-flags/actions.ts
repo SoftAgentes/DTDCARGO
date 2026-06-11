@@ -36,7 +36,7 @@ export async function toggleFeatureFlagAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   // Anti-locked-out check: si el flag a apagar es del módulo que el
   // user está usando ahora mismo, igual lo permitimos — al recargar el
@@ -64,7 +64,7 @@ export async function toggleFeatureFlagAction(
 
   if (error) {
     if (error.code === "42501") {
-      return { error: "RLS bloqueó el cambio (no sos admin)." };
+      return { error: "RLS bloqueó el cambio (no eres admin)." };
     }
     return { error: `No se pudo guardar: ${error.message}` };
   }

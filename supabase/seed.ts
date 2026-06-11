@@ -80,7 +80,7 @@ async function main() {
     .maybeSingle();
 
   if (tenantError || !tenant) {
-    throw new Error("Tenant 'dtd' no existe. Aplicá migración 0001 primero.");
+    throw new Error("Tenant 'dtd' no existe. Aplica migración 0001 primero.");
   }
 
   const rows = SHIPMENTS.map((s) => ({

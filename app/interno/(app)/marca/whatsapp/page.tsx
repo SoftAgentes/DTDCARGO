@@ -21,13 +21,13 @@ const TOOLS = [
   {
     href: "/marca/herramientas/whatsapp-catalogo-plantillas.html",
     title: "Generador de imágenes del catálogo",
-    desc: "Cargás la foto de cada servicio y descargás el PNG 1080×1080 con el marco de marca y la metadata. Listo para subir al catálogo de WhatsApp Business.",
+    desc: "Cargas la foto de cada servicio y descargas el PNG 1080×1080 con el marco de marca y la metadata. Listo para subir al catálogo de WhatsApp Business.",
     height: "min(82vh, 1000px)",
   },
   {
     href: "/marca/herramientas/whatsapp-business-guia.html",
     title: "Guía de configuración por número",
-    desc: "Elegís tu teléfono y la guía te muestra qué le toca, con botón Copiar en cada campo (perfil, catálogo, respuestas rápidas) + descarga de la foto de perfil.",
+    desc: "Eliges tu teléfono y la guía te muestra qué le toca, con botón Copiar en cada campo (perfil, catálogo, respuestas rápidas) + descarga de la foto de perfil.",
     height: "min(82vh, 1000px)",
   },
 ];

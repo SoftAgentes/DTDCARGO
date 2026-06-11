@@ -76,7 +76,7 @@ export async function POST(req: Request) {
   if (lookupErr || !profile) {
     await sendTelegramMessage(
       chatId,
-      "Código inválido o expirado. Generá uno nuevo desde Preferencias en DTD Studio.",
+      "Código inválido o expirado. Genera uno nuevo desde Preferencias en DTD Studio.",
     );
     return NextResponse.json({ ok: true, ignored: "code not found" });
   }
@@ -95,7 +95,7 @@ export async function POST(req: Request) {
   if (updateErr) {
     await sendTelegramMessage(
       chatId,
-      "Hubo un problema al conectar tu cuenta. Reintentá desde DTD Studio.",
+      "Hubo un problema al conectar tu cuenta. Reintenta desde DTD Studio.",
     );
     return NextResponse.json(
       { error: `update failed: ${updateErr.message}` },

@@ -298,7 +298,7 @@ export async function createPrealertaAction(
 
   // Una compra DEBE tener proveedor (el código depende de su supplier_seq).
   if (!input.supplierId) {
-    return { fieldErrors: { supplierId: "Elegí el proveedor de esta compra." } };
+    return { fieldErrors: { supplierId: "Elige el proveedor de esta compra." } };
   }
 
   const supabase = await createClient();

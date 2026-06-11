@@ -145,7 +145,7 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
       title={mode === "create" ? "Nueva ruta" : `Editar ${route?.route_code ?? ""}`}
       subtitle={
         mode === "create"
-          ? "Las ciudades intermedias heredan el radio default del catálogo. Podés overridearlo solo para esta ruta."
+          ? "Las ciudades intermedias heredan el radio default del catálogo. Puedes overridearlo solo para esta ruta."
           : route?.name ?? undefined
       }
       onClose={onClose}
@@ -319,7 +319,7 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
                   marginBottom: 10,
                 }}
               >
-                Todavía no agregaste ciudades intermedias. Elegí una del selector
+                Todavía no agregaste ciudades intermedias. Elige una del selector
                 de abajo.
               </div>
             )}
@@ -469,7 +469,7 @@ export function RouteDrawer({ mode, route, cities, veCatalog, onClose }: Props) 
               onChange={addIntermediate}
               cities={intermediateCandidates}
               veCatalog={veCatalog}
-              placeholder="— Elegí una ciudad —"
+              placeholder="— Elige una ciudad —"
               showDefaultRadius
             />
             {state?.fieldErrors?.intermediate_cities && (

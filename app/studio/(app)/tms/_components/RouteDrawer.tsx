@@ -150,7 +150,7 @@ export function RouteDrawer({
               onChange={(e) => setShipmentId(e.target.value)}
               required
             >
-              <option value="">Seleccioná shipment liberado…</option>
+              <option value="">Selecciona shipment liberado…</option>
               {eligibleShipments.map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.code} · {s.client_name ?? "—"}
@@ -175,7 +175,7 @@ export function RouteDrawer({
                 }}
               >
                 {Icon.check(11)} Origen y destino pre-completados desde el
-                embarque · podés ajustar abajo
+                embarque · puedes ajustar abajo
               </p>
             )}
         </div>

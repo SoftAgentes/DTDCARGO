@@ -184,7 +184,7 @@ describe("registerClientAction · honeypot", () => {
   it("honeypot solo-espacios se trata como vacío → NO rechaza por honeypot", async () => {
     const res = await registerClientAction({}, validForm({ empresa_web: "   " }));
     // No es el error del honeypot; el flujo avanzó (pegó el throttle al menos).
-    expect(res.error).not.toBe("No pudimos procesar tu registro. Probá de nuevo.");
+    expect(res.error).not.toBe("No pudimos procesar tu registro. Prueba de nuevo.");
     expect(ops.calls.has(`${THROTTLE}:select`)).toBe(true);
   });
 });

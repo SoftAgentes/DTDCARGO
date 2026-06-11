@@ -203,8 +203,8 @@ export function validateClientInput(input: Partial<ClientInput>): {
     errors.lng = "Longitud inválida (debe estar entre -180 y 180).";
   }
   if ((lat === null) !== (lng === null)) {
-    errors.lat = errors.lat ?? "Cargá lat y lng juntos.";
-    errors.lng = errors.lng ?? "Cargá lat y lng juntos.";
+    errors.lat = errors.lat ?? "Carga lat y lng juntos.";
+    errors.lng = errors.lng ?? "Carga lat y lng juntos.";
   }
 
   if (Object.keys(errors).length > 0) {

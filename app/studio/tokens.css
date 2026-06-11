@@ -1,5 +1,6 @@
 /* ── DTD Studio · ERP · Design tokens ───────────────────────── */
-/* Tokens duales (light/dark) heredados del Brand Book v2.4.    */
+/* Tokens duales (light/dark) heredados del brand book del Norte
+   (docs/design/studio/_norte/erp/tokens.css).                   */
 :root {
   /* ── Color palette ─────────────────────────────────────── */
   --wine: #7F0F1A;

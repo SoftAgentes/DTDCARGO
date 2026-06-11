@@ -175,7 +175,7 @@ export function OAuthFlowModal({
               }}
             >
               {PROVIDER_LABELS[provider]} quedó vinculado a tu cuenta. Ahora
-              podés mandar emails desde el módulo Mailing.
+              puedes mandar emails desde el módulo Mailing.
             </p>
             <button
               type="button"

@@ -286,7 +286,7 @@ export default async function SkillDetailPage({
               maxWidth: "62ch",
             }}
           >
-            Configurá nombre, modelo y presupuesto mensual. El agente arranca
+            Configura nombre, modelo y presupuesto mensual. El agente arranca
             en{" "}
             <strong style={{ color: "var(--ink)" }}>status &ldquo;Apagado&rdquo;</strong>{" "}
             — activalo desde la lista de instalados cuando quieras correrlo.

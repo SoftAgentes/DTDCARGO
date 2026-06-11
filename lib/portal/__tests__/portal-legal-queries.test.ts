@@ -147,8 +147,9 @@ function shipmentRow(opts: {
   };
 }
 
-/** Fila de aceptación vigente íntegra (para el caso "ya aceptada"). */
+/** Fila de aceptación vigente íntegra v2 (para el caso "ya aceptada"). */
 function acceptedRow(base: number): Record<string, unknown> {
+  const UA = "Mozilla/5.0 TestUA";
   const { input } = validateAcceptanceInput(
     {
       client_id: "c1",
@@ -157,11 +158,20 @@ function acceptedRow(base: number): Record<string, unknown> {
       cbm: 7,
       weight_kg: 2800,
       total_usd: base,
+      user_agent: UA,
+      merchant_declaration: true, // v2: sin declaración no valida
+      invoice_id: "i1",
       idempotency_key: "k",
     },
     VIGENTES,
   );
-  const seal = sealAcceptance(input!, VIGENTES, "1.2.3.4", new Date("2026-06-02T00:00:00.000Z"));
+  const seal = sealAcceptance(
+    input!,
+    VIGENTES,
+    "1.2.3.4",
+    UA,
+    new Date("2026-06-02T00:00:00.000Z"),
+  );
   return {
     id: "acc1",
     tenant_id: TENANT,
@@ -175,6 +185,9 @@ function acceptedRow(base: number): Record<string, unknown> {
     total_usd: seal.total_usd,
     accepted_at: seal.accepted_at,
     ip: seal.ip,
+    user_agent: seal.user_agent,
+    merchant_declaration: seal.merchant_declaration,
+    invoice_id: seal.invoice_id,
     hash: seal.hash,
   };
 }

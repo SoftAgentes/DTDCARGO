@@ -134,7 +134,7 @@ export function scoreBreakdown(
     lines.push({ key: "vip", label: `Cliente ${pkg.tier}`, pts: w.vip });
     total += w.vip;
   } else if (rules.vip_markboxes.includes(pkg.markbox)) {
-    lines.push({ key: "vip", label: `VIP markbox manual`, pts: w.vip });
+    lines.push({ key: "vip", label: `VIP Shipping Mark manual`, pts: w.vip });
     total += w.vip;
   }
 

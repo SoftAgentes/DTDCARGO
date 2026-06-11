@@ -350,7 +350,7 @@ function cityFromFormData(formData: FormData): Partial<CalculatorCityInput> {
 const CITY_ADMIN_ONLY_MSG =
   "Solo los administradores pueden editar las ciudades del calculador.";
 const CITY_SLUG_CONFLICT_MSG =
-  "Ya existe una ciudad con ese identificador (slug). Usá otro.";
+  "Ya existe una ciudad con ese identificador (slug). Usa otro.";
 
 function isCitySlugConflict(
   error: { code?: string } | null,

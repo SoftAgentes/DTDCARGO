@@ -126,7 +126,7 @@ function tableFor(input: ViewCsvInput): CsvTable | null {
     if (ranked.length === 0) return null;
     return {
       slug: "comercial-por-cliente",
-      headers: ["#", "MARKBOX", "Cliente", "Nivel", "Facturado USD 12m"],
+      headers: ["#", "Shipping Mark", "Cliente", "Nivel", "Facturado USD 12m"],
       rows: ranked.map((r, i) => [i + 1, r.markbox, r.name, r.tierLabel, r.billedUsd]),
     };
   }

@@ -433,7 +433,7 @@ function DashboardTab({
                 color: "var(--ink-mute)",
               }}
             >
-              Sin referidores todavía. Registrá el primer referido para empezar.
+              Sin referidores todavía. Registra el primer referido para empezar.
             </div>
           ) : (
             <div>
@@ -702,7 +702,7 @@ function ReferidosTab({
       <EmptyState
         eyebrow="Sin referidos"
         title="Todavía no hay referidos en el programa."
-        description="Registrá un referido (quien refiere es un cliente existente; el referido aún no lo es). El crédito se acredita a mano cuando hace su primer embarque."
+        description="Registra un referido (quien refiere es un cliente existente; el referido aún no lo es). El crédito se acredita a mano cuando hace su primer embarque."
         action={
           <button
             type="button"
@@ -758,7 +758,7 @@ function ReferidosTab({
         <EmptyState
           eyebrow="Sin coincidencias"
           title="Ningún referido con ese estado."
-          description="Probá con otro filtro o registrá un referido nuevo."
+          description="Prueba con otro filtro o registra un referido nuevo."
         />
       ) : (
         <div
@@ -923,7 +923,7 @@ function ClientesTab({
       <EmptyState
         eyebrow="Sin clientes"
         title="Todavía no hay clientes para clasificar."
-        description="El nivel de lealtad se deriva de la facturación real de cada cliente (últimos 12 meses). Cargá clientes y facturas para verlos acá."
+        description="El nivel de lealtad se deriva de la facturación real de cada cliente (últimos 12 meses). Carga clientes y facturas para verlos acá."
       />
     );
   }

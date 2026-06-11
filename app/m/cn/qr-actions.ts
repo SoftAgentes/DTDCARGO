@@ -54,7 +54,7 @@ export async function pushQrPrintForReceiptAction(
   if (r.is_orphan || !markbox) {
     return {
       ok: false,
-      error: "Caja huérfana sin Shipping Mark · asigná cliente antes de imprimir QR.",
+      error: "Caja huérfana sin Shipping Mark · asigna cliente antes de imprimir QR.",
     };
   }
   if (!r.boxes || r.boxes <= 0) {

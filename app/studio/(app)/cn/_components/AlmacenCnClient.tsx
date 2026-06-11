@@ -612,7 +612,7 @@ function ReceiptRow({
               title={
                 showClientNames
                   ? row.client_name ?? undefined
-                  : "Nombre oculto · activá el ojo en la toolbar para verlo"
+                  : "Nombre oculto · activa el ojo en la toolbar para verlo"
               }
             >
               {showClientNames ? row.client_name ?? "—" : "••••••"}

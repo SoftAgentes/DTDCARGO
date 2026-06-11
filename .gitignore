@@ -55,10 +55,6 @@ tsc_out.txt
 docs/legal/*.pdf
 docs/operaciones/*.xlsx
 
-# Handoff temp — assets de referencia del brand book v1/v2, no parte del sitio
-_handoff_preview/
-BANDBOOK V1/
-
 # Config local de Claude. El harness del proyecto (agentes + skills) SÍ se versiona;
 # settings/planes locales quedan fuera.
 .claude/*
@@ -69,18 +65,12 @@ BANDBOOK V1/
 !.claude/settings.json
 
 # ─── Design handoffs · binarios grandes (no van al repo) ──────
-# Los standalones HTML del brand book tienen base64 embebido (>5MB c/u).
-# Los ZIPs del archive son backups (28MB+ c/u). Los uploads son screenshots
-# de Claude Design (7-8MB). Todo esto vive como referencia local + en los
-# ZIPs originales. El repo guarda los HTMLs *sin* base64 + los JSX source.
+# Los standalones HTML con base64 embebido (>5MB c/u) NO se versionan bajo
+# docs/design/ — el repo guarda los HTMLs *sin* base64 + los JSX source.
+# (El standalone PUBLICADO sí se versiona, pero vive en public/marca/.)
 docs/design/**/Brand Book DTD v*.standalone*.html
 docs/design/**/Portal del Cliente · standalone*.html
 docs/design/**/portal-cliente-standalone.html
-docs/design/handoffs-archive/*.zip
-docs/design/studio/*/project/uploads/
-docs/design/studio/*/project/Brand Book v3.0 Package/
-# El paquete v3.0 también vive embebido en el v1.7 zip; lo tenemos
-# extraído en docs/design/brand-book/v3.0/proyecto/ que sí está versionado.
 
 # Material interno de planning del founder (mockups, roadmaps, draft docs)
 # que no va al repo público ni a producción.
@@ -94,13 +84,7 @@ docs/design/studio/_norte/uploads/
 docs/design/studio/_norte/_archivo/uploads/
 docs/design/studio/_norte/scraps/
 docs/design/studio/_norte/screenshots/
-docs/design/studio/_norte/Brand Book v3.0 Package/
 docs/design/studio/_norte/_norte.html
-# Brand Book "self-contained" v3.2 (base64 embebido, ~30 MB entre el HTML suelto
-# y la carpeta) — versión para enviar. El repo guarda la versión liviana que
-# referencia assets/ ("Brand Book DTD v3.2.html"). Estos no se versionan.
-docs/design/studio/_norte/DTD-Brand-Book-v3.2-selfcontained/
-docs/design/studio/_norte/Brand Book DTD v3.2 - self-contained.html
 # Blueprint Prisma que Cloud Design re-incluye en cada handoff. Decisión founder
 # 2026-06-03: backend NATIVO Supabase, NO Prisma → schema.prisma fuera de git
 # (borrado permanente; se re-excluye solo en cada NORTE-SYNC).

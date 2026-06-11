@@ -196,7 +196,7 @@ function SectionBrandApps() {
     { id: 'qr',          label: 'QR code branded',       sub: 'Para tracking · vCards · link al portal',  icon: 'box' },
     { id: 'emoji',       label: 'Emoji pack Slack/Discord', sub: '16 emojis para el workspace interno',  icon: 'spark' },
     { id: 'map',         label: 'Marcadores de mapa',    sub: 'Pins por etapa: bodega · puerto · cliente',icon: 'pin' },
-    { id: 'watermark',   label: 'Watermark fotos',       sub: 'Trazabilidad en fotos del bodeguero',       icon: 'eye' },
+    { id: 'watermark',   label: 'Watermark fotos',       sub: 'Trazabilidad en fotos del almacenista',       icon: 'eye' },
     { id: 'sticker',     label: 'Etiqueta de caja',      sub: 'A6 imprimible · Zebra ZPL · QR + Shipping Mark', icon: 'tag' },
     { id: 'wapack',      label: 'WhatsApp sticker pack', sub: '12 stickers animados · diferenciador',     icon: 'spark' },
   ];

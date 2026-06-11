@@ -387,7 +387,7 @@ function ResultView({
           <div style={{ color: "var(--ink-soft)" }}>{result.commitMessage}</div>
         </div>
         <p style={{ marginTop: "var(--s-3)", marginBottom: 0, color: "var(--ink-soft)" }}>
-          Vercel ya está deployando · revisá el progreso en{" "}
+          Vercel ya está deployando · revisa el progreso en{" "}
           <Link
             href="/studio/debug"
             onClick={onClose}
