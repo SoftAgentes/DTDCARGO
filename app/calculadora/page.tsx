@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Sora, Nunito_Sans, JetBrains_Mono } from "next/font/google";
+import { Sora, Nunito_Sans } from "next/font/google";
+import { jetbrainsMono } from "@/lib/fonts";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -15,10 +16,11 @@ import {
 } from "@/lib/public/rates-queries";
 
 // Tipografía de CAPA SISTEMA (Norte v2.4) SOLO para la calculadora: Sora
-// (display) + Nunito Sans (cuerpo) + JetBrains Mono (números). El resto del
-// sitio público sigue en Archivo. La clase `.calc-sys` (globals.css) redefine
-// --font-archivo / --font-archivo-black → Nunito/Sora sin tocar el JSX del form;
-// los números usan --font-mono directo. Decisión founder 2026-06-06.
+// (display) + Nunito Sans (cuerpo) + JetBrains Mono (números, instancia única
+// de lib/fonts.ts). El resto del sitio público sigue en Archivo. La clase
+// `.calc-sys` (globals.css) redefine --font-archivo / --font-archivo-black →
+// Nunito/Sora sin tocar el JSX del form; los números usan --font-mono directo.
+// Decisión founder 2026-06-06.
 const sora = Sora({
   subsets: ["latin"],
   weight: ["400", "600", "700", "800"],
@@ -29,12 +31,6 @@ const nunito = Nunito_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
   variable: "--font-nunito",
-  display: "swap",
-});
-const jetbrains = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  variable: "--font-mono",
   display: "swap",
 });
 
@@ -102,7 +98,7 @@ export default async function CalculadoraPage() {
             resto de la página sigue en Archivo. */}
         <section className="pb-16 lg:pb-20">
           <div
-            className={`wrap max-w-[1100px] ${sora.variable} ${nunito.variable} ${jetbrains.variable} calc-sys`}
+            className={`wrap max-w-[1100px] ${sora.variable} ${nunito.variable} ${jetbrainsMono.variable} calc-sys`}
           >
             <CalculadoraForm
               serverRate={serverRate}

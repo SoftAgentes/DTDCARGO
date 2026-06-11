@@ -64,9 +64,11 @@ export const SHADOWS = {
  * Mono de marca (JetBrains Mono) para valores copiables del sitio público:
  * Shipping Mark, teléfonos, códigos postales, emails (guía Alibaba + clip de
  * proveedor). La página que monte el componente debe cargar la variable
- * `--font-mono` vía next/font (mismo patrón que /calculadora). El fallback va
- * DENTRO del var(): un var() sin resolver invalida el font-family completo
- * (caería a Archivo heredado en vez de a ui-monospace).
+ * `--font-mono` con `jetbrainsMono.variable` de `lib/fonts.ts` (instancia
+ * única — NO redefinir JetBrains_Mono inline: otros weights = faux-bold
+ * silencioso). El fallback va DENTRO del var(): un var() sin resolver
+ * invalida el font-family completo (caería a Archivo heredado en vez de a
+ * ui-monospace).
  */
 export const FONT_MONO =
   "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco), monospace";
