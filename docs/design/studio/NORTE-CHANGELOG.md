@@ -45,6 +45,14 @@ carga: Almacenista y Transportista = la misma persona, `+58 424 950 8848`.
 `/interno/marca` + zips gateados actualizados). Purga total de copias/referencias pre-3.7 en el repo
 (BRAND.md, AGENTS.md, comentarios de código) — gate "cero referencias" permanente en `/radar` (Regla 0.5).
 
+**RIF único `J-50648869-8` (decisión founder 2026-06-10):** se borraron los 4 RIF viejos que traía el
+paquete de Cloud Design — `J-410322887` (marca/sello/inspecciones/tarjeta/colateral/CLAUDE.md),
+`J-40558712-0` (factura demo/ZPL/comprobante WhatsApp), `J-40551122-3` (forma IVA `fiscal.jsx`),
+`J-50220185-8` (acuerdo operador) → **29 reemplazos en 17 archivos de `_norte`** + el book publicado
+(`public/marca/brand-book-v3.7.html`). RIF mock de clientes demo intactos. El RIF NO va en texto visible
+del sitio público (solo en el schema, regla `identidad.md`); acá aplica al material de marca del Norte.
+Pendiente Cloud Design: espejar en origen + regenerar PNG/PDF exportados con el RIF horneado.
+
 **Carpetas históricas ELIMINADAS del working tree (decisión founder 2026-06-10 — la historia vive en git;
 recuperar = `git log --oneline -- "<path>"` + checkout):** `docs/design/brand-book/` (v3.0 completo),
 `docs/design/studio/v1.7-claude-design/` (22 MB), `docs/design/studio/_archivo-v1.3.1-claude-design/` (45 MB),
