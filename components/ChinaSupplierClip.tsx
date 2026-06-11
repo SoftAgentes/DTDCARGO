@@ -5,8 +5,8 @@ import { CONTACT } from "@/lib/design-tokens";
 
 /**
  * China Supplier Clip — texto pre-formateado para que el cliente lo copie y
- * pegue en WeChat al hablar con su proveedor chino. Restaurado del Brand Book
- * DTD v1.0 § 19 · Registro de cliente · Shipping Mark (ex "MARKBOX").
+ * pegue en WeChat al hablar con su proveedor chino. Origen: brand book
+ * § Registro de cliente · Shipping Mark.
  *
  * Incluye:
  * - Dirección de bodega en caracteres chinos (义乌)

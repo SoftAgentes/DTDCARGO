@@ -12,10 +12,9 @@
  * - dangerouslySetInnerHTML en un Page no ejecuta los <script> tags
  * - Servir el HTML completo como text/html es la forma limpia
  *
- * Para actualizar el contenido:
- * 1. Editar `_handoff_preview/transporte-cbm-china-venezuela/index.html`
- * 2. Copiar a `app/admin/cbm-estudio/content.html`
- * 3. Push → Vercel re-deploya
+ * Para actualizar el contenido: editar `app/admin/cbm-estudio/content.html`
+ * (copia canónica en el repo; el HTML original del handoff quedó fuera del
+ * repo) y push → Vercel re-deploya.
  */
 
 import { promises as fs } from "fs";

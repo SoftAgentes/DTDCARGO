@@ -5,7 +5,7 @@
  *
  * Sidebar oscuro agrupado en 4 secciones (OPERACIÓN/COMERCIAL/FINANZAS/SISTEMA)
  * con 21 módulos. Active state via usePathname. Collapsed state persistido
- * en localStorage. Diseño (v1.7): docs/design/studio/v1.7-claude-design/project/erp/shell.jsx
+ * en localStorage. Diseño (Norte): docs/design/studio/_norte/erp/shell.jsx
  *
  * Slugs definidos en SDD-0007 §4.1.
  */
@@ -109,7 +109,7 @@ const GROUPS_STORAGE_KEY = "studio_sidebar_groups";
 /**
  * Estado de grupos: `false` = cerrado, `true` o undefined = abierto (default).
  * Persistido en localStorage key `studio_sidebar_groups`. Patrón portado de
- * `docs/design/studio/v1.7-claude-design/project/erp/shell.jsx` líneas 84-90.
+ * `docs/design/studio/_norte/erp/shell.jsx` líneas 84-90.
  */
 type OpenGroups = Partial<Record<Group, boolean>>;
 

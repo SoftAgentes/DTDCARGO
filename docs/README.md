@@ -40,7 +40,7 @@ Dos planos, NO confundir:
 - Naming de adjuntos: `01-descripcion.png` (numerado), kebab-case, sin acentos, fechas ISO-8601.
 - Binario >1 MB o blob (ZIP, video) → **fuera de git** + un `assets/EXTERNAL.md` con el link a Drive.
 - Los specs referencian diseño por **texto-código + versión**, nunca por link relativo:
-  `` Diseño: `docs/design/studio/v1.7-claude-design/.../embarques.jsx` (v1.7) ``
+  `` Diseño: `docs/design/studio/_norte/.../embarques.jsx` (v1.7) ``
 
 ## Clasificación → ubicación (ISO 27001:2022 · A.5.12/A.5.13)
 
