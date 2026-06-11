@@ -453,7 +453,7 @@ export function StudioSidebar({
 }
 
 /**
- * Logo del Studio sidebar — alineado a Brand Book v3.0 (mayo 2026).
+ * Logo del Studio sidebar — alineado al Brand Book vigente (Norte).
  *
  * Reusa el componente `<BrandMark>` con variant "reverse" (cream sobre
  * navy oscuro). Solo lockup oficial — el contexto "estás en el ERP" ya
@@ -462,9 +462,9 @@ export function StudioSidebar({
  *
  * Cambios vs versión legacy:
  *  - `dtdcargo-icon-navy.png` (raster viejo) → 4 variantes PNG nuevas via BrandMark
- *  - Filtro `brightness(0) invert(1)` removido (parche CSS prohibido por v3.0)
- *  - `wine-soft` en "DTD" → wine sólido (var v3.0 explícita)
- *  - "DTDSTUDIO" mashup → "DTD Cargo" lockup oficial v3.0
+ *  - Filtro `brightness(0) invert(1)` removido (parche CSS prohibido por el brand book)
+ *  - `wine-soft` en "DTD" → wine sólido (regla del brand book)
+ *  - "DTDSTUDIO" mashup → "DTD Cargo" lockup oficial
  *  - Sub-tag "Studio · ERP" removido (2026-05-27) — causaba overlap visual
  *    con el wordmark "Cargo" en sidebar expanded (no entraba en 248px).
  *    Triple redundancia ya cubría el contexto.

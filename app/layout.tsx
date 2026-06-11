@@ -119,7 +119,7 @@ const jsonLd = {
       taxID: CONTACT.legalEntity.taxID,
       founder: { "@type": "Person", name: CONTACT.legalEntity.founder },
       url: SITE_URL,
-      // Para Google Knowledge Panel usamos el isólogo oficial v3.0 variante primary
+      // Para Google Knowledge Panel usamos el isólogo oficial (brand book) variante primary
       // (navy + wine sobre fondo claro — el más universal).
       logo: `${SITE_URL}${BRAND_ASSETS.isologoPrimary}`,
       image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
