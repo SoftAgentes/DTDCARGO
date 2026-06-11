@@ -61,7 +61,7 @@ export default function GlosarioPage() {
             </h1>
             <p className="lead mt-6 max-w-[58ch]">
               Los términos que vas a escuchar al importar de China — explicados
-              sin jerga, con ejemplos de tu día a día. Compartilo con tu
+              sin jerga, con ejemplos de tu día a día. Compártelo con tu
               contador o socio si lo necesitan.
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function GlosarioPage() {
                 className="mt-4 text-[24px] lg:text-[28px] leading-[1.15] tracking-[-0.01em] text-ink"
                 style={{ fontFamily: "var(--font-archivo-black)" }}
               >
-                Preguntale a un asesor por WhatsApp.
+                Pregúntale a un asesor por WhatsApp.
               </h3>
               <p className="mt-3 text-[14.5px] text-grey-700 leading-[1.55] max-w-[48ch] mx-auto">
                 Si hay alguna sigla, documento o concepto que no encontraste

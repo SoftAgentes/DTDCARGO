@@ -217,7 +217,7 @@ export function CalculadoraForm({
               </span>
             </div>
             <p className="text-[11.5px] text-grey-500 mt-1.5 leading-[1.4]">
-              La genera el sistema. Ajustala si tu cotización es distinta.
+              La genera el sistema. Ajústala si tu cotización es distinta.
             </p>
           </div>
 

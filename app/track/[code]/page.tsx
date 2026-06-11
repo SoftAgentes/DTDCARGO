@@ -166,7 +166,7 @@ function FoundView({
   const shareText = encodeURIComponent(
     `Mi envío DTD ${code} está en estado: ${statusLabel}` +
       (eta ? `. ETA: ${formatDate(eta)}.` : ".") +
-      ` Seguilo en vivo: https://dtdcargo.com/track/${code}`,
+      ` Síguelo en vivo: https://dtdcargo.com/track/${code}`,
   );
   const shareUrl = `https://wa.me/?text=${shareText}`;
 
