@@ -2,24 +2,29 @@ import type { Metadata } from "next";
 import { DownloadIcon } from "@/components/Icon";
 
 /**
- * Visor del Brand Book DTD v3.2 — material de marca INTERNO (noindex).
+ * Visor del Brand Book DTD v3.7 — material de marca INTERNO (noindex).
  *
- * El archivo (`public/marca/brand-book-v3.2.html`) embebe sus imágenes en base64
- * (`window.__DTD_ASSETS`), pero referencia `erp/tokens.css` (servido en
- * `public/marca/erp/tokens.css`) y carga las fuentes Archivo / Nunito Sans desde
- * Google Fonts (CDN). Se respeta TAL CUAL (regla del founder: "no modifiques
- * contenido, colores, fuentes ni logo"): se sirve intacto a pantalla completa en
- * un <iframe>; el botón "Descargar" vive en este marco, no en el archivo.
+ * El archivo (`public/marca/brand-book-v3.7.html`) es el standalone autocontenido
+ * que entrega Cloud Design (assets en base64; solo carga fuentes desde Google
+ * Fonts CDN). Se respeta TAL CUAL (regla del founder: "no modifiques contenido,
+ * colores, fuentes ni logo"): se sirve intacto a pantalla completa en un
+ * <iframe>; el botón "Descargar" vive en este marco, no en el archivo.
+ *
+ * Al llegar un book nuevo desde el Norte: copiar el standalone a
+ * `public/marca/brand-book-vX.Y.html`, borrar el anterior (el book vigente es
+ * UNO solo — gobernanza v3.7) y actualizar `FILE` acá, la const `BRAND_BOOK`
+ * del hub (`app/interno/(app)/marca/page.tsx`) y `outputFileTracingIncludes`
+ * (next.config.ts).
  *
  * La CSP de `/marca/*` (next.config.ts) está relajada SOLO para ese prefijo:
  * data:/blob: + inline/eval para los assets, y fonts.googleapis/gstatic para las
  * fuentes. El resto del sitio mantiene la CSP estricta.
  */
 
-const FILE = "/marca/brand-book-v3.2.html";
+const FILE = "/marca/brand-book-v3.7.html";
 
 export const metadata: Metadata = {
-  title: "Brand Book DTD v3.2",
+  title: "Brand Book DTD v3.7",
   description: "Material de marca interno de DTD Cargo.",
   // Triple noindex: este meta + X-Robots-Tag (next.config) + Disallow (robots.ts).
   robots: {
@@ -35,7 +40,7 @@ export default function BrandBookPage() {
     <div className="bg-paper" style={{ position: "fixed", inset: 0 }}>
       <iframe
         src={FILE}
-        title="Brand Book DTD v3.2"
+        title="Brand Book DTD v3.7"
         style={{
           position: "absolute",
           inset: 0,
@@ -46,7 +51,7 @@ export default function BrandBookPage() {
       />
       <a
         href={FILE}
-        download="Brand Book DTD v3.2.html"
+        download="Brand Book DTD v3.7.html"
         className="btn btn-primary"
         style={{
           position: "fixed",
