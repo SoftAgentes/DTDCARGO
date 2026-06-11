@@ -51,7 +51,7 @@ export function hashEvidence(ev: AcceptanceEvidence): string {
  * + los campos SELLADOS por el servidor (accepted_at/ip/user_agent/hash) +
  * el snapshot de docs aceptados. `acceptance_code` lo asigna la action vía
  * `next_acceptance_code` (RPC) — no es parte del sello. `invoice_id` viaja como
- * METADATO (columna 0120) — no es parte del hash.
+ * METADATO (columna 0121) — no es parte del hash.
  */
 export type SealedAcceptance = {
   client_id: string | null;

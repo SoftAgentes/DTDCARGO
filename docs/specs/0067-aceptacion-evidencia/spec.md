@@ -80,7 +80,7 @@ checkboxes literales** de `COPY_LEGAL_UI.md §1`, evidencia con **`user_agent`**
    `LEGAL_GATE_HARD_BLOCK` exportada desde un módulo compartible (moverla de
    `facturacion/actions.ts` a `lib/studio/legal/gate-config.ts` y reexportar para no
    romper imports). El flip sigue siendo decisión founder (1 línea).
-7. **Migración `0120_acceptance_evidence_v2.sql` — aditiva**: `alter table
+7. **Migración `0121_acceptance_evidence_v2.sql` — aditiva**: `alter table
    legal_acceptances add column user_agent text, add column merchant_declaration
    boolean not null default false, add column invoice_id uuid references
    invoices(id) on delete set null;` + índice `(tenant_id, invoice_id)` parcial where
@@ -93,7 +93,7 @@ checkboxes literales** de `COPY_LEGAL_UI.md §1`, evidencia con **`user_agent`**
 
 ## 4. Approach
 
-### Migración `supabase/migrations/0120_acceptance_evidence_v2.sql`
+### Migración `supabase/migrations/0121_acceptance_evidence_v2.sql`
 Como decisión #7. Comentario en el SQL: evidencia v2 = primer formato productivo
 (v1 nunca llegó a prod con filas).
 
@@ -142,7 +142,7 @@ Como decisión #7. Comentario en el SQL: evidencia v2 = primer formato productiv
 
 ## 5. Acceptance
 
-- [x] Migración `0120` aditiva limpia (user_agent, merchant_declaration, invoice_id +
+- [x] Migración `0121` aditiva limpia (user_agent, merchant_declaration, invoice_id +
       índice). NO aplicada a prod por el harness.
 - [x] Evidencia v2: hash cubre user_agent + merchant_declaration; tests verdes
       incluyendo round-trip y manipulación post-hoc.
@@ -176,7 +176,7 @@ Como decisión #7. Comentario en el SQL: evidencia v2 = primer formato productiv
   `?quote=` el `[code]` de la URL del export se ignora (decisión #5) · el aviso de
   re-aceptación no verifica hash (informativo; la verdad la imponen gate+pre-check)
   · pre-check de idempotencia corre antes de validar checkboxes (UX correcta).
-- **Pendiente founder (gates de activación):** (1) aplicar `0120` a prod ANTES de
+- **Pendiente founder (gates de activación):** (1) aplicar `0121` a prod ANTES de
   deployar este código — el gate y la bitácora seleccionan las columnas nuevas;
   (2) flip de `LEGAL_GATE_HARD_BLOCK` (lib/studio/legal/gate-config.ts) cuando
   haya adopción → recién ahí se cumple el DoD "imposible confirmar sin aceptación".
