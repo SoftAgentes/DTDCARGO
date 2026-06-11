@@ -1,17 +1,23 @@
 ---
-sdd: "0059"
+sdd: "0068"
 title: "Registro self-service — entrega real del correo de bienvenida + aviso interno de cliente nuevo"
 status: done
 author: "Claude Code (carril registro · feat/registro-correos)"
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-06-10
 supersedes: null
 superseded_by: null
 related: ["0042", "0032", "0026", "0010", "0036", "0046"]
 confidencialidad: interno
 ---
 
-# DTD-0059 — Registro self-service: entrega real del correo + aviso interno
+# DTD-0068 — Registro self-service: entrega real del correo + aviso interno
+
+> **Renumerado 0059 → 0068 (2026-06-10).** El correlativo `0059` colisionó entre dos
+> ventanas: lo tomó primero "Financiero con el Socio Logístico China" (created 2026-06-05,
+> con migraciones `0114`/`0115` nombradas `sdd0059` en prod) — esta spec (created
+> 2026-06-07) cede el número. Los commits históricos `SDD-0059` del carril registro
+> (`feat/registro-correos`) refieren a ESTA spec.
 
 > Con el SEO/Ads empezaron a llegar clientes nuevos. El registro self-service de `/portal/registro` ya
 > les emite el MARKBOX, **pero el correo de bienvenida nunca se entrega** (queda `queued`, no pasa por
