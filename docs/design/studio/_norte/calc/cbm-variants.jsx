@@ -104,10 +104,10 @@ function computeQuote(inp) {
 
 // Texto de la alerta que enruta al asesor (orden de prioridad).
 function alertText(r) {
-  if (r.especial) return 'Para carga especial, peligrosa o que requiere permisos de exportación, consultá con tu asesor — la cotizamos a medida.';
+  if (r.especial) return 'Para carga especial, peligrosa o que requiere permisos de exportación, consulta con tu asesor — la cotizamos a medida.';
   if (r.overCBM) return 'Eso es más que un contenedor. Consulte a su asesor.';
   if (r.overPeso) return 'Esto es más que el peso permitido por contenedor; consulte a su asesor.';
-  if (r.overDensity) return 'Tu carga tiene ' + Math.round(r.density) + ' kg/CBM, supera el máximo de ' + DENS_MAX + ' kg/CBM. Necesitás FCL o cotización personalizada — escribinos por WhatsApp.';
+  if (r.overDensity) return 'Tu carga tiene ' + Math.round(r.density) + ' kg/CBM, supera el máximo de ' + DENS_MAX + ' kg/CBM. Necesitas FCL o cotización personalizada — escríbenos por WhatsApp.';
   return null;
 }
 
@@ -244,7 +244,7 @@ function DimPanel({ d, onAlto, onAncho, onLargo, onCajas }) {
             </div>
           </React.Fragment>
         ) : (
-          <span style={{ font: '600 11.5px/1.45 var(--f-sans)', color: 'var(--ink-mute)' }}>Completá alto, ancho, largo y la cantidad de cajas y calculamos tu CBM al instante.</span>
+          <span style={{ font: '600 11.5px/1.45 var(--f-sans)', color: 'var(--ink-mute)' }}>Completa alto, ancho, largo y la cantidad de cajas y calculamos tu CBM al instante.</span>
         )}
       </div>
     </div>
@@ -380,7 +380,7 @@ function CalcLCL() {
     pesoHint = 'Esto es más que el peso permitido por contenedor; consulte a su asesor';
     pesoTone = 'danger';
   } else if (r.overDensity) {
-    pesoHint = 'Para ' + trimNum(r.cbm) + ' m³, más de ' + Math.round(r.cbm * DENS_MAX).toLocaleString('en-US') + ' kg es demasiado denso — consultá con tu asesor (FCL).';
+    pesoHint = 'Para ' + trimNum(r.cbm) + ' m³, más de ' + Math.round(r.cbm * DENS_MAX).toLocaleString('en-US') + ' kg es demasiado denso — consulta con tu asesor (FCL).';
     pesoTone = 'danger';
   } else if (r.cbm > 0 && r.excedenteKg > 0) {
     pesoHint = 'El máximo de peso sin recargo para ' + trimNum(r.cbm) + ' m³ es ' + Math.round(r.pesoIncluido).toLocaleString('en-US') + ' kg. Te pasás por ' + Math.round(r.excedenteKg).toLocaleString('en-US') + ' kg → +' + money(r.excedenteCost) + ' ($1/kg extra).';
@@ -395,8 +395,8 @@ function CalcLCL() {
           <Wordmark size={17} />
           <span style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--wine)' }}>Calculadora LCL DDP</span>
         </div>
-        <h2 style={{ font: '800 25px/1.06 var(--f-display)', letterSpacing: '-0.025em', color: 'var(--ink)', margin: '0 0 6px' }}>Cotizá tu carga China → Venezuela</h2>
-        <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 22px', maxWidth: '44ch' }}>Puerta a puerta, financiamiento 100%. Indicá tu volumen y peso y te damos un estimado al instante.</p>
+        <h2 style={{ font: '800 25px/1.06 var(--f-display)', letterSpacing: '-0.025em', color: 'var(--ink)', margin: '0 0 6px' }}>Cotiza tu carga China → Venezuela</h2>
+        <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 22px', maxWidth: '44ch' }}>Puerta a puerta, financiamiento 100%. Indica tu volumen y peso y te damos un estimado al instante.</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <NumField label="Tarifa de CBM" tag="auto · editable" value={tarifa} onChange={setTarifa} prefix="$" suffix="USD/CBM"
@@ -415,7 +415,7 @@ function CalcLCL() {
               padding: '2px 0', cursor: 'pointer', font: '700 11.5px/1 var(--f-sans)', color: 'var(--wine)',
             }}>
               <span style={{ display: 'inline-block', transform: showDims ? 'rotate(90deg)' : 'none', transition: 'transform 160ms var(--ease)', font: '700 9px/1 var(--f-sans)' }}>▶</span>
-              {showDims ? 'Prefiero escribir el CBM a mano' : '¿No sabés tu CBM? Calculalo con las medidas'}
+              {showDims ? 'Prefiero escribir el CBM a mano' : '¿No sabes tu CBM? Calculalo con las medidas'}
             </button>
 
             {showDims && (
@@ -440,7 +440,7 @@ function CalcLCL() {
         {r.incomplete ? (
           <Notice tone="info" title="Faltan datos" body="El CBM total y el peso deben ser mayores a cero." />
         ) : r.especial ? (
-          <Notice tone="warning" title="Derivar al asesor" body="Para carga especial, peligrosa o que requiere permisos de exportación, consultá con tu asesor — la cotizamos a medida." />
+          <Notice tone="warning" title="Derivar al asesor" body="Para carga especial, peligrosa o que requiere permisos de exportación, consulta con tu asesor — la cotizamos a medida." />
         ) : r.overCBM ? (
           <Notice tone="danger" title="Excede un contenedor" body="Eso es más que un contenedor. Consulte a su asesor." />
         ) : r.overPeso ? (
@@ -468,14 +468,14 @@ function CalcLCL() {
             </div>
 
             {r.overDensity && (
-              <Notice tone="warning" title="Densidad alta" body={'Tu carga tiene ' + Math.round(r.density) + ' kg/CBM, supera el máximo de ' + DENS_MAX + ' kg/CBM. Necesitás FCL o cotización personalizada — escribinos por WhatsApp.'} />
+              <Notice tone="warning" title="Densidad alta" body={'Tu carga tiene ' + Math.round(r.density) + ' kg/CBM, supera el máximo de ' + DENS_MAX + ' kg/CBM. Necesitas FCL o cotización personalizada — escríbenos por WhatsApp.'} />
             )}
           </React.Fragment>
         )}
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--success-bg)', borderRadius: 'var(--r-md)' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }} />
-          <span style={{ font: '700 11.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>Financiamiento 100%<span style={{ color: 'var(--wine)' }}>*</span> · pagás al llegar a Venezuela</span>
+          <span style={{ font: '700 11.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>Financiamiento 100%<span style={{ color: 'var(--wine)' }}>*</span> · pagas al llegar a Venezuela</span>
         </div>
 
         <div style={{ marginTop: 'auto' }}>
@@ -514,7 +514,7 @@ function CalcLCL() {
       {/* Nota al pie · ancho completo */}
       <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border)', padding: 'var(--s-5) var(--s-8)', background: 'var(--bg-surface)' }}>
         <p style={{ font: '500 11px/1.55 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>
-          <span style={{ color: 'var(--wine)', fontWeight: 700 }}>*</span> Financiamiento 100%: pagás el flete al llegar a Venezuela. <b style={{ color: 'var(--ink-soft)', fontWeight: 700 }}>Aplican restricciones.</b> Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a puerta).
+          <span style={{ color: 'var(--wine)', fontWeight: 700 }}>*</span> Financiamiento 100%: pagas el flete al llegar a Venezuela. <b style={{ color: 'var(--ink-soft)', fontWeight: 700 }}>Aplican restricciones.</b> Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a puerta).
         </p>
       </div>
     </div>

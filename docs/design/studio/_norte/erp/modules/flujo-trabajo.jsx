@@ -44,6 +44,7 @@ function LANES() {
       id: 'operacion', label: 'Operaciones', sub: 'Mover la carga', icon: 'ship', tone: 'wine', finance: true,
       roles: ['Admin', 'Operaciones', 'Almacén CN', 'Almacén VE'],
       nodes: [
+        { label: 'Prealertas', icon: 'box', to: ['cn', null, 'camino'], badge: () => _n(_safe(() => window.ERPData.byTenant(window.ERPData.ORDERS).filter(o => o.status !== 'verificada').length)) },
         { label: 'Recibir en CN', icon: 'warehouse', to: ['cn'] },
         { label: 'Cola de QR', icon: 'tag', to: ['qrqueue'] },
         { label: 'Consolidar', icon: 'box', to: ['naviera'], badge: () => _n(_safe(() => N.consolidating().length)) },
@@ -201,7 +202,7 @@ function ModuleInicio({ goTo, currentUser }) {
       <U.PageHeader
         eyebrow={`INICIO · ${role.toUpperCase()}`}
         title={`${saludo}, ${first}`}
-        subtitle="¿Qué querés hacer hoy? Elegí un paso del flujo. Los números en rojo marcan lo que tiene pendientes."
+        subtitle="¿Qué quieres hacer hoy? Elige un paso del flujo. Los números en rojo marcan lo que tiene pendientes."
         actions={<U.Btn variant="secondary" icon={I.dashboard(14)} onClick={() => goTo('dashboard')}>Ver dashboard</U.Btn>}
       />
       <div style={{
@@ -213,13 +214,13 @@ function ModuleInicio({ goTo, currentUser }) {
         <span style={{ color: totalPend > 0 ? 'var(--wine)' : 'var(--success)', display: 'inline-flex' }}>{totalPend > 0 ? I.bell(16) : I.check(16)}</span>
         <span style={{ font: '600 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
           {totalPend > 0
-            ? <>Tenés <b>{totalPend}</b> {totalPend === 1 ? 'tarea pendiente' : 'tareas pendientes'} en <b>{lanesPend}</b> {lanesPend === 1 ? 'área' : 'áreas'}. Empezá por los nodos con número.</>
+            ? <>Tienes <b>{totalPend}</b> {totalPend === 1 ? 'tarea pendiente' : 'tareas pendientes'} en <b>{lanesPend}</b> {lanesPend === 1 ? 'área' : 'áreas'}. Empezá por los nodos con número.</>
             : <>Todo al día. No hay pendientes en tus áreas — buen trabajo.</>}
         </span>
       </div>
       {lanes.length > 0
         ? <WorkflowMap lanes={lanes} goTo={goTo} />
-        : <U.EmptyState icon={I.flow(22)} title="Sin flujo asignado" body="Tu rol no tiene un carril de trabajo configurado. Usá el menú lateral." />}
+        : <U.EmptyState icon={I.flow(22)} title="Sin flujo asignado" body="Tu rol no tiene un carril de trabajo configurado. Usa el menú lateral." />}
     </div>
   );
 }
@@ -228,3 +229,23 @@ window.WorkflowMap = WorkflowMap;
 window.WorkflowLanes = LANES;
 window.financeLanes = financeLanes;
 window.ModuleInicio = ModuleInicio;
+
+// ── Mapa de proceso · integrado (antes abría pestaña aparte) ──
+function ModuleMapaProceso() {
+  const U = window.ERPUI;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: 'calc(100vh - 130px)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ flex: 1, font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>
+          Mapa de proceso completo CN → VE, integrado en el ERP. Para editarlo se trabaja sobre <code style={{ font: '600 11px/1 var(--f-mono)' }}>Mapa de Proceso.html</code> — los cambios se ven acá al recargar.
+        </div>
+        <a href="Mapa de Proceso.html" target="_blank" rel="noopener" style={{ textDecoration: 'none', flexShrink: 0 }}>
+          <U.Btn variant="ghost" size="sm" icon={window.Icon.external(12)}>Pestaña aparte</U.Btn>
+        </a>
+      </div>
+      <iframe src="Mapa de Proceso.html" title="Mapa de proceso DTD"
+        style={{ flex: 1, width: '100%', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', background: 'var(--bg-surface)' }} />
+    </div>
+  );
+}
+window.ModuleMapaProceso = ModuleMapaProceso;

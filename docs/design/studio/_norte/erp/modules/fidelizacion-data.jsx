@@ -51,7 +51,7 @@ const REFERRAL_STATUS = {
 const REFERRAL_STEPS = ['invitado', 'registrado', 'primer-embarque', 'acreditado'];
 
 // ── Referidos (seed) ──────────────────────────────────────────
-// referrer = MARKBOX del cliente que refiere.
+// referrer = Shipping Mark del cliente que refiere.
 const REFERRALS = [
   { id: 'REF-0091', referrer: 'DTD-5392', referredName: 'Jorge Calderón', referredCompany: 'Calderón Industrial', date: '2026-05-18', status: 'primer-embarque', rewardUsd: 80, lead: 'L-0140' },
   { id: 'REF-0090', referrer: 'DTD-5452', referredName: 'Pedro Mejías',   referredCompany: 'Mejías Construcción', date: '2026-05-12', status: 'acreditado',      rewardUsd: 80, lead: 'L-0135' },
@@ -63,7 +63,7 @@ const REFERRALS = [
   { id: 'REF-0084', referrer: 'DTD-5354', referredName: 'Teresa Gil',     referredCompany: 'Gil & Hijos',         date: '2026-05-02', status: 'acreditado',      rewardUsd: 80, lead: null },
 ];
 
-// Código de referido determinístico por MARKBOX (DTD-5452 → REF-5452)
+// Código de referido determinístico por Shipping Mark (DTD-5452 → REF-5452)
 function referralCode(markbox) { return 'REF-' + String(markbox || '').replace(/^DTD-/, ''); }
 
 // ── Helpers de agregación ─────────────────────────────────────

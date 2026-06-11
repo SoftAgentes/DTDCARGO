@@ -3,7 +3,7 @@
 /* 3 pasos: datos personales/empresa → dirección VE → confirmación */
 /*                                                                  */
 /* ⚠ INSTRUCCIONES PARA CLAUDE CODE / DEVS:                         */
-/* La nomenclatura completa del MARKBOX, etiquetas de proveedores,  */
+/* La nomenclatura completa del Shipping Mark, etiquetas de proveedores,  */
 /* nomenclatura de órdenes de compra, etiquetado de cajas, formato  */
 /* de packing list, identificadores DTD-XXXX / DTDU-XXXXXX / CN-... */
 /* y demás reglas de codificación operativa están especificadas en  */
@@ -11,12 +11,12 @@
 /* desde Claude Code (NO desde este entorno de diseño).             */
 /*                                                                  */
 /* Antes de implementar la lógica real (validación de formato del   */
-/* MARKBOX, generación del código secuencial, emails de bienvenida  */
+/* Shipping Mark, generación del código secuencial, emails de bienvenida  */
 /* con la guía adjunta, generación de etiquetas PDF para           */
 /* proveedores chinos, etc.), Claude Code DEBE leer:                */
 /*   1. CLAUDE.md (sección de codificación/nomenclatura)            */
-/*   2. Cualquier README o docs internos sobre formato MARKBOX      */
-/*   3. La plantilla 'm-05 · Bienvenida MARKBOX' en erp/data.jsx    */
+/*   2. Cualquier README o docs internos sobre formato Shipping Mark      */
+/*   3. La plantilla 'm-05 · Bienvenida Shipping Mark' en erp/data.jsx    */
 /*      (campo MAIL_TEMPLATES) que tiene el copy oficial de email   */
 /*                                                                  */
 /* La guía visual que muestra esta vista (componente Guide) es un   */
@@ -51,7 +51,7 @@
       if (step > 1) setStep(step - 1);
     }
     function submit() {
-      // ── Genera MARKBOX secuencial · ahora vía helper server-side ──
+      // ── Genera Shipping Mark secuencial · ahora vía helper server-side ──
       // El helper window.DTDData.nextMarkbox() valida formato + unicidad
       // contra clients del bridge + seed CLIENTS, con retry defensivo.
       let newMarkbox;
@@ -275,8 +275,8 @@
 
         <SectionLabel required error={errPhoto}>Foto de la {esEmpresa ? 'RIF' : 'cédula'}</SectionLabel>
         <PhotoUpload value={data.photoCedula} onChange={(v) => update({ photoCedula: v })} error={errPhoto}
-        label={esEmpresa ? 'Subí foto del RIF · ambos lados' : 'Subí foto de la cédula · anverso y reverso'} />
-        {errPhoto && <span style={{ font: '600 11px/1.4 var(--f-sans)', color: 'var(--danger)' }}>Tenés que subir la foto.</span>}
+        label={esEmpresa ? 'Sube foto del RIF · ambos lados' : 'Sube foto de la cédula · anverso y reverso'} />
+        {errPhoto && <span style={{ font: '600 11px/1.4 var(--f-sans)', color: 'var(--danger)' }}>Tienes que subir la foto.</span>}
 
         <SectionLabel>Contacto</SectionLabel>
         <U.Input label="Email" type="email" required error={errEmail ? 'Campo obligatorio' : undefined}
@@ -297,7 +297,7 @@
         {tried && !valid && !dupClient &&
         <div style={{ padding: '9px 12px', background: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: 'var(--r-sm)', font: '600 11.5px/1.4 var(--f-sans)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <span style={{ flexShrink: 0, marginTop: 1 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
-          <span>Faltan datos obligatorios · completá los campos marcados en rojo.</span>
+          <span>Faltan datos obligatorios · completa los campos marcados en rojo.</span>
         </div>
         }
 
@@ -308,7 +308,7 @@
 
   // ── Cuenta ya existente · ofrecer recuperación ──────────────
   // Si el documento (cédula/RIF) ya está en el padrón de clientes,
-  // no creamos duplicado: mostramos "¿Querés recuperar tu cuenta?".
+  // no creamos duplicado: mostramos "¿Quieres recuperar tu cuenta?".
   function DupAlert({ client, esEmpresa }) {
     const U = window.ERPUI;
     const I = window.Icon;
@@ -324,7 +324,7 @@
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
             <b style={{ color: 'var(--success)' }}>Enlace de recuperación enviado</b>
             {maskedEmail ? <> al correo registrado <b>{maskedEmail}</b>.</> : <> al correo registrado de la cuenta.</>}
-            {' '}Revisá tu bandeja para volver a entrar con tu MARKBOX <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{client.markbox}</code>.
+            {' '}Revisa tu bandeja para volver a entrar con tu Shipping Mark <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{client.markbox}</code>.
           </div>
         </div>);
     }
@@ -339,7 +339,7 @@
             </div>
             <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
               {client.company || client.name ? <>Registrada a nombre de <b style={{ color: 'var(--ink)' }}>{client.company || client.name}</b>. </> : null}
-              ¿Querés recuperar tu cuenta en vez de crear una nueva?
+              ¿Quieres recuperar tu cuenta en vez de crear una nueva?
             </div>
           </div>
         </div>
@@ -398,10 +398,10 @@
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <U.Select label="Estado" required error={errState ? 'Obligatorio' : undefined} value={data.state}
           onChange={(e) => update({ state: e.target.value, municipio: '', city: '', postalCode: '' })}
-          options={[{ value: '', label: '— Elegí —' }, ...states.map((s) => ({ value: s, label: s }))]} />
+          options={[{ value: '', label: '— Elige —' }, ...states.map((s) => ({ value: s, label: s }))]} />
           <U.Select label="Municipio" required error={errMuni ? 'Obligatorio' : undefined} value={data.municipio}
           onChange={(e) => update({ municipio: e.target.value, city: '', postalCode: '' })}
-          options={[{ value: '', label: '— Elegí —' }, ...municipios.map((m) => ({ value: m, label: m }))]} />
+          options={[{ value: '', label: '— Elige —' }, ...municipios.map((m) => ({ value: m, label: m }))]} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <U.Select label="Ciudad" required error={errCity ? 'Obligatorio' : undefined} value={data.city}
@@ -409,15 +409,15 @@
             const c = cities.find((x) => x.name === e.target.value);
             update({ city: e.target.value, postalCode: c?.postalCode || '' });
           }}
-          options={[{ value: '', label: '— Elegí —' }, ...cities.map((c) => ({ value: c.name, label: c.name }))]} />
+          options={[{ value: '', label: '— Elige —' }, ...cities.map((c) => ({ value: c.name, label: c.name }))]} />
           <U.Input label="Código postal" required error={errCP ? 'Obligatorio' : undefined} value={data.postalCode}
           onChange={(e) => update({ postalCode: e.target.value })} placeholder="4 dígitos" mono />
         </div>
         <U.Select label="Barrio / urbanización" required error={errBarrio && data.barrio !== '__other__' ? 'Obligatorio' : undefined} value={data.barrio}
         onChange={(e) => update({ barrio: e.target.value })}
-        options={[{ value: '', label: '— Elegí —' }, ...barrios.map((b) => ({ value: b, label: b })), { value: '__other__', label: 'Otro · escribir manualmente' }]} />
+        options={[{ value: '', label: '— Elige —' }, ...barrios.map((b) => ({ value: b, label: b })), { value: '__other__', label: 'Otro · escribir manualmente' }]} />
         {data.city && barrios.length === 0 &&
-        <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -6 }}>Todavía no tenemos urbanizaciones cargadas para esta ciudad · elegí "Otro" y escribila.</span>
+        <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -6 }}>Todavía no tenemos urbanizaciones cargadas para esta ciudad · elige "Otro" y escribila.</span>
         }
         {data.barrio === '__other__' &&
         <U.Input label="Barrio (manual)" required error={errBarrio ? 'Obligatorio' : undefined} value={data.barrioCustom || ''} onChange={(e) => update({ barrioCustom: e.target.value })} placeholder="Ej. Urb. La Esmeralda" />
@@ -433,12 +433,12 @@
 
         <SectionLabel>Foto de la fachada (opcional pero útil)</SectionLabel>
         <PhotoUpload value={data.photoFachada} onChange={(v) => update({ photoFachada: v })}
-        label="Subí una foto de la entrada de tu casa o local · ayuda al transportista a encontrarte rápido" />
+        label="Sube una foto de la entrada de tu casa o local · ayuda al transportista a encontrarte rápido" />
 
         {tried && !valid &&
         <div style={{ padding: '9px 12px', background: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: 'var(--r-sm)', font: '600 11.5px/1.4 var(--f-sans)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <span style={{ flexShrink: 0, marginTop: 1 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
-          <span>Faltan datos obligatorios · completá los campos marcados en rojo.</span>
+          <span>Faltan datos obligatorios · completa los campos marcados en rojo.</span>
         </div>
         }
 
@@ -455,7 +455,7 @@
     const I = window.Icon;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <SectionLabel>Confirmá tus datos</SectionLabel>
+        <SectionLabel>Confirma tus datos</SectionLabel>
         <U.Card padded>
           <div className="eyebrow eyebrow-wine">{data.tipo === 'empresa' ? 'EMPRESA' : 'PERSONA NATURAL'}</div>
           <div style={{ font: '900 17px/1.2 var(--f-display)', color: 'var(--ink)', marginTop: 6, letterSpacing: '-0.02em' }}>{data.company || data.name}</div>
@@ -482,42 +482,42 @@
           </div>
         </U.Card>
 
-        {/* ── CTA opcional · ¿ya tenés una compra en China? ── */}
+        {/* ── CTA opcional · ¿ya tienes una compra en China? ── */}
         <PurchaseCTA data={data} update={update} />
 
         {/* ── Instrucción operativa · regla de caja huérfana ──────────────
-               Si la caja llega a China con el MARKBOX pero SIN proveedor /
+               Si la caja llega a China con el Shipping Mark pero SIN proveedor /
                grupo WeChat asociado, el almacén CN la marca automáticamente
                como "caja huérfana por falta de datos": sabemos quién es el
                cliente, pero no de qué proveedor (grupo WeChat) viene.
                ⚠ BACKEND: el registro del proveedor de acá (PurchaseCTA) debe
-               conectarse al pipeline del almacén CN — mapear MARKBOX ↔ grupo
+               conectarse al pipeline del almacén CN — mapear Shipping Mark ↔ grupo
                WeChat ↔ proveedor — para que la asociación sea automática en
                recepción. Ver erp/data.jsx (SUPPLIER_CLIENTS.wechatGroup) y el
                módulo Almacén CN. */}
         {data.supplierName ?
         <div style={{ padding: '10px 12px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(13)}</span>
-            <span>Al confirmar generamos tu <b>MARKBOX</b> y el código de compra de tu proveedor. Tus cajas llegarán a China ya asociadas a tu cuenta y a tu proveedor (grupo WeChat).</span>
+            <span>Al confirmar generamos tu <b>Shipping Mark</b> y el código de compra de tu proveedor. Tus cajas llegarán a China ya asociadas a tu cuenta y a tu proveedor (grupo WeChat).</span>
           </div> :
 
         <div style={{ padding: '10px 12px', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
-            <span>Al confirmar se genera tu <b>MARKBOX</b>. <b>Importante:</b> si tu caja llega a China solo con el MARKBOX y sin un proveedor registrado, nuestro almacén la marca como <b>caja huérfana</b> — sabemos que es tuya, pero no de qué proveedor (grupo WeChat) viene, y se retrasa. Registrá tu proveedor arriba o desde el portal apenas tengas la compra.</span>
+            <span>Al confirmar se genera tu <b>Shipping Mark</b>. <b>Importante:</b> si tu caja llega a China solo con el Shipping Mark y sin un proveedor registrado, nuestro almacén la marca como <b>caja huérfana</b> — sabemos que es tuya, pero no de qué proveedor (grupo WeChat) viene, y se retrasa. Registrá tu proveedor arriba o desde el portal apenas tengas la compra.</span>
           </div>
         }
 
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8 }}>
           <U.Btn variant="ghost" size="lg" onClick={onBack} icon={I.arrowL(14)}>Volver</U.Btn>
-          <U.Btn variant="primary" size="lg" full onClick={onSubmit} icon={I.check(15)}>Confirmar y generar MARKBOX</U.Btn>
+          <U.Btn variant="primary" size="lg" full onClick={onSubmit} icon={I.check(15)}>Confirmar y generar Shipping Mark</U.Btn>
         </div>
       </div>);
 
   }
 
-  // ── Tarjeta roja del MARKBOX · reacciona al registrar la compra ──
-  // Estados: 'TU MARKBOX' (solo código de cliente) → al registrar proveedor
-  // + compra muta a MARKBOX-1-1 y, si el registro fue en vivo (purchase),
+  // ── Tarjeta roja del Shipping Mark · reacciona al registrar la compra ──
+  // Estados: 'TU Shipping Mark' (solo código de cliente) → al registrar proveedor
+  // + compra muta a Shipping Mark-1-1 y, si el registro fue en vivo (purchase),
   // dispara la celebración (pop + ring success + badge + shimmer + swap).
   function MarkboxCard({ markbox, data, purchase }) {
     const I = window.Icon;
@@ -540,12 +540,12 @@
         }}>{I.check(18)}</span>
         }
         <div style={{ position: 'relative', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 8 }}>
-          {registered ? celebrate ? 'Tu MARKBOX · compra registrada' : 'Tu MARKBOX · proveedor · compra' : 'Tu MARKBOX'}
+          {registered ? celebrate ? 'Tu Shipping Mark · compra registrada' : 'Tu Shipping Mark · proveedor · compra' : 'Tu Shipping Mark'}
         </div>
         <code key={code} className={celebrate ? 'markbox-code swap' : 'markbox-code'} style={{ position: 'relative', font: '900 36px/1 var(--f-mono)', color: '#fff', letterSpacing: '-0.02em' }}>{code}</code>
         {registered &&
         <div style={{ position: 'relative', marginTop: 12, display: 'flex', gap: 18, flexWrap: 'wrap' }}>
-          <span style={{ font: '500 11px/1.4 var(--f-sans)', color: tone }}>MARKBOX <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>{markbox}</b></span>
+          <span style={{ font: '500 11px/1.4 var(--f-sans)', color: tone }}>Shipping Mark <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>{markbox}</b></span>
           <span style={{ font: '500 11px/1.4 var(--f-sans)', color: tone }}>Proveedor ID <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>1</b>{registered.supplier ? ` · ${registered.supplier}` : ''}</span>
           <span style={{ font: '500 11px/1.4 var(--f-sans)', color: tone }}>Compra <b style={{ color: '#fff', fontFamily: 'var(--f-mono)' }}>1</b></span>
         </div>
@@ -567,7 +567,7 @@
     // ── Compra registrada en vivo desde esta pantalla (CTA de abajo) ──
     // Cuando el cliente genera el código de compra inline, la tarjeta
     // roja de arriba reacciona: muta al código con proveedor + compra
-    // (MARKBOX-1-1) y dispara la celebración.
+    // (Shipping Mark-1-1) y dispara la celebración.
     const [purchase, setPurchase] = useState(null);
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', textAlign: 'center', paddingTop: 20 }}>
@@ -575,7 +575,7 @@
         <div>
           <div style={{ font: '900 26px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.025em' }}>Bienvenido a la familia de DoorTuDoor Cargo</div>
           <div style={{ font: '500 13.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8, maxWidth: '40ch' }}>
-            Tu cuenta está activa, {data.name?.split(' ')[0]}. Este es tu código MARKBOX personal — guardalo, vas a usarlo mucho.
+            Tu cuenta está activa, {data.name?.split(' ')[0]}. Este es tu código Shipping Mark personal — guardalo, vas a usarlo mucho.
           </div>
         </div>
 
@@ -587,7 +587,7 @@
           <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--success)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{I.check(16)}</span>
           <div>
             <div style={{ font: '800 14px/1.25 var(--f-display)', color: 'var(--success)' }}>¡Felicitaciones! Tu compra quedó registrada</div>
-            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Está completo: mandale el código de arriba a tu proveedor y ya podés entrar a tu portal.</div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Está completo: mandale el código de arriba a tu proveedor y ya puedes entrar a tu portal.</div>
           </div>
         </div>
         }
@@ -620,7 +620,7 @@
             <div>
               <div style={{ font: '800 13px/1.3 var(--f-display)', color: 'var(--wine)' }}>Tu código está listo, pero faltan pasos para la trazabilidad completa</div>
               <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
-                Para que tus cajas lleguen identificadas y no entren como "huérfanas", aprendé cómo usar tu código + sticker y registrá tu proveedor. Mirá la guía acá abajo <span className="guide-arrow-bounce" style={{ display: 'inline-block' }}>↓</span>
+                Para que tus cajas lleguen identificadas y no entren como "huérfanas", aprendé cómo usar tu código + sticker y registrá tu proveedor. Mira la guía acá abajo <span className="guide-arrow-bounce" style={{ display: 'inline-block' }}>↓</span>
               </div>
             </div>
           </div>
@@ -648,7 +648,7 @@
 
               <div style={{ marginBottom: 14, padding: '14px 14px', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 6 }}>
-                  {/* Código de cliente (MARKBOX) · wine */}
+                  {/* Código de cliente (Shipping Mark) · wine */}
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
                     <code style={{ font: '900 18px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}</code>
                     <span style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--wine)' }}>↑</span>
@@ -671,12 +671,12 @@
                 </div>
               </div>
 
-              <Guide n="1" title="Tu MARKBOX te identifica a vos">
+              <Guide n="1" title="Tu Shipping Mark te identifica a tú">
                 <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)', padding: '1px 5px', background: 'var(--wine-tint)', borderRadius: 4 }}>{markbox}</code> es tu identificador único como cliente. Es la base de todos tus códigos.
               </Guide>
 
               <Guide n="2" title="Cada proveedor lleva su propio número">
-                Si tenés varios proveedores en China (ej. 5), a cada uno le asignamos un <b>código de proveedor</b> (1, 2, 3…). Así sabés exactamente de cuál proveedor te está llegando la mercancía. Tu primera compra al proveedor 1 sería <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-1-1</code>; al proveedor 2 sería <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-2-1</code>.
+                Si tienes varios proveedores en China (ej. 5), a cada uno le asignamos un <b>código de proveedor</b> (1, 2, 3…). Así sabes exactamente de cuál proveedor te está llegando la mercancía. Tu primera compra al proveedor 1 sería <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-1-1</code>; al proveedor 2 sería <code style={{ font: '800 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}-2-1</code>.
               </Guide>
 
               <Guide n="3" title="Cada compra suma correlativamente">
@@ -688,9 +688,9 @@
                 <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-sm)' }}>
                   <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 6 }}>Cómo registrar tu compra · 3 pasos</div>
                   <ol style={{ margin: 0, paddingLeft: 18, font: '500 12px/1.7 var(--f-sans)', color: 'var(--ink)' }}>
-                    <li>Entrá al <b>panel de control</b> (tu portal).</li>
-                    <li>Andá a <b>"Tus proveedores"</b>.</li>
-                    <li>Tocá <b>"Nueva compra"</b> y te asignamos el código + etiquetas.</li>
+                    <li>Entra al <b>panel de control</b> (tu portal).</li>
+                    <li>Ve a <b>"Tus proveedores"</b>.</li>
+                    <li>Toca <b>"Nueva compra"</b> y te asignamos el código + etiquetas.</li>
                   </ol>
                 </div>
                 <div style={{ marginTop: 8, font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>El número de cajas (1/12, 2/12…) lo genera el sistema automáticamente cuando registres la compra e indiques cuántas cajas son — todavía no hace falta.</div>
@@ -700,7 +700,7 @@
                 <ul style={{ paddingLeft: 18, margin: '4px 0 0' }}>
                   <li>Tus cajas llegan a nuestro almacén China · te avisamos por email/WhatsApp.</li>
                   <li>Consolidamos con otros pedidos para optimizar costos (LCL).</li>
-                  <li>Zarpe + tránsito marítimo · lo podés trackear desde tu portal o la app.</li>
+                  <li>Zarpe + tránsito marítimo · lo puedes trackear desde tu portal o la app.</li>
                   <li>Aduana VE, liberación SENIAT, entrega final puerta a puerta.</li>
                 </ul>
               </Guide>
@@ -718,7 +718,7 @@
           <span style={{ color: emailSent ? 'var(--success)' : 'var(--ink-mute)', flexShrink: 0, marginTop: 1 }}>{emailSent ? I.check(15) : I.mail(15)}</span>
           <span>
             {emailSent ?
-            <><b style={{ color: 'var(--success)' }}>Email enviado</b> a <b style={{ color: 'var(--ink)' }}>{data.email}</b> con tu código <b style={{ color: 'var(--wine)' }}>{markbox}</b>, la guía de nomenclatura y el link al portal. <span style={{ color: 'var(--ink-mute)' }}>Revisá la bandeja de entrada o spam.</span></> :
+            <><b style={{ color: 'var(--success)' }}>Email enviado</b> a <b style={{ color: 'var(--ink)' }}>{data.email}</b> con tu código <b style={{ color: 'var(--wine)' }}>{markbox}</b>, la guía de nomenclatura y el link al portal. <span style={{ color: 'var(--ink-mute)' }}>Revisa la bandeja de entrada o spam.</span></> :
 
             <>Te enviaremos un email a <b style={{ color: 'var(--ink)' }}>{data.email}</b> con tu código <b style={{ color: 'var(--wine)' }}>{markbox}</b>, la guía de nomenclatura y el link al portal.</>
             }
@@ -732,12 +732,12 @@
   }
 
   // ── Instructivo para el proveedor (chino simplificado) ─────────
-  // Se copia tal cual, reemplazando {{MARKBOX}} por el código EXACTO que
+  // Se copia tal cual, reemplazando {{Shipping Mark}} por el código EXACTO que
   // muestra la tarjeta roja. Usamos la misma fuente (`markbox`) que rinde
   // la tarjeta, así el texto copiado y la tarjeta SIEMPRE coinciden.
   const PROVIDER_MSG_ZH = `发货前请确认以下事项：
 一、发货前，请先确认是否已建立微信群。
-二、微信群名称须包含客户 Shipping Mark 代码（例如：{{MARKBOX}}）。
+二、微信群名称须包含客户 Shipping Mark 代码（例如：{{Shipping Mark}}）。
 三、若尚未建立微信群，请先联系吴小姐：18606891419 建群，并将微信号"DTDLogistic"加入该群。
 四、唛头（Shipping Mark）将在群内提供；此外，我司将为每个箱子提供标签。
 五、未经确认，不得自行发货。群内将发送相关指示及其他信息，确认后方可发货。
@@ -753,7 +753,7 @@
 
     function onCopy() {
       if (!cardCode) return; // nunca copiar con el token sin reemplazar
-      const text = PROVIDER_MSG_ZH.split('{{MARKBOX}}').join(cardCode);
+      const text = PROVIDER_MSG_ZH.split('{{Shipping Mark}}').join(cardCode);
       // Fallback execCommand si la Clipboard API no está disponible/permitida.
       function legacyCopy() {
         try {
@@ -792,7 +792,7 @@
           display: 'flex', gap: 8, alignItems: 'flex-start'
         }}>
           <span style={{ color: 'var(--success)', flexShrink: 0, marginTop: 1 }}>{I.check(13)}</span>
-          <span>Ya lo copiaste. Pegá esto en el <b>WhatsApp o WeChat de tu proveedor</b> para que siga las instrucciones.</span>
+          <span>Ya lo copiaste. Pega esto en el <b>WhatsApp o WeChat de tu proveedor</b> para que siga las instrucciones.</span>
         </div>
         }
       </React.Fragment>);
@@ -826,9 +826,9 @@
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', font: '600 11.5px/1.6 var(--f-sans)', color: 'var(--ink-soft)' }}>
             Próximos pasos:
             <ol style={{ margin: '6px 0 0', paddingLeft: 18, font: '500 11.5px/1.7 var(--f-sans)' }}>
-              <li>Descargá las etiquetas y enviáselas a tu proveedor.</li>
-              <li>Entrá al portal (usuario <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}</code> · clave: tu {data.tipo === 'persona' ? 'cédula' : 'RIF'}).</li>
-              <li>Seguí tu envío en "Mis envíos".</li>
+              <li>Descarga las etiquetas y enviáselas a tu proveedor.</li>
+              <li>Entra al portal (usuario <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}</code> · clave: tu {data.tipo === 'persona' ? 'cédula' : 'RIF'}).</li>
+              <li>Sigue tu envío en "Mis envíos".</li>
             </ol>
           </div>
         </div>);
@@ -859,7 +859,7 @@
           display: 'flex', alignItems: 'center', gap: 12, boxSizing: 'border-box', textAlign: 'left'
         }}>
           <span style={{ flex: 1 }}>
-            <span style={{ display: 'block', font: '800 13.5px/1.2 var(--f-display)', color: 'var(--wine)' }}>¿Ya tenés una compra? Registrala acá</span>
+            <span style={{ display: 'block', font: '800 13.5px/1.2 var(--f-display)', color: 'var(--wine)' }}>¿Ya tienes una compra? Registrala acá</span>
             <span style={{ display: 'block', font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Si la omitiste antes, agregá el proveedor ahora y te asignamos el código + etiquetas al instante.</span>
           </span>
           <span style={{ color: 'var(--wine)', font: '700 16px/1' }}>+</span>
@@ -906,8 +906,8 @@
         }}>
           <span style={{ width: 40, height: 40, borderRadius: 'var(--r-md)', background: 'var(--wine)', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 20 }}>🛒</span>
           <span style={{ flex: 1 }}>
-            <span style={{ display: 'block', font: '800 14px/1.2 var(--f-display)', color: 'var(--wine)' }}>¿Ya tenés una compra en China lista?</span>
-            <span style={{ display: 'block', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Registrá tu proveedor ahora y dejá tu compra con <b>trazabilidad perfecta</b> desde el día 1. Opcional — podés hacerlo después.</span>
+            <span style={{ display: 'block', font: '800 14px/1.2 var(--f-display)', color: 'var(--wine)' }}>¿Ya tienes una compra en China lista?</span>
+            <span style={{ display: 'block', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Registrá tu proveedor ahora y dejá tu compra con <b>trazabilidad perfecta</b> desde el día 1. Opcional — puedes hacerlo después.</span>
           </span>
           <span style={{ color: 'var(--wine)', font: '700 18px/1' }}>+</span>
         </button>);
@@ -947,7 +947,7 @@
         </div>
         <div style={{ marginTop: 12, padding: '10px 12px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: 'var(--r-md)', font: '600 11.5px/1.5 var(--f-sans)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <span style={{ flexShrink: 0, marginTop: 1 }}>{I.check(13)}</span>
-          <span>Al confirmar, generamos tu código de compra <b>(MARKBOX-{data.supplierName ? '1-1' : 'N-1'})</b> y las etiquetas con QR para que el proveedor las pegue en cada caja. Nosotros recibimos todo asociado a tu cuenta.</span>
+          <span>Al confirmar, generamos tu código de compra <b>(Shipping Mark-{data.supplierName ? '1-1' : 'N-1'})</b> y las etiquetas con QR para que el proveedor las pegue en cada caja. Nosotros recibimos todo asociado a tu cuenta.</span>
         </div>
       </U.Card>);
 

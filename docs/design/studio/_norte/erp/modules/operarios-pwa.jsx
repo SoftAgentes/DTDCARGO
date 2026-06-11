@@ -132,7 +132,7 @@
                 </div>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ font: '700 14px/1.2 var(--f-sans)', margin: '0 0 4px', color: 'var(--ink)' }}>Instalar PWA en un dispositivo nuevo</h4>
-                  <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0 }}>Escaneá el QR desde el teléfono del operario para instalar la app. Las credenciales temporales se generan en "Gestión de acceso".</p>
+                  <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0 }}>Escanea el QR desde el teléfono del operario para instalar la app. Las credenciales temporales se generan en "Gestión de acceso".</p>
                 </div>
                 <U.Btn variant="secondary" icon={I.tag(14)}>Generar QR</U.Btn>
               </div>

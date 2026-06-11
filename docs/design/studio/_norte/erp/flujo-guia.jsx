@@ -4,7 +4,7 @@
 const { useState } = React;
 
 const LANE_DOC = [
-{ label: 'Comercial', tone: 'info', icon: 'spark', resp: 'Ventas · CRM', desc: 'Capta el lead, estima puerta a puerta (DDP) y convierte al cliente con su MARKBOX. Cierra y, al final del ciclo, fideliza.' },
+{ label: 'Comercial', tone: 'info', icon: 'spark', resp: 'Ventas · CRM', desc: 'Capta el lead, estima puerta a puerta (DDP) y convierte al cliente con su Shipping Mark. Cierra y, al final del ciclo, fideliza.' },
 { label: 'Operatividad', tone: 'wine', icon: 'ship', resp: 'Operaciones · Almacenes', desc: 'Mueve la carga de China a Venezuela: orden de pedido, recepción en CN, consolidación, zarpe, tránsito, aduana, almacén VE y última milla.' },
 { label: 'Contabilidad', tone: 'success', icon: 'invoice', resp: 'Finanzas', desc: 'Factura lo que llega, cobra el anticipo y el saldo, registra las CxP (naviera, aduana, transportes) y concilia el cierre del embarque.' },
 { label: 'Servicio al cliente', tone: 'warning', icon: 'chat', resp: 'Soporte · CX', desc: 'Atiende conversaciones (WhatsApp, correo, portal), gestiona casos e incidencias y cierra los casos midiendo la satisfacción (CSAT).' }];
@@ -14,14 +14,14 @@ const READ_DOC = [
 { icon: 'flow', title: 'Flujo del departamento', text: 'Las flechas sólidas conectan los pasos dentro de un mismo carril: el orden en que el trabajo avanza puertas adentro.' },
 { icon: 'spark', title: 'Enlace entre departamentos', text: 'Las líneas punteadas wine son los handoffs: el punto exacto donde un departamento le pasa el trabajo al siguiente.' },
 { icon: 'bell', title: 'Badges en vivo', text: 'El número rojo sobre cada nodo cuenta lo que está pendiente ahí ahora (leído de los datos del ERP). Sin pendientes, el nodo queda en gris.' },
-{ icon: 'users', title: 'Foco por carril', text: 'Tocá un carril (o su chip) y los demás se compactan: el elegido se expande mostrando cada paso como tarjeta con su detalle en vivo.' },
+{ icon: 'users', title: 'Foco por carril', text: 'Toca un carril (o su chip) y los demás se compactan: el elegido se expande mostrando cada paso como tarjeta con su detalle en vivo.' },
 { icon: 'chart', title: 'Panel de resumen', text: 'Al tocar un nodo se abre a la derecha un resumen propio: 2 indicadores, 3-4 registros clickeables y una acción (ej. enviar la factura al cliente).' }];
 
 
 const USE_DOC = [
 ['Activar', 'Botón "Automatizaciones" en la cabecera. El mapa entra en modo regla: las líneas con automatización se encienden y muestran su chip ⚡.'],
 ['Activar / desactivar', 'Cada regla tiene un switch. Activa = se dispara sola y su línea fluye; inactiva = queda gris y se ejecuta a mano.'],
-['Crear', '"+ Nueva regla": elegís disparador (nodo) → acción (nodo) → condiciones y canales. La línea se dibuja sola en el mapa.'],
+['Crear', '"+ Nueva regla": eliges disparador (nodo) → acción (nodo) → condiciones y canales. La línea se dibuja sola en el mapa.'],
 ['Condiciones', 'Una regla puede correr solo si se cumple algo: Monto, Tier del cliente, Tipo de servicio o Destino.'],
 ['Ejecutar ahora', 'Simula un disparo: genera el documento (factura, CxP, orden…), lo agrega al Registro en vivo y avisa por el canal.'],
 ['Registro', 'Pestaña "Registro": historial cronológico de cada ejecución con el documento generado y el momento.'],

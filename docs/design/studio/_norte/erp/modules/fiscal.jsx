@@ -122,7 +122,7 @@ function ContabilizarFiscal({ kind }) {
   const total = preview ? preview.lines.reduce((s, l) => s + (l.debit || 0), 0) : 0;
   const label = kind === 'iva' ? 'Contabilizar declaración IVA' : 'Contabilizar retenciones';
   const post = () => {
-    if (!isUnlocked) { alert('Activá "Edición abierta" en Contabilidad (header) para contabilizar.'); return; }
+    if (!isUnlocked) { alert('Activa "Edición abierta" en Contabilidad (header) para contabilizar.'); return; }
     const entry = kind === 'iva' ? C.buildIvaSettlementEntry('2026-05-31') : C.buildRetencionesEntry('2026-05-31');
     if (!entry) { alert('Sin montos para contabilizar en el período.'); return; }
     C.createEntry(entry);
