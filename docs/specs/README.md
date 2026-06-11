@@ -102,7 +102,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0066 | Generador de reportes de inspección en el ERP (white-label · … | proposed | interno |
 | 0067 | Aceptación con evidencia reforzada (SDD-B del handoff legal) … | done | interno |
 | 0068 | Recibos de cobranza con mandato (SDD-C del handoff legal) — l… | done | interno |
-| 0069 | Rendición quincenal a la Operadora (SDD-D del handoff legal) … | approved | interno |
+| 0069 | Rendición quincenal a la Operadora (SDD-D del handoff legal) … | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -1,7 +1,7 @@
 ---
 sdd: "0069"
 title: "Rendición quincenal a la Operadora (SDD-D del handoff legal) — corte 1-15 / 16-fin, recaudado de terceros neto de servicios locales, snapshot inmutable + export"
-status: approved
+status: done
 author: "handoff Claude Chat (capa legal) + Claude Code"
 created: 2026-06-11
 updated: 2026-06-11
@@ -150,20 +150,20 @@ habilita el export (CSV detalle + hoja imprimible formal).
 
 ## 5. Acceptance
 
-- [ ] Migración `0123` aditiva (renditions + rendition_receipts con RLS, trigger de
+- [x] Migración `0123` aditiva (renditions + rendition_receipts con RLS, trigger de
       inmutabilidad, unique parcial de no-doble-inclusión, RPC `next_rendition_code`,
-      validación cross-tenant). NO aplicada a prod.
-- [ ] Helper de quincena correcto (Q1 1-15, Q2 16-último; meses de 28/29/30/31; sin `Date.now`).
-- [ ] Preview en vivo: lista solo third_party+aplicado+en-rango (excluye sin_ref/rendido/
+      validación cross-tenant, + `'rendition'` al CHECK de `entity_audit_log`). NO aplicada a prod.
+- [x] Helper de quincena correcto (Q1 1-15, Q2 16-último; meses de 28/29/30/31; sin `Date.now`).
+- [x] Preview en vivo: lista solo third_party+aplicado+en-rango (excluye sin_ref/rendido/
       local/fuera-rango); 3 totales con su base; neto = recaudado − local facturado.
-- [ ] Emitir: snapshot inmutable + recibos pasan a `rendido` + no entran en otra rendición;
+- [x] Emitir: snapshot inmutable + recibos pasan a `rendido` + no entran en otra rendición;
       re-emitir el mismo período ya rendido da preview vacío (idempotencia visible).
-- [ ] Anular (admin + motivo): revierte recibos a `aplicado`, libera para nueva rendición,
+- [x] Anular (admin + motivo): revierte recibos a `aplicado`, libera para nueva rendición,
       queda en historial.
-- [ ] Export CSV detalle + hoja imprimible formal con la leyenda de agente de cobranza;
+- [x] Export CSV detalle + hoja imprimible formal con la leyenda de agente de cobranza;
       cero "DoorTuDoor Trading"/J-50220185, cero "Canopy".
-- [ ] Admin-only (no-admin → redirect dashboard). `node scripts/verify.mjs` 🟢.
-- [ ] Sin cambios en: asientos contables, máquina de estados de invoices, evidencia 0067,
+- [x] Admin-only (no-admin → redirect dashboard). `node scripts/verify.mjs` 🟢 (1670 tests).
+- [x] Sin cambios en: asientos contables, máquina de estados de invoices, evidencia 0067,
       gate AUT-04, partner-finance, Tesorería.
 
 ## 6. Fuera de alcance (respetar)
@@ -174,3 +174,56 @@ habilita el export (CSV detalle + hoja imprimible formal).
 - Rendición a aliados white-label (es partner-finance/0059, otra cosa).
 - Multi-moneda de presentación (V1 consolida a USD con el helper existente; CNY=0 documentado).
 - Aplicar la migración a prod (founder).
+
+## 7. Notas de implementación (cierre 2026-06-11)
+
+Shipped vía harness `/feature` (implement→verify, gate `node scripts/verify.mjs`
+TODO VERDE: 1670/1670 tests, lint 0 errores, rsc-boundary OK). Migración `0123`
+NO aplicada a prod (la aplica el founder). Sin commit/push. Pendiente del líder:
+agendar `ui-ux-designer` (C5, pantalla nueva).
+
+Archivos:
+- `supabase/migrations/0123_rendiciones.sql` — `renditions` + `rendition_receipts`,
+  RLS por tenant (read auth / write admin+service_role), trigger de inmutabilidad
+  (solo `emitida→anulada`+`void_reason`; DELETE bloqueado), unique parcial vía
+  **columna denormalizada `rendition_voided`** (Postgres no admite subquery en
+  índice parcial; un trigger AFTER UPDATE la sincroniza al anular), validación
+  cross-tenant del `receipt_id` (helper + trigger), RPC `next_rendition_code`.
+- `lib/studio/renditions/{types,period,queries,actions-helpers,rendition-csv,printable}.ts`
+  + `__tests__/{renditions,emit-void}.test.ts` (41 tests propios).
+- `app/studio/(app)/rendiciones/{page,actions}.tsx` + `_components/{RendicionesClient,
+  EmitDrawer,VoidDrawer}.tsx` + `[code]/{page,PrintButton}.tsx` + `[code]/export/route.ts`.
+- Sidebar: entry "Rendiciones" (FINANZAS, `adminOnly`).
+
+**Hallazgo (normalización CNY):** la decisión #2/§6 anota "CNY → 0", pero el
+helper que la spec manda usar (`receiptAmountUsd`, el mismo de `computeFundsSeparation`)
+devuelve el monto **tal cual** cuando NO hay `fx_rate` (solo USD/USDT son 1:1 y
+"otra moneda con `fx_rate>0`" se divide). Se respetó el helper existente (cero
+drift con SDD-0068): un recibo CNY **con** tasa CNY/USD se normaliza `amount/fx`;
+**sin** tasa queda en su valor nominal (no se fuerza 0). El "CNY=0" solo aplica a
+`invoiceUsdAmount`/`balanceToUsd` (otra familia de normalización, no usada acá).
+Los tests fijan este comportamiento real.
+
+### Ronda 2 (reviewer CHANGES_REQUESTED → fix → APPROVED)
+
+- **Hallazgo MAYOR del reviewer:** `auditRendition` inserta `entity_type='rendition'`
+  en `entity_audit_log`, pero el CHECK `entity_audit_log_entity_type_check` (última
+  redefinición en `0088`) no lo incluía → el INSERT del audit caía en el try/catch
+  best-effort y el rastro de una acción legal-sensible (emitir/anular) se descartaba
+  **en silencio** (el gate no lo cazaba porque es best-effort + admin client mockeado).
+  **Fix:** `0123` redefine el CHECK con la lista EXACTA de `0088` + `'rendition'`
+  (patrón 0077/0079/0088). Verificado: la lista nueva = la vieja sin pérdida.
+
+### Review ui-ux (post-APPROVED, regla founder) — 3 fixes aplicados
+
+- **ALTO:** el `<textarea>` de motivo de anulación (`VoidDrawer`) ahora `aria-required`,
+  + `aria-invalid`/`aria-describedby` al error + "· obligatorio" en el label (el gate
+  dejaba el botón muerto sin pista accesible).
+- **MEDIO:** el trigger "Anular" del historial lleva color `var(--danger)` (affordance
+  destructivo legible desde la fila).
+- **MEDIO:** en la hoja imprimible el **neto a favor de la Operadora** = cifra-conclusión
+  → bloque destacado (fondo `var(--bg-base)` re-anclado en print, 22px mono) en vez de
+  fila uniforme. Bajos (tags de base, guard de icono, foco de botón disabled) → backlog.
+
+**Pendiente founder (gate de activación):** aplicar `0123_rendiciones.sql` a prod antes
+de deployar la rama.

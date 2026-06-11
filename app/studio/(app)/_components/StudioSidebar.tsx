@@ -81,6 +81,7 @@ export const MODULES: ModuleDef[] = [
   { id: "invoices", group: "FINANZAS", label: "Facturación", labelKey: "chrome.sidebar.invoices", icon: "invoice", slug: "/studio/facturacion" },
   { id: "accounting", group: "FINANZAS", label: "Contabilidad", icon: "calc", slug: "/studio/contabilidad" },
   { id: "collections", group: "FINANZAS", label: "Cobranzas", icon: "invoice", slug: "/studio/cobranzas" },
+  { id: "renditions", group: "FINANZAS", label: "Rendiciones", icon: "doc", slug: "/studio/rendiciones", adminOnly: true },
   { id: "treasury", group: "FINANZAS", label: "Tesorería", icon: "calc", slug: "/studio/tesoreria" },
   { id: "financiero-china", group: "FINANZAS", label: "Financiero China", icon: "cn", slug: "/studio/financiero-china", adminOnly: true },
   { id: "documents", group: "FINANZAS", label: "Documentos", labelKey: "chrome.sidebar.documents", icon: "doc", slug: "/studio/documentos" },
