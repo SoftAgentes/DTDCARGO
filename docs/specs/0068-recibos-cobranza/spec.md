@@ -1,7 +1,7 @@
 ---
 sdd: "0068"
 title: "Recibos de cobranza con mandato (SDD-C del handoff legal) — leyenda obligatoria + pagador tercero + pagos sin referencia + separación de fondos"
-status: approved
+status: done
 author: "handoff Claude Chat (capa legal) + Claude Code"
 created: 2026-06-11
 updated: 2026-06-11
@@ -167,25 +167,52 @@ retroactiva** (cláusula 7.3 + decisión #6), y **clasificación de fondos**
 
 ## 5. Acceptance
 
-- [ ] Migración `0122` aditiva limpia (estados, pagador, fund_class, invoice_id
-      nullable + CHECK, cuenta puente seed). NO aplicada a prod por el harness.
-- [ ] Registrar cobro normal pide pagador; tercero sin nombre/relación/licitud ⇒
-      fieldErrors y NO inserta.
-- [ ] Pago sin referencia: se registra sin factura (`recibido_sin_ref`, asiento a
+- [x] Migración `0122` aditiva limpia (estados, pagador, fund_class, invoice_id
+      nullable + CHECK, cuenta puente seed `2.1.8`). NO aplicada a prod por el harness.
+- [x] Registrar cobro normal pide pagador; tercero sin nombre/relación/licitud ⇒
+      fieldErrors y NO inserta (defensa server + CHECK en DB).
+- [x] Pago sin referencia: se registra sin factura (`recibido_sin_ref`, asiento a
       cuenta puente), aparece en "Sin identificar", y al identificar conserva
       `received_at` original + reclasifica + queda `aplicado` con `identified_at`.
-- [ ] Recibo imprimible con el template literal COPY §2 (incluye leyenda de
+- [x] Recibo imprimible con el template literal COPY §2 (incluye leyenda de
       mandato, NO-factura-fiscal, "Recibido por: Inversiones DTD Services, C.A.",
       versión del Acuerdo, pagador tercero con relación) para receipts con y sin
       factura. Cero "DoorTuDoor Trading"/"J-50220185". Links desde drawer y
       detalle de factura.
-- [ ] `fund_class` persistida en invoices + receipts (backfill correcto) + card de
+- [x] `fund_class` persistida en invoices + receipts (backfill correcto) + card de
       separación con totales por clase + badges en listados.
-- [ ] Labels/microcopy COPY §7 definidos (incl. "Cliente ve") con `rendido` y
+- [x] Labels/microcopy COPY §7 definidos (incl. "Cliente ve") con `rendido` y
       Portal-wiring explícitamente diferidos.
-- [ ] `node scripts/verify.mjs` 🟢 (gate completo).
-- [ ] Sin cambios en: asientos de emisión, máquina de estados de invoices, módulo
+- [x] `node scripts/verify.mjs` 🟢 (gate completo, 1629 tests).
+- [x] Sin cambios en: asientos de emisión, máquina de estados de invoices, módulo
       Tesorería, evidencia 0067, gate AUT-04.
+
+## 8. Notas de implementación (cierre 2026-06-11)
+
+- Shipped vía harness en `feat/capa-legal`: implementer → gate 🟢 (1629 tests,
+  3 suites nuevas) → reviewer **APPROVED en 1 ronda** (checklist C1–C8 en
+  `.harness/progress/review_0068.md`, 0 bloqueantes) → review ui-ux (regla founder).
+- **Cuenta puente = `2.1.8`** "Fondos por identificar" (NO la `2.1.7` que la spec
+  suponía libre — `0114` ya la tomó; verificado contra seeds 0078/0114). Asientos:
+  sin-ref DR caja / CR `2.1.8`; identificación DR `2.1.8` / CR `1.1.2` con fecha =
+  `received_at` ORIGINAL (retroactividad), `paid_amount` sube solo al identificar.
+- **Identificación exige misma moneda** pago↔factura (decisión de implementación no
+  explícita en la spec): evita introducir fx en la imputación retroactiva. Razonable;
+  si se necesita multi-moneda es trabajo aparte.
+- Auditoría del reviewer: builder string-EXACTO contra COPY §2 (test fija el documento
+  completo), CERO "DoorTuDoor Trading"/J-50220185 en output renderizado, CHECK
+  bicondicional sin-ref⇔invoice-null defendido en DB, una `fund_class` por asiento
+  (invariante de mandato testeada), página del recibo sin fuga cross-tenant.
+- Review ui-ux: 0 bloqueantes; se aplicaron 3 fixes en el recibo imprimible (monto
+  como **ancla visual** 24px mono fuera del grid uniforme · "NO constituye factura
+  fiscal" con **peso propio** sobre la nota del Acuerdo · "Canal de pago" como campo
+  separado) + microcopy "· requerido para registrar un pago de tercero" junto al
+  checkbox de licitud cuando está sin marcar (el gate dejaba el botón muerto sin
+  pista). `fmtAmount` se exportó del builder para que la página no re-derive el
+  formato. `--bg-base` añadido al re-anclaje `@media print`.
+- **Pendiente founder (gate de activación):** aplicar `0122_recibos_cobranza.sql` a
+  prod antes de deployar la rama (relaja `invoice_id` a nullable + columnas de
+  pagador/estado/fund_class + cuenta puente seed).
 
 ## 6. Fuera de alcance (respetar)
 
