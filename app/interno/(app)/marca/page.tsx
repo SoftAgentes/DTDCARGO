@@ -17,9 +17,11 @@ import { DTD, BRAND_ASSETS, CONTACT, SHADOWS } from "@/lib/design-tokens";
  * herramientas de WhatsApp Business. El acceso queda restringido a usuarios del
  * ERP (guard en `(app)/layout.tsx`) + noindex (layout raíz).
  *
- * Brand Book: placeholder v3.2 (lo que hay en disco). Cuando Cloud Design entregue
- * v3.5 desde Norte → copiar el HTML a `public/marca/brand-book-v3.5.html` y cambiar
- * la const `BRAND_BOOK`. El iframe hereda la CSP relajada de `/marca/*` (next.config).
+ * Brand Book: el vigente es UNO solo (gobernanza v3.7). Cuando llegue un book
+ * nuevo desde el Norte → copiar el standalone a `public/marca/brand-book-vX.Y.html`,
+ * borrar el anterior y actualizar `BRAND_BOOK`/`BRAND_BOOK_VERSION` acá, `FILE`
+ * en el visor (`app/marca/brand-book/page.tsx`) y `outputFileTracingIncludes`
+ * (next.config.ts). El iframe hereda la CSP relajada de `/marca/*` (next.config).
  */
 
 const jetbrainsMono = JetBrains_Mono({
@@ -34,8 +36,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const BRAND_BOOK = "/marca/brand-book-v3.2.html";
-const BRAND_BOOK_VERSION = "v3.2";
+const BRAND_BOOK = "/marca/brand-book-v3.7.html";
+const BRAND_BOOK_VERSION = "v3.7";
 
 const NAV: NavItem[] = [
   { id: "descargas-rapidas", label: "Descargas" },
