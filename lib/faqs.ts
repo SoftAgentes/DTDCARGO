@@ -8,10 +8,11 @@
 // + FAQ maestro del paquete F4 (faq/FAQ-sitio-DTDCargo.md). Fuente única para
 // /faq (UI + FAQPage schema.org). Voz: tuteo venezolano neutro, cero voseo.
 //
-// TODO(founder): confirmar valor del MÍNIMO de envío (00-EMPIEZA-AQUI #1) —
-//   la respuesta del mínimo remite a la cotización mientras tanto.
-// TODO(founder): confirmar política de baterías DG pleno vs solo SP188
-//   (00-EMPIEZA-AQUI #2) — la respuesta actual es válida bajo ambas políticas.
+// Cifras de mínimo y baterías = las MISMAS que aplica la calculadora pública
+// (confirmadas en prod 2026-06-10): piso del flete = rates.min_charge de la
+// tarifa pública (USD 50) · recargo baterías = calculator_settings
+// .recargo_bateria_mult (×1.5 = +50%). Si esos valores cambian en
+// /studio/tarifas, actualizar estas dos respuestas a mano.
 
 export type Faq = { pregunta: string; respuesta: string };
 
@@ -55,7 +56,7 @@ export const FAQS: Faq[] = [
   {
     pregunta: "¿Hay un mínimo para enviar con DTD Cargo?",
     respuesta:
-      "El mínimo depende de la modalidad y la ruta, y te lo confirmamos al cotizar por WhatsApp o en la calculadora. Lo bueno del consolidado es que puedes agrupar varias compras de distintos proveedores bajo tu mismo Shipping Mark para aprovechar mejor el flete.",
+      "Sí: el flete mínimo del consolidado marítimo es de USD 50 por envío — si tu carga ocupa muy poco volumen, ese es el piso que se factura. Lo bueno del consolidado es que puedes agrupar varias compras de distintos proveedores bajo tu mismo Shipping Mark para aprovecharlo mejor; la calculadora te muestra el monto exacto según tu volumen y destino.",
   },
   {
     pregunta:
@@ -110,7 +111,7 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿Puedo enviar baterías o productos con batería (powerbanks, electrónica)?",
     respuesta:
-      "Sí. Los equipos con baterías pequeñas (hasta 100 Wh, como powerbanks, teléfonos y laptops) viajan con un trámite simplificado si tu proveedor entrega el certificado UN38.3 y la hoja de seguridad (MSDS). Las baterías grandes, de scooter o paneles solares son mercancía peligrosa y necesitan documentos adicionales y un canal especial: escríbenos antes de comprar. Indícalo siempre en tu pre-alerta.",
+      "Sí. Los equipos con baterías pequeñas (hasta 100 Wh, como powerbanks, teléfonos y laptops) viajan con un trámite simplificado si tu proveedor entrega el certificado UN38.3 y la hoja de seguridad (MSDS); por el manejo especial, el flete de la carga con baterías lleva un recargo del 50% — márcalo en la calculadora para que tu estimado ya lo incluya. Las baterías grandes, de scooter o paneles solares son mercancía peligrosa y necesitan documentos adicionales y un canal especial: escríbenos antes de comprar. Indícalo siempre en tu pre-alerta.",
   },
   {
     pregunta: "¿Puedo hacerle seguimiento a mi envío para saber dónde va?",
