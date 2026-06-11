@@ -2,7 +2,7 @@
  * lib/i18n/es-VE/errors.ts · Mensajes de error server-side en español.
  *
  * Las keys deben coincidir 1:1 con `ERROR_CODE_KEY` en `error-codes.ts`.
- * Si agregás un código nuevo, agregalo en:
+ * Si agregas un código nuevo, agrégalo en:
  *   1. `error-codes.ts` → tipo ErrorCode + entry en ERROR_CODE_KEY
  *   2. `es-VE/errors.ts` → mensaje en español
  *   3. `zh-CN/errors.ts` → mensaje en chino
@@ -10,13 +10,13 @@
 
 export const errors = {
   // ── Globales ─────────────────────────────────────────────
-  "error.auth_required": "Iniciá sesión primero.",
+  "error.auth_required": "Inicia sesión primero.",
   "error.tenant_unresolved": "No se pudo resolver el tenant.",
-  "error.permission_denied": "No tenés permiso para hacer esto.",
+  "error.permission_denied": "No tienes permiso para hacer esto.",
   "error.invalid_input": "Datos inválidos.",
-  "error.field_errors_present": "Hay campos con errores. Revisalos y reintentá.",
+  "error.field_errors_present": "Hay campos con errores. Revísalos y reintenta.",
   "error.not_found": "No se encontró el registro.",
-  "error.internal_error": "Algo salió mal. Probá de nuevo.",
+  "error.internal_error": "Algo salió mal. Prueba de nuevo.",
 
   // ── Almacén CN ───────────────────────────────────────────
   "error.cn_code_generation_failed": "No se pudo generar el código de recepción.",
@@ -31,14 +31,14 @@ export const errors = {
   "error.user_email_invalid": "Email inválido.",
   "error.user_role_invalid": "Rol inválido.",
   "error.user_signin_required":
-    "Necesitás iniciar sesión para invitar usuarios.",
+    "Necesitas iniciar sesión para invitar usuarios.",
   "error.user_already_admin":
     "Este usuario ya es admin del tenant.",
   "error.user_no_other_admins":
-    "No podés sacarte el rol admin: sos el único admin del tenant.",
+    "No puedes sacarte el rol admin: eres el único admin del tenant.",
 
   // ── Bug ──────────────────────────────────────────────────
-  "error.bug_create_failed": "No se pudo crear el reporte. Reintentá.",
+  "error.bug_create_failed": "No se pudo crear el reporte. Reintenta.",
   "error.bug_invalid_input": "Faltan campos del reporte o tienen valores inválidos.",
 } as const satisfies Record<string, string>;
 

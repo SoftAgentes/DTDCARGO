@@ -377,7 +377,7 @@ export function validateReceiptInput(input: Partial<WarehouseReceiptInput>): {
   // Items: al menos 1, máx 10
   const rawItems = input.items ?? [];
   if (rawItems.length === 0) {
-    errors.items = "Agregá al menos 1 item.";
+    errors.items = "Agrega al menos 1 item.";
   } else if (rawItems.length > MAX_ITEMS) {
     errors.items = `Máximo ${MAX_ITEMS} items por recepción.`;
   } else {

@@ -118,7 +118,7 @@ export function validateBatchPrintInput(
 ): { input?: BatchPrintInput; fieldErrors?: Record<string, string> } {
   const errors: Record<string, string> = {};
   const ids = (input.ids ?? []).map((s) => String(s).trim()).filter(Boolean);
-  if (ids.length === 0) errors.ids = "Seleccioná al menos 1 orden.";
+  if (ids.length === 0) errors.ids = "Selecciona al menos 1 orden.";
   const printer = input.printer_label?.trim();
   if (!printer) errors.printer_label = "Indicá la impresora.";
   if (Object.keys(errors).length > 0) return { fieldErrors: errors };

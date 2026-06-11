@@ -62,8 +62,8 @@ export function LabelGeneratorClient(props: Props) {
           }}
         >
           {props.clients.length === 0
-            ? "Creá clientes desde /studio/clientes antes de generar etiquetas."
-            : "Aplicá la migration 0008_warehouses_cn.sql para tener los hubs CN seedeados."}
+            ? "Crea clientes desde /studio/clientes antes de generar etiquetas."
+            : "Aplica la migration 0008_warehouses_cn.sql para tener los hubs CN seedeados."}
         </p>
       </div>
     );
@@ -320,9 +320,9 @@ function LabelGeneratorInner({
               }}
             >
               {clientSuppliers.length === 0
-                ? "Este cliente todavía no registró proveedores desde su portal. Completá los datos a mano para el mensaje del supplier."
+                ? "Este cliente todavía no registró proveedores desde su portal. Completa los datos a mano para el mensaje del supplier."
                 : supplierId === SUPPLIER_FREEFORM
-                  ? "Elegí un proveedor cargado o completá los datos a mano para el mensaje del supplier."
+                  ? "Elige un proveedor cargado o completa los datos a mano para el mensaje del supplier."
                   : "Datos del proveedor cargado — editalos si hace falta para este envío."}
             </p>
             <Field
@@ -478,7 +478,7 @@ function LabelGeneratorInner({
                   color: "var(--ink-mute)",
                 }}
               >
-                Imprimí la misma etiqueta {copiesPerBox}{" "}
+                Imprime la misma etiqueta {copiesPerBox}{" "}
                 {copiesPerBox === 1 ? "vez" : "veces"} por caja para pegar en{" "}
                 {copiesPerBox === 1
                   ? "una cara"
@@ -589,7 +589,7 @@ function LabelGeneratorInner({
               font: "500 11.5px/1.5 var(--f-sans)",
             }}
           >
-            Al imprimir, el navegador abre el diálogo del sistema. Elegí{" "}
+            Al imprimir, el navegador abre el diálogo del sistema. Elige{" "}
             <b>&quot;Guardar como PDF&quot;</b> como destino. Tamaño de papel:{" "}
             <b>
               {format.page.w}×{format.page.h} mm

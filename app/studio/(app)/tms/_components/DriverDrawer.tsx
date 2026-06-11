@@ -107,7 +107,7 @@ export function DriverDrawer({ onClose }: { onClose: () => void }) {
             name="license_class"
             value={licenseClass}
             onChange={setLicenseClass}
-            options={[{ value: "", label: "Seleccioná…" }, ...LICENSE_CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
+            options={[{ value: "", label: "Selecciona…" }, ...LICENSE_CLASS_OPTIONS.map((c) => ({ value: c, label: c }))]}
           />
           <FieldText
             label="Vence licencia"
@@ -123,7 +123,7 @@ export function DriverDrawer({ onClose }: { onClose: () => void }) {
             name="hub_code"
             value={hubCode}
             onChange={setHubCode}
-            options={[{ value: "", label: "Seleccioná hub…" }, ...TMS_HUBS.map((h) => ({ value: h.code, label: `${h.code} · ${h.name}` }))]}
+            options={[{ value: "", label: "Selecciona hub…" }, ...TMS_HUBS.map((h) => ({ value: h.code, label: `${h.code} · ${h.name}` }))]}
           />
           <FieldText
             label="Años de experiencia"

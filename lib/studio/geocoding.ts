@@ -60,7 +60,7 @@ export async function geocodeAddress(
     if (!Array.isArray(data) || data.length === 0) {
       return {
         ok: false,
-        error: "Sin resultados para esa dirección. Probá agregar ciudad y estado.",
+        error: "Sin resultados para esa dirección. Prueba agregar ciudad y estado.",
       };
     }
 

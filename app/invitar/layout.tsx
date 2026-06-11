@@ -15,7 +15,7 @@ import "@/app/studio/studio.css";
 
 export const metadata: Metadata = {
   title: "Aceptar invitación · DTD Studio",
-  description: "Aceptá tu invitación al equipo de DTD Cargo Studio.",
+  description: "Acepta tu invitación al equipo de DTD Cargo Studio.",
   robots: { index: false, follow: false },
 };
 

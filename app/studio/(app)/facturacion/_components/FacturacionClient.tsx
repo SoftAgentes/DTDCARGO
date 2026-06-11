@@ -126,8 +126,8 @@ export function FacturacionClient({
               maxWidth: "62ch",
             }}
           >
-            Emití facturas con código F-{new Date().getFullYear()}-NNNN, registrá
-            pagos que bajan el saldo y seguí los vencimientos.
+            Emite facturas con código F-{new Date().getFullYear()}-NNNN, registra
+            pagos que bajan el saldo y sigue los vencimientos.
             {ivaOn ? " IVA 16% discriminado." : ""}
           </p>
         </div>
@@ -270,8 +270,8 @@ export function FacturacionClient({
           }
           description={
             hasFiltersApplied
-              ? "Probá ajustar los filtros o limpiá la búsqueda."
-              : "Emití tu primera factura. El total se calcula a partir de las líneas que cargues."
+              ? "Prueba ajustar los filtros o limpia la búsqueda."
+              : "Emite tu primera factura. El total se calcula a partir de las líneas que cargues."
           }
           action={
             !hasFiltersApplied ? (

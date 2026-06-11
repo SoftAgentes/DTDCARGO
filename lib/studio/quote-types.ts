@@ -208,7 +208,7 @@ export function validateQuoteInput(input: Partial<QuoteInput>): {
 } {
   const errors: QuoteActionState["fieldErrors"] = {};
 
-  if (!input.service) errors.service = "Elegí un servicio.";
+  if (!input.service) errors.service = "Elige un servicio.";
   if (!input.client_markbox?.trim())
     errors.client_markbox = "Indicá el Shipping Mark del cliente.";
   if (!input.client_name?.trim())

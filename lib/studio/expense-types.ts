@@ -305,7 +305,7 @@ export function validateExpenseInput(
 
   // scope=shipment requiere shipment_id (matchea el CHECK de la DB).
   if (scope === "shipment" && !input.shipment_id) {
-    errors.shipment_id = "Elegí el contenedor (embarque) del gasto.";
+    errors.shipment_id = "Elige el contenedor (embarque) del gasto.";
   }
 
   if (!input.method || !VALID_METHODS.includes(input.method)) {

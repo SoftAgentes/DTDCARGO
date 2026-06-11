@@ -136,7 +136,7 @@ export function CategoryDetector({
   if (error) {
     return (
       <div className="text-[11.5px] text-grey-500">
-        No se pudo sugerir categoría ({error}). Seleccioná manualmente arriba.
+        No se pudo sugerir categoría ({error}). Selecciona manualmente arriba.
       </div>
     );
   }

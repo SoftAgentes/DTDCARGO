@@ -100,7 +100,7 @@ export function CiudadesPanel({
           title="No hay ciudades configuradas."
           description={
             isAdmin
-              ? "Agregá las ciudades de destino para el calculador. Mientras tanto, el sitio usa la lista por defecto."
+              ? "Agrega las ciudades de destino para el calculador. Mientras tanto, el sitio usa la lista por defecto."
               : "El sitio usa la lista de ciudades por defecto. Pedile a un admin que las configure."
           }
           action={

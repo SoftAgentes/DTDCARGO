@@ -122,7 +122,7 @@ export default function OperarioVeLoginPage() {
               margin: 0,
             }}
           >
-            Ingresá tu PIN de 4 dígitos
+            Ingresa tu PIN de 4 dígitos
           </p>
         </div>
 

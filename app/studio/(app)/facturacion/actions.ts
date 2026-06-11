@@ -482,7 +482,7 @@ export async function emitInvoice(
       return {
         needsLegalAck: true,
         warning:
-          "Este embarque DDP no tiene una aceptación de T&C vigente del cliente. Podés emitir igual (queda registrado en la auditoría).",
+          "Este embarque DDP no tiene una aceptación de T&C vigente del cliente. Puedes emitir igual (queda registrado en la auditoría).",
       };
     }
   }

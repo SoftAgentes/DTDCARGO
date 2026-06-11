@@ -80,7 +80,7 @@ export function OperariosClient({
         <EmptyState
           eyebrow="Catálogo vacío"
           title="Aún no hay operarios."
-          description="Cada operario tiene un PIN de 4 dígitos para entrar a la PWA mobile. Creá el primero."
+          description="Cada operario tiene un PIN de 4 dígitos para entrar a la PWA mobile. Crea el primero."
           action={
             <button
               type="button"

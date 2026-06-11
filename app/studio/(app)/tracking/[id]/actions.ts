@@ -281,7 +281,7 @@ export async function addShipmentEvent(
   const note = parseString(formData.get("note"));
   const occurredAtRaw = parseString(formData.get("occurred_at"));
 
-  if (!status) return { error: "Elegí un estado." };
+  if (!status) return { error: "Elige un estado." };
 
   const tenantId = await getUserTenantId();
   if (!tenantId) return { error: "Sin tenant asignado." };

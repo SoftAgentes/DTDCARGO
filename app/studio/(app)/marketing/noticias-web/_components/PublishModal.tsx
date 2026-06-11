@@ -353,7 +353,7 @@ export function PublishModal({
                   {writerPopoverOpen && preview.options.length > 1 && (
                     <div
                       role="dialog"
-                      aria-label="Elegí firma para esta publicación"
+                      aria-label="Elige firma para esta publicación"
                       className="absolute top-full left-0 mt-2 z-10 flex flex-col gap-2 p-3 rounded-lg"
                       style={{
                         background: "var(--bg-surface, #FFFFFF)",
@@ -371,7 +371,7 @@ export function PublishModal({
                           color: "var(--ink-soft, #6B6B6B)",
                         }}
                       >
-                        Elegí la firma
+                        Elige la firma
                       </div>
                       <SegmentedControl<string>
                         value={selectedWriterId}

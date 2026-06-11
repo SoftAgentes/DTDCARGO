@@ -103,7 +103,7 @@ export class MockLLMClient implements LLMClient {
 
       const message = shipmentSummary
         ? buildShipmentReply(code, shipmentSummary, timeline)
-        : `No encuentro un envío con código ${code}. Verificá que esté bien escrito (formato S-YYYY-NNNN) o consultá con el equipo de Operaciones.`;
+        : `No encuentro un envío con código ${code}. Verifica que esté bien escrito (formato S-YYYY-NNNN) o consulta con el equipo de Operaciones.`;
 
       return mockResult({
         output: {
@@ -142,7 +142,7 @@ export class MockLLMClient implements LLMClient {
 
       const message = customer
         ? buildCustomerReply(markbox, customer, shipments)
-        : `No encuentro un cliente con MARKBOX ${markbox}. Verificá el código o consultá el módulo Clientes.`;
+        : `No encuentro un cliente con Shipping Mark ${markbox}. Verifica el código o consulta el módulo Clientes.`;
 
       return mockResult({
         output: { message, citations },

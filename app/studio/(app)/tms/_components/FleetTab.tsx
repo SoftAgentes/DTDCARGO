@@ -20,7 +20,7 @@ export function FleetTab({ rows }: { rows: TmsTruckRow[] }) {
       <EmptyState
         eyebrow="Flota vacía"
         title="Aún no cargaste camiones en la flota."
-        description="Usá '+ Nuevo camión' en el header para registrar el primer vehículo (propio o contratado)."
+        description="Usa '+ Nuevo camión' en el header para registrar el primer vehículo (propio o contratado)."
       />
     );
   }

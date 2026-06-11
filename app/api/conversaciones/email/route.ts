@@ -40,7 +40,7 @@ export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
   // Secret dedicado del webhook inbound (separado del de delivery/bounce para no
-  // acoplar los dos endpoints; pueden compartir valor en el dashboard si querés).
+  // acoplar los dos endpoints; pueden compartir valor en el dashboard si quieres).
   const secret =
     process.env.RESEND_INBOUND_WEBHOOK_SECRET ?? process.env.RESEND_WEBHOOK_SECRET;
   if (!secret) {

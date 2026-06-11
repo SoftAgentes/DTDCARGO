@@ -76,7 +76,7 @@ export async function registerAcceptanceAction(
     .maybeSingle<{ tenant_id: string }>();
   const tenantId = String(clientRow?.tenant_id ?? "").trim();
   if (!tenantId) {
-    return { error: "No pudimos resolver tu cuenta. Contactá a tu asesor." };
+    return { error: "No pudimos resolver tu cuenta. Contacta a tu asesor." };
   }
 
   const order = await getPendingAcceptanceInvoice(admin, {
@@ -139,7 +139,7 @@ export async function registerAcceptanceAction(
   if (vigentes.length === 0) {
     return {
       error:
-        "No hay términos vigentes para aceptar en este momento. Contactá a tu asesor.",
+        "No hay términos vigentes para aceptar en este momento. Contacta a tu asesor.",
     };
   }
   const docs: DocRef[] = vigentes.map((d) => ({ key: d.key, version: d.version }));
@@ -166,7 +166,7 @@ export async function registerAcceptanceAction(
   if (fieldErrors || !input) {
     return {
       error:
-        "No pudimos registrar la aceptación (datos de la orden incompletos). Contactá a tu asesor.",
+        "No pudimos registrar la aceptación (datos de la orden incompletos). Contacta a tu asesor.",
     };
   }
 

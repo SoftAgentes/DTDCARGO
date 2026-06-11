@@ -246,7 +246,7 @@ export default function MarcaHubPage() {
               href="/interno/marca/whatsapp"
               meta="Generador + guía"
               title="WhatsApp Business Services"
-              desc="Generá las imágenes 1080×1080 del catálogo y configurá el perfil de cada número con la guía paso a paso (copiar y pegar)."
+              desc="Genera las imágenes 1080×1080 del catálogo y configura el perfil de cada número con la guía paso a paso (copiar y pegar)."
             />
             <ToolCardPlaceholder>
               Más plantillas y templates de marca van a aparecer acá.

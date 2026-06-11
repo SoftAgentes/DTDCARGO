@@ -19,11 +19,11 @@ export const metadata: Metadata = { title: "Mi cuenta" };
  * datos acá (los cambia su asesor). Por eso todo es read-only + un CTA de
  * WhatsApp para pedir correcciones.
  *
- * El VALOR de la página es la sección "Tu MARKBOX para tus proveedores": le
- * recuerda al cliente que su MARKBOX es lo que el proveedor en China escribe en
- * cada caja como Shipping Mark (唛头), para que la mercancía llegue identificada
- * a la bodega de Yiwu. (De cara al cliente el término es MARKBOX; "Shipping Mark"
- * sólo aparece al nombrar lo que hace el proveedor.)
+ * El VALOR de la página es la sección "Tu Shipping Mark para tus proveedores":
+ * le recuerda al cliente que su Shipping Mark (唛头) es lo que el proveedor en
+ * China escribe en cada caja, para que la mercancía llegue identificada a la
+ * bodega de Yiwu. (Nombre visible en toda la UI: "Shipping Mark" — SDD-0065;
+ * `markbox` queda solo como identificador interno de código/DB.)
  */
 export default async function PortalAccountPage() {
   const supabase = await createClient();
@@ -46,7 +46,7 @@ export default async function PortalAccountPage() {
       </h1>
       <p className="lead mt-3">
         Estos son los datos con los que te tenemos registrado. Los administra tu
-        asesor — si algo cambió, avisale y lo actualizamos.
+        asesor — si algo cambió, avísale y lo actualizamos.
       </p>
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1.05fr] gap-6 lg:gap-8 items-start">
@@ -151,7 +151,7 @@ export default async function PortalAccountPage() {
           </h2>
 
           <p className="mt-4 text-[14.5px] text-grey-700 leading-[1.6]">
-            Cuando le pidas mercancía a tu proveedor en China, pasale tu{" "}
+            Cuando le pidas mercancía a tu proveedor en China, pásale tu{" "}
             <span style={{ fontFamily: "var(--font-noto-sc), var(--font-archivo)" }}>
               Shipping Mark (唛头)
             </span>

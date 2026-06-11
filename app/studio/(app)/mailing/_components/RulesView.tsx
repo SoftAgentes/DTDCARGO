@@ -74,7 +74,7 @@ export function RulesView({ rules, templates }: Props) {
             maxWidth: "60ch",
           }}
         >
-          Configurá reglas para disparar emails automáticos cuando ocurre un
+          Configura reglas para disparar emails automáticos cuando ocurre un
           evento (ej: al crear un embarque, mandar shipment_created al
           cliente). Las reglas activas se ejecutan en tiempo real desde los
           hooks en Estimados y tracking. Envíos best-effort: si Resend falla,

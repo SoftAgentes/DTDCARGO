@@ -204,7 +204,7 @@ export function validatePaymentInput(
 
   const cashAccountId = (input.cashAccountId ?? "").trim();
   if (!cashAccountId) {
-    errors.cashAccountId = "Elegí la cuenta de caja o banco que recibió el pago.";
+    errors.cashAccountId = "Elige la cuenta de caja o banco que recibió el pago.";
   }
 
   const method: PaymentMethod = VALID_METHODS.has(input.method ?? "")

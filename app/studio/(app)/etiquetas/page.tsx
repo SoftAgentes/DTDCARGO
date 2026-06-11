@@ -118,11 +118,11 @@ export default async function EtiquetasPage({
               maxWidth: "76ch",
             }}
           >
-            Plancha PDF bilingüe ES / 中文 con MARKBOX del cliente + Box X/Y.
-            Mandala al supplier chino para que pegue las etiquetas antes del
+            Plancha PDF bilingüe ES / 中文 con Shipping Mark del cliente + Box X/Y.
+            Mándala al supplier chino para que pegue las etiquetas antes del
             despacho a tu almacén CN.{" "}
             <span style={{ color: "var(--ink-mute)" }}>
-              El navegador abre el diálogo de impresión — elegí
+              El navegador abre el diálogo de impresión — elige
               &quot;Guardar como PDF&quot; como destino.
             </span>
           </p>

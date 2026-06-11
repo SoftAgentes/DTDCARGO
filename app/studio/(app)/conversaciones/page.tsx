@@ -51,7 +51,7 @@ export default async function ConversacionesPage() {
           }}
         >
           Bandeja unificada de atención: el mensaje del cliente desde el portal entra
-          a un hilo por cliente. Respondé, cambiá el estado, asigná un agente y abrí
+          a un hilo por cliente. Responde, cambia el estado, asigna un agente y abre
           casos. Cuando el cliente tiene email, tu respuesta también le llega por
           correo.
         </p>

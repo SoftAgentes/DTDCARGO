@@ -201,14 +201,14 @@ export function ClientsClient({
             description={
               filters.pendingReview
                 ? "Los clientes self-registrados ya verificados no aparecen acá."
-                : "Probá ajustar los filtros o limpiá la búsqueda."
+                : "Prueba ajustar los filtros o limpia la búsqueda."
             }
           />
         ) : (
           <EmptyState
             eyebrow="Catálogo vacío"
             title="Aún no cargaste clientes."
-            description="Creá el primer cliente. El Shipping Mark se asigna automáticamente."
+            description="Crea el primer cliente. El Shipping Mark se asigna automáticamente."
             action={
               <button
                 type="button"

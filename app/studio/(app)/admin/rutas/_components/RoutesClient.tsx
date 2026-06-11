@@ -619,8 +619,8 @@ function RoutesEmptyState({
         }}
       >
         {hasAny
-          ? "Ajustá los filtros o creá una ruta nueva."
-          : "Creá tu primera ruta para empezar a despachar paquetes."}
+          ? "Ajusta los filtros o crea una ruta nueva."
+          : "Crea tu primera ruta para empezar a despachar paquetes."}
       </p>
       <button
         type="button"
@@ -724,8 +724,8 @@ function CitiesTab({
                 margin: 0,
               }}
             >
-              Podés seedear con las 98 ciudades del catálogo público VE (24 estados +
-              IPOSTEL). Después editás cuáles te interesan.
+              Puedes seedear con las 98 ciudades del catálogo público VE (24 estados +
+              IPOSTEL). Después editas cuáles te interesan.
             </p>
           </div>
           <form action={seedAction}>
@@ -791,7 +791,7 @@ function CitiesTab({
             <b style={{ color: "var(--ink)" }}>
               Estado → Municipio → Parroquia → Ciudad → Barrio
             </b>
-            . El radio default se precarga cuando agregás esa ciudad como parada en
+            . El radio default se precarga cuando agregas esa ciudad como parada en
             una ruta — editable después por ruta sin tocar el catálogo.
           </p>
         </div>

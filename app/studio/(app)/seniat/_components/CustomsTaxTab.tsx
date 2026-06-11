@@ -51,7 +51,7 @@ export function CustomsTaxTab({ breakdown }: { breakdown: TaxBreakdown }) {
             margin: "var(--s-3) auto 0",
           }}
         >
-          Cuando creés trámites con costos cargados, el resumen se calcula
+          Cuando crees trámites con costos cargados, el resumen se calcula
           automáticamente.
         </p>
       </div>

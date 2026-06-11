@@ -79,7 +79,7 @@ export function PlanCuentasTab({
       <EmptyState
         eyebrow="Sin plan de cuentas"
         title="Aún no hay cuentas."
-        description="El plan de cuentas se siembra con la migración. Si querés, agregá una cuenta manual."
+        description="El plan de cuentas se siembra con la migración. Si quieres, agrega una cuenta manual."
         action={
           <button
             type="button"

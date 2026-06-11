@@ -26,7 +26,7 @@ export async function editReceiptAction(
 ): Promise<CreateReceiptState> {
   const operario = await getCurrentOperario();
   if (!operario) {
-    return { error: "Sesión expirada. Iniciá sesión de nuevo." };
+    return { error: "Sesión expirada. Inicia sesión de nuevo." };
   }
   if (operario.region !== "cn") {
     return { error: "Solo operarios CN pueden editar recepciones CN." };
@@ -105,7 +105,7 @@ function humanizeEditError(msg: string): string {
   if (msg.includes("P0110")) return "Falta el ID de la recepción.";
   if (msg.includes("P0140")) return "Recepción no encontrada.";
   if (msg.includes("P0141")) return "Esta recepción no pertenece a tu tenant.";
-  if (msg.includes("P0142")) return "Solo podés editar tus propias recepciones.";
+  if (msg.includes("P0142")) return "Solo puedes editar tus propias recepciones.";
   if (msg.includes("P0143")) return "Esta recepción ya fue consolidada · no se puede editar.";
   if (msg.includes("P0144")) return "Cajas debe ser un número positivo.";
   return msg;

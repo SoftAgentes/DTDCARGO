@@ -46,7 +46,7 @@ function parseNumberOrNull(v: FormDataEntryValue | null): number | null {
 
 async function requireCamioneroSession() {
   const session = await getCurrentOperario();
-  if (!session) return { error: "Sesión inválida · ingresá de nuevo." as const };
+  if (!session) return { error: "Sesión inválida · ingresa de nuevo." as const };
   if (session.region !== "ve") return { error: "Solo operarios VE." as const };
   const activeMode = session.current_mode ?? session.role;
   if (activeMode !== "camionero" && activeMode !== "supervisor") {
@@ -133,7 +133,7 @@ export async function podAction(
     return { fieldErrors: { signature: "Firma obligatoria." } };
   }
   if (!received_by) {
-    return { fieldErrors: { received_by: "Indicá nombre del receptor." } };
+    return { fieldErrors: { received_by: "Indica nombre del receptor." } };
   }
 
   const admin = createAdminClient();

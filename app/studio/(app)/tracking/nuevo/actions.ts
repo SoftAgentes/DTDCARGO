@@ -70,17 +70,17 @@ export async function createShipment(
   const fieldErrors: Record<string, string> = {};
   if (!code) fieldErrors.code = "Obligatorio.";
   if (!VALID_SERVICES.includes(shipment_service))
-    fieldErrors.shipment_service = "Elegí un servicio.";
+    fieldErrors.shipment_service = "Elige un servicio.";
   if (shipment_service === "transporte_terrestre" && !vehicle_category)
     fieldErrors.vehicle_category = "Para transporte terrestre es obligatorio.";
 
   if (Object.keys(fieldErrors).length > 0) {
-    return { error: "Revisá los campos marcados.", fieldErrors };
+    return { error: "Revisa los campos marcados.", fieldErrors };
   }
 
   const tenantId = await getUserTenantId();
   if (!tenantId) {
-    return { error: "Tu sesión no tiene tenant asignado. Contactá a Sam." };
+    return { error: "Tu sesión no tiene tenant asignado. Contacta a Sam." };
   }
 
   const initialStatus: ShipmentStatus = getDefaultInitialStatus(shipment_service);

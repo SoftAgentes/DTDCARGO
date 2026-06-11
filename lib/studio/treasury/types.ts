@@ -271,11 +271,11 @@ export function validateBillInput(input: Partial<BillInput>): {
   }
 
   const supplierId = (input.supplierId ?? "").trim();
-  if (!supplierId) errors.supplierId = "Elegí el proveedor.";
+  if (!supplierId) errors.supplierId = "Elige el proveedor.";
 
   const expenseAccountId = (input.expenseAccountId ?? "").trim();
   if (!expenseAccountId) {
-    errors.expenseAccountId = "Elegí la cuenta de costo o gasto a imputar.";
+    errors.expenseAccountId = "Elige la cuenta de costo o gasto a imputar.";
   }
 
   const dateOk = (s: string | null | undefined): boolean =>
@@ -444,7 +444,7 @@ export function validatePaymentInput(
 
   const cashAccountId = (input.cashAccountId ?? "").trim();
   if (!cashAccountId) {
-    errors.cashAccountId = "Elegí la cuenta de caja o banco que paga.";
+    errors.cashAccountId = "Elige la cuenta de caja o banco que paga.";
   }
 
   const method: PaymentMethod = VALID_METHODS.has(input.method ?? "")

@@ -180,7 +180,7 @@ export default async function ShipmentDetailPage({
                 margin: "6px 0 0",
               }}
             >
-              Resolvé el problema y cambiá el estado en el panel de acciones
+              Resuelve el problema y cambia el estado en el panel de acciones
               para que el envío continúe.
             </p>
           </div>

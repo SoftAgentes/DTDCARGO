@@ -79,7 +79,7 @@ Cuando el ERP exponga endpoints reales, reemplazar `mockSubmit`/`getTracking` po
 - **Drawer**: `app/studio/_components/ui/drawer/DrawerShell.tsx` — `<form id="X">` en el cuerpo + `<button type="submit" form="X">` en el footer (HTML5; **no** `requestSubmit()` hack).
 - **UI primitivas**: `app/studio/_components/ui/` (Avatar, Badge, EmptyState, KpiCard) + `_components/icons.tsx`.
 - **Tokens**: solo `var(--*)` desde `app/studio/tokens.css`. Sobre fondo navy usar `--ink-inv-soft` / `--ink-inv-mute`, nunca `rgba(255,255,255,X)` inline.
-- **MARKBOX** = ID de cliente (`DTD-NNNN`), autogenerado por `rpc('next_markbox')`.
+- **MARKBOX** = ID de cliente (`DTD-NNNN`), autogenerado por `rpc('next_markbox')`. Nombre VISIBLE al usuario: **"Shipping Mark"** (SDD-0065, display-only); `markbox` sigue siendo el identificador interno (columnas, RPCs, props).
 - **Dónde va el código nuevo**: dominio con ≥3 archivos → carpeta `lib/studio/<feature>/`; 1-2 → par plano `<entidad>-{queries,types}.ts`. Transversal (push/mail/telegram/agents) → `lib/studio/<feature>/`. Compartido público↔ERP → `lib/shared/`. Util genérico sin dominio → `lib/`. API (webhook/cron/externo) → `app/api/.../route.ts` fino (sin lógica de negocio).
 
 ## Proceso UI/UX

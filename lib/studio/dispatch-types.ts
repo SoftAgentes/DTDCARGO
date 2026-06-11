@@ -255,13 +255,13 @@ export function validateCreateDispatchOrderInput(
   const errors: Record<string, string> = {};
 
   if (!input.hub) errors.hub = "Indicá el hub de salida.";
-  if (!input.route_id) errors.route_id = "Asigná una ruta.";
-  if (!input.truck_id) errors.truck_id = "Asigná un camión.";
-  if (!input.driver_id) errors.driver_id = "Asigná un chofer.";
+  if (!input.route_id) errors.route_id = "Asigna una ruta.";
+  if (!input.truck_id) errors.truck_id = "Asigna un camión.";
+  if (!input.driver_id) errors.driver_id = "Asigna un chofer.";
 
   const packages = input.packages ?? [];
   if (packages.length === 0) {
-    errors.packages = "Seleccioná al menos 1 paquete.";
+    errors.packages = "Selecciona al menos 1 paquete.";
   } else {
     for (const p of packages) {
       if (!p.package_id) {

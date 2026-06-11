@@ -29,7 +29,7 @@ export async function createReceiptFromOperarioAction(
 ): Promise<CreateReceiptState> {
   const operario = await getCurrentOperario();
   if (!operario) {
-    return { error: "Sesión expirada. Iniciá sesión de nuevo." };
+    return { error: "Sesión expirada. Inicia sesión de nuevo." };
   }
 
   // Parse desde FormData (todo el payload viene como JSON en `payload`)

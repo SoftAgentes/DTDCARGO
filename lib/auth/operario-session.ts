@@ -12,7 +12,7 @@
  * La cookie no está firmada con HMAC (V1). Riesgo aceptado porque:
  *   - es HTTP-only (no leíble desde JS del browser)
  *   - es uuid v4 random, no enumerable
- *   - cada request hace SELECT para validar (no podés mantener sesión
+ *   - cada request hace SELECT para validar (no puedes mantener sesión
  *     contra un operario que se desactivó)
  *
  * V2 sumar HMAC + rotation cuando salga del piloto.

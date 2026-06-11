@@ -126,7 +126,7 @@ export async function gitPushAction(
       return {
         ok: false,
         step: "validate",
-        error: `Para producción tenés que estar en branch 'main'. Estás en '${snapshot.currentBranch}'. Hacé checkout manual primero.`,
+        error: `Para producción tienes que estar en branch 'main'. Estás en '${snapshot.currentBranch}'. Haz checkout manual primero.`,
       };
     }
     targetBranch = "main";
