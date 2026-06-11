@@ -9,7 +9,7 @@
 > **Convenciones globales**
 > - Auth: todo request (salvo `/auth/login`) lleva `Authorization: Bearer <accessToken>`.
 > - **Multi-tenant:** el `tenantId` viaja en el token; el servidor filtra **toda** consulta
->   por tenant. El cliente nunca elige tenant. (Hoy se deriva del prefijo del MARKBOX vía
+>   por tenant. El cliente nunca elige tenant. (Hoy se deriva del prefijo del Shipping Mark vía
 >   `tenantForMarkbox()` — en prod lo define el token.)
 > - Fechas ISO-8601 UTC. Montos en USD salvo que se indique moneda.
 > - Errores: `{ error: { code, message } }` + HTTP status estándar.
@@ -33,14 +33,14 @@ multi-rol (≥2 → picker). Ver `HANDOFF-MOBILE.md`.
 
 ---
 
-## 2 · Clientes y MARKBOX
-Seam: `window.DTDData.clients` (store) + helpers de MARKBOX.
+## 2 · Clientes y Shipping Mark
+Seam: `window.DTDData.clients` (store) + helpers de Shipping Mark.
 
 | Acción | Endpoint | Notas |
 |---|---|---|
 | Listar / detalle | `GET /clients` · `GET /clients/{markbox}` | filtrado por tenant |
-| Crear (registro portal) | `POST /clients` `{ name, company, rif, ... }` | **asigna MARKBOX secuencial server-side** (`DTD-XXXX`); reemplaza el contador local. El MARKBOX se asigna recién al verificar (dirección + cédula) |
-| Verificar | `POST /clients/{markbox}/verify` | dispara asignación de MARKBOX si estaba en revisión |
+| Crear (registro portal) | `POST /clients` `{ name, company, rif, ... }` | **asigna Shipping Mark secuencial server-side** (`DTD-XXXX`); reemplaza el contador local. El Shipping Mark se asigna recién al verificar (dirección + cédula) |
+| Verificar | `POST /clients/{markbox}/verify` | dispara asignación de Shipping Mark si estaba en revisión |
 
 ---
 
@@ -187,7 +187,7 @@ Seam: `calcRecibo()`, `payrollRuns()`, `recordPayrollRun()`, `getPeriodStatus()`
 
 ## Orden de implementación sugerido
 1. **Auth + sesión + multi-tenant** (base de todo).
-2. **Clientes + MARKBOX secuencial** server-side.
+2. **Clientes + Shipping Mark secuencial** server-side.
 3. **Estimados + aceptación legal** (con evidencia inmutable real) → **gate de facturación**.
 4. **Facturación / tesorería**.
 5. **Operación CN + sync offline** (apps de operario) + **object storage**.

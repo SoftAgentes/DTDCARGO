@@ -532,7 +532,7 @@ function ContainerDetail({ cont, goTo }) {
 
         {st.freeCbm > 3 && cont.status === 'consolidando' && (
           <div style={{ marginTop: 16, padding: '10px 14px', background: 'var(--info-bg)', borderLeft: '3px solid var(--info)', borderRadius: 'var(--r-md)', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            Quedan <strong>{st.freeCbm.toFixed(1)} CBM</strong> libres · podés sumar carga suelta de CN para optimizar el flete antes del cut-off.
+            Quedan <strong>{st.freeCbm.toFixed(1)} CBM</strong> libres · puedes sumar carga suelta de CN para optimizar el flete antes del cut-off.
           </div>
         )}
       </U.Card>
@@ -547,7 +547,7 @@ function ContainerDetail({ cont, goTo }) {
           padding: '10px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)',
           font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase',
         }}>
-          <span>MARKBOX</span>
+          <span>Shipping Mark</span>
           <span>Cliente · proveedor</span>
           <span>Piezas</span>
           <span style={{ textAlign: 'right' }}>CBM</span>

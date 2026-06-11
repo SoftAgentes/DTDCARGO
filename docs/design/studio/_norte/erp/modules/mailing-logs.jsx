@@ -42,7 +42,7 @@ function MailingLogs({ goTo }) {
     { time: 'hace 1 h',    template: 'ETA en riesgo',            to: 'lfernandez@polar.com.ve',    client: 'Polar',           status: 'entregado', channel: 'email', opens: 0 },
     { time: 'hace 2 h',    template: 'Recordatorio de pago',     to: 'cmendez@acindar.ve',         client: 'Acindar',         status: 'rebotado',  channel: 'email', opens: 0 },
     { time: 'hace 3 h',    template: 'Estimado enviado',       to: 'vortiz@ortizcosm.com',       client: 'Ortiz Cosmetics', status: 'clic',      channel: 'email', opens: 4 },
-    { time: 'hace 4 h',    template: 'Bienvenida MARKBOX',       to: 'esalazar@salazartrading.com', client: 'Salazar Trading', status: 'abierto',   channel: 'email', opens: 3 },
+    { time: 'hace 4 h',    template: 'Bienvenida Shipping Mark',       to: 'esalazar@salazartrading.com', client: 'Salazar Trading', status: 'abierto',   channel: 'email', opens: 3 },
     { time: 'hace 6 h',    template: '— (manual)',                to: 'martina@dtdcargo.com',       client: 'interno',         status: 'entregado', channel: 'email', opens: 0 },
     { time: 'ayer 17:42',  template: 'POD firmado',              to: 'projas@distandina.ve',       client: 'Dist. Andina',    status: 'clic',      channel: 'email', opens: 6 },
   ];

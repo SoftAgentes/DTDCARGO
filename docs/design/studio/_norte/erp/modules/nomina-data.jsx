@@ -394,8 +394,8 @@ const COMM_TYPES = {
   amonestacion: { label: 'Amonestación',          tone: 'danger',  icon: 'shield' },
 };
 const COMM_SEED = [
-  { id: 'cm-1003', empId: 'emp-006', type: 'llamado',      title: 'Inasistencia sin aviso', body: 'Se registró tu inasistencia del 21/05 sin notificación previa. Por favor justificá ante RRHH antes del cierre de la semana.', date: '2026-05-22', by: 'RRHH · Yolanda M.', read: false, ack: false, channel: 'app' },
-  { id: 'cm-1002', empId: 'emp-004', type: 'aviso',        title: 'Cambio de horario', body: 'A partir del 1/06 el turno de atención al cliente arranca 8:30. Cualquier duda, escribinos.', date: '2026-05-20', by: 'RRHH · Yolanda M.', read: true,  ack: false, channel: 'app' },
+  { id: 'cm-1003', empId: 'emp-006', type: 'llamado',      title: 'Inasistencia sin aviso', body: 'Se registró tu inasistencia del 21/05 sin notificación previa. Por favor justifica ante RRHH antes del cierre de la semana.', date: '2026-05-22', by: 'RRHH · Yolanda M.', read: false, ack: false, channel: 'app' },
+  { id: 'cm-1002', empId: 'emp-004', type: 'aviso',        title: 'Cambio de horario', body: 'A partir del 1/06 el turno de atención al cliente arranca 8:30. Cualquier duda, escríbenos.', date: '2026-05-20', by: 'RRHH · Yolanda M.', read: true,  ack: false, channel: 'app' },
   { id: 'cm-1001', empId: 'emp-001', type: 'recibo',       title: 'Recibo · 1ª quincena mayo 2026', body: 'Tu recibo de la 1ª quincena de mayo está disponible. Neto Bs. 14.842 (ref. $407,30 · BCV 36,45).', date: '2026-05-15', by: 'Nómina', read: true,  ack: true,  channel: 'app' },
 ];
 function _loadComms() {
@@ -419,7 +419,7 @@ function markComm(id, patch) {
 }
 function commWhatsApp(emp, type, title, body) {
   const t = COMM_TYPES[type] || { label: 'Mensaje' };
-  const L = [`*DTD Cargo · ${t.label}*`, `Para: ${emp.name}`, '', `*${title}*`, body, '', 'Podés ver el detalle en tu app de DTD Cargo.'];
+  const L = [`*DTD Cargo · ${t.label}*`, `Para: ${emp.name}`, '', `*${title}*`, body, '', 'Puedes ver el detalle en tu app de DTD Cargo.'];
   return L.join('\n');
 }
 function commWaLink(emp, type, title, body) {
@@ -514,7 +514,7 @@ function approveRegistration(id, extra) {
     birth: reg.birth, startDate: reg.startDate, photo: reg.photo,
   });
   _saveRegs(a.map(r => r.id === id ? { ...r, status: 'aprobado', empId, salarioUsd: Number(extra.salarioUsd) || 0, decidedAt: _nowStr(), decidedBy: extra.by || 'Admin' } : r));
-  createComm({ empId, type: 'aviso', title: 'Te damos la bienvenida a DTD Cargo', body: `Tu registro fue aprobado. Ya podés ver tu recibo de pago y tus comunicaciones desde la app. Cargo: ${reg.cargo}. Cualquier duda, escribinos.`, by: 'RRHH' });
+  createComm({ empId, type: 'aviso', title: 'Te damos la bienvenida a DTD Cargo', body: `Tu registro fue aprobado. Ya puedes ver tu recibo de pago y tus comunicaciones desde la app. Cargo: ${reg.cargo}. Cualquier duda, escríbenos.`, by: 'RRHH' });
   return empId;
 }
 function rejectRegistration(id, motivo) {

@@ -224,8 +224,8 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
         <h1 style={{ font: '900 26px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 18px' }}>Proveedores</h1>
         <div style={{ padding: 22, borderRadius: 'var(--r-xl)', background: 'var(--bg-surface)', border: '1px solid var(--border)', textAlign: 'center' }}>
           <span style={{ width: 52, height: 52, borderRadius: 'var(--r-lg)', background: inReview ? 'var(--bg-elevated)' : 'var(--wine-tint)', color: inReview ? 'var(--info)' : 'var(--wine)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>{inReview ? I.clock(22) : I.lock(22)}</span>
-          <div style={{ font: '800 16px/1.2 var(--f-display)', color: 'var(--ink)' }}>{inReview ? 'Verificación en revisión' : 'Necesitás tu MARKBOX'}</div>
-          <p style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '8px 0 18px' }}>{inReview ? 'Apenas aprobemos tus documentos vas a poder cargar proveedores y pedir re-compras.' : 'Para cargar proveedores y pedir re-compras primero verificá tu identidad. Es rápido: dirección + cédula.'}</p>
+          <div style={{ font: '800 16px/1.2 var(--f-display)', color: 'var(--ink)' }}>{inReview ? 'Verificación en revisión' : 'Necesitas tu Shipping Mark'}</div>
+          <p style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '8px 0 18px' }}>{inReview ? 'Apenas aprobemos tus documentos vas a poder cargar proveedores y pedir re-compras.' : 'Para cargar proveedores y pedir re-compras primero verifica tu identidad. Es rápido: dirección + cédula.'}</p>
           {!inReview && <U.Btn variant="primary" full icon={I.shield(14)} onClick={onVerify}>Verificar ahora</U.Btn>}
         </div>
       </div>
@@ -248,13 +248,13 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
             <button onClick={dismissIntro} aria-label="Cerrar" style={{ position: 'absolute', top: 12, right: 12, width: 28, height: 28, borderRadius: 'var(--r-pill)', background: 'rgba(255,255,255,0.12)', color: '#fff', fontSize: 15 }}>×</button>
             <div style={{ font: '700 10px/1 var(--f-sans)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wine-soft)' }}>Tu centro de compras</div>
             <div style={{ font: '900 19px/1.2 var(--f-display)', letterSpacing: '-0.01em', margin: '8px 0 8px' }}>Toda tu importación, ordenada por código.</div>
-            <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.72)', margin: 0 }}>Acá manejás tus fábricas en China y le hacés seguimiento a cada compra. Mientras más ordenado, más rápido y seguro llega todo a tu puerta.</p>
+            <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.72)', margin: 0 }}>Acá manejás tus fábricas en China y le haces seguimiento a cada compra. Mientras más ordenado, más rápido y seguro llega todo a tu puerta.</p>
           </div>
           <div style={{ padding: 16, background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
               { icon: 'radar', tone: 'info', t: 'Seguís tus compras', d: 'Veés el estado de cada pedido, desde la fábrica hasta tu local.' },
-              { icon: 'warehouse', tone: 'wine', t: 'Registrás tus proveedores', d: 'Guardás cada fábrica para pedir re-compras en un toque.' },
-              { icon: 'tag', tone: 'success', t: 'Todo bajo tu código', d: 'Cada compra queda asociada a tu MARKBOX — nada se mezcla ni se pierde.' },
+              { icon: 'warehouse', tone: 'wine', t: 'Registras tus proveedores', d: 'Guardás cada fábrica para pedir re-compras en un toque.' },
+              { icon: 'tag', tone: 'success', t: 'Todo bajo tu código', d: 'Cada compra queda asociada a tu Shipping Mark — nada se mezcla ni se pierde.' },
             ].map((it, i) => (
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                 <span style={{ width: 36, height: 36, flexShrink: 0, borderRadius: 'var(--r-md)', background: 'var(--bg-elevated)', color: `var(--${it.tone})`, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I[it.icon]?.(17)}</span>
@@ -266,9 +266,9 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
               <div style={{ font: '700 10px/1 var(--f-sans)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 8 }}>Cómo funciona el código</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                 <code style={{ font: '800 13px/1 var(--f-mono)', color: 'var(--wine)', padding: '5px 8px', background: 'var(--wine-tint)', borderRadius: 'var(--r-sm)' }}>{me.markbox}</code>
-                <span style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>es tu MARKBOX: te identifica a vos.</span>
+                <span style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>es tu Shipping Mark: te identifica a tú.</span>
               </div>
-              <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0 }}>Cada caja en China se etiqueta con tu MARKBOX y su número de caja (<code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--ink)' }}>Caja 1/4</code>). Así consolidamos solo lo tuyo y lo rastreás por su código de embarque <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--ink)' }}>DTDU-…</code> hasta la entrega.</p>
+              <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0 }}>Cada caja en China se etiqueta con tu Shipping Mark y su número de caja (<code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--ink)' }}>Caja 1/4</code>). Así consolidamos solo lo tuyo y lo rastreas por su código de embarque <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--ink)' }}>DTDU-…</code> hasta la entrega.</p>
             </div>
             <button onClick={dismissIntro} style={{ alignSelf: 'flex-start', background: 'none', border: 0, color: 'var(--wine)', font: '700 12.5px/1 var(--f-sans)', cursor: 'pointer', padding: '4px 0' }}>Entendido</button>
           </div>
@@ -276,7 +276,7 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
       )}
 
       <p style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-5)' }}>
-        Tus fábricas en China. Pedí re-compra con tu MARKBOX <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{me.markbox}</code> y nosotros consolidamos.
+        Tus fábricas en China. Pide re-compra con tu Shipping Mark <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{me.markbox}</code> y nosotros consolidamos.
       </p>
 
       {rows.length === 0 ? (
@@ -330,7 +330,7 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
             <U.Input label="Nombre de la fábrica" placeholder="Ej. Yiwu Standard Trading" />
             <U.Input label="Ciudad en China" placeholder="Yiwu · Shenzhen · Guangzhou…" />
             <U.Input label="Contacto (WeChat / teléfono)" placeholder="Opcional" />
-            <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>Al agregarla te damos la etiqueta con tu MARKBOX para que se la pases a la fábrica. Así marcan tus cajas y nosotros las consolidamos.</p>
+            <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>Al agregarla te damos la etiqueta con tu Shipping Mark para que se la pases a la fábrica. Así marcan tus cajas y nosotros las consolidamos.</p>
             <U.Btn variant="primary" full onClick={() => setAdded(true)}>Agregar y generar etiqueta</U.Btn>
           </div>
         ) : (
@@ -343,7 +343,7 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
             {/* Etiqueta bilingüe ES / 中文 */}
             <div style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)' }}>
               <div style={{ padding: '14px 16px', background: 'var(--ink)', color: '#fff', textAlign: 'center' }}>
-                <div style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--wine-soft)' }}>DTD-Cargo · MARKBOX</div>
+                <div style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--wine-soft)' }}>DTD-Cargo · Shipping Mark</div>
                 <code style={{ font: '900 30px/1 var(--f-mono)', letterSpacing: '0.04em', display: 'block', marginTop: 8 }}>{me.markbox}</code>
               </div>
               <div style={{ padding: 16, background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -362,10 +362,10 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
 
             <U.Btn variant="primary" full icon={copiedLbl ? I.check(14) : I.chat(14)}
               onClick={() => {
-                const txt = `DTD-Cargo · MARKBOX: ${me.markbox}\nEtiquetá cada caja con este código + número de caja (Caja 1/N).\n请在每个箱子上标注此代码和箱号。\nEnviar a / 发到: DTD-Cargo Yiwu Warehouse 义乌仓库`;
+                const txt = `DTD-Cargo · Shipping Mark: ${me.markbox}\nEtiquetá cada caja con este código + número de caja (Caja 1/N).\n请在每个箱子上标注此代码和箱号。\nEnviar a / 发到: DTD-Cargo Yiwu Warehouse 义乌仓库`;
                 try { navigator.clipboard && navigator.clipboard.writeText(txt); } catch (e) {}
                 setCopiedLbl(true); setTimeout(() => setCopiedLbl(false), 1800);
-              }}>{copiedLbl ? 'Copiado · compartilo por WeChat' : 'Copiar instrucciones para la fábrica'}</U.Btn>
+              }}>{copiedLbl ? 'Copiado · compártelo por WeChat' : 'Copiar instrucciones para la fábrica'}</U.Btn>
             <U.Btn variant="ghost" full onClick={() => { setAdd(false); setAdded(null); }}>Listo</U.Btn>
           </div>
         )}
@@ -399,7 +399,7 @@ function MasScreen({ me, theme, setTheme, onLogout, onOpen }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <window.PM.ListRow icon={I.doc(16)}   iconTone="info"    title="Documentos"  sub="BL, facturas, packing lists" onClick={() => onOpen('documentos')} />
           <window.PM.ListRow icon={I.spark(16)} iconTone="wine"    title="Referidos"    sub="Ganá descuentos invitando" onClick={() => onOpen('referidos')} />
-          <window.PM.ListRow icon={I.chat(16)}  iconTone="success" title="Soporte"      sub="Abrí un caso o hablá con tu agente" onClick={() => onOpen('soporte')} />
+          <window.PM.ListRow icon={I.chat(16)}  iconTone="success" title="Soporte"      sub="Abre un caso o hablá con tu agente" onClick={() => onOpen('soporte')} />
         </div>
       </window.PM.Section>
 
@@ -483,7 +483,7 @@ function ReferidosScreen({ onBack, me }) {
         <window.PM.Section title="CÓMO FUNCIONA">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {[
-              { n: '1', t: 'Compartí tu código', d: 'Pasáselo a otro importador.' },
+              { n: '1', t: 'Comparte tu código', d: 'Pasáselo a otro importador.' },
               { n: '2', t: 'Hace su primer embarque', d: 'Usando tu código al registrarse.' },
               { n: '3', t: 'Ganan los dos', d: '$50 de crédito para cada uno.' },
             ].map(s => (
@@ -561,7 +561,7 @@ function SoporteScreen({ onBack }) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
           <U.Select label="Tipo" options={[{ value: 'consulta', label: 'Consulta general' }, { value: 'faltante', label: 'Faltante' }, { value: 'daño', label: 'Daño' }, { value: 'demora', label: 'Demora' }, { value: 'pago', label: 'Facturación / pago' }, { value: 'otro', label: 'Otro' }]} />
           <U.Select label="Embarque relacionado" hint="Opcional · solo si aplica" options={[{ value: '', label: 'Ninguno / general' }]} />
-          <U.Input label="Contanos qué necesitás" placeholder="Escribí el detalle…" value={msg} onChange={(e) => setMsg(e.target.value)} />
+          <U.Input label="Cuéntanos qué necesitas" placeholder="Escribe el detalle…" value={msg} onChange={(e) => setMsg(e.target.value)} />
           <U.Btn variant="primary" full disabled={!msg.trim()} onClick={() => { setOpen(false); setMsg(''); }}>Enviar</U.Btn>
         </div>
       </window.PM.Sheet>
@@ -585,7 +585,7 @@ function PerfilScreen({ onBack, me }) {
         </div>
         <window.PM.Section title="DATOS DE CUENTA">
           <U.Card padded style={{ padding: '6px 16px' }}>
-            {[['MARKBOX', me.markbox, true], ['RIF', me.rif, true], ['Segmento', me.segment], ['Ciudad', me.city], ['Embarques', String(me.shipments)]].map(([k, v, mono], i, arr) => (
+            {[['Shipping Mark', me.markbox, true], ['RIF', me.rif, true], ['Segmento', me.segment], ['Ciudad', me.city], ['Embarques', String(me.shipments)]].map(([k, v, mono], i, arr) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: i > 0 ? '1px solid var(--border)' : 0 }}>
                 <span style={{ font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>{k}</span>
                 <span style={{ font: `700 13px/1 ${mono ? 'var(--f-mono)' : 'var(--f-sans)'}`, color: 'var(--ink)' }}>{v}</span>
@@ -614,7 +614,7 @@ function NotifSheet({ open, onClose, ships }) {
     if (s.status === 'liberado') avisos.push({ tone: 'success', icon: 'check', t: `${s.id} liberado en aduana`, m: 'Listo para entrega' });
     if (s.status === 'tránsito') avisos.push({ tone: 'info', icon: 'ship', t: `${s.id} en tránsito · ${s.progress}%`, m: `ETA ${s.eta}` });
   });
-  if (avisos.length === 0) avisos.push({ tone: 'neutral', icon: 'bell', t: 'No tenés avisos nuevos', m: 'Te avisamos cuando haya novedades' });
+  if (avisos.length === 0) avisos.push({ tone: 'neutral', icon: 'bell', t: 'No tienes avisos nuevos', m: 'Te avisamos cuando haya novedades' });
   return (
     <window.PM.Sheet open={open} onClose={onClose} title="Avisos">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -731,7 +731,7 @@ function EstimadorScreen({ onBack, me }) {
   const U = window.ERPUI;
   const I = window.Icon;
   const SERVICES = [
-    { k: 'LCL DDP', label: 'LCL · carga suelta', hint: 'Pagás por volumen (CBM)' },
+    { k: 'LCL DDP', label: 'LCL · carga suelta', hint: 'Pagas por volumen (CBM)' },
     { k: "FCL 20'", label: "Contenedor 20'", hint: 'Hasta ~28 CBM', flat: 3800, days: 40 },
     { k: "FCL 40'HC", label: "Contenedor 40'HC", hint: 'Hasta ~68 CBM', flat: 6400, days: 42 },
   ];

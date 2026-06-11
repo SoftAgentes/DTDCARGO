@@ -1,7 +1,7 @@
 /* global React */
 /* ── DTD ERP · Generador de etiquetas para suppliers CN ──────── */
 /*                                                                  */
-/* Genera planchas PDF con MARKBOX + Box X/Y bilingüe ES/中文      */
+/* Genera planchas PDF con Shipping Mark + Box X/Y bilingüe ES/中文      */
 /* para que el cliente DTD-Cargo (o el admin) las mande al supplier */
 /* chino. El supplier las pega en cada caja antes del despacho a   */
 /* nuestro almacén CN.                                              */
@@ -86,7 +86,7 @@
   ];
 
   // ── QR mock determinista (no escaneable real) ────────────────
-  // Generado a partir del MARKBOX + box index. Visual de un QR.
+  // Generado a partir del Shipping Mark + box index. Visual de un QR.
   function hashStr(s) {
     let h = 5381;
     for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
@@ -302,12 +302,12 @@
     const [copied, setCopied] = useState('');
     if (!open) return null;
 
-    const copiesNote = copiesPerBox > 1 ? ` (${copiesPerBox} etiquetas por caja, pegá una en cada cara para que no se pierda la trazabilidad si una se tapa o maltrata)` : '';
+    const copiesNote = copiesPerBox > 1 ? ` (${copiesPerBox} etiquetas por caja, pega una en cada cara para que no se pierda la trazabilidad si una se tapa o maltrata)` : '';
     const copiesNoteCn = copiesPerBox > 1 ? `（每个箱子贴 ${copiesPerBox} 张标签，在不同面上各贴一张，防止装卸时贴纸被遮挡或损坏）` : '';
 
-    const msgEs = `Hola ${supplier?.contactName || 'equipo'},\n\nAdjunto te paso ${totalLabels} etiquetas DTD-Cargo para ${totalBoxes} cajas${copiesNote}. Pegalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).\n\nMARKBOX del cliente: ${client.markbox}\nCliente: ${client.name}${client.company ? ' · ' + client.company : ''}\nTotal cajas: ${totalBoxes}\nEtiquetas por caja: ${copiesPerBox}\n\nCualquier duda escribime por WeChat: ${warehouse.wechat}\n\nGracias!\nDTD-Cargo`;
+    const msgEs = `Hola ${supplier?.contactName || 'equipo'},\n\nAdjunto te paso ${totalLabels} etiquetas DTD-Cargo para ${totalBoxes} cajas${copiesNote}. Pegalas antes del despacho a nuestro almacén ${warehouse.code} (${warehouse.city}).\n\nShipping Mark del cliente: ${client.markbox}\nCliente: ${client.name}${client.company ? ' · ' + client.company : ''}\nTotal cajas: ${totalBoxes}\nEtiquetas por caja: ${copiesPerBox}\n\nCualquier duda escribime por WeChat: ${warehouse.wechat}\n\nGracias!\nDTD-Cargo`;
 
-    const msgCn = `${supplier?.contactCn ? supplier.contactCn + '您好' : '您好'}：\n\n附件是 ${totalLabels} 张 DTD-Cargo 标签，用于 ${totalBoxes} 个箱子${copiesNoteCn}。请在发到我们仓库 ${warehouse.code}（${warehouse.cityCn}）之前贴好。\n\n客户编号 (MARKBOX): ${client.markbox}\n客户名称: ${client.name}\n总箱数: ${totalBoxes}\n每箱标签数: ${copiesPerBox}\n\n如有疑问请微信联系: ${warehouse.wechat}\n\n谢谢！\nDTD-Cargo 国际货运`;
+    const msgCn = `${supplier?.contactCn ? supplier.contactCn + '您好' : '您好'}：\n\n附件是 ${totalLabels} 张 DTD-Cargo 标签，用于 ${totalBoxes} 个箱子${copiesNoteCn}。请在发到我们仓库 ${warehouse.code}（${warehouse.cityCn}）之前贴好。\n\n客户编号 (Shipping Mark): ${client.markbox}\n客户名称: ${client.name}\n总箱数: ${totalBoxes}\n每箱标签数: ${copiesPerBox}\n\n如有疑问请微信联系: ${warehouse.wechat}\n\n谢谢！\nDTD-Cargo 国际货运`;
 
     function copy(text, label) {
       navigator.clipboard?.writeText(text);
@@ -319,7 +319,7 @@
       <U.Modal open={open} onClose={onClose} title="Mensaje para el supplier" width={620}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-            Copiá uno de los dos mensajes y mandalo por WeChat o email junto con el PDF de etiquetas.
+            Copia uno de los dos mensajes y mandalo por WeChat o email junto con el PDF de etiquetas.
           </div>
 
           <MsgBlock
@@ -342,7 +342,7 @@
             <U.Btn variant="primary" icon={I.mail(14)} onClick={() => {
               window.openQuickEmail?.({
                 to: supplier?.email || '',
-                subject: `DTD-Cargo · ${totalBoxes} etiquetas · MARKBOX ${client.markbox}`,
+                subject: `DTD-Cargo · ${totalBoxes} etiquetas · Shipping Mark ${client.markbox}`,
                 body: msgEs + '\n\n— — —\n\n' + msgCn,
               });
               onClose();
@@ -432,7 +432,7 @@
       <div>
         <U.PageHeader
           title="Etiquetas para suppliers CN"
-          subtitle="Plancha PDF bilingüe ES / 中文 · MARKBOX + Box X/Y"
+          subtitle="Plancha PDF bilingüe ES / 中文 · Shipping Mark + Box X/Y"
           right={
             <div style={{ display: 'flex', gap: 8 }}>
               <U.Btn variant="ghost" icon={I.mail(14)} onClick={() => setMsgOpen(true)}>
@@ -451,7 +451,7 @@
           {/* ── Panel config ── */}
           <div className="dtd-labelgen-config" style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'sticky', top: 16 }}>
             <U.Card padded>
-              <div className="eyebrow eyebrow-wine" style={{ marginBottom: 10 }}>CLIENTE · MARKBOX</div>
+              <div className="eyebrow eyebrow-wine" style={{ marginBottom: 10 }}>CLIENTE · Shipping Mark</div>
               <U.Select
                 label="Cliente"
                 value={clientMarkbox}
@@ -463,7 +463,7 @@
                 background: 'var(--wine-tint)', border: '1px solid var(--wine)',
                 borderRadius: 'var(--r-sm)',
               }}>
-                <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 4 }}>MARKBOX</div>
+                <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 4 }}>Shipping Mark</div>
                 <code style={{ font: '900 20px/1 var(--f-mono)', color: 'var(--wine)' }}>{client.markbox}</code>
                 <div style={{ font: '600 11.5px/1.3 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>
                   {client.name}{client.company ? ` · ${client.company}` : ''}
@@ -594,7 +594,7 @@
               display: 'flex', alignItems: 'flex-start', gap: 8,
             }}>
               <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(13)}</span>
-              <span>Al hacer <b>Imprimir / Guardar PDF</b>, el navegador abre el diálogo de impresión. Elegí <b>"Guardar como PDF"</b> como destino. Tamaño de papel: <b>{format.page.w}×{format.page.h} mm</b>.</span>
+              <span>Al hacer <b>Imprimir / Guardar PDF</b>, el navegador abre el diálogo de impresión. Elige <b>"Guardar como PDF"</b> como destino. Tamaño de papel: <b>{format.page.w}×{format.page.h} mm</b>.</span>
             </div>
           </div>
 

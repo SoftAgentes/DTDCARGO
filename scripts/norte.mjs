@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v2.5"; // handoff Cloud Design (2026-06-08 sync: Inspección fábrica/producto/baterías + plantillas + Reportes de Inspección; calc CBM-por-medidas con toggle ▶/▼ + HANDOFF-CBM-MEDIDAS; Brand Book v3.5; operativo/nómina + colateral: App del Empleado, ZPL, comprobante WA, reporte, redes/sticker)
+const NORTE_VERSION = "v2.5"; // handoff Cloud Design (carga 2026-06-10: Brand Book v3.7 ÚNICO — se eliminó v3.5; Shipping Mark término único [MARKBOX fuera del lenguaje visual]; nuevos: Banco de Fotos, Colateral Impreso, Generador Redes/Catálogo WhatsApp, Uniformes, WeChat Perfil, estudio-redes.jsx; archivados a _archivo/: Aceptación T&C, Modo Cliente, Reporte)
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -53,7 +53,8 @@ const GROUPS = [
     // Ya no hay duplicado "· V2" ni carpeta _legacy (limpiado en la carga v1.9.1, 2026-05-31).
     screens: [
       { name: "Portal del Cliente", file: "Portal del Cliente.html", code: null, sdd: null },
-      { name: "Modo Cliente (impersonación admin)", file: "Modo Cliente.html", code: null, sdd: null },
+      // Carga 2026-06-10: Cloud Design archivó la pantalla standalone (el overlay vive dentro del ERP).
+      { name: "Modo Cliente (impersonación admin)", file: "_archivo/Modo Cliente.html", code: null, sdd: null },
       { name: "Registro de cliente", file: "Registro Cliente.html", code: "app/invitar", sdd: "0024" },
     ],
   },
@@ -118,7 +119,7 @@ const GROUPS = [
       { name: "Guía del Mapa de Proceso", file: "Guía del Mapa de Proceso.html", ref: true },
       { name: "Portal Cliente · Mobile", file: "Portal Cliente Mobile.html", ref: true },
       { name: "Propuesta · Servicios y Tarifas", file: "Propuesta · Servicios y Tarifas.html", ref: true },
-      { name: "Aceptación T&C · Cotización", file: "Aceptación T&C · Cotización.html", ref: true },
+      { name: "Aceptación T&C · Cotización", file: "_archivo/Aceptación T&C · Cotización.html", ref: true },
       { name: "App Icon · DTD Cargo", file: "App Icon · DTD Cargo.html", ref: true },
     ],
   },
@@ -132,7 +133,7 @@ const GROUPS = [
       { name: "Calculadora CBM", file: "Calculadora CBM · DTD-Cargo.html", ref: true },
       { name: "Etiqueta Bodega · ZPL", file: "Etiqueta Bodega ZPL · DTD-Cargo.html", ref: true },
       { name: "Comprobante WhatsApp", file: "Comprobante WhatsApp · DTD-Cargo.html", ref: true },
-      { name: "Reporte operativo", file: "Reporte DTD-Cargo.html", ref: true },
+      { name: "Reporte operativo", file: "_archivo/Reporte DTD-Cargo.html", ref: true },
       { name: "Portada Animada FB", file: "Portada Animada FB · DTD-Cargo.html", ref: true },
       { name: "Portadas Redes", file: "Portadas Redes · DTD-Cargo.html", ref: true },
       { name: "Póster Reseñas", file: "Póster Reseñas · DTD-Cargo.html", ref: true },
@@ -156,11 +157,25 @@ const GROUPS = [
   {
     title: "Marca",
     screens: [
-      { name: "Brand Book v3.5", file: "Brand Book DTD v3.5.html", kind: "brand" },
+      // Carga 2026-06-10: Brand Book v3.7 es el ÚNICO vigente (v3.5 eliminado por regla de gobernanza).
+      { name: "Brand Book v3.7", file: "Brand Book DTD v3.7.html", kind: "brand" },
       { name: "Tarjeta de Presentación", file: "Tarjeta de Presentación.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
       { name: "Aplicaciones de Marca", file: "Aplicaciones de Marca.html", kind: "brand" },
+      { name: "Banco de Fotos", file: "Banco de Fotos · DTD-Cargo.html", kind: "brand" },
+      { name: "Colateral Impreso", file: "Colateral Impreso · DTD-Cargo.html", kind: "brand" },
+    ],
+  },
+  {
+    // Carga 2026-06-10: colateral de marketing nuevo de Cloud Design. ref:true → referencia
+    // de diseño, NO diluye el % construido (mismo criterio que las cargas v2.3-v2.5).
+    title: "Nuevo en carga 2026-06-10 · marketing · colateral",
+    screens: [
+      { name: "Generador Redes", file: "Generador Redes · DTD-Cargo.html", ref: true },
+      { name: "Generador Catálogo WhatsApp", file: "Generador Catálogo WhatsApp · DTD-Cargo.html", ref: true },
+      { name: "Uniformes", file: "Uniformes · DTD-Cargo.html", ref: true },
+      { name: "WeChat · Perfil", file: "WeChat · Perfil DTD-Cargo.html", ref: true },
     ],
   },
 ];

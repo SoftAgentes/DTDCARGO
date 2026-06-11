@@ -128,7 +128,7 @@ function Login({ onLogin, lang, setLang, t }) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>DTD-CARGO · 操作员</div>
         <div style={{ font: '900 26px/1.3 var(--f-display)', color: '#fff', marginTop: 14, letterSpacing: '-0.02em' }}>{t('Almacén Yiwu', '义乌仓库')}</div>
-        <div style={{ font: '500 14px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>{t('Ingresá tu PIN de 4 dígitos', '请输入4位PIN密码')}</div>
+        <div style={{ font: '500 14px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>{t('Ingresa tu PIN de 4 dígitos', '请输入4位PIN密码')}</div>
 
         {/* PIN dots */}
         <div style={{ display: 'flex', gap: 14, marginTop: 36 }}>
@@ -206,7 +206,7 @@ function Home({ user, t, lang, setLang, theme, setTheme, onStart, onDispatch, on
             {t('Hola', '你好')}, {user.name.split(' ')[0]}
           </div>
           <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
-            {t('Hoy llevás 3 recepciones · 18 cajas · 12.4 CBM', '今日已收 3 件 · 18 箱 · 12.4 CBM')}
+            {t('Hoy llevas 3 recepciones · 18 cajas · 12.4 CBM', '今日已收 3 件 · 18 箱 · 12.4 CBM')}
           </div>
         </div>
 
@@ -228,7 +228,7 @@ function Home({ user, t, lang, setLang, theme, setTheme, onStart, onDispatch, on
             <div style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'rgba(216,154,164,0.18)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.box(22)}</div>
             <div style={{ flex: 1 }}>
               <div style={{ font: '800 13px/1.2 var(--f-display)', color: '#fff' }}>{t('Modo despacho · armar contenedor', '发货模式 · 装柜')}</div>
-              <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 3 }}>{t('Consolidá cajas recibidas · podés partir en parciales', '合并已收箱子 · 可拆分为部分')}</div>
+              <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 3 }}>{t('Consolidá cajas recibidas · puedes partir en parciales', '合并已收箱子 · 可拆分为部分')}</div>
             </div>
             <span style={{ color: 'var(--wine-soft)' }}>→</span>
           </button>
@@ -241,7 +241,7 @@ function Home({ user, t, lang, setLang, theme, setTheme, onStart, onDispatch, on
             <div style={{ width: 44, height: 44, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.print(22)}</div>
             <div style={{ flex: 1 }}>
               <div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>{t('Imprimir códigos QR', '打印QR码')}</div>
-              <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{t('Elegí cliente y cantidad → cola de impresión (local u oficina)', '选择客户和数量 → 打印队列 (本地或办公室)')}</div>
+              <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{t('Elige cliente y cantidad → cola de impresión (local u oficina)', '选择客户和数量 → 打印队列 (本地或办公室)')}</div>
             </div>
             <span style={{ color: 'var(--wine)' }}>→</span>
           </button>
@@ -473,7 +473,7 @@ function Step1Photos({ t, reception, setReception, onBack, onNext }) {
         {photos.length >= 3 &&
         <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--success-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 8, font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
             <span style={{ color: 'var(--success)' }}>✓</span>
-            {t('Fotos suficientes · podés seguir', '照片足够 · 可以继续')}
+            {t('Fotos suficientes · puedes seguir', '照片足够 · 可以继续')}
           </div>
         }
 
@@ -566,7 +566,7 @@ function Step2Identify({ t, reception, setReception, onBack, onNext }) {
 
         <div>
             <MobileInput
-            label={t('Buscar cliente · MARKBOX', '查找客户 · MARKBOX')}
+            label={t('Buscar cliente · Shipping Mark', '查找客户 · Shipping Mark')}
             value={search}
             onChange={setSearch}
             placeholder="DTD-XXXX"
@@ -673,7 +673,7 @@ function Step3Data({ t, reception, setReception, onBack, onNext }) {
           </div>
           }
           <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>{ranges.length === 0
-            ? t('¿Un solo artículo? Describilo acá. Si la caja trae cosas distintas, tocá “Rango” y se separa por número de caja.', '单一物品？在此描述。如箱内不同，点“范围”按箱号分开。')
+            ? t('¿Un solo artículo? Describilo acá. Si la caja trae cosas distintas, toca “Rango” y se separa por número de caja.', '单一物品？在此描述。如箱内不同，点“范围”按箱号分开。')
             : t('Editá la descripción de cada rango abajo. Peso y CBM por rango son opcionales (vacío = prorrateo).', '在下方编辑每个范围的描述。每个范围的重量和体积可选（留空=分摊）。')}</div>
         </div>
 
@@ -802,7 +802,7 @@ function Step4Confirm({ t, reception, setReception, onBack, onSubmit }) {
 
   return (
     <div>
-      <MobileHeader title={t('4 de 4 · Confirmar', '4/4 · 确认')} subtitle={t('Revisá y guardá', '检查并保存')} back={onBack} />
+      <MobileHeader title={t('4 de 4 · Confirmar', '4/4 · 确认')} subtitle={t('Revisa y guarda', '检查并保存')} back={onBack} />
       <Steps current={4} />
 
       <div style={{ padding: '0 16px 100px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -920,7 +920,7 @@ function DispatchFlow({ t, lang, onBack, onDone }) {
         {step === 0 &&
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ padding: 14, background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-              {t('Antes de cargar: revisá el precinto del contenedor vacío y tomá varias fotos. Asegurate de que esté en buen estado.', '装货前: 检查空柜的铅封并拍摄多张照片。确保其状态良好。')}
+              {t('Antes de cargar: revisa el precinto del contenedor vacío y tomá varias fotos. Asegurate de que esté en buen estado.', '装货前: 检查空柜的铅封并拍摄多张照片。确保其状态良好。')}
             </div>
 
             <div>
@@ -1128,7 +1128,7 @@ function ScanReceive({ t, onMatch, onManual, onBack }) {
           {scanning && <div style={{ position: 'absolute', left: 36, right: 36, top: '50%', height: 2, background: 'var(--wine)', boxShadow: '0 0 16px var(--wine)', animation: 'erp-shimmer 1.4s infinite linear' }} />}
           <div style={{ textAlign: 'center', color: '#fff', zIndex: 1 }}>
             <div style={{ color: '#fff', display: 'flex', justifyContent: 'center' }}>{window.Icon.camera(38)}</div>
-            <div style={{ font: '700 13px/1.4 var(--f-sans)', marginTop: 8, color: 'rgba(255,255,255,0.85)' }}>{scanning ? t('Leyendo código…', '读取代码…') : t('Tocá para escanear la caja', '点击扫描箱子')}</div>
+            <div style={{ font: '700 13px/1.4 var(--f-sans)', marginTop: 8, color: 'rgba(255,255,255,0.85)' }}>{scanning ? t('Leyendo código…', '读取代码…') : t('Toca para escanear la caja', '点击扫描箱子')}</div>
           </div>
         </div>
         <div style={{ padding: '12px 14px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 'var(--r-md)', font: '500 12.5px/1.5 var(--f-sans)', marginBottom: 16, maxWidth: 320, margin: '0 auto 16px' }}>
@@ -1210,7 +1210,7 @@ function PrintQRSheet({ open, onClose, t, lang }) {
             <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8, maxWidth: '34ch', margin: '8px auto 0' }}>
               {target === 'local' ?
             t(`${boxes} etiquetas QR · ~30 seg`, `${boxes}张QR标签 · 约30秒`) :
-            t(`Subí a la oficina, conectá por Bluetooth e imprimí las ${boxes} etiquetas vos mismo.`, `上楼到办公室，通过蓝牙连接并自行打印${boxes}张标签。`)}
+            t(`Sube a la oficina, conectá por Bluetooth e imprimí las ${boxes} etiquetas tú mismo.`, `上楼到办公室，通过蓝牙连接并自行打印${boxes}张标签。`)}
             </div>
             <code style={{ display: 'block', marginTop: 12, font: '700 13px/1 var(--f-mono)', color: 'var(--wine)' }}>QR-2026-{1042 + Math.floor(Math.random() * 100)}</code>
             <div style={{ marginTop: 22 }}>
@@ -1223,13 +1223,13 @@ function PrintQRSheet({ open, onClose, t, lang }) {
               <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.print(20)}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ font: '900 16px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{t('Imprimir códigos QR', '打印QR码')}</div>
-                <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{t('Elegí cliente → se manda a la cola de impresión', '选择客户 → 发送到打印队列')}</div>
+                <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>{t('Elige cliente → se manda a la cola de impresión', '选择客户 → 发送到打印队列')}</div>
               </div>
             </div>
 
             {/* Últimas recepciones · selección rápida */}
             <div style={{ marginBottom: 14 }}>
-              <div style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>{t('Compras registradas · tocá para cargar', '已登记采购 · 点击加载')}</div>
+              <div style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>{t('Compras registradas · toca para cargar', '已登记采购 · 点击加载')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {RECENT.map((r) => {
                 const on = client === r.mb;
@@ -1251,9 +1251,9 @@ function PrintQRSheet({ open, onClose, t, lang }) {
 
             {/* Cliente */}
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 }}>
-              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{t('Cliente · MARKBOX', '客户 · MARKBOX')}</span>
+              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{t('Cliente · Shipping Mark', '客户 · Shipping Mark')}</span>
               <select value={client} onChange={(e) => setClient(e.target.value)} style={{ height: 44, padding: '0 14px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', font: '600 13px/1 var(--f-sans)', color: 'var(--ink)' }}>
-                <option value="">{t('Seleccioná cliente…', '选择客户…')}</option>
+                <option value="">{t('Selecciona cliente…', '选择客户…')}</option>
                 <option value="DTD-5452">DTD-5452 · Acindar Comercial</option>
                 <option value="DTD-5392">DTD-5392 · Industrias Polar</option>
                 <option value="DTD-5418">DTD-5418 · Imp. Pereira</option>
@@ -1317,14 +1317,14 @@ function PrintQRSheet({ open, onClose, t, lang }) {
             }}>
                 <div style={{ color: target === 'office' ? 'var(--wine)' : 'var(--ink-soft)' }}>{window.Icon.building(24)}</div>
                 <div style={{ font: '800 12.5px/1.2 var(--f-display)', color: target === 'office' ? 'var(--wine)' : 'var(--ink)', marginTop: 6 }}>{t('Oficina · autoservicio', '办公室 · 自助')}</div>
-                <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{t('Subís y conectás por Bluetooth', '上楼通过蓝牙连接')}</div>
+                <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{t('Subes y conectás por Bluetooth', '上楼通过蓝牙连接')}</div>
                 <div style={{ marginTop: 6, padding: '2px 6px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 3, font: '700 9px/1 var(--f-sans)', display: 'inline-block' }}>{t('cola: 2 órdenes', '队列: 2个订单')}</div>
               </button>
             </div>
 
             {target === 'office' &&
           <div style={{ padding: '10px 12px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', marginBottom: 12, font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-                {t('Subís a la oficina, te conectás a la impresora por Bluetooth e imprimís vos mismo — sin que nadie intervenga. Ahí ves la cola y todas las recepciones.', '上楼到办公室，通过蓝牙连接打印机自行打印 — 无需他人干预。在那里可查看队列和所有接收。')}
+                {t('Subes a la oficina, te conectás a la impresora por Bluetooth e imprimís tú mismo — sin que nadie intervenga. Ahí ves la cola y todas las recepciones.', '上楼到办公室，通过蓝牙连接打印机自行打印 — 无需他人干预。在那里可查看队列和所有接收。')}
               </div>
           }
 

@@ -178,21 +178,18 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 
 ---
 
-## 🏷 Terminología · MARKBOX / Shipping Mark (regla de contexto)
+## 🏷 Terminología · Shipping Mark (término único)
 
-> **MARKBOX y Shipping Mark son la MISMA cosa** — el identificador que marca la caja. El término estándar del sistema es **"Shipping Mark"** (la marca de envío que usan los chinos, 唛头); como era muy largo se abrevió a **MARKBOX**. Siempre apunta a un registro de cliente (`DTD-XXXX`).
+> **Decisión 2026-06-10 (autorizada por el usuario):** se eliminó "MARKBOX" de todo el lenguaje
+> visual. El término único en TODOS los contextos (cliente, proveedor, interno, marketing) es
+> **Shipping Mark** (唛头) — el lenguaje universal de carga. Siempre apunta a un registro de
+> cliente (`DTD-XXXX`).
 
-**Cuál mostrar según quién lee** (regla absoluta):
-
-| Contexto | Término que se muestra |
-|---|---|
-| **Público / cliente** (portal, registro, login, emails, app) | **MARKBOX** |
-| **Proveedor en China** (instructivos WeChat/WhatsApp, etiquetas, packing list) | **Shipping Mark** (唛头) |
-| **Glosario de marca** (Brand Book) | **MARKBOX** · "marca la caja" |
-
-- En texto de cara al **proveedor**, liderá con **Shipping Mark / 唛头**; podés aclarar `(MARKBOX)` entre paréntesis la primera vez si ayuda, pero el término principal es Shipping Mark.
-- En texto de cara al **cliente**, NUNCA uses "Shipping Mark" como término principal — siempre **MARKBOX**.
-- El **valor** del código no cambia nunca según contexto (`DTD-5532`, `DTD-5532-1-1`): lo único que cambia es la **etiqueta** con que lo nombramos.
+- El **valor** del código no cambia (`DTD-5532`, `DTD-5532-1-1`); solo la etiqueta con que se nombra.
+- En texto de cara al proveedor chino puede acompañarse del chino: **Shipping Mark (唛头)**.
+- En **código** (props, claves de datos: `markbox:`, `c.markbox`) el identificador interno se
+  mantiene tal cual — NO renombrar claves; solo las etiquetas visibles.
+- ❌ Nunca volver a mostrar "MARKBOX" en UI, docs de cliente, marketing ni el Brand Book.
 
 ## 🏷 Terminología · Compra / Orden / Prealerta (regla de audiencia)
 
@@ -215,8 +212,9 @@ Los componentes viven en `erp/components.jsx` (ERP) y se reusan en `portal/app.j
 ## ✍️ Tono y voz
 
 - **Tagline oficial:** **"Con Confianza, de China a tu puerta."** — antepone el valor diferencial (confianza) a la promesa funcional. NO usar la versión vieja "De China a tu puerta. Sin intermediarios."
+  - **Casing (2026-06-05 · autorizado por el usuario):** "Confianza" va con **C mayúscula** en el tagline (`Con Confianza, …`), tratada como palabra-valor de marca. Aplica en UI de producto, portal, emails, brand book y piezas sociales. El sub-claim y los "niveles de confianza" (IA/ferias) siguen en minúscula.
 - **Sub-claim / filosofía:** "Construyendo confianza cliente a cliente, contenedor a contenedor."
-- **Castellano rioplatense/venezolano neutro** — usá voseo si encaja (vos / sos / arrancá / mirá).
+- **Castellano venezolano neutro, con tuteo (tú) — sin voseo** (tú / eres / inicia / mira). NUNCA voseo (vos / sos / arrancá / mirá): no aplica en Venezuela.
 - **Verbos directos** en CTAs: "Cotizar DDP", "Crear embarque", "Enviar correo". **NUNCA** "Click acá", "Enviar formulario", "Submit".
 - Sin emoji en UI de producto **a menos que la marca lo apruebe**. Si necesitás un símbolo, usá un icono del set `window.Icon`.
 - Sin signos de exclamación múltiples. Sin mayúsculas sostenidas (excepto en eyebrows que ya lo hacen vía `text-transform: uppercase`).
@@ -294,17 +292,48 @@ preferís la alternativa?
 
 ---
 
+## 🔄 Sincronización con Claude Code · "Norte" (regla de handoff)
+
+> Este proyecto (prototipo/diseño) es la **fuente de verdad de la marca**. Cada actualización
+> de marca se lleva COMPLETA a Claude Code, que la aplica en el repo de producción ("Norte").
+> El módulo **Estudio de Redes** (ERP → Administración → Marca) consume `ERPData.SHIPMENTS` y
+> el seam `localStorage['dtd-piezas-log']` (lo escribe el Generador Redes al descargar) — en
+> producción ambos van a la API (ver `backend/API-CONTRACT.md`).
+
+**Protocolo — cuando recibas este proyecto con una actualización de marca:**
+
+1. **El Brand Book vigente es UNO solo:** el de mayor versión en la raíz (hoy
+   `Brand Book DTD v3.7.html`). Si en Norte existen copias de brand books **anteriores
+   (v3.6, v3.5, …), eliminálas** — la versión nueva las reemplaza por completo; el
+   historial vive en el changelog interno del book vigente.
+2. **Actualizá todo puntero** a la versión nueva (links en módulos tipo
+   `erp/modules/admin.jsx` / `admin-brand.jsx`, docs, READMEs). Cero referencias a
+   versiones viejas.
+3. **Propagá los cambios de sistema**, no solo el book: `erp/tokens.css` (tokens),
+   `CLAUDE.md` (reglas), assets de `assets/` y `brandbook-icons/`. Si un token o regla
+   cambió acá, en Norte se aplica igual — sin reinterpretar.
+4. **No mezclar versiones:** nunca convivan dos brand books en Norte. Ante conflicto
+   entre algo viejo de Norte y este proyecto, **gana este proyecto** (es la fuente).
+5. Registrá lo aplicado en el changelog/bitácora de Norte con la versión del book
+   (ej. "marca sincronizada a Brand Book v3.7").
+
+---
+
 ## 🧱 Stack y arquitectura
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `Brand Book DTD v3.2.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro.
+- **Brand Book:** `Brand Book DTD v3.7.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro. (v3.5/v3.6 fueron eliminados — su historial vive en el changelog del v3.7, que suma la sección 09 · WhatsApp Business interactiva, el hub de herramientas de redes en §08 y la gobernanza en §15.)
+- **Colateral impreso de marca:** `Tarjeta de Presentación.html` (85×55 mm, doble cara, QR vCard) + `Colateral Impreso · DTD-Cargo.html` (membrete A4, credencial CR-80 con lanyard, vinilo de camión 6.0×2.4 m, roll-up 85×200 cm — cada pieza con spec de imprenta) + `Uniformes · DTD-Cargo.html`. Usan `erp/tokens.css` + `assets/dtdcargo-isologo-*.png`. **No** inventar datos de contacto: RIF `J-410322887`, Av. Bolívar Norte 14 (Valencia), `info@dtdcargo.com` (correo de branding · 2026-06), `+58 241 414 7886`.
 - **Documentos legales:** carpeta `legal/` — T&C de DTD (cliente), Acuerdo con el operador de
   consolidación (interno) y Brief de seguro (interno). Cada uno en `.md` (canónico, lo lee
   Claude Code) + `.docx` (original para subir/firmar). Ver `legal/README.md`. La T&C v2.1 de
   cara al cliente vive además embebida en `erp/modules/admin-legal.jsx` (`LEGAL_BODY.tyc`) y
   el modal del Portal — si cambia, actualizar ambos y subir la versión.
 - Mock data en `erp/data.jsx`. Cualquier dato nuevo se agrega ahí y se expone vía `window.ERPData`.
+- **Backend (producción):** carpeta `backend/` — `API-CONTRACT.md` mapea cada seam
+  (`window.DTDData`/`DTDFlags`/`LegalData`) a su endpoint REST. El prototipo es 100% mock en el
+  navegador; para producto real se reescribe el cuerpo de los seams (misma firma, llama a la API).
 
 ---
 

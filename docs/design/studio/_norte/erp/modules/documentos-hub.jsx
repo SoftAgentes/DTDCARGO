@@ -284,7 +284,7 @@ function DocsForTransaction({ kind, id, goTo }) {
       </div>
       {docs.length === 0 ? (
         <div style={{ padding: '18px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-md)', font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
-          Sin documentos adjuntos a esta transacción. Usá <b style={{ color: 'var(--ink)' }}>Adjuntar</b> para subir el BL, packing, factura, etc. — se clasifican solos en el hub.
+          Sin documentos adjuntos a esta transacción. Usa <b style={{ color: 'var(--ink)' }}>Adjuntar</b> para subir el BL, packing, factura, etc. — se clasifican solos en el hub.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

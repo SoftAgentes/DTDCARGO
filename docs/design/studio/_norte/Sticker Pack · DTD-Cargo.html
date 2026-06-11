@@ -1,186 +1,115 @@
 <!doctype html>
 <html lang="es">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Sticker Pack · DTD-Cargo</title>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Sora:wght@600;700;800&family=Nunito+Sans:wght@400;600;700;800;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet"/>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTD-Cargo · Sticker Pack WhatsApp · 17 piezas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Archivo+Black&family=JetBrains+Mono:wght@600;700&family=Noto+Sans+SC:wght@700;900&display=swap" rel="stylesheet">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
-:root{
-  --wine:#7F0F1A; --wine-deep:#5E0A12; --wine-soft:#C2747F;
-  --ink:#0F1E3D; --ink2:#1F3055; --cream:#FBFAF7; --success:#1F8A5B; --warning:#B8893A;
-  --f-sans:'Nunito Sans',system-ui,sans-serif;
-  --f-display:'Sora',sans-serif;
-  --f-mono:'JetBrains Mono',ui-monospace,monospace;
-  --f-brand:'Archivo Black',sans-serif;
-}
-*{box-sizing:border-box}
-body{margin:0;background:#4a4f5a;color:var(--cream);font-family:var(--f-sans);-webkit-font-smoothing:antialiased}
-.bar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-  padding:16px 24px;background:rgba(15,30,61,.82);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08)}
-.bar .eyebrow{font:700 10.5px/1 var(--f-sans);letter-spacing:.16em;text-transform:uppercase;color:rgba(251,250,247,.7)}
-.bar h1{font-family:var(--f-display);font-weight:800;font-size:17px;margin:0;letter-spacing:-.01em}
-.bar .sp{flex:1}
-.bar .note{font-size:11.5px;color:rgba(251,250,247,.55)}
-.bar button{font:700 12px/1 var(--f-sans);color:#fff;background:var(--wine);border:none;padding:10px 15px;border-radius:8px;cursor:pointer}
-.bar button:hover{background:var(--wine-deep)}
-
-.sheet{max-width:1080px;margin:0 auto;padding:28px 24px 80px;
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:22px}
-.cell{display:flex;flex-direction:column;align-items:center;gap:10px}
-.checker{border-radius:18px;padding:14px;
-  background-image:linear-gradient(45deg,#5a5f6a 25%,transparent 25%),linear-gradient(-45deg,#5a5f6a 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#5a5f6a 75%),linear-gradient(-45deg,transparent 75%,#5a5f6a 75%);
-  background-size:18px 18px;background-position:0 0,0 9px,9px -9px,-9px 0;background-color:#646975;position:relative}
-.scaler{width:184px;height:184px}
-.scaler .sticker{transform:scale(.359);transform-origin:top left}
-
-/* ── Sticker base (512×512) ── */
-.sticker{width:512px;height:512px;position:relative;display:flex;align-items:center;justify-content:center}
-.shape{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
-  border:14px solid var(--cream);filter:drop-shadow(0 10px 18px rgba(0,0,0,.28))}
-.shape.rect{width:452px;height:452px;border-radius:64px;padding:40px}
-.shape.circle{width:452px;height:452px;border-radius:50%;padding:46px}
-.bg-navy{background:linear-gradient(155deg,var(--ink),var(--ink2));color:var(--cream)}
-.bg-wine{background:linear-gradient(155deg,var(--wine),var(--wine-deep));color:var(--cream)}
-.bg-cream{background:var(--cream);color:var(--ink)}
-.bg-success{background:linear-gradient(155deg,#1F8A5B,#14694480 ),#16794F;color:var(--cream)}
-
-.meander{position:absolute;inset:0;border-radius:inherit;overflow:hidden;opacity:.5}
-.meander::before{content:"";position:absolute;inset:-20px;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%23FFFFFF' stroke-opacity='0.10' stroke-width='5'/></svg>");
-  background-size:62px 62px}
-.bg-cream .meander::before{background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%230F1E3D' stroke-opacity='0.07' stroke-width='5'/></svg>")}
-
-.s-content{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:18px;width:100%}
-.s-iso{width:auto;display:block}
-.s-emoji{font-size:120px;line-height:1;filter:drop-shadow(0 4px 8px rgba(0,0,0,.2))}
-.s-kicker{font:800 30px/1 var(--f-sans);letter-spacing:.14em;text-transform:uppercase;opacity:.62}
-.s-big{font-family:var(--f-display);font-weight:800;font-size:62px;line-height:.98;letter-spacing:-.02em}
-.s-mid{font-family:var(--f-display);font-weight:800;font-size:46px;line-height:1.04;letter-spacing:-.01em}
-.s-sub{font:700 28px/1.25 var(--f-sans)}
-.s-wm{font-family:var(--f-brand);font-size:50px;letter-spacing:-.02em;line-height:1}
-.s-wm .sp{display:inline-block;width:.14em}
-.s-wm.lg{font-size:64px}
-.s-mono{font-family:var(--f-mono);font-weight:700;font-size:40px}
-.s-pill{font:800 24px/1 var(--f-sans);padding:14px 26px;border-radius:999px}
-.dtd{color:var(--wine)} .cargo{color:var(--ink)}
-.bg-navy .dtd,.bg-wine .dtd{color:var(--cream)} .bg-navy .cargo,.bg-wine .cargo{color:var(--cream)}
-.em-wine{color:var(--wine-soft)} .bg-cream .em-wine{color:var(--wine)}
-.s-check{font-size:96px;line-height:1}
-
-.cap{font:600 12px/1.3 var(--f-sans);color:rgba(251,250,247,.78);text-align:center;max-width:184px}
-.cap small{display:block;color:rgba(251,250,247,.45);font-weight:500;font-size:10.5px;margin-top:2px;text-transform:uppercase;letter-spacing:.08em}
-.dlbtn{font:700 11px/1 var(--f-sans);color:var(--cream);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.18);
-  padding:7px 12px;border-radius:7px;cursor:pointer}
-.dlbtn:hover{background:var(--wine);border-color:var(--wine)}
+  :root{ --navy:#0F1E3D; --navy-2:#1F3055; --wine:#7F0F1A; --wine-soft:#C2747F; --cream:#FBFAF7; --gold:#B8893A; --ink-dk:#A8B0C4; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Archivo',system-ui,sans-serif;background:#0B1428;color:var(--cream);padding:24px 26px 80px}
+  .top{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-bottom:6px}
+  h1{font-family:'Archivo Black',sans-serif;font-size:22px;line-height:1.15}
+  h1 small{display:block;font-family:'Archivo';font-weight:600;font-size:12px;color:var(--ink-dk);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+  .sp{flex:1}
+  .meta{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-dk)}
+  button{font-family:'Archivo';font-weight:700;font-size:13px;background:var(--wine);color:#fff;border:0;border-radius:8px;padding:11px 16px;cursor:pointer}
+  button:hover{background:#5E0A12}
+  button.alt{background:rgba(255,255,255,.08);color:var(--cream)}
+  button.alt:hover{background:rgba(255,255,255,.16)}
+  .lead{color:var(--ink-dk);font-size:13px;max-width:86ch;line-height:1.55;margin:10px 0 24px}
+  .lead b{color:var(--wine-soft)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px}
+  .item{display:flex;flex-direction:column;gap:10px;align-items:center}
+  .tile{width:186px;height:186px;border-radius:14px;display:flex;align-items:center;justify-content:center;overflow:hidden;
+    background:
+      linear-gradient(45deg, rgba(255,255,255,.07) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.07) 75%),
+      linear-gradient(45deg, rgba(255,255,255,.07) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.07) 75%),
+      #131F3A;
+    background-size:22px 22px; background-position:0 0, 11px 11px;}
+  .stk-wrap{width:166px;height:166px;overflow:hidden}
+  .stk{width:512px;height:512px;transform:scale(.32422);transform-origin:top left;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+    background:var(--navy);border:14px solid #fff;border-radius:120px;padding:40px;text-align:center}
+  .stk .em{font-size:150px;line-height:1}
+  .stk .tx{font-family:'Archivo Black','Noto Sans SC',sans-serif;font-size:64px;line-height:1.05;color:#fff;text-wrap:balance}
+  .stk .tx .cn{font-family:'Noto Sans SC',sans-serif;font-weight:900}
+  .stk.wine{background:var(--wine)}
+  .stk.cream{background:var(--cream)} .stk.cream .tx{color:var(--navy)}
+  .stk.circle{border-radius:50%;background:#fff;gap:0;padding:70px}
+  .stk.circle img{width:300px;height:auto}
+  .stk.brand img{width:190px;height:auto}
+  .stk.brand .wm{font-family:'Archivo Black',sans-serif;font-size:74px;letter-spacing:-0.02em;line-height:1}
+  .stk.brand .wm .a{color:var(--wine-soft)} .stk.brand .wm .b{color:#fff}
+  .lbl{text-align:center}
+  .lbl .t{font-weight:800;font-size:13px}
+  .lbl .c{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-dk);letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
+  .item button{font-size:11.5px;padding:8px 13px}
 </style>
 </head>
 <body>
-<div class="bar">
-  <div>
-    <div class="eyebrow">DTD-Cargo · social</div>
-    <h1>Sticker Pack · 16 piezas</h1>
+  <div class="top">
+    <h1>Sticker Pack · WhatsApp<small>DTD-Cargo · Social</small></h1>
+    <span class="sp"></span>
+    <span class="meta">512×512 · fondo transparente · 17 piezas</span>
+    <button onclick="dlAll()">⬇ Descargar todos</button>
   </div>
-  <span class="sp"></span>
-  <span class="note">512×512 · fondo transparente · listos para WhatsApp</span>
-  <button id="dlall">↓ Descargar todos</button>
-</div>
+  <p class="lead">El pack oficial para el chat: <b>marca, estados de envío y saludos</b> con texto — se entienden solos en la conversación. Cada sticker baja como PNG <b>512×512 transparente</b>, listo para subir a WhatsApp (convertir a .webp con la app Sticker Maker si hace falta).</p>
+  <div class="grid" id="grid"></div>
 
-<div class="sheet" id="sheet"></div>
-
-<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.13/dist/html-to-image.js"></script>
 <script>
-const ISO_P = 'marketing/dtdcargo-isologo-primary.png';
-const ISO_R = 'marketing/dtdcargo-isologo-reverse.png';
-const WM = (a,b)=>`<span class="dtd">${a}</span><span class="sp"></span><span class="cargo">${b}</span>`;
-
-// 16 stickers · mix formal + cálido
+const ISO_REV = "assets/dtdcargo-isologo-reverse.png";
+const ISO_PRI = "assets/dtdcargo-isologo-primary.png";
 const STICKERS = [
-  // — Marca (formal) —
-  {id:'logo-navy', cap:'Logo principal', tag:'marca', shape:'rect', bg:'bg-navy', meander:true,
-    html:`<div class="s-content"><img class="s-iso" src="${ISO_R}" style="width:150px"><div class="s-wm lg">${WM('DTD','Cargo')}</div></div>`},
-  {id:'iso-cream', cap:'Isólogo', tag:'marca', shape:'circle', bg:'bg-cream', meander:true,
-    html:`<div class="s-content"><img class="s-iso" src="${ISO_P}" style="width:230px"></div>`},
-  // — Estados de envío (cálido + emoji) —
-  {id:'salio', cap:'Tu carga salió', tag:'estado', shape:'rect', bg:'bg-navy', meander:true,
-    html:`<div class="s-content"><div class="s-emoji">🚢</div><div class="s-big">¡Tu carga<br>ya salió!</div></div>`},
-  {id:'transito', cap:'En tránsito', tag:'estado', shape:'rect', bg:'bg-navy', meander:true,
-    html:`<div class="s-content"><div class="s-emoji">🌊</div><div class="s-big">En<br>tránsito</div><div class="s-mono em-wine">中国 → VE</div></div>`},
-  {id:'aduana', cap:'En aduana', tag:'estado', shape:'rect', bg:'bg-cream', meander:true,
-    html:`<div class="s-content"><div class="s-emoji">📋</div><div class="s-big" style="color:var(--ink)">En<br>aduana</div></div>`},
-  {id:'bodega', cap:'En bodega', tag:'estado', shape:'rect', bg:'bg-cream', meander:true,
-    html:`<div class="s-content"><div class="s-emoji">📦</div><div class="s-big" style="color:var(--ink)">En<br>bodega</div></div>`},
-  {id:'entregado', cap:'Entregado', tag:'estado', shape:'circle', bg:'bg-success', meander:false,
-    html:`<div class="s-content"><div class="s-check">✓</div><div class="s-big">¡Entregado!</div></div>`},
-  // — Frases de marca —
-  {id:'confianza', cap:'Tagline oficial', tag:'frase', shape:'rect', bg:'bg-wine', meander:true,
-    html:`<div class="s-content"><div class="s-mid">Con <span class="em-wine" style="color:#fff">Confianza</span>,<br>de China<br>a tu puerta.</div><div class="s-wm" style="font-size:34px;margin-top:8px">${WM('DTD','Cargo')}</div></div>`},
-  {id:'ruta', cap:'China → Venezuela', tag:'frase', shape:'rect', bg:'bg-navy', meander:true,
-    html:`<div class="s-content"><div style="font-family:var(--f-mono);font-weight:700;font-size:120px;color:var(--wine-soft);line-height:1">回</div><div class="s-sub">China → Venezuela</div></div>`},
-  // — MARKBOX —
-  {id:'markbox-q', cap:'¿Ya tenés tu código?', tag:'markbox', shape:'rect', bg:'bg-cream', meander:true,
-    html:`<div class="s-content"><div class="s-kicker" style="color:var(--wine)">MARKBOX</div><div class="s-mid" style="color:var(--ink)">¿Ya tenés<br>tu código?</div></div>`},
-  {id:'markbox-code', cap:'Tu MARKBOX', tag:'markbox', shape:'rect', bg:'bg-navy', meander:true,
-    html:`<div class="s-content"><div class="s-kicker">Tu MARKBOX</div><div class="s-pill" style="background:var(--cream);color:var(--wine);font-family:var(--f-mono);font-size:42px;font-weight:700">DTD-____</div><div class="s-sub" style="opacity:.8;font-size:22px">marcá tu caja</div></div>`},
-  // — Saludos (cálido) —
-  {id:'gracias', cap:'¡Gracias!', tag:'saludo', shape:'rect', bg:'bg-wine', meander:true,
-    html:`<div class="s-content"><div class="s-big">¡Gracias<br>por confiar!</div><div class="s-wm" style="font-size:30px;margin-top:6px">${WM('DTD','Cargo')}</div></div>`},
-  {id:'buendia', cap:'¡Buen día!', tag:'saludo', shape:'circle', bg:'bg-navy', meander:true,
-    html:`<div class="s-content"><div class="s-emoji">☀️</div><div class="s-big">¡Buen<br>día!</div></div>`},
-  {id:'orden', cap:'A la orden', tag:'saludo', shape:'rect', bg:'bg-cream', meander:true,
-    html:`<div class="s-content"><div class="s-emoji">🙌</div><div class="s-big" style="color:var(--ink)">¡A la<br>orden!</div></div>`},
-  {id:'listo', cap:'¡Listo!', tag:'saludo', shape:'circle', bg:'bg-success', meander:false,
-    html:`<div class="s-content"><div class="s-emoji">👍</div><div class="s-big">¡Listo!</div></div>`},
-  {id:'dudas', cap:'Escribinos', tag:'saludo', shape:'rect', bg:'bg-navy', meander:true,
-    html:`<div class="s-content"><div class="s-emoji">💬</div><div class="s-mid">¿Dudas?<br>Escribinos</div></div>`},
+  { id:'01-logo',       cat:'MARCA',  brand:true,  label:'Logo principal' },
+  { id:'02-isologo',    cat:'MARCA',  circle:true, label:'Isólogo' },
+  { id:'03-salio',      cat:'ESTADO', em:'🚢', tx:'¡Tu carga<br>ya salió!', label:'Tu carga salió' },
+  { id:'04-transito',   cat:'ESTADO', em:'🌊', tx:'En tránsito<br><span class="cn">中国</span>→VE', label:'En tránsito' },
+  { id:'05-aduana',     cat:'ESTADO', em:'📋', tx:'En aduana', label:'En aduana' },
+  { id:'06-bodega',     cat:'ESTADO', em:'📦', tx:'En bodega', label:'En bodega' },
+  { id:'07-entregado',  cat:'ESTADO', em:'✅', tx:'¡Entregado!', label:'Entregado' },
+  { id:'08-consolidando',cat:'ESTADO',em:'🏗️', tx:'Consolidando', label:'Consolidando' },
+  { id:'09-buendia',    cat:'SALUDO', em:'☀️', tx:'¡Buen día!', wine:true, label:'Buen día' },
+  { id:'10-alaorden',   cat:'SALUDO', em:'🙌', tx:'¡A la orden!', wine:true, label:'A la orden' },
+  { id:'11-listo',      cat:'SALUDO', em:'👍', tx:'¡Listo!', wine:true, label:'Listo' },
+  { id:'12-gracias',    cat:'SALUDO', em:'🙏', tx:'¡Gracias!<br><span class="cn">谢谢</span>', wine:true, label:'Gracias · 谢谢' },
+  { id:'13-dudas',      cat:'CHAT',   em:'💬', tx:'¿Dudas?<br>Escríbenos', label:'Dudas · escríbenos' },
+  { id:'14-pago',       cat:'CHAT',   em:'💵', tx:'Pago<br>confirmado', label:'Pago confirmado' },
+  { id:'15-cotiza',     cat:'CHAT',   em:'🧮', tx:'Cotiza<br>tu DDP', label:'Cotiza tu DDP' },
+  { id:'16-cnve',       cat:'CHAT',   em:'🌏', tx:'China →<br>Venezuela', label:'China → Venezuela' },
+  { id:'17-confianza',  cat:'MARCA',  em:'🤝', tx:'Con<br>Confianza', label:'Con Confianza' },
 ];
-
-const sheet = document.getElementById('sheet');
-STICKERS.forEach(s=>{
-  const cell=document.createElement('div'); cell.className='cell';
-  cell.innerHTML=`
-    <div class="checker">
-      <div class="scaler">
-        <div class="sticker" data-id="${s.id}">
-          <div class="shape ${s.shape} ${s.bg}">
-            ${s.meander?'<div class="meander"></div>':''}
-            ${s.html}
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="cap">${s.cap}<small>${s.tag}</small></div>
-    <button class="dlbtn" data-dl="${s.id}">↓ PNG</button>`;
-  sheet.appendChild(cell);
+const grid=document.getElementById('grid');
+STICKERS.forEach((s,i)=>{
+  const el=document.createElement('div'); el.className='item';
+  let inner='';
+  if(s.brand) inner='<div class="stk brand" id="stk-'+i+'"><img src="'+ISO_REV+'" alt=""><div class="wm"><span class="a">DTD</span> <span class="b">Cargo</span></div></div>';
+  else if(s.circle) inner='<div class="stk circle" id="stk-'+i+'"><img src="'+ISO_PRI+'" alt=""></div>';
+  else inner='<div class="stk'+(s.wine?' wine':'')+'" id="stk-'+i+'"><div class="em">'+s.em+'</div><div class="tx">'+s.tx+'</div></div>';
+  el.innerHTML='<div class="tile"><div class="stk-wrap">'+inner+'</div></div>'+
+    '<div class="lbl"><div class="t">'+s.label+'</div><div class="c">'+s.cat+'</div></div>'+
+    '<button class="alt" onclick="dl('+i+')">⬇ PNG 512</button>';
+  grid.appendChild(el);
 });
 
-async function snap(node){
-  await document.fonts.ready;
-  return await window.htmlToImage.toPng(node,{pixelRatio:1,width:512,height:512,cacheBust:true,
-    style:{transform:'none'}, backgroundColor:undefined});
-}
-async function dlOne(id){
-  const node=document.querySelector('.sticker[data-id="'+id+'"]');
-  const url=await snap(node);
-  const a=document.createElement('a'); a.href=url; a.download='DTDCargo-sticker-'+id+'.png'; a.click();
-}
-document.querySelectorAll('[data-dl]').forEach(b=>b.addEventListener('click',async()=>{
-  const prev=b.textContent; b.disabled=true; b.textContent='…';
-  try{ await dlOne(b.dataset.dl); }catch(e){ alert('Sin conexión para exportar. Reintentá online.'); }
-  b.disabled=false; b.textContent=prev;
-}));
-document.getElementById('dlall').addEventListener('click',async function(){
-  const prev=this.textContent; this.disabled=true;
+async function dl(i){
+  await (document.fonts?document.fonts.ready:Promise.resolve());
+  const node=document.getElementById('stk-'+i);
+  const canvas=await html2canvas(node,{width:512,height:512,scale:1,backgroundColor:null,useCORS:true,
+    onclone:(doc)=>{ const c=doc.getElementById('stk-'+i); if(c){ c.style.transform='none'; if(c.parentElement) c.parentElement.style.overflow='visible'; } }});
+  const a=document.createElement('a');
+  a.href=canvas.toDataURL('image/png');
+  a.download='dtd-sticker-'+STICKERS[i].id+'.png'; a.click();
   try{
-    let i=0;
-    for(const s of STICKERS){ i++; this.textContent='Generando '+i+'/'+STICKERS.length+'…'; await dlOne(s.id); await new Promise(r=>setTimeout(r,180)); }
-  }catch(e){ alert('Sin conexión para exportar. Reintentá online.'); }
-  this.disabled=false; this.textContent=prev;
-});
+    const k='dtd-piezas-log';
+    const arr=JSON.parse(localStorage.getItem(k)||'[]');
+    arr.unshift({ id:'pz-'+Date.now()+'-'+Math.floor(Math.random()*1e4), ts:new Date().toISOString(), file:a.download, origen:'Sticker Pack', campaign:null });
+    localStorage.setItem(k, JSON.stringify(arr.slice(0,300)));
+  }catch(e){}
+}
+async function dlAll(){ for(let i=0;i<STICKERS.length;i++){ await dl(i); await new Promise(r=>setTimeout(r,350)); } }
 </script>
-
-<template id="__bundler_thumbnail">
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0F1E3D"/><rect x="22" y="22" width="56" height="56" rx="16" fill="#FBFAF7"/><text x="50" y="62" font-family="Archivo Black, sans-serif" font-size="30" fill="#7F0F1A" text-anchor="middle">D</text></svg>
-</template>
 </body>
 </html>
