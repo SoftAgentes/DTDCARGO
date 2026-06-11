@@ -19,11 +19,17 @@
  * PROHIBIDO (la action no muta y no ofrece override; el create-and-emit cae a
  * borrador).
  *
- * Se deja en `false` a propósito al shipear Slice C: el día que se activa el
- * flujo de aceptación NO hay aceptaciones previas en prod (cero adopción) → un
- * bloqueo duro inmediato congelaría TODA factura DDP en vuelo. El FOUNDER lo
- * pone en `true` cuando haya adopción (clientes aceptando por el Portal).
- * Cambiar SOLO esta constante alcanza para el flip — el resto del gate ya está
- * cableado, y el banner de /studio/legal refleja el modo automáticamente.
+ * Se dejó en `false` al shipear Slice C: ese día NO había aceptaciones previas
+ * en prod (cero adopción) y un bloqueo duro inmediato habría congelado toda
+ * factura DDP en vuelo. Cambiar SOLO esta constante alcanza para el flip — el
+ * resto del gate ya está cableado, y el banner de /studio/legal refleja el modo
+ * automáticamente.
+ *
+ * FLIP A BLOQUEO DURO (founder, 2026-06-11): activado en ventana LIMPIA —
+ * verificado en prod 0 aceptaciones + 0 facturas DDP en borrador/en vuelo, así
+ * que no congela ninguna factura existente. Desde ahora, emitir una factura DDP
+ * exige que el cliente haya aceptado los T&C por el Portal (cumple el DoD del
+ * handoff: "imposible confirmar sin aceptación registrada"). Requiere que el
+ * flujo de aceptación del Portal esté operativo (magic-link / Auth Email).
  */
-export const LEGAL_GATE_HARD_BLOCK = false;
+export const LEGAL_GATE_HARD_BLOCK = true;
