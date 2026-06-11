@@ -758,8 +758,9 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 export const HERO = {
   /**
-   * Kicker = tagline oficial v3.0 (mayo 2026) "Con confianza, de China a tu
-   * puerta.". SDD-0064 (decisión founder 2026-06-08): el tagline pasa de H1 a
+   * Kicker = tagline oficial "Con Confianza, de China a tu puerta." (brand
+   * book vigente; casing C mayúscula autorizado 2026-06-05).
+   * SDD-0064 (decisión founder 2026-06-08): el tagline pasa de H1 a
    * KICKER y el H1 ahora es de ACCIÓN ("Importa desde China hasta tu puerta"),
    * para claridad + SEO + conversión, dejando "DDP" como aclaración secundaria.
    *
@@ -768,7 +769,7 @@ export const HERO = {
    * founder el 2026-06-08 (regla estratégica: "el cliente entiende puerta a
    * puerta; DDP es la metodología técnica que lo hace posible").
    */
-  kicker: { accent: "Con confianza,", rest: "de China a tu puerta." },
+  kicker: { accent: "Con Confianza,", rest: "de China a tu puerta." },
   /** H1 de acción. `accent` se renderiza en wine. */
   title: {
     lead: "Importa desde China",
