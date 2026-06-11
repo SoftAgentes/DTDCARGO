@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { JetBrains_Mono } from "next/font/google";
+import { jetbrainsMonoUi } from "@/lib/fonts";
 import { BrandMark } from "@/components/BrandMark";
 import { ArrowIcon, CheckIcon, DownloadIcon, CloseIcon } from "@/components/Icon";
 import { ColorSwatch } from "../../_components/ColorSwatch";
@@ -21,13 +21,6 @@ import { DTD, BRAND_ASSETS, CONTACT, SHADOWS } from "@/lib/design-tokens";
  * v3.5 desde Norte → copiar el HTML a `public/marca/brand-book-v3.5.html` y cambiar
  * la const `BRAND_BOOK`. El iframe hereda la CSP relajada de `/marca/*` (next.config).
  */
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
 
 export const metadata: Metadata = {
   title: "Marca",
@@ -132,7 +125,7 @@ const ASSETS_EMAIL = CONTACT.ve.email;
 
 export default function MarcaHubPage() {
   return (
-    <main className={jetbrainsMono.variable}>
+    <main className={jetbrainsMonoUi.variable}>
       <div className="wrap pt-6 pb-4">
         <InternoBreadcrumb
           items={[{ href: "/interno", label: "Recursos internos" }, { label: "Marca" }]}
