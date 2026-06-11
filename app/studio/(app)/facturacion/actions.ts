@@ -33,7 +33,11 @@ import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
 import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
 import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
-import { type PaymentMethod } from "@/lib/studio/payment-types";
+import {
+  deriveFundClass,
+  type FundClass,
+  type PaymentMethod,
+} from "@/lib/studio/payment-types";
 import {
   calcInvoiceTotals,
   IVA_RATE_DEFAULT,
@@ -182,6 +186,29 @@ function addDaysISO(baseISO: string, days: number): string {
 }
 
 /**
+ * Clase de fondos de la factura (SDD-0068 · decisión #5). Solo ESCRIBE la
+ * columna `invoices.fund_class` al crear/emitir — no toca asientos ni estados.
+ *  - sin shipment → local_revenue (servicio local de DTD Services).
+ *  - con shipment → deriveFundClass(shipment_service): transporte_terrestre ⇒
+ *    local_revenue; consolidacion/DDP/FCL ⇒ third_party (Operadora).
+ *  - shipment referenciado pero ilegible (RLS/borrado) → third_party
+ *    (conservador: nunca inflar el ingreso propio).
+ */
+async function deriveInvoiceFundClass(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  shipmentId: string | null,
+): Promise<FundClass> {
+  if (!shipmentId) return "local_revenue";
+  const { data } = await supabase
+    .from("shipments")
+    .select("shipment_service")
+    .eq("id", shipmentId)
+    .maybeSingle<{ shipment_service: string | null }>();
+  if (!data) return "third_party";
+  return deriveFundClass(data.shipment_service);
+}
+
+/**
  * Gate legal AUT-04 (SDD-0054 · Slice B) — modo ADVISORY.
  *
  * Decisión del founder ("advisory → duro al cerrar C"): el gate se cablea AHORA
@@ -316,6 +343,8 @@ export async function createInvoice(
       status: emitNow ? "emitida" : "borrador",
       issued_at: emitNow ? today : null,
       due_date: input!.due_date ?? (emitNow ? addDaysISO(today, 30) : null),
+      // SDD-0068: clasificación de fondos del mandato (los recibos la heredan).
+      fund_class: await deriveInvoiceFundClass(supabase, input!.shipment_id),
     })
     .select("id")
     .single();
@@ -481,6 +510,10 @@ export async function emitInvoice(
       status: "emitida",
       issued_at: today,
       due_date: current.due_date ?? addDaysISO(today, 30),
+      // SDD-0068: re-derivar la clase de fondos al emitir (el shipment pudo
+      // cambiar mientras era borrador). Solo escribe la columna — el asiento
+      // de emisión y la máquina de estados quedan intactos.
+      fund_class: await deriveInvoiceFundClass(supabase, current.shipment_id),
     })
     .eq("id", id);
 

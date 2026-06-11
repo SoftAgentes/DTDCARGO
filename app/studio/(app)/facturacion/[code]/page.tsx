@@ -1,5 +1,6 @@
 /**
- * Detalle de factura — card total navy + desglose IVA + datos + acciones.
+ * Detalle de factura — card total navy + desglose IVA + datos + acciones +
+ * recibos de cobranza con link al imprimible (SDD-0068).
  *
  * SDD-0021. Server component lee la factura por code. Las acciones (emitir,
  * registrar pago, anular, editar) se delegan al InvoiceDetailClient.
@@ -9,7 +10,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getInvoiceByCode } from "@/lib/studio/invoice-queries";
-import { listCashAccounts } from "@/lib/studio/payment-queries";
+import { listCashAccounts, listReceipts } from "@/lib/studio/payment-queries";
 import {
   computeBalance,
   currencyLabel,
@@ -18,6 +19,13 @@ import {
   statusBadgeTone,
   statusLabel,
 } from "@/lib/studio/invoice-types";
+import {
+  applicationStatusLabel,
+  applicationStatusTone,
+  fundClassLabel,
+  fundClassTone,
+  paymentMethodLabel,
+} from "@/lib/studio/payment-types";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { InvoiceDetailClient } from "../_components/InvoiceDetailClient";
 
@@ -44,6 +52,9 @@ export default async function InvoiceDetailPage({
     listCashAccounts(supabase),
   ]);
   if (!invoice) notFound();
+
+  // Recibos de cobranza de la factura (SDD-0068) — con link al imprimible.
+  const receipts = await listReceipts(supabase, { invoiceId: invoice.id });
 
   const ivaOn = (ivaRow.data as { iva_enabled?: boolean } | null)?.iva_enabled ?? false;
   const ds = displayStatus(invoice);
@@ -364,6 +375,80 @@ export default async function InvoiceDetailPage({
               </span>
             </div>
           ))}
+        </section>
+      )}
+
+      {/* Recibos de cobranza (SDD-0068) */}
+      {receipts.length > 0 && (
+        <section
+          style={{
+            marginTop: 20,
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            padding: 20,
+          }}
+        >
+          <div className="studio-eyebrow" style={{ marginBottom: 12 }}>
+            Recibos de cobranza · {receipts.length}
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {receipts.map((r, i) => (
+              <div
+                key={r.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  padding: "10px 0",
+                  borderTop: i > 0 ? "1px solid var(--border)" : 0,
+                  flexWrap: "wrap",
+                }}
+              >
+                <span
+                  style={{
+                    font: "700 12px/1 var(--f-mono)",
+                    color: "var(--ink)",
+                  }}
+                >
+                  {r.receipt_code}
+                </span>
+                <Badge tone={applicationStatusTone(r.application_status)} size="sm">
+                  {applicationStatusLabel(r.application_status)}
+                </Badge>
+                <Badge tone={fundClassTone(r.fund_class)} size="sm">
+                  {fundClassLabel(r.fund_class)}
+                </Badge>
+                <span
+                  style={{
+                    font: "500 11px/1.3 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    flex: 1,
+                    minWidth: 140,
+                  }}
+                >
+                  {paymentMethodLabel(r.method)} · {r.received_at}
+                  {r.payer_kind === "tercero" && r.payer_name
+                    ? ` · pagó ${r.payer_name} (tercero)`
+                    : ""}
+                </span>
+                <span
+                  style={{
+                    font: "800 12.5px/1 var(--f-mono)",
+                    color: "var(--ink)",
+                  }}
+                >
+                  ${fmt(r.amount)}
+                </span>
+                <Link
+                  href={`/studio/cobranzas/recibo/${encodeURIComponent(r.receipt_code)}`}
+                  className="studio-btn studio-btn-ghost studio-btn-xs"
+                >
+                  Ver recibo
+                </Link>
+              </div>
+            ))}
+          </div>
         </section>
       )}
 
