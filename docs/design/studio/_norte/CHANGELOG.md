@@ -48,8 +48,9 @@ usa el de CRM `+58 412 166 8021`, correcto). Cambios aplicados:
 
 **Sin tocar:** teléfonos de empleados/choferes en `nomina-data.jsx` y `bodeguero.jsx`
 (data de ejemplo, no contactos reales). **Transporte** se deja en `+58 412 495 0884`
-(número real pendiente de confirmar). **RIF** de la factura sigue `J-40558712-0` (decisión
-de unificación de RIF aún pendiente, fuera de este cambio).
+(número real pendiente de confirmar). **RIF:** la unificación quedó RESUELTA en la carga
+2026-06-10 — RIF único `J-50648869-8` en todo el Norte (se borraron los 4 viejos que
+circulaban, incl. el de la factura demo). Ver entrada del sync 2026-06-10.
 
 ---
 
