@@ -63,7 +63,7 @@ function DeclaracionView({ ves }) {
       <U.Card padded={false}>
         <div style={{ padding: '16px 18px 12px', borderBottom: '1px solid var(--border)' }}>
           <div className="eyebrow eyebrow-wine">FORMA IVA · RESUMEN DE LA DECLARACIÓN</div>
-          <div style={{ font: '900 16px/1.1 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>DTD-Cargo C.A. · RIF J-40551122-3</div>
+          <div style={{ font: '900 16px/1.1 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>DTD-Cargo C.A. · RIF J-50648869-8</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 150px 150px', gap: 14, marginTop: 12, font: '700 9.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             <span>Concepto</span><span style={{ textAlign: 'right' }}>USD</span><span style={{ textAlign: 'right' }}>VES @ BCV</span>
           </div>

@@ -34,10 +34,12 @@ agregado a `.gitignore`** (el 06-08 lo excluyó a mano vía tar; ahora queda per
 (nuevo dir del paquete) ya estaba ignorado. `backend/prisma/schema.prisma` volvió en el ZIP →
 sigue bloqueado por `.gitignore` (decisión founder 2026-06-03: nativo Supabase, NO Prisma).
 
-**⚠️ Pendiente para Cloud Design / founder:** unificación de **RIF** (CLAUDE.md del paquete dice
-`J-410322887`, la factura demo emite con `J-40558712-0`; el canónico de identidad es `J-50648869-8`
-— ver `docs/marketing/identidad.md`) · frase residual del pack viejo en `Aplicaciones de Marca`
-("se vea redondo sobre cualquier chat").
+**RIF — RESUELTO el mismo día (decisión founder):** `J-50648869-8` es el ÚNICO RIF de DTD; los
+4 viejos del paquete (`J-410322887` · `J-40558712-0` · `J-40551122-3` · `J-50220185-8`) fueron
+reemplazados en 19 archivos + 2 `.docx` legales + los brand-books archivados (v3.0 / v1.7). Los
+RIF mock de clientes demo quedan tal cual. **⚠️ Pendiente para Cloud Design:** espejar la
+unificación en su origen + regenerar exportados con RIF horneado (`uploads/`) + frase residual
+del pack viejo en `Aplicaciones de Marca` ("se vea redondo sobre cualquier chat").
 
 ## v2.5 · re-sync 2026-06-08 (handoff posterior · Inspecciones + calc CBM-por-medidas + Brand Book v3.5)
 
