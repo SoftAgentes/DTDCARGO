@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Portada Animada · Facebook — DTD-Cargo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Sora:wght@600;700;800&family=Nunito+Sans:wght@600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#0F1E3D; --ink2:#1F3055; --wine:#7F0F1A; --wine-soft:#C2747F;
+  --cream:#FBFAF7;
+  --f-brand-display:'Archivo Black','Archivo',sans-serif;
+  --f-display:'Sora',sans-serif; --f-sans:'Nunito Sans',sans-serif;
+  --loop:14s;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#000;font-family:var(--f-sans)}
+body{display:flex;align-items:center;justify-content:center;overflow:hidden}
+
+/* fixed cover-video canvas, scaled to viewport */
+#stage{position:relative}
+#cover{
+  position:relative;width:1250px;height:463px;overflow:hidden;background:var(--ink);
+  transform-origin:center center;
+}
+
+/* background */
+.bg{position:absolute;inset:0;background:linear-gradient(135deg,var(--ink),var(--ink2))}
+.meander{position:absolute;inset:-40px;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%23FFFFFF' stroke-opacity='0.06' stroke-width='4'/></svg>");
+  background-repeat:repeat;background-size:46px 46px;
+  animation:drift var(--loop) linear infinite, fadeWrap var(--loop) ease-in-out infinite;}
+@keyframes drift{from{background-position:0 0}to{background-position:46px 23px}}
+
+/* route */
+.route{position:absolute;inset:0;animation:fadeWrap var(--loop) ease-in-out infinite}
+.route svg{width:100%;height:100%;display:block}
+.arc{stroke:var(--wine-soft);stroke-width:2.4;fill:none;stroke-dasharray:6 9;opacity:.6;
+  stroke-dashoffset:0;animation:dash var(--loop) linear infinite}
+.arc-draw{stroke:var(--wine-soft);stroke-width:2.6;fill:none;
+  stroke-dasharray:1100;stroke-dashoffset:1100;
+  animation:draw var(--loop) ease-in-out infinite;opacity:.0}
+@keyframes draw{
+  0%{stroke-dashoffset:1100;opacity:0}
+  18%{opacity:.55}
+  55%{stroke-dashoffset:0;opacity:.55}
+  86%{opacity:.55}
+  100%{stroke-dashoffset:0;opacity:0}
+}
+@keyframes dash{to{stroke-dashoffset:-300}}
+.endpt{animation:fadeWrap var(--loop) ease-in-out infinite}
+.ship{offset-path:path('M150 300 Q625 95 1100 210');offset-rotate:0deg;
+  animation:travel var(--loop) ease-in-out infinite, fadeWrap var(--loop) ease-in-out infinite}
+@keyframes travel{
+  0%{offset-distance:0%}
+  20%{offset-distance:0%}
+  55%{offset-distance:100%}
+  100%{offset-distance:100%}
+}
+
+/* lockup */
+.lock{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  display:flex;align-items:center;gap:30px;z-index:3;animation:fadeWrap var(--loop) ease-in-out infinite}
+.iso{height:150px;width:auto;aspect-ratio:741/764;display:block;
+  filter:drop-shadow(0 6px 18px rgba(0,0,0,.4));
+  opacity:0;transform:scale(.82);
+  animation:isoIn var(--loop) cubic-bezier(.2,.7,.2,1) infinite}
+@keyframes isoIn{
+  0%{opacity:0;transform:scale(.82)}
+  10%{opacity:0;transform:scale(.82)}
+  20%{opacity:1;transform:scale(1)}
+  90%{opacity:1;transform:scale(1)}
+  100%{opacity:0;transform:scale(.96)}
+}
+.txt{display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.wm{font-family:var(--f-brand-display);font-weight:900;font-size:74px;line-height:.9;letter-spacing:-.02em;
+  white-space:nowrap;color:var(--cream);
+  opacity:0;transform:translateX(-22px);
+  animation:wmIn var(--loop) cubic-bezier(.2,.7,.2,1) infinite}
+.wm .sp{display:inline-block;width:.14em}
+@keyframes wmIn{
+  0%{opacity:0;transform:translateX(-22px)}
+  16%{opacity:0;transform:translateX(-22px)}
+  28%{opacity:1;transform:translateX(0)}
+  90%{opacity:1;transform:translateX(0)}
+  100%{opacity:0;transform:translateX(0)}
+}
+.tag{font-family:var(--f-display);font-weight:600;font-size:24px;color:rgba(251,250,247,.84);
+  opacity:0;transform:translateY(8px);
+  animation:tagIn var(--loop) ease-out infinite}
+.tag .em{color:var(--wine-soft)}
+@keyframes tagIn{
+  0%{opacity:0;transform:translateY(8px)}
+  26%{opacity:0;transform:translateY(8px)}
+  38%{opacity:1;transform:translateY(0)}
+  90%{opacity:1;transform:translateY(0)}
+  100%{opacity:0;transform:translateY(0)}
+}
+
+/* eyebrow chip */
+.chip{position:absolute;top:34px;left:46px;z-index:3;font-family:var(--f-sans);font-weight:700;
+  letter-spacing:.14em;text-transform:uppercase;font-size:15px;color:var(--cream);white-space:nowrap;
+  background:rgba(251,250,247,.10);padding:9px 16px;border-radius:999px;
+  opacity:0;animation:tagIn var(--loop) ease-out infinite}
+.chip .cn{font-family:'Noto Sans SC','PingFang SC','Microsoft YaHei',sans-serif}
+
+/* global wrap fade for seamless loop */
+@keyframes fadeWrap{
+  0%{opacity:0}
+  6%{opacity:1}
+  94%{opacity:1}
+  100%{opacity:0}
+}
+
+/* HUD (outside the cover) */
+.hud{position:fixed;left:0;right:0;bottom:0;display:flex;gap:18px;align-items:center;justify-content:center;
+  padding:12px 18px;background:rgba(15,30,61,.9);color:var(--cream);font:600 12.5px/1.4 var(--f-sans);z-index:10}
+.hud b{color:#fff}
+.hud .dim{color:rgba(251,250,247,.6);font-weight:500}
+.hud button{font:700 12px/1 var(--f-sans);color:#fff;background:var(--wine);border:none;padding:9px 14px;border-radius:999px;cursor:pointer}
+.hud button:hover{background:#5E0A12}
+.hud a{color:var(--wine-soft);text-decoration:none;font-weight:700}
+@media(prefers-reduced-motion:reduce){
+  .meander,.route,.arc,.arc-draw,.ship,.endpt,.lock,.iso,.wm,.tag,.chip{animation:none!important;opacity:1!important;transform:none!important}
+  .iso{transform:none}
+}
+body.embed{background:transparent}
+body.embed .hud{display:none}
+/* En el preview embebido (Brand Book) los iframes anidados pueden throttlear
+   la animación → mostramos la composición REVELADA fija. El movimiento real
+   vive al abrir la página a pantalla completa. */
+body.embed .meander,body.embed .route,body.embed .endpt{animation:none!important;opacity:1!important}
+body.embed .arc{animation:none!important;opacity:.6!important}
+body.embed .chip{animation:none!important;opacity:1!important}
+body.embed .lock{animation:none!important;opacity:1!important}
+body.embed .iso{animation:none!important;opacity:1!important;transform:scale(1)!important}
+body.embed .wm{animation:none!important;opacity:1!important;transform:none!important}
+body.embed .tag{animation:none!important;opacity:1!important;transform:none!important}
+body.embed .ship,body.embed .arc-draw{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <div id="cover">
+    <div class="bg"></div>
+    <div class="meander"></div>
+
+    <div class="route">
+      <svg viewBox="0 0 1250 463" preserveAspectRatio="none">
+        <path class="arc" d="M150 300 Q625 95 1100 210"/>
+        <path class="arc-draw" d="M150 300 Q625 95 1100 210"/>
+        <circle class="endpt" cx="150" cy="300" r="7" fill="#FBFAF7"/>
+        <circle class="endpt" cx="1100" cy="210" r="7" fill="#C2747F"/>
+        <circle class="ship" cx="0" cy="0" r="6" fill="#FBFAF7"/>
+      </svg>
+    </div>
+
+    <div class="chip"><span class="cn">回</span>&nbsp; 中国 → Venezuela</div>
+
+    <div class="lock">
+      <img class="iso" src="/brand/dtdcargo-isologo-reverse.png" alt="DTD Cargo"/>
+      <div class="txt">
+        <div class="wm">DTD<span class="sp"></span>Cargo</div>
+        <div class="tag">Con <span class="em">Confianza</span>, de China a tu puerta.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="hud">
+  <span>📐 <b>1250 × 463 px</b> <span class="dim">· portada-video Facebook</span></span>
+  <span>⏱ <b>14&nbsp;s</b> en loop <span class="dim">(FB admite 20–90&nbsp;s)</span></span>
+  <button id="restart">↻ Reiniciar</button>
+  <button id="record">● Grabar video</button>
+  <span class="dim" id="recStatus">Genera un video a tamaño exacto, sin programas externos.</span>
+</div>
+
+<canvas id="exp" width="1250" height="463" style="position:fixed;left:-99999px;top:0"></canvas>
+
+<script>
+// Embed mode (para incrustar en el Brand Book): oculta el HUD y usa todo el alto.
+const EMBED = /[?&]embed/.test(location.search);
+if (EMBED) document.body.classList.add('embed');
+
+// Scale the fixed 1250×463 cover to fit the viewport (minus HUD)
+function fit(){
+  const cover = document.getElementById('cover');
+  const availW = window.innerWidth - (EMBED ? 0 : 48);
+  const availH = window.innerHeight - (EMBED ? 0 : 48 + 52); // HUD height
+  const s = Math.min(availW/1250, availH/463, EMBED ? 4 : 1.6);
+  cover.style.transform = 'scale(' + s + ')';
+}
+window.addEventListener('resize', fit); fit();
+
+// Restart the loop (re-trigger animations)
+document.getElementById('restart').addEventListener('click', () => {
+  const cover = document.getElementById('cover');
+  const clone = cover.cloneNode(true);
+  cover.parentNode.replaceChild(clone, cover);
+  fit();
+});
+
+/* ─────────────────────────────────────────────────────────────
+   Exportador de video: dibuja la animación en un canvas 1250×463
+   cuadro a cuadro y la graba con MediaRecorder. Tamaño exacto,
+   sin grabar la pantalla ni programas externos.
+   ───────────────────────────────────────────────────────────── */
+const LOOP = 14000;           // ms por vuelta (igual al CSS)
+const COL = { ink:'#0F1E3D', ink2:'#1F3055', wine:'#7F0F1A', wineSoft:'#C2747F', cream:'#FBFAF7' };
+const cv = document.getElementById('exp');
+const cx = cv.getContext('2d');
+let isoImg = null;
+
+function loadIso(){
+  return new Promise((res,rej)=>{ const i=new Image(); i.crossOrigin='anonymous'; i.onload=()=>res(i); i.onerror=rej; i.src='/brand/dtdcargo-isologo-reverse.png'; });
+}
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const seg=(p,a,b)=>clamp((p-a)/(b-a),0,1);
+const ease=x=>x*x*(3-2*x);                       // smoothstep
+function qpt(t){ const mt=1-t; return { x:mt*mt*150+2*mt*t*625+t*t*1100, y:mt*mt*300+2*mt*t*95+t*t*210 }; }
+
+function meander(drift, alpha){
+  const tile=46, s=tile/64;
+  cx.save(); cx.globalAlpha=alpha; cx.strokeStyle='#FFFFFF'; cx.lineWidth=4*s; cx.lineJoin='miter';
+  const P=[[6,58],[6,14],[50,14],[50,50],[22,50],[22,26],[38,26],[38,42]];
+  for(let y=-tile+(drift%tile); y<463+tile; y+=tile){
+    for(let x=-tile+(drift%tile); x<1250+tile; x+=tile){
+      cx.beginPath(); cx.moveTo(x+P[0][0]*s,y+P[0][1]*s);
+      for(let i=1;i<P.length;i++) cx.lineTo(x+P[i][0]*s,y+P[i][1]*s);
+      cx.stroke();
+    }
+  }
+  cx.restore();
+}
+function wordmark(x,yMid,alpha,tx){
+  cx.save(); cx.globalAlpha=alpha; cx.translate(tx,0);
+  cx.font="900 74px 'Archivo Black','Archivo',sans-serif"; cx.textBaseline='middle'; cx.textAlign='left';
+  if('letterSpacing' in cx) cx.letterSpacing=(-0.02*74)+'px';
+  const wDTD=cx.measureText('DTD').width, gap=0.14*74;
+  cx.fillStyle=COL.cream; cx.fillText('DTD',x,yMid);
+  cx.fillText('Cargo',x+wDTD+gap,yMid);
+  cx.restore();
+  return wDTD+gap+cx.measureText('Cargo').width;
+}
+function measureWm(){
+  cx.save(); cx.font="900 74px 'Archivo Black','Archivo',sans-serif";
+  if('letterSpacing' in cx) cx.letterSpacing=(-0.02*74)+'px';
+  const wDTD=cx.measureText('DTD').width, gap=0.14*74, wCargo=cx.measureText('Cargo').width; cx.restore();
+  return wDTD+gap+wCargo;
+}
+function tagline(x,yMid,alpha,ty){
+  cx.save(); cx.globalAlpha=alpha; cx.translate(0,ty);
+  cx.font="600 24px 'Sora',sans-serif"; cx.textBaseline='middle'; cx.textAlign='left';
+  if('letterSpacing' in cx) cx.letterSpacing='0px';
+  const parts=[['Con ','rgba(251,250,247,.84)'],['Confianza',COL.wineSoft],[', de China a tu puerta.','rgba(251,250,247,.84)']];
+  let xx=x; for(const[t,c]of parts){ cx.fillStyle=c; cx.fillText(t,xx,yMid); xx+=cx.measureText(t).width; }
+  cx.restore();
+}
+function chip(alpha){
+  cx.save(); cx.globalAlpha=alpha;
+  cx.font="700 15px 'Nunito Sans',sans-serif"; cx.textBaseline='middle';
+  const txt='回  中国 → VENEZUELA'; const w=cx.measureText(txt).width;
+  const px=46, py=34, padX=16, padY=9, h=15+padY*2;
+  cx.fillStyle='rgba(251,250,247,0.10)';
+  cx.beginPath(); cx.roundRect(px,py,w+padX*2,h,999); cx.fill();
+  cx.fillStyle=COL.cream; cx.textAlign='left';
+  cx.fillText(txt,px+padX,py+h/2);
+  cx.restore();
+}
+
+function render(p){                                // p in [0,1)
+  const wrap = Math.min(seg(p,0,0.06), 1-seg(p,0.94,1));
+  cx.clearRect(0,0,1250,463);
+  // bg
+  const g=cx.createLinearGradient(0,0,1250,463); g.addColorStop(0,COL.ink); g.addColorStop(1,COL.ink2);
+  cx.fillStyle=g; cx.fillRect(0,0,1250,463);
+  meander(p*46, 0.06*wrap);
+
+  // route
+  const arcOp=0.55*wrap*seg(p,0.10,0.18);
+  cx.save(); cx.globalAlpha=arcOp; cx.strokeStyle=COL.wineSoft; cx.lineWidth=2.4; cx.setLineDash([6,9]);
+  cx.beginPath(); cx.moveTo(150,300); cx.quadraticCurveTo(625,95,1100,210); cx.stroke(); cx.restore();
+  // drawn portion
+  const draw=ease(seg(p,0,0.55));
+  if(draw>0){ cx.save(); cx.globalAlpha=0.55*wrap; cx.strokeStyle=COL.wineSoft; cx.lineWidth=2.6; cx.beginPath();
+    cx.moveTo(150,300); const N=60; for(let i=1;i<=N*draw;i++){const pt=qpt(i/N); cx.lineTo(pt.x,pt.y);} cx.stroke(); cx.restore(); }
+  // endpoints + ship
+  cx.save(); cx.globalAlpha=wrap;
+  cx.fillStyle=COL.cream; cx.beginPath(); cx.arc(150,300,7,0,7); cx.fill();
+  cx.fillStyle=COL.wineSoft; cx.beginPath(); cx.arc(1100,210,7,0,7); cx.fill();
+  const sp=ease(seg(p,0.20,0.55)); const s=qpt(sp);
+  cx.fillStyle=COL.cream; cx.beginPath(); cx.arc(s.x,s.y,6,0,7); cx.fill();
+  cx.restore();
+
+  chip(wrap*ease(seg(p,0.26,0.38)));
+
+  // lockup centred
+  const isoH=150, isoW=isoH*(741/764), gapIT=30, colGap=12, wmSize=74, tgSize=24;
+  const wmW=measureWm(), colW=Math.max(wmW, 360), colH=wmSize+colGap+tgSize;
+  const groupW=isoW+gapIT+colW;
+  const ox=625-groupW/2, cyMid=231.5;
+  const isoOp=ease(seg(p,0.10,0.20)), isoScale=0.82+0.18*isoOp;
+  cx.save(); cx.globalAlpha=wrap*isoOp;
+  cx.translate(ox+isoW/2, cyMid); cx.scale(isoScale,isoScale);
+  if(isoImg) cx.drawImage(isoImg,-isoW/2,-isoH/2,isoW,isoH);
+  cx.restore();
+  const colX=ox+isoW+gapIT, colTop=cyMid-colH/2;
+  const wmOp=ease(seg(p,0.16,0.28)), wmTx=-22*(1-wmOp);
+  wordmark(colX, colTop+wmSize/2, wrap*wmOp, wmTx);
+  const tgOp=ease(seg(p,0.26,0.38)), tgTy=8*(1-tgOp);
+  tagline(colX, colTop+wmSize+colGap+tgSize/2, wrap*tgOp, tgTy);
+}
+
+function pickMime(){
+  const opts=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
+  for(const m of opts){ if(window.MediaRecorder && MediaRecorder.isTypeSupported(m)) return m; }
+  return '';
+}
+
+let recording=false;
+async function record(){
+  if(recording) return;
+  const btn=document.getElementById('record'), status=document.getElementById('recStatus');
+  recording=true; btn.disabled=true;
+  status.textContent='Preparando fuentes…';
+  try{
+    await Promise.all([
+      document.fonts.load("900 74px 'Archivo Black'"),
+      document.fonts.load("600 24px 'Sora'"),
+      document.fonts.load("700 15px 'Nunito Sans'"),
+    ]); await document.fonts.ready;
+    if(!isoImg) isoImg=await loadIso();
+
+    const mime=pickMime();
+    const stream=cv.captureStream(30);
+    const rec=new MediaRecorder(stream, mime?{mimeType:mime,videoBitsPerSecond:8000000}:{});
+    const chunks=[];
+    rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+    const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+    rec.onstop=()=>{
+      const blob=new Blob(chunks,{type:mime||'video/webm'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a'); a.href=url; a.download='DTDCargo-Portada-Facebook.'+ext; a.click();
+      setTimeout(()=>URL.revokeObjectURL(url),3000);
+      status.innerHTML='✓ Descargado <b>.'+ext+'</b>'+(ext==='webm'?' · si FB lo rechaza, convertí a MP4 (te guío).':' · listo para subir a Facebook.');
+      btn.disabled=false; btn.textContent='● Grabar video'; recording=false;
+    };
+
+    const loops=2, total=LOOP*loops;            // 28 s → cumple el mínimo de 20 s de FB
+    rec.start();
+    const t0=performance.now();
+    (function frame(){
+      const el=performance.now()-t0;
+      render((el%LOOP)/LOOP);
+      const left=Math.ceil((total-el)/1000);
+      btn.textContent='● Grabando… '+left+'s';
+      if(el<total) requestAnimationFrame(frame);
+      else rec.stop();
+    })();
+  }catch(err){
+    status.textContent='No se pudo grabar: '+err;
+    btn.disabled=false; btn.textContent='● Grabar video'; recording=false;
+  }
+}
+document.getElementById('record').addEventListener('click', record);
+</script>
+
+<template id="__bundler_thumbnail">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0F1E3D"/><circle cx="50" cy="50" r="26" fill="none" stroke="#C2747F" stroke-width="3" stroke-dasharray="4 5"/><text x="50" y="57" font-family="Archivo Black, sans-serif" font-size="20" fill="#FBFAF7" text-anchor="middle">D</text></svg>
+</template>
+
+</body>
+</html>
