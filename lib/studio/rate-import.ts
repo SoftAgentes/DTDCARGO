@@ -225,7 +225,7 @@ export function parseRatesCsv(csv: string): RateImportPreview {
       return {
         line,
         raw: dl.text,
-        error: "Indicá per_cbm o flat_rate (> 0).",
+        error: "Indica per_cbm o flat_rate (> 0).",
       };
     }
     if (per_cbm != null && per_cbm < 0) {

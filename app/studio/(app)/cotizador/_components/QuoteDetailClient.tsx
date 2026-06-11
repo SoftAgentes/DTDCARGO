@@ -59,7 +59,7 @@ export function QuoteDetailClient({
   function handleLink() {
     const markbox = markboxInput.trim();
     if (!markbox) {
-      setLinkError("Indicá el Shipping Mark del cliente.");
+      setLinkError("Indica el Shipping Mark del cliente.");
       return;
     }
     setLinkError(null);

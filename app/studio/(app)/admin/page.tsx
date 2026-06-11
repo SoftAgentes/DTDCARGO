@@ -53,7 +53,7 @@ const SECTIONS: AdminSection[] = [
     label: "Casos de uso · ON/OFF",
     icon: "flag",
     description:
-      "Feature flags por módulo. Encendé/apagá WhatsApp Business, SENIAT, No-Olvidar, Mailing y otros sin tocar código.",
+      "Feature flags por módulo. Enciende/apaga WhatsApp Business, SENIAT, No-Olvidar, Mailing y otros sin tocar código.",
     href: "/studio/admin/feature-flags",
   },
   {

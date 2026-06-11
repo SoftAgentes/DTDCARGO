@@ -167,12 +167,12 @@ export function validateAcceptanceInput(
 
   const markbox = String(raw.client_markbox ?? "").trim();
   if (!markbox) {
-    errors.client_markbox = "Indicá el Shipping Mark del cliente.";
+    errors.client_markbox = "Indica el Shipping Mark del cliente.";
   }
 
   const quoteCode = String(raw.quote_code ?? "").trim();
   if (!quoteCode) {
-    errors.quote_code = "Indicá el estimado que se acepta.";
+    errors.quote_code = "Indica el estimado que se acepta.";
   }
 
   if (!Array.isArray(docs) || docs.length === 0) {

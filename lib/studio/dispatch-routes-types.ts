@@ -79,16 +79,16 @@ export function validateRouteInput(
   const errors: Record<string, string> = {};
 
   const name = input.name?.trim();
-  if (!name) errors.name = "Indicá el nombre.";
+  if (!name) errors.name = "Indica el nombre.";
   if (name && name.length > 200) errors.name = "Nombre demasiado largo.";
 
-  if (!input.hub) errors.hub = "Indicá el hub.";
+  if (!input.hub) errors.hub = "Indica el hub.";
 
   const origin = input.origin_city?.trim();
-  if (!origin) errors.origin_city = "Indicá ciudad origen.";
+  if (!origin) errors.origin_city = "Indica ciudad origen.";
 
   const destination = input.destination_city?.trim();
-  if (!destination) errors.destination_city = "Indicá ciudad destino.";
+  if (!destination) errors.destination_city = "Indica ciudad destino.";
 
   const sla = Number(input.sla_hours ?? 0);
   if (!Number.isFinite(sla) || sla <= 0) errors.sla_hours = "SLA horas debe ser > 0.";
@@ -139,17 +139,17 @@ export function validateCityInput(
   const errors: Record<string, string> = {};
 
   const state_code = input.state_code?.trim();
-  if (!state_code) errors.state_code = "Indicá el código del estado.";
+  if (!state_code) errors.state_code = "Indica el código del estado.";
   if (state_code && state_code.length > 8) errors.state_code = "Código demasiado largo.";
 
   const state_name = input.state_name?.trim();
-  if (!state_name) errors.state_name = "Indicá el nombre del estado.";
+  if (!state_name) errors.state_name = "Indica el nombre del estado.";
 
   const municipio = input.municipio?.trim();
-  if (!municipio) errors.municipio = "Indicá el municipio.";
+  if (!municipio) errors.municipio = "Indica el municipio.";
 
   const city = input.city?.trim();
-  if (!city) errors.city = "Indicá la ciudad.";
+  if (!city) errors.city = "Indica la ciudad.";
 
   const radius = Number(input.default_radius_km ?? 5);
   if (!Number.isFinite(radius) || radius <= 0) errors.default_radius_km = "Radio debe ser > 0.";

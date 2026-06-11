@@ -176,7 +176,7 @@ export function validateClientInput(input: Partial<ClientInput>): {
   const errors: ClientActionState["fieldErrors"] = {};
 
   const name = input.name?.trim() ?? "";
-  if (!name) errors.name = "Indicá el nombre.";
+  if (!name) errors.name = "Indica el nombre.";
   if (name.length > 200) errors.name = "El nombre es demasiado largo (máx 200).";
 
   const email = input.email?.trim() || null;

@@ -563,7 +563,7 @@ export function validateLedgerEntryInput(
   const errors: Record<string, string> = {};
 
   const supplierId = String(raw.supplier_id ?? "").trim();
-  if (!supplierId) errors.supplier_id = "Indicá el socio (proveedor).";
+  if (!supplierId) errors.supplier_id = "Indica el socio (proveedor).";
 
   const entryType = String(raw.entry_type ?? "").trim();
   if (!isLedgerEntryType(entryType)) errors.entry_type = "Tipo inválido.";
@@ -641,7 +641,7 @@ export function validateChargeInput(
   const errors: Record<string, string> = {};
 
   const supplierId = String(raw.supplier_id ?? "").trim();
-  if (!supplierId) errors.supplier_id = "Indicá el socio (proveedor).";
+  if (!supplierId) errors.supplier_id = "Indica el socio (proveedor).";
 
   const description = String(raw.description ?? "").trim();
   if (!description) errors.description = "Descripción requerida.";
@@ -703,7 +703,7 @@ export function validateCreditNoteInput(
   const errors: Record<string, string> = {};
 
   const chargeId = String(raw.charge_id ?? "").trim();
-  if (!chargeId) errors.charge_id = "Indicá el cargo a corregir.";
+  if (!chargeId) errors.charge_id = "Indica el cargo a corregir.";
 
   const reason = String(raw.reason ?? "").trim();
   if (!reason) errors.reason = "Motivo requerido.";
@@ -850,7 +850,7 @@ export function validateClaimOffsetInput(
   const clientId = strOrNull(raw.client_id);
   const shipmentId = strOrNull(raw.shipment_id);
   if (!clientId && !shipmentId) {
-    errors.client_id = "Indicá el cliente o el embarque del reclamo.";
+    errors.client_id = "Indica el cliente o el embarque del reclamo.";
   }
 
   if (Object.keys(errors).length > 0) return { ok: false, fieldErrors: errors };
@@ -1022,10 +1022,10 @@ export function validateStatementInput(
   const errors: Record<string, string> = {};
 
   const supplierId = String(raw.supplier_id ?? "").trim();
-  if (!supplierId) errors.supplier_id = "Indicá el socio (proveedor).";
+  if (!supplierId) errors.supplier_id = "Indica el socio (proveedor).";
 
   const periodLabel = String(raw.period_label ?? "").trim();
-  if (!periodLabel) errors.period_label = "Indicá el período del estado.";
+  if (!periodLabel) errors.period_label = "Indica el período del estado.";
 
   const totalUsd = Number(raw.total_usd ?? 0);
   if (!Number.isFinite(totalUsd) || totalUsd < 0) {

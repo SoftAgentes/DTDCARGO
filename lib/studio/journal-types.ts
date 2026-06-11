@@ -199,7 +199,7 @@ export function validateEntryInput(
 
   const entry_date = (input.entry_date ?? "").trim();
   if (!entry_date || !/^\d{4}-\d{2}-\d{2}$/.test(entry_date)) {
-    errors.entry_date = "Indicá la fecha del asiento (YYYY-MM-DD).";
+    errors.entry_date = "Indica la fecha del asiento (YYYY-MM-DD).";
   }
 
   const lines = normalizeEntryLines(input.lines);

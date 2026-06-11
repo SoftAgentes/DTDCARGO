@@ -212,12 +212,12 @@ export function validateReferralInput(raw: Partial<ReferralInput>): {
 
   const referrerMarkbox = String(raw.referrer_markbox ?? "").trim();
   if (!referrerMarkbox) {
-    errors.referrer_markbox = "Indicá el Shipping Mark del cliente que refiere.";
+    errors.referrer_markbox = "Indica el Shipping Mark del cliente que refiere.";
   }
 
   const referredName = String(raw.referred_name ?? "").trim();
   if (!referredName) {
-    errors.referred_name = "Indicá el nombre del referido.";
+    errors.referred_name = "Indica el nombre del referido.";
   } else if (referredName.length > 200) {
     errors.referred_name = "El nombre no puede superar los 200 caracteres.";
   }
