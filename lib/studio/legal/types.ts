@@ -48,7 +48,7 @@ export type DocRef = {
   version: string;
 };
 
-/** Fila de `legal_acceptances` (migraciones 0102 + 0120 · evidencia v2). */
+/** Fila de `legal_acceptances` (migraciones 0102 + 0121 · evidencia v2). */
 export type LegalAcceptance = {
   id: string;
   tenant_id: string;
@@ -62,11 +62,11 @@ export type LegalAcceptance = {
   total_usd: number | null;
   accepted_at: string;
   ip: string | null;
-  /** v2 (0120): user agent server-sellado. Entra al hash. */
+  /** v2 (0121): user agent server-sellado. Entra al hash. */
   user_agent: string | null;
-  /** v2 (0120): declaración de comerciante (checkbox 2). Entra al hash. */
+  /** v2 (0121): declaración de comerciante (checkbox 2). Entra al hash. */
   merchant_declaration: boolean;
-  /** v2 (0120): atadura forense a la factura. METADATO — NO entra al hash. */
+  /** v2 (0121): atadura forense a la factura. METADATO — NO entra al hash. */
   invoice_id: string | null;
   hash: string | null;
   idempotency_key: string | null;

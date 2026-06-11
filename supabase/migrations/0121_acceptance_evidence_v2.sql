@@ -34,7 +34,7 @@
 -- ⚠️ NO se aplica a prod desde acá (la aplica el founder; debe estar aplicada
 -- ANTES de deployar el código v2 — el gate y la bitácora seleccionan las
 -- columnas nuevas).
--- Número de migración: 0120 (0119 = prealerta_share_token es la última).
+-- Número de migración: 0121 (0120 tomada por lane norte-v3.7; 0119 = prealerta_share_token es la última).
 -- ─────────────────────────────────────────────────────────────
 
 alter table public.legal_acceptances
@@ -61,6 +61,6 @@ comment on table public.legal_acceptances is
   'SDD-0054 + SDD-0067: registro INMUTABLE (append-only) de aceptaciones legales. PRUEBA LEGAL server-sellada: accepted_at/ip/user_agent/hash los pone el servidor; hash v2 NOT NULL es LOAD-BEARING (cubre también user_agent + merchant_declaration; el gate AUT-04 lo recomputa y verifica). Atada a la medida (cbm/weight/total) y forense a la factura (invoice_id, fuera del hash). Trigger rechaza UPDATE/DELETE. Idempotente por (tenant, hash). RLS por tenant_id.';
 
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0120_acceptance_evidence_v2.sql
+-- Fin migración 0121_acceptance_evidence_v2.sql
 -- (la aplica el founder; el harness NO aplica a prod)
 -- ─────────────────────────────────────────────────────────────
