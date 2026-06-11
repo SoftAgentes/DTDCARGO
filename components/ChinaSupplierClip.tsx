@@ -6,18 +6,18 @@ import { CONTACT } from "@/lib/design-tokens";
 /**
  * China Supplier Clip — texto pre-formateado para que el cliente lo copie y
  * pegue en WeChat al hablar con su proveedor chino. Restaurado del Brand Book
- * DTD v1.0 § 19 · Registro de cliente · MARKBOX.
+ * DTD v1.0 § 19 · Registro de cliente · Shipping Mark (ex "MARKBOX").
  *
  * Incluye:
  * - Dirección de bodega en caracteres chinos (义乌)
- * - Teléfono del encargado de bodega (小孙)
+ * - Teléfono del encargado de bodega (林冠 / Lin Guan)
  * - Horario de recepción
- * - Código MARKBOX del cliente (formato DTD-XXXX)
+ * - Código Shipping Mark del cliente (formato DTD-XXXX)
  *
  * El proveedor chino lee este texto en WeChat y sabe exactamente dónde
  * entregar la carga y cómo marcarla con el código que identifica al cliente.
  *
- * MARKBOX: código único del cliente generado al alta. Sistema de identificación
+ * Shipping Mark: código único del cliente generado al alta. Sistema de identificación
  * end-to-end (cotizaciones, embarques, facturación, tracking). Mientras el ERP
  * no tenga el flujo de alta listo, el input acepta el código manualmente o usa
  * `DTD-XXXX` como placeholder visible.

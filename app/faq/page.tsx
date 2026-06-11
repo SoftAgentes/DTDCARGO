@@ -7,6 +7,7 @@ import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { FAQS } from "@/lib/faqs";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { WhatsAppIcon, ArrowIcon } from "@/components/Icon";
+import { AlibabaAddressGuide } from "@/components/AlibabaAddressGuide";
 
 export const metadata: Metadata = {
   title: "Preguntas frecuentes",
@@ -19,6 +20,10 @@ export const metadata: Metadata = {
     "consolidado LCL FCL",
     "cuánto tarda carga China Venezuela",
     "preguntas frecuentes importación",
+    "casillero en China",
+    "bodega en Yiwu",
+    "dirección Alibaba bodega",
+    "Shipping Mark",
   ],
   alternates: { canonical: "/faq" },
   ...socialMeta({
@@ -72,6 +77,24 @@ export default function FaqPage() {
               Las preguntas que más nos hacen los importadores, respondidas claro.
               Si te queda alguna, escríbenos por WhatsApp y te la resolvemos.
             </p>
+          </div>
+        </section>
+
+        {/* Guía destacada: dirección de la bodega en Alibaba (F4 — lo más
+            preguntado en el CRM: "¿tienen casillero en China?") */}
+        <section id="guia-alibaba" className="pb-14 lg:pb-16 scroll-mt-24">
+          <div className="wrap max-w-[820px]">
+            <span className="eyebrow">Guía destacada</span>
+            <h2 className="h-card mt-3">
+              Cómo poner la dirección de la bodega en Alibaba
+            </h2>
+            <p className="mt-3 mb-6 text-[14.5px] leading-[1.65] text-grey-700 max-w-[62ch]">
+              Copia y pega cada campo tal cual (en chino, sin traducir) en el
+              formulario de direcciones de Alibaba — o pásaselo directo a tu
+              proveedor. Con tu Shipping Mark en el destinatario, tu compra
+              queda identificada apenas llega a nuestra bodega de Yiwu.
+            </p>
+            <AlibabaAddressGuide />
           </div>
         </section>
 
