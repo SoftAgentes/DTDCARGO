@@ -65,8 +65,8 @@ const GROUPS = [
       { name: "Operario VE", file: "Operario VE.html", code: "app/m/ve", sdd: "0017" },
       { name: "Operario · App (multi-rol)", file: "Operario · App.html", code: "app/m", sdd: "0030" },
       { name: "Login y Sesión · Operario", file: "Login y Sesión · Operario.html", code: "app/m", sdd: "0030" },
-      { name: "Almacenista VE", file: "Almacenista VE.html", code: "app/m/ve/bodeguero", sdd: "0030" },
-      { name: "Transportista", file: "Transportista.html", code: "app/m/ve/camionero", sdd: "0030" },
+      { name: "Bodeguero VE", file: "Bodeguero VE.html", code: "app/m/ve/bodeguero", sdd: "0030" },
+      { name: "Camionero", file: "Camionero.html", code: "app/m/ve/camionero", sdd: "0030" },
     ],
   },
   {
@@ -156,11 +156,18 @@ const GROUPS = [
   {
     title: "Marca",
     screens: [
-      { name: "Brand Book v3.5", file: "Brand Book DTD v3.5.html", kind: "brand" },
+      { name: "Brand Book v3.7", file: "Brand Book DTD v3.7.html", kind: "brand" },
       { name: "Tarjeta de Presentación", file: "Tarjeta de Presentación.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
       { name: "Aplicaciones de Marca", file: "Aplicaciones de Marca.html", kind: "brand" },
+      { name: "Sticker Pack (17)", file: "Sticker Pack · DTD-Cargo.html", kind: "brand" },
+      { name: "Colateral Impreso", file: "Colateral Impreso · DTD-Cargo.html", kind: "brand" },
+      { name: "Banco de Fotos", file: "Banco de Fotos · DTD-Cargo.html", kind: "brand" },
+      { name: "Uniformes", file: "Uniformes · DTD-Cargo.html", kind: "brand" },
+      { name: "WeChat · Perfil", file: "WeChat · Perfil DTD-Cargo.html", kind: "brand" },
+      { name: "Generador Redes", file: "Generador Redes · DTD-Cargo.html", kind: "brand" },
+      { name: "Generador Catálogo WhatsApp", file: "Generador Catálogo WhatsApp · DTD-Cargo.html", kind: "brand" },
     ],
   },
 ];
