@@ -16,8 +16,8 @@
   const APPS = [
     { id: 'cn', name: 'Operario CN', file: 'Operario CN.html', desc: 'Recepción e inspección en bodega Yiwu · escaneo de cajas, fotos QC.', users: 3, color: '#7F0F1A' },
     { id: 've', name: 'Operario VE', file: 'Operario VE.html', desc: 'Chofer / despacho Venezuela · ruta, POD, confirmación de entrega.', users: 3, color: '#0F1E3D' },
-    { id: 'bod', name: 'Almacenista',  file: 'Almacenista VE.html', desc: 'Almacén Valencia · picking, packing, reexpedición a cliente final.', users: 1, color: '#1F8A5B' },
-    { id: 'cam', name: 'Transportista',  file: 'Transportista.html', desc: 'Ruta activa con GPS · navegación, POD por parada, alerta de ubicación.', users: 2, color: '#B8893A' },
+    { id: 'bod', name: 'Almacenista',  file: 'Bodeguero VE.html', desc: 'Almacén Valencia · picking, packing, reexpedición a cliente final.', users: 1, color: '#1F8A5B' },
+    { id: 'cam', name: 'Transportista',  file: 'Camionero.html', desc: 'Ruta activa con GPS · navegación, POD por parada, alerta de ubicación.', users: 2, color: '#B8893A' },
     { id: 'multi', name: 'Operario · App', file: 'Operario · App.html', desc: 'APK único · login → ruteo por rol → multi-rol (bodega/chofer) con sesión persistente.', users: 1, color: '#2A6FDB' },
   ];
 

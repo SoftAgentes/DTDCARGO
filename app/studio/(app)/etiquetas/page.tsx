@@ -118,7 +118,7 @@ export default async function EtiquetasPage({
               maxWidth: "76ch",
             }}
           >
-            Plancha PDF bilingüe ES / 中文 con Shipping Mark del cliente + Box X/Y.
+            Plancha PDF bilingüe ES / 中文 con el Shipping Mark del cliente + Box X/Y.
             Mándala al supplier chino para que pegue las etiquetas antes del
             despacho a tu almacén CN.{" "}
             <span style={{ color: "var(--ink-mute)" }}>

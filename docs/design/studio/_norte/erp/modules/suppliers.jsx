@@ -118,7 +118,7 @@ function ModuleSuppliers({ goTo }) {
       </div>
 
       {filtered.length === 0 && (
-        <U.EmptyState icon={window.Icon.cn(22)} title="Sin proveedores" body="Ajustá filtros o agregá un proveedor chino nuevo." />
+        <U.EmptyState icon={window.Icon.cn(22)} title="Sin proveedores" body="Ajusta filtros o agrega un proveedor chino nuevo." />
       )}
 
       <SupplierDetail s={selected} onClose={() => setSelected(null)} goTo={goTo} />

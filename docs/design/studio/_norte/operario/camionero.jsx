@@ -1,12 +1,12 @@
 /* global React */
-/* ── DTD · Transportista (mobile · GPS + entregas en ruta) ───────── */
+/* ── DTD · Camionero (mobile · GPS + entregas en ruta) ───────── */
 /* App del transportista. Visualiza ruta del día con GPS, ve     */
 /* foto de fachada del cliente, marca llegada y POD por parada.  */
 
 (function () {
   const { useState, useEffect, useRef } = React;
 
-  // ── Ruta asignada por el almacenista ───────────────────────────
+  // ── Ruta asignada por el bodeguero ───────────────────────────
   const ROUTE = {
     id: 'R-002',
     name: 'Valencia → Caracas + 2 paradas',
@@ -27,7 +27,7 @@
   ];
 
   // ── App ──────────────────────────────────────────────────────
-  function TransportistaApp({ fixedTheme }) {
+  function CamioneroApp({ fixedTheme }) {
     const [internalTheme, setInternalTheme] = useState('dark');
     const theme = fixedTheme || internalTheme;
     const themeControlled = !!fixedTheme;
@@ -650,7 +650,7 @@
     );
   }
 
-  // Inyecta animaciones del transportista
+  // Inyecta animaciones del camionero
   if (typeof document !== 'undefined' && !document.getElementById('__cam-anim')) {
     const s = document.createElement('style');
     s.id = '__cam-anim';
@@ -662,5 +662,5 @@
     document.head.appendChild(s);
   }
 
-  window.TransportistaApp = TransportistaApp;
+  window.CamioneroApp = CamioneroApp;
 })();

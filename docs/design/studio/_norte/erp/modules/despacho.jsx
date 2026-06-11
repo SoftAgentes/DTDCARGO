@@ -509,7 +509,7 @@
                     <U.EmptyState
                       icon={I.box(22)}
                       title="No hay paquetes con esos filtros"
-                      body="Ajustá los filtros o limpiá la búsqueda para volver a ver la cola completa."
+                      body="Ajusta los filtros o limpiá la búsqueda para volver a ver la cola completa."
                       style={{ border: 0, borderRadius: 0 }}
                     />
                   </td></tr>

@@ -1,5 +1,40 @@
 # Changelog · v1.1+
 
+## 2026-06-10 · 🔄 NORTE-SYNC · marca sincronizada a Brand Book v3.7
+
+Paquete completo de Cloud Design (`DTD-Cargo.zip`, 955 archivos) aplicado por reemplazo
+total según `SYNC-NORTE-2026-06-10.md` (§1-§7). Versión del Norte sigue **v2.5** (el
+HANDOFF no subió); marca → **Brand Book v3.7** único.
+
+**Aplicado del paquete:** eliminados Brand Book v3.5 / Aceptación T&C / Modo Cliente /
+Reporte / `_icons-partial` (los archivados viven en `_archivo/`) · renames
+Almacenista→Bodeguero VE + Transportista→Camionero (raíz, `operario/`,
+`design_handoff_mobile_app/`) · piezas nuevas: Sticker Pack 17, Colateral Impreso,
+Banco de Fotos, Uniformes, `erp/modules/estudio-redes.jsx`, `uploads/`, `wechat/` ·
+lenguaje MARKBOX→Shipping Mark (visual) + voseo→tuteo · CLAUDE.md nuevo (término único
+Shipping Mark + protocolo §Sincronización).
+
+**Fixes locales post-sync (escapes del barrido de Cloud Design — espejar allá):**
+- **Voseo residual → tuteo: 97 reemplazos en 45 archivos** user-facing (portal
+  registro/mobile, ERP módulos, operario apps ×2 copias, piezas de marca: Generador
+  Redes, Tarjeta, ZPL, Factura, Favicon pack, Uniformes, Brand Book §área de seguridad).
+  Quedan solo `_archivo/` (histórico) y los ejemplos ❌ intencionales del book.
+- **`factura-template/Factura`:** etiqueta visible `MARKBOX ·` → `Shipping Mark ·`
+  (último residuo visual; quedan solo claves de código permitidas: `MARKBOX_REGEX`,
+  `DEMO_MARKBOX`, `PM_MARKBOX`, `markbox:`).
+- **`Aplicaciones de Marca` §WhatsApp:** instrucciones del pack viejo — "redondos" y
+  "los 12 .webp" → 512×512 / **17** (el pack oficial es 17 con texto). ⚠️ La frase
+  "se vea redondo sobre cualquier chat" quedó — revisar copy en Cloud Design.
+
+**✅ RIF unificado (decisión founder, mismo día):** `J-50648869-8` es el ÚNICO RIF de DTD.
+Reemplazados los 4 que circulaban: `J-410322887` (marca/sello/inspecciones/tarjeta/
+colateral/CLAUDE.md), `J-40558712-0` (factura emisora/ZPL/comprobante WhatsApp),
+`J-40551122-3` (forma IVA, `fiscal.jsx`), `J-50220185-8` (acuerdo operador + T&C, `.md`
+**y `.docx`**) — 33 reemplazos en 19 archivos + 2 `.docx` legales + brand-books archivados
+(v3.0/v1.7). Los RIF mock de clientes/proveedores demo (`J-30xxx…`) quedan tal cual.
+**Cloud Design:** espejar en el origen + regenerar los PNG/PDF exportados (`uploads/`) que
+tengan el RIF viejo horneado.
+
 ## 2026-06-10 · Estudio de Redes (ERP) + generador unificado
 
 **Archivos nuevos:**

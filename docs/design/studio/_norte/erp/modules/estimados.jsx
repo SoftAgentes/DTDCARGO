@@ -72,7 +72,7 @@ function ModuleEstimados({ goTo, view, setView, selectedId, setSelectedId }) {
       />
 
       {filtered.length === 0 ? (
-        <U.EmptyState icon={window.Icon.calc(22)} title="No hay estimados" body="Creá un estimado nueva. Las aceptadas se convierten automáticamente en embarques." action={<U.Btn variant="primary" onClick={() => { setView('create'); setDrawerKind('create'); }}>Nuevo estimado</U.Btn>} />
+        <U.EmptyState icon={window.Icon.calc(22)} title="No hay estimados" body="Crea un estimado nueva. Las aceptadas se convierten automáticamente en embarques." action={<U.Btn variant="primary" onClick={() => { setView('create'); setDrawerKind('create'); }}>Nuevo estimado</U.Btn>} />
       ) : (
         <U.Table columns={columns} rows={filtered} onRowClick={(r) => { setSelectedId(r.id); setView('detail'); setDrawerKind('detail'); }} />
       )}
@@ -157,7 +157,7 @@ function QuoteCalculator() {
         </div>
       </div>
 
-      <window.ERPUI.SearchSelect label="Cliente · Shipping Mark" placeholder="Busca o creá un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
+      <window.ERPUI.SearchSelect label="Cliente · Shipping Mark" placeholder="Busca o crea un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
         options={D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.markbox} · ${c.company}`, sub: 'Cliente' }))} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -206,7 +206,7 @@ function QuoteCalculator() {
           </div>
 
           <U.Input label="Tarifa por CBM" value={rate} onChange={(e)=>setRate(e.target.value)} prefix="$" suffix="USD/CBM" mono
-            hint="Tarifa estándar LCL DDP: $800/CBM. Editá si tu estimado es distinta (FCL prorrateado, promo, etc.)" />
+            hint="Tarifa estándar LCL DDP: $800/CBM. Edita si tu estimado es distinta (FCL prorrateado, promo, etc.)" />
         </>
       )}
 

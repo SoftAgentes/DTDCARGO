@@ -215,7 +215,7 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
             <div style={{ padding: '16px 18px', background: 'var(--bg-surface)' }}>
               <div style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--wine)', letterSpacing: '0.08em', marginBottom: 8 }}>🇨🇳 AGENTE CHINA · ACCIÓN</div>
               <div style={{ font: '700 13.5px/1.3 var(--f-sans)', color: 'var(--ink)', marginBottom: 6 }}>Cerrar contenedor y pedir booking</div>
-              <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 12px' }}>El contenedor alcanzó el límite. Cerrá la consolidación y solicitá la reserva de booking con la naviera.</p>
+              <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 12px' }}>El contenedor alcanzó el límite. Cierra la consolidación y solicita la reserva de booking con la naviera.</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <U.Btn variant="primary" size="sm" icon={window.Icon.box(13)} onClick={() => setConsolidateOpen(true)}>Cerrar contenedor</U.Btn>
                 <U.Btn variant="secondary" size="sm">Pedir booking</U.Btn>
@@ -326,7 +326,7 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
               <span style={{ fontSize: 18 }}>📦</span>
               <div style={{ flex: 1 }}>
                 <div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>Contenedor al límite · {effCBM.toFixed(1)} CBM</div>
-                <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Cerrá el contenedor y pide booking. Venezuela ya fue notificada para pedir el BL + licencia.</div>
+                <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Cierra el contenedor y pide booking. Venezuela ya fue notificada para pedir el BL + licencia.</div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                   <U.Btn variant="primary" size="sm" onClick={() => { setToastShown(false); setConsolidateOpen(true); }}>Cerrar contenedor</U.Btn>
                   <U.Btn variant="ghost" size="sm" onClick={() => setToastShown(false)}>Más tarde</U.Btn>

@@ -31,7 +31,7 @@
 <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
 
 <script type="text/babel" src="erp/icons.jsx"></script>
-<script type="text/babel" src="operario/almacenista.jsx"></script>
+<script type="text/babel" src="operario/bodeguero.jsx"></script>
 <script type="text/babel" src="operario/ve.jsx"></script>
 
 <script type="text/babel">
@@ -110,7 +110,7 @@ function AuthApp() {
 
   // ── sub-flujos reales (sin re-login) ──
   if (step === 'rcp' || step === 'despacho') {
-    const F = window.AlmacenistaFlows;
+    const F = window.BodegueroFlows;
     if (!F) return <Loading />;
     const Flow = step === 'rcp' ? F.ReceptionFlow : F.DispatchFlow;
     return <div className="op-app"><Flow onExit={() => setStep('bodega')} /></div>;
@@ -422,7 +422,7 @@ function ModeHome({ profile, mode, onOpen, onMenu, menuOpen, onCloseMenu, onSwit
   );
 }
 
-/* ════════ átomos (prefijo UA · evitan colisión con almacenista.jsx) ════════ */
+/* ════════ átomos (prefijo UA · evitan colisión con bodeguero.jsx) ════════ */
 function UAField({ label, value, onChange, type = 'text', icon, trailing, placeholder, mono, onEnter }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

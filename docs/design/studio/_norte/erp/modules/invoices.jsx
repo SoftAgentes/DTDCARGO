@@ -110,7 +110,7 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
       <U.Toolbar search={search} onSearchChange={setSearch} searchPlaceholder="Buscar factura o cliente…" filters={<U.ColumnManager cfg={colCfg} setCfg={setColCfg} columns={columns} defaultCfg={INV_COLS_DEFAULT} />} />
 
       {filtered.length === 0 ? (
-        loadingTable ? <U.LoadingRows rows={6} cols={visibleColumns.length} /> : <U.EmptyState icon={window.Icon.invoice(22)} title="Sin facturas en esta vista" body="Ajustá los filtros o emití una factura nueva." />
+        loadingTable ? <U.LoadingRows rows={6} cols={visibleColumns.length} /> : <U.EmptyState icon={window.Icon.invoice(22)} title="Sin facturas en esta vista" body="Ajusta los filtros o emití una factura nueva." />
       ) : loadingTable ? (
         <U.LoadingRows rows={6} cols={visibleColumns.length} />
       ) : (
@@ -197,7 +197,7 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <window.ERPUI.SearchSelect label="Cliente" placeholder="Busca o creá un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
+          <window.ERPUI.SearchSelect label="Cliente" placeholder="Busca o crea un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
             onChange={(v) => setInvCli(v)}
             options={D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.name} (${c.markbox})`, sub: c.company || 'Cliente' }))} />
           <window.ERPUI.SearchSelect label="Embarque huérfano (opcional)" placeholder={invCli ? 'Embarques sin factura de este cliente…' : 'Elige primero un cliente'} createLabel="Crear nuevo embarque"
@@ -207,7 +207,7 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
           {window.ERPUI.CatalogLines && (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
               <window.ERPUI.CatalogLines title="Líneas de la factura" addLabel="Agregar servicio del catálogo"
-                emptyHint="Agregá servicios del catálogo (flete, despacho, seguro…). Cada línea toma su tarifa vigente; el monto se calcula solo. También puedes facturar un monto manual abajo."
+                emptyHint="Agrega servicios del catálogo (flete, despacho, seguro…). Cada línea toma su tarifa vigente; el monto se calcula solo. También puedes facturar un monto manual abajo."
                 onChange={(lines, st) => { setLineSubtotal(st); if (ivaOn) setBase(st ? st.toFixed(2) : ''); else setMonto(st ? st.toFixed(2) : ''); }} />
             </div>
           )}

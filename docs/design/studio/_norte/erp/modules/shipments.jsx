@@ -209,7 +209,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
         <U.EmptyState
           icon={window.Icon.box(22)}
           title="No hay embarques que coincidan"
-          body="Ajustá los filtros o creá un embarque nuevo desde un estimado aceptado."
+          body="Ajusta los filtros o crea un embarque nuevo desde un estimado aceptado."
           action={<U.Btn variant="primary" onClick={() => { setSearch(''); setTab('all'); setTypeFilter('all'); }}>Limpiar filtros</U.Btn>}
         />
       ) : viewMode === 'kanban' ? (

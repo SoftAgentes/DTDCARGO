@@ -1,10 +1,10 @@
 ---
 sdd: "0057"
 title: "Portal — Compras/Prealertas + Proveedores del cliente (cierra el código-por-caja con etiquetas)"
-status: in-progress
+status: done
 author: "Claude Code (carril portal · worktree feat/portal)"
 created: 2026-06-04
-updated: 2026-06-09
+updated: 2026-06-10
 supersedes: null
 superseded_by: null
 related: ["0042", "0031", "0008", "0010"]
@@ -118,8 +118,9 @@ secuencial por cliente, accesibles desde el **Portal** (el cliente crea/ve) y el
 ### Slice B / C
 - [x] B: portal "Tus proveedores" + "Nueva compra" (código + etiquetas) + "Mis compras";
       habilita el CTA del dashboard.
-- [ ] C: `/studio/proveedores` backeado + cola de prealertas entrantes + dropdown de supplier
-      en `/studio/etiquetas` (cierra D6 de 0031).
+- [x] C: `/studio/proveedores` backeado + cola de prealertas entrantes + dropdown de supplier
+      en `/studio/etiquetas` (cierra D6 de 0031). *(Read-only por alcance founder; el matcheo
+      manual prealerta→shipment quedó diferido — ver notas Slice C.)*
 
 ## 6. Fuera de alcance
 - **NO** auto-matching prealerta↔arribo CN (Slice C lo hace manual; auto = futuro).
@@ -230,6 +231,27 @@ typecheck · 1056 tests · docs:check). Migración `0105` **NO** aplicada a prod
 **Pendiente Slice C** (sin tocar acá): backear `/studio/proveedores` + cola de prealertas
 entrantes para el operador + dropdown de supplier en `/studio/etiquetas` (cierra D6 de 0031).
 
+### Slice C — Studio (operador) + etiquetas (2026-06-06 · commit `bbec183`)
+
+> *Esta sección se documentó en el cierre 2026-06-10 — el código se había mergeado el
+> 2026-06-06 sin actualizar el spec.*
+
+- **`/studio/proveedores` backeado** (deja de ser stub): `page.tsx` server component fetcha
+  con los queries puros de Slice A (`prealertaStats` + `listPrealertas` + `listSuppliers`,
+  sin markbox = todo el tenant vía RLS de operador) y delega a `ProveedoresClient`.
+  - **5 KPIs** (conteo por estado: anunciada / en_camino / recibida / consolidada / cancelada)
+    + **2 tabs**: "Prealertas entrantes" ⭐ (cola del tenant, recientes primero, filtro rápido
+    "solo entrantes" = anunciada+en_camino) y "Proveedores" (`#seq`, nombre, ciudad,
+    wechat/contacto, # de compras vivas calculado en el server).
+  - **SOLO LECTURA por decisión del founder** ("cero writes"): el matcheo manual
+    prealerta→`shipment_id` al llegar a CN quedó **diferido** (cuando se retome, va como
+    acción de operador en esta cola). Sidebar: entry "Proveedores CN" (grupo COMERCIAL).
+- **`/studio/etiquetas` — dropdown de `suppliers_cn`** (cierra **D6 de SDD-0031**): el
+  selector pasa de input libre a dropdown de los proveedores del cliente elegido
+  (`client_markbox`), con opción `__freeform__` de respaldo (compatibilidad input libre).
+  Al elegir proveedor pre-llena contacto/ciudad/WeChat y **auto-sugiere el warehouse CN**
+  según la ciudad del proveedor. Al cambiar de cliente, el supplier inválido vuelve a freeform.
+
 ---
 
 ### Extensión — Terminología compra↔prealerta + adjuntos de la compra (2026-06-09 · sesión con founder, worktree `chore/retoques`)
@@ -267,4 +289,23 @@ Cierra el flujo **DTD → proveedor**: el cliente comparte UN link y el proveedo
 
 **Fase futura:** template **pre-llenado** con código/shipping mark del cliente (hoy es estático). **Divergencia Norte:** la página pública del proveedor no existe en el Norte (`Sync Norte pendiente`).
 
-**Review:** `ui-ux-designer` "ship it" (aplicado #1 Noto Sans SC al CJK — crítico, #5 panel del código neutro, + `overflow-x-auto` dirección, línea de caja 9px). **Gate VERDE.** Migración `0119` pendiente de aplicar a prod.
+**Review:** `ui-ux-designer` "ship it" (aplicado #1 Noto Sans SC al CJK — crítico, #5 panel del código neutro, + `overflow-x-auto` dirección, línea de caja 9px). **Gate VERDE.** Migración `0119` **aplicada a prod el 2026-06-09** (verificada vía MCP en el cierre).
+
+---
+
+### Cierre (2026-06-10)
+
+- **La "fase futura" del template pre-llenado ya quedó hecha** (commit `e99ef31`, 2026-06-09):
+  `lib/studio/prealertas/packlist.ts` edita el `.xlsx` base por compra (fflate, celdas
+  `inlineStr`: 唛头/MARKBOX C7, cliente C8, proveedor C6, WeChat C10, código H12) — función
+  pura con tests (`__tests__/packlist.test.ts`). La página del proveedor `/p/{token}` descarga
+  el template **pre-llenado** con el shipping mark del cliente.
+- **Verificación prod (2026-06-10, MCP):** migraciones `0105` (portal_compras) + `0117` +
+  `0118` + `0119` aplicadas; datos vivos (3 proveedores, 2 prealertas, ambas con
+  `share_token`); código en `origin/main`. Flujo E2E operativo: cliente registra proveedor →
+  compra con código `DTD-{cliente}-{prov}-{orden}` → etiquetas + adjuntos + link `/p/{token}`
+  al proveedor → cola read-only del operador en `/studio/proveedores`.
+- **Diferidos conocidos** (futuro, no bloquean el done): matcheo manual prealerta→shipment en
+  la cola del operador · auto-matching al arribo CN (§6) · alinear el Norte con las
+  divergencias documentadas (`Sync Norte pendiente` ×3).
+- Spec → **done**.

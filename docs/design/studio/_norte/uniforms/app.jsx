@@ -37,7 +37,7 @@ function App() {
   return (
     <DesignCanvas>
       {/* 3 variantes de espalda (misma camiseta navy) */}
-      <DCSection id="sistema" title="Sistema · 3 variantes de espalda" subtitle="El FRENTE es constante (isólogo en el pecho). Cambia la ESPALDA. Elegí la dirección — la aplico a toda la línea.">
+      <DCSection id="sistema" title="Sistema · 3 variantes de espalda" subtitle="El FRENTE es constante (isólogo en el pecho). Cambia la ESPALDA. Elige la dirección — la aplico a toda la línea.">
         <DCArtboard id="var-a" label="A · Institucional" width={680} height={720}>
           <C codigo="DTD-UNI-A" prenda="Camiseta cuello redondo" rol="Variante A · wordmark + tagline" {...NAVY}
             garmentKey="tee" fabric={TELA.tee} tecnica={TEC.serigrafia} estampado={EST.tee} tallas={T} variant="A" />
