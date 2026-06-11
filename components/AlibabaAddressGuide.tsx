@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CONTACT } from "@/lib/design-tokens";
+import { CONTACT, FONT_MONO } from "@/lib/design-tokens";
 
 /**
  * Guía Alibaba — la dirección canónica de la bodega de Yiwu, campo por campo,
@@ -143,9 +143,7 @@ export function AlibabaAddressGuide() {
             placeholder="DTD-XXXX"
             maxLength={50}
             className="h-11 w-[180px] px-3.5 rounded-[8px] bg-white border border-grey-200 outline-none text-[14px] font-semibold tracking-[0.04em] text-ink placeholder:text-grey-700/55 focus:border-wine focus-visible:ring-2 focus-visible:ring-wine-soft"
-            style={{
-              fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
-            }}
+            style={{ fontFamily: FONT_MONO }}
             aria-label="Tu código Shipping Mark"
           />
           <p className="text-[12.5px] leading-[1.5] text-grey-700 max-w-[40ch]">
@@ -186,14 +184,7 @@ export function AlibabaAddressGuide() {
                 <div
                   className="mt-0.5 text-[15px] font-semibold text-ink break-words"
                   lang={f.cjk ? "zh-Hans" : undefined}
-                  style={
-                    f.cjk
-                      ? { fontFamily: NOTO_SC }
-                      : {
-                          fontFamily:
-                            "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
-                        }
-                  }
+                  style={{ fontFamily: f.cjk ? NOTO_SC : FONT_MONO }}
                 >
                   {f.value}
                 </div>

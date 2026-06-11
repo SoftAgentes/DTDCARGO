@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CONTACT } from "@/lib/design-tokens";
+import { CONTACT, FONT_MONO } from "@/lib/design-tokens";
 
 /**
  * China Supplier Clip — texto pre-formateado para que el cliente lo copie y
@@ -80,10 +80,7 @@ export function ChinaSupplierClip() {
           placeholder={placeholder}
           maxLength={50}
           className="h-11 px-3.5 rounded-[8px] bg-white/10 border border-white/15 outline-none text-[14px] font-semibold tracking-[0.04em] text-white placeholder:text-white/30 focus:border-wine-soft"
-          style={{
-            fontFamily:
-              "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace",
-          }}
+          style={{ fontFamily: FONT_MONO }}
           aria-label="Código Shipping Mark del cliente"
         />
       </div>

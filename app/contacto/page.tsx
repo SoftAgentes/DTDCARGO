@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { JetBrains_Mono } from "next/font/google";
 import { socialMeta } from "@/lib/seo-og";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -8,6 +9,16 @@ import { ContactoForm } from "@/components/ContactoForm";
 import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import { CONTACT, buildGoogleMapsLink } from "@/lib/design-tokens";
 import { WhatsAppIcon, MapPinIcon, PhoneIcon, MailIcon } from "@/components/Icon";
+
+// JetBrains Mono (mono de marca) para el input del Shipping Mark del clip de
+// proveedor (ChinaSupplierClip la referencia vía FONT_MONO con fallback).
+// Mismo patrón que /calculadora y /faq. El resto sigue en Archivo.
+const jetbrains = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  variable: "--font-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Contacto",
@@ -32,7 +43,7 @@ export default function ContactoPage() {
           { name: "Contacto", path: "/contacto" },
         ]}
       />
-      <main className="bg-paper">
+      <main className={`bg-paper ${jetbrains.variable}`}>
         <section className="py-16 lg:py-24">
           <div className="wrap">
             <span className="eyebrow">Contacto</span>
