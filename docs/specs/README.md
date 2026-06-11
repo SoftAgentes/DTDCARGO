@@ -87,7 +87,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0052 | Reportes & Analytics — capa de presentación sobre agregados e… | approved | interno |
 | 0053 | Costing & Margen — costo editable por embarque (7 categorías)… | done | interno |
 | 0054 | Capa legal — documentos versionados + aceptaciones inmutables… | done | interno |
-| 0055 | Calculadora — configuración desde el Studio (Fase 3): ciudade… | in-progress | interno |
+| 0055 | Calculadora — configuración desde el Studio (Fase 3): ciudade… | done | interno |
 | 0056 | Conversaciones · bandeja unificada (WhatsApp + email + portal) | in-progress | interno |
 | 0057 | Portal — Compras/Prealertas + Proveedores del cliente (cierra… | done | interno |
 | 0058 | Kommo lead → cliente — puente CRM↔ERP (convertir un lead del … | done | interno |
