@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createAdminClient } from "@/lib/db/admin";
 import { getProviderShareByToken } from "@/lib/studio/prealertas/queries";
 import { buildLabels } from "@/lib/studio/prealertas/types";
@@ -36,15 +37,19 @@ export default async function ProviderSharePage({
 
   const labels = buildLabels(data.code, data.boxes);
 
+  // Monta --font-jetbrains-mono (instancia única de lib/fonts.ts) para los
+  // códigos/etiquetas en mono del share del proveedor.
   return (
-    <ProviderShareClient
-      token={token}
-      code={data.code}
-      description={data.description}
-      markbox={data.markbox}
-      clientName={data.clientName}
-      supplierName={data.supplierName}
-      labels={labels}
-    />
+    <div className={jetbrainsMonoUi.variable}>
+      <ProviderShareClient
+        token={token}
+        code={data.code}
+        description={data.description}
+        markbox={data.markbox}
+        clientName={data.clientName}
+        supplierName={data.supplierName}
+        labels={labels}
+      />
+    </div>
   );
 }

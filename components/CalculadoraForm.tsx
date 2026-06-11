@@ -334,7 +334,7 @@ export function CalculadoraForm({
           <div className="flex-1">
             <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-wine">
               Estimado guardado ·{" "}
-              <span style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}>
+              <span style={{ fontFamily: "var(--font-mono), ui-monospace, monospace" }}>
                 {savedEstimateCode}
               </span>
             </div>
