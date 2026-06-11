@@ -49,11 +49,11 @@ const cspHeader = [
 
 /**
  * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book (material de marca
- * interno). El v3.2 embebe sus imágenes en base64 (`window.__DTD_ASSETS`) pero
- * referencia `erp/tokens.css` (servido en `public/marca/erp/`) y carga las fuentes
- * Archivo / Nunito Sans desde Google Fonts (CDN) — por eso `style-src`/`font-src`
- * permiten `fonts.googleapis`/`fonts.gstatic`. `img`/`connect` con `data:`/`blob:`
- * + inline/eval para los assets embebidos. El resto del sitio mantiene la CSP estricta.
+ * interno). El v3.7 standalone es autocontenido (imágenes en base64) y carga las
+ * fuentes Nunito Sans / Sora / Archivo desde Google Fonts (CDN) — por eso
+ * `style-src`/`font-src` permiten `fonts.googleapis`/`fonts.gstatic`. `img`/`connect`
+ * con `data:`/`blob:` + inline/eval para los assets embebidos. El resto del sitio
+ * mantiene la CSP estricta.
  */
 const brandBookCspHeader = [
   `default-src 'self'`,
@@ -127,7 +127,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/interno/marca/d/[bundle]": [
       "./public/brand/**",
-      "./public/marca/brand-book-v3.2.html",
+      "./public/marca/brand-book-v3.7.html",
       "./public/marca/herramientas/**",
       "./docs/marketing/whatsapp-business.md",
     ],
