@@ -84,22 +84,22 @@ function _buildPrompt(kind, country, sources, excludeNames) {
       `Sos un asistente de research para DTD-Cargo, un courier de carga marítima China→Venezuela.\n` +
       `Listaá los feriados oficiales y períodos no laborables de ${place} durante 2026 que afectan la operación logística (almacenes y aduanas que paran).\n` +
       `${country === 'CN' ? 'Incluí los períodos largos como Año Nuevo Chino y Golden Week con su rango completo de días.' : 'Incluí los feriados nacionales decretados.'}\n` +
-      `Tené en cuenta fuentes como:\n${sourcesTxt}\n` +
+      `Ten en cuenta fuentes como:\n${sourcesTxt}\n` +
       `Excluí estos que ya están cargados o fueron descartados: ${exclude}.\n\n` +
       `Devolvé entre 5 y 9 feriados como un array JSON. Cada objeto con EXACTAMENTE estos campos:\n` +
       `- "name": nombre del feriado\n` +
       `- "start": fecha inicio "YYYY-MM-DD" en 2026\n` +
       `- "end": fecha fin "YYYY-MM-DD" en 2026 (igual a start si es de un solo día)\n` +
       `- "sourceDomain": dominio de la fuente oficial más probable\n` +
-      `- "confidence": "alta" | "media" | "baja". "alta" para feriados fijos y confirmados; "media" si la fecha es móvil o aproximada; "baja" si es incierta. Procurá VARIAR el nivel.\n` +
+      `- "confidence": "alta" | "media" | "baja". "alta" para feriados fijos y confirmados; "media" si la fecha es móvil o aproximada; "baja" si es incierta. Procura VARIAR el nivel.\n` +
       `- "evidence": una frase corta en español sobre el feriado y su impacto operativo\n\n` +
       `Respondé SOLO con el array JSON, sin texto adicional ni markdown.`);
 
   }
   return (
     `Sos un asistente de research para DTD-Cargo, un courier de carga marítima China→Venezuela.\n` +
-    `Buscá ferias y expos comerciales en ${place} durante 2026 relevantes para importación, mayorista o logística.\n` +
-    `Tené en cuenta fuentes como:\n${sourcesTxt}\n` +
+    `Busca ferias y expos comerciales en ${place} durante 2026 relevantes para importación, mayorista o logística.\n` +
+    `Ten en cuenta fuentes como:\n${sourcesTxt}\n` +
     `Excluí estas ferias (ya cargadas o descartadas): ${exclude}.\n\n` +
     `Devolvé entre 5 y 8 ferias como un array JSON. Cada objeto con EXACTAMENTE estos campos:\n` +
     `- "name": nombre de la feria\n` +
@@ -108,7 +108,7 @@ function _buildPrompt(kind, country, sources, excludeNames) {
     `- "start": fecha inicio "YYYY-MM-DD" en 2026\n` +
     `- "end": fecha fin "YYYY-MM-DD" en 2026\n` +
     `- "sourceDomain": dominio de la fuente más probable\n` +
-    `- "confidence": "alta" | "media" | "baja". Asigná "alta" solo a ferias reconocidas y recurrentes con fecha confirmada (ej. ferias emblemáticas anuales); "media" si la edición existe pero la fecha es aproximada; "baja" si el evento es incierto o poco documentado. Procurá VARIAR el nivel entre las ferias, no pongas todas igual.\n` +
+    `- "confidence": "alta" | "media" | "baja". Asigna "alta" solo a ferias reconocidas y recurrentes con fecha confirmada (ej. ferias emblemáticas anuales); "media" si la edición existe pero la fecha es aproximada; "baja" si el evento es incierto o poco documentado. Procura VARIAR el nivel entre las ferias, no pongas todas igual.\n` +
     `- "evidence": una frase corta en español sobre dónde se anuncia o por qué es relevante\n\n` +
     `Respondé SOLO con el array JSON, sin texto adicional ni markdown.`);
 
@@ -170,7 +170,7 @@ function FairsPanel({ country, data, today, store, actions }) {
       if (list.length === 0) setError(`La búsqueda no trajo ${noun} ${isHol ? 'nuevos' : 'nuevas'} (ya están en el calendario o fueron descartad${isHol ? 'os' : 'as'}).`);
       actions.detectInto(kind, country, list);
     } catch (e) {
-      setError('No se pudo completar la búsqueda. Probá de nuevo en unos segundos.');
+      setError('No se pudo completar la búsqueda. Prueba de nuevo en unos segundos.');
     }
     setBusy(false);
   };
@@ -265,7 +265,7 @@ function FairsPanel({ country, data, today, store, actions }) {
             <div>
               <div style={{ font: '800 12.5px/1.2 var(--f-display)', color: 'var(--ink)' }}>Cómo funciona</div>
               <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>
-                La IA propone {noun} con un nivel de confianza. <b style={{ color: 'var(--ink)' }}>Nunca</b> se publican sol{isHol ? 'os' : 'as'}: revisás la bandeja y aprobás. Las fechas de confianza media o baja conviene verificarlas antes.
+                La IA propone {noun} con un nivel de confianza. <b style={{ color: 'var(--ink)' }}>Nunca</b> se publican sol{isHol ? 'os' : 'as'}: revisás la bandeja y apruebas. Las fechas de confianza media o baja conviene verificarlas antes.
               </div>
             </div>
           </div>
@@ -305,7 +305,7 @@ function FairDetectionQueue({ kind, country, noun, isHol, candidates, existingKe
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: '900 15px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Detección automática de {noun}</div>
           <div style={{ font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>
-            {candidates.length > 0 ? `${candidates.length} propuesta${candidates.length > 1 ? 's' : ''} para revisar` : `La IA propone ${noun} desde las fuentes. Vos aprobás cuáles entran.`}
+            {candidates.length > 0 ? `${candidates.length} propuesta${candidates.length > 1 ? 's' : ''} para revisar` : `La IA propone ${noun} desde las fuentes. Tú apruebas cuáles entran.`}
           </div>
         </div>
         <U.Btn variant="primary" icon={busy ? null : window.Icon.radar(14)} onClick={onSearch} disabled={busy}>

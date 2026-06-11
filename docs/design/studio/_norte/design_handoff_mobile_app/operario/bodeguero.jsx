@@ -1,9 +1,9 @@
 /* global React */
-/* ── DTD · Almacenista VE · Mobile (arma camiones) ────────────── */
+/* ── DTD · Bodeguero VE · Mobile (arma camiones) ────────────── */
 
 const { useState, useEffect } = React;
 
-function AlmacenistaApp() {
+function BodegueroApp() {
   const [view, setView] = useState('login');
   const [user, setUser] = useState(null);
   const [theme, setTheme] = useState('light');
@@ -90,7 +90,7 @@ function Login({ onLogin }) {
     <div style={{ minHeight: '100vh', background: 'linear-gradient(160deg, var(--ink) 0%, #1F3055 100%)', display: 'flex', flexDirection: 'column', padding: '40px 24px', color: '#fff' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 28 }}>
         <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" style={{ height: 32, display: 'block' }} />
-        <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>ALMACENISTA</div>
+        <div style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,0.1)', font: '700 10px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>BODEGUERO</div>
       </div>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>BODEGA · ALMACÉN VE</div>
@@ -313,7 +313,7 @@ Tenemos un despacho para hoy:
 📦 Carga: ~18 CBM · 4 paradas
 ⏰ Salida estimada: hoy 07:30
 
-¿Tenés disponibilidad para hacer la ruta?
+¿Tienes disponibilidad para hacer la ruta?
 
 Maps: https://maps.app.goo.gl/dtd-pbl-valencia`
   );
@@ -346,7 +346,7 @@ Maps: https://maps.app.goo.gl/dtd-pbl-valencia`
               style={{ width: '100%', padding: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink)', outline: 'none', resize: 'vertical' }}
             />
             <div style={{ marginTop: 8, padding: '8px 10px', background: 'var(--info-bg)', borderRadius: 'var(--r-sm)', font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-              Incluye link de Google Maps con el destino y resumen de la carga. Editá antes de enviar si necesitás.
+              Incluye link de Google Maps con el destino y resumen de la carga. Edita antes de enviar si necesitas.
             </div>
             <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <BigButton label="Cancelar" onClick={onClose} variant="secondary" />
@@ -411,7 +411,7 @@ function PickItems({ truck, driver, loadout, setLoadout, onBack, onSeal }) {
           <div style={{ height: 6, background: 'rgba(255,255,255,0.1)', borderRadius: 999, overflow: 'hidden' }}>
             <div style={{ width: `${Math.min(100, usage)}%`, height: '100%', background: usage > 100 ? 'var(--danger)' : usage > 90 ? 'var(--warning)' : 'var(--wine-soft)' }} />
           </div>
-          {usage > 100 && <div style={{ marginTop: 6, font: '700 11px/1.3 var(--f-sans)', color: 'var(--warning)' }}>Excede capacidad · marcá parciales</div>}
+          {usage > 100 && <div style={{ marginTop: 6, font: '700 11px/1.3 var(--f-sans)', color: 'var(--warning)' }}>Excede capacidad · marca parciales</div>}
         </div>
       </div>
 
@@ -493,7 +493,7 @@ function PickItems({ truck, driver, loadout, setLoadout, onBack, onSeal }) {
           <div style={{ width: '100%', maxWidth: 320, aspectRatio: '1', background: 'var(--ink)', borderRadius: 'var(--r-md)', position: 'relative', overflow: 'hidden' }}>
             <div style={{ position: 'absolute', inset: 30, border: '3px solid var(--wine-soft)', borderRadius: 8 }} />
             <div style={{ position: 'absolute', left: 30, right: 30, top: '50%', height: 2, background: 'var(--wine)', boxShadow: '0 0 16px var(--wine)', animation: 'erp-shimmer 2s infinite linear' }} />
-            <div style={{ position: 'absolute', bottom: 20, left: 0, right: 0, textAlign: 'center', font: '700 12px/1 var(--f-sans)', color: '#fff' }}>Escaneá el QR del bulto</div>
+            <div style={{ position: 'absolute', bottom: 20, left: 0, right: 0, textAlign: 'center', font: '700 12px/1 var(--f-sans)', color: '#fff' }}>Escanea el QR del bulto</div>
           </div>
         </div>
       )}
@@ -569,7 +569,7 @@ function Handoff({ truck, driver, loadout, onDone }) {
   );
 }
 
-window.AlmacenistaApp = AlmacenistaApp;
+window.BodegueroApp = BodegueroApp;
 
 // ── Reception list ─────────────────────────────────
 function ReceptionList({ onPick, onBack }) {
@@ -789,7 +789,7 @@ function ReceptionScan({ container, onBack, onDone }) {
 
 // ── Flujos reutilizables para el shell multi-rol ─────────────
 // Exponen los sub-flujos de Recepción y Despacho SIN el login/home
-// propios de AlmacenistaApp, para incrustarlos en otra app
+// propios de BodegueroApp, para incrustarlos en otra app
 // (p. ej. Operario Multi). onExit vuelve al home del modo.
 function ReceptionFlow({ onExit }) {
   const [view, setView] = useState('list');
@@ -809,4 +809,4 @@ function DispatchFlow({ onExit }) {
   return <PickTruck onPick={(t) => { setTruck(t); setView('driver'); }} onBack={onExit} />;
 }
 
-window.AlmacenistaFlows = { ReceptionFlow, DispatchFlow };
+window.BodegueroFlows = { ReceptionFlow, DispatchFlow };

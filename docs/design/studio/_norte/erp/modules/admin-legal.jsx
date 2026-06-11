@@ -251,7 +251,7 @@
         <U.Card padded>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: 220 }}>
-              <U.Input label="Buscar" placeholder="Cliente, MARKBOX, estimado, orden, IP…" value={search} onChange={(e) => setSearch(e.target.value)} prefix={I.search ? null : null} />
+              <U.Input label="Buscar" placeholder="Cliente, Shipping Mark, estimado, orden, IP…" value={search} onChange={(e) => setSearch(e.target.value)} prefix={I.search ? null : null} />
             </div>
             <div style={{ minWidth: 240 }}>
               <U.Select label="Documento" value={docFilter} onChange={(e) => setDocFilter(e.target.value)}

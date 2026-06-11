@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DTD-Cargo · Perfil de WeChat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&family=Noto+Sans+SC:wght@400;700;900&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet" />
+<style>
+  html, body { margin: 0; height: 100%; background: #14161a; }
+  image-slot { --is-bg: rgba(255,255,255,0.06); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<template id="__bundler_thumbnail">
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+    <rect width="100" height="100" fill="#0F1E3D" />
+    <circle cx="50" cy="42" r="22" fill="none" stroke="#C2747F" stroke-width="2.5" />
+    <text x="50" y="78" text-anchor="middle" fill="#fff" font-family="Archivo Black, sans-serif" font-size="13" font-weight="900">微信</text>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="wechat/image-slot.js"></script>
+<script type="text/babel" src="wechat/design-canvas.jsx"></script>
+<script type="text/babel" src="wechat/pieces.jsx"></script>
+<script type="text/babel">
+  const { DesignCanvas, DCSection, DCArtboard } = window;
+  function App() {
+    return (
+      <DesignCanvas>
+        <DCSection id="portadas" title="Portada · WeChat Moments" subtitle="封面 · 1080×1920 — la imagen grande del perfil. Deja la esquina inferior derecha despejada (ahí WeChat pone tu nombre).">
+          <DCArtboard id="cover-navy" label="A · Typográfica navy" width={1080} height={1920}>
+            <window.CoverNavy />
+          </DCArtboard>
+          <DCArtboard id="cover-photo" label="B · Con foto del contenedor" width={1080} height={1920}>
+            <window.CoverPhoto />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="avatar" title="Foto de perfil" subtitle="头像 · informa el servicio en una sola imagen. Se ve CHICO en WeChat → 门到门 (puerta a puerta) en grande es lo que se lee. Elige una.">
+          <DCArtboard id="avatar-mendao" label="A · 门到门 + Puerta a Puerta" width={1080} height={1080}>
+            <window.AvatarMenDao />
+          </DCArtboard>
+          <DCArtboard id="avatar-ring" label="B · Anillo China → Venezuela" width={1080} height={1080}>
+            <window.AvatarRing />
+          </DCArtboard>
+          <DCArtboard id="avatar-band" label="C · Banda wine" width={1080} height={1080}>
+            <window.AvatarBand />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="contenedor" title="Contenedor llenándose" subtitle="Ilustración de marca (NO es una foto). Para una foto real del contenedor, pásamela y la monto en la portada B / el post.">
+          <DCArtboard id="container-fill" label="Llena tu CBM · 72%" width={1080} height={1080}>
+            <window.ContainerFill pct={0.72} />
+          </DCArtboard>
+        </DCSection>
+
+        <DCSection id="post" title="Post de servicio" subtitle="#ServiciosDTD · 1080×1080 — versión corregida de tu pieza (wordmark «DTD Cargo», no «DTDCARGO»).">
+          <DCArtboard id="post-maritima" label="Post · Carga marítima" width={1080} height={1080}>
+            <window.PostServicios />
+          </DCArtboard>
+        </DCSection>
+      </DesignCanvas>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

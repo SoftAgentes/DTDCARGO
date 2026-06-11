@@ -47,7 +47,7 @@ function ModuleEstimados({ goTo, view, setView, selectedId, setSelectedId }) {
     <div>
       <U.PageHeader
         title="Estimador"
-        subtitle="LCL DDP a $800/CBM · FCL con tarifa cerrada. Estimá en menos de 60 segundos."
+        subtitle="LCL DDP a $800/CBM · FCL con tarifa cerrada. Estima en menos de 60 segundos."
         actions={
           <>
             <U.Btn variant="secondary" icon={window.Icon.download(14)}>Exportar</U.Btn>
@@ -72,7 +72,7 @@ function ModuleEstimados({ goTo, view, setView, selectedId, setSelectedId }) {
       />
 
       {filtered.length === 0 ? (
-        <U.EmptyState icon={window.Icon.calc(22)} title="No hay estimados" body="Creá un estimado nueva. Las aceptadas se convierten automáticamente en embarques." action={<U.Btn variant="primary" onClick={() => { setView('create'); setDrawerKind('create'); }}>Nuevo estimado</U.Btn>} />
+        <U.EmptyState icon={window.Icon.calc(22)} title="No hay estimados" body="Crea un estimado nueva. Las aceptadas se convierten automáticamente en embarques." action={<U.Btn variant="primary" onClick={() => { setView('create'); setDrawerKind('create'); }}>Nuevo estimado</U.Btn>} />
       ) : (
         <U.Table columns={columns} rows={filtered} onRowClick={(r) => { setSelectedId(r.id); setView('detail'); setDrawerKind('detail'); }} />
       )}
@@ -81,7 +81,7 @@ function ModuleEstimados({ goTo, view, setView, selectedId, setSelectedId }) {
         open={drawerKind === 'create'}
         onClose={() => { setDrawerKind(null); setView('list'); }}
         title="Nuevo estimado"
-        subtitle="Calculá el total en vivo. Al enviarla queda registrada y se notifica al cliente."
+        subtitle="Calcula el total en vivo. Al enviarla queda registrada y se notifica al cliente."
         width={680}
         actions={
           <>
@@ -157,7 +157,7 @@ function QuoteCalculator() {
         </div>
       </div>
 
-      <window.ERPUI.SearchSelect label="Cliente · MARKBOX" placeholder="Buscá o creá un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
+      <window.ERPUI.SearchSelect label="Cliente · Shipping Mark" placeholder="Busca o crea un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
         options={D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.markbox} · ${c.company}`, sub: 'Cliente' }))} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -206,14 +206,14 @@ function QuoteCalculator() {
           </div>
 
           <U.Input label="Tarifa por CBM" value={rate} onChange={(e)=>setRate(e.target.value)} prefix="$" suffix="USD/CBM" mono
-            hint="Tarifa estándar LCL DDP: $800/CBM. Editá si tu estimado es distinta (FCL prorrateado, promo, etc.)" />
+            hint="Tarifa estándar LCL DDP: $800/CBM. Edita si tu estimado es distinta (FCL prorrateado, promo, etc.)" />
         </>
       )}
 
       {window.ERPUI.CatalogLines && (
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
           <window.ERPUI.CatalogLines title="Servicios adicionales" addLabel="Agregar servicio del catálogo"
-            emptyHint="Sumá servicios del catálogo (despacho, seguro, almacenaje…) al flete. Cada uno toma su tarifa vigente."
+            emptyHint="Suma servicios del catálogo (despacho, seguro, almacenaje…) al flete. Cada uno toma su tarifa vigente."
             onChange={(lines, st) => setExtraSubtotal(st)} />
         </div>
       )}
@@ -268,7 +268,7 @@ function QuoteDetail({ q }) {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
         <U.Field label="Cliente" value={q.clientName} />
-        <U.Field label="MARKBOX" value={q.client} mono />
+        <U.Field label="Shipping Mark" value={q.client} mono />
         <U.Field label="Servicio" value={q.type} />
         <U.Field label="Agente" value={q.agent} />
         <U.Field label="Origen" value={`${D.origin(q.origin).name} (${D.origin(q.origin).cn})`} />

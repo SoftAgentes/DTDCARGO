@@ -14,7 +14,7 @@ const PM_MARKBOX = PM_IMPERSONATE && /^DTD-\d{4}$/.test(PM_IMPERSONATE) ? PM_IMP
 // Vibración sutil (si el dispositivo lo soporta) · sensación nativa.
 function pmHaptic(ms = 8) {try {if (navigator.vibrate) navigator.vibrate(ms);} catch (e) {}}
 
-// Genera un MARKBOX secuencial (usa el helper del bridge si está; si no, fallback).
+// Genera un Shipping Mark secuencial (usa el helper del bridge si está; si no, fallback).
 function pmGenMarkbox() {
   try {if (window.DTDData && window.DTDData.nextMarkbox) return window.DTDData.nextMarkbox();} catch (e) {}
   return `DTD-${5500 + Math.floor(Math.random() * 480)}`;
@@ -80,7 +80,7 @@ function PortalMobileApp() {
   const [authView, setAuthView] = pmState('welcome'); // welcome | login | register
   const [account, setAccount] = pmState(pmReadAccount); // cuenta registrada (persistida)
   const [verify, setVerify] = pmState(false); // overlay de verificación
-  const [toast, setToast] = pmState(null); // aviso flotante (ej. MARKBOX aprobado)
+  const [toast, setToast] = pmState(null); // aviso flotante (ej. Shipping Mark aprobado)
   const [tab, setTab] = pmState('home');
   const [detail, setDetail] = pmState(null); // shipment id
   const [sub, setSub] = pmState(null); // subpantalla en "Más"
@@ -106,7 +106,7 @@ function PortalMobileApp() {
     setLogged(true);
   };
 
-  // Registro: crea la cuenta (ENTRA al app) pero SIN MARKBOX. El MARKBOX se
+  // Registro: crea la cuenta (ENTRA al app) pero SIN Shipping Mark. El Shipping Mark se
   // asigna recién al completar la verificación (dirección + cédula).
   const finishRegister = (acc) => {
     setAccount({ ...acc, markbox: null, status: 'unverified' });
@@ -115,7 +115,7 @@ function PortalMobileApp() {
     setTab('home');
   };
 
-  // Verificación: envía los documentos → quedan EN REVISIÓN. El MARKBOX se
+  // Verificación: envía los documentos → quedan EN REVISIÓN. El Shipping Mark se
   // asigna cuando DTD aprueba (simulado con un timer en esta demo).
   const doVerify = (addr) => {
     pmHaptic(16);
@@ -123,7 +123,7 @@ function PortalMobileApp() {
     setVerify(false);
   };
 
-  // Aprobación simulada: al estar EN REVISIÓN, asigna el MARKBOX a los ~6s.
+  // Aprobación simulada: al estar EN REVISIÓN, asigna el Shipping Mark a los ~6s.
   // Usa el MISMO backend canónico que el registro web (window.DTDData):
   // nextMarkbox secuencial+validado → publica el cliente al store compartido
   // (lo ve el ERP) → manda el email de bienvenida (template m-05).
@@ -163,7 +163,7 @@ function PortalMobileApp() {
       }
 
       setAccount((a) => a && a.status === 'revision' ? { ...a, status: 'verified', markbox: mb } : a);
-      setToast(`MARKBOX aprobado · ${mb}`);
+      setToast(`Shipping Mark aprobado · ${mb}`);
       pmHaptic(18);
       setTimeout(() => setToast(null), 4200);
     }, 6000);
@@ -287,10 +287,10 @@ function PMPullToRefresh({ onRefresh, refreshing, children }) {
 function PMWelcome({ open, onClose, me }) {
   const I = window.Icon;
   const items = [
-  { icon: 'ship', tone: 'wine', t: 'Seguí tu carga', d: 'Tracking en vivo de cada embarque, etapa por etapa.' },
-  { icon: 'invoice', tone: 'warning', t: 'Pagá y subí comprobante', d: 'Tus facturas con desglose, sin llamadas.' },
-  { icon: 'calc', tone: 'info', t: 'Estimá al instante', d: 'Estimación DDP puerta a puerta desde el teléfono.' },
-  { icon: 'warehouse', tone: 'success', t: 'Comprá en China', d: 'Nueva compra o recompra a tus fábricas con tu MARKBOX.' }];
+  { icon: 'ship', tone: 'wine', t: 'Sigue tu carga', d: 'Tracking en vivo de cada embarque, etapa por etapa.' },
+  { icon: 'invoice', tone: 'warning', t: 'Paga y sube comprobante', d: 'Tus facturas con desglose, sin llamadas.' },
+  { icon: 'calc', tone: 'info', t: 'Estima al instante', d: 'Estimación DDP puerta a puerta desde el teléfono.' },
+  { icon: 'warehouse', tone: 'success', t: 'Compra en China', d: 'Nueva compra o recompra a tus fábricas con tu Shipping Mark.' }];
 
   return (
     <window.PM.Sheet open={open} onClose={onClose}>
@@ -383,8 +383,8 @@ function PMIntro({ onLogin, onRegister }) {
   const I = window.Icon;
   const props = [
   { icon: 'ship', t: 'Tracking en vivo' },
-  { icon: 'invoice', t: 'Pagá sin llamadas' },
-  { icon: 'calc', t: 'Estimá al instante' }];
+  { icon: 'invoice', t: 'Paga sin llamadas' },
+  { icon: 'calc', t: 'Estima al instante' }];
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'linear-gradient(135deg, var(--ink), #1F3055)', color: '#fff', padding: '0 24px' }}>
@@ -412,7 +412,7 @@ function PMIntro({ onLogin, onRegister }) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// REGISTRO · crear cuenta (datos completos → ENTRA al app, sin MARKBOX)
+// REGISTRO · crear cuenta (datos completos → ENTRA al app, sin Shipping Mark)
 // ════════════════════════════════════════════════════════════════
 function PMRegister({ onDone, onBack }) {
   const U = window.ERPUI;
@@ -453,12 +453,12 @@ function PMRegister({ onDone, onBack }) {
 
         {step === 2 &&
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-5)' }}>
-            <div><span style={lbl}>Email</span><input type="email" value={d.email} onChange={(e) => set({ email: e.target.value })} placeholder="vos@empresa.com" style={inStyle} /></div>
+            <div><span style={lbl}>Email</span><input type="email" value={d.email} onChange={(e) => set({ email: e.target.value })} placeholder="tú@empresa.com" style={inStyle} /></div>
             <div><span style={lbl}>Teléfono / WhatsApp</span><input value={d.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+58 412 000 0000" style={{ ...inStyle, fontFamily: 'var(--f-mono)' }} /></div>
             <div><span style={lbl}>Ciudad en Venezuela</span><input value={d.city} onChange={(e) => set({ city: e.target.value })} placeholder="Valencia · Caracas · Maracaibo…" style={inStyle} /></div>
             <div><span style={lbl}>Contraseña</span><input type="password" value={d.pw} onChange={(e) => set({ pw: e.target.value })} placeholder="Mínimo 4 caracteres" style={inStyle} /></div>
             <U.Btn variant="primary" full disabled={!step2ok} onClick={() => {pmHaptic(12);onDone(d);}}>Crear cuenta y entrar</U.Btn>
-            <p style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0, textAlign: 'center' }}>Tu MARKBOX se asigna después, al verificar tu identidad (dirección + cédula). Al crear la cuenta aceptás los términos de DTD-Cargo.</p>
+            <p style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0, textAlign: 'center' }}>Tu Shipping Mark se asigna después, al verificar tu identidad (dirección + cédula). Al crear la cuenta aceptás los términos de DTD-Cargo.</p>
           </div>
         }
       </div>
@@ -467,7 +467,7 @@ function PMRegister({ onDone, onBack }) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// VERIFICACIÓN · dirección + cédula → asigna el MARKBOX
+// VERIFICACIÓN · dirección + cédula → asigna el Shipping Mark
 // ════════════════════════════════════════════════════════════════
 function PMVerify({ me, onBack, onSubmit }) {
   const U = window.ERPUI;
@@ -509,26 +509,26 @@ function PMVerify({ me, onBack, onSubmit }) {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-base)', color: 'var(--ink)' }}>
-      <window.PM.SubHeader title="Verificar identidad" subtitle="Último paso para obtener tu MARKBOX" onBack={onBack} />
+      <window.PM.SubHeader title="Verificar identidad" subtitle="Último paso para obtener tu Shipping Mark" onBack={onBack} />
       <div style={{ padding: '16px 16px 28px' }}>
         <div style={{ display: 'flex', gap: 12, padding: 14, marginBottom: 'var(--s-6)', background: 'var(--wine-tint)', borderRadius: 'var(--r-lg)' }}>
           <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{I.info(18)}</span>
-          <p style={{ font: '500 12.5px/1.45 var(--f-sans)', color: 'var(--ink)', margin: 0 }}>Necesitamos tu dirección de entrega en Venezuela y tu cédula{empresa ? ' + fachada del local' : ''} para activar tu MARKBOX y poder importar a tu nombre.</p>
+          <p style={{ font: '500 12.5px/1.45 var(--f-sans)', color: 'var(--ink)', margin: 0 }}>Necesitamos tu dirección de entrega en Venezuela y tu cédula{empresa ? ' + fachada del local' : ''} para activar tu Shipping Mark y poder importar a tu nombre.</p>
         </div>
 
         <window.PM.Section title="DIRECCIÓN EN VENEZUELA">
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
             <div style={{ display: 'flex', gap: 10 }}>
-              <div style={{ flex: 1 }}><U.SearchSelect label="Estado" value={a.estado} onChange={pickEstado} options={estadoOpts} placeholder="Elegí tu estado" /></div>
-              <div style={{ flex: 1 }}><U.SearchSelect label="Ciudad" value={a.ciudad} onChange={pickCiudad} options={cityOpts} placeholder={a.estado ? 'Elegí ciudad' : 'Elegí estado primero'} /></div>
+              <div style={{ flex: 1 }}><U.SearchSelect label="Estado" value={a.estado} onChange={pickEstado} options={estadoOpts} placeholder="Elige tu estado" /></div>
+              <div style={{ flex: 1 }}><U.SearchSelect label="Ciudad" value={a.ciudad} onChange={pickCiudad} options={cityOpts} placeholder={a.estado ? 'Elige ciudad' : 'Elige estado primero'} /></div>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <div style={{ flex: 1 }}><U.SearchSelect label="Municipio" value={a.municipio} onChange={pickMunicipio} options={muniOpts} placeholder={a.ciudad ? 'Elegí municipio' : 'Elegí ciudad primero'} /></div>
+              <div style={{ flex: 1 }}><U.SearchSelect label="Municipio" value={a.municipio} onChange={pickMunicipio} options={muniOpts} placeholder={a.ciudad ? 'Elige municipio' : 'Elige ciudad primero'} /></div>
               <div style={{ width: 110 }}><span style={lbl}>Código postal</span><input value={a.cp} readOnly placeholder="—" style={{ height: 38, padding: '0 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--ink-soft)', font: '500 13px/1 var(--f-mono)', width: '100%', boxSizing: 'border-box', cursor: 'not-allowed' }} /></div>
             </div>
             <div><span style={lbl}>Dirección exacta</span><input value={a.address} onChange={(e) => setA({ ...a, address: e.target.value })} placeholder="Ej. Av. Bolívar, edificio Centro, piso 3, of. 3-B" style={inStyle} /></div>
             <div><span style={lbl}>Punto de referencia</span><input value={a.reference} onChange={(e) => setA({ ...a, reference: e.target.value })} placeholder="Opcional · cerca de…" style={inStyle} /></div>
-            <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>Estado, ciudad, municipio y código postal salen de nuestra lista oficial — elegílos para que la entrega sea exacta. Solo escribí la <strong style={{ color: 'var(--ink-soft)' }}>dirección exacta</strong> (avenida, calle, edificio).</p>
+            <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>Estado, ciudad, municipio y código postal salen de nuestra lista oficial — elegílos para que la entrega sea exacta. Solo escribe la <strong style={{ color: 'var(--ink-soft)' }}>dirección exacta</strong> (avenida, calle, edificio).</p>
           </div>
         </window.PM.Section>
 
@@ -545,8 +545,8 @@ function PMVerify({ me, onBack, onSubmit }) {
           }
         </window.PM.Section>
 
-        <U.Btn variant="primary" full disabled={!ok} icon={I.shield(14)} onClick={() => onSubmit(a)}>Obtener mi MARKBOX</U.Btn>
-        {!ok && <p style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '12px 0 0', textAlign: 'center' }}>Elegí estado, ciudad y municipio, escribí la dirección y subí tu cédula{empresa ? ' y fachada' : ''} para continuar.</p>}
+        <U.Btn variant="primary" full disabled={!ok} icon={I.shield(14)} onClick={() => onSubmit(a)}>Obtener mi Shipping Mark</U.Btn>
+        {!ok && <p style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '12px 0 0', textAlign: 'center' }}>Elige estado, ciudad y municipio, escribe la dirección y sube tu cédula{empresa ? ' y fachada' : ''} para continuar.</p>}
       </div>
     </div>);
 
@@ -568,12 +568,12 @@ function PMLogin({ onLogin, onRegister, onBack }) {
         <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD-Cargo" style={{ height: 44, objectFit: 'contain', alignSelf: 'flex-start', marginBottom: 24 }} onError={(e) => {e.target.style.display = 'none';}} />
         <h1 style={{ font: '900 28px/1.1 var(--f-display)', letterSpacing: '-0.025em', margin: '0 0 10px' }}>Bienvenido de vuelta.</h1>
         <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.7)', margin: '0 0 28px', maxWidth: 320 }}>
-          Entrá con tu MARKBOX para ver tus embarques y facturas.
+          Entra con tu Shipping Mark para ver tus embarques y facturas.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 'var(--r-xl)', padding: 20 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <span style={{ font: '700 11px/1 var(--f-sans)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Tu MARKBOX</span>
+            <span style={{ font: '700 11px/1 var(--f-sans)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.6)' }}>Tu Shipping Mark</span>
             <input value={markbox} onChange={(e) => setMarkbox(e.target.value)} style={{ padding: '13px 14px', borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.18)', background: 'rgba(255,255,255,0.06)', color: '#fff', font: '700 15px/1 var(--f-mono)', letterSpacing: '0.02em' }} />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -585,7 +585,7 @@ function PMLogin({ onLogin, onRegister, onBack }) {
         </div>
       </div>
       <div style={{ textAlign: 'center', padding: '0 24px calc(24px + env(safe-area-inset-bottom))', font: '500 12.5px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.6)' }}>
-        ¿No tenés cuenta? <button onClick={onRegister} style={{ background: 'none', border: 0, color: '#fff', font: '800 12.5px/1 var(--f-sans)', textDecoration: 'underline', cursor: 'pointer' }}>Crear cuenta</button>
+        ¿No tienes cuenta? <button onClick={onRegister} style={{ background: 'none', border: 0, color: '#fff', font: '800 12.5px/1 var(--f-sans)', textDecoration: 'underline', cursor: 'pointer' }}>Crear cuenta</button>
       </div>
     </div>);
 
@@ -611,22 +611,22 @@ function PMHome({ me, ships, invs, go, openDetail, openQuote, verified, inReview
         </p>
       </div>
 
-      {/* Banner de verificación · sin MARKBOX */}
+      {/* Banner de verificación · sin Shipping Mark */}
       {!verified && (
       inReview ?
       <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: 18, marginBottom: 'var(--s-5)', borderRadius: 'var(--r-xl)', background: 'var(--bg-surface)', border: '1px solid var(--border)' }}>
             <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 'var(--r-md)', background: 'var(--bg-elevated)', color: 'var(--info)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I.clock(20)}</span>
             <span style={{ flex: 1, minWidth: 0 }}>
               <span style={{ display: 'block', font: '800 14.5px/1.2 var(--f-display)', color: 'var(--ink)' }}>Verificación en revisión</span>
-              <span style={{ display: 'block', font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Estamos validando tus documentos. Te asignamos tu MARKBOX apenas aprobemos.</span>
+              <span style={{ display: 'block', font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Estamos validando tus documentos. Te asignamos tu Shipping Mark apenas aprobemos.</span>
             </span>
           </div> :
 
       <button onClick={onVerify} style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 14, padding: 18, marginBottom: 'var(--s-5)', borderRadius: 'var(--r-xl)', border: 0, background: 'linear-gradient(135deg, var(--ink), #1F3055)', color: '#fff', cursor: 'pointer' }}>
             <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 'var(--r-md)', background: 'rgba(255,255,255,0.1)', color: 'var(--wine-soft)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I.shield(20)}</span>
             <span style={{ flex: 1, minWidth: 0 }}>
-              <span style={{ display: 'block', font: '800 14.5px/1.2 var(--f-display)' }}>Obtené tu MARKBOX</span>
-              <span style={{ display: 'block', font: '500 12px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 3 }}>Completá tu verificación (dirección + cédula) para empezar a importar.</span>
+              <span style={{ display: 'block', font: '800 14.5px/1.2 var(--f-display)' }}>Obtené tu Shipping Mark</span>
+              <span style={{ display: 'block', font: '500 12px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 3 }}>Completa tu verificación (dirección + cédula) para empezar a importar.</span>
             </span>
             <span style={{ color: 'var(--wine-soft)', flexShrink: 0 }}>{I.chevR(18)}</span>
           </button>)
@@ -907,7 +907,7 @@ function PMDetail({ id, onBack }) {
         {needsAccept &&
         <div style={{ display: 'flex', gap: 12, padding: 14, marginBottom: 'var(--s-5)', background: 'var(--wine-tint)', borderRadius: 'var(--r-lg)', borderLeft: '3px solid var(--wine)' }}>
             <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{I.shield(18)}</span>
-            <div><div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida cambió · re-aceptación' : (isMeasured ? 'Llegó y se midió · falta tu aceptación' : 'Estimado pendiente')}</div><div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>{isReaccept ? 'Aceptaste el estimado pero la medida real cambió. Confirmá la nuevo estimado para emitir la factura.' : (isMeasured ? `Medimos tu carga (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá el estimado con la medida real para emitir tu factura.` : 'Aceptá los términos para generar tu orden de servicio.')}</div>{isReaccept && <div style={{ display: 'flex', gap: 10, marginTop: 10, font: '600 12px/1.3 var(--f-mono)' }}><span style={{ color: 'var(--ink-soft)', textDecoration: 'line-through' }}>{priorDiff.cbm} m³ · {fmtUsd(priorDiff.total)}</span><span style={{ color: 'var(--wine)' }}>→</span><span style={{ color: 'var(--ink)', fontWeight: 800 }}>{s.cbm} m³ · {fmtUsd(s.value)}</span></div>}</div>
+            <div><div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida cambió · re-aceptación' : (isMeasured ? 'Llegó y se midió · falta tu aceptación' : 'Estimado pendiente')}</div><div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>{isReaccept ? 'Aceptaste el estimado pero la medida real cambió. Confirma la nuevo estimado para emitir la factura.' : (isMeasured ? `Medimos tu carga (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá el estimado con la medida real para emitir tu factura.` : 'Aceptá los términos para generar tu orden de servicio.')}</div>{isReaccept && <div style={{ display: 'flex', gap: 10, marginTop: 10, font: '600 12px/1.3 var(--f-mono)' }}><span style={{ color: 'var(--ink-soft)', textDecoration: 'line-through' }}>{priorDiff.cbm} m³ · {fmtUsd(priorDiff.total)}</span><span style={{ color: 'var(--wine)' }}>→</span><span style={{ color: 'var(--ink)', fontWeight: 800 }}>{s.cbm} m³ · {fmtUsd(s.value)}</span></div>}</div>
           </div>
         }
 

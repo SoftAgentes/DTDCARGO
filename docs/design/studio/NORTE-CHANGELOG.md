@@ -4,6 +4,41 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v2.5 · re-sync 2026-06-10 (handoff de marca · Brand Book v3.7 + Shipping Mark único + tuteo + Estudio de Redes)
+
+Fuente: `Downloads/DTD-Cargo.zip` (133.9 MB, 955 archivos, empaque a la raíz). **Reemplazo total**
+de `_norte/` guiado por el **`SYNC-NORTE-2026-06-10.md`** que vino EN el paquete (primera vez que
+Cloud Design manda instrucciones de sync embebidas). El HANDOFF **no bumpeó**: sigue `v2.5`; lo que
+sube es la **marca → Brand Book v3.7 único**. Delta git: 22 D · ~203 M · 27 ?? (+ fixes locales).
+
+**Aplicado ⭐:** Shipping Mark **término único** (MARKBOX eliminado del lenguaje visual; claves de
+código intactas) · **voseo→tuteo masivo** · Brand Book v3.5/v3.6 eliminados · Sticker Pack oficial
+**17 piezas con texto** · piezas nuevas: `Colateral Impreso`, `Banco de Fotos`, `Uniformes`,
+`WeChat · Perfil`, `erp/modules/estudio-redes.jsx` (calendario de contenido + pieza→campaña) ·
+ERP: prealertas (nodo en flujo + tab + escáner caja→orden), Master data "Etiquetas de contenido" ·
+Portal: "Nueva compra" anclado a prealerta + pill Calculadora CBM · seams nuevos
+`dtd-etiquetas-contenido` + `pz_tag` en `dtd-piezas-log`.
+
+**Deuda del re-sync 06-08 CERRADA:** la coexistencia Almacenista/Transportista vs Bodeguero/Camionero
+se resolvió **a favor de Bodeguero/Camionero** (el paquete eliminó los Almacenista/Transportista —
+22 D incluyen raíz + `operario/*.jsx` + `design_handoff_mobile_app/`). Terminología canónica final:
+**Bodeguero · Camionero**.
+
+**Fixes locales post-sync (escapes del barrido de Cloud Design → espejar allá):** 97 reemplazos
+voseo→tuteo en 45 archivos user-facing + `MARKBOX ·` visible en la factura template → `Shipping
+Mark ·` + pack "12 redondos"→"17" en `Aplicaciones de Marca`. Detalle en `_norte/CHANGELOG.md`
+(entrada NORTE-SYNC 2026-06-10).
+
+**Exclusión por regla (no a git):** `uploads/` (39 MB) ya ignorado; **`_archivo/uploads/` (79 MB)
+agregado a `.gitignore`** (el 06-08 lo excluyó a mano vía tar; ahora queda permanente). `scraps/`
+(nuevo dir del paquete) ya estaba ignorado. `backend/prisma/schema.prisma` volvió en el ZIP →
+sigue bloqueado por `.gitignore` (decisión founder 2026-06-03: nativo Supabase, NO Prisma).
+
+**⚠️ Pendiente para Cloud Design / founder:** unificación de **RIF** (CLAUDE.md del paquete dice
+`J-410322887`, la factura demo emite con `J-40558712-0`; el canónico de identidad es `J-50648869-8`
+— ver `docs/marketing/identidad.md`) · frase residual del pack viejo en `Aplicaciones de Marca`
+("se vea redondo sobre cualquier chat").
+
 ## v2.5 · re-sync 2026-06-08 (handoff posterior · Inspecciones + calc CBM-por-medidas + Brand Book v3.5)
 
 Re-sincronización desde un ZIP posterior de Cloud Design (`Downloads/DTD-Cargo (2).zip`, ~117 MB crudo).

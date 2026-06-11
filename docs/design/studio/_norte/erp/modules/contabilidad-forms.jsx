@@ -50,7 +50,7 @@ function BalanceBanner({ debit, credit }) {
       borderLeft: `3px solid var(--${ok ? 'success' : 'warning'})`,
     }}>
       <span style={{ font: '600 12px/1.3 var(--f-sans)', color: 'var(--ink)' }}>
-        {ok ? 'Asiento cuadrado · listo para contabilizar' : (debit === 0 ? 'Cargá montos en débito y crédito' : `Descuadre de ${R.fmtUsd(Math.abs(diff))}`)}
+        {ok ? 'Asiento cuadrado · listo para contabilizar' : (debit === 0 ? 'Carga montos en débito y crédito' : `Descuadre de ${R.fmtUsd(Math.abs(diff))}`)}
       </span>
       <div style={{ display: 'flex', gap: 16, font: '700 12px/1 var(--f-mono)', color: 'var(--ink)' }}>
         <span>D {R.fmtUsd(debit)}</span>
@@ -87,7 +87,7 @@ function EntryDrawer({ open, onClose, editEntry }) {
     }
   }, [open, editEntry]);
 
-  const accOpts = React.useMemo(() => [{ value: '', label: '— elegí cuenta —' }, ..._accOptions(_leafAccounts())], [open]);
+  const accOpts = React.useMemo(() => [{ value: '', label: '— elige cuenta —' }, ..._accOptions(_leafAccounts())], [open]);
   const setLine = (i, patch) => setLines(ls => ls.map((l, idx) => idx === i ? { ...l, ...patch } : l));
   const addLine = () => setLines(ls => [...ls, blankLine()]);
   const removeLine = (i) => setLines(ls => ls.length > 2 ? ls.filter((_, idx) => idx !== i) : ls);
@@ -297,7 +297,7 @@ function QuickExpenseDrawer({ open, onClose }) {
           <div><FLabel>Fecha</FLabel><input type="date" value={date} onChange={(e) => setDate(e.target.value)} style={{ ...FORM_INPUT, fontFamily: 'var(--f-mono)' }} /></div>
           <div><FLabel>Concepto</FLabel><input value={concept} onChange={(e) => setConcept(e.target.value)} placeholder="Ej. Honorarios agente aduanal" style={FORM_INPUT} /></div>
         </div>
-        <div><FLabel>Cuenta de gasto / costo</FLabel><U.Select value={acc} onChange={(e) => setAcc(e.target.value)} options={[{ value: '', label: '— elegí cuenta —' }, ...gastoOpts]} /></div>
+        <div><FLabel>Cuenta de gasto / costo</FLabel><U.Select value={acc} onChange={(e) => setAcc(e.target.value)} options={[{ value: '', label: '— elige cuenta —' }, ...gastoOpts]} /></div>
         <div><FLabel>Pagado desde</FLabel><U.Select value={pay} onChange={(e) => setPay(e.target.value)} options={cashOpts} /></div>
         <div><FLabel hint="USD">Monto</FLabel><U.CalcInput value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" style={{ ...FORM_INPUT, fontFamily: 'var(--f-mono)', fontWeight: 700 }} /></div>
         <div><FLabel hint="opcional">Referencia</FLabel><input value={ref} onChange={(e) => setRef(e.target.value)} placeholder="TX / comprobante" style={{ ...FORM_INPUT, fontFamily: 'var(--f-mono)' }} /></div>

@@ -44,7 +44,7 @@ function MailingTemplates() {
       </div>
 
       {filtered.length === 0 && (
-        <U.EmptyState icon={window.Icon.mail(22)} title="Sin templates" body="Creá una plantilla nueva o ajustá el filtro." />
+        <U.EmptyState icon={window.Icon.mail(22)} title="Sin templates" body="Crea una plantilla nueva o ajusta el filtro." />
       )}
 
       <U.Drawer
@@ -405,7 +405,7 @@ function RichEditor({ value, onChange }) {
         ref={ref}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Escribí el cuerpo del email. Usá **negrita**, *cursiva*, [link](url) y {{variables}}."
+        placeholder="Escribe el cuerpo del email. Usa **negrita**, *cursiva*, [link](url) y {{variables}}."
         style={{
           flex: 1, padding: '14px 16px',
           border: 0, outline: 'none', resize: 'none',

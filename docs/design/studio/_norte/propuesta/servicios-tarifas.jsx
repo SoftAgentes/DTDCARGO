@@ -34,8 +34,8 @@
   }
 
   const TYPES = {
-    servicio:   { label: 'Servicio',      tone: 'wine',    icon: 'ship',      blurb: 'Lo que hacés. Sin stock.', long: 'Un trabajo que prestás — no se inventaría. Ej: flete, despacho aduanal, almacenaje, última milla, seguro.' },
-    no_inv:     { label: 'No inventario', tone: 'info',    icon: 'doc',       blurb: 'Cobrás, no seguís stock.', long: 'Algo que cobrás o recargás pero no llevás en stock. Ej: recargos (BAF), gestión documental, servicios de terceros al costo.' },
+    servicio:   { label: 'Servicio',      tone: 'wine',    icon: 'ship',      blurb: 'Lo que haces. Sin stock.', long: 'Un trabajo que prestas — no se inventaría. Ej: flete, despacho aduanal, almacenaje, última milla, seguro.' },
+    no_inv:     { label: 'No inventario', tone: 'info',    icon: 'doc',       blurb: 'Cobras, no sigues stock.', long: 'Algo que cobras o recargas pero no llevas en stock. Ej: recargos (BAF), gestión documental, servicios de terceros al costo.' },
     inventario: { label: 'Inventario',    tone: 'success', icon: 'warehouse', blurb: 'Con seguimiento de stock.', long: 'Físico, con cantidad que entra y sale. Ej: cajas, pallets, etiquetas QR, film. Avisa cuando baja del punto de reorden.' },
     grupo:      { label: 'Grupo / Paquete', tone: 'neutral', icon: 'box',     blurb: 'Varios ítems en uno.', long: 'Un combo que se vende como una sola línea. Ej: DDP Puerta a Puerta = flete + aduana + transporte + seguro.' },
     tarifa:     { label: 'Tarifa', tone: 'warning', icon: 'clock', blurb: 'Precio con vigencia para un ítem que ya existe.', long: 'Una nueva tarifa (precio + vigencia) para un servicio o ítem existente. El servicio no cambia — solo su precio; la tarifa anterior pasa al historial.' },
@@ -360,7 +360,7 @@
             </div>
             <h1 style={{ font: '900 30px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.025em', margin: '0 0 8px' }}>Servicios y Tarifas</h1>
             <p style={{ font: '500 14px/1.6 var(--f-sans)', color: 'var(--ink-soft)', margin: 0, maxWidth: 760 }}>
-              Catálogo de lo que DTD ofrece, con la lógica de QuickBooks adaptada al negocio. Es interactivo: probá <b>Nuevo</b> (elegir tipo) y clic en una fila para ver la <b>tarifa con su historial</b>.
+              Catálogo de lo que DTD ofrece, con la lógica de QuickBooks adaptada al negocio. Es interactivo: prueba <b>Nuevo</b> (elegir tipo) y clic en una fila para ver la <b>tarifa con su historial</b>.
             </p>
           </div>
         </header>}
@@ -414,8 +414,8 @@
                 <Bullet>Al vencer se <b>renueva</b> con una nueva versión; la vieja queda en el historial (clic en una fila).</Bullet>
               </NotesCard>
               <NotesCard title="LOS 4 TIPOS">
-                <Bullet><b>Servicio</b> — lo que hacés, sin stock.</Bullet>
-                <Bullet><b>No inventario</b> — cobrás, no seguís stock (recargos, terceros).</Bullet>
+                <Bullet><b>Servicio</b> — lo que haces, sin stock.</Bullet>
+                <Bullet><b>No inventario</b> — cobras, no sigues stock (recargos, terceros).</Bullet>
                 <Bullet><b>Inventario</b> — físico, con stock y punto de reorden.</Bullet>
                 <Bullet><b>Grupo</b> — varios ítems vendidos como uno (DDP).</Bullet>
               </NotesCard>
@@ -436,7 +436,7 @@
     return (
       <U.Modal open={open} onClose={onClose} width={680} title="¿Qué vas a crear?">
         <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 16px' }}>
-          Elegí el tipo. Define cómo se comporta: si se inventaría, si se agrupa, si solo se cobra.
+          Elige el tipo. Define cómo se comporta: si se inventaría, si se agrupa, si solo se cobra.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {Object.keys(TYPES).map(k => {
@@ -498,7 +498,7 @@
     const ib = { width: '100%', padding: '9px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', font: '500 13px/1.3 var(--f-sans)', color: 'var(--ink)' };
     return (
       <div ref={boxRef} style={{ position: 'relative' }}>
-        <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={onKey} placeholder="Busá y agregá productos/servicios… (↑↓ + Enter)" style={ib} />
+        <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={onKey} placeholder="Busá y agrega productos/servicios… (↑↓ + Enter)" style={ib} />
         {open && (
           <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, maxHeight: 220, overflowY: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-lg)', zIndex: 6 }}>
             {avail.length === 0 ? (
@@ -514,7 +514,7 @@
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
-          {comps.length === 0 && <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Todavía no agregaste componentes. Escribí arriba o tocá el campo para ver todos.</div>}
+          {comps.length === 0 && <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Todavía no agregaste componentes. Escribe arriba o toca el campo para ver todos.</div>}
           {comps.map(c => { const x = byCode(c); if (!x) return null; return (
             <div key={c} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--wine)', background: 'var(--wine-tint)' }}>
               <Thumb item={x} size={24} />
@@ -613,7 +613,7 @@
                 <div>
                   <Label>Ítem al que aplica</Label>
                   <U.Select value={targetCode} onChange={(e) => { setTargetCode(e.target.value); const x = byCode(e.target.value); if (x) setRate(x.rate); }}
-                    options={[{ value: '', label: 'Elegí un servicio o ítem…' }, ...ITEMS.filter(i => i.type !== 'grupo').map(i => ({ value: i.code, label: `${i.code} · ${i.name}` }))]} />
+                    options={[{ value: '', label: 'Elige un servicio o ítem…' }, ...ITEMS.filter(i => i.type !== 'grupo').map(i => ({ value: i.code, label: `${i.code} · ${i.name}` }))]} />
                 </div>
                 {tgt && (
                   <div style={{ padding: '11px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -707,7 +707,7 @@
                   {purchased && (
                     <div>
                       <Label hint="sin efecto contable · solo sugerencia">Proveedor sugerido</Label>
-                      <window.ERPUI.SearchSelect value={supplier} placeholder="Buscá o creá un proveedor…" createLabel="Crear proveedor"
+                      <window.ERPUI.SearchSelect value={supplier} placeholder="Busca o crea un proveedor…" createLabel="Crear proveedor"
                         onChange={(v) => setSupplier(v)}
                         onCreate={(name) => { const n = (name || '').trim(); if (!n) return; setNewSupps(x => x.includes(n) ? x : [...x, n]); setSupplier(n); }}
                         options={[...SUPPLIERS_CN, ...newSupps].map(s => ({ value: s, label: s, sub: newSupps.includes(s) ? 'Proveedor nuevo' : 'Proveedor CN' }))} />
@@ -877,7 +877,7 @@
                 <span style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>{provRates.length} {provRates.length === 1 ? 'proveedor' : 'proveedores'}</span>
               </div>
               {provRates.length === 0 && !npOpen && (
-                <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Sin proveedores cargados. Agregá uno para comparar costos por tarifa.</div>
+                <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Sin proveedores cargados. Agrega uno para comparar costos por tarifa.</div>
               )}
               {provRates.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 0, marginBottom: 10 }}>
@@ -899,7 +899,7 @@
                 <div style={{ padding: 14, border: '1px solid var(--wine)', borderRadius: 'var(--r-lg)', background: 'var(--wine-tint)', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div>
                     <Label>Proveedor</Label>
-                    <window.ERPUI.SearchSelect value={npName} placeholder="Buscá o creá un proveedor…" createLabel="Crear proveedor"
+                    <window.ERPUI.SearchSelect value={npName} placeholder="Busca o crea un proveedor…" createLabel="Crear proveedor"
                       onChange={(v) => setNpName(v)}
                       onCreate={(name) => { const n = (name || '').trim(); if (!n) return; setNewSupps(x => x.includes(n) ? x : [...x, n]); setNpName(n); }}
                       options={[...PROVIDERS, ...SUPPLIERS_CN, ...newSupps].filter((s, i, a) => a.indexOf(s) === i).map(s => ({ value: s, label: s, sub: newSupps.includes(s) ? 'Proveedor nuevo' : 'Proveedor' }))} />

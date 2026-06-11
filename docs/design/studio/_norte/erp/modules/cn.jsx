@@ -54,7 +54,7 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
   const [lang, setLang] = React.useState('original'); // 'original' | 'cn' | 'es'
   const [consolidateOpen, setConsolidateOpen] = React.useState(false);
   const [colCfg, setColCfg] = React.useState(cnLoadColCfg);
-  const [cnTab, setCnTab] = React.useState('recibidas'); // 'recibidas' | 'camino'
+  const [cnTab, setCnTab] = React.useState(view === 'camino' ? 'camino' : 'recibidas'); // 'recibidas' | 'camino'
   const [verifyOrder, setVerifyOrder] = React.useState(null);
   const [verifiedCodes, setVerifiedCodes] = React.useState(() => new Set());
   React.useEffect(() => { try { localStorage.setItem(CN_COLS_KEY, JSON.stringify(colCfg)); } catch (e) {} }, [colCfg]);
@@ -86,7 +86,7 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
   }), [filtered]);
 
   function exportCSV() {
-    const head = ['Recepción', 'Cliente', 'MARKBOX', 'Proveedor', 'Cajas', 'CBM', 'Peso kg', 'Bodega', 'Recibido', 'Estado'];
+    const head = ['Recepción', 'Cliente', 'Shipping Mark', 'Proveedor', 'Cajas', 'CBM', 'Peso kg', 'Bodega', 'Recibido', 'Estado'];
     const lines = filtered.map(r => [r.id, r.clientName, r.client, r.supplier, r.boxes, r.cbm, r.weight, r.warehouse, r.received, r.status]
       .map(v => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','));
     const csv = [head.join(','), ...lines].join('\n');
@@ -178,7 +178,7 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
 
       <U.Tabs value={cnTab} onChange={setCnTab} items={[
         { value: 'recibidas', label: 'Recibidas', count: D.WAREHOUSE_CN.length },
-        { value: 'camino', label: 'Esperadas · en camino', count: enCaminoCount },
+        { value: 'camino', label: 'Prealertas · en camino', count: enCaminoCount },
       ]} style={{ marginBottom: 'var(--s-5)' }} />
 
       {cnTab === 'camino' && (
@@ -215,7 +215,7 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
             <div style={{ padding: '16px 18px', background: 'var(--bg-surface)' }}>
               <div style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--wine)', letterSpacing: '0.08em', marginBottom: 8 }}>🇨🇳 AGENTE CHINA · ACCIÓN</div>
               <div style={{ font: '700 13.5px/1.3 var(--f-sans)', color: 'var(--ink)', marginBottom: 6 }}>Cerrar contenedor y pedir booking</div>
-              <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 12px' }}>El contenedor alcanzó el límite. Cerrá la consolidación y solicitá la reserva de booking con la naviera.</p>
+              <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 12px' }}>El contenedor alcanzó el límite. Cierra la consolidación y solicita la reserva de booking con la naviera.</p>
               <div style={{ display: 'flex', gap: 8 }}>
                 <U.Btn variant="primary" size="sm" icon={window.Icon.box(13)} onClick={() => setConsolidateOpen(true)}>Cerrar contenedor</U.Btn>
                 <U.Btn variant="secondary" size="sm">Pedir booking</U.Btn>
@@ -326,7 +326,7 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
               <span style={{ fontSize: 18 }}>📦</span>
               <div style={{ flex: 1 }}>
                 <div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>Contenedor al límite · {effCBM.toFixed(1)} CBM</div>
-                <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Cerrá el contenedor y pedí booking. Venezuela ya fue notificada para pedir el BL + licencia.</div>
+                <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Cierra el contenedor y pide booking. Venezuela ya fue notificada para pedir el BL + licencia.</div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
                   <U.Btn variant="primary" size="sm" onClick={() => { setToastShown(false); setConsolidateOpen(true); }}>Cerrar contenedor</U.Btn>
                   <U.Btn variant="ghost" size="sm" onClick={() => setToastShown(false)}>Más tarde</U.Btn>
@@ -349,12 +349,24 @@ function ModuleCN({ goTo, view, setView, selectedId, setSelectedId, currentUser 
   );
 }
 
-// ── Órdenes esperadas · pestaña "en camino" (registradas por el cliente) ──
-// El cliente las crea al comprar en China; el almacén solo VERIFICA y avanza.
+// ── Prealertas (órdenes de recepción) · pestaña "en camino" ──
+// El cliente las crea al comprar en China (prealerta = aviso de que viene
+// mercancía a la bodega); el almacén solo VERIFICA y avanza.
 function OrdersExpected({ orders, verifiedCodes, onVerify, goTo }) {
   const D = window.ERPData;
   const U = window.ERPUI;
   const [statusF, setStatusF] = React.useState('all');
+  const [scan, setScan] = React.useState('');
+  const [scanResult, setScanResult] = React.useState(null); // {order} | {miss:true}
+  const runScan = (raw) => {
+    const q = String(raw || '').trim().toUpperCase();
+    if (!q) { setScanResult(null); return; }
+    const hit = orders.find(o => {
+      const c = String(o.code).toUpperCase();
+      return c === q || c.startsWith(q) || q.startsWith(c) || q.includes(c);
+    }) || orders.find(o => String(o.client).toUpperCase() === q);
+    setScanResult(hit ? { order: hit } : { miss: true, q });
+  };
 
   const isVerified = (o) => o.status === 'verificada' || verifiedCodes.has(o.code);
   const supName = (o) => { const s = D.SUPPLIERS.find(x => x.id === o.supplierId); return s ? s.name : (o.supplier || '—'); };
@@ -415,8 +427,36 @@ function OrdersExpected({ orders, verifiedCodes, onVerify, goTo }) {
       <div style={{ padding: '11px 16px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', marginBottom: 'var(--s-5)', display: 'flex', gap: 10, alignItems: 'center' }}>
         <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{window.Icon.info(14)}</span>
         <div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink)' }}>
-          El cliente registra estas órdenes al comprar en China (proveedor + packing list + factura). El código <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>MARKBOX-proveedor-compra</code> <b>es</b> el grupo WeChat. El almacén no carga datos: <b>rectifica sumatorias y confirma docs</b> → la orden pasa a recepción.
+          El cliente registra estas <b>prealertas (órdenes de recepción)</b> al comprar en China: avisa que viene mercancía en tránsito a la bodega (proveedor + packing list + factura). El código <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>Shipping Mark-proveedor-compra</code> <b>es</b> el grupo WeChat. El almacén no carga datos: <b>escanea el código de la caja, rectifica sumatorias y confirma docs</b> → la orden pasa a recepción.
         </div>
+      </div>
+
+      {/* ── Escáner · identificar caja → prealerta ── */}
+      <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', marginBottom: 'var(--s-5)' }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{window.Icon.tag(16)}</span>
+          <U.Input value={scan} onChange={(e) => { setScan(e.target.value); runScan(e.target.value); }}
+            onKeyDown={(e) => { if (e.key === 'Enter') runScan(scan); }}
+            placeholder="Escanear o escribir código de caja… ej. DTD-5452-1-1" style={{ flex: 1, fontFamily: 'var(--f-mono)' }} />
+          <U.Btn variant="secondary" size="sm" onClick={() => runScan(scan)}>Identificar</U.Btn>
+        </div>
+        {scanResult && scanResult.order && (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10, padding: '10px 12px', background: 'var(--success-bg)', borderRadius: 'var(--r-sm)' }}>
+            <span style={{ color: 'var(--success)', flexShrink: 0 }}>{window.Icon.check(15)}</span>
+            <div style={{ flex: 1, font: '500 12.5px/1.45 var(--f-sans)', color: 'var(--ink)' }}>
+              Pertenece a la prealerta <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{scanResult.order.code}</code> · {cliName(scanResult.order)} · {supName(scanResult.order)} · {scanResult.order.boxes} cajas declaradas · <U.Badge tone={orderTone(scanResult.order)} size="sm">{orderLabel(scanResult.order)}</U.Badge>
+            </div>
+            {!isVerified(scanResult.order) && <U.Btn variant="primary" size="sm" onClick={() => onVerify(scanResult.order)}>Verificar</U.Btn>}
+          </div>
+        )}
+        {scanResult && scanResult.miss && (
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 10, padding: '10px 12px', background: 'var(--warning-bg)', borderRadius: 'var(--r-sm)' }}>
+            <span style={{ color: 'var(--warning)', flexShrink: 0 }}>{window.Icon.warn(15)}</span>
+            <div style={{ font: '500 12.5px/1.45 var(--f-sans)', color: 'var(--ink)' }}>
+              <code style={{ font: '700 12px/1 var(--f-mono)' }}>{scanResult.q}</code> no coincide con ninguna prealerta — caja huérfana: registrala manualmente en <b>Recibidas → Nueva recepción</b> y avisale al cliente que prealerte la próxima compra.
+            </div>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 'var(--s-5)' }}>
@@ -436,7 +476,7 @@ function OrdersExpected({ orders, verifiedCodes, onVerify, goTo }) {
       } />
 
       {rows.length === 0
-        ? <U.EmptyState icon={window.Icon.box(22)} title="Sin órdenes esperadas" body="Las compras que los clientes registran en China aparecen acá hasta que el almacén las verifica." />
+        ? <U.EmptyState icon={window.Icon.box(22)} title="Sin prealertas" body="Las compras que los clientes registran en China aparecen acá como prealertas hasta que el almacén las verifica." />
         : <U.Table columns={columns} rows={rows} onRowClick={(o) => !isVerified(o) && onVerify(o)} />
       }
     </div>
@@ -796,8 +836,8 @@ function ReceptionForm() {
       <div>
         {!isOrphan && (
           <>
-            <U.Select label="Cliente · MARKBOX" value={client} onChange={(e)=>setClient(e.target.value)} options={[
-              { value: '', label: 'Seleccioná cliente…' },
+            <U.Select label="Cliente · Shipping Mark" value={client} onChange={(e)=>setClient(e.target.value)} options={[
+              { value: '', label: 'Selecciona cliente…' },
               ...D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.markbox} · ${c.company}` })),
             ]} />
             <button onClick={() => setIsOrphan(true)} style={{
@@ -807,7 +847,7 @@ function ReceptionForm() {
             }}
             onMouseEnter={(e) => e.currentTarget.style.color = 'var(--wine)'}
             onMouseLeave={(e) => e.currentTarget.style.color = 'var(--ink-mute)'}
-            >📦 ¿Sin código MARKBOX? · marcar como caja huérfana</button>
+            >📦 ¿Sin código Shipping Mark? · marcar como caja huérfana</button>
           </>
         )}
 
@@ -846,7 +886,7 @@ function ReceptionForm() {
             hint="Cualquier texto, color, símbolo o marca visible. Sirve para reclamarla después."
           />
           <U.Input label="¿Quién la trajo? (chofer/courier)" placeholder="Nombre + transportista" />
-          <U.Input label="Posible cliente (sospecha)" placeholder="Si tenés idea de a quién pertenece…" />
+          <U.Input label="Posible cliente (sospecha)" placeholder="Si tienes idea de a quién pertenece…" />
         </div>
       )}
 
@@ -881,7 +921,7 @@ function ReceptionForm() {
           onBlur={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; }}
         />
         <div style={{ marginTop: 6, font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
-          {window.Icon.info(11)} Esta descripción viaja con la caja a lo largo de toda la cadena: aduana CN/VE · almacenista · transportista · cliente. Sé específico.
+          {window.Icon.info(11)} Esta descripción viaja con la caja a lo largo de toda la cadena: aduana CN/VE · bodeguero · camionero · cliente. Sé específico.
         </div>
       </div>
 
@@ -931,7 +971,7 @@ function ReceptionForm() {
         </div>
 
         <div style={{ marginTop: 8, font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
-          Subí fotos de la caja, etiqueta del supplier, posibles daños o marcas visibles. JPG/PNG hasta 10 MB cada una.
+          Sube fotos de la caja, etiqueta del supplier, posibles daños o marcas visibles. JPG/PNG hasta 10 MB cada una.
         </div>
       </div>
 
@@ -1074,7 +1114,7 @@ function SupplierInputWithTranslate() {
       )}
       {!translation && (
         <div style={{ marginTop: 5, font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-mute)' }}>
-          {hasChinese ? 'Texto en chino detectado · click "Traducir" para ver en español.' : hasLatin ? 'Click "Traducir" para enviar el nombre en chino al supplier.' : 'Podés escribir en chino o español · te traducimos al otro idioma con un click.'}
+          {hasChinese ? 'Texto en chino detectado · click "Traducir" para ver en español.' : hasLatin ? 'Click "Traducir" para enviar el nombre en chino al supplier.' : 'Puedes escribir en chino o español · te traducimos al otro idioma con un click.'}
         </div>
       )}
     </div>
@@ -1114,7 +1154,7 @@ function HsDetector({ photoCount }) {
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
             {photoCount > 0
               ? `Analizamos las ${photoCount} fotos para sugerirte códigos HS posibles. Útil como segunda opinión sobre lo que dijo el supplier.`
-              : 'Subí al menos una foto arriba para activar la detección automática.'}
+              : 'Sube al menos una foto arriba para activar la detección automática.'}
           </div>
         </div>
         <U.Btn variant="primary" icon={window.Icon.radar(13)} onClick={scan} disabled={photoCount === 0}>Detectar HS</U.Btn>
@@ -1481,7 +1521,7 @@ function ConsolidationFlow({ onClose }) {
             <div style={{ padding: '10px 14px', background: 'var(--warning-bg)', borderRadius: 'var(--r-md)', borderLeft: '3px solid var(--warning)', display: 'flex', gap: 10 }}>
               <span style={{ color: 'var(--warning)' }}>{window.Icon.box(13)}</span>
               <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-                <b>{partialCount} envío{partialCount > 1 ? 's' : ''} partido{partialCount > 1 ? 's' : ''}.</b> Las cajas restantes van a quedar como <code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--warning)' }}>-P2</code> esperando próximo embarque. Quedan trackeadas al mismo MARKBOX del cliente.
+                <b>{partialCount} envío{partialCount > 1 ? 's' : ''} partido{partialCount > 1 ? 's' : ''}.</b> Las cajas restantes van a quedar como <code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--warning)' }}>-P2</code> esperando próximo embarque. Quedan trackeadas al mismo Shipping Mark del cliente.
               </div>
             </div>
           )}
@@ -1548,7 +1588,7 @@ function ConsolidationFlow({ onClose }) {
           <U.Select label="Puerto destino" value={destination} onChange={(e)=>setDestination(e.target.value)}
             options={D.DESTINATIONS.map(d => ({ value: d.code, label: `${d.name}, ${d.state}` }))} />
           <U.Select label="Naviera" value={vessel} onChange={(e)=>setVessel(e.target.value)} options={[
-            { value: '', label: 'Seleccioná naviera…' },
+            { value: '', label: 'Selecciona naviera…' },
             'COSCO PISCES', 'MSC TIANSHAN', 'CMA CGM JUPITER', 'EVERGREEN ACE', 'ONE COMMITMENT', 'YANG MING WORTH'
           ]} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -1695,7 +1735,7 @@ function PartialEditor({ reception, initial, onSave, onClose }) {
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
         <span style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>
-          Mismo MARKBOX <code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--wine)' }}>{reception.client}</code> · trackeo unificado
+          Mismo Shipping Mark <code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--wine)' }}>{reception.client}</code> · trackeo unificado
         </span>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
           <U.Btn variant="ghost" size="sm" onClick={onClose}>Cancelar</U.Btn>

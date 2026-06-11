@@ -84,11 +84,11 @@ pre.zpl .fd{color:#FBD38D}
 <div class="wrap">
   <div class="eyebrow">DTD-Cargo · entregable binario</div>
   <h1>Etiqueta de bodega · ZPL</h1>
-  <p class="lead">Etiqueta interna <b>10 × 15 cm (4 × 6")</b> para impresora térmica Zebra a 203 dpi. MARKBOX grande + código de barras Code 128. Editá el MARKBOX y se actualizan el preview y el ZPL.</p>
+  <p class="lead">Etiqueta interna <b>10 × 15 cm (4 × 6")</b> para impresora térmica Zebra a 203 dpi. Shipping Mark grande + código de barras Code 128. Edita el Shipping Mark y se actualizan el preview y el ZPL.</p>
 
   <div class="toolbar">
     <div class="field">
-      <label for="mk">MARKBOX</label>
+      <label for="mk">Shipping Mark</label>
       <input id="mk" value="DTD-5532" maxlength="16" autocomplete="off"/>
     </div>
     <div class="field">
@@ -114,7 +114,7 @@ pre.zpl .fd{color:#FBD38D}
           <div class="kind">Etiqueta<br/>de bodega</div>
         </div>
 
-        <div class="mk-lbl">MARKBOX</div>
+        <div class="mk-lbl">Shipping Mark</div>
         <div class="mk" id="mk-out">DTD-5532</div>
 
         <div class="barcode">
@@ -145,7 +145,7 @@ pre.zpl .fd{color:#FBD38D}
         <button class="btn primary" id="copy-zpl">⧉ Copiar</button>
       </div>
       <pre class="zpl" id="zpl"></pre>
-      <div class="hint">Pegá este código en tu software Zebra (ZebraDesigner, Browser Print) o envialo directo a la impresora. <code>^BCN,180,Y</code> genera el Code 128 real al imprimir; el preview de la izquierda es ilustrativo. Ajustá <code>^PW</code>/<code>^LL</code> si tu rollo es de otra medida.</div>
+      <div class="hint">Pega este código en tu software Zebra (ZebraDesigner, Browser Print) o envialo directo a la impresora. <code>^BCN,180,Y</code> genera el Code 128 real al imprimir; el preview de la izquierda es ilustrativo. Ajusta <code>^PW</code>/<code>^LL</code> si tu rollo es de otra medida.</div>
     </div>
   </div>
 </div>
@@ -191,8 +191,8 @@ function buildZPL(d){
     '^FO40,92^A0N,26,26^FDEtiqueta de bodega^FS',
     '^FO40,134^GB732,3,3^FS',
     '',
-    '; --- MARKBOX (hero) ---',
-    '^FO40,180^A0N,34,34^FDMARKBOX^FS',
+    '; --- Shipping Mark (hero) ---',
+    '^FO40,180^A0N,34,34^FDShipping Mark^FS',
     '^FO40,220^A0N,150,150^FD'+esc(d.mk)+'^FS',
     '',
     '; --- Codigo de barras Code 128 ---',

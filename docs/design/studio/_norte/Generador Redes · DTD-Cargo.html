@@ -1,0 +1,778 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTD Cargo · Generador de piezas para redes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --navy:#0F1E3D; --navy-2:#1F3055; --wine:#7F0F1A; --wine-deep:#5E0A12; --wine-soft:#C2747F;
+    --cream:#FBFAF7; --cream-2:#F2F0EC; --gold:#B8893A; --ink:#0F1E3D; --ink-soft:#6B6B6B;
+    --ink-mute:#9B9B9B; --line:#E8E6E2; --ink-dk:#A8B0C4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Archivo',system-ui,sans-serif;background:var(--cream-2);color:var(--navy);padding:24px 22px 80px;line-height:1.5}
+  .wrap{max-width:1080px;margin:0 auto}
+  h1{font-family:'Archivo Black',sans-serif;font-size:24px;margin-bottom:4px}
+  .lead{color:var(--ink-soft);margin-bottom:6px;max-width:760px;font-size:14px;line-height:1.55}
+  .lead b{color:var(--wine)}
+  .how{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 18px;margin:14px 0 22px;max-width:780px;font-size:13.5px;line-height:1.6}
+  .how b{color:var(--wine)}
+
+  /* tabs */
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;border-bottom:1px solid var(--line);padding-bottom:14px}
+  .tab{font-family:'Archivo';font-weight:700;font-size:13.5px;background:#fff;color:var(--navy);border:1px solid var(--line);
+    border-radius:999px;padding:9px 18px;cursor:pointer;transition:background .12s,color .12s}
+  .tab:hover{background:var(--cream)}
+  .tab[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+
+  /* selector de plataforma (paso 1) */
+  .plats{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:18px 0 4px}
+  .plats-lbl{font-size:11.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);margin-right:4px}
+  button.plat{background-color:#fff;color:var(--navy);border:1px solid var(--line);border-radius:999px;padding:8px 15px;font-size:13px;transition:none}
+  button.plat:hover{background-color:var(--cream)}
+  button.plat[aria-pressed="true"]{background-color:var(--wine);color:#fff;border-color:var(--wine)}
+  button.plat[aria-pressed="true"]:hover{background-color:var(--wine-deep)}
+  .plat-hint{flex-basis:100%;font-size:12px;color:var(--ink-mute);padding-left:2px}
+  .plat-hint b{color:var(--wine)}
+
+  .panel{display:none;gap:30px;align-items:flex-start;flex-wrap:wrap}
+  .panel.show{display:flex}
+  .preview{flex:0 0 auto}
+  .controls{flex:1 1 320px;min-width:300px;display:flex;flex-direction:column;gap:10px}
+  .controls .fld{display:flex;flex-direction:column;gap:5px}
+  .controls label{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.4px}
+  .controls input[type=text],.controls textarea,.controls select{font-family:'Archivo';font-size:13.5px;padding:9px 11px;border:1px solid #ccc;border-radius:7px;width:100%;color:var(--navy)}
+  .controls textarea{resize:vertical;min-height:74px;line-height:1.45}
+  .controls .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .controls .chk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#444}
+  button{font-family:'Archivo';font-weight:700;font-size:13px;background:var(--navy);color:#fff;border:0;border-radius:8px;padding:10px 15px;cursor:pointer;transition:background .12s}
+  button:hover{background:var(--navy-2)}
+  button.alt{background:#fff;color:var(--navy);border:1px solid #ccc}
+  button.alt:hover{background:var(--cream)}
+  button.wine{background:var(--wine)}
+  button.wine:hover{background:var(--wine-deep)}
+  button.ok{background:#1F8A5B}
+  .hint{font-size:12px;color:var(--ink-mute);line-height:1.5}
+  .hint b{color:var(--wine)}
+  .linkbox{font-family:'JetBrains Mono',monospace;font-size:12px;background:#fff;border:1px solid var(--line);border-radius:7px;padding:10px 12px;word-break:break-all;color:var(--navy)}
+
+  /* ── POST CUADRADO 1080×1080 → 360 (.33333) ── */
+  .sq-wrap{width:360px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
+  .sq{width:1080px;height:1080px;position:relative;overflow:hidden;background:var(--navy);transform:scale(.33333);transform-origin:top left}
+  .sq .photo{position:absolute;inset:0 0 360px 0;height:720px;background:var(--navy-2);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center}
+  .sq .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,30,61,0) 55%,rgba(15,30,61,.55) 100%)}
+  .sq .ph{color:var(--ink-dk);text-align:center;padding:0 70px;display:flex;flex-direction:column;gap:16px;align-items:center}
+  .sq .ph .cam{font-size:34px;opacity:.7}
+  .sq .ph .d{font-size:32px;font-weight:600;color:#D8DEEC;line-height:1.35}
+  .sq .bar{position:absolute;left:0;right:0;bottom:0;height:360px;background:var(--navy);display:flex;flex-direction:column;justify-content:center;gap:16px;padding:0 72px}
+  .sq .title{font-family:'Archivo Black',sans-serif;color:var(--cream);font-size:64px;line-height:1.04}
+  .sq .key{color:var(--wine-soft);font-size:34px;font-weight:600;line-height:1.3}
+  .sq .badge{position:absolute;top:44px;left:44px;background:var(--wine);color:#fff;font-weight:700;font-size:28px;padding:12px 26px;border-radius:999px;letter-spacing:.5px}
+  .sq .web{position:absolute;bottom:380px;right:0;background:var(--wine);color:#fff;font-weight:600;font-size:26px;padding:12px 30px 12px 26px;border-radius:8px 0 0 8px}
+
+  /* ── STORY / ESTADO 1080×1920 → 270×480 (.25) ── */
+  .st-wrap{width:270px;height:480px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
+  .st{width:1080px;height:1920px;position:relative;overflow:hidden;background:var(--navy);transform:scale(.25);transform-origin:top left}
+  .st .photo{position:absolute;inset:0;background:var(--navy-2);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center}
+  .st .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,30,61,.35) 0%,rgba(15,30,61,0) 30%,rgba(15,30,61,0) 50%,rgba(15,30,61,.82) 100%)}
+  .st .ph{color:var(--ink-dk);text-align:center;padding:0 90px;display:flex;flex-direction:column;gap:18px;align-items:center;z-index:1}
+  .st .ph .cam{font-size:46px;opacity:.7}
+  .st .ph .d{font-size:36px;font-weight:600;color:#D8DEEC;line-height:1.35}
+  .st .content{position:absolute;left:0;right:0;bottom:300px;padding:0 90px;display:flex;flex-direction:column;gap:22px}
+  .st .title{font-family:'Archivo Black',sans-serif;color:var(--cream);font-size:88px;line-height:1.02}
+  .st .key{color:var(--wine-soft);font-size:42px;font-weight:600;line-height:1.3}
+  .st .web{align-self:flex-start;background:var(--wine);color:#fff;font-weight:700;font-size:34px;padding:16px 34px;border-radius:10px;margin-top:6px}
+  .st .safe{position:absolute;left:0;right:0;border:3px dashed rgba(255,255,255,.5);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);font-size:30px;font-weight:700;letter-spacing:1px}
+  .st .safe.top{top:0;height:250px}
+  .st .safe.bot{bottom:0;height:280px}
+
+  /* ── TARJETA QR 1080×1080 → 360 ── */
+  .qr-wrap{width:360px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
+  .qr{width:1080px;height:1080px;position:relative;overflow:hidden;background:var(--navy);transform:scale(.33333);transform-origin:top left;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:54px;padding:90px}
+  .qr .wm{font-family:'Archivo Black',sans-serif;font-size:74px;letter-spacing:-.02em}
+  .qr .wm .a{color:var(--wine-soft)} .qr .wm .b{color:#fff}
+  .qr .tile{background:#fff;border-radius:28px;padding:46px;display:flex;align-items:center;justify-content:center}
+  .qr .tile .qr-ph{width:560px;height:560px;border:6px dashed #C9CBD4;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#9B9B9B;text-align:center}
+  .qr .tile .qr-ph .cam{font-size:84px;opacity:.55}
+  .qr .tile .qr-ph .t1{font-family:'Archivo Black',sans-serif;font-size:40px;color:#6B6B6B}
+  .qr .tile .qr-ph .t2{font-size:27px;font-weight:600;max-width:24ch;line-height:1.35}
+  .qr .tile img{width:560px;height:560px;display:block;image-rendering:pixelated}
+  .qr .cta{color:var(--cream);font-family:'Archivo Black',sans-serif;font-size:46px;text-align:center;line-height:1.1}
+  .qr .meta{color:var(--wine-soft);font-family:'JetBrains Mono',monospace;font-size:34px;font-weight:700}
+  .qr .pat{position:absolute;top:64px;right:74px;font-family:'Noto Sans SC',serif;font-size:120px;color:rgba(255,255,255,.05)}
+
+  /* ── TESTIMONIO 1080×1080 → 360 ── */
+  .ts-wrap{width:360px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
+  .ts{width:1080px;height:1080px;position:relative;overflow:hidden;background:var(--cream);transform:scale(.33333);transform-origin:top left;display:flex;flex-direction:column;justify-content:center;padding:120px 100px}
+  .ts .mark{font-family:'Archivo Black',sans-serif;font-size:260px;line-height:.7;color:var(--wine-soft);opacity:.5;height:130px}
+  .ts .quote{font-family:'Archivo',sans-serif;font-weight:700;font-size:60px;line-height:1.22;color:var(--navy);margin-top:30px}
+  .ts .who{display:flex;align-items:center;gap:26px;margin-top:64px}
+  .ts .av{width:104px;height:104px;border-radius:50%;background:var(--navy-2) center/cover;flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:#fff;font-family:'Archivo Black';font-size:44px}
+  .ts .nm{font-family:'Archivo Black',sans-serif;font-size:40px;color:var(--navy)}
+  .ts .loc{font-size:32px;color:var(--ink-soft);font-weight:600;margin-top:2px}
+  .ts .strip{position:absolute;left:0;top:0;bottom:0;width:22px;background:var(--wine)}
+  .ts .wm{position:absolute;bottom:64px;right:90px;font-family:'Archivo Black';font-size:34px}
+  .ts .wm .a{color:var(--wine-soft)} .ts .wm .b{color:var(--navy)}
+
+  /* ── PROMO / FECHA 1080×1080 → 360 ── */
+  .pr-wrap{width:360px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
+  .pr{width:1080px;height:1080px;position:relative;overflow:hidden;background:linear-gradient(135deg,var(--navy),var(--navy-2));transform:scale(.33333);transform-origin:top left;display:flex;flex-direction:column;justify-content:center;padding:110px 96px;gap:32px}
+  .pr .pat{position:absolute;bottom:-40px;left:-30px;font-family:'Noto Sans SC',serif;font-size:380px;color:rgba(255,255,255,.04);line-height:.7}
+  .pr .eg{font-family:'JetBrains Mono',monospace;font-weight:700;font-size:30px;letter-spacing:6px;color:var(--wine-soft);text-transform:uppercase}
+  .pr .title{font-family:'Archivo Black',sans-serif;font-size:96px;line-height:1.0;color:var(--cream);z-index:1}
+  .pr .date{display:inline-flex;align-items:baseline;gap:18px;background:var(--wine);color:#fff;padding:22px 38px;border-radius:14px;align-self:flex-start;z-index:1}
+  .pr .date .big{font-family:'Archivo Black';font-size:64px;line-height:1}
+  .pr .date .sm{font-family:'Archivo';font-weight:700;font-size:34px}
+  .pr .cta{display:inline-flex;align-items:center;gap:16px;align-self:flex-start;color:var(--cream);font-family:'Archivo';font-weight:700;font-size:40px;z-index:1}
+  .pr .cta .dot{width:16px;height:16px;border-radius:50%;background:var(--wine-soft)}
+  .pr .wm{position:absolute;top:74px;right:90px;font-family:'Archivo Black';font-size:36px;z-index:1}
+  .pr .wm .a{color:var(--wine-soft)} .pr .wm .b{color:#fff}
+
+  /* ── CARRUSEL 1080×1350 (4:5) → 288×360 (.26667) ── */
+  .cr-wrap{width:288px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
+  .cr{width:1080px;height:1350px;position:relative;overflow:hidden;background:var(--navy);transform:scale(.26667);transform-origin:top left}
+  .cr .photo{position:absolute;inset:0 0 470px 0;background:var(--navy-2) center/cover;display:flex;align-items:center;justify-content:center}
+  .cr .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,30,61,0) 50%,rgba(15,30,61,.6) 100%)}
+  .cr .ph{color:var(--ink-dk);text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
+  .cr .ph .cam{font-size:40px;opacity:.7} .cr .ph .d{font-size:32px;font-weight:600;color:#D8DEEC}
+  .cr .num{position:absolute;top:54px;left:54px;width:96px;height:96px;border-radius:50%;background:var(--wine);color:#fff;font-family:'Archivo Black';font-size:48px;display:flex;align-items:center;justify-content:center}
+  .cr .kicker{position:absolute;top:70px;right:60px;font-family:'JetBrains Mono';font-weight:700;font-size:28px;letter-spacing:3px;color:var(--cream);text-transform:uppercase}
+  .cr .bar{position:absolute;left:0;right:0;bottom:0;height:470px;background:var(--navy);display:flex;flex-direction:column;justify-content:center;gap:22px;padding:0 80px}
+  .cr .title{font-family:'Archivo Black',sans-serif;font-size:78px;line-height:1.04;color:var(--cream)}
+  .cr .body{font-size:40px;line-height:1.32;color:var(--ink-dk)}
+  .cr.cover .bar{background:var(--wine)}
+  .cr.cover .photo{inset:0 0 470px 0}
+  .cr .swipe{position:absolute;bottom:40px;right:60px;font-size:34px;color:var(--wine-soft);font-weight:700}
+  .cr .wm{position:absolute;bottom:46px;left:80px;font-family:'Archivo Black';font-size:30px}
+  .cr .wm .a{color:var(--wine-soft)} .cr .wm .b{color:#fff}
+  .slide-nav{display:flex;gap:6px;align-items:center;margin-top:12px;justify-content:center}
+  .slide-nav button{padding:7px 12px;font-size:12px}
+  .slide-nav .ind{font-family:'JetBrains Mono';font-weight:700;font-size:13px;color:var(--ink-soft);min-width:54px;text-align:center}
+
+  /* ── CAPTIONS (sin imagen) ── */
+  .cap-grid{flex:1 1 100%;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .cap-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+  .cap-card h4{font-family:'Archivo Black';font-size:14px;color:var(--navy)}
+  .cap-body{font-size:13px;line-height:1.5;color:#333;white-space:pre-wrap;flex:1}
+  .cap-tags{font-family:'JetBrains Mono';font-size:11.5px;color:var(--wine);word-break:break-word;line-height:1.5}
+  .cap-card .row{margin-top:auto}
+
+  /* ── CHEAT SHEET DE MEDIDAS ── */
+  .ms{flex:1 1 100%}
+  .ms-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .ms-card{background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;display:flex;flex-direction:column}
+  .ms-card .hd{background:var(--navy);color:#fff;padding:13px 16px;display:flex;align-items:center;gap:10px}
+  .ms-card .hd .ic{width:26px;height:26px;border-radius:6px;background:var(--wine);display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto}
+  .ms-card .hd h4{font-family:'Archivo Black';font-size:14px}
+  .ms-card .bd{padding:6px 16px 14px;display:flex;flex-direction:column}
+  .ms-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .ms-row:last-child{border-bottom:0}
+  .ms-row .nm{font-size:12.5px;font-weight:600;color:var(--navy)}
+  .ms-row .nm small{display:block;font-weight:500;color:var(--ink-mute);font-size:11px;margin-top:1px}
+  .ms-row .px{font-family:'JetBrains Mono';font-weight:700;font-size:12px;color:var(--wine);white-space:nowrap}
+  .ms-row .px small{display:block;color:var(--ink-soft);font-weight:500;text-align:right;margin-top:1px}
+  .ms-note{grid-column:1/-1;background:var(--navy);color:#fff;border-radius:10px;padding:16px 20px;font-size:12.5px;line-height:1.6}
+  .ms-note b{color:var(--wine-soft)}
+  .ms-note .lbl{font-family:'JetBrains Mono';font-weight:700;font-size:11px;letter-spacing:1px;color:var(--wine-soft);text-transform:uppercase;display:block;margin-bottom:6px}
+  @media(max-width:760px){.ms-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Generador de piezas para redes — DTD Cargo</h1>
+  <p class="lead">Herramientas rápidas para quien maneja las redes. La marca ya viene <b>bloqueada</b> en cada plantilla (navy/wine, Archivo, áreas seguras): tú solo subes la foto o escribes el dato, y descargas. Ocho herramientas en un solo lugar.</p>
+  <div class="how">
+    <b>Cómo se usa:</b> elige el formato arriba → carga la foto (o los datos) → edita título/dato → <b>Descargar PNG</b>. Para un servicio nuevo: subes una foto del servicio, escribes su título y un dato simple, y listo — sale con la marca puesta y metadata de procedencia.
+  </div>
+
+  <div class="plats" id="plats">
+    <span class="plats-lbl">1 · ¿Para qué red?</span>
+    <button class="plat" data-plat="all" aria-pressed="true" onclick="setPlat('all',this)">✱ Todas</button>
+    <button class="plat" data-plat="Instagram" aria-pressed="false" onclick="setPlat('Instagram',this)">▣ Instagram</button>
+    <button class="plat" data-plat="Facebook" aria-pressed="false" onclick="setPlat('Facebook',this)">◉ Facebook</button>
+    <button class="plat" data-plat="WhatsApp Business" aria-pressed="false" onclick="setPlat('WhatsApp Business',this)">✆ WhatsApp Business</button>
+    <button class="plat" data-plat="YouTube" aria-pressed="false" onclick="setPlat('YouTube',this)">▶ YouTube</button>
+    <button class="plat" data-plat="TikTok" aria-pressed="false" onclick="setPlat('TikTok',this)">♪ TikTok</button>
+    <span class="plat-hint" id="plat-hint"></span>
+  </div>
+  <div class="plats-lbl" style="margin:14px 0 8px">2 · Elige el formato</div>
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true"  onclick="showTab(0,this)">▦ Post cuadrado · 1080×1080</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(1,this)">▮ Story / Estado · 1080×1920</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(2,this)">▣ QR · chat &amp; reseña</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(3,this)">❝ Testimonio</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(4,this)">◷ Promo / fecha</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(5,this)">▥ Carrusel 4:5</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(6,this)">✎ Captions + hashtags</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(7,this)">▤ Medidas · cheat sheet</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(8,this)">⊞ Catálogo WhatsApp</button>
+  </div>
+
+  <!-- ░░ POST CUADRADO ░░ -->
+  <div class="panel show" id="panel-0">
+    <div class="preview">
+      <div class="sq-wrap"><div class="sq" id="sq">
+        <div class="photo" id="sq-photo"><div class="ph"><div class="cam">📷</div><div class="d">Carga una foto del servicio</div></div></div>
+        <div class="badge" id="sq-badge" style="display:none"></div>
+        <div class="web" id="sq-web">dtdcargo.com/calculadora</div>
+        <div class="bar"><div class="title" id="sq-title">Título del servicio</div><div class="key" id="sq-key">Un dato clave en una línea</div></div>
+      </div></div>
+    </div>
+    <div class="controls">
+      <div class="row">
+        <button class="alt" onclick="document.getElementById('sq-file').click()">📷 Cargar foto</button>
+        <button class="wine" onclick="dl('sq','post', 1080,1080)">⬇ Descargar PNG</button>
+      </div>
+      <input type="file" id="sq-file" accept="image/*" style="display:none" onchange="setPhoto('sq-photo',this)">
+      <div class="fld"><label>Título</label><input type="text" id="sq-title-in" value="Título del servicio" oninput="txt('sq-title',this.value)"></div>
+      <div class="fld"><label>Dato clave</label><input type="text" id="sq-key-in" value="Un dato clave en una línea" oninput="txt('sq-key',this.value)"></div>
+      <div class="fld"><label>Badge (opcional)</label>
+        <div class="row">
+          <select id="sq-badge-tag" onchange="applyTag(this.value)" style="flex:1">
+            <option value="">Etiqueta de contenido (ERP)…</option>
+          </select>
+        </div>
+        <input type="text" id="sq-badge-in" placeholder="o escribe el texto · ej. NUEVO · PRÓXIMAMENTE" oninput="manualBadge(this.value)" style="margin-top:6px">
+        <p class="hint" style="margin-top:5px">Las etiquetas vienen de <b>ERP → Master data → Etiquetas de contenido</b> con su color; al descargar, la pieza queda taggeada en el registro.</p>
+      </div>
+      <div class="fld"><label>Pill de la web (texto)</label><input type="text" id="sq-web-in" value="dtdcargo.com/calculadora" oninput="txt('sq-web',this.value)"></div>
+      <label class="chk"><input type="checkbox" checked onchange="show('sq-web',this.checked)"> Mostrar pill de la web</label>
+      <p class="hint"><b>Tip:</b> fotos nítidas y horizontales — la franja navy de abajo siempre queda limpia para el texto. La marca no va en la imagen (va en la metadata del PNG).</p>
+    </div>
+  </div>
+
+  <!-- ░░ STORY / ESTADO ░░ -->
+  <div class="panel" id="panel-1">
+    <div class="preview">
+      <div class="st-wrap"><div class="st" id="st">
+        <div class="photo" id="st-photo"><div class="ph"><div class="cam">📷</div><div class="d">Carga una foto vertical</div></div></div>
+        <div class="safe top" id="st-safe-top">zona de íconos</div>
+        <div class="safe bot" id="st-safe-bot">zona de respuesta</div>
+        <div class="content">
+          <div class="title" id="st-title">Tu titular acá</div>
+          <div class="key" id="st-key">Un dato o llamado a la acción</div>
+          <div class="web" id="st-web">dtdcargo.com</div>
+        </div>
+      </div></div>
+    </div>
+    <div class="controls">
+      <div class="row">
+        <button class="alt" onclick="document.getElementById('st-file').click()">📷 Cargar foto</button>
+        <button class="wine" onclick="dl('st','story', 1080,1920)">⬇ Descargar PNG</button>
+      </div>
+      <input type="file" id="st-file" accept="image/*" style="display:none" onchange="setPhoto('st-photo',this)">
+      <div class="fld"><label>Titular</label><input type="text" id="st-title-in" value="Tu titular acá" oninput="txt('st-title',this.value)"></div>
+      <div class="fld"><label>Dato / CTA</label><input type="text" id="st-key-in" value="Un dato o llamado a la acción" oninput="txt('st-key',this.value)"></div>
+      <div class="fld"><label>Pill de la web (texto)</label><input type="text" id="st-web-in" value="dtdcargo.com" oninput="txt('st-web',this.value)"></div>
+      <label class="chk"><input type="checkbox" checked onchange="show('st-web',this.checked)"> Mostrar pill de la web</label>
+      <label class="chk"><input type="checkbox" id="st-safe-chk" checked onchange="safeGuides(this.checked)"> Ver guías de área segura (no salen en el PNG)</label>
+      <p class="hint"><b>Áreas seguras:</b> deja los íconos de IG/WhatsApp/FB fuera de las zonas punteadas. Sirve para Story de Instagram/Facebook y Estado de WhatsApp.</p>
+    </div>
+  </div>
+
+  <!-- ░░ wa.me + QR ░░ -->
+  <div class="panel" id="panel-2">
+    <div class="preview">
+      <div class="qr-wrap"><div class="qr" id="qr">
+        <div class="pat" id="qr-pat">回</div>
+        <div class="wm"><span class="a">DTD</span> <span class="b">Cargo</span></div>
+        <div class="tile"><img id="qr-img" alt="QR"><div class="qr-ph" id="qr-ph" style="display:none"><div class="cam">▣</div><div class="t1">Subir QR aquí</div><div class="t2">Carga el QR de WeChat de este teléfono</div></div></div>
+        <div class="cta" id="qr-cta">Escanea para<br>escribirnos</div>
+        <div class="meta" id="qr-meta">+58 412 166 8021 · CRM</div>
+      </div></div>
+    </div>
+    <div class="controls">
+      <div class="fld"><label>Destino del QR</label>
+        <select id="qr-dest" onchange="setDest()">
+          <option value="wa">WhatsApp · chat directo</option>
+          <option value="wechat">WeChat · agregar contacto (proveedores CN)</option>
+          <option value="google">Reseña en Google ⭐</option>
+          <option value="yt">YouTube · canal</option>
+          <option value="ig">Instagram · perfil</option>
+          <option value="tk">TikTok · perfil</option>
+          <option value="link">Enlace específico · campaña / web / video</option>
+        </select>
+      </div>
+
+      <div id="qr-wa-fields">
+        <div class="fld"><label>Número</label>
+          <select id="qr-phone" onchange="buildLink()">
+            <option value="584121668021|CRM">CRM · +58 412 166 8021</option>
+            <option value="582414147886|Administración">Administración · +58 241 414 7886</option>
+            <option value="584124545325|Ventas">Ventas · +58 412 454 5325</option>
+          </select>
+        </div>
+        <div class="fld"><label>Mensaje pre-cargado</label>
+          <textarea id="qr-msg" oninput="buildLink()">Hola DTD Cargo, quiero cotizar una importación desde China.</textarea>
+        </div>
+      </div>
+
+      <div id="qr-wechat-fields" style="display:none">
+        <div class="row" style="margin-bottom:4px">
+          <button class="alt" type="button" onclick="document.getElementById('qr-wx-file').click()">📷 Subir QR de WeChat (imagen)</button>
+        </div>
+        <input type="file" id="qr-wx-file" accept="image/*" style="display:none" onchange="wxUpload(this)">
+        <div class="fld"><label>WeChat ID (se muestra en la tarjeta)</label><input type="text" id="qr-wx-id" placeholder="ej. DTDCargo_CN" oninput="buildLink()"></div>
+        <p class="hint"><b>Cada teléfono tiene su propio QR:</b> abre WeChat en ese teléfono → Yo → Mi código QR → captura de pantalla, y súbela acá. La tarjeta sale con ese QR adentro.</p>
+      </div>
+
+      <div id="qr-google-fields" style="display:none">
+        <div class="fld"><label>Link de reseña de Google</label><textarea id="qr-gg-url" placeholder="Pega tu link (Perfil de Empresa de Google → Pedir reseñas → Copiar). Suele verse como https://g.page/r/.../review o https://search.google.com/local/writereview?placeid=..." oninput="buildLink()"></textarea></div>
+        <p class="hint"><b>Tip:</b> usa el link corto que da Google en «Pedir reseñas» — abre directo la ventana de calificación con las estrellas.</p>
+      </div>
+
+      <div id="qr-url-fields" style="display:none">
+        <div class="fld"><label id="qr-url-lbl">Enlace de destino</label><input type="text" id="qr-url" oninput="buildLink()"></div>
+        <p class="hint"><b>El QR apunta a donde haga falta:</b> canal de YouTube, perfil de Instagram/TikTok o cualquier enlace específico (campaña, calculadora, video). El isólogo va al centro con corrección de error nivel H (30%) — escanea igual.</p>
+      </div>
+
+      <div class="fld"><label>CTA en la tarjeta</label><input type="text" id="qr-cta-in" value="Escanea para escribirnos" oninput="txt('qr-cta',this.value)"></div>
+      <div class="fld"><label>Link del QR</label><div class="linkbox" id="qr-link">—</div></div>
+      <div class="row">
+        <button id="qr-copy" class="alt" onclick="copyLink()">⧉ Copiar link</button>
+        <button class="wine" onclick="dl('qr','qr-card', 1080,1080)">⬇ Descargar tarjeta QR</button>
+      </div>
+      <p class="hint">El QR lleva al destino elegido. Pega el link en bio, ads o web; o imprime la tarjeta. <b>No</b> le pongas color de marca al QR — el negro/blanco es lo que mejor escanea.</p>
+    </div>
+  </div>
+
+  <!-- ░░ TESTIMONIO ░░ -->
+  <div class="panel" id="panel-3">
+    <div class="preview">
+      <div class="ts-wrap"><div class="ts" id="ts">
+        <div class="strip"></div>
+        <div class="mark">&ldquo;</div>
+        <div class="quote" id="ts-quote">Llegó todo perfecto y en el tiempo que dijeron. Por fin un servicio en el que confiar.</div>
+        <div class="who">
+          <div class="av" id="ts-av">A</div>
+          <div><div class="nm" id="ts-nm">Andrea M.</div><div class="loc" id="ts-loc">Importadora · Maracaibo</div></div>
+        </div>
+        <div class="wm"><span class="a">DTD</span> <span class="b">Cargo</span></div>
+      </div></div>
+    </div>
+    <div class="controls">
+      <div class="row">
+        <button class="alt" onclick="document.getElementById('ts-file').click()">📷 Foto del cliente</button>
+        <button class="wine" onclick="dl('ts','testimonio', 1080,1080)">⬇ Descargar PNG</button>
+      </div>
+      <input type="file" id="ts-file" accept="image/*" style="display:none" onchange="tsAvatar(this)">
+      <div class="fld"><label>Testimonio</label><textarea id="ts-quote-in" oninput="txt('ts-quote',this.value)">Llegó todo perfecto y en el tiempo que dijeron. Por fin un servicio en el que confiar.</textarea></div>
+      <div class="fld"><label>Nombre</label><input type="text" id="ts-nm-in" value="Andrea M." oninput="tsName(this.value)"></div>
+      <div class="fld"><label>Rol · ciudad</label><input type="text" id="ts-loc-in" value="Importadora · Maracaibo" oninput="txt('ts-loc',this.value)"></div>
+      <p class="hint"><b>Prueba social.</b> Si no cargás foto, queda la inicial del nombre sobre navy. Pide permiso al cliente antes de publicar su nombre y ciudad.</p>
+    </div>
+  </div>
+
+  <!-- ░░ PROMO / FECHA ░░ -->
+  <div class="panel" id="panel-4">
+    <div class="preview">
+      <div class="pr-wrap"><div class="pr" id="pr">
+        <div class="pat">回</div>
+        <div class="wm"><span class="a">DTD</span> <span class="b">Cargo</span></div>
+        <div class="eg" id="pr-eg">Cierre de consolidado</div>
+        <div class="title" id="pr-title">Última carga antes de Navidad</div>
+        <div class="date"><span class="big" id="pr-big">15</span><span class="sm" id="pr-sm">NOV</span></div>
+        <div class="cta"><span class="dot"></span><span id="pr-cta">Cotiza tu DDP · dtdcargo.com/calculadora</span></div>
+      </div></div>
+    </div>
+    <div class="controls">
+      <button class="wine" style="align-self:flex-start" onclick="dl('pr','promo', 1080,1080)">⬇ Descargar PNG</button>
+      <div class="fld"><label>Eyebrow</label><input type="text" id="pr-eg-in" value="Cierre de consolidado" oninput="txt('pr-eg',this.value)"></div>
+      <div class="fld"><label>Titular</label><input type="text" id="pr-title-in" value="Última carga antes de Navidad" oninput="txt('pr-title',this.value)"></div>
+      <div class="row">
+        <div class="fld" style="flex:1"><label>Fecha (día)</label><input type="text" id="pr-big-in" value="15" oninput="txt('pr-big',this.value)"></div>
+        <div class="fld" style="flex:1"><label>Mes</label><input type="text" id="pr-sm-in" value="NOV" oninput="txt('pr-sm',this.value)"></div>
+      </div>
+      <div class="fld"><label>CTA</label><input type="text" id="pr-cta-in" value="Cotiza tu DDP · dtdcargo.com/calculadora" oninput="txt('pr-cta',this.value)"></div>
+      <p class="hint"><b>Fechas y avisos.</b> Único gradiente permitido (navy→navy). Verbos directos en el CTA: «Cotiza», «Reserva», «Escríbenos».</p>
+    </div>
+  </div>
+
+  <!-- ░░ CARRUSEL 4:5 ░░ -->
+  <div class="panel" id="panel-5">
+    <div class="preview">
+      <div class="cr-wrap"><div class="cr" id="cr">
+        <div class="photo" id="cr-photo"><div class="ph"><div class="cam">📷</div><div class="d">Foto (opcional)</div></div></div>
+        <div class="num" id="cr-num">1</div>
+        <div class="kicker" id="cr-kicker">GUÍA</div>
+        <div class="bar"><div class="title" id="cr-title">Cómo importar de China en 4 pasos</div><div class="body" id="cr-body">Sin intermediarios, puerta a puerta.</div></div>
+        <div class="swipe" id="cr-swipe">desliza →</div>
+        <div class="wm"><span class="a">DTD</span> <span class="b">Cargo</span></div>
+      </div></div>
+      <div class="slide-nav">
+        <button class="alt" onclick="crNav(-1)">‹</button>
+        <span class="ind" id="cr-ind">1 / 4</span>
+        <button class="alt" onclick="crNav(1)">›</button>
+        <button class="alt" onclick="crAdd()">+ lámina</button>
+        <button class="alt" onclick="crDel()">− quitar</button>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="row">
+        <button class="alt" onclick="document.getElementById('cr-file').click()">📷 Foto de la lámina</button>
+        <button class="wine" onclick="dlCr()">⬇ Descargar esta lámina</button>
+      </div>
+      <input type="file" id="cr-file" accept="image/*" style="display:none" onchange="crPhoto(this)">
+      <label class="chk"><input type="checkbox" id="cr-cover-chk" onchange="crSet('cover',this.checked)"> Lámina de portada (barra wine)</label>
+      <div class="fld"><label>Kicker</label><input type="text" id="cr-kicker-in" oninput="crSet('kicker',this.value)"></div>
+      <div class="fld"><label>Título</label><input type="text" id="cr-title-in" oninput="crSet('title',this.value)"></div>
+      <div class="fld"><label>Cuerpo</label><textarea id="cr-body-in" oninput="crSet('body',this.value)"></textarea></div>
+      <p class="hint"><b>Carrusel para IG/FB.</b> Numeración y marca van automáticas. Descarga lámina por lámina y subilas en orden. Recomendado: portada + 3-5 pasos + cierre con CTA.</p>
+    </div>
+  </div>
+
+  <!-- ░░ CAPTIONS ░░ -->
+  <div class="panel" id="panel-6">
+    <div class="cap-grid" id="cap-grid"></div>
+  </div>
+
+  <!-- ░░ MEDIDAS · CHEAT SHEET ░░ -->
+  <div class="panel" id="panel-7">
+    <div class="ms" id="ms"></div>
+  </div>
+
+  <!-- ░░ CATÁLOGO WHATSAPP (generador embebido) ░░ -->
+  <div class="panel" id="panel-8">
+    <div style="flex:1 1 100%;display:flex;flex-direction:column;gap:10px;">
+      <p class="hint"><b>Catálogo de WhatsApp Business</b> · 8 servicios + portada, 1080×1080. Subes la foto real de cada servicio y descargas el PNG listo para el catálogo. Las descargas también quedan en el registro de piezas del ERP.</p>
+      <iframe id="cat-frame" title="Generador Catálogo WhatsApp" style="width:100%;height:1700px;border:1px solid var(--line);border-radius:10px;background:#fff;"></iframe>
+    </div>
+  </div>
+</div>
+<div id="qr-holder" style="position:absolute;left:-9999px;top:-9999px;"></div>
+
+<script>
+// ── helpers de UI ──
+function txt(id,v){ document.getElementById(id).innerHTML = String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function show(id,on){ document.getElementById(id).style.display = on ? '' : 'none'; }
+// ── Badge · conectado a Etiquetas de contenido del ERP (Master data) ──
+const CT_FALLBACK=[{id:'noticia',label:'Noticia',tone:'info'},{id:'publicidad',label:'Publicidad / promo',tone:'wine'},{id:'producto',label:'Producto / servicio',tone:'success'},{id:'precio',label:'Precio · tarifa actualizada',tone:'warning'},{id:'testimonio',label:'Testimonio',tone:'neutral'},{id:'educativo',label:'Educativo',tone:'info'},{id:'feria',label:'Feria / evento',tone:'warning'},{id:'operacion',label:'Operación · zarpes y llegadas',tone:'wine'}];
+function ctTypes(){ try{ const r=JSON.parse(localStorage.getItem('dtd-etiquetas-contenido')||'null'); if(r&&r.types) return r.types.filter(t=>t.active); }catch(e){} return CT_FALLBACK; }
+let currentTag=null, badgeToneOverride=null;
+const TONE_BG={ wine:['var(--wine)','#fff'], gold:['var(--gold)','#fff'], rosa:['var(--wine-soft)','#0F1E3D'], info:['#2A6FDB','#fff'], success:['#1F8A5B','#fff'], warning:['var(--gold)','#fff'], danger:['#A8323E','#fff'], neutral:['#6B6B6B','#fff'] };
+function badge(id,v){ const el=document.getElementById(id); if(v.trim()){ let tone=badgeToneOverride||'wine'; if(!badgeToneOverride && /PR(Ó|O)XIMA/i.test(v)) tone='gold'; const M=TONE_BG[tone]||TONE_BG.wine; el.textContent=v; el.style.display=''; el.style.background=M[0]; el.style.color=M[1]; } else el.style.display='none'; }
+function applyTag(tagId){
+  const t=ctTypes().find(x=>x.id===tagId);
+  if(!t){ currentTag=null; badgeToneOverride=null; badge('sq-badge', document.getElementById('sq-badge-in').value); return; }
+  currentTag=t.id; badgeToneOverride=t.tone;
+  document.getElementById('sq-badge-in').value=t.label.toUpperCase();
+  badge('sq-badge', t.label.toUpperCase());
+}
+function manualBadge(v){ currentTag=null; badgeToneOverride=null; const s=document.getElementById('sq-badge-tag'); if(s) s.value=''; badge('sq-badge',v); }
+window.addEventListener('load',()=>{
+  const s=document.getElementById('sq-badge-tag'); if(!s) return;
+  ctTypes().forEach(t=>{ const o=document.createElement('option'); o.value=t.id; o.textContent=t.label; s.appendChild(o); });
+  try{ const p=new URLSearchParams(location.search).get('pz_tag'); if(p && ctTypes().some(t=>t.id===p)){ s.value=p; applyTag(p); } }catch(e){}
+});
+function setPhoto(id,input){ const f=input.files[0]; if(!f)return; const url=URL.createObjectURL(f); const p=document.getElementById(id); p.style.backgroundImage='url('+url+')'; const ph=p.querySelector('.ph'); if(ph)ph.style.display='none'; }
+function showTab(i,btn){ document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false')); btn.setAttribute('aria-selected','true'); document.querySelectorAll('.panel').forEach((p,n)=>p.classList.toggle('show',n===i)); if(i===2) buildLink(); if(i===5) renderCr(); if(i===6) renderCaps(); if(i===7) renderMs(); if(i===8) loadCat(); }
+function loadCat(){ const f=document.getElementById('cat-frame'); if(f && !f.src) f.src='Generador Catálogo WhatsApp · DTD-Cargo.html?embed=1'; }
+function safeGuides(on){ document.getElementById('st-safe-top').style.display=on?'flex':'none'; document.getElementById('st-safe-bot').style.display=on?'flex':'none'; }
+
+// ── QR multi-destino (WhatsApp · WeChat · Google reseña) ──
+let wxImg='';
+function wxUpload(input){ const f=input.files[0]; if(!f) return; wxImg=URL.createObjectURL(f); buildLink(); }
+function renderQR(link){
+  const img=document.getElementById('qr-img'), ph=document.getElementById('qr-ph');
+  const d=document.getElementById('qr-dest').value;
+  if(d==='wechat'){
+    if(wxImg){ img.src=wxImg; img.style.display=''; ph.style.display='none'; }
+    else { img.removeAttribute('src'); img.style.display='none'; ph.style.display='flex'; }
+    return;
+  }
+  ph.style.display='none'; img.style.display='';
+  if(!link){ img.removeAttribute('src'); return; }
+  if(window.QRCode){ const h=document.getElementById('qr-holder'); h.innerHTML=''; new QRCode(h,{text:link,width:560,height:560,colorDark:'#0F1E3D',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.H}); setTimeout(()=>{ const cv=h.querySelector('canvas'), im=h.querySelector('img'); const src = cv?cv.toDataURL('image/png'):(im?im.src:''); if(src) compositeLogo(src, img); },30); }
+}
+// isólogo central (spec del book: corrección H 30% — el logo no rompe la lectura)
+function compositeLogo(src, img){
+  const base=new Image();
+  base.onload=()=>{
+    const c=document.createElement('canvas'); c.width=c.height=560;
+    const x=c.getContext('2d'); x.drawImage(base,0,0,560,560);
+    const logo=new Image();
+    const fin=()=>{ img.src=c.toDataURL('image/png'); };
+    logo.onload=()=>{
+      const box=128, p=(560-box)/2;
+      x.fillStyle='#fff'; x.beginPath();
+      if(x.roundRect) x.roundRect(p-12,p-12,box+24,box+24,14); else x.rect(p-12,p-12,box+24,box+24);
+      x.fill();
+      const k=Math.min(box/logo.naturalWidth, box/logo.naturalHeight);
+      const lw=logo.naturalWidth*k, lh=logo.naturalHeight*k;
+      x.drawImage(logo,(560-lw)/2,(560-lh)/2,lw,lh); fin();
+    };
+    logo.onerror=fin;
+    logo.src='assets/dtdcargo-isologo-primary.png';
+  };
+  base.src=src;
+}
+function setDest(){
+  const d=document.getElementById('qr-dest').value;
+  document.getElementById('qr-wa-fields').style.display = d==='wa'?'':'none';
+  document.getElementById('qr-wechat-fields').style.display = d==='wechat'?'':'none';
+  document.getElementById('qr-google-fields').style.display = d==='google'?'':'none';
+  const isUrl=['yt','ig','tk','link'].includes(d);
+  document.getElementById('qr-url-fields').style.display = isUrl?'':'none';
+  const cta=document.getElementById('qr-cta-in'), pat=document.getElementById('qr-pat');
+  const DEF={ wa:['Escanea para escribirnos','回'], wechat:['Agréganos en WeChat','信'], google:['Déjanos tu reseña ⭐','★'],
+    yt:['Suscríbete al canal','▶'], ig:['Síguenos en Instagram','◎'], tk:['Síguenos en TikTok','♪'], link:['Escanea y entra','→'] };
+  cta.value=DEF[d][0]; pat.textContent=DEF[d][1];
+  if(isUrl){
+    const U={ yt:['Canal de YouTube','https://youtube.com/@dtdcargo'], ig:['Perfil de Instagram','https://instagram.com/dtdcargo'], tk:['Perfil de TikTok','https://tiktok.com/@dtdcargo'], link:['Enlace de destino','https://dtdcargo.com/calculadora'] };
+    document.getElementById('qr-url-lbl').textContent=U[d][0];
+    document.getElementById('qr-url').value=U[d][1];
+  }
+  txt('qr-cta', cta.value);
+  buildLink();
+}
+function buildLink(){
+  const d=document.getElementById('qr-dest').value;
+  let link='', meta='';
+  if(d==='wechat'){
+    const id=(document.getElementById('qr-wx-id').value||'').trim();
+    link='';
+    meta = id ? ('WeChat · '+id) : 'WeChat · escanea para agregar';
+  } else if(['yt','ig','tk','link'].includes(d)){
+    link=(document.getElementById('qr-url').value||'').trim();
+    meta = link ? link.replace(/^https?:\/\//,'').replace(/\/$/,'').slice(0,36) : '—';
+  } else if(d==='google'){
+    link=(document.getElementById('qr-gg-url').value||'').trim();
+    meta='Google · ★★★★★';
+  } else {
+    const [num,rol]=document.getElementById('qr-phone').value.split('|');
+    const msg=encodeURIComponent(document.getElementById('qr-msg').value);
+    link='https://wa.me/'+num+'?text='+msg;
+    meta=num.replace(/^(\d\d)(\d{3})(\d{3})(\d{4})$/,'+$1 $2 $3 $4')+' · '+rol;
+  }
+  document.getElementById('qr-link').textContent = d==='wechat' ? (wxImg?'QR subido · listo para descargar':'— sube la imagen del QR —') : (link || '—');
+  document.getElementById('qr-meta').textContent = meta;
+  renderQR(link);
+}
+// ── copiar al portapapeles (con fallback para iframes sin permiso) ──
+function copyFallback(t){
+  const ta=document.createElement('textarea'); ta.value=t; ta.style.cssText='position:fixed;left:-9999px;top:0'; document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  let ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+  ta.remove(); return ok;
+}
+function copyText(t){
+  if(navigator.clipboard && navigator.clipboard.writeText)
+    return navigator.clipboard.writeText(t).then(()=>true).catch(()=>copyFallback(t));
+  return Promise.resolve(copyFallback(t));
+}
+function copyFeedback(b,ok){
+  const o=b.dataset.lbl || (b.dataset.lbl=b.textContent);
+  b.textContent = ok ? '✓ Copiado' : '✗ No se pudo copiar';
+  b.classList.toggle('ok',ok);
+  setTimeout(()=>{ b.textContent=o; b.classList.remove('ok'); },1300);
+}
+function copyLink(){ const t=document.getElementById('qr-link').textContent, b=document.getElementById('qr-copy');
+  copyText(t).then(ok=>copyFeedback(b,ok)); }
+
+// ── Testimonio ──
+function tsAvatar(input){ const f=input.files[0]; if(!f)return; const av=document.getElementById('ts-av'); av.style.backgroundImage='url('+URL.createObjectURL(f)+')'; av.textContent=''; }
+function tsName(v){ txt('ts-nm',v); const av=document.getElementById('ts-av'); if(!av.style.backgroundImage) av.textContent=(v.trim()[0]||'D').toUpperCase(); }
+
+// ── Carrusel ──
+const crSlides=[
+  {cover:true, kicker:'GUÍA', title:'Cómo importar de China en 4 pasos', body:'Sin intermediarios, puerta a puerta.', photo:''},
+  {cover:false,kicker:'PASO 1', title:'Cotizas tu DDP', body:'Con el volumen (CBM) y tu ciudad te damos el estimado todo incluido.', photo:''},
+  {cover:false,kicker:'PASO 2', title:'Consolidamos en Yiwu', body:'Recibimos tu mercancía, la verificamos y la preparamos para embarcar.', photo:''},
+  {cover:false,kicker:'PASO 3', title:'Embarque y aduana', body:'Nacionalizamos a nuestro nombre. Tú no haces trámites.', photo:''},
+  {cover:false,kicker:'CIERRE', title:'Llegó a tu puerta', body:'Escríbenos hoy · dtdcargo.com/calculadora', photo:''},
+];
+let crIdx=0;
+function renderCr(){
+  const s=crSlides[crIdx], el=document.getElementById('cr');
+  el.classList.toggle('cover', !!s.cover);
+  document.getElementById('cr-num').textContent=crIdx+1;
+  document.getElementById('cr-kicker').textContent=s.kicker;
+  document.getElementById('cr-title').textContent=s.title;
+  document.getElementById('cr-body').textContent=s.body;
+  document.getElementById('cr-swipe').style.display = (crIdx===crSlides.length-1)?'none':'';
+  const ph=document.getElementById('cr-photo'), inner=ph.querySelector('.ph');
+  ph.style.backgroundImage = s.photo?('url('+s.photo+')'):''; if(inner) inner.style.display = s.photo?'none':'';
+  document.getElementById('cr-cover-chk').checked=!!s.cover;
+  document.getElementById('cr-kicker-in').value=s.kicker;
+  document.getElementById('cr-title-in').value=s.title;
+  document.getElementById('cr-body-in').value=s.body;
+  document.getElementById('cr-ind').textContent=(crIdx+1)+' / '+crSlides.length;
+}
+function crSet(f,v){ crSlides[crIdx][f]=v; renderCr(); }
+function crNav(d){ crIdx=Math.max(0,Math.min(crSlides.length-1,crIdx+d)); renderCr(); }
+function crAdd(){ crSlides.splice(crIdx+1,0,{cover:false,kicker:'PASO',title:'Título de la lámina',body:'Texto de apoyo.',photo:''}); crIdx++; renderCr(); }
+function crDel(){ if(crSlides.length<=1)return; crSlides.splice(crIdx,1); crIdx=Math.max(0,crIdx-1); renderCr(); }
+function crPhoto(input){ const f=input.files[0]; if(!f)return; crSlides[crIdx].photo=URL.createObjectURL(f); renderCr(); }
+function dlCr(){ dl('cr','carrusel-'+(crIdx+1), 1080,1350); }
+
+// ── Cheat sheet de medidas ──
+const MEDIDAS=[
+  {ic:'▣', t:'Instagram', rows:[
+    ['Feed cuadrado','Post / catálogo','1080×1080','1:1'],
+    ['Feed vertical','El que más ocupa pantalla','1080×1350','4:5'],
+    ['Reel / Story','Vertical full','1080×1920','9:16'],
+    ['Foto de perfil','Círculo','320×320','1:1'],
+  ]},
+  {ic:'◉', t:'Facebook', rows:[
+    ['Post cuadrado','Feed','1080×1080','1:1'],
+    ['Story / Reel','Vertical','1080×1920','9:16'],
+    ['Portada de página','Cover','1640×856','~1.91:1'],
+    ['Imagen de enlace','Link share','1200×630','1.91:1'],
+  ]},
+  {ic:'✉', t:'WhatsApp Business', rows:[
+    ['Estado','Vertical full','1080×1920','9:16'],
+    ['Imagen de catálogo','Por artículo','1080×1080','1:1'],
+    ['Foto de perfil','Mín. 640','640×640','1:1'],
+    ['Comprobante','Para mandar al cliente','1080×1920','9:16'],
+  ]},
+  {ic:'▶', t:'YouTube', rows:[
+    ['Miniatura','Thumbnail','1280×720','16:9'],
+    ['Banner de canal','Área segura 1546×423','2048×1152','16:9'],
+    ['Foto de canal','Avatar','800×800','1:1'],
+  ]},
+  {ic:'♪', t:'TikTok', rows:[
+    ['Video','Vertical full','1080×1920','9:16'],
+    ['Foto de perfil','Círculo','200×200','1:1'],
+  ]},
+  {ic:'✪', t:'Genéricos DTD', rows:[
+    ['Isólogo perfil','Cuadrado, fondo sólido','640×640','1:1'],
+    ['Sticker WhatsApp','Transparente','512×512','1:1'],
+    ['Tarjeta QR','Imprimible / digital','1080×1080','1:1'],
+  ]},
+];
+// ── Plataforma destino · filtra formatos y medidas (paso 1) ──
+const PLAT_TABS={
+  'all':[0,1,2,3,4,5,6,7,8],
+  'Instagram':[0,1,2,3,4,5,6,7],
+  'Facebook':[0,1,2,3,4,5,6,7],
+  'WhatsApp Business':[1,2,3,7,8],
+  'YouTube':[2,7],
+  'TikTok':[1,2,6,7],
+};
+const PLAT_HINT={
+  'all':'Todos los formatos disponibles. Elige una red para ver solo lo que aplica.',
+  'Instagram':'Filtrado para <b>Instagram</b>: feed 1080×1080, vertical 4:5 (carrusel), story/reel 9:16. Las medidas del paso 2 ya son las de IG.',
+  'Facebook':'Filtrado para <b>Facebook</b>: post 1:1, story 9:16, carrusel. La portada de página vive en «Portadas Redes».',
+  'WhatsApp Business':'Filtrado para <b>WhatsApp Business</b>: estado 9:16, catálogo 1080×1080 y tarjeta QR del chat.',
+  'YouTube':'<b>YouTube</b> no usa posts: acá tienes el QR al canal y las medidas (miniatura 1280×720, banner 2048×1152). Las portadas se hacen en «Portadas Redes · DTD-Cargo.html».',
+  'TikTok':'Filtrado para <b>TikTok</b>: vertical 9:16 (usa la Story como portada de video), captions y QR al perfil.',
+};
+let PLAT='all';
+function setPlat(p,btn){
+  PLAT=p;
+  try{ localStorage.setItem('dtd-gen-platform',p); }catch(e){}
+  document.querySelectorAll('.plat').forEach(b=>b.setAttribute('aria-pressed', b===btn ? 'true':'false'));
+  document.getElementById('plat-hint').innerHTML=PLAT_HINT[p]||'';
+  const allowed=PLAT_TABS[p]||PLAT_TABS.all;
+  const tabs=document.querySelectorAll('.tab');
+  tabs.forEach((t,i)=>{ t.style.display = allowed.includes(i) ? '' : 'none'; });
+  const current=[...tabs].findIndex(t=>t.getAttribute('aria-selected')==='true');
+  if(!allowed.includes(current)) showTab(allowed[0], tabs[allowed[0]]);
+  msBuilt=false; if(document.getElementById('panel-7').classList.contains('show')) renderMs();
+}
+window.addEventListener('load',()=>{
+  let saved='all'; try{ saved=localStorage.getItem('dtd-gen-platform')||'all'; }catch(e){}
+  const btn=document.querySelector('.plat[data-plat="'+saved+'"]')||document.querySelector('.plat[data-plat="all"]');
+  // si llega prefill desde el ERP (?tab=N), no forzar el cambio de tab
+  const hasPrefill=new URLSearchParams(location.search).has('tab');
+  if(hasPrefill && saved!=='all'){ PLAT=saved; document.querySelectorAll('.plat').forEach(b=>b.setAttribute('aria-pressed', b===btn?'true':'false')); document.getElementById('plat-hint').innerHTML=PLAT_HINT[saved]||''; }
+  else setPlat(saved, btn);
+});
+
+let msBuilt=false;
+function renderMs(){
+  msBuilt=true;
+  const wrap=document.getElementById('ms');
+  const packs = PLAT==='all' ? MEDIDAS : MEDIDAS.filter(p=>p.t===PLAT || p.t==='Genéricos DTD');
+  let html='<div class="ms-grid">';
+  packs.forEach(p=>{
+    html+='<div class="ms-card"><div class="hd"><span class="ic">'+p.ic+'</span><h4>'+p.t+'</h4></div><div class="bd">';
+    p.rows.forEach(r=>{ html+='<div class="ms-row"><span class="nm">'+r[0]+'<small>'+r[1]+'</small></span><span class="px">'+r[2]+'<small>'+r[3]+'</small></span></div>'; });
+    html+='</div></div>';
+  });
+  html+='<div class="ms-note"><span class="lbl">Áreas seguras · verticales 1080×1920</span>Deja el texto importante <b>fuera de los bordes</b>: arriba ~250&nbsp;px (perfil, hora, íconos) y abajo ~310&nbsp;px (barra de respuesta / botones). En el generador, la pestaña <b>Story / Estado</b> ya marca estas zonas con guías punteadas que no salen en el PNG. Regla simple: <b>el dato clave, siempre centrado vertical</b>.</div>';
+  html+='</div>';
+  wrap.innerHTML=html;
+}
+const CAPS=[
+  {t:'Puerta a puerta (DDP)', body:'Tu importación de China sin dolores de cabeza. Traemos tu carga hasta tu puerta — flete, aduana e impuestos incluidos. Pagas cuando llega.* ¿Cuánto te sale? Calcula en el link de la bio. (*pueden aplicar restricciones)', tags:'#ImportarDesdeChina #DDP #LogisticaVenezuela #PuertaAPuerta #DTDCargo'},
+  {t:'Calculadora', body:'¿Cuánto cuesta traer tu mercancía de China? Lo sabes en segundos. Solo necesitas el volumen (CBM) y tu ciudad. Estima tu importación en el link de la bio 👆', tags:'#CalculadoraDeImportacion #ChinaVenezuela #ComercioExterior #DTDCargo'},
+  {t:'Prueba social', body:'«Llegó todo perfecto y en el tiempo que dijeron.» Así importan nuestros clientes: con confianza, de China a su puerta. ¿List@ para el tuyo? Escríbenos.', tags:'#ClientesDTD #ConConfianza #ImportarConfiable #DTDCargo'},
+  {t:'Educativo · LCL vs FCL', body:'¿Carga compartida (LCL) o contenedor completo (FCL)? Si llevas poco volumen, LCL te conviene; si es bastante, FCL sale más a cuenta por CBM. ¿Dudas? Te asesoramos sin compromiso.', tags:'#LCL #FCL #LogisticaMaritima #ComercioExterior #DTDCargo'},
+  {t:'Inspección en origen', body:'Antes de que tu mercancía salga de China, la revisamos en fábrica contra tu ficha técnica. Comprar a ciegas se acabó. Inspección de calidad en origen, con DTD Cargo.', tags:'#InspeccionDeCalidad #SourcingChina #ImportarSeguro #DTDCargo'},
+  {t:'Cierre de consolidado', body:'Últimos días para sumar tu carga al próximo consolidado. Reserva tu espacio antes de que cierre. Escríbenos por WhatsApp y avanzamos hoy.', tags:'#Consolidado #ImportarDesdeChina #FechaLimite #DTDCargo'},
+];
+let capsBuilt=false;
+function renderCaps(){
+  if(capsBuilt) return; capsBuilt=true;
+  const g=document.getElementById('cap-grid');
+  CAPS.forEach(c=>{
+    const card=document.createElement('div'); card.className='cap-card';
+    card.innerHTML='<h4>'+c.t+'</h4><div class="cap-body">'+c.body.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</div><div class="cap-tags">'+c.tags+'</div><div class="row"><button class="alt" type="button">⧉ Copiar caption + tags</button></div>';
+    card.querySelector('button').addEventListener('click', e=>{
+      const b=e.currentTarget;
+      copyText(c.body+'\n\n'+c.tags).then(ok=>copyFeedback(b,ok));
+    });
+    g.appendChild(card);
+  });
+}
+
+// ── Metadata PNG (tEXt · provenance/copyright) ──
+const _L1=s=>Uint8Array.from(Array.from(String(s).replace(/→/g,'->').replace(/[—–]/g,'-')),c=>{const k=c.charCodeAt(0);return k>0xFF?0x2D:k;});
+const _CRC=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function _crc32(b,s,e){let c=0xFFFFFFFF;for(let i=s;i<e;i++)c=_CRC[(c^b[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function _tEXt(k,t){const kw=_L1(k),tx=_L1(t),len=kw.length+1+tx.length;const c=new Uint8Array(12+len),dv=new DataView(c.buffer);dv.setUint32(0,len);c.set([0x74,0x45,0x58,0x74],4);c.set(kw,8);c[8+kw.length]=0;c.set(tx,9+kw.length);dv.setUint32(8+len,_crc32(c,4,8+len));return c;}
+function addPngText(png,entries){const chunks=entries.map(([k,v])=>_tEXt(k,v));const extra=chunks.reduce((s,c)=>s+c.length,0);const out=new Uint8Array(png.length+extra);out.set(png.subarray(0,33),0);let off=33;for(const c of chunks){out.set(c,off);off+=c.length;}out.set(png.subarray(33),off);return out;}
+
+// ── captura ──
+async function dl(id,name,w,h){
+  await (document.fonts?document.fonts.ready:Promise.resolve());
+  const node=document.getElementById(id);
+  const canvas=await html2canvas(node,{width:w,height:h,scale:1,backgroundColor:'#0F1E3D',useCORS:true,
+    onclone:(doc)=>{
+      const c=doc.getElementById(id); if(c){ c.style.transform='none'; if(c.parentElement) c.parentElement.style.overflow='visible'; }
+      const st=doc.getElementById('st-safe-top'), sb=doc.getElementById('st-safe-bot'); if(st)st.style.display='none'; if(sb)sb.style.display='none';
+    }});
+  const bin=atob(canvas.toDataURL('image/png').split(',')[1]); let png=new Uint8Array(bin.length);
+  for(let k=0;k<bin.length;k++) png[k]=bin.charCodeAt(k);
+  png=addPngText(png,[
+    ['Title','DTD Cargo - pieza de redes'],
+    ['Description','Pieza de redes sociales DTD Cargo - logistica puerta a puerta China-Venezuela'],
+    ['Author','DTD Cargo'],['Copyright','(c) 2026 DTD Cargo - dtdcargo.com'],
+    ['Source','https://dtdcargo.com'],['Software','DTD Cargo - generador de piezas para redes'],
+  ]);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([png],{type:'image/png'}));
+  a.download='dtd-'+name+'-'+Date.now()+'.png'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  logPieza(a.download);
+}
+// ── Registro pieza→campaña · seam compartido con el ERP (Estudio de Redes) ──
+function logPieza(file){
+  try{
+    const k='dtd-piezas-log';
+    const tag=currentTag||(()=>{ try{ return new URLSearchParams(location.search).get('pz_tag')||null; }catch(e){ return null; } })();
+    const arr=JSON.parse(localStorage.getItem(k)||'[]');
+    arr.unshift({ id:'pz-'+Date.now()+'-'+Math.floor(Math.random()*1e4), ts:new Date().toISOString(), file:file, origen:'Generador Redes', campaign:null, tag:tag, state:tag?'produccion':null });
+    localStorage.setItem(k, JSON.stringify(arr.slice(0,300)));
+  }catch(e){}
+}
+// ── Prefill desde el ERP (Estudio de Redes · calendario) ──
+window.addEventListener('load',()=>{
+  const P=new URLSearchParams(location.search);
+  if(!P.has('tab')) return;
+  const tb=parseInt(P.get('tab'),10);
+  const btns=document.querySelectorAll('.tab');
+  if(btns[tb]) showTab(tb,btns[tb]);
+  const set=(id,v,target)=>{ if(v==null) return; const el=document.getElementById(id); if(el){ el.value=v; if(target) txt(target,v); } };
+  if(tb===0){ set('sq-title-in',P.get('pz_t'),'sq-title'); set('sq-key-in',P.get('pz_k'),'sq-key'); if(P.get('pz_badge')){ document.getElementById('sq-badge-in').value=P.get('pz_badge'); badge('sq-badge',P.get('pz_badge')); } }
+  if(tb===1){ set('st-title-in',P.get('pz_t'),'st-title'); set('st-key-in',P.get('pz_k'),'st-key'); }
+  if(tb===4){ set('pr-eg-in',P.get('pz_eg'),'pr-eg'); set('pr-title-in',P.get('pz_t'),'pr-title'); set('pr-big-in',P.get('pz_dd'),'pr-big'); set('pr-sm-in',P.get('pz_mm'),'pr-sm'); set('pr-cta-in',P.get('pz_cta'),'pr-cta'); }
+});
+window.addEventListener('load',()=>{ setTimeout(buildLink,300); });
+</script>
+</body>
+</html>

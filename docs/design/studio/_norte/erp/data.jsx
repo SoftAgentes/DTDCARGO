@@ -173,7 +173,7 @@ const LEADS = [
   { id: 'L-0146', name: 'Felipe Acosta',      company: 'F. Acosta Trading',      source: 'Referido',        stage: 'nuevo',      value: null,  lastTouch: 'hace 1 día',  owner: 'Martina Acuña', whatsapp: false, city: 'Maracaibo',  notes: 'Referido por Castro Hnos', industry: 'Comercial' },
   { id: 'L-0145', name: 'Lorena Bracho',      company: 'BrachoTex',              source: 'LinkedIn',        stage: 'propuesta',  value: 64200, lastTouch: 'hace 6 días', owner: 'Diego Núñez',   whatsapp: true,  city: 'Caracas',    notes: 'Textiles · negociando volumen anual', industry: 'Textil' },
   { id: 'L-0144', name: 'Ricardo Núñez',      company: 'RNT Logística',          source: 'Google Ads',      stage: 'descartado', value: null,  lastTouch: 'hace 2 sem',  owner: 'Martina Acuña', whatsapp: false, city: 'Barquisimeto', notes: 'No tenía volumen suficiente', industry: 'Servicios' },
-  { id: 'L-0143', name: 'Camila Rivero',      company: 'Rivero & Hnos',          source: 'Web · estimador', stage: 'ganado',     value: 28400, lastTouch: 'hace 1 sem',  owner: 'Diego Núñez',   whatsapp: true,  city: 'Valencia',   notes: 'Convertido · MARKBOX DTD-5476 asignado', industry: 'Retail' },
+  { id: 'L-0143', name: 'Camila Rivero',      company: 'Rivero & Hnos',          source: 'Web · estimador', stage: 'ganado',     value: 28400, lastTouch: 'hace 1 sem',  owner: 'Diego Núñez',   whatsapp: true,  city: 'Valencia',   notes: 'Convertido · Shipping Mark DTD-5476 asignado', industry: 'Retail' },
   { id: 'L-0142', name: 'Roberto Méndez',     company: 'Méndez Trading SA',      source: 'Web · estimador', stage: 'nuevo',      value: null,  lastTouch: 'hace 5 h',    owner: 'Martina Acuña', whatsapp: true,  city: 'Caracas',    notes: 'Pidió estimado para electrónicos', industry: 'Tecnología' },
   { id: 'L-0141', name: 'Patricia Sánchez',   company: 'Sánchez Cosmetics',      source: 'Instagram',       stage: 'estimado', value: 22600, lastTouch: 'hace 3 días', owner: 'Martina Acuña', whatsapp: true,  city: 'Valencia',   notes: 'Cosmética desde Guangzhou', industry: 'Belleza' },
   { id: 'L-0140', name: 'Jorge Calderón',     company: 'Calderón Industrial',    source: 'Referido',        stage: 'demo',       value: 88200, lastTouch: 'hace 5 días', owner: 'Diego Núñez',   whatsapp: false, city: 'Maturín',    notes: 'Industrial · potencial Platinum', industry: 'Industrial' },
@@ -181,7 +181,7 @@ const LEADS = [
   { id: 'L-0138', name: 'Esteban Rojas',      company: 'Rojas Tech',             source: 'Web · estimador', stage: 'propuesta',  value: 42800, lastTouch: 'hace 4 días', owner: 'Martina Acuña', whatsapp: true,  city: 'Mérida',     notes: 'Electrónica + accesorios', industry: 'Tecnología' },
   { id: 'L-0137', name: 'Adriana Castillo',   company: 'Castillo & Asoc.',       source: 'Google Ads',      stage: 'nuevo',      value: null,  lastTouch: 'hace 8 h',    owner: 'Martina Acuña', whatsapp: true,  city: 'Caracas',    notes: 'Distribución regional', industry: 'Mayorista' },
   { id: 'L-0136', name: 'Mariana Suárez',     company: 'Suárez Beauty',          source: 'Instagram',       stage: 'demo',       value: 16200, lastTouch: 'hace 7 días', owner: 'Diego Núñez',   whatsapp: true,  city: 'Caracas',    notes: 'Cosmética y cuidado personal', industry: 'Belleza' },
-  { id: 'L-0135', name: 'Pedro Mejías',       company: 'Mejías Construcción',    source: 'Referido',        stage: 'ganado',     value: 54600, lastTouch: 'hace 2 sem',  owner: 'Martina Acuña', whatsapp: false, city: 'Valencia',   notes: 'MARKBOX DTD-5478 · primera importación lista', industry: 'Industrial' },
+  { id: 'L-0135', name: 'Pedro Mejías',       company: 'Mejías Construcción',    source: 'Referido',        stage: 'ganado',     value: 54600, lastTouch: 'hace 2 sem',  owner: 'Martina Acuña', whatsapp: false, city: 'Valencia',   notes: 'Shipping Mark DTD-5478 · primera importación lista', industry: 'Industrial' },
   { id: 'L-0134', name: 'Iván Pérez',         company: 'IP Comercializadora',    source: 'LinkedIn',        stage: 'descartado', value: null,  lastTouch: 'hace 3 sem',  owner: 'Diego Núñez',   whatsapp: false, city: 'Puerto La Cruz', notes: 'No respondió a propuesta', industry: 'Comercial' },
   { id: 'L-0133', name: 'Carolina Mendoza',   company: 'Mendoza Imports',        source: 'Web · estimador', stage: 'propuesta',  value: 36800, lastTouch: 'hace 9 días', owner: 'Diego Núñez',   whatsapp: true,  city: 'Punto Fijo', notes: 'Cerrando negociación tarifa anual', industry: 'Retail' },
 ];
@@ -284,13 +284,13 @@ const MAIL_TEMPLATES = [
     body: { es: `{{client_name}},\n\nTu embarque **{{shipment_id}}** fue entregado en {{destination}} y firmado por **{{signed_by}}**.\n\nAdjunto encontrás el POD (Proof of Delivery).\n\nGracias por elegir DTD-Cargo.` }
   },
   {
-    id: 'm-05', name: 'Bienvenida MARKBOX',
+    id: 'm-05', name: 'Bienvenida Shipping Mark',
     subject: 'Bienvenido a DTD-Cargo · tu código es {{markbox}}',
     category: 'Onboarding', channel: 'email',
     sent: 38, opened: '95%', clicked: '72%', updated: 'hace 2 sem',
     active: true,
     langs: { es: true, en: true, zh: true },
-    body: { es: `¡Bienvenido {{client_name}}!\n\nTu cuenta en DTD-Cargo está activa.\n\n**Tu código MARKBOX:** \`{{markbox}}\`\n\nUsalo cuando coordines envíos desde China. Tus proveedores deben anotarlo en cada caja.\n\n**Acceso al portal:** [{{portal_link}}]({{portal_link}})\n\nDudas o ayuda → respondé este correo.` }
+    body: { es: `¡Bienvenido {{client_name}}!\n\nTu cuenta en DTD-Cargo está activa.\n\n**Tu código Shipping Mark:** \`{{markbox}}\`\n\nUsalo cuando coordines envíos desde China. Tus proveedores deben anotarlo en cada caja.\n\n**Acceso al portal:** [{{portal_link}}]({{portal_link}})\n\nDudas o ayuda → respondé este correo.` }
   },
   {
     id: 'm-06', name: 'Recordatorio de pago',
@@ -299,7 +299,7 @@ const MAIL_TEMPLATES = [
     sent: 12, opened: '83%', clicked: '41%', updated: 'hace 1 mes',
     active: true,
     langs: { es: true, en: false, zh: false },
-    body: { es: `{{client_name}},\n\nTe recordamos que la factura **{{invoice_id}}** por **${'${{amount}}'}** se encuentra vencida hace **{{days}} días**.\n\nPodés regularizar el saldo desde el portal o contactando a finanzas@dtdcargo.com.\n\nGracias.` }
+    body: { es: `{{client_name}},\n\nTe recordamos que la factura **{{invoice_id}}** por **${'${{amount}}'}** se encuentra vencida hace **{{days}} días**.\n\nPuedes regularizar el saldo desde el portal o contactando a finanzas@dtdcargo.com.\n\nGracias.` }
   },
   {
     id: 'm-07', name: 'Aviso ETA · WhatsApp',
@@ -343,7 +343,7 @@ const SUPPLIERS = [
 
 // Cliente ↔ Proveedor relaciones
 // wechatGroup = código del grupo WeChat de seguimiento de la compra:
-// MARKBOX-N, donde N es el orden del proveedor dentro de la lista de ese cliente.
+// Shipping Mark-N, donde N es el orden del proveedor dentro de la lista de ese cliente.
 // El grupo es POR par cliente↔proveedor (cada cliente abre su propio grupo con cada supplier).
 const SUPPLIER_CLIENTS = [
   { supplierId: 'sup-001', clientMarkbox: 'DTD-5452', favorite: true,  shipments: 14, totalValue: 84200, since: '2019-08', wechatGroup: 'DTD-5452-1' },
@@ -362,7 +362,7 @@ const SUPPLIER_CLIENTS = [
 ];
 
 // ── Órdenes esperadas (mercancía en camino, registrada por el cliente) ──
-// El cliente las crea al comprar en China. Código = MARKBOX-proveedor-compra,
+// El cliente las crea al comprar en China. Código = Shipping Mark-proveedor-compra,
 // que ES el nombre del grupo WeChat de seguimiento (wechatGroup + nº de compra).
 // El almacén CN solo VERIFICA sumatorias + docs; al confirmar pasa a recepción.
 const ORDERS = [
@@ -394,7 +394,7 @@ const BLACKLIST = [
 const TEMPLATE_VARIABLES = [
   { group: 'Cliente',   tag: '{{client_name}}',  desc: 'Nombre de contacto del cliente' },
   { group: 'Cliente',   tag: '{{client_company}}', desc: 'Razón social' },
-  { group: 'Cliente',   tag: '{{markbox}}',      desc: 'Código MARKBOX (DTD-XXXX)' },
+  { group: 'Cliente',   tag: '{{markbox}}',      desc: 'Código Shipping Mark (DTD-XXXX)' },
   { group: 'Cliente',   tag: '{{client_email}}', desc: 'Email del contacto' },
   { group: 'Cliente',   tag: '{{client_phone}}', desc: 'Teléfono' },
   { group: 'Cliente',   tag: '{{client_city}}',  desc: 'Ciudad' },
@@ -582,7 +582,7 @@ const CORP_LINES = {
   'Dirección':  { label: 'CEO · Dirección',        phone: '0414 884 0000' },
   'Ventas':     { label: 'Comercial',              phone: '0412 454 5325' },
   'Op. CN':     { label: 'Logística',              phone: '0414 888 8805' },
-  'Op. VE':     { label: 'Transporte',             phone: '0412 495 0884' },
+  'Op. VE':     { label: 'Transporte',             phone: '0424 950 8848' },
   'Finanzas':   { label: 'Contabilidad',           phone: '0414 887 0000' },
   'CX':         { label: 'CRM · Atención cliente',  phone: '0412 166 8021', whatsappApi: true },
   'Admin':      { label: 'Administración',          phone: '0241 414 7886' },
@@ -640,7 +640,7 @@ const USER_PROFILES = {
   },
   'u-005': {
     avatarColor: 'success', roleIcon: 'almacenista',
-    phone: '0412 495 0884', location: 'Puerto Cabello · Almacén VE', presence: 'online',
+    phone: '0424 950 8848', location: 'Puerto Cabello · Almacén VE', presence: 'online',
     lastActive: 'activo ahora', joined: '2021-03-08', title: 'Coordinadora de operaciones VE',
     activity: [
       { icon: 'warehouse', text: 'Desconsolidó DTDU-365044 · 56 CBM', mod: 've', when: 'hace 30 min' },
@@ -701,7 +701,7 @@ const THREADS = {
         { id: 'r1', author: 'u-005', at: 'hace 2 días', body: '@Martina A. recibido. Lo estoy monitoreando — ETA Pto Cabello sigue para el 12 jun. En cuanto el agente confirme liberación te aviso acá mismo.', mentions: ['u-002'], reactions: { '✓': ['u-002'] }, replies: [
           { id: 'r1a', author: 'u-002', at: 'hace 1 día', body: 'Perfecto, gracias. Dejo agendado el flete tentativo para el 13.', mentions: [], reactions: {}, replies: [] },
         ] },
-        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegurate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
+        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegúrate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
           { id: 'r2a', author: 'u-003', at: 'hace 5 h', body: 'Coordinado. Chofer Luis Hernández (T-001) confirmado para el 13 a primera hora.', mentions: [], reactions: { '🔥': ['u-001', 'u-002'] }, replies: [] },
         ] },
       ],
@@ -712,7 +712,7 @@ const THREADS = {
     created: 'hace 4 h', status: 'abierto',
     root: {
       id: 'c30', author: 'u-006', at: 'hace 4 h',
-      body: 'Factura vencida hace 10 días. @Martina A. ¿podés llamar al cliente? Ya mandamos 2 recordatorios automáticos sin respuesta.',
+      body: 'Factura vencida hace 10 días. @Martina A. ¿puedes llamar al cliente? Ya mandamos 2 recordatorios automáticos sin respuesta.',
       mentions: ['u-002'], reactions: {},
       replies: [
         { id: 'fr1', author: 'u-002', at: 'hace 3 h', body: 'Lo llamo hoy. Carlos me comentó la semana pasada que estaban esperando liberar el contenedor para pagar. @Andrés B. ¿le damos 5 días más?', mentions: ['u-006'], reactions: {}, replies: [] },

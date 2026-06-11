@@ -172,7 +172,7 @@ function S1Login() {
         <ToggleRow on={true} title="Recordar este dispositivo" sub="Mantené la sesión iniciada acá. No vas a escribir la contraseña cada vez." />
         <Btn>Entrar</Btn>
         <div style={{ textAlign: 'center', marginTop: 'auto', font: '600 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-          ¿Olvidaste la contraseña?<br/><span style={{ color: 'var(--wine)' }}>Pedí un reset a tu supervisor →</span>
+          ¿Olvidaste la contraseña?<br/><span style={{ color: 'var(--wine)' }}>Pide un reset a tu supervisor →</span>
         </div>
       </div>
     </Screen>
@@ -195,7 +195,7 @@ function S2Trust() {
 
         <div style={{ padding: '12px 14px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', marginBottom: 18 }}>
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            <b>Ramón Briceño · PFI.</b> Creá un PIN de 4 dígitos para entrar rápido. La contraseña ya no hace falta en este equipo.
+            <b>Ramón Briceño · PFI.</b> Crea un PIN de 4 dígitos para entrar rápido. La contraseña ya no hace falta en este equipo.
           </div>
         </div>
 
@@ -228,7 +228,7 @@ function S3Unlock() {
           </div>
         </div>
 
-        <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 14 }}>Ingresá tu PIN</div>
+        <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: 'center', marginBottom: 14 }}>Ingresa tu PIN</div>
         <div style={{ marginBottom: 18 }}><PinDots filled={3} /></div>
         <NumPad />
 
@@ -253,7 +253,7 @@ function S4Bio() {
           <Fingerprint s={56} color="var(--wine-soft)" />
         </div>
         <div style={{ font: '800 21px/1.15 var(--f-display)', color: '#fff', marginTop: 26, letterSpacing: '-0.02em' }}>Desbloqueá con tu huella</div>
-        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>Tocá el sensor del teléfono para entrar.<br/>Tu sesión sigue guardada en este equipo.</div>
+        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 8 }}>Toca el sensor del teléfono para entrar.<br/>Tu sesión sigue guardada en este equipo.</div>
       </div>
       <div style={{ padding: '0 24px 30px' }}>
         <div style={{ width: '100%', height: 48, borderRadius: 'var(--r-md)', border: '1px solid rgba(255,255,255,0.25)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', font: '700 14px/1 var(--f-sans)' }}>Usar PIN</div>
@@ -271,13 +271,13 @@ function S5Expired() {
         <div style={{ width: 76, height: 76, borderRadius: '50%', background: 'var(--warning-bg)', color: 'var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{I.clock(34)}</div>
         <div style={{ marginTop: 22 }}><Eyebrow tone="var(--warning)">SESIÓN EXPIRADA</Eyebrow></div>
         <div style={{ font: '800 20px/1.2 var(--f-display)', color: 'var(--ink)', marginTop: 10, letterSpacing: '-0.02em' }}>Pasaron 90 días sin actividad</div>
-        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 10 }}>Por seguridad cerramos la sesión en este teléfono. Volvé a iniciar sesión una vez y listo.</div>
+        <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 10 }}>Por seguridad cerramos la sesión en este teléfono. Vuelve a iniciar sesión una vez y listo.</div>
       </div>
       <div style={{ padding: '0 22px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <Btn><span style={{ display: 'inline-flex', marginRight: 2 }}>{I.refresh(15)}</span> Volver a iniciar sesión</Btn>
         <div style={{ display: 'flex', gap: 8, padding: '10px 12px', background: 'var(--success-bg)', borderRadius: 'var(--r-md)' }}>
           <span style={{ color: 'var(--success)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.shield(15)}</span>
-          <span style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Tus datos siguen seguros — solo confirmamos que seas vos.</span>
+          <span style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Tus datos siguen seguros — solo confirmamos que seas tú.</span>
         </div>
       </div>
     </Screen>

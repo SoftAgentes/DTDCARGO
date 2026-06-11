@@ -83,7 +83,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
   }), [filtered]);
 
   function exportCSV() {
-    const head = ['ID', 'Tipo', 'Cliente', 'MARKBOX', 'Origen', 'Destino', 'CBM', 'Peso kg', 'Estado', 'Progreso %', 'ETD', 'ETA', 'Valor USD'];
+    const head = ['ID', 'Tipo', 'Cliente', 'Shipping Mark', 'Origen', 'Destino', 'CBM', 'Peso kg', 'Estado', 'Progreso %', 'ETD', 'ETA', 'Valor USD'];
     const lines = filtered.map(r => [
       r.id, r.type, r.clientName, r.client,
       D.origin(r.origin).name, D.dest(r.destination).name,
@@ -157,7 +157,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
       <U.Toolbar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por ID, cliente o MARKBOX…"
+        searchPlaceholder="Buscar por ID, cliente o Shipping Mark…"
         filters={
           <>
             <U.Select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} options={[
@@ -209,7 +209,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
         <U.EmptyState
           icon={window.Icon.box(22)}
           title="No hay embarques que coincidan"
-          body="Ajustá los filtros o creá un embarque nuevo desde un estimado aceptado."
+          body="Ajusta los filtros o crea un embarque nuevo desde un estimado aceptado."
           action={<U.Btn variant="primary" onClick={() => { setSearch(''); setTab('all'); setTypeFilter('all'); }}>Limpiar filtros</U.Btn>}
         />
       ) : viewMode === 'kanban' ? (
@@ -340,7 +340,7 @@ function ShipmentDetail({ s }) {
       {/* Key fields */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 18 }}>
         <U.Field label="Cliente" value={s.clientName} />
-        <U.Field label="MARKBOX" value={s.client} mono />
+        <U.Field label="Shipping Mark" value={s.client} mono />
         <U.Field label="Tipo" value={s.type} />
         <U.Field label="Origen" value={`${D.origin(s.origin).name} (${D.origin(s.origin).cn})`} />
         <U.Field label="Destino" value={D.dest(s.destination).name} />
@@ -500,8 +500,8 @@ function ShipmentForm() {
         </div>
       </div>
 
-      <U.Select label="Cliente · MARKBOX" value={client} onChange={(e) => setClient(e.target.value)} options={[
-        { value: '', label: 'Seleccioná cliente…' },
+      <U.Select label="Cliente · Shipping Mark" value={client} onChange={(e) => setClient(e.target.value)} options={[
+        { value: '', label: 'Selecciona cliente…' },
         ...D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.markbox} · ${c.company}` })),
       ]} />
 

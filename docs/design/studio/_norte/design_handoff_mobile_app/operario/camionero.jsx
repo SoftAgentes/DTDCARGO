@@ -1,12 +1,12 @@
 /* global React */
-/* ── DTD · Transportista (mobile · GPS + entregas en ruta) ───────── */
+/* ── DTD · Camionero (mobile · GPS + entregas en ruta) ───────── */
 /* App del transportista. Visualiza ruta del día con GPS, ve     */
 /* foto de fachada del cliente, marca llegada y POD por parada.  */
 
 (function () {
   const { useState, useEffect, useRef } = React;
 
-  // ── Ruta asignada por el almacenista ───────────────────────────
+  // ── Ruta asignada por el bodeguero ───────────────────────────
   const ROUTE = {
     id: 'R-002',
     name: 'Valencia → Caracas + 2 paradas',
@@ -27,7 +27,7 @@
   ];
 
   // ── App ──────────────────────────────────────────────────────
-  function TransportistaApp({ fixedTheme }) {
+  function CamioneroApp({ fixedTheme }) {
     const [internalTheme, setInternalTheme] = useState('dark');
     const theme = fixedTheme || internalTheme;
     const themeControlled = !!fixedTheme;
@@ -504,7 +504,7 @@
         }}>{I.check(36)}</div>
         <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>¡Ruta completada!</div>
         <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>
-          Entregaste los <b style={{ color: 'var(--success)' }}>{total} paquetes</b>. Ya podés volver a Valencia.
+          Entregaste los <b style={{ color: 'var(--success)' }}>{total} paquetes</b>. Ya puedes volver a Valencia.
         </div>
       </div>
     );
@@ -650,7 +650,7 @@
     );
   }
 
-  // Inyecta animaciones del transportista
+  // Inyecta animaciones del camionero
   if (typeof document !== 'undefined' && !document.getElementById('__cam-anim')) {
     const s = document.createElement('style');
     s.id = '__cam-anim';
@@ -662,5 +662,5 @@
     document.head.appendChild(s);
   }
 
-  window.TransportistaApp = TransportistaApp;
+  window.CamioneroApp = CamioneroApp;
 })();

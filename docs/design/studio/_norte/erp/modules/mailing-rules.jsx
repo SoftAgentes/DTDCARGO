@@ -11,7 +11,7 @@ function MailingRules() {
     { trigger: 'Embarque · estado → "zarpado"',          action: '"Embarque confirmado"',         channel: 'email',    delay: 'inmediato', active: true },
     { trigger: 'Embarque · ETA estimada se atrasa +1d', action: '"ETA en riesgo"',               channel: 'email+wa', delay: 'inmediato', active: true },
     { trigger: 'Embarque · estado → "entregado" / POD',  action: '"POD firmado"',                 channel: 'email',    delay: 'inmediato', active: true },
-    { trigger: 'Cliente · alta nueva (MARKBOX asign.)',  action: '"Bienvenida MARKBOX"',          channel: 'email',    delay: 'inmediato', active: true },
+    { trigger: 'Cliente · alta nueva (Shipping Mark asign.)',  action: '"Bienvenida Shipping Mark"',          channel: 'email',    delay: 'inmediato', active: true },
     { trigger: 'Factura · vence en 3 días sin pago',    action: '"Recordatorio de pago" suave',  channel: 'email',    delay: '08:00 AM',  active: true },
     { trigger: 'Factura · 7 días vencida',              action: '"Recordatorio de pago" firme + cc agente', channel: 'email+wa', delay: '09:00 AM', active: true },
     { trigger: 'Embarque · paso por hito (Canal, etc.)', action: 'Aviso ETA · WhatsApp',          channel: 'wa',       delay: 'inmediato', active: true },

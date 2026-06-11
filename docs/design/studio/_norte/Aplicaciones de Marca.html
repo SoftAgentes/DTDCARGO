@@ -358,9 +358,9 @@ h3 { font-family: var(--f-display); font-size: 15px; margin: 0 0 6px; letter-spa
 /* ── 10 Watermark photo ────────────────────────────────── */
 .photo-mock { width: 100%; aspect-ratio: 4/3; background: linear-gradient(135deg, #B0967A 0%, #6B5B43 100%); border-radius: var(--r-md); position: relative; overflow: hidden; }
 .photo-mock::before { content: ''; position: absolute; inset: 0; background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.04) 0px, rgba(0,0,0,0.04) 2px, transparent 2px, transparent 8px); }
-.photo-watermark { position: absolute; bottom: 16px; right: 16px; display: flex; align-items: center; gap: 8px; padding: 6px 10px 6px 6px; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); border-radius: var(--r-pill); color: white; font: 600 10.5px/1.2 var(--f-mono); }
-.photo-watermark img { width: 22px; height: auto; }
-.photo-watermark .info .ts { display: block; font-size: 9px; opacity: 0.7; margin-top: 2px; }
+.photo-watermark { position: absolute; bottom: 12px; right: 12px; display: flex; align-items: center; gap: 7px; padding: 5px 9px 5px 6px; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); border-radius: var(--r-pill); color: rgba(255,255,255,0.92); font: 600 10px/1.2 var(--f-mono); }
+.photo-watermark img { width: 16px; height: auto; opacity: 0.9; }
+.photo-watermark .info .ts { display: block; font-size: 8.5px; opacity: 0.65; margin-top: 2px; letter-spacing: 0.02em; }
 
 /* ── 11 Container sticker ──────────────────────────────── */
 .sticker { background: white; border: 2px solid #0F1E3D; border-radius: 6px; padding: 20px; aspect-ratio: 1/1; display: grid; grid-template-rows: auto 1fr auto; gap: 14px; }
@@ -382,6 +382,12 @@ h3 { font-family: var(--f-display); font-size: 15px; margin: 0 0 6px; letter-spa
 .sticker-pack .item .anim { width: 92%; height: 92%; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4)); }
 .sticker-pack .item .label { font: 700 9px/1 var(--f-mono); color: rgba(255,255,255,0.55); letter-spacing: 0.08em; }
 
+/* Imprimir SOLO la factura demo (data-print="doc") */
+@media print {
+  body.print-doc-only * { visibility: hidden !important; }
+  body.print-doc-only #factura-demo, body.print-doc-only #factura-demo * { visibility: visible !important; }
+  body.print-doc-only #factura-demo { position: absolute !important; left: 0; top: 0; width: 100%; box-shadow: none !important; border: 0 !important; }
+}
 @media (max-width: 900px) {
   .row-2, .row-3, .row-4 { grid-template-columns: 1fr; }
   .emoji-grid, .sticker-pack { grid-template-columns: repeat(4, 1fr); }
@@ -425,7 +431,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
       <div class="browser-mock">
         <div class="url-bar">
           <img src="assets/dtdcargo-isologo-primary.png" alt=""/>
-          <span>portal.dtdcargo.com · MARKBOX DTD-5475</span>
+          <span>portal.dtdcargo.com · Shipping Mark DTD-5475</span>
         </div>
         <div class="body">Así se ve cuando un cliente abre el portal — pequeño pero reconocible.</div>
       </div>
@@ -442,7 +448,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
   <div class="row-2">
     <div class="card">
       <div class="card-label">Factura · plantilla A4</div>
-      <div class="doc-paper">
+      <div class="doc-paper" id="factura-demo">
         <div class="doc-header">
           <div class="brand">
             <div class="lockup">
@@ -450,7 +456,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
               <span class="mark"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
             </div>
             <div class="meta">
-              RIF J-50648869-8<br/>
+              RIF J-410322887<br/>
               Av. Bolívar Norte 14, Valencia · VE<br/>
               info@dtdcargo.com · +58 241 414 7886
             </div>
@@ -518,11 +524,29 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
     <div><div class="num">04 / Email</div><h2>Firma corporativa</h2></div>
     <p>HTML embebible en Gmail / Outlook. Personalizable por empleado.</p>
   </div>
+  <div class="card" style="margin-bottom: 16px; padding: 16px 18px;">
+    <div class="card-label">Empleado nuevo · escribe y la firma se actualiza sola</div>
+    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
+      <label style="display: flex; flex-direction: column; gap: 5px; font: 700 10px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft);">Nombre
+        <input id="sig-in-name" type="text" value="Andrés Bermúdez" style="font: 600 13px/1.2 var(--f-sans); color: var(--ink); padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg-surface);">
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 5px; font: 700 10px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft);">Cargo / función
+        <input id="sig-in-role" type="text" value="Contabilidad" style="font: 600 13px/1.2 var(--f-sans); color: var(--ink); padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg-surface);">
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 5px; font: 700 10px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft);">Teléfono
+        <input id="sig-in-phone" type="text" value="+58 414 887 0000" style="font: 600 13px/1.2 var(--f-mono); color: var(--ink); padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg-surface);">
+      </label>
+      <label style="display: flex; flex-direction: column; gap: 5px; font: 700 10px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft);">Correo
+        <input id="sig-in-mail" type="text" value="andres@dtdcargo.com" style="font: 600 13px/1.2 var(--f-mono); color: var(--ink); padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--r-sm); background: var(--bg-surface);">
+      </label>
+    </div>
+    <p style="font: 500 11.5px/1.5 var(--f-sans); color: var(--ink-mute); margin: 10px 0 0;">Logo, dirección y datos de la empresa quedan fijos — solo cambian los datos de la persona. Al terminar: <b>⧉ Copiar HTML</b> y pegar en Gmail/Outlook.</p>
+  </div>
   <div class="row-2">
     <div class="card">
       <div class="card-label">Preview · Gmail</div>
       <div class="email-mock">
-        <div class="email-head"><strong style="color: var(--ink); font-weight: 700;">Andrés Bermúdez</strong> · andres@dtdcargo.com · hoy 10:42</div>
+        <div class="email-head"><strong style="color: var(--ink); font-weight: 700;" id="sig-head-name">Andrés Bermúdez</strong> · <span id="sig-head-mail">andres@dtdcargo.com</span> · hoy 10:42</div>
         <div class="email-body">
           <p>Estimada Sra. Mendoza,</p>
           <p>Adjunto la factura F-2026-0447 correspondiente al embarque DTDU-472819 que arribó al puerto de La Guaira el lunes pasado. El total queda en USD 9,320 a 7 días.</p>
@@ -531,10 +555,10 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
           <div class="signature">
             <img src="assets/dtdcargo-isologo-primary.png" class="logo" alt=""/>
             <div class="info">
-              <div class="name">Andrés Bermúdez</div>
-              <div class="title">Contabilidad · DTD-Cargo</div>
+              <div class="name" id="sig-name">Andrés Bermúdez</div>
+              <div class="title" id="sig-title">Contabilidad · DTD-Cargo</div>
               <div class="contact">
-                ☎ +58 414 887 0000 · <a href="mailto:andres@dtdcargo.com">andres@dtdcargo.com</a><br/>
+                ☎ <span id="sig-phone">+58 414 887 0000</span> · <a id="sig-mail" href="mailto:andres@dtdcargo.com">andres@dtdcargo.com</a><br/>
                 Av. Bolívar Norte 14, Valencia · Venezuela
               </div>
               <div class="social">
@@ -666,6 +690,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
         <p style="font-size: 14px; color: var(--ink-soft); margin: 8px 0 16px;">
           Generado con corrección de error nivel H (30%) para que el logo central no rompa la lectura. Los 3 cuadros de orientación usan paleta navy/wine en vez del negro estándar.
         </p>
+        <a href="Generador Redes · DTD-Cargo.html?tab=2" target="_blank" rel="noopener" style="display:inline-block; font: 700 12.5px/1 var(--f-sans); color: var(--wine); text-decoration: none; margin-bottom: 16px;">Generar QR de marca → multidestino (YouTube · Instagram · TikTok · WhatsApp · enlace específico)</a>
         <div style="display: flex; gap: 24px; padding: 14px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);">
           <div><div style="font: 700 11px/1 var(--f-mono); color: var(--ink-soft); margin-bottom: 6px;">URL</div><div style="font: 500 13px/1 var(--f-mono); color: var(--ink);">dtdcargo.com/t/DTDU-472</div></div>
           <div><div style="font: 700 11px/1 var(--f-mono); color: var(--ink-soft); margin-bottom: 6px;">Tamaño</div><div style="font: 500 13px/1 var(--f-mono); color: var(--ink);">≥ 25 × 25 mm</div></div>
@@ -743,7 +768,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
 <div class="section">
   <div class="section-head">
     <div><div class="num">10 / Watermark</div><h2>Marca de agua en fotos de mercadería</h2></div>
-    <p>Cada foto que sube el almacenista o el inspector lleva la marca DTD + el ID del embarque. Trazabilidad + branding.</p>
+    <p>Cada foto que sube el bodeguero o el inspector lleva la marca DTD + el ID del embarque. Trazabilidad + branding.</p>
   </div>
   <div class="row-2">
     <div class="card">
@@ -754,21 +779,22 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
         </div>
         <div class="photo-watermark">
           <img src="assets/dtdcargo-isologo-mono-light.png" alt=""/>
-          <div class="info"><strong>DTDU-472819</strong><span class="ts">24 Mayo 2026 · 14:32 · YIW-A1</span></div>
+          <div class="info"><strong>DTD-5532</strong><span class="ts">24 May 2026 · 14:32 · YIW-A1</span></div>
         </div>
       </div>
     </div>
     <div class="card paper">
       <div class="card-label">Aplicación</div>
       <p style="font-size: 13.5px; color: var(--ink-soft); margin: 0 0 12px;">
-        El almacenista saca foto desde la app móvil, el sistema le pega automáticamente:
+        El bodeguero saca foto desde la app móvil, el sistema le pega automáticamente:
       </p>
       <ul style="margin: 0; padding-left: 20px; color: var(--ink-soft); font-size: 13px;">
-        <li>Isólogo cream en esquina (mono-light)</li>
-        <li>ID embarque + fecha/hora + bodega</li>
+        <li>Isólogo cream en esquina (mono-light), pequeño</li>
+        <li>Shipping Mark (<code style="font-family:var(--f-mono); font-size:11.5px;">DTD-XXXX</code>) + fecha/hora + bodega · JetBrains Mono</li>
         <li>Counter "X de Y cajas" arriba a la izquierda</li>
-        <li>Backdrop oscuro semi-transparente (4px blur)</li>
+        <li>Backdrop discreto: <code style="font-family:var(--f-mono); font-size:11.5px;">rgba(0,0,0,0.3)</code> + blur 4px</li>
       </ul>
+      <p style="font-size: 12.5px; color: var(--ink); margin: 12px 0 0; font-weight: 600;">Regla: el watermark es silencioso — sella sin competir con la foto. Nunca más grande, nunca más opaco, nunca centrado.</p>
       <p style="font-size: 12.5px; color: var(--ink-soft); margin: 14px 0 0; padding-top: 12px; border-top: 1px solid var(--border);">
         <strong style="color: var(--ink);">Beneficios:</strong> trazabilidad legal · evidencia ante reclamos · branding orgánico en cada foto compartida.
       </p>
@@ -780,11 +806,11 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
 <div class="section">
   <div class="section-head">
     <div><div class="num">11 / Sticker</div><h2>Etiqueta de caja imprimible</h2></div>
-    <p>Diseño A6 (105 × 148 mm) listo para impresora térmica. QR + MARKBOX + datos logísticos.</p>
+    <p>Diseño A6 (105 × 148 mm) listo para impresora térmica. QR + Shipping Mark + datos logísticos.</p>
   </div>
   <div class="row-3">
     <div class="card">
-      <div class="card-label">Sticker · MARKBOX DTD-5475</div>
+      <div class="card-label">Sticker · Shipping Mark DTD-5475</div>
       <div class="sticker">
         <div class="sticker-head">
           <img src="assets/dtdcargo-isologo-primary.png" alt=""/>
@@ -833,17 +859,16 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
 </div>
 
 <!-- ═══ 12 · WHATSAPP STICKER PACK ═══════════════════════ -->
-<div class="section">
+<div class="section" id="sec-stickers">
   <div class="section-head">
-    <div><div class="num">12 / Stickers</div><h2>WhatsApp sticker pack animado</h2></div>
-    <p>12 stickers redondos (512×512, fondo transparente) reusando los íconos de marca. Listos para enviar por WhatsApp — diferenciador de marca en chats.</p>
+    <div><div class="num">12 / Stickers</div><h2>WhatsApp sticker pack · 17 piezas</h2></div>
+    <p>17 stickers con texto (512×512, fondo transparente): marca, estados de envío y saludos — se entienden solos en el chat. El pack oficial de WhatsApp.</p>
   </div>
   <div class="card dark">
-    <div class="card-label">DTD-Cargo pack · 12 stickers <span class="tag-ok">.webp · 512×512 · transparente</span></div>
+    <div class="card-label">DTD-Cargo pack · 17 stickers <span class="tag-ok">.png · 512×512 · transparente</span></div>
     <div class="sticker-pack" id="sticker-pack"></div>
     <div class="actions" style="margin-top: 16px;">
-      <button class="btn primary" id="dl-stickers-zip">↓ Descargar pack (.webp 512)</button>
-      <button class="btn" id="dl-stickers-png" style="background: rgba(255,255,255,0.08); color: white; border-color: rgba(255,255,255,0.18);">↓ PNG transparente</button>
+      <button class="btn primary" id="dl-stickers-zip">↗ Abrir Sticker Pack · descargar PNG 512</button>
     </div>
   </div>
 
@@ -865,9 +890,9 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
     <div class="card">
       <div class="card-label">Cómo subirlos a WhatsApp</div>
       <ol style="margin:0; padding-left:18px; font-size:13px; color:var(--ink-soft); line-height:1.85;">
-        <li>Descargá los stickers (ya vienen <b>redondos, 512×512, transparentes</b>).</li>
-        <li>Para enviar uno suelto: WhatsApp → adjuntar → <b>Sticker</b> → elegí la imagen y mandá (WhatsApp le agrega el borde blanco solo).</li>
-        <li>Para un <b>pack instalable</b>: usá una app de stickers (ej. <b>Sticker.ly</b> o “Stickers para WhatsApp”), creá el pack y subí los 12 <code>.webp</code>.</li>
+        <li>Descarga los stickers (ya vienen en <b>512×512, transparentes</b>).</li>
+        <li>Para enviar uno suelto: WhatsApp → adjuntar → <b>Sticker</b> → elige la imagen y manda (WhatsApp le agrega el borde blanco solo).</li>
+        <li>Para un <b>pack instalable</b>: usa una app de stickers (ej. <b>Sticker.ly</b> o “Stickers para WhatsApp”), crea el pack y sube los 17 <code>.webp</code>.</li>
         <li>El fondo transparente hace que el sticker se vea redondo sobre cualquier chat — claro u oscuro.</li>
       </ol>
     </div>
@@ -906,7 +931,7 @@ function makeSeal(diameter) {
       </text>
       <!-- Curved text bottom -->
       <text font-family="JetBrains Mono" font-weight="700" font-size="${diameter * 0.05}" fill="#7F0F1A" letter-spacing="${diameter * 0.016}">
-        <textPath href="#seal-text-arc-bottom-${diameter}" startOffset="50%" text-anchor="middle">RIF · J-50648869-8</textPath>
+        <textPath href="#seal-text-arc-bottom-${diameter}" startOffset="50%" text-anchor="middle">RIF · J-410322887</textPath>
       </text>
       <!-- Center isologo placeholder -->
       <g transform="translate(${cx - r*0.28} ${cy - r*0.34})">
@@ -975,74 +1000,50 @@ document.getElementById('emoji-grid').innerHTML = EMOJIS.map(e =>
 ).join('');
 
 // ── WhatsApp sticker pack ──────────────────────────
-const STICKERS = [
-  { label: '01', glyph: ':enviado:' },
-  { label: '02', glyph: ':recibido:' },
-  { label: '03', glyph: ':camion:' },
-  { label: '04', glyph: ':buque:' },
-  { label: '05', glyph: ':aprobado:' },
-  { label: '06', glyph: ':dolar:' },
-  { label: '07', glyph: ':alerta:' },
-  { label: '08', glyph: ':urgente:' },
-  { label: '09', glyph: ':bodega:' },
-  { label: '10', glyph: ':aduana:' },
-  { label: '11', glyph: ':china:' },
-  { label: '12', glyph: ':listo:' },
+const STICKERS17 = [
+  { kind:'brand' },
+  { kind:'iso' },
+  { em:'🚢', tx:'¡Tu carga<br>ya salió!' },
+  { em:'🌊', tx:'En tránsito' },
+  { em:'📋', tx:'En aduana' },
+  { em:'📦', tx:'En bodega' },
+  { em:'✅', tx:'¡Entregado!' },
+  { em:'🏗️', tx:'Consolidando' },
+  { em:'☀️', tx:'¡Buen día!', wine:true },
+  { em:'🙌', tx:'¡A la orden!', wine:true },
+  { em:'👍', tx:'¡Listo!', wine:true },
+  { em:'🙏', tx:'¡Gracias! 谢谢', wine:true },
+  { em:'💬', tx:'¿Dudas?<br>Escríbenos' },
+  { em:'💵', tx:'Pago<br>confirmado' },
+  { em:'🧮', tx:'Cotiza<br>tu DDP' },
+  { em:'🌏', tx:'China →<br>Venezuela' },
+  { em:'🤝', tx:'Con<br>Confianza' },
 ];
-document.getElementById('sticker-pack').innerHTML = STICKERS.map(s => {
-  const emoji = EMOJIS.find(e => e.name === s.glyph);
-  return `<div class="item"><svg class="anim" viewBox="0 0 100 100"><g transform="translate(5 5) scale(0.9)">${emoji.svg}</g><circle cx="50" cy="50" r="47" fill="none" stroke="#FFFFFF" stroke-width="3"/></svg><span class="label">${s.label}</span></div>`;
-}).join('');
-
-// ── Export stickers · 512×512 transparente (redondo + aro blanco) ──
-function stickerSVG(emoji){
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="512" height="512">`
-    + `<g transform="translate(5 5) scale(0.9)">${emoji.svg}</g>`
-    + `<circle cx="50" cy="50" r="47" fill="none" stroke="#FFFFFF" stroke-width="3"/></svg>`;
-}
-function renderSticker(emoji){
-  return new Promise((res, rej) => {
-    const svg = stickerSVG(emoji);
-    const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
-    const img = new Image();
-    img.onload = () => {
-      const c = document.createElement('canvas'); c.width = 512; c.height = 512;
-      const ctx = c.getContext('2d'); ctx.clearRect(0,0,512,512);
-      ctx.drawImage(img, 0, 0, 512, 512);
-      res(c);
-    };
-    img.onerror = rej;
-    img.src = url;
-  });
-}
-function canvasBlob(c, type){ return new Promise(r => c.toBlob(r, type)); }
-function triggerDL(blob, name){
-  const u = URL.createObjectURL(blob); const a = document.createElement('a');
-  a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(u), 3000);
-}
-async function exportStickers(type){
-  await (document.fonts ? document.fonts.ready : Promise.resolve());
-  const ext = type === 'image/webp' ? 'webp' : 'png';
-  for (let i=0;i<STICKERS.length;i++){
-    const emoji = EMOJIS.find(e => e.name === STICKERS[i].glyph);
-    const c = await renderSticker(emoji);
-    let blob = await canvasBlob(c, type);
-    if (!blob) blob = await canvasBlob(c, 'image/png');
-    triggerDL(blob, 'DTDCargo-sticker-' + STICKERS[i].label + '.' + ext);
-    await new Promise(r => setTimeout(r, 220)); // espaciar descargas
-  }
-  showToast('Descargando 12 stickers · ' + ext.toUpperCase() + ' 512×512 transparente');
-}
-document.getElementById('dl-stickers-zip').addEventListener('click', () => exportStickers('image/webp'));
-document.getElementById('dl-stickers-png').addEventListener('click', () => exportStickers('image/png'));
+const _stkBox = (s) => {
+  const bg = s.wine ? '#7F0F1A' : '#0F1E3D';
+  if (s.kind === 'brand') return `<div style="width:88%;height:88%;border-radius:24%;border:4px solid #fff;background:#0F1E3D;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;"><img src="assets/dtdcargo-isologo-reverse.png" style="width:34%;" alt=""/><div style="font-family:'Archivo Black',sans-serif;font-size:13px;"><span style="color:#C2747F">DTD</span> <span style="color:#fff">Cargo</span></div></div>`;
+  if (s.kind === 'iso') return `<div style="width:88%;height:88%;border-radius:50%;border:4px solid #fff;background:#fff;display:flex;align-items:center;justify-content:center;"><img src="assets/dtdcargo-isologo-primary.png" style="width:52%;" alt=""/></div>`;
+  return `<div style="width:88%;height:88%;border-radius:24%;border:4px solid #fff;background:${bg};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;text-align:center;"><span style="font-size:26px;line-height:1;">${s.em}</span><span style="font-family:'Archivo Black','Noto Sans SC',sans-serif;font-size:10.5px;line-height:1.12;color:#fff;">${s.tx}</span></div>`;
+};
+document.getElementById('sticker-pack').innerHTML = STICKERS17.map((s, i) =>
+  `<div class="item">${_stkBox(s)}<span class="label">${String(i + 1).padStart(2, '0')}</span></div>`
+).join('');
+document.getElementById('dl-stickers-zip').addEventListener('click', () => window.open('Sticker Pack · DTD-Cargo.html', '_blank'));
 
 // ── Copy signature HTML ─────────────────────────────
 document.querySelector('[data-copy-sig]')?.addEventListener('click', async () => {
   const html = document.querySelector('.signature').outerHTML;
   await navigator.clipboard.writeText(html);
-  showToast('HTML de firma copiado · pegá en Gmail/Outlook');
+  showToast('HTML de firma copiado · pega en Gmail/Outlook');
 });
+// ── Firma interactiva · los datos de la persona actualizan el preview en vivo ──
+(function () {
+  const bind = (inId, apply) => { const el = document.getElementById(inId); if (el) el.addEventListener('input', () => apply(el.value)); };
+  bind('sig-in-name', v => { const n = v || '—'; const a = document.getElementById('sig-name'); if (a) a.textContent = n; const h = document.getElementById('sig-head-name'); if (h) h.textContent = n; });
+  bind('sig-in-role', v => { const t = document.getElementById('sig-title'); if (t) t.textContent = (v || '—') + ' · DTD-Cargo'; });
+  bind('sig-in-phone', v => { const p = document.getElementById('sig-phone'); if (p) p.textContent = v || '—'; });
+  bind('sig-in-mail', v => { const m = document.getElementById('sig-mail'); if (m) { m.textContent = v || '—'; m.href = 'mailto:' + v; } const h = document.getElementById('sig-head-mail'); if (h) h.textContent = v || '—'; });
+})();
 document.querySelector('[data-copy-seal]')?.addEventListener('click', async () => {
   const svg = document.getElementById('seal-big').innerHTML;
   await navigator.clipboard.writeText(svg);
@@ -1081,7 +1082,7 @@ document.querySelectorAll('.btn').forEach(b => {
     b.addEventListener('click', () => _busy(b, async () => {
       const doc='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>DTD-Cargo · Estimado</title></head><body style="font-family:Arial,sans-serif;color:#0F1E3D;">'
         +'<table width="100%"><tr><td><h1 style="color:#7F0F1A;margin:0;">DTD<span style="color:#0F1E3D;">Cargo</span></h1><div style="font-size:11px;color:#6B6B6B;">Doortudoor Services · RIF J-40558712-0</div></td><td align="right"><b>ESTIMADO</b><br>N°: F-2026-____<br>Fecha: __ / __ / 2026</td></tr></table><hr>'
-        +'<p><b>Cliente:</b> ____________________  ·  <b>MARKBOX:</b> DTD-____</p>'
+        +'<p><b>Cliente:</b> ____________________  ·  <b>Shipping Mark:</b> DTD-____</p>'
         +'<table border="1" cellspacing="0" cellpadding="6" width="100%" style="border-collapse:collapse;font-size:13px;"><tr style="background:#F2F0EC;"><th align="left">Concepto</th><th align="right">Monto USD</th></tr><tr><td>Flete marítimo FCL</td><td align="right">$________</td></tr><tr><td>Servicio DDP · puerta a puerta</td><td align="right">$________</td></tr><tr><td>Seguro de carga</td><td align="right">$________</td></tr><tr><td align="right"><b>Total</b></td><td align="right"><b>$________</b></td></tr></table>'
         +'<p style="font-size:12px;color:#6B6B6B;">Con Confianza, de China a tu puerta.</p></body></html>';
       _dlBlob(new Blob([doc],{type:'application/msword'}),'DTDCargo-Cotizacion-template.doc'); showToast('Template Word (.doc) descargado');
@@ -1108,7 +1109,7 @@ document.querySelectorAll('.btn').forEach(b => {
     return;
   }
   // PDF imprimible
-  if (label.includes('PDF imprimible') || label.includes('⎙')) { b.addEventListener('click', () => window.print()); return; }
+  if (label.includes('PDF imprimible') || label.includes('⎙')) { b.addEventListener('click', () => { if (b.dataset.print === 'doc') { document.body.classList.add('print-doc-only'); const off = () => { document.body.classList.remove('print-doc-only'); window.removeEventListener('afterprint', off); }; window.addEventListener('afterprint', off); window.print(); setTimeout(off, 1500); } else { window.print(); } }); return; }
   // ZPL → abre la etiqueta de bodega
   if (label.includes('ZPL')) { b.addEventListener('click', () => { window.open('Etiqueta Bodega ZPL · DTD-Cargo.html','_blank'); }); return; }
   // Resto: copiar / info

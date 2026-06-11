@@ -7,7 +7,7 @@ const { useState, useEffect, useRef, useMemo } = React;
 // Each module renders itself; the shell just hosts them.
 const MODULES = [
   { id: 'inicio',     group: 'INICIO',     label: 'Flujo de trabajo', icon: 'flow' },
-  { id: 'mapa-proceso', group: 'INICIO',   label: 'Mapa de proceso',  icon: 'map', href: 'Mapa de Proceso.html' },
+  { id: 'mapa-proceso', group: 'INICIO',   label: 'Mapa de proceso',  icon: 'map' },
   { id: 'direccion',  group: 'INICIO',     label: 'Tablero ejecutivo', icon: 'gauge' },
 
   { id: 'dashboard',  group: 'OPERACIÓN',  label: 'Dashboard',      icon: 'dashboard' },
@@ -553,7 +553,7 @@ function CompanyBanner() {
 const CREATE_GROUPS = [
   { g: 'Comercial', items: [
     ['Estimado DDP', 'estimados', 'create'],
-    ['Cliente (MARKBOX)', 'clients', 'create'],
+    ['Cliente (Shipping Mark)', 'clients', 'create'],
     ['Lead / oportunidad', 'leads', 'create'],
     ['Registrar cobro', 'cobranzas', 'list'],
   ] },
@@ -634,7 +634,7 @@ function Topbar({ moduleLabel, onSearchFocus, onThemeToggle, theme, notification
           }}
         >
           {window.Icon.search(14)}
-          <span style={{ flex: 1 }}>Buscar embarques, clientes, MARKBOX…</span>
+          <span style={{ flex: 1 }}>Buscar embarques, clientes, Shipping Mark…</span>
           <kbd style={{
             padding: '2px 6px', borderRadius: 4,
             background: 'var(--bg-surface)', border: '1px solid var(--border)',
@@ -913,7 +913,7 @@ function CommandPalette({ open, onClose, modules, onSelect }) {
           <input
             ref={inputRef}
             value={q} onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar módulo, embarque, cliente, MARKBOX…"
+            placeholder="Buscar módulo, embarque, cliente, Shipping Mark…"
             style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', font: '500 15px/1 var(--f-sans)', color: 'var(--ink)' }}
           />
           <kbd style={{ padding: '3px 7px', borderRadius: 4, background: 'var(--bg-elevated)', font: '600 10.5px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>ESC</kbd>

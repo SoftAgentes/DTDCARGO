@@ -110,7 +110,7 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
       <U.Toolbar search={search} onSearchChange={setSearch} searchPlaceholder="Buscar factura o cliente…" filters={<U.ColumnManager cfg={colCfg} setCfg={setColCfg} columns={columns} defaultCfg={INV_COLS_DEFAULT} />} />
 
       {filtered.length === 0 ? (
-        loadingTable ? <U.LoadingRows rows={6} cols={visibleColumns.length} /> : <U.EmptyState icon={window.Icon.invoice(22)} title="Sin facturas en esta vista" body="Ajustá los filtros o emití una factura nueva." />
+        loadingTable ? <U.LoadingRows rows={6} cols={visibleColumns.length} /> : <U.EmptyState icon={window.Icon.invoice(22)} title="Sin facturas en esta vista" body="Ajusta los filtros o emití una factura nueva." />
       ) : loadingTable ? (
         <U.LoadingRows rows={6} cols={visibleColumns.length} />
       ) : (
@@ -166,7 +166,7 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
             })()}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <U.Field label="Cliente" value={detailRecord.clientName} />
-              <U.Field label="MARKBOX" value={detailRecord.client} mono />
+              <U.Field label="Shipping Mark" value={detailRecord.client} mono />
               <U.Field label="Embarque" value={detailRecord.shipment} mono />
               <U.Field label="Estado" value={detailRecord.status} />
               <U.Field label="Emitida" value={detailRecord.issued} mono />
@@ -186,7 +186,7 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
         open={drawerKind === 'create'}
         onClose={() => { setDrawerKind(null); setView('list'); }}
         title="Nueva factura"
-        subtitle="Generá a partir de un embarque entregado o de forma manual"
+        subtitle="Genera a partir de un embarque entregado o de forma manual"
         width={560}
         actions={
           <>
@@ -197,17 +197,17 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <window.ERPUI.SearchSelect label="Cliente" placeholder="Buscá o creá un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
+          <window.ERPUI.SearchSelect label="Cliente" placeholder="Busca o crea un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
             onChange={(v) => setInvCli(v)}
             options={D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.name} (${c.markbox})`, sub: c.company || 'Cliente' }))} />
-          <window.ERPUI.SearchSelect label="Embarque huérfano (opcional)" placeholder={invCli ? 'Embarques sin factura de este cliente…' : 'Elegí primero un cliente'} createLabel="Crear nuevo embarque"
+          <window.ERPUI.SearchSelect label="Embarque huérfano (opcional)" placeholder={invCli ? 'Embarques sin factura de este cliente…' : 'Elige primero un cliente'} createLabel="Crear nuevo embarque"
             onCreate={() => goTo('shipments')}
             options={D.SHIPMENTS.filter(s => !s.billed && (!invCli || s.client === invCli)).map(s => ({ value: s.id, label: `${s.id} · ${s.clientName}`, sub: `huérfano · $${s.value.toLocaleString()}` }))} />
           <div style={{ font: '500 11px/1.45 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -6 }}>La factura se cobra a un <b>cliente</b> por cualquier servicio (no solo logística, ej. registro de marca). El <b>embarque es opcional</b> y solo lista los <b>huérfanos del cliente elegido</b> (evita cruzar códigos de otro cliente).</div>
           {window.ERPUI.CatalogLines && (
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
               <window.ERPUI.CatalogLines title="Líneas de la factura" addLabel="Agregar servicio del catálogo"
-                emptyHint="Agregá servicios del catálogo (flete, despacho, seguro…). Cada línea toma su tarifa vigente; el monto se calcula solo. También podés facturar un monto manual abajo."
+                emptyHint="Agrega servicios del catálogo (flete, despacho, seguro…). Cada línea toma su tarifa vigente; el monto se calcula solo. También puedes facturar un monto manual abajo."
                 onChange={(lines, st) => { setLineSubtotal(st); if (ivaOn) setBase(st ? st.toFixed(2) : ''); else setMonto(st ? st.toFixed(2) : ''); }} />
             </div>
           )}
@@ -234,7 +234,7 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
             </div>
           ) : (
             <U.Input label="Monto" value={monto} onChange={(e) => setMonto(e.target.value)} placeholder="0.00" prefix="$" suffix="USD" mono
-              hint={lineSubtotal > 0 ? 'Calculado de las líneas · podés ajustarlo' : undefined} />
+              hint={lineSubtotal > 0 ? 'Calculado de las líneas · puedes ajustarlo' : undefined} />
           )}
           <U.Input label="Notas" placeholder="Concepto, referencias internas…" />
         </div>

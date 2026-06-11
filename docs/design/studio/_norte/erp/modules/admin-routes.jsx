@@ -291,7 +291,7 @@
             <U.EmptyState
               icon={I.truck(22)}
               title="No hay rutas con esos filtros"
-              body="Ajustá los filtros o creá una ruta nueva."
+              body="Ajusta los filtros o crea una ruta nueva."
               action={<U.Btn variant="primary" icon={I.plus(14)} onClick={onNew}>Nueva ruta</U.Btn>}
             />
           )}
@@ -368,7 +368,7 @@
     const [draft, setDraft] = useState(initial);
 
     const activeCities = cities.filter(c => c.active);
-    const destinations = activeCities.filter(c => !c.isHQ);  // no podés tener Valencia como destino
+    const destinations = activeCities.filter(c => !c.isHQ);  // no puedes tener Valencia como destino
     const stopOptions = useMemo(() => {
       const used = new Set([...draft.stops.map(s => s.city), draft.destination, 'Valencia']);
       return activeCities.filter(c => !used.has(c.city));
@@ -391,7 +391,7 @@
     function removeStop(idx) { update({ stops: draft.stops.filter((_, i) => i !== idx) }); }
 
     function handleSave() {
-      if (!draft.destination) { alert('Elegí un destino.'); return; }
+      if (!draft.destination) { alert('Elige un destino.'); return; }
       if (draft.type === 'con-paradas' && draft.stops.length === 0) { alert('Una ruta con ciudades intermedias necesita al menos una ciudad.'); return; }
       const name = draft.name || `Valencia → ${draft.destination}${draft.type === 'con-paradas' ? ` + ${draft.stops.length} ciudad${draft.stops.length === 1 ? '' : 'es'}` : ''}`;
       onSave({ ...draft, name, updated: new Date().toISOString().slice(0, 10) });
@@ -402,7 +402,7 @@
         open
         onClose={onClose}
         title={mode === 'new' ? 'Nueva ruta' : `Editar ruta · ${draft.id}`}
-        subtitle="Las ciudades intermedias heredan el radio default del catálogo. Podés overridearlo solo para esta ruta."
+        subtitle="Las ciudades intermedias heredan el radio default del catálogo. Puedes overridearlo solo para esta ruta."
         width={680}
         actions={
           <React.Fragment>
@@ -485,7 +485,7 @@
                 font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)',
                 marginBottom: 10,
               }}>
-                Todavía no agregaste ciudades intermedias. Elegí una del selector de abajo.
+                Todavía no agregaste ciudades intermedias. Elige una del selector de abajo.
               </div>
             )}
 
@@ -540,7 +540,7 @@
               onChange={(v) => { if (v) addStop(v); }}
               cities={stopOptions}
               onAddCity={onAddCity}
-              placeholder="— Elegí una ciudad —"
+              placeholder="— Elige una ciudad —"
               showDefaultRadius
             />
           </div>
@@ -815,7 +815,7 @@
 
     function handleAdd() {
       const name = draft.city.trim();
-      if (!name) { alert('Ingresá el nombre de la ciudad.'); return; }
+      if (!name) { alert('Ingresa el nombre de la ciudad.'); return; }
       const newCity = {
         city: name,
         state: draft.state.trim(),

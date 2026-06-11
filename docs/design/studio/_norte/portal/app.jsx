@@ -50,7 +50,7 @@ function PortalApp() {
         {showPwTip && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', marginBottom: 'var(--s-5)', background: 'var(--info-bg)', border: '1px solid var(--info)', borderRadius: 'var(--r-md)' }}>
             <span style={{ color: 'var(--info)' }}>{window.Icon.info(16)}</span>
-            <span style={{ flex: 1, font: '600 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Recomendamos cambiar tu contraseña <span style={{ font: '500 12px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>· entrá a tu perfil para hacerlo (es solo una sugerencia)</span></span>
+            <span style={{ flex: 1, font: '600 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Recomendamos cambiar tu contraseña <span style={{ font: '500 12px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>· entra a tu perfil para hacerlo (es solo una sugerencia)</span></span>
             <button onClick={() => setShowPwTip(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 16 }}>×</button>
           </div>
         )}
@@ -101,7 +101,7 @@ function PortalLogin({ onLogin }) {
               Tus envíos<br/>desde China,<br/><span style={{ color: 'var(--wine-soft)' }}>en un click.</span>
             </div>
             <div style={{ marginTop: 22, font: '500 14px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.7)', maxWidth: '36ch' }}>
-              Estimá, embarcá y rastreá tus cargas DDP. Facturas, documentos y soporte directo con tu agente.
+              Estima, embarca y rastrea tus cargas DDP. Facturas, documentos y soporte directo con tu agente.
             </div>
             <div style={{ marginTop: 28, display: 'flex', gap: 18 }}>
               {[
@@ -121,12 +121,12 @@ function PortalLogin({ onLogin }) {
 
         {/* Right panel — login form */}
         <div style={{ background: 'var(--bg-surface)', padding: 40, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Entrá con tu<br/>MARKBOX.</div>
+          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Entra con tu<br/>Shipping Mark.</div>
           <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>Es el código que se anota en tus cajas en China.</div>
 
           <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código MARKBOX</span>
+              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código Shipping Mark</span>
               <input
                 value={markbox} onChange={(e) => setMarkbox(e.target.value)}
                 placeholder="DTD-XXXX"
@@ -173,9 +173,9 @@ function PortalLogin({ onLogin }) {
             <div style={{ font: '600 12px/1 var(--f-sans)' }}>
               <a style={{ color: 'var(--ink-soft)', cursor: 'pointer' }}>¿Olvidaste tu contraseña?</a>
             </div>
-            {/* CTA de registro · puerta única: quien no tiene MARKBOX se registra acá */}
+            {/* CTA de registro · puerta única: quien no tiene Shipping Mark se registra acá */}
             <div style={{ marginTop: 4, padding: '12px 14px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ font: '600 12.5px/1.4 var(--f-sans)', color: 'var(--ink)' }}>¿No tienes MARKBOX?</span>
+              <span style={{ font: '600 12.5px/1.4 var(--f-sans)', color: 'var(--ink)' }}>¿No tienes Shipping Mark?</span>
               <a
                 onClick={() => { window.location.href = 'Registro Cliente.html'; }}
                 style={{ font: '800 13px/1 var(--f-sans)', color: 'var(--wine)', textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}
@@ -314,9 +314,33 @@ function PortalHome({ me, ships, invs, setView, setDetail }) {
             {active.length} envíos activos · {invs.filter(i=>i.balance>0).length} {invs.filter(i=>i.balance>0).length === 1 ? 'factura pendiente' : 'facturas pendientes'}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <window.ERPUI.Btn variant="secondary" icon={window.Icon.plus(14)} onClick={() => setView('suppliers')}>Nueva compra · nuevo código</window.ERPUI.Btn>
-          <window.ERPUI.Btn variant="primary" icon={window.Icon.plus(14)}>Nuevo estimado</window.ERPUI.Btn>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
+          <button onClick={() => setView('suppliers')} style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px 10px 14px',
+            background: 'var(--bg-surface)', border: '2px solid var(--wine)', borderRadius: 'var(--r-pill)',
+            cursor: 'pointer', boxShadow: 'var(--shadow-xs)',
+          }}>
+            <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--wine)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{window.Icon.plus(13)}</span>
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}>
+              <span style={{ font: '800 15px/1.1 var(--f-sans)', color: 'var(--ink)' }}>Nueva compra</span>
+              <span style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--wine)', letterSpacing: '0.14em', marginTop: 4 }}>= PREALERTA</span>
+            </span>
+          </button>
+          <button disabled title="Próximamente" style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px',
+            background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)',
+            cursor: 'not-allowed',
+          }}>
+            <span style={{ font: '700 14.5px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>Nueva cotización</span>
+            <span style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.14em' }}>PRÓXIMAMENTE</span>
+          </button>
+          <a href="Calculadora CBM · DTD-Cargo.html" target="_blank" rel="noopener" style={{
+            display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', textDecoration: 'none',
+            background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)',
+          }}>
+            <span style={{ font: '700 14.5px/1 var(--f-sans)', color: 'var(--ink)' }}>Calculadora CBM</span>
+            <span style={{ color: 'var(--wine)' }}>{window.Icon.external(12)}</span>
+          </a>
         </div>
       </div>
 
@@ -497,7 +521,7 @@ function PortalShipments({ ships, setDetail }) {
       <U.Toolbar search={search} onSearchChange={setSearch} searchPlaceholder="Buscar por ID de embarque…" />
 
       {filtered.length === 0 ? (
-        <U.EmptyState icon={window.Icon.box(22)} title="Sin envíos" body="No tenés embarques en esta vista." />
+        <U.EmptyState icon={window.Icon.box(22)} title="Sin envíos" body="No tienes embarques en esta vista." />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: 14 }}>
           {filtered.map(s => (
@@ -762,10 +786,10 @@ function PortalShipmentDetail({ id, onBack }) {
               <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>{isReaccept ? 'La medida real cambió · re-aceptación requerida' : (isMeasured ? 'Tu carga llegó y se midió · falta tu aceptación' : 'Estimado pendiente de aceptación')}</div>
               <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)', marginTop: 4 }}>
                 {isReaccept
-                  ? 'Aceptaste un estimado por la medida estimada, pero al medir tu carga en China el volumen/peso real cambió. Confirmá la nuevo estimado para que emitamos la factura. La factura no se emite hasta que aceptes la diferencia.'
+                  ? 'Aceptaste un estimado por la medida estimada, pero al medir tu carga en China el volumen/peso real cambió. Confirma la nuevo estimado para que emitamos la factura. La factura no se emite hasta que aceptes la diferencia.'
                   : (isMeasured
                     ? `Recibimos tu carga en China y medimos el volumen y peso reales (${s.cbm} m³ · ${(s.weight||0).toLocaleString()} kg). Aceptá el estimado con la medida real para que emitamos tu factura DDP. La factura no se emite hasta que firmes.`
-                    : 'Revisá el estimado y aceptá los términos para generar tu orden de servicio.')}
+                    : 'Revisa el estimado y aceptá los términos para generar tu orden de servicio.')}
               </div>
               {isReaccept && (
                 <div style={{ display: 'flex', gap: 18, marginTop: 12 }}>
@@ -981,7 +1005,7 @@ function PortalSupport({ me }) {
     { id: 'SP-2026-0042', type: 'faltante', shipment: myShipments[0]?.id || 'DTDU-472816', subject: 'Faltan 2 cajas según packing list', status: 'en-revision', date: '2026-05-22',
       messages: [
         { from: 'me',    text: 'Recibí el contenedor pero faltan 2 cajas según el packing. Adjunto fotos del precinto.', time: '22 may · 08:31' },
-        { from: 'agent', text: 'Roberto, lamento el inconveniente. Abrí tu caso y estoy revisando con almacén CN el conteo de salida.', time: '22 may · 08:44' },
+        { from: 'agent', text: 'Roberto, lamento el inconveniente. Abre tu caso y estoy revisando con almacén CN el conteo de salida.', time: '22 may · 08:44' },
       ] },
     { id: 'SP-2026-0031', type: 'demora', shipment: 'DTDU-365044', subject: 'El despacho tardó más del ETA informado', status: 'resuelto', date: '2026-05-10',
       messages: [
@@ -997,7 +1021,7 @@ function PortalSupport({ me }) {
   return (
     <div>
       <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Soporte</h1>
-      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '54ch' }}>Hablá con tu agente o abrí un caso con seguimiento. Cada caso tiene número, estado y respuesta.</p>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '54ch' }}>Hablá con tu agente o abre un caso con seguimiento. Cada caso tiene número, estado y respuesta.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
         {/* ── Casos ── */}
@@ -1008,7 +1032,7 @@ function PortalSupport({ me }) {
           </div>
           {creating && <NewReclamoForm myShipments={myShipments} onCancel={() => setCreating(false)} onSubmit={(claim) => { setClaims([claim, ...claims]); setCreating(false); }} />}
           {claims.length === 0 ? (
-            <U.EmptyState icon={I.chat(22)} title="Sin casos" body="No tenés casos abiertos. Si tuviste un problema con un embarque, abrí uno acá." />
+            <U.EmptyState icon={I.chat(22)} title="Sin casos" body="No tienes casos abiertos. Si tuviste un problema con un embarque, abre uno acá." />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               {claims.map(c => {
@@ -1064,7 +1088,7 @@ function PortalSupport({ me }) {
               ))}
             </div>
             <div style={{ padding: 12, borderTop: '1px solid var(--border)', display: 'flex', gap: 8 }}>
-              <input value={msg} onChange={(e)=>setMsg(e.target.value)} onKeyDown={(e)=>e.key === 'Enter' && send()} placeholder="Escribí tu mensaje…"
+              <input value={msg} onChange={(e)=>setMsg(e.target.value)} onKeyDown={(e)=>e.key === 'Enter' && send()} placeholder="Escribe tu mensaje…"
                 style={{ flex: 1, height: 38, padding: '0 12px', background: 'var(--bg-elevated)', border: 0, borderRadius: 'var(--r-md)', font: '500 12.5px/1 var(--f-sans)', outline: 'none', color: 'var(--ink)' }} />
               <U.Btn variant="primary" size="sm" icon={window.Icon.arrowR(13)} onClick={send}>Enviar</U.Btn>
             </div>
@@ -1133,7 +1157,7 @@ function PortalReferidos({ me }) {
     setCopied(true); setTimeout(() => setCopied(false), 1600);
   };
   const share = () => {
-    const txt = `Importá de China con DTD-Cargo y usá mi código ${code} para ${fmt(F.REFERRAL_RULES.referredReward)} de descuento en tu primer embarque. Con Confianza, de China a tu puerta.`;
+    const txt = `Importá de China con DTD-Cargo y usa mi código ${code} para ${fmt(F.REFERRAL_RULES.referredReward)} de descuento en tu primer embarque. Con Confianza, de China a tu puerta.`;
     window.open('https://wa.me/?text=' + encodeURIComponent(txt), '_blank');
   };
 
@@ -1163,7 +1187,7 @@ function PortalReferidos({ me }) {
               </div>
               <div style={{ padding: '12px 14px', background: 'rgba(255,255,255,0.08)', borderRadius: 'var(--r-md)' }}>
                 <div style={{ font: '900 22px/1 var(--f-display)', color: '#fff' }}>{fmt(F.REFERRAL_RULES.referrerReward)}</div>
-                <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>de crédito para vos al acreditarse</div>
+                <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 4 }}>de crédito para tú al acreditarse</div>
               </div>
             </div>
           </div>
@@ -1222,7 +1246,7 @@ function PortalReferidos({ me }) {
           <span style={{ font: '600 12px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>{myRefs.length} en total</span>
         </div>
         {myRefs.length === 0 ? (
-          <div style={{ padding: '32px 20px', textAlign: 'center', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Todavía no referiste a nadie. Compartí tu código y empezá a ganar.</div>
+          <div style={{ padding: '32px 20px', textAlign: 'center', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Todavía no referiste a nadie. Comparte tu código y empezá a ganar.</div>
         ) : myRefs.map((r, i) => {
           const stt = F.REFERRAL_STATUS[r.status];
           return (
@@ -1273,7 +1297,7 @@ function NewReclamoForm({ myShipments, onCancel, onSubmit }) {
   const [desc, setDesc] = pUseState('');
 
   const submit = () => {
-    if (!subject.trim() || !desc.trim()) { alert('Completá el asunto y la descripción.'); return; }
+    if (!subject.trim() || !desc.trim()) { alert('Completa el asunto y la descripción.'); return; }
     const num = String(Math.floor(40 + Math.random() * 50)).padStart(4, '0');
     onSubmit({
       id: 'REC-2026-' + num, type, shipment: shipment || '—', subject: subject.trim(),
@@ -1292,7 +1316,7 @@ function NewReclamoForm({ myShipments, onCancel, onSubmit }) {
       <U.Input label="Asunto" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Resumí el problema en una línea" style={{ marginBottom: 12 }} />
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
         <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Descripción</span>
-        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder="Contanos qué pasó. Si tenés fotos o el packing, mencionalo." style={{
+        <textarea value={desc} onChange={(e) => setDesc(e.target.value)} rows={4} placeholder="Cuéntanos qué pasó. Si tienes fotos o el packing, mencionalo." style={{
           resize: 'vertical', padding: '10px 12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
           font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink)', outline: 'none',
         }} />
@@ -1397,7 +1421,7 @@ function PortalProfile({ me }) {
   return (
     <div>
       <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Mi perfil</h1>
-      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>Información de cuenta y código MARKBOX para coordinar envíos en China.</p>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>Información de cuenta y código Shipping Mark para coordinar envíos en China.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16 }}>
         <U.Card padded>
@@ -1509,14 +1533,14 @@ function PortalSuppliers({ me }) {
         <U.Btn variant="primary" icon={I.plus(14)} onClick={() => setAdding(true)}>Nueva compra</U.Btn>
       </div>
       <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-5)' }}>
-        Cada <b>compra</b> es una <b style={{ color: 'var(--wine)' }}>prealerta</b>: nos avisás que viene mercancía de China para esperarla y procesarla más rápido (lo que las "puerta a puerta" de EE.UU. llaman pre-alerta). Generá el código y las etiquetas para tus proveedores, o re-comprá a uno existente.
+        Cada <b>compra</b> es una <b style={{ color: 'var(--wine)' }}>prealerta</b>: nos avisas que viene mercancía de China para esperarla y procesarla más rápido (lo que las "puerta a puerta" de EE.UU. llaman pre-alerta). Genera el código y las etiquetas para tus proveedores, o re-compra a uno existente.
       </p>
 
       {/* Por qué importa · trazabilidad */}
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '18px 20px', marginBottom: 'var(--s-5)' }}>
         <div style={{ font: '800 13.5px/1.2 var(--f-display)', color: 'var(--ink)', marginBottom: 4 }}>Por qué registrar a tu proveedor importa</div>
         <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 14px' }}>
-          En comercio internacional, cómo gestionás tu información define qué tan rápido y seguro llega tu mercancía.
+          En comercio internacional, cómo gestionas tu información define qué tan rápido y seguro llega tu mercancía.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <div style={{ display: 'flex', gap: 10 }}>
@@ -1530,7 +1554,7 @@ function PortalSuppliers({ me }) {
             <span style={{ width: 32, height: 32, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.shield(16)}</span>
             <div>
               <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Control total</div>
-              <div style={{ font: '500 11.5px/1.45 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>Al llegar el envío sabés automáticamente quién es el proveedor y todos los detalles, vía el código.</div>
+              <div style={{ font: '500 11.5px/1.45 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>Al llegar el envío sabes automáticamente quién es el proveedor y todos los detalles, vía el código.</div>
             </div>
           </div>
         </div>
@@ -1618,9 +1642,9 @@ function LabelGenerator({ code, me, onClose }) {
         <div style={{ padding: 22 }}>
           {phase === 'docs' && (
             <div>
-              <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Paso 1 · Adjuntá la compra</div>
+              <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Paso 1 · Adjunta la compra</div>
               <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 14px' }}>
-                Antes de generar el código, subí los documentos de la compra. <b>El packing list es lo mínimo</b> — fotos y factura son recomendables para mejor trazabilidad.
+                Antes de generar el código, sube los documentos de la compra. <b>El packing list es lo mínimo</b> — fotos y factura son recomendables para mejor trazabilidad.
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                 {[
@@ -1641,7 +1665,7 @@ function LabelGenerator({ code, me, onClose }) {
                 </button>
               </div>
               <U.Btn variant="primary" full size="lg" iconRight={I.arrowR(14)} style={{ marginTop: 16 }} disabled={!docs.packing} onClick={() => setPhase('labels')}>
-                {docs.packing ? 'Continuar · indicar cajas' : 'Subí el packing list para seguir'}
+                {docs.packing ? 'Continuar · indicar cajas' : 'Sube el packing list para seguir'}
               </U.Btn>
             </div>
           )}
