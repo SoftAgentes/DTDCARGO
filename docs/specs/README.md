@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 63 specs)
+### Índice de specs (generado · 64 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -100,7 +100,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
 | 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | in-progress | interno |
 | 0066 | Generador de reportes de inspección en el ERP (white-label · … | proposed | interno |
-| 0067 | Aceptación con evidencia reforzada (SDD-B del handoff legal) … | approved | interno |
+| 0067 | Aceptación con evidencia reforzada (SDD-B del handoff legal) … | done | interno |
+| 0068 | Recibos de cobranza con mandato (SDD-C del handoff legal) — l… | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
