@@ -776,7 +776,7 @@ function ColumnManager({ cfg, setCfg, columns, defaultCfg, notes = {} }) {
 
 // ── CalcInput ─────────────────────────────────────────────────
 // Input nativo (sin wrapper) con la regla calculadora del sistema:
-// escribís "32+1" y al salir queda "33". Para campos inline (cobranzas,
+// escribes "32+1" y al salir queda "33". Para campos inline (cobranzas,
 // contabilidad, líneas de factura) que no usan el wrapper de ERPUI.Input.
 function CalcInput({ value, onChange, style = {}, placeholder, ...rest }) {
   const [raw, setRaw] = React.useState(null);

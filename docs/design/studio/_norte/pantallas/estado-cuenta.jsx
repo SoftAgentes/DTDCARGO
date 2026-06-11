@@ -166,7 +166,7 @@ function ECHero({ client, acc, saldo, overdueAmount }) {
           <U.Badge tone={statusTone} dot>{client.status === 'active' ? 'Activo' : client.status === 'pending' ? 'Pendiente legal' : 'Inactivo'}</U.Badge>
           <U.Badge tone="wine" size="sm">{client.segment}</U.Badge>
           {overdueAmount > 0 && <U.Badge tone="danger" size="sm">⚠ Mora</U.Badge>}
-          <span className="eyebrow">MARKBOX <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{client.markbox}</code></span>
+          <span className="eyebrow">Shipping Mark <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{client.markbox}</code></span>
         </div>
         <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>{client.company}</h1>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14, marginTop: 10, font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>

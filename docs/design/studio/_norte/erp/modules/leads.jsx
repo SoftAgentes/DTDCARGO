@@ -37,7 +37,7 @@ function ModuleLeads() {
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, stage: newStage, lastTouch: 'ahora' } : l));
   };
 
-  // Convert lead → client (creates real-looking new MARKBOX)
+  // Convert lead → client (creates real-looking new Shipping Mark)
   const convert = (lead) => {
     const next = 5476 + leads.filter(l => l.stage === 'ganado').length;
     const newMarkbox = `DTD-${next}`;
@@ -46,10 +46,10 @@ function ModuleLeads() {
       stage: 'ganado',
       lastTouch: 'ahora',
       convertedMarkbox: newMarkbox,
-      notes: `${l.notes} · ✓ Convertido a cliente · MARKBOX ${newMarkbox} asignado.`
+      notes: `${l.notes} · ✓ Convertido a cliente · Shipping Mark ${newMarkbox} asignado.`
     } : l));
     // Show success toast (in selected — drawer stays open to show the link)
-    setSelected(prev => prev && prev.id === lead.id ? { ...prev, stage: 'ganado', convertedMarkbox: newMarkbox, lastTouch: 'ahora', notes: `${prev.notes} · ✓ Convertido a cliente · MARKBOX ${newMarkbox} asignado.` } : prev);
+    setSelected(prev => prev && prev.id === lead.id ? { ...prev, stage: 'ganado', convertedMarkbox: newMarkbox, lastTouch: 'ahora', notes: `${prev.notes} · ✓ Convertido a cliente · Shipping Mark ${newMarkbox} asignado.` } : prev);
   };
 
   // Stats
@@ -429,7 +429,7 @@ function TimelineLeads({ leads, onOpen }) {
               <span style={{ color: 'var(--success)' }}>{window.Icon.check(18)}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)' }}>Cliente creado · {lead.convertedMarkbox}</div>
-                <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>El MARKBOX se asignó automáticamente. Ya podés crear estimados y embarques para este cliente.</div>
+                <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>El Shipping Mark se asignó automáticamente. Ya puedes crear estimados y embarques para este cliente.</div>
               </div>
               <U.Btn variant="primary" size="sm" iconRight={window.Icon.arrowR(12)} onClick={() => { onClose(); window.__erpGoTo?.('clients', lead.convertedMarkbox, 'detail'); }}>Abrir cliente</U.Btn>
             </div>

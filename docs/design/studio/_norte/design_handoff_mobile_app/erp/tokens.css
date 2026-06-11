@@ -33,6 +33,10 @@
   --border-nav: #E8E6E2;
   --nav-brand: #7F0F1A;
 
+  /* Wordmark corporativo "DTD Cargo" · voltea por tema (sin filtros, sin wine-soft) */
+  --wordmark-dtd: var(--wine);     /* DTD · wine #7F0F1A */
+  --wordmark-cargo: var(--ink);    /* Cargo · navy #0F1E3D */
+
   --ink: #0F1E3D;
   --ink-soft: #6B6B6B;
   --ink-mute: #9B9B9B;
@@ -133,6 +137,10 @@
   --border-nav: rgba(255,255,255,0.06);
   --nav-brand: #C2747F;
 
+  /* En dark, el wordmark pasa a tratamiento reverse (cream sólido) */
+  --wordmark-dtd: var(--ink);      /* cream #F2F0EC */
+  --wordmark-cargo: var(--ink);    /* cream #F2F0EC */
+
   --ink: #F2F0EC;
   --ink-soft: #A8B0C4;
   --ink-mute: #6E7896;
@@ -221,3 +229,14 @@ a { color: inherit; text-decoration: none; }
 /* Focus rings */
 :focus-visible { outline: 2px solid var(--wine); outline-offset: 2px; border-radius: var(--r-sm); }
 button:focus-visible, a:focus-visible { outline-offset: 3px; }
+
+/* ── Isólogo oficial · swap por tema (sin filtros CSS) ─────────
+   .dtd-iso-auto  → primary en light, reverse en dark (sigue al tema)
+   .dtd-iso-ondark → siempre reverse (para superficies navy fijas: hero) */
+.dtd-iso { display: block; flex-shrink: 0; }
+.dtd-iso img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.dtd-iso .iso-reverse { display: none; }
+[data-theme="dark"] .dtd-iso-auto .iso-primary { display: none; }
+[data-theme="dark"] .dtd-iso-auto .iso-reverse { display: block; }
+.dtd-iso-ondark .iso-primary { display: none; }
+.dtd-iso-ondark .iso-reverse { display: block; }

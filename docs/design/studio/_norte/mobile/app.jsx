@@ -201,7 +201,7 @@ function HomeScreen({ user, setTab, expenses, onNewExpense }) {
         <div style={{ font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>
           {onTrip
             ? 'Estás en viaje · cualquier gasto se asocia automáticamente al viaje CN.'
-            : 'Tenés 24 embarques activos · 4 facturas por cobrar.'}
+            : 'Tienes 24 embarques activos · 4 facturas por cobrar.'}
         </div>
       </div>
 
@@ -561,7 +561,7 @@ function ClientsScreen({ user }) {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por MARKBOX, nombre…"
+          placeholder="Buscar por Shipping Mark, nombre…"
           style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', font: '500 14px/1 var(--f-sans)', color: 'var(--ink)' }}
         />
       </div>

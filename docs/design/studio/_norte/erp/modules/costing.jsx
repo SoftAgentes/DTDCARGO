@@ -528,7 +528,7 @@ function TemplatesSection() {
           <div style={{ flex: 1 }}>
             <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>¿Para qué sirven los templates?</div>
             <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6, maxWidth: '70ch' }}>
-              Definí costos default por <b>ruta + tipo de servicio</b>. Cuando registres un embarque nuevo en esa combinación, los costos se prellenan automáticamente. Después ajustás si hay diferencias específicas (gaceta SENIAT cambió un arancel, naviera te subió el flete, etc.).
+              Define costos default por <b>ruta + tipo de servicio</b>. Cuando registres un embarque nuevo en esa combinación, los costos se prellenan automáticamente. Después ajustas si hay diferencias específicas (gaceta SENIAT cambió un arancel, naviera te subió el flete, etc.).
             </div>
           </div>
           <U.Btn variant="primary" size="sm" icon={window.Icon.plus(12)}>Nuevo template</U.Btn>

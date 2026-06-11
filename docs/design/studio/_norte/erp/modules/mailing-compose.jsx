@@ -33,7 +33,7 @@ function MailingCompose() {
         <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18 }}>{window.Icon.clock(28)}</div>
         <div style={{ font: '900 22px/1.2 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Envío programado</div>
         <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 10, maxWidth: '42ch' }}>
-          Se enviará a <b style={{ color: 'var(--ink)' }}>{scheduledOk.to.split(',')[0]}</b> el <b style={{ color: 'var(--ink)' }}>{scheduledOk.date} {scheduledOk.time}</b> ({scheduledOk.tz}). Lo podés ver y cancelar en la pestaña <b style={{ color: 'var(--wine)' }}>Programados</b>.
+          Se enviará a <b style={{ color: 'var(--ink)' }}>{scheduledOk.to.split(',')[0]}</b> el <b style={{ color: 'var(--ink)' }}>{scheduledOk.date} {scheduledOk.time}</b> ({scheduledOk.tz}). Lo puedes ver y cancelar en la pestaña <b style={{ color: 'var(--wine)' }}>Programados</b>.
         </div>
         <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
           <U.Btn variant="secondary" onClick={() => { setScheduledOk(null); setTo(''); setSubject(''); setBody(''); setTemplate(''); setAttachments([]); }}>Redactar otro</U.Btn>
@@ -92,7 +92,7 @@ function MailingCompose() {
           {/* To/Cc/Bcc */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)', paddingBottom: 12 }}>
             <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase', minWidth: 32 }}>Para</span>
-            <input value={to} onChange={(e)=>setTo(e.target.value)} placeholder={channel === 'whatsapp' ? '+58 412 000 0000' : 'cliente@empresa.com  (o pegá varios separados por coma)'}
+            <input value={to} onChange={(e)=>setTo(e.target.value)} placeholder={channel === 'whatsapp' ? '+58 412 000 0000' : 'cliente@empresa.com  (o pega varios separados por coma)'}
               style={{ flex: 1, border: 0, outline: 'none', background: 'transparent', font: '500 13.5px/1.5 var(--f-sans)', color: 'var(--ink)' }} />
             {channel === 'email' && !ccVisible && (
               <button onClick={() => setCcVisible(true)} style={{ font: '600 11.5px/1 var(--f-sans)', color: 'var(--wine)' }}>+ CC / BCC</button>
@@ -189,7 +189,7 @@ function MailingCompose() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <U.Card padded>
           <div className="eyebrow eyebrow-wine" style={{ marginBottom: 10 }}>DESTINATARIO RÁPIDO</div>
-          <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 12 }}>Elegí un cliente o lead y se autocompleta el destinatario.</div>
+          <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 12 }}>Elige un cliente o lead y se autocompleta el destinatario.</div>
           <U.Select value="" onChange={(e) => {
             const c = D.CLIENTS.find(x => x.markbox === e.target.value);
             if (c) setTo(c.email);
@@ -226,7 +226,7 @@ function MailingCompose() {
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
             <span style={{ color: 'var(--info)' }}>{window.Icon.info(14)}</span>
             <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-              También podés abrir un compose rápido desde cualquier vista (cliente, embarque, factura) con el botón <b>Email</b>.
+              También puedes abrir un compose rápido desde cualquier vista (cliente, embarque, factura) con el botón <b>Email</b>.
             </div>
           </div>
         </U.Card>

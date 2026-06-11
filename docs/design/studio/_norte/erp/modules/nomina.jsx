@@ -85,7 +85,7 @@ function PeriodoTab({ period, setP }) {
 
   const post = () => {
     const unlocked = C && C.isUnlocked ? C.isUnlocked() : false;
-    if (!unlocked) { alert('Activá "Edición abierta" en Contabilidad (header del módulo) para contabilizar la nómina.'); return; }
+    if (!unlocked) { alert('Activa "Edición abierta" en Contabilidad (header del módulo) para contabilizar la nómina.'); return; }
     if (!window.confirm(`¿Contabilizar la nómina "${period.label}"? Débito 6.09.04 · crédito aportes 2.08 · crédito banco VES por el neto.`)) return;
     const e = C.createEntry(N.buildPayrollEntry(period.label, period.date, rate, period.bono));
     N.recordPayrollRun({ label: period.label, date: period.date, rate, bono: period.bono, empleados: t.empleados, asignaciones: t.asignaciones, deducciones: t.deducciones, neto: t.neto, netoVes: Math.round(t.neto * rate), entryId: e.id, at: new Date().toISOString().slice(0, 16).replace('T', ' ') });
@@ -351,7 +351,7 @@ function ComunicacionesTab() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 16px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)' }}>
         <span style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-          Mensajes de RRHH que le llegan al empleado a su <b>app</b> (recibo, aviso, llamado de atención, amonestación). Podés además reenviarlos por WhatsApp.
+          Mensajes de RRHH que le llegan al empleado a su <b>app</b> (recibo, aviso, llamado de atención, amonestación). Puedes además reenviarlos por WhatsApp.
         </span>
         <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
           <U.Btn variant="secondary" size="sm" icon={I.shield ? I.shield(12) : null} onClick={() => setAmon(true)}>Nueva amonestación</U.Btn>
@@ -464,7 +464,7 @@ function WhatsAppTab({ period, setP }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 16px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)' }}>
         <span style={{ color: 'var(--success)' }}>{I.chat ? I.chat(16) : I.mail(16)}</span>
         <span style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-          Enviá el recibo de pago a cada empleado por WhatsApp · período <b>{period.label}</b> · tasa BCV {rate.toFixed(2)}. El monto se muestra en bolívares. (Versión básica — luego sumamos más detalle.)
+          Envía el recibo de pago a cada empleado por WhatsApp · período <b>{period.label}</b> · tasa BCV {rate.toFixed(2)}. El monto se muestra en bolívares. (Versión básica — luego sumamos más detalle.)
         </span>
       </div>
 
@@ -591,7 +591,7 @@ function ReglasDrawer({ open, onClose }) {
           <div>
             <div style={{ font: '700 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>El sistema ya trae las reglas configuradas según la ley vigente.</div>
             <div style={{ font: '500 11.5px/1.55 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
-              Editá un valor solo si la ley cambió o tu empresa aplica otra política. Lo que toques acá recalcula toda la nómina. Cada corte que confirmes <b>congela</b> las reglas vigentes, así los recibos históricos no se mueven.
+              Edita un valor solo si la ley cambió o tu empresa aplica otra política. Lo que toques acá recalcula toda la nómina. Cada corte que confirmes <b>congela</b> las reglas vigentes, así los recibos históricos no se mueven.
             </div>
           </div>
         </div>
@@ -633,7 +633,7 @@ function ReglasDrawer({ open, onClose }) {
 
         {/* 3 · Deducciones del trabajador */}
         <RuleSection title="Deducciones del trabajador (%)"
-          help="Aportes de ley que se le retienen al empleado. Aplican directo al cálculo del recibo. La base topa a los SM indicados (IVSS 5 · RPE 10), como manda la ley. Si tu empresa cotiza sobre el salario real, subí los topes (ej. 999 SM) y la retención se calcula sobre el sueldo completo — decisión del contador.">
+          help="Aportes de ley que se le retienen al empleado. Aplican directo al cálculo del recibo. La base topa a los SM indicados (IVSS 5 · RPE 10), como manda la ley. Si tu empresa cotiza sobre el salario real, sube los topes (ej. 999 SM) y la retención se calcula sobre el sueldo completo — decisión del contador.">
           <RuleNum label="Seguro Social · IVSS" k="ssoPct" draft={draft} set={set} def={D} suffix="%" />
           <RuleNum label="Paro forzoso · RPE" k="rpePct" draft={draft} set={set} def={D} suffix="%" />
           <RuleNum label="Vivienda · FAOV" k="faovPct" draft={draft} set={set} def={D} suffix="%" />
@@ -686,7 +686,7 @@ function ReglasDrawer({ open, onClose }) {
         </RuleSection>
 
         <div style={{ font: '500 11px/1.6 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-          Estos valores son la base que aplica el sistema. Ante una reforma o un caso particular, confirmá con tu contador antes de cerrar la nómina o emitir una liquidación.
+          Estos valores son la base que aplica el sistema. Ante una reforma o un caso particular, confirma con tu contador antes de cerrar la nómina o emitir una liquidación.
         </div>
       </div>
     </U.Drawer>
@@ -734,7 +734,7 @@ function SolicitudesTab() {
           <div style={{ maxWidth: '46ch' }}>
             <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>Link de invitación</div>
             <div style={{ font: '500 12px/1.55 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 5 }}>
-              Generá un link y compartilo por WhatsApp. El empleado se registra solo desde su app; vos lo aprobás acá. Podés prellenar el cargo para esa invitación.
+              Genera un link y compártelo por WhatsApp. El empleado se registra solo desde su app; tú lo apruebas acá. Puedes prellenar el cargo para esa invitación.
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8 }}>
@@ -837,7 +837,7 @@ function RegistroReviewDrawer({ regId, onClose }) {
   React.useEffect(() => { if (reg) { setSueldo(''); setDept(reg.dept || ''); setRejecting(false); setMotivo(''); } }, [regId]);
 
   const approve = () => {
-    if (!(Number(sueldo) > 0)) { alert('Asigná un sueldo mensual en USD para aprobar.'); return; }
+    if (!(Number(sueldo) > 0)) { alert('Asigna un sueldo mensual en USD para aprobar.'); return; }
     N.approveRegistration(reg.id, { salarioUsd: Number(sueldo), dept });
     onClose();
   };
@@ -962,7 +962,7 @@ function PrestamosTab() {
         <U.Card padded>
           <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--ink-mute)' }}>
             <div style={{ font: '600 13px/1.3 var(--f-sans)', color: 'var(--ink-soft)' }}>Sin préstamos registrados</div>
-            <div style={{ font: '500 11.5px/1.5 var(--f-sans)', marginTop: 5 }}>Registrá un adelanto o préstamo y la cuota se descontará sola en cada nómina.</div>
+            <div style={{ font: '500 11.5px/1.5 var(--f-sans)', marginTop: 5 }}>Registra un adelanto o préstamo y la cuota se descontará sola en cada nómina.</div>
           </div>
         </U.Card>
       ) : (
@@ -1059,7 +1059,7 @@ function PagoPrestamoModal({ loan, onClose }) {
       </div>
       <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Monto del pago (USD)</div>
       <U.CalcInput value={amount} onChange={(e) => setAmount(e.target.value)} style={box} />
-      <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 10 }}>Normalmente esto ocurre solo al confirmar la nómina; podés registrar un pago manual acá.</div>
+      <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 10 }}>Normalmente esto ocurre solo al confirmar la nómina; puedes registrar un pago manual acá.</div>
     </U.Modal>
   );
 }
@@ -1302,7 +1302,7 @@ function AmonestacionWizard({ open, onClose }) {
 
       {step === 2 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Registrá al menos un testigo (se recomiendan dos).</div>
+          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Registra al menos un testigo (se recomiendan dos).</div>
           {[['Testigo 1', t1, setT1], ['Testigo 2 (opcional)', t2, setT2]].map(([lbl, val, setVal]) => (
             <div key={lbl}>
               <Lbl>{lbl}</Lbl>
@@ -1420,7 +1420,7 @@ function AsistenciaTab() {
               <span style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>{v.label}</span>
             </div>
           ))}
-          <span style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>· Tocá un día para marcar estado y horas.</span>
+          <span style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>· Toca un día para marcar estado y horas.</span>
         </div>
       </U.Card>
 

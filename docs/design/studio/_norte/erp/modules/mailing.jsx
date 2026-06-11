@@ -20,7 +20,7 @@ function ModuleMailing({ view, setView, goTo }) {
     templates:  'Plantillas de email y WhatsApp · variables dinámicas · multi-idioma · test send.',
     signatures: 'Cada empleado configura su firma. 5 layouts oficiales del Brand Book DTD.',
     compose:    'Envío individual con plantilla + firma. Vista tipo Compose o modal rápido desde cualquier vista.',
-    scheduled:  'Correos programados en cola. Se envían automáticamente en su fecha/hora. Podés adelantarlos o cancelarlos.',
+    scheduled:  'Correos programados en cola. Se envían automáticamente en su fecha/hora. Puedes adelantarlos o cancelarlos.',
     rules:      'Eventos del ERP que disparan correos automáticos. Configurar destinatario cliente vs interno.',
     config:     'Proveedor de envío (Gmail · Outlook · SMTP · SendGrid · WhatsApp), límites y blacklist.',
     logs:       'Histórico de envíos. Estado de entrega, aperturas y rebotes.',

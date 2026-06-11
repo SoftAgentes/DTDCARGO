@@ -187,7 +187,7 @@ function ModuleQrQueue({ goTo }) {
       <U.Toolbar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por orden, MARKBOX, cliente o supplier…"
+        searchPlaceholder="Buscar por orden, Shipping Mark, cliente o supplier…"
         filters={
           <>
             <U.Select value={whFilter} onChange={(e) => setWhFilter(e.target.value)} options={[
@@ -218,7 +218,7 @@ function ModuleQrQueue({ goTo }) {
             <U.EmptyState
               icon={I.tag(24)}
               title={view === 'cola' ? 'No hay órdenes de impresión' : 'No hay historial con estos filtros'}
-              body={view === 'cola' ? 'Cuando Operario CN envíe una orden de impresión, aparece acá.' : 'Probá cambiar los filtros.'}
+              body={view === 'cola' ? 'Cuando Operario CN envíe una orden de impresión, aparece acá.' : 'Prueba cambiar los filtros.'}
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

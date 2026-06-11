@@ -248,7 +248,7 @@ function VaultLock({ onUnlock }) {
         <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.16em', textTransform: 'uppercase', textAlign: 'center' }}>DTD VAULT</div>
         <div style={{ font: '900 26px/1.1 var(--f-display)', color: '#fff', letterSpacing: '-0.02em', marginTop: 10, textAlign: 'center' }}>Caja fuerte<br/>de contraseñas</div>
         <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.6)', marginTop: 14, textAlign: 'center', maxWidth: '36ch', marginInline: 'auto' }}>
-          Ingresá tu contraseña maestra. Distinta de la del ERP. La sesión se bloquea automáticamente a los 15 minutos.
+          Ingresa tu contraseña maestra. Distinta de la del ERP. La sesión se bloquea automáticamente a los 15 minutos.
         </div>
 
         <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -282,7 +282,7 @@ function VaultLock({ onUnlock }) {
         <div style={{ marginTop: 24, padding: '12px 14px', background: 'rgba(255,255,255,0.06)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ color: 'var(--wine-soft)', marginTop: 1 }}>{window.Icon.info(13)}</span>
           <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.75)' }}>
-            La contraseña maestra <b style={{ color: '#fff' }}>no se almacena</b>. Si la perdés, ningún admin puede recuperarla. Activá 2FA en tu perfil.
+            La contraseña maestra <b style={{ color: '#fff' }}>no se almacena</b>. Si la perdés, ningún admin puede recuperarla. Activa 2FA en tu perfil.
           </div>
         </div>
       </U.Card>
@@ -453,7 +453,7 @@ function VaultEmptyDetail() {
       <div style={{ width: 48, height: 48, margin: '0 auto 14px', borderRadius: '50%', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {window.Icon.shield(20)}
       </div>
-      <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>Seleccioná una entrada</div>
+      <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>Selecciona una entrada</div>
       <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>Click en cualquier fila para ver y copiar credenciales.</div>
     </div>
   );
@@ -706,7 +706,7 @@ function VaultExport({ open, onClose, category }) {
           <div style={{ marginTop: 16, padding: '10px 12px', background: 'var(--warning-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10, textAlign: 'left' }}>
             <span style={{ color: 'var(--warning)', marginTop: 1 }}>{window.Icon.warn(13)}</span>
             <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-              Guardá el <code style={{ font: '700 11px/1 var(--f-mono)' }}>.enc</code> en un lugar seguro. Solo se puede restaurar con la misma passphrase.
+              Guarda el <code style={{ font: '700 11px/1 var(--f-mono)' }}>.enc</code> en un lugar seguro. Solo se puede restaurar con la misma passphrase.
             </div>
           </div>
         </div>
@@ -733,7 +733,7 @@ function VaultExport({ open, onClose, category }) {
                     borderRadius: 'var(--r-md)', opacity: disabled ? 0.45 : 1,
                   }}>
                     <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: a ? 'var(--wine)' : 'var(--ink)' }}>{l}</div>
-                    <div style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--ink-soft)', marginTop: 5 }}>{disabled ? 'elegí una categoría' : `${n} entradas`}</div>
+                    <div style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--ink-soft)', marginTop: 5 }}>{disabled ? 'elige una categoría' : `${n} entradas`}</div>
                   </button>
                 );
               })}

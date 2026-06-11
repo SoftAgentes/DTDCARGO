@@ -70,7 +70,7 @@ function AdminFiscalConfig() {
               <CfgSwitch on={ivaOn} onChange={(v) => window.DTDConfig.set('iva', v)} />
             </div>
             <div style={{ font: '500 12.5px/1.6 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>
-              Activá esto solo si DTD-Cargo debe llevar el cumplimiento fiscal venezolano (IVA, libros de
+              Activa esto solo si DTD-Cargo debe llevar el cumplimiento fiscal venezolano (IVA, libros de
               compra/venta, retenciones, declaración SENIAT). <b>Desactivado por defecto.</b> Cuando está apagado,
               la Contabilidad funciona en USD sin la capa fiscal y el tab <b>Fiscal · SENIAT</b> queda oculto.
             </div>

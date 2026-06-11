@@ -1,13 +1,13 @@
 /* ── Showcase de iconos · monta cards + strip + CRM ───────────── */
 
 const ROLES = [
-  { id: 'almacenista',    Glyph: GlyphAlmacenista,    wa: '+58 412 100 0001', wc: 'dtd-warehouse-ve', desc: 'Recepción, picking, packing y despacho desde bodega Valencia y reexpediciones a clientes finales.' },
-  { id: 'transportista',  Glyph: GlyphTransportista,  wa: '+58 412 495 0884', wc: 'dtd-driver-01',    desc: 'Transportistas y conductores de última milla. Coordinan entrega puerta-a-puerta dentro de Venezuela.' },
+  { id: 'almacenista',    Glyph: GlyphAlmacenista,    wa: '+58 424 950 8848', wc: 'dtd-warehouse-ve', desc: 'Recepción, picking, packing y despacho desde bodega Valencia y reexpediciones a clientes finales.' },
+  { id: 'transportista',  Glyph: GlyphTransportista,  wa: '+58 424 950 8848', wc: 'dtd-driver-01',    desc: 'Misma persona que el Almacenista — un número, dos roles. Camioneros y conductores de última milla. Coordinan entrega puerta-a-puerta dentro de Venezuela.' },
   { id: 'logistica',      Glyph: GlyphLogistica,      wa: '+58 414 888 8805', wc: 'dtd-routing-cnve', desc: 'Routing CN→VE, tracking de buques, coordinación con freight forwarders y agentes de aduana.' },
   { id: 'administracion', Glyph: GlyphAdministracion, wa: '+58 241 414 7886', wc: 'dtd-backoffice',   desc: 'Back office: contratos, documentación, aprobación de RIF/cédula y onboarding de clientes nuevos.' },
   { id: 'contabilidad',   Glyph: GlyphContabilidad,   wa: '+58 414 887 0000', wc: 'dtd-accounting',   desc: 'Facturación, conciliación bancaria, balances en USD/Bs y reporte mensual al management.' },
-  { id: 'compras',        Glyph: GlyphCompras,        wa: '+58 412 100 0006', wc: 'dtd-procurement',  desc: 'Procurement en CN: cotizaciones en fábrica, inspección Yiwu/Guangzhou, negociación con proveedores.' },
-  { id: 'subceo',         Glyph: GlyphSubCEO,         wa: '+58 412 454 5325', wc: 'dtd-vp-ops',       desc: 'Sub-Gerente / VP de operaciones · segunda línea de mando, escalación operativa y proyectos especiales.' },
+  { id: 'compras',        Glyph: GlyphCompras,        wa: '+58 412 454 5325', wc: 'dtd-procurement',  desc: 'Procurement en CN: cotizaciones en fábrica, inspección Yiwu/Guangzhou, negociación con proveedores.' },
+  { id: 'subceo',         Glyph: GlyphSubCEO,         wa: '+58 412 100 0006', wc: 'dtd-vp-ops',       desc: 'Sub-Gerente / VP de operaciones · segunda línea de mando, escalación operativa y proyectos especiales.' }, // TODO: número real del Sub-CEO pendiente
   { id: 'bigboss',        Glyph: GlyphBigBoss,        wa: '+58 414 884 0000', wc: 'dtd-founder',      desc: 'CEO · dirección general. Solo escalación crítica · cuentas estratégicas y compliance.' },
 ];
 
@@ -141,7 +141,7 @@ function CRMCard() {
           Línea oficial · DTD-Cargo
         </div>
         <h2>+58 241 414 7886 · WhatsApp Business</h2>
-        <p>El número fijo de la empresa conectado al CRM. Es la línea de <strong>atención al cliente</strong> — NO la línea del CEO. El avatar se sincroniza vía API; podés rotar la variante ("cyber monday", "ruta nueva CN→Caracas", "reefer estacional") sin tocar el teléfono.</p>
+        <p>El número fijo de la empresa conectado al CRM. Es la línea de <strong>atención al cliente</strong> — NO la línea del CEO. El avatar se sincroniza vía API; puedes rotar la variante ("cyber monday", "ruta nueva CN→Caracas", "reefer estacional") sin tocar el teléfono.</p>
         <div className="crm-snippet">
           <span className="com">// POST /api/v1/business-profile/avatar</span><br/>
           <span className="kw">{'{'}</span><br/>

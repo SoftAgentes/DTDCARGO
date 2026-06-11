@@ -142,8 +142,8 @@ function TuDia({ userId: pid } = {}) {
           </h1>
           <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '8px 0 0', maxWidth: 560 }}>
             {actionable.length === 0
-              ? 'Estás al día — no tenés pendientes que requieran acción ahora mismo. 🎯'.replace(' 🎯', '.')
-              : <>Tenés <strong style={{ color: 'var(--wine)' }}>{actionable.length} {actionable.length === 1 ? 'pendiente' : 'pendientes'}</strong> que requieren tu acción. Empecemos por lo más urgente.</>}
+              ? 'Estás al día — no tienes pendientes que requieran acción ahora mismo. 🎯'.replace(' 🎯', '.')
+              : <>Tienes <strong style={{ color: 'var(--wine)' }}>{actionable.length} {actionable.length === 1 ? 'pendiente' : 'pendientes'}</strong> que requieren tu acción. Empecemos por lo más urgente.</>}
           </p>
         </div>
 
@@ -155,7 +155,7 @@ function TuDia({ userId: pid } = {}) {
                 <div style={{ textAlign: 'center', padding: '20px 0' }}>
                   <div style={{ width: 56, height: 56, margin: '0 auto 12px', borderRadius: '50%', background: 'var(--success-bg)', color: 'var(--success)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{window.Icon.check(26)}</div>
                   <div style={{ font: '800 16px/1.2 var(--f-display)', color: 'var(--ink)' }}>Bandeja vacía</div>
-                  <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>No tenés pendientes asignados a tu rol hoy.</div>
+                  <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>No tienes pendientes asignados a tu rol hoy.</div>
                 </div>
               </U.Card>
             )}
