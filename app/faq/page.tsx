@@ -101,6 +101,8 @@ export default function FaqPage() {
         {/* Acordeón de FAQs (details nativo — sin JS) */}
         <section className="pb-16 lg:pb-20">
           <div className="wrap max-w-[820px]">
+            <span className="eyebrow">Todas las preguntas</span>
+            <h2 className="h-card mt-3 mb-6">Respuestas, una por una</h2>
             {FAQS.map((f, i) => (
               <details
                 key={i}

@@ -304,6 +304,16 @@
   transform: none;
 }
 
+/* Cards estáticas con hijos interactivos (guía Alibaba, etc.) — misma sombra
+   base que .card-shadow pero sin lift de hover: el contenedor no es clickeable
+   y el lift haría "saltar" los botones internos justo al apuntarlos. */
+.card-shadow-static {
+  box-shadow:
+    0 2px 4px rgba(15, 30, 61, 0.08),
+    0 8px 16px rgba(15, 30, 61, 0.10),
+    0 24px 48px -16px rgba(15, 30, 61, 0.22);
+}
+
 /* Para cards sobre fondo navy (YiwuAdvantage, TrackingPreview, footer) */
 .card-shadow-dark {
   box-shadow:
@@ -716,7 +726,8 @@
     box-shadow: none;
     border-color: var(--color-grey-300);
   }
-  .card-shadow {
+  .card-shadow,
+  .card-shadow-static {
     box-shadow: none;
   }
   /* Respetar los colores de marca al imprimir. */
