@@ -4,8 +4,16 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getPortalClient } from "@/lib/portal/portal-queries";
-import { getPendingAcceptanceInvoice } from "@/lib/portal/portal-legal-queries";
+import {
+  getPendingAcceptanceInvoice,
+  latestOrderAcceptanceDocs,
+} from "@/lib/portal/portal-legal-queries";
 import { currentClientDocs } from "@/lib/studio/legal/queries";
+import {
+  buildAcceptanceCopy,
+  buildReacceptanceNotice,
+  REACCEPTANCE_LINK_LABEL,
+} from "@/lib/studio/legal/acceptance-copy";
 import { formatInvoiceAmount } from "@/lib/portal/portal-types";
 import type { InvoiceCurrency } from "@/lib/portal/portal-types";
 import { ArrowIcon } from "@/components/Icon";
@@ -19,13 +27,19 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 /**
- * Página de aceptación de T&C del cliente (SDD-0054 · Slice C).
+ * Página de aceptación de T&C del cliente (SDD-0054 · Slice C + SDD-0067).
  *
  * Resuelve identidad por SESIÓN (getPortalClient) → con admin client (los
- * borradores los oculta el portal) lee la orden DDP pendiente + las 2 docs
+ * borradores los oculta el portal) lee la orden DDP pendiente + las docs
  * vigentes. Si no aplica (no es borrador / no DDP / ya aceptada / ajena) →
- * redirect a /portal/facturas. Render: resumen de la orden + cuerpo de los dos
- * documentos (colapsables) + AcceptanceForm (checkbox + confirmar).
+ * redirect a /portal/facturas. Render: resumen de la orden + cuerpo de los
+ * documentos (colapsables) + AcceptanceForm con el copy del modal de
+ * COPY_LEGAL_UI.md §1 (2 checkboxes; fallback pre-v3 vía buildAcceptanceCopy).
+ *
+ * Re-aceptación por versión nueva (§1 último bloque): si el cliente ya tiene
+ * una aceptación previa de ESTA orden pero sus docs ya no son los vigentes
+ * (re-versión ⇒ re-aceptación), se muestra el aviso "Actualizamos nuestro
+ * Acuerdo…" arriba del formulario.
  */
 export default async function AcceptTermsPage({ params }: Props) {
   const { code: raw } = await params;
@@ -55,6 +69,37 @@ export default async function AcceptTermsPage({ params }: Props) {
   const docs = await currentClientDocs(admin, tenantId);
   const currency = order.currency as InvoiceCurrency;
 
+  // Copy del modal (fuente única — literal cuando el set vigente sea el v3).
+  const copy = buildAcceptanceCopy(
+    docs.map((d) => ({ key: d.key, name: d.name, version: d.version })),
+  );
+
+  // Re-aceptación por versión nueva: última aceptación previa de ESTA orden
+  // (misma ref que sella la action) cuyos docs ya no son los vigentes.
+  const orderRef = order.shipmentCode ?? order.code;
+  const prevDocs = await latestOrderAcceptanceDocs(admin, {
+    tenantId,
+    markbox: client.markbox,
+    orderRef,
+  });
+  const changedDocs = prevDocs
+    ? docs.filter(
+        (d) =>
+          !prevDocs.some((p) => p.key === d.key && p.version === d.version),
+      )
+    : [];
+  const reacceptanceNotice =
+    changedDocs.length > 0
+      ? buildReacceptanceNotice(
+          changedDocs.map((d) => ({
+            key: d.key,
+            name: d.name,
+            version: d.version,
+            effective_date: d.effective_date,
+          })),
+        )
+      : null;
+
   return (
     <div>
       <Link
@@ -81,7 +126,7 @@ export default async function AcceptTermsPage({ params }: Props) {
 
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-6 lg:gap-8 items-start">
         {/* Documentos legales vigentes */}
-        <div className="flex flex-col gap-5">
+        <div id="documentos-legales" className="flex flex-col gap-5">
           {docs.length === 0 ? (
             <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
               <p className="text-[13.5px] text-grey-700">
@@ -114,7 +159,14 @@ export default async function AcceptTermsPage({ params }: Props) {
                     Ver / ocultar
                   </span>
                 </summary>
-                <div className="px-6 pb-6 pt-1 border-t border-grey-200 flex flex-col gap-4 max-h-[420px] overflow-auto">
+                <div
+                  // El cliente está LEYENDO lo que acepta legalmente: el área
+                  // scrolleable debe ser operable por teclado (WCAG 2.1.1).
+                  tabIndex={0}
+                  role="region"
+                  aria-label={doc.name}
+                  className="px-6 pb-6 pt-1 border-t border-grey-200 flex flex-col gap-4 max-h-[420px] overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-wine-soft"
+                >
                   {doc.body.map(([heading, paragraph], i) => (
                     <div key={i}>
                       {heading ? (
@@ -137,6 +189,27 @@ export default async function AcceptTermsPage({ params }: Props) {
 
         {/* Resumen de la orden + aceptación */}
         <div className="flex flex-col gap-5">
+          {reacceptanceNotice ? (
+            <div
+              className="rounded-[14px] border px-5 py-4"
+              style={{
+                borderColor: "var(--color-status-warning)",
+                background:
+                  "color-mix(in srgb, var(--color-status-warning) 10%, transparent)",
+              }}
+            >
+              <p className="text-[13.5px] text-ink leading-[1.55] m-0">
+                {reacceptanceNotice}
+              </p>
+              <a
+                href="#documentos-legales"
+                className="mt-1.5 inline-block text-[13px] font-semibold text-wine hover:underline"
+              >
+                {REACCEPTANCE_LINK_LABEL}
+              </a>
+            </div>
+          ) : null}
+
           <div className="card-shadow bg-paper border border-grey-200 rounded-[18px] p-6 sm:p-8">
             <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
               Resumen de la orden
@@ -213,7 +286,7 @@ export default async function AcceptTermsPage({ params }: Props) {
             </dl>
           </div>
 
-          <AcceptanceForm invoiceCode={order.code} />
+          <AcceptanceForm invoiceCode={order.code} copy={copy} />
         </div>
       </div>
     </div>

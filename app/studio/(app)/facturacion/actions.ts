@@ -31,6 +31,7 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
+import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
 import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
 import { type PaymentMethod } from "@/lib/studio/payment-types";
 import {
@@ -46,23 +47,9 @@ import {
 
 const VALID_CURRENCIES: InvoiceCurrency[] = ["USD", "VES", "USDT", "CNY"];
 
-/**
- * ── FLAG · Gate legal AUT-04: advisory ⇄ bloqueo duro (SDD-0054 · §3.1 / §3.1-bis)
- *
- * `false` (ADVISORY, modo actual): si un embarque DDP no tiene aceptación T&C
- * vigente, el operador VE el aviso pero PUEDE emitir igual (queda
- * `legal_ack: "override"` en la auditoría).
- *
- * `true` (BLOQUEO DURO): emitir una factura DDP sin aceptación vigente queda
- * PROHIBIDO (la action no muta y no ofrece override).
- *
- * Se deja en `false` a propósito al shipear Slice C: el día que se activa el flujo
- * de aceptación NO hay aceptaciones previas en prod (cero adopción) → un bloqueo
- * duro inmediato congelaría TODA factura DDP en vuelo. El FOUNDER lo pone en `true`
- * cuando haya adopción (clientes aceptando por el Portal). Cambiar SOLO esta
- * constante alcanza para el flip — el resto del gate ya está cableado.
- */
-const LEGAL_GATE_HARD_BLOCK = false;
+// FLAG del gate legal AUT-04 (advisory ⇄ bloqueo duro): vive en
+// `lib/studio/legal/gate-config.ts` (SDD-0067 — /studio/legal muestra el modo).
+// El flip del founder es 1 línea ALLÁ; acá solo se consume.
 
 function parseNumberOrNull(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;

@@ -1,7 +1,8 @@
 "use server";
 
 /**
- * Registro de la aceptación de T&C del cliente (SDD-0054 · Slice C).
+ * Registro de la aceptación de T&C del cliente (SDD-0054 · Slice C +
+ * SDD-0067 · evidencia v2).
  *
  * Flujo (decisión founder, Opción B — "factura borrador, monto exacto"): el
  * operador crea la factura DDP en BORRADOR → el cliente la ve acá como "pendiente
@@ -20,9 +21,15 @@
  *  - Idempotente: pre-check (si ya hay aceptación vigente → ok "ya aceptada" sin
  *    insertar) + unique(tenant,hash) en la DB. Reintento ante choque del
  *    correlativo unique(tenant, acceptance_code) (correlativo legal sin huecos).
+ *  - v2 (SDD-0067): los DOS checkboxes del modal (§1 de COPY_LEGAL_UI.md) son
+ *    obligatorios, con fieldError individual. `user_agent` se lee de `headers()`
+ *    — NUNCA del body del form (el cliente no escribe su propia evidencia) — y
+ *    entra al hash junto con `merchant_declaration`. `invoice_id` viaja como
+ *    metadato forense (fuera del hash).
  */
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
@@ -32,6 +39,14 @@ import { currentClientDocs, hasValidAcceptanceForMarkbox } from "@/lib/studio/le
 import { sealAcceptance } from "@/lib/studio/legal/seal";
 import { validateAcceptanceInput, type DocRef } from "@/lib/studio/legal/types";
 
+/** Errores por checkbox del modal (ambos obligatorios · SDD-0067). */
+export type AcceptanceCheckboxErrors = {
+  /** Checkbox 1: "He leído y acepto …". */
+  accept_docs?: string;
+  /** Checkbox 2: declaración de comerciante. */
+  accept_merchant?: string;
+};
+
 export type AcceptanceFormState = {
   ok?: boolean;
   /** AC-YYYY-NNNN del acuse (en éxito). */
@@ -39,7 +54,7 @@ export type AcceptanceFormState = {
   /** True si ya estaba aceptada (idempotente: éxito sin insertar). */
   alreadyAccepted?: boolean;
   error?: string;
-  fieldError?: string;
+  fieldErrors?: AcceptanceCheckboxErrors;
 };
 
 /** Cuántas veces reintentar el correlativo ante choque del unique(tenant,code). */
@@ -122,13 +137,33 @@ export async function registerAcceptanceAction(
     return { ok: true, alreadyAccepted: true };
   }
 
-  // 4. Casilla de aceptación marcada.
-  const accepted = String(formData.get("accept") ?? "").trim();
-  if (accepted !== "on" && accepted !== "true") {
-    return {
-      fieldError:
-        "Tienes que marcar la casilla para confirmar que aceptas los términos.",
-    };
+  // 4. Los DOS checkboxes del modal, obligatorios con fieldError individual
+  //    (SDD-0067 · COPY_LEGAL_UI.md §1). El estado de cada casilla viaja en el
+  //    form; la declaración de comerciante queda sellada en la evidencia.
+  const acceptDocs = String(formData.get("accept_docs") ?? "").trim();
+  const acceptMerchant = String(formData.get("accept_merchant") ?? "").trim();
+  const checkboxOn = (v: string) => v === "on" || v === "true";
+  const fieldErrors: AcceptanceCheckboxErrors = {};
+  if (!checkboxOn(acceptDocs)) {
+    fieldErrors.accept_docs =
+      "Tienes que marcar esta casilla para confirmar que leíste y aceptas los documentos.";
+  }
+  if (!checkboxOn(acceptMerchant)) {
+    fieldErrors.accept_merchant =
+      "Tienes que confirmar la declaración de comerciante para continuar.";
+  }
+  if (Object.keys(fieldErrors).length > 0) {
+    return { fieldErrors };
+  }
+
+  // 4-bis. user_agent SERVER-SIDE (decisión #4 de la spec): se lee de los
+  // headers del request — NUNCA del body del form. `sealAcceptance` lo sanea
+  // (trim, máx 512, vacío → null) y lo mete al hash v2.
+  let userAgent: string | null = null;
+  try {
+    userAgent = (await headers()).get("user-agent");
+  } catch {
+    userAgent = null; // fuera de request scope → evidencia degrada sin fallar
   }
 
   // 7. Docs vigentes de cara al cliente (DEBEN ser TODAS — si falta una, el gate
@@ -151,7 +186,7 @@ export async function registerAcceptanceAction(
     .sort()
     .join(",")}`;
 
-  const { input, fieldErrors } = validateAcceptanceInput(
+  const { input, fieldErrors: inputErrors } = validateAcceptanceInput(
     {
       client_id: client.id,
       client_markbox: client.markbox,
@@ -159,20 +194,24 @@ export async function registerAcceptanceAction(
       cbm,
       weight_kg: weightKg,
       total_usd: totalUsd,
+      user_agent: userAgent,
+      merchant_declaration: true, // checkbox 2 ya validado arriba (fieldError si no)
+      invoice_id: order.invoiceId,
       idempotency_key: idempotencyKey,
     },
     docs,
   );
-  if (fieldErrors || !input) {
+  if (inputErrors || !input) {
     return {
       error:
         "No pudimos registrar la aceptación (datos de la orden incompletos). Contacta a tu asesor.",
     };
   }
 
-  // 5 + 8. IP del edge + sello server-side (accepted_at/ip/hash los pone el server).
+  // 5 + 8. IP del edge + sello server-side (accepted_at/ip/user_agent/hash los
+  // pone el server; el user_agent sellado es el de headers(), no el del form).
   const ip = await getRequestIp();
-  const seal = sealAcceptance(input, docs, ip, new Date());
+  const seal = sealAcceptance(input, docs, ip, userAgent, new Date());
 
   // 9 + 10. acceptance_code con reintento ante choque del correlativo + insert.
   for (let attempt = 0; attempt < CODE_RETRIES; attempt++) {
@@ -197,6 +236,10 @@ export async function registerAcceptanceAction(
       total_usd: seal.total_usd,
       accepted_at: seal.accepted_at,
       ip: seal.ip,
+      // v2 (0120): lo que se persiste es EXACTAMENTE lo que el sello hasheó.
+      user_agent: seal.user_agent,
+      merchant_declaration: seal.merchant_declaration,
+      invoice_id: seal.invoice_id,
       hash: seal.hash,
       idempotency_key: seal.idempotency_key,
     });

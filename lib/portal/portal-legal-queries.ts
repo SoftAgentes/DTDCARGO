@@ -26,6 +26,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
+import type { DocRef } from "@/lib/studio/legal/types";
 import type { InvoiceLine } from "@/lib/studio/invoice-types";
 
 const DDP_SERVICE = "puerta_a_puerta_DDP";
@@ -237,4 +238,54 @@ export async function getPendingAcceptanceInvoice(
     lines: Array.isArray(data.lines) ? (data.lines as InvoiceLine[]) : [],
     notes: (data.notes as string | null) ?? null,
   };
+}
+
+/**
+ * Snapshot de docs de la ÚLTIMA aceptación previa de ESTA orden (SDD-0067):
+ * detecta la causa "nueva versión" para el aviso de re-aceptación del §1. Si la
+ * orden sigue "pendiente de aceptar" (la página se está mostrando) PERO existe
+ * una aceptación previa cuyos docs ya no son los vigentes → el Portal muestra
+ * "Actualizamos nuestro Acuerdo…".
+ *
+ * Mismo scope explícito que el resto (admin client + tenant + markbox +
+ * quote_code = ref de la orden). null si no hay aceptaciones previas o faltan
+ * argumentos (fail-closed: sin aviso).
+ */
+export async function latestOrderAcceptanceDocs(
+  admin: SupabaseClient,
+  args: { tenantId: string; markbox: string; orderRef: string },
+): Promise<DocRef[] | null> {
+  const tenantId = String(args.tenantId ?? "").trim();
+  const markbox = String(args.markbox ?? "").trim();
+  const orderRef = String(args.orderRef ?? "").trim();
+  if (!tenantId || !markbox || !orderRef) return null;
+
+  const { data } = await admin
+    .from("legal_acceptances")
+    .select("docs, accepted_at")
+    .eq("tenant_id", tenantId)
+    .eq("client_markbox", markbox)
+    .eq("quote_code", orderRef)
+    .order("accepted_at", { ascending: false })
+    .limit(1)
+    .maybeSingle<{ docs: unknown; accepted_at: string }>();
+
+  if (!data) return null;
+
+  const raw = data.docs;
+  const parsed: unknown =
+    typeof raw === "string"
+      ? (() => {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return [];
+          }
+        })()
+      : raw;
+  if (!Array.isArray(parsed)) return [];
+  return parsed.map((d) => ({
+    key: String((d as DocRef)?.key ?? ""),
+    version: String((d as DocRef)?.version ?? ""),
+  }));
 }
