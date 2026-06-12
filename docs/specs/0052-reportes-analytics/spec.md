@@ -1,10 +1,10 @@
 ---
 sdd: "0052"
 title: "Reportes & Analytics — capa de presentación sobre agregados existentes (Bloque 5); Slice A = Operacionales + Overview"
-status: approved
+status: done
 author: "Claude Code (carril Bloque 5 · Norte v2.4)"
 created: 2026-06-03
-updated: 2026-06-04
+updated: 2026-06-12
 supersedes: null
 superseded_by: null
 related: ["0048", "0021", "0041", "0044", "0047", "0051", "0002"]
@@ -394,3 +394,15 @@ intactos (1057 verdes en el repo).
 - **UI:** `<ActionButton variant="ghost" size="sm">` con `Icon.download`, `disabled` (+`title` explicativo) cuando no hay datos;
   **oculto** en el Constructor. Espeja el export de Costing. Sin migración. Gate verde · `ui-ux-designer` OK (BOM = su "big win").
 - **Pendiente (paso 2):** export **PDF** de estas mismas vistas fijas (hoy solo el Constructor tiene PDF).
+
+### Cierre · status → done (2026-06-12)
+
+Slice **A + B + C** en prod (Operacionales · Comerciales · Contables · Combinados · **Constructor**
+con export CSV/PDF — commits `e23388d`/`e0831d6`, tests del módulo verdes). El spec se marca **done**:
+su alcance V1 (§3.5 + §6) está cumplido. Quedan **fuera de alcance V1, bloqueados por falta de fuente**
+(no son deuda de este spec):
+- **"Por agente"** → `quotes` no tiene atribución de agente/owner. Se retoma cuando exista ese campo
+  (mini-feature: columna + asignación en cotización).
+- **"Posición IVA"** → depende del **Bloque 3 Fiscal/SENIAT** (sin spec ni tablas). Se retoma con ese bloque.
+- Nice-to-have menor: export **PDF** de las vistas fijas (hoy solo el Constructor lo tiene; las fijas ya
+  exportan CSV).

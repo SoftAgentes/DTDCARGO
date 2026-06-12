@@ -1,52 +1,27 @@
 {
-  "generatedAt": "2026-06-10",
+  "generatedAt": "2026-06-12",
   "norteVersion": "v2.5",
   "partA": {
     "findings": [
       {
-        "id": "memory-md-overflow",
-        "title": "MEMORY.md desbordado (34.9KB > límite 24.4KB) — memoria persistente truncada cada sesión",
-        "severity": "alta",
-        "action": "El índice solo se carga parcial: hay pérdida silenciosa de contexto entre sesiones. Compactar cada entrada a 1 línea <200 chars y mover el detalle a topic files (el detalle ya vive en los .md individuales).",
-        "top": true
-      },
-      {
-        "id": "schema-reconciliation-stale-0119",
-        "title": "schema-reconciliation.md stale: snapshot 0113, migraciones reales hasta 0119",
-        "severity": "media",
-        "action": "6 migraciones sin reconciliar (0114 financiero_china, 0115 partner_statements, 0116 documentos_versionado, 0117 quotes_portal_rls, 0118-0119 prealertas). Regenerar el reconciliador; los conteos solo pueden haber mejorado, pero la vista Datos del Norte queda desfasada."
-      },
-      {
-        "id": "sdd-0059-duplicado",
-        "title": "Correlativo SDD duplicado: 0059 usado por dos specs distintos",
-        "severity": "media",
-        "action": "0059 'Financiero Socio Logístico China' (in-progress, confidencial) y 0059 'Registro self-service' (done) comparten número — rompe trazabilidad ISO 9001. Renumerar el más reciente al siguiente libre y registrar en supersedes/related."
-      },
-      {
-        "id": "effort-max-global",
-        "title": "effortLevel 'max' global encarece tareas mecánicas",
-        "severity": "media",
-        "action": "~/.claude/settings.json aplica effort máximo a todo. Tareas mecánicas (NORTE-SYNC, docs:index, regen de reconciliación, sweeps) no lo necesitan: usar Sonnet/effort menor para mecánico, reservar max para harness/specs/auditorías."
-      },
-      {
-        "id": "perms-wildcards-cross-project",
-        "title": "Permisos npm/npx obsoletos + dirs cruzados que triplican skills",
+        "id": "skills-feature-radar-duplicados",
+        "title": "feature y radar aparecen 2× en el inventario de skills",
         "severity": "baja",
-        "action": "~/.claude/settings.json: 'npm run *' / 'npx tsc *' / 'npm install *' no aplican (proyecto usa pnpm), Read(Desktop/**) muy amplio, additionalDirectories cruza a 'IA ANTROPIC/Factroia' y hace aparecer feature/radar 3 veces en el inventario de skills. Podar npm/tsc, acotar el Read, quitar dirs que no se usen. settings.local: 'npx next dev' → pnpm dev."
+        "action": "Evaluado 2026-06-12: NO es bug del repo ni de settings. Causa raíz confirmada: la sesión se lanzó con C:\\Users\\Trabajo\\Desktop\\DTDCargo (repo main) como working dir adicional ADEMÁS del worktree — ambos son el mismo repo en git, así que sus .claude/commands/{feature,radar}.md se cargan 2×. Verificado que NO está persistido en ningún settings ni en ~/.claude.json (add-dirs vacío para este worktree) → viene de un --add-dir del lanzamiento de la sesión. Inofensivo (las 2 entradas son idénticas; /feature y /radar funcionan igual). Para evitarlo: no pasar --add-dir apuntando al main al abrir un worktree (el worktree ya tiene el repo completo)."
       },
       {
         "id": "flaky-vitest-worker",
         "title": "Gate Stop (verify.mjs) con worker flaky de Vitest en Windows",
         "severity": "baja",
-        "action": "Stop hook = node scripts/harness-verify-hook.mjs (timeout 180s) → scripts/verify.mjs, ambos presentes. El crash transitorio 'failed to find the runner' da falsos ROJOS sin regresión: re-correr antes de tocar nada. Mitigación opcional: pool forks/single en vitest.config para Windows."
+        "action": "Evaluado 2026-06-12: sin fix de config seguro. vitest.config no fija pool → en Vitest 4.1.7 el default ya es 'forks' (lo más estable en Windows). singleFork serializaría los 1689 tests y reventaría el timeout del gate (180s); bajar maxForks es especulativo. El 'failed to find the runner' es transitorio de tinypool → mitigación correcta = re-correr. Sin acción."
       }
     ],
-    "estimatedTokenSavings": "~10-15%"
+    "estimatedTokenSavings": "~5%"
   },
   "partB": {
     "counts": {
-      "built": 16,
-      "partial": 6,
+      "built": 17,
+      "partial": 5,
       "missing": 0,
       "total": 22
     },
@@ -54,12 +29,12 @@
       {
         "name": "Bloque 1-2 · Financiero (Facturación/Contabilidad/Cobranzas/Tesorería)",
         "remaining": "0%",
-        "note": "SDD-0021/0040/0041/0044 done en prod."
+        "note": "SDD-0021/0040/0041/0044 done en prod. 2.3 Financiero Socio China (SDD-0059) in-progress/confidencial, fuera del blueprint del Norte."
       },
       {
         "name": "Bloque 3 · Fiscal SENIAT (Libro Ventas/Compras, IVA, retenciones)",
-        "remaining": "100%",
-        "note": "Único bloque sin spec ni tablas (0018 es aduana, no libros IVA). Bottleneck estructural, mitigado por el toggle IVA OFF (DTD hoy no maneja IVA). Próximo paso barato: escribir la spec; implementar cuando el founder defina activación de IVA."
+        "remaining": "~90%",
+        "note": "SDD-0073 draft escrito 2026-06-12 — módulo CONFIGURABLE: Configuración fiscal per-tenant (fiscal_settings) + Libro Ventas + Compras que la consumen. Las reglas fiscales son config editable (no hardcode), migración mínima. §8 dejó de bloquear (son settings que el contador ajusta en la UI; default = exento/retiene). Retenciones-comprobantes + declaración + Posición IVA = V2. Bottleneck hasta implementar V1."
       },
       {
         "name": "Bloque 4 · Naviera & Consolidación",
@@ -68,13 +43,13 @@
       },
       {
         "name": "Bloque 5 · Comercial (Dirección/Docs/Fidelización/Reportes/Costing/Legal)",
-        "remaining": "~15% (est.)",
-        "note": "0048/0049/0051/0053/0054 done + 0060 versionado done. Falta: 0052 Reportes (approved, sin implementar) + Costing Slice B-C."
+        "remaining": "0%",
+        "note": "done — los 6 specs en prod; 0052 Reportes Slice A+B+C incl. Constructor + export CSV/PDF (marcado done 2026-06-12). Fuera de V1 (bloqueado, no deuda): 'Por agente' (quotes sin owner) + 'Posición IVA' (→ Bloque 3 Fiscal)."
       },
       {
-        "name": "Transversal · WIP abierto (10 specs in-progress)",
+        "name": "Transversal · WIP abierto (9 specs in-progress/proposed)",
         "remaining": "no documentado",
-        "note": "0042, 0043, 0055, 0056, 0057, 0059-China, 0061, 0063, 0064, 0065 in-progress + 0062/0066 proposed. Freno operativo vigente: cerrar antes de abrir frentes nuevos. 0042/0043 están a un gate de founder de minutos (Auth Email ON + redirect · KOMMO_WEBHOOK_SECRET)."
+        "note": "Freno operativo vigente: cerrar antes de abrir frentes nuevos. Varios a un gate de founder de minutos (Auth Email ON + redirect /portal/callback · KOMMO_WEBHOOK_SECRET · DNS Resend inbound · flip LEGAL_GATE_HARD_BLOCK)."
       }
     ]
   }

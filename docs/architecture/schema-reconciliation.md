@@ -57,9 +57,9 @@
 | **2.1** | Cobranzas (recibos + asiento del cobro + CxC) | SDD-0041 | ✅ done |
 | **2.2** | Tesorería (Proveedores + CxP + órdenes de pago + asiento) | SDD-0044 | ✅ done |
 | **2.3** | Financiero con el Socio Logístico China (libro mayor bilateral + reconciliación) | SDD-0059 | 🟡 in-progress (confidencial) — migr `0114` (5 tablas: supplier_charges/credit_notes/currency_conversions/partner_ledger_entries/claim_offsets) + `0115` (partner_statements ×2) **en prod**; fuera del blueprint del Norte (no cuenta en el 17/22) |
-| **3** | Fiscal · SENIAT (Libro Ventas/Compras, retenciones, IVA) | — | ⏳ pendiente · **sin spec** (existe `0018-aduana-seniat` pero es **aduana**, no los libros IVA) |
+| **3** | Fiscal · SENIAT (Libro Ventas/Compras, retenciones, IVA) | SDD-0073 | ⏳ **draft** (SDD-0073, 2026-06-12: **módulo configurable** — Config fiscal per-tenant + Libro Ventas + Compras; las reglas fiscales son **config editable, no hardcode**; migración mínima `fiscal_settings`; transporte de carga **exento** = default editable; retenciones-comprobantes/declaración = V2). §8 = settings del módulo (ya no bloqueante). `0018-aduana` es aduana, no libros IVA. |
 | **4** | Naviera & Consolidación (carriers + bookings/BL + LCL→FCL) | SDD-0047 | ✅ **done** (Slice A+B; tablas `carriers`/`bookings`/`consolidations`/`consolidation_items`/`sailings`/`container_types`/`ports` en `0096`, UI `/studio/naviera`) |
-| **5** | Comercial (Dirección + Documentos + Fidelización + Reportes + Costing + Legal) | SDD-0048/0049/0051/0052/0053/0054 | 🟡 **mayormente done** (0048/0049/0051/0053/0054 done · 0052 Reportes approved) — falta Reportes Slice C + Costing Slice B-C |
+| **5** | Comercial (Dirección + Documentos + Fidelización + Reportes + Costing + Legal) | SDD-0048/0049/0051/0052/0053/0054 | ✅ **done** (los 6 en prod; 0052 Reportes Slice A+B+C incl. Constructor + export CSV/PDF, marcado `done` 2026-06-12; 0053 Costing `done`) — fuera de V1 (bloqueado, no es deuda del bloque): "Por agente" (`quotes` sin owner) · "Posición IVA" (→ Bloque 3 Fiscal) |
 
 ## Notas de procedencia y correcciones
 
