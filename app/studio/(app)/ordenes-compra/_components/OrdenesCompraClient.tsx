@@ -277,7 +277,7 @@ function DtdTab({
       <EmptyState
         eyebrow="Sin OC de DTD"
         title="Todavía no hay órdenes de compra de DTD."
-        description='Creá una OC de DTD cuando vayas a comprarle la mercancía al proveedor por cuenta del cliente (compra asistida). Al recibirla genera el Bill en Tesorería. Tocá "Nueva OC de DTD".'
+        description='Crea una OC de DTD cuando vayas a comprarle la mercancía al proveedor por cuenta del cliente (compra asistida). Al recibirla genera el Bill en Tesorería. Toca "Nueva OC de DTD".'
       />
     );
   }

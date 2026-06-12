@@ -388,7 +388,7 @@ function ReceiveForm({
         }}
       >
         Causa el Bill en Tesorería por ${fmt(po.total_cost_usd)} (lo que DTD le
-        debe al proveedor). Elegí la cuenta de costo donde se imputa la compra.
+        debe al proveedor). Elige la cuenta de costo donde se imputa la compra.
       </p>
 
       <div>
@@ -653,7 +653,7 @@ export function NewPoDrawer({
 
         <div>
           <label className="studio-label" htmlFor="po-markbox">
-            MARKBOX del cliente{" "}
+            Shipping Mark del cliente{" "}
             <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
           </label>
           <input
