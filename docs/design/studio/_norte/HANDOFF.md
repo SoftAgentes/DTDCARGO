@@ -23,7 +23,7 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
 - **Pulido sin-backend:** cerrado (skeletons, hide-values, drag&drop, scheduled send,
   multi-tenant *cliente*, perfiles, Tu día, Modo cliente, hilos, AI Copilot…).
 - **Consolidación de repo (v2.4):** cerrada — ver abajo.
-- **Lo último (v2.5 · 2026-06-07):** celebración del MARKBOX al registrar la compra en el
+- **Lo último (v2.5 · 2026-06-07):** celebración del Shipping Mark al registrar la compra en el
   Portal (`portal/registro.jsx`), **tarjeta de presentación** como pieza oficial de marca
   (`Tarjeta de Presentación.html`), **Brand Book → v3.5**, y un chequeo de links/conflictos
   para este handoff. Detalle completo en `CHANGELOG.md` (entrada 2026-06-07). La versión del
@@ -33,8 +33,11 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
 ### Lo que cerró v2.4 (sesión de consolidación)
 1. **Entrypoint único** `DTD Studio · ERP.html` (se eliminó el clon `Nort v2.4`).
 2. **Fuentes de verdad únicas:** assets → `assets/` · tokens → `erp/tokens.css` ·
-   marca → `CLAUDE.md` · Brand Book → `Brand Book DTD v3.2.html`. Se borraron
+   marca → `CLAUDE.md` · Brand Book → `Brand Book DTD v3.7.html`. Se borraron
    snapshots viejos que revertían la migración tipográfica.
+   **Regla de sync con Norte:** cada actualización de marca se lleva completa a
+   Claude Code; allí se eliminan los brand books anteriores y solo queda la versión
+   nueva como referencia (protocolo completo en `CLAUDE.md` § Sincronización).
 3. **Split `erp/` vs `nuevo/` retirado:** todo lo que vivía en `nuevo/` se movió a su
    lugar canónico (`erp/`, `erp/modules/`, `pantallas/`, `operario/`, `propuesta/`,
    `mobile/`). **Los archivos nuevos van directo a su lugar definitivo** — ya no hay antesala.
@@ -64,7 +67,7 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
   (`OverlayHost` en `erp/shell.jsx`). `kind` ∈ `tudia · perfil · hilo · copilot ·
   estadocuenta · modocliente`. Cada pantalla va envuelta en IIFE (`/* @iife */`) para
   aislar helpers homónimos entre archivos; solo escapa el `window.X = X`.
-- **Datos** en globals: `window.ERPData` (clientes MARKBOX `DTD-XXXX`, embarques
+- **Datos** en globals: `window.ERPData` (clientes Shipping Mark `DTD-XXXX`, embarques
   `DTDU-XXXXXX`, facturas `F-2026-XXXX`, usuarios, proveedores CN, perfiles, hilos…) y
   data-modules por feature (`window.TesoreriaData`, `NavieraData`, `ContabilidadData`,
   `FiscalData`, `DocumentosData`, `CobranzasData`, `FidelizacionData`, `ConversacionesData`).
@@ -79,11 +82,11 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
   SearchSelect, CatalogLines`, columnas configurables).
 - **Apps de operario · reuso de flujos:** las apps móviles exponen sus sub-flujos para
   que el launcher multi-rol (`Operario Multi.html`) los reuse sin re-login ni rediseño:
-  `operario/almacenista.jsx` → `window.AlmacenistaFlows = { ReceptionFlow, DispatchFlow }`;
+  `operario/bodeguero.jsx` → `window.BodegueroFlows = { ReceptionFlow, DispatchFlow }`;
   `operario/ve.jsx` (envuelto en IIFE) → `window.OperarioVEFlows = { DeliveryFlow }`.
   **Regla:** todo `.jsx` que se co-cargue con otro va en IIFE (escape solo `window.X`),
   porque los scripts Babel comparten scope global y los helpers homónimos (`Steps`,
-  `Login`, `MobileHeader`…) se pisan. `ve.jsx` ya migró; `almacenista.jsx` sigue en
+  `Login`, `MobileHeader`…) se pisan. `ve.jsx` ya migró; `bodeguero.jsx` sigue en
   scope global (funciona porque su par, `ve.jsx`, está aislado).
 
 ---
@@ -122,9 +125,9 @@ IVA", desglose de IVA en Facturación. Reactivo vía `dtd-cfg-changed`. En backe
 | `Portal del Cliente.html` + `portal/app.jsx` | Portal externo del cliente |
 | `Registro Cliente.html` + `portal/registro.jsx` | Alta de cliente |
 | `Portal Cliente Mobile.html`, `Mobile ERP.html` | Versiones móviles |
-| `Operario CN/VE/Multi.html`, `Almacenista VE.html`, `Transportista.html` | Apps de operario |
+| `Operario CN/VE/Multi.html`, `Bodeguero VE.html`, `Camionero.html` | Apps de operario |
 | `Despacho · Vista 3.html`, `Mapa de Proceso.html` | Operación / proceso |
-| `Brand Book DTD v3.2.html`, `Logo Oficial.html`, `Iconos de Perfil.html`, `Aplicaciones de Marca.html` | Identidad |
+| `Brand Book DTD v3.7.html`, `Logo Oficial.html`, `Iconos de Perfil.html`, `Aplicaciones de Marca.html` | Identidad |
 | `CLAUDE.md` | **Guardrails de marca — LEER PRIMERO** |
 | `HANDOFF-MOBILE.md` | **Paquete completo del teléfono** — auth, ruteo por rol, sesión, multi-rol, offline, endpoints |
 | `Login y Sesión · Operario.html` | Spec visual de la lógica de sesión (6 estados) |
@@ -147,7 +150,7 @@ Todos en **`erp/tokens.css`** (light + dark + densidad). Resumen:
 - **Spacing** escala 4px (`--s-1..--s-16`), radios (`--r-xs..--r-pill`), sombras
   (`--shadow-xs..--shadow-pop`), motion (`--ease`, `--dur*`).
 
-Ver `CLAUDE.md` para las reglas absolutas (paleta, fuentes, prohibición de AI slop, nomenclatura MARKBOX).
+Ver `CLAUDE.md` para las reglas absolutas (paleta, fuentes, prohibición de AI slop, nomenclatura Shipping Mark).
 
 ---
 
@@ -159,7 +162,7 @@ Ver `CLAUDE.md` para las reglas absolutas (paleta, fuentes, prohibición de AI s
    JetBrains Mono y Noto Sans SC. Ninguna otra.
 3. **Cero AI slop:** sin gradientes coloridos, sin emoji decorativo, sin glassmorphism.
 4. **Componentes del sistema** (`window.ERPUI`) primero. Inventar solo con `/* TODO: brand-review */`.
-5. **MARKBOX / Shipping Mark:** mismo valor (`DTD-XXXX`); etiqueta "MARKBOX" de cara al
-   cliente, "Shipping Mark / 唛头" de cara al proveedor CN.
+5. **Shipping Mark:** término único en todos los contextos; mismo valor (`DTD-XXXX`); de cara al
+   proveedor CN se acompaña del chino: "Shipping Mark (唛头)".
 6. **Avisar antes de violar** una regla (formato `BRAND-CHECK` en `CLAUDE.md`).
-7. **No rehacer lo existente.** Verificá contra el `CHANGELOG.md`. Si hay duda, preguntá.
+7. **No rehacer lo existente.** Verifica contra el `CHANGELOG.md`. Si hay duda, preguntá.

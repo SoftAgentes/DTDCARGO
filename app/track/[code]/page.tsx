@@ -9,7 +9,7 @@
  * vive en supabase/migrations/0059_public_track_rpc.sql.
  *
  * UI: mantiene el lenguaje visual del sitio público (NO Studio dark).
- * Sumá foto POD si delivered + WhatsApp share con mensaje pre-poblado.
+ * Suma foto POD si delivered + WhatsApp share con mensaje pre-poblado.
  */
 
 import type { Metadata } from "next";
@@ -166,7 +166,7 @@ function FoundView({
   const shareText = encodeURIComponent(
     `Mi envío DTD ${code} está en estado: ${statusLabel}` +
       (eta ? `. ETA: ${formatDate(eta)}.` : ".") +
-      ` Seguilo en vivo: https://dtdcargo.com/track/${code}`,
+      ` Síguelo en vivo: https://dtdcargo.com/track/${code}`,
   );
   const shareUrl = `https://wa.me/?text=${shareText}`;
 

@@ -103,11 +103,11 @@ export async function notifyIdentityMismatch(
           <tr><td style="padding:4px 12px 4px 0;color:#6b6b80">Nombre del registro</td>
               <td style="padding:4px 0"><strong>${esc(registry)}</strong></td></tr>
         </table>
-        <p>Revisalo a ojo en el detalle del cliente:
+        <p>Revísalo a ojo en el detalle del cliente:
           <a href="${detailUrl}" style="color:#7a1f3d">${detailUrl}</a>
         </p>
         <p style="color:#6b6b80;font-size:13px">Esto es advisory — el cliente sigue activo.
-        Si el nombre es correcto (apellido de casada, 2º nombre, typo), marcá "corresponde" manualmente.</p>
+        Si el nombre es correcto (apellido de casada, 2º nombre, typo), marca "corresponde" manualmente.</p>
       </div>`;
 
     for (const to of admins) {

@@ -19,7 +19,7 @@ export function DriversTab({ drivers }: { drivers: TmsDriver[] }) {
       <EmptyState
         eyebrow="Sin choferes"
         title="Aún no hay choferes registrados."
-        description="Usá '+ Nuevo chofer' en el header para dar de alta al primer conductor."
+        description="Usa '+ Nuevo chofer' en el header para dar de alta al primer conductor."
       />
     );
   }

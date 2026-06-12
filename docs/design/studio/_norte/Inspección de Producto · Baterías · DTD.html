@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD-Cargo · Inspección de Producto · Baterías · EJEMPLO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="erp/tokens.css" rel="stylesheet" />
+<link href="reportes/report.css" rel="stylesheet" />
+</head>
+<body class="report">
+
+<div class="toolbar no-print">
+  <span class="tb-brand">DTD&nbsp;Cargo · Control de Calidad <small>— Inspección de Producto · Baterías</small></span>
+  <span class="sp"></span>
+  <span class="hint">Ejemplo con datos ocultos · marca de agua SAMPLE</span>
+  <button onclick="window.print()">Imprimir / Guardar PDF</button>
+</div>
+
+<!-- ════════════════ HOJA 1 · PORTADA + RESUMEN ════════════════ -->
+<section class="sheet" data-screen-label="Baterías · Portada">
+  <div class="wm"><span>SAMPLE</span></div>
+  <div class="sample-band">Documento de muestra</div>
+
+  <header class="rp-head">
+    <div class="rp-lockup">
+      <span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span>
+      <div>
+        <div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div>
+        <div class="lk-sub">Control de Calidad · Origen China</div>
+      </div>
+    </div>
+    <div class="rp-meta">
+      <div class="doc-type">Inspección de Producto</div>
+      <dl>
+        <dt>Tipo</dt><dd>Pre-Embarque (PSI)</dd>
+        <dt>Servicio N.º</dt><dd class="mono">DTD-QC-25120101</dd>
+        <dt>Fecha</dt><dd>1 dic 2025</dd>
+        <dt>Norma</dt><dd>ANSI/ASQ&nbsp;Z1.4</dd>
+      </dl>
+    </div>
+  </header>
+
+  <div class="eyebrow">Reporte de Inspección Pre-Embarque</div>
+  <h1 class="rp-title">Baterías automotrices libres de mantenimiento</h1>
+  <p class="rp-title-sub">Inspección por muestreo AQL · 8 modelos · destino Sudamérica (Venezuela) · puerta a puerta CN&nbsp;→&nbsp;VE</p>
+
+  <div style="display:flex; gap:var(--s-6); align-items:flex-start;">
+    <div style="flex:1;">
+      <table class="dt">
+        <tr><th style="width:42%">Dato</th><th>Valor</th></tr>
+        <tr><td>Cliente / Importador</td><td><span class="redact" data-tag="Cliente oculto">XXXXXXXXXXXXXX</span></td></tr>
+        <tr><td>Proveedor / Fábrica</td><td><span class="redact" data-tag="Fábrica oculta">XXXXXXXXXXXXXXXXX</span></td></tr>
+        <tr><td>Producto</td><td>Batería automotriz (maintenance-free)</td></tr>
+        <tr><td>Modelos</td><td class="mono">8 modelos MF</td></tr>
+        <tr><td>Cantidad de la orden</td><td class="mono">2.700 pcs / 2.700 ctns</td></tr>
+        <tr><td>Ubicación de inspección</td><td><span class="redact" data-tag="Ubicación oculta">XXXXXXXXXXX</span></td></tr>
+        <tr><td>Jornada en fábrica</td><td class="mono">09:30 → 17:30</td></tr>
+      </table>
+    </div>
+    <div class="seal-wrap" style="padding-top:6px;">
+      <div class="qc-seal" aria-label="Sello Control de Calidad DTD">
+        <svg viewBox="0 0 200 200" role="img">
+          <circle class="ring" cx="100" cy="100" r="94" stroke-width="3"/>
+          <circle class="ring" cx="100" cy="100" r="79" stroke-width="1.4"/>
+          <path id="arcTopP" fill="none" d="M 14,100 A 86,86 0 0 1 186,100"/>
+          <path id="arcBotP" fill="none" d="M 26,100 A 74,74 0 0 0 174,100"/>
+          <text class="arc-text"><textPath href="#arcTopP" startOffset="50%" text-anchor="middle">CONTROL DE CALIDAD</textPath></text>
+          <text class="arc-small"><textPath href="#arcBotP" startOffset="50%" text-anchor="middle">VERIFICADO EN ORIGEN · CHINA</textPath></text>
+          <circle cx="22" cy="100" r="2.3" fill="var(--wine)"/>
+          <circle cx="178" cy="100" r="2.3" fill="var(--wine)"/>
+          <image href="assets/dtdcargo-isologo-mono-dark.png" x="71" y="58" width="58" height="60"/>
+          <text x="100" y="140" text-anchor="middle" style="font:800 13px/1 var(--f-brand-display);fill:var(--wine);letter-spacing:-0.02em;">DTD CARGO</text>
+        </svg>
+      </div>
+      <div class="seal-meta">Inspeccionado por DTD<br/>01·12·2025</div>
+    </div>
+  </div>
+
+  <h2 class="sec"><span class="sec-no">AQL</span> Resultado del muestreo</h2>
+  <div class="kpis">
+    <div class="kpi"><div class="lab">Tamaño de muestra</div><div class="val mono">100</div><div class="unit">pcs · Nivel G-II</div></div>
+    <div class="kpi"><div class="lab">Defectos críticos</div><div class="val">0</div><div class="unit">máx. permitido 0</div></div>
+    <div class="kpi"><div class="lab">Defectos mayores</div><div class="val">0</div><div class="unit">máx. permitido 5</div></div>
+    <div class="kpi"><div class="lab">Defectos menores</div><div class="val">0</div><div class="unit">máx. permitido 10</div></div>
+  </div>
+
+  <div style="display:flex; gap:var(--s-4); align-items:stretch; margin-top:var(--s-2);">
+    <div style="flex:1.4;">
+      <table class="dt">
+        <tr><th>Categoría evaluada</th><th style="width:90px">Conforme</th><th style="width:34%">Comentario</th></tr>
+        <tr><td>Cantidad</td><td><span class="badge success"><span class="dot"></span>Sí</span></td><td>100% producido y embalado</td></tr>
+        <tr><td>Descripción / estilo / color</td><td><span class="badge success"><span class="dot"></span>Sí</span></td><td>Conforme a referencia</td></tr>
+        <tr><td>Mano de obra (workmanship)</td><td><span class="badge success"><span class="dot"></span>Sí</span></td><td>Sin defectos</td></tr>
+        <tr><td>Pruebas funcionales</td><td><span class="badge success"><span class="dot"></span>Sí</span></td><td>4 pruebas · todas PASS</td></tr>
+        <tr><td>Medición de datos</td><td><span class="badge success"><span class="dot"></span>Sí</span></td><td>Dentro de tolerancia ±5%</td></tr>
+        <tr><td>Empaque</td><td><span class="badge success"><span class="dot"></span>Sí</span></td><td>Caja máster 5 capas OK</td></tr>
+        <tr><td>Shipping Mark (marca de envío)</td><td><span class="badge success"><span class="dot"></span>Sí</span></td><td>Verificada contra packing list</td></tr>
+      </table>
+    </div>
+    <div style="flex:1; border:1.5px solid var(--success); border-radius:var(--r-lg); background:var(--success-bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:var(--s-5); text-align:center;">
+      <div class="eyebrow" style="color:var(--success)">Conclusión general</div>
+      <div style="font:800 40px/1 var(--f-display); color:var(--success);">APROBADO</div>
+      <div class="badge success lg"><span class="dot"></span>PASS · cero defectos</div>
+      <div style="font-size:9.5px; color:var(--ink-soft); max-width:30ch;">El cliente conserva la decisión final de aceptar o rechazar el lote.</div>
+    </div>
+  </div>
+
+  <div class="note wine"><strong>Nota DTD:</strong> los datos del cliente, de la fábrica y la ubicación fueron ocultados deliberadamente — este documento se distribuye únicamente como ejemplo del formato de inspección de DTD-Cargo.</div>
+
+  <div class="rp-foot">
+    <div class="eyebrow" style="margin-bottom:8px;">Servicios de Control de Calidad DTD-Cargo</div>
+    <div class="svc" id="svc-prod"></div>
+    <div class="foot-bar">
+      <div class="foot-brand">
+        <span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span>
+        <div class="tag">Con Confianza, de China a tu puerta.<small>Construyendo confianza cliente a cliente, contenedor a contenedor.</small></div>
+      </div>
+      <div class="foot-contact"><b>DTD&nbsp;Cargo</b> · RIF&nbsp;J-50648869-8<br/>info@dtdcargo.com · +58&nbsp;241&nbsp;414&nbsp;7886<br/>Av.&nbsp;Bolívar&nbsp;Norte&nbsp;14, Valencia</div>
+    </div>
+  </div>
+  <div class="pageno">Inspección de Producto · Baterías · pág. 1</div>
+</section>
+
+<!-- ════════════════ HOJA 2 · OBSERVACIONES + TABLAS ════════════════ -->
+<section class="sheet" data-screen-label="Baterías · Datos">
+  <div class="wm"><span>SAMPLE</span></div>
+  <header class="rp-head">
+    <div class="rp-lockup">
+      <span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span>
+      <div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div>
+    </div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Producto</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-QC-25120101</dd><dt>Producto</dt><dd>Baterías MF</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">1</span> Observaciones de la inspección</h2>
+  <ol class="cmt">
+    <li>100% de la cantidad total de la orden fue terminada y embalada.</li>
+    <li>Según el estándar AQL, no se encontraron defectos: el lote está dentro del rango aceptable.</li>
+    <li>Inspección por muestreo aleatorio sobre los 8 modelos de la orden.</li>
+    <li>Este lote de mercancía <strong>aprobó</strong> la inspección.</li>
+  </ol>
+
+  <h2 class="sec"><span class="sec-no">2</span> Resumen por modelo (AQL)</h2>
+  <table class="dt">
+    <tr><th>Modelo</th><th class="num">Ordenado</th><th class="num">Muestra</th><th class="num">Crítico (máx 0)</th><th class="num">Mayor (máx 5)</th><th class="num">Menor (máx 10)</th><th>Conclusión</th></tr>
+    <tbody id="model-rows"></tbody>
+    <tr style="font-weight:800;"><td>TOTAL</td><td class="num">2.700</td><td class="num">100</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td><span class="badge success"><span class="dot"></span>APROBADO</span></td></tr>
+  </table>
+
+  <h3 class="sub">Estado de producción y embalaje</h3>
+  <table class="dt">
+    <tr><th>Modelo</th><th class="num">Ordenado</th><th class="num">Disponible</th><th class="num">% terminado</th><th class="num">% embalado</th><th class="num">PCS / caja</th><th>Marcado</th></tr>
+    <tbody id="pack-rows"></tbody>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">3</span> Medidas y peso</h2>
+  <table class="dt">
+    <tr><th>Modelo</th><th>Caja máster (L×A×H cm)</th><th class="num">PB caja (kg)</th><th>Producto (L×A×H cm)</th><th class="num">Peso neto (kg)</th></tr>
+    <tbody id="meas-rows"></tbody>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">4</span> Pruebas funcionales</h2>
+  <table class="dt">
+    <tr><th style="width:34px">N.º</th><th>Descripción</th><th class="num">Probado</th><th class="num">Conforme</th><th class="num">No conf.</th><th>Resultado</th></tr>
+    <tbody id="func-rows"></tbody>
+  </table>
+
+  <h3 class="sub">Desglose de defectos</h3>
+  <table class="dt">
+    <tr><th>Descripción del defecto</th><th class="num">Crítico</th><th class="num">Mayor</th><th class="num">Menor</th></tr>
+    <tr><td>N/A — sin defectos de apariencia</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+    <tr style="font-weight:800;"><td>TOTAL</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+  </table>
+  <div class="pageno">Inspección de Producto · Baterías · pág. 2</div>
+</section>
+
+<!-- ════════════════ HOJA 3 · GALERÍA · ALMACÉN + CARTÓN ════════════════ -->
+<section class="sheet" data-screen-label="Baterías · Almacén">
+  <div class="wm"><span>SAMPLE</span></div>
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Producto</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-QC-25120101</dd><dt>Producto</dt><dd>Baterías MF</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">5</span> Estado de producción y almacenamiento</h2>
+  <p class="rp-title-sub" style="margin-bottom:var(--s-3);">Mercancía paletizada lista para despacho y vistas de la caja máster. La marca del fabricante fue difuminada.</p>
+  <div class="gal g3" id="gal-storage"></div>
+
+  <h3 class="sub">Verificación de caja máster</h3>
+  <div class="gal g4" id="gal-carton"></div>
+  <div class="pageno">Inspección de Producto · Baterías · pág. 3</div>
+</section>
+
+<!-- ════════════════ HOJA 4 · GALERÍA · CHEQUEOS + PRODUCTO ════════════════ -->
+<section class="sheet" data-screen-label="Baterías · Producto">
+  <div class="wm"><span>SAMPLE</span></div>
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Producto</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-QC-25120101</dd><dt>Producto</dt><dd>Baterías MF</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">6</span> Chequeos de peso, medida y producto</h2>
+  <h3 class="sub" style="margin-top:0;">Peso y dimensiones</h3>
+  <div class="gal g4" id="gal-checks"></div>
+
+  <h3 class="sub">Vista de producto e instructivo</h3>
+  <div class="gal g4" id="gal-product"></div>
+
+  <div class="note wine"><strong>Resultado:</strong> los 8 modelos cumplieron peso, dimensiones y función. Cero defectos de apariencia. Lote aprobado para embarque.</div>
+
+  <div class="rp-foot">
+    <div class="eyebrow" style="margin-bottom:8px;">Servicios de Control de Calidad DTD-Cargo</div>
+    <div class="svc" id="svc-prod2"></div>
+    <div class="foot-bar">
+      <div class="foot-brand">
+        <span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span>
+        <div class="tag">Con Confianza, de China a tu puerta.<small>Inspección y trazabilidad en origen.</small></div>
+      </div>
+      <div class="foot-contact"><b>DTD&nbsp;Cargo</b> · RIF&nbsp;J-50648869-8<br/>info@dtdcargo.com · +58&nbsp;241&nbsp;414&nbsp;7886<br/>Av.&nbsp;Bolívar&nbsp;Norte&nbsp;14, Valencia</div>
+    </div>
+  </div>
+  <div class="pageno">Inspección de Producto · Baterías · pág. 4</div>
+</section>
+
+<script src="reportes/report-data.js"></script>
+<script>
+  renderServicios(['svc-prod','svc-prod2'], 'pre');
+
+  const MODELS = [
+    ['53646MF',350,12],['54519MF',350,12],['56077MF',600,20],['57220MF',300,12],
+    ['57524MF',300,12],['60038MF',300,12],['N150MF',300,12],['N200MF',200,8],
+  ];
+  document.getElementById('model-rows').innerHTML = MODELS.map(m=>
+    `<tr><td class="mono">${m[0]}</td><td class="num">${m[1].toLocaleString('es')}</td><td class="num">${m[2]}</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td><span class="badge success"><span class="dot"></span>PASSED</span></td></tr>`
+  ).join('');
+
+  document.getElementById('pack-rows').innerHTML = MODELS.map(m=>
+    `<tr><td class="mono">${m[0]}</td><td class="num">${m[1].toLocaleString('es')}</td><td class="num">${m[1].toLocaleString('es')}</td><td class="num">100%</td><td class="num">100%</td><td class="num">1</td><td><span class="badge success" style="font-size:8px;padding:2px 6px;">OK</span></td></tr>`
+  ).join('');
+
+  const MEAS = [
+    ['N200MF','52×22,5×23,5','35,02','50,8×21,8×19,8','34,42'],
+    ['54519MF','24,5×18,5×19,5','12,00','23,8×16,5×18,0','11,71'],
+    ['56077MF','24,5×18,5×19,5','12,94','24,0×17,0×17,8','12,69'],
+    ['57220MF','28,3×18,5×19,3','15,40','28,0×18,0×17,8','15,10'],
+    ['57524MF','28,3×18,5×19,3','16,80','27,6×19,0×16,5','16,37'],
+    ['60038MF','35,8×18,5×19,8','21,19','35,0×16,6×18,0','20,89'],
+    ['N150MF','51,5×26,0×26,0','45,00','50,5×24,8×21,5','44,26'],
+    ['53646MF','21,3×18,0×18,5','10,64','20,5×17,5×18,0','10,40'],
+  ];
+  document.getElementById('meas-rows').innerHTML = MEAS.map(m=>
+    `<tr><td class="mono">${m[0]}</td><td class="mono">${m[1]}</td><td class="num">${m[2]}</td><td class="mono">${m[3]}</td><td class="num">${m[4]}</td></tr>`
+  ).join('');
+
+  const FUNC = [
+    ['1','Inspección visual','100','100','0'],
+    ['2','Prueba funcional','100','100','0'],
+    ['3','Control de dimensiones','100','2','0'],
+    ['4','Control de peso','100','2','0'],
+  ];
+  document.getElementById('func-rows').innerHTML = FUNC.map(r=>
+    `<tr><td class="num mono">${r[0]}</td><td>${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td class="num">${r[4]}</td><td><span class="badge success"><span class="dot"></span>PASS</span></td></tr>`
+  ).join('');
+
+  function shot(file,label){
+    return `<div class="shot"><div class="img"><img src="assets/insp-bat/${file}.jpg" alt="${label}" loading="lazy"/></div><div class="cap"><span class="lab">${label}</span></div></div>`;
+  }
+  document.getElementById('gal-storage').innerHTML =
+    [['p04-2','Almacén · paletizado'],['p04-3','Almacén · paletizado'],['r-p05-2','Caja máster']].map(p=>shot(p[0],p[1])).join('');
+  document.getElementById('gal-carton').innerHTML =
+    [['r-p05-1','Vista de caja'],['p07-1','Caja + medida'],['p07-3','Caja abierta · 5 capas'],['r-p06-1','Caja en báscula']].map(p=>shot(p[0],p[1])).join('');
+  document.getElementById('gal-checks').innerHTML =
+    [['p10-2','Control de peso'],['p10-1','Peso en báscula'],['p11-1','Medida con regla'],['p11-2','Medida con regla']].map(p=>shot(p[0],p[1])).join('');
+  document.getElementById('gal-product').innerHTML =
+    [['r-p09-1','Vista de producto'],['r-p16-1','Vista de producto'],['p16-2','Vista lateral'],['r-p08-3','Instructivo (I/M)']].map(p=>shot(p[0],p[1])).join('');
+</script>
+</body>
+</html>

@@ -86,7 +86,7 @@ Los datos confirman la **3D**: (1) **Depurar** — el 86% del cuello está muert
 
 - **Embudos:** leads apilados en etapa 1-2; "Tomar decisión"/won prácticamente vacíos.
 - **Conversaciones:** ~3.018 en el Inbox (2.920 abiertas, 98 cerradas); 485 "sin respuesta" (~16% de las abiertas); de 401 analizadas, **42% es cortesía/ruido** (auto-cerrable), 10% cotización (alta prioridad), 6% servicio específico.
-- **Bots (10 Salesbots):** núcleo OK (Bienvenida, Asignar asesor, Solicitud de datos, Carga marítima [mín 0,20 CBM; tarifa especial ≥5 CBM], etc.). **Rotos: Cursos** (primer mensaje vacío) y **NPS** (0 lanzamientos: el trigger "Conversación cerrada" nunca dispara + "Error al enviar" en el bloque 1-10). **Fuga ~25%** en el saludo de Bienvenida (menú largo).
+- **Bots (10 Salesbots):** núcleo OK (Bienvenida, Asignar asesor, Solicitud de datos, Carga marítima [mín 0,20 CBM; tarifa especial ≥10 CBM], etc.). **Rotos: Cursos** (primer mensaje vacío) y **NPS** (0 lanzamientos: el trigger "Conversación cerrada" nunca dispara + "Error al enviar" en el bloque 1-10). **Fuga ~25%** en el saludo de Bienvenida (menú largo).
 - **Integración:** inbound-only; el CRM no refleja el ERP.
 
 ---

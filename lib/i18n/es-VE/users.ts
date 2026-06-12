@@ -86,7 +86,7 @@ export const users = {
   // ── Success view ─────────────────────────────────────────
   "users.success.title": "Invitación creada",
   "users.success.body":
-    "Copiá el link y mandáselo a tu invitado por WhatsApp, email o como prefieras. Expira en 7 días. (Cuando Resend esté listo, el sistema lo manda automático.)",
+    "Copia el link y mándaselo a tu invitado por WhatsApp, email o como prefieras. Expira en 7 días. (Cuando Resend esté listo, el sistema lo manda automático.)",
   "users.success.link_label": "Link de invitación",
   "users.success.copy": "Copiar",
   "users.success.copied": "✓ Copiado",

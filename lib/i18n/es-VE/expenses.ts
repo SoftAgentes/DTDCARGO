@@ -47,7 +47,7 @@ export const expenses = {
   // ── Empty states ─────────────────────────────────────────
   "expenses.empty.shipment_title": "Sin gastos de contenedor",
   "expenses.empty.shipment_desc":
-    "Cuando se consolide un contenedor, cargá acá sus gastos (transporte, aduana, etc.).",
+    "Cuando se consolide un contenedor, carga acá sus gastos (transporte, aduana, etc.).",
   "expenses.empty.external_title": "Sin gastos operativos",
   "expenses.empty.external_desc":
     "Alquiler, servicios, sueldos y demás overhead de la oficina CN van acá.",
@@ -66,7 +66,7 @@ export const expenses = {
 
   // ── Drawer · campos ──────────────────────────────────────
   "expenses.field.shipment": "Contenedor (embarque)",
-  "expenses.field.shipment_ph": "Elegí el contenedor…",
+  "expenses.field.shipment_ph": "Elige el contenedor…",
   "expenses.field.category": "Categoría",
   "expenses.field.amount": "Monto",
   "expenses.field.currency": "Moneda",
@@ -84,8 +84,8 @@ export const expenses = {
   // ── fx CNY/USD ───────────────────────────────────────────
   "expenses.fx.label": "Tipo de cambio ({pair})",
   "expenses.fx.prefill_recent": "Último usado el {date}. ¿Sigue vigente?",
-  "expenses.fx.prefill_old": "Tipo de cambio viejo, validá antes de guardar.",
-  "expenses.fx.no_history": "Buscalo en xe.com o equivalente.",
+  "expenses.fx.prefill_old": "Tipo de cambio viejo, valida antes de guardar.",
+  "expenses.fx.no_history": "Búscalo en xe.com o equivalente.",
   "expenses.fx.preview": "= {usd}",
   "expenses.fx.sanity_warning":
     "Tipo de cambio fuera del rango histórico ({min}–{max}). ¿Es correcto?",
@@ -109,7 +109,7 @@ export const expenses = {
   "expenses.alert.banner_title_one": "1 contenedor esperando gastos",
   "expenses.alert.banner_title_many": "{count} contenedores esperando gastos",
   "expenses.alert.banner_sub":
-    "Consolidados sin gastos cargados. Cargá los gastos o marcá cuando termines.",
+    "Consolidados sin gastos cargados. Carga los gastos o marca cuando termines.",
   "expenses.alert.load_btn": "Cargar gasto",
   "expenses.alert.close_btn": "Marcar cargado",
   "expenses.alert.closing": "Cerrando…",

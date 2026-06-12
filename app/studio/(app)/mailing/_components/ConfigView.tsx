@@ -103,7 +103,7 @@ export function ConfigView({ config }: Props) {
           defaultValue={config.reply_to ?? ""}
           error={state.fieldErrors?.reply_to}
           disabled={pending}
-          hint="A dónde llegan las respuestas. Ideal: un inbox real que monitoreás (ej: vzla@dtdcargo.com). Opcional."
+          hint="A dónde llegan las respuestas. Ideal: un inbox real que monitoreas (ej: vzla@dtdcargo.com). Opcional."
         />
 
         <Field
@@ -164,7 +164,7 @@ export function ConfigView({ config }: Props) {
                 </strong>{" "}
                 todos los emails (invitaciones, bug notif, futuros) se redirigen
                 a <code>{config.internal_test_email || "(falta configurar)"}</code>.
-                Ningún cliente real recibe. Desactivá cuando estés listo para
+                Ningún cliente real recibe. Desactiva cuando estés listo para
                 producción real.
               </>
             ) : (
@@ -172,7 +172,7 @@ export function ConfigView({ config }: Props) {
                 <strong style={{ color: "var(--success, #1F8A5B)" }}>
                   DESACTIVADO:
                 </strong>{" "}
-                los emails van al destinatario real. Asegurate que los templates
+                los emails van al destinatario real. Asegúrate de que los templates
                 están bien y los disparos están testeados antes de habilitar.
               </>
             )}

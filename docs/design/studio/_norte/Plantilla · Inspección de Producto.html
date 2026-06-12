@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD-Cargo · Plantilla · Inspección de Producto (vacía)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="erp/tokens.css" rel="stylesheet" />
+<link href="reportes/report.css" rel="stylesheet" />
+<style>
+  .tpl-ban { background: var(--info-bg); color: var(--info); border:1px solid var(--info); border-radius:var(--r-md); padding:8px 13px; font:600 10px/1.4 var(--f-sans); margin-bottom:var(--s-4); }
+  .en { color: var(--ink-mute); font-weight:500; }
+</style>
+</head>
+<body class="report">
+
+<div class="toolbar no-print">
+  <span class="tb-brand">DTD&nbsp;Cargo · Plantilla <small>— Inspección de Producto (para proveedor)</small></span>
+  <span class="sp"></span>
+  <span class="hint">Formato vacío · imprimir o completar digital</span>
+  <button onclick="window.print()">Imprimir / Guardar PDF</button>
+</div>
+
+<!-- ════════════════ HOJA 1 ════════════════ -->
+<section class="sheet" data-screen-label="Plantilla Producto · 1">
+  <header class="rp-head">
+    <div class="rp-lockup">
+      <span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span>
+      <div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div>
+    </div>
+    <div class="rp-meta">
+      <div class="doc-type">Inspección de Producto</div>
+      <dl>
+        <dt>Plantilla / Template</dt><dd>v1.0</dd>
+        <dt>Servicio N.º</dt><dd class="mono">DTD-QC-________</dd>
+        <dt>Fecha · Date</dt><dd class="mono">__ /__ /____</dd>
+      </dl>
+    </div>
+  </header>
+
+  <div class="eyebrow">Reporte de Inspección Pre-Embarque · Pre-Shipment Inspection</div>
+  <h1 class="rp-title">Plantilla de inspección de producto</h1>
+  <p class="rp-title-sub">Complete todos los campos. <span class="en">Please fill in all fields. 请填写所有字段。</span></p>
+
+  <div class="tpl-ban">Devolver junto con las fotos del producto y del embalaje. <span class="en">Return together with product &amp; packaging photos. 请随附产品及包装照片。</span></div>
+
+  <h2 class="sec"><span class="sec-no">1</span> Información de la orden · Order info</h2>
+  <table class="dt">
+    <tr><th style="width:30%">Campo · Field</th><th>Dato · Value</th><th style="width:30%">Campo · Field</th><th>Dato · Value</th></tr>
+    <tr><td>Producto · Product</td><td><div class="fill"></div></td><td>Ítem # · Item #</td><td><div class="fill"></div></td></tr>
+    <tr><td>P/O #</td><td><div class="fill"></div></td><td>Cantidad orden · Order qty</td><td><div class="fill"></div></td></tr>
+    <tr><td>Destino · Destination</td><td><div class="fill"></div></td><td>Shipping Mark · 唛头 (Shipping Mark)</td><td><div class="fill"></div></td></tr>
+    <tr><td>Llegada a fábrica · Arrival</td><td><div class="fill"></div></td><td>Salida de fábrica · Departure</td><td><div class="fill"></div></td></tr>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">AQL</span> Nivel de calidad aceptable · Acceptance Quality Level</h2>
+  <table class="dt">
+    <tr><th>Norma · Standard</th><th>Nivel · Level</th><th class="num">Crítico · Critical</th><th class="num">Mayor · Major</th><th class="num">Menor · Minor</th></tr>
+    <tr><td>ANSI/ASQ&nbsp;Z1.4 · MIL-STD-105E</td><td>G – II</td><td class="num">0</td><td class="num">1.5</td><td class="num">4.0</td></tr>
+    <tr><th>Muestra · Sample size</th><td><div class="fill"></div></td><th class="num">Encontrados · Found</th><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td></tr>
+    <tr><th>Máx. permitido · Max allowed</th><td></td><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td></tr>
+  </table>
+
+  <h3 class="sub">Categorías · Categories</h3>
+  <table class="dt">
+    <tr><th>Categoría · Category</th><th style="width:120px">Conforme · Conform</th><th>Comentario · Comment</th></tr>
+    <tr><td>Cantidad · Quantity</td><td class="tpl-conform"></td><td><div class="fill"></div></td></tr>
+    <tr><td>Descripción / estilo / color</td><td class="tpl-conform"></td><td><div class="fill"></div></td></tr>
+    <tr><td>Mano de obra · Workmanship</td><td class="tpl-conform"></td><td><div class="fill"></div></td></tr>
+    <tr><td>Pruebas · Testing / checking</td><td class="tpl-conform"></td><td><div class="fill"></div></td></tr>
+    <tr><td>Medición · Data measurement</td><td class="tpl-conform"></td><td><div class="fill"></div></td></tr>
+    <tr><td>Empaque · Packaging</td><td class="tpl-conform"></td><td><div class="fill"></div></td></tr>
+    <tr><td>Shipping Mark · 唛头</td><td class="tpl-conform"></td><td><div class="fill"></div></td></tr>
+  </table>
+
+  <div style="display:flex;gap:var(--s-4);align-items:center;margin-top:var(--s-4);border:1.5px solid var(--ink);border-radius:var(--r-md);padding:12px 16px;">
+    <strong style="font:700 13px/1 var(--f-display);">Resultado general · Overall result</strong>
+    <div style="display:flex;gap:18px;margin-left:auto;font-size:12px;">
+      <span><span class="chk-sq"></span> APROBADO · PASS</span>
+      <span><span class="chk-sq"></span> RECHAZADO · FAIL</span>
+      <span><span class="chk-sq"></span> PENDIENTE · PENDING</span>
+    </div>
+  </div>
+  <p class="tpl-hint" style="margin-top:6px;">El cliente conserva la decisión final de aceptar o rechazar. <span class="en">Client has the final decision to reject or approve.</span></p>
+  <div class="pageno">Plantilla · Inspección de Producto · pág. 1</div>
+</section>
+
+<!-- ════════════════ HOJA 2 ════════════════ -->
+<section class="sheet" data-screen-label="Plantilla Producto · 2">
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Producto</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-QC-________</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">2</span> Desglose de defectos · Defects breakdown</h2>
+  <table class="dt">
+    <tr><th>Descripción del defecto · Defect description</th><th class="num">Crítico</th><th class="num">Mayor</th><th class="num">Menor</th></tr>
+    <tbody id="def-blank"></tbody>
+    <tr style="font-weight:800;"><td>TOTAL</td><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td></tr>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">3</span> Estado y embalaje · Production &amp; packing</h2>
+  <table class="dt">
+    <tr><th>Ordenado</th><th>Disponible</th><th>% terminado</th><th>Cajas embaladas</th><th>PCS / caja</th><th>% embalado</th></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+  </table>
+  <h3 class="sub">Medidas y peso · Measurements &amp; weight</h3>
+  <table class="dt">
+    <tr><th>Caja máster (L×A×H cm)</th><th>PB caja (kg)</th><th>Color box (L×A×H cm)</th><th>PB color box (g)</th><th>Producto (L×A×H cm)</th><th>Peso neto (g)</th></tr>
+    <tr><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td><td><div class="fill"></div></td></tr>
+  </table>
+
+  <h2 class="sec"><span class="sec-no">4</span> Evidencia fotográfica · Photo attachments</h2>
+  <p class="tpl-hint" style="margin-bottom:8px;">Adjunte fotos: producto, defectos, código de barras, embalaje, caja máster, Shipping Mark, estado de almacenamiento. <span class="en">Attach photos of product, defects, barcode, packaging, master carton, shipping mark, storage.</span></p>
+  <div class="gal g3">
+    <div class="fill-box" style="aspect-ratio:4/3"></div><div class="fill-box" style="aspect-ratio:4/3"></div><div class="fill-box" style="aspect-ratio:4/3"></div>
+    <div class="fill-box" style="aspect-ratio:4/3"></div><div class="fill-box" style="aspect-ratio:4/3"></div><div class="fill-box" style="aspect-ratio:4/3"></div>
+  </div>
+
+  <div style="display:flex;gap:var(--s-8);margin-top:var(--s-6);">
+    <div style="flex:1;"><div class="tpl-hint">Inspeccionado por · Inspected by</div><div class="fill" style="margin-top:18px;"></div></div>
+    <div style="flex:1;"><div class="tpl-hint">Firma · Signature</div><div class="fill" style="margin-top:18px;"></div></div>
+    <div style="flex:1;"><div class="tpl-hint">Fecha · Date</div><div class="fill" style="margin-top:18px;"></div></div>
+  </div>
+
+  <div class="rp-foot">
+    <div class="eyebrow" style="margin-bottom:8px;">Servicios de Control de Calidad DTD-Cargo</div>
+    <div class="svc" id="svc-tpl-prod"></div>
+    <div class="foot-bar">
+      <div class="foot-brand"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div class="tag">Con Confianza, de China a tu puerta.<small>info@dtdcargo.com · +58 241 414 7886</small></div></div>
+      <div class="foot-contact"><b>DTD&nbsp;Cargo</b> · RIF&nbsp;J-50648869-8<br/>Av.&nbsp;Bolívar&nbsp;Norte&nbsp;14, Valencia</div>
+    </div>
+  </div>
+  <div class="pageno">Plantilla · Inspección de Producto · pág. 2</div>
+</section>
+
+<script src="reportes/report-data.js"></script>
+<script>
+  renderServicios('svc-tpl-prod','pre');
+  // filas en blanco para defectos
+  let rows='';
+  for(let i=0;i<7;i++) rows += '<tr><td><div class="fill"></div></td><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td><td class="num"><div class="fill"></div></td></tr>';
+  document.getElementById('def-blank').innerHTML = rows;
+  // casillas conforme Sí/No
+  document.querySelectorAll('.tpl-conform').forEach(td=>{
+    td.innerHTML = '<span style="display:inline-flex;gap:12px;font-size:10px;"><span><span class="chk-sq"></span> Sí</span><span><span class="chk-sq"></span> No</span></span>';
+  });
+</script>
+<style>
+  .chk-sq { display:inline-block; width:12px; height:12px; border:1.5px solid var(--border-strong); border-radius:3px; vertical-align:-2px; }
+</style>
+</body>
+</html>

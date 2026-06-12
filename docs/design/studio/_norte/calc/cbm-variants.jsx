@@ -4,7 +4,10 @@
    genera el sistema), peso con excedente y densidad, embalaje, baterías,
    destino Casco Central, carga especial → asesor. Piso $50 con punto de
    cruce derivado (50/tarifa). Visual: contenedor 40'HC que se llena con
-   el CBM. CTA = WhatsApp con la cotización armada.                    */
+   el CBM. CTA = WhatsApp con la cotización armada.
+   ── 2026-06 · Forma alternativa de obtener el CBM: alto × ancho × largo
+   (cm) + cantidad de cajas, oculta por defecto; al desplegarse calcula y
+   ASIGNA el CBM total automáticamente. (handoff: HANDOFF-CBM-MEDIDAS.md)  */
 
 const { useState } = React;
 
@@ -16,7 +19,8 @@ if (typeof document !== 'undefined' && !document.getElementById('cbm-calc-css'))
     + '@keyframes dtd-cta-pulse{0%,100%{box-shadow:0 10px 22px rgba(37,211,102,0.30)}50%{box-shadow:0 14px 32px rgba(37,211,102,0.52)}}'
     + '@keyframes dtd-cta-wiggle{0%,84%,100%{transform:translateX(0) rotate(0deg)}87%{transform:translateX(-2px) rotate(-0.6deg)}90%{transform:translateX(2px) rotate(0.6deg)}93%{transform:translateX(-2px) rotate(-0.6deg)}96%{transform:translateX(1px) rotate(0.3deg)}}'
     + '@keyframes dtd-cta-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(4px)}}'
-    + '@media (prefers-reduced-motion: no-preference){.dtd-cta-pulse{animation:dtd-cta-pulse 2.2s ease-in-out infinite}.dtd-cta-nudge{animation:dtd-cta-wiggle 3.4s ease-in-out infinite}.dtd-cta-arrow{animation:dtd-cta-bounce 1.3s ease-in-out infinite}}';
+    + '@keyframes dtd-dim-open{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}'
+    + '@media (prefers-reduced-motion: no-preference){.dtd-cta-pulse{animation:dtd-cta-pulse 2.2s ease-in-out infinite}.dtd-cta-nudge{animation:dtd-cta-wiggle 3.4s ease-in-out infinite}.dtd-cta-arrow{animation:dtd-cta-bounce 1.3s ease-in-out infinite}.dtd-dim-panel{animation:dtd-dim-open 200ms var(--ease)}}';
   document.head.appendChild(_s);
 }
 
@@ -41,6 +45,19 @@ function usd(n) { return 'US$' + Math.round(n || 0).toLocaleString('en-US'); }
 function fmtKg(n) { return (n || 0).toLocaleString('en-US') + ' kg'; }
 function trimNum(n) { return parseFloat((n || 0).toFixed(4)).toString(); }
 function waLink(msg) { return 'https://wa.me/' + DTD_WA_PHONE + '?text=' + encodeURIComponent(msg); }
+
+// ── Cálculo de CBM por medidas (cm) ────────────────────────────────
+// CBM por caja = (alto·ancho·largo) / 1.000.000  ·  total = perBox · cajas
+function computeDims(alto, ancho, largo, cajas) {
+  const a = Math.max(parseFloat(alto) || 0, 0);
+  const b = Math.max(parseFloat(ancho) || 0, 0);
+  const c = Math.max(parseFloat(largo) || 0, 0);
+  const n = Math.max(parseFloat(cajas) || 0, 0);
+  const perBox = (a * b * c) / 1e6;
+  const total = perBox * n;
+  const valid = a > 0 && b > 0 && c > 0 && n > 0;
+  return { a, b, c, n, perBox, total, valid };
+}
 
 // ── Motor de cálculo ───────────────────────────────────────────────
 function computeQuote(inp) {
@@ -87,10 +104,10 @@ function computeQuote(inp) {
 
 // Texto de la alerta que enruta al asesor (orden de prioridad).
 function alertText(r) {
-  if (r.especial) return 'Para carga especial, peligrosa o que requiere permisos de exportación, consultá con tu asesor — la cotizamos a medida.';
+  if (r.especial) return 'Para carga especial, peligrosa o que requiere permisos de exportación, consulta con tu asesor — la cotizamos a medida.';
   if (r.overCBM) return 'Eso es más que un contenedor. Consulte a su asesor.';
   if (r.overPeso) return 'Esto es más que el peso permitido por contenedor; consulte a su asesor.';
-  if (r.overDensity) return 'Tu carga tiene ' + Math.round(r.density) + ' kg/CBM, supera el máximo de ' + DENS_MAX + ' kg/CBM. Necesitás FCL o cotización personalizada — escribinos por WhatsApp.';
+  if (r.overDensity) return 'Tu carga tiene ' + Math.round(r.density) + ' kg/CBM, supera el máximo de ' + DENS_MAX + ' kg/CBM. Necesitas FCL o cotización personalizada — escríbenos por WhatsApp.';
   return null;
 }
 
@@ -165,7 +182,7 @@ function Container40HC({ cbm }) {
 }
 
 // ── Campo numérico ─────────────────────────────────────────────────
-function NumField({ label, tag, value, onChange, prefix, suffix, big, hint, hintTone }) {
+function NumField({ label, tag, value, onChange, prefix, suffix, big, hint, hintTone, readOnly }) {
   const [foc, setFoc] = useState(false);
   const hc = hintTone === 'danger' ? 'var(--danger)' : hintTone === 'info' ? 'var(--wine)' : 'var(--ink-mute)';
   return (
@@ -176,17 +193,61 @@ function NumField({ label, tag, value, onChange, prefix, suffix, big, hint, hint
       </span>
       <span style={{
         display: 'flex', alignItems: 'center', gap: 7,
-        background: 'var(--bg-surface)', border: '1.5px solid ' + (foc ? 'var(--wine)' : (hintTone === 'danger' ? 'var(--danger)' : 'var(--border)')),
+        background: readOnly ? 'var(--bg-elevated)' : 'var(--bg-surface)', border: '1.5px solid ' + (foc ? 'var(--wine)' : (hintTone === 'danger' ? 'var(--danger)' : 'var(--border)')),
         borderRadius: 'var(--r-md)', padding: big ? '13px 15px' : '11px 13px', transition: 'border-color 140ms var(--ease)',
       }}>
         {prefix && <span style={{ font: '700 ' + (big ? 17 : 14) + 'px/1 var(--f-mono)', color: 'var(--ink-soft)', flexShrink: 0 }}>{prefix}</span>}
-        <input type="number" inputMode="decimal" min="0" value={value}
+        <input type="number" inputMode="decimal" min="0" value={value} readOnly={readOnly}
           onFocus={() => setFoc(true)} onBlur={() => setFoc(false)} onChange={(e) => onChange(e.target.value)}
-          style={{ width: '100%', minWidth: 0, border: 0, background: 'transparent', font: '700 ' + (big ? 22 : 16) + 'px/1 var(--f-mono)', color: 'var(--ink)', outline: 'none' }} />
+          style={{ width: '100%', minWidth: 0, border: 0, background: 'transparent', font: '700 ' + (big ? 22 : 16) + 'px/1 var(--f-mono)', color: readOnly ? 'var(--ink-soft)' : 'var(--ink)', outline: 'none', cursor: readOnly ? 'default' : 'text' }} />
         {suffix && <span style={{ font: '600 ' + (big ? 13 : 12) + 'px/1 var(--f-mono)', color: 'var(--ink-mute)', flexShrink: 0 }}>{suffix}</span>}
       </span>
       {hint && <span style={{ display: 'block', font: '600 11px/1.4 var(--f-sans)', color: hc, marginTop: 6 }}>{hint}</span>}
     </label>
+  );
+}
+
+// ── Panel: calcular el CBM con las medidas (alto×ancho×largo + cajas) ─
+function DimPanel({ d, onAlto, onAncho, onLargo, onCajas }) {
+  return (
+    <div className="dtd-dim-panel" style={{
+      background: 'var(--bg-elevated)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
+      padding: 'var(--s-4)', display: 'flex', flexDirection: 'column', gap: 14,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+        <span style={{ font: '700 10px/1 var(--f-sans)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-soft)' }}>Medidas de tu caja</span>
+        <span style={{ font: '600 10.5px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>en centímetros</span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+        <NumField label="Alto" value={d.altoStr} onChange={onAlto} suffix="cm" />
+        <NumField label="Ancho" value={d.anchoStr} onChange={onAncho} suffix="cm" />
+        <NumField label="Largo" value={d.largoStr} onChange={onLargo} suffix="cm" />
+      </div>
+
+      <NumField label="Cantidad de cajas" value={d.cajasStr} onChange={onCajas} suffix="cajas" />
+
+      <div style={{ borderTop: '1px dashed var(--border)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {d.valid ? (
+          <React.Fragment>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+              <span style={{ font: '600 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)' }}>{trimNum(d.a)} × {trimNum(d.b)} × {trimNum(d.c)} cm</span>
+              <span style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)', whiteSpace: 'nowrap' }}>{d.perBox.toFixed(3)} m³ / caja</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+              <span style={{ font: '700 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>× {trimNum(d.n)} caja{d.n === 1 ? '' : 's'}</span>
+              <span style={{ font: '800 20px/1 var(--f-display)', letterSpacing: '-0.02em', color: 'var(--wine)', whiteSpace: 'nowrap' }}>{fmtCBM(d.total)} CBM</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }}></span>
+              <span style={{ font: '700 10.5px/1.3 var(--f-sans)', color: 'var(--success)' }}>Lo asignamos a tu CBM total automáticamente</span>
+            </div>
+          </React.Fragment>
+        ) : (
+          <span style={{ font: '600 11.5px/1.45 var(--f-sans)', color: 'var(--ink-mute)' }}>Completa alto, ancho, largo y la cantidad de cajas y calculamos tu CBM al instante.</span>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -255,7 +316,7 @@ function Notice({ tone, title, body }) {
 }
 
 // ══════════════════════════════════════════════════════════════════
-// Calculadora LCL DDP
+// Calculadora LCL DDP · con "calcular CBM por medidas"
 // ══════════════════════════════════════════════════════════════════
 function CalcLCL() {
   const [tarifa, setTarifa] = useState(String(TARIFA_DEFAULT));
@@ -266,7 +327,25 @@ function CalcLCL() {
   const [especial, setEspecial] = useState(false);
   const [destino, setDestino] = useState(DESTINOS[0]);
   const [leadSent, setLeadSent] = useState(false);
+
+  // ── Estado de la forma alternativa (medidas) ──
+  const [showDims, setShowDims] = useState(false);
+  const [altoStr, setAltoStr] = useState('');
+  const [anchoStr, setAnchoStr] = useState('');
+  const [largoStr, setLargoStr] = useState('');
+  const [cajasStr, setCajasStr] = useState('1');
+
   const lastSig = React.useRef(null);
+
+  const dimsRaw = computeDims(altoStr, anchoStr, largoStr, cajasStr);
+  const d = { ...dimsRaw, altoStr, anchoStr, largoStr, cajasStr };
+  const dimsDriving = showDims && d.valid; // el CBM lo manda el panel de medidas
+
+  // Cuando hay medidas válidas y el panel está abierto, el CBM se calcula y asigna solo.
+  React.useEffect(() => {
+    if (showDims && d.valid) setCbm(trimNum(d.total));
+    // eslint-disable-next-line
+  }, [showDims, altoStr, anchoStr, largoStr, cajasStr]);
 
   const inp = { tarifa, cbm, peso, embalaje, baterias, especial, destino };
   const r = computeQuote(inp);
@@ -275,12 +354,11 @@ function CalcLCL() {
   React.useEffect(() => { setLeadSent(false); }, [tarifa, cbm, peso, embalaje, baterias, especial, destino]);
 
   // Publica la cotización al ERP/CRM (lead + badge) además de abrir WhatsApp.
-  // Lead anónimo de la calculadora pública (sin MARKBOX todavía → tenant 'dtd').
   function publishLead() {
     try {
       if (!(window.DTDData && window.DTDData.pushPortalEvent)) return; // standalone sin bridge → no-op
       const sig = JSON.stringify([r.cbm, r.peso, r.tarifa, embalaje, baterias, especial, destino, r.asesoria]);
-      if (sig === lastSig.current) { setLeadSent(true); return; } // evita duplicar el mismo lead
+      if (sig === lastSig.current) { setLeadSent(true); return; }
       lastSig.current = sig;
       window.DTDData.pushPortalEvent({
         kind: 'cotizacion', tone: r.asesoria ? 'warning' : 'info', markbox: null,
@@ -297,13 +375,12 @@ function CalcLCL() {
   const cbmHint = r.overCBM ? 'Eso es más que un contenedor. Consulte a su asesor'
     : (r.belowCross ? ('Nuestro mínimo de carga es ' + trimNum(r.crossPoint) + ' m³ — por debajo, el envío sale ' + money(MIN_FACT) + '.') : null);
   const cbmTone = r.overCBM ? 'danger' : (r.belowCross ? 'info' : null);
-  // PESO · 3 niveles (spec): c) tope contenedor → b) demasiado denso/FCL → a) excedente con recargo.
   let pesoHint = null, pesoTone = null;
   if (r.overPeso) {
     pesoHint = 'Esto es más que el peso permitido por contenedor; consulte a su asesor';
     pesoTone = 'danger';
   } else if (r.overDensity) {
-    pesoHint = 'Para ' + trimNum(r.cbm) + ' m³, más de ' + Math.round(r.cbm * DENS_MAX).toLocaleString('en-US') + ' kg es demasiado denso — consultá con tu asesor (FCL).';
+    pesoHint = 'Para ' + trimNum(r.cbm) + ' m³, más de ' + Math.round(r.cbm * DENS_MAX).toLocaleString('en-US') + ' kg es demasiado denso — consulta con tu asesor (FCL).';
     pesoTone = 'danger';
   } else if (r.cbm > 0 && r.excedenteKg > 0) {
     pesoHint = 'El máximo de peso sin recargo para ' + trimNum(r.cbm) + ' m³ es ' + Math.round(r.pesoIncluido).toLocaleString('en-US') + ' kg. Te pasás por ' + Math.round(r.excedenteKg).toLocaleString('en-US') + ' kg → +' + money(r.excedenteCost) + ' ($1/kg extra).';
@@ -318,16 +395,34 @@ function CalcLCL() {
           <Wordmark size={17} />
           <span style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--wine)' }}>Calculadora LCL DDP</span>
         </div>
-        <h2 style={{ font: '800 25px/1.06 var(--f-display)', letterSpacing: '-0.025em', color: 'var(--ink)', margin: '0 0 6px' }}>Cotizá tu carga China → Venezuela</h2>
-        <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 22px', maxWidth: '44ch' }}>Puerta a puerta, financiamiento 100%. Indicá tu volumen y peso y te damos un estimado al instante.</p>
+        <h2 style={{ font: '800 25px/1.06 var(--f-display)', letterSpacing: '-0.025em', color: 'var(--ink)', margin: '0 0 6px' }}>Cotiza tu carga China → Venezuela</h2>
+        <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 22px', maxWidth: '44ch' }}>Puerta a puerta, financiamiento 100%. Indica tu volumen y peso y te damos un estimado al instante.</p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <NumField label="Tarifa de CBM" tag="auto · editable" value={tarifa} onChange={setTarifa} prefix="$" suffix="USD/CBM"
             hint="La genera el sistema. Ajustala si tu cotización es distinta." />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <NumField label="CBM total" value={cbm} onChange={setCbm} suffix="m³" big hint={cbmHint} hintTone={cbmTone} />
-            <NumField label="Peso total" value={peso} onChange={setPeso} suffix="kg" big hint={pesoHint} hintTone={pesoTone} />
+          <div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <NumField label="CBM total" tag={dimsDriving ? 'auto · medidas' : undefined} value={cbm} onChange={setCbm} suffix="m³" big
+                hint={dimsDriving ? 'Calculado desde las medidas de tu caja.' : cbmHint} hintTone={dimsDriving ? 'info' : cbmTone} readOnly={dimsDriving} />
+              <NumField label="Peso total" value={peso} onChange={setPeso} suffix="kg" big hint={pesoHint} hintTone={pesoTone} />
+            </div>
+
+            {/* Disparador · oculto por defecto */}
+            <button onClick={() => setShowDims((v) => !v)} style={{
+              marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 7, background: 'transparent', border: 0,
+              padding: '2px 0', cursor: 'pointer', font: '700 11.5px/1 var(--f-sans)', color: 'var(--wine)',
+            }}>
+              <span style={{ display: 'inline-block', transform: showDims ? 'rotate(90deg)' : 'none', transition: 'transform 160ms var(--ease)', font: '700 9px/1 var(--f-sans)' }}>▶</span>
+              {showDims ? 'Prefiero escribir el CBM a mano' : '¿No sabes tu CBM? Calculalo con las medidas'}
+            </button>
+
+            {showDims && (
+              <div style={{ marginTop: 12 }}>
+                <DimPanel d={d} onAlto={setAltoStr} onAncho={setAnchoStr} onLargo={setLargoStr} onCajas={setCajasStr} />
+              </div>
+            )}
           </div>
 
           <Toggle on={embalaje} onToggle={() => setEmbalaje(!embalaje)} title="Embalaje especial" sub="Madera o paleta" badge={'+' + money(EMBALAJE_USD)} />
@@ -342,18 +437,16 @@ function CalcLCL() {
       <div style={{ padding: 'var(--s-8)', background: 'var(--bg-base)', borderLeft: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 'var(--s-5)' }}>
         <Container40HC cbm={r.cbm} />
 
-        {/* Estados de borde / desglose */}
         {r.incomplete ? (
           <Notice tone="info" title="Faltan datos" body="El CBM total y el peso deben ser mayores a cero." />
         ) : r.especial ? (
-          <Notice tone="warning" title="Derivar al asesor" body="Para carga especial, peligrosa o que requiere permisos de exportación, consultá con tu asesor — la cotizamos a medida." />
+          <Notice tone="warning" title="Derivar al asesor" body="Para carga especial, peligrosa o que requiere permisos de exportación, consulta con tu asesor — la cotizamos a medida." />
         ) : r.overCBM ? (
           <Notice tone="danger" title="Excede un contenedor" body="Eso es más que un contenedor. Consulte a su asesor." />
         ) : r.overPeso ? (
           <Notice tone="danger" title="Excede el peso" body="Esto es más que el peso permitido por contenedor; consulte a su asesor." />
         ) : (
           <React.Fragment>
-            {/* Total */}
             <div style={{ background: 'linear-gradient(135deg, var(--ink), #1F3055)', borderRadius: 'var(--r-lg)', padding: 'var(--s-6)', color: '#fff' }}>
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                 <div>
@@ -364,7 +457,6 @@ function CalcLCL() {
               </div>
             </div>
 
-            {/* Desglose */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '4px 2px' }}>
               <Row label={'Volumen base'} sub={fmtCBM(r.cbm) + ' CBM × ' + money(r.tarifa)} value={money(r.base)} />
               {r.excedenteCost > 0 && <Row label="Excedente de peso" sub={Math.round(r.excedenteKg).toLocaleString('en-US') + ' kg sobre ' + Math.round(r.pesoIncluido).toLocaleString('en-US') + ' kg incl.'} value={'+' + money(r.excedenteCost)} />}
@@ -375,20 +467,17 @@ function CalcLCL() {
               <Row label="Total estimado" value={money(r.total)} strong />
             </div>
 
-            {/* Alerta densidad */}
             {r.overDensity && (
-              <Notice tone="warning" title="Densidad alta" body={'Tu carga tiene ' + Math.round(r.density) + ' kg/CBM, supera el máximo de ' + DENS_MAX + ' kg/CBM. Necesitás FCL o cotización personalizada — escribinos por WhatsApp.'} />
+              <Notice tone="warning" title="Densidad alta" body={'Tu carga tiene ' + Math.round(r.density) + ' kg/CBM, supera el máximo de ' + DENS_MAX + ' kg/CBM. Necesitas FCL o cotización personalizada — escríbenos por WhatsApp.'} />
             )}
           </React.Fragment>
         )}
 
-        {/* Badge financiamiento */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', background: 'var(--success-bg)', borderRadius: 'var(--r-md)' }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--success)', flexShrink: 0 }} />
-          <span style={{ font: '700 11.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>Financiamiento 100%<span style={{ color: 'var(--wine)' }}>*</span> · pagás al llegar a Venezuela</span>
+          <span style={{ font: '700 11.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>Financiamiento 100%<span style={{ color: 'var(--wine)' }}>*</span> · pagas al llegar a Venezuela</span>
         </div>
 
-        {/* CTA */}
         <div style={{ marginTop: 'auto' }}>
           {!r.incomplete && !r.asesoria && (
             <div style={{ marginBottom: 10 }}>
@@ -404,7 +493,6 @@ function CalcLCL() {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, width: '100%',
               padding: '16px 22px', borderRadius: 'var(--r-md)',
-              /* WhatsApp brand green · identidad de plataforma (precedente: operario/almacenista.jsx) */
               background: r.incomplete ? 'var(--border-strong)' : '#25D366',
               color: r.incomplete ? 'var(--ink-mute)' : '#fff',
               font: '800 15px/1 var(--f-sans)', letterSpacing: '-0.01em',
@@ -426,7 +514,7 @@ function CalcLCL() {
       {/* Nota al pie · ancho completo */}
       <div style={{ gridColumn: '1 / -1', borderTop: '1px solid var(--border)', padding: 'var(--s-5) var(--s-8)', background: 'var(--bg-surface)' }}>
         <p style={{ font: '500 11px/1.55 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>
-          <span style={{ color: 'var(--wine)', fontWeight: 700 }}>*</span> Financiamiento 100%: pagás el flete al llegar a Venezuela. <b style={{ color: 'var(--ink-soft)', fontWeight: 700 }}>Aplican restricciones.</b> Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a puerta).
+          <span style={{ color: 'var(--wine)', fontWeight: 700 }}>*</span> Financiamiento 100%: pagas el flete al llegar a Venezuela. <b style={{ color: 'var(--ink-soft)', fontWeight: 700 }}>Aplican restricciones.</b> Este estimado es aproximado y refleja nuestra tarifa base DDP (puerta a puerta).
         </p>
       </div>
     </div>

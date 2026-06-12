@@ -158,7 +158,7 @@ export function validateCalculatorSettingsInput(
   for (const f of CALC_FIELDS) {
     const v = input[f.key];
     if (v == null || !Number.isFinite(v)) {
-      errors[f.key] = "Indicá un número válido.";
+      errors[f.key] = "Indica un número válido.";
       continue;
     }
     if (v < f.min) {

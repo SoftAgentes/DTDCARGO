@@ -18,14 +18,136 @@
  */
 
 import { revalidatePath } from "next/cache";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import {
   validateSupplierInput,
   validatePrealertaInput,
   buildPrealertaCode,
+  buildPrealertaDocPath,
+  isAllowedPrealertaDocMime,
+  prealertaDocExtFromMime,
+  PREALERTA_DOC_BUCKET,
+  PREALERTA_DOC_MAX_BYTES,
+  type PrealertaDocType,
   type SupplierActionState,
   type PrealertaActionState,
 } from "@/lib/studio/prealertas/types";
+
+/** Tope de fotos por compra (las demás se ignoran; evita subidas enormes). */
+const MAX_FOTOS = 8;
+
+/**
+ * Sube UN adjunto de compra al bucket privado con admin client (service_role) e
+ * inserta su fila en `prealerta_documents`. Best-effort: devuelve false si el
+ * mime/tamaño no pasa o si Storage/insert falla (el adjunto es OPCIONAL, no debe
+ * tumbar el registro de la compra). Hace rollback del object si el insert falla.
+ */
+async function uploadPrealertaDoc(
+  admin: ReturnType<typeof createAdminClient>,
+  args: {
+    tenantId: string;
+    prealertaId: string;
+    markbox: string;
+    docType: PrealertaDocType;
+    file: File;
+  },
+): Promise<boolean> {
+  const { file } = args;
+  const mime = file.type || "";
+  if (!isAllowedPrealertaDocMime(mime)) return false;
+  if (file.size <= 0 || file.size > PREALERTA_DOC_MAX_BYTES) return false;
+
+  const ext = prealertaDocExtFromMime(mime);
+  const path = buildPrealertaDocPath({
+    tenantId: args.tenantId,
+    prealertaId: args.prealertaId,
+    uuid: randomUUID(),
+    ext,
+  });
+
+  try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const { error: upErr } = await admin.storage
+      .from(PREALERTA_DOC_BUCKET)
+      .upload(path, buffer, { contentType: mime, upsert: false });
+    if (upErr) {
+      console.error("[uploadPrealertaDoc] storage error:", upErr);
+      return false;
+    }
+
+    const fileName = (file.name || `${args.docType}.${ext}`).slice(0, 200);
+    const { error: insErr } = await admin.from("prealerta_documents").insert({
+      tenant_id: args.tenantId,
+      prealerta_id: args.prealertaId,
+      client_markbox: args.markbox,
+      doc_type: args.docType,
+      storage_path: path,
+      file_name: fileName,
+      content_type: mime,
+      size_bytes: file.size,
+    });
+    if (insErr) {
+      console.error("[uploadPrealertaDoc] insert error:", insErr);
+      // Rollback del object huérfano.
+      await admin.storage.from(PREALERTA_DOC_BUCKET).remove([path]);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error("[uploadPrealertaDoc] unexpected error:", err);
+    return false;
+  }
+}
+
+/**
+ * Sube TODOS los adjuntos opcionales de la compra desde el FormData (packing /
+ * factura / whatsapp = 1 c/u; fotos = varias, tope MAX_FOTOS). Best-effort: no
+ * lanza — los adjuntos son opcionales. Se llama tras crear la prealerta.
+ */
+async function uploadPrealertaDocsFromForm(args: {
+  formData: FormData;
+  tenantId: string;
+  prealertaId: string;
+  markbox: string;
+}): Promise<void> {
+  const { formData } = args;
+  const singles: [string, PrealertaDocType][] = [
+    ["doc_packing", "packing"],
+    ["doc_factura", "factura"],
+    ["doc_whatsapp", "whatsapp"],
+  ];
+
+  const files: { docType: PrealertaDocType; file: File }[] = [];
+  for (const [field, docType] of singles) {
+    const f = formData.get(field);
+    if (f instanceof File && f.size > 0) files.push({ docType, file: f });
+  }
+  for (const f of formData.getAll("doc_fotos")) {
+    if (f instanceof File && f.size > 0) files.push({ docType: "foto", file: f });
+    if (files.filter((x) => x.docType === "foto").length >= MAX_FOTOS) break;
+  }
+  if (files.length === 0) return;
+
+  try {
+    const admin = createAdminClient();
+    await Promise.all(
+      files.map(({ docType, file }) =>
+        uploadPrealertaDoc(admin, {
+          tenantId: args.tenantId,
+          prealertaId: args.prealertaId,
+          markbox: args.markbox,
+          docType,
+          file,
+        }),
+      ),
+    );
+  } catch (err) {
+    // createAdminClient puede faltar env en algún entorno → no rompemos el alta.
+    console.error("[uploadPrealertaDocsFromForm] admin client error:", err);
+  }
+}
 
 const PORTAL_PATHS = ["/portal", "/portal/proveedores", "/portal/compras"];
 
@@ -176,7 +298,7 @@ export async function createPrealertaAction(
 
   // Una compra DEBE tener proveedor (el código depende de su supplier_seq).
   if (!input.supplierId) {
-    return { fieldErrors: { supplierId: "Elegí el proveedor de esta compra." } };
+    return { fieldErrors: { supplierId: "Elige el proveedor de esta compra." } };
   }
 
   const supabase = await createClient();
@@ -216,21 +338,49 @@ export async function createPrealertaAction(
     const orderSeq = Number(orderData);
     const code = buildPrealertaCode(markbox, supplierSeq, orderSeq);
 
-    const { error: insErr } = await supabase.from("prealertas").insert({
-      tenant_id: tenantId,
-      client_markbox: markbox,
-      supplier_id: input.supplierId,
-      code,
-      description: input.description,
-      tracking_cn: input.trackingCn,
-      boxes: input.boxes,
-      est_value_usd: input.estValueUsd,
-      status: "anunciada",
-    });
+    const { data: insRow, error: insErr } = await supabase
+      .from("prealertas")
+      .insert({
+        tenant_id: tenantId,
+        client_markbox: markbox,
+        supplier_id: input.supplierId,
+        code,
+        description: input.description,
+        tracking_cn: input.trackingCn,
+        boxes: input.boxes,
+        est_value_usd: input.estValueUsd,
+        status: "anunciada",
+      })
+      .select("id, share_token")
+      .single<{ id: string; share_token: string | null }>();
 
-    if (!insErr) {
+    if (!insErr && insRow) {
+      // WeChat/WhatsApp del proveedor (número o ID): si lo cargó, lo guardamos en
+      // el proveedor (reusable en re-compras). Best-effort, no bloquea el alta.
+      const supplierWechat = String(formData.get("supplierWechat") ?? "").trim();
+      if (supplierWechat) {
+        await supabase
+          .from("suppliers_cn")
+          .update({ wechat: supplierWechat })
+          .eq("id", input.supplierId)
+          .eq("client_markbox", markbox)
+          .is("deleted_at", null);
+      }
+
+      // Adjuntos opcionales (packing/factura/fotos/whatsapp) — subida server-side.
+      await uploadPrealertaDocsFromForm({
+        formData,
+        tenantId,
+        prealertaId: insRow.id,
+        markbox,
+      });
+
       revalidatePortal();
-      return { ok: true, prealertaCode: code };
+      return {
+        ok: true,
+        prealertaCode: code,
+        shareToken: insRow.share_token ?? undefined,
+      };
     }
     if (insErr.code === "23505") {
       // Choque de código → otra compra ganó la carrera; reintentamos.

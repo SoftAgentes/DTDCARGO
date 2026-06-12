@@ -568,7 +568,7 @@
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           {I.lock(11)}
-          <span>La política <b style={{ color: 'var(--ink)' }}>no puede eliminarse</b>. Si necesitás operar sin ella, cambiá el modo a <b>Crédito permitido</b> con excepciones específicas — siempre auditable.</span>
+          <span>La política <b style={{ color: 'var(--ink)' }}>no puede eliminarse</b>. Si necesitas operar sin ella, cambiá el modo a <b>Crédito permitido</b> con excepciones específicas — siempre auditable.</span>
         </footer>
       </React.Fragment>
     );
@@ -610,7 +610,7 @@
           marginBottom: 12,
         }}>
           <span style={{ color: 'var(--ink-mute)' }}>{I.search(14)}</span>
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente, MARKBOX, ciudad…"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cliente, Shipping Mark, ciudad…"
             style={{ flex: 1, height: '100%', border: 0, outline: 'none', background: 'transparent', font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink)' }} />
         </div>
 
@@ -678,7 +678,7 @@
           <div>
             <div style={{ font: '800 13px/1.1 var(--f-sans)', color: 'var(--ink)' }}>Rutas configuradas</div>
             <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2, maxWidth: '60ch' }}>
-              Las rutas funcionan como filtros en la cola de despacho. Acá podés ver el resumen; la creación, edición y catálogo de ciudades vive en <b>Admin → Rutas</b>.
+              Las rutas funcionan como filtros en la cola de despacho. Acá puedes ver el resumen; la creación, edición y catálogo de ciudades vive en <b>Admin → Rutas</b>.
             </div>
           </div>
           <button onClick={() => goTo && goTo('admin-routes')} style={{
@@ -910,7 +910,7 @@
           <div>
             <div style={{ font: '900 18px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Vista previa</div>
             <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
-              Probá con un paquete real para ver cómo lo rankearía tu config.
+              Prueba con un paquete real para ver cómo lo rankearía tu config.
             </div>
           </div>
           <span style={{

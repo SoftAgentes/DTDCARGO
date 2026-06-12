@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Orquestador client del módulo Legal (SDD-0054 · Slice B).
+ * Orquestador client del módulo Legal (SDD-0054 · Slice B + SDD-0067).
  *
  * Read-only. Dos vistas (tabs):
  *   1. Documentos   — repositorio versionado: por cada doc (key), header con la
@@ -9,13 +9,20 @@
  *      modal con el body completo del doc.
  *   2. Aceptaciones — KPIs + búsqueda + filtro por documento + tabla de acuses +
  *      modal de detalle con la Evidencia (cliente/markbox, estimado, docs+
- *      versión, fecha/hora, IP, hash).
+ *      versión, medida, fecha/hora, IP, user agent, declaración de comerciante,
+ *      factura asociada, hash) + export: "Descargar JSON" (route handler
+ *      admin-only) e "Imprimir expediente" (vista imprimible).
+ *
+ * SDD-0067 además: banner del MODO del gate de Facturación (ADVISORY ⇄ bloqueo
+ * duro) — refleja `LEGAL_GATE_HARD_BLOCK` (lib/studio/legal/gate-config.ts),
+ * que la page server pasa como prop. El flip sigue siendo decisión founder.
  *
  * NO publica versiones nuevas (futuro). Usa primitivas reales del Studio
  * (Badge, EmptyState, KpiCard, tokens, Icon) — no los ERPUI.* del mockup.
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -59,16 +66,30 @@ function fmtDateTime(iso: string | null | undefined): string {
   });
 }
 
+/** La EVIDENCIA se muestra en UTC (igual que el expediente imprimible) — una
+ *  hora local sin etiqueta al lado del expediente parece inconsistencia
+ *  probatoria. La bitácora general sigue en hora local vía fmtDateTime. */
+function fmtDateTimeUtc(iso: string | null | undefined): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return String(iso);
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)}/${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())} (UTC)`;
+}
+
 export function LegalClient({
   docs,
   acceptances,
   currentVersions,
   kpis,
+  gateHardBlock,
 }: {
   docs: LegalDoc[];
   acceptances: LegalAcceptance[];
   currentVersions: Record<string, string>;
   kpis: { total: number; thisMonth: number; onCurrent: number };
+  /** Modo del gate AUT-04 (SDD-0067 · `LEGAL_GATE_HARD_BLOCK` de gate-config). */
+  gateHardBlock: boolean;
 }) {
   const [tab, setTab] = useState<Tab>("docs");
 
@@ -107,6 +128,46 @@ export function LegalClient({
           </p>
         </div>
       </div>
+
+      {/* Banner del modo del gate AUT-04 (SDD-0067 · decisión #6). El flip
+          advisory ⇄ bloqueo duro es 1 línea del founder en gate-config.ts;
+          este banner lo hace VISIBLE para que no se olvide. */}
+      <div
+        role="status"
+        style={{
+          display: "flex",
+          gap: 10,
+          alignItems: "flex-start",
+          padding: "12px 14px",
+          background: gateHardBlock ? "var(--success-bg)" : "var(--warning-bg)",
+          borderRadius: "var(--r-md)",
+          marginBottom: 20,
+        }}
+      >
+        <span
+          style={{
+            color: gateHardBlock ? "var(--success)" : "var(--warning)",
+            display: "flex",
+            flexShrink: 0,
+            marginTop: 1,
+          }}
+        >
+          {Icon.shield(15)}
+        </span>
+        <div style={{ font: "500 12px/1.5 var(--f-sans)", color: "var(--ink)" }}>
+          <strong>
+            Gate de facturación DDP:{" "}
+            {gateHardBlock ? "BLOQUEO DURO activo" : "ADVISORY (no bloquea)"}.
+          </strong>{" "}
+          {gateHardBlock
+            ? "Una factura DDP sin aceptación vigente NO se puede emitir (sin override)."
+            : "Si un embarque DDP no tiene aceptación vigente, el operador ve el aviso pero puede emitir igual (queda auditado como override). El flip a bloqueo duro es decisión del founder: 1 línea en lib/studio/legal/gate-config.ts."}
+        </div>
+      </div>
+
+      {/* Buscar expediente de defensa por código de envío (SDD-0070). Acceso
+          secundario: navega a la vista imprimible admin-only de la operación. */}
+      <DefenseFileSearch />
 
       {/* Tabs */}
       <div
@@ -174,6 +235,65 @@ function TabButton({
     >
       {children}
     </button>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// Expediente de defensa · acceso por código de envío (SDD-0070)
+// ════════════════════════════════════════════════════════════
+
+function DefenseFileSearch() {
+  const router = useRouter();
+  const [code, setCode] = useState("");
+
+  const go = () => {
+    const c = code.trim();
+    if (!c) return;
+    router.push(`/studio/legal/expediente/${encodeURIComponent(c)}`);
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-end",
+        flexWrap: "wrap",
+        padding: "14px 16px",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 240 }}>
+        <label className="studio-label" htmlFor="defense-code">
+          Expediente de defensa
+        </label>
+        <input
+          id="defense-code"
+          type="text"
+          className="studio-input studio-input-mono"
+          placeholder="Código de envío (p. ej. S-2026-0042)"
+          value={code}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") go();
+          }}
+        />
+      </div>
+      <button
+        type="button"
+        className="studio-btn studio-btn-primary studio-btn-sm"
+        onClick={go}
+        disabled={!code.trim()}
+        style={{ opacity: code.trim() ? 1 : 0.6 }}
+      >
+        Abrir expediente
+      </button>
+    </div>
   );
 }
 
@@ -698,7 +818,7 @@ function AcceptancesView({
           description={
             acceptances.length === 0
               ? "Cuando un cliente acepte los T&C de un estimado, el acuse aparecerá acá (inmutable y auditado)."
-              : "Probá ajustar la búsqueda o el filtro de documento."
+              : "Prueba ajustar la búsqueda o el filtro de documento."
           }
         />
       ) : (
@@ -736,7 +856,7 @@ function AcceptancesView({
               key={a.id}
               type="button"
               onClick={() => setSelected(a)}
-              className="studio-tracking-row"
+              className="studio-tracking-row studio-row-btn"
               style={{
                 width: "100%",
                 display: "grid",
@@ -747,7 +867,6 @@ function AcceptancesView({
                 borderTop: i > 0 ? "1px solid var(--border)" : 0,
                 textAlign: "left",
                 cursor: "pointer",
-                background: "var(--bg-surface)",
               }}
             >
               <code
@@ -979,9 +1098,50 @@ function AcceptanceModal({
             k="Medida (CBM / kg / USD)"
             v={`${a.cbm ?? 0} / ${a.weight_kg ?? 0} / ${a.total_usd ?? 0}`}
           />
-          <EvidenceRow k="Fecha / hora" v={fmtDateTime(a.accepted_at)} />
+          <EvidenceRow k="Fecha / hora" v={fmtDateTimeUtc(a.accepted_at)} />
           <EvidenceRow k="IP" v={a.ip ?? "—"} />
+          {/* v2 (SDD-0067): user agent + declaración de comerciante (ambos
+              dentro del hash) + atadura forense a la factura (metadato). */}
+          <EvidenceRow k="User agent" v={a.user_agent ?? "—"} />
+          <EvidenceRow
+            k="Declaración de comerciante"
+            v={a.merchant_declaration ? "Sí (cláusula 1.4)" : "No"}
+          />
+          <EvidenceRow k="Factura asociada" v={a.invoice_id ?? "—"} />
           <EvidenceRow k="Hash" v={a.hash ?? "—"} />
+        </div>
+
+        {/* Export del expediente (SDD-0067): JSON para el abogado + vista
+            imprimible ("PDF" = imprimir del navegador). Ambos admin-only. */}
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            justifyContent: "flex-end",
+            flexWrap: "wrap",
+          }}
+        >
+          <a
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            href={`/api/studio/legal/evidence/${encodeURIComponent(a.acceptance_code)}`}
+            download
+          >
+            <span style={{ display: "inline-flex", marginRight: 4 }}>
+              {Icon.download(13)}
+            </span>
+            Descargar JSON
+          </a>
+          <a
+            className="studio-btn studio-btn-primary studio-btn-sm"
+            href={`/studio/legal/evidencia/${encodeURIComponent(a.acceptance_code)}`}
+            target="_blank"
+            rel="noopener"
+          >
+            <span style={{ display: "inline-flex", marginRight: 4 }}>
+              {Icon.doc(13)}
+            </span>
+            Imprimir expediente
+          </a>
         </div>
       </div>
     </div>

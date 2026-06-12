@@ -194,17 +194,17 @@ export function validateAccountInput(input: Partial<AccountInput>): {
 
   const code = (input.code ?? "").trim();
   if (!code) {
-    errors.code = "Indicá el código de la cuenta (ej. 6.20).";
+    errors.code = "Indica el código de la cuenta (ej. 6.20).";
   } else if (!/^\d+(\.\d+)*$/.test(code)) {
     errors.code = "El código debe ser numérico jerárquico (ej. 6.20).";
   }
 
   const name = (input.name ?? "").trim();
-  if (!name) errors.name = "Indicá el nombre de la cuenta.";
+  if (!name) errors.name = "Indica el nombre de la cuenta.";
 
   const type =
     input.type && ACCT_TYPES.includes(input.type) ? input.type : undefined;
-  if (!type) errors.type = "Elegí el tipo de cuenta.";
+  if (!type) errors.type = "Elige el tipo de cuenta.";
 
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };

@@ -20,6 +20,12 @@ import {
   PREALERTA_STATUSES,
   PREALERTA_STATUS,
   type PrealertaStatus,
+  buildPrealertaDocPath,
+  isAllowedPrealertaDocMime,
+  prealertaDocExtFromMime,
+  isPrealertaDocType,
+  PREALERTA_DOC_TYPE_LABEL,
+  PREALERTA_DOC_MAX_BYTES,
 } from "../types";
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -302,5 +308,71 @@ describe("prealertaStatus helpers", () => {
     expect(isPrealertaStatus("foo")).toBe(false);
     expect(isPrealertaStatus(123)).toBe(false);
     expect(isPrealertaStatus(null)).toBe(false);
+  });
+});
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Adjuntos de la compra (prealerta_documents · migr 0118)    ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+describe("summarizeSuppliers · wechat", () => {
+  it("propaga el wechat del proveedor a la vista (null si falta)", () => {
+    const views = summarizeSuppliers(
+      "DTD-5532",
+      [
+        { id: "s1", supplier_seq: 1, name: "Yiwu Co", wechat: "wxid_abc" },
+        { id: "s2", supplier_seq: 2, name: "Shenzhen Co" },
+      ],
+      {},
+    );
+    expect(views[0].wechat).toBe("wxid_abc");
+    expect(views[1].wechat).toBeNull();
+  });
+});
+
+describe("helpers de adjuntos de compra", () => {
+  it("isPrealertaDocType discrimina los 4 tipos", () => {
+    for (const t of ["packing", "factura", "foto", "whatsapp"]) {
+      expect(isPrealertaDocType(t)).toBe(true);
+    }
+    expect(isPrealertaDocType("bl")).toBe(false);
+    expect(isPrealertaDocType(null)).toBe(false);
+    expect(isPrealertaDocType(123)).toBe(false);
+  });
+
+  it("hay label legible para cada tipo", () => {
+    expect(PREALERTA_DOC_TYPE_LABEL.packing).toMatch(/packing/i);
+    expect(PREALERTA_DOC_TYPE_LABEL.whatsapp).toMatch(/wechat/i);
+  });
+
+  it("acepta solo mimes de imagen/pdf permitidos", () => {
+    expect(isAllowedPrealertaDocMime("application/pdf")).toBe(true);
+    expect(isAllowedPrealertaDocMime("image/jpeg")).toBe(true);
+    expect(isAllowedPrealertaDocMime("image/heic")).toBe(true);
+    expect(isAllowedPrealertaDocMime("application/zip")).toBe(false);
+    expect(isAllowedPrealertaDocMime("text/html")).toBe(false);
+  });
+
+  it("mapea el mime a la extensión canónica", () => {
+    expect(prealertaDocExtFromMime("application/pdf")).toBe("pdf");
+    expect(prealertaDocExtFromMime("image/jpeg")).toBe("jpg");
+    expect(prealertaDocExtFromMime("image/png")).toBe("png");
+    expect(prealertaDocExtFromMime("image/heic")).toBe("heic");
+    expect(prealertaDocExtFromMime("application/octet-stream")).toBe("bin");
+  });
+
+  it("arma el path {tenant}/{prealerta}/{uuid}.{ext}", () => {
+    expect(
+      buildPrealertaDocPath({
+        tenantId: "t-1",
+        prealertaId: "p-1",
+        uuid: "u-1",
+        ext: "jpg",
+      }),
+    ).toBe("t-1/p-1/u-1.jpg");
+  });
+
+  it("el límite de archivo es 10 MB", () => {
+    expect(PREALERTA_DOC_MAX_BYTES).toBe(10 * 1024 * 1024);
   });
 });

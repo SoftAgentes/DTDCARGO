@@ -69,7 +69,7 @@ export default async function FeatureFlagsPage() {
             maxWidth: "76ch",
           }}
         >
-          Encendé/apagá módulos del Studio sin tocar código. Los flags se
+          Enciende/apaga módulos del Studio sin tocar código. Los flags se
           aplican inmediatamente al sidebar de todo el equipo. Cambios
           son atómicos y persisten en la base de datos.
         </p>

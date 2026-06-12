@@ -100,12 +100,12 @@ const MARK = { info: 'mk-info', wine: 'mk-wine', success: 'mk-success', warning:
 const NODES = [
 // Comercial
 { id: 'com-lead', lane: 0, slot: 0, icon: 'spark', label: 'Lead · oportunidad', role: 'Comercial', trig: 'Entra un contacto por web, referido o WhatsApp.', next: 'Estimado DDP', mod: 'CRM · Leads' },
-{ id: 'com-quote', lane: 0, slot: 1, icon: 'calc', label: 'Estimado DDP', role: 'Comercial', trig: 'El lead pide precio puerta a puerta.', next: 'Cliente · MARKBOX', mod: 'Estimador' },
-{ id: 'com-client', lane: 0, slot: 2, icon: 'users', label: 'Cliente · MARKBOX', role: 'Comercial', trig: 'El cliente acepta el estimado y se le asigna MARKBOX.', next: 'Recepción CN + Factura', mod: 'Clientes' },
+{ id: 'com-quote', lane: 0, slot: 1, icon: 'calc', label: 'Estimado DDP', role: 'Comercial', trig: 'El lead pide precio puerta a puerta.', next: 'Cliente · Shipping Mark', mod: 'Estimador' },
+{ id: 'com-client', lane: 0, slot: 2, icon: 'users', label: 'Cliente · Shipping Mark', role: 'Comercial', trig: 'El cliente acepta el estimado y se le asigna Shipping Mark.', next: 'Recepción CN + Factura', mod: 'Clientes' },
 { id: 'com-post', lane: 0, slot: 12, icon: 'spark', label: 'Postventa · fidelización', role: 'Comercial', trig: 'La entrega se completó y el cliente quedó al día.', next: 'Nuevo ciclo · referidos', mod: 'Fidelización' },
 // Operatividad
 { id: 'op-pedido', lane: 1, slot: 2, icon: 'clock', label: 'Orden de pedido', role: 'Operaciones · Comercial', trig: 'El estimado se vuelve real: el cliente confirma (o la creamos nosotros al saber que tiene mercadería y armamos el grupo de búsqueda). Acá se le sigue el rastro a lo que está en tránsito y todavía no llegó a China — qué pasó y por qué. Cuando llega, sale de la lista.', next: 'Recepción · China', mod: 'Embarques · órdenes' },
-{ id: 'op-recibir', lane: 1, slot: 3, icon: 'warehouse', label: 'Recepción · China', role: 'Almacén CN', trig: 'Llega mercadería del proveedor con el MARKBOX del cliente.', next: 'Etiqueta QR', mod: 'Almacén CN' },
+{ id: 'op-recibir', lane: 1, slot: 3, icon: 'warehouse', label: 'Recepción · China', role: 'Almacén CN', trig: 'Llega mercadería del proveedor con el Shipping Mark del cliente.', next: 'Etiqueta QR', mod: 'Almacén CN' },
 { id: 'op-qr', lane: 1, slot: 4, icon: 'tag', label: 'Etiqueta QR', role: 'Almacén CN', trig: 'Bulto recibido, pesado y medido (CBM).', next: 'Consolidación', mod: 'Cola de QR' },
 { id: 'op-consol', lane: 1, slot: 5, icon: 'box', label: 'Consolidación', role: 'Operaciones', trig: 'Hay volumen suficiente para llenar contenedor.', next: 'Booking · zarpe', mod: 'Naviera & Consol.' },
 { id: 'op-booking', lane: 1, slot: 6, icon: 'ship', label: 'Booking · zarpe', role: 'Operaciones', trig: 'Contenedor consolidado y listo para embarcar.', next: 'Tránsito marítimo', mod: 'Naviera & Consol.' },
@@ -1161,7 +1161,7 @@ function RulesPanel({ rules, ruleOn, selRule, onToggle, onSelect, onSave, onDele
                             </div>;
                       })()}
                           <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
-                            <button onClick={(e) => {e.stopPropagation();fire(r);}} disabled={!en} title={en ? 'Simular un disparo de la regla' : 'Activá la regla para ejecutarla'} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--r-md)', border: 'none', background: en ? 'var(--wine)' : 'var(--border-strong)', color: '#fff', font: '700 11.5px/1 var(--f-sans)', cursor: en ? 'pointer' : 'not-allowed' }}>{I.spark(12)} Ejecutar ahora</button>
+                            <button onClick={(e) => {e.stopPropagation();fire(r);}} disabled={!en} title={en ? 'Simular un disparo de la regla' : 'Activa la regla para ejecutarla'} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--r-md)', border: 'none', background: en ? 'var(--wine)' : 'var(--border-strong)', color: '#fff', font: '700 11.5px/1 var(--f-sans)', cursor: en ? 'pointer' : 'not-allowed' }}>{I.spark(12)} Ejecutar ahora</button>
                             <button onClick={(e) => {e.stopPropagation();openEdit(r);}} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--ink)', font: '700 11.5px/1 var(--f-sans)' }}>Editar</button>
                             {r.custom &&
                         <button onClick={(e) => {e.stopPropagation();onDelete(r.id);}} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--danger)', background: 'transparent', color: 'var(--danger)', font: '700 11.5px/1 var(--f-sans)' }}>Eliminar</button>

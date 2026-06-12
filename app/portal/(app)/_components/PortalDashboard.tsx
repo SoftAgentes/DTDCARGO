@@ -11,6 +11,7 @@ import {
 } from "@/lib/portal/portal-types";
 import { ShipmentRow } from "../../_components/ShipmentRow";
 import { StatusBadge } from "../../_components/StatusBadge";
+import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
 
 /**
  * Inicio / dashboard del cliente (SDD-0042 · Fase 5.2 · Norte PortalHome).
@@ -58,14 +59,9 @@ export function PortalDashboard({
             {pendingWord}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2.5">
-          {/* SDD-0057 Slice B — "Nueva compra" ya operativo (Tus proveedores). */}
-          <Link
-            href="/portal/proveedores"
-            className="btn btn-primary inline-flex items-center gap-1.5"
-          >
-            Nueva compra <ArrowIcon size={15} />
-          </Link>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* SDD-0057 — "Nueva compra · = prealerta" (control único del portal). */}
+          <NewPurchaseButton href="/portal/proveedores" />
           {/* Slice 5.7 — cotización aún deshabilitada ("Próximamente"). */}
           <SoonButton label="Nueva cotización" />
         </div>
@@ -78,7 +74,7 @@ export function PortalDashboard({
       <div className="mt-7 grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Kpi label="Envíos activos" value={String(kpis.activeShipments)} sub="en curso" />
         <Kpi
-          label="Entregados YTD"
+          label="Entregados"
           value={String(kpis.deliveredYtd)}
           sub={`${new Date().getFullYear()} acumulado`}
         />
@@ -283,7 +279,7 @@ function AgentCard({ client }: { client: PortalClient }) {
         Tu asesor
       </div>
       <p className="mt-3 text-[13.5px] text-grey-700 leading-[1.55]">
-        Tu asesor DTD te acompaña en cada carga. Escribinos por WhatsApp para
+        Tu asesor DTD te acompaña en cada carga. Escríbenos por WhatsApp para
         cotizar, prealertar una compra o resolver cualquier duda.
       </p>
       <div

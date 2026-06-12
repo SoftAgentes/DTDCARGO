@@ -172,7 +172,7 @@ export function EmbarquesClient({
           }}
         >
           Vista comercial agrupada por cliente. Para cambiar estado, editar
-          campos o cancelar, abrí el detalle e ingresá al Tracking.
+          campos o cancelar, abre el detalle e ingresa al Tracking.
         </p>
       </div>
 
@@ -354,8 +354,8 @@ export function EmbarquesClient({
           }
           description={
             q
-              ? "Probá ajustar los términos de búsqueda."
-              : "Creá envíos desde Estimados (convertir estimado aceptado) o desde /tracking/nuevo."
+              ? "Prueba ajustar los términos de búsqueda."
+              : "Crea envíos desde Estimados (convertir estimado aceptado) o desde /tracking/nuevo."
           }
         />
       ) : (

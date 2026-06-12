@@ -13,14 +13,19 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Account } from "./account-types";
 import { computeBalance, type Invoice } from "./invoice-types";
 import { invoiceUsdAmount } from "./fidelizacion/types";
+import { receiptAmountUsd } from "./accounting/receipt-posting";
 import {
+  type ApplicationStatus,
   type CollectionActivity,
+  type FundClass,
+  type PayerKind,
+  type PayerRelation,
   type PaymentReceipt,
   type ReceivableStage,
 } from "./payment-types";
 
 const RECEIPT_COLUMNS =
-  "id, tenant_id, receipt_code, invoice_id, client_markbox, client_name, amount, currency, fx_rate, method, cash_account_id, reference, received_at, journal_entry_id, notes, created_at, deleted_at";
+  "id, tenant_id, receipt_code, invoice_id, client_markbox, client_name, amount, currency, fx_rate, method, cash_account_id, reference, received_at, journal_entry_id, notes, payer_kind, payer_name, payer_relation, licit_declared, application_status, identified_at, fund_class, created_at, deleted_at";
 
 const ACTIVITY_COLUMNS =
   "id, tenant_id, invoice_id, kind, promised_amount, promised_date, next_followup, body, created_at, created_by";
@@ -38,14 +43,21 @@ function round2(n: number): number {
   return Math.round((n + Number.EPSILON) * 100) / 100;
 }
 
+const APPLICATION_STATUS_SET = new Set<string>([
+  "recibido_sin_ref",
+  "identificado",
+  "aplicado",
+  "rendido",
+]);
+
 function coerceReceipt(row: Record<string, unknown>): PaymentReceipt {
   return {
     id: String(row.id),
     tenant_id: String(row.tenant_id),
     receipt_code: String(row.receipt_code),
-    invoice_id: String(row.invoice_id),
-    client_markbox: String(row.client_markbox ?? ""),
-    client_name: String(row.client_name ?? ""),
+    invoice_id: row.invoice_id == null ? null : String(row.invoice_id),
+    client_markbox: row.client_markbox == null ? null : String(row.client_markbox),
+    client_name: row.client_name == null ? null : String(row.client_name),
     amount: num(row.amount),
     currency: (row.currency as PaymentReceipt["currency"]) ?? "USD",
     fx_rate: numOrNull(row.fx_rate),
@@ -55,6 +67,19 @@ function coerceReceipt(row: Record<string, unknown>): PaymentReceipt {
     received_at: String(row.received_at),
     journal_entry_id: (row.journal_entry_id as string | null) ?? null,
     notes: (row.notes as string | null) ?? null,
+    // SDD-0068 (0122) — defaults coherentes con la migración para filas viejas.
+    payer_kind: row.payer_kind === "tercero" ? "tercero" : ("cliente" as PayerKind),
+    payer_name: row.payer_name == null ? null : String(row.payer_name),
+    payer_relation: (row.payer_relation as PayerRelation | null) ?? null,
+    licit_declared: row.licit_declared === true,
+    application_status: APPLICATION_STATUS_SET.has(String(row.application_status))
+      ? (row.application_status as ApplicationStatus)
+      : "aplicado",
+    identified_at: (row.identified_at as string | null) ?? null,
+    fund_class:
+      row.fund_class === "local_revenue"
+        ? "local_revenue"
+        : ("third_party" as FundClass),
     created_at: String(row.created_at),
     deleted_at: (row.deleted_at as string | null) ?? null,
   };
@@ -124,6 +149,143 @@ export async function listActivities(
     .limit(500);
   if (error) throw error;
   return ((data as Record<string, unknown>[] | null) ?? []).map(coerceActivity);
+}
+
+/**
+ * Recibo por su receipt_code (R-YYYY-NNNN). Para la vista imprimible
+ * (SDD-0068). RLS acota al tenant y excluye anulados; `tenantId` se filtra
+ * explícito además (cinturón y tirantes, criterio 0067). null si no existe.
+ */
+export async function getReceiptByCode(
+  supabase: SupabaseClient,
+  args: { tenantId: string; code: string },
+): Promise<PaymentReceipt | null> {
+  const tenantId = String(args.tenantId ?? "").trim();
+  const code = String(args.code ?? "").trim();
+  if (!tenantId || !code) return null;
+
+  const { data, error } = await supabase
+    .from("payment_receipts")
+    .select(RECEIPT_COLUMNS)
+    .eq("tenant_id", tenantId)
+    .eq("receipt_code", code)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return coerceReceipt(data as Record<string, unknown>);
+}
+
+// ── Pagos sin identificar + separación de fondos (SDD-0068) ────
+
+/** Los pagos `recibido_sin_ref` (cláusula 7.3), más recientes primero. */
+export async function listUnidentifiedReceipts(
+  supabase: SupabaseClient,
+): Promise<PaymentReceipt[]> {
+  const { data, error } = await supabase
+    .from("payment_receipts")
+    .select(RECEIPT_COLUMNS)
+    .eq("application_status", "recibido_sin_ref")
+    .order("received_at", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return ((data as Record<string, unknown>[] | null) ?? []).map(coerceReceipt);
+}
+
+/**
+ * Totales de la separación de fondos del mandato (insumo directo de la
+ * rendición SDD-D): lo recaudado por clase en un período, normalizado a USD
+ * (misma convención que el asiento: `receiptAmountUsd`).
+ */
+export type FundsSeparation = {
+  /** Recaudado para la Operadora (flete internacional), USD. */
+  thirdPartyUsd: number;
+  /** Ingreso local de DTD Services (servicios locales), USD. */
+  localRevenueUsd: number;
+  /** Subconjunto de third_party aún sin identificar (recibido_sin_ref), USD. */
+  unidentifiedUsd: number;
+  /** Cantidad de pagos sin identificar. */
+  unidentifiedCount: number;
+  /** Cantidad de recibos del período. */
+  receiptCount: number;
+  from: string; // YYYY-MM-DD inclusive
+  to: string; // YYYY-MM-DD inclusive
+};
+
+/**
+ * Computa la separación a partir de recibos ya filtrados por período. PURA —
+ * testeable sin DB. Los sin-ref cuentan como `third_party` (su clase hasta
+ * identificar) y además se desglosan en `unidentifiedUsd`.
+ */
+export function computeFundsSeparation(
+  receipts: Pick<
+    PaymentReceipt,
+    "amount" | "currency" | "fx_rate" | "fund_class" | "application_status"
+  >[],
+  range: { from: string; to: string },
+): FundsSeparation {
+  let thirdPartyUsd = 0;
+  let localRevenueUsd = 0;
+  let unidentifiedUsd = 0;
+  let unidentifiedCount = 0;
+
+  for (const r of receipts) {
+    const usd = receiptAmountUsd(r.amount, r.currency, r.fx_rate);
+    if (r.fund_class === "local_revenue") {
+      localRevenueUsd += usd;
+    } else {
+      thirdPartyUsd += usd;
+    }
+    if (r.application_status === "recibido_sin_ref") {
+      unidentifiedUsd += usd;
+      unidentifiedCount += 1;
+    }
+  }
+
+  return {
+    thirdPartyUsd: round2(thirdPartyUsd),
+    localRevenueUsd: round2(localRevenueUsd),
+    unidentifiedUsd: round2(unidentifiedUsd),
+    unidentifiedCount,
+    receiptCount: receipts.length,
+    from: range.from,
+    to: range.to,
+  };
+}
+
+/**
+ * Separación de fondos del período [from, to] (inclusive, por `received_at`).
+ * Lee los recibos vivos del tenant (RLS) y suma con `computeFundsSeparation`.
+ */
+export async function fundsSeparationSummary(
+  supabase: SupabaseClient,
+  range: { from: string; to: string },
+): Promise<FundsSeparation> {
+  const { data, error } = await supabase
+    .from("payment_receipts")
+    .select("amount, currency, fx_rate, fund_class, application_status")
+    .gte("received_at", range.from)
+    .lte("received_at", range.to)
+    .limit(20000);
+  if (error) throw error;
+
+  const receipts = ((data as Record<string, unknown>[] | null) ?? []).map(
+    (r) => ({
+      amount: num(r.amount),
+      currency: (r.currency as PaymentReceipt["currency"]) ?? "USD",
+      fx_rate: numOrNull(r.fx_rate),
+      fund_class: (r.fund_class === "local_revenue"
+        ? "local_revenue"
+        : "third_party") as FundClass,
+      application_status: APPLICATION_STATUS_SET.has(
+        String(r.application_status),
+      )
+        ? (r.application_status as ApplicationStatus)
+        : ("aplicado" as ApplicationStatus),
+    }),
+  );
+
+  return computeFundsSeparation(receipts, range);
 }
 
 // ── Cola de CxC (derivada) ─────────────────────────────────────

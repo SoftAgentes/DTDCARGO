@@ -85,18 +85,17 @@ export function ContactoForm() {
     return (
       <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-8 lg:p-10">
         <div className="eyebrow" style={{ color: "var(--color-wine)" }}>
-          ✓ Mensaje enviado
+          Casi listo
         </div>
         <h3
           className="mt-4 text-[32px] leading-[1.05] tracking-[-0.02em] text-ink"
           style={{ fontFamily: "var(--font-archivo-black)" }}
         >
-          Te respondemos<br />en menos de 24 hs.
+          Un toque más<br />y listo.
         </h3>
         <p className="mt-4 text-[14.5px] text-grey-700 leading-[1.55]">
-          Tu mensaje quedó registrado con el código{" "}
-          <strong className="text-ink">{leadId}</strong>. Un asesor humano se
-          comunicará por email o WhatsApp para continuar.
+          Toca el botón de abajo para enviarnos tu consulta por WhatsApp — ya va
+          con todos tus datos cargados.
         </p>
 
         {/* CTA WhatsApp — único botón, prominente, mensaje pre-armado con todos los datos */}
@@ -108,11 +107,11 @@ export function ContactoForm() {
           style={{ background: "#25D366", color: "white" }}
         >
           <WhatsAppIcon size={20} />
-          Acelerar respuesta por WhatsApp
+          Enviar por WhatsApp
         </a>
         <p className="text-[12px] text-grey-500 mt-3 leading-[1.5]">
-          Al clickear, abres WhatsApp con tu mensaje pre-cargado. Llega
-          directo a un asesor con todos tus datos.
+          Te responde un asesor humano, no un bot — normalmente en menos de 24
+          horas.
         </p>
       </div>
     );

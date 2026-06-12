@@ -15,7 +15,7 @@ export const pwaOperario = {
   // ── Login ────────────────────────────────────────────────
   "pwa.login.title": "Almacén Yiwu",
   "pwa.login.subtitle": "Operario · DTD Cargo",
-  "pwa.login.pin_prompt": "Ingresá tu PIN de 4 dígitos",
+  "pwa.login.pin_prompt": "Ingresa tu PIN de 4 dígitos",
   "pwa.login.verifying": "Verificando…",
   "pwa.login.backspace_aria": "Borrar último dígito",
   "pwa.login.lang_es": "Español",
@@ -39,14 +39,14 @@ export const pwaOperario = {
 
   // ── Wizard · paso 1 Fotos ────────────────────────────────
   "pwa.receipt.step1_title": "1 de 4 · Fotos",
-  "pwa.receipt.step1_subtitle": "Tomá 3 fotos mínimo",
-  "pwa.receipt.photos_enough": "Fotos suficientes · podés seguir",
+  "pwa.receipt.step1_subtitle": "Toma 3 fotos mínimo",
+  "pwa.receipt.photos_enough": "Fotos suficientes · puedes seguir",
   "pwa.receipt.take_photo": "Tomar foto",
   "pwa.receipt.photo_n": "Foto {n}",
   "pwa.receipt.remove_photo": "Quitar foto",
   "pwa.receipt.photos_missing": "Faltan {n} fotos · mínimo 3 para registrar",
   "pwa.receipt.photo_hint":
-    "Tomá: 1) frente con etiqueta · 2) supplier label · 3) contenido · 4) daños si hay",
+    "Toma: 1) frente con etiqueta · 2) supplier label · 3) contenido · 4) daños si hay",
 
   // ── Wizard · paso 2 Identificar ──────────────────────────
   "pwa.receipt.step2_title": "2 de 4 · Identificar",
@@ -72,11 +72,11 @@ export const pwaOperario = {
   "pwa.receipt.city_ph": "ej: Valencia",
   "pwa.receipt.cities_loaded": "{n} ciudades cargadas del catálogo del tenant.",
   "pwa.receipt.cities_empty":
-    "Catálogo VE vacío · escribí ciudad libre o pedile al admin seedear catálogo.",
+    "Catálogo VE vacío · escribe ciudad libre o pídele al admin seedear catálogo.",
 
   // ── Wizard · paso 4 Confirmar ────────────────────────────
   "pwa.receipt.step4_title": "4 de 4 · Confirmar",
-  "pwa.receipt.step4_subtitle": "Revisá y guardá",
+  "pwa.receipt.step4_subtitle": "Revisa y guarda",
   "pwa.receipt.summary": "Resumen",
   "pwa.receipt.photos_label": "Fotos",
   "pwa.receipt.client": "Cliente",

@@ -36,7 +36,8 @@ const EMPTY: FormData0 = {
  * WhatsApp. La foto de cédula y la dirección de entrega se DIFIEREN a "Completa tu
  * perfil" dentro del portal (`/portal/perfil`), donde se piden antes de la 1ª
  * compra. Baja la fricción del lead de WhatsApp sin perder el dedup ni la
- * identidad básica (el documento sigue obligatorio = contraseña inicial).
+ * identidad básica (el documento sigue obligatorio para dedup + identidad; NO es
+ * la contraseña — la cuenta nace con clave aleatoria, login por magic-link/reset).
  */
 export function RegisterForm({ est }: { est?: string }) {
   const [state, action, pending] = useActionState(registerClientAction, initial);
@@ -86,8 +87,6 @@ export function RegisterForm({ est }: { est?: string }) {
           {done ? (
             <StepDone
               markbox={state.markbox!}
-              document={normalizeDocument(data.kind, data.document) ?? data.document}
-              kind={data.kind}
               firstName={data.name.split(" ")[0]}
               email={data.email}
               warning={state.warning}
@@ -241,7 +240,7 @@ function ExpressForm({
         onChange={(v) => patch({ document: v })}
         placeholder={isCompany ? "J-12345678-9" : "V-12345678"}
         mono
-        hint="Es tu contraseña inicial para entrar al portal."
+        hint="Lo usamos para identificarte y evitar cuentas duplicadas."
         error={
           fieldErrors?.document ??
           (errDoc
@@ -308,32 +307,20 @@ function ExpressForm({
 // ── Listo ───────────────────────────────────────────────────────
 function StepDone({
   markbox,
-  document,
-  kind,
   firstName,
   email,
   warning,
 }: {
   markbox: string;
-  document: string;
-  kind: ClientKind;
   firstName: string;
   email: string;
   warning?: string;
 }) {
-  // La cédula/RIF es la contraseña inicial. Se muestra difuminada por privacidad
-  // (capturas / pantalla compartida): primer y último carácter nítidos, el medio
-  // borroso. Botón "Mostrar" para revelarla.
-  const [revealed, setRevealed] = useState(false);
   // Fade-in del aviso de "correo enviado" al montar (feedback interactivo).
   const [shown, setShown] = useState(false);
   useEffect(() => {
     setShown(true);
   }, []);
-
-  const head = document.slice(0, 3);
-  const mid = document.length > 4 ? document.slice(3, -1) : "";
-  const tail = document.length > 4 ? document.slice(-1) : "";
 
   return (
     <div className="mt-6 flex flex-col items-center text-center gap-5">
@@ -396,58 +383,23 @@ function StepDone({
         </div>
       </div>
 
-      {/* Acceso al portal: usuario + clave */}
+      {/* Acceso al portal: usuario + cómo entrar (clave aleatoria, nunca la cédula) */}
       <div className="w-full rounded-[12px] bg-paper border border-grey-200 px-5 py-4 text-left">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
-              Usuario
-            </div>
-            <div
-              className="mt-1 text-[15px] font-bold text-ink"
-              style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-            >
-              {markbox}
-            </div>
-          </div>
-          <div>
-            <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
-              Contraseña
-            </div>
-            <div className="mt-1 flex items-center gap-2">
-              <span
-                className="text-[15px] font-bold text-ink"
-                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-              >
-                {revealed ? (
-                  document
-                ) : (
-                  <>
-                    <span className="sr-only">
-                      Contraseña oculta — usa Mostrar para verla
-                    </span>
-                    <span aria-hidden>
-                      {head}
-                      <span style={{ filter: "blur(5px)", userSelect: "none" }}>{mid}</span>
-                      {tail}
-                    </span>
-                  </>
-                )}
-              </span>
-              <button
-                type="button"
-                onClick={() => setRevealed((v) => !v)}
-                aria-label={revealed ? "Ocultar contraseña" : "Mostrar contraseña"}
-                className="text-[11px] font-semibold uppercase tracking-[0.08em] text-wine hover:text-wine-deep rounded px-1 py-0.5 focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
-              >
-                {revealed ? "Ocultar" : "Mostrar"}
-              </button>
-            </div>
-            <div className="mt-1 text-[11px] text-grey-500 leading-[1.4]">
-              Es tu {kind === "empresa" ? "RIF" : "cédula"} · recomendado cambiarla
-              al entrar.
-            </div>
-          </div>
+        <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
+          Tu usuario
+        </div>
+        <div
+          className="mt-1 text-[15px] font-bold text-ink"
+          style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+        >
+          {markbox}
+        </div>
+        <div className="mt-3 text-[12.5px] text-grey-700 leading-[1.5]">
+          Para entrar la primera vez, en el login del portal pide tu{" "}
+          <strong className="text-ink">enlace de acceso por correo</strong>
+          {email ? ` (te llega a ${email})` : ""}. Si prefieres una contraseña, usa{" "}
+          <strong className="text-ink">«¿Olvidaste tu contraseña?»</strong> con tu
+          Shipping Mark y créala tú. Por seguridad, tu clave nunca es tu cédula o RIF.
         </div>
       </div>
 
@@ -465,9 +417,12 @@ function StepDone({
         style={{ borderColor: "var(--color-wine)" }}
       >
         <strong className="text-ink">Tu cuenta ya está activa.</strong> Entra al
-        portal con tu Shipping Mark. Antes de tu primera compra te vamos a pedir que
-        completes tu perfil (foto de cédula + dirección de entrega) — lo haces desde
-        el portal en un par de minutos.
+        portal con tu Shipping Mark. Ahí registras cada{" "}
+        <strong className="text-ink">compra</strong> que le haces a un proveedor
+        chino — eso es tu <strong className="text-wine">prealerta</strong>: nos
+        avisa que viene mercancía y la procesamos más rápido. Antes de tu primera
+        compra te pediremos completar tu perfil (foto de cédula + dirección de
+        entrega), un par de minutos desde el portal.
       </p>
 
       <Link

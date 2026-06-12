@@ -20,7 +20,7 @@ import {
 
 async function requireVeBodeguero() {
   const session = await getCurrentOperario();
-  if (!session) return { error: "Sesión inválida · ingresá de nuevo." as const };
+  if (!session) return { error: "Sesión inválida · ingresa de nuevo." as const };
   if (session.region !== "ve") return { error: "Solo operarios VE." as const };
   // Multi-rol: si tiene > 1 modo y no eligió bodeguero, denegar
   const activeMode = session.current_mode ?? session.role;
@@ -130,7 +130,7 @@ function humanizeOperarioActionError(msg: string): string {
   if (msg.includes("P0114")) return "Esa caja ya estaba escaneada.";
   if (msg.includes("P0115")) {
     const match = msg.match(/Faltan (\d+) cajas/);
-    if (match) return `Faltan ${match[1]} cajas · sellá con incidencia si querés cerrar igual.`;
+    if (match) return `Faltan ${match[1]} cajas · sella con incidencia si quieres cerrar igual.`;
     return "Faltan cajas por escanear.";
   }
   return msg;

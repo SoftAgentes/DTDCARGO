@@ -106,7 +106,7 @@ export async function sendTestTemplateAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -174,7 +174,7 @@ export async function createMailRuleAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -373,7 +373,7 @@ export async function addMailBlacklistAction(
 
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Iniciá sesión primero." };
+  if (!userResp.user) return { error: "Inicia sesión primero." };
 
   const { data: link } = await supabase
     .from("user_tenants")

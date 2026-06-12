@@ -1,5 +1,5 @@
 /* global React */
-/* ── DTD ERP · Clientes & MARKBOX ───────────────────────────── */
+/* ── DTD ERP · Clientes & Shipping Mark ───────────────────────────── */
 
 const { useState: _useStateCli, useMemo: _useMemoCli } = React;
 
@@ -47,7 +47,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
   const tierColor = { Platinum: 'wine', Gold: 'warning', Silver: 'info', Bronze: 'neutral' };
 
   const columns = [
-    { label: 'MARKBOX', key: 'markbox', render: (r) => <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{r.markbox}</code>, width: 100 },
+    { label: 'Shipping Mark', key: 'markbox', render: (r) => <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{r.markbox}</code>, width: 100 },
     { label: 'Cliente', key: 'name', render: (r) => (
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <U.Avatar initials={r.name.split(' ').map(w=>w[0]).slice(0,2).join('')} color={r.status === 'active' ? 'wine' : 'neutral'} size={32} />
@@ -96,7 +96,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
     <div>
       <U.PageHeader
         title="Clientes"
-        subtitle={`${baseClients.length} cuentas con código MARKBOX activo. ${baseClients.filter(c=>c.status==='active').length} activas, ${baseClients.filter(c=>c.status==='pending').length} pendientes de verificación.`}
+        subtitle={`${baseClients.length} cuentas con código Shipping Mark activo. ${baseClients.filter(c=>c.status==='active').length} activas, ${baseClients.filter(c=>c.status==='pending').length} pendientes de verificación.`}
         actions={
           <>
             <U.Btn variant="secondary" icon={window.Icon.download(14)}>Exportar</U.Btn>
@@ -108,7 +108,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
       <U.Toolbar
         search={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Buscar por nombre, empresa, MARKBOX, RIF…"
+        searchPlaceholder="Buscar por nombre, empresa, Shipping Mark, RIF…"
         filters={
           <>
             <U.Select value={tier} onChange={(e)=>setTier(e.target.value)} style={{ width: 140 }} options={[
@@ -135,7 +135,7 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
         <U.EmptyState
           icon={window.Icon.users(22)}
           title="No hay clientes que coincidan"
-          body="Ajustá los filtros o registrá un cliente nuevo. El código MARKBOX se asigna automáticamente."
+          body="Ajusta los filtros o registra un cliente nuevo. El código Shipping Mark se asigna automáticamente."
           action={<U.Btn variant="primary" icon={window.Icon.plus(13)} onClick={() => { setView('create'); setDrawerKind('create'); }}>Crear cliente</U.Btn>}
         />
       ) : (
@@ -168,12 +168,12 @@ function ModuleClients({ goTo, view, setView, selectedId, setSelectedId }) {
         open={drawerKind === 'create'}
         onClose={() => { setDrawerKind(null); setView('list'); }}
         title="Nuevo cliente"
-        subtitle="El código MARKBOX (DTD-XXXX) se asigna automáticamente al guardar"
+        subtitle="El código Shipping Mark (DTD-XXXX) se asigna automáticamente al guardar"
         width={620}
         actions={
           <>
             <U.Btn variant="ghost" onClick={() => { setDrawerKind(null); setView('list'); }}>Cancelar</U.Btn>
-            <U.Btn variant="primary">Crear + asignar MARKBOX</U.Btn>
+            <U.Btn variant="primary">Crear + asignar Shipping Mark</U.Btn>
           </>
         }
       >
@@ -377,16 +377,16 @@ function ClientForm() {
         En altas desde el portal, el cliente carga {tipo === 'empresa' ? 'el RIF' : 'la cédula'} automáticamente en el registro. En altas manuales, adjuntala acá.
       </div>
       {tipo === 'empresa' ? (
-        <DocTile value={docRif} onChange={setDocRif} title="Foto del RIF · ambos lados" hint="JPG o PDF · arrastrá o hacé clic" fileName="rif-empresa.jpg" />
+        <DocTile value={docRif} onChange={setDocRif} title="Foto del RIF · ambos lados" hint="JPG o PDF · arrastrá o haz clic" fileName="rif-empresa.jpg" />
       ) : (
-        <DocTile value={docCedula} onChange={setDocCedula} title="Foto de la cédula · anverso y reverso" hint="JPG o PDF · arrastrá o hacé clic" fileName="cedula-cliente.jpg" />
+        <DocTile value={docCedula} onChange={setDocCedula} title="Foto de la cédula · anverso y reverso" hint="JPG o PDF · arrastrá o haz clic" fileName="cedula-cliente.jpg" />
       )}
 
       <div style={{ padding: '14px 16px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', borderLeft: '3px solid var(--wine)' }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ color: 'var(--wine)' }}>{window.Icon.info(14)}</span>
           <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            Al crear el cliente se genera automáticamente un código <b>MARKBOX</b> (DTD-XXXX) único. Se envía por email con instrucciones de uso para envíos desde China.
+            Al crear el cliente se genera automáticamente un código <b>Shipping Mark</b> (DTD-XXXX) único. Se envía por email con instrucciones de uso para envíos desde China.
           </div>
         </div>
       </div>

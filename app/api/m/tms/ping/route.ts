@@ -136,7 +136,7 @@ export async function POST(req: Request) {
     if (elapsedSec < RATE_LIMIT_SEC) {
       return NextResponse.json(
         {
-          error: `Rate limit · esperá ${Math.ceil(
+          error: `Rate limit · espera ${Math.ceil(
             RATE_LIMIT_SEC - elapsedSec,
           )}s antes del próximo ping.`,
         },

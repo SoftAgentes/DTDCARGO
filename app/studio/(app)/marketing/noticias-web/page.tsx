@@ -105,7 +105,7 @@ export default async function NoticiasWebPage() {
             maxWidth: "76ch",
           }}
         >
-          Generá artículos SEO paso a paso para publicar en /noticias del
+          Genera artículos SEO paso a paso para publicar en /noticias del
           sitio: tipo editorial → titular → estructura en secciones →
           artículo Markdown 800-1200 palabras.
         </p>

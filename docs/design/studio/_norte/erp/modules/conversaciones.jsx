@@ -69,7 +69,7 @@ function ModuleConversaciones({ goTo }) {
         {/* Hilo */}
         {selected
           ? <ConversationThread conv={selected} goTo={goTo} onSend={sendReply} onStatus={setStatus} onAssign={setAssign} />
-          : <U.Card padded><U.EmptyState icon={I.chat(22)} title="Sin conversación seleccionada" body="Elegí una conversación de la lista para ver el hilo completo." /></U.Card>}
+          : <U.Card padded><U.EmptyState icon={I.chat(22)} title="Sin conversación seleccionada" body="Elige una conversación de la lista para ver el hilo completo." /></U.Card>}
       </div>
     </div>
   );
@@ -89,7 +89,7 @@ function ConversationList({ list, selectedId, onSelect, statusFilter, setStatusF
       <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, height: 34, padding: '0 10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
           <span style={{ color: 'var(--ink-mute)' }}>{I.search(14)}</span>
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente o MARKBOX…" style={{ flex: 1, height: '100%', border: 0, outline: 'none', background: 'transparent', font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink)' }} />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar cliente o Shipping Mark…" style={{ flex: 1, height: '100%', border: 0, outline: 'none', background: 'transparent', font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink)' }} />
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {[['todos', 'Todas'], ['abierto', 'Abiertas'], ['pendiente', 'Pend.'], ['resuelto', 'Resueltas']].map(([v, l]) => (
@@ -138,7 +138,7 @@ function ConversationList({ list, selectedId, onSelect, statusFilter, setStatusF
                 <span style={{ font: '500 10px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>{c.lastAt}</span>
               </div>
               <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 7 }}>
-                {last ? (last.dir === 'out' ? 'Vos: ' : '') + last.text : ''}
+                {last ? (last.dir === 'out' ? 'Tú: ' : '') + last.text : ''}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <U.Badge tone={tp.tone} size="sm">{tp.label}</U.Badge>

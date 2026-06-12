@@ -121,9 +121,9 @@ export default async function BugsAdminPage({
           }}
         >
           Bugs, mejoras y sugerencias reportados desde el FAB del Studio.
-          Tomá uno desde el Kanban, conversá con quien lo reportó, usá
+          Toma uno desde el Kanban, conversa con quien lo reportó, usa
           “Copiar prompt” para asistirte con Claude Code en otra ventana, y
-          cuando aplicaste el fix marcá el bug como resuelto vos mismo desde
+          cuando aplicaste el fix marca el bug como resuelto tú mismo desde
           el drawer. Convención de commit:{" "}
           <code
             style={{

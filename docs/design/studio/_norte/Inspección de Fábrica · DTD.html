@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD-Cargo · Inspección / Auditoría de Fábrica · EJEMPLO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="erp/tokens.css" rel="stylesheet" />
+<link href="reportes/report.css" rel="stylesheet" />
+</head>
+<body class="report">
+
+<div class="toolbar no-print">
+  <span class="tb-brand">DTD&nbsp;Cargo · Control de Calidad <small>— Inspección de Fábrica</small></span>
+  <span class="sp"></span>
+  <span class="hint">Ejemplo con datos ocultos · marca de agua SAMPLE</span>
+  <button onclick="window.print()">Imprimir / Guardar PDF</button>
+</div>
+
+<!-- ════════════════ HOJA 1 · PORTADA + PUNTAJE ════════════════ -->
+<section class="sheet" data-screen-label="Fábrica · Portada">
+  <div class="wm"><span>SAMPLE</span></div>
+  <div class="sample-band">Documento de muestra</div>
+
+  <header class="rp-head">
+    <div class="rp-lockup">
+      <span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span>
+      <div>
+        <div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div>
+        <div class="lk-sub">Control de Calidad · Origen China</div>
+      </div>
+    </div>
+    <div class="rp-meta">
+      <div class="doc-type">Inspección de Fábrica</div>
+      <dl>
+        <dt>Tipo</dt><dd>Auditoría de planta</dd>
+        <dt>Servicio N.º</dt><dd class="mono">DTD-FA-26030901</dd>
+        <dt>Fecha de auditoría</dt><dd>9 mar 2026</dd>
+        <dt>Duración</dt><dd>1 día-hombre</dd>
+      </dl>
+    </div>
+  </header>
+
+  <div class="eyebrow">Reporte de Auditoría de Fábrica</div>
+  <h1 class="rp-title">Fabricante de cosméticos — Jinhua, Zhejiang</h1>
+  <p class="rp-title-sub">Validez legal · recursos humanos · capacidad productiva · instalaciones · requerimientos del cliente · evidencia fotográfica</p>
+
+  <div class="score-hero">
+    <div class="gauge" aria-label="Puntaje 82 de 100">
+      <svg viewBox="0 0 150 150">
+        <circle class="g-bg" cx="75" cy="75" r="62" stroke-width="13"/>
+        <circle class="g-fg" cx="75" cy="75" r="62" stroke-width="13" stroke-dasharray="319.5 389.6"/>
+      </svg>
+      <div class="g-val"><div class="g-num">82</div><div class="g-den">/ 100</div></div>
+    </div>
+    <div class="bench">
+      <div class="row me"><span class="lab">Esta fábrica</span><div class="bar"><i style="width:82%"></i></div><span class="num">82</span></div>
+      <div class="row"><span class="lab">Tus proveedores (prom.)</span><div class="bar"><i style="width:82%"></i></div><span class="num">82</span></div>
+      <div class="row"><span class="lab">Promedio país (China)</span><div class="bar"><i style="width:76%"></i></div><span class="num">76</span></div>
+      <div class="row"><span class="lab">Promedio industria</span><div class="bar"><i style="width:88%"></i></div><span class="num">88</span></div>
+      <div class="note" style="margin:6px 0 0;"><strong>Conclusión:</strong> fabricante integrado (industria + comercio) con validez legal confirmada y capacidad productiva acorde al producto de interés del cliente. Apto, con observaciones en documentación bancaria.</div>
+    </div>
+    <div class="seal-wrap" style="padding-top:2px;">
+      <div class="qc-seal" aria-label="Sello Control de Calidad DTD">
+        <svg viewBox="0 0 200 200" role="img">
+          <circle class="ring" cx="100" cy="100" r="94" stroke-width="3"/>
+          <circle class="ring" cx="100" cy="100" r="79" stroke-width="1.4"/>
+          <path id="arcTopF" fill="none" d="M 14,100 A 86,86 0 0 1 186,100"/>
+          <path id="arcBotF" fill="none" d="M 26,100 A 74,74 0 0 0 174,100"/>
+          <text class="arc-text"><textPath href="#arcTopF" startOffset="50%" text-anchor="middle">AUDITORÍA DE FÁBRICA</textPath></text>
+          <text class="arc-small"><textPath href="#arcBotF" startOffset="50%" text-anchor="middle">VERIFICADO EN ORIGEN · CHINA</textPath></text>
+          <circle cx="22" cy="100" r="2.3" fill="var(--wine)"/>
+          <circle cx="178" cy="100" r="2.3" fill="var(--wine)"/>
+          <image href="assets/dtdcargo-isologo-mono-dark.png" x="71" y="58" width="58" height="60"/>
+          <text x="100" y="140" text-anchor="middle" style="font:800 13px/1 var(--f-brand-display);fill:var(--wine);letter-spacing:-0.02em;">DTD CARGO</text>
+        </svg>
+      </div>
+      <div class="seal-meta">Inspeccionado por DTD<br/>09·03·2026</div>
+    </div>
+  </div>
+
+  <h2 class="sec"><span class="sec-no">≡</span> Puntaje por sección</h2>
+  <table class="dt scoretab">
+    <tr><th style="width:36px">#</th><th>Campo evaluado</th><th class="num">Puntaje /10</th><th class="num">Peso /5</th><th class="barcell">Desempeño</th></tr>
+    <tbody id="score-rows"></tbody>
+    <tr style="font-weight:800;"><td></td><td>Total ponderado</td><td class="num">40,7</td><td class="num">22</td><td><div class="mini"><i style="width:82%"></i></div></td></tr>
+  </table>
+  <p class="tpl-hint" style="margin-top:6px;">Puntaje final (100) = (Total ponderado / (Peso total × 10)) × 100 = <b>82 / 100</b></p>
+
+  <div class="note wine"><strong>Nota DTD:</strong> nombre de la fábrica, del cliente, números de licencia, datos bancarios y de contacto fueron ocultados deliberadamente — este documento se distribuye únicamente como ejemplo del formato de auditoría de DTD-Cargo.</div>
+  <div class="pageno">Inspección de Fábrica · pág. 1</div>
+</section>
+
+<!-- ════════════════ HOJA 2 · PERFIL + RRHH ════════════════ -->
+<section class="sheet" data-screen-label="Fábrica · Perfil">
+  <div class="wm"><span>SAMPLE</span></div>
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Fábrica</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-FA-26030901</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">1</span> Perfil de la fábrica · validez legal</h2>
+  <div class="kv">
+    <div class="k">Nombre del proveedor</div><div class="v"><span class="redact" data-tag="Proveedor oculto">XXXXXXXXXXXXX</span></div>
+    <div class="k">Nombre registrado (local)</div><div class="v"><span class="redact" data-tag="Oculto">XXXXXXXX</span></div>
+    <div class="k">N.º registro licencia comercial</div><div class="v"><span class="redact" data-tag="Licencia oculta">XXXXXXXXXXXXXXX</span></div>
+    <div class="k">Año de establecimiento</div><div class="v">2001</div>
+    <div class="k">Validez</div><div class="v">Largo plazo · revisión anual aprobada (2025-04-28)</div>
+    <div class="k">Representante legal</div><div class="v"><span class="redact" data-tag="Nombre oculto">XXXXXXXX</span></div>
+    <div class="k">Capital registrado</div><div class="v" style="font-family:var(--f-mono)">5.000.000 RMB</div>
+    <div class="k">Tipo de empresa</div><div class="v">Fabricante · capital privado</div>
+    <div class="k">Producto del cliente en el alcance</div><div class="v"><span class="badge success"><span class="dot"></span>Sí, incluido</span></div>
+    <div class="k">¿En lista de operación anormal?</div><div class="v"><span class="badge success"><span class="dot"></span>No</span></div>
+  </div>
+
+  <h3 class="sub">Resumen del edificio</h3>
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+    <div class="kpi"><div class="lab">Área construida</div><div class="val mono">16.621</div><div class="unit">m² · 3 edificios</div></div>
+    <div class="kpi"><div class="lab">Oficinas</div><div class="val mono">4.864</div><div class="unit">m²</div></div>
+    <div class="kpi"><div class="lab">Talleres</div><div class="val mono">8.545</div><div class="unit">m²</div></div>
+    <div class="kpi"><div class="lab">Almacén</div><div class="val mono">3.212</div><div class="unit">m²</div></div>
+  </div>
+
+  <h3 class="sub">Información bancaria</h3>
+  <div class="kv">
+    <div class="k">Beneficiario</div><div class="v"><span class="redact" data-tag="Beneficiario oculto">XXXXXXXXXXXX</span></div>
+    <div class="k">N.º de cuenta (USD)</div><div class="v"><span class="redact" data-tag="Cuenta oculta">XXXXXXXXXXXXXXX</span></div>
+    <div class="k">Banco</div><div class="v"><span class="redact" data-tag="Banco oculto">XXXXXXXXXX</span></div>
+  </div>
+  <div class="note"><strong>Hallazgo:</strong> el documento bancario presentado <strong>no tiene sello de la empresa</strong>, solo el sello del banco. Se recomienda solicitar carta de confirmación bancaria en papel membretado, sellada y firmada.</div>
+
+  <h2 class="sec"><span class="sec-no">2</span> Recursos humanos</h2>
+  <div style="display:flex; gap:var(--s-5); align-items:flex-start;">
+    <table class="dt" style="flex:1.3;">
+      <tr><th>Departamento</th><th class="num">Según fábrica</th><th class="num">Hallazgo real</th></tr>
+      <tr><td>Administración</td><td class="num">1</td><td class="num">1</td></tr>
+      <tr><td>RRHH (compartido con Admin.)</td><td class="num">—</td><td class="num">—</td></tr>
+      <tr><td>Ventas</td><td class="num">2</td><td class="num">2</td></tr>
+      <tr><td>Financiero</td><td class="num">1</td><td class="num">1</td></tr>
+      <tr><td>Producción</td><td class="num">33</td><td class="num">28</td></tr>
+      <tr><td>Ingeniería e I+D</td><td class="num">6</td><td class="num">6</td></tr>
+      <tr><td>Calidad</td><td class="num">2</td><td class="num">2</td></tr>
+      <tr><td>Otros</td><td class="num">3</td><td class="num">3</td></tr>
+      <tr style="font-weight:800;"><td>Total</td><td class="num">48</td><td class="num">43</td></tr>
+    </table>
+    <div style="flex:1;">
+      <h3 class="sub" style="margin-top:0;">Contactos principales</h3>
+      <div class="kv" style="grid-template-columns:130px 1fr;">
+        <div class="k">Gerente general</div><div class="v"><span class="redact" data-tag="Nombre oculto">XXXXXX</span></div>
+        <div class="k">Gerente de ventas</div><div class="v"><span class="redact" data-tag="Nombre oculto">XXXXXX</span></div>
+        <div class="k">Representante ventas</div><div class="v"><span class="redact" data-tag="Nombre oculto">XXXXXX</span></div>
+        <div class="k">E-mail / móvil</div><div class="v"><span class="redact" data-tag="Datos de contacto ocultos">XXXXXXXXXXX</span></div>
+      </div>
+      <div class="note wine" style="font-size:10px;">Calidad: 2 QC (1&nbsp;IQC + 1&nbsp;FQC). 90% exportación, 10% mercado local.</div>
+    </div>
+  </div>
+  <div class="pageno">Inspección de Fábrica · pág. 2</div>
+</section>
+
+<!-- ════════════════ HOJA 3 · PRODUCTO, MERCADO, MAQUINARIA ════════════════ -->
+<section class="sheet" data-screen-label="Fábrica · Producto y maquinaria">
+  <div class="wm"><span>SAMPLE</span></div>
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Fábrica</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-FA-26030901</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">3</span> Producto y mercado</h2>
+  <div class="kv">
+    <div class="k">Productos principales</div><div class="v">Base líquida, labial, lip gloss, cuidado de la piel</div>
+    <div class="k">Producto de interés del cliente</div><div class="v">Base líquida · lip gloss</div>
+    <div class="k">Materias primas principales</div><div class="v">Isododecano, butilenglicol, PCH, cera microcristalina, mica, PMMA, propilenglicol, VE</div>
+    <div class="k">Procedimiento de producción</div><div class="v">Mezcla → inspección → llenado → empaque</div>
+    <div class="k">Licencia de exportación</div><div class="v"><span class="badge success"><span class="dot"></span>Vigente</span> · desde 2008 · largo plazo · código <span class="redact" data-tag="Código oculto">XXXXX</span></div>
+    <div class="k">% exportación / OEM</div><div class="v" style="font-family:var(--f-mono)">90% export · 0% OEM</div>
+  </div>
+
+  <div style="display:flex; gap:var(--s-5); margin-top:var(--s-3);">
+    <div style="flex:1;">
+      <h3 class="sub">Facturación últimos 3 años (USD)</h3>
+      <table class="dt">
+        <tr><th>Año</th><th class="num">Facturación</th></tr>
+        <tr><td>2023</td><td class="num mono">8.000.000</td></tr>
+        <tr><td>2024</td><td class="num mono">9.000.000</td></tr>
+        <tr><td>2025</td><td class="num mono">10.000.000</td></tr>
+      </table>
+    </div>
+    <div style="flex:1;">
+      <h3 class="sub">Top mercados (% volumen)</h3>
+      <table class="dt">
+        <tr><th>Mercado</th><th class="num">%</th></tr>
+        <tr><td>Sudamérica</td><td class="num mono">40</td></tr>
+        <tr><td>Medio Oriente</td><td class="num mono">27</td></tr>
+        <tr><td>Mercado local</td><td class="num mono">10</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2 class="sec"><span class="sec-no">4</span> Instalaciones de producción</h2>
+  <div class="chk" style="display:grid; grid-template-columns:1fr 1fr; gap:0 var(--s-6);">
+    <div class="it"><span class="box on"></span><span class="lab">Planta estándar industrial</span></div>
+    <div class="it"><span class="box on"></span><span class="lab">Línea ordenada y bien organizada</span></div>
+    <div class="it"><span class="box on"></span><span class="lab">Área de producción bien iluminada</span><span class="res"><span class="badge success" style="font-size:8px;padding:2px 6px;">Sí</span></span></div>
+    <div class="it"><span class="box on"></span><span class="lab">Área ventilada</span><span class="res"><span class="badge success" style="font-size:8px;padding:2px 6px;">Sí</span></span></div>
+    <div class="it"><span class="box on"></span><span class="lab">Climatización (frío/calor)</span><span class="res"><span class="badge success" style="font-size:8px;padding:2px 6px;">Sí</span></span></div>
+    <div class="it"><span class="box on"></span><span class="lab">Suministro eléctrico estable</span><span class="res"><span class="badge success" style="font-size:8px;padding:2px 6px;">Sí</span></span></div>
+  </div>
+
+  <h3 class="sub">Listado de maquinaria</h3>
+  <table class="dt">
+    <tr><th>Máquina</th><th class="num">Cant.</th><th>Estado</th><th>Máquina</th><th class="num">Cant.</th><th>Estado</th></tr>
+    <tbody id="mach-rows"></tbody>
+  </table>
+  <div class="pageno">Inspección de Fábrica · pág. 3</div>
+</section>
+
+<!-- ════════════════ HOJA 4 · REQUERIMIENTOS DEL CLIENTE ════════════════ -->
+<section class="sheet" data-screen-label="Fábrica · Requerimientos">
+  <div class="wm"><span>SAMPLE</span></div>
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Fábrica</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-FA-26030901</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">5</span> Requerimientos especiales del cliente</h2>
+
+  <div class="qa" id="qa-list"></div>
+
+  <div class="note wine"><strong>Documentación solicitada (checklist):</strong> licencia comercial · permisos de operación vigentes · identificación del representante legal · carta de confirmación bancaria sellada y firmada · referencias comerciales de otros clientes internacionales (preferible). <strong>Hallazgo:</strong> el documento bancario no tiene sello de empresa (solo del banco) y la fábrica no aportó cartas de referencia de otros clientes internacionales.</div>
+  <div class="pageno">Inspección de Fábrica · pág. 4</div>
+</section>
+
+<!-- ════════════════ HOJA 5-6 · EVIDENCIA FOTOGRÁFICA ════════════════ -->
+<section class="sheet" data-screen-label="Fábrica · Producción (fotos)">
+  <div class="wm"><span>SAMPLE</span></div>
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Fábrica</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-FA-26030901</dd></dl></div>
+  </header>
+
+  <h2 class="sec"><span class="sec-no">6</span> Evidencia fotográfica</h2>
+  <h3 class="sub" style="margin-top:0;">Producción · mezcla, llenado y empaque</h3>
+  <div class="gal g3" id="gal-fab-prod"></div>
+
+  <h3 class="sub">Maquinaria</h3>
+  <div class="gal g4" id="gal-fab-mach"></div>
+  <div class="pageno">Inspección de Fábrica · pág. 5</div>
+</section>
+
+<section class="sheet" data-screen-label="Fábrica · Instalaciones (fotos)">
+  <div class="wm"><span>SAMPLE</span></div>
+  <header class="rp-head">
+    <div class="rp-lockup"><span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span><div><div class="wordmark"><span class="w-dtd">DTD</span><span class="w-sep"></span><span class="w-cargo">Cargo</span></div><div class="lk-sub">Control de Calidad · Origen China</div></div></div>
+    <div class="rp-meta"><div class="doc-type">Inspección de Fábrica</div><dl><dt>Servicio N.º</dt><dd class="mono">DTD-FA-26030901</dd></dl></div>
+  </header>
+
+  <h3 class="sub" style="margin-top:0;">Edificio de la fábrica</h3>
+  <div class="gal g3" id="gal-fab-build"></div>
+
+  <h3 class="sub">Oficina, showroom y laboratorio</h3>
+  <div class="gal g3" id="gal-fab-fac"></div>
+
+  <div class="rp-foot">
+    <div class="eyebrow" style="margin-bottom:8px;">Servicios de Control de Calidad DTD-Cargo</div>
+    <div class="svc" id="svc-fab"></div>
+    <div class="foot-bar">
+      <div class="foot-brand">
+        <span class="dtd-iso"><img src="assets/dtdcargo-isologo-primary.png" alt="DTD" /></span>
+        <div class="tag">Con Confianza, de China a tu puerta.<small>Auditamos la fábrica antes de que pongas un dólar.</small></div>
+      </div>
+      <div class="foot-contact"><b>DTD&nbsp;Cargo</b> · RIF&nbsp;J-50648869-8<br/>info@dtdcargo.com · +58&nbsp;241&nbsp;414&nbsp;7886<br/>Av.&nbsp;Bolívar&nbsp;Norte&nbsp;14, Valencia</div>
+    </div>
+  </div>
+  <div class="pageno">Inspección de Fábrica · pág. 6</div>
+</section>
+
+<script src="reportes/report-data.js"></script>
+<script>
+  renderServicios('svc-fab','fab');
+
+  const SCORES = [
+    ['1','Perfil de la fábrica · validez legal + edificio','10,0','5','100',''],
+    ['2','Recursos humanos · organigrama + contactos','6,0','4','60','warn'],
+    ['3','Producto y mercado · exportación','8,4','4','84',''],
+    ['4','Instalaciones de producción · talleres + maquinaria','7,6','4','76',''],
+    ['5','Requerimientos especiales del cliente','8,7','5','87',''],
+    ['6','Información de soporte · videos · fotos · documentos','—','—','0','muted'],
+  ];
+  document.getElementById('score-rows').innerHTML = SCORES.map(s=>{
+    const bar = s[5]==='muted' ? '<span class="tpl-hint">soporte</span>' : `<div class="mini"><i class="${s[5]}" style="width:${s[4]}%"></i></div>`;
+    return `<tr><td class="num mono">${s[0]}</td><td>${s[1]}</td><td class="num">${s[2]}</td><td class="num">${s[3]}</td><td>${bar}</td></tr>`;
+  }).join('');
+
+  const MACH = [
+    ['Trituradora / molino','5'],['Tanque emulsificación vacío 100L','2'],
+    ['Llenadora de base líquida','2'],['Llenadora automática base líquida','1'],
+    ['Desespumadora al vacío 100L','1'],['Olla emulsificación vacío 10L','1'],
+    ['Llenadora automática lip gloss','1'],['Llenadora lip gloss cabezal único','2'],
+    ['Codificador inkjet','2'],['Centrífuga','1'],
+  ];
+  let mrows='';
+  for(let i=0;i<MACH.length;i+=2){
+    const a=MACH[i], b=MACH[i+1]||['',''];
+    const cell=(m)=> m[0] ? `<td>${m[0]}</td><td class="num mono">${m[1]}</td><td><span class="badge success" style="font-size:8px;padding:2px 6px;">En uso</span></td>` : '<td></td><td></td><td></td>';
+    mrows += `<tr>${cell(a)}${cell(b)}</tr>`;
+  }
+  document.getElementById('mach-rows').innerHTML = mrows;
+
+  const QA = [
+    ['1','Verificar la existencia física y legal de la empresa','La licencia comercial presentada es consistente con la información del sitio web gubernamental y con el hallazgo real; la validez fue confirmada.','success','Confirmado'],
+    ['2','Confirmar la capacidad operativa y comercial ofrecida','Facturación de los últimos 3 años: USD 8M (2023), USD 9M (2024), USD 10M (2025).','success','Confirmado'],
+    ['3','Validar la documentación corporativa relevante','La documentación presentada por la fábrica es válida dentro de sus fechas de vencimiento.','success','Confirmado'],
+    ['4','Confirmar que la representante comercial está autorizada (cargo + credencial)','Se confirmó que es empleada/representante autorizada del fabricante. Datos de identidad y credencial: ocultos en este ejemplo.','warning','Parcial · ID oculto'],
+    ['5','Verificación de cuenta bancaria (titular, banco, n.º de cuenta, tipo)','Datos bancarios ocultos. El documento bancario NO tiene sello de la empresa, solo el sello del banco.','danger','Observación'],
+  ];
+  document.getElementById('qa-list').innerHTML = QA.map(q=>{
+    const redactAnswer = q[0]==='5'
+      ? `<span class="redact" data-tag="Banco / cuenta / titular ocultos">XXXXXXXXXXXXXXXXXXXX</span> &nbsp; ${q[2]}`
+      : q[2];
+    return `<div style="border:1px solid var(--border-strong);border-radius:var(--r-md);padding:10px 13px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+        <span style="font:700 11px/20px var(--f-mono);background:var(--ink);color:#fff;width:22px;height:22px;text-align:center;border-radius:50%;">${q[0]}</span>
+        <strong style="font-size:11.5px;color:var(--ink);">${q[1]}</strong>
+        <span class="badge ${q[3]}" style="margin-left:auto;font-size:9px;"><span class="dot"></span>${q[4]}</span>
+      </div>
+      <div style="font-size:10.5px;color:var(--ink-soft);padding-left:30px;">${redactAnswer}</div>
+    </div>`;
+  }).join('');
+
+  function shot(file,label,redacted){
+    const tag = redacted ? `<div class="rp-tag">${label}</div>` : '';
+    const cap = redacted ? '' : `<div class="cap"><span class="lab">${label}</span></div>`;
+    return `<div class="shot"><div class="img redact-photo"><img src="assets/insp-fab/${file}.jpg" alt="${label}" loading="lazy"/>${tag}</div>${cap}</div>`;
+  }
+  document.getElementById('gal-fab-prod').innerHTML =
+    [['p10-1','Mezcla de ingredientes'],['p10-3','Mezcla de ingredientes'],['p10-5','Llenado'],
+     ['p14-1','Empaque'],['p14-2','Empaque'],['p14-3','Inspección']].map(p=>shot(p[0],p[1])).join('');
+  document.getElementById('gal-fab-mach').innerHTML =
+    [['p11-1','Maquinaria'],['p11-3','Maquinaria'],['p12-1','Maquinaria'],['p12-3','Maquinaria'],
+     ['p13-1','Maquinaria'],['p13-3','Maquinaria'],['p11-5','Maquinaria'],['p12-2','Maquinaria']].map(p=>shot(p[0],p[1])).join('');
+  document.getElementById('gal-fab-build').innerHTML =
+    [['p18-4','Edificio de la fábrica'],['p18-5','Edificio de la fábrica'],['p18-6','Edificio de la fábrica'],
+     ['r-p18-2','Nombre de la fábrica — oculto',true],['r-p18-3','Dirección — oculta',true],['r-p18-1','Acceso — oculto',true]].map(p=>shot(p[0],p[1],p[2])).join('');
+  document.getElementById('gal-fab-fac').innerHTML =
+    [['p19-1','Oficina'],['p19-3','Showroom'],['p20-1','Showroom'],
+     ['p22-1','Showroom'],['p23-1','Área de inspección'],['p23-3','Laboratorio']].map(p=>shot(p[0],p[1])).join('');
+</script>
+</body>
+</html>

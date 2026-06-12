@@ -173,7 +173,7 @@ export function PodModal({
     try {
       const sigBlob = await signatureBlob();
       if (!sigBlob) {
-        setErrorMsg("No se pudo capturar la firma · reintentá.");
+        setErrorMsg("No se pudo capturar la firma · reintenta.");
         setPhase("idle");
         return;
       }
@@ -239,7 +239,7 @@ export function PodModal({
         // advance falló por red · el POD YA subió, no se pierde nada.
         // El admin/bodeguero puede marcar entregada, o el camionero reintenta.
         setWarningMsg(
-          "POD subido ✓ pero no se confirmó 'entregada' por falta de señal. Reintentá en un momento.",
+          "POD subido ✓ pero no se confirmó 'entregada' por falta de señal. Reintenta en un momento.",
         );
         setPhase("idle");
         return;
@@ -248,7 +248,7 @@ export function PodModal({
       setPhase("done");
     } catch (err) {
       console.error("[PodModal] submit error:", err);
-      setErrorMsg("Error inesperado · reintentá.");
+      setErrorMsg("Error inesperado · reintenta.");
       setPhase("idle");
     }
   };
@@ -383,7 +383,7 @@ export function PodModal({
                   : gps.status === "denied"
                     ? "Permiso GPS denegado · POD sin ubicación"
                     : gps.status === "no_position"
-                      ? "Buscando GPS… podés esperar o continuar sin ubicación"
+                      ? "Buscando GPS… puedes esperar o continuar sin ubicación"
                       : "GPS no disponible · POD sin ubicación"}
             </div>
 
@@ -445,7 +445,7 @@ export function PodModal({
                   >
                     Tomar foto
                     <span style={{ font: "500 11px/1.3 var(--f-sans)", color: "var(--ink-mute)" }}>
-                      Tocá para usar la cámara
+                      Toca para usar la cámara
                     </span>
                     <input
                       type="file"
@@ -522,7 +522,7 @@ export function PodModal({
                         color: "var(--ink-mute)",
                       }}
                     >
-                      Firmá acá
+                      Firma acá
                     </div>
                   )}
                 </div>

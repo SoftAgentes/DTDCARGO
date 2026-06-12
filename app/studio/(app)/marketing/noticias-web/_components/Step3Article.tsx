@@ -131,7 +131,7 @@ export function Step3Article({
             </article>
           ) : (
             <div className="text-grey-500 text-[14px] py-12 text-center">
-              Sin artículo todavía. Generá uno con el botón de abajo.
+              Sin artículo todavía. Genera uno con el botón de abajo.
             </div>
           )}
         </div>
@@ -172,7 +172,7 @@ export function Step3Article({
                 }}
               >
                 Métricas computadas en cliente — el panel se actualiza si
-                editás el markdown.
+                editas el markdown.
               </div>
             </div>
 
@@ -342,7 +342,7 @@ export function Step3Article({
                     lineHeight: 1.4,
                   }}
                 >
-                  Resolvelos en el artículo (editá el markdown) antes de
+                  Resuélvelos en el artículo (edita el markdown) antes de
                   publicar.
                 </p>
               </div>
@@ -377,7 +377,7 @@ export function Step3Article({
               disabled={loading || !markdown || !publishReady}
               title={
                 !publishReady && score.verifyMarkers.length > 0
-                  ? `Resolvé los ${score.verifyMarkers.length} marcadores [VERIFICAR] antes de publicar`
+                  ? `Resuelve los ${score.verifyMarkers.length} marcadores [VERIFICAR] antes de publicar`
                   : undefined
               }
               className="inline-flex items-center gap-2 bg-wine text-white px-5 py-3 rounded-lg font-semibold text-[14.5px] hover:bg-wine-deep transition-colors disabled:bg-grey-100 disabled:text-grey-300 disabled:cursor-not-allowed"

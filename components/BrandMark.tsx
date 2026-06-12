@@ -2,8 +2,9 @@ import Image from "next/image";
 import Link from "next/link";
 
 /**
- * Sistema oficial de marca DTD Cargo v3.0 (mayo 2026).
- * Fuente de verdad: docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html
+ * Sistema oficial de marca DTD Cargo.
+ * Fuente de verdad: el Brand Book vigente del Norte — el de mayor versión en
+ * docs/design/studio/_norte/ (hoy "Brand Book DTD v3.7.html"; el book es UNO solo).
  *
  * Cambios vs v2.x:
  * - Wordmark pasa de "DTDCARGO" (1 palabra, todo mayúsculas) a "DTD Cargo"
@@ -28,7 +29,7 @@ const VARIANT_CONFIG: Record<
   },
   reverse: {
     file: "/brand/dtdcargo-isologo-reverse.png",
-    dtd: "#7F0F1A", // wine sólido (NO wine-soft, según v3.0)
+    dtd: "#7F0F1A", // wine sólido (NO wine-soft, regla del brand book)
     cargo: "#FBFAF7", // cream
   },
   "mono-light": {
@@ -88,15 +89,15 @@ export function BrandMark({
 
   // Wordmark font-size ratio sobre el ancho del isologo. Iteración 4.
   // Histórico ajustando contra feedback visual del founder:
-  //   - 0.34 (commit v3.0 inicial):  too small, more chico que nav links
+  //   - 0.34 (commit inicial del lockup):  too small, more chico que nav links
   //   - 0.55 (commit 52e56e5):       todavía sub-brand
   //   - 1.43 (commit fb121e9):       overshoot, montaba sobre "Rastrear"
   //   - 1.00 (commit af0d2db):       todavía un toque grande
   //   - 0.80 (actual):               punto medio entre 0.55 y 1.00, wordmark
   //     ~22% más grande que el ratio "natural" sin invadir nav links
   //
-  // BRAND-EXCEPTION 2026-05-27 autorizada por founder — diverge de spec
-  // canónica brand book v3.0 (0.31-0.60), pero la 0.80 vuelve cerca del
+  // BRAND-EXCEPTION 2026-05-27 autorizada por founder — diverge de la spec
+  // canónica del brand book (0.31-0.60), pero la 0.80 vuelve cerca del
   // límite superior de la spec sin overshootear.
   const markFontSize = Math.round(size * 0.8);
   // Gap horizontal entre isólogo y wordmark ~18% del alto del isólogo.
@@ -145,7 +146,7 @@ export function BrandMark({
         >
           <span style={{ color: cfg.dtd }}>DTD</span>
           {/* Gap entre palabras vía inline-block (no espacio HTML).
-              Spec brand book v3.0: width: 0.15em. */}
+              Spec del brand book: width: 0.15em. */}
           <span
             aria-hidden
             style={{ display: "inline-block", width: "0.15em" }}

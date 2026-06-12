@@ -258,8 +258,8 @@ export function TarifasClient({
           }
           description={
             filters.q || filters.service !== "all"
-              ? "Probá ajustar los filtros o limpiá la búsqueda."
-              : "Agregá tarifas por ruta para que los Estimados y la Facturación las usen automáticamente."
+              ? "Prueba ajustar los filtros o limpia la búsqueda."
+              : "Agrega tarifas por ruta para que los Estimados y la Facturación las usen automáticamente."
           }
           action={
             !filters.q && filters.service === "all" ? (

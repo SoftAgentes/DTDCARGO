@@ -33,7 +33,7 @@ export async function uploadShipmentDocumentAction(
 ): Promise<DocActionState> {
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
-  if (!userResp.user) return { error: "Sesión expirada. Volvé a entrar." };
+  if (!userResp.user) return { error: "Sesión expirada. Vuelve a entrar." };
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -54,7 +54,7 @@ export async function uploadShipmentDocumentAction(
 
   const raw = formData.get("file");
   if (!(raw instanceof File) || raw.size === 0) {
-    return { fieldErrors: { file: "Elegí un archivo." } };
+    return { fieldErrors: { file: "Elige un archivo." } };
   }
   if (!isAllowedDocMime(raw.type)) {
     return { fieldErrors: { file: "Formato inválido (PDF, JPG, PNG o WebP)." } };

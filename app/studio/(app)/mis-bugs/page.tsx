@@ -55,7 +55,7 @@ export default async function MisBugsPage() {
           }}
         >
           Bugs, mejoras y sugerencias que reportaste. Cuando un admin avance, te
-          avisamos por la campanita. Para reportar uno nuevo usá el botón flotante.
+          avisamos por la campanita. Para reportar uno nuevo usa el botón flotante.
         </p>
       </div>
 
@@ -90,7 +90,7 @@ export default async function MisBugsPage() {
           title="Todavía no reportaste nada"
           description={
             <>
-              Cuando encuentres algo raro, usá el botón rojo flotante abajo a la
+              Cuando encuentres algo raro, usa el botón rojo flotante abajo a la
               derecha para mandarnos un reporte. Nosotros te respondemos.
             </>
           }

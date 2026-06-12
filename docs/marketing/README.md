@@ -48,16 +48,17 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
 - **Alta de cliente web = `/registro`** (form mock + handoff WhatsApp con código `DTD-REG`; un asesor asigna el MARKBOX). Ver `project_public_registro_lead`.
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.
+- **WhatsApp Business — guía de configuración de perfiles corporativos** (logo, datos, web, catálogo de servicios por número): [`whatsapp-business.md`](whatsapp-business.md). 🟡 para llenar.
 
 ### 🎨 Marca → Web
-Brand Book v3.x; kit `/brand`; Brand Book privado `/marca/brand-book`. Fuentes web = Archivo (Nunito/Sora es capa ERP, no toca la web). Ver `feedback_norte_brand_to_web`.
+Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy **v3.7**; el book es UNO solo, los anteriores se borran). Publicado privado en `/marca/brand-book`; hub interno del equipo = `/interno/marca` (el kit público `/brand` se relocalizó ahí). Fuentes web = Archivo (Nunito/Sora es capa ERP, no toca la web). Ver `feedback_norte_brand_to_web`.
 
 ## Material existente (NO mover — solo enlazar)
 
 | Qué | Dónde |
 |---|---|
 | Checklist SEO/Ads (jun-2026) | `docs/pendientes-seo-ads-2026-06-06.md` |
-| Brand Books | `docs/design/brand-book/` · `docs/design/studio/_norte/` |
+| Brand Book (vigente, único) | `docs/design/studio/_norte/` |
 | SEO contenido (geo-páginas, 2026-06-06) | memoria `project_session_2026_06_06_seo_contenido` |
 | SEO post-rename + migración dominio (2026-06-07) | memoria `project_session_2026_06_07` |
 | GA4 setup | memoria `project_google_analytics_ga4` |

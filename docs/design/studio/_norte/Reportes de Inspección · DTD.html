@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<title>DTD-Cargo · Reportes de Inspección</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="erp/tokens.css" rel="stylesheet" />
+<style>
+  body { background: var(--bg-base); padding: 0; margin: 0; }
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #fff; padding: 56px 7vw 48px; }
+  .hero .lk { display:flex; align-items:center; gap:14px; margin-bottom:26px; }
+  .hero .lk .iso { width:44px; height:45px; }
+  .hero .lk .iso img { width:100%; height:100%; object-fit:contain; }
+  .hero .wm2 { font-family: var(--f-brand-display); font-weight:900; letter-spacing:-0.02em; font-size:26px; line-height:1; }
+  .hero .wm2 .d { color:#fff; } .hero .wm2 .s{display:inline-block;width:0.15em;} .hero .wm2 .c { color: var(--wine-soft); }
+  .hero .lk .sub { font:600 9.5px/1.2 var(--f-sans); letter-spacing:0.16em; text-transform:uppercase; color:rgba(255,255,255,0.6); margin-top:4px; }
+  .hero h1 { font:800 38px/1.05 var(--f-display); margin:0 0 12px; letter-spacing:-0.01em; max-width:18ch; }
+  .hero p { font-size:15px; color:rgba(255,255,255,0.8); max-width:60ch; margin:0; }
+  .hero .tag { margin-top:22px; font:700 13px/1.4 var(--f-display); color:var(--wine-soft); }
+  .wrap { padding: 40px 7vw 64px; }
+  .eyebrow { font:700 11px/1 var(--f-sans); letter-spacing:0.14em; text-transform:uppercase; color:var(--wine); margin-bottom:18px; }
+  .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:20px; max-width:980px; }
+  .card { border:1px solid var(--border); border-radius:var(--r-lg); background:var(--bg-surface); padding:24px; box-shadow:var(--shadow-sm); transition:box-shadow .18s, transform .18s, border-color .18s; display:flex; flex-direction:column; gap:10px; }
+  .card:hover { box-shadow:var(--shadow-lg); transform:translateY(-2px); border-color:var(--border-strong); }
+  .card .tagrow { display:flex; align-items:center; gap:8px; }
+  .card .badge { font:700 9.5px/1 var(--f-sans); letter-spacing:0.04em; padding:4px 9px; border-radius:999px; }
+  .badge.ex { color:var(--wine); background:var(--wine-tint); }
+  .badge.tp { color:var(--info); background:var(--info-bg); }
+  .card h2 { font:700 18px/1.2 var(--f-display); margin:0; color:var(--ink); }
+  .card p { font-size:12.5px; color:var(--ink-soft); margin:0; flex:1; }
+  .card .go { font:700 12px/1 var(--f-sans); color:var(--wine); display:inline-flex; align-items:center; gap:6px; margin-top:6px; }
+  .card a.cover { position:absolute; inset:0; }
+  .cardwrap { position:relative; }
+  .sectitle { font:700 13px/1 var(--f-display); color:var(--ink); margin:34px 0 14px; padding-bottom:8px; border-bottom:1px solid var(--border-strong); }
+  .foot { margin-top:48px; font:500 11px/1.6 var(--f-mono); color:var(--ink-soft); }
+  .foot b { color:var(--ink); }
+</style>
+</head>
+<body>
+  <div class="hero">
+    <div class="lk">
+      <span class="iso"><img src="assets/dtdcargo-isologo-reverse.png" alt="DTD" /></span>
+      <div>
+        <div class="wm2"><span class="d">DTD</span><span class="s"></span><span class="c">Cargo</span></div>
+        <div class="sub">Control de Calidad · Origen China</div>
+      </div>
+    </div>
+    <h1>Reportes de Inspección</h1>
+    <p>Formatos de control de calidad con la marca DTD-Cargo: inspección de producto e inspección de fábrica. Dos ejemplos con datos ocultos y dos plantillas vacías para que los proveedores las completen.</p>
+    <div class="tag">Con Confianza, de China a tu puerta.</div>
+  </div>
+
+  <div class="wrap">
+    <div class="sectitle">Ejemplos · con sello «Inspeccionado por DTD»</div>
+    <div class="grid">
+      <div class="cardwrap"><div class="card">
+        <div class="tagrow"><span class="badge ex">Ejemplo · SAMPLE</span></div>
+        <h2>Inspección de Producto</h2>
+        <p>Inspección pre-embarque por muestreo AQL (cepillo de aire caliente #6868). Resultado, desglose de defectos con fotos, pruebas funcionales y estado de producción. Datos del cliente y la fábrica ocultos.</p>
+        <span class="go">Abrir reporte →</span>
+        <a class="cover" href="Inspección de Producto · DTD.html"></a>
+      </div></div>
+      <div class="cardwrap"><div class="card">
+        <div class="tagrow"><span class="badge ex">Ejemplo · SAMPLE</span></div>
+        <h2>Inspección de Fábrica</h2>
+        <p>Auditoría de planta con puntaje 82/100: validez legal, recursos humanos, producto y mercado, maquinaria, requerimientos del cliente y evidencia fotográfica. Nombres y datos sensibles ocultos.</p>
+        <span class="go">Abrir reporte →</span>
+        <a class="cover" href="Inspección de Fábrica · DTD.html"></a>
+      </div></div>
+      <div class="cardwrap"><div class="card">
+        <div class="tagrow"><span class="badge ex">Ejemplo · SAMPLE</span></div>
+        <h2>Inspección de Producto · Baterías</h2>
+        <p>Inspección pre-embarque de producto con batería de litio: pruebas eléctricas, certificaciones UN38.3/MSDS y evidencia fotográfica. Datos sensibles ocultos.</p>
+        <span class="go">Abrir reporte →</span>
+        <a class="cover" href="Inspección de Producto · Baterías · DTD.html"></a>
+      </div></div>
+    </div>
+
+    <div class="sectitle">Plantillas vacías · para proveedores (bilingüe ES/EN/中文)</div>
+    <div class="grid">
+      <div class="cardwrap"><div class="card">
+        <div class="tagrow"><span class="badge tp">Plantilla · vacía</span></div>
+        <h2>Plantilla · Inspección de Producto</h2>
+        <p>Formato en blanco para que el proveedor complete: orden, AQL, categorías, defectos, medidas y fotos. Listo para imprimir o llenar en digital.</p>
+        <span class="go">Abrir plantilla →</span>
+        <a class="cover" href="Plantilla · Inspección de Producto.html"></a>
+      </div></div>
+      <div class="cardwrap"><div class="card">
+        <div class="tagrow"><span class="badge tp">Plantilla · vacía</span></div>
+        <h2>Plantilla · Inspección de Fábrica</h2>
+        <p>Formato en blanco para auditoría de planta: perfil legal, edificio, banca, RRHH, mercado, maquinaria, requerimientos y fotos.</p>
+        <span class="go">Abrir plantilla →</span>
+        <a class="cover" href="Plantilla · Inspección de Fábrica.html"></a>
+      </div></div>
+    </div>
+
+    <div class="foot">
+      <b>DTD&nbsp;Cargo</b> · RIF&nbsp;J-50648869-8 · info@dtdcargo.com · +58&nbsp;241&nbsp;414&nbsp;7886 · Av.&nbsp;Bolívar&nbsp;Norte&nbsp;14, Valencia<br/>
+      Servicios de control de calidad: Inspección Pre-Embarque · Durante Producción · de Fábrica · Supervisión de Carga · Muestra de Producción.
+    </div>
+  </div>
+</body>
+</html>

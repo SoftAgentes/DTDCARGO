@@ -417,7 +417,7 @@ function HomeScreen({
         <MobileMini
           label="Embarques activos"
           value={String(shipmentsCount)}
-          sub="tocá para ver"
+          sub="toca para ver"
           tone="wine"
           onClick={() => setTab("tracking")}
         />
@@ -588,7 +588,7 @@ function TrackingScreen({ shipments }: { shipments: MobileShipment[] }) {
             title={search ? "Sin resultados" : "Sin embarques activos"}
             desc={
               search
-                ? "Probá con otro código o nombre."
+                ? "Prueba con otro código o nombre."
                 : "Los embarques activos aparecerán acá cuando estén en curso."
             }
           />
@@ -1225,8 +1225,8 @@ function ClientsScreen({
             title={search ? "Sin resultados" : "Sin clientes en cartera"}
             desc={
               search
-                ? "Probá con otro nombre o Shipping Mark."
-                : "Agregá clientes desde /studio/clientes en desktop."
+                ? "Prueba con otro nombre o Shipping Mark."
+                : "Agrega clientes desde /studio/clientes en desktop."
             }
           />
         ) : (
@@ -1267,7 +1267,7 @@ function GeoStatusBanner({
     return (
       <BannerLine tone="warning" mb={14}>
         <b>Permiso denegado</b> · sin HQ operativa cargada en tu perfil,
-        ordenando por tier. Habilitá el permiso o cargá tu HQ desde
+        ordenando por tier. Habilita el permiso o carga tu HQ desde
         Preferencias para distancia real.
       </BannerLine>
     );
@@ -1276,7 +1276,7 @@ function GeoStatusBanner({
     return (
       <BannerLine tone="danger" mb={14}>
         <b>Sin geolocalización</b> · {geo.error ?? "browser no soporta"}.
-        Cargá tu HQ operativa en Preferencias o usá fallback tier-based.
+        Carga tu HQ operativa en Preferencias o usa fallback tier-based.
       </BannerLine>
     );
   }
@@ -1284,7 +1284,7 @@ function GeoStatusBanner({
     if (clientsWithGps === 0) {
       return (
         <BannerLine tone="warning" mb={14}>
-          <b>0 clientes con lat/lng cargados</b> · cargá las coordenadas
+          <b>0 clientes con lat/lng cargados</b> · carga las coordenadas
           desde el detalle de cada cliente en /studio para que la
           distancia funcione.
         </BannerLine>
@@ -1560,7 +1560,7 @@ function ExpensesScreen({
       {expenses.length === 0 ? (
         <EmptyMobile
           title="Sin gastos cargados"
-          desc="Tocá el botón + arriba para cargar tu primer gasto."
+          desc="Toca el botón + arriba para cargar tu primer gasto."
         />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>

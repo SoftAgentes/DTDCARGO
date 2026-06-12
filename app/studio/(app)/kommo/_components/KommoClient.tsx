@@ -210,7 +210,7 @@ export function KommoClient({
                 textAlign: "right",
               }}
             >
-              Configurá el subdominio de Kommo para abrir los leads.
+              Configura el subdominio de Kommo para abrir los leads.
             </span>
           )}
         </div>
@@ -316,8 +316,8 @@ export function KommoClient({
             }
             description={
               hasFilters
-                ? "Probá ajustar los filtros o limpiá la búsqueda."
-                : "Corré el sync de Kommo para traer los leads al espejo."
+                ? "Prueba ajustar los filtros o limpia la búsqueda."
+                : "Corre el sync de Kommo para traer los leads al espejo."
             }
           />
         ) : (

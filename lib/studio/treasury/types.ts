@@ -128,7 +128,7 @@ export function validateSupplierInput(input: Partial<SupplierInput>): {
   const errors: SupplierActionState["fieldErrors"] = {};
 
   const name = (input.name ?? "").trim();
-  if (!name) errors.name = "Indicá el nombre del proveedor.";
+  if (!name) errors.name = "Indica el nombre del proveedor.";
 
   const type: SupplierType = VALID_SUPPLIER_TYPES.has(input.type ?? "")
     ? (input.type as SupplierType)
@@ -271,11 +271,11 @@ export function validateBillInput(input: Partial<BillInput>): {
   }
 
   const supplierId = (input.supplierId ?? "").trim();
-  if (!supplierId) errors.supplierId = "Elegí el proveedor.";
+  if (!supplierId) errors.supplierId = "Elige el proveedor.";
 
   const expenseAccountId = (input.expenseAccountId ?? "").trim();
   if (!expenseAccountId) {
-    errors.expenseAccountId = "Elegí la cuenta de costo o gasto a imputar.";
+    errors.expenseAccountId = "Elige la cuenta de costo o gasto a imputar.";
   }
 
   const dateOk = (s: string | null | undefined): boolean =>
@@ -288,7 +288,7 @@ export function validateBillInput(input: Partial<BillInput>): {
 
   const dueDate = (input.dueDate ?? "").trim();
   if (!dueDate) {
-    errors.dueDate = "Indicá la fecha de vencimiento.";
+    errors.dueDate = "Indica la fecha de vencimiento.";
   } else if (!dateOk(dueDate)) {
     errors.dueDate = "Fecha de vencimiento inválida (YYYY-MM-DD).";
   }
@@ -444,7 +444,7 @@ export function validatePaymentInput(
 
   const cashAccountId = (input.cashAccountId ?? "").trim();
   if (!cashAccountId) {
-    errors.cashAccountId = "Elegí la cuenta de caja o banco que paga.";
+    errors.cashAccountId = "Elige la cuenta de caja o banco que paga.";
   }
 
   const method: PaymentMethod = VALID_METHODS.has(input.method ?? "")

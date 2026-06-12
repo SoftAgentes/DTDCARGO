@@ -246,7 +246,7 @@ export function BuilderView({
             marginBottom: 14,
           }}
         >
-          Armá tu reporte
+          Arma tu reporte
         </div>
         <div
           style={{
@@ -383,7 +383,7 @@ export function BuilderView({
           <EmptyState
             eyebrow={src.label}
             title="Sin datos en el período"
-            description="No hay registros de esta fuente en el rango seleccionado. Cambiá el período en el header o cargá datos para construir el reporte."
+            description="No hay registros de esta fuente en el rango seleccionado. Cambia el período en el header o carga datos para construir el reporte."
           />
         ) : filterField && filterVal !== "all" ? (
           <EmptyState
@@ -395,7 +395,7 @@ export function BuilderView({
                 <strong>
                   {filterField.label} = {filterVal}
                 </strong>
-                . Ajustá o quitá el filtro para ver datos.
+                . Ajusta o quita el filtro para ver datos.
               </>
             }
           />

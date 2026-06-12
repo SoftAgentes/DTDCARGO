@@ -287,7 +287,38 @@ export type DocumentRow = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+  // ── Versionado (SDD-0060) ──
+  root_id: string; // cabeza lógica de la cadena (la v1 apunta a sí misma)
+  version_no: number; // correlativo dentro de la cadena (1, 2, 3…)
+  supersedes_id: string | null; // versión anterior directa (null en la v1)
+  is_current: boolean; // marca la versión vigente (a lo sumo 1 por root)
+  version_note: string | null; // nota opcional de la revisión
 };
+
+/**
+ * Fila del HISTORIAL de versiones de una cadena (SDD-0060). Subconjunto de
+ * `DocumentRow` con lo que el drawer/popover de "Historial" muestra por versión
+ * (Slice B): v{n} · nombre · tamaño · estado · nota · quién · cuándo + el
+ * storage_path para el "Ver" (signed-URL del tenant).
+ */
+export type DocumentVersionRow = {
+  id: string;
+  version_no: number;
+  name: string;
+  size_bytes: number | null;
+  content_type: string | null;
+  status: DocumentStatus;
+  version_note: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+  storage_path: string;
+  is_current: boolean;
+};
+
+/** Etiqueta de versión: 1 → "v1", 12 → "v12". Chip neutral discreto (§4.5). */
+export function versionLabel(n: number): string {
+  return `v${n}`;
+}
 
 /**
  * Estado MOSTRADO de un documento. vencido/por-vencer se derivan de valid_until
@@ -385,7 +416,7 @@ export function validateDocumentInput(
 
   const folder = (raw.folder ?? "").trim();
   if (!folder) {
-    errors.folder = "Elegí una carpeta.";
+    errors.folder = "Elige una carpeta.";
   } else if (!FOLDER_SUB_IDS.has(folder)) {
     errors.folder = "Carpeta inexistente.";
   }
@@ -440,6 +471,91 @@ export function validateDocumentInput(
       status,
       validUntil,
       docType,
+    },
+  };
+}
+
+// ── Versionado · input de una NUEVA versión (SDD-0060 Slice B) ───
+/**
+ * Metadatos de una nueva versión. NO incluye entity_type/entity_id/folder: la
+ * versión HEREDA esos de la cabeza de la cadena (lo hace la RPC add_document_version
+ * — §4.4). El form solo edita los campos de la revisión + el archivo.
+ */
+export type VersionInput = {
+  name: string;
+  contentType: string | null;
+  sizeBytes: number | null;
+  status: DocumentStatus;
+  validUntil: string | null;
+  docType: string | null;
+  versionNote: string | null;
+};
+
+/**
+ * Valida y normaliza el input de una nueva versión (la server action de Slice B
+ * la usa antes de subir + llamar la RPC). Reusa las mismas reglas de
+ * validateDocumentInput para los campos compartidos (sin entity/folder, que se
+ * heredan). version_note es opcional (máx. 280).
+ */
+export function validateVersionInput(
+  raw: Partial<VersionInput>,
+): ValidationResult<VersionInput> {
+  const errors: Record<string, string> = {};
+
+  const name = (raw.name ?? "").trim();
+  if (!name) {
+    errors.name = "La versión necesita un nombre.";
+  } else if (name.length > 200) {
+    errors.name = "El nombre es demasiado largo (máx. 200).";
+  }
+
+  const contentType = raw.contentType ?? null;
+  if (contentType && !isAllowedDocumentMime(contentType)) {
+    errors.contentType = "Tipo de archivo no permitido.";
+  }
+
+  const sizeBytes = raw.sizeBytes ?? null;
+  if (sizeBytes != null) {
+    if (!Number.isFinite(sizeBytes) || sizeBytes < 0) {
+      errors.sizeBytes = "Tamaño inválido.";
+    } else if (sizeBytes > DOCUMENT_MAX_BYTES) {
+      errors.sizeBytes = "El archivo supera el límite de 10 MB.";
+    }
+  }
+
+  const status = raw.status ?? "vigente";
+  if (!DOCUMENT_STATUSES.includes(status)) {
+    errors.status = "Estado inválido.";
+  }
+
+  let validUntil: string | null = raw.validUntil ?? null;
+  if (validUntil) {
+    validUntil = validUntil.trim();
+    if (!ISO_DATE_RE.test(validUntil) || Number.isNaN(toDateMs(validUntil))) {
+      errors.validUntil = "Fecha de vencimiento inválida (YYYY-MM-DD).";
+    }
+  }
+
+  const docType = (raw.docType ?? "").trim() || null;
+
+  let versionNote: string | null = (raw.versionNote ?? "").trim() || null;
+  if (versionNote && versionNote.length > 280) {
+    errors.versionNote = "La nota es demasiado larga (máx. 280).";
+    versionNote = versionNote.slice(0, 280);
+  }
+
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+
+  return {
+    ok: true,
+    value: {
+      name,
+      contentType,
+      sizeBytes,
+      status,
+      validUntil,
+      docType,
+      versionNote,
     },
   };
 }

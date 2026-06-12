@@ -313,7 +313,7 @@ export function validateTruckInput(
 ): { input?: TmsTruckInput; fieldErrors?: Record<string, string> } {
   const errors: Record<string, string> = {};
   const plate = input.plate?.trim() ?? "";
-  if (!plate) errors.plate = "Indicá la patente.";
+  if (!plate) errors.plate = "Indica la patente.";
   if (plate.length > 20) errors.plate = "Patente demasiado larga.";
 
   const km = Number(input.km ?? 0);
@@ -357,7 +357,7 @@ export function validateDriverInput(
 ): { input?: TmsDriverInput; fieldErrors?: Record<string, string> } {
   const errors: Record<string, string> = {};
   const name = input.name?.trim() ?? "";
-  if (!name) errors.name = "Indicá el nombre.";
+  if (!name) errors.name = "Indica el nombre.";
   if (name.length > 200) errors.name = "Nombre demasiado largo.";
 
   const cedula = input.cedula?.trim() || null;
@@ -394,7 +394,7 @@ export function validateRouteInput(
 ): { input?: TmsRouteInput; fieldErrors?: Record<string, string> } {
   const errors: Record<string, string> = {};
   const shipment_id = input.shipment_id?.trim() ?? "";
-  if (!shipment_id) errors.shipment_id = "Indicá el shipment.";
+  if (!shipment_id) errors.shipment_id = "Indica el shipment.";
 
   const stops = (input.stops ?? []).map((s) => s.trim()).filter(Boolean);
   if (stops.length < 2) errors.stops = "La ruta requiere al menos 2 paradas (origen + destino).";
@@ -421,8 +421,8 @@ export function validateIncidentInput(
   input: Partial<TmsIncidentInput>,
 ): { input?: TmsIncidentInput; fieldErrors?: Record<string, string> } {
   const errors: Record<string, string> = {};
-  if (!input.truck_id?.trim()) errors.truck_id = "Indicá el camión.";
-  if (!input.incident_type) errors.incident_type = "Indicá el tipo.";
+  if (!input.truck_id?.trim()) errors.truck_id = "Indica el camión.";
+  if (!input.incident_type) errors.incident_type = "Indica el tipo.";
 
   const cost = Number(input.cost_usd ?? 0);
   if (!Number.isFinite(cost) || cost < 0) errors.cost_usd = "Costo debe ser >= 0.";

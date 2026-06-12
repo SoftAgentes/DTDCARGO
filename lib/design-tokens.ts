@@ -1,5 +1,5 @@
 /**
- * DTD Cargo design tokens — fuente: _handoff_preview/dtd-cargo/project/Brand Book DTD.html
+ * DTD Cargo design tokens — fuente: el Brand Book vigente del Norte (docs/design/studio/_norte/)
  * + Brochure_DTD_Cargo_China_Venezuela.docx (contenido editorial).
  *
  * Estos tokens espejan 1:1 las CSS custom properties definidas en globals.css.
@@ -31,7 +31,7 @@ export const DTD = {
   // Crema — color oficial para el isotipo sobre fondos oscuros
   cream: "#E8DCC8",
 
-  // Status colors — Brand Book DTD v2.0
+  // Status colors — brand book
   statusSuccess: "#1F8A5B",
   statusWarning: "#B8893A",
   statusDanger:  "#C2353F",
@@ -47,7 +47,7 @@ export type DTDColor = keyof typeof DTD;
 // ──────────────────────────────────────────────────────────────────
 
 // ──────────────────────────────────────────────────────────────────
-// SOMBRAS OFICIALES — Brand Book DTD v2.0 · colors.json § shadows
+// SOMBRAS OFICIALES — brand book · colors.json § shadows
 // Usar estas variables en CSS/inline styles para consistencia total.
 // ──────────────────────────────────────────────────────────────────
 
@@ -61,34 +61,47 @@ export const SHADOWS = {
 } as const;
 
 /**
- * Sistema de assets de marca · DTD Cargo v3.0 (mayo 2026).
+ * Mono de marca (JetBrains Mono) para valores copiables del sitio público:
+ * Shipping Mark, teléfonos, códigos postales, emails (guía Alibaba + clip de
+ * proveedor). La página que monte el componente debe cargar la variable
+ * `--font-mono` con `jetbrainsMono.variable` de `lib/fonts.ts` (instancia
+ * única — NO redefinir JetBrains_Mono inline: otros weights = faux-bold
+ * silencioso). El fallback va DENTRO del var(): un var() sin resolver
+ * invalida el font-family completo (caería a Archivo heredado en vez de a
+ * ui-monospace).
+ */
+export const FONT_MONO =
+  "var(--font-mono, ui-monospace, SFMono-Regular, Menlo, Monaco), monospace";
+
+/**
+ * Sistema de assets de marca · DTD Cargo.
  *
  * Fuente de verdad oficial:
- *   docs/design/brand-book/v3.0/proyecto/Brand Book DTD v3.0.html
- *   docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md
+ *   docs/design/studio/_norte/Brand Book DTD v3.7.html
+ *   docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md
  *
- * El isólogo oficial v3.0 tiene 4 variantes según el fondo. Usa `<BrandMark>`
+ * El isólogo oficial tiene 4 variantes según el fondo. Usa `<BrandMark>`
  * desde `components/BrandMark.tsx` que abstrae la selección de variante.
  */
 export const BRAND_ASSETS = {
-  /** Isólogo oficial v3.0 — variante PRIMARY (sobre fondo claro). 741×764, transparente. */
+  /** Isólogo oficial — variante PRIMARY (sobre fondo claro). 741×764, transparente. */
   isologoPrimary: "/brand/dtdcargo-isologo-primary.png",
-  /** Isólogo oficial v3.0 — variante REVERSE (sobre fondo navy/oscuro). 741×764, transparente. */
+  /** Isólogo oficial — variante REVERSE (sobre fondo navy/oscuro). 741×764, transparente. */
   isologoReverse: "/brand/dtdcargo-isologo-reverse.png",
-  /** Isólogo oficial v3.0 — variante MONO-LIGHT (cream sólido sobre wine). 741×764. */
+  /** Isólogo oficial — variante MONO-LIGHT (cream sólido sobre wine). 741×764. */
   isologoMonoLight: "/brand/dtdcargo-isologo-mono-light.png",
-  /** Isólogo oficial v3.0 — variante MONO-DARK (navy sólido B&W para imprenta). 741×764. */
+  /** Isólogo oficial — variante MONO-DARK (navy sólido B&W para imprenta). 741×764. */
   isologoMonoDark: "/brand/dtdcargo-isologo-mono-dark.png",
 
   /** Ilustración hero del contenedor (SVG vectorial del handoff original). */
   containerSvg: "/brand/container.svg",
-  /** Favicon PNG 32×32 (regenerado desde isologoPrimary v3.0 vía scripts/generate-favicons.mjs). */
+  /** Favicon PNG 32×32 (regenerado desde isologoPrimary vía scripts/generate-favicons.mjs). */
   favicon32: "/brand/favicon-32.png",
-  /** Favicon PNG 16×16 (regenerado v3.0). */
+  /** Favicon PNG 16×16 (regenerado). */
   favicon16: "/brand/favicon-16.png",
   /** Favicon .ico legacy fallback (sin regenerar — modern browsers usan los PNG primero). */
   favicon: "/brand/favicon.ico",
-  /** Apple touch icon 180×180 (regenerado v3.0 con fondo paper #FBFAF7). */
+  /** Apple touch icon 180×180 (regenerado con fondo paper #FBFAF7). */
   appleIcon: "/brand/apple-touch-icon.png",
   /** OG image (1200×630) — preview en redes sociales / WhatsApp / X. */
   ogImage: "/brand/og-image.png",
@@ -190,7 +203,7 @@ export const CONTACT = {
     phoneRaw: "+582414147886",
     whatsapp: "+58 412 166 8021",
     whatsappRaw: "584121668021",
-    email: "Vzla@dtdcargo.com",
+    email: "info@dtdcargo.com", // unificado al buzón general (vzla@ es alias del mismo correo en Hostinger)
     hours: "Lun a Vie · 9:00 – 17:00 (GMT-4)",
     whatsappHours: "Todos los días · 8:00 – 20:00 (GMT-4)",
   },
@@ -203,12 +216,16 @@ export const CONTACT = {
     postalCode: "322000", // Yiwu, Zhejiang — para schema.org PostalAddress
     /**
      * Dirección oficial en caracteres chinos — para WeChat / proveedores locales.
-     * Fuente: Brand Book DTD v1.0 § 19 (China Supplier Clip).
+     * Fuente: brand book § China Supplier Clip.
      */
-    addressCjk: "义乌市义乌港二期直通仓2栋2号货7--货11",
-    /** Encargado de bodega — 小孙 (Xiao Sun) */
-    contactPersonCjk: "小孙",
-    contactPersonPinyin: "Xiao Sun",
+    addressCjk: "浙江省义乌市义乌港二期直通仓2栋2号 货7-货11",
+    /** Provincia y ciudad en chino — para formularios tipo Alibaba (selectores separados). */
+    provinceCjk: "浙江省", // Zhejiang
+    cityCjk: "义乌市", // Yiwu — en los selectores aparece bajo 金华市 (Jinhua)
+    cityParentCjk: "金华市", // Jinhua (prefectura a la que pertenece Yiwu)
+    /** Encargado de bodega — 林冠 (Lin Guan) */
+    contactPersonCjk: "林冠",
+    contactPersonPinyin: "Lin Guan",
     /** Teléfono local · formato internacional para tel: link */
     phone: "+86 180 0689 1419",
     phoneRaw: "+8618006891419",
@@ -218,7 +235,7 @@ export const CONTACT = {
     hours: "Lun a Sáb · 9:00 – 17:30 (GMT+8)",
     /** Horario en chino — para el clip de WeChat. */
     hoursCjk: "周一至周六上午9点到下午5点半",
-    email: "China@dtdcargo.com",
+    email: "info@dtdcargo.com", // unificado al buzón general (antes China@; canónico en minúsculas)
   },
 } as const;
 
@@ -534,7 +551,7 @@ export const INCOTERMS: Incoterm[] = [
 
 // ──────────────────────────────────────────────────────────────────
 // GLOSARIO — términos de comercio exterior explicados en español.
-// Fuente: Brand Book DTD v1.0 § "Página /glosario" + ampliado con
+// Fuente: brand book § "Página /glosario" + ampliado con
 // términos del catálogo operativo (DTDU, MARKBOX, POD, etc.).
 // ──────────────────────────────────────────────────────────────────
 
@@ -610,11 +627,11 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     id: "prepago",
-    term: "Financiamiento 100%",
+    term: "Pagas al llegar",
     acronym: "Modalidad de pago",
     category: "modalidad",
     body: [
-      "Indica cómo y cuándo pagas a DTD Cargo: te financiamos el viaje completo, así que no adelantas aranceles ni impuestos. La cobranza arranca cuando tu carga llega a Venezuela y pagas antes de recibirla — con la aduana y los impuestos ya incluidos.",
+      "Indica cómo y cuándo pagas a DTD Cargo: pagas cuando tu carga llega a Venezuela, no por adelantado — con la aduana y los impuestos ya incluidos. Pueden aplicar restricciones según el caso.",
     ],
     analogy: {
       label: "Por qué importa",
@@ -754,8 +771,9 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 export const HERO = {
   /**
-   * Kicker = tagline oficial v3.0 (mayo 2026) "Con confianza, de China a tu
-   * puerta.". SDD-0064 (decisión founder 2026-06-08): el tagline pasa de H1 a
+   * Kicker = tagline oficial "Con Confianza, de China a tu puerta." (brand
+   * book vigente; casing C mayúscula autorizado 2026-06-05).
+   * SDD-0064 (decisión founder 2026-06-08): el tagline pasa de H1 a
    * KICKER y el H1 ahora es de ACCIÓN ("Importa desde China hasta tu puerta"),
    * para claridad + SEO + conversión, dejando "DDP" como aclaración secundaria.
    *
@@ -764,7 +782,7 @@ export const HERO = {
    * founder el 2026-06-08 (regla estratégica: "el cliente entiende puerta a
    * puerta; DDP es la metodología técnica que lo hace posible").
    */
-  kicker: { accent: "Con confianza,", rest: "de China a tu puerta." },
+  kicker: { accent: "Con Confianza,", rest: "de China a tu puerta." },
   /** H1 de acción. `accent` se renderiza en wine. */
   title: {
     lead: "Importa desde China",
@@ -994,6 +1012,26 @@ export const PHILOSOPHY = {
   pull: "El boca a boca nos ha mantenido sólidos y constantes en el mercado. No necesitamos tanta bulla cuando los resultados hablan por sí solos.",
   cta: "Deja que nuestra experiencia sea tu mayor tranquilidad.",
 } as const;
+
+// ──────────────────────────────────────────────────────────────────
+// TESTIMONIOS — clientes reales (la sección se auto-oculta si está vacío)
+// ──────────────────────────────────────────────────────────────────
+
+export type Testimonial = {
+  /** La frase del cliente, verbatim. */
+  quote: string;
+  /** Nombre de la persona o del comercio. */
+  name: string;
+  /** Contexto corto: ciudad · rubro. */
+  detail: string;
+  /** Ruta opcional a foto/logo en public/ (ej. "/testimonios/x.jpg"). */
+  photo?: string;
+};
+
+export const TESTIMONIALS: Testimonial[] = [
+  // Sin testimonios reales todavía. El material entregado solo tenía
+  // placeholders de la plantilla (no clientes de DTD). Cargar reales acá.
+];
 
 // ──────────────────────────────────────────────────────────────────
 // COTIZADOR — orígenes y destinos sugeridos

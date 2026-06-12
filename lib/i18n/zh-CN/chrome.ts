@@ -7,7 +7,7 @@
  * convenciones (especialmente labels uppercase en ES → no existen en CN).
  *
  * Las keys deben coincidir 1:1 con `lib/i18n/es-VE/chrome.ts`. Si
- * agregás una key acá sin estar en ES, TypeScript se quejará al usarse.
+ * agregas una key acá sin estar en ES, TypeScript se quejará al usarse.
  */
 
 import type { ChromeDict } from "../es-VE/chrome";

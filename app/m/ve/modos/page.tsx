@@ -16,7 +16,7 @@ import { redirect } from "next/navigation";
 import { getCurrentOperario } from "@/lib/auth/operario-session";
 import { ModosClient } from "./_components/ModosClient";
 
-export const metadata = { title: "Elegí tu modo del día · DTD" };
+export const metadata = { title: "Elige tu modo del día · DTD" };
 export const dynamic = "force-dynamic";
 
 export default async function ModosPage({
@@ -57,7 +57,7 @@ function errorLabel(code: string | undefined): string | null {
     case "no_permiso":
       return "Ese modo no está autorizado para tu cuenta.";
     case "invalid":
-      return "Modo inválido · elegí uno de los disponibles.";
+      return "Modo inválido · elige uno de los disponibles.";
     default:
       return null;
   }

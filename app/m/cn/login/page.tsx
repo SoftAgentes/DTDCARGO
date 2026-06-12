@@ -164,7 +164,7 @@ export default function OperarioLoginPage() {
               margin: 0,
             }}
           >
-            {t(lang, "Ingresá tu PIN de 4 dígitos", "请输入4位PIN密码")}
+            {t(lang, "Ingresa tu PIN de 4 dígitos", "请输入4位PIN密码")}
           </p>
         </div>
 

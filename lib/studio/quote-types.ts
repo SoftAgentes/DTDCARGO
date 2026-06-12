@@ -208,31 +208,31 @@ export function validateQuoteInput(input: Partial<QuoteInput>): {
 } {
   const errors: QuoteActionState["fieldErrors"] = {};
 
-  if (!input.service) errors.service = "Elegí un servicio.";
+  if (!input.service) errors.service = "Elige un servicio.";
   if (!input.client_markbox?.trim())
-    errors.client_markbox = "Indicá el Shipping Mark del cliente.";
+    errors.client_markbox = "Indica el Shipping Mark del cliente.";
   if (!input.client_name?.trim())
-    errors.client_name = "Indicá el nombre del cliente.";
-  if (!input.origin?.trim()) errors.origin = "Indicá el origen.";
+    errors.client_name = "Indica el nombre del cliente.";
+  if (!input.origin?.trim()) errors.origin = "Indica el origen.";
   if (!input.destination?.trim())
-    errors.destination = "Indicá el destino.";
+    errors.destination = "Indica el destino.";
 
   const mode = input.service ? quotePriceMode(input.service) : null;
   if (mode === "per_cbm") {
     const cbm = Number(input.cbm);
     if (!Number.isFinite(cbm) || cbm <= 0)
-      errors.cbm = "Indicá un CBM positivo.";
+      errors.cbm = "Indica un CBM positivo.";
     const rate = Number(input.rate_per_cbm);
     if (!Number.isFinite(rate) || rate <= 0)
-      errors.rate_per_cbm = "Indicá una tarifa por CBM positiva.";
+      errors.rate_per_cbm = "Indica una tarifa por CBM positiva.";
   } else if (mode === "flat_rate") {
     const flat = Number(input.flat_rate);
     if (!Number.isFinite(flat) || flat <= 0)
-      errors.flat_rate = "Indicá una tarifa flat positiva.";
+      errors.flat_rate = "Indica una tarifa flat positiva.";
   }
 
   if (!input.valid_until || !/^\d{4}-\d{2}-\d{2}$/.test(input.valid_until)) {
-    errors.valid_until = "Indicá la fecha de vigencia (YYYY-MM-DD).";
+    errors.valid_until = "Indica la fecha de vigencia (YYYY-MM-DD).";
   }
 
   if (Object.keys(errors).length > 0) {

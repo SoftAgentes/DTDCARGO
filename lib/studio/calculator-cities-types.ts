@@ -63,17 +63,17 @@ export function validateCityInput(input: Partial<CalculatorCityInput>): {
   const errors: CalculatorCityActionState["fieldErrors"] = {};
 
   const label = (input.label ?? "").trim();
-  if (!label) errors.label = "Indicá el nombre de la ciudad.";
+  if (!label) errors.label = "Indica el nombre de la ciudad.";
 
   // El slug puede venir del form o derivarse del label. Si no hay ninguno → error.
   const slug = (input.slug ?? "").trim() || slugify(label);
-  if (!slug) errors.slug = "Indicá un identificador (slug) válido.";
+  if (!slug) errors.slug = "Indica un identificador (slug) válido.";
   else if (!/^[a-z0-9-]+$/.test(slug))
     errors.slug = "El slug solo admite minúsculas, números y guiones.";
 
   const km = input.km;
   if (km == null || !Number.isFinite(km)) {
-    errors.km = "Indicá los km desde Valencia (0 si es casco).";
+    errors.km = "Indica los km desde Valencia (0 si es casco).";
   } else if (km < 0) {
     errors.km = "Los km no pueden ser negativos.";
   }

@@ -119,8 +119,8 @@ export function NavieraClient({
               maxWidth: "64ch",
             }}
           >
-            Agrupá carga suelta LCL de China en contenedores FCL, medí la
-            utilización CBM/peso, cerrá el contenedor y atalo a un zarpe y su
+            Agrupa carga suelta LCL de China en contenedores FCL, mide la
+            utilización CBM/peso, cierra el contenedor y átalo a un zarpe y su
             reserva de espacio.
           </p>
         </div>
@@ -332,7 +332,7 @@ function SailingsTab({
       <EmptyState
         eyebrow="Sin itinerarios"
         title="Todavía no hay zarpes cargados."
-        description="Cargá un itinerario (manual en V1) con la naviera, la ruta CN→VE y las fechas de cut-off / ETD / ETA."
+        description="Carga un itinerario (manual en V1) con la naviera, la ruta CN→VE y las fechas de cut-off / ETD / ETA."
         action={
           <button
             type="button"
@@ -475,7 +475,7 @@ function ConsolidationTab({
       <EmptyState
         eyebrow="Sin contenedores"
         title="Todavía no hay contenedores de consolidación."
-        description="Creá un contenedor (DTD-CONSOL-NNNN), elegí el tipo y empezá a sumarle carga suelta de China."
+        description="Crea un contenedor (DTD-CONSOL-NNNN), elige el tipo y empieza a sumarle carga suelta de China."
         action={
           <button
             type="button"
@@ -710,7 +710,7 @@ function ContainerDetail({
               color: "var(--ink)",
             }}
           >
-            Quedan <strong>{st.freeCbm.toFixed(1)} CBM</strong> libres · podés
+            Quedan <strong>{st.freeCbm.toFixed(1)} CBM</strong> libres · puedes
             sumar carga suelta de CN para optimizar el flete antes del cut-off.
           </div>
         )}
@@ -737,7 +737,7 @@ function ContainerDetail({
               color: "var(--ink-mute)",
             }}
           >
-            Sin carga asignada todavía. Usá “+ Asignar carga”.
+            Sin carga asignada todavía. Usa “+ Asignar carga”.
           </div>
         ) : (
           <>
@@ -1047,7 +1047,7 @@ function BookingsTab({
       <EmptyState
         eyebrow="Sin reservas"
         title="Todavía no hay reservas de espacio."
-        description="Creá una reserva (BKG-YYYY-NNNN) con la naviera y el itinerario; capturá el BL marítimo cuando la naviera lo emita."
+        description="Crea una reserva (BKG-YYYY-NNNN) con la naviera y el itinerario; captura el BL marítimo cuando la naviera lo emita."
         action={
           <button
             type="button"

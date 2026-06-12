@@ -1,92 +1,44 @@
 # `docs/design/` · Índice maestro de diseño y marca
 
-> **Carpeta predeterminada para TODO lo relacionado con branding, diseño visual, mockups, handoffs y assets de marca.** Si llega un entregable visual nuevo desde un diseñador, agencia o Claude Design, esta es la única ubicación válida.
+> **Carpeta predeterminada para TODO lo relacionado con branding, diseño visual, mockups, handoffs y assets de marca.** Si llega un entregable visual nuevo desde un diseñador, agencia o Cloud Design, esta es la única ubicación válida.
 
 ---
 
-## ⚠️ Estado (reorg ISO · 2026-05-29)
+## ⚠️ Estado (purga brand v3.7 · 2026-06-10)
 
-- **Versión activa del Studio: `v1.7-claude-design`.** Anteriores: `_archivo-*` (no consultar para decisiones nuevas).
-- **Reglas de ubicación de archivos → [`/CLAUDE.md`](../../CLAUDE.md) §"Organización · ISO 9001 §7.5"** (fuente única; este README es índice de *materiales*, no de reglas).
-- Backups ZIP de `handoffs-archive/` están **fuera de git** (gitignored); ver su README.
-- La "Estructura actual" de más abajo quedó desactualizada (menciona v1.3.1) — refresh completo pendiente para una sesión de diseño dedicada.
-
-## Regla de organización (vigente desde 2026-05-24)
-
-A partir de hoy:
-
-1. **TODO handoff visual nuevo** → `docs/design/<producto>/<version-origen>/` con README.md adentro explicando origen, fecha y alcance.
-2. **Asset de marca** (logo, isotipo, favicon, OG image) → `docs/design/brand-assets/<categoría>/`.
-3. **Rollback visual** → `docs/design/rollbacks/YYYY-MM-DD-<feature>/`.
-4. **Documentación de tokens** (colores, fonts, spacing extraídos del handoff) → `docs/design/tokens/`.
-
-**NO usar** `_handoff_preview/` ni `BANDBOOK V1/` para nada nuevo (quedan como legacy histórico, no se borran para no romper links pero no se agregan más archivos ahí).
-
----
+- **Lo único vigente es el Norte:** [`studio/_norte/`](studio/_norte/) (protocolo NORTE-SYNC; bitácora en [`studio/NORTE-CHANGELOG.md`](studio/NORTE-CHANGELOG.md)).
+- **El Brand Book vigente es UNO solo** — el de mayor versión en `_norte/` (hoy **`Brand Book DTD v3.7.html`**). Al llegar uno nuevo: se reemplaza y **se borra el anterior** (acá y en `public/marca/`). Publicado privado: `/marca/brand-book` · hub interno del equipo: `/interno/marca`.
+- **Las carpetas históricas de diseño se eliminaron del working tree el 2026-06-10** (decisión founder; la historia completa vive en git — lista exacta en la entrada 2026-06-10 de [`studio/NORTE-CHANGELOG.md`](studio/NORTE-CHANGELOG.md)). Para consultarlas: `git log --oneline -- "docs/design/<carpeta>"` y checkout del commit.
+- **Anti-drift:** `/radar` corre el **gate de marca** (Regla 0.5) — cero referencias a books/carpetas pre-v3.7 en archivos vivos, casing "Con Confianza", terminología Shipping Mark, y book publicado == book del Norte.
 
 ## Estructura actual
 
 ```
 docs/design/
-├── README.md                              ← este archivo
-├── module-map.md                          ← mapa de módulos del Studio v1
-├── studio/                                ← Producto 1: ERP Studio interno
-│   ├── v1-original/                       ← (pendiente migrar v1-studio/)
-│   └── v1.3.1-claude-design/              ← entrega Claude Design 2026-05-24
-│       ├── README.md
-│       ├── PROMPT-CLAUDE-CODE.md          ← guía de operación del sandbox
-│       ├── proyecto/                      ← v1.3.1 actual (119 archivos)
-│       └── _archivo-v1.3/                 ← v1.3 anterior, para diff histórico
-├── v1-studio/                             ← (legacy: handoff inicial del Studio, migrar después)
-└── handoffs-archive/                      ← backups ZIP originales
-    ├── DTD-Cargo-v1.3.1.zip
-    └── DTD-Cargo-handoff-v1.3.1.zip
+├── README.md                  ← este archivo
+└── studio/
+    ├── _norte/                ← ÚNICO material de diseño vigente (Cloud Design · NORTE-SYNC)
+    ├── NORTE-CHANGELOG.md     ← bitácora humana de las cargas del Norte
+    └── bug-reporter-v1.4.1/   ← handoff del módulo Bug Reporter (asset de la spec SDD-0036; registro, no marca)
 ```
 
-### Carpetas futuras (cuando aparezcan entregables)
+## Reglas de organización
 
-```
-docs/design/
-├── studio/<version-nueva>/                ← próximas iteraciones del Studio
-├── sitio-publico/                         ← Producto 2: dtdcargo.com (migrar _handoff_preview/dtd-cargo)
-├── mobile/                                ← Producto 3: app móvil nativa (futuro)
-├── micro-sites/                           ← landings standalone (migrar _handoff_preview/transporte-cbm-china-venezuela)
-├── brand-assets/                          ← logos, isotipos, favicons (transversal)
-├── tokens/                                ← referencia colors.json + typography.json
-└── rollbacks/                             ← cambios visuales revertidos
-```
-
----
+1. **Material de Cloud Design** → SIEMPRE vía protocolo NORTE-SYNC a `studio/_norte/` (mirror del ZIP + exclusiones + entrada en `NORTE-CHANGELOG.md`). No crear carpetas por versión.
+2. **Entregable visual de OTRO origen** (agencia, freelance) → `docs/design/<producto>/<vM.m.p-origen>/` con README adentro (origen, fecha, alcance).
+3. **Assets de producción del sitio** → `public/brand/` (ver su README; copias derivadas del book).
+4. **Adjuntos de docs** → `docs/.../assets/` si <1 MB (regla ISO §7.5 en `docs/README.md`).
 
 ## Convención de nombres
 
 - **Productos**: `studio/`, `sitio-publico/`, `mobile/`, `micro-sites/`
-- **Versiones**: `vM.m.p-<origen>/` (ej: `v1.3.1-claude-design`, `v2.0-figma`, `v1.0-agencia-x`)
-- **Rollbacks**: `YYYY-MM-DD-<slug-feature>/`
-- **Sub-carpeta del proyecto descomprimido**: siempre se llama `proyecto/` (consistencia entre handoffs)
-- **Sub-carpetas archivadas** (versiones anteriores conservadas): prefijo `_archivo-` (ej: `_archivo-v1.3/`)
-
----
-
-## Material legacy (NO mover sin sesión dedicada)
-
-Estos paths existen desde antes de la regla, los respetamos por compatibilidad pero NO se les agrega nada nuevo:
-
-- `_handoff_preview/dtd-cargo/project/` — handoff inicial del sitio público (Brand Book v1, Glosario DDP mockup, WhatsApp FAB mockup)
-- `_handoff_preview/transporte-cbm-china-venezuela/` — mini-sitio CBM standalone v1.6
-- `_handoff_preview/_rollback-2026-05-21-fab/` — rollback fechado del WhatsApp FAB
-- `_handoff_preview/tarifas-terrestres/` — referencias de tarifas (PDFs)
-- `BANDBOOK V1/` — Brand Book v1 archivado
-- `docs/design/v1-studio/source/` — handoff oficial inicial del Studio v1 (módulos JSX + Brand Book v2.4 + portales/operarios HTML)
-
-**Migración futura**: en sesión dedicada mover todos a `docs/design/<producto>/<version>/` con READMEs de redirect en los paths viejos.
-
----
+- **Versiones** (solo para material fuera del Norte): `vM.m.p-<origen>/`
+- **Archivado**: ya NO se archivan copias en el working tree — se borran y se consultan por git (`git log -- <path>`).
 
 ## Relación con BRAND.md (raíz)
 
-`BRAND.md` (en la raíz del repo) sigue siendo la **fuente única de las reglas de marca** (colores prohibidos, tipografías permitidas, tonos de copy, anti AI slop). Este `docs/design/README.md` es el índice de **dónde viven los materiales** que aplican esas reglas.
+`BRAND.md` (en la raíz del repo) sigue siendo la **fuente única de las reglas de marca** (colores prohibidos, tipografías permitidas, tonos de copy, anti AI slop) — re-sincronizado con el CLAUDE.md del Norte en cada carga. Este README es el índice de **dónde viven los materiales**.
 
-- Reglas de marca → `BRAND.md`
-- Materiales visuales → `docs/design/`
-- Tokens CSS de producción → `app/studio/tokens.css`
+- Reglas de marca → `BRAND.md` (espejo del `_norte/CLAUDE.md`)
+- Materiales visuales → `docs/design/studio/_norte/`
+- Tokens CSS de producción → `app/globals.css` (web) · `app/studio/tokens.css` (Studio)

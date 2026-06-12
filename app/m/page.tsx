@@ -80,7 +80,7 @@ export default function OperarioLauncherPage() {
                 letterSpacing: "-0.025em",
               }}
             >
-              ¿Dónde trabajás?
+              ¿Dónde trabajas?
             </h1>
             <p
               style={{
@@ -89,13 +89,13 @@ export default function OperarioLauncherPage() {
                 margin: 0,
               }}
             >
-              Elegí tu operación para entrar
+              Elige tu operación para entrar
             </p>
           </div>
 
           {/* Opciones */}
           <nav
-            aria-label="Elegí tu operación"
+            aria-label="Elige tu operación"
             style={{ display: "flex", flexDirection: "column", gap: 14 }}
           >
             <LauncherCard

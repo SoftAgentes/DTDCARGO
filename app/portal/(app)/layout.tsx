@@ -1,19 +1,12 @@
 import { redirect } from "next/navigation";
-import { JetBrains_Mono } from "next/font/google";
+import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import { PortalHeader } from "../_components/PortalHeader";
 
-/**
- * JetBrains Mono — cargada scoped al área autenticada del portal (codes:
- * MARKBOX, tracking). El layout público no la carga; la aplicamos al wrapper.
- */
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
+// JetBrains Mono scoped al área autenticada del portal (codes: MARKBOX,
+// tracking): el wrapper monta --font-jetbrains-mono con la instancia única
+// de lib/fonts.ts. El layout público no la carga.
 
 /**
  * Layout autenticado del portal (SDD-0042 Fase 1b).
@@ -32,7 +25,7 @@ export default async function PortalAppLayout({
   if (!client) redirect("/portal/login");
 
   return (
-    <div className={`${jetbrainsMono.variable} min-h-screen bg-paper flex flex-col`}>
+    <div className={`${jetbrainsMonoUi.variable} min-h-screen bg-paper flex flex-col`}>
       <PortalHeader markbox={client.markbox} name={client.name} />
       <main className="flex-1 wrap w-full py-10 lg:py-14">{children}</main>
     </div>

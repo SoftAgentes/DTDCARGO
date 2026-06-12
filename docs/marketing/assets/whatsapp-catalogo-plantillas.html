@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTD Cargo · Plantillas catálogo WhatsApp (1080×1080)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --navy:#0F1E3D; --navy-2:#1F3055; --wine:#7F0F1A; --wine-soft:#C2747F;
+    --cream:#FBFAF7; --cream-2:#F2F0EC; --gold:#B8893A; --ink-soft:#A8B0C4;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Archivo',system-ui,sans-serif;background:var(--cream-2);color:var(--navy);padding:24px}
+  h1{font-family:'Archivo Black',sans-serif;font-size:22px;margin-bottom:4px}
+  .lead{color:#555;margin-bottom:6px;max-width:760px;font-size:14px;line-height:1.5}
+  .how{background:#fff;border:1px solid #E8E6E2;border-radius:10px;padding:14px 18px;margin:14px 0 26px;max-width:760px;font-size:14px;line-height:1.6}
+  .how b{color:var(--wine)}
+  .grid{display:flex;flex-wrap:wrap;gap:28px}
+  .item{width:360px}
+  .controls{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .controls label{font-size:12px;font-weight:600;color:#444}
+  .controls input[type=text]{font-family:'Archivo';font-size:13px;padding:6px 8px;border:1px solid #ccc;border-radius:6px;width:100%}
+  .controls .row{display:flex;gap:6px;align-items:center}
+  button{font-family:'Archivo';font-weight:600;font-size:13px;background:var(--navy);color:#fff;border:0;border-radius:7px;padding:8px 12px;cursor:pointer}
+  button:hover{background:var(--navy-2)}
+  button.alt{background:#fff;color:var(--navy);border:1px solid #ccc}
+  .toolbar{margin:8px 0 24px}
+
+  /* ── TARJETA 1080×1080 escalada a 360 (factor .3333) ── */
+  .card{
+    width:1080px;height:1080px;position:relative;overflow:hidden;
+    transform:scale(.33333);transform-origin:top left;
+    background:var(--navy);
+  }
+  .card-wrap{width:360px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
+  /* zona foto */
+  .photo{position:absolute;inset:0 0 360px 0;height:720px;background:var(--navy-2);
+    background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center}
+  .photo .ph{color:var(--ink-soft);text-align:center;padding:0 70px;display:flex;flex-direction:column;gap:20px;align-items:center}
+  .photo .ph .ph-cam{font-size:30px;opacity:.7}
+  .photo .ph .ph-lead{font-size:26px;font-weight:700;color:var(--wine-soft);letter-spacing:.5px;text-transform:uppercase}
+  .photo .ph .ph-desc{font-size:36px;font-weight:600;color:#D8DEEC;line-height:1.35}
+  .photo .ph .ph-repo{font-size:24px;color:var(--ink-soft);line-height:1.4;background:rgba(255,255,255,.06);padding:14px 22px;border-radius:10px}
+  .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,30,61,0) 55%,rgba(15,30,61,.55) 100%)}
+  /* franja inferior navy — enfocada en el SERVICIO (sin logo/marca; la marca va en la metadata) */
+  .bar{position:absolute;left:0;right:0;bottom:0;height:360px;background:var(--navy);
+    display:flex;flex-direction:column;justify-content:center;gap:18px;padding:0 72px}
+  .bar .txt{display:flex;flex-direction:column;gap:16px}
+  .bar .title{font-family:'Archivo Black',sans-serif;color:var(--cream);font-size:64px;line-height:1.04}
+  .bar .key{color:var(--wine-soft);font-size:34px;font-weight:600;line-height:1.3}
+  /* badge principal */
+  .badge{position:absolute;top:44px;left:44px;background:var(--wine);color:#fff;
+    font-weight:700;font-size:28px;padding:12px 26px;border-radius:999px;letter-spacing:.5px}
+  /* badge próximamente */
+  .badge.soon{background:var(--gold)}
+  /* pill de la web: justo encima de la franja navy (bar=360px), dentro de la zona foto */
+  .web{position:absolute;bottom:380px;right:0;background:var(--wine);color:#fff;
+    font-weight:600;font-size:26px;padding:12px 30px 12px 26px;border-radius:8px 0 0 8px}
+</style>
+</head>
+<body>
+  <h1>Plantillas del catálogo de WhatsApp — DTD Cargo</h1>
+  <p class="lead">8 servicios + portada, formato cuadrado <b>1080×1080</b>, enfocados en el <b>servicio</b>: foto arriba + franja navy con el título del servicio y un dato simple (sin logo — la marca va en la metadata del PNG: copyright + dtdcargo.com). Mete la foto real de cada servicio y descarga el PNG listo para el catálogo de WhatsApp Business.</p>
+  <div class="how">
+    <b>Cómo usar:</b><br>
+    1. En cada tarjeta toca <b>“Cargar foto”</b> y elige una foto real (bodega Yiwu, contenedor, equipo…).<br>
+    2. Si quieres, edita el <b>título</b> y el <b>dato clave</b>.<br>
+    3. Toca <b>“Descargar PNG”</b> → se guarda a 1080×1080, listo para WhatsApp.<br>
+    <i>Tip:</i> usa fotos nítidas y horizontales; la franja de abajo siempre queda limpia para el texto.
+  </div>
+  <div class="toolbar"><button onclick="downloadAll()">⬇️ Descargar TODAS</button></div>
+  <div class="grid" id="grid"></div>
+
+<script>
+const LOGO = "logo-reverse.png";
+const WEB = "dtdcargo.com/calculadora";
+const CARDS = [
+  {id:"00-portada", title:"China → Venezuela",    key:"Importación puerta a puerta · todo incluido", badge:"", web:false,
+    hint:"Equipo cargando un contenedor (foto horizontal, mucha gente/movimiento). La más dinámica y representativa.", repo:"Banco SEO: equipo-cargando-contenedor"},
+  {id:"01-ddp",     title:"Puerta a puerta DDP",  key:"Todo incluido · pagas al llegar · 60–90 días", badge:"PRINCIPAL", web:true,
+    hint:"Equipo cargando contenedor o una caja llegando a la puerta del cliente. Que se vea el servicio completo.", repo:"Banco SEO: equipo-cargando-contenedor"},
+  {id:"02-lcl",     title:"LCL Consolidado",      key:"Carga compartida · con tu BL propio", badge:"", web:true,
+    hint:"Pallets/cajas con la etiqueta de shipping mark visible (DTD-J004…). Carga de varios clientes junta.", repo:"Banco SEO: shipping-mark-dtd-pallets"},
+  {id:"03-fcl-bod", title:"FCL en Bodega",        key:"Contenedor completo · 7 días gratis · 40–55 días", badge:"", web:true,
+    hint:"Contenedor abierto llenándose de cajas en la bodega. Que se vea el volumen del contenedor completo.", repo:"Banco SEO: carga-contenedor-precinto"},
+  {id:"04-fcl-fab", title:"FCL Directo Fábrica",  key:"Directo de fábrica · carga segura", badge:"", web:true,
+    hint:"Primer plano del precinto/sello DoorTuDoor en la puerta del contenedor. Transmite seguridad.", repo:"Banco SEO: precinto-doortudoor-contenedor"},
+  {id:"05-aduana",  title:"Tránsito de Aduana",   key:"Nacionalización · 5–6 días hábiles", badge:"", web:true,
+    hint:"Contenedor en puerto/grúa, o el precinto sellado. Ideal: documentos de aduana o contenedor en patio.", repo:"Falta foto · aprox.: carga-contenedor-precinto"},
+  {id:"06-inspec",  title:"Inspección de Calidad",key:"En fábrica, antes de embarcar", badge:"", web:true,
+    hint:"Operario revisando el producto en la fábrica (con checklist, midiendo o contando). Plano cercano.", repo:"⚠️ FALTA — pedir al equipo China"},
+  {id:"07-compra",  title:"Compra Asistida",      key:"Tu depto. de compras en China", badge:"", web:true,
+    hint:"Mercado mayorista de Yiwu o asesor negociando con un proveedor. Que se vea el sourcing en China.", repo:"⚠️ FALTA — pedir al equipo China"},
+  {id:"08-terrest", title:"Transporte Terrestre", key:"Nacional dentro de Venezuela", badge:"PRÓXIMAMENTE", web:false,
+    hint:"Gandola o camión de carga en carretera venezolana. Transporte interno entre ciudades.", repo:"⚠️ FALTA — foto de camión"},
+];
+
+const grid = document.getElementById('grid');
+CARDS.forEach((c,i)=>{
+  const isSoon = c.badge==="PRÓXIMAMENTE";
+  const el = document.createElement('div');
+  el.className='item';
+  el.innerHTML = `
+    <div class="card-wrap">
+      <div class="card" id="card-${i}">
+        <div class="photo" id="photo-${i}"><div class="ph">
+          <div class="ph-cam">📷 Cargar foto</div>
+          <div class="ph-lead">Foto recomendada</div>
+          <div class="ph-desc">${c.hint||'Foto del servicio'}</div>
+          ${c.repo?`<div class="ph-repo">${c.repo}</div>`:''}
+        </div></div>
+        ${c.badge?`<div class="badge ${isSoon?'soon':''}">${c.badge}</div>`:''}
+        ${c.web?`<div class="web">${WEB}</div>`:''}
+        <div class="bar">
+          <div class="txt">
+            <div class="title" id="title-${i}">${c.title}</div>
+            <div class="key" id="key-${i}">${c.key}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="controls">
+      <div class="row"><button class="alt" onclick="document.getElementById('file-${i}').click()">📷 Cargar foto</button>
+      <button onclick="dl(${i},'${c.id}')">⬇️ Descargar PNG</button></div>
+      <input type="file" id="file-${i}" accept="image/*" style="display:none" onchange="setPhoto(${i},this)">
+      <label>Título</label><input type="text" value="${c.title}" oninput="document.getElementById('title-${i}').textContent=this.value">
+      <label>Dato clave</label><input type="text" value="${c.key}" oninput="document.getElementById('key-${i}').textContent=this.value">
+    </div>`;
+  grid.appendChild(el);
+});
+
+function setPhoto(i,input){
+  const f=input.files[0]; if(!f)return;
+  const url=URL.createObjectURL(f);
+  const p=document.getElementById('photo-'+i);
+  p.style.backgroundImage=`url(${url})`; p.querySelector('.ph').style.display='none';
+}
+// ── Metadata PNG: sello de procedencia/copyright (chunks tEXt) ──
+// Latin-1 (lo que exige tEXt); todos nuestros textos caben (á, ó, ©, ·, → no entra
+// en Latin-1 → se reemplaza por "->" al vuelo para no romper el chunk).
+const _L1 = s => Uint8Array.from(
+  Array.from(String(s).replace(/→/g,'->').replace(/[—–]/g,'-')),  // flechas y guiones largos → ASCII
+  c => { const code=c.charCodeAt(0); return code>0xFF ? 0x2D : code; }  // cualquier resto fuera de Latin-1 → '-'
+);
+const _CRC = (()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function _crc32(b,s,e){let c=0xFFFFFFFF;for(let i=s;i<e;i++)c=_CRC[(c^b[i])&0xFF]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+function _tEXt(keyword,text){
+  const kw=_L1(keyword), tx=_L1(text), len=kw.length+1+tx.length;
+  const c=new Uint8Array(12+len), dv=new DataView(c.buffer);
+  dv.setUint32(0,len); c.set([0x74,0x45,0x58,0x74],4);   // 'tEXt'
+  c.set(kw,8); c[8+kw.length]=0; c.set(tx,9+kw.length);
+  dv.setUint32(8+len,_crc32(c,4,8+len)); return c;
+}
+function addPngText(png,entries){
+  // los tEXt van después del IHDR (offset fijo 33) y antes del IDAT
+  const chunks=entries.map(([k,v])=>_tEXt(k,v));
+  const extra=chunks.reduce((s,c)=>s+c.length,0);
+  const out=new Uint8Array(png.length+extra);
+  out.set(png.subarray(0,33),0); let off=33;
+  for(const c of chunks){ out.set(c,off); off+=c.length; }
+  out.set(png.subarray(33),off); return out;
+}
+
+async function dl(i,name){
+  const node=document.getElementById('card-'+i);
+  const canvas=await html2canvas(node,{
+    width:1080,height:1080,scale:1,backgroundColor:'#0F1E3D',useCORS:true,
+    // La tarjeta se muestra a 1/3 con transform:scale(.333) solo para preview.
+    // Al capturar hay que renderizarla a tamaño real (1080) o el navy "se expande".
+    // Lo neutralizamos en el CLON (no toca la vista en pantalla).
+    onclone:(doc)=>{
+      const c=doc.getElementById('card-'+i);
+      if(c){ c.style.transform='none'; if(c.parentElement){ c.parentElement.style.overflow='visible'; } }
+    }
+  });
+  // PNG base → inyectar metadata de marca (invisible; provenance + copyright + URL)
+  const bin=atob(canvas.toDataURL('image/png').split(',')[1]);
+  let png=new Uint8Array(bin.length);
+  for(let k=0;k<bin.length;k++) png[k]=bin.charCodeAt(k);
+  const card=CARDS[i];
+  png=addPngText(png,[
+    ['Title',       card.title],
+    ['Description', card.title+' - '+card.key+' | DTD Cargo, logistica puerta a puerta China-Venezuela'],
+    ['Author',      'DTD Cargo'],
+    ['Copyright',   '(c) 2026 DTD Cargo - dtdcargo.com'],
+    ['Source',      'https://dtdcargo.com'],
+    ['Software',    'DTD Cargo · generador de catalogo WhatsApp'],
+  ]);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([png],{type:'image/png'}));
+  a.download=`dtd-wa-${name}.png`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+}
+async function downloadAll(){
+  for(let i=0;i<CARDS.length;i++){ await dl(i,CARDS[i].id); await new Promise(r=>setTimeout(r,400)); }
+}
+</script>
+</body>
+</html>

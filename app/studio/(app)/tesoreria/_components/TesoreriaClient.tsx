@@ -112,9 +112,9 @@ export function TesoreriaClient({
               maxWidth: "62ch",
             }}
           >
-            Cola de pagos sobre las cuentas por pagar a proveedores. Causá la CxP
-            (con asiento), registrá la orden de pago (que baja el saldo y asienta
-            la salida de caja) y seguí las remesas a China.
+            Cola de pagos sobre las cuentas por pagar a proveedores. Causa la CxP
+            (con asiento), registra la orden de pago (que baja el saldo y asienta
+            la salida de caja) y sigue las remesas a China.
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
@@ -125,7 +125,7 @@ export function TesoreriaClient({
             disabled={suppliers.length === 0}
             title={
               suppliers.length === 0
-                ? "Primero agregá un proveedor en el tab Proveedores"
+                ? "Primero agrega un proveedor en el tab Proveedores"
                 : undefined
             }
           >
@@ -325,7 +325,7 @@ function PayablesTab({
           description={
             payables.length === 0
               ? "Cuando crees una CxP con saldo aparecerá acá para gestionar el pago."
-              : "Probá cambiar el filtro de estado."
+              : "Prueba cambiar el filtro de estado."
           }
         />
       ) : (
@@ -524,7 +524,7 @@ function PaymentsTab({ payments }: { payments: SupplierPayment[] }) {
         <EmptyState
           eyebrow="Sin pagos"
           title="Todavía no se registraron órdenes de pago."
-          description="Registrá un pago desde una CxP (tab Cuentas por pagar) para que aparezca acá."
+          description="Registra un pago desde una CxP (tab Cuentas por pagar) para que aparezca acá."
         />
       ) : (
         <div
@@ -731,8 +731,8 @@ function SuppliersTab({
           }
           description={
             suppliers.length === 0
-              ? "Agregá tu primer proveedor (naviera, agente, proveedor CN) para empezar a cargar cuentas por pagar."
-              : "Probá cambiar el filtro de tipo."
+              ? "Agrega tu primer proveedor (naviera, agente, proveedor CN) para empezar a cargar cuentas por pagar."
+              : "Prueba cambiar el filtro de tipo."
           }
           action={
             suppliers.length === 0 ? (

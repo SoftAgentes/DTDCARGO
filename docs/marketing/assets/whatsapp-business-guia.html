@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DTD Cargo · Guía para configurar el WhatsApp Business</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Black&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0F1E3D; --navy-2:#1F3055; --wine:#7F0F1A; --wine-soft:#C2747F;
+    --cream:#FBFAF7; --cream-2:#F2F0EC; --gold:#B8893A; --ink:#2A3450;
+    --ink-soft:#6E7790; --ink-soft-dark:#9BA3BC; /* gris claro para texto sobre navy (AA) */
+    --line:#E4E2DD; --ok:#1E7D4F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Archivo',system-ui,sans-serif;background:var(--cream-2);color:var(--ink);
+    padding:28px 22px 80px;line-height:1.5}
+  .wrap{max-width:880px;margin:0 auto}
+  h1{font-family:'Archivo Black',sans-serif;font-size:26px;color:var(--navy);margin-bottom:6px}
+  .sub{color:var(--ink-soft);font-size:15px;margin-bottom:22px;max-width:680px}
+  .sub b{color:var(--wine)}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+  /* badge numerado de paso (compartido) */
+  .num{font-size:14px;width:28px;height:28px;border-radius:50%;flex:0 0 auto;
+    display:inline-flex;align-items:center;justify-content:center;background:var(--navy);color:#fff}
+  .num.light{background:var(--cream);color:var(--navy)}
+
+  /* paso 0 — selector de número */
+  .pick{background:var(--navy);border-radius:14px;padding:20px 22px;margin-bottom:26px}
+  .pick h2{font-family:'Archivo Black';color:var(--cream);font-size:16px;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+  .pick p{color:var(--ink-soft-dark);font-size:13px;margin-bottom:14px}
+  .phones{display:flex;flex-wrap:wrap;gap:10px}
+  .phone{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.14);color:var(--cream);
+    border-radius:10px;padding:9px 14px;cursor:pointer;font-family:'Archivo';font-size:13px;font-weight:600;
+    display:flex;flex-direction:column;gap:2px;min-width:150px;transition:background .12s}
+  .phone:hover{background:rgba(255,255,255,.12)}
+  .phone .pn{color:var(--ink-soft-dark);font-weight:500;font-size:11px;letter-spacing:.2px}
+  .phone[aria-pressed=true]{background:var(--wine);border-color:var(--wine)}
+  .phone[aria-pressed=true] .pn{color:#F0D2D6}
+  .phone:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* banner del rol elegido */
+  .role{display:none;background:#fff;border:1px solid var(--line);border-left:5px solid var(--wine);
+    border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:14px}
+  .role.show{display:block}
+  .role .rt{font-family:'Archivo Black';color:var(--navy);font-size:18px;margin-bottom:6px}
+  .role .tags{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .tag{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--cream-2);color:var(--ink)}
+  .tag.on{background:#DDF1E5;color:var(--ok)}
+  .tag.off{background:#F3E2E4;color:var(--wine)}
+
+  /* índice sticky de secciones */
+  .toc{position:sticky;top:0;z-index:5;background:var(--cream-2);border-bottom:1px solid var(--line);
+    display:flex;gap:8px;flex-wrap:wrap;padding:12px 2px;margin-bottom:14px}
+  .toc a{font-size:13px;font-weight:600;color:var(--navy);text-decoration:none;background:#fff;
+    border:1px solid var(--line);border-radius:999px;padding:6px 13px;transition:background .12s,color .12s}
+  .toc a:hover{background:var(--navy);color:#fff}
+  .toc a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+  /* secciones */
+  .guide{display:none}
+  .guide.show{display:block}
+  section{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px 24px;margin-bottom:18px;scroll-margin-top:64px}
+  section h2{font-family:'Archivo Black';color:var(--navy);font-size:19px;margin-bottom:4px;display:flex;align-items:center;gap:10px}
+  .path{font-size:13px;color:var(--ink-soft);background:var(--cream-2);border-radius:8px;
+    padding:8px 12px;margin:10px 0 18px;font-weight:500}
+  .path b{color:var(--navy)}
+
+  /* campo con copiar */
+  .field{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:12px}
+  .field .fh{display:flex;justify-content:space-between;align-items:center;gap:12px;
+    background:var(--cream);padding:8px 14px;border-bottom:1px solid var(--line)}
+  .field .fl{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.4px}
+  .field .fv{padding:12px 14px;font-size:14px;color:var(--ink);white-space:pre-wrap;word-break:break-word}
+  .field .fv.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:13px}
+  .copy{font-family:'Archivo';font-weight:700;font-size:12px;background:var(--navy);color:#fff;border:0;
+    border-radius:7px;padding:9px 16px;cursor:pointer;white-space:nowrap;transition:background .12s}
+  .copy:hover{background:var(--navy-2)}
+  .copy.ok{background:var(--ok)}
+  .copy:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+
+  /* item de catálogo */
+  .item{border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px;background:#fff}
+  .item .ih{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+  .item .it{font-family:'Archivo Black';font-size:16px;color:var(--navy)}
+  .item .badge{font-size:11px;font-weight:700;color:#fff;background:var(--wine);padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .item .badge.soon{background:var(--ink-soft)} /* informativo, no warning → neutral (no --gold) */
+
+  .note{font-size:13px;color:var(--ink-soft);background:var(--cream-2);border-radius:8px;padding:12px 14px;margin-top:6px}
+  .note b{color:var(--wine)}
+  .btn-link{display:inline-flex;align-items:center;gap:8px;font-family:'Archivo';font-weight:700;font-size:14px;
+    background:var(--navy);color:#fff;border:0;border-radius:9px;padding:11px 18px;cursor:pointer;text-decoration:none;margin-top:6px}
+  .btn-link:hover{background:var(--navy-2)}
+  .btn-link:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  .placeholder{background:#fff;border:1px dashed var(--line);border-radius:14px;padding:40px 24px;text-align:center;color:var(--ink-soft)}
+  .tip{font-size:13px;color:var(--ink-soft);margin-top:14px}
+  .tip b{color:var(--wine)}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Guía para configurar el WhatsApp Business</h1>
+  <p class="sub">Herramienta de autoservicio para que <b>cada responsable de su número</b> deje su WhatsApp Business igual al estándar de DTD Cargo. Elige tu número, sigue los pasos y usa <b>“Copiar”</b> para pegar cada texto directo en WhatsApp. Las imágenes se descargan aquí o en el generador.</p>
+
+  <div class="pick">
+    <h2><span class="num light">1</span>Elige tu número</h2>
+    <p>Cada teléfono tiene su nombre de perfil. Solo CRM, Administración y Ventas llevan catálogo.</p>
+    <div class="phones" id="phones" role="group" aria-label="Elige tu número"></div>
+  </div>
+
+  <div class="role" id="role"></div>
+  <div class="placeholder" id="placeholder">Elige tu número arriba para ver tu guía personalizada.</div>
+  <div class="guide" id="guide"></div>
+</div>
+<div id="sr" class="sr-only" aria-live="polite"></div>
+
+<script>
+// ── DATOS (fuente canónica: docs/marketing/whatsapp-business.md) ──
+const PHONES = [
+  {n:'+58 412 166 8021', rol:'CRM',            perfil:'DTD Cargo',                  full:true,  catalog:true},
+  {n:'+58 241 414 7886', rol:'Administración', perfil:'DTD Cargo · Administración', full:true,  catalog:true},
+  {n:'+58 412 454 5325', rol:'Ventas',         perfil:'DTD Cargo · Ventas',         full:true,  catalog:true},
+  {n:'+58 414 888 8805', rol:'Logística',      perfil:'DTD Cargo · Logística',      full:false, catalog:false},
+  {n:'+58 414 887 0000', rol:'Contabilidad',   perfil:'DTD Cargo · Contabilidad',   full:false, catalog:false},
+  {n:'+58 424 950 8848', rol:'Transporte',     perfil:'DTD Cargo · Transporte',     full:false, catalog:false},
+  {n:'+58 414 884 0000', rol:'Dirección',      perfil:'DTD Cargo · Dirección',      full:false, catalog:false},
+  {n:'+58 412 160 5202', rol:'Redes',          perfil:'DTD Cargo · Redes',          full:false, catalog:false},
+];
+
+const PERFIL = [
+  {l:'Categoría', v:'Servicio de carga / Logística / Transporte'},
+  {l:'Descripción (máx. 512)', v:'Logística puerta a puerta China → Venezuela. +15 años. DDP todo incluido, consolidación LCL/FCL, aduana, agente de compra e inspección en origen. 📦 Calcula tu importación: dtdcargo.com/calculadora'},
+  {l:'Dirección', v:'Edificio Kokuy, Av. Bolívar Norte — Valencia, Carabobo, VE'},
+  {l:'Horario', v:'Todos los días de 8:00 a 20:00'},
+  {l:'Email', v:'info@dtdcargo.com'},
+  {l:'Sitio web 1', v:'www.dtdcargo.com'},
+  {l:'Sitio web 2', v:'www.dtdcargo.com/calculadora'},
+];
+
+const CATALOGO = [
+  {nombre:'Puerta a puerta DDP — Pagas al llegar', badge:'PRINCIPAL', precio:'Consultar (por CBM y ciudad)',
+   desc:'Traemos tu mercancía de China hasta tu puerta en Venezuela, todo incluido (DDP): consolidamos en Yiwu, embarcamos, nacionalizamos a nuestro nombre y entregamos. Pagas cuando la carga llega, no por adelantado.* Incluye flete, aduana e impuestos y entrega hasta el casco central. No incluye el seguro de carga. ⏱️ 60–90 días puerta a puerta. (*pueden aplicar restricciones)',
+   enlace:'www.dtdcargo.com/calculadora'},
+  {nombre:'LCL Consolidado (carga compartida, con BL propio)', precio:'Consultar (por CBM)',
+   desc:'Carga marítima compartida más económica: tu mercancía viaja consolidada con otros clientes y recibes tu propio Bill of Lading en Venezuela. Incluye consolidación en Yiwu + flete + tu BL. La aduana es opcional aparte. ⏱️ 60–90 días hasta la entrega del BL.',
+   enlace:'www.dtdcargo.com/servicios'},
+  {nombre:'FCL Consolidado en Bodega (contenedor completo)', precio:'Consultar',
+   desc:'Llenamos tu contenedor completo en nuestra bodega de Yiwu con la mercancía de varios de tus proveedores. Incluye recepción, consolidación, despacho de exportación, reserva de contenedor y flete + 7 días de almacenaje gratis. ⏱️ 40–55 días (no espera salida consolidada).',
+   enlace:'www.dtdcargo.com/servicios'},
+  {nombre:'FCL Directo Fábrica (cargado en origen)', precio:'Consultar',
+   desc:'Tu contenedor completo se carga directo en la fábrica de tu proveedor, sin pasar por bodega. Reservamos contenedor y buque; el BL sale a nombre de nuestra empresa china como shipper (contigo como consignatario) → el proveedor no puede desviar ni cambiar el destino. ⏱️ 40–55 días.',
+   enlace:'www.dtdcargo.com/servicios'},
+  {nombre:'Tránsito de aduana y desaduanaje', precio:'Consultar (por valorización de la factura)',
+   desc:'Gestionamos el paso por la aduana venezolana y la nacionalización de tu carga. Servicio adicional para LCL y FCL (en el DDP ya va incluido). Te representamos como tu agente con tu carta poder; tú pagas las planillas directo a la aduana. ⏱️ Nacionalización de 5–6 días hábiles.',
+   enlace:'www.dtdcargo.com/servicios'},
+  {nombre:'Inspección de calidad en China', precio:'Consultar',
+   desc:'Verificación física de tu mercancía contra la ficha técnica, en la fábrica y antes del embarque. Parte de nuestra línea de inspección y control de calidad en origen.',
+   enlace:'www.dtdcargo.com/servicios/inspeccion'},
+  {nombre:'Compra asistida / sourcing', precio:'Consultar',
+   desc:'Somos tu departamento de compras en China: ubicamos el producto, negociamos, gestionamos la compra y le pagamos al proveedor antes de consolidar tu carga.',
+   enlace:'www.dtdcargo.com/servicios'},
+  {nombre:'Transporte terrestre nacional', badge:'PRÓXIMAMENTE', precio:'Consultar',
+   desc:'Transporte de carga por vía terrestre dentro de Venezuela, entre ciudades o hasta tu destino final. Disponible próximamente.',
+   enlace:'www.dtdcargo.com'},
+];
+
+const BIENVENIDA = `¡Hola! 👋 Bienvenido a DTD Cargo — logística puerta a puerta de China a Venezuela 🇨🇳→🇻🇪
+
+Para ayudarte rápido, cuéntanos:
+1️⃣ ¿Qué producto quieres importar?
+2️⃣ ¿Ciudad de destino en Venezuela?
+3️⃣ ¿Volumen aproximado (CBM) o nº de cajas?
+
+📦 Calcula tu estimado al instante: www.dtdcargo.com/calculadora
+
+Un asesor te atiende en breve. ¡Gracias por escribirnos!`;
+
+const AUSENCIA = `Gracias por escribir a DTD Cargo 📦
+
+Nuestro horario es todos los días de 8:00 a 20:00. Recibimos tu mensaje y te respondemos apenas abramos.
+
+Mientras tanto, calcula tu importación de China en:
+www.dtdcargo.com/calculadora`;
+
+const QUICK = [
+  ['/calculadora','Calcula tu estimado de importación en segundos 👉 www.dtdcargo.com/calculadora — solo necesitas el volumen (CBM) y tu ciudad de destino.'],
+  ['/ddp','Puerta a puerta DDP: traemos tu carga de China hasta tu puerta, todo incluido (flete + aduana + impuestos + entrega). Pagas cuando llega a Venezuela.* ⏱️ 60–90 días. (*pueden aplicar restricciones)'],
+  ['/aduana','Gestionamos la nacionalización de tu carga LCL/FCL (en el DDP ya va incluida). Te representamos como agente con tu carta poder. ⏱️ 5–6 días hábiles.'],
+  ['/servicios','Nuestros servicios: DDP puerta a puerta, LCL/FCL marítimo, aduana, inspección en fábrica y compra asistida en China. Detalle 👉 www.dtdcargo.com/servicios'],
+  ['/track','Rastrea tu envío con tu código DTD 👉 www.dtdcargo.com/track'],
+  ['/registro','Regístrate para obtener tu Shipping Mark (唛头) y empezar a importar 👉 www.dtdcargo.com/registro'],
+  ['/horario','Nuestro horario de atención es todos los días de 8:00 a 20:00. ¡Con gusto te ayudamos!'],
+  ['/ubicacion','📍 Edificio Kokuy, Av. Bolívar Norte — Valencia, Carabobo. También operamos bodega propia en Yiwu, China.'],
+  ['/pago','Con el servicio DDP pagas cuando tu carga llega a Venezuela, no por adelantado.* Te avisamos al arribo. (*pueden aplicar restricciones)'],
+];
+
+const ETIQUETAS = ['Nuevo lead','Cotizando','Esperando pago','En tránsito','Entregado','Postventa'];
+
+const REDUCE_MOTION = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ── COPIAR (con fallback para file://) + anuncio a lector de pantalla ──
+async function copyText(t, btn){
+  try { await navigator.clipboard.writeText(t); }
+  catch(e){
+    const ta=document.createElement('textarea'); ta.value=t;
+    ta.style.cssText='position:fixed;opacity:0'; document.body.appendChild(ta); ta.select();
+    try{ document.execCommand('copy'); }catch(_){}
+    ta.remove();
+  }
+  const sr=document.getElementById('sr'); if(sr) sr.textContent='Texto copiado';
+  const old=btn.textContent; btn.textContent='✓ Copiado'; btn.classList.add('ok');
+  setTimeout(()=>{ btn.textContent=old; btn.classList.remove('ok'); }, 1400);
+}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+// crea un bloque-campo con botón copiar
+function field(label, value, mono){
+  const f=document.createElement('div'); f.className='field';
+  f.innerHTML=`<div class="fh"><span class="fl">${esc(label)}</span><button class="copy" aria-label="Copiar ${esc(label)}">Copiar</button></div>
+    <div class="fv${mono?' mono':''}">${esc(value)}</div>`;
+  f.querySelector('.copy').addEventListener('click', e=>copyText(value, e.currentTarget));
+  return f;
+}
+
+// ── RENDER ──
+const phonesEl=document.getElementById('phones');
+PHONES.forEach((p,idx)=>{
+  const b=document.createElement('button'); b.className='phone'; b.type='button'; b.setAttribute('aria-pressed','false');
+  b.innerHTML=`${esc(p.rol)}<span class="pn">${esc(p.n)}</span>`;
+  b.addEventListener('click',()=>selectPhone(idx,b));
+  phonesEl.appendChild(b);
+});
+
+function selectPhone(idx, btn){
+  document.querySelectorAll('.phone').forEach(x=>x.setAttribute('aria-pressed','false'));
+  btn.setAttribute('aria-pressed','true');
+  const p=PHONES[idx];
+  document.getElementById('placeholder').style.display='none';
+
+  // banner del rol
+  const role=document.getElementById('role'); role.className='role show';
+  role.innerHTML=`<div class="rt">${esc(p.rol)} · ${esc(p.n)}</div>
+    <div>Nombre del perfil que debe quedar: <b>${esc(p.perfil)}</b></div>
+    <div class="tags">
+      <span class="tag ${p.full?'on':'off'}">Perfil ${p.full?'completo':'básico'}</span>
+      <span class="tag ${p.catalog?'on':'off'}">Catálogo ${p.catalog?'SÍ':'NO'}</span>
+      <span class="tag ${p.full?'on':'off'}">Respuestas auto ${p.full?'completas':'(ausencia + 2-3 de tu área)'}</span>
+    </div>`;
+
+  const g=document.getElementById('guide'); g.className='guide show'; g.innerHTML='';
+
+  // índice sticky de secciones
+  const toc=document.createElement('nav'); toc.className='toc'; toc.setAttribute('aria-label','Secciones de la guía');
+  toc.innerHTML=`<a href="#sec-perfil">2 · Perfil</a>`
+    + (p.catalog?`<a href="#sec-catalogo">3 · Catálogo</a>`:'')
+    + `<a href="#sec-mensajes">4 · Mensajes</a><a href="#sec-etiquetas">5 · Etiquetas</a>`;
+  g.appendChild(toc);
+
+  // ── Sección 2: Perfil de empresa ──
+  const s1=document.createElement('section'); s1.id='sec-perfil';
+  s1.innerHTML=`<h2><span class="num">2</span>Perfil de empresa</h2>
+    <div class="path"><b>⋮ → Herramientas para la empresa → Perfil de empresa → Editar (✏️)</b></div>`;
+  s1.appendChild(field('Nombre del perfil', p.perfil));
+  PERFIL.forEach(f=>s1.appendChild(field(f.l, f.v, f.l==='Email'||f.l.startsWith('Sitio'))));
+  const logo=document.createElement('div');
+  logo.innerHTML=`<a class="btn-link" href="logo-primary.png" download="dtdcargo-foto-perfil.png">⬇ Descargar foto de perfil (logo)</a>
+    <p class="tip"><b>Foto de perfil:</b> usa el logo descargado (cuadrado, mín. 640×640). Igual en los 8 números.</p>`;
+  s1.appendChild(logo);
+  g.appendChild(s1);
+
+  // ── Sección 3: Catálogo ──
+  const s2=document.createElement('section'); s2.id='sec-catalogo';
+  if(p.catalog){
+    s2.innerHTML=`<h2><span class="num">3</span>Catálogo de servicios</h2>
+      <div class="path"><b>⋮ → Herramientas para la empresa → Catálogo → Agregar artículo</b> · por cada uno: Nombre · Precio · Descripción · Imagen · Enlace</div>
+      <a class="btn-link" href="whatsapp-catalogo-plantillas.html" target="_blank" rel="noopener">Abrir el generador de imágenes del catálogo →</a>
+      <p class="tip" style="margin-bottom:18px"><b>Imagen de cada servicio:</b> en el generador cargas la foto, descargas el PNG 1080×1080 y lo subes como imagen del artículo.</p>`;
+    CATALOGO.forEach((c,n)=>{
+      const it=document.createElement('div'); it.className='item';
+      it.innerHTML=`<div class="ih"><span class="it">${n+1}. ${esc(c.nombre)}</span>${c.badge?`<span class="badge ${c.badge==='PRÓXIMAMENTE'?'soon':''}">${esc(c.badge)}</span>`:''}</div>`;
+      it.appendChild(field('Nombre del artículo', c.nombre));
+      it.appendChild(field('Precio', c.precio));
+      it.appendChild(field('Descripción', c.desc));
+      it.appendChild(field('Enlace', c.enlace, true));
+      s2.appendChild(it);
+    });
+  } else {
+    s2.innerHTML=`<h2><span class="num">3</span>Catálogo de servicios</h2>
+      <div class="note">Tu número (<b>${esc(p.rol)}</b>) <b>NO lleva catálogo</b>. El catálogo solo va en CRM, Administración y Ventas. Pasa a la sección de mensajes.</div>`;
+  }
+  g.appendChild(s2);
+
+  // ── Sección 4: Mensajes automáticos ──
+  const s3=document.createElement('section'); s3.id='sec-mensajes';
+  s3.innerHTML=`<h2><span class="num">4</span>Mensajes y respuestas rápidas</h2>`;
+  if(!p.full){
+    s3.innerHTML+=`<div class="note" style="margin-bottom:16px">En operativos: <b>obligatorio el mensaje de ausencia</b>. La bienvenida y 2-3 respuestas rápidas de tu área son opcionales (copia las que apliquen).</div>`;
+  }
+  const wrapB=document.createElement('div');
+  wrapB.innerHTML=`<div class="path"><b>⋮ → Herramientas para la empresa → Mensaje de bienvenida</b> · activar → Destinatarios: Todos</div>`;
+  wrapB.appendChild(field('Mensaje de bienvenida', BIENVENIDA));
+  wrapB.innerHTML+=`<div class="path"><b>⋮ → Herramientas para la empresa → Mensaje de ausencia</b> · Programar: Fuera del horario (8:00–20:00)</div>`;
+  wrapB.appendChild(field('Mensaje de ausencia', AUSENCIA));
+  wrapB.innerHTML+=`<div class="path"><b>⋮ → Herramientas para la empresa → Respuestas rápidas → +</b> · escribe el atajo y pega el mensaje</div>`;
+  QUICK.forEach(([atajo,msg])=>wrapB.appendChild(field(atajo, msg)));
+  s3.appendChild(wrapB);
+  g.appendChild(s3);
+
+  // ── Sección 5: Etiquetas ──
+  const s4=document.createElement('section'); s4.id='sec-etiquetas';
+  s4.innerHTML=`<h2><span class="num">5</span>Etiquetas <span style="font-size:13px;font-weight:500;color:var(--ink-soft)">(recomendado en CRM/Ventas)</span></h2>
+    <div class="path"><b>Mantén presionado un chat → Etiqueta → crear/asignar</b></div>`;
+  ETIQUETAS.forEach(t=>s4.appendChild(field('Etiqueta', t)));
+  g.appendChild(s4);
+
+  role.scrollIntoView({behavior: REDUCE_MOTION?'auto':'smooth', block:'start'});
+}
+</script>
+</body>
+</html>

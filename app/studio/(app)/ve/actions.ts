@@ -151,7 +151,7 @@ export async function reportIncidentAction(
   params: { reason: string },
 ): Promise<ActionResult> {
   const reason = params.reason?.trim();
-  if (!reason) return { error: "Indicá la razón de la incidencia." };
+  if (!reason) return { error: "Indica la razón de la incidencia." };
 
   return transitionStatus(
     shipmentId,

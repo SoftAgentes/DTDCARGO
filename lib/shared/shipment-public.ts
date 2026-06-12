@@ -37,15 +37,16 @@ export type ShipmentStatus =
 /**
  * Labels para mostrar el servicio en UI.
  * El `sub` es un calificador chico del servicio (LCL, container completo, etc.).
- * Para DDP usamos la modalidad de marca vigente "Financiamiento 100%"
- * (reemplazó al viejo "prepago", retirado 2026-06-04 del copy de marketing).
+ * Para DDP usamos la modalidad de marca vigente "Pagas al llegar"
+ * (reemplazó a "Financiamiento 100%" 2026-06-09 por riesgo legal del término;
+ * antes había reemplazado al viejo "prepago", retirado 2026-06-04).
  */
 export const SERVICE_LABELS: Record<
   ShipmentService,
   { primary: string; sub?: string }
 > = {
   consolidacion: { primary: "Consolidación", sub: "LCL" },
-  puerta_a_puerta_DDP: { primary: "Puerta a Puerta DDP", sub: "Financiamiento 100%" },
+  puerta_a_puerta_DDP: { primary: "Puerta a Puerta DDP", sub: "Pagas al llegar" },
   reserva_FCL: { primary: "Reserva FCL", sub: "container completo" },
   transporte_terrestre: { primary: "Transporte terrestre", sub: "VE interno" },
 };

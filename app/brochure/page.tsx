@@ -8,6 +8,7 @@ import { HowWeWork } from "@/components/HowWeWork";
 import { Philosophy } from "@/components/Philosophy";
 import { WorkBand } from "@/components/WorkBand";
 import { OperationGallery } from "@/components/OperationGallery";
+import { Testimonials } from "@/components/Testimonials";
 import { ServicesByOffice } from "@/components/brochure/ServicesByOffice";
 import { DownloadPdfButton } from "@/components/brochure/DownloadPdfButton";
 import {
@@ -27,12 +28,12 @@ import {
 export const metadata: Metadata = {
   title: "Brochure",
   description:
-    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
+    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2008.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
     title: "Brochure · DTD Cargo",
     description:
-      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, financiamiento 100%. Operando desde 2008.",
+      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2008.",
     path: "/brochure",
   }),
 };
@@ -43,8 +44,8 @@ const WA_COTIZAR = buildWhatsAppLink(
 
 const WHY = [
   {
-    t: "Financiamiento 100%",
-    d: "Con Financiamiento 100% pagas cuando tu carga llega a Venezuela, sujeto a aprobación.",
+    t: "Pagas al llegar",
+    d: "Pagas cuando tu carga llega a Venezuela, no por adelantado. Pueden aplicar restricciones.",
   },
   {
     t: "Equipo y bodega propios",
@@ -73,14 +74,14 @@ export default function BrochurePage() {
           <div className="wrap max-w-[920px]">
             <span className="eyebrow">Carga China → Venezuela · Desde 2008</span>
             <h1 className="h-display mt-6" style={{ fontSize: "clamp(40px, 6.5vw, 76px)" }}>
-              <span style={{ color: "var(--color-wine)" }}>Con confianza,</span>
+              <span style={{ color: "var(--color-wine)" }}>Con Confianza,</span>
               <br />
               de China a tu puerta.
             </h1>
             <p className="lead mt-6" style={{ fontSize: "19px" }}>
               Carga consolidada puerta a puerta entre China y Venezuela, todo
-              incluido (DDP). Y con Financiamiento 100% pagas cuando llega a
-              Venezuela (sujeto a aprobación).
+              incluido (DDP). Y pagas cuando llega a
+              Venezuela, no por adelantado.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
@@ -94,7 +95,7 @@ export default function BrochurePage() {
               <DownloadPdfButton />
             </div>
             <div className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-[13.5px] font-semibold text-grey-700">
-              <span>Financiamiento 100%</span>
+              <span>Pagas al llegar</span>
               <span>Equipo propio en Yiwu &amp; Valencia</span>
               <span>Inspección antes de embarcar</span>
             </div>
@@ -197,6 +198,9 @@ export default function BrochurePage() {
 
         {/* 9 · Filosofía (reuso) */}
         <Philosophy />
+
+        {/* 9b · Testimonios (la sección se auto-oculta sin reseñas reales) */}
+        <Testimonials />
 
         {/* 10 · Cierre / contacto */}
         <section className="py-20 bg-ink text-white">

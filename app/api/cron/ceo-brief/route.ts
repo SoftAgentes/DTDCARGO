@@ -19,7 +19,7 @@
  * El secret SOLO se acepta por header — nunca por query-param (los query
  * params terminan en logs de acceso, historial y referrers).
  *
- * Devuelve JSON con resultado por tenant. Idempotente · podés re-correrlo
+ * Devuelve JSON con resultado por tenant. Idempotente · puedes re-correrlo
  * el mismo día y manda otro brief (no hay dedup en V1).
  */
 

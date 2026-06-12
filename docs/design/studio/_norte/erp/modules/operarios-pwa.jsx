@@ -16,8 +16,8 @@
   const APPS = [
     { id: 'cn', name: 'Operario CN', file: 'Operario CN.html', desc: 'Recepción e inspección en bodega Yiwu · escaneo de cajas, fotos QC.', users: 3, color: '#7F0F1A' },
     { id: 've', name: 'Operario VE', file: 'Operario VE.html', desc: 'Chofer / despacho Venezuela · ruta, POD, confirmación de entrega.', users: 3, color: '#0F1E3D' },
-    { id: 'bod', name: 'Almacenista',  file: 'Almacenista VE.html', desc: 'Almacén Valencia · picking, packing, reexpedición a cliente final.', users: 1, color: '#1F8A5B' },
-    { id: 'cam', name: 'Transportista',  file: 'Transportista.html', desc: 'Ruta activa con GPS · navegación, POD por parada, alerta de ubicación.', users: 2, color: '#B8893A' },
+    { id: 'bod', name: 'Almacenista',  file: 'Bodeguero VE.html', desc: 'Almacén Valencia · picking, packing, reexpedición a cliente final.', users: 1, color: '#1F8A5B' },
+    { id: 'cam', name: 'Transportista',  file: 'Camionero.html', desc: 'Ruta activa con GPS · navegación, POD por parada, alerta de ubicación.', users: 2, color: '#B8893A' },
     { id: 'multi', name: 'Operario · App', file: 'Operario · App.html', desc: 'APK único · login → ruteo por rol → multi-rol (bodega/chofer) con sesión persistente.', users: 1, color: '#2A6FDB' },
   ];
 
@@ -132,7 +132,7 @@
                 </div>
                 <div style={{ flex: 1 }}>
                   <h4 style={{ font: '700 14px/1.2 var(--f-sans)', margin: '0 0 4px', color: 'var(--ink)' }}>Instalar PWA en un dispositivo nuevo</h4>
-                  <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0 }}>Escaneá el QR desde el teléfono del operario para instalar la app. Las credenciales temporales se generan en "Gestión de acceso".</p>
+                  <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0 }}>Escanea el QR desde el teléfono del operario para instalar la app. Las credenciales temporales se generan en "Gestión de acceso".</p>
                 </div>
                 <U.Btn variant="secondary" icon={I.tag(14)}>Generar QR</U.Btn>
               </div>

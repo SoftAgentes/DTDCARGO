@@ -183,7 +183,7 @@ export function ConversationList({
         {list.map((c) => {
           const isSel = selectedId === c.id;
           const preview =
-            (c.last_message_direction === "out" ? "Vos: " : "") +
+            (c.last_message_direction === "out" ? "Tú: " : "") +
             (c.last_message_preview ?? "");
           return (
             <button

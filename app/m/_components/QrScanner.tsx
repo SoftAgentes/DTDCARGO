@@ -267,8 +267,8 @@ export function QrScanner({
           }}
         >
           {mode === "denied"
-            ? "Permiso de cámara denegado · usá el ingreso manual abajo."
-            : "Cámara no disponible · usá el ingreso manual abajo."}
+            ? "Permiso de cámara denegado · usa el ingreso manual abajo."
+            : "Cámara no disponible · usa el ingreso manual abajo."}
         </div>
       )}
 

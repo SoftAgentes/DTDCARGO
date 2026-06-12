@@ -88,7 +88,7 @@ export async function POST(request: Request) {
   const { data: userResp } = await supabaseUser.auth.getUser();
   if (!userResp.user) {
     return NextResponse.json(
-      { error: "No autorizado — iniciá sesión primero." },
+      { error: "No autorizado — inicia sesión primero." },
       { status: 401 },
     );
   }

@@ -210,8 +210,8 @@ export function CotizadorClient({
           }
           description={
             hasFilters
-              ? "Probá ajustar los filtros o limpiá la búsqueda."
-              : "Creá tu primer estimado. El total se calcula en vivo con la tarifa del catálogo."
+              ? "Prueba ajustar los filtros o limpia la búsqueda."
+              : "Crea tu primer estimado. El total se calcula en vivo con la tarifa del catálogo."
           }
           action={
             !hasFilters ? (

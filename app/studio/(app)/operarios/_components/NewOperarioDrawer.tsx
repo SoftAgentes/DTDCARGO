@@ -272,7 +272,7 @@ function PinRevealSuccess({
   return (
     <DrawerShell
       title="Operario creado"
-      subtitle="Mostrale este PIN al operario · no se puede recuperar después"
+      subtitle="Muéstrale este PIN al operario · no se puede recuperar después"
       onClose={onClose}
       pending={false}
       width={560}
@@ -334,7 +334,7 @@ function PinRevealSuccess({
             margin: 0,
           }}
         >
-          Anotalo o decíselo en persona. Si lo perdés, vas a tener que resetearlo
+          Anótalo o díselo en persona. Si lo pierdes, vas a tener que resetearlo
           desde esta misma página.
         </p>
       </div>
