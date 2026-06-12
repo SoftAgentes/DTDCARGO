@@ -77,6 +77,7 @@ function quote(over: Partial<Quote> = {}): Quote {
     sent_at: null,
     accepted_at: null,
     converted_to_shipment_id: null,
+    sales_order_id: null,
     notes: null,
     prospect_name: null,
     prospect_email: null,

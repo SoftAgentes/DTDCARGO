@@ -73,6 +73,7 @@ export const MODULES: ModuleDef[] = [
   { id: "kommo", group: "COMERCIAL", label: "Kommo CRM", icon: "radar", slug: "/studio/kommo" },
   { id: "suppliers", group: "COMERCIAL", label: "Proveedores CN", labelKey: "chrome.sidebar.suppliers_cn", icon: "cn", slug: "/studio/proveedores" },
   { id: "purchase-orders", group: "COMERCIAL", label: "Órdenes de compra", icon: "box", slug: "/studio/ordenes-compra" },
+  { id: "sales-orders", group: "COMERCIAL", label: "Órdenes de venta", icon: "invoice", slug: "/studio/ordenes-venta" },
   { id: "rates", group: "COMERCIAL", label: "Tarifas", labelKey: "chrome.sidebar.rates", icon: "tag", slug: "/studio/tarifas" },
   { id: "fidelizacion", group: "COMERCIAL", label: "Fidelización", icon: "star", slug: "/studio/fidelizacion" },
 

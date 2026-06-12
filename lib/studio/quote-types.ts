@@ -44,6 +44,8 @@ export type Quote = {
   sent_at: string | null;
   accepted_at: string | null;
   converted_to_shipment_id: string | null;
+  /** SDD-0072: Orden de venta (OV-) en la que se convirtió (link bidireccional, nullable). */
+  sales_order_id: string | null;
   notes: string | null;
   // SDD-0061 Fase B1 — datos del prospecto web (null en quotes del Studio).
   prospect_name: string | null;

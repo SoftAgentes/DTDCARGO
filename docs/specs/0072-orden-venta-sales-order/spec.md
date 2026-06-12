@@ -1,7 +1,7 @@
 ---
 sdd: "0072"
 title: "Orden de venta (Sales Order · modelo QuickBooks): el estimado confirmado, formal y trazable"
-status: draft
+status: in-progress
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
 created: 2026-06-07
 updated: 2026-06-12
@@ -117,6 +117,20 @@ Sin mockup del Norte para esta pantalla → `DESIGN-CHECK` si hace falta diseño
 - Gemela de 0071 (misma mecánica de conversión QB, lado ventas).
 - Hereda patrón de link (0058 `kommo_lead_id`, 0061 OV↔prealerta) y de posteo (0021 factura).
 - `sales_orders.quote_id` y `prealertas.sales_order_id` = FKs suaves; `invoices.sales_order_id` en Fase 2.
+
+## 10. Notas de implementación (Fase 1 · 2026-06-12 · vía harness)
+
+**Estado:** Fase 1 implementada en `feat/orden-venta`. Gate `node scripts/verify.mjs` 🟢 (1739 tests, incl. 26 nuevos). Migración 0125 **NO** aplicada a prod (la aplica el founder). `reviewer` **APPROVED** · `ui-ux-designer` **nits** (provenance EST- aplicada · #3 jerarquía) · auditoría Supabase OK (1 nota sistémica no-bloqueante: `next_*_code` security-definer sin check de tenant en el parámetro, idéntico a 0124/0007/0088 en prod).
+
+**Archivos:**
+- `supabase/migrations/0125_sales_orders.sql` — `sales_orders` (OV-YYYY-NNNN) + RLS fail-closed por tenant (espejo 0124) + `next_sales_order_code` (security-definer, search_path public) + columnas aditivas `prealertas.sales_order_id` (FK real on delete set null) y `quotes.sales_order_id` (uuid suave, marca de "convertido") + CHECK `'sales_order'` en `entity_audit_log` + FK indexes + grants explícitos + trigger updated_at. Aditiva, sin DDL destructivo.
+- `lib/studio/sales-orders/{types,queries,actions}.ts` + `__tests__/types.test.ts` (26 tests). `convertEstimateToSalesOrder` (snapshot editable vía `buildSalesOrderFromQuote` + link bidireccional idempotente: rechaza estimado ya convertido + guard anti-race), `createSalesOrder` (manual), `updateSalesOrder` (solo `confirmada`), `setSalesOrderStatus`/`cancelSalesOrder` (valida grafo), `assign`/`unassignPrealertaFromSalesOrder`, `getSalesOrderForPrealerta` (resolución inversa lista para el escaneo CN en Fase 2). La provenance trae el code real del estimado vía embed `quotes(quote_code)`.
+- `app/studio/(app)/ordenes-venta/` — módulo (lista + KPIs + drawers detalle/creación/conversión, provenance "viene del estimado EST-…") espejando ordenes-compra; solo tokens `var(--*)` + primitivas del Studio.
+- Aditivos: `StudioSidebar` (ítem `sales-orders`), `quote-{types,queries}` y `prealertas/{types,queries}` (columna `sales_order_id`).
+
+**Decisiones:** link bidireccional = `sales_orders.quote_id` (FK real) + `quotes.sales_order_id` (uuid suave, mismo criterio que 0124 para no acoplar el orden de migraciones); `parcial`/`facturada` los pone SOLO el motor (Fase 2), no la UI (`canTransition` los excluye, `isAllowedTransition` los admite); snapshot editable solo en `confirmada`.
+
+**Pendiente:** Fase 2 (auto-factura en la confirmación de Warehouse · `invoices.sales_order_id` · parcial por defecto) — NO implementada. Aplicar `0125` a prod (founder). Puente OV → OC de DTD (futuro).
 
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->
