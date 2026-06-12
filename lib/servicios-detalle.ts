@@ -43,6 +43,15 @@ export type ServicioDetalle = {
   noIncluye: string[];
   /** Precio, rango o condición ("vale tanto si hace X"). "" = pendiente. */
   precio: string;
+  /**
+   * Tabla de precios opcional (ej. comisión escalonada por monto de compra).
+   * Se renderiza como tabla aparte; `precio` queda como intro/resumen de la tabla.
+   */
+  precioTabla?: {
+    columnas: string[];
+    filas: string[][];
+    nota?: string;
+  };
   /** Cómo se solicita (WhatsApp / calculadora / registro / asesor). */
   comoSolicitar: string;
   /** Tiempos del servicio. "" = pendiente. */
@@ -413,22 +422,43 @@ export const SERVICIOS_DETALLE: ServicioDetalle[] = [
     slug: "compra-asistida",
     titulo: "Compra asistida / sourcing",
     sede: "cn",
-    // grounded: copy actual + FAQ §9. ⚠️ Proveedor = red propia DTD, NUNCA se revela.
+    // grounded: dictado founder 2026-06-09 (TANDA 2). ⚠️ Proveedor = red propia
+    // DTD, NUNCA se revela (DTD queda como proveedor del cliente).
     resumen:
-      "Somos tu departamento de compras en China: te ayudamos a ubicar el producto, negociar y gestionar la compra (incluso pagarle al proveedor) antes de consolidar tu carga.",
+      "Somos tu departamento de compras en China, en dos modalidades: sourcing completo —te conseguimos el proveedor, negociamos y gestionamos la compra— o sobre tu propio proveedor —si ya lo tienes pero temes que te estafen, lo verificamos y gestionamos la compra como tu comprador de confianza—. En ambas, la verificación del proveedor va incluida y te acompañamos hasta que la compra se completa.",
     incluye: [
-      "Ubicación del producto y del proveedor adecuado.",
-      "Negociación y gestión de la compra.",
-      "Pago al proveedor en China (según tu caso).",
+      "Modalidad A (sourcing): ubicamos el producto y el proveedor, negociamos y gestionamos la compra por ti.",
+      "Modalidad B (tu proveedor): si ya tienes proveedor y precios, lo verificamos y gestionamos la compra entrando como tu comprador de confianza.",
+      "En ambas: verificación del proveedor incluida y seguimiento hasta que la compra se completa.",
     ],
-    noIncluye: [],
-    // modelo comercial SIN DEFINIR (margen/comisión) → no publicar precio
-    precio: "",
+    noIncluye: [
+      "El pago al proveedor: es un servicio adicional. Si quieres que paguemos por ti, primero nos pagas a nosotros.",
+      "El costo de la mercancía: lo pagas tú.",
+      "Los fletes internacionales.",
+      "Los fletes nacionales.",
+    ],
+    // grounded: tabla de comisión por monto aprobada por el founder 2026-06-09.
+    // B = la mitad de la tabla de A (escalonado). Mínimo $50/orden en ambas.
+    precio:
+      "La comisión baja a medida que sube el monto de tu compra; mínimo $50 por orden, con la verificación del proveedor incluida.",
+    precioTabla: {
+      columnas: ["Monto (USD)", "A · sourcing", "B · tu proveedor"],
+      filas: [
+        ["hasta $2.000", "10%", "5%"],
+        ["~$5.000", "8%", "4%"],
+        ["~$10.000", "6%", "3%"],
+        ["~$20.000", "5%", "2,5%"],
+        ["~$50.000", "4%", "2%"],
+        ["$100.000+", "3%", "1,5%"],
+      ],
+      nota: "Mínimo $50 por orden. La verificación del proveedor va incluida en ambas modalidades.",
+    },
     comoSolicitar:
-      "Mándanos tu lista de productos por WhatsApp; un asesor te confirma viabilidad, modalidad y costo.",
-    tiempos: "",
+      "Mándanos tu lista de productos con su ficha técnica por WhatsApp; un asesor te confirma viabilidad, modalidad y costo.",
+    tiempos:
+      "Modalidad A: desde que nos pasas el producto con su ficha técnica, mínimo 1 semana para confirmarte el producto y hasta 15 días para sondear varios proveedores, verificar las especificaciones técnicas y validar que las fuentes sean buenas. Modalidad B: la misma ventana, normalmente más rápido porque verificamos un proveedor que ya tienes.",
     estado: "activo",
-    _pendiente: ["modelo comercial (margen/comisión/cómo se cobra) — SIN DEFINIR", "noIncluye", "tiempos"],
+    nota: "El servicio llega hasta completar la compra y verificar que todo salga bien; lo que viene después —consolidación, flete, aduana y entrega— son servicios complementarios.",
   },
   {
     slug: "asesoria-pagos",
