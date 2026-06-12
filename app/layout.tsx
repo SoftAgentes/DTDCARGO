@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Archivo, Archivo_Black, Noto_Sans_SC } from "next/font/google";
 import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
 import { Analytics } from "@/components/Analytics";
+import { Analytics as VercelAnalytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -227,6 +228,7 @@ export default function RootLayout({
       <body>
         {children}
         <Analytics />
+        <VercelAnalytics />
       </body>
     </html>
   );
