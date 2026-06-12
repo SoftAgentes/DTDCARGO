@@ -21,7 +21,10 @@ import {
   salesOrderStatusTone,
   type SalesOrder,
 } from "@/lib/studio/sales-orders/types";
-import type { SalesOrderStats } from "@/lib/studio/sales-orders/queries";
+import type {
+  SalesOrderStats,
+  SalesOrderInvoiceRef,
+} from "@/lib/studio/sales-orders/queries";
 import {
   OvDrawer,
   NewOvDrawer,
@@ -47,12 +50,14 @@ export function OrdenesVentaClient({
   orders,
   stats,
   prealertasByOrder,
+  invoicesByOrder,
   quotes,
   prealertas,
 }: {
   orders: SalesOrder[];
   stats: SalesOrderStats;
   prealertasByOrder: Record<string, PrealertaOption[]>;
+  invoicesByOrder: Record<string, SalesOrderInvoiceRef[]>;
   quotes: QuoteOption[];
   prealertas: PrealertaOption[];
 }) {
@@ -182,6 +187,7 @@ export function OrdenesVentaClient({
         <OvDrawer
           so={selected}
           prealertas={prealertasByOrder[selected.id] ?? []}
+          invoices={invoicesByOrder[selected.id] ?? []}
           allPrealertas={prealertas}
           onClose={() => setSelectedId(null)}
         />

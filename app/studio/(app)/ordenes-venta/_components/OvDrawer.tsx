@@ -38,6 +38,12 @@ import {
   type SalesOrder,
   type SalesOrderStatus,
 } from "@/lib/studio/sales-orders/types";
+import type { SalesOrderInvoiceRef } from "@/lib/studio/sales-orders/queries";
+import {
+  statusBadgeTone as invoiceTone,
+  statusLabel as invoiceStatusLabel,
+  type InvoiceStatus,
+} from "@/lib/studio/invoice-types";
 import {
   assignPrealertaToSalesOrder,
   convertEstimateToSalesOrder,
@@ -82,11 +88,13 @@ function fmt(n: number): string {
 export function OvDrawer({
   so,
   prealertas,
+  invoices,
   allPrealertas,
   onClose,
 }: {
   so: SalesOrder;
   prealertas: PrealertaOption[];
+  invoices: SalesOrderInvoiceRef[];
   allPrealertas: PrealertaOption[];
   onClose: () => void;
 }) {
@@ -379,6 +387,69 @@ export function OvDrawer({
                 refresh();
               }}
             />
+          )}
+        </div>
+
+        {/* Facturas generadas (Fase 2 · provenance OV → Factura) */}
+        <div>
+          <div className="studio-eyebrow" style={{ marginBottom: 10 }}>
+            Facturas · {invoices.length}
+          </div>
+          {invoices.length === 0 ? (
+            <div
+              style={{
+                font: "500 12px/1.5 var(--f-sans)",
+                color: "var(--ink-mute)",
+              }}
+            >
+              Sin facturas todavía. Se generan automáticamente cuando el almacén
+              confirma la recepción de las cajas con sus datos reales.
+            </div>
+          ) : (
+            <div
+              style={{
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-md)",
+                overflow: "hidden",
+              }}
+            >
+              {invoices.map((inv, i) => (
+                <div
+                  key={inv.id}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 110px 90px",
+                    gap: 10,
+                    padding: "10px 14px",
+                    borderTop: i > 0 ? "1px solid var(--border)" : 0,
+                    alignItems: "center",
+                  }}
+                >
+                  <code
+                    style={{
+                      font: "700 11px/1.2 var(--f-mono)",
+                      color: "var(--wine)",
+                    }}
+                  >
+                    {inv.invoice_code}
+                  </code>
+                  <span
+                    style={{
+                      font: "700 12px/1 var(--f-mono)",
+                      color: "var(--ink)",
+                      textAlign: "right",
+                    }}
+                  >
+                    ${fmt(inv.total_amount)}
+                  </span>
+                  <div style={{ display: "flex", justifyContent: "flex-end" }}>
+                    <Badge tone={invoiceTone(inv.status as InvoiceStatus)} size="sm">
+                      {invoiceStatusLabel(inv.status as InvoiceStatus)}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

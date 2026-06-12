@@ -99,8 +99,8 @@ ORDEN DE VENTA (sales_orders, OV-)         ← NUEVO en 0072
 - [ ] `/studio/ordenes-venta` lista + detalle con provenance. Datos intactos. `verify` 🟢. `ui-ux` OK.
 
 ### Fase 2
-- [ ] La confirmación de Warehouse (CBM/peso reales) genera Factura (0021), **parcial por defecto**.
-- [ ] Sin requisitos completos → "faltan datos", NO factura. `invoices.sales_order_id` + provenance.
+- [x] La confirmación de Warehouse (CBM/peso reales) genera Factura (0021), **parcial por defecto**.
+- [x] Sin requisitos completos → "faltan datos", NO factura. `invoices.sales_order_id` + provenance.
 
 ## 7. Fuera de alcance
 
@@ -130,7 +130,72 @@ Sin mockup del Norte para esta pantalla → `DESIGN-CHECK` si hace falta diseño
 
 **Decisiones:** link bidireccional = `sales_orders.quote_id` (FK real) + `quotes.sales_order_id` (uuid suave, mismo criterio que 0124 para no acoplar el orden de migraciones); `parcial`/`facturada` los pone SOLO el motor (Fase 2), no la UI (`canTransition` los excluye, `isAllowedTransition` los admite); snapshot editable solo en `confirmada`.
 
-**Pendiente:** Fase 2 (auto-factura en la confirmación de Warehouse · `invoices.sales_order_id` · parcial por defecto) — NO implementada. Aplicar `0125` a prod (founder). Puente OV → OC de DTD (futuro).
+**Pendiente (al cierre de Fase 1):** Fase 2 — ver §11.
+
+## 11. Notas de implementación (Fase 2 · 2026-06-12 · vía harness)
+
+**Estado:** Fase 2 implementada en `feat/orden-venta` (encima de Fase 1). Gate `node
+scripts/verify.mjs` 🟢 (1761 tests, +22 nuevos de auto-facturación). Migración 0126
+**NO** aplicada a prod (la aplica el founder). `reviewer`/`ui-ux` pendientes (no
+auto-aprobado).
+
+**Hallazgo arquitectónico clave (puente recepción↔OV):** la recepción CN real es
+`warehouse_receipts_cn` (0016), **no** `warehouse_receipts` (nombre del spec), y NO
+tenía FK a `prealertas` — usa `client_markbox`/`supplier_name` textuales. La OV se ata
+a las CAJAS vía `prealertas.sales_order_id` (Fase 1). Para resolver "qué OV cumple la
+caja recibida" + parcial + idempotencia, 0126 agrega el enlace que la Fase 1 dejó
+preparado (`getSalesOrderForPrealerta`): `warehouse_receipts_cn.prealerta_id` (la caja
+que la recepción materializa) y `.sales_order_id` (OV denormalizada). El "momento de
+confirmación de Warehouse" = transición a **`consolidado`** (los CBM/peso reales ya se
+capturan al recibir; consolidar es el cierre formal del almacén).
+
+**Archivos:**
+- `supabase/migrations/0126_sales_order_invoicing.sql` — aditiva, sin DDL destructivo,
+  idempotente. `invoices.sales_order_id` (FK real on delete set null · provenance) +
+  puente `warehouse_receipts_cn.prealerta_id`/`.sales_order_id` (FK suaves) + tracking
+  idempotencia `prealertas.invoice_id` (FK suave · marca de facturada) + `.invoiced_at`
+  + FK indexes. Las 3 tablas YA tienen RLS por tenant → las columnas heredan; no
+  reabre el CHECK de `entity_audit_log` (audita con `invoice`/`sales_order` ya
+  presentes). Reusa `next_invoice_code` (0077) y `postInvoiceJournalEntry` (0040) desde
+  la app — no los redefine.
+- `lib/studio/sales-orders/invoicing.ts` — capa PURA testeable: `canAutoInvoice` (gate
+  §3.5: CBM>0 + peso>0 + verificación [packing list proveedor **o** medido] + adjuntos
+  + no huérfana → si falta algo `{ok:false, reason:"faltan datos: …"}`),
+  `computeReceiptInvoiceAmount` (monto parcial), `nextStatusAfterInvoice`
+  (parcial/facturada vía `isAllowedTransition`), `salesOrderAcceptsInvoicing`.
+- `lib/studio/sales-orders/actions.ts` — `autoInvoiceForReceipt({admin, tenantId,
+  receiptId})`: resuelve OV (denormalizada o vía prealerta) → gate → **reclama la caja
+  con `UPDATE … WHERE invoice_id IS NULL` (guard anti-race)** → crea factura `emitida`
+  reusando `next_invoice_code` + asiento `postInvoiceJournalEntry` (best-effort) → liga
+  `prealertas.invoice_id` → setea status OV. NO throwea (devuelve `AutoInvoiceResult`).
+- `app/studio/(app)/cn/actions.ts` — hook **best-effort** (try/catch) en
+  `changeReceiptStatusAction` cuando consolida: si falla/faltan datos la consolidación
+  se completa igual; deja un evento `note` en el timeline de la recepción ("Factura …
+  generada" o "No se facturó: faltan datos …").
+- `lib/studio/sales-orders/queries.ts` (+`listInvoicesForSalesOrder`) + `page.tsx` +
+  `OrdenesVentaClient`/`OvDrawer` — provenance: lista de facturas generadas por la OV.
+- `__tests__/invoicing.test.ts` — 22 tests: gating (cada requisito faltante), monto
+  parcial proporcional + ajuste final exacto + cuadre de suma, idempotencia (status),
+  transición parcial→facturada.
+
+**Decisiones (para el review):**
+- *Idempotencia por caja:* `prealertas.invoice_id` + guard `UPDATE … WHERE invoice_id
+  IS NULL`. 1 OV : N facturas = facturar SOLO las cajas no facturadas de la recepción.
+  El cerrojo (`invoiced_at`) se revierte si el monto es 0 o si el insert/code falla
+  (las cajas vuelven al pool). on delete set null en la FK → anular la factura las
+  rehabilita.
+- *Monto real:* PROPORCIONAL al snapshot por cajas (`total_usd × recibidas/totales`),
+  con la recepción FINAL absorbiendo el restante exacto (cuadre sin centavos sueltos).
+  Motivo: no hay motor de tarifa de venta por-caja reutilizable trivial (0053 = costos
+  internos; 0055 = cotiza envío completo). Alineado con §3.5 ("si recalcular es
+  inviable, factura proporcional al snapshot"). **Punto a validar con el founder:** si
+  quiere recálculo por CBM real en vez de prorrateo por cajas, es un cambio acotado en
+  `computeReceiptInvoiceAmount`.
+- *IVA:* hereda el toggle `tenants.iva_enabled` (igual que 0021); con ON el total se
+  desglosa base/IVA 16%.
+
+**Pendiente:** `reviewer` + `ui-ux-designer`. Aplicar `0125` y `0126` a prod (founder).
+Puente OV → OC de DTD + alerta de cobranza pre-arribo (D4) siguen fuera de 0072.
 
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->

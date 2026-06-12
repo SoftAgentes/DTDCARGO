@@ -194,6 +194,49 @@ export async function getSalesOrderForPrealerta(
   }
 }
 
+// ── Facturas generadas por la OV (provenance · Fase 2) ─────────
+
+/** Subset de factura para la lista de provenance en el drawer de la OV. */
+export type SalesOrderInvoiceRef = {
+  id: string;
+  invoice_code: string;
+  total_amount: number;
+  status: string;
+  issued_at: string | null;
+  created_at: string;
+};
+
+/**
+ * Facturas (0021) generadas por una OV (Fase 2), recientes primero. RLS filtra por
+ * tenant. Defensivo: si la columna invoices.sales_order_id no existe aún (0126 sin
+ * aplicar en un env), devuelve [] en vez de romper el drawer.
+ */
+export async function listInvoicesForSalesOrder(
+  supabase: SupabaseClient,
+  salesOrderId: string,
+): Promise<SalesOrderInvoiceRef[]> {
+  try {
+    const { data, error } = await supabase
+      .from("invoices")
+      .select("id, invoice_code, total_amount, status, issued_at, created_at")
+      .eq("sales_order_id", salesOrderId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (error) throw error;
+    return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
+      id: String(r.id),
+      invoice_code: String(r.invoice_code ?? ""),
+      total_amount: num(r.total_amount),
+      status: String(r.status ?? ""),
+      issued_at: (r.issued_at as string | null) ?? null,
+      created_at: String(r.created_at),
+    }));
+  } catch {
+    return [];
+  }
+}
+
 // ── Stats del operador ─────────────────────────────────────────
 
 export type SalesOrderStats = {
