@@ -25,7 +25,7 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
 - **Consolidación de repo (v2.4):** cerrada — ver abajo.
 - **Lo último (v2.5 · 2026-06-07):** celebración del Shipping Mark al registrar la compra en el
   Portal (`portal/registro.jsx`), **tarjeta de presentación** como pieza oficial de marca
-  (`Tarjeta de Presentación.html`), **Brand Book → v3.5**, y un chequeo de links/conflictos
+  (`Tarjeta de Presentación.html`), **Brand Book → v3.7**, y un chequeo de links/conflictos
   para este handoff. Detalle completo en `CHANGELOG.md` (entrada 2026-06-07). La versión del
   ERP en el sidebar se alineó a **v2.5** (los módulos de contabilidad/nómina/backend ya lo estaban).
 - **Lo único que falta para lanzar es el backend real** → `backend/README.md`.
