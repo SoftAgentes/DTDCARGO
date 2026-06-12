@@ -301,14 +301,14 @@ export function calcularEnvioLCL(
   if (input.cbmTotal > params.cbmMaxContenedor) {
     return cotizacionVacia({
       tipo: "contenedor_excedido",
-      mensaje: "Eso es más que un contenedor. Consulte a su asesor",
+      mensaje: "Eso es más que un contenedor. Consulta a tu asesor",
     }, input);
   }
   if (input.pesoKg > params.pesoMaxContenedorKg) {
     return cotizacionVacia({
       tipo: "peso_contenedor_excedido",
       mensaje:
-        "Esto es más que el peso permitido por contenedor; consulte a su asesor",
+        "Esto es más que el peso permitido por contenedor; consulta a tu asesor",
     }, input);
   }
 

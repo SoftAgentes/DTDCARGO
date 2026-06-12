@@ -63,7 +63,7 @@ abr-2020; reevaluación de costos 2026). Conservado como antecedente — **super
 identidad de la sección 1.
 
 - **Tagline:** *"Servicio de confianza, de China a la puerta de tu casa"* (2020) → **"Con
-  confianza, de China a tu puerta"** (brand v3.0).
+  Confianza, de China a tu puerta"** (brand book vigente; casing con C mayúscula desde 2026-06-05).
 - **Misión 2020 (web):** servicios logísticos puerta a puerta + asesoría de compra; "rapidez,
   economía y seguridad"; "+13 años en el gigante asiático".
 - **Visión/Misión 2020 (presentación):** "la empresa puerta a puerta más confiable… de la zona

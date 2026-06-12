@@ -31,8 +31,13 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
+import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
 import { hasValidAcceptanceForMarkbox } from "@/lib/studio/legal/queries";
-import { type PaymentMethod } from "@/lib/studio/payment-types";
+import {
+  deriveFundClass,
+  type FundClass,
+  type PaymentMethod,
+} from "@/lib/studio/payment-types";
 import {
   calcInvoiceTotals,
   IVA_RATE_DEFAULT,
@@ -46,23 +51,9 @@ import {
 
 const VALID_CURRENCIES: InvoiceCurrency[] = ["USD", "VES", "USDT", "CNY"];
 
-/**
- * ── FLAG · Gate legal AUT-04: advisory ⇄ bloqueo duro (SDD-0054 · §3.1 / §3.1-bis)
- *
- * `false` (ADVISORY, modo actual): si un embarque DDP no tiene aceptación T&C
- * vigente, el operador VE el aviso pero PUEDE emitir igual (queda
- * `legal_ack: "override"` en la auditoría).
- *
- * `true` (BLOQUEO DURO): emitir una factura DDP sin aceptación vigente queda
- * PROHIBIDO (la action no muta y no ofrece override).
- *
- * Se deja en `false` a propósito al shipear Slice C: el día que se activa el flujo
- * de aceptación NO hay aceptaciones previas en prod (cero adopción) → un bloqueo
- * duro inmediato congelaría TODA factura DDP en vuelo. El FOUNDER lo pone en `true`
- * cuando haya adopción (clientes aceptando por el Portal). Cambiar SOLO esta
- * constante alcanza para el flip — el resto del gate ya está cableado.
- */
-const LEGAL_GATE_HARD_BLOCK = false;
+// FLAG del gate legal AUT-04 (advisory ⇄ bloqueo duro): vive en
+// `lib/studio/legal/gate-config.ts` (SDD-0067 — /studio/legal muestra el modo).
+// El flip del founder es 1 línea ALLÁ; acá solo se consume.
 
 function parseNumberOrNull(v: FormDataEntryValue | null): number | null {
   if (v == null) return null;
@@ -192,6 +183,29 @@ function addDaysISO(baseISO: string, days: number): string {
   const d = new Date(baseISO + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Clase de fondos de la factura (SDD-0068 · decisión #5). Solo ESCRIBE la
+ * columna `invoices.fund_class` al crear/emitir — no toca asientos ni estados.
+ *  - sin shipment → local_revenue (servicio local de DTD Services).
+ *  - con shipment → deriveFundClass(shipment_service): transporte_terrestre ⇒
+ *    local_revenue; consolidacion/DDP/FCL ⇒ third_party (Operadora).
+ *  - shipment referenciado pero ilegible (RLS/borrado) → third_party
+ *    (conservador: nunca inflar el ingreso propio).
+ */
+async function deriveInvoiceFundClass(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  shipmentId: string | null,
+): Promise<FundClass> {
+  if (!shipmentId) return "local_revenue";
+  const { data } = await supabase
+    .from("shipments")
+    .select("shipment_service")
+    .eq("id", shipmentId)
+    .maybeSingle<{ shipment_service: string | null }>();
+  if (!data) return "third_party";
+  return deriveFundClass(data.shipment_service);
 }
 
 /**
@@ -329,6 +343,8 @@ export async function createInvoice(
       status: emitNow ? "emitida" : "borrador",
       issued_at: emitNow ? today : null,
       due_date: input!.due_date ?? (emitNow ? addDaysISO(today, 30) : null),
+      // SDD-0068: clasificación de fondos del mandato (los recibos la heredan).
+      fund_class: await deriveInvoiceFundClass(supabase, input!.shipment_id),
     })
     .select("id")
     .single();
@@ -494,6 +510,10 @@ export async function emitInvoice(
       status: "emitida",
       issued_at: today,
       due_date: current.due_date ?? addDaysISO(today, 30),
+      // SDD-0068: re-derivar la clase de fondos al emitir (el shipment pudo
+      // cambiar mientras era borrador). Solo escribe la columna — el asiento
+      // de emisión y la máquina de estados quedan intactos.
+      fund_class: await deriveInvoiceFundClass(supabase, current.shipment_id),
     })
     .eq("id", id);
 

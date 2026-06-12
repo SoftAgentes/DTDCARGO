@@ -142,7 +142,7 @@ export function ImportRatesDrawer({ onClose }: { onClose: () => void }) {
               </code>
               . <code style={{ font: "500 11.5px/1 var(--f-mono)" }}>service</code> ∈{" "}
               consolidacion · puerta_a_puerta_DDP · reserva_FCL ·
-              transporte_terrestre. Indicá per_cbm o flat_rate. Las filas se
+              transporte_terrestre. Indica per_cbm o flat_rate. Las filas se
               importan como <strong style={{ color: "var(--ink)" }}>borrador</strong>{" "}
               (no van live). Dedup por servicio + origen + destino.
             </p>

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 63 specs)
+### Índice de specs (generado · 66 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -87,20 +87,23 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0052 | Reportes & Analytics — capa de presentación sobre agregados e… | approved | interno |
 | 0053 | Costing & Margen — costo editable por embarque (7 categorías)… | done | interno |
 | 0054 | Capa legal — documentos versionados + aceptaciones inmutables… | done | interno |
-| 0055 | Calculadora — configuración desde el Studio (Fase 3): ciudade… | in-progress | interno |
+| 0055 | Calculadora — configuración desde el Studio (Fase 3): ciudade… | done | interno |
 | 0056 | Conversaciones · bandeja unificada (WhatsApp + email + portal) | in-progress | interno |
-| 0057 | Portal — Compras/Prealertas + Proveedores del cliente (cierra… | in-progress | interno |
+| 0057 | Portal — Compras/Prealertas + Proveedores del cliente (cierra… | done | interno |
 | 0058 | Kommo lead → cliente — puente CRM↔ERP (convertir un lead del … | done | interno |
 | 0059 | Financiero con el Socio Logístico China — libro mayor bilater… | in-progress | confidencial |
-| 0059 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 | 0060 | Documentos · Versionado — revisiones append-only sobre el Hub… | done | interno |
 | 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | in-progress | interno |
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
 | 0063 | Servicios a fondo (sitio público) — fichas incluye/no-incluye… | in-progress | interno |
 | 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
-| 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | in-progress | interno |
+| 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | done | interno |
 | 0066 | Generador de reportes de inspección en el ERP (white-label · … | proposed | interno |
-| 0067 | Aceptación con evidencia reforzada (SDD-B del handoff legal) … | approved | interno |
+| 0067 | Aceptación con evidencia reforzada (SDD-B del handoff legal) … | done | interno |
+| 0068 | Recibos de cobranza con mandato (SDD-C del handoff legal) — l… | done | interno |
+| 0068 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
+| 0069 | Rendición quincenal a la Operadora (SDD-D del handoff legal) … | done | interno |
+| 0070 | Expediente de defensa legal (SDD-E del handoff) — cadena de e… | done | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

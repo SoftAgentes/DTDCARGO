@@ -155,6 +155,9 @@ describe("listAcceptances", () => {
       total_usd: "5600",
       accepted_at: "2026-05-29T10:00:00Z",
       ip: "1.1.1.1",
+      user_agent: "UA/1.0",
+      merchant_declaration: true,
+      invoice_id: "inv-1",
       hash: "abc",
       idempotency_key: null,
       created_at: "",
@@ -178,13 +181,22 @@ describe("listAcceptances", () => {
     },
   ];
 
-  it("coacciona numeric y parsea docs jsonb", async () => {
+  it("coacciona numeric y parsea docs jsonb; expone los campos v2", async () => {
     const rows = await listAcceptances(stub({ legal_acceptances }));
     expect(rows).toHaveLength(2);
     const a1 = rows.find((r) => r.id === "a1")!;
     expect(a1.cbm).toBe(7);
     expect(typeof a1.cbm).toBe("number");
     expect(a1.docs[0].key).toBe("tyc");
+    // v2 (SDD-0067): la bitácora expone user_agent + declaración + invoice.
+    expect(a1.user_agent).toBe("UA/1.0");
+    expect(a1.merchant_declaration).toBe(true);
+    expect(a1.invoice_id).toBe("inv-1");
+    // Fila sin columnas v2 pobladas → defaults seguros (null / false).
+    const a2 = rows.find((r) => r.id === "a2")!;
+    expect(a2.user_agent).toBeNull();
+    expect(a2.merchant_declaration).toBe(false);
+    expect(a2.invoice_id).toBeNull();
   });
 
   it("filtra por cliente (en query)", async () => {
@@ -237,7 +249,8 @@ describe("hasValidAcceptance", () => {
     }));
   }
 
-  // Fila de legal_acceptances íntegra: hash recomputado desde su propia evidencia.
+  // Fila de legal_acceptances íntegra (evidencia v2): hash recomputado desde su
+  // propia evidencia — incluye user_agent + merchant_declaration (SDD-0067).
   function row(opts: {
     id: string;
     tenant_id?: string;
@@ -249,6 +262,8 @@ describe("hasValidAcceptance", () => {
     weight_kg: number;
     total_usd: number;
     ip?: string | null;
+    user_agent?: string | null;
+    merchant_declaration?: boolean;
     accepted_at?: string;
     /** Si se da, sobreescribe el hash (para simular evidencia forjada). */
     hash?: string;
@@ -257,6 +272,8 @@ describe("hasValidAcceptance", () => {
     const client_markbox = opts.client_markbox ?? "DTD-1";
     const docs = opts.docs ?? VIGENTES;
     const ip = opts.ip ?? "1.1.1.1";
+    const user_agent = opts.user_agent !== undefined ? opts.user_agent : "UA/1.0";
+    const merchant_declaration = opts.merchant_declaration ?? true;
     const accepted_at = opts.accepted_at ?? "2026-05-29T10:00:00.000Z";
     const goodHash = hashEvidence({
       client_markbox,
@@ -266,6 +283,8 @@ describe("hasValidAcceptance", () => {
       weight_kg: opts.weight_kg,
       total_usd: opts.total_usd,
       ip,
+      user_agent,
+      merchant_declaration,
       accepted_at,
     });
     return {
@@ -279,6 +298,8 @@ describe("hasValidAcceptance", () => {
       weight_kg: opts.weight_kg,
       total_usd: opts.total_usd,
       ip,
+      user_agent,
+      merchant_declaration,
       accepted_at,
       hash: opts.hash ?? goodHash,
     };
@@ -323,6 +344,8 @@ describe("hasValidAcceptance", () => {
       weight_kg: 2800,
       total_usd: 5600,
       ip: "1.1.1.1",
+      user_agent: "UA/1.0", // mismos defaults v2 que el builder row()
+      merchant_declaration: true,
       accepted_at: sealedAt,
     });
     const a = row({
@@ -366,6 +389,37 @@ describe("hasValidAcceptance", () => {
     expect(
       await hasValidAcceptance(db([tampered]), { ...gate, total: 9999 }),
     ).toBe(false);
+  });
+
+  it("(a'') v2: user_agent alterado post-hoc → hash no matchea → gate false", async () => {
+    // La evidencia es load-bearing también sobre el user_agent (SDD-0067): una
+    // fila sellada con un UA y mutada después (aunque sea 1 char) se descarta.
+    const good = row({
+      id: "a1",
+      client_id: "c1",
+      quote_code: "Q-1",
+      cbm: 7,
+      weight_kg: 2800,
+      total_usd: 5600,
+      user_agent: "Mozilla/5.0 Chrome/126.0",
+    });
+    const tampered = { ...good, user_agent: "Mozilla/5.0 Chrome/126.1" };
+    expect(await hasValidAcceptance(db([good]), gate)).toBe(true); // sanity
+    expect(await hasValidAcceptance(db([tampered]), gate)).toBe(false);
+  });
+
+  it("(a''') v2: merchant_declaration flipeada post-hoc → gate false", async () => {
+    const good = row({
+      id: "a1",
+      client_id: "c1",
+      quote_code: "Q-1",
+      cbm: 7,
+      weight_kg: 2800,
+      total_usd: 5600,
+      merchant_declaration: true,
+    });
+    const tampered = { ...good, merchant_declaration: false };
+    expect(await hasValidAcceptance(db([tampered]), gate)).toBe(false);
   });
 
   it("(b) rechaza aceptación cuya versión de doc ya no es la vigente", async () => {

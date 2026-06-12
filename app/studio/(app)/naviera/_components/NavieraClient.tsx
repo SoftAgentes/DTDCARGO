@@ -119,7 +119,7 @@ export function NavieraClient({
               maxWidth: "64ch",
             }}
           >
-            Agrupá carga suelta LCL de China en contenedores FCL, medí la
+            Agrupa carga suelta LCL de China en contenedores FCL, mide la
             utilización CBM/peso, cierra el contenedor y átalo a un zarpe y su
             reserva de espacio.
           </p>

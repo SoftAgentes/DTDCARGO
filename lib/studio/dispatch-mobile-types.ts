@@ -81,7 +81,7 @@ export function validateBodegueroSplitInput(
     errors.split_reason = "Motivo obligatorio.";
   }
   if (input.split_reason === "otro" && !input.split_reason_text?.trim()) {
-    errors.split_reason_text = "Indicá un motivo libre para 'Otro'.";
+    errors.split_reason_text = "Indica un motivo libre para 'Otro'.";
   }
   if (Object.keys(errors).length > 0) return { fieldErrors: errors };
   return {
@@ -160,7 +160,7 @@ export function validateCamioneroPodInput(
   if (!input.photo_path?.trim()) errors.photo_path = "Foto del POD obligatoria.";
   if (!input.signature_path?.trim()) errors.signature_path = "Firma del receptor obligatoria.";
   const received_by = input.received_by?.trim();
-  if (!received_by) errors.received_by = "Indicá el nombre del receptor.";
+  if (!received_by) errors.received_by = "Indica el nombre del receptor.";
   if (received_by && received_by.length < 3) errors.received_by = "Nombre muy corto.";
 
   if (Object.keys(errors).length > 0) return { fieldErrors: errors };

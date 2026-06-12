@@ -316,8 +316,14 @@ export async function fetchRemoteHealth(siteUrl: string): Promise<FetchRemoteRes
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
+    // El endpoint remoto está gateado por DEBUG_HEALTH_SECRET (fail-closed). Mandamos
+    // el secreto por header; debe coincidir con el del deploy remoto (misma env var
+    // en .env.local y en Vercel). Sin él, el remoto responde 401/503 y devolvemos
+    // el error de forma elegante (EstadoTab ya lo maneja como "no alcanzable").
+    const secret = process.env.DEBUG_HEALTH_SECRET;
     const res = await fetch(`${siteUrl}/api/debug/health`, {
       signal: ctrl.signal,
+      headers: secret ? { authorization: `Bearer ${secret}` } : undefined,
       next: { revalidate: CACHE_REVALIDATE_SEC, tags: ["integration-health"] },
     });
     clearTimeout(timer);

@@ -48,11 +48,10 @@ const cspHeader = [
 ].join("; ");
 
 /**
- * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book (material de marca
- * interno). El v3.2 embebe sus imágenes en base64 (`window.__DTD_ASSETS`) pero
- * referencia `erp/tokens.css` (servido en `public/marca/erp/`) y carga las fuentes
- * Archivo / Nunito Sans desde Google Fonts (CDN) — por eso `style-src`/`font-src`
- * permiten `fonts.googleapis`/`fonts.gstatic`. `img`/`connect` con `data:`/`blob:`
+ * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book vigente (material de
+ * marca interno). El standalone embebe sus assets en base64 y carga las fuentes
+ * desde Google Fonts (CDN) — por eso `style-src`/`font-src` permiten
+ * `fonts.googleapis`/`fonts.gstatic`. `img`/`connect` con `data:`/`blob:`
  * + inline/eval para los assets embebidos. El resto del sitio mantiene la CSP estricta.
  */
 const brandBookCspHeader = [
@@ -127,7 +126,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/interno/marca/d/[bundle]": [
       "./public/brand/**",
-      "./public/marca/brand-book-v3.2.html",
+      "./public/marca/brand-book-v3.7.html",
       "./public/marca/herramientas/**",
       "./docs/marketing/whatsapp-business.md",
     ],
@@ -144,8 +143,8 @@ const nextConfig: NextConfig = {
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
-    // `/marca/*` sirve el Brand Book v3.1 (HTML autocontenido, material de marca
-    // interno): CSP permisiva + framing same-origin (lo enmarca el visor) +
+    // `/marca/*` sirve el Brand Book vigente (HTML autocontenido, material de
+    // marca interno): CSP permisiva + framing same-origin (lo enmarca el visor) +
     // noindex, TODO acotado a este prefijo. El catch-all de abajo lo excluye
     // (negative lookahead) para que no le pise estos headers con los estrictos.
     const marcaHeaders = [

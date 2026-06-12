@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Colateral Impreso · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Sora:wght@400;600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{ background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); -webkit-font-smoothing:antialiased; }
+  .wrap{ max-width:1080px; margin:0 auto; padding:56px 32px 96px; }
+  .eyebrow{ font:700 12px/1 var(--f-sans); letter-spacing:.14em; text-transform:uppercase; color:var(--wine); }
+  h1{ font:800 40px/1.04 var(--f-display); letter-spacing:-.02em; margin:14px 0 0; }
+  .lead{ font:400 16px/1.6 var(--f-sans); color:var(--ink-soft); max-width:680px; margin:16px 0 0; }
+  .meta-row{ display:flex; flex-wrap:wrap; gap:8px; margin-top:22px; }
+  .chip{ font:600 11.5px/1 var(--f-mono); color:var(--ink-soft); background:var(--bg-surface); border:1px solid var(--border); border-radius:var(--r-pill); padding:7px 12px; }
+  .section{ margin-top:64px; }
+  .section-head{ display:flex; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:26px; }
+  .section-head .num{ font:700 11px/1 var(--f-mono); letter-spacing:.1em; text-transform:uppercase; color:var(--wine); margin-bottom:10px; }
+  .section-head h2{ font:700 24px/1.1 var(--f-display); letter-spacing:-.01em; margin:0; }
+  .section-head p{ font:400 13.5px/1.55 var(--f-sans); color:var(--ink-soft); margin:0; max-width:380px; text-align:right; }
+  .stage{ background:radial-gradient(120% 90% at 50% 0%, #fff 0%, var(--bg-elevated) 78%); border:1px solid var(--border); border-radius:var(--r-xl); padding:48px 36px; display:flex; gap:44px; flex-wrap:wrap; justify-content:center; align-items:flex-start; }
+  .stack{ display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .stack .tag{ font:600 11px/1 var(--f-mono); letter-spacing:.08em; text-transform:uppercase; color:var(--ink-mute); }
+  .spec{ margin-top:18px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .actions{ margin-top:14px; display:flex; gap:10px; justify-content:center; }
+  .btn{ font:700 12.5px/1 var(--f-sans); padding:10px 16px; border-radius:var(--r-md); cursor:pointer; background:var(--wine); color:#fff; border:0; }
+  .btn:hover{ background:var(--wine-deep); }
+  .btn.ghost{ background:var(--bg-surface); color:var(--ink); border:1px solid var(--border); }
+  .wm-line{ font-family:var(--f-brand-display); font-weight:900; letter-spacing:-.02em; white-space:nowrap; }
+  .wm-line .dtd{ color:var(--wine); } .wm-line .cargo{ color:var(--ink); } .wm-line .gap{ display:inline-block; width:.15em; }
+
+  /* ── 01 MEMBRETE A4 (210×297 · 1mm = 2.55px) ─────────── */
+  .a4{ --m:2.55px; width:calc(210*var(--m)); height:calc(297*var(--m)); background:#fff; border-radius:4px;
+    box-shadow:0 18px 36px -10px rgba(15,30,61,.25), 0 2px 6px rgba(15,30,61,.12); position:relative;
+    display:flex; flex-direction:column; padding:calc(16*var(--m)) calc(18*var(--m)); }
+  .a4 .hd{ display:flex; align-items:flex-start; justify-content:space-between; padding-bottom:calc(6*var(--m)); border-bottom:calc(.8*var(--m)) solid var(--wine); }
+  .a4 .lk{ display:flex; align-items:center; gap:calc(3*var(--m)); }
+  .a4 .lk img{ height:calc(11*var(--m)); width:auto; display:block; }
+  .a4 .lk .wm-line{ font-size:calc(5.4*var(--m)); line-height:1; }
+  .a4 .lk .sub{ font:600 calc(2*var(--m))/1.3 var(--f-mono); letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); margin-top:calc(1.4*var(--m)); }
+  .a4 .meta{ text-align:right; font:500 calc(2.5*var(--m))/1.6 var(--f-mono); color:var(--ink-soft); }
+  .a4 .body{ flex:1; padding-top:calc(10*var(--m)); font:400 calc(3.2*var(--m))/1.75 var(--f-sans); color:var(--ink); }
+  .a4 .body .to{ font-weight:700; }
+  .a4 .body .asunto{ font:800 calc(3.4*var(--m))/1.3 var(--f-sans); margin:calc(5*var(--m)) 0 calc(3*var(--m)); }
+  .a4 .body .firma{ margin-top:calc(10*var(--m)); }
+  .a4 .body .firma .nm{ font-weight:800; }
+  .a4 .body .firma .rl{ font:700 calc(2.2*var(--m))/1.4 var(--f-sans); letter-spacing:.1em; text-transform:uppercase; color:var(--wine); }
+  .a4 .ft{ border-top:1px solid var(--border); padding-top:calc(4*var(--m)); display:flex; justify-content:space-between; gap:calc(4*var(--m)); font:500 calc(2.15*var(--m))/1.6 var(--f-mono); color:var(--ink-soft); }
+  .a4 .ft b{ color:var(--wine); font-weight:700; }
+
+  /* ── 02 CREDENCIAL CR-80 vertical (54×86 · 1mm = 4.1px) ── */
+  .cred{ --m:4.1px; width:calc(54*var(--m)); height:calc(86*var(--m)); border-radius:calc(3*var(--m)); overflow:hidden; position:relative;
+    box-shadow:0 16px 30px -8px rgba(15,30,61,.32), 0 2px 6px rgba(15,30,61,.16); }
+  .cred.front{ background:linear-gradient(135deg, var(--ink), #1F3055); color:#fff; display:flex; flex-direction:column; align-items:center; padding:calc(7*var(--m)) calc(5*var(--m)) calc(5*var(--m)); }
+  .cred .slot{ position:absolute; top:calc(2.6*var(--m)); left:50%; transform:translateX(-50%); width:calc(14*var(--m)); height:calc(2.4*var(--m)); border-radius:var(--r-pill); background:rgba(0,0,0,.35); }
+  .cred .iso{ height:calc(10*var(--m)); width:auto; margin-top:calc(2*var(--m)); }
+  .cred .foto{ width:calc(24*var(--m)); height:calc(24*var(--m)); border-radius:50%; background:#FBFAF7; color:var(--ink); display:flex; align-items:center; justify-content:center;
+    font:900 calc(8*var(--m))/1 var(--f-brand-display); margin-top:calc(4*var(--m)); border:calc(.8*var(--m)) solid var(--wine-soft); }
+  .cred .nm{ font:900 calc(4.4*var(--m))/1.15 var(--f-brand-display); letter-spacing:-.01em; margin-top:calc(4*var(--m)); text-align:center; }
+  .cred .rl{ font:800 calc(2.2*var(--m))/1.2 var(--f-sans); letter-spacing:.16em; text-transform:uppercase; color:var(--wine-soft); margin-top:calc(1.6*var(--m)); }
+  .cred .idl{ font:600 calc(2.4*var(--m))/1 var(--f-mono); color:rgba(255,255,255,.65); margin-top:calc(2*var(--m)); }
+  .cred .stripe{ margin-top:auto; width:calc(100% + 10*var(--m)); height:calc(3.4*var(--m)); background:var(--wine); }
+  .cred.back{ background:var(--bg-base); color:var(--ink); display:flex; flex-direction:column; padding:calc(7*var(--m)) calc(5.5*var(--m)) 0; }
+  .cred.back h5{ font:800 calc(2.6*var(--m))/1.2 var(--f-sans); letter-spacing:.12em; text-transform:uppercase; color:var(--wine); margin:calc(2*var(--m)) 0 calc(2*var(--m)); }
+  .cred.back ul{ margin:0; padding-left:calc(4*var(--m)); font:500 calc(2.35*var(--m))/1.7 var(--f-sans); color:var(--ink-soft); }
+  .cred.back .qr{ width:calc(16*var(--m)); height:calc(16*var(--m)); margin:calc(3.5*var(--m)) auto 0; background:#fff; padding:calc(1*var(--m)); border:1px solid var(--border); border-radius:calc(1*var(--m)); }
+  .cred.back .qr canvas, .cred.back .qr img{ width:100%; height:100%; image-rendering:pixelated; }
+  .cred.back .ret{ text-align:center; font:500 calc(1.95*var(--m))/1.55 var(--f-mono); color:var(--ink-mute); margin-top:calc(2.4*var(--m)); }
+  .cred.back .stripe2{ margin-top:auto; width:calc(100% + 11*var(--m)); margin-left:calc(-5.5*var(--m)); height:calc(3.4*var(--m)); background:var(--ink); }
+
+  /* ── 03 VINILO DE CAMIÓN (furgón 6.0×2.4m · 1cm = .92px) ── */
+  .truck{ --c:0.92px; width:calc(600*var(--c)); height:calc(240*var(--c)); background:var(--ink); border-radius:calc(8*var(--c));
+    position:relative; overflow:hidden; box-shadow:0 18px 36px -10px rgba(15,30,61,.3); display:flex; align-items:center; }
+  .truck .pat{ position:absolute; right:calc(-30*var(--c)); bottom:calc(-50*var(--c)); font-family:var(--f-cn); font-size:calc(220*var(--c)); color:rgba(255,255,255,.05); line-height:.8; }
+  .truck .in{ position:relative; padding:calc(26*var(--c)) calc(34*var(--c)); display:flex; flex-direction:column; gap:calc(10*var(--c)); }
+  .truck .lk{ display:flex; align-items:center; gap:calc(14*var(--c)); }
+  .truck .lk img{ height:calc(74*var(--c)); width:auto; }
+  .truck .lk .wm-line{ font-size:calc(46*var(--c)); }
+  .truck .lk .wm-line .cargo{ color:#FBFAF7; }
+  .truck .tg{ font:800 calc(19*var(--c))/1.25 var(--f-brand); color:#FBFAF7; }
+  .truck .tg b{ color:var(--wine-soft); }
+  .truck .dat{ display:flex; gap:calc(18*var(--c)); font:700 calc(13*var(--c))/1 var(--f-mono); color:rgba(255,255,255,.85); margin-top:calc(6*var(--c)); }
+  .truck .dat span{ display:flex; align-items:center; gap:calc(5*var(--c)); }
+  .truck .dat .dot{ width:calc(5*var(--c)); height:calc(5*var(--c)); border-radius:50%; background:var(--wine-soft); }
+  .truck .wheels{ position:absolute; bottom:calc(-14*var(--c)); left:calc(70*var(--c)); right:calc(70*var(--c)); display:flex; justify-content:space-between; }
+  .truck .wheels i{ width:calc(34*var(--c)); height:calc(34*var(--c)); border-radius:50%; background:#0B1428; border:calc(6*var(--c)) solid #2A3A5E; }
+
+  /* ── 04 ROLL-UP 85×200cm (1cm = 3.1px) ─────────────────── */
+  .roll{ --c:3.1px; width:calc(85*var(--c)); height:calc(200*var(--c)); background:linear-gradient(165deg, var(--ink) 0%, #1F3055 100%);
+    border-radius:calc(1.2*var(--c)); overflow:hidden; position:relative; box-shadow:0 18px 36px -10px rgba(15,30,61,.35);
+    display:flex; flex-direction:column; align-items:center; text-align:center; padding:calc(10*var(--c)) calc(8*var(--c)) calc(12*var(--c)); color:#fff; }
+  .roll .pat{ position:absolute; top:calc(-8*var(--c)); right:calc(-10*var(--c)); font-family:var(--f-cn); font-size:calc(46*var(--c)); color:rgba(255,255,255,.05); line-height:.8; }
+  .roll img.iso{ height:calc(16*var(--c)); width:auto; margin-top:calc(2*var(--c)); }
+  .roll .wm-line{ font-size:calc(7.4*var(--c)); margin-top:calc(3*var(--c)); }
+  .roll .wm-line .cargo{ color:#FBFAF7; }
+  .roll .tg{ font:900 calc(6.6*var(--c))/1.2 var(--f-brand-display); margin-top:calc(8*var(--c)); text-wrap:balance; }
+  .roll .tg b{ color:var(--wine-soft); }
+  .roll ul{ list-style:none; margin:calc(8*var(--c)) 0 0; padding:0; display:flex; flex-direction:column; gap:calc(3.4*var(--c)); font:700 calc(3.3*var(--c))/1.35 var(--f-brand); text-align:left; }
+  .roll ul li{ display:flex; gap:calc(2.6*var(--c)); align-items:flex-start; }
+  .roll ul li i{ width:calc(2*var(--c)); height:calc(2*var(--c)); border-radius:50%; background:var(--wine-soft); margin-top:calc(1.4*var(--c)); flex:0 0 auto; }
+  .roll .qr{ width:calc(20*var(--c)); height:calc(20*var(--c)); background:#fff; border-radius:calc(1.6*var(--c)); padding:calc(1.4*var(--c)); margin-top:auto; }
+  .roll .qr canvas, .roll .qr img{ width:100%; height:100%; image-rendering:pixelated; }
+  .roll .web{ font:800 calc(3.6*var(--c))/1 var(--f-mono); color:var(--wine-soft); margin-top:calc(3.4*var(--c)); }
+  .roll .tel{ font:600 calc(2.8*var(--c))/1 var(--f-mono); color:rgba(255,255,255,.75); margin-top:calc(1.8*var(--c)); }
+  .roll .safe{ position:absolute; left:0; right:0; bottom:0; height:calc(10*var(--c)); border-top:2px dashed rgba(255,255,255,.3);
+    display:flex; align-items:center; justify-content:center; font:600 calc(2.2*var(--c))/1 var(--f-mono); color:rgba(255,255,255,.45); }
+
+  /* ── Impresión por pieza ───────────────────────────────── */
+  @media print {
+    body[class*="print-only-"] *{ visibility:hidden !important; }
+    body.print-only-mem #pza-mem, body.print-only-mem #pza-mem *{ visibility:visible !important; }
+    body.print-only-mem #pza-mem{ position:absolute; left:0; top:0; box-shadow:none; border-radius:0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">DTD-Cargo · Identidad impresa</div>
+  <h1>Colateral impreso</h1>
+  <p class="lead">El set que faltaba del sistema impreso — comparte lockup, tipografía de marca (Archivo) y datos oficiales con la <a href="Tarjeta de Presentación.html" style="color:var(--wine); font-weight:700;">Tarjeta de Presentación</a>. Los uniformes viven en su <a href="Uniformes · DTD-Cargo.html" style="color:var(--wine); font-weight:700;">pieza propia</a>.</p>
+  <div class="meta-row">
+    <span class="chip">RIF J-50648869-8</span>
+    <span class="chip">Av. Bolívar Norte 14 · Valencia</span>
+    <span class="chip">info@dtdcargo.com</span>
+    <span class="chip">+58 241 414 7886</span>
+    <span class="chip">CMYK en imprenta · wine #7F0F1A · navy #0F1E3D</span>
+  </div>
+
+  <!-- ══ 01 · MEMBRETE A4 ══ -->
+  <div class="section">
+    <div class="section-head">
+      <div><div class="num">01 / Membrete A4</div><h2>Papel carta oficial</h2></div>
+      <p>210×297 mm + sangrado 3 mm. Header con lockup y línea wine; footer con datos fijos. Para cartas, autorizaciones y comunicados.</p>
+    </div>
+    <div class="stage">
+      <div class="stack">
+        <div class="a4" id="pza-mem">
+          <div class="hd">
+            <div class="lk">
+              <img src="assets/dtdcargo-isologo-primary.png" alt="" />
+              <div>
+                <div class="wm-line"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></div>
+                <div class="sub">Logística puerta a puerta · China → Venezuela</div>
+              </div>
+            </div>
+            <div class="meta">Valencia, 10 de junio de 2026<br/>REF: DTD-COM-2026-018</div>
+          </div>
+          <div class="body">
+            <div class="to">Sres. Acindar Comercial C.A.<br/>Att. Carlos Méndez</div>
+            <div class="asunto">Asunto: Confirmación de consolidado · junio 2026</div>
+            <p>Por medio de la presente confirmamos la reserva de espacio de su carga en el consolidado con zarpe estimado el 28 de junio desde Ningbo, con destino Puerto Cabello. El detalle del embarque y la documentación asociada están disponibles en su portal de cliente.</p>
+            <p>Sin otro particular, quedamos atentos.</p>
+            <div class="firma">
+              <div class="nm">Andrés Bermúdez</div>
+              <div class="rl">Contabilidad · DTD-Cargo</div>
+            </div>
+          </div>
+          <div class="ft">
+            <span><b>DTD Cargo</b> · RIF J-50648869-8<br/>Av. Bolívar Norte 14, Valencia · Venezuela</span>
+            <span style="text-align:right;">dtdcargo.com · info@dtdcargo.com<br/>+58 241 414 7886</span>
+          </div>
+        </div>
+        <div class="spec">
+          <span class="chip">210×297 mm</span><span class="chip">sangrado 3 mm</span><span class="chip">bond 90 g</span><span class="chip">margen útil 16/18 mm</span>
+        </div>
+        <div class="actions"><button class="btn" onclick="printPiece('mem')">⎙ Imprimir membrete</button></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 02 · CREDENCIAL ══ -->
+  <div class="section">
+    <div class="section-head">
+      <div><div class="num">02 / Credencial</div><h2>Carnet con lanyard</h2></div>
+      <p>CR-80 vertical 54×86 mm, PVC laminado. Frente navy con foto y rol; dorso con reglas de uso y QR de verificación.</p>
+    </div>
+    <div class="stage">
+      <div class="stack">
+        <div class="cred front">
+          <div class="slot"></div>
+          <img class="iso" src="assets/dtdcargo-isologo-reverse.png" alt="" />
+          <div class="foto">AB</div>
+          <div class="nm">Andrés<br/>Bermúdez</div>
+          <div class="rl">Contabilidad</div>
+          <div class="idl">EMP-004 · desde 2021</div>
+          <div class="stripe"></div>
+        </div>
+        <div class="tag">Frente · navy</div>
+      </div>
+      <div class="stack">
+        <div class="cred back">
+          <h5>Uso del carnet</h5>
+          <ul>
+            <li>Porte visible en bodega y oficina.</li>
+            <li>Personal e intransferible.</li>
+            <li>Reportar pérdida a Administración.</li>
+          </ul>
+          <div class="qr" id="qr-cred"></div>
+          <div class="ret">Verificación · dtdcargo.com<br/>RIF J-50648869-8 · +58 241 414 7886</div>
+          <div class="stripe2"></div>
+        </div>
+        <div class="tag">Dorso · papel</div>
+      </div>
+      <div class="stack" style="align-self:center;">
+        <div class="spec" style="flex-direction:column; align-items:flex-start; gap:8px;">
+          <span class="chip">54×86 mm · CR-80 vertical</span>
+          <span class="chip">PVC 0.76 mm laminado mate</span>
+          <span class="chip">perforación oval 14×3 mm</span>
+          <span class="chip">lanyard navy · wordmark cream</span>
+          <span class="chip">foto: círculo Ø24 mm · aro wine-soft</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 03 · VINILO DE CAMIÓN ══ -->
+  <div class="section">
+    <div class="section-head">
+      <div><div class="num">03 / Vinilo</div><h2>Lateral de camión</h2></div>
+      <p>Para furgón de 6.0×2.4 m (T-002 y similares). Fondo navy ploteado completo o lockup sobre carrocería blanca — esta es la versión navy completa.</p>
+    </div>
+    <div class="stage" style="padding-bottom:64px;">
+      <div class="stack">
+        <div class="truck">
+          <div class="pat">回</div>
+          <div class="in">
+            <div class="lk">
+              <img src="assets/dtdcargo-isologo-reverse.png" alt="" />
+              <div class="wm-line"><span class="dtd" style="color:var(--wine-soft);">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></div>
+            </div>
+            <div class="tg">Con <b>Confianza</b>, de China a tu puerta.</div>
+            <div class="dat">
+              <span><i class="dot"></i>dtdcargo.com</span>
+              <span><i class="dot"></i>+58 241 414 7886</span>
+              <span><i class="dot"></i>Importación puerta a puerta</span>
+            </div>
+          </div>
+          <div class="wheels"><i></i><i></i></div>
+        </div>
+        <div class="spec">
+          <span class="chip">lateral 6.0×2.4 m · escala 1:100</span><span class="chip">vinilo fundido laminado UV</span><span class="chip">zona de seguridad 15 cm a bordes</span><span class="chip">isólogo mínimo 60 cm de alto</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 04 · ROLL-UP ══ -->
+  <div class="section">
+    <div class="section-head">
+      <div><div class="num">04 / Roll-up</div><h2>Banner de ferias y eventos</h2></div>
+      <p>85×200 cm. El único gradiente permitido de la marca (navy→ink). Los últimos 10 cm quedan dentro del mecanismo — nada importante ahí.</p>
+    </div>
+    <div class="stage">
+      <div class="stack">
+        <div class="roll">
+          <div class="pat">回</div>
+          <img class="iso" src="assets/dtdcargo-isologo-reverse.png" alt="" />
+          <div class="wm-line"><span class="dtd" style="color:var(--wine-soft);">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></div>
+          <div class="tg">Con <b>Confianza</b>,<br/>de China a tu puerta.</div>
+          <ul>
+            <li><i></i>DDP puerta a puerta · todo incluido, pagas al llegar</li>
+            <li><i></i>Consolidado LCL y FCL · Yiwu, Cantón, Shenzhen</li>
+            <li><i></i>Inspección de calidad en origen</li>
+          </ul>
+          <div class="qr" id="qr-roll"></div>
+          <div class="web">dtdcargo.com</div>
+          <div class="tel">+58 241 414 7886 · info@dtdcargo.com</div>
+          <div class="safe">zona del mecanismo · 10 cm</div>
+        </div>
+        <div class="spec">
+          <span class="chip">85×200 cm + 10 cm de cola</span><span class="chip">lona front 440 g ó PET</span><span class="chip">resolución arte 150 dpi</span><span class="chip">QR mínimo 18×18 cm</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ 05 · UNIFORMES ══ -->
+  <div class="section">
+    <div class="section-head">
+      <div><div class="num">05 / Uniformes</div><h2>Uniformes del equipo</h2></div>
+      <p>La pieza completa vive en su archivo propio — acá integrada para que el set impreso quede en un solo lugar.</p>
+    </div>
+    <div class="stage" style="padding:18px; display:block;">
+      <iframe src="Uniformes · DTD-Cargo.html" title="Uniformes DTD-Cargo" style="width:100%; height:680px; border:0; border-radius:var(--r-md); background:#fff;"></iframe>
+      <div class="actions" style="margin-top:12px;">
+        <a href="Uniformes · DTD-Cargo.html" target="_blank" rel="noopener" style="text-decoration:none;"><button class="btn ghost">↗ Abrir Uniformes a pantalla completa</button></a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function printPiece(id){
+  document.body.classList.add('print-only-'+id);
+  const off=()=>{ document.body.className=document.body.className.replace(/print-only-\S+/g,'').trim(); window.removeEventListener('afterprint', off); };
+  window.addEventListener('afterprint', off);
+  window.print();
+  setTimeout(off, 1500);
+}
+function drawQR(elId, text, px){
+  try{
+    const qr = qrcode(0, 'M'); qr.addData(text); qr.make();
+    const el = document.getElementById(elId);
+    el.innerHTML = qr.createImgTag(4, 0);
+    const img = el.querySelector('img'); if(img){ img.style.width='100%'; img.style.height='100%'; }
+  }catch(e){}
+}
+window.addEventListener('load', ()=>{
+  drawQR('qr-cred', 'https://dtdcargo.com');
+  drawQR('qr-roll', 'https://dtdcargo.com/calculadora');
+});
+</script>
+</body>
+</html>

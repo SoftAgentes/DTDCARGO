@@ -16,7 +16,7 @@
 - Seguimiento de cada envío mediante un código de cliente propio (Shipping Mark "DTD-…").
 
 ## Diferenciadores
-- Financiamiento 100% (sujeto a aprobación): el cliente paga cuando la carga llega a Venezuela, no por adelantado.
+- Pagas al llegar (pueden aplicar restricciones): el cliente paga cuando la carga llega a Venezuela, no por adelantado.
 - Operación propia en ambos extremos: oficina y bodega en Yiwu (Zhejiang, China) y en Valencia (Carabobo, Venezuela). Un solo equipo responde por la carga de punta a punta.
 - Un solo punto de contacto coordina todo el envío de principio a fin.
 - Más de 15 años de trayectoria (operando desde 2008).
@@ -31,7 +31,7 @@
 
 ## Preguntas frecuentes
 - ¿Qué significa puerta a puerta DDP? DTD se encarga del flete, la aduana y los impuestos, y entrega la mercancía en la dirección del cliente en Venezuela. El cliente no hace trámites aduaneros.
-- ¿Cuándo se paga? Con Financiamiento 100%, el pago es cuando la carga llega a Venezuela.
+- ¿Cuándo se paga? Con la modalidad "Pagas al llegar", el pago es cuando la carga llega a Venezuela (pueden aplicar restricciones).
 - ¿Inspeccionan la mercancía? Sí, se revisa en la fábrica en China antes de embarcar.
 - ¿Cuánto tarda? La carga va por vía marítima; el tiempo depende de la ruta y la modalidad y se confirma al cotizar.
 - ¿Hacen envíos aéreos? El flete aéreo de carga está temporalmente suspendido (la carga va por barco). Sí hay courier express de muestras y documentos pequeños (DHL/UPS/FedEx).

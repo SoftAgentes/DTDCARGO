@@ -44,14 +44,14 @@ Al recibir el perfil del login, la app rutea por `role`:
 | `role` | Abre | Entrypoint actual (prototipo) |
 |---|---|---|
 | `operario` (CN, recepción) | App de recepción/inspección | `Operario CN.html` → `operario/app.jsx` |
-| `almacenista` (VE, bodega) | App de bodega | `Almacenista VE.html` → `operario/almacenista.jsx` |
-| `transportista` (chofer) | **Directo** a su ruta del día — ve si tiene carga asignada/autorizada y la confirma | `Transportista.html` → `operario/transportista.jsx` · `Operario VE.html` → `operario/ve.jsx` |
+| `almacenista` (VE, bodega) | App de bodega | `Bodeguero VE.html` → `operario/bodeguero.jsx` |
+| `transportista` (chofer) | **Directo** a su ruta del día — ve si tiene carga asignada/autorizada y la confirma | `Camionero.html` → `operario/camionero.jsx` · `Operario VE.html` → `operario/ve.jsx` |
 | **multi-rol** (mismo usuario es almacenista *y* transportista) | **Picker de modo** → entra al modo elegido | `Operario · App.html` (entry único: login → ruteo por rol → picker) |
 
 ### Caso especial · multi-rol (tenant DTDSTUDIO)
 El mismo operario a veces es **almacenista** (Modo Bodega) y a veces **transportista**
 (Modo Chofer). El perfil trae **2 roles habilitados** → la app muestra el picker
-"¿Qué hacés hoy?" y al elegir entra al **home de trabajo de ese modo** (no a una pantalla
+"¿Qué haces hoy?" y al elegir entra al **home de trabajo de ese modo** (no a una pantalla
 de cambio de modo). El **cambio de modo** vive en el menú ☰, no en el centro.
 
 - **Modo Bodega** (= "Soy almacenista") → 2 acciones: **Recibir contenedor** + **Despachar camión**.
@@ -143,7 +143,7 @@ Muestra por operario: nombre, dispositivo, app/versión, sitio, estado
 
 > Consistencia: `op-005` (Yusneidy) se rotula **"Almacenista"** en el directorio
 > (antes "Bodeguera"); unificado 2026-06-01. La app de almacén figura como "Almacenista"
-> (archivo `Almacenista VE.html` sin cambio).
+> (archivo `Bodeguero VE.html` sin cambio).
 
 ---
 
@@ -155,17 +155,17 @@ Todas son React in-HTML (sin build), montan sobre `erp/tokens.css` + `erp/icons.
 |---|---|---|---|
 | **Operario CN** | `Operario CN.html` | `operario/app.jsx` | Recepción/inspección en Yiwu: login (ES/中文) → escaneo o manual → fotos → identificar → datos (HS/CBM/peso) → confirmar. Despacho incluido. |
 | **Operario VE** | `Operario VE.html` | `operario/ve.jsx` *(IIFE)* | Chofer/entrega: rutas asignadas → cargar camión sellado → confirmar → ruta GPS → docs → firma → POD. |
-| **Almacenista VE** | `Almacenista VE.html` | `operario/almacenista.jsx` | Almacén Valencia: **recibir contenedor** (lista → escaneo de cajas) + **despachar camión** (camión → chofer → items → pase QR). |
-| **Despacho · Vista 3** | `Despacho · Vista 3.html` | `operario/almacenista-despacho.jsx` *(IIFE)* | Variante avanzada de despacho con cola por ruta y paradas Maracay→Caracas. |
-| **Transportista** | `Transportista.html` | `operario/transportista.jsx` *(IIFE)* | Ruta activa con GPS, foto de fachada, llegada y POD por parada, alerta de ubicación. |
-| **Operario · App** | `Operario · App.html` | reusa `almacenista.jsx` + `ve.jsx` | **APK único** (reemplaza a Operario Multi): login usuario+contraseña → auth mock → ruteo por rol → multi-rol abre picker → Modo Bodega / Chofer, con sesión persistente (PIN). |
+| **Bodeguero VE** | `Bodeguero VE.html` | `operario/bodeguero.jsx` | Almacén Valencia: **recibir contenedor** (lista → escaneo de cajas) + **despachar camión** (camión → chofer → items → pase QR). |
+| **Despacho · Vista 3** | `Despacho · Vista 3.html` | `operario/bodeguero-despacho.jsx` *(IIFE)* | Variante avanzada de despacho con cola por ruta y paradas Maracay→Caracas. |
+| **Transportista** | `Camionero.html` | `operario/camionero.jsx` *(IIFE)* | Ruta activa con GPS, foto de fachada, llegada y POD por parada, alerta de ubicación. |
+| **Operario · App** | `Operario · App.html` | reusa `bodeguero.jsx` + `ve.jsx` | **APK único** (reemplaza a Operario Multi): login usuario+contraseña → auth mock → ruteo por rol → multi-rol abre picker → Modo Bodega / Chofer, con sesión persistente (PIN). |
 | **Mobile ERP** | `Mobile ERP.html` | `mobile/app.jsx` | **No es para operarios** — vista móvil del usuario ERP (Admin/Comercial): tracking, clientes cerca, gastos rápidos. |
-| **Portal Cliente Mobile** | `Portal Cliente Mobile.html` | `portal/app.jsx` | Portal del **cliente** en móvil (MARKBOX, embarques, estado de cuenta). |
+| **Portal Cliente Mobile** | `Portal Cliente Mobile.html` | `portal/app.jsx` | Portal del **cliente** en móvil (Shipping Mark, embarques, estado de cuenta). |
 
 ### Reuso de flujos (seam ya construido)
 Para que el launcher multi-rol reuse pantallas sin re-login ni rediseño, las apps exponen
 sus sub-flujos:
-- `operario/almacenista.jsx` → `window.AlmacenistaFlows = { ReceptionFlow, DispatchFlow }`
+- `operario/bodeguero.jsx` → `window.BodegueroFlows = { ReceptionFlow, DispatchFlow }`
 - `operario/ve.jsx` *(IIFE)* → `window.OperarioVEFlows = { DeliveryFlow }`
 
 **Regla de scope (importante):** los scripts Babel **comparten scope global**. Todo `.jsx`
@@ -225,7 +225,7 @@ Cada llamada va con `Authorization: Bearer <accessToken>`; el backend **verifica
   **`-reverse`** (nunca `filter: invert` sobre el isólogo). Ver `BRAND-MIGRATION-2026-05.md`.
 - **Íconos:** `window.Icon` (`erp/icons.jsx`) — nunca emoji decorativo en UI de producto.
 - **Componentes:** `window.ERPUI` primero; inventar solo con `/* TODO: brand-review */`.
-- **Códigos (mono):** MARKBOX `DTD-XXXX` (cara al cliente) / Shipping Mark 唛头 (cara al
+- **Códigos (mono):** Shipping Mark `DTD-XXXX` (cara al cliente) / Shipping Mark 唛头 (cara al
   proveedor CN, mismo valor), containers `DTDU-XXXXXX`, rutas `R-2026-XXXX`.
 - **Tono:** castellano rioplatense/venezolano neutro, voseo, verbos directos en CTAs
   ("Confirmar ruta", "Recibir contenedor"). Sin emoji ni exclamaciones múltiples en UI.
@@ -244,5 +244,5 @@ Cada llamada va con `Authorization: Bearer <accessToken>`; el backend **verifica
 7. **Empaquetado**: PWA instalable o wrapper (Capacitor/TWA) — un solo build para todos
    los tenants.
 
-> Regla transversal: **no rehacer lo existente.** Verificá contra `CHANGELOG.md`; si hay
+> Regla transversal: **no rehacer lo existente.** Verifica contra `CHANGELOG.md`; si hay
 > duda, preguntá. Avisá antes de violar una regla de marca (formato `BRAND-CHECK` en `CLAUDE.md`).

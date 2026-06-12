@@ -129,9 +129,9 @@ export function validateRateInput(input: Partial<RateInput>): {
   const errors: RateActionState["fieldErrors"] = {};
 
   if (!input.service) errors.service = "Elige un servicio.";
-  if (!input.origin || !input.origin.trim()) errors.origin = "Indicá el origen.";
+  if (!input.origin || !input.origin.trim()) errors.origin = "Indica el origen.";
   if (!input.destination || !input.destination.trim())
-    errors.destination = "Indicá el destino.";
+    errors.destination = "Indica el destino.";
 
   const hasPerCbm = input.per_cbm != null && Number.isFinite(input.per_cbm) && input.per_cbm > 0;
   const hasFlat = input.flat_rate != null && Number.isFinite(input.flat_rate) && input.flat_rate > 0;

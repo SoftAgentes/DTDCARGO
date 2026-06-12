@@ -192,7 +192,7 @@ function CobranzaDrawer({ item, onClose, goTo }) {
       <div className="eyebrow eyebrow-wine" style={{ marginBottom: 10 }}>BITÁCORA DE GESTIÓN · {item.log.length}</div>
       {item.log.length === 0 ? (
         <div style={{ padding: '16px', textAlign: 'center', border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-md)', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
-          Sin gestiones registradas. Usá los botones de arriba para registrar el seguimiento.
+          Sin gestiones registradas. Usa los botones de arriba para registrar el seguimiento.
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>

@@ -3,8 +3,8 @@
  *
  * Validación MANUAL (patrón del proyecto — sin Zod): `validateRegisterInput()`
  * devuelve `{ input, fieldErrors }` igual que `validateClientInput`. El documento
- * (cédula persona / RIF empresa) es la CONTRASEÑA inicial → se normaliza para que
- * el cliente pueda entrar tipeando lo mismo que registró.
+ * (cédula persona / RIF empresa) se normaliza a su forma canónica para el dedup y
+ * la identidad básica. NO es la contraseña: la cuenta nace con clave aleatoria.
  *
  * REGISTRO EXPRESS (founder 2026-06-07): el alta pide SOLO lo mínimo para emitir el
  * MARKBOX y poder contactar al cliente — tipo · nombre · documento · email ·
@@ -14,7 +14,7 @@
  *   - `RegisterInput` / `validateRegisterInput`  → el alta express.
  *   - `AddressInput`  / `validateAddressInput`    → la dirección VE (perfil).
  * La identidad básica + el dedup se conservan: el número de documento es
- * obligatorio al alta (es la contraseña inicial y la clave del dedup).
+ * obligatorio al alta (clave del dedup e identidad básica).
  *
  * Reusa `RIF_REGEX` / `formatRif` de `lib/studio/client-types` para el RIF (el
  * portal está fuera de la frontera ESLint público↔ERP). La cédula tiene su propio
@@ -36,7 +36,7 @@ export type RegisterInput = {
   company: string | null;
   /**
    * Documento de identidad CANÓNICO: cédula "V-12345678" (persona) o RIF
-   * "J-12345678-9" (empresa). Es la contraseña inicial del cliente.
+   * "J-12345678-9" (empresa). Se usa para dedup + identidad, NO como contraseña.
    */
   document: string;
   email: string;
@@ -77,7 +77,7 @@ export function formatCedula(raw: string): string {
 }
 
 /**
- * Normaliza el documento a su forma canónica (la que se usa como contraseña).
+ * Normaliza el documento a su forma canónica (dedup + identidad).
  * Persona → `formatCedula`, empresa → `formatRif`. Devuelve null si no matchea
  * el formato esperado para el tipo.
  */

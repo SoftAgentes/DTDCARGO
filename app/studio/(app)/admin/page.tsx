@@ -2,7 +2,7 @@
  * Administración · /studio/admin (refactor maestro-detalle)
  *
  * Layout sidenav 240px + content 1fr, alineado al handoff Claude Design
- * v1.7 (docs/design/studio/v1.7-claude-design/project/erp/modules/admin.jsx).
+ * el Norte (docs/design/studio/_norte/erp/modules/admin.jsx).
  *
  * 13 secciones agrupadas en 3 niveles (BÁSICO / INTERMEDIO / PRO).
  * URL state via ?section= (server component, sin client JS).
@@ -53,7 +53,7 @@ const SECTIONS: AdminSection[] = [
     label: "Casos de uso · ON/OFF",
     icon: "flag",
     description:
-      "Feature flags por módulo. Encendé/apagá WhatsApp Business, SENIAT, No-Olvidar, Mailing y otros sin tocar código.",
+      "Feature flags por módulo. Enciende/apaga WhatsApp Business, SENIAT, No-Olvidar, Mailing y otros sin tocar código.",
     href: "/studio/admin/feature-flags",
   },
   {

@@ -18,12 +18,19 @@ import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { DrawerShell } from "@/app/studio/_components/ui/drawer/DrawerShell";
 import {
+  applicationStatusLabel,
+  applicationStatusTone,
   collectionKindLabel,
+  fundClassLabel,
+  fundClassTone,
   paymentMethodLabel,
   PAYMENT_METHOD_OPTIONS,
+  PAYER_RELATION_OPTIONS,
   stageLabel,
   stageTone,
   type CollectionActivity,
+  type PayerKind,
+  type PayerRelation,
   type PaymentMethod,
   type PaymentReceipt,
 } from "@/lib/studio/payment-types";
@@ -398,11 +405,23 @@ function CobroForm({
   const [method, setMethod] = useState<PaymentMethod>("transferencia");
   const [receivedAt, setReceivedAt] = useState<string>(today);
   const [reference, setReference] = useState<string>("");
+  // Pagador (SDD-0068 · decisión #7 + COPY §3).
+  const [payerKind, setPayerKind] = useState<PayerKind>("cliente");
+  const [payerName, setPayerName] = useState<string>("");
+  const [payerRelation, setPayerRelation] = useState<PayerRelation | "">("");
+  const [licitDeclared, setLicitDeclared] = useState(false);
 
   const amt = Number(amount) || 0;
   const noCashAccounts = cashAccounts.length === 0;
+  const payerValid =
+    payerKind === "cliente" ||
+    (!!payerName.trim() && !!payerRelation && licitDeclared);
   const valid =
-    amt > 0 && amt <= balance + 1e-6 && !!cashAccountId && !noCashAccounts;
+    amt > 0 &&
+    amt <= balance + 1e-6 &&
+    !!cashAccountId &&
+    !noCashAccounts &&
+    payerValid;
 
   return (
     <div
@@ -524,6 +543,131 @@ function CobroForm({
         />
       </div>
 
+      {/* Pagador (SDD-0068 · decisión #7 — COPY §3). "Yo mismo" = el cliente. */}
+      <div>
+        <span className="studio-label" id="cob-payer-label">
+          ¿Quién realizó el pago?
+        </span>
+        <div
+          role="radiogroup"
+          aria-labelledby="cob-payer-label"
+          style={{ display: "flex", gap: 14, marginTop: 4, flexWrap: "wrap" }}
+        >
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              font: "500 12.5px/1.3 var(--f-sans)",
+              color: "var(--ink)",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="radio"
+              name="cob-payer-kind"
+              checked={payerKind === "cliente"}
+              onChange={() => setPayerKind("cliente")}
+            />
+            Yo mismo (el cliente)
+          </label>
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              font: "500 12.5px/1.3 var(--f-sans)",
+              color: "var(--ink)",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="radio"
+              name="cob-payer-kind"
+              checked={payerKind === "tercero"}
+              onChange={() => setPayerKind("tercero")}
+            />
+            Un tercero
+          </label>
+        </div>
+
+        {payerKind === "tercero" && (
+          <div
+            style={{
+              marginTop: 10,
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <div
+              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
+            >
+              <div>
+                <label className="studio-label" htmlFor="cob-payer-name">
+                  Nombre del pagador
+                </label>
+                <input
+                  id="cob-payer-name"
+                  type="text"
+                  className="studio-input"
+                  placeholder="Nombre y apellido"
+                  value={payerName}
+                  onChange={(e) => setPayerName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="studio-label" htmlFor="cob-payer-relation">
+                  Relación con el cliente
+                </label>
+                <select
+                  id="cob-payer-relation"
+                  className="studio-input"
+                  value={payerRelation}
+                  onChange={(e) =>
+                    setPayerRelation(e.target.value as PayerRelation | "")
+                  }
+                >
+                  <option value="">Elegir…</option>
+                  {PAYER_RELATION_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <label
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 8,
+                font: "500 11.5px/1.5 var(--f-sans)",
+                color: "var(--ink)",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={licitDeclared}
+                onChange={(e) => setLicitDeclared(e.target.checked)}
+                style={{ marginTop: 2 }}
+              />
+              <span>
+                El pagador declaró que los fondos corresponden a la operación y
+                son de origen lícito.
+                {!licitDeclared && (
+                  <span style={{ color: "var(--wine)", fontWeight: 600 }}>
+                    {" "}
+                    · requerido para registrar un pago de tercero
+                  </span>
+                )}
+              </span>
+            </label>
+          </div>
+        )}
+      </div>
+
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
         <button
           type="button"
@@ -549,6 +693,11 @@ function CobroForm({
               method,
               receivedAt,
               reference: reference.trim() || null,
+              payerKind,
+              payerName: payerKind === "tercero" ? payerName.trim() : null,
+              payerRelation:
+                payerKind === "tercero" && payerRelation ? payerRelation : null,
+              licitDeclared: payerKind === "tercero" ? licitDeclared : false,
             });
             if (r.error) return { error: r.error };
             onDone(r.receiptCode, r.fullyPaid ?? amt >= balance - 1e-6);
@@ -706,11 +855,26 @@ function HistorySection({
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
-                      font: "700 12px/1.2 var(--f-mono)",
-                      color: "var(--ink)",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      flexWrap: "wrap",
                     }}
                   >
-                    {r.receipt_code}
+                    <span
+                      style={{
+                        font: "700 12px/1.2 var(--f-mono)",
+                        color: "var(--ink)",
+                      }}
+                    >
+                      {r.receipt_code}
+                    </span>
+                    <Badge tone={applicationStatusTone(r.application_status)} size="sm">
+                      {applicationStatusLabel(r.application_status)}
+                    </Badge>
+                    <Badge tone={fundClassTone(r.fund_class)} size="sm">
+                      {fundClassLabel(r.fund_class)}
+                    </Badge>
                   </div>
                   <div
                     style={{
@@ -722,6 +886,9 @@ function HistorySection({
                     {paymentMethodLabel(r.method)} · {r.received_at}
                     {r.reference ? ` · ${r.reference}` : ""}
                     {r.journal_entry_id ? " · asentado" : ""}
+                    {r.payer_kind === "tercero" && r.payer_name
+                      ? ` · pagó ${r.payer_name} (tercero)`
+                      : ""}
                   </div>
                 </div>
                 <div
@@ -732,6 +899,12 @@ function HistorySection({
                 >
                   ${fmt(r.amount)}
                 </div>
+                <Link
+                  href={`/studio/cobranzas/recibo/${encodeURIComponent(r.receipt_code)}`}
+                  className="studio-btn studio-btn-ghost studio-btn-xs"
+                >
+                  Ver recibo
+                </Link>
                 <ActionButton
                   variant="ghost"
                   size="xs"

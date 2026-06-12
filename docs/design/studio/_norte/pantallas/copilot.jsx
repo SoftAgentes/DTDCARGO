@@ -13,7 +13,7 @@ function buildContext(D) {
   const cli = D.CLIENTS.map(c => `${c.markbox} | ${c.name} | ${c.company} | ${c.city} | ${c.shipments} envíos | facturado:$${c.billed} | ${c.status}`).join('\n');
   const quotes = D.ESTIMADOS.map(q => `${q.id} | ${q.clientName} | ${q.type} | $${q.totalUSD} | estado:${q.status} | agente:${q.agent}`).join('\n');
   return `Sos el Copilot de DTD-Cargo, un asistente operativo dentro del ERP de una empresa de logística China→Venezuela.
-Respondé SOLO con base en los datos de abajo. Si te preguntan algo que no está en los datos, decilo claramente. Sé conciso, directo y usá castellano rioplatense/venezolano neutro (voseo). Para códigos (DTDU-, DTD-, F-) escribilos entre backticks. Para montos usá $ y miles con K cuando ayude. Nunca inventes números que no estén en los datos.
+Respondé SOLO con base en los datos de abajo. Si te preguntan algo que no está en los datos, decilo claramente. Sé conciso, directo y usa castellano rioplatense/venezolano neutro (voseo). Para códigos (DTDU-, DTD-, F-) escribilos entre backticks. Para montos usa $ y miles con K cuando ayude. Nunca inventes números que no estén en los datos.
 
 === EMBARQUES ===
 ${ships}
@@ -21,7 +21,7 @@ ${ships}
 === FACTURAS ===
 ${inv}
 
-=== CLIENTES (MARKBOX) ===
+=== CLIENTES (Shipping Mark) ===
 ${cli}
 
 === ESTIMADOS ===
@@ -54,7 +54,7 @@ function Copilot() {
 
   const context = React.useMemo(() => buildContext(D), []);
   const [messages, setMessages] = cpState([
-    { role: 'assistant', content: '¡Hola! Soy tu **Copilot de DTD-Cargo**. Puedo responderte sobre embarques, clientes, facturas y estimados — todo en vivo desde el ERP. Preguntame lo que necesites o tocá una sugerencia abajo.' },
+    { role: 'assistant', content: '¡Hola! Soy tu **Copilot de DTD-Cargo**. Puedo responderte sobre embarques, clientes, facturas y estimados — todo en vivo desde el ERP. Preguntame lo que necesites o toca una sugerencia abajo.' },
   ]);
   const [input, setInput] = cpState('');
   const [loading, setLoading] = cpState(false);
@@ -76,7 +76,7 @@ function Copilot() {
           { role: 'user', content: `${context}\n\n=== CONVERSACIÓN ===\n${convo}\n\nRespondé como Copilot al último mensaje del usuario. Solo tu respuesta, sin prefijo "Copilot:".` },
         ],
       });
-      setMessages(m => [...m, { role: 'assistant', content: (reply || '').trim() || 'No pude generar una respuesta. Probá reformular la pregunta.' }]);
+      setMessages(m => [...m, { role: 'assistant', content: (reply || '').trim() || 'No pude generar una respuesta. Prueba reformular la pregunta.' }]);
     } catch (e) {
       setMessages(m => [...m, { role: 'assistant', content: 'Hubo un problema al consultar. Reintentá en unos segundos.', error: true }]);
     } finally {
@@ -130,7 +130,7 @@ function Copilot() {
             }}>{I.arrowR ? I.arrowR(16) : '→'}</button>
           </div>
           <div style={{ textAlign: 'center', font: '500 10.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 8 }}>
-            El Copilot responde con datos del ERP · puede equivocarse, verificá lo crítico.
+            El Copilot responde con datos del ERP · puede equivocarse, verifica lo crítico.
           </div>
         </div>
       </div>

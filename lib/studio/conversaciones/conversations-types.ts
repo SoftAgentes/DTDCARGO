@@ -347,6 +347,6 @@ export const QUICK_REPLIES: { id: string; label: string; text: string }[] = [
   {
     id: "qr-5",
     label: "Cierre",
-    text: "¿Hay algo más en lo que pueda ayudarte? Quedamos atentos. Con confianza, de China a tu puerta.",
+    text: "¿Hay algo más en lo que pueda ayudarte? Quedamos atentos. Con Confianza, de China a tu puerta.",
   },
 ];

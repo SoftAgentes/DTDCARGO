@@ -437,7 +437,7 @@ function ModuleCalendar({ goTo, currentUser }) {
             <div style={{ padding: '10px 12px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10 }}>
               <span style={{ color: 'var(--info)', marginTop: 1 }}>{window.Icon.info(13)}</span>
               <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-                Reprograma la fecha en el calendario. Podés restablecer todo con el botón de arriba. El embarque real se actualiza desde el módulo Embarques.
+                Reprograma la fecha en el calendario. Puedes restablecer todo con el botón de arriba. El embarque real se actualiza desde el módulo Embarques.
               </div>
             </div>
           </div>

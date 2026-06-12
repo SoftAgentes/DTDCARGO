@@ -2,7 +2,7 @@
 
 > **Qué es:** reconcilia el **blueprint de datos del Norte** (lo que el diseño dice que "debería existir") contra las **tablas realmente construidas en Supabase** (lo que existe en `supabase/migrations/`). Cada marker está **respaldado por una tabla/migración real** — nada inventado.
 >
-> **Snapshot:** 2026-06-07 · migraciones hasta `0113` · 116 tablas en 107 migraciones.
+> **Snapshot:** 2026-06-10 · migraciones hasta `0119` · 124 tablas en 113 migraciones.
 > **Método:** generado por barrido de `CREATE TABLE` en todas las migraciones + verificación adversarial (cada `✅` cita una tabla real; cada `❌` confirmado por ausencia total de candidata). Regenerable con `/radar` o re-corriendo el reconciliador.
 >
 > ⚠️ **Fuente del blueprint:** NO existe un `schema.prisma` en `_norte/` — el backend del Norte es un **handoff documental** (prototipo 100% mock en `localStorage`). Las entidades se derivan de `_norte/backend/API-CONTRACT.md` (mapea cada seam a un recurso REST), corroborado por los stores mock de `_norte/erp/data.jsx`.
@@ -11,13 +11,13 @@
 
 | | Entidades |
 |---|---|
-| ✅ **built** (tabla real fiel) | **16** |
-| 🟡 **partial** (existe pero fragmentado/incompleto) | **6** |
+| ✅ **built** (tabla real fiel) | **17** |
+| 🟡 **partial** (existe pero fragmentado/incompleto) | **5** |
 | ❌ **missing** (sin tabla) | **0** |
 | **Total blueprint** | **22** |
 
-**Completitud del modelo:** 16/22 = **73% built** · 27% partial · 0% missing.
-**Hueco real principal:** ya **no quedan entidades sin tabla**. Lo que falta es **modelado/consolidación** (todo en 🟡): auth unificado, cola offline de entrada, catálogo de origen CN, reglas genéricas, salida multi-canal (WhatsApp/Telegram) e inbox del portal fragmentado. Ninguno es keystone — la capa legal (que bloqueaba Facturación) ya está cerrada (`0102`).
+**Completitud del modelo:** 17/22 = **77% built** · 23% partial · 0% missing.
+**Hueco real principal:** ya **no quedan entidades sin tabla**. Lo que falta es **modelado/consolidación** (todo en 🟡): auth unificado, cola offline de entrada, catálogo de origen CN, reglas genéricas y salida multi-canal (WhatsApp/Telegram). Ninguno es keystone — la capa legal (que bloqueaba Facturación) ya está cerrada (`0102`) y el inbox del portal cerró con SDD-0057 (`0105`/`0118`/`0119`).
 
 ## Reconciliación por entidad
 
@@ -44,7 +44,7 @@
 | Notification (WhatsApp/Email/Push) | 🟡 | `mail_*` (logs/templates/rules/config/blacklist/signatures), `outbox_push_events`, `conversations`, `conversation_messages`, `bug_notifications`, `user_notification_prefs` | Email con infra completa (`0018`). Push (`0066`). Bandeja unificada inbound `conversations`/`conversation_messages` (`0106`/SDD-0056). **WhatsApp/Telegram NO tienen tabla de salida** persistida (deep-link/handoff). Sin tabla única multi-canal outbound. |
 | LegalDoc / Documento legal | ✅ | `legal_docs` | **Promovido ❌→✅:** `0102` (SDD-0054 capa legal). T&C / Condiciones del Operador **versionadas** (fila por key+version, estado vigente|archivada, body jsonb). |
 | LegalAcceptance / Aceptación T&C | ✅ | `legal_acceptances` | **Promovido ❌→✅:** `0102` (SDD-0054). Prueba legal **inmutable server-sellada** (AC-YYYY-NNNN, hash SHA-256, ip, accepted_at, atada a cbm/weight/total). Append-only por trigger DB. Respalda el gate AUT-04. |
-| PortalInboxEvent / Bandeja del portal | 🟡 | `prealertas`, `conversations`, `conversation_messages` | **Promovido ❌→🟡:** el flujo cliente→ERP con badges ya tiene tablas — `prealertas` (compras/pre-arribo del portal, `0105`/SDD-0057 *in-progress*) + `conversations` (badge `unread_count`, `0106`). Aún **fragmentado** (no una única `PortalInboxEvent`) y SDD-0057 no cerrado. |
+| PortalInboxEvent / Bandeja del portal | ✅ | `prealertas`, `prealerta_documents`, `conversations`, `conversation_messages` | **Promovido 🟡→✅ (2026-06-10):** SDD-0057 **done** — flujo cliente→ERP completo en prod con datos vivos: `prealertas` (`0105`) + adjuntos (`0118`) + link al proveedor `share_token` (`0119`) + bandeja `conversations` (`0106`/SDD-0056). Implementado como **composición de tablas especializadas** (no una única `PortalInboxEvent` genérica) — equivalente funcional, mismo criterio que `File`. |
 
 ## Roadmap de Bloques financieros
 
@@ -56,14 +56,16 @@
 | **1.2** | Contabilidad (plan de cuentas + diario/mayor + P&L/Balance) | SDD-0040 | ✅ done |
 | **2.1** | Cobranzas (recibos + asiento del cobro + CxC) | SDD-0041 | ✅ done |
 | **2.2** | Tesorería (Proveedores + CxP + órdenes de pago + asiento) | SDD-0044 | ✅ done |
+| **2.3** | Financiero con el Socio Logístico China (libro mayor bilateral + reconciliación) | SDD-0059 | 🟡 in-progress (confidencial) — migr `0114` (5 tablas: supplier_charges/credit_notes/currency_conversions/partner_ledger_entries/claim_offsets) + `0115` (partner_statements ×2) **en prod**; fuera del blueprint del Norte (no cuenta en el 17/22) |
 | **3** | Fiscal · SENIAT (Libro Ventas/Compras, retenciones, IVA) | — | ⏳ pendiente · **sin spec** (existe `0018-aduana-seniat` pero es **aduana**, no los libros IVA) |
 | **4** | Naviera & Consolidación (carriers + bookings/BL + LCL→FCL) | SDD-0047 | ✅ **done** (Slice A+B; tablas `carriers`/`bookings`/`consolidations`/`consolidation_items`/`sailings`/`container_types`/`ports` en `0096`, UI `/studio/naviera`) |
 | **5** | Comercial (Dirección + Documentos + Fidelización + Reportes + Costing + Legal) | SDD-0048/0049/0051/0052/0053/0054 | 🟡 **mayormente done** (0048/0049/0051/0053/0054 done · 0052 Reportes approved) — falta Reportes Slice C + Costing Slice B-C |
 
 ## Notas de procedencia y correcciones
 
+- **Regeneración 2026-06-10 (snapshot `0113`→`0119`):** **1 promoción** — `PortalInboxEvent` 🟡→✅ (SDD-0057 cerrado `done`; `prealertas`+`prealerta_documents`+`share_token`+`conversations`, verificado en prod con datos vivos: 3 proveedores, 2 prealertas con token). Conteo **16✅/6🟡/0❌ → 17✅/5🟡/0❌ (73%→77%)**. Las otras 4 migraciones nuevas no mueven el blueprint: `0114`/`0115` = **Bloque 2.3 Financiero Socio China** (SDD-0059, 7 tablas confidenciales fuera del blueprint del Norte, fila nueva en el roadmap) · `0116` versionado refuerza `File` (ya ✅) · `0117` RLS refuerza `Quote` (ya ✅).
 - **Regeneración 2026-06-07 (snapshot `0096`→`0113`):** **5 promociones** verificadas adversarialmente — `LegalDoc`+`LegalAcceptance` ❌→✅ (por `0102_capa_legal`, SDD-0054); `Invoice` 🟡→✅ (gate AUT-04 ya respaldado); `File` 🟡→✅ (`documents` genérica, SDD-0049); `Route catalog` 🟡→✅ (`route_cost_templates`, `0100`). `PortalInboxEvent` ❌→🟡 (`prealertas`+`conversations`). Conteo **11✅/8🟡/3❌ → 16✅/6🟡/0❌**. **Bloque 4 Naviera corregido a `done`** (SDD-0047 cerrado; la versión previa lo daba "en construcción"). **0 entidades sin tabla.**
 - **Verificación adversarial:** cada `✅` cita tabla+migración real; cada promoción se confirmó leyendo el `CREATE TABLE` de su migración (no por nombre suelto). `documents` genérica (SDD-0049) ≠ `customs_documents` (`0010`).
 - **Correcciones a datos previos circulantes:** una auditoría anterior (Explore) reportó "13✅/6🟡/7❌" y "bottleneck = entidad Container, Bloque 4 bloqueado 0%". Ambos eran incorrectos. El bottleneck histórico real era la **capa legal** (3 entidades) — **ya cerrado** por SDD-0054. El bottleneck vigente pasa a ser el **Bloque 3 Fiscal/SENIAT** (sin spec ni tablas).
-- **Numeración de migraciones:** llega a `0113` con **107 archivos `.sql` / 116 tablas**. Hay huecos y sufijos a propósito (números tomados por ramas paralelas).
+- **Numeración de migraciones:** llega a `0119` con **113 archivos `.sql` / 124 tablas**. Hay huecos y sufijos a propósito (números tomados por ramas paralelas).
 - `0044` Tesorería figura **done** en `specs/README`.

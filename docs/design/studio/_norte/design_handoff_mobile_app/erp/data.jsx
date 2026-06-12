@@ -32,9 +32,9 @@ const CLIENTS = [
 ];
 
 // ── Embarques ────────────────────────────────────────────────
-const STATUS_FLOW = ['cotizado', 'confirmado', 'recibido CN', 'consolidado', 'zarpado', 'tránsito', 'aduana VE', 'liberado', 'entregado'];
+const STATUS_FLOW = ['estimado', 'confirmado', 'recibido CN', 'consolidado', 'zarpado', 'tránsito', 'aduana VE', 'liberado', 'entregado'];
 const STATUS_TONE = {
-  'cotizado': 'neutral',
+  'estimado': 'neutral',
   'confirmado': 'info',
   'recibido CN': 'info',
   'consolidado': 'info',
@@ -56,10 +56,10 @@ const SHIPMENTS = [
   { id: 'DTDU-401234', type: 'FCL 20\'', client: 'DTD-5340', clientName: 'Dist. Andina', origin: 'CAN', destination: 'PBL', cbm: 26.8, weight: 11400, value: 68900, status: 'consolidado', etd: '2026-05-28', eta: '2026-06-30', progress: 14, vessel: 'pendiente', invoice: 'F-2026-0441', billed: true, paid: false, alert: null },
   { id: 'DTDU-398770', type: 'LCL DDP', client: 'DTD-5277', clientName: 'BriceñoTex', origin: 'YIW', destination: 'PBL', cbm: 6.2, weight: 2400, value: 11200, status: 'recibido CN', etd: null, eta: '2026-06-28', progress: 10, vessel: 'pendiente', invoice: null, billed: false, paid: false, alert: null },
   { id: 'DTDU-388501', type: 'FCL 40\'HC', client: 'DTD-5241', clientName: 'Ind. Hernández', origin: 'CAN', destination: 'MAR', cbm: 64.8, weight: 21800, value: 142000, status: 'confirmado', etd: null, eta: '2026-07-04', progress: 6, vessel: 'pendiente', invoice: null, billed: false, paid: false, alert: null },
-  { id: 'Q-2026-0110', type: 'LCL DDP', client: 'DTD-5215', clientName: 'Ortiz Cosmetics', origin: 'SZX', destination: 'LGU', cbm: 3.4, weight: 1200, value: 6800, status: 'cotizado', etd: null, eta: null, progress: 0, vessel: null, invoice: null, billed: false, paid: false, alert: null },
-  { id: 'Q-2026-0188', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 6.4, weight: 2600, value: 4820, status: 'cotizado', etd: null, eta: null, progress: 0, vessel: null, container: null, invoice: null, billed: false, paid: false, alert: null },
-  { id: 'Q-2026-1245', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 8.1, weight: 3150, value: 6480, status: 'recibido CN', etd: null, eta: null, progress: 10, vessel: 'pendiente', container: null, invoice: null, billed: false, paid: false, alert: null },
-  { id: 'Q-2026-2310', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 9.2, weight: 3600, value: 7360, status: 'recibido CN', etd: null, eta: null, progress: 10, vessel: 'pendiente', container: null, invoice: null, billed: false, paid: false, alert: null },
+  { id: 'E-2026-0110', type: 'LCL DDP', client: 'DTD-5215', clientName: 'Ortiz Cosmetics', origin: 'SZX', destination: 'LGU', cbm: 3.4, weight: 1200, value: 6800, status: 'estimado', etd: null, eta: null, progress: 0, vessel: null, invoice: null, billed: false, paid: false, alert: null },
+  { id: 'E-2026-0188', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 6.4, weight: 2600, value: 4820, status: 'estimado', etd: null, eta: null, progress: 0, vessel: null, container: null, invoice: null, billed: false, paid: false, alert: null },
+  { id: 'E-2026-1245', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 8.1, weight: 3150, value: 6480, status: 'recibido CN', etd: null, eta: null, progress: 10, vessel: 'pendiente', container: null, invoice: null, billed: false, paid: false, alert: null },
+  { id: 'E-2026-2310', type: 'LCL DDP', client: 'DTD-5452', clientName: 'Acindar Comercial', origin: 'YIW', destination: 'PBL', cbm: 9.2, weight: 3600, value: 7360, status: 'recibido CN', etd: null, eta: null, progress: 10, vessel: 'pendiente', container: null, invoice: null, billed: false, paid: false, alert: null },
   { id: 'DTDU-364299', type: 'FCL 20\'', client: 'DTD-5298', clientName: 'Vargas & Asoc', origin: 'YIW', destination: 'PBL', cbm: 24.2, weight: 9800, value: 54300, status: 'tránsito', etd: '2026-05-06', eta: '2026-06-04', progress: 62, vessel: 'YANG MING WORTH', invoice: 'F-2026-0405', billed: true, paid: true, alert: null },
 ];
 
@@ -114,7 +114,7 @@ const SHIPMENT_COSTS = {
   'DTDU-401234': { freight: 24800, customs:  9200, transport: 3800, handling: 1900, insurance: 1450, commission: 3445, other: 1500 },
   'DTDU-398770': { freight:  4200, customs:  1100, transport:  920, handling:  490, insurance:  220, commission:  560, other:  340 },
   'DTDU-388501': { freight: 52400, customs: 19800, transport: 6400, handling: 3700, insurance: 3500, commission: 7100, other: 2400 },
-  'Q-2026-0110': { freight:  2400, customs:   620, transport:  780, handling:  380, insurance:  140, commission:  340, other:  220 },
+  'E-2026-0110': { freight:  2400, customs:   620, transport:  780, handling:  380, insurance:  140, commission:  340, other:  220 },
   'DTDU-364299': { freight: 18900, customs:  7400, transport: 3200, handling: 1600, insurance: 1100, commission: 2715, other: 1200 },
 };
 
@@ -127,13 +127,13 @@ function shipmentEconomics(s) {
   const marginPct = revenue > 0 ? (margin / revenue) * 100 : 0;
   return { ...c, totalCost, revenue, margin, marginPct };
 }
-const QUOTES = [
-  { id: 'Q-2026-0418', client: 'DTD-5215', clientName: 'Ortiz Cosmetics', type: 'LCL DDP', origin: 'SZX', destination: 'LGU', cbm: 3.4, weight: 1200, totalUSD: 6800, ratePerCBM: 800, status: 'enviada', created: '2026-05-22', validUntil: '2026-06-21', items: 4, agent: 'Martina Acuña' },
-  { id: 'Q-2026-0419', client: 'DTD-5418', clientName: 'Imp. Pereira', type: 'LCL DDP', origin: 'YIW', destination: 'PBL', cbm: 11.2, weight: 4400, totalUSD: 14200, ratePerCBM: 800, status: 'aceptada', created: '2026-05-22', validUntil: '2026-06-21', items: 8, agent: 'Diego Núñez' },
-  { id: 'Q-2026-0420', client: 'DTD-5277', clientName: 'BriceñoTex', type: 'FCL 20\'', origin: 'CAN', destination: 'PBL', cbm: 28.0, weight: 11000, totalUSD: 38400, ratePerCBM: null, status: 'enviada', created: '2026-05-23', validUntil: '2026-06-22', items: 1, agent: 'Martina Acuña' },
-  { id: 'Q-2026-0421', client: 'DTD-5371', clientName: 'Tech Solutions', type: 'LCL DDP', origin: 'SHA', destination: 'MAR', cbm: 6.8, weight: 2800, totalUSD: 9200, ratePerCBM: 800, status: 'borrador', created: '2026-05-23', validUntil: '2026-06-22', items: 5, agent: 'Diego Núñez' },
-  { id: 'Q-2026-0417', client: 'DTD-5340', clientName: 'Dist. Andina', type: 'LCL DDP', origin: 'YIW', destination: 'PFI', cbm: 5.4, weight: 2100, totalUSD: 7400, ratePerCBM: 800, status: 'rechazada', created: '2026-05-19', validUntil: '2026-06-18', items: 3, agent: 'Martina Acuña' },
-  { id: 'Q-2026-0416', client: 'DTD-5354', clientName: 'Castro Hermanos', type: 'FCL 40\'HC', origin: 'YIW', destination: 'PFI', cbm: 67.0, weight: 23000, totalUSD: 78200, ratePerCBM: null, status: 'aceptada', created: '2026-05-18', validUntil: '2026-06-17', items: 1, agent: 'Diego Núñez' },
+const ESTIMADOS = [
+  { id: 'E-2026-0418', client: 'DTD-5215', clientName: 'Ortiz Cosmetics', type: 'LCL DDP', origin: 'SZX', destination: 'LGU', cbm: 3.4, weight: 1200, totalUSD: 6800, ratePerCBM: 800, status: 'enviado', created: '2026-05-22', validUntil: '2026-06-21', items: 4, agent: 'Martina Acuña' },
+  { id: 'E-2026-0419', client: 'DTD-5418', clientName: 'Imp. Pereira', type: 'LCL DDP', origin: 'YIW', destination: 'PBL', cbm: 11.2, weight: 4400, totalUSD: 14200, ratePerCBM: 800, status: 'aceptado', created: '2026-05-22', validUntil: '2026-06-21', items: 8, agent: 'Diego Núñez' },
+  { id: 'E-2026-0420', client: 'DTD-5277', clientName: 'BriceñoTex', type: 'FCL 20\'', origin: 'CAN', destination: 'PBL', cbm: 28.0, weight: 11000, totalUSD: 38400, ratePerCBM: null, status: 'enviado', created: '2026-05-23', validUntil: '2026-06-22', items: 1, agent: 'Martina Acuña' },
+  { id: 'E-2026-0421', client: 'DTD-5371', clientName: 'Tech Solutions', type: 'LCL DDP', origin: 'SHA', destination: 'MAR', cbm: 6.8, weight: 2800, totalUSD: 9200, ratePerCBM: 800, status: 'borrador', created: '2026-05-23', validUntil: '2026-06-22', items: 5, agent: 'Diego Núñez' },
+  { id: 'E-2026-0417', client: 'DTD-5340', clientName: 'Dist. Andina', type: 'LCL DDP', origin: 'YIW', destination: 'PFI', cbm: 5.4, weight: 2100, totalUSD: 7400, ratePerCBM: 800, status: 'rechazado', created: '2026-05-19', validUntil: '2026-06-18', items: 3, agent: 'Martina Acuña' },
+  { id: 'E-2026-0416', client: 'DTD-5354', clientName: 'Castro Hermanos', type: 'FCL 40\'HC', origin: 'YIW', destination: 'PFI', cbm: 67.0, weight: 23000, totalUSD: 78200, ratePerCBM: null, status: 'aceptado', created: '2026-05-18', validUntil: '2026-06-17', items: 1, agent: 'Diego Núñez' },
 ];
 
 // ── Facturas ─────────────────────────────────────────────────
@@ -168,22 +168,22 @@ const WAREHOUSE_VE = [
 
 // ── Leads CRM ────────────────────────────────────────────────
 const LEADS = [
-  { id: 'L-0148', name: 'Manuel Quintero',   company: 'Quintero Importaciones', source: 'Web · cotizador', stage: 'cotización', value: 14200, lastTouch: 'hace 2 días', owner: 'Martina Acuña', whatsapp: true,  city: 'Caracas',    notes: 'Interesado en LCL Yiwu→PBL mensual', industry: 'Retail' },
+  { id: 'L-0148', name: 'Manuel Quintero',   company: 'Quintero Importaciones', source: 'Web · estimador', stage: 'estimado', value: 14200, lastTouch: 'hace 2 días', owner: 'Martina Acuña', whatsapp: true,  city: 'Caracas',    notes: 'Interesado en LCL Yiwu→PBL mensual', industry: 'Retail' },
   { id: 'L-0147', name: 'Andrea Silva',       company: 'AS Comercial',           source: 'Instagram',       stage: 'demo',       value: 38400, lastTouch: 'hace 4 días', owner: 'Diego Núñez',   whatsapp: true,  city: 'Valencia',   notes: 'Mostró interés en FCL 20\' a Pto Cabello', industry: 'Mayorista' },
   { id: 'L-0146', name: 'Felipe Acosta',      company: 'F. Acosta Trading',      source: 'Referido',        stage: 'nuevo',      value: null,  lastTouch: 'hace 1 día',  owner: 'Martina Acuña', whatsapp: false, city: 'Maracaibo',  notes: 'Referido por Castro Hnos', industry: 'Comercial' },
   { id: 'L-0145', name: 'Lorena Bracho',      company: 'BrachoTex',              source: 'LinkedIn',        stage: 'propuesta',  value: 64200, lastTouch: 'hace 6 días', owner: 'Diego Núñez',   whatsapp: true,  city: 'Caracas',    notes: 'Textiles · negociando volumen anual', industry: 'Textil' },
   { id: 'L-0144', name: 'Ricardo Núñez',      company: 'RNT Logística',          source: 'Google Ads',      stage: 'descartado', value: null,  lastTouch: 'hace 2 sem',  owner: 'Martina Acuña', whatsapp: false, city: 'Barquisimeto', notes: 'No tenía volumen suficiente', industry: 'Servicios' },
-  { id: 'L-0143', name: 'Camila Rivero',      company: 'Rivero & Hnos',          source: 'Web · cotizador', stage: 'ganado',     value: 28400, lastTouch: 'hace 1 sem',  owner: 'Diego Núñez',   whatsapp: true,  city: 'Valencia',   notes: 'Convertido · MARKBOX DTD-5476 asignado', industry: 'Retail' },
-  { id: 'L-0142', name: 'Roberto Méndez',     company: 'Méndez Trading SA',      source: 'Web · cotizador', stage: 'nuevo',      value: null,  lastTouch: 'hace 5 h',    owner: 'Martina Acuña', whatsapp: true,  city: 'Caracas',    notes: 'Pidió cotización para electrónicos', industry: 'Tecnología' },
-  { id: 'L-0141', name: 'Patricia Sánchez',   company: 'Sánchez Cosmetics',      source: 'Instagram',       stage: 'cotización', value: 22600, lastTouch: 'hace 3 días', owner: 'Martina Acuña', whatsapp: true,  city: 'Valencia',   notes: 'Cosmética desde Guangzhou', industry: 'Belleza' },
+  { id: 'L-0143', name: 'Camila Rivero',      company: 'Rivero & Hnos',          source: 'Web · estimador', stage: 'ganado',     value: 28400, lastTouch: 'hace 1 sem',  owner: 'Diego Núñez',   whatsapp: true,  city: 'Valencia',   notes: 'Convertido · Shipping Mark DTD-5476 asignado', industry: 'Retail' },
+  { id: 'L-0142', name: 'Roberto Méndez',     company: 'Méndez Trading SA',      source: 'Web · estimador', stage: 'nuevo',      value: null,  lastTouch: 'hace 5 h',    owner: 'Martina Acuña', whatsapp: true,  city: 'Caracas',    notes: 'Pidió estimado para electrónicos', industry: 'Tecnología' },
+  { id: 'L-0141', name: 'Patricia Sánchez',   company: 'Sánchez Cosmetics',      source: 'Instagram',       stage: 'estimado', value: 22600, lastTouch: 'hace 3 días', owner: 'Martina Acuña', whatsapp: true,  city: 'Valencia',   notes: 'Cosmética desde Guangzhou', industry: 'Belleza' },
   { id: 'L-0140', name: 'Jorge Calderón',     company: 'Calderón Industrial',    source: 'Referido',        stage: 'demo',       value: 88200, lastTouch: 'hace 5 días', owner: 'Diego Núñez',   whatsapp: false, city: 'Maturín',    notes: 'Industrial · potencial Platinum', industry: 'Industrial' },
-  { id: 'L-0139', name: 'Daniela Linares',    company: 'DL Importaciones',       source: 'LinkedIn',        stage: 'cotización', value: 18400, lastTouch: 'hace 1 día',  owner: 'Diego Núñez',   whatsapp: true,  city: 'Caracas',    notes: 'Decoración + muebles ligeros', industry: 'Retail' },
-  { id: 'L-0138', name: 'Esteban Rojas',      company: 'Rojas Tech',             source: 'Web · cotizador', stage: 'propuesta',  value: 42800, lastTouch: 'hace 4 días', owner: 'Martina Acuña', whatsapp: true,  city: 'Mérida',     notes: 'Electrónica + accesorios', industry: 'Tecnología' },
+  { id: 'L-0139', name: 'Daniela Linares',    company: 'DL Importaciones',       source: 'LinkedIn',        stage: 'estimado', value: 18400, lastTouch: 'hace 1 día',  owner: 'Diego Núñez',   whatsapp: true,  city: 'Caracas',    notes: 'Decoración + muebles ligeros', industry: 'Retail' },
+  { id: 'L-0138', name: 'Esteban Rojas',      company: 'Rojas Tech',             source: 'Web · estimador', stage: 'propuesta',  value: 42800, lastTouch: 'hace 4 días', owner: 'Martina Acuña', whatsapp: true,  city: 'Mérida',     notes: 'Electrónica + accesorios', industry: 'Tecnología' },
   { id: 'L-0137', name: 'Adriana Castillo',   company: 'Castillo & Asoc.',       source: 'Google Ads',      stage: 'nuevo',      value: null,  lastTouch: 'hace 8 h',    owner: 'Martina Acuña', whatsapp: true,  city: 'Caracas',    notes: 'Distribución regional', industry: 'Mayorista' },
   { id: 'L-0136', name: 'Mariana Suárez',     company: 'Suárez Beauty',          source: 'Instagram',       stage: 'demo',       value: 16200, lastTouch: 'hace 7 días', owner: 'Diego Núñez',   whatsapp: true,  city: 'Caracas',    notes: 'Cosmética y cuidado personal', industry: 'Belleza' },
-  { id: 'L-0135', name: 'Pedro Mejías',       company: 'Mejías Construcción',    source: 'Referido',        stage: 'ganado',     value: 54600, lastTouch: 'hace 2 sem',  owner: 'Martina Acuña', whatsapp: false, city: 'Valencia',   notes: 'MARKBOX DTD-5478 · primera importación lista', industry: 'Industrial' },
+  { id: 'L-0135', name: 'Pedro Mejías',       company: 'Mejías Construcción',    source: 'Referido',        stage: 'ganado',     value: 54600, lastTouch: 'hace 2 sem',  owner: 'Martina Acuña', whatsapp: false, city: 'Valencia',   notes: 'Shipping Mark DTD-5478 · primera importación lista', industry: 'Industrial' },
   { id: 'L-0134', name: 'Iván Pérez',         company: 'IP Comercializadora',    source: 'LinkedIn',        stage: 'descartado', value: null,  lastTouch: 'hace 3 sem',  owner: 'Diego Núñez',   whatsapp: false, city: 'Puerto La Cruz', notes: 'No respondió a propuesta', industry: 'Comercial' },
-  { id: 'L-0133', name: 'Carolina Mendoza',   company: 'Mendoza Imports',        source: 'Web · cotizador', stage: 'propuesta',  value: 36800, lastTouch: 'hace 9 días', owner: 'Diego Núñez',   whatsapp: true,  city: 'Punto Fijo', notes: 'Cerrando negociación tarifa anual', industry: 'Retail' },
+  { id: 'L-0133', name: 'Carolina Mendoza',   company: 'Mendoza Imports',        source: 'Web · estimador', stage: 'propuesta',  value: 36800, lastTouch: 'hace 9 días', owner: 'Diego Núñez',   whatsapp: true,  city: 'Punto Fijo', notes: 'Cerrando negociación tarifa anual', industry: 'Retail' },
 ];
 
 // ── Usuarios internos & roles ───────────────────────────────
@@ -196,17 +196,21 @@ const USERS = [
   { id: 'u-006', name: 'Andrés Briceño',    email: 'abriceno@dtdcargo.com',  role: 'Contabilidad',      team: 'Finanzas',      status: 'active',  lastLogin: 'hace 3 h',     twoFa: true,  avatar: 'AB', scope: { type: 'global', hubs: [] } },
   { id: 'u-007', name: 'Wang Hua',          email: 'wang@dtdcargo.com',      role: 'Almacén CN',        team: 'Op. CN',        status: 'active',  lastLogin: 'hace 24 min',  twoFa: false, avatar: 'WH', scope: { type: 'scoped', hubs: ['YIW-A1'] } },
   { id: 'u-008', name: 'Carolina Méndez',   email: 'cmendez@dtdcargo.com',   role: 'Soporte',           team: 'CX',            status: 'invited', lastLogin: '—',            twoFa: false, avatar: 'CM', scope: { type: 'global', hubs: [] } },
+  { id: 'u-101', name: 'Yolanda Méndez',    email: 'ymendez@dtdcargo.com',   role: 'Empleado',          team: 'Operación',     status: 'active',  lastLogin: 'hace 2 h',     twoFa: false, avatar: 'YM', scope: { type: 'self', hubs: [] }, empId: 'emp-001' },
+  { id: 'u-102', name: 'Daniela Pérez',     email: 'dperez@dtdcargo.com',    role: 'Empleado',          team: 'Comercial',     status: 'active',  lastLogin: 'ayer',         twoFa: false, avatar: 'DP', scope: { type: 'self', hubs: [] }, empId: 'emp-004' },
+  { id: 'u-103', name: 'Luis Ramos',        email: 'lramos@dtdcargo.com',    role: 'Empleado',          team: 'Transporte',    status: 'invited', lastLogin: '—',            twoFa: false, avatar: 'LR', scope: { type: 'self', hubs: [] }, empId: 'emp-006' },
 ];
 
 // ── Permisos por rol (qué módulos pueden ver) ───────────────
 const ROLE_MODULES = {
   'Admin':        '*',  // todos
-  'Comercial':    ['inicio', 'dashboard', 'shipments', 'tracking', 'calendar', 'quotes', 'clients', 'leads', 'suppliers', 'rates', 'invoices', 'cobranzas', 'documents', 'reports', 'mailing', 'conversaciones', 'fidelizacion'],
+  'Comercial':    ['inicio', 'dashboard', 'shipments', 'tracking', 'calendar', 'estimados', 'clients', 'leads', 'suppliers', 'rates', 'invoices', 'cobranzas', 'documents', 'reports', 'mailing', 'conversaciones', 'fidelizacion'],
   'Operaciones':  ['inicio', 'dashboard', 'shipments', 'tracking', 'calendar', 'cn', 'qrqueue', 'labels', 've', 'despacho', 'despacho-rules', 'despacho-dashboard', 'seniat', 'tms', 'clients', 'documents', 'operarios', 'mailing', 'naviera'],
   'Contabilidad': ['inicio', 'dashboard', 'shipments', 'invoices', 'cobranzas', 'contab', 'reconcile', 'costing', 'documents', 'clients', 'reports', 'rates', 'tesoreria'],
   'Almacén CN':   ['inicio', 'dashboard', 'cn', 'qrqueue', 'labels', 'shipments', 'naviera'],
   'Almacén VE':   ['inicio', 'dashboard', 've', 'despacho', 'tracking', 'shipments'],
   'Soporte':      ['inicio', 'dashboard', 'shipments', 'tracking', 'clients', 'documents', 'mailing', 'conversaciones'],
+  'Empleado':     ['nomina'],  // autoservicio · aterriza directo en Nómina (recibo + comunicaciones)
 };
 
 // ── Tarifas ──────────────────────────────────────────────────
@@ -238,14 +242,14 @@ const DOCUMENTS = [
 // ── Mailing templates (con body + i18n) ─────────────────────
 const MAIL_TEMPLATES = [
   {
-    id: 'm-01', name: 'Cotización enviada',
-    subject: 'Tu cotización DTD-Cargo · {{quote_id}}',
-    category: 'Cotizaciones', channel: 'email',
+    id: 'm-01', name: 'Estimado enviado',
+    subject: 'Tu estimado DTD-Cargo · {{quote_id}}',
+    category: 'Estimados', channel: 'email',
     sent: 248, opened: '78%',  clicked: '34%', updated: 'hace 2 días',
     active: true,
     langs: { es: true, en: true, zh: false },
     body: {
-      es: `Hola {{client_name}},\n\nGracias por confiar en DTD-Cargo. Te paso la cotización para tu envío:\n\n**Cotización:** {{quote_id}}\n**Volumen:** {{cbm}} CBM\n**Total DDP:** ${'${{total_usd}}'}\n**Válida hasta:** {{valid_until}}\n\nLa tarifa incluye flete marítimo, aduana, impuestos y entrega final puerta a puerta.\n\n[Aceptar cotización →]({{accept_link}})\n\nQuedo a las órdenes,\n{{agent_name}}`,
+      es: `Hola {{client_name}},\n\nGracias por confiar en DTD-Cargo. Te paso el estimado para tu envío:\n\n**Estimado:** {{quote_id}}\n**Volumen:** {{cbm}} CBM\n**Total DDP:** ${'${{total_usd}}'}\n**Válida hasta:** {{valid_until}}\n\nLa tarifa incluye flete marítimo, aduana, impuestos y entrega final puerta a puerta.\n\n[Aceptar estimado →]({{accept_link}})\n\nQuedo a las órdenes,\n{{agent_name}}`,
       en: `Hi {{client_name}},\n\nThanks for choosing DTD-Cargo. Here's your shipping quote:\n\n**Quote:** {{quote_id}}\n**Volume:** {{cbm}} CBM\n**DDP Total:** ${'${{total_usd}}'}\n**Valid until:** {{valid_until}}\n\nRate includes sea freight, customs, taxes and final door delivery.\n\n[Accept quote →]({{accept_link}})\n\nBest,\n{{agent_name}}`,
     }
   },
@@ -280,13 +284,13 @@ const MAIL_TEMPLATES = [
     body: { es: `{{client_name}},\n\nTu embarque **{{shipment_id}}** fue entregado en {{destination}} y firmado por **{{signed_by}}**.\n\nAdjunto encontrás el POD (Proof of Delivery).\n\nGracias por elegir DTD-Cargo.` }
   },
   {
-    id: 'm-05', name: 'Bienvenida MARKBOX',
+    id: 'm-05', name: 'Bienvenida Shipping Mark',
     subject: 'Bienvenido a DTD-Cargo · tu código es {{markbox}}',
     category: 'Onboarding', channel: 'email',
     sent: 38, opened: '95%', clicked: '72%', updated: 'hace 2 sem',
     active: true,
     langs: { es: true, en: true, zh: true },
-    body: { es: `¡Bienvenido {{client_name}}!\n\nTu cuenta en DTD-Cargo está activa.\n\n**Tu código MARKBOX:** \`{{markbox}}\`\n\nUsalo cuando coordines envíos desde China. Tus proveedores deben anotarlo en cada caja.\n\n**Acceso al portal:** [{{portal_link}}]({{portal_link}})\n\nDudas o ayuda → respondé este correo.` }
+    body: { es: `¡Bienvenido {{client_name}}!\n\nTu cuenta en DTD-Cargo está activa.\n\n**Tu código Shipping Mark:** \`{{markbox}}\`\n\nUsalo cuando coordines envíos desde China. Tus proveedores deben anotarlo en cada caja.\n\n**Acceso al portal:** [{{portal_link}}]({{portal_link}})\n\nDudas o ayuda → respondé este correo.` }
   },
   {
     id: 'm-06', name: 'Recordatorio de pago',
@@ -295,7 +299,7 @@ const MAIL_TEMPLATES = [
     sent: 12, opened: '83%', clicked: '41%', updated: 'hace 1 mes',
     active: true,
     langs: { es: true, en: false, zh: false },
-    body: { es: `{{client_name}},\n\nTe recordamos que la factura **{{invoice_id}}** por **${'${{amount}}'}** se encuentra vencida hace **{{days}} días**.\n\nPodés regularizar el saldo desde el portal o contactando a finanzas@dtdcargo.com.\n\nGracias.` }
+    body: { es: `{{client_name}},\n\nTe recordamos que la factura **{{invoice_id}}** por **${'${{amount}}'}** se encuentra vencida hace **{{days}} días**.\n\nPuedes regularizar el saldo desde el portal o contactando a finanzas@dtdcargo.com.\n\nGracias.` }
   },
   {
     id: 'm-07', name: 'Aviso ETA · WhatsApp',
@@ -339,7 +343,7 @@ const SUPPLIERS = [
 
 // Cliente ↔ Proveedor relaciones
 // wechatGroup = código del grupo WeChat de seguimiento de la compra:
-// MARKBOX-N, donde N es el orden del proveedor dentro de la lista de ese cliente.
+// Shipping Mark-N, donde N es el orden del proveedor dentro de la lista de ese cliente.
 // El grupo es POR par cliente↔proveedor (cada cliente abre su propio grupo con cada supplier).
 const SUPPLIER_CLIENTS = [
   { supplierId: 'sup-001', clientMarkbox: 'DTD-5452', favorite: true,  shipments: 14, totalValue: 84200, since: '2019-08', wechatGroup: 'DTD-5452-1' },
@@ -358,7 +362,7 @@ const SUPPLIER_CLIENTS = [
 ];
 
 // ── Órdenes esperadas (mercancía en camino, registrada por el cliente) ──
-// El cliente las crea al comprar en China. Código = MARKBOX-proveedor-compra,
+// El cliente las crea al comprar en China. Código = Shipping Mark-proveedor-compra,
 // que ES el nombre del grupo WeChat de seguimiento (wechatGroup + nº de compra).
 // El almacén CN solo VERIFICA sumatorias + docs; al confirmar pasa a recepción.
 const ORDERS = [
@@ -390,7 +394,7 @@ const BLACKLIST = [
 const TEMPLATE_VARIABLES = [
   { group: 'Cliente',   tag: '{{client_name}}',  desc: 'Nombre de contacto del cliente' },
   { group: 'Cliente',   tag: '{{client_company}}', desc: 'Razón social' },
-  { group: 'Cliente',   tag: '{{markbox}}',      desc: 'Código MARKBOX (DTD-XXXX)' },
+  { group: 'Cliente',   tag: '{{markbox}}',      desc: 'Código Shipping Mark (DTD-XXXX)' },
   { group: 'Cliente',   tag: '{{client_email}}', desc: 'Email del contacto' },
   { group: 'Cliente',   tag: '{{client_phone}}', desc: 'Teléfono' },
   { group: 'Cliente',   tag: '{{client_city}}',  desc: 'Ciudad' },
@@ -403,10 +407,10 @@ const TEMPLATE_VARIABLES = [
   { group: 'Embarque',  tag: '{{cbm}}',          desc: 'Volumen en CBM' },
   { group: 'Embarque',  tag: '{{transit_days}}', desc: 'Días de tránsito estimado' },
   { group: 'Embarque',  tag: '{{tracking_link}}',desc: 'URL al tracking del envío' },
-  { group: 'Cotización',tag: '{{quote_id}}',     desc: 'ID de la cotización' },
-  { group: 'Cotización',tag: '{{total_usd}}',    desc: 'Total cotización USD' },
-  { group: 'Cotización',tag: '{{valid_until}}',  desc: 'Fecha de vencimiento' },
-  { group: 'Cotización',tag: '{{accept_link}}',  desc: 'Link para aceptar' },
+  { group: 'Estimado',tag: '{{quote_id}}',     desc: 'ID del estimado' },
+  { group: 'Estimado',tag: '{{total_usd}}',    desc: 'Total estimado USD' },
+  { group: 'Estimado',tag: '{{valid_until}}',  desc: 'Fecha de vencimiento' },
+  { group: 'Estimado',tag: '{{accept_link}}',  desc: 'Link para aceptar' },
   { group: 'Facturación',tag: '{{invoice_id}}',   desc: 'ID de la factura' },
   { group: 'Facturación',tag: '{{amount}}',       desc: 'Monto total' },
   { group: 'Facturación',tag: '{{days}}',         desc: 'Días vencida' },
@@ -421,7 +425,7 @@ const TEMPLATE_VARIABLES = [
 // ── Notificaciones (feed) ───────────────────────────────────
 const NOTIFS = [
   { id: 'n-01', t: 'DTDU-472816 cruzó Canal de Panamá',  m: 'hace 3 min',  type: 'tracking', tone: 'wine' },
-  { id: 'n-02', t: 'Cotización Q-2026-0419 aceptada',     m: 'hace 14 min', type: 'sales',    tone: 'success' },
+  { id: 'n-02', t: 'Estimado E-2026-0419 aceptada',     m: 'hace 14 min', type: 'sales',    tone: 'success' },
   { id: 'n-03', t: 'Pago confirmado · F-2026-0391',       m: 'hace 1 h',    type: 'finance',  tone: 'success' },
   { id: 'n-04', t: 'DTDU-419032 · ETA +2 días',           m: 'hace 2 h',    type: 'alert',    tone: 'warning' },
   { id: 'n-05', t: 'Nuevo lead · F. Acosta Trading',      m: 'hace 3 h',    type: 'crm',      tone: 'info' },
@@ -463,7 +467,7 @@ const _byClient = (markbox) => _clientTenant[markbox] || HOME_TENANT;
 // 2) Entidades vinculadas a cliente (markbox)
 SHIPMENTS.forEach(s => { s.tenantId = _byClient(s.client); });
 INVOICES.forEach(i => { i.tenantId = _byClient(i.client); });
-QUOTES.forEach(q => { q.tenantId = _byClient(q.client); });
+ESTIMADOS.forEach(q => { q.tenantId = _byClient(q.client); });
 WAREHOUSE_CN.forEach(w => { w.tenantId = _byClient(w.client); });
 WAREHOUSE_VE.forEach(w => { w.tenantId = _byClient(w.client); });
 DOCUMENTS.forEach(d => { d.tenantId = _byClient(d.client); });
@@ -515,7 +519,7 @@ const _tenantApi = {
 };
 
 // ── Catálogo de Servicios y Tarifas (única fuente de verdad) ──
-// Lo consumen: módulo Servicios y Tarifas, cotizador y facturación.
+// Lo consumen: módulo Servicios y Tarifas, estimador y facturación.
 // Cada ítem tiene tarifa vigente (rate + from/to) e historial.
 const CATALOG_ITEMS = [
   { id: 's1', type: 'servicio', code: 'SRV-LCL',     name: 'Flete marítimo LCL · DDP', unit: 'CBM',      desc: 'Consolidado puerta a puerta CN → VE', rate: 185, from: '2026-05-01', to: '2026-06-30',
@@ -578,7 +582,7 @@ const CORP_LINES = {
   'Dirección':  { label: 'CEO · Dirección',        phone: '0414 884 0000' },
   'Ventas':     { label: 'Comercial',              phone: '0412 454 5325' },
   'Op. CN':     { label: 'Logística',              phone: '0414 888 8805' },
-  'Op. VE':     { label: 'Transporte',             phone: '0412 495 0884' },
+  'Op. VE':     { label: 'Transporte',             phone: '0424 950 8848' },
   'Finanzas':   { label: 'Contabilidad',           phone: '0414 887 0000' },
   'CX':         { label: 'CRM · Atención cliente',  phone: '0412 166 8021', whatsappApi: true },
   'Admin':      { label: 'Administración',          phone: '0241 414 7886' },
@@ -604,7 +608,7 @@ const USER_PROFILES = {
     phone: '0412 454 5325', location: 'Yiwu · CN (viaje)', presence: 'online',
     lastActive: 'activo ahora', joined: '2021-06-14', title: 'Ejecutiva comercial senior',
     activity: [
-      { icon: 'box', text: 'Creó cotización Q-2026-0331 · DTD-5418', mod: 'quotes', when: 'hace 4 min' },
+      { icon: 'box', text: 'Creó estimado E-2026-0331 · DTD-5418', mod: 'estimados', when: 'hace 4 min' },
       { icon: 'users', text: 'Registró lead Comercial Linares', mod: 'leads', when: 'hace 2 h' },
       { icon: 'mail', text: 'Envió seguimiento a DTD-5371', mod: 'mailing', when: 'hace 5 h' },
     ],
@@ -636,7 +640,7 @@ const USER_PROFILES = {
   },
   'u-005': {
     avatarColor: 'success', roleIcon: 'almacenista',
-    phone: '0412 495 0884', location: 'Puerto Cabello · Almacén VE', presence: 'online',
+    phone: '0424 950 8848', location: 'Puerto Cabello · Almacén VE', presence: 'online',
     lastActive: 'activo ahora', joined: '2021-03-08', title: 'Coordinadora de operaciones VE',
     activity: [
       { icon: 'warehouse', text: 'Desconsolidó DTDU-365044 · 56 CBM', mod: 've', when: 'hace 30 min' },
@@ -697,7 +701,7 @@ const THREADS = {
         { id: 'r1', author: 'u-005', at: 'hace 2 días', body: '@Martina A. recibido. Lo estoy monitoreando — ETA Pto Cabello sigue para el 12 jun. En cuanto el agente confirme liberación te aviso acá mismo.', mentions: ['u-002'], reactions: { '✓': ['u-002'] }, replies: [
           { id: 'r1a', author: 'u-002', at: 'hace 1 día', body: 'Perfecto, gracias. Dejo agendado el flete tentativo para el 13.', mentions: [], reactions: {}, replies: [] },
         ] },
-        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegurate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
+        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegúrate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
           { id: 'r2a', author: 'u-003', at: 'hace 5 h', body: 'Coordinado. Chofer Luis Hernández (T-001) confirmado para el 13 a primera hora.', mentions: [], reactions: { '🔥': ['u-001', 'u-002'] }, replies: [] },
         ] },
       ],
@@ -708,7 +712,7 @@ const THREADS = {
     created: 'hace 4 h', status: 'abierto',
     root: {
       id: 'c30', author: 'u-006', at: 'hace 4 h',
-      body: 'Factura vencida hace 10 días. @Martina A. ¿podés llamar al cliente? Ya mandamos 2 recordatorios automáticos sin respuesta.',
+      body: 'Factura vencida hace 10 días. @Martina A. ¿puedes llamar al cliente? Ya mandamos 2 recordatorios automáticos sin respuesta.',
       mentions: ['u-002'], reactions: {},
       replies: [
         { id: 'fr1', author: 'u-002', at: 'hace 3 h', body: 'Lo llamo hoy. Carlos me comentó la semana pasada que estaban esperando liberar el contenedor para pagar. @Andrés B. ¿le damos 5 días más?', mentions: ['u-006'], reactions: {}, replies: [] },
@@ -739,7 +743,7 @@ const KPIS_EXTRA = {
   cnStock:        { value: 1284,    delta: 'bultos',         tone: 'neutral' },
   marginYTD:      { value: '24.6%', delta: '+1.8 pp',        tone: 'wine' },
   pendingCollect: { value: '$162K', delta: '4 fac. vencidas',tone: 'info' },
-  wonQuotes:     { value: 11,       delta: '67% win rate',   tone: 'success' },
+  wonEstimados:     { value: 11,       delta: '67% win rate',   tone: 'success' },
   activeClients: { value: 47,       delta: '+4 este mes',    tone: 'neutral' },
   avgTicket:     { value: '$24.8K', delta: '+$1.2K vs mes ant.', tone: 'wine' },
 };
@@ -747,7 +751,7 @@ const AUDIT_LOG = [
   {
     id: 'AL-2026-4421', ts: '2026-05-24 09:56', timeRel: 'hace 4 min',
     actor: { name: 'Martina A.', role: 'Comercial', email: 'martina@dtdcargo.com', initials: 'MA' },
-    action: 'edit', entity: 'Cotización', target: 'Q-2026-0421',
+    action: 'edit', entity: 'Estimado', target: 'E-2026-0421',
     summary: 'Cambió total de $8,400 a $9,200',
     ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
     diff: [
@@ -757,7 +761,7 @@ const AUDIT_LOG = [
       { field: 'updated_at',     before: '2026-05-20 14:18', after: '2026-05-24 09:56', type: 'date' },
     ],
     related: [
-      { id: 'AL-2026-4395', ts: '2026-05-20 14:18', summary: 'Martina A. creó la cotización' },
+      { id: 'AL-2026-4395', ts: '2026-05-20 14:18', summary: 'Martina A. creó el estimado' },
       { id: 'AL-2026-4318', ts: '2026-05-18 11:02', summary: 'Carlos V. asignó Martina como owner' },
     ],
   },
@@ -860,7 +864,7 @@ const AUDIT_LOG = [
   {
     id: 'AL-2026-4413', ts: '2026-05-23 17:42', timeRel: 'ayer 17:42',
     actor: { name: 'Martina A.', role: 'Comercial', email: 'martina@dtdcargo.com', initials: 'MA' },
-    action: 'delete', entity: 'Cotización', target: 'Q-2026-0410',
+    action: 'delete', entity: 'Estimado', target: 'E-2026-0410',
     summary: 'Eliminó borrador',
     ip: '190.142.88.214', city: 'Caracas, VE', browser: 'Chrome 124 · macOS',
     diff: [
@@ -1228,7 +1232,7 @@ const CUSTOMS_AGENTS = [
 window.ERPData = {
   PRINT_ORDERS, KPIS_EXTRA, AUDIT_LOG, BANK_STATEMENTS, CLIENT_ACCOUNTS, TRUCK_PROFILES, DRIVER_PROFILES, CUSTOMS_AGENTS,
   CORP_LINES, USER_PROFILES, PRESENCE, THREADS,
-  CLIENTS, SHIPMENTS, QUOTES, INVOICES, WAREHOUSE_CN, WAREHOUSE_VE,
+  CLIENTS, SHIPMENTS, ESTIMADOS, INVOICES, WAREHOUSE_CN, WAREHOUSE_VE,
   LEADS, USERS, RATES, DOCUMENTS, MAIL_TEMPLATES, NOTIFS, KPIS,
   SIGNATURES, SIGNATURE_LAYOUTS, SMTP_PROVIDERS, BLACKLIST, TEMPLATE_VARIABLES,
   SHIPMENT_COSTS, shipmentEconomics, ROUTE_COST_TEMPLATES,

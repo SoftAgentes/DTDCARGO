@@ -128,7 +128,7 @@ export function validateSupplierInput(input: Partial<SupplierInput>): {
   const errors: SupplierActionState["fieldErrors"] = {};
 
   const name = (input.name ?? "").trim();
-  if (!name) errors.name = "Indicá el nombre del proveedor.";
+  if (!name) errors.name = "Indica el nombre del proveedor.";
 
   const type: SupplierType = VALID_SUPPLIER_TYPES.has(input.type ?? "")
     ? (input.type as SupplierType)
@@ -288,7 +288,7 @@ export function validateBillInput(input: Partial<BillInput>): {
 
   const dueDate = (input.dueDate ?? "").trim();
   if (!dueDate) {
-    errors.dueDate = "Indicá la fecha de vencimiento.";
+    errors.dueDate = "Indica la fecha de vencimiento.";
   } else if (!dateOk(dueDate)) {
     errors.dueDate = "Fecha de vencimiento inválida (YYYY-MM-DD).";
   }

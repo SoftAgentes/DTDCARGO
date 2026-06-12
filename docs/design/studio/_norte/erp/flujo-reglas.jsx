@@ -18,7 +18,7 @@
   },  {
     id: 'AUT-02', from: 'com-client', to: 'op-pedido', category: 'Comercial → Operación',
     trigger: 'El estimado se acepta',
-    action: 'Crea la orden de pedido y asigna MARKBOX',
+    action: 'Crea la orden de pedido y asigna Shipping Mark',
     detail: 'Genera OP-2026-XXXX en Embarques · órdenes y la deja en seguimiento.',
     modules: ['Clientes', 'Embarques · órdenes'],
     auto: true, runs: 21

@@ -128,7 +128,7 @@ export function VeRowActions({
       setPrompt({
         kind: "incident",
         title: "Reportar incidencia",
-        label: "Describí qué pasó",
+        label: "Describe qué pasó",
         placeholder: "Ej: caja dañada al recibir, falta una unidad…",
         required: true,
         multiline: true,

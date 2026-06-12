@@ -48,7 +48,7 @@ export type DocRef = {
   version: string;
 };
 
-/** Fila de `legal_acceptances` (migración 0102). */
+/** Fila de `legal_acceptances` (migraciones 0102 + 0121 · evidencia v2). */
 export type LegalAcceptance = {
   id: string;
   tenant_id: string;
@@ -62,15 +62,31 @@ export type LegalAcceptance = {
   total_usd: number | null;
   accepted_at: string;
   ip: string | null;
+  /** v2 (0121): user agent server-sellado. Entra al hash. */
+  user_agent: string | null;
+  /** v2 (0121): declaración de comerciante (checkbox 2). Entra al hash. */
+  merchant_declaration: boolean;
+  /** v2 (0121): atadura forense a la factura. METADATO — NO entra al hash. */
+  invoice_id: string | null;
   hash: string | null;
   idempotency_key: string | null;
   created_at: string;
 };
 
 /**
- * Lo que el CLIENTE envía al aceptar. NO incluye hash/ip/accepted_at: esos los
+ * Lo que se registra al aceptar. NO incluye hash/ip/accepted_at: esos los
  * sella el servidor (seal.ts). La medida (cbm/weight/total) ata la aceptación a
  * lo que se aceptó; el gate AUT-04 la compara con la medida vigente.
+ *
+ * v2 (SDD-0067):
+ *  - `user_agent`: lo pone la ACTION leyéndolo de `headers()` — NUNCA del body
+ *    del form (el cliente no escribe su propia evidencia). Entra al hash.
+ *  - `merchant_declaration`: checkbox 2 del modal (declaración de comerciante,
+ *    cláusula 1.4). Forma parte de lo aceptado → entra al hash. Sin declaración
+ *    (`!== true`) la aceptación NO es válida (lo exige validateAcceptanceInput).
+ *  - `invoice_id`: atadura forense a la factura borrador. METADATO — NO entra
+ *    al hash (la granularidad de re-aceptación sigue siendo la ORDEN/quote_code,
+ *    decisión M-1 de 0054 round 2).
  */
 export type AcceptanceInput = {
   client_id: string | null;
@@ -79,6 +95,9 @@ export type AcceptanceInput = {
   cbm: number;
   weight_kg: number;
   total_usd: number;
+  user_agent: string | null;
+  merchant_declaration: boolean;
+  invoice_id: string | null;
   idempotency_key: string | null;
 };
 
@@ -89,7 +108,8 @@ export type AcceptanceFieldErrors = Partial<
     | "docs"
     | "cbm"
     | "weight_kg"
-    | "total_usd",
+    | "total_usd"
+    | "merchant_declaration",
     string
   >
 >;
@@ -106,16 +126,38 @@ function num(v: unknown): number {
   return Number.isFinite(n) ? n : NaN;
 }
 
+// ── user_agent saneado (v2 · SDD-0067) ────────────────────────
+/** Tope del user_agent que se sella (UAs reales rondan 100–300 chars). */
+export const USER_AGENT_MAX_LENGTH = 512;
+
+/**
+ * Sanea un user_agent para evidencia: trim, truncado a `USER_AGENT_MAX_LENGTH`,
+ * vacío → null. ÚNICA fuente de saneo (la usan `validateAcceptanceInput` y el
+ * sello en seal.ts) → lo que se hashea es EXACTAMENTE lo que se persiste; el
+ * gate recomputa desde la fila SIN re-sanear (un tamper post-hoc, aunque sea
+ * más allá del char 512, cambia el hash y se detecta).
+ */
+export function sanitizeUserAgent(v: unknown): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  return s.length > USER_AGENT_MAX_LENGTH ? s.slice(0, USER_AGENT_MAX_LENGTH) : s;
+}
+
 // ── Validación manual (sin Zod, patrón del repo) ──────────────
 /**
- * Valida lo que el cliente envía al aceptar:
+ * Valida lo que se registra al aceptar:
  *  - client_markbox / quote_code no vacíos.
  *  - docs no vacío (tiene que aceptar al menos un documento vigente).
  *  - cbm / weight_kg numéricos ≥ 0 (negativos/NaN → error).
  *  - total_usd numérico > 0 (round-2: una aceptación legal de un envío con total
  *    0 no existe — no hay nada que facturar; el gate AUT-04 respalda una factura).
+ *  - merchant_declaration === true (v2 · SDD-0067): sin la declaración de
+ *    comerciante NO hay aceptación válida — es parte de lo aceptado.
  *
  * client_id es opcional (nullable en la DB). idempotency_key opcional.
+ * user_agent se sanea acá (misma función que usa el sello). invoice_id es
+ * metadato opcional (string | null).
  */
 export function validateAcceptanceInput(
   raw: Partial<Record<string, unknown>>,
@@ -125,16 +167,23 @@ export function validateAcceptanceInput(
 
   const markbox = String(raw.client_markbox ?? "").trim();
   if (!markbox) {
-    errors.client_markbox = "Indicá el Shipping Mark del cliente.";
+    errors.client_markbox = "Indica el Shipping Mark del cliente.";
   }
 
   const quoteCode = String(raw.quote_code ?? "").trim();
   if (!quoteCode) {
-    errors.quote_code = "Indicá el estimado que se acepta.";
+    errors.quote_code = "Indica el estimado que se acepta.";
   }
 
   if (!Array.isArray(docs) || docs.length === 0) {
     errors.docs = "Hay que aceptar al menos un documento vigente.";
+  }
+
+  // v2: la declaración de comerciante es obligatoria — estrictamente `true`
+  // (un "on"/"si"/1 NO alcanza: el caller la normaliza ANTES; acá fail-closed).
+  if (raw.merchant_declaration !== true) {
+    errors.merchant_declaration =
+      "Hay que confirmar la declaración de comerciante para aceptar.";
   }
 
   // cbm / weight_kg: ≥ 0. total_usd: > 0 (round-2: no existe aceptación con total 0).
@@ -171,6 +220,8 @@ export function validateAcceptanceInput(
   const clientIdRaw = raw.client_id != null ? String(raw.client_id).trim() : "";
   const idemRaw =
     raw.idempotency_key != null ? String(raw.idempotency_key).trim() : "";
+  const invoiceIdRaw =
+    raw.invoice_id != null ? String(raw.invoice_id).trim() : "";
 
   return {
     input: {
@@ -180,6 +231,9 @@ export function validateAcceptanceInput(
       cbm: parsed.cbm,
       weight_kg: parsed.weight_kg,
       total_usd: parsed.total_usd,
+      user_agent: sanitizeUserAgent(raw.user_agent),
+      merchant_declaration: true, // validado arriba (=== true o fieldError)
+      invoice_id: invoiceIdRaw || null,
       idempotency_key: idemRaw || null,
     },
   };
@@ -237,6 +291,10 @@ function roundTo(v: number, decimals: number): number {
  * evidencia — incluidos los SERVER-SELLADOS (`ip`, `accepted_at`) — para que la
  * huella pruebe la evidencia íntegra y el gate pueda recomputarla 1:1 desde la
  * fila. Antes `ip`/`accepted_at` quedaban fuera del payload (no sellados acá).
+ *
+ * v2 (SDD-0067): suma `user_agent` (server-sellado) y `merchant_declaration`
+ * (parte de lo aceptado). `invoice_id` NO está acá a propósito: es metadato
+ * forense fuera del hash (la granularidad de re-aceptación es la orden).
  */
 export type AcceptanceEvidence = {
   client_markbox: string;
@@ -246,19 +304,27 @@ export type AcceptanceEvidence = {
   weight_kg: number;
   total_usd: number;
   ip: string | null;
+  user_agent: string | null;
+  merchant_declaration: boolean;
   accepted_at: string;
 };
 
 /**
- * Payload CANÓNICO + INYECTIVO de una aceptación, listo para hashear.
+ * Payload CANÓNICO + INYECTIVO de una aceptación, listo para hashear (v2).
  *
  * Determinístico e inyectivo:
  *  - docs deduplicados (por key+version) + orden estable → ni el orden ni los
  *    duplicados afectan el resultado.
  *  - JSON con keys en orden FIJO (no `JSON.stringify` del objeto crudo, que
  *    dependería del orden de inserción).
- *  - incluye TODOS los campos de evidencia, incluidos `ip` y `accepted_at`
- *    (server-sellados) → la huella cubre la evidencia completa.
+ *  - incluye TODOS los campos de evidencia, incluidos `ip`, `user_agent` y
+ *    `accepted_at` (server-sellados) + `merchant_declaration` → la huella
+ *    cubre la evidencia completa.
+ *  - `user_agent` se toma AS-IS (`?? null`, sin re-sanear): el sello persiste
+ *    exactamente lo que hasheó, así el recompute desde la fila detecta
+ *    CUALQUIER tamper (re-sanear acá enmascararía, p.ej., un append > 512).
+ *  - `merchant_declaration` se canoniza a boolean estricto (`=== true`):
+ *    cualquier otra cosa (corrupción/coerción) recomputa `false` → no matchea.
  *
  * Cualquier cambio en cualquier campo cambia el string → cambia el hash.
  */
@@ -276,6 +342,8 @@ export function acceptanceHashPayload(ev: AcceptanceEvidence): string {
       version: d.version,
     })),
     ip: ev.ip ?? null,
+    user_agent: ev.user_agent ?? null,
+    merchant_declaration: ev.merchant_declaration === true,
     accepted_at: String(ev.accepted_at),
   };
   return JSON.stringify(canonical);

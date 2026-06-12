@@ -145,13 +145,13 @@ const searchShipmentsByCustomerTool: ToolDef<
 > = {
   key: "search_shipments_by_customer",
   description:
-    "Lista los envíos asociados a un cliente identificado por su MARKBOX (formato DTD-NNNN). Hasta 200 envíos, más reciente primero.",
+    "Lista los envíos asociados a un cliente identificado por su Shipping Mark (formato DTD-NNNN). Hasta 200 envíos, más reciente primero.",
   input_schema: {
     type: "object",
     properties: {
       markbox: {
         type: "string",
-        description: "MARKBOX del cliente, formato DTD-NNNN.",
+        description: "Shipping Mark del cliente, formato DTD-NNNN.",
       },
     },
     required: ["markbox"],
@@ -200,11 +200,11 @@ const searchShipmentsByCustomerTool: ToolDef<
 const getCustomerTool: ToolDef<{ markbox: string }, ClientSummary | null> = {
   key: "get_customer",
   description:
-    "Devuelve resumen de un cliente por MARKBOX (DTD-NNNN): nombre, tier, ubicación, total de envíos históricos.",
+    "Devuelve resumen de un cliente por Shipping Mark (DTD-NNNN): nombre, tier, ubicación, total de envíos históricos.",
   input_schema: {
     type: "object",
     properties: {
-      markbox: { type: "string", description: "MARKBOX del cliente." },
+      markbox: { type: "string", description: "Shipping Mark del cliente." },
     },
     required: ["markbox"],
   },

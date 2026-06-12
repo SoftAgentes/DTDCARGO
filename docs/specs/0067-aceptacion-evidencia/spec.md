@@ -1,10 +1,10 @@
 ---
 sdd: "0067"
 title: "Aceptación con evidencia reforzada (SDD-B del handoff legal) — 2 checkboxes + user_agent + atadura a factura + export de evidencia"
-status: approved
+status: done
 author: "handoff Claude Chat (capa legal) + Claude Code"
 created: 2026-06-10
-updated: 2026-06-10
+updated: 2026-06-11
 supersedes: null
 superseded_by: null
 related: ["0054", "0042", "0021"]
@@ -80,7 +80,7 @@ checkboxes literales** de `COPY_LEGAL_UI.md §1`, evidencia con **`user_agent`**
    `LEGAL_GATE_HARD_BLOCK` exportada desde un módulo compartible (moverla de
    `facturacion/actions.ts` a `lib/studio/legal/gate-config.ts` y reexportar para no
    romper imports). El flip sigue siendo decisión founder (1 línea).
-7. **Migración `0120_acceptance_evidence_v2.sql` — aditiva**: `alter table
+7. **Migración `0121_acceptance_evidence_v2.sql` — aditiva**: `alter table
    legal_acceptances add column user_agent text, add column merchant_declaration
    boolean not null default false, add column invoice_id uuid references
    invoices(id) on delete set null;` + índice `(tenant_id, invoice_id)` parcial where
@@ -93,7 +93,7 @@ checkboxes literales** de `COPY_LEGAL_UI.md §1`, evidencia con **`user_agent`**
 
 ## 4. Approach
 
-### Migración `supabase/migrations/0120_acceptance_evidence_v2.sql`
+### Migración `supabase/migrations/0121_acceptance_evidence_v2.sql`
 Como decisión #7. Comentario en el SQL: evidencia v2 = primer formato productivo
 (v1 nunca llegó a prod con filas).
 
@@ -142,18 +142,44 @@ Como decisión #7. Comentario en el SQL: evidencia v2 = primer formato productiv
 
 ## 5. Acceptance
 
-- [ ] Migración `0120` aditiva limpia (user_agent, merchant_declaration, invoice_id +
+- [x] Migración `0121` aditiva limpia (user_agent, merchant_declaration, invoice_id +
       índice). NO aplicada a prod por el harness.
-- [ ] Evidencia v2: hash cubre user_agent + merchant_declaration; tests verdes
+- [x] Evidencia v2: hash cubre user_agent + merchant_declaration; tests verdes
       incluyendo round-trip y manipulación post-hoc.
-- [ ] Portal: modal con los 2 checkboxes literales (fallback pre-v3 documentado),
+- [x] Portal: modal con los 2 checkboxes literales (fallback pre-v3 documentado),
       ambos obligatorios con fieldError; user_agent capturado server-side; copy de
       re-aceptación por nueva versión.
-- [ ] `/studio/legal`: banner de modo del gate + export JSON (single + por operación)
+- [x] `/studio/legal`: banner de modo del gate + export JSON (single + por operación)
       + vista imprimible, todo admin-only.
-- [ ] `node scripts/verify.mjs` 🟢 (gate completo).
-- [ ] Sin cambios en: máquina de estados de invoices, granularidad por orden,
+- [x] `node scripts/verify.mjs` 🟢 (gate completo, 1570 tests).
+- [x] Sin cambios en: máquina de estados de invoices, granularidad por orden,
       `LEGAL_GATE_HARD_BLOCK` (sigue false), publicación de v3.
+
+## 7. Notas de implementación (cierre 2026-06-11)
+
+- Shipped vía harness en branch `feat/capa-legal` (worktree aislado): implementer →
+  gate 🟢 (1570 tests, +56) → reviewer **APPROVED en 1 ronda** (checklist C1–C8 en
+  `.harness/progress/review_0067.md`; 0 bloqueantes, 4 menores).
+- Auditoría crítica del reviewer: hash v2 load-bearing con UNA sola `hashEvidence`
+  para sello/gate/export (cero drift) · fila manipulada post-hoc ⇒ gate false
+  (probado para UA mutado/null y declaración flipeada) · user_agent JAMÁS del
+  FormData (test con campo forjado) · export admin-only con client de SESIÓN
+  (RLS on) + tenant explícito · copy literal cotejado string-exacto contra
+  COPY_LEGAL_UI §1 (set v3) + fallback pre-v3.
+- Review ui-ux (post-APPROVED, regla founder): 0 bloqueantes; se aplicaron 7 fixes
+  (hover de bitácora vía clase `.studio-row-btn` — inline background pisaba el
+  hover · región de T&C operable por teclado WCAG 2.1.1 · aria-invalid/describedby
+  + role=alert en los 2 checkboxes · Evidencia del modal en UTC como el expediente
+  · voseo "Pediles"→"Pídele" · overflowWrap anywhere en valores impresos ·
+  `#fff`→`var(--color-white)`).
+- Hallazgos menores aceptados (sin acción, documentados por el reviewer): con
+  `?quote=` el `[code]` de la URL del export se ignora (decisión #5) · el aviso de
+  re-aceptación no verifica hash (informativo; la verdad la imponen gate+pre-check)
+  · pre-check de idempotencia corre antes de validar checkboxes (UX correcta).
+- **Pendiente founder (gates de activación):** (1) aplicar `0121` a prod ANTES de
+  deployar este código — el gate y la bitácora seleccionan las columnas nuevas;
+  (2) flip de `LEGAL_GATE_HARD_BLOCK` (lib/studio/legal/gate-config.ts) cuando
+  haya adopción → recién ahí se cumple el DoD "imposible confirmar sin aceptación".
 
 ## 6. Fuera de alcance (respetar)
 

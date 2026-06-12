@@ -146,14 +146,51 @@
 - 🔒 **Confidencial:** el PDF crudo del tercero (fábrica, banco, "Canopy", IDs) NUNCA va a git/web.
 
 ### B · Servicios sueltos
-5. **Compra asistida / sourcing** (`compra-asistida`) — depto. de compras en China
-   (ubicar/negociar/gestionar/pagar). ⚠️ proveedor = **red propia DTD, NUNCA se revela**; **modelo
-   comercial sin definir**. (FAQ §9)
+5. **Compra asistida / sourcing** (`compra-asistida`) — ✅ **CERRADA** (ver detalle abajo).
 6. **Asesoría en pagos a proveedores** (`asesoria-pagos`) — transacciones seguras en Yuan
    (Alipay/WeChat/transferencia/efectivo). (FAQ §6)
 7. **Courier de muestras y documentos** (`muestras-courier`) — DHL/UPS/FedEx desde Yiwu. ⚠️ **NO es
    flete aéreo de carga** (suspendido); el courier de muestras/docs **sí está activo**.
-- ❓ Por servicio: incluye/no-incluye · precio/condición · tiempos.
+- ❓ Pendientes: **#6 Asesoría de pagos · #7 Courier de muestras** (incluye/no-incluye · precio/condición · tiempos).
+
+#### 5. Compra asistida / sourcing — ✅ CERRADA (dictado founder 2026-06-09)
+
+**Dos modalidades** (la verificación del proveedor va **incluida** en ambas):
+- **A · Sourcing completo** — DTD consigue el proveedor (red propia, **NUNCA se revela**), negocia y
+  gestiona la compra. El cliente trae el producto **+ ficha técnica**.
+- **B · Sobre el proveedor del cliente** — el cliente ya tiene proveedor y precios pero teme que lo
+  estafen; DTD lo **verifica** y gestiona la compra entrando como su **comprador/garante**.
+
+**Precio = PÚBLICO** (tabla por monto, comisión regresiva). **B = la mitad de A** (decisión founder: "la b").
+
+| Monto de compra (USD) | A · sourcing | B · tu proveedor |
+|---|---|---|
+| hasta $2.000 | 10% | 5% |
+| ~$5.000 | 8% | 4% |
+| ~$10.000 | 6% | 3% |
+| ~$20.000 | 5% | 2,5% |
+| ~$50.000 | 4% | 2% |
+| $100.000+ | 3% | 1,5% |
+
+- **Mínimo $50/orden** (ambas modalidades). Verificación del proveedor incluida.
+- "El lago" (comisión oculta al proveedor) = **INTERNO**, nunca público; la tabla publicada es la
+  comisión al cliente.
+
+**Qué NO incluye** (ambas):
+- El pago al proveedor: **servicio adicional** — para que DTD pague, el cliente paga a DTD primero.
+- El costo de la mercancía (lo paga el cliente).
+- Fletes internacionales · fletes nacionales.
+
+**Alcance:** el servicio llega hasta completar la compra y verificar que todo salga bien; lo de
+después (consolidación, flete, aduana, entrega) = servicios complementarios.
+
+**Tiempos:**
+- **A:** desde que el cliente entrega producto + ficha técnica → mín. **1 semana** para confirmar el
+  producto; máx. **15 días** para sondear varios proveedores, verificar specs y validar fuentes.
+- **B:** misma ventana, normalmente más rápido (se verifica un proveedor ya conocido). *(propuesto,
+  no dictado explícito.)*
+
+**Render:** campo nuevo `precioTabla` en `lib/servicios-detalle.ts` + tabla en `components/ServiciosDetalle.tsx`.
 
 ---
 

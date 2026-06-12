@@ -316,7 +316,7 @@ export function validateExpenseInput(
   const fxRate = Number(input.fx_rate);
   if (input.currency && input.currency !== "USD") {
     if (!Number.isFinite(fxRate) || fxRate <= 0) {
-      errors.fx_rate = "Indicá el tipo de cambio.";
+      errors.fx_rate = "Indica el tipo de cambio.";
     }
   }
 

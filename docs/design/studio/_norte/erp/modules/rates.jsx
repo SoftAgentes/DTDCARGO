@@ -76,7 +76,7 @@ function ModuleRates({ view, setView }) {
       />
 
       {filtered.length === 0
-        ? <U.EmptyState icon={window.Icon.tag(22)} title="Sin tarifas" body="Agregá tarifas por origen/destino. Se aplican automáticamente en el estimador." />
+        ? <U.EmptyState icon={window.Icon.tag(22)} title="Sin tarifas" body="Agrega tarifas por origen/destino. Se aplican automáticamente en el estimador." />
         : <U.Table columns={columns} rows={filtered} />
       }
 

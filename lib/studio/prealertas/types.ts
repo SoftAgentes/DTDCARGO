@@ -326,7 +326,7 @@ export function validateSupplierInput(input: Partial<SupplierInput>): {
   const errors: SupplierActionState["fieldErrors"] = {};
 
   const name = (input.name ?? "").trim();
-  if (!name) errors.name = "Indicá el nombre del proveedor.";
+  if (!name) errors.name = "Indica el nombre del proveedor.";
 
   if (Object.keys(errors).length > 0) return { fieldErrors: errors };
 
@@ -376,11 +376,11 @@ export function validatePrealertaInput(input: Partial<PrealertaInput>): {
   const errors: PrealertaActionState["fieldErrors"] = {};
 
   const description = (input.description ?? "").trim();
-  if (!description) errors.description = "Describí qué viene en la compra.";
+  if (!description) errors.description = "Describe qué viene en la compra.";
 
   const boxesNum = Number(input.boxes);
   if (!Number.isFinite(boxesNum) || boxesNum < 1) {
-    errors.boxes = "Indicá la cantidad de cajas (mínimo 1).";
+    errors.boxes = "Indica la cantidad de cajas (mínimo 1).";
   } else if (!Number.isInteger(boxesNum)) {
     errors.boxes = "La cantidad de cajas debe ser un número entero.";
   }

@@ -35,7 +35,7 @@
         <U.PageHeader
           eyebrow="REPORTES · DESPACHO"
           title="Dashboard de despacho"
-          subtitle="Métricas operativas de los últimos 7 días. Mirá qué rutas son más eficientes, dónde hay demoras y cuánto cuesta cada kilómetro."
+          subtitle="Métricas operativas de los últimos 7 días. Mira qué rutas son más eficientes, dónde hay demoras y cuánto cuesta cada kilómetro."
           actions={
             <U.Select value={period} onChange={(e) => setPeriod(e.target.value)} style={{ width: 160 }} options={[
               { value: '7d', label: 'Últimos 7 días' },

@@ -9,10 +9,11 @@
  * DIFIEREN a "Completa tu perfil" dentro del portal (`/portal/perfil`), donde se
  * piden antes de la 1ª compra; el asesor revisa la foto antes de operar de verdad.
  * Esto baja la fricción del lead de WhatsApp SIN perder la validación: el número de
- * documento sigue obligatorio (dedup + identidad básica + contraseña inicial).
+ * documento sigue obligatorio (dedup + identidad básica).
  *
  * El cliente se da de alta SOLO (sin invitación admin): MARKBOX al instante +
- * cuenta de auth (login = MARKBOX + contraseña, contraseña inicial = cédula/RIF).
+ * cuenta de auth con contraseña ALEATORIA (nunca la cédula/RIF). Para entrar usa
+ * magic-link (enlace al correo) o fija su clave con "¿Olvidaste tu contraseña?".
  * La cuenta nace ACTIVA (`portal_approved_at = now`, founder 2026-06-07 · SDD-0059):
  * el cliente entra directo al portal con su MARKBOX, sin pantalla de espera. La
  * verificación de identidad (foto + revisión manual del asesor, SDD-0046) corre
@@ -34,7 +35,7 @@
  *   5. insert clients ACTIVO (portal_approved_at = now, tier 'regular'; SIN foto
  *      ni dirección — se completan en el perfil)
  *   6. vincular el estimado web (best-effort)
- *   7. auth.admin.createUser({ email, password: <documento>, email_confirm: true })
+ *   7. auth.admin.createUser({ email, password: <aleatoria>, email_confirm: true })
  *   8. insert client_users (auth_user_id, status 'active', email)
  *   9. welcome email SIN la clave (reusa sendWelcomeEmail · template welcome_markbox)
  *  10. aviso interno al equipo (best-effort)
@@ -44,6 +45,7 @@
  * SUPABASE_SERVICE_ROLE_KEY el alta no puede completarse (error claro).
  */
 
+import { randomBytes } from "node:crypto";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
@@ -233,7 +235,9 @@ export async function registerClientAction(
       };
     }
     console.error("[registerClientAction] insert clients error:", clientErr);
-    return { error: `No pudimos crear tu cuenta: ${clientErr?.message ?? "error"}` };
+    // No filtramos el error crudo de Supabase al visitante (convención apiError:
+    // el detalle queda en el log del server, el usuario ve un mensaje genérico).
+    return { error: "No pudimos crear tu cuenta ahora. Intenta de nuevo en un rato." };
   }
 
   // 6. SDD-0061 Fase B2 — vincular el estimado web a este cliente recién creado.
@@ -259,10 +263,15 @@ export async function registerClientAction(
     console.error("[registerClientAction] vínculo de estimado web falló:", linkErr);
   }
 
-  // 7. Crear la cuenta de auth · contraseña inicial = documento (cédula/RIF).
+  // 7. Crear la cuenta de auth con una contraseña ALEATORIA fuerte. NUNCA la
+  //    cédula/RIF: el documento es semi-público (facturas, proveedores, docs
+  //    legales) y usarlo de clave dejaría el portal abierto a quien lo conozca.
+  //    El cliente entra por magic-link (enlace al correo) o fija su clave con
+  //    "¿Olvidaste tu contraseña?" en el login del portal — ambos ya operativos.
+  const initialPassword = randomBytes(24).toString("base64url");
   const { data: authResp, error: authErr } = await admin.auth.admin.createUser({
     email: input.email,
-    password: input.document,
+    password: initialPassword,
     email_confirm: true,
     user_metadata: { portal_markbox: markbox, tenant: "dtd-cargo" },
   });

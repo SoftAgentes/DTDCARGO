@@ -46,7 +46,7 @@ export async function signIn(
     if (error.message.toLowerCase().includes("invalid")) {
       return { error: "Email o contraseña incorrectos." };
     }
-    return { error: "No pudimos iniciarte sesión. Intentá de nuevo." };
+    return { error: "No pudimos iniciarte sesión. Intenta de nuevo." };
   }
 
   revalidatePath("/", "layout");

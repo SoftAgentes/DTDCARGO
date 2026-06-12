@@ -1,17 +1,22 @@
 /**
  * Tests de tipos + validación + payload canónico de la Capa Legal
- * (SDD-0054 · Slice A). Cubre Acceptance §5:
+ * (SDD-0054 · Slice A + SDD-0067 · evidencia v2). Cubre Acceptance §5:
  *  - acceptanceHashPayload determinístico: docs en otro orden → MISMO payload;
- *    medida/cliente distinto → payload distinto.
+ *    medida/cliente distinto → payload distinto. v2: user_agent y
+ *    merchant_declaration entran al payload.
  *  - measureMatches: igual / difiere / tolerancia.
- *  - validateAcceptanceInput: happy + errores.
+ *  - validateAcceptanceInput: happy + errores. v2: merchant_declaration debe
+ *    ser estrictamente `true` (sin declaración no hay aceptación válida).
+ *  - sanitizeUserAgent: trim / 512 max / vacío → null.
  */
 
 import { describe, it, expect } from "vitest";
 import {
   LEGAL_DOC_KEYS,
+  USER_AGENT_MAX_LENGTH,
   acceptanceHashPayload,
   measureMatches,
+  sanitizeUserAgent,
   validateAcceptanceInput,
   type AcceptanceEvidence,
   type DocRef,
@@ -22,6 +27,9 @@ const docsA: DocRef[] = [
   { key: "operador", version: "v1.4" },
 ];
 
+const UA =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126.0";
+
 const baseEvidence: AcceptanceEvidence = {
   client_markbox: "DTD-5452",
   quote_code: "Q-2026-2310",
@@ -30,6 +38,8 @@ const baseEvidence: AcceptanceEvidence = {
   weight_kg: 2800,
   total_usd: 5600,
   ip: "190.142.88.214",
+  user_agent: UA,
+  merchant_declaration: true,
   accepted_at: "2026-05-29T10:15:33.000Z",
 };
 
@@ -103,6 +113,55 @@ describe("acceptanceHashPayload", () => {
       accepted_at: "2026-05-29T10:15:34.000Z",
     });
     expect(p1).not.toBe(p2);
+  });
+
+  // ── v2 (SDD-0067) ───────────────────────────────────────────
+  it("v2: user_agent distinto → payload distinto (entra al payload)", () => {
+    const p1 = acceptanceHashPayload(baseEvidence);
+    const p2 = acceptanceHashPayload({
+      ...baseEvidence,
+      user_agent: "OtroNavegador/1.0",
+    });
+    expect(p1).not.toBe(p2);
+  });
+
+  it("v2: user_agent null vs presente → payload distinto", () => {
+    const p1 = acceptanceHashPayload(baseEvidence);
+    const p2 = acceptanceHashPayload({ ...baseEvidence, user_agent: null });
+    expect(p1).not.toBe(p2);
+  });
+
+  it("v2: user_agent se toma AS-IS (sin re-sanear): un append > 512 cambia el payload", () => {
+    // Si el payload re-saneara (truncara), un tamper post-hoc más allá del char
+    // 512 quedaría ENMASCARADO (recomputaría el mismo hash). AS-IS lo detecta.
+    const sealed = "x".repeat(USER_AGENT_MAX_LENGTH); // lo que persistió el sello
+    const tampered = sealed + "y"; // mutación post-hoc en la fila
+    const p1 = acceptanceHashPayload({ ...baseEvidence, user_agent: sealed });
+    const p2 = acceptanceHashPayload({ ...baseEvidence, user_agent: tampered });
+    expect(p1).not.toBe(p2);
+  });
+
+  it("v2: merchant_declaration true vs false → payload distinto", () => {
+    const p1 = acceptanceHashPayload(baseEvidence);
+    const p2 = acceptanceHashPayload({
+      ...baseEvidence,
+      merchant_declaration: false,
+    });
+    expect(p1).not.toBe(p2);
+  });
+
+  it("v2: merchant_declaration se canoniza a boolean estricto (truthy ≠ true → false)", () => {
+    const pTrue = acceptanceHashPayload(baseEvidence);
+    const pFalse = acceptanceHashPayload({
+      ...baseEvidence,
+      merchant_declaration: false,
+    });
+    const pCoerced = acceptanceHashPayload({
+      ...baseEvidence,
+      merchant_declaration: "true" as unknown as boolean, // corrupción/coerción
+    });
+    expect(pCoerced).toBe(pFalse); // cualquier cosa !== true recomputa como false
+    expect(pCoerced).not.toBe(pTrue);
   });
 
   it("redondea cbm a 3 decimales (diferencias sub-mili no cambian payload)", () => {
@@ -223,7 +282,7 @@ describe("measureMatches", () => {
 
 // ── validateAcceptanceInput ───────────────────────────────────
 describe("validateAcceptanceInput", () => {
-  it("happy path → input normalizado", () => {
+  it("happy path → input normalizado (v2: con declaración + user_agent + invoice)", () => {
     const { input, fieldErrors } = validateAcceptanceInput(
       {
         client_id: "client-1",
@@ -232,6 +291,9 @@ describe("validateAcceptanceInput", () => {
         cbm: "7",
         weight_kg: "2800",
         total_usd: "5600",
+        user_agent: `  ${UA}  `,
+        merchant_declaration: true,
+        invoice_id: "inv-1",
         idempotency_key: "idem-1",
       },
       docsA,
@@ -244,12 +306,33 @@ describe("validateAcceptanceInput", () => {
       cbm: 7,
       weight_kg: 2800,
       total_usd: 5600,
+      user_agent: UA, // saneado (trim)
+      merchant_declaration: true,
+      invoice_id: "inv-1",
       idempotency_key: "idem-1",
     });
   });
 
-  it("client_id ausente → null (es opcional)", () => {
+  it("client_id ausente → null (es opcional); user_agent/invoice ausentes → null", () => {
     const { input } = validateAcceptanceInput(
+      {
+        client_markbox: "DTD-1",
+        quote_code: "Q-1",
+        cbm: 1,
+        weight_kg: 1,
+        total_usd: 1,
+        merchant_declaration: true,
+      },
+      docsA,
+    );
+    expect(input?.client_id).toBeNull();
+    expect(input?.idempotency_key).toBeNull();
+    expect(input?.user_agent).toBeNull();
+    expect(input?.invoice_id).toBeNull();
+  });
+
+  it("v2: merchant_declaration ausente → fieldError (sin declaración no hay aceptación)", () => {
+    const { input, fieldErrors } = validateAcceptanceInput(
       {
         client_markbox: "DTD-1",
         quote_code: "Q-1",
@@ -259,13 +342,54 @@ describe("validateAcceptanceInput", () => {
       },
       docsA,
     );
-    expect(input?.client_id).toBeNull();
-    expect(input?.idempotency_key).toBeNull();
+    expect(input).toBeUndefined();
+    expect(fieldErrors?.merchant_declaration).toBeTruthy();
+  });
+
+  it("v2: merchant_declaration false → fieldError", () => {
+    const { input, fieldErrors } = validateAcceptanceInput(
+      {
+        client_markbox: "DTD-1",
+        quote_code: "Q-1",
+        cbm: 1,
+        weight_kg: 1,
+        total_usd: 1,
+        merchant_declaration: false,
+      },
+      docsA,
+    );
+    expect(input).toBeUndefined();
+    expect(fieldErrors?.merchant_declaration).toBeTruthy();
+  });
+
+  it("v2: merchant_declaration truthy-pero-no-true ('on'/'true'/1) → fieldError (estricto)", () => {
+    for (const v of ["on", "true", 1]) {
+      const { input, fieldErrors } = validateAcceptanceInput(
+        {
+          client_markbox: "DTD-1",
+          quote_code: "Q-1",
+          cbm: 1,
+          weight_kg: 1,
+          total_usd: 1,
+          merchant_declaration: v,
+        },
+        docsA,
+      );
+      expect(input).toBeUndefined();
+      expect(fieldErrors?.merchant_declaration).toBeTruthy();
+    }
   });
 
   it("markbox/quote vacíos → fieldErrors", () => {
     const { input, fieldErrors } = validateAcceptanceInput(
-      { client_markbox: "  ", quote_code: "", cbm: 1, weight_kg: 1, total_usd: 1 },
+      {
+        client_markbox: "  ",
+        quote_code: "",
+        cbm: 1,
+        weight_kg: 1,
+        total_usd: 1,
+        merchant_declaration: true,
+      },
       docsA,
     );
     expect(input).toBeUndefined();
@@ -281,6 +405,7 @@ describe("validateAcceptanceInput", () => {
         cbm: 1,
         weight_kg: 1,
         total_usd: 1,
+        merchant_declaration: true,
       },
       [],
     );
@@ -295,6 +420,7 @@ describe("validateAcceptanceInput", () => {
         cbm: -1,
         weight_kg: "abc",
         total_usd: 5600,
+        merchant_declaration: true,
       },
       docsA,
     );
@@ -311,6 +437,7 @@ describe("validateAcceptanceInput", () => {
         cbm: 7,
         weight_kg: 2800,
         total_usd: 0,
+        merchant_declaration: true,
       },
       docsA,
     );
@@ -326,6 +453,7 @@ describe("validateAcceptanceInput", () => {
         cbm: 7,
         weight_kg: 2800,
         total_usd: -5,
+        merchant_declaration: true,
       },
       docsA,
     );
@@ -340,11 +468,33 @@ describe("validateAcceptanceInput", () => {
         cbm: 0,
         weight_kg: 0,
         total_usd: 100,
+        merchant_declaration: true,
       },
       docsA,
     );
     expect(fieldErrors).toBeUndefined();
     expect(input?.cbm).toBe(0);
     expect(input?.total_usd).toBe(100);
+  });
+});
+
+// ── sanitizeUserAgent (v2 · SDD-0067) ─────────────────────────
+describe("sanitizeUserAgent", () => {
+  it("trim + passthrough de un UA normal", () => {
+    expect(sanitizeUserAgent(`  ${UA} `)).toBe(UA);
+  });
+
+  it("vacío / espacios / null / undefined → null", () => {
+    expect(sanitizeUserAgent("")).toBeNull();
+    expect(sanitizeUserAgent("   ")).toBeNull();
+    expect(sanitizeUserAgent(null)).toBeNull();
+    expect(sanitizeUserAgent(undefined)).toBeNull();
+  });
+
+  it("trunca a USER_AGENT_MAX_LENGTH (512)", () => {
+    const long = "a".repeat(USER_AGENT_MAX_LENGTH + 1);
+    const out = sanitizeUserAgent(long);
+    expect(out).toHaveLength(USER_AGENT_MAX_LENGTH);
+    expect(out).toBe(long.slice(0, USER_AGENT_MAX_LENGTH));
   });
 });

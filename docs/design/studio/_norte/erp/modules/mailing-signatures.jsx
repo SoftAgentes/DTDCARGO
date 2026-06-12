@@ -54,7 +54,7 @@ function MailingSignatures() {
         {/* RIGHT: signature editor */}
         <div>
           {sig && me ? <SignatureEditor key={editingUser} user={me} sig={sig} onTest={() => setTestOpen(true)} /> : (
-            <U.EmptyState icon={window.Icon.edit(22)} title="Sin firma configurada" body="Este usuario aún no tiene firma. Creá una desde acá." />
+            <U.EmptyState icon={window.Icon.edit(22)} title="Sin firma configurada" body="Este usuario aún no tiene firma. Crea una desde acá." />
           )}
         </div>
       </div>
@@ -81,7 +81,7 @@ function SignatureEditor({ user, sig, onTest }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
           <div>
             <div className="eyebrow eyebrow-wine">LAYOUT</div>
-            <div style={{ font: '900 16px/1.2 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>Elegí el formato de tu firma</div>
+            <div style={{ font: '900 16px/1.2 var(--f-display)', color: 'var(--ink)', marginTop: 6 }}>Elige el formato de tu firma</div>
           </div>
           <U.Btn variant="secondary" size="sm" icon={window.Icon.copy(13)}>Copiar HTML</U.Btn>
         </div>

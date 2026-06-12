@@ -401,7 +401,7 @@ function IncidentsTab() {
           <U.Btn variant="primary" size="sm" icon={I.plus(13)} onClick={() => setEditing({ type: 'mantenimiento', status: 'abierta', date: '2026-05-31', severity: 'media' })}>Registrar incidencia</U.Btn>
         </div>
         {list.length === 0 ? (
-          <div style={{ padding: '24px 18px', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Sin incidencias registradas. Tocá "Registrar incidencia" para agregar una.</div>
+          <div style={{ padding: '24px 18px', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>Sin incidencias registradas. Toca "Registrar incidencia" para agregar una.</div>
         ) : list.map((inc, i) => (
           <div key={inc.id} onClick={() => setEditing(inc)} style={{
             display: 'grid', gridTemplateColumns: '110px 80px 100px 1fr 100px 90px',
@@ -459,7 +459,7 @@ function IncidentEditor({ incident, onClose, onSave, onDelete }) {
           ]} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <U.Select label="Camión" value={f.truck || ''} onChange={(e) => set('truck', e.target.value)} options={[{ value: '', label: 'Seleccioná patente…' }, ...trucks.map(p => ({ value: p, label: p }))]} />
+          <U.Select label="Camión" value={f.truck || ''} onChange={(e) => set('truck', e.target.value)} options={[{ value: '', label: 'Selecciona patente…' }, ...trucks.map(p => ({ value: p, label: p }))]} />
           <U.Input label="Fecha" type="date" value={f.date || ''} onChange={(e) => set('date', e.target.value)} mono />
         </div>
         <U.Input label="Descripción" value={f.desc || ''} onChange={(e) => set('desc', e.target.value)} placeholder="Ej: Cambio de frenos delanteros · revisión preventiva" />
@@ -562,17 +562,17 @@ function RouteForm({ open, onClose, trucks, drivers }) {
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <U.Select label="Embarque a entregar" options={[
-          { value: '', label: 'Seleccioná embarque liberado…' },
+          { value: '', label: 'Selecciona embarque liberado…' },
           ...D.SHIPMENTS.filter(s => ['liberado', 'aduana VE'].includes(s.status)).map(s => ({ value: s.id, label: `${s.id} · ${s.clientName} · ${D.dest(s.destination).name}` })),
         ]} />
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <U.Select label="Camión asignado" options={[
-            { value: '', label: 'Elegí camión disponible…' },
+            { value: '', label: 'Elige camión disponible…' },
             ...trucks.filter(t => t.status === 'disponible').map(t => ({ value: t.id, label: `${t.plate} · ${t.brand} (${t.capacityCBM} CBM)` })),
           ]} />
           <U.Select label="Chofer" options={[
-            { value: '', label: 'Elegí chofer disponible…' },
+            { value: '', label: 'Elige chofer disponible…' },
             ...drivers.filter(d => d.status === 'disponible').map(d => ({ value: d.id, label: `${d.name} · ★ ${d.rating}` })),
           ]} />
         </div>
