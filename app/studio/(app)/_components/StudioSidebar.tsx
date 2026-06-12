@@ -84,6 +84,7 @@ export const MODULES: ModuleDef[] = [
   { id: "collections", group: "FINANZAS", label: "Cobranzas", icon: "invoice", slug: "/studio/cobranzas" },
   { id: "renditions", group: "FINANZAS", label: "Rendiciones", icon: "doc", slug: "/studio/rendiciones", adminOnly: true },
   { id: "treasury", group: "FINANZAS", label: "Tesorería", icon: "calc", slug: "/studio/tesoreria" },
+  { id: "fiscal", group: "FINANZAS", label: "Fiscal · SENIAT", icon: "doc", slug: "/studio/fiscal" },
   { id: "financiero-china", group: "FINANZAS", label: "Financiero China", icon: "cn", slug: "/studio/financiero-china", adminOnly: true },
   { id: "documents", group: "FINANZAS", label: "Documentos", labelKey: "chrome.sidebar.documents", icon: "doc", slug: "/studio/documentos" },
   { id: "reports", group: "FINANZAS", label: "Reportes", labelKey: "chrome.sidebar.reports", icon: "chart", slug: "/studio/reportes" },

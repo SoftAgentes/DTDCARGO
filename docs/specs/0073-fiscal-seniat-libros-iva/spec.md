@@ -1,7 +1,7 @@
 ---
 sdd: "0073"
 title: "Fiscal · SENIAT — módulo configurable: Configuración fiscal (per-tenant) + Libro de Ventas + Libro de Compras (Bloque 3)"
-status: draft
+status: in-progress
 author: "Claude Code (carril Bloque 3 · Norte v2.5)"
 created: 2026-06-12
 updated: 2026-06-12
@@ -39,9 +39,11 @@ mes y export CSV/PDF.
 - **Hueco:** Bloque 3 Fiscal/SENIAT no existe (ni spec ni tablas). `0018` cubre el **workflow
   aduanal** (DUA, aranceles, IGTF, IVA *de importación* del container) — **no** los libros de IVA.
 - **El IVA ya se modela a nivel transacción** (reuse): toggle `tenants.iva_enabled`
-  (`lib/studio/invoice-types.ts`); `invoices` con `base_amount`/`iva_rate`/`iva_amount`/`total_amount`/
-  `rif` (0021); IVA débito fiscal asentado en `2.1.5` (`invoice-posting.ts`); compras en
-  `supplier_bills` (0044, hoy **sin discriminar** el IVA → va al costo).
+  (`lib/studio/invoice-types.ts`); `invoices` con `base_amount`/`iva_rate`/`iva_amount`/`total_amount`
+  (0077). El **RIF NO vive en `invoices`** (enlaza al cliente por `client_markbox`, texto sin FK) →
+  el libro lo resuelve contra `clients` (0006, columna `rif`) por `markbox`. IVA débito fiscal
+  asentado en `2.1.5` (`invoice-posting.ts`); compras en `supplier_bills` (0044, hoy **sin
+  discriminar** el IVA → va al costo).
 - **Por qué configurable (no hardcodeado):** la calificación tributaria del servicio de DTD es una
   **decisión del contador que puede cambiar** (reformas SENIAT, alta como contribuyente especial,
   aparición de operaciones gravadas por el trading). Hardcodear "exento" en el código obligaría a
@@ -96,11 +98,15 @@ col. retención preparada); `BookTotals` (Σ base/IVA/total + desglose por alíc
 testeables que reciben los settings (clasificación gravada/exenta **según `service_iva_treatment`**).
 
 **`lib/studio/fiscal/queries.ts`** (puras, RLS por tenant):
-- `salesBook(supabase, period, settings)` → `invoices` del mes (excluye `anulada`) → filas
-  clasificadas según la config. Σ por alícuota.
-- `purchaseBook(supabase, period, settings)` → compras del mes desde `supplier_bills` (+`expenses`
-  si aplica). IVA de compra según `purchase_iva_mode` (`derivado` = del total/base si hay; `capturado`
-  = campo explícito, V2 si no existe). Sin fuente → `—`.
+- `salesBook(supabase, period, settings)` → `invoices` del mes **solo en estados emitidos**
+  (`emitida`/`parcial`/`pagada`/`vencida`) → filas clasificadas según la config. `borrador` (no
+  emitida) y `anulada` quedan **fuera** — un libro fiscal oficial no puede incluir base/IVA no
+  emitidos (mismo criterio que Reportes 0052 / `invoiceKpis`). El RIF+nombre se resuelve contra
+  `clients` por `client_markbox` (1 query extra, sin N+1; sin match → `—`). Σ por alícuota. Devuelve
+  además las **monedas presentes** (la UI advierte si hay más de una; V1 no normaliza con `fx_rate`).
+- `purchaseBook(supabase, period, settings)` → compras del mes desde `supplier_bills` (excluye
+  `anulada`). IVA de compra según `purchase_iva_mode` (`derivado` = del total/base si hay; `capturado`
+  = campo explícito, V2 si no existe). Sin fuente → `—`. Devuelve también las monedas presentes.
 
 **UI — tabs Ventas/Compras** (`FiscalClient.tsx`, `"use client"`): selector de mes (URL) + tabla
 formato-SENIAT + totales + export CSV/PDF (reusa `lib/studio/reports/export-csv.ts` +
@@ -109,19 +115,25 @@ formato-SENIAT + totales + export CSV/PDF (reusa `lib/studio/reports/export-csv.
 ### 4.3 Tests (`lib/studio/fiscal/__tests__/`)
 - `config-types.test.ts`: defaults, validación, cada `service_iva_treatment`.
 - `types.test.ts`: `fiscalRange` (bordes/bisiesto), clasificación según settings (exento vs gravado
-  vs mixto), totales por alícuota.
-- `queries.test.ts`: stub `SupabaseClient` → rango mensual, exclusión de anuladas, mapeo, lectura de
-  settings (default cuando no hay row).
+  vs mixto), totales por alícuota; **gravada sin IVA real (`iva_amount=0`) → alícuota `null` ("—"),
+  no la general**.
+- `queries.test.ts`: stub `SupabaseClient` → rango mensual; **el set seleccionado de `invoices` está
+  contenido en las columnas reales (0077) y NO incluye `rif`** (anti falso-verde); RIF resuelto desde
+  `clients` por markbox (sin N+1) y `—` sin match; **`borrador` excluido del Libro de Ventas**;
+  monedas presentes reportadas; exclusión de anuladas en compras; `getFiscalSettings` cae a default
+  sin row pero **propaga un error de lectura real** (no fabrica un libro exento).
 
 ## 5. Acceptance — V1
 
-- [ ] Migración `fiscal_settings` (per-tenant, RLS, defaults) aplicada vía skills Supabase; `getFiscalSettings` cae a defaults sin row.
-- [ ] `/studio/fiscal` con tab **Configuración** (admin-only) que persiste los settings; entrada en el sidebar (Finanzas).
-- [ ] **Libro de Ventas** sobre `invoices` del mes, clasificado **según la config** (exento → IVA 0; gravado → débito 16%): fecha, factura, RIF+cliente, base, alícuota, IVA, total + totales por alícuota.
-- [ ] **Libro de Compras** sobre compras del mes; IVA según `purchase_iva_mode` (o `—` honesto sin fuente).
-- [ ] Cambiar un setting (p. ej. `service_iva_treatment` exento→gravado) **cambia los libros sin tocar código**.
-- [ ] `lib/studio/fiscal/{config-types,types,queries}.ts` puros + tests verdes. Export CSV/PDF.
-- [ ] `node scripts/verify.mjs` 🟢. `ui-ux-designer` OK. Cero valores fiscales fabricados.
+- [x] Migración `fiscal_settings` (per-tenant, RLS, defaults) **escrita** (`0126_fiscal_settings.sql`, RLS espejando feature_flags 0042; reviewer + auditor confirman sin IDOR/BOLA); `getFiscalSettings` cae a defaults sin row. ⚠️ **Aplicación a prod = gate founder** (no aplicada en este loop).
+- [x] `/studio/fiscal` con tab **Configuración** (admin-only, guard server-side + RLS) que persiste los settings; entrada en el sidebar (Finanzas).
+- [x] **Libro de Ventas** sobre `invoices` **emitidas** del mes (excluye `borrador` y `anulada`), clasificado **según la config**: fecha, factura, RIF (resuelto desde `clients`) + cliente, base, alícuota, IVA, total + totales por alícuota.
+- [x] **Libro de Compras** sobre compras del mes; IVA según `purchase_iva_mode` (o `—` honesto sin fuente).
+- [x] Cambiar un setting (`service_iva_treatment` exento→gravado) **cambia los libros sin tocar código** (clasificación derivada de la config; cero hardcode — verificado por reviewer).
+- [x] `lib/studio/fiscal/{config-types,types,queries}.ts` puros + tests verdes. Export CSV/PDF.
+- [x] `node scripts/verify.mjs` 🟢 (1769 tests). `ui-ux-designer` **OK** (2026-06-12, check de código — 1 fix de alineación del PDF de Compras aplicado; render real pendiente hasta aplicar la migr). Cero valores fiscales fabricados.
+
+> **Cierre V1 (2026-06-12, vía harness `/feature`):** implement → verify 🟢 → review **CHANGES_REQUESTED** (6 findings reales: `invoices.rif` inexistente [crash], `borrador` en el libro, fallback exento silencioso, `gravado` retroactivo, mezcla de monedas, colisión de migr 0125) → fix → verify 🟢 → review **APPROVED** → ui-ux **OK**. Reviewer + auditor adversarial confirmaron RLS sin IDOR/BOLA, gate admin server-side real, fronteras público↔ERP + RSC intactas, principio cero-hardcode. **Gate founder pendiente:** aplicar `0126_fiscal_settings.sql` a prod (con los 2 skills Supabase) para activar el módulo. **V2** = §6 (declaración + retenciones + Posición IVA).
 
 ## 6. Fuera de alcance V1 (→ V2)
 
@@ -137,7 +149,58 @@ formato-SENIAT + totales + export CSV/PDF (reusa `lib/studio/reports/export-csv.
 
 ## 7. Notas de implementación
 
-(Pendiente — se completa al implementar V1.)
+**V1 implementada** (carril `claude/admiring-lederberg-3b4fcc`, ronda 2 de correcciones aplicada · pendiente re-review):
+
+- **Migración `0126_fiscal_settings.sql`** (el `0125` lo toma `0125_sales_orders` de
+  la lane `feat/orden-venta` aún sin mergear → se subió al siguiente libre por encima
+  de 0125 para evitar la colisión). Singleton por tenant (`tenant_id` PK). RLS
+  espejada de `feature_flags` (0042): SELECT a authenticated del tenant ·
+  INSERT/UPDATE **admin-only** (lazy upsert) · DELETE bloqueado · `service_role` all.
+  UPDATE con `USING` **y** `WITH CHECK`. CHECKs de rango (alícuota/retención 0–100) +
+  enums. **NO aplicada a prod.**
+- **`lib/studio/fiscal/`** (puro, server-safe, sin Zod):
+  - `config-types.ts`: `FiscalSettings` + enums + `validateFiscalSettingsInput()` +
+    `DEFAULT_FISCAL_SETTINGS` (caso DTD §5).
+  - `types.ts`: `FiscalPeriod` (`YYYY-MM`) + `fiscalRange()` (1°→último día, UTC,
+    bisiesto OK) + `SalesBookRow`/`PurchaseBookRow`/`BookTotals` + helpers de
+    clasificación **derivada de la config** (`classifyVenta`, `effectiveRate`,
+    `toSalesRow`, `toPurchaseRow`) + totales por alícuota. **`toSalesRow`: gravada con
+    `iva_amount=0` (factura vieja sin IVA real) → alícuota `null` ("—"), NO se fuerza
+    la general (coherencia columna-a-columna; sin fuente, no se fabrica).**
+  - `queries.ts`: `getFiscalSettings()` (defaults sin row, pero **propaga un error de
+    lectura real** — no fabrica un libro exento por un fallo transitorio) · `salesBook()`
+    sobre `invoices` **solo en estados emitidos** (`emitida`/`parcial`/`pagada`/`vencida`;
+    `borrador`+`anulada` fuera), rango mensual por `created_at`, **RIF+nombre resueltos
+    contra `clients` por `client_markbox`** (1 query extra, sin N+1; sin match → `—`) ·
+    `purchaseBook()` sobre `supplier_bills` (excluye `anulada`, rango por `issue_date`,
+    embebe `suppliers(tax_id)` → sin N+1). Ambos devuelven `{ rows, currencies }`
+    (`FiscalBook<T>`) con las **monedas presentes** del período. `INVOICE_COLUMNS`/
+    `SALE_STATUSES` exportadas para que los tests aserten contra el schema real.
+- **UI** `app/studio/(app)/fiscal/`: `page.tsx` (server, `?tab`+`?period`) +
+  `_components/FiscalClient.tsx` (3 tabs + selector de mes + tablas SENIAT + export
+  CSV via `rowsToCsv`/`downloadTextFile` + PDF via `window.print()` + **`CurrencyNote`:
+  muestra la moneda del período y, si hay >1, un banner visible — `--warning` — de que
+  los totales mezclan monedas sin convertir**) + `_components/FiscalConfig.tsx` +
+  `actions.ts` (admin-only upsert). Entrada en el sidebar (FINANZAS, junto a Tesorería).
+- **Tests** `lib/studio/fiscal/__tests__/`: `config-types` (defaults, validación,
+  cada treatment), `types` (fiscalRange bordes/bisiesto, clasificación por settings,
+  totales, **#4 gravada sin IVA → rate null**), `queries` (stub SupabaseClient: rango,
+  **set de columnas ⊆ columnas reales de invoices sin `rif`**, **RIF desde `clients`
+  por markbox sin N+1**, **`borrador` excluido**, monedas reportadas, exclusión de
+  anuladas, defaults sin row + **error de lectura propagado**, embed RIF de proveedor).
+- **Cero valores fabricados:** nº de control fiscal → `—`; RIF sin cliente → `—`; IVA/base
+  de compras en V1 (supplier_bills no discrimina IVA) → `—` + nota honesta; columna de
+  retención preparada pero vacía (V2).
+- **Mezcla de monedas (V1):** `invoices`/`supplier_bills` son multi-moneda (`fx_rate`);
+  V1 **no normaliza** — suma crudo pero **lo muestra**: encabezado con la(s) moneda(s) +
+  banner de aviso cuando hay más de una. Normalización por tasa BCV → V2.
+- **Decisión de fuente del Libro de Compras:** se usa `supplier_bills` (0044, las
+  CxP con `issue_date`/`reference`/proveedor reales), no `expenses` — los expenses
+  son gastos operativos sin RIF de proveedor ni nº de factura, no aptos para el
+  libro fiscal. Capturar IVA discriminado por compra queda a V2.
+- **Follow-ups documentados (fuera de esta ronda, para no ampliar scope):** CSV injection
+  en `csvCell` (código compartido de Reportes) · `disabled_at` en el admin gate de la
+  action (la RLS ya defiende) · usar `total_amount` en vez de recalcular base+iva.
 
 ## 8. Configuración del módulo (lo que el contador define como DATOS, no como código)
 
