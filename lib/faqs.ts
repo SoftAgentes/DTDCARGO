@@ -196,4 +196,11 @@ export const FAQS: Faq[] = [
       "Sí, ofrecemos sourcing y compra asistida en China: te ayudamos a ubicar al proveedor y gestionar la compra antes de consolidar la carga. Para los rubros que puedes importar, lo mejor es consultarlo por WhatsApp con tu lista, porque depende del producto y la normativa; te confirmamos viabilidad y la modalidad (consolidado marítimo o contenedor completo) al cotizar.",
     categoria: "empresa-servicios",
   },
+  {
+    pregunta:
+      "¿DTD Cargo trae mis productos para venderlos o compite con mi negocio?",
+    respuesta:
+      "No. DTD Cargo es tu operador logístico, no tu competencia. No usamos la información de tu negocio —tu proveedor, tus productos, tus diseños— para traer esa misma mercancía y revenderla por nuestra cuenta, ni contactamos a tu proveedor para competirte. Lo que importas a través de nosotros es tuyo: movemos tu carga, no te copiamos el negocio. Es un compromiso de la empresa con cada cliente, y la confidencialidad de tus proveedores está protegida.",
+    categoria: "empresa-servicios",
+  },
 ];
