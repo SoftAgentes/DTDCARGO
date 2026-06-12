@@ -1,19 +1,21 @@
 ---
-sdd: "0064"
+sdd: "0072"
 title: "Orden de venta (Sales Order · modelo QuickBooks): el estimado confirmado, formal y trazable"
 status: draft
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-06-12
 supersedes: null
 superseded_by: null
-related: ["0061", "0063", "0057", "0021", "0041", "0016", "0044", "0058"]
+related: ["0061", "0071", "0057", "0021", "0041", "0016", "0044", "0058"]
 confidencialidad: interno
 ---
 
-# DTD-0064 — Orden de venta (Sales Order)
+# DTD-0072 — Orden de venta (Sales Order)
 
-> Sub-SDD de **0061 Fase D** (lado VENTAS · gemela de 0063 Orden de compra). Construye la
+> **Nota de numeración (2026-06-12):** renumerado de **0064 → 0072** (su gemela orden-compra pasó de 0063 → 0071 el mismo día). El 0064 ya estaba tomado en `main` por `reestructuracion-mensaje-ux-seo` cuando se cortó este lane; 0072 verificado libre en todas las ramas. Migración de Fase 1 = **0125** (primer libre tras 0124).
+
+> Sub-SDD de **0061 Fase D** (lado VENTAS · gemela de 0071 Orden de compra). Construye la
 > **Orden de venta (`OV-`)**: el estimado **confirmado y formal** (distinto del estimado,
 > que es intención descartable). Nodo de **trazabilidad** del QB y disparador de la
 > facturación cuando la mercancía llega y Warehouse confirma.
@@ -58,11 +60,11 @@ cuando el operario recibe + Warehouse confirma con datos reales, **se factura** 
 ESTIMADO (quotes, EST-)
    │ quote_id (link · puede haber cambios)
    ▼
-ORDEN DE VENTA (sales_orders, OV-)         ← NUEVO en 0064
+ORDEN DE VENTA (sales_orders, OV-)         ← NUEVO en 0072
    ├─ client_markbox · quote_id(null) · status · snapshot editable · totales
    ├── prealertas.sales_order_id (1:N) ─────────► físico/escaneable (recepción CN)
    ├──(Fase 2) recepción Warehouse OK ─► FACTURA (invoices.sales_order_id) → COBRANZA
-   └──(0063) ─► ORDEN DE COMPRA de DTD ─► Bill     (compra asistida)
+   └──(0071) ─► ORDEN DE COMPRA de DTD ─► Bill     (compra asistida)
 ```
 
 **Tablas/RPC (migración 011N · re-chequear al implementar):** `sales_orders` + RLS ·
@@ -84,8 +86,8 @@ ORDEN DE VENTA (sales_orders, OV-)         ← NUEVO en 0064
   packing-list/adjuntos) → **genera Factura (0021)** con montos reales, **parcial por defecto**;
   si faltan datos → bloquea con "faltan datos". `invoices.sales_order_id` + provenance.
 
-### Fuera de 0064
-- Puente **OV → OC de DTD** (botón "Convertir en orden de compra" · conecta con 0063).
+### Fuera de 0072
+- Puente **OV → OC de DTD** (botón "Convertir en orden de compra" · conecta con 0071).
 - Alerta de cobranza **pre-arribo** (D4, marítimo · naviera 0047 + mailing 0026).
 
 ## 6. Acceptance
@@ -102,7 +104,7 @@ ORDEN DE VENTA (sales_orders, OV-)         ← NUEVO en 0064
 
 ## 7. Fuera de alcance
 
-- La OC de DTD (0063) y el puente OV→OC. Alerta de cobranza pre-arribo (D4).
+- La OC de DTD (0071) y el puente OV→OC. Alerta de cobranza pre-arribo (D4).
 - Modificar Prealertas (0057), Almacén (0016) o Facturación (0021) más allá del link/hook.
 
 ## 8. Diseño
@@ -112,7 +114,7 @@ Sin mockup del Norte para esta pantalla → `DESIGN-CHECK` si hace falta diseño
 
 ## 9. Notas
 
-- Gemela de 0063 (misma mecánica de conversión QB, lado ventas).
+- Gemela de 0071 (misma mecánica de conversión QB, lado ventas).
 - Hereda patrón de link (0058 `kommo_lead_id`, 0061 OV↔prealerta) y de posteo (0021 factura).
 - `sales_orders.quote_id` y `prealertas.sales_order_id` = FKs suaves; `invoices.sales_order_id` en Fase 2.
 
