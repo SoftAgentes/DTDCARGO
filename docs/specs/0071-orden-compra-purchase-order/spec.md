@@ -1,17 +1,19 @@
 ---
-sdd: "0063"
+sdd: "0071"
 title: "Orden de compra (Purchase Order · compra asistida → Bill): el lado COMPRAS del modelo QuickBooks"
 status: done
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-06-12
 supersedes: null
 superseded_by: null
 related: ["0061", "0057", "0044", "0021", "0041", "0043", "0058", "0062", "0016"]
 confidencialidad: interno
 ---
 
-# DTD-0063 — Orden de compra (Purchase Order · compra asistida)
+# DTD-0071 — Orden de compra (Purchase Order · compra asistida)
+
+> **Nota de numeración (2026-06-12):** renumerado de **0063 → 0071** y migración **0114 → 0124**. Los números 0063 (`servicios-detalle-publico`) y 0114 (`financiero_china`) ya estaban tomados en `main` cuando se cortó este lane; 0071/0124 verificados libres en todas las ramas. Sin cambios de lógica — solo numeración (carpeta, front-matter, comentarios y archivo de migración).
 
 > Sub-SDD de **0061 Fase D** (lado COMPRAS). Construye la **OC de DTD**: cuando DTD
 > **compra la mercancía POR el cliente** (agente de compra · "compra asistida"),
@@ -48,14 +50,14 @@ Orden de venta que la originó, y **al recibir la mercancía genera un Bill** en
    puede nacer de una OV (drop-ship) **o standalone** (un lead de "Compra asistida" de Kommo
    pide comprar, sin OV previa) → la OC NO depende de que exista la OV.
 4. **Proveedor:** reusa `suppliers_cn` (0057) cuando aplica; permite proveedor libre.
-5. **No romper datos.** Aditivo. Migración **0114** (verificado libre en todas las ramas al crear).
+5. **No romper datos.** Aditivo. Migración **0124** (verificado libre en todas las ramas al crear).
 
 ## 4. Modelo de datos + trazabilidad
 
 ```
                        (cliente pide / lead "Compra asistida" Kommo / desde una OV)
                                         │
-ORDEN DE COMPRA de DTD (purchase_orders, OC-)   ← NUEVO en 0063
+ORDEN DE COMPRA de DTD (purchase_orders, OC-)   ← NUEVO en 0071
   · client_markbox · supplier (suppliers_cn | libre) · ítems + costo USD
   · sales_order_id (→ OV, nullable) · status · bill_id (nullable)
         │ recepción confirmada (mercancía llega / proveedor factura a DTD)
@@ -65,7 +67,7 @@ BILL (0044 Tesorería)  → Pay Bills
         └─ trazabilidad: "este Bill viene de OC-0007 ← OV-0042 ← EST-2026-0042"
 ```
 
-**Tablas/RPC de 0063 (migración 0114):**
+**Tablas/RPC de 0071 (migración 0124):**
 - `purchase_orders` (OC-) + RLS por tenant: `client_markbox`, `supplier_id` (FK
   `suppliers_cn`, nullable) / `supplier_name` libre, `sales_order_id` (nullable, FK futura),
   `status`, `total_cost_usd`, `bill_id` (nullable, link al Bill generado), `notes`, timestamps.
@@ -77,8 +79,8 @@ BILL (0044 Tesorería)  → Pay Bills
 
 ## 5. Approach por fases
 
-### Fase 1 (0063 · ESTE spec) — fundación OC de DTD
-- Migración **0114**: `purchase_orders` + `purchase_order_items` + RLS + `next_purchase_order_code` + link a `bills`.
+### Fase 1 (0071 · ESTE spec) — fundación OC de DTD
+- Migración **0124**: `purchase_orders` + `purchase_order_items` + RLS + `next_purchase_order_code` + link a `bills`.
 - `lib/studio/purchase-orders/` (queries + types + validators manuales, sin Zod, patrón del repo).
 - Crear/editar una OC de DTD (proveedor + ítems + costo); transiciones de status.
 - **Recibir → generar Bill**: server action que postea el Bill en Tesorería (reusa
@@ -87,13 +89,13 @@ BILL (0044 Tesorería)  → Pay Bills
   (OC DTD)** juntas + detalle con provenance + drawer de creación.
 - Tests (Vitest) de los criterios + helpers puros.
 
-### Fuera de 0063 (sub-SDDs / fases siguientes)
+### Fuera de 0071 (sub-SDDs / fases siguientes)
 - **Puente OV → OC de DTD** (botón "Convertir en orden de compra" desde la Orden de venta) →
   llega cuando exista la OV (sub-SDD hermano).
 - **Cruce con Kommo "Compra asistida"** (importar el lead → OC) — reusa `lib/studio/kommo*`.
 - Compra asistida avanzada (cotización al proveedor, tracking de compra, multi-proveedor, pagos).
 
-## 6. Acceptance (Fase 1 · 0063)
+## 6. Acceptance (Fase 1 · 0071)
 
 - [ ] `purchase_orders` + `purchase_order_items` con RLS por tenant + `next_purchase_order_code` → `OC-`.
 - [ ] Crear/editar una OC de DTD (proveedor + ítems + costo); status lifecycle.
@@ -124,11 +126,11 @@ Norte: el pipeline "Compra asistida" existe en Kommo; sin mockup del Norte para 
 ## 10. Notas de implementación (Fase 1 · vía harness)
 
 **Estado:** Fase 1 implementada en `feat/orden-compra`. Gate `node scripts/verify.mjs` 🟢
-(lint + rsc-boundary + typecheck + test + docs:check). Migración 0114 **NO** aplicada a
+(lint + rsc-boundary + typecheck + test + docs:check). Migración 0124 **NO** aplicada a
 prod (la aplica el founder). `ui-ux-designer` pendiente antes del commit.
 
 **Archivos:**
-- `supabase/migrations/0114_purchase_orders.sql` — `purchase_orders` (OC-) +
+- `supabase/migrations/0124_purchase_orders.sql` — `purchase_orders` (OC-) +
   `purchase_order_items` + RLS por tenant (patrón 0088/0096: `by tenant` +
   `service_role all`) + `next_purchase_order_code` (OC-YYYY-NNNN, cuenta solo
   `OC-%`, padding 4) + FK indexes (patrón 0013) + grants explícitos + triggers
@@ -141,7 +143,7 @@ prod (la aplica el founder). `ui-ux-designer` pendiente antes del commit.
   `buildBillPayloadFromPo`, espejo del código `formatPurchaseOrderCode`.
 - `lib/studio/purchase-orders/queries.ts` — `listPurchaseOrders`,
   `getPurchaseOrder`/`getPurchaseOrderByCode`, `listPurchaseOrderItems`,
-  `purchaseOrderStats` (defensivo si 0114 no está aplicada).
+  `purchaseOrderStats` (defensivo si 0124 no está aplicada).
 - `lib/studio/purchase-orders/actions.ts` — `createPurchaseOrder`,
   `updatePurchaseOrder` (reemplaza ítems, solo borrador/confirmada),
   `setPurchaseOrderStatus`/`cancelPurchaseOrder` (valida el grafo),

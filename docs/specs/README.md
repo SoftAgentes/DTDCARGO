@@ -94,10 +94,10 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0059 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 | 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | in-progress | interno |
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
-| 0063 | Orden de compra (Purchase Order · compra asistida → Bill): el… | done | interno |
 | 0063 | Servicios a fondo (sitio público) — fichas incluye/no-incluye… | in-progress | interno |
 | 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
 | 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | in-progress | interno |
+| 0071 | Orden de compra (Purchase Order · compra asistida → Bill): el… | done | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0060 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0060, 0066, 0067, 0068, 0069, 0070 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

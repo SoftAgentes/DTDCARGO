@@ -1,9 +1,9 @@
 /**
- * Órdenes de compra (SDD-0063) — el lado COMPRAS del modelo QuickBooks.
+ * Órdenes de compra (SDD-0071) — el lado COMPRAS del modelo QuickBooks.
  *
  * Server component: lista las DOS sub-tipos de orden de compra juntas:
  *   · OC cliente = Prealertas (0057, existe) — etiquetadas "OC cliente".
- *   · OC DTD     = purchase_orders (0063, NUEVO) — DTD compra POR el cliente,
+ *   · OC DTD     = purchase_orders (0071, NUEVO) — DTD compra POR el cliente,
  *                  al recibir genera el Bill (0044).
  *
  * Carga las OC DTD + sus ítems + stats, las prealertas + sus proveedores_cn,

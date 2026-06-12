@@ -1,6 +1,6 @@
 /**
- * Tipos del módulo Órdenes de compra (SDD-0063) — la OC de DTD.
- * Matchea el schema de supabase/migrations/0114_purchase_orders.sql
+ * Tipos del módulo Órdenes de compra (SDD-0071) — la OC de DTD.
+ * Matchea el schema de supabase/migrations/0124_purchase_orders.sql
  * (purchase_orders + purchase_order_items).
  *
  * La OC de DTD es el gemelo "compras" de la Orden de venta: DTD compra
@@ -319,7 +319,7 @@ export function buildBillPayloadFromPo(args: {
     dueDate: args.dueDate ?? issueDate,
     reference: args.po.purchase_order_code,
     shipmentId: null,
-    notes: `Bill generado al recibir la OC ${args.po.purchase_order_code} (SDD-0063).`,
+    notes: `Bill generado al recibir la OC ${args.po.purchase_order_code} (SDD-0071).`,
   };
 }
 

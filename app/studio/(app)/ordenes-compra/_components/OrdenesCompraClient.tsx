@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * OrdenesCompraClient — vista de operador de Órdenes de compra (SDD-0063).
+ * OrdenesCompraClient — vista de operador de Órdenes de compra (SDD-0071).
  *
  * Header + 4 KPIs + botón "Nueva OC de DTD" + 2 tabs:
  *   · OC de DTD   ⭐ : purchase_orders del tenant (compra asistida). Crear/editar,

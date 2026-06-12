@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- SDD-0063 · Orden de compra de DTD (Purchase Order · compra asistida)
+-- SDD-0071 · Orden de compra de DTD (Purchase Order · compra asistida)
 --
 -- Sub-SDD de 0061 Fase D (lado COMPRAS). Construye la OC de DTD: cuando DTD
 -- COMPRA la mercancía POR el cliente (agente de compra · "compra asistida"),
@@ -25,7 +25,7 @@
 --     aún (sub-SDD hermano). Queda nullable y sin constraint hasta entonces.
 --   · bill_id → FK a supplier_bills(id) on delete set null (link al Bill generado).
 --
--- ⚠️ Número de migración: 0114 (verificado libre tras 0113). NO se aplica a prod
+-- ⚠️ Número de migración: 0124 (renumerado de 0114 por colisión; libre tras 0123). NO se aplica a prod
 --    desde acá (lo hace el founder). Reusa get_user_tenant_id() (0001),
 --    touch_updated_at() (0002).
 -- ─────────────────────────────────────────────────────────────
@@ -53,13 +53,13 @@ create table public.purchase_orders (
 );
 
 comment on table public.purchase_orders is
-  'SDD-0063: Orden de compra de DTD (OC-YYYY-NNNN). DTD compra mercancía POR el cliente (compra asistida) → al recibir genera el Bill (0044, bill_id). supplier_id → suppliers_cn (proveedor chino del cliente, NO el suppliers PRV- de Tesorería). sales_order_id = FK suave (la Orden de venta no existe aún). status borrador→confirmada→recibida→facturada→cerrada · cancelada. Soft delete via deleted_at. RLS por tenant_id.';
+  'SDD-0071: Orden de compra de DTD (OC-YYYY-NNNN). DTD compra mercancía POR el cliente (compra asistida) → al recibir genera el Bill (0044, bill_id). supplier_id → suppliers_cn (proveedor chino del cliente, NO el suppliers PRV- de Tesorería). sales_order_id = FK suave (la Orden de venta no existe aún). status borrador→confirmada→recibida→facturada→cerrada · cancelada. Soft delete via deleted_at. RLS por tenant_id.';
 
 comment on column public.purchase_orders.sales_order_id is
-  'SDD-0063: FK FUTURA a la Orden de venta que la originó (drop-ship). Sin constraint porque la entidad no existe todavía (sub-SDD hermano). Nullable: una OC puede nacer standalone (lead "Compra asistida" de Kommo).';
+  'SDD-0071: FK FUTURA a la Orden de venta que la originó (drop-ship). Sin constraint porque la entidad no existe todavía (sub-SDD hermano). Nullable: una OC puede nacer standalone (lead "Compra asistida" de Kommo).';
 
 comment on column public.purchase_orders.bill_id is
-  'SDD-0063: Bill (supplier_bills, 0044) generado al recibir la OC. Link bidireccional: la OC apunta al Bill que generó. on delete set null para no romper la OC si se anula el Bill.';
+  'SDD-0071: Bill (supplier_bills, 0044) generado al recibir la OC. Link bidireccional: la OC apunta al Bill que generó. on delete set null para no romper la OC si se anula el Bill.';
 
 create index purchase_orders_tenant_status_idx
   on public.purchase_orders (tenant_id, status) where deleted_at is null;
@@ -90,7 +90,7 @@ create table public.purchase_order_items (
 );
 
 comment on table public.purchase_order_items is
-  'SDD-0063: líneas de una Orden de compra de DTD. qty * unit_cost_usd = costo de la línea; la suma alimenta purchase_orders.total_cost_usd. on delete cascade (se van con la OC). RLS por tenant_id.';
+  'SDD-0071: líneas de una Orden de compra de DTD. qty * unit_cost_usd = costo de la línea; la suma alimenta purchase_orders.total_cost_usd. on delete cascade (se van con la OC). RLS por tenant_id.';
 
 create index purchase_order_items_po_id_fk_idx
   on public.purchase_order_items (purchase_order_id);
@@ -125,7 +125,7 @@ end;
 $$;
 
 comment on function public.next_purchase_order_code is
-  'SDD-0063: genera el próximo purchase_order_code OC-YYYY-NNNN para el tenant del año actual (solo cuenta códigos OC-).';
+  'SDD-0071: genera el próximo purchase_order_code OC-YYYY-NNNN para el tenant del año actual (solo cuenta códigos OC-).';
 
 -- ╔═══════════════════════════════════════════════════════════╗
 -- ║ 3b. entity_audit_log · + 'purchase_order' al CHECK        ║

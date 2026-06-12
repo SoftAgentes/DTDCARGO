@@ -1,5 +1,5 @@
 /**
- * Tests del módulo Órdenes de compra (SDD-0063) — capa pura.
+ * Tests del módulo Órdenes de compra (SDD-0071) — capa pura.
  *
  * Cubre los criterios de aceptación de la sección 6 del spec:
  *  - validatePurchaseOrderInput: exige proveedor (ficha o libre) + ≥1 ítem válido;

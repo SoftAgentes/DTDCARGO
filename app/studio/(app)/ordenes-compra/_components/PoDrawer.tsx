@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * Drawers del módulo Órdenes de compra (SDD-0063).
+ * Drawers del módulo Órdenes de compra (SDD-0071).
  *
  * PoDrawer    · detalle de una OC de DTD: datos + ítems + provenance (OV/Bill) +
  *               transiciones de status + "Recibir" → genera el Bill (0044).

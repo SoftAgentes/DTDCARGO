@@ -1,5 +1,5 @@
 /**
- * Server actions del módulo Órdenes de compra (SDD-0063) — la OC de DTD.
+ * Server actions del módulo Órdenes de compra (SDD-0071) — la OC de DTD.
  *
  * "use server" + parsing manual + validate*Input (sin Zod) + revalidatePath.
  *

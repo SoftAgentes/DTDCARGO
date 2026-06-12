@@ -1,5 +1,5 @@
 /**
- * Queries del módulo Órdenes de compra (SDD-0063) — la OC de DTD.
+ * Queries del módulo Órdenes de compra (SDD-0071) — la OC de DTD.
  *
  * Funciones PURAS que reciben un SupabaseClient. RLS filtra por tenant_id.
  *
@@ -144,7 +144,7 @@ export type PurchaseOrderStats = {
 
 /**
  * Conteo de OC por status para la cola del operador. RLS filtra por tenant.
- * Defensivo: si la tabla aún no existe (0114 sin aplicar en un env), devuelve
+ * Defensivo: si la tabla aún no existe (0124 sin aplicar en un env), devuelve
  * ceros en vez de romper la pantalla.
  */
 export async function purchaseOrderStats(
