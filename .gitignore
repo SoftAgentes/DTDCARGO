@@ -53,7 +53,12 @@ tsc_out.txt
 # Contratos/NDA/costos. Originales en disco local (mover a Drive). Pointers
 # tracked en docs/legal/README.md y docs/operaciones/README.md.
 docs/legal/*.pdf
+docs/legal/*.docx
 docs/operaciones/*.xlsx
+# Vaults locales con PII de clientes / secretos — NUNCA a git (el nombre lo dice).
+# (El patrón estaba ausente: estas carpetas NO estaban protegidas hasta ahora.)
+PRIVADO-NO-SUBIR-AL-REPO/
+docs-legal/
 
 # Config local de Claude. El harness del proyecto (agentes + skills) SÍ se versiona;
 # settings/planes locales quedan fuera.
