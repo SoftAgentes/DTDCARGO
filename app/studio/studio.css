@@ -220,7 +220,10 @@
   gap: 6px;
   padding: 12px 22px;
   font: 800 13px/1 var(--f-sans);
-  letter-spacing: 0.05em;
+  /* +0.01em vs el tracking base: Nunito 800 no pega tan brutal como la vieja
+     Archivo Black; este pelo extra le devuelve autoridad al CTA sin tocar
+     fuente ni peso (ajuste fino post-port tipográfico, founder 2026-06-11). */
+  letter-spacing: 0.06em;
   border-radius: 8px;
   border: 0;
   cursor: pointer;
