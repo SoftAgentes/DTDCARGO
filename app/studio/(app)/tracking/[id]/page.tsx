@@ -70,6 +70,14 @@ export default async function ShipmentDetailPage({
   const authUser = await getUser();
   const tenantId = await getUserTenantId();
   const tenantUsers = tenantId ? await loadTenantUsers(tenantId) : [];
+
+  // Rol del usuario → el "Expediente de defensa" (SDD-0070) es admin-only
+  // (evidencia con PII). Mismo gate que /studio/legal.
+  const { data: roleRow } = await supabase
+    .from("user_tenants")
+    .select("role")
+    .maybeSingle<{ role: string }>();
+  const isAdmin = roleRow?.role === "admin";
   const comments = authUser
     ? await listComments(supabase, "shipment", id, tenantUsers, authUser.id)
     : [];
@@ -180,7 +188,7 @@ export default async function ShipmentDetailPage({
                 margin: "6px 0 0",
               }}
             >
-              Resolvé el problema y cambiá el estado en el panel de acciones
+              Resuelve el problema y cambia el estado en el panel de acciones
               para que el envío continúe.
             </p>
           </div>
@@ -249,6 +257,44 @@ export default async function ShipmentDetailPage({
               status={shipment.status}
             />
           </section>
+
+          {/* Expediente de defensa (SDD-0070) — admin-only. Abre la cadena de
+              evidencia consolidada de esta operación en pestaña nueva. */}
+          {isAdmin && (
+            <section
+              style={{
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: 10,
+                padding: 20,
+              }}
+            >
+              <div
+                className="studio-eyebrow"
+                style={{ color: "var(--ink-soft)", marginBottom: 8 }}
+              >
+                Legal · evidencia
+              </div>
+              <p
+                style={{
+                  font: "500 12.5px/1.5 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  margin: "0 0 12px",
+                }}
+              >
+                Reúne en 1 documento la aceptación de términos, packing, fotos de
+                origen, cronología y prueba de entrega de esta operación.
+              </p>
+              <a
+                className="studio-btn studio-btn-ghost studio-btn-sm"
+                href={`/studio/legal/expediente/${encodeURIComponent(shipment.code)}`}
+                target="_blank"
+                rel="noopener"
+              >
+                Expediente de defensa
+              </a>
+            </section>
+          )}
 
           <section>
             <CustomerPreview

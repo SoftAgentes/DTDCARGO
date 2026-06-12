@@ -1,10 +1,10 @@
 ---
 sdd: "0055"
 title: "Calculadora — configuración desde el Studio (Fase 3): ciudades + estados de tarifa + importador"
-status: in-progress
+status: done
 author: "Claude Code (carril calculadora · worktree feat/calculadora)"
 created: 2026-06-04
-updated: 2026-06-04
+updated: 2026-06-10
 supersedes: null
 superseded_by: null
 related: ["0008", "0002", "0101"]
@@ -110,7 +110,19 @@ preparar tarifas antes de publicarlas + un **importador masivo** de tarifas.
       (publicar/archivar) + importador CSV con preview que inserta como `draft`.
 - [x] Frontera intacta (público no importa `@/lib/studio`/`@/lib/db`; lee por RPC anon).
       Zero-regression con DB vacía (fallback). Sin Zod.
-- [x] `node scripts/verify.mjs` 🟢. Migración `0104` **NO** aplicada a prod.
+- [x] `node scripts/verify.mjs` 🟢. Migración `0104` **NO** aplicada a prod *(estado al
+      implementar; ver Cierre — ya se aplicó)*.
+
+## Cierre (2026-06-10)
+
+- Implementado vía harness en worktree `feat/calculadora` (commit `8ca1210`, reviewer
+  APPROVED + ui-ux con 2 fixes), **mergeado + pusheado a origin/main 2026-06-05**
+  (merge `76bf3a7`).
+- **Migración `0104` APLICADA a prod** vía MCP el 2026-06-05 y verificada: 14 ciudades
+  sembradas en `calculator_cities` + `rates.status` operativo (la pública exige
+  `published`).
+- El spec quedó sin actualizar tras el merge (mismo patrón que SDD-0057) — cierre
+  documental en la corrida 2026-06-10. Spec → **done**.
 
 ## 6. Fuera de alcance
 - **NO** scraping ni tarifas automáticas. **NO** multi-moneda en el importador (USD).

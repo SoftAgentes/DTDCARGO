@@ -258,10 +258,10 @@ export function validateFilingInput(
   const errors: CustomsFilingActionState["fieldErrors"] = {};
 
   const shipment_id = input.shipment_id?.trim() ?? "";
-  if (!shipment_id) errors.shipment_id = "Indicá el shipment.";
+  if (!shipment_id) errors.shipment_id = "Indica el shipment.";
 
   const port_code = input.port_code?.trim() ?? "";
-  if (!port_code) errors.port_code = "Indicá el puerto.";
+  if (!port_code) errors.port_code = "Indica el puerto.";
   else if (!VE_PORTS.some((p) => p.code === port_code)) {
     errors.port_code = `Puerto desconocido (esperados: ${VE_PORTS.map((p) => p.code).join(", ")}).`;
   }
@@ -270,7 +270,7 @@ export function validateFilingInput(
     .map((h) => h.trim())
     .filter(Boolean);
   if (hs_codes.length === 0) {
-    errors.hs_codes = "Agregá al menos 1 HS code.";
+    errors.hs_codes = "Agrega al menos 1 HS code.";
   } else if (hs_codes.some((h) => !HS_RE.test(h))) {
     errors.hs_codes = "Formato HS inválido (esperado 0000.00 o 0000.00.00).";
   }

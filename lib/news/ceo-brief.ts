@@ -195,7 +195,7 @@ export async function generateBriefText(
 function buildBriefPrompt(kpis: CeoBriefKpis): string {
   return `Sos un analista ejecutivo. Generá un brief de 3-5 líneas para el CEO de DTD·CARGO sobre operación del día ${kpis.date_iso}.
 
-Tono: directo, español venezolano (vos / acá), sin felicitaciones, sin metáforas.
+Tono: directo, español venezolano (tú / acá, cero voseo), sin felicitaciones, sin metáforas.
 Formato: bullets cortos con cifras concretas. Cero emojis decorativos.
 Foco: lo que el CEO necesita saber para decidir hoy.
 

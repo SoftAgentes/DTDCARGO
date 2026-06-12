@@ -322,7 +322,7 @@ export function SeniatClient({
               hasActiveFilters
                 ? "Ningún trámite coincide con los filtros."
                 : tab === "queue"
-                  ? "No hay trámites en cola activa. Creá uno cuando un container ingrese a aduana."
+                  ? "No hay trámites en cola activa. Crea uno cuando un container ingrese a aduana."
                   : "Aún no hay trámites liberados YTD."
             }
           />

@@ -114,7 +114,7 @@ export function RuleEditorDrawer({
           error={state.fieldErrors?.template_id}
           disabled={isPending}
           options={[
-            { value: "", label: "— Elegí template —" },
+            { value: "", label: "— Elige template —" },
             ...templates
               .filter((t) => t.active)
               .map((t) => ({ value: t.id, label: `${t.name} (${t.slug})` })),

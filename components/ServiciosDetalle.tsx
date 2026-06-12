@@ -30,6 +30,7 @@ import {
 const ESTADO_LABEL: Record<string, string> = {
   suspendido: "Suspendido",
   "a-pedido": "A pedido",
+  proximamente: "Próximamente",
 };
 
 export function ServiciosDetalle() {
@@ -116,7 +117,10 @@ function FichaDetalle({ service }: { service: ServicioDetalle }) {
   return (
     <details
       id={service.slug}
-      className="brochure-group scroll-mt-28 card-shadow bg-white border border-grey-200 rounded-[14px] overflow-hidden group"
+      open={service.destacado}
+      className={`brochure-group scroll-mt-28 card-shadow bg-white border rounded-[14px] overflow-hidden group ${
+        service.destacado ? "border-wine" : "border-grey-200"
+      }`}
     >
       <summary className="cursor-pointer px-6 py-5 flex items-start gap-4 select-none">
         <span className="flex-shrink-0 mt-0.5">
@@ -127,6 +131,11 @@ function FichaDetalle({ service }: { service: ServicioDetalle }) {
             <span className="text-[16.5px] lg:text-[18px] font-extrabold leading-[1.2] tracking-[-0.01em] text-ink">
               {service.titulo}
             </span>
+            {service.destacado && (
+              <span className="text-[10.5px] font-bold tracking-[0.06em] uppercase px-2 py-0.5 rounded-md bg-wine text-white">
+                Principal
+              </span>
+            )}
             {estado !== "activo" && (
               <span className="text-[10.5px] font-bold tracking-[0.06em] uppercase px-2 py-0.5 rounded-md bg-grey-100 text-grey-700">
                 {ESTADO_LABEL[estado]}
@@ -182,9 +191,65 @@ function FichaDetalle({ service }: { service: ServicioDetalle }) {
           </div>
         )}
 
-        {(service.precio || service.tiempos || service.comoSolicitar) && (
+        {service.precioTabla && (
+          <div className="mt-6 border-t border-grey-200 pt-5">
+            <FieldLabel>Precio · comisión por monto</FieldLabel>
+            {service.precio && (
+              <p className="mt-2 text-[14px] leading-[1.5] text-grey-700 max-w-[62ch]">
+                {service.precio}
+              </p>
+            )}
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full border-collapse text-[14px]">
+                <thead>
+                  <tr>
+                    {service.precioTabla.columnas.map((col, i) => (
+                      <th
+                        key={col}
+                        className={`border-b border-grey-200 pb-2 text-[10.5px] font-bold tracking-[0.08em] uppercase text-grey-500 ${
+                          i === 0 ? "text-left" : "text-right"
+                        }`}
+                      >
+                        {col}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {service.precioTabla.filas.map((fila) => (
+                    <tr key={fila[0]}>
+                      {fila.map((celda, i) => (
+                        <td
+                          key={`${fila[0]}-${i}`}
+                          className={`border-b border-grey-100 py-2.5 ${
+                            i === 0
+                              ? "text-left font-medium text-ink"
+                              : "text-right font-semibold tabular-nums text-grey-700"
+                          }`}
+                        >
+                          {celda}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {service.precioTabla.nota && (
+              <p className="mt-3 text-[12.5px] leading-[1.5] text-grey-500">
+                {service.precioTabla.nota}
+              </p>
+            )}
+          </div>
+        )}
+
+        {((service.precio && !service.precioTabla) ||
+          service.tiempos ||
+          service.comoSolicitar) && (
           <dl className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 border-t border-grey-200 pt-5 m-0">
-            {service.precio && <FieldBlock term="Precio o condición" desc={service.precio} />}
+            {service.precio && !service.precioTabla && (
+              <FieldBlock term="Precio o condición" desc={service.precio} />
+            )}
             {service.tiempos && <FieldBlock term="Tiempos" desc={service.tiempos} />}
             {service.comoSolicitar && <FieldBlock term="Cómo se solicita" desc={service.comoSolicitar} />}
           </dl>

@@ -302,7 +302,7 @@ function PasswordTabContent({ onClose }: { onClose: () => void }) {
         disabled={pending || success}
       />
       <Field
-        label="Repetí la nueva contraseña"
+        label="Repite la nueva contraseña"
         name="repeat_password"
         value={pw3}
         onChange={setPw3}
@@ -646,8 +646,8 @@ function PrefsTabContent({
       >
         Email, push browser y Telegram se disparan automáticamente
         cuando hay un bug crítico nuevo, cambio de estado en tus
-        reportes o respuesta del admin. Activá los canales que
-        querés recibir.
+        reportes o respuesta del admin. Activa los canales que
+        quieres recibir.
       </p>
 
       {state.error && (
@@ -878,7 +878,7 @@ function PushSubscriptionSection() {
           }}
         >
           El navegador bloqueó las notificaciones. Habilitalas desde el
-          ícono de candado en la URL y volvé a probar.
+          ícono de candado en la URL y vuelve a probar.
         </p>
       )}
       {status === "unsupported" && (
@@ -1086,7 +1086,7 @@ function TelegramSection({
               color: "var(--ink)",
             }}
           >
-            Tocá este link · vas a abrir Telegram y mandar /start automático:
+            Toca este link · vas a abrir Telegram y mandar /start automático:
           </div>
           <a
             href={tgUrl}

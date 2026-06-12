@@ -96,7 +96,7 @@ export async function acceptInvitationFormAction(
     if (msg.toLowerCase().includes("already") || msg.includes("registered")) {
       return {
         error:
-          "Ese email ya tiene cuenta. Iniciá sesión en /studio/login y un admin te puede dar acceso manualmente.",
+          "Ese email ya tiene cuenta. Inicia sesión en /studio/login y un admin te puede dar acceso manualmente.",
       };
     }
     return { error: `No se pudo crear la cuenta: ${msg}` };
@@ -113,7 +113,7 @@ export async function acceptInvitationFormAction(
   });
   if (signInErr) {
     return {
-      error: `Cuenta creada pero login automático falló: ${signInErr.message}. Intentá login manual.`,
+      error: `Cuenta creada pero login automático falló: ${signInErr.message}. Intenta login manual.`,
     };
   }
 
@@ -125,7 +125,7 @@ export async function acceptInvitationFormAction(
   });
   if (acceptErr) {
     return {
-      error: `Cuenta creada pero no se pudo asignar al tenant: ${acceptErr.message}. Contactá al admin.`,
+      error: `Cuenta creada pero no se pudo asignar al tenant: ${acceptErr.message}. Contacta al admin.`,
     };
   }
 

@@ -81,7 +81,7 @@ export default async function DispatchPage({
               maxWidth: "76ch",
             }}
           >
-            Paquetes listos para entrega ordenados por el motor de scoring. Armá
+            Paquetes listos para entrega ordenados por el motor de scoring. Arma
             órdenes de despacho asignando ruta, camión y chofer. La cola se ordena
             según las{" "}
             <a

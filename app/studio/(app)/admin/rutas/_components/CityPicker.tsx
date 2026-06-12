@@ -129,21 +129,21 @@ export function CityPicker({
     const stateName = draft.state_name.trim();
     const municipio = draft.municipio.trim();
     if (!name) {
-      setAddError("Ingresá el nombre de la ciudad.");
+      setAddError("Ingresa el nombre de la ciudad.");
       return;
     }
     if (!stateName) {
-      setAddError("Ingresá el estado.");
+      setAddError("Ingresa el estado.");
       return;
     }
     if (!municipio) {
-      setAddError("Ingresá el municipio.");
+      setAddError("Ingresa el municipio.");
       return;
     }
     const stateCode = inferStateCode(stateName);
     if (!stateCode) {
       setAddError(
-        `No reconozco "${stateName}" como estado venezolano. Revisá la ortografía o usá el botón "Agregar ciudad" del tab principal para casos custom.`,
+        `No reconozco "${stateName}" como estado venezolano. Revisa la ortografía o usa el botón "Agregar ciudad" del tab principal para casos custom.`,
       );
       return;
     }
@@ -297,7 +297,7 @@ export function CityPicker({
                       textAlign: "center",
                     }}
                   >
-                    Ninguna ciudad coincide con &ldquo;{q}&rdquo;. Agregala con el
+                    Ninguna ciudad coincide con &ldquo;{q}&rdquo;. Agrégala con el
                     botón de abajo.
                   </div>
                 )}

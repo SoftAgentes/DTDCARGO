@@ -347,7 +347,7 @@ function SelectField({
         disabled={disabled}
         className="h-12 px-3 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
       >
-        <option value="">— Elegí —</option>
+        <option value="">— Elige —</option>
         {options.map((o) => (
           <option key={o} value={o}>
             {optionLabel ? optionLabel(o) : o}

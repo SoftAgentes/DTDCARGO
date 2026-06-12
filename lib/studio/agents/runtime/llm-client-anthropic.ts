@@ -203,7 +203,7 @@ export class AnthropicLLMClient implements LLMClient {
     const key = apiKey ?? process.env.ANTHROPIC_API_KEY;
     if (!key) {
       throw new Error(
-        "ANTHROPIC_API_KEY no está configurada. Agregala a .env.local o usá MockLLMClient.",
+        "ANTHROPIC_API_KEY no está configurada. Agrégala a .env.local o usa MockLLMClient.",
       );
     }
     this.client = new Anthropic({ apiKey: key });
@@ -288,7 +288,7 @@ export class AnthropicLLMClient implements LLMClient {
     if (iterations >= MAX_TOOL_ITERATIONS && !finalText) {
       finalText = JSON.stringify({
         message:
-          "El agente alcanzó el límite de iteraciones de tool-use sin converger. Reformulá la consulta o contactá soporte.",
+          "El agente alcanzó el límite de iteraciones de tool-use sin converger. Reformula la consulta o contacta soporte.",
         citations: [],
       });
     }

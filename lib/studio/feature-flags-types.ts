@@ -2,7 +2,7 @@
  * Feature flags · types + helpers (SDD futuro · sin Zod).
  *
  * Portado de Claude Design v1.7:
- * docs/design/studio/v1.7-claude-design/project/nuevo/feature-flags.jsx
+ * docs/design/studio/_norte/erp/feature-flags.jsx
  *
  * 20 flags · perfilados de FEATURE_FLAG_DEFAULTS del handoff. Cada flag
  * decide si una feature/módulo está activa para el tenant.

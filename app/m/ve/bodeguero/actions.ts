@@ -36,7 +36,7 @@ function parseStringOrNull(v: FormDataEntryValue | null): string | null {
 
 async function requireBodegueroSession() {
   const session = await getCurrentOperario();
-  if (!session) return { error: "Sesión inválida · ingresá de nuevo." as const };
+  if (!session) return { error: "Sesión inválida · ingresa de nuevo." as const };
   if (session.region !== "ve") return { error: "Solo operarios VE." as const };
   if (
     session.role !== "bodeguero" &&
@@ -143,7 +143,7 @@ export async function reassignOdAction(input: {
 
   if (!input.od_id) return { error: "Falta od_id." };
   if (!input.truck_id && !input.driver_id) {
-    return { error: "Indicá al menos truck o driver para reasignar." };
+    return { error: "Indica al menos truck o driver para reasignar." };
   }
 
   const admin = createAdminClient();
@@ -171,7 +171,7 @@ function humanizeReassignError(msg: string): string {
   if (msg.includes("P0005")) return "OD no encontrada.";
   if (msg.includes("P0006")) return "OD de otro tenant.";
   if (msg.includes("P0110")) return "Falta od_id.";
-  if (msg.includes("P0130")) return "Indicá al menos truck o driver.";
+  if (msg.includes("P0130")) return "Indica al menos truck o driver.";
   if (msg.includes("P0131")) return "Esta OD ya está en ruta · no se puede reasignar.";
   if (msg.includes("P0132")) return "Truck no encontrado.";
   if (msg.includes("P0133")) return "Truck de otro tenant.";

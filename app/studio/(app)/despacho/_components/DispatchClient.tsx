@@ -222,7 +222,7 @@ export function DispatchClient({
               </>
             ) : (
               <span style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
-                Seleccioná paquetes para armar una OD
+                Selecciona paquetes para armar una OD
               </span>
             )}
           </div>

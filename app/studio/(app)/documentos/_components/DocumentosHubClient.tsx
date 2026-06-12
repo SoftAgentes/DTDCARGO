@@ -12,11 +12,16 @@
  * tokens var(--*), cero hex. Primitivas del sistema (KpiCard / Badge).
  */
 
+import { useState } from "react";
 import Link from "next/link";
 import { useDTDWiring } from "../../../_components/wiring/WiringProvider";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
+import {
+  VersionChip,
+  VersionHistoryDrawer,
+} from "@/app/studio/_components/documents/DocsPanel";
 import {
   DOC_STATUS,
   EXT_META,
@@ -76,6 +81,7 @@ export function DocumentosHubClient({
 }) {
   const { openGenerateBLModal } = useDTDWiring();
   const activeTop = topOf(folder)?.id;
+  const [historyFor, setHistoryFor] = useState<DocumentRow | null>(null);
 
   const heading =
     view === "por-vencer"
@@ -420,7 +426,7 @@ export function DocumentosHubClient({
             <div
               style={{
                 display: "grid",
-                gridTemplateColumns: "1fr 150px 120px 90px 110px",
+                gridTemplateColumns: "1fr 140px 110px 80px 100px 88px",
                 gap: 14,
                 padding: "10px 18px",
                 borderBottom: "1px solid var(--border)",
@@ -436,6 +442,7 @@ export function DocumentosHubClient({
               <span>Fecha</span>
               <span style={{ textAlign: "right" }}>Tamaño</span>
               <span style={{ textAlign: "right" }}>Estado</span>
+              <span style={{ textAlign: "right" }}>Versiones</span>
             </div>
 
             {rows.map((d, i) => {
@@ -452,7 +459,7 @@ export function DocumentosHubClient({
                   key={d.id}
                   style={{
                     display: "grid",
-                    gridTemplateColumns: "1fr 150px 120px 90px 110px",
+                    gridTemplateColumns: "1fr 140px 110px 80px 100px 88px",
                     gap: 14,
                     alignItems: "center",
                     padding: "11px 18px",
@@ -473,14 +480,24 @@ export function DocumentosHubClient({
                     <div style={{ minWidth: 0 }}>
                       <div
                         style={{
-                          font: "600 12.5px/1.3 var(--f-sans)",
-                          color: "var(--ink)",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 7,
+                          minWidth: 0,
                         }}
                       >
-                        {d.name}
+                        <span
+                          style={{
+                            font: "600 12.5px/1.3 var(--f-sans)",
+                            color: "var(--ink)",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {d.name}
+                        </span>
+                        <VersionChip n={d.version_no} />
                       </div>
                       <div
                         style={{
@@ -541,6 +558,16 @@ export function DocumentosHubClient({
                       {st.label}
                     </Badge>
                   </div>
+                  <div style={{ textAlign: "right" }}>
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-ghost studio-btn-xs"
+                      onClick={() => setHistoryFor(d)}
+                      title="Versiones de este documento"
+                    >
+                      Historial
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -556,12 +583,20 @@ export function DocumentosHubClient({
               >
                 {q
                   ? `Sin resultados para “${q}”.`
-                  : "Sin documentos en esta vista. Subí adjuntos desde el detalle de un envío o cliente — se clasifican solos acá."}
+                  : "Sin documentos en esta vista. Sube adjuntos desde el detalle de un envío o cliente — se clasifican solos acá."}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {historyFor && (
+        <VersionHistoryDrawer
+          rootId={historyFor.root_id}
+          docName={historyFor.name}
+          onClose={() => setHistoryFor(null)}
+        />
+      )}
     </div>
   );
 }

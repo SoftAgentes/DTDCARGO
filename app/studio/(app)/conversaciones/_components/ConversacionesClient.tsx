@@ -154,7 +154,7 @@ export function ConversacionesClient({ conversations, kpis, agents, tenantId }: 
             <EmptyState
               eyebrow="Bandeja"
               title="Sin conversación seleccionada"
-              description="Elegí una conversación de la lista para ver el hilo completo. Cuando un cliente escriba desde el portal, aparecerá acá."
+              description="Elige una conversación de la lista para ver el hilo completo. Cuando un cliente escriba desde el portal, aparecerá acá."
               action={<span style={{ color: "var(--ink-mute)" }}>{Icon.mail(22)}</span>}
             />
           </div>

@@ -44,7 +44,7 @@ export async function POST(
       status === 404
         ? "Bug no encontrado."
         : status === 403
-          ? "No tenés permiso para tomar este bug."
+          ? "No tienes permiso para tomar este bug."
           : status === 409
             ? "El bug no está en un estado que permita tomarlo."
             : "No pudimos tomar el bug.";

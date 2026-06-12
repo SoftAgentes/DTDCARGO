@@ -121,7 +121,7 @@ function Login({ onLogin }) {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center' }}>
         <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>DTD-CARGO · OPERARIO VE</div>
         <div style={{ font: '900 26px/1.2 var(--f-display)', color: '#fff', marginTop: 14, letterSpacing: '-0.02em', maxWidth: '14ch' }}>Entregas DDP Venezuela</div>
-        <div style={{ font: '500 14px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>Ingresá tu PIN de 4 dígitos</div>
+        <div style={{ font: '500 14px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.7)', marginTop: 12 }}>Ingresa tu PIN de 4 dígitos</div>
 
         <div style={{ display: 'flex', gap: 14, marginTop: 36 }}>
           {[0,1,2,3].map(i => (
@@ -182,7 +182,7 @@ function Home({ user, theme, setTheme, onStartRoute, onLogout }) {
         <div style={{ marginBottom: 20 }}>
           <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>23 May 2026 · 09:42</div>
           <div style={{ font: '900 24px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Hola, {user.name.split(' ')[0]}</div>
-          <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Tenés 2 entregas pendientes hoy · 310 km</div>
+          <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Tienes 2 entregas pendientes hoy · 310 km</div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
@@ -411,7 +411,7 @@ function Step3Docs({ route, onBack, onNext }) {
       <div style={{ padding: '0 16px 100px' }}>
         <div style={{ padding: '10px 12px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 8, font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink)', marginBottom: 14 }}>
           <span style={{ color: 'var(--info)', display: 'flex' }}>{window.Icon.info(15)}</span>
-          Descargá los 3 documentos en tu teléfono · entregá al cliente la factura impresa o digital.
+          Descarga los 3 documentos en tu teléfono · entregá al cliente la factura impresa o digital.
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>

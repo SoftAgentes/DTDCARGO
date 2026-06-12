@@ -327,9 +327,8 @@ export function UltimoKmCalculator() {
               className="mt-5 text-[11.5px] leading-[1.5]"
               style={{ color: "rgba(255,255,255,0.55)" }}
             >
-              Tarifa de referencia basada en tabuladores Fletes GAG 2026 + margen DTD 15%.
-              No incluye peajes, escoltas ni gastos especiales. La cotización final se
-              cierra por WhatsApp en menos de 24 hs.
+              Tarifa de referencia estimada. No incluye peajes, escoltas ni gastos
+              especiales. La cotización final se cierra por WhatsApp en menos de 24 horas.
             </p>
           </>
         )}

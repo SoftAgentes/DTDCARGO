@@ -16,6 +16,7 @@ import {
   expiringDocuments,
   pendingDocuments,
   unlinkedDocuments,
+  listDocumentVersions,
 } from "../queries";
 import type { DocumentRow } from "../types";
 
@@ -70,6 +71,11 @@ const DOC = (over: Partial<DocumentRow>): DocumentRow => ({
   created_at: "2026-06-01T00:00:00Z",
   updated_at: "2026-06-01T00:00:00Z",
   deleted_at: null,
+  root_id: "d1",
+  version_no: 1,
+  supersedes_id: null,
+  is_current: true,
+  version_note: null,
   ...over,
 });
 
@@ -84,6 +90,8 @@ describe("listDocumentsByEntity", () => {
     const eqs = rowsCalled(calls, "eq").map((c) => c.args);
     expect(eqs).toContainEqual(["entity_type", "shipment"]);
     expect(eqs).toContainEqual(["entity_id", "s1"]);
+    // SDD-0060: solo la versión vigente de la cadena
+    expect(eqs).toContainEqual(["is_current", true]);
     expect(rowsCalled(calls, "is")[0].args).toEqual(["deleted_at", null]);
   });
 
@@ -94,12 +102,15 @@ describe("listDocumentsByEntity", () => {
 });
 
 describe("listAllDocuments", () => {
-  it("sin opciones: solo filtra no-borradas", async () => {
+  it("sin opciones: filtra no-borradas + solo vigentes (SDD-0060)", async () => {
     const { client, calls } = makeClient({ documents: [DOC({})] });
     const res = await listAllDocuments(client);
     expect(res).toHaveLength(1);
     expect(rowsCalled(calls, "is")[0].args).toEqual(["deleted_at", null]);
-    expect(rowsCalled(calls, "eq")).toHaveLength(0);
+    // el único eq es is_current=true (sin filtro de carpeta/q)
+    expect(rowsCalled(calls, "eq").map((c) => c.args)).toEqual([
+      ["is_current", true],
+    ]);
     expect(rowsCalled(calls, "in")).toHaveLength(0);
     expect(rowsCalled(calls, "or")).toHaveLength(0);
   });
@@ -120,14 +131,19 @@ describe("listAllDocuments", () => {
   it("folder = subcarpeta → match exacto via .eq()", async () => {
     const { client, calls } = makeClient({ documents: [] });
     await listAllDocuments(client, { folder: "log-bl" });
-    expect(rowsCalled(calls, "eq")[0].args).toEqual(["folder", "log-bl"]);
+    const eqs = rowsCalled(calls, "eq").map((c) => c.args);
+    expect(eqs).toContainEqual(["folder", "log-bl"]);
+    expect(eqs).toContainEqual(["is_current", true]);
     expect(rowsCalled(calls, "in")).toHaveLength(0);
   });
 
-  it("folder = 'all' no aplica filtro de carpeta", async () => {
+  it("folder = 'all' no aplica filtro de carpeta (solo is_current)", async () => {
     const { client, calls } = makeClient({ documents: [] });
     await listAllDocuments(client, { folder: "all" });
-    expect(rowsCalled(calls, "eq")).toHaveLength(0);
+    // ningún eq de carpeta; el único eq es is_current=true
+    expect(rowsCalled(calls, "eq").map((c) => c.args)).toEqual([
+      ["is_current", true],
+    ]);
     expect(rowsCalled(calls, "in")).toHaveLength(0);
   });
 
@@ -204,7 +220,9 @@ describe("pendingDocuments", () => {
     });
     const res = await pendingDocuments(client);
     expect(res).toHaveLength(1);
-    expect(rowsCalled(calls, "eq")[0].args).toEqual(["status", "pendiente"]);
+    const eqs = rowsCalled(calls, "eq").map((c) => c.args);
+    expect(eqs).toContainEqual(["status", "pendiente"]);
+    expect(eqs).toContainEqual(["is_current", true]);
   });
 });
 
@@ -215,6 +233,133 @@ describe("unlinkedDocuments", () => {
     });
     const res = await unlinkedDocuments(client);
     expect(res).toHaveLength(1);
-    expect(rowsCalled(calls, "eq")[0].args).toEqual(["entity_type", "none"]);
+    const eqs = rowsCalled(calls, "eq").map((c) => c.args);
+    expect(eqs).toContainEqual(["entity_type", "none"]);
+    expect(eqs).toContainEqual(["is_current", true]);
+  });
+});
+
+// ── Versionado (SDD-0060) ──────────────────────────────────────────
+
+describe("listAllDocuments oculta versiones no-current", () => {
+  it("aplica el filtro is_current=true (las históricas no aparecen sueltas)", async () => {
+    // El stub no implementa el filtro real, pero asertamos que la query lo pide:
+    // en runtime, RLS/PostgREST devuelven solo is_current=true.
+    const { client, calls } = makeClient({ documents: [DOC({})] });
+    await listAllDocuments(client);
+    expect(rowsCalled(calls, "eq").map((c) => c.args)).toContainEqual([
+      "is_current",
+      true,
+    ]);
+  });
+});
+
+describe("listDocumentVersions (historial de la cadena)", () => {
+  it("filtra por root_id + no borradas y ordena version_no desc (NO filtra is_current)", async () => {
+    const { client, calls } = makeClient({
+      documents: [
+        {
+          id: "v3",
+          version_no: 3,
+          name: "BL v3",
+          size_bytes: 300,
+          content_type: "application/pdf",
+          status: "firmado",
+          version_note: "corregido aduana",
+          uploaded_by: "u1",
+          created_at: "2026-06-03T00:00:00Z",
+          storage_path: "t1/shipment/s1/c.pdf",
+          is_current: true,
+        },
+        {
+          id: "v2",
+          version_no: 2,
+          name: "BL v2",
+          size_bytes: 200,
+          content_type: "application/pdf",
+          status: "vigente",
+          version_note: "corregido monto",
+          uploaded_by: "u1",
+          created_at: "2026-06-02T00:00:00Z",
+          storage_path: "t1/shipment/s1/b.pdf",
+          is_current: false,
+        },
+        {
+          id: "v1",
+          version_no: 1,
+          name: "BL v1",
+          size_bytes: 100,
+          content_type: "application/pdf",
+          status: "vigente",
+          version_note: null,
+          uploaded_by: "u1",
+          created_at: "2026-06-01T00:00:00Z",
+          storage_path: "t1/shipment/s1/a.pdf",
+          is_current: false,
+        },
+      ],
+    });
+
+    const res = await listDocumentVersions(client, "root-1");
+    // devuelve la cadena completa (vigente + históricas)
+    expect(res.map((v) => v.version_no)).toEqual([3, 2, 1]);
+
+    // filtra por la cadena, no por estado vigente
+    expect(rowsCalled(calls, "eq")[0].args).toEqual(["root_id", "root-1"]);
+    expect(rowsCalled(calls, "eq").map((c) => c.args)).not.toContainEqual([
+      "is_current",
+      true,
+    ]);
+    expect(rowsCalled(calls, "is")[0].args).toEqual(["deleted_at", null]);
+
+    // orden más nueva → más vieja
+    expect(rowsCalled(calls, "order")[0].args).toEqual([
+      "version_no",
+      { ascending: false },
+    ]);
+  });
+
+  it("cadena de 1 (sin versionar) devuelve solo la v1", async () => {
+    const { client } = makeClient({
+      documents: [
+        {
+          id: "only",
+          version_no: 1,
+          name: "doc",
+          size_bytes: 10,
+          content_type: "application/pdf",
+          status: "vigente",
+          version_note: null,
+          uploaded_by: null,
+          created_at: "2026-06-01T00:00:00Z",
+          storage_path: "t1/none/none/x.pdf",
+          is_current: true,
+        },
+      ],
+    });
+    const res = await listDocumentVersions(client, "only");
+    expect(res).toHaveLength(1);
+    expect(res[0].version_no).toBe(1);
+    expect(res[0].is_current).toBe(true);
+  });
+
+  it("cadena inexistente / vacía → []", async () => {
+    const { client } = makeClient({ documents: [] });
+    expect(await listDocumentVersions(client, "nope")).toEqual([]);
+  });
+
+  it("invariante: a lo sumo una versión vigente en la cadena", async () => {
+    // La invariante real la fuerza el índice único parcial one_current_per_root
+    // (migración 0116). Acá verificamos que el historial reportado sea coherente
+    // con esa invariante: exactamente una fila is_current=true.
+    const { client } = makeClient({
+      documents: [
+        { id: "v2", version_no: 2, is_current: true, name: "v2", size_bytes: 2, content_type: null, status: "vigente", version_note: null, uploaded_by: null, created_at: "2026-06-02T00:00:00Z", storage_path: "p2" },
+        { id: "v1", version_no: 1, is_current: false, name: "v1", size_bytes: 1, content_type: null, status: "vigente", version_note: null, uploaded_by: null, created_at: "2026-06-01T00:00:00Z", storage_path: "p1" },
+      ],
+    });
+    const res = await listDocumentVersions(client, "root");
+    expect(res.filter((v) => v.is_current)).toHaveLength(1);
+    expect(res.find((v) => v.is_current)?.version_no).toBe(2);
   });
 });

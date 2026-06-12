@@ -86,7 +86,7 @@ function SectionBrandSystem() {
             icon="spark"
             label="Abrir Logo Oficial · spec interactiva"
             sub="Carrusel de las 4 variantes · tweaks en vivo · spec técnica · descarga PNG por variante" />
-          <BrandLink href="Brand Book DTD v3.2.html"
+          <BrandLink href="Brand Book DTD v3.7.html"
             icon="doc"
             label="Brand Book completo"
             sub="Tipografía · paleta · iconografía · aplicaciones · mockups" accent="navy" />
@@ -111,8 +111,8 @@ function SectionBrandSystem() {
 function SectionBrandIcons() {
   const U = window.ERPUI;
   const roles = [
-    { id: 'almacenista',    label: 'Almacenista',    wa: '+58 412 100 0001' },
-    { id: 'transportista',  label: 'Transportista',  wa: '+58 412 495 0884' },
+    { id: 'almacenista',    label: 'Almacenista',    wa: '+58 424 950 8848' },
+    { id: 'transportista',  label: 'Transportista',  wa: '+58 424 950 8848' },
     { id: 'logistica',      label: 'Logística',      wa: '+58 414 888 8805' },
     { id: 'administracion', label: 'Administración', wa: '+58 241 414 7886' },
     { id: 'contabilidad',   label: 'Contabilidad',   wa: '+58 414 887 0000' },
@@ -197,7 +197,7 @@ function SectionBrandApps() {
     { id: 'emoji',       label: 'Emoji pack Slack/Discord', sub: '16 emojis para el workspace interno',  icon: 'spark' },
     { id: 'map',         label: 'Marcadores de mapa',    sub: 'Pins por etapa: bodega · puerto · cliente',icon: 'pin' },
     { id: 'watermark',   label: 'Watermark fotos',       sub: 'Trazabilidad en fotos del almacenista',       icon: 'eye' },
-    { id: 'sticker',     label: 'Etiqueta de caja',      sub: 'A6 imprimible · Zebra ZPL · QR + MARKBOX', icon: 'tag' },
+    { id: 'sticker',     label: 'Etiqueta de caja',      sub: 'A6 imprimible · Zebra ZPL · QR + Shipping Mark', icon: 'tag' },
     { id: 'wapack',      label: 'WhatsApp sticker pack', sub: '12 stickers animados · diferenciador',     icon: 'spark' },
   ];
 

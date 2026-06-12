@@ -548,7 +548,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
     <button class="btn" id="reset-tweaks">↺ Resetear a default</button>
   </div>
   <div class="diff-body" id="diff-body">
-    <div class="diff-empty">Aún no cambiaste nada. Abrí "Ajustar lockup" y vas a ver acá lo que modifiques.</div>
+    <div class="diff-empty">Aún no cambiaste nada. Abre "Ajustar lockup" y vas a ver acá lo que modifiques.</div>
   </div>
 </div>
 
@@ -629,7 +629,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
     <div class="num">02 / Regla de oro · contraste</div>
     <h2>¿Cuál variante uso?</h2>
   </div>
-  <p>Si dudás, mirá el ratio WCAG. Mínimo <strong>3:1</strong> para identidad gráfica.</p>
+  <p>Si dudás, mira el ratio WCAG. Mínimo <strong>3:1</strong> para identidad gráfica.</p>
 </div>
 
 <div class="contrast-grid">
@@ -751,7 +751,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
     <div class="num">04 / Especificación técnica</div>
     <h2>Para reproducirlo en cualquier herramienta</h2>
   </div>
-  <p>Si lo hacés en Figma, Illustrator, Canva o Word — estos son los parámetros oficiales.</p>
+  <p>Si lo haces en Figma, Illustrator, Canva o Word — estos son los parámetros oficiales.</p>
 </div>
 
 <div class="construction">
@@ -963,7 +963,7 @@ function renderDiff() {
     }
   }
   if (changes.length === 0) {
-    body.innerHTML = '<div class="diff-empty">Aún no cambiaste nada. Abrí "Ajustar lockup" y vas a ver acá lo que modifiques.</div>';
+    body.innerHTML = '<div class="diff-empty">Aún no cambiaste nada. Abre "Ajustar lockup" y vas a ver acá lo que modifiques.</div>';
     return;
   }
   body.innerHTML = '<div class="diff-grid">' + changes.map(c => {
@@ -999,6 +999,61 @@ document.getElementById('reset-tweaks').addEventListener('click', () => {
 // ── DOWNLOAD helpers ─────────────────────────────────
 const VBY_FILE = {};
 VARIANTS.forEach(v => { VBY_FILE[v.file] = v; });
+
+// ── Descargables por tamaño · fila "Escala" (03) ──────────────
+// Cada celda (48 Mínimo · 80 Sidebar · 120 Card · 200 Hero · 320 Banner)
+// gana un botón que genera el lockup PNG transparente a ese tamaño, retina ×4.
+function injectSizeDownloads() {
+  document.querySelectorAll('.sizes-row .size-cell').forEach(cell => {
+    if (cell.querySelector('.dl-size')) return;
+    const label = cell.querySelector('.label');
+    const strong = label ? label.querySelector('strong') : null;
+    const use = (strong && strong.nextSibling ? strong.nextSibling.textContent : '').trim() || 'Lockup';
+    const px = parseFloat(getComputedStyle(cell.querySelector('.lockup')).getPropertyValue('--iso-w-px'));
+    const btn = document.createElement('button');
+    btn.className = 'dl-size';
+    btn.style.cssText = 'margin-top:4px;font:700 11px/1 var(--f-sans);color:var(--wine);background:var(--bg-surface);border:1px solid var(--border);border-radius:6px;padding:7px 11px;cursor:pointer;';
+    btn.textContent = '↓ PNG · ' + use + ' ' + px + ' px';
+    btn.addEventListener('click', () => downloadSizeLockup(cell, use, btn));
+    cell.appendChild(btn);
+  });
+}
+async function downloadSizeLockup(cell, use, btn) {
+  const lock = cell.querySelector('.lockup');
+  const cs = getComputedStyle(lock);
+  const isoW = parseFloat(cs.getPropertyValue('--iso-w-px'));
+  const markPx = parseFloat(cs.getPropertyValue('--mark-size-px'));
+  const gap = parseFloat(cs.getPropertyValue('--iso-mark-gap'));
+  const img = cell.querySelector('.iso img');
+  const old = btn.textContent; btn.textContent = 'Generando…'; btn.disabled = true;
+  try {
+    await (document.fonts ? document.fonts.load('900 ' + markPx + 'px "Archivo Black"').then(() => document.fonts.ready) : Promise.resolve());
+    const S = 4;                                  // retina ×4
+    const isoH = isoW * (764 / 741);              // aspecto oficial del isólogo
+    const tracking = -0.02 * markPx, wordGap = 0.15 * markPx;
+    const meas = document.createElement('canvas').getContext('2d');
+    meas.font = '900 ' + markPx + 'px "Archivo Black", "Archivo", sans-serif';
+    if ('letterSpacing' in meas) meas.letterSpacing = tracking + 'px';
+    const wDTD = meas.measureText('DTD').width, wCargo = meas.measureText('Cargo').width;
+    const markW = wDTD + wordGap + wCargo;
+    const pad = Math.max(8, Math.round(isoW * 0.10));
+    const W = Math.ceil(Math.max(isoW, markW) + pad * 2);
+    const H = Math.ceil(isoH + gap + markPx * 1.15 + pad * 2);
+    const c = document.createElement('canvas'); c.width = W * S; c.height = H * S;
+    const x = c.getContext('2d'); x.scale(S, S);  // fondo transparente
+    x.drawImage(img, (W - isoW) / 2, pad, isoW, isoH);
+    x.font = '900 ' + markPx + 'px "Archivo Black", "Archivo", sans-serif';
+    if ('letterSpacing' in x) x.letterSpacing = tracking + 'px';
+    x.textBaseline = 'alphabetic';
+    const ty = pad + isoH + gap + markPx * 0.92;
+    const tx = (W - markW) / 2;
+    x.fillStyle = '#7F0F1A'; x.fillText('DTD', tx, ty);
+    x.fillStyle = '#0F1E3D'; x.fillText('Cargo', tx + wDTD + wordGap, ty);
+    const name = 'DTDCargo-Lockup-' + use.replace(/\s+/g, '') + '-' + isoW + 'px@4x.png';
+    c.toBlob(b => { triggerBlob(b, name); btn.textContent = old; btn.disabled = false; }, 'image/png');
+  } catch (e) { btn.textContent = old; btn.disabled = false; alert('No se pudo generar el PNG. Prueba de nuevo.'); }
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectSizeDownloads); else injectSizeDownloads();
 
 function triggerBlob(blob, name) {
   const url = URL.createObjectURL(blob);
@@ -1254,7 +1309,7 @@ document.getElementById('dl-suggest-go').addEventListener('click', async () => {
     const canvas = await buildComboCanvas(pendingCombo.kind, pendingCombo.cfg);
     canvas.toBlob(blob => triggerBlob(blob, pendingCombo.cfg.name), 'image/png');
   } catch (err) {
-    alert('No se pudo generar el logo. Probá de nuevo.');
+    alert('No se pudo generar el logo. Prueba de nuevo.');
   }
   go.disabled = false; go.textContent = prev;
 });

@@ -173,7 +173,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 
 <EmptyState
   eyebrow="Sin ODs"
-  title="No tenés ODs por armar"
+  title="No tienes ODs por armar"
   description="Cuando el admin asigne ODs nuevas las vas a ver acá."
 />
 ```

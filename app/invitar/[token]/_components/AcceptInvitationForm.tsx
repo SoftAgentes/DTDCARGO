@@ -77,7 +77,7 @@ export function AcceptInvitationForm({ token, email, role }: Props) {
     return (
       <SuccessPanel
         title="Esta invitación ya fue aceptada"
-        message="Tu cuenta ya está activa. Iniciá sesión normalmente desde el Studio."
+        message="Tu cuenta ya está activa. Inicia sesión normalmente desde el Studio."
         tone="success"
         ctaHref="/studio/login"
         ctaLabel="Iniciar sesión →"

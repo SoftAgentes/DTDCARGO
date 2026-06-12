@@ -1,0 +1,35 @@
+/**
+ * Config del gate legal AUT-04 (SDD-0054 §3.1 / §3.1-bis · movida acá por
+ * SDD-0067 para que /studio/legal pueda MOSTRAR el modo vigente).
+ *
+ * Vivía como const privada en `app/studio/(app)/facturacion/actions.ts`, pero
+ * un módulo `"use server"` solo puede exportar funciones async — por eso el
+ * flag vive acá (módulo puro) y Facturación lo importa. Cero cambio de
+ * comportamiento.
+ */
+
+/**
+ * ── FLAG · Gate legal AUT-04: advisory ⇄ bloqueo duro
+ *
+ * `false` (ADVISORY, modo actual): si un embarque DDP no tiene aceptación T&C
+ * vigente, el operador VE el aviso pero PUEDE emitir igual (queda
+ * `legal_ack: "override"` en la auditoría).
+ *
+ * `true` (BLOQUEO DURO): emitir una factura DDP sin aceptación vigente queda
+ * PROHIBIDO (la action no muta y no ofrece override; el create-and-emit cae a
+ * borrador).
+ *
+ * Se dejó en `false` al shipear Slice C: ese día NO había aceptaciones previas
+ * en prod (cero adopción) y un bloqueo duro inmediato habría congelado toda
+ * factura DDP en vuelo. Cambiar SOLO esta constante alcanza para el flip — el
+ * resto del gate ya está cableado, y el banner de /studio/legal refleja el modo
+ * automáticamente.
+ *
+ * FLIP A BLOQUEO DURO (founder, 2026-06-11): activado en ventana LIMPIA —
+ * verificado en prod 0 aceptaciones + 0 facturas DDP en borrador/en vuelo, así
+ * que no congela ninguna factura existente. Desde ahora, emitir una factura DDP
+ * exige que el cliente haya aceptado los T&C por el Portal (cumple el DoD del
+ * handoff: "imposible confirmar sin aceptación registrada"). Requiere que el
+ * flujo de aceptación del Portal esté operativo (magic-link / Auth Email).
+ */
+export const LEGAL_GATE_HARD_BLOCK = true;

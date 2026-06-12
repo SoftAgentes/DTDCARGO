@@ -63,7 +63,7 @@ export async function createOperarioAction(
   const role = parseStr(formData.get("role")) || "operario";
 
   const fieldErrors: Record<string, string> = {};
-  if (!warehouseId) fieldErrors.warehouse_id = "Elegí un warehouse";
+  if (!warehouseId) fieldErrors.warehouse_id = "Elige un warehouse";
   if (!displayName) fieldErrors.display_name = "Nombre requerido";
   if (!/^\d{4}$/.test(pin)) fieldErrors.pin = "PIN = 4 dígitos numéricos";
   if (!["operario", "supervisor"].includes(role))

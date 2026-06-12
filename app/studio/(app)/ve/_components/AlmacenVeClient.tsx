@@ -165,7 +165,7 @@ export function AlmacenVeClient({ rows, filters: _filters }: Props) {
           }
           description={
             hasActiveFilters
-              ? "Probá ajustar los filtros o limpiá la búsqueda."
+              ? "Prueba ajustar los filtros o limpia la búsqueda."
               : "Cuando un container arribe al puerto VE, aparece acá hasta su entrega final con POD."
           }
         />

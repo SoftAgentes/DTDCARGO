@@ -133,7 +133,7 @@ export function CityDrawer({
             style={{ marginTop: 6 }}
             disabled={mode === "edit"}
           >
-            <option value="">— Elegí estado —</option>
+            <option value="">— Elige estado —</option>
             {stateOptions.map((s) => (
               <option key={s.code} value={s.code}>
                 {s.name} ({s.code})
@@ -142,8 +142,8 @@ export function CityDrawer({
           </select>
           {mode === "edit" && (
             <p style={{ font: "500 10.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 6 }}>
-              El estado no se puede cambiar después de crear. Si necesitás mover una ciudad,
-              creá una nueva y desactivá la vieja.
+              El estado no se puede cambiar después de crear. Si necesitas mover una ciudad,
+              crea una nueva y desactiva la vieja.
             </p>
           )}
         </div>
@@ -160,7 +160,7 @@ export function CityDrawer({
             onChange={(e) => setMunicipio(e.target.value)}
             className="studio-input"
             list="ct-municipio-list"
-            placeholder={stateCode ? "Escribí o elegí del catálogo" : "Elegí estado primero"}
+            placeholder={stateCode ? "Escribe o elige del catálogo" : "Elige estado primero"}
             disabled={!stateCode}
             style={{ marginTop: 6 }}
           />
@@ -183,7 +183,7 @@ export function CityDrawer({
             onChange={(e) => setCityName(e.target.value)}
             className="studio-input"
             list="ct-city-list"
-            placeholder={municipio ? "Escribí o elegí del catálogo" : "Elegí municipio primero"}
+            placeholder={municipio ? "Escribe o elige del catálogo" : "Elige municipio primero"}
             disabled={!stateCode}
             style={{ marginTop: 6 }}
           />

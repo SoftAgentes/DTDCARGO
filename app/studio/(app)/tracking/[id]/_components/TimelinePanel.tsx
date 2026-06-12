@@ -104,7 +104,7 @@ export function TimelinePanel({
             style={{ marginBottom: 10 }}
           >
             <option value="" disabled>
-              Elegí un estado…
+              Elige un estado…
             </option>
             {applicableStatuses.map((s) => (
               <option key={s} value={s}>

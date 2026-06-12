@@ -37,8 +37,7 @@
   ],
   "exclude": [
     "node_modules",
-    "_handoff_preview",
-    "BANDBOOK V1",
-    "supabase/functions"
+    "supabase/functions",
+    "_handoff_preview"
   ]
 }

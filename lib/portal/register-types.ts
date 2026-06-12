@@ -3,8 +3,8 @@
  *
  * Validación MANUAL (patrón del proyecto — sin Zod): `validateRegisterInput()`
  * devuelve `{ input, fieldErrors }` igual que `validateClientInput`. El documento
- * (cédula persona / RIF empresa) es la CONTRASEÑA inicial → se normaliza para que
- * el cliente pueda entrar tipeando lo mismo que registró.
+ * (cédula persona / RIF empresa) se normaliza a su forma canónica para el dedup y
+ * la identidad básica. NO es la contraseña: la cuenta nace con clave aleatoria.
  *
  * REGISTRO EXPRESS (founder 2026-06-07): el alta pide SOLO lo mínimo para emitir el
  * MARKBOX y poder contactar al cliente — tipo · nombre · documento · email ·
@@ -14,7 +14,7 @@
  *   - `RegisterInput` / `validateRegisterInput`  → el alta express.
  *   - `AddressInput`  / `validateAddressInput`    → la dirección VE (perfil).
  * La identidad básica + el dedup se conservan: el número de documento es
- * obligatorio al alta (es la contraseña inicial y la clave del dedup).
+ * obligatorio al alta (clave del dedup e identidad básica).
  *
  * Reusa `RIF_REGEX` / `formatRif` de `lib/studio/client-types` para el RIF (el
  * portal está fuera de la frontera ESLint público↔ERP). La cédula tiene su propio
@@ -36,7 +36,7 @@ export type RegisterInput = {
   company: string | null;
   /**
    * Documento de identidad CANÓNICO: cédula "V-12345678" (persona) o RIF
-   * "J-12345678-9" (empresa). Es la contraseña inicial del cliente.
+   * "J-12345678-9" (empresa). Se usa para dedup + identidad, NO como contraseña.
    */
   document: string;
   email: string;
@@ -77,7 +77,7 @@ export function formatCedula(raw: string): string {
 }
 
 /**
- * Normaliza el documento a su forma canónica (la que se usa como contraseña).
+ * Normaliza el documento a su forma canónica (dedup + identidad).
  * Persona → `formatCedula`, empresa → `formatRif`. Devuelve null si no matchea
  * el formato esperado para el tipo.
  */
@@ -143,19 +143,19 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
   const isCompany = kind === "empresa";
 
   const name = partial.name?.trim() ?? "";
-  if (!name) errors.name = "Indicá el nombre.";
+  if (!name) errors.name = "Indica el nombre.";
   else if (name.length > 200) errors.name = "El nombre es demasiado largo (máx 200).";
 
   let company: string | null = null;
   if (isCompany) {
     company = partial.company?.trim() || null;
-    if (!company) errors.company = "Indicá la razón social.";
+    if (!company) errors.company = "Indica la razón social.";
   }
 
   const documentRaw = partial.document?.trim() ?? "";
   const document = documentRaw ? normalizeDocument(kind, documentRaw) : null;
   if (!documentRaw) {
-    errors.document = isCompany ? "Indicá el RIF." : "Indicá la cédula.";
+    errors.document = isCompany ? "Indica el RIF." : "Indica la cédula.";
   } else if (!document) {
     errors.document = isCompany
       ? "RIF inválido. Formato: J-12345678-9."
@@ -163,11 +163,11 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
   }
 
   const email = partial.email?.trim().toLowerCase() || "";
-  if (!email) errors.email = "Indicá el email.";
+  if (!email) errors.email = "Indica el email.";
   else if (!EMAIL_REGEX.test(email)) errors.email = "Email inválido.";
 
   const whatsapp = partial.whatsapp?.trim() || "";
-  if (!whatsapp) errors.whatsapp = "Indicá tu WhatsApp.";
+  if (!whatsapp) errors.whatsapp = "Indica tu WhatsApp.";
 
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };
@@ -198,17 +198,17 @@ export function validateAddressInput(partial: Partial<AddressInput>): {
   const errors: ProfileActionState["fieldErrors"] = {};
 
   const state = partial.state?.trim() || "";
-  if (!state) errors.state = "Elegí el estado.";
+  if (!state) errors.state = "Elige el estado.";
   const municipio = partial.municipio?.trim() || "";
-  if (!municipio) errors.municipio = "Elegí el municipio.";
+  if (!municipio) errors.municipio = "Elige el municipio.";
   const city = partial.city?.trim() || "";
-  if (!city) errors.city = "Elegí la ciudad.";
+  if (!city) errors.city = "Elige la ciudad.";
   const postalCode = partial.postalCode?.trim() || "";
-  if (!postalCode) errors.postalCode = "Indicá el código postal.";
+  if (!postalCode) errors.postalCode = "Indica el código postal.";
   const barrio = partial.barrio?.trim() || "";
-  if (!barrio) errors.barrio = "Indicá el barrio / urbanización.";
+  if (!barrio) errors.barrio = "Indica el barrio / urbanización.";
   const address = partial.address?.trim() || "";
-  if (!address) errors.address = "Indicá la dirección detallada.";
+  if (!address) errors.address = "Indica la dirección detallada.";
 
   if (Object.keys(errors).length > 0) {
     return { fieldErrors: errors };

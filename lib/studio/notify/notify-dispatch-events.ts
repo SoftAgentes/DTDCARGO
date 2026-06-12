@@ -60,7 +60,7 @@ export async function notifyCamioneroOdLista(
 
     await enqueueOperarioPush(admin, od.tenant_id, op.id, {
       title: "Ruta lista para salir",
-      body: `${od.order_code}${routeName ? ` · ${routeName}` : ""} está cargada. Tocá para ver la ruta.`,
+      body: `${od.order_code}${routeName ? ` · ${routeName}` : ""} está cargada. Toca para ver la ruta.`,
       url: "/m/ve/camionero",
       tag: `od-lista-${od.id}`,
     });

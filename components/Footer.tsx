@@ -202,9 +202,6 @@ export function Footer() {
             <Link href="/faq" className="hover:text-white transition-colors">
               Preguntas frecuentes
             </Link>
-            <Link href="/brand" className="hover:text-white transition-colors">
-              Kit de marca
-            </Link>
             <span>{CONTACT.web} · Made in Yiwu &amp; Valencia</span>
           </div>
         </div>

@@ -29,7 +29,7 @@ confidencialidad: interno
 1. ¿Necesita spec? Sí (regla: no hay código sin spec). Copiá `docs/specs/_template/` → `docs/specs/NNNN-slug/`.
 2. ¿Es del Studio? `app/studio/(app)/<modulo>/`: `page.tsx` + `actions.ts` (`"use server"`) + `_components/`.
    Queries → `lib/studio/<entidad>-queries.ts` · tipos → `lib/studio/<entidad>-types.ts`.
-3. ¿Visual? Mirá el handoff en `docs/design/studio/v1.7-claude-design/` antes de inventar.
+3. ¿Visual? Mira el handoff en `docs/design/studio/_norte/` antes de inventar.
 4. ¿Dónde va cada cosa? → [`docs/README.md`](../README.md) (tabla "dónde va X") + `/CLAUDE.md` (árbol de decisión de código).
 
 ## 3. Mapa "qué módulo es qué SDD"

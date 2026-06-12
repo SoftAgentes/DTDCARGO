@@ -19,7 +19,7 @@ export function createVerifikProvider(): IdentityProvider {
   return {
     async lookup(): Promise<{ registryName: string } | null> {
       throw new Error(
-        "IDENTITY: Verifik provider no configurado (stub) — usá IDENTITY_CNE_PROVIDER=cedulave o implementá el swap pago.",
+        "IDENTITY: Verifik provider no configurado (stub) — usa IDENTITY_CNE_PROVIDER=cedulave o implementa el swap pago.",
       );
     },
   };

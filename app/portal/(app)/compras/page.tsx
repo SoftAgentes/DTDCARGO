@@ -8,6 +8,7 @@ import {
 } from "@/lib/studio/prealertas/queries";
 import { ArrowIcon } from "@/components/Icon";
 import { PrealertaStatusBadge } from "../../_components/PrealertaStatusBadge";
+import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
 
 export const metadata: Metadata = { title: "Mis compras" };
 
@@ -45,12 +46,7 @@ export default async function PortalPurchasesPage() {
             ves el estado de todas y vuelves a generar sus etiquetas.
           </p>
         </div>
-        <Link
-          href="/portal/proveedores"
-          className="btn btn-primary inline-flex items-center gap-2 flex-shrink-0"
-        >
-          Nueva compra <ArrowIcon size={15} />
-        </Link>
+        <NewPurchaseButton href="/portal/proveedores" />
       </div>
 
       {prealertas.length === 0 ? (

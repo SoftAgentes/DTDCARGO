@@ -58,7 +58,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Total</td><td style="padding:6px 12px;color:#7F0F1A;font-weight:bold;">USD {{total_usd}}</td></tr>
       </table>
       <p>El estimado es válido por <strong>{{validity_days}}</strong> días.</p>
-      <p>Cualquier ajuste, contestá este correo y lo coordinamos.</p>
+      <p>Cualquier ajuste, contesta este correo y lo coordinamos.</p>
     `),
   },
   {
@@ -70,11 +70,11 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
       <p>Recibimos tu confirmación del estimado <strong>{{quote_code}}</strong>. Vamos a abrir el embarque y te enviamos el código de seguimiento en las próximas <strong>24 horas hábiles</strong>.</p>
-      <p>Mientras tanto, podés ir preparando:</p>
+      <p>Mientras tanto, puedes ir preparando:</p>
       <ul style="font:14px Archivo,sans-serif;color:#0F1E3D;">
         <li>Packing list final</li>
         <li>Factura comercial del proveedor en CN</li>
-        <li>HS codes de los productos (si los tenés)</li>
+        <li>HS codes de los productos (si los tienes)</li>
       </ul>
       <p>Cualquier consulta a este mismo correo o por WhatsApp.</p>
     `),
@@ -107,8 +107,8 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
       <p>Hola {{customer_name}},</p>
       <p>Te recordamos que la factura <strong>{{invoice_code}}</strong> por <strong>USD {{total_usd}}</strong> venció el <strong>{{due_date}}</strong>.</p>
       <p>Para evitar el corte de servicios y la suspensión de embarques en curso, te pedimos regularizar el pago lo antes posible.</p>
-      <p>Si ya pagaste, mandanos el comprobante a este correo y lo concilamos.</p>
-      <p>Cualquier consulta o coordinación de plan de pagos, contactanos.</p>
+      <p>Si ya pagaste, mándanos el comprobante a este correo y lo conciliamos.</p>
+      <p>Cualquier consulta o coordinación de plan de pagos, contáctanos.</p>
     `),
   },
   {
@@ -119,7 +119,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     subject: "Embarque {{shipment_code}} creado — seguimiento disponible",
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
-      <p>Abrimos el embarque <strong>{{shipment_code}}</strong>. Podés seguirlo en cualquier momento desde:</p>
+      <p>Abrimos el embarque <strong>{{shipment_code}}</strong>. Puedes seguirlo en cualquier momento desde:</p>
       <p style="margin:20px 0;"><a href="https://dtdcargo.com/track/{{shipment_code}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Ver tracking → {{shipment_code}}</a></p>
       <table style="border-collapse:collapse;font:14px Archivo,sans-serif;margin:16px 0;">
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Ruta</td><td style="padding:6px 12px;color:#0F1E3D;">{{origin}} → {{destination}}</td></tr>
@@ -155,10 +155,10 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     subject: "Bienvenido a DTD Cargo, {{customer_name}}",
     body_html: htmlBlock(`
       <p>Hola {{customer_name}},</p>
-      <p>Gracias por elegirnos para tu logística China → Venezuela. Tu cuenta quedó creada con MARKBOX <strong>{{markbox}}</strong> — usá este código en cualquier comunicación con nosotros.</p>
+      <p>Gracias por elegirnos para tu logística China → Venezuela. Tu cuenta quedó creada con Shipping Mark <strong>{{markbox}}</strong> — usa este código en cualquier comunicación con nosotros.</p>
       <p>Algunos atajos útiles:</p>
       <ul style="font:14px Archivo,sans-serif;color:#0F1E3D;">
-        <li><strong>Estimar:</strong> respondé este correo o entrá a dtdcargo.com/estimacion</li>
+        <li><strong>Estimar:</strong> responde este correo o entra a dtdcargo.com/estimacion</li>
         <li><strong>Tracking:</strong> dtdcargo.com/track + tu código de envío</li>
         <li><strong>WhatsApp:</strong> {{whatsapp_number}}</li>
       </ul>
@@ -181,7 +181,7 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Expira</td><td style="padding:6px 12px;color:#0F1E3D;font-family:'JetBrains Mono',monospace;">{{expires_at}}</td></tr>
         <tr><td style="padding:6px 12px;color:#6B6B6B;">Aprobaciones requeridas</td><td style="padding:6px 12px;color:#0F1E3D;">{{approvals_required}}</td></tr>
       </table>
-      <p><strong>Aprobá solo si confirmaste por canal externo (WhatsApp, llamada) que el pedido es legítimo.</strong> Un recovery aprobado permite resetear la master password del No-Olvidar.</p>
+      <p><strong>Aprueba solo si confirmaste por canal externo (WhatsApp, llamada) que el pedido es legítimo.</strong> Un recovery aprobado permite resetear la master password del No-Olvidar.</p>
       <p style="margin:20px 0;"><a href="{{review_url}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Revisar en el No-Olvidar →</a></p>
     `),
   },
@@ -194,11 +194,11 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
     body_html: htmlBlock(`
       <p>Hola,</p>
       <p><strong>{{inviter_name}}</strong> te invitó a unirte al equipo de <strong>{{tenant_name}}</strong> en DTD Studio con el rol de <strong>{{role_label}}</strong>.</p>
-      <p>Aceptá tu invitación y creá tu cuenta:</p>
+      <p>Acepta tu invitación y crea tu cuenta:</p>
       <p style="margin:20px 0;"><a href="{{invitation_link}}" style="display:inline-block;padding:10px 18px;background:#7F0F1A;color:#fff;text-decoration:none;font:600 14px Archivo,sans-serif;border-radius:6px;">Aceptar invitación →</a></p>
-      <p style="color:#6B6B6B;font-size:13px;">El link expira en <strong>{{expires_in_days}}</strong> días. Si no esperabas esta invitación, ignorala — no se crea ninguna cuenta hasta que la aceptés.</p>
+      <p style="color:#6B6B6B;font-size:13px;">El link expira en <strong>{{expires_in_days}}</strong> días. Si no esperabas esta invitación, ignórala — no se crea ninguna cuenta hasta que la aceptes.</p>
       <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0;">
-      <p style="color:#6B6B6B;font-size:12px;margin:0;">¿Problemas con el link? Copialo a tu navegador:<br><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7F0F1A;word-break:break-all;">{{invitation_link}}</code></p>
+      <p style="color:#6B6B6B;font-size:12px;margin:0;">¿Problemas con el link? Cópialo a tu navegador:<br><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7F0F1A;word-break:break-all;">{{invitation_link}}</code></p>
     `),
   },
 ];

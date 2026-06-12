@@ -155,7 +155,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
     if (result.fieldErrors) {
       const firstErr =
         Object.values(result.fieldErrors).find((v) => !!v) ??
-        "Revisá los campos.";
+        "Revisa los campos.";
       setCreateError(firstErr);
       return { error: firstErr };
     }
@@ -181,7 +181,7 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
       router.push(`/studio/cotizador/${code}`);
       onClose();
     } else if (postAction === "reset") {
-      toast.success(`Estimado ${code} creado · empezá el siguiente`, {
+      toast.success(`Estimado ${code} creado · empieza el siguiente`, {
         link: {
           href: `/studio/cotizador?highlight=${encodeURIComponent(code)}&hl-tone=warm`,
           label: "Ver en listado",
@@ -985,7 +985,7 @@ function RateSuggestionLine({
           margin: "6px 0 0",
         }}
       >
-        Sin tarifa registrada — definí la tarifa manualmente.
+        Sin tarifa registrada — define la tarifa manualmente.
       </p>
     );
   }

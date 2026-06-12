@@ -138,7 +138,7 @@ type Derived = { clientUrl: string; ubicacion: string; contacto: string };
 
 function buildHtml(p: NewClientNotifyPayload, d: Derived): string {
   const rows: Array<[string, string]> = [
-    ["MARKBOX", p.markbox],
+    ["Shipping Mark", p.markbox],
     ["Nombre", d.contacto],
     ["Documento", p.document],
     ["Email", p.email],
@@ -154,7 +154,7 @@ function buildHtml(p: NewClientNotifyPayload, d: Derived): string {
     .join("");
   return `<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
 <p style="font-size:16px;margin:0 0 4px"><b>Nuevo cliente registrado</b></p>
-<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">Se dio de alta solo desde el sitio. Revisalo y verificá su identidad.</p>
+<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">Se dio de alta solo desde el sitio. Revísalo y verifica su identidad.</p>
 <table style="border-collapse:collapse;margin:0 0 20px">${trs}</table>
 <p style="margin:0 0 12px"><a href="${d.clientUrl}" style="color:#7F0F1A;text-decoration:underline;font-weight:600">Abrir en el Studio &rarr;</a></p>
 <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">

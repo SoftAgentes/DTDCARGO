@@ -4,7 +4,7 @@ title: "Estimado → Orden de venta (modelo QuickBooks): retira 'cotización', c
 status: in-progress
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
 created: 2026-06-07
-updated: 2026-06-07
+updated: 2026-06-09
 supersedes: null
 superseded_by: null
 related: ["0001", "0002", "0011", "0021", "0040", "0041", "0044", "0042", "0046", "0057", "0058", "0010", "0055"]
@@ -287,6 +287,22 @@ Sin mockup del Norte aprobado para estas pantallas todavía. UI reusa primitivas
 **Gate:** `node scripts/verify.mjs` 🟢 (incl. rsc-boundary + tests movidos). `main` intacto.
 
 **Diferido (analizado · NO en esta pista) — Sync Norte v2.4 · Registro:** el form vivo está detrás del Norte `Registro Cliente.html` v2.4: (1) **foto de la fachada** (paso dirección), (2) **"¿Ya tenés una compra?"** = prealerta opcional al firmar + lógica anti "caja huérfana", (3) "Listo" enriquecido (copiar para proveedor, guía código+sticker, CTA prealerta). Va por handoff-first + ui-ux, coherente con el modelo OV↔prealerta (Fase D).
+
+### Fase B — Portal · "Estimados" del cliente (read-only) (2026-06-09 · sesión con founder, worktree `chore/retoques`)
+
+**Por qué:** el cliente generaba estimados en la web pero no los veía en su portal. Se suma una **5ª↔ sección read-only** "Estimados" al portal: TODOS los estimados ligados a su MARKBOX (los `source='web'` ya vinculados por código/datos + los que le armó un asesor `source='studio'`). Cierra el loop "estimé → me registré → veo mi estimado".
+
+**Archivos:**
+- **Migración `0117_quotes_portal_rls.sql`** (NUEVA, **NO aplicada a prod**): policy `quotes portal self read` (SELECT por `client_markbox = get_portal_client_markbox()`) — espejo de `invoices portal self read` (0085). Antes el cliente NO podía leer `quotes` (solo existía la RLS del equipo). Sin DDL sobre la tabla.
+- `lib/portal/portal-types.ts`: `PortalEstimateRow` + label/tono **de cara al cliente** (`portalEstimateStatusLabel` mapea `draft`→"En revisión"; masculino: Enviado/Aceptado/Rechazado/Vencido).
+- `lib/portal/portal-queries.ts`: `listMyEstimates` (filtra EXPLÍCITO por markbox, defensa en profundidad como el resto del portal).
+- `app/portal/(app)/estimados/page.tsx` (NUEVO) + `app/portal/_components/EstimateRow.tsx` (NUEVO): lista read-only + CTA "Pedir que lo confirmen" (WhatsApp con `EST-XXXX`; la conversión la maneja el asesor).
+- `app/portal/_components/PortalNav.tsx`: + ítem "Estimados" (tras "Mis envíos"); nav "Compras" queda limpio (decisión founder).
+- `lib/portal/__tests__/estimates.test.ts` (NUEVO, 7 it): mapeo + aislamiento sin markbox + labels.
+
+**Decisiones (founder):** mostrar **todos** sus estimados (web + studio); **read-only + CTA al asesor**. **Sync Norte pendiente:** el Norte (`_norte/portal/app.jsx`) aún no tiene pantalla "Estimados" en el portal → Cloud Design la espeja luego.
+
+**Review:** `ui-ux-designer` "ship it" (aplicado: focus ring del CTA compacto, a11y). **Gate `node scripts/verify.mjs` VERDE**. Migración `0117` **NO** aplicada a prod. Sin push.
 
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->

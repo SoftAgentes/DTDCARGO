@@ -315,7 +315,7 @@ export function validateCreateBugInput(
     !category ||
     !["error", "improve", "suggest", "question"].includes(category)
   ) {
-    errors.category = "Elegí una categoría válida.";
+    errors.category = "Elige una categoría válida.";
   }
 
   const severity = input.severity ?? null;

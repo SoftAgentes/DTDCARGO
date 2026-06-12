@@ -48,7 +48,7 @@ export function CNHolidayWarning() {
           </strong>{" "}
           (16-24 feb) y{" "}
           <strong style={{ color: "var(--ink)" }}>Golden Week</strong>{" "}
-          (1-7 oct) paralizan Yiwu y Shenzhen. Planificá zarpes con{" "}
+          (1-7 oct) paralizan Yiwu y Shenzhen. Planifica zarpes con{" "}
           <strong style={{ color: "var(--ink)" }}>
             3 semanas de anticipación
           </strong>

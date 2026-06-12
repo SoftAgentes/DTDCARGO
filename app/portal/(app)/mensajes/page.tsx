@@ -47,7 +47,7 @@ export default async function PortalMensajesPage() {
       <div className="mt-7 card-shadow bg-white border border-grey-200 rounded-[18px] p-5 sm:p-7">
         {thread.length === 0 ? (
           <p className="text-[13.5px] text-grey-500 leading-[1.5] py-4 text-center">
-            Todavía no hay mensajes. Escribinos abajo y un asesor te responde.
+            Todavía no hay mensajes. Escríbenos abajo y un asesor te responde.
           </p>
         ) : (
           <div className="flex flex-col gap-3">
@@ -68,7 +68,7 @@ export default async function PortalMensajesPage() {
                     {m.body}
                   </div>
                   <span className="text-[11px] text-grey-500 px-1">
-                    {out ? `${m.authorName ?? "DTD Cargo"} · ` : "Vos · "}
+                    {out ? `${m.authorName ?? "DTD Cargo"} · ` : "Tú · "}
                     {fmtDate(m.sentAt)}
                   </span>
                 </div>

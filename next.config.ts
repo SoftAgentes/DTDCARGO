@@ -48,11 +48,10 @@ const cspHeader = [
 ].join("; ");
 
 /**
- * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book (material de marca
- * interno). El v3.2 embebe sus imágenes en base64 (`window.__DTD_ASSETS`) pero
- * referencia `erp/tokens.css` (servido en `public/marca/erp/`) y carga las fuentes
- * Archivo / Nunito Sans desde Google Fonts (CDN) — por eso `style-src`/`font-src`
- * permiten `fonts.googleapis`/`fonts.gstatic`. `img`/`connect` con `data:`/`blob:`
+ * CSP permisiva ACOTADA a `/marca/*` — sirve el Brand Book vigente (material de
+ * marca interno). El standalone embebe sus assets en base64 y carga las fuentes
+ * desde Google Fonts (CDN) — por eso `style-src`/`font-src` permiten
+ * `fonts.googleapis`/`fonts.gstatic`. `img`/`connect` con `data:`/`blob:`
  * + inline/eval para los assets embebidos. El resto del sitio mantiene la CSP estricta.
  */
 const brandBookCspHeader = [
@@ -121,6 +120,17 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // El route handler de descargas del hub de marca (`/interno/marca/d/[bundle]`)
+  // arma zips leyendo archivos de disco; en prod el tracer no los incluye solo —
+  // hay que declararlos para que viajen en el bundle de la función.
+  outputFileTracingIncludes: {
+    "/interno/marca/d/[bundle]": [
+      "./public/brand/**",
+      "./public/marca/brand-book-v3.7.html",
+      "./public/marca/herramientas/**",
+      "./docs/marketing/whatsapp-business.md",
+    ],
+  },
   async headers() {
     // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y
     // geolocalización (GPS camionero · GpsBlock) en same-origin. El resto del
@@ -133,8 +143,8 @@ const nextConfig: NextConfig = {
     const baseNoPP = securityHeaders.filter(
       (h) => h.key !== "Permissions-Policy",
     );
-    // `/marca/*` sirve el Brand Book v3.1 (HTML autocontenido, material de marca
-    // interno): CSP permisiva + framing same-origin (lo enmarca el visor) +
+    // `/marca/*` sirve el Brand Book vigente (HTML autocontenido, material de
+    // marca interno): CSP permisiva + framing same-origin (lo enmarca el visor) +
     // noindex, TODO acotado a este prefijo. El catch-all de abajo lo excluye
     // (negative lookahead) para que no le pise estos headers con los estrictos.
     const marcaHeaders = [
@@ -196,6 +206,17 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // El kit de marca dejó de ser público: la marca ahora vive en la zona
+      // interna gateada `/interno/marca` (login del ERP). El `/brand` viejo
+      // (indexado) redirige al home para no dejar un 404 a quien lo tenga
+      // guardado. Los PNG estáticos en `public/brand/*` siguen sirviéndose
+      // (el sitio los usa en nav/footer/og/favicon) — el redirect es exacto a
+      // `/brand`, no afecta `/brand/<archivo>.png`.
+      {
+        source: "/brand",
+        destination: "/",
+        permanent: true,
+      },
       // SDD-0061 Fase A: `/cotizar` se renombró a `/estimacion` (vocabulario QB:
       // "cotización" se retira). 301 permanente para no perder el SEO ni los
       // links externos al URL viejo.

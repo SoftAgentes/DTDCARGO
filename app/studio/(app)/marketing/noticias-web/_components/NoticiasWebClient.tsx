@@ -271,7 +271,7 @@ export function NoticiasWebClient() {
       openManualModal({
         kind: "suggest-keywords",
         title: "Sugerir keywords SEO",
-        subtitle: "Pegá el JSON que devuelva claude.ai con focus + secundarias + pain points",
+        subtitle: "Pega el JSON que devuelva claude.ai con focus + secundarias + pain points",
         prompt,
         inputHint:
           'Esperamos {"focus_keyword": "...", "secondary_keywords": [...], "pain_points_addressed": [...]}',
@@ -290,7 +290,7 @@ export function NoticiasWebClient() {
             {
               kind: "suggest-keywords",
               title: "Sugerir keywords (failover Manual)",
-              subtitle: "La API falló — completalo en Manual para no perder el flow",
+              subtitle: "La API falló — complétalo en Manual para no perder el flow",
               prompt,
               inputHint:
                 'Esperamos {"focus_keyword": "...", "secondary_keywords": [...], "pain_points_addressed": [...]}',
@@ -338,7 +338,7 @@ export function NoticiasWebClient() {
         kind: "headlines",
         title: "Generar 5 titulares",
         subtitle:
-          'Pegá el JSON {"headlines": ["...", "..."]} que devuelva claude.ai',
+          'Pega el JSON {"headlines": ["...", "..."]} que devuelva claude.ai',
         prompt,
         inputHint: 'Esperamos {"headlines": ["...", "...", "...", "...", "..."]}',
         placeholder: '{"headlines": ["Tarifas · ...", "Tarifas · ..."]}',
@@ -360,7 +360,7 @@ export function NoticiasWebClient() {
           {
             kind: "headlines",
             title: "Generar 5 titulares (failover Manual)",
-            subtitle: "La API falló — usá Manual para no perder el momentum",
+            subtitle: "La API falló — usa Manual para no perder el momentum",
             prompt,
             inputHint: 'Esperamos {"headlines": [...]}',
             placeholder: '{"headlines": [...]}',
@@ -393,7 +393,7 @@ export function NoticiasWebClient() {
         kind: "outlines",
         title: "Generar 3 arquitecturas alternativas",
         subtitle:
-          'Pegá el JSON {"outlines": [...]} con 3 outlines (cada uno: thesis + sections + closing_type)',
+          'Pega el JSON {"outlines": [...]} con 3 outlines (cada uno: thesis + sections + closing_type)',
         prompt,
         inputHint:
           'Esperamos {"outlines": [{"thesis":"...","sections":[{"title":"...","desc":"..."}],"closing_type":"conclusion-analitica"}]}',
@@ -411,7 +411,7 @@ export function NoticiasWebClient() {
           {
             kind: "outlines",
             title: "Generar 3 arquitecturas (failover Manual)",
-            subtitle: "La API falló — completá en Manual y seguimos",
+            subtitle: "La API falló — completa en Manual y seguimos",
             prompt,
             inputHint: 'Esperamos {"outlines": [...]}',
             placeholder: '{"outlines": [...]}',
@@ -434,7 +434,7 @@ export function NoticiasWebClient() {
     const selectedOutline =
       selectedOutlineIdx >= 0 ? outlines[selectedOutlineIdx] : null;
     if (!selectedOutline || selectedOutline.sections.length === 0) {
-      setError("Elegí una arquitectura antes de generar el artículo");
+      setError("Elige una arquitectura antes de generar el artículo");
       return;
     }
     const selectedBullets = selectedOutline.sections.map((s) => ({
@@ -459,11 +459,11 @@ export function NoticiasWebClient() {
       openManualModal({
         kind: "article",
         title: "Generar artículo Markdown",
-        subtitle: "Pegá el Markdown puro (sin fences ```) que devuelva claude.ai",
+        subtitle: "Pega el Markdown puro (sin fences ```) que devuelva claude.ai",
         prompt,
         inputHint:
           "Esperamos Markdown directo — empezando con párrafo de intro (sin H1), luego ## H2 por sección.",
-        placeholder: "Pegá acá el artículo Markdown completo…",
+        placeholder: "Pega acá el artículo Markdown completo…",
         submitLabel: "Cargar artículo",
       });
       return;
@@ -483,10 +483,10 @@ export function NoticiasWebClient() {
           {
             kind: "article",
             title: "Generar artículo (failover Manual)",
-            subtitle: "La API falló — pegá el Markdown manual y seguimos",
+            subtitle: "La API falló — pega el Markdown manual y seguimos",
             prompt,
             inputHint: "Esperamos Markdown directo, sin fences.",
-            placeholder: "Pegá acá el artículo Markdown…",
+            placeholder: "Pega acá el artículo Markdown…",
             submitLabel: "Cargar artículo",
           },
           res.error,
@@ -580,7 +580,7 @@ export function NoticiasWebClient() {
           const markdown = cleanMarkdown(raw);
           if (!markdown || markdown.length < 100) {
             throw new Error(
-              "Markdown muy corto. Pegá el artículo completo (800-1200 palabras).",
+              "Markdown muy corto. Pega el artículo completo (800-1200 palabras).",
             );
           }
           setArticle(markdown);

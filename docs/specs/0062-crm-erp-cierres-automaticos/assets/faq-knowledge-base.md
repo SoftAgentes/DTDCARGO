@@ -213,12 +213,12 @@ Y entre nosotros... muchas veces andamos casi 24 horas pegados al teléfono, as�
 **Respuesta (aprobada · captura email):** ¡Hola! Para que tus compras de **Alibaba / 1688 / Taobao** lleguen a nuestra bodega en China, pon ESTA dirección como destino del pedido, con **tu código Shipping Mark (唛头) en el nombre del destinatario** (así sabemos que la caja es tuya):
 收货人 / Nombre: DTD Cargo - [tu Shipping Mark]  (ej. DTD-1014)
 电话 / Teléfono: +86 180 0689 1419
-地址 / Dirección: 浙江省义乌市义乌港二期直通仓2栋2号货7-货11
+地址 / Dirección: 浙江省义乌市义乌港二期直通仓2栋2号 货7-货11
 邮编 / Código postal: 322000
-仓库联系人 / Contacto de bodega: 小孙
+仓库联系人 / Contacto de bodega: 林冠 (Lin Guan)
 ¿Aún no tienes tu Shipping Mark? Regístrate gratis en dtdcargo.com/registro (te lo dan al instante) y déjame tu correo. ¿Te paso el enlace?
 
-> *Nota interna: dirección de recepción REAL para Alibaba/1688/Taobao (provista por founder 2026-06-08). El nombre del destinatario lleva el MARKBOX del cliente → necesita registrarse. ⚠️ Revisar coherencia con #4 "Cómo enviar a nuestra bodega" (hoy defiere la dirección completa al registro); el founder decidió darla abierta para el flujo Alibaba.*
+> *Nota interna: dirección de recepción REAL para Alibaba/1688/Taobao (provista por founder 2026-06-08). El nombre del destinatario lleva el Shipping Mark del cliente → necesita registrarse. ⚠️ Revisar coherencia con #4 "Cómo enviar a nuestra bodega" (hoy defiere la dirección completa al registro); el founder decidió darla abierta para el flujo Alibaba.*
 
 ---
 

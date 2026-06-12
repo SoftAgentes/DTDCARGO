@@ -262,7 +262,7 @@ export function Step1Headlines({
       {/* Lista de titulares · full-width debajo del 2-col */}
       {hasResults && (
         <div className="flex flex-col gap-3 mt-2">
-          <span className="eyebrow">5 alternativas — editá y elegí una</span>
+          <span className="eyebrow">5 alternativas — edita y elige una</span>
           {headlines.map((h, idx) => (
             <div
               key={idx}

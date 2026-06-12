@@ -374,7 +374,7 @@ export function evaluateCapacity(
     if (overKg) parts.push(`peso al ${stats.kgPct.toFixed(0)}%`);
     message = `El contenedor queda sobre-capacidad (${parts.join(
       " · ",
-    )}). Se asignó igual; reacomodá si hace falta.`;
+    )}). Se asignó igual; reacomoda si hace falta.`;
   }
   return { over, cbmPct: stats.cbmPct, kgPct: stats.kgPct, message };
 }
@@ -451,13 +451,13 @@ export function validateSailingInput(input: Partial<SailingInput>): {
   const errors: SailingActionState["fieldErrors"] = {};
 
   const vessel = (input.vessel ?? "").trim();
-  if (!vessel) errors.vessel = "Indicá el buque (vessel).";
+  if (!vessel) errors.vessel = "Indica el buque (vessel).";
 
   const pol = (input.pol ?? "").trim().toUpperCase();
-  if (!pol) errors.pol = "Indicá el puerto de carga (POL).";
+  if (!pol) errors.pol = "Indica el puerto de carga (POL).";
 
   const pod = (input.pod ?? "").trim().toUpperCase();
-  if (!pod) errors.pod = "Indicá el puerto de descarga (POD).";
+  if (!pod) errors.pod = "Indica el puerto de descarga (POD).";
 
   if (!dateOk(input.etd)) errors.etd = "Fecha ETD inválida (YYYY-MM-DD).";
   if (!dateOk(input.eta)) errors.eta = "Fecha ETA inválida (YYYY-MM-DD).";
@@ -601,7 +601,7 @@ export function validateConsolidationInput(
 
   const containerTypeRaw = (input.containerType ?? "").trim();
   if (!containerTypeRaw) {
-    errors.containerType = "Elegí el tipo de contenedor.";
+    errors.containerType = "Elige el tipo de contenedor.";
   } else if (!isContainerTypeCode(containerTypeRaw)) {
     errors.containerType = "Tipo de contenedor inválido (20GP/40GP/40HC).";
   }

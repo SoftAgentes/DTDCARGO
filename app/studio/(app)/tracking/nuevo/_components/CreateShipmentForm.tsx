@@ -210,7 +210,7 @@ export function CreateShipmentForm({
             {!trimmedClient && existingClients.length > 0 && (
               <div style={hintStyle}>
                 {existingClients.length} cliente{existingClients.length === 1 ? "" : "s"} ya usado{existingClients.length === 1 ? "" : "s"}.
-                Tipeá para autocompletar.
+                Escribe para autocompletar.
               </div>
             )}
           </div>

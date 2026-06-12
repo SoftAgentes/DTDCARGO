@@ -24,6 +24,11 @@
 - **"DoorTuDoor"** = sello de herencia **y** nombre del ERP/Studio interno (`app/studio`).
 - La **razón social y el RIF van SOLO en el schema** (`legalName`/`taxID`) — **nunca en texto
   visible** del sitio.
+- **RIF ÚNICO (decisión founder 2026-06-10): `J-50648869-8`.** Cualquier otro RIF de DTD que
+  aparezca en material de marca/diseño/legal (`J-410322887`, `J-40558712-0`, `J-40551122-3`,
+  `J-50220185-8` circulaban en el Norte) es **incorrecto → reemplazar** por el canónico. En
+  material impreso/legal (factura, tarjeta, membrete, T&C) el RIF **sí** va visible — la regla
+  "solo en schema" aplica al **sitio público** (SEO). Los RIF mock de clientes demo no se tocan.
 
 ## NAP canónico (Name–Address–Phone)
 

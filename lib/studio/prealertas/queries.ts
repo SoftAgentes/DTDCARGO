@@ -13,6 +13,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   type Prealerta,
+  type PrealertaDocType,
+  type PrealertaDocument,
   type PrealertaStatus,
   type Supplier,
   PREALERTA_STATUSES,
@@ -34,7 +36,7 @@ const SUPPLIER_COLUMNS =
   "id, tenant_id, client_markbox, supplier_seq, name, city, wechat, contact, notes, deleted_at, created_at, updated_at";
 
 const PREALERTA_COLUMNS =
-  "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, boxes, est_value_usd, status, received_at, shipment_id, deleted_at, created_at, updated_at";
+  "id, tenant_id, client_markbox, supplier_id, code, description, tracking_cn, boxes, est_value_usd, status, received_at, shipment_id, share_token, deleted_at, created_at, updated_at";
 
 function coerceSupplier(r: Record<string, unknown>): Supplier {
   return {
@@ -67,6 +69,7 @@ function coercePrealerta(r: Record<string, unknown>): Prealerta {
     status: (r.status as PrealertaStatus) ?? "anunciada",
     received_at: (r.received_at as string | null) ?? null,
     shipment_id: (r.shipment_id as string | null) ?? null,
+    share_token: (r.share_token as string | null) ?? null,
     deleted_at: (r.deleted_at as string | null) ?? null,
     created_at: String(r.created_at),
     updated_at: String(r.updated_at),
@@ -143,6 +146,127 @@ export async function getPrealertaByCode(
 
   if (error || !data) return null;
   return coercePrealerta(data as Record<string, unknown>);
+}
+
+// ── Link público del proveedor (share_token · migr 0119) ────────
+
+/** Datos que ve el proveedor en la página pública /p/{token} (sin login). */
+export type ProviderShareData = {
+  code: string;
+  description: string;
+  boxes: number;
+  markbox: string;
+  clientName: string | null;
+  supplierName: string | null;
+  supplierWechat: string | null;
+};
+
+/**
+ * Resuelve la compra por `share_token` para la página pública del proveedor.
+ * SIEMPRE se llama con admin client (service_role) desde el route público — el
+ * visitante es anónimo. Token inválido / inexistente → null → notFound(). Devuelve
+ * solo lo que el proveedor necesita (código, descripción, cajas, shipping mark,
+ * nombres) — nada sensible. Defensivo ante token mal formado (uuid).
+ */
+export async function getProviderShareByToken(
+  supabase: SupabaseClient,
+  token: string,
+): Promise<ProviderShareData | null> {
+  try {
+    const { data: p, error } = await supabase
+      .from("prealertas")
+      .select("code, description, boxes, client_markbox, supplier_id")
+      .eq("share_token", token)
+      .is("deleted_at", null)
+      .maybeSingle<{
+        code: string;
+        description: string;
+        boxes: number;
+        client_markbox: string;
+        supplier_id: string | null;
+      }>();
+    if (error || !p) return null;
+
+    const { data: c } = await supabase
+      .from("clients")
+      .select("name")
+      .eq("markbox", p.client_markbox)
+      .maybeSingle<{ name: string }>();
+
+    let supplierName: string | null = null;
+    let supplierWechat: string | null = null;
+    if (p.supplier_id) {
+      const { data: s } = await supabase
+        .from("suppliers_cn")
+        .select("name, wechat")
+        .eq("id", p.supplier_id)
+        .maybeSingle<{ name: string; wechat: string | null }>();
+      supplierName = s?.name ?? null;
+      supplierWechat = s?.wechat ?? null;
+    }
+
+    return {
+      code: p.code,
+      description: p.description,
+      boxes: Math.round(num(p.boxes)),
+      markbox: p.client_markbox,
+      clientName: c?.name ?? null,
+      supplierName,
+      supplierWechat,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── Adjuntos de la compra (prealerta_documents · migr 0118) ─────
+
+const PREALERTA_DOC_COLUMNS =
+  "id, tenant_id, prealerta_id, client_markbox, doc_type, storage_path, file_name, content_type, size_bytes, created_at";
+
+function coercePrealertaDocument(r: Record<string, unknown>): PrealertaDocument {
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    prealerta_id: String(r.prealerta_id),
+    client_markbox: String(r.client_markbox ?? ""),
+    doc_type: (r.doc_type as PrealertaDocType) ?? "foto",
+    storage_path: String(r.storage_path ?? ""),
+    file_name: String(r.file_name ?? ""),
+    content_type: (r.content_type as string | null) ?? null,
+    size_bytes: numOrNull(r.size_bytes),
+    created_at: String(r.created_at),
+  };
+}
+
+/**
+ * Adjuntos de UNA compra (más viejos primero). El cliente del portal pasa
+ * `markbox` (defensa en profundidad + la policy "portal self read"). Defensivo:
+ * si la tabla aún no existe (0118 sin aplicar en un env) devuelve [] en vez de
+ * romper la página de etiquetas.
+ */
+export async function listPrealertaDocuments(
+  supabase: SupabaseClient,
+  opts: { prealertaId: string; markbox?: string },
+): Promise<PrealertaDocument[]> {
+  try {
+    let query = supabase
+      .from("prealerta_documents")
+      .select(PREALERTA_DOC_COLUMNS)
+      .eq("prealerta_id", opts.prealertaId)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(100);
+    if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data as Record<string, unknown>[] | null) ?? []).map(
+      coercePrealertaDocument,
+    );
+  } catch {
+    return [];
+  }
 }
 
 // ── Stats del operador ─────────────────────────────────────────

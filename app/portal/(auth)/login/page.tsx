@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import { LoginForm } from "./LoginForm";
@@ -32,11 +33,15 @@ export default async function PortalLoginPage({
           ? "Ese enlace no es válido. Pide uno nuevo."
           : null;
 
+  // El grupo (auth) no tiene layout propio: la página monta --font-jetbrains-mono
+  // (instancia única de lib/fonts.ts) para el input MARKBOX del form.
   return (
-    <LoginForm
-      notice={notice}
-      authedNotBound={!!user}
-      prefillMarkbox={sp.markbox}
-    />
+    <div className={jetbrainsMonoUi.variable}>
+      <LoginForm
+        notice={notice}
+        authedNotBound={!!user}
+        prefillMarkbox={sp.markbox}
+      />
+    </div>
   );
 }

@@ -1,13 +1,13 @@
 # DTD Cargo · Brand assets (sitio público)
 
-> **Fuente de verdad:** [`docs/design/brand-book/v3.0/`](../../docs/design/brand-book/v3.0/) · Brand Book DTD v3.0 mayo 2026.
+> **Fuente de verdad:** el Brand Book vigente del Norte — el de mayor versión en [`docs/design/studio/_norte/`](../../docs/design/studio/_norte/) (hoy **Brand Book DTD v3.7**; el book es UNO solo).
 > **Reglas:** [`BRAND.md`](../../BRAND.md) raíz del repo.
 
 Esta carpeta contiene los assets que sirve el sitio público (`/brand/*.png|svg`) desde `next/image` y `<link rel="icon">`. Son **copias derivadas** del brand book — si el brand book cambia, regenerar (no editar a mano).
 
 ---
 
-## Isólogo oficial v3.0 · 4 variantes
+## Isólogo oficial · 4 variantes
 
 | Archivo | Sobre fondo | Ratio WCAG | Uso típico |
 |---|---|---|---|
@@ -15,7 +15,7 @@ Esta carpeta contiene los assets que sirve el sitio público (`/brand/*.png|svg`
 | `dtdcargo-isologo-reverse.png` | navy, ink, sidebar | 12.4 : 1 | Footer |
 | `dtdcargo-isologo-mono-light.png` | wine, CTAs, alertas | 7.2 : 1 | Sobre botón primario |
 | `dtdcargo-isologo-mono-dark.png` | paper, B&W, sello | 15.3 : 1 | Imprenta a tinta |
-| `dtdcargo-isologo.png` | (neutral, sin pintar) | — | Solo si necesitás el "raw" |
+| `dtdcargo-isologo.png` | (neutral, sin pintar) | — | Solo si necesitas el "raw" |
 
 **Componente:** [`components/BrandMark.tsx`](../../components/BrandMark.tsx).
 **API:** `<BrandMark variant="primary|reverse|mono-light|mono-dark" size={N} />`.
@@ -47,5 +47,5 @@ Esta carpeta contiene los assets que sirve el sitio público (`/brand/*.png|svg`
 
 ## Versión
 
-Brand Book DTD v3.0 · mayo 2026.
-Ver [`docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md`](../../docs/design/brand-book/v3.0/proyecto/BRAND-MIGRATION-2026-05.md) para el changelog completo del rebrand.
+Brand Book vigente: **v3.7** (sync 2026-06-10) · el lockup/isólogo no cambió desde el rebrand de mayo 2026.
+Changelog del rebrand: [`docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md`](../../docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md) · historial del book: changelog interno de `Brand Book DTD v3.7.html`.

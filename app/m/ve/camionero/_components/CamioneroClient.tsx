@@ -275,7 +275,7 @@ function EmptyState() {
         }}
       >
         Cuando el bodeguero cierre una carga vas a ver acá la OD lista para
-        salir. Refrescá para chequear.
+        salir. Refresca para chequear.
       </p>
     </div>
   );
@@ -507,7 +507,7 @@ function OdView({
             textAlign: "center",
           }}
         >
-          Marcá cada parada como entregada / rechazada / retornada arriba.
+          Marca cada parada como entregada / rechazada / retornada arriba.
           Cuando termines, podrás cerrar la ruta con el POD final.
         </div>
       )}

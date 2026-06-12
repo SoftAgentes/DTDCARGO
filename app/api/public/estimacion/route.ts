@@ -20,6 +20,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
+import { resolveRequestIp } from "@/lib/http/request-ip";
 import {
   validateEstimadoInput,
   buildEstimadoRow,
@@ -27,6 +28,16 @@ import {
 } from "@/lib/public/estimado-web";
 
 export const runtime = "nodejs";
+
+// Anti-abuso: throttle por IP reutilizando la tabla portal_registro_throttle
+// (id · ip · created_at). Namespace propio via prefijo "est:" en la columna ip →
+// NO se mezcla con el bucket del registro self-service (que guarda la IP cruda).
+// Sin esto, un script podía hacer POST en loop y llenar `quotes` de estimados
+// basura (el insert corre con service_role, bypassa RLS). Tuneables.
+const RL_TABLE = "portal_registro_throttle";
+const RL_IP_PREFIX = "est:";
+const RL_LIMIT = 12; // estimados por IP por ventana
+const RL_WINDOW_MINUTES = 60;
 
 export async function POST(req: NextRequest) {
   let payload: Partial<EstimadoWebPayload>;
@@ -56,6 +67,33 @@ export async function POST(req: NextRequest) {
       "estimacion",
     );
   }
+
+  // 2b. Throttle por IP — DESPUÉS de validar input + crear el admin, ANTES del
+  //     trabajo pesado (next_estimate_code consume un correlativo; el insert
+  //     escribe en quotes). Contamos los intentos recientes de esta IP; si superó
+  //     el límite, devolvemos 429 sin crear nada. Fail-OPEN ante un error de
+  //     lectura del throttle: no bloqueamos un estimado legítimo por un fallo de
+  //     infraestructura del propio anti-abuso.
+  const ip = RL_IP_PREFIX + resolveRequestIp(req.headers);
+  const windowStart = new Date(
+    Date.now() - RL_WINDOW_MINUTES * 60 * 1000,
+  ).toISOString();
+  const { count: recentCount, error: rlErr } = await admin
+    .from(RL_TABLE)
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if (!rlErr && (recentCount ?? 0) >= RL_LIMIT) {
+    return NextResponse.json(
+      {
+        error:
+          "Demasiados estimados desde tu conexión. Intenta de nuevo en un rato.",
+      },
+      { status: 429 },
+    );
+  }
+  // Registrar el intento (best-effort: si falla el insert, el flujo sigue).
+  await admin.from(RL_TABLE).insert({ ip });
 
   // 3. Resolver el tenant operativo de DTD (hoy uno solo; mismo patrón que el
   //    registro self-service del portal: primer tenant por created_at).

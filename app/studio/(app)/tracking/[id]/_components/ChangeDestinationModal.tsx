@@ -91,7 +91,7 @@ export function ChangeDestinationModal({ shipment, onClose }: Props) {
     setServerError(null);
 
     const errors: Record<string, string> = {};
-    if (!newDest.trim()) errors.newDestination = "Indicá el nuevo destino.";
+    if (!newDest.trim()) errors.newDestination = "Indica el nuevo destino.";
     if (newDest.trim().toLowerCase() === currentDest.toLowerCase())
       errors.newDestination = "El nuevo destino es igual al actual.";
     const feeN = Number(fee);
@@ -419,7 +419,7 @@ function FormPhase({
             margin: "4px 0 0",
           }}
         >
-          Se cobra al cliente y queda en el timeline. Poné 0 si es corrección sin costo.
+          Se cobra al cliente y queda en el timeline. Pon 0 si es corrección sin costo.
         </p>
       </div>
 
@@ -498,7 +498,7 @@ function RateSuggestion({
           margin: "6px 0 0",
         }}
       >
-        Sin tarifa registrada para esta ruta. Definí el fee manualmente.
+        Sin tarifa registrada para esta ruta. Define el fee manualmente.
       </p>
     );
   }
@@ -624,8 +624,8 @@ function ConfirmPhase({
           margin: 0,
         }}
       >
-        El cambio queda registrado en el timeline del envío. Si querés
-        revertirlo después, agregás otro evento manual.
+        El cambio queda registrado en el timeline del envío. Si quieres
+        revertirlo después, agregas otro evento manual.
       </p>
 
       {serverError && (

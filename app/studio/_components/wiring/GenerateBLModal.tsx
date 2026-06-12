@@ -119,7 +119,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                     font: "500 12.5px/1.4 var(--f-sans)",
                   }}
                 >
-                  No hay embarques activos. Creá uno desde{" "}
+                  No hay embarques activos. Crea uno desde{" "}
                   <a href="/studio/embarques" style={{ color: "var(--wine)" }}>
                     Embarques
                   </a>{" "}
@@ -133,7 +133,7 @@ export function GenerateBLModal({ onClose }: { onClose: () => void }) {
                   onChange={(e) => setShipmentId(e.target.value)}
                   style={{ marginTop: 6 }}
                 >
-                  <option value="">— Elegí embarque —</option>
+                  <option value="">— Elige embarque —</option>
                   {shipments.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.code} · {s.client_name ?? "—"} · {s.destination ?? "—"}

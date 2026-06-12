@@ -23,6 +23,19 @@ Nunca asumas la versión; detectala en vivo cada corrida:
    Al cerrar, **escribí/actualizá** `.claude/.radar.state.json` con la versión y fecha vigentes + la fecha de esta corrida. (Ese archivo ya queda fuera de git por la regla `.claude/*`.)
 5. La versión detectada va en el **encabezado del informe** y en el **Resumen ejecutivo**.
 
+## Regla 0.5 · Gate de marca (brand drift · SIEMPRE)
+
+**El Brand Book vigente es UNO solo** — el de mayor versión en `_norte/` (regla de gobernanza v3.7, 2026-06-10). Corré este chequeo y reportá **cualquier hit como hallazgo de severidad alta** (esperado: **0** en archivos vivos):
+
+```
+rg -nS "brand-book-v[12]|brand-book-v3\.[0-6]|Brand Book(?: DTD)? v(1\.|2\.|3\.[0-6])|v1\.7-claude-design|_archivo-v1|handoffs-archive|_handoff_preview|BANDBOOK" app components lib public scripts e2e supabase docs AGENTS.md BRAND.md README.md --glob "!docs/specs/**" --glob "!**/NORTE-CHANGELOG.md" --glob "!docs/design/studio/_norte/**" --glob "!public/marca/brand-book-v*.html" --glob "!supabase/migrations/**" --glob "!docs/archive/**" --glob "!docs/design/studio/bug-reporter-v1.4.1/**"
+```
+
+- **Exclusiones legítimas (historia, NO cuentan como drift):** `docs/specs/**` (registros SDD), `NORTE-CHANGELOG.md`, todo `_norte/**` (bitácoras y paquete de Cloud Design), `supabase/migrations/**` (migraciones aplicadas = inmutables; editar una rompe el hash del historial), `docs/archive/**` (sesiones congeladas) y `docs/design/studio/bug-reporter-v1.4.1/**` (handoff enlazado por SDD-0036).
+- **Casing del tagline:** `rg -n "Con confianza" app components lib e2e` (minúscula) → drift; el oficial es **"Con Confianza"** (C mayúscula, 2026-06-05).
+- **Terminología:** "MARKBOX" como **texto visible** (labels JSX, emails, placeholders) → drift; oficial = **Shipping Mark** en todos los contextos (identificadores `markbox`/`MARKBOX_REGEX` internos OK — SDD-0065 + brand v3.7).
+- **Book publicado:** en `public/marca/` debe haber **exactamente un** `brand-book-vX.Y.html` y su versión debe coincidir con `_norte/Brand Book DTD vX.Y.html`. Si difieren → "propagar el book a la web" (regla brand-to-web).
+
 ## Parte A · Auditoría de workspace / config
 
 Reportá, con acción concreta por hallazgo:

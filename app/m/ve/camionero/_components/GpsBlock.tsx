@@ -272,10 +272,10 @@ export function GpsBlock() {
             : snapshot.status === "no_position"
               ? "Buscando posición…"
               : snapshot.status === "denied"
-                ? "Permiso denegado · activá GPS en el navegador"
+                ? "Permiso denegado · activa GPS en el navegador"
                 : snapshot.status === "unavailable"
                   ? "Sin GPS disponible"
-                  : "Encendelo antes de salir a la ruta"}
+                  : "Enciéndelo antes de salir a la ruta"}
         </div>
       </div>
       <button

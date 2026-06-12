@@ -23,9 +23,9 @@ export const CUSTOMER_MESSAGES: Record<
     in_warehouse: "Tu carga llegó a nuestra bodega en China.",
     consolidating: "Preparando tu carga para embarque.",
     shipped: "Tu carga zarpó. En ruta a Venezuela.",
-    in_transit: "En tránsito marítimo. Prepare su pago de aduana.",
-    in_customs: "En aduana. Pagá impuestos para liberar tu carga.",
-    arrived_destination: "Llegó a nuestra bodega. Coordiná retiro o entrega.",
+    in_transit: "En tránsito marítimo. Prepara tu pago de aduana.",
+    in_customs: "En aduana. Paga impuestos para liberar tu carga.",
+    arrived_destination: "Llegó a nuestra bodega. Coordina retiro o entrega.",
     delayed_warehouse:
       "Tu carga lleva más de 15 días en bodega — bodegaje en curso.",
     out_for_delivery: "En reparto hacia tu dirección.",

@@ -83,7 +83,7 @@ function PageHeader() {
             maxWidth: "60ch",
           }}
         >
-          Feriados CN y VE 2026. Planificá zarpes alrededor de las
+          Feriados CN y VE 2026. Planifica zarpes alrededor de las
           paradas de operación en Yiwu y Shenzhen.
         </p>
       </div>

@@ -10,7 +10,11 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
-    "_handoff_preview/**",
+    // Worktrees del harness / sesiones paralelas (`.claude/worktrees/<rama>/…`):
+    // son checkouts completos de OTRAS ramas; `eslint .` no debe crawlearlos (sus
+    // docs/mockups legacy rompen el lint del repo principal). También cubre
+    // commands/settings de `.claude`, que no son código de la app.
+    ".claude/**",
     // Documentación + mockups de handoff (Claude Design *.jsx congelados,
     // brand-books, etc.): material de referencia, NO código de la app. No se
     // lintea (genera cientos de jsx-no-undef/no-unescaped en snippets que no

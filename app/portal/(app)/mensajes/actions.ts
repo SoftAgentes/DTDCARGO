@@ -19,7 +19,7 @@ export async function sendPortalMessageAction(
   formData: FormData,
 ): Promise<PortalMessageState> {
   const body = String(formData.get("body") ?? "").trim();
-  if (!body) return { error: "Escribí tu mensaje antes de enviar." };
+  if (!body) return { error: "Escribe tu mensaje antes de enviar." };
   if (body.length > 4000) {
     return { error: "El mensaje es muy largo (máximo 4000 caracteres)." };
   }

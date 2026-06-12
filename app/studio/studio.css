@@ -59,14 +59,14 @@
   min-height: 100vh;
   background: var(--studio-paper);
   color: var(--studio-ink);
-  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-family: var(--f-sans);
 }
 
 .studio-dark {
   min-height: 100vh;
   background: var(--studio-ink);
   color: #FFFFFF;
-  font-family: "Archivo", system-ui, -apple-system, sans-serif;
+  font-family: var(--f-sans);
   display: grid;
   place-items: center;
   padding: 24px;
@@ -76,7 +76,7 @@
    Tipografía
    ─────────────────────────────────────────────────────────── */
 .studio-display {
-  font-family: "Archivo Black", "Archivo", sans-serif;
+  font-family: var(--f-display);
   font-weight: 900;
   letter-spacing: -0.02em;
   line-height: 0.95;
@@ -85,7 +85,7 @@
 
 /* Eyebrow con guión wine-soft a la izquierda (eco del .eyebrow del sitio público) */
 .studio-eyebrow {
-  font: 600 var(--studio-fs-caption) / 1 "Archivo", sans-serif;
+  font: 600 var(--studio-fs-caption) / 1 var(--f-sans);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--studio-text-muted);
@@ -103,7 +103,7 @@
 
 /* Variante para fondos oscuros (login) */
 .studio-eyebrow-dark {
-  font: 600 var(--studio-fs-caption) / 1 "Archivo", sans-serif;
+  font: 600 var(--studio-fs-caption) / 1 var(--f-sans);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.55);
@@ -171,7 +171,7 @@
   background: rgba(255, 255, 255, 0.07);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 6px;
-  font: 500 14px/1 "Archivo", sans-serif;
+  font: 500 14px/1 var(--f-sans);
   color: #FFFFFF;
   outline: none;
   box-sizing: border-box;
@@ -194,7 +194,7 @@
 
 /* Label uppercase tracked (acompaña a los inputs) */
 .studio-label {
-  font: 600 10.5px/1 "Archivo", sans-serif;
+  font: 600 10.5px/1 var(--f-sans);
   color: var(--studio-text-muted);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -202,7 +202,7 @@
   margin-bottom: 6px;
 }
 .studio-label-dark {
-  font: 600 10.5px/1 "Archivo", sans-serif;
+  font: 600 10.5px/1 var(--f-sans);
   color: rgba(255, 255, 255, 0.55);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -219,8 +219,11 @@
   justify-content: center;
   gap: 6px;
   padding: 12px 22px;
-  font: 800 13px/1 "Archivo Black", "Archivo", sans-serif;
-  letter-spacing: 0.05em;
+  font: 800 13px/1 var(--f-sans);
+  /* +0.01em vs el tracking base: Nunito 800 no pega tan brutal como la vieja
+     Archivo Black; este pelo extra le devuelve autoridad al CTA sin tocar
+     fuente ni peso (ajuste fino post-port tipográfico, founder 2026-06-11). */
+  letter-spacing: 0.06em;
   border-radius: 8px;
   border: 0;
   cursor: pointer;
@@ -453,6 +456,12 @@
   outline: 2px solid var(--studio-wine);
   outline-offset: -2px;
   background: var(--studio-paper-2);
+}
+/* Fila-botón (<button> reseteado): el background base va por CLASE, nunca
+   inline, para que el :hover/:focus-visible de arriba gane por especificidad
+   (0,2,0 vs 0,1,0). Bitácora de Legal (SDD-0067). */
+.studio-row-btn {
+  background: var(--bg-surface);
 }
 /* Link discreto en celdas de tabla (nombre que linkea sin ensuciar la grilla):
    subraya solo al hover/focus. SDD-0058 (Kommo lead → cliente). */

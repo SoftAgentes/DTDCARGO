@@ -1,5 +1,6 @@
 /* ── DTD Studio · ERP · Design tokens ───────────────────────── */
-/* Tokens duales (light/dark) heredados del Brand Book v2.4.    */
+/* Tokens duales (light/dark) heredados del brand book del Norte
+   (docs/design/studio/_norte/erp/tokens.css).                   */
 :root {
   /* ── Color palette ─────────────────────────────────────── */
   --wine: #7F0F1A;
@@ -84,8 +85,14 @@
   --content-max: 1440px;
 
   /* ── Typography ────────────────────────────────────────── */
-  /* next/font/google expone variables auto-generadas en el <html> del root layout.
-     Hacemos chaining: 1) next/font, 2) nombre literal por si alguien usa el sistema, 3) fallback. */
+  /* SISTEMA (Norte): Nunito Sans (cuerpo) + Sora (títulos). El switch de marca
+     vive en `.studio-sys` (app/globals.css), que dentro del Studio redefine
+     --font-archivo→Nunito y --font-archivo-black→Sora (mirror del portal/calc) —
+     por eso estos --f-* siguen "chainando" por --font-archivo* pero resuelven a
+     Nunito/Sora en toda la superficie. BRAND-EXCEPTION autorizada por el founder
+     el 2026-06-11 (alinear el Studio con el Norte). El wordmark <BrandMark> NO
+     migra (usa --font-brand-display, inmune). Revertir la marca = quitar
+     `studio-sys` del wrapper en app/studio/layout.tsx (vuelve todo a Archivo). */
   --f-sans: var(--font-archivo), 'Archivo', system-ui, -apple-system, sans-serif;
   --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
   --f-display: var(--font-archivo-black), 'Archivo Black', 'Archivo', sans-serif;

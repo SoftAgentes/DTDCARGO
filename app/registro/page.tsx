@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { JetBrains_Mono } from "next/font/google";
+import { jetbrainsMonoUi } from "@/lib/fonts";
 import { socialMeta } from "@/lib/seo-og";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
@@ -27,16 +27,6 @@ export const metadata: Metadata = {
     path: "/registro",
   }),
 };
-
-/**
- * JetBrains Mono — scoped al registro para los códigos (MARKBOX, cédula/RIF).
- */
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
 
 /**
  * Registro self-service del cliente (SDD-0042 Fase 6 · unificado en /registro).
@@ -71,7 +61,7 @@ export default async function RegistroPage({
   return (
     <>
       <Nav />
-      <main className={`${jetbrainsMono.variable} bg-paper min-h-screen`}>
+      <main className={`${jetbrainsMonoUi.variable} bg-paper min-h-screen`}>
         <RegisterForm est={est} />
       </main>
       <Footer />

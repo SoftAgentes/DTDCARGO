@@ -327,7 +327,7 @@ export function validateCostInput(raw: Partial<Record<string, unknown>>): {
 
   const shipmentId = String(raw.shipment_id ?? "").trim();
   if (!shipmentId) {
-    errors.shipment_id = "Indicá el embarque al que pertenece el costo.";
+    errors.shipment_id = "Indica el embarque al que pertenece el costo.";
   }
 
   const amounts = emptyCosts();
@@ -386,7 +386,7 @@ export function validateTemplateInput(raw: Partial<Record<string, unknown>>): {
 
   const name = String(raw.name ?? "").trim();
   if (!name) {
-    errors.name = "Indicá un nombre para el template.";
+    errors.name = "Indica un nombre para el template.";
   }
 
   const service =

@@ -153,7 +153,7 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
             error={editState.fieldErrors?.subject}
             maxLength={300}
             disabled={pending}
-            hint="Usá {{variables}} · ej: {{customer_name}}, {{quote_code}}."
+            hint="Usa {{variables}} · ej: {{customer_name}}, {{quote_code}}."
           />
 
           <TextareaField
@@ -258,7 +258,7 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
             }}
           >
             Preview literal del HTML con sample vars · clientes de email (Gmail,
-            Outlook) renderizan distinto. Para test real, usá &ldquo;Mandar prueba&rdquo;.
+            Outlook) renderizan distinto. Para test real, usa &ldquo;Mandar prueba&rdquo;.
           </div>
 
           {/* Subject preview */}
@@ -410,7 +410,7 @@ export function TemplateEditorDrawer({ template, onClose, onMutated }: Props) {
             form="tpl-edit-form"
             disabled={pending || view !== "editor"}
             className="studio-btn studio-btn-primary"
-            title={view !== "editor" ? "Volvé al Editor para guardar" : undefined}
+            title={view !== "editor" ? "Vuelve al Editor para guardar" : undefined}
           >
             {editPending ? "Guardando…" : "Guardar cambios"}
           </button>

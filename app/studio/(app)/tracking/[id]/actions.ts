@@ -97,7 +97,7 @@ export async function updateShipment(
     .eq("id", id);
 
   if (error) {
-    return { error: "No pudimos guardar. Intentá de nuevo." };
+    return { error: "No pudimos guardar. Intenta de nuevo." };
   }
 
   revalidatePath(`/studio/tracking/${id}`);
@@ -281,7 +281,7 @@ export async function addShipmentEvent(
   const note = parseString(formData.get("note"));
   const occurredAtRaw = parseString(formData.get("occurred_at"));
 
-  if (!status) return { error: "Elegí un estado." };
+  if (!status) return { error: "Elige un estado." };
 
   const tenantId = await getUserTenantId();
   if (!tenantId) return { error: "Sin tenant asignado." };
@@ -341,7 +341,7 @@ export async function changeDestination(
   const reason = input.reason?.trim() ?? "";
 
   const fieldErrors: Record<string, string> = {};
-  if (!newDest) fieldErrors.newDestination = "Indicá el nuevo destino.";
+  if (!newDest) fieldErrors.newDestination = "Indica el nuevo destino.";
   if (!Number.isFinite(fee) || fee < 0)
     fieldErrors.fee = "El fee debe ser 0 o positivo.";
   if (reason.length < 5)

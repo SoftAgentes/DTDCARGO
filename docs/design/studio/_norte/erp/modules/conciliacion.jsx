@@ -82,7 +82,7 @@ function ModuleConciliacion({ goTo }) {
   const postToLedger = (m) => {
     const C = window.ContabilidadData;
     if (!C || !C.reconcileBankMovement) return;
-    if (C.isUnlocked && !C.isUnlocked()) { alert('Activá "Edición abierta" en Contabilidad (header del módulo) para contabilizar.'); return; }
+    if (C.isUnlocked && !C.isUnlocked()) { alert('Activa "Edición abierta" en Contabilidad (header del módulo) para contabilizar.'); return; }
     const ledger = C.reconcileBankMovement(m, BANK_COA);
     setDecision(m.id, { ledger });
   };
@@ -145,7 +145,7 @@ function ModuleConciliacion({ goTo }) {
             <U.EmptyState
               icon={I.check(24)}
               title={tab === 'review' ? '¡Todo conciliado!' : 'Sin movimientos en esta vista'}
-              body={tab === 'review' ? 'Todos los movimientos del extracto fueron revisados. Podés exportar el reporte cuando quieras.' : 'Probá con otra pestaña.'}
+              body={tab === 'review' ? 'Todos los movimientos del extracto fueron revisados. Puedes exportar el reporte cuando quieras.' : 'Prueba con otra pestaña.'}
             />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
