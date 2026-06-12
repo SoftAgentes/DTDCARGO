@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@/app/studio/_components/icons";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
@@ -164,6 +165,10 @@ export function LegalClient({
         </div>
       </div>
 
+      {/* Buscar expediente de defensa por código de envío (SDD-0070). Acceso
+          secundario: navega a la vista imprimible admin-only de la operación. */}
+      <DefenseFileSearch />
+
       {/* Tabs */}
       <div
         role="tablist"
@@ -230,6 +235,65 @@ function TabButton({
     >
       {children}
     </button>
+  );
+}
+
+// ════════════════════════════════════════════════════════════
+// Expediente de defensa · acceso por código de envío (SDD-0070)
+// ════════════════════════════════════════════════════════════
+
+function DefenseFileSearch() {
+  const router = useRouter();
+  const [code, setCode] = useState("");
+
+  const go = () => {
+    const c = code.trim();
+    if (!c) return;
+    router.push(`/studio/legal/expediente/${encodeURIComponent(c)}`);
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        gap: 12,
+        alignItems: "flex-end",
+        flexWrap: "wrap",
+        padding: "14px 16px",
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        marginBottom: 20,
+      }}
+    >
+      <div style={{ flex: 1, minWidth: 240 }}>
+        <label className="studio-label" htmlFor="defense-code">
+          Expediente de defensa
+        </label>
+        <input
+          id="defense-code"
+          type="text"
+          className="studio-input studio-input-mono"
+          placeholder="Código de envío (p. ej. S-2026-0042)"
+          value={code}
+          autoComplete="off"
+          spellCheck={false}
+          onChange={(e) => setCode(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") go();
+          }}
+        />
+      </div>
+      <button
+        type="button"
+        className="studio-btn studio-btn-primary studio-btn-sm"
+        onClick={go}
+        disabled={!code.trim()}
+        style={{ opacity: code.trim() ? 1 : 0.6 }}
+      >
+        Abrir expediente
+      </button>
+    </div>
   );
 }
 

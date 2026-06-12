@@ -1,7 +1,7 @@
 ---
 sdd: "0070"
 title: "Expediente de defensa legal (SDD-E del handoff) — cadena de evidencia de 1 clic por operación (aceptación + packing + fotos origen + cronología + POD)"
-status: approved
+status: done
 author: "handoff Claude Chat (capa legal) + Claude Code"
 created: 2026-06-11
 updated: 2026-06-11
@@ -110,16 +110,16 @@ eventos y prueba de entrega (POD)— en un documento de defensa de 1 clic (print
 
 ## 5. Acceptance
 
-- [ ] `/studio/legal/expediente/[code]` admin-only (no-admin → redirect dashboard) reúne las
+- [x] `/studio/legal/expediente/[code]` admin-only (no-admin → redirect dashboard) reúne las
       5 secciones de un envío real; las que tienen datos renderizan, las vacías dicen "Sin
       registros"; el índice de completitud cuadra.
-- [ ] Aceptación con hash verificado (reusa la query de 0067); múltiples aceptaciones se
+- [x] Aceptación con hash verificado (reusa la query de 0067); múltiples aceptaciones se
       listan marcando la vigente.
-- [ ] Fotos (origen + POD) cargan vía signed URLs; `window.print()` produce PDF limpio (solo
+- [x] Fotos (origen + POD) cargan vía signed URLs; `window.print()` produce PDF limpio (solo
       `#legal-expediente`, sin el shell del Studio).
-- [ ] POD por el join indirecto; si la cadena se corta, sección fail-soft sin romper.
-- [ ] Entry points: botón en el detalle del envío + buscador en `/studio/legal`.
-- [ ] `node scripts/verify.mjs` 🟢. SIN migración. SIN cambios en otras tablas/módulos.
+- [x] POD por el join indirecto; si la cadena se corta, sección fail-soft sin romper.
+- [x] Entry points: botón en el detalle del envío + buscador en `/studio/legal`.
+- [x] `node scripts/verify.mjs` 🟢. SIN migración. SIN cambios en otras tablas/módulos.
 
 ## 6. Fuera de alcance (respetar)
 
@@ -130,3 +130,55 @@ eventos y prueba de entrega (POD)— en un documento de defensa de 1 clic (print
 - **NO** tocar la generación del packing .xlsx (`/p/[token]/packlist`); el expediente lista
   los documentos subidos de la prealerta, no regenera el Excel.
 - **NO** cambiar `legal_acceptances`, el gate AUT-04 ni los módulos de almacén/despacho.
+
+## 7. Notas de implementación (2026-06-11 · pendiente review)
+
+Confirmaciones de la investigación, verificadas leyendo el código:
+
+- **Clave string-match (decisión #1):** la action de aceptación del Portal
+  (`app/portal/(app)/facturas/[code]/aceptar/actions.ts`) sella
+  `quote_code = order.shipmentCode ?? order.code`, donde `shipmentCode` es
+  `shipments.code`. Por eso `getDefenseFile` pasa `quoteCode: shipmentCode` a
+  `listAcceptanceEvidenceByQuote` (REUSO, sin re-implementar el hash). ✔
+- **Join indirecto del POD (decisión #7):** `shipments` →
+  `warehouse_receipts_cn.shipment_id` (ids) → `dispatch_order_packages`
+  (`package_kind='warehouse_receipt_cn'`, `package_id ∈ ids`) → `od_id` →
+  `dispatch_orders.id` (para `order_code`) + `dispatch_pods.od_id`. Fotos del
+  POD en bucket `receipt-photos` (prefijos `pod/` y `firma/`). Cada salto es
+  fail-soft. ✔
+- **Buckets:** fotos CN + foto/firma POD = `receipt-photos`; docs de prealerta
+  = `prealerta-docs`. URLs firmadas batch por bucket (TTL 1h) en
+  `expediente-queries.ts`. ✔
+- **SIN migración.** Orquestación pura sobre tablas existentes. ✔
+- **Entry points:** botón admin-only en el detalle del envío
+  (`tracking/[id]/page.tsx`, link `target="_blank"` a la ruta) + buscador por
+  código de envío en `LegalClient.tsx`. ✔
+- **Archivos nuevos:** `lib/studio/legal/expediente-{types,queries}.ts`,
+  `app/studio/(app)/legal/expediente/[code]/{page,PrintButton}.tsx`,
+  `lib/studio/legal/__tests__/expediente.test.ts`.
+- `node scripts/verify.mjs` 🟢 (lint 0 errores · typecheck · 1689 tests ·
+  rsc-boundary · docs:check). Falta review + sign-off del founder.
+
+## 7. Notas de implementación (cierre 2026-06-11)
+
+Shipped vía harness en `feat/expediente-defensa`: implementer → gate 🟢 (1689 tests,
+14 nuevos) → reviewer **APPROVED en 1 ronda** (`.harness/progress/review_0070.md`,
+0 bloqueantes) → review ui-ux. Orquestación PURA, **sin migración**.
+
+- Clave de unión confirmada contra la action del Portal: `legal_acceptances.quote_code
+  = shipments.code` (`aceptar/actions.ts` sella `order.shipmentCode ?? order.code`).
+- Hash de la aceptación REUSA `listAcceptanceEvidenceByQuote` → `rowHashVerified` (el
+  mismo recompute del gate de 0067; no se re-implementa). Test con `hashEvidence` real.
+- POD por join indirecto de 4 saltos (recepciones → dispatch_order_packages →
+  dispatch_orders → dispatch_pods), fail-soft en cada salto.
+- Fotos firmadas server-side `createSignedUrls(paths, 3600)` por bucket
+  (`receipt-photos` + `prealerta-docs`); `<img>` recibe la signed URL, nunca el path.
+- **Fix del reviewer (menor):** 2 tokens del `@media print` alineados al canónico
+  (`--ink-inv` #FBFAF7, `--bg-elevated` #F2F0EC).
+- **Review ui-ux — 3 fixes aplicados:** (ALTO) `break-inside: avoid` en
+  `section`/`figure`/`[data-pod-card]` del print — un documento legal multipágina no
+  parte fotos/firmas/secciones entre páginas · (MEDIO) placeholder "Imagen no
+  disponible" a `--ink` + peso 600 (hueco probatorio legible en papel) · (MEDIO) chip
+  "Ausente · {label}" + border en el índice de completitud (legible en B/N fotocopiado).
+- **Sin gate de prod:** no hay migración → el deploy es solo código nuevo, sin
+  acoplamiento de schema (a diferencia de 0067/0068/0069).
