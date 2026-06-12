@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 65 specs)
+### Índice de specs (generado · 66 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -103,6 +103,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0068 | Recibos de cobranza con mandato (SDD-C del handoff legal) — l… | done | interno |
 | 0068 | Registro self-service — entrega real del correo de bienvenida… | done | interno |
 | 0069 | Rendición quincenal a la Operadora (SDD-D del handoff legal) … | done | interno |
+| 0070 | Expediente de defensa legal (SDD-E del handoff) — cadena de e… | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
