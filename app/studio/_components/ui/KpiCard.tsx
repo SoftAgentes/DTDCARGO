@@ -54,6 +54,9 @@ export function KpiCard({
       <div
         style={{
           font: "900 30px/1 var(--f-display)",
+          // Sora no es monoespaciada → tabular-nums estabiliza el ancho de
+          // dígitos (KPIs que cambian en vivo vía Realtime no hacen jitter).
+          fontVariantNumeric: "tabular-nums",
           color: valueColor,
           letterSpacing: "-0.02em",
         }}

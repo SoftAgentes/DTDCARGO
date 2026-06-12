@@ -42,18 +42,23 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
-   Portal del Cliente · capa SISTEMA (Norte v2.4): Sora + Nunito Sans.
-   Scopeado a /portal vía `.portal-sys` (app/portal/layout.tsx). El resto del
-   sitio público sigue en Archivo. Truco: redefinimos las MISMAS variables que
-   ya consumen los componentes del portal (--font-archivo / --font-archivo-black)
-   → toda la superficie migra a Sora/Nunito sin tocar JSX. Mono (JetBrains) y
-   CJK (Noto SC) quedan igual. Sin capas (@layer) → gana al body de @layer base.
-   Decisión founder 2026-06-02 (seguir el Norte).
+   Capa SISTEMA (Norte): Sora (títulos) + Nunito Sans (cuerpo). Scopeada a
+   3 superficies vía wrapper class — el resto del sitio público sigue en Archivo:
+     · `.portal-sys` → /portal        (app/portal/layout.tsx · founder 2026-06-02)
+     · `.calc-sys`   → /calculadora   (founder 2026-06-06)
+     · `.studio-sys` → Studio ERP     (app/studio/layout.tsx · founder 2026-06-11)
+   Truco: redefinimos las MISMAS variables que ya consumen los componentes
+   (--font-archivo / --font-archivo-black, y --font-sans para usos sueltos del
+   Studio) → la superficie entera migra a Sora/Nunito sin tocar JSX. El wordmark
+   <BrandMark> NO migra (usa --font-brand-display, inmune). Mono (JetBrains) y CJK
+   (Noto SC) quedan igual. Sin capas (@layer) → gana al body de @layer base.
    ────────────────────────────────────────────────────────────────── */
 .portal-sys,
-.calc-sys {
+.calc-sys,
+.studio-sys {
   --font-archivo: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
   --font-archivo-black: var(--font-sora), "Sora", var(--font-nunito), system-ui, sans-serif;
+  --font-sans: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
   font-family: var(--font-nunito), "Nunito Sans", system-ui, -apple-system, sans-serif;
 }
 

@@ -75,6 +75,9 @@ function Kpi({
       <div
         style={{
           font: "900 22px/1 var(--f-display)",
+          // Sora no es monoespaciada → tabular-nums estabiliza el ancho de
+          // dígitos en esta vista Realtime (cobranzas/despacho cambian en vivo).
+          fontVariantNumeric: "tabular-nums",
           color: color[tone],
           marginTop: 8,
           letterSpacing: "-0.02em",
