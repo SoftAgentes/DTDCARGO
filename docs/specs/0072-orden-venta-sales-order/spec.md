@@ -135,7 +135,7 @@ Sin mockup del Norte para esta pantalla → `DESIGN-CHECK` si hace falta diseño
 ## 11. Notas de implementación (Fase 2 · 2026-06-12 · vía harness)
 
 **Estado:** Fase 2 implementada en `feat/orden-venta` (encima de Fase 1). Gate `node
-scripts/verify.mjs` 🟢 (1761 tests, +22 nuevos de auto-facturación). Migración 0126
+scripts/verify.mjs` 🟢 (1761 tests, +22 nuevos de auto-facturación). Migración 0127
 **NO** aplicada a prod (la aplica el founder). `reviewer`/`ui-ux` pendientes (no
 auto-aprobado).
 
@@ -143,14 +143,14 @@ auto-aprobado).
 `warehouse_receipts_cn` (0016), **no** `warehouse_receipts` (nombre del spec), y NO
 tenía FK a `prealertas` — usa `client_markbox`/`supplier_name` textuales. La OV se ata
 a las CAJAS vía `prealertas.sales_order_id` (Fase 1). Para resolver "qué OV cumple la
-caja recibida" + parcial + idempotencia, 0126 agrega el enlace que la Fase 1 dejó
+caja recibida" + parcial + idempotencia, 0127 agrega el enlace que la Fase 1 dejó
 preparado (`getSalesOrderForPrealerta`): `warehouse_receipts_cn.prealerta_id` (la caja
 que la recepción materializa) y `.sales_order_id` (OV denormalizada). El "momento de
 confirmación de Warehouse" = transición a **`consolidado`** (los CBM/peso reales ya se
 capturan al recibir; consolidar es el cierre formal del almacén).
 
 **Archivos:**
-- `supabase/migrations/0126_sales_order_invoicing.sql` — aditiva, sin DDL destructivo,
+- `supabase/migrations/0127_sales_order_invoicing.sql` — aditiva, sin DDL destructivo,
   idempotente. `invoices.sales_order_id` (FK real on delete set null · provenance) +
   puente `warehouse_receipts_cn.prealerta_id`/`.sales_order_id` (FK suaves) + tracking
   idempotencia `prealertas.invoice_id` (FK suave · marca de facturada) + `.invoiced_at`
@@ -194,7 +194,7 @@ capturan al recibir; consolidar es el cierre formal del almacén).
 - *IVA:* hereda el toggle `tenants.iva_enabled` (igual que 0021); con ON el total se
   desglosa base/IVA 16%.
 
-**Pendiente:** `reviewer` + `ui-ux-designer`. Aplicar `0125` y `0126` a prod (founder).
+**Pendiente:** `reviewer` + `ui-ux-designer`. Aplicar `0125` y `0127` a prod (founder).
 Puente OV → OC de DTD + alerta de cobranza pre-arribo (D4) siguen fuera de 0072.
 
 ---

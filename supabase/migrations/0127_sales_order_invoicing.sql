@@ -42,7 +42,7 @@
 -- documento de origen. invoices.sales_order_id apunta a una tabla que YA existe
 -- (sales_orders, 0125) → puede llevar constraint FK real.
 --
--- ⚠️ Número de migración: 0126 (primer libre tras 0125). Reusa next_invoice_code
+-- ⚠️ Número de migración: 0127 (renumerado de 0126 por colisión con 0126_fiscal_settings de origin; libre tras 0126). Reusa next_invoice_code
 --    (0077) y postInvoiceJournalEntry (0040) desde la capa de aplicación — esta
 --    migración NO los redefine.
 -- ─────────────────────────────────────────────────────────────
@@ -115,6 +115,6 @@ create index if not exists prealertas_invoice_id_fk_idx
 -- contable y el audit log — la RLS por tenant la garantiza el filtro explícito por
 -- tenant_id en la capa de aplicación.
 -- ─────────────────────────────────────────────────────────────
--- Fin migración 0126_sales_order_invoicing.sql
--- Aplicar con: supabase migration apply 0126 · o MCP apply_migration
+-- Fin migración 0127_sales_order_invoicing.sql
+-- Aplicar con: supabase migration apply 0127 · o MCP apply_migration
 -- ─────────────────────────────────────────────────────────────

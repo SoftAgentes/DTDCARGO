@@ -208,7 +208,7 @@ export type SalesOrderInvoiceRef = {
 
 /**
  * Facturas (0021) generadas por una OV (Fase 2), recientes primero. RLS filtra por
- * tenant. Defensivo: si la columna invoices.sales_order_id no existe aún (0126 sin
+ * tenant. Defensivo: si la columna invoices.sales_order_id no existe aún (0127 sin
  * aplicar en un env), devuelve [] en vez de romper el drawer.
  */
 export async function listInvoicesForSalesOrder(
