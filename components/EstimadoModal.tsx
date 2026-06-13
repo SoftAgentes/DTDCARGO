@@ -221,9 +221,14 @@ export function EstimadoModal({
             <textarea
               value={nota}
               onChange={(e) => setNota(e.target.value)}
+              onInput={(e) => {
+                const t = e.currentTarget;
+                t.style.height = "auto";
+                t.style.height = `${t.scrollHeight}px`;
+              }}
               rows={2}
               placeholder="Ej: tengo la mercancía lista para despachar."
-              className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink w-full resize-none focus:ring-2 focus:ring-wine/40"
+              className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink w-full resize-none focus:ring-2 focus:ring-wine/40 overflow-hidden"
             />
           </Field>
         </div>

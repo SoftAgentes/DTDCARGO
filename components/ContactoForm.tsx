@@ -179,8 +179,13 @@ export function ContactoForm() {
           name="mensaje"
           required
           rows={4}
+          onInput={(e) => {
+            const t = e.currentTarget;
+            t.style.height = "auto";
+            t.style.height = `${t.scrollHeight}px`;
+          }}
           placeholder="Cuéntanos qué necesitas. Si es un envío, pega el link del producto o describe volumen y peso."
-          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none focus:ring-2 focus:ring-wine/40"
+          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none focus:ring-2 focus:ring-wine/40 overflow-hidden"
         />
       </Field>
 

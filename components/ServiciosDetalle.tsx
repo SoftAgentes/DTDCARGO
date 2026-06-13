@@ -26,6 +26,7 @@ import {
   FlagCN,
   FlagVE,
 } from "@/components/Icon";
+import { OpenDetailsOnHash } from "@/components/OpenDetailsOnHash";
 
 const ESTADO_LABEL: Record<string, string> = {
   suspendido: "Suspendido",
@@ -36,6 +37,8 @@ const ESTADO_LABEL: Record<string, string> = {
 export function ServiciosDetalle() {
   return (
     <section className="py-16 lg:py-20" id="detalle">
+      {/* Abre el acordeón destino al llegar por hash (footer /servicios#slug). */}
+      <OpenDetailsOnHash />
       <div className="wrap">
         <span className="eyebrow">Servicios en detalle</span>
         <h2 className="h-section mt-4" style={{ fontSize: "clamp(28px, 4vw, 48px)" }}>

@@ -274,13 +274,8 @@ export function UltimoKmCalculator() {
                   <DetailRow label="Tramo tarifa" value={resultado.tramoAplicado} />
                 )}
                 {!resultado.esSobre && (
-                  <>
-                    <DetailRow label="Tarifa base USD/kg" value={`${resultado.tarifaBaseUsdKg.toFixed(3)}`} />
-                    <DetailRow
-                      label="Tarifa DTD (+15%) USD/kg"
-                      value={`${resultado.tarifaDtdUsdKg.toFixed(3)}`}
-                    />
-                  </>
+                  // Tarifa final por kg (sin exponer la base ni el margen interno al cliente).
+                  <DetailRow label="Tarifa USD/kg" value={`${resultado.tarifaDtdUsdKg.toFixed(3)}`} />
                 )}
                 <DetailRow label="Flete base" value={`USD ${resultado.fleteBaseUsd.toFixed(2)}`} />
                 {resultado.descuentoCascoUsd > 0 && (

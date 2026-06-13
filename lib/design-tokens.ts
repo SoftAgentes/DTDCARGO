@@ -850,11 +850,12 @@ export const STATS = [
     label: "En el comercio con China desde 2008",
   },
   {
-    // 11 años de respaldo específico en Venezuela (desde la expansión 2015
-    // al corredor VE con DTD Services).
-    num: "11",
-    suffix: "AÑOS",
-    label: "Nos respaldan en Venezuela",
+    // Hito de expansión a Venezuela (2015 · DTD Services LCL). Se muestra como
+    // AÑO (no "AÑOS") para no repetir el formato de la cifra de China de arriba
+    // — evita la doble antigüedad contigua que confundia (auditoria ui-ux).
+    num: "2015",
+    suffix: "",
+    label: "Operando en Venezuela",
   },
   {
     num: "24",

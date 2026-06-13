@@ -333,8 +333,13 @@ export function EstimacionForm() {
         <textarea
           name="descripcion"
           rows={2}
+          onInput={(e) => {
+            const t = e.currentTarget;
+            t.style.height = "auto";
+            t.style.height = `${t.scrollHeight}px`;
+          }}
           placeholder="Ej: 5 cajas de auriculares bluetooth, link de Alibaba…"
-          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none"
+          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none focus:ring-2 focus:ring-wine/40 overflow-hidden"
         />
       </Row>
 
