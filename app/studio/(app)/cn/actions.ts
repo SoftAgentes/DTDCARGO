@@ -241,6 +241,7 @@ export async function createReceiptAction(
         .eq("client_markbox", input!.client_markbox)
         .not("sales_order_id", "is", null)
         .is("invoice_id", null)
+        .in("status", ["anunciada", "en_camino"])
         .is("deleted_at", null)
         .limit(2);
       const list =

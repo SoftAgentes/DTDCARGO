@@ -129,8 +129,8 @@ create trigger prealertas_validate_sales_order_trg
 -- estado committeado de la 1ª); el FOR UPDATE + re-chequeo de invoice_id sobre
 -- la prealerta hace imposible la doble factura de la misma caja. El espejo TS de
 -- la fórmula del monto vive en lib/studio/sales-orders/invoicing.ts
--- (computeReceiptInvoiceAmount + splitInvoiceTotals) — si cambia uno, cambiar el
--- otro (los tests de Vitest pinean el TS; este SQL lo replica 1:1).
+-- (computeReceiptInvoiceAmount; el IVA vive solo en este SQL) — si cambia uno, cambiar el
+-- otro (los tests de Vitest pinean el TS; este SQL lo replica de forma aproximada (±$0.01 en bordes de medio centavo; la factura final cuadra la suma).
 create or replace function public.sales_order_claim_and_invoice(
   p_tenant_id  uuid,
   p_receipt_id uuid
@@ -276,7 +276,7 @@ begin
      and id <> v_pre.id;
   v_is_final := v_remaining_boxes <= 0;
 
-  -- ── 5. Monto (espejo 1:1 de computeReceiptInvoiceAmount · invoicing.ts) ──
+  -- ── 5. Monto (espejo aproximado de computeReceiptInvoiceAmount · ±$0.01 en bordes · invoicing.ts) ──
   v_total         := greatest(coalesce(v_so.total_usd, 0), 0);
   v_received      := greatest(coalesce(v_pre.boxes, 0), 0);
   v_remaining_usd := greatest(v_total - v_already, 0);
@@ -298,7 +298,7 @@ begin
 
   -- ── 6. IVA: total CONSTRUIDO desde base + iva (patrón 0021 · review 🟡) ──
   -- Aritmética numeric (sin float): total == base + iva SIEMPRE → el asiento
-  -- 0040 nunca aborta por descuadre. Espejo TS: splitInvoiceTotals (invoicing.ts).
+  -- 0040 nunca aborta por descuadre. El IVA (base+iva) vive solo en este SQL (sin espejo TS).
   select coalesce(iva_enabled, false) into v_iva_on
     from public.tenants
    where id = p_tenant_id;
@@ -392,7 +392,7 @@ end;
 $$;
 
 comment on function public.sales_order_claim_and_invoice is
-  'SDD-0072 Fase 2 (hardening): núcleo TRANSACCIONAL de la auto-facturación. En UNA transacción: lock FOR UPDATE de OV+prealerta → claim idempotente (invoice_id IS NULL) → denominador congelado (invoicing_total_boxes) → monto prorrateado (espejo computeReceiptInvoiceAmount) → IVA base+iva (espejo splitInvoiceTotals/0021) → next_invoice_code → INSERT factura → ligado prealertas.invoice_id → status OV → denormalización de la recepción. O TODO o NADA. El asiento 0040 queda app-side (best-effort idempotente). SOLO service_role (la llama el motor server-side; tenant del user_tenants del caller).';
+  'SDD-0072 Fase 2 (hardening): núcleo TRANSACCIONAL de la auto-facturación. En UNA transacción: lock FOR UPDATE de OV+prealerta → claim idempotente (invoice_id IS NULL) → denominador congelado (invoicing_total_boxes) → monto prorrateado (espejo computeReceiptInvoiceAmount) → IVA base+iva (mismo criterio que el motor 0021) → next_invoice_code → INSERT factura → ligado prealertas.invoice_id → status OV → denormalización de la recepción. O TODO o NADA. El asiento 0040 queda app-side (best-effort idempotente). SOLO service_role (la llama el motor server-side; tenant del user_tenants del caller).';
 
 -- SOLO el motor server-side (admin client = service_role) puede ejecutarla.
 revoke execute on function public.sales_order_claim_and_invoice(uuid, uuid) from public, anon;

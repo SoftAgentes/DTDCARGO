@@ -121,8 +121,11 @@ export function canAutoInvoice(
 
 /**
  * Calcula el monto a facturar por las cajas recibidas en ESTA recepción. PURA.
- * ESPEJO 1:1 del paso 5 de la RPC `sales_order_claim_and_invoice` (migr 0128) —
- * si cambia esta fórmula, cambiar el SQL (y viceversa).
+ * Espejo APROXIMADO del paso 5 de la RPC `sales_order_claim_and_invoice` (migr 0128):
+ * misma fórmula proporcional, pero el orden de operaciones y el redondeo difieren del
+ * SQL en bordes de medio centavo (±$0.01). En prod factura el SQL (la RPC); esta capa
+ * solo la usan los tests de Vitest. La factura FINAL absorbe el restante exacto, así
+ * que la SUMA de parciales == total_usd igual. Si cambiás la fórmula, alineá ambas.
  *
  * DECISIÓN DE IMPLEMENTACIÓN (documentada para el review):
  * El snapshot de la OV (`total_usd`) cubre TODAS las cajas planeadas. No existe en
