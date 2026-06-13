@@ -106,11 +106,21 @@ function refExists(ref) {
   return git(["rev-parse", "--verify", "--quiet", ref]).code === 0;
 }
 
-/** pnpm en Windows es `pnpm.cmd` (sin shell:true → evita el DEP0190). */
+/**
+ * Instala deps en el worktree. Devuelve `true` solo si node_modules quedó usable.
+ *
+ * `shell: true` es OBLIGATORIO en Windows: desde Node 20.12/22/24 el runtime se
+ * NIEGA a spawnear `pnpm.cmd` (un .cmd) sin shell — mitigación de CVE-2024-27980.
+ * Sin esto el spawn fallaba en silencio, pnpm NUNCA corría y node_modules quedaba
+ * vacío (el bug que dejaba el lane sin deps cantando "deps instaladas"). Pasamos el
+ * comando como string único (no args array) → el shell resuelve pnpm→pnpm.cmd y de
+ * paso esquiva el DEP0190. `cwd: wt` reemplaza al `-C wt` (robusto ante espacios).
+ */
 function pnpmInstall(wt) {
-  const bin = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
-  // pnpm puede salir 0 con ERR_PNPM_IGNORED_BUILDS (esbuild) → benigno.
-  return spawnSync(bin, ["-C", wt, "install"], { stdio: "inherit" }).status ?? 1;
+  // pnpm puede salir != 0 con ERR_PNPM_IGNORED_BUILDS (esbuild) → benigno. Por eso
+  // NO confiamos en el exit code: verificamos que el binario que usa el gate exista.
+  spawnSync("pnpm install", { stdio: "inherit", cwd: wt, shell: true });
+  return existsSync(path.join(wt, "node_modules", "vitest", "vitest.mjs"));
 }
 
 /** Path del worktree principal (el primero de `git worktree list --porcelain`). */
@@ -174,8 +184,12 @@ function cmdStart({ slug, from, dryRun }) {
   }
 
   info(`${C.d}pnpm install (store global hardlinkea → rápido)...${C.n}`);
-  pnpmInstall(wt);
-  ok("deps instaladas");
+  if (pnpmInstall(wt)) {
+    ok("deps instaladas");
+  } else {
+    warn("pnpm install NO dejó node_modules usable (revisá la salida de arriba).");
+    info(`  Corré a mano antes del gate:  cd "${wt}" && pnpm install`);
+  }
 
   info("");
   ok(`Lane "${slug}" listo.`);
