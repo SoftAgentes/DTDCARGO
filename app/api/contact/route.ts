@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { resolveRequestIp } from "@/lib/http/request-ip";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import { apiError } from "@/lib/http/api-error";
+
+export const runtime = "nodejs";
 
 /**
  * Captación del lead del formulario de contacto (/contacto).
@@ -28,6 +31,15 @@ import { apiError } from "@/lib/http/api-error";
  */
 
 const HONEYPOT_FIELD = "empresa_web";
+
+// Anti-abuso: throttle por IP reutilizando portal_registro_throttle (id · ip ·
+// created_at) con namespace propio "contact:" en la columna ip → no se mezcla
+// con el bucket del registro ni el de estimación. Sin esto, un script podía
+// hacer POST en loop y disparar emails (Resend) sin freno. Tuneables.
+const RL_TABLE = "portal_registro_throttle";
+const RL_IP_PREFIX = "contact:";
+const RL_LIMIT = 8; // contactos por IP por ventana
+const RL_WINDOW_MINUTES = 60;
 
 const TOPIC_LABELS: Record<string, string> = {
   cotizar: "Cotizar un envío",
@@ -60,7 +72,7 @@ function isEmail(s: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   let body: ContactBody;
   try {
     body = (await req.json()) as ContactBody;
@@ -102,6 +114,27 @@ export async function POST(req: Request) {
       "contact",
     );
   }
+
+  // Throttle por IP — después de validar + crear admin, ANTES de mandar emails.
+  // Cuenta intentos recientes de la IP; si superó el límite → 429 sin enviar.
+  // Fail-OPEN ante error de lectura del throttle (no bloquear un contacto real).
+  const ip = RL_IP_PREFIX + resolveRequestIp(req.headers);
+  const windowStart = new Date(
+    Date.now() - RL_WINDOW_MINUTES * 60 * 1000,
+  ).toISOString();
+  const { count: recentCount, error: rlErr } = await admin
+    .from(RL_TABLE)
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if (!rlErr && (recentCount ?? 0) >= RL_LIMIT) {
+    return NextResponse.json(
+      { error: "Demasiados mensajes desde tu conexión. Intenta de nuevo en un rato." },
+      { status: 429 },
+    );
+  }
+  // Registrar el intento (best-effort: si falla el insert, el flujo sigue).
+  await admin.from(RL_TABLE).insert({ ip });
 
   // Tenant operativo de DTD (uno solo hoy; mismo patrón que el registro).
   const { data: tenantRow, error: tenantErr } = await admin
