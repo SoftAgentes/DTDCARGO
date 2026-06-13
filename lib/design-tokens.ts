@@ -717,16 +717,16 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     id: "markbox",
-    term: "Shipping Mark",
-    acronym: "唛头 (shipping mark) · código del cliente DTD-XXXX",
+    term: "MARKBOX",
+    acronym: "Shipping Mark · marca de envío · 唛头 · código del cliente DTD-XXXX",
     category: "tracking",
     body: [
-      "Código único que se le asigna a cada cliente al darse de alta con DTD Cargo. Sirve para identificar quién es el dueño de cada caja que llega a nuestra bodega en Yiwu.",
-      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu Shipping Mark. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
+      "MARKBOX y Shipping Mark son lo mismo: MARKBOX es como llamamos en DTD Cargo a la marca que identifica cada una de tus cajas, y a nivel internacional ese mismo marcado se conoce como Shipping Mark (en China, 唛头). Es tu código único —formato DTD-XXXX— que se te asigna al darte de alta: identifica tus cajas desde origen, para que sepamos de quién es cada bulto que llega a nuestra bodega en Yiwu.",
+      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu MARKBOX. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
     ],
     analogy: {
       label: "Lo encuentras en",
-      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes Shipping Mark, lo solicitas por WhatsApp.",
+      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes tu MARKBOX, lo solicitas por WhatsApp.",
     },
   },
 
@@ -771,6 +771,13 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 export const HERO = {
   /**
+   * Eyebrow gris arriba del kicker (A2 · 2026-06-13): categoría + año oficial de
+   * la empresa (2010). El kicker (tagline) y el H1 NO cambian. Texto recortado
+   * tras el pase ui-ux: NO repetir el H1 ("Importa…Venezuela") ni el microcopy
+   * ("puerta a puerta DDP") — el eyebrow solo aporta categoría + antigüedad.
+   */
+  eyebrow: "Logística China → Venezuela · Desde 2010",
+  /**
    * Kicker = tagline oficial "Con Confianza, de China a tu puerta." (brand
    * book vigente; casing C mayúscula autorizado 2026-06-05).
    * SDD-0064 (decisión founder 2026-06-08): el tagline pasa de H1 a
@@ -783,13 +790,17 @@ export const HERO = {
    * puerta; DDP es la metodología técnica que lo hace posible").
    */
   kicker: { accent: "Con Confianza,", rest: "de China a tu puerta." },
-  /** H1 de acción. `accent` se renderiza en wine. */
+  /**
+   * H1 del hero (founder 2026-06-13): el tagline-headline. `lead` ("Con
+   * confianza,") va en wine; `accent` en ink. Absorbe el rol del kicker, que se
+   * removió del hero para no repetir "con confianza / China / Venezuela".
+   */
   title: {
-    lead: "Importa desde China",
-    accent: "hasta tu puerta en Venezuela.",
+    lead: "Con confianza,",
+    accent: "desde China hacia Venezuela.",
   },
   subtitle:
-    "Coordinamos recepción, inspección, consolidación, aduana, impuestos y entrega final — con un solo equipo responsable.",
+    "Coordinamos tu carga desde la recepción en China hasta la entrega final en Venezuela: inspección, consolidación, aduana, impuestos y puerta a puerta con un solo equipo responsable.",
   /** Microcopy bajo el cotizador: lidera "puerta a puerta", DDP como aclaración. */
   microcopy:
     "Servicio puerta a puerta con aduana e impuestos gestionados según cotización (modalidad DDP).",
@@ -814,10 +825,14 @@ export const HERO = {
     "Inspección sin costo +20 CBM",
     "Equipo propio en Yiwu & Valencia",
   ],
-  /** Badge circular sobre el contenedor — "360°" = cobertura, no rotación literal */
+  /**
+   * Badge circular sobre el contenedor — ícono de bucle + "De China a tu puerta"
+   * = el ciclo completo puerta a puerta. Reemplaza el "360°" abstracto que no
+   * comunicaba nada (2026-06-13). El ciclo de 4 pasos se explica en HowWeWork.
+   */
   badge: {
-    main: "360°",
-    sub: "Puerta a puerta",
+    line1: "Puerta a puerta",
+    line2: "China → Venezuela",
   },
 } as const;
 
@@ -832,14 +847,15 @@ export const STATS = [
     // China → América Latina.
     num: "18",
     suffix: "AÑOS",
-    label: "De experiencia desde 2008",
+    label: "En el comercio con China desde 2008",
   },
   {
-    // 11 años de respaldo específico en Venezuela (desde la expansión 2015
-    // al corredor VE con DTD Services).
-    num: "11",
-    suffix: "AÑOS",
-    label: "Nos respaldan en Venezuela",
+    // Hito de expansión a Venezuela (2015 · DTD Services LCL). Se muestra como
+    // AÑO (no "AÑOS") para no repetir el formato de la cifra de China de arriba
+    // — evita la doble antigüedad contigua que confundia (auditoria ui-ux).
+    num: "2015",
+    suffix: "",
+    label: "Operando en Venezuela",
   },
   {
     num: "24",
@@ -862,24 +878,24 @@ export const STATS = [
 export const STEPS: { n: string; title: string; copy: string; tag?: string }[] = [
   {
     n: "01",
-    title: "Cotiza por CBM",
+    title: "Cotiza",
     tag: "Puerta a puerta · DDP",
-    copy: "Envíanos el link de Alibaba o la ficha. Te cotizamos por volumen (CBM), modalidad DDP: todo incluido. Estimación inicial en ~24h hábiles, sujeta a volumen y peso reales.",
+    copy: "Calcula tu envío por CBM en segundos —modalidad DDP, todo incluido— o pídelo por WhatsApp. Estimación al instante.",
   },
   {
     n: "02",
-    title: "Inspección",
-    copy: "Nuestro equipo en China visita fábrica, audita calidad y envía reporte fotográfico.",
+    title: "Pre-alerta · MARKBOX",
+    copy: "Te registras y recibes tu MARKBOX — tu proveedor en China lo escribe en cada caja antes de despachar.",
   },
   {
     n: "03",
-    title: "Consolidamos",
-    copy: "Recogemos en fábrica, consolidamos en depósito Yiwu o Shenzhen y embarcamos.",
+    title: "Recibimos",
+    copy: "Tu carga llega a nuestra bodega propia en Yiwu, identificada por tu MARKBOX. La revisamos y la consolidamos.",
   },
   {
     n: "04",
     title: "Entregamos",
-    copy: "Aduana e impuestos a nuestro nombre. Entregamos en tu puerta con factura final.",
+    copy: "Aduana e impuestos a nuestro nombre. Te llega puerta a puerta en Venezuela, con factura final — y vuelves a pedir.",
   },
 ];
 
@@ -1007,9 +1023,40 @@ export const YIWU_ADVANTAGES: YiwuAdvantage[] = [
 // ──────────────────────────────────────────────────────────────────
 
 export const PHILOSOPHY = {
-  headline: "Confía en los que ya\nrecorrieron el camino.",
-  body: "Construimos nuestra reputación cliente a cliente. Sin campañas ruidosas, sin promesas exageradas: paso a paso, contenedor a contenedor. La confianza que nuestros clientes depositan en nosotros es nuestro principal canal de crecimiento.",
-  pull: "El boca a boca nos ha mantenido sólidos y constantes en el mercado. No necesitamos tanta bulla cuando los resultados hablan por sí solos.",
+  headline: "Confía en quienes ya\nrecorrieron el camino.",
+  body: [
+    "Importar desde China no debería sentirse como un salto al vacío. En DTD Cargo recorrimos esta ruta cliente a cliente, caja a caja y contenedor a contenedor.",
+    "Coordinamos recepción en China, inspección, consolidación, aduana, impuestos y entrega final en Venezuela con un solo equipo responsable. Por eso no prometemos magia: te damos proceso, trazabilidad y acompañamiento real.",
+    "Nuestra reputación se construyó con resultados. Sin campañas ruidosas, sin promesas exageradas: solo operaciones bien ejecutadas, carga identificada desde origen y clientes que vuelven.",
+  ],
+  pull: "La confianza no se promete. Se construye en cada envío.",
+  /**
+   * 4 razones — se renderizan con el patrón de tarjeta de <HowWeWork />.
+   * `kicker` cumple el rol del índice "01 / 04" de HowWeWork (acento wine en
+   * Archivo Black); el de MARKBOX va en 唛头 (Noto Sans SC vía fallback de la pila).
+   */
+  cards: [
+    {
+      kicker: "EXPERIENCIA",
+      title: "En la ruta desde 2010",
+      copy: "Conocemos la ruta China → Venezuela desde dentro: compras, fábrica, bodega, aduana y entrega final. (En el comercio con China desde 2008.)",
+    },
+    {
+      kicker: "DOS BASES",
+      title: "Equipo en Yiwu y Valencia",
+      copy: "Operamos en ambos extremos: recepción y consolidación en China, nacionalización y última milla en Venezuela.",
+    },
+    {
+      kicker: "唛头",
+      title: "MARKBOX desde origen",
+      copy: "Cada caja se identifica desde China con tu MARKBOX —tu shipping mark (marca de envío / 唛头) personalizado— para reducir errores y mezclas.",
+    },
+    {
+      kicker: "TRAZABILIDAD",
+      title: "Tracking etapa por etapa",
+      copy: "Sigue tu carga desde la recepción en China hasta la entrega final en Venezuela.",
+    },
+  ],
   cta: "Deja que nuestra experiencia sea tu mayor tranquilidad.",
 } as const;
 

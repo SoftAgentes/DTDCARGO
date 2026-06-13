@@ -15,6 +15,10 @@ const TOPICS = [
   { v: "otro", l: "Otro" },
 ];
 
+// Campo trampa anti-bot (honeypot): un humano nunca lo llena; el API route
+// descarta el envío si llega no-vacío. Mismo nombre que el del registro.
+const HONEYPOT_FIELD = "empresa_web";
+
 type LeadData = {
   topic: string;
   topicLabel: string;
@@ -53,17 +57,25 @@ export function ContactoForm() {
       whatsapp: String(fd.get("whatsapp") ?? "").trim(),
       mensaje: String(fd.get("mensaje") ?? "").trim(),
     };
+    const code = `DTD-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    const honeypot = String(fd.get(HONEYPOT_FIELD) ?? "");
 
+    // Captación server-side (best-effort): el equipo recibe el lead por email +
+    // el cliente una confirmación. Aunque falle, igual mostramos la pantalla de
+    // WhatsApp — el fallback nunca pierde al lead que sí escribe.
     try {
-      // MOCK — sustituir por fetch('/api/contact', { method: 'POST', body: JSON.stringify(captured) })
-      // cuando Resend esté configurado.
-      await new Promise((r) => setTimeout(r, 700));
-      setLeadData(captured);
-      setLeadId(`DTD-${Date.now().toString(36).toUpperCase().slice(-6)}`);
-      setStatus("success");
+      await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...captured, code, [HONEYPOT_FIELD]: honeypot }),
+      });
     } catch {
-      setStatus("error");
+      // best-effort: seguimos al WhatsApp igual.
     }
+
+    setLeadData(captured);
+    setLeadId(code);
+    setStatus("success");
   }
 
   if (status === "success" && leadData) {
@@ -103,8 +115,7 @@ export function ContactoForm() {
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn mt-6 inline-flex items-center justify-center gap-2 w-full sm:w-auto"
-          style={{ background: "#25D366", color: "white" }}
+          className="btn mt-6 inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-whatsapp text-white"
         >
           <WhatsAppIcon size={20} />
           Enviar por WhatsApp
@@ -129,11 +140,21 @@ export function ContactoForm() {
         Escríbenos
       </h2>
 
+      {/* Honeypot anti-bot: oculto para humanos; si llega lleno, el backend lo descarta. */}
+      <input
+        type="text"
+        name={HONEYPOT_FIELD}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="hidden"
+      />
+
       <Field label="¿Sobre qué tema?">
         <select
           name="topic"
           required
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
         >
           {TOPICS.map((t) => (
             <option key={t.v} value={t.v}>
@@ -147,8 +168,9 @@ export function ContactoForm() {
         <input
           name="nombre"
           required
+          autoComplete="name"
           placeholder="Nombre y apellido"
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
         />
       </Field>
 
@@ -158,16 +180,19 @@ export function ContactoForm() {
             type="email"
             name="email"
             required
+            autoComplete="email"
             placeholder="tu@email.com"
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
           />
         </Field>
         <Field label="WhatsApp">
           <input
             type="tel"
             name="whatsapp"
+            required
+            autoComplete="tel"
             placeholder="+58 412 ..."
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
           />
         </Field>
       </div>
@@ -177,8 +202,13 @@ export function ContactoForm() {
           name="mensaje"
           required
           rows={4}
+          onInput={(e) => {
+            const t = e.currentTarget;
+            t.style.height = "auto";
+            t.style.height = `${t.scrollHeight}px`;
+          }}
           placeholder="Cuéntanos qué necesitas. Si es un envío, pega el link del producto o describe volumen y peso."
-          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none"
+          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none focus:ring-2 focus:ring-wine/40 overflow-hidden"
         />
       </Field>
 

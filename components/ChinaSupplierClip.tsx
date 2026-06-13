@@ -2,22 +2,23 @@
 
 import { useState } from "react";
 import { CONTACT, FONT_MONO } from "@/lib/design-tokens";
+import { FlagCN } from "@/components/Icon";
 
 /**
  * China Supplier Clip — texto pre-formateado para que el cliente lo copie y
  * pegue en WeChat al hablar con su proveedor chino. Origen: brand book
- * § Registro de cliente · Shipping Mark.
+ * § Registro de cliente · MARKBOX (Shipping Mark).
  *
  * Incluye:
  * - Dirección de bodega en caracteres chinos (义乌)
  * - Teléfono del encargado de bodega (林冠 / Lin Guan)
  * - Horario de recepción
- * - Código Shipping Mark del cliente (formato DTD-XXXX)
+ * - Código MARKBOX (Shipping Mark) del cliente (formato DTD-XXXX)
  *
  * El proveedor chino lee este texto en WeChat y sabe exactamente dónde
  * entregar la carga y cómo marcarla con el código que identifica al cliente.
  *
- * Shipping Mark: código único del cliente generado al alta. Sistema de identificación
+ * MARKBOX (Shipping Mark): código único del cliente generado al alta. Sistema de identificación
  * end-to-end (cotizaciones, embarques, facturación, tracking). Mientras el ERP
  * no tenga el flujo de alta listo, el input acepta el código manualmente o usa
  * `DTD-XXXX` como placeholder visible.
@@ -51,7 +52,7 @@ export function ChinaSupplierClip() {
           className="eyebrow"
           style={{ color: "rgba(255,255,255,0.5)" }}
         >
-          🇨🇳 Para tu proveedor en China
+          <FlagCN size={16} /> Para tu proveedor en China
         </div>
         <h3
           className="mt-3 text-[22px] leading-[1.15] tracking-[-0.01em]"
@@ -61,7 +62,7 @@ export function ChinaSupplierClip() {
         </h3>
         <p className="mt-2 text-[13.5px] text-white/65 leading-[1.5] max-w-[42ch]">
           Tu proveedor en China lee esto y entiende dónde entregar la carga
-          y cómo marcarla con tu código Shipping Mark.
+          y cómo marcarla con tu código MARKBOX.
         </p>
       </div>
 
@@ -70,7 +71,7 @@ export function ChinaSupplierClip() {
           htmlFor="markbox-input"
           className="text-[11px] tracking-[0.12em] uppercase text-white/55"
         >
-          Tu código Shipping Mark (opcional)
+          Tu código MARKBOX (opcional)
         </label>
         <input
           id="markbox-input"
@@ -81,7 +82,7 @@ export function ChinaSupplierClip() {
           maxLength={50}
           className="h-11 px-3.5 rounded-[8px] bg-white/10 border border-white/15 outline-none text-[14px] font-semibold tracking-[0.04em] text-white placeholder:text-white/30 focus:border-wine-soft"
           style={{ fontFamily: FONT_MONO }}
-          aria-label="Código Shipping Mark del cliente"
+          aria-label="Código MARKBOX del cliente"
         />
       </div>
 
@@ -105,10 +106,10 @@ export function ChinaSupplierClip() {
       </button>
 
       <p className="text-[12px] text-white/45 leading-[1.5]">
-        ¿No tienes Shipping Mark todavía?{" "}
+        ¿No tienes MARKBOX todavía?{" "}
         <a
           href={`https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
-            "Hola DTD Cargo, quiero registrarme y obtener mi código Shipping Mark."
+            "Hola DTD Cargo, quiero registrarme y obtener mi código MARKBOX."
           )}`}
           target="_blank"
           rel="noopener noreferrer"

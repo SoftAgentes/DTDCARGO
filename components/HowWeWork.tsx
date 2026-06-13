@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { STEPS, buildWhatsAppLink } from "@/lib/design-tokens";
-import { ArrowIcon } from "./Icon";
+import { ArrowIcon, LoopIcon } from "./Icon";
 
 /**
  * Sección "Cómo trabajamos" — 4 pasos en grid.
@@ -13,14 +14,14 @@ export function HowWeWork() {
           <div>
             <span className="eyebrow">Cómo trabajamos</span>
             <h2 className="h-section mt-4">
-              De la cotización
+              De China a tu puerta,
               <br />
-              a la entrega firmada.
+              en cuatro pasos.
             </h2>
           </div>
-          <p className="lead max-w-[36ch]">
-            Un equipo asignado por cuenta, sin call centers ni handoffs.
-            Cuatro pasos, una persona responsable.
+          <p className="lead max-w-[38ch]">
+            Tú cotizas y pre-alertas; nosotros recibimos y entregamos — con un
+            solo equipo responsable, sin call centers ni handoffs.
           </p>
         </div>
 
@@ -50,27 +51,40 @@ export function HowWeWork() {
                   {s.tag}
                 </div>
               )}
-              <p className="text-[14px] leading-[1.55] text-grey-500">
+              <p className="text-[14px] leading-[1.55] text-grey-700">
                 {s.copy}
               </p>
             </div>
           ))}
         </div>
 
-        {/* CTA al final del proceso — momento de máxima intención del scroll */}
-        <div className="mt-14 text-center">
-          <a
-            href={buildWhatsAppLink(
-              "Hola DTD Cargo, quiero cotizar mi primer envío desde China a Venezuela. ¿Pueden ayudarme con el proceso completo?"
-            )}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="btn btn-primary"
-          >
-            Cotiza tu primer envío <ArrowIcon />
-          </a>
-          <p className="mt-3 text-[13px] text-grey-500">
-            Respuesta humana por WhatsApp. Sin compromiso.
+        {/* Cierre del bucle: el ciclo se repite (recompra) — "de China a tu puerta, una y otra vez". */}
+        <div className="mt-12 flex items-center justify-center gap-2.5 text-center">
+          <LoopIcon size={18} className="text-wine flex-shrink-0" />
+          <p className="text-[14px] leading-[1.5] text-grey-700">
+            Cuando la recibes, vuelves a pedir —{" "}
+            <strong className="text-ink">de China a tu puerta, una y otra vez.</strong>
+          </p>
+        </div>
+
+        {/* CTA — momento de máxima intención del scroll. Primario: /calculadora. */}
+        <div className="mt-8 text-center">
+          <Link href="/calculadora" className="btn btn-primary">
+            Cotizar mi envío <ArrowIcon />
+          </Link>
+          <p className="mt-3 text-[13px] text-grey-700">
+            Estimación al instante, sin registro — o{" "}
+            <a
+              href={buildWhatsAppLink(
+                "Hola DTD Cargo, quiero cotizar mi envío de China a Venezuela. ¿Pueden ayudarme?"
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-wine hover:text-wine-deep underline underline-offset-2 decoration-1"
+            >
+              escríbenos por WhatsApp
+            </a>
+            .
           </p>
         </div>
       </div>

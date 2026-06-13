@@ -91,7 +91,7 @@ export default async function NoticiasPage() {
                 className="mt-4 text-[24px] lg:text-[28px] leading-[1.15] tracking-[-0.01em] text-white"
                 style={{ fontFamily: "var(--font-archivo-black)" }}
               >
-                Recibí las novedades por WhatsApp.
+                Recibe las novedades por WhatsApp.
               </h3>
               <p className="mt-3 text-[14.5px] text-white/70 leading-[1.55] max-w-[48ch] mx-auto">
                 Te avisamos cuando publicamos guías nuevas, cambios en aduana o

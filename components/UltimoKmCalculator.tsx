@@ -12,6 +12,7 @@ import {
 } from "@/lib/data/tarifas-terrestres-vzla";
 import { calcularFleteTerrestre } from "@/lib/calc/fleteTerrestre";
 import { DecimalInput } from "@/components/DecimalInput";
+import { TruckIcon, WarningIcon } from "@/components/Icon";
 import { CONFIG } from "@/lib/calculadora";
 
 /**
@@ -77,7 +78,7 @@ export function UltimoKmCalculator() {
     <div>
       <div className="flex items-baseline justify-between mb-4">
         <span className="eyebrow inline-flex">
-          <span className="mr-1.5">🚛</span> Último km en Venezuela
+          <TruckIcon size={14} /> Último km en Venezuela
         </span>
         <span className="text-[11.5px] text-grey-500">Estimación referencial · DTD Cargo</span>
       </div>
@@ -132,7 +133,7 @@ export function UltimoKmCalculator() {
           <select
             value={origen}
             onChange={(e) => setOrigen(e.target.value as Origen)}
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
           >
             {ORIGENES_DISPONIBLES.map((o) => (
               <option key={o} value={o}>
@@ -150,7 +151,7 @@ export function UltimoKmCalculator() {
           <select
             value={destino}
             onChange={(e) => setDestinoPicked(e.target.value)}
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
           >
             {destinos.map((d) => (
               <option key={d} value={d}>
@@ -220,8 +221,8 @@ export function UltimoKmCalculator() {
       >
         {hayError ? (
           <div>
-            <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-wine mb-1">
-              ⚠️ No se puede calcular
+            <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-wine mb-1 flex items-center gap-1.5">
+              <WarningIcon size={13} /> No se puede calcular
             </div>
             <p className="text-[14px] text-ink/80">{resultado.error}</p>
           </div>
@@ -273,13 +274,8 @@ export function UltimoKmCalculator() {
                   <DetailRow label="Tramo tarifa" value={resultado.tramoAplicado} />
                 )}
                 {!resultado.esSobre && (
-                  <>
-                    <DetailRow label="Tarifa base USD/kg" value={`${resultado.tarifaBaseUsdKg.toFixed(3)}`} />
-                    <DetailRow
-                      label="Tarifa DTD (+15%) USD/kg"
-                      value={`${resultado.tarifaDtdUsdKg.toFixed(3)}`}
-                    />
-                  </>
+                  // Tarifa final por kg (sin exponer la base ni el margen interno al cliente).
+                  <DetailRow label="Tarifa USD/kg" value={`${resultado.tarifaDtdUsdKg.toFixed(3)}`} />
                 )}
                 <DetailRow label="Flete base" value={`USD ${resultado.fleteBaseUsd.toFixed(2)}`} />
                 {resultado.descuentoCascoUsd > 0 && (
@@ -312,7 +308,10 @@ export function UltimoKmCalculator() {
                 }}
               >
                 {resultado.warning && (
-                  <div className="font-semibold mb-1">⚠️ {resultado.warning}</div>
+                  <div className="font-semibold mb-1 flex items-start gap-1.5">
+                    <WarningIcon size={14} className="flex-shrink-0 mt-0.5" />
+                    <span>{resultado.warning}</span>
+                  </div>
                 )}
                 {resultado.notaCasco && (
                   <div>

@@ -8,8 +8,8 @@ import { CONTACT, FONT_MONO } from "@/lib/design-tokens";
  * con botón "copiar" por cada valor (el chino se pega TAL CUAL, sin traducir).
  *
  * Fuente única de la dirección: CONTACT.cn en lib/design-tokens.ts (F2 —
- * dirección única de bodega). El cliente escribe su Shipping Mark y el campo
- * Destinatario se arma solo; sin Shipping Mark la caja llega a la bodega pero
+ * dirección única de bodega). El cliente escribe su MARKBOX (shipping mark) y
+ * el campo Destinatario se arma solo; sin MARKBOX la caja llega a la bodega pero
  * no se puede identificar de quién es — por eso el botón de Destinatario NO
  * copia el placeholder DTD-XXXX: enfoca el input y pide el mark real.
  */
@@ -46,7 +46,7 @@ export function AlibabaAddressGuide() {
       labelCjk: "收货人",
       label: "Destinatario",
       value: `DTD Cargo - ${markOrPlaceholder}`,
-      hint: "Tu Shipping Mark va al final — sin él no podemos saber que la caja es tuya.",
+      hint: "Tu MARKBOX va al final — sin él no podemos saber que la caja es tuya.",
     },
     {
       id: "telefono",
@@ -123,7 +123,7 @@ export function AlibabaAddressGuide() {
 
   return (
     <div className="card-shadow-static rounded-[18px] border border-grey-200 bg-white overflow-hidden">
-      {/* Input del Shipping Mark — arma el campo Destinatario en vivo */}
+      {/* Input del MARKBOX (shipping mark) — arma el campo Destinatario en vivo */}
       <div
         className="p-5 lg:p-6 border-b border-grey-200"
         style={{ background: "var(--color-paper)" }}
@@ -132,7 +132,7 @@ export function AlibabaAddressGuide() {
           htmlFor="guide-shipping-mark"
           className="block text-[11px] tracking-[0.12em] uppercase font-semibold text-grey-700"
         >
-          Tu Shipping Mark (opcional)
+          Tu MARKBOX (opcional)
         </label>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <input
@@ -144,7 +144,7 @@ export function AlibabaAddressGuide() {
             maxLength={50}
             className="h-11 w-[180px] px-3.5 rounded-[8px] bg-white border border-grey-200 outline-none text-[14px] font-semibold tracking-[0.04em] text-ink placeholder:text-grey-700/55 focus:border-wine focus-visible:ring-2 focus-visible:ring-wine-soft"
             style={{ fontFamily: FONT_MONO }}
-            aria-label="Tu código Shipping Mark"
+            aria-label="Tu código MARKBOX"
           />
           <p className="text-[12.5px] leading-[1.5] text-grey-700 max-w-[40ch]">
             Escríbelo y el campo Destinatario se arma solo.{" "}
@@ -200,7 +200,7 @@ export function AlibabaAddressGuide() {
                 aria-live="polite"
                 aria-label={
                   missingMark
-                    ? "Escribe tu Shipping Mark primero"
+                    ? "Escribe tu MARKBOX primero"
                     : copiedField === f.id
                       ? `${f.label}: copiado`
                       : `Copiar ${f.label}`
@@ -228,9 +228,9 @@ export function AlibabaAddressGuide() {
       >
         <p className="m-0 text-[13px] leading-[1.55] text-grey-700">
           <strong className="text-ink">Importante:</strong> en el formulario de
-          Alibaba el destinatario lleva «DTD Cargo + tu Shipping Mark», pero en
+          Alibaba el destinatario lleva «DTD Cargo + tu MARKBOX», pero en
           el <strong className="text-ink">rótulo físico de la caja</strong> va
-          SOLO tu Shipping Mark — sin tu nombre, dirección ni teléfono personal
+          SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal
           (los datos personales en la caja causan confusión o decomiso).
         </p>
       </div>

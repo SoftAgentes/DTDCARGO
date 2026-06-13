@@ -10,8 +10,10 @@ import {
   SERVICES_OWNERSHIP,
   INCOTERMS,
   buildWhatsAppLink,
+  FONT_MONO,
 } from "@/lib/design-tokens";
 import { ServiciosDetalle } from "@/components/ServiciosDetalle";
+import { jetbrainsMono } from "@/lib/fonts";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import {
@@ -85,7 +87,9 @@ export default function ServiciosPage() {
           { name: "Servicios", path: "/servicios" },
         ]}
       />
-      <main>
+      {/* jetbrainsMono.variable monta --font-mono (JetBrains) para que los
+          códigos Incoterm (FONT_MONO) rendericen en la mono de marca. */}
+      <main className={jetbrainsMono.variable}>
         {/* Hero */}
         <section className="py-16 lg:py-24 bg-paper">
           <div className="wrap">
@@ -443,9 +447,6 @@ function IncotermPill({
   term: (typeof INCOTERMS)[number];
   variant: "principal" | "secondary";
 }) {
-  const monoFont =
-    "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
-
   return (
     <button
       type="button"
@@ -456,7 +457,7 @@ function IncotermPill({
         <span className="flex flex-col items-start px-3.5 py-2 rounded-[8px] bg-wine text-white">
           <span
             className="text-[14px] font-extrabold tracking-[0.06em]"
-            style={{ fontFamily: monoFont }}
+            style={{ fontFamily: FONT_MONO }}
           >
             {term.code}
           </span>
@@ -467,7 +468,7 @@ function IncotermPill({
       ) : (
         <span
           className="inline-block px-2.5 py-1.5 rounded-[6px] bg-grey-100 text-grey-700 text-[12px] font-bold tracking-[0.06em]"
-          style={{ fontFamily: monoFont }}
+          style={{ fontFamily: FONT_MONO }}
         >
           {term.code}
         </span>
@@ -477,7 +478,7 @@ function IncotermPill({
       <span
         role="tooltip"
         aria-hidden="true"
-        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+10px)] w-[240px] p-3.5 rounded-[10px] bg-ink text-left opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus-visible:opacity-100 group-focus-visible:visible transition-all duration-200 z-[60] shadow-[0_24px_48px_-12px_rgba(15,30,61,0.45)]"
+        className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-[calc(100%+10px)] w-[240px] p-3.5 rounded-[10px] bg-ink text-left opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible transition-all duration-200 z-[60] shadow-[0_24px_48px_-12px_rgba(15,30,61,0.45)]"
       >
         <span className="block font-bold text-[12.5px] text-white mb-1.5">
           {term.name}

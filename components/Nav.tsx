@@ -10,8 +10,6 @@ const links = [
   { href: "/servicios", label: "Servicios", hasCaret: true },
   { href: "/calculadora", label: "Calculadora" },
   { href: "/#how", label: "Cómo trabajamos" },
-  { href: "/glosario", label: "Glosario" },
-  { href: "/noticias", label: "Noticias" },
 ];
 
 /** Selector de elementos enfocables para focus trap (WCAG 2.4.3) */
@@ -122,7 +120,7 @@ export function Nav() {
   return (
     <>
       <nav
-        className="sticky top-0 z-50 border-b border-grey-200"
+        className="site-nav sticky top-0 z-50 border-b border-grey-200"
         style={{
           background: "rgba(251,250,247,0.92)",
           backdropFilter: "blur(14px)",
@@ -140,11 +138,10 @@ export function Nav() {
             <BrandMark asLink size={38} />
           </span>
 
-          {/* Desktop nav: full horizontal solo en xl+ (1280px). Por debajo el
-              contenido (6 links + Acceder + CTA + logo) no entra en el ancho
-              útil de .wrap (maxw 1280 → ~1160px usables) y se montaba sobre el
-              logo → usamos el drawer hamburguesa hasta xl. */}
-          <div className="hidden xl:flex items-center gap-x-4">
+          {/* Desktop nav: full horizontal desde lg (1024px). 4 links + Acceder +
+              CTA + logo entran cómodos; por debajo de lg va el drawer hamburguesa.
+              (Glosario y Noticias viven en el footer — SDD auditoría ui-ux.) */}
+          <div className="hidden lg:flex items-center gap-x-3">
             {links.map((l) => {
               const active = isLinkActive(pathname, l.href);
               return (
@@ -171,13 +168,13 @@ export function Nav() {
             >
               Acceder
             </Link>
-            <Link href="/contacto" className="btn btn-primary whitespace-nowrap">
+            <Link href="/contacto" className="btn btn-ghost whitespace-nowrap">
               Contáctanos
             </Link>
           </div>
 
-          {/* Mobile + tablet + laptop angosto: hamburger + Contacto (<xl = <1280px) */}
-          <div className="xl:hidden flex items-center gap-2">
+          {/* Mobile + tablet: hamburger + Contacto (<lg = <1024px) */}
+          <div className="lg:hidden flex items-center gap-2">
             <button
               ref={hamburgerRef}
               type="button"
@@ -215,7 +212,7 @@ export function Nav() {
       <div
         onClick={close}
         aria-hidden
-        className={`xl:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${
+        className={`lg:hidden fixed inset-0 z-[60] transition-opacity duration-300 ${
           open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
         }`}
         style={{ background: "rgba(15,30,61,0.45)" }}
@@ -229,7 +226,7 @@ export function Nav() {
         aria-modal="true"
         aria-label="Menú de navegación"
         aria-hidden={!open}
-        className={`xl:hidden fixed top-0 right-0 bottom-0 z-[70] w-[82vw] max-w-[360px] bg-paper flex flex-col transition-transform duration-300 ease-out ${
+        className={`lg:hidden fixed top-0 right-0 bottom-0 z-[70] w-[82vw] max-w-[360px] bg-paper flex flex-col transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "translate-x-full"
         }`}
         style={{

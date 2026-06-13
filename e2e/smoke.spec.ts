@@ -14,9 +14,9 @@ test.describe("rutas públicas críticas", () => {
     // Brand book: "DTD Cargo" (dos palabras, Cargo capitalizado). Antes era
     // "DTD·CARGO" (con middot, CARGO todo mayúsculas).
     await expect(page).toHaveTitle(/DTD\s+Cargo/);
-    // Tagline: "Con Confianza, de China a tu puerta." (C mayúscula, 2026-06-05).
-    await expect(page.locator("h1")).toContainText("Con Confianza");
-    await expect(page.locator("h1")).toContainText("de China a tu puerta");
+    // H1 = tagline-headline (founder 2026-06-13): "Con confianza, desde China hacia Venezuela."
+    await expect(page.locator("h1")).toContainText("Con confianza");
+    await expect(page.locator("h1")).toContainText("Venezuela");
     // El cotizador del hero sigue mencionando China.
     await expect(page.locator("body")).toContainText(/China|Yiwu|cotizar/i);
   });

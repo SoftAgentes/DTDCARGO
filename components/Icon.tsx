@@ -5,12 +5,27 @@
 
 type IconProps = { className?: string; size?: number };
 
-const base = { fill: "none", stroke: "currentColor", strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+// `aria-hidden` por defecto: los iconos son decorativos y van junto a texto;
+// los pocos icon-only viven dentro de botones/enlaces con su propio aria-label.
+const base = { fill: "none", stroke: "currentColor", strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true };
 
 export function ArrowIcon({ className, size = 16 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className}>
       <path d="M5 12h14M13 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+/** Bucle / ciclo continuo (dos flechas en círculo). Para el badge del hero y
+ *  el cierre de "Cómo trabajamos" — "de China a tu puerta, una y otra vez". */
+export function LoopIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className} aria-hidden>
+      <path d="M4 12a8 8 0 0 1 13.7-5.6L20 8" />
+      <path d="M20 3.5v4.5h-4.5" />
+      <path d="M20 12a8 8 0 0 1-13.7 5.6L4 16" />
+      <path d="M4 20.5V16h4.5" />
     </svg>
   );
 }
@@ -75,6 +90,16 @@ export function TruckIcon({ className, size = 28 }: IconProps) {
       <path d="M19 13h6l4 4v4h-10z" />
       <circle cx="9" cy="24" r="3" />
       <circle cx="23" cy="24" r="3" />
+    </svg>
+  );
+}
+
+export function WarningIcon({ className, size = 18 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className}>
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
     </svg>
   );
 }
@@ -179,7 +204,7 @@ export function DocIcon({ className, size = 28 }: IconProps) {
 
 export function QuoteIcon({ className, size = 32 }: IconProps) {
   return (
-    <svg viewBox="0 0 32 32" width={size} height={size} fill="currentColor" className={className}>
+    <svg viewBox="0 0 32 32" width={size} height={size} fill="currentColor" className={className} aria-hidden>
       <path d="M9 9c-3 0-5 2.5-5 5.5S6 20 9 20c-1 4-4 5-4 5l1 2c2-1 8-3 8-12.5 0-3.5-2-5.5-5-5.5zm14 0c-3 0-5 2.5-5 5.5s2 5.5 5 5.5c-1 4-4 5-4 5l1 2c2-1 8-3 8-12.5 0-3.5-2-5.5-5-5.5z" />
     </svg>
   );
@@ -267,7 +292,7 @@ export function MapPinIcon({ className, size = 14 }: IconProps) {
 
 export function WhatsAppIcon({ className, size = 22 }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className}>
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className={className} aria-hidden>
       <path d="M17.5 14.4c-.3-.15-1.78-.88-2.06-.98-.27-.1-.47-.15-.67.15-.2.3-.77.98-.95 1.18-.17.2-.35.22-.65.07-.3-.15-1.26-.46-2.4-1.48-.89-.79-1.49-1.77-1.66-2.07-.17-.3-.02-.46.13-.61.13-.13.3-.35.45-.52.15-.17.2-.3.3-.5.1-.2.05-.37-.02-.52-.07-.15-.67-1.62-.92-2.22-.24-.58-.49-.5-.67-.51-.17-.01-.37-.01-.57-.01-.2 0-.52.07-.79.37-.27.3-1.04 1.02-1.04 2.49 0 1.47 1.07 2.89 1.22 3.09.15.2 2.1 3.21 5.09 4.5.71.31 1.26.49 1.69.63.71.22 1.36.19 1.87.12.57-.08 1.78-.73 2.03-1.43.25-.7.25-1.3.17-1.43-.08-.13-.27-.2-.57-.35zM12.05 21.5h-.03c-1.84 0-3.65-.49-5.23-1.43L6.4 20l-3.85 1.01 1.03-3.76-.25-.4a8.45 8.45 0 0 1-1.3-4.5c0-4.67 3.8-8.47 8.48-8.47 2.27 0 4.4.88 6 2.49 1.6 1.6 2.48 3.73 2.48 6-.01 4.67-3.8 8.47-8.49 8.47zm7.22-15.7A10.1 10.1 0 0 0 12.05 3C6.46 3 1.9 7.55 1.9 13.13c0 1.78.47 3.52 1.35 5.06L1.83 23l4.92-1.29a10.13 10.13 0 0 0 4.84 1.23h.01c5.6 0 10.15-4.55 10.15-10.13 0-2.7-1.05-5.25-2.97-7.16z" />
     </svg>
   );

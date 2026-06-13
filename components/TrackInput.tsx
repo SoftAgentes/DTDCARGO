@@ -11,22 +11,31 @@ export function TrackInput({ defaultValue = "" }: { defaultValue?: string }) {
   function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const clean = code.trim().toUpperCase();
-    if (clean) router.push(`/track/${encodeURIComponent(clean)}`);
+    // Sin código → mostramos un envío de EJEMPLO (demo) en vez de no hacer nada,
+    // así el visitante curioso ve cómo se ve el rastreo (no un 404).
+    router.push(`/track/${encodeURIComponent(clean || "EJEMPLO")}`);
   }
 
   return (
     <form
       onSubmit={onSubmit}
-      className="flex bg-white rounded-[12px] overflow-hidden max-w-[520px]"
+      className="flex items-stretch bg-white rounded-[12px] overflow-hidden max-w-[520px] focus-within:ring-2 focus-within:ring-wine/40"
     >
       <input
         value={code}
         onChange={(e) => setCode(e.target.value)}
         placeholder="BL / AWB / DTDU"
         aria-label="Código de tracking"
+        autoCapitalize="characters"
+        autoCorrect="off"
+        spellCheck={false}
         className="flex-1 border-0 outline-none bg-transparent px-5 h-14 text-[16px] font-semibold tracking-[0.04em] text-ink placeholder:text-grey-500 uppercase"
       />
-      <button type="submit" className="btn btn-primary rounded-none h-14 px-6">
+      <button
+        type="submit"
+        className="btn btn-primary rounded-none px-6"
+        style={{ height: 56 }}
+      >
         Rastrear <ArrowIcon />
       </button>
     </form>

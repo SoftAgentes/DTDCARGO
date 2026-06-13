@@ -21,7 +21,7 @@ import {
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
 const DESCRIPTION =
-  "Logística y trading puerta a puerta China–Venezuela desde 2008. Equipo propio en Yiwu y Valencia. Nuestra historia, misión y valores.";
+  "Logística puerta a puerta China–Venezuela desde 2010, en el comercio con China desde 2008. Equipo propio en Yiwu y Valencia. Nuestra historia, misión y valores.";
 
 export const metadata: Metadata = {
   title: "Sobre Nosotros",

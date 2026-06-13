@@ -29,6 +29,7 @@ export const metadata: Metadata = {
     "casillero en China",
     "bodega en Yiwu",
     "dirección Alibaba bodega",
+    "MARKBOX",
     "Shipping Mark",
   ],
   alternates: { canonical: "/faq" },
@@ -97,8 +98,8 @@ export default function FaqPage() {
             <p className="mt-3 mb-6 text-[14.5px] leading-[1.65] text-grey-700 max-w-[62ch]">
               Copia y pega cada campo tal cual (en chino, sin traducir) en el
               formulario de direcciones de Alibaba — o pásaselo directo a tu
-              proveedor. Con tu Shipping Mark en el destinatario, tu compra
-              queda identificada apenas llega a nuestra bodega de Yiwu.
+              proveedor. Con tu MARKBOX (Shipping Mark) en el destinatario, tu
+              compra queda identificada apenas llega a nuestra bodega de Yiwu.
             </p>
             <AlibabaAddressGuide />
           </div>

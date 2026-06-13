@@ -6,16 +6,12 @@ import { Stats } from "@/components/Stats";
 import { PuertaAPuerta } from "@/components/PuertaAPuerta";
 import { ShippingMark } from "@/components/ShippingMark";
 import { ServicesGrid } from "@/components/ServicesGrid";
-import { YiwuAdvantage } from "@/components/YiwuAdvantage";
-import { WorkBand } from "@/components/WorkBand";
 import { OperationGallery } from "@/components/OperationGallery";
-import { Timeline } from "@/components/Timeline";
 import { HowWeWork } from "@/components/HowWeWork";
-import { TrackingPreview } from "@/components/TrackingPreview";
 import { Philosophy } from "@/components/Philosophy";
-import { JoinCTA } from "@/components/JoinCTA";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { jetbrainsMono } from "@/lib/fonts";
 
 /**
  * Metadata propia del home — usa el `default` del layout pero permite
@@ -32,21 +28,19 @@ export default function HomePage() {
   return (
     <>
       <Nav />
-      <main>
+      {/* jetbrainsMono.variable monta --font-mono (JetBrains) para que FONT_MONO
+          de <ShippingMark/> (el MARKBOX) renderice en la mono de marca, no en
+          mono de sistema. Otras páginas con FONT_MONO lo montan igual. */}
+      <main className={jetbrainsMono.variable}>
         <Hero />
         <TrustBar />
         <Stats />
         <PuertaAPuerta />
         <HowWeWork />
         <ShippingMark />
-        <ServicesGrid />
-        <YiwuAdvantage />
-        <WorkBand />
         <OperationGallery />
-        <Timeline />
-        <TrackingPreview />
+        <ServicesGrid />
         <Philosophy />
-        <JoinCTA />
       </main>
       <Footer />
       <WhatsAppFAB />

@@ -74,10 +74,44 @@ async function getClientIpAsync(): Promise<string | null> {
   }
 }
 
+const DEMO_CODE = "EJEMPLO";
+
+/**
+ * Envío de ejemplo (demo) — se muestra cuando el visitante rastrea SIN código,
+ * para que vea cómo se ve el seguimiento sin tropezar con un 404. No toca la DB.
+ */
+function demoTrack(): Extract<PublicTrackResult, { found: true }> {
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const iso = (d: number) => new Date(now - d * day).toISOString();
+  return {
+    found: true,
+    code: DEMO_CODE,
+    status: "in_transit",
+    shipment_service: "puerta_a_puerta_DDP",
+    origin: "Yiwu, China",
+    destination: "Caracas, Venezuela",
+    weight_kg: 420,
+    volume_m3: 3.2,
+    vehicle_category: null,
+    arrived_destination_at: null,
+    delivered_at: null,
+    pod_signed_by: null,
+    created_at: iso(18),
+    events: [
+      { status: "in_warehouse", note: "Recibido en nuestra bodega de Yiwu, identificado por tu MARKBOX.", occurred_at: iso(16) },
+      { status: "consolidating", note: "Consolidado con el resto de tu carga.", occurred_at: iso(12) },
+      { status: "shipped", note: "Embarcado en el buque hacia Venezuela.", occurred_at: iso(9) },
+      { status: "in_transit", note: "En tránsito marítimo hacia Puerto Cabello.", occurred_at: iso(8) },
+    ],
+  };
+}
+
 export default async function TrackResultPage({ params }: Props) {
   const { code: decoded } = await params;
-  const ip = await getClientIpAsync();
-  const data = await publicTrackShipment(decoded, ip);
+  const isDemo = decoded.trim().toUpperCase() === DEMO_CODE;
+  const ip = isDemo ? null : await getClientIpAsync();
+  const data = isDemo ? demoTrack() : await publicTrackShipment(decoded, ip);
 
   return (
     <>
@@ -105,6 +139,16 @@ export default async function TrackResultPage({ params }: Props) {
             </div>
           </div>
         </section>
+
+        {isDemo && (
+          <div className="wrap pt-8 lg:pt-10">
+            <div className="rounded-[12px] border border-grey-200 bg-paper px-5 py-4 text-[14px] leading-[1.5] text-grey-700">
+              <strong className="text-ink">Esto es un envío de ejemplo.</strong>{" "}
+              Así se ve el seguimiento de tu carga, paso a paso. Ingresa tu código
+              real arriba (BL, AWB o DTDU) para rastrear tu envío.
+            </div>
+          </div>
+        )}
 
         {data.found ? (
           <FoundView data={data} code={decoded} />
