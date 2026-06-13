@@ -89,8 +89,9 @@ export async function notifyNewClientToAdmin(
 
 // ── Internos ────────────────────────────────────────────────────────────────
 
-/** Admins activos del tenant con {user_id, email}. */
-async function resolveAdminEntries(
+/** Admins activos del tenant con {user_id, email}. Exportado: lo reusa
+ *  contact-lead-notify (mismo "avisar al equipo de un lead inbound"). */
+export async function resolveAdminEntries(
   supabaseAdmin: SupabaseClient,
   tenantId: string,
 ): Promise<Array<{ user_id: string; email: string }>> {
@@ -113,8 +114,9 @@ async function resolveAdminEntries(
     .map((u) => ({ user_id: u.id, email: u.email as string }));
 }
 
-/** Telegram a un admin si linkeó su chat. Best-effort, nunca tira. */
-async function sendAdminTelegram(
+/** Telegram a un admin si linkeó su chat. Best-effort, nunca tira. Exportado:
+ *  lo reusa contact-lead-notify. */
+export async function sendAdminTelegram(
   supabaseAdmin: SupabaseClient,
   userId: string,
   text: string,
@@ -178,7 +180,7 @@ function buildTelegramText(p: NewClientNotifyPayload, d: Derived): string {
     .join("\n");
 }
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")

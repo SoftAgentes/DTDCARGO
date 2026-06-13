@@ -1,16 +1,18 @@
 /**
  * Tests de POST /api/contact — captación del lead del formulario de contacto.
  *
- * Cubre las capas ANTES y DURANTE el trabajo pesado (mandar 2 emails vía Resend):
- *   - honeypot lleno → 200 ok benigno SIN admin / throttle / email.
- *   - campos faltantes o email inválido → 400 ANTES de tocar admin/throttle/email.
+ * Cubre las capas ANTES y DURANTE el trabajo pesado:
+ *   - honeypot lleno → 200 ok benigno SIN admin / throttle / notify / email.
+ *   - campos faltantes o email inválido → 400 ANTES de tocar admin/throttle/notify.
  *   - throttle por IP (reusa portal_registro_throttle con namespace "contact:"):
- *       · >= LIMIT → 429 sin email ni insert del intento.
- *       · < LIMIT → registra el intento y manda los 2 emails (equipo + cliente).
+ *       · >= LIMIT → 429 sin notify ni email ni insert del intento.
+ *       · < LIMIT → registra el intento, avisa al equipo (notify) y confirma al
+ *         cliente (email).
  *       · error de lectura → fail-OPEN (no bloquea un contacto legítimo).
  *
- * createAdminClient + sendEmail se mockean — sin red ni DB real. El fake admin
- * registra cada (table, op); el mock de sendEmail registra los destinatarios.
+ * createAdminClient, notifyContactLeadToAdmin (aviso al equipo: email a info@ +
+ * admins + Telegram) y sendEmail (confirmación al cliente) se mockean — sin red
+ * ni DB real.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import type { NextRequest } from "next/server";
@@ -29,6 +31,7 @@ const ops = {
 };
 
 const sentEmails: Array<{ to: string; subject: string }> = [];
+let notifyCalls = 0;
 
 function makeAdmin() {
   function resolveFor(table: string, op: string) {
@@ -78,6 +81,16 @@ vi.mock("@/lib/db/admin", () => ({
   createAdminClient: () => makeAdmin(),
 }));
 
+// Aviso al equipo (email info@ + admins + Telegram) → mockeado: solo contamos
+// que se llamó (su lógica interna se cubre vía new-client-notify, que reusa).
+vi.mock("@/lib/studio/contact-lead-notify", () => ({
+  notifyContactLeadToAdmin: async () => {
+    notifyCalls += 1;
+    return { ok: true };
+  },
+}));
+
+// Confirmación al cliente.
 vi.mock("@/lib/studio/mail/send-email", () => ({
   sendEmail: async (
     _admin: unknown,
@@ -113,21 +126,24 @@ function makeReq(overrides: Record<string, unknown> = {}): NextRequest {
 beforeEach(() => {
   ops.reset();
   sentEmails.length = 0;
+  notifyCalls = 0;
 });
 
 describe("POST /api/contact", () => {
-  it("honeypot lleno → 200 ok benigno SIN admin/throttle/email", async () => {
+  it("honeypot lleno → 200 ok benigno SIN admin/throttle/notify/email", async () => {
     const res = await POST(makeReq({ empresa_web: "http://spam.example" }));
     expect(res.status).toBe(200);
     expect((await res.json()).ok).toBe(true);
+    expect(notifyCalls).toBe(0);
     expect(sentEmails).toHaveLength(0);
     expect(ops.calls.has(`${THROTTLE}:select`)).toBe(false);
     expect(ops.calls.has("tenants:select")).toBe(false);
   });
 
-  it("faltan campos obligatorios → 400 sin tocar throttle ni email", async () => {
+  it("faltan campos obligatorios → 400 sin throttle/notify/email", async () => {
     const res = await POST(makeReq({ whatsapp: "" }));
     expect(res.status).toBe(400);
+    expect(notifyCalls).toBe(0);
     expect(sentEmails).toHaveLength(0);
     expect(ops.calls.has(`${THROTTLE}:select`)).toBe(false);
   });
@@ -135,36 +151,38 @@ describe("POST /api/contact", () => {
   it("email inválido → 400", async () => {
     const res = await POST(makeReq({ email: "no-es-email" }));
     expect(res.status).toBe(400);
+    expect(notifyCalls).toBe(0);
     expect(sentEmails).toHaveLength(0);
   });
 
-  it("en el límite (>= LIMIT) → 429 sin email ni insert del intento", async () => {
+  it("en el límite (>= LIMIT) → 429 sin notify/email ni insert del intento", async () => {
     ops.throttleSelectCount = 8; // == RL_LIMIT
     const res = await POST(makeReq());
     expect(res.status).toBe(429);
+    expect(notifyCalls).toBe(0);
     expect(sentEmails).toHaveLength(0);
     expect(ops.calls.has(`${THROTTLE}:select`)).toBe(true);
     expect(ops.calls.has(`${THROTTLE}:insert`)).toBe(false);
   });
 
-  it("por debajo del límite → registra el intento y manda los 2 emails", async () => {
+  it("por debajo del límite → registra el intento, avisa al equipo y confirma al cliente", async () => {
     ops.throttleSelectCount = 1;
     const res = await POST(makeReq());
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.ok).toBe(true);
     expect(ops.calls.has(`${THROTTLE}:insert`)).toBe(true);
-    // 1º al equipo (casilla general), 2º confirmación al cliente.
-    expect(sentEmails).toHaveLength(2);
-    expect(sentEmails[0].to).toContain("@");
-    expect(sentEmails[1].to).toBe("carlos@empresa.com");
+    expect(notifyCalls).toBe(1); // aviso al equipo
+    expect(sentEmails).toHaveLength(1); // confirmación al cliente
+    expect(sentEmails[0].to).toBe("carlos@empresa.com");
   });
 
-  it("error de lectura del throttle → fail-OPEN (manda igual)", async () => {
+  it("error de lectura del throttle → fail-OPEN (avisa + confirma igual)", async () => {
     ops.throttleSelectError = { message: "boom" };
     ops.throttleSelectCount = 999;
     const res = await POST(makeReq());
     expect(res.status).toBe(200);
-    expect(sentEmails).toHaveLength(2);
+    expect(notifyCalls).toBe(1);
+    expect(sentEmails).toHaveLength(1);
   });
 });

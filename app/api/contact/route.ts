@@ -4,6 +4,7 @@ import { resolveRequestIp } from "@/lib/http/request-ip";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import { apiError } from "@/lib/http/api-error";
+import { notifyContactLeadToAdmin } from "@/lib/studio/contact-lead-notify";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,8 @@ export const runtime = "nodejs";
  * captura el lead server-side SIN debilitar el aislamiento público↔ERP.
  *
  * Hace dos cosas (founder 2026-06-13):
- *   1. Avisa al EQUIPO (casilla general) con el lead → no se pierde aunque el
+ *   1. Avisa al EQUIPO vía notifyContactLeadToAdmin: email a la casilla general
+ *      (info@) + a cada admin + Telegram a los admins → no se pierde aunque el
  *      cliente no toque el botón de WhatsApp.
  *   2. Manda al CLIENTE un email de confirmación ("recibimos tus datos").
  *
@@ -26,8 +28,8 @@ export const runtime = "nodejs";
  * sumará cuando aterrice SDD-0074 (hoy el connector solo tiene el pull
  * Kommo→DTD; el WhatsApp del cliente ya alimenta el CRM por su cuenta).
  *
- * Anti-abuso V1: honeypot (campo trampa oculto del form). Throttle por IP =
- * hardening pendiente (ver portal_registro_throttle como molde).
+ * Anti-abuso: honeypot (campo trampa) + throttle por IP (reusa
+ * portal_registro_throttle con namespace "contact:").
  */
 
 const HONEYPOT_FIELD = "empresa_web";
@@ -153,13 +155,14 @@ export async function POST(req: NextRequest) {
   }
   const tenantId = tenantRow.id;
 
-  // 1. Aviso al EQUIPO con el lead (a la casilla general).
-  const team = await sendEmail(admin, tenantId, {
-    subject: `Nuevo contacto web · ${topicLabel} — ${nombre}`,
-    html: buildTeamHtml({ code, topicLabel, nombre, email, whatsapp, mensaje }),
-    to: CONTACT.emailGeneral,
-    to_name: "Equipo DTD",
-    metadata: { source: "contact-form", code, topic },
+  // 1. Aviso al EQUIPO: email a info@ + cada admin + Telegram a los admins.
+  const team = await notifyContactLeadToAdmin(admin, tenantId, {
+    code,
+    topicLabel,
+    nombre,
+    email,
+    whatsapp,
+    mensaje,
   });
 
   // 2. Confirmación al CLIENTE (best-effort: un fallo acá no rompe la captación).
@@ -179,46 +182,13 @@ export async function POST(req: NextRequest) {
   if (!team.ok) {
     return apiError(
       "No pudimos enviar tu mensaje. Escríbenos por WhatsApp.",
-      team.error,
+      "contact-lead-notify: ningún email salió",
       502,
       "contact",
     );
   }
 
   return NextResponse.json({ ok: true, code });
-}
-
-function buildTeamHtml(p: {
-  code: string;
-  topicLabel: string;
-  nombre: string;
-  email: string;
-  whatsapp: string;
-  mensaje: string;
-}): string {
-  const rows: Array<[string, string]> = [
-    ["Código", p.code],
-    ["Tema", p.topicLabel],
-    ["Nombre", p.nombre],
-    ["Email", p.email],
-    ["WhatsApp", p.whatsapp],
-  ];
-  const trs = rows
-    .map(
-      ([k, v]) =>
-        `<tr><td style="padding:4px 12px 4px 0;color:#6B6B6B;font-size:13px">${escapeHtml(k)}</td><td style="padding:4px 0;color:#0F1E3D;font-size:14px;font-weight:600">${escapeHtml(v)}</td></tr>`,
-    )
-    .join("");
-  return `<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
-<p style="font-size:16px;margin:0 0 4px"><b>Nuevo contacto desde la web</b></p>
-<p style="margin:0 0 16px;color:#6B6B6B;font-size:13px">Llegó por el formulario de /contacto. Escríbele por WhatsApp.</p>
-<table style="border-collapse:collapse;margin:0 0 16px">${trs}</table>
-<p style="margin:0 0 6px;color:#6B6B6B;font-size:13px">Mensaje:</p>
-<p style="margin:0 0 20px;color:#0F1E3D;font-size:14px;line-height:1.5;white-space:pre-wrap">${escapeHtml(p.mensaje)}</p>
-<p style="margin:0 0 12px"><a href="https://wa.me/${CONTACT.ve.whatsappRaw}" style="color:#7F0F1A;text-decoration:underline;font-weight:600">Abrir WhatsApp del CRM &rarr;</a></p>
-<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
-<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · aviso interno automático</p>
-</div>`;
 }
 
 function buildClientHtml(p: {
