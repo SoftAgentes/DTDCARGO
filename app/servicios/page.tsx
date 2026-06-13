@@ -13,6 +13,7 @@ import {
   FONT_MONO,
 } from "@/lib/design-tokens";
 import { ServiciosDetalle } from "@/components/ServiciosDetalle";
+import { jetbrainsMono } from "@/lib/fonts";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
 import {
@@ -86,7 +87,9 @@ export default function ServiciosPage() {
           { name: "Servicios", path: "/servicios" },
         ]}
       />
-      <main>
+      {/* jetbrainsMono.variable monta --font-mono (JetBrains) para que los
+          códigos Incoterm (FONT_MONO) rendericen en la mono de marca. */}
+      <main className={jetbrainsMono.variable}>
         {/* Hero */}
         <section className="py-16 lg:py-24 bg-paper">
           <div className="wrap">

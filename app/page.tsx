@@ -11,6 +11,7 @@ import { HowWeWork } from "@/components/HowWeWork";
 import { Philosophy } from "@/components/Philosophy";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { jetbrainsMono } from "@/lib/fonts";
 
 /**
  * Metadata propia del home — usa el `default` del layout pero permite
@@ -27,7 +28,10 @@ export default function HomePage() {
   return (
     <>
       <Nav />
-      <main>
+      {/* jetbrainsMono.variable monta --font-mono (JetBrains) para que FONT_MONO
+          de <ShippingMark/> (el MARKBOX) renderice en la mono de marca, no en
+          mono de sistema. Otras páginas con FONT_MONO lo montan igual. */}
+      <main className={jetbrainsMono.variable}>
         <Hero />
         <TrustBar />
         <Stats />

@@ -6,7 +6,7 @@ import { JetBrains_Mono } from "next/font/google";
  * Las páginas que muestran valores copiables (Shipping Mark, teléfonos,
  * códigos postales, emails) montan `jetbrainsMono.variable` en su wrapper y
  * los componentes la consumen vía FONT_MONO (lib/design-tokens). Hoy:
- * /calculadora, /faq y /contacto.
+ * home (/), /servicios, /calculadora, /faq y /contacto.
  *
  * Va acá y NO inline en cada page.tsx: si una página redefiniera
  * JetBrains_Mono con otros weights, su `--font-mono` resolvería a un
