@@ -1,81 +1,49 @@
 {
-  "generatedAt": "2026-06-10",
+  "generatedAt": "2026-06-12",
   "norteVersion": "v2.5",
   "partA": {
     "findings": [
       {
-        "id": "memory-md-overflow",
-        "title": "MEMORY.md desbordado (34.9KB > límite 24.4KB) — memoria persistente truncada cada sesión",
+        "id": "settings-local-json-roto",
+        "title": ".claude/settings.local.json con JSON inválido (coma faltante) — los permisos de esa capa no cargaban",
         "severity": "alta",
-        "action": "El índice solo se carga parcial: hay pérdida silenciosa de contexto entre sesiones. Compactar cada entrada a 1 línea <200 chars y mover el detalle a topic files (el detalle ya vive en los .md individuales).",
+        "action": "Corregido en esta corrida (coma entre entradas del allow). Regla: editar settings vía /permissions o validar JSON al editar a mano.",
         "top": true
       },
       {
-        "id": "schema-reconciliation-stale-0119",
-        "title": "schema-reconciliation.md stale: snapshot 0113, migraciones reales hasta 0119",
+        "id": "tres-lanes-sin-merge-main-divergido",
+        "title": "3 ramas commiteadas sin merge (packlist-prefill +1, seo-redes +5, voseo-tuteo-portal +1; 65-86 detrás) + main local divergido de origin (4 ↔ 3 fiscal)",
+        "severity": "alta",
+        "action": "Tanda de integración en esta sesión: reconciliar main ← origin, merge de los 3 lanes, un gate verify al final. Push solo con OK del founder."
+      },
+      {
+        "id": "schema-reconciliation-stale",
+        "title": "schema-reconciliation.md congelado en snapshot 0119; prod ya va por 0126_fiscal + 0124_purchase_orders y el bottleneck documentado (Bloque 3 Fiscal) recibió SDD-0073 V1 hoy",
         "severity": "media",
-        "action": "6 migraciones sin reconciliar (0114 financiero_china, 0115 partner_statements, 0116 documentos_versionado, 0117 quotes_portal_rls, 0118-0119 prealertas). Regenerar el reconciliador; los conteos solo pueden haber mejorado, pero la vista Datos del Norte queda desfasada."
+        "action": "Regenerar el doc (snapshot 0119→0127) tras el push de la tanda; promover el Bloque 3 a in-progress/V1."
       },
       {
-        "id": "sdd-0059-duplicado",
-        "title": "Correlativo SDD duplicado: 0059 usado por dos specs distintos",
+        "id": "ramas-mergeadas-sin-limpiar",
+        "title": "6 ramas/worktrees ya mergeados a main siguen vivos (orden-compra, calculadora, servicios-tanda2, khorana, mclaren, gallant)",
         "severity": "media",
-        "action": "0059 'Financiero Socio Logístico China' (in-progress, confidencial) y 0059 'Registro self-service' (done) comparten número — rompe trazabilidad ISO 9001. Renumerar el más reciente al siguiente libre y registrar en supersedes/related."
+        "action": "Housekeeping con OK del founder: git worktree remove + branch -d de los +0."
       },
       {
-        "id": "effort-max-global",
-        "title": "effortLevel 'max' global encarece tareas mecánicas",
+        "id": "rpc-anon-execute-78",
+        "title": "78 funciones security-definer ejecutables por anon (EXECUTE a PUBLIC por default); next_purchase_order_code ya cerrada (0124b)",
         "severity": "media",
-        "action": "~/.claude/settings.json aplica effort máximo a todo. Tareas mecánicas (NORTE-SYNC, docs:index, regen de reconciliación, sweeps) no lo necesitan: usar Sonnet/effort menor para mecánico, reservar max para harness/specs/auditorías."
-      },
-      {
-        "id": "perms-wildcards-cross-project",
-        "title": "Permisos npm/npx obsoletos + dirs cruzados que triplican skills",
-        "severity": "baja",
-        "action": "~/.claude/settings.json: 'npm run *' / 'npx tsc *' / 'npm install *' no aplican (proyecto usa pnpm), Read(Desktop/**) muy amplio, additionalDirectories cruza a 'IA ANTROPIC/Factroia' y hace aparecer feature/radar 3 veces en el inventario de skills. Podar npm/tsc, acotar el Read, quitar dirs que no se usen. settings.local: 'npx next dev' → pnpm dev."
-      },
-      {
-        "id": "flaky-vitest-worker",
-        "title": "Gate Stop (verify.mjs) con worker flaky de Vitest en Windows",
-        "severity": "baja",
-        "action": "Stop hook = node scripts/harness-verify-hook.mjs (timeout 180s) → scripts/verify.mjs, ambos presentes. El crash transitorio 'failed to find the runner' da falsos ROJOS sin regresión: re-correr antes de tocar nada. Mitigación opcional: pool forks/single en vitest.config para Windows."
+        "action": "SDD de hardening con lista blanca (public_* son intencionales). Regla nueva: toda migración con create function incluye revoke from public, anon."
       }
     ],
-    "estimatedTokenSavings": "~10-15%"
+    "estimatedTokenSavings": "~1%"
   },
   "partB": {
-    "counts": {
-      "built": 16,
-      "partial": 6,
-      "missing": 0,
-      "total": 22
-    },
+    "counts": { "built": 17, "partial": 5, "missing": 0, "total": 22 },
     "blocks": [
-      {
-        "name": "Bloque 1-2 · Financiero (Facturación/Contabilidad/Cobranzas/Tesorería)",
-        "remaining": "0%",
-        "note": "SDD-0021/0040/0041/0044 done en prod."
-      },
-      {
-        "name": "Bloque 3 · Fiscal SENIAT (Libro Ventas/Compras, IVA, retenciones)",
-        "remaining": "100%",
-        "note": "Único bloque sin spec ni tablas (0018 es aduana, no libros IVA). Bottleneck estructural, mitigado por el toggle IVA OFF (DTD hoy no maneja IVA). Próximo paso barato: escribir la spec; implementar cuando el founder defina activación de IVA."
-      },
-      {
-        "name": "Bloque 4 · Naviera & Consolidación",
-        "remaining": "0%",
-        "note": "SDD-0047 done (Slice A+B, migr 0096, /studio/naviera). Slice C diferido por diseño."
-      },
-      {
-        "name": "Bloque 5 · Comercial (Dirección/Docs/Fidelización/Reportes/Costing/Legal)",
-        "remaining": "~15% (est.)",
-        "note": "0048/0049/0051/0053/0054 done + 0060 versionado done. Falta: 0052 Reportes (approved, sin implementar) + Costing Slice B-C."
-      },
-      {
-        "name": "Transversal · WIP abierto (10 specs in-progress)",
-        "remaining": "no documentado",
-        "note": "0042, 0043, 0055, 0056, 0057, 0059-China, 0061, 0063, 0064, 0065 in-progress + 0062/0066 proposed. Freno operativo vigente: cerrar antes de abrir frentes nuevos. 0042/0043 están a un gate de founder de minutos (Auth Email ON + redirect · KOMMO_WEBHOOK_SECRET)."
-      }
+      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "no documentado", "note": "Era el bottleneck documentado (sin spec ni tablas). Hoy llegó SDD-0073 V1 a origin (spec + 0126_fiscal_settings aplicada a prod) — el doc aún no lo refleja." },
+      { "name": "Bloques 1-2 · Financiero", "remaining": "0%", "note": "Cerrados en prod (0021/0040/0041/0044 + 0114/0115 socio China)." },
+      { "name": "Bloque 4 · Naviera", "remaining": "0%", "note": "done (SDD-0047)." },
+      { "name": "Bloque 5 · Cierre comercial", "remaining": "no documentado", "note": "Memoria de sesión lo da casi cerrado; el doc no trae % propio." }
     ]
   }
 }
