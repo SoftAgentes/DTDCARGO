@@ -555,7 +555,7 @@ export async function autoInvoiceForReceipt(args: {
     const { data: receipt, error: rErr } = await admin
       .from("warehouse_receipts_cn")
       .select(
-        "receipt_code, is_orphan, boxes, total_cbm, total_weight_kg, prealerta_id",
+        "receipt_code, is_orphan, boxes, total_cbm, total_weight_kg, prealerta_id, invoice_verified_at",
       )
       .eq("id", receiptId)
       .eq("tenant_id", tenantId)
@@ -567,6 +567,7 @@ export async function autoInvoiceForReceipt(args: {
         total_cbm: number | null;
         total_weight_kg: number | null;
         prealerta_id: string | null;
+        invoice_verified_at: string | null;
       }>();
     if (rErr || !receipt) {
       return { ok: false, reason: "recepción no encontrada", notApplicable: true };
@@ -586,6 +587,7 @@ export async function autoInvoiceForReceipt(args: {
       verification,
       hasAttachments,
       isOrphan: !!receipt.is_orphan,
+      humanVerified: receipt.invoice_verified_at != null,
     });
     if (!eligibility.ok) {
       return { ok: false, reason: eligibility.reason };

@@ -546,6 +546,76 @@ export async function changeReceiptPaymentStatusAction(
   return { ok: true };
 }
 
+/**
+ * Marca / desmarca una recepción como VERIFICADA para auto-facturar (SDD-0072 Fase 3).
+ *
+ * Flag HUMANO explícito (decisión founder 2026-06-13): la auto-factura de la OV
+ * (gate canAutoInvoice) exige esta confirmación además de CBM/peso/packing/adjuntos.
+ * Setea invoice_verified_at + invoice_verified_by (o los limpia al desmarcar) + audita.
+ */
+export async function markReceiptVerifiedAction(
+  receiptId: string,
+  verified: boolean,
+): Promise<{
+  ok?: boolean;
+  error?: string;
+  errorCode?: import("@/lib/i18n").ErrorCode;
+}> {
+  const supabase = await createClient();
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) {
+    return { errorCode: "tenant_unresolved" };
+  }
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: current, error: readErr } = await supabase
+    .from("warehouse_receipts_cn")
+    .select("invoice_verified_at, receipt_code")
+    .eq("id", receiptId)
+    .maybeSingle<{ invoice_verified_at: string | null; receipt_code: string }>();
+  if (readErr || !current) {
+    return { errorCode: "cn_receipt_not_found" };
+  }
+
+  if ((current.invoice_verified_at != null) === verified) {
+    return { ok: true }; // no-op (ya está en el estado pedido)
+  }
+
+  const { error: updateErr } = await supabase
+    .from("warehouse_receipts_cn")
+    .update(
+      verified
+        ? {
+            invoice_verified_at: new Date().toISOString(),
+            invoice_verified_by: user?.id ?? null,
+          }
+        : { invoice_verified_at: null, invoice_verified_by: null },
+    )
+    .eq("id", receiptId);
+  if (updateErr) {
+    return { error: `No se pudo actualizar la verificación: ${updateErr.message}` };
+  }
+
+  await supabase.from("warehouse_receipt_events").insert({
+    tenant_id: link.tenant_id,
+    receipt_id: receiptId,
+    event_type: "status_change",
+    description: verified
+      ? `Verificada para facturar · ${current.receipt_code}`
+      : `Verificación removida · ${current.receipt_code}`,
+  });
+
+  revalidatePath("/studio/cn");
+  return { ok: true };
+}
+
 // ─────────────────────────────────────────────────────────────
 // Bulk actions · marcar N recibos en una sola operación
 //

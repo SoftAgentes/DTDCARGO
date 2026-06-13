@@ -95,6 +95,8 @@ export type WarehouseReceipt = {
   destination_city: string | null;
   /** Estado de pago · default 'pendiente'. Admin updatea desde /studio/cn (migración 0044). */
   payment_status: PaymentStatus;
+  /** Verificada para auto-facturar · flag humano explícito (SDD-0072 Fase 3, migración 0129). null = no verificada. */
+  invoice_verified_at: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

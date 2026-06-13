@@ -197,5 +197,32 @@ capturan al recibir; consolidar es el cierre formal del almacén).
 **Pendiente:** `reviewer` + `ui-ux-designer`. Aplicar `0125` y `0127` a prod (founder).
 Puente OV → OC de DTD + alerta de cobranza pre-arribo (D4) siguen fuera de 0072.
 
+## 12. Notas de implementación (Fase 3 · 2026-06-13 · flag humano de verificación)
+
+**Estado:** implementada en `main` (local, sobre el merge de orden-venta). Gate `node
+scripts/verify.mjs` 🟢 (1818 tests, +1 del flag). `ui-ux-designer` ✅ — cazó la colisión
+del check verde con el patrón "estado actual" del menú → se separó el indicador de estado
+del botón de acción. Migración **`0129` NO aplicada a prod** (la aplica el founder, junto
+con 0125/0127/0128).
+
+**Qué cambió (decisión founder 2026-06-13):** la auto-factura de Fase 2 NO se dispara por
+sola inferencia de packing/medición — exige un **flag HUMANO explícito**. Un operador marca
+la recepción "verificada para facturar"; sin el flag, la recepción se consolida igual pero
+NO factura (queda pendiente). El IVA se confirmó OFF por ahora (capa fiscal SDD-0073 en
+construcción; el gap RLS de `tenants.iva_enabled` es inofensivo mientras no se facture IVA).
+
+**Archivos:**
+- `supabase/migrations/0129_sales_order_invoice_verification.sql` — aditiva, idempotente,
+  SIN función nueva (cero deuda RPC anon): `warehouse_receipts_cn.invoice_verified_at`
+  (null = no verificada) + `.invoice_verified_by` (auditoría) + índice parcial.
+- `lib/studio/sales-orders/invoicing.ts` — `ReceiptForInvoicing.humanVerified` + 6º
+  requisito en `canAutoInvoice`. La cadena corre server-side (admin en el hook) → el flag
+  se valida app-side sin tocar la RPC transaccional 0128 (el cliente no puede forjarla).
+- `app/studio/(app)/cn/actions.ts` — `markReceiptVerifiedAction(receiptId, verified)`:
+  setea/limpia `invoice_verified_at` + `_by` (user actual) + evento de auditoría.
+- `app/studio/(app)/cn/_components/ReceiptRowActions.tsx` — sección "Facturación" en el
+  menú de fila: indicador de estado (check verde, no clickeable) + toggle con `aria-pressed`.
+- i18n es-VE + zh-CN, tipo + query (`invoice_verified_at`), `__tests__/invoicing.test.ts`.
+
 ---
 <!-- Validar con: node scripts/build-docs-index.mjs --check · regenerar índice: node scripts/build-docs-index.mjs -->

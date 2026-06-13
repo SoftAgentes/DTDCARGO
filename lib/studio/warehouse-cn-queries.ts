@@ -49,6 +49,7 @@ const RECEIPT_LIST_SELECT = `
   supplier_name, supplier_name_translated,
   boxes, total_cbm, total_weight_kg, status, shipment_id,
   received_at, notes, destination_city, payment_status,
+  invoice_verified_at,
   deleted_at, created_at, updated_at,
   warehouse:warehouses_cn!warehouse_id ( code, hub_code, hub_name_es, hub_name_cn ),
   items:warehouse_receipt_items ( description, description_translated, quantity, position, hs_code ),

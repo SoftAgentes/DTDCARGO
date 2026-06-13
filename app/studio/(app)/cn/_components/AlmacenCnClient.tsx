@@ -778,6 +778,7 @@ function ReceiptRow({
           cities={cities}
           currentDestinationCity={row.destination_city ?? null}
           currentPaymentStatus={row.payment_status}
+          invoiceVerifiedAt={row.invoice_verified_at ?? null}
         />
       </span>
     </div>

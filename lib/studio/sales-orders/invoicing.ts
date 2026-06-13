@@ -63,6 +63,13 @@ export type ReceiptForInvoicing = {
   hasAttachments: boolean;
   /** ¿Es caja huérfana? (sin cliente / sin compra previa → no factura). */
   isOrphan: boolean;
+  /**
+   * Flag HUMANO explícito (Fase 3): un operador marcó la recepción "verificada
+   * para facturar" (warehouse_receipts_cn.invoice_verified_at != null). Decisión
+   * founder 2026-06-13: la auto-factura exige confirmación humana, no solo
+   * inferencia de packing/medición. false ⇒ NO factura.
+   */
+  humanVerified: boolean;
 };
 
 export type AutoInvoiceEligibility =
@@ -79,6 +86,8 @@ export type AutoInvoiceEligibility =
  *  - peso ok: total_weight_kg presente y > 0 (verificación cruzada de la medida).
  *  - verificado: packing list del proveedor O medido en warehouse (≠ "none").
  *  - adjuntos: al menos un adjunto (packing/factura/foto) que respalde la medida.
+ *  - humanVerified (Fase 3): un operador marcó la recepción "verificada para
+ *    facturar" — flag humano explícito (decisión founder 2026-06-13).
  *
  * Si falta cualquiera → { ok:false, reason:"faltan datos: <qué falta>" }. NUNCA
  * genera factura con datos incompletos. El caller (hook) muestra/registra el reason
@@ -107,6 +116,12 @@ export function canAutoInvoice(
   }
 
   if (!receipt.hasAttachments) missing.push("adjuntos");
+
+  // Flag HUMANO (Fase 3): aunque CBM/peso/packing/adjuntos estén, sin confirmación
+  // explícita de un operador NO se factura (decisión founder 2026-06-13).
+  if (!receipt.humanVerified) {
+    missing.push("verificación del operador");
+  }
 
   if (missing.length > 0) {
     return { ok: false, reason: `faltan datos: ${missing.join(", ")}.` };

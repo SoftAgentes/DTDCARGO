@@ -32,6 +32,7 @@ describe("canAutoInvoice", () => {
     verification: "warehouse",
     hasAttachments: true,
     isOrphan: false,
+    humanVerified: true,
   };
 
   it("factura cuando CBM + peso + verificación + adjuntos están completos", () => {
@@ -76,6 +77,12 @@ describe("canAutoInvoice", () => {
     if (!r.ok) expect(r.reason).toMatch(/adjuntos/);
   });
 
+  it("NO factura sin verificación HUMANA del operador (Fase 3)", () => {
+    const r = canAutoInvoice({ ...ok, humanVerified: false });
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.reason).toMatch(/operador/i);
+  });
+
   it("acumula TODOS los requisitos faltantes en el reason", () => {
     const r = canAutoInvoice({
       total_cbm: null,
@@ -84,6 +91,7 @@ describe("canAutoInvoice", () => {
       verification: "none",
       hasAttachments: false,
       isOrphan: false,
+      humanVerified: false,
     });
     expect(r.ok).toBe(false);
     if (!r.ok) {
@@ -91,6 +99,7 @@ describe("canAutoInvoice", () => {
       expect(r.reason).toMatch(/peso/);
       expect(r.reason).toMatch(/verificaci[oó]n/i);
       expect(r.reason).toMatch(/adjuntos/);
+      expect(r.reason).toMatch(/operador/i);
     }
   });
 

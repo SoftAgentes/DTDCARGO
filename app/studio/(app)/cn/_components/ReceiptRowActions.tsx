@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation";
 import {
   changeReceiptPaymentStatusAction,
   changeReceiptStatusAction,
+  markReceiptVerifiedAction,
 } from "../actions";
 import type {
   PaymentStatus,
@@ -41,6 +42,8 @@ interface Props {
   cities?: DispatchCity[];
   currentDestinationCity?: string | null;
   currentPaymentStatus?: PaymentStatus;
+  /** SDD-0072 Fase 3: instante de verificación para auto-facturar (null = no verificada). */
+  invoiceVerifiedAt?: string | null;
 }
 
 type View = "menu" | "consolidate-form";
@@ -51,6 +54,7 @@ export function ReceiptRowActions({
   cities = [],
   currentDestinationCity = null,
   currentPaymentStatus = "pendiente",
+  invoiceVerifiedAt = null,
 }: Props) {
   const router = useRouter();
   const t = useT();
@@ -68,6 +72,8 @@ export function ReceiptRowActions({
       .filter((c) => c.active)
       .sort((a, b) => a.city.localeCompare(b.city));
   }, [cities]);
+
+  const isVerified = invoiceVerifiedAt != null;
 
   useEffect(() => {
     if (!open) return;
@@ -125,6 +131,20 @@ export function ReceiptRowActions({
     setError(null);
     startTransition(async () => {
       const res = await changeReceiptPaymentStatusAction(receiptId, newPayment);
+      const msg = resolveErrorMessage(t, res);
+      if (msg) {
+        setError(msg);
+      } else if (res.ok) {
+        closeMenu();
+        router.refresh();
+      }
+    });
+  };
+
+  const handleVerifyToggle = (verified: boolean) => {
+    setError(null);
+    startTransition(async () => {
+      const res = await markReceiptVerifiedAction(receiptId, verified);
       const msg = resolveErrorMessage(t, res);
       if (msg) {
         setError(msg);
@@ -321,6 +341,89 @@ export function ReceiptRowActions({
                   </button>
                 );
               })}
+
+              {/* Separador + sección Facturación (SDD-0072 Fase 3 · flag humano) */}
+              <div
+                style={{ height: 1, background: "var(--border)", margin: "6px 0" }}
+              />
+              <div
+                style={{
+                  padding: "6px 10px 4px",
+                  font: "700 9.5px/1 var(--f-sans)",
+                  color: "var(--ink-mute)",
+                  letterSpacing: "0.14em",
+                  textTransform: "uppercase",
+                }}
+              >
+                {t("warehouse_cn.row.action_invoicing")}
+              </div>
+              {/* Estado actual (no clickeable) — mismo lenguaje visual que el ítem
+                  isCurrent de las otras secciones: check + texto apagado. El verde
+                  vive SOLO acá como indicador de estado, nunca como color idle de un
+                  botón (Regla 1 del Studio · ui-ux review Fase 3). */}
+              {isVerified && (
+                <div
+                  style={{
+                    padding: "8px 10px",
+                    font: "500 12.5px/1.2 var(--f-sans)",
+                    color: "var(--ink-mute)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 14,
+                      display: "inline-flex",
+                      color: "var(--success)",
+                    }}
+                  >
+                    {Icon.check(13)}
+                  </span>
+                  <span>{t("warehouse_cn.row.invoice_verified_state")}</span>
+                </div>
+              )}
+              {/* Acción — verbo neutro, mismo estilo/hover que los demás menuitem. */}
+              <button
+                role="menuitem"
+                type="button"
+                aria-pressed={isVerified}
+                onClick={() => handleVerifyToggle(!isVerified)}
+                disabled={pending}
+                style={{
+                  textAlign: "left",
+                  padding: "8px 10px",
+                  border: 0,
+                  background: "transparent",
+                  color: "var(--ink)",
+                  font: "500 12.5px/1.2 var(--f-sans)",
+                  cursor: pending ? "default" : "pointer",
+                  borderRadius: "var(--r-sm)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+                onMouseEnter={(e) => {
+                  if (!pending) {
+                    e.currentTarget.style.background = "var(--wine-tint)";
+                    e.currentTarget.style.color = "var(--wine)";
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--ink)";
+                }}
+              >
+                <span style={{ width: 14, display: "inline-flex" }} />
+                <span>
+                  {pending
+                    ? t("warehouse_cn.row.verifying")
+                    : isVerified
+                      ? t("warehouse_cn.row.action_unverify_invoice")
+                      : t("warehouse_cn.row.action_verify_invoice")}
+                </span>
+              </button>
             </>
           ) : (
             <form onSubmit={handleConsolidateSubmit}>
