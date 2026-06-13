@@ -55,9 +55,14 @@ en el push NUNCA rompe el alta (igual que los pasos email/notify ya existentes).
 - Paso 11 best-effort en `app/registro/actions.ts`.
 
 **FUERA (no en este spec):**
-- Outbox / retry / dry-run gate / write-back de PATCH (precio/etapa) → SDD-0062 Slice A.
+- Outbox / retry / write-back de PATCH (precio/etapa) → SDD-0062 Slice A. *(El dry-run gate sí se construyó acá.)*
 - Verificación cédula→RIF y tags de "verificado" → SDD-0046 / fase 2 del onboarding.
 - `/guia` y FAQ → specs aparte.
+- **Entitlements `tiene_carga`/`tiene_curso` + capas de acceso** (HANDOFF §3.1, agregado por el founder
+  2026-06-13): controlan qué módulos ve el cliente en el portal (flag automático al contratar, **nunca
+  manual**; 3 capas público/registrado/portal-por-servicio). → M3 `/guia` + portal por módulos;
+  necesitará una **migración** (2 columnas bool en `clients`, hoy inexistentes). Fuente archivada en
+  [`assets/HANDOFF_ONBOARDING_ERP.md`](./assets/HANDOFF_ONBOARDING_ERP.md).
 
 ## Diseño
 
