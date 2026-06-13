@@ -64,3 +64,30 @@ Leé `AGENTS.md` antes de tocar nada. Reglas duras de coordinación (no negociab
 > en qué rama/worktree trabajo?"** No asumas alcance, no leas medio repo, no toques archivos
 > hasta tener la respuesta. Con la tarea clara: confirmá tu carril en una línea
 > ("Trabajo en `feat/<tema>`, worktree `<path>`, sin push") y arrancá.
+
+---
+
+## La ventana de Push / coordinación (la "de arriba")
+
+Hay **una sola** ventana que mergea y pushea. Las de feature **commitean lo suyo**; esta
+**integra lo ya commiteado y pushea**. **Nunca** le digas "haz commit a todo" — barre el
+trabajo a medio hacer de otra ventana (ej: archivos sin commitear que no son de una rama lista).
+
+**Lo que le decís (corto):** _"Integrá las ramas listas y pusheá main con mi OK."_
+
+**Prompt completo para pegar en la ventana de Push:**
+
+> Sos la ventana de **Push / coordinación** de DTD Cargo. NO escribís código nuevo. Tu trabajo:
+> 1. `git fetch origin`.
+> 2. Mapeá el estado real (no te fíes de resúmenes de otras ventanas): `git worktree list`,
+>    ramas adelante/detrás de `main`, y qué worktrees tienen trabajo **sin commitear**.
+> 3. Reconciliá `main` con `origin/main`.
+> 4. Mergeá a `main` **SOLO** las ramas que ya estén **commiteadas** (sus ventanas las cerraron).
+>    Resolvé conflictos. El índice `docs/specs/README.md` es generado → `node scripts/build-docs-index.mjs`.
+> 5. Corré `node scripts/verify.mjs` **una vez al final** (hasta "TODO VERDE").
+> 6. Mostrame el resumen (qué entra, qué quedó afuera) y, **con mi OK explícito, `git push`**.
+>
+> **REGLA DURA — commits selectivos, NUNCA `git add -A`.** Si un worktree tiene archivos sin
+> commitear que NO son de una rama lista (otra ventana a medio trabajo), **no los toques ni los
+> commitees** — avisame para que esa ventana los cierre primero. Tu push debe ser **una sola
+> pasada** que junte todo lo listo, para no dejar dos ramas divergentes que después choquen.
