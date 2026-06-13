@@ -95,6 +95,12 @@ Clon del patrón de auth de `kommo-sync/index.ts` (service-key en Authorization/
    Kommo, no fabricado → consistente con el guardrail 0107; el webhook/sync lo refresca idempotente.)*
 8. `sync_logs` (entity `push_client`). Devuelve `{ lead_id, contact_id, mode: created|matched|patched }`.
 
+**Gate de escritura (dry-run, estilo SDD-0062 "nace apagado"):** la función **nace en dry-run** —
+por default NO escribe en Kommo (resuelve campos, dedupea con GETs y arma los payloads, los loguea y
+termina con `entity='push_client_dryrun'`). Escribe real solo con el secreto `KOMMO_PUSH_DRY_RUN="false"`;
+el body `{dry_run:true}` puede FORZAR ensayo (nunca al revés). Decisión vía helper puro `resolveDryRun()`
+(testeado). Así la 1ª validación E2E no toca los contactos reales. Procedimiento: `docs/runbooks/deploy-kommo-push-client.md`.
+
 ### 4. Cableado — `app/registro/actions.ts`
 Paso 11 best-effort tras `notifyNewClientToAdmin`: `admin.functions.invoke("kommo-push-client",
 { body: { tenant_id, client_id } })` en try/catch + `console.warn`. No bloquea ni cambia el `return`.
@@ -116,10 +122,12 @@ Paso 11 best-effort tras `notifyNewClientToAdmin`: `admin.functions.invoke("komm
 - [ ] Tests Vitest de `kommo-outbound` verdes en `node scripts/verify.mjs` (payloads, resolución de
       field_id, dedup, caso idempotente).
 - [ ] El alta en `/registro` invoca `kommo-push-client` best-effort (un fallo NO rompe el alta).
+- [ ] La función nace en dry-run (no escribe hasta `KOMMO_PUSH_DRY_RUN=false`) → validable sin tocar Kommo real.
 - [ ] (E2E, coordinación) un alta real aparece como lead en Kommo y `clients.kommo_lead_id` queda set.
 
 ## Pendiente de coordinación (fuera de esta ventana)
-- Deploy de la Edge Function `kommo-push-client` a prod.
+- Deploy de la Edge Function `kommo-push-client` a prod (nace en dry-run). Validar en dry-run → flip
+  `KOMMO_PUSH_DRY_RUN=false` → E2E real con contacto de prueba. **Runbook:** `docs/runbooks/deploy-kommo-push-client.md`.
 - `kommo_connections` del tenant DTD `active` + token vivo en Vault.
 - Push de `feat/onboarding-erp` + merge a main (deploy Vercel).
 - E2E en vivo con un contacto de prueba (escribe en Kommo real + `clients` de prod).

@@ -1,12 +1,18 @@
 // SDD-0074 · Edge Function kommo-push-client — push del alta de cliente a Kommo (outbound de CREACIÓN).
 //
-// POST { tenant_id, client_id } → crea (o reusa) el contacto + crea el lead en Kommo, lo etiqueta
-// con MARKBOX/RIF/tier, espeja el lead autoritativo en kommo_leads y enlaza clients.kommo_lead_id.
-// Idempotente: si el cliente ya tiene kommo_lead_id, hace PATCH (refresca tags) y termina.
+// POST { tenant_id, client_id, dry_run? } → crea (o reusa) el contacto + crea el lead en Kommo, lo
+// etiqueta con MARKBOX/RIF/tier, espeja el lead autoritativo en kommo_leads y enlaza
+// clients.kommo_lead_id. Idempotente: si el cliente ya tiene kommo_lead_id, hace PATCH y termina.
+//
+// SEGURIDAD DE ESCRITURA (estilo SDD-0062 "nace apagado"): por default la función NO escribe en
+// Kommo — corre en DRY-RUN (lee + arma payloads + loguea lo que haría). Para escribir de verdad hay
+// que setear el secreto KOMMO_PUSH_DRY_RUN="false" en la función. El body { dry_run:true } puede
+// forzar ensayo aunque el secreto sea real (nunca al revés). Así la 1ª validación E2E no toca tus
+// contactos reales. Ver docs/runbooks/deploy-kommo-push-client.md.
 //
 // Mismo patrón de auth que kommo-sync (verify_jwt=OFF; exige el SERVICE_ROLE del proyecto en
-// Authorization/apikey — uso backend, nunca desde el navegador). El token de Kommo vive solo en
-// Vault y solo lo lee esta función vía kommo_get_token (modelo de seguridad SDD-0043).
+// Authorization/apikey). El token de Kommo vive solo en Vault y solo lo lee esta función vía
+// kommo_get_token (modelo de seguridad SDD-0043).
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { kommoFetch, kommoWrite } from "../kommo-sync/kommo-client.ts";
 import { mapLeadRow } from "../_shared/kommo-mapping.ts";
@@ -16,6 +22,7 @@ import {
   buildLeadPayload,
   matchContact,
   pickDedupQueries,
+  resolveDryRun,
   resolveFieldIds,
   type KommoEntityLite,
   type KommoFieldDef,
@@ -75,7 +82,7 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Forbidden: requiere el service key del proyecto" }, 403);
   }
 
-  let body: { tenant_id?: string; client_id?: string };
+  let body: { tenant_id?: string; client_id?: string; dry_run?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -83,6 +90,9 @@ Deno.serve(async (req: Request) => {
   }
   const { tenant_id, client_id } = body;
   if (!tenant_id || !client_id) return json({ error: "Faltan tenant_id / client_id" }, 400);
+
+  // Gate de escritura: por default NO escribe (dry-run). Real solo con KOMMO_PUSH_DRY_RUN="false".
+  const dryRun = resolveDryRun(Deno.env.get("KOMMO_PUSH_DRY_RUN"), body.dry_run);
 
   const supabase: SupabaseClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false },
@@ -97,7 +107,7 @@ Deno.serve(async (req: Request) => {
     await supabase.from("sync_logs").insert({
       tenant_id,
       connection_id,
-      entity: "push_client",
+      entity: dryRun ? "push_client_dryrun" : "push_client",
       started_at,
       finished_at: new Date().toISOString(),
       status,
@@ -147,19 +157,44 @@ Deno.serve(async (req: Request) => {
 
     // 4) IDEMPOTENCIA: ya enlazado → PATCH (refresca tags) y termina; no recrea.
     if (client.kommo_lead_id) {
+      const patch = buildLeadPatch(client, fieldIds);
+      if (dryRun) {
+        console.log("[kommo-push-client][dry-run] PATCH lead", client.kommo_lead_id, patch);
+        await logResult(conn.id, "ok");
+        return json({ lead_id: client.kommo_lead_id, mode: "patched", dry_run: true, would: { patch } });
+      }
       await kommoWrite<KommoLead>(
         baseUrl,
         token as string,
         `/api/v4/leads/${client.kommo_lead_id}`,
         "PATCH",
-        buildLeadPatch(client, fieldIds),
+        patch,
       );
       await logResult(conn.id, "ok");
       return json({ lead_id: client.kommo_lead_id, mode: "patched" });
     }
 
-    // 5) Dedup de contacto (en vivo) → reusar o crear.
-    let contactId = await findExistingContactId(baseUrl, token as string, client);
+    // 5) Dedup de contacto (en vivo — read-only, seguro también en dry-run).
+    const matchedContactId = await findExistingContactId(baseUrl, token as string, client);
+
+    // 5b) DRY-RUN: no escribe nada. Reporta lo que haría (contacto + lead) y termina.
+    if (dryRun) {
+      const wouldContact = matchedContactId
+        ? { matched_id: matchedContactId }
+        : { create: buildContactPayload(client) };
+      // contactId placeholder (0) si el contacto sería nuevo: el payload del lead es ilustrativo.
+      const wouldLead = buildLeadPayload(client, matchedContactId ?? 0, fieldIds);
+      console.log("[kommo-push-client][dry-run] would create", { wouldContact, wouldLead });
+      await logResult(conn.id, "ok");
+      return json({
+        dry_run: true,
+        mode: matchedContactId ? "would-link-existing-contact" : "would-create-contact",
+        would: { contact: wouldContact, lead: wouldLead },
+      });
+    }
+
+    // 6) REAL — reusar o crear contacto.
+    let contactId = matchedContactId;
     let contactMode: "matched" | "created" = "matched";
     if (!contactId) {
       const created = await kommoWrite<HalList<KommoContact>>(
@@ -174,7 +209,7 @@ Deno.serve(async (req: Request) => {
       if (!contactId) throw new Error("Kommo no devolvió id de contacto al crear");
     }
 
-    // 6) Crear el lead enlazado al contacto + custom fields.
+    // 7) Crear el lead enlazado al contacto + custom fields.
     const leadResp = await kommoWrite<HalList<KommoLead>>(
       baseUrl,
       token as string,
@@ -185,7 +220,7 @@ Deno.serve(async (req: Request) => {
     const createdLead = leadResp?._embedded?.leads?.[0];
     if (!createdLead?.id) throw new Error("Kommo no devolvió id de lead al crear");
 
-    // 7) Orden del FK (clients_kommo_lead_fk, migr 0108): el lead debe existir en el espejo
+    // 8) Orden del FK (clients_kommo_lead_fk, migr 0108): el lead debe existir en el espejo
     //    ANTES de enlazarlo. Espejamos el lead AUTORITATIVO de la respuesta de Kommo (no fabricado
     //    → consistente con el guardrail 0107; el webhook/sync lo refresca idempotente luego).
     const { error: mirrorErr } = await supabase

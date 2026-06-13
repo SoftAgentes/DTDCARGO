@@ -205,3 +205,16 @@ export function pickDedupQueries(
   if (client.email) queries.push({ by: "email", q: client.email.trim() });
   return queries;
 }
+
+/**
+ * ¿La corrida es DRY-RUN (ensayo: lee Kommo y arma payloads pero NO escribe)?
+ * Default SEGURO = sí (nace apagado, estilo SDD-0062 Slice A "toda escritura nace apagada").
+ * Solo escribe de verdad si el secreto `KOMMO_PUSH_DRY_RUN` es EXACTAMENTE "false" Y el body no
+ * fuerza dry-run. El body puede FORZAR dry-run (extra seguro) pero NUNCA forzar escritura real.
+ */
+export function resolveDryRun(
+  envValue: string | null | undefined,
+  bodyDryRun?: boolean,
+): boolean {
+  return envValue !== "false" || bodyDryRun === true;
+}

@@ -20,6 +20,7 @@ import {
   valuesByCode,
   matchContact,
   pickDedupQueries,
+  resolveDryRun,
   type OnboardingClient,
   type KommoFieldDef,
 } from "../kommo-outbound";
@@ -215,5 +216,25 @@ describe("pickDedupQueries", () => {
   });
   it("sin teléfono ni email → []", () => {
     expect(pickDedupQueries(client({ phone: null, email: null }))).toEqual([]);
+  });
+});
+
+describe("resolveDryRun (default seguro = ON)", () => {
+  it("env sin setear → dry-run (no escribe)", () => {
+    expect(resolveDryRun(undefined)).toBe(true);
+    expect(resolveDryRun(null)).toBe(true);
+    expect(resolveDryRun("")).toBe(true);
+  });
+  it("env distinto de 'false' → dry-run", () => {
+    expect(resolveDryRun("true")).toBe(true);
+    expect(resolveDryRun("1")).toBe(true);
+  });
+  it("env === 'false' → escritura real", () => {
+    expect(resolveDryRun("false")).toBe(false);
+    expect(resolveDryRun("false", false)).toBe(false);
+  });
+  it("el body puede FORZAR dry-run aunque el env sea real, pero no forzar real", () => {
+    expect(resolveDryRun("false", true)).toBe(true); // body fuerza ensayo
+    expect(resolveDryRun("true", false)).toBe(true); // body no puede prender real
   });
 });
