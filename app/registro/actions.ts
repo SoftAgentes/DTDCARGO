@@ -338,5 +338,23 @@ export async function registerClientAction(
     channel: "portal",
   });
 
+  // 11. SDD-0074 — push del alta a Kommo (lead + contacto). Best-effort: un fallo NO rompe el
+  //     alta (el cliente ya existe en Supabase con su MARKBOX y el push es reintentable). La Edge
+  //     Function kommo-push-client corre con el service key del admin client y lee el token de
+  //     Kommo desde Vault — el token NUNCA entra a este runtime (modelo de seguridad SDD-0043).
+  try {
+    const { error: kommoErr } = await admin.functions.invoke("kommo-push-client", {
+      body: { tenant_id: tenantId, client_id: clientRow.id },
+    });
+    if (kommoErr) {
+      console.warn(
+        "[registerClientAction] push a Kommo falló (best-effort):",
+        kommoErr.message,
+      );
+    }
+  } catch (kommoErr) {
+    console.warn("[registerClientAction] push a Kommo lanzó (best-effort):", kommoErr);
+  }
+
   return { ok: true, markbox, warning };
 }
