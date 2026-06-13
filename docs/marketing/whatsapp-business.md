@@ -160,7 +160,7 @@ Cada bloque = un artículo. `Nombre` / `Descripción` / `Enlace` van tal cual.
 ### 4.1 · Mensaje de bienvenida (saludo automático)
 
 **Pasos (Android):** WhatsApp Business → **⋮ → Herramientas para la empresa → Mensaje de
-bienvenida** → activá el interruptor → toca el texto → pegá esto → **Destinatarios: Todos** →
+bienvenida** → activa el interruptor → toca el texto → pega esto → **Destinatarios: Todos** →
 **Guardar (✓)**.
 
 ```
@@ -178,8 +178,8 @@ Un asesor te atiende en breve. ¡Gracias por escribirnos!
 
 ### 4.2 · Mensaje de ausencia (fuera de horario)
 
-**Pasos:** ⋮ → **Herramientas para la empresa → Mensaje de ausencia** → activá → pegá el texto →
-**Programar: Fuera del horario de atención** (configurá `todos los días de 8:00 a 20:00`) → **Guardar (✓)**.
+**Pasos:** ⋮ → **Herramientas para la empresa → Mensaje de ausencia** → activa → pega el texto →
+**Programar: Fuera del horario de atención** (configura `todos los días de 8:00 a 20:00`) → **Guardar (✓)**.
 
 ```
 Gracias por escribir a DTD Cargo 📦
@@ -192,8 +192,8 @@ www.dtdcargo.com/calculadora
 
 ### 4.3 · Respuestas rápidas (atajos con "/")
 
-**Pasos:** ⋮ → **Herramientas para la empresa → Respuestas rápidas → +** → escribí el **atajo**
-(ej. `calculadora`) y el **mensaje** → **Guardar**. En el chat, escribí `/` + atajo para insertarla.
+**Pasos:** ⋮ → **Herramientas para la empresa → Respuestas rápidas → +** → escribe el **atajo**
+(ej. `calculadora`) y el **mensaje** → **Guardar**. En el chat, escribe `/` + atajo para insertarla.
 
 | Atajo | Mensaje |
 |---|---|
@@ -209,7 +209,7 @@ www.dtdcargo.com/calculadora
 
 ### 4.4 · Etiquetas para organizar los chats (recomendado en CRM/Ventas)
 
-**Pasos:** mantené presionado un chat → **Etiqueta** → creá/asigná. Sugeridas:
+**Pasos:** mantén presionado un chat → **Etiqueta** → crea/asigna. Sugeridas:
 `Nuevo lead` · `Cotizando` · `Esperando pago` · `En tránsito` · `Entregado` · `Postventa`.
 
 ---
@@ -253,11 +253,39 @@ texto, fuente Archivo, fondo navy de marca).
 > **Estilo unificado:** mismo tratamiento en las 8 → franja inferior navy con el logo a la
 > izquierda + el dato clave a la derecha. Así el catálogo se ve como un set, no fotos sueltas.
 >
-> 🛠️ **Generador listo:** abrí [`assets/whatsapp-catalogo-plantillas.html`](assets/whatsapp-catalogo-plantillas.html)
+> 🛠️ **Generador listo:** abre [`assets/whatsapp-catalogo-plantillas.html`](assets/whatsapp-catalogo-plantillas.html)
 > en el navegador → las 8 tarjetas + portada **enfocadas en el servicio** (foto arriba + franja navy
 > con el título del servicio y un dato simple; **sin logo** — la marca va en la metadata del PNG).
-> Cargás la foto real de cada servicio, editás título/dato si hace falta, y **Descargar PNG**
+> Cargas la foto real de cada servicio, editas título/dato si hace falta, y **Descargar PNG**
 > (1080×1080). Cada PNG sale con metadata de procedencia (`Copyright`, `Source: dtdcargo.com`, etc.).
+
+### 5.1 · Fotos que faltan — pedirlas al equipo
+
+5 servicios reusan el banco de fotos del SEO (portada/DDP/LCL/FCL/aduana). **Faltan 3** — el
+generador las marca con ⚠️ FALTA. Mensajes listos para reenviar:
+
+**📩 Equipo de China (Yiwu) — 2 fotos:**
+```
+Equipo, necesito 2 fotos para el catálogo de WhatsApp (horizontal, buena luz, sin caras de clientes):
+
+1. INSPECCIÓN — un compañero revisando un producto en la fábrica: midiendo, contando piezas o con checklist en mano. Plano cercano (mano + producto + portapapeles).
+
+2. COMPRA ASISTIDA — el mercado mayorista de Yiwu (pasillos de stands) o alguien del equipo negociando con un proveedor. Que se note "compras en China".
+
+Mándenlas en alta resolución. Gracias 🙏
+```
+
+**📩 Javier (Transporte / Venezuela) — 1 foto:**
+```
+Javier, necesito 1 foto para el catálogo: una gandola o camión de carga (nuestro o de la ruta) en carretera o cargando. Horizontal, que se vea el camión completo. Gracias.
+```
+
+| Servicio | Foto | De dónde sale |
+|---|---|---|
+| Portada · DDP · LCL · FCL Bodega · FCL Fábrica | ✅ Banco SEO | Ya disponibles |
+| Aduana | 🟡 Reusa la de contenedor/precinto del banco | Reaprovecha |
+| Inspección · Compra asistida | ⚠️ Pedir | Equipo China |
+| Terrestre | ⚠️ Pedir | Javier |
 
 ---
 
