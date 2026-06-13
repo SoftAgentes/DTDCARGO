@@ -718,10 +718,10 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   {
     id: "markbox",
     term: "MARKBOX",
-    acronym: "Tu shipping mark (marca de envío · 唛头) · código del cliente DTD-XXXX",
+    acronym: "Shipping Mark · marca de envío · 唛头 · código del cliente DTD-XXXX",
     category: "tracking",
     body: [
-      "MARKBOX es tu shipping mark (marca de envío / 唛头) personalizado: el código único que se te asigna al darte de alta con DTD Cargo. Identifica tus cajas desde origen, para que sepamos quién es el dueño de cada bulto que llega a nuestra bodega en Yiwu.",
+      "MARKBOX y Shipping Mark son lo mismo: MARKBOX es como llamamos en DTD Cargo a la marca que identifica cada una de tus cajas, y a nivel internacional ese mismo marcado se conoce como Shipping Mark (en China, 唛头). Es tu código único —formato DTD-XXXX— que se te asigna al darte de alta: identifica tus cajas desde origen, para que sepamos de quién es cada bulto que llega a nuestra bodega en Yiwu.",
       "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu MARKBOX. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
     ],
     analogy: {
