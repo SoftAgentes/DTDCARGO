@@ -106,3 +106,10 @@ public/norte.html
 # Triage temporal de fotos de operación (originales con PII: caras, matrículas).
 # Material de trabajo para curar el set web; las elegidas van a public/fotos/. Nunca a git.
 .tmp-foto-analisis/
+
+graphify-out/
+
+# Material de trabajo crudo que NO va a git (regla AGENTS.md: contratos/financieros/PII → Drive + puntero).
+# Los .md de docs/legal SÍ se versionan (son texto/punteros); estos binarios y el paquete ZIP extraído, no.
+equipo-crm/*.pdf
+docs/legal/DTDcapalegalconsolidada/
