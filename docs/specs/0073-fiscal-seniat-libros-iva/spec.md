@@ -202,24 +202,63 @@ formato-SENIAT + totales + export CSV/PDF (reusa `lib/studio/reports/export-csv.
   en `csvCell` (código compartido de Reportes) · `disabled_at` en el admin gate de la
   action (la RLS ya defiende) · usar `total_amount` en vez de recalcular base+iva.
 
-## 8. Configuración del módulo (lo que el contador define como DATOS, no como código)
+## 8. Configuración del módulo — DEFINICIÓN CANÓNICA (deep search SENIAT 2026-06-12)
 
-> Antes eran "preguntas abiertas bloqueantes". Con el enfoque configurable **dejan de bloquear**: son
-> los **campos de `fiscal_settings`**, con default y opciones. El contador los ajusta en la UI.
+> **Esta sección reemplaza la config tentativa de la V1.** Incorpora (a) los **4 principios del
+> founder** (2026-06-12) y (b) el **research normativo verificado** (`assets/seniat-research-2026-06.md`).
+> Es la **estructura objetivo**; **difiere de la V1 ya implementada (`0126`)** — la reconciliación es
+> trabajo futuro ("más adelante trabajamos el tema de SENIAT/fiscal", decisión founder). **Solo se
+> define la estructura; NO se implementa nada de esto todavía.**
 
-| Setting | Opciones | Default | Quién lo decide |
-|---|---|---|---|
-| `service_iva_treatment` | exento · gravado · tasa_cero · mixto | **exento** (transporte de carga) | contador |
-| `iva_rate` | numeric | **16** | contador (alícuota vigente) |
-| `is_special_taxpayer` | bool | false | contador |
-| `is_iva_withholding_agent` | bool | **true** (founder) | contador |
-| `iva_withholding_pct` | 75 · 100 | 75 | contador |
-| `purchase_iva_mode` | derivado · capturado | derivado | founder/contador |
-| `declaration_period` | mensual | mensual | contador |
+### 8.1 Principios rectores (founder · 2026-06-12)
 
-**Lo único que NO se resuelve con config y queda como decisión de diseño previa a implementar:**
-1. **Columnas exactas exigidas por la providencia SENIAT vigente** para cada libro (nº de control,
-   tipo de transacción, etc.) — fija el set de columnas. *(Si varían por contribuyente, podrían
-   volverse config jsonb; por ahora, set fijo según providencia + revisión del contador.)*
-2. **Fuente del IVA de compras** cuando `purchase_iva_mode=capturado`: hoy `supplier_bills` no lo
-   discrimina → habilitar ese modo es V2 (migración).
+1. **Módulo activable/desactivable.** Master toggle `fiscal_module_enabled` (**default FALSE**). Con
+   OFF el módulo **no hace NADA**: no genera libros, no toca IVA, la facturación sigue normal (sin
+   IVA). **DTD hoy = OFF.** La pantalla `/studio/fiscal` muestra "módulo desactivado" cuando OFF.
+2. **Libros totalmente separados** del flujo de facturación normal (su propio módulo, sus propios
+   correlativos/períodos).
+3. **IVA por factura, NO por tenant.** Cada factura se marca individualmente **con-IVA / sin-IVA**
+   (reemplaza el `service_iva_treatment` único del tenant). Hay un **default** configurable para
+   facturas nuevas (hoy = sin-IVA), pero cada factura puede ser lo uno o lo otro.
+4. **Cero automatismo fiscal** hasta activar — el módulo nunca empieza a facturar con IVA por su cuenta.
+
+### 8.2 Settings de la configuración
+
+| # | Grupo · setting | Opciones | Default (DTD hoy) | Fuente / nota |
+|---|---|---|---|---|
+| A | **`fiscal_module_enabled`** (master) | bool | **false** | principio #1 — OFF = módulo inerte |
+| B | `is_special_taxpayer` (SPE) | bool | false | research §3/§6 — determina E y F · **a confirmar contador** |
+| C | `iva_rate_general` | numeric | 16 | research §2 (Art. 63 LIVA; banda 8–16,5) — **configurable, el Ejecutivo la mueve** |
+| C | `iva_rate_reduced` | numeric | 8 | research §2 |
+| C | `iva_rate_export` | numeric | 0 | research §2 |
+| C | `iva_rate_luxury_surcharge` | numeric | 15 | research §2 (suntuaria 16+15=31) |
+| D | `default_invoice_iva_mode` | sin_iva · con_iva · exento · tasa_cero | **sin_iva** | principio #3 — default de facturas nuevas; cada factura sobreescribe |
+| E | `igtf_enabled` | bool | false | research §3 — IGTF sobre cobros en divisa |
+| E | `igtf_rate_fx` | numeric | 3 | research §3 (Art. 24; **configurable**, decreto del Ejecutivo) |
+| E | `igtf_is_perception_agent` | bool | false | research §3 — solo si SPE; tarjeta en divisa exonerada |
+| F | `iva_withholding_agent` | bool | false | research §6 — solo si SPE · **a confirmar contador** |
+| F | `iva_withholding_pct` | 75 · 100 | 75 | research §6 (pendiente providencia vigente) |
+| G | `digital_invoicing_enabled` | bool | **false** | research §1 — **DTD NO obligada** (no es operador exclusivamente online, Art. 4) |
+| G | `homologated_provider` | text/null | null | research §1 — proveedor **homologado** que asigna el nº de control (el ERP NO lo autogenera) |
+| H | `declaration_period` | mensual | mensual | research §4 |
+
+**Por factura (toca facturación 0021 → V2):** `iva_mode` (sin_iva/con_iva/exento/tasa_cero) + alícuota
+aplicada + base/IVA discriminados. El **número de control** (identificador 2 dígitos + secuencial
+hasta 8) lo **asigna la imprenta digital homologada**, no el ERP (research §1).
+
+### 8.3 Diferencias con la V1 implementada (`0126_fiscal_settings`) — reconciliación futura
+
+- V1 tiene `service_iva_treatment` a nivel **tenant** → se **reemplaza** por `default_invoice_iva_mode`
+  (D) + el flag `iva_mode` **por factura** + el master `fiscal_module_enabled` (A).
+- V1 no tiene: `fiscal_module_enabled`, las 4 alícuotas separadas (C), IGTF (E), `digital_invoicing_enabled`
+  / `homologated_provider` (G). `is_special_taxpayer` + retención (B/F) ya están en V1.
+- El flag `iva_mode` por factura exige tocar el módulo de **Facturación (0021)** — es lo más invasivo, V2.
+
+### 8.4 Pendientes a confirmar (con el contador) antes de activar — load-bearing
+
+1. **Base legal exacta de la EXENCIÓN del flete** (Arts. 16/17-19 LIVA) ⚠️ + verificar el posible
+   **decreto 2026 de SUSPENSIÓN de exenciones a la importación** (research §6).
+2. **¿DTD es Sujeto Pasivo Especial?** — determina IGTF (E) y retención (F).
+3. **Columnas exactas de los Arts. 75 (Compras) / 76 (Ventas) RLIVA** — fija las tablas de los libros.
+4. **Régimen vigente de retenciones de IVA** (providencia histórica `SNAT/2015/0049`: %, comprobante, plazos).
+5. **Proveedor homologado** a integrar (PA-00121) si algún día se emite factura fiscal digital.
