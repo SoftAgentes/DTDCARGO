@@ -91,3 +91,26 @@ trabajo a medio hacer de otra ventana (ej: archivos sin commitear que no son de 
 > commitear que NO son de una rama lista (otra ventana a medio trabajo), **no los toques ni los
 > commitees** — avisame para que esa ventana los cierre primero. Tu push debe ser **una sola
 > pasada** que junte todo lo listo, para no dejar dos ramas divergentes que después choquen.
+
+---
+
+## Cierre de ventana (antes de dormir / apagar)
+
+No hay un botón que cierre todas las ventanas — **es por ventana: pegá esto en CADA chat abierto**
+(menos en la de Push, que usa su propio prompt). Cada ventana **guarda su caja** (commit en su rama);
+nadie pushea ni mergea al cerrar.
+
+**Prompt de cierre (pegar en cada ventana de feature):**
+
+> Voy a cerrar por hoy. **Cerrá tu caja, sin push ni merge:**
+> 1. `git branch --show-current` — confirmá en qué rama estás.
+> 2. `node scripts/verify.mjs` — si queda verde, seguí; si queda rojo y no lo arreglás en 2 intentos,
+>    commiteá igual como `wip: <qué falta>` y avisame (no me dejes trabajo sin commitear).
+> 3. **Commit SELECTIVO de TU trabajo en TU rama** (lista explícita de archivos; NUNCA `git add -A`;
+>    no toques archivos de otra ventana).
+> 4. **NO push, NO merge.**
+> 5. Reportame en 1 línea: **rama · último commit · qué quedó a medias para retomar mañana.**
+
+⚠️ **Si la ventana está trabajando directo en el worktree de `main`** (como pasó con la ventana legal):
+primero decile que **cree su propia rama** (`git switch -c feat/<tema>`) y commitee ahí — así su trabajo
+no se mezcla con el `main` que vas a pushear.
