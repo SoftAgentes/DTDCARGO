@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { HERO, BRAND_ASSETS } from "@/lib/design-tokens";
 import { HeroCotizador } from "./HeroCotizador";
+import { LoopIcon } from "./Icon";
 
 /**
  * Hero principal — kicker (tagline) + H1 de acción + cotizador inline + ilustración.
@@ -91,19 +92,21 @@ export function Hero() {
             className="container-ocean-drift w-full h-auto lg:w-[560px] lg:h-auto lg:max-w-none lg:absolute lg:right-[-100px] lg:top-8"
           />
           <div
-            className="absolute left-[6%] top-[8%] w-[96px] h-[96px] rounded-full grid place-items-center text-white text-center z-[2]"
+            className="absolute left-[6%] top-[8%] w-[108px] h-[108px] rounded-full grid place-items-center text-white text-center z-[2]"
             style={{
               background: "var(--color-wine)",
               fontFamily: "var(--font-archivo-black)",
               boxShadow:
                 "0 14px 30px -10px rgba(127,15,26,0.55), 0 0 0 6px rgba(127,15,26,0.10)",
             }}
-            aria-label="Cobertura puerta a puerta de extremo a extremo"
+            aria-label="De China a tu puerta — el ciclo completo puerta a puerta"
           >
-            <div>
-              <div className="text-[22px] leading-none">{HERO.badge.main}</div>
-              <small className="block text-[8.5px] font-semibold mt-1.5 opacity-90 tracking-[0.08em] uppercase leading-[1.2]">
-                {HERO.badge.sub}
+            <div className="flex flex-col items-center gap-1.5 px-2">
+              <LoopIcon size={26} className="opacity-95" />
+              <small className="block text-[9px] font-semibold opacity-95 tracking-[0.04em] uppercase leading-[1.15]">
+                {HERO.badge.line1}
+                <br />
+                {HERO.badge.line2}
               </small>
             </div>
           </div>

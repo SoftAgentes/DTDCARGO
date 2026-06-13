@@ -825,10 +825,14 @@ export const HERO = {
     "Inspección sin costo +20 CBM",
     "Equipo propio en Yiwu & Valencia",
   ],
-  /** Badge circular sobre el contenedor — "360°" = cobertura, no rotación literal */
+  /**
+   * Badge circular sobre el contenedor — ícono de bucle + "De China a tu puerta"
+   * = el ciclo completo puerta a puerta. Reemplaza el "360°" abstracto que no
+   * comunicaba nada (2026-06-13). El ciclo de 4 pasos se explica en HowWeWork.
+   */
   badge: {
-    main: "360°",
-    sub: "Puerta a puerta",
+    line1: "De China",
+    line2: "a tu puerta",
   },
 } as const;
 
@@ -873,24 +877,24 @@ export const STATS = [
 export const STEPS: { n: string; title: string; copy: string; tag?: string }[] = [
   {
     n: "01",
-    title: "Cotiza por CBM",
+    title: "Cotiza",
     tag: "Puerta a puerta · DDP",
-    copy: "Envíanos el link de Alibaba o la ficha. Te cotizamos por volumen (CBM), modalidad DDP: todo incluido. Estimación inicial en ~24h hábiles, sujeta a volumen y peso reales.",
+    copy: "Calcula tu envío por CBM en segundos —modalidad DDP, todo incluido— o pídelo por WhatsApp. Estimación al instante.",
   },
   {
     n: "02",
-    title: "Inspección",
-    copy: "Nuestro equipo en China visita fábrica, audita calidad y envía reporte fotográfico.",
+    title: "Pre-alerta · MARKBOX",
+    copy: "Te registras y recibes tu MARKBOX. Tu proveedor en China lo escribe en cada caja y tú nos avisas qué viene en camino.",
   },
   {
     n: "03",
-    title: "Consolidamos",
-    copy: "Recogemos en fábrica, consolidamos en depósito Yiwu o Shenzhen y embarcamos.",
+    title: "Recibimos",
+    copy: "Tu carga llega a nuestra bodega propia en Yiwu, identificada por tu MARKBOX. La revisamos y la consolidamos.",
   },
   {
     n: "04",
     title: "Entregamos",
-    copy: "Aduana e impuestos a nuestro nombre. Entregamos en tu puerta con factura final.",
+    copy: "Aduana e impuestos a nuestro nombre. Te llega puerta a puerta en Venezuela, con factura final — y vuelves a pedir.",
   },
 ];
 
