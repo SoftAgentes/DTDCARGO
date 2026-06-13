@@ -1,8 +1,9 @@
 # Multi-ventanas · buena práctica
 
 > **Uso:** si abrís una segunda ventana de Claude Code sobre DTD Cargo, pegá el bloque de abajo
-> como **primer mensaje** de esa ventana (y completá la línea TAREA). Origen: sesión 2026-06-12,
-> tras 3 colisiones de numeración y un main divergido entre ventanas.
+> como **primer mensaje** de esa ventana. **Lo único que editás es la última línea (TAREA)** —
+> ahí decís qué va a hacer esa ventana; si la dejás vacía, Claude te la pregunta antes de tocar
+> nada. Origen: sesión 2026-06-12, tras 3 colisiones de numeración y un main divergido.
 
 ---
 
@@ -56,4 +57,10 @@ Leé `AGENTS.md` antes de tocar nada. Reglas duras de coordinación (no negociab
    - Archivos compartidos que tocaste (si alguno).
    - Qué le queda a la coordinación: merge / push / migración a prod / decisiones de Sam.
 
-**TAREA DE ESTA VENTANA:** _<completar: qué va a hacer, en qué rama>_
+**TAREA DE ESTA VENTANA:** _<la completa Sam: qué hacer y, si la sabe, en qué rama>_
+
+> **Para Claude:** si la línea TAREA quedó sin completar (dice `<completar>`, `<la completa Sam…>`
+> o está vacía), tu PRIMERA acción es preguntarle a Sam: **"¿Cuál es la tarea de esta ventana y
+> en qué rama/worktree trabajo?"** No asumas alcance, no leas medio repo, no toques archivos
+> hasta tener la respuesta. Con la tarea clara: confirmá tu carril en una línea
+> ("Trabajo en `feat/<tema>`, worktree `<path>`, sin push") y arrancá.
