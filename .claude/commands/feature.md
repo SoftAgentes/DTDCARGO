@@ -22,6 +22,7 @@ Orquesta una feature de punta a punta con orden **estructural** (no confía en q
 3. **Verify (gate).** Corré `node scripts/verify.mjs`.
    - 🔴 rojo → devolvé el error al `implementer` para que corrija (sin cambiar el scope). Repetí.
    - 🟢 verde → seguí al review.
+   - El `implementer` repara con un **bucle interno acotado** (protocolo Reflexion: tope DURO de **5 intentos** sobre la misma falla + log de hipótesis en `.harness/progress/reflexion_<feature>.md`). Si agota los 5 sin verde → devuelve `blocked`; **no se fuerza un `done`**.
 
 4. **Review.** Lanzá el subagente `reviewer`. Leé su veredicto en `.harness/progress/review_<feature>.md`.
    - `CHANGES_REQUESTED` → devolvé los findings al `implementer` (volvé al paso 2).
@@ -29,7 +30,7 @@ Orquesta una feature de punta a punta con orden **estructural** (no confía en q
 
 5. **Cierre.** El `implementer` actualiza el spec SDD (spec-anchored). Resumí al founder: qué se hizo, qué validó el reviewer, y proponé el commit (`feat(studio): SDD-NNNN — …`). **NO commitees ni `git push` sin OK del founder.** Tras el commit + merge a main + tu OK, limpiá el lane: `node scripts/harness-worktree.mjs finish <slug> --delete-branch` (remueve el worktree manejando el long-path de Windows; **NO** pushea).
 
-6. **Freno.** Máximo **3 rondas** implement↔review. Si se agotan sin verde+aprobado → PARÁ y mostrá al founder dónde se trabó. **No fuerces un `done`.**
+6. **Freno (dos topes duros).** Externo: máximo **3 rondas** implement↔review. Interno: máximo **5 intentos** en el bucle de reparación del `implementer` (Reflexion). Si se agota cualquiera sin verde+aprobado → PARÁ y mostrá al founder dónde se trabó. **No fuerces un `done`.** (Ninguno de los dos es un proceso de fondo: son pasadas que se cortan solas al tope; nada queda corriendo.)
 
 ## Invariantes
 - Una feature nueva vive en **su worktree** (`harness-worktree start <slug>`), nunca directo en `main`. El número de SDD/migración se elige mirando **todas** las ramas/worktrees, no solo el índice de `main`.

@@ -33,6 +33,7 @@
 ## C6 · Tests
 - [ ] Hay tests (Vitest) que cubren los criterios de `acceptance` de la spec.
 - [ ] Pasan dentro de `node scripts/verify.mjs` (C1).
+- [ ] El verde es **legítimo** (anti-trampa Reflexion): no se debilitaron/borraron tests ni se reemplazaron asserts reales por always-pass para forzar el gate; el fix está en el código de producción, no en parchar el test.
 
 ## C7 · Spec-anchored (trazabilidad)
 - [ ] Al cerrar, el `spec.md` se actualizó con lo descubierto (`status`, `updated`, notas si cambió el alcance).
