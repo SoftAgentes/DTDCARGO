@@ -251,7 +251,7 @@ export function EstimacionForm() {
         <select
           name="origen"
           required
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
         >
           {ORIGINS.map((o) => (
             <option key={o.code} value={o.label}>
@@ -265,7 +265,7 @@ export function EstimacionForm() {
         <select
           name="destino"
           required
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
         >
           {DESTINATIONS.map((d) => (
             <option key={d.code} value={d.label}>
@@ -282,7 +282,7 @@ export function EstimacionForm() {
           name="peso"
           required
           placeholder="120"
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
         />
       </Row>
 
@@ -345,8 +345,9 @@ export function EstimacionForm() {
           type="text"
           name="nombre"
           required
+          autoComplete="name"
           placeholder="Nombre y apellido"
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
         />
       </Row>
 
@@ -356,8 +357,9 @@ export function EstimacionForm() {
             type="email"
             name="email"
             required
+            autoComplete="email"
             placeholder="tu@email.com"
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
           />
         </Row>
         <Row label="WhatsApp">
@@ -365,8 +367,9 @@ export function EstimacionForm() {
             type="tel"
             name="whatsapp"
             required
+            autoComplete="tel"
             placeholder="+58 412 ..."
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
           />
         </Row>
       </div>

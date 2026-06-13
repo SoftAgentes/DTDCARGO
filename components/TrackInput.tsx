@@ -19,13 +19,16 @@ export function TrackInput({ defaultValue = "" }: { defaultValue?: string }) {
   return (
     <form
       onSubmit={onSubmit}
-      className="flex items-stretch bg-white rounded-[12px] overflow-hidden max-w-[520px]"
+      className="flex items-stretch bg-white rounded-[12px] overflow-hidden max-w-[520px] focus-within:ring-2 focus-within:ring-wine/40"
     >
       <input
         value={code}
         onChange={(e) => setCode(e.target.value)}
         placeholder="BL / AWB / DTDU"
         aria-label="Código de tracking"
+        autoCapitalize="characters"
+        autoCorrect="off"
+        spellCheck={false}
         className="flex-1 border-0 outline-none bg-transparent px-5 h-14 text-[16px] font-semibold tracking-[0.04em] text-ink placeholder:text-grey-500 uppercase"
       />
       <button

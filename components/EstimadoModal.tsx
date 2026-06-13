@@ -198,6 +198,7 @@ export function EstimadoModal({
             <input
               ref={firstFieldRef}
               type="text"
+              autoComplete="name"
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
               placeholder="Nombre y apellido"
@@ -208,6 +209,7 @@ export function EstimadoModal({
           <Field label="WhatsApp o teléfono" error={errors.telefono}>
             <input
               type="tel"
+              autoComplete="tel"
               value={telefono}
               onChange={(e) => setTelefono(e.target.value)}
               placeholder="+58 412 ..."

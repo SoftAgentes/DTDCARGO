@@ -291,7 +291,7 @@ export function CalculadoraForm({
               id="ciudad"
               value={form.ciudadId}
               onChange={(e) => update("ciudadId", e.target.value)}
-              className="w-full px-3.5 h-[52px] rounded-[12px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink"
+              className="w-full px-3.5 h-[52px] rounded-[12px] border border-grey-200 text-[15px] text-ink bg-white focus:outline-none focus:border-ink focus:ring-2 focus:ring-wine/40"
             >
               {cityList.map((c) => (
                 <option key={c.id} value={c.id}>

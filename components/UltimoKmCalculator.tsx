@@ -132,7 +132,7 @@ export function UltimoKmCalculator() {
           <select
             value={origen}
             onChange={(e) => setOrigen(e.target.value as Origen)}
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
           >
             {ORIGENES_DISPONIBLES.map((o) => (
               <option key={o} value={o}>
@@ -150,7 +150,7 @@ export function UltimoKmCalculator() {
           <select
             value={destino}
             onChange={(e) => setDestinoPicked(e.target.value)}
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40"
           >
             {destinos.map((d) => (
               <option key={d} value={d}>
