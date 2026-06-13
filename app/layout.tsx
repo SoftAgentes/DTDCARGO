@@ -125,13 +125,13 @@ const jsonLd = {
       image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
       slogan: "Con Confianza, de China a tu puerta.",
       description:
-        "Operación logística integral China–Venezuela desde 2008: carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con Confianza, de China a tu puerta.",
+        "Operación logística integral China–Venezuela desde 2010: carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con Confianza, de China a tu puerta.",
       // priceRange es opcional; en freight no hay tier fijo → texto honesto (no "$$").
       priceRange: "Cotización a medida según volumen y ruta",
-      // 2008 = inicios comerciales en China (año de fundación canónico, FAQ §14 +
-      // decisión founder 2026-06-08). Hitos posteriores: 2010 empresa de carga
-      // formalizada · 2015 expansión a Venezuela (DTD Services LCL).
-      foundingDate: "2008",
+      // 2010 = empresa de carga formalizada = año oficial de la empresa (regla de
+      // marca 2026-06-13). 2008 = orígenes comerciales en China (comercio, NO la
+      // edad de la empresa) · 2015 = expansión a Venezuela (DTD Services LCL).
+      foundingDate: "2010",
       email: CONTACT.emailGeneral,
       telephone: CONTACT.ve.phone,
       sameAs: [CONTACT.instagram.url, CONTACT.youtube.url, CONTACT.tiktok.url],

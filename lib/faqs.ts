@@ -185,7 +185,7 @@ export const FAQS: Faq[] = [
     pregunta:
       "¿DTD Cargo tiene oficina propia en China y en Venezuela o es un intermediario?",
     respuesta:
-      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela), operando desde 2008: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
+      "Tenemos bodega y equipo propios en Yiwu (China) y en Valencia (Venezuela), operando desde 2010: la carga la maneja gente nuestra en los dos extremos, lo que nos deja controlar la recepción en China y la entrega puerta a puerta en Venezuela.",
     categoria: "empresa-servicios",
   },
   {

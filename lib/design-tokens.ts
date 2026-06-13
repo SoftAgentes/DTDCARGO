@@ -771,6 +771,13 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 export const HERO = {
   /**
+   * Eyebrow gris arriba del kicker (A2 · 2026-06-13): categoría + año oficial de
+   * la empresa (2010). El kicker (tagline) y el H1 NO cambian. Texto recortado
+   * tras el pase ui-ux: NO repetir el H1 ("Importa…Venezuela") ni el microcopy
+   * ("puerta a puerta DDP") — el eyebrow solo aporta categoría + antigüedad.
+   */
+  eyebrow: "Logística China → Venezuela · Desde 2010",
+  /**
    * Kicker = tagline oficial "Con Confianza, de China a tu puerta." (brand
    * book vigente; casing C mayúscula autorizado 2026-06-05).
    * SDD-0064 (decisión founder 2026-06-08): el tagline pasa de H1 a

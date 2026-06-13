@@ -28,12 +28,12 @@ import {
 export const metadata: Metadata = {
   title: "Brochure",
   description:
-    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2008.",
+    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2010.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
     title: "Brochure · DTD Cargo",
     description:
-      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2008.",
+      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2010.",
     path: "/brochure",
   }),
 };
@@ -72,7 +72,7 @@ export default function BrochurePage() {
         {/* 1 · Portada / Hero */}
         <section className="bg-paper pt-14 pb-14 lg:pt-24 lg:pb-20">
           <div className="wrap max-w-[920px]">
-            <span className="eyebrow">Carga China → Venezuela · Desde 2008</span>
+            <span className="eyebrow">Carga China → Venezuela · Desde 2010</span>
             <h1 className="h-display mt-6" style={{ fontSize: "clamp(40px, 6.5vw, 76px)" }}>
               <span style={{ color: "var(--color-wine)" }}>Con Confianza,</span>
               <br />
@@ -109,7 +109,7 @@ export default function BrochurePage() {
             <h2 className="h-section mt-4">Más de 15 años de trayectoria.</h2>
             <p className="lead mt-3 max-w-[60ch]">
               De importadores a referente logístico entre China y América
-              Latina. Operando desde 2008, contenedor a contenedor.
+              Latina. Operando desde 2010, contenedor a contenedor.
             </p>
             <ol className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-4 list-none p-0">
               {TIMELINE.map((t) => (

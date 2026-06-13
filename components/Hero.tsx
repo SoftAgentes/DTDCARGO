@@ -16,15 +16,17 @@ export function Hero() {
     <section className="relative py-15 lg:py-[60px] lg:pb-20 overflow-hidden">
       <div className="wrap grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 items-center">
         <div>
+          {/* Eyebrow gris (A2): categoría + modalidad + año oficial de la empresa (2010). */}
+          <p className="eyebrow">{HERO.eyebrow}</p>
           {/* Kicker = tagline de marca: "Con Confianza," en wine + resto
-              en ink (tratamiento del brand book). Sub-tagline, NO eyebrow gris. */}
-          <p className="text-[15px] lg:text-[16px] font-semibold leading-tight">
+              en ink (tratamiento del brand book). Sub-tagline bajo el eyebrow. */}
+          <p className="mt-3 text-[15px] lg:text-[16px] font-semibold leading-tight">
             <span style={{ color: "var(--color-wine)" }}>{HERO.kicker.accent}</span>{" "}
             <span style={{ color: "var(--color-ink)" }}>{HERO.kicker.rest}</span>
           </p>
 
           {/* H1 de acción — "tu puerta en Venezuela" en wine (acento de marca) */}
-          <h1 className="h-display mt-4 leading-[1.02]">
+          <h1 className="h-display mt-5 leading-[1.02]">
             <span
               className="block"
               style={{ fontSize: "clamp(34px, 4.8vw, 64px)" }}

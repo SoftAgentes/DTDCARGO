@@ -131,7 +131,7 @@ export default async function ImportarCiudadPage({
             <p className="lead mt-6 max-w-[60ch]">
               Carga consolidada puerta a puerta de China a {z.ciudad}: flete, aduana
               e impuestos incluidos, y pagas cuando tu mercancía llega a Venezuela.
-              Operamos desde 2008 con equipo y bodega propios en Yiwu y Valencia.
+              Operamos desde 2010 con equipo y bodega propios en Yiwu y Valencia.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a href={wa} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
