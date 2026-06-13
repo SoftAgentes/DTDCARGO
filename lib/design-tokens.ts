@@ -884,7 +884,7 @@ export const STEPS: { n: string; title: string; copy: string; tag?: string }[] =
   {
     n: "02",
     title: "Pre-alerta · MARKBOX",
-    copy: "Te registras y recibes tu MARKBOX. Tu proveedor en China lo escribe en cada caja y tú nos avisas qué viene en camino.",
+    copy: "Te registras y recibes tu MARKBOX — tu proveedor en China lo escribe en cada caja antes de despachar.",
   },
   {
     n: "03",

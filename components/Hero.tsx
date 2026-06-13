@@ -1,8 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { HERO, BRAND_ASSETS } from "@/lib/design-tokens";
-import { HeroCotizador } from "./HeroCotizador";
-import { LoopIcon } from "./Icon";
+import { HERO, BRAND_ASSETS, buildWhatsAppLink } from "@/lib/design-tokens";
+import { ArrowIcon, WhatsAppIcon, LoopIcon } from "./Icon";
 
 /**
  * Hero principal — kicker (tagline) + H1 de acción + cotizador inline + ilustración.
@@ -53,21 +52,43 @@ export function Hero() {
             {HERO.subtitle}
           </p>
 
-          {/* Cotizador inline — abre WhatsApp con mensaje pre-rellenado (origen/destino) */}
-          <HeroCotizador />
+          {/* CTA único: primario → /calculadora (estimación al instante); WhatsApp secundario. */}
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/calculadora"
+              className="btn btn-primary"
+              style={{ height: 54, padding: "0 26px", fontSize: 16 }}
+            >
+              Cotizar mi envío <ArrowIcon />
+            </Link>
+            <a
+              href={buildWhatsAppLink(
+                "Hola DTD Cargo, quiero cotizar un envío de China a Venezuela. ¿Cuál es la tarifa por CBM?"
+              )}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn btn-ghost"
+              style={{ height: 54 }}
+            >
+              <span style={{ color: "var(--color-whatsapp)" }}>
+                <WhatsAppIcon size={18} />
+              </span>{" "}
+              Cotizar por WhatsApp
+            </a>
+          </div>
 
           {/* Microcopy: explica puerta a puerta y deja DDP como aclaración */}
-          <p className="mt-4 text-[13px] leading-[1.5] text-grey-500 max-w-[50ch]">
+          <p className="mt-4 text-[13px] leading-[1.5] text-grey-700 max-w-[50ch]">
             {HERO.microcopy}
           </p>
 
           {/* Acciones secundarias: rastrear carga + alta de cliente */}
-          <p className="mt-5 text-[14px] text-grey-500">
+          <p className="mt-5 text-[14px] text-grey-700">
             <Link
               href="/track"
               className="font-semibold text-wine hover:text-wine-deep underline underline-offset-2 decoration-1"
             >
-              Rastrear carga
+              Rastrear envío
             </Link>{" "}
             ·{" "}
             ¿Vas a importar seguido?{" "}

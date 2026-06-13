@@ -6,14 +6,10 @@ import { Stats } from "@/components/Stats";
 import { PuertaAPuerta } from "@/components/PuertaAPuerta";
 import { ShippingMark } from "@/components/ShippingMark";
 import { ServicesGrid } from "@/components/ServicesGrid";
-import { YiwuAdvantage } from "@/components/YiwuAdvantage";
 import { WorkBand } from "@/components/WorkBand";
 import { OperationGallery } from "@/components/OperationGallery";
-import { Timeline } from "@/components/Timeline";
 import { HowWeWork } from "@/components/HowWeWork";
-import { TrackingPreview } from "@/components/TrackingPreview";
 import { Philosophy } from "@/components/Philosophy";
-import { JoinCTA } from "@/components/JoinCTA";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 
@@ -39,14 +35,10 @@ export default function HomePage() {
         <PuertaAPuerta />
         <HowWeWork />
         <ShippingMark />
-        <ServicesGrid />
-        <YiwuAdvantage />
-        <WorkBand />
         <OperationGallery />
-        <Timeline />
-        <TrackingPreview />
+        <WorkBand />
+        <ServicesGrid />
         <Philosophy />
-        <JoinCTA />
       </main>
       <Footer />
       <WhatsAppFAB />
