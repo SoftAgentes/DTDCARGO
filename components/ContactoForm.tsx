@@ -167,6 +167,7 @@ export function ContactoForm() {
           <input
             type="tel"
             name="whatsapp"
+            required
             autoComplete="tel"
             placeholder="+58 412 ..."
             className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
