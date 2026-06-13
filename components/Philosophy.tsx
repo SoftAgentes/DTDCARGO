@@ -19,7 +19,7 @@ export function Philosophy() {
 
         <h2
           className="h-display text-center mt-6 whitespace-pre-line"
-          style={{ fontSize: "clamp(34px, 5vw, 64px)" }}
+          style={{ fontSize: "clamp(30px, 4vw, 52px)" }}
         >
           {PHILOSOPHY.headline.split("\n").map((line, i, arr) => (
             <span key={i} className="block">

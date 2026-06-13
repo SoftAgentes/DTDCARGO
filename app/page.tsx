@@ -6,7 +6,6 @@ import { Stats } from "@/components/Stats";
 import { PuertaAPuerta } from "@/components/PuertaAPuerta";
 import { ShippingMark } from "@/components/ShippingMark";
 import { ServicesGrid } from "@/components/ServicesGrid";
-import { WorkBand } from "@/components/WorkBand";
 import { OperationGallery } from "@/components/OperationGallery";
 import { HowWeWork } from "@/components/HowWeWork";
 import { Philosophy } from "@/components/Philosophy";
@@ -36,7 +35,6 @@ export default function HomePage() {
         <HowWeWork />
         <ShippingMark />
         <OperationGallery />
-        <WorkBand />
         <ServicesGrid />
         <Philosophy />
       </main>
