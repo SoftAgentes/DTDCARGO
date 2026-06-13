@@ -245,7 +245,7 @@ texto, fuente Archivo, fondo navy de marca).
 > también trae fotos reales de operación (`O+ Connect/`, `WhatsApp.../FOTOS DTD/`, `equipo
 > doortudoor trabajando.png`) y reels listos para redes (`videos-redes/`).
 >
-> ➡️ **Para el catálogo:** cargás el archivo directo en el generador (no hace falta meterlo al repo).
+> ➡️ **Para el catálogo:** cargas el archivo directo en el generador (no hace falta meterlo al repo).
 > Si querés sumarlas al banco web (`public/fotos/`), copiar **solo** fotos de operación/marca con
 > nombre kebab-case. ⚠️ **NUNCA copiar al repo** las cédulas, pasaporte, tarjetas de cliente,
 > `QR_Sam`, cartas WeChat ni la carpeta de docs legales de esa misma carpeta — son PII.
