@@ -15,6 +15,10 @@ const TOPICS = [
   { v: "otro", l: "Otro" },
 ];
 
+// Campo trampa anti-bot (honeypot): un humano nunca lo llena; el API route
+// descarta el envío si llega no-vacío. Mismo nombre que el del registro.
+const HONEYPOT_FIELD = "empresa_web";
+
 type LeadData = {
   topic: string;
   topicLabel: string;
@@ -53,17 +57,25 @@ export function ContactoForm() {
       whatsapp: String(fd.get("whatsapp") ?? "").trim(),
       mensaje: String(fd.get("mensaje") ?? "").trim(),
     };
+    const code = `DTD-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    const honeypot = String(fd.get(HONEYPOT_FIELD) ?? "");
 
+    // Captación server-side (best-effort): el equipo recibe el lead por email +
+    // el cliente una confirmación. Aunque falle, igual mostramos la pantalla de
+    // WhatsApp — el fallback nunca pierde al lead que sí escribe.
     try {
-      // MOCK — sustituir por fetch('/api/contact', { method: 'POST', body: JSON.stringify(captured) })
-      // cuando Resend esté configurado.
-      await new Promise((r) => setTimeout(r, 700));
-      setLeadData(captured);
-      setLeadId(`DTD-${Date.now().toString(36).toUpperCase().slice(-6)}`);
-      setStatus("success");
+      await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...captured, code, [HONEYPOT_FIELD]: honeypot }),
+      });
     } catch {
-      setStatus("error");
+      // best-effort: seguimos al WhatsApp igual.
     }
+
+    setLeadData(captured);
+    setLeadId(code);
+    setStatus("success");
   }
 
   if (status === "success" && leadData) {
@@ -127,6 +139,16 @@ export function ContactoForm() {
       >
         Escríbenos
       </h2>
+
+      {/* Honeypot anti-bot: oculto para humanos; si llega lleno, el backend lo descarta. */}
+      <input
+        type="text"
+        name={HONEYPOT_FIELD}
+        tabIndex={-1}
+        autoComplete="off"
+        aria-hidden="true"
+        className="hidden"
+      />
 
       <Field label="¿Sobre qué tema?">
         <select
