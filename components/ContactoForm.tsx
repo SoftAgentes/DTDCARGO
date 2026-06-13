@@ -103,8 +103,7 @@ export function ContactoForm() {
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn mt-6 inline-flex items-center justify-center gap-2 w-full sm:w-auto"
-          style={{ background: "#25D366", color: "white" }}
+          className="btn mt-6 inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-whatsapp text-white"
         >
           <WhatsAppIcon size={20} />
           Enviar por WhatsApp
@@ -133,7 +132,7 @@ export function ContactoForm() {
         <select
           name="topic"
           required
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
         >
           {TOPICS.map((t) => (
             <option key={t.v} value={t.v}>
@@ -148,7 +147,7 @@ export function ContactoForm() {
           name="nombre"
           required
           placeholder="Nombre y apellido"
-          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+          className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
         />
       </Field>
 
@@ -159,7 +158,7 @@ export function ContactoForm() {
             name="email"
             required
             placeholder="tu@email.com"
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
           />
         </Field>
         <Field label="WhatsApp">
@@ -167,7 +166,7 @@ export function ContactoForm() {
             type="tel"
             name="whatsapp"
             placeholder="+58 412 ..."
-            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink"
+            className="h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink focus:ring-2 focus:ring-wine/40"
           />
         </Field>
       </div>
@@ -178,7 +177,7 @@ export function ContactoForm() {
           required
           rows={4}
           placeholder="Cuéntanos qué necesitas. Si es un envío, pega el link del producto o describe volumen y peso."
-          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none"
+          className="px-3.5 py-2.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] text-ink resize-none focus:ring-2 focus:ring-wine/40"
         />
       </Field>
 

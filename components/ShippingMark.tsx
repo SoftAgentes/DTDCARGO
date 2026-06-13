@@ -11,10 +11,8 @@
  * internacional · 唛头); el código interno sigue siendo DTD-NNNN.
  */
 import Link from "next/link";
-import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { buildWhatsAppLink, FONT_MONO } from "@/lib/design-tokens";
 import { CheckIcon, ArrowIcon } from "@/components/Icon";
-
-const MONO = "ui-monospace, SFMono-Regular, Menlo, Monaco, monospace";
 
 const PASOS: { n: string; title: string; copy: string }[] = [
   {
@@ -90,7 +88,7 @@ export function ShippingMark() {
             >
               <span
                 className="inline-flex w-10 h-10 rounded-full bg-wine text-white items-center justify-center text-[15px] font-bold"
-                style={{ fontFamily: MONO }}
+                style={{ fontFamily: FONT_MONO }}
                 aria-hidden
               >
                 {p.n}

@@ -50,7 +50,7 @@ export function HowWeWork() {
                   {s.tag}
                 </div>
               )}
-              <p className="text-[14px] leading-[1.55] text-grey-500">
+              <p className="text-[14px] leading-[1.55] text-grey-700">
                 {s.copy}
               </p>
             </div>

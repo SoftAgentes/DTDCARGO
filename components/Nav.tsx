@@ -122,7 +122,7 @@ export function Nav() {
   return (
     <>
       <nav
-        className="sticky top-0 z-50 border-b border-grey-200"
+        className="site-nav sticky top-0 z-50 border-b border-grey-200"
         style={{
           background: "rgba(251,250,247,0.92)",
           backdropFilter: "blur(14px)",

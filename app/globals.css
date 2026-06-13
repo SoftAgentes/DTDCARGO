@@ -283,6 +283,16 @@
   outline-offset: 2px;
 }
 
+/* Foco de teclado en links de texto del nav público (los .btn ya lo tenían;
+   estos dependían del outline default del navegador). Scoped por `.site-nav` +
+   `#mobile-drawer` para NO afectar el nav del Studio (fondo navy). WCAG 2.4.7. */
+.site-nav a:focus-visible,
+#mobile-drawer a:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* ──────────────────────────────────────────────────────────────────
    Sombras oficiales de cards — brand book · colors.json
    Aplicar .card-shadow en toda ventana/card blanca sobre bg-paper.

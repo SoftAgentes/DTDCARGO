@@ -71,7 +71,7 @@ export function ServiceCard({ s }: { s: Service }) {
       )}
       <p
         className={`text-[14px] leading-[1.5] flex-1 ${
-          isDark ? "text-white/70" : "text-grey-500"
+          isDark ? "text-white/70" : "text-grey-700"
         }`}
       >
         {s.copy}

@@ -148,8 +148,7 @@ export default function ContactoPage() {
                   )}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn mt-3 inline-flex items-center gap-2 self-start"
-                  style={{ background: "#25D366", color: "white" }}
+                  className="btn mt-3 inline-flex items-center gap-2 self-start bg-whatsapp text-white"
                 >
                   <WhatsAppIcon size={20} /> Abrir WhatsApp
                 </a>
