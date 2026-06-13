@@ -24,7 +24,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
-import { deriveFundClass } from "@/lib/studio/payment-types";
 import {
   buildSalesOrderFromQuote,
   canTransition,
@@ -35,9 +34,6 @@ import {
 } from "./types";
 import {
   canAutoInvoice,
-  computeReceiptInvoiceAmount,
-  nextStatusAfterInvoice,
-  salesOrderAcceptsInvoicing,
   type AutoInvoiceResult,
   type VerificationSource,
 } from "./invoicing";
@@ -385,8 +381,11 @@ export async function assignPrealertaToSalesOrder(
       sales_order_code: string;
     }>();
   if (soErr || !so) return { error: "Orden de venta no encontrada." };
-  if (so.status === "cancelada") {
-    return { error: "No se puede asignar una prealerta a una OV cancelada." };
+  if (so.status !== "confirmada") {
+    return {
+      error:
+        "Solo se pueden asignar prealertas a una OV 'confirmada' (antes de facturar). Una vez que arranca la facturación, el conjunto de cajas queda fijo (denominador congelado).",
+    };
   }
 
   // La prealerta debe existir en el tenant (RLS filtra; el update por id es
@@ -428,11 +427,22 @@ export async function unassignPrealertaFromSalesOrder(
 
   const { data: so } = await supabase
     .from("sales_orders")
-    .select("id, tenant_id, sales_order_code")
+    .select("id, tenant_id, sales_order_code, status")
     .eq("id", salesOrderId)
     .is("deleted_at", null)
-    .maybeSingle<{ id: string; tenant_id: string; sales_order_code: string }>();
+    .maybeSingle<{
+      id: string;
+      tenant_id: string;
+      sales_order_code: string;
+      status: string;
+    }>();
   if (!so) return { error: "Orden de venta no encontrada." };
+  if (so.status !== "confirmada") {
+    return {
+      error:
+        "Solo se pueden quitar prealertas de una OV 'confirmada' (antes de facturar).",
+    };
+  }
 
   const { error: updErr } = await supabase
     .from("prealertas")
@@ -474,6 +484,7 @@ function num(v: unknown): number {
 async function resolveReceiptVerification(
   admin: SupabaseClient,
   args: {
+    tenantId: string;
     prealertaId: string | null;
     hasWarehouseMeasure: boolean;
   },
@@ -487,6 +498,7 @@ async function resolveReceiptVerification(
         .from("prealerta_documents")
         .select("doc_type")
         .eq("prealerta_id", args.prealertaId)
+        .eq("tenant_id", args.tenantId)
         .is("deleted_at", null)
         .limit(50);
       const docs = (data as { doc_type: string }[] | null) ?? [];
@@ -511,25 +523,22 @@ async function resolveReceiptVerification(
   // soporte documental exigido por §3.5).
   return { verification, hasAttachments: hasAnyDoc };
 }
-
 /**
  * ⭐ Motor de auto-facturación de la OV en la confirmación de Warehouse (Fase 2).
  *
  * Llamado por el HOOK best-effort de la recepción CN (changeReceiptStatusAction →
- * 'consolidado'). Corre con ADMIN client (service_role) — igual que el asiento
- * contable: la seguridad por-tenant la da el filtro EXPLÍCITO por `tenantId`.
+ * 'consolidado'). Corre con ADMIN client (service_role): la seguridad por-tenant la
+ * da el filtro EXPLÍCITO por `tenantId` (y la RPC re-filtra por tenant adentro).
  *
- * Garantías (feature financiera):
- *  - GATING (§3.5): valida CBM/peso/verificación/adjuntos con `canAutoInvoice`. Si
- *    falta algo → { ok:false, reason:"faltan datos: …" }, NO factura.
- *  - PARCIAL por defecto (§3.6): factura SOLO las cajas (prealertas) NO facturadas
- *    de la OV que cubre esta recepción. 1 OV : N facturas.
- *  - IDEMPOTENTE: reclama las cajas con UPDATE ... WHERE invoice_id IS NULL ANTES de
- *    postear (guard anti-race). Si otra ejecución ya las reclamó → 0 filas → no
- *    factura ("ya facturada"). La factura se crea recién DESPUÉS de reclamar, y las
- *    cajas se re-apuntan al invoice_id real.
- *  - MONTO REAL: proporcional al snapshot por cajas (computeReceiptInvoiceAmount).
- *  - STATUS de la OV: parcial/facturada vía isAllowedTransition (no la UI).
+ * Arquitectura (post-hardening 0128):
+ *  - GATE §3.5 COMPLETO app-side (acá): adjuntos + verificación (prealerta_documents)
+ *    vía resolveReceiptVerification + canAutoInvoice. Si falta algo → NO factura.
+ *  - NÚCLEO FINANCIERO en la RPC TRANSACCIONAL `sales_order_claim_and_invoice`
+ *    (migr 0128): claim FOR UPDATE de OV+caja → denominador congelado → monto →
+ *    factura → ligado invoice_id → status, TODO en UNA transacción (o todo o nada;
+ *    imposible doble-facturar la misma caja ni dejar cerrojos huérfanos).
+ *  - ASIENTO 0040 app-side, best-effort + idempotente por invoice_id (mismo modo de
+ *    fallo que la emisión manual de 0021; NO se duplica el motor contable en SQL).
  *
  * NO throwea: devuelve un AutoInvoiceResult. El hook decide el log y nunca bloquea
  * la recepción.
@@ -541,85 +550,34 @@ export async function autoInvoiceForReceipt(args: {
 }): Promise<AutoInvoiceResult> {
   const { admin, tenantId, receiptId } = args;
   try {
-    // ── 1. Leer la recepción (datos reales) ──
+    // ── 1. Leer la recepción para el GATE §3.5 completo (adjuntos + verificación),
+    //       que la RPC NO evalúa — la RPC solo re-valida gates DUROS (defensa). ──
     const { data: receipt, error: rErr } = await admin
       .from("warehouse_receipts_cn")
       .select(
-        "id, tenant_id, receipt_code, client_markbox, client_name, is_orphan, boxes, total_cbm, total_weight_kg, prealerta_id, sales_order_id",
+        "receipt_code, is_orphan, boxes, total_cbm, total_weight_kg, prealerta_id",
       )
       .eq("id", receiptId)
       .eq("tenant_id", tenantId)
       .is("deleted_at", null)
       .maybeSingle<{
-        id: string;
-        tenant_id: string;
         receipt_code: string;
-        client_markbox: string | null;
-        client_name: string | null;
         is_orphan: boolean;
         boxes: number;
         total_cbm: number | null;
         total_weight_kg: number | null;
         prealerta_id: string | null;
-        sales_order_id: string | null;
       }>();
     if (rErr || !receipt) {
       return { ok: false, reason: "recepción no encontrada", notApplicable: true };
     }
 
-    // ── 2. Resolver la OV: denormalizada o vía la prealerta (caja → OV) ──
-    let salesOrderId = receipt.sales_order_id;
-    if (!salesOrderId && receipt.prealerta_id) {
-      const { data: pre } = await admin
-        .from("prealertas")
-        .select("sales_order_id")
-        .eq("id", receipt.prealerta_id)
-        .eq("tenant_id", tenantId)
-        .is("deleted_at", null)
-        .maybeSingle<{ sales_order_id: string | null }>();
-      salesOrderId = pre?.sales_order_id ?? null;
-    }
-    if (!salesOrderId) {
-      return {
-        ok: false,
-        reason: "la recepción no resuelve ninguna orden de venta",
-        notApplicable: true,
-      };
-    }
-
-    const { data: so, error: soErr } = await admin
-      .from("sales_orders")
-      .select("id, tenant_id, sales_order_code, client_markbox, client_name, total_usd, service, status")
-      .eq("id", salesOrderId)
-      .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
-      .maybeSingle<{
-        id: string;
-        tenant_id: string;
-        sales_order_code: string;
-        client_markbox: string | null;
-        client_name: string;
-        total_usd: number;
-        service: string;
-        status: SalesOrderStatus;
-      }>();
-    if (soErr || !so) {
-      return { ok: false, reason: "orden de venta no encontrada", notApplicable: true };
-    }
-    if (!salesOrderAcceptsInvoicing(so)) {
-      return {
-        ok: false,
-        reason: `la OV ${so.sales_order_code} está ${so.status} y no admite facturación`,
-        notApplicable: true,
-      };
-    }
-
-    // ── 3. GATE de requisitos (§3.5) ──
+    // ── 2. GATE §3.5 (adjuntos + verificación) ──
     const hasWarehouseMeasure =
       num(receipt.total_cbm) > 0 && num(receipt.total_weight_kg) > 0;
     const { verification, hasAttachments } = await resolveReceiptVerification(
       admin,
-      { prealertaId: receipt.prealerta_id, hasWarehouseMeasure },
+      { tenantId, prealertaId: receipt.prealerta_id, hasWarehouseMeasure },
     );
     const eligibility = canAutoInvoice({
       total_cbm: receipt.total_cbm,
@@ -633,208 +591,92 @@ export async function autoInvoiceForReceipt(args: {
       return { ok: false, reason: eligibility.reason };
     }
 
-    // ── 4. Reclamar las cajas NO facturadas de la OV (guard anti-race) ──
-    // La caja a facturar = la prealerta de ESTA recepción (si tiene), siempre que
-    // siga sin facturar. Reclamamos con un UPDATE condicional: solo gana quien
-    // pone invoice_id de null→reservado. (Reservamos con un marcador temporal: el
-    // propio receiptId no sirve como invoice_id porque es FK a invoices; en su
-    // lugar reclamamos leyendo+actualizando con WHERE invoice_id IS NULL y luego
-    // confirmamos con select.)
-    //
-    // Estrategia 1 OV : N facturas: solo la(s) prealerta(s) de esta recepción que
-    // aún no tengan invoice_id. Si la recepción no tiene prealerta atada, NO hay
-    // caja que reclamar → no facturamos (el gate ya exigía no-huérfana, pero sin
-    // prealerta tampoco hay unidad de facturación trazable).
-    if (!receipt.prealerta_id) {
-      return {
-        ok: false,
-        reason: "la recepción no tiene una caja (prealerta) trazable para facturar",
-        notApplicable: true,
-      };
-    }
-
-    // Snapshot del universo de cajas de la OV (planeadas + ya facturadas) para el
-    // prorrateo y el status final.
-    const { data: ovBoxesRaw } = await admin
-      .from("prealertas")
-      .select("id, boxes, invoice_id")
-      .eq("sales_order_id", so.id)
-      .eq("tenant_id", tenantId)
-      .is("deleted_at", null)
-      .limit(1000);
-    const ovBoxes = (ovBoxesRaw as { id: string; boxes: number; invoice_id: string | null }[] | null) ?? [];
-    const totalBoxes = ovBoxes.reduce((s, p) => s + Math.round(num(p.boxes)), 0);
-
-    // Guard anti-race (CRÍTICO · feature financiera): el UPDATE condicional es el
-    // MUTEX. Solo gana quien flipea invoiced_at de NULL→claimedAt: Postgres
-    // serializa el UPDATE sobre la misma fila, así dos consolidaciones concurrentes
-    // de la misma caja NO crean dos facturas (la 2da ve invoiced_at != null → 0
-    // filas). El cerrojo es `invoiced_at` (no `invoice_id`, que no puede setearse
-    // hasta que exista la factura por la FK). `invoice_id IS NULL` también se exige
-    // para no re-facturar una caja ya facturada en una corrida previa. Todo path de
-    // fallo posterior revierte invoiced_at→null (las cajas vuelven al pool).
-    const claimedAt = new Date().toISOString();
-    const { data: claimed, error: claimErr } = await admin
-      .from("prealertas")
-      .update({ invoiced_at: claimedAt })
-      .eq("id", receipt.prealerta_id)
-      .eq("sales_order_id", so.id)
-      .eq("tenant_id", tenantId)
-      .is("invoice_id", null)
-      .is("invoiced_at", null)
-      .is("deleted_at", null)
-      .select("id, boxes");
-    if (claimErr) {
-      return { ok: false, reason: `no se pudo reclamar la caja: ${claimErr.message}` };
-    }
-    const claimedRows = (claimed as { id: string; boxes: number }[] | null) ?? [];
-    if (claimedRows.length === 0) {
-      // Otra ejecución ya la reclamó/facturó (invoiced_at o invoice_id no-null) →
-      // idempotencia: NO doble-facturamos.
-      return {
-        ok: false,
-        reason: "la caja de esta recepción ya fue facturada (o está en proceso)",
-        notApplicable: true,
-      };
-    }
-    const claimedBoxes = claimedRows.reduce(
-      (s, p) => s + Math.round(num(p.boxes)),
-      0,
+    // ── 3. NÚCLEO ATÓMICO (RPC migr 0128): claim → monto → factura → ligado →
+    //       status, todo en UNA transacción con FOR UPDATE. O todo o nada. ──
+    const { data: rpcRaw, error: rpcErr } = await admin.rpc(
+      "sales_order_claim_and_invoice",
+      { p_tenant_id: tenantId, p_receipt_id: receiptId },
     );
-    const claimedIds = claimedRows.map((p) => p.id);
+    if (rpcErr) {
+      return { ok: false, reason: `no se pudo facturar: ${rpcErr.message}` };
+    }
+    const r = (rpcRaw ?? {}) as {
+      outcome: string;
+      missing?: string;
+      invoice_id?: string;
+      invoice_code?: string;
+      base_amount?: number;
+      iva_amount?: number;
+      total_amount?: number;
+      sales_order_id?: string;
+      sales_order_code?: string;
+      sales_order_status?: string;
+      sales_order_status_changed?: boolean;
+    };
 
-    // ── 5. Calcular monto real (proporcional al snapshot por cajas) ──
-    // Ya facturado de la OV = suma de totales de las facturas previas de esta OV.
-    const { data: prevInvoices } = await admin
-      .from("invoices")
-      .select("total_amount")
-      .eq("sales_order_id", so.id)
-      .eq("tenant_id", tenantId)
-      .neq("status", "anulada")
-      .is("deleted_at", null);
-    const alreadyInvoicedUsd = (
-      (prevInvoices as { total_amount: unknown }[] | null) ?? []
-    ).reduce((s, r) => s + num(r.total_amount), 0);
-
-    // ¿esta recepción cubre las últimas cajas pendientes? (las pendientes pre-claim
-    // eran las de invoice_id null; si tras reclamar no quedan más → es final).
-    const remainingBoxesAfter = ovBoxes
-      .filter((p) => !p.invoice_id && !claimedIds.includes(p.id))
-      .reduce((s, p) => s + Math.round(num(p.boxes)), 0);
-    const isFinal = remainingBoxesAfter <= 0;
-
-    const amountUsd = computeReceiptInvoiceAmount({
-      salesOrderTotalUsd: num(so.total_usd),
-      totalBoxes,
-      receivedBoxes: claimedBoxes,
-      alreadyInvoicedUsd,
-      isFinal,
-    });
-
-    if (amountUsd <= 0) {
-      // Monto 0 (snapshot 0 o ya cubierto): NO emitimos factura vacía. Devolvemos
-      // las cajas al pool (revertimos el cerrojo) para no marcarlas como facturadas.
-      await admin
-        .from("prealertas")
-        .update({ invoiced_at: null })
-        .in("id", claimedIds)
-        .is("invoice_id", null);
-      return {
-        ok: false,
-        reason: "monto a facturar = 0 (la OV no tiene total o ya está cubierta)",
-        notApplicable: true,
-      };
+    switch (r.outcome) {
+      case "invoiced":
+        break; // sigue al asiento contable
+      case "gate_failed":
+        return { ok: false, reason: `faltan datos: ${r.missing ?? "requisitos"}` };
+      case "no_box":
+        return {
+          ok: false,
+          reason:
+            "la recepción no tiene una caja (prealerta) trazable para facturar",
+          notApplicable: true,
+        };
+      case "no_sales_order":
+        return {
+          ok: false,
+          reason: "la recepción no resuelve ninguna orden de venta",
+          notApplicable: true,
+        };
+      case "so_terminal":
+        return {
+          ok: false,
+          reason: `la OV ${r.sales_order_code ?? ""} está ${r.sales_order_status ?? "cerrada/cancelada"} y no admite facturación`,
+          notApplicable: true,
+        };
+      case "already_invoiced":
+        return {
+          ok: false,
+          reason: "la caja de esta recepción ya fue facturada",
+          notApplicable: true,
+        };
+      case "zero_amount":
+        return {
+          ok: false,
+          reason: "monto a facturar = 0 (la OV no tiene total o ya está cubierta)",
+          notApplicable: true,
+        };
+      case "not_found":
+        return {
+          ok: false,
+          reason: "recepción no encontrada",
+          notApplicable: true,
+        };
+      default:
+        return {
+          ok: false,
+          reason: `resultado inesperado de la facturación: ${r.outcome ?? "desconocido"}`,
+        };
     }
 
-    // ── 6. Crear la factura reusando el motor 0021 ──
-    const ivaOn = await tenantIvaOn(admin, tenantId);
-    const ivaRate = ivaOn ? 16 : 0;
-    const baseAmount = round2usd(ivaOn ? amountUsd / 1.16 : amountUsd);
-    const ivaAmount = round2usd(amountUsd - baseAmount);
+    const invoiceCode = String(r.invoice_code ?? "");
+    const totalUsd = num(r.total_amount);
+
+    // ── 4. Asiento contable (0040) — FUERA de la tx, best-effort e idempotente por
+    //       invoice_id (mismo modo de fallo que la emisión manual de 0021). ──
     const today = new Date().toISOString().slice(0, 10);
-
-    const { data: codeData, error: codeErr } = await admin.rpc(
-      "next_invoice_code",
-      { p_tenant_id: tenantId },
-    );
-    if (codeErr || !codeData) {
-      // No se pudo generar code → revertir el cerrojo de las cajas.
-      await admin
-        .from("prealertas")
-        .update({ invoiced_at: null })
-        .in("id", claimedIds)
-        .is("invoice_id", null);
-      return { ok: false, reason: "no se pudo generar el código de factura" };
-    }
-    const invoiceCode = String(codeData);
-
-    const clientMarkbox =
-      (receipt.client_markbox ?? so.client_markbox ?? "").trim() || "—";
-    const clientName =
-      (receipt.client_name ?? so.client_name ?? "").trim() || "Cliente";
-
-    const { data: invoice, error: invErr } = await admin
-      .from("invoices")
-      .insert({
-        tenant_id: tenantId,
-        invoice_code: invoiceCode,
-        client_markbox: clientMarkbox,
-        client_name: clientName,
-        sales_order_id: so.id,
-        currency: "USD",
-        iva_rate: ivaRate,
-        base_amount: baseAmount,
-        iva_amount: ivaAmount,
-        total_amount: amountUsd,
-        lines: [
-          {
-            desc: `OV ${so.sales_order_code} · recepción ${receipt.receipt_code} (${claimedBoxes} caja${claimedBoxes === 1 ? "" : "s"})`,
-            qty: 1,
-            unitPrice: baseAmount,
-          },
-        ],
-        notes: `Generada automáticamente al confirmar la recepción ${receipt.receipt_code} (SDD-0072 Fase 2).`,
-        status: "emitida",
-        issued_at: today,
-        due_date: addDays(today, 30),
-        fund_class: deriveFundClass(so.service),
-      })
-      .select("id")
-      .single<{ id: string }>();
-    if (invErr || !invoice) {
-      // Insert falló → revertir el cerrojo (las cajas vuelven a ser facturables).
-      await admin
-        .from("prealertas")
-        .update({ invoiced_at: null })
-        .in("id", claimedIds)
-        .is("invoice_id", null);
-      return {
-        ok: false,
-        reason: `no se pudo crear la factura: ${invErr?.message ?? "sin detalle"}`,
-      };
-    }
-
-    // ── 7. Confirmar la idempotencia: ligar las cajas al invoice_id real ──
-    await admin
-      .from("prealertas")
-      .update({ invoice_id: invoice.id, invoiced_at: claimedAt })
-      .in("id", claimedIds);
-
-    // Denormalizar la OV en la recepción (provenance) — best-effort.
-    await admin
-      .from("warehouse_receipts_cn")
-      .update({ sales_order_id: so.id })
-      .eq("id", receipt.id);
-
-    // ── 8. Asiento contable de venta (0040) — best-effort, no rompe ──
     try {
       const posting = await postInvoiceJournalEntry({
         tenantId,
-        invoiceId: invoice.id,
+        invoiceId: String(r.invoice_id ?? ""),
         invoiceCode,
-        baseAmount,
-        ivaAmount,
-        totalAmount: amountUsd,
+        baseAmount: num(r.base_amount),
+        ivaAmount: num(r.iva_amount),
+        totalAmount: totalUsd,
         entryDate: today,
       });
       if (!posting.ok) {
@@ -850,30 +692,20 @@ export async function autoInvoiceForReceipt(args: {
       );
     }
 
-    // ── 9. Status de la OV (parcial / facturada) vía el grafo ──
-    let newStatus: SalesOrderStatus | undefined;
-    const next = nextStatusAfterInvoice({
-      current: so.status,
-      remainingBoxes: remainingBoxesAfter,
-    });
-    if (next) {
-      const { error: stErr } = await admin
-        .from("sales_orders")
-        .update({ status: next })
-        .eq("id", so.id)
-        .eq("tenant_id", tenantId);
-      if (!stErr) newStatus = next;
-    }
-
-    // ── 10. Audit (best-effort) ──
-    await audit(tenantId, so.id, null, "so_auto_invoiced", {
-      sales_order_code: so.sales_order_code,
-      invoice_code: invoiceCode,
-      receipt_code: receipt.receipt_code,
-      amount_usd: amountUsd,
-      boxes: claimedBoxes,
-      status: newStatus ?? so.status,
-    });
+    // ── 5. Audit (best-effort) ──
+    await audit(
+      tenantId,
+      String(r.sales_order_id ?? ""),
+      null,
+      "so_auto_invoiced",
+      {
+        sales_order_code: r.sales_order_code,
+        invoice_code: invoiceCode,
+        receipt_code: receipt.receipt_code,
+        amount_usd: totalUsd,
+        status: r.sales_order_status,
+      },
+    );
 
     revalidatePath(SO_PATH);
     revalidatePath("/studio/facturacion");
@@ -881,8 +713,10 @@ export async function autoInvoiceForReceipt(args: {
     return {
       ok: true,
       invoiceCode,
-      amountUsd,
-      salesOrderStatus: newStatus,
+      amountUsd: totalUsd,
+      salesOrderStatus: r.sales_order_status_changed
+        ? (r.sales_order_status as SalesOrderStatus)
+        : undefined,
     };
   } catch (e) {
     return {
@@ -890,29 +724,4 @@ export async function autoInvoiceForReceipt(args: {
       reason: e instanceof Error ? e.message : String(e),
     };
   }
-}
-
-// ── helpers locales del motor de facturación ───────────────────
-
-function round2usd(n: number): number {
-  return Math.round((n + Number.EPSILON) * 100) / 100;
-}
-
-function addDays(baseISO: string, days: number): string {
-  const d = new Date(baseISO + "T00:00:00Z");
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
-/** Lee el flag iva_enabled del tenant (fuente del toggle fiscal · igual que 0021). */
-async function tenantIvaOn(
-  admin: SupabaseClient,
-  tenantId: string,
-): Promise<boolean> {
-  const { data } = await admin
-    .from("tenants")
-    .select("iva_enabled")
-    .eq("id", tenantId)
-    .maybeSingle<{ iva_enabled: boolean }>();
-  return data?.iva_enabled ?? false;
 }

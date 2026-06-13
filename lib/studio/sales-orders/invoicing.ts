@@ -6,12 +6,18 @@
  * requisitos (§3.5) e IDEMPOTENTE (nunca doble-facturar la misma caja).
  *
  * Esta capa parte en DOS:
- *  - PURA (testeable sin DB): `canAutoInvoice` (elegibilidad/gating) +
- *    `computeReceiptInvoiceAmount` (monto real proporcional al snapshot por cajas).
- *  - CON DB (en actions.ts → autoInvoiceForReceipt): resuelve la OV, valida con
- *    los helpers puros, reclama las cajas (guard anti-race) y POSTEA la factura
- *    reusando el motor 0021 (next_invoice_code + postInvoiceJournalEntry). NO
- *    duplica el motor de facturación.
+ *  - PURA (testeable sin DB · este archivo): `canAutoInvoice` (elegibilidad/
+ *    gating §3.5) + `computeReceiptInvoiceAmount` (monto proporcional al universo
+ *    CONGELADO de cajas). El cálculo del monto es el ESPEJO TS documentado de la
+ *    RPC `sales_order_claim_and_invoice` (migr 0128) — los tests de Vitest pinean
+ *    este espejo; si cambia uno, cambiar el otro. El IVA (total = base + iva) y el
+ *    ligado transaccional viven SOLO en la RPC (SQL), no en esta capa pura.
+ *  - CON DB (auto-invoice.ts → autoInvoiceForReceipt): valida el gate con los
+ *    helpers puros y delega el NÚCLEO FINANCIERO (claim → cálculo → factura →
+ *    ligado → status) a la RPC TRANSACCIONAL de 0128 (FOR UPDATE sobre OV +
+ *    prealerta: o todo o nada). El asiento 0040 (postInvoiceJournalEntry) queda
+ *    app-side best-effort + idempotente por invoice_id — mismo modo de fallo que
+ *    la emisión manual de 0021 (NO se duplica el motor contable en SQL).
  *
  * ⚠️ Feature FINANCIERA. Ante la duda, NO factura: cada requisito faltante devuelve
  * un resultado claro y la recepción se confirma igual (best-effort en el hook).
@@ -115,6 +121,8 @@ export function canAutoInvoice(
 
 /**
  * Calcula el monto a facturar por las cajas recibidas en ESTA recepción. PURA.
+ * ESPEJO 1:1 del paso 5 de la RPC `sales_order_claim_and_invoice` (migr 0128) —
+ * si cambia esta fórmula, cambiar el SQL (y viceversa).
  *
  * DECISIÓN DE IMPLEMENTACIÓN (documentada para el review):
  * El snapshot de la OV (`total_usd`) cubre TODAS las cajas planeadas. No existe en
@@ -134,14 +142,21 @@ export function canAutoInvoice(
  *  - Si la OV no tiene cajas planeadas (total_boxes 0) cae a facturar las cajas
  *    recibidas / cajas recibidas = el total completo (no se puede prorratear sin
  *    denominador → se factura el snapshot íntegro una sola vez).
+ *  - DENOMINADOR CONGELADO (fix C3 del review): `totalBoxes` NO se recalcula en
+ *    cada recepción — es el snapshot `sales_orders.invoicing_total_boxes` que la
+ *    RPC fija en la 1ª factura. Aunque el universo real de cajas cambie después
+ *    (assign/unassign directo, cajas extra), el clamp al restante + el ajuste
+ *    `isFinal` garantizan que la SUMA de facturas == total de la OV, nunca más.
  *
  * `isFinal` = esta recepción cubre las últimas cajas pendientes ⇒ el monto se
  * ajusta al RESTANTE (total_usd − ya_facturado) para que la suma cuadre exacto.
+ * `alreadyInvoicedUsd` = suma de facturas REALES de la OV (excluye `borrador` y
+ * `anulada` — fix 🟡 del review; el filtro vive en la RPC).
  */
 export function computeReceiptInvoiceAmount(args: {
   /** total_usd del snapshot de la OV (todas las cajas planeadas). */
   salesOrderTotalUsd: number;
-  /** cajas totales planeadas de la OV (Σ boxes de las prealertas atadas). */
+  /** denominador CONGELADO (sales_orders.invoicing_total_boxes; Σ boxes en la 1ª factura). */
   totalBoxes: number;
   /** cajas que cubre ESTA recepción (las prealertas no facturadas que se reclaman). */
   receivedBoxes: number;

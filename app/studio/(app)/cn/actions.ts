@@ -223,6 +223,44 @@ export async function createReceiptAction(
     } · ${input!.items.length} item${input!.items.length === 1 ? "" : "s"}`,
   });
 
+  // ── Wiring recepción → caja (prealerta) → OV · SDD-0072 Fase 2 ──
+  // Para que la auto-factura pueda dispararse al consolidar (changeReceiptStatusAction
+  // → 'consolidado' → autoInvoiceForReceipt), la recepción debe apuntar a la prealerta
+  // (caja física) que materializa. CONSERVADOR (es FINANCIERO): solo auto-vincula si hay
+  // UNA sola prealerta candidata inequívoca del cliente — con OV atada y sin facturar.
+  // Si hay 0 o varias → queda SIN atar (no auto-factura; el asesor la vincula a mano
+  // desde la OV). NO se adivina: vincular la caja equivocada auto-facturaría la OV
+  // equivocada. (V1: match por client_markbox; un selector explícito en la UI de
+  // recepción puede afinar el caso ambiguo más adelante.)
+  if (!input!.is_orphan && input!.client_markbox) {
+    try {
+      const { data: cands } = await supabase
+        .from("prealertas")
+        .select("id, sales_order_id")
+        .eq("tenant_id", link.tenant_id)
+        .eq("client_markbox", input!.client_markbox)
+        .not("sales_order_id", "is", null)
+        .is("invoice_id", null)
+        .is("deleted_at", null)
+        .limit(2);
+      const list =
+        (cands as { id: string; sales_order_id: string | null }[] | null) ?? [];
+      if (list.length === 1 && list[0].sales_order_id) {
+        await supabase
+          .from("warehouse_receipts_cn")
+          .update({
+            prealerta_id: list[0].id,
+            sales_order_id: list[0].sales_order_id,
+          })
+          .eq("id", receipt.id)
+          .eq("tenant_id", link.tenant_id);
+      }
+    } catch {
+      // best-effort: si el match falla, la recepción queda sin caja atada (no
+      // auto-factura). NO rompe la creación de la recepción.
+    }
+  }
+
   revalidatePath("/studio/cn");
   return { ok: true, createdReceiptCode: receipt_code };
 }
