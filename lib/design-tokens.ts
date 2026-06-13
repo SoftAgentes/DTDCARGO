@@ -790,9 +790,13 @@ export const HERO = {
    * puerta; DDP es la metodología técnica que lo hace posible").
    */
   kicker: { accent: "Con Confianza,", rest: "de China a tu puerta." },
-  /** H1 de acción. `accent` se renderiza en wine. */
+  /**
+   * H1 de acción. `accent` se renderiza en wine. "con confianza" (2026-06-13)
+   * conecta el H1 con la sección Filosofía ("Confía en quienes…") y con el
+   * tagline del kicker, sin tocar ni el kicker ni el cierre del H1.
+   */
   title: {
-    lead: "Importa desde China",
+    lead: "Importa desde China con confianza",
     accent: "hasta tu puerta en Venezuela.",
   },
   subtitle:
