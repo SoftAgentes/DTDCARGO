@@ -23,7 +23,7 @@ export type QuoteFilters = {
 };
 
 const QUOTE_COLUMNS =
-  "id, tenant_id, quote_code, client_markbox, client_name, service, origin, destination, cbm, weight_kg, boxes, packaging, rate_per_cbm, flat_rate, rate_used_id, subtotal_usd, packaging_cost, total_usd, status, valid_until, sent_at, accepted_at, converted_to_shipment_id, notes, prospect_name, prospect_email, prospect_whatsapp, nota, source, created_at, updated_at, deleted_at";
+  "id, tenant_id, quote_code, client_markbox, client_name, service, origin, destination, cbm, weight_kg, boxes, packaging, rate_per_cbm, flat_rate, rate_used_id, subtotal_usd, packaging_cost, total_usd, status, valid_until, sent_at, accepted_at, converted_to_shipment_id, sales_order_id, notes, prospect_name, prospect_email, prospect_whatsapp, nota, source, created_at, updated_at, deleted_at";
 
 export async function listQuotes(
   supabase: SupabaseClient,

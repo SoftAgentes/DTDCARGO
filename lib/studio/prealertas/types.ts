@@ -288,6 +288,8 @@ export type Prealerta = {
   shipment_id: string | null;
   /** SDD-0057 ext: token del link público del proveedor (/p/{share_token}). */
   share_token: string | null;
+  /** SDD-0072: Orden de venta (OV-) que esta caja física cumple (FK suave, nullable). */
+  sales_order_id: string | null;
   deleted_at: string | null;
   created_at: string;
   updated_at: string;

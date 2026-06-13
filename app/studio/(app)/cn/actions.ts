@@ -16,6 +16,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
+import { autoInvoiceForReceipt } from "@/lib/studio/sales-orders/actions";
 import {
   findOrCreateConsolidationShipment,
   ensureActiveAlert,
@@ -222,6 +223,45 @@ export async function createReceiptAction(
     } · ${input!.items.length} item${input!.items.length === 1 ? "" : "s"}`,
   });
 
+  // ── Wiring recepción → caja (prealerta) → OV · SDD-0072 Fase 2 ──
+  // Para que la auto-factura pueda dispararse al consolidar (changeReceiptStatusAction
+  // → 'consolidado' → autoInvoiceForReceipt), la recepción debe apuntar a la prealerta
+  // (caja física) que materializa. CONSERVADOR (es FINANCIERO): solo auto-vincula si hay
+  // UNA sola prealerta candidata inequívoca del cliente — con OV atada y sin facturar.
+  // Si hay 0 o varias → queda SIN atar (no auto-factura; el asesor la vincula a mano
+  // desde la OV). NO se adivina: vincular la caja equivocada auto-facturaría la OV
+  // equivocada. (V1: match por client_markbox; un selector explícito en la UI de
+  // recepción puede afinar el caso ambiguo más adelante.)
+  if (!input!.is_orphan && input!.client_markbox) {
+    try {
+      const { data: cands } = await supabase
+        .from("prealertas")
+        .select("id, sales_order_id")
+        .eq("tenant_id", link.tenant_id)
+        .eq("client_markbox", input!.client_markbox)
+        .not("sales_order_id", "is", null)
+        .is("invoice_id", null)
+        .in("status", ["anunciada", "en_camino"])
+        .is("deleted_at", null)
+        .limit(2);
+      const list =
+        (cands as { id: string; sales_order_id: string | null }[] | null) ?? [];
+      if (list.length === 1 && list[0].sales_order_id) {
+        await supabase
+          .from("warehouse_receipts_cn")
+          .update({
+            prealerta_id: list[0].id,
+            sales_order_id: list[0].sales_order_id,
+          })
+          .eq("id", receipt.id)
+          .eq("tenant_id", link.tenant_id);
+      }
+    } catch {
+      // best-effort: si el match falla, la recepción queda sin caja atada (no
+      // auto-factura). NO rompe la creación de la recepción.
+    }
+  }
+
   revalidatePath("/studio/cn");
   return { ok: true, createdReceiptCode: receipt_code };
 }
@@ -368,6 +408,46 @@ export async function changeReceiptStatusAction(
     }
   } else if (isReverting && current.shipment_id && admin) {
     await revertAlertIfShipmentEmpty(admin, current.shipment_id);
+  }
+
+  // ── SDD-0072 Fase 2 · auto-Factura en la confirmación de Warehouse ──
+  // Consolidar = "Warehouse confirma con datos reales". Si la recepción resuelve
+  // una Orden de venta (vía su prealerta) y cumple los requisitos (§3.5), genera
+  // la Factura (0021) parcial por defecto. BEST-EFFORT: try/catch — si falla o
+  // faltan datos, la consolidación se completó igual (NO se bloquea). El "faltan
+  // datos" / "facturada" queda como evento en el timeline de la recepción para que
+  // sea visible. La idempotencia la garantiza el guard de prealertas.invoice_id.
+  if (isConsolidating) {
+    try {
+      const invAdmin = admin ?? createAdminClient();
+      const inv = await autoInvoiceForReceipt({
+        admin: invAdmin,
+        tenantId: link.tenant_id,
+        receiptId,
+      });
+      if (inv.ok) {
+        await invAdmin.from("warehouse_receipt_events").insert({
+          tenant_id: link.tenant_id,
+          receipt_id: receiptId,
+          event_type: "note",
+          description: `Factura ${inv.invoiceCode} generada automáticamente · $${inv.amountUsd.toFixed(2)} (SDD-0072 Fase 2).`,
+        });
+        revalidatePath("/studio/facturacion");
+        revalidatePath("/studio/ordenes-venta");
+      } else if (!inv.notApplicable) {
+        // Solo dejamos rastro cuando hay una OV pero faltan datos (no para el caso
+        // "no aplica" = recepción sin OV, que es el flujo normal de la mayoría).
+        await invAdmin.from("warehouse_receipt_events").insert({
+          tenant_id: link.tenant_id,
+          receipt_id: receiptId,
+          event_type: "note",
+          description: `No se facturó automáticamente: ${inv.reason}`,
+        });
+      }
+    } catch (e) {
+      // NUNCA bloquea la consolidación.
+      console.error("[cn auto-invoice] hook falló (no bloquea):", e);
+    }
   }
 
   // Insertar event 'status_change' (o 'consolidated' / 'incident' según el destino)
