@@ -3,18 +3,20 @@
  *
  * La Edge Function `kommo-push-client` (Deno.serve + HTTP) NO la ve el gate (typecheck excluye
  * supabase/functions; vitest no type-checkea). Por eso TODA la lógica decidible (resolución de
- * field_id, dedup de contacto por teléfono/email, armado de payloads, idempotencia) vive en
+ * campos + enums, dedup de contacto, armado de payloads, idempotencia, dry-run) vive en
  * `kommo-outbound.ts` y se cubre acá.
  */
 
 import { describe, it, expect } from "vitest";
 import {
-  resolveFieldIds,
+  resolveLeadFields,
+  buildCfValue,
   leadName,
   buildContactPayload,
   buildLeadCustomFields,
   buildLeadPayload,
   buildLeadPatch,
+  buildContactLink,
   normalizePhoneDigits,
   phoneMatches,
   valuesByCode,
@@ -23,6 +25,7 @@ import {
   resolveDryRun,
   type OnboardingClient,
   type KommoFieldDef,
+  type LeadFields,
 } from "../kommo-outbound";
 
 const client = (over: Partial<OnboardingClient> = {}): OnboardingClient => ({
@@ -36,33 +39,68 @@ const client = (over: Partial<OnboardingClient> = {}): OnboardingClient => ({
   ...over,
 });
 
-describe("resolveFieldIds", () => {
-  const rows: KommoFieldDef[] = [
-    { id: 10, entity_type: "leads", name: "Shipping Mark", code: null },
-    { id: 11, entity_type: "leads", name: "RIF / Cédula", code: null },
-    { id: 12, entity_type: "leads", name: "Nivel de cliente", code: null },
-    { id: 99, entity_type: "leads", name: "Otro campo", code: null },
-    { id: 50, entity_type: "contacts", name: "Shipping Mark", code: null }, // NO debe usarse (contacts)
-  ];
+// markbox/rif = TEXT, tier = SELECT (con enums) → el caso realista de Kommo.
+const FIELD_ROWS: KommoFieldDef[] = [
+  { id: 10, entity_type: "leads", name: "Shipping Mark", code: null, type: "text", enums: null },
+  { id: 11, entity_type: "leads", name: "RIF / Cédula", code: null, type: "text", enums: null },
+  {
+    id: 12,
+    entity_type: "leads",
+    name: "Nivel de cliente",
+    code: null,
+    type: "select",
+    enums: [
+      { id: 501, value: "Regular" },
+      { id: 502, value: "VIP" },
+      { id: 503, value: "Premium" },
+    ],
+  },
+  { id: 99, entity_type: "leads", name: "Otro campo", code: null },
+  { id: 50, entity_type: "contacts", name: "Shipping Mark", code: null }, // contacts → NO usar
+];
+const FIELDS: LeadFields = resolveLeadFields(FIELD_ROWS);
 
-  it("resuelve markbox/rif/tier por keyword, solo de entity_type=leads", () => {
-    expect(resolveFieldIds(rows)).toEqual({ markbox: 10, rif: 11, tier: 12 });
+describe("resolveLeadFields", () => {
+  it("resuelve markbox/rif/tier (id+type+enums), solo entity_type=leads", () => {
+    expect(FIELDS.markbox).toEqual({ id: 10, type: "text", enums: null });
+    expect(FIELDS.rif).toEqual({ id: 11, type: "text", enums: null });
+    expect(FIELDS.tier?.id).toBe(12);
+    expect(FIELDS.tier?.type).toBe("select");
+    expect(FIELDS.tier?.enums).toHaveLength(3);
   });
-
-  it("omite los campos que no matchean ninguna keyword", () => {
-    const only = resolveFieldIds([{ id: 7, entity_type: "leads", name: "Otro", code: null }]);
-    expect(only).toEqual({});
+  it("omite campos sin match; ignora los de contacts", () => {
+    expect(resolveLeadFields([{ id: 7, entity_type: "leads", name: "Otro", code: null }])).toEqual({});
+    // el id 50 (Shipping Mark, contacts) NO debe resolver markbox:
+    expect(resolveLeadFields([{ id: 50, entity_type: "contacts", name: "Shipping Mark", code: null }])).toEqual({});
   });
-
-  it("matchea también por code (唛头 / markbox)", () => {
-    const out = resolveFieldIds([{ id: 5, entity_type: "leads", name: null, code: "MARKBOX" }]);
-    expect(out).toEqual({ markbox: 5 });
+  it("matchea por code (MARKBOX)", () => {
+    expect(resolveLeadFields([{ id: 5, entity_type: "leads", name: null, code: "MARKBOX" }]).markbox?.id).toBe(5);
   });
+  it("lista vacía/undefined → {}", () => {
+    expect(resolveLeadFields([])).toEqual({});
+    // @ts-expect-error robustez ante undefined en runtime
+    expect(resolveLeadFields(undefined)).toEqual({});
+  });
+});
 
-  it("lista vacía o undefined → {}", () => {
-    expect(resolveFieldIds([])).toEqual({});
-    // @ts-expect-error probamos robustez ante undefined en runtime
-    expect(resolveFieldIds(undefined)).toEqual({});
+describe("buildCfValue", () => {
+  it("TEXT → { field_id, values:[{ value }] }", () => {
+    expect(buildCfValue({ id: 10, type: "text", enums: null }, "DTD-1")).toEqual({
+      field_id: 10,
+      values: [{ value: "DTD-1" }],
+    });
+  });
+  it("SELECT con opción equivalente → { field_id, values:[{ enum_id }] } (case-insensitive)", () => {
+    expect(buildCfValue(FIELDS.tier, "regular")).toEqual({ field_id: 12, values: [{ enum_id: 501 }] });
+    expect(buildCfValue(FIELDS.tier, "VIP")).toEqual({ field_id: 12, values: [{ enum_id: 502 }] });
+  });
+  it("SELECT sin opción equivalente → null (se OMITE, no fuerza un 400)", () => {
+    expect(buildCfValue(FIELDS.tier, "diamond")).toBeNull();
+  });
+  it("meta ausente o valor vacío → null", () => {
+    expect(buildCfValue(undefined, "x")).toBeNull();
+    expect(buildCfValue({ id: 10, type: "text", enums: null }, null)).toBeNull();
+    expect(buildCfValue({ id: 10, type: "text", enums: null }, "")).toBeNull();
   });
 });
 
@@ -85,7 +123,6 @@ describe("buildContactPayload", () => {
       { field_code: "EMAIL", values: [{ value: "ventas@yiwu.com", enum_code: "WORK" }] },
     ]);
   });
-
   it("sin email → solo PHONE; sin contacto → name cae al markbox", () => {
     const p = buildContactPayload(client({ email: null, name: null }));
     expect(p.name).toBe("DTD-1042");
@@ -93,54 +130,51 @@ describe("buildContactPayload", () => {
       { field_code: "PHONE", values: [{ value: "+58 412 166 8021", enum_code: "WORK" }] },
     ]);
   });
-
   it("sin teléfono ni email → sin custom_fields_values", () => {
-    const p = buildContactPayload(client({ phone: null, email: null }));
-    expect(p.custom_fields_values).toBeUndefined();
+    expect(buildContactPayload(client({ phone: null, email: null })).custom_fields_values).toBeUndefined();
   });
 });
 
 describe("buildLeadCustomFields / buildLeadPayload / buildLeadPatch", () => {
-  const ids = { markbox: 10, rif: 11, tier: 12 };
-
-  it("arma solo los campos resueltos", () => {
-    expect(buildLeadCustomFields(client(), ids)).toEqual([
+  it("text markbox+rif + select tier mapeado a enum_id", () => {
+    expect(buildLeadCustomFields(client(), FIELDS)).toEqual([
       { field_id: 10, values: [{ value: "DTD-1042" }] },
       { field_id: 11, values: [{ value: "J-12345678-9" }] },
-      { field_id: 12, values: [{ value: "regular" }] },
+      { field_id: 12, values: [{ enum_id: 501 }] },
     ]);
   });
-
-  it("si solo resolvió markbox, solo manda markbox", () => {
-    expect(buildLeadCustomFields(client(), { markbox: 10 })).toEqual([
+  it("tier sin opción equivalente → se omite (no rompe el lead)", () => {
+    const cfs = buildLeadCustomFields(client({ tier: "diamond" }), FIELDS);
+    expect(cfs).toEqual([
       { field_id: 10, values: [{ value: "DTD-1042" }] },
+      { field_id: 11, values: [{ value: "J-12345678-9" }] },
     ]);
   });
-
-  it("rif/tier ausentes en el cliente no se mandan aunque haya field_id", () => {
-    expect(buildLeadCustomFields(client({ rif: null, tier: null }), ids)).toEqual([
-      { field_id: 10, values: [{ value: "DTD-1042" }] },
-    ]);
+  it("rif null en el cliente → no se manda aunque exista el field", () => {
+    const cfs = buildLeadCustomFields(client({ rif: null, tier: null }), FIELDS);
+    expect(cfs).toEqual([{ field_id: 10, values: [{ value: "DTD-1042" }] }]);
   });
-
-  it("buildLeadPayload enlaza el contacto y pone el nombre con markbox", () => {
-    const lead = buildLeadPayload(client(), 555, ids);
+  it("buildLeadPayload NO embebe contacto (el enlace va por /link aparte)", () => {
+    const lead = buildLeadPayload(client(), FIELDS);
     expect(lead.name).toBe("Comercial Yiwu CA · DTD-1042");
-    expect(lead._embedded).toEqual({ contacts: [{ id: 555 }] });
+    expect(lead._embedded).toBeUndefined();
     expect(lead.custom_fields_values).toHaveLength(3);
   });
-
-  it("sin field_ids → lead sin custom_fields_values (no rompe)", () => {
-    const lead = buildLeadPayload(client(), 1, {});
+  it("sin fields resueltos → lead solo con nombre", () => {
+    const lead = buildLeadPayload(client(), {});
     expect(lead.custom_fields_values).toBeUndefined();
-    expect(lead._embedded).toEqual({ contacts: [{ id: 1 }] });
+    expect(lead.name).toBe("Comercial Yiwu CA · DTD-1042");
   });
-
-  it("buildLeadPatch solo trae custom fields (sin name ni _embedded)", () => {
-    const patch = buildLeadPatch(client(), ids);
+  it("buildLeadPatch solo trae custom fields (sin name)", () => {
+    const patch = buildLeadPatch(client(), FIELDS);
     expect(patch.name).toBeUndefined();
-    expect(patch._embedded).toBeUndefined();
     expect(patch.custom_fields_values).toHaveLength(3);
+  });
+});
+
+describe("buildContactLink", () => {
+  it("array de links para POST /leads/{id}/link", () => {
+    expect(buildContactLink(555)).toEqual([{ to_entity_id: 555, to_entity_type: "contacts" }]);
   });
 });
 
@@ -149,13 +183,11 @@ describe("normalizePhoneDigits / phoneMatches", () => {
     expect(normalizePhoneDigits("+58 412 166 8021")).toBe("584121668021");
     expect(normalizePhoneDigits(null)).toBe("");
   });
-
   it("matchea por últimos 10 dígitos (distinto código de país / 0 inicial)", () => {
     expect(phoneMatches("+58 412 166 8021", "584121668021")).toBe(true);
-    expect(phoneMatches("04121668021", "+58 412 166 8021")).toBe(true); // 0 inicial vs +58
+    expect(phoneMatches("04121668021", "+58 412 166 8021")).toBe(true);
     expect(phoneMatches("4121668021", "584121668021")).toBe(true);
   });
-
   it("no matchea números distintos ni vacíos", () => {
     expect(phoneMatches("+58 412 166 8021", "+58 414 999 0000")).toBe(false);
     expect(phoneMatches(null, "584121668021")).toBe(false);
@@ -172,9 +204,9 @@ describe("valuesByCode", () => {
       { field_code: null, values: [{ value: "ignorar" }] },
     ],
   };
-  it("devuelve todos los valores del code pedido", () => {
+  it("devuelve todos los valores del code pedido (case-insensitive)", () => {
     expect(valuesByCode(contact, "PHONE")).toEqual(["+584121668021", "02414147886"]);
-    expect(valuesByCode(contact, "phone")).toEqual(["+584121668021", "02414147886"]); // case-insensitive
+    expect(valuesByCode(contact, "phone")).toEqual(["+584121668021", "02414147886"]);
     expect(valuesByCode(contact, "EMAIL")).toEqual(["a@b.com"]);
   });
   it("code inexistente → []", () => {
@@ -189,14 +221,13 @@ describe("matchContact", () => {
     { id: 200, custom_fields_values: [{ field_code: "PHONE", values: [{ value: "+58 412 166 8021" }] }] },
     { id: 300, custom_fields_values: [{ field_code: "EMAIL", values: [{ value: "ventas@yiwu.com" }] }] },
   ];
-
   it("matchea por teléfono (formato distinto)", () => {
     expect(matchContact(contacts, "04121668021", null)).toBe(200);
   });
   it("matchea por email (case-insensitive)", () => {
     expect(matchContact(contacts, null, "VENTAS@YIWU.COM")).toBe(300);
   });
-  it("sin coincidencia real → null (no toma ruido del query difuso)", () => {
+  it("sin coincidencia real → null", () => {
     expect(matchContact(contacts, "+58 000 000 0000", "nadie@x.com")).toBeNull();
   });
   it("lista vacía → null", () => {
@@ -220,7 +251,7 @@ describe("pickDedupQueries", () => {
 });
 
 describe("resolveDryRun (default seguro = ON)", () => {
-  it("env sin setear → dry-run (no escribe)", () => {
+  it("env sin setear → dry-run", () => {
     expect(resolveDryRun(undefined)).toBe(true);
     expect(resolveDryRun(null)).toBe(true);
     expect(resolveDryRun("")).toBe(true);
@@ -233,8 +264,8 @@ describe("resolveDryRun (default seguro = ON)", () => {
     expect(resolveDryRun("false")).toBe(false);
     expect(resolveDryRun("false", false)).toBe(false);
   });
-  it("el body puede FORZAR dry-run aunque el env sea real, pero no forzar real", () => {
-    expect(resolveDryRun("false", true)).toBe(true); // body fuerza ensayo
-    expect(resolveDryRun("true", false)).toBe(true); // body no puede prender real
+  it("el body puede FORZAR dry-run pero no forzar real", () => {
+    expect(resolveDryRun("false", true)).toBe(true);
+    expect(resolveDryRun("true", false)).toBe(true);
   });
 });

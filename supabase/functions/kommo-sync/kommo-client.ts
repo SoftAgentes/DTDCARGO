@@ -92,10 +92,13 @@ export async function kommoWrite<T>(
       throw new KommoError("Kommo 401: token inválido o sin scope", 401);
     }
 
-    // rate limit / server error → backoff + reintento (idéntico a kommoFetch)
-    if (res.status === 429 || res.status >= 500) {
+    // SDD-0074 (revisión 3-expertos): los WRITES NO son idempotentes. Reintentar un POST tras un
+    // 5xx puede DUPLICAR (Kommo pudo crear la entidad y luego fallar/ cortarse la respuesta). Por
+    // eso, a diferencia de kommoFetch (GET, seguro de reintentar), aquí SOLO reintentamos 429
+    // (rate-limit = la request NO se procesó → seguro). 5xx cae al throw de abajo (sin reintento).
+    if (res.status === 429) {
       if (attempt++ >= MAX_RETRIES) {
-        throw new KommoError(`Kommo ${res.status}: agotados los reintentos`, res.status);
+        throw new KommoError("Kommo 429: agotados los reintentos", 429);
       }
       const retryAfter = Number(res.headers.get("Retry-After") ?? 0);
       const backoff = Math.max(retryAfter * 1000, 500 * 2 ** attempt);

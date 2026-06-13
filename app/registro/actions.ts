@@ -46,6 +46,7 @@
  */
 
 import { randomBytes } from "node:crypto";
+import { after } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getRequestIp } from "@/lib/http/request-ip";
 import { sendWelcomeEmail } from "@/lib/studio/welcome-email";
@@ -338,22 +339,32 @@ export async function registerClientAction(
     channel: "portal",
   });
 
-  // 11. SDD-0074 — push del alta a Kommo (lead + contacto). Best-effort: un fallo NO rompe el
-  //     alta (el cliente ya existe en Supabase con su MARKBOX y el push es reintentable). La Edge
-  //     Function kommo-push-client corre con el service key del admin client y lee el token de
-  //     Kommo desde Vault — el token NUNCA entra a este runtime (modelo de seguridad SDD-0043).
+  // 11. SDD-0074 — push del alta a Kommo (lead + contacto), FIRE-AND-FORGET con after()
+  //     (revisión 3-expertos): corre DESPUÉS de responderle al cliente, para NO meterle la
+  //     latencia de Kommo (cold start de la función + round-trips + backoff) a la inscripción.
+  //     Best-effort: un fallo nunca afecta el alta (el cliente ya quedó con su MARKBOX). La Edge
+  //     Function corre con el service key del admin client y lee el token de Kommo desde Vault —
+  //     el token NUNCA entra a este runtime (modelo de seguridad SDD-0043).
   try {
-    const { error: kommoErr } = await admin.functions.invoke("kommo-push-client", {
-      body: { tenant_id: tenantId, client_id: clientRow.id },
+    after(async () => {
+      try {
+        const { error: kommoErr } = await admin.functions.invoke("kommo-push-client", {
+          body: { tenant_id: tenantId, client_id: clientRow.id },
+        });
+        if (kommoErr) {
+          console.warn(
+            "[registerClientAction] push a Kommo falló (best-effort):",
+            kommoErr.message,
+          );
+        }
+      } catch (kommoErr) {
+        console.warn("[registerClientAction] push a Kommo lanzó (best-effort):", kommoErr);
+      }
     });
-    if (kommoErr) {
-      console.warn(
-        "[registerClientAction] push a Kommo falló (best-effort):",
-        kommoErr.message,
-      );
-    }
-  } catch (kommoErr) {
-    console.warn("[registerClientAction] push a Kommo lanzó (best-effort):", kommoErr);
+  } catch {
+    // after() solo es válido dentro de un request scope (el server action real). Fuera de él
+    // (p.ej. un test unitario que llama la action directo) lanza al registrar el callback → lo
+    // ignoramos: el push es best-effort y el alta ya quedó hecha. En prod after() corre normal.
   }
 
   return { ok: true, markbox, warning };

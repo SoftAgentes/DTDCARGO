@@ -18,12 +18,28 @@ export interface OnboardingClient {
   tier: string | null; // 'regular' | 'vip' | 'premium'
 }
 
-/** Fila del espejo `kommo_custom_fields` (subset). */
+/** Fila del espejo `kommo_custom_fields` (subset). `type`/`enums` mandan para campos SELECT. */
 export interface KommoFieldDef {
   id: number;
   entity_type: string; // 'leads' | 'contacts'
   name: string | null;
   code: string | null;
+  type?: string | null; // 'text' | 'select' | 'multiselect' | 'radiobutton' | ...
+  enums?: Array<{ id: number; value: string }> | null; // opciones (cuando es select)
+}
+
+/** Metadata de un campo lógico resuelto en el espejo (id + tipo + opciones). */
+export interface LeadFieldMeta {
+  id: number;
+  type: string | null;
+  enums: Array<{ id: number; value: string }> | null;
+}
+
+/** Campos lógicos del lead que etiquetamos. */
+export interface LeadFields {
+  markbox?: LeadFieldMeta;
+  rif?: LeadFieldMeta;
+  tier?: LeadFieldMeta;
 }
 
 /** Custom field de un contacto/lead en una respuesta de Kommo (subset para dedup). */
@@ -37,38 +53,54 @@ export interface KommoEntityLite {
   custom_fields_values?: KommoCfv[] | null;
 }
 
-/** Claves lógicas de los custom fields del lead que etiquetamos. */
-export interface LeadFieldIds {
-  markbox?: number;
-  rif?: number;
-  tier?: number;
-}
-
 // Keywords por campo lógico (match por nombre/code, case-insensitive). El espejo trae los
 // nombres REALES de la cuenta; si ninguno matchea, el campo se omite (graceful, no se inventa).
-const FIELD_KEYWORDS: Record<keyof LeadFieldIds, string[]> = {
+const FIELD_KEYWORDS: Record<keyof LeadFields, string[]> = {
   markbox: ["markbox", "shipping mark", "shippingmark", "marca de envío", "marca de envio", "唛头", "casillero"],
   rif: ["rif", "cédula", "cedula", "documento", "c.i", "cid"],
   tier: ["tier", "nivel", "categoría", "categoria"],
 };
 
 /**
- * Resuelve los `field_id` de markbox/rif/tier desde el espejo `kommo_custom_fields`
- * (solo entity_type='leads'), por keyword sobre name/code. Campo no hallado → ausente.
+ * Resuelve markbox/rif/tier desde el espejo `kommo_custom_fields` (solo entity_type='leads'),
+ * por keyword sobre name/code. Devuelve id + type + enums (los enums hacen falta para SELECT).
+ * Campo no hallado → ausente (no se inventa).
  */
-export function resolveFieldIds(rows: KommoFieldDef[]): LeadFieldIds {
+export function resolveLeadFields(rows: KommoFieldDef[]): LeadFields {
   const leadFields = (rows ?? []).filter((r) => r.entity_type === "leads");
-  const out: LeadFieldIds = {};
-  for (const key of Object.keys(FIELD_KEYWORDS) as (keyof LeadFieldIds)[]) {
+  const out: LeadFields = {};
+  for (const key of Object.keys(FIELD_KEYWORDS) as (keyof LeadFields)[]) {
     const kws = FIELD_KEYWORDS[key];
     const hit = leadFields.find((f) => {
       const name = (f.name ?? "").toLowerCase();
       const code = (f.code ?? "").toLowerCase();
       return kws.some((k) => name.includes(k) || code.includes(k));
     });
-    if (hit) out[key] = hit.id;
+    if (hit) out[key] = { id: hit.id, type: hit.type ?? null, enums: hit.enums ?? null };
   }
   return out;
+}
+
+/**
+ * Arma el `custom_fields_values` de UN campo según su tipo:
+ *  - SELECT/enum (tiene `enums`): mapea el valor a su `enum_id` (match case-insensitive sobre el
+ *    texto de la opción). Si NO matchea ninguna opción → null (se OMITE; mandar un value libre a un
+ *    select da 400 en Kommo y, como el campo viaja en el MISMO POST del lead, tumbaría el lead entero).
+ *  - TEXT (sin enums): `{ field_id, values:[{ value }] }`.
+ * Devuelve null si no hay meta o el valor es vacío.
+ */
+export function buildCfValue(
+  meta: LeadFieldMeta | undefined,
+  value: string | null | undefined,
+): Record<string, unknown> | null {
+  if (!meta || value === null || value === undefined || value === "") return null;
+  if (meta.enums && meta.enums.length) {
+    const v = String(value).toLowerCase();
+    const opt = meta.enums.find((e) => (e.value ?? "").toLowerCase() === v);
+    if (!opt) return null; // sin opción equivalente → omitir (no forzar un 400)
+    return { field_id: meta.id, values: [{ enum_id: opt.id }] };
+  }
+  return { field_id: meta.id, values: [{ value }] };
 }
 
 /** Nombre del lead en Kommo: nombre del cliente + MARKBOX (el markbox SIEMPRE visible). */
@@ -95,38 +127,30 @@ export function buildContactPayload(client: OnboardingClient): Record<string, un
   return payload;
 }
 
-/** custom_fields_values del lead, solo con los campos que resolvieron (markbox/rif/tier). */
+/** custom_fields_values del lead, solo con los campos que resolvieron Y produjeron valor válido. */
 export function buildLeadCustomFields(
   client: OnboardingClient,
-  fieldIds: LeadFieldIds,
+  fields: LeadFields,
 ): Record<string, unknown>[] {
-  const cfv: Record<string, unknown>[] = [];
-  if (fieldIds.markbox) {
-    cfv.push({ field_id: fieldIds.markbox, values: [{ value: client.markbox }] });
-  }
-  if (fieldIds.rif && client.rif) {
-    cfv.push({ field_id: fieldIds.rif, values: [{ value: client.rif }] });
-  }
-  if (fieldIds.tier && client.tier) {
-    cfv.push({ field_id: fieldIds.tier, values: [{ value: client.tier }] });
-  }
-  return cfv;
+  return [
+    buildCfValue(fields.markbox, client.markbox),
+    buildCfValue(fields.rif, client.rif),
+    buildCfValue(fields.tier, client.tier),
+  ].filter((x): x is Record<string, unknown> => x !== null);
 }
 
 /**
  * Cuerpo de un lead Kommo (objeto único; la Edge Function lo envuelve en `[...]` para
- * POST /api/v4/leads). Enlaza el contacto vía `_embedded.contacts:[{id}]` (no crea contacto).
+ * POST /api/v4/leads). NO embebe el contacto: el enlace se hace aparte con POST
+ * /api/v4/leads/{id}/link (camino documentado y confiable; el `_embedded.contacts` en el create
+ * simple puede ignorarse en silencio o dar 400 según la cuenta — revisión 3-expertos SDD-0074).
  */
 export function buildLeadPayload(
   client: OnboardingClient,
-  contactId: number,
-  fieldIds: LeadFieldIds,
+  fields: LeadFields,
 ): Record<string, unknown> {
-  const payload: Record<string, unknown> = {
-    name: leadName(client),
-    _embedded: { contacts: [{ id: contactId }] },
-  };
-  const cfv = buildLeadCustomFields(client, fieldIds);
+  const payload: Record<string, unknown> = { name: leadName(client) };
+  const cfv = buildLeadCustomFields(client, fields);
   if (cfv.length) payload.custom_fields_values = cfv;
   return payload;
 }
@@ -134,12 +158,17 @@ export function buildLeadPayload(
 /** Para PATCH idempotente de un lead ya enlazado: solo refresca los custom fields. */
 export function buildLeadPatch(
   client: OnboardingClient,
-  fieldIds: LeadFieldIds,
+  fields: LeadFields,
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {};
-  const cfv = buildLeadCustomFields(client, fieldIds);
+  const cfv = buildLeadCustomFields(client, fields);
   if (cfv.length) payload.custom_fields_values = cfv;
   return payload;
+}
+
+/** Cuerpo del enlace lead→contacto: POST /api/v4/leads/{id}/link espera un array de links. */
+export function buildContactLink(contactId: number): Record<string, unknown>[] {
+  return [{ to_entity_id: contactId, to_entity_type: "contacts" }];
 }
 
 /** Solo dígitos de un teléfono ("+58 412 166 8021" → "584121668021"). */

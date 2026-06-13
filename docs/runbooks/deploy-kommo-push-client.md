@@ -41,10 +41,10 @@ URL resultante: `https://xpfuzqombmjmxvprjgmi.supabase.co/functions/v1/kommo-pus
 Objetivo: confirmar que la función entra a Kommo, **dedupea bien** y **arma el payload correcto**,
 sin crear nada. Dos formas:
 
-- **A (recomendada) — alta de prueba real:** registrá un cliente de prueba en `/registro`. El alta
-  invoca la función en dry-run. Revisá:
-  - **Logs de la función** en Supabase → línea `[kommo-push-client][dry-run] would create {...}` con
-    el contacto y el lead que crearía.
+- **A (recomendada) — alta de prueba real:** registra un cliente de prueba en `/registro`. El alta
+  invoca la función en dry-run. Revisa:
+  - **Logs de la función** en Supabase → línea `[kommo-push-client][dry-run] { mode, fields_resolved, … }`
+    (resumen SIN PII) — confirma el `mode` (crearía o reusaría contacto) y los campos resueltos.
   - `sync_logs` con `entity = 'push_client_dryrun'`, `status = 'ok'`.
 - **B — invocación directa** (con un `client_id` existente):
   ```bash
@@ -59,10 +59,14 @@ sin crear nada. Dos formas:
 - Si el teléfono/email del cliente ya estaba en Kommo → `mode: "would-link-existing-contact"`
   (no duplica). Si no → `would-create-contact`.
 - El `lead.custom_fields_values` trae markbox/RIF/nivel **solo si esos custom fields existen** en la
-  cuenta de Kommo. Si falta alguno (p.ej. no hay campo "Shipping Mark"/"RIF"/"Nivel"), o lo creás en
-  Kommo, o se queda sin esa etiqueta (el MARKBOX igual va en el **nombre del lead**: `Nombre · DTD-NNNN`).
-- Confirmá el `enum_code` de teléfono/email (`WORK`): si tu cuenta usa otro código por defecto, avisá
+  cuenta. Si falta alguno, o lo creas en Kommo, o se queda sin esa etiqueta (el MARKBOX igual va en el
+  **nombre del lead**: `Nombre · DTD-NNNN`). El **nivel (tier)** es un SELECT: la función lo manda como
+  `enum_id` y **omite** el tag si tu valor (`regular`/`vip`/`premium`) no calza con ninguna opción del
+  campo → revisa que las opciones del campo en Kommo coincidan, o quedará sin tag (no rompe el lead).
+- Confirma el `enum_code` de teléfono/email (`WORK`): si tu cuenta usa otro código por defecto, avisa
   para ajustarlo (es 1 línea en `_shared/kommo-outbound.ts`).
+- **Ojo:** el dry-run NO ejercita el create real, el enlace del contacto ni el GET del lead — esos solo
+  se validan en el Paso 4 (escritura real).
 
 ## Paso 3 — Prender la escritura real
 
@@ -74,18 +78,22 @@ KOMMO_PUSH_DRY_RUN = false
 
 ## Paso 4 — E2E real con contacto de PRUEBA (+ cleanup)
 
-- Registrá **un** cliente de prueba claramente marcado (ej. nombre `PRUEBA DTD-0074`, con un teléfono/
+- Registra **un** cliente de prueba claramente marcado (ej. nombre `PRUEBA DTD-0074`, con un teléfono/
   email que controles).
-- Confirmá:
-  - aparece el **lead en Kommo** (`Nombre · DTD-NNNN`) con su contacto, **sin duplicar**;
-  - `clients.kommo_lead_id` quedó seteado + hay fila en `kommo_leads`;
+- Confirma (esto es lo que el dry-run NO puede validar — son escrituras reales):
+  - aparece el **lead en Kommo** (`Nombre · DTD-NNNN`) **con el contacto enlazado** — ábrelo y verifica
+    que el contacto quedó adjunto (el enlace va por `/leads/{id}/link`, no por el create);
+  - **sin duplicar**: el mismo teléfono/email reusa el contacto existente, no crea otro;
+  - el **tag de nivel (tier)** se ve en el lead (si el campo existe en tu Kommo);
+  - en la DB: `clients.kommo_lead_id` seteado + fila en `kommo_leads` **con `name` NO nulo** (la función
+    hace un GET autoritativo; un stub vacío significa que el GET falló → revisar);
   - `sync_logs` `entity='push_client'`, `status='ok'`.
-- **Cleanup:** archivá/borrá el lead + contacto de prueba en Kommo; soft-delete del cliente de prueba
+- **Limpieza:** archiva/borra el lead + contacto de prueba en Kommo; soft-delete del cliente de prueba
   en el ERP (`deleted_at`). *(Es un dato real en tu CRM — no lo dejes.)*
 
 ## Rollback
 
-Volvé a dry-run en cualquier momento: `KOMMO_PUSH_DRY_RUN = true` (la función deja de escribir; el
+Vuelve a dry-run en cualquier momento: `KOMMO_PUSH_DRY_RUN = true` (la función deja de escribir; el
 alta sigue funcionando, solo no empuja). El push es best-effort: un fallo NUNCA rompe el registro.
 
 ## Notas

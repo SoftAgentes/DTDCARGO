@@ -64,20 +64,23 @@ en el push NUNCA rompe el alta (igual que los pasos email/notify ya existentes).
 ### 1. `kommoWrite()` — `supabase/functions/kommo-sync/kommo-client.ts`
 Hermano de `kommoFetch` (que queda **intacto**: es el path GET probado en prod por el cron diario,
 y `supabase/functions` está fuera del typecheck/lint del gate → no se toca lo que funciona). Espeja
-la escalera retry/backoff/rate-limit (401→error, 429/5xx→backoff+reintento) para `method` POST/PATCH
-con cuerpo JSON; devuelve el JSON parseado (o null en 204). *(La unificación de la escalera con
-`kommoFetch` se hace cuando SDD-0062 Slice A construya el write-back completo.)*
+la escalera retry/backoff/rate-limit (401→error) para `method` POST/PATCH con cuerpo JSON; devuelve el
+JSON parseado (o null en 204). **A diferencia de `kommoFetch` (GET), reintenta SOLO 429** (rate-limit =
+no procesado, seguro); en **5xx NO reintenta** — un POST no es idempotente y reintentarlo duplicaría
+(revisión 3-expertos SDD-0074). *(Unificación con `kommoFetch` → SDD-0062 Slice A.)*
 
 ### 2. Builders puros — `supabase/functions/_shared/kommo-outbound.ts`
 TS puro (sin globals de Deno) → testeable con Vitest dentro de `node scripts/verify.mjs`, igual que
 `_shared/kommo-mapping.ts`:
-- `resolveFieldIds(customFieldsMirrorRows)` → mapa `markbox|rif|tier → field_id` (match por
-  nombre/code, como el `getFieldValue` inverso). Campo no encontrado → se omite (graceful).
-- `buildContactPayload(client)` → contacto Kommo con phone/email vía `field_code` PHONE/EMAIL.
-- `buildLeadPayload(client, contactId, fieldIdMap)` → lead con `_embedded.contacts:[{id}]` +
-  `custom_fields_values` solo de los campos resueltos.
-- `matchContact(contacts, phone, email)` / `pickDedupQueries(client)` → dedup exacto por
-  teléfono y luego email sobre el resultado de la búsqueda de Kommo.
+- `resolveLeadFields(rows)` → `markbox|rif|tier` con `{id, type, enums}` (match por nombre/code).
+  Campo no hallado → se omite (graceful).
+- `buildCfValue(meta, value)` → arma el custom field según su tipo: **SELECT** (con enums, p.ej.
+  `tier`) → mapea a `enum_id` (match case-insensitive); si no hay opción equivalente → **omite**
+  (mandar texto libre a un select da 400 y tumbaría el lead entero). **TEXT** → `{value}`.
+- `buildContactPayload(client)` → contacto con phone/email vía `field_code` PHONE/EMAIL.
+- `buildLeadPayload(client, fields)` → lead **sin** embeber contacto (solo nombre + custom fields).
+  `buildContactLink(contactId)` → cuerpo de `POST /leads/{id}/link`.
+- `matchContact` / `pickDedupQueries` → dedup exacto por teléfono (últimos 10 dígitos) y luego email.
 
 ### 3. Edge Function — `supabase/functions/kommo-push-client/index.ts`
 Clon del patrón de auth de `kommo-sync/index.ts` (service-key en Authorization/apikey,
@@ -85,15 +88,16 @@ Clon del patrón de auth de `kommo-sync/index.ts` (service-key en Authorization/
 1. Resolver `kommo_connections` (active) + token (`kommo_get_token`).
 2. Leer `clients` (name, email, phone, rif, markbox, doc_kind, tier, kommo_lead_id).
 3. **Idempotente:** si `clients.kommo_lead_id` ≠ null → PATCH ese lead (refresca tags) y termina.
-4. Cargar `kommo_custom_fields` (espejo) → `resolveFieldIds`.
-5. Dedup: `GET /api/v4/contacts?query=<phone>` y luego `<email>` → `matchContact`. Match → reusar
-   `contact_id`; si no → `POST /api/v4/contacts`.
-6. `POST /api/v4/leads` con contacto enlazado + custom fields.
-7. **Orden del FK:** `clients_kommo_lead_fk` (migr 0108) exige el lead en el espejo antes de
-   enlazarlo → `upsert` del lead **autoritativo de la respuesta de Kommo** en `kommo_leads`
-   (`mapLeadRow`), y recién entonces `update clients set kommo_lead_id`. *(Es dato autoritativo de
-   Kommo, no fabricado → consistente con el guardrail 0107; el webhook/sync lo refresca idempotente.)*
-8. `sync_logs` (entity `push_client`). Devuelve `{ lead_id, contact_id, mode: created|matched|patched }`.
+4. Cargar `kommo_custom_fields` (con `type`+`enums`) → `resolveLeadFields`.
+5. Dedup: `GET /api/v4/contacts?query=<phone>` (limit 250, pausa entre queries) y luego `<email>` →
+   `matchContact`. Match → reusar `contact_id`; si no → `POST /api/v4/contacts`.
+6. `POST /api/v4/leads` (**sin** embeber contacto) → `POST /api/v4/leads/{id}/link` para enlazar el
+   contacto (camino documentado; el `_embedded` en el create simple puede ignorarse en silencio o 400).
+7. **Lead autoritativo + FK:** el create solo devuelve el `id` → `GET /api/v4/leads/{id}` y se mapea
+   ESO (`mapLeadRow`) al espejo `kommo_leads` (satisface `clients_kommo_lead_fk`, migr 0108). Si el GET
+   falla, stub id-only (el webhook/sync lo refresca). Recién entonces `update clients set kommo_lead_id`.
+8. `sync_logs` (entity `push_client` · `push_client_dryrun` en ensayo). Devuelve
+   `{ lead_id, contact_id, mode: created|matched|patched }`.
 
 **Gate de escritura (dry-run, estilo SDD-0062 "nace apagado"):** la función **nace en dry-run** —
 por default NO escribe en Kommo (resuelve campos, dedupea con GETs y arma los payloads, los loguea y
@@ -102,8 +106,10 @@ el body `{dry_run:true}` puede FORZAR ensayo (nunca al revés). Decisión vía h
 (testeado). Así la 1ª validación E2E no toca los contactos reales. Procedimiento: `docs/runbooks/deploy-kommo-push-client.md`.
 
 ### 4. Cableado — `app/registro/actions.ts`
-Paso 11 best-effort tras `notifyNewClientToAdmin`: `admin.functions.invoke("kommo-push-client",
-{ body: { tenant_id, client_id } })` en try/catch + `console.warn`. No bloquea ni cambia el `return`.
+Paso 11 tras `notifyNewClientToAdmin`: **fire-and-forget con `after()` de `next/server`** →
+`admin.functions.invoke("kommo-push-client", …)` corre DESPUÉS de responderle al cliente, para NO
+meterle la latencia de Kommo (cold start + round-trips + backoff) a la inscripción (revisión
+3-expertos). try/catch + `console.warn`; un fallo nunca afecta el alta.
 
 ## Seguridad / PII
 - El token de Kommo **solo** lo lee la Edge Function vía `kommo_get_token` (Vault, service_role) —
