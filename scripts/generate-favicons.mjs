@@ -24,7 +24,6 @@
  *   node scripts/generate-favicons.mjs
  */
 import sharp from "sharp";
-import toIco from "to-ico";
 import { writeFile } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -83,6 +82,39 @@ async function pngBuffer(size, paddingRatio = 0.08) {
     .toBuffer();
 }
 
+/**
+ * Empaqueta N PNG buffers cuadrados en un único .ico multi-size (PNG embebido,
+ * soportado desde Windows Vista). Reemplaza a `to-ico` — un devDep cuyas deps
+ * transitivas (minimist, form-data, jpeg-js, url-regex) eran vulnerables. El
+ * formato ICO es trivial, no necesita dependencia: ICONDIR(6) + N×ENTRY(16) +
+ * los PNG concatenados. El ancho/alto se lee del IHDR de cada PNG (offset 16).
+ */
+function pngsToIco(pngs) {
+  const count = pngs.length;
+  const header = Buffer.alloc(6);
+  header.writeUInt16LE(0, 0); // reservado
+  header.writeUInt16LE(1, 2); // type = 1 (icono)
+  header.writeUInt16LE(count, 4);
+
+  const entries = Buffer.alloc(16 * count);
+  let offset = 6 + 16 * count;
+  pngs.forEach((png, i) => {
+    const dim = png.readUInt32BE(16); // ancho desde el IHDR del PNG
+    const b = i * 16;
+    entries.writeUInt8(dim >= 256 ? 0 : dim, b + 0); // width (0 ⇒ 256)
+    entries.writeUInt8(dim >= 256 ? 0 : dim, b + 1); // height
+    entries.writeUInt8(0, b + 2); // colores de paleta (0 = sin paleta)
+    entries.writeUInt8(0, b + 3); // reservado
+    entries.writeUInt16LE(1, b + 4); // planes
+    entries.writeUInt16LE(32, b + 6); // bits por pixel
+    entries.writeUInt32LE(png.length, b + 8); // tamaño de la imagen
+    entries.writeUInt32LE(offset, b + 12); // offset de la imagen
+    offset += png.length;
+  });
+
+  return Buffer.concat([header, entries, ...pngs]);
+}
+
 console.log(`Source: ${SRC}\nOutput: ${OUT_DIR}\n`);
 
 await makeIcon(16, "favicon-16.png", { paddingRatio: 0.06 });
@@ -98,7 +130,7 @@ const [b16, b32, b48] = await Promise.all([
   pngBuffer(32, 0.08),
   pngBuffer(48, 0.10),
 ]);
-const icoBuffer = await toIco([b16, b32, b48]);
+const icoBuffer = pngsToIco([b16, b32, b48]);
 await writeFile(join(OUT_DIR, "favicon.ico"), icoBuffer);
 console.log("✓ favicon.ico · 16+32+48 multi-size");
 
