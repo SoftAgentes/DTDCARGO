@@ -38,7 +38,9 @@ export type WelcomeEmailResult =
  * El portal NO vive en un subdominio `portal.dtdcargo.com` (no existe ese
  * rewrite/redirect en next.config; aun resolviéndolo, no hay ruta `/[markbox]`).
  * Todo el código referencia `/portal/login` en el dominio principal: ahí entra
- * el cliente con su MARKBOX + contraseña inicial (= su documento).
+ * el cliente con su MARKBOX, vía magic-link o la contraseña que define con
+ * "¿olvidaste tu contraseña?" (la cuenta se crea con clave aleatoria, NO su
+ * documento — fix de la vuln de registro, prod 90e035c).
  */
 export function portalLoginUrl(): string {
   return `${SITE_URL}/portal/login`;
