@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 69 specs)
+### Índice de specs (generado · 70 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -107,6 +107,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0071 | Orden de compra (Purchase Order · compra asistida → Bill): el… | done | interno |
 | 0072 | Orden de venta (Sales Order · modelo QuickBooks): el estimado… | in-progress | interno |
 | 0073 | Fiscal · SENIAT — módulo configurable: Configuración fiscal (… | in-progress | interno |
+| 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | proposed | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0074 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
