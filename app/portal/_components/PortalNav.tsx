@@ -5,10 +5,11 @@ import { usePathname } from "next/navigation";
 
 /**
  * Navegación del portal autenticado (client — estado activo por `usePathname`).
- * Inicio (dashboard) · Mis envíos · Estimados · Compras · Facturas · Documentos · Mensajes · Cuenta.
+ * Inicio · Mis envíos · Estimados · Compras · Facturas · Documentos · Referidos · Mensajes · Cuenta.
  * Etiquetas cortas para que entren en mobile sin romper el header de 68px.
- * "Compras" (SDD-0057) cubre Tus proveedores + Mis compras. (Referidos / Soporte
- * del Norte son slices futuros — no se incluyen.)
+ * "Compras" (SDD-0057) cubre Tus proveedores + Mis compras. "Referidos" = cara
+ * cliente de SDD-0051 (Fidelización). ("Soporte" del Norte sigue como slice futuro
+ * — hoy lo cubre "Mensajes".)
  */
 const LINKS: {
   href: string;
@@ -45,6 +46,11 @@ const LINKS: {
     href: "/portal/documentos",
     label: "Documentos",
     match: (p) => p.startsWith("/portal/documentos"),
+  },
+  {
+    href: "/portal/referidos",
+    label: "Referidos",
+    match: (p) => p.startsWith("/portal/referidos"),
   },
   {
     href: "/portal/mensajes",
