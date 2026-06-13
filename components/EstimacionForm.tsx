@@ -216,7 +216,7 @@ export function EstimacionForm() {
             className="mt-4 flex items-center justify-between gap-3 rounded-[10px] border border-grey-200 bg-grey-100 px-4 py-3 text-[13.5px] text-grey-700 transition-colors hover:border-wine hover:text-wine"
           >
             <span>
-              <strong className="text-ink">Regístrate y obtén tu Shipping Mark.</strong>{" "}
+              <strong className="text-ink">Regístrate y obtén tu MARKBOX.</strong>{" "}
               Tu estimado queda guardado y vinculado a tu cuenta.
             </span>
             <span className="inline-flex items-center gap-1.5 flex-shrink-0 font-semibold text-wine">

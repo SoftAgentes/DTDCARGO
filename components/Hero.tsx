@@ -74,7 +74,7 @@ export function Hero() {
             >
               Regístrate como cliente
             </Link>{" "}
-            y obtén tu Shipping Mark.
+            y obtén tu MARKBOX.
           </p>
         </div>
 
