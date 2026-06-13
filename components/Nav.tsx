@@ -168,7 +168,7 @@ export function Nav() {
             >
               Acceder
             </Link>
-            <Link href="/contacto" className="btn btn-primary whitespace-nowrap">
+            <Link href="/contacto" className="btn btn-ghost whitespace-nowrap">
               Contáctanos
             </Link>
           </div>

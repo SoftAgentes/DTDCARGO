@@ -110,10 +110,10 @@ export function ServicesGrid({ noHead = false, items = SERVICES_FEATURED }: Prop
                 Todos los modos.
               </h2>
             </div>
-            <p className="lead max-w-[36ch]">
-              Suite completa entre China y Venezuela: desde sourcing y QC en
-              Yiwu hasta entrega puerta a puerta en Caracas. Un solo
-              responsable de coordinación de principio a fin.
+            <p className="lead max-w-[38ch]">
+              Servicio completo entre China y Venezuela: desde la compra y la
+              inspección en Yiwu hasta la entrega puerta a puerta en Caracas. Un
+              solo responsable de la coordinación, de principio a fin.
             </p>
           </div>
         )}
