@@ -4,12 +4,12 @@ import { HERO, BRAND_ASSETS, buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon, LoopIcon } from "./Icon";
 
 /**
- * Hero principal — kicker (tagline) + H1 de acción + cotizador inline + ilustración.
- * Copy configurable desde `lib/design-tokens.ts` constant `HERO`.
+ * Hero principal — eyebrow + H1 (tagline-headline) + subtítulo + CTA + ilustración
+ * con badge de ciclo. Copy configurable desde `lib/design-tokens.ts` const `HERO`.
  *
- * SDD-0064 (2026-06-08): "puerta a puerta" es el protagonista; el tagline
- * pasa a kicker y el H1 es de acción ("Importa desde China hasta tu puerta").
- * DDP queda como aclaración técnica en el microcopy. Ver BRAND-EXCEPTION en HERO.
+ * Founder 2026-06-13: el H1 es el tagline-headline ("Con confianza, desde China
+ * hacia Venezuela."); se removió el kicker (repetía) y el cotizador inline (el
+ * CTA primario va a /calculadora). DDP queda como aclaración en el microcopy.
  */
 export function Hero() {
   return (
@@ -18,18 +18,14 @@ export function Hero() {
         <div>
           {/* Eyebrow gris (A2): categoría + modalidad + año oficial de la empresa (2010). */}
           <p className="eyebrow">{HERO.eyebrow}</p>
-          {/* Kicker = tagline de marca: "Con Confianza," en wine + resto
-              en ink (tratamiento del brand book). Sub-tagline bajo el eyebrow. */}
-          <p className="mt-3 text-[15px] lg:text-[16px] font-semibold leading-tight">
-            <span style={{ color: "var(--color-wine)" }}>{HERO.kicker.accent}</span>{" "}
-            <span style={{ color: "var(--color-ink)" }}>{HERO.kicker.rest}</span>
-          </p>
-
-          {/* H1 de acción — "tu puerta en Venezuela" en wine (acento de marca) */}
-          <h1 className="h-display mt-5 leading-[1.02]">
+          {/* H1 = tagline-headline: `lead` ("Con confianza,") en wine, resto en ink. */}
+          <h1 className="h-display mt-4 leading-[1.02]">
             <span
               className="block"
-              style={{ fontSize: "clamp(34px, 4.8vw, 64px)" }}
+              style={{
+                fontSize: "clamp(34px, 4.8vw, 64px)",
+                color: "var(--color-wine)",
+              }}
             >
               {HERO.title.lead}
             </span>
@@ -37,7 +33,6 @@ export function Hero() {
               className="block"
               style={{
                 fontSize: "clamp(34px, 4.8vw, 64px)",
-                color: "var(--color-wine)",
                 marginTop: "-0.02em",
               }}
             >
@@ -113,7 +108,7 @@ export function Hero() {
             className="container-ocean-drift w-full h-auto lg:w-[560px] lg:h-auto lg:max-w-none lg:absolute lg:right-[-100px] lg:top-8"
           />
           <div
-            className="absolute left-[6%] top-[8%] w-[108px] h-[108px] rounded-full grid place-items-center text-white text-center z-[2]"
+            className="absolute left-[6%] top-[8%] w-[120px] h-[120px] rounded-full grid place-items-center text-white text-center z-[2]"
             style={{
               background: "var(--color-wine)",
               fontFamily: "var(--font-archivo-black)",
@@ -124,7 +119,7 @@ export function Hero() {
           >
             <div className="flex flex-col items-center gap-1.5 px-2">
               <LoopIcon size={26} className="opacity-95" />
-              <small className="block text-[9px] font-semibold opacity-95 tracking-[0.04em] uppercase leading-[1.15]">
+              <small className="block text-[8.5px] font-semibold opacity-95 tracking-[0.03em] uppercase leading-[1.2]">
                 {HERO.badge.line1}
                 <br />
                 {HERO.badge.line2}

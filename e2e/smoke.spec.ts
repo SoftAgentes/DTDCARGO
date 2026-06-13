@@ -14,12 +14,9 @@ test.describe("rutas públicas críticas", () => {
     // Brand book: "DTD Cargo" (dos palabras, Cargo capitalizado). Antes era
     // "DTD·CARGO" (con middot, CARGO todo mayúsculas).
     await expect(page).toHaveTitle(/DTD\s+Cargo/);
-    // H1 de acción (SDD-0064): "Importa desde China con confianza hasta tu puerta en Venezuela."
-    await expect(page.locator("h1")).toContainText("Importa desde China");
-    await expect(page.locator("h1")).toContainText("con confianza");
-    // Tagline de marca vive en el kicker (un <p>, NO el h1): "Con Confianza, de China a tu puerta."
-    await expect(page.locator("body")).toContainText("Con Confianza");
-    await expect(page.locator("body")).toContainText("de China a tu puerta");
+    // H1 = tagline-headline (founder 2026-06-13): "Con confianza, desde China hacia Venezuela."
+    await expect(page.locator("h1")).toContainText("Con confianza");
+    await expect(page.locator("h1")).toContainText("Venezuela");
     // El cotizador del hero sigue mencionando China.
     await expect(page.locator("body")).toContainText(/China|Yiwu|cotizar/i);
   });

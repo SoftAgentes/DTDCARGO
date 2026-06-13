@@ -791,16 +791,16 @@ export const HERO = {
    */
   kicker: { accent: "Con Confianza,", rest: "de China a tu puerta." },
   /**
-   * H1 de acción. `accent` se renderiza en wine. "con confianza" (2026-06-13)
-   * conecta el H1 con la sección Filosofía ("Confía en quienes…") y con el
-   * tagline del kicker, sin tocar ni el kicker ni el cierre del H1.
+   * H1 del hero (founder 2026-06-13): el tagline-headline. `lead` ("Con
+   * confianza,") va en wine; `accent` en ink. Absorbe el rol del kicker, que se
+   * removió del hero para no repetir "con confianza / China / Venezuela".
    */
   title: {
-    lead: "Importa desde China con confianza",
-    accent: "hasta tu puerta en Venezuela.",
+    lead: "Con confianza,",
+    accent: "desde China hacia Venezuela.",
   },
   subtitle:
-    "Coordinamos recepción, inspección, consolidación, aduana, impuestos y entrega final — con un solo equipo responsable.",
+    "Coordinamos tu carga desde la recepción en China hasta la entrega final en Venezuela: inspección, consolidación, aduana, impuestos y puerta a puerta con un solo equipo responsable.",
   /** Microcopy bajo el cotizador: lidera "puerta a puerta", DDP como aclaración. */
   microcopy:
     "Servicio puerta a puerta con aduana e impuestos gestionados según cotización (modalidad DDP).",
@@ -831,8 +831,8 @@ export const HERO = {
    * comunicaba nada (2026-06-13). El ciclo de 4 pasos se explica en HowWeWork.
    */
   badge: {
-    line1: "De China",
-    line2: "a tu puerta",
+    line1: "Puerta a puerta",
+    line2: "China → Venezuela",
   },
 } as const;
 
