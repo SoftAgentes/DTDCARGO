@@ -36,7 +36,7 @@ const VIDEOS = [
   {
     base: "/videos/shipping-mark-dtd-pallets-dtd-cargo-puerta-a-puerta-china-venezuela",
     alt: "Pallets con el shipping mark DTD en la bodega de China — carga consolidada puerta a puerta a Venezuela",
-    caption: "Tu shipping mark DTD en cada pallet",
+    caption: "Tu MARKBOX (shipping mark) en cada pallet",
   },
 ];
 

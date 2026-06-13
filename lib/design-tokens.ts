@@ -717,16 +717,16 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
   },
   {
     id: "markbox",
-    term: "Shipping Mark",
-    acronym: "唛头 (shipping mark) · código del cliente DTD-XXXX",
+    term: "MARKBOX",
+    acronym: "Tu shipping mark (marca de envío · 唛头) · código del cliente DTD-XXXX",
     category: "tracking",
     body: [
-      "Código único que se le asigna a cada cliente al darse de alta con DTD Cargo. Sirve para identificar quién es el dueño de cada caja que llega a nuestra bodega en Yiwu.",
-      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu Shipping Mark. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
+      "MARKBOX es tu shipping mark (marca de envío / 唛头) personalizado: el código único que se te asigna al darte de alta con DTD Cargo. Identifica tus cajas desde origen, para que sepamos quién es el dueño de cada bulto que llega a nuestra bodega en Yiwu.",
+      "Cuando pides mercancía a tu proveedor chino, le envías por WeChat el texto pre-formateado con tu MARKBOX. El proveedor lo escribe en cada caja y al llegar a bodega sabemos exactamente a quién pertenece.",
     ],
     analogy: {
       label: "Lo encuentras en",
-      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes Shipping Mark, lo solicitas por WhatsApp.",
+      text: "/contacto — sección 'Texto listo para WeChat'. Si todavía no tienes tu MARKBOX, lo solicitas por WhatsApp.",
     },
   },
 
@@ -832,7 +832,7 @@ export const STATS = [
     // China → América Latina.
     num: "18",
     suffix: "AÑOS",
-    label: "De experiencia desde 2008",
+    label: "En el comercio con China desde 2008",
   },
   {
     // 11 años de respaldo específico en Venezuela (desde la expansión 2015
@@ -1007,9 +1007,40 @@ export const YIWU_ADVANTAGES: YiwuAdvantage[] = [
 // ──────────────────────────────────────────────────────────────────
 
 export const PHILOSOPHY = {
-  headline: "Confía en los que ya\nrecorrieron el camino.",
-  body: "Construimos nuestra reputación cliente a cliente. Sin campañas ruidosas, sin promesas exageradas: paso a paso, contenedor a contenedor. La confianza que nuestros clientes depositan en nosotros es nuestro principal canal de crecimiento.",
-  pull: "El boca a boca nos ha mantenido sólidos y constantes en el mercado. No necesitamos tanta bulla cuando los resultados hablan por sí solos.",
+  headline: "Confía en quienes ya\nrecorrieron el camino.",
+  body: [
+    "Importar desde China no debería sentirse como un salto al vacío. En DTD Cargo recorrimos esta ruta cliente a cliente, caja a caja y contenedor a contenedor.",
+    "Coordinamos recepción en China, inspección, consolidación, aduana, impuestos y entrega final en Venezuela con un solo equipo responsable. Por eso no prometemos magia: te damos proceso, trazabilidad y acompañamiento real.",
+    "Nuestra reputación se construyó con resultados. Sin campañas ruidosas, sin promesas exageradas: solo operaciones bien ejecutadas, carga identificada desde origen y clientes que vuelven.",
+  ],
+  pull: "La confianza no se promete. Se construye en cada envío.",
+  /**
+   * 4 razones — se renderizan con el patrón de tarjeta de <HowWeWork />.
+   * `kicker` cumple el rol del índice "01 / 04" de HowWeWork (acento wine en
+   * Archivo Black); el de MARKBOX va en 唛头 (Noto Sans SC vía fallback de la pila).
+   */
+  cards: [
+    {
+      kicker: "EXPERIENCIA",
+      title: "En la ruta desde 2010",
+      copy: "Conocemos la ruta China → Venezuela desde dentro: compras, fábrica, bodega, aduana y entrega final. (En el comercio con China desde 2008.)",
+    },
+    {
+      kicker: "DOS BASES",
+      title: "Equipo en Yiwu y Valencia",
+      copy: "Operamos en ambos extremos: recepción y consolidación en China, nacionalización y última milla en Venezuela.",
+    },
+    {
+      kicker: "唛头",
+      title: "MARKBOX desde origen",
+      copy: "Cada caja se identifica desde China con tu MARKBOX —tu shipping mark (marca de envío / 唛头) personalizado— para reducir errores y mezclas.",
+    },
+    {
+      kicker: "TRAZABILIDAD",
+      title: "Tracking etapa por etapa",
+      copy: "Sigue tu carga desde la recepción en China hasta la entrega final en Venezuela.",
+    },
+  ],
   cta: "Deja que nuestra experiencia sea tu mayor tranquilidad.",
 } as const;
 

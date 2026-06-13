@@ -1,14 +1,18 @@
+import Link from "next/link";
 import { PHILOSOPHY, buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, QuoteIcon, WhatsAppIcon } from "./Icon";
 
 /**
- * Sección de filosofía / cierre — boca a boca, paso a paso.
+ * Sección de filosofía / cierre — la confianza se construye envío a envío.
  * Fuente: brochure DTD Cargo § "Nuestra Filosofía" + cierre.
+ *
+ * Las 4 razones reusan el patrón de tarjeta de <HowWeWork /> (card-shadow +
+ * border grey-200 + rounded-[18px] + h-card) para mantener un solo sistema.
  */
 export function Philosophy() {
   return (
     <section className="py-20 lg:py-25 bg-paper" id="filosofia">
-      <div className="wrap max-w-[960px]">
+      <div className="wrap max-w-[1040px]">
         <div className="text-center">
           <span className="eyebrow inline-flex">Nuestra filosofía</span>
         </div>
@@ -28,12 +32,19 @@ export function Philosophy() {
           ))}
         </h2>
 
-        <p className="text-[18px] lg:text-[19px] leading-[1.6] text-grey-700 text-center mt-8 max-w-[680px] mx-auto">
-          {PHILOSOPHY.body}
-        </p>
+        <div className="mt-8 max-w-[600px] mx-auto flex flex-col gap-5">
+          {PHILOSOPHY.body.map((paragraph, i) => (
+            <p
+              key={i}
+              className="text-[17px] lg:text-[18px] leading-[1.6] text-grey-700 text-center"
+            >
+              {paragraph}
+            </p>
+          ))}
+        </div>
 
         {/* Pull quote */}
-        <figure className="mt-14 mx-auto max-w-[720px] relative">
+        <figure className="mt-12 mx-auto max-w-[720px] relative">
           <QuoteIcon
             className="absolute -top-4 -left-4 lg:-left-10 text-wine/15"
             size={64}
@@ -48,7 +59,32 @@ export function Philosophy() {
           </blockquote>
         </figure>
 
-        <div className="text-center mt-14">
+        {/* 4 razones — mismo patrón de tarjeta que "Cómo trabajamos" */}
+        <div className="mt-14 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {PHILOSOPHY.cards.map((card) => (
+            <div
+              key={card.title}
+              className="card-shadow-static bg-white border border-grey-200 rounded-[18px] p-7 lg:p-8 flex flex-col"
+            >
+              <div
+                className="text-[14px] tracking-[0.1em] mb-3"
+                style={{
+                  color: "var(--color-wine)",
+                  fontFamily:
+                    "var(--font-archivo-black), var(--font-noto-sc), sans-serif",
+                }}
+              >
+                {card.kicker}
+              </div>
+              <h3 className="h-card text-ink mb-2">{card.title}</h3>
+              <p className="text-[14px] leading-[1.55] text-grey-500">
+                {card.copy}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        <div className="text-center mt-20">
           <p
             className="text-[18px] lg:text-[20px] leading-[1.4] text-ink mb-6"
             style={{ fontFamily: "var(--font-archivo-black)", letterSpacing: "-0.02em" }}
@@ -56,28 +92,21 @@ export function Philosophy() {
             {PHILOSOPHY.cta}
           </p>
           <div className="flex flex-wrap gap-3 justify-center">
+            <Link href="/calculadora" className="btn btn-primary">
+              Cotizar mi envío <ArrowIcon />
+            </Link>
             <a
               href={buildWhatsAppLink(
-                "Hola DTD Cargo, vi su página y quiero cotizar un envío. ¿Pueden ayudarme?"
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-primary"
-            >
-              Cotiza tu envío <ArrowIcon />
-            </a>
-            <a
-              href={buildWhatsAppLink(
-                "Hola DTD Cargo, quería hablar con un asesor sobre logística China-Venezuela."
+                "Hola DTD Cargo, vi su página y quiero hablar con un asesor sobre mi importación de China a Venezuela."
               )}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-ghost"
             >
-              <span style={{ color: "#25D366" }}>
+              <span style={{ color: "var(--color-whatsapp)" }}>
                 <WhatsAppIcon size={18} />
               </span>{" "}
-              Escríbenos por WhatsApp
+              Hablar por WhatsApp
             </a>
           </div>
         </div>

@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: "%s · DTD Cargo",
   },
   description:
-    "Logística end-to-end China → Venezuela desde 2008. Carga puerta a puerta todo incluido (DDP), agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
+    "Logística end-to-end China → Venezuela desde 2010. Carga puerta a puerta todo incluido (DDP), agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
   applicationName: "DTD Cargo",
   authors: [{ name: "DTD Cargo" }],
   keywords: [
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     siteName: "DTD Cargo",
     title: "DTD Cargo — Con Confianza, de China a tu puerta.",
     description:
-      "Logística end-to-end China → Venezuela operando desde 2008. Construyendo confianza cliente a cliente, contenedor a contenedor.",
+      "Logística end-to-end China → Venezuela operando desde 2010. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [
       {
         url: BRAND_ASSETS.ogImage,
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "DTD Cargo — Con Confianza, de China a tu puerta.",
     description:
-      "Logística end-to-end China → Venezuela operando desde 2008. Construyendo confianza cliente a cliente, contenedor a contenedor.",
+      "Logística end-to-end China → Venezuela operando desde 2010. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [BRAND_ASSETS.ogImage],
   },
   icons: {
