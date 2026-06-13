@@ -59,6 +59,63 @@ export async function kommoFetch<T>(
 }
 
 /**
+ * SDD-0074 — ESCRITURA autenticada a Kommo (POST/PATCH). Hermano de `kommoFetch`:
+ * espeja la misma escalera (401 → error · 429/5xx → backoff+reintento · otros 4xx → error
+ * con cuerpo) para mutaciones con cuerpo JSON. Devuelve el JSON parseado (o null en 204).
+ *
+ * A propósito NO toca `kommoFetch`: ese es el path GET probado en prod por el cron diario, y
+ * `supabase/functions` está fuera del typecheck/lint del gate → no se refactoriza lo que
+ * funciona sin red de seguridad. La unificación de la escalera (un solo core) vive en
+ * SDD-0062 Slice A, cuando se construya el write-back completo (outbox + PATCH de precio/etapa).
+ */
+export async function kommoWrite<T>(
+  baseUrl: string,
+  token: string,
+  path: string,
+  method: "POST" | "PATCH",
+  body: unknown,
+): Promise<T | null> {
+  let attempt = 0;
+  while (true) {
+    const res = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (res.status === 204) return null; // sin contenido (p.ej. PATCH ok sin payload)
+    if (res.status === 401) {
+      throw new KommoError("Kommo 401: token inválido o sin scope", 401);
+    }
+
+    // SDD-0074 (revisión 3-expertos): los WRITES NO son idempotentes. Reintentar un POST tras un
+    // 5xx puede DUPLICAR (Kommo pudo crear la entidad y luego fallar/ cortarse la respuesta). Por
+    // eso, a diferencia de kommoFetch (GET, seguro de reintentar), aquí SOLO reintentamos 429
+    // (rate-limit = la request NO se procesó → seguro). 5xx cae al throw de abajo (sin reintento).
+    if (res.status === 429) {
+      if (attempt++ >= MAX_RETRIES) {
+        throw new KommoError("Kommo 429: agotados los reintentos", 429);
+      }
+      const retryAfter = Number(res.headers.get("Retry-After") ?? 0);
+      const backoff = Math.max(retryAfter * 1000, 500 * 2 ** attempt);
+      await sleep(backoff);
+      continue;
+    }
+
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      throw new KommoError(`Kommo ${res.status}: ${errBody.slice(0, 300)}`, res.status);
+    }
+
+    return (await res.json()) as T;
+  }
+}
+
+/**
  * M1 — busca en custom_fields_values el primer campo cuyo field_name/field_code contenga
  * alguna keyword (case-insensitive) y devuelve su primer value como string; null si no hay.
  * (El array crudo se guarda igual en la columna jsonb; esto es para lectura/normalización.)
