@@ -12,6 +12,7 @@ import {
 } from "@/lib/data/tarifas-terrestres-vzla";
 import { calcularFleteTerrestre } from "@/lib/calc/fleteTerrestre";
 import { DecimalInput } from "@/components/DecimalInput";
+import { TruckIcon, WarningIcon } from "@/components/Icon";
 import { CONFIG } from "@/lib/calculadora";
 
 /**
@@ -77,7 +78,7 @@ export function UltimoKmCalculator() {
     <div>
       <div className="flex items-baseline justify-between mb-4">
         <span className="eyebrow inline-flex">
-          <span className="mr-1.5">🚛</span> Último km en Venezuela
+          <TruckIcon size={14} /> Último km en Venezuela
         </span>
         <span className="text-[11.5px] text-grey-500">Estimación referencial · DTD Cargo</span>
       </div>
@@ -220,8 +221,8 @@ export function UltimoKmCalculator() {
       >
         {hayError ? (
           <div>
-            <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-wine mb-1">
-              ⚠️ No se puede calcular
+            <div className="text-[12px] font-bold tracking-[0.12em] uppercase text-wine mb-1 flex items-center gap-1.5">
+              <WarningIcon size={13} /> No se puede calcular
             </div>
             <p className="text-[14px] text-ink/80">{resultado.error}</p>
           </div>
@@ -312,7 +313,10 @@ export function UltimoKmCalculator() {
                 }}
               >
                 {resultado.warning && (
-                  <div className="font-semibold mb-1">⚠️ {resultado.warning}</div>
+                  <div className="font-semibold mb-1 flex items-start gap-1.5">
+                    <WarningIcon size={14} className="flex-shrink-0 mt-0.5" />
+                    <span>{resultado.warning}</span>
+                  </div>
                 )}
                 {resultado.notaCasco && (
                   <div>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CONTACT, FONT_MONO } from "@/lib/design-tokens";
+import { FlagCN } from "@/components/Icon";
 
 /**
  * China Supplier Clip — texto pre-formateado para que el cliente lo copie y
@@ -51,7 +52,7 @@ export function ChinaSupplierClip() {
           className="eyebrow"
           style={{ color: "rgba(255,255,255,0.5)" }}
         >
-          🇨🇳 Para tu proveedor en China
+          <FlagCN size={16} /> Para tu proveedor en China
         </div>
         <h3
           className="mt-3 text-[22px] leading-[1.15] tracking-[-0.01em]"
