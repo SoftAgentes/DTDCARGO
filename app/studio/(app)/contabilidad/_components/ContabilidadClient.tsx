@@ -19,6 +19,7 @@ import { PlanCuentasTab } from "./PlanCuentasTab";
 import { LibroDiarioTab } from "./LibroDiarioTab";
 import { LibroMayorTab } from "./LibroMayorTab";
 import { ReportesTab } from "./ReportesTab";
+import { ClosingDateDrawer } from "./ClosingDateDrawer";
 
 type Tab = "plan" | "diario" | "mayor" | "reportes";
 
@@ -38,6 +39,8 @@ export function ContabilidadClient({
   ledgerAccountId,
   pnl,
   balanceSheet,
+  closingDate,
+  canEditClosing,
 }: {
   tab: Tab;
   accounts: Account[];
@@ -47,12 +50,15 @@ export function ContabilidadClient({
   ledgerAccountId: string | null;
   pnl: ProfitAndLoss;
   balanceSheet: BalanceSheet;
+  closingDate: string | null;
+  canEditClosing: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [showCreateAccount, setShowCreateAccount] = useState(false);
   const [showCreateEntry, setShowCreateEntry] = useState(false);
+  const [showSetClosing, setShowSetClosing] = useState(false);
 
   const goToTab = (next: Tab) => {
     const s = new URLSearchParams();
@@ -114,6 +120,32 @@ export function ContabilidadClient({
             >
               + Cuenta
             </button>
+          )}
+          {tab === "diario" && canEditClosing && (
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost"
+              onClick={() => setShowSetClosing(true)}
+              title="Cierre de período contable (admin)"
+            >
+              {closingDate ? `Cierre: ${closingDate}` : "Cerrar período"}
+            </button>
+          )}
+          {tab === "diario" && !canEditClosing && closingDate && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "0 12px",
+                font: "600 11.5px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+                background: "var(--bg-elevated)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-md)",
+              }}
+            >
+              Cerrado hasta {closingDate}
+            </span>
           )}
           {tab === "diario" && (
             <button
@@ -193,6 +225,13 @@ export function ContabilidadClient({
       )}
       {tab === "reportes" && (
         <ReportesTab pnl={pnl} balanceSheet={balanceSheet} />
+      )}
+
+      {showSetClosing && (
+        <ClosingDateDrawer
+          currentClosingDate={closingDate}
+          onClose={() => setShowSetClosing(false)}
+        />
       )}
     </div>
   );

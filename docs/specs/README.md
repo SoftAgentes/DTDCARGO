@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 74 specs)
+### Índice de specs (generado · 76 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -111,7 +111,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | proposed | interno |
 | 0076 | Configuración canónica de servicios | in-progress | interno |
 | 0077 | Contabilidad estilo QuickBooks — proveedor→cuenta por defecto… | in-progress | interno |
+| 0078 | Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor | in-progress | interno |
 | 0079 | Asiento automático del gasto — expenses → journal_entries (ci… | in-progress | interno |
+| 0080 | Cierre de período contable — bloquear asientos de períodos ce… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0078 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

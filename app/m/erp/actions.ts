@@ -13,6 +13,10 @@ import {
   voidExpenseEntriesForExpense,
 } from "@/lib/studio/accounting/expense-posting";
 import {
+  getAccountingSettings,
+  isPeriodClosed,
+} from "@/lib/studio/accounting/period-queries";
+import {
   validateExpenseInput,
   type CreateExpenseInput,
   type ExpenseActionState,
@@ -76,6 +80,15 @@ export async function createExpenseAction(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  // Guard de período cerrado (SDD-0080): el gasto se fecha hoy; si hoy está en
+  // período cerrado, no se carga (su asiento sería rechazado por el trigger).
+  const accSettings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(accSettings.closing_date, new Date().toISOString())) {
+    return {
+      error: `Período contable cerrado al ${accSettings.closing_date}: no puedes cargar gastos en un período cerrado.`,
+    };
+  }
 
   // Validar receipt ANTES de generar code (no malgastar correlativo si falla)
   const receiptRaw = formData.get("receipt");
@@ -232,6 +245,14 @@ export async function updateExpenseAction(
     return { error: "Solo puedes editar tus propios gastos." };
   }
 
+  // Guard de período cerrado (SDD-0080): no editar un gasto de período cerrado.
+  const accSettings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(accSettings.closing_date, existing.occurred_at)) {
+    return {
+      error: `Período contable cerrado al ${accSettings.closing_date}: no puedes editar un gasto de período cerrado.`,
+    };
+  }
+
   // Manejo de foto
   let nextReceiptPath: string | null = existing.receipt_path;
   let oldReceiptToDelete: string | null = null;
@@ -344,17 +365,26 @@ export async function softDeleteExpenseAction(
 
   const { data: existing, error: loadErr } = await supabase
     .from("expenses")
-    .select("receipt_path, user_id, tenant_id")
+    .select("receipt_path, user_id, tenant_id, occurred_at")
     .eq("id", id)
     .maybeSingle<{
       receipt_path: string | null;
       user_id: string;
       tenant_id: string;
+      occurred_at: string;
     }>();
 
   if (loadErr || !existing) return { error: "Gasto no encontrado." };
   if (existing.user_id !== userResp.user.id) {
     return { error: "Solo puedes eliminar tus propios gastos." };
+  }
+
+  // Guard de período cerrado (SDD-0080): no borrar un gasto de período cerrado.
+  const accSettings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(accSettings.closing_date, existing.occurred_at)) {
+    return {
+      error: `Período contable cerrado al ${accSettings.closing_date}: no puedes borrar un gasto de período cerrado.`,
+    };
   }
 
   const { error: updateErr } = await supabase

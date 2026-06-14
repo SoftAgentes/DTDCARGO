@@ -29,6 +29,10 @@ import {
   voidExpenseEntriesForExpense,
 } from "@/lib/studio/accounting/expense-posting";
 import {
+  getAccountingSettings,
+  isPeriodClosed,
+} from "@/lib/studio/accounting/period-queries";
+import {
   validateExpenseInput,
   currencyPair,
   categoryLabel,
@@ -102,6 +106,16 @@ export async function createExpenseAction(
     .select("tenant_id")
     .maybeSingle<{ tenant_id: string }>();
   if (!link?.tenant_id) return { errorCode: "tenant_unresolved" };
+
+  // Guard de período cerrado (SDD-0080): el gasto se fecha hoy (occurred_at =
+  // now); si el período de hoy está cerrado, no se carga (su asiento sería
+  // rechazado por el trigger). Se valida antes de gastar correlativo/subir foto.
+  const accSettings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(accSettings.closing_date, new Date().toISOString())) {
+    return {
+      error: `Período contable cerrado al ${accSettings.closing_date}: no puedes cargar gastos en un período cerrado.`,
+    };
+  }
 
   // Validar recibo ANTES de gastar correlativo
   const receiptRaw = formData.get("receipt");
@@ -241,6 +255,16 @@ export async function updateExpenseAction(
       occurred_at: string;
     }>();
 
+  // Guard de período cerrado (SDD-0080): no editar un gasto de período cerrado.
+  if (oldExp) {
+    const accSettings = await getAccountingSettings(supabase);
+    if (isPeriodClosed(accSettings.closing_date, oldExp.occurred_at)) {
+      return {
+        error: `Período contable cerrado al ${accSettings.closing_date}: no puedes editar un gasto de período cerrado.`,
+      };
+    }
+  }
+
   const { error } = await supabase
     .from("expenses")
     .update({
@@ -290,12 +314,23 @@ export async function softDeleteExpenseAction(
   id: string,
 ): Promise<ExpenseActionState> {
   const supabase = await createClient();
-  // Tenant del gasto (para anular su asiento tras el borrado · SDD-0079).
+  // Tenant + fecha del gasto (para anular su asiento y guardar el período · SDD-0079/0080).
   const { data: exp } = await supabase
     .from("expenses")
-    .select("tenant_id")
+    .select("tenant_id, occurred_at")
     .eq("id", id)
-    .maybeSingle<{ tenant_id: string }>();
+    .maybeSingle<{ tenant_id: string; occurred_at: string }>();
+
+  // Guard de período cerrado (SDD-0080): no borrar un gasto de período cerrado.
+  if (exp?.occurred_at) {
+    const accSettings = await getAccountingSettings(supabase);
+    if (isPeriodClosed(accSettings.closing_date, exp.occurred_at)) {
+      return {
+        error: `Período contable cerrado al ${accSettings.closing_date}: no puedes borrar un gasto de período cerrado.`,
+      };
+    }
+  }
+
   const { error } = await supabase
     .from("expenses")
     .update({ deleted_at: new Date().toISOString() })
