@@ -82,7 +82,7 @@ from public.accounts a, (values
   ('op_local_transport', '5.2'),
   ('op_customs_local', '5.5')
 ) as m(category, code)
-where e.category = m.category
+where e.category::text = m.category
   and a.tenant_id = e.tenant_id
   and a.code = m.code
   and a.is_postable
