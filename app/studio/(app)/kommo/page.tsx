@@ -6,14 +6,24 @@
  */
 import { createClient } from "@/lib/db/server";
 import { getKommoAnalytics } from "@/lib/studio/kommo-analytics";
-import { getWritebackStatus } from "@/lib/studio/kommo-writeback";
+import {
+  getKommoMarkboxFieldId,
+  getKommoStageMap,
+  getWritebackStatus,
+  type WritebackStatus,
+} from "@/lib/studio/kommo-writeback";
 import {
   getKommoOverview,
+  listKommoLeadCustomFields,
   listKommoLeads,
   listKommoPipelines,
   listKommoStatuses,
   parseKommoFiltersFromSearchParams,
 } from "@/lib/studio/kommo-queries";
+import type {
+  KommoCustomFieldRow,
+  KommoStageMap,
+} from "@/lib/studio/kommo-types";
 import { DireccionTab } from "./_components/DireccionTab";
 import { KommoClient } from "./_components/KommoClient";
 import { resolveKommoTab } from "./_components/kommo-tabs.shared";
@@ -44,9 +54,27 @@ export default async function KommoPage({
     getKommoAnalytics(supabase),
   ]);
 
-  // Panel de write-back (SDD-0083): solo en la pestaña Dirección.
-  const writeback =
-    tab === "direccion" ? await getWritebackStatus(supabase) : null;
+  // Datos solo de la pestaña Dirección: panel de write-back (SDD-0083) + mapa de
+  // etapas y rol del viewer para la config (SDD-0084).
+  let writeback: WritebackStatus | null = null;
+  let stageMap: KommoStageMap = {};
+  let canEditStageMap = false;
+  let markboxFields: KommoCustomFieldRow[] = [];
+  let markboxFieldId: number | null = null;
+  if (tab === "direccion") {
+    const [wb, sm, mf, mfid, link] = await Promise.all([
+      getWritebackStatus(supabase),
+      getKommoStageMap(supabase),
+      listKommoLeadCustomFields(supabase),
+      getKommoMarkboxFieldId(supabase),
+      supabase.from("user_tenants").select("role").maybeSingle<{ role: string }>(),
+    ]);
+    writeback = wb;
+    stageMap = sm;
+    markboxFields = mf;
+    markboxFieldId = mfid;
+    canEditStageMap = link.data?.role === "admin";
+  }
 
   // Worklist (Asesor): leads filtrados; converted/valor se derivan del análisis.
   const leads = tab === "asesor" ? await listKommoLeads(supabase, filters) : [];
@@ -64,7 +92,16 @@ export default async function KommoPage({
       tab={tab}
       direccion={
         tab === "direccion" ? (
-          <DireccionTab data={analytics} writeback={writeback} />
+          <DireccionTab
+            data={analytics}
+            writeback={writeback}
+            pipelines={pipelines}
+            statuses={statuses}
+            stageMap={stageMap}
+            canEditStageMap={canEditStageMap}
+            markboxFields={markboxFields}
+            markboxFieldId={markboxFieldId}
+          />
         ) : null
       }
       overview={overview}

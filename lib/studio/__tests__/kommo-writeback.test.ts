@@ -10,13 +10,19 @@
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildMarkboxPatchPayload,
   buildPricePatchPayload,
+  buildStagePatchPayload,
+  enqueueKommoMarkboxWriteback,
+  enqueueKommoStageWriteback,
   enqueueKommoWriteback,
+  normalizeStageMap,
 } from "../kommo-writeback";
 
 type StubCfg = {
   clients?: { kommo_lead_id: number | null } | null;
   kommo_leads?: { kommo_updated_at: string | null } | null;
+  kommo_connections?: { stage_map?: unknown; markbox_field_id?: number | null } | null;
   rpcData?: string | null;
   rpcError?: { message: string } | null;
 };
@@ -113,5 +119,167 @@ describe("enqueueKommoWriteback", () => {
       totalUsd: 100,
     });
     expect(r).toBeNull();
+  });
+});
+
+describe("buildStagePatchPayload", () => {
+  it("arma { status_id, pipeline_id }", () => {
+    expect(buildStagePatchPayload({ pipeline_id: 10, status_id: 20 })).toEqual({
+      status_id: 20,
+      pipeline_id: 10,
+    });
+  });
+  it("trunca a entero (jsonb podría traer floats)", () => {
+    expect(
+      buildStagePatchPayload({ pipeline_id: 10.9, status_id: 20.2 }),
+    ).toEqual({ status_id: 20, pipeline_id: 10 });
+  });
+});
+
+describe("normalizeStageMap", () => {
+  it("conserva solo claves válidas con destino entero > 0", () => {
+    const raw = {
+      sent: { pipeline_id: 1, status_id: 2 },
+      accepted: { pipeline_id: 0, status_id: 9 }, // pipeline inválido
+      rejected: { pipeline_id: 3, status_id: 0 }, // status inválido
+      bogus: { pipeline_id: 5, status_id: 6 }, // clave fuera del enum
+    };
+    expect(normalizeStageMap(raw)).toEqual({
+      sent: { pipeline_id: 1, status_id: 2 },
+    });
+  });
+  it("null / no-objeto → {}", () => {
+    expect(normalizeStageMap(null)).toEqual({});
+    expect(normalizeStageMap("x")).toEqual({});
+    expect(normalizeStageMap(undefined)).toEqual({});
+  });
+});
+
+describe("enqueueKommoStageWriteback", () => {
+  it("estado sin mapear → null y NO llama al RPC", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: {
+        stage_map: { accepted: { pipeline_id: 1, status_id: 2 } },
+      },
+      clients: { kommo_lead_id: 99 },
+    });
+    const r = await enqueueKommoStageWriteback(stub, "t1", {
+      clientMarkbox: "DTD-0001",
+      estimateStatus: "sent", // no está en el mapa
+    });
+    expect(r).toBeNull();
+    expect(calls.rpc).toHaveLength(0);
+  });
+
+  it("sin markbox → null y NO llama al RPC", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: {
+        stage_map: { sent: { pipeline_id: 1, status_id: 2 } },
+      },
+    });
+    const r = await enqueueKommoStageWriteback(stub, "t1", {
+      clientMarkbox: null,
+      estimateStatus: "sent",
+    });
+    expect(r).toBeNull();
+    expect(calls.rpc).toHaveLength(0);
+  });
+
+  it("mapeado pero cliente sin lead → null y NO llama al RPC", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: {
+        stage_map: { sent: { pipeline_id: 1, status_id: 2 } },
+      },
+      clients: { kommo_lead_id: null },
+    });
+    const r = await enqueueKommoStageWriteback(stub, "t1", {
+      clientMarkbox: "DTD-0001",
+      estimateStatus: "sent",
+    });
+    expect(r).toBeNull();
+    expect(calls.rpc).toHaveLength(0);
+  });
+
+  it("mapeado + lead → encola patch_stage con {status_id, pipeline_id}", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: {
+        stage_map: { rejected: { pipeline_id: 7, status_id: 143 } },
+      },
+      clients: { kommo_lead_id: 12345 },
+      kommo_leads: { kommo_updated_at: "2026-06-14T00:00:00Z" },
+      rpcData: "outbox-7",
+    });
+    const r = await enqueueKommoStageWriteback(stub, "t1", {
+      clientMarkbox: "DTD-0001",
+      estimateStatus: "rejected",
+    });
+    expect(r).toBe("outbox-7");
+    expect(calls.rpc).toHaveLength(1);
+    expect(calls.rpc[0].name).toBe("enqueue_kommo_writeback");
+    expect(calls.rpc[0].args).toMatchObject({
+      p_tenant_id: "t1",
+      p_kommo_lead_id: 12345,
+      p_op: "patch_stage",
+      p_payload: { status_id: 143, pipeline_id: 7 },
+      p_kommo_updated_at: "2026-06-14T00:00:00Z",
+    });
+  });
+});
+
+describe("buildMarkboxPatchPayload", () => {
+  it("arma custom_fields_values con field_id + value", () => {
+    expect(buildMarkboxPatchPayload(555, "DTD-1234")).toEqual({
+      custom_fields_values: [{ field_id: 555, values: [{ value: "DTD-1234" }] }],
+    });
+  });
+});
+
+describe("enqueueKommoMarkboxWriteback", () => {
+  it("sin campo configurado → null y NO llama al RPC", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: { markbox_field_id: null },
+    });
+    const r = await enqueueKommoMarkboxWriteback(stub, "t1", {
+      leadId: 12345,
+      markbox: "DTD-0001",
+    });
+    expect(r).toBeNull();
+    expect(calls.rpc).toHaveLength(0);
+  });
+
+  it("sin markbox → null y NO llama al RPC (ni lee la conexión)", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: { markbox_field_id: 555 },
+    });
+    const r = await enqueueKommoMarkboxWriteback(stub, "t1", {
+      leadId: 12345,
+      markbox: "",
+    });
+    expect(r).toBeNull();
+    expect(calls.rpc).toHaveLength(0);
+  });
+
+  it("campo + markbox → encola patch_lead con custom_fields_values", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: { markbox_field_id: 555 },
+      kommo_leads: { kommo_updated_at: "2026-06-14T00:00:00Z" },
+      rpcData: "outbox-mb",
+    });
+    const r = await enqueueKommoMarkboxWriteback(stub, "t1", {
+      leadId: 12345,
+      markbox: "DTD-0007",
+    });
+    expect(r).toBe("outbox-mb");
+    expect(calls.rpc).toHaveLength(1);
+    expect(calls.rpc[0].name).toBe("enqueue_kommo_writeback");
+    expect(calls.rpc[0].args).toMatchObject({
+      p_tenant_id: "t1",
+      p_kommo_lead_id: 12345,
+      p_op: "patch_lead",
+      p_payload: {
+        custom_fields_values: [{ field_id: 555, values: [{ value: "DTD-0007" }] }],
+      },
+      p_kommo_updated_at: "2026-06-14T00:00:00Z",
+    });
   });
 });

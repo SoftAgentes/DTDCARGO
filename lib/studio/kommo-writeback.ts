@@ -11,6 +11,12 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import {
+  ESTIMATE_STAGE_KEYS,
+  type EstimateStageKey,
+  type KommoStageMap,
+  type KommoStageTarget,
+} from "./kommo-types";
 
 export type WritebackOp = "patch_price" | "patch_stage" | "patch_lead";
 
@@ -76,6 +82,207 @@ export async function enqueueKommoWriteback(
     console.error("[kommo-writeback] enqueue threw:", err);
     return null;
   }
+}
+
+// ── Write-back de ETAPA (SDD-0084 · mapa estado→etapa de Kommo) ──────────────
+
+/**
+ * Payload del PATCH `/api/v4/leads/{id}` para mover el lead de ETAPA. Kommo exige
+ * `status_id` (etapa) + `pipeline_id` (embudo): al cruzar de embudo hay que mandar
+ * ambos; dentro del mismo embudo mandar ambos es inocuo. Enteros. PURO.
+ */
+export function buildStagePatchPayload(
+  target: KommoStageTarget,
+): { status_id: number; pipeline_id: number } {
+  return {
+    status_id: Math.trunc(Number(target.status_id)),
+    pipeline_id: Math.trunc(Number(target.pipeline_id)),
+  };
+}
+
+/**
+ * Normaliza/valida la FORMA de un mapa de etapas crudo (de la DB o del form web).
+ * Conserva solo las claves válidas (sent/accepted/rejected) cuyo destino tenga
+ * `pipeline_id` y `status_id` enteros > 0; descarta el resto. PURO. (Que el par
+ * exista en el espejo lo valida la action contra `kommo_statuses`.)
+ */
+export function normalizeStageMap(raw: unknown): KommoStageMap {
+  const out: KommoStageMap = {};
+  if (!raw || typeof raw !== "object") return out;
+  const obj = raw as Record<string, unknown>;
+  for (const key of ESTIMATE_STAGE_KEYS) {
+    const v = obj[key];
+    if (!v || typeof v !== "object") continue;
+    const rec = v as Record<string, unknown>;
+    const pid = Math.trunc(Number(rec.pipeline_id));
+    const sid = Math.trunc(Number(rec.status_id));
+    if (Number.isFinite(pid) && pid > 0 && Number.isFinite(sid) && sid > 0) {
+      out[key] = { pipeline_id: pid, status_id: sid };
+    }
+  }
+  return out;
+}
+
+/**
+ * Encola un `patch_stage` para mover el lead de Kommo del cliente a la etapa
+ * mapeada para el nuevo estado del estimado. Lee `kommo_connections.stage_map`;
+ * si el estado no está mapeado, **no hace nada** (la feature es inerte hasta que
+ * el founder configure el mapa). Resuelve el lead por `markbox → kommo_lead_id`.
+ * **Best-effort**: devuelve el id de outbox, o `null` (sin mapa / sin lead / error).
+ * NUNCA tira — la transición del estimado no debe romperse por esto.
+ */
+export async function enqueueKommoStageWriteback(
+  admin: SupabaseClient,
+  tenantId: string,
+  input: {
+    clientMarkbox: string | null | undefined;
+    estimateStatus: EstimateStageKey;
+  },
+): Promise<string | null> {
+  try {
+    const markbox = (input.clientMarkbox ?? "").trim();
+    if (!markbox) return null;
+
+    // 1) Mapa de etapas del tenant. Sin destino para este estado → no-op.
+    const { data: conn } = await admin
+      .from("kommo_connections")
+      .select("stage_map")
+      .eq("tenant_id", tenantId)
+      .maybeSingle<{ stage_map: KommoStageMap | null }>();
+    const map = normalizeStageMap(conn?.stage_map ?? null);
+    const target = map[input.estimateStatus] ?? null;
+    if (!target) return null;
+
+    // 2) Lead del cliente (markbox → clients.kommo_lead_id).
+    const { data: client } = await admin
+      .from("clients")
+      .select("kommo_lead_id")
+      .eq("tenant_id", tenantId)
+      .eq("markbox", markbox)
+      .is("deleted_at", null)
+      .maybeSingle<{ kommo_lead_id: number | null }>();
+    const leadId = client?.kommo_lead_id ?? null;
+    if (leadId == null) return null; // cliente sin lead → nada que sincronizar
+
+    // 3) Snapshot del updated_at del lead (trazabilidad anti-overwrite). Best-effort.
+    const { data: lead } = await admin
+      .from("kommo_leads")
+      .select("kommo_updated_at")
+      .eq("tenant_id", tenantId)
+      .eq("id", leadId)
+      .maybeSingle<{ kommo_updated_at: string | null }>();
+
+    const { data, error } = await admin.rpc("enqueue_kommo_writeback", {
+      p_tenant_id: tenantId,
+      p_kommo_lead_id: leadId,
+      p_op: "patch_stage" satisfies WritebackOp,
+      p_payload: buildStagePatchPayload(target),
+      p_kommo_updated_at: lead?.kommo_updated_at ?? null,
+    });
+    if (error) {
+      console.error("[kommo-writeback] stage enqueue error:", error.message);
+      return null;
+    }
+    return (data as string | null) ?? null;
+  } catch (err) {
+    console.error("[kommo-writeback] stage enqueue threw:", err);
+    return null;
+  }
+}
+
+/**
+ * Lee el mapa de etapas configurado (RLS por tenant). Para la UI de config.
+ * Normaliza la forma antes de devolverlo.
+ */
+export async function getKommoStageMap(
+  supabase: SupabaseClient,
+): Promise<KommoStageMap> {
+  const { data } = await supabase
+    .from("kommo_connections")
+    .select("stage_map")
+    .maybeSingle<{ stage_map: KommoStageMap | null }>();
+  return normalizeStageMap(data?.stage_map ?? null);
+}
+
+// ── Write-back de MARKBOX (SDD-0086 · patch_lead al convertir) ───────────────
+
+/**
+ * Payload del PATCH `/api/v4/leads/{id}` para escribir el MARKBOX en un custom
+ * field del lead. Forma de Kommo: `custom_fields_values:[{field_id, values:[{value}]}]`.
+ * Asume un campo de texto. PURO.
+ */
+export function buildMarkboxPatchPayload(
+  fieldId: number,
+  markbox: string,
+): { custom_fields_values: { field_id: number; values: { value: string }[] }[] } {
+  return {
+    custom_fields_values: [
+      { field_id: Math.trunc(Number(fieldId)), values: [{ value: String(markbox) }] },
+    ],
+  };
+}
+
+/**
+ * Encola un `patch_lead` que escribe el MARKBOX del cliente en el custom field
+ * configurado del lead de Kommo. Lee `kommo_connections.markbox_field_id`; sin
+ * campo configurado → **no hace nada** (inerte). **Best-effort**: devuelve el id de
+ * outbox, o `null` (sin campo / lead o markbox inválido / error). NUNCA tira — la
+ * conversión del lead no debe romperse por esto.
+ */
+export async function enqueueKommoMarkboxWriteback(
+  admin: SupabaseClient,
+  tenantId: string,
+  input: { leadId: number; markbox: string | null | undefined },
+): Promise<string | null> {
+  try {
+    const leadId = Number(input.leadId);
+    const markbox = (input.markbox ?? "").trim();
+    if (!Number.isFinite(leadId) || leadId <= 0 || !markbox) return null;
+
+    // 1) Campo MARKBOX configurado? Sin él → no-op (inerte).
+    const { data: conn } = await admin
+      .from("kommo_connections")
+      .select("markbox_field_id")
+      .eq("tenant_id", tenantId)
+      .maybeSingle<{ markbox_field_id: number | null }>();
+    const fieldId = conn?.markbox_field_id ?? null;
+    if (fieldId == null) return null;
+
+    // 2) Snapshot del updated_at del lead (trazabilidad anti-overwrite). Best-effort.
+    const { data: lead } = await admin
+      .from("kommo_leads")
+      .select("kommo_updated_at")
+      .eq("tenant_id", tenantId)
+      .eq("id", leadId)
+      .maybeSingle<{ kommo_updated_at: string | null }>();
+
+    const { data, error } = await admin.rpc("enqueue_kommo_writeback", {
+      p_tenant_id: tenantId,
+      p_kommo_lead_id: leadId,
+      p_op: "patch_lead" satisfies WritebackOp,
+      p_payload: buildMarkboxPatchPayload(fieldId, markbox),
+      p_kommo_updated_at: lead?.kommo_updated_at ?? null,
+    });
+    if (error) {
+      console.error("[kommo-writeback] markbox enqueue error:", error.message);
+      return null;
+    }
+    return (data as string | null) ?? null;
+  } catch (err) {
+    console.error("[kommo-writeback] markbox enqueue threw:", err);
+    return null;
+  }
+}
+
+/** Lee el campo MARKBOX configurado (RLS por tenant). Para la UI de config. */
+export async function getKommoMarkboxFieldId(
+  supabase: SupabaseClient,
+): Promise<number | null> {
+  const { data } = await supabase
+    .from("kommo_connections")
+    .select("markbox_field_id")
+    .maybeSingle<{ markbox_field_id: number | null }>();
+  return data?.markbox_field_id ?? null;
 }
 
 // ── Lectura para el panel de visibilidad (SDD-0078 · pestaña Dirección) ──────

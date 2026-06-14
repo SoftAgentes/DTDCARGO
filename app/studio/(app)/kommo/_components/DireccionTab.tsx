@@ -14,6 +14,14 @@ import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Progress } from "@/app/studio/(app)/reportes/_components/charts";
 import type { KommoDireccionData, OwnerSlice } from "@/lib/studio/kommo-analytics";
 import type { WritebackGate, WritebackStatus } from "@/lib/studio/kommo-writeback";
+import type {
+  KommoCustomFieldRow,
+  KommoPipelineRow,
+  KommoStageMap,
+  KommoStatusRow,
+} from "@/lib/studio/kommo-types";
+import { StageMapConfig } from "./StageMapConfig";
+import { MarkboxFieldConfig } from "./MarkboxFieldConfig";
 
 function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
@@ -210,9 +218,21 @@ function WbStat({ label, value, tone }: { label: string; value: number; tone: st
 export function DireccionTab({
   data,
   writeback,
+  pipelines,
+  statuses,
+  stageMap,
+  canEditStageMap,
+  markboxFields,
+  markboxFieldId,
 }: {
   data: KommoDireccionData;
   writeback: WritebackStatus | null;
+  pipelines: KommoPipelineRow[];
+  statuses: KommoStatusRow[];
+  stageMap: KommoStageMap;
+  canEditStageMap: boolean;
+  markboxFields: KommoCustomFieldRow[];
+  markboxFieldId: number | null;
 }) {
   if (data.totals.leads === 0) {
     return (
@@ -509,6 +529,33 @@ export function DireccionTab({
           </div>
         </SectionCard>
       )}
+
+      {/* Mapa de etapas (SDD-0084): a qué etapa de Kommo mover el lead por estado. */}
+      <SectionCard
+        eyebrow="Automatización"
+        title="Mapa de etapas"
+        hint="A qué etapa de Kommo mover el lead cuando el estimado cambia de estado."
+      >
+        <StageMapConfig
+          pipelines={pipelines}
+          statuses={statuses}
+          initial={stageMap}
+          canEdit={canEditStageMap}
+        />
+      </SectionCard>
+
+      {/* MARKBOX → Kommo (SDD-0086): campo del lead donde va el Shipping Mark. */}
+      <SectionCard
+        eyebrow="Identidad"
+        title="MARKBOX en Kommo"
+        hint="En qué campo del lead escribir el Shipping Mark cuando se convierte en cliente."
+      >
+        <MarkboxFieldConfig
+          fields={markboxFields}
+          initialFieldId={markboxFieldId}
+          canEdit={canEditStageMap}
+        />
+      </SectionCard>
     </div>
   );
 }
