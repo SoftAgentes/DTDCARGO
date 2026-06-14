@@ -19,6 +19,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { enqueueKommoWriteback } from "@/lib/studio/kommo-writeback";
 import {
   calcQuoteTotal,
   validateQuoteInput,
@@ -307,6 +308,16 @@ async function transitionStatus(
       prospectEmail: current.prospect_email,
       clientName: current.client_name,
       sourceRef: { kind: "quote", id: current.id },
+    });
+
+    // SDD-0083 Slice B — write-back del valor a Kommo (best-effort, dry-run por
+    // default). Si el estimado tiene cliente con lead vinculado, encola un
+    // patch_price (total_usd → price del lead) que apaga la ceguera del $0. NO
+    // escribe a Kommo desde acá: solo encola; la edge function kommo-writeback drena
+    // con el token de Vault. Un fallo nunca rompe la transición del estimado.
+    await enqueueKommoWriteback(admin, current.tenant_id, {
+      clientMarkbox: current.client_markbox,
+      totalUsd: current.total_usd,
     });
   }
 
