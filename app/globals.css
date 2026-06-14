@@ -751,3 +751,17 @@
     print-color-adjust: exact;
   }
 }
+
+/* ── Hero · Ciclo del Cliente (cinta en bucle · reemplaza el badge del contenedor) ──
+   Handoff Norte 2026-06-13 · v3.7. El layout/colores van inline en
+   CicloCliente.tsx (tokens). El contenedor viajero usa SMIL animateMotion en el
+   componente (unidades de usuario → va SOBRE la pista y escala; el offset-path de
+   CSS en un <g> SVG usaba px y caía fuera de la pista escalada). Acá solo quedan
+   los keyframes de la pista (flujo) y del giro del centro, gateados con
+   reduced-motion (en reduced-motion el contenedor no se monta → pose estática). */
+@keyframes cyc-march { to { stroke-dashoffset: -40; } }
+@keyframes cyc-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: no-preference) {
+  .cyc-flow { animation: cyc-march 1.5s linear infinite; }
+  .cyc-spin { animation: cyc-spin 16s linear infinite; }
+}
