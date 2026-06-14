@@ -113,7 +113,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0077 | Contabilidad estilo QuickBooks — proveedor→cuenta por defecto… | in-progress | interno |
 | 0078 | Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor | in-progress | interno |
 | 0079 | Asiento automático del gasto — expenses → journal_entries (ci… | in-progress | interno |
-| 0080 | Inventario de Consolidación (WMS) — stock real CN/VE por Ship… | proposed | interno |
+| 0080 | Inventario de Consolidación (WMS) — stock real CN/VE por Ship… | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
