@@ -204,6 +204,87 @@ export async function getKommoStageMap(
   return normalizeStageMap(data?.stage_map ?? null);
 }
 
+// ── Write-back de MARKBOX (SDD-0086 · patch_lead al convertir) ───────────────
+
+/**
+ * Payload del PATCH `/api/v4/leads/{id}` para escribir el MARKBOX en un custom
+ * field del lead. Forma de Kommo: `custom_fields_values:[{field_id, values:[{value}]}]`.
+ * Asume un campo de texto. PURO.
+ */
+export function buildMarkboxPatchPayload(
+  fieldId: number,
+  markbox: string,
+): { custom_fields_values: { field_id: number; values: { value: string }[] }[] } {
+  return {
+    custom_fields_values: [
+      { field_id: Math.trunc(Number(fieldId)), values: [{ value: String(markbox) }] },
+    ],
+  };
+}
+
+/**
+ * Encola un `patch_lead` que escribe el MARKBOX del cliente en el custom field
+ * configurado del lead de Kommo. Lee `kommo_connections.markbox_field_id`; sin
+ * campo configurado → **no hace nada** (inerte). **Best-effort**: devuelve el id de
+ * outbox, o `null` (sin campo / lead o markbox inválido / error). NUNCA tira — la
+ * conversión del lead no debe romperse por esto.
+ */
+export async function enqueueKommoMarkboxWriteback(
+  admin: SupabaseClient,
+  tenantId: string,
+  input: { leadId: number; markbox: string | null | undefined },
+): Promise<string | null> {
+  try {
+    const leadId = Number(input.leadId);
+    const markbox = (input.markbox ?? "").trim();
+    if (!Number.isFinite(leadId) || leadId <= 0 || !markbox) return null;
+
+    // 1) Campo MARKBOX configurado? Sin él → no-op (inerte).
+    const { data: conn } = await admin
+      .from("kommo_connections")
+      .select("markbox_field_id")
+      .eq("tenant_id", tenantId)
+      .maybeSingle<{ markbox_field_id: number | null }>();
+    const fieldId = conn?.markbox_field_id ?? null;
+    if (fieldId == null) return null;
+
+    // 2) Snapshot del updated_at del lead (trazabilidad anti-overwrite). Best-effort.
+    const { data: lead } = await admin
+      .from("kommo_leads")
+      .select("kommo_updated_at")
+      .eq("tenant_id", tenantId)
+      .eq("id", leadId)
+      .maybeSingle<{ kommo_updated_at: string | null }>();
+
+    const { data, error } = await admin.rpc("enqueue_kommo_writeback", {
+      p_tenant_id: tenantId,
+      p_kommo_lead_id: leadId,
+      p_op: "patch_lead" satisfies WritebackOp,
+      p_payload: buildMarkboxPatchPayload(fieldId, markbox),
+      p_kommo_updated_at: lead?.kommo_updated_at ?? null,
+    });
+    if (error) {
+      console.error("[kommo-writeback] markbox enqueue error:", error.message);
+      return null;
+    }
+    return (data as string | null) ?? null;
+  } catch (err) {
+    console.error("[kommo-writeback] markbox enqueue threw:", err);
+    return null;
+  }
+}
+
+/** Lee el campo MARKBOX configurado (RLS por tenant). Para la UI de config. */
+export async function getKommoMarkboxFieldId(
+  supabase: SupabaseClient,
+): Promise<number | null> {
+  const { data } = await supabase
+    .from("kommo_connections")
+    .select("markbox_field_id")
+    .maybeSingle<{ markbox_field_id: number | null }>();
+  return data?.markbox_field_id ?? null;
+}
+
 // ── Lectura para el panel de visibilidad (SDD-0078 · pestaña Dirección) ──────
 
 export type WritebackGate = "off" | "dry_run" | "live";

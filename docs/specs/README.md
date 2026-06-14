@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 80 specs)
+### Índice de specs (generado · 81 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -118,6 +118,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0082 | Captura de email + consentimiento de marketing (implementa SD… | in-progress | interno |
 | 0083 | Write-back de valor a Kommo — outbox + value-sync (implementa… | in-progress | interno |
 | 0084 | Mapa de etapas + write-back de etapa a Kommo (cierra SDD-0062… | in-progress | interno |
+| 0086 | MARKBOX → Kommo al convertir (patch_lead) — cierra el loop le… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0085 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

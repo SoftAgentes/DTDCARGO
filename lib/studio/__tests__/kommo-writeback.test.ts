@@ -10,8 +10,10 @@
 import { describe, it, expect } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  buildMarkboxPatchPayload,
   buildPricePatchPayload,
   buildStagePatchPayload,
+  enqueueKommoMarkboxWriteback,
   enqueueKommoStageWriteback,
   enqueueKommoWriteback,
   normalizeStageMap,
@@ -20,7 +22,7 @@ import {
 type StubCfg = {
   clients?: { kommo_lead_id: number | null } | null;
   kommo_leads?: { kommo_updated_at: string | null } | null;
-  kommo_connections?: { stage_map: unknown } | null;
+  kommo_connections?: { stage_map?: unknown; markbox_field_id?: number | null } | null;
   rpcData?: string | null;
   rpcError?: { message: string } | null;
 };
@@ -219,6 +221,64 @@ describe("enqueueKommoStageWriteback", () => {
       p_kommo_lead_id: 12345,
       p_op: "patch_stage",
       p_payload: { status_id: 143, pipeline_id: 7 },
+      p_kommo_updated_at: "2026-06-14T00:00:00Z",
+    });
+  });
+});
+
+describe("buildMarkboxPatchPayload", () => {
+  it("arma custom_fields_values con field_id + value", () => {
+    expect(buildMarkboxPatchPayload(555, "DTD-1234")).toEqual({
+      custom_fields_values: [{ field_id: 555, values: [{ value: "DTD-1234" }] }],
+    });
+  });
+});
+
+describe("enqueueKommoMarkboxWriteback", () => {
+  it("sin campo configurado → null y NO llama al RPC", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: { markbox_field_id: null },
+    });
+    const r = await enqueueKommoMarkboxWriteback(stub, "t1", {
+      leadId: 12345,
+      markbox: "DTD-0001",
+    });
+    expect(r).toBeNull();
+    expect(calls.rpc).toHaveLength(0);
+  });
+
+  it("sin markbox → null y NO llama al RPC (ni lee la conexión)", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: { markbox_field_id: 555 },
+    });
+    const r = await enqueueKommoMarkboxWriteback(stub, "t1", {
+      leadId: 12345,
+      markbox: "",
+    });
+    expect(r).toBeNull();
+    expect(calls.rpc).toHaveLength(0);
+  });
+
+  it("campo + markbox → encola patch_lead con custom_fields_values", async () => {
+    const { stub, calls } = makeStub({
+      kommo_connections: { markbox_field_id: 555 },
+      kommo_leads: { kommo_updated_at: "2026-06-14T00:00:00Z" },
+      rpcData: "outbox-mb",
+    });
+    const r = await enqueueKommoMarkboxWriteback(stub, "t1", {
+      leadId: 12345,
+      markbox: "DTD-0007",
+    });
+    expect(r).toBe("outbox-mb");
+    expect(calls.rpc).toHaveLength(1);
+    expect(calls.rpc[0].name).toBe("enqueue_kommo_writeback");
+    expect(calls.rpc[0].args).toMatchObject({
+      p_tenant_id: "t1",
+      p_kommo_lead_id: 12345,
+      p_op: "patch_lead",
+      p_payload: {
+        custom_fields_values: [{ field_id: 555, values: [{ value: "DTD-0007" }] }],
+      },
       p_kommo_updated_at: "2026-06-14T00:00:00Z",
     });
   });

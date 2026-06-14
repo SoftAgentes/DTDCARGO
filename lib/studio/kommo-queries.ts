@@ -5,6 +5,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
+  KommoCustomFieldRow,
   KommoLeadRow,
   KommoOverview,
   KommoPipelineRow,
@@ -82,6 +83,19 @@ export async function listKommoStatuses(
     .order("sort", { ascending: true });
   if (error) throw error;
   return (data as KommoStatusRow[] | null) ?? [];
+}
+
+/** Custom fields de leads (para configurar en qué campo va el MARKBOX · SDD-0086). */
+export async function listKommoLeadCustomFields(
+  supabase: SupabaseClient,
+): Promise<KommoCustomFieldRow[]> {
+  const { data, error } = await supabase
+    .from("kommo_custom_fields")
+    .select("id, name, type, code")
+    .eq("entity_type", "leads")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data as KommoCustomFieldRow[] | null) ?? [];
 }
 
 /**

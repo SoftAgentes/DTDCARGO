@@ -7,18 +7,23 @@
 import { createClient } from "@/lib/db/server";
 import { getKommoAnalytics } from "@/lib/studio/kommo-analytics";
 import {
+  getKommoMarkboxFieldId,
   getKommoStageMap,
   getWritebackStatus,
   type WritebackStatus,
 } from "@/lib/studio/kommo-writeback";
 import {
   getKommoOverview,
+  listKommoLeadCustomFields,
   listKommoLeads,
   listKommoPipelines,
   listKommoStatuses,
   parseKommoFiltersFromSearchParams,
 } from "@/lib/studio/kommo-queries";
-import type { KommoStageMap } from "@/lib/studio/kommo-types";
+import type {
+  KommoCustomFieldRow,
+  KommoStageMap,
+} from "@/lib/studio/kommo-types";
 import { DireccionTab } from "./_components/DireccionTab";
 import { KommoClient } from "./_components/KommoClient";
 import { resolveKommoTab } from "./_components/kommo-tabs.shared";
@@ -54,14 +59,20 @@ export default async function KommoPage({
   let writeback: WritebackStatus | null = null;
   let stageMap: KommoStageMap = {};
   let canEditStageMap = false;
+  let markboxFields: KommoCustomFieldRow[] = [];
+  let markboxFieldId: number | null = null;
   if (tab === "direccion") {
-    const [wb, sm, link] = await Promise.all([
+    const [wb, sm, mf, mfid, link] = await Promise.all([
       getWritebackStatus(supabase),
       getKommoStageMap(supabase),
+      listKommoLeadCustomFields(supabase),
+      getKommoMarkboxFieldId(supabase),
       supabase.from("user_tenants").select("role").maybeSingle<{ role: string }>(),
     ]);
     writeback = wb;
     stageMap = sm;
+    markboxFields = mf;
+    markboxFieldId = mfid;
     canEditStageMap = link.data?.role === "admin";
   }
 
@@ -88,6 +99,8 @@ export default async function KommoPage({
             statuses={statuses}
             stageMap={stageMap}
             canEditStageMap={canEditStageMap}
+            markboxFields={markboxFields}
+            markboxFieldId={markboxFieldId}
           />
         ) : null
       }

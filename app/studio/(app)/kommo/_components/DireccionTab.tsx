@@ -15,11 +15,13 @@ import { Progress } from "@/app/studio/(app)/reportes/_components/charts";
 import type { KommoDireccionData, OwnerSlice } from "@/lib/studio/kommo-analytics";
 import type { WritebackGate, WritebackStatus } from "@/lib/studio/kommo-writeback";
 import type {
+  KommoCustomFieldRow,
   KommoPipelineRow,
   KommoStageMap,
   KommoStatusRow,
 } from "@/lib/studio/kommo-types";
 import { StageMapConfig } from "./StageMapConfig";
+import { MarkboxFieldConfig } from "./MarkboxFieldConfig";
 
 function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
@@ -220,6 +222,8 @@ export function DireccionTab({
   statuses,
   stageMap,
   canEditStageMap,
+  markboxFields,
+  markboxFieldId,
 }: {
   data: KommoDireccionData;
   writeback: WritebackStatus | null;
@@ -227,6 +231,8 @@ export function DireccionTab({
   statuses: KommoStatusRow[];
   stageMap: KommoStageMap;
   canEditStageMap: boolean;
+  markboxFields: KommoCustomFieldRow[];
+  markboxFieldId: number | null;
 }) {
   if (data.totals.leads === 0) {
     return (
@@ -534,6 +540,19 @@ export function DireccionTab({
           pipelines={pipelines}
           statuses={statuses}
           initial={stageMap}
+          canEdit={canEditStageMap}
+        />
+      </SectionCard>
+
+      {/* MARKBOX → Kommo (SDD-0086): campo del lead donde va el Shipping Mark. */}
+      <SectionCard
+        eyebrow="Identidad"
+        title="MARKBOX en Kommo"
+        hint="En qué campo del lead escribir el Shipping Mark cuando se convierte en cliente."
+      >
+        <MarkboxFieldConfig
+          fields={markboxFields}
+          initialFieldId={markboxFieldId}
           canEdit={canEditStageMap}
         />
       </SectionCard>

@@ -21,6 +21,14 @@ export type KommoStatusRow = {
   sort: number | null;
 };
 
+/** Definición de un custom field del espejo (para el dropdown de config). */
+export type KommoCustomFieldRow = {
+  id: number;
+  name: string | null;
+  type: string | null;
+  code: string | null;
+};
+
 export type KommoLeadRow = {
   id: number;
   name: string | null;

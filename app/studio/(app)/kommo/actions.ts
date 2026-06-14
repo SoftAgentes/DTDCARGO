@@ -19,7 +19,10 @@ import {
   type ConvertLeadResult,
   type KommoContactPick,
 } from "@/lib/studio/kommo-convert";
-import { normalizeStageMap } from "@/lib/studio/kommo-writeback";
+import {
+  enqueueKommoMarkboxWriteback,
+  normalizeStageMap,
+} from "@/lib/studio/kommo-writeback";
 import {
   ESTIMATE_STAGE_KEYS,
   ESTIMATE_STAGE_LABELS,
@@ -39,7 +42,18 @@ export async function convertLeadToClientAction(
   if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
 
   const res = await convertLead(supabase, link.tenant_id, leadId, prefill ?? {});
-  if (res.ok) revalidatePath("/studio/kommo");
+  if (res.ok) {
+    // SDD-0086 — write-back del MARKBOX al lead en Kommo (best-effort, dry-run por
+    // default). Inerte hasta que el founder elija el campo; no rompe la conversión.
+    if (res.markbox) {
+      const admin = createAdminClient();
+      await enqueueKommoMarkboxWriteback(admin, link.tenant_id, {
+        leadId,
+        markbox: res.markbox,
+      });
+    }
+    revalidatePath("/studio/kommo");
+  }
   return res;
 }
 
@@ -107,6 +121,59 @@ export async function saveKommoStageMapAction(
   const { data: updated, error } = await admin
     .from("kommo_connections")
     .update({ stage_map: clean })
+    .eq("tenant_id", link.tenant_id)
+    .select("id");
+  if (error) return { error: `No se pudo guardar: ${error.message}` };
+  if (!updated || updated.length === 0) {
+    return { error: "No hay una conexión de Kommo configurada para tu cuenta." };
+  }
+
+  revalidatePath("/studio/kommo");
+  return { ok: true };
+}
+
+/**
+ * SDD-0086 — Guarda el custom field de Kommo donde va el MARKBOX al convertir un
+ * lead (admin-only). Valida que el campo exista como campo de leads en el espejo
+ * (RLS por tenant) y upsertea `markbox_field_id` vía admin client. `null` = limpiar
+ * (inerte). authenticated NO tiene UPDATE sobre kommo_connections → no forjable.
+ */
+export async function saveKommoMarkboxFieldAction(
+  fieldId: number | null,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  // Admin-only — mismo patrón que resolveAdminTenant.
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Sesión no válida." };
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id, role")
+    .maybeSingle<{ tenant_id: string; role: string }>();
+  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
+  if (link.role !== "admin") {
+    return { error: "Solo un administrador puede configurar el campo MARKBOX." };
+  }
+
+  // null = limpiar. Si viene un id, debe existir como campo de leads del tenant.
+  let clean: number | null = null;
+  if (fieldId != null) {
+    const fid = Math.trunc(Number(fieldId));
+    if (!Number.isFinite(fid) || fid <= 0) return { error: "Campo inválido." };
+    const { data: field } = await supabase
+      .from("kommo_custom_fields")
+      .select("id")
+      .eq("entity_type", "leads")
+      .eq("id", fid)
+      .maybeSingle<{ id: number }>();
+    if (!field) return { error: "El campo elegido no existe en Kommo (leads)." };
+    clean = fid;
+  }
+
+  const admin = createAdminClient();
+  const { data: updated, error } = await admin
+    .from("kommo_connections")
+    .update({ markbox_field_id: clean })
     .eq("tenant_id", link.tenant_id)
     .select("id");
   if (error) return { error: `No se pudo guardar: ${error.message}` };
