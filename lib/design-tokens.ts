@@ -771,12 +771,14 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 
 export const HERO = {
   /**
-   * Eyebrow gris arriba del kicker (A2 · 2026-06-13): categoría + año oficial de
-   * la empresa (2010). El kicker (tagline) y el H1 NO cambian. Texto recortado
-   * tras el pase ui-ux: NO repetir el H1 ("Importa…Venezuela") ni el microcopy
-   * ("puerta a puerta DDP") — el eyebrow solo aporta categoría + antigüedad.
+   * Eyebrow gris arriba del kicker: categoría + año del CORREDOR a Venezuela.
+   * El eyebrow habla de "Logística China → Venezuela", así que el año es el del
+   * corredor: 2015 (expansión a Venezuela / DTD Services LCL), NO 2010 (que es
+   * la fundación de la empresa). Alinea con la banda de Stats ("Operando en
+   * Venezuela · 2015") y evita la discordancia que confundía (founder 2026-06-13).
+   * La empresa (2010) vive en el schema/footer; el comercio con China (2008) en Stats.
    */
-  eyebrow: "Logística China → Venezuela · Desde 2010",
+  eyebrow: "Logística China → Venezuela · Desde 2015",
   /**
    * Kicker = tagline oficial "Con Confianza, de China a tu puerta." (brand
    * book vigente; casing C mayúscula autorizado 2026-06-05).
@@ -839,6 +841,16 @@ export const HERO = {
 // ──────────────────────────────────────────────────────────────────
 // STATS — 4 KPI hero (banda navy debajo del Hero)
 // ──────────────────────────────────────────────────────────────────
+
+/**
+ * Años en el comercio con China — se CALCULA solo desde 2008 para que el KPI
+ * "X AÑOS" no quede viejo. Importante: se llama en el RENDER del componente (no a
+ * nivel de módulo) para que recompute en cada revalidación ISR, no al build.
+ * 2026 → 18 · enero 2027 → 19, automático. (Inicio: enero 2008, founder 2026-06-13.)
+ */
+export function aniosComercioChina(): number {
+  return new Date().getFullYear() - 2008;
+}
 
 export const STATS = [
   {
@@ -1038,7 +1050,7 @@ export const PHILOSOPHY = {
   cards: [
     {
       kicker: "EXPERIENCIA",
-      title: "En la ruta desde 2010",
+      title: "En la ruta desde 2015",
       copy: "Conocemos la ruta China → Venezuela desde dentro: compras, fábrica, bodega, aduana y entrega final. (En el comercio con China desde 2008.)",
     },
     {

@@ -1,11 +1,11 @@
-import Image from "next/image";
 import Link from "next/link";
-import { HERO, BRAND_ASSETS, buildWhatsAppLink } from "@/lib/design-tokens";
-import { ArrowIcon, WhatsAppIcon, LoopIcon } from "./Icon";
+import { HERO, buildWhatsAppLink } from "@/lib/design-tokens";
+import { ArrowIcon, WhatsAppIcon } from "./Icon";
+import { CicloCliente } from "./CicloCliente";
 
 /**
- * Hero principal — eyebrow + H1 (tagline-headline) + subtítulo + CTA + ilustración
- * con badge de ciclo. Copy configurable desde `lib/design-tokens.ts` const `HERO`.
+ * Hero principal — eyebrow + H1 (tagline-headline) + subtítulo + CTA + el
+ * Ciclo del Cliente (cinta en bucle). Copy configurable desde `lib/design-tokens.ts` const `HERO`.
  *
  * Founder 2026-06-13: el H1 es el tagline-headline ("Con confianza, desde China
  * hacia Venezuela."); se removió el kicker (repetía) y el cotizador inline (el
@@ -16,7 +16,7 @@ export function Hero() {
     <section className="relative py-15 lg:py-[60px] lg:pb-20 overflow-hidden">
       <div className="wrap grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 items-center">
         <div>
-          {/* Eyebrow gris (A2): categoría + modalidad + año oficial de la empresa (2010). */}
+          {/* Eyebrow gris: categoría + año del corredor a Venezuela (2015), no la empresa. */}
           <p className="eyebrow">{HERO.eyebrow}</p>
           {/* H1 = tagline-headline: `lead` ("Con confianza,") en wine, resto en ink. */}
           <h1 className="h-display mt-4 leading-[1.02]">
@@ -97,36 +97,9 @@ export function Hero() {
           </p>
         </div>
 
-        {/* Ilustración contenedor */}
-        <div className="relative min-h-[320px] lg:min-h-[420px]">
-          <Image
-            src={BRAND_ASSETS.containerSvg}
-            alt="Contenedor DTD Cargo"
-            width={560}
-            height={349}
-            priority
-            className="container-ocean-drift w-full h-auto lg:w-[560px] lg:h-auto lg:max-w-none lg:absolute lg:right-[-100px] lg:top-8"
-          />
-          <div
-            className="absolute left-[6%] top-[8%] w-[120px] h-[120px] rounded-full grid place-items-center text-white text-center z-[2]"
-            style={{
-              background: "var(--color-wine)",
-              fontFamily: "var(--font-archivo-black)",
-              boxShadow:
-                "0 14px 30px -10px rgba(127,15,26,0.55), 0 0 0 6px rgba(127,15,26,0.10)",
-            }}
-            aria-label="De China a tu puerta — el ciclo completo puerta a puerta"
-          >
-            <div className="flex flex-col items-center gap-1.5 px-2">
-              <LoopIcon size={26} className="opacity-95" />
-              <small className="block text-[8.5px] font-semibold opacity-95 tracking-[0.03em] uppercase leading-[1.2]">
-                {HERO.badge.line1}
-                <br />
-                {HERO.badge.line2}
-              </small>
-            </div>
-          </div>
-        </div>
+        {/* Ciclo del Cliente — cinta en bucle (reemplaza el contenedor estático +
+            el badge "360°/puerta a puerta"). Handoff Norte 2026-06-13 · v3.7. */}
+        <CicloCliente />
       </div>
     </section>
   );
