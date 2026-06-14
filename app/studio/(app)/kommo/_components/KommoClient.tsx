@@ -1,43 +1,38 @@
 "use client";
 
 /**
- * Orquestador client del módulo Kommo CRM (SDD-0043) — SOLO LECTURA.
+ * Tablero CRM Kommo (SDD-0078) — orquestador client con 2 pestañas.
  *
  * - Header con estado de conexión + último sync (sin CTA: no se muta nada).
- * - KPIs: leads / contactos / embudos / etapas.
- * - Toolbar: filtro por embudo + búsqueda por nombre (URL state).
- * - Tabla de leads → con subdominio, la fila abre el lead en Kommo (pestaña
- *   nueva, solo ver). Sin subdominio, la fila NO es clickeable (no finge un
- *   destino inexistente).
+ * - Pestañas (?tab=): **Dirección** (slot server con el diagnóstico + cruce ERP)
+ *   y **Asesor** (worklist accionable: tabla de leads + filtros + convertir).
+ * - SOLO LECTURA del espejo: esta pantalla no modifica nada en Kommo.
  */
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { Badge, type BadgeTone } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
-import type { KommoFilters } from "@/lib/studio/kommo-queries";
+import type { OwnerSlice } from "@/lib/studio/kommo-analytics";
+import {
+  KOMMO_AGE_OPTIONS,
+  type KommoFilters,
+  type KommoSort,
+} from "@/lib/studio/kommo-queries";
 import type {
   KommoLeadRow,
   KommoOverview,
   KommoPipelineRow,
   KommoStatusRow,
 } from "@/lib/studio/kommo-types";
+import { KOMMO_TABS, type KommoTabKey } from "./kommo-tabs.shared";
 import { ConvertLeadDrawer } from "./ConvertLeadDrawer";
 
-const GRID = "1.6fr 1fr 0.85fr 104px 176px";
-
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("es-VE", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
+const GRID = "1.5fr 0.9fr 0.8fr 56px 96px 148px";
+const DAY_MS = 86_400_000;
 
 function fmtDateTime(iso: string | null): string {
   if (!iso) return "—";
@@ -48,6 +43,28 @@ function fmtDateTime(iso: string | null): string {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function fmtUsd(n: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(Math.round(n));
+}
+
+function daysSince(iso: string | null): number | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  return Math.max(0, Math.floor((Date.now() - t) / DAY_MS));
+}
+
+function ageTone(days: number | null): string {
+  if (days == null) return "var(--ink-mute)";
+  if (days >= 180) return "var(--danger)";
+  if (days >= 30) return "var(--warning)";
+  return "var(--ink-soft)";
 }
 
 function connTone(status: string | null): BadgeTone {
@@ -64,13 +81,20 @@ function connLabel(status: string | null): string {
 }
 
 export function KommoClient({
+  tab,
+  direccion,
   overview,
   pipelines,
   statuses,
   leads,
   filters,
   convertedLeads,
+  valueByLead,
+  responsibleUsers,
 }: {
+  tab: KommoTabKey;
+  /** Slot server-renderizado con el tablero Dirección. */
+  direccion: ReactNode;
   overview: KommoOverview;
   pipelines: KommoPipelineRow[];
   statuses: KommoStatusRow[];
@@ -78,6 +102,10 @@ export function KommoClient({
   filters: KommoFilters;
   /** kommo_lead_id → markbox de los leads ya convertidos en cliente. */
   convertedLeads: Record<number, string>;
+  /** kommo_lead_id → USD facturado (12m) de los leads convertidos. */
+  valueByLead: Record<number, number>;
+  /** Asesores presentes (para el filtro), ordenados desc por leads. */
+  responsibleUsers: OwnerSlice[];
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -85,16 +113,12 @@ export function KommoClient({
   const [isPending, startTransition] = useTransition();
 
   // Estado local de convertidos: parte del prop del server y se actualiza
-  // optimista al convertir (la action revalida, pero el client no re-fetcha solo).
-  // El merge prioriza `prev` (lo optimista local) sobre el server: asume que la
-  // conversión es MONOTÓNICA (una vez convertido, sigue convertido), por eso no
-  // se "des-convierte" aunque el server tarde en reflejarlo.
+  // optimista al convertir (monotónico: una vez convertido, sigue convertido).
   const [converted, setConverted] = useState(convertedLeads);
   useEffect(() => {
     setConverted((prev) => ({ ...convertedLeads, ...prev }));
   }, [convertedLeads]);
 
-  // Lead que se está convirtiendo (abre el drawer del picker de contacto).
   const [convertingLead, setConvertingLead] = useState<{
     id: number;
     name: string;
@@ -102,7 +126,7 @@ export function KommoClient({
 
   const onConverted = (leadId: number, markbox: string, created: boolean) => {
     setConverted((prev) => ({ ...prev, [leadId]: markbox }));
-    setConvertingLead(null); // cierra el drawer
+    setConvertingLead(null);
     toast.success(
       `Cliente ${markbox} ${created ? "creado" : "vinculado"} desde el lead`,
       {
@@ -114,29 +138,52 @@ export function KommoClient({
     );
   };
 
+  // ── Filtros del worklist (solo pestaña Asesor) ──
   const [q, setQ] = useState(params.get("q") ?? "");
-  const [pipeline, setPipeline] = useState(params.get("pipeline") ?? "");
 
   useEffect(() => {
     setQ(params.get("q") ?? "");
-    setPipeline(params.get("pipeline") ?? "");
   }, [params]);
 
   useEffect(() => {
     const currentQ = params.get("q") ?? "";
     if (q === currentQ) return;
-    const t = setTimeout(() => pushFilters({ q, pipeline }), 350);
+    const t = setTimeout(() => pushFilters({ q }), 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const pushFilters = (next: { q?: string; pipeline?: string }) => {
+  const pushFilters = (next: {
+    q?: string;
+    pipeline?: string;
+    asesor?: string;
+    aged?: string;
+    sort?: string;
+  }) => {
+    const cur = {
+      q: params.get("q") ?? "",
+      pipeline: params.get("pipeline") ?? "",
+      asesor: params.get("asesor") ?? "",
+      aged: params.get("aged") ?? "",
+      sort: params.get("sort") ?? "",
+      ...next,
+    };
     const s = new URLSearchParams();
-    if (next.q && next.q.trim()) s.set("q", next.q.trim());
-    if (next.pipeline) s.set("pipeline", next.pipeline);
-    const qs = s.toString();
+    s.set("tab", "asesor");
+    if (cur.q && cur.q.trim()) s.set("q", cur.q.trim());
+    if (cur.pipeline) s.set("pipeline", cur.pipeline);
+    if (cur.asesor) s.set("asesor", cur.asesor);
+    if (cur.aged) s.set("aged", cur.aged);
+    if (cur.sort) s.set("sort", cur.sort);
     startTransition(() => {
-      router.push(qs ? `/studio/kommo?${qs}` : "/studio/kommo");
+      router.push(`/studio/kommo?${s.toString()}`);
+    });
+  };
+
+  const goTab = (key: KommoTabKey) => {
+    if (key === tab) return;
+    startTransition(() => {
+      router.push(key === "direccion" ? "/studio/kommo" : "/studio/kommo?tab=asesor");
     });
   };
 
@@ -147,7 +194,11 @@ export function KommoClient({
     statuses.map((s) => [`${s.pipeline_id}:${s.id}`, s.name ?? `#${s.id}`]),
   );
 
-  const hasFilters = Boolean(filters.q) || filters.pipeline !== "all";
+  const pipeline = params.get("pipeline") ?? "";
+  const asesor = params.get("asesor") ?? "";
+  const aged = params.get("aged") ?? "";
+  const sort: KommoSort = params.get("sort") === "oldest" ? "oldest" : "recent";
+  const hasFilters = Boolean(filters.q) || Boolean(pipeline) || Boolean(asesor) || Boolean(aged);
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -158,7 +209,7 @@ export function KommoClient({
           justifyContent: "space-between",
           alignItems: "flex-end",
           gap: 24,
-          marginBottom: 24,
+          marginBottom: 20,
           flexWrap: "wrap",
         }}
       >
@@ -178,8 +229,9 @@ export function KommoClient({
               maxWidth: "64ch",
             }}
           >
-            Espejo <strong>solo lectura</strong> de tu cuenta Kommo. Se sincroniza
-            una vez al día (o a demanda). Esta pantalla no modifica nada en Kommo.
+            Tablero <strong>solo lectura</strong> del espejo de tu cuenta Kommo,
+            cruzado con la plata real del ERP. Se sincroniza una vez al día. Esta
+            pantalla no modifica nada en Kommo.
           </p>
         </div>
         <div
@@ -194,156 +246,207 @@ export function KommoClient({
             {connLabel(overview.connStatus)}
           </Badge>
           <span
-            style={{
-              font: "500 11.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
-            }}
+            style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-mute)" }}
           >
             Último sync: {fmtDateTime(overview.lastSyncAt)}
           </span>
-          {!overview.subdomain && (
-            <span
-              style={{
-                font: "500 11px/1.35 var(--f-sans)",
-                color: "var(--ink-mute)",
-                maxWidth: 220,
-                textAlign: "right",
-              }}
-            >
-              Configura el subdominio de Kommo para abrir los leads.
-            </span>
-          )}
         </div>
       </div>
 
-      {/* KPIs */}
+      {/* Pestañas */}
       <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
-          gap: 14,
-          marginBottom: 24,
-        }}
-      >
-        <KpiCard value={overview.leads} label="Leads" />
-        <KpiCard value={overview.contacts} label="Contactos" />
-        <KpiCard
-          value={pipelines.length}
-          label="Embudos"
-          highlightWhenPositive={false}
-        />
-        <KpiCard
-          value={statuses.length}
-          label="Etapas"
-          highlightWhenPositive={false}
-        />
-      </div>
-
-      {/* Toolbar */}
-      <div
+        role="tablist"
+        aria-label="Tablero CRM"
         style={{
           display: "flex",
-          gap: 10,
-          alignItems: "flex-end",
-          marginBottom: 16,
+          gap: "var(--s-2)",
           flexWrap: "wrap",
+          borderBottom: "1px solid var(--border)",
+          paddingBottom: "var(--s-2)",
+          marginBottom: 20,
+          opacity: isPending ? 0.7 : 1,
         }}
       >
-        <div style={{ flex: "1 1 280px", minWidth: 240 }}>
-          <label className="studio-label" htmlFor="kommo-q">
-            Buscar lead
-          </label>
-          <input
-            id="kommo-q"
-            type="search"
-            className="studio-input"
-            placeholder="Nombre del lead…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </div>
-        <div style={{ flex: "0 0 240px" }}>
-          <label className="studio-label" htmlFor="kommo-pipeline">
-            Embudo
-          </label>
-          <select
-            id="kommo-pipeline"
-            className="studio-input"
-            value={pipeline}
-            onChange={(e) => {
-              setPipeline(e.target.value);
-              pushFilters({ q, pipeline: e.target.value });
-            }}
-          >
-            <option value="">Todos</option>
-            {pipelines.map((p) => (
-              <option key={p.id} value={String(p.id)}>
-                {p.name ?? `Embudo #${p.id}`}
-              </option>
-            ))}
-          </select>
-        </div>
-        {(q || pipeline) && (
-          <button
-            type="button"
-            className="studio-btn studio-btn-ghost studio-btn-sm"
-            style={{ height: 38 }}
-            onClick={() => {
-              setQ("");
-              setPipeline("");
-              pushFilters({});
-            }}
-          >
-            Limpiar
-          </button>
-        )}
+        {KOMMO_TABS.map((t) => {
+          const isActive = t.key === tab;
+          return (
+            <button
+              key={t.key}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              data-tab={t.key}
+              onClick={() => goTab(t.key)}
+              className="studio-btn studio-btn-sm"
+              style={{
+                background: isActive ? "var(--bg-elevated)" : "transparent",
+                border: isActive
+                  ? "1px solid var(--border)"
+                  : "1px solid transparent",
+                color: isActive ? "var(--ink)" : "var(--ink-soft)",
+                fontWeight: isActive ? 700 : 500,
+              }}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Tabla o empty (atenúa al filtrar) */}
-      <div
-        style={{
-          opacity: isPending ? 0.6 : 1,
-          transition: "opacity 0.12s",
-        }}
-      >
-        {leads.length === 0 ? (
-          <EmptyState
-            eyebrow={hasFilters ? "Sin resultados" : "Sin leads"}
-            title={
-              hasFilters
-                ? "Ningún lead coincide con estos filtros."
-                : "Todavía no hay leads sincronizados."
-            }
-            description={
-              hasFilters
-                ? "Prueba ajustar los filtros o limpia la búsqueda."
-                : "Corre el sync de Kommo para traer los leads al espejo."
-            }
-          />
-        ) : (
-          <LeadsTable
-            leads={leads}
-            pipelineName={pipelineName}
-            statusName={statusName}
-            subdomain={overview.subdomain}
-            converted={converted}
-            onConvertClick={(l) =>
-              setConvertingLead({ id: l.id, name: l.name || "(sin nombre)" })
-            }
-          />
-        )}
-      </div>
+      {/* Contenido */}
+      {tab === "direccion" ? (
+        direccion
+      ) : (
+        <>
+          {/* Toolbar del worklist */}
+          <div
+            style={{
+              display: "flex",
+              gap: 10,
+              alignItems: "flex-end",
+              marginBottom: 16,
+              flexWrap: "wrap",
+            }}
+          >
+            <div style={{ flex: "1 1 220px", minWidth: 200 }}>
+              <label className="studio-label" htmlFor="kommo-q">
+                Buscar lead
+              </label>
+              <input
+                id="kommo-q"
+                type="search"
+                className="studio-input"
+                placeholder="Nombre del lead…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
+            </div>
+            <div style={{ flex: "0 0 200px" }}>
+              <label className="studio-label" htmlFor="kommo-pipeline">
+                Embudo
+              </label>
+              <select
+                id="kommo-pipeline"
+                className="studio-input"
+                value={pipeline}
+                onChange={(e) => pushFilters({ pipeline: e.target.value })}
+              >
+                <option value="">Todos</option>
+                {pipelines.map((p) => (
+                  <option key={p.id} value={String(p.id)}>
+                    {p.name ?? `Embudo #${p.id}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ flex: "0 0 180px" }}>
+              <label className="studio-label" htmlFor="kommo-asesor">
+                Asesor
+              </label>
+              <select
+                id="kommo-asesor"
+                className="studio-input"
+                value={asesor}
+                onChange={(e) => pushFilters({ asesor: e.target.value })}
+              >
+                <option value="">Todos</option>
+                {responsibleUsers
+                  .filter((o) => o.id != null)
+                  .map((o) => (
+                    <option key={o.id} value={String(o.id)}>
+                      {o.label} ({o.count})
+                    </option>
+                  ))}
+              </select>
+            </div>
+            <div style={{ flex: "0 0 150px" }}>
+              <label className="studio-label" htmlFor="kommo-aged">
+                Antigüedad
+              </label>
+              <select
+                id="kommo-aged"
+                className="studio-input"
+                value={aged}
+                onChange={(e) => pushFilters({ aged: e.target.value })}
+              >
+                <option value="">Cualquiera</option>
+                {KOMMO_AGE_OPTIONS.map((d) => (
+                  <option key={d} value={String(d)}>
+                    {`> ${d} días`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ flex: "0 0 150px" }}>
+              <label className="studio-label" htmlFor="kommo-sort">
+                Orden
+              </label>
+              <select
+                id="kommo-sort"
+                className="studio-input"
+                value={sort}
+                onChange={(e) => pushFilters({ sort: e.target.value })}
+              >
+                <option value="recent">Recientes</option>
+                <option value="oldest">Más viejos</option>
+              </select>
+            </div>
+            {hasFilters && (
+              <button
+                type="button"
+                className="studio-btn studio-btn-ghost studio-btn-sm"
+                style={{ height: 38 }}
+                onClick={() =>
+                  startTransition(() => router.push("/studio/kommo?tab=asesor"))
+                }
+              >
+                Limpiar
+              </button>
+            )}
+          </div>
 
-      <p
-        style={{
-          font: "400 11.5px/1.4 var(--f-sans)",
-          color: "var(--ink-mute)",
-          marginTop: 14,
-        }}
-      >
-        Mostrando hasta 200 leads (más recientes primero). Datos espejados de Kommo
-        · solo lectura.
-      </p>
+          <div style={{ opacity: isPending ? 0.6 : 1, transition: "opacity 0.12s" }}>
+            {leads.length === 0 ? (
+              <EmptyState
+                eyebrow={hasFilters ? "Sin resultados" : "Sin leads"}
+                title={
+                  hasFilters
+                    ? "Ningún lead coincide con estos filtros."
+                    : "Todavía no hay leads sincronizados."
+                }
+                description={
+                  hasFilters
+                    ? "Prueba ajustar los filtros o limpia la búsqueda."
+                    : "Corre el sync de Kommo para traer los leads al espejo."
+                }
+              />
+            ) : (
+              <LeadsTable
+                leads={leads}
+                pipelineName={pipelineName}
+                statusName={statusName}
+                subdomain={overview.subdomain}
+                converted={converted}
+                valueByLead={valueByLead}
+                onConvertClick={(l) =>
+                  setConvertingLead({ id: l.id, name: l.name || "(sin nombre)" })
+                }
+              />
+            )}
+          </div>
+
+          <p
+            style={{
+              font: "400 11.5px/1.4 var(--f-sans)",
+              color: "var(--ink-mute)",
+              marginTop: 14,
+            }}
+          >
+            Mostrando hasta 200 leads. Valor = facturado en el ERP si el lead ya es
+            cliente; si no, el price de Kommo. Datos espejados · solo lectura.
+          </p>
+        </>
+      )}
 
       {convertingLead && (
         <ConvertLeadDrawer
@@ -362,6 +465,7 @@ function LeadsTable({
   statusName,
   subdomain,
   converted,
+  valueByLead,
   onConvertClick,
 }: {
   leads: KommoLeadRow[];
@@ -369,6 +473,7 @@ function LeadsTable({
   statusName: Map<string, string>;
   subdomain: string | null;
   converted: Record<number, string>;
+  valueByLead: Record<number, number>;
   onConvertClick: (lead: KommoLeadRow) => void;
 }) {
   return (
@@ -380,125 +485,182 @@ function LeadsTable({
         overflow: "hidden",
       }}
     >
-      {/* Header */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: GRID,
-          gap: 12,
-          padding: "12px 20px",
-          background: "var(--bg-elevated)",
-          borderBottom: "1px solid var(--border)",
-          font: "700 10px/1 var(--f-sans)",
-          letterSpacing: "0.08em",
-          textTransform: "uppercase",
-          color: "var(--ink-soft)",
-        }}
-      >
-        <span>Lead</span>
-        <span>Embudo</span>
-        <span>Etapa</span>
-        <span>Actualizado</span>
-        <span style={{ textAlign: "right" }}>Cliente DTD</span>
-      </div>
-
-      {leads.map((l, i) => {
-        const href = subdomain
-          ? `https://${subdomain}.kommo.com/leads/detail/${l.id}`
-          : null;
-        const etapa =
-          l.pipeline_id != null && l.status_id != null
-            ? statusName.get(`${l.pipeline_id}:${l.status_id}`) ?? "—"
-            : "—";
-        const embudo =
-          l.pipeline_id != null ? pipelineName.get(l.pipeline_id) ?? "—" : "—";
-        const markbox = converted[l.id];
-
-        const nameStyle: CSSProperties = {
-          font: "600 13px/1.3 var(--f-sans)",
-          color: "var(--ink)",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        };
-        const nameContent = l.name || "(sin nombre)";
-
-        return (
+      {/* Scroll de rescate en anchos chicos: la fila de acción no se aplasta. */}
+      <div style={{ overflowX: "auto" }}>
+        <div role="table" aria-label="Leads de Kommo" style={{ minWidth: 680 }}>
+          {/* Header */}
           <div
-            key={l.id}
-            className="studio-row-hover"
+            role="row"
             style={{
               display: "grid",
               gridTemplateColumns: GRID,
               gap: 12,
               padding: "12px 20px",
-              borderTop: i > 0 ? "1px solid var(--border)" : 0,
-              alignItems: "center",
+              background: "var(--bg-elevated)",
+              borderBottom: "1px solid var(--border)",
+              font: "700 10px/1 var(--f-sans)",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: "var(--ink-soft)",
             }}
           >
-            {/* Nombre → abre el lead en Kommo (si hay subdominio) */}
-            {href ? (
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Abrir el lead en Kommo (pestaña nueva)"
-                className="studio-link-quiet"
-                style={nameStyle}
-              >
-                {nameContent}
-              </a>
-            ) : (
-              <span style={{ ...nameStyle, color: l.name ? "var(--ink)" : "var(--ink-mute)" }}>
-                {nameContent}
-              </span>
-            )}
-            <span
-              style={{
-                font: "500 12.5px/1.3 var(--f-sans)",
-                color: "var(--ink-soft)",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {embudo}
+            <span role="columnheader">Lead</span>
+            <span role="columnheader">Embudo</span>
+            <span role="columnheader">Etapa</span>
+            <span role="columnheader" style={{ textAlign: "right" }}>
+              Días
             </span>
-            <span>
-              <Badge tone="neutral" size="sm">
-                {etapa}
-              </Badge>
+            <span role="columnheader" style={{ textAlign: "right" }}>
+              Valor
             </span>
-            <span style={{ font: "500 11.5px/1 var(--f-sans)", color: "var(--ink-soft)" }}>
-              {fmtDate(l.kommo_updated_at)}
-            </span>
-            {/* Acción: convertir a cliente o Badge del MARKBOX ya vinculado */}
-            <span style={{ display: "flex", justifyContent: "flex-end" }}>
-              {markbox ? (
-                <Link
-                  href={`/studio/clientes/${markbox}`}
-                  title="Ver el cliente en el Studio"
-                  style={{ textDecoration: "none" }}
-                >
-                  <Badge tone="success" size="sm">
-                    {markbox}
-                  </Badge>
-                </Link>
-              ) : (
-                // Abre el drawer del picker de contacto (acción no mutante →
-                // botón plano; el convert real lo dispara el drawer).
-                <button
-                  type="button"
-                  className="studio-btn studio-btn-dark studio-btn-sm"
-                  onClick={() => onConvertClick(l)}
-                >
-                  Convertir a cliente
-                </button>
-              )}
+            <span role="columnheader" style={{ textAlign: "right" }}>
+              Cliente DTD
             </span>
           </div>
-        );
-      })}
+
+          {leads.map((l, i) => {
+            const href = subdomain
+              ? `https://${subdomain}.kommo.com/leads/detail/${l.id}`
+              : null;
+            const etapa =
+              l.pipeline_id != null && l.status_id != null
+                ? statusName.get(`${l.pipeline_id}:${l.status_id}`) ?? "—"
+                : "—";
+            const embudo =
+              l.pipeline_id != null
+                ? pipelineName.get(l.pipeline_id) ?? "—"
+                : "—";
+            const markbox = converted[l.id];
+            const days = daysSince(l.kommo_updated_at);
+            const erpVal = valueByLead[l.id];
+            const kommoPrice = Number(l.price) || 0;
+
+            const nameStyle: CSSProperties = {
+              display: "block",
+              font: "600 13px/1.3 var(--f-sans)",
+              color: "var(--ink)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            };
+            const nameContent = l.name || "(sin nombre)";
+
+            return (
+              <div
+                key={l.id}
+                role="row"
+                className="studio-row-hover"
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: GRID,
+                  gap: 12,
+                  padding: "12px 20px",
+                  borderTop: i > 0 ? "1px solid var(--border)" : 0,
+                  alignItems: "center",
+                }}
+              >
+                <span role="cell" style={{ minWidth: 0, overflow: "hidden" }}>
+                  {href ? (
+                    <a
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Abrir el lead en Kommo (pestaña nueva)"
+                      className="studio-link-quiet"
+                      style={nameStyle}
+                    >
+                      {nameContent}
+                    </a>
+                  ) : (
+                    <span
+                      style={{
+                        ...nameStyle,
+                        color: l.name ? "var(--ink)" : "var(--ink-mute)",
+                      }}
+                    >
+                      {nameContent}
+                    </span>
+                  )}
+                </span>
+                <span
+                  role="cell"
+                  style={{
+                    font: "500 12.5px/1.3 var(--f-sans)",
+                    color: "var(--ink-soft)",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {embudo}
+                </span>
+                <span role="cell">
+                  <Badge tone="neutral" size="sm">
+                    {etapa}
+                  </Badge>
+                </span>
+                <span
+                  role="cell"
+                  style={{
+                    font: "700 12px/1 var(--f-mono)",
+                    color: ageTone(days),
+                    textAlign: "right",
+                  }}
+                  title={days == null ? "Sin fecha" : `${days} días sin moverse`}
+                >
+                  {days == null ? "—" : days}
+                </span>
+                <span
+                  role="cell"
+                  style={{ textAlign: "right" }}
+                  title={
+                    erpVal != null
+                      ? "Facturado en el ERP (12m)"
+                      : kommoPrice > 0
+                        ? "Valor en Kommo"
+                        : "Sin valor"
+                  }
+                >
+                  {erpVal != null ? (
+                    <span style={{ font: "700 12px/1 var(--f-mono)", color: "var(--success)" }}>
+                      {fmtUsd(erpVal)}
+                    </span>
+                  ) : kommoPrice > 0 ? (
+                    <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-soft)" }}>
+                      {fmtUsd(kommoPrice)}
+                    </span>
+                  ) : (
+                    <span style={{ font: "600 12px/1 var(--f-mono)", color: "var(--ink-mute)" }}>
+                      —
+                    </span>
+                  )}
+                </span>
+                <span role="cell" style={{ display: "flex", justifyContent: "flex-end" }}>
+                  {markbox ? (
+                    <Link
+                      href={`/studio/clientes/${markbox}`}
+                      title="Ver el cliente en el Studio"
+                      style={{ textDecoration: "none" }}
+                    >
+                      <Badge tone="success" size="sm">
+                        {markbox}
+                      </Badge>
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className="studio-btn studio-btn-dark studio-btn-sm"
+                      onClick={() => onConvertClick(l)}
+                    >
+                      Convertir a cliente
+                    </button>
+                  )}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

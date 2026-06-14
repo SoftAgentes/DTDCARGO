@@ -11,10 +11,23 @@ import type {
   KommoStatusRow,
 } from "./kommo-types";
 
+export type KommoSort = "recent" | "oldest";
+
 export type KommoFilters = {
   pipeline?: number | "all";
   q?: string;
+  /** Filtrar por asesor (responsible_user_id de Kommo). */
+  responsible?: number;
+  /** Solo leads sin moverse hace ≥ N días (antigüedad mínima). */
+  agedDays?: number;
+  /** Orden por kommo_updated_at: reciente (default) o más viejo primero. */
+  sort?: KommoSort;
 };
+
+/** Antigüedades ofrecidas en el filtro del worklist (días). */
+export const KOMMO_AGE_OPTIONS = [30, 90, 180, 365] as const;
+
+const DAY_MS = 86_400_000;
 
 const LEAD_COLUMNS =
   "id, name, status_id, pipeline_id, price, responsible_user_id, kommo_created_at, kommo_updated_at, closed_at";
@@ -72,21 +85,30 @@ export async function listKommoStatuses(
 }
 
 /**
- * Leads con filtros opcionales (embudo + búsqueda por nombre).
- * Hasta 200, orden actualizado más reciente. RLS filtra por tenant.
+ * Leads con filtros opcionales (embudo · búsqueda · asesor · antigüedad · orden).
+ * Hasta 200. Orden por kommo_updated_at (reciente por default; "oldest" saca el
+ * cementerio primero para el worklist). RLS filtra por tenant.
  */
 export async function listKommoLeads(
   supabase: SupabaseClient,
   filters: KommoFilters = {},
 ): Promise<KommoLeadRow[]> {
+  const ascending = filters.sort === "oldest";
   let query = supabase
     .from("kommo_leads")
     .select(LEAD_COLUMNS)
-    .order("kommo_updated_at", { ascending: false, nullsFirst: false })
+    .order("kommo_updated_at", { ascending, nullsFirst: false })
     .limit(200);
 
   if (filters.pipeline && filters.pipeline !== "all") {
     query = query.eq("pipeline_id", filters.pipeline);
+  }
+  if (filters.responsible && Number.isFinite(filters.responsible)) {
+    query = query.eq("responsible_user_id", filters.responsible);
+  }
+  if (filters.agedDays && Number.isFinite(filters.agedDays)) {
+    const cutoff = new Date(Date.now() - filters.agedDays * DAY_MS).toISOString();
+    query = query.lt("kommo_updated_at", cutoff);
   }
   if (filters.q && filters.q.trim()) {
     const q = filters.q
@@ -102,7 +124,7 @@ export async function listKommoLeads(
   return (data as KommoLeadRow[] | null) ?? [];
 }
 
-/** Parsea filtros del URL (?pipeline=<id>&q=). */
+/** Parsea filtros del URL (?pipeline=&q=&asesor=&aged=&sort=). */
 export function parseKommoFiltersFromSearchParams(
   raw: Record<string, string | string[] | undefined>,
 ): KommoFilters {
@@ -113,5 +135,18 @@ export function parseKommoFiltersFromSearchParams(
   const p = single("pipeline");
   const pipeline: KommoFilters["pipeline"] =
     p && /^\d+$/.test(p) ? Number(p) : "all";
-  return { pipeline, q: single("q") || undefined };
+
+  const asesor = single("asesor");
+  const responsible = asesor && /^\d+$/.test(asesor) ? Number(asesor) : undefined;
+
+  const aged = single("aged");
+  const agedNum = aged && /^\d+$/.test(aged) ? Number(aged) : undefined;
+  const agedDays = (KOMMO_AGE_OPTIONS as readonly number[]).includes(agedNum ?? -1)
+    ? agedNum
+    : undefined;
+
+  const sortRaw = single("sort");
+  const sort: KommoSort | undefined = sortRaw === "oldest" ? "oldest" : undefined;
+
+  return { pipeline, q: single("q") || undefined, responsible, agedDays, sort };
 }
