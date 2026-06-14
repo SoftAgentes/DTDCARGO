@@ -1,11 +1,13 @@
 # HANDOFF — SDD-0076 · Configuración de servicios
 
-> **Estado:** las 4 fases implementadas en la rama `feat/configuracion-servicios`, **sin push**.
+> **Estado:** las 4 fases + el editor de FAQ/adicionales/precios implementados en la rama `feat/configuracion-servicios`, **sin push**.
 > **Fecha:** 2026-06-14 · **Base:** `4c28353` · **Para:** la ventana/persona de coordinación que mergea + aplica migraciones a prod.
 
 Esta nota es el **runbook de activación**. El código está completo y verde; falta desbloquearlo (merge + migración + seed + API key + publicar).
 
-## Qué se construyó (5 commits sobre `4c28353`)
+> ⚠️ **Merge parcial (al 2026-06-14):** coordinación mergeó **SOLO la Fase 1** (`dee9d3b`, vía merge `b1fe493`). Los **6 commits siguientes están SIN mergear** (ver tabla). Además **SDD-0077 tomó la migración `0131` y ya está en main/prod**, pero la **`0130` de acá sigue sin aplicar** — son tablas independientes (service_configs vs contabilidad), así que aplicar `0130` después de `0131` funciona, aunque queda fuera de orden. La rama está basada en `4c28353` y main avanzó a `c9a043f`: al mergear habrá divergencia (ojo `StudioSidebar.tsx` — contabilidad también lo tocó — y `docs/specs/README.md`, que se regenera).
+
+## Qué se construyó (6 commits sobre `4c28353`)
 
 | Fase | Commit | Entrega |
 |---|---|---|
@@ -14,6 +16,7 @@ Esta nota es el **runbook de activación**. El código está completo y verde; f
 | 3 | `722bf89` | `lib/public/servicios-queries.ts` — lectura pública (RPC) + `mergeServiciosPublicados()` (fallback por campo) + tests. |
 | 3 | `748fbca` | `app/servicios/page.tsx` async consume la DB con fallback; `ServiciosDetalle` por props; JSON-LD desde la lista merged. **Verificado E2E** (fallback = estático). |
 | 4 | `699e668` | Gancho IA: `lib/studio/agents/tools/service-tools.ts` + `skills/service-advisor.ts` + registro (tools + `SKILLS_BY_SLUG`) + tests de wiring. |
+| 2+ | `9016130` | Editor diferido de Fase 2: `ServicioDrawer` con pestañas (Servicio/FAQ/Adicionales/Precios) + `ServiceSubEditors` (FAQ pública/interna, adicionales ADS, historial de precios). Fix Fase 3: `revalidatePath('/servicios')` al publicar/editar (la página es static). `pnpm build` verde. |
 
 **Números:** spec `0076`, migración `0130` (confirmados libres al crear). Re-confirmar contra origin antes de mergear.
 
@@ -37,5 +40,5 @@ Esta nota es el **runbook de activación**. El código está completo y verde; f
 - **Mapeo N:1:** `fcl-bodega` y `fcl-directo` comparten `reserva_FCL` (5 núcleo, 4 enums). No asumir 1:1.
 
 ## Diferido (no en esta rama)
-- Editor visual de FAQ/adicionales/historial de precios en el Studio (el backend ya lo soporta).
+- Mostrar las **FAQ públicas en `/servicios`** (el editor ya las gestiona y `getPublicServiceFaqs()` existe; falta cablearlo en `app/servicios/page.tsx`).
 - Cursos de importación: ficha reservada (`proximamente`), contenido lo define la ventana del curso Alibaba.
