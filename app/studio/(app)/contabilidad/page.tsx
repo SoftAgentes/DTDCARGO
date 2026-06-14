@@ -14,6 +14,7 @@ import {
 import { listEntries } from "@/lib/studio/journal-queries";
 import { ledgerForAccount } from "@/lib/studio/journal-queries";
 import { profitAndLoss, balanceSheet } from "@/lib/studio/accounting/reports";
+import { getAccountingSettings } from "@/lib/studio/accounting/period-queries";
 import { ContabilidadClient } from "./_components/ContabilidadClient";
 
 export const metadata = { title: "Contabilidad" };
@@ -39,12 +40,25 @@ export default async function ContabilidadPage({
   const ledgerAccountId = single("cuenta") ?? null;
 
   const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
 
-  const [accounts, balances, entries] = await Promise.all([
+  const [accounts, balances, entries, accSettings] = await Promise.all([
     listAccounts(supabase),
     accountBalances(supabase),
     listEntries(supabase, {}),
+    getAccountingSettings(supabase),
   ]);
+
+  // ¿El usuario es admin? (puede fijar el cierre de período · SDD-0080).
+  let canEditClosing = false;
+  if (auth.user) {
+    const { data: roleRow } = await supabase
+      .from("user_tenants")
+      .select("role")
+      .eq("user_id", auth.user.id)
+      .maybeSingle<{ role: string }>();
+    canEditClosing = roleRow?.role === "admin";
+  }
 
   // Libro mayor de la cuenta seleccionada (si hay una y existe).
   const ledger = ledgerAccountId
@@ -64,6 +78,8 @@ export default async function ContabilidadPage({
       ledgerAccountId={ledgerAccountId}
       pnl={pnl}
       balanceSheet={bs}
+      closingDate={accSettings.closing_date}
+      canEditClosing={canEditClosing}
     />
   );
 }

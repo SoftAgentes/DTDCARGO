@@ -40,6 +40,10 @@ import {
   accountHasMovements,
   listPostableAccounts,
 } from "@/lib/studio/account-queries";
+import {
+  getAccountingSettings,
+  isPeriodClosed,
+} from "@/lib/studio/accounting/period-queries";
 
 type Supa = Awaited<ReturnType<typeof createClient>>;
 
@@ -127,6 +131,15 @@ export async function createJournalEntry(
   const { tenantId, error: tErr } = await resolveTenant(supabase);
   if (tErr || !tenantId) return { error: tErr };
 
+  // Guard de período cerrado (SDD-0080): no crear asientos con fecha cerrada.
+  // El trigger de DB es la defensa dura; esto da un mensaje claro antes.
+  const settings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(settings.closing_date, input!.entry_date)) {
+    return {
+      error: `Período contable cerrado al ${settings.closing_date}: no puedes crear asientos con esa fecha o anteriores.`,
+    };
+  }
+
   const { data: codeData, error: codeErr } = await supabase.rpc(
     "next_entry_code",
     { p_tenant_id: tenantId },
@@ -195,17 +208,26 @@ export async function postEntry(
 
   const { data: entry, error: readErr } = await supabase
     .from("journal_entries")
-    .select("id, tenant_id, entry_code, status")
+    .select("id, tenant_id, entry_code, status, entry_date")
     .eq("id", id)
     .maybeSingle<{
       id: string;
       tenant_id: string;
       entry_code: string;
       status: string;
+      entry_date: string;
     }>();
   if (readErr || !entry) return { error: "Asiento no encontrado." };
   if (entry.status !== "borrador") {
     return { error: "Solo los borradores pueden asentarse." };
+  }
+
+  // Guard de período cerrado (SDD-0080).
+  const settings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
+    return {
+      error: `Período contable cerrado al ${settings.closing_date}: no puedes asentar en período cerrado.`,
+    };
   }
 
   // Revalidar balanceado contra las líneas persistidas.
@@ -254,7 +276,7 @@ export async function voidEntry(
 
   const { data: entry, error: readErr } = await supabase
     .from("journal_entries")
-    .select("id, tenant_id, entry_code, status, source")
+    .select("id, tenant_id, entry_code, status, source, entry_date")
     .eq("id", id)
     .maybeSingle<{
       id: string;
@@ -262,10 +284,19 @@ export async function voidEntry(
       entry_code: string;
       status: string;
       source: string;
+      entry_date: string;
     }>();
   if (readErr || !entry) return { error: "Asiento no encontrado." };
   if (entry.status !== "asentado") {
     return { error: "Solo los asientos asentados pueden anularse." };
+  }
+
+  // Guard de período cerrado (SDD-0080): no anular asientos de período cerrado.
+  const settings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
+    return {
+      error: `Período contable cerrado al ${settings.closing_date}: no puedes anular asientos de período cerrado.`,
+    };
   }
 
   const { error } = await supabase
@@ -294,12 +325,20 @@ export async function softDeleteEntry(
 
   const { data: entry, error: readErr } = await supabase
     .from("journal_entries")
-    .select("id, status")
+    .select("id, status, entry_date")
     .eq("id", id)
-    .maybeSingle<{ id: string; status: string }>();
+    .maybeSingle<{ id: string; status: string; entry_date: string }>();
   if (readErr || !entry) return { error: "Asiento no encontrado." };
   if (entry.status !== "borrador") {
     return { error: "Solo los borradores pueden eliminarse." };
+  }
+
+  // Guard de período cerrado (SDD-0080).
+  const settings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(settings.closing_date, entry.entry_date)) {
+    return {
+      error: `Período contable cerrado al ${settings.closing_date}: no puedes eliminar asientos de período cerrado.`,
+    };
   }
 
   const { error } = await supabase
@@ -307,6 +346,59 @@ export async function softDeleteEntry(
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { error: error.message };
+
+  revalidatePath("/studio/contabilidad");
+  return { ok: true };
+}
+
+// ── Cierre de período (SDD-0080, admin-only) ──────────────────
+
+const CLOSING_ADMIN_MSG =
+  "Solo los administradores pueden fijar el cierre de período.";
+
+/**
+ * Fija (o limpia) la fecha de cierre del período contable del tenant. Admin-only.
+ * `closingDate` vacío/null → reabre (sin cierre). La defensa dura vive en el
+ * trigger de DB; acá validamos rol + formato y persistimos el singleton.
+ */
+export async function setClosingDateAction(
+  closingDate: string | null,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const closing = closingDate?.trim() || null;
+  if (closing && !/^\d{4}-\d{2}-\d{2}$/.test(closing)) {
+    return { error: "Formato de fecha inválido (YYYY-MM-DD)." };
+  }
+
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return { error: "Sesión no válida." };
+
+  const { data: link, error: linkErr } = await supabase
+    .from("user_tenants")
+    .select("tenant_id, role")
+    .eq("user_id", userId)
+    .maybeSingle<{ tenant_id: string; role: string }>();
+  if (linkErr || !link?.tenant_id) {
+    return { error: "No se pudo resolver el tenant del usuario." };
+  }
+  if (link.role !== "admin") return { error: CLOSING_ADMIN_MSG };
+
+  const nowIso = new Date().toISOString();
+  const { error } = await supabase.from("accounting_settings").upsert(
+    {
+      tenant_id: link.tenant_id,
+      closing_date: closing,
+      locked_by: closing ? userId : null,
+      locked_at: closing ? nowIso : null,
+      updated_by: userId,
+    },
+    { onConflict: "tenant_id" },
+  );
+  if (error) {
+    return { error: `No se pudo guardar el cierre: ${error.message}` };
+  }
 
   revalidatePath("/studio/contabilidad");
   return { ok: true };
