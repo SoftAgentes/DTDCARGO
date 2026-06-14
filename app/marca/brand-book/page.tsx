@@ -1,27 +1,27 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { DownloadIcon } from "@/components/Icon";
+import { getUser } from "@/lib/auth/session";
 
 /**
- * Visor del Brand Book DTD v4.2 — material de marca INTERNO (noindex).
+ * Visor del Brand Book DTD v4.2 — material de marca INTERNO, SOLO con login.
  *
- * El archivo (`public/marca/brand-book-v4.2.html`) es el standalone autocontenido
- * que entrega Cloud Design (assets en base64; solo carga fuentes desde Google
- * Fonts CDN). Se respeta TAL CUAL (regla del founder: "no modifiques contenido,
- * colores, fuentes ni logo"): se sirve intacto a pantalla completa en un
- * <iframe>; el botón "Descargar" vive en este marco, no en el archivo.
+ * Acceso: gateado con `getUser()` (decisión founder 2026-06-14). El standalone ya
+ * NO vive en `public/` (era servible estático a cualquiera por URL): se movió a
+ * `private/marca/brand-book-v4.2.html` y se sirve por la ruta autenticada
+ * `/marca/asset/brand-book` (valida sesión). Acá solo lo enmarcamos a pantalla
+ * completa; el `<iframe>` lo carga con la cookie de sesión del visitante logueado.
  *
- * Al llegar un book nuevo desde el Norte: copiar el standalone a
- * `public/marca/brand-book-vX.Y.html`, borrar el anterior (el book vigente es
- * UNO solo — gobernanza v4.2) y actualizar `FILE` acá, la const `BRAND_BOOK`
- * del hub (`app/interno/(app)/marca/page.tsx`) y `outputFileTracingIncludes`
- * (next.config.ts).
+ * Al llegar un book nuevo desde el Norte: reemplazar el standalone en
+ * `private/marca/brand-book-vX.Y.html`, borrar el anterior y actualizar el mapa
+ * `ASSETS` de `app/marca/asset/[name]/route.ts` (+ la const `BRAND_BOOK` del hub
+ * en `app/interno/(app)/marca/page.tsx`).
  *
- * La CSP de `/marca/*` (next.config.ts) está relajada SOLO para ese prefijo:
- * data:/blob: + inline/eval para los assets, y fonts.googleapis/gstatic para las
- * fuentes. El resto del sitio mantiene la CSP estricta.
+ * La CSP de `/marca/*` (next.config.ts) está relajada SOLO para ese prefijo
+ * (data:/blob: + inline/eval + Google Fonts) y cubre la ruta autenticada.
  */
 
-const FILE = "/marca/brand-book-v4.2.html";
+const FILE = "/marca/asset/brand-book";
 
 export const metadata: Metadata = {
   title: "Brand Book DTD v4.2",
@@ -35,7 +35,11 @@ export const metadata: Metadata = {
   },
 };
 
-export default function BrandBookPage() {
+export default async function BrandBookPage() {
+  // Brand Book = solo equipo logueado. Sin sesión → al login del Studio.
+  const user = await getUser();
+  if (!user) redirect("/studio/login?next=/marca/brand-book");
+
   return (
     <div className="bg-paper" style={{ position: "fixed", inset: 0 }}>
       <iframe
