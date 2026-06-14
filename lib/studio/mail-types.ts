@@ -60,7 +60,8 @@ export type MailRuleEvent =
   | "invoice_emitted"
   | "invoice_overdue"
   | "no_olvidar_recovery_requested"
-  | "agent_run_failed";
+  | "agent_run_failed"
+  | "lead_dormant_reengagement";
 
 export const MAIL_RULE_EVENTS: MailRuleEvent[] = [
   "shipment_created",
@@ -72,6 +73,7 @@ export const MAIL_RULE_EVENTS: MailRuleEvent[] = [
   "invoice_overdue",
   "no_olvidar_recovery_requested",
   "agent_run_failed",
+  "lead_dormant_reengagement",
 ];
 
 export type MailSignatureLayout =
@@ -594,6 +596,7 @@ export const RULE_EVENT_LABELS: Record<MailRuleEvent, string> = {
   invoice_overdue: "Factura vencida",
   no_olvidar_recovery_requested: "Recovery del No-Olvidar",
   agent_run_failed: "Run de agente falló",
+  lead_dormant_reengagement: "Prospecto inactivo · reenganche",
 };
 
 export function ruleEventLabel(e: MailRuleEvent): string {
