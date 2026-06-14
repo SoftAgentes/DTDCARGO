@@ -581,6 +581,19 @@ export const GLOSSARY_CATEGORIES: { id: GlossaryCategory; label: string }[] = [
 
 export const GLOSSARY_TERMS: GlossaryTerm[] = [
   // MODALIDADES
+  // Orden: primero el concepto que el cliente entiende (Puerta a Puerta), luego
+  // la metodología (DDP); después la modalidad más usada por pymes (LCL) antes
+  // del contenedor exclusivo (FCL). Decisión founder 2026-06-14.
+  {
+    id: "puerta-a-puerta",
+    term: "Puerta a Puerta",
+    acronym: "Door-to-Door",
+    category: "modalidad",
+    body: [
+      "Servicio que cubre el recorrido físico completo: retiramos tu mercancía en la fábrica o proveedor en China y la dejamos en tu domicilio en Venezuela. No tienes que coordinar transporte, aduana, puertos ni retiros intermedios.",
+      '"Puerta a Puerta" describe el recorrido; DDP describe quién paga qué. Por eso nuestro servicio se llama "Puerta a Puerta DDP" — las dos palabras juntas describen el qué y el quién.',
+    ],
+  },
   {
     id: "ddp",
     term: "DDP",
@@ -596,13 +609,13 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     },
   },
   {
-    id: "puerta-a-puerta",
-    term: "Puerta a Puerta",
-    acronym: "Door-to-Door",
+    id: "lcl",
+    term: "LCL — Carga consolidada",
+    acronym: "Less than Container Load",
     category: "modalidad",
     body: [
-      "Servicio que cubre el recorrido físico completo: retiramos tu mercancía en la fábrica o proveedor en China y la dejamos en tu domicilio en Venezuela. No tienes que coordinar transporte, aduana, puertos ni retiros intermedios.",
-      '"Puerta a Puerta" describe el recorrido; DDP describe quién paga qué. Por eso nuestro servicio se llama "Puerta a Puerta DDP" — las dos palabras juntas describen el qué y el quién.',
+      "Tu mercancía comparte contenedor con otros clientes. Más económica que un contenedor exclusivo y es la opción ideal cuando tu carga ocupa menos de ~15 m³.",
+      "Es el formato más usado por pymes que recién arrancan a importar — pagas solo el espacio que usas.",
     ],
   },
   {
@@ -613,16 +626,6 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     body: [
       "Contratas un contenedor entero (20' o 40') solo para tu mercancía. Conviene desde ~15 m³ o para cargas sensibles que no quieres mezclar (alimentos, frágiles, equipos calibrados).",
       "Un 20' tiene ~33 m³ útiles. Un 40' tiene ~67 m³ útiles. El 40' HC (High Cube) es 10% más alto.",
-    ],
-  },
-  {
-    id: "lcl",
-    term: "LCL — Carga consolidada",
-    acronym: "Less than Container Load",
-    category: "modalidad",
-    body: [
-      "Tu mercancía comparte contenedor con otros clientes. Más económica que un contenedor exclusivo y es la opción ideal cuando tu carga ocupa menos de ~15 m³.",
-      "Es el formato más usado por pymes que recién arrancan a importar — pagas solo el espacio que usas.",
     ],
   },
   {
@@ -793,19 +796,21 @@ export const HERO = {
    */
   kicker: { accent: "Con Confianza,", rest: "de China a tu puerta." },
   /**
-   * H1 del hero (founder 2026-06-13): el tagline-headline. `lead` ("Con
-   * confianza,") va en wine; `accent` en ink. Absorbe el rol del kicker, que se
-   * removió del hero para no repetir "con confianza / China / Venezuela".
+   * H1 del hero (founder 2026-06-14): el tagline-headline "Con Confianza, desde
+   * China hasta tu puerta." `lead` ("Con Confianza,") va en wine; `accent`
+   * ("desde China hasta tu puerta.") en ink. Venezuela se aclara en el subtítulo,
+   * no en el H1 — el H1 lidera el beneficio (tu puerta), no el destino.
    */
   title: {
-    lead: "Con confianza,",
-    accent: "desde China hacia Venezuela.",
+    lead: "Con Confianza,",
+    accent: "desde China hasta tu puerta.",
   },
   subtitle:
-    "Coordinamos tu carga desde la recepción en China hasta la entrega final en Venezuela: inspección, consolidación, aduana, impuestos y puerta a puerta con un solo equipo responsable.",
-  /** Microcopy bajo el cotizador: lidera "puerta a puerta", DDP como aclaración. */
+    "Servicio puerta a puerta hacia Venezuela con recepción, inspección, consolidación, aduana, impuestos y entrega final coordinados por un solo equipo responsable.",
+  /** Microcopy bajo el CTA: disclaimer DDP. "Puerta a puerta" ya lo lidera el
+   *  subtítulo, no se repite acá para no hacer eco (founder 2026-06-14). */
   microcopy:
-    "Servicio puerta a puerta con aduana e impuestos gestionados según cotización (modalidad DDP).",
+    "Aduana e impuestos gestionados según tu cotización (modalidad DDP).",
   /**
    * Sub-claim (voz interna · filosofía operativa). NO se renderiza en el hero;
    * se usa en footer y otros copy secundarios donde aplique.
