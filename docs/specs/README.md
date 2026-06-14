@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 71 specs)
+### Índice de specs (generado · 72 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -109,6 +109,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0073 | Fiscal · SENIAT — módulo configurable: Configuración fiscal (… | in-progress | interno |
 | 0074 | Onboarding — sync del alta de cliente a Kommo (push del lead) | in-progress | interno |
 | 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | proposed | interno |
+| 0076 | Configuración canónica de servicios | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
