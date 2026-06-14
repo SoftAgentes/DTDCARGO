@@ -7,25 +7,34 @@ import { BrandMark } from "./BrandMark";
 
 const links = [
   { href: "/track", label: "Rastrear envío" },
-  { href: "/servicios", label: "Servicios", hasCaret: true },
+  { href: "/servicios", label: "Servicios" },
   { href: "/calculadora", label: "Calculadora" },
+];
+
+/** Contenido de apoyo agrupado en el dropdown "Recursos".
+ *  Orden por intención del visitante: proceso → soporte → términos → contenido. */
+const recursos = [
   { href: "/#how", label: "Cómo trabajamos" },
+  { href: "/faq", label: "Preguntas frecuentes" },
+  { href: "/glosario", label: "Glosario" },
+  { href: "/noticias", label: "Noticias" },
 ];
 
 /** Selector de elementos enfocables para focus trap (WCAG 2.4.3) */
 const FOCUSABLE_SEL =
-  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  'a[href], button:not([disabled]), summary, input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Top navigation — sticky, blur, drawer mobile completo con focus trap.
  *
- * Desktop (md+): logo + 4 links + CTA "Contáctanos"
- * Mobile (<md):  logo + [≡ hamburguesa] + [Contacto btn]
- *                El hamburger abre un drawer derecho con los 4 links + CTA.
+ * Desktop (lg+): logo + 3 links + dropdown "Recursos" + Acceder + CTA "Contáctanos"
+ * Mobile (<lg):  logo + [≡ hamburguesa] + [Contacto btn]
+ *                El hamburger abre un drawer con los 3 links + acordeón "Recursos"
+ *                + cuenta + CTA.
  *
  * Accesibilidad (WCAG 2.2):
- * - Drawer cierra con tecla Escape
- * - Body scroll bloqueado mientras está abierto
+ * - Drawer y dropdown "Recursos" cierran con tecla Escape
+ * - Body scroll bloqueado mientras el drawer está abierto
  * - aria-modal + aria-label + aria-expanded + aria-controls
  * - Focus se mueve al primer link al abrir (SC 2.4.3)
  * - Focus trap: Tab y Shift+Tab ciclan dentro del drawer (SC 2.4.3)
@@ -57,6 +66,7 @@ export function Nav() {
   const pathname = usePathname();
   const hamburgerRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+  const recursosRef = useRef<HTMLDetailsElement>(null);
 
   // Cerrar drawer y retornar foco al hamburger (focus return)
   const close = useCallback(() => {
@@ -117,6 +127,28 @@ export function Nav() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, close]);
 
+  // Cerrar el dropdown "Recursos" (desktop) con Escape o click fuera.
+  // <details> no trae estos comportamientos nativos.
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      const d = recursosRef.current;
+      if (d?.open && !d.contains(e.target as Node)) d.open = false;
+    }
+    function onKey(e: KeyboardEvent) {
+      const d = recursosRef.current;
+      if (e.key === "Escape" && d?.open) {
+        d.open = false;
+        d.querySelector("summary")?.focus();
+      }
+    }
+    document.addEventListener("click", onDocClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("click", onDocClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
   return (
     <>
       <nav
@@ -138,9 +170,9 @@ export function Nav() {
             <BrandMark asLink size={38} />
           </span>
 
-          {/* Desktop nav: full horizontal desde lg (1024px). 4 links + Acceder +
-              CTA + logo entran cómodos; por debajo de lg va el drawer hamburguesa.
-              (Glosario y Noticias viven en el footer — SDD auditoría ui-ux.) */}
+          {/* Desktop nav: full horizontal desde lg (1024px). 3 links + dropdown
+              "Recursos" + Acceder + CTA; por debajo de lg va el drawer hamburguesa.
+              (Cómo trabajamos, FAQ, Glosario y Noticias viven en Recursos.) */}
           <div className="hidden lg:flex items-center gap-x-3">
             {links.map((l) => {
               const active = isLinkActive(pathname, l.href);
@@ -156,12 +188,47 @@ export function Nav() {
                   }`}
                 >
                   {l.label}
-                  {l.hasCaret && (
-                    <span className="text-[9px] ml-1.5 text-grey-500">▾</span>
-                  )}
                 </Link>
               );
             })}
+
+            {/* Recursos — dropdown por click (contenido de apoyo). <details>
+                nativo da aria-expanded + teclado; Escape/click-fuera se manejan
+                en el useEffect de arriba. */}
+            <details ref={recursosRef} className="group relative">
+              <summary className="list-none cursor-pointer select-none text-[14.5px] px-2.5 py-2 rounded-md text-ink font-medium hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap flex items-center gap-1.5 [&::-webkit-details-marker]:hidden">
+                Recursos
+                <span
+                  aria-hidden
+                  className="text-[9px] text-grey-500 transition-transform group-[[open]]:rotate-180"
+                >
+                  ▾
+                </span>
+              </summary>
+              <div className="absolute right-0 top-full mt-1.5 w-[230px] bg-paper border border-grey-200 rounded-lg card-shadow p-1.5 z-[60]">
+                {recursos.map((r) => {
+                  const active = isLinkActive(pathname, r.href);
+                  return (
+                    <Link
+                      key={r.href}
+                      href={r.href}
+                      onClick={() => {
+                        if (recursosRef.current) recursosRef.current.open = false;
+                      }}
+                      aria-current={active ? "page" : undefined}
+                      className={`block text-[14px] px-3 py-2.5 rounded-md transition-colors ${
+                        active
+                          ? "text-wine font-bold bg-wine/30"
+                          : "text-ink hover:text-wine hover:bg-wine/15"
+                      }`}
+                    >
+                      {r.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </details>
+
             <Link
               href="/portal/login"
               className="text-[14.5px] px-2.5 py-2 rounded-md text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors whitespace-nowrap"
@@ -275,6 +342,38 @@ export function Nav() {
               </Link>
             );
           })}
+
+          {/* Recursos — acordeón dentro del drawer (mismo contenido que el
+              dropdown desktop). El focus-trap recoge el summary + sus links. */}
+          <details className="group">
+            <summary className="list-none cursor-pointer select-none text-[18px] py-4 px-3 -mx-3 rounded-md border-b border-grey-200 text-ink font-semibold hover:text-wine hover:bg-wine/15 transition-colors flex items-center justify-between [&::-webkit-details-marker]:hidden">
+              <span>Recursos</span>
+              <span
+                aria-hidden
+                className="text-[13px] text-grey-500 transition-transform group-[[open]]:rotate-180"
+              >
+                ▾
+              </span>
+            </summary>
+            {recursos.map((r) => {
+              const active = isLinkActive(pathname, r.href);
+              return (
+                <Link
+                  key={r.href}
+                  href={r.href}
+                  onClick={close}
+                  aria-current={active ? "page" : undefined}
+                  className={`block text-[16px] py-3.5 pl-7 pr-3 -mx-3 border-b border-grey-200 transition-colors ${
+                    active
+                      ? "text-wine font-bold bg-wine/30"
+                      : "text-ink hover:text-wine hover:bg-wine/15"
+                  }`}
+                >
+                  {r.label}
+                </Link>
+              );
+            })}
+          </details>
 
           {/* Cuenta · Acceder al portal + Regístrate */}
           <Link
