@@ -202,6 +202,12 @@ export function Footer() {
             <Link href="/faq" className="hover:text-white transition-colors">
               Preguntas frecuentes
             </Link>
+            <Link href="/glosario" className="hover:text-white transition-colors">
+              Glosario
+            </Link>
+            <Link href="/noticias" className="hover:text-white transition-colors">
+              Noticias
+            </Link>
             <span>{CONTACT.web} · Made in Yiwu &amp; Valencia</span>
           </div>
         </div>
