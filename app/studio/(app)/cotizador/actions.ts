@@ -19,7 +19,10 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { enqueueKommoWriteback } from "@/lib/studio/kommo-writeback";
+import {
+  enqueueKommoWriteback,
+  enqueueKommoStageWriteback,
+} from "@/lib/studio/kommo-writeback";
 import {
   calcQuoteTotal,
   validateQuoteInput,
@@ -265,12 +268,15 @@ async function transitionStatus(
 
   if (error) return { error: error.message };
 
+  // Admin client compartido por los efectos best-effort post-transición (mailing +
+  // write-back de valor y de etapa). Ninguno debe romper la transición del estimado.
+  const admin = createAdminClient();
+
   // Disparar reglas de mailing según la transición (best-effort).
   const mailEvent: MailRuleEvent | null =
     to === "sent" ? "quote_sent" : to === "accepted" ? "quote_accepted" : null;
 
   if (mailEvent) {
-    const admin = createAdminClient();
     const validityDays = current.valid_until
       ? Math.max(
           0,
@@ -320,6 +326,15 @@ async function transitionStatus(
       totalUsd: current.total_usd,
     });
   }
+
+  // SDD-0084 — write-back de ETAPA a Kommo (best-effort, dry-run por default).
+  // Mueve el lead a la etapa que el founder mapeó para el nuevo estado. Dispara en
+  // las 3 transiciones (incl. rejected → etapa de perdido, que limpia el cementerio
+  // del tablero SDD-0078). Inerte hasta que exista el mapa; hereda el gate del valor.
+  await enqueueKommoStageWriteback(admin, current.tenant_id, {
+    clientMarkbox: current.client_markbox,
+    estimateStatus: to,
+  });
 
   revalidatePath("/studio/cotizador");
   revalidatePath(`/studio/cotizador/${current.quote_code}`);

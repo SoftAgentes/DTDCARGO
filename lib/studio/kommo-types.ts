@@ -40,3 +40,29 @@ export type KommoOverview = {
   connStatus: string | null;
   subdomain: string | null;
 };
+
+// ── Mapa de etapas (SDD-0084 · write-back de etapa) ──────────────
+/**
+ * Estados del estimado que disparan un `patch_stage`. Coinciden 1:1 con las
+ * transiciones de `transitionStatus` (cotizador/actions.ts).
+ */
+export type EstimateStageKey = "sent" | "accepted" | "rejected";
+
+export const ESTIMATE_STAGE_KEYS: readonly EstimateStageKey[] = [
+  "sent",
+  "accepted",
+  "rejected",
+] as const;
+
+/** Etiqueta visible de cada estado-disparador (UI del mapa de etapas). */
+export const ESTIMATE_STAGE_LABELS: Record<EstimateStageKey, string> = {
+  sent: "Estimado enviado",
+  accepted: "Estimado aceptado",
+  rejected: "Estimado rechazado",
+};
+
+/** Destino en Kommo: embudo (pipeline) + etapa (status). */
+export type KommoStageTarget = { pipeline_id: number; status_id: number };
+
+/** Mapa parcial estado→destino (solo los estados que el founder configuró). */
+export type KommoStageMap = Partial<Record<EstimateStageKey, KommoStageTarget>>;
