@@ -15,6 +15,7 @@ import {
 import { ServiciosDetalle } from "@/components/ServiciosDetalle";
 import { jetbrainsMono } from "@/lib/fonts";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
+import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { getServiciosParaSitio } from "@/lib/public/servicios-queries";
 import {
   CheckIcon,
@@ -47,33 +48,16 @@ export default async function ServiciosPage() {
 
   // OfferCatalog (schema.org) para que Google/IA sepan qué ofrece la empresa.
   // Deriva de `servicios` (DB publicada + fallback) → el crawl del AI Agent de
-  // Kommo toma info certera, ya editable desde el Studio.
+  // Kommo toma info certera, ya editable desde el Studio. Mismo builder que el
+  // `hasOfferCatalog` de la entidad (layout.tsx): un solo catálogo coherente,
+  // ligado al proveedor por @id, sin listar lo no ofrecible (isOfferable).
   const serviciosJsonLd = {
     "@context": "https://schema.org",
-    "@type": "OfferCatalog",
-    name: "Servicios de DTD Cargo — China a Venezuela",
-    provider: { "@type": "LocalBusiness", name: "DTD Cargo", url: SITE_URL },
-    itemListElement: servicios.map((s, i) => ({
-      "@type": "Offer",
-      position: i + 1,
-      itemOffered: {
-        "@type": "Service",
-        name: s.titulo,
-        description: [
-          s.resumen,
-          s.incluye.length ? `Incluye: ${s.incluye.join("; ")}.` : "",
-        ]
-          .filter(Boolean)
-          .join(" "),
-        serviceType: s.titulo,
-        url: `${SITE_URL}/servicios#${s.slug}`,
-        areaServed: [
-          { "@type": "Country", name: "Venezuela" },
-          { "@type": "Country", name: "China" },
-        ],
-        provider: { "@type": "LocalBusiness", name: "DTD Cargo" },
-      },
-    })),
+    ...buildOfferCatalog({
+      servicios: servicios.filter(isOfferable),
+      siteUrl: SITE_URL,
+      provider: { "@id": `${SITE_URL}/#organization` },
+    }),
   };
 
   return (
