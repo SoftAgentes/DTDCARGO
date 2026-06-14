@@ -20,6 +20,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createBillFor } from "@/lib/studio/treasury/treasury-actions";
 import {
   buildBillPayloadFromPo,
@@ -104,6 +105,8 @@ export async function createPurchaseOrder(
   raw: Partial<PurchaseOrderInput>,
 ): Promise<{ ok?: boolean; error?: string; purchaseOrderCode?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "purchase-orders");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validatePurchaseOrderInput(raw);
   if (fieldErrors) {
@@ -173,6 +176,8 @@ export async function updatePurchaseOrder(
   raw: Partial<PurchaseOrderInput>,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "purchase-orders");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validatePurchaseOrderInput(raw);
   if (fieldErrors) {
@@ -251,6 +256,8 @@ export async function setPurchaseOrderStatus(
   to: PurchaseOrderStatus,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "purchase-orders");
+  if (denial) return { error: denial };
 
   const { data: po, error: readErr } = await supabase
     .from("purchase_orders")
@@ -374,6 +381,11 @@ export async function receivePurchaseOrder(
   billCode?: string;
 }> {
   const supabase = await createClient();
+  // Recibir la OC CAUSA el Bill (CxP) — es un acto de Tesorería/contabilidad,
+  // no operativo. Gate "treasury" (accounting+admin), consistente con el gate
+  // directo de tesoreria.createBill. Cierra el puente OC→Bill (SDD-0085 §C4).
+  const denial = await moduleEditDenial(supabase, "treasury");
+  if (denial) return { error: denial };
 
   const { data: po, error: readErr } = await supabase
     .from("purchase_orders")

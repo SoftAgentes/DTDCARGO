@@ -22,6 +22,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   addCharge,
   applyCreditNote,
@@ -92,6 +93,8 @@ export async function importStatement(payload: {
   lines: Array<Record<string, unknown>>;
 }): Promise<ActionResult & { statementId?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -155,6 +158,8 @@ export async function reconcileNow(
   supplierId: string,
 ): Promise<ActionResult> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -250,6 +255,8 @@ export async function decideMatchLine(payload: {
   note?: string | null;
 }): Promise<ActionResult> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -284,6 +291,8 @@ export async function decideMatchLine(payload: {
 /** Cierra el estado de cuenta (marca reconciled en los cargos matcheados). */
 export async function closePeriod(statementId: string): Promise<ActionResult> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
   if (!statementId) return { error: "Falta el estado de cuenta." };
@@ -304,6 +313,8 @@ export async function addChargeAction(
   raw: Record<string, unknown>,
 ): Promise<ActionResult> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -333,6 +344,8 @@ export async function transitionCharge(payload: {
   to: string;
 }): Promise<ActionResult> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -361,6 +374,8 @@ export async function addCreditNoteAction(
   raw: Record<string, unknown>,
 ): Promise<ActionResult & { net_amount?: number }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 

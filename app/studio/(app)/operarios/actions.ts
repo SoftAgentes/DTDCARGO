@@ -10,6 +10,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 
 type State = {
   ok?: boolean;
@@ -53,6 +54,8 @@ export async function createOperarioAction(
   formData: FormData,
 ): Promise<State> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "operarios");
+  if (denial) return { error: denial };
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -96,6 +99,8 @@ export async function resetOperarioPinAction(
   formData: FormData,
 ): Promise<State> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "operarios");
+  if (denial) return { error: denial };
   const operarioId = parseStr(formData.get("operario_id"));
   const pin = parseStr(formData.get("pin"));
 
@@ -122,6 +127,8 @@ export async function setOperarioActiveAction(
   formData: FormData,
 ): Promise<void> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "operarios");
+  if (denial) return;
   const operarioId = parseStr(formData.get("operario_id"));
   const active = parseBool(formData.get("active"));
   if (!operarioId) return;
@@ -142,6 +149,8 @@ export async function updateOperarioAction(
   formData: FormData,
 ): Promise<State> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "operarios");
+  if (denial) return { error: denial };
   const operarioId = parseStr(formData.get("operario_id"));
   const displayName = parseStr(formData.get("display_name"));
   const displayNameCn = parseStr(formData.get("display_name_cn"));

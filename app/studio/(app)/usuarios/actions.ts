@@ -12,6 +12,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { generateTelegramLinkCode } from "@/lib/studio/telegram/link-code";
 import {
@@ -53,6 +54,9 @@ export async function inviteUserAction(
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "user_signin_required" };
+
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
 
   try {
     const { invitationId, token } = await inviteUserRPC(
@@ -141,6 +145,8 @@ export async function changeUserRoleAction(
   if (!newRole) return { errorCode: "user_role_invalid" };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
   try {
     await changeUserRoleRPC(supabase, targetUserId, newRole);
     revalidatePath("/studio/usuarios");
@@ -168,6 +174,9 @@ export async function disableUserAction(
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "user_signin_required" };
+
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
 
   // Anti-lockout client-side: no puedes desactivarte a ti mismo si eres
   // el último admin. El RPC studio_change_user_role tiene este check; acá
@@ -207,6 +216,8 @@ export async function enableUserAction(
   if (!targetUserId) return { errorCode: "invalid_input" };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
   const { error } = await supabase
     .from("user_tenants")
     .update({ disabled_at: null })
@@ -237,6 +248,9 @@ export async function revokeInvitationAction(
   const supabase = await createClient();
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
+
+  const denial = await moduleEditDenial(supabase, "users");
+  if (denial) return { error: denial };
 
   const { error } = await supabase
     .from("user_invitations")

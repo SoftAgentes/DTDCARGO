@@ -19,11 +19,14 @@ import { resolveLocale } from "@/lib/i18n/resolve-server";
 import { LocaleProvider } from "@/lib/i18n";
 import { StudioSidebar } from "./_components/StudioSidebar";
 import { StudioTopbar } from "./_components/StudioTopbar";
+import type { StudioUserRole } from "@/lib/studio/user-types";
 import { WiringProvider } from "../_components/wiring/WiringProvider";
 import { ToastProvider } from "../_components/ui/ToastProvider";
 import { BugFABButton } from "../_components/bug-reporter/BugFABButton";
 import { BugTechCaptureProvider } from "../_components/bug-reporter/BugTechCaptureProvider";
 import { EnvBanner } from "../_components/EnvBanner";
+import { Suspense } from "react";
+import { DeniedToast } from "./_components/DeniedToast";
 
 export default async function StudioAppLayout({
   children,
@@ -71,10 +74,11 @@ export default async function StudioAppLayout({
     .eq("user_id", user.id)
     .maybeSingle<{ region: string | null; role: string | null }>();
 
-  // Rol del user — el sidebar usa esto para mostrar items admin-only
-  // (ej: Dirección · tablero ejecutivo, SDD-0048). El gate real está en la
-  // ruta server; esto solo evita mostrar un link que daría redirect.
-  const isAdmin = tenantLink?.role === "admin";
+  // Rol del user — el sidebar lo usa para esconder los módulos que el rol no
+  // puede ver (matriz ROLE_MODULE_ACCESS, SDD-0085). El gate real de seguridad
+  // está en cada page.tsx (requireModuleView); esto solo evita mostrar un link
+  // que daría redirect. `null` = sin membership (fail-closed en el sidebar).
+  const role = (tenantLink?.role ?? null) as StudioUserRole | null;
 
   // Resolver locale activo. El override URL `?lang=` se aplica client-side
   // en LocaleProvider.
@@ -122,7 +126,7 @@ export default async function StudioAppLayout({
             <StudioSidebar
               featureFlags={featureFlags}
               expenseAlertCount={expenseAlertCount}
-              isAdmin={isAdmin}
+              role={role}
             />
 
             <main
@@ -153,6 +157,10 @@ export default async function StudioAppLayout({
           {/* Provider (sin UI) instala listeners de error/network para tech_data */}
           <BugTechCaptureProvider />
           <BugFABButton buildSha={buildSha} />
+          {/* RBAC: aviso cuando requireModuleView redirige por falta de acceso. */}
+          <Suspense fallback={null}>
+            <DeniedToast />
+          </Suspense>
         </WiringProvider>
       </ToastProvider>
     </LocaleProvider>

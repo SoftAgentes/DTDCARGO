@@ -16,6 +16,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   COST_CATEGORY_KEYS,
   validateCostInput,
@@ -43,6 +44,8 @@ export async function saveShipmentCosts(
   formData: FormData,
 ): Promise<CostActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "costing");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validateCostInput(rawFromFormData(formData));
   if (fieldErrors) return { fieldErrors };
@@ -141,6 +144,8 @@ export async function createTemplate(
   formData: FormData,
 ): Promise<TemplateActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "costing");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validateTemplateInput(
     templateRawFromFormData(formData),
@@ -182,6 +187,8 @@ export async function updateTemplate(
   formData: FormData,
 ): Promise<TemplateActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "costing");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validateTemplateInput(
     templateRawFromFormData(formData),
@@ -221,6 +228,8 @@ export async function softDeleteTemplate(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "costing");
+  if (denial) return { error: denial };
 
   const { error } = await supabase
     .from("route_cost_templates")

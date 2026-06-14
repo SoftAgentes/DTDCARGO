@@ -82,8 +82,9 @@ describe("SDD-0061 Fase C · códigos EST- (next_estimate_code)", () => {
 
 describe("SDD-0061 Fase C · sidebar + i18n", () => {
   it("el label del sidebar es 'Estimados'", () => {
-    const sidebar = read("app/studio/(app)/_components/StudioSidebar.tsx");
-    expect(sidebar).toContain('label: "Estimados", labelKey: "chrome.sidebar.quotes"');
+    // El registro de módulos se extrajo a lib/studio/modules.ts (SDD-0085).
+    const registry = read("lib/studio/modules.ts");
+    expect(registry).toContain('label: "Estimados", labelKey: "chrome.sidebar.quotes"');
     expect(read("lib/i18n/es-VE/chrome.ts")).toContain(
       '"chrome.sidebar.quotes": "Estimados"',
     );

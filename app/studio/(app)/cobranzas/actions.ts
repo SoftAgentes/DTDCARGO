@@ -21,6 +21,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   identifyPaymentFor,
   registerCollectionFor,
@@ -48,6 +49,8 @@ export async function registerCollection(
   fullyPaid?: boolean;
 }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "collections");
+  if (denial) return { error: denial };
   const result = await registerCollectionFor(supabase, invoiceId, payload);
 
   if (!result.ok) {
@@ -73,6 +76,8 @@ export async function registerUnidentifiedPayment(
   payload: Partial<UnidentifiedPaymentInput>,
 ): Promise<{ ok?: boolean; error?: string; receiptCode?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "collections");
+  if (denial) return { error: denial };
   const result = await registerUnidentifiedPaymentFor(supabase, payload);
 
   if (!result.ok) {
@@ -105,6 +110,8 @@ export async function identifyPayment(
   fullyPaid?: boolean;
 }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "collections");
+  if (denial) return { error: denial };
   const result = await identifyPaymentFor(supabase, receiptId, invoiceId);
   if (!result.ok) return { error: result.error };
 
@@ -127,6 +134,8 @@ export async function logActivity(
   raw: Partial<ActivityInput>,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "collections");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validateActivityInput(raw);
   if (fieldErrors) {
@@ -171,6 +180,8 @@ export async function voidReceipt(
   receiptId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "collections");
+  if (denial) return { error: denial };
   const r = await voidReceiptFor(supabase, receiptId);
   if (!r.ok) return { error: r.error };
 

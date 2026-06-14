@@ -29,6 +29,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import { registerCollectionFor } from "@/lib/studio/collections-actions";
 import { LEGAL_GATE_HARD_BLOCK } from "@/lib/studio/legal/gate-config";
@@ -279,6 +280,8 @@ export async function createInvoice(
   formData: FormData,
 ): Promise<InvoiceActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "invoices");
+  if (denial) return { error: denial };
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateInvoiceInput(partial);
@@ -394,6 +397,8 @@ export async function updateInvoice(
   formData: FormData,
 ): Promise<InvoiceActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "invoices");
+  if (denial) return { error: denial };
 
   const { data: current, error: readErr } = await supabase
     .from("invoices")
@@ -449,6 +454,8 @@ export async function emitInvoice(
   warning?: string;
 }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "invoices");
+  if (denial) return { error: denial };
 
   const { data: current, error: readErr } = await supabase
     .from("invoices")
@@ -572,6 +579,8 @@ export async function registerPayment(
   },
 ): Promise<{ ok?: boolean; error?: string; receiptCode?: string; fullyPaid?: boolean }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "invoices");
+  if (denial) return { error: denial };
 
   // Resolver el invoice_code para revalidar el detalle (la lógica compartida
   // no lo devuelve; lo leemos barato acá).
@@ -610,9 +619,11 @@ export async function voidInvoice(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "invoices");
+  if (denial) return { error: denial };
 
-  // TODO(permisos): anular debería ser admin/contabilidad (matriz de roles
-  // transversal, SDD aparte). Por ahora cualquier rol con acceso al módulo.
+  // Anular es accounting/admin: gate del módulo "invoices" (SDD-0085) — resuelve
+  // el viejo TODO de permisos.
   const { data: current, error: readErr } = await supabase
     .from("invoices")
     .select("id, tenant_id, status, invoice_code")
@@ -655,6 +666,8 @@ export async function softDeleteInvoice(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "invoices");
+  if (denial) return { error: denial };
 
   const { error } = await supabase
     .from("invoices")
