@@ -50,8 +50,11 @@ Es lo más robusto y predecible: "nada con esa fecha o anterior se toca".
 ## Defensa en 2 capas
 
 1. **Dura (DB):** el trigger es la verdad — nadie escribe en período cerrado, ni el admin client.
-2. **App (UX):** `createJournalEntry` / `postEntry` / `voidEntry` / `softDeleteEntry` chequean
-   `isPeriodClosed()` antes de tocar la DB → mensaje claro en vez del error crudo del trigger.
+2. **App (UX):** los asientos (`createJournalEntry` / `postEntry` / `voidEntry` / `softDeleteEntry`)
+   **y los gastos** (`createExpenseAction` / `updateExpenseAction` / `softDeleteExpenseAction`, web
+   `/studio/gastos` + móvil `/m/erp`) chequean `isPeriodClosed()` antes de tocar la DB → mensaje
+   claro en vez del error crudo del trigger. Así un gasto cuyo `occurred_at` cae en período cerrado
+   no se crea/edita/borra (no diverge de su asiento congelado).
 
 Los **posteos automáticos** que caigan en período cerrado fallan en best-effort (logean, no rompen
 la transacción de origen). Editar/borrar un gasto cuyo asiento está cerrado deja el asiento intacto
@@ -69,10 +72,6 @@ la transacción de origen). Editar/borrar un gasto cuyo asiento está cerrado de
   única (QBO) alcanza para V1.
 - Password de cierre (QBO opcional): el rol admin alcanza.
 - Asiento de cierre de resultados (mayorización a utilidad retenida al cierre de ejercicio): futuro.
-- **Guard de UX en Gastos:** hoy se puede editar/borrar un gasto cuyo asiento está en período
-  cerrado — el gasto cambia pero su asiento queda congelado (el trigger bloquea el void/repost en
-  best-effort). Los libros quedan correctos (inmutables); la divergencia operativa es cosmética. Un
-  guard que bloquee la edición del gasto cuando `occurred_at <= closing_date` queda como follow-up.
 
 ## Verificación
 
