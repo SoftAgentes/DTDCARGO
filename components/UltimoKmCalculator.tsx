@@ -327,7 +327,7 @@ export function UltimoKmCalculator() {
               style={{ color: "rgba(255,255,255,0.55)" }}
             >
               Tarifa de referencia estimada. No incluye peajes, escoltas ni gastos
-              especiales. La cotización final se cierra por WhatsApp en menos de 24 horas.
+              especiales. La tarifa final la confirma un asesor por WhatsApp en menos de 24 horas hábiles.
             </p>
           </>
         )}
