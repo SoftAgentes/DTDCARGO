@@ -16,6 +16,7 @@ import {
   TIMELINE,
   SERVICES_MATRIX,
   buildWhatsAppLink,
+  aniosComercioChina,
 } from "@/lib/design-tokens";
 import {
   MailIcon,
@@ -37,6 +38,9 @@ export const metadata: Metadata = {
     path: "/brochure",
   }),
 };
+
+// Revalidación mensual: el contador de años (aniosComercioChina) se recomputa sin redeploy.
+export const revalidate = 2592000;
 
 const WA_COTIZAR = buildWhatsAppLink(
   "Hola DTD Cargo, vi el brochure y quiero cotizar un envío de China a Venezuela. ¿Me ayudan?",
@@ -106,7 +110,7 @@ export default function BrochurePage() {
         <section className="py-16 lg:py-20 bg-white">
           <div className="wrap max-w-[1000px]">
             <span className="eyebrow">Nuestra historia</span>
-            <h2 className="h-section mt-4">Más de 15 años de trayectoria.</h2>
+            <h2 className="h-section mt-4">{aniosComercioChina()} años de trayectoria.</h2>
             <p className="lead mt-3 max-w-[60ch]">
               De importadores a referente logístico entre China y América
               Latina. Operando desde 2010, contenedor a contenedor.

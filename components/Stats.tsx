@@ -1,4 +1,4 @@
-import { STATS } from "@/lib/design-tokens";
+import { STATS, aniosComercioChina } from "@/lib/design-tokens";
 
 /**
  * Banda de stats — fondo navy, 4 KPI hero + línea de hitos históricos FIJA
@@ -20,8 +20,8 @@ export function Stats() {
     <section className="bg-ink text-white py-20" id="cobertura">
       <div className="wrap">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-10 gap-y-12 lg:gap-x-8">
-          {STATS.map((s) => (
-            <div key={s.num + s.suffix} className="min-w-0">
+          {STATS.map((s, i) => (
+            <div key={s.label} className="min-w-0">
               <div
                 className="text-white leading-none tracking-[-0.03em] flex items-baseline flex-wrap"
                 style={{
@@ -29,7 +29,9 @@ export function Stats() {
                   fontSize: "clamp(44px, 5.5vw, 76px)",
                 }}
               >
-                <span>{s.num}</span>
+                {/* 1er KPI = años en el comercio con China: se calcula desde 2008
+                    (no queda viejo; recomputa con la revalidación ISR mensual). */}
+                <span>{i === 0 ? aniosComercioChina() : s.num}</span>
                 <span
                   style={{
                     color: "var(--color-wine-soft)",

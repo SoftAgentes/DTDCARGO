@@ -842,6 +842,16 @@ export const HERO = {
 // STATS — 4 KPI hero (banda navy debajo del Hero)
 // ──────────────────────────────────────────────────────────────────
 
+/**
+ * Años en el comercio con China — se CALCULA solo desde 2008 para que el KPI
+ * "X AÑOS" no quede viejo. Importante: se llama en el RENDER del componente (no a
+ * nivel de módulo) para que recompute en cada revalidación ISR, no al build.
+ * 2026 → 18 · enero 2027 → 19, automático. (Inicio: enero 2008, founder 2026-06-13.)
+ */
+export function aniosComercioChina(): number {
+  return new Date().getFullYear() - 2008;
+}
+
 export const STATS = [
   {
     // Total de experiencia desde los orígenes comerciales en China (2008).

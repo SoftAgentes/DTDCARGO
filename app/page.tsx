@@ -24,6 +24,11 @@ export const metadata: Metadata = {
   },
 };
 
+// Revalidación mensual (~30 días): la home es estática, pero así el servidor
+// recomputa la fecha → el KPI "X AÑOS" (aniosComercioChina) sube solo en enero,
+// sin redeploy. Diario sería overkill (el número cambia 1 vez al año).
+export const revalidate = 2592000;
+
 export default function HomePage() {
   return (
     <>
