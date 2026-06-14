@@ -46,6 +46,15 @@ export function CloseIcon({ className, size = 16 }: IconProps) {
   );
 }
 
+/** Chevron hacia abajo — acordeones (gira con group-open:rotate-180). */
+export function ChevronDownIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2.2} className={className}>
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
+
 export function PinIcon({ className, size = 18 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={1.8} className={className}>
