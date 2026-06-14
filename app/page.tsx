@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Nav } from "@/components/Nav";
 import { Hero } from "@/components/Hero";
+import { RespuestaRapida } from "@/components/RespuestaRapida";
+import { WebPageJsonLd } from "@/components/WebPageJsonLd";
 import { TrustBar } from "@/components/TrustBar";
 import { Stats } from "@/components/Stats";
 import { PuertaAPuerta } from "@/components/PuertaAPuerta";
@@ -33,11 +35,23 @@ export default function HomePage() {
   return (
     <>
       <Nav />
+      {/* WebPage + speakable (GEO · SDD-0064): liga el home a #organization /
+          #website por @id y marca el bloque "Respuesta rápida" como citable por
+          asistentes de voz / motores de IA. */}
+      <WebPageJsonLd path="/" speakableSelectors={["#respuesta-rapida"]} />
       {/* jetbrainsMono.variable monta --font-mono (JetBrains) para que FONT_MONO
           de <ShippingMark/> (el MARKBOX) renderice en la mono de marca, no en
           mono de sistema. Otras páginas con FONT_MONO lo montan igual. */}
       <main className={jetbrainsMono.variable}>
         <Hero />
+        {/* Respuesta rápida (GEO): Q&A directa y citable cerca del tope; el id
+            ancla el selector `speakable`. Copy grounded (empresa 2010, puerta a
+            puerta DDP, pagas al llegar) — sin datos inventados. */}
+        <RespuestaRapida
+          id="respuesta-rapida"
+          pregunta="¿Qué es DTD Cargo y qué hace?"
+          respuesta="DTD Cargo trae tu mercancía de China a Venezuela puerta a puerta: se encarga del flete, la aduana y la entrega en tu dirección, con equipo y bodega propios en Yiwu (China) y Valencia. Opera desde 2010 y pagas cuando tu carga llega a Venezuela (sujeto a aprobación)."
+        />
         <TrustBar />
         <Stats />
         <PuertaAPuerta />

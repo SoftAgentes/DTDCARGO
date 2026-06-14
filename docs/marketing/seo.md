@@ -18,7 +18,9 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 - **Calculadora terrestre:** `app/calculadora-terrestre/page.tsx` + `components/UltimoKmCalculator.tsx` + tarifas en `lib/data/tarifas-terrestres-vzla.ts` (~80 destinos por zona 1-11, validado por operaciones DTD).
 - **OG/social:** `lib/seo-og.ts` (`socialMeta`).
 - **Redirects:** `next.config.ts` → `redirects()`.
-- **Identidad de entidad (GEO):** `@graph` JSON-LD en `app/layout.tsx` — `#organization` (`LocalBusiness` con `legalName`/`taxID`/`founder`) + `#website`. Los publishers (VideoObject en `WorkBand.tsx`, NewsArticle) referencian `#organization` por `@id` → una sola entidad. Identidad pública/legal canónica = [`identidad.md`](identidad.md).
+- **Identidad de entidad (GEO):** `@graph` JSON-LD en `app/layout.tsx` — `#organization` (`LocalBusiness` con `legalName`/`taxID`/`founder`, **`knowsAbout`** = temas de expertise con `sameAs` a Wikipedia, **`hasOfferCatalog`** = catálogo de servicios) + `#website`. Los publishers (VideoObject en `WorkBand.tsx`, NewsArticle) referencian `#organization` por `@id` → una sola entidad. Identidad pública/legal canónica = [`identidad.md`](identidad.md).
+- **OfferCatalog (builder único):** `lib/seo-offer-catalog.ts` (`buildOfferCatalog` + `isOfferable`). Lo usan `app/layout.tsx` (`hasOfferCatalog` de la entidad) y `app/servicios/page.tsx` (catálogo de la página) con el mismo shape, proveedor ligado por `@id`. `isOfferable` excluye `suspendido`/`proximamente` (anti-invención). Fuente = `lib/servicios-detalle.ts`.
+- **WebPage + `speakable`:** `components/WebPageJsonLd.tsx` (gemelo de `BreadcrumbJsonLd`). Liga la página a `#organization`/`#website` por `@id` y marca el bloque citable por voz/IA. En el home (`app/page.tsx`) apunta al bloque "Respuesta rápida" (`#respuesta-rapida`).
 
 ## Cronología
 
@@ -58,6 +60,16 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 Cola larga (~30 páginas más, <10 impr c/u) = SEO despreciable, no se redirige individualmente.
 
 **Geo↔calc:** se suavizó el texto `notaEntrega` de los 15 geos non-casco (sacó "recargo por km" + "al instante en la calculadora": impreciso + Cumaná/San Fernando no están en la calc) → "puedes estimar ese tramo terrestre en nuestra calculadora; el costo exacto te lo confirma tu asesor por WhatsApp".
+
+### 2026-06-14 · Profundización GEO — slice ⭐1 (extiende SDD-0064 Fase 6)
+
+Enriquecimiento del schema para que los motores de IA (AI Agent de Kommo, ChatGPT/Perplexity, AI Overviews) extraigan datos certeros y completos. Sin spec ni migración nuevas; rama `feat/geo-profundizacion`.
+
+- **`knowsAbout`** en `#organization` (`app/layout.tsx`): 12 temas de expertise (logística China-VE, Incoterms, contenedores FCL/LCL, freight forwarding, aduana, sourcing, control de calidad, Yiwu, puerta a puerta DDP, consolidación, MARKBOX). Los estándar con `sameAs` a Wikipedia (9 URLs **verificadas vivas**, sin 404); los propios de DTD como `DefinedTerm` sin `sameAs`.
+- **`hasOfferCatalog`** en `#organization`: catálogo de servicios ligado por `@id`, vía builder único `lib/seo-offer-catalog.ts`. Excluye `suspendido`/`proximamente` (`isOfferable` → fuera `transporte-terrestre`). `app/servicios/page.tsx` migró al mismo builder (un solo catálogo coherente, antes duplicaba el shape inline y listaba lo no ofrecible).
+- **`<RespuestaRapida>` en el home** (`app/page.tsx`, entre Hero y TrustBar): Q&A directa y citable ("¿Qué es DTD Cargo y qué hace?"). Copy grounded (empresa 2010, puerta a puerta DDP, pagas al llegar "sujeto a aprobación"). **Requiere OK final del founder** (copy visible).
+- **`speakable`** (`components/WebPageJsonLd.tsx`): nodo `WebPage` del home con `speakable.cssSelector` → `#respuesta-rapida`.
+- Pendiente próximos slices: `sameAs` a Wikidata/GBP/LinkedIn (URLs del founder) · `llms-full.txt` · páginas `/puerta-a-puerta` `/markbox` `/empresa` · `aggregateRating` (reseñas reales).
 
 ## 🛡️ Reglas SEO que NO se rompen
 

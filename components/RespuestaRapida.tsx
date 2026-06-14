@@ -9,12 +9,16 @@
 export function RespuestaRapida({
   pregunta,
   respuesta,
+  id,
 }: {
   pregunta: string;
   respuesta: React.ReactNode;
+  /** id opcional para anclar el bloque (ej. selector `speakable` del home). */
+  id?: string;
 }) {
   return (
     <section
+      id={id}
       aria-label="Respuesta rápida"
       className="bg-white border-y border-grey-200"
     >

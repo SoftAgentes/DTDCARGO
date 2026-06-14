@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Archivo, Archivo_Black, Noto_Sans_SC } from "next/font/google";
 import { BRAND_ASSETS, CONTACT } from "@/lib/design-tokens";
+import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
+import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
 import { Analytics } from "@/components/Analytics";
 import "./globals.css";
 
@@ -184,6 +186,76 @@ const jsonLd = {
           closes: "17:00",
         },
       ],
+      // knowsAbout — temas de expertise de la empresa (señal de autoridad para
+      // GEO/IA). `sameAs` a artículos de Wikipedia (verificados, sin 404) para
+      // desambiguar los términos estándar; los propios de DTD / sin artículo
+      // limpio van como DefinedTerm sin sameAs. SDD-0064 (profundización GEO).
+      knowsAbout: [
+        {
+          "@type": "Thing",
+          name: "Logística internacional China–Venezuela",
+          sameAs: "https://en.wikipedia.org/wiki/Logistics",
+        },
+        {
+          "@type": "Thing",
+          name: "Comercio entre China y Venezuela",
+          sameAs:
+            "https://en.wikipedia.org/wiki/China%E2%80%93Venezuela_relations",
+        },
+        {
+          "@type": "Thing",
+          name: "Transporte marítimo de carga en contenedor (FCL y LCL)",
+          sameAs: "https://en.wikipedia.org/wiki/Containerization",
+        },
+        {
+          "@type": "Thing",
+          name: "Incoterms 2020",
+          sameAs: "https://en.wikipedia.org/wiki/Incoterms",
+        },
+        {
+          "@type": "Thing",
+          name: "Agente de carga internacional (freight forwarding)",
+          sameAs: "https://en.wikipedia.org/wiki/Freight_forwarder",
+        },
+        {
+          "@type": "Thing",
+          name: "Desaduanaje y trámites de aduana",
+          sameAs: "https://en.wikipedia.org/wiki/Customs",
+        },
+        {
+          "@type": "Thing",
+          name: "Compra asistida y sourcing en China",
+          sameAs: "https://en.wikipedia.org/wiki/Procurement",
+        },
+        {
+          "@type": "Thing",
+          name: "Inspección y control de calidad en fábrica",
+          sameAs: "https://en.wikipedia.org/wiki/Quality_control",
+        },
+        {
+          "@type": "Thing",
+          name: "Yiwu, Zhejiang (mercado mayorista de China)",
+          sameAs: "https://en.wikipedia.org/wiki/Yiwu",
+        },
+        {
+          "@type": "DefinedTerm",
+          name: "Servicio puerta a puerta DDP (Delivered Duty Paid)",
+        },
+        { "@type": "DefinedTerm", name: "Consolidación de carga (grupaje LCL)" },
+        {
+          "@type": "DefinedTerm",
+          name: "MARKBOX — shipping mark / marca de envío (唛头)",
+        },
+      ],
+      // hasOfferCatalog — qué ofrece la empresa, machine-readable, ligado a la
+      // entidad por @id. Fuente = SERVICIOS_DETALLE filtrado por isOfferable
+      // (excluye suspendido/proximamente → anti-invención). Mismo builder que
+      // /servicios (lib/seo-offer-catalog) → un solo catálogo coherente.
+      hasOfferCatalog: buildOfferCatalog({
+        servicios: SERVICIOS_DETALLE.filter(isOfferable),
+        siteUrl: SITE_URL,
+        provider: { "@id": ORG_ID },
+      }),
     },
     {
       "@type": "WebSite",
