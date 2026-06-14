@@ -126,7 +126,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/interno/marca/d/[bundle]": [
       "./public/brand/**",
-      "./public/marca/brand-book-v3.7.html",
+      "./public/marca/brand-book-v4.2.html",
       "./public/marca/herramientas/**",
       "./docs/marketing/whatsapp-business.md",
     ],
