@@ -6,10 +6,10 @@ import { InternoBreadcrumb } from "../../../_components/InternoBreadcrumb";
  * WhatsApp Business Services (`/interno/marca/whatsapp`).
  *
  * Lanzador de las 2 herramientas internas de WhatsApp. Los HTML viven en
- * `public/marca/herramientas/` (heredan la CSP relajada de `/marca/*`, que permite
- * html2canvas de cdnjs + Google Fonts) y se embeben acá en iframe same-origin.
- * El "abrir en pantalla completa" los lleva a su URL directa (más cómodo para
- * cargar fotos y descargar).
+ * `private/marca/herramientas/` (fuera de `public/`) y se sirven por la ruta
+ * autenticada `/marca/asset/<wa-catalogo|wa-guia>` (SOLO con login); heredan la
+ * CSP relajada de `/marca/*` (html2canvas de cdnjs + Google Fonts) y se embeben
+ * acá en iframe same-origin. "Abrir en pantalla completa" va a esa ruta.
  */
 
 export const metadata: Metadata = {
@@ -19,13 +19,13 @@ export const metadata: Metadata = {
 
 const TOOLS = [
   {
-    href: "/marca/herramientas/whatsapp-catalogo-plantillas.html",
+    href: "/marca/asset/wa-catalogo",
     title: "Generador de imágenes del catálogo",
     desc: "Cargas la foto de cada servicio y descargas el PNG 1080×1080 con el marco de marca y la metadata. Listo para subir al catálogo de WhatsApp Business.",
     height: "min(82vh, 1000px)",
   },
   {
-    href: "/marca/herramientas/whatsapp-business-guia.html",
+    href: "/marca/asset/wa-guia",
     title: "Guía de configuración por número",
     desc: "Eliges tu teléfono y la guía te muestra qué le toca, con botón Copiar en cada campo (perfil, catálogo, respuestas rápidas) + descarga de la foto de perfil.",
     height: "min(82vh, 1000px)",

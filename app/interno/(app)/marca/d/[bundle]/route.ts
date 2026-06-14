@@ -32,8 +32,8 @@ const LOGOS: ReadonlyArray<readonly [string, string]> = [
 ];
 
 const WHATSAPP: ReadonlyArray<readonly [string, string]> = [
-  ["whatsapp-catalogo-plantillas.html", "public/marca/herramientas/whatsapp-catalogo-plantillas.html"],
-  ["whatsapp-business-guia.html", "public/marca/herramientas/whatsapp-business-guia.html"],
+  ["whatsapp-catalogo-plantillas.html", "private/marca/herramientas/whatsapp-catalogo-plantillas.html"],
+  ["whatsapp-business-guia.html", "private/marca/herramientas/whatsapp-business-guia.html"],
   ["whatsapp-business.md", "docs/marketing/whatsapp-business.md"],
   ["logo-primary.png", "public/brand/dtdcargo-isologo-primary.png"],
   ["logo-reverse.png", "public/brand/dtdcargo-isologo-reverse.png"],
@@ -41,7 +41,7 @@ const WHATSAPP: ReadonlyArray<readonly [string, string]> = [
 
 const BRAND_BOOK: readonly [string, string] = [
   "brand-book-v4.2.html",
-  "public/marca/brand-book-v4.2.html",
+  "private/marca/brand-book-v4.2.html",
 ];
 
 const BUNDLES: Record<

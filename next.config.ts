@@ -126,10 +126,13 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/interno/marca/d/[bundle]": [
       "./public/brand/**",
-      "./public/marca/brand-book-v4.2.html",
-      "./public/marca/herramientas/**",
+      "./private/marca/**",
       "./docs/marketing/whatsapp-business.md",
     ],
+    // Visor autenticado del Brand Book + herramientas: los HTML se movieron a
+    // `private/marca/` (fuera de `public/`) y se sirven por fs.read en esta ruta;
+    // hay que trazarlos para que viajen en el bundle de la función en prod.
+    "/marca/asset/[name]": ["./private/marca/**"],
   },
   async headers() {
     // El operario PWA (`/m/*`) necesita cámara (scan QR · QrScanner) y
