@@ -48,6 +48,7 @@
 | Comentarios + @menciones | 0045 | `app/studio/(app)/menciones/` + `_components/comments/` + `_actions/comments.ts` (embed en `tracking/[id]`) | `lib/studio/comments/` · `supabase/migrations/0090_comments.sql` |
 | Dirección · Tablero ejecutivo | 0048 | app/studio/(app)/direccion/ | lib/studio/direccion/ |
 | Documentos · Hub (DMS) | 0049 | app/studio/(app)/documentos/ + _components/documents/DocsPanel | lib/studio/documents/ · supabase/migrations/0097 |
+| Inventario de Consolidación (WMS) | 0080 | `app/studio/(app)/inventario/` *(propuesto)* | `lib/studio/inventory/` *(propuesto)* — derivación sobre warehouse_receipts_* + consolidations (SDD-0047) |
 
 ## Móvil PWA (operario)
 
