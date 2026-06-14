@@ -176,7 +176,7 @@ export default function ServiciosPage() {
         {/* Servicios en detalle — fichas desplegables (SDD-0063).
             Reemplaza las dos grillas de tarjetas cortas (Sede CN / Sede VE) por
             fichas a fondo con incluye/no-incluye/precio/cómo/tiempos. */}
-        <ServiciosDetalle />
+        <ServiciosDetalle servicios={SERVICIOS_DETALLE} />
 
         {/* Mapa de operación — dos oficinas + puente de coordinación */}
         <section className="py-16 lg:py-20" id="matriz">
