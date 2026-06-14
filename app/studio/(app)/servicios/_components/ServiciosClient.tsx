@@ -14,7 +14,12 @@ import {
   type MomentoTimeline,
 } from "@/lib/shared/service-catalog";
 import type { ServiceCatalogItem } from "@/lib/studio/service-catalog/queries";
-import { servicioPublishReadiness } from "@/lib/studio/service-catalog/types";
+import {
+  servicioPublishReadiness,
+  type ServiceFaq,
+  type ServiceAddon,
+  type ServicePriceEntry,
+} from "@/lib/studio/service-catalog/types";
 import { toggleServicePublishAction } from "@/lib/studio/service-catalog/actions";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -43,7 +48,17 @@ const STATE_LABEL: Record<string, string> = {
   "a-pedido": "A pedido",
 };
 
-export function ServiciosClient({ items }: { items: ServiceCatalogItem[] }) {
+export function ServiciosClient({
+  items,
+  faqs,
+  addons,
+  priceEntries,
+}: {
+  items: ServiceCatalogItem[];
+  faqs: ServiceFaq[];
+  addons: ServiceAddon[];
+  priceEntries: ServicePriceEntry[];
+}) {
   const toast = useToast();
   const [editingKey, setEditingKey] = useState<string | null>(null);
 
@@ -113,6 +128,11 @@ export function ServiciosClient({ items }: { items: ServiceCatalogItem[] }) {
         <ServicioDrawer
           item={editing}
           onClose={() => setEditingKey(null)}
+          faqs={faqs.filter((f) => f.service_key === editing.catalog.id)}
+          addons={addons.filter((a) => a.service_key === editing.catalog.id)}
+          priceEntries={priceEntries.filter(
+            (p) => p.service_key === editing.catalog.id,
+          )}
         />
       )}
     </div>

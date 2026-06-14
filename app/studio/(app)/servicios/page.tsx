@@ -10,13 +10,30 @@
  */
 
 import { createClient } from "@/lib/db/server";
-import { listServiceConfigs } from "@/lib/studio/service-catalog/queries";
+import {
+  listServiceConfigs,
+  listServiceFaqs,
+  listServiceAddons,
+  listAllPriceHistory,
+} from "@/lib/studio/service-catalog/queries";
 import { ServiciosClient } from "./_components/ServiciosClient";
 
 export const metadata = { title: "Servicios" };
 
 export default async function ServiciosPage() {
   const supabase = await createClient();
-  const items = await listServiceConfigs(supabase);
-  return <ServiciosClient items={items} />;
+  const [items, faqs, addons, priceEntries] = await Promise.all([
+    listServiceConfigs(supabase),
+    listServiceFaqs(supabase),
+    listServiceAddons(supabase),
+    listAllPriceHistory(supabase),
+  ]);
+  return (
+    <ServiciosClient
+      items={items}
+      faqs={faqs}
+      addons={addons}
+      priceEntries={priceEntries}
+    />
+  );
 }

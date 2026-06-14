@@ -148,6 +148,7 @@ export async function upsertServiceConfigAction(
   }
 
   revalidatePath("/studio/servicios");
+  revalidatePath("/servicios"); // el sitio público consume el contenido publicado
   return { ok: true };
 }
 
@@ -186,7 +187,7 @@ export async function toggleServicePublishAction(
   }
 
   revalidatePath("/studio/servicios");
-  // Fase 3: cuando el sitio consuma la RPC, revalidar también /servicios.
+  revalidatePath("/servicios"); // publicar/despublicar cambia lo que ve el sitio público
   return { ok: true };
 }
 

@@ -184,3 +184,15 @@ export async function listPriceHistory(
   if (error || !data) return [];
   return data as ServicePriceEntry[];
 }
+
+/** Historial de precios de TODOS los servicios (para poblar el editor del Studio). */
+export async function listAllPriceHistory(
+  supabase: SupabaseClient,
+): Promise<ServicePriceEntry[]> {
+  const { data, error } = await supabase
+    .from("service_price_history")
+    .select("id, service_key, monto_texto, moneda, valid_from, nota")
+    .order("valid_from", { ascending: false });
+  if (error || !data) return [];
+  return data as ServicePriceEntry[];
+}
