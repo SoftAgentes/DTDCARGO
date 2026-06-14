@@ -14,7 +14,7 @@ Generado desde `app-icon/icon-master-1024.png` (navy #0F1E3D + isólogo cream) y
 | `site.webmanifest` | — | Manifest PWA |
 
 ## Cómo instalarlo
-Copiá los archivos a la raíz del sitio y pegá en el `<head>`:
+Copia los archivos a la raíz del sitio y pega en el `<head>`:
 
 ```html
 <link rel="icon" href="/favicon.ico" sizes="any">

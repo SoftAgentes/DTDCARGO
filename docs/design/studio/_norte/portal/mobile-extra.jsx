@@ -280,7 +280,7 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
       </p>
 
       {rows.length === 0 ? (
-        <U.EmptyState icon={I.warehouse(22)} title="Sin proveedores aún" body="Agrega tu primera fábrica para pedir re-compras en un toque." />
+        <U.EmptyState icon={I.warehouse(22)} title="Sin proveedores aún" body="Agregá tu primera fábrica para pedir re-compras en un toque." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {rows.map(r => (

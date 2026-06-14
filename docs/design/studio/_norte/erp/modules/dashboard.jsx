@@ -647,7 +647,7 @@ function KpiEditor({ config, toggleKpi, moveKpi }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
           <span className="eyebrow eyebrow-wine">EN EL DASHBOARD · {config.kpis.length}</span>
           <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-          <span style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>Arrastrá para reordenar</span>
+          <span style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>Arrastra para reordenar</span>
         </div>
         {config.kpis.length === 0 ? (
           <div style={{

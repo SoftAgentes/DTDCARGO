@@ -673,7 +673,7 @@ function Step3Data({ t, reception, setReception, onBack, onNext }) {
           </div>
           }
           <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>{ranges.length === 0
-            ? t('¿Un solo artículo? Describilo acá. Si la caja trae cosas distintas, toca “Rango” y se separa por número de caja.', '单一物品？在此描述。如箱内不同，点“范围”按箱号分开。')
+            ? t('¿Un solo artículo? Descríbelo acá. Si la caja trae cosas distintas, toca “Rango” y se separa por número de caja.', '单一物品？在此描述。如箱内不同，点“范围”按箱号分开。')
             : t('Edita la descripción de cada rango abajo. Peso y CBM por rango son opcionales (vacío = prorrateo).', '在下方编辑每个范围的描述。每个范围的重量和体积可选（留空=分摊）。')}</div>
         </div>
 
@@ -706,7 +706,7 @@ function Step3Data({ t, reception, setReception, onBack, onNext }) {
 
           <div style={{ marginTop: 12, display: 'flex', gap: 16, alignItems: 'center', font: '600 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)', flexWrap: 'wrap' }}>
               <span>{t('Cajas cubiertas', '覆盖箱数')}: <b style={{ color: boxesCovered === (parseInt(reception.boxes) || 0) && boxesCovered > 0 ? 'var(--success)' : 'var(--ink)' }}>{boxesCovered}/{reception.boxes || 0}</b></span>
-              <span style={{ color: 'var(--ink-mute)' }}>{t('Vacío = prorrateo automático', '留空 = 自动分摊')}</span>
+              <span style={{ color: 'var(--ink-mute)' }}>{t('Vacío = prorrateo automatico', '留空 = 自动分摊')}</span>
             </div>
         </div>
         }
@@ -920,7 +920,7 @@ function DispatchFlow({ t, lang, onBack, onDone }) {
         {step === 0 &&
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ padding: 14, background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-              {t('Antes de cargar: revisa el precinto del contenedor vacío y toma varias fotos. Asegúrate de que esté en buen estado.', '装货前: 检查空柜的铅封并拍摄多张照片。确保其状态良好。')}
+              {t('Antes de cargar: revisa el precinto del contenedor vacío y toma varias fotos. Asegurate de que esté en buen estado.', '装货前: 检查空柜的铅封并拍摄多张照片。确保其状态良好。')}
             </div>
 
             <div>
@@ -1317,14 +1317,14 @@ function PrintQRSheet({ open, onClose, t, lang }) {
             }}>
                 <div style={{ color: target === 'office' ? 'var(--wine)' : 'var(--ink-soft)' }}>{window.Icon.building(24)}</div>
                 <div style={{ font: '800 12.5px/1.2 var(--f-display)', color: target === 'office' ? 'var(--wine)' : 'var(--ink)', marginTop: 6 }}>{t('Oficina · autoservicio', '办公室 · 自助')}</div>
-                <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{t('Subes y conectás por Bluetooth', '上楼通过蓝牙连接')}</div>
+                <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{t('Subes y conectas por Bluetooth', '上楼通过蓝牙连接')}</div>
                 <div style={{ marginTop: 6, padding: '2px 6px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 3, font: '700 9px/1 var(--f-sans)', display: 'inline-block' }}>{t('cola: 2 órdenes', '队列: 2个订单')}</div>
               </button>
             </div>
 
             {target === 'office' &&
           <div style={{ padding: '10px 12px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', marginBottom: 12, font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-                {t('Subes a la oficina, te conectás a la impresora por Bluetooth e imprimís tú mismo — sin que nadie intervenga. Ahí ves la cola y todas las recepciones.', '上楼到办公室，通过蓝牙连接打印机自行打印 — 无需他人干预。在那里可查看队列和所有接收。')}
+                {t('Subes a la oficina, te conectas a la impresora por Bluetooth e imprimes tú mismo — sin que nadie intervenga. Ahí ves la cola y todas las recepciones.', '上楼到办公室，通过蓝牙连接打印机自行打印 — 无需他人干预。在那里可查看队列和所有接收。')}
               </div>
           }
 

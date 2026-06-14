@@ -54,7 +54,7 @@ function MailingSignatures() {
         {/* RIGHT: signature editor */}
         <div>
           {sig && me ? <SignatureEditor key={editingUser} user={me} sig={sig} onTest={() => setTestOpen(true)} /> : (
-            <U.EmptyState icon={window.Icon.edit(22)} title="Sin firma configurada" body="Este usuario aún no tiene firma. Crea una desde acá." />
+            <U.EmptyState icon={window.Icon.edit(22)} title="Sin firma configurada" body="Este usuario aún no tiene firma. Creá una desde acá." />
           )}
         </div>
       </div>

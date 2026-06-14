@@ -8,7 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <style>
 /* ── DTD Studio · ERP · Design tokens ───────────────────────── */
-/* Tokens duales (light/dark) heredados del Brand Book v2.4.    */
+/* Tokens duales (light/dark) heredados del Brand Book v3.7.    */
 
 /* Fuentes del SISTEMA + utilidades (un solo punto · cubre todo
    consumidor de tokens.css): Nunito Sans (cuerpo), Sora (títulos),
@@ -768,7 +768,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
 <div class="section">
   <div class="section-head">
     <div><div class="num">10 / Watermark</div><h2>Marca de agua en fotos de mercadería</h2></div>
-    <p>Cada foto que sube el almacenista o el inspector lleva la marca DTD + el ID del embarque. Trazabilidad + branding.</p>
+    <p>Cada foto que sube el bodeguero o el inspector lleva la marca DTD + el ID del embarque. Trazabilidad + branding.</p>
   </div>
   <div class="row-2">
     <div class="card">
@@ -786,7 +786,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
     <div class="card paper">
       <div class="card-label">Aplicación</div>
       <p style="font-size: 13.5px; color: var(--ink-soft); margin: 0 0 12px;">
-        El almacenista saca foto desde la app móvil, el sistema le pega automáticamente:
+        El bodeguero saca foto desde la app móvil, el sistema le pega automáticamente:
       </p>
       <ul style="margin: 0; padding-left: 20px; color: var(--ink-soft); font-size: 13px;">
         <li>Isólogo cream en esquina (mono-light), pequeño</li>
@@ -892,7 +892,7 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
       <ol style="margin:0; padding-left:18px; font-size:13px; color:var(--ink-soft); line-height:1.85;">
         <li>Descarga los stickers (ya vienen <b>redondos, 512×512, transparentes</b>).</li>
         <li>Para enviar uno suelto: WhatsApp → adjuntar → <b>Sticker</b> → elige la imagen y manda (WhatsApp le agrega el borde blanco solo).</li>
-        <li>Para un <b>pack instalable</b>: usa una app de stickers (ej. <b>Sticker.ly</b> o “Stickers para WhatsApp”), crea el pack y sube los 12 <code>.webp</code>.</li>
+        <li>Para un <b>pack instalable</b>: usa una app de stickers (ej. <b>Sticker.ly</b> o “Stickers para WhatsApp”), creá el pack y sube los 12 <code>.webp</code>.</li>
         <li>El fondo transparente hace que el sticker se vea redondo sobre cualquier chat — claro u oscuro.</li>
       </ol>
     </div>
@@ -1081,7 +1081,7 @@ document.querySelectorAll('.btn').forEach(b => {
   if (b.dataset.template !== undefined) {
     b.addEventListener('click', () => _busy(b, async () => {
       const doc='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><title>DTD-Cargo · Estimado</title></head><body style="font-family:Arial,sans-serif;color:#0F1E3D;">'
-        +'<table width="100%"><tr><td><h1 style="color:#7F0F1A;margin:0;">DTD<span style="color:#0F1E3D;">Cargo</span></h1><div style="font-size:11px;color:#6B6B6B;">Doortudoor Services · RIF J-50648869-8</div></td><td align="right"><b>ESTIMADO</b><br>N°: F-2026-____<br>Fecha: __ / __ / 2026</td></tr></table><hr>'
+        +'<table width="100%"><tr><td><h1 style="color:#7F0F1A;margin:0;">DTD<span style="color:#0F1E3D;">Cargo</span></h1><div style="font-size:11px;color:#6B6B6B;">Doortudoor Services · RIF J-40558712-0</div></td><td align="right"><b>ESTIMADO</b><br>N°: F-2026-____<br>Fecha: __ / __ / 2026</td></tr></table><hr>'
         +'<p><b>Cliente:</b> ____________________  ·  <b>Shipping Mark:</b> DTD-____</p>'
         +'<table border="1" cellspacing="0" cellpadding="6" width="100%" style="border-collapse:collapse;font-size:13px;"><tr style="background:#F2F0EC;"><th align="left">Concepto</th><th align="right">Monto USD</th></tr><tr><td>Flete marítimo FCL</td><td align="right">$________</td></tr><tr><td>Servicio DDP · puerta a puerta</td><td align="right">$________</td></tr><tr><td>Seguro de carga</td><td align="right">$________</td></tr><tr><td align="right"><b>Total</b></td><td align="right"><b>$________</b></td></tr></table>'
         +'<p style="font-size:12px;color:#6B6B6B;">Con Confianza, de China a tu puerta.</p></body></html>';

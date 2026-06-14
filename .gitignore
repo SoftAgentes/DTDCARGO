@@ -89,6 +89,13 @@ docs/design/studio/_norte/uploads/
 docs/design/studio/_norte/_archivo/uploads/
 docs/design/studio/_norte/scraps/
 docs/design/studio/_norte/screenshots/
+# v4.2 (2026-06-14): binarios de marca pesados (wallpapers, fondos de Trello, paquete
+# "para-enviar" con el standalone base64) + scratch del design-canvas → fuera de git.
+docs/design/studio/_norte/fondos/
+docs/design/studio/_norte/trello/
+docs/design/studio/_norte/para-enviar/
+docs/design/studio/_norte/.design-canvas.state.json
+docs/design/studio/_norte/.thumbnail
 docs/design/studio/_norte/_norte.html
 # Blueprint Prisma que Cloud Design re-incluye en cada handoff. Decisión founder
 # 2026-06-03: backend NATIVO Supabase, NO Prisma → schema.prisma fuera de git

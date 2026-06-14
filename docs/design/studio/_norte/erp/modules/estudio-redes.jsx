@@ -279,7 +279,7 @@ function SRRegistry() {
         <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <span style={{ color: 'var(--wine)' }}>{window.Icon.download(18)}</span>
           <div style={{ flex: 1, font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            <b>Registro automático:</b> cada PNG que se descarga del Generador Redes (incluido el catálogo) queda asentado acá. Asigna cada pieza a su campaña para mantener la trazabilidad — sin aprobación previa, solo registro.
+            <b>Registro automático:</b> cada PNG que se descarga del Generador Redes (incluido el catálogo) queda asentado acá. Asigná cada pieza a su campaña para mantener la trazabilidad — sin aprobación previa, solo registro.
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <U.Btn variant="ghost" size="sm" icon={window.Icon.refresh ? window.Icon.refresh(13) : null} onClick={() => setItems(_srLoad())}>Actualizar</U.Btn>

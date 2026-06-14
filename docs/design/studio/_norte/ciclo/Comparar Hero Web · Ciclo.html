@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparar Hero Web · contenedor 0 / 30 / 45 %</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<style>
+  body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans);
+         padding: var(--s-10) var(--s-8) var(--s-16); }
+  .head { max-width: 1180px; margin: 0 auto var(--s-8); }
+  .eyebrow { margin-bottom: var(--s-3); }
+  h1 { font: 700 30px/1.1 var(--f-display); letter-spacing: -0.01em; margin: 0 0 var(--s-2); }
+  .lede { font: 400 15px/1.5 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 70ch; }
+
+  .stack { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--s-10); }
+  .opt-head { display: flex; align-items: center; gap: var(--s-3); margin-bottom: var(--s-3); }
+  .opt-head h2 { font: 700 19px/1.2 var(--f-display); margin: 0; }
+  .pct { font: 600 12px/1 var(--f-mono); color: var(--wine); background: var(--bg-surface); border: 1px solid var(--border);
+         padding: 5px 9px; border-radius: var(--r-pill); }
+  .tag { font: 600 9.5px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px; border-radius: var(--r-pill);
+         background: var(--bg-sidebar); color: #F2F0EC; }
+  .frame { width: 100%; aspect-ratio: 1280 / 800; border: 1px solid var(--border); border-radius: var(--r-lg);
+           overflow: hidden; box-shadow: var(--shadow-lg); background: #d9d6d0; }
+  .frame iframe { width: 1280px; height: 800px; border: 0; transform-origin: top left; }
+
+  .foot-note { max-width: 1180px; margin: var(--s-10) auto 0; font: 400 13px/1.55 var(--f-sans); color: var(--ink-mute);
+               border-top: 1px solid var(--border); padding-top: var(--s-5); }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="eyebrow eyebrow-wine">Hero web · www.dtdcargo.com · comparación</div>
+    <h1>Hero completo · contenedor de fondo 0 % / 30 % / 45 %</h1>
+    <p class="lede">El hero real, apilado en sus 3 variantes. Es el mismo hero (con el bucle del ciclo) — solo cambia cuánto se aprecia el contenedor de marca detrás del bucle. Decime con cuál te quedás.</p>
+  </div>
+
+  <div class="stack" id="stack"></div>
+
+  <p class="foot-note">Cada bloque es el archivo “Hero Web · Ciclo DTD.html” cargado en vivo (animación incluida). El que quede elegido se deja fijo en ese archivo para producción.</p>
+
+  <script>
+    const opts = [
+      { bg: '0',    title: 'Sin contenedor', pct: '0 %',  tag: 'Limpio' },
+      { bg: '0.30', title: 'Contenedor 30 %', pct: '30 %', tag: 'Sutil' },
+      { bg: '0.45', title: 'Contenedor 45 %', pct: '45 %', tag: 'Presente' },
+    ];
+    const stack = document.getElementById('stack');
+    const HERO = 'Hero Web · Ciclo DTD.html';
+
+    opts.forEach(o => {
+      const block = document.createElement('div');
+      block.innerHTML =
+        '<div class="opt-head"><h2>' + o.title + '</h2>' +
+        '<span class="tag">' + o.tag + '</span><span class="pct">' + o.pct + '</span></div>' +
+        '<div class="frame"><iframe src="' + encodeURI(HERO) + '?bg=' + o.bg + '"></iframe></div>';
+      stack.appendChild(block);
+    });
+
+    function scaleFrames(){
+      document.querySelectorAll('.frame').forEach(f => {
+        const s = f.clientWidth / 1280;
+        const ifr = f.querySelector('iframe');
+        ifr.style.transform = 'scale(' + s + ')';
+      });
+    }
+    window.addEventListener('resize', scaleFrames);
+    requestAnimationFrame(scaleFrames);
+    setTimeout(scaleFrames, 400);
+  </script>
+</body>
+</html>

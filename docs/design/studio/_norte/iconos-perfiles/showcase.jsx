@@ -2,7 +2,7 @@
 
 const ROLES = [
   { id: 'almacenista',    Glyph: GlyphAlmacenista,    wa: '+58 424 950 8848', wc: 'dtd-warehouse-ve', desc: 'Recepción, picking, packing y despacho desde bodega Valencia y reexpediciones a clientes finales.' },
-  { id: 'transportista',  Glyph: GlyphTransportista,  wa: '+58 424 950 8848', wc: 'dtd-driver-01',    desc: 'Misma persona que el Almacenista — un número, dos roles. Transportistas y conductores de última milla. Coordinan entrega puerta-a-puerta dentro de Venezuela.' },
+  { id: 'transportista',  Glyph: GlyphTransportista,  wa: '+58 424 950 8848', wc: 'dtd-driver-01',    desc: 'Misma persona que el Almacenista — un número, dos roles. Camioneros y conductores de última milla. Coordinan entrega puerta-a-puerta dentro de Venezuela.' },
   { id: 'logistica',      Glyph: GlyphLogistica,      wa: '+58 414 888 8805', wc: 'dtd-routing-cnve', desc: 'Routing CN→VE, tracking de buques, coordinación con freight forwarders y agentes de aduana.' },
   { id: 'administracion', Glyph: GlyphAdministracion, wa: '+58 241 414 7886', wc: 'dtd-backoffice',   desc: 'Back office: contratos, documentación, aprobación de RIF/cédula y onboarding de clientes nuevos.' },
   { id: 'contabilidad',   Glyph: GlyphContabilidad,   wa: '+58 414 887 0000', wc: 'dtd-accounting',   desc: 'Facturación, conciliación bancaria, balances en USD/Bs y reporte mensual al management.' },

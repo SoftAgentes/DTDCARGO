@@ -701,7 +701,7 @@ const THREADS = {
         { id: 'r1', author: 'u-005', at: 'hace 2 días', body: '@Martina A. recibido. Lo estoy monitoreando — ETA Pto Cabello sigue para el 12 jun. En cuanto el agente confirme liberación te aviso acá mismo.', mentions: ['u-002'], reactions: { '✓': ['u-002'] }, replies: [
           { id: 'r1a', author: 'u-002', at: 'hace 1 día', body: 'Perfecto, gracias. Dejo agendado el flete tentativo para el 13.', mentions: [], reactions: {}, replies: [] },
         ] },
-        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegúrate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
+        { id: 'r2', author: 'u-001', at: 'hace 6 h', body: 'Cliente confirmó disponibilidad de recepción en Valencia. @Diego N. asegurate que el reparto esté coordinado con el chofer asignado.', mentions: ['u-003'], reactions: { '👀': ['u-003'] }, replies: [
           { id: 'r2a', author: 'u-003', at: 'hace 5 h', body: 'Coordinado. Chofer Luis Hernández (T-001) confirmado para el 13 a primera hora.', mentions: [], reactions: { '🔥': ['u-001', 'u-002'] }, replies: [] },
         ] },
       ],
@@ -712,7 +712,7 @@ const THREADS = {
     created: 'hace 4 h', status: 'abierto',
     root: {
       id: 'c30', author: 'u-006', at: 'hace 4 h',
-      body: 'Factura vencida hace 10 días. @Martina A. ¿puedes llamar al cliente? Ya mandamos 2 recordatorios automáticos sin respuesta.',
+      body: 'Factura vencida hace 10 días. @Martina A. ¿puedes llamar al cliente? Ya mandamos 2 recordatorios automaticos sin respuesta.',
       mentions: ['u-002'], reactions: {},
       replies: [
         { id: 'fr1', author: 'u-002', at: 'hace 3 h', body: 'Lo llamo hoy. Carlos me comentó la semana pasada que estaban esperando liberar el contenedor para pagar. @Andrés B. ¿le damos 5 días más?', mentions: ['u-006'], reactions: {}, replies: [] },
@@ -1108,7 +1108,7 @@ const CLIENT_ACCOUNTS = {
       { date: '2026-04-22', kind: 'factura',      ref: 'F-2026-0395',   desc: 'DTDU-388157 · maletas + bolsos',            debit: 32200, credit: 0,    balance: 32200 },
       { date: '2026-04-08', kind: 'pago',         ref: 'CASH-8842',     desc: 'Pago F-2026-0367 · efectivo USD',           debit: 0,     credit: 24600, balance: 0 },
     ],
-    notes: 'Patricia tiende a atrasarse 30d. Mantener recordatorios automáticos. Bloquear nuevas órdenes si saldo > $30K.',
+    notes: 'Patricia tiende a atrasarse 30d. Mantener recordatorios automaticos. Bloquear nuevas órdenes si saldo > $30K.',
   },
   'DTD-5321': { // Salazar — problematic
     creditLimit: 0, creditDays: 0, discount: 0,

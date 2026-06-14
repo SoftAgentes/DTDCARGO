@@ -274,7 +274,7 @@ function ModuleCalendar({ goTo, currentUser }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)' }}>
                 <span style={{ color: 'var(--wine)' }}>{window.Icon.flow(13)}</span>
-                Arrastrá un evento (ETD / ETA / POD) a otro día para reprogramarlo.
+                Arrastra un evento (ETD / ETA / POD) a otro día para reprogramarlo.
               </span>
               {movedCount > 0 &&
             <button onClick={resetOverrides} style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 11px', borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', border: '1px solid var(--wine)', font: '700 11.5px/1 var(--f-sans)', cursor: 'pointer' }}>
@@ -581,7 +581,7 @@ function MonthGrid({ cursor, events, today, onDayClick, onEventDragStart, onDayD
                 onDragStart={(ev) => {ev.stopPropagation();ev.dataTransfer.effectAllowed = 'move';onEventDragStart && onEventDragStart(e);}}
                 onDragEnd={() => onEventDragStart && onEventDragStart(null)}
                 onClick={(ev) => ev.stopPropagation()}
-                title={e.moved ? `Reprogramado · arrastrá para mover de nuevo` : `Arrastrá para reprogramar`}
+                title={e.moved ? `Reprogramado · arrastra para mover de nuevo` : `Arrastra para reprogramar`}
                 style={{
                   padding: '2px 6px', borderRadius: 3,
                   background: `${toneColor(e.tone)}22`,

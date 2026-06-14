@@ -213,7 +213,7 @@
                 <U.Select value={cond} onChange={(e) => setCond(e.target.value)} options={['Siempre', 'Cantidad ≥', 'CBM ≥', 'Monto ≥', 'Peso/CBM ≥'].map(x => ({ value: x, label: x }))} />
                 {needsN && <window.ERPUI.CalcInput value={condN} onChange={(e) => setCondN(e.target.value)} placeholder={cond === 'CBM ≥' ? 'CBM' : (cond === 'Monto ≥' ? '$' : (cond === 'Peso/CBM ≥' ? 'kg/CBM' : 'ítems'))} style={{ ...ib, width: 120, fontFamily: 'var(--f-mono)', fontWeight: 700 }} />}
               </div>
-              <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 7 }}>Ej.: si el cliente lleva <b>≥ 10 CBM</b> (o ítems) → descuento automático. Con <b>Peso/CBM ≥ 500</b> → si un CBM excede los 500 kg, se cobra la tarifa de <b>exceso de peso</b> (el “Monto” es el precio por el extra).</div>
+              <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 7 }}>Ej.: si el cliente lleva <b>≥ 10 CBM</b> (o ítems) → descuento automatico. Con <b>Peso/CBM ≥ 500</b> → si un CBM excede los 500 kg, se cobra la tarifa de <b>exceso de peso</b> (el “Monto” es el precio por el extra).</div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div><Lab opt>Fecha de inicio</Lab><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} style={ib} /></div>
@@ -285,7 +285,7 @@
         )}
         {view === 'reglas' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Ajustes automáticos de precio por cliente, volumen o temporada — se aplican sobre la tarifa vigente al estimar.</div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>Ajustes automaticos de precio por cliente, volumen o temporada — se aplican sobre la tarifa vigente al estimar.</div>
             {RULES.map(([t, d, tone]) => (
               <div key={t} style={row}>
                 <span style={{ color: 'var(--wine)' }}>{ic('tag', 15, 'box')}</span>
@@ -498,7 +498,7 @@
     const ib = { width: '100%', padding: '9px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', font: '500 13px/1.3 var(--f-sans)', color: 'var(--ink)' };
     return (
       <div ref={boxRef} style={{ position: 'relative' }}>
-        <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={onKey} placeholder="Busá y agrega productos/servicios… (↑↓ + Enter)" style={ib} />
+        <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)} onKeyDown={onKey} placeholder="Busca y agrega productos/servicios… (↑↓ + Enter)" style={ib} />
         {open && (
           <div style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, maxHeight: 220, overflowY: 'auto', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-lg)', zIndex: 6 }}>
             {avail.length === 0 ? (
@@ -711,7 +711,7 @@
                         onChange={(v) => setSupplier(v)}
                         onCreate={(name) => { const n = (name || '').trim(); if (!n) return; setNewSupps(x => x.includes(n) ? x : [...x, n]); setSupplier(n); }}
                         options={[...SUPPLIERS_CN, ...newSupps].map(s => ({ value: s, label: s, sub: newSupps.includes(s) ? 'Proveedor nuevo' : 'Proveedor CN' }))} />
-                      <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 7 }}>Al crear un gasto/bill con este servicio, el sistema sugiere este proveedor automáticamente. Es solo una referencia — no afecta la contabilidad.</div>
+                      <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 7 }}>Al crear un gasto/bill con este servicio, el sistema sugiere este proveedor automaticamente. Es solo una referencia — no afecta la contabilidad.</div>
                     </div>
                   )}
                 </React.Fragment>
@@ -766,7 +766,7 @@
                   <input type="checkbox" checked={showComps} onChange={(e) => setShowComps(e.target.checked)} style={{ accentColor: 'var(--wine)', width: 16, height: 16, marginTop: 1 }} />
                   <div>
                     <div style={{ font: '700 12px/1.3 var(--f-sans)', color: 'var(--ink)' }}>Mostrar los componentes al imprimir o enviar transacciones</div>
-                    <div style={{ font: '500 11px/1.45 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>Si está <b>desmarcado</b>, en la factura el cliente ve solo el título del paquete. Si lo <b>marcás</b>, ve el desglose línea por línea.</div>
+                    <div style={{ font: '500 11px/1.45 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>Si está <b>desmarcado</b>, en la factura el cliente ve solo el título del paquete. Si lo <b>marcas</b>, ve el desglose línea por línea.</div>
                   </div>
                 </label>
 

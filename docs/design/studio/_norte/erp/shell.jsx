@@ -49,6 +49,8 @@ const MODULES = [
   { id: 'users',      group: 'SISTEMA',    label: 'Usuarios',       icon: 'idcard' },
   { id: 'operarios',  group: 'SISTEMA',    label: 'Operarios PWA',  icon: 'hardhat' },
   { id: 'admin',      group: 'SISTEMA',    label: 'Administración', icon: 'cog' },
+  { id: 'launcher',   group: 'SISTEMA',    label: 'Apps · Launcher', icon: 'flow',  href: 'DTD Apps · Launcher.html' },
+  { id: 'brandhub',   group: 'SISTEMA',    label: 'Brand Hub · marca', icon: 'spark', href: 'Brand Hub · DTD-Cargo.html' },
 ];
 
 // ── Sub-grupos (parents anidados dentro de un grupo) ──────────
@@ -75,7 +77,7 @@ function DTDLogo({ collapsed = false, dark = true }) {
             <span style={{ color: 'var(--ink-nav)' }}>STUDIO</span>
           </span>
           <span style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-nav-soft)', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 4 }}>
-            ERP · v2.5
+            ERP · v4.2
           </span>
         </div>
       )}
@@ -381,15 +383,15 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
         gap: 8,
         borderBottom: '1px solid var(--border-nav)',
         position: 'relative',
-        cursor: collapsed ? 'pointer' : 'default',
+        cursor: 'pointer',
       }}
-      onClick={collapsed ? onToggleCollapse : undefined}
-      title={collapsed ? 'Expandir sidebar' : undefined}
+      onClick={onToggleCollapse}
+      title={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
       >
         <DTDLogo collapsed={collapsed} />
         {!collapsed && (
           <button
-            onClick={onToggleCollapse}
+            onClick={(e) => { e.stopPropagation(); onToggleCollapse(); }}
             title="Colapsar sidebar"
             style={{
               width: 26, height: 26, flexShrink: 0,
@@ -465,7 +467,7 @@ function Sidebar({ active, onSelect, collapsed, onToggleCollapse, currentUser })
         </button>
       </div>
       {!collapsed && (
-        <div onPointerDown={startResize} title="Arrastrá para ajustar el ancho del menú"
+        <div onPointerDown={startResize} title="Arrastra para ajustar el ancho del menú"
           style={{ position: 'absolute', top: 0, right: 0, bottom: 0, width: 5, cursor: 'ew-resize', zIndex: 60 }}
           onMouseEnter={(e) => e.currentTarget.style.background = 'var(--wine-soft)'}
           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'} />

@@ -210,6 +210,28 @@
 
     <div class="people" id="people"></div>
 
+    <div class="editor" id="editor" hidden style="background:var(--bg-surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:var(--s-5);margin-bottom:var(--s-5);box-shadow:var(--shadow-xs);">
+      <div style="font:700 10px/1 var(--f-sans);letter-spacing:.1em;text-transform:uppercase;color:var(--wine);margin-bottom:14px;">Tu tarjeta · datos del empleado</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <label class="efield"><span>Nombre y apellido</span><input id="e-name" type="text" placeholder="Ej: Carla Pérez"></label>
+        <label class="efield"><span>Cargo</span><input id="e-role" type="text" placeholder="Ej: Ejecutiva de Cuenta"></label>
+        <label class="efield"><span>Teléfono</span><input id="e-phone" type="text" placeholder="+58 ..."></label>
+        <label class="efield"><span>Email</span><input id="e-email" type="text" placeholder="nombre@dtdcargo.com"></label>
+        <label class="efield"><span>Dirección</span><input id="e-street" type="text" placeholder="Av. Bolívar Norte 14"></label>
+        <label class="efield"><span>Ciudad</span><input id="e-city" type="text" placeholder="Valencia"></label>
+        <label class="efield"><span>Región / Estado</span><input id="e-region" type="text" placeholder="Carabobo"></label>
+        <label class="efield"><span>País</span><input id="e-country" type="text" placeholder="Venezuela"></label>
+      </div>
+      <p style="font:400 11px/1.5 var(--f-sans);color:var(--ink-mute);margin:12px 0 0;">Se actualiza en vivo: la tarjeta, el código QR y la vCard descargable. El web es <b>dtdcargo.com</b> y el RIF es fijo.</p>
+    </div>
+    <style>
+      .efield{display:flex;flex-direction:column;gap:5px;}
+      .efield span{font:600 11px/1.2 var(--f-sans);color:var(--ink-soft);}
+      .efield input{font:500 13px/1.4 var(--f-sans);color:var(--ink);background:var(--bg-base);border:1px solid var(--border);border-radius:var(--r-sm);padding:9px 11px;outline:none;}
+      .efield input:focus{border-color:var(--wine);box-shadow:0 0 0 3px var(--wine-bg);}
+      @media (max-width:620px){ .editor > div:nth-child(2){grid-template-columns:1fr !important;} }
+    </style>
+
     <div class="stage">
       <div class="card-stack">
         <div class="card face-front" id="card-front">
@@ -294,7 +316,7 @@
   <div class="section" id="print-area">
     <div class="section-head">
       <div><div class="num">03 / Pliego</div><h2>Imposición con marcas de corte</h2></div>
-      <p>Vista a tamaño real con sangrado y marcas de corte. Imprime esta página para una prueba 1:1.</p>
+      <p>Vista a tamaño real con sangrado y marcas de corte. Imprimí esta página para una prueba 1:1.</p>
     </div>
     <p class="sheet-note">Cada tarjeta se muestra con su caja de sangrado (91 × 61 mm) y marcas de corte en las cuatro esquinas. Al imprimir, solo se incluye este pliego, a escala 1:1.</p>
     <div class="impo">
@@ -435,9 +457,51 @@ function render(i){
     b.className = 'pbtn'; b.type = 'button'; b.setAttribute('aria-pressed', 'false');
     b.innerHTML = '<span class="ini">'+p.ini+'</span><span class="tx"><span class="n">'+
       (p.cn ? p.name+' '+p.cn : p.name)+'</span><span class="r">'+p.role+'</span></span>';
-    b.addEventListener('click', function(){ render(i); });
+    b.addEventListener('click', function(){ document.getElementById('editor').hidden = true; render(i); });
     host.appendChild(b);
   });
+
+  // ── "Tu tarjeta" · empleado nuevo editable ──
+  var CUSTOM = {
+    ini: 'TU', name: 'Tu Nombre', cn: '', role: 'Tu Cargo', roleCn: '',
+    phone: '+58 ', email: 'nombre@dtdcargo.com', web: 'dtdcargo.com',
+    adr: 'Av. Bolívar Norte 14, Valencia · VE',
+    adrParts: { street:'Av. Bolívar Norte 14', city:'Valencia', region:'Carabobo', country:'Venezuela' }
+  };
+  var customIdx = TEAM.push(CUSTOM) - 1;
+
+  var eb = document.createElement('button');
+  eb.className = 'pbtn'; eb.type = 'button'; eb.setAttribute('aria-pressed', 'false');
+  eb.innerHTML = '<span class="ini">+</span><span class="tx"><span class="n">Tu tarjeta</span><span class="r">Empleado nuevo · editable</span></span>';
+  eb.addEventListener('click', function(){ document.getElementById('editor').hidden = false; render(customIdx); });
+  host.appendChild(eb);
+
+  function initials(name){
+    var parts = name.trim().split(/\s+/).filter(Boolean);
+    if(!parts.length) return 'DD';
+    return ((parts[0][0]||'') + (parts.length>1 ? parts[parts.length-1][0] : (parts[0][1]||''))).toUpperCase();
+  }
+  function syncCustom(){
+    CUSTOM.name = document.getElementById('e-name').value || 'Tu Nombre';
+    CUSTOM.role = document.getElementById('e-role').value || 'Tu Cargo';
+    CUSTOM.phone = document.getElementById('e-phone').value || '+58 ';
+    CUSTOM.email = document.getElementById('e-email').value || 'nombre@dtdcargo.com';
+    CUSTOM.adrParts = {
+      street: document.getElementById('e-street').value || '',
+      city: document.getElementById('e-city').value || '',
+      region: document.getElementById('e-region').value || '',
+      country: document.getElementById('e-country').value || ''
+    };
+    var ap = CUSTOM.adrParts;
+    CUSTOM.adr = [ap.street, ap.city, ap.country].filter(Boolean).join(', ') || '—';
+    CUSTOM.ini = initials(CUSTOM.name);
+    eb.querySelector('.ini').textContent = CUSTOM.ini === 'TU' ? '+' : CUSTOM.ini;
+    render(customIdx);
+  }
+  ['e-name','e-role','e-phone','e-email','e-street','e-city','e-region','e-country'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.addEventListener('input', syncCustom);
+  });
+
   render(0);
 })();
 

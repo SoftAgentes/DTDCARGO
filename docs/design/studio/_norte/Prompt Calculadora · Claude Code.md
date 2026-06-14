@@ -131,7 +131,7 @@ density      = peso / cbm
 - **B · CBM > 68**: deriva → "Eso es más que un contenedor. Consulte a su asesor."
 - **C · Peso > 27.000**: deriva → "Esto es más que el peso permitido por contenedor; consulte a su asesor."
 - **D · Densidad > 600**: **muestra el estimado** + alerta "DENSIDAD ALTA":
-  > Tu carga tiene {density} kg/CBM, supera el máximo de 600 kg/CBM. Necesitás FCL o cotización personalizada — escribinos por WhatsApp.
+  > Tu carga tiene {density} kg/CBM, supera el máximo de 600 kg/CBM. Necesitas FCL o cotización personalizada — escríbenos por WhatsApp.
 - **Normal:** muestra Total + desglose.
 
 Etiqueta del CTA: **"Cotizar por WhatsApp"** en cotización normal; **"Consultar con un asesor"** cuando deriva (E/B/C/D).

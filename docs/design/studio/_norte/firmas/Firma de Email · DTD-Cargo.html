@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Firma de Email · DTD-Cargo</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: var(--bg-elevated); color: var(--ink); font-family: var(--f-sans); }
+  body { display: flex; overflow: hidden; }
+
+  /* Panel */
+  .panel { width: 340px; flex: 0 0 340px; height: 100vh; overflow-y: auto; background: var(--bg-surface); border-right: 1px solid var(--border); padding: var(--s-6); }
+  .panel h1 { font: 700 18px/1.2 var(--f-display); margin: 0 0 var(--s-1); }
+  .panel .lede { font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); margin: 0 0 var(--s-6); }
+  .grp { margin-bottom: var(--s-6); }
+  .grp-t { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--wine); margin: 0 0 var(--s-3); }
+  .field { margin-bottom: var(--s-3); }
+  .field label { display: block; font: 600 11px/1.2 var(--f-sans); color: var(--ink-soft); margin-bottom: 5px; }
+  .field input { width: 100%; font: 400 13px/1.4 var(--f-sans); color: var(--ink); background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 9px 11px; outline: none; }
+  .field input:focus { border-color: var(--wine); box-shadow: 0 0 0 3px var(--wine-bg); }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+  .layouts { display: flex; flex-direction: column; gap: var(--s-2); }
+  .lbtn { cursor: pointer; appearance: none; text-align: left; border: 1px solid var(--border); background: var(--bg-base); color: var(--ink); border-radius: var(--r-md); padding: 11px 13px; transition: all .14s; }
+  .lbtn:hover { border-color: var(--ink-mute); }
+  .lbtn.on { border-color: var(--wine); background: var(--wine-bg); }
+  .lbtn b { font: 700 13px/1.2 var(--f-display); display: block; }
+  .lbtn span { font: 500 11px/1.3 var(--f-sans); color: var(--ink-soft); }
+  .toggle { display: flex; align-items: center; gap: 9px; font: 600 12.5px/1.3 var(--f-sans); color: var(--ink); cursor: pointer; margin-bottom: var(--s-2); }
+  .toggle input { width: 16px; height: 16px; accent-color: var(--wine); }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; height: 100vh; }
+  .toolbar { height: 60px; flex: 0 0 60px; display: flex; align-items: center; justify-content: space-between; padding: 0 var(--s-6); background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .toolbar .ttl { font: 700 14px/1 var(--f-display); }
+  .actions { display: flex; gap: var(--s-3); }
+  .btn { appearance: none; cursor: pointer; font: 600 13px/1 var(--f-sans); border-radius: var(--r-md); padding: 10px 16px; border: 1px solid var(--border); background: var(--bg-base); color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
+  .btn:hover { border-color: var(--ink-mute); }
+  .btn.primary { background: var(--wine); color: #fff; border-color: var(--wine); }
+  .btn.primary:hover { background: var(--wine-deep); }
+  .btn.ok { background: var(--success); color: #fff; border-color: var(--success); }
+  .btn svg { width: 15px; height: 15px; }
+
+  .stage { flex: 1; overflow-y: auto; padding: var(--s-10) var(--s-8); }
+  .stage-in { max-width: 720px; margin: 0 auto; }
+  .lbl { font: 700 10px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: var(--s-3); }
+
+  /* Email mock */
+  .mail { background: #fff; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-md); overflow: hidden; }
+  .mail-head { padding: var(--s-5) var(--s-6); border-bottom: 1px solid var(--border); }
+  .mail-head .from { font: 600 13px/1.4 var(--f-sans); color: var(--ink); }
+  .mail-head .sub { font: 400 12px/1.4 var(--f-sans); color: var(--ink-mute); }
+  .mail-body { padding: var(--s-6); }
+  .mail-body .greet { font: 400 14px/1.6 var(--f-sans); color: var(--ink-soft); margin-bottom: var(--s-6); }
+  #preview { }
+  .divider { height: 1px; background: var(--border); margin: var(--s-6) 0; }
+
+  .code-wrap { margin-top: var(--s-8); }
+  .code-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-3); }
+  #code { background: var(--bg-sidebar); color: #d9d6e3; font: 400 11px/1.6 var(--f-mono); padding: var(--s-5); border-radius: var(--r-md); overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow-y: auto; margin: 0; }
+  .help { margin-top: var(--s-6); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s-5); font: 400 12.5px/1.6 var(--f-sans); color: var(--ink-soft); }
+  .help b { color: var(--ink); }
+  .help ol { margin: var(--s-2) 0 0; padding-left: 1.2em; }
+</style>
+</head>
+<body>
+  <aside class="panel">
+    <h1>Firma de email</h1>
+    <p class="lede">Completá tus datos, elegí el formato y copiá la firma. Pegala directo en Gmail u Outlook — viene con el isólogo incrustado.</p>
+
+    <div class="grp">
+      <div class="grp-t">Formato</div>
+      <div class="layouts">
+        <button class="lbtn" data-l="horizontal"><b>Horizontal</b><span>Isólogo + datos al lado. El estándar.</span></button>
+        <button class="lbtn" data-l="compact"><b>Compacta</b><span>Una o dos líneas. Para respuestas rápidas.</span></button>
+        <button class="lbtn" data-l="card"><b>Tarjeta</b><span>Wordmark arriba + barra wine.</span></button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Tus datos</div>
+      <div class="field"><label>Nombre y apellido</label><input id="f-name" type="text"></div>
+      <div class="field"><label>Cargo</label><input id="f-role" type="text"></div>
+      <div class="row2">
+        <div class="field"><label>Móvil</label><input id="f-mobile" type="text"></div>
+        <div class="field"><label>Oficina</label><input id="f-office" type="text"></div>
+      </div>
+      <div class="field"><label>Email</label><input id="f-email" type="text"></div>
+      <div class="row2">
+        <div class="field"><label>Sitio</label><input id="f-site" type="text"></div>
+        <div class="field"><label>Ciudad</label><input id="f-city" type="text"></div>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Mostrar</div>
+      <label class="toggle"><input id="f-tagline" type="checkbox"> Tagline “Con Confianza…”</label>
+      <label class="toggle"><input id="f-addr" type="checkbox"> Dirección + RIF</label>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="toolbar">
+      <div class="ttl">Vista previa</div>
+      <div class="actions">
+        <button class="btn" id="copy-code">Copiar HTML</button>
+        <button class="btn primary" id="copy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          Copiar firma
+        </button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="stage-in">
+        <div class="lbl">Así se ve al final de tu correo</div>
+        <div class="mail">
+          <div class="mail-head">
+            <div class="from">Tú · DTD-Cargo</div>
+            <div class="sub">Para: cliente@ejemplo.com · Asunto: Cotización DDP</div>
+          </div>
+          <div class="mail-body">
+            <div class="greet">Hola, te paso la información solicitada. Quedo atento a cualquier duda.</div>
+            <div class="divider"></div>
+            <div id="preview"></div>
+          </div>
+        </div>
+
+        <div class="code-wrap">
+          <div class="code-head"><div class="lbl" style="margin:0;">Código HTML de la firma</div></div>
+          <pre id="code"></pre>
+        </div>
+
+        <div class="help">
+          <b>Cómo instalarla</b>
+          <ol>
+            <li><b>Gmail:</b> Ajustes → Ver toda la configuración → Firma → tocá “Copiar firma” acá y pegá (Ctrl/Cmd+V) en el cuadro.</li>
+            <li><b>Outlook:</b> Archivo → Opciones → Correo → Firmas → pegá en el editor.</li>
+            <li>Si tu cliente de correo no acepta el pegado con formato, usá “Copiar HTML” e importá el código.</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="firma.js"></script>
+</body>
+</html>

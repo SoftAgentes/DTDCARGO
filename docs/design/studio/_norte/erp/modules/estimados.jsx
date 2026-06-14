@@ -72,7 +72,7 @@ function ModuleEstimados({ goTo, view, setView, selectedId, setSelectedId }) {
       />
 
       {filtered.length === 0 ? (
-        <U.EmptyState icon={window.Icon.calc(22)} title="No hay estimados" body="Crea un estimado nueva. Las aceptadas se convierten automáticamente en embarques." action={<U.Btn variant="primary" onClick={() => { setView('create'); setDrawerKind('create'); }}>Nuevo estimado</U.Btn>} />
+        <U.EmptyState icon={window.Icon.calc(22)} title="No hay estimados" body="Creá un estimado nueva. Las aceptadas se convierten automáticamente en embarques." action={<U.Btn variant="primary" onClick={() => { setView('create'); setDrawerKind('create'); }}>Nuevo estimado</U.Btn>} />
       ) : (
         <U.Table columns={columns} rows={filtered} onRowClick={(r) => { setSelectedId(r.id); setView('detail'); setDrawerKind('detail'); }} />
       )}
@@ -127,7 +127,10 @@ function QuoteCalculator() {
   const [height, setHeight] = React.useState('50');
   const [weight, setWeight] = React.useState('450');
   const [embalaje, setEmbalaje] = React.useState('carton');
-  const [rate, setRate] = React.useState('800');
+  // Tarifa base + vigencia desde el puente del ERP (módulo Tarifas) → misma
+  // fuente de verdad que la calculadora del cliente y el cotizador rápido.
+  const _erpTar = (() => { try { return (window.DTDData && window.DTDData.getCbmTariff) ? window.DTDData.getCbmTariff() : null; } catch (e) { return null; } })();
+  const [rate, setRate] = React.useState(String((_erpTar && _erpTar.rate) || '800'));
   const [extraSubtotal, setExtraSubtotal] = React.useState(0);
 
   const numCbm = parseFloat(cbm) || 0;
@@ -157,7 +160,7 @@ function QuoteCalculator() {
         </div>
       </div>
 
-      <window.ERPUI.SearchSelect label="Cliente · Shipping Mark" placeholder="Busca o crea un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
+      <window.ERPUI.SearchSelect label="Cliente · Shipping Mark" placeholder="Busca o creá un cliente…" createLabel="Crear nuevo cliente" quickCreateClient
         options={D.CLIENTS.map(c => ({ value: c.markbox, label: `${c.markbox} · ${c.company}`, sub: 'Cliente' }))} />
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -206,7 +209,7 @@ function QuoteCalculator() {
           </div>
 
           <U.Input label="Tarifa por CBM" value={rate} onChange={(e)=>setRate(e.target.value)} prefix="$" suffix="USD/CBM" mono
-            hint="Tarifa estándar LCL DDP: $800/CBM. Edita si tu estimado es distinta (FCL prorrateado, promo, etc.)" />
+            hint={_erpTar && _erpTar.validUntil ? ('Tarifa base del sistema · vigente hasta ' + _erpTar.validUntil + '. Edita si este estimado es distinto.') : 'Tarifa estándar LCL DDP. Edita si tu estimado es distinto (FCL prorrateado, promo, etc.)'} />
         </>
       )}
 

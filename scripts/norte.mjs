@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v2.5"; // handoff Cloud Design (carga 2026-06-10: Brand Book v3.7 ÚNICO — se eliminó v3.5; Shipping Mark término único [MARKBOX fuera del lenguaje visual]; nuevos: Banco de Fotos, Colateral Impreso, Generador Redes/Catálogo WhatsApp, Uniformes, WeChat Perfil, estudio-redes.jsx; archivados a _archivo/: Aceptación T&C, Modo Cliente, Reporte)
+const NORTE_VERSION = "v4.2"; // handoff Cloud Design (carga 2026-06-14: versión UNIFICADA marca+producto = v4.2; Brand Book v3.7 → v4.2 ÚNICO; estructura Brand Hub [solo marca] vs DTD Apps · Launcher [solo producto]; nuevos: Inventario de Consolidación [WMS], Reclamos y Siniestros, Academia [LMS], Scorecard de Proveedores, Dashboard Ejecutivo, Kit de Bienvenida, Reels y Logo Sonoro, Packlist, Cotización DDP, Diplomas, Ciclo del Cliente; MARKBOX fuera del lenguaje visual [Shipping Mark único])
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -157,8 +157,9 @@ const GROUPS = [
   {
     title: "Marca",
     screens: [
-      // Carga 2026-06-10: Brand Book v3.7 es el ÚNICO vigente (v3.5 eliminado por regla de gobernanza).
-      { name: "Brand Book v3.7", file: "Brand Book DTD v3.7.html", kind: "brand" },
+      // Carga 2026-06-14: Brand Book v4.2 es el ÚNICO vigente (v3.7 eliminado por regla de gobernanza).
+      { name: "Brand Hub (índice de marca)", file: "Brand Hub · DTD-Cargo.html", kind: "brand" },
+      { name: "Brand Book v4.2", file: "Brand Book DTD v4.2.html", kind: "brand" },
       { name: "Tarjeta de Presentación", file: "Tarjeta de Presentación.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
@@ -177,6 +178,28 @@ const GROUPS = [
       { name: "Generador Catálogo WhatsApp", file: "Generador Catálogo WhatsApp · DTD-Cargo.html", ref: true },
       { name: "Uniformes", file: "Uniformes · DTD-Cargo.html", ref: true },
       { name: "WeChat · Perfil", file: "WeChat · Perfil DTD-Cargo.html", ref: true },
+    ],
+  },
+  {
+    // Carga 2026-06-14 (v4.2): nuevos módulos de producto (WMS, reclamos, academia, scorecard,
+    // tablero ejecutivo) + hubs de navegación (DTD Apps · Launcher solo-producto; el Brand Hub
+    // solo-marca vive en el grupo "Marca") + colateral de marca (kit de bienvenida, reels, packlist,
+    // cotización DDP, diplomas, ciclo del cliente). Mockups sin código/SDD aún → ref:true
+    // (referencia de diseño, NO diluye el % construido; mapear code/sdd cuando se construyan).
+    title: "Nuevo en v4.2 (2026-06-14) · producto · hubs · colateral",
+    screens: [
+      { name: "DTD Apps · Launcher (índice de producto)", file: "DTD Apps · Launcher.html", ref: true },
+      { name: "Inventario de Consolidación (WMS)", file: "Inventario de Consolidación · DTD-Cargo.html", ref: true },
+      { name: "Reclamos y Siniestros", file: "Reclamos y Siniestros · DTD-Cargo.html", ref: true },
+      { name: "Academia DTD (LMS)", file: "academia/Academia DTD · Módulo.html", ref: true },
+      { name: "Scorecard de Proveedores", file: "proveedores/Scorecard de Proveedores · DTD-Cargo.html", ref: true },
+      { name: "Dashboard Ejecutivo (Dirección)", file: "direccion/Dashboard Ejecutivo · DTD-Cargo.html", ref: true },
+      { name: "Kit de Bienvenida", file: "Kit de Bienvenida · DTD-Cargo.html", ref: true },
+      { name: "Reels y Logo Sonoro", file: "Reels y Logo Sonoro · DTD-Cargo.html", ref: true },
+      { name: "Packing List + Factura", file: "packlist/Packing List + Factura · DTD-Cargo.html", ref: true },
+      { name: "Cotización DDP", file: "cotizacion/Cotización DDP · DTD-Cargo.html", ref: true },
+      { name: "Diploma (Academia)", file: "diplomas/Diploma · DTD-Cargo.html", ref: true },
+      { name: "Ciclo del Cliente (hero web)", file: "ciclo/Ciclo del Cliente · DTD-Cargo.html", ref: true },
     ],
   },
 ];

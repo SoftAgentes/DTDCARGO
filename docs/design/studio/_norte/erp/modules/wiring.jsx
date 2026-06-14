@@ -85,7 +85,7 @@
           >
             {I.upload(28)}
             <div style={{ font: '700 14px/1.3 var(--f-sans)', color: 'var(--ink)' }}>
-              Arrastrá archivos acá o haz click
+              Arrastra archivos aquí o haz clic
             </div>
             <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>
               PDF, DOCX, XLSX, imágenes hasta 25 MB · múltiples archivos OK
@@ -177,7 +177,7 @@
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-            El email se guardará en borradores y se enviará automáticamente en el momento programado.
+            El email se guardará en borradores y se enviará automaticamente en el momento programado.
           </div>
 
           <div>
@@ -336,7 +336,7 @@
         {activeTab === 'prefs' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-              Configurá notificaciones, idioma y densidad de la interfaz.
+              Configura notificaciones, idioma y densidad de la interfaz.
             </div>
             <U.Select label="Idioma de la interfaz" value={prefs.lang} onChange={(e) => setPref('lang', e.target.value)}
               options={[

@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plantilla de Presentación · DTD-Cargo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --wine: #7F0F1A; --wine-deep: #5E0A12; --wine-soft: #C2747F;
+    --navy: #0F1E3D; --navy-2: #1F3055;
+    --paper: #FBFAF7; --paper-2: #F2F0EC; --cream: #F2F0EC;
+    --ink: #0F1E3D; --ink-soft: #5A6377; --ink-mute: #9B9B9B; --border: #E2DFD9;
+    --f-display: 'Sora', sans-serif; --f-sans: 'Nunito Sans', sans-serif;
+    --f-brand: 'Archivo Black', sans-serif; --f-mono: 'JetBrains Mono', monospace;
+  }
+  html, body { margin: 0; background: #11151c; }
+  deck-stage:not(:defined) { visibility: hidden; }
+
+  /* ── base slide ── */
+  .s { width: 100%; height: 100%; box-sizing: border-box; overflow: hidden; position: relative;
+       font-family: var(--f-sans); background: var(--paper); color: var(--ink); padding: 96px 120px; }
+  .s.dark { background: linear-gradient(135deg, var(--navy), var(--navy-2)); color: var(--cream); }
+  .s.wine { background: var(--wine); color: var(--cream); }
+
+  .wm { font-family: var(--f-brand); letter-spacing: -0.02em; }
+  .wm .d { color: var(--wine); } .wm .g { color: var(--ink); } .wm .sp { display: inline-block; width: 0.15em; }
+  .dark .wm .d, .wine .wm .d { color: var(--wine-soft); } .dark .wm .g, .wine .wm .g { color: var(--cream); }
+
+  .eyebrow { font: 700 25px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine); }
+  .dark .eyebrow, .wine .eyebrow { color: var(--wine-soft); }
+
+  .corner-iso { position: absolute; top: 72px; right: 96px; height: 52px; }
+  .foot { position: absolute; left: 120px; bottom: 48px; right: 120px; display: flex; align-items: center; justify-content: space-between;
+          font: 600 24px/1 var(--f-sans); color: var(--ink-mute); }
+  .foot .wm { font-size: 24px; } .dark .foot, .wine .foot { color: rgba(242,240,236,0.55); }
+
+  /* entrance */
+  @media (prefers-reduced-motion: no-preference) {
+    [data-deck-active] .anim { animation: rise .6s both; }
+    [data-deck-active] .anim2 { animation: rise .6s .12s both; }
+    [data-deck-active] .anim3 { animation: rise .6s .24s both; }
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+
+  /* ── Cover ── */
+  .cover .iso { height: 92px; margin-bottom: 56px; }
+  .cover h1 { font: 700 104px/1.02 var(--f-display); letter-spacing: -0.03em; margin: 18px 0 0; max-width: 20ch; }
+  .cover .sub { font: 400 30px/1.5 var(--f-sans); color: rgba(242,240,236,0.8); margin-top: 28px; max-width: 40ch; }
+  .cover .tag { position: absolute; left: 120px; bottom: 80px; font: 700 24px/1 var(--f-display); color: var(--wine-soft); }
+  .cover .meta { position: absolute; right: 120px; bottom: 80px; font: 600 24px/1.6 var(--f-mono); color: rgba(242,240,236,0.6); text-align: right; }
+
+  /* ── Section divider ── */
+  .divider .num { font: 700 200px/0.9 var(--f-display); color: rgba(242,240,236,0.18); }
+  .divider h2 { font: 700 84px/1.05 var(--f-display); letter-spacing: -0.02em; margin: 12px 0 0; max-width: 22ch; }
+  .divider .eyebrow { margin-bottom: 8px; }
+
+  /* ── Content bullets ── */
+  .title-row .eyebrow { margin-bottom: 18px; }
+  h2.slidetitle { font: 700 64px/1.08 var(--f-display); letter-spacing: -0.02em; margin: 0 0 40px; max-width: 24ch; }
+  .bullets { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 26px; max-width: 44ch; }
+  .bullets.wide { max-width: none; }
+  .bullets li { position: relative; padding-left: 46px; font: 400 30px/1.4 var(--f-sans); color: var(--ink); }
+  .bullets li b { font-weight: 700; }
+  .bullets li::before { content: ''; position: absolute; left: 0; top: 12px; width: 20px; height: 20px; border-radius: 5px; background: var(--wine); }
+  .dark .bullets li { color: var(--cream); }
+
+  /* ── Two column ── */
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: center; height: 100%; }
+  .two .imgslot { background: var(--paper-2); border: 2px dashed var(--border); border-radius: 18px; height: 70%; min-height: 480px;
+                  display: flex; align-items: center; justify-content: center; color: var(--ink-mute); font: 600 24px var(--f-sans); text-align: center; }
+  .two p { font: 400 30px/1.55 var(--f-sans); color: var(--ink-soft); margin: 0; }
+
+  /* ── KPI ── */
+  .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 56px; margin-top: 40px; }
+  .kpi .v { font: 700 110px/1 var(--f-display); color: var(--wine); letter-spacing: -0.03em; }
+  .dark .kpi .v { color: var(--wine-soft); }
+  .kpi .k { font: 600 26px/1.35 var(--f-sans); color: var(--ink-soft); margin-top: 14px; }
+  .dark .kpi .k { color: rgba(242,240,236,0.75); }
+
+  /* ── Steps (ciclo) ── */
+  .steps { display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px; margin-top: 52px; }
+  .step { background: var(--paper-2); border-radius: 18px; padding: 40px 32px; }
+  .step .n { width: 56px; height: 56px; border-radius: 999px; background: var(--wine); color: #fff; font: 700 26px/56px var(--f-display); text-align: center; }
+  .step h3 { font: 700 34px/1.1 var(--f-display); margin: 24px 0 8px; }
+  .step p { font: 400 24px/1.4 var(--f-sans); color: var(--ink-soft); margin: 0; }
+  .step .ar { color: var(--wine-soft); }
+
+  /* ── Quote ── */
+  .quote { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+  .quote .mark { font: 700 160px/0.6 var(--f-display); color: var(--wine-soft); height: 80px; }
+  .quote blockquote { font: 600 56px/1.25 var(--f-display); letter-spacing: -0.01em; margin: 0; max-width: 26ch; color: var(--cream); }
+  .quote .by { font: 600 26px/1.4 var(--f-sans); color: var(--wine-soft); margin-top: 40px; }
+
+  /* ── Closing ── */
+  .closing { display: flex; flex-direction: column; justify-content: center; height: 100%; }
+  .closing h2 { font: 700 88px/1.05 var(--f-display); letter-spacing: -0.02em; margin: 0; }
+  .closing .cta { display: inline-block; margin-top: 44px; background: var(--wine); color: #fff; font: 700 30px/1 var(--f-sans);
+                  padding: 26px 44px; border-radius: 12px; }
+  .closing .contact { position: absolute; left: 120px; bottom: 80px; font: 600 24px/1.7 var(--f-mono); color: rgba(242,240,236,0.7); }
+  .closing .iso { position: absolute; right: 110px; bottom: 80px; height: 100px; }
+</style>
+</head>
+<body>
+  <deck-stage width="1920" height="1080">
+
+    <!-- 01 · COVER -->
+    <section class="s dark cover" data-label="Portada">
+      <img class="iso anim" src="dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+      <div class="eyebrow anim">Presentación corporativa</div>
+      <h1 class="anim2">Título de la presentación</h1>
+      <div class="sub anim3">Subtítulo o descripción breve de la propuesta para el cliente o el equipo.</div>
+      <div class="tag">Con Confianza, de China a tu puerta.</div>
+      <div class="meta">DTD-Cargo · 2026<br>dtdcargo.com</div>
+    </section>
+
+    <!-- 02 · AGENDA -->
+    <section class="s" data-label="Agenda">
+      <img class="corner-iso" src="dtdcargo-isologo-primary.png" alt="" />
+      <div class="eyebrow anim">Agenda</div>
+      <h2 class="slidetitle anim2" style="margin-bottom:36px;">Lo que vamos a ver</h2>
+      <ol class="bullets anim3" style="counter-reset:a; max-width:34ch;">
+        <li><b>El servicio</b> puerta a puerta DDP</li>
+        <li><b>Cómo funciona</b> el ciclo del cliente</li>
+        <li><b>Tarifas</b> y tiempos de tránsito</li>
+        <li><b>Próximos pasos</b></li>
+      </ol>
+      <div class="foot"><span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span><span>01</span></div>
+    </section>
+
+    <!-- 03 · SECTION DIVIDER -->
+    <section class="s wine divider" data-label="Sección">
+      <div class="eyebrow anim">Sección</div>
+      <div class="num anim">01</div>
+      <h2 class="anim2">El servicio puerta a puerta</h2>
+    </section>
+
+    <!-- 04 · CONTENT BULLETS -->
+    <section class="s" data-label="Contenido">
+      <img class="corner-iso" src="dtdcargo-isologo-primary.png" alt="" />
+      <div class="title-row"><div class="eyebrow anim">Propuesta de valor</div></div>
+      <h2 class="slidetitle anim2">Por qué DTD-Cargo</h2>
+      <ul class="bullets anim3">
+        <li><b>Sin intermediarios</b> — un solo responsable de China a tu puerta.</li>
+        <li><b>Tarifa DDP cerrada</b> — flete, seguro y nacionalización incluidos.</li>
+        <li><b>Trazabilidad total</b> — Shipping Mark y seguimiento en cada paso.</li>
+      </ul>
+      <div class="foot"><span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span><span>03</span></div>
+    </section>
+
+    <!-- 05 · TWO COLUMN -->
+    <section class="s" data-label="Texto + imagen">
+      <img class="corner-iso" src="dtdcargo-isologo-primary.png" alt="" />
+      <div class="two">
+        <div>
+          <div class="eyebrow anim">Operación</div>
+          <h2 class="slidetitle anim2" style="margin-bottom:28px;">Bodega de consolidación en China</h2>
+          <p class="anim3">Recibimos tu mercancía en Yiwu, la verificamos, consolidamos y preparamos para el embarque. Reemplazá este texto por tu contenido.</p>
+        </div>
+        <div class="imgslot anim2">Espacio para foto<br>(reemplazar)</div>
+      </div>
+      <div class="foot"><span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span><span>04</span></div>
+    </section>
+
+    <!-- 06 · KPI -->
+    <section class="s dark" data-label="Datos">
+      <div class="eyebrow anim">En números</div>
+      <h2 class="slidetitle anim2" style="color:var(--cream);">Resultados que respaldan</h2>
+      <div class="kpis anim3">
+        <div class="kpi"><div class="v">18</div><div class="k">años conectando China y Latinoamérica</div></div>
+        <div class="kpi"><div class="v">12+</div><div class="k">servicios puerta a puerta</div></div>
+        <div class="kpi"><div class="v">100%</div><div class="k">carga trazable con Shipping Mark</div></div>
+      </div>
+      <div class="foot"><span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span><span>05</span></div>
+    </section>
+
+    <!-- 07 · STEPS -->
+    <section class="s" data-label="Proceso">
+      <img class="corner-iso" src="dtdcargo-isologo-primary.png" alt="" />
+      <div class="eyebrow anim">El ciclo</div>
+      <h2 class="slidetitle anim2" style="margin-bottom:0;">De China a tu puerta, en 4 pasos</h2>
+      <div class="steps anim3">
+        <div class="step"><div class="n">1</div><h3>Cotiza</h3><p>Tarifa DDP cerrada.</p></div>
+        <div class="step"><div class="n">2</div><h3>Compra</h3><p>Avisás tu compra (prealerta).</p></div>
+        <div class="step"><div class="n">3</div><h3>Recibimos</h3><p>Consolidamos en China.</p></div>
+        <div class="step"><div class="n">4</div><h3>Entregamos</h3><p>En tu puerta en Venezuela.</p></div>
+      </div>
+      <div class="foot"><span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span><span>06</span></div>
+    </section>
+
+    <!-- 08 · QUOTE -->
+    <section class="s dark quote" data-label="Cita">
+      <div class="mark anim">“</div>
+      <blockquote class="anim2">Reemplazá esto con un testimonio real de un cliente satisfecho.</blockquote>
+      <div class="by anim3">— Nombre del cliente · Empresa</div>
+    </section>
+
+    <!-- 09 · CLOSING -->
+    <section class="s dark closing" data-label="Cierre">
+      <div class="eyebrow anim">Próximo paso</div>
+      <h2 class="anim2">Empecemos tu<br>primer embarque.</h2>
+      <div><span class="cta anim3">Cotizar DDP</span></div>
+      <div class="contact">info@dtdcargo.com · +58 241 414 7886<br>Av. Bolívar Norte 14, Valencia · dtdcargo.com</div>
+      <img class="iso" src="dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+    </section>
+
+  </deck-stage>
+  <script src="deck-stage.js"></script>
+</body>
+</html>

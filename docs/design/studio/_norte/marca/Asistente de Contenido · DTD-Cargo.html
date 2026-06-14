@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asistente de Contenido · DTD-Cargo</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-elevated); color: var(--ink); font-family: var(--f-sans); height: 100%; }
+  body { display: flex; }
+
+  /* panel */
+  .panel { width: 380px; flex: 0 0 380px; height: 100vh; overflow-y: auto; background: var(--bg-surface); border-right: 1px solid var(--border); padding: var(--s-6); }
+  .brandline { display: flex; align-items: center; gap: 11px; margin-bottom: var(--s-5); }
+  .brandline img { width: 38px; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 19px; }
+  .wm .d { color: var(--wine); } .wm .g { color: var(--ink); } .wm .sp { display: inline-block; width: 0.15em; }
+  .panel h1 { font: 700 18px/1.2 var(--f-display); margin: 0 0 var(--s-1); }
+  .lede { font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); margin: 0 0 var(--s-6); }
+  .grp { margin-bottom: var(--s-6); }
+  .grp-t { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--wine); margin: 0 0 var(--s-3); }
+  .chips { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+  .chip { cursor: pointer; appearance: none; font: 600 12.5px/1 var(--f-sans); padding: 9px 13px; border-radius: var(--r-pill);
+          background: var(--bg-base); color: var(--ink-soft); border: 1px solid var(--border); transition: all .13s; }
+  .chip:hover { border-color: var(--ink-mute); color: var(--ink); }
+  .chip.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .field { margin-bottom: var(--s-3); }
+  .field label { display: block; font: 600 11px/1.2 var(--f-sans); color: var(--ink-soft); margin-bottom: 5px; }
+  .field textarea, .field input { width: 100%; font: 400 13px/1.5 var(--f-sans); color: var(--ink); background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 11px; outline: none; resize: vertical; }
+  .field textarea { min-height: 90px; }
+  .field textarea:focus, .field input:focus { border-color: var(--wine); box-shadow: 0 0 0 3px var(--wine-bg); }
+  .seg { display: flex; gap: 4px; background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-md); padding: 3px; }
+  .seg button { flex: 1; cursor: pointer; appearance: none; border: 0; background: transparent; color: var(--ink-soft); font: 600 12px/1 var(--f-sans); padding: 8px 6px; border-radius: var(--r-sm); }
+  .seg button.on { background: var(--wine); color: #fff; }
+  .gen { width: 100%; cursor: pointer; appearance: none; border: 0; background: var(--wine); color: #fff; font: 700 14px/1 var(--f-sans); padding: 14px; border-radius: var(--r-md); margin-top: var(--s-2); display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .gen:hover { background: var(--wine-deep); }
+  .gen:disabled { opacity: 0.6; cursor: default; }
+  .gen svg { width: 16px; height: 16px; }
+  .rule-note { font: 400 11px/1.5 var(--f-sans); color: var(--ink-mute); margin-top: var(--s-4); border-top: 1px solid var(--border); padding-top: var(--s-3); }
+
+  /* main */
+  .main { flex: 1; height: 100vh; overflow-y: auto; padding: var(--s-10) var(--s-10) var(--s-16); }
+  .main-in { max-width: 720px; margin: 0 auto; }
+  .out-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--s-4); }
+  .out-head .lbl { font: 700 11px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+  .out-actions { display: flex; gap: var(--s-2); }
+  .obtn { cursor: pointer; appearance: none; font: 600 12px/1 var(--f-sans); border-radius: var(--r-sm); padding: 8px 12px; border: 1px solid var(--border); background: var(--bg-surface); color: var(--ink); display: inline-flex; align-items: center; gap: 6px; }
+  .obtn:hover { border-color: var(--ink-mute); }
+  .obtn.ok { background: var(--success); color: #fff; border-color: var(--success); }
+
+  .out { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); padding: var(--s-8); min-height: 240px; white-space: pre-wrap; font: 400 16px/1.65 var(--f-sans); color: var(--ink); }
+  .out.empty { color: var(--ink-mute); display: flex; align-items: center; justify-content: center; text-align: center; font-size: 14px; }
+  .out .ph { max-width: 36ch; }
+  .spin { width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: var(--wine); border-radius: 999px; animation: sp 0.8s linear infinite; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  .err { color: var(--danger); font-size: 14px; }
+
+  .variants { margin-top: var(--s-6); }
+  .variants .lbl { font: 700 11px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: var(--s-3); }
+  .vcard { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s-5); margin-bottom: var(--s-3); white-space: pre-wrap; font: 400 14px/1.6 var(--f-sans); position: relative; }
+  .vcard .copy { position: absolute; top: 10px; right: 10px; cursor: pointer; appearance: none; border: 1px solid var(--border); background: var(--bg-base); color: var(--ink-soft); font: 600 11px/1 var(--f-sans); padding: 6px 9px; border-radius: var(--r-xs); }
+  .vcard .copy:hover { color: var(--wine); border-color: var(--wine); }
+</style>
+</head>
+<body>
+  <aside class="panel">
+    <div class="brandline">
+      <img src="../assets/dtdcargo-isologo-primary.png" alt="DTD" onerror="this.style.display='none'" />
+      <span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span>
+    </div>
+    <h1>Asistente de contenido</h1>
+    <p class="lede">Genera copy con la voz de DTD: castellano venezolano, tuteo, verbos directos y cero relleno. Elegí el tipo, describí el tema y generá.</p>
+
+    <div class="grp">
+      <div class="grp-t">Tipo de contenido</div>
+      <div class="chips" id="types"></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Tema / brief</div>
+      <div class="field"><textarea id="brief" placeholder="Ej: promocionar el servicio DDP para importar repuestos desde Yiwu, dirigido a ferreterías."></textarea></div>
+      <div class="field"><label>Detalles opcionales (datos, oferta, fecha…)</label><input id="details" type="text" placeholder="Ej: tránsito 35 días · cupo de marzo"></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Registro de voz</div>
+      <div class="seg" id="tone">
+        <button data-t="cercano" class="on">Cercano</button>
+        <button data-t="profesional">Profesional</button>
+        <button data-t="resolutivo">Resolutivo</button>
+      </div>
+    </div>
+
+    <button class="gen" id="gen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2.5 6.5L22 12l-6.5 2.5L13 21l-2.5-6.5L4 12l6.5-2.5L13 3z"/></svg>
+      Generar contenido
+    </button>
+    <p class="rule-note">Reglas de marca aplicadas: tuteo venezolano (nunca voseo), verbos directos, sin anglicismos ni exclamaciones múltiples, sin “AI slop”. Tagline: <b>Con Confianza, de China a tu puerta.</b></p>
+  </aside>
+
+  <div class="main">
+    <div class="main-in">
+      <div class="out-head">
+        <span class="lbl" id="out-label">Resultado</span>
+        <div class="out-actions">
+          <button class="obtn" id="copy">Copiar</button>
+          <button class="obtn" id="regen">Regenerar</button>
+        </div>
+      </div>
+      <div class="out empty" id="out"><div class="ph">Elegí un tipo de contenido, describí el tema y tocá <b>Generar</b>. El resultado aparece acá, listo para copiar.</div></div>
+      <div class="variants" id="variants" style="display:none">
+        <div class="lbl">Variaciones cortas</div>
+        <div id="vlist"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const VOICE = [
+    "Eres el redactor de marca de DTD-Cargo, empresa de importación puerta a puerta (DDP) que trae mercancía de China a Venezuela, sin intermediarios.",
+    "REGLAS DE VOZ (obligatorias):",
+    "- Castellano venezolano neutro con TUTEO (tú/eres/mira/inicia). NUNCA voseo (vos/sos/mirá/arrancá).",
+    "- Verbos directos en llamados a la acción: 'Cotizar DDP', 'Crear embarque', 'Escríbenos'. Nunca 'Click acá', 'Submit', 'Sign in'.",
+    "- Sin anglicismos innecesarios. Sin signos de exclamación múltiples. Sin MAYÚSCULAS sostenidas.",
+    "- Prohibido el 'AI slop': nada de '¡Genial!', '¡Increíble!', emojis decorativos en exceso, '✨', 'Made with ❤️', frases vacías de relleno. Menos es más.",
+    "- Tagline de marca (úsalo solo cuando aporte, no siempre): 'Con Confianza, de China a tu puerta.' (Confianza con C mayúscula).",
+    "- Valor diferencial: confianza, trazabilidad (Shipping Mark), tarifa DDP cerrada (flete + seguro + nacionalización), un solo responsable.",
+    "- Tono real, cálido y profesional. Nada de promesas exageradas. Escribe para venezolanos importando desde China."
+  ].join("\\n");
+
+  const TONES = {
+    cercano: "Registro CERCANO: cálido y conversacional, como un asesor de confianza que tutea al cliente.",
+    profesional: "Registro PROFESIONAL: claro y sobrio, para propuestas y comunicación formal, manteniendo el tuteo.",
+    resolutivo: "Registro RESOLUTIVO: directo y orientado a la acción, para resolver o cerrar, sin rodeos."
+  };
+
+  const TYPES = {
+    post:   { label: "Post de redes", spec: "Un post para Instagram/Facebook: gancho en la primera línea, 2-3 líneas de cuerpo con un beneficio concreto, y un CTA claro al final. Agrega 3-5 hashtags relevantes en español al final. Máximo 1 emoji y solo si suma." },
+    caption:{ label: "Caption corto", spec: "Un caption corto de 1-2 líneas con gancho, para acompañar una imagen. Opcional 2-3 hashtags." },
+    email:  { label: "Email a cliente", spec: "Un email breve a un cliente: saludo con tuteo (sin 'Estimado' acartonado), 2-3 frases de cuerpo, un CTA, y cierre simple. Incluye una línea de asunto al inicio con 'Asunto:'." },
+    desc:   { label: "Descripción de servicio", spec: "Una descripción de servicio para catálogo o web: beneficio primero, 2-3 frases claras, sin jerga. Termina con un CTA breve." },
+    review: { label: "Respuesta a reseña", spec: "Una respuesta breve y personal a una reseña de cliente: agradece, menciona algo específico, e invita a volver. Máximo 3 frases." },
+    whatsapp:{ label: "Mensaje WhatsApp", spec: "Un mensaje de WhatsApp Business para enviar a un cliente o prospecto: directo, cálido, sin formalismo excesivo, con un CTA claro. Breve (máx 4 líneas)." }
+  };
+
+  let state = { type: 'post', tone: 'cercano' };
+  try { const s = JSON.parse(localStorage.getItem('dtd-asistente')||'{}'); Object.assign(state, s); } catch(e){}
+
+  const typesEl = document.getElementById('types');
+  typesEl.innerHTML = Object.entries(TYPES).map(([k,v]) => '<button class="chip" data-k="'+k+'">'+v.label+'</button>').join('');
+  function syncChips(){ document.querySelectorAll('#types .chip').forEach(c => c.classList.toggle('on', c.dataset.k === state.type)); document.getElementById('out-label').textContent = TYPES[state.type].label; }
+  typesEl.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { state.type = c.dataset.k; persist(); syncChips(); }));
+  document.querySelectorAll('#tone button').forEach(b => b.addEventListener('click', () => { state.tone = b.dataset.t; document.querySelectorAll('#tone button').forEach(x=>x.classList.toggle('on', x.dataset.t===state.tone)); persist(); }));
+  function persist(){ try { localStorage.setItem('dtd-asistente', JSON.stringify(state)); } catch(e){} }
+  function syncTone(){ document.querySelectorAll('#tone button').forEach(x=>x.classList.toggle('on', x.dataset.t===state.tone)); }
+
+  const briefEl = document.getElementById('brief'), detailsEl = document.getElementById('details');
+  try { const c = JSON.parse(localStorage.getItem('dtd-asistente-in')||'{}'); briefEl.value = c.brief||''; detailsEl.value = c.details||''; } catch(e){}
+  [briefEl, detailsEl].forEach(el => el.addEventListener('input', () => { try { localStorage.setItem('dtd-asistente-in', JSON.stringify({brief:briefEl.value, details:detailsEl.value})); } catch(e){} }));
+
+  const outEl = document.getElementById('out');
+  let lastOutput = '';
+
+  async function generate() {
+    const brief = briefEl.value.trim();
+    if (!brief) { briefEl.focus(); return; }
+    const t = TYPES[state.type];
+    document.getElementById('gen').disabled = true;
+    document.getElementById('variants').style.display = 'none';
+    outEl.className = 'out empty'; outEl.innerHTML = '<div class="spin"></div>';
+
+    const prompt = VOICE + "\\n\\n" + TONES[state.tone] + "\\n\\nTAREA: Escribe " + t.spec +
+      "\\n\\nTema: " + brief + (detailsEl.value.trim() ? "\\nDetalles: " + detailsEl.value.trim() : "") +
+      "\\n\\nDevuelve SOLO el contenido final, sin explicaciones ni comillas, listo para publicar.";
+
+    try {
+      const text = await window.claude.complete(prompt);
+      lastOutput = (text || '').trim();
+      outEl.className = 'out'; outEl.textContent = lastOutput;
+      generateVariants(brief);
+    } catch (e) {
+      outEl.className = 'out'; outEl.innerHTML = '<span class="err">No se pudo generar. Reintenta en unos segundos.</span>';
+    } finally {
+      document.getElementById('gen').disabled = false;
+    }
+  }
+
+  async function generateVariants(brief) {
+    const t = TYPES[state.type];
+    if (state.type === 'email' || state.type === 'desc') return; // largos no varían
+    try {
+      const prompt = VOICE + "\\n\\n" + TONES[state.tone] +
+        "\\n\\nDame 3 variaciones MUY CORTAS (una línea cada una) de un " + t.label.toLowerCase() +
+        " sobre: " + brief + ". Devuélvelas numeradas 1. 2. 3. sin nada más.";
+      const text = await window.claude.complete(prompt);
+      const lines = (text||'').split('\\n').map(l=>l.replace(/^\\s*\\d+[.)]\\s*/,'').trim()).filter(Boolean).slice(0,3);
+      if (!lines.length) return;
+      document.getElementById('vlist').innerHTML = lines.map(l =>
+        '<div class="vcard">'+l.replace(/</g,'&lt;')+'<button class="copy" data-c="'+encodeURIComponent(l)+'">Copiar</button></div>').join('');
+      document.getElementById('variants').style.display = 'block';
+      document.querySelectorAll('#vlist .copy').forEach(b => b.addEventListener('click', () => { navigator.clipboard.writeText(decodeURIComponent(b.dataset.c)); b.textContent='✓'; setTimeout(()=>b.textContent='Copiar',1400); }));
+    } catch (e) {}
+  }
+
+  document.getElementById('gen').addEventListener('click', generate);
+  document.getElementById('regen').addEventListener('click', generate);
+  document.getElementById('copy').addEventListener('click', async () => {
+    if (!lastOutput) return;
+    try { await navigator.clipboard.writeText(lastOutput); const b=document.getElementById('copy'); b.textContent='Copiado ✓'; b.classList.add('ok'); setTimeout(()=>{b.textContent='Copiar'; b.classList.remove('ok');},1600); } catch(e){}
+  });
+
+  syncChips(); syncTone();
+</script>
+</body>
+</html>

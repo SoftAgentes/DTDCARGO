@@ -1543,8 +1543,8 @@
               </React.Fragment>
             ) : (
               <React.Fragment>
-                <div style={{ font: '700 13px/1.2 var(--f-sans)', color: '#fff' }}>Apuntá el lector al código Shipping Mark</div>
-                <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>Mantené la caja dentro del recuadro. La detección tarda ~3s.</div>
+                <div style={{ font: '700 13px/1.2 var(--f-sans)', color: '#fff' }}>Apunta el lector al código Shipping Mark</div>
+                <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>Mantén la caja dentro del recuadro. La detección tarda ~3s.</div>
               </React.Fragment>
             )}
           </div>
@@ -1642,7 +1642,7 @@
             display: 'flex', alignItems: 'flex-start', gap: 6,
           }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(11)}</span>
-            <span>Carga <b>primero lo que va más lejos</b> (Caracas) para que quede al fondo. Lo último que cargás (Maracay) se baja primero del camión.</span>
+            <span>Carga <b>primero lo que va más lejos</b> (Caracas) para que quede al fondo. Lo último que cargas (Maracay) se baja primero del camión.</span>
           </div>
         )}
       </div>

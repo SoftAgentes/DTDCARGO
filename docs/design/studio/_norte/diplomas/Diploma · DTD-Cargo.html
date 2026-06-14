@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diplomas · DTD-Cargo</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Archivo+Black&family=Sora:wght@400;500;600;700&family=Nunito+Sans:wght@400;600;700;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body { background: var(--bg-elevated); color: var(--ink); font-family: var(--f-sans); display: flex; overflow: hidden; }
+
+  /* ── Panel ── */
+  .panel { width: 360px; flex: 0 0 360px; height: 100vh; overflow-y: auto; background: var(--bg-surface);
+           border-right: 1px solid var(--border); padding: var(--s-6); }
+  .panel h1 { font: 700 18px/1.2 var(--f-display); margin: 0 0 var(--s-1); }
+  .panel .lede { font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); margin: 0 0 var(--s-6); }
+  .grp { margin-bottom: var(--s-6); }
+  .grp-t { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--wine); margin: 0 0 var(--s-3); }
+  .field { margin-bottom: var(--s-3); }
+  .field label { display: block; font: 600 11px/1.2 var(--f-sans); color: var(--ink-soft); margin-bottom: 5px; }
+  .field input, .field textarea {
+    width: 100%; font: 400 13px/1.4 var(--f-sans); color: var(--ink); background: var(--bg-base);
+    border: 1px solid var(--border); border-radius: var(--r-sm); padding: 9px 11px; outline: none;
+  }
+  .field input:focus, .field textarea:focus { border-color: var(--wine); box-shadow: 0 0 0 3px var(--wine-bg); }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field textarea#f-roster { min-height: 132px; font-family: var(--f-mono); font-size: 12px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
+
+  .variants { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+  .vbtn { flex: 1 1 60px; cursor: pointer; appearance: none; border: 1px solid var(--border); background: var(--bg-base);
+          color: var(--ink-soft); font: 700 12px/1 var(--f-sans); padding: 11px 8px; border-radius: var(--r-md); transition: all .14s; }
+  .vbtn:hover { border-color: var(--ink-mute); color: var(--ink); }
+  .vbtn.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .vbtn span { display: block; font: 600 9px/1.3 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.65; margin-top: 4px; }
+
+  .hint { font: 400 11px/1.45 var(--f-sans); color: var(--ink-mute); margin-top: 6px; }
+
+  /* ── Stage ── */
+  .main { flex: 1; display: flex; flex-direction: column; height: 100vh; }
+  .toolbar { height: 60px; flex: 0 0 60px; display: flex; align-items: center; justify-content: space-between;
+             padding: 0 var(--s-6); background: var(--bg-surface); border-bottom: 1px solid var(--border); }
+  .nav { display: flex; align-items: center; gap: var(--s-3); }
+  .nav button { appearance: none; cursor: pointer; width: 34px; height: 34px; border-radius: var(--r-md);
+                border: 1px solid var(--border); background: var(--bg-base); color: var(--ink); font-size: 16px; display: grid; place-items: center; }
+  .nav button:hover { border-color: var(--ink-mute); }
+  #counter { font: 600 13px/1 var(--f-mono); color: var(--ink-soft); min-width: 64px; text-align: center; }
+  .actions { display: flex; gap: var(--s-3); }
+  .btn { appearance: none; cursor: pointer; font: 600 13px/1 var(--f-sans); border-radius: var(--r-md); padding: 10px 16px; border: 1px solid var(--border);
+         background: var(--bg-base); color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
+  .btn:hover { border-color: var(--ink-mute); }
+  .btn.primary { background: var(--wine); color: #fff; border-color: var(--wine); }
+  .btn.primary:hover { background: var(--wine-deep); }
+  .btn svg { width: 15px; height: 15px; }
+
+  #stage { flex: 1; display: grid; place-items: center; overflow: hidden; background: var(--bg-elevated);
+           background-image: radial-gradient(var(--border) 1px, transparent 1px); background-size: 22px 22px; }
+  #sheet { width: 1123px; height: 794px; position: relative; }
+  #sheet .diploma { transform-origin: top left; box-shadow: var(--shadow-lg); }
+  .empty { color: var(--ink-mute); font: 500 14px var(--f-sans); }
+
+  /* ════════════════ DIPLOMA (canvas 1123×794) ════════════════ */
+  .diploma { width: 1123px; height: 794px; position: relative; background: var(--bg-base); color: var(--ink);
+             font-family: var(--f-sans); overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+  /* wordmark */
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 24px; white-space: nowrap; }
+  .wm-d { color: var(--wine); } .wm-c { color: var(--ink); } .wm-sp { display: inline-block; width: 0.15em; }
+  .wm--dark .wm-d { color: var(--wine-soft); } .wm--dark .wm-c { color: #F2F0EC; }
+
+  /* QR */
+  .qrwrap { display: flex; align-items: center; gap: 12px; }
+  .qr { width: 78px; height: 78px; background: #fff; padding: 6px; border-radius: var(--r-sm); border: 1px solid var(--border); flex: 0 0 auto; }
+  .qr svg { display: block; width: 100%; height: 100%; }
+  .qr-cap { display: flex; flex-direction: column; gap: 3px; }
+  .qr-l { font: 600 9px/1.25 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-mute); max-width: 96px; }
+  .qr-f { font: 600 13px/1 var(--f-mono); color: var(--wine); }
+
+  /* seal */
+  .seal { position: relative; width: 120px; height: 120px; flex: 0 0 auto; --seal-stroke: var(--wine); --seal-fill: var(--wine); }
+  .seal--dark { --seal-stroke: var(--wine-soft); --seal-fill: #F2F0EC; }
+  .seal-ring { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .seal-txt { font: 700 9.2px var(--f-sans); letter-spacing: 0.14em; fill: var(--seal-fill); text-transform: uppercase; }
+  .seal-iso { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 58px; height: auto; }
+
+  /* signatures */
+  .sigs { display: flex; gap: 44px; }
+  .sig { min-width: 198px; }
+  .sig-nm { font: 600 16px/1.2 var(--f-display); color: var(--ink); margin-bottom: 4px; min-height: 19px; }
+  .sig-nm--empty { min-height: 19px; }
+  .sig-line { border-top: 1.5px solid var(--ink); margin-bottom: 7px; }
+  .sig-rl { font: 600 10.5px/1.2 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); }
+
+  /* ── Variant A ── */
+  .v-a { padding: 64px 76px; display: flex; flex-direction: column; }
+  .va-top { display: flex; align-items: flex-start; justify-content: space-between; }
+  .va-issuer { font: 600 11px/1.2 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-top: 8px; }
+  .va-body { margin-top: 52px; flex: 1; }
+  .va-eyebrow { font: 700 13px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine); }
+  .va-rule { width: 56px; height: 3px; background: var(--wine); margin: 16px 0 28px; }
+  .va-label { font: 600 14px/1 var(--f-sans); letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 14px; }
+  .va-name { font: 600 72px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0 0 22px; text-wrap: balance; }
+  .va-lead { font: 400 17px/1.4 var(--f-sans); color: var(--ink-soft); margin: 0 0 8px; }
+  .va-course { font: 600 32px/1.1 var(--f-display); color: var(--wine); margin-bottom: 18px; }
+  .va-meta { font: 500 14px/1.5 var(--f-mono); color: var(--ink-soft); }
+  .va-desc { font: 400 14px/1.55 var(--f-sans); color: var(--ink-soft); max-width: 620px; margin: 16px 0 0; }
+  .va-foot { display: flex; align-items: flex-end; justify-content: space-between; margin-top: 36px; }
+
+  /* ── Variant B ── */
+  .v-b { background: var(--bg-base); }
+  .vb-frame { position: absolute; inset: 26px; border: 1px solid var(--ink); pointer-events: none; }
+  .vb-frame::after { content: ''; position: absolute; inset: 5px; border: 1px solid var(--wine-soft); opacity: 0.5; }
+  .vb-inner { position: absolute; inset: 26px; display: flex; flex-direction: column; align-items: center; text-align: center;
+              padding: 46px 90px 40px; }
+  .vb-iso { width: 60px; height: auto; margin-bottom: 12px; }
+  .vb-wm { margin-bottom: 6px; }
+  .vb-issuer { font: 600 10px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 22px; }
+  .vb-eyebrow { font: 700 12px/1 var(--f-sans); letter-spacing: 0.24em; text-transform: uppercase; color: var(--wine); margin-bottom: 18px; }
+  .vb-label { font: 600 13px/1 var(--f-sans); letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 14px; }
+  .vb-name { font: 600 60px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0; text-wrap: balance; }
+  .vb-namerule { width: 280px; height: 1.5px; background: var(--wine); margin: 18px 0 20px; }
+  .vb-lead { font: 400 16px/1.55 var(--f-sans); color: var(--ink-soft); max-width: 640px; margin: 0 0 16px; }
+  .vb-lead b { color: var(--wine); font-weight: 600; }
+  .vb-meta { font: 500 13px/1.5 var(--f-mono); color: var(--ink-soft); }
+  .vb-foot { display: flex; align-items: flex-end; justify-content: center; gap: 56px; margin-top: auto; width: 100%; }
+  .vb-foot .seal { margin-bottom: 4px; }
+  .vb-corner { position: absolute; right: 52px; bottom: 50px; }
+  .v-b .qrwrap { flex-direction: column; align-items: flex-end; gap: 5px; }
+  .v-b .qr-cap { text-align: right; }
+  .v-b .qr-l { max-width: 120px; }
+
+  /* ── Variant C ── */
+  .v-c { display: flex; }
+  .vc-band { width: 372px; flex: 0 0 372px; background: var(--bg-sidebar); color: #F2F0EC; padding: 64px 48px;
+             display: flex; flex-direction: column; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .vc-iso { width: 132px; height: auto; }
+  .vc-tag { font: 700 26px/1.18 var(--f-display); color: #F2F0EC; letter-spacing: -0.01em; margin-top: 32px; }
+  .vc-bandfoot { margin-top: auto; }
+  .vc-band .qr-l { color: rgba(242,240,236,0.75); }
+  .vc-band .qr-f { color: var(--wine-soft); }
+  .vc-main { flex: 1; padding: 64px 72px; display: flex; flex-direction: column; }
+  .vc-issuer { font: 600 11px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+  .vc-eyebrow { font: 700 13px/1 var(--f-sans); letter-spacing: 0.22em; text-transform: uppercase; color: var(--wine); margin-top: 36px; }
+  .vc-label { font: 600 14px/1 var(--f-sans); color: var(--ink-soft); margin-top: 22px; margin-bottom: 14px; }
+  .vc-name { font: 600 58px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0 0 22px; text-wrap: balance; }
+  .vc-lead { font: 400 16px/1.4 var(--f-sans); color: var(--ink-soft); margin: 0 0 8px; }
+  .vc-course { font: 600 30px/1.1 var(--f-display); color: var(--wine); margin-bottom: 16px; }
+  .vc-meta { font: 500 13px/1.5 var(--f-mono); color: var(--ink-soft); }
+  .vc-desc { font: 400 13.5px/1.55 var(--f-sans); color: var(--ink-soft); max-width: 540px; margin: 14px 0 0; }
+  .vc-foot { display: flex; align-items: flex-end; justify-content: space-between; margin-top: auto; }
+  .vc-foot .sigs { gap: 36px; }
+  .vc-foot .sig { min-width: 168px; }
+  .vc-foot .seal { width: 104px; height: 104px; }
+
+  /* ── Variant D · clásico elegante ── */
+  .v-d { background: var(--bg-base); }
+  .vd-orn { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .vd-c { position: absolute; width: 60px; height: 60px; }
+  .vd-c.tl { left: 30px; top: 30px; }
+  .vd-c.tr { right: 30px; top: 30px; transform: scaleX(-1); }
+  .vd-c.bl { left: 30px; bottom: 30px; transform: scaleY(-1); }
+  .vd-c.br { right: 30px; bottom: 30px; transform: scale(-1, -1); }
+  .vd-corner { width: 100%; height: 100%; display: block; }
+  .vd-inner { position: absolute; inset: 40px; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 96px 34px; }
+  .vd-iso { width: 56px; height: auto; margin-bottom: 10px; }
+  .vd-wm { margin-bottom: 5px; }
+  .vd-issuer { font: 600 10px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 20px; }
+  .vd-eyebrow { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+  .vd-eyebrow span { font: 700 13px/1 var(--f-sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--wine); white-space: nowrap; }
+  .vd-fl { width: 130px; height: 12px; }
+  .vd-label { font: 600 13px/1 var(--f-sans); letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 14px; }
+  .vd-name { font: 600 58px/1.0 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0 0 18px; text-wrap: balance; }
+  .vd-lead { font: 400 16px/1.55 var(--f-sans); color: var(--ink-soft); max-width: 660px; margin: 0 0 14px; }
+  .vd-lead b { color: var(--wine); font-weight: 600; }
+  .vd-meta { font: 500 13px/1.5 var(--f-mono); color: var(--ink-soft); }
+  .vd-foot { display: flex; align-items: flex-end; justify-content: center; gap: 52px; margin-top: auto; width: 100%; }
+  .vd-foot .seal { margin-bottom: 4px; }
+  .vd-corner-qr { position: absolute; right: 56px; bottom: 54px; }
+  .v-d .qrwrap { flex-direction: column; align-items: flex-end; gap: 5px; }
+  .v-d .qr-cap { text-align: right; }
+
+  /* ── Print ── */
+  #print-root { display: none; }
+  @media print {
+    @page { size: A4 landscape; margin: 0; }
+    .panel, .toolbar, #stage { display: none !important; }
+    body { display: block; overflow: visible; background: #fff; }
+    #print-root { display: block !important; }
+    .page { width: 1123px; height: 794px; page-break-after: always; overflow: hidden; }
+    .page:last-child { page-break-after: auto; }
+    .page .diploma { transform: none !important; box-shadow: none !important; }
+  }
+</style>
+</head>
+<body>
+  <!-- ── Control panel ── -->
+  <aside class="panel">
+    <h1>Diplomas DTD-Cargo</h1>
+    <p class="lede">Cargá la lista de alumnos y generá todos. Editá los datos del curso una vez; se aplican a todo el grupo. Imprimí a PDF (todos o el actual).</p>
+
+    <div class="grp">
+      <div class="grp-t">Diseño</div>
+      <div class="variants">
+        <button class="vbtn" data-v="A">A<span>Minimal</span></button>
+        <button class="vbtn" data-v="B">B<span>Clásico</span></button>
+        <button class="vbtn" data-v="C">C<span>Banda</span></button>
+        <button class="vbtn" data-v="D">D<span>Elegante</span></button>
+      </div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Curso / evento</div>
+      <div class="field"><label>Emisor / programa</label><input id="f-issuer" type="text"></div>
+      <div class="field"><label>Curso o título</label><input id="f-course" type="text"></div>
+      <div class="row2">
+        <div class="field"><label>Duración (horas)</label><input id="f-hours" type="text" inputmode="numeric"></div>
+        <div class="field"><label>Fecha</label><input id="f-date" type="date"></div>
+      </div>
+      <div class="field"><label>Lugar (ciudad / feria / evento)</label><input id="f-place" type="text"></div>
+      <div class="field"><label>Texto adicional (opcional)</label><textarea id="f-desc" placeholder="Se agrega después del nombre del curso."></textarea></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Folio y verificación</div>
+      <div class="row2">
+        <div class="field"><label>Prefijo de folio</label><input id="f-prefix" type="text"></div>
+        <div class="field"><label>N.º inicial</label><input id="f-start" type="text" inputmode="numeric"></div>
+      </div>
+      <div class="field"><label>URL de verificación</label><input id="f-verify" type="text"></div>
+      <p class="hint">El QR de cada alumno apunta a esta URL con su folio. El folio se asigna automático salvo que en la lista escribas <code>Nombre | folio</code>.</p>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Firmas</div>
+      <div class="field"><label>Nombre · Dirección</label><input id="f-dirname" type="text" placeholder="(opcional · la firma va sobre la línea)"></div>
+      <div class="field"><label>Cargo · Dirección</label><input id="f-dirrole" type="text"></div>
+      <div class="field"><label>Nombre · Instructor</label><input id="f-insname" type="text" placeholder="(opcional)"></div>
+      <div class="field"><label>Cargo · Instructor</label><input id="f-insrole" type="text"></div>
+    </div>
+
+    <div class="grp">
+      <div class="grp-t">Alumnos · uno por línea</div>
+      <div class="field"><textarea id="f-roster" spellcheck="false"></textarea></div>
+      <p class="hint">Cada línea = un diploma. Opcional: <code>Nombre Apellido | DTD-2026-0007</code> para folio manual.</p>
+    </div>
+  </aside>
+
+  <!-- ── Stage ── -->
+  <div class="main">
+    <div class="toolbar">
+      <div class="nav">
+        <button id="prev" title="Anterior">‹</button>
+        <span id="counter">0 / 0</span>
+        <button id="next" title="Siguiente">›</button>
+      </div>
+      <div class="actions">
+        <button class="btn" id="print-one">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Imprimir actual
+        </button>
+        <button class="btn primary" id="print-all">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Imprimir / PDF · todos
+        </button>
+      </div>
+    </div>
+    <div id="stage"><div id="sheet"></div></div>
+  </div>
+
+  <div id="print-root"></div>
+
+  <script src="diploma.js"></script>
+</body>
+</html>

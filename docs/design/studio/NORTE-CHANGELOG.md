@@ -4,6 +4,50 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v4.2 · carga 2026-06-14 — **marca sincronizada a Brand Book v4.2 · sync 2026-06-14**
+
+> *Hecho en ventana secundaria (worktree `feat/norte-v42`). NO mergeado ni pusheado — queda para la
+> ventana de coordinación.* El ZIP se extrajo **fuera del repo** (regla anti-drift de marca).
+
+Fuente: `Downloads/DTD-Cargo (3).zip` (251 MB crudo, 1123 entradas → **797 archivos / 21.9 MB** a git tras
+exclusiones de regla). Trae su propio **`SYNC-NORTE-2026-06-14.md`** (instrucciones de Cloud Design) —
+aplicado. **Versión UNIFICADA:** por primera vez marca y producto comparten un único número visible →
+**v4.2**. El HANDOFF salta **v2.5 → v4.2**; el Brand Book **v3.7 → v4.2**. `scripts/norte.mjs`
+`NORTE_VERSION` y punteros del índice actualizados; `SYNC-NORTE-2026-06-10.md` reemplazado.
+
+**Gobernanza book único:** `Brand Book DTD v3.7.html` eliminado del Norte; queda solo `Brand Book DTD v4.2.html`.
+
+**Estructura nueva (SYNC §2):** **Brand Hub** (índice solo-marca) vs **DTD Apps · Launcher** (índice
+solo-producto) — no se mezclan. Ambos agregados al índice navegable.
+
+**Nuevos mockups de producto (SYNC §4, NO construidos → candidatos a SDD futuros):** Inventario de
+Consolidación (WMS por Shipping Mark), Reclamos y Siniestros (incidencias + seguro), Academia DTD
+(LMS → diplomas), Scorecard de Proveedores, Dashboard Ejecutivo. + calculadora CBM con estimado
+`E-2026-XXXX` y puente de tarifa `dtd-tarifa-cbm` (una sola fuente del $/CBM).
+
+**Nuevo colateral de marca (SYNC §3):** Packlist (Packing List + Factura bilingüe), Cotización DDP,
+Plantilla de Presentación, Asistente de Contenido, Diplomas, Kit de Bienvenida, Reels y Logo Sonoro,
+tarjeta de presentación editable, Ciclo del Cliente (variantes).
+
+**Exclusiones (regla "pesado/ruido fuera de git"):** previas — `uploads/`, `_archivo/uploads/` (79 MB),
+`scraps/`, `screenshots/`, `backend/prisma/`. **Nuevas a `.gitignore` esta carga** — `fondos/` (70 MB
+wallpapers), `trello/` (12 MB), `para-enviar/` (standalone base64 + plano fachada),
+`.design-canvas.state.json`, `.thumbnail`.
+
+**Brand-to-web (regla founder):** isólogos `assets/` == `public/brand/` (byte-idénticos, sin cambio).
+Tokens sin cambios este ciclo (SYNC §5). ⚠️ El `favicon-pack/` del ZIP **difiere** de los favicons del
+sitio (`public/brand/favicon*`, distinto tamaño) — **NO se swapearon** (cambio muy visible, fuera del
+alcance de un Norte-sync) → decisión del founder si se propaga.
+
+**Flags para coordinación (NO resueltos en esta ventana):**
+1. ⚠️ **Book v4.2 NO publicable a la web** (`/marca/brand-book` sigue v3.7): Cloud Design mandó
+   `Brand Book DTD v4.2.html` con 74 refs externas (0.2 MB, NO autocontenido); `para-enviar/` quedó con
+   el standalone **v3.7** (stale). Falta que Cloud Design genere `Brand Book DTD v4.2 · standalone.html`.
+2. ⚠️ **MARKBOX:** el SYNC pide quitar MARKBOX del lenguaje visual (Norte/ERP ya en Shipping Mark). El
+   **sitio público** usa MARKBOX por decisión founder 2026-06-13 — NO se tocó código público. Decisión
+   del founder si el público se alinea.
+3. **Hero Ciclo del Cliente** (SYNC §3) ya vive en `feat/hero-ciclo` (otra ventana) — no duplicado.
+
 ## v2.5 · carga 2026-06-10 — **marca sincronizada a Brand Book v3.7 · sync 2026-06-10**
 
 > *Nota de reconciliación 2026-06-11:* dos lanes hicieron este sync en paralelo (PR #18 + worktree

@@ -148,6 +148,10 @@ function PortalMobileApp() {
           };
           const cur = DD.clients.read() || [];
           DD.clients.write([newClient, ...cur]);
+          // Liga estimados previos de la calculadora (match por email/teléfono).
+          if (DD.linkEstimadosByContact) {
+            try { DD.linkEstimadosByContact(mb, { email: newClient.email, phone: newClient.phone }); } catch (e) {}
+          }
           if (DD.sendWelcomeEmail) { try { DD.sendWelcomeEmail(newClient); } catch (e) {} }
           if (DD.pushPortalEvent) {
             try {
@@ -383,7 +387,7 @@ function PMIntro({ onLogin, onRegister }) {
   const I = window.Icon;
   const props = [
   { icon: 'ship', t: 'Tracking en vivo' },
-  { icon: 'invoice', t: 'Paga sin llamadas' },
+  { icon: 'invoice', t: 'Pagá sin llamadas' },
   { icon: 'calc', t: 'Estima al instante' }];
 
   return (
@@ -528,7 +532,7 @@ function PMVerify({ me, onBack, onSubmit }) {
             </div>
             <div><span style={lbl}>Dirección exacta</span><input value={a.address} onChange={(e) => setA({ ...a, address: e.target.value })} placeholder="Ej. Av. Bolívar, edificio Centro, piso 3, of. 3-B" style={inStyle} /></div>
             <div><span style={lbl}>Punto de referencia</span><input value={a.reference} onChange={(e) => setA({ ...a, reference: e.target.value })} placeholder="Opcional · cerca de…" style={inStyle} /></div>
-            <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>Estado, ciudad, municipio y código postal salen de nuestra lista oficial — elegílos para que la entrega sea exacta. Solo escribe la <strong style={{ color: 'var(--ink-soft)' }}>dirección exacta</strong> (avenida, calle, edificio).</p>
+            <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: 0 }}>Estado, ciudad, municipio y código postal salen de nuestra lista oficial — elígelos para que la entrega sea exacta. Solo escribe la <strong style={{ color: 'var(--ink-soft)' }}>dirección exacta</strong> (avenida, calle, edificio).</p>
           </div>
         </window.PM.Section>
 

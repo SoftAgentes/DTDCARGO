@@ -1034,7 +1034,7 @@ function ReportsBuilder({ goTo }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Constructor */}
       <U.Card padded>
-        <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>ARMA TU REPORTE</div>
+        <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>ARMÁ TU REPORTE</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr)) auto', gap: 12, alignItems: 'end' }}>
           <label style={selWrap}><span style={lblS}>1 · Fuente</span>
             <U.Select value={sourceK} onChange={(e) => changeSource(e.target.value)} options={Object.entries(BUILDER_SOURCES).map(([k, v]) => ({ value: k, label: v.label }))} />

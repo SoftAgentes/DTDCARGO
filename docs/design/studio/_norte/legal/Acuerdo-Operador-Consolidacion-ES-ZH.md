@@ -13,9 +13,9 @@ Entre **DoorTuDoor Trading C.A. (DTDCARGO, Venezuela)** y el operador de consoli
 
 ## Partes / 协议双方
 
-**PARTE A (Cliente del servicio):** DoorTuDoor Trading C.A., sociedad mercantil que opera bajo la marca comercial DTDCARGO (DoorTuDoor), RIF J-50648869-8, domicilio en [ciudad], Venezuela, representada por [José Méndez].
+**PARTE A (Cliente del servicio):** DoorTuDoor Trading C.A., sociedad mercantil que opera bajo la marca comercial DTDCARGO (DoorTuDoor), RIF J-50220185-8, domicilio en [ciudad], Venezuela, representada por [José Méndez].
 
-> 甲方（服务委托方）：DoorTuDoor Trading C.A.（以商号 DTDCARGO／DoorTuDoor 经营），税号（RIF）：J-50648869-8，[城市]，委内瑞拉，代表人：[José Méndez]。
+> 甲方（服务委托方）：DoorTuDoor Trading C.A.（以商号 DTDCARGO／DoorTuDoor 经营），税号（RIF）：J-50220185-8，[城市]，委内瑞拉，代表人：[José Méndez]。
 
 **PARTE B (Operador de consolidación):** [nombre legal del operador], [datos de registro], representada por [____].
 

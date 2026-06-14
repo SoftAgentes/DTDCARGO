@@ -7,7 +7,7 @@ const _initialComments = {
   'DTDU-472816': [
     { id: 'c1', author: 'u-002', body: 'Yusneidy, este es el container que está pasando por Panamá. Avisame cuando libere aduana así arranco el booking del flete interno.', mentions: ['u-005'], at: 'hace 2 días', reactions: { '👍': ['u-005'] } },
     { id: 'c2', author: 'u-005', body: '@Martina A. ok recibido. Lo estoy monitoreando. ETA Pto Cabello sigue 12 jun.', mentions: ['u-002'], at: 'hace 2 días', reactions: {} },
-    { id: 'c3', author: 'u-001', body: 'Cliente confirmó disponibilidad para recepción en Valencia. @Diego N. asegúrate que el reparto esté coordinado.', mentions: ['u-003'], at: 'hace 6 h', reactions: { '✓': ['u-003'] } },
+    { id: 'c3', author: 'u-001', body: 'Cliente confirmó disponibilidad para recepción en Valencia. @Diego N. asegurate que el reparto esté coordinado.', mentions: ['u-003'], at: 'hace 6 h', reactions: { '✓': ['u-003'] } },
   ],
   'DTDU-419032': [
     { id: 'c10', author: 'u-005', body: 'Tenemos demora estimada de 2 días por congestión Canal de Panamá. Aviso al cliente?', mentions: [], at: 'hace 3 h', reactions: {} },

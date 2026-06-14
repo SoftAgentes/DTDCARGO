@@ -86,10 +86,21 @@ function SectionBrandSystem() {
             icon="spark"
             label="Abrir Logo Oficial · spec interactiva"
             sub="Carrusel de las 4 variantes · tweaks en vivo · spec técnica · descarga PNG por variante" />
-          <BrandLink href="Brand Book DTD v3.7.html"
+          <BrandLink href="Brand Book DTD v4.2.html"
             icon="doc"
             label="Brand Book completo"
             sub="Tipografía · paleta · iconografía · aplicaciones · mockups" accent="navy" />
+        </div>
+        <div className="eyebrow eyebrow-wine" style={{ margin: '18px 0 12px' }}>FACHADAS Y AVISOS</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <BrandLink href="Piezas 3D · Aviso de Fachada · DTD-Cargo.html"
+            icon="building"
+            label="Avisos de fachada"
+            sub="Plano interactivo del aviso (hueco 136×43) · piezas STL/SVG/PNG letra por letra · candado de medidas aprobadas · pack .zip para el taller" />
+          <BrandLink href="Ficha 3D · Aviso de Fachada · DTD-Cargo.html"
+            icon="print"
+            label="Ficha para impresor 3D"
+            sub="Paleta Pantone/RAL · despiece de materiales · lista para imprimir y enviar al taller" accent="navy" />
         </div>
       </U.Card>
 
@@ -196,7 +207,7 @@ function SectionBrandApps() {
     { id: 'qr',          label: 'QR code branded',       sub: 'Para tracking · vCards · link al portal',  icon: 'box' },
     { id: 'emoji',       label: 'Emoji pack Slack/Discord', sub: '16 emojis para el workspace interno',  icon: 'spark' },
     { id: 'map',         label: 'Marcadores de mapa',    sub: 'Pins por etapa: bodega · puerto · cliente',icon: 'pin' },
-    { id: 'watermark',   label: 'Watermark fotos',       sub: 'Trazabilidad en fotos del almacenista',       icon: 'eye' },
+    { id: 'watermark',   label: 'Watermark fotos',       sub: 'Trazabilidad en fotos del bodeguero',       icon: 'eye' },
     { id: 'sticker',     label: 'Etiqueta de caja',      sub: 'A6 imprimible · Zebra ZPL · QR + Shipping Mark', icon: 'tag' },
     { id: 'wapack',      label: 'WhatsApp sticker pack', sub: '12 stickers animados · diferenciador',     icon: 'spark' },
   ];

@@ -518,7 +518,7 @@ function Step4Signature({ route, delivery, setDelivery, onBack, onNext }) {
       <div style={{ padding: '0 16px 100px' }}>
         <div style={{ padding: '10px 12px', background: 'var(--warning-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 8, font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink)', marginBottom: 14 }}>
           <span style={{ color: 'var(--warning)' }}>✍️</span>
-          Pedile al cliente que firme abajo confirmando recepción del envío.
+          Pídele al cliente que firme abajo confirmando recepción del envío.
         </div>
 
         <div style={{ position: 'relative', background: '#fff', border: '2px dashed var(--border-strong)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 12 }}>
