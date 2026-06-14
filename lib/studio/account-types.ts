@@ -28,6 +28,8 @@ export type Account = {
   type: AcctType;
   parent_id: string | null;
   qbo_type: string | null;
+  /** 2ª capa estilo "detail type" de QBO (ACCT_SUBTYPES[type]). Nullable. */
+  subtype: string | null;
   is_postable: boolean;
   notes: string | null;
   created_at: string;
@@ -40,6 +42,7 @@ export type AccountInput = {
   name: string;
   type: AcctType;
   parent_id: string | null;
+  subtype: string | null;
   is_postable: boolean;
   notes: string | null;
 };
@@ -55,6 +58,79 @@ export const ACCT_TYPE_LABEL: Record<AcctType, string> = {
 
 export const ACCT_TYPE_OPTIONS: { value: AcctType; label: string }[] =
   ACCT_TYPES.map((t) => ({ value: t, label: ACCT_TYPE_LABEL[t] }));
+
+/**
+ * Subtipos por tipo de cuenta — 2ª capa estilo "detail type" de QuickBooks.
+ * Al crear una cuenta, eliges Tipo → se filtran estos subtipos (cascada). Solo
+ * organizan/agrupan; el reporte (P&L vs Balance) lo decide `type`, no el subtipo.
+ * Pensados para la operación China↔Venezuela (logística + trading).
+ */
+export const ACCT_SUBTYPES: Record<
+  AcctType,
+  { value: string; label: string }[]
+> = {
+  A: [
+    { value: "banco_caja", label: "Banco / Caja" },
+    { value: "cuentas_cobrar", label: "Cuentas por cobrar" },
+    { value: "activo_corriente", label: "Otro activo corriente" },
+    { value: "activo_fijo", label: "Activo fijo" },
+  ],
+  P: [
+    { value: "cuentas_pagar", label: "Cuentas por pagar" },
+    { value: "tarjeta_credito", label: "Tarjeta de crédito" },
+    { value: "impuestos_pagar", label: "Impuestos por pagar" },
+    { value: "pasivo_corriente", label: "Otro pasivo corriente" },
+    { value: "pasivo_largo", label: "Pasivo no corriente" },
+  ],
+  PT: [
+    { value: "capital", label: "Capital" },
+    { value: "aportes", label: "Aportes del dueño" },
+    { value: "retiros", label: "Retiros del dueño" },
+    { value: "resultados", label: "Resultados acumulados" },
+  ],
+  I: [
+    { value: "flete", label: "Flete / logística" },
+    { value: "accesorios", label: "Cargos accesorios" },
+    { value: "aduana_gestion", label: "Gestión aduanera" },
+    { value: "otros_ingresos", label: "Otros ingresos" },
+  ],
+  CGS: [
+    { value: "flete_internacional", label: "Flete internacional" },
+    { value: "transporte_terrestre", label: "Transporte terrestre" },
+    { value: "aduana_importacion", label: "Aduana e impuestos de importación" },
+    { value: "portuario", label: "Manipuleo / almacenaje portuario" },
+    { value: "otros_costos", label: "Otros costos de venta" },
+  ],
+  G: [
+    { value: "sueldos", label: "Sueldos y cargas" },
+    { value: "alquiler", label: "Alquiler" },
+    { value: "servicios", label: "Servicios / telecom" },
+    { value: "flota", label: "Flota (combustible/mantenimiento)" },
+    { value: "viaticos", label: "Viáticos y viajes" },
+    { value: "comisiones_banco", label: "Comisiones bancarias" },
+    { value: "publicidad", label: "Publicidad y marketing" },
+    { value: "profesionales", label: "Honorarios profesionales" },
+    { value: "otros_gastos", label: "Otros gastos" },
+  ],
+};
+
+/** ¿`subtype` es válido para `type`? null/"" = sin subtipo (válido). */
+export function isValidSubtype(
+  type: AcctType,
+  subtype: string | null,
+): boolean {
+  if (!subtype) return true;
+  return ACCT_SUBTYPES[type].some((s) => s.value === subtype);
+}
+
+/** Label legible de un subtipo (o el value crudo si no se encuentra). */
+export function acctSubtypeLabel(
+  type: AcctType,
+  subtype: string | null,
+): string | null {
+  if (!subtype) return null;
+  return ACCT_SUBTYPES[type].find((s) => s.value === subtype)?.label ?? subtype;
+}
 
 export function acctTypeLabel(type: AcctType): string {
   return ACCT_TYPE_LABEL[type] ?? type;
@@ -210,12 +286,16 @@ export function validateAccountInput(input: Partial<AccountInput>): {
     return { fieldErrors: errors };
   }
 
+  const subtype = input.subtype?.trim() || null;
+
   return {
     input: {
       code,
       name,
       type: type!,
       parent_id: input.parent_id?.trim() || null,
+      // El subtipo solo es válido para su tipo; si no, se descarta (no bloquea).
+      subtype: isValidSubtype(type!, subtype) ? subtype : null,
       is_postable: input.is_postable ?? true,
       notes: input.notes?.trim() || null,
     },

@@ -7,6 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { resolveExpenseAccountId } from "@/lib/studio/expense-queries";
 import {
   validateExpenseInput,
   type CreateExpenseInput,
@@ -118,6 +119,13 @@ export async function createExpenseAction(
     receiptPath = path;
   }
 
+  // Imputación contable: cuenta del plan según la categoría (SDD-0077).
+  const accountId = await resolveExpenseAccountId(
+    supabase,
+    link.tenant_id,
+    input!.category,
+  );
+
   const { error: insertErr } = await supabase.from("expenses").insert({
     tenant_id: link.tenant_id,
     user_id: userResp.user.id,
@@ -134,6 +142,7 @@ export async function createExpenseAction(
     location: input!.location,
     billable: input!.billable,
     receipt_path: receiptPath,
+    account_id: accountId,
   });
 
   if (insertErr) {
@@ -238,6 +247,13 @@ export async function updateExpenseAction(
     nextReceiptPath = null;
   }
 
+  // Re-imputar la cuenta del plan (la categoría pudo cambiar al editar · SDD-0077).
+  const accountId = await resolveExpenseAccountId(
+    supabase,
+    existing.tenant_id,
+    input!.category,
+  );
+
   const { error: updateErr } = await supabase
     .from("expenses")
     .update({
@@ -253,6 +269,7 @@ export async function updateExpenseAction(
       location: input!.location,
       billable: input!.billable,
       receipt_path: nextReceiptPath,
+      account_id: accountId,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);

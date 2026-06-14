@@ -56,6 +56,8 @@ export type Expense = {
   billable: boolean;
   /** Path en bucket expense-receipts · NULL si no se cargó. */
   receipt_path: string | null;
+  /** Cuenta del plan a la que se imputa (calculada de la categoría). Nullable. */
+  account_id: string | null;
   occurred_at: string;
   created_at: string;
   updated_at: string;
@@ -92,6 +94,37 @@ export const EXTERNAL_CATEGORIES: ExpenseCategory[] = [
 export const CATEGORIES_BY_SCOPE: Record<ExpenseScope, ExpenseCategory[]> = {
   shipment: SHIPMENT_CATEGORIES,
   external: EXTERNAL_CATEGORIES,
+};
+
+// ─────────────────────────────────────────────────────────────
+// Imputación contable · categoría → cuenta del plan (SDD-0077)
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Mapeo categoría de gasto → code de cuenta del plan (seed 0078, tipo CGS/G).
+ * Al cargar un gasto se imputa a esta cuenta (resolveExpenseAccountId lo resuelve
+ * a id por tenant); editable después. DEBE coincidir con el backfill de la
+ * migración 0131 (si cambia uno, cambia el otro).
+ */
+export const EXPENSE_CATEGORY_ACCOUNT_CODE: Record<ExpenseCategory, string> = {
+  // shipment · viáticos del personal en viaje
+  taxi: "6.14",
+  comida: "6.14",
+  hotel: "6.14",
+  vuelo: "6.14",
+  peaje: "6.14",
+  combustible: "6.1",
+  aduana: "5.5",
+  cliente: "6.99",
+  otro: "6.99",
+  // external · overhead de oficina/bodega CN
+  op_rent: "6.7",
+  op_utilities: "6.8",
+  op_salaries: "6.5.1",
+  op_supplies: "6.13",
+  op_equipment: "6.2",
+  op_local_transport: "5.2",
+  op_customs_local: "5.5",
 };
 
 // ─────────────────────────────────────────────────────────────

@@ -85,6 +85,8 @@ export type Supplier = {
   contact_email: string | null;
   tax_id: string | null;
   notes: string | null;
+  /** Cuenta de costo/gasto (CGS o G) que autollena la CxP de este proveedor. */
+  default_expense_account_id: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -103,6 +105,7 @@ export type SupplierInput = {
   contactEmail: string | null;
   taxId: string | null;
   notes: string | null;
+  defaultExpenseAccountId: string | null;
 };
 
 export type SupplierActionState = {
@@ -159,6 +162,7 @@ export function validateSupplierInput(input: Partial<SupplierInput>): {
       contactEmail: input.contactEmail?.trim() || null,
       taxId: input.taxId?.trim() || null,
       notes: input.notes?.trim() || null,
+      defaultExpenseAccountId: input.defaultExpenseAccountId?.trim() || null,
     },
   };
 }

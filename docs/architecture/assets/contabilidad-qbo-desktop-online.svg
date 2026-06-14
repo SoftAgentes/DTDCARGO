@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 470" fill="none" font-family="Archivo, system-ui, sans-serif">
+  <!-- lienzo -->
+  <rect x="1" y="1" width="918" height="468" rx="14" fill="#FBFAF7" stroke="#E8E6E2" stroke-width="1.5"/>
+
+  <!-- eyebrows -->
+  <text x="46" y="84" font-size="12" letter-spacing="1.6" fill="#9B9B9B">ANTES · ESCRITORIO</text>
+  <text x="526" y="84" font-size="12" letter-spacing="1.6" fill="#9B9B9B">AHORA · ONLINE</text>
+
+  <!-- ============ PANEL IZQUIERDO · libro mayor denso ============ -->
+  <rect x="44" y="100" width="352" height="288" rx="8" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.5"/>
+  <!-- barra de app (navy, menús densos) -->
+  <path d="M44,108 a8,8 0 0 1 8,-8 H388 a8,8 0 0 1 8,8 V128 H44 Z" fill="#0F1E3D"/>
+  <circle cx="60" cy="114" r="3" fill="rgba(242,240,236,0.45)"/>
+  <circle cx="71" cy="114" r="3" fill="rgba(242,240,236,0.45)"/>
+  <circle cx="82" cy="114" r="3" fill="rgba(242,240,236,0.45)"/>
+  <text x="100" y="118" font-size="10" letter-spacing="0.4" fill="rgba(242,240,236,0.75)">Archivo · Editar · Listas · Informes</text>
+
+  <!-- encabezado de columnas -->
+  <text x="60" y="150" font-size="9" letter-spacing="0.8" fill="#9B9B9B">FECHA</text>
+  <text x="120" y="150" font-size="9" letter-spacing="0.8" fill="#9B9B9B">DETALLE</text>
+  <text x="332" y="150" font-size="9" letter-spacing="0.8" fill="#9B9B9B" text-anchor="end">DEBE</text>
+  <text x="384" y="150" font-size="9" letter-spacing="0.8" fill="#9B9B9B" text-anchor="end">HABER</text>
+  <line x1="56" y1="157" x2="384" y2="157" stroke="#E8E6E2" stroke-width="1"/>
+
+  <!-- filas del libro (densas) -->
+  <g font-size="11" fill="#0F1E3D">
+    <!-- 1 -->
+    <text x="60" y="177" font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B6B">06/01</text>
+    <text x="120" y="177">Factura F-0114</text>
+    <text x="332" y="177" font-family="JetBrains Mono, monospace" text-anchor="end">1.200</text>
+    <line x1="56" y1="186" x2="384" y2="186" stroke="#F1EFEB" stroke-width="1"/>
+    <!-- 2 -->
+    <text x="60" y="205" font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B6B">06/01</text>
+    <text x="120" y="205">Cobro R-0098</text>
+    <text x="384" y="205" font-family="JetBrains Mono, monospace" text-anchor="end">1.200</text>
+    <line x1="56" y1="214" x2="384" y2="214" stroke="#F1EFEB" stroke-width="1"/>
+    <!-- 3 -->
+    <text x="60" y="233" font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B6B">06/02</text>
+    <text x="120" y="233">CxP Naviera</text>
+    <text x="332" y="233" font-family="JetBrains Mono, monospace" text-anchor="end">3.400</text>
+    <line x1="56" y1="242" x2="384" y2="242" stroke="#F1EFEB" stroke-width="1"/>
+    <!-- 4 -->
+    <text x="60" y="261" font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B6B">06/03</text>
+    <text x="120" y="261">Pago OP-0051</text>
+    <text x="384" y="261" font-family="JetBrains Mono, monospace" text-anchor="end">3.400</text>
+    <line x1="56" y1="270" x2="384" y2="270" stroke="#F1EFEB" stroke-width="1"/>
+    <!-- 5 -->
+    <text x="60" y="289" font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B6B">06/03</text>
+    <text x="120" y="289">Gasto aduana</text>
+    <text x="332" y="289" font-family="JetBrains Mono, monospace" text-anchor="end">280</text>
+    <line x1="56" y1="298" x2="384" y2="298" stroke="#F1EFEB" stroke-width="1"/>
+    <!-- 6 -->
+    <text x="60" y="317" font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B6B">06/04</text>
+    <text x="120" y="317">Flete terrestre</text>
+    <text x="332" y="317" font-family="JetBrains Mono, monospace" text-anchor="end">150</text>
+    <line x1="56" y1="326" x2="384" y2="326" stroke="#F1EFEB" stroke-width="1"/>
+    <!-- 7 -->
+    <text x="60" y="345" font-family="JetBrains Mono, monospace" font-size="10" fill="#6B6B6B">06/04</text>
+    <text x="120" y="345">Sueldos CN</text>
+    <text x="332" y="345" font-family="JetBrains Mono, monospace" text-anchor="end">2.000</text>
+    <line x1="56" y1="354" x2="384" y2="354" stroke="#F1EFEB" stroke-width="1"/>
+    <!-- 8 (corte) -->
+    <text x="60" y="373" font-family="JetBrains Mono, monospace" font-size="10" fill="#9B9B9B">06/05</text>
+    <text x="120" y="373" fill="#9B9B9B">IVA por pagar</text>
+    <text x="384" y="373" font-family="JetBrains Mono, monospace" text-anchor="end" fill="#9B9B9B">192</text>
+  </g>
+  <!-- scrollbar (sugiere densidad/más filas) -->
+  <rect x="388" y="140" width="4" height="240" rx="2" fill="#F1EFEB"/>
+  <rect x="388" y="140" width="4" height="120" rx="2" fill="#D9D6D1"/>
+
+  <!-- ============ FLECHA ============ -->
+  <text x="462" y="232" font-size="11" letter-spacing="1.2" fill="#7F0F1A" text-anchor="middle">online</text>
+  <line x1="406" y1="244" x2="508" y2="244" stroke="#7F0F1A" stroke-width="2.5"/>
+  <polygon points="506,238 518,244 506,250" fill="#7F0F1A"/>
+  <text x="462" y="262" font-size="9" fill="#9B9B9B" text-anchor="middle">mismo dato, menos fricción</text>
+
+  <!-- ============ PANEL DERECHO · online por función ============ -->
+  <rect x="524" y="100" width="352" height="288" rx="8" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.5"/>
+  <!-- barra superior clara -->
+  <path d="M524,108 a8,8 0 0 1 8,-8 H868 a8,8 0 0 1 8,8 V128 H524 Z" fill="#F2F0EC"/>
+  <line x1="524" y1="128" x2="876" y2="128" stroke="#E8E6E2" stroke-width="1"/>
+  <circle cx="540" cy="114" r="4" fill="#7F0F1A"/>
+  <text x="552" y="118" font-family="Archivo Black, Archivo, sans-serif" font-size="11" fill="#0F1E3D">DTD Studio</text>
+
+  <!-- sidebar por función (navy) -->
+  <path d="M616,128 H524 V380 a8,8 0 0 0 8,8 H616 Z" fill="#0F1E3D"/>
+  <g font-size="11" fill="rgba(242,240,236,0.82)">
+    <text x="540" y="162">Ventas</text>
+    <text x="540" y="194">Gastos</text>
+    <text x="540" y="226">Banco</text>
+    <text x="540" y="258">Reportes</text>
+  </g>
+  <!-- item activo -->
+  <rect x="528" y="278" width="84" height="24" rx="6" fill="#7F0F1A"/>
+  <text x="540" y="294" font-size="11" fill="#F2F0EC">Contabilidad</text>
+
+  <!-- área principal: tarjetas + acción (aireado) -->
+  <rect x="632" y="146" width="110" height="64" rx="6" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.2"/>
+  <text x="646" y="170" font-size="9.5" fill="#6B6B6B">Por cobrar</text>
+  <text x="646" y="194" font-family="Archivo Black, Archivo, sans-serif" font-size="17" fill="#0F1E3D">$12.500</text>
+
+  <rect x="752" y="146" width="110" height="64" rx="6" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.2"/>
+  <text x="766" y="170" font-size="9.5" fill="#6B6B6B">Por pagar</text>
+  <text x="766" y="194" font-family="Archivo Black, Archivo, sans-serif" font-size="17" fill="#0F1E3D">$8.000</text>
+
+  <rect x="632" y="226" width="160" height="34" rx="7" fill="#7F0F1A"/>
+  <text x="650" y="248" font-size="13" fill="#F2F0EC">+  Nueva factura</text>
+
+  <!-- lista de formularios recientes -->
+  <circle cx="638" cy="288" r="3.5" fill="#1F8A5B"/>
+  <text x="650" y="292" font-size="10.5" fill="#6B6B6B">Factura F-0115 · pagada</text>
+  <circle cx="638" cy="312" r="3.5" fill="#B8893A"/>
+  <text x="650" y="316" font-size="10.5" fill="#6B6B6B">CxP Naviera · pendiente</text>
+  <line x1="632" y1="332" x2="862" y2="332" stroke="#F1EFEB" stroke-width="1"/>
+  <circle cx="638" cy="352" r="3.5" fill="#1F8A5B"/>
+  <text x="650" y="356" font-size="10.5" fill="#6B6B6B">Cobro R-0099 · aplicado</text>
+
+  <!-- ============ pie ============ -->
+  <text x="46" y="432" font-size="13" fill="#6B6B6B">Tú llenas el formulario que entiendes — <tspan fill="#7F0F1A" font-family="Archivo Black, Archivo, sans-serif">el asiento de doble partida se arma solo.</tspan></text>
+</svg>

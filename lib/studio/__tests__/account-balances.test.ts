@@ -20,6 +20,7 @@ function acct(code: string, type: Account["type"], postable: boolean): Account {
     type,
     parent_id: null,
     qbo_type: null,
+    subtype: null,
     is_postable: postable,
     notes: null,
     created_at: "2026-01-01T00:00:00Z",

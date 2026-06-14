@@ -323,6 +323,7 @@ function accountInputFromFormData(
     name: String(formData.get("name") ?? "").trim() || undefined,
     type: (typeRaw || undefined) as AccountInput["type"] | undefined,
     parent_id: String(formData.get("parent_id") ?? "").trim() || null,
+    subtype: String(formData.get("subtype") ?? "").trim() || null,
     is_postable: String(formData.get("is_postable") ?? "true") === "true",
     notes: String(formData.get("notes") ?? "").trim() || null,
   };
@@ -347,6 +348,7 @@ export async function createAccount(
     name: input!.name,
     type: input!.type,
     parent_id: input!.parent_id,
+    subtype: input!.subtype,
     is_postable: input!.is_postable,
     notes: input!.notes,
   });
@@ -410,6 +412,7 @@ export async function updateAccount(
     .update({
       name: input!.name,
       type: input!.type,
+      subtype: input!.subtype,
       is_postable: input!.is_postable,
       notes: input!.notes,
     })

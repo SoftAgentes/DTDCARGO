@@ -361,7 +361,7 @@ export function isExpenseAccount(
 }
 
 const ACCOUNT_COLUMNS =
-  "id, tenant_id, code, name, type, parent_id, qbo_type, is_postable, notes, created_at, updated_at";
+  "id, tenant_id, code, name, type, parent_id, qbo_type, subtype, is_postable, notes, created_at, updated_at";
 
 function coerceAccount(r: Record<string, unknown>): Account {
   return {
@@ -372,6 +372,7 @@ function coerceAccount(r: Record<string, unknown>): Account {
     type: r.type as Account["type"],
     parent_id: (r.parent_id as string | null) ?? null,
     qbo_type: (r.qbo_type as string | null) ?? null,
+    subtype: (r.subtype as string | null) ?? null,
     is_postable: Boolean(r.is_postable),
     notes: (r.notes as string | null) ?? null,
     created_at: String(r.created_at),

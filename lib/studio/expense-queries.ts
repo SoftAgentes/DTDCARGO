@@ -3,10 +3,39 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Expense, ExpenseCurrency, ExpenseScope } from "./expense-types";
+import { EXPENSE_CATEGORY_ACCOUNT_CODE } from "./expense-types";
+import type {
+  Expense,
+  ExpenseCategory,
+  ExpenseCurrency,
+  ExpenseScope,
+} from "./expense-types";
 
 const EXPENSE_COLUMNS =
-  "id, tenant_id, user_id, expense_code, amount, currency, amount_usd, fx_rate, category, scope, method, shipment_id, note, location, billable, receipt_path, occurred_at, created_at, updated_at, deleted_at";
+  "id, tenant_id, user_id, expense_code, amount, currency, amount_usd, fx_rate, category, scope, method, shipment_id, note, location, billable, receipt_path, account_id, occurred_at, created_at, updated_at, deleted_at";
+
+/**
+ * Resuelve la cuenta del plan a la que se imputa un gasto, según su categoría
+ * (mapeo EXPENSE_CATEGORY_ACCOUNT_CODE → code → account.id del tenant). Devuelve
+ * null si el tenant no sembró esa cuenta (graceful). SDD-0077.
+ */
+export async function resolveExpenseAccountId(
+  supabase: SupabaseClient,
+  tenantId: string,
+  category: ExpenseCategory,
+): Promise<string | null> {
+  const code = EXPENSE_CATEGORY_ACCOUNT_CODE[category];
+  if (!code) return null;
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("code", code)
+    .eq("is_postable", true)
+    .maybeSingle<{ id: string }>();
+  if (error || !data) return null;
+  return data.id;
+}
 
 /** Mis gastos · ordenados por occurred_at desc. RLS filtra por user_id. */
 export async function listMyExpenses(

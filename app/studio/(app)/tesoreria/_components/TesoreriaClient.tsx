@@ -242,12 +242,16 @@ export function TesoreriaClient({
       )}
 
       {showNewSupplier && (
-        <SupplierDrawer onClose={() => setShowNewSupplier(false)} />
+        <SupplierDrawer
+          expenseAccounts={expenseAccounts}
+          onClose={() => setShowNewSupplier(false)}
+        />
       )}
 
       {editSupplier && (
         <SupplierDrawer
           supplier={editSupplier}
+          expenseAccounts={expenseAccounts}
           onClose={() => setEditSupplier(null)}
         />
       )}

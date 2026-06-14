@@ -13,7 +13,7 @@ import {
 } from "./account-types";
 
 const ACCOUNT_COLUMNS =
-  "id, tenant_id, code, name, type, parent_id, qbo_type, is_postable, notes, created_at, updated_at";
+  "id, tenant_id, code, name, type, parent_id, qbo_type, subtype, is_postable, notes, created_at, updated_at";
 
 function coerceAccount(row: Record<string, unknown>): Account {
   return {
@@ -24,6 +24,7 @@ function coerceAccount(row: Record<string, unknown>): Account {
     type: row.type as Account["type"],
     parent_id: (row.parent_id as string | null) ?? null,
     qbo_type: (row.qbo_type as string | null) ?? null,
+    subtype: (row.subtype as string | null) ?? null,
     is_postable: Boolean(row.is_postable),
     notes: (row.notes as string | null) ?? null,
     created_at: String(row.created_at),
