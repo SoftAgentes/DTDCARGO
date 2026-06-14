@@ -19,6 +19,8 @@ type FormData0 = {
   document: string;
   email: string;
   whatsapp: string;
+  /** SDD-0082: opt-in explícito de marketing por email (default OFF). */
+  emailOptin: boolean;
 };
 
 const EMPTY: FormData0 = {
@@ -28,6 +30,7 @@ const EMPTY: FormData0 = {
   document: "",
   email: "",
   whatsapp: "",
+  emailOptin: false,
 };
 
 /**
@@ -279,6 +282,24 @@ function ExpressForm({
         compra completas tu perfil (foto de cédula + dirección de entrega) desde el
         portal.
       </div>
+
+      {/* SDD-0082: opt-in EXPLÍCITO de marketing por email (default OFF). Es
+          consentimiento aparte — el email transaccional (bienvenida, factura,
+          avisos de envío) llega igual sin marcarlo. */}
+      <label className="flex items-start gap-2.5 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          name="email_optin"
+          checked={data.emailOptin}
+          onChange={(e) => patch({ emailOptin: e.target.checked })}
+          className="mt-0.5 h-5 w-5 flex-shrink-0 rounded-sm focus-visible:ring-2 focus-visible:ring-wine focus-visible:ring-offset-1"
+          style={{ accentColor: "var(--color-wine)" }}
+        />
+        <span className="text-[12.5px] text-grey-700 leading-[1.5]">
+          Quiero recibir novedades, ofertas y guías de importación por email. Puedes
+          darte de baja cuando quieras.
+        </span>
+      </label>
 
       {error && (
         <p className="text-[13.5px] text-wine leading-[1.45]">{error}</p>

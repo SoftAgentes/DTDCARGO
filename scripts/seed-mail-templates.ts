@@ -201,6 +201,29 @@ const MAIL_TEMPLATE_SEED: MailTemplateSeed[] = [
       <p style="color:#6B6B6B;font-size:12px;margin:0;">¿Problemas con el link? Cópialo a tu navegador:<br><code style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#7F0F1A;word-break:break-all;">{{invitation_link}}</code></p>
     `),
   },
+  {
+    // SDD-0082 (SDD-0062 Slice D): reactivación de prospectos inactivos por email.
+    // MARKETING → lleva footer de baja obligatorio ({{unsubscribe_url}}). Sin sender
+    // automático todavía: un admin crea la regla en /studio/mailing cuando corresponda.
+    slug: "lead_dormant_reengagement",
+    name: "Prospecto inactivo · reenganche",
+    category: "comercial",
+    channel: "email",
+    subject: "{{customer_name}}, ¿seguimos con tu importación?",
+    body_html: htmlBlock(`
+      <p>Hola {{customer_name}},</p>
+      <p>Hace un tiempo nos escribiste por una importación desde China y no llegamos a cerrarla. ¿Sigues con la idea? Estamos para ayudarte a traerla puerta a puerta.</p>
+      <p>Lo que hacemos:</p>
+      <ul style="font:14px Archivo,sans-serif;color:#0F1E3D;">
+        <li>Consolidación LCL desde China — pagas solo tu espacio</li>
+        <li>Puerta a puerta DDP — pagas al llegar*</li>
+        <li>Agente de compra e inspección en origen</li>
+      </ul>
+      <p>Respóndenos este correo o escríbenos por WhatsApp {{whatsapp_number}} y retomamos donde quedamos.</p>
+      <hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0;">
+      <p style="color:#6B6B6B;font-size:11px;margin:0;line-height:1.5;">Recibes este correo porque te registraste o nos escribiste y aceptaste novedades por email. <a href="{{unsubscribe_url}}" style="color:#6B6B6B;text-decoration:underline;">Darme de baja</a>.</p>
+    `),
+  },
 ];
 
 /**

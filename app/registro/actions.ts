@@ -82,6 +82,8 @@ function parseForm(formData: FormData): Partial<RegisterInput> {
     email: (formData.get("email") as string | null) ?? undefined,
     whatsapp: (formData.get("whatsapp") as string | null) ?? undefined,
     officePhone: (formData.get("office_phone") as string | null) ?? undefined,
+    // Checkbox HTML: presente ("on") sólo si el visitante lo marcó (SDD-0082).
+    emailOptin: formData.get("email_optin") != null,
   };
 }
 
@@ -208,6 +210,10 @@ export async function registerClientAction(
       // El self-registro siempre es canal 'portal'; doc_kind viene del form.
       registration_channel: "portal",
       doc_kind: input.kind,
+      // SDD-0082: opt-in EXPLÍCITO a marketing por email (checkbox del alta). Sólo
+      // si lo marcó. NO afecta el email transaccional (welcome/factura).
+      email_marketing_optin_at: input.emailOptin ? new Date().toISOString() : null,
+      email_optin_source: input.emailOptin ? "portal_register" : null,
       // Cuenta ACTIVA al registrar (founder 2026-06-07 · SDD-0059): el cliente
       // entra directo al portal, sin pantalla de espera. getPortalActivation() ve
       // portal_approved_at != null → activada. La revisión de identidad (foto +

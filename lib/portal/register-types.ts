@@ -44,6 +44,12 @@ export type RegisterInput = {
   whatsapp: string;
   /** Teléfono de oficina/fijo (opcional, no WhatsApp). */
   officePhone: string | null;
+  /**
+   * Opt-in EXPLÍCITO a marketing por email (SDD-0082 · checkbox default OFF). NO
+   * afecta el email transaccional (welcome/factura). true sólo si el visitante lo
+   * marca → la action setea clients.email_marketing_optin_at + source.
+   */
+  emailOptin: boolean;
 };
 
 /**
@@ -182,6 +188,7 @@ export function validateRegisterInput(partial: Partial<RegisterInput>): {
       email,
       whatsapp,
       officePhone: partial.officePhone?.trim() || null,
+      emailOptin: partial.emailOptin === true,
     },
   };
 }
