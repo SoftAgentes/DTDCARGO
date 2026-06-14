@@ -9,6 +9,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { resolveExpenseAccountId } from "@/lib/studio/expense-queries";
 import {
+  syncExpenseEntry,
+  voidExpenseEntriesForExpense,
+} from "@/lib/studio/accounting/expense-posting";
+import {
   validateExpenseInput,
   type CreateExpenseInput,
   type ExpenseActionState,
@@ -126,32 +130,48 @@ export async function createExpenseAction(
     input!.category,
   );
 
-  const { error: insertErr } = await supabase.from("expenses").insert({
-    tenant_id: link.tenant_id,
-    user_id: userResp.user.id,
-    expense_code: expenseCode,
-    amount: input!.amount,
-    currency: input!.currency,
-    amount_usd: input!.amount_usd,
-    fx_rate: input!.fx_rate,
-    scope: input!.scope,
-    category: input!.category,
-    method: input!.method,
-    shipment_id: input!.shipment_id,
-    note: input!.note,
-    location: input!.location,
-    billable: input!.billable,
-    receipt_path: receiptPath,
-    account_id: accountId,
-  });
+  const { data: insertedExp, error: insertErr } = await supabase
+    .from("expenses")
+    .insert({
+      tenant_id: link.tenant_id,
+      user_id: userResp.user.id,
+      expense_code: expenseCode,
+      amount: input!.amount,
+      currency: input!.currency,
+      amount_usd: input!.amount_usd,
+      fx_rate: input!.fx_rate,
+      scope: input!.scope,
+      category: input!.category,
+      method: input!.method,
+      shipment_id: input!.shipment_id,
+      note: input!.note,
+      location: input!.location,
+      billable: input!.billable,
+      receipt_path: receiptPath,
+      account_id: accountId,
+    })
+    .select("id, occurred_at")
+    .single<{ id: string; occurred_at: string }>();
 
-  if (insertErr) {
+  if (insertErr || !insertedExp) {
     // Si falló el insert pero subimos foto, intentar limpiar el orphan
     if (receiptPath) {
       await supabase.storage.from(RECEIPT_BUCKET).remove([receiptPath]);
     }
-    return { error: `No se pudo guardar el gasto: ${insertErr.message}` };
+    return { error: `No se pudo guardar el gasto: ${insertErr?.message}` };
   }
+
+  // Asiento automático del gasto (best-effort) — DR cuenta de gasto / CR
+  // caja-banco según el método. No bloquea la carga (SDD-0079).
+  await syncExpenseEntry({
+    tenantId: link.tenant_id,
+    expenseId: insertedExp.id,
+    expenseCode,
+    accountId,
+    amountUsd: input!.amount_usd,
+    method: input!.method,
+    entryDate: String(insertedExp.occurred_at).slice(0, 10),
+  });
 
   revalidatePath("/m/erp");
   return { ok: true, expenseCode };
@@ -186,16 +206,23 @@ export async function updateExpenseAction(
   const { input, fieldErrors } = validateExpenseInput(partial);
   if (fieldErrors) return { fieldErrors };
 
-  // Cargar el row actual para conocer expense_code + receipt_path previo
+  // Cargar el row actual: expense_code + receipt_path + estado contable previo
+  // (para re-sincronizar el asiento solo si cambió monto/cuenta/método · SDD-0079).
   const { data: existing, error: loadErr } = await supabase
     .from("expenses")
-    .select("expense_code, receipt_path, tenant_id, user_id")
+    .select(
+      "expense_code, receipt_path, tenant_id, user_id, amount_usd, account_id, method, occurred_at",
+    )
     .eq("id", id)
     .maybeSingle<{
       expense_code: string;
       receipt_path: string | null;
       tenant_id: string;
       user_id: string;
+      amount_usd: number;
+      account_id: string | null;
+      method: ExpenseMethod;
+      occurred_at: string;
     }>();
 
   if (loadErr || !existing) {
@@ -278,6 +305,24 @@ export async function updateExpenseAction(
     return { error: `No se pudo guardar: ${updateErr.message}` };
   }
 
+  // Re-sincronizar el asiento si cambió monto, cuenta o método (anula + repostea).
+  const acctChanged =
+    (existing.account_id ?? null) !== (accountId ?? null) ||
+    Number(existing.amount_usd) !== Number(input!.amount_usd) ||
+    existing.method !== input!.method;
+  if (acctChanged) {
+    await voidExpenseEntriesForExpense(existing.tenant_id, id);
+    await syncExpenseEntry({
+      tenantId: existing.tenant_id,
+      expenseId: id,
+      expenseCode: existing.expense_code,
+      accountId,
+      amountUsd: input!.amount_usd,
+      method: input!.method,
+      entryDate: String(existing.occurred_at).slice(0, 10),
+    });
+  }
+
   if (oldReceiptToDelete) {
     await supabase.storage.from(RECEIPT_BUCKET).remove([oldReceiptToDelete]);
   }
@@ -299,9 +344,13 @@ export async function softDeleteExpenseAction(
 
   const { data: existing, error: loadErr } = await supabase
     .from("expenses")
-    .select("receipt_path, user_id")
+    .select("receipt_path, user_id, tenant_id")
     .eq("id", id)
-    .maybeSingle<{ receipt_path: string | null; user_id: string }>();
+    .maybeSingle<{
+      receipt_path: string | null;
+      user_id: string;
+      tenant_id: string;
+    }>();
 
   if (loadErr || !existing) return { error: "Gasto no encontrado." };
   if (existing.user_id !== userResp.user.id) {
@@ -314,6 +363,9 @@ export async function softDeleteExpenseAction(
     .eq("id", id);
 
   if (updateErr) return { error: `No se pudo eliminar: ${updateErr.message}` };
+
+  // Anular el asiento del gasto (best-effort · SDD-0079).
+  await voidExpenseEntriesForExpense(existing.tenant_id, id);
 
   if (existing.receipt_path) {
     // Cleanup soft · si falla, el gasto igual quedó eliminado

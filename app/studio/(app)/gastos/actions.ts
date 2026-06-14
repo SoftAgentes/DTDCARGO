@@ -25,6 +25,10 @@ import {
   signReceiptUrls,
 } from "@/lib/studio/expense-queries";
 import {
+  syncExpenseEntry,
+  voidExpenseEntriesForExpense,
+} from "@/lib/studio/accounting/expense-posting";
+import {
   validateExpenseInput,
   currencyPair,
   categoryLabel,
@@ -139,29 +143,45 @@ export async function createExpenseAction(
     input!.category,
   );
 
-  const { error: insertErr } = await supabase.from("expenses").insert({
-    tenant_id: link.tenant_id,
-    user_id: userResp.user.id,
-    expense_code: expenseCode,
-    amount: input!.amount,
-    currency: input!.currency,
-    amount_usd: input!.amount_usd,
-    fx_rate: input!.fx_rate,
-    category: input!.category,
-    scope: input!.scope,
-    method: input!.method,
-    shipment_id: input!.shipment_id,
-    note: input!.note,
-    location: input!.location,
-    billable: input!.billable,
-    receipt_path: receiptPath,
-    account_id: accountId,
-  });
+  const { data: insertedExp, error: insertErr } = await supabase
+    .from("expenses")
+    .insert({
+      tenant_id: link.tenant_id,
+      user_id: userResp.user.id,
+      expense_code: expenseCode,
+      amount: input!.amount,
+      currency: input!.currency,
+      amount_usd: input!.amount_usd,
+      fx_rate: input!.fx_rate,
+      category: input!.category,
+      scope: input!.scope,
+      method: input!.method,
+      shipment_id: input!.shipment_id,
+      note: input!.note,
+      location: input!.location,
+      billable: input!.billable,
+      receipt_path: receiptPath,
+      account_id: accountId,
+    })
+    .select("id, occurred_at")
+    .single<{ id: string; occurred_at: string }>();
 
-  if (insertErr) {
+  if (insertErr || !insertedExp) {
     if (receiptPath) await supabase.storage.from(RECEIPT_BUCKET).remove([receiptPath]);
-    return { errorCode: "internal_error", error: insertErr.message };
+    return { errorCode: "internal_error", error: insertErr?.message };
   }
+
+  // Asiento automático del gasto (best-effort) — DR cuenta de gasto / CR
+  // caja-banco según el método. No bloquea la carga si algo falla (SDD-0079).
+  await syncExpenseEntry({
+    tenantId: link.tenant_id,
+    expenseId: insertedExp.id,
+    expenseCode,
+    accountId,
+    amountUsd: input!.amount_usd,
+    method: input!.method,
+    entryDate: String(insertedExp.occurred_at).slice(0, 10),
+  });
 
   // Registrar el fx usado en el historial del tenant (prefill futuro).
   const pair = currencyPair(input!.currency);
@@ -207,6 +227,20 @@ export async function updateExpenseAction(
     ? await resolveExpenseAccountId(supabase, link.tenant_id, input!.category)
     : null;
 
+  // Estado contable previo (para re-sincronizar el asiento solo si cambió algo
+  // relevante: monto, cuenta o método · SDD-0079).
+  const { data: oldExp } = await supabase
+    .from("expenses")
+    .select("expense_code, amount_usd, account_id, method, occurred_at")
+    .eq("id", id)
+    .maybeSingle<{
+      expense_code: string;
+      amount_usd: number;
+      account_id: string | null;
+      method: ExpenseMethod;
+      occurred_at: string;
+    }>();
+
   const { error } = await supabase
     .from("expenses")
     .update({
@@ -228,6 +262,26 @@ export async function updateExpenseAction(
 
   if (error) return { errorCode: "internal_error", error: error.message };
 
+  // Re-sincronizar el asiento si cambió monto, cuenta o método (anula + repostea).
+  if (link?.tenant_id && oldExp) {
+    const changed =
+      (oldExp.account_id ?? null) !== (accountId ?? null) ||
+      Number(oldExp.amount_usd) !== Number(input!.amount_usd) ||
+      oldExp.method !== input!.method;
+    if (changed) {
+      await voidExpenseEntriesForExpense(link.tenant_id, id);
+      await syncExpenseEntry({
+        tenantId: link.tenant_id,
+        expenseId: id,
+        expenseCode: oldExp.expense_code,
+        accountId,
+        amountUsd: input!.amount_usd,
+        method: input!.method,
+        entryDate: String(oldExp.occurred_at).slice(0, 10),
+      });
+    }
+  }
+
   revalidatePath("/studio/gastos");
   return { ok: true };
 }
@@ -236,11 +290,19 @@ export async function softDeleteExpenseAction(
   id: string,
 ): Promise<ExpenseActionState> {
   const supabase = await createClient();
+  // Tenant del gasto (para anular su asiento tras el borrado · SDD-0079).
+  const { data: exp } = await supabase
+    .from("expenses")
+    .select("tenant_id")
+    .eq("id", id)
+    .maybeSingle<{ tenant_id: string }>();
   const { error } = await supabase
     .from("expenses")
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", id);
   if (error) return { errorCode: "internal_error", error: error.message };
+  // Anular el asiento del gasto (best-effort).
+  if (exp?.tenant_id) await voidExpenseEntriesForExpense(exp.tenant_id, id);
   revalidatePath("/studio/gastos");
   return { ok: true };
 }
