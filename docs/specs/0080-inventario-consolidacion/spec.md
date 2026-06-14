@@ -57,7 +57,8 @@ El WMS es **derivación sobre tablas existentes**:
 **Derivación de estado CN — `listo` auto-derivado con override (decisión §6.3):**
 
 - **Auto (Slice A, read-only):** `warehouse_receipt_status = pendiente_consolidacion` **y** `shipment_id IS NULL`
-  → candidato **Listo p/ consolidar**; `shipment_id` en un `consolidation` con `status = consolidando`
+  **y** `received_at + N días ≤ hoy` (**N configurable, sugerido 3–5**) → **Listo p/ consolidar** (antes de N días = **Recibido**);
+  `shipment_id` en un `consolidation` con `status = consolidando`
   → **Consolidando**; `consolidations.status ∈ {zarpado, transito}` → **En tránsito**.
 - **Override (Slice B):** un marcador manual de "listo/no-listo" que el operador fija **en el flujo de
   recepción** (no en la torre read-only). El WMS lee `override ?? auto`. Requiere un campo/estado explícito
@@ -110,11 +111,15 @@ cero cambios destructivos.** RLS heredada de las tablas base (fail-closed por `t
 
 ## 6. Decisiones (founder · 2026-06-14)
 
+> Registradas por Cloud Design (fuente de verdad) en `_norte/inventario/DECISIONES-WMS-SDD-0080.md`.
+
 1. **Alcance:** el módulo es **solo-lectura (torre)** en Slice A. Armar la consolidación **no** se hace acá
    — sigue en Naviera; el WMS solo muestra la cola y enlaza.
-2. **Sin USD:** se muestra **solo CBM/kg**, nunca valor en USD (dato sensible fuera del tablero).
-3. **"Listo p/ consolidar":** **auto-derivado con override** manual. El auto sale del estado existente; el
-   override (escritura) entra en Slice B, fijado desde el flujo de recepción.
+2. **Sin USD:** se muestra **solo CBM/kg**, nunca valor en USD (dato sensible). El valor de mercancía aparece
+   **solo en el contexto de reclamos/seguro** (atado a la orden), no en la torre de inventario.
+3. **"Listo p/ consolidar":** **auto-derivado con override** manual. Auto = `recibido` + **N días en bodega**
+   (N configurable, **sugerido 3–5**); el bodeguero puede marcar/desmarcar a mano (a veces el cliente pide
+   esperar más carga). El override (escritura) entra en Slice B, fijado desde el flujo de recepción.
 4. **Bodega VE:** **modo despacho dentro del mismo módulo** (pestaña con semántica de despacho, no de
    consolidación). Se cose con Despacho (SDD-0029/0030).
 

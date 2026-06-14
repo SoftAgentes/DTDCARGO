@@ -23,6 +23,13 @@ Toda etiqueta de versión visible dice **v4.2**. Ya aplicado en este proyecto; e
 
 ## 1 · Eliminar en Norte (reemplazado o archivado)
 
+> **Terminología · MARKBOX vs Shipping Mark (decisión 2026-06-14, split confirmado):**
+> El **sitio público / marketing** (`www.dtdcargo.com`) usa **"MARKBOX"** de cara al visitante —
+> es el término comercial que el público reconoce. El **producto interno (ERP, Portal, apps de
+> operario) y el lenguaje con proveedor chino** usan **"Shipping Mark" (唛头)**. NO unificar: es
+> un split intencional por audiencia (igual que Compra/Orden/Prealerta). El **valor** del código
+> (`DTD-XXXX`) y las claves (`markbox:`) no cambian en ningún caso.
+
 | Qué | Por qué |
 |---|---|
 | **`Brand Book DTD v3.7.html`** y cualquier book anterior | El vigente es ÚNICO: `Brand Book DTD v4.2.html`. Historial en su changelog interno. |
@@ -30,6 +37,13 @@ Toda etiqueta de versión visible dice **v4.2**. Ya aplicado en este proyecto; e
 | Toda referencia visual a **"MARKBOX"** | Término eliminado del lenguaje visual (única etiqueta: Shipping Mark / 唛头). |
 
 ## 2 · Estructura: Marca vs. Producto (decisión v4.2)
+
+> **Favicon (decisión 2026-06-14):** el set canónico es **`favicon-pack/`** de este proyecto
+> (favicon.ico, 16/32/48, apple-touch-icon, android-chrome 192/512, maskable-512, site.webmanifest)
+> — cuadrado navy redondeado con el isólogo. En Norte, **reemplazá los favicons del sitio
+> (`public/brand/favicon*`) por los de `favicon-pack/`** (hoy difieren). Es el único cambio de
+> favicon de este ciclo.
+
 
 - **Brand Hub** (`Brand Hub · DTD-Cargo.html`) = índice **solo de marca** (Fundamentos, Generadores, Operativo, Impreso, Mensajería). Servir como `/marca` o `/brand-hub` interno.
 - **DTD Apps · Launcher** (`DTD Apps · Launcher.html`) = índice de **producto/apps** (ERP, Portales, módulos, apps de operario, plantillas de inspección, Inventario, Reclamos). Servir como `/apps`.

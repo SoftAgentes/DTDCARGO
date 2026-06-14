@@ -87,7 +87,7 @@
           <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
           <span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span>
         </div>
-        <span class="ver">Brand Book v3.7</span>
+        <span class="ver">Brand Book v4.2</span>
       </div>
       <h1>Brand Hub · todo el sistema de marca, en un solo lugar</h1>
       <p>El punto único de verdad de DTD-Cargo: guías, logos, color, plantillas y generadores. Si está acá, es lo vigente — tomá lo último y evitá versiones viejas.</p>
@@ -102,7 +102,7 @@
   <!-- BRAND KIT QUICK -->
   <div class="kit">
     <div class="kit-card">
-      <h3>Color · tokens v3.7</h3>
+      <h3>Color · tokens v4.2</h3>
       <div class="sw">
         <i style="background:#7F0F1A" data-h="--wine #7F0F1A"></i>
         <i style="background:#5E0A12" data-h="--wine-deep"></i>
@@ -221,7 +221,7 @@
       emptyEl.style.display = list.length ? 'none' : 'block';
       gridEl.innerHTML = list.map(i =>
         '<a class="card" href="'+i.href.replace(/"/g,'&quot;')+'">'+
-          (i.isNew?'<span class="badge-new">Nuevo</span>':'')+
+          (false?'<span class="badge-new">Nuevo</span>':'')+
           '<div class="ic'+(i.zh?' zh':'')+'">'+i.ic+'</div>'+
           '<h4>'+i.t+'</h4>'+
           '<p>'+i.d+'</p>'+

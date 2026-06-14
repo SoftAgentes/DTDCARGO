@@ -315,8 +315,8 @@ preferís la alternativa?
 4. **No mezclar versiones:** nunca convivan dos brand books en Norte. Ante conflicto
    entre algo viejo de Norte y este proyecto, **gana este proyecto** (es la fuente).
 5. Registrá lo aplicado en el changelog/bitácora de Norte con la versión del book
-   (ej. "marca sincronizada a Brand Book v3.7").
-6. **Versión única visible: v3.7.** Marca y producto comparten número — sidebar del ERP,
+   (ej. "marca sincronizada a Brand Book v4.2").
+6. **Versión única visible: v4.2.** Marca y producto comparten número — sidebar del ERP,
    títulos del Portal y apps de operario, tokens y Brand Book dicen todos **v3.7**. En Norte,
    cualquier etiqueta visible con v2.x/v3.x viejo se actualiza a la versión vigente del book.
    Los CHANGELOG y comentarios históricos no se reescriben.

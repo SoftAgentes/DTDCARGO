@@ -96,23 +96,47 @@ function App() {
         ))}
       </div>
 
+      {/* Modo del módulo según bodega */}
+      <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:14 }}>
+        <span style={{ font:'700 10px/1 var(--f-sans)', letterSpacing:'0.1em', textTransform:'uppercase', color:'#fff', background:wh==='CN'?'var(--wine)':'var(--info, #2A6FDB)', padding:'5px 10px', borderRadius:'var(--r-pill)' }}>{wh==='CN'?'Modo consolidación · entrada':'Modo despacho · salida'}</span>
+        <span style={{ font:'500 12px/1.4 var(--f-sans)', color:'var(--ink-mute)' }}>{wh==='CN'?'Carga que entra y se agrupa para el contenedor.':'Carga que llegó a Venezuela y avanza a entrega.'}</span>
+      </div>
+
       {/* KPIs */}
       <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:14, marginBottom:14 }}>
         <KPI k="Shipping Marks" v={tot.marks} sub="clientes con carga" />
         <KPI k="Cajas" v={tot.ctns} sub="bultos en bodega" />
         <KPI k="Volumen" v={tot.cbm.toFixed(2)+' m³'} sub="CBM acumulado" tone="var(--wine)" />
-        <KPI k="Peso" v={tot.kg.toLocaleString()+' kg'} sub="peso total" />
+        <KPI k={wh==='CN'?'Peso':'Para entrega'} v={wh==='CN'?(tot.kg.toLocaleString()+' kg'):(STOCK.filter(s=>s.wh==='VE'&&s.status==='entrega').length+' marks')} sub={wh==='CN'?'peso total':'en última milla'} tone={wh==='VE'?'var(--success, #1F8A5B)':undefined} />
       </div>
 
-      {/* ocupación + cola (solo CN) */}
+      {/* CN · consolidación: ocupación + cola auto-derivada */}
       {wh==='CN' &&
       <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:'var(--s-6)' }}>
         <Occupancy label="Próximo contenedor a consolidar" used={listoCbm + STOCK.filter(s=>s.wh==='CN'&&s.status==='consolidando').reduce((a,s)=>a+s.cbm,0)} cap={CONTAINER_CBM} />
         <div style={{ background:'linear-gradient(135deg, var(--ink), #1F3055)', color:'#F2F0EC', borderRadius:'var(--r-lg)', padding:'18px 20px' }}>
-          <div style={{ font:'600 10px/1 var(--f-sans)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--wine-soft)' }}>Listo para consolidar</div>
+          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+            <span style={{ font:'600 10px/1 var(--f-sans)', letterSpacing:'0.08em', textTransform:'uppercase', color:'var(--wine-soft)' }}>Listo para consolidar</span>
+            <span style={{ font:'600 9px/1 var(--f-sans)', letterSpacing:'0.04em', textTransform:'uppercase', color:'rgba(242,240,236,0.6)', border:'1px solid rgba(242,240,236,0.25)', borderRadius:'var(--r-pill)', padding:'3px 7px' }}>auto · +3 días</span>
+          </div>
           <div style={{ font:'800 30px/1 var(--f-display)', marginTop:8 }}>{listo.length} <span style={{ font:'500 14px var(--f-sans)', color:'rgba(242,240,236,0.7)' }}>partidas · {listoCbm.toFixed(2)} m³</span></div>
-          <div style={{ font:'500 11.5px/1.4 var(--f-sans)', color:'rgba(242,240,236,0.7)', marginTop:8 }}>Agrupa estas partidas en el próximo embarque para optimizar el contenedor.</div>
+          <div style={{ font:'500 11.5px/1.4 var(--f-sans)', color:'rgba(242,240,236,0.7)', marginTop:8 }}>Se deriva solo (recibido + 3 días); el bodeguero puede marcar/desmarcar. Agrupar en el próximo embarque optimiza el contenedor.</div>
         </div>
+      </div>}
+
+      {/* VE · despacho: cola de salida (otra semántica, no consolidación) */}
+      {wh==='VE' &&
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:14, marginBottom:'var(--s-6)' }}>
+        {[['transito','En tránsito','viajando a VE','var(--info, #2A6FDB)'],['aduana','En aduana','nacionalizando','var(--warning, #B8893A)'],['entrega','En entrega','última milla','var(--success, #1F8A5B)']].map(([st,lab,sub,tone])=>{
+          const f=STOCK.filter(s=>s.wh==='VE'&&s.status===st);
+          return (
+            <div key={st} style={{ background:'var(--bg-surface)', border:'1px solid var(--border)', borderLeft:'3px solid '+tone, borderRadius:'var(--r-lg)', padding:'16px 18px', boxShadow:'var(--shadow-xs)' }}>
+              <div style={{ font:'600 10px/1 var(--f-sans)', letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--ink-mute)' }}>{lab}</div>
+              <div style={{ font:'800 26px/1 var(--f-display)', color:tone, marginTop:7 }}>{f.length} <span style={{ font:'500 12px var(--f-sans)', color:'var(--ink-soft)' }}>marks</span></div>
+              <div style={{ font:'500 11px/1.3 var(--f-sans)', color:'var(--ink-mute)', marginTop:4 }}>{f.reduce((a,s)=>a+s.ctns,0)} cajas · {sub}</div>
+            </div>
+          );
+        })}
       </div>}
 
       {/* tabla */}
@@ -143,7 +167,7 @@ function App() {
       </div>
 
       <p style={{ font:'400 12px/1.6 var(--f-sans)', color:'var(--ink-mute)', marginTop:'var(--s-6)', borderTop:'1px solid var(--border)', paddingTop:'var(--s-5)' }}>
-        Mock de demostración. En producción, el stock se alimenta de las recepciones en bodega (escaneo de Shipping Mark) y se sincroniza con Embarques y Despacho vía la API. Capacidad de referencia: contenedor 40'HC ≈ 68 CBM.
+        Mock de demostración (Slice A · solo lectura). El stock se deriva de las recepciones en bodega (warehouse_receipts CN/VE) y las consolidaciones (Naviera) — no se inventa. <b>CN = consolidación</b> (entrada, agrupa para el contenedor); <b>VE = despacho</b> (salida, avanza a entrega). El botón “agregar al contenedor” entra en Slice B. Contenedor 40'HC ≈ 68 CBM.
       </p>
     </div>
   );
