@@ -16,7 +16,7 @@ export function Hero() {
     <section className="relative py-15 lg:py-[60px] lg:pb-20 overflow-hidden">
       <div className="wrap grid grid-cols-1 lg:grid-cols-[1fr_1.1fr] gap-10 items-center">
         <div>
-          {/* Eyebrow gris (A2): categoría + modalidad + año oficial de la empresa (2010). */}
+          {/* Eyebrow gris: categoría + año del corredor a Venezuela (2015), no la empresa. */}
           <p className="eyebrow">{HERO.eyebrow}</p>
           {/* H1 = tagline-headline: `lead` ("Con confianza,") en wine, resto en ink. */}
           <h1 className="h-display mt-4 leading-[1.02]">

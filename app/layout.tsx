@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: "%s · DTD Cargo",
   },
   description:
-    "Logística end-to-end China → Venezuela desde 2010. Carga puerta a puerta todo incluido (DDP), agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
+    "Logística end-to-end China → Venezuela desde 2015. Carga puerta a puerta todo incluido (DDP), agente de compra, inspección de fábrica. Equipo propio Yiwu/Valencia.",
   applicationName: "DTD Cargo",
   authors: [{ name: "DTD Cargo" }],
   keywords: [
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
     siteName: "DTD Cargo",
     title: "DTD Cargo — Con Confianza, de China a tu puerta.",
     description:
-      "Logística end-to-end China → Venezuela operando desde 2010. Construyendo confianza cliente a cliente, contenedor a contenedor.",
+      "Logística end-to-end China → Venezuela operando desde 2015. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [
       {
         url: BRAND_ASSETS.ogImage,
@@ -69,7 +69,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "DTD Cargo — Con Confianza, de China a tu puerta.",
     description:
-      "Logística end-to-end China → Venezuela operando desde 2010. Construyendo confianza cliente a cliente, contenedor a contenedor.",
+      "Logística end-to-end China → Venezuela operando desde 2015. Construyendo confianza cliente a cliente, contenedor a contenedor.",
     images: [BRAND_ASSETS.ogImage],
   },
   icons: {
@@ -125,7 +125,7 @@ const jsonLd = {
       image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
       slogan: "Con Confianza, de China a tu puerta.",
       description:
-        "Operación logística integral China–Venezuela desde 2010: carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con Confianza, de China a tu puerta.",
+        "Operación logística integral China–Venezuela desde 2015: carga consolidada puerta a puerta DDP, agente de compra e inspección de fábrica en origen. Equipo propio en Yiwu y Valencia. Con Confianza, de China a tu puerta.",
       // priceRange es opcional; en freight no hay tier fijo → texto honesto (no "$$").
       priceRange: "Cotización a medida según volumen y ruta",
       // 2010 = empresa de carga formalizada = año oficial de la empresa (regla de

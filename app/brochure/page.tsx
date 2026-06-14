@@ -28,12 +28,12 @@ import {
 export const metadata: Metadata = {
   title: "Brochure",
   description:
-    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2010.",
+    "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
   alternates: { canonical: "/brochure" },
   ...socialMeta({
     title: "Brochure · DTD Cargo",
     description:
-      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2010.",
+      "Carga consolidada puerta a puerta China → Venezuela, todo incluido (DDP). 16 servicios, equipo y bodega propios en Yiwu y Valencia, pagas al llegar. Operando desde 2015.",
     path: "/brochure",
   }),
 };
@@ -72,7 +72,7 @@ export default function BrochurePage() {
         {/* 1 · Portada / Hero */}
         <section className="bg-paper pt-14 pb-14 lg:pt-24 lg:pb-20">
           <div className="wrap max-w-[920px]">
-            <span className="eyebrow">Carga China → Venezuela · Desde 2010</span>
+            <span className="eyebrow">Carga China → Venezuela · Desde 2015</span>
             <h1 className="h-display mt-6" style={{ fontSize: "clamp(40px, 6.5vw, 76px)" }}>
               <span style={{ color: "var(--color-wine)" }}>Con Confianza,</span>
               <br />
