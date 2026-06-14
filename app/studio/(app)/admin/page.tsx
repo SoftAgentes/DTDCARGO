@@ -18,6 +18,7 @@
 
 import Link from "next/link";
 import { Icon, type IconName } from "@/app/studio/_components/icons";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "Administración" };
 
@@ -171,6 +172,7 @@ export default async function AdminPage({
 }: {
   searchParams: Promise<{ section?: string }>;
 }) {
+  await requireModuleView("admin");
   const sp = await searchParams;
   const activeId: string = isSection(sp.section) ? sp.section : "company";
   const active = SECTIONS.find((s) => s.id === activeId) ?? SECTIONS[0];

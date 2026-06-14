@@ -18,6 +18,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   createBillFor,
   registerPaymentFor,
@@ -93,6 +94,8 @@ export async function createSupplier(
   raw: Partial<SupplierInput>,
 ): Promise<{ ok?: boolean; error?: string; supplierCode?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "treasury");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validateSupplierInput(raw);
   if (fieldErrors) {
@@ -163,6 +166,8 @@ export async function updateSupplier(
   raw: Partial<SupplierInput>,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "treasury");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validateSupplierInput(raw);
   if (fieldErrors) {
@@ -205,6 +210,8 @@ export async function createBill(
   raw: Partial<BillInput>,
 ): Promise<{ ok?: boolean; error?: string; billCode?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "treasury");
+  if (denial) return { error: denial };
   const result = await createBillFor(supabase, raw);
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
@@ -223,6 +230,8 @@ export async function voidBill(
   billId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "treasury");
+  if (denial) return { error: denial };
   const r = await voidBillFor(supabase, billId);
   if (!r.ok) return { error: r.error };
   revalidatePath("/studio/tesoreria");
@@ -242,6 +251,8 @@ export async function registerPayment(
   fullyPaid?: boolean;
 }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "treasury");
+  if (denial) return { error: denial };
   const result = await registerPaymentFor(supabase, billId, payload);
   if (!result.ok) {
     const firstFieldError = result.fieldErrors
@@ -264,6 +275,8 @@ export async function voidPayment(
   paymentId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "treasury");
+  if (denial) return { error: denial };
   const r = await voidPaymentFor(supabase, paymentId);
   if (!r.ok) return { error: r.error };
   revalidatePath("/studio/tesoreria");

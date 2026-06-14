@@ -23,6 +23,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { postInvoiceJournalEntry } from "@/lib/studio/accounting/invoice-posting";
 import {
   buildSalesOrderFromQuote,
@@ -130,6 +131,8 @@ export async function createSalesOrder(
   raw: Partial<SalesOrderInput>,
 ): Promise<{ ok?: boolean; error?: string; salesOrderCode?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "sales-orders");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validateSalesOrderInput(raw);
   if (fieldErrors) {
@@ -172,6 +175,8 @@ export async function convertEstimateToSalesOrder(
   overrides?: Partial<SalesOrderInput>,
 ): Promise<{ ok?: boolean; error?: string; salesOrderCode?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "sales-orders");
+  if (denial) return { error: denial };
 
   const { data: quote, error: qErr } = await supabase
     .from("quotes")
@@ -262,6 +267,8 @@ export async function updateSalesOrder(
   raw: Partial<SalesOrderInput>,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "sales-orders");
+  if (denial) return { error: denial };
 
   const { input, fieldErrors } = validateSalesOrderInput(raw);
   if (fieldErrors) {
@@ -314,6 +321,8 @@ export async function setSalesOrderStatus(
   to: SalesOrderStatus,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "sales-orders");
+  if (denial) return { error: denial };
 
   const { data: so, error: readErr } = await supabase
     .from("sales_orders")
@@ -368,6 +377,8 @@ export async function assignPrealertaToSalesOrder(
   prealertaId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "sales-orders");
+  if (denial) return { error: denial };
 
   const { data: so, error: soErr } = await supabase
     .from("sales_orders")
@@ -424,6 +435,8 @@ export async function unassignPrealertaFromSalesOrder(
   prealertaId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "sales-orders");
+  if (denial) return { error: denial };
 
   const { data: so } = await supabase
     .from("sales_orders")

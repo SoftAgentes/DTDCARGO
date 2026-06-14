@@ -23,6 +23,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateAccountInput,
   type AccountActionState,
@@ -119,6 +120,8 @@ export async function createJournalEntry(
   formData: FormData,
 ): Promise<JournalActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
 
   // Set de cuentas postables para validar (solo se asienta a hojas).
   const postable = await listPostableAccounts(supabase);
@@ -205,6 +208,8 @@ export async function postEntry(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
 
   const { data: entry, error: readErr } = await supabase
     .from("journal_entries")
@@ -273,6 +278,8 @@ export async function voidEntry(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
 
   const { data: entry, error: readErr } = await supabase
     .from("journal_entries")
@@ -322,6 +329,8 @@ export async function softDeleteEntry(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
 
   const { data: entry, error: readErr } = await supabase
     .from("journal_entries")
@@ -426,6 +435,8 @@ export async function createAccount(
   formData: FormData,
 ): Promise<AccountActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
 
   const partial = accountInputFromFormData(formData);
   const { input, fieldErrors } = validateAccountInput(partial);
@@ -471,6 +482,8 @@ export async function updateAccount(
   formData: FormData,
 ): Promise<AccountActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
 
   const { data: current, error: readErr } = await supabase
     .from("accounts")
@@ -529,6 +542,8 @@ export async function deleteAccount(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "accounting");
+  if (denial) return { error: denial };
 
   const hasMov = await accountHasMovements(supabase, id);
   if (hasMov) {
