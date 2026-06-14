@@ -6,6 +6,7 @@
  */
 import { createClient } from "@/lib/db/server";
 import { getKommoAnalytics } from "@/lib/studio/kommo-analytics";
+import { getWritebackStatus } from "@/lib/studio/kommo-writeback";
 import {
   getKommoOverview,
   listKommoLeads,
@@ -43,6 +44,10 @@ export default async function KommoPage({
     getKommoAnalytics(supabase),
   ]);
 
+  // Panel de write-back (SDD-0083): solo en la pestaña Dirección.
+  const writeback =
+    tab === "direccion" ? await getWritebackStatus(supabase) : null;
+
   // Worklist (Asesor): leads filtrados; converted/valor se derivan del análisis.
   const leads = tab === "asesor" ? await listKommoLeads(supabase, filters) : [];
   const visibleConverted: Record<number, string> = {};
@@ -57,7 +62,11 @@ export default async function KommoPage({
   return (
     <KommoClient
       tab={tab}
-      direccion={tab === "direccion" ? <DireccionTab data={analytics} /> : null}
+      direccion={
+        tab === "direccion" ? (
+          <DireccionTab data={analytics} writeback={writeback} />
+        ) : null
+      }
       overview={overview}
       pipelines={pipelines}
       statuses={statuses}

@@ -13,6 +13,24 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
 import { Progress } from "@/app/studio/(app)/reportes/_components/charts";
 import type { KommoDireccionData, OwnerSlice } from "@/lib/studio/kommo-analytics";
+import type { WritebackGate, WritebackStatus } from "@/lib/studio/kommo-writeback";
+
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleString("es-VE", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function wbGateLabel(g: WritebackGate): string {
+  return g === "live" ? "Activo" : g === "dry_run" ? "Dry-run (ensayo)" : "Apagado";
+}
+function wbGateTone(g: WritebackGate): "success" | "warning" | "neutral" {
+  return g === "live" ? "success" : g === "dry_run" ? "warning" : "neutral";
+}
 
 function fmtUsd(n: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -137,7 +155,65 @@ function BarRow({
   );
 }
 
-export function DireccionTab({ data }: { data: KommoDireccionData }) {
+/**
+ * Stat compacto del panel de write-back (más chico que KpiCard, para el 4-up).
+ * El dígito va SIEMPRE en `var(--ink)` (convención del sistema); el estado lo
+ * comunica un punto de color (`tone`) junto al label — no se colorea el número
+ * grande (evita warning/ink-soft como texto display, ui-ux SDD-0083).
+ */
+function WbStat({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div
+      style={{
+        background: "var(--bg-elevated)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+        padding: "10px 12px",
+      }}
+    >
+      <div
+        style={{
+          font: "800 20px/1 var(--f-display)",
+          fontVariantNumeric: "tabular-nums",
+          color: "var(--ink)",
+          letterSpacing: "-0.01em",
+        }}
+      >
+        {value}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 5, marginTop: 6 }}>
+        <span
+          aria-hidden
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: tone,
+            flexShrink: 0,
+          }}
+        />
+        <span
+          style={{
+            font: "600 10px/1.2 var(--f-sans)",
+            color: "var(--ink-soft)",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}
+        >
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function DireccionTab({
+  data,
+  writeback,
+}: {
+  data: KommoDireccionData;
+  writeback: WritebackStatus | null;
+}) {
   if (data.totals.leads === 0) {
     return (
       <EmptyState
@@ -387,6 +463,52 @@ export function DireccionTab({ data }: { data: KommoDireccionData }) {
           </div>
         </SectionCard>
       </div>
+
+      {/* Write-back a Kommo (SDD-0083): estado del canal de escritura + cola. */}
+      {writeback && (
+        <SectionCard
+          eyebrow="Integración"
+          title="Write-back a Kommo"
+          hint="Manda el valor del estimado al lead. Nace apagado; míralo antes de prenderlo."
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <Badge tone={wbGateTone(writeback.gate)} dot>
+                {wbGateLabel(writeback.gate)}
+              </Badge>
+              <span style={{ font: "500 11.5px/1.4 var(--f-sans)", color: "var(--ink-mute)" }}>
+                {writeback.lastDrainAt
+                  ? `Último drain: ${fmtDateTime(writeback.lastDrainAt)}${writeback.lastDrainEntity === "writeback_dryrun" ? " · ensayo" : ""}`
+                  : "Todavía no corrió el drain"}
+              </span>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))",
+                gap: 10,
+              }}
+            >
+              <WbStat
+                label="Pendientes"
+                value={writeback.counts.pending}
+                tone={writeback.counts.pending > 0 ? "var(--warning)" : "var(--ink)"}
+              />
+              <WbStat label="Enviados" value={writeback.counts.sent} tone="var(--success)" />
+              <WbStat
+                label="Saltados (dry-run)"
+                value={writeback.counts.skipped}
+                tone="var(--ink-soft)"
+              />
+              <WbStat
+                label="Con error"
+                value={writeback.counts.error}
+                tone={writeback.counts.error > 0 ? "var(--danger)" : "var(--ink)"}
+              />
+            </div>
+          </div>
+        </SectionCard>
+      )}
     </div>
   );
 }

@@ -56,6 +56,14 @@ create policy "kommo_writeback_outbox_service_all"
   on public.kommo_writeback_outbox for all to service_role using (true) with check (true);
 grant all on public.kommo_writeback_outbox to service_role;
 
+-- Lectura para el tablero (SDD-0078 · panel de visibilidad del write-back):
+-- authenticated ve la outbox de SU tenant, SOLO lectura. El enqueue/drain siguen
+-- siendo service_role (no hay grant insert/update a authenticated).
+grant select on public.kommo_writeback_outbox to authenticated;
+create policy "kommo_writeback_outbox_tenant_select"
+  on public.kommo_writeback_outbox for select to authenticated
+  using (tenant_id = (select public.get_user_tenant_id()));
+
 -- ── RPCs (security definer; SOLO service_role/edge function) ──────
 -- Encola (o refresca el payload del pendiente). Devuelve el id de la fila.
 create or replace function public.enqueue_kommo_writeback(

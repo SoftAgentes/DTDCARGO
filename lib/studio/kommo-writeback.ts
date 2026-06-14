@@ -77,3 +77,60 @@ export async function enqueueKommoWriteback(
     return null;
   }
 }
+
+// ── Lectura para el panel de visibilidad (SDD-0078 · pestaña Dirección) ──────
+
+export type WritebackGate = "off" | "dry_run" | "live";
+
+export type WritebackStatus = {
+  /** Estado del gate de escritura derivado de kommo_connections. */
+  gate: WritebackGate;
+  counts: { pending: number; sent: number; skipped: number; error: number };
+  lastDrainAt: string | null;
+  /** 'writeback' (real) | 'writeback_dryrun' (ensayo) | null si nunca corrió. */
+  lastDrainEntity: string | null;
+};
+
+/** Deriva el gate de los dos flags de la conexión. PURO. */
+export function writebackGate(
+  enabled: boolean | null | undefined,
+  dryRun: boolean | null | undefined,
+): WritebackGate {
+  if (!enabled) return "off";
+  return dryRun ? "dry_run" : "live";
+}
+
+/**
+ * Estado del write-back para el tablero (RLS filtra por tenant). Read-only:
+ * gate (kommo_connections) + conteos de la outbox + último drain (sync_logs).
+ */
+export async function getWritebackStatus(
+  supabase: SupabaseClient,
+): Promise<WritebackStatus> {
+  const [conn, rows, log] = await Promise.all([
+    supabase
+      .from("kommo_connections")
+      .select("writeback_enabled, writeback_dry_run")
+      .maybeSingle<{ writeback_enabled: boolean | null; writeback_dry_run: boolean | null }>(),
+    supabase.from("kommo_writeback_outbox").select("status").limit(5000),
+    supabase
+      .from("sync_logs")
+      .select("started_at, entity")
+      .in("entity", ["writeback", "writeback_dryrun"])
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle<{ started_at: string | null; entity: string | null }>(),
+  ]);
+
+  const counts = { pending: 0, sent: 0, skipped: 0, error: 0 };
+  for (const r of (rows.data as { status: string }[] | null) ?? []) {
+    if (r.status in counts) counts[r.status as keyof typeof counts]++;
+  }
+
+  return {
+    gate: writebackGate(conn.data?.writeback_enabled, conn.data?.writeback_dry_run),
+    counts,
+    lastDrainAt: log.data?.started_at ?? null,
+    lastDrainEntity: log.data?.entity ?? null,
+  };
+}
