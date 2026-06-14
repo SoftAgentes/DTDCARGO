@@ -8,7 +8,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Supplier } from "./types";
 
 const SUPPLIER_COLUMNS =
-  "id, tenant_id, supplier_code, name, name_cn, type, country, default_currency, payment_channel, contact_name, contact_phone, contact_email, tax_id, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, supplier_code, name, name_cn, type, country, default_currency, payment_channel, contact_name, contact_phone, contact_email, tax_id, notes, default_expense_account_id, created_at, updated_at, deleted_at";
 
 function coerceSupplier(row: Record<string, unknown>): Supplier {
   return {
@@ -27,6 +27,8 @@ function coerceSupplier(row: Record<string, unknown>): Supplier {
     contact_email: (row.contact_email as string | null) ?? null,
     tax_id: (row.tax_id as string | null) ?? null,
     notes: (row.notes as string | null) ?? null,
+    default_expense_account_id:
+      (row.default_expense_account_id as string | null) ?? null,
     created_at: String(row.created_at),
     updated_at: String(row.updated_at),
     deleted_at: (row.deleted_at as string | null) ?? null,

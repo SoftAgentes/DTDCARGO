@@ -12,6 +12,7 @@ import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ACCT_TYPE_OPTIONS,
+  ACCT_SUBTYPES,
   compareCodes,
   type Account,
   type AccountActionState,
@@ -42,6 +43,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
   const [code, setCode] = useState(account?.code ?? "");
   const [name, setName] = useState(account?.name ?? "");
   const [type, setType] = useState<AcctType>(account?.type ?? "G");
+  const [subtype, setSubtype] = useState(account?.subtype ?? "");
   const [parentId, setParentId] = useState(account?.parent_id ?? "");
   const [isPostable, setIsPostable] = useState(account?.is_postable ?? true);
   const [notes, setNotes] = useState(account?.notes ?? "");
@@ -146,6 +148,7 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
           }}
         >
           <input type="hidden" name="type" value={type} />
+          <input type="hidden" name="subtype" value={subtype} />
           <input type="hidden" name="parent_id" value={parentId} />
           <input
             type="hidden"
@@ -206,7 +209,14 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
                 id="acct-type"
                 className="studio-input"
                 value={type}
-                onChange={(e) => setType(e.target.value as AcctType)}
+                onChange={(e) => {
+                  const nt = e.target.value as AcctType;
+                  setType(nt);
+                  // Cascada: si el subtipo actual no aplica al nuevo tipo, limpiarlo.
+                  if (!ACCT_SUBTYPES[nt].some((s) => s.value === subtype)) {
+                    setSubtype("");
+                  }
+                }}
               >
                 {ACCT_TYPE_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -219,23 +229,43 @@ export function AccountDrawer({ mode, account, accounts, onClose }: Props) {
               )}
             </div>
             <div>
-              <label className="studio-label" htmlFor="acct-parent">
-                Cuenta padre (grupo)
+              <label className="studio-label" htmlFor="acct-subtype">
+                Subtipo{" "}
+                <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
               </label>
               <select
-                id="acct-parent"
+                id="acct-subtype"
                 className="studio-input"
-                value={parentId}
-                onChange={(e) => setParentId(e.target.value)}
+                value={subtype}
+                onChange={(e) => setSubtype(e.target.value)}
               >
-                <option value="">— Sin padre (raíz) —</option>
-                {parentOptions.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.code} · {p.name}
+                <option value="">— Sin subtipo —</option>
+                {ACCT_SUBTYPES[type].map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
                   </option>
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label className="studio-label" htmlFor="acct-parent">
+              Cuenta padre (grupo)
+            </label>
+            <select
+              id="acct-parent"
+              className="studio-input"
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+            >
+              <option value="">— Sin padre (raíz) —</option>
+              {parentOptions.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.code} · {p.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <label

@@ -614,9 +614,12 @@ export function NewBillDrawer({
 
   const [supplierId, setSupplierId] = useState<string>(suppliers[0]?.id ?? "");
   const [concept, setConcept] = useState<string>("");
-  const [expenseAccountId, setExpenseAccountId] = useState<string>(
-    expenseAccounts[0]?.id ?? "",
-  );
+  const [expenseAccountId, setExpenseAccountId] = useState<string>(() => {
+    // Estilo QBO: arranca con la cuenta por defecto del 1er proveedor, si la tiene.
+    const def = suppliers[0]?.default_expense_account_id;
+    if (def && expenseAccounts.some((a) => a.id === def)) return def;
+    return expenseAccounts[0]?.id ?? "";
+  });
   const [currency, setCurrency] = useState<InvoiceCurrency>(
     suppliers[0]?.default_currency ?? "USD",
   );
@@ -640,7 +643,16 @@ export function NewBillDrawer({
   const onSupplierChange = (id: string) => {
     setSupplierId(id);
     const s = suppliers.find((x) => x.id === id);
-    if (s) setCurrency(s.default_currency);
+    if (s) {
+      setCurrency(s.default_currency);
+      // Autollenar la cuenta de gasto por defecto del proveedor (estilo QBO).
+      if (
+        s.default_expense_account_id &&
+        expenseAccounts.some((a) => a.id === s.default_expense_account_id)
+      ) {
+        setExpenseAccountId(s.default_expense_account_id);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

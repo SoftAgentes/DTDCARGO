@@ -23,12 +23,15 @@ import {
   type InvoiceCurrency,
 } from "@/lib/studio/invoice-types";
 import { createSupplier, updateSupplier } from "../actions";
+import type { AccountOption } from "./BillDrawer";
 
 export function SupplierDrawer({
   supplier,
+  expenseAccounts,
   onClose,
 }: {
   supplier?: Supplier;
+  expenseAccounts: AccountOption[];
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -51,6 +54,9 @@ export function SupplierDrawer({
   const [contactPhone, setContactPhone] = useState(supplier?.contact_phone ?? "");
   const [contactEmail, setContactEmail] = useState(supplier?.contact_email ?? "");
   const [taxId, setTaxId] = useState(supplier?.tax_id ?? "");
+  const [defaultExpenseAccountId, setDefaultExpenseAccountId] = useState(
+    supplier?.default_expense_account_id ?? "",
+  );
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -73,6 +79,7 @@ export function SupplierDrawer({
       contactEmail: contactEmail.trim() || null,
       taxId: taxId.trim() || null,
       notes: null,
+      defaultExpenseAccountId: defaultExpenseAccountId || null,
     };
     const r = editing
       ? await updateSupplier(supplier!.id, payload)
@@ -285,6 +292,35 @@ export function SupplierDrawer({
               onChange={(e) => setTaxId(e.target.value)}
             />
           </div>
+        </div>
+
+        <div>
+          <label className="studio-label" htmlFor="sd-expense-acct">
+            Cuenta de gasto por defecto{" "}
+            <span style={{ color: "var(--ink-mute)" }}>(opcional)</span>
+          </label>
+          <select
+            id="sd-expense-acct"
+            className="studio-input"
+            value={defaultExpenseAccountId}
+            onChange={(e) => setDefaultExpenseAccountId(e.target.value)}
+          >
+            <option value="">— Ninguna —</option>
+            {expenseAccounts.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.code} · {a.name}
+              </option>
+            ))}
+          </select>
+          <p
+            style={{
+              font: "400 11px/1.4 var(--f-sans)",
+              color: "var(--ink-mute)",
+              margin: "5px 0 0",
+            }}
+          >
+            Se autollena al crear una cuenta por pagar de este proveedor.
+          </p>
         </div>
       </form>
 

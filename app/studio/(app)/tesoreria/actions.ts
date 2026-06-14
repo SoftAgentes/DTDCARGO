@@ -24,6 +24,7 @@ import {
   voidBillFor,
   voidPaymentFor,
 } from "@/lib/studio/treasury/treasury-actions";
+import { isExpenseAccount } from "@/lib/studio/treasury/bill-queries";
 import {
   validateSupplierInput,
   type BillInput,
@@ -58,6 +59,36 @@ async function auditSupplier(
   }
 }
 
+/**
+ * Defensa: la cuenta de gasto por defecto debe ser de costo/gasto y postable.
+ * Usa el MISMO criterio `isExpenseAccount` que el dropdown del drawer y la
+ * imputación de la CxP (qbo_type COGS/Expense o code 5./6. + postable), para que
+ * lo que el usuario puede elegir coincida con lo que se valida. RLS ya restringe
+ * `accounts` al tenant; el posteo (bill-posting) revalida en uso. Devuelve un
+ * mensaje de error, o null si la cuenta es válida (o no se eligió ninguna).
+ */
+async function validateDefaultExpenseAccount(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  accountId: string | null,
+): Promise<string | null> {
+  if (!accountId) return null;
+  const { data, error } = await supabase
+    .from("accounts")
+    .select("code, qbo_type, is_postable")
+    .eq("id", accountId)
+    .maybeSingle<{
+      code: string;
+      qbo_type: string | null;
+      is_postable: boolean;
+    }>();
+  if (error) return "No se pudo validar la cuenta de gasto.";
+  if (!data) return "La cuenta de gasto no existe o no es de tu organización.";
+  if (!isExpenseAccount(data)) {
+    return "La cuenta por defecto debe ser de costo o gasto (postable).";
+  }
+  return null;
+}
+
 export async function createSupplier(
   raw: Partial<SupplierInput>,
 ): Promise<{ ok?: boolean; error?: string; supplierCode?: string }> {
@@ -68,6 +99,12 @@ export async function createSupplier(
     const first = Object.values(fieldErrors)[0];
     return { error: first ?? "Datos del proveedor inválidos." };
   }
+
+  const acctErr = await validateDefaultExpenseAccount(
+    supabase,
+    input!.defaultExpenseAccountId,
+  );
+  if (acctErr) return { error: acctErr };
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -100,6 +137,7 @@ export async function createSupplier(
       contact_email: input!.contactEmail,
       tax_id: input!.taxId,
       notes: input!.notes,
+      default_expense_account_id: input!.defaultExpenseAccountId,
     })
     .select("id")
     .single();
@@ -132,6 +170,12 @@ export async function updateSupplier(
     return { error: first ?? "Datos del proveedor inválidos." };
   }
 
+  const acctErr = await validateDefaultExpenseAccount(
+    supabase,
+    input!.defaultExpenseAccountId,
+  );
+  if (acctErr) return { error: acctErr };
+
   const { error } = await supabase
     .from("suppliers")
     .update({
@@ -146,6 +190,7 @@ export async function updateSupplier(
       contact_email: input!.contactEmail,
       tax_id: input!.taxId,
       notes: input!.notes,
+      default_expense_account_id: input!.defaultExpenseAccountId,
     })
     .eq("id", supplierId);
   if (error) return { error: `No se pudo actualizar el proveedor: ${error.message}` };

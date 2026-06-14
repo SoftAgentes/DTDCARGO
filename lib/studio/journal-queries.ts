@@ -174,7 +174,7 @@ export async function ledgerForAccount(
   const { data: acctRow, error: acctErr } = await supabase
     .from("accounts")
     .select(
-      "id, tenant_id, code, name, type, parent_id, qbo_type, is_postable, notes, created_at, updated_at",
+      "id, tenant_id, code, name, type, parent_id, qbo_type, subtype, is_postable, notes, created_at, updated_at",
     )
     .eq("id", accountId)
     .maybeSingle();
@@ -189,6 +189,7 @@ export async function ledgerForAccount(
     type: acctRow.type as AcctType,
     parent_id: (acctRow.parent_id as string | null) ?? null,
     qbo_type: (acctRow.qbo_type as string | null) ?? null,
+    subtype: (acctRow.subtype as string | null) ?? null,
     is_postable: Boolean(acctRow.is_postable),
     notes: (acctRow.notes as string | null) ?? null,
     created_at: String(acctRow.created_at),
