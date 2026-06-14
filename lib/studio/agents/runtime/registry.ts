@@ -10,10 +10,12 @@
  */
 
 import { SHIPMENT_TOOLS } from "../tools/shipment-tools";
+import { SERVICE_TOOLS } from "../tools/service-tools";
 import type { AnyToolDef, ToolDef } from "./types";
 
 const ALL_TOOLS: AnyToolDef[] = [
   ...(SHIPMENT_TOOLS as AnyToolDef[]),
+  ...(SERVICE_TOOLS as AnyToolDef[]),
 ];
 
 const REGISTRY: Map<string, AnyToolDef> = new Map(
