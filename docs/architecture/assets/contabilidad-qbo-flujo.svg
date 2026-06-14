@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 430" fill="none" font-family="Archivo, system-ui, sans-serif">
+  <!-- lienzo -->
+  <rect x="1" y="1" width="918" height="428" rx="14" fill="#FBFAF7" stroke="#E8E6E2" stroke-width="1.5"/>
+
+  <!-- eyebrows -->
+  <text x="40" y="78" font-size="11" letter-spacing="1.2" fill="#9B9B9B"><tspan fill="#7F0F1A" font-family="Archivo Black, Archivo, sans-serif">1 ·</tspan> FORMULARIO</text>
+  <text x="320" y="78" font-size="11" letter-spacing="1.2" fill="#9B9B9B"><tspan fill="#7F0F1A" font-family="Archivo Black, Archivo, sans-serif">2 ·</tspan> ASIENTO AUTOMÁTICO</text>
+  <text x="626" y="78" font-size="11" letter-spacing="1.2" fill="#9B9B9B"><tspan fill="#7F0F1A" font-family="Archivo Black, Archivo, sans-serif">3 ·</tspan> ESTADOS</text>
+
+  <!-- ============ ETAPA 1 · formulario ============ -->
+  <rect x="40" y="96" width="224" height="216" rx="8" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.5"/>
+  <!-- pestañas -->
+  <text x="56" y="126" font-size="11" fill="#7F0F1A" font-family="Archivo Black, Archivo, sans-serif">CxP</text>
+  <line x1="56" y1="132" x2="80" y2="132" stroke="#7F0F1A" stroke-width="2"/>
+  <text x="92" y="126" font-size="11" fill="#9B9B9B">Factura</text>
+  <text x="150" y="126" font-size="11" fill="#9B9B9B">Gasto</text>
+
+  <!-- campo proveedor -->
+  <text x="56" y="150" font-size="9" letter-spacing="0.4" fill="#9B9B9B">PROVEEDOR</text>
+  <rect x="56" y="156" width="192" height="26" rx="5" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.2"/>
+  <text x="66" y="173" font-size="12" fill="#0F1E3D">Naviera X</text>
+
+  <!-- campo cuenta (autollenada, resaltada wine) -->
+  <text x="56" y="200" font-size="9" letter-spacing="0.4" fill="#9B9B9B">CUENTA DE GASTO</text>
+  <rect x="56" y="206" width="192" height="26" rx="5" fill="#FFFFFF" stroke="#7F0F1A" stroke-width="1.5"/>
+  <text x="66" y="223" font-size="11" fill="#7F0F1A" font-family="JetBrains Mono, monospace">5.1 Flete internac.</text>
+  <!-- pill: viene del proveedor -->
+  <rect x="56" y="241" width="132" height="18" rx="9" fill="#7F0F1A"/>
+  <text x="64" y="253" font-size="9" fill="#F2F0EC">se autollena del proveedor</text>
+
+  <!-- campo monto -->
+  <text x="56" y="276" font-size="9" letter-spacing="0.4" fill="#9B9B9B">MONTO</text>
+  <rect x="56" y="282" width="192" height="26" rx="5" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.2"/>
+  <text x="66" y="299" font-size="12" fill="#0F1E3D" font-family="JetBrains Mono, monospace">1.200</text>
+
+  <!-- flecha 1 -->
+  <line x1="272" y1="204" x2="312" y2="204" stroke="#7F0F1A" stroke-width="2.5"/>
+  <polygon points="310,198 322,204 310,210" fill="#7F0F1A"/>
+
+  <!-- ============ ETAPA 2 · asiento ============ -->
+  <rect x="326" y="96" width="248" height="216" rx="8" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.5"/>
+  <text x="342" y="124" font-size="9.5" fill="#9B9B9B">el sistema lo arma por detrás</text>
+
+  <text x="342" y="150" font-size="9" letter-spacing="0.6" fill="#9B9B9B">DEBE</text>
+  <text x="558" y="150" font-size="9" letter-spacing="0.6" fill="#9B9B9B" text-anchor="end">HABER</text>
+  <line x1="342" y1="157" x2="558" y2="157" stroke="#E8E6E2" stroke-width="1"/>
+
+  <!-- DR -->
+  <rect x="342" y="172" width="24" height="16" rx="4" fill="#7F0F1A"/>
+  <text x="354" y="184" font-size="9" fill="#F2F0EC" text-anchor="middle">DR</text>
+  <text x="374" y="184" font-size="11" fill="#0F1E3D">5.1 Flete internacional</text>
+  <text x="558" y="184" font-size="11" fill="#0F1E3D" font-family="JetBrains Mono, monospace" text-anchor="end">1.200</text>
+
+  <!-- CR -->
+  <rect x="342" y="202" width="24" height="16" rx="4" fill="#0F1E3D"/>
+  <text x="354" y="214" font-size="9" fill="#F2F0EC" text-anchor="middle">CR</text>
+  <text x="374" y="214" font-size="11" fill="#0F1E3D">2.1 Cuentas por pagar</text>
+  <text x="558" y="214" font-size="11" fill="#0F1E3D" font-family="JetBrains Mono, monospace" text-anchor="end">1.200</text>
+
+  <line x1="342" y1="230" x2="558" y2="230" stroke="#E8E6E2" stroke-width="1"/>
+  <!-- check cuadre -->
+  <rect x="342" y="242" width="128" height="22" rx="6" fill="#FFFFFF" stroke="#1F8A5B" stroke-width="1.3"/>
+  <text x="356" y="257" font-size="11" fill="#1F8A5B">Debe = Haber &#10003;</text>
+  <!-- nota técnica -->
+  <text x="342" y="292" font-size="9" fill="#9B9B9B" font-family="JetBrains Mono, monospace">source = supplier_bill</text>
+
+  <!-- flecha 2 -->
+  <line x1="582" y1="204" x2="622" y2="204" stroke="#7F0F1A" stroke-width="2.5"/>
+  <polygon points="620,198 632,204 620,210" fill="#7F0F1A"/>
+
+  <!-- ============ ETAPA 3 · estados ============ -->
+  <rect x="636" y="96" width="244" height="216" rx="8" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.5"/>
+
+  <!-- mini P&L -->
+  <text x="652" y="124" font-size="10.5" fill="#0F1E3D" font-family="Archivo Black, Archivo, sans-serif">Estado de resultados</text>
+  <rect x="652" y="132" width="212" height="74" rx="6" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.2"/>
+  <text x="664" y="152" font-size="10.5" fill="#6B6B6B">Ingresos</text>
+  <text x="852" y="152" font-size="10.5" fill="#1F8A5B" font-family="JetBrains Mono, monospace" text-anchor="end">+ 18.400</text>
+  <text x="664" y="172" font-size="10.5" fill="#6B6B6B">Costos + gastos</text>
+  <text x="852" y="172" font-size="10.5" fill="#6B6B6B" font-family="JetBrains Mono, monospace" text-anchor="end">&#8722; 12.900</text>
+  <line x1="664" y1="182" x2="852" y2="182" stroke="#E8E6E2" stroke-width="1"/>
+  <text x="664" y="198" font-size="11" fill="#0F1E3D" font-family="Archivo Black, Archivo, sans-serif">Utilidad</text>
+  <text x="852" y="198" font-size="11" fill="#7F0F1A" font-family="JetBrains Mono, monospace" text-anchor="end">5.500</text>
+
+  <!-- mini Balance -->
+  <text x="652" y="232" font-size="10.5" fill="#0F1E3D" font-family="Archivo Black, Archivo, sans-serif">Balance</text>
+  <rect x="652" y="240" width="212" height="60" rx="6" fill="#FFFFFF" stroke="#E8E6E2" stroke-width="1.2"/>
+  <text x="664" y="260" font-size="10.5" fill="#6B6B6B">Activo</text>
+  <text x="852" y="260" font-size="10.5" fill="#0F1E3D" font-family="JetBrains Mono, monospace" text-anchor="end">42.500</text>
+  <text x="664" y="284" font-size="10.5" fill="#6B6B6B">Pasivo + Patrimonio</text>
+  <text x="852" y="284" font-size="10.5" fill="#0F1E3D" font-family="JetBrains Mono, monospace" text-anchor="end">42.500</text>
+
+  <!-- ============ pie ============ -->
+  <text x="40" y="372" font-size="13" fill="#6B6B6B">El operador solo ve el formulario — <tspan fill="#7F0F1A" font-family="Archivo Black, Archivo, sans-serif">el asiento y los estados salen solos.</tspan></text>
+  <text x="40" y="398" font-size="10.5" fill="#9B9B9B">El plan de cuentas es la columna vertebral: cada cuenta sabe si va al Estado de resultados o al Balance.</text>
+</svg>
