@@ -35,18 +35,22 @@ wallpapers), `trello/` (12 MB), `para-enviar/` (standalone base64 + plano fachad
 `.design-canvas.state.json`, `.thumbnail`.
 
 **Brand-to-web (regla founder):** isólogos `assets/` == `public/brand/` (byte-idénticos, sin cambio).
-Tokens sin cambios este ciclo (SYNC §5). ⚠️ El `favicon-pack/` del ZIP **difiere** de los favicons del
-sitio (`public/brand/favicon*`, distinto tamaño) — **NO se swapearon** (cambio muy visible, fuera del
-alcance de un Norte-sync) → decisión del founder si se propaga.
+Tokens sin cambios este ciclo (SYNC §5). **Favicons:** el `favicon-pack/` (cuadrado navy) se **publicó al
+sitio** (`public/brand/favicon-{16,32}.png` + `favicon.ico` + `apple-touch-icon`) — autorizado por el SYNC
+del export (2). ⚠️ `scripts/generate-favicons.mjs` regenera la versión vieja (isólogo transparente) → **no
+correrlo** o revierte el set.
 
-**Flags para coordinación (NO resueltos en esta ventana):**
-1. ⚠️ **Book v4.2 NO publicable a la web** (`/marca/brand-book` sigue v3.7): Cloud Design mandó
-   `Brand Book DTD v4.2.html` con 74 refs externas (0.2 MB, NO autocontenido); `para-enviar/` quedó con
-   el standalone **v3.7** (stale). Falta que Cloud Design genere `Brand Book DTD v4.2 · standalone.html`.
-2. ⚠️ **MARKBOX:** el SYNC pide quitar MARKBOX del lenguaje visual (Norte/ERP ya en Shipping Mark). El
-   **sitio público** usa MARKBOX por decisión founder 2026-06-13 — NO se tocó código público. Decisión
-   del founder si el público se alinea.
-3. **Hero Ciclo del Cliente** (SYNC §3) ya vive en `feat/hero-ciclo` (otra ventana) — no duplicado.
+**Seguimiento (todo resuelto en commits posteriores del mismo carril `feat/norte-v42`):**
+1. ✅ **Book v4.2 publicado a la web** — Cloud Design entregó el standalone autocontenido; reemplazó al
+   v3.7 en `public/marca/` + visor/hub/bundle/`next.config`/radar a v4.2.
+2. ✅ **MARKBOX — split confirmado** (founder 2026-06-14): público=MARKBOX, ERP/portal/móvil=Shipping Mark;
+   gate del `/radar` ajustado para no marcar el público como drift.
+3. **Hero Ciclo del Cliente** (SYNC §3) vive en `feat/hero-ciclo` (otra ventana) — no duplicado.
+
+**Refresh export (2) (2026-06-14, mismo carril):** Cloud Design re-exportó (`DTD-Cargo (2).zip`) con un delta
+ligero de 14 archivos: rediseño del **inventario** (CN=consolidación / VE=despacho), nuevo
+`inventario/DECISIONES-WMS-SDD-0080.md`, labels v3.7→v4.2 en títulos de mockups, y dos decisiones en el SYNC
+(split MARKBOX + favicons). **SDD-0080** quedó `approved` con esas 4 decisiones.
 
 ## v2.5 · carga 2026-06-10 — **marca sincronizada a Brand Book v3.7 · sync 2026-06-10**
 
