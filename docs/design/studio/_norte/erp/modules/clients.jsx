@@ -377,9 +377,9 @@ function ClientForm() {
         En altas desde el portal, el cliente carga {tipo === 'empresa' ? 'el RIF' : 'la cédula'} automáticamente en el registro. En altas manuales, adjuntala acá.
       </div>
       {tipo === 'empresa' ? (
-        <DocTile value={docRif} onChange={setDocRif} title="Foto del RIF · ambos lados" hint="JPG o PDF · arrastrá o haz clic" fileName="rif-empresa.jpg" />
+        <DocTile value={docRif} onChange={setDocRif} title="Foto del RIF · ambos lados" hint="JPG o PDF · arrastra o haz clic" fileName="rif-empresa.jpg" />
       ) : (
-        <DocTile value={docCedula} onChange={setDocCedula} title="Foto de la cédula · anverso y reverso" hint="JPG o PDF · arrastrá o haz clic" fileName="cedula-cliente.jpg" />
+        <DocTile value={docCedula} onChange={setDocCedula} title="Foto de la cédula · anverso y reverso" hint="JPG o PDF · arrastra o haz clic" fileName="cedula-cliente.jpg" />
       )}
 
       <div style={{ padding: '14px 16px', background: 'var(--wine-tint)', borderRadius: 'var(--r-md)', borderLeft: '3px solid var(--wine)' }}>

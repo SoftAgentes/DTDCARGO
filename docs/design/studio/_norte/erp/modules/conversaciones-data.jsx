@@ -76,7 +76,7 @@ const CONVERSATIONS = [
     status: 'abierto', assignedTo: 'u-005', priority: 'alta', shipment: 'DTDU-401234', unread: 0, lastAt: 'hace 4 h',
     messages: [
       { dir: 'in',  author: 'Patricia Rojas', at: '05:50', text: 'El camión llegó a Mérida pero la dirección de entrega estaba mal en la guía.' },
-      { dir: 'out', author: 'Yusneidy Pérez',  at: '06:05', text: 'Patricia, ya corregí la dirección con el transportista. ¿Confirmás que es Av. Las Américas, galpón 14?' },
+      { dir: 'out', author: 'Yusneidy Pérez',  at: '06:05', text: 'Patricia, ya corregí la dirección con el transportista. ¿Confirmas que es Av. Las Américas, galpón 14?' },
       { dir: 'in',  author: 'Patricia Rojas', at: '06:12', text: 'Correcto, ese es. Gracias por la rapidez.' },
     ],
   },

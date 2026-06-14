@@ -852,7 +852,7 @@ function RegistroReviewDrawer({ regId, onClose }) {
   );
 
   return (
-    <U.Drawer open={!!reg} onClose={onClose} width={560} title={reg ? `Revisar · ${reg.name}` : ''} subtitle="Aprobá para crear la ficha y el acceso del empleado"
+    <U.Drawer open={!!reg} onClose={onClose} width={560} title={reg ? `Revisar · ${reg.name}` : ''} subtitle="Aprueba para crear la ficha y el acceso del empleado"
       actions={reg ? (
         rejecting ? (
           <React.Fragment>
@@ -920,7 +920,7 @@ function RegistroReviewDrawer({ regId, onClose }) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// Préstamos · descuento automático en nómina
+// Préstamos · descuento automatico en nómina
 // ════════════════════════════════════════════════════════════════
 function PrestamosTab() {
   const U = window.ERPUI;
@@ -953,7 +953,7 @@ function PrestamosTab() {
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '11px 16px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)' }}>
         <span style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
-          La cuota se descuenta <b>automáticamente</b> del recibo de cada empleado hasta saldar el préstamo. El empleado ve el saldo en su app.
+          La cuota se descuenta <b>automaticamente</b> del recibo de cada empleado hasta saldar el préstamo. El empleado ve el saldo en su app.
         </span>
         <U.Btn variant="primary" size="sm" icon={I.plus(12)} onClick={() => setNuevo(true)}>Nuevo préstamo</U.Btn>
       </div>
@@ -1020,7 +1020,7 @@ function NuevoPrestamoDrawer({ open, onClose }) {
   const mono = { ...box, fontFamily: 'var(--f-mono)', fontWeight: 700, textAlign: 'right' };
   const Lbl = ({ children }) => (<div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>{children}</div>);
   return (
-    <U.Drawer open={open} onClose={onClose} width={520} title="Nuevo préstamo" subtitle="La cuota se descuenta automáticamente de la nómina"
+    <U.Drawer open={open} onClose={onClose} width={520} title="Nuevo préstamo" subtitle="La cuota se descuenta automaticamente de la nómina"
       actions={<React.Fragment><U.Btn variant="ghost" onClick={onClose}>Cancelar</U.Btn><U.Btn variant="primary" icon={I.check(14)} disabled={!valid} onClick={save}>Registrar préstamo</U.Btn></React.Fragment>}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div><Lbl>Empleado</Lbl><U.Select value={empId} onChange={(e) => setEmpId(e.target.value)} options={activos.map(e => ({ value: e.id, label: `${e.name} · ${e.cargo}` }))} /></div>
@@ -1295,7 +1295,7 @@ function AmonestacionWizard({ open, onClose }) {
       {step === 1 && (
         <div>
           <Lbl>Relato de los hechos</Lbl>
-          <textarea value={relato} onChange={(e) => setRelato(e.target.value)} rows={8} placeholder="Describí objetivamente qué pasó, dónde y cuándo. Evitá opiniones; ceñite a los hechos." style={{ ...box, resize: 'vertical', lineHeight: 1.6 }} />
+          <textarea value={relato} onChange={(e) => setRelato(e.target.value)} rows={8} placeholder="Describe objetivamente qué pasó, dónde y cuándo. Evita opiniones; cíñete a los hechos." style={{ ...box, resize: 'vertical', lineHeight: 1.6 }} />
           <div style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 8 }}>Este texto queda en el expediente y se le notifica al empleado en su app.</div>
         </div>
       )}

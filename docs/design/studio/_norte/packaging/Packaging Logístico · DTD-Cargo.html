@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Packaging logístico · DTD-Cargo</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;600;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  .zh { font-family: 'Noto Sans SC', var(--f-sans); }
+
+  .head { max-width: 1180px; margin: 0 auto; padding: var(--s-12) var(--s-8) var(--s-8); }
+  .brandline { display: flex; align-items: center; gap: 14px; margin-bottom: var(--s-6); }
+  .brandline img { width: 46px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 24px; }
+  .wm .d { color: var(--wine); } .wm .g { color: var(--ink); } .wm .sp { display: inline-block; width: 0.15em; }
+  .eyebrow { margin-bottom: var(--s-3); }
+  h1 { font: 700 36px/1.08 var(--f-display); letter-spacing: -0.02em; margin: 0 0 var(--s-3); }
+  .lede { font: 400 16px/1.55 var(--f-sans); color: var(--ink-soft); max-width: 70ch; margin: 0; }
+
+  .sec { max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-8); }
+  .sec + .sec { border-top: 1px solid var(--border); }
+  .sec-head { display: flex; align-items: baseline; gap: var(--s-3); margin-bottom: var(--s-6); }
+  .sec-num { font: 700 12px/1 var(--f-mono); color: var(--wine); }
+  .sec-head h2 { font: 700 24px/1.1 var(--f-display); margin: 0; }
+  .sec-head .zh { font: 700 16px/1 'Noto Sans SC', sans-serif; color: var(--ink-mute); }
+  .sec-sub { font: 400 14px/1.5 var(--f-sans); color: var(--ink-soft); max-width: 68ch; margin: -8px 0 var(--s-6); }
+
+  /* spec card */
+  .spec { display: flex; gap: var(--s-3); flex-wrap: wrap; margin-top: var(--s-5); }
+  .spec .s { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: 9px 13px; }
+  .spec .k { font: 600 9px/1.2 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); }
+  .spec .v { font: 600 13px/1.3 var(--f-mono); color: var(--ink); margin-top: 3px; }
+
+  /* ── Cinta de embalaje ── */
+  .tape { height: 76px; border-radius: var(--r-sm); overflow: hidden; display: flex; align-items: center; box-shadow: var(--shadow-sm);
+          -webkit-print-color-adjust: exact; print-color-adjust: exact; margin-bottom: var(--s-4); }
+  .tape-inner { display: flex; align-items: center; gap: 30px; padding-left: 28px; white-space: nowrap; }
+  .tape-unit { display: flex; align-items: center; gap: 14px; }
+  .tape-unit img { width: 40px; height: auto; flex: 0 0 auto; }
+  .tape-wm { font-family: var(--f-brand-display); font-weight: 900; font-size: 22px; letter-spacing: -0.02em; }
+  .tape-tag { font: 700 12px/1 var(--f-sans); letter-spacing: 0.18em; text-transform: uppercase; }
+  .tape-sep { font-size: 13px; opacity: 0.5; }
+  .tape.navy { background: var(--bg-sidebar); }
+  .tape.navy .tape-wm .d { color: var(--wine-soft); } .tape.navy .tape-wm .g { color: #F2F0EC; }
+  .tape.navy .tape-tag { color: #F2F0EC; } .tape.navy .tape-sep { color: var(--wine-soft); opacity: 1; }
+  .tape.wine { background: var(--wine); }
+  .tape.wine .tape-wm .d { color: #F2F0EC; } .tape.wine .tape-wm .g { color: #F2F0EC; }
+  .tape.wine .tape-tag { color: rgba(242,240,236,0.85); } .tape.wine .tape-sep { color: rgba(242,240,236,0.6); }
+  .tape.cream { background: var(--bg-elevated); border: 1px solid var(--border); }
+  .tape.cream .tape-wm .d { color: var(--wine); } .tape.cream .tape-wm .g { color: var(--ink); }
+  .tape.cream .tape-tag { color: var(--ink-soft); } .tape.cream .tape-sep { color: var(--wine); }
+  .tape-label { font: 600 11px/1 var(--f-sans); color: var(--ink-mute); margin-bottom: 7px; display: block; }
+
+  /* ── Stickers grid ── */
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-6); }
+  @media (max-width: 920px){ .grid { grid-template-columns: 1fr 1fr; } }
+  .piece { display: flex; flex-direction: column; align-items: center; gap: var(--s-3); }
+  .piece .cap { font: 600 11px/1.3 var(--f-sans); color: var(--ink-soft); text-align: center; }
+  .piece .cap .zh { color: var(--ink-mute); }
+
+  /* round verified seal */
+  .seal { width: 150px; height: 150px; position: relative; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .seal svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .seal-txt { font: 700 11px var(--f-sans); letter-spacing: 0.14em; fill: var(--wine); text-transform: uppercase; }
+  .seal img { position: absolute; left: 50%; top: 38%; transform: translate(-50%,-50%); width: 52px; }
+  .seal .vmark { position: absolute; left: 50%; bottom: 26px; transform: translateX(-50%); font: 700 9px/1 var(--f-sans); letter-spacing: 0.16em; color: var(--wine); text-transform: uppercase; }
+
+  /* square stickers */
+  .sticker { width: 150px; height: 150px; border-radius: var(--r-md); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+             text-align: center; padding: 14px; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: var(--shadow-sm); }
+  .sticker .ico { width: 44px; height: 44px; }
+  .sticker .t1 { font: 700 18px/1 var(--f-display); }
+  .sticker .t1 .zh { display: block; font-size: 14px; font-weight: 700; margin-top: 4px; }
+  .sticker.danger { background: var(--wine); color: #F2F0EC; }
+  .sticker.danger .ico { color: #F2F0EC; }
+  .sticker.navy { background: var(--bg-sidebar); color: #F2F0EC; }
+  .sticker.navy .ico { color: var(--wine-soft); }
+  .sticker.up .arrows { display: flex; gap: 6px; color: #F2F0EC; }
+
+  /* shipping mark sticker */
+  .smark { width: 188px; background: #fff; border: 2px solid var(--ink); border-radius: var(--r-sm); padding: 12px 14px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .smark-top { display: flex; align-items: center; justify-content: space-between; border-bottom: 1.5px solid var(--ink); padding-bottom: 7px; margin-bottom: 8px; }
+  .smark-top .wm { font-size: 15px; }
+  .smark-row { display: flex; justify-content: space-between; font: 600 11px/1.9 var(--f-mono); color: var(--ink); }
+  .smark-row span:first-child { color: var(--ink-mute); }
+  .smark-qr { width: 54px; height: 54px; }
+
+  /* ── Precinto contenedor ── */
+  .precinto-wrap { display: flex; align-items: center; gap: var(--s-8); flex-wrap: wrap; }
+  .precinto { width: 320px; background: linear-gradient(135deg, var(--ink), #1F3055); border-radius: 10px 10px 10px 40px; color: #F2F0EC; padding: 18px 20px;
+              position: relative; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: var(--shadow-md); }
+  .precinto::before { content: ''; position: absolute; right: 22px; top: -14px; width: 26px; height: 26px; border: 5px solid var(--ink); border-radius: 999px; background: var(--bg-base); }
+  .precinto .pwm { font-family: var(--f-brand-display); font-weight: 900; font-size: 18px; letter-spacing: -0.02em; }
+  .precinto .pwm .d { color: var(--wine-soft); } .precinto .pwm .g { color: #F2F0EC; }
+  .precinto .plabel { font: 600 9px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine-soft); margin: 14px 0 4px; }
+  .precinto .pfolio { font: 700 26px/1 var(--f-mono); color: #F2F0EC; letter-spacing: 0.04em; }
+  .precinto .pmeta { font: 500 10px/1.5 var(--f-mono); color: rgba(242,240,236,0.7); margin-top: 10px; }
+
+  .foot { max-width: 1180px; margin: 0 auto; padding: var(--s-8) var(--s-8) var(--s-16); font: 400 12.5px/1.6 var(--f-sans); color: var(--ink-mute); border-top: 1px solid var(--border); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="brandline">
+      <img src="dtdcargo-isologo-primary.png" alt="DTD Cargo" />
+      <span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span>
+    </div>
+    <div class="eyebrow eyebrow-wine">Colateral logístico · sistema de marca</div>
+    <h1>Packaging logístico</h1>
+    <p class="lede">La marca también viaja en la carga. Cinta de embalaje, sellos y stickers de caja y precinto de contenedor — bilingües 中文/Español donde toca, con el Shipping Mark (唛头) integrado. Cada pieza con su spec de imprenta.</p>
+  </div>
+
+  <!-- 01 · Cinta -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-num">01</span><h2>Cinta de embalaje</h2><span class="zh">封箱胶带</span></div>
+    <p class="sec-sub">Para sellar cada caja consolidada. Patrón repetido con isólogo, wordmark y tagline. Tres acabados según presupuesto y visibilidad.</p>
+
+    <span class="tape-label">Navy · recomendado (más premium)</span>
+    <div class="tape navy"><div class="tape-inner" id="tape-navy"></div></div>
+    <span class="tape-label">Wine · alto contraste</span>
+    <div class="tape wine"><div class="tape-inner" id="tape-wine"></div></div>
+    <span class="tape-label">Cream · económico (1 tinta)</span>
+    <div class="tape cream"><div class="tape-inner" id="tape-cream"></div></div>
+
+    <div class="spec">
+      <div class="s"><div class="k">Ancho</div><div class="v">48 mm / 72 mm</div></div>
+      <div class="s"><div class="k">Largo rollo</div><div class="v">100 m</div></div>
+      <div class="s"><div class="k">Material</div><div class="v">BOPP / OPP</div></div>
+      <div class="s"><div class="k">Tinta</div><div class="v">Navy #0F1E3D + cream</div></div>
+      <div class="s"><div class="k">Repetición</div><div class="v">≈ 180 mm</div></div>
+    </div>
+  </div>
+
+  <!-- 02 · Sellos y stickers -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-num">02</span><h2>Sellos y stickers de caja</h2><span class="zh">箱贴</span></div>
+    <p class="sec-sub">Se pegan en el exterior de cada caja. El sticker de Shipping Mark es obligatorio (la bodega rechaza cajas sin él). Los de manejo son bilingües para el proveedor chino y el operador en Venezuela.</p>
+
+    <div class="grid">
+      <div class="piece">
+        <div class="seal">
+          <svg viewBox="0 0 200 200" aria-hidden="true">
+            <circle cx="100" cy="100" r="96" fill="none" stroke="var(--wine)" stroke-width="2"/>
+            <circle cx="100" cy="100" r="88" fill="none" stroke="var(--wine)" stroke-width="1" stroke-dasharray="2 4"/>
+            <path id="st" d="M100,100 m -72,0 a 72,72 0 1,1 144,0" fill="none"/>
+            <path id="sb" d="M100,100 m 72,0 a 72,72 0 1,1 -144,0" fill="none"/>
+            <text class="seal-txt"><textPath href="#st" startOffset="50%" text-anchor="middle">CON CONFIANZA · CARGA VERIFICADA</textPath></text>
+            <text class="seal-txt"><textPath href="#sb" startOffset="50%" text-anchor="middle">· DTD-CARGO · 已验货 ·</textPath></text>
+          </svg>
+          <img src="dtdcargo-isologo-primary.png" alt="" />
+          <span class="vmark">Verificado</span>
+        </div>
+        <div class="cap">Sello “Carga verificada”<br><span class="zh">已验货</span></div>
+      </div>
+
+      <div class="piece">
+        <div class="sticker danger">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 16H3l9-16z"/><line x1="12" y1="9" x2="12" y2="13"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor"/></svg>
+          <div class="t1">Frágil<span class="zh">易碎</span></div>
+        </div>
+        <div class="cap">Manejo · Frágil</div>
+      </div>
+
+      <div class="piece">
+        <div class="sticker navy up">
+          <div class="arrows">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="5"/><polyline points="6 11 12 5 18 11"/></svg>
+          </div>
+          <div class="t1">Este lado<br>arriba<span class="zh">此面向上</span></div>
+        </div>
+        <div class="cap">Manejo · Orientación</div>
+      </div>
+
+      <div class="piece">
+        <div class="smark">
+          <div class="smark-top"><img src="dtdcargo-isologo-primary.png" alt="DTD" style="width:34px;height:auto;">
+            <div class="smark-qr" id="sm-qr"></div></div>
+          <div class="smark-row"><span>MARK</span><span>DTD-5532</span></div>
+          <div class="smark-row"><span>ITEM NO</span><span>A-104</span></div>
+          <div class="smark-row"><span>PCS/CTN</span><span>100</span></div>
+          <div class="smark-row"><span>CARTON NO</span><span>1 / 5</span></div>
+        </div>
+        <div class="cap">Shipping Mark <span class="zh">唛头</span> · obligatorio</div>
+      </div>
+    </div>
+
+    <div class="spec">
+      <div class="s"><div class="k">Sello verificado</div><div class="v">Ø 50 mm · vinilo</div></div>
+      <div class="s"><div class="k">Stickers manejo</div><div class="v">70 × 70 mm</div></div>
+      <div class="s"><div class="k">Shipping Mark</div><div class="v">100 × 70 mm · papel adh.</div></div>
+      <div class="s"><div class="k">Acabado</div><div class="v">Mate · resistente agua</div></div>
+    </div>
+  </div>
+
+  <!-- 03 · Precinto -->
+  <div class="sec">
+    <div class="sec-head"><span class="sec-num">03</span><h2>Precinto de contenedor</h2><span class="zh">集装箱铅封</span></div>
+    <p class="sec-sub">Sello de seguridad numerado para el contenedor consolidado. El folio es único y trazable a la operación en el ERP.</p>
+
+    <div class="precinto-wrap">
+      <div class="precinto">
+        <div class="pwm"><span class="d">DTD</span><span class="sp" style="display:inline-block;width:0.15em;"></span><span class="g">Cargo</span></div>
+        <div class="plabel">Precinto de seguridad · 铅封</div>
+        <div class="pfolio">DTD·SL·004821</div>
+        <div class="pmeta">Contenedor DTDU-204815 · CN → VE · No retirar sin autorización</div>
+      </div>
+      <div class="spec" style="margin-top:0;">
+        <div class="s"><div class="k">Tipo</div><div class="v">Botella / cable ISO 17712</div></div>
+        <div class="s"><div class="k">Folio</div><div class="v">DTD·SL·###### único</div></div>
+        <div class="s"><div class="k">Material</div><div class="v">ABS + acero</div></div>
+        <div class="s"><div class="k">Color</div><div class="v">Navy + grabado cream</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>Gobernanza:</b> piezas 100% sobre tokens v3.7 (navy/wine/cream · Archivo Black · Noto Sans SC para chino · JetBrains Mono para folios). El isólogo en cinta/precinto usa la variante <b>reverse</b> (cream) sobre fondo oscuro. Bilingüe donde el proveedor chino lo necesita. · Especificaciones orientativas — confirmar con el proveedor de imprenta antes de producir.
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+  <script>
+    // tape repeating units
+    function unit(theme) {
+      const iso = theme === 'cream' ? 'dtdcargo-isologo-primary.png' : 'dtdcargo-isologo-reverse.png';
+      return '<div class="tape-unit"><img src="' + iso + '" alt=""><span class="tape-wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span></div>' +
+             '<span class="tape-sep">◆</span><span class="tape-tag">De China a tu puerta</span><span class="tape-sep">◆</span>';
+    }
+    ['navy','wine','cream'].forEach(t => {
+      document.getElementById('tape-' + t).innerHTML = unit(t).repeat(6);
+    });
+    // shipping mark QR
+    try {
+      const qr = qrcode(0, 'M'); qr.addData('https://dtdcargo.com/verificar?c=DTD-5532'); qr.make();
+      let svg = qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true }).replace(/#000000/gi, '#0F1E3D');
+      document.getElementById('sm-qr').innerHTML = svg;
+      document.querySelectorAll('#sm-qr svg').forEach(s => { s.style.width = '100%'; s.style.height = '100%'; });
+    } catch (e) {}
+  </script>
+</body>
+</html>

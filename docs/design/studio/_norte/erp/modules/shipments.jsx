@@ -209,7 +209,7 @@ function ModuleShipments({ goTo, view, setView, selectedId, setSelectedId, curre
         <U.EmptyState
           icon={window.Icon.box(22)}
           title="No hay embarques que coincidan"
-          body="Ajusta los filtros o crea un embarque nuevo desde un estimado aceptado."
+          body="Ajustá los filtros o creá un embarque nuevo desde un estimado aceptado."
           action={<U.Btn variant="primary" onClick={() => { setSearch(''); setTab('all'); setTypeFilter('all'); }}>Limpiar filtros</U.Btn>}
         />
       ) : viewMode === 'kanban' ? (
@@ -778,7 +778,7 @@ function KanbanView({ rows, onOpen }) {
       <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10, alignItems: 'center' }}>
         <span style={{ color: 'var(--info)' }}>{window.Icon.info(13)}</span>
         <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-          Arrastrá las tarjetas entre columnas para cambiar el estado. Los cambios disparan automáticamente las reglas de Mailing (cliente + interno) configuradas.
+          Arrastra las tarjetas entre columnas para cambiar el estado. Los cambios disparan automáticamente las reglas de Mailing (cliente + interno) configuradas.
         </div>
       </div>
     </div>

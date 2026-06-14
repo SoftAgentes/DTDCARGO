@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 76 specs)
+### Índice de specs (generado · 77 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -114,6 +114,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0078 | Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor | in-progress | interno |
 | 0079 | Asiento automático del gasto — expenses → journal_entries (ci… | in-progress | interno |
 | 0080 | Cierre de período contable — bloquear asientos de períodos ce… | in-progress | interno |
+| 0081 | Inventario de Consolidación (WMS) — stock real CN/VE por Ship… | approved | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

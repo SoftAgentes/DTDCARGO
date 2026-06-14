@@ -363,7 +363,7 @@ function SupplierForm({ open, onClose }) {
             </div>
           ) : (
             <div style={{ font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink-soft)' }}>
-              Elige un cliente y el código del grupo WeChat (<code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>Shipping Mark-N</code>) se genera automáticamente.
+              Elige un cliente y el código del grupo WeChat (<code style={{ font: '700 11.5px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>Shipping Mark-N</code>) se genera automaticamente.
             </div>
           )}
         </div>

@@ -11,12 +11,12 @@
 ### Admin — ERP → Finanzas → Nómina
 | Función | Detalle |
 |---|---|
-| **Reglas de cálculo** | Única fuente de verdad de los parámetros LOTTT (frecuencia de pago, método de días, SML, cestaticket, bono de guerra, %s de deducción, topes IVSS/RPE, recargos, provisiones, prestaciones). Editás → recalcula toda la nómina. Cada corte **congela** las reglas usadas. |
+| **Reglas de cálculo** | Única fuente de verdad de los parámetros LOTTT (frecuencia de pago, método de días, SML, cestaticket, bono de guerra, %s de deducción, topes IVSS/RPE, recargos, provisiones, prestaciones). Editas → recalcula toda la nómina. Cada corte **congela** las reglas usadas. |
 | **Nómina del período** | Estados **borrador → confirmado → pagado**, subir comprobante, **exportar Excel** (CSV). |
 | **Empleados + Expediente** | Ficha, banco, KPIs, préstamos, comunicaciones y línea de tiempo por empleado. |
 | **Asistencia + Feriados** | Calendario mensual (trabajado/ausente/libre/feriado + horas extra). Feriados nacionales VE + propios. |
 | **Solicitudes** | Auto-registro por link **con aprobación del admin** (asigna sueldo → crea ficha + login + bienvenida). |
-| **Préstamos** | Cuota con **descuento automático** en el recibo. |
+| **Préstamos** | Cuota con **descuento automatico** en el recibo. |
 | **Liquidación** | **Legal vs contingente** + exposición, por causa (Art. 76/78/79/92), con **finiquito PDF**. |
 | **Amonestaciones** | Asistente por pasos (causa Art. 79 → relato → testigos → acta). |
 | **Prestadores** | Pagos por sesión a freelance, fuera de la nómina fija. |

@@ -77,7 +77,7 @@ export const FONT_MONO =
  * Sistema de assets de marca · DTD Cargo.
  *
  * Fuente de verdad oficial:
- *   docs/design/studio/_norte/Brand Book DTD v3.7.html
+ *   docs/design/studio/_norte/Brand Book DTD v4.2.html
  *   docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md
  *
  * El isólogo oficial tiene 4 variantes según el fondo. Usa `<BrandMark>`

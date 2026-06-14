@@ -29,8 +29,8 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-const BRAND_BOOK = "/marca/brand-book-v3.7.html";
-const BRAND_BOOK_VERSION = "v3.7";
+const BRAND_BOOK = "/marca/brand-book-v4.2.html";
+const BRAND_BOOK_VERSION = "v4.2";
 
 const NAV: NavItem[] = [
   { id: "descargas-rapidas", label: "Descargas" },

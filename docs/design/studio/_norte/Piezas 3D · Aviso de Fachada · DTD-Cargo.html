@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Generador de piezas 3D · Aviso de Fachada · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Sora:wght@400;500;600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/opentype.js@1.3.4/dist/opentype.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/earcut@2.2.4/dist/earcut.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-base); color: var(--ink); font: 400 13.5px/1.55 var(--f-sans); padding: 0 0 90px; }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 28px; }
+
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: 40px 0 34px; margin-bottom: 32px; }
+  .hero .eyebrow { font: 700 11px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine-soft, #C2747F); margin-bottom: 11px; }
+  .hero h1 { font: 700 28px/1.14 var(--f-display); letter-spacing: -0.01em; }
+  .hero p { margin-top: 9px; max-width: 70ch; color: rgba(242,240,236,0.8); font-size: 13.5px; }
+
+  .sec { margin-bottom: 40px; }
+  .sec-head { display: flex; align-items: baseline; gap: 11px; margin-bottom: 15px; }
+  .sec-head .num { font: 800 13px/1 var(--f-mono); color: var(--wine); }
+  .sec-head h2 { font: 700 19px/1.2 var(--f-display); }
+  .sec-head p { color: var(--ink-soft); font-size: 12.5px; }
+
+  .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; }
+
+  /* controles */
+  .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; }
+  .field { flex: 1; min-width: 150px; }
+  .field label { display: block; font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.07em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 6px; }
+  .field input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--r-sm); font: 600 14px/1 var(--f-mono); color: var(--ink); background: var(--bg-base); }
+  .field input:focus { outline: 2px solid var(--wine); outline-offset: -1px; border-color: var(--wine); }
+  .field .hint { font: 500 10.5px/1.3 var(--f-sans); color: var(--ink-mute); margin-top: 5px; }
+
+  .btn { font: 700 13px/1 var(--f-sans); padding: 12px 20px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--bg-surface); color: var(--ink); cursor: pointer; }
+  .btn.primary { background: var(--wine); border-color: var(--wine); color: #fff; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* preview lockup */
+  .preview { margin-top: 18px; padding: 26px 18px; background: #0F1E3D; border-radius: var(--r-md); display: flex; align-items: center; justify-content: center; overflow-x: auto; }
+  .preview svg { max-width: 100%; height: auto; }
+
+  /* candado de medidas aprobadas */
+  #btn-lock.locked { background: var(--wine); border-color: var(--wine); color: #F2F0EC; }
+  .controls.locked .field input { background: var(--bg-elevated); color: var(--ink-mute); pointer-events: none; }
+  .controls.locked .field .hint { opacity: 0.55; }
+
+  /* tabla separaciones */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table td, table th { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  table th { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); }
+  table td.v { font-family: var(--f-mono); font-weight: 600; font-size: 12.5px; }
+  table tr:last-child td { border-bottom: none; }
+  table .gap-row td { background: var(--bg-elevated); color: var(--wine); font-size: 11.5px; }
+
+  /* grid de letras */
+  .letters { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .lt { border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--bg-surface); }
+  .lt .vis { height: 120px; display: flex; align-items: center; justify-content: center; background: #0F1E3D; padding: 12px; }
+  .lt .vis svg { max-height: 96px; max-width: 100%; }
+  .lt .info { padding: 11px 13px; }
+  .lt .info .ch { font: 800 15px/1 var(--f-display); margin-bottom: 4px; }
+  .lt .info .dim { font: 600 11px/1.5 var(--f-mono); color: var(--ink-soft); }
+  .lt .dls { display: flex; gap: 6px; padding: 0 13px 13px; }
+  .lt .dls button { flex: 1; font: 700 10.5px/1 var(--f-sans); padding: 7px 4px; border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--bg-base); color: var(--ink); cursor: pointer; }
+  .lt .dls button:hover { border-color: var(--wine); color: var(--wine); }
+
+  .status { margin-top: 14px; font: 600 12.5px/1.5 var(--f-mono); color: var(--ink-soft); }
+  .status.err { color: var(--danger); }
+
+  .explain { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .explain .col h3 { font: 700 14px/1.2 var(--f-display); margin-bottom: 8px; }
+  .explain .col p { font-size: 12.5px; color: var(--ink-soft); margin-bottom: 10px; }
+  .explain .col p b { color: var(--ink); }
+  .iso-row { display: flex; gap: 14px; align-items: center; margin-top: 6px; }
+  .iso-row img { height: 56px; width: auto; background: #fff; border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px; }
+  code { font-family: var(--f-mono); font-size: 12px; color: var(--wine); }
+  .note { padding: 12px 15px; background: var(--bg-elevated); border-radius: var(--r-sm); font-size: 12px; color: var(--ink-soft); margin-top: 12px; }
+  .note b { color: var(--ink); }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Aviso de fachada · Producción 3D</div>
+    <h1>Generador de piezas 3D · letra por letra</h1>
+    <p>En impresión 3D cada letra es una pieza independiente. Esta herramienta vectoriza el wordmark "DTD Cargo" en Archivo Black, lo escala al tamaño real y exporta cada letra como <b>STL</b> (lo importa Bambu Studio), <b>SVG</b> (vector editable) y <b>PNG</b> (referencia) — más la tabla de separaciones para no perder el espaciado de marca.</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 01 medidas -->
+  <section class="sec" data-screen-label="01 · Medidas">
+    <div class="sec-head"><span class="num">01</span><h2>Medida real de la pieza</h2><p>todo se recalcula al instante</p></div>
+    <div class="card">
+      <div class="controls">
+        <div class="field">
+          <label>Ancho del hueco (cm)</label>
+          <input id="in-hw" type="text" inputmode="decimal" value="136" />
+          <div class="hint">Medida real del nicho. Recalcula el plano y el alto de letra.</div>
+        </div>
+        <div class="field">
+          <label>Alto del hueco (cm)</label>
+          <input id="in-hh" type="text" inputmode="decimal" value="43" />
+          <div class="hint">Bandeja = hueco − 1 cm por lado.</div>
+        </div>
+        <div class="field">
+          <label>Alto de letra (cap height, cm)</label>
+          <input id="in-cap" type="text" inputmode="decimal" value="9.1" />
+          <div class="hint">Se autocalcula del hueco (lockup ≤ 70%). Puedes pisarlo a mano.</div>
+        </div>
+        <div class="field">
+          <label>Espesor / canto (mm)</label>
+          <input id="in-thick" type="text" inputmode="decimal" value="20" />
+          <div class="hint">Profundidad de extrusión 3D. 18–25 mm recomendado.</div>
+        </div>
+        <div class="field">
+          <label>Tracking (%)</label>
+          <input id="in-track" type="text" inputmode="decimal" value="-2" />
+          <div class="hint">Espaciado de marca. Estándar del wordmark: −2%.</div>
+        </div>
+        <a class="btn" href="Ficha 3D · Aviso de Fachada · DTD-Cargo.html" style="text-decoration:none; text-align:center;">⎙ Ficha para impresor 3D →</a>
+        <button class="btn primary" id="btn-zip" disabled>⬇ Descargar pack .zip</button>
+        <button class="btn" id="btn-lock" disabled title="Bloquea las medidas para que nadie las cambie por accidente">
+          <svg id="lock-ic" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px; margin-right:5px;"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path id="lock-arc" d="M8 11V7a4 4 0 0 1 8 0"></path></svg><span id="lock-txt">Aprobar medidas</span>
+        </button>
+      </div>
+      <div class="preview" id="preview"><span style="color:var(--ink-mute); font-family:var(--f-mono);">Cargando tipografía Archivo Black…</span></div>
+      <div class="hint" style="margin-top:6px;">✋ El plano es interactivo: <b>arrastra el lockup</b> (o el cuadrito vino de su esquina) para agrandarlo o achicarlo — también con la <b>rueda del mouse</b> encima. Todas las cotas, la tabla y los STL siguen la medida nueva.</div>
+      <div class="status" id="status"></div>
+    </div>
+  </section>
+
+  <!-- 02 separaciones -->
+  <section class="sec" data-screen-label="02 · Separaciones">
+    <div class="sec-head"><span class="num">02</span><h2>Separación entre letras</h2><p>la distancia que mantiene el branding</p></div>
+    <div class="card">
+      <table id="gap-table"><tbody><tr><td>—</td></tr></tbody></table>
+      <div class="note"><b>Cómo se monta:</b> el rotulista marca una línea base horizontal y coloca cada letra respetando estas separaciones (medidas <b>de borde a borde</b> entre letras contiguas). El salto grande entre <b>"DTD" y "Cargo"</b> es el espacio de palabra — son dos palabras, nunca pegadas.</div>
+    </div>
+  </section>
+
+  <!-- 03 letras -->
+  <section class="sec" data-screen-label="03 · Piezas">
+    <div class="sec-head"><span class="num">03</span><h2>Piezas · una por letra</h2><p>STL · SVG · PNG</p></div>
+    <div class="card">
+      <div class="letters" id="letters"></div>
+      <div class="note"><b>STL</b> = malla 3D lista para Bambu Studio (medidas en mm, escala real). <b>SVG</b> = vector por si el taller prefiere extruir en su slicer. <b>PNG</b> = referencia visual (letra cream sobre navy). <b>Variante A aprobada:</b> todas las letras van <b>cream <code>#F2F0EC</code></b> sobre la bandeja navy (ver sección 04).</div>
+    </div>
+  </section>
+
+  <!-- 04 isotipo -->
+  <section class="sec" data-screen-label="04 · Isotipo">
+    <div class="sec-head"><span class="num">04</span><h2>El isotipo</h2><p>qué es y cómo se fabrica</p></div>
+    <div class="card">
+      <div class="explain">
+        <div class="col">
+          <h3>¿Qué es el isotipo?</h3>
+          <p>El <b>isotipo</b> es la parte <b>simbólica</b> de la marca: el ícono "D" que identifica a DTD-Cargo <b>sin texto</b>. Funciona solo, aislado del nombre.</p>
+          <p>No confundir: el <b>logotipo</b> es solo el texto ("DTD Cargo"); el <b>isólogo / imagotipo</b> es la combinación de ambos (ícono + texto), que es el lockup completo del aviso.</p>
+          <p>En el aviso, el isotipo va a la <b>izquierda</b> del wordmark, con la misma altura visual que las mayúsculas.</p>
+        </div>
+        <div class="col">
+          <h3>Fabricación del isotipo</h3>
+          <p>Sobre la bandeja navy va la variante <b>reverse</b> del isotipo (cream + acento wine — la única oficial para fondo oscuro). Por su geometría curva, <b>se vectoriza desde el archivo oficial</b> — no se reconstruye a mano.</p>
+          <div class="iso-row">
+            <img src="assets/dtdcargo-isologo-reverse.png" alt="Isotipo DTD-Cargo (reverse)" style="background:#0F1E3D;" />
+            <div style="font-size:12px; color:var(--ink-soft);">Archivo de referencia:<br/><code>dtdcargo-isologo-reverse.png</code><br/><span style="color:var(--ink-mute);">Entregar el vector oficial al taller para extruir.</span></div>
+          </div>
+          <p style="margin-top:10px;">Alto del isotipo recomendado: <b id="iso-h">≈ 33 cm</b> (62% del alto de bandeja), un poco más alto que las letras para equilibrar el lockup.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* ── Generador de piezas 3D · DTD-Cargo ─────────────────────────── */
+var FONT = null;
+var WINE = '#7F0F1A', NAVY = '#0F1E3D', CREAM = '#F2F0EC';
+var WORD = 'DTD Cargo';                 // dos palabras
+var FU = 1000;                          // fontSize de trabajo (px en unidades de font)
+var statusEl = document.getElementById('status');
+
+function setStatus(msg, err) { statusEl.textContent = msg || ''; statusEl.className = 'status' + (err ? ' err' : ''); }
+
+var FONT_URL = 'https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/archivoblack/ArchivoBlack-Regular.ttf';
+opentype.load(FONT_URL, function (err, font) {
+  if (err || !font) { setStatus('No se pudo cargar Archivo Black (' + (err && err.message || 'error') + '). Reintentá recargando la página.', true); return; }
+  FONT = font;
+  document.getElementById('btn-zip').disabled = false;
+  document.getElementById('btn-lock').disabled = false;
+  ['in-cap', 'in-thick', 'in-track'].forEach(function (id) { document.getElementById(id).addEventListener('input', render); });
+  ['in-hw', 'in-hh'].forEach(function (id) { document.getElementById(id).addEventListener('input', function () { render(); autoCap(); render(); }); });
+  initLock();
+  render();
+});
+
+/* ── Candado · aprobar medidas ── */
+var LOCK_KEY = 'dtd-aviso-medidas-aprobadas';
+function isLocked() { return !!window.AVISO_LOCK; }
+function lockFields() { return ['in-hw', 'in-hh', 'in-cap', 'in-thick', 'in-track']; }
+function applyLockUI() {
+  var on = isLocked();
+  var btn = document.getElementById('btn-lock');
+  btn.classList.toggle('locked', on);
+  document.querySelector('.controls').classList.toggle('locked', on);
+  document.getElementById('lock-txt').textContent = on ? 'Aprobado · ' + (window.AVISO_LOCK.date || '') + ' — toca para editar' : 'Aprobar medidas';
+  document.getElementById('lock-arc').setAttribute('d', on ? 'M8 11V7a4 4 0 0 1 8 0' : 'M8 11V7a4 4 0 0 1 8 0 M16 7v4');
+}
+function initLock() {
+  try {
+    var st = JSON.parse(localStorage.getItem(LOCK_KEY) || 'null');
+    if (st && st.locked) {
+      lockFields().forEach(function (id) { if (st[id] != null) document.getElementById(id).value = st[id]; });
+      window.AVISO_LOCK = st;
+    }
+  } catch (e) { }
+  applyLockUI();
+  document.getElementById('btn-lock').addEventListener('click', function () {
+    if (isLocked()) {
+      if (!confirm('Las medidas están aprobadas. ¿Desbloquear para editar?')) return;
+      window.AVISO_LOCK = null;
+      localStorage.removeItem(LOCK_KEY);
+    } else {
+      var st = { locked: true, date: new Date().toISOString().slice(0, 10) };
+      lockFields().forEach(function (id) { st[id] = document.getElementById(id).value; });
+      window.AVISO_LOCK = st;
+      localStorage.setItem(LOCK_KEY, JSON.stringify(st));
+    }
+    applyLockUI();
+    render();
+  });
+}
+
+function calcVal(el) {
+  var raw = String(el.value || '').replace(/,/g, '.').trim();
+  if (!/^[-+0-9. ]+$/.test(raw)) return NaN;
+  try { return Function('"use strict";return (' + raw + ')')(); } catch (e) { return NaN; }
+}
+
+/* layout: devuelve items {char,isSpace,glyph,advance} + escala mm/px */
+function layout() {
+  var capCm = calcVal(document.getElementById('in-cap'));
+  var trackPct = calcVal(document.getElementById('in-track'));
+  if (!(capCm > 0)) capCm = 18;
+  if (isNaN(trackPct)) trackPct = -2;
+  var scaleUnit = FU / FONT.unitsPerEm;
+  var track = (trackPct / 100) * FU;                 // tracking en px de trabajo
+  // cap height de referencia = alto del bounding box de "D"
+  var dPath = FONT.charToGlyph('D').getPath(0, 0, FU);
+  var dbb = dPath.getBoundingBox();
+  var capPx = dbb.y2 - dbb.y1;
+  var mmPerPx = (capCm * 10) / capPx;                 // mm por px de trabajo
+  var items = [], pen = 0;
+  for (var i = 0; i < WORD.length; i++) {
+    var ch = WORD[i];
+    if (ch === ' ') { var sp = FONT.charToGlyph(' ').advanceWidth * scaleUnit; items.push({ space: true, penX: pen, adv: sp + track }); pen += sp + track; continue; }
+    var g = FONT.charToGlyph(ch);
+    var adv = g.advanceWidth * scaleUnit;
+    var p = g.getPath(pen, 0, FU);
+    var bb = p.getBoundingBox();
+    items.push({ char: ch, glyph: g, penX: pen, adv: adv, bb: bb });
+    pen += adv + track;
+  }
+  return { items: items, mmPerPx: mmPerPx, capCm: capCm };
+}
+
+/* flatten path commands → array de contornos [{x,y}] (y arriba positivo) */
+function pathToContours(cmds, seg) {
+  seg = seg || 14;
+  var contours = [], cur = null, sx = 0, sy = 0, cx = 0, cy = 0;
+  function pt(x, y) { cur.push({ x: x, y: -y }); cx = x; cy = y; }   // invertir Y
+  for (var i = 0; i < cmds.length; i++) {
+    var c = cmds[i];
+    if (c.type === 'M') { if (cur && cur.length) contours.push(cur); cur = []; sx = c.x; sy = c.y; pt(c.x, c.y); }
+    else if (c.type === 'L') { pt(c.x, c.y); }
+    else if (c.type === 'Q') { for (var t = 1; t <= seg; t++) { var u = t / seg, mt = 1 - u; var x = mt * mt * cx + 2 * mt * u * c.x1 + u * u * c.x; var y = mt * mt * cy + 2 * mt * u * c.y1 + u * u * c.y; cur.push({ x: x, y: -y }); } cx = c.x; cy = c.y; }
+    else if (c.type === 'C') { var px = cx, py = cy; for (var t2 = 1; t2 <= seg; t2++) { var u2 = t2 / seg, m2 = 1 - u2; var x2 = m2 * m2 * m2 * px + 3 * m2 * m2 * u2 * c.x1 + 3 * m2 * u2 * u2 * c.x2 + u2 * u2 * u2 * c.x; var y2 = m2 * m2 * m2 * py + 3 * m2 * m2 * u2 * c.y1 + 3 * m2 * u2 * u2 * c.y2 + u2 * u2 * u2 * c.y; cur.push({ x: x2, y: -y2 }); } cx = c.x; cy = c.y; }
+    else if (c.type === 'Z') { if (cur && cur.length) { contours.push(cur); cur = null; } }
+  }
+  if (cur && cur.length) contours.push(cur);
+  return contours;
+}
+function ringArea(r) { var a = 0; for (var i = 0; i < r.length; i++) { var j = (i + 1) % r.length; a += r[i].x * r[j].y - r[j].x * r[i].y; } return a / 2; }
+
+/* genera STL (ascii, mm) de un glifo extruido */
+function glyphToSTL(glyph, mmPerPx, thickMm, name) {
+  var path = glyph.getPath(0, 0, FU);
+  var contours = pathToContours(path.commands);
+  if (!contours.length) return null;
+  // normalizar a origen y escalar a mm
+  var minX = Infinity, minY = Infinity;
+  contours.forEach(function (r) { r.forEach(function (p) { if (p.x < minX) minX = p.x; if (p.y < minY) minY = p.y; }); });
+  contours.forEach(function (r) { r.forEach(function (p) { p.x = (p.x - minX) * mmPerPx; p.y = (p.y - minY) * mmPerPx; }); });
+  // mayor área = contorno externo; resto = huecos
+  var idxMax = 0, aMax = 0;
+  contours.forEach(function (r, i) { var a = Math.abs(ringArea(r)); if (a > aMax) { aMax = a; idxMax = i; } });
+  var outer = contours[idxMax], holes = [];
+  contours.forEach(function (r, i) { if (i !== idxMax) holes.push(r); });
+  // earcut
+  var verts = [], holeIdx = [];
+  outer.forEach(function (p) { verts.push(p.x, p.y); });
+  holes.forEach(function (h) { holeIdx.push(verts.length / 2); h.forEach(function (p) { verts.push(p.x, p.y); }); });
+  var tris = earcut(verts, holeIdx.length ? holeIdx : null, 2);
+  function V(i) { return [verts[i * 2], verts[i * 2 + 1]]; }
+  var out = 'solid ' + name + '\n';
+  function tri(ax, ay, az, bx, by, bz, cx2, cy2, cz) {
+    out += ' facet normal 0 0 0\n  outer loop\n';
+    out += '   vertex ' + ax + ' ' + ay + ' ' + az + '\n';
+    out += '   vertex ' + bx + ' ' + by + ' ' + bz + '\n';
+    out += '   vertex ' + cx2 + ' ' + cy2 + ' ' + cz + '\n';
+    out += '  endloop\n endfacet\n';
+  }
+  // tapa superior (z=thick) y base (z=0)
+  for (var i = 0; i < tris.length; i += 3) {
+    var a = V(tris[i]), b = V(tris[i + 1]), c = V(tris[i + 2]);
+    tri(a[0], a[1], thickMm, b[0], b[1], thickMm, c[0], c[1], thickMm);       // top
+    tri(a[0], a[1], 0, c[0], c[1], 0, b[0], b[1], 0);                          // bottom (invertido)
+  }
+  // paredes laterales por cada contorno
+  var allRings = [outer].concat(holes);
+  allRings.forEach(function (r) {
+    for (var k = 0; k < r.length; k++) {
+      var p1 = r[k], p2 = r[(k + 1) % r.length];
+      tri(p1.x, p1.y, 0, p2.x, p2.y, 0, p2.x, p2.y, thickMm);
+      tri(p1.x, p1.y, 0, p2.x, p2.y, thickMm, p1.x, p1.y, thickMm);
+    }
+  });
+  out += 'endsolid ' + name + '\n';
+  return out;
+}
+
+/* SVG de un glifo (vector, viewBox en mm) */
+function glyphToSVG(glyph, mmPerPx, color) {
+  var path = glyph.getPath(0, 0, FU);
+  var bb = path.getBoundingBox();
+  var w = (bb.x2 - bb.x1) * mmPerPx, h = (bb.y2 - bb.y1) * mmPerPx;
+  var p2 = glyph.getPath(-bb.x1, -bb.y1, FU);   // mover a origen
+  // escalar el path: getPath usa px de trabajo; aplicamos transform scale
+  var d = p2.toPathData(3);
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + w.toFixed(2) + 'mm" height="' + h.toFixed(2) + 'mm" viewBox="0 0 ' + w.toFixed(2) + ' ' + h.toFixed(2) + '">' +
+         '<g transform="scale(' + mmPerPx.toFixed(5) + ')"><path d="' + d + '" fill="' + color + '"/></g></svg>';
+}
+
+/* PNG de un glifo */
+function glyphToPNG(glyph, color, cb) {
+  var path = glyph.getPath(0, 0, FU);
+  var bb = path.getBoundingBox();
+  var pad = 40;
+  var w = (bb.x2 - bb.x1) + pad * 2, h = (bb.y2 - bb.y1) + pad * 2;
+  var sc = 900 / Math.max(w, h);
+  var cv = document.createElement('canvas'); cv.width = Math.round(w * sc); cv.height = Math.round(h * sc);
+  var ctx = cv.getContext('2d');
+  ctx.fillStyle = NAVY; ctx.fillRect(0, 0, cv.width, cv.height);   // fondo navy: la letra cream se ve
+  ctx.scale(sc, sc);
+  var p2 = glyph.getPath(pad - bb.x1, pad - bb.y1, FU);
+  p2.fill = color; p2.draw(ctx);
+  cv.toBlob(cb, 'image/png');
+}
+
+function colorFor(idx) { return CREAM; }   // variante A aprobada: todas las letras cream sobre bandeja navy
+
+/* ── Isotipo · trazado vectorial automático desde el PNG oficial ── */
+var ISO_SRC = 'assets/dtdcargo-isologo-reverse.png';
+var ISO_IMG = new Image(); var ISO_READY = false; var ISO_TRACE = null;
+ISO_IMG.onload = function () { ISO_READY = true; if (FONT && L) render(); };
+ISO_IMG.onerror = function () { ISO_READY = false; };
+ISO_IMG.src = ISO_SRC;
+
+function isoTrace() {
+  if (ISO_TRACE) return ISO_TRACE;
+  if (!ISO_READY || typeof ImageTracer === 'undefined') return null;
+  var W = 640, sc = W / ISO_IMG.naturalWidth, H = Math.round(ISO_IMG.naturalHeight * sc);
+  var cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  var ctx = cv.getContext('2d'); ctx.drawImage(ISO_IMG, 0, 0, W, H);
+  var id = ctx.getImageData(0, 0, W, H);
+  for (var i = 0; i < id.data.length; i += 4) {
+    var on = id.data[i + 3] > 100;
+    id.data[i] = id.data[i + 1] = id.data[i + 2] = on ? 0 : 255;
+    id.data[i + 3] = 255;
+  }
+  var td = ImageTracer.imagedataToTracedata(id, { ltres: 0.5, qtres: 0.5, pathomit: 20, numberofcolors: 2, colorquantcycles: 1, blurradius: 0, colorsampling: 0, pal: [{ r: 0, g: 0, b: 0, a: 255 }, { r: 255, g: 255, b: 255, a: 255 }] });
+  var dark = -1;
+  td.palette.forEach(function (c, i) { if (c.r < 128 && dark < 0) dark = i; });
+  if (dark < 0) return null;
+  var outers = [], holes = [];
+  td.layers[dark].forEach(function (p) {
+    if (!p.segments || !p.segments.length) return;
+    var ring = [];
+    p.segments.forEach(function (s) {
+      if (s.type === 'L') ring.push({ x: s.x2, y: -s.y2 });
+      else for (var t = 1; t <= 8; t++) { var u = t / 8, m = 1 - u; ring.push({ x: m * m * s.x1 + 2 * m * u * s.x2 + u * u * s.x3, y: -(m * m * s.y1 + 2 * m * u * s.y2 + u * u * s.y3) }); }
+    });
+    if (ring.length < 3) return;
+    (p.isholepath ? holes : outers).push(ring);
+  });
+  if (!outers.length) return null;
+  var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  outers.concat(holes).forEach(function (r) { r.forEach(function (pt) { if (pt.x < minX) minX = pt.x; if (pt.x > maxX) maxX = pt.x; if (pt.y < minY) minY = pt.y; if (pt.y > maxY) maxY = pt.y; }); });
+  outers.concat(holes).forEach(function (r) { r.forEach(function (pt) { pt.x -= minX; pt.y -= minY; }); });
+  function bbox(r) { var a = { x1: 1e9, y1: 1e9, x2: -1e9, y2: -1e9 }; r.forEach(function (p) { if (p.x < a.x1) a.x1 = p.x; if (p.x > a.x2) a.x2 = p.x; if (p.y < a.y1) a.y1 = p.y; if (p.y > a.y2) a.y2 = p.y; }); return a; }
+  var groups = outers.map(function (o) { return { outer: o, holes: [], bb: bbox(o) }; });
+  holes.forEach(function (h) {
+    var hb = bbox(h), cx = (hb.x1 + hb.x2) / 2, cy = (hb.y1 + hb.y2) / 2, best = null;
+    groups.forEach(function (g) { if (cx > g.bb.x1 && cx < g.bb.x2 && cy > g.bb.y1 && cy < g.bb.y2) { if (!best || (g.bb.x2 - g.bb.x1) < (best.bb.x2 - best.bb.x1)) best = g; } });
+    if (best) best.holes.push(h);
+  });
+  ISO_TRACE = { groups: groups, w: maxX - minX, h: maxY - minY };
+  return ISO_TRACE;
+}
+function isoDims() { var isoHcm = L.capCm * (62 / 34); return { h: isoHcm, w: isoHcm * (ISO_IMG.naturalWidth / ISO_IMG.naturalHeight) }; }
+function isoToSTL(thickMm, name) {
+  var tr = isoTrace(); if (!tr || !L) return null;
+  var mmPer = (isoDims().h * 10) / tr.h;
+  var out = 'solid ' + name + '\n';
+  function tri(a, b, c) { out += ' facet normal 0 0 0\n  outer loop\n   vertex ' + a.join(' ') + '\n   vertex ' + b.join(' ') + '\n   vertex ' + c.join(' ') + '\n  endloop\n endfacet\n'; }
+  tr.groups.forEach(function (g) {
+    var verts = [], holeIdx = [];
+    g.outer.forEach(function (p) { verts.push(p.x * mmPer, p.y * mmPer); });
+    g.holes.forEach(function (h) { holeIdx.push(verts.length / 2); h.forEach(function (p) { verts.push(p.x * mmPer, p.y * mmPer); }); });
+    var tris = earcut(verts, holeIdx.length ? holeIdx : null, 2);
+    function V(i) { return [verts[i * 2], verts[i * 2 + 1]]; }
+    for (var i = 0; i < tris.length; i += 3) {
+      var a = V(tris[i]), b = V(tris[i + 1]), c = V(tris[i + 2]);
+      tri([a[0], a[1], thickMm], [b[0], b[1], thickMm], [c[0], c[1], thickMm]);
+      tri([a[0], a[1], 0], [c[0], c[1], 0], [b[0], b[1], 0]);
+    }
+    [g.outer].concat(g.holes).forEach(function (r) {
+      for (var k = 0; k < r.length; k++) {
+        var p1 = r[k], p2 = r[(k + 1) % r.length];
+        tri([p1.x * mmPer, p1.y * mmPer, 0], [p2.x * mmPer, p2.y * mmPer, 0], [p2.x * mmPer, p2.y * mmPer, thickMm]);
+        tri([p1.x * mmPer, p1.y * mmPer, 0], [p2.x * mmPer, p2.y * mmPer, thickMm], [p1.x * mmPer, p1.y * mmPer, thickMm]);
+      }
+    });
+  });
+  out += 'endsolid ' + name + '\n';
+  return out;
+}
+function isoToSVG() {
+  var tr = isoTrace(); if (!tr || !L) return null;
+  var mmPer = (isoDims().h * 10) / tr.h;
+  var w = tr.w * mmPer, h = tr.h * mmPer, d = '';
+  tr.groups.forEach(function (g) {
+    [g.outer].concat(g.holes).forEach(function (r) {
+      d += 'M' + r.map(function (p) { return (p.x * mmPer).toFixed(2) + ' ' + ((tr.h - p.y) * mmPer).toFixed(2); }).join('L') + 'Z';
+    });
+  });
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="' + w.toFixed(1) + 'mm" height="' + h.toFixed(1) + 'mm" viewBox="0 0 ' + w.toFixed(1) + ' ' + h.toFixed(1) + '"><rect width="100%" height="100%" fill="#0F1E3D"/><path d="' + d + '" fill="#F2F0EC" fill-rule="evenodd"/></svg>';
+}
+
+function download(blob, name) {
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+function letterFile(ch, idx) { return (idx + 1) + '-' + (ch === ch.toUpperCase() ? ch + 'may' : ch + 'min'); }
+
+var L = null;  // último layout
+
+function render() {
+  if (!FONT) return;
+  L = layout();
+  var mm = L.mmPerPx;
+  // preview lockup completo
+  var pen = 0, parts = '', maxR = 0, minT = Infinity, maxB = -Infinity;
+  L.items.forEach(function (it) {
+    if (it.space) return;
+    var d = it.glyph.getPath(it.penX, 0, FU).toPathData(3);
+    var col = colorFor(letterIndex(it));
+    parts += '<path d="' + d + '" fill="' + col + '"/>';
+    if (it.bb.x2 > maxR) maxR = it.bb.x2;
+    if (it.bb.y1 < minT) minT = it.bb.y1;
+    if (it.bb.y2 > maxB) maxB = it.bb.y2;
+  });
+  // isotipo en el preview (a la izquierda del wordmark, centrado vs mayúsculas)
+  var isoBlock = '', leftX = 0, top = minT, bot = maxB;
+  if (ISO_READY) {
+    var capPx = -minT;
+    var isoHpx = capPx * (62 / 34);
+    var isoWpx = isoHpx * (ISO_IMG.naturalWidth / ISO_IMG.naturalHeight);
+    var gapPx = capPx * 0.3;
+    var isoY = (minT - isoHpx) / 2;
+    leftX = -(isoWpx + gapPx);
+    top = Math.min(top, isoY); bot = Math.max(bot, isoY + isoHpx);
+    isoBlock = '<image href="' + ISO_SRC + '" x="' + leftX.toFixed(0) + '" y="' + isoY.toFixed(0) + '" width="' + isoWpx.toFixed(0) + '" height="' + isoHpx.toFixed(0) + '"/>';
+  }
+  var vw = (maxR - leftX) + 40, vh = (bot - top) + 40;
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (leftX - 20) + ' ' + (top - 20) + ' ' + vw + ' ' + vh + '" width="' + Math.min(900, vw * mm * 3.78) + '">' + isoBlock + parts + '</svg>';
+  window.LAST_SVG = svg;
+  try { drawPlano(); } catch (e) { document.getElementById('preview').innerHTML = svg; }
+
+  // tabla de separaciones · primera fila: isotipo
+  var rows = '<thead><tr><th>Pieza</th><th>Ancho</th><th>Alto</th><th>Separación al siguiente</th></tr></thead><tbody>';
+  var isoAspect = (typeof ISO_READY !== 'undefined' && ISO_READY) ? (ISO_IMG.naturalWidth / ISO_IMG.naturalHeight) : (741 / 764);
+  var tIsoH = L.capCm * (62 / 34), tIsoW = tIsoH * isoAspect;
+  rows += '<tr><td><b>Isotipo</b> (ícono "D" · reverse)</td><td class="v">' + tIsoW.toFixed(1) + ' cm</td><td class="v">' + tIsoH.toFixed(1) + ' cm</td><td class="v">' + isoGapCm().toFixed(1) + ' cm · al wordmark</td></tr>';
+  var seq = L.items;
+  for (var i = 0; i < seq.length; i++) {
+    var it = seq[i];
+    if (it.space) continue;
+    var w = (it.bb.x2 - it.bb.x1) * mm / 10, h = (it.bb.y2 - it.bb.y1) * mm / 10;
+    // próxima pieza no-espacio
+    var gapTxt = '—', isWord = false, nx = null, spaceBetween = false;
+    for (var j = i + 1; j < seq.length; j++) { if (seq[j].space) { spaceBetween = true; } else { nx = seq[j]; break; } }
+    if (nx) { var gap = (nx.bb.x1 - it.bb.x2) * mm / 10; gapTxt = gap.toFixed(1) + ' cm'; isWord = spaceBetween; }
+    rows += '<tr><td>' + it.char + (it.char === it.char.toUpperCase() ? ' (may)' : ' (min)') + '</td><td class="v">' + w.toFixed(1) + ' cm</td><td class="v">' + h.toFixed(1) + ' cm</td><td class="v">' + gapTxt + (isWord ? ' · espacio de palabra' : '') + '</td></tr>';
+  }
+  rows += '</tbody>';
+  document.getElementById('gap-table').innerHTML = rows;
+
+  // alto del isotipo (62% de alto de bandeja ≈ 62/34 del cap height)
+  document.getElementById('iso-h').textContent = '≈ ' + (L.capCm * (62 / 34)).toFixed(0) + ' cm';
+
+  // grid de letras
+  buildLetters();
+  setStatus('Listo · hueco ' + hueco().w + ' × ' + hueco().h + ' cm · ' + countLetters() + ' piezas · mayúsculas ' + L.capCm + ' cm · canto ' + (calcVal(document.getElementById('in-thick')) || 20) + ' mm — los STL salen a estas medidas exactas');
+}
+
+/* ── Hueco real + autocálculo del cap height (lockup ≤ 70% de la bandeja) ── */
+function hueco() {
+  var w = calcVal(document.getElementById('in-hw')); if (!(w > 0)) w = 136;
+  var h = calcVal(document.getElementById('in-hh')); if (!(h > 0)) h = 43;
+  return { w: w, h: h };
+}
+function wordInkCm() {
+  var real = L.items.filter(function (x) { return !x.space; });
+  return (real[real.length - 1].bb.x2 - real[0].bb.x1) * L.mmPerPx / 10;
+}
+function isoGapCm() { return 0.441 * L.capCm; }
+function autoCap() {
+  if (!L) return;
+  var R = wordInkCm() / L.capCm;                       // ancho del wordmark por cm de cap
+  var aspect = ISO_READY ? (ISO_IMG.naturalWidth / ISO_IMG.naturalHeight) : (741 / 764);
+  var coef = aspect * (62 / 34) + 0.441 + R;           // lockup(cap) = coef · cap
+  var cap = ((hueco().w - 2) * 0.7) / coef;
+  document.getElementById('in-cap').value = (Math.round(cap * 10) / 10);
+}
+
+/* ── Plano vivo · se redibuja con cada cambio de medidas ── */
+function drawPlano() {
+  var HU = hueco();
+  var host = document.getElementById('preview');
+  var cnv = document.getElementById('plano-cv');
+  if (!cnv) { host.innerHTML = '<canvas id="plano-cv" style="width:100%; height:auto; display:block;"></canvas>'; cnv = document.getElementById('plano-cv'); }
+  var WCV = 1160;
+  var padL = 128, padR = 54, padT = 96;
+  var s = (WCV - padL - padR) / HU.w;                  // px por cm
+  var HXp = padL, HYp = padT, HWp = HU.w * s, HHp = HU.h * s;
+  var rowsH = 168;
+  cnv.width = WCV; cnv.height = Math.round(HYp + HHp + rowsH + 30);
+  var x = cnv.getContext('2d');
+  var CREAMP = '#F2F0EC', NAVYP = '#0F1E3D', WINEP = '#7F0F1A', INKP = '#0F1E3D', PAPERP = '#FBFAF7', SOFTP = '#6B6B6B';
+  x.fillStyle = PAPERP; x.fillRect(0, 0, cnv.width, cnv.height);
+
+  function ln(a, b, c, d) { x.beginPath(); x.moveTo(a, b); x.lineTo(c, d); x.stroke(); }
+  function lbl(t, cx, cy, col, sz, bg) {
+    x.font = '700 ' + (sz || 12) + 'px "JetBrains Mono", monospace';
+    var w = x.measureText(t).width;
+    if (bg) { x.fillStyle = bg; x.fillRect(cx - w / 2 - 4, cy - (sz || 12), w + 8, (sz || 12) + 5); }
+    x.fillStyle = col; x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.fillText(t, cx, cy);
+  }
+  function dh(x1, x2, y, t, col, bg, sz) { x.strokeStyle = col; x.lineWidth = 1.2; ln(x1, y, x2, y); ln(x1, y - 5, x1, y + 5); ln(x2, y - 5, x2, y + 5); lbl(t, (x1 + x2) / 2, y - 7, col, sz || 12, bg); }
+  function dv(px, y1, y2, t, col, bg) { x.strokeStyle = col; x.lineWidth = 1.2; ln(px, y1, px, y2); ln(px - 5, y1, px + 5, y1); ln(px - 5, y2, px + 5, y2); x.save(); x.translate(px - 7, (y1 + y2) / 2); x.rotate(-Math.PI / 2); lbl(t, 0, 0, col, 12, bg); x.restore(); }
+  function gd(a, b, c, d) { x.strokeStyle = 'rgba(107,107,107,0.4)'; x.lineWidth = 1; x.setLineDash([3, 3]); ln(a, b, c, d); x.setLineDash([]); }
+
+  // hueco + bandeja
+  x.fillStyle = '#E4E1DA'; x.fillRect(HXp, HYp, HWp, HHp);
+  x.strokeStyle = SOFTP; x.lineWidth = 1.6; x.strokeRect(HXp, HYp, HWp, HHp);
+  var BXp = HXp + 1 * s, BYp = HYp + 1 * s, BWp = (HU.w - 2) * s, BHp = (HU.h - 2) * s;
+  x.fillStyle = NAVYP; x.fillRect(BXp, BYp, BWp, BHp);
+
+  // medidas en cm
+  var cap = L.capCm;
+  var isoH = cap * (62 / 34);
+  var aspect = ISO_READY ? (ISO_IMG.naturalWidth / ISO_IMG.naturalHeight) : (741 / 764);
+  var isoW = isoH * aspect;
+  var gapIW = isoGapCm();
+  var wordW = wordInkCm();
+  var lock = isoW + gapIW + wordW;
+  var margin = ((HU.w - 2) - lock) / 2;                 // vs bandeja
+  var air = ((HU.h - 2) - isoH) / 2;
+  var capTopCm = ((HU.h - 2) - cap) / 2;
+
+  // posiciones canvas
+  var lockL = BXp + margin * s;
+  var isoYp = BYp + air * s;
+  var baseY = BYp + (capTopCm + cap) * s;
+  if (ISO_READY) x.drawImage(ISO_IMG, lockL, isoYp, isoW * s, isoH * s);
+
+  // letras con los vectores reales (mismo origen que los STL)
+  var f = (L.mmPerPx / 10) * s;                         // px canvas por px de layout
+  var real = L.items.filter(function (it) { return !it.space; });
+  var x0 = lockL + (isoW + gapIW) * s - real[0].bb.x1 * f;
+  real.forEach(function (it) {
+    var p = it.glyph.getPath(x0 + it.penX * f, baseY, FU * f);
+    p.fill = CREAMP; p.draw(x);
+  });
+
+  // cotas superiores
+  gd(HXp, HYp, HXp, padT - 58); gd(HXp + HWp, HYp, HXp + HWp, padT - 58);
+  dh(HXp, HXp + HWp, padT - 50, HU.w.toFixed(1) + ' · ancho del hueco', INKP, PAPERP);
+  var lockR = lockL + lock * s;
+  gd(lockL, isoYp, lockL, padT - 26); gd(lockR, baseY - cap * s, lockR, padT - 26);
+  dh(HXp, lockL, padT - 18, (margin + 1).toFixed(1), WINEP, PAPERP);
+  dh(lockL, lockR, padT - 18, lock.toFixed(1) + ' · lockup', WINEP, PAPERP);
+  dh(lockR, HXp + HWp, padT - 18, (margin + 1).toFixed(1), WINEP, PAPERP);
+
+  // cotas verticales
+  dv(HXp - 40, HYp, HYp + HHp, HU.h.toFixed(1) + ' · alto', INKP, PAPERP);
+  dv(lockL - 16, isoYp, isoYp + isoH * s, isoH.toFixed(1), CREAMP);
+  dv(BXp + 56, BYp, isoYp, air.toFixed(1), CREAMP);
+  dv(BXp + 56, isoYp + isoH * s, BYp + BHp, air.toFixed(1), CREAMP);
+  dv(lockR + 18, baseY - cap * s, baseY, cap.toFixed(1), CREAMP);
+
+  // filas: anchos y separaciones
+  var pieces = [{ left: lockL, right: lockL + isoW * s, w: isoW }];
+  real.forEach(function (it) { pieces.push({ left: x0 + it.bb.x1 * f, right: x0 + it.bb.x2 * f, w: (it.bb.x2 - it.bb.x1) * L.mmPerPx / 10 }); });
+  var yW = HYp + HHp + 34, yG = yW + 40;
+  pieces.forEach(function (p, i) {
+    gd(p.left, HYp + HHp, p.left, yW + 4); gd(p.right, HYp + HHp, p.right, yW + 4);
+    dh(p.left, p.right, yW, p.w.toFixed(1), INKP, PAPERP, 11);
+    if (i < pieces.length - 1) {
+      var nx = pieces[i + 1];
+      var gapCm = i === 0 ? gapIW : (nx.left - p.right) / s;
+      var y2 = yG + (i % 2 ? 26 : 0);
+      gd(p.right, yW + 4, p.right, y2); gd(nx.left, yW + 4, nx.left, y2);
+      dh(Math.min(p.right, nx.left), Math.max(p.right, nx.left), y2, gapCm.toFixed(1), WINEP, PAPERP, 11);
+    }
+  });
+  x.font = '600 11.5px "Nunito Sans", sans-serif'; x.fillStyle = SOFTP; x.textAlign = 'left';
+  x.fillText('Fila superior: ancho de cada pieza · fila inferior (vino): separación entre piezas, borde a borde · medidas en cm · los STL descargan a estas medidas exactas', HXp, yG + 56);
+
+  // RIF legal · vinilo de corte cream, esquina superior derecha de la bandeja
+  var rifH = Math.max(7, 2 * s);                        // 2 cm de alto en escala
+  x.font = '600 ' + rifH + 'px "JetBrains Mono", monospace'; x.fillStyle = 'rgba(242,240,236,0.78)'; x.textAlign = 'right'; x.textBaseline = 'alphabetic';
+  x.fillText('RIF J-50648869-8', BXp + BWp - 2 * s, BYp + 2 * s + rifH);
+  x.textAlign = 'left';
+
+  // ── interactividad: guardar geometría + handle de resize ──
+  var lockTop = Math.min(isoYp, baseY - cap * s);
+  var lockBot = Math.max(isoYp + isoH * s, baseY + 0.45 * cap * s);
+  window.PLANO_GEO = { lockL: lockL, lockR: lockR, top: lockTop, bot: lockBot, s: s, coef: lock / cap, bandW: HU.w - 2, bandH: HU.h - 2 };
+  if (isLocked()) {
+    // sello de aprobado · sin handle de resize
+    var stTxt = 'MEDIDAS APROBADAS · ' + (window.AVISO_LOCK.date || '');
+    x.font = '700 12px "JetBrains Mono", monospace';
+    var stW = x.measureText(stTxt).width;
+    var sx = HXp + HWp - stW - 30, sy = padT - 76;
+    x.fillStyle = WINEP; x.beginPath();
+    if (x.roundRect) { x.roundRect(sx - 24, sy - 16, stW + 44, 24, 999); x.fill(); } else { x.fillRect(sx - 24, sy - 16, stW + 44, 24); }
+    // candadito
+    x.strokeStyle = '#F2F0EC'; x.lineWidth = 1.6;
+    x.strokeRect(sx - 13, sy - 6, 8, 6); x.beginPath(); x.arc(sx - 9, sy - 6, 3, Math.PI, 0); x.stroke();
+    x.fillStyle = '#F2F0EC'; x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+    x.fillText(stTxt, sx + 2, sy + 2);
+  } else {
+    // handle esquina inferior derecha del lockup
+    x.fillStyle = WINEP; x.strokeStyle = PAPERP; x.lineWidth = 1.5;
+    x.fillRect(lockR - 6, lockBot - 6, 12, 12); x.strokeRect(lockR - 6, lockBot - 6, 12, 12);
+    if (window.PLANO_DRAG) { x.strokeStyle = WINEP; x.lineWidth = 1.4; x.setLineDash([5, 4]); x.strokeRect(lockL - 4, lockTop - 4, (lockR - lockL) + 8, (lockBot - lockTop) + 8); x.setLineDash([]); }
+  }
+  if (!cnv.dataset.interactive) { cnv.dataset.interactive = '1'; setupPlanoInteract(cnv); }
+}
+
+/* ── Plano interactivo: arrastrar el lockup (o rueda del mouse) = cambiar el alto de letra ── */
+function planoClampCap(cap) {
+  var G = window.PLANO_GEO; if (!G) return cap;
+  var max = Math.min((G.bandW - 4) / G.coef, (G.bandH - 2) * 34 / 62);
+  return Math.max(3, Math.min(max, cap));
+}
+function planoSetCap(cap) {
+  if (isLocked()) return;
+  cap = Math.round(planoClampCap(cap) * 10) / 10;
+  var inp = document.getElementById('in-cap');
+  if (parseFloat(inp.value) === cap) return;
+  inp.value = cap;
+  render();
+}
+function setupPlanoInteract(cnv) {
+  function pt(e) { var r = cnv.getBoundingClientRect(); return { x: (e.clientX - r.left) * cnv.width / r.width, y: (e.clientY - r.top) * cnv.height / r.height }; }
+  function inLock(p) { var G = window.PLANO_GEO; return G && p.x > G.lockL - 8 && p.x < G.lockR + 8 && p.y > G.top - 8 && p.y < G.bot + 8; }
+  cnv.addEventListener('pointermove', function (e) {
+    var p = pt(e), G = window.PLANO_GEO; if (!G) return;
+    if (window.PLANO_DRAG) {
+      var D = window.PLANO_DRAG;
+      planoSetCap(D.cap0 * Math.max(0.15, (p.x - G.lockL) / D.w0));
+      return;
+    }
+    cnv.style.cursor = inLock(p) ? (isLocked() ? 'not-allowed' : 'nwse-resize') : 'default';
+  });
+  cnv.addEventListener('pointerdown', function (e) {
+    var p = pt(e), G = window.PLANO_GEO;
+    if (!G || !inLock(p) || isLocked()) return;
+    e.preventDefault(); cnv.setPointerCapture(e.pointerId);
+    window.PLANO_DRAG = { cap0: L.capCm, w0: Math.max(20, p.x - G.lockL) };
+    render();
+  });
+  function endDrag() { if (window.PLANO_DRAG) { window.PLANO_DRAG = null; render(); } }
+  cnv.addEventListener('pointerup', endDrag);
+  cnv.addEventListener('pointercancel', endDrag);
+  cnv.addEventListener('wheel', function (e) {
+    var p = pt(e);
+    if (!inLock(p) || isLocked()) return;
+    e.preventDefault();
+    planoSetCap(L.capCm * (e.deltaY < 0 ? 1.04 : 0.96));
+  }, { passive: false });
+}
+
+function letterIndex(it) { var c = 0; for (var i = 0; i < L.items.length; i++) { if (L.items[i] === it) return c; if (!L.items[i].space) c++; } return c; }
+function countLetters() { return L.items.filter(function (x) { return !x.space; }).length; }
+
+function buildLetters() {
+  var host = document.getElementById('letters'); host.innerHTML = '';
+  var mm = L.mmPerPx; var idx = 0;
+  // pieza 0 · el isotipo (descargable igual que las letras)
+  if (ISO_READY) {
+    var dims = isoDims();
+    var card0 = document.createElement('div'); card0.className = 'lt';
+    card0.innerHTML =
+      '<div class="vis"><img src="' + ISO_SRC + '" style="max-height:96px; max-width:100%;" alt="Isotipo"/></div>' +
+      '<div class="info"><div class="ch" style="color:#0F1E3D">Isotipo · reverse</div>' +
+      '<div class="dim">' + dims.w.toFixed(1) + ' × ' + dims.h.toFixed(1) + ' cm · cream + wine</div></div>' +
+      '<div class="dls"><button data-k="stl">STL</button><button data-k="svg">SVG</button><button data-k="png">PNG</button></div>';
+    card0.querySelector('[data-k="stl"]').onclick = function () {
+      var thick = calcVal(document.getElementById('in-thick')) || 20;
+      var s = isoToSTL(thick, 'isotipo');
+      if (s) download(new Blob([s], { type: 'model/stl' }), 'isotipo.stl');
+      else alert('El trazado del isotipo no está listo (revisa la conexión y reintenta).');
+    };
+    card0.querySelector('[data-k="svg"]').onclick = function () {
+      var s = isoToSVG();
+      if (s) download(new Blob([s], { type: 'image/svg+xml' }), 'isotipo.svg');
+      else alert('El trazado del isotipo no está listo (revisa la conexión y reintenta).');
+    };
+    card0.querySelector('[data-k="png"]').onclick = function () {
+      fetch(ISO_SRC).then(function (r) { return r.blob(); }).then(function (b) { download(b, 'dtdcargo-isologo-reverse.png'); });
+    };
+    host.appendChild(card0);
+  }
+  L.items.forEach(function (it) {
+    if (it.space) return;
+    var li = idx; idx++;
+    var col = colorFor(li);
+    var w = (it.bb.x2 - it.bb.x1) * mm / 10, h = (it.bb.y2 - it.bb.y1) * mm / 10;
+    var card = document.createElement('div'); card.className = 'lt';
+    card.innerHTML =
+      '<div class="vis">' + glyphToSVG(it.glyph, mm, col) + '</div>' +
+      '<div class="info"><div class="ch" style="color:#0F1E3D">' + it.char + (it.char === it.char.toUpperCase() ? ' · mayúscula' : ' · minúscula') + '</div>' +
+      '<div class="dim">' + w.toFixed(1) + ' × ' + h.toFixed(1) + ' cm · cream</div></div>' +
+      '<div class="dls"><button data-k="stl">STL</button><button data-k="svg">SVG</button><button data-k="png">PNG</button></div>';
+    var thick = calcVal(document.getElementById('in-thick')) || 20;
+    var fname = letterFile(it.char, li);
+    card.querySelector('[data-k="stl"]').onclick = function () { var s = glyphToSTL(it.glyph, mm, thick, fname); if (s) download(new Blob([s], { type: 'model/stl' }), fname + '.stl'); };
+    card.querySelector('[data-k="svg"]').onclick = function () { download(new Blob([glyphToSVG(it.glyph, mm, col)], { type: 'image/svg+xml' }), fname + '.svg'); };
+    card.querySelector('[data-k="png"]').onclick = function () { glyphToPNG(it.glyph, col, function (b) { download(b, fname + '.png'); }); };
+    host.appendChild(card);
+  });
+}
+
+/* ── ZIP completo ── */
+document.getElementById('btn-zip').addEventListener('click', function () {
+  if (!FONT || !L) return;
+  var btn = this; btn.disabled = true; var old = btn.textContent; btn.textContent = 'Generando .zip…';
+  try {
+    var zip = new JSZip();
+    var mm = L.mmPerPx, thick = calcVal(document.getElementById('in-thick')) || 20;
+    var root = zip.folder('DTD-Cargo · Piezas 3D Aviso');
+    root.file('LEEME.txt', readmeText());
+    var pngJobs = [];
+    var idx = 0;
+    var letterData = [];   // para el HTML interactivo del zip
+    L.items.forEach(function (it) {
+      if (it.space) return;
+      var li = idx; idx++;
+      var col = colorFor(li);
+      var fname = letterFile(it.char, li);
+      var folder = root.folder(fname);
+      var stl = glyphToSTL(it.glyph, mm, thick, fname);
+      if (stl) folder.file(fname + '.stl', stl);
+      var svgStr = glyphToSVG(it.glyph, mm, col);
+      folder.file(fname + '.svg', svgStr);
+      pngJobs.push({ folder: folder, glyph: it.glyph, col: col, fname: fname });
+      var w = (it.bb.x2 - it.bb.x1) * mm / 10, h = (it.bb.y2 - it.bb.y1) * mm / 10;
+      // separación al siguiente
+      var gapTxt = '—', sp = false, nx = null, seq = L.items, i0 = seq.indexOf(it);
+      for (var j = i0 + 1; j < seq.length; j++) { if (seq[j].space) sp = true; else { nx = seq[j]; break; } }
+      if (nx) gapTxt = ((nx.bb.x1 - it.bb.x2) * mm / 10).toFixed(1) + ' cm' + (sp ? ' · espacio de palabra' : '');
+      letterData.push({ ch: it.char, col: col, colName: 'cream', fname: fname, svg: svgStr, w: w.toFixed(1), h: h.toFixed(1), gap: gapTxt });
+    });
+    // isotipo oficial (PNG + STL + SVG trazados) + plano acotado + HTML interactivo offline
+    var planoCv = document.getElementById('plano-cv');
+    var planoP = planoCv ? new Promise(function (res) { planoCv.toBlob(res, 'image/png'); }) : Promise.resolve(null);
+    Promise.all([
+      fetch(ISO_SRC).then(function (r) { return r.ok ? r.blob() : null; }).catch(function () { return null; }),
+      planoP
+    ]).then(function (rs) {
+      var isoBlob = rs[0], planoBlob = rs[1];
+      if (planoBlob) root.file('plano · montaje acotado.png', planoBlob);
+      var isoF = root.folder('isotipo');
+      if (isoBlob) isoF.file('dtdcargo-isologo-reverse.png', isoBlob);
+      var isoStl = isoToSTL(thick, 'isotipo'); if (isoStl) isoF.file('isotipo.stl', isoStl);
+      var isoSvgStr = isoToSVG(); if (isoSvgStr) isoF.file('isotipo.svg', isoSvgStr);
+      isoF.file('NOTA.txt', 'El isotipo (ícono "D") va en su variante REVERSE (cream + acento wine, la oficial para fondo navy).\nisotipo.stl / isotipo.svg = silueta trazada automáticamente del PNG oficial, a escala real, lista para extruir al mismo canto que las letras (' + thick + ' mm).\nEl acento wine se pinta sobre la pieza usando dtdcargo-isologo-reverse.png como referencia de color.\nPara máxima fidelidad de curvas el taller puede re-vectorizar desde el PNG oficial.');
+      root.file('_ABRIR AQUÍ · Aviso DTD-Cargo.html', buildIndexHTML(letterData, thick, { png: !!isoBlob, stl: !!isoStl, svg: !!isoSvgStr, plano: !!planoBlob }));
+      var done = 0;
+      if (!pngJobs.length) { finalizeZip(zip, btn, old); return; }
+      pngJobs.forEach(function (job) {
+        glyphToPNG(job.glyph, job.col, function (blob) {
+          job.folder.file(job.fname + '.png', blob);
+          done++; if (done === pngJobs.length) finalizeZip(zip, btn, old);
+        });
+      });
+    });
+  } catch (e) { setStatus('Error al generar el .zip: ' + e.message, true); btn.disabled = false; btn.textContent = old; }
+});
+
+/* HTML interactivo offline que viaja DENTRO del zip — sin internet, sin dependencias */
+function buildIndexHTML(letters, thick, isoFiles) {
+  var prev = String(window.LAST_SVG || '').split(ISO_SRC).join('isotipo/dtdcargo-isologo-reverse.png');
+  var gaps = document.getElementById('gap-table').innerHTML;
+  var isoDl = [
+    isoFiles.stl ? '<a href="isotipo/isotipo.stl" download>STL</a>' : null,
+    isoFiles.svg ? '<a href="isotipo/isotipo.svg" download>SVG</a>' : null,
+    isoFiles.png ? '<a href="isotipo/dtdcargo-isologo-reverse.png" download>PNG</a>' : null
+  ].filter(Boolean).join(' · ');
+  var cards = letters.map(function (l) {
+    return '<div class="lt"><div class="vis">' + l.svg + '</div>' +
+      '<div class="info"><div class="ch" style="color:' + l.col + '">' + l.ch + '</div>' +
+      '<div class="dim">' + l.w + ' × ' + l.h + ' cm · ' + l.colName + '<br/>separación al sig.: ' + l.gap + '</div></div>' +
+      '<div class="dls">' +
+      '<a href="' + l.fname + '/' + l.fname + '.stl" download>STL</a>' +
+      '<a href="' + l.fname + '/' + l.fname + '.svg" download>SVG</a>' +
+      '<a href="' + l.fname + '/' + l.fname + '.png" download>PNG</a>' +
+      '</div></div>';
+  }).join('');
+  return '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>' +
+    '<title>Aviso DTD-Cargo · Piezas 3D</title><style>' +
+    'body{font:400 14px/1.55 system-ui,sans-serif;color:#0F1E3D;background:#FBFAF7;margin:0;padding:36px 20px 80px;}' +
+    '.wrap{max-width:960px;margin:0 auto;}' +
+    'h1{font-size:26px;margin:0 0 6px;} .sub{color:#6B6B6B;margin:0 0 26px;max-width:70ch;}' +
+    '.warn{background:#FDF3E3;border:1px solid #E3CFA4;border-radius:8px;padding:11px 15px;font-size:13px;color:#7a5a1f;margin-bottom:26px;}' +
+    'h2{font-size:17px;margin:34px 0 12px;border-bottom:2px solid #0F1E3D;padding-bottom:8px;}' +
+    '.prev{background:#0F1E3D;border-radius:10px;padding:26px 18px;text-align:center;} .prev svg{max-width:100%;height:auto;}' +
+    'table{width:100%;border-collapse:collapse;font-size:13px;background:#fff;border:1px solid #E8E6E2;border-radius:8px;}' +
+    'td,th{padding:8px 11px;border-bottom:1px solid #E8E6E2;text-align:left;} th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#9B9B9B;}' +
+    'td.v{font-family:ui-monospace,monospace;font-weight:600;font-size:12.5px;}' +
+    '.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;}' +
+    '.lt{border:1px solid #E8E6E2;border-radius:9px;background:#fff;overflow:hidden;}' +
+    '.lt .vis{height:110px;display:flex;align-items:center;justify-content:center;background:#0F1E3D;padding:12px;} .lt .vis svg{max-height:86px;max-width:100%;}' +
+    '.lt .info{padding:10px 13px;} .lt .ch{font-weight:800;font-size:16px;} .lt .dim{font:600 11px/1.5 ui-monospace,monospace;color:#6B6B6B;margin-top:3px;}' +
+    '.lt .dls{display:flex;gap:6px;padding:0 13px 13px;}' +
+    '.lt .dls a{flex:1;text-align:center;font:700 11px/1 system-ui;padding:8px 4px;border-radius:6px;border:1px solid #E8E6E2;background:#FBFAF7;color:#0F1E3D;text-decoration:none;}' +
+    '.lt .dls a:hover{border-color:#7F0F1A;color:#7F0F1A;}' +
+    '.iso{display:flex;gap:16px;align-items:center;background:#fff;border:1px solid #E8E6E2;border-radius:9px;padding:16px;}' +
+    '.iso img{height:64px;width:auto;background:#0F1E3D;border-radius:6px;padding:6px;} .iso p{margin:0;font-size:12.5px;color:#6B6B6B;} .iso b{color:#0F1E3D;}' +
+    'code{font-family:ui-monospace,monospace;font-size:12px;color:#7F0F1A;}' +
+    '.foot{margin-top:40px;border-top:1px solid #E8E6E2;padding-top:14px;font:500 11px/1.5 ui-monospace,monospace;color:#9B9B9B;}' +
+    '</style></head><body><div class="wrap">' +
+    '<h1>Aviso de fachada · DTD-Cargo · piezas 3D</h1>' +
+    '<p class="sub">Cada letra del wordmark "DTD Cargo" es una pieza independiente de impresión 3D. Los <b>STL están en milímetros a escala real</b> (alto de mayúsculas ' + L.capCm + ' cm · canto ' + thick + ' mm): importar en Bambu Studio <b>sin reescalar</b>. Tipografía Archivo Black — no sustituir.</p>' +
+    '<div class="warn">⚠ Extrae (descomprime) todo el ZIP antes de abrir este archivo — los botones de descarga apuntan a las carpetas que vienen al lado.</div>' +
+    '<h2>El lockup completo</h2>' +
+    (isoFiles.plano ? '<div style="margin-bottom:14px;"><img src="plano · montaje acotado.png" style="width:100%; border:1px solid #E8E6E2; border-radius:9px;" alt="Plano de montaje acotado"/></div>' : '') +
+    '<div class="prev">' + prev + '</div>' +
+    '<h2>Separación entre letras (borde a borde · mantiene el branding)</h2><table>' + gaps + '</table>' +
+    '<h2>Piezas · descarga por letra</h2><div class="grid">' + cards + '</div>' +
+    '<h2>El isotipo</h2><div class="iso">' +
+    (isoFiles.png ? '<img src="isotipo/dtdcargo-isologo-reverse.png" alt="Isotipo DTD-Cargo (reverse)"/>' : '') +
+    '<p>El <b>isotipo</b> es el ícono "D": la parte simbólica de la marca, funciona sin texto (el <b>logotipo</b> es solo el texto; el <b>isólogo</b> es la combinación de ambos). Sobre la bandeja navy va su variante <b>reverse</b> (cream + acento wine <code>#7F0F1A</code> — la única oficial para fondo oscuro). En la carpeta <code>isotipo/</code> van su <b>STL</b> (silueta a escala real, mismo canto ' + thick + ' mm), <b>SVG</b> y <b>PNG</b> oficial (referencia de color — el acento wine se pinta). Va a la <b>izquierda</b> del wordmark, alto ' + (L.capCm * (62 / 34)).toFixed(1) + ' cm.' + (isoDl ? '<br/><b>Descargas:</b> ' + isoDl : '') + '</p></div>' + +
+    '<div class="foot">DTD-Cargo C.A. · RIF J-50648869-8 · Ref. AVISO-FACHADA-01 · Variante A aprobada · Colores: letras cream #F2F0EC (Pantone Warm Gray 1 C / RAL 9001) · bandeja navy #0F1E3D (Pantone 282 C / RAL 5011) · acento del isotipo wine #7F0F1A (Pantone 1815 C)</div>' +
+    '</div></body></html>';
+}
+
+function finalizeZip(zip, btn, old) {
+  zip.generateAsync({ type: 'blob' }).then(function (blob) {
+    download(blob, 'DTD-Cargo · Piezas 3D Aviso.zip');
+    btn.disabled = false; btn.textContent = old;
+    setStatus('Pack .zip descargado · ' + countLetters() + ' carpetas (STL + SVG + PNG) + HTML interactivo offline (_ABRIR AQUÍ) + isotipo + LEEME.');
+  });
+}
+
+function readmeText() {
+  var mm = L.mmPerPx, thick = calcVal(document.getElementById('in-thick')) || 20;
+  var lines = [];
+  lines.push('DTD-CARGO · AVISO DE FACHADA · PIEZAS 3D');
+  lines.push('Ref. AVISO-FACHADA-01 · RIF J-50648869-8');
+  lines.push('Generado: ' + new Date().toLocaleDateString('es-VE'));
+  lines.push('');
+  lines.push('QUÉ ES ESTO');
+  lines.push('Cada letra del wordmark "DTD Cargo" es una PIEZA 3D independiente.');
+  lines.push('Por cada letra hay una carpeta con: .STL (malla para Bambu Studio),');
+  lines.push('.SVG (vector) y .PNG (referencia de color).');
+  lines.push('');
+  lines.push('MEDIDAS (escala real)');
+  lines.push('- Alto de mayúsculas (cap height): ' + L.capCm + ' cm');
+  lines.push('- Espesor / canto de extrusión: ' + thick + ' mm');
+  lines.push('- Tipografía: Archivo Black (NO sustituir)');
+  lines.push('- Los STL están en milímetros, escala 1:1. Importar en Bambu Studio sin reescalar.');
+  lines.push('');
+  lines.push('COLOR (variante A aprobada)');
+  lines.push('- Letras "DTD Cargo" (todas) -> Cream #F2F0EC (Pantone Warm Gray 1 C / RAL 9001-9010)');
+  lines.push('- Bandeja de fondo            -> Navy  #0F1E3D (Pantone 282 C / RAL 5011)');
+  lines.push('- Acento del isotipo          -> Wine  #7F0F1A (Pantone 1815 C / RAL 3005)');
+  lines.push('');
+  lines.push('SEPARACIÓN ENTRE LETRAS (borde a borde, para mantener el branding)');
+  var seq = L.items, idx = 0;
+  for (var i = 0; i < seq.length; i++) {
+    var it = seq[i]; if (it.space) continue;
+    var nx = null, sp = false;
+    for (var j = i + 1; j < seq.length; j++) { if (seq[j].space) sp = true; else { nx = seq[j]; break; } }
+    var w = (it.bb.x2 - it.bb.x1) * mm / 10;
+    var line = '- ' + (idx + 1) + ') "' + it.char + '"  ancho ' + w.toFixed(1) + ' cm';
+    if (nx) { var gap = (nx.bb.x1 - it.bb.x2) * mm / 10; line += '  ->  separación al siguiente: ' + gap.toFixed(1) + ' cm' + (sp ? '  (ESPACIO DE PALABRA: DTD | Cargo)' : ''); }
+    lines.push(line); idx++;
+  }
+  lines.push('');
+  lines.push('ISOTIPO');
+  lines.push('El isotipo es el ícono "D" (parte simbólica de la marca, funciona sin texto).');
+  lines.push('Sobre la bandeja navy va su variante REVERSE (cream + acento wine): vectorizar desde');
+  lines.push('isotipo/dtdcargo-isologo-reverse.png y extruir al mismo canto (' + thick + ' mm).');
+  lines.push('Alto recomendado del isotipo: ' + (L.capCm * (62 / 34)).toFixed(0) + ' cm (un poco más alto que las letras).');
+  lines.push('Va a la IZQUIERDA del wordmark.');
+  lines.push('');
+  lines.push('MONTAJE');
+  lines.push('1. Marcar línea base horizontal en la bandeja navy.');
+  lines.push('2. Colocar isotipo + letras respetando las separaciones de arriba.');
+  lines.push('3. Cada pieza con separador oculto de 8 mm para que proyecte sombra.');
+  lines.push('4. Todo queda DENTRO del nicho (retranqueado 2-3 cm del friso).');
+  lines.push('5. RIF legal: "RIF J-50648869-8" en vinilo de corte cream mate, alto 2 cm,');
+  lines.push('   esquina superior derecha de la bandeja (margen 2 cm), tipografia JetBrains Mono.');
+  return lines.join('\n');
+}
+</script>
+
+</body>
+</html>

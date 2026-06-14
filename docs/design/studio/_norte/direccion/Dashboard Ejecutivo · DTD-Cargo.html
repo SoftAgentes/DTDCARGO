@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Ejecutivo · DTD-Cargo</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  .topbar { height: 58px; display: flex; align-items: center; gap: 14px; padding: 0 var(--s-8); background: var(--bg-sidebar); color: #F2F0EC; }
+  .topbar img { width: 30px; }
+  .topbar .wm { font-family: var(--f-brand-display); font-weight: 900; font-size: 17px; letter-spacing: -0.02em; }
+  .topbar .wm .d { color: var(--wine-soft); } .topbar .wm .g { color: #F2F0EC; } .topbar .wm .sp { display:inline-block; width:0.15em; }
+  .topbar .mod { font: 600 13px/1 var(--f-sans); color: rgba(242,240,236,0.65); border-left: 1px solid rgba(242,240,236,0.2); padding-left: 14px; }
+  .topbar .ver { margin-left: auto; font: 600 10px/1 var(--f-mono); color: rgba(242,240,236,0.6); background: rgba(242,240,236,0.1); padding: 5px 9px; border-radius: var(--r-pill); }
+
+  .page { max-width: 1160px; margin: 0 auto; padding: var(--s-8) var(--s-8) var(--s-16); }
+  .head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: var(--s-6); }
+  .head h1 { font: 700 26px/1.1 var(--f-display); margin: 0; }
+  .head .period { font: 600 13px/1 var(--f-mono); color: var(--ink-soft); background: var(--bg-surface); border: 1px solid var(--border); padding: 9px 13px; border-radius: var(--r-md); }
+
+  .kpirow { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-4); margin-bottom: var(--s-5); }
+  @media (max-width: 860px){ .kpirow { grid-template-columns: 1fr 1fr; } }
+  .kpi { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-5); box-shadow: var(--shadow-xs); }
+  .kpi .k { font: 700 11px/1 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-mute); }
+  .kpi .v { font: 700 34px/1 var(--f-display); color: var(--ink); letter-spacing: -0.02em; margin-top: 10px; }
+  .kpi .v small { font: 600 16px/1 var(--f-display); color: var(--ink-soft); }
+  .kpi .d { font: 600 12px/1 var(--f-sans); margin-top: 8px; display: inline-flex; align-items: center; gap: 4px; }
+  .kpi .d.up { color: var(--success); } .kpi .d.down { color: var(--danger); } .kpi .d.flat { color: var(--ink-mute); }
+
+  .grid2 { display: grid; grid-template-columns: 1.5fr 1fr; gap: var(--s-5); margin-bottom: var(--s-5); }
+  @media (max-width: 900px){ .grid2 { grid-template-columns: 1fr; } }
+  .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .card h3 { font: 700 15px/1.2 var(--f-display); margin: 0 0 4px; }
+  .card .csub { font: 500 12px/1.4 var(--f-sans); color: var(--ink-mute); margin: 0 0 var(--s-5); }
+
+  /* bar chart */
+  .bars { display: flex; align-items: flex-end; gap: 18px; height: 200px; padding-top: 10px; }
+  .bar { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+  .bar .col { width: 100%; max-width: 46px; background: var(--wine); border-radius: 6px 6px 0 0; position: relative; }
+  .bar .col.soft { background: var(--wine-soft); }
+  .bar .col .val { position: absolute; top: -22px; left: 50%; transform: translateX(-50%); font: 600 11px/1 var(--f-mono); color: var(--ink-soft); white-space: nowrap; }
+  .bar .lbl { font: 600 11px/1 var(--f-sans); color: var(--ink-mute); }
+
+  /* gauge */
+  .gauge { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .gauge svg { width: 180px; height: 110px; }
+  .gauge .gv { font: 700 34px/1 var(--f-display); color: var(--wine); margin-top: -16px; }
+  .gauge .gl { font: 500 12px/1.4 var(--f-sans); color: var(--ink-mute); }
+
+  /* status list */
+  .stat { display: flex; flex-direction: column; gap: 12px; }
+  .srow { display: flex; align-items: center; gap: 12px; }
+  .srow .nm { flex: 0 0 130px; font: 600 12.5px/1 var(--f-sans); color: var(--ink); }
+  .srow .tk { flex: 1; height: 9px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; }
+  .srow .tk i { display: block; height: 100%; border-radius: 999px; }
+  .srow .n { font: 600 12px/1 var(--f-mono); color: var(--ink-soft); width: 28px; text-align: right; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font: 700 10px/1 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-mute); padding: 0 0 12px; }
+  th.r, td.r { text-align: right; }
+  td { padding: 11px 0; border-top: 1px solid var(--border); font: 500 13px/1.3 var(--f-sans); }
+  td.nm { font-weight: 700; } td.mono { font-family: var(--f-mono); }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <img src="../assets/dtdcargo-isologo-reverse.png" alt="DTD" onerror="this.style.display='none'" />
+    <span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span>
+    <span class="mod">Dirección · Dashboard</span>
+    <span class="ver">v4.2</span>
+  </div>
+
+  <div class="page">
+    <div class="head">
+      <h1>Dashboard ejecutivo</h1>
+      <span class="period">Junio 2026 · acumulado</span>
+    </div>
+
+    <div class="kpirow">
+      <div class="kpi"><div class="k">Ingresos del mes</div><div class="v">$184.2<small>K</small></div><div class="d up">▲ 12% vs. mayo</div></div>
+      <div class="kpi"><div class="k">Margen bruto</div><div class="v">31.4<small>%</small></div><div class="d up">▲ 1.8 pts</div></div>
+      <div class="kpi"><div class="k">Embarques activos</div><div class="v">23</div><div class="d flat">8 en tránsito · 15 en bodega</div></div>
+      <div class="kpi"><div class="k">DSO · días de cobro</div><div class="v">38<small> d</small></div><div class="d down">▲ 4 d vs. meta 34</div></div>
+      <div class="kpi"><div class="k">Ocupación contenedor</div><div class="v">87<small>%</small></div><div class="d up">▲ 5 pts</div></div>
+      <div class="kpi"><div class="k">Clientes nuevos</div><div class="v">14</div><div class="d up">▲ 3 vs. mayo</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Ingresos por mes</h3>
+        <p class="csub">Miles de USD · últimos 6 meses</p>
+        <div class="bars" id="bars"></div>
+      </div>
+      <div class="card">
+        <h3>Ocupación de contenedor</h3>
+        <p class="csub">Promedio de llenado al despachar</p>
+        <div class="gauge">
+          <svg viewBox="0 0 180 100" aria-hidden="true">
+            <path d="M14,96 A82,82 0 0 1 166,96" fill="none" stroke="var(--bg-elevated)" stroke-width="16" stroke-linecap="round"/>
+            <path id="gpath" d="M14,96 A82,82 0 0 1 166,96" fill="none" stroke="var(--wine)" stroke-width="16" stroke-linecap="round"/>
+          </svg>
+          <div class="gv">87%</div>
+          <div class="gl">Meta: 85% · óptimo de consolidación</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>Embarques por estado</h3>
+        <p class="csub">23 embarques activos</p>
+        <div class="stat">
+          <div class="srow"><span class="nm">Cotizado</span><span class="tk"><i style="width:22%;background:var(--ink-mute)"></i></span><span class="n">5</span></div>
+          <div class="srow"><span class="nm">En bodega CN</span><span class="tk"><i style="width:43%;background:var(--info)"></i></span><span class="n">10</span></div>
+          <div class="srow"><span class="nm">En tránsito</span><span class="tk"><i style="width:35%;background:var(--wine)"></i></span><span class="n">8</span></div>
+          <div class="srow"><span class="nm">Nacionalizando</span><span class="tk"><i style="width:13%;background:var(--warning)"></i></span><span class="n">3</span></div>
+          <div class="srow"><span class="nm">Entregado (mes)</span><span class="tk"><i style="width:78%;background:var(--success)"></i></span><span class="n">18</span></div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Top rutas por margen</h3>
+        <p class="csub">Margen bruto del mes</p>
+        <table>
+          <thead><tr><th>Ruta</th><th class="r">Embarques</th><th class="r">Margen</th></tr></thead>
+          <tbody>
+            <tr><td class="nm">Yiwu → La Guaira</td><td class="r mono">9</td><td class="r mono">34%</td></tr>
+            <tr><td class="nm">Shenzhen → Puerto Cabello</td><td class="r mono">6</td><td class="r mono">29%</td></tr>
+            <tr><td class="nm">Guangzhou → La Guaira</td><td class="r mono">5</td><td class="r mono">31%</td></tr>
+            <tr><td class="nm">Ningbo → Puerto Cabello</td><td class="r mono">3</td><td class="r mono">27%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const DATA = [ ['Ene',128], ['Feb',142], ['Mar',119], ['Abr',156], ['May',164], ['Jun',184] ];
+    const max = Math.max(...DATA.map(d=>d[1]));
+    document.getElementById('bars').innerHTML = DATA.map((d,i)=>{
+      const h = Math.round(d[1]/max*100);
+      const soft = i < DATA.length-1 ? ' soft' : '';
+      return '<div class="bar"><div class="col'+soft+'" style="height:'+h+'%"><span class="val">'+d[1]+'</span></div><span class="lbl">'+d[0]+'</span></div>';
+    }).join('');
+    // gauge fill 87%
+    const p = document.getElementById('gpath'); const len = p.getTotalLength();
+    p.style.strokeDasharray = len; p.style.strokeDashoffset = len*(1-0.87);
+  </script>
+</body>
+</html>

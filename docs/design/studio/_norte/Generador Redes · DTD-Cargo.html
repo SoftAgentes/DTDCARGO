@@ -271,7 +271,7 @@
       <div class="fld"><label>Pill de la web (texto)</label><input type="text" id="st-web-in" value="dtdcargo.com" oninput="txt('st-web',this.value)"></div>
       <label class="chk"><input type="checkbox" checked onchange="show('st-web',this.checked)"> Mostrar pill de la web</label>
       <label class="chk"><input type="checkbox" id="st-safe-chk" checked onchange="safeGuides(this.checked)"> Ver guías de área segura (no salen en el PNG)</label>
-      <p class="hint"><b>Áreas seguras:</b> deja los íconos de IG/WhatsApp/FB fuera de las zonas punteadas. Sirve para Story de Instagram/Facebook y Estado de WhatsApp.</p>
+      <p class="hint"><b>Áreas seguras:</b> dejá los íconos de IG/WhatsApp/FB fuera de las zonas punteadas. Sirve para Story de Instagram/Facebook y Estado de WhatsApp.</p>
     </div>
   </div>
 
@@ -364,7 +364,7 @@
       <div class="fld"><label>Testimonio</label><textarea id="ts-quote-in" oninput="txt('ts-quote',this.value)">Llegó todo perfecto y en el tiempo que dijeron. Por fin un servicio en el que confiar.</textarea></div>
       <div class="fld"><label>Nombre</label><input type="text" id="ts-nm-in" value="Andrea M." oninput="tsName(this.value)"></div>
       <div class="fld"><label>Rol · ciudad</label><input type="text" id="ts-loc-in" value="Importadora · Maracaibo" oninput="txt('ts-loc',this.value)"></div>
-      <p class="hint"><b>Prueba social.</b> Si no cargás foto, queda la inicial del nombre sobre navy. Pide permiso al cliente antes de publicar su nombre y ciudad.</p>
+      <p class="hint"><b>Prueba social.</b> Si no cargas foto, queda la inicial del nombre sobre navy. Pide permiso al cliente antes de publicar su nombre y ciudad.</p>
     </div>
   </div>
 
@@ -695,7 +695,7 @@ function renderMs(){
     p.rows.forEach(r=>{ html+='<div class="ms-row"><span class="nm">'+r[0]+'<small>'+r[1]+'</small></span><span class="px">'+r[2]+'<small>'+r[3]+'</small></span></div>'; });
     html+='</div></div>';
   });
-  html+='<div class="ms-note"><span class="lbl">Áreas seguras · verticales 1080×1920</span>Deja el texto importante <b>fuera de los bordes</b>: arriba ~250&nbsp;px (perfil, hora, íconos) y abajo ~310&nbsp;px (barra de respuesta / botones). En el generador, la pestaña <b>Story / Estado</b> ya marca estas zonas con guías punteadas que no salen en el PNG. Regla simple: <b>el dato clave, siempre centrado vertical</b>.</div>';
+  html+='<div class="ms-note"><span class="lbl">Áreas seguras · verticales 1080×1920</span>Dejá el texto importante <b>fuera de los bordes</b>: arriba ~250&nbsp;px (perfil, hora, íconos) y abajo ~310&nbsp;px (barra de respuesta / botones). En el generador, la pestaña <b>Story / Estado</b> ya marca estas zonas con guías punteadas que no salen en el PNG. Regla simple: <b>el dato clave, siempre centrado vertical</b>.</div>';
   html+='</div>';
   wrap.innerHTML=html;
 }

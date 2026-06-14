@@ -416,7 +416,7 @@
           <div className="eyebrow eyebrow-wine" style={{ marginBottom: 10 }}>IDENTIFICACIÓN</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <U.Input label="ID de ruta" value={draft.id} mono disabled />
-            <U.Input label="Nombre (opcional · se genera automáticamente)" value={draft.name} placeholder={`Valencia → ${draft.destination || '…'}`} onChange={(e) => update({ name: e.target.value })} />
+            <U.Input label="Nombre (opcional · se genera automaticamente)" value={draft.name} placeholder={`Valencia → ${draft.destination || '…'}`} onChange={(e) => update({ name: e.target.value })} />
           </div>
         </div>
 
@@ -602,7 +602,7 @@
                 Configurable por ciudad
               </div>
               <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6, maxWidth: '70ch' }}>
-                Cada tenant define su catálogo de ciudades operables siguiendo la estructura venezolana <b style={{ color: 'var(--ink)' }}>Estado → Municipio → Parroquia → Ciudad → Barrio</b>. El radio default se precarga cuando agregás esa ciudad como parada en una ruta — editable después por ruta sin tocar el catálogo.
+                Cada tenant define su catálogo de ciudades operables siguiendo la estructura venezolana <b style={{ color: 'var(--ink)' }}>Estado → Municipio → Parroquia → Ciudad → Barrio</b>. El radio default se precarga cuando agregas esa ciudad como parada en una ruta — editable después por ruta sin tocar el catálogo.
               </div>
             </div>
             <U.Btn variant="primary" size="md" icon={I.plus(14)} onClick={onAdd}>Agregar ciudad</U.Btn>

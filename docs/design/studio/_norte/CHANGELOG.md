@@ -1,39 +1,22 @@
 # Changelog · v1.1+
 
-## 2026-06-10 · 🔄 NORTE-SYNC · marca sincronizada a Brand Book v3.7
+## 2026-06-14 · 🔢 Versión única del proyecto → v4.2
 
-Paquete completo de Cloud Design (`DTD-Cargo.zip`, 955 archivos) aplicado por reemplazo
-total según `SYNC-NORTE-2026-06-10.md` (§1-§7). Versión del Norte sigue **v2.5** (el
-HANDOFF no subió); marca → **Brand Book v3.7** único.
+Sesión de herramientas de marca + módulos de operación, consolidada como **v4.2** (marca y producto comparten número visible).
+- **Versión:** v3.7 → **v4.2** en todos lados visible: Brand Book (renombrado `Brand Book DTD v3.7.html` → `Brand Book DTD v4.2.html`, portada/cover/cierre/footer/changelog), sidebar ERP (`erp/shell.jsx`), badges de módulos (Scorecard, Academia, Dashboard), títulos de apps (Bodeguero VE, Camionero), tokens (`erp/tokens.css`), pointers (Brand Hub, admin.jsx, admin-brand.jsx, CLAUDE.md, HANDOFF.md).
+- **Branding (Brand Hub):** Brand Hub (índice central de marca) + DTD Apps · Launcher (producto, separado); Packing List + Factura bilingüe; Firma de email; Packaging logístico; Cotización DDP; Plantilla de presentación (deck); Asistente de contenido (IA); Diplomas; Kit de bienvenida; Tarjeta editable por empleado; Reels + logo sonoro; Ciclo del Cliente (variantes) y hero web rediseñado (reemplaza el "360°").
+- **Operación / ERP:** Inventario de consolidación (WMS CN/VE), Reclamos y siniestros (incidencias + seguro), Academia/LMS, Scorecard de proveedores, Dashboard ejecutivo. Calculadora del cliente: estimado `E-2026-XXXX` al enviar por WhatsApp (logueado/no logueado + match al registrarse) y tarifa con vigencia desde el ERP (puente `dtd-tarifa-cbm`); cotizador rápido en Cotización y Estimador alineados a la misma tarifa. Ciclo Estimado→Aprobado→Facturado en portal y ERP.
+- Lo histórico (entradas previas, comentarios de código que fechan features) NO se reescribe.
 
-**Aplicado del paquete:** eliminados Brand Book v3.5 / Aceptación T&C / Modo Cliente /
-Reporte / `_icons-partial` (los archivados viven en `_archivo/`) · renames
-Almacenista→Bodeguero VE + Transportista→Camionero (raíz, `operario/`,
-`design_handoff_mobile_app/`) · piezas nuevas: Sticker Pack 17, Colateral Impreso,
-Banco de Fotos, Uniformes, `erp/modules/estudio-redes.jsx`, `uploads/`, `wechat/` ·
-lenguaje MARKBOX→Shipping Mark (visual) + voseo→tuteo · CLAUDE.md nuevo (término único
-Shipping Mark + protocolo §Sincronización).
+## 2026-06-12 · 🔢 Versión única del proyecto → v3.7
 
-**Fixes locales post-sync (escapes del barrido de Cloud Design — espejar allá):**
-- **Voseo residual → tuteo: 97 reemplazos en 45 archivos** user-facing (portal
-  registro/mobile, ERP módulos, operario apps ×2 copias, piezas de marca: Generador
-  Redes, Tarjeta, ZPL, Factura, Favicon pack, Uniformes, Brand Book §área de seguridad).
-  Quedan solo `_archivo/` (histórico) y los ejemplos ❌ intencionales del book.
-- **`factura-template/Factura`:** etiqueta visible `MARKBOX ·` → `Shipping Mark ·`
-  (último residuo visual; quedan solo claves de código permitidas: `MARKBOX_REGEX`,
-  `DEMO_MARKBOX`, `PM_MARKBOX`, `markbox:`).
-- **`Aplicaciones de Marca` §WhatsApp:** instrucciones del pack viejo — "redondos" y
-  "los 12 .webp" → 512×512 / **17** (el pack oficial es 17 con texto). ⚠️ La frase
-  "se vea redondo sobre cualquier chat" quedó — revisar copy en Cloud Design.
-
-**✅ RIF unificado (decisión founder, mismo día):** `J-50648869-8` es el ÚNICO RIF de DTD.
-Reemplazados los 4 que circulaban: `J-410322887` (marca/sello/inspecciones/tarjeta/
-colateral/CLAUDE.md), `J-40558712-0` (factura emisora/ZPL/comprobante WhatsApp),
-`J-40551122-3` (forma IVA, `fiscal.jsx`), `J-50220185-8` (acuerdo operador + T&C, `.md`
-**y `.docx`**) — 33 reemplazos en 19 archivos + 2 `.docx` legales + brand-books archivados
-(v3.0/v1.7). Los RIF mock de clientes/proveedores demo (`J-30xxx…`) quedan tal cual.
-**Cloud Design:** espejar en el origen + regenerar los PNG/PDF exportados (`uploads/`) que
-tengan el RIF viejo horneado.
+Unificación de numeración: marca y producto comparten un solo número visible (**v3.7**).
+- Sidebar del ERP: v2.5 → v3.7 (`erp/shell.jsx` + handoff móvil).
+- Títulos: Portal del Cliente, Operario VE, Bodeguero VE, Camionero, Mobile ERP: v2.3 → v3.7.
+- Comentarios-puntero "heredados del Brand Book v2.4" → v3.7 (`erp/tokens.css`, Logo Oficial, Iconos de Perfil, Aplicaciones de Marca, rates.jsx).
+- Brand Book: badges "NUEVO v3.5" retirados (la historia vive en el changelog interno del book).
+- `HANDOFF.md`: estado actual → v3.7 + regla de versión única.
+- Lo histórico (CHANGELOG, comentarios de código que fechan features) NO se reescribe.
 
 ## 2026-06-10 · Estudio de Redes (ERP) + generador unificado
 
@@ -83,9 +66,8 @@ usa el de CRM `+58 412 166 8021`, correcto). Cambios aplicados:
 
 **Sin tocar:** teléfonos de empleados/choferes en `nomina-data.jsx` y `bodeguero.jsx`
 (data de ejemplo, no contactos reales). **Transporte** se deja en `+58 412 495 0884`
-(número real pendiente de confirmar). **RIF:** la unificación quedó RESUELTA en la carga
-2026-06-10 — RIF único `J-50648869-8` en todo el Norte (se borraron los 4 viejos que
-circulaban, incl. el de la factura demo). Ver entrada del sync 2026-06-10.
+(número real pendiente de confirmar). **RIF** de la factura sigue `J-40558712-0` (decisión
+de unificación de RIF aún pendiente, fuera de este cambio).
 
 ---
 

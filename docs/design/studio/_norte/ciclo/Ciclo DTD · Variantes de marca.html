@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ciclo del Cliente · Variantes de marca</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  body { padding: var(--s-12) var(--s-8) var(--s-16); }
+  .head { max-width: 1200px; margin: 0 auto var(--s-10); }
+  .eyebrow { margin-bottom: var(--s-3); }
+  h1 { font: 700 32px/1.1 var(--f-display); letter-spacing: -0.01em; margin: 0 0 var(--s-2); }
+  .lede { font: 400 15px/1.55 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 74ch; }
+  .uses { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-5); }
+  .use { font: 600 11.5px/1 var(--f-sans); color: var(--ink-soft); background: var(--bg-surface); border: 1px solid var(--border);
+         border-radius: var(--r-pill); padding: 7px 13px; }
+
+  .concept { max-width: 1200px; margin: 0 auto var(--s-12); }
+  .c-head { display: flex; align-items: baseline; gap: var(--s-3); margin-bottom: var(--s-2); }
+  .c-head h2 { font: 700 21px/1.2 var(--f-display); margin: 0; }
+  .c-head .approved { font: 600 9.5px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: #fff;
+                      background: var(--success); padding: 5px 9px; border-radius: var(--r-pill); }
+  .c-sub { font: 400 13.5px/1.5 var(--f-sans); color: var(--ink-soft); margin: 0 0 var(--s-5); max-width: 70ch; }
+  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-6); }
+  @media (max-width: 860px){ .pair { grid-template-columns: 1fr; } }
+
+  .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--shadow-md); }
+  .card-top { display: flex; align-items: center; justify-content: space-between; padding: var(--s-3) var(--s-5); border-bottom: 1px solid var(--border); }
+  .card-top .t { font: 700 13px/1 var(--f-sans); }
+  .card-top .swatch { display: inline-flex; align-items: center; gap: 7px; font: 600 11px/1 var(--f-mono); color: var(--ink-soft); }
+  .card-top .swatch i { width: 13px; height: 13px; border-radius: 999px; border: 1px solid var(--border); display: inline-block; }
+  .card-top .swatch i.navy { background: var(--ink); } .card-top .swatch i.white { background: #fff; }
+  .btn { appearance: none; border: 0; cursor: pointer; font: 600 12px/1 var(--f-sans); padding: 8px 12px; border-radius: var(--r-sm);
+         background: var(--wine); color: #fff; display: inline-flex; align-items: center; gap: 6px; }
+  .btn:hover { background: var(--wine-deep); } .btn.done { background: var(--success); }
+  .btn svg { width: 13px; height: 13px; }
+  .stage { aspect-ratio: 1/1; display: grid; place-items: center; overflow: hidden; }
+  .stage.navy { background: linear-gradient(135deg, var(--ink), #1F3055); }
+  .stage.white { background: #fff; }
+
+  /* ════ Ciclo · variables temáticas ════ */
+  .cyc-frame { position: relative; width: 640px; height: 640px; overflow: hidden; transform-origin: center;
+    --cyc-belt-stroke: #F2F0EC; }
+  .cyc-frame.t-navy {
+    color: #F2F0EC;
+    --cyc-track: rgba(242,240,236,0.10); --cyc-flow: var(--wine-soft);
+    --cyc-text: #F2F0EC; --cyc-sub: var(--wine-soft); --cyc-accent: var(--wine-soft);
+    --cyc-spark: #F2F0EC; --cyc-numbg: #F2F0EC; --cyc-numfg: var(--wine); --cyc-numborder: transparent;
+    --cyc-nodeborder: rgba(242,240,236,0.14); --cyc-chipbg: rgba(15,30,61,0.78); --cyc-chipborder: rgba(194,116,127,0.30);
+    --cyc-dotborder: rgba(242,240,236,0.16); --cyc-dotshadow: 0 6px 16px rgba(0,0,0,0.3);
+  }
+  .cyc-frame.t-white {
+    color: var(--ink);
+    --cyc-track: rgba(15,30,61,0.09); --cyc-flow: var(--wine);
+    --cyc-text: var(--ink); --cyc-sub: var(--ink-mute); --cyc-accent: var(--wine);
+    --cyc-spark: var(--wine); --cyc-numbg: #fff; --cyc-numfg: var(--wine); --cyc-numborder: var(--border);
+    --cyc-nodeborder: rgba(255,255,255,0.55); --cyc-chipbg: var(--bg-surface); --cyc-chipborder: var(--border);
+    --cyc-dotborder: #fff; --cyc-dotshadow: 0 8px 18px rgba(127,15,26,0.28);
+  }
+  .cyc-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* A · anillo */
+  .cyc-ring-bg { fill: none; stroke: var(--cyc-track); stroke-width: 2; }
+  .cyc-ring-flow { fill: none; stroke: var(--cyc-flow); stroke-width: 2.5; stroke-dasharray: 6 14; stroke-linecap: round; opacity: 0.9; }
+  .cyc-spark { position: absolute; width: 16px; height: 16px; border-radius: 999px; background: var(--cyc-spark);
+    box-shadow: 0 0 18px 5px color-mix(in srgb, var(--cyc-spark) 55%, transparent); offset-distance: 8%; margin: -8px; }
+  .cyc-node { position: absolute; transform: translate(-50%, -50%); width: 104px; height: 104px; border-radius: 999px;
+    background: var(--wine); border: 1.5px solid var(--cyc-nodeborder); box-shadow: 0 8px 22px rgba(0,0,0,0.28);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; color: #F2F0EC; text-align: center; }
+  .cyc-node-num { position: absolute; top: -7px; right: -7px; width: 26px; height: 26px; border-radius: 999px;
+    background: var(--cyc-numbg); color: var(--cyc-numfg); font: 800 13px/26px var(--f-display); text-align: center;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25); border: 1px solid var(--cyc-numborder); }
+  .cyc-node-ico { color: #F2F0EC; height: 28px; }
+  .cyc-node-lbl { font: 700 15px/1 var(--f-display); letter-spacing: -0.01em; }
+  .cyc-node-sub { font: 600 9.5px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--wine-soft); }
+  .t-white .cyc-node-sub { color: rgba(255,255,255,0.82); }
+
+  /* centro (A y C) */
+  .cyc-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; width: 220px; }
+  .cyc-loopicon { color: var(--cyc-accent); display: inline-flex; }
+  .cyc-eyebrow { font: 700 11px/1 var(--f-sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--cyc-accent); }
+  .cyc-tagline { font: 700 26px/1.08 var(--f-display); color: var(--cyc-text); letter-spacing: -0.01em; }
+  .cyc-tagline--sm { font-size: 18px; }
+  .cyc-center--track { width: 200px; }
+
+  /* B · órbita */
+  .cyc-orbit { fill: none; stroke: var(--cyc-flow); stroke-width: 2; stroke-dasharray: 5 13; opacity: 0.8; }
+  .cyc-comet { position: absolute; width: 14px; height: 14px; border-radius: 999px; background: var(--cyc-flow);
+    box-shadow: 0 0 16px 5px color-mix(in srgb, var(--cyc-flow) 60%, transparent); offset-distance: 6%; margin: -7px; }
+  .cyc-hub { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; }
+  .cyc-hub img { width: 116px; height: auto; }
+  .cyc-hub-tag { font: 700 16px/1.12 var(--f-display); color: var(--cyc-text); letter-spacing: -0.01em; }
+  .cyc-chip { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 9px;
+    background: var(--cyc-chipbg); border: 1px solid var(--cyc-chipborder); padding: 9px 13px 9px 9px; border-radius: var(--r-pill);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18); white-space: nowrap; }
+  .cyc-chip-ico { width: 36px; height: 36px; border-radius: 999px; background: var(--wine); color: #F2F0EC; display: flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+  .cyc-chip-txt { display: flex; flex-direction: column; gap: 1px; }
+  .cyc-chip-lbl { font: 700 14px/1 var(--f-display); color: var(--cyc-text); display: flex; align-items: baseline; gap: 6px; }
+  .cyc-chip-lbl b { font: 800 11px/1 var(--f-display); color: var(--cyc-accent); }
+  .cyc-chip-sub { font: 600 9px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyc-sub); }
+
+  /* C · cinta */
+  .cyc-track-bg { fill: none; stroke: var(--cyc-track); stroke-width: 16; }
+  .cyc-track-flow { fill: none; stroke: var(--cyc-flow); stroke-width: 2.5; stroke-dasharray: 6 14; stroke-linecap: round; opacity: 0.85; }
+  .cyc-belt { position: absolute; offset-distance: 4%; offset-rotate: auto; margin: -15px -22px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35)); }
+  .cyc-stn { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .cyc-stn--bot { flex-direction: column-reverse; }
+  .cyc-stn-dot { width: 56px; height: 56px; border-radius: 999px; background: var(--wine); color: #F2F0EC; display: flex;
+    align-items: center; justify-content: center; border: 3px solid var(--cyc-dotborder); box-shadow: var(--cyc-dotshadow); flex: 0 0 auto; }
+  .cyc-stn-txt { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .cyc-stn-lbl { font: 700 16px/1 var(--f-display); color: var(--cyc-text); display: flex; align-items: baseline; gap: 6px; }
+  .cyc-stn-lbl b { font: 800 12px/1 var(--f-display); color: var(--cyc-accent); }
+  .cyc-stn-sub { font: 600 9.5px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyc-sub); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cyc-ring-flow, .cyc-track-flow { animation: cyc-march 1.5s linear infinite; }
+    .cyc-orbit { animation: cyc-march 1.8s linear infinite; }
+    .cyc-spark { animation: cyc-travel 9s linear infinite; }
+    .cyc-comet { animation: cyc-travel 11s linear infinite; }
+    .cyc-belt  { animation: cyc-travel 12s linear infinite; }
+    .cyc-loopicon { animation: cyc-spin 16s linear infinite; }
+  }
+  @keyframes cyc-travel { to { offset-distance: 100%; } }
+  @keyframes cyc-march  { to { stroke-dashoffset: -40; } }
+  @keyframes cyc-spin   { to { transform: rotate(360deg); } }
+
+  .foot { max-width: 1200px; margin: var(--s-8) auto 0; font: 400 12.5px/1.55 var(--f-sans); color: var(--ink-mute); border-top: 1px solid var(--border); padding-top: var(--s-5); }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="eyebrow eyebrow-wine">Sistema de marca · Ciclo del Cliente</div>
+    <h1>Variantes del ciclo · navy y blanco</h1>
+    <p class="lede">Los tres conceptos del ciclo, cada uno en fondo navy y fondo blanco. <b>C · Cinta en bucle (blanco)</b> es la versión aprobada para el hero web; las demás quedan en el banco de marca para usos varios.</p>
+    <div class="uses">
+      <span class="use">Presentaciones</span>
+      <span class="use">Cursos de Alibaba</span>
+      <span class="use">Redes y piezas internas</span>
+      <span class="use">Plantillas de propuesta</span>
+    </div>
+  </div>
+
+  <div id="app"></div>
+
+  <p class="foot">Los 4 pasos son siempre Cotiza → Compra (prealerta) → Recibimos → Entregamos, en bucle. “Prealerta” es subtítulo de “Compra” (mismo registro, regla de marca). Construido sobre tokens v3.7 — navy/wine/cream, Sora + Nunito Sans + Archivo Black. Descarga en PNG transparente-fondo 1280×1280.</p>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+  <script type="text/babel" src="cycles-themed.jsx"></script>
+  <script type="text/babel">
+    const { OptionA, OptionB, OptionC } = window;
+    const CONCEPTS = [
+      { id: 'A', title: 'A · Anillo de proceso', Comp: OptionA, sub: 'Los 4 pasos en un anillo, con un destello que recorre el círculo. Lectura directa, ideal para slides.' },
+      { id: 'B', title: 'B · Órbita del isólogo', Comp: OptionB, sub: 'El isólogo “D” al centro y los pasos orbitando. La más de marca, buena para portadas.' },
+      { id: 'C', title: 'C · Cinta en bucle', Comp: OptionC, sub: 'Cinta cerrada con un contenedor viajando — evoca logística y “cada envío”.', approved: true },
+    ];
+    const DL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+
+    function Cell({ concept, theme }) {
+      const ref = React.useRef(null);
+      const [scale, setScale] = React.useState(0.5);
+      const [done, setDone] = React.useState(false);
+      const stageRef = React.useRef(null);
+      React.useLayoutEffect(() => {
+        function fit(){ if (stageRef.current) setScale(stageRef.current.clientWidth / 640); }
+        fit(); window.addEventListener('resize', fit); return () => window.removeEventListener('resize', fit);
+      }, []);
+      async function download(){
+        const node = ref.current.querySelector('.cyc-frame');
+        const bg = theme === 'navy' ? null : '#ffffff';
+        const dataUrl = await window.htmlToImage.toPng(node, { width: 640, height: 640, pixelRatio: 2, backgroundColor: theme === 'navy' ? undefined : '#ffffff', style: { transform: 'none' } });
+        const a = document.createElement('a');
+        a.download = 'Ciclo DTD ' + concept.id + ' ' + theme + '.png';
+        a.href = dataUrl; document.body.appendChild(a); a.click(); a.remove();
+        setDone(true); setTimeout(() => setDone(false), 2000);
+      }
+      const Comp = concept.Comp;
+      return (
+        <div className="card">
+          <div className="card-top">
+            <span className="t">{theme === 'navy' ? 'Fondo navy' : 'Fondo blanco'}</span>
+            <span style={{ display:'flex', gap:'10px', alignItems:'center' }}>
+              <span className="swatch"><i className={theme}></i>{theme === 'navy' ? 'navy → #1F3055' : '#FFFFFF'}</span>
+              <button className={'btn' + (done ? ' done' : '')} onClick={download}>
+                <span dangerouslySetInnerHTML={{ __html: DL }}></span>{done ? 'Listo' : 'PNG'}
+              </button>
+            </span>
+          </div>
+          <div className={'stage ' + theme} ref={stageRef}>
+            <div ref={ref} style={{ width: 640*scale, height: 640*scale }}>
+              <div style={{ transform: 'scale('+scale+')', transformOrigin: 'top left' }}>
+                <Comp theme={theme} />
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      return (
+        <>
+          {CONCEPTS.map(c => (
+            <div className="concept" key={c.id}>
+              <div className="c-head">
+                <h2>{c.title}</h2>
+                {c.approved && <span className="approved">Aprobado · hero web</span>}
+              </div>
+              <p className="c-sub">{c.sub}</p>
+              <div className="pair">
+                <Cell concept={c} theme="navy" />
+                <Cell concept={c} theme="white" />
+              </div>
+            </div>
+          ))}
+        </>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('app')).render(<App />);
+  </script>
+</body>
+</html>

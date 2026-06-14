@@ -63,6 +63,8 @@ function ModuleRates({ view, setView }) {
         }
       />
 
+      <CalcTariffCard />
+
       <U.Toolbar
         search={search}
         onSearchChange={setSearch}
@@ -76,7 +78,7 @@ function ModuleRates({ view, setView }) {
       />
 
       {filtered.length === 0
-        ? <U.EmptyState icon={window.Icon.tag(22)} title="Sin tarifas" body="Agrega tarifas por origen/destino. Se aplican automáticamente en el estimador." />
+        ? <U.EmptyState icon={window.Icon.tag(22)} title="Sin tarifas" body="Agrega tarifas por origen/destino. Se aplican automaticamente en el estimador." />
         : <U.Table columns={columns} rows={filtered} />
       }
 
@@ -107,6 +109,38 @@ function ModuleRates({ view, setView }) {
         </div>
       </U.Drawer>
     </div>
+  );
+}
+
+// ── Tarifa base de la calculadora pública (LCL DDP) · puente al cliente ──
+function CalcTariffCard() {
+  const U = window.ERPUI;
+  const DD = window.DTDData;
+  const init = (DD && DD.getCbmTariff) ? DD.getCbmTariff() : { rate: 800, validUntil: '2026-12-31' };
+  const [rate, setRate] = React.useState(String(init.rate));
+  const [valid, setValid] = React.useState(init.validUntil || '');
+  const [saved, setSaved] = React.useState(false);
+  const expired = init.validUntil && init.validUntil < new Date().toISOString().slice(0, 10);
+  function save() {
+    if (!(DD && DD.setCbmTariff)) return;
+    DD.setCbmTariff({ rate: parseFloat(rate) || init.rate, validUntil: valid || init.validUntil });
+    setSaved(true); setTimeout(() => setSaved(false), 1800);
+  }
+  return (
+    <U.Card padded style={{ marginBottom: 16, borderLeft: '3px solid var(--wine)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: '1 1 260px' }}>
+          <div className="eyebrow eyebrow-wine" style={{ marginBottom: 6 }}>TARIFA BASE · CALCULADORA PÚBLICA</div>
+          <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)' }}>
+            El <b>$/CBM</b> que toma la calculadora del cliente (LCL DDP puerta a puerta). Al guardar, se aplica en la calculadora con su fecha de vigencia.
+          </div>
+          {expired && <div style={{ marginTop: 6, font: '700 11px/1.3 var(--f-sans)', color: 'var(--danger)' }}>⚠ Vencida — actualiza la vigencia para que la calculadora la siga mostrando como vigente.</div>}
+        </div>
+        <div style={{ width: 160 }}><U.Input label="Tarifa por CBM" value={rate} onChange={(e) => setRate(e.target.value)} prefix="$" suffix="USD/CBM" mono /></div>
+        <div style={{ width: 170 }}><U.Input label="Válida hasta" type="date" value={valid} onChange={(e) => setValid(e.target.value)} mono /></div>
+        <U.Btn variant="primary" onClick={save}>{saved ? 'Guardado ✓' : 'Guardar'}</U.Btn>
+      </div>
+    </U.Card>
   );
 }
 

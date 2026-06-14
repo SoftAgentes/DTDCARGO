@@ -57,6 +57,30 @@
   // E · Tasas de cambio
   const rates  = makeStore('dtd-rates', null);
 
+  // E2 · Tarifa base LCL DDP de la calculadora pública. El ERP (módulo Tarifas)
+  // la edita; la calculadora la lee. Forma: { rate, validUntil, updatedAt }.
+  // En prod = GET/PUT /rates/cbm-base.
+  const cbmTariff = makeStore('dtd-tarifa-cbm', null);
+  const CBM_TARIFF_DEFAULT = { rate: 800, validUntil: '2026-12-31' };
+  function getCbmTariff() {
+    const t = cbmTariff.read();
+    return (t && t.rate) ? t : Object.assign({}, CBM_TARIFF_DEFAULT);
+  }
+  function setCbmTariff(next) {
+    const cur = getCbmTariff();
+    const merged = {
+      rate: Number(next && next.rate) || cur.rate,
+      validUntil: (next && next.validUntil) || cur.validUntil,
+      updatedAt: new Date().toISOString(),
+    };
+    cbmTariff.write(merged);
+    return merged;
+  }
+  function cbmTariffExpired(t) {
+    t = t || getCbmTariff();
+    return !!t.validUntil && t.validUntil < new Date().toISOString().slice(0, 10);
+  }
+
   // F · Emails enviados (mock log para Mailing → Logs)
   const emailsSent = makeStore('dtd-emails-sent', []);
 
@@ -82,18 +106,32 @@
   // por el agente, pasa a 'estimado' (lista para aceptar). En prod = /quotes.
   const portalQuotes = makeStore('dtd-portal-quotes', []);
 
-  // Crea el estimado formal a partir de la solicitud del estimador.
-  // req: { markbox, clientName, origin, dest, service, cbm, estimate }
+  // Crea el estimado formal a partir de la solicitud del estimador/calculadora.
+  // req: { markbox?, clientName?, origin?, dest?, service?, cbm, weight?, estimate,
+  //        tarifa?, validUntil?, contact?:{name,email,phone}, meta?, ref? }
+  // markbox null = estimado "sin ligar" (cliente no registrado): se liga luego
+  // por coincidencia de email/teléfono cuando el cliente se registra.
   function pushPortalQuote(req) {
     const seq = String(900 + ((portalQuotes.read() || []).length) + Math.floor(Math.random() * 90));
+    const contact = req.contact ? {
+      name: req.contact.name || null,
+      email: normEmail(req.contact.email),
+      phone: normPhone(req.contact.phone),
+    } : null;
     const ship = {
       id: 'E-2026-' + seq, type: req.service || 'LCL DDP',
-      client: req.markbox, clientName: req.clientName || req.markbox,
-      origin: req.origin, destination: req.dest,
-      cbm: Number(req.cbm) || 0, weight: 0, value: Number(req.estimate) || 0,
+      client: req.markbox || null,
+      clientName: req.clientName || (contact && contact.name) || req.markbox || 'Sin registrar',
+      origin: req.origin || null, destination: req.dest || null,
+      cbm: Number(req.cbm) || 0, weight: Number(req.weight) || 0, value: Number(req.estimate) || 0,
       status: 'estimado', etd: null, eta: null, progress: 0, vessel: null, container: null,
       invoice: null, billed: false, paid: false, alert: null,
       quoteStage: 'en-proceso', quoteRef: req.ref || null, createdAt: new Date().toISOString(),
+      // Calculadora pública: contacto + parámetros, y bandera de ligado.
+      contact, linked: !!req.markbox, source: req.source || 'calculadora',
+      tarifa: req.tarifa != null ? Number(req.tarifa) : null,
+      validUntil: req.validUntil || null,
+      meta: req.meta || null,
     };
     const cur = portalQuotes.read() || [];
     portalQuotes.write([ship, ...cur].slice(0, 100));
@@ -103,6 +141,36 @@
   // Envíos extra (estimados del portal) de un Shipping Mark, para mergear con SHIPMENTS.
   function clientEstimados(markbox) {
     return (portalQuotes.read() || []).filter(q => q.client === markbox);
+  }
+
+  // Normalizadores para el match por contacto.
+  function normEmail(e) { return (e || '').toString().trim().toLowerCase() || null; }
+  function normPhone(p) { const d = (p || '').toString().replace(/\D/g, ''); return d ? d.slice(-10) : null; } // últimos 10 dígitos
+
+  // Liga los estimados "sin ligar" cuyo email o teléfono coincide con el cliente
+  // recién registrado. Se llama desde el registro (portal web + móvil).
+  // contact: { email, phone }. Devuelve los estimados ligados.
+  function linkEstimadosByContact(markbox, contact) {
+    if (!markbox || !contact) return [];
+    const email = normEmail(contact.email), phone = normPhone(contact.phone);
+    if (!email && !phone) return [];
+    const cur = portalQuotes.read() || [];
+    let changed = false;
+    const linked = [];
+    const next = cur.map(q => {
+      if (q.client || !q.contact) return q; // ya ligado o sin contacto
+      const mEmail = email && q.contact.email && q.contact.email === email;
+      const mPhone = phone && q.contact.phone && q.contact.phone === phone;
+      if (mEmail || mPhone) {
+        changed = true;
+        const upd = { ...q, client: markbox, linked: true, matchedAt: new Date().toISOString() };
+        linked.push(upd);
+        return upd;
+      }
+      return q;
+    });
+    if (changed) portalQuotes.write(next);
+    return linked;
   }
 
   // Publica un evento entrante del portal. Auto-tag: id, ts, read, tenantId.
@@ -255,6 +323,8 @@
 
   window.DTDData = {
     cnInbox, clients, rules, routes, cities, rates, emailsSent, portalInbox,
+    // Tarifa base de la calculadora pública (LCL DDP)
+    cbmTariff, getCbmTariff, setCbmTariff, cbmTariffExpired,
     // Shipping Mark
     validateMarkboxFormat, isMarkboxUnique, nextMarkbox,
     // Lookup + CNE
@@ -264,9 +334,9 @@
     // Portal inbox (eventos cliente → ERP)
     pushPortalEvent, markPortalRead, tenantForMarkbox,
     // Estimados formales generadas desde el portal
-    pushPortalQuote, clientEstimados,
+    pushPortalQuote, clientEstimados, linkEstimadosByContact,
     resetAll: () => {
-      ['dtd-cn-inbox','dtd-clients','dtd-rules','dtd-routes','dtd-cities','dtd-rates','dtd-emails-sent','dtd-portal-inbox','dtd-portal-quotes'].forEach(k => {
+      ['dtd-cn-inbox','dtd-clients','dtd-rules','dtd-routes','dtd-cities','dtd-rates','dtd-emails-sent','dtd-portal-inbox','dtd-portal-quotes','dtd-tarifa-cbm'].forEach(k => {
         localStorage.removeItem(k);
       });
       window.dispatchEvent(new CustomEvent('dtd-data-reset'));

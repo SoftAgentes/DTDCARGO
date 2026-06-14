@@ -44,7 +44,7 @@ function MailingTemplates() {
       </div>
 
       {filtered.length === 0 && (
-        <U.EmptyState icon={window.Icon.mail(22)} title="Sin templates" body="Crea una plantilla nueva o ajusta el filtro." />
+        <U.EmptyState icon={window.Icon.mail(22)} title="Sin templates" body="Creá una plantilla nueva o ajustá el filtro." />
       )}
 
       <U.Drawer

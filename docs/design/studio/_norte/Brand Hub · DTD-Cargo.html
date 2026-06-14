@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brand Hub · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  a { color: inherit; text-decoration: none; }
+
+  /* ── Hero ── */
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: var(--s-12) var(--s-8) var(--s-10); }
+  .hero-in { max-width: 1240px; margin: 0 auto; }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .brandline { display: flex; align-items: center; gap: 16px; }
+  .brandline img { width: 54px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 30px; }
+  .wm .d { color: var(--wine-soft); } .wm .g { color: #F2F0EC; } .wm .sp { display: inline-block; width: 0.15em; }
+  .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); }
+  .hero h1 { font: 700 38px/1.08 var(--f-display); letter-spacing: -0.02em; margin: 30px 0 10px; max-width: 18ch; }
+  .hero p { font: 400 16px/1.55 var(--f-sans); color: rgba(242,240,236,0.78); margin: 0; max-width: 64ch; }
+  .tagline { font: 700 13px/1 var(--f-sans); letter-spacing: 0.04em; color: var(--wine-soft); margin-top: 18px; }
+
+  .search { margin-top: 26px; display: flex; align-items: center; gap: 11px; background: rgba(242,240,236,0.1); border: 1px solid rgba(242,240,236,0.22);
+            border-radius: var(--r-pill); padding: 0 16px; max-width: 460px; }
+  .search svg { width: 17px; height: 17px; color: rgba(242,240,236,0.6); flex: 0 0 auto; }
+  .search input { flex: 1; background: transparent; border: 0; outline: 0; color: #F2F0EC; font: 500 14px/1 var(--f-sans); padding: 13px 0; }
+  .search input::placeholder { color: rgba(242,240,236,0.5); }
+
+  /* ── Brand kit quick strip ── */
+  .kit { max-width: 1240px; margin: -28px auto 0; padding: 0 var(--s-8); display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: var(--s-5); position: relative; z-index: 5; }
+  @media (max-width: 860px){ .kit { grid-template-columns: 1fr; } }
+  .kit-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-md); padding: var(--s-5) var(--s-6); }
+  .kit-card h3 { font: 700 11px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--wine); margin: 0 0 var(--s-4); }
+  .sw { display: flex; gap: 7px; flex-wrap: wrap; }
+  .sw i { width: 30px; height: 30px; border-radius: var(--r-sm); border: 1px solid var(--border); display: block; position: relative; }
+  .sw i::after { content: attr(data-h); position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); font: 500 7.5px var(--f-mono); color: var(--ink-mute); white-space: nowrap; opacity: 0; transition: opacity .15s; }
+  .sw i:hover::after { opacity: 1; }
+  .kit-card .fonts div { font-size: 19px; line-height: 1.35; color: var(--ink); }
+  .kit-card .fonts .lbl { font: 600 9.5px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); display: inline-block; width: 70px; }
+  .kit-card .dl { display: inline-flex; align-items: center; gap: 7px; font: 600 13px/1 var(--f-sans); color: var(--wine); margin-top: 4px; }
+  .kit-card .dl svg { width: 14px; height: 14px; }
+  .kit-card .sub { font: 400 12px/1.5 var(--f-sans); color: var(--ink-soft); margin: 8px 0 0; }
+
+  /* ── Tabs ── */
+  .body { max-width: 1240px; margin: 0 auto; padding: var(--s-12) var(--s-8) var(--s-16); }
+  .tabs { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-bottom: var(--s-8); }
+  .tab { appearance: none; cursor: pointer; font: 600 13px/1 var(--f-sans); padding: 9px 15px; border-radius: var(--r-pill);
+         background: var(--bg-surface); color: var(--ink-soft); border: 1px solid var(--border); transition: all .14s; }
+  .tab:hover { color: var(--ink); border-color: var(--ink-mute); }
+  .tab.on { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .tab .c { font: 600 10px/1 var(--f-mono); opacity: 0.6; margin-left: 4px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-5); }
+  @media (max-width: 980px){ .grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px){ .grid { grid-template-columns: 1fr; } }
+
+  .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-5); box-shadow: var(--shadow-xs);
+          transition: transform .14s, box-shadow .14s, border-color .14s; display: flex; flex-direction: column; gap: var(--s-3); min-height: 132px; }
+  .card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); border-color: var(--ink-mute); }
+  .card .ic { width: 38px; height: 38px; border-radius: var(--r-md); background: var(--wine-bg); color: var(--wine); display: grid; place-items: center; font: 700 15px/1 var(--f-display); }
+  .card .ic.zh { font-family: 'Noto Sans SC', sans-serif; font-size: 14px; }
+  .card h4 { font: 700 15px/1.25 var(--f-display); margin: 0; color: var(--ink); }
+  .card p { font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); margin: 0; flex: 1; }
+  .card .meta { display: flex; align-items: center; justify-content: space-between; }
+  .card .cat { font: 600 9px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); }
+  .card .go { font: 600 12px/1 var(--f-sans); color: var(--wine); display: inline-flex; align-items: center; gap: 4px; }
+  .card.new::after { content: 'Nuevo'; position: absolute; }
+  .card { position: relative; }
+  .badge-new { position: absolute; top: 14px; right: 14px; font: 700 8.5px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase;
+               color: #fff; background: var(--success); padding: 4px 7px; border-radius: var(--r-pill); }
+
+  .empty { text-align: center; color: var(--ink-mute); font: 500 14px var(--f-sans); padding: var(--s-12); }
+  .foot { max-width: 1240px; margin: 0 auto; padding: 0 var(--s-8) var(--s-12); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); border-top: 1px solid var(--border); padding-top: var(--s-6); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+  <!-- HERO -->
+  <div class="hero">
+    <div class="hero-in">
+      <div class="hero-top">
+        <div class="brandline">
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+          <span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span>
+        </div>
+        <span class="ver">Brand Book v4.2</span>
+      </div>
+      <h1>Brand Hub · todo el sistema de marca, en un solo lugar</h1>
+      <p>El punto único de verdad de DTD-Cargo: guías, logos, color, plantillas y generadores. Si está acá, es lo vigente — tomá lo último y evitá versiones viejas.</p>
+      <div class="tagline">Con Confianza, de China a tu puerta.</div>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input id="q" type="text" placeholder="Buscar pieza o herramienta…">
+      </div>
+    </div>
+  </div>
+
+  <!-- BRAND KIT QUICK -->
+  <div class="kit">
+    <div class="kit-card">
+      <h3>Color · tokens v4.2</h3>
+      <div class="sw">
+        <i style="background:#7F0F1A" data-h="--wine #7F0F1A"></i>
+        <i style="background:#5E0A12" data-h="--wine-deep"></i>
+        <i style="background:#C2747F" data-h="--wine-soft"></i>
+        <i style="background:#0F1E3D" data-h="--ink navy"></i>
+        <i style="background:#FBFAF7" data-h="--bg-base"></i>
+        <i style="background:#F2F0EC" data-h="cream"></i>
+        <i style="background:#1F8A5B" data-h="success"></i>
+        <i style="background:#B8893A" data-h="warning"></i>
+        <i style="background:#A8323E" data-h="danger"></i>
+        <i style="background:#2A6FDB" data-h="info"></i>
+      </div>
+      <p class="sub">Nunca hex literales — siempre <code style="font-family:var(--f-mono);font-size:11px">var(--*)</code>. Detalle en el Brand Book §06.</p>
+    </div>
+    <div class="kit-card">
+      <h3>Tipografía</h3>
+      <div class="fonts">
+        <div><span class="lbl">Marca</span><span style="font-family:var(--f-brand-display)">DTD Cargo</span></div>
+        <div><span class="lbl">Títulos</span><span style="font-family:var(--f-display)">Sora</span></div>
+        <div><span class="lbl">Cuerpo</span><span style="font-family:var(--f-sans)">Nunito Sans</span></div>
+        <div><span class="lbl">Códigos</span><span style="font-family:var(--f-mono);font-size:16px">JetBrains Mono</span></div>
+      </div>
+    </div>
+    <div class="kit-card">
+      <h3>Logo</h3>
+      <p class="sub">4 variantes oficiales (primary · reverse · mono light · mono dark) + wordmark.</p>
+      <a class="dl" href="Logo Oficial.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Descargar logos (PNG por tamaño)
+      </a>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div class="body">
+    <div class="tabs" id="tabs"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" style="display:none">Sin resultados.</div>
+  </div>
+
+  <div class="foot">
+    <b>Gobernanza:</b> este hub es la fuente de verdad de la marca. Toda actualización se sincroniza a producción ("Norte") vía el protocolo de <code style="font-family:var(--f-mono);font-size:11px">SYNC-NORTE</code>. Versión única visible: <b>v3.7</b>. · Castellano venezolano, tuteo. · Cero AI slop.
+  </div>
+
+  <script>
+    const ITEMS = [
+      // Fundamentos
+      { t:'Brand Book v4.2', d:'La guía completa: fundamento, logo, tipografía, color, íconos, voz, motion y gobernanza (16 secciones).', cat:'Fundamentos', href:'Brand Book DTD v4.2.html', ic:'BB' },
+      { t:'Logo Oficial', d:'4 variantes del isólogo + wordmark, con descargas PNG por tamaño de uso (48–320px, retina).', cat:'Fundamentos', href:'Logo Oficial.html', ic:'◆' },
+      { t:'App Icon', d:'Ícono de aplicación DTD Cargo en sus tamaños y máscaras.', cat:'Fundamentos', href:'App Icon · DTD Cargo.html', ic:'▣' },
+      { t:'Aplicaciones de Marca', d:'El isólogo aplicado a touchpoints: papelería, firma de email, stickers, factura demo.', cat:'Fundamentos', href:'Aplicaciones de Marca.html', ic:'✦' },
+
+      // Generadores
+      { t:'Generador de Redes', d:'Catálogo de servicios para WhatsApp/IG/TikTok: foto → franja navy → PNG con metadata. QR multidestino.', cat:'Generadores', href:'Generador Redes · DTD-Cargo.html', ic:'⌁' },
+      { t:'Generador Catálogo WhatsApp', d:'8 servicios + portada 1080×1080 para WhatsApp Business.', cat:'Generadores', href:'Generador Catálogo WhatsApp · DTD-Cargo.html', ic:'☷' },
+      { t:'Portadas de Redes', d:'Portadas para YouTube, Facebook y perfiles sociales, con la identidad DTD.', cat:'Generadores', href:'Portadas Redes · DTD-Cargo.html', ic:'▭' },
+      { t:'Portada Animada FB', d:'Portada-video de Facebook: el isólogo entra y la ruta China → Venezuela se dibuja sola.', cat:'Generadores', href:'Portada Animada FB · DTD-Cargo.html', ic:'►' },
+      { t:'Reels y logo sonoro', d:'Plantillas verticales 9:16 para reels/stories + logo sonoro (firma de audio de marca). Animadas, navy/wine/paper.', cat:'Generadores', href:'Reels y Logo Sonoro · DTD-Cargo.html', ic:'♪', isNew:true },
+      { t:'Póster de Reseñas', d:'Genera piezas con reseñas de clientes para redes y punto de venta.', cat:'Generadores', href:'Póster Reseñas · DTD-Cargo.html', ic:'★' },
+      { t:'Ciclo del Cliente · variantes', d:'3 conceptos del ciclo (anillo · órbita · cinta) × navy/blanco. Para slides, cursos y piezas.', cat:'Generadores', href:'ciclo/Ciclo DTD · Variantes de marca.html', ic:'↺' },
+      { t:'Fondos de pantalla', d:'Windows (4K + vertical) · Teléfono · Trello · Videollamada — navy/paper, descarga directa.', cat:'Generadores', href:'fondos/Fondos de pantalla · DTD-Cargo.html', ic:'▦' },
+      { t:'Diplomas · cursos y eventos', d:'Generador A4 con 4 diseños, lista de alumnos, sello, QR de verificación y doble firma. Imprime a PDF.', cat:'Generadores', href:'diplomas/Diploma · DTD-Cargo.html', ic:'🎓', isNew:true },
+      { t:'Firma de email', d:'Generador de firmas de email para el equipo: 3 formatos, isólogo incrustado, copia directa a Gmail/Outlook.', cat:'Generadores', href:'firmas/Firma de Email · DTD-Cargo.html', ic:'✎', isNew:true },
+      { t:'Cotización DDP', d:'Generador de cotización/propuesta: ítems con totales automáticos, IVA opcional, datos del cliente y condiciones. Imprime a PDF A4.', cat:'Generadores', href:'cotizacion/Cotización DDP · DTD-Cargo.html', ic:'₵', isNew:true },
+      { t:'Plantilla de presentación', d:'Deck maestro de marca · 9 layouts (portada, agenda, sección, bullets, texto+imagen, KPI, proceso, cita, cierre). Duplicá y rellená. Exporta a PDF/PPTX.', cat:'Generadores', href:'plantilla-deck/Plantilla de Presentación · DTD-Cargo.html', ic:'▭', isNew:true },
+      { t:'Asistente de contenido', d:'Genera copy con la voz de DTD (posts, captions, emails, descripciones, respuestas a reseñas) con IA. Reglas de marca aplicadas. Fase 2.', cat:'Generadores', href:'marca/Asistente de Contenido · DTD-Cargo.html', ic:'✶', isNew:true },
+
+      // Operativo / proveedor
+      { t:'Packing List + Factura', d:'Documento 2-en-1 bilingüe 中文/Español que el proveedor llena. Totales automáticos. Reemplaza el Excel.', cat:'Operativo', href:'packlist/Packing List + Factura · DTD-Cargo.html', ic:'装', zh:true, isNew:true },
+      { t:'Calculadora CBM', d:'Cálculo de volumen/CBM para cotizar y consolidar carga.', cat:'Operativo', href:'Calculadora CBM · DTD-Cargo.html', ic:'∑' },
+      { t:'Etiqueta Bodega (ZPL)', d:'Etiqueta de bodega imprimible en ZPL con el Shipping Mark.', cat:'Operativo', href:'Etiqueta Bodega ZPL · DTD-Cargo.html', ic:'▤' },
+      { t:'Mapa de Proceso', d:'El flujo puerta a puerta integrado, paso a paso.', cat:'Operativo', href:'Mapa de Proceso.html', ic:'⇄' },
+      { t:'Inspección de Producto', d:'Reporte de inspección de producto en fábrica China.', cat:'Operativo', href:'Inspección de Producto · DTD.html', ic:'✓' },
+      { t:'Inspección de Fábrica', d:'Reporte de auditoría/inspección de fábrica.', cat:'Operativo', href:'Inspección de Fábrica · DTD.html', ic:'⚙' },
+      { t:'Reportes de Inspección', d:'Compilado de reportes de inspección DTD (incluye baterías).', cat:'Operativo', href:'Reportes de Inspección · DTD.html', ic:'❒' },
+
+      // Colateral impreso
+      { t:'Tarjeta de Presentación', d:'85×55 mm doble cara con QR vCard. Datos oficiales DTD.', cat:'Impreso', href:'Tarjeta de Presentación.html', ic:'▥' },
+      { t:'Colateral Impreso', d:'Membrete A4, credencial CR-80, vinilo de camión y roll-up — con spec de imprenta.', cat:'Impreso', href:'Colateral Impreso · DTD-Cargo.html', ic:'🖶' },
+      { t:'Uniformes', d:'Sistema de uniformes del equipo DTD (almacén, operario, oficina).', cat:'Impreso', href:'Uniformes · DTD-Cargo.html', ic:'⊺' },
+      { t:'Sticker Pack', d:'17 stickers con texto para WhatsApp (PNG 512 transparente).', cat:'Impreso', href:'Sticker Pack · DTD-Cargo.html', ic:'◔' },
+      { t:'Aviso de Fachada 3D', d:'Ficha del aviso de fachada de la oficina (render + medidas).', cat:'Impreso', href:'Ficha 3D · Aviso de Fachada · DTD-Cargo.html', ic:'⬣' },
+      { t:'Piezas 3D · Aviso de Fachada', d:'Las piezas 3D del aviso de fachada para fabricación y montaje.', cat:'Impreso', href:'Piezas 3D · Aviso de Fachada · DTD-Cargo.html', ic:'⬡', isNew:true },
+      { t:'Packaging logístico', d:'Cinta de embalaje, sellos y stickers de caja (Frágil, Este lado arriba, Shipping Mark) y precinto de contenedor — bilingüe, con spec de imprenta.', cat:'Impreso', href:'packaging/Packaging Logístico · DTD-Cargo.html', ic:'▥', isNew:true },
+
+      // Mensajería
+      { t:'WeChat · Perfil', d:'Cómo queda el perfil DTD en WeChat (proveedores China).', cat:'Mensajería', href:'WeChat · Perfil DTD-Cargo.html', ic:'微', zh:true },
+      { t:'Comprobante WhatsApp', d:'Plantilla de comprobante para enviar por WhatsApp al cliente.', cat:'Mensajería', href:'Comprobante WhatsApp · DTD-Cargo.html', ic:'✉' },
+      { t:'Banco de Fotos', d:'Fotos aprobadas por categoría (se llena con el foto-shoot).', cat:'Mensajería', href:'Banco de Fotos · DTD-Cargo.html', ic:'❏' },
+
+      // Comercial
+      { t:'Propuesta · Servicios y Tarifas', d:'Documento comercial de servicios y tarifas DDP.', cat:'Impreso', href:'Propuesta · Servicios y Tarifas.html', ic:'❡' },
+      { t:'Kit de Bienvenida', d:'Onboarding del cliente nuevo: Shipping Mark, ciclo en 4 pasos, primeros pasos y reglas de oro. 1 página, PDF/email.', cat:'Impreso', href:'Kit de Bienvenida · DTD-Cargo.html', ic:'✦', isNew:true }
+    ];
+
+    const CATS = ['Todos','Fundamentos','Generadores','Operativo','Impreso','Mensajería'];
+    let activeCat = 'Todos', query = '';
+
+    const tabsEl = document.getElementById('tabs');
+    const gridEl = document.getElementById('grid');
+    const emptyEl = document.getElementById('empty');
+
+    function count(cat){ return cat==='Todos' ? ITEMS.length : ITEMS.filter(i=>i.cat===cat).length; }
+
+    function renderTabs(){
+      tabsEl.innerHTML = CATS.map(c =>
+        '<button class="tab'+(c===activeCat?' on':'')+'" data-cat="'+c+'">'+c+'<span class="c">'+count(c)+'</span></button>'
+      ).join('');
+      tabsEl.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { activeCat = b.dataset.cat; renderTabs(); renderGrid(); }));
+    }
+
+    function renderGrid(){
+      const q = query.trim().toLowerCase();
+      const list = ITEMS.filter(i => (activeCat==='Todos' || i.cat===activeCat) &&
+        (!q || (i.t+' '+i.d+' '+i.cat).toLowerCase().includes(q)));
+      emptyEl.style.display = list.length ? 'none' : 'block';
+      gridEl.innerHTML = list.map(i =>
+        '<a class="card" href="'+i.href.replace(/"/g,'&quot;')+'">'+
+          (false?'<span class="badge-new">Nuevo</span>':'')+
+          '<div class="ic'+(i.zh?' zh':'')+'">'+i.ic+'</div>'+
+          '<h4>'+i.t+'</h4>'+
+          '<p>'+i.d+'</p>'+
+          '<div class="meta"><span class="cat">'+i.cat+'</span>'+
+          '<span class="go">Abrir →</span></div>'+
+        '</a>'
+      ).join('');
+    }
+
+    document.getElementById('q').addEventListener('input', e => { query = e.target.value; renderGrid(); });
+    renderTabs(); renderGrid();
+  </script>
+</body>
+</html>

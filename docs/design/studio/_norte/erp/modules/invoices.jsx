@@ -94,6 +94,39 @@ function ModuleInvoices({ goTo, view, setView, selectedId, setSelectedId }) {
         }
       />
 
+      {(() => {
+        const ests = D.byTenant(D.ESTIMADOS);
+        const pedidos = ests.filter(q => q.status === 'enviado' || q.status === 'borrador');
+        const aprobados = ests.filter(q => q.status === 'aceptado');
+        const fmtK = (n) => '$' + (n / 1000).toFixed(0) + 'K';
+        const sum = (a, k) => a.reduce((s, x) => s + (x[k] || 0), 0);
+        const steps = [
+          { k: 'Estimados', n: pedidos.length, s: pedidos.length ? fmtK(sum(pedidos, 'totalUSD')) + ' · por responder' : 'al día', tone: 'var(--ink-soft)', to: 'estimados' },
+          { k: 'Aprobados', n: aprobados.length, s: aprobados.length ? fmtK(sum(aprobados, 'totalUSD')) + ' · a embarcar' : '—', tone: 'var(--wine)', to: 'estimados' },
+          { k: 'Facturados', n: baseInvoices.length, s: fmtK(total), tone: 'var(--success)', to: null },
+        ];
+        return (
+          <U.Card padded style={{ marginBottom: 'var(--s-5)' }}>
+            <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>CICLO COMERCIAL · ESTIMADO → APROBADO → FACTURADO</div>
+            <div style={{ display: 'flex', alignItems: 'stretch' }}>
+              {steps.map((st, i) => (
+                <React.Fragment key={st.k}>
+                  <div style={{ flex: 1, padding: '0 10px', cursor: st.to ? 'pointer' : 'default' }} onClick={st.to ? () => goTo(st.to) : undefined}>
+                    <div style={{ font: '900 34px/1 var(--f-display)', color: st.tone, letterSpacing: '-0.02em' }}>{st.n}</div>
+                    <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)', marginTop: 7 }}>{st.k}</div>
+                    <div style={{ font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>{st.s}</div>
+                  </div>
+                  {i < steps.length - 1 && <div style={{ display: 'flex', alignItems: 'center', color: 'var(--ink-mute)', padding: '0 6px' }}>{window.Icon.chevR(18)}</div>}
+                </React.Fragment>
+              ))}
+            </div>
+            <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
+              El cliente genera <b style={{ color: 'var(--ink-soft)' }}>estimados</b>; al aprobarse pasan a <b style={{ color: 'var(--ink-soft)' }}>orden/embarque</b> y al entregar se <b style={{ color: 'var(--ink-soft)' }}>facturan</b>. Tocá un paso para ir al Estimador.
+            </div>
+          </U.Card>
+        );
+      })()}
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 'var(--s-5)' }}>
         <U.KPI label="Facturado YTD" value={`$${(total/1000).toFixed(0)}K`} delta="+12% vs Q1" tone="success" icon={window.Icon.invoice(18)} />
         <U.KPI label="Por cobrar" value={`$${(outstanding/1000).toFixed(0)}K`} delta={`${baseInvoices.filter(i=>i.balance>0).length} facturas`} tone="warning" icon={window.Icon.clock(18)} />

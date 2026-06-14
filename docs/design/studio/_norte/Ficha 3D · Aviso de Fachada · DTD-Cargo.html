@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ficha técnica 3D · Aviso de Fachada · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=Sora:wght@400;500;600;700;800&family=Nunito+Sans:opsz,wght@6..12,400;6..12,600;6..12,700;6..12,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-elevated); color: var(--ink); font: 400 13px/1.55 var(--f-sans); padding: 28px 16px 80px; }
+
+  /* barra de acciones (no se imprime) */
+  .actions { max-width: 820px; margin: 0 auto 22px; display: flex; gap: 10px; align-items: center; }
+  .actions .t { font: 700 13px/1.3 var(--f-sans); color: var(--ink-soft); }
+  .actions .sp { flex: 1; }
+  .btn { font: 700 13px/1 var(--f-sans); padding: 11px 18px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--bg-surface); color: var(--ink); cursor: pointer; }
+  .btn.primary { background: var(--wine); border-color: var(--wine); color: #fff; }
+
+  /* hoja A4 */
+  .sheet { max-width: 820px; margin: 0 auto; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 40px 44px 48px; box-shadow: var(--shadow-md); }
+
+  /* encabezado */
+  .head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--ink); padding-bottom: 18px; margin-bottom: 26px; }
+  .head .lock { display: flex; align-items: center; gap: 10px; }
+  .head .lock img { height: 38px; width: auto; display: block; }
+  .head .lock .wm { font-family: 'Archivo Black','Archivo',sans-serif; font-weight: 900; letter-spacing: -0.02em; font-size: 24px; line-height: 1; }
+  .head .lock .wm .dtd { color: var(--wine); }
+  .head .lock .wm .gap { display: inline-block; width: 0.15em; }
+  .head .lock .wm .cargo { color: var(--ink); }
+  .head .meta { text-align: right; font: 600 11px/1.5 var(--f-mono); color: var(--ink-soft); }
+  .head .meta .big { display: block; white-space: nowrap; font: 800 13px/1.3 var(--f-display); color: var(--ink); margin-bottom: 4px; }
+
+  .doc-title { margin-bottom: 4px; }
+  .doc-title .ey { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine); }
+  .doc-title h1 { font: 700 26px/1.15 var(--f-display); letter-spacing: -0.01em; margin: 8px 0 4px; }
+  .doc-title p { color: var(--ink-soft); font-size: 13px; max-width: 62ch; }
+
+  .sec-t { font: 700 12px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink); margin: 32px 0 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 9px; }
+  .sec-t .n { font: 800 12px/1 var(--f-mono); color: var(--wine); }
+
+  /* paleta */
+  .pal { display: grid; gap: 14px; }
+  .swatch { display: grid; grid-template-columns: 96px 1fr; border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; }
+  .swatch .chip { position: relative; display: flex; align-items: flex-end; padding: 8px; min-height: 92px; overflow: hidden; }
+  .swatch .chip svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .swatch .chip span { position: relative; z-index: 1; font: 700 10px/1.3 var(--f-mono); }
+  .swatch .body { padding: 12px 16px; }
+  .swatch .body .nm { font: 700 14px/1.2 var(--f-display); margin-bottom: 8px; }
+  .swatch .vals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 18px; }
+  .swatch .vals div { font: 600 11.5px/1.5 var(--f-mono); color: var(--ink-soft); }
+  .swatch .vals div b { color: var(--ink); font-weight: 700; }
+  .swatch .use { margin-top: 8px; font: 400 11.5px/1.4 var(--f-sans); color: var(--ink-soft); }
+
+  .note { padding: 11px 14px; background: var(--bg-elevated); border-radius: var(--r-sm); font-size: 11.5px; color: var(--ink-soft); margin-top: 12px; }
+  .note b { color: var(--ink); }
+
+  /* tablas */
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table td, table th { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; vertical-align: top; }
+  table th { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); }
+  table td.v { font-family: var(--f-mono); font-weight: 600; font-size: 12px; }
+  table tr:last-child td { border-bottom: none; }
+
+  .field-row { display: flex; gap: 12px; margin: 4px 0 16px; }
+  .field { flex: 1; }
+  .field label { display: block; font: 700 10px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 6px; }
+  .field input { width: 100%; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--r-sm); font: 600 13px/1 var(--f-mono); color: var(--ink); background: var(--bg-base); }
+  .field input:focus { outline: 2px solid var(--wine); outline-offset: -1px; border-color: var(--wine); }
+
+  /* checklist de archivos */
+  ul.files { list-style: none; display: grid; gap: 9px; }
+  ul.files li { display: flex; gap: 11px; align-items: baseline; font-size: 12.5px; }
+  ul.files li .bx { width: 13px; height: 13px; border: 1.5px solid var(--ink-mute); border-radius: 3px; flex-shrink: 0; transform: translateY(2px); }
+  ul.files li code { font-family: var(--f-mono); font-size: 11.5px; color: var(--wine); font-weight: 600; }
+  ul.files li .d { color: var(--ink-soft); }
+  a.dl { color: var(--info); font-weight: 700; text-decoration: none; font-size: 11.5px; }
+
+  ul.mat { list-style: none; display: grid; gap: 9px; }
+  ul.mat li { display: flex; gap: 10px; font-size: 12.5px; color: var(--ink-soft); align-items: baseline; }
+  ul.mat li b { color: var(--ink); }
+  ul.mat li .n { font: 800 11px/1.7 var(--f-mono); color: var(--wine); flex-shrink: 0; }
+
+  .bad { color: var(--danger); font-weight: 700; }
+  .foot { margin-top: 34px; padding-top: 16px; border-top: 1px solid var(--border); font: 500 11px/1.55 var(--f-mono); color: var(--ink-mute); display: flex; justify-content: space-between; gap: 16px; }
+
+  @media print {
+    body { background: #fff; padding: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .actions { display: none; }
+    .sheet { box-shadow: none; border: none; border-radius: 0; max-width: 100%; padding: 0 6mm; }
+    .swatch, table, ul.files li, ul.mat li, .sec-t { break-inside: avoid; }
+    .swatch .chip { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+
+<div class="actions">
+  <span class="t">Ficha lista para enviar al taller de impresión 3D.</span>
+  <span class="sp"></span>
+  <button class="btn" onclick="window.location.href='Piezas 3D · Aviso de Fachada · DTD-Cargo.html'">← Volver al generador de piezas</button>
+  <button class="btn primary" onclick="window.print()">⎙ Imprimir / Guardar PDF</button>
+</div>
+
+<div class="sheet" data-screen-label="Ficha técnica 3D">
+
+  <div class="head">
+    <div class="lock">
+      <img src="assets/dtdcargo-isologo-primary.png" alt="DTD-Cargo" />
+      <span class="wm"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
+    </div>
+    <div class="meta">
+      <span class="big">FICHA TÉCNICA · 3D</span>
+      Ref. AVISO-FACHADA-01<br/>
+      Rev. 2026-06-11<br/>
+      RIF J-50648869-8
+    </div>
+  </div>
+
+  <div class="doc-title">
+    <div class="ey">Aprobado para producción</div>
+    <h1>Aviso de fachada · letras corpóreas impresión 3D</h1>
+    <p>Variante A aprobada: <b>bandeja navy</b> empotrada en el nicho sobre la puerta principal (Av. Bolívar Norte 14, Valencia), con isólogo <b>reverse</b> y wordmark "DTD Cargo" en <b>letras corpóreas cream</b> de impresión 3D. Esta hoja contiene la paleta exacta, el despiece y los archivos para fabricar la pieza.</p>
+  </div>
+
+  <!-- 01 paleta -->
+  <div class="sec-t"><span class="n">01</span> Paleta de color · equivalencias para producción</div>
+  <div class="pal">
+    <div class="swatch">
+      <div class="chip"><svg viewBox="0 0 60 100" preserveAspectRatio="none"><rect width="60" height="100" fill="#0F1E3D"></rect></svg><span style="color:#fff;">Bandeja · Navy</span></div>
+      <div class="body">
+        <div class="nm">Navy — bandeja / fondo del aviso</div>
+        <div class="vals">
+          <div>HEX <b>#0F1E3D</b></div>
+          <div>RGB <b>15 · 30 · 61</b></div>
+          <div>Pantone <b>282 C</b> <span style="opacity:.7;">(alt. 2767 C)</span></div>
+          <div>RAL <b>5011 Steel Blue</b></div>
+          <div>CMYK <b>75 · 51 · 0 · 76</b></div>
+          <div>Acabado <b>Mate</b></div>
+        </div>
+        <div class="use">Bandeja ACM de fondo que llena el nicho. También es el navy del isólogo.</div>
+      </div>
+    </div>
+
+    <div class="swatch">
+      <div class="chip" style="border-right:1px solid var(--border);"><svg viewBox="0 0 60 100" preserveAspectRatio="none"><rect width="60" height="100" fill="#F2F0EC"></rect></svg><span style="color:#0F1E3D;">Letras · Cream</span></div>
+      <div class="body">
+        <div class="nm">Cream — letras "DTD Cargo" (las dos palabras)</div>
+        <div class="vals">
+          <div>HEX <b>#F2F0EC</b></div>
+          <div>RGB <b>242 · 240 · 236</b></div>
+          <div>Pantone <b>Warm Gray 1 C</b> <span style="opacity:.7;">(alt. 11-0601 TCX)</span></div>
+          <div>RAL <b>9001 / 9010</b></div>
+          <div>CMYK <b>0 · 1 · 2 · 5</b></div>
+          <div>Acabado <b>Mate</b></div>
+        </div>
+        <div class="use">Frente de todas las letras corpóreas del wordmark. No usar blanco puro brillante.</div>
+      </div>
+    </div>
+
+    <div class="swatch">
+      <div class="chip"><svg viewBox="0 0 60 100" preserveAspectRatio="none"><rect width="60" height="100" fill="#7F0F1A"></rect></svg><span style="color:#fff;">Isotipo · Wine</span></div>
+      <div class="body">
+        <div class="nm">Wine — acento del isotipo</div>
+        <div class="vals">
+          <div>HEX <b>#7F0F1A</b></div>
+          <div>RGB <b>127 · 15 · 26</b></div>
+          <div>Pantone <b>1815 C</b> <span style="opacity:.7;">(alt. 188 C)</span></div>
+          <div>RAL <b>3005 Wine Red</b></div>
+          <div>CMYK <b>0 · 88 · 80 · 50</b></div>
+          <div>Acabado <b>Mate</b></div>
+        </div>
+        <div class="use">Solo en el detalle del isólogo reverse. No va en las letras.</div>
+      </div>
+    </div>
+  </div>
+  <div class="note"><b>Importante:</b> los Pantone/RAL son <b>equivalencias aproximadas</b> del color de pantalla. Antes de pintar, confirmar contra guía Pantone física (o Pantone Connect) y sacar una muestra de color aprobada. El color manda en este orden: <b>Pantone → HEX</b>. ❌ No sustituir por tonos "parecidos" del taller.</div>
+
+  <!-- 02 despiece -->
+  <div class="sec-t"><span class="n">02</span> Despiece de piezas</div>
+  <table>
+    <tr><th>Pieza</th><th>Material / proceso</th><th>Color</th><th>Espesor (canto)</th></tr>
+    <tr><td>Bandeja de fondo</td><td class="v">ACM 3 mm (aluminio compuesto), pintura PU mate</td><td class="v">Navy #0F1E3D</td><td class="v">3 mm</td></tr>
+    <tr><td>Isólogo corpóreo</td><td class="v">Impresión 3D · ASA o PETG (exterior, UV)</td><td class="v">Reverse (cream + wine)</td><td class="v">18–25 mm</td></tr>
+    <tr><td>Letras "DTD"</td><td class="v">Impresión 3D · ASA o PETG</td><td class="v">Cream #F2F0EC</td><td class="v">18–25 mm</td></tr>
+    <tr><td>Letras "Cargo"</td><td class="v">Impresión 3D · ASA o PETG</td><td class="v">Cream #F2F0EC</td><td class="v">18–25 mm</td></tr>
+    <tr><td>RIF legal</td><td class="v">Vinilo de corte mate · "RIF J-50648869-8" · alto 2 cm · esquina superior derecha de la bandeja (margen 2 cm) · JetBrains Mono</td><td class="v">Cream #F2F0EC</td><td class="v">—</td></tr>
+  </table>
+
+  <!-- 03 medidas -->
+  <div class="sec-t"><span class="n">03</span> Medidas · llenar con el nicho real</div>
+  <div class="field-row">
+    <div class="field"><label>Ancho nicho (cm)</label><input id="in-w" type="text" inputmode="decimal" value="136" /></div>
+    <div class="field"><label>Alto nicho (cm)</label><input id="in-h" type="text" inputmode="decimal" value="43" /></div>
+    <div class="field"><label>Profundidad (cm)</label><input id="in-d" type="text" inputmode="decimal" value="12" /></div>
+  </div>
+  <table>
+    <tr><td>Bandeja (holgura 1 cm/lado, retranqueada 2–3 cm del friso)</td><td class="v" id="sp-panel">168 × 53 cm</td></tr>
+    <tr><td>Alto del isólogo · 62% del alto útil</td><td class="v" id="sp-iso">33 cm</td></tr>
+    <tr><td>Alto del wordmark "DTD Cargo" (cap height)</td><td class="v" id="sp-wm">18 cm</td></tr>
+    <tr><td>Largo aproximado del lockup horizontal</td><td class="v" id="sp-lock">≈ 105 cm</td></tr>
+    <tr><td>Margen lateral mínimo · zona de respeto</td><td class="v" id="sp-margin">≥ 17 cm</td></tr>
+    <tr><td>Separación isólogo ↔ wordmark</td><td class="v" id="sp-gap">8 cm</td></tr>
+  </table>
+  <div class="note">Las celdas se recalculan al editar las medidas (acepta sumas tipo <code style="font-family:var(--f-mono);">160+10</code>). El lockup nunca ocupa más del 70% del ancho de la bandeja.</div>
+
+  <!-- 04 archivos -->
+  <div class="sec-t"><span class="n">04</span> Archivos para el impresor</div>
+  <ul class="files">
+    <li><span class="bx"></span><span><code>dtdcargo-isologo-reverse.png</code> <span class="d">— isólogo <b>reverse</b> (la variante para fondo navy), referencia de forma y color para vectorizar/extruir.</span> <a class="dl" href="assets/dtdcargo-isologo-reverse.png" download>descargar ↓</a></span></li>
+    <li><span class="bx"></span><span><b>Tipografía wordmark:</b> <code>Archivo Black</code> <span class="d">— "DTD Cargo" en dos palabras, tracking −2%. Google Fonts (gratis). Nunca otra fuente.</span></span></li>
+    <li><span class="bx"></span><span><b>Vector del lockup</b> <span class="d">— el taller debe vectorizar el isólogo + componer el wordmark en Archivo Black y entregar un .AI/.SVG de aprobación antes de imprimir.</span></span></li>
+    <li><span class="bx"></span><span><b>Muestra de color física</b> <span class="d">— sacar prueba de los 3 colores (navy, cream, wine del isotipo) para firma antes de producir.</span></span></li>
+  </ul>
+  <div class="note">El proyecto completo (carpeta <code style="font-family:var(--f-mono);">assets/</code>) trae las 4 variantes oficiales del isólogo. Para esta pieza solo se usa <b>reverse</b> (es la variante oficial sobre navy).</div>
+
+  <!-- 05 montaje / no va -->
+  <div class="sec-t"><span class="n">05</span> Montaje y reglas</div>
+  <ul class="mat">
+    <li><span class="n">01</span><span><b>Bandeja</b> fijada al fondo del nicho con perfil L + tornillería inox, <b>retranqueada 2–3 cm</b> del borde del friso (el aviso queda "metido" dentro del hueco, no sobresale).</span></li>
+    <li><span class="n">02</span><span><b>Piezas 3D</b> montadas sobre la bandeja con tornillo oculto + separador de 8 mm, para que cada una proyecte su propia sombra (efecto corpóreo).</span></li>
+    <li><span class="n">03</span><span><b>Opcional retroiluminación halo:</b> LED 12 V 3000 K detrás de cada pieza, driver IP65 dentro del nicho, conectado a la fotocélula existente (enciende solo de noche).</span></li>
+    <li><span class="n">04</span><span><b>Sellado:</b> silicón neutro perimetral + 2 drenajes de 6 mm en la base de la bandeja por condensación.</span></li>
+  </ul>
+  <div class="note"><span class="bad">❌ No va:</span> luz de colores/RGB · acrílico brillante tipo caja de luz · vinilo pegado al friso · piezas que sobresalgan del plano del nicho · cualquier logo que no sea el isólogo primary oficial · sustituir la tipografía Archivo Black.</div>
+
+  <div class="foot">
+    <span>DTD-Cargo C.A. · Av. Bolívar Norte 14, Valencia · info@dtdcargo.com · +58 241 414 7886</span>
+    <span>AVISO-FACHADA-01 · Rev. 2026-06-11</span>
+  </div>
+
+</div>
+
+<script>
+  function calcVal(el) {
+    var raw = String(el.value || '').replace(/,/g, '.').trim();
+    if (!/^[-+0-9. ]+$/.test(raw)) return NaN;
+    try { return Function('"use strict";return (' + raw + ')')(); } catch (e) { return NaN; }
+  }
+  function fmt(n) { return (Math.round(n * 10) / 10).toLocaleString('es-VE'); }
+  function recalc() {
+    var W = calcVal(document.getElementById('in-w'));
+    var H = calcVal(document.getElementById('in-h'));
+    if (!(W > 0) || !(H > 0)) return;
+    var pw = W - 2, ph = H - 2;
+    var isoH = ph * 0.62, wmH = ph * 0.34, gap = ph * 0.15;
+    var isoW = isoH * (741 / 764), wmW = wmH * 8.1;
+    var lock = isoW + gap + wmW, maxLock = pw * 0.7;
+    if (lock > maxLock) { var k = maxLock / lock; isoH *= k; wmH *= k; gap *= k; lock = maxLock; }
+    document.getElementById('sp-panel').textContent = fmt(pw) + ' × ' + fmt(ph) + ' cm';
+    document.getElementById('sp-iso').textContent = fmt(isoH) + ' cm';
+    document.getElementById('sp-wm').textContent = fmt(wmH) + ' cm';
+    document.getElementById('sp-lock').textContent = '≈ ' + fmt(lock) + ' cm';
+    document.getElementById('sp-margin').textContent = '≥ ' + fmt((pw - lock) / 2) + ' cm';
+    document.getElementById('sp-gap').textContent = fmt(gap) + ' cm';
+  }
+  ['in-w', 'in-h', 'in-d'].forEach(function (id) { document.getElementById(id).addEventListener('input', recalc); });
+  recalc();
+</script>
+
+</body>
+</html>

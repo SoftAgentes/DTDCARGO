@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Packing List + Factura · DTD-Cargo · 装箱单+发票</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-elevated); color: var(--ink); font-family: var(--f-sans); }
+  .zh { font-family: 'Noto Sans SC', var(--f-sans); }
+
+  /* ── Toolbar (no print) ── */
+  .toolbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: var(--s-4);
+             padding: var(--s-3) var(--s-6); background: var(--bg-sidebar); color: #F2F0EC; }
+  .toolbar .ttl { display: flex; align-items: baseline; gap: var(--s-3); }
+  .toolbar .ttl b { font: 700 15px/1 var(--f-display); }
+  .toolbar .ttl span { font: 600 11px/1 var(--f-sans); color: rgba(242,240,236,0.6); letter-spacing: 0.04em; }
+  .tb-actions { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+  .tbtn { appearance: none; cursor: pointer; font: 600 12.5px/1 var(--f-sans); border-radius: var(--r-md); padding: 9px 13px;
+          border: 1px solid rgba(242,240,236,0.2); background: rgba(242,240,236,0.08); color: #F2F0EC; display: inline-flex; align-items: center; gap: 6px; }
+  .tbtn:hover { background: rgba(242,240,236,0.16); }
+  .tbtn.primary { background: var(--wine); border-color: var(--wine); }
+  .tbtn.primary:hover { background: var(--wine-deep); }
+  .tbtn svg { width: 14px; height: 14px; }
+  .cur-sel { background: rgba(242,240,236,0.08); color: #F2F0EC; border: 1px solid rgba(242,240,236,0.2); border-radius: var(--r-md); padding: 8px 10px; font: 600 12.5px var(--f-mono); }
+
+  .wrap { padding: var(--s-8) var(--s-6) var(--s-16); }
+
+  /* ── Document sheet ── */
+  .doc { max-width: 1160px; margin: 0 auto; background: #fff; color: var(--ink); border-radius: var(--r-md);
+         box-shadow: var(--shadow-lg); padding: 30px 34px 34px; }
+
+  .doc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; border-bottom: 2px solid var(--ink); padding-bottom: 16px; }
+  .dh-l { display: flex; align-items: center; gap: 14px; }
+  .dh-l img { width: 50px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 25px; }
+  .wm .d { color: var(--wine); } .wm .g { color: var(--ink); } .wm .sp { display: inline-block; width: 0.15em; }
+  .dh-sub { font: 600 10.5px/1.3 var(--f-sans); color: var(--ink-soft); margin-top: 3px; }
+  .dh-r { text-align: right; }
+  .dh-title { font: 700 21px/1.1 var(--f-display); color: var(--ink); }
+  .dh-title .zh { display: block; font-size: 16px; color: var(--wine); }
+  .dh-tag { font: 600 10px/1.4 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-top: 4px; }
+  .dh-folio { font: 600 12px/1 var(--f-mono); color: var(--wine); margin-top: 6px; }
+
+  /* supplier info */
+  .info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--border); border-radius: var(--r-sm); margin-top: 16px; overflow: hidden; }
+  .info .cell { padding: 8px 11px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 3px; }
+  .info .cell:nth-child(3n) { border-right: 0; }
+  .info .lab { font: 600 9.5px/1.2 var(--f-sans); color: var(--ink-mute); letter-spacing: 0.02em; }
+  .info .lab .zh { color: var(--ink-soft); font-weight: 700; }
+  .info input { border: 0; outline: 0; font: 600 13px/1.2 var(--f-sans); color: var(--ink); background: transparent; padding: 0; width: 100%; }
+  .info input.mark { font-family: var(--f-mono); color: var(--wine); font-weight: 600; }
+  .info input::placeholder { color: var(--ink-mute); font-weight: 400; }
+
+  /* ── Goods table ── */
+  .sec-t { font: 700 12px/1 var(--f-display); color: var(--wine); letter-spacing: 0.04em; margin: 20px 0 8px; display: flex; align-items: baseline; gap: 8px; }
+  .sec-t .zh { color: var(--ink); font-size: 13px; }
+  .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-sm); }
+  table { border-collapse: collapse; width: 100%; min-width: 1040px; }
+  thead th { background: var(--bg-elevated); color: var(--ink); font: 700 9px/1.25 var(--f-sans); padding: 7px 5px; border: 1px solid var(--border);
+             text-align: center; vertical-align: middle; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  thead th .zh { display: block; font-size: 10px; font-weight: 700; }
+  thead th .es { display: block; font-size: 8px; color: var(--ink-mute); font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; margin-top: 1px; }
+  tbody td { border: 1px solid var(--border); padding: 0; height: 30px; }
+  td.c-idx { width: 26px; text-align: center; font: 600 11px var(--f-mono); color: var(--ink-mute); background: var(--bg-base); }
+  td.calc { text-align: right; padding: 0 7px; font: 600 11.5px var(--f-mono); color: var(--ink); background: var(--wine-bg); white-space: nowrap; }
+  .cell { width: 100%; height: 100%; border: 0; outline: 0; background: transparent; font: 500 11.5px var(--f-sans); color: var(--ink); padding: 3px 7px; }
+  .cell:focus { background: var(--wine-bg); }
+  .cell.mono { font-family: var(--f-mono); }
+  .cell.num { text-align: right; font-family: var(--f-mono); }
+  .cell.zh { font-family: 'Noto Sans SC', var(--f-sans); }
+  td.c-del { width: 26px; text-align: center; border: 0; }
+  .rowdel { appearance: none; cursor: pointer; border: 0; background: transparent; color: var(--ink-mute); font-size: 16px; line-height: 1; padding: 4px; border-radius: var(--r-xs); }
+  .rowdel:hover { color: var(--danger); background: var(--danger-bg); }
+
+  /* column widths */
+  col.c-brand { width: 7%; } col.c-code { width: 7%; } col.c-zh { width: 11%; } col.c-es { width: 11%; } col.c-hs { width: 8%; }
+  col.c-num { width: 5.4%; }
+
+  tfoot td { border: 1px solid var(--border); font: 700 11.5px var(--f-mono); padding: 7px 7px; background: var(--bg-elevated); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  tfoot .lab { text-align: right; font-family: var(--f-sans); color: var(--ink); }
+  tfoot .v { text-align: right; color: var(--wine); white-space: nowrap; }
+
+  .addbar { display: flex; gap: var(--s-2); margin-top: 8px; }
+  .addbtn { appearance: none; cursor: pointer; font: 600 12px/1 var(--f-sans); border: 1px dashed var(--border); background: var(--bg-base); color: var(--ink-soft);
+            border-radius: var(--r-sm); padding: 8px 12px; }
+  .addbtn:hover { border-color: var(--wine); color: var(--wine); }
+
+  /* totals strip */
+  .totstrip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 14px; }
+  .tot { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 9px 12px; }
+  .tot .k { font: 600 9px/1.2 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-mute); }
+  .tot .k .zh { color: var(--ink-soft); text-transform: none; font-weight: 700; }
+  .tot .v { font: 700 16px/1.1 var(--f-display); color: var(--wine); margin-top: 3px; }
+
+  /* ── Notes + shipping mark ── */
+  .lower { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; margin-top: 22px; }
+  .notes { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 13px 15px; }
+  .notes h4 { font: 700 11px/1 var(--f-display); color: var(--wine); margin: 0 0 9px; }
+  .notes h4 .zh { color: var(--ink); }
+  .notes ol { margin: 0; padding-left: 16px; }
+  .notes li { font: 400 10px/1.5 var(--f-sans); color: var(--ink-soft); margin-bottom: 5px; }
+  .notes li b { color: var(--ink); font-weight: 700; }
+  .notes .zh { font-size: 10.5px; }
+
+  .smark { display: flex; flex-direction: column; gap: 12px; }
+  .smark-card { border: 1.5px solid var(--ink); border-radius: var(--r-sm); padding: 12px 14px; }
+  .smark-card h4 { font: 700 11px/1 var(--f-display); color: var(--ink); margin: 0 0 9px; display: flex; align-items: baseline; gap: 7px; }
+  .smark-card h4 .zh { color: var(--wine); font-size: 12px; }
+  .smark-row { display: flex; justify-content: space-between; font: 600 12px/1.7 var(--f-mono); color: var(--ink); border-bottom: 1px dotted var(--border); }
+  .smark-row span:first-child { color: var(--ink-mute); }
+  .sign { display: flex; gap: 18px; }
+  .sign .s { flex: 1; }
+  .sign .line { border-top: 1.3px solid var(--ink); margin-top: 30px; }
+  .sign .rl { font: 600 9px/1.3 var(--f-sans); color: var(--ink-mute); margin-top: 5px; }
+  .sign .rl .zh { color: var(--ink-soft); font-weight: 700; }
+
+  /* ── Print ── */
+  @media print {
+    @page { size: A4 landscape; margin: 8mm; }
+    .toolbar { display: none !important; }
+    body, html { background: #fff; }
+    .wrap { padding: 0; }
+    .doc { box-shadow: none; max-width: none; width: 100%; padding: 0; border-radius: 0; }
+    .tablewrap { overflow: visible; border: 0; }
+    table { min-width: 0; }
+    thead { display: table-header-group; }
+    tr { page-break-inside: avoid; }
+    .c-del, .rowdel { display: none !important; }
+    .addbar { display: none !important; }
+    .cell, .info input { color: #000 !important; }
+  }
+
+  @media (max-width: 720px) {
+    .info { grid-template-columns: 1fr 1fr; }
+    .totstrip { grid-template-columns: 1fr 1fr; }
+    .lower { grid-template-columns: 1fr; }
+    .doc { padding: 18px; }
+  }
+</style>
+</head>
+<body>
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="ttl"><b>Packing List + Factura</b><span class="zh">装箱单 + 发票 · 2 合 1</span></div>
+    <div class="tb-actions">
+      <select class="cur-sel" id="f-currency" title="Moneda / 货币">
+        <option value="USD">USD $</option>
+        <option value="RMB">RMB ¥</option>
+        <option value="EUR">EUR €</option>
+      </select>
+      <button class="tbtn" id="btn-reset">Vaciar / 清空</button>
+      <button class="tbtn primary" id="btn-print">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        PDF · 打印
+      </button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="doc" id="doc">
+      <!-- header -->
+      <div class="doc-head">
+        <div class="dh-l">
+          <img src="dtdcargo-isologo-primary.png" alt="DTD Cargo" />
+          <div>
+            <div class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></div>
+            <div class="dh-sub">Importación puerta a puerta · 中国 → 委内瑞拉</div>
+          </div>
+        </div>
+        <div class="dh-r">
+          <div class="dh-title"><span class="zh">装箱单 + 商业发票</span>Packing List + Factura</div>
+          <div class="dh-tag">Documento único · proveedor → DTD-Cargo</div>
+          <div class="dh-folio">N.º / 编号: <input id="f-folio" style="border:0;outline:0;font:inherit;color:inherit;background:transparent;width:130px;text-align:right" value=""></div>
+        </div>
+      </div>
+
+      <!-- supplier info -->
+      <div class="info">
+        <div class="cell"><span class="lab"><span class="zh">公司名称</span> · Empresa / Proveedor</span><input id="f-empresa" placeholder="公司名称 / Nombre del proveedor"></div>
+        <div class="cell"><span class="lab"><span class="zh">唛头</span> · Shipping Mark</span><input id="f-mark" class="mark" placeholder="DTD-XXXX"></div>
+        <div class="cell"><span class="lab"><span class="zh">客户</span> · Cliente</span><input id="f-cliente" placeholder="客户 / Cliente"></div>
+        <div class="cell"><span class="lab"><span class="zh">邮箱</span> · Email</span><input id="f-email" placeholder="email@..."></div>
+        <div class="cell"><span class="lab"><span class="zh">微信</span> · WeChat</span><input id="f-wechat" placeholder="WeChat ID"></div>
+        <div class="cell"><span class="lab"><span class="zh">日期</span> · Fecha</span><input id="f-fecha" type="date"></div>
+      </div>
+
+      <!-- goods table -->
+      <div class="sec-t"><span class="zh">货物明细</span><span>Detalle de mercancía</span></div>
+      <div class="tablewrap">
+        <table>
+          <colgroup>
+            <col style="width:26px"><col class="c-brand"><col class="c-code"><col class="c-zh"><col class="c-es"><col class="c-hs">
+            <col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col style="width:26px">
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th><span class="zh">品牌</span><span class="es">Marca</span></th>
+              <th><span class="zh">货号</span><span class="es">Código</span></th>
+              <th><span class="zh">中文品名</span><span class="es">Nombre 中文</span></th>
+              <th><span class="zh">英文品名</span><span class="es">Nombre ES/EN</span></th>
+              <th><span class="zh">材质 / HS</span><span class="es">Material / HS</span></th>
+              <th><span class="zh">箱号</span><span class="es">N.º caja</span></th>
+              <th><span class="zh">件数</span><span class="es">Cajas</span></th>
+              <th><span class="zh">每箱装量</span><span class="es">Uds/caja</span></th>
+              <th><span class="zh">总数量</span><span class="es">Total uds ▸</span></th>
+              <th><span class="zh">单价</span><span class="es">P. unit</span></th>
+              <th><span class="zh">总金额</span><span class="es">Total ▸</span></th>
+              <th><span class="zh">每箱重</span><span class="es">kg/caja</span></th>
+              <th><span class="zh">总重量</span><span class="es">Peso ▸</span></th>
+              <th><span class="zh">每箱体积</span><span class="es">CBM/caja</span></th>
+              <th><span class="zh">总体积</span><span class="es">CBM ▸</span></th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="rows"></tbody>
+          <tfoot>
+            <tr>
+              <td colspan="7" class="lab"><span class="zh">总计</span> · Totales</td>
+              <td class="v" id="t-ctns">0</td>
+              <td></td>
+              <td class="v" id="t-qty">0</td>
+              <td class="lab" style="text-align:right"><span id="cur-label">USD</span></td>
+              <td class="v" id="t-amount">0.00</td>
+              <td></td>
+              <td class="v" id="t-weight">0 kg</td>
+              <td></td>
+              <td class="v" id="t-vol">0 m³</td>
+              <td></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div class="addbar">
+        <button class="addbtn" id="add-row">+ Agregar fila / 加一行</button>
+        <button class="addbtn" id="add-5">+ 5 filas</button>
+      </div>
+
+      <!-- notes + shipping mark -->
+      <div class="lower">
+        <div class="notes">
+          <h4><span class="zh">入仓注意事项</span> · Reglas de ingreso a bodega</h4>
+          <ol>
+            <li><b>1.</b> <span class="zh">发货前确认已建 DTD 微信群并确认唛头，未确认不得发货。</span> Antes de enviar, confirmá el grupo WeChat de DTD y el Shipping Mark. Contacto: <b id="rule-contact">—</b>. Sin confirmar, no despachar.</li>
+            <li><b>2.</b> <span class="zh">每件外箱须贴客户唛头，无唛头仓库拒收。</span> Cada caja debe llevar pegado el Shipping Mark del cliente. Sin Shipping Mark, la bodega rechaza la carga.</li>
+            <li><b>3.</b> <span class="zh">发货前填写此单并发到群里。</span> Llená este documento antes de enviar y compartilo en el grupo.</li>
+            <li><b>4.</b> <span class="zh">卸货由供应商安排并承担费用。</span> La descarga la organiza y paga el proveedor (si la hace nuestra bodega, se cobra por volumen/peso).</li>
+            <li><b>5.</b> <span class="zh">货物如为品牌货，请如实填写品牌名；否则填"无"。</span> Si la mercancía es de marca, declará la marca real; si no, escribí "无 / ninguna". Ocultar marca = riesgo en aduana a cargo del proveedor.</li>
+            <li><b>6.</b> <span class="zh">违禁品、危险品禁止入仓。</span> Prohibido el ingreso de mercancía peligrosa o restringida.</li>
+          </ol>
+        </div>
+        <div class="smark">
+          <div class="smark-card">
+            <h4><span class="zh">唛头内容</span> Shipping Mark</h4>
+            <div class="smark-row"><span>MARK</span><span id="sm-mark-mirror">DTD-____</span></div>
+            <div class="smark-row"><span>ITEM NO</span><span>____</span></div>
+            <div class="smark-row"><span>PCS / CTN</span><span>____</span></div>
+            <div class="smark-row"><span>CARTON NO</span><span>____</span></div>
+          </div>
+          <div class="sign">
+            <div class="s"><div class="line"></div><div class="rl"><span class="zh">供应商签字 / 盖章</span> · Proveedor (firma/sello)</div></div>
+            <div class="s"><div class="line"></div><div class="rl"><span class="zh">日期</span> · Fecha</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- contact fields (editable, used by rule 1) -->
+      <div style="display:flex;gap:14px;margin-top:14px;flex-wrap:wrap" class="contact-edit">
+        <label style="font:600 10px var(--f-sans);color:var(--ink-mute)">仓库联系人 / Contacto bodega
+          <input id="f-contacto" style="display:block;border:1px solid var(--border);border-radius:5px;padding:6px 9px;font:600 12px var(--f-sans);margin-top:3px;min-width:180px">
+        </label>
+        <label style="font:600 10px var(--f-sans);color:var(--ink-mute)">电话 / Tel.
+          <input id="f-tel" style="display:block;border:1px solid var(--border);border-radius:5px;padding:6px 9px;font:600 12px var(--f-mono);margin-top:3px;min-width:150px">
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <script src="packlist.js"></script>
+</body>
+</html>

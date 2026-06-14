@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Comparar · Ciclo (contenedor 0 / 30 / 45 %)</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans);
+         padding: var(--s-12) var(--s-8) var(--s-16); }
+  .head { max-width: 1240px; margin: 0 auto var(--s-10); }
+  .eyebrow { margin-bottom: var(--s-3); }
+  h1 { font: 700 30px/1.1 var(--f-display); letter-spacing: -0.01em; margin: 0 0 var(--s-2); }
+  .lede { font: 400 15px/1.5 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 70ch; }
+
+  .grid { max-width: 1240px; margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-6); }
+  @media (max-width: 980px){ .grid { grid-template-columns: 1fr; max-width: 440px; } }
+
+  .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl);
+          overflow: hidden; box-shadow: var(--shadow-md); }
+  .card-head { display: flex; align-items: center; justify-content: space-between; padding: var(--s-4) var(--s-5);
+               border-bottom: 1px solid var(--border); }
+  .card-head h2 { font: 700 16px/1.2 var(--f-display); margin: 0; }
+  .pct { font: 600 12px/1 var(--f-mono); color: var(--wine); background: var(--bg-elevated); border: 1px solid var(--border);
+         padding: 5px 9px; border-radius: var(--r-pill); }
+  .tag { font: 600 9.5px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px; border-radius: var(--r-pill);
+         background: var(--bg-sidebar); color: #F2F0EC; }
+  .stage { aspect-ratio: 1 / 1; display: grid; place-items: center; background: var(--bg-surface); }
+
+  /* ── loop (paleta clara, igual que el hero) ── */
+  .cyc-frame { position: relative; width: 640px; height: 640px; background: transparent; overflow: hidden;
+               color: var(--ink); --bg-strength: 0.45; transform-origin: center; }
+  .cyc-bg-container { position: absolute; left: 50%; top: 53%; width: 132%; transform: translate(-50%, -50%) rotate(-3deg);
+                      opacity: var(--bg-strength); filter: saturate(0.72) brightness(0.92); pointer-events: none; }
+  .cyc-bg-scrim { position: absolute; inset: 0; pointer-events: none;
+                  background: radial-gradient(54% 54% at 50% 50%, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.55) 56%, rgba(255,255,255,0.12) 100%); }
+  .cyc-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .cyc-track-bg { fill: none; stroke: rgba(15,30,61,0.09); stroke-width: 16; }
+  .cyc-track-flow { fill: none; stroke: var(--wine); stroke-width: 2.5; stroke-dasharray: 6 14; stroke-linecap: round; opacity: 0.85; }
+  .cyc-belt { position: absolute; offset-path: path('M230,200 H410 A90,90 0 0 1 500,290 V350 A90,90 0 0 1 410,440 H230 A90,90 0 0 1 140,350 V290 A90,90 0 0 1 230,200 Z');
+              offset-distance: 4%; offset-rotate: auto; margin: -15px -22px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35)); }
+  .cyc-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column;
+                align-items: center; gap: 6px; text-align: center; width: 210px; }
+  .cyc-loopicon { color: var(--wine); display: inline-flex; }
+  .cyc-eyebrow { font: 700 12px/1 var(--f-sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--wine); }
+  .cyc-tagline { font: 700 22px/1.12 var(--f-display); color: var(--ink); letter-spacing: -0.01em; }
+  .cyc-stn { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .cyc-stn--bot { flex-direction: column-reverse; }
+  .cyc-stn-dot { width: 56px; height: 56px; border-radius: 999px; background: var(--wine); color: #F2F0EC; display: flex;
+                 align-items: center; justify-content: center; border: 3px solid var(--bg-surface); box-shadow: 0 8px 18px rgba(127,15,26,0.28); flex: 0 0 auto; }
+  .cyc-stn-txt { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .cyc-stn-lbl { font: 700 16px/1 var(--f-display); color: var(--ink); display: flex; align-items: baseline; gap: 6px; }
+  .cyc-stn-lbl b { font: 800 12px/1 var(--f-display); color: var(--wine); }
+  .cyc-stn-sub { font: 600 9.5px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cyc-track-flow { animation: march 1.5s linear infinite; }
+    .cyc-belt { animation: travel 12s linear infinite; }
+    .cyc-loopicon { animation: spin 16s linear infinite; }
+  }
+  @keyframes march { to { stroke-dashoffset: -40; } }
+  @keyframes travel { to { offset-distance: 100%; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .foot-note { max-width: 1240px; margin: var(--s-10) auto 0; font: 400 13px/1.55 var(--f-sans); color: var(--ink-mute);
+               border-top: 1px solid var(--border); padding-top: var(--s-5); }
+</style>
+</head>
+<body>
+  <div class="head">
+    <div class="eyebrow eyebrow-wine">Ciclo del cliente · comparación</div>
+    <h1>Contenedor de fondo · 0 % / 30 % / 45 %</h1>
+    <p class="lede">Las tres opciones lado a lado, en la paleta clara del hero. Mirá cuánto se aprecia el contenedor de marca detrás del bucle y decime con cuál te quedás.</p>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <p class="foot-note">El bucle es el mismo en las tres (cinta + contenedor viajando + 4 estaciones). Lo único que cambia es la intensidad del contenedor de marca de agua detrás. La animación corre en vivo; con “reduce movimiento” del sistema se ve el estado final.</p>
+
+  <template id="loop-tpl">
+    <div class="cyc-frame">
+      <img class="cyc-bg-container" src="container.svg" alt="" aria-hidden="true" />
+      <div class="cyc-bg-scrim" aria-hidden="true"></div>
+      <svg class="cyc-svg" viewBox="0 0 640 640" aria-hidden="true">
+        <path class="cyc-track-bg" d="M230,200 H410 A90,90 0 0 1 500,290 V350 A90,90 0 0 1 410,440 H230 A90,90 0 0 1 140,350 V290 A90,90 0 0 1 230,200 Z"/>
+        <path class="cyc-track-flow" d="M230,200 H410 A90,90 0 0 1 500,290 V350 A90,90 0 0 1 410,440 H230 A90,90 0 0 1 140,350 V290 A90,90 0 0 1 230,200 Z"/>
+      </svg>
+      <div class="cyc-belt">
+        <svg width="44" height="30" viewBox="0 0 44 30" aria-hidden="true">
+          <rect x="2" y="4" width="40" height="22" rx="2" fill="var(--wine)" stroke="#F2F0EC" stroke-width="1.4"/>
+          <line x1="11" y1="6" x2="11" y2="24" stroke="#F2F0EC" stroke-width="1" opacity="0.5"/>
+          <line x1="20" y1="6" x2="20" y2="24" stroke="#F2F0EC" stroke-width="1" opacity="0.5"/>
+          <line x1="29" y1="6" x2="29" y2="24" stroke="#F2F0EC" stroke-width="1" opacity="0.5"/>
+        </svg>
+      </div>
+      <div class="cyc-center">
+        <span class="cyc-loopicon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3.5 9a8.5 8.5 0 0 1 14.8-3.2M20.5 15a8.5 8.5 0 0 1-14.8 3.2"/><path d="M18.5 2.5v3.5h-3.5M5.5 21.5v-3.5h3.5"/>
+          </svg>
+        </span>
+        <span class="cyc-eyebrow">Con Confianza</span>
+        <span class="cyc-tagline">de China a tu puerta</span>
+      </div>
+      <div class="cyc-stn cyc-stn--top" style="left:250px; top:200px;">
+        <span class="cyc-stn-dot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="2.5" width="15" height="19" rx="2.2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="12" y1="16" x2="12" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg></span>
+        <span class="cyc-stn-txt"><span class="cyc-stn-lbl"><b>1</b>Cotiza</span><span class="cyc-stn-sub">DDP</span></span>
+      </div>
+      <div class="cyc-stn cyc-stn--top" style="left:390px; top:200px;">
+        <span class="cyc-stn-dot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12.5H7L6 8z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg></span>
+        <span class="cyc-stn-txt"><span class="cyc-stn-lbl"><b>2</b>Compra</span><span class="cyc-stn-sub">Prealerta</span></span>
+      </div>
+      <div class="cyc-stn cyc-stn--bot" style="left:390px; top:440px;">
+        <span class="cyc-stn-dot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8l8.5-4.5L20.5 8v8L12 20.5 3.5 16V8z"/><path d="M3.5 8l8.5 4.5L20.5 8"/><path d="M12 12.5V20.5"/></svg></span>
+        <span class="cyc-stn-txt"><span class="cyc-stn-lbl"><b>3</b>Recibimos</span><span class="cyc-stn-sub">En China</span></span>
+      </div>
+      <div class="cyc-stn cyc-stn--bot" style="left:250px; top:440px;">
+        <span class="cyc-stn-dot"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6.5 8 6.5"/><path d="M6.5 9.6V20h11V9.6"/><rect x="10" y="14" width="4" height="6"/></svg></span>
+        <span class="cyc-stn-txt"><span class="cyc-stn-lbl"><b>4</b>Entregamos</span><span class="cyc-stn-sub">A tu puerta</span></span>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    const opts = [
+      { strength: 0,    title: 'Sin contenedor', pct: '0 %',  tag: 'Limpio' },
+      { strength: 0.30, title: 'Contenedor',      pct: '30 %', tag: 'Sutil' },
+      { strength: 0.45, title: 'Contenedor',      pct: '45 %', tag: 'Presente' },
+    ];
+    const grid = document.getElementById('grid');
+    const tpl = document.getElementById('loop-tpl');
+
+    function scaleLoop(stage){
+      const frame = stage.querySelector('.cyc-frame');
+      const s = stage.clientWidth / 640;
+      frame.style.transform = 'scale(' + s + ')';
+    }
+
+    opts.forEach(o => {
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.innerHTML =
+        '<div class="card-head"><h2>' + o.title + '</h2>' +
+        '<div style="display:flex;gap:8px;align-items:center;"><span class="tag">' + o.tag + '</span><span class="pct">' + o.pct + '</span></div></div>' +
+        '<div class="stage"></div>';
+      const stage = card.querySelector('.stage');
+      const loop = tpl.content.cloneNode(true);
+      stage.appendChild(loop);
+      stage.querySelector('.cyc-frame').style.setProperty('--bg-strength', o.strength);
+      grid.appendChild(card);
+    });
+
+    function rescale(){ document.querySelectorAll('.stage').forEach(scaleLoop); }
+    window.addEventListener('resize', rescale);
+    requestAnimationFrame(rescale);
+  </script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hero Web · Ciclo DTD-Cargo</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; height: 100%; background: #d9d6d0; overflow: hidden; font-family: var(--f-sans); }
+  #stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  #page {
+    width: 1280px; height: 800px; transform-origin: center; position: relative;
+    border-radius: var(--r-lg); overflow: hidden; box-shadow: 0 40px 90px rgba(15,30,61,0.35);
+    background: var(--bg-surface);
+  }
+
+  /* ── browser chrome ── */
+  .chrome { height: 46px; background: #e9e6e1; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; padding: 0 16px; }
+  .dots { display: flex; gap: 7px; }
+  .dots i { width: 11px; height: 11px; border-radius: 999px; display: block; }
+  .dots i:nth-child(1){ background: #E5564E; } .dots i:nth-child(2){ background: #E5B442; } .dots i:nth-child(3){ background: #4FB477; }
+  .urlbar { flex: 1; max-width: 420px; background: #fff; border: 1px solid var(--border); border-radius: var(--r-pill);
+            height: 26px; display: flex; align-items: center; gap: 8px; padding: 0 12px; font: 600 12px/1 var(--f-mono); color: var(--ink-soft); }
+  .urlbar svg { width: 12px; height: 12px; color: var(--success); }
+
+  /* ── site nav ── */
+  .nav { height: 72px; display: flex; align-items: center; justify-content: space-between; padding: 0 48px; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; font-size: 24px; letter-spacing: -0.02em; }
+  .wm .d { color: var(--wine); } .wm .g { color: var(--ink); } .wm .sp { display: inline-block; width: 0.15em; }
+  .navlinks { display: flex; align-items: center; gap: 30px; }
+  .navlinks a { font: 600 14px/1 var(--f-sans); color: var(--ink-soft); text-decoration: none; }
+  .navlinks a:hover { color: var(--ink); }
+  .btn-quote { background: var(--wine); color: #fff; font: 600 14px/1 var(--f-sans); border: 0; border-radius: var(--r-md);
+               padding: 11px 18px; cursor: pointer; box-shadow: var(--shadow-xs); }
+
+  /* ── hero body ── */
+  .hero { position: relative; height: calc(800px - 46px - 72px); padding: 0 48px; }
+  .htext { position: absolute; left: 48px; top: 116px; width: 470px; z-index: 6; }
+  .eyebrow2 { font: 700 12px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine); margin-bottom: 16px; }
+  .h1 { font: 700 50px/1.05 var(--f-display); letter-spacing: -0.02em; color: var(--ink); margin: 0 0 18px; text-wrap: balance; }
+  .h1 .accent { color: var(--wine); }
+  .sub { font: 400 16px/1.55 var(--f-sans); color: var(--ink-soft); margin: 0 0 28px; max-width: 410px; }
+  .cta-row { display: flex; gap: 12px; }
+  .cta { font: 600 15px/1 var(--f-sans); border-radius: var(--r-md); padding: 14px 22px; cursor: pointer; border: 0; }
+  .cta.primary { background: var(--wine); color: #fff; box-shadow: var(--shadow-sm); }
+  .cta.secondary { background: var(--bg-surface); color: var(--ink); border: 1px solid var(--border); }
+
+  /* ── loop (Opción C · cinta en bucle) ── */
+  .loopwrap { position: absolute; right: 6px; top: 18px; transform: scale(0.96); transform-origin: top right; z-index: 4; }
+  .cyc-frame {
+    position: relative; width: 640px; height: 640px;
+    background: transparent;
+    overflow: hidden; color: var(--ink); border-radius: var(--r-xl);
+    --bg-strength: 0;
+  }
+  .cyc-bg-container {
+    position: absolute; left: 50%; top: 53%; width: 132%;
+    transform: translate(-50%, -50%) rotate(-3deg);
+    opacity: var(--bg-strength); filter: saturate(0.72) brightness(0.92);
+    pointer-events: none; user-select: none;
+  }
+  .cyc-bg-scrim {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(54% 54% at 50% 50%, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.55) 56%, rgba(255,255,255,0.12) 100%);
+  }
+  .cyc-svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .cyc-track-bg { fill: none; stroke: rgba(15,30,61,0.09); stroke-width: 16; }
+  .cyc-track-flow { fill: none; stroke: var(--wine); stroke-width: 2.5; stroke-dasharray: 6 14; stroke-linecap: round; opacity: 0.85; }
+  .cyc-belt {
+    position: absolute; offset-path: path('M230,200 H410 A90,90 0 0 1 500,290 V350 A90,90 0 0 1 410,440 H230 A90,90 0 0 1 140,350 V290 A90,90 0 0 1 230,200 Z');
+    offset-distance: 4%; offset-rotate: auto; margin: -15px -22px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));
+  }
+  .cyc-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; width: 210px; }
+  .cyc-loopicon { color: var(--wine); display: inline-flex; }
+  .cyc-eyebrow { font: 700 12px/1 var(--f-sans); letter-spacing: 0.18em; text-transform: uppercase; color: var(--wine); }
+  .cyc-tagline { font: 700 22px/1.12 var(--f-display); color: var(--ink); letter-spacing: -0.01em; }
+  .cyc-stn { position: absolute; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .cyc-stn--bot { flex-direction: column-reverse; }
+  .cyc-stn-dot { width: 56px; height: 56px; border-radius: 999px; background: var(--wine); color: #F2F0EC;
+                 display: flex; align-items: center; justify-content: center; border: 3px solid var(--bg-surface);
+                 box-shadow: 0 8px 18px rgba(127,15,26,0.28); flex: 0 0 auto; }
+  .cyc-stn-txt { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .cyc-stn-lbl { font: 700 16px/1 var(--f-display); color: var(--ink); display: flex; align-items: baseline; gap: 6px; }
+  .cyc-stn-lbl b { font: 800 12px/1 var(--f-display); color: var(--wine); }
+  .cyc-stn-sub { font: 600 9.5px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cyc-track-flow { animation: march 1.5s linear infinite; }
+    .cyc-belt { animation: travel 12s linear infinite; }
+    .cyc-loopicon { animation: spin 16s linear infinite; }
+  }
+  @keyframes march { to { stroke-dashoffset: -40; } }
+  @keyframes travel { to { offset-distance: 100%; } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div id="page">
+      <div class="chrome">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlbar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          www.dtdcargo.com
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></div>
+        <div class="navlinks">
+          <a href="#">Servicios</a>
+          <a href="#">Rastrea</a>
+          <a href="#">Nosotros</a>
+          <button class="btn-quote">Cotizar DDP</button>
+        </div>
+      </div>
+
+      <div class="hero">
+        <div class="htext">
+          <div class="eyebrow2">Importación puerta a puerta · CN → VE</div>
+          <h1 class="h1">Con <span class="accent">Confianza</span>, de China a tu puerta.</h1>
+          <p class="sub">Un solo ciclo, sin intermediarios: cotizas, compras, recibimos tu carga en China y la entregamos en tu puerta en Venezuela.</p>
+          <div class="cta-row">
+            <button class="cta primary">Cotizar DDP</button>
+            <button class="cta secondary">Rastrear envío</button>
+          </div>
+        </div>
+
+        <!-- Opción C aprobada · cinta en bucle con contenedor viajando -->
+        <div class="loopwrap">
+          <div class="cyc-frame">
+            <svg class="cyc-svg" viewBox="0 0 640 640" aria-hidden="true">
+              <path class="cyc-track-bg" d="M230,200 H410 A90,90 0 0 1 500,290 V350 A90,90 0 0 1 410,440 H230 A90,90 0 0 1 140,350 V290 A90,90 0 0 1 230,200 Z"/>
+              <path class="cyc-track-flow" d="M230,200 H410 A90,90 0 0 1 500,290 V350 A90,90 0 0 1 410,440 H230 A90,90 0 0 1 140,350 V290 A90,90 0 0 1 230,200 Z"/>
+            </svg>
+
+            <div class="cyc-belt">
+              <svg width="44" height="30" viewBox="0 0 44 30" aria-hidden="true">
+                <rect x="2" y="4" width="40" height="22" rx="2" fill="var(--wine)" stroke="#F2F0EC" stroke-width="1.4"/>
+                <line x1="11" y1="6" x2="11" y2="24" stroke="#F2F0EC" stroke-width="1" opacity="0.5"/>
+                <line x1="20" y1="6" x2="20" y2="24" stroke="#F2F0EC" stroke-width="1" opacity="0.5"/>
+                <line x1="29" y1="6" x2="29" y2="24" stroke="#F2F0EC" stroke-width="1" opacity="0.5"/>
+              </svg>
+            </div>
+
+            <div class="cyc-center">
+              <span class="cyc-loopicon">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3.5 9a8.5 8.5 0 0 1 14.8-3.2M20.5 15a8.5 8.5 0 0 1-14.8 3.2"/>
+                  <path d="M18.5 2.5v3.5h-3.5M5.5 21.5v-3.5h3.5"/>
+                </svg>
+              </span>
+              <span class="cyc-eyebrow">Con Confianza</span>
+              <span class="cyc-tagline">de China a tu puerta</span>
+            </div>
+
+            <div class="cyc-stn cyc-stn--top" style="left:250px; top:200px;">
+              <span class="cyc-stn-dot">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="2.5" width="15" height="19" rx="2.2"/><line x1="8" y1="7" x2="16" y2="7"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="12" y1="16" x2="12" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/></svg>
+              </span>
+              <span class="cyc-stn-txt"><span class="cyc-stn-lbl"><b>1</b>Cotiza</span><span class="cyc-stn-sub">DDP</span></span>
+            </div>
+
+            <div class="cyc-stn cyc-stn--top" style="left:390px; top:200px;">
+              <span class="cyc-stn-dot">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l-1 12.5H7L6 8z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>
+              </span>
+              <span class="cyc-stn-txt"><span class="cyc-stn-lbl"><b>2</b>Compra</span><span class="cyc-stn-sub">Prealerta</span></span>
+            </div>
+
+            <div class="cyc-stn cyc-stn--bot" style="left:390px; top:440px;">
+              <span class="cyc-stn-dot">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 8l8.5-4.5L20.5 8v8L12 20.5 3.5 16V8z"/><path d="M3.5 8l8.5 4.5L20.5 8"/><path d="M12 12.5V20.5"/></svg>
+              </span>
+              <span class="cyc-stn-txt"><span class="cyc-stn-lbl"><b>3</b>Recibimos</span><span class="cyc-stn-sub">En China</span></span>
+            </div>
+
+            <div class="cyc-stn cyc-stn--bot" style="left:250px; top:440px;">
+              <span class="cyc-stn-dot">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11l8-6.5 8 6.5"/><path d="M6.5 9.6V20h11V9.6"/><rect x="10" y="14" width="4" height="6"/></svg>
+              </span>
+              <span class="cyc-stn-txt"><span class="cyc-stn-lbl"><b>4</b>Entregamos</span><span class="cyc-stn-sub">A tu puerta</span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Permite previsualizar la intensidad del contenedor de fondo por URL: ?bg=0 | 0.30 | 0.45
+    (function(){
+      const v = new URLSearchParams(location.search).get('bg');
+      if (v !== null) document.querySelector('.cyc-frame').style.setProperty('--bg-strength', v);
+    })();
+    function fit(){
+      const p = document.getElementById('page');
+      const s = Math.min(window.innerWidth / 1280, window.innerHeight / 800);
+      p.style.transform = 'scale(' + s + ')';
+    }
+    window.addEventListener('resize', fit); fit();
+  </script>
+</body>
+</html>

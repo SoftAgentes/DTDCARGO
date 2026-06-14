@@ -107,6 +107,21 @@
         };
         const cur = window.DTDData.clients.read();
         window.DTDData.clients.write([newClient, ...cur]);
+        // Liga estimados previos de la calculadora (cliente cotizó sin registrarse).
+        // Match por email/teléfono → quedan asociados a su Shipping Mark.
+        if (window.DTDData.linkEstimadosByContact) {
+          try {
+            const ligados = window.DTDData.linkEstimadosByContact(newMarkbox, { email: newClient.email, phone: newClient.phone });
+            if (ligados && ligados.length && window.DTDData.pushPortalEvent) {
+              window.DTDData.pushPortalEvent({
+                kind: 'cotizacion', tone: 'info', markbox: newMarkbox,
+                title: ligados.length + ' estimado' + (ligados.length > 1 ? 's' : '') + ' ligado' + (ligados.length > 1 ? 's' : '') + ' · ' + (newClient.name || 'cliente'),
+                detail: 'Cotizaciones previas de la calculadora asociadas al registrarse',
+                channel: 'portal-web'
+              });
+            }
+          } catch (e) {console.error('[registro] linkEstimadosByContact falló:', e);}
+        }
         // Aviso al ERP (badge + notificación para aprobar el registro)
         if (window.DTDData.pushPortalEvent) {
           try {
@@ -179,7 +194,7 @@
             Registro de cliente
           </div>
           <div style={{ font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>
-            Crea tu cuenta DTD-Cargo · 3 minutos
+            Creá tu cuenta DTD-Cargo · 3 minutos
           </div>
         </div>
 
@@ -503,7 +518,7 @@
 
         <div style={{ padding: '10px 12px', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ marginTop: 1, flexShrink: 0 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
-            <span>Al confirmar se genera tu <b>Shipping Mark</b>. <b>Importante:</b> si tu caja llega a China solo con el Shipping Mark y sin un proveedor registrado, nuestro almacén la marca como <b>caja huérfana</b> — sabemos que es tuya, pero no de qué proveedor (grupo WeChat) viene, y se retrasa. Registra tu proveedor arriba o desde el portal apenas tengas la compra.</span>
+            <span>Al confirmar se genera tu <b>Shipping Mark</b>. <b>Importante:</b> si tu caja llega a China solo con el Shipping Mark y sin un proveedor registrado, nuestro almacén la marca como <b>caja huérfana</b> — sabemos que es tuya, pero no de qué proveedor (grupo WeChat) viene, y se retrasa. Registrá tu proveedor arriba o desde el portal apenas tengas la compra.</span>
           </div>
         }
 
@@ -620,7 +635,7 @@
             <div>
               <div style={{ font: '800 13px/1.3 var(--f-display)', color: 'var(--wine)' }}>Tu código está listo, pero faltan pasos para la trazabilidad completa</div>
               <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
-                Para que tus cajas lleguen identificadas y no entren como "huérfanas", aprende cómo usar tu código + sticker y registra tu proveedor. Mira la guía acá abajo <span className="guide-arrow-bounce" style={{ display: 'inline-block' }}>↓</span>
+                Para que tus cajas lleguen identificadas y no entren como "huérfanas", aprendé cómo usar tu código + sticker y registrá tu proveedor. Mira la guía acá abajo <span className="guide-arrow-bounce" style={{ display: 'inline-block' }}>↓</span>
               </div>
             </div>
           </div>
@@ -860,7 +875,7 @@
         }}>
           <span style={{ flex: 1 }}>
             <span style={{ display: 'block', font: '800 13.5px/1.2 var(--f-display)', color: 'var(--wine)' }}>¿Ya tienes una compra? Registrala acá</span>
-            <span style={{ display: 'block', font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Si la omitiste antes, agrega el proveedor ahora y te asignamos el código + etiquetas al instante.</span>
+            <span style={{ display: 'block', font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Si la omitiste antes, agregá el proveedor ahora y te asignamos el código + etiquetas al instante.</span>
           </span>
           <span style={{ color: 'var(--wine)', font: '700 16px/1' }}>+</span>
         </button>);
@@ -869,9 +884,9 @@
 
     return (
       <U.Card padded style={{ maxWidth: 480, width: '100%', border: '1px solid var(--wine)', textAlign: 'left' }}>
-        <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--wine)', marginBottom: 12 }}>🛒 Registra tu compra</div>
+        <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--wine)', marginBottom: 12 }}>🛒 Registrá tu compra</div>
         <U.Input label="Nombre del proveedor en China" value={supplier} onChange={(e) => setSupplier(e.target.value)} placeholder="Ej. Yiwu Standard Co" />
-        <div style={{ marginTop: 12, font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Adjunta los documentos</div>
+        <div style={{ marginTop: 12, font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Adjuntá los documentos</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {[{ k: 'packing', label: 'Packing list' }, { k: 'factura', label: 'Factura' }].map((d) =>
           <button key={d.k} onClick={() => setDocs({ ...docs, [d.k]: !docs[d.k] })} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '11px 13px', textAlign: 'left', border: `1px solid ${docs[d.k] ? 'var(--success)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', background: docs[d.k] ? 'var(--success-bg)' : 'var(--bg-surface)', cursor: 'pointer' }}>
@@ -907,7 +922,7 @@
           <span style={{ width: 40, height: 40, borderRadius: 'var(--r-md)', background: 'var(--wine)', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0, fontSize: 20 }}>🛒</span>
           <span style={{ flex: 1 }}>
             <span style={{ display: 'block', font: '800 14px/1.2 var(--f-display)', color: 'var(--wine)' }}>¿Ya tienes una compra en China lista?</span>
-            <span style={{ display: 'block', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Registra tu proveedor ahora y deja tu compra con <b>trazabilidad perfecta</b> desde el día 1. Opcional — puedes hacerlo después.</span>
+            <span style={{ display: 'block', font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Registrá tu proveedor ahora y dejá tu compra con <b>trazabilidad perfecta</b> desde el día 1. Opcional — puedes hacerlo después.</span>
           </span>
           <span style={{ color: 'var(--wine)', font: '700 18px/1' }}>+</span>
         </button>);
@@ -921,7 +936,7 @@
           <button onClick={() => {setOpen(false);update({ supplierName: '' });}} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', font: '600 12px/1 var(--f-sans)' }}>Quitar</button>
         </div>
         <U.Input label="Nombre del proveedor en China" value={data.supplierName || ''} onChange={(e) => update({ supplierName: e.target.value })} placeholder="Ej. Yiwu Standard Co" />
-        <div style={{ marginTop: 12, font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Adjunta los documentos de la compra</div>
+        <div style={{ marginTop: 12, font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Adjuntá los documentos de la compra</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           {[
           { k: 'packing', label: 'Packing list', icon: 'doc', on: docs.packing },

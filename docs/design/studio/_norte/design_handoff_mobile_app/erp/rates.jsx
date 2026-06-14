@@ -52,7 +52,7 @@ function vesToUsd(amount, source) {
   return amount / rate;
 }
 
-// Formatters siguiendo Brand Book v2.4 · sin decimales · . miles
+// Formatters siguiendo Brand Book v3.7 · sin decimales · . miles
 function fmtUsd(n) {
   if (n === null || n === undefined || n === '') return '—';
   const abs = Math.abs(Math.round(Number(n) || 0));

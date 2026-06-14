@@ -279,7 +279,7 @@ function KanbanLeads({ leads, onMove, onOpen }) {
                     font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)',
                     border: '1px dashed var(--border-strong)', borderRadius: 'var(--r-sm)',
                     margin: 4,
-                  }}>Soltá un lead acá</div>
+                  }}>Suelta un lead acá</div>
                 ) : col.map(l => (
                   <LeadCard key={l.id} l={l}
                     onClick={() => onOpen(l)}
@@ -307,7 +307,7 @@ function KanbanLeads({ leads, onMove, onOpen }) {
       <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)', display: 'flex', gap: 10, alignItems: 'center' }}>
         <span style={{ color: 'var(--info)' }}>{window.Icon.info(13)}</span>
         <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink)' }}>
-          <b>Drag & drop:</b> arrastrá tarjetas entre columnas para cambiar la etapa · arrastrá el <b>header de columna</b> para reordenar las etapas del pipeline.
+          <b>Drag & drop:</b> arrastra tarjetas entre columnas para cambiar la etapa · arrastra el <b>header de columna</b> para reordenar las etapas del pipeline.
         </div>
       </div>
     </div>
