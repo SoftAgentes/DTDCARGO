@@ -15,7 +15,7 @@ import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   SERVICIOS_GRUPOS,
   SERVICIOS_POR_GRUPO,
-  SERVICIOS_DETALLE_BY_SLUG,
+  SERVICIOS_DETALLE,
   type ServicioDetalle,
 } from "@/lib/servicios-detalle";
 import {
@@ -34,7 +34,13 @@ const ESTADO_LABEL: Record<string, string> = {
   proximamente: "Próximamente",
 };
 
-export function ServiciosDetalle() {
+export function ServiciosDetalle({
+  servicios = SERVICIOS_DETALLE,
+}: {
+  /** Fichas a mostrar. Default = estático; el sitio pasa la lista merged (DB+fallback). */
+  servicios?: ServicioDetalle[];
+} = {}) {
+  const bySlug = Object.fromEntries(servicios.map((s) => [s.slug, s]));
   return (
     <section className="py-16 lg:py-20" id="detalle">
       {/* Abre el acordeón destino al llegar por hash (footer /servicios#slug). */}
@@ -84,7 +90,7 @@ export function ServiciosDetalle() {
 
                 <div className="mt-6 flex flex-col gap-3">
                   {slugs.map((slug) => {
-                    const service = SERVICIOS_DETALLE_BY_SLUG[slug];
+                    const service = bySlug[slug];
                     if (!service) return null;
                     return <FichaDetalle key={slug} service={service} />;
                   })}

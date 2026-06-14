@@ -15,7 +15,7 @@ import {
 import { ServiciosDetalle } from "@/components/ServiciosDetalle";
 import { jetbrainsMono } from "@/lib/fonts";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
-import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
+import { getServiciosParaSitio } from "@/lib/public/servicios-queries";
 import {
   CheckIcon,
   ArrowIcon,
@@ -39,41 +39,43 @@ export const metadata: Metadata = {
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
 
-/**
- * OfferCatalog (schema.org) — lista de servicios de DTD para que Google/IA
- * sepan exactamente qué ofrece la empresa. Deriva de SERVICIOS_DETALLE (fichas
- * a fondo, SDD-0063); la descripción estructurada incluye el resumen + qué
- * incluye, para que el crawl del AI Agent tome info certera.
- */
-const serviciosJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "OfferCatalog",
-  name: "Servicios de DTD Cargo — China a Venezuela",
-  provider: { "@type": "LocalBusiness", name: "DTD Cargo", url: SITE_URL },
-  itemListElement: SERVICIOS_DETALLE.map((s, i) => ({
-    "@type": "Offer",
-    position: i + 1,
-    itemOffered: {
-      "@type": "Service",
-      name: s.titulo,
-      description: [
-        s.resumen,
-        s.incluye.length ? `Incluye: ${s.incluye.join("; ")}.` : "",
-      ]
-        .filter(Boolean)
-        .join(" "),
-      serviceType: s.titulo,
-      url: `${SITE_URL}/servicios#${s.slug}`,
-      areaServed: [
-        { "@type": "Country", name: "Venezuela" },
-        { "@type": "Country", name: "China" },
-      ],
-      provider: { "@type": "LocalBusiness", name: "DTD Cargo" },
-    },
-  })),
-};
+export default async function ServiciosPage() {
+  // Servicios para el sitio (SDD-0076 Fase 3): contenido publicado en la DB con
+  // fallback al estático de servicios-detalle.ts. Hasta aplicar la migración 0130
+  // + publicar, devuelve el estático tal cual (cero regresión).
+  const servicios = await getServiciosParaSitio();
 
-export default function ServiciosPage() {
+  // OfferCatalog (schema.org) para que Google/IA sepan qué ofrece la empresa.
+  // Deriva de `servicios` (DB publicada + fallback) → el crawl del AI Agent de
+  // Kommo toma info certera, ya editable desde el Studio.
+  const serviciosJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "OfferCatalog",
+    name: "Servicios de DTD Cargo — China a Venezuela",
+    provider: { "@type": "LocalBusiness", name: "DTD Cargo", url: SITE_URL },
+    itemListElement: servicios.map((s, i) => ({
+      "@type": "Offer",
+      position: i + 1,
+      itemOffered: {
+        "@type": "Service",
+        name: s.titulo,
+        description: [
+          s.resumen,
+          s.incluye.length ? `Incluye: ${s.incluye.join("; ")}.` : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
+        serviceType: s.titulo,
+        url: `${SITE_URL}/servicios#${s.slug}`,
+        areaServed: [
+          { "@type": "Country", name: "Venezuela" },
+          { "@type": "Country", name: "China" },
+        ],
+        provider: { "@type": "LocalBusiness", name: "DTD Cargo" },
+      },
+    })),
+  };
+
   return (
     <>
       <Nav />
@@ -176,7 +178,7 @@ export default function ServiciosPage() {
         {/* Servicios en detalle — fichas desplegables (SDD-0063).
             Reemplaza las dos grillas de tarjetas cortas (Sede CN / Sede VE) por
             fichas a fondo con incluye/no-incluye/precio/cómo/tiempos. */}
-        <ServiciosDetalle />
+        <ServiciosDetalle servicios={servicios} />
 
         {/* Mapa de operación — dos oficinas + puente de coordinación */}
         <section className="py-16 lg:py-20" id="matriz">

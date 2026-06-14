@@ -18,6 +18,7 @@
  */
 
 import type { SkillDef } from "../runtime/types";
+import { serviceAdvisor } from "./service-advisor";
 
 export const trackingConcierge: SkillDef = {
   slug: "tracking-concierge",
@@ -117,6 +118,7 @@ Tu respuesta final debe ser un JSON que matchee el output_schema:
 /** Registry estático de todas las skills built-in. */
 export const SKILLS_BY_SLUG: Record<string, SkillDef> = {
   [trackingConcierge.slug]: trackingConcierge,
+  [serviceAdvisor.slug]: serviceAdvisor,
 };
 
 export function getSkillDefBySlug(slug: string): SkillDef | undefined {
