@@ -1,0 +1,22 @@
+/**
+ * Configuración de servicios (SDD-0076 Fase 2).
+ *
+ * Server component: lista los 20 servicios canónicos (estructura de código +
+ * contenido de DB) y delega la edición/publicación al ServiciosClient.
+ *
+ * La estructura (claves, grupo, tipo, timeline) sale de lib/shared/service-catalog.ts;
+ * el contenido editable, de service_configs (migración 0130). Tras aplicar la
+ * migración, el founder edita y publica acá sin deploy.
+ */
+
+import { createClient } from "@/lib/db/server";
+import { listServiceConfigs } from "@/lib/studio/service-catalog/queries";
+import { ServiciosClient } from "./_components/ServiciosClient";
+
+export const metadata = { title: "Servicios" };
+
+export default async function ServiciosPage() {
+  const supabase = await createClient();
+  const items = await listServiceConfigs(supabase);
+  return <ServiciosClient items={items} />;
+}
