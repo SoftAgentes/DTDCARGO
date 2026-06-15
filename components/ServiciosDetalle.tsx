@@ -22,7 +22,9 @@ export function ServiciosDetalle({
 }: {
   servicios: ServicioDetalle[];
 }) {
-  const { ddp, fases } = agruparPorViaje(servicios);
+  // DDP ya no se muestra acá: vive como héroe arriba de /servicios (DdpHero).
+  // El explorador queda solo con las fases (complementos + variantes de carga).
+  const { fases } = agruparPorViaje(servicios);
 
   return (
     <section className="py-16 lg:py-20" id="detalle">
@@ -40,7 +42,7 @@ export function ServiciosDetalle({
           Arma tu envío y cotízalos juntos.
         </p>
 
-        <ServiciosExplorer ddp={ddp} fases={fases} />
+        <ServiciosExplorer ddp={null} fases={fases} />
       </div>
     </section>
   );
