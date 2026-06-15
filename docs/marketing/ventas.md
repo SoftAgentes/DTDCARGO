@@ -6,6 +6,9 @@
 >
 > **Estado (2026-06-08):** estructura creada. Criterios de ancla confirmados; ejecución de la
 > captación pendiente.
+>
+> **El embudo operativo que ejecuta esta estrategia** (5 etapas, campos del Kanban, mapa de etapas
+> MARKBOX para SDD-0084, SLA y loop de recompra) vive en [`embudo-ventas.md`](embudo-ventas.md).
 
 ## Objetivo
 
