@@ -15,7 +15,7 @@
  */
 
 import type { NewsPostRow } from "@/lib/news/queries";
-import { NEWS_CATEGORIES_V4 } from "@/lib/news/categories";
+import { getCategoryInfo } from "@/lib/news/categories";
 
 interface Props {
   post: NewsPostRow;
@@ -44,8 +44,8 @@ export function NewsArticleJsonLd({ post }: Props) {
   const logoUrl = `${siteUrl}/brand/dtdcargo-isologo-primary.png`;
   const ogImageUrl = `${siteUrl}/brand/dtdcargo-isologo-primary.png`;
 
-  const cat = NEWS_CATEGORIES_V4[post.categoria];
-  const articleSection = cat?.label ?? "Noticias";
+  const cat = getCategoryInfo(post.categoria);
+  const articleSection = cat.label;
 
   const description = post.meta_description || post.excerpt;
   const wordCount = wordCountOf(post.body_markdown);

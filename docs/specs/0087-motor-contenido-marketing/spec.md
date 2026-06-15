@@ -4,7 +4,7 @@ title: "Motor de contenido de marketing — cerebro de ruteo (Test de Noticia) +
 status: proposed
 author: "Claude Code (ventana motor-noticias) + founder"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-15
 supersedes: null
 superseded_by: null
 related: ["0064"]
@@ -103,7 +103,7 @@ assignment (`lib/news/writers.ts`, sin cambios de schema).
 
 ## Fases (incrementales, cada una verificable)
 
-- **F1 · Taxonomía de negocio** — migr **0139** (drop CHECK viejo + UPDATE mapeo seeds + CHECK 6 nuevas) + reescribir `lib/news/categories.ts` (6 cats) + `lib/news/seo-keywords.ts` (pain points por cat) + ajustar lectura `/noticias`. *Verificable:* `/noticias` lista por las 6 categorías; seeds remapeados sin romper.
+- **F1 · Taxonomía de negocio** ✅ (rama `feat/motor-noticias`, sin push; migr **0139 NO aplicada a prod**) — migr **0139** (`drop constraint if exists news_posts_categoria_check` + UPDATE re-mapeo de las 10 técnicas viejas a las 6 de negocio + CHECK 6 nuevas, UPDATE **antes** del CHECK) + reescritura de `lib/news/categories.ts` (6 cats, gradients solo paleta de marca) + `lib/news/seo-keywords.ts` (`PAIN_POINTS_BY_CATEGORIA` reasignado por afinidad a las 6) + tests `lib/news/__tests__/categories.test.ts` (16, incl. paridad código↔migración). Los consumidores (`/noticias`, `/noticias/[slug]`, `NewsArticleJsonLd`, wizard `noticias-web`) resultaron **agnósticos a los slugs** (derivan todo de `NEWS_CATEGORIES_V4`/helpers) → cero cambios. `node scripts/verify.mjs` VERDE. *Verificable:* `/noticias` lista por las 6 categorías; seeds remapeados sin romper.
 - **F2 · Alma en los prompts** — inyectar público + ángulo flujo de caja + líneas rojas en `lib/news/prompts.ts`. *Verificable:* un artículo generado usa lenguaje de calle y no nombra al operador.
 - **F3 · Cerebro / Test de Noticia (Step 0)** — server action `routeIdea()` (prompt-cerebro §9) + UI del paso de ruteo en el wizard (Flujo A → sigue; B → corta con recomendación). *Verificable:* idea "sale contenedor el viernes" → Flujo B; idea "por qué comprar mensual" → Flujo A + categoría motor.
 - **F4 · Contenido semilla** — cargar la variante B en `importa-sin-perder-plata` (vía el motor o seed). *Verificable:* el artículo aparece en `/noticias` con su JSON-LD.

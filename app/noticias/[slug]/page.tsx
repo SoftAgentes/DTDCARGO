@@ -7,7 +7,7 @@ import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { NewsDisclaimer } from "@/components/NewsDisclaimer";
 import { buildWhatsAppLink, BRAND_ASSETS } from "@/lib/design-tokens";
 import {
-  NEWS_CATEGORIES_V4,
+  getCategoryInfo,
   gradientToCss,
 } from "@/lib/news/categories";
 import {
@@ -72,7 +72,7 @@ export default async function NewsPostPage({ params }: Props) {
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  const cat = NEWS_CATEGORIES_V4[post.categoria];
+  const cat = getCategoryInfo(post.categoria);
   const date = new Date(post.date).toLocaleDateString("es-VE", {
     day: "2-digit",
     month: "long",
@@ -211,7 +211,7 @@ function ComingSoonBlock({ post }: { post: NewsPostRow }) {
 }
 
 function RelatedPostCard({ post }: { post: NewsPostRow }) {
-  const cat = NEWS_CATEGORIES_V4[post.categoria];
+  const cat = getCategoryInfo(post.categoria);
   const date = new Date(post.date).toLocaleDateString("es-VE", {
     day: "2-digit",
     month: "short",
