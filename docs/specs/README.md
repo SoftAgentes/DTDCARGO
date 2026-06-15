@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 82 specs)
+### Índice de specs (generado · 83 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -120,6 +120,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0084 | Mapa de etapas + write-back de etapa a Kommo (cierra SDD-0062… | in-progress | interno |
 | 0085 | RBAC por módulo del Studio — matriz rol×módulo + gate de vist… | in-progress | interno |
 | 0086 | MARKBOX → Kommo al convertir (patch_lead) — cierra el loop le… | in-progress | interno |
+| 0087 | Motor de contenido de marketing — cerebro de ruteo (Test de N… | proposed | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
