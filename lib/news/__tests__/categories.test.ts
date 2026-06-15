@@ -6,7 +6,7 @@
  *  - Helpers (categoriasByTipo, ALL_*, gradientToCss) consistentes con la nueva taxonomía.
  *  - Gradients usan SOLO hex de la paleta de marca existente (cero hex inventados).
  *  - Paridad de claves entre categories.ts ↔ seo-keywords.ts (PAIN_POINTS_BY_CATEGORIA).
- *  - Paridad código ↔ migración 0139: el CHECK de la DB acota a exactamente estos 6 slugs,
+ *  - Paridad código ↔ migración 0140: el CHECK de la DB acota a exactamente estos 6 slugs,
  *    y el re-mapeo cubre las 10 categorías técnicas viejas.
  */
 
@@ -153,15 +153,15 @@ describe("PAIN_POINTS_BY_CATEGORIA — paridad con la taxonomía", () => {
   });
 });
 
-describe("Paridad código ↔ migración 0139", () => {
+describe("Paridad código ↔ migración 0140", () => {
   const sql = readFileSync(
-    join(process.cwd(), "supabase", "migrations", "0139_news_categorias_negocio.sql"),
+    join(process.cwd(), "supabase", "migrations", "0140_news_categorias_negocio.sql"),
     "utf8",
   );
 
   it("el CHECK nuevo lista exactamente los 6 slugs de negocio", () => {
     const m = sql.match(/check\s*\(categoria in \(([^)]*)\)\)/i);
-    expect(m, "no se encontró el CHECK de categoria en 0139").toBeTruthy();
+    expect(m, "no se encontró el CHECK de categoria en 0140").toBeTruthy();
     const slugsEnCheck = (m![1].match(/'([^']+)'/g) ?? []).map((s) =>
       s.replace(/'/g, ""),
     );
@@ -214,7 +214,7 @@ describe("getCategoryInfo — fallback seguro (blinda /noticias ante slugs legac
   });
 
   it("devuelve un fallback DEFINIDO (no undefined) para una categoría legacy de la DB", () => {
-    // 'industria-global' es una de las 10 viejas: sigue en prod hasta aplicar 0139.
+    // 'industria-global' es una de las 10 viejas: sigue en prod hasta aplicar 0140.
     // Sin fallback, NEWS_CATEGORIES_V4['industria-global'] sería undefined → crash.
     const cat = getCategoryInfo("industria-global");
     expect(cat).toBeDefined();

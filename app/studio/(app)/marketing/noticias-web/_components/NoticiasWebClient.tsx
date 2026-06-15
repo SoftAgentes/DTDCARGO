@@ -36,6 +36,7 @@ import React, { useState, useTransition } from "react";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   categoriasByTipo,
+  NEWS_CATEGORIES_V4,
   type NewsCategoria,
   type NewsTipo,
 } from "@/lib/news/categories";
@@ -43,10 +44,23 @@ import {
   buildGenerateHeadlinesPrompt,
   buildGenerateOutlinesPrompt,
   buildGenerateArticlePrompt,
+  buildRouteIdeaPrompt,
   buildSuggestKeywordsPrompt,
   type NewsBrief,
 } from "@/lib/news/prompts";
+import {
+  CEREBRO_A_EDITORIAL,
+  flujoFromScore,
+  scoreFromTest,
+  TEST_NOTICIA_KEYS,
+  type Angulo,
+  type CanalDestino,
+  type CerebroTipo,
+  type RouteIdeaResult,
+  type TestNoticiaKey,
+} from "@/lib/news/cerebro";
 import { StepIndicator } from "./StepIndicator";
+import { RouteIdeaPanel } from "./RouteIdeaPanel";
 import { Step0Brief } from "./Step0Brief";
 import { Step1Headlines } from "./Step1Headlines";
 import { Step2Outlines } from "./Step2Outlines";
@@ -62,6 +76,7 @@ import {
   generateArticle,
   generateHeadlines,
   generateOutlines,
+  routeIdea,
   suggestKeywords,
   type DetectBriefIntentResult,
   type ErrorResult,
@@ -69,8 +84,20 @@ import {
   type Tone,
 } from "../actions";
 
+/**
+ * Etapas del módulo: "banco" = el clasificador (SDD-0089 F-A), antecede al
+ * "wizard" de noticia (SDD-0088). El operador clasifica una idea y, si es
+ * Flujo A, salta al wizard precargado en el step de los headlines.
+ */
+type Stage = "banco" | "wizard";
+
 type Step = 0 | 1 | 2 | 3;
-type ModalKind = "headlines" | "outlines" | "article" | "suggest-keywords";
+type ModalKind =
+  | "route-idea"
+  | "headlines"
+  | "outlines"
+  | "article"
+  | "suggest-keywords";
 
 interface ManualModalConfig {
   kind: ModalKind;
@@ -118,11 +145,130 @@ function cleanMarkdown(raw: string): string {
   return raw.replace(/^```(?:markdown|md)?\n?|\n?```$/g, "").trim();
 }
 
+/** Tono por defecto según el tipo editorial (precarga del wizard desde el banco). */
+function toneForTipo(tipo: NewsTipo): Tone {
+  if (tipo === "polemica" || tipo === "curiosidad") return "curiosidad";
+  return "informativo";
+}
+
+/**
+ * Valida el JSON crudo del cerebro (modo Manual) con la MISMA lógica que el
+ * server: score = suma de los 5 booleanos, flujo del score (tipo sin editorial
+ * ⇒ B), categoría coherente con el tipo editorial. Throwea con mensaje claro
+ * si algo no calza (el modal lo muestra). Devuelve un RouteIdeaResult limpio.
+ */
+function clientRouteFromParsed(raw: unknown): RouteIdeaResult {
+  if (!raw || typeof raw !== "object") {
+    throw new Error('JSON inválido. Esperamos un objeto con "tipo", "test_noticia", …');
+  }
+  const o = raw as Record<string, unknown>;
+
+  const tipo = String(o.tipo ?? "").trim() as CerebroTipo;
+  if (!(tipo in CEREBRO_A_EDITORIAL)) {
+    throw new Error(`Tipo de idea inválido: ${String(o.tipo ?? "")}`);
+  }
+
+  // Test de Noticia → score recalculado
+  const rawTest = (o.test_noticia ?? {}) as Record<string, unknown>;
+  const testBools = {} as Record<TestNoticiaKey, boolean>;
+  for (const k of TEST_NOTICIA_KEYS) testBools[k] = rawTest[k] === true;
+  const score = scoreFromTest(testBools);
+
+  const tipoEditorial = CEREBRO_A_EDITORIAL[tipo];
+  const flujo: "A" | "B" = tipoEditorial === null ? "B" : flujoFromScore(score);
+
+  let categoria: RouteIdeaResult["categoria"] = null;
+  let tipo_editorial: RouteIdeaResult["tipo_editorial"] = null;
+  if (flujo === "A") {
+    const rawCat = typeof o.categoria === "string" ? o.categoria.trim() : "";
+    const catInfo = NEWS_CATEGORIES_V4[rawCat as keyof typeof NEWS_CATEGORIES_V4];
+    if (!catInfo) {
+      throw new Error(`Flujo A requiere categoría válida (recibido: ${rawCat || "null"})`);
+    }
+    if (tipoEditorial && catInfo.tipo !== tipoEditorial) {
+      throw new Error(
+        `La categoría "${rawCat}" no calza con el tipo editorial "${tipoEditorial}"`,
+      );
+    }
+    categoria = rawCat as RouteIdeaResult["categoria"];
+    tipo_editorial = catInfo.tipo;
+  }
+
+  // Canales (filtra válidos + coherencia con flujo)
+  const VALID_CANALES: CanalDestino[] = [
+    "noticias",
+    "linkedin",
+    "instagram",
+    "whatsapp",
+  ];
+  let canales: CanalDestino[] = Array.isArray(o.canales)
+    ? (o.canales
+        .map((c) => String(c).trim())
+        .filter((c): c is CanalDestino =>
+          VALID_CANALES.includes(c as CanalDestino),
+        ) as CanalDestino[])
+    : [];
+  canales = canales.filter((c, i) => canales.indexOf(c) === i);
+  if (flujo === "A") {
+    if (!canales.includes("noticias")) canales = ["noticias", ...canales];
+  } else {
+    canales = canales.filter((c) => c !== "noticias");
+    if (canales.length === 0) canales = ["whatsapp", "instagram"];
+  }
+
+  const VALID_ANGULOS: Angulo[] = [
+    "provocador",
+    "autoridad",
+    "historia",
+    "dato",
+    "how-to",
+    "contrario",
+  ];
+  const rawAngulo = String(o.angulo ?? "").trim() as Angulo;
+  const angulo: Angulo = VALID_ANGULOS.includes(rawAngulo)
+    ? rawAngulo
+    : "autoridad";
+
+  const titulos = (Array.isArray(o.titulos) ? o.titulos : [])
+    .map((t) => String(t).trim())
+    .filter((t) => t.length > 0)
+    .slice(0, 3);
+  if (titulos.length === 0) {
+    throw new Error("No se obtuvieron títulos. Revisa el JSON.");
+  }
+
+  const confidence = Number.isFinite(o.confidence as number)
+    ? Math.max(0, Math.min(100, Math.round(o.confidence as number)))
+    : 70;
+
+  return {
+    tipo,
+    test_noticia: { ...testBools, score },
+    flujo,
+    categoria,
+    tipo_editorial,
+    canales,
+    angulo,
+    titulos,
+    reason: String(o.reason ?? "").trim(),
+    confidence,
+  };
+}
+
 // ── Component ─────────────────────────────────────────────────
 
 export function NoticiasWebClient() {
   // Mode (Auto / Manual) — persistido en localStorage
   const [mode, setMode] = useLLMMode();
+
+  // Stage: "banco" (clasificador F-A) → "wizard" (generador 0088)
+  const [stage, setStage] = useState<Stage>("banco");
+
+  // Banco de ideas · último resultado del cerebro (persiste al volver del wizard)
+  const [routeResult, setRouteResult] = useState<RouteIdeaResult | null>(null);
+  // Inputs crudos del banco — usados para precargar el wizard al pasar a Flujo A.
+  const [ideaNombre, setIdeaNombre] = useState("");
+  const [ideaTitulo, setIdeaTitulo] = useState("");
 
   // Step machine
   const [step, setStep] = useState<Step>(0);
@@ -191,6 +337,91 @@ export function NoticiasWebClient() {
   };
 
   const closeModal = () => setModal({ open: false });
+
+  // ── Banco de ideas (SDD-0089 F-A) ───────────────────────────
+  //
+  // Auto: routeIdea server action (recalcula score/flujo en server). Manual o
+  // failover: ManualPromptModal con buildRouteIdeaPrompt; el JSON pegado se
+  // valida en cliente con la MISMA lógica (score = suma de booleanos, flujo del
+  // score, categoría coherente con el tipo editorial) vía clientRouteFromParsed.
+
+  const handleClassifyIdea = async (
+    nombre: string,
+    titulo: string,
+    angulo?: Angulo,
+  ): Promise<{ error?: string | null } | void> => {
+    setError(null);
+    setIdeaNombre(nombre);
+    setIdeaTitulo(titulo);
+
+    const prompt = buildRouteIdeaPrompt(nombre, titulo, angulo);
+
+    if (mode === "manual") {
+      openManualModal({
+        kind: "route-idea",
+        title: "Clasificar idea",
+        subtitle:
+          "Pega el JSON que devuelva claude.ai con el ruteo (tipo, test, flujo, canales, títulos)",
+        prompt,
+        inputHint:
+          'Esperamos {"tipo":"...","test_noticia":{...},"flujo":"A|B","categoria":"...|null","canales":[...],"angulo":"...","titulos":[...]}',
+        placeholder: '{"tipo":"guia","test_noticia":{...},"flujo":"A",...}',
+        submitLabel: "Cargar ruteo",
+      });
+      return;
+    }
+
+    const res = await routeIdea(nombre, titulo, angulo);
+    if (!res.ok) {
+      // Failover a Manual con el error visible — no perdemos momentum.
+      openManualModal(
+        {
+          kind: "route-idea",
+          title: "Clasificar idea (failover Manual)",
+          subtitle: "La API falló — clasifícalo en Manual para no perder el flow",
+          prompt,
+          inputHint:
+            'Esperamos {"tipo":"...","test_noticia":{...},"flujo":"A|B","categoria":"...|null","canales":[...],"angulo":"...","titulos":[...]}',
+          placeholder: '{"tipo":"guia","test_noticia":{...},"flujo":"A",...}',
+          submitLabel: "Cargar ruteo",
+        },
+        res.error,
+      );
+      return { error: res.error };
+    }
+    // Descartamos el { ok } para guardar solo el RouteIdeaResult limpio.
+    const { ok: _ok, ...result } = res;
+    void _ok;
+    setRouteResult(result);
+  };
+
+  // Flujo A → arranca el wizard precargando topic/angle/categoria/tipo.
+  const handleStartNoticia = (r: RouteIdeaResult) => {
+    if (!r.categoria || !r.tipo_editorial) {
+      setError("Esta idea no es Flujo A — no se puede generar como noticia");
+      return;
+    }
+    setError(null);
+    // Precarga del wizard (deep-link interno) — empieza en el step de headlines.
+    setTopic(ideaTitulo || ideaNombre);
+    setBriefAngle(r.reason || "");
+    setBriefRefs([]);
+    setTipo(r.tipo_editorial);
+    setCategoria(r.categoria);
+    setTone(toneForTipo(r.tipo_editorial));
+    setAiSuggestionReason(r.reason || null);
+    // Limpiamos cualquier residuo del wizard previo.
+    setHeadlines([]);
+    setSelectedHeadline("");
+    setOutlines([]);
+    setSelectedOutlineIdx(-1);
+    setArticle("");
+    setFocusKeyword("");
+    setSecondaryKeywords([]);
+    setPainPoints([]);
+    setStage("wizard");
+    setStep(1);
+  };
 
   // ── Step 0 → 1 · Brief submit (Plan v5) ─────────────────────
   //
@@ -505,6 +736,13 @@ export function NoticiasWebClient() {
 
     try {
       switch (modal.config.kind) {
+        case "route-idea": {
+          const parsed = parseJsonLoose<unknown>(raw);
+          const result = clientRouteFromParsed(parsed);
+          setRouteResult(result);
+          closeModal();
+          break;
+        }
         case "headlines": {
           const parsed = parseJsonLoose<{ headlines: string[] }>(raw);
           if (!parsed || !Array.isArray(parsed.headlines)) {
@@ -683,10 +921,11 @@ export function NoticiasWebClient() {
       return;
     }
     if (step === 1) {
-      // De step 1 al brief · si hay artículo generado, confirmar antes.
+      // De step 1 al Banco de ideas (SDD-0089) · si hay artículo generado,
+      // confirmar antes (lo perderíamos al volver al clasificador).
       if (article) {
         const ok = window.confirm(
-          "Volver al brief va a descartar el artículo generado. ¿Continuar?",
+          "Volver al Banco de ideas va a descartar el artículo generado. ¿Continuar?",
         );
         if (!ok) return;
         setArticle("");
@@ -695,31 +934,36 @@ export function NoticiasWebClient() {
         setSelectedHeadline("");
         setHeadlines([]);
       }
-      setStep(0);
+      // El veredicto del cerebro se conserva → el operador lo ve de nuevo.
+      setStage("banco");
     }
   };
 
   // ── Render ──────────────────────────────────────────────────
 
+  const isWizard = stage === "wizard";
+
   return (
     <div className="max-w-[1100px] mx-auto">
-      {/* Top: back + step indicator + mode toggle */}
+      {/* Top: back + step indicator (solo wizard) + mode toggle */}
       <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
-          {step > 0 ? (
-            <button
-              type="button"
-              onClick={handleBack}
-              disabled={isPending}
-              className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-wine hover:text-wine text-[13px] font-semibold transition-colors disabled:opacity-50"
-            >
-              <span className="inline-flex" aria-hidden>
-                {Icon.arrowL(14)}
-              </span>
-              Atrás
-            </button>
+          {isWizard ? (
+            <>
+              <button
+                type="button"
+                onClick={handleBack}
+                disabled={isPending}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md border border-grey-200 text-grey-700 hover:border-wine hover:text-wine text-[13px] font-semibold transition-colors disabled:opacity-50"
+              >
+                <span className="inline-flex" aria-hidden>
+                  {Icon.arrowL(14)}
+                </span>
+                {step === 1 ? "Banco de ideas" : "Atrás"}
+              </button>
+              <StepIndicator current={step} />
+            </>
           ) : null}
-          <StepIndicator current={step} />
         </div>
         <LLMModeToggle
           mode={mode}
@@ -729,7 +973,17 @@ export function NoticiasWebClient() {
       </div>
 
       {/* Body */}
-      {step === 0 && (
+      {stage === "banco" && (
+        <RouteIdeaPanel
+          result={routeResult}
+          onClassify={handleClassifyIdea}
+          onStartNoticia={handleStartNoticia}
+          onError={setError}
+          error={error}
+        />
+      )}
+
+      {isWizard && step === 0 && (
         <Step0Brief
           initialBrief={{ topic, refs: briefRefs, angle: briefAngle }}
           onSubmit={handleBriefSubmit}
@@ -737,7 +991,7 @@ export function NoticiasWebClient() {
         />
       )}
 
-      {step === 1 && tipo && categoria && (
+      {isWizard && step === 1 && tipo && categoria && (
         <Step1Headlines
           tipo={tipo}
           onTipoChange={handleTipoChange}
@@ -779,7 +1033,7 @@ export function NoticiasWebClient() {
         />
       )}
 
-      {step === 2 && (
+      {isWizard && step === 2 && (
         <Step2Outlines
           selectedHeadline={selectedHeadline}
           outlines={outlines}
@@ -796,7 +1050,7 @@ export function NoticiasWebClient() {
         />
       )}
 
-      {step === 3 && (
+      {isWizard && step === 3 && (
         <Step3Article
           selectedHeadline={selectedHeadline}
           markdown={article}

@@ -1,7 +1,7 @@
 ---
 sdd: "0089"
 title: "Clasificador de contenido + output multicanal (idea → noticia / mensajes de redes/WhatsApp) — amplía SDD-0088"
-status: proposed
+status: in-progress
 author: "Claude Code (ventana motor-clasificador) + founder"
 created: 2026-06-15
 updated: 2026-06-15
@@ -161,7 +161,8 @@ no 0141).
 
 ## Fases (incrementales, cada una entrega valor)
 
-- **F-A · Clasificador `routeIdea`** — el cerebro: nombre+título → flujo+categoría+canales+títulos. Paso "Banco de ideas". *Valor:* clasificación automática funcionando (aunque sea modo Manual).
+- **F-A · Clasificador `routeIdea`** ✅ — el cerebro: nombre+título → flujo+categoría+canales+títulos. Paso "Banco de ideas". *Valor:* clasificación automática funcionando (aunque sea modo Manual).
+  - **Implementado** (ventana motor-clasificador): `lib/news/cerebro.ts` (8 tipos del cerebro, mapeo 8→4 `CEREBRO_A_EDITORIAL` con `null`=solo-Flujo-B para promo/pregunta/detrás-cámara, Test de Noticia, `flujoFromScore`, `scoreFromTest`, canales/ángulos) + tests `lib/news/__tests__/cerebro.test.ts`. `buildRouteIdeaPrompt` (prompt-cerebro §9 + líneas rojas §8 + JSON shape exacto) en `lib/news/prompts.ts`. Server action `routeIdea` con validación server-side (score = suma de los 5 booleanos, flujo del score, categoría coherente con el tipo editorial; el tipo del cerebro manda sobre el test) en `actions.ts`. UI `RouteIdeaPanel.tsx` como **paso inicial** (stage `"banco"` que antecede al wizard 0088 en `NoticiasWebClient`); Flujo A deep-linkea al wizard precargando topic/angle/categoría/tipo (arranca en step 1 de headlines); Flujo B muestra **placeholder** (las piezas de redes son F-B). Modo Auto/Manual + failover conservados (mismo `clientRouteFromParsed` valida el JSON pegado en Manual). **Sin DB** (el schema `content_pieces` es F-B). Nota: el gate destapó un test hermano roto por el renombre de migración del repo (`0139→0140`, commit `8bd18cc` incompleto) — se corrigió el path en `categories.test.ts` (restaura el assert, no lo debilita).
 - **F-B · Output dual + schema** — "Mensajes completos" por canal + migr 0141 (`content_pieces` + `seo_drafts`). *Valor:* genera la pieza lista por canal (copiar/pegar).
 - **F-C · Banco de ideas + filtros** — vista listado con los 6 filtros. *Valor:* marketing gestiona el pipeline.
 - **F-D · Calendario de recompra** — contenido día 30/45/60 por cliente. *Valor:* el norte (recompra/mensualización).
