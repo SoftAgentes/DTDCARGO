@@ -8,6 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const routes: MetadataRoute.Sitemap = [
     { url: `${base}/`,          lastModified: now, priority: 1.0, changeFrequency: "weekly" },
     { url: `${base}/servicios`,   lastModified: now, priority: 0.9, changeFrequency: "monthly" },
+    { url: `${base}/servicios/inspeccion`, lastModified: now, priority: 0.7, changeFrequency: "monthly" },
     { url: `${base}/nosotros`,    lastModified: now, priority: 0.7, changeFrequency: "monthly" },
     { url: `${base}/brochure`,    lastModified: now, priority: 0.8, changeFrequency: "monthly" },
     { url: `${base}/calculadora`, lastModified: now, priority: 0.9, changeFrequency: "monthly" },
@@ -18,6 +19,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/noticias`,  lastModified: now, priority: 0.8, changeFrequency: "weekly" },
     { url: `${base}/estimacion`, lastModified: now, priority: 0.9, changeFrequency: "monthly" },
     { url: `${base}/contacto`,  lastModified: now, priority: 0.8, changeFrequency: "monthly" },
+    { url: `${base}/registro`,  lastModified: now, priority: 0.7, changeFrequency: "monthly" },
     { url: `${base}/track`,     lastModified: now, priority: 0.7, changeFrequency: "monthly" },
   ];
 

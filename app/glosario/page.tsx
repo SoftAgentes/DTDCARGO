@@ -13,6 +13,8 @@ import {
 import { renderBolded } from "@/lib/text";
 import { ArrowIcon } from "@/components/Icon";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dtdcargo.com";
+
 export const metadata: Metadata = {
   title: "Glosario de comercio exterior",
   description:
@@ -35,9 +37,38 @@ export const metadata: Metadata = {
 };
 
 export default function GlosarioPage() {
+  // DefinedTermSet (schema.org) — convierte el glosario en fuente machine-readable
+  // de definiciones (DDP, FCL, LCL, BL, CBM, MARKBOX…) para Google / motores de IA.
+  // Alinea con el knowsAbout del #organization. SDD-0064 (profundización GEO).
+  const definedTermSetJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "DefinedTermSet",
+    "@id": `${SITE_URL}/glosario#terminos`,
+    name: "Glosario de comercio exterior — DTD Cargo",
+    description:
+      "Términos de logística e importación China–Venezuela explicados sin jerga: DDP, FCL, LCL, Incoterms, BL, AWB, ETA, CBM, MARKBOX y más.",
+    url: `${SITE_URL}/glosario`,
+    inLanguage: "es-VE",
+    hasDefinedTerm: GLOSSARY_TERMS.map((t) => ({
+      "@type": "DefinedTerm",
+      "@id": `${SITE_URL}/glosario#${t.id}`,
+      name: t.term,
+      alternateName: t.acronym,
+      description: t.body.join(" ").replace(/<\/?b>/g, ""),
+      url: `${SITE_URL}/glosario#${t.id}`,
+      inDefinedTermSet: { "@id": `${SITE_URL}/glosario#terminos` },
+    })),
+  };
+
   return (
     <>
       <Nav />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(definedTermSetJsonLd).replace(/</g, "\\u003c"),
+        }}
+      />
       <BreadcrumbJsonLd
         items={[
           { name: "Inicio", path: "/" },

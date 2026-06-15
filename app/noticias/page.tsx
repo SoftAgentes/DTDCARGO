@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
+import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   NEWS_CATEGORIES_V4,
@@ -39,6 +40,12 @@ export default async function NoticiasPage() {
   return (
     <>
       <Nav />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", path: "/" },
+          { name: "Noticias", path: "/noticias" },
+        ]}
+      />
       <main className="bg-paper">
         {/* Hero */}
         <section className="py-16 lg:py-24">

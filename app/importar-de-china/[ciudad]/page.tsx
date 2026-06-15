@@ -66,7 +66,9 @@ export default async function ImportarCiudadPage({
       { "@type": "City", name: z.ciudad, containedInPlace: { "@type": "Country", name: "Venezuela" } },
       { "@type": "AdministrativeArea", name: z.estado },
     ],
-    provider: { "@type": "LocalBusiness", name: "DTD Cargo", url: SITE_URL },
+    // provider por @id → liga a la entidad única (#organization del root layout),
+    // no redeclara un LocalBusiness suelto (regla GEO: UNA sola entidad).
+    provider: { "@id": `${SITE_URL}/#organization` },
     url: `${SITE_URL}/importar-de-china/${z.slug}`,
   };
 

@@ -6,6 +6,7 @@ import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
+import { WebPageJsonLd } from "@/components/WebPageJsonLd";
 import { CalculadoraForm } from "@/components/CalculadoraForm";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { CIUDADES } from "@/lib/calculadora";
@@ -82,6 +83,8 @@ export default async function CalculadoraPage() {
           { name: "Calculadora", path: "/calculadora" },
         ]}
       />
+      {/* WebPage + speakable (GEO): marca el bloque "Respuesta rápida" como citable. */}
+      <WebPageJsonLd path="/calculadora" speakableSelectors={["#respuesta-rapida"]} />
       <main className="bg-paper min-h-screen">
         {/* H1 sr-only para SEO/accesibilidad — el título visible vive dentro de
             la card de la calculadora (header de la columna izquierda). */}
@@ -109,6 +112,7 @@ export default async function CalculadoraPage() {
         </section>
 
         <RespuestaRapida
+          id="respuesta-rapida"
           pregunta="¿Cuánto cuesta traer mercancía de China a Venezuela?"
           respuesta="El envío marítimo se cobra por volumen (CBM) y ciudad de destino, puerta a puerta y todo incluido (flete, aduana e impuestos). Calcula tu estimado al instante con la herramienta de arriba; la tarifa final la confirma un asesor por WhatsApp según el producto, el peso y el volumen reales."
         />

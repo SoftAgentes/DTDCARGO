@@ -123,7 +123,14 @@ const jsonLd = {
       url: SITE_URL,
       // Para Google Knowledge Panel usamos el isólogo oficial (brand book) variante primary
       // (navy + wine sobre fondo claro — el más universal).
-      logo: `${SITE_URL}${BRAND_ASSETS.isologoPrimary}`,
+      // logo como ImageObject (con dimensiones) en vez de string → señal más
+      // fuerte para el Google Knowledge Panel. El isólogo primary es 741×764.
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}${BRAND_ASSETS.isologoPrimary}`,
+        width: 741,
+        height: 764,
+      },
       image: `${SITE_URL}${BRAND_ASSETS.ogImage}`,
       slogan: "Con Confianza, de China a tu puerta.",
       description:
