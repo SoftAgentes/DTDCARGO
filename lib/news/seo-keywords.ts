@@ -113,62 +113,52 @@ export const SEO_KEYWORDS_LIBRARY: KeywordEntry[] = [
 
 /**
  * Pain points del cliente B2B venezolano que importa de China.
- * Mapeados por categoría — el bot inyecta los dolores relevantes al
- * generar bullets.
+ * Mapeados por las 6 categorías de negocio (SDD-0087 F1) — el bot inyecta
+ * los dolores relevantes al generar bullets. Reasignados por afinidad
+ * temática desde las 10 categorías técnicas del Plan v4.
  */
 export const PAIN_POINTS_BY_CATEGORIA: Record<NewsCategoria, string[]> = {
-  operaciones: [
+  // Motor — la serie de flujo de caja (sin nombrar "flujo de caja" en lo visible).
+  // El mensaje nunca es "compra menos volumen", sino "no congeles toda la plata de golpe".
+  "importa-sin-perder-plata": [
+    "Importo bien pero siempre ando corto de efectivo",
+    "Cada compra grande me deja la caja seca por semanas",
+    "¿Importar de China es realmente tan barato como dicen?",
+    "¿Conviene traer todo de una o repartir las compras?",
+    "Siento que gano, pero la plata no me rinde",
+  ],
+  // Envío / aduana / tiempos / costos / modalidad / documentos / naviera → confianza.
+  "como-llega-tu-mercancia": [
     "Los tiempos no son los prometidos",
     "Mi carga se atascó en aduana",
-    "Tengo cargas paradas por X meses",
     "No sé dónde está mi contenedor",
-  ],
-  "tarifas-fletes": [
     "Los costos suben de la nada (BAF/CAF)",
-    "No entiendo qué es BAF/CAF y por qué pago más",
     "¿FCL o LCL me conviene para mi volumen?",
-    "El flete subió 30% en el último embarque sin aviso",
-  ],
-  "aduana-seniat": [
     "No entiendo la normativa SENIAT",
-    "Mi declaración fue rechazada por X",
-    "Pago demasiados impuestos en aduana",
-    "El despacho aduanero tarda meses",
+    "No sé qué documentos necesito para importar",
   ],
-  "tutoriales-guias": [
-    "No sé qué Incoterm usar con mi proveedor",
-    "Mi packing list es rechazado siempre",
-    "No sé cómo empezar a importar de China",
-    "¿Qué documentos necesito para importar?",
-  ],
-  china: [
-    "Cómo invierto en China sin saber chino",
+  // Mercado chino, Yiwu, sourcing, verificación de proveedor.
+  "que-se-mueve-en-china": [
+    "Cómo compro en China sin saber chino",
     "Yiwu vs Shenzhen vs Cantón — dónde compro?",
     "Cómo verifico que el proveedor no me estafe",
     "Necesito alguien que vaya a la fábrica por mí",
   ],
-  "industria-global": [
-    "¿Qué naviera elijo? — Maersk vs MSC vs COSCO",
-    "¿Puerto Cabello o La Guaira es mejor para mi carga?",
-    "¿Cómo afecta la geopolítica el flete?",
+  // Dólar, economía, reglas que le pegan al importador VE.
+  "venezuela-y-tu-bolsillo": [
+    "¿Conviene esperar a importar?",
+    "¿La dolarización del flete me afecta?",
+    "¿El mercado se mantiene o sube?",
+    "¿Las nuevas reglas me cambian los costos?",
   ],
-  "casos-reales": [
+  // Casos de clientes, detrás de cámara.
+  "historias-reales": [
     "¿Funciona realmente este servicio?",
     "Quiero ver clientes parecidos a mí",
     "¿Cuál fue el resultado real?",
   ],
-  "analisis-opinion": [
-    "¿Conviene esperar a importar?",
-    "¿La dolarización del flete me afecta?",
-    "¿El mercado se mantiene o sube?",
-  ],
-  "mitos-realidades": [
-    "¿Importar de China es realmente barato?",
-    "¿Los chinos cumplen sus promesas?",
-    "¿La calidad china es mala?",
-    "¿DDP es siempre lo mejor?",
-  ],
-  "anuncios-dtd": [],
+  // Anuncios institucionales — sin pain points (no es contenido de dolor).
+  "novedades-dtd": [],
 };
 
 /** Helper: keywords ordenadas por prioridad */

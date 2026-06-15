@@ -136,7 +136,7 @@ Reglas:
 - Elegí UN tipo, UNA categoría (debe pertenecer al tipo elegido), UN tono.
 - Si el brief tiene ángulo polémico declarado, priorizá tipo="polemica".
 - Si el brief no tiene ángulo, asumí tipo="informativo".
-- "anuncios-dtd" (tipo="especial") SOLO si el brief habla de la empresa misma.
+- "novedades-dtd" (tipo="especial") SOLO si el brief habla de la empresa misma.
 
 Devolvé SOLO JSON válido sin prosa ni bloques de código:
 {

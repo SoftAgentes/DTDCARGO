@@ -6,7 +6,7 @@ import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
-  NEWS_CATEGORIES_V4,
+  getCategoryInfo,
   gradientToCss,
 } from "@/lib/news/categories";
 import { listPublishedPosts, type NewsPostRow } from "@/lib/news/queries";
@@ -119,7 +119,7 @@ export default async function NoticiasPage() {
 }
 
 function PostCard({ post }: { post: NewsPostRow }) {
-  const cat = NEWS_CATEGORIES_V4[post.categoria];
+  const cat = getCategoryInfo(post.categoria);
   const date = new Date(post.date).toLocaleDateString("es-VE", {
     day: "2-digit",
     month: "short",
