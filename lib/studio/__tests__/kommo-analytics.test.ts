@@ -133,6 +133,20 @@ describe("ownershipDistribution", () => {
     // orden descendente por cantidad
     expect(r.owners[0].count).toBeGreaterThanOrEqual(r.owners[1].count);
   });
+
+  it("usa nameById para el nombre real del asesor; fallback a 'Asesor #id'", () => {
+    const leads = [
+      lead({ id: 1, responsible_user_id: 100 }),
+      lead({ id: 2, responsible_user_id: 100 }),
+      lead({ id: 3, responsible_user_id: 200 }), // sin nombre en el mapa → fallback
+      lead({ id: 4, responsible_user_id: null }), // sin asignar
+    ];
+    const nameById = new Map<number, string>([[100, "María Pérez"]]);
+    const r = ownershipDistribution(leads, nameById);
+    expect(r.owners.find((o) => o.id === 100)?.label).toBe("María Pérez");
+    expect(r.owners.find((o) => o.id === 200)?.label).toBe("Asesor #200");
+    expect(r.owners.find((o) => o.id === null)?.label).toBe("Sin asignar");
+  });
 });
 
 describe("conversionStats", () => {

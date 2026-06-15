@@ -15,7 +15,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { clientAnnualBilling } from "./fidelizacion/queries";
 import { parseContactFields } from "./kommo-convert";
-import { listKommoPipelines, listKommoStatuses } from "./kommo-queries";
+import {
+  listKommoPipelines,
+  listKommoStatuses,
+  listKommoUsers,
+} from "./kommo-queries";
 import type { KommoPipelineRow, KommoStatusRow } from "./kommo-types";
 
 /**
@@ -194,10 +198,14 @@ export type OwnershipResult = {
 };
 
 /**
- * Reparto de leads por `responsible_user_id` (null → "Sin asignar"). El espejo
- * no trae nombres de asesor (no hay kommo_users) → etiqueta "Asesor #id". PURA.
+ * Reparto de leads por `responsible_user_id` (null → "Sin asignar"). Usa el mapa
+ * `nameById` (espejo kommo_users, SDD-0087) para el nombre real del asesor;
+ * fallback a "Asesor #id" si no está en el mapa (o el espejo está vacío). PURA.
  */
-export function ownershipDistribution(leads: AnalyticsLead[]): OwnershipResult {
+export function ownershipDistribution(
+  leads: AnalyticsLead[],
+  nameById: Map<number, string> = new Map(),
+): OwnershipResult {
   const total = leads.length;
   const byOwner = new Map<number | null, number>();
   for (const l of leads) {
@@ -206,7 +214,8 @@ export function ownershipDistribution(leads: AnalyticsLead[]): OwnershipResult {
   const owners: OwnerSlice[] = [...byOwner.entries()]
     .map(([id, count]) => ({
       id,
-      label: id == null ? "Sin asignar" : `Asesor #${id}`,
+      label:
+        id == null ? "Sin asignar" : nameById.get(id) ?? `Asesor #${id}`,
       count,
       pct: total ? (count / total) * 100 : 0,
     }))
@@ -388,7 +397,7 @@ export async function getKommoAnalytics(
   supabase: SupabaseClient,
   now: Date = new Date(),
 ): Promise<KommoDireccionData> {
-  const [leads, contacts, pipelines, statuses, billing, converted] =
+  const [leads, contacts, pipelines, statuses, billing, converted, users] =
     await Promise.all([
       getAnalyticsLeads(supabase),
       getContactEmailFlags(supabase),
@@ -396,7 +405,16 @@ export async function getKommoAnalytics(
       listKommoStatuses(supabase),
       clientAnnualBilling(supabase, now),
       allConvertedLeads(supabase),
+      // Resiliente: si kommo_users no existe aún (gap deploy↔migración), cae a [].
+      listKommoUsers(supabase).catch(() => []),
     ]);
+
+  // id→nombre del asesor (espejo kommo_users, SDD-0087). Vacío → "Asesor #id".
+  const nameById = new Map<number, string>();
+  for (const u of users) {
+    const n = (u.name ?? "").trim();
+    if (n) nameById.set(u.id, n);
+  }
 
   const valueByLead: Record<number, number> = {};
   for (const [idStr, mb] of Object.entries(converted)) {
@@ -411,7 +429,7 @@ export async function getKommoAnalytics(
     email: emailCoverage(contacts),
     funnel: funnelHealth(leads, pipelines, statuses),
     aging: agingBuckets(leads, now.getTime()),
-    ownership: ownershipDistribution(leads),
+    ownership: ownershipDistribution(leads, nameById),
     value: valueContrast(leads, converted, billing),
     convertedMarkboxByLead: converted,
     valueByLead,

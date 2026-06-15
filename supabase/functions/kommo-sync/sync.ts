@@ -15,6 +15,7 @@ import type {
   KommoCustomField,
   KommoLead,
   KommoPipeline,
+  KommoUser,
 } from "./types.ts";
 // SDD-0043 Alcance B · mapeo compartido (single source of truth con kommo-webhook + Vitest).
 import { mapContactRow, mapLeadRow } from "../_shared/kommo-mapping.ts";
@@ -206,6 +207,30 @@ export async function syncAll(
       return {
         fetched: items.length,
         upserted: await upsertRows(supabase, "kommo_leads", rows),
+      };
+    }),
+  );
+
+  // 5) Usuarios (asesores) — para mostrar nombres en el tablero (SDD-0087).
+  // Los usuarios de Kommo son pocos; un fetch con limit=250 alcanza (no paginamos).
+  await sleep(RATE_LIMIT_DELAY_MS);
+  results.push(
+    await logged(supabase, conn, "users", async () => {
+      const data = await kommoFetch<HalList<KommoUser>>(
+        baseUrl,
+        token,
+        "/api/v4/users?limit=250",
+      );
+      const users = data?._embedded?.users ?? [];
+      const rows = users.map((u) => ({
+        tenant_id: t,
+        id: u.id,
+        name: u.name ?? null,
+        email: u.email ?? null,
+      }));
+      return {
+        fetched: users.length,
+        upserted: await upsertRows(supabase, "kommo_users", rows),
       };
     }),
   );

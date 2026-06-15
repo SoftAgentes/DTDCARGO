@@ -10,6 +10,7 @@ import type {
   KommoOverview,
   KommoPipelineRow,
   KommoStatusRow,
+  KommoUserRow,
 } from "./kommo-types";
 
 export type KommoSort = "recent" | "oldest";
@@ -27,6 +28,22 @@ export type KommoFilters = {
 
 /** Antigüedades ofrecidas en el filtro del worklist (días). */
 export const KOMMO_AGE_OPTIONS = [30, 90, 180, 365] as const;
+
+/**
+ * Usuarios (asesores) del espejo Kommo → id→nombre para el tablero (SDD-0087).
+ * Tira si la tabla no existe; el orquestador (getKommoAnalytics) lo envuelve con
+ * `.catch(() => [])` para tolerar el gap entre deploy del código y migración.
+ */
+export async function listKommoUsers(
+  supabase: SupabaseClient,
+): Promise<KommoUserRow[]> {
+  const { data, error } = await supabase
+    .from("kommo_users")
+    .select("id, name, email")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data as KommoUserRow[] | null) ?? [];
+}
 
 const DAY_MS = 86_400_000;
 

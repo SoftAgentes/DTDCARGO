@@ -29,6 +29,13 @@ export type KommoCustomFieldRow = {
   code: string | null;
 };
 
+/** Usuario (asesor) del espejo Kommo — id → nombre para el tablero (SDD-0087). */
+export type KommoUserRow = {
+  id: number;
+  name: string | null;
+  email: string | null;
+};
+
 export type KommoLeadRow = {
   id: number;
   name: string | null;
