@@ -13,6 +13,8 @@ import {
   FONT_MONO,
 } from "@/lib/design-tokens";
 import { ServiciosDetalle } from "@/components/ServiciosDetalle";
+import { DdpHero } from "@/components/servicios/DdpHero";
+import { agruparPorViaje } from "@/lib/servicios-timeline";
 import { jetbrainsMono } from "@/lib/fonts";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
@@ -45,6 +47,10 @@ export default async function ServiciosPage() {
   // fallback al estático de servicios-detalle.ts. Hasta aplicar la migración 0130
   // + publicar, devuelve el estático tal cual (cero regresión).
   const servicios = await getServiciosParaSitio();
+
+  // DDP protagonista (slice "DDP héroe"): se extrae el servicio paraguas para
+  // mostrarlo arriba como héroe propio; el explorador recibe ddp=null (no duplica).
+  const { ddp } = agruparPorViaje(servicios);
 
   // OfferCatalog (schema.org) para que Google/IA sepan qué ofrece la empresa.
   // Deriva de `servicios` (DB publicada + fallback) → el crawl del AI Agent de
@@ -103,6 +109,9 @@ export default async function ServiciosPage() {
           respuesta="DTD Cargo lleva tu mercancía puerta a puerta de China a Venezuela en modalidad DDP —flete, aduana e impuestos incluidos— con consolidación e inspección en su bodega propia de Yiwu. Sobre esa base ofrece servicios complementarios: verificación de proveedores, compra asistida, control de calidad, laboratorio y permisología, registro de marca, visado de negocios, documentos de importación, desaduanaje y entrega final (last mile)."
         />
 
+        {/* Servicio principal — DDP como protagonista (slice "DDP héroe"). */}
+        <DdpHero ddp={ddp} />
+
         {/* Inspección en China — línea destacada. Deep-dive en subpágina propia
             para sumar la categoría sin saturar el brochure de logística. */}
         <section className="pt-2 lg:pt-4" id="inspeccion">
@@ -121,7 +130,7 @@ export default async function ServiciosPage() {
                     Nuevo · Inspección en China
                   </span>
                   <h2
-                    className="mt-4 text-[26px] lg:text-[36px] leading-[1.08] tracking-[-0.01em] text-white"
+                    className="mt-4 text-[22px] lg:text-[30px] leading-[1.1] tracking-[-0.01em] text-white"
                     style={{ fontFamily: "var(--font-archivo-black)" }}
                   >
                     Verifica tu mercancía en la fábrica,
