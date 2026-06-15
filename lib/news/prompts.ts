@@ -22,6 +22,12 @@ import {
   type NewsTipo,
 } from "./categories";
 import {
+  ALL_ANGULOS,
+  ALL_CANALES,
+  CEREBRO_TIPOS,
+  type Angulo,
+} from "./cerebro";
+import {
   keywordsForPrompt,
   painPointsFor,
 } from "./seo-keywords";
@@ -80,6 +86,112 @@ const TONE_INSTRUCTIONS: Record<Tone, string> = {
   polemico:
     "tono polémico y provocador, que genere debate honesto, sin desinformación.",
 };
+
+// ──────────────────────────────────────────────────────────────
+// 00. routeIdea — el CEREBRO clasificador (SDD-0089 F-A)
+//
+// Antecede a detectBriefIntent. El operador mete SOLO nombre + título de
+// una idea; Claude clasifica el tipo (8), corre el Test de Noticia (5
+// preguntas), decide flujo/canales/categoría/ángulo y propone títulos.
+//
+// El prompt es el "cerebro" literal de §9 del manual de comunicación
+// (Downloads/dtd-sistema-comunicacion-v1.md) + las líneas rojas de §8.
+// La regla A/B y el score se RECALCULAN en server (defensa anti-alucinación);
+// acá solo le pedimos al modelo los 5 booleanos + su recomendación cruda.
+// ──────────────────────────────────────────────────────────────
+
+/**
+ * Líneas rojas del manual (§8) — válidas para TODO lo que genere el motor.
+ * Constante exportada para reuso (tests + futuros builders de F-B).
+ */
+export const LINEAS_ROJAS = `LÍNEAS ROJAS (no se cruzan nunca):
+- PÚBLICO OBJETIVO: pyme / emprendedor exitoso que YA tiene capital y YA compra recurrente en China, pero cada ~3 meses en compras grandes. El objetivo es jalarlo a repartir sus compras por mes. NO le hablamos a empresas grandes, NI a compradores de una sola vez, NI al importador que ya trae frecuente.
+- LENGUAJE DE CALLE, cero técnico. Plata, billete, caja, mercancía, depósito. Nada de "flujo de caja", "rotación", "CCC" en lo que ve el cliente.
+- NUNCA pedirle que compre menos volumen. El mensaje es "no congeles todo de golpe", no "compra menos".
+- SENSIBILIZAR, no acusar. El lector es exitoso; el costo es invisible, no un fracaso.
+- CONFIDENCIAL: el operador de consolidación NUNCA se nombra (solo "el Operador de Consolidación"). DTD es la cara.`;
+
+export function buildRouteIdeaPrompt(
+  nombre: string,
+  titulo: string,
+  angulo?: Angulo,
+): string {
+  const tiposList = ALL_CEREBRO_TIPOS_FOR_PROMPT.map(
+    ([slug, info]) => `- "${slug}" → ${info.label}: ${info.description}`,
+  ).join("\n");
+
+  const catsList = (Object.entries(NEWS_CATEGORIES_V4) as Array<
+    [NewsCategoria, typeof NEWS_CATEGORIES_V4[NewsCategoria]]
+  >)
+    .map(
+      ([slug, info]) =>
+        `- "${slug}" → ${info.label}: ${info.description}`,
+    )
+    .join("\n");
+
+  const canalesList = ALL_CANALES.map((c) => `"${c}"`).join(", ");
+  const angulosList = ALL_ANGULOS.map((a) => `"${a}"`).join(", ");
+
+  const anguloBlock = angulo
+    ? `\n\nEl operador ya pidió un ÁNGULO preferido: "${angulo}". Usalo salvo que sea claramente incompatible con la idea (en ese caso elegí el mejor y explicá por qué en "reason").`
+    : "";
+
+  return `Sos el editor de comunicación de DTD Cargo (logística y trading puerta a puerta China-Venezuela, enfocada en pymes y emprendedores). Te doy una IDEA de contenido (nombre + título). NO la escribas todavía: rutéala con este sistema y devolveme una recomendación estructurada.
+
+IDEA:
+- Nombre / tema: ${nombre.trim()}
+- Título propuesto: ${titulo.trim()}${anguloBlock}
+
+PASOS QUE SEGUÍS:
+1. Clasificá la idea por TIPO (elegí UNO):
+${tiposList}
+2. Corré el TEST DE NOTICIA — 5 preguntas sí/no a la idea:
+   a) busca_google: ¿Alguien lo buscaría en Google?
+   b) ia_responde: ¿Una IA lo daría como respuesta a alguien?
+   c) sirve_6_meses: ¿Sirve igual dentro de 6 meses (no caduca)?
+   d) ensena_resuelve: ¿Enseña o resuelve algo de verdad?
+   e) parece_experto: ¿Te hace ver como el que sabe?
+   Respondé cada una con true o false honestamente — no infles el score.
+   Regla: 3 o más SÍ = Flujo A (Noticia + atomizar). 2 o menos = Flujo B (directo al canal).
+3. Decidí FLUJO "A" o "B" según el test y explicá la razón en 1 línea.
+   - Promo/Oferta, Pregunta/Conversación y Detrás de cámara van SIEMPRE a Flujo B (nunca al blog), aunque el test dé alto.
+   - Actualidad va a blog SOLO si el ángulo perdura y afecta decisiones; si caduca, Flujo B.
+4. Recomendá los CANALES (subset de: ${canalesList}). Si es Flujo B, NO incluyas "noticias". Si es Flujo A, incluí "noticias" + los altavoces que apliquen.
+5. Si es Flujo A, asigná la CATEGORÍA del blog (una de):
+${catsList}
+   Si es Flujo B, categoria = null.
+6. Elegí el ÁNGULO del gancho (uno de: ${angulosList}).
+7. Proponé 2-3 TÍTULOS afilados para el canal principal, con el lenguaje de calle de DTD.
+
+${LINEAS_ROJAS}
+
+Devolvé SOLO JSON válido sin prosa ni bloques de código, con este shape EXACTO:
+{
+  "tipo": "<slug del tipo del cerebro>",
+  "test_noticia": {
+    "busca_google": <true|false>,
+    "ia_responde": <true|false>,
+    "sirve_6_meses": <true|false>,
+    "ensena_resuelve": <true|false>,
+    "parece_experto": <true|false>
+  },
+  "flujo": "<A|B>",
+  "categoria": "<slug de categoría o null>",
+  "canales": ["<canal>", ...],
+  "angulo": "<slug de ángulo>",
+  "titulos": ["<título 1>", "<título 2>"],
+  "reason": "<1-2 oraciones explicando flujo + categoría>",
+  "confidence": <0-100>
+}`;
+}
+
+/**
+ * Entradas del cerebro pre-tipadas para el prompt. Se computa una vez al cargar
+ * el módulo (lista chica fija). Evita repetir el cast Object.entries en cada call.
+ */
+const ALL_CEREBRO_TIPOS_FOR_PROMPT = Object.entries(CEREBRO_TIPOS) as Array<
+  [string, { label: string; description: string }]
+>;
 
 // ──────────────────────────────────────────────────────────────
 // 0. detectBriefIntent — brief completo → tipo + categoría + tono

@@ -38,8 +38,23 @@ import {
   type NewsTipo,
 } from "@/lib/news/categories";
 import {
+  ALL_ANGULOS,
+  ALL_CANALES,
+  CEREBRO_A_EDITORIAL,
+  CEREBRO_TIPOS,
+  flujoFromScore,
+  scoreFromTest,
+  TEST_NOTICIA_KEYS,
+  type Angulo,
+  type CanalDestino,
+  type CerebroTipo,
+  type RouteIdeaResult,
+  type TestNoticiaKey,
+} from "@/lib/news/cerebro";
+import {
   buildDetectBriefIntentPrompt,
   buildDetectCategoryPrompt,
+  buildRouteIdeaPrompt,
   buildSuggestKeywordsPrompt,
   buildGenerateHeadlinesPrompt,
   buildGenerateBulletsPrompt,
@@ -112,6 +127,15 @@ export interface DetectBriefIntentResult {
   reason: string;
   confidence: number; // 0-100
 }
+
+/**
+ * Resultado del cerebro clasificador (SDD-0089 F-A). `RouteIdeaResult` ya trae
+ * `ok` implícito por contrato — acá lo discriminamos para el patrón `ok: true`
+ * compartido con el resto de actions.
+ */
+export type RouteIdeaActionResult =
+  | ({ ok: true } & RouteIdeaResult)
+  | ErrorResult;
 
 export interface SuggestKeywordsResult {
   ok: true;
@@ -369,6 +393,173 @@ export async function detectBriefIntent(
       tipo,
       categoria,
       tone_suggested: tone,
+      reason: String(parsed.reason ?? "").trim(),
+      confidence,
+    };
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Error desconocido";
+    return { ok: false, error: `Falló la llamada a Claude: ${msg}` };
+  }
+}
+
+// ── Action 00 · routeIdea — el cerebro clasificador (SDD-0089 F-A) ──
+//
+// Antecede a detectBriefIntent. Metés nombre + título, Claude clasifica el
+// tipo (8) + corre el Test de Noticia; el SERVIDOR recalcula el score (suma
+// de los 5 booleanos) y deriva el flujo (≥3 ⇒ A), sin confiar en lo que diga
+// el LLM en `flujo`/`score`. Si Flujo A, valida que la categoría pertenezca
+// al tipo editorial (igual que detectBriefIntent). Modo Manual: el cliente
+// usa buildRouteIdeaPrompt directo (esta action no se llama).
+
+const VALID_CEREBRO_TIPOS = new Set<CerebroTipo>(
+  Object.keys(CEREBRO_TIPOS) as CerebroTipo[],
+);
+const VALID_CANALES = new Set<CanalDestino>(ALL_CANALES);
+const VALID_ANGULOS = new Set<Angulo>(ALL_ANGULOS);
+
+export async function routeIdea(
+  nombre: string,
+  titulo: string,
+  angulo?: Angulo,
+): Promise<RouteIdeaActionResult> {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard;
+
+  const cleanNombre = nombre.trim();
+  const cleanTitulo = titulo.trim();
+  if (!cleanNombre) return { ok: false, error: "Ingresa un nombre o tema para la idea" };
+  if (!cleanTitulo) return { ok: false, error: "Ingresa un título propuesto" };
+  if (cleanNombre.length > 300) {
+    return { ok: false, error: "El nombre es demasiado largo (máx 300 chars)" };
+  }
+  if (cleanTitulo.length > 300) {
+    return { ok: false, error: "El título es demasiado largo (máx 300 chars)" };
+  }
+  const cleanAngulo =
+    angulo && VALID_ANGULOS.has(angulo) ? angulo : undefined;
+
+  const prompt = buildRouteIdeaPrompt(cleanNombre, cleanTitulo, cleanAngulo);
+
+  try {
+    const client = getClient();
+    const response = await client.messages.create({
+      model: MODEL,
+      max_tokens: 900,
+      messages: [{ role: "user", content: prompt }],
+    });
+    const text = firstText(response.content);
+    const parsed = parseJsonLoose<{
+      tipo: string;
+      test_noticia: Record<string, unknown>;
+      categoria: string | null;
+      canales: unknown;
+      angulo: string;
+      titulos: unknown;
+      reason: string;
+      confidence: number;
+    }>(text);
+
+    if (!parsed || typeof parsed.tipo !== "string") {
+      return {
+        ok: false,
+        error: "Claude devolvió un formato inesperado. Reintenta.",
+      };
+    }
+
+    // ── Tipo del cerebro ──
+    const tipo = parsed.tipo as CerebroTipo;
+    if (!VALID_CEREBRO_TIPOS.has(tipo)) {
+      return { ok: false, error: `Tipo de idea inválido: ${parsed.tipo}` };
+    }
+
+    // ── Test de Noticia: score = suma de los 5 booleanos (SERVER, no LLM) ──
+    const rawTest = parsed.test_noticia ?? {};
+    const testBools = {} as Record<TestNoticiaKey, boolean>;
+    for (const k of TEST_NOTICIA_KEYS) {
+      testBools[k] = rawTest[k] === true;
+    }
+    const score = scoreFromTest(testBools);
+
+    // ── Flujo derivado del score recalculado (anti-alucinación) ──
+    // El tipo manda sobre el test: si el tipo del cerebro NUNCA va a blog
+    // (promo/pregunta/detras-camara → editorial null), el flujo es B aunque
+    // el score sea alto (regla §3 del manual, dura).
+    const tipoEditorial = CEREBRO_A_EDITORIAL[tipo];
+    const flujo = tipoEditorial === null ? "B" : flujoFromScore(score);
+
+    // ── Categoría + tipo editorial (solo Flujo A) ──
+    let categoria: NewsCategoria | null = null;
+    let tipo_editorial: NewsTipo | null = null;
+    if (flujo === "A") {
+      const rawCat =
+        typeof parsed.categoria === "string" ? parsed.categoria.trim() : "";
+      const catInfo = NEWS_CATEGORIES_V4[rawCat as NewsCategoria];
+      if (!catInfo) {
+        return {
+          ok: false,
+          error: `Flujo A requiere categoría válida — Claude devolvió: ${parsed.categoria ?? "null"}`,
+        };
+      }
+      // Coherencia: la categoría debe pertenecer al tipo editorial del cerebro.
+      // (tipoEditorial no es null acá porque flujo === "A".)
+      if (tipoEditorial && catInfo.tipo !== tipoEditorial) {
+        return {
+          ok: false,
+          error: `Inconsistencia: la categoría "${rawCat}" (tipo ${catInfo.tipo}) no calza con el tipo editorial "${tipoEditorial}"`,
+        };
+      }
+      categoria = rawCat as NewsCategoria;
+      tipo_editorial = catInfo.tipo;
+    }
+
+    // ── Canales (filtra a los válidos; fuerza coherencia con el flujo) ──
+    let canales: CanalDestino[] = Array.isArray(parsed.canales)
+      ? (parsed.canales
+          .map((c) => String(c).trim())
+          .filter((c): c is CanalDestino =>
+            VALID_CANALES.has(c as CanalDestino),
+          ) as CanalDestino[])
+      : [];
+    // dedupe preservando orden
+    canales = canales.filter((c, i) => canales.indexOf(c) === i);
+    if (flujo === "A") {
+      // Flujo A SIEMPRE pasa por el blog → garantizamos 'noticias'.
+      if (!canales.includes("noticias")) canales = ["noticias", ...canales];
+    } else {
+      // Flujo B NUNCA va al blog → removemos 'noticias' si el LLM lo coló.
+      canales = canales.filter((c) => c !== "noticias");
+      if (canales.length === 0) canales = ["whatsapp", "instagram"];
+    }
+
+    // ── Ángulo (valida; default 'autoridad') ──
+    const rawAngulo = String(parsed.angulo ?? "").trim();
+    const angulo_out: Angulo = VALID_ANGULOS.has(rawAngulo as Angulo)
+      ? (rawAngulo as Angulo)
+      : (cleanAngulo ?? "autoridad");
+
+    // ── Títulos (2-3, no vacíos) ──
+    const titulos = (Array.isArray(parsed.titulos) ? parsed.titulos : [])
+      .map((t) => String(t).trim())
+      .filter((t) => t.length > 0)
+      .slice(0, 3);
+    if (titulos.length === 0) {
+      return { ok: false, error: "Claude no devolvió títulos. Reintenta." };
+    }
+
+    const confidence = Number.isFinite(parsed.confidence)
+      ? Math.max(0, Math.min(100, Math.round(parsed.confidence)))
+      : 70;
+
+    return {
+      ok: true,
+      tipo,
+      test_noticia: { ...testBools, score },
+      flujo,
+      categoria,
+      tipo_editorial,
+      canales,
+      angulo: angulo_out,
+      titulos,
       reason: String(parsed.reason ?? "").trim(),
       confidence,
     };
