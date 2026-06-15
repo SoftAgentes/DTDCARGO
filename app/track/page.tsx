@@ -5,6 +5,8 @@ import { Footer } from "@/components/Footer";
 import { WhatsAppFAB } from "@/components/WhatsAppFAB";
 import { TrackInput } from "@/components/TrackInput";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
+import { BreadcrumbJsonLd } from "@/components/BreadcrumbJsonLd";
+import { WebPageJsonLd } from "@/components/WebPageJsonLd";
 
 export const metadata: Metadata = {
   title: "Rastrear envío",
@@ -23,6 +25,14 @@ export default function TrackPage() {
   return (
     <>
       <Nav />
+      <BreadcrumbJsonLd
+        items={[
+          { name: "Inicio", path: "/" },
+          { name: "Rastrear envío", path: "/track" },
+        ]}
+      />
+      {/* WebPage + speakable (GEO): marca el bloque "Respuesta rápida" como citable. */}
+      <WebPageJsonLd path="/track" speakableSelectors={["#respuesta-rapida"]} />
       <main className="min-h-[70vh]">
         <section className="py-16 lg:py-24 bg-ink text-white">
           <div className="wrap max-w-[720px]">
@@ -64,6 +74,7 @@ export default function TrackPage() {
         </section>
 
         <RespuestaRapida
+          id="respuesta-rapida"
           pregunta="¿Cómo rastreo mi carga de China a Venezuela?"
           respuesta="Ingresa tu BL (Bill of Lading) o tu código DTDU en el rastreador y verás el estado de tu envío en tiempo real, sin registrarte. Si no tienes el código a mano, escríbenos por WhatsApp con tu MARKBOX y un asesor te ubica el envío."
         />

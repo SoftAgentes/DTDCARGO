@@ -20,7 +20,8 @@ Historial y estado del SEO del **sitio público `dtdcargo.com`**. Parte del tree
 - **Redirects:** `next.config.ts` → `redirects()`.
 - **Identidad de entidad (GEO):** `@graph` JSON-LD en `app/layout.tsx` — `#organization` (`LocalBusiness` con `legalName`/`taxID`/`founder`, **`knowsAbout`** = temas de expertise con `sameAs` a Wikipedia, **`hasOfferCatalog`** = catálogo de servicios) + `#website`. Los publishers (VideoObject en `WorkBand.tsx`, NewsArticle) referencian `#organization` por `@id` → una sola entidad. Identidad pública/legal canónica = [`identidad.md`](identidad.md).
 - **OfferCatalog (builder único):** `lib/seo-offer-catalog.ts` (`buildOfferCatalog` + `isOfferable`). Lo usan `app/layout.tsx` (`hasOfferCatalog` de la entidad) y `app/servicios/page.tsx` (catálogo de la página) con el mismo shape, proveedor ligado por `@id`. `isOfferable` excluye `suspendido`/`proximamente` (anti-invención). Fuente = `lib/servicios-detalle.ts`.
-- **WebPage + `speakable`:** `components/WebPageJsonLd.tsx` (gemelo de `BreadcrumbJsonLd`). Liga la página a `#organization`/`#website` por `@id` y marca el bloque citable por voz/IA. En el home (`app/page.tsx`) apunta al bloque "Respuesta rápida" (`#respuesta-rapida`).
+- **WebPage + `speakable`:** `components/WebPageJsonLd.tsx` (gemelo de `BreadcrumbJsonLd`). Liga la página a `#organization`/`#website` por `@id` y marca el bloque citable por voz/IA. Montado en **home, `/calculadora` y `/track`** (apunta al bloque "Respuesta rápida" `#respuesta-rapida`).
+- **DefinedTermSet:** `/glosario` (`app/glosario/page.tsx`) emite `DefinedTermSet` + un `DefinedTerm` por término (name/alternateName/description/`@id`), derivado de `GLOSSARY_TERMS`. Fuente machine-readable de definiciones (DDP, FCL, LCL, BL, CBM, MARKBOX…), alineada con el `knowsAbout` de la entidad.
 
 ## Cronología
 
@@ -70,6 +71,28 @@ Enriquecimiento del schema para que los motores de IA (AI Agent de Kommo, ChatGP
 - **`<RespuestaRapida>` en el home** (`app/page.tsx`, entre Hero y TrustBar): Q&A directa y citable ("¿Qué es DTD Cargo y qué hace?"). Copy grounded (empresa 2010, puerta a puerta DDP, pagas al llegar "sujeto a aprobación"). **Requiere OK final del founder** (copy visible).
 - **`speakable`** (`components/WebPageJsonLd.tsx`): nodo `WebPage` del home con `speakable.cssSelector` → `#respuesta-rapida`.
 - Pendiente próximos slices: `sameAs` a Wikidata/GBP/LinkedIn (URLs del founder) · `llms-full.txt` · páginas `/puerta-a-puerta` `/markbox` `/empresa` · `aggregateRating` (reseñas reales).
+
+### 2026-06-14 · Auditoría de desconexión + GEO avance — slice 2 (rama `feat/geo-avanzado`)
+
+Auditoría (3 frentes: integridad de schema · links internos/huérfanas/sitemap · oportunidades GEO) de qué se "desconectó" tras el overhaul del home + rediseño de `/servicios` + hero-ciclo + nav Recursos. Sin spec ni migración.
+
+**Implementado (todo invisible: schema/JSON-LD/sitemap):**
+- **`speakable` extendido** a `/calculadora` y `/track` (antes solo el home): `<WebPageJsonLd>` + `id="respuesta-rapida"` en el bloque existente.
+- **`DefinedTermSet`** en `/glosario` (definiciones machine-readable).
+- **`provider` por `@id`** en `/importar-de-china/[ciudad]` (14 páginas) — quitaba el `LocalBusiness` suelto que rompía la regla de entidad única.
+- **`logo` como `ImageObject`** (741×764) en `#organization` (antes string).
+- **`BreadcrumbList`** en `/track` y `/noticias` (faltaban).
+- **Sitemap**: + `/registro` y `/servicios/inspeccion` (faltaban).
+
+**Desconexiones detectadas, PENDIENTES (decisión del founder / otra ventana):**
+- ⚠️ **`/estimacion` huérfana** (0 links internos): su enlazador `components/HeroCotizador.tsx` quedó código muerto tras el rediseño del Hero. Acción: borrar el muerto + reconectar (p. ej. desde `/calculadora`). Decisión de dónde enlazar.
+- ⚠️ **`/nosotros` huérfana** (0 links internos, sí en sitemap): enlazar desde Footer/Nav (decisión de IA).
+- **`/brochure` con `VideoObject` DUPLICADO** (WorkBand + OperationGallery emiten el mismo) — inválido para Google. Fix: prop `noVideoSchema` en uno (toca componentes compartidos).
+- **Ancla muerta** en Footer: `#registro-marca-coord` no existe en `/servicios` (el slug real es `registro-marca-cn`); el Footer deriva anclas de `SERVICES_VE` (design-tokens) y la página usa `servicios-detalle.ts` → dos namespaces de slugs.
+- **`/servicios/inspeccion`**: `provider` `LocalBusiness` suelto (igual patrón) + falta nodo `Service` rico + `HowTo`. NO tocado (territorio de la ventana `servicios-ux`).
+- **`llms.txt` dice "Fundada en 2008"** → contradice `foundingDate: 2010` del schema. Alinear framing (empresa 2010 · comercio China 2008 · VE 2015). Es copy de marca → decisión del founder.
+
+**GATED (input del founder):** `sameAs` a Google Business Profile / LinkedIn / Wikidata · `aggregateRating` (reseñas reales) · `Person` del founder · `GeoCoordinates` de las sedes.
 
 ## 🛡️ Reglas SEO que NO se rompen
 
