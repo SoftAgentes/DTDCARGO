@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- SDD-0087 · F1 — Taxonomía de negocio de news_posts (6 categorías)
+-- SDD-0088 · F1 — Taxonomía de negocio de news_posts (6 categorías)
 --
 -- Reemplaza las 10 categorías técnicas (operaciones, tarifas-fletes, …)
 -- por las 6 categorías de negocio del founder, orientadas al público
@@ -48,4 +48,4 @@ alter table public.news_posts
   ));
 
 comment on column public.news_posts.categoria is
-  'Categoría de negocio (SDD-0087 F1). 6 valores: importa-sin-perder-plata (motor) · que-se-mueve-en-china · como-llega-tu-mercancia · venezuela-y-tu-bolsillo · historias-reales · novedades-dtd. Source of truth en TS: lib/news/categories.ts.';
+  'Categoría de negocio (SDD-0088 F1). 6 valores: importa-sin-perder-plata (motor) · que-se-mueve-en-china · como-llega-tu-mercancia · venezuela-y-tu-bolsillo · historias-reales · novedades-dtd. Source of truth en TS: lib/news/categories.ts.';

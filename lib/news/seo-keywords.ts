@@ -113,7 +113,7 @@ export const SEO_KEYWORDS_LIBRARY: KeywordEntry[] = [
 
 /**
  * Pain points del cliente B2B venezolano que importa de China.
- * Mapeados por las 6 categorías de negocio (SDD-0087 F1) — el bot inyecta
+ * Mapeados por las 6 categorías de negocio (SDD-0088 F1) — el bot inyecta
  * los dolores relevantes al generar bullets. Reasignados por afinidad
  * temática desde las 10 categorías técnicas del Plan v4.
  */

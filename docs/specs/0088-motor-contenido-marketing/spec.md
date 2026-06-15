@@ -1,5 +1,5 @@
 ---
-sdd: "0087"
+sdd: "0088"
 title: "Motor de contenido de marketing — cerebro de ruteo (Test de Noticia) + taxonomía de negocio (re-enfoque de noticias-web)"
 status: proposed
 author: "Claude Code (ventana motor-noticias) + founder"
@@ -11,7 +11,7 @@ related: ["0064"]
 confidencialidad: interno
 ---
 
-# SDD-0087 — Motor de contenido de marketing (cerebro + taxonomía de negocio)
+# SDD-0088 — Motor de contenido de marketing (cerebro + taxonomía de negocio)
 
 > **No se construye de cero.** El motor `noticias-web` (wizard IA de 5 pasos → `news_posts` → `/noticias`)
 > YA existe (Plan v4), pero está **apagado** y genérico. Esta spec lo **re-enfoca** con la estrategia

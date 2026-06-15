@@ -1,5 +1,5 @@
 /**
- * Tests de la taxonomía de negocio de news (SDD-0087 · F1).
+ * Tests de la taxonomía de negocio de news (SDD-0088 · F1).
  *
  * Cubre los criterios de aceptación de F1:
  *  - 6 categorías de negocio (reemplazan las 10 técnicas), con sus tipos editoriales.
@@ -48,7 +48,7 @@ const BRAND_HEX = new Set([
   "#C2747F",
 ]);
 
-describe("NEWS_CATEGORIES_V4 — 6 categorías de negocio (SDD-0087 F1)", () => {
+describe("NEWS_CATEGORIES_V4 — 6 categorías de negocio (SDD-0088 F1)", () => {
   it("tiene exactamente las 6 categorías de negocio", () => {
     expect(ALL_CATEGORIA_SLUGS.sort()).toEqual(EXPECTED.map((e) => e.slug).sort());
     expect(Object.keys(NEWS_CATEGORIES_V4)).toHaveLength(6);

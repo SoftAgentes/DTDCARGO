@@ -1,5 +1,5 @@
 /**
- * lib/news/categories.ts · SDD-0087 F1 — Single source of truth de tipos/categorías/gradients
+ * lib/news/categories.ts · SDD-0088 F1 — Single source of truth de tipos/categorías/gradients
  *
  * 6 categorías de NEGOCIO (founder, 2026-06-14) agrupadas en 4 tipos editoriales.
  * Reemplazan las 10 categorías técnicas (operaciones, tarifas-fletes, …) del Plan v4.
