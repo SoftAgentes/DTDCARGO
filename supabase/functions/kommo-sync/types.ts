@@ -67,6 +67,12 @@ export interface KommoCustomField {
   enums?: Array<{ id: number; value: string; sort?: number }> | null;
 }
 
+export interface KommoUser {
+  id: number;
+  name?: string;
+  email?: string;
+}
+
 export interface KommoConnection {
   id: string;
   tenant_id: string;
