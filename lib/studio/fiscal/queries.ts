@@ -142,6 +142,35 @@ export async function getFiscalSettings(
   };
 }
 
+/**
+ * Variante TOLERANTE de `getFiscalSettings` para el flujo de FACTURACIÓN.
+ *
+ * A diferencia de los Libros (donde un error de lectura DEBE propagarse para no
+ * fabricar un libro exento), la facturación solo necesita saber si el módulo
+ * está ON y el default/alícuota. Con el módulo OFF (DTD hoy) el valor se DESCARTA
+ * — así que un fallo transitorio leyendo `fiscal_settings` NO debe tumbar crear/
+ * editar facturas ni el listado (acoplamiento que no existía antes). Ante error
+ * de lectura cae a `DEFAULT_FISCAL_SETTINGS` (módulo OFF) y loguea.
+ */
+export async function getFiscalSettingsSafe(
+  supabase: SupabaseClient,
+): Promise<FiscalSettings> {
+  try {
+    return await getFiscalSettings(supabase);
+  } catch (e) {
+    console.error(
+      "[fiscal] getFiscalSettings falló en el path de facturación → uso defaults (módulo inerte):",
+      e,
+    );
+    return {
+      ...DEFAULT_FISCAL_SETTINGS,
+      tenant_id: null,
+      updated_at: null,
+      updated_by: null,
+    };
+  }
+}
+
 // ── Libro de Ventas ────────────────────────────────────────────
 
 // invoices NO tiene `rif` (0077): se enlaza al cliente por `client_markbox`

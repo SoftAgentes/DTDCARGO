@@ -10,6 +10,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getInvoiceByCode } from "@/lib/studio/invoice-queries";
+import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
 import { listCashAccounts, listReceipts } from "@/lib/studio/payment-queries";
 import {
   computeBalance,
@@ -46,10 +47,11 @@ export default async function InvoiceDetailPage({
   const { code } = await params;
   const supabase = await createClient();
 
-  const [invoice, ivaRow, cashAccounts] = await Promise.all([
+  const [invoice, ivaRow, cashAccounts, fiscal] = await Promise.all([
     getInvoiceByCode(supabase, code),
     supabase.from("tenants").select("iva_enabled").maybeSingle(),
     listCashAccounts(supabase),
+    getFiscalSettingsSafe(supabase),
   ]);
   if (!invoice) notFound();
 
@@ -82,6 +84,9 @@ export default async function InvoiceDetailPage({
       <InvoiceDetailClient
         invoice={invoice}
         ivaOn={ivaOn}
+        fiscalModuleEnabled={fiscal.fiscal_module_enabled}
+        defaultIvaMode={fiscal.default_invoice_iva_mode}
+        ivaRateGeneral={fiscal.iva_rate_general}
         cashAccounts={cashAccounts.map((a) => ({
           id: a.id,
           code: a.code,

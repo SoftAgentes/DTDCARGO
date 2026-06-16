@@ -20,6 +20,7 @@ import {
   isEditable,
   isOverdue,
   normalizeLines,
+  resolveInvoiceIva,
   statusBadgeTone,
   validateInvoiceInput,
   type InvoiceInput,
@@ -266,5 +267,80 @@ describe("validateInvoiceInput", () => {
     expect(r.input?.client_markbox).toBe("DTD-2002");
     expect(r.input?.client_name).toBe("Cliente X");
     expect(r.input?.lines).toEqual([{ desc: "Flete", qty: 1, unitPrice: 500 }]);
+  });
+});
+
+describe("resolveInvoiceIva (SDD-0073 §8 · gateado por el módulo fiscal)", () => {
+  const base = {
+    defaultMode: "sin_iva" as const,
+    ivaRateGeneral: 16,
+  };
+
+  // ── Módulo OFF: comportamiento ACTUAL (toggle de tenant), iva_mode ignorado ──
+  it("módulo OFF + tenant IVA ON → grava al 16% e ignora iva_mode (modo null)", () => {
+    const r = resolveInvoiceIva({
+      ...base,
+      fiscalModuleEnabled: false,
+      ivaMode: "con_iva", // se ignora con el módulo off
+      tenantIvaOn: true,
+    });
+    expect(r).toEqual({ ivaOn: true, ivaRate: 16, ivaMode: null });
+  });
+
+  it("módulo OFF + tenant IVA OFF → sin IVA (igual que hoy)", () => {
+    const r = resolveInvoiceIva({
+      ...base,
+      fiscalModuleEnabled: false,
+      ivaMode: "con_iva",
+      tenantIvaOn: false,
+    });
+    expect(r).toEqual({ ivaOn: false, ivaRate: 0, ivaMode: null });
+  });
+
+  // ── Módulo ON: el IVA lo decide el iva_mode de la factura ──
+  it("módulo ON + con_iva → grava a la alícuota general y persiste el modo", () => {
+    const r = resolveInvoiceIva({
+      ...base,
+      fiscalModuleEnabled: true,
+      ivaMode: "con_iva",
+      ivaRateGeneral: 16,
+      tenantIvaOn: false, // irrelevante con el módulo on
+    });
+    expect(r).toEqual({ ivaOn: true, ivaRate: 16, ivaMode: "con_iva" });
+  });
+
+  it("módulo ON + sin_iva → IVA 0 aunque el tenant lo tenga prendido", () => {
+    const r = resolveInvoiceIva({
+      ...base,
+      fiscalModuleEnabled: true,
+      ivaMode: "sin_iva",
+      tenantIvaOn: true,
+    });
+    expect(r).toEqual({ ivaOn: false, ivaRate: 0, ivaMode: "sin_iva" });
+  });
+
+  it("módulo ON + exento/tasa_cero → sin débito fiscal", () => {
+    for (const mode of ["exento", "tasa_cero"] as const) {
+      const r = resolveInvoiceIva({
+        ...base,
+        fiscalModuleEnabled: true,
+        ivaMode: mode,
+        tenantIvaOn: true,
+      });
+      expect(r.ivaOn).toBe(false);
+      expect(r.ivaRate).toBe(0);
+      expect(r.ivaMode).toBe(mode);
+    }
+  });
+
+  it("módulo ON sin iva_mode propio → cae al default del tenant", () => {
+    const r = resolveInvoiceIva({
+      fiscalModuleEnabled: true,
+      ivaMode: null,
+      defaultMode: "con_iva",
+      ivaRateGeneral: 8,
+      tenantIvaOn: false,
+    });
+    expect(r).toEqual({ ivaOn: true, ivaRate: 8, ivaMode: "con_iva" });
   });
 });

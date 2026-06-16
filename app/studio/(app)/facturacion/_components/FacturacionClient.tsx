@@ -18,6 +18,7 @@ import {
   statusBadgeTone,
   statusLabel,
   type Invoice,
+  type InvoiceIvaMode,
 } from "@/lib/studio/invoice-types";
 import type {
   InvoiceFilters,
@@ -57,12 +58,18 @@ export function FacturacionClient({
   kpis,
   counts,
   ivaOn,
+  fiscalModuleEnabled = false,
+  defaultIvaMode = "sin_iva",
+  ivaRateGeneral = 16,
 }: {
   invoices: Invoice[];
   filters: InvoiceFilters;
   kpis: InvoiceKpis;
   counts: Record<InvoiceTab, number>;
   ivaOn: boolean;
+  fiscalModuleEnabled?: boolean;
+  defaultIvaMode?: InvoiceIvaMode;
+  ivaRateGeneral?: number;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -293,6 +300,9 @@ export function FacturacionClient({
         <InvoiceDrawer
           mode="create"
           ivaOn={ivaOn}
+          fiscalModuleEnabled={fiscalModuleEnabled}
+          defaultIvaMode={defaultIvaMode}
+          ivaRateGeneral={ivaRateGeneral}
           onClose={() => setShowCreate(false)}
         />
       )}

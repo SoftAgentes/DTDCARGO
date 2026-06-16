@@ -46,6 +46,7 @@ function inv(partial: Partial<Invoice> & { id: string }): Invoice {
     currency: "USD",
     fx_rate: null,
     iva_rate: 0,
+    iva_mode: null,
     base_amount: 0,
     iva_amount: 0,
     total_amount: 1000,

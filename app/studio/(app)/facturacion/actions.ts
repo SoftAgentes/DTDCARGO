@@ -41,14 +41,16 @@ import {
 } from "@/lib/studio/payment-types";
 import {
   calcInvoiceTotals,
-  IVA_RATE_DEFAULT,
+  isInvoiceIvaMode,
   normalizeLines,
+  resolveInvoiceIva,
   validateInvoiceInput,
   type InvoiceActionState,
   type InvoiceCurrency,
   type InvoiceInput,
   type InvoiceLine,
 } from "@/lib/studio/invoice-types";
+import { getFiscalSettingsSafe } from "@/lib/studio/fiscal/queries";
 
 const VALID_CURRENCIES: InvoiceCurrency[] = ["USD", "VES", "USDT", "CNY"];
 
@@ -86,6 +88,7 @@ function inputFromFormData(formData: FormData): Partial<InvoiceInput> {
     ? (currencyRaw as InvoiceCurrency)
     : "USD";
 
+  const ivaModeRaw = parseStringOrNull(formData.get("iva_mode"));
   return {
     client_markbox: parseStringOrNull(formData.get("client_markbox")) ?? undefined,
     client_name: parseStringOrNull(formData.get("client_name")) ?? undefined,
@@ -96,7 +99,31 @@ function inputFromFormData(formData: FormData): Partial<InvoiceInput> {
     due_date: parseStringOrNull(formData.get("due_date")),
     lines: parseLines(formData),
     notes: parseStringOrNull(formData.get("notes")),
+    iva_mode: isInvoiceIvaMode(ivaModeRaw) ? ivaModeRaw : null,
   };
+}
+
+/**
+ * Resuelve IVA on/off + tasa + modo a persistir (SDD-0073 §8), leyendo la config
+ * fiscal del tenant. Con el módulo OFF cae al toggle de tenant (comportamiento
+ * actual); con ON usa el iva_mode de la factura (o el default del tenant).
+ */
+async function resolveIva(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  ivaMode: InvoiceInput["iva_mode"],
+): Promise<{ ivaOn: boolean; ivaRate: number; ivaMode: string | null }> {
+  const [settings, tenantIva] = await Promise.all([
+    getFiscalSettingsSafe(supabase),
+    tenantIvaOn(supabase, tenantId),
+  ]);
+  return resolveInvoiceIva({
+    fiscalModuleEnabled: settings.fiscal_module_enabled,
+    ivaMode,
+    defaultMode: settings.default_invoice_iva_mode,
+    ivaRateGeneral: settings.iva_rate_general,
+    tenantIvaOn: tenantIva,
+  });
 }
 
 /** Resuelve el tenant del usuario logueado (RLS). */
@@ -290,9 +317,12 @@ export async function createInvoice(
   const { tenantId, error: tErr } = await resolveTenant(supabase);
   if (tErr || !tenantId) return { error: tErr };
 
-  const ivaOn = await tenantIvaOn(supabase, tenantId);
-  const ivaRate = ivaOn ? IVA_RATE_DEFAULT : 0;
-  const totals = calcInvoiceTotals({ lines: input!.lines, ivaRate, ivaOn });
+  const iva = await resolveIva(supabase, tenantId, input!.iva_mode);
+  const totals = calcInvoiceTotals({
+    lines: input!.lines,
+    ivaRate: iva.ivaRate,
+    ivaOn: iva.ivaOn,
+  });
 
   // Generar invoice_code atómico
   const { data: codeData, error: codeErr } = await supabase.rpc(
@@ -337,7 +367,8 @@ export async function createInvoice(
       shipment_code: input!.shipment_code,
       currency: input!.currency,
       fx_rate: input!.fx_rate,
-      iva_rate: ivaRate,
+      iva_rate: iva.ivaRate,
+      iva_mode: iva.ivaMode,
       base_amount: totals.base,
       iva_amount: totals.iva,
       total_amount: totals.total,
@@ -414,9 +445,12 @@ export async function updateInvoice(
   const { input, fieldErrors } = validateInvoiceInput(partial);
   if (fieldErrors) return { fieldErrors };
 
-  const ivaOn = await tenantIvaOn(supabase, current.tenant_id);
-  const ivaRate = ivaOn ? IVA_RATE_DEFAULT : 0;
-  const totals = calcInvoiceTotals({ lines: input!.lines, ivaRate, ivaOn });
+  const iva = await resolveIva(supabase, current.tenant_id, input!.iva_mode);
+  const totals = calcInvoiceTotals({
+    lines: input!.lines,
+    ivaRate: iva.ivaRate,
+    ivaOn: iva.ivaOn,
+  });
 
   const { error } = await supabase
     .from("invoices")
@@ -427,7 +461,8 @@ export async function updateInvoice(
       shipment_code: input!.shipment_code,
       currency: input!.currency,
       fx_rate: input!.fx_rate,
-      iva_rate: ivaRate,
+      iva_rate: iva.ivaRate,
+      iva_mode: iva.ivaMode,
       base_amount: totals.base,
       iva_amount: totals.iva,
       total_amount: totals.total,

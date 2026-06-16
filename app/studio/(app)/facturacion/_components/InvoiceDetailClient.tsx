@@ -24,6 +24,7 @@ import {
   computeBalance,
   isEditable,
   type Invoice,
+  type InvoiceIvaMode,
 } from "@/lib/studio/invoice-types";
 import {
   PAYMENT_METHOD_OPTIONS,
@@ -49,10 +50,16 @@ function fmt(n: number): string {
 export function InvoiceDetailClient({
   invoice,
   ivaOn,
+  fiscalModuleEnabled = false,
+  defaultIvaMode = "sin_iva",
+  ivaRateGeneral = 16,
   cashAccounts,
 }: {
   invoice: Invoice;
   ivaOn: boolean;
+  fiscalModuleEnabled?: boolean;
+  defaultIvaMode?: InvoiceIvaMode;
+  ivaRateGeneral?: number;
   cashAccounts: CashAccountOption[];
 }) {
   const router = useRouter();
@@ -303,6 +310,9 @@ export function InvoiceDetailClient({
           mode="edit"
           invoice={invoice}
           ivaOn={ivaOn}
+          fiscalModuleEnabled={fiscalModuleEnabled}
+          defaultIvaMode={defaultIvaMode}
+          ivaRateGeneral={ivaRateGeneral}
           onClose={() => setEditing(false)}
         />
       )}

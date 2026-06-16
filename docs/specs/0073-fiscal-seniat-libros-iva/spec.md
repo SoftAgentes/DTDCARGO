@@ -262,15 +262,17 @@ hasta 8) lo **asigna la imprenta digital homologada**, no el ERP (research §1).
 - ✅ Libros (`salesBook`) clasifican por el `iva_mode` efectivo de cada factura (propio o el default del
   tenant si null). Estado **módulo-OFF** en `/studio/fiscal` (principio #1).
 
-### 8.5 Slice siguiente (NO en este loop) — escritura de `iva_mode` por factura
+### 8.5 Escritura de `iva_mode` por factura — ✅ HECHA (2026-06-16, gateada)
 
-El **camino de ESCRITURA** del `iva_mode` por factura toca el core de Facturación (0021):
-`createInvoice/updateInvoice` (compute de IVA leyendo la config en vez de `tenants.iva_enabled`) + selector
-en el `InvoiceDrawer`. Se **difirió a propósito** (decisión del loop autónomo 2026-06-16): el spec ya lo
-marcaba "lo más invasivo, V2", el master toggle está **OFF** (no entrega valor hoy) y la activación
-depende del contador (§8.4). La columna `invoices.iva_mode` + la lectura en los libros ya están listas —
-es un slice limpio y aislado para cuando se active el módulo. **Debe quedar gateado por RBAC treasury/admin
-(SDD-0085)** al implementarse.
+El **camino de ESCRITURA** del `iva_mode` por factura (core de Facturación 0021) quedó implementado y
+**gateado por el master toggle**: helper puro `resolveInvoiceIva()` (`invoice-types.ts`) que con el módulo
+**OFF** devuelve EXACTAMENTE el comportamiento actual (toggle `tenants.iva_enabled`, `iva_mode` null) y con
+**ON** decide el IVA por el `iva_mode` de la factura (`con_iva` → alícuota general; resto → 0). `createInvoice`/
+`updateInvoice` lo usan y persisten `iva_mode`; el `InvoiceDrawer` muestra el selector + preview reactivo
+**solo con el módulo ON**. La lectura de la config usa `getFiscalSettingsSafe()` (cae a defaults si la lectura
+falla → no acopla la facturación a un hipo de `fiscal_settings`). Reusa el gate RBAC `moduleEditDenial("invoices")`
+ya existente. Tests `resolveInvoiceIva` (gated ON/OFF). Reviewer APPROVED + auditor adversarial 0 crítico
+(fix aplicado: `getFiscalSettingsSafe`). Con DTD en OFF, la facturación es **idéntica** a antes.
 
 ### 8.4 Pendientes a confirmar (con el contador) antes de activar — load-bearing
 

@@ -2,9 +2,16 @@
  * Tipos TypeScript del módulo Facturación (SDD-0021).
  * Matchea schema de supabase/migrations/0077_invoices.sql.
  *
- * IVA es un toggle de tenant (`tenants.iva_enabled`). Con OFF, `iva_rate=0` y
- * `base_amount = total_amount`. Con ON, `iva_rate=16` y `total = base * 1.16`.
+ * IVA — dos modelos coexisten (SDD-0073 §8):
+ *  - Módulo fiscal OFF (default, DTD hoy): toggle de tenant (`tenants.iva_enabled`).
+ *    Con OFF, `iva_rate=0` y `base_amount = total_amount`. Con ON, `iva_rate=16`.
+ *  - Módulo fiscal ON: IVA POR FACTURA (`iva_mode`): con_iva → grava a la alícuota
+ *    general de la config; sin_iva/exento/tasa_cero → IVA 0. Ver `resolveInvoiceIva`.
  */
+
+import type { InvoiceIvaMode } from "@/lib/studio/fiscal/config-types";
+
+export type { InvoiceIvaMode };
 
 export type InvoiceStatus =
   | "borrador"
@@ -34,6 +41,8 @@ export type Invoice = {
   currency: InvoiceCurrency;
   fx_rate: number | null;
   iva_rate: number;
+  /** SDD-0073 §8: modo de IVA de la factura. null = hereda el default del tenant. */
+  iva_mode: InvoiceIvaMode | null;
   base_amount: number;
   iva_amount: number;
   total_amount: number;
@@ -60,6 +69,8 @@ export type InvoiceInput = {
   due_date: string | null;
   lines: InvoiceLine[];
   notes: string | null;
+  /** SDD-0073 §8: modo de IVA elegido por factura (solo aplica con módulo ON). */
+  iva_mode?: InvoiceIvaMode | null;
 };
 
 export const INVOICE_CURRENCY_OPTIONS: {
@@ -86,6 +97,52 @@ export const INVOICE_STATUS_OPTIONS: {
 
 /** Tasa de IVA estándar venezolano cuando el toggle está ON. */
 export const IVA_RATE_DEFAULT = 16;
+
+const INVOICE_IVA_MODE_VALUES: InvoiceIvaMode[] = [
+  "sin_iva",
+  "con_iva",
+  "exento",
+  "tasa_cero",
+];
+
+export function isInvoiceIvaMode(v: unknown): v is InvoiceIvaMode {
+  return typeof v === "string" && (INVOICE_IVA_MODE_VALUES as string[]).includes(v);
+}
+
+/**
+ * Resuelve si una factura lleva IVA y a qué tasa (SDD-0073 §8). PURA — la usan
+ * el server (al persistir) y el drawer (preview en vivo), para que UI y BD coincidan.
+ *
+ *  - Módulo fiscal **OFF** (default, DTD hoy): comportamiento ACTUAL intacto — el
+ *    IVA lo decide el toggle de tenant (`tenants.iva_enabled`); `iva_mode` se ignora
+ *    y se persiste null. CERO cambio para quien no activó el módulo.
+ *  - Módulo fiscal **ON**: el IVA lo decide el `iva_mode` de la factura (o el default
+ *    del tenant si no se eligió): `con_iva` → grava a la alícuota general; el resto
+ *    (`sin_iva`/`exento`/`tasa_cero`) → IVA 0.
+ */
+export function resolveInvoiceIva(args: {
+  fiscalModuleEnabled: boolean;
+  ivaMode: InvoiceIvaMode | null | undefined;
+  defaultMode: InvoiceIvaMode;
+  ivaRateGeneral: number;
+  tenantIvaOn: boolean;
+}): { ivaOn: boolean; ivaRate: number; ivaMode: InvoiceIvaMode | null } {
+  if (!args.fiscalModuleEnabled) {
+    return {
+      ivaOn: args.tenantIvaOn,
+      ivaRate: args.tenantIvaOn ? IVA_RATE_DEFAULT : 0,
+      ivaMode: null, // con módulo OFF no marcamos modo por factura
+    };
+  }
+  const mode = args.ivaMode ?? args.defaultMode;
+  const ivaOn = mode === "con_iva";
+  const rate = Number(args.ivaRateGeneral);
+  return {
+    ivaOn,
+    ivaRate: ivaOn ? (Number.isFinite(rate) ? rate : IVA_RATE_DEFAULT) : 0,
+    ivaMode: mode,
+  };
+}
 
 export function statusLabel(status: InvoiceStatus): string {
   switch (status) {
@@ -300,6 +357,9 @@ export function validateInvoiceInput(input: Partial<InvoiceInput>): {
       due_date: input.due_date?.trim() || null,
       lines,
       notes: input.notes?.trim() || null,
+      // iva_mode: solo se respeta un valor válido; cualquier otra cosa → null
+      // (= hereda el default del tenant). Solo tiene efecto con el módulo fiscal ON.
+      iva_mode: isInvoiceIvaMode(input.iva_mode) ? input.iva_mode : null,
     },
   };
 }

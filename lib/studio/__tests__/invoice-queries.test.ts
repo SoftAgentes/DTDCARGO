@@ -46,6 +46,7 @@ function inv(partial: Partial<Invoice>): Invoice {
     currency: "USD",
     fx_rate: null,
     iva_rate: 0,
+    iva_mode: partial.iva_mode ?? null,
     base_amount: partial.total_amount ?? 1000,
     iva_amount: 0,
     total_amount: partial.total_amount ?? 1000,

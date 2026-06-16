@@ -24,8 +24,13 @@ import {
   type Invoice,
   type InvoiceActionState,
   type InvoiceCurrency,
+  type InvoiceIvaMode,
   type InvoiceLine,
 } from "@/lib/studio/invoice-types";
+import {
+  INVOICE_IVA_MODES,
+  invoiceIvaModeLabel,
+} from "@/lib/studio/fiscal/config-types";
 import {
   createInvoice,
   lookupShipmentForInvoice,
@@ -40,6 +45,11 @@ interface Props {
   mode: "create" | "edit";
   invoice?: Invoice;
   ivaOn: boolean;
+  /** SDD-0073 §8: con el módulo fiscal ON, el IVA se elige por factura (iva_mode).
+   *  Default false → comportamiento actual (toggle de tenant vía ivaOn). */
+  fiscalModuleEnabled?: boolean;
+  defaultIvaMode?: InvoiceIvaMode;
+  ivaRateGeneral?: number;
   onClose: () => void;
 }
 
@@ -73,7 +83,15 @@ function fmt(n: number): string {
   });
 }
 
-export function InvoiceDrawer({ mode, invoice, ivaOn, onClose }: Props) {
+export function InvoiceDrawer({
+  mode,
+  invoice,
+  ivaOn,
+  fiscalModuleEnabled = false,
+  defaultIvaMode = "sin_iva",
+  ivaRateGeneral = IVA_RATE_DEFAULT,
+  onClose,
+}: Props) {
   const router = useRouter();
   const toast = useToast();
   const action =
@@ -98,6 +116,10 @@ export function InvoiceDrawer({ mode, invoice, ivaOn, onClose }: Props) {
   const [notes, setNotes] = useState(invoice?.notes ?? "");
   const [lines, setLines] = useState<DraftLine[]>(toDraft(invoice?.lines ?? []));
   const [emitOnCreate, setEmitOnCreate] = useState(false);
+  // SDD-0073 §8: modo de IVA por factura (solo visible/activo con el módulo ON).
+  const [ivaMode, setIvaMode] = useState<InvoiceIvaMode>(
+    invoice?.iva_mode ?? defaultIvaMode,
+  );
 
   const [shipmentLookupMsg, setShipmentLookupMsg] = useState<string | null>(
     null,
@@ -106,10 +128,14 @@ export function InvoiceDrawer({ mode, invoice, ivaOn, onClose }: Props) {
   const [isDeleting, startDelete] = useTransition();
   const [createError, setCreateError] = useState<string | null>(null);
 
+  // IVA efectivo: con el módulo fiscal ON lo decide el iva_mode de la factura
+  // (con_iva grava a la alícuota general); con OFF, el toggle de tenant (ivaOn).
+  const effectiveIvaOn = fiscalModuleEnabled ? ivaMode === "con_iva" : ivaOn;
+  const effectiveRate = fiscalModuleEnabled ? ivaRateGeneral : IVA_RATE_DEFAULT;
   const totals = calcInvoiceTotals({
     lines: draftToLines(lines),
-    ivaRate: IVA_RATE_DEFAULT,
-    ivaOn,
+    ivaRate: effectiveRate,
+    ivaOn: effectiveIvaOn,
   });
 
   // Post-success: navegar al listado (create) o cerrar con toast (edit).
@@ -268,6 +294,9 @@ export function InvoiceDrawer({ mode, invoice, ivaOn, onClose }: Props) {
           <input type="hidden" name="currency" value={currency} />
           <input type="hidden" name="shipment_id" value={shipmentId} />
           <input type="hidden" name="lines" value={linesJson} />
+          {fiscalModuleEnabled && (
+            <input type="hidden" name="iva_mode" value={ivaMode} />
+          )}
           {mode === "create" && (
             <input
               type="hidden"
@@ -389,6 +418,38 @@ export function InvoiceDrawer({ mode, invoice, ivaOn, onClose }: Props) {
               <input type="hidden" name="fx_rate" value={fxRate} />
             )}
           </div>
+
+          {/* IVA por factura (SDD-0073 §8) — solo con el módulo fiscal activo */}
+          {fiscalModuleEnabled && (
+            <div>
+              <label className="studio-label" htmlFor="ivd-ivamode">
+                IVA de esta factura
+              </label>
+              <select
+                id="ivd-ivamode"
+                className="studio-input"
+                value={ivaMode}
+                onChange={(e) => setIvaMode(e.target.value as InvoiceIvaMode)}
+              >
+                {INVOICE_IVA_MODES.map((m) => (
+                  <option key={m} value={m}>
+                    {invoiceIvaModeLabel(m)}
+                    {m === "con_iva" ? ` (${effectiveRate}%)` : ""}
+                  </option>
+                ))}
+              </select>
+              <p
+                style={{
+                  font: "400 11px/1.4 var(--f-sans)",
+                  color: "var(--ink-mute)",
+                  margin: "6px 0 0",
+                }}
+              >
+                Con IVA grava a la alícuota general de tu configuración fiscal; el
+                resto va sin débito fiscal. El default lo fija Configuración fiscal.
+              </p>
+            </div>
+          )}
 
           {/* Editor de líneas */}
           <div>
@@ -584,7 +645,7 @@ export function InvoiceDrawer({ mode, invoice, ivaOn, onClose }: Props) {
               marginTop: 4,
             }}
           >
-            {ivaOn && (
+            {effectiveIvaOn && (
               <>
                 <div
                   style={{
@@ -607,7 +668,7 @@ export function InvoiceDrawer({ mode, invoice, ivaOn, onClose }: Props) {
                     color: "var(--ink-inv-soft)",
                   }}
                 >
-                  <span>IVA {IVA_RATE_DEFAULT}%</span>
+                  <span>IVA {effectiveRate}%</span>
                   <span style={{ font: "600 13px/1 var(--f-mono)" }}>
                     ${fmt(totals.iva)}
                   </span>
