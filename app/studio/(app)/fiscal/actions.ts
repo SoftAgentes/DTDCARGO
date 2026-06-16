@@ -39,21 +39,46 @@ function parseBool(formData: FormData, key: string): boolean {
   return last === "1" || last === "true" || last === "on";
 }
 
+function parseStrOrNull(v: FormDataEntryValue | null): string | null {
+  if (v == null) return null;
+  const s = String(v).trim();
+  return s === "" ? null : s;
+}
+
 function inputFromFormData(formData: FormData): Partial<FiscalSettingsInput> {
-  const treatment = String(formData.get("service_iva_treatment") ?? "");
+  const defMode = String(formData.get("default_invoice_iva_mode") ?? "");
   const mode = String(formData.get("purchase_iva_mode") ?? "");
   const period = String(formData.get("declaration_period") ?? "");
   return {
-    service_iva_treatment: (treatment ||
-      undefined) as FiscalSettingsInput["service_iva_treatment"],
-    iva_rate: parseNumber(formData.get("iva_rate")),
+    // A · master
+    fiscal_module_enabled: parseBool(formData, "fiscal_module_enabled"),
+    // B · SPE
     is_special_taxpayer: parseBool(formData, "is_special_taxpayer"),
-    is_iva_withholding_agent: parseBool(formData, "is_iva_withholding_agent"),
+    // C · alícuotas
+    iva_rate_general: parseNumber(formData.get("iva_rate_general")),
+    iva_rate_reduced: parseNumber(formData.get("iva_rate_reduced")),
+    iva_rate_export: parseNumber(formData.get("iva_rate_export")),
+    iva_rate_luxury_surcharge: parseNumber(
+      formData.get("iva_rate_luxury_surcharge"),
+    ),
+    // D · default factura
+    default_invoice_iva_mode: (defMode ||
+      undefined) as FiscalSettingsInput["default_invoice_iva_mode"],
+    // E · IGTF
+    igtf_enabled: parseBool(formData, "igtf_enabled"),
+    igtf_rate_fx: parseNumber(formData.get("igtf_rate_fx")),
+    igtf_is_perception_agent: parseBool(formData, "igtf_is_perception_agent"),
+    // F · retención
+    iva_withholding_agent: parseBool(formData, "iva_withholding_agent"),
     iva_withholding_pct: parseNumber(formData.get("iva_withholding_pct")),
-    purchase_iva_mode: (mode ||
-      undefined) as FiscalSettingsInput["purchase_iva_mode"],
+    // G · facturación digital
+    digital_invoicing_enabled: parseBool(formData, "digital_invoicing_enabled"),
+    homologated_provider: parseStrOrNull(formData.get("homologated_provider")),
+    // H · período + compras
     declaration_period: (period ||
       undefined) as FiscalSettingsInput["declaration_period"],
+    purchase_iva_mode: (mode ||
+      undefined) as FiscalSettingsInput["purchase_iva_mode"],
   };
 }
 
@@ -89,13 +114,22 @@ export async function saveFiscalSettingsAction(
 
   const row = {
     tenant_id: link.tenant_id,
-    service_iva_treatment: input!.service_iva_treatment,
-    iva_rate: input!.iva_rate,
+    fiscal_module_enabled: input!.fiscal_module_enabled,
     is_special_taxpayer: input!.is_special_taxpayer,
-    is_iva_withholding_agent: input!.is_iva_withholding_agent,
+    iva_rate_general: input!.iva_rate_general,
+    iva_rate_reduced: input!.iva_rate_reduced,
+    iva_rate_export: input!.iva_rate_export,
+    iva_rate_luxury_surcharge: input!.iva_rate_luxury_surcharge,
+    default_invoice_iva_mode: input!.default_invoice_iva_mode,
+    igtf_enabled: input!.igtf_enabled,
+    igtf_rate_fx: input!.igtf_rate_fx,
+    igtf_is_perception_agent: input!.igtf_is_perception_agent,
+    iva_withholding_agent: input!.iva_withholding_agent,
     iva_withholding_pct: input!.iva_withholding_pct,
-    purchase_iva_mode: input!.purchase_iva_mode,
+    digital_invoicing_enabled: input!.digital_invoicing_enabled,
+    homologated_provider: input!.homologated_provider,
     declaration_period: input!.declaration_period,
+    purchase_iva_mode: input!.purchase_iva_mode,
     updated_by: userId,
   };
 
@@ -104,7 +138,13 @@ export async function saveFiscalSettingsAction(
     .upsert(row, { onConflict: "tenant_id" });
 
   if (error) {
-    return { error: `No se pudo guardar la configuración: ${error.message}` };
+    // No exponemos el mensaje crudo de Postgres/PostgREST al usuario (puede
+    // revelar nombres de constraint/estructura); lo logueamos server-side.
+    console.error("[fiscal] saveFiscalSettings upsert error:", error);
+    return {
+      error:
+        "No se pudo guardar la configuración fiscal. Revisa los valores e intenta de nuevo.",
+    };
   }
 
   revalidatePath("/studio/fiscal");

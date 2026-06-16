@@ -24,9 +24,10 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   DEFAULT_FISCAL_SETTINGS,
+  type DeclarationPeriod,
   type FiscalSettings,
+  type InvoiceIvaMode,
   type PurchaseIvaMode,
-  type ServiceIvaTreatment,
 } from "./config-types";
 import {
   fiscalRange,
@@ -56,15 +57,27 @@ export type FiscalBook<T> = {
 
 // ── Configuración fiscal (singleton por tenant) ────────────────
 
+const SETTINGS_COLUMNS =
+  "tenant_id, fiscal_module_enabled, is_special_taxpayer, iva_rate_general, iva_rate_reduced, iva_rate_export, iva_rate_luxury_surcharge, default_invoice_iva_mode, igtf_enabled, igtf_rate_fx, igtf_is_perception_agent, iva_withholding_agent, iva_withholding_pct, digital_invoicing_enabled, homologated_provider, declaration_period, purchase_iva_mode, updated_at, updated_by";
+
 type SettingsRow = {
   tenant_id: string;
-  service_iva_treatment: ServiceIvaTreatment;
-  iva_rate: number | string;
+  fiscal_module_enabled: boolean;
   is_special_taxpayer: boolean;
-  is_iva_withholding_agent: boolean;
+  iva_rate_general: number | string;
+  iva_rate_reduced: number | string;
+  iva_rate_export: number | string;
+  iva_rate_luxury_surcharge: number | string;
+  default_invoice_iva_mode: InvoiceIvaMode;
+  igtf_enabled: boolean;
+  igtf_rate_fx: number | string;
+  igtf_is_perception_agent: boolean;
+  iva_withholding_agent: boolean;
   iva_withholding_pct: number | string;
+  digital_invoicing_enabled: boolean;
+  homologated_provider: string | null;
+  declaration_period: DeclarationPeriod;
   purchase_iva_mode: PurchaseIvaMode;
-  declaration_period: "mensual";
   updated_at: string;
   updated_by: string | null;
 };
@@ -87,9 +100,7 @@ export async function getFiscalSettings(
 ): Promise<FiscalSettings> {
   const { data, error } = await supabase
     .from("fiscal_settings")
-    .select(
-      "tenant_id, service_iva_treatment, iva_rate, is_special_taxpayer, is_iva_withholding_agent, iva_withholding_pct, purchase_iva_mode, declaration_period, updated_at, updated_by",
-    )
+    .select(SETTINGS_COLUMNS)
     .maybeSingle<SettingsRow>();
 
   // Error real (no el "no rows" benigno) → propagar; nunca fabricar un libro
@@ -110,13 +121,22 @@ export async function getFiscalSettings(
 
   return {
     tenant_id: data.tenant_id,
-    service_iva_treatment: data.service_iva_treatment,
-    iva_rate: num(data.iva_rate),
+    fiscal_module_enabled: !!data.fiscal_module_enabled,
     is_special_taxpayer: !!data.is_special_taxpayer,
-    is_iva_withholding_agent: !!data.is_iva_withholding_agent,
+    iva_rate_general: num(data.iva_rate_general),
+    iva_rate_reduced: num(data.iva_rate_reduced),
+    iva_rate_export: num(data.iva_rate_export),
+    iva_rate_luxury_surcharge: num(data.iva_rate_luxury_surcharge),
+    default_invoice_iva_mode: data.default_invoice_iva_mode,
+    igtf_enabled: !!data.igtf_enabled,
+    igtf_rate_fx: num(data.igtf_rate_fx),
+    igtf_is_perception_agent: !!data.igtf_is_perception_agent,
+    iva_withholding_agent: !!data.iva_withholding_agent,
     iva_withholding_pct: num(data.iva_withholding_pct),
-    purchase_iva_mode: data.purchase_iva_mode,
+    digital_invoicing_enabled: !!data.digital_invoicing_enabled,
+    homologated_provider: data.homologated_provider,
     declaration_period: data.declaration_period,
+    purchase_iva_mode: data.purchase_iva_mode,
     updated_at: data.updated_at,
     updated_by: data.updated_by,
   };
@@ -132,7 +152,7 @@ export async function getFiscalSettings(
 // reales de invoices (0077) — evita que reaparezca el falso-verde de seleccionar
 // una columna inexistente (`rif`, que NO vive en invoices sino en clients).
 export const INVOICE_COLUMNS =
-  "invoice_code, client_markbox, client_name, currency, base_amount, iva_amount, iva_rate, total_amount, issued_at, created_at, status";
+  "invoice_code, client_markbox, client_name, currency, iva_mode, base_amount, iva_amount, iva_rate, total_amount, issued_at, created_at, status";
 
 // Estados que SÍ entran al libro fiscal: solo facturas EMITIDAS (en cualquier
 // fase de cobro). `borrador` (no emitida) y `anulada` quedan fuera — un libro
@@ -193,6 +213,8 @@ export async function salesBook(
       // Nombre: snapshot de la factura primero (refleja el momento); si falta,
       // el del cliente; si tampoco, "—".
       client_name: (r.client_name as string | null) ?? client?.name ?? null,
+      // Modo de IVA de la factura (§8 #3); null → hereda el default del tenant.
+      iva_mode: (r.iva_mode as InvoiceIvaMode | null) ?? null,
       base_amount: num(r.base_amount),
       iva_amount: num(r.iva_amount),
       iva_rate: num(r.iva_rate),

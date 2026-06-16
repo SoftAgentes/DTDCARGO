@@ -224,9 +224,19 @@ export function buildReport(
 
 // ── Export CSV (PURO, sin lib externa) ─────────────────────────
 
-/** Escapa un valor para una celda CSV (comillas, comas, saltos de línea). */
+/**
+ * Escapa un valor para una celda CSV (comillas, comas, saltos de línea) +
+ * neutraliza **CSV formula injection**: una celda de TEXTO que empieza con
+ * `= + - @` (o tab/CR) la interpreta Excel/Sheets como fórmula (`=HYPERLINK(...)`,
+ * DDE, exfiltración). Si la celda arranca con uno de esos chars y NO es un número
+ * válido, le anteponemos `'` para forzar texto. Los números (incluidos negativos
+ * como `-100`) quedan intactos: `Number("-100")` es finito → no se prefija.
+ */
 export function csvCell(value: unknown): string {
-  const s = value == null ? "" : String(value);
+  let s = value == null ? "" : String(value);
+  if (s !== "" && /^[=+\-@\t\r]/.test(s) && !Number.isFinite(Number(s))) {
+    s = `'${s}`;
+  }
   if (/[",\n\r]/.test(s)) {
     return `"${s.replace(/"/g, '""')}"`;
   }

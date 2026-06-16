@@ -4,7 +4,7 @@ title: "Fiscal · SENIAT — módulo configurable: Configuración fiscal (per-te
 status: in-progress
 author: "Claude Code (carril Bloque 3 · Norte v2.5)"
 created: 2026-06-12
-updated: 2026-06-12
+updated: 2026-06-16
 supersedes: null
 superseded_by: null
 related: ["0018", "0021", "0040", "0042", "0044", "0052", "0053"]
@@ -206,9 +206,15 @@ formato-SENIAT + totales + export CSV/PDF (reusa `lib/studio/reports/export-csv.
 
 > **Esta sección reemplaza la config tentativa de la V1.** Incorpora (a) los **4 principios del
 > founder** (2026-06-12) y (b) el **research normativo verificado** (`assets/seniat-research-2026-06.md`).
-> Es la **estructura objetivo**; **difiere de la V1 ya implementada (`0126`)** — la reconciliación es
-> trabajo futuro ("más adelante trabajamos el tema de SENIAT/fiscal", decisión founder). **Solo se
-> define la estructura; NO se implementa nada de esto todavía.**
+>
+> **✅ IMPLEMENTADA (2026-06-16, vía harness autónomo):** la reconciliación §8 está hecha — migración
+> `0141_fiscal_module_v2_seniat.sql` (ALTER de `fiscal_settings` a la estructura §8.2 + `invoices.iva_mode`),
+> `lib/studio/fiscal/{config-types,types,queries}.ts` reescritos (clasificación por `iva_mode` por factura),
+> UI con **estado módulo-OFF** + form §8 (grupos A–H), tests verdes (`node scripts/verify.mjs` 🟢, 2070 tests).
+> Reviewer **APPROVED** + auditor adversarial (0 crítico/alto; fixes aplicados: CSV-injection hardening,
+> migración robusta `if exists`, error genérico) + ui-ux **OK** (master toggle con acento + disabled legible).
+> **NO aplicada a prod** (gate founder). Queda fuera (ver §8.5): el camino de ESCRITURA de `iva_mode` por
+> factura en el módulo de Facturación (drawer + compute) — el más invasivo, gateado por el master toggle OFF.
 
 ### 8.1 Principios rectores (founder · 2026-06-12)
 
@@ -246,13 +252,25 @@ formato-SENIAT + totales + export CSV/PDF (reusa `lib/studio/reports/export-csv.
 aplicada + base/IVA discriminados. El **número de control** (identificador 2 dígitos + secuencial
 hasta 8) lo **asigna la imprenta digital homologada**, no el ERP (research §1).
 
-### 8.3 Diferencias con la V1 implementada (`0126_fiscal_settings`) — reconciliación futura
+### 8.3 Reconciliación con la V1 (`0126`) — ✅ HECHA (migr `0141`, 2026-06-16)
 
-- V1 tiene `service_iva_treatment` a nivel **tenant** → se **reemplaza** por `default_invoice_iva_mode`
-  (D) + el flag `iva_mode` **por factura** + el master `fiscal_module_enabled` (A).
-- V1 no tiene: `fiscal_module_enabled`, las 4 alícuotas separadas (C), IGTF (E), `digital_invoicing_enabled`
-  / `homologated_provider` (G). `is_special_taxpayer` + retención (B/F) ya están en V1.
-- El flag `iva_mode` por factura exige tocar el módulo de **Facturación (0021)** — es lo más invasivo, V2.
+- ✅ `service_iva_treatment` (tenant) **reemplazado** por `default_invoice_iva_mode` (D) + columna
+  `invoices.iva_mode` **por factura** (lectura en libros) + master `fiscal_module_enabled` (A).
+- ✅ Agregados: `fiscal_module_enabled`, 4 alícuotas separadas (C), IGTF (E), `digital_invoicing_enabled` /
+  `homologated_provider` (G). `is_iva_withholding_agent` renombrado a `iva_withholding_agent` (F, default
+  ahora `false` per research §6). `is_special_taxpayer` (B) conservado.
+- ✅ Libros (`salesBook`) clasifican por el `iva_mode` efectivo de cada factura (propio o el default del
+  tenant si null). Estado **módulo-OFF** en `/studio/fiscal` (principio #1).
+
+### 8.5 Slice siguiente (NO en este loop) — escritura de `iva_mode` por factura
+
+El **camino de ESCRITURA** del `iva_mode` por factura toca el core de Facturación (0021):
+`createInvoice/updateInvoice` (compute de IVA leyendo la config en vez de `tenants.iva_enabled`) + selector
+en el `InvoiceDrawer`. Se **difirió a propósito** (decisión del loop autónomo 2026-06-16): el spec ya lo
+marcaba "lo más invasivo, V2", el master toggle está **OFF** (no entrega valor hoy) y la activación
+depende del contador (§8.4). La columna `invoices.iva_mode` + la lectura en los libros ya están listas —
+es un slice limpio y aislado para cuando se active el módulo. **Debe quedar gateado por RBAC treasury/admin
+(SDD-0085)** al implementarse.
 
 ### 8.4 Pendientes a confirmar (con el contador) antes de activar — load-bearing
 

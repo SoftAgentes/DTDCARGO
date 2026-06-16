@@ -7,13 +7,14 @@
  * Zod) → lo importan tanto `page.tsx` (server) como `FiscalClient.tsx` (client)
  * sin cruzar la frontera RSC.
  *
- * PRINCIPIO RECTOR: la clasificación gravada/exenta sale SIEMPRE de la config
- * (`FiscalSettings.service_iva_treatment`), nunca de un valor hardcodeado. Y
+ * PRINCIPIO RECTOR (§8): la clasificación gravada/exenta sale del modo de IVA de
+ * CADA factura (`invoices.iva_mode`), con fallback al default del tenant
+ * (`FiscalSettings.default_invoice_iva_mode`) — nunca de un valor hardcodeado. Y
  * cero valores fabricados: columna sin fuente real → `null` → la UI muestra "—"
  * + nota honesta (regla heredada de 0052 §3.2).
  */
 
-import type { FiscalSettings, ServiceIvaTreatment } from "./config-types";
+import type { FiscalSettings, InvoiceIvaMode } from "./config-types";
 
 // ── Período mensual (el IVA se declara por mes) ────────────────
 
@@ -112,27 +113,34 @@ export function shiftPeriod(period: FiscalPeriod, delta: number): FiscalPeriod {
 export type IvaClass = "exenta" | "gravada" | "tasa_cero";
 
 /**
- * Clasifica una operación de VENTA según la config del tenant.
- *
- * El parámetro `treatment` SALE de `FiscalSettings.service_iva_treatment` — el
- * código nunca asume el resultado. Para `mixto`, una venta concreta se decide
- * por su propio IVA: si la factura trae IVA > 0 (o alícuota > 0) es gravada; si
- * no, exenta. Así el mismo motor sirve a un tenant exento, a uno gravado y a
- * uno con cartera mixta sin tocar código.
+ * Resuelve el modo de IVA EFECTIVO de una factura: el propio de la factura
+ * (`invoices.iva_mode`) si existe, si no el default del tenant
+ * (`default_invoice_iva_mode`). El código nunca asume el resultado (§8 #3).
  */
-export function classifyVenta(
-  treatment: ServiceIvaTreatment,
-  opts: { ivaAmount: number; ivaRate: number },
-): IvaClass {
-  switch (treatment) {
-    case "exento":
-      return "exenta";
+export function effectiveInvoiceIvaMode(
+  invoiceMode: InvoiceIvaMode | null,
+  defaultMode: InvoiceIvaMode,
+): InvoiceIvaMode {
+  return invoiceMode ?? defaultMode;
+}
+
+/**
+ * Clasifica una operación de VENTA según el modo de IVA EFECTIVO de la factura
+ * (§8 #3 — IVA por factura, no por tenant):
+ *  - `con_iva`   → gravada (alícuota general de la config / la real de la factura)
+ *  - `tasa_cero` → tasa cero (0%)
+ *  - `exento`    → exenta
+ *  - `sin_iva`   → exenta para el libro (no se cobró IVA; base sin débito fiscal)
+ */
+export function classifyVenta(mode: InvoiceIvaMode): IvaClass {
+  switch (mode) {
+    case "con_iva":
+      return "gravada";
     case "tasa_cero":
       return "tasa_cero";
-    case "gravado":
-      return "gravada";
-    case "mixto":
-      return opts.ivaAmount > 0 || opts.ivaRate > 0 ? "gravada" : "exenta";
+    case "exento":
+    case "sin_iva":
+      return "exenta";
   }
 }
 
@@ -323,6 +331,8 @@ export interface RawInvoice {
   invoice_code: string;
   client_name: string | null;
   rif: string | null;
+  /** Modo de IVA de la factura (§8 #3). null → hereda el default del tenant. */
+  iva_mode: InvoiceIvaMode | null;
   base_amount: number;
   iva_amount: number;
   iva_rate: number;
@@ -332,24 +342,26 @@ export interface RawInvoice {
 }
 
 /**
- * Mapea una factura cruda a una fila del Libro de Ventas, clasificando según la
- * config (`settings.service_iva_treatment`). El IVA mostrado respeta la clase:
- * exenta/tasa cero → 0 (NO se arrastra un iva_amount residual).
+ * Mapea una factura cruda a una fila del Libro de Ventas, clasificando por el
+ * modo de IVA EFECTIVO de la factura (`iva_mode` propio, o el default del
+ * tenant si null — §8 #3). El IVA mostrado respeta la clase: exenta/tasa cero
+ * → 0 (NO se arrastra un iva_amount residual).
  *
  * Coherencia columna-a-columna: si la fila es gravada pero la factura NO trae
- * IVA real (`iva_amount === 0` — típico de facturas viejas anteriores a la capa
- * fiscal), NO se fuerza la alícuota general. Hacerlo pintaría "base 1000, 16%,
- * IVA 0, total 1000", que no cuadra. Sin fuente de IVA → `rate = null` ("—") y
- * `iva = 0`; nada se recalcula (regla §3.2: sin fuente, no se fabrica).
+ * IVA real (`iva_amount === 0` — típico de facturas anteriores a activar el
+ * módulo fiscal), NO se fuerza la alícuota general. Hacerlo pintaría "base 1000,
+ * 16%, IVA 0, total 1000", que no cuadra. Sin fuente de IVA → `rate = null`
+ * ("—") y `iva = 0`; nada se recalcula (regla §3.2: sin fuente, no se fabrica).
  */
 export function toSalesRow(
   inv: RawInvoice,
   settings: FiscalSettings,
 ): SalesBookRow {
-  const klass = classifyVenta(settings.service_iva_treatment, {
-    ivaAmount: inv.iva_amount,
-    ivaRate: inv.iva_rate,
-  });
+  const mode = effectiveInvoiceIvaMode(
+    inv.iva_mode,
+    settings.default_invoice_iva_mode,
+  );
+  const klass = classifyVenta(mode);
   const iva = klass === "gravada" ? inv.iva_amount : 0;
   // Gravada sin IVA real (iva_amount === 0) → alícuota "—" (null), no la general.
   const rate =
@@ -357,7 +369,7 @@ export function toSalesRow(
       ? null
       : effectiveRate(klass, {
           invoiceRate: inv.iva_rate,
-          generalRate: settings.iva_rate,
+          generalRate: settings.iva_rate_general,
         });
   const base = inv.base_amount;
   return {

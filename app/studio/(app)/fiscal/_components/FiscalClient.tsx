@@ -21,7 +21,8 @@ import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Icon } from "@/app/studio/_components/icons";
 import {
-  serviceIvaTreatmentLabel,
+  invoiceIvaModeLabel,
+  isFiscalModuleEnabled,
   type FiscalSettings,
 } from "@/lib/studio/fiscal/config-types";
 import {
@@ -81,6 +82,7 @@ export function FiscalClient({
 }: Props) {
   const router = useRouter();
   const params = useSearchParams();
+  const moduleOn = isFiscalModuleEnabled(settings);
 
   const go = (next: Partial<{ tab: FiscalTab; period: FiscalPeriod }>) => {
     const sp = new URLSearchParams(params.toString());
@@ -101,10 +103,18 @@ export function FiscalClient({
         <p style={{ font: "500 13.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "8px 0 0", maxWidth: "70ch" }}>
           Libros de Ventas y Compras en formato SENIAT, generados según la{" "}
           <strong style={{ color: "var(--ink)" }}>configuración fiscal</strong> de tu
-          empresa. Calificación actual:{" "}
-          <strong style={{ color: "var(--ink)" }}>
-            {serviceIvaTreatmentLabel(settings.service_iva_treatment)}
+          empresa.{" "}
+          <strong style={{ color: moduleOn ? "var(--success)" : "var(--ink-mute)" }}>
+            Módulo {moduleOn ? "activo" : "desactivado"}
           </strong>
+          {moduleOn && (
+            <>
+              {" "}· IVA por defecto en facturas nuevas:{" "}
+              <strong style={{ color: "var(--ink)" }}>
+                {invoiceIvaModeLabel(settings.default_invoice_iva_mode)}
+              </strong>
+            </>
+          )}
           .
         </p>
       </header>
@@ -144,26 +154,71 @@ export function FiscalClient({
 
       {tab === "config" && <FiscalConfig settings={settings} canEdit={canEditConfig} />}
 
-      {tab === "ventas" && (
-        <SalesBookView
-          period={period}
-          rows={sales ?? []}
-          settings={settings}
-          currencies={currencies}
-          onPeriod={(p) => go({ period: p })}
-        />
-      )}
+      {/* Principio #1: con el módulo OFF los libros no aplican (módulo inerte).
+          Mostramos un estado claro con CTA a Configuración para activarlo. */}
+      {tab === "ventas" &&
+        (moduleOn ? (
+          <SalesBookView
+            period={period}
+            rows={sales ?? []}
+            settings={settings}
+            currencies={currencies}
+            onPeriod={(p) => go({ period: p })}
+          />
+        ) : (
+          <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
+        ))}
 
-      {tab === "compras" && (
-        <PurchaseBookView
-          period={period}
-          rows={purchases ?? []}
-          settings={settings}
-          currencies={currencies}
-          onPeriod={(p) => go({ period: p })}
-        />
-      )}
+      {tab === "compras" &&
+        (moduleOn ? (
+          <PurchaseBookView
+            period={period}
+            rows={purchases ?? []}
+            settings={settings}
+            currencies={currencies}
+            onPeriod={(p) => go({ period: p })}
+          />
+        ) : (
+          <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
+        ))}
     </div>
+  );
+}
+
+// ── Módulo desactivado (principio #1 · master toggle OFF) ──────
+/**
+ * Estado cuando `fiscal_module_enabled = false`: el módulo es inerte (no genera
+ * libros, no toca IVA, la facturación sigue normal). DTD hoy = OFF. El admin lo
+ * activa desde Configuración con su contador.
+ */
+function FiscalDisabled({
+  canEditConfig,
+  onGoConfig,
+}: {
+  canEditConfig: boolean;
+  onGoConfig: () => void;
+}) {
+  return (
+    <EmptyState
+      eyebrow="Módulo fiscal desactivado"
+      title="Los libros de IVA están apagados"
+      description={
+        canEditConfig
+          ? "El módulo Fiscal/SENIAT está desactivado: la facturación funciona normal (sin IVA) y no se generan libros. Para activarlo, configúralo con tu contador en la pestaña Configuración."
+          : "El módulo Fiscal/SENIAT está desactivado. Un administrador puede activarlo desde Configuración, junto con el contador."
+      }
+      action={
+        canEditConfig ? (
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary studio-btn-sm"
+            onClick={onGoConfig}
+          >
+            Ir a Configuración
+          </button>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -437,10 +492,11 @@ function SalesBookView({
             </table>
           </div>
           <FootNote>
-            Operaciones clasificadas según tu configuración fiscal (
-            {serviceIvaTreatmentLabel(settings.service_iva_treatment)}). El nº de
-            control fiscal aún no se captura → se muestra “—”. La columna de
-            retención queda preparada para cuando se emitan comprobantes (V2).
+            Operaciones clasificadas según el modo de IVA de cada factura
+            (default del tenant: {invoiceIvaModeLabel(settings.default_invoice_iva_mode)}). El
+            nº de control fiscal lo asigna el proveedor homologado (facturación digital,
+            V2) → por ahora “—”. La columna de retención queda preparada para los
+            comprobantes (V2).
           </FootNote>
           <PrintLayout
             title={`Libro de Ventas · ${periodLabel(period)}`}

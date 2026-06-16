@@ -33,6 +33,30 @@ describe("rowsToCsv", () => {
     expect(lines[2]).toBe('"Dijo ""hola""",');
     expect(lines[3]).toBe('"dos\nlíneas",3');
   });
+
+  it("neutraliza CSV formula injection (= + - @) en celdas de texto", () => {
+    const csv = rowsToCsv(
+      ["Nombre", "Monto"],
+      [
+        ['=HYPERLINK("http://evil","x")', 100],
+        ["+1+1", 50],
+        ["@cmd", 0],
+        ["-cmd", 0],
+      ],
+    );
+    const lines = csv.split("\r\n");
+    // El '=' fuerza comillas (lleva comas) + prefijo ' → tratado como texto.
+    expect(lines[1]).toBe('"\'=HYPERLINK(""http://evil"",""x"")",100');
+    expect(lines[2]).toBe("'+1+1,50");
+    expect(lines[3]).toBe("'@cmd,0");
+    expect(lines[4]).toBe("'-cmd,0");
+  });
+
+  it("NO prefija números legítimos (incluidos negativos)", () => {
+    const csv = rowsToCsv(["A", "B"], [[-100, "-250.5"]]);
+    // -100 (number) y "-250.5" (string numérica) quedan intactos: son finitos.
+    expect(csv.split("\r\n")[1]).toBe("-100,-250.5");
+  });
 });
 
 describe("reportFilename", () => {

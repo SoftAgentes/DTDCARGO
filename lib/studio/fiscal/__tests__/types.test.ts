@@ -1,10 +1,12 @@
 /**
- * Tests de los helpers puros de Libros de IVA (SDD-0073 · types).
+ * Tests de los helpers puros de Libros de IVA (SDD-0073 §8 · types).
  *
- * Cubre Acceptance §5:
+ * §8 #3: la clasificación gravada/exenta DERIVA del modo de IVA de cada factura
+ * (`iva_mode`), con fallback al default del tenant — nunca de un valor hardcodeado.
  *  - fiscalRange: 1° a último día del mes, con bordes (30/31) y bisiesto (feb).
- *  - clasificación según settings: exento vs gravado vs tasa_cero vs mixto.
- *  - el mismo setting cambia el libro (exento → IVA 0; gravado → débito).
+ *  - classifyVenta(mode): con_iva→gravada · tasa_cero · exento/sin_iva→exenta.
+ *  - effectiveInvoiceIvaMode: usa el de la factura, o el default del tenant si null.
+ *  - cambiar el iva_mode cambia el libro (sin_iva → IVA 0; con_iva → débito).
  *  - totales por alícuota + desglose exenta/gravada/tasa_cero.
  */
 
@@ -12,12 +14,13 @@ import { describe, it, expect } from "vitest";
 import {
   DEFAULT_FISCAL_SETTINGS,
   type FiscalSettings,
-  type ServiceIvaTreatment,
+  type InvoiceIvaMode,
 } from "../config-types";
 import {
   asPeriod,
   classifyVenta,
   currentPeriod,
+  effectiveInvoiceIvaMode,
   effectiveRate,
   fiscalRange,
   isValidPeriod,
@@ -28,10 +31,12 @@ import {
   type RawInvoice,
 } from "../types";
 
-function settingsWith(treatment: ServiceIvaTreatment): FiscalSettings {
+/** Settings con un default de factura dado (módulo ON para los libros). */
+function settingsWith(defaultMode: InvoiceIvaMode): FiscalSettings {
   return {
     ...DEFAULT_FISCAL_SETTINGS,
-    service_iva_treatment: treatment,
+    fiscal_module_enabled: true,
+    default_invoice_iva_mode: defaultMode,
     tenant_id: "t1",
     updated_at: null,
     updated_by: null,
@@ -87,23 +92,28 @@ describe("período YYYY-MM", () => {
   });
 });
 
-// ── clasificación según settings ───────────────────────────────
-describe("classifyVenta · DERIVA de la config (nunca hardcodea)", () => {
-  it("exento → siempre exenta", () => {
-    expect(classifyVenta("exento", { ivaAmount: 0, ivaRate: 0 })).toBe("exenta");
-    // Aun si la factura trajera IVA, el setting manda.
-    expect(classifyVenta("exento", { ivaAmount: 50, ivaRate: 16 })).toBe("exenta");
-  });
-  it("gravado → siempre gravada", () => {
-    expect(classifyVenta("gravado", { ivaAmount: 0, ivaRate: 0 })).toBe("gravada");
+// ── clasificación por modo de IVA de la factura (§8 #3) ─────────
+describe("classifyVenta · DERIVA del iva_mode (nunca hardcodea)", () => {
+  it("con_iva → gravada", () => {
+    expect(classifyVenta("con_iva")).toBe("gravada");
   });
   it("tasa_cero → tasa_cero", () => {
-    expect(classifyVenta("tasa_cero", { ivaAmount: 0, ivaRate: 0 })).toBe("tasa_cero");
+    expect(classifyVenta("tasa_cero")).toBe("tasa_cero");
   });
-  it("mixto → se decide por el IVA de la factura", () => {
-    expect(classifyVenta("mixto", { ivaAmount: 0, ivaRate: 0 })).toBe("exenta");
-    expect(classifyVenta("mixto", { ivaAmount: 16, ivaRate: 16 })).toBe("gravada");
-    expect(classifyVenta("mixto", { ivaAmount: 0, ivaRate: 16 })).toBe("gravada");
+  it("exento → exenta", () => {
+    expect(classifyVenta("exento")).toBe("exenta");
+  });
+  it("sin_iva → exenta (no se cobró IVA)", () => {
+    expect(classifyVenta("sin_iva")).toBe("exenta");
+  });
+});
+
+describe("effectiveInvoiceIvaMode · factura o default del tenant", () => {
+  it("usa el de la factura si existe", () => {
+    expect(effectiveInvoiceIvaMode("con_iva", "sin_iva")).toBe("con_iva");
+  });
+  it("cae al default del tenant si la factura es null", () => {
+    expect(effectiveInvoiceIvaMode(null, "exento")).toBe("exento");
   });
 });
 
@@ -120,11 +130,12 @@ describe("effectiveRate", () => {
   });
 });
 
-// ── el mismo setting cambia el libro ───────────────────────────
+// ── cambiar el iva_mode cambia el libro ────────────────────────
 const SAMPLE: RawInvoice = {
   invoice_code: "F-2026-0001",
   client_name: "Cliente A",
   rif: "J-12345678-9",
+  iva_mode: null, // hereda el default del tenant
   base_amount: 1000,
   iva_amount: 160,
   iva_rate: 16,
@@ -133,9 +144,9 @@ const SAMPLE: RawInvoice = {
   created_at: "2026-06-10T12:00:00Z",
 };
 
-describe("toSalesRow · cambiar el setting cambia el libro (Acceptance)", () => {
-  it("exento → IVA 0 aunque la factura traiga iva_amount", () => {
-    const row = toSalesRow(SAMPLE, settingsWith("exento"));
+describe("toSalesRow · cambiar el modo cambia el libro (Acceptance §8)", () => {
+  it("default sin_iva → IVA 0 aunque la factura traiga iva_amount", () => {
+    const row = toSalesRow(SAMPLE, settingsWith("sin_iva"));
     expect(row.ivaClass).toBe("exenta");
     expect(row.iva).toBe(0);
     expect(row.rate).toBeNull();
@@ -143,31 +154,45 @@ describe("toSalesRow · cambiar el setting cambia el libro (Acceptance)", () => 
     expect(row.total).toBe(1000); // base + iva(0)
   });
 
-  it("gravado → débito = iva_amount de la factura", () => {
-    const row = toSalesRow(SAMPLE, settingsWith("gravado"));
+  it("default exento → exenta", () => {
+    const row = toSalesRow(SAMPLE, settingsWith("exento"));
+    expect(row.ivaClass).toBe("exenta");
+    expect(row.iva).toBe(0);
+    expect(row.rate).toBeNull();
+  });
+
+  it("default con_iva → débito = iva_amount de la factura", () => {
+    const row = toSalesRow(SAMPLE, settingsWith("con_iva"));
     expect(row.ivaClass).toBe("gravada");
     expect(row.iva).toBe(160);
     expect(row.rate).toBe(16);
     expect(row.total).toBe(1160);
   });
 
-  it("tasa_cero → IVA 0 pero alícuota 0 (no null)", () => {
+  it("la factura sobreescribe el default del tenant (iva_mode propio)", () => {
+    // Tenant default = sin_iva, pero ESTA factura es con_iva → gravada.
+    const row = toSalesRow({ ...SAMPLE, iva_mode: "con_iva" }, settingsWith("sin_iva"));
+    expect(row.ivaClass).toBe("gravada");
+    expect(row.iva).toBe(160);
+    expect(row.rate).toBe(16);
+  });
+
+  it("default tasa_cero → IVA 0 pero alícuota 0 (no null)", () => {
     const row = toSalesRow(SAMPLE, settingsWith("tasa_cero"));
     expect(row.ivaClass).toBe("tasa_cero");
     expect(row.iva).toBe(0);
     expect(row.rate).toBe(0);
   });
 
-  it("gravada SIN IVA real (iva_amount 0) → alícuota null ('—'), NO la general (#4)", () => {
-    // Factura vieja (anterior a la capa fiscal): base sí, pero iva_amount = 0.
-    // Forzar la alícuota general pintaría 'base 1000, 16%, IVA 0' — incoherente.
+  it("gravada (con_iva) SIN IVA real (iva_amount 0) → alícuota null ('—'), NO la general (#4)", () => {
     const vieja: RawInvoice = {
       ...SAMPLE,
+      iva_mode: "con_iva",
       iva_amount: 0,
       iva_rate: 0,
       total_amount: 1000,
     };
-    const row = toSalesRow(vieja, settingsWith("gravado"));
+    const row = toSalesRow(vieja, settingsWith("con_iva"));
     expect(row.ivaClass).toBe("gravada");
     expect(row.iva).toBe(0);
     expect(row.rate).toBeNull(); // "—", no 16
@@ -175,35 +200,28 @@ describe("toSalesRow · cambiar el setting cambia el libro (Acceptance)", () => 
     expect(row.total).toBe(1000); // cuadra columna a columna
   });
 
-  it("gravada CON IVA real → mantiene la alícuota de la factura (no se rompe el caso normal)", () => {
-    const row = toSalesRow(SAMPLE, settingsWith("gravado"));
-    expect(row.ivaClass).toBe("gravada");
-    expect(row.iva).toBe(160);
-    expect(row.rate).toBe(16);
-  });
-
   it("nº de control sin fuente → null (UI muestra '—', §3.2)", () => {
-    const row = toSalesRow(SAMPLE, settingsWith("gravado"));
+    const row = toSalesRow(SAMPLE, settingsWith("con_iva"));
     expect(row.controlNumber).toBeNull();
     expect(row.retention).toBeNull();
   });
 
   it("issued_at null → cae a created_at (YYYY-MM-DD)", () => {
-    const row = toSalesRow({ ...SAMPLE, issued_at: null }, settingsWith("exento"));
+    const row = toSalesRow({ ...SAMPLE, issued_at: null }, settingsWith("sin_iva"));
     expect(row.date).toBe("2026-06-10");
   });
 });
 
 // ── totales por alícuota ───────────────────────────────────────
 describe("salesTotals · Σ + desglose por alícuota", () => {
-  const settingsGravado = settingsWith("gravado");
+  const conIva = settingsWith("con_iva");
 
   it("suma base/IVA/total y agrupa por alícuota", () => {
     const rows = [
-      toSalesRow(SAMPLE, settingsGravado), // base 1000, iva 160 @16
+      toSalesRow(SAMPLE, conIva), // base 1000, iva 160 @16
       toSalesRow(
         { ...SAMPLE, invoice_code: "F-2026-0002", base_amount: 500, iva_amount: 80 },
-        settingsGravado,
+        conIva,
       ), // base 500, iva 80 @16
     ];
     const t = salesTotals(rows);
@@ -214,19 +232,19 @@ describe("salesTotals · Σ + desglose por alícuota", () => {
     expect(t.byRate).toEqual([{ rate: 16, base: 1500, iva: 240 }]);
   });
 
-  it("mezcla exenta + gravada (cartera mixta)", () => {
-    const mixto = settingsWith("mixto");
+  it("mezcla exenta + gravada (por iva_mode de cada factura)", () => {
     const exentaInv: RawInvoice = {
       ...SAMPLE,
       invoice_code: "F-2026-0003",
+      iva_mode: "sin_iva", // esta factura sin IVA
       base_amount: 700,
       iva_amount: 0,
       iva_rate: 0,
       total_amount: 700,
     };
     const rows = [
-      toSalesRow(SAMPLE, mixto), // gravada: base 1000, iva 160
-      toSalesRow(exentaInv, mixto), // exenta: base 700
+      toSalesRow({ ...SAMPLE, iva_mode: "con_iva" }, conIva), // gravada: base 1000, iva 160
+      toSalesRow(exentaInv, conIva), // exenta: base 700
     ];
     const t = salesTotals(rows);
     expect(t.baseGravada).toBe(1000);

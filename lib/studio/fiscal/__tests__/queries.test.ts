@@ -45,6 +45,7 @@ const REAL_INVOICE_COLUMNS = new Set([
   "currency",
   "fx_rate",
   "iva_rate",
+  "iva_mode", // SDD-0073 §8: modo de IVA por factura (migr 0141)
   "base_amount",
   "iva_amount",
   "total_amount",
@@ -130,26 +131,29 @@ function topLevelColumns(select: string): string[] {
     .filter(Boolean);
 }
 
-const SETTINGS_EXENTO: FiscalSettings = {
+// Default del tenant = sin_iva → las facturas sin iva_mode propio salen exentas.
+const SETTINGS_SIN_IVA: FiscalSettings = {
   ...DEFAULT_FISCAL_SETTINGS,
-  service_iva_treatment: "exento",
+  fiscal_module_enabled: true,
+  default_invoice_iva_mode: "sin_iva",
   tenant_id: "t1",
   updated_at: null,
   updated_by: null,
 };
-const SETTINGS_GRAVADO: FiscalSettings = {
-  ...SETTINGS_EXENTO,
-  service_iva_treatment: "gravado",
+// Default del tenant = con_iva → las facturas sin iva_mode propio salen gravadas.
+const SETTINGS_CON_IVA: FiscalSettings = {
+  ...SETTINGS_SIN_IVA,
+  default_invoice_iva_mode: "con_iva",
 };
 
 // ── getFiscalSettings ──────────────────────────────────────────
 describe("getFiscalSettings", () => {
-  it("cae a los defaults cuando no hay row (cero-config)", async () => {
+  it("cae a los defaults cuando no hay row (cero-config, módulo OFF)", async () => {
     const { client } = stub({ fiscal_settings: [] });
     const s = await getFiscalSettings(client);
-    expect(s.service_iva_treatment).toBe(DEFAULT_FISCAL_SETTINGS.service_iva_treatment);
-    expect(s.iva_rate).toBe(DEFAULT_FISCAL_SETTINGS.iva_rate);
-    expect(s.is_iva_withholding_agent).toBe(true);
+    expect(s.fiscal_module_enabled).toBe(false);
+    expect(s.default_invoice_iva_mode).toBe(DEFAULT_FISCAL_SETTINGS.default_invoice_iva_mode);
+    expect(s.iva_rate_general).toBe(DEFAULT_FISCAL_SETTINGS.iva_rate_general);
     expect(s.tenant_id).toBeNull(); // aún no persistida
   });
 
@@ -169,20 +173,29 @@ describe("getFiscalSettings", () => {
       { fiscal_settings: { code: "PGRST116", message: "no rows" } },
     );
     const s = await getFiscalSettings(client);
-    expect(s.service_iva_treatment).toBe(DEFAULT_FISCAL_SETTINGS.service_iva_treatment);
+    expect(s.fiscal_module_enabled).toBe(false);
     expect(s.tenant_id).toBeNull();
   });
 
-  it("mapea la row y normaliza numeric (string → number)", async () => {
+  it("mapea la row §8 y normaliza numeric (string → number)", async () => {
     const { client } = stub({
       fiscal_settings: [
         {
           tenant_id: "t1",
-          service_iva_treatment: "gravado",
-          iva_rate: "16.00",
+          fiscal_module_enabled: true,
           is_special_taxpayer: true,
-          is_iva_withholding_agent: false,
+          iva_rate_general: "16.00",
+          iva_rate_reduced: "8.00",
+          iva_rate_export: "0",
+          iva_rate_luxury_surcharge: "15.00",
+          default_invoice_iva_mode: "con_iva",
+          igtf_enabled: true,
+          igtf_rate_fx: "3.00",
+          igtf_is_perception_agent: false,
+          iva_withholding_agent: false,
           iva_withholding_pct: "100.00",
+          digital_invoicing_enabled: false,
+          homologated_provider: null,
           purchase_iva_mode: "derivado",
           declaration_period: "mensual",
           updated_at: "2026-06-12T00:00:00Z",
@@ -192,12 +205,16 @@ describe("getFiscalSettings", () => {
     });
     const s = await getFiscalSettings(client);
     expect(s.tenant_id).toBe("t1");
-    expect(s.service_iva_treatment).toBe("gravado");
-    expect(s.iva_rate).toBe(16);
-    expect(typeof s.iva_rate).toBe("number");
+    expect(s.fiscal_module_enabled).toBe(true);
+    expect(s.default_invoice_iva_mode).toBe("con_iva");
+    expect(s.iva_rate_general).toBe(16);
+    expect(typeof s.iva_rate_general).toBe("number");
+    expect(s.iva_rate_reduced).toBe(8);
+    expect(s.igtf_enabled).toBe(true);
+    expect(s.igtf_rate_fx).toBe(3);
     expect(s.iva_withholding_pct).toBe(100);
     expect(s.is_special_taxpayer).toBe(true);
-    expect(s.is_iva_withholding_agent).toBe(false);
+    expect(s.iva_withholding_agent).toBe(false);
   });
 });
 
@@ -219,7 +236,7 @@ describe("INVOICE_COLUMNS solo selecciona columnas reales de invoices", () => {
 describe("salesBook", () => {
   it("filtra el rango mensual sobre created_at y EXCLUYE borrador (#2)", async () => {
     const { client, calls } = stub({ invoices: [], clients: [] });
-    await salesBook(client, "2026-06", SETTINGS_EXENTO);
+    await salesBook(client, "2026-06", SETTINGS_SIN_IVA);
 
     expect(calls.invoices.gte).toContainEqual(["created_at", "2026-06-01"]);
     expect(calls.invoices.lte[0][0]).toBe("created_at");
@@ -256,7 +273,7 @@ describe("salesBook", () => {
       ],
       clients: [{ markbox: "DTD-1001", name: "Cliente A", rif: "J-12345678-9" }],
     });
-    const { rows } = await salesBook(client, "2026-06", SETTINGS_GRAVADO);
+    const { rows } = await salesBook(client, "2026-06", SETTINGS_CON_IVA);
     expect(rows).toHaveLength(1);
     expect(rows[0].invoiceCode).toBe("F-2026-0001");
     // RIF viene de clients (invoices no lo tiene).
@@ -290,7 +307,7 @@ describe("salesBook", () => {
       ],
       clients: [],
     });
-    const { rows } = await salesBook(client, "2026-06", SETTINGS_EXENTO);
+    const { rows } = await salesBook(client, "2026-06", SETTINGS_SIN_IVA);
     expect(rows[0].rif).toBeNull(); // UI muestra "—"
   });
 
@@ -326,7 +343,7 @@ describe("salesBook", () => {
       ],
       clients: [],
     });
-    const { currencies } = await salesBook(client, "2026-06", SETTINGS_EXENTO);
+    const { currencies } = await salesBook(client, "2026-06", SETTINGS_SIN_IVA);
     expect(currencies).toEqual(["USD", "VES"]);
   });
 
@@ -349,7 +366,7 @@ describe("salesBook", () => {
       ],
       clients: [{ markbox: "DTD-1001", name: "Cliente A", rif: "J-1" }],
     });
-    const { rows } = await salesBook(client, "2026-06", SETTINGS_EXENTO);
+    const { rows } = await salesBook(client, "2026-06", SETTINGS_SIN_IVA);
     expect(rows[0].ivaClass).toBe("exenta");
     expect(rows[0].iva).toBe(0);
     expect(rows[0].rate).toBeNull();
@@ -360,7 +377,7 @@ describe("salesBook", () => {
 describe("purchaseBook", () => {
   it("filtra issue_date del mes y excluye anuladas", async () => {
     const { client, calls } = stub({ supplier_bills: [] });
-    await purchaseBook(client, "2026-02", SETTINGS_GRAVADO);
+    await purchaseBook(client, "2026-02", SETTINGS_CON_IVA);
 
     expect(calls.supplier_bills.gte).toContainEqual(["issue_date", "2026-02-01"]);
     // 2026 no es bisiesto → feb termina el 28.
@@ -385,7 +402,7 @@ describe("purchaseBook", () => {
         },
       ],
     });
-    const { rows } = await purchaseBook(client, "2026-02", SETTINGS_GRAVADO);
+    const { rows } = await purchaseBook(client, "2026-02", SETTINGS_CON_IVA);
     expect(rows).toHaveLength(1);
     expect(rows[0].documentNumber).toBe("FAC-998"); // usa reference del proveedor
     expect(rows[0].supplierName).toBe("Proveedor X");
@@ -413,7 +430,7 @@ describe("purchaseBook", () => {
         },
       ],
     });
-    const { rows } = await purchaseBook(client, "2026-02", SETTINGS_GRAVADO);
+    const { rows } = await purchaseBook(client, "2026-02", SETTINGS_CON_IVA);
     expect(rows[0].rif).toBe("J-PRV-2");
     // sin reference → cae al código interno del bill.
     expect(rows[0].documentNumber).toBe("CXP-2026-0002");
@@ -446,7 +463,7 @@ describe("purchaseBook", () => {
         },
       ],
     });
-    const { currencies } = await purchaseBook(client, "2026-02", SETTINGS_GRAVADO);
+    const { currencies } = await purchaseBook(client, "2026-02", SETTINGS_CON_IVA);
     expect(currencies).toEqual(["CNY", "USD"]);
   });
 });
