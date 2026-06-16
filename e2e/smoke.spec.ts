@@ -14,10 +14,12 @@ test.describe("rutas públicas críticas", () => {
     // Brand book: "DTD Cargo" (dos palabras, Cargo capitalizado). Antes era
     // "DTD·CARGO" (con middot, CARGO todo mayúsculas).
     await expect(page).toHaveTitle(/DTD\s+Cargo/);
-    // H1 = tagline-headline (founder 2026-06-13): "Con confianza, desde China hacia Venezuela."
-    await expect(page.locator("h1")).toContainText("Con confianza");
-    await expect(page.locator("h1")).toContainText("Venezuela");
-    // El cotizador del hero sigue mencionando China.
+    // H1 = tagline-headline (founder 2026-06-14): "Con Confianza, desde China hasta tu puerta."
+    await expect(page.locator("h1")).toContainText("Con Confianza");
+    await expect(page.locator("h1")).toContainText("tu puerta");
+    // Venezuela pasó del H1 al subtítulo (el H1 lidera el beneficio, no el destino).
+    await expect(page.locator("body")).toContainText("Venezuela");
+    // El cuerpo del hero sigue mencionando China.
     await expect(page.locator("body")).toContainText(/China|Yiwu|cotizar/i);
   });
 
@@ -71,8 +73,9 @@ test.describe("rutas públicas críticas", () => {
     await expect(page.locator('input[aria-label="Código de tracking"]')).toBeVisible();
   });
 
-  test("/track con código mock muestra timeline", async ({ page }) => {
-    await page.goto("/track/DTDU-TEST-123");
+  test("/track con código de ejemplo muestra timeline", async ({ page }) => {
+    // EJEMPLO = envío demo determinista (page.tsx, status in_transit), sin tocar la DB.
+    await page.goto("/track/EJEMPLO");
     await expect(page.locator("body")).toContainText(/en tránsito|En tránsito/i);
   });
 

@@ -7,8 +7,8 @@ import { CicloCliente } from "./CicloCliente";
  * Hero principal — eyebrow + H1 (tagline-headline) + subtítulo + CTA + el
  * Ciclo del Cliente (cinta en bucle). Copy configurable desde `lib/design-tokens.ts` const `HERO`.
  *
- * Founder 2026-06-13: el H1 es el tagline-headline ("Con confianza, desde China
- * hacia Venezuela."); se removió el kicker (repetía) y el cotizador inline (el
+ * Founder 2026-06-14: el H1 es el tagline-headline ("Con Confianza, desde China
+ * hasta tu puerta."); se removió el kicker (repetía) y el cotizador inline (el
  * CTA primario va a /calculadora). DDP queda como aclaración en el microcopy.
  */
 export function Hero() {
@@ -18,7 +18,7 @@ export function Hero() {
         <div>
           {/* Eyebrow gris: categoría + año del corredor a Venezuela (2015), no la empresa. */}
           <p className="eyebrow">{HERO.eyebrow}</p>
-          {/* H1 = tagline-headline: `lead` ("Con confianza,") en wine, resto en ink. */}
+          {/* H1 = tagline-headline: `lead` ("Con Confianza,") en wine, resto en ink. */}
           <h1 className="h-display mt-4 leading-[1.02]">
             <span
               className="block"
