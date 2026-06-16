@@ -21,6 +21,7 @@ import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-type
 import { getDefaultInitialStatus } from "@/lib/studio/shipment-state-machine";
 import { SERVICE_LABELS } from "@/lib/studio/shipment-types";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
+import { fireWorkflowEvent } from "@/lib/studio/workflow/workflow-rule-engine";
 import { prefillShipmentCostsFromTemplate } from "@/lib/studio/costing/queries";
 
 const VALID_SERVICES: ShipmentService[] = [
@@ -138,6 +139,17 @@ export async function createShipment(
       clientMarkbox: client_markbox,
       clientName: client_name,
       sourceRef: { kind: "shipment", id: created.id },
+    });
+
+    // Motor de flujo interno (SDD-0091): registra las corridas de los pasos del
+    // backbone para shipment_created. Best-effort, gemelo de fireMailEvent — no
+    // rompe la creación del embarque. serviceKey=null = solo el backbone (los pasos
+    // por servicio se resolverán cuando el wiring mapee shipment_service → ServicioId).
+    await fireWorkflowEvent(admin, tenantId, {
+      event: "shipment_created",
+      sourceKind: "shipment",
+      sourceId: created.id,
+      serviceKey: null,
     });
 
     // Auto-prefill de costos desde el template de ruta que matchee (SDD-0053
