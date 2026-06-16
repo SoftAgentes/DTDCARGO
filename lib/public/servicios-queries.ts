@@ -16,7 +16,17 @@
  */
 
 import { getAnonClient } from "./supabase-anon";
-import { SERVICE_CATALOG } from "@/lib/shared/service-catalog";
+import {
+  SERVICE_CATALOG,
+  SERVICE_CATALOG_BY_ID,
+  type ServicioId,
+} from "@/lib/shared/service-catalog";
+import {
+  CHARGE_MODES,
+  type ChargeMode,
+  type OfferOverride,
+  type OfferOverrides,
+} from "@/lib/shared/service-offer";
 import {
   SERVICIOS_DETALLE,
   type ServicioDetalle,
@@ -39,6 +49,11 @@ export type PublicServicio = {
   note_public: string | null;
   condiciones_politicas: string | null;
   service_state: string;
+  // SDD-0090 (matriz de oferta) — opcionales: el RPC 0130 no los devuelve hasta
+  // aplicar la migración 0142, así que pueden venir undefined (forward-compat).
+  suggests_keys?: string[] | null;
+  includes_keys?: string[] | null;
+  charge_mode?: string | null;
 };
 
 export type PublicServiceFaq = {
@@ -190,4 +205,41 @@ export function mergeServiciosPublicados(
 export async function getServiciosParaSitio(): Promise<ServicioDetalle[]> {
   const publicados = await getPublicServicios();
   return mergeServiciosPublicados(SERVICIOS_DETALLE, publicados);
+}
+
+const isServicioId = (x: string): x is ServicioId =>
+  Object.prototype.hasOwnProperty.call(SERVICE_CATALOG_BY_ID, x);
+
+/**
+ * Construye los overrides del motor de oferta (SDD-0090) desde lo publicado.
+ * Función PURA. La matriz default vive en código (lib/shared/service-offer.ts);
+ * acá la DB la PISA por servicio cuando el founder seede suggests_keys/includes_keys/
+ * charge_mode en el Studio. Mientras la migración 0142 no esté aplicada, los campos
+ * vienen undefined → devuelve {} → el cerebro usa el default (cero regresión).
+ * Descarta claves que no son del catálogo y charge_mode inválidos (defensa).
+ */
+export function buildOfferOverrides(publicados: PublicServicio[]): OfferOverrides {
+  const out: OfferOverrides = {};
+  for (const p of publicados) {
+    if (!isServicioId(p.service_key)) continue;
+    const ov: OfferOverride = {};
+    const suggests = (p.suggests_keys ?? []).filter(isServicioId);
+    const includes = (p.includes_keys ?? []).filter(isServicioId);
+    if (suggests.length) ov.suggests = suggests;
+    if (includes.length) ov.includes = includes;
+    if (p.charge_mode && CHARGE_MODES.includes(p.charge_mode as ChargeMode)) {
+      ov.chargeMode = p.charge_mode as ChargeMode;
+    }
+    if (Object.keys(ov).length) out[p.service_key] = ov;
+  }
+  return out;
+}
+
+/**
+ * Overrides del motor de oferta para el sitio. Nunca tira (página pública):
+ * cualquier falla → {} y el wizard cae al default del catálogo.
+ */
+export async function getOfferOverridesParaSitio(): Promise<OfferOverrides> {
+  const publicados = await getPublicServicios();
+  return buildOfferOverrides(publicados);
 }

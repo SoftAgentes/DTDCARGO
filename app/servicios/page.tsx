@@ -18,7 +18,11 @@ import { agruparPorViaje } from "@/lib/servicios-timeline";
 import { jetbrainsMono } from "@/lib/fonts";
 import { RespuestaRapida } from "@/components/RespuestaRapida";
 import { buildOfferCatalog, isOfferable } from "@/lib/seo-offer-catalog";
-import { getServiciosParaSitio } from "@/lib/public/servicios-queries";
+import {
+  getServiciosParaSitio,
+  getOfferOverridesParaSitio,
+} from "@/lib/public/servicios-queries";
+import { OfertaWizard } from "@/components/servicios/OfertaWizard";
 import {
   CheckIcon,
   ArrowIcon,
@@ -47,6 +51,10 @@ export default async function ServiciosPage() {
   // fallback al estático de servicios-detalle.ts. Hasta aplicar la migración 0130
   // + publicar, devuelve el estático tal cual (cero regresión).
   const servicios = await getServiciosParaSitio();
+
+  // Overrides del motor de oferta (SDD-0090): lo configurado en el Studio pisa el
+  // default del catálogo. Hasta aplicar 0142 + configurar, devuelve {} → default.
+  const offerOverrides = await getOfferOverridesParaSitio();
 
   // DDP protagonista (slice "DDP héroe"): se extrae el servicio paraguas para
   // mostrarlo arriba como héroe propio; el explorador recibe ddp=null (no duplica).
@@ -167,6 +175,11 @@ export default async function ServiciosPage() {
             </Link>
           </div>
         </section>
+
+        {/* Arma tu oferta — wizard "¿Qué necesitas?" (SDD-0090). Capa guiada
+            sobre las 20 fichas: el cliente dice en qué punto está y le armamos
+            núcleo + add-ons + cómo se cobra. Cliente component sobre el cerebro. */}
+        <OfertaWizard overrides={offerOverrides} />
 
         {/* Servicios en detalle — fichas desplegables (SDD-0063).
             Reemplaza las dos grillas de tarjetas cortas (Sede CN / Sede VE) por

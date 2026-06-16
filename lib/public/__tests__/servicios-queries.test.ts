@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   mergeServiciosPublicados,
+  buildOfferOverrides,
   type PublicServicio,
 } from "../servicios-queries";
 import { SERVICIOS_DETALLE } from "@/lib/servicios-detalle";
@@ -87,5 +88,46 @@ describe("mergeServiciosPublicados", () => {
       pub({ service_key: "puerta-a-puerta-ddp", description_public: "X" }),
     ]);
     expect(out.length).toBe(SERVICIOS_DETALLE.length);
+  });
+});
+
+describe("buildOfferOverrides (SDD-0090)", () => {
+  it("sin campos de oferta devuelve {} (forward-compat: 0142 no aplicada)", () => {
+    const out = buildOfferOverrides([pub({ service_key: "puerta-a-puerta-ddp" })]);
+    expect(out).toEqual({});
+  });
+
+  it("mapea suggests_keys/includes_keys/charge_mode a un override", () => {
+    const out = buildOfferOverrides([
+      pub({
+        service_key: "lcl-consolidado",
+        suggests_keys: ["transito-aduana", "compra-asistida"],
+        includes_keys: ["documentos-importacion"],
+        charge_mode: "asesor",
+      }),
+    ]);
+    expect(out["lcl-consolidado"]).toEqual({
+      suggests: ["transito-aduana", "compra-asistida"],
+      includes: ["documentos-importacion"],
+      chargeMode: "asesor",
+    });
+  });
+
+  it("descarta service_keys que no son del catálogo", () => {
+    const out = buildOfferOverrides([
+      pub({ service_key: "no-existe", suggests_keys: ["transito-aduana"] }),
+    ]);
+    expect(out).toEqual({});
+  });
+
+  it("filtra claves sugeridas inválidas y charge_mode inválido", () => {
+    const out = buildOfferOverrides([
+      pub({
+        service_key: "puerta-a-puerta-ddp",
+        suggests_keys: ["transito-aduana", "basura"],
+        charge_mode: "modo-raro",
+      }),
+    ]);
+    expect(out["puerta-a-puerta-ddp"]).toEqual({ suggests: ["transito-aduana"] });
   });
 });
