@@ -23,12 +23,19 @@ import {
   upsertServiceAddonAction,
   softDeleteAddonAction,
   addPriceHistoryAction,
+  upsertOfferMatrixAction,
 } from "@/lib/studio/service-catalog/actions";
 import type {
   ServiceFaq,
   ServiceAddon,
   ServicePriceEntry,
 } from "@/lib/studio/service-catalog/types";
+import type { ServiceOfferConfig } from "@/lib/studio/service-catalog/queries";
+import {
+  SERVICE_CATALOG,
+  type ServiceCatalogEntry,
+} from "@/lib/shared/service-catalog";
+import { CHARGE_MODE_OPTIONS } from "@/lib/shared/service-offer";
 
 type ActState = { ok?: boolean; error?: string };
 const initial: ActState = {};
@@ -313,5 +320,138 @@ export function PriceHistoryEditor({
         </button>
       </form>
     </div>
+  );
+}
+
+// ─────────────────────── Matriz de oferta (SDD-0090) ───────────────────────
+
+export function OfferMatrixEditor({
+  catalog,
+  offerConfig,
+}: {
+  catalog: ServiceCatalogEntry;
+  offerConfig: ServiceOfferConfig | null;
+}) {
+  const toast = useToast();
+  const action = upsertOfferMatrixAction.bind(null, catalog.id);
+  const [state, formAction, isPending] = useActionState(action, initial);
+
+  useEffect(() => {
+    if (state.ok) toast.success("Oferta guardada.");
+    if (state.error) toast.error(state.error);
+  }, [state, toast]);
+
+  const isNucleo = catalog.tipo === "nucleo";
+  const addons = SERVICE_CATALOG.filter(
+    (s) => s.tipo === "addon" && s.id !== catalog.id,
+  );
+  const suggests = new Set(offerConfig?.suggests_keys ?? []);
+  const includes = new Set(offerConfig?.includes_keys ?? []);
+
+  return (
+    <form action={formAction}>
+      <p style={{ font: "400 13px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 14px" }}>
+        Define qué se le ofrece al cliente cuando elige este servicio en el wizard
+        del sitio. Lo que dejes vacío usa el default del catálogo (no rompe nada).
+      </p>
+
+      <label className="studio-label" style={labelStyle}>Cómo se cobra</label>
+      <select
+        className="studio-input"
+        name="charge_mode"
+        defaultValue={offerConfig?.charge_mode ?? ""}
+        style={{ marginBottom: 16 }}
+      >
+        <option value="">— Usar el default —</option>
+        {CHARGE_MODE_OPTIONS.map((o) => (
+          <option key={o.value} value={o.value}>
+            {o.label}
+          </option>
+        ))}
+      </select>
+
+      {isNucleo ? (
+        <>
+          <p className="studio-eyebrow" style={{ color: "var(--ink-soft)", margin: "0 0 8px" }}>
+            Add-ons cruzados
+          </p>
+          <p style={{ font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)", margin: "0 0 12px" }}>
+            <strong style={{ color: "var(--ink)" }}>Ofrecer</strong> = se sugiere como complemento.{" "}
+            <strong style={{ color: "var(--ink)" }}>Incluido</strong> = ya va dentro (no se ofrece aparte).
+            Si marcas ambos, gana “incluido”.
+          </p>
+          <div style={{ border: "1px solid var(--border)", borderRadius: "var(--r-md)", overflow: "hidden" }}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 72px 72px",
+                gap: 8,
+                padding: "8px 12px",
+                borderBottom: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+                font: "600 11px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+                textTransform: "uppercase",
+                letterSpacing: "0.04em",
+              }}
+            >
+              <span>Servicio</span>
+              <span style={{ textAlign: "center" }}>Ofrecer</span>
+              <span style={{ textAlign: "center" }}>Incluido</span>
+            </div>
+            {addons.map((a) => (
+              <div
+                key={a.id}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 72px 72px",
+                  gap: 8,
+                  padding: "8px 12px",
+                  alignItems: "center",
+                  borderTop: "1px solid var(--border)",
+                }}
+              >
+                <span style={{ font: "400 12.5px/1.3 var(--f-sans)", color: "var(--ink)" }}>
+                  {a.nombre}
+                </span>
+                <label style={{ display: "flex", justifyContent: "center", padding: "2px 0", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    name="suggests_keys"
+                    value={a.id}
+                    defaultChecked={suggests.has(a.id)}
+                    aria-label={`Ofrecer ${a.nombre}`}
+                  />
+                </label>
+                <label style={{ display: "flex", justifyContent: "center", padding: "2px 0", cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    name="includes_keys"
+                    value={a.id}
+                    defaultChecked={includes.has(a.id)}
+                    aria-label={`${a.nombre} incluido`}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p style={{ font: "400 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+          Los add-ons no cruzan otros servicios — solo definen su forma de cobro
+          (arriba). La matriz de cruce se configura en los servicios núcleo.
+        </p>
+      )}
+
+      <button
+        type="submit"
+        className="studio-btn studio-btn-primary studio-btn-sm"
+        disabled={isPending}
+        aria-busy={isPending}
+        style={{ marginTop: 16 }}
+      >
+        {isPending ? "Guardando…" : "Guardar oferta"}
+      </button>
+    </form>
   );
 }

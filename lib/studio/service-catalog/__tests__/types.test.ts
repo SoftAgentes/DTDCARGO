@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateServicioConfigInput,
   servicioPublishReadiness,
+  parseOfferMatrixInput,
   chargeMomentLabel,
   CHARGE_MOMENT_OPTIONS,
   type ServicioConfigInput,
@@ -93,6 +94,50 @@ describe("servicioPublishReadiness (guardrail anti 'solo contable')", () => {
     const r = servicioPublishReadiness({ ...full, includes_public: [] });
     expect(r.ready).toBe(false);
     expect(r.missing).toEqual(["qué incluye (alcance)"]);
+  });
+});
+
+describe("parseOfferMatrixInput (SDD-0090)", () => {
+  it("núcleo: limpia claves inválidas y deduplica suggests/includes", () => {
+    const out = parseOfferMatrixInput(
+      {
+        suggests: ["transito-aduana", "basura", "transito-aduana", "compra-asistida"],
+        includes: ["documentos-importacion", "xyz"],
+        charge_mode: "calculadora",
+      },
+      true,
+    );
+    expect(out.suggests_keys).toEqual(["transito-aduana", "compra-asistida"]);
+    expect(out.includes_keys).toEqual(["documentos-importacion"]);
+    expect(out.charge_mode).toBe("calculadora");
+  });
+
+  it("add-on: fuerza suggests/includes a [] aunque el form mande algo", () => {
+    const out = parseOfferMatrixInput(
+      { suggests: ["transito-aduana"], includes: ["compra-asistida"], charge_mode: "asesor" },
+      false,
+    );
+    expect(out.suggests_keys).toEqual([]);
+    expect(out.includes_keys).toEqual([]);
+    expect(out.charge_mode).toBe("asesor");
+  });
+
+  it("charge_mode inválido o vacío → null", () => {
+    expect(parseOfferMatrixInput({ charge_mode: "raro" }, true).charge_mode).toBeNull();
+    expect(parseOfferMatrixInput({ charge_mode: null }, true).charge_mode).toBeNull();
+    expect(parseOfferMatrixInput({}, true).charge_mode).toBeNull();
+  });
+
+  it("'incluido' gana sobre 'ofrecer': una clave en ambos sale solo de includes", () => {
+    const out = parseOfferMatrixInput(
+      {
+        suggests: ["transito-aduana", "compra-asistida"],
+        includes: ["transito-aduana"],
+      },
+      true,
+    );
+    expect(out.includes_keys).toEqual(["transito-aduana"]);
+    expect(out.suggests_keys).toEqual(["compra-asistida"]);
   });
 });
 

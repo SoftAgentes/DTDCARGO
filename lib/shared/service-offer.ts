@@ -59,6 +59,10 @@ export const CHARGE_MODE_LABEL: Record<ChargeMode, string> = {
   honorarios: "Honorarios + tasas oficiales",
 };
 
+/** Opciones para el select de cómo se cobra (editor del Studio). */
+export const CHARGE_MODE_OPTIONS: { value: ChargeMode; label: string }[] =
+  CHARGE_MODES.map((m) => ({ value: m, label: CHARGE_MODE_LABEL[m] }));
+
 // ── Grupos de add-ons (reflejan la taxonomía dictada) ────────────────
 const ADUANA: ServicioId[] = ["transito-aduana", "documentos-importacion"];
 const BODEGA: ServicioId[] = [

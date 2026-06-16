@@ -13,7 +13,10 @@ import {
   SERVICE_GROUPS,
   type MomentoTimeline,
 } from "@/lib/shared/service-catalog";
-import type { ServiceCatalogItem } from "@/lib/studio/service-catalog/queries";
+import type {
+  ServiceCatalogItem,
+  ServiceOfferConfig,
+} from "@/lib/studio/service-catalog/queries";
 import {
   servicioPublishReadiness,
   type ServiceFaq,
@@ -53,11 +56,13 @@ export function ServiciosClient({
   faqs,
   addons,
   priceEntries,
+  offerConfigs,
 }: {
   items: ServiceCatalogItem[];
   faqs: ServiceFaq[];
   addons: ServiceAddon[];
   priceEntries: ServicePriceEntry[];
+  offerConfigs: ServiceOfferConfig[];
 }) {
   const toast = useToast();
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -133,6 +138,9 @@ export function ServiciosClient({
           priceEntries={priceEntries.filter(
             (p) => p.service_key === editing.catalog.id,
           )}
+          offerConfig={
+            offerConfigs.find((o) => o.service_key === editing.catalog.id) ?? null
+          }
         />
       )}
     </div>

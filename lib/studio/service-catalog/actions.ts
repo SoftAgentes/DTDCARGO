@@ -23,6 +23,7 @@ import {
 import {
   validateServicioConfigInput,
   servicioPublishReadiness,
+  parseOfferMatrixInput,
   type ServicioConfigActionState,
   type ServicioConfigInput,
   type ChargeMoment,
@@ -188,6 +189,56 @@ export async function toggleServicePublishAction(
 
   revalidatePath("/studio/servicios");
   revalidatePath("/servicios"); // publicar/despublicar cambia lo que ve el sitio público
+  return { ok: true };
+}
+
+// ── matriz de oferta (SDD-0090) ──────────────────────────────
+/**
+ * Guarda la matriz de oferta de un servicio (suggests_keys/includes_keys/charge_mode).
+ * AISLADA del upsert de contenido: si la migración 0142 no está aplicada, solo falla
+ * ESTE guardado (con mensaje claro), el resto del módulo sigue. Solo los núcleo
+ * persisten suggests/includes (parseOfferMatrixInput los fuerza a [] en add-ons).
+ */
+export async function upsertOfferMatrixAction(
+  serviceKey: string,
+  _prev: { ok?: boolean; error?: string },
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!isServicioId(serviceKey)) return { error: "Servicio desconocido." };
+  const supabase = await createClient();
+  const entry = SERVICE_CATALOG_BY_ID[serviceKey];
+
+  const parsed = parseOfferMatrixInput(
+    {
+      suggests: formData.getAll("suggests_keys").map(String),
+      includes: formData.getAll("includes_keys").map(String),
+      charge_mode: str(formData.get("charge_mode")) || null,
+    },
+    entry.tipo === "nucleo",
+  );
+
+  const who = await resolveTenant(supabase);
+  if (!who.ok) return { error: who.error };
+
+  const { error } = await supabase.from("service_configs").upsert(
+    {
+      tenant_id: who.tenantId,
+      service_key: serviceKey,
+      shipment_service: entry.shipmentService,
+      suggests_keys: parsed.suggests_keys,
+      includes_keys: parsed.includes_keys,
+      charge_mode: parsed.charge_mode,
+      updated_by: who.userId,
+    },
+    { onConflict: "tenant_id, service_key" },
+  );
+
+  if (error) {
+    return { error: `No se pudo guardar la oferta: ${error.message}` };
+  }
+
+  revalidatePath("/studio/servicios");
+  revalidatePath("/servicios"); // la matriz alimenta el wizard del sitio
   return { ok: true };
 }
 

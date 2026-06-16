@@ -26,7 +26,10 @@ import {
   SERVICE_STATE_OPTIONS,
   type ServicioConfigActionState,
 } from "@/lib/studio/service-catalog/types";
-import type { ServiceCatalogItem } from "@/lib/studio/service-catalog/queries";
+import type {
+  ServiceCatalogItem,
+  ServiceOfferConfig,
+} from "@/lib/studio/service-catalog/queries";
 import type {
   ServiceFaq,
   ServiceAddon,
@@ -36,12 +39,13 @@ import {
   FaqEditor,
   AddonEditor,
   PriceHistoryEditor,
+  OfferMatrixEditor,
 } from "./ServiceSubEditors";
 
 const FORM_ID = "servicio-drawer-form";
 const initialState: ServicioConfigActionState = {};
 
-type Tab = "servicio" | "faq" | "adicionales" | "precios";
+type Tab = "servicio" | "oferta" | "faq" | "adicionales" | "precios";
 
 function Field({
   label,
@@ -92,12 +96,14 @@ export function ServicioDrawer({
   faqs,
   addons,
   priceEntries,
+  offerConfig,
 }: {
   item: ServiceCatalogItem;
   onClose: () => void;
   faqs: ServiceFaq[];
   addons: ServiceAddon[];
   priceEntries: ServicePriceEntry[];
+  offerConfig: ServiceOfferConfig | null;
 }) {
   const toast = useToast();
   const { catalog, config } = item;
@@ -117,6 +123,7 @@ export function ServicioDrawer({
 
   const TABS: { id: Tab; label: string }[] = [
     { id: "servicio", label: "Servicio" },
+    { id: "oferta", label: "Oferta" },
     { id: "faq", label: `FAQ (${faqs.length})` },
     { id: "adicionales", label: `Adicionales (${addons.length})` },
     { id: "precios", label: `Precios (${priceEntries.length})` },
@@ -375,6 +382,9 @@ export function ServicioDrawer({
         </form>
       ) : (
         <div style={{ flex: 1, overflow: "auto", padding: "16px 20px 20px" }}>
+          {tab === "oferta" && (
+            <OfferMatrixEditor catalog={catalog} offerConfig={offerConfig} />
+          )}
           {tab === "faq" && <FaqEditor serviceKey={catalog.id} faqs={faqs} />}
           {tab === "adicionales" && (
             <AddonEditor serviceKey={catalog.id} addons={addons} />

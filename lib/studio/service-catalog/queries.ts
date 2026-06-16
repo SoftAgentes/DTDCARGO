@@ -196,3 +196,39 @@ export async function listAllPriceHistory(
   if (error || !data) return [];
   return data as ServicePriceEntry[];
 }
+
+// ── Matriz de oferta (SDD-0090) ──────────────────────────────
+/** Las 3 columnas de la matriz de oferta de un servicio. */
+export type ServiceOfferConfig = {
+  service_key: string;
+  suggests_keys: string[];
+  includes_keys: string[];
+  charge_mode: string | null;
+};
+
+/**
+ * Lee SOLO las columnas de la matriz de oferta (SDD-0090), en una query AISLADA
+ * del resto del módulo: si la migración 0142 no está aplicada, estas columnas no
+ * existen → el select falla → devolvemos [] SIN tumbar `listServiceConfigs` ni el
+ * editor. El editor de oferta mostrará el default; el resto del módulo intacto.
+ */
+export async function getOfferMatrixConfigs(
+  supabase: SupabaseClient,
+): Promise<ServiceOfferConfig[]> {
+  const { data, error } = await supabase
+    .from("service_configs")
+    .select("service_key, suggests_keys, includes_keys, charge_mode")
+    .is("deleted_at", null);
+  if (error || !data) return [];
+  return (data as {
+    service_key: string;
+    suggests_keys: string[] | null;
+    includes_keys: string[] | null;
+    charge_mode: string | null;
+  }[]).map((r) => ({
+    service_key: r.service_key,
+    suggests_keys: r.suggests_keys ?? [],
+    includes_keys: r.includes_keys ?? [],
+    charge_mode: r.charge_mode ?? null,
+  }));
+}

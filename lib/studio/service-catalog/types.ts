@@ -11,7 +11,14 @@
  * `servicioPublishReadiness()`.
  */
 
-import type { ServicioId } from "@/lib/shared/service-catalog";
+import {
+  SERVICE_CATALOG_BY_ID,
+  type ServicioId,
+} from "@/lib/shared/service-catalog";
+import {
+  CHARGE_MODES,
+  type ChargeMode,
+} from "@/lib/shared/service-offer";
 import {
   PAYMENT_METHODS,
   PAYMENT_METHOD_OPTIONS,
@@ -217,4 +224,45 @@ export function servicioPublishReadiness(
     missing.push("qué incluye (alcance)");
   if (!cfg.how_to_request?.trim()) missing.push("cómo se solicita");
   return { ready: missing.length === 0, missing };
+}
+
+// ── Matriz de oferta (SDD-0090) — las 3 columnas configurables ───
+export { type ChargeMode };
+
+export type OfferMatrixInput = {
+  suggests_keys: ServicioId[];
+  includes_keys: ServicioId[];
+  charge_mode: ChargeMode | null;
+};
+
+const isServicioId = (x: string): x is ServicioId =>
+  Object.prototype.hasOwnProperty.call(SERVICE_CATALOG_BY_ID, x);
+
+/**
+ * Normaliza el input del editor de oferta (SDD-0090). PURO y defensivo:
+ * - descarta claves que no son del catálogo y deduplica,
+ * - solo los NÚCLEO llevan suggests/includes (la matriz se indexa por núcleo);
+ *   en un add-on se fuerzan a [] aunque el form mande algo,
+ * - "incluido" gana sobre "ofrecer": una clave en includes se saca de suggests
+ *   (evita el estado contradictorio si el admin marca ambos),
+ * - charge_mode debe ser un ChargeMode válido o null.
+ */
+export function parseOfferMatrixInput(
+  raw: { suggests?: string[]; includes?: string[]; charge_mode?: string | null },
+  isNucleo: boolean,
+): OfferMatrixInput {
+  const clean = (xs: string[] | undefined): ServicioId[] => [
+    ...new Set((xs ?? []).filter(isServicioId)),
+  ];
+  const includes = isNucleo ? clean(raw.includes) : [];
+  const includeSet = new Set(includes);
+  const suggests = isNucleo
+    ? clean(raw.suggests).filter((id) => !includeSet.has(id))
+    : [];
+  const cm = raw.charge_mode;
+  return {
+    suggests_keys: suggests,
+    includes_keys: includes,
+    charge_mode: cm && CHARGE_MODES.includes(cm as ChargeMode) ? (cm as ChargeMode) : null,
+  };
 }
