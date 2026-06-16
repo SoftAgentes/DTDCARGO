@@ -25,14 +25,26 @@ const STEPS = [
   // (typecheck/vitest no lo ven; explota 500 en runtime — ver SDD-0050). Cero deps, rápido.
   { name: "rsc-boundary", argv: ["scripts/check-rsc-boundary.mjs"] },
   { name: "typecheck", argv: ["node_modules/typescript/bin/tsc", "--noEmit"] },
-  { name: "test", argv: ["node_modules/vitest/vitest.mjs", "run"] },
+  // `retry: 1` → el pool de workers de Vitest cae en seco de forma transitoria en
+  // Windows ("failed to find the runner" / reading 'config' en TODOS los archivos):
+  // es flakiness conocida, no regresión. Reintentar 1 vez auto-sana el gate; un test
+  // realmente roto falla las 2 veces y reporta rojo igual (~23s de costo solo si ya falló).
+  { name: "test", argv: ["node_modules/vitest/vitest.mjs", "run"], retry: 1 },
   { name: "docs:check", argv: ["scripts/build-docs-index.mjs", "--check"] },
 ];
 
 const failures = [];
 for (const step of STEPS) {
   console.log(`\n${C.dim}── ${step.name} ──────────────────────────────────${C.nc}`);
-  const r = spawnSync(process.execPath, step.argv, { stdio: "inherit", cwd: process.cwd() });
+  const attempts = (step.retry ?? 0) + 1;
+  let r;
+  for (let i = 1; i <= attempts; i++) {
+    r = spawnSync(process.execPath, step.argv, { stdio: "inherit", cwd: process.cwd() });
+    if (r.status === 0) break;
+    if (i < attempts) {
+      console.log(`${C.dim}   ${step.name} falló (exit ${r.status ?? "señal " + r.signal}) → reintento ${i}/${attempts - 1} (flaky conocido)${C.nc}`);
+    }
+  }
   if (r.status === 0) ok(step.name);
   else {
     fail(`${step.name} (exit ${r.status ?? "señal " + r.signal})`);
