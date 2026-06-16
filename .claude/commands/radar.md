@@ -34,17 +34,17 @@ rg -nS "brand-book-v[12]|brand-book-v3\.[0-7]|brand-book-v4\.[01]|Brand Book(?: 
 - **Exclusiones legítimas (historia, NO cuentan como drift):** `docs/specs/**` (registros SDD), `NORTE-CHANGELOG.md`, `_norte/**` **solo para el grep de _contenido_** (sus bitácoras citan versiones viejas a propósito — su **presencia física** se valida aparte en la Regla 0.5b de abajo), `supabase/migrations/**` (migraciones aplicadas = inmutables; editar una rompe el hash del historial), `docs/archive/**` (sesiones congeladas) y `docs/design/studio/bug-reporter-v1.4.1/**` (handoff enlazado por SDD-0036).
 - **Casing del tagline:** `rg -n "Con confianza" app components lib e2e` (minúscula) → drift; el oficial es **"Con Confianza"** (C mayúscula, 2026-06-05).
 - **Terminología:** "MARKBOX" como **texto visible** (labels JSX, emails, placeholders) en **studio / portal / móvil** → drift; oficial ahí = **Shipping Mark** (identificadores internos `markbox`/`MARKBOX_REGEX` siempre OK — SDD-0065). **EXCEPCIÓN — el SITIO PÚBLICO usa MARKBOX a propósito** (decisión founder 2026-06-13, confirmada 2026-06-14 → split intencional: público=MARKBOX, ERP/portal/móvil=Shipping Mark): NO es drift en las rutas públicas (`app/{page,faq,glosario,servicios,cotizar,track,calculadora,noticias,estimacion,contacto,registro}` + `components/` raíz).
-- **Book publicado:** en `public/marca/` debe haber **exactamente un** `brand-book-vX.Y.html` y su versión debe coincidir con `_norte/Brand Book DTD vX.Y.html`. Si difieren → "propagar el book a la web" (regla brand-to-web).
+- **Book publicado:** el book gateado vive en `private/marca/` (se sirve por ruta authed, NO en `public/` — decisión founder, ver memoria `brand_book_gate`). Debe haber **exactamente un** `private/marca/brand-book-vX.Y.html` y su versión debe coincidir con `_norte/Brand Book DTD vX.Y.html`. Si difieren → "propagar el book a la web" (regla brand-to-web). *(Si aparece un `brand-book-*.html` suelto en `public/marca/` = regresión del gate → sacarlo de `public/`.)*
 
 ### Regla 0.5b · Presencia física en disco (NUEVO · tapa el hueco del v3.0, 2026-06-12)
 
 > **Por qué existe:** las re-extracciones de ZIPs de marca quedan `untracked` o `ignored` → sobreviven a `git rm` y **un grep de _contenido_ no las caza** (sobre todo dentro de `_norte/`, que el grep de arriba excluye). El 2026-06-12 esto dejó un `Brand Book v3.0 Package/` con su propio `CLAUDE.md` (¡permitía voseo!) sentado dentro del Norte. Estos 3 chequeos miran **archivos sueltos en el filesystem**, no texto. **Cualquier hit = severidad alta.**
 
 ```
-# 1 · Books huérfanos en disco — esperado: 0 (el v4.2 y el publicado están excluidos)
+# 1 · Books huérfanos en disco — esperado: 0 (el v4.2 del Norte + el gateado en private/marca están excluidos)
 find . \( -path ./.git -o -path ./.claude/worktrees -o -path ./node_modules -o -path ./.next \) -prune \
   -o -type f -iname '*brand*book*.html' -print \
-  | rg -iv 'docs/design/studio/_norte/Brand Book DTD v4\.2\.html|public/marca/brand-book-v4\.2\.html'
+  | rg -iv 'docs/design/studio/_norte/Brand Book DTD v4\.2\.html|private/marca/brand-book-v4\.2\.html|public/marca/brand-book-v4\.2\.html'
 
 # 2 · CLAUDE.md contradictorio anidado dentro del Norte — esperado: 0 hits
 #     (válidos, ya excluidos: el canónico _norte/CLAUDE.md + la copia del paquete móvil design_handoff_mobile_app/)

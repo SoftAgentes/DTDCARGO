@@ -1,65 +1,38 @@
 {
-  "generatedAt": "2026-06-15",
+  "generatedAt": "2026-06-16",
   "norteVersion": "v4.2",
   "partA": {
     "findings": [
       {
-        "id": "memory-md-oversize",
-        "title": "MEMORY.md 33.9KB supera el límite de 24.4KB — solo se carga parcial",
-        "severity": "alta",
-        "action": "Comprimir cada línea del índice a <200 chars y mover el detalle a los archivos de tema enlazados; el recall de memoria está degradado ahora mismo (el harness solo cargó parte del índice).",
+        "id": "radar-gate-private-marca-stale",
+        "title": "El gate 0.5b #1 del propio /radar no excluye private/marca/brand-book-v4.2.html (book gateado authed) y aún espera el book en public/marca/ (vacío desde el gating). Hay que excluir private/marca manualmente para que dé 0",
+        "severity": "media",
+        "action": "Actualizar SKILL.md de /radar: agregar private/marca/brand-book-v4.2.html a la exclusión del check #1 y cambiar la regla 'book en public/marca' por 'en private/marca'. No es drift de marca.",
         "top": true
       },
       {
-        "id": "agents-md-norte-v37-stale",
-        "title": "AGENTS.md dice 'hoy v3.7'; el Norte vigente es v4.2",
-        "severity": "media",
-        "action": "Actualizar el puntero de versión en AGENTS.md (línea ~93, sección Logo/Brand Book) v3.7 → v4.2. Igual quedaron stale las memorias feedback_norte_brand_to_web y project_norte_visual_sync (la v4.2 YA está mergeada a main, no 'pendiente')."
-      },
-      {
-        "id": "norte-html-brandbook-v37",
-        "title": "public/norte.html linea 612 muestra un card 'Brand Book v3.7' (resto del viewer = v4.2)",
-        "severity": "media",
-        "action": "Regenerar el viewer con `node scripts/norte.mjs` (NORTE_VERSION ya es v4.2) o corregir el label del card."
-      },
-      {
-        "id": "e2e-smoke-tagline-stale",
-        "title": "e2e/smoke.spec.ts:18 afirma toContainText('Con confianza') pero el H1 vivo es 'Con Confianza, desde China hasta tu puerta'",
-        "severity": "media",
-        "action": "Actualizar el assert a 'Con Confianza' (+ la nueva redaccion) y los comentarios viejos de components/Hero.tsx (lineas 10/21). verify.mjs NO corre e2e, asi que el assert roto rota en silencio. El H1 vivo (design-tokens.ts:805) tiene el casing correcto: NO es drift de marca."
-      },
-      {
-        "id": "radar-skill-brandbook-gate",
-        "title": "El skill /radar (Regla 0.5/0.5b) no contempla el Brand Book movido a private/marca (gate de login)",
+        "id": "radar-report-uncommitted",
+        "title": "public/api/radar-report.json modificado sin commitear (la torre de control /studio/debug muestra el informe versionado en git, no el del working tree)",
         "severity": "baja",
-        "action": "El check #1 de 0.5b lista private/marca/brand-book-v4.2.html como 'huerfano' (falso positivo legitimo: es el book gated por project_brand_book_gate). Actualizar las exclusiones del skill + el book-location check (ya no vive en public/marca)."
+        "action": "Commitear el artefacto cuando se quiera que /studio/debug refleje el informe de hoy."
+      },
+      {
+        "id": "vitest-worker-flaky-windows",
+        "title": "El gate puede fallar en seco (133/133 'failed to find the runner' / reading 'config') por crash transitorio del worker de Vitest en Windows; re-correr da verde (2056 tests)",
+        "severity": "baja",
+        "action": "Ante 'failed to find the runner' masivo, re-correr el gate; no investigar como regresión."
       }
     ],
-    "estimatedTokenSavings": "~10-15%"
+    "estimatedTokenSavings": "~5%"
   },
   "partB": {
     "counts": { "built": 17, "partial": 5, "missing": 0, "total": 22 },
     "blocks": [
-      {
-        "name": "Bloque 3 · Fiscal/SENIAT (SDD-0073)",
-        "remaining": "~80% (draft)",
-        "note": "BOTTLENECK. Spec draft + fiscal_settings minima; faltan Libro Ventas/Compras + retenciones + posicion IVA. Bloquea prender tenants.iva_enabled (hoy IVA OFF en OV/ventas)."
-      },
-      {
-        "name": "Bloque 2.3 · Financiero Socio China (SDD-0059)",
-        "remaining": "in-progress",
-        "note": "Tablas 0114/0115 en prod; falta cierre/UI. Confidencial, fuera del blueprint del Norte (no cuenta en el 17/22)."
-      },
-      {
-        "name": "Bloques 1.1/1.2/2.1/2.2 · 4 Naviera · 5 Comercial",
-        "remaining": "0%",
-        "note": "Todos done en prod. Slices diferidos no-bloqueantes (Naviera Slice C: scraping/BL/bin-packing)."
-      },
-      {
-        "name": "Frontera v4.2 (WMS · Reclamos · Academia · Scorecard · Dashboard Ejecutivo)",
-        "remaining": "no contado",
-        "note": "5 modulos nuevos del Norte v4.2 NO estan en la reconciliacion (snapshot 0119/2026-06-10; prod ya en 0140). Solo WMS tiene spec (0081 proposed); los otros 4 = diseno sin spec. El 77% built es sobre el blueprint v2.x — subestima el faltante v4.2."
-      }
+      { "name": "Bloque 1 · Facturación + Contabilidad", "remaining": "0%", "note": "SDD-0021/0040 done" },
+      { "name": "Bloque 2 · Cobranzas + Tesorería + Socio China", "remaining": "0%", "note": "2.1/2.2 done; 2.3 SDD-0059 in-progress confidencial, fuera del blueprint del Norte" },
+      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "100%", "note": "SDD-0073 draft — sin tablas (solo fiscal_settings minima propuesta); BOTTLENECK vigente" },
+      { "name": "Bloque 4 · Naviera & Consolidación", "remaining": "0%", "note": "SDD-0047 done (Slice A+B en prod)" },
+      { "name": "Bloque 5 · Comercial", "remaining": "0%", "note": "SDD-0048/0049/0051/0052/0053/0054 los 6 en prod" }
     ]
   }
 }
