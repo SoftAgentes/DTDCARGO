@@ -97,6 +97,14 @@ export const AUTOMATION_LEVEL_LABEL: Record<AutomationLevel, string> = {
   automatico: "Automático (corre solo)",
 };
 
+/** Etiqueta corta para badges (sin el paréntesis explicativo). */
+export const AUTOMATION_LEVEL_SHORT: Record<AutomationLevel, string> = {
+  manual: "Manual",
+  asistido: "Asistido",
+  auto_con_compuerta: "Compuerta",
+  automatico: "Auto",
+};
+
 // ── Eventos disparadores ─────────────────────────────────────
 /**
  * Vocabulario de eventos del motor. Reusa los de `mail_rule_event` (continuidad) y suma
@@ -133,6 +141,29 @@ export const WORKFLOW_EVENTS: WorkflowEvent[] = [
   "oferta_aceptada",
   "cliente_anuncia_carga_cn",
 ];
+
+/** Etiqueta legible de cada evento (la UI nunca muestra el slug crudo). */
+export const WORKFLOW_EVENT_LABEL: Record<WorkflowEvent, string> = {
+  shipment_created: "Se creó el envío",
+  shipment_arrived: "Llegó el envío",
+  shipment_consolidated_cn: "Consolidado en China",
+  shipment_in_warehouse: "Entró a bodega",
+  shipped: "Zarpó",
+  out_for_delivery: "Salió a reparto",
+  delivered: "Entregado",
+  quote_sent: "Cotización enviada",
+  quote_accepted: "Cotización aceptada",
+  invoice_emitted: "Factura emitida",
+  invoice_overdue: "Factura vencida",
+  oferta_aceptada: "Oferta aceptada",
+  cliente_anuncia_carga_cn: "Cliente anuncia carga (China)",
+};
+
+/** Etiqueta legible de un evento por su string (defensivo: cae al slug si no mapea). */
+export function workflowEventLabel(e: string | null | undefined): string {
+  if (!e) return "";
+  return WORKFLOW_EVENT_LABEL[e as WorkflowEvent] ?? e;
+}
 
 // ── Estado de una corrida (traza) ────────────────────────────
 export type WorkflowStepStatus =

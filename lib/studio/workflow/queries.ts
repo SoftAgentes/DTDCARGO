@@ -114,3 +114,61 @@ export async function listAwaitingRuns(
     status: r.status as WorkflowStepStatus,
   }));
 }
+
+/** TODOS los pasos (todos los servicios + backbone) — para poblar el editor del Studio (S3). */
+export async function listAllWorkflowSteps(
+  supabase: SupabaseClient,
+): Promise<ServiceWorkflowStep[]> {
+  const { data, error } = await supabase
+    .from("service_workflow_steps")
+    .select(STEP_COLS)
+    .is("deleted_at", null)
+    .order("orden", { ascending: true });
+  if (error || !data) return [];
+  return (data as RawStep[]).map(normalizeStep);
+}
+
+/** Corrida pendiente de humano con datos de su paso (para la bandeja del editor). */
+export type AwaitingRun = WorkflowStepRun & {
+  step_service_key: string | null;
+  step_nombre: string;
+};
+
+/**
+ * Bandeja con info del paso (service_key + nombre), para mostrar las pendientes por
+ * servicio en el editor. AISLADA: si 0143 no está aplicada → [] (no rompe el módulo).
+ */
+export async function listAwaitingRunsWithStep(
+  supabase: SupabaseClient,
+): Promise<AwaitingRun[]> {
+  const { data, error } = await supabase
+    .from("workflow_step_runs")
+    .select(
+      "id, step_id, source_kind, source_id, status, result_note, created_at, completed_at, step:service_workflow_steps(service_key, nombre)",
+    )
+    .eq("status", "awaiting_human")
+    .order("created_at", { ascending: true });
+  if (error || !data) return [];
+  type Row = WorkflowStepRun & {
+    status: string;
+    step:
+      | { service_key: string | null; nombre: string }
+      | { service_key: string | null; nombre: string }[]
+      | null;
+  };
+  return (data as Row[]).map((r) => {
+    const step = Array.isArray(r.step) ? r.step[0] : r.step;
+    return {
+      id: r.id,
+      step_id: r.step_id,
+      source_kind: r.source_kind,
+      source_id: r.source_id,
+      status: r.status as WorkflowStepStatus,
+      result_note: r.result_note,
+      created_at: r.created_at,
+      completed_at: r.completed_at,
+      step_service_key: step?.service_key ?? null,
+      step_nombre: step?.nombre ?? "—",
+    };
+  });
+}

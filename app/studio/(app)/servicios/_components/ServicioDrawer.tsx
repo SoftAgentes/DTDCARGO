@@ -41,11 +41,14 @@ import {
   PriceHistoryEditor,
   OfferMatrixEditor,
 } from "./ServiceSubEditors";
+import { WorkflowEditor } from "./WorkflowEditor";
+import type { ServiceWorkflowStep } from "@/lib/studio/workflow/types";
+import type { AwaitingRun } from "@/lib/studio/workflow/queries";
 
 const FORM_ID = "servicio-drawer-form";
 const initialState: ServicioConfigActionState = {};
 
-type Tab = "servicio" | "oferta" | "faq" | "adicionales" | "precios";
+type Tab = "servicio" | "oferta" | "flujo" | "faq" | "adicionales" | "precios";
 
 function Field({
   label,
@@ -97,6 +100,8 @@ export function ServicioDrawer({
   addons,
   priceEntries,
   offerConfig,
+  workflowSteps,
+  awaitingRuns,
 }: {
   item: ServiceCatalogItem;
   onClose: () => void;
@@ -104,6 +109,8 @@ export function ServicioDrawer({
   addons: ServiceAddon[];
   priceEntries: ServicePriceEntry[];
   offerConfig: ServiceOfferConfig | null;
+  workflowSteps: ServiceWorkflowStep[];
+  awaitingRuns: AwaitingRun[];
 }) {
   const toast = useToast();
   const { catalog, config } = item;
@@ -124,6 +131,7 @@ export function ServicioDrawer({
   const TABS: { id: Tab; label: string }[] = [
     { id: "servicio", label: "Servicio" },
     { id: "oferta", label: "Oferta" },
+    { id: "flujo", label: `Flujo (${workflowSteps.length})` },
     { id: "faq", label: `FAQ (${faqs.length})` },
     { id: "adicionales", label: `Adicionales (${addons.length})` },
     { id: "precios", label: `Precios (${priceEntries.length})` },
@@ -384,6 +392,13 @@ export function ServicioDrawer({
         <div style={{ flex: 1, overflow: "auto", padding: "16px 20px 20px" }}>
           {tab === "oferta" && (
             <OfferMatrixEditor catalog={catalog} offerConfig={offerConfig} />
+          )}
+          {tab === "flujo" && (
+            <WorkflowEditor
+              serviceKey={catalog.id}
+              steps={workflowSteps}
+              awaiting={awaitingRuns}
+            />
           )}
           {tab === "faq" && <FaqEditor serviceKey={catalog.id} faqs={faqs} />}
           {tab === "adicionales" && (

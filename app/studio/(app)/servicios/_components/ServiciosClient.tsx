@@ -23,6 +23,8 @@ import {
   type ServiceAddon,
   type ServicePriceEntry,
 } from "@/lib/studio/service-catalog/types";
+import type { ServiceWorkflowStep } from "@/lib/studio/workflow/types";
+import type { AwaitingRun } from "@/lib/studio/workflow/queries";
 import { toggleServicePublishAction } from "@/lib/studio/service-catalog/actions";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -57,12 +59,16 @@ export function ServiciosClient({
   addons,
   priceEntries,
   offerConfigs,
+  workflowSteps,
+  awaitingRuns,
 }: {
   items: ServiceCatalogItem[];
   faqs: ServiceFaq[];
   addons: ServiceAddon[];
   priceEntries: ServicePriceEntry[];
   offerConfigs: ServiceOfferConfig[];
+  workflowSteps: ServiceWorkflowStep[];
+  awaitingRuns: AwaitingRun[];
 }) {
   const toast = useToast();
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -141,6 +147,14 @@ export function ServiciosClient({
           offerConfig={
             offerConfigs.find((o) => o.service_key === editing.catalog.id) ?? null
           }
+          workflowSteps={workflowSteps.filter(
+            (s) => s.service_key === editing.catalog.id || s.service_key === null,
+          )}
+          awaitingRuns={awaitingRuns.filter(
+            (r) =>
+              r.step_service_key === editing.catalog.id ||
+              r.step_service_key === null,
+          )}
         />
       )}
     </div>

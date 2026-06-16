@@ -17,18 +17,32 @@ import {
   listAllPriceHistory,
   getOfferMatrixConfigs,
 } from "@/lib/studio/service-catalog/queries";
+import {
+  listAllWorkflowSteps,
+  listAwaitingRunsWithStep,
+} from "@/lib/studio/workflow/queries";
 import { ServiciosClient } from "./_components/ServiciosClient";
 
 export const metadata = { title: "Servicios" };
 
 export default async function ServiciosPage() {
   const supabase = await createClient();
-  const [items, faqs, addons, priceEntries, offerConfigs] = await Promise.all([
+  const [
+    items,
+    faqs,
+    addons,
+    priceEntries,
+    offerConfigs,
+    workflowSteps,
+    awaitingRuns,
+  ] = await Promise.all([
     listServiceConfigs(supabase),
     listServiceFaqs(supabase),
     listServiceAddons(supabase),
     listAllPriceHistory(supabase),
     getOfferMatrixConfigs(supabase), // query AISLADA: si 0142 no está, devuelve []
+    listAllWorkflowSteps(supabase), // AISLADA: si 0143 no está, devuelve []
+    listAwaitingRunsWithStep(supabase), // AISLADA: si 0143 no está, devuelve []
   ]);
   return (
     <ServiciosClient
@@ -37,6 +51,8 @@ export default async function ServiciosPage() {
       addons={addons}
       priceEntries={priceEntries}
       offerConfigs={offerConfigs}
+      workflowSteps={workflowSteps}
+      awaitingRuns={awaitingRuns}
     />
   );
 }
