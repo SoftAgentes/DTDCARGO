@@ -50,6 +50,7 @@ Connector SDD-0043 (sync E2E en prod: leads/contactos/pipelines/webhooks). Fuent
 - **Portal cliente = `/portal`** (passwordless). **Productos comerciales:** consolidación · puerta_a_puerta_DDP · reserva_FCL · transporte_terrestre.
 - **Canales públicos = solo** CRM WhatsApp (`+58 412 166 8021`, primario) + Fijo Valencia (`+58 241 414 7886`). Ver `feedback_single_point_of_contact`.
 - **WhatsApp Business — guía de configuración de perfiles corporativos** (logo, datos, web, catálogo de servicios por número): [`whatsapp-business.md`](whatsapp-business.md). 🟡 para llenar.
+- **Condiciones de cotización — copy web + correo** (el precio online es estimado/referencial; calza con "Pagas al llegar\*" y la integración de rates): [`condiciones-cotizacion.md`](condiciones-cotizacion.md). ✅ copy listo (pulido por redactor), pendiente cablear cuando exista el cotizador online.
 
 ### 🎨 Marca → Web
 Brand Book vigente = el de mayor versión en `docs/design/studio/_norte/` (hoy **v3.7**; el book es UNO solo, los anteriores se borran). Publicado privado en `/marca/brand-book`; hub interno del equipo = `/interno/marca` (el kit público `/brand` se relocalizó ahí). Fuentes web = Archivo (Nunito/Sora es capa ERP, no toca la web). Ver `feedback_norte_brand_to_web`.
