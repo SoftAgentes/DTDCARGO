@@ -404,10 +404,11 @@ function StepDone({
         </div>
       </div>
 
-      {/* Acceso al portal: usuario + cómo entrar (clave aleatoria, nunca la cédula) */}
+      {/* El Shipping Mark es el código de las cajas, NO la credencial de acceso:
+          al portal se entra siempre por email + enlace de acceso (SDD-0094). */}
       <div className="w-full rounded-[12px] bg-paper border border-grey-200 px-5 py-4 text-left">
         <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
-          Tu usuario
+          Tu MARKBOX
         </div>
         <div
           className="mt-1 text-[15px] font-bold text-ink"
@@ -416,11 +417,11 @@ function StepDone({
           {markbox}
         </div>
         <div className="mt-3 text-[12.5px] text-grey-700 leading-[1.5]">
-          Para entrar la primera vez, en el login del portal pide tu{" "}
+          Es el código de tus cajas — lo usamos en bodega y con el proveedor. Para{" "}
+          <strong className="text-ink">entrar al portal</strong> no hace falta
+          recordarlo: en el login pides tu{" "}
           <strong className="text-ink">enlace de acceso por correo</strong>
-          {email ? ` (te llega a ${email})` : ""}. Si prefieres una contraseña, usa{" "}
-          <strong className="text-ink">«¿Olvidaste tu contraseña?»</strong> con tu
-          MARKBOX (Shipping Mark) y créala tú. Por seguridad, tu clave nunca es tu cédula o RIF.
+          {email ? ` (te llega a ${email})` : ""} y entras con un clic.
         </div>
       </div>
 
@@ -438,7 +439,7 @@ function StepDone({
         style={{ borderColor: "var(--color-wine)" }}
       >
         <strong className="text-ink">Tu cuenta ya está activa.</strong> Entra al
-        portal con tu MARKBOX (Shipping Mark). Ahí registras cada{" "}
+        portal con tu <strong className="text-ink">email</strong>. Ahí registras cada{" "}
         <strong className="text-ink">compra</strong> que le haces a un proveedor
         chino — eso es tu <strong className="text-wine">prealerta</strong>: nos
         avisa que viene mercancía y la procesamos más rápido. Antes de tu primera
@@ -446,10 +447,7 @@ function StepDone({
         entrega), un par de minutos desde el portal.
       </p>
 
-      <Link
-        href={`/portal/login?markbox=${encodeURIComponent(markbox)}`}
-        className="btn btn-primary w-full"
-      >
+      <Link href="/portal/login" className="btn btn-primary w-full">
         Ir al portal <ArrowIcon />
       </Link>
     </div>
