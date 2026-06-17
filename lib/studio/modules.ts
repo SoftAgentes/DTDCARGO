@@ -77,6 +77,7 @@ export const MODULES: ModuleDef[] = [
   { id: "service-catalog", group: "COMERCIAL", label: "Servicios", icon: "tag", slug: "/studio/servicios" },
   { id: "rates", group: "COMERCIAL", label: "Tarifas", labelKey: "chrome.sidebar.rates", icon: "tag", slug: "/studio/tarifas" },
   { id: "fidelizacion", group: "COMERCIAL", label: "Fidelización", icon: "star", slug: "/studio/fidelizacion" },
+  { id: "academia", group: "COMERCIAL", label: "Academia · Formación", icon: "star", slug: "/studio/academia" },
 
   // FINANZAS
   { id: "direccion", group: "FINANZAS", label: "Dirección", icon: "chart", slug: "/studio/direccion", adminOnly: true },
