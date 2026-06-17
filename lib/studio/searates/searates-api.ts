@@ -91,26 +91,59 @@ async function timedFetch(
 }
 
 /**
- * Extrae el token de la respuesta del auth endpoint. El shape exacto no está
- * confirmado → probamos las llaves más probables y caemos a string plano.
+ * Extrae el token de la respuesta del auth endpoint.
+ *
+ * Shape REAL confirmado en vivo (2026-06-17): SeaRates devuelve
+ * `{ "s-token": "<JWT>" }` (NO `token`). Probamos `s-token` primero y dejamos
+ * los demás como fallback por si cambia el shape; caemos a string plano (no-JSON).
  */
 function extractToken(body: unknown, text?: string): { token: string; ttlMs?: number } | null {
+  let candidate: unknown = null;
+  let expiresIn: unknown;
   if (typeof body === "object" && body !== null) {
     const o = body as Record<string, unknown>;
-    const candidate =
-      o.token ?? o.access_token ?? o.platform_token ?? o.jwt ?? o.bearer ?? o.id_token;
-    if (typeof candidate === "string" && candidate.trim()) {
-      const expiresIn = o.expires_in ?? o.expiresIn;
-      const ttlMs =
-        typeof expiresIn === "number" && expiresIn > 0 ? expiresIn * 1000 : undefined;
-      return { token: candidate.trim(), ttlMs };
-    }
+    candidate =
+      o["s-token"] ??
+      o.token ??
+      o.access_token ??
+      o.platform_token ??
+      o.jwt ??
+      o.bearer ??
+      o.id_token;
+    expiresIn = o.expires_in ?? o.expiresIn;
   }
   // Algunos endpoints devuelven el token como texto plano (no JSON).
-  if (typeof text === "string") {
+  if ((typeof candidate !== "string" || !candidate.trim()) && typeof text === "string") {
     const t = text.trim().replace(/^"|"$/g, "");
     // Heurística simple: un token tiene largo razonable y sin espacios.
-    if (t && t.length >= 16 && !/\s/.test(t)) return { token: t };
+    if (t && t.length >= 16 && !/\s/.test(t)) candidate = t;
+  }
+  if (typeof candidate !== "string" || !candidate.trim()) return null;
+  const token = candidate.trim();
+
+  // TTL: el token de SeaRates es un JWT → usar su `exp` real (preciso). Si no es
+  // JWT, caer a `expires_in` del body; si tampoco, el caller usa el default.
+  let ttlMs: number | undefined;
+  const expMs = jwtExpMs(token);
+  if (expMs) {
+    const delta = expMs - Date.now();
+    if (delta > 0) ttlMs = delta;
+  } else if (typeof expiresIn === "number" && expiresIn > 0) {
+    ttlMs = expiresIn * 1000;
+  }
+  return { token, ttlMs };
+}
+
+/** Lee el `exp` (ms epoch) de un JWT sin verificar firma. null si no es JWT con exp. */
+function jwtExpMs(token: string): number | null {
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const json = Buffer.from(parts[1]!, "base64url").toString("utf8");
+    const payload = JSON.parse(json) as Record<string, unknown>;
+    if (typeof payload.exp === "number" && payload.exp > 0) return payload.exp * 1000;
+  } catch {
+    /* no es un JWT parseable */
   }
   return null;
 }

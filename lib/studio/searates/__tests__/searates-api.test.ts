@@ -154,6 +154,24 @@ describe("getPlatformToken", () => {
     expect(url).toContain("api_key=test-secret-key-1234567890");
   });
 
+  it("forma REAL de SeaRates: token en `s-token` (JWT) → lo extrae y cachea por su exp", async () => {
+    setEnv(true);
+    const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString("base64url");
+    // JWT con exp lejano: header.payload.sig (firma irrelevante, no se verifica).
+    const jwt = `${b64({ typ: "JWT", alg: "HS256" })}.${b64({ platform: 46314, exp: 9_999_999_999 })}.sig`;
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ "s-token": jwt }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    const t1 = await getPlatformToken();
+    const t2 = await getPlatformToken();
+    expect(t1).toBe(jwt);
+    expect(t2).toBe(jwt); // exp lejano → cacheado, sin refetch
+    expect(fetchSpy).toHaveBeenCalledOnce();
+  });
+
   it("cachea el token: 2 llamadas → 1 sola request de auth", async () => {
     setEnv(true);
     const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
