@@ -30,6 +30,7 @@ import { resolveDebugTab } from "./_components/debug-tabs.shared";
 import { EstadoTab } from "./_components/EstadoTab";
 import { BugsTab } from "./_components/BugsTab";
 import { RadarTab } from "./_components/RadarTab";
+import { SeaRatesTab } from "./_components/SeaRatesTab";
 
 export const metadata: Metadata = {
   title: "Torre de control",
@@ -126,6 +127,7 @@ export default async function DebugPage({
         }
         bugs={<BugsTab bugs={bugs} isAdmin={isAdmin} />}
         radar={<RadarTab report={radarReport} env={s.env} />}
+        searates={<SeaRatesTab />}
       />
     </div>
   );

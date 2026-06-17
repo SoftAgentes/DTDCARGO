@@ -8,7 +8,7 @@
  * "Attempted to call a client function from the server".
  */
 
-export type DebugTabKey = "estado" | "bugs" | "norte" | "radar";
+export type DebugTabKey = "estado" | "bugs" | "norte" | "radar" | "searates";
 
 export type DebugTabMode = "vivo" | "snapshot" | "local";
 
@@ -23,6 +23,9 @@ export const DEBUG_TABS: ReadonlyArray<{
   { key: "bugs", label: "Bugs", mode: "vivo", modeLabel: "vivo" },
   { key: "norte", label: "Norte", mode: "snapshot", modeLabel: "snapshot" },
   { key: "radar", label: "Radar", mode: "local", modeLabel: "solo local" },
+  // SDD-0092 · panel de prueba de SeaRates (fletes · benchmark interno).
+  // Pega al endpoint admin /api/studio/searates/probe en vivo.
+  { key: "searates", label: "SeaRates", mode: "vivo", modeLabel: "vivo" },
 ];
 
 /**
@@ -38,7 +41,13 @@ export function modeDotColor(mode: DebugTabMode): string {
 }
 
 export function isDebugTab(v: string | undefined | null): v is DebugTabKey {
-  return v === "estado" || v === "bugs" || v === "norte" || v === "radar";
+  return (
+    v === "estado" ||
+    v === "bugs" ||
+    v === "norte" ||
+    v === "radar" ||
+    v === "searates"
+  );
 }
 
 export function resolveDebugTab(raw: string | undefined | null): DebugTabKey {

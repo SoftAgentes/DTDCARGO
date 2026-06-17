@@ -241,7 +241,26 @@ async function checkHailuway(): Promise<IntegrationHealth> {
   return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
 }
 
-// ─── Orquestador · corre las 8 en paralelo ────────────────────
+// ─── SeaRates (fletes marítimos · benchmark interno) ──────────
+async function checkSeaRates(): Promise<IntegrationHealth> {
+  const platformId = process.env.SEARATES_PLATFORM_ID;
+  const apiKey = process.env.SEARATES_API_KEY;
+  if (!platformId || !apiKey) return skipped();
+  // Pinga el AUTH endpoint (lo único confirmado · vive en www.searates.com).
+  // Con credenciales válidas devuelve el platform token. Es la llamada más
+  // barata para confirmar "viva" sin consultar tarifas. Cuota 100/mes →
+  // cacheado 60s vía timedFetch para no bombardear en cada render.
+  const url = `https://www.searates.com/auth/platform-token?id=${encodeURIComponent(
+    platformId,
+  )}&api_key=${encodeURIComponent(apiKey)}`;
+  const r = await timedFetch(url);
+  if (r.ok) return ok(r.latencyMs, "auth OK · token emitido");
+  if (r.status === 401 || r.status === 403) return err(r.latencyMs, "credenciales inválidas");
+  if (r.status === 429) return err(r.latencyMs, "rate limited (cuota 100/mes?)");
+  return err(r.latencyMs, r.error ?? `HTTP ${r.status}`);
+}
+
+// ─── Orquestador · corre las 9 en paralelo ────────────────────
 export async function checkAllIntegrations(): Promise<
   Record<IntegrationKey, IntegrationHealth>
 > {
@@ -254,6 +273,7 @@ export async function checkAllIntegrations(): Promise<
     anthropic,
     openrouter,
     hailuway,
+    searates,
   ] = await Promise.all([
     checkSupabase(),
     checkResend(),
@@ -263,6 +283,7 @@ export async function checkAllIntegrations(): Promise<
     checkAnthropic(),
     checkOpenRouter(),
     checkHailuway(),
+    checkSeaRates(),
   ]);
   return {
     supabase,
@@ -273,6 +294,7 @@ export async function checkAllIntegrations(): Promise<
     anthropic,
     openrouter,
     hailuway,
+    searates,
   };
 }
 

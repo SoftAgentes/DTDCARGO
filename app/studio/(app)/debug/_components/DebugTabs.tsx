@@ -41,6 +41,7 @@ export function DebugTabs({
   estado,
   bugs,
   radar,
+  searates,
   env,
 }: {
   active: DebugTabKey;
@@ -52,6 +53,12 @@ export function DebugTabs({
    * PROPIO banner de limitación mode-aware → el genérico no se renderiza.
    */
   radar: ReactNode;
+  /**
+   * Pestaña SeaRates (SDD-0092) — panel de prueba del benchmark de fletes.
+   * Opcional para no romper callers/tests previos; el genérico de modo "vivo"
+   * sí aplica (consulta en tiempo real al endpoint admin).
+   */
+  searates?: ReactNode;
   /** Entorno de ejecución — el banner del Norte/Radar es mode-aware (web vs local). */
   env: EnvName;
 }) {
@@ -133,6 +140,7 @@ export function DebugTabs({
       {active === "bugs" && bugs}
       {active === "norte" && <NorteTab env={env} />}
       {active === "radar" && radar}
+      {active === "searates" && searates}
     </div>
   );
 }

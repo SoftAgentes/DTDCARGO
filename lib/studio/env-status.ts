@@ -22,7 +22,8 @@ export type IntegrationKey =
   | "telegramWebhook"
   | "anthropic"
   | "openrouter"
-  | "hailuway";
+  | "hailuway"
+  | "searates";
 
 export type EnvStatus = {
   env: EnvName;
@@ -47,6 +48,7 @@ const INTEGRATION_ENV_MAP: Record<IntegrationKey, string> = {
   anthropic: "ANTHROPIC_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
   hailuway: "DTD_API_KEY",
+  searates: "SEARATES_API_KEY",
 };
 
 /**
@@ -70,6 +72,9 @@ const TRACKED_ENV_VARS = [
   "TELEGRAM_BOT_TOKEN",
   "TELEGRAM_WEBHOOK_SECRET",
   "NEXT_PUBLIC_TELEGRAM_BOT_USERNAME",
+  "SEARATES_API_BASE",
+  "SEARATES_PLATFORM_ID",
+  "SEARATES_API_KEY",
   "NEXT_PUBLIC_BUILD_SHA",
   "VERCEL_ENV",
   "VERCEL_URL",
@@ -111,6 +116,7 @@ export function getEnvStatus(): EnvStatus {
       anthropic: statusOf(INTEGRATION_ENV_MAP.anthropic),
       openrouter: statusOf(INTEGRATION_ENV_MAP.openrouter),
       hailuway: statusOf(INTEGRATION_ENV_MAP.hailuway),
+      searates: statusOf(INTEGRATION_ENV_MAP.searates),
     },
     envVarsPresent: TRACKED_ENV_VARS.filter((k) => Boolean(process.env[k])),
   };
@@ -132,6 +138,7 @@ export function integrationLabel(k: IntegrationKey): string {
     anthropic: "Anthropic (AI)",
     openrouter: "OpenRouter (AI)",
     hailuway: "ERP HailuWay",
+    searates: "SeaRates (fletes)",
   };
   return labels[k];
 }

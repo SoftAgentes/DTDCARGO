@@ -42,6 +42,7 @@ const INTEGRATION_ORDER: IntegrationKey[] = [
   "anthropic",
   "openrouter",
   "hailuway",
+  "searates",
 ];
 
 const INTEGRATION_DESCRIPTIONS: Record<IntegrationKey, string> = {
@@ -53,6 +54,7 @@ const INTEGRATION_DESCRIPTIONS: Record<IntegrationKey, string> = {
   anthropic: "Features con Claude (LLM Agent, AI assist).",
   openrouter: "Proveedor LLM alternativo · GPT/Gemini/Llama via single API.",
   hailuway: "ERP HailuWay externo · usado por sitio público (estimacion, track).",
+  searates: "Fletes marítimos FCL/LCL · benchmark interno de costing (admin).",
 };
 
 function statusBadge(s: IntegrationStatus) {
