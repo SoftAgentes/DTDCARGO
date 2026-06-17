@@ -34,6 +34,7 @@ type ProbeResult =
       spot: boolean | null;
       indicative: boolean | null;
       expired: boolean | null;
+      offersCount?: number;
       raw: unknown;
     }
   | { ok: false; error: string; code?: string; raw?: unknown };
@@ -322,6 +323,10 @@ export function SeaRatesTab() {
               />
               <Stat label="Carrier" value={result.carrier ?? "—"} />
               <Stat label="Válida hasta" value={result.validityTo ?? "—"} />
+              <Stat
+                label="Ofertas"
+                value={result.offersCount != null ? String(result.offersCount) : "—"}
+              />
             </div>
           )}
 

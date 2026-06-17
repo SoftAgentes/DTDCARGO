@@ -82,6 +82,17 @@ describe("validateSeaRatesInput", () => {
     expect(r.fieldErrors?.container).toBeTruthy();
   });
 
+  it("FCL con contenedor no reconocido → fieldError container", () => {
+    const r = validateSeaRatesInput({
+      pointIdFrom: "P_27395",
+      pointIdTo: "P_19774",
+      shippingType: "FCL",
+      container: "ZZ99",
+    });
+    expect(r.input).toBeUndefined();
+    expect(r.fieldErrors?.container).toBeTruthy();
+  });
+
   it("LCL no exige contenedor; acepta volumen/peso", () => {
     const r = validateSeaRatesInput({
       pointIdFrom: "P_27395",
@@ -240,21 +251,44 @@ describe("getOceanRate · con token (GraphQL)", () => {
       .mockResolvedValueOnce(ratesResponse);
   }
 
-  it("FCL ok: normaliza desde data.rates, conserva raw y postea GraphQL con Bearer", async () => {
+  it("FCL ok: elige la oferta más barata (general+points), carrier de points, raw + query inline", async () => {
     setEnv(true);
     const body = {
       data: {
         rates: [
           {
-            totalPrice: 6800,
-            totalCurrency: "USD",
-            provider: "COSCO",
-            totalTransitTime: 38,
-            spot: true,
-            indicative: false,
-            expired: false,
-            validityTo: "2026-07-31",
-            shipmentId: "SH-1",
+            general: {
+              totalPrice: 7200,
+              totalCurrency: "USD",
+              totalTransitTime: 40,
+              validityTo: "2026-08-01",
+              spot: false,
+              indicative: true,
+              expired: false,
+              individual: false,
+              shipmentId: "A1",
+            },
+            points: [
+              { provider: "MSC", shippingType: "FCL", totalPrice: 7200, totalCurrency: "USD" },
+              { provider: null },
+            ],
+          },
+          {
+            general: {
+              totalPrice: 6800,
+              totalCurrency: "USD",
+              totalTransitTime: 38,
+              validityTo: "2026-08-01",
+              spot: true,
+              indicative: false,
+              expired: false,
+              individual: false,
+              shipmentId: "A2",
+            },
+            points: [
+              { provider: "COSCO", shippingType: "FCL", totalPrice: 6800, totalCurrency: "USD" },
+              { provider: null },
+            ],
           },
         ],
       },
@@ -276,33 +310,44 @@ describe("getOceanRate · con token (GraphQL)", () => {
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.mode).toBe("FCL");
-      expect(r.rateUsd).toBe(6800);
+      expect(r.rateUsd).toBe(6800); // la más barata de las 2 ofertas
       expect(r.currency).toBe("USD");
       expect(r.transitDays).toBe(38);
-      expect(r.carrier).toBe("COSCO");
-      expect(r.raw).toEqual(body); // raw crudo para ajustar el mapeo en vivo
+      expect(r.carrier).toBe("COSCO"); // provider del 1er point de la oferta barata
+      expect(r.spot).toBe(true);
+      expect(r.offersCount).toBe(2);
+      expect(r.raw).toEqual(body); // raw crudo para auditar el mapeo en vivo
     }
-    // 2 fetch: auth + rates. El rates es POST GraphQL al endpoint base.
+    // 2 fetch: auth + rates POST GraphQL. Args INLINE en la query (sin variables).
     expect(fetchSpy).toHaveBeenCalledTimes(2);
     expect(String(fetchSpy.mock.calls[1]![0])).toBe(GRAPHQL_BASE);
     const init = fetchSpy.mock.calls[1]![1] as RequestInit;
     expect(init.method).toBe("POST");
     expect((init.headers as Record<string, string>).Authorization).toBe("Bearer TKN");
     const sent = JSON.parse(String(init.body));
-    expect(sent.query).toContain("rates");
-    expect(sent.variables.pointIdFrom).toBe("P_27395");
-    expect(sent.variables.shippingType).toBe("FCL");
-    expect(sent.variables.container).toBe("HC40");
+    expect(sent.variables).toBeUndefined();
+    expect(sent.query).toContain('pointIdFrom: "P_27395"');
+    expect(sent.query).toContain('pointIdTo: "P_19774"');
+    expect(sent.query).toContain("shippingType: FCL");
+    expect(sent.query).toContain("container: HC40");
+    expect(sent.query).toContain("includedServices: p2p");
+    expect(sent.query).toContain("general");
+    expect(sent.query).toContain("points");
   });
 
-  it("LCL ok: manda volumen/peso en variables y no exige carrier", async () => {
+  it("LCL ok: arma volumen/peso inline (KG/M3), carrier de points, no manda contenedor", async () => {
     setEnv(true);
-    const fetchSpy = stubAuthThenRates(
-      new Response(
-        JSON.stringify({ data: { rates: [{ totalPrice: 420, totalTransitTime: 40, totalCurrency: "USD" }] } }),
-        { status: 200 },
-      ),
-    );
+    const body = {
+      data: {
+        rates: [
+          {
+            general: { totalPrice: 1738, totalCurrency: "USD", totalTransitTime: 5 },
+            points: [{ provider: "ANL", shippingType: "LCL" }, { provider: null }],
+          },
+        ],
+      },
+    };
+    const fetchSpy = stubAuthThenRates(new Response(JSON.stringify(body), { status: 200 }));
     const r = await getOceanRate({
       pointIdFrom: "P_27395",
       pointIdTo: "P_19774",
@@ -313,17 +358,18 @@ describe("getOceanRate · con token (GraphQL)", () => {
     expect(r.ok).toBe(true);
     if (r.ok) {
       expect(r.mode).toBe("LCL");
-      expect(r.rateUsd).toBe(420);
-      expect(r.transitDays).toBe(40);
-      expect(r.carrier).toBeNull(); // no vino provider → null, no rompe
+      expect(r.rateUsd).toBe(1738);
+      expect(r.transitDays).toBe(5);
+      expect(r.carrier).toBe("ANL");
+      expect(r.offersCount).toBe(1);
     }
     const init = fetchSpy.mock.calls[1]![1] as RequestInit;
     const sent = JSON.parse(String(init.body));
-    expect(sent.variables.volume).toBe(3.4);
-    expect(sent.variables.volumeUnit).toBe("M3");
-    expect(sent.variables.weight).toBe(1200);
-    expect(sent.variables.weightUnit).toBe("KG");
-    expect(sent.variables).not.toHaveProperty("container");
+    expect(sent.query).toContain("volume: 3.4");
+    expect(sent.query).toContain("volumeUnit: M3");
+    expect(sent.query).toContain("weight: 1200");
+    expect(sent.query).toContain("weightUnit: KG");
+    expect(sent.query).not.toContain("container:"); // LCL no manda contenedor
   });
 
   it("GraphQL errors[] → { ok:false, error:'graphql_error', code } + raw", async () => {

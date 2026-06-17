@@ -12,26 +12,25 @@ import "server-only";
  *   - Las funciones NUNCA tiran: devuelven una union ok/error.
  *
  * Límite de la cuenta: 100 llamadas/mes (vence 2026-07-17). Por eso el platform
- * token se CACHEA en memoria (módulo-level con expiración) para no quemar auth
- * en cada consulta de rate.
+ * token se CACHEA en memoria (con su `exp` real del JWT) para no quemar auth en
+ * cada consulta de rate.
  *
- * ⚠️ La API REAL es GraphQL (confirmado en docs.searates.com/reference/logistics):
- *   - Auth (confirmado): GET https://www.searates.com/auth/platform-token?
- *     id=<PLATFORM_ID>&api_key=<API_KEY> → devuelve un token Bearer.
- *   - Rates (confirmado endpoint): POST https://rates.searates.com/graphql con
- *     `{ query, variables }` y header `Authorization: Bearer <token>`. Variables:
- *     pointIdFrom/pointIdTo ("P_<n>"), shippingType (FCL|LCL), container (FCL),
- *     date (YYYY-MM-DD), weight/weightUnit, volume/volumeUnit.
- *   - La QUERY GraphQL exacta + el shape fino de la respuesta NO están en la doc
- *     → la query es best-effort y la respuesta normalizada incluye `raw` (JSON
- *     crudo) para ajustar el mapeo en la validación en vivo. Buscar
- *     `// TODO: confirmar query/campos con respuesta real`.
+ * API REAL — confirmada EN VIVO 2026-06-17 contra rates.searates.com/graphql
+ * (introspección deshabilitada → query fijada con el ejemplo real de la doc):
+ *   - Auth: GET https://www.searates.com/auth/platform-token?id=<id>&api_key=<key>
+ *     → `{ "s-token": "<JWT>" }`. El JWT lleva `platform` + `exp`.
+ *   - Rates: POST https://rates.searates.com/graphql con `{ query }` (args INLINE,
+ *     todos validados) y header `Authorization: Bearer <token>`.
+ *   - El campo raíz es `rates(...)` y devuelve un ARRAY de ofertas. Cada oferta:
+ *       · `general`  → resumen: totalPrice, totalCurrency, totalTransitTime,
+ *                      validityFrom/To, spot, indicative, expired, individual,
+ *                      shipmentId.
+ *       · `points[]` → legs de la ruta; la naviera (`provider`) vive acá.
+ *   - includedServices = p2p (puerto-a-puerto): el flete comparable, sin inland.
+ *   - `raw` se expone SIEMPRE en /studio/debug para auditar la respuesta cruda.
  */
 
-import type {
-  SeaRatesQuoteInput,
-  SeaRatesRate,
-} from "./searates-types";
+import type { SeaRatesQuoteInput, SeaRatesRate } from "./searates-types";
 import { validateSeaRatesInput } from "./searates-types";
 
 /** Auth vive en www.searates.com (confirmado). Fijo, no configurable. */
@@ -41,8 +40,11 @@ const TIMEOUT_MS = 12_000;
 
 /** Margen para refrescar el token antes de su expiración real (anti-borde). */
 const TOKEN_SKEW_MS = 60_000;
-/** TTL por defecto del token cacheado si el proveedor no informa expiración. */
+/** TTL por defecto del token cacheado si NO es un JWT con `exp`. */
 const DEFAULT_TOKEN_TTL_MS = 50 * 60_000; // 50 min
+
+/** includedServices para el benchmark: p2p = puerto-a-puerto (flete comparable). */
+const INCLUDED_SERVICES = "p2p";
 
 // ── Caché del platform token (módulo-level, en memoria) ───────────
 type CachedToken = { token: string; expiresAt: number };
@@ -150,11 +152,7 @@ function jwtExpMs(token: string): number | null {
 
 /**
  * Obtiene (o reutiliza) el platform token. Cachea en memoria con expiración.
- * Devuelve `null` si:
- *   - faltan envs (modo mock), o
- *   - el auth endpoint falló / no devolvió token.
- *
- * NUNCA tira.
+ * Devuelve `null` si faltan envs (modo mock) o el auth falló. NUNCA tira.
  */
 export async function getPlatformToken(): Promise<string | null> {
   const cfg = envConfig();
@@ -183,95 +181,97 @@ export async function getPlatformToken(): Promise<string | null> {
 }
 
 /**
- * Query GraphQL del Logistics Explorer (best-effort). SeaRates expone el
- * explorador de tarifas vía un query raíz que recibe las variables confirmadas
- * y devuelve una lista de ofertas con los campos confirmados (totalPrice,
- * totalCurrency, provider, totalTransitTime, flags, validez, shipmentId).
+ * Arma la query GraphQL de rates con los args INLINE (no variables).
  *
- * El NOMBRE del campo raíz y la forma EXACTA de la selección NO están en la doc
- * pública → esto es la mejor aproximación. Si la respuesta trae `errors[]`,
- * `getOceanRate` lo devuelve como `graphql_error` + el `raw` para corregir acá.
+ * Seguro contra inyección: TODOS los valores vienen de `validateSeaRatesInput`
+ * (pointId `^[PAC]_\d+$`, shippingType ∈ FCL|LCL, container del enum cerrado,
+ * date `YYYY-MM-DD`, weight/volume numéricos) → no hay forma de meter comillas,
+ * llaves ni espacios. Se usan args inline (y no variables) porque la introspección
+ * está cerrada y así evitamos declarar tipos de variable que podrían no calzar
+ * (p. ej. `date` es el scalar `Date`, no `String`).
  *
- * // TODO: confirmar query/campos con respuesta real (nombre del campo raíz,
- * //       nombres exactos de selección, paginación). El `raw` queda expuesto
- * //       en /studio/debug → SeaRates para ajustar esto en vivo.
+ * El campo raíz `rates` devuelve un ARRAY de ofertas `{ general, points }`.
  */
-const OCEAN_RATES_QUERY = /* GraphQL */ `
-  query OceanRates(
-    $pointIdFrom: String!
-    $pointIdTo: String!
-    $shippingType: ShippingType!
-    $container: Container
-    $date: String
-    $weight: Float
-    $weightUnit: WeightUnit
-    $volume: Float
-    $volumeUnit: VolumeUnit
-  ) {
-    rates(
-      pointIdFrom: $pointIdFrom
-      pointIdTo: $pointIdTo
-      shippingType: $shippingType
-      container: $container
-      date: $date
-      weight: $weight
-      weightUnit: $weightUnit
-      volume: $volume
-      volumeUnit: $volumeUnit
-    ) {
+function buildRatesQuery(input: SeaRatesQuoteInput): string {
+  const args: string[] = [
+    `pointIdFrom: "${input.pointIdFrom}"`,
+    `pointIdTo: "${input.pointIdTo}"`,
+    `shippingType: ${input.shippingType}`,
+    `includedServices: ${INCLUDED_SERVICES}`,
+  ];
+  if (input.date) args.push(`date: "${input.date}"`);
+  if (input.shippingType === "FCL" && input.container) {
+    args.push(`container: ${input.container}`);
+  }
+  if (input.weightKg !== undefined) args.push(`weight: ${input.weightKg}`, `weightUnit: KG`);
+  if (input.volumeM3 !== undefined) args.push(`volume: ${input.volumeM3}`, `volumeUnit: M3`);
+
+  return `{
+  rates(${args.join(", ")}) {
+    general {
       totalPrice
       totalCurrency
-      provider
       totalTransitTime
+      validityFrom
+      validityTo
       spot
       indicative
       expired
       individual
-      validityFrom
-      validityTo
       shipmentId
-      points {
-        type
-        name
-        location
-      }
+    }
+    points {
+      provider
+      shippingType
+      totalPrice
+      totalCurrency
     }
   }
-`;
-
-/** Construye las `variables` del request GraphQL desde el input validado. */
-function buildVariables(input: SeaRatesQuoteInput): Record<string, unknown> {
-  const variables: Record<string, unknown> = {
-    pointIdFrom: input.pointIdFrom,
-    pointIdTo: input.pointIdTo,
-    shippingType: input.shippingType,
-  };
-  if (input.shippingType === "FCL" && input.container) {
-    variables.container = input.container;
-  }
-  if (input.date) variables.date = input.date;
-  if (input.weightKg !== undefined) {
-    variables.weight = input.weightKg;
-    variables.weightUnit = "KG";
-  }
-  if (input.volumeM3 !== undefined) {
-    variables.volume = input.volumeM3;
-    variables.volumeUnit = "M3";
-  }
-  return variables;
+}`;
 }
 
-/**
- * Normaliza el bloque `data` de la respuesta GraphQL a los campos confirmados.
- * Best-effort: el path/forma exactos NO están confirmados, así que buscamos la
- * primera lista de ofertas dentro de `data` (sea cual sea el nombre del campo
- * raíz) y mapeamos por nombre de campo confirmado. SIEMPRE se devuelve `raw`.
- * Si no encontramos ninguna tarifa → `null` (el caller responde 'no_rate').
- *
- * // TODO: confirmar query/campos con respuesta real (ajustar paths si el campo
- * //       raíz no es `rates` o la oferta no es un array).
- */
-function normalizeRate(data: unknown): {
+type Offer = { general?: unknown; points?: unknown };
+
+/** Saca el array de ofertas del bloque `data` de la respuesta GraphQL. */
+function extractOffers(data: unknown): Offer[] {
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const o = data as Record<string, unknown>;
+    if (Array.isArray(o.rates)) {
+      return o.rates.filter((x) => x && typeof x === "object") as Offer[];
+    }
+  }
+  if (Array.isArray(data)) return data.filter((x) => x && typeof x === "object") as Offer[];
+  return [];
+}
+
+/** Elige la oferta más barata por `general.totalPrice` (fallback: la primera). */
+function pickCheapest(offers: Offer[]): Offer {
+  let best = offers[0]!;
+  let bestPrice = Infinity;
+  for (const off of offers) {
+    const g = (off.general ?? {}) as Record<string, unknown>;
+    const p = pickNumber(g, ["totalPrice"]);
+    if (p !== null && p > 0 && p < bestPrice) {
+      bestPrice = p;
+      best = off;
+    }
+  }
+  return best;
+}
+
+/** Primer `provider` (naviera) no vacío entre los `points` de la oferta. */
+function firstProvider(points: unknown): string | null {
+  if (!Array.isArray(points)) return null;
+  for (const p of points) {
+    if (p && typeof p === "object") {
+      const v = (p as Record<string, unknown>).provider;
+      if (typeof v === "string" && v.trim()) return v.trim();
+    }
+  }
+  return null;
+}
+
+type NormalizedRate = {
   rateUsd: number | null;
   currency: string | null;
   transitDays: number | null;
@@ -280,91 +280,51 @@ function normalizeRate(data: unknown): {
   spot: boolean | null;
   indicative: boolean | null;
   expired: boolean | null;
-} | null {
-  const offer = firstOffer(data);
-  if (!offer) return null;
-
-  const rateUsd = pickNumber(offer, [
-    "totalPrice",
-    "total_price",
-    "totalRate",
-    "price",
-    "amount",
-    "rate",
-  ]);
-  const currency = pickString(offer, ["totalCurrency", "total_currency", "currency"]);
-  const transitDays = pickNumber(offer, [
-    "totalTransitTime",
-    "total_transit_time",
-    "transitTime",
-    "transit_time",
-    "transitDays",
-    "days",
-  ]);
-  const carrier = pickString(offer, [
-    "provider",
-    "carrier",
-    "carrierName",
-    "shippingLine",
-    "line",
-  ]);
-  const validityTo = pickString(offer, ["validityTo", "validity_to", "validTo"]);
-  const spot = pickBoolean(offer, ["spot"]);
-  const indicative = pickBoolean(offer, ["indicative"]);
-  const expired = pickBoolean(offer, ["expired"]);
-
-  if (
-    rateUsd === null &&
-    transitDays === null &&
-    carrier === null &&
-    currency === null
-  ) {
-    return null;
-  }
-  return { rateUsd, currency, transitDays, carrier, validityTo, spot, indicative, expired };
-}
+  offersCount: number;
+};
 
 /**
- * Encuentra la primera oferta dentro del bloque `data`: si algún campo raíz es
- * un array, toma su primer elemento; si es un objeto con forma de oferta, lo
- * toma; si `data` ya parece una oferta, lo devuelve. Best-effort.
+ * Normaliza la respuesta al benchmark: toma la oferta MÁS BARATA del array
+ * `rates`, lee su `general` (precio/tránsito/validez/flags) y el `provider` de
+ * sus `points`. Devuelve `null` si no hay ninguna oferta parseable (→ 'no_rate').
  */
-function firstOffer(data: unknown): Record<string, unknown> | null {
-  if (typeof data !== "object" || data === null) return null;
-  const o = data as Record<string, unknown>;
+function normalizeRate(data: unknown): NormalizedRate | null {
+  const offers = extractOffers(data);
+  if (!offers.length) return null;
 
-  // `data` ya es una oferta (tiene algún campo confirmado).
-  if (looksLikeOffer(o)) return o;
+  const best = pickCheapest(offers);
+  const g = (best.general ?? {}) as Record<string, unknown>;
 
-  for (const v of Object.values(o)) {
-    if (Array.isArray(v)) {
-      const first = v.find((x) => x && typeof x === "object");
-      if (first) return first as Record<string, unknown>;
-    } else if (v && typeof v === "object" && looksLikeOffer(v as Record<string, unknown>)) {
-      return v as Record<string, unknown>;
-    }
+  const rateUsd = pickNumber(g, ["totalPrice"]);
+  const currency = pickString(g, ["totalCurrency"]);
+  const transitDays = pickNumber(g, ["totalTransitTime"]);
+  const carrier = firstProvider(best.points);
+  const validityTo = pickString(g, ["validityTo"]);
+  const spot = pickBoolean(g, ["spot"]);
+  const indicative = pickBoolean(g, ["indicative"]);
+  const expired = pickBoolean(g, ["expired"]);
+
+  if (rateUsd === null && transitDays === null && carrier === null && currency === null) {
+    return null;
   }
-  return null;
-}
-
-const OFFER_MARKERS = [
-  "totalPrice",
-  "total_price",
-  "totalCurrency",
-  "provider",
-  "totalTransitTime",
-  "shipmentId",
-];
-function looksLikeOffer(o: Record<string, unknown>): boolean {
-  return OFFER_MARKERS.some((k) => k in o);
+  return {
+    rateUsd,
+    currency,
+    transitDays,
+    carrier,
+    validityTo,
+    spot,
+    indicative,
+    expired,
+    offersCount: offers.length,
+  };
 }
 
 function pickNumber(o: Record<string, unknown>, keys: string[]): number | null {
   for (const k of keys) {
     const v = o[k];
     if (typeof v === "number" && Number.isFinite(v)) return v;
-    if (typeof v === "string" && v.trim() && Number.isFinite(Number(v)))
-      return Number(v);
+    if (typeof v === "string" && v.trim() && Number.isFinite(Number(v))) return Number(v);
   }
   return null;
 }
@@ -404,14 +364,13 @@ function firstGraphqlError(errors: unknown): string | undefined {
  *   1. Sin envs → `{ ok:false, error:'mock_no_key' }` (sin fetch).
  *   2. Input inválido → `{ ok:false, error:'invalid_input' }` (sin fetch).
  *   3. Token (cacheado) → si no se obtiene → `{ ok:false, error:'auth_failed' }`.
- *   4. POST GraphQL `{ query, variables }` a `SEARATES_API_BASE` con Bearer.
- *   5. Si la respuesta trae `errors[]` → `{ ok:false, error:'graphql_error',
- *      code:<1er msg>, raw }`. Si no, normaliza `data` best-effort.
- *   6. SIEMPRE devuelve `raw` (también en errores de proveedor) para ajustar.
+ *   4. POST GraphQL `{ query }` (args inline) a `SEARATES_API_BASE` con Bearer.
+ *   5. `errors[]` → `{ ok:false, error:'graphql_error', code, raw }`.
+ *      no-2xx → `{ ok:false, error:'http_<status>', raw }`.
+ *      2xx sin oferta parseable → `{ ok:false, error:'no_rate', raw }`.
+ *   6. SIEMPRE devuelve `raw` (también en errores de proveedor) para auditar.
  *
  * NUNCA tira. Gasta como máximo 1 llamada de rates + (a lo sumo) 1 de auth.
- *
- * // TODO: confirmar query/campos con respuesta real (ver OCEAN_RATES_QUERY).
  */
 export async function getOceanRate(
   rawInput: Partial<Record<keyof SeaRatesQuoteInput, unknown>>,
@@ -428,13 +387,6 @@ export async function getOceanRate(
   const token = await getPlatformToken();
   if (!token) return { ok: false, error: "auth_failed" };
 
-  // POST GraphQL: { query, variables }. El endpoint es el SEARATES_API_BASE
-  // completo (https://rates.searates.com/graphql), sin sufijo de path.
-  const requestBody = {
-    query: OCEAN_RATES_QUERY,
-    variables: buildVariables(input),
-  };
-
   const r = await timedFetch(cfg.base, {
     method: "POST",
     headers: {
@@ -442,7 +394,7 @@ export async function getOceanRate(
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify(requestBody),
+    body: JSON.stringify({ query: buildRatesQuery(input) }),
   });
 
   const raw = r.body ?? r.text ?? null;
@@ -458,9 +410,7 @@ export async function getOceanRate(
 
   // GraphQL puede responder 200 con un bloque `errors[]` (la consulta falló).
   const envelope =
-    typeof r.body === "object" && r.body !== null
-      ? (r.body as Record<string, unknown>)
-      : null;
+    typeof r.body === "object" && r.body !== null ? (r.body as Record<string, unknown>) : null;
   const gqlError = envelope ? firstGraphqlError(envelope.errors) : undefined;
   if (gqlError) {
     return { ok: false, error: "graphql_error", code: gqlError, raw };
@@ -483,6 +433,7 @@ export async function getOceanRate(
     spot: normalized.spot,
     indicative: normalized.indicative,
     expired: normalized.expired,
+    offersCount: normalized.offersCount,
     raw,
   };
 }

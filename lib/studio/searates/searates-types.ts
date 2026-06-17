@@ -107,7 +107,9 @@ export type SeaRatesRate =
       spot: boolean | null;
       indicative: boolean | null;
       expired: boolean | null;
-      /** JSON crudo del proveedor para ajustar el mapeo en vivo. */
+      /** Cantidad de ofertas que devolvió SeaRates (se reporta la más barata). */
+      offersCount: number;
+      /** JSON crudo del proveedor para auditar/ajustar el mapeo en vivo. */
       raw: unknown;
     }
   | { ok: false; error: string; code?: string; raw?: unknown };
@@ -131,6 +133,18 @@ const POINT_ID_RE = /^[PAC]_\d+$/;
 
 /** Fecha ISO YYYY-MM-DD (validación de forma, no de calendario). */
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * Valores válidos del enum `container` de SeaRates (FCL/LAND_FCL/RAIL_FCL),
+ * confirmados en la doc oficial (2026-06-17). Validar contra esta lista cierra el
+ * paso a inyección — el valor se interpola INLINE en la query GraphQL — y caza
+ * typos antes de gastar una llamada de la cuota.
+ */
+const CONTAINER_VALUES = new Set<string>([
+  "ST20", "ST40", "HC40", "REF20", "REF40", "OT20", "OT40", "FL20", "FL40",
+  "TA20", "FLC40", "FLC20", "PL20", "PL40", "BU20", "HC45", "ST10", "HCPW20",
+  "HC20", "PW20", "HCPW40", "PW40", "HCPW45", "HC48", "HC53",
+]);
 
 function parseOptionalNumber(v: unknown): number | undefined {
   if (v == null || v === "") return undefined;
@@ -171,6 +185,8 @@ export function validateSeaRatesInput(
   if (shippingType === "FCL") {
     container = String(partial.container ?? "").trim().toUpperCase();
     if (!container) fieldErrors.container = "Contenedor requerido para FCL.";
+    else if (!CONTAINER_VALUES.has(container))
+      fieldErrors.container = "Contenedor no reconocido (ej. ST20, ST40, HC40, REF40).";
   }
 
   let date: string | undefined;
