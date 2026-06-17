@@ -587,7 +587,7 @@ function SectionAppearance() {
             { t: 'Logo Oficial', s: '4 variantes · descarga PNG (isólogo y apilado)', href: 'Logo Oficial.html' },
             { t: 'Portadas Redes · YouTube + Facebook', s: '3 direcciones · áreas seguras · descarga a tamaño real', href: 'Portadas Redes · DTD-Cargo.html' },
             { t: 'Portada Animada · Facebook', s: 'Video de portada 1250×463 · graba MP4 nativo', href: 'Portada Animada FB · DTD-Cargo.html' },
-            { t: 'Brand Book v4.2', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v4.2.html' },
+            { t: 'Brand Book v4.3', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v4.3.html' },
           ].map(r => (
             <a key={r.href} href={r.href} target="_blank" rel="noopener" style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textDecoration: 'none',

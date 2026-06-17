@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Cotizador de Fletes · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<!-- Capa WEB pública: Archivo + Archivo Black (NO Nunito/Sora del ERP). Mono para montos/códigos. -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&display=swap" />
+<style>
+/* ════════════════════════════════════════════════════════════
+   Cotizador de Fletes · DTD-Cargo (sitio público · white-label)
+   Capa web = Archivo / Archivo Black. Tokens var(--*). Navy/wine.
+   Único gradiente permitido: navy→ink en el hero. Cero AI slop.
+   ════════════════════════════════════════════════════════════ */
+
+/* La capa web usa la fuente de marca (Archivo), no la del sistema */
+body { font-family: var(--f-brand); }
+.display { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; }
+.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+
+body { background: var(--bg-base); color: var(--ink); }
+
+/* ── Header público ─────────────────────────────────────────── */
+.site {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-4) var(--s-5);
+  background: color-mix(in srgb, var(--bg-base) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--border);
+}
+.wordmark { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 21px; line-height: 1; white-space: nowrap; }
+.wordmark .dtd { color: var(--wordmark-dtd); }
+.wordmark .cargo { color: var(--wordmark-cargo); }
+.wordmark .gap { display: inline-block; width: 0.15em; }
+.site .iso { width: 34px; height: 34px; }
+.site .left { display: flex; align-items: center; gap: var(--s-3); }
+.site .asesor {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  font: 700 13px/1 var(--f-brand); color: var(--wine);
+  padding: var(--s-2) var(--s-3); border-radius: var(--r-pill);
+  border: 1px solid var(--border-strong);
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease);
+}
+.site .asesor:hover { border-color: var(--wine); background: var(--wine-tint); }
+
+/* ── Hero ───────────────────────────────────────────────────── */
+.hero {
+  background: linear-gradient(135deg, var(--ink), #1F3055);
+  color: #fff;
+  padding: var(--s-12) var(--s-5) calc(var(--s-16) + 56px);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+.hero::after {
+  content: ""; position: absolute; right: -60px; bottom: -60px;
+  width: 280px; height: 280px;
+  background: url('assets/dtdcargo-isologo-reverse.png') center/contain no-repeat;
+  opacity: 0.05; pointer-events: none;
+}
+.wrap { width: 100%; max-width: 600px; margin: 0 auto; }
+.hero .eyebrow { color: var(--wine-soft); margin-bottom: var(--s-4); }
+.hero h1 {
+  font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.03em;
+  font-size: clamp(30px, 8vw, 46px); line-height: 1.04; margin: 0;
+  text-wrap: balance;
+}
+.hero h1 .accent { color: var(--wine-soft); }
+.hero .sub {
+  margin: var(--s-5) 0 0; max-width: 38ch;
+  font: 500 16px/1.5 var(--f-brand); color: rgba(255,255,255,0.78);
+}
+.hero .trust {
+  margin-top: var(--s-6); display: flex; flex-wrap: wrap; gap: var(--s-4);
+}
+.hero .trust span {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  font: 600 12.5px/1 var(--f-brand); color: rgba(255,255,255,0.7);
+}
+.hero .trust svg { color: var(--wine-soft); }
+
+/* ── Tarjeta cotizador (se monta sobre el hero) ─────────────── */
+.panel {
+  width: 100%; max-width: 600px; margin: -56px auto 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-lg);
+  padding: var(--s-6);
+  position: relative; z-index: 5;
+}
+.panel .ptitle {
+  font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.01em;
+  font-size: 18px; color: var(--ink); margin: 0 0 var(--s-5);
+}
+.field { margin-bottom: var(--s-4); }
+.field > label {
+  display: block; font: 700 11px/1 var(--f-brand);
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft);
+  margin-bottom: var(--s-2);
+}
+.selwrap { position: relative; }
+.selwrap::after {
+  content: ""; position: absolute; right: 16px; top: 50%; width: 11px; height: 11px;
+  transform: translateY(-60%) rotate(45deg);
+  border-right: 2px solid var(--ink-mute); border-bottom: 2px solid var(--ink-mute);
+  pointer-events: none;
+}
+select, .cbm input {
+  width: 100%; appearance: none; -webkit-appearance: none;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--r-md);
+  padding: 14px 40px 14px 14px;
+  font: 600 15px/1.2 var(--f-brand); color: var(--ink);
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.cbm input { padding-right: 14px; }
+select:hover, .cbm input:hover { border-color: var(--ink-mute); }
+select:focus, .cbm input:focus { outline: none; border-color: var(--wine); box-shadow: 0 0 0 3px var(--wine-tint); }
+
+/* Segmented · tipo de contenedor */
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-2); }
+.seg button {
+  padding: 13px var(--s-2); border-radius: var(--r-md);
+  background: var(--bg-base); border: 1px solid var(--border-strong);
+  font: 800 14px/1.1 var(--f-brand); color: var(--ink-soft);
+  transition: all var(--dur) var(--ease);
+  text-align: center;
+}
+.seg button .u { display: block; font: 600 9.5px/1.2 var(--f-brand); color: var(--ink-mute); margin-top: 3px; letter-spacing: 0.04em; }
+.seg button:hover { border-color: var(--ink-mute); }
+.seg button[aria-pressed="true"] {
+  background: var(--ink); border-color: var(--ink); color: #fff;
+}
+.seg button[aria-pressed="true"] .u { color: rgba(255,255,255,0.7); }
+
+/* LCL · CBM + peso */
+.cbm { display: none; grid-template-columns: 1fr 1fr; gap: var(--s-3); margin-top: var(--s-3); }
+.cbm.show { display: grid; }
+.cbm .sub { font: 600 11px/1 var(--f-brand); color: var(--ink-soft); margin-bottom: var(--s-2); letter-spacing: 0.06em; text-transform: uppercase; }
+.cbm .hint { grid-column: 1/-1; font: 500 12px/1.4 var(--f-brand); color: var(--ink-mute); margin-top: -4px; }
+
+.cotizar {
+  width: 100%; margin-top: var(--s-5);
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  background: var(--wine); color: #fff;
+  padding: 16px; border-radius: var(--r-md);
+  font: 800 16px/1 var(--f-brand); letter-spacing: -0.01em;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.cotizar:hover { background: var(--wine-deep); }
+.cotizar:active { transform: translateY(1px); }
+
+/* ── Resultado ──────────────────────────────────────────────── */
+.result { width: 100%; max-width: 600px; margin: var(--s-5) auto 0; }
+.result[hidden] { display: none; }
+.rcard {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.rhead {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--s-3);
+  padding: var(--s-5) var(--s-6);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+.rroute { display: flex; align-items: center; gap: var(--s-3); min-width: 0; }
+.rroute .pt { min-width: 0; }
+.rroute .pt b { display: block; font: 800 14px/1.15 var(--f-brand); color: var(--ink); white-space: nowrap; }
+.rroute .pt b .cn { font-family: var(--f-cn); font-weight: 500; color: var(--ink-soft); font-size: 12px; margin-left: 4px; }
+.rroute .pt span { display: block; font: 600 11px/1.2 var(--f-brand); color: var(--ink-mute); margin-top: 2px; }
+.rroute .arrow { color: var(--wine); flex-shrink: 0; }
+.rchip {
+  flex-shrink: 0; padding: 6px 12px; border-radius: var(--r-pill);
+  background: var(--ink); color: #fff; font: 800 12px/1 var(--f-brand); letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.rbody { padding: var(--s-6); }
+.rlabel { display: flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-2); }
+.rlabel .pill {
+  font: 700 10px/1 var(--f-brand); letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-soft); background: var(--neutral-bg);
+  padding: 5px 9px; border-radius: var(--r-pill);
+}
+.price {
+  font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.03em;
+  font-size: clamp(34px, 10vw, 50px); line-height: 1; color: var(--ink);
+}
+.price .cur { font-size: 0.5em; color: var(--ink-soft); vertical-align: 0.35em; margin-right: 4px; letter-spacing: 0; }
+.price .dash { color: var(--ink-mute); font-weight: 400; margin: 0 6px; }
+.price .num { font-variant-numeric: tabular-nums; }
+.price-foot { margin-top: var(--s-3); font: 500 13px/1.5 var(--f-brand); color: var(--ink-soft); }
+
+.rmeta { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-5); }
+.metabox {
+  flex: 1; min-width: 150px;
+  border: 1px solid var(--border); border-radius: var(--r-md);
+  padding: var(--s-4);
+}
+.metabox .k { font: 700 10px/1 var(--f-brand); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+.metabox .v { font-family: var(--f-brand-display); font-weight: 900; font-size: 22px; color: var(--ink); margin-top: 8px; letter-spacing: -0.01em; }
+.metabox .v small { font-family: var(--f-brand); font-weight: 600; font-size: 13px; color: var(--ink-soft); }
+.badge-llegar {
+  display: inline-flex; align-items: center; gap: var(--s-2);
+  margin-top: 8px;
+  font: 800 13px/1 var(--f-brand); color: var(--wine);
+  background: var(--wine-tint); padding: 8px 12px; border-radius: var(--r-pill);
+}
+
+.conditions {
+  margin-top: var(--s-5); padding-top: var(--s-5); border-top: 1px dashed var(--border-strong);
+}
+.conditions h4 { font: 700 11px/1 var(--f-brand); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-soft); margin: 0 0 var(--s-3); }
+.conditions ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: var(--s-2); }
+.conditions li { display: flex; gap: var(--s-2); font: 500 12px/1.5 var(--f-brand); color: var(--ink-mute); }
+.conditions li::before { content: "·"; color: var(--wine); font-weight: 900; flex-shrink: 0; }
+
+.rcta {
+  display: flex; flex-direction: column; gap: var(--s-2);
+  padding: var(--s-5) var(--s-6) var(--s-6);
+  border-top: 1px solid var(--border);
+}
+.firme {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
+  background: var(--wine); color: #fff;
+  padding: 16px; border-radius: var(--r-md);
+  font: 800 16px/1 var(--f-brand); letter-spacing: -0.01em;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.firme:hover { background: var(--wine-deep); }
+.firme:active { transform: translateY(1px); }
+.rcta .note { font: 500 12px/1.4 var(--f-brand); color: var(--ink-mute); text-align: center; }
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.foot { width: 100%; max-width: 600px; margin: var(--s-12) auto 0; padding: var(--s-6) var(--s-5) var(--s-10); border-top: 1px solid var(--border); }
+.foot .tag { font-family: var(--f-brand-display); font-weight: 900; font-size: 15px; color: var(--ink); letter-spacing: -0.01em; }
+.foot .tag .w { color: var(--wine); }
+.foot .legal { margin-top: var(--s-3); font: 500 11.5px/1.6 var(--f-brand); color: var(--ink-mute); }
+.foot .legal .mono { font-size: 11px; }
+
+@media (max-width: 420px) {
+  .seg { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<header class="site">
+  <div class="left">
+    <span class="dtd-iso dtd-iso-auto iso" aria-hidden="true">
+      <img class="iso-primary" src="assets/dtdcargo-isologo-primary.png" alt="" />
+      <img class="iso-reverse" src="assets/dtdcargo-isologo-reverse.png" alt="" />
+    </span>
+    <span class="wordmark"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
+  </div>
+  <a class="asesor" id="asesorTop" href="#" target="_blank" rel="noopener">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.6-1.2A9 9 0 1 0 12 3z"/></svg>
+    Hablar con asesor
+  </a>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Cotizador de fletes</div>
+    <h1>Cotiza tu flete<br /><span class="accent">China → Venezuela</span></h1>
+    <p class="sub">Elige origen, destino y contenedor. Te damos al instante un estimado del flete marítimo, sin vueltas.</p>
+    <div class="trust">
+      <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Pagas al llegar</span>
+      <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.5 8 11 4.6-2.5 8-6 8-11V5z"/></svg> Puerta a puerta</span>
+      <span><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> Respuesta inmediata</span>
+    </div>
+  </div>
+</section>
+
+<div class="panel" data-screen-label="Cotizador">
+  <h2 class="ptitle">Arma tu cotización</h2>
+
+  <div class="field">
+    <label for="origen">Origen · China</label>
+    <div class="selwrap">
+      <select id="origen"></select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="destino">Destino · Venezuela</label>
+    <div class="selwrap">
+      <select id="destino"></select>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Contenedor</label>
+    <div class="seg" id="seg"></div>
+    <div class="cbm" id="cbm">
+      <div>
+        <div class="sub">Volumen (CBM)</div>
+        <input id="cbmVal" type="text" inputmode="decimal" value="2" />
+      </div>
+      <div>
+        <div class="sub">Peso (kg) · opcional</div>
+        <input id="pesoVal" type="text" inputmode="numeric" placeholder="—" />
+      </div>
+      <div class="hint">LCL (consolidado): mínimo facturable 2 CBM.</div>
+    </div>
+  </div>
+
+  <button class="cotizar" id="cotizar">
+    Cotizar
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+  </button>
+</div>
+
+<div class="result" id="result" hidden>
+  <div class="rcard">
+    <div class="rhead">
+      <div class="rroute">
+        <div class="pt" id="ptOrigen"></div>
+        <span class="arrow"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+        <div class="pt" id="ptDestino"></div>
+      </div>
+      <span class="rchip" id="rchip"></span>
+    </div>
+
+    <div class="rbody">
+      <div class="rlabel"><span class="pill">Estimado · referencial</span></div>
+      <div class="price" id="price"></div>
+      <div class="price-foot" id="priceFoot"></div>
+
+      <div class="rmeta">
+        <div class="metabox">
+          <div class="k">Tránsito estimado</div>
+          <div class="v" id="transit"></div>
+        </div>
+        <div class="metabox">
+          <div class="k">Modalidad</div>
+          <div class="v">DDP <small>puerta a puerta</small></div>
+          <span class="badge-llegar">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            Pagas al llegar*
+          </span>
+        </div>
+      </div>
+
+      <div class="conditions">
+        <h4>Condiciones</h4>
+        <ul>
+          <li>Estimado referencial de flete marítimo China → Venezuela. No constituye una oferta en firme.</li>
+          <li>Sujeto a disponibilidad de espacio, fecha de zarpe y validación de la mercancía (volumen, peso y tipo de carga).</li>
+          <li>No incluye aranceles ni impuestos de nacionalización, salvo que se indique en la cotización en firme.</li>
+          <li>*"Pagas al llegar" aplica según el plan acordado con tu asesor DTD-Cargo.</li>
+          <li>Tarifa válida como referencia a la fecha de consulta; el precio en firme lo confirma tu asesor.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="rcta">
+      <a class="firme" id="firme" href="#" target="_blank" rel="noopener">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.6-1.2A9 9 0 1 0 12 3z"/></svg>
+        Quiero el precio en firme
+      </a>
+      <div class="note">Te conectamos con un asesor por WhatsApp con los datos de tu cotización.</div>
+    </div>
+  </div>
+</div>
+
+<footer class="foot">
+  <div class="tag">Con <span class="w">Confianza</span>, de China a tu puerta.</div>
+  <div class="legal">
+    DTD-Cargo C.A. · RIF <span class="mono">J-50648869-8</span> · Av. Bolívar Norte 14, Valencia · Carabobo, Venezuela<br />
+    info@dtdcargo.com · +58 241 414 7886 · dtdcargo.com
+  </div>
+</footer>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONFIG · listas cerradas + tarifas. Editá acá con datos reales.
+   Regla dura: SOLO China → Venezuela. Sin texto libre.
+   Tarifas = flete marítimo estimado (USD). Rango = ±10%.
+   ════════════════════════════════════════════════════════════ */
+
+// WhatsApp Ventas (con etiqueta de origen para el CRM)
+const WA_VENTAS = '584124545325';
+function waLink(origen, mensaje) {
+  return `https://wa.me/${WA_VENTAS}?text=${encodeURIComponent(mensaje + `\n\n(Vía: cotizador · dtdcargo.com · ${origen})`)}`;
+}
+
+const ORIGINS = [
+  { code: 'YIW', name: 'Yiwu',      cn: '义乌', port: 'Ningbo',   add: 250 },
+  { code: 'NGB', name: 'Ningbo',    cn: '宁波', port: 'Ningbo',   add: 0   },
+  { code: 'SHA', name: 'Shanghái',  cn: '上海', port: 'Shanghái', add: 0   },
+  { code: 'SZX', name: 'Shenzhen',  cn: '深圳', port: 'Yantian',  add: 0   },
+  { code: 'CAN', name: 'Guangzhou', cn: '广州', port: 'Nansha',   add: 60  },
+];
+
+const DESTS = [
+  { code: 'PBL', name: 'Puerto Cabello', state: 'Carabobo',   mult: 1.00, transit: [38, 45] },
+  { code: 'LGU', name: 'La Guaira',      state: 'La Guaira',  mult: 1.02, transit: [38, 45] },
+  { code: 'GUA', name: 'Guanta',         state: 'Anzoátegui', mult: 1.08, transit: [40, 48] },
+];
+
+// FCL: precio por contenedor. LCL: por CBM (mín. 2 CBM) + handling fijo.
+const CONTAINERS = [
+  { id: '40HQ', label: "40' HQ", unit: 'High Cube', kind: 'fcl', base: 4600 },
+  { id: '40',   label: "40'",    unit: 'Estándar',  kind: 'fcl', base: 4400 },
+  { id: '20',   label: "20'",    unit: 'Estándar',  kind: 'fcl', base: 2900 },
+  { id: 'LCL',  label: 'LCL',    unit: 'Consolidado', kind: 'lcl', perCBM: 85, handling: 120, minCBM: 2 },
+];
+
+/* ── Estado ── */
+let sel = '40HQ';
+
+/* ── Helpers ── */
+const $ = (id) => document.getElementById(id);
+const round50 = (n) => Math.round(n / 50) * 50;
+const fmt = (n) => n.toLocaleString('en-US'); // 2 600 estilo USD con coma → mostramos con espacios abajo
+function usd(n) { return n.toLocaleString('es-VE').replace(/\./g, ' '); } // 2 600
+
+// Evaluador tipo calculadora para CBM (regla DTD: "32+1" → 33)
+function calcEval(raw) {
+  if (!raw) return 0;
+  const cleaned = String(raw).replace(/[^0-9+\-.*/]/g, '');
+  if (!cleaned) return 0;
+  try { const v = Function('"use strict";return (' + cleaned + ')')(); return isFinite(v) ? v : 0; }
+  catch (e) { return parseFloat(cleaned) || 0; }
+}
+
+/* ── Poblar selects + segmented ── */
+function init() {
+  $('origen').innerHTML = ORIGINS.map(o => `<option value="${o.code}">${o.name} · ${o.cn} (${o.port})</option>`).join('');
+  $('destino').innerHTML = DESTS.map(d => `<option value="${d.code}">${d.name} · ${d.state}</option>`).join('');
+  $('seg').innerHTML = CONTAINERS.map(c => `<button type="button" data-id="${c.id}" aria-pressed="${c.id === sel}">${c.label}<span class="u">${c.unit}</span></button>`).join('');
+  $('seg').querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    sel = b.dataset.id;
+    $('seg').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x.dataset.id === sel)));
+    $('cbm').classList.toggle('show', sel === 'LCL');
+  }));
+  // Asesor del header (sin cotización aún)
+  $('asesorTop').href = waLink('header', 'Hola DTD-Cargo, quiero asesoría para importar desde China.');
+}
+
+/* ── Cotizar ── */
+function cotizar() {
+  const o = ORIGINS.find(x => x.code === $('origen').value);
+  const d = DESTS.find(x => x.code === $('destino').value);
+  const c = CONTAINERS.find(x => x.id === sel);
+
+  let mid, qtyLabel = '';
+  if (c.kind === 'fcl') {
+    mid = (c.base + o.add) * d.mult;
+  } else {
+    let cbm = calcEval($('cbmVal').value);
+    cbm = Math.max(cbm, c.minCBM);
+    $('cbmVal').value = (Math.round(cbm * 10) / 10).toString();
+    mid = (cbm * c.perCBM * d.mult) + c.handling;
+    qtyLabel = `${(Math.round(cbm * 10) / 10)} CBM`;
+  }
+  const low = round50(mid * 0.90);
+  const high = round50(mid * 1.10);
+
+  // Pintar resultado
+  $('ptOrigen').innerHTML = `<b>${o.name} <span class="cn">${o.cn}</span></b><span>${o.port}, China</span>`;
+  $('ptDestino').innerHTML = `<b>${d.name}</b><span>${d.state}, Venezuela</span>`;
+  $('rchip').textContent = c.kind === 'lcl' ? `LCL · ${qtyLabel}` : c.label;
+
+  $('price').innerHTML = `<span class="cur">USD</span><span class="num">${usd(low)}</span><span class="dash">–</span><span class="num">${usd(high)}</span>`;
+  $('priceFoot').textContent = c.kind === 'lcl'
+    ? `Estimado del flete marítimo para ${qtyLabel} en consolidado.`
+    : `Estimado del flete marítimo para un contenedor ${c.label}.`;
+
+  const t = d.transit;
+  $('transit').innerHTML = `${t[0]}–${t[1]} <small>días</small>`;
+
+  // CTA en firme con todos los datos + etiqueta de origen para CRM
+  const resumen = `Hola DTD-Cargo, quiero el precio en firme de esta cotización:
+• Origen: ${o.name} (${o.port}), China
+• Destino: ${d.name}, Venezuela
+• Contenedor: ${c.kind === 'lcl' ? 'LCL · ' + qtyLabel : c.label}
+• Estimado mostrado: USD ${usd(low)} – ${usd(high)}`;
+  $('firme').href = waLink(`${o.code}-${d.code}-${c.id}`, resumen);
+
+  const r = $('result');
+  r.hidden = false;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  init();
+  $('cotizar').addEventListener('click', cotizar);
+});
+init();
+</script>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" fill="#0F1E3D"/>
+  <text x="50" y="46" font-family="Archivo Black, sans-serif" font-size="26" fill="#F2F0EC" text-anchor="middle">$</text>
+  <rect x="30" y="58" width="40" height="6" rx="3" fill="#C2747F"/>
+  <rect x="36" y="70" width="28" height="5" rx="2.5" fill="#F2F0EC" opacity="0.5"/>
+</svg>
+</template>
+</body>
+</html>

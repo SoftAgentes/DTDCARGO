@@ -32,8 +32,9 @@
   function RegistroCliente() {
     const [step, setStep] = useState(1);
     const [data, setData] = useState({
-      tipo: 'persona', name: '', company: '', rif: '', cedula: '',
-      email: '', phone: '', phoneOffice: '', whatsapp: true,
+      tipo: 'persona', name: '', company: '', rif: '', cedula: '', cedulaLetter: 'V',
+      email: '', phone: '', phoneCode: '+58', phoneDigits: '',
+      phoneOffice: '', phoneOfficeCode: '+58', phoneOfficeDigits: '', whatsapp: true,
       photoCedula: null,
       state: '', municipio: '', city: '', parroquia: '', barrio: '',
       postalCode: '', address: '', reference: '',
@@ -243,7 +244,6 @@
     data.name &&
     docValue && (
     !esEmpresa || data.company) &&
-    data.photoCedula && // foto de identidad obligatoria
     data.email &&
     data.phone && // WhatsApp obligatorio (oficina es opcional)
     !dupClient; // bloqueado si ya existe
@@ -252,7 +252,7 @@
     const errName = tried && !data.name;
     const errCompany = tried && esEmpresa && !data.company;
     const errDoc = dupClient ? true : tried && !docValue;
-    const errPhoto = tried && !data.photoCedula;
+    const errPhoto = false; // foto de identidad ahora opcional
     const errEmail = tried && !data.email;
     const errPhone = tried && !data.phone;
 
@@ -280,34 +280,38 @@
           value={data.company} onChange={(e) => update({ company: e.target.value })} placeholder="Importadora Pérez CA" />
           }
         </div>
-        <U.Input label={esEmpresa ? 'RIF' : 'Cédula'} required
-        value={docValue}
-        onChange={(e) => update(esEmpresa ? { rif: e.target.value } : { cedula: e.target.value })}
-        placeholder={esEmpresa ? 'J-XXXXXXXX-X' : 'V-XXXXXXXX'} mono
-        error={dupClient ? `Este ${esEmpresa ? 'RIF' : 'cédula'} ya está registrado` : errDoc ? 'Campo obligatorio' : undefined} />
+        {esEmpresa ?
+        <U.Input label="RIF" required
+        value={data.rif}
+        onChange={(e) => update({ rif: e.target.value })}
+        placeholder="J-XXXXXXXX-X" mono
+        error={dupClient ? 'Este RIF ya está registrado' : errDoc ? 'Campo obligatorio' : undefined} /> :
+        <CedulaInput data={data} update={update}
+        error={dupClient ? 'Esta cédula ya está registrada' : errDoc ? 'Campo obligatorio' : undefined} />
+        }
 
         {dupClient && <DupAlert client={dupClient} esEmpresa={esEmpresa} />}
 
-        <SectionLabel required error={errPhoto}>Foto de la {esEmpresa ? 'RIF' : 'cédula'}</SectionLabel>
-        <PhotoUpload value={data.photoCedula} onChange={(v) => update({ photoCedula: v })} error={errPhoto}
+        <SectionLabel>Foto {esEmpresa ? 'del RIF' : 'de la cédula'} · opcional</SectionLabel>
+        <span style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: -8 }}>Opcional, lo puedes hacer en el portal más adelante.</span>
+        <PhotoUpload value={data.photoCedula} onChange={(v) => update({ photoCedula: v })}
         label={esEmpresa ? 'Sube foto del RIF · ambos lados' : 'Sube foto de la cédula · anverso y reverso'} />
-        {errPhoto && <span style={{ font: '600 11px/1.4 var(--f-sans)', color: 'var(--danger)' }}>Tienes que subir la foto.</span>}
 
         <SectionLabel>Contacto</SectionLabel>
         <U.Input label="Email" type="email" required error={errEmail ? 'Campo obligatorio' : undefined}
         value={data.email} onChange={(e) => update({ email: e.target.value })} placeholder="cperez@empresa.com" />
 
         {/* Teléfono WhatsApp · siempre WhatsApp, sin opción de desvincular */}
-        <U.Input label="Teléfono WhatsApp" required error={errPhone ? 'Campo obligatorio' : undefined}
-        value={data.phone} onChange={(e) => update({ phone: e.target.value })}
-        placeholder="+58 412 XXX-XXXX" mono
+        <PhoneInput data={data} update={update} codeKey="phoneCode" digitsKey="phoneDigits" fullKey="phone"
+        label="Teléfono WhatsApp" required error={errPhone ? 'Campo obligatorio' : undefined}
+        placeholder="412 5551234"
         hint="Es el número por el que te contactamos · siempre es WhatsApp, no se puede desvincular." />
 
         {/* Teléfono de oficina / oficial · NO es WhatsApp · opcional */}
-        <U.Input label="Teléfono de oficina (opcional)"
-        value={data.phoneOffice} onChange={(e) => update({ phoneOffice: e.target.value })}
-        placeholder="+58 212 XXX-XXXX" mono
-        hint="Teléfono fijo u oficial de la empresa · este no se usa para WhatsApp." />
+        <PhoneInput data={data} update={update} codeKey="phoneOfficeCode" digitsKey="phoneOfficeDigits" fullKey="phoneOffice"
+        label="Teléfono de oficina (recomendado)"
+        placeholder="212 5551234"
+        hint="Recomendado · otro número donde podemos contactarte (fijo u oficial) · no se usa para WhatsApp." />
 
         {tried && !valid && !dupClient &&
         <div style={{ padding: '9px 12px', background: 'var(--danger-bg)', color: 'var(--danger)', borderRadius: 'var(--r-sm)', font: '600 11.5px/1.4 var(--f-sans)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
@@ -339,7 +343,7 @@
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
             <b style={{ color: 'var(--success)' }}>Enlace de recuperación enviado</b>
             {maskedEmail ? <> al correo registrado <b>{maskedEmail}</b>.</> : <> al correo registrado de la cuenta.</>}
-            {' '}Revisa tu bandeja para volver a entrar con tu Shipping Mark <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{client.markbox}</code>.
+            {' '}Revisa tu bandeja para volver a entrar con tu correo y contraseña.
           </div>
         </div>);
     }
@@ -410,6 +414,10 @@
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <SectionLabel>Dirección de entrega</SectionLabel>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 'var(--r-md)', font: '500 12.5px/1.5 var(--f-sans)' }}>
+          <span style={{ flexShrink: 0, marginTop: 1 }}>{I.pin ? I.pin(15) : I.info(15)}</span>
+          <span>Esta es la dirección donde <b>recibirás tu mercancía</b> — el punto exacto de la entrega puerta a puerta. Confírmala con cuidado para que tu carga llegue sin demoras.</span>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <U.Select label="Estado" required error={errState ? 'Obligatorio' : undefined} value={data.state}
           onChange={(e) => update({ state: e.target.value, municipio: '', city: '', postalCode: '' })}
@@ -480,7 +488,7 @@
             <Field label="Email" value={data.email} />
             <Field label="WhatsApp" value={data.phone} mono />
             <Field label="Tel. oficina" value={data.phoneOffice || '—'} mono />
-            <Field label="Foto identidad" value={data.photoCedula ? '✓ Cargada' : '— Falta'} tone={data.photoCedula ? 'success' : 'warning'} />
+            <Field label="Foto identidad" value={data.photoCedula ? '✓ Cargada' : '— Opcional'} tone={data.photoCedula ? 'success' : undefined} />
           </div>
         </U.Card>
 
@@ -497,30 +505,20 @@
           </div>
         </U.Card>
 
-        {/* ── CTA opcional · ¿ya tienes una compra en China? ── */}
-        <PurchaseCTA data={data} update={update} />
-
         {/* ── Instrucción operativa · regla de caja huérfana ──────────────
-               Si la caja llega a China con el Shipping Mark pero SIN proveedor /
-               grupo WeChat asociado, el almacén CN la marca automáticamente
-               como "caja huérfana por falta de datos": sabemos quién es el
-               cliente, pero no de qué proveedor (grupo WeChat) viene.
-               ⚠ BACKEND: el registro del proveedor de acá (PurchaseCTA) debe
-               conectarse al pipeline del almacén CN — mapear Shipping Mark ↔ grupo
-               WeChat ↔ proveedor — para que la asociación sea automática en
-               recepción. Ver erp/data.jsx (SUPPLIER_CLIENTS.wechatGroup) y el
-               módulo Almacén CN. */}
-        {data.supplierName ?
-        <div style={{ padding: '10px 12px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(13)}</span>
-            <span>Al confirmar generamos tu <b>Shipping Mark</b> y el código de compra de tu proveedor. Tus cajas llegarán a China ya asociadas a tu cuenta y a tu proveedor (grupo WeChat).</span>
-          </div> :
-
+                Si la caja llega a China con el Shipping Mark pero SIN proveedor /
+                grupo WeChat asociado, el almacén CN la marca automáticamente
+                como "caja huérfana por falta de datos": sabemos quién es el
+                cliente, pero no de qué proveedor (grupo WeChat) viene.
+                ⚠ BACKEND: el registro del proveedor de acá (PurchaseCTA) debe
+                conectarse al pipeline del almacén CN — mapear Shipping Mark ↔ grupo
+                WeChat ↔ proveedor — para que la asociación sea automática en
+                recepción. Ver erp/data.jsx (SUPPLIER_CLIENTS.wechatGroup) y el
+                módulo Almacén CN. */}
         <div style={{ padding: '10px 12px', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: 'var(--r-md)', font: '500 11.5px/1.5 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <span style={{ marginTop: 1, flexShrink: 0 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
-            <span>Al confirmar se genera tu <b>Shipping Mark</b>. <b>Importante:</b> si tu caja llega a China solo con el Shipping Mark y sin un proveedor registrado, nuestro almacén la marca como <b>caja huérfana</b> — sabemos que es tuya, pero no de qué proveedor (grupo WeChat) viene, y se retrasa. Registrá tu proveedor arriba o desde el portal apenas tengas la compra.</span>
-          </div>
-        }
+          <span style={{ marginTop: 1, flexShrink: 0 }}>{I.warn ? I.warn(13) : I.info(13)}</span>
+          <span>Al confirmar se genera tu <b>Shipping Mark</b>. <b>Importante:</b> registra tu proveedor desde el portal apenas tengas la compra. Si una caja llega a China solo con el Shipping Mark y sin proveedor, entra como <b>caja huérfana</b> — sabemos que es tuya, pero no de qué proveedor (grupo WeChat) viene, y se retrasa.</span>
+        </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: 8 }}>
           <U.Btn variant="ghost" size="lg" onClick={onBack} icon={I.arrowL(14)}>Volver</U.Btn>
@@ -588,8 +586,8 @@
       <div style={{ display: 'flex', flexDirection: 'column', gap: 18, alignItems: 'center', textAlign: 'center', paddingTop: 20 }}>
         <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--success)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{I.check(40)}</div>
         <div>
-          <div style={{ font: '900 26px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.025em' }}>Bienvenido a la familia de DoorTuDoor Cargo</div>
-          <div style={{ font: '500 13.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8, maxWidth: '40ch' }}>
+          <div style={{ font: '900 26px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.025em' }}>Bienvenido a la familia de DTD Cargo</div>
+          <div style={{ font: '500 13.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '8px auto 0', maxWidth: '40ch' }}>
             Tu cuenta está activa, {data.name?.split(' ')[0]}. Este es tu código Shipping Mark personal — guardalo, vas a usarlo mucho.
           </div>
         </div>
@@ -617,43 +615,35 @@
         {/* Acceso al portal · usuario + clave (= cédula/RIF) */}
         <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Usuario</div>
-            <code style={{ font: '800 15px/1 var(--f-mono)', color: 'var(--success)' }}>{markbox}</code>
+            <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Correo</div>
+            <code style={{ font: '800 13px/1.3 var(--f-mono)', color: 'var(--success)', wordBreak: 'break-all' }}>{data.email}</code>
           </div>
           <div>
             <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Contraseña</div>
             <code style={{ font: '800 15px/1 var(--f-mono)', color: 'var(--success)' }}>{data.cedula || data.rif || '—'}</code>
-            <div style={{ font: '500 10.5px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Es tu {data.tipo === 'persona' ? 'cédula' : 'RIF'} · recomendado cambiar al entrar al portal</div>
+            <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Es tu {data.tipo === 'persona' ? 'cédula' : 'RIF'} · recomendado cambiar al entrar al portal</div>
           </div>
         </div>
 
-        {/* Faltan pasos para la trazabilidad · solo si no registró proveedor
-            (ni en el paso 3 ni inline acá) */}
-        {!data.supplierName && !purchase &&
-        <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--wine)', flexShrink: 0, marginTop: 1 }}>{I.info(16)}</span>
-            <div>
-              <div style={{ font: '800 13px/1.3 var(--f-display)', color: 'var(--wine)' }}>Tu código está listo, pero faltan pasos para la trazabilidad completa</div>
-              <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>
-                Para que tus cajas lleguen identificadas y no entren como "huérfanas", aprendé cómo usar tu código + sticker y registrá tu proveedor. Mira la guía acá abajo <span className="guide-arrow-bounce" style={{ display: 'inline-block' }}>↓</span>
-              </div>
-            </div>
-          </div>
-        }
-
-        {/* Mini-guía de codificación */}
+        {/* Aviso + acceso a la guía · un solo elemento: al tocarlo se abre */}
         <button onClick={() => setShowGuide(!showGuide)} className={showGuide ? '' : 'guide-pulse'} style={{
-          width: '100%', maxWidth: 480, padding: '12px 14px',
-          background: 'var(--bg-elevated)', color: 'var(--wine)',
+          width: '100%', maxWidth: 480, padding: '14px 16px', textAlign: 'left', cursor: 'pointer',
+          background: 'var(--wine-tint)', color: 'var(--ink)',
           border: '1px solid var(--wine)', borderRadius: 'var(--r-md)',
-          font: '700 12.5px/1 var(--f-sans)',
-          display: 'inline-flex', alignItems: 'center', justifyContent: 'space-between', gap: 8,
-          position: 'relative'
+          display: 'flex', alignItems: 'center', gap: 12
         }}>
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-            {I.info(14)} Cómo usar tu código + sticker · por qué registrar un proveedor (1 min)
+          <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{I.info(16)}</span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: 'block', font: '800 13px/1.3 var(--f-display)', color: 'var(--wine)' }}>
+              {!data.supplierName && !purchase ? 'Tu código está listo, pero falta un paso' : 'Cómo usar tu código + sticker'}
+            </span>
+            <span style={{ display: 'block', font: '500 12px/1.45 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>
+              {!data.supplierName && !purchase ?
+              'Aprende a usar tu código + sticker y a registrar tu proveedor para que tus cajas no entren como “huérfanas”. Toca para ver la guía (1 min).' :
+              'Guía rápida de nomenclatura y registro de proveedor (1 min).'}
+            </span>
           </span>
-          <span className={showGuide ? '' : 'guide-arrow-bounce'} style={{ transform: `rotate(${showGuide ? 180 : 0}deg)`, transition: 'transform var(--dur) var(--ease)', display: 'inline-flex' }}>{I.chevD(13)}</span>
+          <span className={showGuide ? '' : 'guide-arrow-bounce'} style={{ transform: `rotate(${showGuide ? 180 : 0}deg)`, transition: 'transform var(--dur) var(--ease)', display: 'inline-flex', color: 'var(--wine)', flexShrink: 0 }}>{I.chevD(14)}</span>
         </button>
 
         {showGuide &&
@@ -842,7 +832,7 @@
             Próximos pasos:
             <ol style={{ margin: '6px 0 0', paddingLeft: 18, font: '500 11.5px/1.7 var(--f-sans)' }}>
               <li>Descarga las etiquetas y enviáselas a tu proveedor.</li>
-              <li>Entra al portal (usuario <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}</code> · clave: tu {data.tipo === 'persona' ? 'cédula' : 'RIF'}).</li>
+              <li>Entra al portal (correo <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{data.email}</code> · clave: tu {data.tipo === 'persona' ? 'cédula' : 'RIF'}).</li>
               <li>Sigue tu envío en "Mis envíos".</li>
             </ol>
           </div>
@@ -859,7 +849,7 @@
           </div>
           <div style={{ padding: '10px 12px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
             <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Acceso al portal</div>
-            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Usuario: <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{markbox}</code> · Clave: <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{tempPass}</code></div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Correo: <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{data.email}</code> · Clave: <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{tempPass}</code></div>
             <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>Tu clave por defecto es tu {data.tipo === 'persona' ? 'cédula' : 'RIF'}. Cambiala la primera vez que entres.</div>
           </div>
         </div>);
@@ -987,9 +977,149 @@
 
   }
 
+  // ── Códigos de país para teléfono ──────────────────────
+  // Orden por frecuencia de clientes DTD: Venezuela primero, EE.UU.
+  // segundo, luego el resto. Predeterminado VE (+58).
+  const COUNTRY_CODES = [
+    { c: 'VE', dial: '+58', name: 'Venezuela' },
+    { c: 'US', dial: '+1', name: 'Estados Unidos / Canadá' },
+    { c: 'CO', dial: '+57', name: 'Colombia' },
+    { c: 'PA', dial: '+507', name: 'Panamá' },
+    { c: 'PE', dial: '+51', name: 'Perú' },
+    { c: 'CL', dial: '+56', name: 'Chile' },
+    { c: 'EC', dial: '+593', name: 'Ecuador' },
+    { c: 'AR', dial: '+54', name: 'Argentina' },
+    { c: 'BR', dial: '+55', name: 'Brasil' },
+    { c: 'MX', dial: '+52', name: 'México' },
+    { c: 'BO', dial: '+591', name: 'Bolivia' },
+    { c: 'PY', dial: '+595', name: 'Paraguay' },
+    { c: 'UY', dial: '+598', name: 'Uruguay' },
+    { c: 'CR', dial: '+506', name: 'Costa Rica' },
+    { c: 'GT', dial: '+502', name: 'Guatemala' },
+    { c: 'HN', dial: '+504', name: 'Honduras' },
+    { c: 'NI', dial: '+505', name: 'Nicaragua' },
+    { c: 'SV', dial: '+503', name: 'El Salvador' },
+    { c: 'CU', dial: '+53', name: 'Cuba' },
+    { c: 'ES', dial: '+34', name: 'España' },
+    { c: 'PT', dial: '+351', name: 'Portugal' },
+    { c: 'GB', dial: '+44', name: 'Reino Unido' },
+    { c: 'FR', dial: '+33', name: 'Francia' },
+    { c: 'DE', dial: '+49', name: 'Alemania' },
+    { c: 'IT', dial: '+39', name: 'Italia' },
+    { c: 'NL', dial: '+31', name: 'Países Bajos' },
+    { c: 'BE', dial: '+32', name: 'Bélgica' },
+    { c: 'CH', dial: '+41', name: 'Suiza' },
+    { c: 'AT', dial: '+43', name: 'Austria' },
+    { c: 'SE', dial: '+46', name: 'Suecia' },
+    { c: 'NO', dial: '+47', name: 'Noruega' },
+    { c: 'DK', dial: '+45', name: 'Dinamarca' },
+    { c: 'FI', dial: '+358', name: 'Finlandia' },
+    { c: 'IE', dial: '+353', name: 'Irlanda' },
+    { c: 'PL', dial: '+48', name: 'Polonia' },
+    { c: 'RU', dial: '+7', name: 'Rusia / Kazajistán' },
+    { c: 'TR', dial: '+90', name: 'Turquía' },
+    { c: 'CN', dial: '+86', name: 'China' },
+    { c: 'HK', dial: '+852', name: 'Hong Kong' },
+    { c: 'TW', dial: '+886', name: 'Taiwán' },
+    { c: 'JP', dial: '+81', name: 'Japón' },
+    { c: 'KR', dial: '+82', name: 'Corea del Sur' },
+    { c: 'IN', dial: '+91', name: 'India' },
+    { c: 'ID', dial: '+62', name: 'Indonesia' },
+    { c: 'PH', dial: '+63', name: 'Filipinas' },
+    { c: 'VN', dial: '+84', name: 'Vietnam' },
+    { c: 'TH', dial: '+66', name: 'Tailandia' },
+    { c: 'MY', dial: '+60', name: 'Malasia' },
+    { c: 'SG', dial: '+65', name: 'Singapur' },
+    { c: 'AE', dial: '+971', name: 'Em. Árabes Unidos' },
+    { c: 'SA', dial: '+966', name: 'Arabia Saudita' },
+    { c: 'IL', dial: '+972', name: 'Israel' },
+    { c: 'ZA', dial: '+27', name: 'Sudáfrica' },
+    { c: 'NG', dial: '+234', name: 'Nigeria' },
+    { c: 'EG', dial: '+20', name: 'Egipto' },
+    { c: 'MA', dial: '+212', name: 'Marruecos' },
+    { c: 'AU', dial: '+61', name: 'Australia' },
+    { c: 'NZ', dial: '+64', name: 'Nueva Zelanda' }
+  ];
+
+  // ── Teléfono con selector de código de país ────────────────
+  // El cliente solo escribe el número; el código se elige a la izquierda
+  // (VE +58 por defecto). Se guarda en data[fullKey] como "+58 4125551234".
+  function PhoneInput({ data, update, codeKey, digitsKey, fullKey, label, hint, required, error, placeholder }) {
+    const code = data[codeKey] || '+58';
+    const digits = data[digitsKey] || '';
+    const setCode = (c) => update({ [codeKey]: c, [fullKey]: digits ? `${c} ${digits}` : '' });
+    // Autodetecta el código si el cliente escribe "+…" en el campo del número
+    // (no lo obliga a usar el selector). Si reconoce el código, lo pasa a la
+    // izquierda y deja el resto como número local.
+    const setDigits = (raw) => {
+      const s = String(raw).trim();
+      if (s.startsWith('+')) {
+        const cleaned = '+' + s.slice(1).replace(/[^\d]/g, '');
+        const match = COUNTRY_CODES.map((o) => o.dial).filter((d) => cleaned.startsWith(d)).sort((a, b) => b.length - a.length)[0];
+        if (match) {
+          const rest = cleaned.slice(match.length);
+          update({ [codeKey]: match, [digitsKey]: rest, [fullKey]: rest ? `${match} ${rest}` : '' });
+        } else {
+          update({ [digitsKey]: cleaned, [fullKey]: '' });
+        }
+        return;
+      }
+      const d = s.replace(/[^\d]/g, '');
+      update({ [digitsKey]: d, [fullKey]: d ? `${code} ${d}` : '' });
+    };
+    return (
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span style={{ font: '600 11px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}{required && <span style={{ color: 'var(--danger)' }}> *</span>}</span>
+        <div style={{ display: 'flex', alignItems: 'stretch', height: 38, background: 'var(--bg-surface)', borderWidth: 1, borderStyle: 'solid', borderColor: error ? 'var(--danger)' : 'var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', transition: 'box-shadow var(--dur-fast) var(--ease)' }}
+        onFocus={(e) => {e.currentTarget.style.borderColor = 'var(--wine)';e.currentTarget.style.boxShadow = '0 0 0 3px var(--wine-tint)';}}
+        onBlur={(e) => {e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border)';e.currentTarget.style.boxShadow = 'none';}}>
+          <select value={code} onChange={(e) => setCode(e.target.value)} aria-label="Código de país"
+          style={{ appearance: 'none', WebkitAppearance: 'none', border: 0, outline: 0, backgroundColor: 'var(--bg-elevated)', color: 'var(--wine)', font: '700 13px/1 var(--f-mono)', padding: '0 26px 0 12px', cursor: 'pointer', borderRight: '1px solid var(--border)', backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 9px center' }}>
+            {COUNTRY_CODES.map((o) => <option key={o.c} value={o.dial}>{o.c} {o.dial}</option>)}
+          </select>
+          <input value={digits} onChange={(e) => setDigits(e.target.value)} inputMode="tel" placeholder={placeholder}
+          style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: '600 13.5px/1 var(--f-mono)', color: 'var(--ink)', padding: '0 12px' }} />
+        </div>
+        {hint && !error && <span style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>{hint}</span>}
+        {error && <span style={{ font: '600 11px/1.4 var(--f-sans)', color: 'var(--danger)' }}>{error}</span>}
+      </label>);
+
+  }
+
+  // ── Cédula con prefijo de nacionalidad (V / E) ──────────────
+  // En Venezuela la cédula lleva V (venezolano) o E (extranjero).
+  // El usuario solo escribe el número corrido; la letra se elige a la
+  // izquierda (predeterminado V). Se guarda en data.cedula como "V-1234".
+  function CedulaInput({ data, update, error }) {
+    const letter = data.cedulaLetter || 'V';
+    const mm = /^[VEP]-?(.*)$/i.exec(data.cedula || '');
+    const digits = data.cedula ? mm ? mm[1] : data.cedula : '';
+    const setLetter = (L) => update({ cedulaLetter: L, cedula: digits ? `${L}-${digits}` : '' });
+    // Pasaporte (P) admite letras y números; cédula (V/E) solo dígitos.
+    const setDigits = (raw) => {const d = letter === 'P' ? raw.replace(/[^a-zA-Z0-9]/g, '').toUpperCase() : raw.replace(/\D/g, '');update({ cedula: d ? `${letter}-${d}` : '' });};
+    return (
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <span style={{ font: '600 11px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Cédula<span style={{ color: 'var(--danger)' }}> *</span></span>
+        <div style={{ display: 'flex', alignItems: 'stretch', height: 38, background: 'var(--bg-surface)', borderWidth: 1, borderStyle: 'solid', borderColor: error ? 'var(--danger)' : 'var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', transition: 'box-shadow var(--dur-fast) var(--ease)' }}
+        onFocus={(e) => {e.currentTarget.style.borderColor = 'var(--wine)';e.currentTarget.style.boxShadow = '0 0 0 3px var(--wine-tint)';}}
+        onBlur={(e) => {e.currentTarget.style.borderColor = error ? 'var(--danger)' : 'var(--border)';e.currentTarget.style.boxShadow = 'none';}}>
+          <select value={letter} onChange={(e) => setLetter(e.target.value)} aria-label="Nacionalidad de la cédula"
+          style={{ appearance: 'none', WebkitAppearance: 'none', border: 0, outline: 0, backgroundColor: 'var(--bg-elevated)', color: 'var(--wine)', font: '800 14px/1 var(--f-mono)', padding: '0 28px 0 13px', cursor: 'pointer', borderRight: '1px solid var(--border)', backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 11px center' }}>
+            <option value="V">V</option>
+            <option value="E">E</option>
+            <option value="P">P</option>
+          </select>
+          <input value={digits} onChange={(e) => setDigits(e.target.value)} inputMode={letter === 'P' ? 'text' : 'numeric'} placeholder={letter === 'P' ? 'A1234567' : '18456321'}
+          style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: '600 13.5px/1 var(--f-mono)', color: 'var(--ink)', padding: '0 12px' }} />
+        </div>
+        <span style={{ font: '500 11px/1.4 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-mute)' }}>{error || 'V = venezolano · E = extranjero · P = pasaporte · escribe solo el número, sin puntos.'}</span>
+      </label>);
+
+  }
+
   function SectionLabel({ children, required, error }) {
     return (
-      <div style={{ font: '700 10.5px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{children}{required && <span style={{ color: 'inherit' }}> *</span>}</div>);
+      <div style={{ font: '700 10.5px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>{children}{required && <span style={{ color: 'var(--danger)' }}> *</span>}</div>);
 
   }
 

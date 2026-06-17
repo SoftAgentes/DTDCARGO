@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Uniformes · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  .page { max-width: 1180px; margin: 0 auto; padding: var(--s-10) var(--s-8) var(--s-16); }
+
+  .head { display: flex; align-items: center; gap: 14px; margin-bottom: var(--s-3); }
+  .head img { width: 42px; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 22px; }
+  .wm .d { color: var(--wine); } .wm .g { color: var(--ink); } .wm .sp { display: inline-block; width: 0.15em; }
+  .eyebrow { font: 700 11px/1 var(--f-sans); letter-spacing: 0.2em; text-transform: uppercase; color: var(--wine); margin: var(--s-4) 0 var(--s-2); }
+  h1 { font: 700 34px/1.05 var(--f-display); letter-spacing: -0.02em; margin: 0 0 var(--s-2); }
+  .lede { font: 400 15px/1.55 var(--f-sans); color: var(--ink-soft); max-width: 62ch; margin: 0 0 var(--s-8); }
+
+  /* Configurador */
+  .config { display: grid; grid-template-columns: 1fr 360px; gap: var(--s-6); align-items: start; }
+  @media (max-width: 900px){ .config { grid-template-columns: 1fr; } }
+
+  .stage { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--r-xl); padding: var(--s-6); display: flex; flex-direction: column; align-items: center; gap: var(--s-4); box-shadow: var(--shadow-sm); }
+  .stage .mock { position: relative; width: 100%; max-width: 440px; }
+  .stage .garment { width: 100%; height: auto; display: block; }
+  .stage .ov-logo { position: absolute; transform: translate(-50%,-50%); pointer-events: none; }
+  .stage .ov-logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .stage .ov-word { position: absolute; transform: translate(-50%,-50%); font-family: 'Archivo', sans-serif; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; pointer-events: none; }
+  .readout { display: flex; flex-wrap: wrap; gap: var(--s-2); justify-content: center; }
+  .readout .r { font: 600 11.5px/1 var(--f-mono); color: var(--ink); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-pill); padding: 7px 12px; }
+  .readout .r b { color: var(--wine); }
+
+  .panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl); padding: var(--s-6); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: var(--s-5); }
+  .grp-t { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--wine); margin: 0 0 var(--s-3); }
+  .seg { display: flex; gap: 4px; background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-md); padding: 4px; }
+  .seg button { flex: 1; cursor: pointer; appearance: none; border: 0; background: transparent; color: var(--ink-soft); font: 600 12.5px/1.1 var(--f-sans); padding: 9px 6px; border-radius: var(--r-sm); }
+  .seg button.on { background: var(--wine); color: #fff; }
+  .field label { display: block; font: 600 11.5px/1.2 var(--f-sans); color: var(--ink-soft); margin-bottom: 7px; }
+  .field label .v { color: var(--wine); font-family: var(--f-mono); }
+  input[type=range] { width: 100%; accent-color: var(--wine); }
+  .field input[type=text] { width: 100%; box-sizing: border-box; font: 600 13px/1.3 var(--f-sans); color: var(--ink); background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px 12px; outline: none; text-transform: uppercase; }
+  .field input[type=text]:focus { border-color: var(--wine); box-shadow: 0 0 0 3px var(--wine-bg); }
+  .hint { font: 400 11px/1.4 var(--f-sans); color: var(--ink-mute); margin-top: 6px; }
+
+  /* Guía de tamaños */
+  .guide { margin-top: var(--s-12); }
+  .guide h2 { font: 700 20px/1.1 var(--f-display); margin: 0 0 var(--s-2); }
+  .guide .gsub { font: 400 13.5px/1.5 var(--f-sans); color: var(--ink-soft); margin: 0 0 var(--s-5); max-width: 66ch; }
+  .sizes { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-4); }
+  @media (max-width: 760px){ .sizes { grid-template-columns: 1fr; } }
+  .size { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-5); }
+  .size .mm { font: 800 26px/1 var(--f-display); color: var(--wine); }
+  .size .k { font: 700 13px/1.2 var(--f-sans); color: var(--ink); margin: 8px 0 4px; }
+  .size .d { font: 400 12px/1.45 var(--f-sans); color: var(--ink-soft); }
+
+  .foot { margin-top: var(--s-10); border-top: 1px solid var(--border); padding-top: var(--s-5); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="head">
+      <img src="assets/dtdcargo-isologo-primary.png" alt="DTD Cargo" />
+      <span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span>
+    </div>
+    <div class="eyebrow">Indumentaria · configurador de logo</div>
+    <h1>Uniformes · prenda de hombre</h1>
+    <p class="lede">Probá el bordado en vivo sobre una manga larga: cambiá el <b>tamaño del logo</b>, su <b>posición</b> y agregá una <b>palabra</b> (nombre o área). El tamaño se muestra en milímetros, tal como va a la imprenta.</p>
+
+    <div class="config">
+      <div class="stage">
+        <div class="mock" id="garment"></div>
+        <div class="readout" id="readout"></div>
+      </div>
+
+      <div class="panel">
+        <div>
+          <div class="grp-t">Prenda (hombre)</div>
+          <div class="seg" id="seg-prenda">
+            <button data-v="tee" class="on">Camiseta M/L</button>
+            <button data-v="shirt">Camisa M/L</button>
+          </div>
+        </div>
+        <div>
+          <div class="grp-t">Color · vista</div>
+          <div class="seg" id="seg-color" style="margin-bottom:8px;">
+            <button data-v="navy" class="on">Navy</button>
+            <button data-v="white">Blanca</button>
+          </div>
+          <div class="seg" id="seg-view">
+            <button data-v="front" class="on">Frente</button>
+            <button data-v="back">Espalda</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tamaño del logo · <span class="v" id="mm-out">70 mm</span></label>
+          <input type="range" id="logo-mm" min="40" max="240" step="5" value="70">
+          <div class="hint" id="mm-hint">Pecho estándar: 60–80 mm. Espalda: hasta 240 mm.</div>
+        </div>
+        <div>
+          <div class="grp-t">Posición del logo</div>
+          <div class="seg" id="seg-pos">
+            <button data-v="chest" class="on">Pecho izq.</button>
+            <button data-v="center">Centro</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Palabra (opcional) · nombre o área</label>
+          <input type="text" id="word" placeholder="Ej: OPERACIONES" maxlength="18">
+          <div class="grp-t" style="margin:12px 0 8px;">Dónde va la palabra</div>
+          <div class="seg" id="seg-wordpos">
+            <button data-v="below" class="on">Debajo</button>
+            <button data-v="side">Al lado</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Guía de tamaños -->
+    <div class="guide">
+      <h2>Tamaños de logo · referencia</h2>
+      <p class="gsub">El isólogo va <b>solo</b> (sin palabras) salvo que agregues un área o nombre. Estos son los tamaños estándar de bordado/estampado por ubicación:</p>
+      <div class="sizes">
+        <div class="size"><div class="mm">70 mm</div><div class="k">Pecho izquierdo</div><div class="d">Isólogo solo. El estándar para polo, camiseta y camisa.</div></div>
+        <div class="size"><div class="mm">90 mm</div><div class="k">Pecho centro</div><div class="d">Para camiseta de planta. Isólogo centrado, opcional palabra debajo.</div></div>
+        <div class="size"><div class="mm">220 mm</div><div class="k">Espalda</div><div class="d">Isólogo grande centrado. Para chaleco y prendas de operario.</div></div>
+      </div>
+    </div>
+
+    <div class="foot"><b>Regla de marca:</b> sobre navy → isólogo <b>reverse</b> (cream); sobre blanco → isólogo <b>primario</b>. La palabra usa <b>Archivo</b> en mayúsculas, en el color de contraste. Medidas orientativas — confirmar con la imprenta. Solo modelos de hombre por ahora.</div>
+  </div>
+
+<script>
+  const ISO = { reverse: 'assets/dtdcargo-isologo-reverse.png', primary: 'assets/dtdcargo-isologo-primary.png' };
+  const st = { prenda: 'tee', color: 'navy', view: 'front', mm: 70, pos: 'chest', word: '', wordpos: 'below' };
+
+  function shade(hex, amt) {
+    let n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const t = amt < 0 ? 0 : 255, p = Math.abs(amt);
+    r = Math.round((t - r) * p + r); g = Math.round((t - g) * p + g); b = Math.round((t - b) * p + b);
+    return '#' + (0x1000000 + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+  const K = 0.48; // mm → unidades SVG (chest 70mm ≈ 34u)
+
+  function render() {
+    const body = st.color === 'navy' ? '#0F1E3D' : '#FBFAF7';
+    const logo = st.color === 'navy' ? ISO.reverse : ISO.primary;
+    const txtColor = st.color === 'navy' ? '#F2F0EC' : '#0F1E3D';
+    const back = st.view === 'back';
+    const bL = shade(body, 0.13), bD = shade(body, -0.15), neck = shade(body, -0.4);
+
+    const VW = 240, VB = 285;
+    const checkColor = st.color === 'navy' ? 'rgba(255,255,255,0.06)' : 'rgba(15,30,61,0.05)';
+
+    let parts = '';
+    if (st.prenda === 'shirt') {
+      // ── Camisa ejecutiva (entallada, cuello camisero, botonadura, puños) ──
+      const slLs = 'M82,90 L52,98 L40,198 L60,205 L72,128 L82,118 Z';
+      const slRs = 'M158,90 L188,98 L200,198 L180,205 L168,128 L158,118 Z';
+      const cuffL = 'M40,198 L60,205 L58,218 L38,211 Z';
+      const cuffR = 'M200,198 L180,205 L182,218 L202,211 Z';
+      const torsoS = 'M82,90 Q120,102 158,90 L166,118 L157,126 Q154,186 156,250 Q120,258 84,250 Q86,186 83,126 L74,118 Z';
+      parts += `<path d="${slLs}" fill="url(#bg)" stroke="rgba(0,0,0,0.13)" stroke-width="1.2"/>`;
+      parts += `<path d="${slRs}" fill="url(#bg)" stroke="rgba(0,0,0,0.13)" stroke-width="1.2"/>`;
+      parts += `<path d="${cuffL}" fill="${shade(body,-0.13)}" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>`;
+      parts += `<path d="${cuffR}" fill="${shade(body,-0.13)}" stroke="rgba(0,0,0,0.18)" stroke-width="1"/>`;
+      parts += `<circle cx="49" cy="207" r="1.6" fill="#F4F1EA"/><circle cx="191" cy="207" r="1.6" fill="#F4F1EA"/>`;
+      parts += `<path d="${torsoS}" fill="url(#bg)" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/>`;
+      parts += `<path d="${torsoS}" fill="url(#chk)"/>`;
+      parts += `<path d="M101,122 Q104,186 102,248 M139,122 Q136,186 138,248" stroke="rgba(0,0,0,0.07)" stroke-width="2" fill="none"/>`;
+      if (!back) {
+        parts += `<path d="M114,104 L114,250 L126,250 L126,104 Z" fill="${shade(body,0.05)}" stroke="rgba(0,0,0,0.10)" stroke-width="0.8"/>`;
+        parts += `<line x1="120" y1="106" x2="120" y2="248" stroke="rgba(0,0,0,0.13)" stroke-width="1"/>`;
+        for (let by = 126; by <= 242; by += 20) parts += `<circle cx="120" cy="${by}" r="2.2" fill="#F4F1EA" stroke="rgba(0,0,0,0.22)" stroke-width="0.6"/>`;
+        parts += `<path d="M103,84 Q120,98 137,84 L139,93 Q120,108 101,93 Z" fill="${shade(body,-0.18)}"/>`;
+        parts += `<path d="M105,86 L92,102 L110,105 L119,91 Z" fill="url(#bg)" stroke="rgba(0,0,0,0.16)" stroke-width="1"/>`;
+        parts += `<path d="M135,86 L148,102 L130,105 L121,91 Z" fill="url(#bg)" stroke="rgba(0,0,0,0.16)" stroke-width="1"/>`;
+      } else {
+        parts += `<path d="M82,90 Q120,100 158,90 L154,105 Q120,115 86,105 Z" fill="${shade(body,-0.08)}"/>`;
+        parts += `<path d="M104,84 Q120,95 136,84 L137,92 Q120,102 103,92 Z" fill="${shade(body,-0.18)}"/>`;
+        parts += `<line x1="120" y1="106" x2="120" y2="250" stroke="rgba(0,0,0,0.06)" stroke-width="6"/>`;
+      }
+    } else {
+      // ── Camiseta manga larga ──
+      const slL = 'M76,78 L48,74 L30,212 L56,218 L68,120 L72,110 Q74,92 76,78 Z';
+      const slR = 'M164,78 L192,74 L210,212 L184,218 L172,120 L168,110 Q166,92 164,78 Z';
+      const torso = 'M76,78 Q120,96 164,78 L168,110 L160,118 L160,250 Q120,260 80,250 L80,118 L72,110 Z';
+      parts += `<path d="${slL}" fill="url(#bg)" stroke="rgba(0,0,0,0.13)" stroke-width="1.2"/>`;
+      parts += `<path d="${slR}" fill="url(#bg)" stroke="rgba(0,0,0,0.13)" stroke-width="1.2"/>`;
+      parts += `<path d="${torso}" fill="url(#bg)" stroke="rgba(0,0,0,0.14)" stroke-width="1.4"/>`;
+      parts += `<path d="${torso}" fill="url(#chk)"/>`;
+      parts += `<path d="M106,120 Q120,117 134,120 L131,246 Q120,250 109,246 Z" fill="#ffffff" opacity="0.05"/>`;
+      parts += `<path d="M76,78 Q120,96 164,78 Q120,112 76,78 Z" fill="${neck}" opacity="0.5"/>`;
+    }
+
+    const svg = `<svg class="garment" viewBox="0 0 ${VW} ${VB}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${bL}"/><stop offset="0.5" stop-color="${body}"/><stop offset="1" stop-color="${bD}"/></linearGradient>
+        <pattern id="chk" width="9" height="9" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><circle cx="2" cy="2" r="1" fill="${checkColor}"/></pattern>
+      </defs>
+      <ellipse cx="120" cy="274" rx="80" ry="9" fill="rgba(0,0,0,0.08)"/>
+      <path d="M104,50 Q120,59 136,50 L136,82 Q120,92 104,82 Z" fill="#E7E3DC"/>
+      <path d="M104,82 Q120,92 136,82 L136,75 Q120,84 104,75 Z" fill="rgba(0,0,0,0.10)"/>
+      ${parts}
+    </svg>`;
+
+    // posición del logo en unidades del viewBox
+    let lcx, lcy;
+    if (back) { lcx = 120; lcy = 150; }
+    else if (st.pos === 'center') { lcx = 120; lcy = 130; }
+    else { lcx = 99; lcy = 123; }
+    const lw = st.mm * K;
+
+    const pctX = lcx / VW * 100, pctY = lcy / VB * 100;
+    const pctW = lw / VW * 100, pctH = lw / VB * 100;
+    let overlay = `<div class="ov-logo" style="left:${pctX}%;top:${pctY}%;width:${pctW}%;height:${pctH}%"><img src="${logo}" alt="logo"></div>`;
+
+    if (st.word.trim()) {
+      const w = st.word.trim().toUpperCase().replace(/[<>&]/g, '');
+      const fs = Math.max(9, Math.min(17, 200 / w.length));
+      let wx, wy, tf;
+      if (st.wordpos === 'side' && !back && st.pos === 'chest') {
+        wx = (lcx + lw / 2 + 9) / VW * 100; wy = pctY; tf = 'translate(0,-50%)';
+      } else {
+        wx = pctX; wy = (lcy + lw / 2 + 11) / VB * 100; tf = 'translate(-50%,-50%)';
+      }
+      overlay += `<div class="ov-word" style="left:${wx}%;top:${wy}%;transform:${tf};font-size:${fs}px;color:${txtColor}">${w}</div>`;
+    }
+
+    document.getElementById('garment').innerHTML = svg + overlay;
+
+    const variant = st.color === 'navy' ? 'reverse' : 'primario';
+    document.getElementById('readout').innerHTML =
+      `<span class="r">Logo <b>${st.mm} mm</b></span>` +
+      `<span class="r">${back ? 'Espalda' : (st.pos === 'center' ? 'Pecho centro' : 'Pecho izq.')}</span>` +
+      `<span class="r">Variante <b>${variant}</b></span>` +
+      (st.word.trim() ? `<span class="r">Palabra <b>${st.word.trim().toUpperCase()}</b></span>` : `<span class="r">Sin palabra</span>`);
+    document.getElementById('mm-out').textContent = st.mm + ' mm';
+  }
+
+  function seg(id, key, after) {
+    document.querySelectorAll('#' + id + ' button').forEach(b => b.addEventListener('click', () => {
+      st[key] = b.dataset.v;
+      document.querySelectorAll('#' + id + ' button').forEach(x => x.classList.toggle('on', x === b));
+      if (after) after();
+      render();
+    }));
+  }
+  seg('seg-prenda', 'prenda');
+  seg('seg-color', 'color');
+  seg('seg-view', 'view', () => {
+    // al ver espalda, sugerir tamaño grande
+    if (st.view === 'back' && st.mm < 160) { st.mm = 220; document.getElementById('logo-mm').value = 220; }
+    if (st.view === 'front' && st.mm > 140) { st.mm = 70; document.getElementById('logo-mm').value = 70; }
+  });
+  seg('seg-pos', 'pos');
+  seg('seg-wordpos', 'wordpos');
+  document.getElementById('logo-mm').addEventListener('input', e => { st.mm = +e.target.value; render(); });
+  document.getElementById('word').addEventListener('input', e => { st.word = e.target.value; render(); });
+
+  render();
+</script>
+</body>
+</html>

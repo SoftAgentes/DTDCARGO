@@ -1,5 +1,14 @@
 # Changelog · v1.1+
 
+## 2026-06-17 · 🔢 v4.2 → v4.3
+
+Academia del alumno, Hub de Enlaces y reestructura del registro, consolidado como **v4.3** (marca y producto comparten número visible).
+- **Versión:** v4.2 → **v4.3** en todo lo visible: Brand Book (renombrado `Brand Book DTD v4.2.html` → `Brand Book DTD v4.3.html`, portada/cover/footer/cierre/changelog), sidebar ERP, títulos de Portal/Registro/apps de operario, badges de módulo (Scorecard, Academia, Dashboard), tokens, Brand Hub y Launcher, `HANDOFF.md`. Lo histórico (entradas previas, comentarios que fechan features) no se reescribe.
+- **Academia DTD (alumno):** `portal/academia-data.jsx` + `portal/academia.jsx` (window.PortalAcademia) · 7 pantallas mobile-first; standalone iPhone (`Portal Academia · Alumno.html`) + pestaña "Academia" en el Portal.
+- **Hub de Enlaces:** `Enlaces · DTD-Cargo.html` (link-in-bio de Instagram, canónico) + `assets/og-enlaces.png`; variantes A/B/C eliminadas. Atribución WhatsApp (CRM) + UTM (analítica).
+- **Registro (`portal/registro.jsx`):** acceso por correo + contraseña; cédula con prefijo V/E/P; teléfono con selector de código de país + autodetección; foto opcional; tel. oficina "recomendado"; nota de dirección de entrega; guía fusionada; asteriscos obligatorios en rojo (`erp/components.jsx`).
+- **Portal:** tarjeta "Próxima salida" de contenedor (Home + eco en Nueva compra, `naviera-data.jsx` cargado) + panel de Tweaks (densidad/titulares/forma).
+
 ## 2026-06-14 · 🔢 Versión única del proyecto → v4.2
 
 Sesión de herramientas de marca + módulos de operación, consolidada como **v4.2** (marca y producto comparten número visible).

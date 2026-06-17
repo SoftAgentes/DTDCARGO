@@ -4,6 +4,66 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v4.3 · carga 2026-06-17 — **marca sincronizada a Brand Book v4.3 · sync 2026-06-17**
+
+> *Hecho en ventana secundaria (worktree `feat/norte-v43`). NO mergeado ni pusheado — queda para la
+> ventana de coordinación.* El ZIP se extrajo **fuera del repo** (regla anti-drift de marca).
+
+Fuente: `Downloads/DTD-Cargo (4).zip` (el proyecto fechó v4.3 el 2026-06-14; carga al Norte hoy) →
+**819 archivos / 23.7 MB** a git tras exclusiones de regla. **No** trae un `SYNC-NORTE` nuevo; las
+instrucciones de la sesión vienen en **`HANDOFF-SESION-2026-06.md`** (nuevo). El HANDOFF salta
+**v4.2 → v4.3**; el Brand Book **v4.2 → v4.3** (git lo detectó como *rename*, no delete+add).
+
+**Sistema sin cambios este ciclo:** `erp/tokens.css` y `CLAUDE.md` solo cambian la **etiqueta de
+versión** (cero drift de tokens, fuentes ni reglas — verificado por diff). Nada de marca que
+propagar a la web salvo el book (ver Seguimiento).
+
+**Gobernanza book único:** `Brand Book DTD v4.2.html` eliminado; queda solo `Brand Book DTD v4.3.html`.
+
+**Cambios de PRODUCTO (mockups · del HANDOFF-SESION):**
+- **Portal del Cliente** — tarjeta **"Próxima salida de contenedor"** como primer bloque del Home
+  (`portal/app.jsx` → `NextSailingCard`, cuenta al cut-off, urgencia en warning dorado <48 h; carga
+  `naviera-data.jsx` en el Portal) + **panel de Tweaks** (`tweaks-panel.jsx`: densidad, titulares
+  Sora↔Archivo Black, forma).
+- **Registro de Cliente** (`portal/registro.jsx`) — **reestructura de identidad:** acceso por
+  **correo + contraseña** (ya no por Shipping Mark, que pasa a ser solo el código de cajas); **cédula
+  con prefijo V/E/P** (venezolano/extranjero/pasaporte); **teléfono con selector de código de país**
+  (`PhoneInput`, +58 default, autodetecta `+34…`); foto de cédula/RIF **opcional**; tel. de oficina
+  "recomendado"; asteriscos de obligatorio en **rojo** (`var(--danger)` en `erp/components.jsx`).
+
+**Nuevos mockups (NO construidos en producto → candidatos a SDD / portal UI):**
+- **Academia DTD · vista del alumno** — `portal/academia-data.jsx` + `portal/academia.jsx`
+  (`window.PortalAcademia`), 7 pantallas mobile-first (Gate, Inicio, Detalle, Reproductor, Diplomas,
+  Cohortes, Club), standalone `Portal Academia · Alumno.html` + pestaña en `Portal del Cliente.html`
+  + `academia-embed.html`. **El backend ya vive en `SDD-0093` + migr `0144`** (en main); falta el
+  portal UI `app/portal/(app)/academia/`.
+- **Hub de Enlaces** — `Enlaces · DTD-Cargo.html` (link-in-bio de Instagram, servir en
+  `dtdcargo.com/enlaces`) + paquete `handoff-enlaces/` + `assets/og-enlaces.png`. Atribución
+  WhatsApp(CRM)+UTM.
+- **Vistas Móviles** — `Vistas Móviles · DTD-Cargo.html`: visor unificado por persona (8 roles,
+  iframes a las vistas móviles reales). Página interna de QA de experiencia por rol.
+- Menores: `Cotizador de Fletes · DTD-Cargo.html`, configurador `uniforms/` (`lookbook.jsx`).
+
+**Exclusiones (regla "pesado/ruido fuera de git"):** mismas que v4.2 (`fondos/`, `trello/`,
+`para-enviar/`, `uploads/`, `_archivo/uploads/`, `scraps/`, `screenshots/`, `backend/prisma/`,
+`.design-canvas.state.json`, `.thumbnail`) + scratch `.image-slots.state.json`. **Conflicto de
+numeración preservado:** el ZIP trae `inventario/DECISIONES-WMS-SDD-0080.md`; en Norte el canónico es
+`…SDD-0081.md` (renombrado por la colisión 0080→0081). Se **excluyó el 0080 del ZIP** y se preservó el
+0081 local — el sync ciego lo habría revertido.
+
+**Índice (`scripts/norte.mjs`):** `NORTE_VERSION` → v4.3, puntero del book → `Brand Book DTD v4.3.html`,
+nuevo grupo "Nuevo en v4.3 (Academia alumno · enlaces · vistas móviles)". % construido sin cambio (50%;
+los mockups nuevos son `ref:true`).
+
+**Seguimiento (para la ventana de coordinación):**
+1. **Book v4.3 a la web — PENDIENTE:** el ZIP **no** trae el standalone autocontenido → la web
+   `/marca/brand-book` sigue sirviendo **v4.2**. Pedir a Cloud Design el `Brand Book v4.3 · standalone`
+   self-contained para publicarlo en `public/marca/` (mismo bloqueo que tuvo v4.2 al inicio).
+2. **SDDs de producto (numerar contra `origin/main` + todas las ramas):** Academia portal UI
+   (sobre SDD-0093), Portal "Próxima salida", Registro reestructurado (correo+contraseña, cédula
+   V/E/P, `PhoneInput`), Hub Enlaces (`/enlaces`). Cada uno = candidato a SDD.
+3. Tokens/reglas/favicons **sin cambios** → nada más que propagar este ciclo.
+
 ## v4.2 · carga 2026-06-14 — **marca sincronizada a Brand Book v4.2 · sync 2026-06-14**
 
 > *Hecho en ventana secundaria (worktree `feat/norte-v42`). NO mergeado ni pusheado — queda para la

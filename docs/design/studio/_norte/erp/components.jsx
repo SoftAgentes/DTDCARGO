@@ -63,7 +63,7 @@ function Input({ label, value, onChange, placeholder, type = 'text', prefix, suf
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
       {label &&
-      <span style={{ font: '600 11px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}{required && <span style={{ color: 'inherit' }}> *</span>}</span>
+      <span style={{ font: '600 11px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}{required && <span style={{ color: 'var(--danger)' }}> *</span>}</span>
       }
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8,
@@ -106,7 +106,7 @@ function Input({ label, value, onChange, placeholder, type = 'text', prefix, suf
 function Select({ label, value, onChange, options = [], required, error, style = {} }) {
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
-      {label && <span style={{ font: '600 11px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}{required && <span style={{ color: 'inherit' }}> *</span>}</span>}
+      {label && <span style={{ font: '600 11px/1 var(--f-sans)', color: error ? 'var(--danger)' : 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>{label}{required && <span style={{ color: 'var(--danger)' }}> *</span>}</span>}
       <select
         value={value || ''}
         onChange={onChange}

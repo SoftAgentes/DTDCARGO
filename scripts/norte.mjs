@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v4.2"; // handoff Cloud Design (carga 2026-06-14: versión UNIFICADA marca+producto = v4.2; Brand Book v3.7 → v4.2 ÚNICO; estructura Brand Hub [solo marca] vs DTD Apps · Launcher [solo producto]; nuevos: Inventario de Consolidación [WMS], Reclamos y Siniestros, Academia [LMS], Scorecard de Proveedores, Dashboard Ejecutivo, Kit de Bienvenida, Reels y Logo Sonoro, Packlist, Cotización DDP, Diplomas, Ciclo del Cliente; MARKBOX fuera del lenguaje visual [Shipping Mark único])
+const NORTE_VERSION = "v4.3"; // handoff Cloud Design (carga 2026-06-17 v4.3: Academia DTD vista alumno [portal/academia*.jsx; backend ya en SDD-0093 + migr 0144], Portal "Próxima salida de contenedor" + panel de Tweaks, Registro reestructurado [acceso por correo+contraseña, cédula V/E/P, teléfono con selector de código de país], Hub de Enlaces link-in-bio [/enlaces], Vistas Móviles visor por persona; sin cambios de tokens/reglas · carga 2026-06-14 v4.2: versión UNIFICADA marca+producto = v4.2; Brand Book v3.7 → v4.2 ÚNICO; estructura Brand Hub [solo marca] vs DTD Apps · Launcher [solo producto]; nuevos: Inventario de Consolidación [WMS], Reclamos y Siniestros, Academia [LMS], Scorecard de Proveedores, Dashboard Ejecutivo, Kit de Bienvenida, Reels y Logo Sonoro, Packlist, Cotización DDP, Diplomas, Ciclo del Cliente; MARKBOX fuera del lenguaje visual [Shipping Mark único])
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -157,9 +157,9 @@ const GROUPS = [
   {
     title: "Marca",
     screens: [
-      // Carga 2026-06-14: Brand Book v4.2 es el ÚNICO vigente (v3.7 eliminado por regla de gobernanza).
+      // Carga 2026-06-17: Brand Book v4.3 es el ÚNICO vigente (v4.2 eliminado por regla de gobernanza).
       { name: "Brand Hub (índice de marca)", file: "Brand Hub · DTD-Cargo.html", kind: "brand" },
-      { name: "Brand Book v4.2", file: "Brand Book DTD v4.2.html", kind: "brand" },
+      { name: "Brand Book v4.3", file: "Brand Book DTD v4.3.html", kind: "brand" },
       { name: "Tarjeta de Presentación", file: "Tarjeta de Presentación.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
@@ -200,6 +200,22 @@ const GROUPS = [
       { name: "Cotización DDP", file: "cotizacion/Cotización DDP · DTD-Cargo.html", ref: true },
       { name: "Diploma (Academia)", file: "diplomas/Diploma · DTD-Cargo.html", ref: true },
       { name: "Ciclo del Cliente (hero web)", file: "ciclo/Ciclo del Cliente · DTD-Cargo.html", ref: true },
+    ],
+  },
+  {
+    // Carga 2026-06-17 (v4.3): vista del alumno de Academia DTD (7 pantallas mobile-first en
+    // portal/academia*.jsx; el backend ya vive en SDD-0093 + migr 0144 → falta el portal UI
+    // app/portal/(app)/academia/), hub de enlaces link-in-bio para Instagram (/enlaces), visor
+    // de Vistas Móviles por persona, y el Cotizador de Fletes. Mockups de diseño → ref:true
+    // (no diluyen el % construido). El delta de Portal (tarjeta "Próxima salida" + panel de
+    // Tweaks) y Registro (correo+contraseña, cédula V/E/P, teléfono con selector de país) editó
+    // pantallas ya listadas (Portal del Cliente / Registro Cliente) — detalle en NORTE-CHANGELOG.
+    title: "Nuevo en v4.3 (2026-06-17) · Academia alumno · enlaces · vistas móviles",
+    screens: [
+      { name: "Academia DTD · Alumno (portal)", file: "Portal Academia · Alumno.html", ref: true },
+      { name: "Vistas Móviles (visor por persona)", file: "Vistas Móviles · DTD-Cargo.html", ref: true },
+      { name: "Enlaces (link-in-bio Instagram)", file: "Enlaces · DTD-Cargo.html", ref: true },
+      { name: "Cotizador de Fletes", file: "Cotizador de Fletes · DTD-Cargo.html", ref: true },
     ],
   },
 ];

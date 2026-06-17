@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>DTD Cargo · Enlaces</title>
+<meta name="description" content="DTD Cargo · Importa de China a Venezuela puerta a puerta, con Confianza. Cotiza DDP por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal." />
+<meta name="theme-color" content="#0F1E3D" />
+<link rel="icon" href="assets/dtdcargo-isologo-primary.png" />
+<link rel="apple-touch-icon" href="assets/dtdcargo-isologo-primary.png" />
+<link rel="canonical" href="https://dtdcargo.com/enlaces" />
+<!-- Open Graph / preview al compartir el link -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="DTD Cargo" />
+<meta property="og:title" content="DTD Cargo · Con Confianza, de China a tu puerta" />
+<meta property="og:description" content="Cotiza DDP por WhatsApp, calcula tu envío, rastrea tu carga y entra a tu portal." />
+<meta property="og:url" content="https://dtdcargo.com/enlaces" />
+<meta property="og:image" content="https://dtdcargo.com/assets/og-enlaces.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="erp/tokens.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800&family=Archivo+Black&display=swap" />
+<!--
+  ════════════════════════════════════════════════════════════
+  DTD Cargo · Hub de Enlaces (link-in-bio de Instagram) · CANÓNICO
+  ────────────────────────────────────────────────────────────
+  Reemplaza las variantes A/B/C (eliminadas). Diseño B · inmersivo.
+
+  DÓNDE VIVE (para Norte):
+   • Marca → Brand Hub · sección Mensajería/Redes (índice de marca).
+   • Se sirve en una URL corta y estable: dtdcargo.com/enlaces
+     (o subdominio link.dtdcargo.com). ESA url va en la bio de Instagram.
+
+  PARA GESTIONARLO EN INSTAGRAM (link-in-bio):
+   1. Poné dtdcargo.com/enlaces en el campo "sitio web" de la bio (un solo link).
+   2. Editá los enlaces en el bloque CONFIG (abajo, en el <script>).
+   3. Atribución de origen en cada enlace:
+        · WhatsApp → etiqueta "(Vía: …/enlaces · origen)" en el mensaje (CRM).
+        · Web → parámetros UTM (utm_source=instagram&utm_medium=bio…) (analítica).
+   4. Métricas de clic sin tocar código: en prod sumar GA4 o Plausible.
+   5. og:image: ya generada en /assets/og-enlaces.png (1200×630).
+  ════════════════════════════════════════════════════════════
+-->
+<style>
+/* ── Hub de Enlaces · DTD-Cargo (inmersivo · full navy + foto) ──
+   Página navy completa. Único gradiente permitido: navy→ink.
+   Texto cream. Filas translúcidas sobre el navy. Cero AI slop. */
+html, body { min-height: 100%; }
+body {
+  background: linear-gradient(180deg, #0B1428, var(--bg-base));
+  display: flex;
+  justify-content: center;
+  padding: 0 0 var(--s-10);
+}
+[data-theme="dark"] body { background: linear-gradient(180deg, #060D1C, #0B1428); }
+
+.bioB { width: 100%; max-width: 460px; display: flex; flex-direction: column; }
+
+/* ── Hero con foto ── */
+.heroB {
+  position: relative;
+  padding: var(--s-8) var(--s-6) var(--s-6);
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  isolation: isolate;
+}
+.heroB .photo {
+  position: absolute; inset: 0; z-index: -2;
+  background: url('assets/foto-contenedor-real.jpg') center/cover no-repeat;
+}
+.heroB .scrim {
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(180deg, rgba(11,20,40,0.55) 0%, rgba(11,20,40,0.80) 55%, var(--bg-base) 100%);
+}
+[data-theme="dark"] .heroB .scrim {
+  background: linear-gradient(180deg, rgba(6,13,28,0.55) 0%, rgba(6,13,28,0.82) 55%, #0B1428 100%);
+}
+.heroB-top { display: flex; align-items: center; gap: var(--s-3); }
+.heroB-iso { width: 60px; height: 60px; flex-shrink: 0; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4)); }
+.heroB-iso img { width: 100%; height: 100%; object-fit: contain; }
+.wordmark { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 30px; line-height: 1; white-space: nowrap; }
+.wordmark .dtd, .wordmark .cargo { color: #F2F0EC; }
+.wordmark .gap { display: inline-block; width: 0.15em; }
+.handleB { margin-top: 5px; font: 600 12px/1 var(--f-sans); color: rgba(255,255,255,0.65); }
+.taglineB {
+  margin: var(--s-5) 0 0;
+  font-family: var(--f-display); font-weight: 700; font-size: 22px; line-height: 1.28;
+  color: #fff; max-width: 18ch; text-wrap: balance;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+}
+.taglineB b { color: var(--wine-soft); }
+
+/* ── Cuerpo ── */
+.bodyB { padding: var(--s-2) var(--s-5) 0; display: flex; flex-direction: column; gap: var(--s-3); }
+
+.btnB-primary {
+  display: flex; align-items: center; gap: var(--s-3);
+  width: 100%; text-align: left;
+  background: var(--wine); color: #fff;
+  border-radius: var(--r-lg); padding: var(--s-4) var(--s-5);
+  box-shadow: var(--shadow-md);
+  transition: background var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.btnB-primary:hover { background: var(--wine-deep); }
+.btnB-primary:active { transform: translateY(1px); }
+.btnB-primary .ic { width: 34px; height: 34px; flex-shrink: 0; display: grid; place-items: center; background: rgba(255,255,255,0.16); border-radius: var(--r-md); }
+.btnB-primary .tx { flex: 1; }
+.btnB-primary .tx b { display: block; font: 800 15px/1.2 var(--f-display); }
+.btnB-primary .tx span { display: block; font: 500 12px/1.3 var(--f-sans); color: rgba(255,255,255,0.82); margin-top: 2px; }
+
+.labelB { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.12em; text-transform: uppercase; color: rgba(255,255,255,0.5); padding: var(--s-3) var(--s-2) 2px; }
+[data-theme="dark"] .labelB { color: var(--ink-side-soft); }
+
+.rowsB { display: flex; flex-direction: column; gap: var(--s-2); }
+.rowB {
+  display: flex; align-items: center; gap: var(--s-3);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--r-lg);
+  padding: var(--s-3) var(--s-4);
+  backdrop-filter: blur(2px);
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur-fast) var(--ease);
+}
+.rowB:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.22); }
+.rowB:active { transform: translateY(1px); }
+.rowB .ic { width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center; border-radius: var(--r-md); background: rgba(255,255,255,0.08); color: #F2F0EC; }
+.rowB.is-wine .ic { background: rgba(216,154,164,0.18); color: var(--wine-soft); }
+.rowB .tx { flex: 1; min-width: 0; }
+.rowB .tx b { display: block; font: 700 14px/1.25 var(--f-sans); color: #F2F0EC; }
+.rowB .tx span { display: block; font: 500 12px/1.3 var(--f-sans); color: rgba(255,255,255,0.6); margin-top: 1px; }
+.rowB .chev { color: rgba(255,255,255,0.4); flex-shrink: 0; }
+
+.socialB { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
+.socialB a {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: var(--s-3) var(--s-2);
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--r-lg); color: #F2F0EC;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.socialB a:hover { background: rgba(255,255,255,0.10); border-color: rgba(255,255,255,0.22); }
+.socialB .lbl { font: 600 10.5px/1 var(--f-sans); color: rgba(255,255,255,0.7); }
+
+.footB { margin-top: var(--s-5); padding: var(--s-4) var(--s-2) 0; border-top: 1px solid rgba(255,255,255,0.10); }
+.footB .web { font: 700 13px/1 var(--f-sans); color: var(--wine-soft); }
+.footB .legal { margin-top: 8px; font: 500 11px/1.55 var(--f-sans); color: rgba(255,255,255,0.5); }
+.footB .legal .mono { font-family: var(--f-mono); font-size: 10.5px; }
+</style>
+</head>
+<body>
+<main class="bioB">
+  <header class="heroB" data-screen-label="Hero">
+    <div class="photo"></div>
+    <div class="scrim"></div>
+    <div class="heroB-top">
+      <span class="heroB-iso"><img src="assets/dtdcargo-isologo-reverse.png" alt="Isólogo DTD-Cargo" /></span>
+      <div>
+        <span class="wordmark"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
+        <div class="handleB">@doortudoor · dtdcargo.com</div>
+      </div>
+    </div>
+    <p class="taglineB">Con <b>Confianza</b>, de China a tu puerta.</p>
+  </header>
+  <div class="bodyB" id="slotsB"></div>
+</main>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   CONFIG · editá acá los enlaces (datos reales DTD-Cargo).
+   Atribución: WhatsApp → etiqueta de origen en el mensaje (CRM);
+   Web → parámetros UTM para analítica de Instagram.
+   ════════════════════════════════════════════════════════════ */
+const WA = { ventas: '584124545325', administracion: '582414147886', crm: '584121668021' };
+function waLink(numero, origen, mensaje) {
+  const base = mensaje || 'Hola DTD-Cargo, quiero más información.';
+  return `https://wa.me/${numero}?text=${encodeURIComponent(base + `\n\n(Vía: dtdcargo.com/enlaces · ${origen})`)}`;
+}
+// UTM para enlaces web (analítica del link-in-bio)
+function webLink(url, origen) {
+  try {
+    const u = new URL(url);
+    u.searchParams.set('utm_source', 'instagram');
+    u.searchParams.set('utm_medium', 'bio');
+    u.searchParams.set('utm_campaign', 'enlaces');
+    if (origen) u.searchParams.set('origen', origen);
+    return u.toString();
+  } catch (e) { return url; }
+}
+
+const PRIMARY = { label: 'Cotizar DDP por WhatsApp', sub: 'Respondemos al toque · China → Venezuela', href: waLink(WA.ventas, 'cotizar-ddp', 'Hola DTD-Cargo, quiero cotizar un envío desde China (puerta a puerta).') };
+const LINKS = [
+  { icon: 'calc',  wine: true, label: 'Calcular tu envío (CBM)', sub: 'Estima el costo en segundos', href: webLink('https://dtdcargo.com/calculadora', 'calcular-cbm') },
+  { icon: 'box',   label: 'Portal del Cliente', sub: 'Tus compras, facturas y embarques', href: 'Portal del Cliente.html' },
+  { icon: 'radar', label: 'Rastrear mi embarque', sub: 'Sigue tu carga en tiempo real', href: 'Portal del Cliente.html' },
+  { icon: 'chat',  label: 'Atención por WhatsApp', sub: 'Dudas, soporte y postventa', href: waLink(WA.administracion, 'atencion', 'Hola DTD-Cargo, necesito ayuda con una consulta.') },
+  { icon: 'truck', label: 'Servicios puerta a puerta', sub: 'DDP, consolidación, inspección', href: webLink('https://dtdcargo.com/servicios', 'servicios') },
+];
+const SOCIAL = [
+  { net: 'instagram', label: 'Instagram', href: 'https://www.instagram.com/doortudoor_' },
+  { net: 'tiktok',    label: 'TikTok',    href: 'https://www.tiktok.com/@doortudoor' },
+  { net: 'youtube',   label: 'YouTube',   href: 'https://www.youtube.com/@doortudoor' },
+];
+const SVG = {
+  calc:  '<path d="M5 3h14v18H5z"/><path d="M8 7h8M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h.01M16 15h.01"/>',
+  box:   '<path d="M3 8 12 3l9 5v8l-9 5-9-5V8z"/><path d="M3 8l9 5 9-5M12 13v10"/>',
+  radar: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/>',
+  chat:  '<path d="M4 5h16v11H9l-4 4z"/><path d="M8 9.5h8M8 12.5h5"/>',
+  truck: '<rect x="1" y="7" width="12" height="9" rx="1.4"/><path d="M13 10h5l3 4v2h-8z"/><circle cx="6" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+  chev:  '<path d="M9 6l6 6-6 6"/>',
+  wa:    '<path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.6-1.2A9 9 0 1 0 12 3z"/><path d="M8.5 8.6c-.2 0-.5.1-.7.4-.2.3-.8.8-.8 1.9s.8 2.2 1 2.4c.1.2 1.6 2.5 4 3.4 2 .8 2.4.6 2.8.6.4 0 1.3-.5 1.5-1.1.2-.5.2-1 .1-1.1l-.6-.3c-.3-.2-.9-.4-1-.5-.2-.1-.3-.1-.5.1l-.6.8c-.1.1-.3.2-.5.1-.3-.1-1.1-.4-2-1.2-.7-.6-1.2-1.4-1.3-1.6-.1-.2 0-.3.1-.5l.4-.4c.1-.2.2-.3.2-.5l.1-.4c0-.2 0-.3-.1-.4l-.7-1.6c-.2-.4-.4-.4-.5-.4z"/>',
+  instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.2" cy="6.8" r="1" fill="currentColor" stroke="none"/>',
+  tiktok:    '<path d="M14 4c.4 2.4 1.9 3.9 4.2 4.1v3c-1.5 0-2.9-.4-4.2-1.2v5.4a5.4 5.4 0 1 1-5.4-5.4c.3 0 .6 0 .9.1v3.1a2.4 2.4 0 1 0 1.7 2.3V4z"/>',
+  youtube:   '<rect x="2.5" y="6" width="19" height="12" rx="3.5"/><path d="M10.2 9.3l4.6 2.7-4.6 2.7z" fill="currentColor" stroke="none"/>',
+};
+function svg(name, size) {
+  size = size || 22;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${SVG[name] || ''}</svg>`;
+}
+function build() {
+  let html = `<a class="btnB-primary" href="${PRIMARY.href}" target="_blank" rel="noopener">
+    <span class="ic">${svg('wa', 20)}</span>
+    <span class="tx"><b>${PRIMARY.label}</b><span>${PRIMARY.sub}</span></span>
+    <span style="opacity:.7">${svg('chev', 18)}</span></a>`;
+  html += `<div class="labelB">Accesos rápidos</div><div class="rowsB">`;
+  LINKS.forEach(function (l) {
+    const ext = /^https?:/.test(l.href) ? ' target="_blank" rel="noopener"' : '';
+    html += `<a class="rowB${l.wine ? ' is-wine' : ''}" href="${l.href}"${ext}>
+      <span class="ic">${svg(l.icon, 20)}</span>
+      <span class="tx"><b>${l.label}</b><span>${l.sub}</span></span>
+      <span class="chev">${svg('chev', 16)}</span></a>`;
+  });
+  html += `</div><div class="labelB">Síguenos</div><div class="socialB">`;
+  SOCIAL.forEach(function (s) {
+    html += `<a href="${s.href}" target="_blank" rel="noopener" aria-label="${s.label}">
+      <span class="ic">${svg(s.net, 22)}</span><span class="lbl">${s.label}</span></a>`;
+  });
+  html += `</div><div class="footB"><div class="web">dtdcargo.com</div>
+    <div class="legal">DTD-Cargo C.A. · RIF <span class="mono">J-50648869-8</span><br/>
+    Av. Bolívar Norte 14, Valencia · Carabobo, Venezuela<br/>
+    info@dtdcargo.com · +58 241 414 7886</div></div>`;
+  document.getElementById('slotsB').innerHTML = html;
+}
+build();
+</script>
+
+<template id="__bundler_thumbnail">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" fill="#0F1E3D"/>
+  <text x="50" y="46" font-family="Archivo Black, sans-serif" font-size="22" fill="#F2F0EC" text-anchor="middle">DTD</text>
+  <rect x="30" y="58" width="40" height="6" rx="3" fill="#C2747F"/>
+  <rect x="36" y="70" width="28" height="5" rx="2.5" fill="#F2F0EC" opacity="0.5"/>
+</svg>
+</template>
+</body>
+</html>

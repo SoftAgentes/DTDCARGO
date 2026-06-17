@@ -4,6 +4,14 @@
 /* Reusa tokens + componentes del ERP.                         */
 
 const { useState: pUseState, useEffect: pUseEffect } = React;
+const { useTweaks: pUseTweaks, TweaksPanel: TPanel, TweakSection: TSection, TweakRadio: TRadio } = window;
+
+// Defaults de Tweaks · capa de “sensación” (todo dentro del sistema de marca).
+const PORTAL_TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "densidad": "regular",
+  "titulares": "sora",
+  "forma": "equilibrado"
+}/*EDITMODE-END*/;
 
 // Quién es el cliente "logueado" en este mock.
 // Soporta impersonación admin vía ?as=DTD-XXXX (modo cliente · demo).
@@ -21,6 +29,27 @@ function PortalApp() {
   const [theme, setTheme] = pUseState('light');
 
   pUseEffect(() => {document.documentElement.setAttribute('data-theme', theme);}, [theme]);
+
+  // ── Tweaks · reshape de “sensación” (densidad / titulares / forma) ──
+  const [tw, setTweak] = pUseTweaks(PORTAL_TWEAK_DEFAULTS);
+  pUseEffect(() => {
+    const el = document.documentElement;
+    // Densidad → seam data-density de tokens.css
+    if (tw.densidad === 'compacta') el.setAttribute('data-density', 'compact');
+    else if (tw.densidad === 'espaciosa') el.setAttribute('data-density', 'spacious');
+    else el.removeAttribute('data-density');
+    // Titulares → --f-display (ambas fuentes son del sistema aprobado)
+    el.style.setProperty('--f-display', tw.titulares === 'marca'
+      ? "'Archivo Black', 'Archivo', sans-serif"
+      : "'Sora', 'Nunito Sans', sans-serif");
+    // Forma → remapeo de radios dentro de la escala (sin pasar de 20px)
+    const R = {
+      tecnico:     { xs: '2px', sm: '3px', md: '4px', lg: '6px',  xl: '9px'  },
+      equilibrado: { xs: '3px', sm: '5px', md: '7px', lg: '10px', xl: '14px' },
+      amable:      { xs: '5px', sm: '9px', md: '12px', lg: '16px', xl: '20px' }
+    }[tw.forma];
+    if (R) ['xs', 'sm', 'md', 'lg', 'xl'].forEach((k) => el.style.setProperty('--r-' + k, R[k]));
+  }, [tw.densidad, tw.titulares, tw.forma]);
 
   if (!logged) return <PortalLogin onLogin={() => {
     const firstTime = !localStorage.getItem('dtd-portal-visited');
@@ -62,19 +91,51 @@ function PortalApp() {
           {view === 'invoices' && <PortalInvoices invs={myInvoices} ships={myShipments} />}
           {view === 'documents' && <PortalDocuments />}
           {view === 'referidos' && <PortalReferidos me={me} />}
+          {view === 'academia' && <PortalAcademiaView />}
           {view === 'support' && <PortalSupport me={me} />}
           {view === 'profile' && <PortalProfile me={me} />}
         </div>
       </main>
 
       <PortalFooter />
+
+      {/* Panel de Tweaks · solo visible cuando el usuario activa “Tweaks” */}
+      <TPanel title="Tweaks">
+        <TSection label="Sensación" />
+        <TRadio label="Densidad" value={tw.densidad}
+          options={[{ value: 'compacta', label: 'Compacta' }, { value: 'regular', label: 'Media' }, { value: 'espaciosa', label: 'Amplia' }]}
+          onChange={(v) => setTweak('densidad', v)} />
+        <TRadio label="Titulares" value={tw.titulares}
+          options={[{ value: 'sora', label: 'Sistema' }, { value: 'marca', label: 'Marca' }]}
+          onChange={(v) => setTweak('titulares', v)} />
+        <TRadio label="Forma" value={tw.forma}
+          options={[{ value: 'tecnico', label: 'Técnico' }, { value: 'equilibrado', label: 'Medio' }, { value: 'amable', label: 'Amable' }]}
+          onChange={(v) => setTweak('forma', v)} />
+      </TPanel>
     </div>);
 
 }
 
+// ── Academia · vista del alumno dentro del Portal (reusa portal/academia.jsx) ──
+function PortalAcademiaView() {
+  const Aca = window.PortalAcademia;
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <div style={{ textAlign: 'center', maxWidth: 460 }}>
+        <div className="eyebrow eyebrow-wine">ACADEMIA DTD</div>
+        <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '8px 0 6px' }}>Tu Academia</h1>
+        <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0 }}>Vista del alumno · diseñada mobile-first. Aprende a importar de China con la operación real de DTD detrás.</p>
+      </div>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 420, height: 'min(780px, calc(100vh - 210px))', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
+        {Aca ? <Aca topInset={0} bottomInset={0} /> : <div style={{ padding: 24, font: '500 13px var(--f-sans)', color: 'var(--ink-soft)' }}>Cargando Academia…</div>}
+      </div>
+    </div>);
+}
+
 // ── Login ────────────────────────────────────────────────────
 function PortalLogin({ onLogin }) {
-  const [markbox, setMarkbox] = pUseState(DEMO_MARKBOX);
+  const _demo = (window.ERPData?.CLIENTS || []).find((c) => c.markbox === DEMO_MARKBOX);
+  const [email, setEmail] = pUseState(_demo?.email || '');
   const [pw, setPw] = pUseState('');
 
   return (
@@ -121,21 +182,21 @@ function PortalLogin({ onLogin }) {
 
         {/* Right panel — login form */}
         <div style={{ background: 'var(--bg-surface)', padding: 40, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Entra con tu<br />Shipping Mark.</div>
-          <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>Es el código que se anota en tus cajas en China.</div>
+          <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Entra con tu<br />correo.</div>
+          <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>Usa el email con el que te registraste.</div>
 
           <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Código Shipping Mark</span>
+              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Correo electrónico</span>
               <input
-                value={markbox} onChange={(e) => setMarkbox(e.target.value)}
-                placeholder="DTD-XXXX"
+                type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                placeholder="tu@correo.com"
                 style={{
                   height: 48, padding: '0 14px',
                   background: 'var(--bg-surface)', border: '1.5px solid var(--border)',
                   borderRadius: 'var(--r-md)',
-                  font: '800 16px/1 var(--f-mono)', color: 'var(--ink)', letterSpacing: '0.06em',
-                  outline: 'none', textTransform: 'uppercase'
+                  font: '600 15px/1 var(--f-sans)', color: 'var(--ink)',
+                  outline: 'none'
                 }}
                 onFocus={(e) => e.target.style.borderColor = 'var(--wine)'}
                 onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
@@ -175,7 +236,7 @@ function PortalLogin({ onLogin }) {
             </div>
             {/* CTA de registro · puerta única: quien no tiene Shipping Mark se registra acá */}
             <div style={{ marginTop: 4, padding: '12px 14px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ font: '600 12.5px/1.4 var(--f-sans)', color: 'var(--ink)' }}>¿No tienes Shipping Mark?</span>
+              <span style={{ font: '600 12.5px/1.4 var(--f-sans)', color: 'var(--ink)' }}>¿No tienes cuenta?</span>
               <a
                 onClick={() => {window.location.href = 'Registro Cliente.html';}}
                 style={{ font: '800 13px/1 var(--f-sans)', color: 'var(--wine)', textDecoration: 'underline', textUnderlineOffset: 3, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
@@ -198,6 +259,7 @@ function PortalTopbar({ me, view, setView, onLogout, theme, setTheme }) {
   { v: 'invoices', l: 'Facturas', icon: 'invoice' },
   { v: 'documents', l: 'Documentos', icon: 'doc' },
   { v: 'referidos', l: 'Referidos', icon: 'star' },
+  { v: 'academia', l: 'Academia', icon: 'shield' },
   { v: 'support', l: 'Soporte', icon: 'chat' }];
 
 
@@ -347,6 +409,136 @@ function PortalLogo({ white }) {
 
 }
 
+// ── Helpers de salidas del cliente ───────────────────────────
+// Próxima(s) salida(s) ABIERTAS del puerto del cliente (derivado de
+// su carga suelta en almacén CN); fallback: la salida abierta más cercana.
+function _clientSailings(markbox) {
+  const N = window.NavieraData;
+  if (!N) return { N: null };
+  const mine = (N.LOOSE_CARGO || []).filter((l) => l.client === markbox);
+  const myPol = mine.length ? mine[0].pol : null;
+  const open = N.openSailings().slice().sort((a, b) => a.cutoff.localeCompare(b.cutoff));
+  const pref = myPol && open.some((s) => s.pol === myPol) ? open.filter((s) => s.pol === myPol) : open;
+  const next = pref[0] || null;
+  const following = next ? pref[1] || open.find((s) => s.id !== next.id) || null : null;
+  return { N, next, following, myPol };
+}
+function _fmtSail(d) {
+  return new Date(d + 'T00:00:00')
+    .toLocaleDateString('es-VE', { weekday: 'short', day: 'numeric', month: 'short' })
+    .replace(/\./g, '');
+}
+
+// ── Eco del cut-off dentro de "Nueva compra / prealerta" ──────
+// Apoyo a la decisión en el momento exacto: cuándo debe llegar la
+// mercancía a bodega CN para entrar en el próximo consolidado.
+function SailingDeadlineNote({ me }) {
+  const { N, next, following } = _clientSailings(me.markbox);
+  if (!N || !next) return null;
+  const n = N.daysUntil(next.cutoff);
+  const urgent = n <= 2;
+  const accent = urgent ? 'var(--warning)' : 'var(--wine)';
+  const tint = urgent ? 'color-mix(in srgb, var(--warning) 12%, transparent)' : 'var(--wine-tint)';
+  const pol = N.port(next.pol), pod = N.port(next.pod);
+  const dleft = n <= 0 ? 'cierra hoy' : n === 1 ? 'falta 1 día' : `faltan ${n} días`;
+  const mono = { fontFamily: 'var(--f-mono)' };
+  return (
+    <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '14px 16px', background: tint, border: `1px solid ${accent}`, borderRadius: 'var(--r-md)', marginBottom: 'var(--s-5)' }}>
+      <span style={{ color: accent, flexShrink: 0, marginTop: 1 }}>{window.Icon.ship(16)}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ font: '800 12.5px/1.3 var(--f-display)', color: 'var(--ink)' }}>
+          Próximo consolidado · {pol.name} → {pod.name}
+        </div>
+        <p style={{ font: '500 12.5px/1.55 var(--f-sans)', color: 'var(--ink-soft)', margin: '4px 0 0' }}>
+          Si tu mercancía llega a bodega CN antes del <b style={{ ...mono, color: accent }}>{_fmtSail(next.cutoff)}</b> ({dleft}) entra en el barco que zarpa el <b style={{ ...mono, color: 'var(--ink)' }}>{_fmtSail(next.etd)}</b> y llega aprox. el <b style={{ ...mono, color: 'var(--ink)' }}>{_fmtSail(next.eta)}</b>.{following ? <> El siguiente cierra el <b style={{ ...mono, color: 'var(--ink)' }}>{_fmtSail(following.cutoff)}</b>.</> : null}
+        </p>
+      </div>
+    </div>);
+}
+
+// ── Próxima salida de contenedor ─────────────────────────────
+// El cliente, apenas entra, ve cuándo cierra la carga del próximo
+// consolidado de SU puerto, para organizar sus compras. Cuenta al
+// CUT-OFF (cierre de carga), granularidad en días; <48h → urgencia
+// en dorado (warning). Datos reales de NavieraData (no inventados).
+function NextSailingCard({ me, setView }) {
+  const { N, next } = _clientSailings(me.markbox);
+  if (!N || !next) return null;
+  const fmt = _fmtSail;
+
+  const n = N.daysUntil(next.cutoff);
+  const urgent = n <= 2;
+  const accent = urgent ? 'var(--warning)' : 'var(--wine)';
+  const tint = urgent ? 'color-mix(in srgb, var(--warning) 14%, transparent)' : 'var(--wine-tint)';
+  const pol = N.port(next.pol), pod = N.port(next.pod), car = N.carrier(next.carrier);
+
+  const spaceLbl = { alta: 'Espacio amplio', media: 'Espacio medio', baja: 'Espacio limitado', cerrada: 'Cerrado' }[next.space] || 'Disponible';
+  const spaceToneVar = { success: 'var(--success)', warning: 'var(--warning)', danger: 'var(--danger)', neutral: 'var(--ink-mute)' }[N.SPACE_TONE[next.space]] || 'var(--ink-mute)';
+
+  const bigNum = n <= 0 ? 'Hoy' : String(n);
+  const bigUnit = n <= 0 ? 'cierra hoy' : (n === 1 ? 'día para el cierre' : 'días para el cierre');
+  const barPct = Math.max(0.08, Math.min(1, (14 - n) / 14));
+
+  const stat = (label, value, strong) => (
+    <div>
+      <div style={{ font: '500 10px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ font: `700 13.5px/1 var(--f-mono)`, color: strong ? accent : 'var(--ink)', marginTop: 7 }}>{value}</div>
+    </div>);
+
+  return (
+    <window.ERPUI.Card padded={false} style={{ marginBottom: 'var(--s-6)', overflow: 'hidden' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr auto', alignItems: 'stretch', gap: 0 }}>
+        {/* Bloque cuenta regresiva */}
+        <div style={{ background: tint, padding: 'var(--s-5) var(--s-4)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-start', borderRight: '1px solid var(--border)' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: accent }}>
+            {window.Icon.ship(15)}
+            <span style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Próxima salida</span>
+          </div>
+          <div style={{ font: '900 46px/0.95 var(--f-display)', color: accent, letterSpacing: '-0.03em', marginTop: 12 }}>{bigNum}</div>
+          <div style={{ font: '600 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>{bigUnit}</div>
+        </div>
+
+        {/* Detalles */}
+        <div style={{ padding: 'var(--s-5) var(--s-5)', display: 'flex', flexDirection: 'column', justifyContent: 'center', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', rowGap: 4 }}>
+            <span style={{ font: '800 16px/1.2 var(--f-display)', color: 'var(--ink)', whiteSpace: 'nowrap' }}>
+              {pol.name} <span style={{ color: accent }}>→</span> {pod.name}
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 9px', borderRadius: 'var(--r-pill)', background: 'var(--bg-elevated)', font: '700 10px/1 var(--f-sans)', color: spaceToneVar }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: spaceToneVar }} /> {spaceLbl}
+            </span>
+          </div>
+          <div style={{ font: '500 11.5px/1 var(--f-mono)', color: 'var(--ink-mute)', marginTop: 8 }}>
+            {car ? car.name : ''} · {next.vessel} · {next.voyage}
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--s-8)', marginTop: 'var(--s-4)' }}>
+            {stat('Cierre de carga', fmt(next.cutoff), true)}
+            {stat('Zarpa', fmt(next.etd))}
+            {stat('Llega aprox.', '~' + fmt(next.eta))}
+          </div>
+
+          {/* Barra de presión de tiempo (días, no segundos) */}
+          <div style={{ marginTop: 'var(--s-4)', height: 5, borderRadius: 'var(--r-pill)', background: 'var(--bg-elevated)', overflow: 'hidden' }}>
+            <div style={{ width: (barPct * 100).toFixed(0) + '%', height: '100%', borderRadius: 'var(--r-pill)', background: accent }} />
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div style={{ padding: 'var(--s-5) var(--s-5)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end', gap: 8, borderLeft: '1px solid var(--border)', minWidth: 220 }}>
+          <div style={{ font: '500 11.5px/1.45 var(--f-sans)', color: 'var(--ink-soft)', textAlign: 'right', maxWidth: 200 }}>
+            {urgent
+              ? 'Tu mercancía debe estar en bodega CN antes del cierre para entrar en este consolidado.'
+              : 'Organiza tus compras para que lleguen a bodega CN antes del cierre.'}
+          </div>
+          <window.ERPUI.Btn variant="primary" icon={window.Icon.arrowR(14)} onClick={() => setView('suppliers')}>
+            Programar mi compra
+          </window.ERPUI.Btn>
+        </div>
+      </div>
+    </window.ERPUI.Card>);
+}
+
 // ── Home / Dashboard del cliente ─────────────────────────────
 function PortalHome({ me, ships, invs, setView, setDetail }) {
   const D = window.ERPData;
@@ -390,6 +582,9 @@ function PortalHome({ me, ships, invs, setView, setDetail }) {
           </a>
         </div>
       </div>
+
+      {/* Próxima salida de contenedor · lo primero que ve el cliente */}
+      <NextSailingCard me={me} setView={setView} />
 
       {/* Hero card: next arrival */}
       {inTransit &&
@@ -1614,6 +1809,9 @@ function PortalSuppliers({ me }) {
       <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-5)' }}>
         Cada <b>compra</b> es una <b style={{ color: 'var(--wine)' }}>prealerta</b>: nos avisas que viene mercancía de China para esperarla y procesarla más rápido (lo que las "puerta a puerta" de EE.UU. llaman pre-alerta). Genera el código y las etiquetas para tus proveedores, o re-compra a uno existente.
       </p>
+
+      {/* Eco del cut-off · cuándo debe llegar la carga para el próximo consolidado */}
+      <SailingDeadlineNote me={me} />
 
       {/* Por qué importa · trazabilidad */}
       <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '18px 20px', marginBottom: 'var(--s-5)' }}>
