@@ -1,7 +1,7 @@
 ---
 sdd: "0093"
 title: "Academia DTD — módulo de formación (catálogo on-demand + cohortes + diplomas + portal + facturas)"
-status: draft
+status: in-progress
 author: "Claude Code (ventana academia) + founder"
 created: 2026-06-17
 updated: 2026-06-17
@@ -86,7 +86,16 @@ Mismo espinazo de 9 módulos, distinta profundidad. Módulo-foso transversal: **
 catálogo → inscripción/compra → **factura** → acceso en **portal (mis cursos)** → completar → **diploma**
 (portal + `/verificar` público) → CTA al **servicio DTD / Club**.
 
-## Modelo de datos (migración — próxima libre, confirmar al construir; otra ventana puede tomar 0144)
+## Estado
+
+- **Slice A (catálogo) — backend LIVE en prod (2026-06-17).** Migración **0144 aplicada** (7 tablas + RLS +
+  policies de portal + RPC `academy_verify_diploma`); advisors limpios (solo el aviso intencional de la RPC
+  pública). Sembrados los **4 cursos + 25 módulos** (`proximamente`). Módulo registrado (sidebar + RBAC,
+  test 13/13). Página `/studio/academia` read-only **commiteada, sin desplegar** (falta push + build).
+- Pendiente: UI rica (Cloud Design → Norte), actions (CRUD contenido), wiring precio↔`service_configs`,
+  Slices B/C/D (cohortes+diplomas, verificación pública, portal del cliente).
+
+## Modelo de datos (migración **0144** · APLICADA a prod 2026-06-17)
 
 Patrón estándar: `tenant_id` → `tenants`, RLS por tenant, `revoke from anon` + grant authenticated, enums
 `text`+check, soft-delete `deleted_at`, trigger `touch_updated_at`.
@@ -134,4 +143,4 @@ Patrón estándar: `tenant_id` → `tenants`, RLS por tenant, `revoke from anon`
 
 ## Notas
 - ⚠️ El número **0092** lo tomó otra ventana (SeaRates) → esta spec es **0093**.
-- Migración: confirmar el número libre al construir (otra ventana puede tomar 0144).
+- Migración **0144** aplicada a prod 2026-06-17 (vía MCP, con skill Supabase + advisors).
