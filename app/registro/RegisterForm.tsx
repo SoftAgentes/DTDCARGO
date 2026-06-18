@@ -2,7 +2,14 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowIcon, CheckIcon } from "@/components/Icon";
+import {
+  ArrowIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  ShieldIcon,
+  UserIcon,
+  WarningIcon,
+} from "@/components/Icon";
 import {
   normalizeDocument,
   type ClientKind,
@@ -19,6 +26,8 @@ type FormData0 = {
   document: string;
   email: string;
   whatsapp: string;
+  /** Teléfono de oficina / fijo (opcional · no WhatsApp). */
+  officePhone: string;
   /** SDD-0082: opt-in explícito de marketing por email (default OFF). */
   emailOptin: boolean;
 };
@@ -30,6 +39,7 @@ const EMPTY: FormData0 = {
   document: "",
   email: "",
   whatsapp: "",
+  officePhone: "",
   emailOptin: false,
 };
 
@@ -41,6 +51,12 @@ const EMPTY: FormData0 = {
  * compra. Baja la fricción del lead de WhatsApp sin perder el dedup ni la
  * identidad básica (el documento sigue obligatorio para dedup + identidad; NO es
  * la contraseña — la cuenta nace con clave aleatoria, login por magic-link/reset).
+ *
+ * Capa visual + UX llevada al Norte v4.3 (esta sesión): selector de tipo con
+ * icono, cédula con prefijo V/E, teléfono con código de país, teléfono de oficina
+ * opcional, chequeo en vivo "¿ya tienes cuenta?" (→ recuperar acceso) y la guía de
+ * nomenclatura del MARKBOX en la pantalla de éxito. Se mantiene MARKBOX (término
+ * público) y el acceso por enlace al correo (no "clave = cédula").
  */
 export function RegisterForm({ est }: { est?: string }) {
   const [state, action, pending] = useActionState(registerClientAction, initial);
@@ -147,6 +163,42 @@ function ExpressForm({
   const isCompany = data.kind === "empresa";
   const docNorm = data.document ? normalizeDocument(data.kind, data.document) : null;
 
+  // ── Chequeo en vivo "¿este documento ya tiene cuenta?" ──────────
+  // Cuando el documento normaliza válido, con debounce, preguntamos al endpoint
+  // (que responde SOLO un booleano — cero PII). Si ya existe, ofrecemos recuperar
+  // el acceso en vez de crear un duplicado. Un error/throttle → 'free' (no
+  // bloqueamos: el dedup real del alta protege igual en el submit).
+  // Guardamos el ÚLTIMO documento confirmado como ya-existente; `alreadyExists` se
+  // deriva comparándolo con el documento normalizado actual → al cambiar el
+  // documento el aviso desaparece solo (sin un positivo viejo "pegado"), y NO hay
+  // setState síncrono dentro del effect (solo dentro del callback con debounce).
+  const [existsDoc, setExistsDoc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!docNorm) return;
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/registro/check", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ kind: data.kind, document: docNorm }),
+          signal: ctrl.signal,
+        });
+        if (!res.ok) return; // throttle/error → no confirmamos (el alta valida igual)
+        const j = (await res.json()) as { exists?: boolean };
+        setExistsDoc((cur) => (j.exists ? docNorm : cur === docNorm ? null : cur));
+      } catch {
+        // Abort de un tipeo nuevo o error de red → no cambiamos el estado.
+      }
+    }, 500);
+    return () => {
+      clearTimeout(t);
+      ctrl.abort();
+    };
+  }, [docNorm, data.kind]);
+
+  const alreadyExists = !!docNorm && existsDoc === docNorm;
+
   const errName = tried && !data.name.trim();
   const errCompany = tried && isCompany && !data.company.trim();
   const errDoc = tried && (!data.document.trim() || !docNorm);
@@ -157,6 +209,7 @@ function ExpressForm({
     !!data.name.trim() &&
     (!isCompany || !!data.company.trim()) &&
     !!docNorm &&
+    !alreadyExists &&
     !!data.email.trim() &&
     !!data.whatsapp.trim();
 
@@ -179,6 +232,7 @@ function ExpressForm({
       <input type="hidden" name="document" value={data.document} />
       <input type="hidden" name="email" value={data.email} />
       <input type="hidden" name="whatsapp" value={data.whatsapp} />
+      <input type="hidden" name="office_phone" value={data.officePhone} />
       {/* SDD-0061: código del estimado web a vincular (vacío si no vino del CTA). */}
       <input type="hidden" name="est" value={est ?? ""} />
 
@@ -210,13 +264,15 @@ function ExpressForm({
           active={!isCompany}
           label="Persona natural"
           desc="Importas a título personal"
-          onClick={() => patch({ kind: "persona" })}
+          icon={<UserIcon size={20} />}
+          onClick={() => patch({ kind: "persona", document: "" })}
         />
         <TypeCard
           active={isCompany}
           label="Empresa"
           desc="Importas para tu negocio"
-          onClick={() => patch({ kind: "empresa" })}
+          icon={<ShieldIcon size={20} />}
+          onClick={() => patch({ kind: "empresa", document: "" })}
         />
       </div>
 
@@ -237,39 +293,62 @@ function ExpressForm({
           error={errCompany ? "Campo obligatorio" : undefined}
         />
       )}
-      <Field
-        label={isCompany ? "RIF" : "Cédula"}
-        value={data.document}
-        onChange={(v) => patch({ document: v })}
-        placeholder={isCompany ? "J-12345678-9" : "V-12345678"}
-        mono
-        hint="Lo usamos para identificarte y evitar cuentas duplicadas."
-        error={
-          fieldErrors?.document ??
-          (errDoc
-            ? isCompany
-              ? "RIF inválido. Formato: J-12345678-9."
-              : "Cédula inválida. Formato: V-12345678."
-            : undefined)
-        }
-      />
+
+      {/* Documento: cédula con prefijo V/E (persona) o RIF (empresa). El input se
+          remonta al cambiar de tipo (key) → estado interno limpio. */}
+      {isCompany ? (
+        <Field
+          key="rif"
+          label="RIF"
+          value={data.document}
+          onChange={(v) => patch({ document: v })}
+          placeholder="J-12345678-9"
+          mono
+          hint="Lo usamos para identificarte y evitar cuentas duplicadas."
+          error={
+            fieldErrors?.document ??
+            (errDoc ? "RIF inválido. Formato: J-12345678-9." : undefined)
+          }
+        />
+      ) : (
+        <CedulaInput
+          key="cedula"
+          value={data.document}
+          onChange={(v) => patch({ document: v })}
+          hint="Lo usamos para identificarte y evitar cuentas duplicadas."
+          error={
+            fieldErrors?.document ??
+            (errDoc ? "Cédula inválida. Formato: V-12345678." : undefined)
+          }
+        />
+      )}
+
+      {/* Aviso en vivo: la cuenta ya existe → recuperar acceso (no duplicar). */}
+      {alreadyExists && <DupRecover isCompany={isCompany} />}
+
       <Field
         label="Email"
         type="email"
         value={data.email}
         onChange={(v) => patch({ email: v })}
         placeholder="cperez@empresa.com"
-        hint="Lo usamos para recuperar tu contraseña."
+        hint="Lo usamos para enviarte tu enlace de acceso al portal."
         error={fieldErrors?.email ?? (errEmail ? "Campo obligatorio" : undefined)}
       />
-      <Field
+
+      <PhoneInput
         label="Teléfono WhatsApp"
-        value={data.whatsapp}
         onChange={(v) => patch({ whatsapp: v })}
-        placeholder="+58 412 1668021"
-        mono
+        placeholder="412 1668021"
         hint="Es el número por el que te contactamos · siempre por WhatsApp."
         error={fieldErrors?.whatsapp ?? (errPhone ? "Campo obligatorio" : undefined)}
+      />
+
+      <PhoneInput
+        label="Teléfono de oficina (opcional)"
+        onChange={(v) => patch({ officePhone: v })}
+        placeholder="241 4147886"
+        hint="Otro número donde podemos ubicarte (fijo u oficina) · no se usa para WhatsApp."
       />
 
       {/* Expectativa de lo diferido — sin foto ni dirección acá. */}
@@ -301,9 +380,7 @@ function ExpressForm({
         </span>
       </label>
 
-      {error && (
-        <p className="text-[13.5px] text-wine leading-[1.45]">{error}</p>
-      )}
+      {error && <p className="text-[13.5px] text-wine leading-[1.45]">{error}</p>}
 
       <button
         type="submit"
@@ -322,6 +399,36 @@ function ExpressForm({
         compartimos tu información salvo obligaciones operativas o legales.
       </p>
     </form>
+  );
+}
+
+// ── "¿Ya tienes cuenta?" · recuperar acceso (chequeo en vivo) ─────
+// Se muestra cuando el documento ya tiene una cuenta. NO revela a quién pertenece
+// (el endpoint solo devuelve un booleano): solo ofrece entrar / recuperar acceso.
+function DupRecover({ isCompany }: { isCompany: boolean }) {
+  return (
+    <div
+      className="-mt-1 rounded-[12px] border px-4 py-3.5"
+      style={{ borderColor: "var(--color-wine)", background: "var(--color-paper)" }}
+    >
+      <div className="flex items-start gap-2.5">
+        <span className="mt-0.5 flex-shrink-0 text-wine">
+          <WarningIcon size={16} />
+        </span>
+        <div className="flex-1">
+          <div className="text-[13px] font-bold text-wine leading-[1.3]">
+            Este {isCompany ? "RIF" : "cédula"} ya tiene una cuenta en DTD Cargo
+          </div>
+          <p className="mt-1 text-[12.5px] text-grey-700 leading-[1.5]">
+            Si eres tú, no hace falta crear otra. Entra al portal y pide tu enlace
+            de acceso por correo.
+          </p>
+          <Link href="/portal/login" className="mt-3 inline-flex btn btn-ghost h-10 text-[13px]">
+            Recuperar mi acceso <ArrowIcon size={15} />
+          </Link>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -404,20 +511,22 @@ function StepDone({
         </div>
       </div>
 
-      {/* El Shipping Mark es el código de las cajas, NO la credencial de acceso:
-          al portal se entra siempre por email + enlace de acceso (SDD-0094). */}
+      {/* Guía de nomenclatura del MARKBOX — cómo se arma el código de cada compra.
+          Portada del Norte v4.3, adaptada a MARKBOX (público). Colapsada por
+          defecto: educa sin abrumar en el momento de la celebración. */}
+      <MarkboxGuide markbox={markbox} />
+
+      {/* El MARKBOX es el código de las cajas, NO la credencial de acceso: al
+          portal se entra siempre por email + enlace de acceso (SDD-0094). NO
+          repetimos el código acá (ya está, grande, en el hero de arriba): este
+          bloque explica el acceso, sin competir con el hero. */}
       <div className="w-full rounded-[12px] bg-paper border border-grey-200 px-5 py-4 text-left">
         <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
-          Tu MARKBOX
+          Cómo entrar al portal
         </div>
-        <div
-          className="mt-1 text-[15px] font-bold text-ink"
-          style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-        >
-          {markbox}
-        </div>
-        <div className="mt-3 text-[12.5px] text-grey-700 leading-[1.5]">
-          Es el código de tus cajas — lo usamos en bodega y con el proveedor. Para{" "}
+        <div className="mt-2 text-[12.5px] text-grey-700 leading-[1.5]">
+          Tu MARKBOX es el código de tus cajas — lo usamos en bodega y con el
+          proveedor, no para entrar. Para{" "}
           <strong className="text-ink">entrar al portal</strong> no hace falta
           recordarlo: en el login pides tu{" "}
           <strong className="text-ink">enlace de acceso por correo</strong>
@@ -450,6 +559,143 @@ function StepDone({
       <Link href="/portal/login" className="btn btn-primary w-full">
         Ir al portal <ArrowIcon />
       </Link>
+    </div>
+  );
+}
+
+// ── Guía de nomenclatura del MARKBOX (expandible) ────────────────
+// Explica cómo se arma el código de cada compra: MARKBOX-proveedor-compra.
+// Portada del Norte v4.3 (`portal/registro.jsx` · Guide), adaptada al término
+// público MARKBOX y a los tokens de la web.
+function MarkboxGuide({ markbox }: { markbox: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="w-full text-left">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full rounded-[12px] border px-4 py-3.5 flex items-center gap-3 transition-colors"
+        style={{ borderColor: "var(--color-wine)", background: "var(--color-paper)" }}
+        aria-expanded={open}
+      >
+        <span className="flex-1">
+          <span className="block text-[13px] font-bold text-wine leading-[1.3]">
+            Cómo se arma el código de cada compra
+          </span>
+          <span className="block text-[12px] text-grey-700 leading-[1.45] mt-0.5">
+            Tu MARKBOX más el proveedor y la compra. Toca para ver la guía (1 min).
+          </span>
+        </span>
+        <span
+          className="flex-shrink-0 text-wine transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
+        >
+          <ChevronDownIcon size={16} />
+        </span>
+      </button>
+
+      {open && (
+        <div className="mt-3 rounded-[12px] border border-grey-200 bg-white px-5 py-5">
+          {/* Desglose visual del código MARKBOX-proveedor-compra. */}
+          <div className="rounded-[10px] bg-paper border border-grey-200 px-4 py-4">
+            <div className="flex items-start justify-center gap-2">
+              <CodePart code={markbox} label="Tu MARKBOX" tone="wine" />
+              <span
+                className="text-[18px] font-black text-grey-500 mt-0.5"
+                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+              >
+                -
+              </span>
+              <CodePart code="1" label="Proveedor" tone="ink" />
+              <span
+                className="text-[18px] font-black text-grey-500 mt-0.5"
+                style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+              >
+                -
+              </span>
+              <CodePart code="2" label="Compra" tone="ink" />
+            </div>
+          </div>
+
+          <GuideStep n="1" title="Tu MARKBOX te identifica">
+            <code
+              className="text-[12px] font-bold text-wine px-1.5 py-0.5 rounded"
+              style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace", background: "var(--color-paper)" }}
+            >
+              {markbox}
+            </code>{" "}
+            es tu identificador único como cliente. Es la base de todos tus códigos.
+          </GuideStep>
+
+          <GuideStep n="2" title="Cada proveedor lleva su número">
+            Si le compras a varios proveedores en China, a cada uno le asignamos un
+            número (1, 2, 3…). Así sabes de cuál proveedor te llega cada caja.
+          </GuideStep>
+
+          <GuideStep n="3" title="Cada compra suma" last>
+            Cada vez que le vuelves a comprar al mismo proveedor, el número de compra
+            avanza ({markbox}-1-1, {markbox}-1-2…). Todo queda separado y trazable
+            desde tu portal, sin manejar sistemas externos.
+          </GuideStep>
+
+          <div
+            className="mt-4 rounded-[10px] border-l-[3px] px-4 py-3 text-[12px] text-grey-700 leading-[1.55]"
+            style={{ borderColor: "var(--color-wine)", background: "var(--color-paper)" }}
+          >
+            Cuando registres tu compra en el portal te asignamos el código y las{" "}
+            <strong className="text-ink">etiquetas</strong> para que tu proveedor las
+            pegue en cada caja. Sin la etiqueta correcta, la caja entra como
+            “huérfana” y se retrasa.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CodePart({ code, label, tone }: { code: string; label: string; tone: "wine" | "ink" }) {
+  const color = tone === "wine" ? "var(--color-wine)" : "var(--color-ink)";
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <code
+        className="text-[18px] font-black leading-none"
+        style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace", color }}
+      >
+        {code}
+      </code>
+      <span
+        className="text-[8.5px] font-bold uppercase tracking-[0.05em] text-center leading-[1.2]"
+        style={{ color }}
+      >
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function GuideStep({
+  n,
+  title,
+  children,
+  last,
+}: {
+  n: string;
+  title: string;
+  children: React.ReactNode;
+  last?: boolean;
+}) {
+  return (
+    <div className={`flex items-start gap-3 pt-4 ${last ? "" : "pb-1"}`}>
+      <span
+        className="flex-shrink-0 w-6 h-6 rounded-full grid place-items-center text-[12px] font-black"
+        style={{ background: "var(--color-wine)", color: "#fff", fontFamily: "var(--font-archivo-black)" }}
+      >
+        {n}
+      </span>
+      <div className="flex-1">
+        <div className="text-[13px] font-bold text-ink leading-[1.25]">{title}</div>
+        <div className="mt-1 text-[12.5px] text-grey-700 leading-[1.55]">{children}</div>
+      </div>
     </div>
   );
 }
@@ -505,15 +751,206 @@ function Field({
   );
 }
 
+// Flecha custom (chevron wine) para los <select> con `appearance: none` — clava
+// el look del Norte v4.3 en vez de la flecha nativa del navegador. `%23` = `#`.
+const SELECT_ARROW =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>\")";
+
+// ── Cédula con prefijo de nacionalidad (V / E) ───────────────────
+// En Venezuela la cédula lleva V (venezolano) o E (extranjero). El usuario solo
+// escribe el número; la letra se elige a la izquierda (V por defecto). Emite el
+// canónico "V-12345678" hacia el padre (o "" si no hay dígitos). Portado del
+// Norte v4.3 (`CedulaInput`) a tokens de la web.
+function CedulaInput({
+  value,
+  onChange,
+  hint,
+  error,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  hint?: string;
+  error?: string;
+}) {
+  // Estado interno: deriva la letra del valor inicial (si lo hubiera) y el resto.
+  const m = /^([VE])-?(.*)$/i.exec(value || "");
+  const [letter, setLetter] = useState<"V" | "E">(
+    m && m[1].toUpperCase() === "E" ? "E" : "V",
+  );
+  const [digits, setDigits] = useState(m ? m[2].replace(/\D/g, "") : "");
+
+  function emit(l: "V" | "E", d: string) {
+    onChange(d ? `${l}-${d}` : "");
+  }
+  function onLetter(l: "V" | "E") {
+    setLetter(l);
+    emit(l, digits);
+  }
+  function onDigits(raw: string) {
+    const d = raw.replace(/\D/g, "");
+    setDigits(d);
+    emit(letter, d);
+  }
+
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+        Cédula
+      </span>
+      <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-wine focus-within:ring-offset-1">
+        <select
+          value={letter}
+          onChange={(e) => onLetter(e.target.value as "V" | "E")}
+          aria-label="Nacionalidad de la cédula"
+          className="bg-grey-200 border-0 outline-none text-[14.5px] font-bold text-wine cursor-pointer"
+          style={{
+            fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+            appearance: "none",
+            WebkitAppearance: "none",
+            padding: "0 26px 0 12px",
+            backgroundImage: SELECT_ARROW,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 9px center",
+          }}
+        >
+          <option value="V">V</option>
+          <option value="E">E</option>
+        </select>
+        <input
+          value={digits}
+          onChange={(e) => onDigits(e.target.value)}
+          inputMode="numeric"
+          placeholder="18456321"
+          className="flex-1 min-w-0 px-3.5 bg-transparent border-0 outline-none text-[14.5px] text-ink"
+          style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+        />
+      </div>
+      {hint && !error && (
+        <span className="text-[11.5px] text-grey-500 leading-[1.4]">
+          V = venezolano · E = extranjero · escribe solo el número. {hint}
+        </span>
+      )}
+      {error && <span className="text-[12px] text-wine leading-[1.4]">{error}</span>}
+    </label>
+  );
+}
+
+// ── Teléfono con selector de código de país ──────────────────────
+// El cliente solo escribe el número; el código se elige a la izquierda (VE +58
+// por defecto, orden por frecuencia de clientes DTD). Emite "+58 4121234567"
+// hacia el padre (o "" si no hay dígitos). Portado del Norte v4.3 (`PhoneInput`).
+const COUNTRY_CODES: { c: string; dial: string }[] = [
+  { c: "VE", dial: "+58" },
+  { c: "US", dial: "+1" },
+  { c: "CO", dial: "+57" },
+  { c: "PA", dial: "+507" },
+  { c: "PE", dial: "+51" },
+  { c: "CL", dial: "+56" },
+  { c: "EC", dial: "+593" },
+  { c: "AR", dial: "+54" },
+  { c: "BR", dial: "+55" },
+  { c: "MX", dial: "+52" },
+  { c: "ES", dial: "+34" },
+  { c: "CN", dial: "+86" },
+];
+
+function PhoneInput({
+  label,
+  onChange,
+  placeholder,
+  hint,
+  error,
+}: {
+  label: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  hint?: string;
+  error?: string;
+}) {
+  const [code, setCode] = useState("+58");
+  const [digits, setDigits] = useState("");
+
+  function emit(c: string, d: string) {
+    onChange(d ? `${c} ${d}` : "");
+  }
+  function onCode(c: string) {
+    setCode(c);
+    emit(c, digits);
+  }
+  function onDigits(raw: string) {
+    // Si pega un "+…", autodetecta el código (el más largo que matchee).
+    const s = raw.trim();
+    if (s.startsWith("+")) {
+      const cleaned = "+" + s.slice(1).replace(/\D/g, "");
+      const match = COUNTRY_CODES.map((o) => o.dial)
+        .filter((d) => cleaned.startsWith(d))
+        .sort((a, b) => b.length - a.length)[0];
+      if (match) {
+        const rest = cleaned.slice(match.length);
+        setCode(match);
+        setDigits(rest);
+        emit(match, rest);
+        return;
+      }
+    }
+    const d = s.replace(/\D/g, "");
+    setDigits(d);
+    emit(code, d);
+  }
+
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="text-[11.5px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+        {label}
+      </span>
+      <div className="flex items-stretch h-12 rounded-[10px] bg-grey-100 overflow-hidden focus-within:ring-2 focus-within:ring-wine focus-within:ring-offset-1">
+        <select
+          value={code}
+          onChange={(e) => onCode(e.target.value)}
+          aria-label="Código de país"
+          className="bg-grey-200 border-0 outline-none text-[13px] font-bold text-wine cursor-pointer"
+          style={{
+            fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+            appearance: "none",
+            WebkitAppearance: "none",
+            padding: "0 24px 0 10px",
+            backgroundImage: SELECT_ARROW,
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 7px center",
+          }}
+        >
+          {COUNTRY_CODES.map((o) => (
+            <option key={o.c} value={o.dial}>
+              {o.c} {o.dial}
+            </option>
+          ))}
+        </select>
+        <input
+          value={digits}
+          onChange={(e) => onDigits(e.target.value)}
+          inputMode="tel"
+          placeholder={placeholder}
+          className="flex-1 min-w-0 px-3.5 bg-transparent border-0 outline-none text-[14.5px] text-ink"
+          style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+        />
+      </div>
+      {hint && !error && <span className="text-[11.5px] text-grey-500 leading-[1.4]">{hint}</span>}
+      {error && <span className="text-[12px] text-wine leading-[1.4]">{error}</span>}
+    </label>
+  );
+}
+
 function TypeCard({
   active,
   label,
   desc,
+  icon,
   onClick,
 }: {
   active: boolean;
   label: string;
   desc: string;
+  icon: React.ReactNode;
   onClick: () => void;
 }) {
   return (
@@ -527,10 +964,15 @@ function TypeCard({
       }}
       aria-pressed={active}
     >
-      <div className="text-[14px] font-bold" style={{ color: active ? "var(--color-wine)" : "var(--color-ink)" }}>
-        {label}
+      <div className="flex items-center gap-2">
+        <span style={{ color: active ? "var(--color-wine)" : "var(--color-grey-500)" }}>
+          {icon}
+        </span>
+        <div className="text-[14px] font-bold" style={{ color: active ? "var(--color-wine)" : "var(--color-ink)" }}>
+          {label}
+        </div>
       </div>
-      <div className="mt-0.5 text-[12px] text-grey-500 leading-[1.4]">{desc}</div>
+      <div className="mt-1 text-[12px] text-grey-500 leading-[1.4]">{desc}</div>
     </button>
   );
 }
