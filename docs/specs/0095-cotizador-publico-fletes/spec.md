@@ -1,5 +1,5 @@
 ---
-sdd: "0094"
+sdd: "0095"
 title: "Cotizador público de fletes marítimos (SeaRates · caché anti-scraping, Fase 2)"
 status: in-progress
 author: "Claude Code (ventana searates-cotizador-publico) + founder"
@@ -11,7 +11,7 @@ related: ["0092", "0061", "0055"]
 confidencialidad: interno
 ---
 
-# SDD-0094 — Cotizador público de fletes (Fase 2)
+# SDD-0095 — Cotizador público de fletes (Fase 2)
 
 > Llevar las **tarifas reales de flete marítimo** (validadas en SDD-0092) al **sitio público**
 > como estimado white-label, **sin quemar la cuota de SeaRates ni exponerla a scraping**.

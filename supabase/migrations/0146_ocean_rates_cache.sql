@@ -1,5 +1,5 @@
 -- ─────────────────────────────────────────────────────────────
--- 0145 · SDD-0094 · Cotizador público de fletes — caché de tarifas SeaRates
+-- 0146 · SDD-0095 · Cotizador público de fletes — caché de tarifas SeaRates
 --
 -- Tabla `ocean_rates`: matriz CACHEADA de tarifas de flete marítimo (derivadas
 -- de SeaRates) que un cron SEMANAL refresca. El sitio público lee de acá, 0
@@ -64,7 +64,7 @@ create unique index if not exists ocean_rates_route_uidx
   on public.ocean_rates (point_from, point_to, shipping_type, container);
 
 comment on table public.ocean_rates is
-  'SDD-0094: caché de tarifas de flete marítimo (SeaRates) que refresca el cron semanal /api/cron/searates-refresh. Data de referencia GLOBAL (sin tenant_id). El público la lee SOLO vía public_ocean_rate() (0 llamadas en vivo = anti-scraping).';
+  'SDD-0095: caché de tarifas de flete marítimo (SeaRates) que refresca el cron semanal /api/cron/searates-refresh. Data de referencia GLOBAL (sin tenant_id). El público la lee SOLO vía public_ocean_rate() (0 llamadas en vivo = anti-scraping).';
 
 -- ── 2) RLS · tabla cerrada (acceso solo por service_role + la RPC) ──
 alter table public.ocean_rates enable row level security;
@@ -110,7 +110,7 @@ as $$
 $$;
 
 comment on function public.public_ocean_rate(text,text,text,text) is
-  'SDD-0094: lectura pública (anon) de una tarifa cacheada de ocean_rates. Retorno mínimo (solo tarifa). Lo consume lib/public/ocean-rates-public.ts. 0 llamadas a SeaRates por visita.';
+  'SDD-0095: lectura pública (anon) de una tarifa cacheada de ocean_rates. Retorno mínimo (solo tarifa). Lo consume lib/public/ocean-rates-public.ts. 0 llamadas a SeaRates por visita.';
 
 revoke all on function public.public_ocean_rate(text,text,text,text) from public;
 grant execute on function public.public_ocean_rate(text,text,text,text) to anon, authenticated;

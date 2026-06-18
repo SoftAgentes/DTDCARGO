@@ -1,8 +1,8 @@
 /**
- * Lectura pública de la caché de fletes (SDD-0094 Fase 2 · lado público).
+ * Lectura pública de la caché de fletes (SDD-0095 Fase 2 · lado público).
  *
  * Llama a la RPC `public_ocean_rate` (SECURITY DEFINER, grant anon, de la migración
- * 0145) con el cliente anon. Devuelve la tarifa CACHEADA — 0 llamadas a SeaRates por
+ * 0146) con el cliente anon. Devuelve la tarifa CACHEADA — 0 llamadas a SeaRates por
  * visita (anti-scraping). NUNCA tira: cualquier falla (env faltante, Supabase caído,
  * RPC ausente, ruta no cacheada) → null → el sitio muestra "no disponible".
  *

@@ -1,5 +1,5 @@
 /**
- * Tipos + catálogo + validación del cotizador público de fletes (SDD-0094 Fase 2).
+ * Tipos + catálogo + validación del cotizador público de fletes (SDD-0095 Fase 2).
  *
  * Vive en `lib/shared/` = el ÚNICO puente público↔ERP permitido por ESLint. Es
  * código PURO (sin Supabase, sin imports del ERP ni del sitio): lo usan a la vez
