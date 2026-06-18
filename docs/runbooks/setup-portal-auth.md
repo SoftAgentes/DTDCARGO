@@ -57,7 +57,13 @@ Auth → Providers → **Email** → Enable. Con magic-link alcanza el toggle de
 Email habilitado (no hace falta password). Dejá "Confirm email" como venga;
 el magic-link ya confirma por sí mismo.
 
-## Paso 4 · Custom SMTP vía Resend (recomendado, casi obligatorio)
+## Paso 4 · Custom SMTP vía Resend (OBLIGATORIO desde SDD-0094)
+
+> ⚠️ **Desde SDD-0094 (acceso-email) el portal es SOLO-EMAIL** — se quitó el
+> login por markbox+contraseña. El magic-link es la **única** puerta, y el email
+> built-in de Supabase la tapa al 3er-4to envío/hora → **los clientes quedan
+> bloqueados.** Pasó de "recomendado" a **obligatorio**. (2026-06-18: confirmado
+> en vivo — un test pegó el rate-limit "No pudimos enviar el enlace ahora".)
 
 El email **built-in** de Supabase tiene rate-limit duro (~2-4 mails/hora) y no
 es para producción. Como ya tenemos **Resend** configurado y el dominio
@@ -76,6 +82,15 @@ Auth → settings → **SMTP Settings** → Enable Custom SMTP:
 
 > Sin SMTP custom el portal "anda" pero se queda sin mails apenas 2-3 clientes
 > piden enlace en la misma hora.
+
+## Paso 4b · Subir el rate-limit de emails de Auth
+
+Con SMTP custom puesto, el cap built-in deja de aplicar — **pero hay que subir el
+límite a mano**, si no Supabase sigue capando:
+
+Auth → **Rate Limits** → **"Rate limit for sending emails"** → subir de ~4/hora a
+un número razonable (ej. **30-50/hora**). Resend aguanta de sobra; el límite es
+solo anti-abuso.
 
 ## Paso 5 · Verificar E2E
 
