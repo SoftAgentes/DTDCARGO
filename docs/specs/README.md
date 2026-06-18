@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 89 specs)
+### Índice de specs (generado · 90 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -127,6 +127,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0091 | Motor de flujo interno por servicio (N8N-lite) — implementaci… | in-progress | interno |
 | 0092 | Integración SeaRates Logistics Explorer — fletes marítimos FC… | in-progress | interno |
 | 0093 | Academia DTD — módulo de formación (catálogo on-demand + coho… | in-progress | interno |
+| 0094 | Acceso al portal solo por email (magic-link) — retira el logi… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
