@@ -53,6 +53,11 @@ const LINKS: {
     match: (p) => p.startsWith("/portal/referidos"),
   },
   {
+    href: "/portal/academia",
+    label: "Academia",
+    match: (p) => p.startsWith("/portal/academia"),
+  },
+  {
     href: "/portal/mensajes",
     label: "Mensajes",
     match: (p) => p.startsWith("/portal/mensajes"),
