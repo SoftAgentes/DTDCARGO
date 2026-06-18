@@ -1,6 +1,6 @@
 # DTD Cargo · Brand assets (sitio público)
 
-> **Fuente de verdad:** el Brand Book vigente del Norte — el de mayor versión en [`docs/design/studio/_norte/`](../../docs/design/studio/_norte/) (hoy **Brand Book DTD v4.2**; el book es UNO solo).
+> **Fuente de verdad:** el Brand Book vigente del Norte — el de mayor versión en [`docs/design/studio/_norte/`](../../docs/design/studio/_norte/) (hoy **Brand Book DTD v4.3**; el book es UNO solo).
 > **Reglas:** [`BRAND.md`](../../BRAND.md) raíz del repo.
 
 Esta carpeta contiene los assets que sirve el sitio público (`/brand/*.png|svg`) desde `next/image` y `<link rel="icon">`. Son **copias derivadas** del brand book — si el brand book cambia, regenerar (no editar a mano).
@@ -47,5 +47,5 @@ Esta carpeta contiene los assets que sirve el sitio público (`/brand/*.png|svg`
 
 ## Versión
 
-Brand Book vigente: **v4.2** (sync 2026-06-14) · el lockup/isólogo no cambió desde el rebrand de mayo 2026.
-Changelog del rebrand: [`docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md`](../../docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md) · historial del book: changelog interno de `Brand Book DTD v4.2.html`.
+Brand Book vigente: **v4.3** (sync 2026-06-17) · el lockup/isólogo no cambió desde el rebrand de mayo 2026.
+Changelog del rebrand: [`docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md`](../../docs/design/studio/_norte/BRAND-MIGRATION-2026-05.md) · historial del book: changelog interno de `Brand Book DTD v4.3.html`.

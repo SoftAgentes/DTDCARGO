@@ -4,7 +4,7 @@ import Link from "next/link";
 /**
  * Sistema oficial de marca DTD Cargo.
  * Fuente de verdad: el Brand Book vigente del Norte — el de mayor versión en
- * docs/design/studio/_norte/ (hoy "Brand Book DTD v4.2.html"; el book es UNO solo).
+ * docs/design/studio/_norte/ (hoy "Brand Book DTD v4.3.html"; el book es UNO solo).
  *
  * Cambios vs v2.x:
  * - Wordmark pasa de "DTDCARGO" (1 palabra, todo mayúsculas) a "DTD Cargo"

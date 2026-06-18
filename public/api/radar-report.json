@@ -1,26 +1,26 @@
 {
-  "generatedAt": "2026-06-16",
-  "norteVersion": "v4.2",
+  "generatedAt": "2026-06-17",
+  "norteVersion": "v4.3",
   "partA": {
     "findings": [
       {
-        "id": "radar-gate-private-marca-stale",
-        "title": "El gate 0.5b #1 del propio /radar no excluye private/marca/brand-book-v4.2.html (book gateado authed) y aún espera el book en public/marca/ (vacío desde el gating). Hay que excluir private/marca manualmente para que dé 0",
+        "id": "radar-skill-hardcodea-v42",
+        "title": "El skill /radar (.claude/commands/radar.md) hardcodea 'book vigente v4.2' en la Regla 0.5/0.5b y su grep de brand-drift no caza v4.2 como versión vieja.",
         "severity": "media",
-        "action": "Actualizar SKILL.md de /radar: agregar private/marca/brand-book-v4.2.html a la exclusión del check #1 y cambiar la regla 'book en public/marca' por 'en private/marca'. No es drift de marca.",
+        "action": "Actualizar la Regla 0.5/0.5b del skill a v4.3 (patrón de grep + paths de excepción del book) para que la próxima corrida detecte remanentes de v4.2.",
         "top": true
       },
       {
-        "id": "radar-report-uncommitted",
-        "title": "public/api/radar-report.json modificado sin commitear (la torre de control /studio/debug muestra el informe versionado en git, no el del working tree)",
-        "severity": "baja",
-        "action": "Commitear el artefacto cuando se quiera que /studio/debug refleje el informe de hoy."
+        "id": "git-push-wildcard-allow",
+        "title": "settings.local.json permite 'Bash(git push *)' (wildcard) + varios allow de commits puntuales viejos — ruido y riesgo en un repo donde push a main = deploy a prod.",
+        "severity": "media",
+        "action": "Quitar/acotar el allow 'git push *' y podar los allow de commits puntuales obsoletos."
       },
       {
-        "id": "vitest-worker-flaky-windows",
-        "title": "El gate puede fallar en seco (133/133 'failed to find the runner' / reading 'config') por crash transitorio del worker de Vitest en Windows; re-correr da verde (2056 tests)",
+        "id": "norte-v43-completo",
+        "title": "Norte + web 100% en v4.3. Resueltos este ciclo: espejo del _norte a v4.3, book v4.3 propagado a la web (private/marca/ + 9 punteros), AGENTS.md/BRAND.md/README a v4.3. Cero refs funcionales v4.2.",
         "severity": "baja",
-        "action": "Ante 'failed to find the runner' masivo, re-correr el gate; no investigar como regresión."
+        "action": "Pendiente de la coordinadora: push de main local (sync v4.3 + book v4.3). El skill /radar todavía declara v4.2 (ver hallazgo top)."
       }
     ],
     "estimatedTokenSavings": "~5%"
@@ -28,11 +28,9 @@
   "partB": {
     "counts": { "built": 17, "partial": 5, "missing": 0, "total": 22 },
     "blocks": [
-      { "name": "Bloque 1 · Facturación + Contabilidad", "remaining": "0%", "note": "SDD-0021/0040 done" },
-      { "name": "Bloque 2 · Cobranzas + Tesorería + Socio China", "remaining": "0%", "note": "2.1/2.2 done; 2.3 SDD-0059 in-progress confidencial, fuera del blueprint del Norte" },
-      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "100%", "note": "SDD-0073 draft — sin tablas (solo fiscal_settings minima propuesta); BOTTLENECK vigente" },
-      { "name": "Bloque 4 · Naviera & Consolidación", "remaining": "0%", "note": "SDD-0047 done (Slice A+B en prod)" },
-      { "name": "Bloque 5 · Comercial", "remaining": "0%", "note": "SDD-0048/0049/0051/0052/0053/0054 los 6 en prod" }
+      { "name": "Bloque 5 · Comercial", "remaining": "0%", "note": "done — 6 SDDs en prod (0048/0049/0051/0052/0053/0054)" },
+      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "0%", "note": "ya cerrado por SDD-0073 §8 LIVE; el doc schema-reconciliation lo lista desactualizado como bottleneck" },
+      { "name": "Modelo de datos (blueprint Norte)", "remaining": "23%", "note": "17 built / 5 partial / 0 missing = 77% built; 0 entidades sin tabla" }
     ]
   }
 }
