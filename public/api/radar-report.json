@@ -1,26 +1,38 @@
 {
-  "generatedAt": "2026-06-17",
+  "generatedAt": "2026-06-19",
   "norteVersion": "v4.3",
   "partA": {
     "findings": [
       {
-        "id": "radar-skill-hardcodea-v42",
-        "title": "El skill /radar (.claude/commands/radar.md) hardcodea 'book vigente v4.2' en la Regla 0.5/0.5b y su grep de brand-drift no caza v4.2 como versión vieja.",
-        "severity": "media",
-        "action": "Actualizar la Regla 0.5/0.5b del skill a v4.3 (patrón de grep + paths de excepción del book) para que la próxima corrida detecte remanentes de v4.2.",
+        "id": "registro-norte-lane-abierta",
+        "title": "feat/registro-norte es la ÚNICA lane en vuelo: 1 commit sin pushear + 3 archivos sin commitear (app/api/cron/purge-throttle/, lib/http/read-json-body.ts + test). El resto del trabajo de las 4 sesiones ya está en main/prod (d4a735e).",
+        "severity": "alta",
+        "action": "Su ventana commitea los 3 archivos; luego coordinación mergea feat/registro-norte a main + push. No mergear ahora (esta a medio).",
         "top": true
       },
       {
-        "id": "git-push-wildcard-allow",
-        "title": "settings.local.json permite 'Bash(git push *)' (wildcard) + varios allow de commits puntuales viejos — ruido y riesgo en un repo donde push a main = deploy a prod.",
-        "severity": "media",
-        "action": "Quitar/acotar el allow 'git push *' y podar los allow de commits puntuales obsoletos."
+        "id": "resend-smtp-portal-pendiente",
+        "title": "El portal es SOLO-EMAIL (SDD-0094) pero Supabase Auth sigue con el email built-in (~4 mails/hora). Sin SMTP custom de Resend, los clientes reales pegan el rate-limit y no reciben el magic-link.",
+        "severity": "alta",
+        "action": "Founder: conectar Resend SMTP en Supabase Auth (runbook docs/runbooks/setup-portal-auth.md, Paso 4) + subir el rate-limit de emails. Crear API key nueva en Resend (la de Vercel esta oculta)."
       },
       {
-        "id": "norte-v43-completo",
-        "title": "Norte + web 100% en v4.3. Resueltos este ciclo: espejo del _norte a v4.3, book v4.3 propagado a la web (private/marca/ + 9 punteros), AGENTS.md/BRAND.md/README a v4.3. Cero refs funcionales v4.2.",
+        "id": "schema-reconciliation-stale",
+        "title": "docs/architecture/schema-reconciliation.md sigue en snapshot 0119; la ultima migracion del repo es 0146. Lista Bloque 3 Fiscal/SENIAT como bottleneck, pero ya esta LIVE (SDD-0073 v2). Los markers 17/5/0 son validos pero el roadmap esta viejo.",
+        "severity": "media",
+        "action": "Regenerar el reconciliador (0119 -> 0146) y promover Bloque 3 a done."
+      },
+      {
+        "id": "radar-skill-hardcodea-v42",
+        "title": "El skill /radar (.claude/commands/radar.md) todavia hardcodea 'book vigente v4.2' (2 refs) en la Regla 0.5/0.5b, aunque el Norte y la web ya estan 100% en v4.3.",
+        "severity": "media",
+        "action": "Actualizar la Regla 0.5/0.5b del skill a v4.3 (patron de grep + paths de excepcion del book)."
+      },
+      {
+        "id": "worktrees-stale-merged",
+        "title": "4 worktrees ya mergeados a main siguen vivos sin limpiar: academia, acceso-email, norte-v43, searates-cotizador-publico (todos 0 ahead). Ocupan disco + ensucian el git worktree list.",
         "severity": "baja",
-        "action": "Pendiente de la coordinadora: push de main local (sync v4.3 + book v4.3). El skill /radar todavía declara v4.2 (ver hallazgo top)."
+        "action": "Housekeeping: git worktree remove + branch -d de los 4 (su trabajo ya esta en main d4a735e)."
       }
     ],
     "estimatedTokenSavings": "~5%"
@@ -28,8 +40,8 @@
   "partB": {
     "counts": { "built": 17, "partial": 5, "missing": 0, "total": 22 },
     "blocks": [
-      { "name": "Bloque 5 · Comercial", "remaining": "0%", "note": "done — 6 SDDs en prod (0048/0049/0051/0052/0053/0054)" },
-      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "0%", "note": "ya cerrado por SDD-0073 §8 LIVE; el doc schema-reconciliation lo lista desactualizado como bottleneck" },
+      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "0%", "note": "SDD-0073 v2 LIVE; el doc schema-reconciliation lo lista desactualizado como bottleneck" },
+      { "name": "Bloque 5 · Comercial", "remaining": "0%", "note": "6 SDDs en prod (0048/0049/0051/0052/0053/0054)" },
       { "name": "Modelo de datos (blueprint Norte)", "remaining": "23%", "note": "17 built / 5 partial / 0 missing = 77% built; 0 entidades sin tabla" }
     ]
   }
