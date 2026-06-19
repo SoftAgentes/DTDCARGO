@@ -65,7 +65,7 @@ async function main() {
       paperSize: 9, // A4
       fitToPage: true,
       fitToWidth: 1,
-      fitToHeight: 0,
+      fitToHeight: 1, // garantiza 1 página de alto aun con las 7 notas
       horizontalCentered: true,
       margins: {
         left: 0.3,
@@ -354,11 +354,12 @@ async function main() {
 
   const notes = [
     "1. Marca cada caja con el Shipping Mark del cliente (唛头). Sin él, esto generará retraso en la exportación.  请在每个箱子上写客户唛头；缺唛头会延误出口。",
-    "2. Si la mercancía es de marca, declara la marca real; si no, escribe \"无 / ninguna\". Ocultar la marca es riesgo en aduana del proveedor.  品牌货请如实填写品牌，否则填\"无\"。",
-    "3. Llena este documento antes de enviar y mándalo con la carga (o súbelo en tu link de DTD).  发货前填写本单并随货发送（或在链接上传）。",
-    "4. La descarga la organiza y paga el proveedor; si la hace nuestra bodega, se cobra por volumen/peso.  卸货由供应商安排并承担；如由我方卸货，按体积/重量收费。",
-    "5. Prohibido enviar mercancía peligrosa o restringida.  禁止危险品、违禁品入仓。",
-    `6. Contacto en China: ${"吴小姐 (Srta. Wu)"} · 18606891419 · WeChat DTDLogistic.  中国联系人：吴小姐 · 18606891419 · 微信 DTDLogistic。`,
+    "2. Llena este documento antes de enviar y mándalo con la carga, o súbelo en tu link de DTD.  发货前填写本单并随货发送，或在链接上传。",
+    "3. Sube a tu link de DTD tus documentos originales: tu factura comercial y tu packing list originales.  在 DTD 链接上传公司原始单据：商业发票和装箱单原件。",
+    "4. Si la mercancía es de marca, declara la marca real; si no, escribe \"无 / ninguna\". Ocultar la marca es riesgo en aduana del proveedor.  品牌货请如实填写品牌，否则填\"无\"。",
+    "5. La descarga la organiza y paga el proveedor; si la hace nuestra bodega, se cobra por volumen/peso.  卸货由供应商安排并承担；如由我方卸货，按体积/重量收费。",
+    "6. Prohibido enviar mercancía peligrosa o restringida.  禁止危险品、违禁品入仓。",
+    `7. Contacto en China: 吴小姐 (Srta. Wu) · 18606891419 · WeChat DTDLogistic.  中国联系人：吴小姐 · 18606891419 · 微信 DTDLogistic。`,
   ];
   notes.forEach((t, i) => {
     const r = notesRow + 1 + i;

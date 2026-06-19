@@ -115,10 +115,11 @@ export function SupplierUploadSection({ token }: { token: string }) {
         className="mt-1.5 text-[12.5px] text-grey-700 leading-[1.55] max-w-[58ch]"
         lang="zh"
       >
-        上传产品照片；如在线填写有问题，可在此上传填好的 Excel 或其他文件。
+        上传产品照片，以及贵公司的原始单据（商业发票和装箱单原件）。如在线填写有问题，也可在此上传填好的 Excel。
         <span lang="es" className="block text-grey-500 mt-1">
-          Sube fotos de tus productos y, si tuviste problemas online, el Excel
-          llenado o cualquier otro documento aquí.
+          Sube fotos de tus productos y los documentos originales de tu empresa
+          (tu factura comercial y tu packing list originales). Si tuviste
+          problemas online, también puedes subir aquí el Excel llenado.
         </span>
       </p>
 
