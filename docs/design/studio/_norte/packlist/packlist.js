@@ -132,6 +132,35 @@
     if (el) el.textContent = state.mark || 'DTD-____';
   }
 
+  // ── Exportar a Excel (SheetJS) ──────────────────────────────────
+  // El proveedor descarga el .xlsx, lo llena y lo vuelve a subir por su link.
+  // Reemplaza el viejo "imprimir a PDF": un PDF no se rellena ni se reenvía.
+  function exportXlsx() {
+    if (typeof XLSX === 'undefined') {
+      alert('No se pudo cargar el exportador de Excel. Revisá tu conexión. / 无法加载 Excel 导出，请检查网络。');
+      return;
+    }
+    const cur = state.currency;
+    const head = [
+      ['DTD Cargo · Packing List + Factura / 装箱单 + 商业发票'],
+      ['公司名称 / Empresa', state.empresa, '唛头 / Shipping Mark', state.mark, '客户 / Cliente', state.cliente],
+      ['邮箱 / Email', state.email, '微信 / WeChat', state.wechat, '日期 / Fecha', state.fecha],
+      ['N.º / 编号', state.folio, '货币 / Moneda', cur],
+      [],
+    ];
+    const cols = ['#', '品牌/Marca', '货号/Código', '中文品名', '英文品名/Nombre', '材质·HS', '箱号/N.caja', '件数/Cajas', '每箱装量/Uds·caja', '总数量/Total uds', '单价/P.unit', '总金额/Total', '每箱重/kg·caja', '总重量/Peso', '每箱体积/CBM·caja', '总体积/CBM'];
+    const body = state.rows.map((r, i) => {
+      const c = rowCalc(r);
+      return [i + 1, r.brand, r.code, r.zh, r.es, r.hs, r.carton, num(r.ctns), num(r.perctn), c.qty, num(r.unit), c.amount, num(r.wkg), c.weight, num(r.cbm), c.vol];
+    });
+    const t = totals();
+    const foot = ['', '总计 / Totales', '', '', '', '', '', t.ctns, '', t.qty, cur, t.amount, '', t.weight, '', t.vol];
+    const ws = XLSX.utils.aoa_to_sheet(head.concat([cols], body, [[]], [foot]));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Packing List');
+    XLSX.writeFile(wb, 'Packing List + Factura - ' + (state.mark || 'DTD') + '.xlsx');
+  }
+
   function init() {
     [['f-folio','folio'],['f-empresa','empresa'],['f-mark','mark'],['f-cliente','cliente'],
      ['f-email','email'],['f-wechat','wechat'],['f-fecha','fecha'],['f-contacto','contacto'],['f-tel','tel']]
@@ -142,7 +171,7 @@
 
     document.getElementById('add-row').addEventListener('click', () => { state.rows.push(emptyRow()); save(); renderRows(); });
     document.getElementById('add-5').addEventListener('click', () => { for (let k=0;k<5;k++) state.rows.push(emptyRow()); save(); renderRows(); });
-    document.getElementById('btn-print').addEventListener('click', () => window.print());
+    document.getElementById('btn-xlsx').addEventListener('click', exportXlsx);
     document.getElementById('btn-reset').addEventListener('click', () => {
       if (confirm('¿Vaciar el documento? / 清空文档？')) { state = JSON.parse(JSON.stringify(DEFAULTS)); save(); location.reload(); }
     });
