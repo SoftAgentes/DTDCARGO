@@ -4,6 +4,8 @@ import { useState } from "react";
 import { CheckIcon, DownloadIcon } from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
+import { PackingListFormSection } from "./PackingListFormSection";
+import { SupplierUploadSection } from "./SupplierUploadSection";
 
 // Latin → Archivo (marca); CJK → Noto Sans SC (fallback por-glifo, Archivo no
 // trae hanzi). El proveedor lee chino → es crítico que el CJK use Noto SC.
@@ -27,6 +29,7 @@ export function ProviderShareClient({
   markbox,
   clientName,
   supplierName,
+  supplierWechat,
   labels,
 }: {
   token: string;
@@ -35,6 +38,7 @@ export function ProviderShareClient({
   markbox: string;
   clientName: string | null;
   supplierName: string | null;
+  supplierWechat: string | null;
   labels: BoxLabel[];
 }) {
   const [copied, setCopied] = useState(false);
@@ -125,9 +129,9 @@ export function ProviderShareClient({
             <button
               type="button"
               onClick={copyAddress}
-              className="btn btn-primary mt-3 inline-flex items-center gap-2"
+              className="btn btn-ghost mt-3 inline-flex items-center gap-2"
             >
-              {copied ? "已复制 · ¡Copiado!" : "复制地址 · Copiar dirección"}
+              {copied ? "已复制 · Copiado" : "复制地址 · Copiar dirección"}
               {copied && <CheckIcon size={15} />}
             </button>
           </section>
@@ -157,7 +161,7 @@ export function ProviderShareClient({
                 onClick={() => window.print()}
                 className="btn btn-primary inline-flex items-center gap-2 flex-shrink-0"
               >
-                下载 / 打印 · Imprimir <DownloadIcon size={15} />
+                打印标签 · Imprimir etiquetas <DownloadIcon size={15} />
               </button>
             </div>
           </section>
@@ -170,33 +174,75 @@ export function ProviderShareClient({
           ))}
         </div>
 
-        {/* Template packing list / factura (Fase 2 · descarga directa) */}
-        <section className="no-print mt-8 bg-white border border-grey-200 rounded-[16px] p-6">
-          <div className="text-[15px] font-bold text-ink" lang="zh">
-            装箱单和发票模板{" "}
+        {/* (a) PASO 1 — Packing list / factura ONLINE (SDD-0096): llenar + enviar */}
+        <div className="no-print mt-8">
+          <StepEyebrow n={1} zh="第一步" es="Paso 1" />
+        </div>
+        <PackingListFormSection
+          token={token}
+          supplierName={supplierName}
+          supplierWechat={supplierWechat}
+        />
+
+        {/* (b) PASO 2 — Fallback: descargar el Excel pre-llenado (GET, se mantiene).
+            Secundario respecto al online → título con menos peso + botón ghost. */}
+        <div className="no-print mt-8">
+          <StepEyebrow n={2} zh="第二步" es="Paso 2" />
+        </div>
+        <section className="no-print mt-3 bg-white border border-grey-200 rounded-[16px] p-6">
+          <div className="text-[14px] font-bold text-grey-700" lang="zh">
+            下载 Excel{" "}
             <span lang="es" className="text-grey-500 font-semibold">
-              · Packing list y factura
+              · Descargar el Excel
             </span>
           </div>
           <p
             className="mt-1.5 text-[12.5px] text-grey-700 leading-[1.55] max-w-[52ch]"
             lang="zh"
           >
-            这个 Excel 已经填好唛头和参考号。请补充货物明细，和货物一起发给我们。
+            如果在线填写有问题，可下载已填好唛头和参考号的 Excel，填好后从下方上传。
             <span lang="es" className="block text-grey-500 mt-1">
-              Este Excel ya viene con el Shipping Mark y la referencia. Completa el
-              detalle de la mercancía y envíalo con la carga.
+              Si tienes problemas online, descarga el Excel (ya viene con el
+              Shipping Mark y la referencia), llénalo y súbelo abajo.
             </span>
           </p>
           <a
             href={`/p/${token}/packlist`}
             download
-            className="btn btn-primary mt-3 inline-flex items-center gap-2"
+            className="btn btn-ghost mt-3 inline-flex items-center gap-2"
           >
-            下载装箱单 · Descargar packing list <DownloadIcon size={15} />
+            下载 Excel · Descargar el Excel <DownloadIcon size={15} />
           </a>
         </section>
+
+        {/* (c) PASO 3 — Subir fotos del producto + Excel llenado + otros documentos */}
+        <div className="no-print mt-8">
+          <StepEyebrow n={3} zh="第三步" es="Paso 3" />
+        </div>
+        <SupplierUploadSection token={token} />
       </div>
+    </div>
+  );
+}
+
+/** Eyebrow numerado que da secuencia a las 3 partes (llenar → descargar → subir). */
+function StepEyebrow({ n, zh, es }: { n: number; zh: string; es: string }) {
+  return (
+    <div className="flex items-center gap-2.5">
+      <span
+        className="grid h-6 w-6 flex-shrink-0 place-items-center rounded-full bg-wine text-[12px] font-bold text-white"
+        style={{ fontFamily: MONO }}
+        aria-hidden
+      >
+        {n}
+      </span>
+      <span
+        className="text-[11px] font-bold uppercase tracking-[0.1em] text-grey-500"
+        lang="zh"
+      >
+        {zh}
+        <span lang="es"> · {es}</span>
+      </span>
     </div>
   );
 }

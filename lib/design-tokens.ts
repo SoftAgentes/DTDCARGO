@@ -226,11 +226,17 @@ export const CONTACT = {
     /** Encargado de bodega — 林冠 (Lin Guan) */
     contactPersonCjk: "林冠",
     contactPersonPinyin: "Lin Guan",
-    /** Teléfono local · formato internacional para tel: link */
-    phone: "+86 180 0689 1419",
-    phoneRaw: "+8618006891419",
+    /** Contacto de coordinación con el proveedor para el instructivo/clip
+     *  (SDD-0096, founder 2026-06-19). Distinto del encargado de bodega (林冠). */
+    supplierContactCjk: "吴小姐",
+    supplierContactEs: "Srta. Wu",
+    /** WeChat ID de DTD para que el proveedor nos agregue. */
+    wechatId: "DTDLogistic",
+    /** Teléfono local · formato internacional para tel: link ("186 siempre", founder 2026-06-19). */
+    phone: "+86 186 0689 1419",
+    phoneRaw: "+8618606891419",
     /** Teléfono en formato chino (sin +86, como se escribe en WeChat). */
-    phoneCjk: "18006891419",
+    phoneCjk: "18606891419",
     /** Horario en español (corregido a 17:30 según brand book). */
     hours: "Lun a Sáb · 9:00 – 17:30 (GMT+8)",
     /** Horario en chino — para el clip de WeChat. */
