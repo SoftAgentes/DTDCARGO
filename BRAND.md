@@ -271,7 +271,7 @@ preferís la alternativa?
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `docs/design/studio/_norte/Brand Book DTD v4.3.html` (vigente; el book es UNO solo) — fuente de verdad de la identidad visual. Publicado privado en `/marca/brand-book`. **No** mezclar pantallas de producto adentro.
+- **Brand Book:** `docs/design/studio/_norte/Brand Book DTD v4.4.html` (vigente; el book es UNO solo) — fuente de verdad de la identidad visual. Publicado privado en `/marca/brand-book`. **No** mezclar pantallas de producto adentro.
 - Mock data en `erp/data.jsx`. Cualquier dato nuevo se agrega ahí y se expone vía `window.ERPData`.
 
 ---

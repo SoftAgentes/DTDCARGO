@@ -101,6 +101,10 @@ docs/design/studio/_norte/para-enviar/
 docs/design/studio/_norte/.design-canvas.state.json
 docs/design/studio/_norte/.thumbnail
 docs/design/studio/_norte/_norte.html
+# v4.4 (2026-06-19): paquete de marca para Drive (fondos 4K + book + assets duplicados,
+# ~250 MB crudo, redundante con el resto del _norte) + scratch del image-slots → fuera de git.
+docs/design/studio/_norte/paquete-drive/
+docs/design/studio/_norte/.image-slots.state.json
 # Blueprint Prisma que Cloud Design re-incluye en cada handoff. Decisión founder
 # 2026-06-03: backend NATIVO Supabase, NO Prisma → schema.prisma fuera de git
 # (borrado permanente; se re-excluye solo en cada NORTE-SYNC).

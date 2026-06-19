@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Set Gráfico DTD · cómo queda</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=Nunito+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../erp/tokens.css" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans,'Nunito Sans'),sans-serif; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: var(--s-16) var(--s-8); }
+  .eyebrow { font: 700 11px/1 var(--f-mono,monospace); letter-spacing: 0.28em; text-transform: uppercase; color: var(--wine); }
+  h1 { font-family: var(--f-display,'Sora'),sans-serif; font-weight: 800; font-size: 40px; line-height: 1.08; letter-spacing: -0.02em; margin: var(--s-3) 0 var(--s-4); text-wrap: balance; }
+  .lead { font-size: 17px; color: var(--ink); max-width: 70ch; line-height: 1.6; }
+  p { font-size: 14.5px; line-height: 1.6; color: var(--ink-soft); max-width: 64ch; text-wrap: pretty; }
+  .cn { font-family: var(--f-cn,'Noto Sans SC'),sans-serif; }
+  code { font-family: var(--f-mono,monospace); font-size: 0.88em; background: var(--bg-elevated); padding: 1px 6px; border-radius: var(--r-xs); color: var(--ink); }
+
+  .motif { margin-top: var(--s-8); border: 1px solid var(--border); border-radius: var(--r-xl); overflow: hidden; background: var(--bg-surface); box-shadow: var(--shadow-sm); }
+  .motif-head { display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap; padding: var(--s-6) var(--s-6) 0; }
+  .motif-head h2 { font-family: var(--f-display,'Sora'),sans-serif; font-weight: 700; font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+  .motif-head .tag-cn { font-size: 15px; color: var(--ink-mute); font-weight: 600; }
+  .badge { font: 700 10px/1 var(--f-mono,monospace); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px; border-radius: var(--r-pill); margin-left: auto; }
+  .b-have { background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--success); }
+  .b-new { background: color-mix(in srgb, var(--wine) 12%, transparent); color: var(--wine); }
+  .motif > p { margin: var(--s-2) var(--s-6) 0; }
+  .panes { display: grid; grid-template-columns: 1fr 1fr; gap: 0; margin-top: var(--s-5); border-top: 1px solid var(--border); }
+  .pane { padding: var(--s-8) var(--s-6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s-4); min-height: 180px; }
+  .pane.navy { background: var(--bg-sidebar); }
+  .pane .pl { font: 600 10.5px/1 var(--f-mono,monospace); letter-spacing: 0.14em; text-transform: uppercase; }
+  .pane.paper .pl { color: var(--ink-mute); }
+  .pane.navy .pl { color: rgba(242,240,236,0.45); }
+  .unit svg { display: block; }
+  .strip { width: 100%; height: 30px; }
+  .field { width: 100%; height: 120px; border-radius: var(--r-sm); }
+
+  /* ── Meandro 回纹 ── */
+  .f-meander-paper { background-color: var(--bg-base); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%237F0F1A' stroke-width='4'/></svg>"); background-size: 36px 36px; }
+  .f-meander-navy { background-color: var(--bg-sidebar); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%23F2F0EC' stroke-width='4'/></svg>"); background-size: 36px 36px; }
+
+  /* ── Olas 海水江崖 ── */
+  .f-wave-paper { background-color: var(--bg-base); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='26' viewBox='0 0 48 26'><g fill='none' stroke='%237F0F1A' stroke-width='2.4'><path d='M0 26 A24 24 0 0 1 48 26'/><path d='M9 26 A15 15 0 0 1 39 26'/><path d='M18 26 A6 6 0 0 1 30 26'/></g></svg>"); background-size: 48px 26px; }
+  .f-wave-navy { background-color: var(--bg-sidebar); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='48' height='26' viewBox='0 0 48 26'><g fill='none' stroke='%23F2F0EC' stroke-width='2.4'><path d='M0 26 A24 24 0 0 1 48 26'/><path d='M9 26 A15 15 0 0 1 39 26'/><path d='M18 26 A6 6 0 0 1 30 26'/></g></svg>"); background-size: 48px 26px; }
+
+  .rule { margin-top: var(--s-16); background: var(--bg-sidebar); color: var(--bg-base); border-radius: var(--r-xl); padding: var(--s-10); position: relative; overflow: hidden; }
+  .rule::before { content:''; position:absolute; inset:0; opacity:0.07; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%23F2F0EC' stroke-width='4'/></svg>"); background-size: 40px 40px; }
+  .rule > * { position: relative; z-index: 1; }
+  .rule .eyebrow { color: var(--wine-soft); }
+  .rule h2 { color: #fff; font-family: var(--f-display,'Sora'),sans-serif; font-size: 22px; margin: var(--s-2) 0 var(--s-4); }
+  .rule p { color: rgba(242,240,236,0.85); }
+  .swatches { display: flex; gap: var(--s-3); margin-top: var(--s-5); flex-wrap: wrap; }
+  .sw { display: flex; align-items: center; gap: var(--s-2); font: 600 11px/1 var(--f-mono,monospace); color: rgba(242,240,236,0.85); }
+  .sw i { width: 22px; height: 22px; border-radius: 6px; display: block; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); }
+  .no { display: flex; gap: var(--s-2); align-items: center; margin-top: var(--s-5); font: 600 12px/1.4 var(--f-mono,monospace); color: var(--wine-soft); }
+  .no i { width: 20px; height: 20px; border-radius: 5px; display: inline-block; }
+
+  .foot { margin-top: var(--s-12); padding-top: var(--s-5); border-top: 1px solid var(--border); font: 500 11.5px/1.6 var(--f-mono,monospace); color: var(--ink-mute); }
+  @media (max-width: 720px){ .panes{ grid-template-columns: 1fr; } h1{ font-size: 30px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Set de apoyo gráfico · recoloreado a la marca</div>
+  <h1>Cómo queda el set gráfico DTD</h1>
+  <p class="lead">Los motivos que vamos a usar, ya en nuestra paleta: mono-color, line-art fino y tono sobre tono. Cada uno se muestra sobre <b>papel</b> (wine) y sobre <b>navy</b> (cream), que son los dos fondos del sistema.</p>
+
+  <!-- MEANDRO -->
+  <div class="motif">
+    <div class="motif-head">
+      <h2>Meandro / greca</h2>
+      <span class="tag-cn cn">回纹 / 雷纹</span>
+      <span class="badge b-have">✓ Ya en el sistema</span>
+    </div>
+    <p>Nuestro motivo de cabecera. Como campo de fondo tono sobre tono o como cenefa de borde. Ya vive en Portadas de Redes, el watermark y Brand in Motion.</p>
+    <div class="panes">
+      <div class="pane paper"><div class="field f-meander-paper"></div><span class="pl">Wine sobre papel</span></div>
+      <div class="pane navy"><div class="field f-meander-navy"></div><span class="pl">Cream sobre navy</span></div>
+    </div>
+  </div>
+
+  <!-- OLAS -->
+  <div class="motif">
+    <div class="motif-head">
+      <h2>Olas / montaña-agua</h2>
+      <span class="tag-cn cn">海水江崖</span>
+      <span class="badge b-new">Nuevo</span>
+    </div>
+    <p>Arcos concéntricos tipo escama. Funciona como <b>cenefa de pie</b> o como campo sutil. Geométrico y repetible, igual que el meandro.</p>
+    <div class="panes">
+      <div class="pane paper">
+        <div class="unit"><svg width="192" height="52" viewBox="0 0 192 52"><g fill="none" stroke="#7F0F1A" stroke-width="2.6">
+          <path d="M0 52 A24 24 0 0 1 48 52"/><path d="M48 52 A24 24 0 0 1 96 52"/><path d="M96 52 A24 24 0 0 1 144 52"/><path d="M144 52 A24 24 0 0 1 192 52"/>
+          <path d="M9 52 A15 15 0 0 1 39 52"/><path d="M57 52 A15 15 0 0 1 87 52"/><path d="M105 52 A15 15 0 0 1 135 52"/><path d="M153 52 A15 15 0 0 1 183 52"/>
+          <path d="M18 52 A6 6 0 0 1 30 52"/><path d="M66 52 A6 6 0 0 1 78 52"/><path d="M114 52 A6 6 0 0 1 126 52"/><path d="M162 52 A6 6 0 0 1 174 52"/>
+        </g></svg></div>
+        <div class="strip f-wave-paper"></div>
+        <span class="pl">Wine · cenefa + campo</span>
+      </div>
+      <div class="pane navy">
+        <div class="unit"><svg width="192" height="52" viewBox="0 0 192 52"><g fill="none" stroke="#F2F0EC" stroke-width="2.6">
+          <path d="M0 52 A24 24 0 0 1 48 52"/><path d="M48 52 A24 24 0 0 1 96 52"/><path d="M96 52 A24 24 0 0 1 144 52"/><path d="M144 52 A24 24 0 0 1 192 52"/>
+          <path d="M9 52 A15 15 0 0 1 39 52"/><path d="M57 52 A15 15 0 0 1 87 52"/><path d="M105 52 A15 15 0 0 1 135 52"/><path d="M153 52 A15 15 0 0 1 183 52"/>
+          <path d="M18 52 A6 6 0 0 1 30 52"/><path d="M66 52 A6 6 0 0 1 78 52"/><path d="M114 52 A6 6 0 0 1 126 52"/><path d="M162 52 A6 6 0 0 1 174 52"/>
+        </g></svg></div>
+        <div class="strip f-wave-navy"></div>
+        <span class="pl">Cream · cenefa + campo</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- NUBE -->
+  <div class="motif">
+    <div class="motif-head">
+      <h2>Nube · line-art</h2>
+      <span class="tag-cn cn">祥云</span>
+      <span class="badge b-new">Nuevo</span>
+    </div>
+    <p>Solo la versión fina mono-línea, como <b>acento de esquina o separador</b>. Nunca rellena ni en rojo brillante. Es el toque más discreto del set.</p>
+    <div class="panes">
+      <div class="pane paper">
+        <div class="unit"><svg width="150" height="64" viewBox="0 0 150 64"><g fill="none" stroke="#7F0F1A" stroke-width="2.8" stroke-linecap="round">
+          <path d="M75 20 C 60 20 54 32 54 40 C 54 50 44 52 39 47 C 34 42 39 35 46 38"/>
+          <path d="M75 20 C 90 20 96 32 96 40 C 96 50 106 52 111 47 C 116 42 111 35 104 38"/>
+          <path d="M54 40 Q 75 30 96 40"/>
+          <path d="M62 51 Q 75 45 88 51"/>
+        </g></svg></div>
+        <span class="pl">Wine · acento</span>
+      </div>
+      <div class="pane navy">
+        <div class="unit"><svg width="150" height="64" viewBox="0 0 150 64"><g fill="none" stroke="#D89AA4" stroke-width="2.8" stroke-linecap="round">
+          <path d="M75 20 C 60 20 54 32 54 40 C 54 50 44 52 39 47 C 34 42 39 35 46 38"/>
+          <path d="M75 20 C 90 20 96 32 96 40 C 96 50 106 52 111 47 C 116 42 111 35 104 38"/>
+          <path d="M54 40 Q 75 30 96 40"/>
+          <path d="M62 51 Q 75 45 88 51"/>
+        </g></svg></div>
+        <span class="pl">Wine-soft · acento</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARCO / ESQUINA (derivado del meandro) -->
+  <div class="motif">
+    <div class="motif-head">
+      <h2>Esquina / marco</h2>
+      <span class="tag-cn cn">边框</span>
+      <span class="badge b-have">Derivado del meandro</span>
+    </div>
+    <p>La greca doblada en esquina arma un marco para sellos, diplomas o tarjetas. No es un motivo nuevo: sale del mismo meandro.</p>
+    <div class="panes">
+      <div class="pane paper">
+        <div class="unit"><svg width="120" height="120" viewBox="0 0 120 120"><g fill="none" stroke="#7F0F1A" stroke-width="3" stroke-linejoin="miter">
+          <path d="M14 14 H106 V106 H14 Z"/>
+          <path d="M26 26 H94 V94 H26 Z"/>
+          <path d="M14 38 H38 V14"/>
+          <path d="M106 38 H82 V14"/>
+          <path d="M14 82 H38 V106"/>
+          <path d="M106 82 H82 V106"/>
+        </g></svg></div>
+        <span class="pl">Wine · marco</span>
+      </div>
+      <div class="pane navy">
+        <div class="unit"><svg width="120" height="120" viewBox="0 0 120 120"><g fill="none" stroke="#F2F0EC" stroke-width="3" stroke-linejoin="miter">
+          <path d="M14 14 H106 V106 H14 Z"/>
+          <path d="M26 26 H94 V94 H26 Z"/>
+          <path d="M14 38 H38 V14"/>
+          <path d="M106 38 H82 V14"/>
+          <path d="M14 82 H38 V106"/>
+          <path d="M106 82 H82 V106"/>
+        </g></svg></div>
+        <span class="pl">Cream · marco</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLOR RULE -->
+  <div class="rule">
+    <div class="eyebrow">Regla de color · única para todo el set</div>
+    <h2>Siempre en paleta, nunca el rojo/dorado del original</h2>
+    <p>Todos los motivos van mono-color en uno de estos tres, según el fondo. Line-art fino, tono sobre tono, de apoyo — nunca protagonista.</p>
+    <div class="swatches">
+      <span class="sw"><i style="background:#7F0F1A;"></i> wine · sobre papel</span>
+      <span class="sw"><i style="background:#0F1E3D;"></i> navy · sobre claro</span>
+      <span class="sw"><i style="background:#D89AA4;"></i> wine-soft · sobre oscuro</span>
+      <span class="sw"><i style="background:#F2F0EC;"></i> cream · sobre navy</span>
+    </div>
+    <div class="no"><i style="background:#D8221A;"></i> NO rojo brillante &nbsp;·&nbsp; <i style="background:#E7B23C;"></i> NO dorado &nbsp;— eran del manual viejo, fuera de la marca</div>
+  </div>
+
+  <div class="foot">DTD Cargo · set de apoyo gráfico · junio 2026 · propuesta — pendiente de pasar al Brand Book v4.3</div>
+
+</div>
+</body>
+</html>

@@ -53,6 +53,7 @@
   button{font-family:'Archivo';font-weight:700;font-size:13px;background:var(--navy);color:#fff;border:0;border-radius:8px;padding:10px 15px;cursor:pointer;transition:background .12s}
   button:hover{background:var(--navy-2)}
   button.alt{background:#fff;color:var(--navy);border:1px solid #ccc}
+  button.alt.on{background:var(--navy);color:#fff;border-color:var(--navy)}
   button.alt:hover{background:var(--cream)}
   button.wine{background:var(--wine)}
   button.wine:hover{background:var(--wine-deep)}
@@ -95,7 +96,7 @@
   .qr-wrap{width:360px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
   .qr{width:1080px;height:1080px;position:relative;overflow:hidden;background:var(--navy);transform:scale(.33333);transform-origin:top left;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:54px;padding:90px}
   .qr .wm{font-family:'Archivo Black',sans-serif;font-size:74px;letter-spacing:-.02em}
-  .qr .wm .a{color:var(--wine-soft)} .qr .wm .b{color:#fff}
+  .qr .wm .a{color:#F2F0EC} .qr .wm .b{color:#fff}
   .qr .tile{background:#fff;border-radius:28px;padding:46px;display:flex;align-items:center;justify-content:center}
   .qr .tile .qr-ph{width:560px;height:560px;border:6px dashed #C9CBD4;border-radius:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#9B9B9B;text-align:center}
   .qr .tile .qr-ph .cam{font-size:84px;opacity:.55}
@@ -117,7 +118,7 @@
   .ts .loc{font-size:32px;color:var(--ink-soft);font-weight:600;margin-top:2px}
   .ts .strip{position:absolute;left:0;top:0;bottom:0;width:22px;background:var(--wine)}
   .ts .wm{position:absolute;bottom:64px;right:90px;font-family:'Archivo Black';font-size:34px}
-  .ts .wm .a{color:var(--wine-soft)} .ts .wm .b{color:var(--navy)}
+  .ts .wm .a{color:var(--wine)} .ts .wm .b{color:var(--navy)}
 
   /* ── PROMO / FECHA 1080×1080 → 360 ── */
   .pr-wrap{width:360px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
@@ -131,25 +132,31 @@
   .pr .cta{display:inline-flex;align-items:center;gap:16px;align-self:flex-start;color:var(--cream);font-family:'Archivo';font-weight:700;font-size:40px;z-index:1}
   .pr .cta .dot{width:16px;height:16px;border-radius:50%;background:var(--wine-soft)}
   .pr .wm{position:absolute;top:74px;right:90px;font-family:'Archivo Black';font-size:36px;z-index:1}
-  .pr .wm .a{color:var(--wine-soft)} .pr .wm .b{color:#fff}
+  .pr .wm .a{color:#F2F0EC} .pr .wm .b{color:#fff}
 
   /* ── CARRUSEL 1080×1350 (4:5) → 288×360 (.26667) ── */
   .cr-wrap{width:288px;height:360px;overflow:hidden;border-radius:14px;box-shadow:0 6px 22px rgba(15,30,61,.18)}
-  .cr{width:1080px;height:1350px;position:relative;overflow:hidden;background:var(--navy);transform:scale(.26667);transform-origin:top left}
+  .cr{width:1080px;height:1350px;position:relative;overflow:hidden;background:var(--cr-tone,#0F1E3D);transform:scale(.26667);transform-origin:top left}
   .cr .photo{position:absolute;inset:0 0 470px 0;background:var(--navy-2) center/cover;display:flex;align-items:center;justify-content:center}
   .cr .photo::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(15,30,61,0) 50%,rgba(15,30,61,.6) 100%)}
   .cr .ph{color:var(--ink-dk);text-align:center;display:flex;flex-direction:column;gap:14px;align-items:center}
   .cr .ph .cam{font-size:40px;opacity:.7} .cr .ph .d{font-size:32px;font-weight:600;color:#D8DEEC}
   .cr .num{position:absolute;top:54px;left:54px;width:96px;height:96px;border-radius:50%;background:var(--wine);color:#fff;font-family:'Archivo Black';font-size:48px;display:flex;align-items:center;justify-content:center}
   .cr .kicker{position:absolute;top:70px;right:60px;font-family:'JetBrains Mono';font-weight:700;font-size:28px;letter-spacing:3px;color:var(--cream);text-transform:uppercase}
-  .cr .bar{position:absolute;left:0;right:0;bottom:0;height:470px;background:var(--navy);display:flex;flex-direction:column;justify-content:center;gap:22px;padding:0 80px}
+  .cr .bar{position:absolute;left:0;right:0;bottom:0;height:470px;background:var(--cr-tone,#0F1E3D);display:flex;flex-direction:column;justify-content:center;gap:22px;padding:0 80px}
   .cr .title{font-family:'Archivo Black',sans-serif;font-size:78px;line-height:1.04;color:var(--cream)}
   .cr .body{font-size:40px;line-height:1.32;color:var(--ink-dk)}
-  .cr.cover .bar{background:var(--wine)}
+  .cr.cover .bar{background:var(--cr-tone,#0F1E3D)}
   .cr.cover .photo{inset:0 0 470px 0}
-  .cr .swipe{position:absolute;bottom:40px;right:60px;font-size:34px;color:var(--wine-soft);font-weight:700}
+  .cr .swipe{position:absolute;bottom:40px;right:60px;font-size:34px;color:var(--cream);font-weight:700;opacity:.7}
   .cr .wm{position:absolute;bottom:46px;left:80px;font-family:'Archivo Black';font-size:30px}
-  .cr .wm .a{color:var(--wine-soft)} .cr .wm .b{color:#fff}
+  .cr .wm .a{color:#F2F0EC} .cr .wm .b{color:#F2F0EC}
+  /* Tono claro (white/paper) → texto oscuro */
+  .cr.crlight .title{color:#0F1E3D}
+  .cr.crlight .body{color:#4a4a4a}
+  .cr.crlight .kicker{color:#7F0F1A}
+  .cr.crlight .swipe{color:#7F0F1A;opacity:1}
+  .cr.crlight .wm .a{color:#7F0F1A} .cr.crlight .wm .b{color:#0F1E3D}
   .slide-nav{display:flex;gap:6px;align-items:center;margin-top:12px;justify-content:center}
   .slide-nav button{padding:7px 12px;font-size:12px}
   .slide-nav .ind{font-family:'JetBrains Mono';font-weight:700;font-size:13px;color:var(--ink-soft);min-width:54px;text-align:center}
@@ -211,67 +218,32 @@
     <button class="tab" role="tab" aria-selected="false" onclick="showTab(6,this)">✎ Captions + hashtags</button>
     <button class="tab" role="tab" aria-selected="false" onclick="showTab(7,this)">▤ Medidas · cheat sheet</button>
     <button class="tab" role="tab" aria-selected="false" onclick="showTab(8,this)">⊞ Catálogo WhatsApp</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(9,this)">♪ Reels / video 9:16</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(10,this)">▭ Portadas YT + FB</button>
+    <button class="tab" role="tab" aria-selected="false" onclick="showTab(11,this)">► Portada animada FB</button>
   </div>
 
-  <!-- ░░ POST CUADRADO ░░ -->
+  <!-- ░░ POST CUADRADO · 8 plantillas diseñadas (1080×1080) ░░ -->
   <div class="panel show" id="panel-0">
-    <div class="preview">
-      <div class="sq-wrap"><div class="sq" id="sq">
-        <div class="photo" id="sq-photo"><div class="ph"><div class="cam">📷</div><div class="d">Carga una foto del servicio</div></div></div>
-        <div class="badge" id="sq-badge" style="display:none"></div>
-        <div class="web" id="sq-web">dtdcargo.com/calculadora</div>
-        <div class="bar"><div class="title" id="sq-title">Título del servicio</div><div class="key" id="sq-key">Un dato clave en una línea</div></div>
-      </div></div>
-    </div>
-    <div class="controls">
-      <div class="row">
-        <button class="alt" onclick="document.getElementById('sq-file').click()">📷 Cargar foto</button>
-        <button class="wine" onclick="dl('sq','post', 1080,1080)">⬇ Descargar PNG</button>
+    <div style="flex:1 1 100%;width:100%">
+      <p class="sg-intro"><b>8 plantillas diseñadas 1:1</b> — para el <b>feed</b> de Instagram y Facebook (1080×1080). Mismas plantillas y tonos que Story, en formato cuadrado con el título ajustado. Elegí pieza, editá a la derecha, cargá foto y descargá PNG. La marca viene bloqueada.</p>
+      <div class="sg-picker" id="pq-picker"></div>
+      <div class="sg-editor">
+        <div class="sg-preview"><div class="sg-frame pq"><div class="sg-art pq" id="pq-art"></div></div></div>
+        <div class="sg-form" id="pq-form"></div>
       </div>
-      <input type="file" id="sq-file" accept="image/*" style="display:none" onchange="setPhoto('sq-photo',this)">
-      <div class="fld"><label>Título</label><input type="text" id="sq-title-in" value="Título del servicio" oninput="txt('sq-title',this.value)"></div>
-      <div class="fld"><label>Dato clave</label><input type="text" id="sq-key-in" value="Un dato clave en una línea" oninput="txt('sq-key',this.value)"></div>
-      <div class="fld"><label>Badge (opcional)</label>
-        <div class="row">
-          <select id="sq-badge-tag" onchange="applyTag(this.value)" style="flex:1">
-            <option value="">Etiqueta de contenido (ERP)…</option>
-          </select>
-        </div>
-        <input type="text" id="sq-badge-in" placeholder="o escribe el texto · ej. NUEVO · PRÓXIMAMENTE" oninput="manualBadge(this.value)" style="margin-top:6px">
-        <p class="hint" style="margin-top:5px">Las etiquetas vienen de <b>ERP → Master data → Etiquetas de contenido</b> con su color; al descargar, la pieza queda taggeada en el registro.</p>
-      </div>
-      <div class="fld"><label>Pill de la web (texto)</label><input type="text" id="sq-web-in" value="dtdcargo.com/calculadora" oninput="txt('sq-web',this.value)"></div>
-      <label class="chk"><input type="checkbox" checked onchange="show('sq-web',this.checked)"> Mostrar pill de la web</label>
-      <p class="hint"><b>Tip:</b> fotos nítidas y horizontales — la franja navy de abajo siempre queda limpia para el texto. La marca no va en la imagen (va en la metadata del PNG).</p>
     </div>
   </div>
 
-  <!-- ░░ STORY / ESTADO ░░ -->
+  <!-- ░░ STORY / ESTADO · 8 plantillas diseñadas ░░ -->
   <div class="panel" id="panel-1">
-    <div class="preview">
-      <div class="st-wrap"><div class="st" id="st">
-        <div class="photo" id="st-photo"><div class="ph"><div class="cam">📷</div><div class="d">Carga una foto vertical</div></div></div>
-        <div class="safe top" id="st-safe-top">zona de íconos</div>
-        <div class="safe bot" id="st-safe-bot">zona de respuesta</div>
-        <div class="content">
-          <div class="title" id="st-title">Tu titular acá</div>
-          <div class="key" id="st-key">Un dato o llamado a la acción</div>
-          <div class="web" id="st-web">dtdcargo.com</div>
-        </div>
-      </div></div>
-    </div>
-    <div class="controls">
-      <div class="row">
-        <button class="alt" onclick="document.getElementById('st-file').click()">📷 Cargar foto</button>
-        <button class="wine" onclick="dl('st','story', 1080,1920)">⬇ Descargar PNG</button>
+    <div style="flex:1 1 100%;width:100%">
+      <p class="sg-intro"><b>8 plantillas diseñadas 9:16</b> — sirven igual para <b>IG Story</b>, <b>Estado de WhatsApp</b>, <b>TikTok</b> y <b>YouTube Shorts</b> (mismo formato vertical). Cada una trae su recomendación de uso: subí la foto (arrastrá o clic), editá el texto y descargá el PNG 1080×1920. La marca viene bloqueada.</p>
+      <div class="sg-picker" id="sg-picker"></div>
+      <div class="sg-editor">
+        <div class="sg-preview"><div class="sg-frame"><div class="sg-art" id="sg-art"></div></div></div>
+        <div class="sg-form" id="sg-form"></div>
       </div>
-      <input type="file" id="st-file" accept="image/*" style="display:none" onchange="setPhoto('st-photo',this)">
-      <div class="fld"><label>Titular</label><input type="text" id="st-title-in" value="Tu titular acá" oninput="txt('st-title',this.value)"></div>
-      <div class="fld"><label>Dato / CTA</label><input type="text" id="st-key-in" value="Un dato o llamado a la acción" oninput="txt('st-key',this.value)"></div>
-      <div class="fld"><label>Pill de la web (texto)</label><input type="text" id="st-web-in" value="dtdcargo.com" oninput="txt('st-web',this.value)"></div>
-      <label class="chk"><input type="checkbox" checked onchange="show('st-web',this.checked)"> Mostrar pill de la web</label>
-      <label class="chk"><input type="checkbox" id="st-safe-chk" checked onchange="safeGuides(this.checked)"> Ver guías de área segura (no salen en el PNG)</label>
-      <p class="hint"><b>Áreas seguras:</b> dejá los íconos de IG/WhatsApp/FB fuera de las zonas punteadas. Sirve para Story de Instagram/Facebook y Estado de WhatsApp.</p>
     </div>
   </div>
 
@@ -419,6 +391,14 @@
       </div>
       <input type="file" id="cr-file" accept="image/*" style="display:none" onchange="crPhoto(this)">
       <label class="chk"><input type="checkbox" id="cr-cover-chk" onchange="crSet('cover',this.checked)"> Lámina de portada (barra wine)</label>
+      <div class="fld"><label>Tono del carrusel</label>
+        <div class="row" id="cr-tone" style="gap:8px">
+          <button type="button" class="alt on" data-tone="navy" onclick="crSetTone('navy')" style="flex:1">Navy</button>
+          <button type="button" class="alt" data-tone="wine" onclick="crSetTone('wine')" style="flex:1">Wine</button>
+          <button type="button" class="alt" data-tone="jade" onclick="crSetTone('jade')" style="flex:1">Jade</button>
+          <button type="button" class="alt" data-tone="white" onclick="crSetTone('white')" style="flex:1">White</button>
+        </div>
+      </div>
       <div class="fld"><label>Kicker</label><input type="text" id="cr-kicker-in" oninput="crSet('kicker',this.value)"></div>
       <div class="fld"><label>Título</label><input type="text" id="cr-title-in" oninput="crSet('title',this.value)"></div>
       <div class="fld"><label>Cuerpo</label><textarea id="cr-body-in" oninput="crSet('body',this.value)"></textarea></div>
@@ -441,6 +421,30 @@
     <div style="flex:1 1 100%;display:flex;flex-direction:column;gap:10px;">
       <p class="hint"><b>Catálogo de WhatsApp Business</b> · 8 servicios + portada, 1080×1080. Subes la foto real de cada servicio y descargas el PNG listo para el catálogo. Las descargas también quedan en el registro de piezas del ERP.</p>
       <iframe id="cat-frame" title="Generador Catálogo WhatsApp" style="width:100%;height:1700px;border:1px solid var(--line);border-radius:10px;background:#fff;"></iframe>
+    </div>
+  </div>
+
+  <!-- ░░ REELS / VIDEO (embebido) ░░ -->
+  <div class="panel" id="panel-9">
+    <div style="flex:1 1 100%;display:flex;flex-direction:column;gap:10px;">
+      <p class="hint"><b>Reels &amp; logo sonoro</b> · plantillas verticales 9:16 animadas + firma de audio de marca. Elegí, personalizá y grabá el video. Sirve para Reels de IG/FB, TikTok y Shorts.</p>
+      <iframe id="reels-frame" title="Reels y Logo Sonoro" style="width:100%;height:1700px;border:1px solid var(--line);border-radius:10px;background:#fff;"></iframe>
+    </div>
+  </div>
+
+  <!-- ░░ PORTADAS YT + FB (embebido) ░░ -->
+  <div class="panel" id="panel-10">
+    <div style="flex:1 1 100%;display:flex;flex-direction:column;gap:10px;">
+      <p class="hint"><b>Portadas de canal</b> · YouTube (2560×1440) y Facebook (851×315), 3 direcciones con áreas seguras y descarga PNG a tamaño real.</p>
+      <iframe id="port-frame" title="Portadas Redes" style="width:100%;height:1700px;border:1px solid var(--line);border-radius:10px;background:#fff;"></iframe>
+    </div>
+  </div>
+
+  <!-- ░░ PORTADA ANIMADA FB (embebido) ░░ -->
+  <div class="panel" id="panel-11">
+    <div style="flex:1 1 100%;display:flex;flex-direction:column;gap:10px;">
+      <p class="hint"><b>Portada-video de Facebook</b> · 1250×463 en loop (ruta China → Venezuela). Grabá el MP4 nativo desde la pieza.</p>
+      <iframe id="anim-frame" title="Portada Animada FB" style="width:100%;height:760px;border:1px solid var(--line);border-radius:10px;background:var(--navy);"></iframe>
     </div>
   </div>
 </div>
@@ -470,8 +474,11 @@ window.addEventListener('load',()=>{
   try{ const p=new URLSearchParams(location.search).get('pz_tag'); if(p && ctTypes().some(t=>t.id===p)){ s.value=p; applyTag(p); } }catch(e){}
 });
 function setPhoto(id,input){ const f=input.files[0]; if(!f)return; const url=URL.createObjectURL(f); const p=document.getElementById(id); p.style.backgroundImage='url('+url+')'; const ph=p.querySelector('.ph'); if(ph)ph.style.display='none'; }
-function showTab(i,btn){ document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false')); btn.setAttribute('aria-selected','true'); document.querySelectorAll('.panel').forEach((p,n)=>p.classList.toggle('show',n===i)); if(i===2) buildLink(); if(i===5) renderCr(); if(i===6) renderCaps(); if(i===7) renderMs(); if(i===8) loadCat(); }
+function showTab(i,btn){ document.querySelectorAll('.tab').forEach(t=>t.setAttribute('aria-selected','false')); btn.setAttribute('aria-selected','true'); document.querySelectorAll('.panel').forEach((p,n)=>p.classList.toggle('show',n===i)); if(i===2) buildLink(); if(i===5) renderCr(); if(i===6) renderCaps(); if(i===7) renderMs(); if(i===8) loadCat(); if(i===9) loadReels(); if(i===10) loadPort(); if(i===11) loadAnim(); }
 function loadCat(){ const f=document.getElementById('cat-frame'); if(f && !f.src) f.src='Generador Catálogo WhatsApp · DTD-Cargo.html?embed=1'; }
+function loadReels(){ const f=document.getElementById('reels-frame'); if(f && !f.src) f.src='Reels y Logo Sonoro · DTD-Cargo.html?embed=1'; }
+function loadPort(){ const f=document.getElementById('port-frame'); if(f && !f.src) f.src='Portadas Redes · DTD-Cargo.html?embed=1'; }
+function loadAnim(){ const f=document.getElementById('anim-frame'); if(f && !f.src) f.src='Portada Animada FB · DTD-Cargo.html?embed=1'; }
 function safeGuides(on){ document.getElementById('st-safe-top').style.display=on?'flex':'none'; document.getElementById('st-safe-bot').style.display=on?'flex':'none'; }
 
 // ── QR multi-destino (WhatsApp · WeChat · Google reseña) ──
@@ -587,9 +594,14 @@ const crSlides=[
   {cover:false,kicker:'CIERRE', title:'Llegó a tu puerta', body:'Escríbenos hoy · dtdcargo.com/calculadora', photo:''},
 ];
 let crIdx=0;
+let crTone='navy';
+const CR_TONE={navy:'#0F1E3D',wine:'#7F0F1A',jade:'#1F5C56',white:'#F2F0EC'};
+function crSetTone(t){ crTone=t; const box=document.getElementById('cr-tone'); if(box) box.querySelectorAll('.alt').forEach(b=>b.classList.toggle('on', b.getAttribute('data-tone')===t)); renderCr(); }
 function renderCr(){
   const s=crSlides[crIdx], el=document.getElementById('cr');
   el.classList.toggle('cover', !!s.cover);
+  el.style.setProperty('--cr-tone', CR_TONE[crTone]||'#0F1E3D');
+  el.classList.toggle('crlight', crTone==='white');
   document.getElementById('cr-num').textContent=crIdx+1;
   document.getElementById('cr-kicker').textContent=s.kicker;
   document.getElementById('cr-title').textContent=s.title;
@@ -647,12 +659,12 @@ const MEDIDAS=[
 ];
 // ── Plataforma destino · filtra formatos y medidas (paso 1) ──
 const PLAT_TABS={
-  'all':[0,1,2,3,4,5,6,7,8],
-  'Instagram':[0,1,2,3,4,5,6,7],
-  'Facebook':[0,1,2,3,4,5,6,7],
+  'all':[0,1,2,3,4,5,6,7,8,9,10,11],
+  'Instagram':[0,1,2,3,4,5,6,7,9],
+  'Facebook':[0,1,2,3,4,5,6,7,9,10,11],
   'WhatsApp Business':[1,2,3,7,8],
-  'YouTube':[2,7],
-  'TikTok':[1,2,6,7],
+  'YouTube':[2,7,9,10],
+  'TikTok':[1,2,6,7,9],
 };
 const PLAT_HINT={
   'all':'Todos los formatos disponibles. Elige una red para ver solo lo que aplica.',
@@ -773,6 +785,433 @@ window.addEventListener('load',()=>{
   if(tb===4){ set('pr-eg-in',P.get('pz_eg'),'pr-eg'); set('pr-title-in',P.get('pz_t'),'pr-title'); set('pr-big-in',P.get('pz_dd'),'pr-big'); set('pr-sm-in',P.get('pz_mm'),'pr-sm'); set('pr-cta-in',P.get('pz_cta'),'pr-cta'); }
 });
 window.addEventListener('load',()=>{ setTimeout(buildLink,300); });
+</script>
+
+<!-- ░░ Galería Story · 8 plantillas diseñadas (aislada, prefijo sg-) ░░ -->
+<style>
+  #panel-1 .sg-intro{font-size:13.5px;color:#5b5b5b;line-height:1.55;max-width:84ch;margin:0 0 14px}
+  #panel-1 .sg-intro b{color:var(--navy)}
+  #panel-1 .sg-controls{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:0 0 24px;padding:13px 18px;border:1px solid #dcdad5;border-radius:12px;background:#fff;font-size:13px}
+  #panel-1 .sg-controls label{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-weight:700;color:#444;text-transform:none;letter-spacing:0}
+  #panel-1 .sg-controls input{width:16px;height:16px;accent-color:var(--wine);cursor:pointer}
+  #panel-1 .sg-controls .note{color:#777;font-size:12px}
+  #panel-1 .sg-controls .note b{color:var(--navy)}
+  .sg-picker{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 6px}
+  .sg-chip{appearance:none;border:1px solid #d4d2cd;background:#fff;border-radius:999px;padding:8px 14px;font:700 12px/1 'Nunito Sans',sans-serif;color:var(--navy);cursor:pointer}
+  .sg-chip[aria-selected="true"]{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .sg-editor{display:flex;gap:30px;flex-wrap:wrap;align-items:flex-start;margin-top:16px}
+  .sg-preview{flex:0 0 auto}
+  .sg-form{flex:1 1 320px;min-width:300px;display:flex;flex-direction:column;gap:12px}
+  .sg-fld{display:flex;flex-direction:column;gap:5px}
+  .sg-fld>label{font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.04em;text-transform:uppercase;color:var(--navy)}
+  .sg-fld input,.sg-fld textarea{border:1px solid #d4d2cd;border-radius:8px;padding:9px 11px;font:600 13px/1.35 'Nunito Sans',sans-serif;color:var(--navy);background:#fff;resize:vertical;width:100%}
+  .sg-seg{display:flex;gap:6px}
+  .sg-seg button{flex:1;border:1px solid #d4d2cd;background:#fff;border-radius:8px;padding:8px;font:700 12px/1 'Nunito Sans',sans-serif;cursor:pointer;color:var(--navy)}
+  .sg-seg button[aria-pressed="true"]{background:var(--wine);color:#fff;border-color:var(--wine)}
+  .sg-body{flex:1;display:flex;flex-direction:column;justify-content:flex-start}
+  .sg-row{display:flex;gap:8px;flex-wrap:wrap}
+  .sg-actbtn{appearance:none;border:0;border-radius:8px;padding:11px 16px;font:800 13px/1 'Nunito Sans',sans-serif;cursor:pointer}
+  .sg-actbtn.p{background:var(--wine);color:#fff}
+  .sg-actbtn.s{background:#fff;color:var(--navy);border:1px solid #d4d2cd}
+  .sg-frame{width:300px;height:533px;border-radius:16px;overflow:hidden;box-shadow:0 14px 34px -14px rgba(15,30,61,.45);background:#000;position:relative}
+  .sg-frame.pq{height:300px}
+  .sg-frame.c45{height:375px}
+  .sg-art{width:1080px;height:1920px;transform:scale(0.277778);transform-origin:top left;position:relative;overflow:hidden;font-family:'Nunito Sans',sans-serif}
+  .sg-art.pq{height:1080px}
+  .sg-art.c45{height:1350px}
+  .sg-meta{margin-top:12px}
+  .sg-meta .sg-role{font:700 10px/1.3 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--wine)}
+  .sg-meta .sg-nm{font-family:'Sora',sans-serif;font-weight:700;font-size:15px;margin:3px 0 8px;color:var(--navy)}
+  .sg-dl{appearance:none;border:0;border-radius:8px;padding:9px 14px;font:700 12px/1 'Nunito Sans',sans-serif;cursor:pointer;background:var(--wine);color:#fff}
+  .sg-dl:hover{background:#5E0A12}
+  .sg-hint{font-size:11px;color:#999;margin-left:8px}
+  .sg-art .sg-pad{position:absolute;inset:0;padding:88px 80px 220px;display:flex;flex-direction:column}
+  .sg-art .sg-vig{position:absolute;inset:0;pointer-events:none}
+  .sg-art .sg-motif{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .sg-art .sg-lock{display:flex;align-items:center;gap:20px}
+  .sg-art .sg-lock img{height:78px;width:auto;display:block}
+  .sg-art .sg-wm{font-family:'Archivo Black',sans-serif;font-size:46px;letter-spacing:-0.02em;line-height:1}
+  .sg-art .sg-foot{position:absolute;left:0;right:0;bottom:64px;text-align:center;font-family:'Archivo Black',sans-serif;font-size:30px;letter-spacing:.01em}
+  .sg-art .sg-foot .ig{display:block;font:700 22px/1 'JetBrains Mono',monospace;letter-spacing:.12em;margin-top:14px;opacity:.7}
+  .sg-art .sg-photo{position:relative;overflow:hidden;background:rgba(0,0,0,.12)}
+  .sg-art .sg-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+  .sg-art .sg-photo .sg-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:rgba(255,255,255,.7);font:700 26px/1.3 'Nunito Sans';text-align:center;padding:40px;cursor:pointer}
+  .sg-art .sg-photo.dark .sg-ph{color:rgba(15,30,61,.45)}
+  .sg-art .sg-edit{outline:none}
+  .sg-art .sg-edit:focus{outline:2px dashed rgba(127,15,26,.5);outline-offset:6px;border-radius:4px}
+  .sg-art .sg-eb{font:700 19px/1 'JetBrains Mono',monospace;letter-spacing:.24em;text-transform:uppercase}
+  .sg-art .sg-ttl{font-family:'Sora',sans-serif;font-weight:800;letter-spacing:-0.02em;line-height:1.04}
+  .sg-art .sg-cn{font-family:'Noto Sans SC',sans-serif}
+</style>
+<script>
+(function(){
+  const REV='assets/dtdcargo-isologo-reverse.png', PRI='assets/dtdcargo-isologo-primary.png', DRG='recursos-graficos/dragon-duo-navy.png';
+  const meander=(s,w)=>{const v=`<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='${s}' stroke-width='${w||4}'/></svg>`;return `url("data:image/svg+xml,${encodeURIComponent(v)}")`;};
+  const wave=(s)=>{const v=`<svg xmlns='http://www.w3.org/2000/svg' width='48' height='26' viewBox='0 0 48 26'><g fill='none' stroke='${s}' stroke-width='2.4'><path d='M0 26 A24 24 0 0 1 48 26'/><path d='M9 26 A15 15 0 0 1 39 26'/><path d='M18 26 A6 6 0 0 1 30 26'/></g></svg>`;return `url("data:image/svg+xml,${encodeURIComponent(v)}")`;};
+  const cornerSVG=(c)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72"><g fill="none" stroke="${c}" stroke-width="3" stroke-linejoin="miter"><path d="M4 72 V4 H72"/><path d="M13 72 V13 H72"/><path d="M30 52 V30 H52"/><path d="M30 42 V42 H42 V52"/></g></svg>`;
+  const cloudSVG=(c)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 64"><g fill="none" stroke="${c}" stroke-width="2.8" stroke-linecap="round"><path d="M75 20 C 60 20 54 32 54 40 C 54 50 44 52 39 47 C 34 42 39 35 46 38"/><path d="M75 20 C 90 20 96 32 96 40 C 96 50 106 52 111 47 C 116 42 111 35 104 38"/><path d="M54 40 Q 75 30 96 40"/><path d="M62 51 Q 75 45 88 51"/></g></svg>`;
+  const lockup=(d)=>`<div class="sg-lock"><img src="${d?REV:PRI}" alt="DTD"/><span class="sg-wm"><span style="color:${d?'#F2F0EC':'#7F0F1A'}">DTD</span> <span style="color:${d?'#F2F0EC':'#0F1E3D'}">Cargo</span></span></div>`;
+  const footer=(d)=>{const c=d?'#F2F0EC':'#0F1E3D';return `<div class="sg-foot" style="color:${c}"><span class="url sg-edit" contenteditable="true">dtdcargo.com</span><span class="ig sg-edit" contenteditable="true" style="color:${c}">@doortudoor_</span></div>`;};
+  const vignette=(d)=>d?`radial-gradient(125% 95% at 50% 38%, rgba(0,0,0,0) 42%, rgba(0,0,0,.34) 100%)`:`radial-gradient(125% 95% at 50% 38%, rgba(15,30,61,0) 46%, rgba(15,30,61,.12) 100%)`;
+  const pz=(id,d,label,style)=>`<div class="sg-photo${d?'':' dark'}" data-photo="${id}" style="${style}"><img alt=""/><div class="sg-ph"><svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>${label}</span></div></div>`;
+
+  const T9=[
+   {id:'producto',role:'01 · Producto + precio',name:'Producto + precio',dark:true,bg:'#0F1E3D',build(){return `
+     <div class="sg-motif" data-pat="wave" data-stroke="%23F2F0EC" data-op=".06" data-size="150px 81px" data-pos="0 -10px"></div>
+     ${pz('producto',true,'Soltá la foto del producto','position:absolute;left:0;right:0;bottom:0;height:980px;')}
+     <div style="position:absolute;left:0;right:0;bottom:0;height:1010px;background:linear-gradient(180deg, #0F1E3D 0%, rgba(15,30,61,0) 26%, rgba(15,30,61,0) 60%, rgba(15,30,61,.92) 100%);pointer-events:none;"></div>
+     <div class="sg-vig" style="background:${vignette(true)}"></div>
+     <div class="sg-pad">${lockup(true)}
+       <div style="margin-top:54px;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#C2747F;">Nuevo ingreso</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#F2F0EC;font-size:96px;margin-top:18px;max-width:14ch;">Power Station 6000W</div>
+         <div class="sg-edit" contenteditable="true" style="color:rgba(242,240,236,.78);font-size:36px;margin-top:18px;font-weight:600;">Generador portátil · stock en China</div>
+       </div>
+       <div style="margin-top:auto;display:flex;align-items:center;gap:24px;">
+         <div style="background:#7F0F1A;color:#fff;border-radius:999px;padding:22px 40px;font-family:'Archivo Black';font-size:54px;" class="sg-edit" contenteditable="true">Desde&nbsp;$2.800</div>
+       </div>
+     </div>${footer(true)}`;}},
+
+   {id:'promo',role:'02 · Promo / oferta',name:'Promo / oferta',dark:true,bg:'#7F0F1A',build(){return `
+     <div class="sg-motif" data-pat="meander" data-stroke="%23F2F0EC" data-op=".06" data-size="120px 120px"></div>
+     <div class="sg-vig" style="background:${vignette(true)}"></div>
+     ${pz('promo',true,'Foto del servicio (opcional)','position:absolute;left:0;right:0;bottom:0;height:720px;clip-path:polygon(0 18%,100% 0,100% 100%,0 100%);')}
+     <div style="position:absolute;left:0;right:0;bottom:0;height:720px;background:linear-gradient(180deg, rgba(127,15,26,0) 0%, rgba(94,10,18,.55) 100%);pointer-events:none;"></div>
+     <div class="sg-pad">${lockup(true)}
+       <div style="margin-top:70px;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#F2DEC2;">Oferta DDP</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#fff;font-size:280px;line-height:.86;margin-top:10px;">−15%</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#F2F0EC;font-size:64px;margin-top:24px;max-width:16ch;font-weight:700;">Flete marítimo China → Venezuela</div>
+         <div class="sg-edit" contenteditable="true" style="color:rgba(242,240,236,.82);font-size:36px;margin-top:22px;font-weight:700;">Cotiza antes del 30/06</div>
+       </div>
+     </div>${footer(true)}`;}},
+
+   {id:'noticia',role:'03 · Noticia / anuncio',name:'Noticia (para escribir)',dark:false,bg:'#FBFAF7',build(){return `
+     <div class="sg-motif corners" data-corners="1" data-top="250"></div>
+     <div class="sg-vig" style="background:${vignette(false)}"></div>
+     <div class="sg-pad" style="padding:120px 96px 220px;">${lockup(false)}
+       <div style="margin-top:150px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#7F0F1A;">Aviso DTD</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#0F1E3D;font-size:82px;margin-top:28px;max-width:640px;">Nueva ruta aérea Yiwu → Caracas en 7 días</div>
+         <div class="sg-edit" contenteditable="true" style="color:#4a4a4a;font-size:38px;line-height:1.5;margin-top:34px;max-width:560px;font-weight:500;">Courier aéreo para muestras y carga urgente. Escríbenos para reservar espacio.</div>
+       </div>
+     </div>${footer(false)}`;}},
+
+   {id:'frase',role:'04 · Gris + olas/nube',name:'Frase de marca',dark:false,bg:'#E8E6E2',build(){return `
+     <div class="sg-motif" data-pat="wave" data-stroke="%237F0F1A" data-op=".12" data-size="130px 70px" style="top:auto;bottom:0;height:320px;"></div>
+     <div style="position:absolute;left:0;right:0;bottom:0;height:320px;background:linear-gradient(180deg, rgba(232,230,226,0) 0%, rgba(232,230,226,.65) 70%, rgba(232,230,226,.9) 100%);pointer-events:none;"></div>
+     <div style="position:absolute;top:96px;right:64px;width:300px;opacity:.85;">${cloudSVG('#7F0F1A')}</div>
+     <div class="sg-vig" style="background:${vignette(false)}"></div>
+     <div class="sg-pad">${lockup(false)}
+       <div style="margin:auto 0;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#7F0F1A;">DTD Cargo</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#0F1E3D;font-size:104px;margin-top:26px;max-width:13ch;">Importar de China, simple y seguro.</div>
+         <div class="sg-edit" contenteditable="true" style="color:#4a4a4a;font-size:38px;line-height:1.5;margin-top:30px;max-width:24ch;font-weight:600;">Compramos, inspeccionamos y llevamos tu carga hasta tu puerta.</div>
+       </div>
+     </div>${footer(false)}`;}},
+
+   {id:'testimonio',role:'05 · Testimonio / reseña',name:'Testimonio',dark:true,bg:'#1F5C56',build(){return `
+     <div class="sg-motif clouds" data-clouds="1"></div>
+     <div class="sg-vig" style="background:${vignette(true)}"></div>
+     <div class="sg-pad" style="align-items:flex-start;">${lockup(true)}
+       <div style="font-family:'Archivo Black';font-size:300px;line-height:.6;color:rgba(242,240,236,.22);margin-top:70px;">&ldquo;</div>
+       <div class="sg-ttl sg-edit" contenteditable="true" style="color:#fff;font-size:82px;line-height:1.12;margin-top:-30px;max-width:18ch;font-weight:800;">Llegó todo perfecto y antes de lo prometido.</div>
+       <div style="margin-top:auto;display:flex;align-items:center;gap:32px;">
+         ${pz('testimonio',true,'Foto','position:relative;width:170px;height:170px;border-radius:50%;flex:none;')}
+         <div>
+           <div class="sg-edit" contenteditable="true" style="color:#fff;font-size:42px;font-weight:800;">Cliente DTD</div>
+           <div class="sg-edit" contenteditable="true" style="color:rgba(242,240,236,.75);font-size:32px;margin-top:6px;font-weight:600;">Valencia, Venezuela</div>
+         </div>
+       </div>
+     </div>${footer(true)}`;}},
+
+   {id:'tip',role:'06 · Tip / educación',name:'Tip DTD',dark:true,bg:'#5E0A12',build(){return `
+     <div class="sg-motif" data-pat="meander" data-stroke="%23C2747F" data-op=".06" data-size="130px 130px"></div>
+     <div class="sg-vig" style="background:${vignette(true)}"></div>
+     <div style="position:absolute;inset:70px;border:4px solid rgba(242,240,236,.35);border-radius:18px;pointer-events:none;"></div>
+     <div class="sg-pad" style="padding:140px 120px 220px;">${lockup(true)}
+       <div style="margin-top:80px;">
+         <div style="display:inline-block;background:#B8893A;color:#3a2a10;border-radius:999px;padding:16px 34px;font-family:'Archivo Black';font-size:34px;letter-spacing:.04em;" class="sg-edit" contenteditable="true">TIP DTD · 01</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#fff;font-size:88px;line-height:1.1;margin-top:48px;max-width:18ch;">Consolida varias compras en un solo contenedor y baja el flete por kilo.</div>
+       </div>
+       <div class="sg-edit" contenteditable="true" style="margin-top:auto;color:rgba(242,240,236,.8);font-size:36px;font-weight:700;"><span class="sg-cn">省钱</span> · Importar inteligente</div>
+     </div>${footer(true)}`;}},
+
+   {id:'llego',role:'07 · Llegó tu carga',name:'Llegó tu carga',dark:true,bg:'#0F1E3D',build(){return `
+     <div class="sg-motif" style="opacity:.9;"><img src="${DRG}" style="position:absolute;right:-120px;bottom:120px;width:900px;opacity:.16;" alt=""/></div>
+     <div class="sg-vig" style="background:${vignette(true)}"></div>
+     ${pz('llego',true,'Foto del contenedor / bodega','position:absolute;left:80px;right:80px;top:760px;height:640px;border-radius:24px;')}
+     <div class="sg-pad">${lockup(true)}
+       <div style="margin-top:70px;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#C2747F;">Aviso de operación</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#fff;font-size:118px;margin-top:18px;">¡Llegó tu carga!</div>
+         <div style="margin-top:26px;display:flex;align-items:center;gap:18px;">
+           <span style="font:700 34px/1 'JetBrains Mono';color:#F2F0EC;background:rgba(242,240,236,.12);padding:14px 24px;border-radius:10px;" class="sg-edit" contenteditable="true">DTD-5532</span>
+           <span class="sg-edit" contenteditable="true" style="color:rgba(242,240,236,.8);font-size:34px;font-weight:700;">Lista para retiro</span>
+         </div>
+       </div>
+     </div>${footer(true)}`;}},
+
+   {id:'libre',role:'08 · Foto libre',name:'Foto libre',dark:true,bg:'#0F1E3D',build(){return `
+     ${pz('libre',true,'Soltá tu foto (pantalla completa)','position:absolute;inset:0;')}
+     <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(15,30,61,.55) 0%, rgba(15,30,61,0) 28%, rgba(15,30,61,0) 60%, rgba(15,30,61,.78) 100%);pointer-events:none;"></div>
+     <div class="sg-motif corners" data-corners="cream" data-top="220"></div>
+     <div class="sg-pad">${lockup(true)}
+       <div class="sg-edit" contenteditable="true" style="margin-top:auto;margin-bottom:40px;color:#fff;font-family:'Sora';font-weight:800;font-size:72px;letter-spacing:-.02em;max-width:16ch;">Con Confianza, de China a tu puerta.</div>
+     </div>${footer(true)}`;}},
+  ];
+
+  const Tsq=[
+   {id:'producto',role:'01 · Producto + precio',name:'Producto + precio',dark:true,bg:'#0F1E3D',build(){return `
+     <div class="sg-motif" data-pat="wave" data-stroke="%23F2F0EC" data-op=".06" data-size="150px 81px" data-pos="0 -10px"></div>
+     ${pz('producto-sq',true,'Soltá la foto del producto','position:absolute;left:0;right:0;bottom:0;height:560px;')}
+     <div style="position:absolute;left:0;right:0;bottom:0;height:600px;background:linear-gradient(180deg, #0F1E3D 0%, rgba(15,30,61,0) 30%, rgba(15,30,61,0) 58%, rgba(15,30,61,.94) 100%);pointer-events:none;"></div>
+     <div class="sg-vig"></div>
+     <div class="sg-pad" style="padding:72px 70px 150px;">${lockup(true)}
+       <div style="margin-top:30px;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#C2747F;">Nuevo ingreso</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#F2F0EC;font-size:74px;margin-top:14px;max-width:14ch;">Power Station 6000W</div>
+         <div class="sg-edit" contenteditable="true" style="color:rgba(242,240,236,.78);font-size:30px;margin-top:14px;font-weight:600;">Generador portátil · stock en China</div>
+       </div>
+       <div style="margin-top:auto;"><div style="display:inline-block;background:#7F0F1A;color:#fff;border-radius:999px;padding:16px 34px;font-family:'Archivo Black';font-size:46px;" class="sg-edit" contenteditable="true">Desde&nbsp;$2.800</div></div>
+     </div>${footer(true)}`;}},
+
+   {id:'promo',role:'02 · Promo / oferta',name:'Promo / oferta',dark:true,bg:'#7F0F1A',build(){return `
+     <div class="sg-motif" data-pat="meander" data-stroke="%23F2F0EC" data-op=".06" data-size="120px 120px"></div>
+     <div class="sg-vig"></div>
+     ${pz('promo-sq',true,'Foto del servicio (opcional)','position:absolute;left:0;right:0;bottom:0;height:440px;clip-path:polygon(0 22%,100% 0,100% 100%,0 100%);')}
+     <div style="position:absolute;left:0;right:0;bottom:0;height:440px;background:linear-gradient(180deg, rgba(127,15,26,0) 0%, rgba(94,10,18,.55) 100%);pointer-events:none;"></div>
+     <div class="sg-pad" style="padding:72px 70px 150px;">${lockup(true)}
+       <div style="margin-top:34px;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#F2DEC2;">Oferta DDP</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#fff;font-size:190px;line-height:.86;margin-top:6px;">−15%</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#F2F0EC;font-size:50px;margin-top:18px;max-width:16ch;font-weight:700;">Flete marítimo China → Venezuela</div>
+         <div class="sg-edit" contenteditable="true" style="color:rgba(242,240,236,.82);font-size:30px;margin-top:16px;font-weight:700;">Cotiza antes del 30/06</div>
+       </div>
+     </div>${footer(true)}`;}},
+
+   {id:'noticia',role:'03 · Noticia / anuncio',name:'Noticia (para escribir)',dark:false,bg:'#FBFAF7',build(){return `
+     <div class="sg-motif corners" data-corners="1" data-top="180"></div>
+     <div class="sg-vig"></div>
+     <div class="sg-pad" style="padding:96px 84px 150px;">${lockup(false)}
+       <div style="margin-top:60px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#7F0F1A;">Aviso DTD</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#0F1E3D;font-size:62px;margin-top:24px;max-width:600px;">Nueva ruta aérea Yiwu → Caracas en 7 días</div>
+         <div class="sg-edit" contenteditable="true" style="color:#4a4a4a;font-size:30px;line-height:1.5;margin-top:26px;max-width:520px;font-weight:500;">Courier aéreo para muestras y carga urgente. Escríbenos para reservar espacio.</div>
+       </div>
+     </div>${footer(false)}`;}},
+
+   {id:'frase',role:'04 · Gris + olas/nube',name:'Frase de marca',dark:false,bg:'#E8E6E2',build(){return `
+     <div class="sg-motif" data-pat="wave" data-stroke="%237F0F1A" data-op=".12" data-size="130px 70px" style="top:auto;bottom:0;height:240px;"></div>
+     <div style="position:absolute;left:0;right:0;bottom:0;height:240px;background:linear-gradient(180deg, rgba(232,230,226,0) 0%, rgba(232,230,226,.65) 70%, rgba(232,230,226,.9) 100%);pointer-events:none;"></div>
+     <div style="position:absolute;top:80px;right:56px;width:240px;opacity:.85;">${cloudSVG('#7F0F1A')}</div>
+     <div class="sg-vig"></div>
+     <div class="sg-pad" style="padding:72px 70px 150px;">${lockup(false)}
+       <div style="margin:auto 0;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#7F0F1A;">DTD Cargo</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#0F1E3D;font-size:78px;margin-top:22px;max-width:13ch;">Importar de China, simple y seguro.</div>
+         <div class="sg-edit" contenteditable="true" style="color:#4a4a4a;font-size:30px;line-height:1.5;margin-top:24px;max-width:24ch;font-weight:600;">Compramos, inspeccionamos y llevamos tu carga hasta tu puerta.</div>
+       </div>
+     </div>${footer(false)}`;}},
+
+   {id:'testimonio',role:'05 · Testimonio / reseña',name:'Testimonio',dark:true,bg:'#1F5C56',build(){return `
+     <div class="sg-motif clouds"></div>
+     <div class="sg-vig"></div>
+     <div class="sg-pad" style="align-items:flex-start;padding:72px 70px 150px;">${lockup(true)}
+       <div style="font-family:'Archivo Black';font-size:200px;line-height:.6;color:rgba(242,240,236,.22);margin-top:40px;">&ldquo;</div>
+       <div class="sg-ttl sg-edit" contenteditable="true" style="color:#fff;font-size:62px;line-height:1.12;margin-top:-20px;max-width:18ch;font-weight:800;">Llegó todo perfecto y antes de lo prometido.</div>
+       <div style="margin-top:auto;display:flex;align-items:center;gap:28px;">
+         ${pz('testimonio-sq',true,'Foto','position:relative;width:150px;height:150px;border-radius:50%;flex:none;')}
+         <div>
+           <div class="sg-edit" contenteditable="true" style="color:#fff;font-size:36px;font-weight:800;">Cliente DTD</div>
+           <div class="sg-edit" contenteditable="true" style="color:rgba(242,240,236,.75);font-size:28px;margin-top:4px;font-weight:600;">Valencia, Venezuela</div>
+         </div>
+       </div>
+     </div>${footer(true)}`;}},
+
+   {id:'tip',role:'06 · Tip / educación',name:'Tip DTD',dark:true,bg:'#5E0A12',build(){return `
+     <div class="sg-motif" data-pat="meander" data-stroke="%23C2747F" data-op=".06" data-size="130px 130px"></div>
+     <div class="sg-vig"></div>
+     <div style="position:absolute;inset:60px;border:4px solid rgba(242,240,236,.35);border-radius:18px;pointer-events:none;"></div>
+     <div class="sg-pad" style="padding:110px 96px 150px;">${lockup(true)}
+       <div style="margin-top:46px;">
+         <div style="display:inline-block;background:#B8893A;color:#3a2a10;border-radius:999px;padding:14px 30px;font-family:'Archivo Black';font-size:30px;letter-spacing:.04em;" class="sg-edit" contenteditable="true">TIP DTD · 01</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#fff;font-size:64px;line-height:1.1;margin-top:38px;max-width:18ch;">Consolida varias compras en un solo contenedor y baja el flete por kilo.</div>
+       </div>
+       <div class="sg-edit" contenteditable="true" style="margin-top:auto;color:rgba(242,240,236,.8);font-size:30px;font-weight:700;"><span class="sg-cn">省钱</span> · Importar inteligente</div>
+     </div>${footer(true)}`;}},
+
+   {id:'llego',role:'07 · Llegó tu carga',name:'Llegó tu carga',dark:true,bg:'#0F1E3D',build(){return `
+     <div class="sg-motif" style="opacity:.9;"><img src="${DRG}" style="position:absolute;right:-100px;bottom:80px;width:680px;opacity:.16;" alt=""/></div>
+     <div class="sg-vig"></div>
+     ${pz('llego-sq',true,'Foto del contenedor / bodega','position:absolute;left:70px;right:70px;bottom:150px;height:360px;border-radius:24px;')}
+     <div class="sg-pad" style="padding:72px 70px 150px;">${lockup(true)}
+       <div style="margin-top:40px;">
+         <div class="sg-eb sg-edit" contenteditable="true" style="color:#C2747F;">Aviso de operación</div>
+         <div class="sg-ttl sg-edit" contenteditable="true" style="color:#fff;font-size:84px;margin-top:14px;">¡Llegó tu carga!</div>
+         <div style="margin-top:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+           <span style="font:700 30px/1 'JetBrains Mono';color:#F2F0EC;background:rgba(242,240,236,.12);padding:12px 22px;border-radius:10px;" class="sg-edit" contenteditable="true">DTD-5532</span>
+           <span class="sg-edit" contenteditable="true" style="color:rgba(242,240,236,.8);font-size:30px;font-weight:700;">Lista para retiro</span>
+         </div>
+       </div>
+     </div>${footer(true)}`;}},
+
+   {id:'libre',role:'08 · Foto libre',name:'Foto libre',dark:true,bg:'#0F1E3D',build(){return `
+     ${pz('libre-sq',true,'Soltá tu foto (pantalla completa)','position:absolute;inset:0;')}
+     <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(15,30,61,.55) 0%, rgba(15,30,61,0) 30%, rgba(15,30,61,0) 58%, rgba(15,30,61,.8) 100%);pointer-events:none;"></div>
+     <div class="sg-motif corners" data-corners="cream" data-top="170"></div>
+     <div class="sg-pad" style="padding:72px 70px 150px;">${lockup(true)}
+       <div class="sg-edit" contenteditable="true" style="margin-top:auto;margin-bottom:30px;color:#fff;font-family:'Sora';font-weight:800;font-size:58px;letter-spacing:-.02em;max-width:16ch;">Con Confianza, de China a tu puerta.</div>
+     </div>${footer(true)}`;}},
+  ];
+
+  function mountEditor(cfg){
+  const art=document.getElementById(cfg.artId);
+  const picker=document.getElementById(cfg.pickerId);
+  const form=document.getElementById(cfg.formId);
+  const T=cfg.T;
+  if(!art||!picker||!form) return;
+  function vigFor(bg){const n=parseInt(bg.slice(1),16);const r=(n>>16)&255,g=(n>>8)&255,b=n&255;const f=0.38,er=Math.round(r*f),eg=Math.round(g*f),eb=Math.round(b*f);return `radial-gradient(118% 86% at 50% 40%, rgba(${er},${eg},${eb},0) 24%, rgba(${er},${eg},${eb},.55) 72%, rgba(${er},${eg},${eb},.95) 108%)`;}
+  let cur=0, posJust='flex-start', posShift=0, bodyEl=null, photoInput=null;
+  let dragX=0, dragY=0, txtScale=1, _dpid=null, _sx=0, _sy=0, _ox=0, _oy=0, _moved=false;
+
+  function wireArt(root){
+    root.querySelectorAll('.sg-motif[data-pat]').forEach(m=>{
+      const pat=m.getAttribute('data-pat'), stroke=decodeURIComponent(m.getAttribute('data-stroke'));
+      m.style.opacity=m.getAttribute('data-op')||'.1';
+      m.style.backgroundImage = pat==='wave'?wave(stroke):meander(stroke);
+      m.style.backgroundRepeat='repeat';
+      m.style.backgroundSize=m.getAttribute('data-size')||'120px 120px';
+      if(m.getAttribute('data-pos')) m.style.backgroundPosition=m.getAttribute('data-pos');
+    });
+    root.querySelectorAll('.sg-motif.corners').forEach(m=>{
+      const c=m.getAttribute('data-corners')==='cream'?'#F2F0EC':'#7F0F1A';
+      const op=m.getAttribute('data-corners')==='cream'?'0.9':'0.8';
+      const top=m.getAttribute('data-top')||'70';
+      const s='position:absolute;width:150px;height:150px;opacity:'+op+';';
+      m.innerHTML=`<div style="${s}top:${top}px;left:70px;">${cornerSVG(c)}</div>`+
+        `<div style="${s}top:${top}px;right:70px;transform:scaleX(-1);">${cornerSVG(c)}</div>`+
+        `<div style="${s}bottom:70px;left:70px;transform:scaleY(-1);">${cornerSVG(c)}</div>`+
+        `<div style="${s}bottom:70px;right:70px;transform:scale(-1,-1);">${cornerSVG(c)}</div>`;
+    });
+    root.querySelectorAll('.sg-motif.clouds').forEach(m=>{
+      m.style.opacity='.16';
+      m.innerHTML=`<div style="position:absolute;width:340px;top:120px;right:-40px;">${cloudSVG('#F2F0EC')}</div>`+
+        `<div style="position:absolute;width:260px;bottom:520px;left:-30px;">${cloudSVG('#F2F0EC')}</div>`;
+    });
+  }
+  function wrapBody(root){
+    const pad=root.querySelector('.sg-pad'); if(!pad) return null;
+    const body=document.createElement('div'); body.className='sg-body';
+    [...pad.children].forEach(k=>{ if(!k.classList.contains('sg-lock')&&!k.classList.contains('lock')) body.appendChild(k); });
+    pad.appendChild(body); return body;
+  }
+  function applyPos(){ if(bodyEl){ bodyEl.style.justifyContent=posJust; bodyEl.style.transformOrigin = posJust==='flex-end'?'50% 100%':(posJust==='center'?'50% 50%':'50% 0%'); bodyEl.style.transform='translate('+dragX+'px,'+dragY+'px) scale('+txtScale+')'; } }
+  // Arrastre libre del bloque de texto con el mouse (en coords del lienzo 1080)
+  art.addEventListener('pointerdown', e=>{ if(!bodyEl) return; if(!bodyEl.contains(e.target)) return; _dpid=e.pointerId; _sx=e.clientX; _sy=e.clientY; _ox=dragX; _oy=dragY; _moved=false; });
+  window.addEventListener('pointermove', e=>{ if(_dpid===null) return; const dx=e.clientX-_sx, dy=e.clientY-_sy; if(!_moved && Math.hypot(dx,dy)<5) return; if(!_moved){ _moved=true; if(document.activeElement && document.activeElement.blur) document.activeElement.blur(); bodyEl.style.cursor='grabbing'; } const f=art.getBoundingClientRect().width/1080||0.278; dragX=_ox+dx/f; dragY=_oy+dy/f; applyPos(); });
+  window.addEventListener('pointerup', ()=>{ if(_dpid!==null && bodyEl) bodyEl.style.cursor='grab'; _dpid=null; });
+  function fieldLabel(el,c){
+    if(el.classList.contains('url')) return 'Web';
+    if(el.classList.contains('ig')) return 'Usuario (@)';
+    if(el.classList.contains('sg-eb')) return 'Etiqueta';
+    if(el.classList.contains('sg-ttl')){ c.t=(c.t||0)+1; return c.t>1?'Título '+c.t:'Título'; }
+    c.x=(c.x||0)+1; return 'Texto'+(c.x>1?' '+c.x:'');
+  }
+  function buildForm(){
+    form.innerHTML=''; const c={};
+    art.querySelectorAll('.sg-edit').forEach(el=>{
+      const fld=document.createElement('div'); fld.className='sg-fld';
+      const lab=document.createElement('label'); lab.textContent=fieldLabel(el,c);
+      const long=(el.textContent||'').length>26;
+      const inp=document.createElement(long?'textarea':'input'); if(long) inp.rows=2;
+      inp.value=(el.textContent||'').trim();
+      inp.addEventListener('input',()=>{ el.textContent=inp.value; });
+      fld.appendChild(lab); fld.appendChild(inp); form.appendChild(fld);
+    });
+    if(art.querySelector('[data-photo]')){
+      const b=document.createElement('button'); b.className='sg-actbtn s'; b.textContent='📷 Cargar foto';
+      b.onclick=()=>photoInput&&photoInput.click(); form.appendChild(b);
+    }
+    if(T[cur].id==='testimonio'){
+      const cf=document.createElement('div'); cf.className='sg-fld'; cf.innerHTML='<label>Color de fondo</label>';
+      const seg=document.createElement('div'); seg.className='sg-seg';
+      [['Navy','#0F1E3D'],['Wine','#7F0F1A'],['Jade','#1F5C56']].forEach(([lbl,hex])=>{
+        const bb=document.createElement('button'); bb.textContent=lbl;
+        bb.setAttribute('aria-pressed', (art.style.background&&art.style.background.indexOf(hex.toLowerCase())>-1)||T[cur].bg.toLowerCase()===hex.toLowerCase()?'true':'false');
+        bb.onclick=()=>{ art.style.background=hex; const v=art.querySelector('.sg-vig'); if(v) v.style.background=vigFor(hex); [...seg.children].forEach(x=>x.setAttribute('aria-pressed','false')); bb.setAttribute('aria-pressed','true'); };
+        seg.appendChild(bb);
+      });
+      cf.appendChild(seg); form.appendChild(cf);
+    }
+    const pf=document.createElement('div'); pf.className='sg-fld'; pf.innerHTML='<label>Posición del texto</label>';
+    const seg=document.createElement('div'); seg.className='sg-seg';
+    [['Arriba','flex-start'],['Centro','center'],['Abajo','flex-end']].forEach(([lbl,val])=>{
+      const bb=document.createElement('button'); bb.textContent=lbl; bb.setAttribute('aria-pressed', posJust===val?'true':'false');
+      bb.onclick=()=>{ posJust=val; dragX=0; dragY=0; [...seg.children].forEach(x=>x.setAttribute('aria-pressed','false')); bb.setAttribute('aria-pressed','true'); applyPos(); };
+      seg.appendChild(bb);
+    });
+    pf.appendChild(seg);
+    const szwrap=document.createElement('div'); szwrap.style.cssText='margin-top:10px;';
+    const szlab=document.createElement('div'); szlab.style.cssText='font:600 11px/1 var(--f-sans,sans-serif);color:#777;margin-bottom:4px;'; szlab.textContent='Tamaño del texto';
+    const sz=document.createElement('input'); sz.type='range'; sz.min=60; sz.max=160; sz.step=2; sz.value=Math.round(txtScale*100); sz.style.width='100%';
+    sz.addEventListener('input',()=>{ txtScale=+sz.value/100; applyPos(); });
+    szwrap.appendChild(szlab); szwrap.appendChild(sz); pf.appendChild(szwrap);
+    const rb=document.createElement('button'); rb.type='button'; rb.textContent='↺ Reiniciar posición'; rb.style.cssText='margin-top:8px;appearance:none;border:1px solid #d4d2cd;background:#fff;border-radius:8px;padding:7px 12px;font:700 11px/1 var(--f-sans,sans-serif);color:var(--navy);cursor:pointer;';
+    rb.onclick=()=>{ dragX=0; dragY=0; txtScale=1; sz.value=100; applyPos(); };
+    pf.appendChild(rb);
+    const dh=document.createElement('p'); dh.style.cssText='font-size:11px;color:#999;margin:7px 0 0'; dh.textContent='Arrastrá el texto en la vista previa para moverlo libre con el mouse.'; pf.appendChild(dh);
+    form.appendChild(pf);
+    const tg=document.createElement('div'); tg.className='sg-fld'; tg.innerHTML='<label>Mostrar</label>';
+    const mkChk=(txt,sel)=>{ const l=document.createElement('label'); l.style.cssText='display:flex;gap:7px;align-items:center;font:600 13px/1 \'Nunito Sans\',sans-serif;text-transform:none;letter-spacing:0;color:#444;cursor:pointer'; const ch=document.createElement('input'); ch.type='checkbox'; ch.checked=true; ch.style.cssText='width:16px;height:16px;accent-color:var(--wine)'; ch.addEventListener('change',()=>{ art.querySelectorAll(sel).forEach(e=>e.style.visibility=ch.checked?'visible':'hidden'); }); l.appendChild(ch); l.appendChild(document.createTextNode(' '+txt)); return l; };
+    tg.appendChild(mkChk('Web (dtdcargo.com)','.sg-foot .url')); tg.appendChild(mkChk('@usuario','.sg-foot .ig')); form.appendChild(tg);
+    const row=document.createElement('div'); row.className='sg-row';
+    const dl=document.createElement('button'); dl.className='sg-actbtn p'; dl.textContent='⬇ Descargar PNG'; dl.onclick=()=>downloadArt(dl,false);
+    const dlb=document.createElement('button'); dlb.className='sg-actbtn s'; dlb.textContent='⬇ Sin texto'; dlb.title='Solo fondo + iconos + logo + web (sin títulos ni @usuario)'; dlb.onclick=()=>downloadArt(dlb,true);
+    row.appendChild(dl); row.appendChild(dlb); form.appendChild(row);
+    const hint=document.createElement('p'); hint.style.cssText='font-size:11px;color:#999;margin:2px 0 0'; hint.textContent='1080×'+cfg.H+' · también podés hacer clic directo en el texto del preview para editarlo.'; form.appendChild(hint);
+  }
+  function selectTpl(i){
+    cur=i; posJust='flex-start'; posShift=0; dragX=0; dragY=0; txtScale=1; const t=T[i];
+    art.style.background=t.bg; art.innerHTML=t.build();
+    if(t.dark){ const v=art.querySelector('.sg-vig'); if(v) v.style.background=vigFor(t.bg); }
+    wireArt(art); bodyEl=wrapBody(art); if(bodyEl) bodyEl.style.cursor='grab'; applyPos();
+    photoInput=null;
+    const zone=art.querySelector('[data-photo]');
+    if(zone){
+      const img=zone.querySelector('img');
+      photoInput=document.createElement('input'); photoInput.type='file'; photoInput.accept='image/*'; photoInput.style.display='none'; document.body.appendChild(photoInput);
+      const setFile=f=>{ if(!f||!f.type.startsWith('image/'))return; const r=new FileReader(); r.onload=e=>{ img.src=e.target.result; img.style.display='block'; const ph=zone.querySelector('.sg-ph'); if(ph) ph.style.display='none'; }; r.readAsDataURL(f); };
+      photoInput.addEventListener('change',()=>{ setFile(photoInput.files[0]); photoInput.value=''; });
+      zone.style.cursor='pointer';
+      zone.addEventListener('click',()=>photoInput.click());
+      ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();zone.style.outline='3px solid #C2747F';}));
+      ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();zone.style.outline='';}));
+      zone.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; setFile(f); });
+    }
+    buildForm();
+    [...picker.children].forEach((x,n)=>x.setAttribute('aria-selected', n===i?'true':'false'));
+  }
+  async function downloadArt(btn,blank){
+    const o=btn.textContent; btn.textContent='Generando…'; btn.disabled=true;
+    const prev=art.style.transform; art.style.transform='none';
+    // modo "sin texto": oculta títulos/etiquetas/@usuario y el placeholder de foto; deja fondo+iconos+logo+web
+    const hidden=[];
+    if(blank){
+      art.querySelectorAll('.sg-edit').forEach(el=>{ if(el.classList.contains('url')) return; hidden.push([el,el.style.visibility]); el.style.visibility='hidden'; });
+      art.querySelectorAll('.sg-ph').forEach(el=>{ hidden.push([el,el.style.display]); el.style.display='none'; });
+    }
+    try{ await document.fonts.ready; const cv=await html2canvas(art,{scale:1,backgroundColor:null,useCORS:true,logging:false,width:1080,height:cfg.H,windowWidth:1080,windowHeight:cfg.H}); const a=document.createElement('a'); a.download='DTD-'+cfg.slug+'-'+T[cur].id+(blank?'-base':'')+'.png'; a.href=cv.toDataURL('image/png'); a.click(); btn.textContent=o; }
+    catch(e){ console.error(e); btn.textContent='Error'; setTimeout(()=>btn.textContent=o,1500); }
+    finally{ art.style.transform=prev; if(blank){ hidden.forEach(([el,v],k)=>{ if(el.classList.contains('sg-ph')) el.style.display=v; else el.style.visibility=v; }); } btn.disabled=false; }
+  }
+  T.forEach((t,i)=>{ const b=document.createElement('button'); b.className='sg-chip'; b.textContent=t.role; b.onclick=()=>selectTpl(i); picker.appendChild(b); });
+  selectTpl(0);
+  }
+  mountEditor({artId:'sg-art',pickerId:'sg-picker',formId:'sg-form',H:1920,slug:'Story',T:T9});
+  mountEditor({artId:'pq-art',pickerId:'pq-picker',formId:'pq-form',H:1080,slug:'Post',T:Tsq});
+  mountEditor({artId:'cr-art',pickerId:'cr-picker',formId:'cr-form',H:1350,slug:'Carrusel',T:Tsq});
+})();
 </script>
 </body>
 </html>

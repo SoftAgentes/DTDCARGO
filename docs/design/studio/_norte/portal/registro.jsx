@@ -33,7 +33,7 @@
     const [step, setStep] = useState(1);
     const [data, setData] = useState({
       tipo: 'persona', name: '', company: '', rif: '', cedula: '', cedulaLetter: 'V',
-      email: '', phone: '', phoneCode: '+58', phoneDigits: '',
+      email: '', password: '', phone: '', phoneCode: '+58', phoneDigits: '',
       phoneOffice: '', phoneOfficeCode: '+58', phoneOfficeDigits: '', whatsapp: true,
       photoCedula: null,
       state: '', municipio: '', city: '', parroquia: '', barrio: '',
@@ -343,7 +343,7 @@
           <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
             <b style={{ color: 'var(--success)' }}>Enlace de recuperación enviado</b>
             {maskedEmail ? <> al correo registrado <b>{maskedEmail}</b>.</> : <> al correo registrado de la cuenta.</>}
-            {' '}Revisa tu bandeja para volver a entrar con tu correo y contraseña.
+            {' '}Revisa tu bandeja y entra con el enlace de acceso.
           </div>
         </div>);
     }
@@ -588,7 +588,7 @@
         <div>
           <div style={{ font: '900 26px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.025em' }}>Bienvenido a la familia de DTD Cargo</div>
           <div style={{ font: '500 13.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '8px auto 0', maxWidth: '40ch' }}>
-            Tu cuenta está activa, {data.name?.split(' ')[0]}. Este es tu código Shipping Mark personal — guardalo, vas a usarlo mucho.
+            Tu cuenta está activa, {data.name?.split(' ')[0]}. Este es el código de tus cajas — lo usamos en bodega y con tu proveedor. Para entrar al portal no hace falta recordarlo: pides tu enlace de acceso por correo y entras con un clic.
           </div>
         </div>
 
@@ -608,20 +608,16 @@
         <div style={{ width: '100%', maxWidth: 360 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <CopyCodeButton data={data} markbox={markbox} />
-            <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {try {sessionStorage.setItem('dtd-from-registro', '1');} catch (e) {}window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
+            <U.Btn variant="primary" size="lg" iconRight={I.arrowR(14)} style={{ background: 'var(--success)', borderColor: 'var(--success)' }} onClick={() => {window.location.href = 'Portal del Cliente.html';}}>Ir al portal</U.Btn>
           </div>
         </div>
 
-        {/* Acceso al portal · usuario + clave (= cédula/RIF) */}
-        <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+        {/* Acceso al portal · magic-link (sin contraseñas) */}
+        <div style={{ width: '100%', maxWidth: 480, padding: '14px 16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textAlign: 'left', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+          <span style={{ color: 'var(--wine)', flexShrink: 0, marginTop: 1 }}>{I.mail(16)}</span>
           <div>
-            <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Correo</div>
-            <code style={{ font: '800 13px/1.3 var(--f-mono)', color: 'var(--success)', wordBreak: 'break-all' }}>{data.email}</code>
-          </div>
-          <div>
-            <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Contraseña</div>
-            <code style={{ font: '800 15px/1 var(--f-mono)', color: 'var(--success)' }}>{data.cedula || data.rif || '—'}</code>
-            <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Es tu {data.tipo === 'persona' ? 'cédula' : 'RIF'} · recomendado cambiar al entrar al portal</div>
+            <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Acceso al portal · sin contraseñas</div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Entras con tu correo <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)', wordBreak: 'break-all' }}>{data.email}</code>: en el login pides tu <b>enlace de acceso</b> y entras con un clic.</div>
           </div>
         </div>
 
@@ -813,8 +809,6 @@
     const [docs, setDocs] = useState({ packing: false, factura: false, fotos: 0 });
     const [done, setDone] = useState(false);
     const orderCode = `${markbox || 'DTD-5502'}-1-1`;
-    // Clave por defecto = cédula del cliente (o RIF si es empresa)
-    const tempPass = data.cedula || data.rif || '—';
 
     // Si ya registró el proveedor en el paso anterior → no mostrar el CTA,
     // mostrar el estado "listo" con instrucciones para avanzar.
@@ -832,7 +826,7 @@
             Próximos pasos:
             <ol style={{ margin: '6px 0 0', paddingLeft: 18, font: '500 11.5px/1.7 var(--f-sans)' }}>
               <li>Descarga las etiquetas y enviáselas a tu proveedor.</li>
-              <li>Entra al portal (correo <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{data.email}</code> · clave: tu {data.tipo === 'persona' ? 'cédula' : 'RIF'}).</li>
+              <li>Entra al portal (correo <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{data.email}</code> · con la contraseña que creaste).</li>
               <li>Sigue tu envío en "Mis envíos".</li>
             </ol>
           </div>
@@ -848,9 +842,9 @@
             Tu código de compra es <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{orderCode}</code>. Generamos las etiquetas con QR para que tu proveedor las pegue en cada caja.
           </div>
           <div style={{ padding: '10px 12px', background: '#fff', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)' }}>
-            <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Acceso al portal</div>
-            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Correo: <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{data.email}</code> · Clave: <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{tempPass}</code></div>
-            <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>Tu clave por defecto es tu {data.tipo === 'persona' ? 'cédula' : 'RIF'}. Cambiala la primera vez que entres.</div>
+            <div style={{ font: '700 9px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 5 }}>Acceso al portal · sin contraseñas</div>
+            <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Entras con tu correo <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{data.email}</code>: pides tu enlace de acceso y entras con un clic.</div>
+            <div style={{ font: '500 11px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>Sin contraseñas que recordar.</div>
           </div>
         </div>);
 

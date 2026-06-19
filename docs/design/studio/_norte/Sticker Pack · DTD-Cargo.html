@@ -42,7 +42,7 @@
   .stk.circle img{width:300px;height:auto}
   .stk.brand img{width:190px;height:auto}
   .stk.brand .wm{font-family:'Archivo Black',sans-serif;font-size:74px;letter-spacing:-0.02em;line-height:1}
-  .stk.brand .wm .a{color:var(--wine-soft)} .stk.brand .wm .b{color:#fff}
+  .stk.brand .wm .a{color:#F2F0EC} .stk.brand .wm .b{color:#fff}
   .lbl{text-align:center}
   .lbl .t{font-weight:800;font-size:13px}
   .lbl .c{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-dk);letter-spacing:.12em;text-transform:uppercase;margin-top:3px}
@@ -53,8 +53,9 @@
   <div class="top">
     <h1>Sticker Pack · WhatsApp<small>DTD-Cargo · Social</small></h1>
     <span class="sp"></span>
-    <span class="meta">512×512 · fondo transparente · 17 piezas</span>
-    <button onclick="dlAll()">⬇ Descargar todos</button>
+    <span class="meta">512×512 · WebP transparente · listo para WhatsApp · 17 piezas</span>
+    <button onclick="dlAll()">⬇ Descargar todos (WebP 512)</button>
+    <button onclick="dlTray()" style="margin-left:8px">⬇ Ícono de bandeja (96)</button>
   </div>
   <p class="lead">El pack oficial para el chat: <b>marca, estados de envío y saludos</b> con texto — se entienden solos en la conversación. Cada sticker baja como PNG <b>512×512 transparente</b>, listo para subir a WhatsApp (convertir a .webp con la app Sticker Maker si hace falta).</p>
   <div class="grid" id="grid"></div>
@@ -100,8 +101,8 @@ async function dl(i){
   const canvas=await html2canvas(node,{width:512,height:512,scale:1,backgroundColor:null,useCORS:true,
     onclone:(doc)=>{ const c=doc.getElementById('stk-'+i); if(c){ c.style.transform='none'; if(c.parentElement) c.parentElement.style.overflow='visible'; } }});
   const a=document.createElement('a');
-  a.href=canvas.toDataURL('image/png');
-  a.download='dtd-sticker-'+STICKERS[i].id+'.png'; a.click();
+  a.href=canvas.toDataURL('image/webp',0.92);
+  a.download='dtd-sticker-'+STICKERS[i].id+'.webp'; a.click();
   try{
     const k='dtd-piezas-log';
     const arr=JSON.parse(localStorage.getItem(k)||'[]');
@@ -110,6 +111,15 @@ async function dl(i){
   }catch(e){}
 }
 async function dlAll(){ for(let i=0;i<STICKERS.length;i++){ await dl(i); await new Promise(r=>setTimeout(r,350)); } }
+async function dlTray(){
+  await (document.fonts?document.fonts.ready:Promise.resolve());
+  const node=document.getElementById('stk-0'); if(!node) return;
+  const c=await html2canvas(node,{width:512,height:512,scale:1,backgroundColor:null,useCORS:true,onclone:(doc)=>{const x=doc.getElementById('stk-0'); if(x){x.style.transform='none'; if(x.parentElement)x.parentElement.style.overflow='visible';}}});
+  const t=document.createElement('canvas'); t.width=96; t.height=96; t.getContext('2d').drawImage(c,0,0,96,96);
+  const a=document.createElement('a'); a.href=t.toDataURL('image/png'); a.download='dtd-sticker-tray-96.png'; a.click();
+}
+// Abrir con ?dl=all (desde Aplicaciones de Marca) descarga todo el pack + bandeja
+if(/[?&]dl=all/.test(location.search)){ window.addEventListener('load',()=>setTimeout(()=>{ dlTray().then(dlAll); }, 700)); }
 </script>
 </body>
 </html>

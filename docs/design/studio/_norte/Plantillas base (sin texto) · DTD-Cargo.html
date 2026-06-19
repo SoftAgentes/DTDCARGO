@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Plantillas base · DTD-Cargo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;600;700&family=Sora:wght@700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="erp/tokens.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#EDEBE6;color:#0F1E3D;font-family:'Nunito Sans',sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:1280px;margin:0 auto;padding:44px 32px 80px}
+  .eyebrow{font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.28em;text-transform:uppercase;color:#7F0F1A}
+  h1{font-family:'Sora',sans-serif;font-weight:800;font-size:34px;margin:12px 0 8px}
+  .lead{font-size:15px;color:#5b5b5b;max-width:74ch;line-height:1.6}
+  .bar{margin:22px 0 8px}
+  .big{appearance:none;border:0;border-radius:10px;padding:13px 22px;font:800 14px/1 'Nunito Sans';cursor:pointer;background:#7F0F1A;color:#fff}
+  .big:hover{background:#5E0A12}
+  .stage{display:flex;flex-wrap:wrap;gap:26px;margin-top:30px}
+  .item{width:300px}
+  .frame{width:300px;height:533px;border-radius:16px;overflow:hidden;box-shadow:0 14px 34px -14px rgba(15,30,61,.45);background:#000;position:relative}
+  .art{width:1080px;height:1920px;transform:scale(0.277778);transform-origin:top left;position:relative;overflow:hidden}
+  .meta{margin-top:12px;display:flex;align-items:center;gap:8px}
+  .role{font:700 10px/1.3 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:#7F0F1A;flex:1}
+  .dl{appearance:none;border:0;border-radius:8px;padding:8px 12px;font:700 11px/1 'Nunito Sans';cursor:pointer;background:#0F1E3D;color:#fff}
+  /* artboard internals */
+  .art .pad{position:absolute;inset:0;padding:88px 80px;display:flex;flex-direction:column}
+  .art .vig{position:absolute;inset:0;pointer-events:none}
+  .art .motif{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+  .art .lock{display:flex;align-items:center;gap:20px}
+  .art .lock img{height:78px;width:auto;display:block}
+  .art .wm{font-family:'Archivo Black',sans-serif;font-size:46px;letter-spacing:-0.02em;line-height:1}
+  .art .foot{position:absolute;left:0;right:0;bottom:64px;text-align:center;font-family:'Archivo Black',sans-serif;font-size:30px;letter-spacing:.01em}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="eyebrow">Redes · plantillas base</div>
+  <h1>Plantillas base (sin texto)</h1>
+  <p class="lead">Las 8 plantillas en versión <b>plana</b>: solo fondo + recursos gráficos + logo arriba + <b>dtdcargo.com</b> abajo. Sin titulares, sin precios, sin foto y sin @usuario — listas para escribir encima en Instagram/edición. Descargá PNG 1080×1920.</p>
+  <div class="bar" style="display:flex;gap:10px;flex-wrap:wrap;"><button class="big" id="dl-zip">⬇ Descargar todo en .ZIP (alta resolución)</button><button class="big" id="dl-all" style="background:#0F1E3D;">⬇ Descargar las 8 sueltas (PNG)</button></div>
+  <p style="font-size:12px;color:#8a8a8a;margin:8px 0 0;">Cada plantilla se exporta a <b>2160×3840</b> (2×) para máxima nitidez.</p>
+  <div class="stage" id="stage"></div>
+</div>
+<script>
+const REV='assets/dtdcargo-isologo-reverse.png', PRI='assets/dtdcargo-isologo-primary.png', DRG='recursos-graficos/dragon-duo-navy.png';
+const meander=(s,w)=>{const v=`<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='${s}' stroke-width='${w||4}'/></svg>`;return `url("data:image/svg+xml,${encodeURIComponent(v)}")`;};
+const wave=(s)=>{const v=`<svg xmlns='http://www.w3.org/2000/svg' width='48' height='26' viewBox='0 0 48 26'><g fill='none' stroke='${s}' stroke-width='2.4'><path d='M0 26 A24 24 0 0 1 48 26'/><path d='M9 26 A15 15 0 0 1 39 26'/><path d='M18 26 A6 6 0 0 1 30 26'/></g></svg>`;return `url("data:image/svg+xml,${encodeURIComponent(v)}")`;};
+const cornerSVG=(c)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72"><g fill="none" stroke="${c}" stroke-width="3" stroke-linejoin="miter"><path d="M4 72 V4 H72"/><path d="M13 72 V13 H72"/><path d="M30 52 V30 H52"/><path d="M30 42 V42 H42 V52"/></g></svg>`;
+const cloudSVG=(c)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 64"><g fill="none" stroke="${c}" stroke-width="2.8" stroke-linecap="round"><path d="M75 20 C 60 20 54 32 54 40 C 54 50 44 52 39 47 C 34 42 39 35 46 38"/><path d="M75 20 C 90 20 96 32 96 40 C 96 50 106 52 111 47 C 116 42 111 35 104 38"/><path d="M54 40 Q 75 30 96 40"/><path d="M62 51 Q 75 45 88 51"/></g></svg>`;
+const lockup=(d)=>`<div class="lock"><img src="${d?REV:PRI}" alt="DTD"/><span class="wm"><span style="color:${d?'#F2F0EC':'#7F0F1A'}">DTD</span> <span style="color:${d?'#F2F0EC':'#0F1E3D'}">Cargo</span></span></div>`;
+const web=(d)=>`<div class="foot" style="color:${d?'#F2F0EC':'#0F1E3D'}">dtdcargo.com</div>`;
+const vignette=(d)=>d?`radial-gradient(125% 95% at 50% 38%, rgba(0,0,0,0) 42%, rgba(0,0,0,.34) 100%)`:`radial-gradient(125% 95% at 50% 38%, rgba(15,30,61,0) 46%, rgba(15,30,61,.12) 100%)`;
+function vigFor(bg){const n=parseInt(bg.slice(1),16);const r=(n>>16)&255,g=(n>>8)&255,b=n&255;const f=0.38,er=Math.round(r*f),eg=Math.round(g*f),eb=Math.round(b*f);return `radial-gradient(118% 86% at 50% 40%, rgba(${er},${eg},${eb},0) 24%, rgba(${er},${eg},${eb},.55) 72%, rgba(${er},${eg},${eb},.95) 108%)`;}
+
+const T=[
+ {id:'producto',role:'01 · Navy + olas',dark:true,bg:'#0F1E3D',build(){return `
+   <div class="motif" data-pat="wave" data-stroke="%23F2F0EC" data-op=".06" data-size="150px 81px" data-pos="0 -10px"></div>
+   <div class="vig" style="background:${vignette(true)}"></div>
+   <div class="pad">${lockup(true)}</div>${web(true)}`;}},
+ {id:'promo',role:'02 · Wine + meandro',dark:true,bg:'#7F0F1A',build(){return `
+   <div class="motif" data-pat="meander" data-stroke="%23F2F0EC" data-op=".06" data-size="120px 120px"></div>
+   <div class="vig" style="background:${vignette(true)}"></div>
+   <div class="pad">${lockup(true)}</div>${web(true)}`;}},
+ {id:'noticia',role:'03 · Papel + esquinas',dark:false,bg:'#FBFAF7',build(){return `
+   <div class="motif corners" data-corners="1" data-top="250"></div>
+   <div class="vig" style="background:${vignette(false)}"></div>
+   <div class="pad">${lockup(false)}</div>${web(false)}`;}},
+ {id:'frase',role:'04 · Gris + olas/nube',dark:false,bg:'#E8E6E2',build(){return `
+   <div class="motif" data-pat="wave" data-stroke="%237F0F1A" data-op=".12" data-size="130px 70px" style="top:auto;bottom:0;height:320px;"></div>
+   <div style="position:absolute;left:0;right:0;bottom:0;height:320px;background:linear-gradient(180deg, rgba(232,230,226,0) 0%, rgba(232,230,226,.65) 70%, rgba(232,230,226,.9) 100%);"></div>
+   <div style="position:absolute;top:96px;right:64px;width:300px;opacity:.85;">${cloudSVG('#7F0F1A')}</div>
+   <div class="vig" style="background:${vignette(false)}"></div>
+   <div class="pad">${lockup(false)}</div>${web(false)}`;}},
+ {id:'testimonio',role:'05 · Jade + nube',dark:true,bg:'#1F5C56',build(){return `
+   <div class="motif clouds" data-clouds="1"></div>
+   <div class="vig" style="background:${vignette(true)}"></div>
+   <div class="pad">${lockup(true)}</div>${web(true)}`;}},
+ {id:'tip',role:'06 · Wine-deep + marco',dark:true,bg:'#5E0A12',build(){return `
+   <div class="motif" data-pat="meander" data-stroke="%23C2747F" data-op=".06" data-size="130px 130px"></div>
+   <div style="position:absolute;inset:70px;border:4px solid rgba(242,240,236,.35);border-radius:18px;"></div>
+   <div class="vig" style="background:${vignette(true)}"></div>
+   <div class="pad">${lockup(true)}</div>${web(true)}`;}},
+ {id:'llego',role:'07 · Navy + dragón',dark:true,bg:'#0F1E3D',build(){return `
+   <div class="motif" style="opacity:.9;"><img src="${DRG}" style="position:absolute;right:-120px;bottom:120px;width:900px;opacity:.16;" alt=""/></div>
+   <div class="vig" style="background:${vignette(true)}"></div>
+   <div class="pad">${lockup(true)}</div>${web(true)}`;}},
+ {id:'libre',role:'08 · Navy + esquinas',dark:true,bg:'#0F1E3D',build(){return `
+   <div class="motif corners" data-corners="cream" data-top="220"></div>
+   <div class="vig" style="background:${vignette(true)}"></div>
+   <div class="pad">${lockup(true)}</div>${web(true)}`;}},
+];
+
+const stage=document.getElementById('stage');
+T.forEach(t=>{
+  const item=document.createElement('div'); item.className='item';
+  item.innerHTML=`<div class="frame"><div class="art" style="background:${t.bg};">${t.build()}</div></div>
+    <div class="meta"><span class="role">${t.role}</span><button class="dl" data-id="${t.id}">PNG</button></div>`;
+  stage.appendChild(item);
+  if(t.dark){const v=item.querySelector('.vig'); if(v) v.style.background=vigFor(t.bg);}
+});
+stage.querySelectorAll('.motif[data-pat]').forEach(m=>{
+  const pat=m.getAttribute('data-pat'), stroke=decodeURIComponent(m.getAttribute('data-stroke'));
+  m.style.opacity=m.getAttribute('data-op')||'.1';
+  m.style.backgroundImage = pat==='wave'?wave(stroke):meander(stroke);
+  m.style.backgroundRepeat='repeat'; m.style.backgroundSize=m.getAttribute('data-size')||'120px 120px';
+  if(m.getAttribute('data-pos')) m.style.backgroundPosition=m.getAttribute('data-pos');
+});
+stage.querySelectorAll('.motif.corners').forEach(m=>{
+  const c=m.getAttribute('data-corners')==='cream'?'#F2F0EC':'#7F0F1A';
+  const op=m.getAttribute('data-corners')==='cream'?'0.9':'0.8';
+  const top=m.getAttribute('data-top')||'70';
+  const s='position:absolute;width:150px;height:150px;opacity:'+op+';';
+  m.innerHTML=`<div style="${s}top:${top}px;left:70px;">${cornerSVG(c)}</div>`+
+    `<div style="${s}top:${top}px;right:70px;transform:scaleX(-1);">${cornerSVG(c)}</div>`+
+    `<div style="${s}bottom:70px;left:70px;transform:scaleY(-1);">${cornerSVG(c)}</div>`+
+    `<div style="${s}bottom:70px;right:70px;transform:scale(-1,-1);">${cornerSVG(c)}</div>`;
+});
+stage.querySelectorAll('.motif.clouds').forEach(m=>{
+  m.style.opacity='.16';
+  m.innerHTML=`<div style="position:absolute;width:340px;top:120px;right:-40px;">${cloudSVG('#F2F0EC')}</div>`+
+    `<div style="position:absolute;width:260px;bottom:520px;left:-30px;">${cloudSVG('#F2F0EC')}</div>`;
+});
+
+async function render(art){
+  const prev=art.style.transform; art.style.transform='none';
+  await document.fonts.ready;
+  const canvas=await html2canvas(art,{scale:2,backgroundColor:null,useCORS:true,logging:false,width:1080,height:1920,windowWidth:1080,windowHeight:1920});
+  art.style.transform=prev; return canvas;
+}
+function save(canvas,name){ const a=document.createElement('a'); a.download=name; a.href=canvas.toDataURL('image/png'); a.click(); }
+stage.querySelectorAll('.dl').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const o=btn.textContent; btn.textContent='…'; btn.disabled=true;
+    const art=btn.closest('.item').querySelector('.art');
+    try{ save(await render(art),'DTD-Plantilla-base-'+btn.getAttribute('data-id')+'.png'); btn.textContent=o; }
+    catch(e){ console.error(e); btn.textContent='Error'; setTimeout(()=>btn.textContent=o,1500); }
+    finally{ btn.disabled=false; }
+  });
+});
+document.getElementById('dl-all').addEventListener('click', async (e)=>{
+  const b=e.target; const o=b.textContent; b.disabled=true;
+  const items=[...stage.querySelectorAll('.item')];
+  for(let i=0;i<items.length;i++){
+    b.textContent='Generando '+(i+1)+'/'+items.length+'…';
+    const art=items[i].querySelector('.art');
+    try{ save(await render(art),'DTD-Plantilla-base-'+T[i].id+'.png'); }catch(err){ console.error(err); }
+    await new Promise(r=>setTimeout(r,400));
+  }
+  b.textContent=o; b.disabled=false;
+});
+document.getElementById('dl-zip').addEventListener('click', async (e)=>{
+  const b=e.target; const o=b.textContent; b.disabled=true;
+  const items=[...stage.querySelectorAll('.item')];
+  const zip=new JSZip(); const folder=zip.folder('DTD-plantillas-base');
+  for(let i=0;i<items.length;i++){
+    b.textContent='Generando '+(i+1)+'/'+items.length+'…';
+    const art=items[i].querySelector('.art');
+    try{ const cv=await render(art); const data=cv.toDataURL('image/png').split(',')[1]; folder.file('DTD-Plantilla-base-'+T[i].id+'.png', data, {base64:true}); }catch(err){ console.error(err); }
+    await new Promise(r=>setTimeout(r,200));
+  }
+  b.textContent='Comprimiendo…';
+  const blob=await zip.generateAsync({type:'blob'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='DTD-plantillas-base.zip'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  b.textContent=o; b.disabled=false;
+});
+</script>
+</body>
+</html>

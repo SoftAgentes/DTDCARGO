@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Plantillas Stories · DTD-Cargo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=Nunito+Sans:wght@400;500;600;700;800;900&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="erp/tokens.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  *{box-sizing:border-box;}
+  :root{
+    --navy:#0F1E3D; --wine:#7F0F1A; --wine-deep:#5E0A12; --wine-soft:#C2747F;
+    --papel:#FBFAF7; --cream:#F2F0EC; --jade:#1F5C56; --gold:#B8893A; --ink:#0F1E3D;
+  }
+  body{margin:0;background:#EDEBE6;color:var(--ink);font-family:'Nunito Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+  .page{max-width:1280px;margin:0 auto;padding:48px 32px 80px;}
+  .eyebrow{font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.28em;text-transform:uppercase;color:var(--wine);}
+  h1{font-family:'Sora',sans-serif;font-weight:800;font-size:38px;line-height:1.08;letter-spacing:-0.02em;margin:12px 0 8px;}
+  .lead{font-size:16px;color:#5b5b5b;max-width:74ch;line-height:1.6;}
+
+  /* Recomendaciones */
+  .reco{margin:28px 0 8px;border:1px solid #dcdad5;border-radius:14px;background:#fff;overflow:hidden;}
+  .reco h2{font-family:'Sora',sans-serif;font-size:18px;margin:0;padding:18px 22px;border-bottom:1px solid #ececec;}
+  .reco table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .reco td{padding:11px 22px;border-bottom:1px solid #f0efec;vertical-align:top;}
+  .reco tr:last-child td{border-bottom:0;}
+  .reco td.k{width:240px;font-weight:800;color:var(--ink);}
+  .reco td.k span{display:block;font:700 10px/1.4 'JetBrains Mono',monospace;color:var(--wine);letter-spacing:.05em;text-transform:uppercase;margin-bottom:3px;}
+  .reco td.u{color:#555;}
+  .tipbar{font-size:12.5px;color:#6b6b6b;padding:14px 22px;background:#faf9f6;border-top:1px solid #ececec;}
+  .tipbar b{color:var(--ink);}
+
+  .controls{display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-top:18px;padding:16px 20px;border:1px solid #dcdad5;border-radius:12px;background:#fff;font-size:13.5px;}
+  .controls strong{font-family:'Sora',sans-serif;font-size:13px;}
+  .controls label{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-weight:600;color:#444;}
+  .controls input{width:16px;height:16px;accent-color:var(--wine);cursor:pointer;}
+  .controls .note{color:#777;font-size:12.5px;}
+  .controls .note b{color:var(--ink);}
+
+  /* Stage */
+  .stage{display:flex;flex-wrap:wrap;gap:30px;margin-top:36px;}
+  .item{width:348px;}
+  .frame{width:348px;height:619px;border-radius:18px;overflow:hidden;box-shadow:0 16px 40px -14px rgba(15,30,61,.45);background:#000;position:relative;}
+  .art{width:1080px;height:1920px;transform:scale(0.322222);transform-origin:top left;position:relative;overflow:hidden;font-family:'Nunito Sans',sans-serif;}
+  .meta{margin-top:14px;}
+  .meta .role{font:700 10px/1.3 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--wine);}
+  .meta .nm{font-family:'Sora',sans-serif;font-weight:700;font-size:16px;margin:3px 0 2px;}
+  .meta .uc{font-size:12.5px;color:#666;line-height:1.45;}
+  .meta .row{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;}
+  .btn{appearance:none;border:0;border-radius:8px;padding:9px 14px;font:700 12px/1 'Nunito Sans',sans-serif;cursor:pointer;}
+  .btn.dl{background:var(--wine);color:#fff;}
+  .btn.dl:hover{background:var(--wine-deep);}
+  .btn.gh{background:#fff;border:1px solid #d4d2cd;color:var(--ink);}
+  .hint{font-size:11px;color:#999;}
+
+  /* ── Artboard internals (in 1080-px space) ── */
+  .art .pad{position:absolute;inset:0;padding:88px 80px 220px;display:flex;flex-direction:column;}
+  .art .vig{position:absolute;inset:0;pointer-events:none;}
+  .art .motif{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+  .art .lock{display:flex;align-items:center;gap:20px;}
+  .art .lock img{height:78px;width:auto;display:block;}
+  .art .wm{font-family:'Archivo Black',sans-serif;font-size:46px;letter-spacing:-0.02em;line-height:1;}
+  .art .foot{position:absolute;left:0;right:0;bottom:64px;text-align:center;font-family:'Archivo Black',sans-serif;font-size:30px;letter-spacing:.01em;}
+  .art .foot .ig{display:block;font:700 22px/1 'JetBrains Mono',monospace;letter-spacing:.12em;margin-top:14px;opacity:.7;}
+
+  .art .photo{position:relative;overflow:hidden;background:rgba(0,0,0,.12);}
+  .art .photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
+  .art .photo .ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;color:rgba(255,255,255,.7);font:700 26px/1.3 'Nunito Sans';text-align:center;padding:40px;cursor:pointer;}
+  .art .photo .ph svg{opacity:.6;}
+  .art .photo.dark .ph{color:rgba(15,30,61,.45);}
+  .art.filled-hide .ph{display:none;}
+
+  .art .edit{outline:none;}
+  .frame.editing .art .edit{}
+  .art .edit:focus{outline:2px dashed rgba(127,15,26,.5);outline-offset:6px;border-radius:4px;}
+
+  .eb{font:700 19px/1 'JetBrains Mono',monospace;letter-spacing:.24em;text-transform:uppercase;}
+  .ttl{font-family:'Sora',sans-serif;font-weight:800;letter-spacing:-0.02em;line-height:1.04;}
+  .cn{font-family:'Noto Sans SC',sans-serif;}
+
+  @media(max-width:760px){ .page{padding:32px 18px;} .reco td.k{width:auto;} }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="eyebrow">Redes · Instagram + TikTok</div>
+  <h1>Plantillas de Stories · DTD-Cargo</h1>
+  <p class="lead">Ocho plantillas <b>9:16 (1080×1920)</b> para Instagram Stories, TikTok y YouTube Shorts (mismo formato vertical), con la marca v4.4 y los recursos gráficos nuevos. Cada una tiene una <b>lógica de uso</b>: subís la foto (arrastrá o clic), editás el texto y descargás el PNG. La marca viene bloqueada — vos solo cambiás foto y texto.</p>
+
+  <div class="reco">
+    <h2>Qué plantilla usar — recomendaciones</h2>
+    <table>
+      <tr><td class="k"><span>01 · Navy + olas</span>Producto + precio</td><td class="u">Para ofrecer un producto con su precio (ej. el Power Station que cotizaste por WhatsApp). Foto grande del producto abajo, precio destacado arriba.</td></tr>
+      <tr><td class="k"><span>02 · Wine + meandro</span>Promo / oferta</td><td class="u">Para descuentos y promociones de flete o servicio. El número de la oferta manda.</td></tr>
+      <tr><td class="k"><span>03 · Papel + esquinas</span>Noticia / anuncio</td><td class="u"><b>La de "para escribir".</b> Titular grande y bajada — anuncios, novedades, rutas nuevas. Poco visual, mucho texto.</td></tr>
+      <tr><td class="k"><span>04 · Gris + olas/nube</span>Frase / mensaje de marca</td><td class="u">Para frases de marca y posts de branding sobre fondo neutro (gris <code>#E8E6E2</code>). Olas + nube en wine como acento. Sin foto: el mensaje manda.</td></tr>
+      <tr><td class="k"><span>05 · Jade + nube</span>Testimonio / reseña</td><td class="u">Para prueba social: la frase del cliente + su nombre. Genera confianza, que es el corazón de la marca.</td></tr>
+      <tr><td class="k"><span>06 · Wine-deep + marco</span>Tip / educación</td><td class="u">Para educar al cliente: consejos de importación, "sabías que", reglas de la bodega. Serie numerada.</td></tr>
+      <tr><td class="k"><span>07 · Navy + dragón</span>Llegó tu carga</td><td class="u">Para avisos de operación: arribos, "ya está en bodega", tracking. Usa el dragón de herencia como sello especial.</td></tr>
+      <tr><td class="k"><span>08 · Papel · foto libre</span>Foto libre</td><td class="u">Para cualquier foto rápida del día a día (bodega, equipo, contenedor) con marca mínima. La más versátil.</td></tr>
+    </table>
+    <div class="tipbar"><b>Para el texto/caption:</b> apoyate en el <b>Asistente de Contenido · DTD-Cargo</b> (genera copy on-brand con la voz de DTD). Estas plantillas son la parte visual; el caption va aparte en Instagram.</div>
+  </div>
+
+  <div class="controls">
+    <strong>Herramienta · ajustes rápidos</strong>
+    <label><input type="checkbox" id="tgUrl" checked> Mostrar web (dtdcargo.com)</label>
+    <label><input type="checkbox" id="tgHandle" checked> Mostrar @usuario</label>
+    <span class="note">Formato <b>9:16 · 1080×1920</b> — sirve igual para <b>IG Stories</b>, <b>TikTok</b> y <b>YouTube Shorts</b>. Hacé clic en cualquier texto para editarlo.</span>
+  </div>
+
+  <div class="stage" id="stage"></div>
+</div>
+
+<script>
+const ASSET_ISO_REV = 'assets/dtdcargo-isologo-reverse.png';
+const ASSET_ISO_PRI = 'assets/dtdcargo-isologo-primary.png';
+const DRAGON = 'recursos-graficos/dragon-duo-navy.png';
+
+// motif data-URIs (color param)
+function meander(stroke,w){const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='${stroke}' stroke-width='${w||4}'/></svg>`;return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;}
+function wave(stroke){const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='48' height='26' viewBox='0 0 48 26'><g fill='none' stroke='${stroke}' stroke-width='2.4'><path d='M0 26 A24 24 0 0 1 48 26'/><path d='M9 26 A15 15 0 0 1 39 26'/><path d='M18 26 A6 6 0 0 1 30 26'/></g></svg>`;return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;}
+const cornerSVG = (c)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72"><g fill="none" stroke="${c}" stroke-width="3" stroke-linejoin="miter"><path d="M4 72 V4 H72"/><path d="M13 72 V13 H72"/><path d="M30 52 V30 H52"/><path d="M30 42 V42 H42 V52"/></g></svg>`;
+const cloudSVG = (c)=>`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 150 64"><g fill="none" stroke="${c}" stroke-width="2.8" stroke-linecap="round"><path d="M75 20 C 60 20 54 32 54 40 C 54 50 44 52 39 47 C 34 42 39 35 46 38"/><path d="M75 20 C 90 20 96 32 96 40 C 96 50 106 52 111 47 C 116 42 111 35 104 38"/><path d="M54 40 Q 75 30 96 40"/><path d="M62 51 Q 75 45 88 51"/></g></svg>`;
+
+function lockup(dark){
+  const iso = dark?ASSET_ISO_REV:ASSET_ISO_PRI;
+  const d = dark?'#C2747F':'#7F0F1A';
+  const c = dark?'#F2F0EC':'#0F1E3D';
+  return `<div class="lock"><img src="${iso}" alt="DTD"/><span class="wm"><span style="color:${d}">DTD</span> <span style="color:${c}">Cargo</span></span></div>`;
+}
+function footer(dark){
+  const col = dark?'#F2F0EC':'#0F1E3D';
+  return `<div class="foot" style="color:${col}"><span class="url edit" contenteditable="true">dtdcargo.com</span><span class="ig edit" contenteditable="true" style="color:${col}">@doortudoor_</span></div>`;
+}
+function vignette(dark){
+  return dark
+    ? `radial-gradient(125% 95% at 50% 38%, rgba(0,0,0,0) 42%, rgba(0,0,0,.34) 100%)`
+    : `radial-gradient(125% 95% at 50% 38%, rgba(15,30,61,0) 46%, rgba(15,30,61,.12) 100%)`;
+}
+
+const photoZone = (id,dark,label,style)=>`<div class="photo${dark?'':' dark'}" data-photo="${id}" style="${style}"><img alt=""/><div class="ph"><svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg><span>${label}</span></div></div>`;
+
+const T = [
+ { id:'producto', role:'01 · Producto + precio', name:'Power Station 6000W', dark:true, bg:'#0F1E3D',
+   build(){return `
+     <div class="motif" data-pat="wave" data-stroke="%23F2F0EC" data-op=".06" data-size="150px 81px" data-pos="0 -10px"></div>
+     ${photoZone('producto',true,'Soltá la foto del producto','position:absolute;left:0;right:0;bottom:0;height:980px;')}
+     <div style="position:absolute;left:0;right:0;bottom:0;height:1010px;background:linear-gradient(180deg, #0F1E3D 0%, rgba(15,30,61,0) 26%, rgba(15,30,61,0) 60%, rgba(15,30,61,.92) 100%);pointer-events:none;"></div>
+     <div class="vig" style="background:${vignette(true)}"></div>
+     <div class="pad">
+       ${lockup(true)}
+       <div style="margin-top:54px;">
+         <div class="eb edit" contenteditable="true" style="color:#C2747F;">Nuevo ingreso</div>
+         <div class="ttl edit" contenteditable="true" style="color:#F2F0EC;font-size:96px;margin-top:18px;max-width:14ch;">Power Station 6000W</div>
+         <div class="edit" contenteditable="true" style="color:rgba(242,240,236,.78);font-size:36px;margin-top:18px;font-weight:600;">Generador portátil · stock en China</div>
+       </div>
+       <div style="margin-top:auto;display:flex;align-items:center;gap:24px;">
+         <div style="background:#7F0F1A;color:#fff;border-radius:999px;padding:22px 40px;font-family:'Archivo Black';font-size:54px;" class="edit" contenteditable="true">Desde&nbsp;$2.800</div>
+       </div>
+     </div>
+     ${footer(true)}`;}},
+
+ { id:'promo', role:'02 · Promo / oferta', name:'Oferta de flete', dark:true, bg:'#7F0F1A',
+   build(){return `
+     <div class="motif" data-pat="meander" data-stroke="%23F2F0EC" data-op=".06" data-size="120px 120px"></div>
+     <div class="vig" style="background:${vignette(true)}"></div>
+     ${photoZone('promo',true,'Foto del servicio (opcional)','position:absolute;left:0;right:0;bottom:0;height:720px;clip-path:polygon(0 18%,100% 0,100% 100%,0 100%);')}
+     <div style="position:absolute;left:0;right:0;bottom:0;height:720px;background:linear-gradient(180deg, rgba(127,15,26,0) 0%, rgba(94,10,18,.55) 100%);pointer-events:none;"></div>
+     <div class="pad">
+       ${lockup(true)}
+       <div style="margin-top:70px;">
+         <div class="eb edit" contenteditable="true" style="color:#F2DEC2;">Oferta DDP</div>
+         <div class="ttl edit" contenteditable="true" style="color:#fff;font-size:280px;line-height:.86;margin-top:10px;">−15%</div>
+         <div class="ttl edit" contenteditable="true" style="color:#F2F0EC;font-size:64px;margin-top:24px;max-width:16ch;font-weight:700;">Flete marítimo China → Venezuela</div>
+         <div class="edit" contenteditable="true" style="color:rgba(242,240,236,.82);font-size:36px;margin-top:22px;font-weight:700;">Cotiza antes del 30/06</div>
+       </div>
+     </div>
+     ${footer(true)}`;}},
+
+ { id:'noticia', role:'03 · Noticia / anuncio', name:'Anuncio (para escribir)', dark:false, bg:'#FBFAF7',
+   build(){return `
+     <div class="motif corners" data-corners="1" data-top="250"></div>
+     <div class="vig" style="background:${vignette(false)}"></div>
+     <div class="pad" style="padding:120px 96px 220px;">
+       ${lockup(false)}
+       <div style="margin-top:150px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+         <div class="eb edit" contenteditable="true" style="color:#7F0F1A;">Aviso DTD</div>
+         <div class="ttl edit" contenteditable="true" style="color:#0F1E3D;font-size:82px;margin-top:28px;max-width:640px;">Nueva ruta aérea Yiwu → Caracas en 7 días</div>
+         <div class="edit" contenteditable="true" style="color:#4a4a4a;font-size:38px;line-height:1.5;margin-top:34px;max-width:560px;font-weight:500;">Courier aéreo para muestras y carga urgente. Escríbenos para reservar espacio.</div>
+       </div>
+     </div>
+     ${footer(false)}`;}},
+
+ { id:'frase', role:'04 · Gris + olas/nube', name:'Frase / mensaje de marca', dark:false, bg:'#E8E6E2',
+   build(){return `
+     <div class="motif" data-pat="wave" data-stroke="%237F0F1A" data-op=".12" data-size="130px 70px" style="top:auto;bottom:0;height:320px;"></div>
+     <div style="position:absolute;left:0;right:0;bottom:0;height:320px;background:linear-gradient(180deg, rgba(232,230,226,0) 0%, rgba(232,230,226,.65) 70%, rgba(232,230,226,.9) 100%);pointer-events:none;"></div>
+     <div style="position:absolute;top:96px;right:64px;width:300px;opacity:.85;">${cloudSVG('#7F0F1A')}</div>
+     <div class="vig" style="background:${vignette(false)}"></div>
+     <div class="pad">
+       ${lockup(false)}
+       <div style="margin:auto 0;">
+         <div class="eb edit" contenteditable="true" style="color:#7F0F1A;">DTD Cargo</div>
+         <div class="ttl edit" contenteditable="true" style="color:#0F1E3D;font-size:104px;margin-top:26px;max-width:13ch;">Importar de China, simple y seguro.</div>
+         <div class="edit" contenteditable="true" style="color:#4a4a4a;font-size:38px;line-height:1.5;margin-top:30px;max-width:24ch;font-weight:600;">Compramos, inspeccionamos y llevamos tu carga hasta tu puerta.</div>
+       </div>
+     </div>
+     ${footer(false)}`;}},
+
+ { id:'testimonio', role:'05 · Testimonio / reseña', name:'Testimonio', dark:true, bg:'#1F5C56',
+   build(){return `
+     <div class="motif clouds" data-clouds="1"></div>
+     <div class="vig" style="background:${vignette(true)}"></div>
+     <div class="pad" style="align-items:flex-start;">
+       ${lockup(true)}
+       <div style="font-family:'Archivo Black';font-size:300px;line-height:.6;color:rgba(242,240,236,.22);margin-top:70px;">&ldquo;</div>
+       <div class="ttl edit" contenteditable="true" style="color:#fff;font-size:82px;line-height:1.12;margin-top:-30px;max-width:18ch;font-weight:800;">Llegó todo perfecto y antes de lo prometido.</div>
+       <div style="margin-top:auto;display:flex;align-items:center;gap:32px;">
+         ${photoZone('testimonio',true,'Foto','position:relative;width:170px;height:170px;border-radius:50%;flex:none;')}
+         <div>
+           <div class="edit" contenteditable="true" style="color:#fff;font-size:42px;font-weight:800;">Cliente DTD</div>
+           <div class="edit" contenteditable="true" style="color:rgba(242,240,236,.75);font-size:32px;margin-top:6px;font-weight:600;">Valencia, Venezuela</div>
+         </div>
+       </div>
+     </div>
+     ${footer(true)}`;}},
+
+ { id:'tip', role:'06 · Tip / educación', name:'Tip DTD', dark:true, bg:'#5E0A12',
+   build(){return `
+     <div class="motif" data-pat="meander" data-stroke="%23C2747F" data-op=".06" data-size="130px 130px"></div>
+     <div class="vig" style="background:${vignette(true)}"></div>
+     <div style="position:absolute;inset:70px;border:4px solid rgba(242,240,236,.35);border-radius:18px;pointer-events:none;"></div>
+     <div class="pad" style="padding:140px 120px 220px;">
+       ${lockup(true)}
+       <div style="margin-top:80px;">
+         <div style="display:inline-block;background:#B8893A;color:#3a2a10;border-radius:999px;padding:16px 34px;font-family:'Archivo Black';font-size:34px;letter-spacing:.04em;" class="edit" contenteditable="true">TIP DTD · 01</div>
+         <div class="ttl edit" contenteditable="true" style="color:#fff;font-size:88px;line-height:1.1;margin-top:48px;max-width:18ch;">Consolida varias compras en un solo contenedor y baja el flete por kilo.</div>
+       </div>
+       <div class="edit" contenteditable="true" style="margin-top:auto;color:rgba(242,240,236,.8);font-size:36px;font-weight:700;"><span class="cn">省钱</span> · Importar inteligente</div>
+     </div>
+     ${footer(true)}`;}},
+
+ { id:'llego', role:'07 · Llegó tu carga', name:'Llegó tu carga', dark:true, bg:'#0F1E3D',
+   build(){return `
+     <div class="motif" style="opacity:.9;"><img src="${DRAGON}" style="position:absolute;right:-120px;bottom:120px;width:900px;opacity:.16;" alt=""/></div>
+     <div class="vig" style="background:${vignette(true)}"></div>
+     ${photoZone('llego',true,'Foto del contenedor / bodega','position:absolute;left:80px;right:80px;top:760px;height:640px;border-radius:24px;')}
+     <div class="pad">
+       ${lockup(true)}
+       <div style="margin-top:70px;">
+         <div class="eb edit" contenteditable="true" style="color:#C2747F;">Aviso de operación</div>
+         <div class="ttl edit" contenteditable="true" style="color:#fff;font-size:118px;margin-top:18px;">¡Llegó tu carga!</div>
+         <div style="margin-top:26px;display:flex;align-items:center;gap:18px;">
+           <span style="font:700 34px/1 'JetBrains Mono';color:#F2F0EC;background:rgba(242,240,236,.12);padding:14px 24px;border-radius:10px;" class="edit" contenteditable="true">DTD-5532</span>
+           <span class="edit" contenteditable="true" style="color:rgba(242,240,236,.8);font-size:34px;font-weight:700;">Lista para retiro</span>
+         </div>
+       </div>
+     </div>
+     ${footer(true)}`;}},
+
+ { id:'libre', role:'08 · Foto libre', name:'Foto libre', dark:true, bg:'#0F1E3D',
+   build(){return `
+     ${photoZone('libre',true,'Soltá tu foto (pantalla completa)','position:absolute;inset:0;')}
+     <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(15,30,61,.55) 0%, rgba(15,30,61,0) 28%, rgba(15,30,61,0) 60%, rgba(15,30,61,.78) 100%);pointer-events:none;"></div>
+     <div class="motif corners" data-corners="cream" data-top="220"></div>
+     <div class="pad">
+       ${lockup(true)}
+       <div class="edit" contenteditable="true" style="margin-top:auto;margin-bottom:40px;color:#fff;font-family:'Sora';font-weight:800;font-size:72px;letter-spacing:-.02em;max-width:16ch;">Con Confianza, de China a tu puerta.</div>
+     </div>
+     ${footer(true)}`;}},
+];
+
+const stage = document.getElementById('stage');
+// Degradado radial tonal: centro transparente (enfoca el interior) → bordes
+// oscurecidos en el MISMO color del fondo. Solo en fondos oscuros.
+function vigFor(bg){
+  const n=parseInt(bg.slice(1),16); const r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  const f=0.38, er=Math.round(r*f),eg=Math.round(g*f),eb=Math.round(b*f);
+  return `radial-gradient(118% 86% at 50% 40%, rgba(${er},${eg},${eb},0) 24%, rgba(${er},${eg},${eb},.55) 72%, rgba(${er},${eg},${eb},.95) 108%)`;
+}
+T.forEach(t=>{
+  const item=document.createElement('div'); item.className='item';
+  item.innerHTML = `<div class="frame"><div class="art" style="background:${t.bg};">${t.build()}</div></div>
+    <div class="meta"><div class="role">${t.role}</div><div class="nm">${t.name}</div>
+    <div class="row"><button class="btn dl" data-id="${t.id}">Descargar PNG</button><span class="hint">1080×1920 · arrastrá foto + editá texto</span></div></div>`;
+  stage.appendChild(item);
+  if(t.dark){ const v=item.querySelector('.vig'); if(v) v.style.background=vigFor(t.bg); }
+});
+
+// patterned motif layers (set via JS to avoid quote collisions in inline style)
+document.querySelectorAll('.motif[data-pat]').forEach(m=>{
+  const pat=m.getAttribute('data-pat');
+  const stroke=decodeURIComponent(m.getAttribute('data-stroke'));
+  m.style.opacity=m.getAttribute('data-op')||'.1';
+  m.style.backgroundImage = pat==='wave'?wave(stroke):meander(stroke);
+  m.style.backgroundRepeat='repeat';
+  m.style.backgroundSize=m.getAttribute('data-size')||'120px 120px';
+  if(m.getAttribute('data-pos')) m.style.backgroundPosition=m.getAttribute('data-pos');
+});
+
+// corners + clouds decorative layers
+document.querySelectorAll('.motif.corners').forEach(m=>{
+  const c = m.getAttribute('data-corners')==='cream' ? '#F2F0EC' : '#7F0F1A';
+  const op = m.getAttribute('data-corners')==='cream' ? '0.9':'0.8';
+  const top = m.getAttribute('data-top') || '70';
+  const s='position:absolute;width:150px;height:150px;opacity:'+op+';';
+  m.innerHTML =
+    `<div style="${s}top:${top}px;left:70px;">${cornerSVG(c)}</div>`+
+    `<div style="${s}top:${top}px;right:70px;transform:scaleX(-1);">${cornerSVG(c)}</div>`+
+    `<div style="${s}bottom:70px;left:70px;transform:scaleY(-1);">${cornerSVG(c)}</div>`+
+    `<div style="${s}bottom:70px;right:70px;transform:scale(-1,-1);">${cornerSVG(c)}</div>`;
+});
+document.querySelectorAll('.motif.clouds').forEach(m=>{
+  m.style.opacity='.16';
+  m.innerHTML =
+    `<div style="position:absolute;width:340px;top:120px;right:-40px;">${cloudSVG('#F2F0EC')}</div>`+
+    `<div style="position:absolute;width:260px;bottom:520px;left:-30px;">${cloudSVG('#F2F0EC')}</div>`;
+});
+
+// photo wiring (light DOM so html2canvas captures)
+function wirePhotos(){
+  document.querySelectorAll('[data-photo]').forEach(zone=>{
+    const img = zone.querySelector('img');
+    const art = zone.closest('.art');
+    const input = document.createElement('input'); input.type='file'; input.accept='image/*'; input.style.display='none';
+    document.body.appendChild(input);
+    function setFile(f){ if(!f||!f.type.startsWith('image/'))return; const r=new FileReader(); r.onload=e=>{ img.src=e.target.result; img.style.display='block'; zone.classList.add('filled'); zone.querySelector('.ph').style.display='none'; }; r.readAsDataURL(f); }
+    zone.addEventListener('click',()=>input.click());
+    input.addEventListener('change',()=>{ setFile(input.files[0]); input.value=''; });
+    ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();zone.style.outline='3px solid #C2747F';}));
+    ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();zone.style.outline='';}));
+    zone.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]; setFile(f); });
+  });
+}
+wirePhotos();
+
+// herramienta · toggles de pie (web / usuario)
+function applyToggles(){
+  const u=document.getElementById('tgUrl').checked, h=document.getElementById('tgHandle').checked;
+  document.querySelectorAll('.foot .url').forEach(e=>e.style.visibility=u?'visible':'hidden');
+  document.querySelectorAll('.foot .ig').forEach(e=>e.style.visibility=h?'visible':'hidden');
+}
+['tgUrl','tgHandle'].forEach(id=>{const el=document.getElementById(id); if(el) el.addEventListener('change',applyToggles);});
+applyToggles();
+
+// download
+document.querySelectorAll('.btn.dl').forEach(btn=>{
+  btn.addEventListener('click', async ()=>{
+    const id=btn.getAttribute('data-id');
+    const art=[...document.querySelectorAll('.art')].find(a=>a.querySelector(`[data-photo="${id}"]`)) || btn.closest('.item').querySelector('.art');
+    const o=btn.textContent; btn.textContent='Generando…'; btn.disabled=true;
+    const prev=art.style.transform; art.style.transform='none';
+    try{
+      await document.fonts.ready;
+      const canvas=await html2canvas(art,{scale:1,backgroundColor:null,useCORS:true,logging:false,width:1080,height:1920,windowWidth:1080,windowHeight:1920});
+      const a=document.createElement('a'); a.download='DTD-Story-'+id+'.png'; a.href=canvas.toDataURL('image/png'); a.click();
+      btn.textContent=o;
+    }catch(e){ console.error(e); btn.textContent='Error'; setTimeout(()=>btn.textContent=o,1500); }
+    finally{ art.style.transform=prev; btn.disabled=false; }
+  });
+});
+</script>
+</body>
+</html>

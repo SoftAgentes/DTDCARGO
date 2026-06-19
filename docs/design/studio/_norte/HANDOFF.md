@@ -15,11 +15,11 @@
 
 ---
 
-## 🟢 Estado actual · v4.3 (2026-06-14)
+## 🟢 Estado actual · v4.4 (2026-06-19)
 
-> **Versión única del proyecto: v4.3** (2026-06-14). Marca y producto comparten un solo
+> **Versión única del proyecto: v4.4** (2026-06-19). Marca y producto comparten un solo
 > número visible — sidebar del ERP, títulos del Portal y apps de operario, tokens y Brand
-> Book dicen todos **v4.3**. Las menciones a v2.x/v3.x en CHANGELOG y comentarios de código son
+> Book dicen todos **v4.4**. Las menciones a v2.x/v3.x en CHANGELOG y comentarios de código son
 > historia (cuándo se construyó cada cosa) y no se reescriben.
 
 Prototipo funcional de **alta fidelidad** (React in-HTML, sin build). Todo "anda"
@@ -38,7 +38,7 @@ con mock data realista persistida en `localStorage`. **No hay backend todavía.*
 ### Lo que cerró v2.4 (sesión de consolidación)
 1. **Entrypoint único** `DTD Studio · ERP.html` (se eliminó el clon `Nort v2.4`).
 2. **Fuentes de verdad únicas:** assets → `assets/` · tokens → `erp/tokens.css` ·
-   marca → `CLAUDE.md` · Brand Book → `Brand Book DTD v4.3.html`. Se borraron
+   marca → `CLAUDE.md` · Brand Book → `Brand Book DTD v4.4.html`. Se borraron
    snapshots viejos que revertían la migración tipográfica.
    **Regla de sync con Norte:** cada actualización de marca se lleva completa a
    Claude Code; allí se eliminan los brand books anteriores y solo queda la versión
@@ -132,7 +132,7 @@ IVA", desglose de IVA en Facturación. Reactivo vía `dtd-cfg-changed`. En backe
 | `Portal Cliente Mobile.html`, `Mobile ERP.html` | Versiones móviles |
 | `Operario CN/VE/Multi.html`, `Bodeguero VE.html`, `Camionero.html` | Apps de operario |
 | `Despacho · Vista 3.html`, `Mapa de Proceso.html` | Operación / proceso |
-| `Brand Book DTD v4.3.html`, `Logo Oficial.html`, `Iconos de Perfil.html`, `Aplicaciones de Marca.html` | Identidad |
+| `Brand Book DTD v4.4.html`, `Logo Oficial.html`, `Iconos de Perfil.html`, `Aplicaciones de Marca.html` | Identidad |
 | `CLAUDE.md` | **Guardrails de marca — LEER PRIMERO** |
 | `HANDOFF-MOBILE.md` | **Paquete completo del teléfono** — auth, ruteo por rol, sesión, multi-rol, offline, endpoints |
 | `Login y Sesión · Operario.html` | Spec visual de la lógica de sesión (6 estados) |
