@@ -272,12 +272,12 @@
         <div class="notes">
           <h4><span class="zh">入仓注意事项</span> · Reglas de ingreso a bodega</h4>
           <ol>
-            <li><b>1.</b> <span class="zh">发货前确认已建 DTD 微信群并确认唛头，未确认不得发货。</span> Antes de enviar, confirmá el grupo WeChat de DTD y el Shipping Mark. Contacto: <b id="rule-contact">—</b>. Sin confirmar, no despachar.</li>
-            <li><b>2.</b> <span class="zh">每件外箱须贴客户唛头，无唛头仓库拒收。</span> Cada caja debe llevar pegado el Shipping Mark del cliente. Sin Shipping Mark, la bodega rechaza la carga.</li>
-            <li><b>3.</b> <span class="zh">发货前填写此单并发到群里。</span> Llená este documento antes de enviar y compartilo en el grupo.</li>
+            <li><b>1.</b> <span class="zh">每个箱子写客户唛头；无唛头不收货。</span> Marca cada caja con el Shipping Mark del cliente. Sin Shipping Mark, la bodega no recibe la carga.</li>
+            <li><b>2.</b> <span class="zh">发货前填写本单，随货发送，或在你的 DTD 链接上传。</span> Llena este documento antes de enviar y mándalo con la carga, o súbelo en tu link de DTD.</li>
+            <li><b>3.</b> <span class="zh">品牌货请如实填写品牌名；否则填"无"。</span> Si la mercancía es de marca, declara la marca real; si no, escribe "无 / ninguna". Ocultar la marca es riesgo en aduana a cargo del proveedor.</li>
             <li><b>4.</b> <span class="zh">卸货由供应商安排并承担费用。</span> La descarga la organiza y paga el proveedor (si la hace nuestra bodega, se cobra por volumen/peso).</li>
-            <li><b>5.</b> <span class="zh">货物如为品牌货，请如实填写品牌名；否则填"无"。</span> Si la mercancía es de marca, declará la marca real; si no, escribí "无 / ninguna". Ocultar marca = riesgo en aduana a cargo del proveedor.</li>
-            <li><b>6.</b> <span class="zh">违禁品、危险品禁止入仓。</span> Prohibido el ingreso de mercancía peligrosa o restringida.</li>
+            <li><b>5.</b> <span class="zh">违禁品、危险品禁止入仓。</span> Prohibido enviar mercancía peligrosa o restringida.</li>
+            <li><b>6.</b> <span class="zh">中国联系人（如有疑问）：</span> Contacto en China (dudas): <b id="rule-contact">—</b> · WeChat DTDLogistic.</li>
           </ol>
         </div>
         <div class="smark">
@@ -295,7 +295,7 @@
         </div>
       </div>
 
-      <!-- contact fields (editable, used by rule 1) -->
+      <!-- contact fields (editable) → alimentan #rule-contact de la regla de contacto -->
       <div style="display:flex;gap:14px;margin-top:14px;flex-wrap:wrap" class="contact-edit">
         <label style="font:600 10px var(--f-sans);color:var(--ink-mute)">仓库联系人 / Contacto bodega
           <input id="f-contacto" style="display:block;border:1px solid var(--border);border-radius:5px;padding:6px 9px;font:600 12px var(--f-sans);margin-top:3px;min-width:180px">
