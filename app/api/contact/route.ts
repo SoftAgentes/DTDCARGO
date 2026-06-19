@@ -4,6 +4,7 @@ import { resolveRequestIp } from "@/lib/http/request-ip";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { CONTACT } from "@/lib/design-tokens";
 import { apiError } from "@/lib/http/api-error";
+import { readJsonBody } from "@/lib/http/read-json-body";
 import { notifyContactLeadToAdmin } from "@/lib/studio/contact-lead-notify";
 
 export const runtime = "nodejs";
@@ -75,12 +76,16 @@ function isEmail(s: string): boolean {
 }
 
 export async function POST(req: NextRequest) {
-  let body: ContactBody;
-  try {
-    body = (await req.json()) as ContactBody;
-  } catch {
-    return apiError("Solicitud inválida.", "json parse", 400, "contact");
+  const parsed = await readJsonBody<ContactBody>(req);
+  if (!parsed.ok) {
+    return apiError(
+      parsed.status === 413 ? "Solicitud demasiado grande." : "Solicitud inválida.",
+      parsed.status === 413 ? "body too large" : "json parse",
+      parsed.status,
+      "contact",
+    );
   }
+  const body = parsed.body;
 
   // Honeypot: si el campo trampa llega no-vacío, es un bot → respuesta genérica
   // ok SIN enviar nada (no revela la trampa).

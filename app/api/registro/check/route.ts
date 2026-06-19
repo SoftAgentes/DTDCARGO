@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { resolveRequestIp } from "@/lib/http/request-ip";
 import { apiError } from "@/lib/http/api-error";
+import { readJsonBody } from "@/lib/http/read-json-body";
 import { normalizeDocument, type ClientKind } from "@/lib/portal/register-types";
 
 export const runtime = "nodejs";
@@ -39,12 +40,16 @@ const RL_WINDOW_MINUTES = 60;
 type CheckBody = { kind?: string; document?: string };
 
 export async function POST(req: NextRequest) {
-  let body: CheckBody;
-  try {
-    body = (await req.json()) as CheckBody;
-  } catch {
-    return apiError("Solicitud inválida.", "json parse", 400, "registro-check");
+  const parsed = await readJsonBody<CheckBody>(req);
+  if (!parsed.ok) {
+    return apiError(
+      parsed.status === 413 ? "Solicitud demasiado grande." : "Solicitud inválida.",
+      parsed.status === 413 ? "body too large" : "json parse",
+      parsed.status,
+      "registro-check",
+    );
   }
+  const body = parsed.body;
 
   const kind: ClientKind = body.kind === "empresa" ? "empresa" : "persona";
   const raw = String(body.document ?? "").trim();

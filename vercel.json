@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/searates-refresh",
       "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/purge-throttle",
+      "schedule": "0 4 * * *"
     }
   ]
 }
