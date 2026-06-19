@@ -4,10 +4,38 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Packing List + Factura · DTD-Cargo · 装箱单+发票</title>
-<link rel="stylesheet" href="../erp/tokens.css">
+<!-- Tokens del Norte (Brand Book v4.3) inlineados en el <style> de abajo, para que
+     este HTML se vea COMPLETO abierto suelto (sin depender de ../erp/tokens.css, que
+     no carga si descargás solo el .html). Si cambian los tokens del Norte, re-sincronizar. -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
+  /* Tokens del Norte (Brand Book v4.3) — inlineados para abrir el HTML suelto. */
+  :root {
+    --wine: #7F0F1A; --wine-deep: #5E0A12; --wine-soft: #C2747F;
+    --wine-tint: rgba(127,15,26,0.08); --wine-bg: rgba(127,15,26,0.08);
+    --bg-base: #FBFAF7; --bg-surface: #FFFFFF; --bg-elevated: #F2F0EC; --bg-sidebar: #0F1E3D;
+    --ink: #0F1E3D; --ink-soft: #6B6B6B; --ink-mute: #9B9B9B;
+    --border: #E8E6E2; --border-strong: #D8D4CE;
+    --success: #1F8A5B; --success-bg: rgba(31,138,91,0.10);
+    --warning: #B8893A; --warning-bg: rgba(184,137,58,0.12);
+    --danger: #A8323E; --danger-bg: rgba(168,50,62,0.10);
+    --info: #2A6FDB; --info-bg: rgba(42,111,219,0.10);
+    --neutral: #6B6B6B; --neutral-bg: rgba(107,107,107,0.10);
+    --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 20px; --s-6: 24px;
+    --s-8: 32px; --s-10: 40px; --s-12: 48px; --s-16: 64px;
+    --r-xs: 3px; --r-sm: 5px; --r-md: 7px; --r-lg: 10px; --r-xl: 14px; --r-pill: 999px;
+    --shadow-sm: 0 1px 3px rgba(15,30,61,0.06), 0 1px 2px rgba(15,30,61,0.04);
+    --shadow-md: 0 2px 6px rgba(15,30,61,0.06), 0 8px 16px rgba(15,30,61,0.08);
+    --shadow-lg: 0 4px 12px rgba(15,30,61,0.10), 0 12px 32px rgba(15,30,61,0.12);
+    --f-sans: 'Nunito Sans', system-ui, -apple-system, sans-serif;
+    --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+    --f-display: 'Sora', 'Nunito Sans', sans-serif;
+    --f-cn: 'Noto Sans SC', 'Nunito Sans', sans-serif;
+    --f-brand: 'Archivo', system-ui, sans-serif;
+    --f-brand-display: 'Archivo Black', 'Archivo', sans-serif;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1); --dur: 180ms;
+  }
   html, body { margin: 0; background: var(--bg-elevated); color: var(--ink); font-family: var(--f-sans); }
   .zh { font-family: 'Noto Sans SC', var(--f-sans); }
 
