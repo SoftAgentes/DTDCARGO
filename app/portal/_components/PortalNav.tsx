@@ -5,11 +5,11 @@ import { usePathname } from "next/navigation";
 
 /**
  * Navegación del portal autenticado (client — estado activo por `usePathname`).
- * Inicio · Mis envíos · Estimados · Compras · Facturas · Documentos · Referidos · Mensajes · Cuenta.
+ * Inicio · Mis envíos · Compras · Finanzas · Documentos · Referidos · Academia · Mensajes · Cuenta.
  * Etiquetas cortas para que entren en mobile sin romper el header de 68px.
- * "Compras" (SDD-0057) cubre Tus proveedores + Mis compras. "Referidos" = cara
- * cliente de SDD-0051 (Fidelización). ("Soporte" del Norte sigue como slice futuro
- * — hoy lo cubre "Mensajes".)
+ * "Compras" (SDD-0057) cubre Tus proveedores + Mis compras. "Finanzas" (founder
+ * 2026-06-20) es el hub que agrupa Estimados + Facturas + Cotizaciones (las dos
+ * primeras salieron del top-level). "Referidos" = cara cliente de SDD-0051.
  */
 const LINKS: {
   href: string;
@@ -27,20 +27,20 @@ const LINKS: {
     match: (p) => p.startsWith("/portal/envios"),
   },
   {
-    href: "/portal/estimados",
-    label: "Estimados",
-    match: (p) => p.startsWith("/portal/estimados"),
-  },
-  {
     href: "/portal/proveedores",
     label: "Compras",
     match: (p) =>
       p.startsWith("/portal/proveedores") || p.startsWith("/portal/compras"),
   },
   {
-    href: "/portal/facturas",
-    label: "Facturas",
-    match: (p) => p.startsWith("/portal/facturas"),
+    href: "/portal/finanzas",
+    label: "Finanzas",
+    // Hub: activo también en sus sub-secciones (Estimados, Facturas), que ya no
+    // están en el top-level pero viven bajo Finanzas.
+    match: (p) =>
+      p.startsWith("/portal/finanzas") ||
+      p.startsWith("/portal/estimados") ||
+      p.startsWith("/portal/facturas"),
   },
   {
     href: "/portal/documentos",
