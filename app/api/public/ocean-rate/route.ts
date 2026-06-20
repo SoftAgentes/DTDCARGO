@@ -18,16 +18,24 @@ import {
   OCEAN_RATE_DISCLAIMER,
 } from "@/lib/shared/ocean-rate";
 import { getPublicOceanRate } from "@/lib/public/ocean-rates-public";
+import { readJsonBody } from "@/lib/http/read-json-body";
 
 export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
-  let body: Record<string, unknown>;
-  try {
-    body = (await req.json()) as Record<string, unknown>;
-  } catch {
-    return NextResponse.json({ error: "Cuerpo de la solicitud inválido." }, { status: 400 });
+  const parsed = await readJsonBody<Record<string, unknown>>(req);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      {
+        error:
+          parsed.status === 413
+            ? "La solicitud es demasiado grande."
+            : "Cuerpo de la solicitud inválido.",
+      },
+      { status: parsed.status },
+    );
   }
+  const body = parsed.body;
 
   // Candado de país + forma (lógica pura, boundary-safe).
   const { input, fieldErrors } = validateOceanRouteInput(body);

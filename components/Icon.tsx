@@ -143,6 +143,17 @@ export function ShieldIcon({ className, size = 28 }: IconProps) {
   );
 }
 
+/** Persona — cabeza + hombros. Para el selector persona natural / empresa del
+ *  registro (par con ShieldIcon). */
+export function UserIcon({ className, size = 28 }: IconProps) {
+  return (
+    <svg viewBox="0 0 32 32" width={size} height={size} {...base} strokeWidth={1.6} className={className}>
+      <circle cx="16" cy="11" r="5" />
+      <path d="M7 27c0-5 4-8 9-8s9 3 9 8" />
+    </svg>
+  );
+}
+
 export function StampIcon({ className, size = 28 }: IconProps) {
   return (
     <svg viewBox="0 0 32 32" width={size} height={size} {...base} strokeWidth={1.6} className={className}>

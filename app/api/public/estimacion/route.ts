@@ -20,6 +20,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { apiError } from "@/lib/http/api-error";
+import { readJsonBody } from "@/lib/http/read-json-body";
 import { resolveRequestIp } from "@/lib/http/request-ip";
 import {
   validateEstimadoInput,
@@ -40,12 +41,19 @@ const RL_LIMIT = 12; // estimados por IP por ventana
 const RL_WINDOW_MINUTES = 60;
 
 export async function POST(req: NextRequest) {
-  let payload: Partial<EstimadoWebPayload>;
-  try {
-    payload = (await req.json()) as Partial<EstimadoWebPayload>;
-  } catch {
-    return NextResponse.json({ error: "Cuerpo de la solicitud inválido." }, { status: 400 });
+  const parsed = await readJsonBody<Partial<EstimadoWebPayload>>(req);
+  if (!parsed.ok) {
+    return NextResponse.json(
+      {
+        error:
+          parsed.status === 413
+            ? "La solicitud es demasiado grande."
+            : "Cuerpo de la solicitud inválido.",
+      },
+      { status: parsed.status },
+    );
   }
+  const payload = parsed.body;
 
   // 1. Validar + normalizar (lógica pura).
   const { input, fieldErrors } = validateEstimadoInput(payload);
