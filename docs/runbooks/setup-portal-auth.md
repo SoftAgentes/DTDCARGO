@@ -77,7 +77,7 @@ Auth → settings → **SMTP Settings** → Enable Custom SMTP:
 | Port | `465` (SSL) ó `587` (STARTTLS) |
 | Username | `resend` |
 | Password | la **Resend API key** (la misma `RESEND_API_KEY` de Vercel) |
-| Sender email | `no-reply@dtdcargo.com` (dominio verificado en Resend) |
+| Sender email | `no-responder@dtdcargo.com` (cualquier `@dtdcargo.com`; dominio verificado en Resend) |
 | Sender name | `DTD Cargo` |
 
 > Sin SMTP custom el portal "anda" pero se queda sin mails apenas 2-3 clientes
@@ -114,3 +114,66 @@ solo anti-abuso.
 - **Loguea pero lo saca enseguida** → el vínculo `portal_bind_session` no
   encontró `client_users` para ese auth user; el email del magic-link debe
   coincidir (case-insensitive) con el de `client_users`.
+
+## Plantillas de email branded (Auth · referencia versionada)
+
+Las plantillas de **Supabase Auth** se editan a mano en el dashboard
+(**Auth → Email Templates**) — **no** viven en `mail_templates` (esas son las del
+Studio, vía Resend API). Acá quedan versionadas para no depender solo del
+dashboard. Mismo molde que `welcome_markbox` (`0120`): **Archivo · navy `#0F1E3D` ·
+papel `#FBFAF7` · acento wine `#7F0F1A` · cierre "Con Confianza"**.
+
+> **Regla:** conservar **`{{ .ConfirmationURL }}`** tal cual (sintaxis Go de Auth,
+> distinta del `{{var}}` del Studio). Auth no conoce el nombre del cliente en estos
+> correos → saludo genérico (sin `client_name`).
+
+### Magic Link · subject `Tu enlace de acceso al portal · DTD Cargo`
+
+```html
+<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
+<p style="font-size:16px;margin:0 0 12px"><b>Tu enlace de acceso</b></p>
+<p style="margin:0 0 16px">Haz clic en el botón para entrar a tu portal de DTD Cargo. El enlace caduca pronto y se usa una sola vez.</p>
+<p style="margin:0 0 20px">
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Acceder a mi portal</a>
+</p>
+<p style="margin:0 0 8px;color:#6B6B6B;font-size:13px">Si el botón no funciona, copia y pega este enlace:</p>
+<p style="margin:0 0 16px"><a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline;font-size:13px;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No pediste esto? Ignora este correo, tu cuenta sigue segura.</p>
+<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
+<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
+</div>
+```
+
+### Confirm signup · subject `Confirma tu cuenta · DTD Cargo`
+
+```html
+<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
+<p style="font-size:16px;margin:0 0 12px"><b>Confirma tu cuenta</b></p>
+<p style="margin:0 0 16px">Gracias por registrarte en DTD Cargo. Confirma tu correo para activar tu acceso al portal de clientes.</p>
+<p style="margin:0 0 20px">
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Confirmar mi cuenta</a>
+</p>
+<p style="margin:0 0 8px;color:#6B6B6B;font-size:13px">Si el botón no funciona, copia y pega este enlace:</p>
+<p style="margin:0 0 16px"><a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline;font-size:13px;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No fuiste tú? Ignora este correo.</p>
+<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
+<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
+</div>
+```
+
+### Invite user · subject `Te damos acceso a tu portal · DTD Cargo`
+
+```html
+<div style="font-family:Archivo,system-ui,sans-serif;color:#0F1E3D;max-width:560px;padding:24px;background:#FBFAF7">
+<p style="font-size:16px;margin:0 0 12px"><b>Te damos acceso a tu portal</b></p>
+<p style="margin:0 0 16px">Tu asesor de DTD Cargo te habilitó el portal de clientes. Entra para ver tus envíos, facturas y tu Shipping Mark.</p>
+<p style="margin:0 0 20px">
+  <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#7F0F1A;color:#FFFFFF;text-decoration:none;padding:12px 28px;border-radius:7px;font-weight:700;font-size:15px">Entrar a mi portal</a>
+</p>
+<p style="margin:0 0 8px;color:#6B6B6B;font-size:13px">Si el botón no funciona, copia y pega este enlace:</p>
+<p style="margin:0 0 16px"><a href="{{ .ConfirmationURL }}" style="color:#7F0F1A;text-decoration:underline;font-size:13px;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+<p style="margin:0 0 12px;color:#6B6B6B;font-size:13px">¿No esperabas esto? Escríbenos antes de entrar.</p>
+<hr style="border:0;border-top:1px solid #E8E6E2;margin:24px 0">
+<p style="color:#6B6B6B;font-size:12px;margin:0">DTD Cargo · Con Confianza, de China a tu puerta.</p>
+</div>
+```
