@@ -11,13 +11,24 @@ const ACCEPT = "image/*,.xlsx,.xls,.csv,.pdf,.doc,.docx";
 type UploadState =
   | { kind: "idle" }
   | { kind: "sending" }
-  | { kind: "ok"; uploaded: number }
+  | { kind: "ok"; uploaded: number; photos: number; docs: number }
   | { kind: "error"; message: string };
 
 function fmtSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * Reparte los archivos elegidos en imágenes (fotos de producto) vs documentos,
+ * por MIME — igual que `renderFiles` del mockup del Norte (packlist.js). Alimenta
+ * el contador "N 附件 · Y doc · Z 📷".
+ */
+function countFiles(files: File[]): { total: number; photos: number; docs: number } {
+  let photos = 0;
+  for (const f of files) if (f.type.startsWith("image/")) photos += 1;
+  return { total: files.length, photos, docs: files.length - photos };
 }
 
 /**
@@ -54,6 +65,8 @@ export function SupplierUploadSection({ token }: { token: string }) {
 
   async function handleUpload() {
     if (files.length === 0) return;
+    // Snapshot del desglose foto/doc ANTES de limpiar, para el contador de éxito.
+    const picked = countFiles(files);
     setState({ kind: "sending" });
     try {
       const fd = new FormData();
@@ -73,7 +86,12 @@ export function SupplierUploadSection({ token }: { token: string }) {
       }
 
       if (res.ok && data.ok) {
-        setState({ kind: "ok", uploaded: data.uploaded ?? files.length });
+        setState({
+          kind: "ok",
+          uploaded: data.uploaded ?? picked.total,
+          photos: picked.photos,
+          docs: picked.docs,
+        });
         clearInput();
         return;
       }
@@ -115,11 +133,12 @@ export function SupplierUploadSection({ token }: { token: string }) {
         className="mt-1.5 text-[12.5px] text-grey-700 leading-[1.55] max-w-[58ch]"
         lang="zh"
       >
-        上传产品照片，以及贵公司的原始单据（商业发票和装箱单原件）。如在线填写有问题，也可在此上传填好的 Excel。
+        上传产品照片，以及贵公司的原始单据（商业发票和装箱单原件），以便识别货物并在海关进行归类。如在线填写有问题，也可在此上传填好的 Excel。
         <span lang="es" className="block text-grey-500 mt-1">
-          Sube fotos de tus productos y los documentos originales de tu empresa
-          (tu factura comercial y tu packing list originales). Si tuviste
-          problemas online, también puedes subir aquí el Excel llenado.
+          Sube los documentos originales de tu empresa (tu factura comercial y tu
+          packing list originales) y fotos de tus productos, para poder
+          identificarlos y codificarlos en aduana. Si tuviste problemas online,
+          también puedes subir aquí el Excel llenado.
         </span>
       </p>
 
@@ -127,6 +146,7 @@ export function SupplierUploadSection({ token }: { token: string }) {
         <label
           htmlFor="supplier-files"
           className="btn btn-ghost cursor-pointer inline-flex items-center gap-2"
+          title="上传发票、装箱单、Excel及产品照片，以便识别货物并进行报关归类。 · Adjunta tu factura, packing list y Excel, y fotos de los productos (para identificarlos y codificarlos en aduana)."
         >
           选择文件 · Elegir archivos
           <input
@@ -140,6 +160,7 @@ export function SupplierUploadSection({ token }: { token: string }) {
             className="sr-only"
           />
         </label>
+        {files.length > 0 && <FileCounter files={files} />}
         {files.length > 0 && (
           <button
             type="button"
@@ -175,14 +196,17 @@ export function SupplierUploadSection({ token }: { token: string }) {
         className="outline-none"
       >
         {state.kind === "ok" && (
-          <div className="mt-4 flex items-center gap-2 text-[13px] font-semibold text-ink">
-            <CheckIcon size={15} />
-            <span lang="zh">
-              已上传 {state.uploaded} 个文件 ·{" "}
-              <span lang="es" className="font-semibold">
-                Subimos {state.uploaded} archivo{state.uploaded === 1 ? "" : "s"}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+              <CheckIcon size={15} />
+              <span lang="zh">
+                已上传 {state.uploaded} 个文件 ·{" "}
+                <span lang="es" className="font-semibold">
+                  Subimos {state.uploaded} archivo{state.uploaded === 1 ? "" : "s"}
+                </span>
               </span>
-            </span>
+            </div>
+            <CountBadge total={state.uploaded} photos={state.photos} docs={state.docs} />
           </div>
         )}
         {state.kind === "error" && (
@@ -201,5 +225,44 @@ export function SupplierUploadSection({ token }: { token: string }) {
         {sending ? "上传中… · Subiendo…" : "上传 · Subir"}
       </button>
     </section>
+  );
+}
+
+/** Badge contador a partir de la selección actual (deriva foto/doc por MIME). */
+function FileCounter({ files }: { files: File[] }) {
+  const { total, photos, docs } = countFiles(files);
+  return <CountBadge total={total} photos={photos} docs={docs} />;
+}
+
+/**
+ * Pastilla "N 附件 · Y doc · Z 📷" (foto = 📷, resto = doc), como el v4.4. El 📷
+ * es FUNCIONAL (marca la categoría foto), no decorativo. Solo tokens de marca.
+ */
+function CountBadge({
+  total,
+  photos,
+  docs,
+}: {
+  total: number;
+  photos: number;
+  docs: number;
+}) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full border border-grey-200 bg-grey-100 px-2.5 py-1 text-[11.5px] font-semibold text-grey-700"
+      lang="zh"
+      aria-label={`${total} 附件 · ${docs} documento${docs === 1 ? "" : "s"} · ${photos} foto${photos === 1 ? "" : "s"}`}
+    >
+      <span className="text-ink">{total}</span>
+      <span>附件</span>
+      <span className="text-grey-300" aria-hidden>
+        ·
+      </span>
+      <span>{docs} doc</span>
+      <span className="text-grey-300" aria-hidden>
+        ·
+      </span>
+      <span>{photos} 📷</span>
+    </span>
   );
 }

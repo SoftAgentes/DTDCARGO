@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { CheckIcon, DownloadIcon } from "@/components/Icon";
 import { CONTACT } from "@/lib/design-tokens";
 import type { BoxLabel } from "@/lib/studio/prealertas/types";
@@ -170,7 +171,12 @@ export function ProviderShareClient({
         {/* Grilla de etiquetas (pantalla + impresión) */}
         <div className="labels-print-area mt-5 grid grid-cols-2 sm:grid-cols-3 gap-3">
           {labels.map((l) => (
-            <LabelCard key={l.boxN} label={l} clientName={clientName ?? markbox} />
+            <LabelCard
+              key={l.boxN}
+              label={l}
+              clientName={clientName ?? markbox}
+              markbox={markbox}
+            />
           ))}
         </div>
 
@@ -249,13 +255,23 @@ function StepEyebrow({ n, zh, es }: { n: number; zh: string; es: string }) {
   );
 }
 
+// Base pública para el QR de verificación. Igual que el mockup del Norte
+// (packlist.js · qrSvg → "https://dtdcargo.com/verificar?c=" + mark). La página
+// /verificar está fuera de alcance; el QR solo tiene que ser escaneable.
+const VERIFY_BASE =
+  process.env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com";
+
 function LabelCard({
   label,
   clientName,
+  markbox,
 }: {
   label: BoxLabel;
   clientName: string;
+  markbox: string;
 }) {
+  // Una etiqueta por caja; todas apuntan al mismo MARK del cliente.
+  const verifyUrl = `${VERIFY_BASE}/verificar?c=${encodeURIComponent(markbox)}`;
   return (
     <div
       className="label-card bg-white border rounded-[10px] p-4 text-center"
@@ -267,23 +283,15 @@ function LabelCard({
       >
         Shipping to DTD-Cargo
       </div>
-      <div
-        aria-hidden
-        className="mx-auto my-3 grid place-items-center"
-        style={{
-          width: 56,
-          height: 56,
-          background: "var(--color-grey-100)",
-          border: "1px solid var(--color-grey-200)",
-          borderRadius: 6,
-        }}
-      >
-        <span
-          className="text-[7px] font-bold tracking-[0.1em] uppercase"
-          style={{ color: "var(--color-grey-300)" }}
-        >
-          QR
-        </span>
+      <div className="mx-auto my-3 grid place-items-center" style={{ width: 56, height: 56 }}>
+        <QRCodeSVG
+          value={verifyUrl}
+          size={56}
+          fgColor="#0F1E3D"
+          bgColor="#ffffff"
+          level="M"
+          aria-label={`Verificar ${markbox}`}
+        />
       </div>
       <div
         className="text-[12px] font-bold"
