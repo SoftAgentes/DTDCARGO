@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { HERO, buildWhatsAppLink } from "@/lib/design-tokens";
-import { ArrowIcon, WhatsAppIcon } from "./Icon";
+import { HERO } from "@/lib/design-tokens";
+import { ArrowIcon } from "./Icon";
 import { CicloCliente } from "./CicloCliente";
 
 /**
@@ -47,29 +47,33 @@ export function Hero() {
             {HERO.subtitle}
           </p>
 
-          {/* CTA único: primario → /calculadora (estimación al instante); WhatsApp secundario. */}
+          {/* CTA único → /calculadora (estimación al instante). El botón "Cotizar
+              por WhatsApp" se retiró (founder 2026-06-20): la calculadora es el
+              único camino primario. El botón se alarga y suma "Calculadora" como
+              sub-rótulo (el destino real del CTA). */}
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/calculadora"
               className="btn btn-primary"
-              style={{ height: 54, padding: "0 26px", fontSize: 16 }}
+              style={{
+                width: "100%",
+                maxWidth: 420,
+                height: 62,
+                padding: "0 26px",
+                flexDirection: "column",
+                gap: 3,
+                lineHeight: 1.1,
+              }}
             >
-              Cotizar mi envío <ArrowIcon />
+              <span
+                style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 16 }}
+              >
+                Cotizar mi envío <ArrowIcon />
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 500, opacity: 0.82 }}>
+                Calculadora
+              </span>
             </Link>
-            <a
-              href={buildWhatsAppLink(
-                "Hola DTD Cargo, quiero cotizar un envío de China a Venezuela. ¿Cuál es la tarifa por CBM?"
-              )}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn-ghost"
-              style={{ height: 54 }}
-            >
-              <span style={{ color: "var(--color-whatsapp)" }}>
-                <WhatsAppIcon size={18} />
-              </span>{" "}
-              Cotizar por WhatsApp
-            </a>
           </div>
 
           {/* Microcopy: explica puerta a puerta y deja DDP como aclaración */}
