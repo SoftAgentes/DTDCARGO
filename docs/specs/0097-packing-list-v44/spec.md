@@ -97,6 +97,10 @@ documento. Autoguardado e historial = **localStorage** (cliente). El SUBMIT sigu
 
 Slices **A · B · C · D** implementados en `feat/packlist-v44` (commits `1e429d5` · `b58befd` · `17db4e1c`;
 D dentro de A) + **diferidas cerradas**: `/verificar` real (destino del QR) + número de las reglas de
-bodega en **wine**. **Sin push, sin merge.** Pendiente coordinación: merge + push. Founder: confirmar los
-datos de bodega v4.4 (empresa CN, `candywu@ywlgcanopy.com`, fijo 0579) como canónicos en `CONTACT.cn`;
-server-persist de dirección/ciudad = follow-up.
+bodega en **wine**. **Sin push, sin merge.** Pendiente coordinación: merge + push.
+
+**Datos de bodega v4.4 confirmados por el founder (2026-06-20):** se mantiene el **split de contacto** —
+**林冠** (Lin Guan, encargado de bodega · recepción) + **吴小姐 / Candy Wu** (coordinación + WeChat
+`DTDLogistic`); email de recepción `candywu@ywlgcanopy.com`, fijo `+86 579 8543 1781` y móvil `+86 186 0689
+1419` ("186 siempre") canónicos en `CONTACT.cn` (se corrigió `phoneLandlineRaw`, que tenía un espacio).
+Founder pendiente: server-persist de dirección/ciudad = follow-up.

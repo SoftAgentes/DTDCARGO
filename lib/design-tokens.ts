@@ -244,7 +244,7 @@ export const CONTACT = {
     phoneCjk: "18606891419",
     /** Fijo de bodega (Yiwu) · formato internacional para tel: link (NORTE-SYNC v4.4 · packlist). */
     phoneLandline: "+86 579 8543 1781",
-    phoneLandlineRaw: "+865798543 1781",
+    phoneLandlineRaw: "+8657985431781",
     /** Horario en español (corregido a 17:30 según brand book). */
     hours: "Lun a Sáb · 9:00 – 17:30 (GMT+8)",
     /** Horario en chino — para el clip de WeChat. */
