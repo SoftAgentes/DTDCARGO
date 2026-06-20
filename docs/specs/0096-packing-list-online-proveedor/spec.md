@@ -42,6 +42,7 @@ Tres gaps:
 | Formato imprimible | **1 página A4** horizontal (compacto); auto-totales + agregar **1 o 5** filas + lógica por fila. |
 | Plantilla Excel | **Regenerada branded** (wine `#7F0F1A` / navy `#0F1E3D` / cream), reemplaza la off-brand; fit a **1 página**; moneda **USD/RMB/EUR** editable. |
 | Notas del Excel | **Tuteo venezolano, método nuevo** — sin grupo WeChat obligatorio: marca cada caja con el Shipping Mark + declara la marca real. |
+| Export / formato (reconciliación 2026-06-19) | **Excel (SheetJS) es el canónico** (confirmado founder). El prototipo del Norte v4.4 traía además export **PDF/imprimir + etiquetas Shipping Mark por cartón**; el **PDF queda superseded por el Excel**, y las **etiquetas por cartón = mejora futura** (no shippeada). El `_norte/packlist` se realinea a Excel en el próximo NORTE-SYNC (no se edita el prototipo a mano — gobernanza). |
 
 ## 4. Modelo de datos (migr `0147_supplier_packing_uploads.sql` — NO a prod desde acá)
 
