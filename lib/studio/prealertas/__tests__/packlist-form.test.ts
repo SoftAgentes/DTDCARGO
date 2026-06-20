@@ -139,6 +139,27 @@ describe("validatePackingListInput", () => {
     expect(input!.supplierEmail).toBe("prov@example.com");
   });
 
+  it("dirección + ciudad del proveedor se sanean y viajan en el input (SDD-0097)", () => {
+    const { input } = validatePackingListInput({
+      supplierEmail: "p@e.com",
+      supplierAddress: "  浙江省义乌市 XX路 123号  ",
+      supplierCity: "  义乌市  ",
+      rows: [okRow],
+    });
+    expect(input).toBeDefined();
+    expect(input!.supplierAddress).toBe("浙江省义乌市 XX路 123号"); // trim
+    expect(input!.supplierCity).toBe("义乌市");
+  });
+
+  it("sin dirección/ciudad → null (opcionales, no rompen)", () => {
+    const { input } = validatePackingListInput({
+      supplierEmail: "p@e.com",
+      rows: [okRow],
+    });
+    expect(input!.supplierAddress).toBeNull();
+    expect(input!.supplierCity).toBeNull();
+  });
+
   it("sin ningún contacto → fieldErrors.contacto", () => {
     const { input, fieldErrors } = validatePackingListInput({ rows: [okRow] });
     expect(input).toBeUndefined();

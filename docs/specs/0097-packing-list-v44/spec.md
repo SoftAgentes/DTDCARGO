@@ -47,7 +47,8 @@ el **SUBMIT versionado server-side de SDD-0096 se mantiene intacto** (mismo payl
 - **Reglas de bodega** (método nuevo, sin grupo WeChat) + **footer "收货信息"** con Copiar (empresa CN +
   林冠 + `candywu@ywlgcanopy.com`, en `CONTACT.cn`).
 - **Excel template** (`scripts/build-packlist-template.mjs`) al layout v4.4 (prefill C5/C6/C7/C8/I3 intacto).
-- Dirección/ciudad van en el documento + localStorage; **no** se persisten server-side en V1 (follow-up).
+- Dirección/ciudad del proveedor **se persisten server-side** (migr **0148**): viajan en el POST → snapshot
+  en `packing_list_submissions` (params trailing `default null` → backward-compatible con el submit de 0096).
 
 ### Slice B — Caja Padre (agrupar ítems en una caja)
 - El botón "+" de una fila agrega un sub-ítem `{ same:true, qtyDirect }` en la **misma caja**. La fila
@@ -79,9 +80,13 @@ el **SUBMIT versionado server-side de SDD-0096 se mantiene intacto** (mismo payl
 
 ## 4. Modelo de datos
 
-**Sin migración.** `same`/`qtyDirect` (Caja Padre) y dirección/ciudad van en el `rows` JSONB / el
-documento. Autoguardado e historial = **localStorage** (cliente). El SUBMIT sigue usando la tabla
-`packing_list_submissions` + RPC `submit_packing_list` de **migr 0147** (SDD-0096) sin cambios.
+**Migr `0148_packing_list_supplier_address.sql`** (aditiva, ARCHIVO): agrega `supplier_address` +
+`supplier_city` (nullable) a `packing_list_submissions` y extiende `submit_packing_list` (0147) con 2 params
+**trailing `default null`** → DROP+CREATE pero **backward-compatible** (los callers de 0096 con 19 args con
+nombre siguen resolviendo contra la función nueva; cero-downtime sea cual sea el orden migración↔deploy),
+re-aplicando el hardening de grants (revoke public/anon/authenticated; grant solo service_role) sobre la
+firma nueva (21 types). Lo demás **sin migración**: `same`/`qtyDirect` (Caja Padre) en el `rows` JSONB;
+autoguardado/historial = **localStorage** (cliente).
 
 ## 5. Verificación
 
@@ -96,11 +101,13 @@ documento. Autoguardado e historial = **localStorage** (cliente). El SUBMIT sigu
 ## 6. Estado
 
 Slices **A · B · C · D** implementados en `feat/packlist-v44` (commits `1e429d5` · `b58befd` · `17db4e1c`;
-D dentro de A) + **diferidas cerradas**: `/verificar` real (destino del QR) + número de las reglas de
-bodega en **wine**. **Sin push, sin merge.** Pendiente coordinación: merge + push.
+D dentro de A) + **diferidas cerradas**: `/verificar` real (destino del QR), número de las reglas de bodega
+en **wine** y **server-persist de dirección/ciudad** (migr 0148). **Sin push, sin merge.** Pendiente
+coordinación: **aplicar migr 0148** + merge + push. ⚠️ La migr es backward-compatible → **migración-primero
+= cero-downtime**; el único orden inseguro es desplegar el código nuevo (21 args) antes de aplicar 0148.
 
 **Datos de bodega v4.4 confirmados por el founder (2026-06-20):** se mantiene el **split de contacto** —
 **林冠** (Lin Guan, encargado de bodega · recepción) + **吴小姐 / Candy Wu** (coordinación + WeChat
 `DTDLogistic`); email de recepción `candywu@ywlgcanopy.com`, fijo `+86 579 8543 1781` y móvil `+86 186 0689
 1419` ("186 siempre") canónicos en `CONTACT.cn` (se corrigió `phoneLandlineRaw`, que tenía un espacio).
-Founder pendiente: server-persist de dirección/ciudad = follow-up.
+Server-persist de dirección/ciudad del proveedor: **hecho** (migr 0148). Sin pendientes del founder en SDD-0097.

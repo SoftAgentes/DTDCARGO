@@ -81,6 +81,8 @@ export type PackingListPayload = {
   supplierEmail?: string;
   supplierWechat?: string;
   supplierPhone?: string;
+  supplierAddress?: string;
+  supplierCity?: string;
   currency?: string;
   docDate?: string;
   supplierNote?: string;
@@ -94,6 +96,8 @@ export type PackingListInput = {
   supplierEmail: string | null;
   supplierWechat: string | null;
   supplierPhone: string | null;
+  supplierAddress: string | null;
+  supplierCity: string | null;
   currency: PackingListCurrency;
   docDate: string | null;
   supplierNote: string | null;
@@ -248,6 +252,8 @@ export function validatePackingListInput(payload: PackingListPayload): {
   const supplierEmail = text(payload.supplierEmail) || null;
   const supplierWechat = text(payload.supplierWechat) || null;
   const supplierPhone = text(payload.supplierPhone) || null;
+  const supplierAddress = text(payload.supplierAddress) || null;
+  const supplierCity = text(payload.supplierCity) || null;
   if (!supplierEmail && !supplierWechat && !supplierPhone) {
     errors.contacto =
       "Deja un contacto (email, WeChat o teléfono). / 请留下联系方式（邮箱、微信或电话）。";
@@ -277,6 +283,8 @@ export function validatePackingListInput(payload: PackingListPayload): {
       supplierEmail,
       supplierWechat,
       supplierPhone,
+      supplierAddress,
+      supplierCity,
       currency,
       docDate,
       supplierNote: note,

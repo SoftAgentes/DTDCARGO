@@ -484,14 +484,16 @@ export function PackingListFormSection({
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          // El payload del submit mantiene su forma de SDD-0096; los campos
-          // nuevos (address/city/cliente/folio) viven en el documento + el
-          // borrador local hasta que el server-side los acepte (slice futuro).
+          // Payload del submit (SDD-0096) + dirección/ciudad del proveedor que
+          // ahora SÍ se persisten server-side (SDD-0097, migr 0148). Los datos
+          // del cliente y el folio siguen en el documento + borrador local.
           supplierCompany: company,
           supplierContact: client,
           supplierEmail: email,
           supplierWechat: wechat,
           supplierPhone: clientPhone,
+          supplierAddress: address,
+          supplierCity: city,
           currency,
           docDate,
           supplierNote: note,
