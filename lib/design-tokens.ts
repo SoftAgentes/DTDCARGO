@@ -215,6 +215,11 @@ export const CONTACT = {
       "Yiwu Port Phase II, Warehouse 2, No. 2 (Cargo 7-11), Yiwu City, Zhejiang, China",
     postalCode: "322000", // Yiwu, Zhejiang — para schema.org PostalAddress
     /**
+     * Razón social CN de la bodega — encabeza el packing list/factura del
+     * proveedor (NORTE-SYNC v4.4 · packlist). Solo visible en documentos CN.
+     */
+    companyCjk: "义乌市林冠进出口有限公司",
+    /**
      * Dirección oficial en caracteres chinos — para WeChat / proveedores locales.
      * Fuente: brand book § China Supplier Clip.
      */
@@ -237,11 +242,16 @@ export const CONTACT = {
     phoneRaw: "+8618606891419",
     /** Teléfono en formato chino (sin +86, como se escribe en WeChat). */
     phoneCjk: "18606891419",
+    /** Fijo de bodega (Yiwu) · formato internacional para tel: link (NORTE-SYNC v4.4 · packlist). */
+    phoneLandline: "+86 579 8543 1781",
+    phoneLandlineRaw: "+865798543 1781",
     /** Horario en español (corregido a 17:30 según brand book). */
     hours: "Lun a Sáb · 9:00 – 17:30 (GMT+8)",
     /** Horario en chino — para el clip de WeChat. */
     hoursCjk: "周一至周六上午9点到下午5点半",
     email: "info@dtdcargo.com", // unificado al buzón general (antes China@; canónico en minúsculas)
+    /** Email de recepción de la bodega CN — para el packing list del proveedor (NORTE-SYNC v4.4). */
+    warehouseEmail: "candywu@ywlgcanopy.com",
   },
 } as const;
 

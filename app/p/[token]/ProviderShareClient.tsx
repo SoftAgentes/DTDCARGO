@@ -182,6 +182,8 @@ export function ProviderShareClient({
           token={token}
           supplierName={supplierName}
           supplierWechat={supplierWechat}
+          markbox={markbox}
+          clientName={clientName}
         />
 
         {/* (b) PASO 2 — Fallback: descargar el Excel pre-llenado (GET, se mantiene).
