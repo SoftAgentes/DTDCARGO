@@ -18,7 +18,7 @@
   .brandline { display: flex; align-items: center; gap: 16px; }
   .brandline img { width: 54px; height: auto; }
   .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 30px; }
-  .wm .d { color: var(--wine-soft); } .wm .g { color: #F2F0EC; } .wm .sp { display: inline-block; width: 0.15em; }
+  .wm .d { color: #F2F0EC; } .wm .g { color: #F2F0EC; } .wm .sp { display: inline-block; width: 0.15em; }
   .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); }
   .hero h1 { font: 700 38px/1.08 var(--f-display); letter-spacing: -0.02em; margin: 30px 0 10px; max-width: 18ch; }
   .hero p { font: 400 16px/1.55 var(--f-sans); color: rgba(242,240,236,0.78); margin: 0; max-width: 64ch; }
@@ -87,7 +87,7 @@
           <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
           <span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span>
         </div>
-        <span class="ver">Brand Book v4.3</span>
+        <span class="ver">Brand Book v4.4</span>
       </div>
       <h1>Brand Hub · todo el sistema de marca, en un solo lugar</h1>
       <p>El punto único de verdad de DTD-Cargo: guías, logos, color, plantillas y generadores. Si está acá, es lo vigente — tomá lo último y evitá versiones viejas.</p>
@@ -102,7 +102,7 @@
   <!-- BRAND KIT QUICK -->
   <div class="kit">
     <div class="kit-card">
-      <h3>Color · tokens v4.3</h3>
+      <h3>Color · tokens v4.4</h3>
       <div class="sw">
         <i style="background:#7F0F1A" data-h="--wine #7F0F1A"></i>
         <i style="background:#5E0A12" data-h="--wine-deep"></i>
@@ -118,13 +118,12 @@
       <p class="sub">Nunca hex literales — siempre <code style="font-family:var(--f-mono);font-size:11px">var(--*)</code>. Detalle en el Brand Book §06.</p>
     </div>
     <div class="kit-card">
-      <h3>Tipografía</h3>
+      <h3>Tipografía de marca</h3>
       <div class="fonts">
-        <div><span class="lbl">Marca</span><span style="font-family:var(--f-brand-display)">DTD Cargo</span></div>
-        <div><span class="lbl">Títulos</span><span style="font-family:var(--f-display)">Sora</span></div>
-        <div><span class="lbl">Cuerpo</span><span style="font-family:var(--f-sans)">Nunito Sans</span></div>
-        <div><span class="lbl">Códigos</span><span style="font-family:var(--f-mono);font-size:16px">JetBrains Mono</span></div>
+        <div><span class="lbl">Wordmark</span><span style="font-family:var(--f-brand-display)">DTD Cargo</span></div>
+        <div><span class="lbl">Texto de marca</span><span style="font-family:var(--f-brand);font-size:20px">Archivo</span></div>
       </div>
+      <p style="font-size:11px;color:var(--ink-mute);margin:12px 0 0;line-height:1.5">Para piezas <b>de cara al público</b> usá solo <b>Archivo</b> / <b>Archivo Black</b>. Las fuentes del producto/ERP no se usan en material de marca.</p>
     </div>
     <div class="kit-card">
       <h3>Logo</h3>
@@ -150,7 +149,7 @@
   <script>
     const ITEMS = [
       // Fundamentos
-      { t:'Brand Book v4.3', d:'La guía completa: fundamento, logo, tipografía, color, íconos, voz, motion y gobernanza (16 secciones).', cat:'Fundamentos', href:'Brand Book DTD v4.3.html', ic:'BB' },
+      { t:'Brand Book v4.4', d:'La guía completa: fundamento, logo, tipografía, color, íconos, voz, motion y gobernanza (16 secciones).', cat:'Fundamentos', href:'Brand Book DTD v4.4.html', ic:'BB' },
       { t:'Logo Oficial', d:'4 variantes del isólogo + wordmark, con descargas PNG por tamaño de uso (48–320px, retina).', cat:'Fundamentos', href:'Logo Oficial.html', ic:'◆' },
       { t:'App Icon', d:'Ícono de aplicación DTD Cargo en sus tamaños y máscaras.', cat:'Fundamentos', href:'App Icon · DTD Cargo.html', ic:'▣' },
       { t:'Aplicaciones de Marca', d:'El isólogo aplicado a touchpoints: papelería, firma de email, stickers, factura demo.', cat:'Fundamentos', href:'Aplicaciones de Marca.html', ic:'✦' },
@@ -159,6 +158,7 @@
       { t:'Generador de Redes', d:'Catálogo de servicios para WhatsApp/IG/TikTok: foto → franja navy → PNG con metadata. QR multidestino.', cat:'Generadores', href:'Generador Redes · DTD-Cargo.html', ic:'⌁' },
       { t:'Generador Catálogo WhatsApp', d:'8 servicios + portada 1080×1080 para WhatsApp Business.', cat:'Generadores', href:'Generador Catálogo WhatsApp · DTD-Cargo.html', ic:'☷' },
       { t:'Portadas de Redes', d:'Portadas para YouTube, Facebook y perfiles sociales, con la identidad DTD.', cat:'Generadores', href:'Portadas Redes · DTD-Cargo.html', ic:'▭' },
+      { t:'Plantillas de Stories', d:'8 plantillas 9:16 (IG Stories · TikTok · YouTube Shorts): subí foto, editá texto, mostrá/ocultá la web y descargá PNG 1080×1920. Con los recursos gráficos nuevos.', cat:'Generadores', href:'Plantillas Stories · DTD-Cargo.html', ic:'▯', isNew:true },
       { t:'Portada Animada FB', d:'Portada-video de Facebook: el isólogo entra y la ruta China → Venezuela se dibuja sola.', cat:'Generadores', href:'Portada Animada FB · DTD-Cargo.html', ic:'►' },
       { t:'Reels y logo sonoro', d:'Plantillas verticales 9:16 para reels/stories + logo sonoro (firma de audio de marca). Animadas, navy/wine/paper.', cat:'Generadores', href:'Reels y Logo Sonoro · DTD-Cargo.html', ic:'♪', isNew:true },
       { t:'Póster de Reseñas', d:'Genera piezas con reseñas de clientes para redes y punto de venta.', cat:'Generadores', href:'Póster Reseñas · DTD-Cargo.html', ic:'★' },

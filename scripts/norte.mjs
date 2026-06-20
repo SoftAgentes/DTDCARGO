@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v4.3"; // handoff Cloud Design (carga 2026-06-17 v4.3: Academia DTD vista alumno [portal/academia*.jsx; backend ya en SDD-0093 + migr 0144], Portal "Próxima salida de contenedor" + panel de Tweaks, Registro reestructurado [acceso por correo+contraseña, cédula V/E/P, teléfono con selector de código de país], Hub de Enlaces link-in-bio [/enlaces], Vistas Móviles visor por persona; sin cambios de tokens/reglas · carga 2026-06-14 v4.2: versión UNIFICADA marca+producto = v4.2; Brand Book v3.7 → v4.2 ÚNICO; estructura Brand Hub [solo marca] vs DTD Apps · Launcher [solo producto]; nuevos: Inventario de Consolidación [WMS], Reclamos y Siniestros, Academia [LMS], Scorecard de Proveedores, Dashboard Ejecutivo, Kit de Bienvenida, Reels y Logo Sonoro, Packlist, Cotización DDP, Diplomas, Ciclo del Cliente; MARKBOX fuera del lenguaje visual [Shipping Mark único])
+const NORTE_VERSION = "v4.4"; // handoff Cloud Design (carga 2026-06-19 v4.4: recursos gráficos chinos recoloreados a la paleta [recursos-graficos/: meandro/olas/nube/marco/esquina + festivos linterna 灯笼/nudo 中国结 con BRAND-EXCEPTION del dorado + dragón duotono wine/navy], plantillas sociales Stories/feed integradas al Generador de Redes [+ Plantillas base sin texto], Packing List + Factura renovado [bilingüe 中/EN, caja mixta 同箱, N.º de caja automático, etiquetas Shipping Mark por cartón, adjuntos plegables, autoguardado/historial, vista móvil]; sin cambios de tokens/reglas · carga 2026-06-17 v4.3: Academia DTD vista alumno [portal/academia*.jsx; backend ya en SDD-0093 + migr 0144], Portal "Próxima salida de contenedor" + panel de Tweaks, Registro reestructurado [acceso por correo+contraseña, cédula V/E/P, teléfono con selector de código de país], Hub de Enlaces link-in-bio [/enlaces], Vistas Móviles visor por persona; sin cambios de tokens/reglas · carga 2026-06-14 v4.2: versión UNIFICADA marca+producto = v4.2; Brand Book v3.7 → v4.2 ÚNICO; estructura Brand Hub [solo marca] vs DTD Apps · Launcher [solo producto]; nuevos: Inventario de Consolidación [WMS], Reclamos y Siniestros, Academia [LMS], Scorecard de Proveedores, Dashboard Ejecutivo, Kit de Bienvenida, Reels y Logo Sonoro, Packlist, Cotización DDP, Diplomas, Ciclo del Cliente; MARKBOX fuera del lenguaje visual [Shipping Mark único])
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -157,9 +157,9 @@ const GROUPS = [
   {
     title: "Marca",
     screens: [
-      // Carga 2026-06-17: Brand Book v4.3 es el ÚNICO vigente (v4.2 eliminado por regla de gobernanza).
+      // Carga 2026-06-19: Brand Book v4.4 es el ÚNICO vigente (v4.3 eliminado por regla de gobernanza).
       { name: "Brand Hub (índice de marca)", file: "Brand Hub · DTD-Cargo.html", kind: "brand" },
-      { name: "Brand Book v4.3", file: "Brand Book DTD v4.3.html", kind: "brand" },
+      { name: "Brand Book v4.4", file: "Brand Book DTD v4.4.html", kind: "brand" },
       { name: "Tarjeta de Presentación", file: "Tarjeta de Presentación.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
@@ -216,6 +216,19 @@ const GROUPS = [
       { name: "Vistas Móviles (visor por persona)", file: "Vistas Móviles · DTD-Cargo.html", ref: true },
       { name: "Enlaces (link-in-bio Instagram)", file: "Enlaces · DTD-Cargo.html", ref: true },
       { name: "Cotizador de Fletes", file: "Cotizador de Fletes · DTD-Cargo.html", ref: true },
+    ],
+  },
+  {
+    // Carga 2026-06-19 (v4.4): recursos gráficos chinos recoloreados a la paleta (Brand Book §07:
+    // greca/olas/nube/marco/esquina + festivos linterna/nudo con BRAND-EXCEPTION del dorado +
+    // dragón duotono) — son assets SVG/PNG del book, no pantallas. Lo navegable nuevo: plantillas
+    // sociales Stories/feed (integradas al Generador de Redes) y la vista móvil del Packing List
+    // renovado (bilingüe 中/EN, caja mixta, N.º de caja automático). Mockups → ref:true.
+    title: "Nuevo en v4.4 (2026-06-19) · recursos gráficos chinos · plantillas sociales · packing list",
+    screens: [
+      { name: "Plantillas Stories (social 9:16 / 1:1)", file: "Plantillas Stories · DTD-Cargo.html", ref: true },
+      { name: "Plantillas base (sin texto)", file: "Plantillas base (sin texto) · DTD-Cargo.html", ref: true },
+      { name: "Packing List · Vista Móvil", file: "packlist/Vista Móvil · Packing List.html", ref: true },
     ],
   },
 ];

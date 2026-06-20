@@ -77,7 +77,7 @@ function DTDLogo({ collapsed = false, dark = true }) {
             <span style={{ color: 'var(--ink-nav)' }}>STUDIO</span>
           </span>
           <span style={{ font: '600 9.5px/1 var(--f-sans)', color: 'var(--ink-nav-soft)', letterSpacing: '0.16em', textTransform: 'uppercase', marginTop: 4 }}>
-            ERP · v4.3
+            ERP · v4.4
           </span>
         </div>
       )}

@@ -303,7 +303,7 @@ preferís la alternativa?
 **Protocolo — cuando recibas este proyecto con una actualización de marca:**
 
 1. **El Brand Book vigente es UNO solo:** el de mayor versión en la raíz (hoy
-   `Brand Book DTD v4.3.html`). Si en Norte existen copias de brand books **anteriores
+   `Brand Book DTD v4.4.html`). Si en Norte existen copias de brand books **anteriores
    (v3.6, v3.5, …), eliminálas** — la versión nueva las reemplaza por completo; el
    historial vive en el changelog interno del book vigente.
 2. **Actualizá todo puntero** a la versión nueva (links en módulos tipo
@@ -315,9 +315,9 @@ preferís la alternativa?
 4. **No mezclar versiones:** nunca convivan dos brand books en Norte. Ante conflicto
    entre algo viejo de Norte y este proyecto, **gana este proyecto** (es la fuente).
 5. Registrá lo aplicado en el changelog/bitácora de Norte con la versión del book
-   (ej. "marca sincronizada a Brand Book v4.3").
-6. **Versión única visible: v4.3.** Marca y producto comparten número — sidebar del ERP,
-   títulos del Portal y apps de operario, tokens y Brand Book dicen todos **v4.3**. En Norte,
+   (ej. "marca sincronizada a Brand Book v4.4").
+6. **Versión única visible: v4.4.** Marca y producto comparten número — sidebar del ERP,
+   títulos del Portal y apps de operario, tokens y Brand Book dicen todos **v4.4**. En Norte,
    cualquier etiqueta visible con v2.x/v3.x viejo se actualiza a la versión vigente del book.
    Los CHANGELOG y comentarios históricos no se reescriben.
 
@@ -327,7 +327,7 @@ preferís la alternativa?
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `Brand Book DTD v4.3.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro. (v3.5/v3.6 fueron eliminados — su historial vive en el changelog del v3.7, que suma la sección 09 · WhatsApp Business interactiva, el hub de herramientas de redes en §08 y la gobernanza en §15.)
+- **Brand Book:** `Brand Book DTD v4.4.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro. (v4.3 y anteriores fueron reemplazados — su historial vive en el changelog interno del book vigente, que en v4.4 suma los recursos gráficos chinos recoloreados, las plantillas de Stories/feed en el Generador de Redes y el Packing List bilingüe renovado.)
 - **Colateral impreso de marca:** `Tarjeta de Presentación.html` (85×55 mm, doble cara, QR vCard) + `Colateral Impreso · DTD-Cargo.html` (membrete A4, credencial CR-80 con lanyard, vinilo de camión 6.0×2.4 m, roll-up 85×200 cm — cada pieza con spec de imprenta) + `Uniformes · DTD-Cargo.html`. Usan `erp/tokens.css` + `assets/dtdcargo-isologo-*.png`. **No** inventar datos de contacto: RIF `J-50648869-8`, Av. Bolívar Norte 14 (Valencia), `info@dtdcargo.com` (correo de branding · 2026-06), `+58 241 414 7886`.
 - **Documentos legales:** carpeta `legal/` — T&C de DTD (cliente), Acuerdo con el operador de
   consolidación (interno) y Brief de seguro (interno). Cada uno en `.md` (canónico, lo lee

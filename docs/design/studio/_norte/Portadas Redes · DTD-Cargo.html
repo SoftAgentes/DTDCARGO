@@ -198,9 +198,11 @@ table.spec code{font-family:var(--f-mono);font-size:12px;background:var(--bg-ele
 .assume{display:inline-block;font:700 10px/1 var(--f-sans);letter-spacing:.06em;color:var(--warning);
   background:rgba(184,137,58,.12);padding:3px 7px;border-radius:var(--r-xs);margin-right:6px;text-transform:uppercase}
 @media(max-width:720px){.cmp{grid-template-columns:1fr}.wrap{padding:var(--s-8) var(--s-4)}}
+  body.embed .wrap>.eyebrow,body.embed .wrap>h1,body.embed .wrap>.lead{display:none}
 </style>
 </head>
 <body>
+<script>if(/[?&]embed/.test(location.search))document.body.classList.add('embed');</script>
 
 <div class="topbar">
   <div class="tb-brand">

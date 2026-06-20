@@ -865,10 +865,10 @@ window.__scBlob = function(uri){ var p=uri.split(','),m=(p[0].match(/:(.*?);/)||
     <p>17 stickers con texto (512×512, fondo transparente): marca, estados de envío y saludos — se entienden solos en el chat. El pack oficial de WhatsApp.</p>
   </div>
   <div class="card dark">
-    <div class="card-label">DTD-Cargo pack · 17 stickers <span class="tag-ok">.png · 512×512 · transparente</span></div>
+    <div class="card-label">DTD-Cargo pack · 17 stickers <span class="tag-ok">.webp · 512×512 · listo para WhatsApp</span></div>
     <div class="sticker-pack" id="sticker-pack"></div>
     <div class="actions" style="margin-top: 16px;">
-      <button class="btn primary" id="dl-stickers-zip">↗ Abrir Sticker Pack · descargar PNG 512</button>
+      <button class="btn primary" id="dl-stickers-zip">⬇ Descargar pack WhatsApp · WebP 512 + bandeja</button>
     </div>
   </div>
 
@@ -1028,7 +1028,7 @@ const _stkBox = (s) => {
 document.getElementById('sticker-pack').innerHTML = STICKERS17.map((s, i) =>
   `<div class="item">${_stkBox(s)}<span class="label">${String(i + 1).padStart(2, '0')}</span></div>`
 ).join('');
-document.getElementById('dl-stickers-zip').addEventListener('click', () => window.open('Sticker Pack · DTD-Cargo.html', '_blank'));
+document.getElementById('dl-stickers-zip').addEventListener('click', () => window.open('Sticker Pack · DTD-Cargo.html?dl=all', '_blank'));
 
 // ── Copy signature HTML ─────────────────────────────
 document.querySelector('[data-copy-sig]')?.addEventListener('click', async () => {

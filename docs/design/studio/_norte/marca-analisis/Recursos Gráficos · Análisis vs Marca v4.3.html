@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Recursos Gráficos · Análisis vs Marca DTD v4.3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=Nunito+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Noto+Sans+SC:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../erp/tokens.css" />
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg-base); color: var(--ink);
+    font-family: var(--f-sans, 'Nunito Sans'), sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: var(--s-16) var(--s-8) var(--s-16); }
+  .eyebrow { font: 700 11px/1 var(--f-mono, monospace); letter-spacing: 0.28em; text-transform: uppercase; color: var(--wine); }
+  h1 { font-family: var(--f-display, 'Sora'), sans-serif; font-weight: 800; font-size: 40px; line-height: 1.08; letter-spacing: -0.02em; margin: var(--s-3) 0 var(--s-4); text-wrap: balance; }
+  h2 { font-family: var(--f-display, 'Sora'), sans-serif; font-weight: 700; font-size: 24px; letter-spacing: -0.01em; margin: var(--s-12) 0 var(--s-2); }
+  h3 { font-family: var(--f-display, 'Sora'), sans-serif; font-weight: 600; font-size: 17px; margin: 0; }
+  p { font-size: 15px; line-height: 1.62; color: var(--ink-soft); max-width: 66ch; text-wrap: pretty; }
+  .lead { font-size: 17px; color: var(--ink); max-width: 70ch; }
+  .cn { font-family: var(--f-cn, 'Noto Sans SC'), sans-serif; }
+  code { font-family: var(--f-mono, monospace); font-size: 0.9em; background: var(--bg-elevated); padding: 1px 6px; border-radius: var(--r-xs); color: var(--ink); }
+
+  .ref-card { margin-top: var(--s-6); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--bg-surface); box-shadow: var(--shadow-sm); }
+  .ref-card img { display: block; width: 100%; }
+  .ref-cap { padding: var(--s-3) var(--s-5); font: 600 12.5px/1.4 var(--f-mono, monospace); color: var(--ink-mute); border-top: 1px solid var(--border); }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-3); margin-top: var(--s-6); }
+  .stat { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s-5); }
+  .stat .n { font-family: var(--f-display, 'Sora'), sans-serif; font-weight: 800; font-size: 34px; line-height: 1; }
+  .stat .l { font-size: 12.5px; color: var(--ink-soft); margin-top: var(--s-2); line-height: 1.4; }
+
+  .rows { display: flex; flex-direction: column; gap: var(--s-4); margin-top: var(--s-6); }
+  .row { display: grid; grid-template-columns: 230px 1fr; gap: var(--s-6); align-items: start; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-5); }
+  .thumb { border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; background: #fff; }
+  .thumb img { display: block; width: 100%; }
+  .thumb.live { aspect-ratio: 16/7; display: grid; grid-template-columns: 1fr 1fr; }
+  .meander-paper { background-color: var(--bg-base); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%237F0F1A' stroke-width='4'/></svg>"); background-size: 34px 34px; background-repeat: repeat; }
+  .meander-navy { background-color: var(--bg-sidebar); background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%23F2F0EC' stroke-width='4'/></svg>"); background-size: 34px 34px; background-repeat: repeat; }
+
+  .meta { min-width: 0; }
+  .row .head { display: flex; align-items: center; gap: var(--s-3); flex-wrap: wrap; margin-bottom: var(--s-2); }
+  .badge { font: 700 10px/1 var(--f-mono, monospace); letter-spacing: 0.06em; text-transform: uppercase; padding: 5px 9px; border-radius: var(--r-pill); white-space: nowrap; }
+  .b-have { background: color-mix(in srgb, var(--success) 14%, transparent); color: var(--success); }
+  .b-partial { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--info); }
+  .b-new { background: var(--bg-elevated); color: var(--ink-soft); }
+  .b-avoid { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+  .row p { font-size: 13.5px; margin: var(--s-2) 0 0; }
+  .reco { font-size: 13.5px; margin-top: var(--s-3); padding-top: var(--s-3); border-top: 1px solid var(--border); }
+  .reco b { color: var(--ink); }
+  .tag-cn { font-size: 13px; color: var(--ink-mute); font-weight: 600; }
+
+  .palette { display: flex; gap: var(--s-2); margin-top: var(--s-3); flex-wrap: wrap; }
+  .chip { display: flex; align-items: center; gap: var(--s-2); font: 600 11px/1 var(--f-mono, monospace); color: var(--ink-soft); border: 1px solid var(--border); border-radius: var(--r-pill); padding: 5px 10px 5px 6px; }
+  .sw { width: 16px; height: 16px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.08); }
+
+  .brandcheck { margin-top: var(--s-8); border: 1px solid var(--danger); border-radius: var(--r-lg); background: color-mix(in srgb, var(--danger) 5%, var(--bg-surface)); padding: var(--s-6); }
+  .brandcheck h3 { color: var(--danger); display: flex; align-items: center; gap: var(--s-2); }
+  .brandcheck table { width: 100%; border-collapse: collapse; margin-top: var(--s-4); font-size: 13.5px; }
+  .brandcheck td { padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--border); vertical-align: top; }
+  .brandcheck td:first-child { font: 700 11px/1.3 var(--f-mono, monospace); color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.05em; width: 150px; white-space: nowrap; }
+
+  .proposal { margin-top: var(--s-8); background: var(--bg-sidebar); color: var(--bg-base); border-radius: var(--r-xl); padding: var(--s-10); position: relative; overflow: hidden; }
+  .proposal::before { content: ''; position: absolute; inset: 0; opacity: 0.06; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'><path d='M6 58 V14 H50 V50 H22 V26 H38 V42' fill='none' stroke='%23F2F0EC' stroke-width='4'/></svg>"); background-size: 40px 40px; }
+  .proposal > * { position: relative; z-index: 1; }
+  .proposal .eyebrow { color: var(--wine-soft); }
+  .proposal h2 { color: #fff; margin-top: var(--s-2); }
+  .proposal p { color: rgba(242,240,236,0.82); }
+  .proposal ul { margin: var(--s-4) 0 0; padding: 0; list-style: none; display: grid; gap: var(--s-3); }
+  .proposal li { display: grid; grid-template-columns: 28px 1fr; gap: var(--s-3); font-size: 14.5px; line-height: 1.5; color: rgba(242,240,236,0.92); align-items: start; }
+  .proposal li .on { font: 700 12px/1.5 var(--f-mono, monospace); color: var(--wine-soft); }
+  .proposal li b { color: #fff; }
+
+  .foot { margin-top: var(--s-12); padding-top: var(--s-5); border-top: 1px solid var(--border); font: 500 11.5px/1.6 var(--f-mono, monospace); color: var(--ink-mute); }
+  @media (max-width: 720px) {
+    .row { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    h1 { font-size: 30px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Análisis de marca · todavía NO aplicado</div>
+  <h1>Recursos gráficos del branding viejo<br/>frente a la marca DTD&nbsp;v4.3</h1>
+  <p class="lead">Revisé la lámina de "Recursos Gráficos" del manual viejo (Doortudoor). Son motivos de cultura china pensados para acompañar las piezas. Acá está, familia por familia: qué es, si ya lo tenemos en el sistema actual, y qué conviene hacer hacia nuestra marca — sin aplicar nada todavía.</p>
+
+  <div class="ref-card">
+    <img src="../uploads/pasted-1781882264228-0.png" alt="Lámina Recursos Gráficos del manual viejo Doortudoor" />
+    <div class="ref-cap">Fuente · "Doortudoor / Identidad visual de la marca" — lámina Recursos Gráficos (branding anterior)</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n" style="color:var(--success);">1</div><div class="l">Ya está en el sistema<br/>(meandro 回纹)</div></div>
+    <div class="stat"><div class="n" style="color:var(--info);">2</div><div class="l">Parcial — tenemos algo equivalente</div></div>
+    <div class="stat"><div class="n" style="color:var(--ink-soft);">3</div><div class="l">Nuevos · buenos candidatos a sumar</div></div>
+    <div class="stat"><div class="n" style="color:var(--danger);">2</div><div class="l">A evitar como sistema (cliché / fuera de paleta)</div></div>
+  </div>
+
+  <h2>Familia por familia</h2>
+  <div class="rows">
+
+    <!-- MEANDRO -->
+    <div class="row">
+      <div class="thumb live">
+        <div class="meander-paper"></div>
+        <div class="meander-navy"></div>
+      </div>
+      <div class="meta">
+        <div class="head">
+          <h3>Meandro / greca</h3>
+          <span class="tag-cn cn">回纹 / 雷纹</span>
+          <span class="badge b-have">✓ Ya en el sistema</span>
+        </div>
+        <p>El borde geométrico de líneas en ángulo recto (la cenefa de la fila superior del manual viejo). Es el motivo chino más sobrio y el que mejor encaja con una marca seria.</p>
+        <div class="reco"><b>Ya lo usamos</b> — patrón <span class="cn">回</span>纹 tono sobre tono en las <b>Portadas de Redes</b> (dirección "Meandro Navy"), el <b>watermark de trazabilidad</b> y <b>Brand in Motion</b>. A la izquierda, nuestra versión real en <b>wine sobre papel</b> y <b>cream sobre navy</b>. No hay que sumar nada: es nuestro motivo de cabecera.</div>
+      </div>
+    </div>
+
+    <!-- NUBES -->
+    <div class="row">
+      <div class="thumb"><img src="ref-nubes.png" alt="Nubes chinas del manual viejo" /></div>
+      <div class="meta">
+        <div class="head">
+          <h3>Nubes auspiciosas</h3>
+          <span class="tag-cn cn">祥云</span>
+          <span class="badge b-new">Nuevo · candidato</span>
+        </div>
+        <p>Volutas de nube, en versión rellena y en línea. En el original van en rojo brillante; algunas en línea fina son elegantes y discretas.</p>
+        <div class="reco"><b>Sí, pero solo la versión line-art</b> y recoloreada a la paleta. La nube fina mono-línea funciona como acento sutil (esquina de pieza, separador). Descartamos las nubes rellenas en rojo brillante. Color objetivo: wine <code>#7F0F1A</code> o, sobre oscuro, wine-soft.</div>
+      </div>
+    </div>
+
+    <!-- OLAS -->
+    <div class="row">
+      <div class="thumb"><img src="ref-olas.png" alt="Olas y arcos chinos del manual viejo" /></div>
+      <div class="meta">
+        <div class="head">
+          <h3>Olas / montaña-agua</h3>
+          <span class="tag-cn cn">海水江崖</span>
+          <span class="badge b-new">Nuevo · candidato</span>
+        </div>
+        <p>Arcos concéntricos tipo escama, el clásico patrón de olas. Geométrico y repetible, igual que el meandro.</p>
+        <div class="reco"><b>Buen segundo motivo de apoyo.</b> Como cenefa inferior o pie de pieza, recoloreado wine/navy y tono sobre tono. Encaja con la lógica del meandro y no cae en cliché si se mantiene mono-color y fino.</div>
+      </div>
+    </div>
+
+    <!-- ROUNDELS / FRAMES -->
+    <div class="row">
+      <div class="thumb"><img src="ref-bottom.png" alt="Medallones, marcos, bambú y esquinas del manual viejo" /></div>
+      <div class="meta">
+        <div class="head">
+          <h3>Medallones, marcos y esquinas</h3>
+          <span class="tag-cn cn">团花 · 边框</span>
+          <span class="badge b-partial">Parcial</span>
+        </div>
+        <p>Roundels de celosía, marcos cuadrado y circular, esquinas ornamentales y bambú.</p>
+        <div class="reco"><b>En parte ya lo cubrimos.</b> Tenemos <b>sellos circulares</b> (oficial + control de calidad) que cumplen el rol de "medallón", y <b>esquinas de greca</b> derivadas del meandro. Los marcos y esquinas line-art son adoptables recoloreados; los roundels de celosía y el bambú aportan poco y los dejaría fuera.</div>
+      </div>
+    </div>
+
+    <!-- LINTERNAS -->
+    <div class="row">
+      <div class="thumb"><img src="ref-linternas-nudo.png" alt="Linternas y nudo chino del manual viejo" /></div>
+      <div class="meta">
+        <div class="head">
+          <h3>Linternas y nudo chino</h3>
+          <span class="tag-cn cn">灯笼 · 中国结</span>
+          <span class="badge b-avoid">A evitar como sistema</span>
+        </div>
+        <p>Linternas rojas y el nudo chino con borlas. Son los motivos más "festivos" y reconocibles… y también los más cliché.</p>
+        <div class="reco"><b>No como sistema.</b> En rojo brillante + dorado chocan con nuestra paleta (wine profundo, navy, papel) y empujan al territorio "AI-slop / souvenir". Reservados, como mucho, para una <b>pieza festiva puntual</b> (Año Nuevo Chino), nunca en el lenguaje gráfico diario.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- BRAND CHECK -->
+  <div class="brandcheck">
+    <h3>🛑 BRAND-CHECK · el tema es el COLOR, no los motivos</h3>
+    <table>
+      <tr><td>Lo que pediste</td><td>Sumar los recursos gráficos chinos del manual viejo a la marca nueva.</td></tr>
+      <tr><td>Dónde choca</td><td>El set viejo está en <b>rojo brillante</b> (~<code>#D8221A</code>) y <b>dorado</b> (~<code>#E7B23C</code>). Ninguno está en la paleta v4.3 — rompe la regla "solo tokens" y, en linternas/nudos, el tono cliché va contra "cero AI-slop".</td></tr>
+      <tr><td>Por qué importa</td><td>Adoptar los motivos en su color original se vería como souvenir genérico y rompe la sobriedad navy/wine/paper que define la marca.</td></tr>
+      <tr><td>Alternativa que respeta</td><td>Adoptar <b>solo la geometría</b> (meandro [ya], olas, nube line-art) <b>recoloreada</b> a wine <code>#7F0F1A</code> / navy <code>#0F1E3D</code> / wine-soft, mono-color, fina y de apoyo. Cero rojo neón, cero dorado.</td></tr>
+    </table>
+  </div>
+
+  <!-- PROPOSAL -->
+  <div class="proposal">
+    <div class="eyebrow">Recomendación · "set de apoyo gráfico DTD"</div>
+    <h2>Qué sumaría (si lo aprobás)</h2>
+    <p>Un set chico y disciplinado de motivos geométricos, todos en la paleta y mono-color, que conviven con el meandro sin gritar. La cultura china entra "de manera sutil", igual que decía el manual viejo — pero ahora en nuestro idioma de color.</p>
+    <ul>
+      <li><span class="on">01</span><div><b>Meandro 回纹</b> — ya es el motivo de cabecera. Se queda como está.</div></li>
+      <li><span class="on">02</span><div><b>Olas 海水江崖</b> — nuevo, como cenefa inferior / pie de pieza, recoloreada wine o cream tono sobre tono.</div></li>
+      <li><span class="on">03</span><div><b>Nube 祥云 line-art</b> — nueva, solo versión fina mono-línea, como acento de esquina o separador.</div></li>
+      <li><span class="on">04</span><div><b>Regla de color única:</b> todo el set en wine <code>#7F0F1A</code> / navy / wine-soft. Nunca el rojo brillante ni el dorado del original.</div></li>
+      <li><span class="on">05</span><div><b>Fuera del set:</b> linternas, nudos, bambú y roundels de celosía — cliché o aporte bajo. A lo sumo, pieza festiva puntual.</div></li>
+    </ul>
+    <p style="margin-top:var(--s-6); font-size:13px; color:var(--wine-soft);">Decime si te gusta esta dirección y lo siguiente sería dibujar los 2 motivos nuevos (olas + nube) ya recoloreados, como SVG tile listos para el sistema — y recién ahí actualizar el Brand Book.</p>
+  </div>
+
+  <div class="foot">DTD Cargo · análisis interno de marca · junio 2026 · documento de trabajo — no aplicado al sistema</div>
+
+</div>
+</body>
+</html>

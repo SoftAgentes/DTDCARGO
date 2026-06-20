@@ -137,6 +137,7 @@ function PortalLogin({ onLogin }) {
   const _demo = (window.ERPData?.CLIENTS || []).find((c) => c.markbox === DEMO_MARKBOX);
   const [email, setEmail] = pUseState(_demo?.email || '');
   const [pw, setPw] = pUseState('');
+  const [sent, setSent] = pUseState(false);
 
   return (
     <div style={{
@@ -183,14 +184,15 @@ function PortalLogin({ onLogin }) {
         {/* Right panel — login form */}
         <div style={{ background: 'var(--bg-surface)', padding: 40, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ font: '900 22px/1.1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>Entra con tu<br />correo.</div>
-          <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>Usa el email con el que te registraste.</div>
+          <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 8 }}>Te mandamos un enlace de acceso a tu correo — entras con un clic, sin contraseñas que recordar.</div>
 
           <div style={{ marginTop: 28, display: 'flex', flexDirection: 'column', gap: 14 }}>
             <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Correo electrónico</span>
+              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Tu email</span>
               <input
                 type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                placeholder="tu@correo.com"
+                onKeyDown={(e) => e.key === 'Enter' && email && setSent(true)}
+                placeholder="tu@empresa.com"
                 style={{
                   height: 48, padding: '0 14px',
                   background: 'var(--bg-surface)', border: '1.5px solid var(--border)',
@@ -202,38 +204,27 @@ function PortalLogin({ onLogin }) {
                 onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
               
             </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <span style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Contraseña</span>
-              <input
-                type="password" value={pw} onChange={(e) => setPw(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && onLogin()}
-                placeholder="••••••••••"
-                style={{
-                  height: 48, padding: '0 14px',
-                  background: 'var(--bg-surface)', border: '1.5px solid var(--border)',
-                  borderRadius: 'var(--r-md)',
-                  font: '600 14px/1 var(--f-mono)', color: 'var(--ink)',
-                  outline: 'none'
-                }}
-                onFocus={(e) => e.target.style.borderColor = 'var(--wine)'}
-                onBlur={(e) => e.target.style.borderColor = 'var(--border)'} />
-              
-              {sessionStorage.getItem('dtd-from-registro') &&
-              <span className="guide-pulse" style={{ display: 'inline-block', marginTop: 2, padding: '5px 10px', background: 'var(--wine-tint)', color: 'var(--wine)', borderRadius: 'var(--r-pill)', font: '700 11px/1 var(--f-sans)', width: 'fit-content' }}>💡 Es tu cédula</span>
-              }
-            </label>
-            <button onClick={onLogin} style={{
+            {!sent ?
+            <button onClick={() => email && setSent(true)} style={{
               height: 48, background: 'var(--wine)', color: '#fff',
               border: 0, borderRadius: 'var(--r-md)',
               font: '700 14px/1 var(--f-sans)', letterSpacing: '0.02em',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              marginTop: 6
+              marginTop: 2
             }}>
-              Entrar al portal {window.Icon.arrowR(14)}
-            </button>
-            <div style={{ font: '600 12px/1 var(--f-sans)' }}>
-              <a style={{ color: 'var(--ink-soft)', cursor: 'pointer' }}>¿Olvidaste tu contraseña?</a>
+              Enviarme el enlace de acceso {window.Icon.arrowR(14)}
+            </button> :
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 2 }}>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '12px 14px', background: 'var(--success-bg)', border: '1px solid var(--success)', borderRadius: 'var(--r-md)' }}>
+                <span style={{ color: 'var(--success)', flexShrink: 0, marginTop: 1 }}>{window.Icon.check(16)}</span>
+                <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>Te enviamos el enlace · Abre el correo que mandamos a <b style={{ color: 'var(--ink)' }}>{email}</b> y haz clic para entrar.</div>
+              </div>
+              <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
+                <a onClick={() => setSent(false)} style={{ color: 'var(--wine)', cursor: 'pointer', font: '700 12.5px/1 var(--f-sans)' }}>Reenviar enlace</a>
+                <a onClick={onLogin} style={{ color: 'var(--ink-mute)', cursor: 'pointer', font: '600 12px/1 var(--f-sans)', marginLeft: 'auto' }}>Entrar (demo) {window.Icon.arrowR(12)}</a>
+              </div>
             </div>
+            }
             {/* CTA de registro · puerta única: quien no tiene Shipping Mark se registra acá */}
             <div style={{ marginTop: 4, padding: '12px 14px', background: 'var(--wine-tint)', border: '1px solid var(--wine)', borderRadius: 'var(--r-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ font: '600 12.5px/1.4 var(--f-sans)', color: 'var(--ink)' }}>¿No tienes cuenta?</span>

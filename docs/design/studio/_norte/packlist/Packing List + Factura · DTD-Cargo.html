@@ -25,6 +25,18 @@
   .tbtn.primary:hover { background: var(--wine-deep); }
   .tbtn svg { width: 14px; height: 14px; }
   .cur-sel { background: rgba(242,240,236,0.08); color: #F2F0EC; border: 1px solid rgba(242,240,236,0.2); border-radius: var(--r-md); padding: 8px 10px; font: 600 12.5px var(--f-mono); }
+  .cur-sel option { color: var(--ink); background: #fff; }
+  .save-status { font: 600 11px/1 var(--f-sans); color: rgba(242,240,236,0.6); align-self: center; order: 9; }
+  .save-status.ok { color: #8FD8B0; }
+  .save-cta { order: 10; margin-left: auto; background: var(--wine) !important; border-color: var(--wine) !important; color: #fff !important; font-weight: 700 !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--wine) 30%, transparent); }
+  .save-cta:hover { background: var(--wine-deep) !important; }
+  .save-cta.saved { background: var(--success) !important; border-color: var(--success) !important; box-shadow: 0 0 0 2px color-mix(in srgb, var(--success) 35%, transparent); }
+  .hpanel { position: fixed; top: 56px; right: 16px; z-index: 50; background: #fff; color: var(--ink); border-radius: var(--r-md); box-shadow: var(--shadow-pop); width: 300px; max-height: 64vh; overflow: auto; padding: 12px 14px; }
+  .hpanel h5 { font: 700 12px/1 var(--f-display); margin: 0 0 9px; color: var(--ink); }
+  .hitem { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 7px 8px; border-radius: var(--r-sm); font: 500 12px/1.3 var(--f-sans); color: var(--ink-soft); }
+  .hitem:hover { background: var(--bg-elevated); }
+  .hitem button { appearance: none; border: 1px solid var(--border); background: #fff; color: var(--wine); font: 700 11px/1 var(--f-sans); border-radius: var(--r-sm); padding: 5px 9px; cursor: pointer; }
+  .hitem button:hover { background: var(--wine-bg); }
 
   .wrap { padding: var(--s-8) var(--s-6) var(--s-16); }
 
@@ -32,21 +44,44 @@
   .doc { max-width: 1160px; margin: 0 auto; background: #fff; color: var(--ink); border-radius: var(--r-md);
          box-shadow: var(--shadow-lg); padding: 30px 34px 34px; }
 
-  .doc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; border-bottom: 2px solid var(--ink); padding-bottom: 16px; }
-  .dh-l { display: flex; align-items: center; gap: 14px; }
-  .dh-l img { width: 50px; height: auto; }
+  .doc-head { text-align: center; border-bottom: 2px solid var(--ink); padding-bottom: 12px; position: relative; }
+  .dh-phones { position: absolute; top: 0; right: 0; text-align: right; font: 600 10px/1.5 var(--f-mono); color: var(--ink-soft); display: flex; flex-direction: column; }
+  .dh-phones .zh { font-family: 'Noto Sans SC', var(--f-sans); color: var(--wine); font-weight: 700; }
+  .dh-phones b { color: var(--ink); font-weight: 600; }
+  .dh-phones .dh-mail { color: var(--wine); }
+  .dh-company { font: 700 20px/1.25 var(--f-display); color: var(--ink); }
+  .dh-company .zh { font-family: 'Noto Sans SC', var(--f-sans); }
+  .wm-inline { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; }
+  .wm-inline .d { color: var(--wine); } .wm-inline .g { color: var(--ink); }
+  .dh-title { font: 700 14px/1.2 var(--f-display); color: var(--ink-soft); margin-top: 4px; }
+  .dh-title .zh { font-family: 'Noto Sans SC', var(--f-sans); color: var(--wine); font-size: 13px; margin-right: 6px; }
+  .dh-meta { font: 600 10px/1.4 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); margin-top: 5px; }
+  .dh-folio { color: var(--wine); }
+  .dh-folio input { border: 0; outline: 0; font: 600 11px/1 var(--f-mono); color: var(--wine); background: transparent; width: 120px; text-transform: none; letter-spacing: 0; }
   .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 25px; }
   .wm .d { color: var(--wine); } .wm .g { color: var(--ink); } .wm .sp { display: inline-block; width: 0.15em; }
-  .dh-sub { font: 600 10.5px/1.3 var(--f-sans); color: var(--ink-soft); margin-top: 3px; }
-  .dh-r { text-align: right; }
-  .dh-title { font: 700 21px/1.1 var(--f-display); color: var(--ink); }
-  .dh-title .zh { display: block; font-size: 16px; color: var(--wine); }
-  .dh-tag { font: 600 10px/1.4 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-top: 4px; }
-  .dh-folio { font: 600 12px/1 var(--f-mono); color: var(--wine); margin-top: 6px; }
 
   /* supplier info */
-  .info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--border); border-radius: var(--r-sm); margin-top: 16px; overflow: hidden; }
-  .info .cell { padding: 8px 11px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 3px; }
+  .info2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--border); border-radius: var(--r-sm); margin-top: 12px; overflow: hidden; }
+  .igroup { border-right: 1px solid var(--border); }
+  .igroup:last-child { border-right: 0; }
+  .ig-head { font: 700 9px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--wine); background: var(--bg-base); padding: 6px 11px; border-bottom: 1px solid var(--border); }
+  .ig-head .zh { font-family: 'Noto Sans SC', var(--f-sans); }
+  .irow { display: flex; align-items: center; border-bottom: 1px solid var(--border); min-height: 28px; }
+  .irow:last-child { border-bottom: 0; }
+  .irow .il { flex: 0 0 26%; font: 600 9.5px/1.25 var(--f-sans); color: var(--ink-mute); padding: 4px 9px; }
+  .irow .il .zh { color: var(--ink-soft); font-weight: 700; }
+  .irow input { flex: 1; border: 0; outline: 0; background: transparent; font: 500 11.5px var(--f-sans); color: var(--ink); padding: 5px 9px; border-left: 1px dotted var(--border); min-width: 0; }
+  .irow input:focus { background: var(--wine-bg); }
+  .irow input.mark { font-family: var(--f-mono); font-weight: 600; }
+  .irow-addr .il-city { flex: 0 0 auto; padding-left: 4px; padding-right: 3px; }
+  .irow-addr .in-city { flex: 0 0 16%; }
+  #f-cliente-email.in-city { flex: 1 1 auto; }
+  #f-cliente-tel { flex: 0 0 35%; }
+  .irow-addr .il { flex: 0 0 16%; }
+  .irow .date-row { flex: 1; border-left: 1px dotted var(--border); padding: 3px 9px; }
+  .info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; border: 1px solid var(--border); border-radius: var(--r-sm); margin-top: 12px; overflow: hidden; }
+  .info .cell { padding: 5px 10px; border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 1px; }
   .info .cell:nth-child(3n) { border-right: 0; }
   .info .lab { font: 600 9.5px/1.2 var(--f-sans); color: var(--ink-mute); letter-spacing: 0.02em; }
   .info .lab .zh { color: var(--ink-soft); font-weight: 700; }
@@ -55,7 +90,7 @@
   .info input::placeholder { color: var(--ink-mute); font-weight: 400; }
 
   /* ── Goods table ── */
-  .sec-t { font: 700 12px/1 var(--f-display); color: var(--wine); letter-spacing: 0.04em; margin: 20px 0 8px; display: flex; align-items: baseline; gap: 8px; }
+  .sec-t { font: 700 12px/1 var(--f-display); color: var(--wine); letter-spacing: 0.04em; margin: 14px 0 6px; display: flex; align-items: baseline; justify-content: center; gap: 8px; }
   .sec-t .zh { color: var(--ink); font-size: 13px; }
   .tablewrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-sm); }
   table { border-collapse: collapse; width: 100%; min-width: 1040px; }
@@ -83,10 +118,22 @@
   tfoot .lab { text-align: right; font-family: var(--f-sans); color: var(--ink); }
   tfoot .v { text-align: right; color: var(--wine); white-space: nowrap; }
 
-  .addbar { display: flex; gap: var(--s-2); margin-top: 8px; }
-  .addbtn { appearance: none; cursor: pointer; font: 600 12px/1 var(--f-sans); border: 1px dashed var(--border); background: var(--bg-base); color: var(--ink-soft);
-            border-radius: var(--r-sm); padding: 8px 12px; }
-  .addbtn:hover { border-color: var(--wine); color: var(--wine); }
+  .addbar { display: flex; gap: var(--s-2); margin-top: 8px; align-items: flex-start; flex-wrap: wrap; }
+  #attach-sec { position: relative; margin-left: auto; order: 1; }
+  .attach-tip { position: absolute; bottom: auto; top: calc(100% + 6px); left: auto; right: 0; width: 250px; background: var(--ink); color: #F2F0EC; font: 600 10.5px/1.45 var(--f-sans); padding: 9px 11px; border-radius: var(--r-sm); box-shadow: var(--shadow-md); opacity: 0; visibility: hidden; transform: translateY(4px); transition: opacity .12s, transform .12s; z-index: 20; pointer-events: none; }
+  #attach-sec:hover .attach-tip, #attach-sec:focus-within .attach-tip { opacity: 1; visibility: visible; transform: translateY(0); }
+  .addbtn { appearance: none; cursor: pointer; font: 700 12px/1 var(--f-sans); border: 1.5px dashed var(--warning); background: color-mix(in srgb, var(--warning) 11%, #fff); color: #856223;
+            border-radius: var(--r-sm); padding: 9px 14px; transition: background .12s, border-color .12s; }
+  .addbtn:hover { background: color-mix(in srgb, var(--warning) 22%, #fff); border-color: var(--warning); }
+  .addhint { font: 500 11px/1.5 'Noto Sans SC', var(--f-sans); color: var(--ink-soft); margin: 7px 0 0; }
+  .cmodal { position: fixed; inset: 0; z-index: 60; background: rgba(15,30,61,0.55); align-items: center; justify-content: center; padding: 24px; display: none; }
+  .cmodal[style*="flex"] { display: flex; }
+  .cbox { background: #fff; border-radius: var(--r-lg); max-width: 420px; width: 100%; box-shadow: var(--shadow-pop); padding: 22px 24px; }
+  .ctext { font: 600 14px/1.55 var(--f-sans); color: var(--ink); white-space: pre-line; }
+  .cbtns { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .cbtn { appearance: none; border: 0; border-radius: var(--r-md); padding: 10px 16px; font: 700 13px/1 var(--f-sans); cursor: pointer; }
+  .cbtn.ghost { background: var(--bg-elevated); color: var(--ink); }
+  .cbtn.danger { background: var(--danger); color: #fff; }
 
   /* totals strip */
   .totstrip { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-top: 14px; }
@@ -96,14 +143,17 @@
   .tot .v { font: 700 16px/1.1 var(--f-display); color: var(--wine); margin-top: 3px; }
 
   /* ── Notes + shipping mark ── */
-  .lower { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; margin-top: 22px; }
+  .lower { display: grid; grid-template-columns: 1.55fr 1fr; gap: 20px; margin-top: 16px; }
   .notes { border: 1px solid var(--border); border-radius: var(--r-sm); padding: 13px 15px; }
   .notes h4 { font: 700 11px/1 var(--f-display); color: var(--wine); margin: 0 0 9px; }
   .notes h4 .zh { color: var(--ink); }
-  .notes ol { margin: 0; padding-left: 16px; }
+  .notes ol { margin: 0; padding-left: 0; list-style: none; }
   .notes li { font: 400 10px/1.5 var(--f-sans); color: var(--ink-soft); margin-bottom: 5px; }
   .notes li b { color: var(--ink); font-weight: 700; }
+  .notes li .mono-id { font-family: var(--f-mono); font-weight: 600; color: var(--wine); }
+  .cur-hint { cursor: help; border-bottom: 1px dotted var(--ink-mute); }
   .notes .zh { font-size: 10.5px; }
+  .notes li .i18n { display: none; }
 
   .smark { display: flex; flex-direction: column; gap: 12px; }
   .smark-card { border: 1.5px solid var(--ink); border-radius: var(--r-sm); padding: 12px 14px; }
@@ -111,11 +161,107 @@
   .smark-card h4 .zh { color: var(--wine); font-size: 12px; }
   .smark-row { display: flex; justify-content: space-between; font: 600 12px/1.7 var(--f-mono); color: var(--ink); border-bottom: 1px dotted var(--border); }
   .smark-row span:first-child { color: var(--ink-mute); }
-  .sign { display: flex; gap: 18px; }
-  .sign .s { flex: 1; }
+  .smark-tip { font: 500 10px/1.45 var(--f-sans); color: var(--ink-soft); margin: 8px 0 9px; }
+  .wh-card { margin-left: auto; min-width: 280px; flex: 1; border: 1px solid var(--border); border-radius: var(--r-sm); overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .wh-head { display: flex; align-items: center; justify-content: flex-start; gap: 9px; background: var(--bg-base); padding: 5px 10px; border-bottom: 1px solid var(--border); font: 700 9px/1.3 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--wine); }
+  .wh-body.flash { animation: whflash .9s ease; }
+  @keyframes whflash { 0% { background: var(--wine-bg); } 100% { background: transparent; } }
+  .wh-head .zh { font-family: 'Noto Sans SC', var(--f-sans); }
+  .wh-copy { appearance: none; border: 1px solid var(--wine); background: #fff; color: var(--wine); font: 700 10px/1 var(--f-sans); border-radius: var(--r-pill); padding: 4px 9px; cursor: pointer; text-transform: none; letter-spacing: 0; }
+  .wh-copy:hover { background: var(--wine-bg); }
+  .wh-copy.done { background: var(--success); color: #fff; border-color: var(--success); }
+  .wh-body { margin: 0; padding: 9px 11px; font: 500 11px/1.6 'Noto Sans SC', var(--f-mono); color: var(--ink); white-space: pre-wrap; word-break: break-word; }
+  .tel-link { color: var(--wine); font-weight: 700; text-decoration: none; border-bottom: 1px dotted var(--wine); }
+  .tel-link:hover { background: var(--wine-bg); }
+  .smark-tip .zh { color: var(--ink); }
+  .smark-acts { display: flex; gap: 7px; flex-wrap: wrap; }
+
+  /* Hoja de etiquetas (overlay) */
+  .labels-sheet { position: fixed; inset: 0; z-index: 80; background: var(--bg-elevated); overflow: auto; }
+  .labels-bar { position: sticky; top: 0; display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: var(--bg-sidebar); color: #F2F0EC; }
+  .labels-bar strong { font: 700 14px/1 var(--f-display); }
+  .labels-bar .zh { color: var(--wine-soft); }
+  .labels-count { font: 600 12px/1 var(--f-mono); color: rgba(242,240,236,0.7); }
+  .labels-bar-acts { margin-left: auto; display: flex; gap: 8px; }
+  .labels-grid { display: grid; grid-template-columns: repeat(auto-fill, 188px); gap: 14px; padding: 22px; justify-content: center; }
+  .lbl { width: 188px; background: #fff; border: 2px solid var(--ink); border-radius: var(--r-md); padding: 14px 16px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .lbl-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .lbl-iso { width: 46px; height: auto; }
+  .lbl-qr { width: 56px; height: 56px; }
+  .lbl-qr svg { width: 100%; height: 100%; display: block; }
+  .lbl-row { display: flex; justify-content: space-between; align-items: baseline; font: 700 12px/1.85 var(--f-mono); }
+  .lbl-row span:first-child { color: var(--ink-mute); letter-spacing: 0.04em; }
+  .lbl-row .v { color: var(--ink); font-weight: 700; }
+  @media print {
+    body > *:not(.labels-sheet) { display: none !important; }
+    .labels-sheet { position: static; background: #fff; }
+    .labels-bar { display: none !important; }
+    .labels-grid { padding: 0; gap: 8mm; }
+    @page { size: A4; margin: 10mm; }
+  }
+  .sign { display: flex; gap: 18px; justify-content: center; margin-top: 6px; }
+  .sign .s { flex: 0 1 340px; }
   .sign .line { border-top: 1.3px solid var(--ink); margin-top: 30px; }
-  .sign .rl { font: 600 9px/1.3 var(--f-sans); color: var(--ink-mute); margin-top: 5px; }
+  .sign .rl { font: 600 9px/1.3 var(--f-sans); color: var(--ink-mute); margin-top: 5px; text-align: center; }
   .sign .rl .zh { color: var(--ink-soft); font-weight: 700; }
+
+  /* ── Cliente reservado / fecha china / adjuntos ── */
+  tr.rsame td { background: var(--bg-base); }
+  tr.rsame td:first-child { border-left: 3px solid var(--wine); }
+  .c-idx .grp { color: var(--wine); font-size: 14px; font-weight: 700; }
+  .samelbl { display: flex; align-items: center; gap: 2px; justify-content: center; margin-top: 3px; cursor: pointer; }
+  .samelbl input { transform: scale(0.85); accent-color: var(--wine); cursor: pointer; margin: 0; }
+  .samelbl span { font: 700 6.5px/1 var(--f-sans); color: var(--ink-mute); }
+  .cell.off { color: var(--ink-mute); background: repeating-linear-gradient(45deg, #f4f3f0, #f4f3f0 4px, #fff 4px, #fff 8px); cursor: not-allowed; }
+  .grpTog { display: inline-flex; align-items: center; gap: 3px; margin-top: 3px; appearance: none; border: 0; cursor: pointer; background: var(--wine-bg); color: var(--wine); font: 700 8.5px/1 var(--f-mono); border-radius: var(--r-pill); padding: 2px 6px; }
+  .grpTog .chev { width: 0; height: 0; border-left: 4px solid currentColor; border-top: 3px solid transparent; border-bottom: 3px solid transparent; transition: transform .12s; }
+  .grpTog.open .chev { transform: rotate(90deg); }
+  .c-act { width: 34px; text-align: center; border: 0; white-space: nowrap; }
+  .rowadd { appearance: none; cursor: pointer; border: 0; background: transparent; color: var(--wine); font: 700 15px/1 var(--f-sans); padding: 3px 4px; border-radius: var(--r-xs); }
+  .rowadd:hover { background: var(--wine-bg); }
+  .lang-seg { display: inline-flex; border: 1px solid rgba(242,240,236,0.2); border-radius: var(--r-md); overflow: hidden; }
+  .lang-seg button { appearance: none; border: 0; background: transparent; color: #F2F0EC; font: 600 12px/1 var(--f-sans); padding: 8px 11px; cursor: pointer; }
+  .lang-seg button.on { background: var(--wine); }
+  .attach-hi { background: transparent; border: 0 !important; padding: 0; }
+  .attach-drop { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; appearance: none; background: var(--wine-bg); border: 1.5px dashed var(--wine); border-radius: var(--r-pill); padding: 8px 14px; color: var(--wine); font: 700 12px/1 var(--f-sans); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .attach-drop:hover, .attach-drop.drag { background: color-mix(in srgb, var(--wine) 18%, #fff); }
+  .attach-drop > svg { width: 16px; height: 16px; flex: none; }
+  .attach-t .zh { color: var(--ink); }
+  .resv { font: 600 8px/1.2 var(--f-mono); color: var(--wine); background: var(--wine-bg); padding: 1px 5px; border-radius: var(--r-pill); letter-spacing: 0; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .cli-row { display: flex; align-items: center; gap: 4px; }
+  #f-cliente.masked { -webkit-text-security: disc; }
+  #f-cliente.masked.reveal { -webkit-text-security: none; }
+  .eye { appearance: none; border: 0; background: transparent; cursor: pointer; color: var(--ink-mute); padding: 2px; display: inline-flex; flex: none; }
+  .eye svg { width: 15px; height: 15px; }
+  .eye.on { color: var(--wine); }
+  .date-row { display: flex; align-items: center; gap: 9px; }
+  .date-row .date-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+  .datebtn { appearance: none; border: 0; background: transparent; cursor: pointer; color: var(--ink); padding: 2px; display: inline-flex; margin-left: auto; }
+  .datebtn svg { width: 17px; height: 17px; }
+  .date-cn { font: 700 13px/1.2 'Noto Sans SC', var(--f-sans); color: var(--wine); white-space: nowrap; }
+  .attach { margin-top: 16px; border: 1px dashed var(--border); border-radius: var(--r-sm); padding: 12px 14px; }
+  .attach-h { font: 700 11px/1 var(--f-display); color: var(--wine); display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .attach-h .zh { color: var(--ink); }
+  .attach-sub { font: 500 9.5px/1.3 var(--f-sans); color: var(--ink-mute); letter-spacing: 0; }
+  .attach-list { list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+  .attach-toggle { appearance: none; border: 1px solid var(--border); background: var(--bg-base); color: var(--ink); cursor: pointer; font: 700 10.5px/1 var(--f-sans); border-radius: var(--r-pill); padding: 6px 11px; margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; }
+  .attach-toggle:hover { border-color: var(--wine); color: var(--wine); }
+  .attach-toggle .chev { transition: transform .12s; display: inline-block; color: var(--wine); }
+  .attach-toggle.open .chev { transform: rotate(90deg); }
+  .attach-list li { display: flex; align-items: center; justify-content: space-between; gap: 10px; font: 500 11px var(--f-sans); color: var(--ink); background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-xs); padding: 5px 9px; }
+  .attach-list li .nm { display: flex; align-items: center; gap: 7px; }
+  .attach-list li .nm-link { color: var(--wine); text-decoration: none; }
+  .attach-list li .nm-link:hover { text-decoration: underline; }
+  .attach-list li .nm svg { width: 13px; height: 13px; color: var(--ink-mute); flex: none; }
+  .attach-list li .rm { appearance: none; border: 0; background: transparent; color: var(--ink-mute); cursor: pointer; font-size: 15px; line-height: 1; }
+  .attach-list li .rm:hover { color: var(--danger); }
+  #photos-sec { width: 100%; flex-basis: 100%; margin-top: 4px; order: 9; }
+  .photos-list { list-style: none; margin: 9px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+  .photos-list:empty { display: none; }
+  .photo-thumb { position: relative; width: 64px; height: 64px; border-radius: var(--r-sm); overflow: hidden; border: 1px solid var(--border); }
+  .photo-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .photo-thumb .rm { position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border: 0; border-radius: 50%; background: rgba(15,30,61,0.78); color: #fff; font: 700 12px/1 var(--f-sans); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .photo-thumb .rm:hover { background: var(--danger); }
 
   /* ── Print ── */
   @media print {
@@ -128,16 +274,46 @@
     table { min-width: 0; }
     thead { display: table-header-group; }
     tr { page-break-inside: avoid; }
-    .c-del, .rowdel { display: none !important; }
+    .c-del, .c-act, .rowdel, .rowadd { display: none !important; }
+    #rows tr.child { display: table-row !important; }
+    .grpTog { display: none !important; }
     .addbar { display: none !important; }
     .cell, .info input { color: #000 !important; }
+    #f-cliente { -webkit-text-security: disc !important; color: #555 !important; }
+    .date-row input { display: none !important; }
+    .datebtn { display: none !important; }
+    .eye, #f-files, #btn-attach { display: none !important; }
+    .attach { border-style: solid; page-break-inside: avoid; }
   }
 
   @media (max-width: 720px) {
+    .toolbar { flex-wrap: wrap; gap: var(--s-2); padding: var(--s-3) var(--s-4); }
+    .toolbar .ttl { width: 100%; }
+    .info2 { grid-template-columns: 1fr; }
+    .igroup { border-right: 0; border-bottom: 1px solid var(--border); }
+    .tb-actions { width: 100%; flex-wrap: wrap; gap: 6px; }
+    .tb-actions .tbtn, .tb-actions .cur-sel { font-size: 11px; padding: 7px 9px; }
     .info { grid-template-columns: 1fr 1fr; }
     .totstrip { grid-template-columns: 1fr 1fr; }
     .lower { grid-template-columns: 1fr; }
     .doc { padding: 18px; }
+    .wrap { padding: var(--s-4) var(--s-3) var(--s-10); }
+    .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    /* filas compuestas (dirección+ciudad / tel+email) se parten en 2 líneas */
+    .irow-addr { flex-wrap: wrap; }
+    .irow-addr .il { flex: 0 0 26% !important; }
+    .irow-addr #f-direccion, .irow-addr #f-cliente-tel { flex: 1 1 60% !important; }
+    .irow-addr .il-city { flex: 0 0 26% !important; border-top: 1px dotted var(--border); }
+    .irow-addr .in-city { flex: 1 1 60% !important; border-top: 1px dotted var(--border); }
+    /* touch targets más cómodos en móvil */
+    .info .cell { padding: 8px 11px; }
+    .info input, #f-folio { min-height: 30px; font-size: 14px; }
+    .cell input { padding: 7px; font-size: 14px; }
+    td.calc { font-size: 12.5px; }
+    .addbtn, .attach-drop, .tbtn { min-height: 38px; }
+    .datebtn svg { width: 22px; height: 22px; }
+    .date-cn { font-size: 15px; }
+    .lang-seg button { padding: 9px 13px; }
   }
 </style>
 </head>
@@ -151,7 +327,16 @@
         <option value="RMB">RMB ¥</option>
         <option value="EUR">EUR €</option>
       </select>
-      <button class="tbtn" id="btn-reset">Vaciar / 清空</button>
+      <span class="save-status" id="save-status"></span>
+      <button class="tbtn save-cta" id="btn-save" title="Guardar versión">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span class="save-label">Guardar / 保存</span>
+      </button>
+      <button class="tbtn" id="btn-history" title="Versiones guardadas / 历史版本">Historial / 历史</button>
+      <button class="tbtn" id="btn-xls" title="Descargar Excel vacío para llenar offline">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Excel vacío / 空表
+      </button>
       <button class="tbtn primary" id="btn-print">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         PDF · 打印
@@ -159,59 +344,61 @@
     </div>
   </div>
 
+  <div id="history-panel" class="hpanel" style="display:none"></div>
+
   <div class="wrap">
     <div class="doc" id="doc">
       <!-- header -->
       <div class="doc-head">
-        <div class="dh-l">
-          <img src="dtdcargo-isologo-primary.png" alt="DTD Cargo" />
-          <div>
-            <div class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></div>
-            <div class="dh-sub">Importación puerta a puerta · 中国 → 委内瑞拉</div>
-          </div>
-        </div>
-        <div class="dh-r">
-          <div class="dh-title"><span class="zh">装箱单 + 商业发票</span>Packing List + Factura</div>
-          <div class="dh-tag">Documento único · proveedor → DTD-Cargo</div>
-          <div class="dh-folio">N.º / 编号: <input id="f-folio" style="border:0;outline:0;font:inherit;color:inherit;background:transparent;width:130px;text-align:right" value=""></div>
-        </div>
+        <div class="dh-phones"><span class="zh">电话</span><b>0579-8543 1781</b><b>0086 186 0689 1419</b><b class="dh-mail">info@dtdcargo.com</b></div>
+        <div class="dh-company"><span class="zh">义乌市林冠进出口有限公司</span> · <span class="wm-inline"><span class="d">DTD</span> <span class="g">Cargo</span></span></div>
+        <div class="dh-title"><span class="zh">装箱单 + 商业发票 · 入仓单</span> <span class="i18n" data-en="Packing List + Invoice" data-es="Packing List + Factura">Packing List + Factura</span></div>
+        <div class="dh-meta"><span class="zh">仓库地址</span> 义乌市义乌港二期直通仓2栋2号货7--货11 <span class="dh-folio">· N.º / 编号 <input id="f-folio" value=""></span></div>
       </div>
 
-      <!-- supplier info -->
-      <div class="info">
-        <div class="cell"><span class="lab"><span class="zh">公司名称</span> · Empresa / Proveedor</span><input id="f-empresa" placeholder="公司名称 / Nombre del proveedor"></div>
-        <div class="cell"><span class="lab"><span class="zh">唛头</span> · Shipping Mark</span><input id="f-mark" class="mark" placeholder="DTD-XXXX"></div>
-        <div class="cell"><span class="lab"><span class="zh">客户</span> · Cliente</span><input id="f-cliente" placeholder="客户 / Cliente"></div>
-        <div class="cell"><span class="lab"><span class="zh">邮箱</span> · Email</span><input id="f-email" placeholder="email@..."></div>
-        <div class="cell"><span class="lab"><span class="zh">微信</span> · WeChat</span><input id="f-wechat" placeholder="WeChat ID"></div>
-        <div class="cell"><span class="lab"><span class="zh">日期</span> · Fecha</span><input id="f-fecha" type="date"></div>
+      <!-- proveedor + cliente, lado a lado -->
+      <div class="info2">
+        <div class="igroup">
+          <div class="ig-head"><span class="zh">供应商</span> <span class="i18n" data-en="Supplier" data-es="Proveedor">Supplier</span></div>
+          <div class="irow"><span class="il"><span class="zh">公司/个人名称</span> <span class="i18n" data-en="Company / Person name" data-es="Empresa / Persona">Company / Person name</span></span><input id="f-empresa" placeholder="公司名称 / Company / Person name"></div>
+          <div class="irow"><span class="il"><span class="zh">邮箱</span> Email</span><input id="f-email" placeholder="email@..."></div>
+          <div class="irow"><span class="il"><span class="zh">电话/微信</span> Tel/WeChat</span><input id="f-wechat" placeholder="+86 138... / WeChat"></div>
+          <div class="irow irow-addr"><span class="il"><span class="zh">地址</span> <span class="i18n" data-en="Address" data-es="Dirección">Address</span></span><input id="f-direccion" placeholder="供应商地址 / Dirección"><span class="il il-city"><span class="zh">城市</span> <span class="i18n" data-en="City" data-es="Ciudad">City</span></span><input id="f-ciudad" class="in-city" placeholder="城市 / Ciudad"></div>
+        </div>
+        <div class="igroup">
+          <div class="ig-head"><span class="zh">客户</span> <span class="i18n" data-en="Client" data-es="Cliente">Client</span></div>
+          <div class="irow"><span class="il"><span class="zh">唛头</span> Mark</span><input id="f-mark" class="mark" placeholder="DTD-XXXX"></div>
+          <div class="irow"><span class="il"><span class="zh">客户名</span> <span class="i18n" data-en="Name" data-es="Nombre">Name</span></span><input id="f-cliente" placeholder="客户名 / Nombre"></div>
+          <div class="irow irow-addr"><span class="il"><span class="zh">客户电话</span> <span class="i18n" data-en="Phone" data-es="Tel.">Phone</span></span><input id="f-cliente-tel" placeholder="+58... / 客户电话"><span class="il il-city"><span class="zh">邮箱</span> Email</span><input id="f-cliente-email" class="in-city" placeholder="email@..."></div>
+          <div class="irow"><span class="il"><span class="zh">日期</span> <span class="i18n" data-en="Date" data-es="Fecha">Date</span></span><div class="date-row"><span class="date-cn zh" id="f-fecha-cn"></span><button type="button" class="datebtn" id="f-fecha-btn" title="Elegir fecha / 选择日期"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></button><input id="f-fecha" type="date" class="date-hidden"></div></div>
+        </div>
       </div>
 
       <!-- goods table -->
-      <div class="sec-t"><span class="zh">货物明细</span><span>Detalle de mercancía</span></div>
+      <div class="sec-t"><span class="zh">货物明细</span><span class="i18n" data-en="Goods detail" data-es="Detalle de mercancía">Detalle de mercancía</span></div>
       <div class="tablewrap">
         <table>
           <colgroup>
             <col style="width:26px"><col class="c-brand"><col class="c-code"><col class="c-zh"><col class="c-es"><col class="c-hs">
-            <col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col style="width:26px">
+            <col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col class="c-num"><col style="width:34px">
           </colgroup>
           <thead>
             <tr>
               <th>#</th>
-              <th><span class="zh">品牌</span><span class="es">Marca</span></th>
-              <th><span class="zh">货号</span><span class="es">Código</span></th>
-              <th><span class="zh">中文品名</span><span class="es">Nombre 中文</span></th>
-              <th><span class="zh">英文品名</span><span class="es">Nombre ES/EN</span></th>
-              <th><span class="zh">材质 / HS</span><span class="es">Material / HS</span></th>
-              <th><span class="zh">箱号</span><span class="es">N.º caja</span></th>
-              <th><span class="zh">件数</span><span class="es">Cajas</span></th>
-              <th><span class="zh">每箱装量</span><span class="es">Uds/caja</span></th>
-              <th><span class="zh">总数量</span><span class="es">Total uds ▸</span></th>
-              <th><span class="zh">单价</span><span class="es">P. unit</span></th>
+              <th><span class="zh">品牌</span><span class="es i18n" data-en="Brand" data-es="Marca">Marca</span></th>
+              <th><span class="zh">货号</span><span class="es i18n" data-en="Code" data-es="Código">Código</span></th>
+              <th><span class="zh">中文品名</span><span class="es i18n" data-en="Name 中文" data-es="Nombre 中文">Nombre 中文</span></th>
+              <th><span class="zh">英文品名</span><span class="es i18n" data-en="Name EN" data-es="Nombre ES/EN">Nombre ES/EN</span></th>
+              <th title="如果您知道商品的海关编码（HS Code），请在此填写。"><span class="zh">材质 / HS</span><span class="es">Material / HS</span></th>
+              <th><span class="zh">箱号</span><span class="es i18n" data-en="Carton no." data-es="N.º caja">N.º caja</span></th>
+              <th><span class="zh">件数</span><span class="es i18n" data-en="Cartons" data-es="Cajas">Cajas</span></th>
+              <th><span class="zh">每箱装量</span><span class="es i18n" data-en="PCS/ctn" data-es="PCS/caja">PCS/caja</span></th>
+              <th><span class="zh">总数量</span><span class="es">Total PCS ▸</span></th>
+              <th><span class="zh">单价</span><span class="es i18n" data-en="Unit price" data-es="P. unit">P. unit</span></th>
               <th><span class="zh">总金额</span><span class="es">Total ▸</span></th>
-              <th><span class="zh">每箱重</span><span class="es">kg/caja</span></th>
-              <th><span class="zh">总重量</span><span class="es">Peso ▸</span></th>
-              <th><span class="zh">每箱体积</span><span class="es">CBM/caja</span></th>
+              <th><span class="zh">每箱重</span><span class="es i18n" data-en="kg/ctn" data-es="kg/caja">kg/caja</span></th>
+              <th><span class="zh">总重量</span><span class="es i18n" data-en="Weight ▸" data-es="Peso ▸">Peso ▸</span></th>
+              <th><span class="zh">每箱体积</span><span class="es i18n" data-en="CBM/ctn" data-es="CBM/caja">CBM/caja</span></th>
               <th><span class="zh">总体积</span><span class="es">CBM ▸</span></th>
               <th></th>
             </tr>
@@ -219,11 +406,11 @@
           <tbody id="rows"></tbody>
           <tfoot>
             <tr>
-              <td colspan="7" class="lab"><span class="zh">总计</span> · Totales</td>
+              <td colspan="7" class="lab"><span class="zh">总计</span> <span class="i18n" data-en="· Totals" data-es="· Totales">· Totales</span></td>
               <td class="v" id="t-ctns">0</td>
               <td></td>
               <td class="v" id="t-qty">0</td>
-              <td class="lab" style="text-align:right"><span id="cur-label">USD</span></td>
+              <td class="lab" style="text-align:right"><span id="cur-label" class="cur-hint" title="如需更改货币（美元 / 人民币 / 欧元），请点击右上角的货币选择器。 · Para cambiar la moneda, usá el selector de arriba a la derecha.">USD</span></td>
               <td class="v" id="t-amount">0.00</td>
               <td></td>
               <td class="v" id="t-weight">0 kg</td>
@@ -235,50 +422,88 @@
         </table>
       </div>
       <div class="addbar">
-        <button class="addbtn" id="add-row">+ Agregar fila / 加一行</button>
-        <button class="addbtn" id="add-5">+ 5 filas</button>
+        <button class="addbtn" id="add-row">+ <span class="i18n" data-en="Add row" data-es="Agregar fila">Add row</span> / 加一行</button>
+        <button class="addbtn" id="add-5">+ 5 <span class="i18n" data-en="rows" data-es="filas">rows</span></button>
+        <div class="attach attach-hi" id="attach-sec">
+        <button type="button" class="attach-drop" id="btn-attach" title="Adjuntá tu factura / packing list / Excel y fotos de los productos (para identificarlos y codificarlos en aduana). · 上传发票、装箱单、Excel及产品照片">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          <span class="attach-t"><span class="zh">附件+产品照片</span> · <span class="i18n" data-en="Attach Documents & Product photos" data-es="Adjuntar documentos y fotos de producto">Attach Documents & Product photos</span></span>
+        </button>
+        <span class="attach-tip">上传发票、装箱单、Excel及产品照片，以便识别货物并进行报关归类。</span>
+        <input type="file" id="f-files" multiple style="display:none">
+        <button type="button" class="attach-toggle" id="attach-toggle" style="display:none"><span class="chev">▸</span> <span id="attach-toggle-label"></span></button>
+        <ul class="attach-list" id="attach-list" style="display:none"></ul>
+      </div>
       </div>
 
       <!-- notes + shipping mark -->
       <div class="lower">
         <div class="notes">
-          <h4><span class="zh">入仓注意事项</span> · Reglas de ingreso a bodega</h4>
+          <h4><span class="zh">入仓注意事项</span> <span class="i18n" data-en="· Warehouse intake rules" data-es="· Reglas de ingreso a bodega">· Reglas de ingreso a bodega</span></h4>
           <ol>
-            <li><b>1.</b> <span class="zh">发货前确认已建 DTD 微信群并确认唛头，未确认不得发货。</span> Antes de enviar, confirmá el grupo WeChat de DTD y el Shipping Mark. Contacto: <b id="rule-contact">—</b>. Sin confirmar, no despachar.</li>
-            <li><b>2.</b> <span class="zh">每件外箱须贴客户唛头，无唛头仓库拒收。</span> Cada caja debe llevar pegado el Shipping Mark del cliente. Sin Shipping Mark, la bodega rechaza la carga.</li>
-            <li><b>3.</b> <span class="zh">发货前填写此单并发到群里。</span> Llená este documento antes de enviar y compartilo en el grupo.</li>
-            <li><b>4.</b> <span class="zh">卸货由供应商安排并承担费用。</span> La descarga la organiza y paga el proveedor (si la hace nuestra bodega, se cobra por volumen/peso).</li>
-            <li><b>5.</b> <span class="zh">货物如为品牌货，请如实填写品牌名；否则填"无"。</span> Si la mercancía es de marca, declará la marca real; si no, escribí "无 / ninguna". Ocultar marca = riesgo en aduana a cargo del proveedor.</li>
-            <li><b>6.</b> <span class="zh">违禁品、危险品禁止入仓。</span> Prohibido el ingreso de mercancía peligrosa o restringida.</li>
+            <li><b>1.</b> <span class="zh">每个箱子写客户唛头；缺唛头会延误出口。</span> <span class="i18n" data-en="Mark every carton with the client's Shipping Mark. Without it, the export is delayed." data-es="Marca cada caja con el Shipping Mark del cliente. Sin él, esto generará retraso en la exportación.">Mark every carton with the client's Shipping Mark. Without it, the export is delayed.</span></li>
+            <li><b>2.</b> <span class="zh">发货前填写本单，随货发送，或在你的 DTD 链接上传。</span> <span class="i18n" data-en="Fill in this form before shipping and send it with the cargo, or upload it on your DTD link." data-es="Llena este documento antes de enviar y mándalo con la carga, o súbelo en tu link de DTD.">Fill in this form before shipping and send it with the cargo, or upload it on your DTD link.</span></li>
+            <li><b>3.</b> <span class="zh">货物如果是牌子货，请如实写上品牌名，装柜时我们会特殊处理；如果不是牌子货，请写"无"。如有品牌隐瞒不报，一旦海关查验，后果由供方承担。</span> <span class="i18n" data-en="If the goods are branded, declare the real brand name (we handle it specially when loading); if not, write 无 (none). Hiding a brand = the supplier bears the consequences of any customs inspection." data-es="If the goods are branded, declare the real brand name; if not, write 无 (none). Hiding a brand = the supplier bears the customs consequences.">If the goods are branded, declare the real brand name (we handle it specially when loading); if not, write 无 (none). Hiding a brand = the supplier bears the consequences of any customs inspection.</span></li>
+            <li><b>4.</b> <span class="zh">请供货方自行安排卸货及承担卸货费用。如需我司仓库安排工人卸货，则会按照货物体积重量收取相应的卸货费用，实报实销。卸货如需叉车，叉车由义乌港统一收费，一车50元，费用由供应商支付。</span> <span class="i18n" data-en="The supplier arranges and pays for unloading. If our warehouse provides workers, the unloading fee is charged by volume/weight (actual cost). If a forklift is needed, Yiwu Port charges a flat ¥50 per truck, paid by the supplier." data-es="The supplier arranges and pays for unloading. If our warehouse provides workers, the unloading fee is charged by volume/weight. If a forklift is needed, Yiwu Port charges ¥50 per truck, paid by the supplier.">The supplier arranges and pays for unloading. If our warehouse provides workers, the unloading fee is charged by volume/weight (actual cost). If a forklift is needed, Yiwu Port charges a flat ¥50 per truck, paid by the supplier.</span></li>
+            <li><b>5.</b> <span class="zh">违禁品及需许可货物（如电池需 MSDS + CCC），无相应许可证不予收货。</span> <span class="i18n" data-en="Restricted goods will not be received without their permits (e.g. batteries: MSDS + CCC)." data-es="Mercancía prohibida/restringida: no será recibida si no tiene su respectiva permisología (ej. baterías: MSDS + CCC).">Restricted goods will not be received without their permits (e.g. batteries: MSDS + CCC).</span></li>
+            <li><b>6.</b> <span class="zh">委内瑞拉联系人（如有疑问）：</span> <span class="i18n" data-en="Venezuelan contact (questions):" data-es="Contacto en Venezuela (dudas):">Venezuelan contact (questions):</span> <span class="zh">微信</span> <b class="mono-id">DTDLogistic</b></li>
           </ol>
         </div>
         <div class="smark">
           <div class="smark-card">
-            <h4><span class="zh">唛头内容</span> Shipping Mark</h4>
+            <h4><span class="zh">唛头标签</span> Shipping Mark <span class="i18n" data-en="· labels" data-es="· etiquetas">· labels</span></h4>
             <div class="smark-row"><span>MARK</span><span id="sm-mark-mirror">DTD-____</span></div>
-            <div class="smark-row"><span>ITEM NO</span><span>____</span></div>
-            <div class="smark-row"><span>PCS / CTN</span><span>____</span></div>
-            <div class="smark-row"><span>CARTON NO</span><span>____</span></div>
+            <div class="smark-row"><span><span class="zh">总箱数</span> CARTONS</span><span id="sm-ctn-mirror">0</span></div>
+            <p class="smark-tip"><span class="zh">按总箱数生成标签</span> · <span class="i18n" data-en="Generates one label per carton (1/N … N/N), pulled from the brand label." data-es="Genera una etiqueta por caja (1/N … N/N), con la etiqueta de marca.">Generates one label per carton (1/N … N/N), pulled from the brand label.</span></p>
+            <div class="smark-acts">
+              <button type="button" class="addbtn" id="btn-labels-print">🖨 <span class="i18n" data-en="Print labels" data-es="Imprimir etiquetas">Print labels</span> / 打印</button>
+              <button type="button" class="addbtn" id="btn-labels-pdf">⬇ PDF</button>
+            </div>
           </div>
           <div class="sign">
-            <div class="s"><div class="line"></div><div class="rl"><span class="zh">供应商签字 / 盖章</span> · Proveedor (firma/sello)</div></div>
-            <div class="s"><div class="line"></div><div class="rl"><span class="zh">日期</span> · Fecha</div></div>
+            <div class="s"><div class="line"></div><div class="rl"><span class="zh">供应商签字 / 盖章</span> <span class="i18n" data-en="· Supplier (signature/stamp)" data-es="· Proveedor (firma/sello)">· Supplier (signature/stamp)</span></div></div>
           </div>
         </div>
       </div>
 
-      <!-- contact fields (editable, used by rule 1) -->
+      <!-- warehouse address (copy-paste) -->
       <div style="display:flex;gap:14px;margin-top:14px;flex-wrap:wrap" class="contact-edit">
-        <label style="font:600 10px var(--f-sans);color:var(--ink-mute)">仓库联系人 / Contacto bodega
-          <input id="f-contacto" style="display:block;border:1px solid var(--border);border-radius:5px;padding:6px 9px;font:600 12px var(--f-sans);margin-top:3px;min-width:180px">
-        </label>
-        <label style="font:600 10px var(--f-sans);color:var(--ink-mute)">电话 / Tel.
-          <input id="f-tel" style="display:block;border:1px solid var(--border);border-radius:5px;padding:6px 9px;font:600 12px var(--f-mono);margin-top:3px;min-width:150px">
-        </label>
+        <div class="wh-card">
+          <div class="wh-head"><button type="button" id="btn-copy-wh" class="wh-copy">📋 <span class="i18n" data-en="Copy" data-es="Copiar">Copy</span> / 复制</button><span><span class="zh">收货信息</span> · <span class="i18n" data-en="Warehouse address" data-es="Dirección de recepción">Warehouse address</span></span></div>
+          <pre class="wh-body" id="wh-body">义乌市林冠进出口有限公司 (DTD)
+仓库地址: 义乌市义乌港二期直通仓2栋2号货7--货11
+仓库电话: 林冠 18606891419
+收货时间: 周一至周六上午9点到下午5点半
+邮箱: candywu@ywlgcanopy.com</pre>
+        </div>
       </div>
     </div>
   </div>
 
+  <div id="confirm-modal" class="cmodal" style="display:none">
+    <div class="cbox">
+      <div class="ctext" id="confirm-text"></div>
+      <div class="cbtns">
+        <button class="cbtn ghost" id="confirm-no">Cancelar / 取消</button>
+        <button class="cbtn danger" id="confirm-yes">Eliminar / 删除</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hoja de etiquetas Shipping Mark (overlay para imprimir/PDF) -->
+  <div id="labels-sheet" class="labels-sheet" style="display:none">
+    <div class="labels-bar">
+      <strong><span class="zh">唛头标签</span> · Shipping Mark labels</strong>
+      <span id="labels-count" class="labels-count"></span>
+      <div class="labels-bar-acts">
+        <button type="button" class="addbtn" id="labels-do-print">🖨 Imprimir / 打印</button>
+        <button type="button" class="addbtn" id="labels-close">✕ Cerrar / 关闭</button>
+      </div>
+    </div>
+    <div class="labels-grid" id="labels-grid"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
   <script src="packlist.js"></script>
 </body>
 </html>

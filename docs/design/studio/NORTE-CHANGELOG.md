@@ -4,6 +4,50 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v4.4 · carga 2026-06-19 — **marca sincronizada a Brand Book v4.4 · sync 2026-06-19**
+
+> *Hecho en ventana secundaria (worktree `feat/norte-v44`). NO mergeado ni pusheado — queda para la
+> ventana de coordinación.* El ZIP se extrajo **fuera del repo** (regla anti-drift de marca).
+
+Fuente: `Downloads/DTDCARGOMARCA V4.4 BRANDBOOK COMLETO .zip` (350 MB crudo, 1342 entradas) →
+**862 archivos / 26.4 MB** a git tras exclusiones. Trae su entrada en `CHANGELOG.md` (no un `SYNC-NORTE`
+nuevo). El HANDOFF salta **v4.3 → v4.4**; el Brand Book **v4.3 → v4.4** (git lo detectó como *rename*).
+
+**Sistema sin cambios este ciclo:** `erp/tokens.css` y `CLAUDE.md` solo cambian la **etiqueta de
+versión** (cero drift de tokens / fuentes / reglas — verificado por diff).
+
+**Gobernanza book único:** `Brand Book DTD v4.3.html` eliminado; queda solo `Brand Book DTD v4.4.html`.
+
+**Cambios de v4.4 (del CHANGELOG del proyecto):**
+- **Branding — recursos gráficos chinos** (Brand Book §07): motivos recoloreados a la paleta en
+  `recursos-graficos/` (greca/meandro, olas, nube, marco, esquinas — uso diario en cream/wine/flex;
+  festivos **linterna 灯笼** y **nudo 中国结** solo temporada, con **BRAND-EXCEPTION del dorado**;
+  **dragón de herencia** en duotono wine/navy). + `marca-analisis/` (análisis del set vs marca v4.3).
+- **Plantillas sociales:** Stories/feed (9:16 y 1:1) integradas al `Generador Redes · DTD-Cargo.html`
+  (editor por plantilla, carga de foto, toggles web/usuario, descarga PNG; carrusel 4:5
+  navy/wine/jade/white) + `Plantillas base (sin texto)` con export 2× y ZIP.
+- **Packing List + Factura renovado:** bilingüe 中/EN (se quitó el español), **caja mixta (同箱)**,
+  N.º de caja automático, etiquetas Shipping Mark por cartón, adjuntos plegables (docs + fotos),
+  autoguardado + historial, dirección de bodega copiable, **vista móvil** (`packlist/Vista Móvil ·
+  Packing List.html`) + demo `Caja Padre`. Reglas de ingreso actualizadas (permisología, montacargas Yiwu).
+
+**Exclusiones (regla "pesado/ruido fuera de git"):** las de v4.3 (`fondos/`, `trello/`, `para-enviar/`,
+`uploads/`, `_archivo/uploads/`, `scraps/`, `screenshots/`, `backend/prisma/`, `.design-canvas.state.json`,
+`.thumbnail`) + **NUEVO en `.gitignore`: `paquete-drive/`** (paquete de marca para Drive: fondos 4K + book +
+assets duplicados, ~250 MB) + `.image-slots.state.json`. **Conflicto 0080/0081 preservado de nuevo:** el ZIP
+trae `inventario/DECISIONES-WMS-SDD-0080.md`; se borró y se mantuvo el `…SDD-0081.md` local canónico.
+
+**Índice (`scripts/norte.mjs`):** `NORTE_VERSION` → v4.4, puntero del book → `Brand Book DTD v4.4.html`,
+nuevo grupo "Nuevo en v4.4" (plantillas sociales + vista móvil del packing list; los recursos gráficos
+son assets del book, no pantallas). % construido sin cambio (50%; mockups `ref:true`).
+
+**Seguimiento (para la ventana de coordinación):**
+1. **Book v4.4 a la web — LISTO esta vez:** el ZIP **sí** trae el standalone autocontenido
+   (`para-enviar/Brand Book DTD v4.4 · standalone.html`, 13 MB) → se publica en `private/marca/` y se
+   mueven las ~9 refs (igual que v4.3). *(Va en este mismo carril, ver commits.)*
+2. **Skill `/radar` → v4.4:** bump de la Regla 0.5/0.5b (book vigente v4.3 → v4.4 + exclusiones físicas).
+3. Tokens/reglas **sin cambios** → nada más que propagar este ciclo.
+
 ## v4.3 · carga 2026-06-17 — **marca sincronizada a Brand Book v4.3 · sync 2026-06-17**
 
 > *Hecho en ventana secundaria (worktree `feat/norte-v43`). NO mergeado ni pusheado — queda para la

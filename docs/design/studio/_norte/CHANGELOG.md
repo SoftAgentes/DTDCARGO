@@ -1,5 +1,13 @@
 # Changelog · v1.1+
 
+## 2026-06-19 · 🔢 v4.3 → v4.4
+
+Recursos gráficos chinos recoloreados a la marca, plantillas sociales integradas al Generador de Redes y Packing List bilingüe renovado, consolidado como **v4.4** (marca y producto comparten número visible).
+- **Versión:** v4.3 → **v4.4** en todo lo visible: Brand Book (renombrado `Brand Book DTD v4.3.html` → `Brand Book DTD v4.4.html`, portada/cover/footer/cierre/changelog), sidebar ERP, títulos de Portal/Registro/apps de operario, badges de módulo (Scorecard, Academia, Dashboard), tokens, Brand Hub y Launcher, `HANDOFF.md`, `CLAUDE.md`. Lo histórico (entradas previas, comentarios que fechan features) no se reescribe.
+- **Recursos gráficos (Brand Book §07):** motivos chinos recoloreados a la paleta — meandro, olas, nube, marco y esquinas sueltas (uso diario); festivos linterna 灯笼 y nudo 中国结 (solo temporada, con BRAND-EXCEPTION del dorado); dragón de herencia en duotono wine/navy. SVG/PNG en `recursos-graficos/`.
+- **Plantillas sociales:** Stories/feed (9:16 y 1:1) integradas al `Generador Redes · DTD-Cargo.html` con editor por plantilla, carga de foto, toggles de web/usuario y descarga PNG; carrusel 4:5 con tonos navy/wine/jade/white. `Plantillas base (sin texto)` con export 2× y ZIP.
+- **Packing List + Factura:** bilingüe 中/EN (se quitó español), caja mixta (同箱), N.º de caja automático, etiquetas Shipping Mark por cartón, adjuntos plegables (docs + fotos de producto), autoguardado + historial, dirección de bodega copiable, vista móvil. Reglas de ingreso actualizadas (permisología, montacargas Yiwu, marca real).
+
 ## 2026-06-17 · 🔢 v4.2 → v4.3
 
 Academia del alumno, Hub de Enlaces y reestructura del registro, consolidado como **v4.3** (marca y producto comparten número visible).

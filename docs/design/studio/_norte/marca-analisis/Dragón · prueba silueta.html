@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="../erp/tokens.css">
+<link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg-base);color:var(--ink);font-family:'Nunito Sans',sans-serif;padding:40px}
+.eyebrow{font:700 11px/1 'JetBrains Mono',monospace;letter-spacing:.28em;text-transform:uppercase;color:var(--wine)}
+h1{font-family:'Sora',sans-serif;font-weight:800;font-size:30px;margin:10px 0 6px}
+p.lead{font-size:15px;color:var(--ink-soft);max-width:70ch;line-height:1.6}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:24px}
+.card{border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--bg-surface)}
+.cap{padding:12px 16px;font:600 12px/1.4 'JetBrains Mono',monospace;color:var(--ink-mute);border-top:1px solid var(--border)}
+.stage{display:flex;align-items:center;justify-content:center;padding:28px;min-height:240px}
+.paper{background:var(--bg-base)}
+.navy{background:var(--bg-sidebar)}
+.stage img{max-width:100%;max-height:200px;display:block}
+.tag{display:inline-block;font:700 9px/1 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px;margin-left:8px}
+.t-good{background:color-mix(in srgb,var(--success) 16%,transparent);color:var(--success)}
+.t-mid{background:color-mix(in srgb,var(--warning) 16%,transparent);color:var(--warning)}
+</style></head><body>
+<div class="eyebrow">Prueba · dragón en clave DTD</div>
+<h1>Silueta y duotono del dragón</h1>
+<p class="lead">Generado a partir de tu PNG. Dos enfoques: <b>silueta plana</b> (forma limpia, máximo on-brand) y <b>duotono</b> (conserva escamas y detalle, mono-color). Mirá cuál te convence — abajo te digo la vía para que quede impecable.</p>
+
+<div class="grid">
+  <div class="card"><div class="stage paper"><img src="dragon-sil-wine.png" alt="silueta wine"></div><div class="cap">Silueta plana · wine sobre papel <span class="tag t-good">más on-brand</span></div></div>
+  <div class="card"><div class="stage navy"><img src="dragon-sil-cream.png" alt="silueta cream"></div><div class="cap">Silueta plana · cream sobre navy <span class="tag t-good">más on-brand</span></div></div>
+  <div class="card"><div class="stage paper"><img src="dragon-duo-wine.png" alt="duotono wine"></div><div class="cap">Duotono wine · conserva detalle <span class="tag t-mid">más ruidoso</span></div></div>
+  <div class="card"><div class="stage navy"><img src="dragon-duo-navy.png" alt="duotono navy"></div><div class="cap">Duotono navy · conserva detalle <span class="tag t-mid">más ruidoso</span></div></div>
+</div>
+
+<p class="lead" style="margin-top:28px"><b>Lectura honesta:</b> la silueta plana funciona como motivo de marca (forma clara, una sola tinta), pero un dragón es muy detallado y una silueta hecha desde PNG pierde definición fina en la cabeza. Para un resultado <b>realmente limpio</b> hace falta el <b>vector</b> (tu archivo .ai → exportado a SVG), o un re-trazo a mano alzada.</p>
+</body></html>

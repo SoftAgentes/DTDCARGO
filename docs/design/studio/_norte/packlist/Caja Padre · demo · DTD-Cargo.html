@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caja padre · demo · DTD-Cargo</title>
+<link rel="stylesheet" href="../erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700&family=Nunito+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;background:var(--bg-elevated);color:var(--ink);font-family:var(--f-sans);}
+  .zh{font-family:'Noto Sans SC',var(--f-sans);}
+  .wrap{max-width:1080px;margin:0 auto;padding:var(--s-10) var(--s-6) var(--s-16);}
+  .eyebrow{font:700 11px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--wine);}
+  h1{font:700 26px/1.15 var(--f-display);margin:10px 0 6px;}
+  .lead{font:500 14px/1.6 var(--f-sans);color:var(--ink-soft);max-width:70ch;}
+  .note{font:500 12.5px/1.55 var(--f-sans);color:var(--ink-soft);background:var(--wine-bg);border-left:3px solid var(--wine);border-radius:var(--r-sm);padding:11px 14px;margin:16px 0 22px;}
+  .note b{color:var(--ink);}
+
+  /* carton card (parent) */
+  .ctn{border:1.5px solid var(--ink);border-radius:var(--r-md);overflow:hidden;margin-bottom:14px;background:#fff;}
+  .ctn-head{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:var(--bg-sidebar);color:#F2F0EC;padding:11px 16px;}
+  .ctn-head .no{font:900 17px/1 'Archivo Black',sans-serif;}
+  .ctn-head .no .zh{font-size:13px;color:var(--wine-soft);margin-right:6px;}
+  .ctn-head .meta{display:flex;gap:18px;flex-wrap:wrap;margin-left:auto;font:600 12px/1.3 var(--f-mono);}
+  .ctn-head .meta b{display:block;font:700 9px/1.2 var(--f-sans);letter-spacing:.04em;text-transform:uppercase;color:rgba(242,240,236,.55);margin-bottom:2px;}
+  .ctn-head .meta span{color:#F2F0EC;}
+  .ctn-head .mixchip{font:700 9px/1 var(--f-mono);letter-spacing:.06em;text-transform:uppercase;background:var(--wine);color:#fff;padding:4px 9px;border-radius:var(--r-pill);}
+
+  table{border-collapse:collapse;width:100%;}
+  thead th{background:var(--bg-elevated);font:700 9px/1.25 var(--f-sans);color:var(--ink);padding:7px 9px;border-bottom:1px solid var(--border);text-align:left;text-transform:uppercase;letter-spacing:.02em;}
+  thead th.r{text-align:right;}
+  tbody td{border-bottom:1px solid var(--border);padding:8px 9px;font:500 12.5px/1.3 var(--f-sans);}
+  tbody tr:last-child td{border-bottom:0;}
+  td.r{text-align:right;font-family:var(--f-mono);}
+  td.it{display:flex;align-items:center;gap:9px;}
+  td.it .ix{width:20px;height:20px;border-radius:5px;background:var(--wine-bg);color:var(--wine);font:700 10px/20px var(--f-mono);text-align:center;flex:none;}
+  td.it .nm{font-weight:700;color:var(--ink);}
+  td.it .nm .zh{display:block;font-weight:500;font-size:11px;color:var(--ink-soft);}
+  .ctn-sub{display:flex;justify-content:flex-end;gap:18px;background:var(--bg-base);padding:8px 14px;border-top:1px dashed var(--border);font:700 12px/1 var(--f-mono);color:var(--wine);}
+  .ctn-sub .k{color:var(--ink-mute);font-weight:600;}
+
+  .add{display:flex;gap:8px;margin:4px 0 0;}
+  .add button{appearance:none;cursor:pointer;font:600 12px/1 var(--f-sans);border:1px dashed var(--border);background:#fff;color:var(--ink-soft);border-radius:var(--r-sm);padding:8px 12px;}
+  .add button:hover{border-color:var(--wine);color:var(--wine);}
+
+  .grand{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:18px;}
+  .grand .b{border:1px solid var(--border);border-radius:var(--r-sm);padding:10px 13px;background:#fff;}
+  .grand .b .k{font:600 9px/1.2 var(--f-sans);letter-spacing:.04em;text-transform:uppercase;color:var(--ink-mute);}
+  .grand .b .v{font:700 17px/1.1 var(--f-display);color:var(--wine);margin-top:3px;}
+
+  .cmp{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:26px;}
+  .cmp .c{border:1px solid var(--border);border-radius:var(--r-sm);padding:14px 16px;background:#fff;}
+  .cmp .c h4{font:700 12px/1 var(--f-display);margin:0 0 8px;}
+  .cmp .c.a h4{color:var(--ink-soft);} .cmp .c.b h4{color:var(--wine);}
+  .cmp .c p{font:500 12px/1.55 var(--f-sans);color:var(--ink-soft);margin:0;}
+  .cmp .c ul{margin:7px 0 0;padding-left:16px;} .cmp .c li{font:500 11.5px/1.5 var(--f-sans);color:var(--ink-soft);margin-bottom:3px;}
+  @media(max-width:720px){.cmp,.grand{grid-template-columns:1fr 1fr;}.grand{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Demo · modelo alternativo</div>
+  <h1>Caja padre con ítems adentro <span class="zh" style="font-size:18px;color:var(--wine)">· 母箱 + 内含货物</span></h1>
+  <p class="lead">Cada <b>caja física</b> es una tarjeta "padre" (con su N.º, peso y CBM una sola vez). Adentro se listan los <b>ítems</b> que contiene (nombre, piezas, precio). Así una caja con 6 ítems distintos se ve agrupada y nunca se cuenta de más.</p>
+  <div class="note"><b>Cómo leerlo:</b> la cabecera oscura = la caja (1 bulto, su peso y volumen). Las filas de abajo = los productos dentro de esa caja. El subtotal de la caja suma el valor de sus ítems. Abajo, el total del envío suma cajas, peso, CBM y valor.</div>
+
+  <!-- Caja 9 · mixta (6 ítems) -->
+  <div class="ctn">
+    <div class="ctn-head">
+      <div class="no"><span class="zh">箱号</span>Caja 9</div>
+      <span class="mixchip"><span class="zh">混装</span> · mixta · 6 ítems</span>
+      <div class="meta">
+        <div><b><span class="zh">件数</span> Bultos</b><span>1</span></div>
+        <div><b><span class="zh">毛重</span> Peso</b><span>14.20 kg</span></div>
+        <div><b><span class="zh">体积</span> CBM</b><span>0.082 m³</span></div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Ítem / 品名</th><th>Marca</th><th class="r">PCS</th><th class="r">P. unit</th><th class="r">Total</th></tr></thead>
+      <tbody>
+        <tr><td class="it"><span class="ix">1</span><span class="nm">Termo acero<span class="zh">保温杯</span></span></td><td>无</td><td class="r">120</td><td class="r">2.30</td><td class="r">276.00</td></tr>
+        <tr><td class="it"><span class="ix">2</span><span class="nm">Cable USB<span class="zh">数据线</span></span></td><td>无</td><td class="r">300</td><td class="r">0.45</td><td class="r">135.00</td></tr>
+        <tr><td class="it"><span class="ix">3</span><span class="nm">Auriculares BT<span class="zh">蓝牙耳机</span></span></td><td>无</td><td class="r">60</td><td class="r">3.10</td><td class="r">186.00</td></tr>
+        <tr><td class="it"><span class="ix">4</span><span class="nm">Funda silicona<span class="zh">硅胶套</span></span></td><td>无</td><td class="r">200</td><td class="r">0.30</td><td class="r">60.00</td></tr>
+        <tr><td class="it"><span class="ix">5</span><span class="nm">Power bank<span class="zh">充电宝</span></span></td><td>无</td><td class="r">40</td><td class="r">5.80</td><td class="r">232.00</td></tr>
+        <tr><td class="it"><span class="ix">6</span><span class="nm">Cargador 30W<span class="zh">充电器</span></span></td><td>无</td><td class="r">80</td><td class="r">2.10</td><td class="r">168.00</td></tr>
+      </tbody>
+    </table>
+    <div class="ctn-sub"><span class="k">Subtotal caja / 本箱小计</span><span>800 PCS</span><span>USD 1,057.00</span></div>
+  </div>
+  <div class="add"><button>+ Ítem en esta caja / 加货物</button></div>
+
+  <!-- Caja 10 · simple -->
+  <div class="ctn" style="margin-top:18px;">
+    <div class="ctn-head">
+      <div class="no"><span class="zh">箱号</span>Caja 10–13</div>
+      <div class="meta">
+        <div><b><span class="zh">件数</span> Bultos</b><span>4</span></div>
+        <div><b><span class="zh">毛重</span> Peso</b><span>48.00 kg</span></div>
+        <div><b><span class="zh">体积</span> CBM</b><span>0.240 m³</span></div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>Ítem / 品名</th><th>Marca</th><th class="r">PCS</th><th class="r">P. unit</th><th class="r">Total</th></tr></thead>
+      <tbody>
+        <tr><td class="it"><span class="ix">1</span><span class="nm">Power Station 6000W<span class="zh">户外电源</span></span></td><td>无</td><td class="r">4</td><td class="r">280.00</td><td class="r">1,120.00</td></tr>
+      </tbody>
+    </table>
+    <div class="ctn-sub"><span class="k">Subtotal caja / 本箱小计</span><span>4 PCS</span><span>USD 1,120.00</span></div>
+  </div>
+  <div class="add"><button>+ Otra caja / 加一箱</button><button>+ Ítem en esta caja / 加货物</button></div>
+
+  <!-- grand totals -->
+  <div class="grand">
+    <div class="b"><div class="k"><span class="zh">总箱数</span> · Cajas (bultos)</div><div class="v">5</div></div>
+    <div class="b"><div class="k"><span class="zh">总数量</span> · Total PCS</div><div class="v">804</div></div>
+    <div class="b"><div class="k"><span class="zh">总重量</span> · Peso</div><div class="v">62.20 kg</div></div>
+    <div class="b"><div class="k"><span class="zh">总金额</span> · Total USD</div><div class="v">2,177.00</div></div>
+  </div>
+
+  <!-- comparación -->
+  <div class="cmp">
+    <div class="c a">
+      <h4>A · "Misma caja" (lo que ya está)</h4>
+      <p>Tabla plana. Una casilla <b>同箱</b> agrupa la fila con la caja de arriba.</p>
+      <ul>
+        <li>+ Familiar: es la misma tabla de siempre.</li>
+        <li>+ Rápido para pocas mezclas.</li>
+        <li>− Con cajas de muchos ítems se lee como lista larga.</li>
+      </ul>
+    </div>
+    <div class="c b">
+      <h4>B · "Caja padre" (este demo)</h4>
+      <p>Cada caja es una tarjeta; los ítems viven adentro con su subtotal.</p>
+      <ul>
+        <li>+ Muy claro qué hay en cada bulto.</li>
+        <li>+ Imposible contar la caja de más.</li>
+        <li>− Cambio más grande de la herramienta actual.</li>
+      </ul>
+    </div>
+  </div>
+</div>
+</body>
+</html>
