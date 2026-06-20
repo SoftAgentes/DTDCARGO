@@ -3,8 +3,8 @@
  *
  * Dimensionada para CABER EN LA CUOTA (100 llamadas/mes): se deriva del catálogo
  * público (`lib/shared/ocean-rate.ts`) cruzando orígenes × destinos × configs.
- *   2 orígenes (CN) × 3 destinos (VE) × 2 configs (LCL + FCL HC40) = 12 rutas/semana
- *   ≈ 52/mes → entra holgado en 100 (+ headroom para reintentos).
+ *   2 orígenes (CN) × 3 destinos (VE) × 3 configs (FCL ST20/ST40/HC40) = 18 rutas/semana
+ *   ≈ 72/mes → entra en 100 (+ headroom para reintentos).
  *
  * Cada llamada gasta 1 rate (+ 1 auth cacheada). Si Oleh sube el límite, se
  * expande el catálogo o la cadencia sin tocar código del cron (solo data).
@@ -34,9 +34,10 @@ export type OceanMatrixRoute = {
 
 /** Configs que se cachean por cada par origen→destino. */
 const ROUTE_CONFIGS: ReadonlyArray<Omit<OceanMatrixRoute, "pointIdFrom" | "pointIdTo">> = [
-  // LCL con 1 CBM de referencia (la mayoría del negocio DTD es LCL).
-  { shippingType: "LCL", volumeM3: 1, weightKg: 250 },
-  // FCL 40' High Cube (el contenedor más usado en la ruta).
+  // Solo FCL (full container). El LCL público vive en /calculadora (founder 2026-06-20).
+  // Cacheamos los 3 contenedores secos estándar; el default de la UI es HC40.
+  { shippingType: "FCL", container: "ST20" },
+  { shippingType: "FCL", container: "ST40" },
   { shippingType: "FCL", container: "HC40" },
 ];
 

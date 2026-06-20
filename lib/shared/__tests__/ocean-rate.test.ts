@@ -8,18 +8,30 @@ import {
 } from "../ocean-rate";
 
 describe("validateOceanRouteInput · candado de país", () => {
-  it("CN→VE LCL válido normaliza a mayúsculas", () => {
+  it("CN→VE FCL válido normaliza a mayúsculas", () => {
     const r = validateOceanRouteInput({
       pointIdFrom: "p_27395",
       pointIdTo: "p_19774",
-      shippingType: "lcl",
+      shippingType: "fcl",
+      container: "hc40",
     });
     expect(r.fieldErrors).toBeUndefined();
     expect(r.input).toEqual({
       pointIdFrom: "P_27395",
       pointIdTo: "P_19774",
+      shippingType: "FCL",
+      container: "HC40",
+    });
+  });
+
+  it("LCL rechazado — este cotizador es solo FCL (el LCL vive en /calculadora)", () => {
+    const r = validateOceanRouteInput({
+      pointIdFrom: "P_27395",
+      pointIdTo: "P_19774",
       shippingType: "LCL",
     });
+    expect(r.input).toBeUndefined();
+    expect(r.fieldErrors?.shippingType).toBeTruthy();
   });
 
   it("CN→VE FCL sin contenedor → fieldError container", () => {

@@ -102,11 +102,13 @@ export function validateOceanRouteInput(
   else if (!POINT_ID_RE.test(pointIdTo) || !DEST_IDS.has(pointIdTo))
     fieldErrors.pointIdTo = "Destino no disponible (Venezuela o Barranquilla).";
 
+  // Este cotizador es SOLO FCL (full container). El LCL público vive en
+  // /calculadora (decisión founder 2026-06-20). Rechazamos cualquier otro modo.
   let shippingType: OceanShippingType | null = null;
-  if (shippingTypeRaw === "FCL" || shippingTypeRaw === "LCL")
-    shippingType = shippingTypeRaw;
-  else fieldErrors.shippingType = "Elige FCL o LCL.";
+  if (shippingTypeRaw === "FCL") shippingType = "FCL";
+  else fieldErrors.shippingType = "Este cotizador es solo para contenedor completo (FCL).";
 
+  // Contenedor SIEMPRE requerido (es FCL).
   let container: OceanContainer | undefined;
   if (shippingType === "FCL") {
     const c = String(partial.container ?? "").trim().toUpperCase();
