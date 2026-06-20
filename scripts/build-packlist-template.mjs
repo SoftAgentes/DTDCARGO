@@ -90,21 +90,34 @@ async function main() {
     ws.getColumn(i + 1).width = w;
   });
 
-  // ── Fila 1-3: header DTD Cargo + título + folio ────────────────
-  ws.mergeCells("A1:E3");
+  // ── Fila 1-3: header identidad CN (NORTE-SYNC v4.4) + título + folio ──
+  ws.mergeCells("A1:E2");
   const brandCell = ws.getCell("A1");
   brandCell.value = {
     richText: [
-      { text: "DTD", font: { name: F_SANS, bold: true, size: 22, color: { argb: WINE } } },
-      { text: " Cargo", font: { name: F_SANS, bold: true, size: 22, color: { argb: NAVY } } },
+      { text: "义乌市林冠进出口有限公司", font: { name: F_SANS, bold: true, size: 12, color: { argb: NAVY } } },
+      { text: "  ·  ", font: { name: F_SANS, size: 12, color: { argb: GREY_500 } } },
+      { text: "DTD", font: { name: F_SANS, bold: true, size: 16, color: { argb: WINE } } },
+      { text: " Cargo", font: { name: F_SANS, bold: true, size: 16, color: { argb: NAVY } } },
     ],
   };
   brandCell.alignment = { vertical: "middle", horizontal: "left" };
 
+  // Teléfonos de bodega (fijo + móvil) + email de recepción — v4.4.
+  ws.mergeCells("A3:E3");
+  const phonesCell = ws.getCell("A3");
+  phonesCell.value = {
+    richText: [
+      { text: "电话 ", font: { name: F_SANS, bold: true, size: 8, color: { argb: WINE } } },
+      { text: "0579-8543 1781 · +86 186 0689 1419 · candywu@ywlgcanopy.com", font: { name: F_MONO, size: 8, color: { argb: INK_SOFT } } },
+    ],
+  };
+  phonesCell.alignment = { vertical: "middle", horizontal: "left" };
+
   ws.mergeCells("A4:E4");
   const subCell = ws.getCell("A4");
-  subCell.value = "Importación puerta a puerta · 中国 → 委内瑞拉";
-  subCell.font = { name: F_SANS, size: 8.5, color: { argb: GREY_500 } };
+  subCell.value = "仓库地址: 义乌市义乌港二期直通仓2栋2号货7-货11 · Importación puerta a puerta 中国 → 委内瑞拉";
+  subCell.font = { name: F_SANS, size: 8, color: { argb: GREY_500 } };
   subCell.alignment = { vertical: "middle" };
 
   // Logo (si está disponible) — esquina superior derecha, sin AI-slop.
@@ -151,19 +164,22 @@ async function main() {
   ws.getRow(2).height = 16;
   ws.getRow(3).height = 16;
 
-  // ── Filas 5-8: grilla de proveedor (label B + valor C en una fila) ──
+  // ── Filas 5-8: grilla SUPPLIER (izq, prefill) / CLIENT (der) — v4.4 ──
+  // ⚠️ Las 5 celdas de prefill que usa fillPacklist viven FIJAS:
+  //   C5 = 公司名称 (Proveedor) · C6 = 唛头 (Mark) · C7 = 客户 (Cliente)
+  //   C8 = 微信 (WeChat) · I3 = folio.  NO mover sin actualizar packlist.ts + test.
   const infoRows = [
     { row: 5, zh: "公司名称", es: "Empresa / Proveedor", prefill: true, mono: false },
     { row: 6, zh: "唛头", es: "Shipping Mark", prefill: true, mono: true },
     { row: 7, zh: "客户", es: "Cliente", prefill: true, mono: false },
     { row: 8, zh: "微信", es: "WeChat", prefill: true, mono: false },
   ];
-  // Columna derecha de la grilla (email / fecha) — sin prefill.
+  // Columna derecha de la grilla — datos del cliente/proveedor (sin prefill).
   const infoRight = [
-    { row: 5, zh: "邮箱", es: "Email" },
-    { row: 6, zh: "日期", es: "Fecha" },
-    { row: 7, zh: "联系人", es: "Contacto" },
-    { row: 8, zh: "电话", es: "Teléfono" },
+    { row: 5, zh: "邮箱", es: "Email proveedor" },
+    { row: 6, zh: "客户电话", es: "Tel. cliente" },
+    { row: 7, zh: "地址 / 城市", es: "Dirección / Ciudad" },
+    { row: 8, zh: "日期", es: "Fecha" },
   ];
 
   for (const it of infoRows) {

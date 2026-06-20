@@ -163,6 +163,8 @@ export async function POST(
     p_supplier_email: input.supplierEmail,
     p_supplier_wechat: input.supplierWechat,
     p_supplier_phone: input.supplierPhone,
+    p_supplier_address: input.supplierAddress,
+    p_supplier_city: input.supplierCity,
     p_supplier_note: input.supplierNote,
     p_rows: input.rows,
     p_total_ctns: input.totals.ctns,
