@@ -40,8 +40,8 @@ const WHATSAPP: ReadonlyArray<readonly [string, string]> = [
 ];
 
 const BRAND_BOOK: readonly [string, string] = [
-  "brand-book-v4.4.html",
-  "private/marca/brand-book-v4.4.html",
+  "brand-book-v4.5.html",
+  "private/marca/brand-book-v4.5.html",
 ];
 
 const BUNDLES: Record<

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accesibilidad de Color · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--s-8); }
+  @media (max-width: 720px){ .wrap { padding: 0 var(--s-5); } }
+
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: var(--s-12) 0 var(--s-16); }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .brandline { display: flex; align-items: center; gap: 14px; }
+  .brandline img { width: 46px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 26px; line-height: .9; color: #F2F0EC; }
+  .wm .sp { display: inline-block; width: 0.15em; }
+  .crumbs { font: 600 11px/1 var(--f-mono); color: rgba(242,240,236,0.62); display: flex; align-items: center; gap: 8px; }
+  .crumbs a:hover { color: #fff; }
+  .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); margin-left: 6px; }
+  .eyebrow-h { font: 700 11px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine-soft); margin: 44px 0 16px; }
+  .hero h1 { font: 800 46px/1.05 var(--f-display); letter-spacing: -0.025em; margin: 0 0 18px; max-width: 18ch; }
+  .hero h1 .ac { color: var(--wine-soft); }
+  .hero .lede { font: 400 17px/1.6 var(--f-sans); color: rgba(242,240,236,0.82); margin: 0; max-width: 66ch; }
+
+  /* legend bar */
+  .keybar { margin-top: -38px; position: relative; z-index: 4; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-md); padding: var(--s-5) var(--s-6); display: flex; flex-wrap: wrap; gap: var(--s-5); align-items: center; }
+  .keybar .kt { font: 700 10px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); }
+  .keybar .k { display: inline-flex; align-items: center; gap: 8px; font: 600 12px/1 var(--f-sans); color: var(--ink-soft); }
+  .keybar .k b { display: inline-grid; place-items: center; width: 30px; height: 20px; border-radius: var(--r-xs); font: 700 9px/1 var(--f-mono); color: #fff; }
+  .g-aaa { background: var(--success); } .g-aa { background: #2E9E6E; } .g-lg { background: var(--warning); } .g-fail { background: var(--danger); }
+
+  section.block { padding: var(--s-16) 0 0; }
+  .sec-head .num { font: 700 11px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); }
+  .sec-head h2 { font: 800 30px/1.12 var(--f-display); letter-spacing: -0.022em; margin: 12px 0 10px; }
+  .sec-head .lead { font: 400 15.5px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 72ch; }
+
+  .matrix { margin-top: var(--s-8); overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-xs); }
+  table { border-collapse: collapse; width: 100%; min-width: 620px; background: var(--bg-surface); }
+  th, td { padding: 0; border-bottom: 1px solid var(--border); border-right: 1px solid var(--border); text-align: center; }
+  th:last-child, td:last-child { border-right: 0; }
+  tbody tr:last-child td { border-bottom: 0; }
+  thead th { background: var(--bg-elevated); font: 700 11px/1.3 var(--f-mono); color: var(--ink); padding: var(--s-4) var(--s-3); }
+  thead th .sub { display: block; font: 500 9px/1.2 var(--f-sans); color: var(--ink-mute); margin-top: 3px; text-transform: none; letter-spacing: 0; }
+  tbody th { background: var(--bg-base); text-align: left; padding: var(--s-3) var(--s-4); font: 600 12px/1 var(--f-mono); color: var(--ink); white-space: nowrap; }
+  .cell { padding: var(--s-3) var(--s-2); }
+  .cell .rt { font: 700 14px/1 var(--f-display); }
+  .cell .gd { font: 700 8.5px/1 var(--f-mono); letter-spacing: 0.04em; margin-top: 4px; display: inline-block; padding: 2px 5px; border-radius: var(--r-pill); }
+  .c-aaa .rt, .c-aa .rt { color: var(--success); } .c-aaa .gd { background: var(--success-bg); color: var(--success); }
+  .c-aa .gd { background: var(--success-bg); color: #2E9E6E; }
+  .c-lg .rt { color: var(--warning); } .c-lg .gd { background: var(--warning-bg); color: var(--warning); }
+  .c-fail .rt { color: var(--danger); } .c-fail .gd { background: var(--danger-bg); color: var(--danger); }
+
+  /* dark matrix renders on a dark surface so swatches read true */
+  .dark-panel { margin-top: var(--s-8); background: #0B1428; border: 1px solid #1F3055; border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); overflow-x: auto; }
+  .dark-panel table { background: #16264A; min-width: 720px; }
+  .dark-panel th, .dark-panel td { border-color: #25365C; }
+  .dark-panel thead th { background: #1F3055; color: #F2F0EC; }
+  .dark-panel thead th .sub { color: #8A93AC; }
+  .dark-panel tbody th { background: #0F1E3D; color: #F2F0EC; }
+  .dark-panel .c-aaa .rt, .dark-panel .c-aa .rt { color: #5BCFA0; } .dark-panel .c-aaa .gd, .dark-panel .c-aa .gd { background: rgba(91,207,160,0.16); color: #5BCFA0; }
+  .dark-panel .c-lg .rt { color: #DCAB6B; } .dark-panel .c-lg .gd { background: rgba(220,171,107,0.16); color: #DCAB6B; }
+  .dark-panel .c-fail .rt { color: #E07785; } .dark-panel .c-fail .gd { background: rgba(224,119,133,0.16); color: #E07785; }
+
+  /* rules */
+  .rules { margin-top: var(--s-10); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+  @media (max-width: 760px){ .rules { grid-template-columns: 1fr; } }
+  .rule { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .rule .tag { display: inline-block; font: 700 9.5px/1 var(--f-mono); letter-spacing: 0.06em; padding: 5px 9px; border-radius: var(--r-pill); margin-bottom: var(--s-4); }
+  .rule.warn .tag { background: var(--warning-bg); color: var(--warning); }
+  .rule.stop .tag { background: var(--danger-bg); color: var(--danger); }
+  .rule.go .tag { background: var(--success-bg); color: var(--success); }
+  .rule h3 { font: 700 16px/1.25 var(--f-display); margin: 0 0 8px; letter-spacing: -0.01em; }
+  .rule p { font: 400 13px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; }
+  .rule code { font: 600 12px/1 var(--f-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: var(--r-xs); color: var(--ink); }
+  .rule .demo { margin-top: var(--s-4); border-radius: var(--r-md); padding: 12px 14px; font: 600 13px/1.4 var(--f-sans); }
+
+  .foot { margin-top: var(--s-16); padding: var(--s-6) 0 var(--s-16); border-top: 1px solid var(--border); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div class="brandline">
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+          <span class="wm"><span>DTD</span><span class="sp"></span><span>Cargo</span></span>
+        </div>
+        <div class="crumbs"><a href="Brand Hub · DTD-Cargo.html">Brand Hub</a> <span>/</span> Accesibilidad de Color <span class="ver">v4.5</span></div>
+      </div>
+      <div class="eyebrow-h">Sistema · Visual</div>
+      <h1>Qué texto <span class="ac">se lee de verdad.</span></h1>
+      <p class="lede">El contraste del logo ya estaba resuelto; el del texto no. Esta es la matriz WCAG de cada color de texto sobre cada superficie — light y dark — con la regla práctica para no equivocarse. Ratios reales, no a ojo.</p>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="keybar">
+      <span class="kt">Cómo leer</span>
+      <span class="k"><b class="g-aaa">AAA</b> ≥ 7 · ideal para todo</span>
+      <span class="k"><b class="g-aa">AA</b> ≥ 4.5 · texto normal OK</span>
+      <span class="k"><b class="g-lg">AA·L</b> ≥ 3 · solo texto grande (≥24px / ≥19px bold)</span>
+      <span class="k"><b class="g-fail">✕</b> &lt; 3 · no usar como texto</span>
+    </div>
+  </div>
+
+  <!-- LIGHT -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">01 / LIGHT THEME</div>
+        <h2>Texto sobre superficies claras</h2>
+        <p class="lead">Filas = color de texto · columnas = fondo. El número es el ratio de contraste. Detalle de tokens en el Brand Book §06.</p>
+      </div>
+      <div class="matrix">
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left; padding-left:16px">Texto \ Fondo</th>
+              <th>bg-base<span class="sub">#FBFAF7</span></th>
+              <th>bg-surface<span class="sub">#FFFFFF</span></th>
+              <th>bg-elevated<span class="sub">#F2F0EC</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th>ink</th>
+              <td class="cell c-aaa"><div class="rt">15.8</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">16.5</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">14.5</div><span class="gd">AAA</span></td></tr>
+            <tr><th>ink-soft</th>
+              <td class="cell c-aa"><div class="rt">5.1</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">5.3</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">4.7</div><span class="gd">AA</span></td></tr>
+            <tr><th>ink-mute</th>
+              <td class="cell c-fail"><div class="rt">2.7</div><span class="gd">✕ FAIL</span></td>
+              <td class="cell c-fail"><div class="rt">2.8</div><span class="gd">✕ FAIL</span></td>
+              <td class="cell c-fail"><div class="rt">2.4</div><span class="gd">✕ FAIL</span></td></tr>
+            <tr><th>wine</th>
+              <td class="cell c-aaa"><div class="rt">10.1</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">10.6</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">9.3</div><span class="gd">AAA</span></td></tr>
+            <tr><th>wine-deep</th>
+              <td class="cell c-aaa"><div class="rt">13.2</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">13.7</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">12.1</div><span class="gd">AAA</span></td></tr>
+            <tr><th>wine-soft</th>
+              <td class="cell c-lg"><div class="rt">3.3</div><span class="gd">AA·L</span></td>
+              <td class="cell c-lg"><div class="rt">3.4</div><span class="gd">AA·L</span></td>
+              <td class="cell c-lg"><div class="rt">3.0</div><span class="gd">AA·L</span></td></tr>
+            <tr><th>success</th>
+              <td class="cell c-lg"><div class="rt">4.2</div><span class="gd">AA·L</span></td>
+              <td class="cell c-lg"><div class="rt">4.3</div><span class="gd">AA·L</span></td>
+              <td class="cell c-lg"><div class="rt">3.8</div><span class="gd">AA·L</span></td></tr>
+            <tr><th>warning</th>
+              <td class="cell c-lg"><div class="rt">3.0</div><span class="gd">AA·L</span></td>
+              <td class="cell c-lg"><div class="rt">3.1</div><span class="gd">AA·L</span></td>
+              <td class="cell c-fail"><div class="rt">2.8</div><span class="gd">✕ FAIL</span></td></tr>
+            <tr><th>danger</th>
+              <td class="cell c-aa"><div class="rt">6.3</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">6.6</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">5.8</div><span class="gd">AA</span></td></tr>
+            <tr><th>info</th>
+              <td class="cell c-aa"><div class="rt">4.6</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">4.8</div><span class="gd">AA</span></td>
+              <td class="cell c-lg"><div class="rt">4.2</div><span class="gd">AA·L</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- DARK -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">02 / DARK THEME</div>
+        <h2>Texto sobre superficies oscuras</h2>
+        <p class="lead">En dark los tokens cambian de valor (<code style="font:600 12px/1 var(--f-mono); background:var(--bg-elevated); padding:2px 6px; border-radius:3px; color:var(--ink)">[data-theme="dark"]</code>). Ojo: el wine de dark <b>no sirve como texto</b>.</p>
+      </div>
+      <div class="dark-panel">
+        <table>
+          <thead>
+            <tr>
+              <th style="text-align:left; padding-left:16px">Texto \ Fondo</th>
+              <th>bg-base<span class="sub">#0B1428</span></th>
+              <th>bg-surface<span class="sub">#16264A</span></th>
+              <th>bg-elevated<span class="sub">#1F3055</span></th>
+              <th>bg-sidebar<span class="sub">#060D1C</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th>ink</th>
+              <td class="cell c-aaa"><div class="rt">16.1</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">13.1</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">11.4</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">17.1</div><span class="gd">AAA</span></td></tr>
+            <tr><th>ink-soft</th>
+              <td class="cell c-aaa"><div class="rt">8.5</div><span class="gd">AAA</span></td>
+              <td class="cell c-aa"><div class="rt">6.9</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">6.0</div><span class="gd">AA</span></td>
+              <td class="cell c-aaa"><div class="rt">8.9</div><span class="gd">AAA</span></td></tr>
+            <tr><th>ink-mute</th>
+              <td class="cell c-lg"><div class="rt">4.2</div><span class="gd">AA·L</span></td>
+              <td class="cell c-lg"><div class="rt">3.4</div><span class="gd">AA·L</span></td>
+              <td class="cell c-fail"><div class="rt">3.0</div><span class="gd">✕ FAIL</span></td>
+              <td class="cell c-lg"><div class="rt">4.4</div><span class="gd">AA·L</span></td></tr>
+            <tr><th>wine</th>
+              <td class="cell c-fail"><div class="rt">2.8</div><span class="gd">✕ FAIL</span></td>
+              <td class="cell c-fail"><div class="rt">2.3</div><span class="gd">✕ FAIL</span></td>
+              <td class="cell c-fail"><div class="rt">2.0</div><span class="gd">✕ FAIL</span></td>
+              <td class="cell c-fail"><div class="rt">3.0</div><span class="gd">✕ FAIL</span></td></tr>
+            <tr><th>wine-soft</th>
+              <td class="cell c-aaa"><div class="rt">7.9</div><span class="gd">AAA</span></td>
+              <td class="cell c-aa"><div class="rt">6.4</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">5.6</div><span class="gd">AA</span></td>
+              <td class="cell c-aaa"><div class="rt">8.4</div><span class="gd">AAA</span></td></tr>
+            <tr><th>success</th>
+              <td class="cell c-aaa"><div class="rt">9.5</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">7.7</div><span class="gd">AAA</span></td>
+              <td class="cell c-aa"><div class="rt">6.8</div><span class="gd">AA</span></td>
+              <td class="cell c-aaa"><div class="rt">10.1</div><span class="gd">AAA</span></td></tr>
+            <tr><th>warning</th>
+              <td class="cell c-aaa"><div class="rt">8.8</div><span class="gd">AAA</span></td>
+              <td class="cell c-aaa"><div class="rt">7.2</div><span class="gd">AAA</span></td>
+              <td class="cell c-aa"><div class="rt">6.3</div><span class="gd">AA</span></td>
+              <td class="cell c-aaa"><div class="rt">9.3</div><span class="gd">AAA</span></td></tr>
+            <tr><th>danger</th>
+              <td class="cell c-aa"><div class="rt">6.2</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">5.1</div><span class="gd">AA</span></td>
+              <td class="cell c-lg"><div class="rt">4.4</div><span class="gd">AA·L</span></td>
+              <td class="cell c-aa"><div class="rt">6.6</div><span class="gd">AA</span></td></tr>
+            <tr><th>info</th>
+              <td class="cell c-aa"><div class="rt">6.9</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">5.6</div><span class="gd">AA</span></td>
+              <td class="cell c-aa"><div class="rt">4.9</div><span class="gd">AA</span></td>
+              <td class="cell c-aaa"><div class="rt">7.3</div><span class="gd">AAA</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- REGLAS -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">03 / REGLAS PRÁCTICAS</div>
+        <h2>Lo que la matriz te obliga a hacer</h2>
+        <p class="lead">Seis reglas que salen directo de los números de arriba. Memoriza estas y no tienes que volver a la tabla.</p>
+      </div>
+      <div class="rules">
+        <div class="rule stop">
+          <span class="tag">NUNCA</span>
+          <h3><code>ink-mute</code> como texto de lectura</h3>
+          <p>Reprueba en todo fondo claro (2.4–2.8). Es solo para captions grandes, placeholders y deco. Para texto secundario usa <code>ink-soft</code> (AA).</p>
+        </div>
+        <div class="rule stop">
+          <span class="tag">NUNCA · DARK</span>
+          <h3>El <code>wine</code> de dark como texto</h3>
+          <p>En dark, <code>--wine</code> (#A8323E) reprueba en todo (2.0–3.0). Es fill/acento. Para texto rojo-marca en dark usa <code>wine-soft</code> (AA/AAA).</p>
+          <div class="demo" style="background:#16264A; color:#A8323E;">wine sobre surface dark — ilegible</div>
+        </div>
+        <div class="rule warn">
+          <span class="tag">SOLO GRANDE</span>
+          <h3><code>wine-soft</code> en light</h3>
+          <p>AA Large nada más (3.0–3.4). Sirve para títulos ≥24px o badges, nunca para párrafos. En dark sí funciona como texto normal.</p>
+        </div>
+        <div class="rule warn">
+          <span class="tag">CON CUIDADO</span>
+          <h3>Semánticos como texto fino</h3>
+          <p>En light, <code>success</code> y <code>warning</code> son AA Large — OK en badges y labels, no en texto chico. <code>warning</code> sobre <code>bg-elevated</code> reprueba: refuérzalo con ícono o fondo.</p>
+        </div>
+        <div class="rule go">
+          <span class="tag">SIEMPRE OK</span>
+          <h3>Texto sobre wine y navy</h3>
+          <p>Blanco o cream sobre <code>wine</code>/<code>ink</code> da 10:1+ (AAA). Es la combinación de los CTAs, sidebar y sellos. Sin riesgo.</p>
+          <div class="demo" style="background:#7F0F1A; color:#fff;">cream sobre wine — AAA</div>
+        </div>
+        <div class="rule go">
+          <span class="tag">REGLA DE ORO</span>
+          <h3>Cuerpo = ink / ink-soft</h3>
+          <p>Todo texto de lectura en <code>ink</code> (AAA) o <code>ink-soft</code> (AA). El color de marca (wine) entra en títulos y acentos, donde sí pasa holgado.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="foot">
+      <b>Accesibilidad de Color · DTD-Cargo v4.5</b> — ratios WCAG 2.1 calculados sobre <code style="font:600 11px/1 var(--f-mono)">erp/tokens.css</code> (light + dark). AA = 4.5 · AAA = 7 · AA Large = 3 (texto ≥24px o ≥19px bold). Complementa la regla de contraste del logo (Brand Book §04).
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquitectura de Marca · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--s-8); }
+  @media (max-width: 720px){ .wrap { padding: 0 var(--s-5); } }
+
+  /* ── Hero ── */
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: var(--s-12) 0 var(--s-16); }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .brandline { display: flex; align-items: center; gap: 14px; }
+  .brandline img { width: 46px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 26px; line-height: .9; }
+  .wm .sp { display: inline-block; width: 0.15em; }
+  .crumbs { font: 600 11px/1 var(--f-mono); color: rgba(242,240,236,0.62); display: flex; align-items: center; gap: 8px; }
+  .crumbs a:hover { color: #fff; }
+  .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); }
+  .eyebrow-h { font: 700 11px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine-soft); margin: 44px 0 16px; }
+  .hero h1 { font: 800 46px/1.05 var(--f-display); letter-spacing: -0.025em; margin: 0 0 18px; max-width: 17ch; }
+  .hero h1 .ac { color: var(--wine-soft); }
+  .hero .lede { font: 400 17px/1.6 var(--f-sans); color: rgba(242,240,236,0.82); margin: 0; max-width: 62ch; }
+  .hero .tag { font: 700 13px/1 var(--f-sans); letter-spacing: 0.03em; color: var(--wine-soft); margin-top: 22px; }
+
+  /* ── Model banner (branded house) ── */
+  .model { margin-top: -54px; }
+  .model-card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--shadow-lg); padding: var(--s-8) var(--s-10); position: relative; z-index: 4; }
+  .model-card .kick { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine); }
+  .model-card h2 { font: 800 28px/1.15 var(--f-display); letter-spacing: -0.02em; margin: 12px 0 12px; }
+  .model-card p { font: 400 15px/1.65 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 78ch; }
+  .model-card p b { color: var(--ink); }
+  .model-flags { display: flex; flex-wrap: wrap; gap: 10px; margin-top: var(--s-6); }
+  .flag { display: inline-flex; align-items: center; gap: 8px; font: 600 12.5px/1 var(--f-sans); padding: 9px 13px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--bg-base); color: var(--ink-soft); }
+  .flag.yes { color: var(--success); border-color: rgba(31,138,91,0.3); background: var(--success-bg); }
+  .flag.no  { color: var(--danger); border-color: rgba(168,50,62,0.3); background: var(--danger-bg); }
+  .flag .gl { font-family: var(--f-mono); font-weight: 700; }
+
+  /* ── Section scaffolding ── */
+  section.block { padding: var(--s-16) 0 0; }
+  .sec-head .num { font: 700 11px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); }
+  .sec-head h2 { font: 800 32px/1.12 var(--f-display); letter-spacing: -0.022em; margin: 12px 0 10px; }
+  .sec-head .lead { font: 400 16px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 70ch; }
+
+  /* ── Hierarchy tree ── */
+  .tree { margin-top: var(--s-10); display: flex; flex-direction: column; gap: 0; }
+  .level { position: relative; }
+  .level + .level { margin-top: var(--s-4); }
+  .connector { height: var(--s-6); display: grid; place-items: center; }
+  .connector::before { content: ""; width: 2px; height: 100%; background: repeating-linear-gradient(var(--border-strong) 0 5px, transparent 5px 9px); }
+  .lvl-row { display: grid; grid-template-columns: 132px 1fr; gap: var(--s-5); align-items: stretch; }
+  @media (max-width: 760px){ .lvl-row { grid-template-columns: 1fr; gap: var(--s-3); } }
+  .lvl-tag { display: flex; flex-direction: column; gap: 6px; justify-content: center; padding: var(--s-4); border-radius: var(--r-lg); background: var(--ink); color: #F2F0EC; }
+  .lvl-tag .lv { font: 700 10px/1 var(--f-mono); letter-spacing: 0.12em; color: var(--wine-soft); text-transform: uppercase; }
+  .lvl-tag .nm { font: 800 16px/1.1 var(--f-display); letter-spacing: -0.01em; }
+  .lvl-body { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .lvl-body > .desc { font: 400 13.5px/1.55 var(--f-sans); color: var(--ink-soft); margin: 0 0 var(--s-5); max-width: 80ch; }
+  .lvl-body > .desc b { color: var(--ink); }
+
+  .nodes { display: flex; flex-wrap: wrap; gap: 10px; }
+  .node { display: inline-flex; flex-direction: column; gap: 3px; padding: 11px 15px; border-radius: var(--r-md); border: 1px solid var(--border); background: var(--bg-base); min-width: 0; }
+  .node .nt { font: 700 13.5px/1.2 var(--f-display); color: var(--ink); letter-spacing: -0.01em; }
+  .node .nd { font: 500 11px/1.3 var(--f-sans); color: var(--ink-mute); }
+  .node.masterbrand { background: var(--wine); border-color: var(--wine-deep); padding: var(--s-5) var(--s-6); }
+  .node.masterbrand .nt { color: #fff; font-size: 17px; }
+  .node.masterbrand .nd { color: rgba(255,255,255,0.78); }
+  .node.endorsed .nt::before { content: "DTD "; color: var(--wine); }
+  .pill-name { font-family: var(--f-mono); }
+
+  .layer-2 { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
+  @media (max-width: 640px){ .layer-2 { grid-template-columns: 1fr; } }
+  .layer { border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--s-5); background: var(--bg-base); }
+  .layer h4 { font: 700 14px/1.1 var(--f-display); margin: 0 0 4px; }
+  .layer .meta { font: 600 10.5px/1 var(--f-mono); color: var(--wine); letter-spacing: 0.04em; }
+  .layer p { font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); margin: 8px 0 0; }
+  .layer .fonts { font: 500 11px/1.4 var(--f-mono); color: var(--ink-mute); margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+
+  /* ── Naming rules ── */
+  .rules { margin-top: var(--s-10); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+  @media (max-width: 760px){ .rules { grid-template-columns: 1fr; } }
+  .rule { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .rule .rk { display: inline-flex; align-items: center; gap: 9px; font: 700 11px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--wine); margin-bottom: var(--s-4); }
+  .rule .rk .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--wine); }
+  .rule h3 { font: 700 18px/1.2 var(--f-display); margin: 0 0 8px; letter-spacing: -0.01em; }
+  .rule p { font: 400 13.5px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0 0 14px; }
+  .rule .ex { display: flex; flex-direction: column; gap: 7px; }
+  .rule .ex .li { display: flex; align-items: baseline; gap: 9px; font: 500 13px/1.45 var(--f-sans); color: var(--ink); }
+  .rule .ex .li .mk { flex: 0 0 auto; font: 700 13px/1 var(--f-mono); width: 16px; text-align: center; }
+  .rule .ex .li.ok .mk { color: var(--success); }
+  .rule .ex .li.bad .mk { color: var(--danger); }
+  .rule .ex .li.bad { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--border-strong); }
+  .rule .ex .li code { font: 600 12.5px/1 var(--f-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: var(--r-xs); }
+
+  /* ── Logo-by-level table ── */
+  .tbl-wrap { margin-top: var(--s-10); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-xs); }
+  table { width: 100%; border-collapse: collapse; background: var(--bg-surface); }
+  thead th { text-align: left; font: 700 10px/1.2 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); padding: var(--s-4) var(--s-5); background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+  tbody td { padding: var(--s-4) var(--s-5); border-bottom: 1px solid var(--border); font: 500 13px/1.45 var(--f-sans); color: var(--ink-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody td b { color: var(--ink); font-weight: 700; }
+  td .chip { display: inline-block; font: 600 10.5px/1 var(--f-mono); padding: 4px 8px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--bg-base); color: var(--ink); }
+  td .chip.primary { background: #FBFAF7; color: #0F1E3D; border-color: var(--border-strong); }
+  td .chip.reverse { background: #0F1E3D; color: #FBFAF7; border-color: #0F1E3D; }
+  td .chip.mono-l { background: #7F0F1A; color: #FBFAF7; border-color: var(--wine-deep); }
+  td .chip.mono-d { background: #F2F0EC; color: #0F1E3D; border-color: var(--border-strong); }
+
+  /* ── Decision flow ── */
+  .flow { margin-top: var(--s-10); display: flex; flex-direction: column; gap: var(--s-3); }
+  .qrow { display: grid; grid-template-columns: 34px 1fr; gap: var(--s-4); align-items: start; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-5) var(--s-6); box-shadow: var(--shadow-xs); }
+  .qrow .qn { width: 34px; height: 34px; border-radius: 50%; background: var(--ink); color: #fff; display: grid; place-items: center; font: 800 14px/1 var(--f-display); }
+  .qrow .q { font: 700 15.5px/1.35 var(--f-display); margin: 4px 0 8px; letter-spacing: -0.01em; }
+  .qrow .a { font: 400 13.5px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; }
+  .qrow .a b { color: var(--wine); font-weight: 700; }
+
+  /* ── Callout / governance ── */
+  .callout { margin-top: var(--s-12); background: var(--ink); color: #F2F0EC; border-radius: var(--r-xl); padding: var(--s-10); }
+  .callout .kick { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine-soft); }
+  .callout h2 { font: 800 26px/1.18 var(--f-display); letter-spacing: -0.02em; margin: 12px 0 14px; max-width: 26ch; }
+  .callout p { font: 400 14.5px/1.65 var(--f-sans); color: rgba(242,240,236,0.8); margin: 0 0 18px; max-width: 76ch; }
+  .callout .links { display: flex; flex-wrap: wrap; gap: 10px; }
+  .callout .lk { display: inline-flex; align-items: center; gap: 8px; font: 600 13px/1 var(--f-sans); padding: 11px 16px; border-radius: var(--r-pill); border: 1px solid rgba(242,240,236,0.22); color: #F2F0EC; transition: background .15s, border-color .15s; }
+  .callout .lk:hover { background: rgba(242,240,236,0.08); border-color: rgba(242,240,236,0.4); }
+  .callout .lk.solid { background: var(--wine); border-color: var(--wine); }
+  .callout .lk.solid:hover { background: var(--wine-deep); border-color: var(--wine-deep); }
+
+  .foot { margin-top: var(--s-12); padding: var(--s-6) 0 var(--s-16); border-top: 1px solid var(--border); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+  <!-- ░░░░ HERO ░░░░ -->
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div class="brandline">
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+          <span class="wm"><span style="color:#F2F0EC">DTD</span><span class="sp"></span><span style="color:#F2F0EC">Cargo</span></span>
+        </div>
+        <div class="crumbs"><a href="Brand Hub · DTD-Cargo.html">Brand Hub</a> <span>/</span> Arquitectura de Marca <span class="ver" style="margin-left:6px">v4.5</span></div>
+      </div>
+
+      <div class="eyebrow-h">Sistema · Fundamento</div>
+      <h1>Arquitectura de marca: <span class="ac">una casa, una identidad.</span></h1>
+      <p class="lede">El mapa que ordena todo lo que la marca produce — productos, plataformas, apps y generadores — y declara cómo se nombran y qué logo usa cada uno. La pieza que faltaba arriba de todo el sistema: lo demás (logo, color, tipografía) cuelga de acá.</p>
+      <div class="tag">Con Confianza, de China a tu puerta.</div>
+    </div>
+  </header>
+
+  <!-- ░░░░ MODELO ░░░░ -->
+  <div class="wrap model">
+    <div class="model-card">
+      <div class="kick">El modelo · Branded House</div>
+      <h2>Casa de marca única, no portafolio de marcas.</h2>
+      <p>DTD-Cargo opera como <b>branded house</b>: existe <b>una sola marca con logo propio</b> — DTD Cargo — y todo lo demás cuelga de ella por endoso o por nombre descriptivo. Nada se independiza con identidad propia. Para una PyME que vende <b>confianza</b>, esto es lo correcto: cada touchpoint — del ERP al sticker de WhatsApp — suma a la misma reputación en vez de diluirla en sub-marcas que nadie reconoce.</p>
+      <div class="model-flags">
+        <span class="flag yes"><span class="gl">✓</span> Un isólogo, una promesa, transferencia total de confianza</span>
+        <span class="flag no"><span class="gl">✕</span> Sub-marcas con logo/color propio</span>
+        <span class="flag no"><span class="gl">✕</span> Nombres inventados sin función (Nexus, Flow, Vortex…)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ░░░░ JERARQUÍA · 4 NIVELES ░░░░ -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">01 / LA JERARQUÍA</div>
+        <h2>Cuatro niveles, de la marca madre a la herramienta</h2>
+        <p class="lead">Todo lo que produce DTD encaja en uno de estos cuatro niveles. El nivel define el nombre, el logo y dónde vive la pieza.</p>
+      </div>
+
+      <div class="tree">
+
+        <!-- N0 -->
+        <div class="level">
+          <div class="lvl-row">
+            <div class="lvl-tag"><span class="lv">Nivel 0</span><span class="nm">Marca madre</span></div>
+            <div class="lvl-body">
+              <p class="desc">La única identidad con <b>logo y wordmark propios</b>. Es el origen de todo: el isólogo, la paleta, el tagline. Toda pieza, sin excepción, lleva su isólogo.</p>
+              <div class="nodes">
+                <div class="node masterbrand"><span class="nt">DTD Cargo</span><span class="nd">Isólogo + wordmark · «Con Confianza, de China a tu puerta.»</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <!-- N1 -->
+        <div class="level">
+          <div class="lvl-row">
+            <div class="lvl-tag"><span class="lv">Nivel 1</span><span class="nm">Dos capas de expresión</span></div>
+            <div class="lvl-body">
+              <p class="desc">La misma marca madre se expresa de <b>dos maneras según el contexto</b> — ya documentado en el Brand Book §05 y §14. No son marcas distintas: es un solo ADN con dos sistemas tipográficos.</p>
+              <div class="layer-2">
+                <div class="layer">
+                  <div class="meta">Cara al público</div>
+                  <h4>Capa Marca</h4>
+                  <p>Redes, colateral impreso, generadores sociales, emails, plantillas. Lo que ve el cliente y el mercado.</p>
+                  <div class="fonts">Archivo · Archivo Black</div>
+                </div>
+                <div class="layer">
+                  <div class="meta">Operación interna</div>
+                  <h4>Capa Producto</h4>
+                  <p>ERP, portal, apps de operario. Pantallas con mucho dato, pensadas para leerse en jornada.</p>
+                  <div class="fonts">Sora · Nunito Sans · JetBrains Mono</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <!-- N2 -->
+        <div class="level">
+          <div class="lvl-row">
+            <div class="lvl-tag"><span class="lv">Nivel 2</span><span class="nm">Productos y plataformas</span></div>
+            <div class="lvl-body">
+              <p class="desc">Plataformas con identidad recurrente de cara al equipo o al cliente. Llevan <b>nombre endosado «DTD ___»</b> o un descriptivo funcional, pero <b>nunca logo propio</b>: heredan el isólogo.</p>
+              <div class="nodes">
+                <div class="node endorsed"><span class="nt">Studio</span><span class="nd">ERP interno</span></div>
+                <div class="node endorsed"><span class="nt">Academia</span><span class="nd">Formación · cliente y equipo</span></div>
+                <div class="node"><span class="nt">Portal del Cliente</span><span class="nd">App del cliente · descriptivo</span></div>
+                <div class="node"><span class="nt">Apps de Operario</span><span class="nd">CN · VE · bodeguero · camionero</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="connector"></div>
+
+        <!-- N3 -->
+        <div class="level">
+          <div class="lvl-row">
+            <div class="lvl-tag"><span class="lv">Nivel 3</span><span class="nm">Herramientas y generadores</span></div>
+            <div class="lvl-body">
+              <p class="desc">Generadores, calculadoras y documentos. <b>Nombre 100% descriptivo</b> (qué hace), sin prefijo «DTD». Heredan el isólogo y <b>viven catalogados en el Brand Hub</b>.</p>
+              <div class="nodes">
+                <div class="node"><span class="nt">Generador de Redes</span><span class="nd">Catálogo social</span></div>
+                <div class="node"><span class="nt">Asistente de Contenido</span><span class="nd">Copy con IA</span></div>
+                <div class="node"><span class="nt">Calculadora CBM</span><span class="nd">Volumen de carga</span></div>
+                <div class="node"><span class="nt">Cotización DDP</span><span class="nd">Propuesta comercial</span></div>
+                <div class="node"><span class="nt">Packing List + Factura</span><span class="nd">Documento bilingüe</span></div>
+                <div class="node"><span class="nt">Kit de Bienvenida</span><span class="nd">Onboarding cliente</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░░░ NAMING ░░░░ -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">02 / CONVENCIÓN DE NAMING</div>
+        <h2>Cuándo es «DTD ___» y cuándo descriptivo</h2>
+        <p class="lead">La regla que faltaba: cada entidad nueva sabe cómo nombrarse sin improvisar. Tres patrones, sin excepciones inventadas.</p>
+      </div>
+
+      <div class="rules">
+        <div class="rule">
+          <div class="rk"><span class="dot"></span>Patrón A · Endoso</div>
+          <h3>«DTD ___»</h3>
+          <p>Solo para <b>plataformas de nivel 2</b> con identidad recurrente y uso sostenido por equipo o cliente. El endoso transfiere la confianza de la marca madre.</p>
+          <div class="ex">
+            <div class="li ok"><span class="mk">✓</span><span><code>DTD Studio</code> · el ERP</span></div>
+            <div class="li ok"><span class="mk">✓</span><span><code>DTD Academia</code> · formación</span></div>
+            <div class="li bad"><span class="mk">✕</span><span><code>DTD Generador de Stickers</code> · una herramienta no se endosa</span></div>
+          </div>
+        </div>
+
+        <div class="rule">
+          <div class="rule-inner"></div>
+          <div class="rk"><span class="dot"></span>Patrón B · Descriptivo</div>
+          <h3>Nombre funcional</h3>
+          <p>Para <b>herramientas y generadores de nivel 3</b> y documentos. El nombre dice <b>qué hace</b>, en castellano, sin prefijo de marca. Verbo o sustantivo de acción al frente.</p>
+          <div class="ex">
+            <div class="li ok"><span class="mk">✓</span><span><code>Generador de Redes</code></span></div>
+            <div class="li ok"><span class="mk">✓</span><span><code>Calculadora CBM</code> · <code>Cotización DDP</code></span></div>
+            <div class="li bad"><span class="mk">✕</span><span><code>SocialFlow</code> · anglicismo inventado</span></div>
+          </div>
+        </div>
+
+        <div class="rule">
+          <div class="rk"><span class="dot"></span>Patrón C · El nombre del documento</div>
+          <h3>Sustantivo estándar</h3>
+          <p>Documentos de cara al cliente o proveedor usan el <b>nombre real del documento</b>, el que ya conocen en la industria. Cero marca encima, máxima claridad.</p>
+          <div class="ex">
+            <div class="li ok"><span class="mk">✓</span><span><code>Packing List</code> · <code>Cotización</code> · <code>Factura</code></span></div>
+            <div class="li ok"><span class="mk">✓</span><span>Bilingüe si va a China: <code>Packing List 装箱单</code></span></div>
+            <div class="li bad"><span class="mk">✕</span><span>Renombrar a algo «de marca» que el cliente no reconozca</span></div>
+          </div>
+        </div>
+
+        <div class="rule">
+          <div class="rk"><span class="dot"></span>Reglas duras</div>
+          <h3>Lo que nunca</h3>
+          <p>Tres prohibiciones absolutas que mantienen la casa de marca limpia.</p>
+          <div class="ex">
+            <div class="li bad"><span class="mk">✕</span><span>Sub-marca con <b>logo o color propio</b></span></div>
+            <div class="li bad"><span class="mk">✕</span><span>Nombre <b>inventado sin función</b> (Nexus, Vortex…)</span></div>
+            <div class="li bad"><span class="mk">✕</span><span><b>Anglicismos</b> cuando hay palabra clara en castellano</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░░░ LOGO POR NIVEL ░░░░ -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">03 / LOGO POR NIVEL</div>
+        <h2>Qué variante del isólogo usa cada nivel</h2>
+        <p class="lead">Ningún nivel inventa logo. Todos usan una de las 4 variantes oficiales del isólogo según el fondo. Detalle de variantes y contraste en el Brand Book §04.</p>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th style="width:14%">Nivel</th><th style="width:24%">Lockup</th><th style="width:24%">Variante típica</th><th>Tratamiento del nombre</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>0 · Marca madre</b></td>
+              <td>Isólogo <b>+ wordmark completo</b></td>
+              <td><span class="chip primary">primary</span> / <span class="chip reverse">reverse</span></td>
+              <td>«DTD Cargo» en Archivo Black — wordmark de marca, dos palabras.</td>
+            </tr>
+            <tr>
+              <td><b>1 · Capas</b></td>
+              <td>Hereda lockup del nivel 0</td>
+              <td>según fondo</td>
+              <td>No tiene nombre propio — es un modo de expresión, no una entidad.</td>
+            </tr>
+            <tr>
+              <td><b>2 · Plataformas</b></td>
+              <td>Isólogo <b>solo</b> + nombre en texto del sistema</td>
+              <td><span class="chip reverse">reverse</span> (sidebar navy)</td>
+              <td>«DTD Studio» en Sora — <b>no</b> en Archivo Black. El endoso es tipográfico del sistema, no un segundo wordmark de marca.</td>
+            </tr>
+            <tr>
+              <td><b>3 · Herramientas</b></td>
+              <td>Isólogo solo · favicon / encabezado</td>
+              <td><span class="chip primary">primary</span> / <span class="chip mono-l">mono-light</span></td>
+              <td>Nombre descriptivo en Sora/Nunito. Sin wordmark de marca propio.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░░░ ÁRBOL DE DECISIÓN ░░░░ -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">04 / NUEVA ENTIDAD</div>
+        <h2>Antes de crear algo nuevo, responde esto</h2>
+        <p class="lead">Cuatro preguntas resuelven nivel, nombre, logo y dónde vive. Si dudas en alguna, abres un BRAND-CHECK antes de construir.</p>
+      </div>
+
+      <div class="flow">
+        <div class="qrow">
+          <div class="qn">1</div>
+          <div>
+            <div class="q">¿Tiene identidad recurrente, o es una herramienta de un uso?</div>
+            <p class="a">Recurrente y central para equipo/cliente → <b>nivel 2 (plataforma)</b>. Genera, calcula o documenta → <b>nivel 3 (herramienta)</b>.</p>
+          </div>
+        </div>
+        <div class="qrow">
+          <div class="qn">2</div>
+          <div>
+            <div class="q">¿Cómo se llama?</div>
+            <p class="a">Nivel 2 → <b>«DTD ___»</b> (endoso) o descriptivo si ya es claro. Nivel 3 → <b>nombre descriptivo funcional</b>, sin «DTD». Documento → <b>el nombre estándar del documento</b>.</p>
+          </div>
+        </div>
+        <div class="qrow">
+          <div class="qn">3</div>
+          <div>
+            <div class="q">¿Qué logo usa?</div>
+            <p class="a">Siempre <b>el isólogo oficial</b> — variante según fondo. Nunca un logo nuevo, nunca color propio. El nombre va en tipografía del sistema (Sora/Nunito), no en un segundo wordmark.</p>
+          </div>
+        </div>
+        <div class="qrow">
+          <div class="qn">4</div>
+          <div>
+            <div class="q">¿Dónde vive?</div>
+            <p class="a">Nivel 3 (marca/generador) → <b>se cataloga en el Brand Hub</b>. Nivel 2 producto → vive en la capa de producto y se referencia desde el Brand Book §14. Cero piezas huérfanas fuera del índice.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░░░ GOBERNANZA ░░░░ -->
+  <div class="wrap">
+    <div class="callout">
+      <div class="kick">Gobernanza</div>
+      <h2>Esta es la capa de arriba — todo lo demás obedece.</h2>
+      <p>La arquitectura manda sobre logo, color y tipografía: define para qué entidad existe cada uno. Cuando una pieza nueva no encaja en ningún nivel, no se fuerza — se abre un <b>BRAND-CHECK</b> (ver CLAUDE.md) y se decide antes de construir. Toda decisión de arquitectura se sincroniza a producción vía el protocolo <span class="pill-name">SYNC-NORTE</span>.</p>
+      <div class="links">
+        <a class="lk solid" href="Brand Book DTD v4.5.html">Brand Book v4.5 →</a>
+        <a class="lk" href="Brand Hub · DTD-Cargo.html">Brand Hub</a>
+        <a class="lk" href="Logo Oficial.html">Logo · 4 variantes</a>
+      </div>
+    </div>
+
+    <div class="foot">
+      <b>Arquitectura de Marca · DTD-Cargo v4.5</b> — modelo branded house · capa fundacional del sistema. Castellano venezolano, tuteo. Cero AI slop. Fuente de verdad: este proyecto → producción («Norte») vía SYNC-NORTE.
+    </div>
+  </div>
+
+</body>
+</html>

@@ -1169,7 +1169,7 @@ window.addEventListener('load',()=>{ setTimeout(buildLink,300); });
     const dl=document.createElement('button'); dl.className='sg-actbtn p'; dl.textContent='⬇ Descargar PNG'; dl.onclick=()=>downloadArt(dl,false);
     const dlb=document.createElement('button'); dlb.className='sg-actbtn s'; dlb.textContent='⬇ Sin texto'; dlb.title='Solo fondo + iconos + logo + web (sin títulos ni @usuario)'; dlb.onclick=()=>downloadArt(dlb,true);
     row.appendChild(dl); row.appendChild(dlb); form.appendChild(row);
-    const hint=document.createElement('p'); hint.style.cssText='font-size:11px;color:#999;margin:2px 0 0'; hint.textContent='1080×'+cfg.H+' · también podés hacer clic directo en el texto del preview para editarlo.'; form.appendChild(hint);
+    const hint=document.createElement('p'); hint.style.cssText='font-size:11px;color:#999;margin:2px 0 0'; hint.textContent='1080×'+cfg.H+' · también puedes hacer clic directo en el texto del preview para editarlo.'; form.appendChild(hint);
   }
   function selectTpl(i){
     cur=i; posJust='flex-start'; posShift=0; dragX=0; dragY=0; txtScale=1; const t=T[i];

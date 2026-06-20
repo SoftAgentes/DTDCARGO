@@ -290,7 +290,7 @@ const MAIL_TEMPLATES = [
     sent: 38, opened: '95%', clicked: '72%', updated: 'hace 2 sem',
     active: true,
     langs: { es: true, en: true, zh: true },
-    body: { es: `¡Bienvenido {{client_name}}!\n\nTu cuenta en DTD-Cargo está activa.\n\n**Tu código Shipping Mark:** \`{{markbox}}\`\n\nUsalo cuando coordines envíos desde China. Tus proveedores deben anotarlo en cada caja.\n\n**Acceso al portal:** [{{portal_link}}]({{portal_link}})\n\nDudas o ayuda → respondé este correo.` }
+    body: { es: `¡Bienvenido {{client_name}}!\n\nTu cuenta en DTD-Cargo está activa.\n\n**Tu código Shipping Mark:** \`{{markbox}}\`\n\nÚsalo cuando coordines envíos desde China. Tus proveedores deben anotarlo en cada caja.\n\n**Acceso al portal:** [{{portal_link}}]({{portal_link}})\n\nDudas o ayuda → responde este correo.` }
   },
   {
     id: 'm-06', name: 'Recordatorio de pago',

@@ -340,7 +340,7 @@
             </div>
             <U.Select label="Idioma de la interfaz" value={prefs.lang} onChange={(e) => setPref('lang', e.target.value)}
               options={[
-                { value: 'es', label: 'Español (rioplatense)' },
+                { value: 'es', label: 'Español (venezolano)' },
                 { value: 'en', label: 'English' },
                 { value: 'zh', label: '中文' },
               ]}

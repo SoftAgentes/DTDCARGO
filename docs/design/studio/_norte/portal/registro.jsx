@@ -265,9 +265,9 @@
         <SectionLabel>Tipo de cliente</SectionLabel>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
           <TypeCard active={!esEmpresa} onClick={() => update({ tipo: 'persona' })}
-          label="Persona natural" desc="Importás a título personal" icon={I.users(18)} />
+          label="Persona natural" desc="Importas a título personal" icon={I.users(18)} />
           <TypeCard active={esEmpresa} onClick={() => update({ tipo: 'empresa' })}
-          label="Empresa" desc="Importás para tu negocio · razón social" icon={I.shield(18)} />
+          label="Empresa" desc="Importas para tu negocio · razón social" icon={I.shield(18)} />
         </div>
 
         <SectionLabel>Identificación · todos los campos son obligatorios</SectionLabel>
@@ -566,7 +566,7 @@
         {celebrate &&
         <div style={{ position: 'relative', marginTop: 14, paddingTop: 12, borderTop: '1px solid rgba(255,255,255,0.18)', display: 'flex', gap: 8, alignItems: 'flex-start', font: '600 11.5px/1.5 var(--f-sans)', color: '#fff' }}>
           <span style={{ flexShrink: 0, marginTop: 1, color: 'var(--wine-soft)' }}>{I.arrowR(13)}</span>
-          <span>Este es el código que le mandás a tu proveedor ahora — va en la etiqueta de cada caja.</span>
+          <span>Este es el código que le mandas a tu proveedor ahora — va en la etiqueta de cada caja.</span>
         </div>
         }
       </div>);
@@ -708,7 +708,7 @@
 
               <div style={{ marginTop: 14, padding: '10px 12px', background: 'var(--info-bg)', color: 'var(--info)', borderRadius: 'var(--r-sm)', font: '500 11.5px/1.4 var(--f-sans)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                 <span style={{ marginTop: 1, flexShrink: 0 }}>{I.info(12)}</span>
-                <span>¿Dudas? Hablá con nosotros por WhatsApp <b>+58 412 DTD-CARG</b> o respondé el email de bienvenida.</span>
+                <span>¿Dudas? Habla con nosotros por WhatsApp <b>+58 412 DTD-CARG</b> o responde el email de bienvenida.</span>
               </div>
             </U.Card>
           </div>
@@ -825,7 +825,7 @@
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', font: '600 11.5px/1.6 var(--f-sans)', color: 'var(--ink-soft)' }}>
             Próximos pasos:
             <ol style={{ margin: '6px 0 0', paddingLeft: 18, font: '500 11.5px/1.7 var(--f-sans)' }}>
-              <li>Descarga las etiquetas y enviáselas a tu proveedor.</li>
+              <li>Descarga las etiquetas y envíaselas a tu proveedor.</li>
               <li>Entra al portal (correo <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{data.email}</code> · con la contraseña que creaste).</li>
               <li>Sigue tu envío en "Mis envíos".</li>
             </ol>

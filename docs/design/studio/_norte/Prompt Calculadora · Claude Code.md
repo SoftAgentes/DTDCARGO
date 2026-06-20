@@ -31,8 +31,8 @@ Es la pieza de captación: de WhatsApp el dato va al negocio y al CRM.
   (`--f-brand-display`): "DTD" en wine, "Cargo" en ink.
 - **Espaciado/Radius/Sombras:** escala 4px (`--s-*`), `--r-*`, `--shadow-*`. Nada arbitrario.
 - **Sin AI slop:** sin gradientes coloridos, sin emoji decorativo, sin glassmorphism,
-  sin bordes 24px+, texto **left-align**. Voz: castellano rioplatense/venezolano,
-  voseo ("pagás", "indicá", "escribinos"). Tagline: "Con Confianza, de China a tu puerta."
+  sin bordes 24px+, texto **left-align**. Voz: castellano venezolano neutro,
+  tuteo ("pagas", "indica", "escríbenos"). Tagline: "Con Confianza, de China a tu puerta."
 
 ---
 

@@ -82,4 +82,4 @@ Decisión del contador.
 
 ## 5 · Marca / convenciones
 Sin colores ni fuentes fuera del sistema (navy/vino · Sora/Nunito/Archivo · JetBrains Mono).
-Sin AI slop. Datos mock realistas CN→VE (Shipping Mark, RIF, bancos VE). Tono rioplatense/venezolano.
+Sin AI slop. Datos mock realistas CN→VE (Shipping Mark, RIF, bancos VE). Tono venezolano neutro, tuteo.

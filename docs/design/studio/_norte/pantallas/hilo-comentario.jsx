@@ -216,7 +216,7 @@ function Composer({ me, value, setValue, recordType }) {
     <div style={{ marginTop: 22, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 12 }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <U.Avatar initials={me.avatar} size={32} color="wine" />
-        <textarea value={value} onChange={(e) => setValue(e.target.value)} placeholder={`Respondé en este hilo… usa @ para mencionar`} rows={2}
+        <textarea value={value} onChange={(e) => setValue(e.target.value)} placeholder={`Responde en este hilo… usa @ para mencionar`} rows={2}
           style={{ flex: 1, border: 0, outline: 'none', resize: 'vertical', background: 'transparent', color: 'var(--ink)', font: '500 13px/1.6 var(--f-sans)', minHeight: 46 }} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8, borderTop: '1px solid var(--border)', marginTop: 6 }}>

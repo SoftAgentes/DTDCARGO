@@ -252,8 +252,8 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
           </div>
           <div style={{ padding: 16, background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', gap: 12 }}>
             {[
-              { icon: 'radar', tone: 'info', t: 'Seguís tus compras', d: 'Veés el estado de cada pedido, desde la fábrica hasta tu local.' },
-              { icon: 'warehouse', tone: 'wine', t: 'Registras tus proveedores', d: 'Guardás cada fábrica para pedir re-compras en un toque.' },
+              { icon: 'radar', tone: 'info', t: 'Sigues tus compras', d: 'Ves el estado de cada pedido, desde la fábrica hasta tu local.' },
+              { icon: 'warehouse', tone: 'wine', t: 'Registras tus proveedores', d: 'Guardas cada fábrica para pedir re-compras en un toque.' },
               { icon: 'tag', tone: 'success', t: 'Todo bajo tu código', d: 'Cada compra queda asociada a tu Shipping Mark — nada se mezcla ni se pierde.' },
             ].map((it, i) => (
               <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -337,7 +337,7 @@ function ProveedoresScreen({ me, verified, inReview, onVerify }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--s-4)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 12, background: 'var(--success-bg)', borderRadius: 'var(--r-lg)' }}>
               <span style={{ color: 'var(--success)' }}>{I.check(17)}</span>
-              <span style={{ font: '700 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Proveedor agregado. Mandále esta etiqueta a tu fábrica.</span>
+              <span style={{ font: '700 13px/1.4 var(--f-sans)', color: 'var(--ink)' }}>Proveedor agregado. Mándale esta etiqueta a tu fábrica.</span>
             </div>
 
             {/* Etiqueta bilingüe ES / 中文 */}

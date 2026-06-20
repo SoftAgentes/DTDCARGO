@@ -12,8 +12,8 @@ function buildContext(D) {
   const inv = D.INVOICES.map(i => `${i.id} | ${i.clientName} | $${i.amount} | vence:${i.due} | estado:${i.status}`).join('\n');
   const cli = D.CLIENTS.map(c => `${c.markbox} | ${c.name} | ${c.company} | ${c.city} | ${c.shipments} envíos | facturado:$${c.billed} | ${c.status}`).join('\n');
   const quotes = D.ESTIMADOS.map(q => `${q.id} | ${q.clientName} | ${q.type} | $${q.totalUSD} | estado:${q.status} | agente:${q.agent}`).join('\n');
-  return `Sos el Copilot de DTD-Cargo, un asistente operativo dentro del ERP de una empresa de logística China→Venezuela.
-Respondé SOLO con base en los datos de abajo. Si te preguntan algo que no está en los datos, decilo claramente. Sé conciso, directo y usa castellano rioplatense/venezolano neutro (voseo). Para códigos (DTDU-, DTD-, F-) escribilos entre backticks. Para montos usa $ y miles con K cuando ayude. Nunca inventes números que no estén en los datos.
+  return `Eres el Copilot de DTD-Cargo, un asistente operativo dentro del ERP de una empresa de logística China→Venezuela.
+Responde SOLO con base en los datos de abajo. Si te preguntan algo que no está en los datos, dilo claramente. Sé conciso, directo y usa castellano venezolano neutro con tuteo (tú/eres). Para códigos (DTDU-, DTD-, F-) escríbelos entre backticks. Para montos usa $ y miles con K cuando ayude. Nunca inventes números que no estén en los datos.
 
 === EMBARQUES ===
 ${ships}
@@ -73,7 +73,7 @@ function Copilot() {
       const convo = nextMsgs.filter(m => m.role !== 'system').map(m => `${m.role === 'user' ? 'Usuario' : 'Copilot'}: ${m.content}`).join('\n\n');
       const reply = await window.claude.complete({
         messages: [
-          { role: 'user', content: `${context}\n\n=== CONVERSACIÓN ===\n${convo}\n\nRespondé como Copilot al último mensaje del usuario. Solo tu respuesta, sin prefijo "Copilot:".` },
+          { role: 'user', content: `${context}\n\n=== CONVERSACIÓN ===\n${convo}\n\nResponde como Copilot al último mensaje del usuario. Solo tu respuesta, sin prefijo "Copilot:".` },
         ],
       });
       setMessages(m => [...m, { role: 'assistant', content: (reply || '').trim() || 'No pude generar una respuesta. Prueba reformular la pregunta.' }]);

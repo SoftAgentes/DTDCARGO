@@ -85,19 +85,21 @@ function PortalApp() {
         }
         <div key={view + (detail || '')} style={{ animation: 'erp-route-in 240ms var(--ease)' }}>
           {view === 'home' && <PortalHome me={me} ships={myShipments} invs={myInvoices} setView={setView} setDetail={setDetail} />}
-          {view === 'shipments' && !detail && <PortalShipments ships={myShipments} setDetail={setDetail} />}
-          {view === 'shipments' && detail && <PortalShipmentDetail id={detail} onBack={() => setDetail(null)} />}
-          {view === 'suppliers' && <PortalSuppliers me={me} />}
+          {view === 'shipments' && <PortalAlertas me={me} ships={myShipments} setDetail={setDetail} detail={detail} setView={setView} defaultTab="envios" />}
+          {view === 'suppliers' && <PortalAlertas me={me} ships={myShipments} setDetail={setDetail} detail={detail} setView={setView} defaultTab="compras" />}
+          {view === 'nueva-compra' && <PortalNuevaCompra me={me} setView={setView} />}
           {view === 'invoices' && <PortalInvoices invs={myInvoices} ships={myShipments} />}
           {view === 'documents' && <PortalDocuments />}
           {view === 'referidos' && <PortalReferidos me={me} />}
           {view === 'academia' && <PortalAcademiaView />}
           {view === 'support' && <PortalSupport me={me} />}
           {view === 'profile' && <PortalProfile me={me} />}
+          {view === 'calculadora' && <PortalCalculadora me={me} setView={setView} />}
         </div>
       </main>
 
       <PortalFooter />
+      <PortalCalcFab markbox={DEMO_MARKBOX} />
 
       {/* Panel de Tweaks · solo visible cuando el usuario activa “Tweaks” */}
       <TPanel title="Tweaks">
@@ -116,18 +118,120 @@ function PortalApp() {
 
 }
 
-// ── Academia · vista del alumno dentro del Portal (reusa portal/academia.jsx) ──
+// ── Academia · vista del alumno (desktop: catálogo + progreso) ──
 function PortalAcademiaView() {
-  const Aca = window.PortalAcademia;
+  const A = window.AcademiaData;
+  const I = window.Icon;
+  const U = window.ERPUI;
+  const [full, setFull] = pUseState(false);
+
+  if (!A) {
+    return (
+      <div style={{ padding: 24, font: '500 13px var(--f-sans)', color: 'var(--ink-soft)' }}>Cargando Academia…</div>);
+  }
+
+  if (full) {
+    const Aca = window.PortalAcademia;
+    return (
+      <div>
+        <button onClick={() => setFull(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 14, background: 'none', border: 0, cursor: 'pointer' }}>{I.arrowL(12)} Volver a la Academia</button>
+        <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 420, height: 'min(780px, calc(100vh - 210px))', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-md)' }}>
+            {Aca ? <Aca topInset={0} bottomInset={0} /> : <div style={{ padding: 24, font: '500 13px var(--f-sans)', color: 'var(--ink-soft)' }}>Cargando Academia…</div>}
+          </div>
+        </div>
+      </div>);
+  }
+
+  const LEVELS = ['Curso 0', 'Nivel 1', 'Nivel 2', 'Nivel 3'];
+  const rec = A.recommended();
+  const recP = A.courseProgress(rec);
+  const next = A.nextLesson(rec);
+  const open = () => setFull(true);
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <div style={{ textAlign: 'center', maxWidth: 460 }}>
-        <div className="eyebrow eyebrow-wine">ACADEMIA DTD</div>
-        <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '8px 0 6px' }}>Tu Academia</h1>
-        <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: 0 }}>Vista del alumno · diseñada mobile-first. Aprende a importar de China con la operación real de DTD detrás.</p>
+    <div>
+      <div className="eyebrow eyebrow-wine">ACADEMIA DTD</div>
+      <h1 style={{ font: '900 32px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.025em', margin: '8px 0 6px' }}>Tu Academia</h1>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '64ch' }}>Aprende a importar de China con la operación real de DTD detrás. Tu progreso, tus cursos y tus diplomas en un solo lugar.</p>
+
+      <div style={{ background: 'linear-gradient(135deg, var(--ink), #1F3055)', color: '#fff', borderRadius: 'var(--r-xl)', padding: 'var(--s-8)', marginBottom: 'var(--s-6)', display: 'grid', gridTemplateColumns: '1fr auto', gap: 'var(--s-6)', alignItems: 'center' }}>
+        <div>
+          <div style={{ font: '700 10.5px/1 var(--f-sans)', letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--wine-soft)' }}>{recP.pct > 0 ? 'Continúa donde quedaste' : 'Tu próximo curso'}</div>
+          <div style={{ font: '900 24px/1.1 var(--f-display)', margin: '12px 0 6px', letterSpacing: '-0.02em' }}>{rec.title}</div>
+          <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'rgba(255,255,255,0.72)', maxWidth: '52ch' }}>{recP.pct > 0 ? 'Sigue en: ' + next.title : rec.tagline}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 18, maxWidth: 420 }}>
+            <div style={{ flex: 1, height: 7, borderRadius: 999, background: 'rgba(255,255,255,0.16)', overflow: 'hidden' }}><div style={{ width: recP.pct + '%', height: '100%', background: 'var(--wine-soft)' }} /></div>
+            <span style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine-soft)' }}>{recP.pct}%</span>
+          </div>
+        </div>
+        <button onClick={open} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '13px 22px', borderRadius: 'var(--r-pill)', background: 'var(--wine)', color: '#fff', border: 0, cursor: 'pointer', font: '700 13.5px/1 var(--f-sans)', whiteSpace: 'nowrap' }}>{recP.pct > 0 ? 'Continuar' : 'Empezar'} {I.arrowR(14)}</button>
       </div>
-      <div style={{ position: 'relative', width: '100%', maxWidth: 420, height: 'min(780px, calc(100vh - 210px))', background: 'var(--bg-base)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: 'var(--shadow-lg)' }}>
-        {Aca ? <Aca topInset={0} bottomInset={0} /> : <div style={{ padding: 24, font: '500 13px var(--f-sans)', color: 'var(--ink-soft)' }}>Cargando Academia…</div>}
+
+      <div style={{ font: '700 10px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', margin: '0 0 14px' }}>Tu ruta de aprendizaje</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 'var(--s-8)' }}>
+        {A.COURSES.map((c) => {
+          const p = A.courseProgress(c);
+          const enrolled = A.isEnrolled(c.id);
+          const dip = A.hasDiploma(c.id);
+          return (
+            <div key={c.id} onClick={open} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 'var(--s-6)', boxShadow: 'var(--shadow-xs)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--wine)', background: 'var(--wine-tint)', padding: '4px 9px', borderRadius: 'var(--r-pill)' }}>{LEVELS[c.level] || ('Nivel ' + c.level)}{c.flagship ? ' · insignia' : ''}</span>
+                {c.free && <span style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--success)' }}>Gratis</span>}
+                {dip && <span title="Diploma obtenido" style={{ color: 'var(--success)', display: 'flex' }}>{I.check(15)}</span>}
+              </div>
+              <div>
+                <div style={{ font: '800 16px/1.2 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{c.title}</div>
+                <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 6 }}>{c.tagline}</div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, font: '500 11px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>{I.clock(12)} {c.hours} h</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>{I.doc(12)} {A.lessonCount(c)} lecciones</span>
+              </div>
+              <div style={{ marginTop: 'auto', paddingTop: 6 }}>
+                {enrolled ? (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ flex: 1, height: 6, borderRadius: 999, background: 'var(--bg-elevated)', overflow: 'hidden' }}><div style={{ width: p.pct + '%', height: '100%', background: p.pct === 100 ? 'var(--success)' : 'var(--wine)' }} /></div>
+                    <span style={{ font: '700 11px/1 var(--f-mono)', color: p.pct === 100 ? 'var(--success)' : 'var(--ink-soft)' }}>{p.pct === 100 ? 'Completo' : p.pct + '%'}</span>
+                  </div>
+                ) : (
+                  <span style={{ font: '700 12px/1 var(--f-sans)', color: 'var(--wine)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>Ver curso {I.arrowR(11)}</span>
+                )}
+              </div>
+            </div>);
+        })}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <U.Card padded>
+          <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>PRÓXIMAS COHORTES EN VIVO</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {A.COHORTS.map((co, i) => { const c = A.course(co.courseId); return (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{c.title}</div>
+                  <div style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>{A.fmtDate(co.dateISO)} · {co.mode}</div>
+                </div>
+                <span style={{ font: '600 10.5px/1 var(--f-mono)', color: co.seats - co.taken <= 6 ? 'var(--warning)' : 'var(--ink-soft)', whiteSpace: 'nowrap' }}>{co.seats - co.taken} cupos</span>
+              </div>); })}
+          </div>
+        </U.Card>
+        <U.Card padded>
+          <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>TUS DIPLOMAS</div>
+          {A.diplomas.length === 0
+            ? <div style={{ font: '500 12.5px/1.6 var(--f-sans)', color: 'var(--ink-mute)' }}>Completa un curso para ganar tu primer diploma verificable.</div>
+            : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {A.diplomas.map((d, i) => { const c = A.course(d.courseId); return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px', border: '1px solid var(--success)', background: 'var(--success-bg)', borderRadius: 'var(--r-md)' }}>
+                    <span style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', background: 'var(--bg-surface)', color: 'var(--success)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.check(16)}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{c.title}</div>
+                      <code style={{ font: '500 10.5px/1.3 var(--f-mono)', color: 'var(--ink-soft)' }}>{d.folio} · {A.fmtDate(d.dateISO)}</code>
+                    </div>
+                  </div>); })}
+              </div>}
+        </U.Card>
       </div>
     </div>);
 }
@@ -245,10 +349,8 @@ function PortalTopbar({ me, view, setView, onLogout, theme, setTheme }) {
   const [userOpen, setUserOpen] = pUseState(false);
   const items = [
   { v: 'home', l: 'Inicio', icon: 'dashboard' },
-  { v: 'shipments', l: 'Mis envíos', icon: 'box' },
-  { v: 'suppliers', l: 'Tus proveedores', icon: 'truck' },
-  { v: 'invoices', l: 'Facturas', icon: 'invoice' },
-  { v: 'documents', l: 'Documentos', icon: 'doc' },
+  { v: 'shipments', l: 'Alertas mis envíos', icon: 'box' },
+  { v: 'invoices', l: 'Finanzas', icon: 'invoice' },
   { v: 'referidos', l: 'Referidos', icon: 'star' },
   { v: 'academia', l: 'Academia', icon: 'shield' },
   { v: 'support', l: 'Soporte', icon: 'chat' }];
@@ -522,8 +624,8 @@ function NextSailingCard({ me, setView }) {
               ? 'Tu mercancía debe estar en bodega CN antes del cierre para entrar en este consolidado.'
               : 'Organiza tus compras para que lleguen a bodega CN antes del cierre.'}
           </div>
-          <window.ERPUI.Btn variant="primary" icon={window.Icon.arrowR(14)} onClick={() => setView('suppliers')}>
-            Programar mi compra
+          <window.ERPUI.Btn variant="primary" icon={window.Icon.arrowR(14)} onClick={() => setView('nueva-compra')}>
+            <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}><span>Programar mi compra</span><span style={{ font: '700 8.5px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.82, marginTop: 4 }}>Pre-alerta</span></span>
           </window.ERPUI.Btn>
         </div>
       </div>
@@ -549,28 +651,17 @@ function PortalHome({ me, ships, invs, setView, setDetail }) {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'stretch' }}>
-          <button onClick={() => setView('suppliers')} style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px 10px 14px',
-            background: 'var(--bg-surface)', border: '2px solid var(--wine)', borderRadius: 'var(--r-pill)',
-            cursor: 'pointer', boxShadow: 'var(--shadow-xs)'
-          }}>
-            <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--wine)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{window.Icon.plus(13)}</span>
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}>
-              <span style={{ font: '800 15px/1.1 var(--f-sans)', color: 'var(--ink)' }}>Nueva compra</span>
-              <span style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--wine)', letterSpacing: '0.14em', marginTop: 4 }}>= PREALERTA</span>
-            </span>
-          </button>
           <ServiceRequestButton markbox={DEMO_MARKBOX} />
-          <a href={`Calculadora CBM · DTD-Cargo.html?mb=${DEMO_MARKBOX}`} target="_blank" rel="noopener" title="Estimado de carga nueva" style={{
-            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', textDecoration: 'none',
+          <button onClick={() => setView('calculadora')} title="Estimado de carga nueva" style={{
+            display: 'flex', alignItems: 'center', gap: 10, padding: '10px 18px', cursor: 'pointer',
             background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-pill)'
           }}>
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}>
               <span style={{ font: '700 14.5px/1.1 var(--f-sans)', color: 'var(--ink)' }}>Calculadora CBM</span>
               <span style={{ font: '700 9px/1 var(--f-mono)', color: 'var(--wine)', letterSpacing: '0.14em', marginTop: 4 }}>GENERAR ESTIMADO</span>
             </span>
-            <span style={{ color: 'var(--wine)' }}>{window.Icon.external(12)}</span>
-          </a>
+            <span style={{ color: 'var(--wine)', display: 'flex' }}>{window.Icon.calc(14)}</span>
+          </button>
         </div>
       </div>
 
@@ -681,6 +772,23 @@ function PortalHome({ me, ships, invs, setView, setDetail }) {
           }
 
           <U.Card padded>
+            <div className="eyebrow eyebrow-wine" style={{ marginBottom: 12 }}>DATOS PARA TU PROVEEDOR</div>
+            <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 12 }}>Esto es lo que tu proveedor en China necesita: pega tu <b style={{ color: 'var(--ink)' }}>Shipping Mark</b> en cada caja y envía a la bodega.</div>
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>Shipping Mark · 唛头</div>
+              <code style={{ font: '800 18px/1 var(--f-mono)', color: 'var(--wine)', display: 'block', marginTop: 8 }}>{me.markbox}</code>
+            </div>
+            <div style={{ background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '12px 14px' }}>
+              <div style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>Bodega DTD · 义乌仓库</div>
+              <div style={{ font: '600 12px/1.5 var(--f-mono)', color: 'var(--ink)', marginTop: 8 }}>浙江省义乌市福田街道<br />物流大道 DTD 仓 · {me.markbox}<br /><span style={{ color: 'var(--ink-soft)' }}>+86 579 8550 1788</span></div>
+            </div>
+            <button onClick={() => { try { navigator.clipboard?.writeText('Shipping Mark (唛头): ' + me.markbox + '\n\n收货地址 / Bodega DTD:\n浙江省义乌市福田街道物流大道 DTD 仓 · ' + me.markbox + '\n电话 +86 579 8550 1788\n\n请在每个箱子上写 Shipping Mark。'); } catch (e) {} const b = event.currentTarget; const o = b.textContent; b.textContent = '✓ Copiado'; setTimeout(() => { b.textContent = o; }, 1600); }}
+              style={{ marginTop: 12, width: '100%', padding: '10px', background: 'var(--wine)', color: '#fff', borderRadius: 'var(--r-md)', font: '700 12.5px/1 var(--f-sans)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+              {window.Icon.copy(13)} Copiar texto para WeChat
+            </button>
+          </U.Card>
+
+          <U.Card padded>
             <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>TU AGENTE</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
               <U.Avatar initials="MA" color="wine" size={48} />
@@ -721,6 +829,186 @@ function PortalHome({ me, ships, invs, setView, setDetail }) {
             </div>
           </U.Card>
         </div>
+      </div>
+    </div>);
+
+}
+
+// ── Alertas · mis envíos · ciclo Pre-alerta → Alerta → Envío ──
+// El cliente crea una PRE-ALERTA (un pedido/order con su proveedor).
+// Al confirmarse pasa a ALERTA; cuando la carga llega a DTD, a ENVÍO.
+// Proveedores y documentos viven DENTRO de este módulo: proveedor por
+// pre-alerta, documentos adjuntos por ítem a lo largo de todo el ciclo.
+const _ALERT_STAGE = {
+  prealerta: { label: 'Pre-alerta', icon: 'plus', color: 'var(--wine)', bg: 'var(--wine-tint)' },
+  alerta: { label: 'Alerta', icon: 'box', color: 'var(--warning)', bg: 'var(--warning-bg)' },
+  envio: { label: 'Envío', icon: 'ship', color: 'var(--info)', bg: 'var(--info-bg)' },
+};
+
+function PortalAlertas({ me, ships, setDetail, detail, defaultTab, setView }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const screen = defaultTab === 'compras' ? 'compras' : 'list';
+  const [stage, setStage] = pUseState('todas');
+  const [openDocs, setOpenDocs] = pUseState(null);
+  const [track, setTrack] = pUseState(false);
+
+  if (detail) return <PortalShipmentDetail id={detail} onBack={() => setDetail(null)} />;
+  if (screen === 'compras') {
+    return (
+      <div>
+        <button onClick={() => setView('shipments')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 14 }}>{I.arrowL(12)} Volver a Alertas · mis envíos</button>
+        <PortalSuppliers me={me} setView={setView} />
+      </div>);
+  }
+
+  if (track) {
+    const containerKey = (s) => s.container || ((s.type || '').startsWith('LCL') ? 'CONSOL-' + s.origin + s.destination : s.id);
+    const FLOW = ['confirmado', 'recibido CN', 'consolidado', 'zarpado', 'tránsito', 'aduana VE', 'liberado', 'entregado'];
+    const pct = (st) => { const i = FLOW.indexOf(st); return i < 0 ? 8 : Math.round(((i + 1) / FLOW.length) * 100); };
+    const groups = {};
+    ships.forEach((s) => { if (s.status === 'estimado') return; const k = containerKey(s); (groups[k] = groups[k] || []).push(s); });
+    const entries = Object.entries(groups);
+    return (
+      <div>
+        <button onClick={() => setTrack(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 14, background: 'none', border: 0, cursor: 'pointer' }}>{I.arrowL(12)} Volver a Alertas · mis envíos</button>
+        <div className="eyebrow eyebrow-wine">SEGUIMIENTO TOTAL</div>
+        <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '8px 0 6px' }}>Mis envíos en camino</h1>
+        <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '60ch' }}>Tus cargas agrupadas por contenedor. Cuando varias compras viajan consolidadas, las ves como un solo seguimiento.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {entries.length === 0 && <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)', padding: 'var(--s-8)', textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>Aún no tienes envíos en camino.</div>}
+          {entries.map((ent) => {
+            const k = ent[0], arr = ent[1];
+            const consol = arr.length > 1;
+            const rep = arr.reduce((a, b) => (FLOW.indexOf(b.status) < FLOW.indexOf(a.status) ? b : a), arr[0]);
+            const p = pct(rep.status);
+            const cbmTot = arr.reduce((a, s) => a + (s.cbm || 0), 0);
+            return (
+              <U.Card key={k} padded>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ width: 40, height: 40, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.ship(18)}</span>
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <code style={{ font: '800 13.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{consol ? k : arr[0].id}</code>
+                      {consol && <span style={{ font: '700 9px/1 var(--f-sans)', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--wine)', background: 'var(--wine-tint)', padding: '3px 7px', borderRadius: 'var(--r-pill)' }}>Consolidado · {arr.length} compras</span>}
+                    </div>
+                    <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 4 }}>{cbmTot.toFixed(1)} CBM · {rep.status}{rep.eta ? ' · ETA ' + rep.eta : ''}</div>
+                  </div>
+                </div>
+                <div style={{ marginTop: 12, height: 6, borderRadius: 999, background: 'var(--bg-elevated)', overflow: 'hidden' }}><div style={{ width: p + '%', height: '100%', background: 'var(--wine)' }} /></div>
+                {consol ?
+                <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {arr.map((s) => (
+                    <button key={s.id} onClick={() => setDetail(s.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-base)', cursor: 'pointer', textAlign: 'left' }}>
+                      <span style={{ color: 'var(--wine)', display: 'flex', flexShrink: 0 }}>{I.box(13)}</span>
+                      <code style={{ flex: 1, font: '600 11.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{s.id}</code>
+                      <span style={{ font: '500 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>{s.cbm} CBM</span>
+                      <span style={{ color: 'var(--ink-mute)', display: 'flex' }}>{I.arrowR(12)}</span>
+                    </button>
+                  ))}
+                </div>
+                :
+                <button onClick={() => setDetail(arr[0].id)} style={{ marginTop: 10, font: '700 12px/1 var(--f-sans)', color: 'var(--wine)', display: 'inline-flex', alignItems: 'center', gap: 4, background: 'none', border: 0, cursor: 'pointer' }}>Ver seguimiento {I.arrowR(11)}</button>}
+              </U.Card>);
+          })}
+        </div>
+      </div>);
+  }
+
+  const PREFIX = me.markbox || 'DTD-5452';
+  // Pre-alertas y alertas (pedidos del cliente · ciclo en curso).
+  const pedidos = [
+    { id: PREFIX + '-3-1', stage: 'prealerta', proveedor: 'Guangzhou Textile Co', meta: 'Creada hace 2 días · esperando packing del proveedor', docs: { packing: false, factura: false, fotos: 0 } },
+    { id: PREFIX + '-1-3', stage: 'alerta', proveedor: 'Yiwu Standard Co', meta: '14 cajas · 7.2 CBM · rumbo a bodega CN', docs: { packing: true, factura: true, fotos: 3 } },
+  ];
+  // Envíos reales (ya recibidos por DTD / en tránsito).
+  const envios = ships.map((s) => ({ id: s.id, stage: 'envio', proveedor: s.supplier || s.origin || 'Proveedor', meta: (s.boxes ? s.boxes + ' cajas · ' : '') + (s.cbm ? s.cbm + ' CBM · ' : '') + (s.status || 'en proceso'), ship: s, docs: { packing: true, factura: true, fotos: 2 } }));
+  const all = [...pedidos, ...envios];
+  const counts = { todas: all.length, prealerta: pedidos.filter((p) => p.stage === 'prealerta').length, alerta: pedidos.filter((p) => p.stage === 'alerta').length, envio: envios.length };
+  const list = stage === 'todas' ? all : all.filter((x) => x.stage === stage);
+  const filters = [{ k: 'todas', l: 'Todas' }, { k: 'prealerta', l: 'Pre-alertas' }, { k: 'alerta', l: 'Alertas' }, { k: 'envio', l: 'Envíos' }];
+
+  return (
+    <div>
+      <div className="eyebrow eyebrow-wine">ALERTAS · MIS ENVÍOS</div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', margin: '8px 0 6px' }}>
+        <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>Mis envíos</h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <U.Btn variant="secondary" icon={I.radar(14)} onClick={() => setTrack(true)}>Seguimiento total</U.Btn>
+          <U.Btn variant="secondary" icon={I.truck(14)} onClick={() => setView('suppliers')}>Mis proveedores</U.Btn>
+          <U.Btn variant="primary" icon={I.plus(14)} onClick={() => setView('nueva-compra')}><span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1 }}><span>Nueva compra</span><span style={{ font: '700 8.5px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.82, marginTop: 4 }}>Pre-alerta</span></span></U.Btn>
+        </div>
+      </div>
+
+      <SailingDeadlineNote me={me} />
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)', padding: '15px 20px', margin: '0 0 var(--s-6)' }}>
+        {[['prealerta', 'La creas tú'], ['alerta', 'Confirmada'], ['envio', 'En camino a ti']].map(([k, desc], i, arr) => (
+          <React.Fragment key={k}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+              <span style={{ width: 29, height: 29, borderRadius: '50%', background: _ALERT_STAGE[k].bg, color: _ALERT_STAGE[k].color, display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I[_ALERT_STAGE[k].icon](14)}</span>
+              <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.1 }}>
+                <span style={{ font: '700 14.5px/1 var(--f-sans)', color: 'var(--ink)' }}>{_ALERT_STAGE[k].label}</span>
+                <span style={{ font: '500 12.5px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 4 }}>{desc}</span>
+              </span>
+            </span>
+            {i < arr.length - 1 && <span style={{ color: 'var(--ink-mute)' }}>{I.arrowR(16)}</span>}
+          </React.Fragment>
+        ))}
+      </div>
+
+      <div style={{ display: 'inline-flex', gap: 4, padding: 4, background: 'var(--bg-elevated)', borderRadius: 'var(--r-pill)', marginBottom: 'var(--s-5)', flexWrap: 'wrap', maxWidth: '100%' }}>
+        {filters.map((f) => {
+          const on = stage === f.k;
+          return (
+            <button key={f.k} onClick={() => setStage(f.k)} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 16px', borderRadius: 'var(--r-pill)', background: on ? 'var(--bg-surface)' : 'transparent', color: on ? 'var(--wine)' : 'var(--ink-soft)', font: (on ? '700' : '600') + ' 12.5px/1 var(--f-sans)', boxShadow: on ? 'var(--shadow-xs)' : 'none', cursor: 'pointer' }}>
+              {f.l}<span style={{ font: '700 10px/1 var(--f-mono)', color: on ? 'var(--wine)' : 'var(--ink-mute)' }}>{counts[f.k]}</span>
+            </button>);
+        })}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {list.length === 0 && <div style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)', padding: 'var(--s-8)', textAlign: 'center', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>No hay ítems en esta etapa.</div>}
+        {list.map((it) => {
+          const st = _ALERT_STAGE[it.stage];
+          const docCount = (it.docs.packing ? 1 : 0) + (it.docs.factura ? 1 : 0) + (it.docs.fotos ? 1 : 0);
+          const open = openDocs === it.id;
+          return (
+            <U.Card key={it.id} padded>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' }}>
+                <span style={{ width: 38, height: 38, borderRadius: 'var(--r-md)', background: st.bg, color: st.color, display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I[st.icon](16)}</span>
+                <div style={{ flex: 1, minWidth: 180 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <code style={{ font: '800 13.5px/1 var(--f-mono)', color: 'var(--ink)' }}>{it.id}</code>
+                    <span style={{ font: '700 9px/1 var(--f-sans)', letterSpacing: '0.06em', textTransform: 'uppercase', color: st.color, background: st.bg, padding: '3px 7px', borderRadius: 'var(--r-pill)' }}>{st.label}</span>
+                  </div>
+                  <div style={{ font: '600 12.5px/1.3 var(--f-sans)', color: 'var(--ink)', marginTop: 5 }}>{it.proveedor}</div>
+                  <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 2 }}>{it.meta}</div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                  <button onClick={() => setOpenDocs(open ? null : it.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: open ? 'var(--bg-elevated)' : 'var(--bg-surface)', color: 'var(--ink)', font: '600 12px/1 var(--f-sans)', cursor: 'pointer' }}>
+                    {I.doc(13)} Documentos <span style={{ font: '700 10px/1 var(--f-mono)', color: docCount ? 'var(--success)' : 'var(--ink-mute)' }}>{docCount}/3</span>
+                  </button>
+                  {it.ship && <button onClick={() => setDetail(it.id)} style={{ font: '700 12px/1 var(--f-sans)', color: 'var(--wine)', display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 2px', cursor: 'pointer' }}>Ver seguimiento {I.arrowR(11)}</button>}
+                </div>
+              </div>
+              {open && (
+                <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 10 }}>Documentos de este ítem</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8 }}>
+                    {[['packing', 'Packing list', it.docs.packing], ['factura', 'Factura', it.docs.factura], ['fotos', 'Fotos', !!it.docs.fotos]].map(([k, label, ok]) => (
+                      <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 'var(--r-md)', background: ok ? 'var(--success-bg)' : 'var(--bg-elevated)' }}>
+                        <span style={{ color: ok ? 'var(--success)' : 'var(--ink-mute)' }}>{ok ? I.check(14) : I.upload(14)}</span>
+                        <span style={{ flex: 1, font: '600 12px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{label}</span>
+                        <span style={{ font: '600 11px/1 var(--f-sans)', color: ok ? 'var(--success)' : 'var(--wine)', cursor: 'pointer' }}>{ok ? 'Ver' : 'Subir'}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '10px 0 0' }}>Los documentos quedan atados a este ítem durante todo el ciclo — de pre-alerta a envío.</p>
+                </div>
+              )}
+            </U.Card>);
+        })}
       </div>
     </div>);
 
@@ -1133,6 +1421,15 @@ function PortalShipmentDetail({ id, onBack }) {
 function PortalInvoices({ invs, ships }) {
   const U = window.ERPUI;
   const statusTone = { pagada: 'success', emitida: 'info', parcial: 'warning', vencida: 'danger' };
+  const I = window.Icon;
+  const [tab, setTab] = pUseState('facturas');
+  const [showTable, setShowTable] = pUseState(false);
+  const D = window.ERPData;
+  const usd = (n) => 'USD ' + (n || 0).toLocaleString('es-ES');
+  const totalFact = invs.reduce((s, i) => s + i.amount, 0);
+  const paid = invs.reduce((s, i) => s + i.paid, 0);
+  const saldo = invs.reduce((s, i) => s + i.balance, 0);
+  const stPill = { pagada: { l: 'Pagada', c: 'var(--success)', bg: 'var(--success-bg)' }, parcial: { l: 'Parcial', c: 'var(--warning)', bg: 'var(--warning-bg)' }, emitida: { l: 'Pendiente', c: 'var(--warning)', bg: 'var(--warning-bg)' }, vencida: { l: 'Vencida', c: 'var(--danger)', bg: 'var(--danger-bg)' } };
 
   // Sam (2026-06): ciclo dinámico del cliente · Estimado → Aprobado → Facturado.
   const estimados = (ships || []).filter((s) => s.status === 'estimado');
@@ -1147,58 +1444,93 @@ function PortalInvoices({ invs, ships }) {
 
   return (
     <div>
-      <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Facturas</h1>
-      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>Tu ciclo de servicio, de la cotización a la factura. Estado de cuenta y descarga de comprobantes.</p>
+      <div className="eyebrow eyebrow-wine">TU DINERO</div>
+      <h1 style={{ font: '900 34px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.025em', margin: '8px 0 6px' }}>Finanzas</h1>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>Tus facturas y saldos. Estimados y cotizaciones, a un clic.</p>
 
-      <U.Card padded style={{ marginBottom: 'var(--s-6)' }}>
-        <div className="eyebrow eyebrow-wine" style={{ marginBottom: 16 }}>TU CICLO · ESTIMADO → APROBADO → FACTURADO</div>
-        <div style={{ display: 'flex', alignItems: 'stretch' }}>
-          {flujo.map((st, i) => (
-            <React.Fragment key={st.k}>
-              <div style={{ flex: 1, padding: '0 8px' }}>
-                <div style={{ font: '900 36px/1 var(--f-display)', color: st.tone, letterSpacing: '-0.03em' }}>{st.n}</div>
-                <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)', marginTop: 7 }}>{st.k}</div>
-                <div style={{ font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>{st.s}</div>
-              </div>
-              {i < flujo.length - 1 && (
-                <div style={{ display: 'flex', alignItems: 'center', color: 'var(--ink-mute)', padding: '0 6px' }}>{window.Icon.chevR ? window.Icon.chevR(18) : '→'}</div>
-              )}
-            </React.Fragment>
-          ))}
-        </div>
-        <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)', font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)' }}>
-          Tú generas <b style={{ color: 'var(--ink-soft)' }}>estimados</b> (calculadora o solicitud de servicio). Al aprobar la cotización los pasamos a <b style={{ color: 'var(--ink-soft)' }}>orden</b>, y al entregar se <b style={{ color: 'var(--ink-soft)' }}>facturan</b>.
-        </div>
-      </U.Card>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 'var(--s-6)' }}>
-        <U.KPI label="Total facturado" value={`$${(invs.reduce((s, i) => s + i.amount, 0) / 1000).toFixed(0)}K`} tone="info" />
-        <U.KPI label="Pagado" value={`$${(invs.reduce((s, i) => s + i.paid, 0) / 1000).toFixed(0)}K`} tone="success" />
-        <U.KPI label="Pendiente" value={`$${(invs.reduce((s, i) => s + i.balance, 0) / 1000).toFixed(1)}K`} tone={invs.reduce((s, i) => s + i.balance, 0) > 0 ? 'warning' : 'success'} />
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 'var(--s-6)' }}>
+        <button onClick={() => setTab(tab === 'estimados' ? 'facturas' : 'estimados')} style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (tab === 'estimados' ? 'var(--wine)' : 'var(--border)'), background: tab === 'estimados' ? 'var(--wine-tint)' : 'var(--bg-surface)', cursor: 'pointer' }}>
+          <span style={{ color: 'var(--wine)', display: 'flex' }}>{I.calc(15)}</span>
+          <span style={{ font: '700 13px/1 var(--f-sans)', color: tab === 'estimados' ? 'var(--wine)' : 'var(--ink)' }}>Estimados</span>
+          {estimados.length > 0 && <span style={{ font: '700 10px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>{estimados.length}</span>}
+        </button>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9, padding: '10px 18px', borderRadius: 'var(--r-pill)', border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+          <span style={{ color: 'var(--ink-mute)', display: 'flex' }}>{I.invoice(15)}</span>
+          <span style={{ font: '700 13px/1 var(--f-sans)', color: 'var(--ink-soft)' }}>Cotizaciones</span>
+          <span style={{ font: '700 8.5px/1 var(--f-sans)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', background: 'var(--bg-elevated)', padding: '4px 8px', borderRadius: 'var(--r-pill)' }}>Próximamente</span>
+        </span>
       </div>
 
-      <U.Card padded={false}>
-        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 110px 110px 110px 110px 60px', padding: '12px 18px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
-          {['Factura', 'Embarque', 'Emitida', 'Vence', 'Monto', 'Estado', ''].map((h, i) =>
-          <span key={h} style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: i === 4 ? 'right' : 'left' }}>{h}</span>
-          )}
-        </div>
-        {invs.map((iv, i) =>
-        <div key={iv.id} style={{
-          display: 'grid', gridTemplateColumns: '120px 1fr 110px 110px 110px 110px 60px',
-          padding: '14px 18px', gap: 14, alignItems: 'center',
-          borderTop: i > 0 ? '1px solid var(--border)' : 0
-        }}>
-            <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--ink)' }}>{iv.id}</code>
-            <code style={{ font: '600 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{iv.shipment}</code>
-            <span style={{ font: '500 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{iv.issued}</span>
-            <span style={{ font: '500 11.5px/1 var(--f-mono)', color: iv.status === 'vencida' ? 'var(--danger)' : 'var(--ink-soft)' }}>{iv.due}</span>
-            <span style={{ font: '800 13px/1 var(--f-mono)', color: 'var(--ink)', textAlign: 'right' }}>${iv.amount.toLocaleString()}</span>
-            <U.Badge tone={statusTone[iv.status]} size="sm" dot>{iv.status}</U.Badge>
-            <button style={{ color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Descargar">{window.Icon.download(14)}</button>
+      {tab === 'estimados' ? (
+        <React.Fragment>
+          <button onClick={() => setTab('facturas')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 14, background: 'none', border: 0, cursor: 'pointer' }}>{I.arrowL(12)} Volver a facturas</button>
+          {estimados.length === 0
+            ? <U.EmptyState icon={I.calc(22)} title="Sin estimados aún" body="Genera uno desde la Calculadora CBM o solicitando un servicio." />
+            : <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {estimados.map((s) => (
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 20px' }}>
+                    <span style={{ width: 38, height: 38, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.calc(16)}</span>
+                    <div style={{ flex: 1, minWidth: 160 }}>
+                      <code style={{ font: '800 13px/1 var(--f-mono)', color: 'var(--ink)' }}>{s.id}</code>
+                      <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 4 }}>{(s.cbm ? s.cbm + ' CBM · ' : '') + (s.type || 'estimado')} · lo pediste tú</div>
+                    </div>
+                    <div style={{ font: '800 15px/1 var(--f-mono)', color: 'var(--ink)' }}>{usd(s.value)}</div>
+                  </div>
+                ))}
+              </div>}
+        </React.Fragment>
+      ) : (
+        <React.Fragment>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 'var(--s-6)' }}>
+            {[['TOTAL FACTURADO', totalFact, 'var(--ink)'], ['PAGADO', paid, 'var(--ink)'], ['SALDO PENDIENTE', saldo, saldo > 0 ? 'var(--warning)' : 'var(--success)']].map((kp) => (
+              <div key={kp[0]} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px 22px', boxShadow: 'var(--shadow-xs)' }}>
+                <div style={{ font: '700 11px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>{kp[0]}</div>
+                <div style={{ font: '800 30px/1 var(--f-display)', color: kp[2], letterSpacing: '-0.02em', marginTop: 12 }}>{usd(kp[1])}</div>
+              </div>
+            ))}
           </div>
-        )}
-      </U.Card>
+
+          {invs.length === 0
+            ? <div style={{ padding: 'var(--s-8)', textAlign: 'center', font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-mute)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>Sin facturas todavía.</div>
+            : !showTable
+              ? <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {invs.map((iv) => { const p = stPill[iv.status] || stPill.emitida; const att = ((D && D.DOCUMENTS) || []).filter((d) => d.shipment === iv.shipment).length; return (
+                    <div key={iv.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 20px' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <code style={{ font: '800 14px/1 var(--f-mono)', color: 'var(--ink)', letterSpacing: '0.02em' }}>{iv.id}</code>
+                        <div style={{ font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 6 }}>Envío <code style={{ fontFamily: 'var(--f-mono)' }}>{iv.shipment}</code> · {iv.status === 'pagada' ? 'pagada' : 'vence ' + iv.due}{att > 0 && <span title={att + ' adjunto' + (att > 1 ? 's' : '')} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginLeft: 8, verticalAlign: 'middle', padding: '2px 7px', borderRadius: 'var(--r-pill)', background: 'var(--wine-tint)', color: 'var(--wine)', font: '700 10.5px/1 var(--f-mono)' }}><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}><path d="M21 8.5l-9.2 9.2a4 4 0 0 1-5.6-5.6l9.2-9.2a2.5 2.5 0 0 1 3.5 3.5l-9.2 9.2a1 1 0 0 1-1.4-1.4l8.5-8.5" /></svg>{att}</span>}</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7 }}>
+                        <span style={{ font: '800 15px/1 var(--f-mono)', color: 'var(--ink)' }}>{usd(iv.amount)}</span>
+                        <span style={{ font: '700 10px/1 var(--f-sans)', color: p.c, background: p.bg, padding: '5px 10px', borderRadius: 'var(--r-pill)' }}>{p.l}</span>
+                      </div>
+                    </div>); })}
+                </div>
+              : <U.Card padded={false}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr 110px 110px 110px 110px 60px', padding: '12px 18px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+                    {['Factura', 'Embarque', 'Emitida', 'Vence', 'Monto', 'Estado', ''].map((h, i) =>
+                    <span key={h} style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.1em', textTransform: 'uppercase', textAlign: i === 4 ? 'right' : 'left' }}>{h}</span>
+                    )}
+                  </div>
+                  {invs.map((iv, i) =>
+                  <div key={iv.id} style={{ display: 'grid', gridTemplateColumns: '120px 1fr 110px 110px 110px 110px 60px', padding: '14px 18px', gap: 14, alignItems: 'center', borderTop: i > 0 ? '1px solid var(--border)' : 0 }}>
+                      <code style={{ font: '800 12px/1 var(--f-mono)', color: 'var(--ink)' }}>{iv.id}</code>
+                      <code style={{ font: '600 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{iv.shipment}</code>
+                      <span style={{ font: '500 11.5px/1 var(--f-mono)', color: 'var(--ink-soft)' }}>{iv.issued}</span>
+                      <span style={{ font: '500 11.5px/1 var(--f-mono)', color: iv.status === 'vencida' ? 'var(--danger)' : 'var(--ink-soft)' }}>{iv.due}</span>
+                      <span style={{ font: '800 13px/1 var(--f-mono)', color: 'var(--ink)', textAlign: 'right' }}>${iv.amount.toLocaleString()}</span>
+                      <U.Badge tone={statusTone[iv.status]} size="sm" dot>{iv.status}</U.Badge>
+                      <button style={{ color: 'var(--wine)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Descargar">{window.Icon.download(14)}</button>
+                    </div>
+                  )}
+                </U.Card>}
+
+          {invs.length > 0 &&
+          <button onClick={() => setShowTable((v) => !v)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 'var(--s-5)', font: '700 13px/1 var(--f-sans)', color: 'var(--wine)', background: 'none', border: 0, cursor: 'pointer' }}>
+            {showTable ? 'Ver como tarjetas' : 'Ver tabla completa'} {I.arrowR(13)}
+          </button>}
+        </React.Fragment>
+      )}
     </div>);
 
 }
@@ -1286,7 +1618,7 @@ function PortalSupport({ me }) {
   return (
     <div>
       <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Soporte</h1>
-      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '54ch' }}>Hablá con tu agente o abre un caso con seguimiento. Cada caso tiene número, estado y respuesta.</p>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '54ch' }}>Habla con tu agente o abre un caso con seguimiento. Cada caso tiene número, estado y respuesta.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16, alignItems: 'start' }}>
         {/* ── Casos ── */}
@@ -1430,7 +1762,7 @@ function PortalReferidos({ me }) {
     <div>
       <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Referidos</h1>
       <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)', maxWidth: '54ch' }}>
-        Recomendá DTD-Cargo y ganá crédito. Cada importador que sumás fortalece la comunidad — contenedor a contenedor.
+        Recomienda DTD-Cargo y gana crédito. Cada importador que sumas fortalece la comunidad — contenedor a contenedor.
       </p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 16, marginBottom: 16 }}>
@@ -1681,19 +2013,114 @@ function ReclamoDetail({ claim, onBack }) {
 }
 
 // ── Perfil ───────────────────────────────────────────────────
+// Costo de entrega (last-mile) por zona · mock realista VE.
+// En producción esto lo calcula el backend según la dirección predeterminada.
+function _lastMileZone(city, state) {
+  const k = ((city || '') + ' ' + (state || '')).toLowerCase();
+  if (/valencia|carabobo|puerto cabello|guacara|naguanagua/.test(k)) return { fee: 8, days: '2–3', zone: 'Carabobo' };
+  if (/maracay|aragua|cagua|turmero/.test(k)) return { fee: 12, days: '2–4', zone: 'Aragua' };
+  if (/caracas|miranda|guaira|distrito|guarenas|los teques/.test(k)) return { fee: 18, days: '3–4', zone: 'Capital' };
+  if (/barquisimeto|lara|cabudare/.test(k)) return { fee: 20, days: '3–5', zone: 'Lara' };
+  if (/maracaibo|zulia|cabimas/.test(k)) return { fee: 25, days: '4–6', zone: 'Zulia' };
+  if (/mérida|merida|táchira|tachira|san cristóbal|trujillo/.test(k)) return { fee: 30, days: '5–7', zone: 'Andes' };
+  if (/maturín|maturin|monagas|barcelona|puerto la cruz|anzoátegui|anzoategui/.test(k)) return { fee: 26, days: '5–7', zone: 'Oriente' };
+  return { fee: 28, days: '5–7', zone: 'Interior' };
+}
+
+const _PORTAL_CITIES = [
+  ['Valencia', 'Carabobo'], ['Maracay', 'Aragua'], ['Caracas', 'Distrito Capital'],
+  ['Barquisimeto', 'Lara'], ['Maracaibo', 'Zulia'], ['Mérida', 'Mérida'],
+  ['San Cristóbal', 'Táchira'], ['Maturín', 'Monagas'], ['Puerto La Cruz', 'Anzoátegui'],
+];
+
 function PortalProfile({ me }) {
   const U = window.ERPUI;
+  const I = window.Icon;
+  const esEmpresa = !!(me.company && me.company !== me.name);
+
+  // Datos de cuenta (con fallbacks · CLIENTS demo no trae todos los campos)
+  const firstName = (me.name || 'cliente').split(' ')[0].toLowerCase();
+  const email = me.email || `${firstName}@${esEmpresa ? 'empresa' : 'correo'}.com`;
+  const phone = me.phone || '+58 412 555 0102';
+  const cedula = me.cedula || 'V-15.482.661';
+
+  // ── Foto de perfil (sube el cliente · persiste por Shipping Mark) ──
+  const photoKey = 'dtd-portal-photo-' + (me.markbox || 'anon');
+  const [photo, setPhoto] = pUseState(() => { try { return localStorage.getItem(photoKey) || null; } catch (e) { return null; } });
+  const fileRef = React.useRef(null);
+  const onPhoto = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { const d = r.result; setPhoto(d); try { localStorage.setItem(photoKey, d); } catch (er) {} };
+    r.readAsDataURL(f);
+  };
+
+  // ── Direcciones de entrega (VE) · una predeterminada calcula el last-mile ──
+  const [addresses, setAddresses] = pUseState([
+    { id: 'a1', label: esEmpresa ? 'Local principal' : 'Casa', principal: true,
+      line: me.address || 'Av. Bolívar Norte, C.C. Camoruco, nivel PB, local 14',
+      city: me.city || 'Valencia', state: me.state || 'Carabobo', ref: 'Frente a la Plaza de Toros' },
+    { id: 'a2', label: 'Depósito', principal: false,
+      line: 'Zona Industrial Castillito, galpón 7', city: 'Caracas', state: 'Distrito Capital', ref: 'Portón azul nº 2' },
+  ]);
+  const [defaultId, setDefaultId] = pUseState('a1');
+  const [adding, setAdding] = pUseState(false);
+  const [draft, setDraft] = pUseState({ label: '', cityIdx: 0, line: '', ref: '' });
+  const [copied, setCopied] = pUseState(false);
+
+  const def = addresses.find((a) => a.id === defaultId) || addresses[0];
+  const zone = _lastMileZone(def.city, def.state);
+
+  const copyCode = () => { try { navigator.clipboard?.writeText(me.markbox); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1800); };
+  const removeAddr = (id) => {
+    setAddresses((prev) => prev.filter((a) => a.id !== id));
+    if (defaultId === id) { const rest = addresses.filter((a) => a.id !== id); if (rest[0]) setDefaultId(rest[0].id); }
+  };
+  const addAddr = () => {
+    if (!draft.label.trim() || !draft.line.trim()) return;
+    const [city, state] = _PORTAL_CITIES[draft.cityIdx];
+    const id = 'a' + Date.now();
+    setAddresses((prev) => [...prev, { id, label: draft.label.trim(), principal: false, line: draft.line.trim(), city, state, ref: draft.ref.trim() }]);
+    setDraft({ label: '', cityIdx: 0, line: '', ref: '' });
+    setAdding(false);
+  };
+
+  const initials = (me.name || '').split(' ').map((w) => w[0]).slice(0, 2).join('');
+  const eyebrow = { font: '700 10.5px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.14em', textTransform: 'uppercase' };
+  const docRow = (label, ok) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)' }}>
+      <span style={{ color: ok ? 'var(--success)' : 'var(--ink-mute)', flexShrink: 0 }}>{ok ? I.check(15) : I.upload(15)}</span>
+      <span style={{ flex: 1, font: '600 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>{label}</span>
+      {ok
+        ? <button onClick={() => {}} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 0, cursor: 'pointer', font: '600 11.5px/1 var(--f-sans)', color: 'var(--wine)' }}>{I.eye(13)} Ver</button>
+        : <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>Pendiente</span>}
+    </div>);
+
   return (
     <div>
       <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 8px' }}>Mi perfil</h1>
-      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>Información de cuenta y código Shipping Mark para coordinar envíos en China.</p>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-6)' }}>Tus datos, tus direcciones de entrega y tu código Shipping Mark.</p>
 
       <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: 16 }}>
+        {/* ── Identidad ── */}
         <U.Card padded>
-          <U.Avatar initials={me.name.split(' ').map((w) => w[0]).slice(0, 2).join('')} color="wine" size={72} style={{ margin: '0 auto 14px' }} />
+          <div style={{ position: 'relative', width: 92, height: 92, margin: '0 auto 14px' }}>
+            {photo
+              ? <img src={photo} alt={me.name} style={{ width: 92, height: 92, borderRadius: '50%', objectFit: 'cover', display: 'block', border: '2px solid var(--border)' }} />
+              : <U.Avatar initials={initials} color="wine" size={92} />}
+            <button onClick={() => fileRef.current && fileRef.current.click()} title="Cambiar foto"
+              style={{ position: 'absolute', right: -2, bottom: -2, width: 30, height: 30, borderRadius: '50%', background: 'var(--wine)', color: '#fff', border: '2px solid var(--bg-surface)', display: 'grid', placeItems: 'center', cursor: 'pointer', boxShadow: 'var(--shadow-sm)' }}>
+              {I.camera(14)}
+            </button>
+            <input ref={fileRef} type="file" accept="image/*" onChange={onPhoto} style={{ display: 'none' }} />
+          </div>
           <div style={{ textAlign: 'center' }}>
             <div style={{ font: '900 18px/1.2 var(--f-display)', color: 'var(--ink)' }}>{me.name}</div>
-            <div style={{ font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{me.company}</div>
+            <div style={{ font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{esEmpresa ? me.company : 'Persona natural'}</div>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 10, padding: '4px 10px', borderRadius: 'var(--r-pill)', background: 'var(--wine-tint)', color: 'var(--wine)', font: '700 10.5px/1 var(--f-sans)', letterSpacing: '0.04em' }}>
+              {esEmpresa ? I.building(12) : I.users(12)} {esEmpresa ? 'Cuenta de empresa' : 'Cuenta personal'}
+            </span>
           </div>
           <div style={{ marginTop: 18, padding: '14px 16px', background: 'var(--ink)', color: '#fff', borderRadius: 'var(--r-md)', textAlign: 'center' }}>
             <div style={{ font: '700 10.5px/1 var(--f-sans)', color: 'var(--wine-soft)', letterSpacing: '0.16em', textTransform: 'uppercase' }}>TU CÓDIGO</div>
@@ -1701,36 +2128,145 @@ function PortalProfile({ me }) {
             <div style={{ marginTop: 6, font: '500 11px/1.4 var(--f-sans)', color: 'rgba(255,255,255,0.6)' }}>Tus proveedores chinos deben anotar este código en cada caja.</div>
           </div>
           <div style={{ marginTop: 14 }}>
-            <U.Btn variant="secondary" icon={window.Icon.copy(13)} full>Copiar código</U.Btn>
+            <U.Btn variant="secondary" icon={I.copy(13)} full onClick={copyCode}>{copied ? '✓ Copiado' : 'Copiar código'}</U.Btn>
           </div>
         </U.Card>
 
+        {/* ── Columna derecha ── */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+
+          {/* Datos de cuenta (sin clasificación interna) */}
           <U.Card padded>
             <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>DATOS DE CUENTA</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <U.Field label="Nombre" value={me.name} />
-              <U.Field label="Empresa" value={me.company} />
-              <U.Field label="RIF" value={me.rif} mono />
-              <U.Field label="Email" value={me.email} />
-              <U.Field label="Teléfono" value={me.phone} mono />
-              <U.Field label="Ciudad" value={me.city} />
-              <U.Field label="Tier" value={me.tier} />
-              <U.Field label="Cliente desde" value={me.since} mono />
+              <U.Field label="Email" value={email} />
+              <U.Field label="Teléfono" value={phone} mono />
+              <U.Field label="Ciudad" value={me.city || def.city} />
             </div>
           </U.Card>
 
+          {/* Identidad · persona y, si aplica, empresa */}
           <U.Card padded>
-            <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>DIRECCIÓN DEL ALMACÉN CN</div>
-            <pre style={{
-              margin: 0, padding: '14px 16px', background: 'var(--bg-elevated)',
-              borderRadius: 'var(--r-md)', font: '500 12px/1.6 "Noto Sans SC", sans-serif',
-              color: 'var(--ink)', whiteSpace: 'pre-wrap'
-            }}>{`仓库地址：义乌市义乌港二期直通仓2栋2号货7--货11
-仓库电话：小孙：18006891419
-收货时间：周一至周六上午9点到下午5点半
-客户 Shipping Mark 代码：${me.markbox}`}</pre>
-            <U.Btn variant="primary" icon={window.Icon.copy(13)} style={{ marginTop: 10 }} full>Copiar dirección completa</U.Btn>
+            <div className="eyebrow eyebrow-wine" style={{ marginBottom: 14 }}>IDENTIDAD Y DOCUMENTOS</div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ color: 'var(--ink-soft)' }}>{I.idcard(15)}</span>
+              <span style={{ ...eyebrow }}>Datos personales</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 12 }}>
+              <U.Field label="Nombre completo" value={me.name} />
+              <U.Field label="Cédula" value={cedula} mono />
+            </div>
+            {docRow('Cédula de identidad', true)}
+
+            {esEmpresa ? (
+              <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ color: 'var(--ink-soft)' }}>{I.building(15)}</span>
+                  <span style={{ ...eyebrow }}>Datos de empresa</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 12 }}>
+                  <U.Field label="Razón social" value={me.company} />
+                  <U.Field label="RIF" value={me.rif} mono />
+                </div>
+                {docRow('Fachada del local', true)}
+              </div>
+            ) : (
+              <div style={{ marginTop: 16, display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px', background: 'var(--bg-elevated)', borderRadius: 'var(--r-md)' }}>
+                <span style={{ color: 'var(--wine)', flexShrink: 0, marginTop: 1 }}>{I.building(16)}</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ font: '700 13px/1.3 var(--f-sans)', color: 'var(--ink)' }}>¿Importas para tu negocio?</div>
+                  <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '3px 0 10px' }}>Registra tu empresa para facturar a su nombre, sin dejar de usar tu cuenta personal.</div>
+                  <U.Btn variant="secondary" size="sm" icon={I.plus(13)}>Registrar empresa</U.Btn>
+                </div>
+              </div>
+            )}
+          </U.Card>
+
+          {/* Direcciones de entrega · last-mile recalculable */}
+          <U.Card padded>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
+              <div className="eyebrow eyebrow-wine">DIRECCIONES DE ENTREGA</div>
+              <span style={{ font: '600 11px/1 var(--f-sans)', color: 'var(--ink-mute)' }}>{addresses.length} de 4</span>
+            </div>
+            <p style={{ font: '500 12.5px/1.55 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 14px' }}>
+              Tu dirección <b>predeterminada</b> es donde recibes tu mercancía. El costo de entrega (last-mile) se calcula con ella y <b>se recalcula automáticamente</b> si eliges otra.
+            </p>
+
+            {/* Costo last-mile de la predeterminada */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', background: 'var(--wine-tint)', border: '1px solid var(--wine-soft)', borderRadius: 'var(--r-md)', marginBottom: 16 }}>
+              <span style={{ width: 40, height: 40, borderRadius: 'var(--r-md)', background: 'var(--wine)', color: '#fff', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.truck(18)}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ font: '700 11px/1 var(--f-sans)', color: 'var(--wine)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Entrega last-mile · {zone.zone}</div>
+                <div style={{ font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>Hacia <b style={{ color: 'var(--ink)' }}>{def.label}</b> · {def.city} · {zone.days} días hábiles</div>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <div style={{ font: '900 22px/1 var(--f-display)', color: 'var(--wine)' }}>${zone.fee}</div>
+                <div style={{ font: '500 10px/1 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 3 }}>se suma al flete</div>
+              </div>
+            </div>
+
+            {/* Lista de direcciones */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {addresses.map((a) => {
+                const isDef = a.id === defaultId;
+                const z = _lastMileZone(a.city, a.state);
+                return (
+                  <div key={a.id} style={{ border: '1px solid ' + (isDef ? 'var(--wine)' : 'var(--border)'), borderRadius: 'var(--r-md)', padding: 14, background: isDef ? 'var(--wine-tint)' : 'var(--bg-surface)' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                      <span style={{ color: isDef ? 'var(--wine)' : 'var(--ink-mute)', flexShrink: 0, marginTop: 1 }}>{I.pin(16)}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ font: '700 13.5px/1.2 var(--f-display)', color: 'var(--ink)' }}>{a.label}</span>
+                          {a.principal && <span style={{ font: '700 9px/1 var(--f-sans)', letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-soft)', background: 'var(--bg-elevated)', padding: '3px 7px', borderRadius: 'var(--r-pill)' }}>Principal</span>}
+                          {isDef && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, font: '700 9px/1 var(--f-sans)', letterSpacing: '0.06em', textTransform: 'uppercase', color: '#fff', background: 'var(--wine)', padding: '3px 7px', borderRadius: 'var(--r-pill)' }}>{I.star(10)} Predeterminada</span>}
+                        </div>
+                        <div style={{ font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 4 }}>{a.line}</div>
+                        <div style={{ font: '500 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 2 }}>{a.city} · {a.state}{a.ref ? ' · ' + a.ref : ''} · <span style={{ color: 'var(--ink-soft)' }}>last-mile ${z.fee}</span></div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+                      {!isDef && <U.Btn variant="primary" size="sm" icon={I.star(12)} onClick={() => setDefaultId(a.id)}>Usar como predeterminada</U.Btn>}
+                      {isDef && <span style={{ font: '600 11.5px/1 var(--f-sans)', color: 'var(--success)', display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 0' }}>{I.check(13)} Calculando tu envío con esta</span>}
+                      <U.Btn variant="ghost" size="sm" icon={I.edit(12)}>Editar</U.Btn>
+                      {!a.principal && <U.Btn variant="ghost" size="sm" icon={I.trash(12)} onClick={() => removeAddr(a.id)}>Eliminar</U.Btn>}
+                    </div>
+                  </div>);
+              })}
+            </div>
+
+            {/* Agregar dirección */}
+            <div style={{ marginTop: 12 }}>
+              {adding ? (
+                <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 14 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
+                    <U.Input label="Nombre (Casa, Local…)" value={draft.label} onChange={(e) => setDraft({ ...draft, label: e.target.value })} placeholder="Ej. Depósito 2" />
+                    <div>
+                      <label style={{ display: 'block', font: '600 11px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 7 }}>Ciudad</label>
+                      <select value={draft.cityIdx} onChange={(e) => setDraft({ ...draft, cityIdx: parseInt(e.target.value) })}
+                        style={{ width: '100%', height: 40, padding: '0 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--ink)', font: '500 13px/1 var(--f-sans)' }}>
+                        {_PORTAL_CITIES.map((c, i) => <option key={i} value={i}>{c[0]} · ${_lastMileZone(c[0], c[1]).fee} last-mile</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <div style={{ marginBottom: 10 }}>
+                    <U.Input label="Dirección exacta" value={draft.line} onChange={(e) => setDraft({ ...draft, line: e.target.value })} placeholder="Av. principal, edificio, piso, local" />
+                  </div>
+                  <div style={{ marginBottom: 12 }}>
+                    <U.Input label="Punto de referencia (opcional)" value={draft.ref} onChange={(e) => setDraft({ ...draft, ref: e.target.value })} placeholder="Cerca de…" />
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <U.Btn variant="primary" size="sm" icon={I.check(13)} onClick={addAddr} disabled={!draft.label.trim() || !draft.line.trim()}>Guardar dirección</U.Btn>
+                    <U.Btn variant="ghost" size="sm" onClick={() => { setAdding(false); setDraft({ label: '', cityIdx: 0, line: '', ref: '' }); }}>Cancelar</U.Btn>
+                  </div>
+                </div>
+              ) : (
+                addresses.length < 4
+                  ? <U.Btn variant="secondary" icon={I.plus(14)} full onClick={() => setAdding(true)}>Agregar dirección de entrega</U.Btn>
+                  : <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', textAlign: 'center', margin: 0 }}>Llegaste al máximo de 4 direcciones. Elimina una para agregar otra.</p>
+              )}
+            </div>
           </U.Card>
         </div>
       </div>
@@ -1739,6 +2275,110 @@ function PortalProfile({ me }) {
 }
 
 // ── Footer ───────────────────────────────────────────────────
+// ── Calculadora CBM · embebida en el portal (no saca al cliente) ──
+function PortalCalculadora({ me, setView }) {
+  const I = window.Icon;
+  return (
+    <div>
+      <button onClick={() => setView('home')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 14, background: 'none', border: 0, cursor: 'pointer' }}>{I.arrowL(12)} Volver al inicio</button>
+      <div className="eyebrow eyebrow-wine">HERRAMIENTA</div>
+      <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '8px 0 6px' }}>Calculadora CBM</h1>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-5)', maxWidth: '60ch' }}>Saca el costo estimado de tu envío sin salir del portal.</p>
+      <div style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-sm)', background: 'var(--bg-surface)' }}>
+        <iframe title="Calculadora CBM" src={`Calculadora CBM · DTD-Cargo.html?mb=${encodeURIComponent(me.markbox || '')}`} style={{ width: '100%', height: 'calc(100vh - 240px)', minHeight: 680, border: 0, display: 'block' }} />
+      </div>
+    </div>);
+}
+
+// ── Calculadora normal (teclado/teclas) · dentro de la ventana flotante ──
+function NormalCalc() {
+  const I = window.Icon;
+  const [expr, setExpr] = React.useState('');
+  const [copied, setCopied] = React.useState(false);
+  const ev = (s) => { try { const c = String(s).replace(/×/g, '*').replace(/÷/g, '/').replace(/%/g, '/100'); if (!/^[-0-9+*/(). ]*$/.test(c) || !c.trim()) return ''; const v = Function('return (' + c + ')')(); return isFinite(v) ? String(Math.round(v * 1e8) / 1e8) : ''; } catch (e) { return ''; } };
+  const res = ev(expr);
+  const press = (k) => { if (k === 'C') return setExpr(''); if (k === '⌫') return setExpr(expr.slice(0, -1)); if (k === '=') { const r = ev(expr); if (r) setExpr(r); return; } setExpr(expr + k); };
+  const copy = () => { const v = res || expr; if (!v) return; try { navigator.clipboard?.writeText(v); } catch (e) {} setCopied(true); setTimeout(() => setCopied(false), 1500); };
+  const keys = ['7', '8', '9', '÷', '4', '5', '6', '×', '1', '2', '3', '-', '0', '.', '%', '+'];
+  return (
+    <div style={{ padding: 14 }}>
+      <input value={expr} onChange={(e) => setExpr(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); press('='); } }} inputMode="decimal" placeholder="0" style={{ width: '100%', boxSizing: 'border-box', textAlign: 'right', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '12px 14px', font: '700 22px/1.1 var(--f-mono)', color: 'var(--ink)', background: 'var(--bg-base)', outline: 'none' }} />
+      <div style={{ textAlign: 'right', font: '600 13px/1 var(--f-mono)', color: 'var(--ink-mute)', minHeight: 15, margin: '6px 2px 12px' }}>{res && res !== expr ? '= ' + res : ''}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 7 }}>
+        {keys.map((k) => { const op = /[÷×\-+]/.test(k); return <button key={k} onClick={() => press(k)} style={{ padding: '12px 0', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', cursor: 'pointer', font: '700 16px/1 var(--f-mono)', background: op ? 'var(--wine-tint)' : 'var(--bg-surface)', color: op ? 'var(--wine)' : 'var(--ink)' }}>{k}</button>; })}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7, marginTop: 7 }}>
+        <button onClick={() => press('C')} style={{ padding: '11px 0', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', cursor: 'pointer', font: '700 13px/1 var(--f-sans)', background: 'var(--bg-surface)', color: 'var(--danger)' }}>C</button>
+        <button onClick={() => press('⌫')} style={{ padding: '11px 0', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', cursor: 'pointer', font: '700 15px/1 var(--f-mono)', background: 'var(--bg-surface)', color: 'var(--ink)' }}>⌫</button>
+        <button onClick={() => press('=')} style={{ padding: '11px 0', borderRadius: 'var(--r-md)', border: 0, cursor: 'pointer', font: '800 16px/1 var(--f-mono)', background: 'var(--wine)', color: '#fff' }}>=</button>
+      </div>
+      <button onClick={copy} style={{ width: '100%', marginTop: 9, padding: '10px 0', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', cursor: 'pointer', font: '700 12px/1 var(--f-sans)', background: 'var(--bg-surface)', color: 'var(--wine)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>{copied ? I.check(13) : I.copy(13)} {copied ? 'Copiado' : 'Copiar resultado'}</button>
+    </div>);
+}
+
+// ── Calculadora flotante · FAB siempre visible + ventana móvil (no saca de nada) ──
+function PortalCalcFab({ markbox }) {
+  const I = window.Icon;
+  const [open, setOpen] = pUseState(false);
+  const [calcTab, setCalcTab] = pUseState('cbm');
+  const [fpos, setFpos] = pUseState(null);
+  const [ppos, setPpos] = pUseState(null);
+  const [size, setSize] = pUseState({ w: 372, h: 520 });
+  const draggedRef = React.useRef(false);
+  const startFabDrag = (e) => {
+    draggedRef.current = false;
+    const sx = e.clientX, sy = e.clientY;
+    const ox = fpos ? fpos.x : (window.innerWidth - 168), oy = fpos ? fpos.y : (window.innerHeight - 64);
+    const move = (ev) => { if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) > 4) draggedRef.current = true; setFpos({ x: Math.max(8, Math.min(window.innerWidth - 60, ox + (ev.clientX - sx))), y: Math.max(8, Math.min(window.innerHeight - 56, oy + (ev.clientY - sy))) }); };
+    const up = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); };
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
+  };
+  const startPanelDrag = (e) => {
+    e.preventDefault();
+    const sx = e.clientX, sy = e.clientY;
+    const ox = ppos ? ppos.x : (window.innerWidth - size.w - 24), oy = ppos ? ppos.y : (window.innerHeight - size.h - 92);
+    const move = (ev) => setPpos({ x: Math.max(8, Math.min(window.innerWidth - size.w, ox + (ev.clientX - sx))), y: Math.max(8, Math.min(window.innerHeight - 80, oy + (ev.clientY - sy))) });
+    const up = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); };
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
+  };
+  const fabStyle = fpos ? { left: fpos.x, top: fpos.y } : { right: 24, bottom: 24 };
+  const px = ppos ? ppos.x : (window.innerWidth - size.w - 24);
+  const py = ppos ? ppos.y : (window.innerHeight - size.h - 92);
+  const startResize = (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const sx = e.clientX, sy = e.clientY, ow = size.w, oh = size.h;
+    if (!ppos) setPpos({ x: px, y: py });
+    const move = (ev) => setSize({ w: Math.max(300, Math.min(window.innerWidth - 24, ow + (ev.clientX - sx))), h: Math.max(320, Math.min(window.innerHeight - 120, oh + (ev.clientY - sy))) });
+    const up = () => { document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up); };
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
+  };
+  return (
+    <React.Fragment>
+      {open &&
+      <div style={{ position: 'fixed', zIndex: 250, left: px, top: py, width: size.w, maxWidth: 'calc(100vw - 16px)', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-pop)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+        <div onPointerDown={startPanelDrag} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', borderBottom: '1px solid var(--border)', background: 'var(--ink)', color: '#fff', cursor: 'move', touchAction: 'none' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--wine-soft)', display: 'flex' }}>{I.calc(15)}</span>
+            <span style={{ font: '800 13px/1 var(--f-display)' }}>Calculadora CBM</span>
+            <span style={{ font: '600 9px/1 var(--f-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.08em' }}>· arrastra</span>
+          </div>
+          <button onClick={() => setOpen(false)} aria-label="Cerrar" style={{ background: 'none', border: 0, color: 'rgba(255,255,255,0.85)', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)' }}>
+          {[['cbm', 'CBM'], ['normal', 'Normal']].map((t) => <button key={t[0]} onClick={() => setCalcTab(t[0])} style={{ font: (calcTab === t[0] ? '700' : '600') + ' 11px/1 var(--f-sans)', padding: '5px 11px', borderRadius: 'var(--r-pill)', border: 0, cursor: 'pointer', background: calcTab === t[0] ? 'var(--wine)' : 'transparent', color: calcTab === t[0] ? '#fff' : 'var(--ink-soft)' }}>{t[1]}</button>)}
+          <span style={{ marginLeft: 'auto', font: '600 9.5px/1 var(--f-sans)', padding: '5px 9px', borderRadius: 'var(--r-pill)', color: 'var(--ink-mute)', background: 'var(--bg-surface)' }}>Contenedor · pronto</span>
+        </div>
+        {calcTab === 'cbm'
+          ? <iframe title="Calculadora CBM" src={`Calculadora CBM · DTD-Cargo.html?mb=${encodeURIComponent(markbox || '')}`} style={{ width: '100%', height: size.h, border: 0, display: 'block', background: '#fff' }} />
+          : <div style={{ maxHeight: size.h, overflowY: 'auto' }}><NormalCalc /></div>}
+        <div onPointerDown={startResize} title="Arrastra para ampliar" style={{ position: 'absolute', right: 2, bottom: 2, width: 18, height: 18, cursor: 'nwse-resize', touchAction: 'none', background: 'linear-gradient(135deg, transparent 45%, var(--wine) 45%, var(--wine) 60%, transparent 60%, transparent 72%, var(--wine) 72%, var(--wine) 86%, transparent 86%)' }} />
+      </div>}
+      <button onPointerDown={startFabDrag} onClick={() => { if (!draggedRef.current) setOpen((o) => !o); }} title="Calculadora CBM · arrastra para mover" style={{ position: 'fixed', zIndex: 251, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 16px', borderRadius: 'var(--r-pill)', background: open ? 'var(--wine-deep)' : 'var(--wine)', color: '#fff', border: '2px solid var(--bg-surface)', boxShadow: 'var(--shadow-pop)', cursor: 'grab', font: '700 13px/1 var(--f-sans)', touchAction: 'none', ...fabStyle }}>
+        {I.calc(16)} Calculadora
+      </button>
+    </React.Fragment>);
+}
+
 function PortalFooter() {
   return (
     <footer style={{ marginTop: 80, padding: '32px var(--s-6)', borderTop: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
@@ -1753,85 +2393,65 @@ function PortalFooter() {
 }
 
 // ── Tus proveedores · re-compra + alta + etiquetas ──────────
-function PortalSuppliers({ me }) {
+function PortalSuppliers({ me, setView }) {
   const U = window.ERPUI;
   const I = window.Icon;
+  const goCompra = (s) => { _preselectProv = { n: s.n, name: s.name, orders: s.orders }; if (setView) setView('nueva-compra'); };
   // Prefijo del tenant · aliados = DTD fijo · otros tenants configurable en Admin
   const PREFIX = window.ERPData?.tenantCodePrefix?.() || (me.markbox || 'DTD-5502').split('-')[0];
   const clientNo = (me.markbox || 'DTD-5502').split('-')[1];
 
-  const [suppliers, setSuppliers] = pUseState(
+  const [suppliers] = pUseState(
     window.ERPData?.suppliersFor?.(me.markbox) || [
     { n: 1, name: 'Yiwu Standard Co', orders: 2 },
     { n: 2, name: 'Shenzhen Lights Ltd', orders: 1 }]
 
   );
-  const [copied, setCopied] = pUseState('');
-  const [adding, setAdding] = pUseState(false);
-  const [newName, setNewName] = pUseState('');
-  const [labelFor, setLabelFor] = pUseState(null); // { code, boxes }
+  const [helpOpen, setHelpOpen] = pUseState(() => { try { return localStorage.getItem('dtd-portal-supp-help') === '1'; } catch (e) { return false; } });
 
   const codeFor = (s, order) => `${PREFIX}-${clientNo}-${s.n}-${order}`;
-  const copy = (code) => {navigator.clipboard?.writeText(code);setCopied(code);setTimeout(() => setCopied(''), 2000);};
-
-  const rebuy = (s) => {
-    const next = s.orders + 1;
-    setSuppliers((prev) => prev.map((x) => x.n === s.n ? { ...x, orders: next } : x));
-    const code = codeFor(s, next);
-    copy(code);
-    setLabelFor({ code, boxes: 1 });
-  };
-  const addSupplier = () => {
-    if (!newName.trim()) return;
-    const n = suppliers.length + 1;
-    setSuppliers((prev) => [...prev, { n, name: newName.trim(), orders: 1 }]);
-    const code = `${PREFIX}-${clientNo}-${n}-1`;
-    copy(code);
-    setLabelFor({ code, boxes: 1 });
-    setNewName('');setAdding(false);
-  };
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', margin: '0 0 8px' }}>
-        <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>Tus proveedores</h1>
-        <U.Btn variant="primary" icon={I.plus(14)} onClick={() => setAdding(true)}>Nueva compra</U.Btn>
-      </div>
-      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-5)' }}>
-        Cada <b>compra</b> es una <b style={{ color: 'var(--wine)' }}>prealerta</b>: nos avisas que viene mercancía de China para esperarla y procesarla más rápido (lo que las "puerta a puerta" de EE.UU. llaman pre-alerta). Genera el código y las etiquetas para tus proveedores, o re-compra a uno existente.
-      </p>
-
-      {/* Eco del cut-off · cuándo debe llegar la carga para el próximo consolidado */}
-      <SailingDeadlineNote me={me} />
-
-      {/* Por qué importa · trazabilidad */}
-      <div style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '18px 20px', marginBottom: 'var(--s-5)' }}>
-        <div style={{ font: '800 13.5px/1.2 var(--f-display)', color: 'var(--ink)', marginBottom: 4 }}>Por qué registrar a tu proveedor importa</div>
-        <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 14px' }}>
-          En comercio internacional, cómo gestionas tu información define qué tan rápido y seguro llega tu mercancía.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <span style={{ width: 32, height: 32, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.truck(16)}</span>
-            <div>
-              <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Rapidez</div>
-              <div style={{ font: '500 11.5px/1.45 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>Tus productos llegan a tiempo: la caja entra identificada y no espera en "huérfanas".</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <span style={{ width: 32, height: 32, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.shield(16)}</span>
-            <div>
-              <div style={{ font: '700 12.5px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Control total</div>
-              <div style={{ font: '500 11.5px/1.45 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>Al llegar el envío sabes automaticamente quién es el proveedor y todos los detalles, vía el código.</div>
-            </div>
-          </div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', margin: '0 0 10px' }}>
+        <div>
+          <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>Tus proveedores</h1>
+          <p style={{ font: '500 13px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '8px 0 0', maxWidth: '52ch' }}>Cada compra es una <b style={{ color: 'var(--wine)' }}>prealerta</b>: generas un código por proveedor y nos avisas que viene tu mercancía.</p>
         </div>
+        <U.Btn variant="primary" icon={I.plus(14)} onClick={() => setView && setView('nueva-compra')}>Nueva compra</U.Btn>
       </div>
 
-      {/* Mensaje clave verde */}
-      <div style={{ padding: '12px 14px', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: 'var(--r-md)', font: '600 12.5px/1.5 var(--f-sans)', marginBottom: 'var(--s-5)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-        <span style={{ flexShrink: 0, marginTop: 1 }}>{I.check(15)}</span>
-        <span>Copialo y enviáselo SOLO al proveedor — a nosotros nos llega automatico al registrarlo.</span>
+      {/* Cómo funciona · plegable (no satura una vez visto) */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', marginBottom: 'var(--s-5)', overflow: 'hidden' }}>
+        <button onClick={() => { const v = !helpOpen; setHelpOpen(v); try { localStorage.setItem('dtd-portal-supp-help', v ? '1' : '0'); } catch (e) {} }}
+          style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'var(--bg-elevated)', border: 0, cursor: 'pointer', textAlign: 'left' }}>
+          <span style={{ color: 'var(--wine)', flexShrink: 0 }}>{I.info(14)}</span>
+          <span style={{ flex: 1, font: '700 12.5px/1 var(--f-sans)', color: 'var(--ink)' }}>¿Cómo funciona registrar un proveedor?</span>
+          <span style={{ color: 'var(--ink-mute)', transform: helpOpen ? 'rotate(180deg)' : 'none', transition: 'transform var(--dur) var(--ease)' }}>{I.chevD(14)}</span>
+        </button>
+        {helpOpen &&
+        <div style={{ padding: '16px 16px 18px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <span style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.truck(15)}</span>
+              <div>
+                <div style={{ font: '700 12px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Rapidez</div>
+                <div style={{ font: '500 11px/1.45 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>La caja entra identificada y no espera como “huérfana”.</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <span style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.shield(15)}</span>
+              <div>
+                <div style={{ font: '700 12px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Control total</div>
+                <div style={{ font: '500 11px/1.45 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 2 }}>Al llegar el envío, el código ya dice de qué proveedor viene.</div>
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', font: '600 12px/1.5 var(--f-sans)', color: 'var(--success)' }}>
+            <span style={{ flexShrink: 0, marginTop: 1 }}>{I.check(14)}</span>
+            <span>Copia el código y envíaselo SOLO al proveedor — a nosotros nos llega automático al registrarlo.</span>
+          </div>
+        </div>}
       </div>
 
       {/* Lista de proveedores */}
@@ -1846,9 +2466,7 @@ function PortalSuppliers({ me }) {
                   {s.orders} compra{s.orders > 1 ? 's' : ''} · próxima: <b style={{ color: 'var(--wine)' }}>{codeFor(s, s.orders + 1)}</b>
                 </div>
               </div>
-              <U.Btn variant="primary" size="sm" icon={I.copy(13)} onClick={() => rebuy(s)}>
-                {copied === codeFor(s, s.orders + 1) ? '✓ Copiado' : 'Re-comprar'}
-              </U.Btn>
+              <U.Btn variant="primary" size="sm" iconRight={I.arrowR(13)} onClick={() => goCompra(s)}>Re-comprar</U.Btn>
             </div>
           </U.Card>
         )}
@@ -1856,34 +2474,343 @@ function PortalSuppliers({ me }) {
 
       {/* Agregar proveedor nuevo */}
       <div style={{ marginTop: 'var(--s-4)' }}>
-        {adding ?
-        <U.Card padded>
-            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <U.Input label="Nombre del proveedor" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ej. Guangzhou Textile Co" autoFocus />
-              </div>
-              <U.Btn variant="primary" icon={I.check(14)} onClick={addSupplier} disabled={!newName.trim()}>Crear y generar código</U.Btn>
-              <U.Btn variant="ghost" onClick={() => {setAdding(false);setNewName('');}}>Cancelar</U.Btn>
-            </div>
-          </U.Card> :
-
-        <U.Btn variant="secondary" icon={I.plus(14)} onClick={() => setAdding(true)}>Agregar proveedor nuevo</U.Btn>
-        }
+        <U.Btn variant="secondary" icon={I.plus(14)} onClick={() => setView && setView('nueva-compra')}>Agregar proveedor nuevo</U.Btn>
       </div>
-
-      {/* Generador de etiquetas */}
-      {labelFor && <LabelGenerator code={labelFor.code} me={me} onClose={() => setLabelFor(null)} />}
     </div>);
 
 }
 
-// ── Generador de etiquetas (código + QR · una por caja) ──────
-function LabelGenerator({ code, me, onClose }) {
+let _preselectProv = null;
+
+// ── Códigos de país · proveedor (China primero · +86 por defecto) ──
+const _PHONE_CODES = [
+  { c: 'CN', dial: '+86', name: 'China' },
+  { c: 'HK', dial: '+852', name: 'Hong Kong' },
+  { c: 'TW', dial: '+886', name: 'Taiwán' },
+  { c: 'VE', dial: '+58', name: 'Venezuela' },
+  { c: 'US', dial: '+1', name: 'EE.UU. / Canadá' },
+  { c: 'CO', dial: '+57', name: 'Colombia' },
+  { c: 'IN', dial: '+91', name: 'India' },
+  { c: 'TR', dial: '+90', name: 'Turquía' },
+];
+
+// ── Nueva compra · pantalla completa · formulario "Registra tu compra" ──
+function PortalNuevaCompra({ me, setView }) {
   const U = window.ERPUI;
   const I = window.Icon;
-  const [phase, setPhase] = pUseState('docs'); // docs → labels
+  const PREFIX = window.ERPData?.tenantCodePrefix?.() || (me.markbox || 'DTD-5502').split('-')[0];
+  const clientNo = (me.markbox || 'DTD-5502').split('-')[1];
+  const [suppliers] = pUseState(window.ERPData?.suppliersFor?.(me.markbox) || [
+    { n: 1, name: 'Yiwu Standard Co', orders: 2 },
+    { n: 2, name: 'Shenzhen Lights Ltd', orders: 1 },
+  ]);
+  const _pre = _preselectProv; _preselectProv = null;
+  const [query, setQuery] = pUseState(_pre ? _pre.name : '');
+  const [chosen, setChosen] = pUseState(_pre ? { n: _pre.n, name: _pre.name, orders: _pre.orders } : null);
+  const [open, setOpen] = pUseState(false);
+  const [newCode, setNewCode] = pUseState('+86');
+  const [newDigits, setNewDigits] = pUseState('');
+  const [provSaved, setProvSaved] = pUseState(false);
+  const [step, setStep] = pUseState(1);
+  const [showInfo, setShowInfo] = pUseState(true);
+  const [pulse, setPulse] = pUseState(false);
+  const pulsedRef = React.useRef(false);
+  const [plOpen, setPlOpen] = pUseState(false);
+  const [isWide, setIsWide] = pUseState(typeof window !== 'undefined' ? window.innerWidth >= 860 : true);
+  React.useEffect(() => { const t = setTimeout(() => setShowInfo(false), 6000); return () => clearTimeout(t); }, []);
+  React.useEffect(() => { const f = () => setIsWide(window.innerWidth >= 860); window.addEventListener('resize', f); return () => window.removeEventListener('resize', f); }, []);
+  React.useEffect(() => { if (showInfo || pulsedRef.current) return; pulsedRef.current = true; setPulse(true); try { if (navigator.vibrate) navigator.vibrate([60, 120, 60, 120, 60, 200, 80]); } catch (e) {} const t = setTimeout(() => setPulse(false), 8000); return () => clearTimeout(t); }, [showInfo]);
+  const [newCity, setNewCity] = pUseState('');
+  const [newAccount, setNewAccount] = pUseState('');
+  const [linkCopied, setLinkCopied] = pUseState(false);
+  const [wechat, setWechat] = pUseState('');
+  const [shot, setShot] = pUseState(null);
+  const [dragOver, setDragOver] = pUseState(false);
+  const shotRef = React.useRef(null);
+  const [desc, setDesc] = pUseState('');
+  const [cajas, setCajas] = pUseState(1);
+  const [valor, setValor] = pUseState('');
+  const [tracking, setTracking] = pUseState('');
+  const [docs, setDocs] = pUseState({ packing: false, factura: false, fotos: false });
+  const [registered, setRegistered] = pUseState(null);
+
+  const provOk = !!chosen && (!chosen.isNew || provSaved);
+  const submit = () => {
+    if (!provOk) return;
+    const c = chosen.isNew
+      ? `${PREFIX}-${clientNo}-${suppliers.length + 1}-1`
+      : `${PREFIX}-${clientNo}-${chosen.n}-${chosen.orders + 1}`;
+    setRegistered(c);
+  };
+  const previewCode = chosen ? (chosen.isNew ? `${PREFIX}-${clientNo}-${suppliers.length + 1}-1` : `${PREFIX}-${clientNo}-${chosen.n}-${chosen.orders + 1}`) : null;
+  const provLink = (code) => 'packlist/Packing List + Factura · DTD-Cargo.html?order=' + encodeURIComponent(code) + '&mb=' + encodeURIComponent(me.markbox || '') + '&cliente=' + encodeURIComponent(me.name || '');
+  const copyLink = (code) => { try { navigator.clipboard?.writeText('Hola, por favor completa el Packing List + Factura de mi compra DTD-Cargo (código ' + code + '): ' + provLink(code)); } catch (e) {} setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); };
+  const packlistPanel = (code) => !plOpen ? null : (isWide ?
+    <div style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'var(--bg-base)', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 20px', borderBottom: '1px solid var(--border)', background: 'var(--bg-surface)', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+          <span style={{ color: 'var(--wine)', display: 'flex', flexShrink: 0 }}>{I.doc(16)}</span>
+          <span style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>Packing List + Factura</span>
+          <code style={{ font: '700 11px/1 var(--f-mono)', color: 'var(--wine)' }}>{code}</code>
+        </div>
+        <U.Btn variant="ghost" icon={I.close ? I.close(14) : I.arrowL(14)} onClick={() => setPlOpen(false)}>Cerrar</U.Btn>
+      </div>
+      <iframe title="Packing List + Factura" src={provLink(code)} style={{ flex: 1, width: '100%', border: 0, display: 'block', background: '#fff' }} />
+    </div>
+    :
+    <div style={{ marginTop: 12, borderRadius: 'var(--r-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+      <iframe title="Packing List + Factura" src={provLink(code)} style={{ width: '100%', height: 520, border: 0, display: 'block', background: '#fff' }} />
+    </div>);
+
+  const lblS = { display: 'block', font: '700 10px/1 var(--f-sans)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-soft)', marginBottom: 8 };
+  const optS = { textTransform: 'none', letterSpacing: 0, color: 'var(--ink-mute)', fontWeight: 600 };
+  const inS = { width: '100%', padding: '12px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', color: 'var(--ink)', font: '500 14px/1.4 var(--f-sans)' };
+  const upRow = (k, label, ok, onClick) => (
+    <button key={k} type="button" onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderRadius: 'var(--r-md)', border: '1px solid ' + (ok ? 'var(--success)' : 'var(--border)'), background: ok ? 'var(--success-bg)' : 'var(--bg-surface)', cursor: 'pointer', textAlign: 'left' }}>
+      <span style={{ color: ok ? 'var(--success)' : 'var(--ink-mute)', display: 'flex' }}>{ok ? I.check(15) : I.doc(15)}</span>
+      <span style={{ flex: 1, font: '600 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{label}</span>
+      <span style={{ font: '700 10.5px/1 var(--f-sans)', letterSpacing: '0.06em', textTransform: 'uppercase', color: ok ? 'var(--success)' : 'var(--wine)' }}>{ok ? 'Cargado' : 'Subir'}</span>
+    </button>);
+
+  const q = query.trim().toLowerCase();
+  const filtered = suppliers.filter((s) => s.name.toLowerCase().includes(q));
+  const exact = suppliers.find((s) => s.name.toLowerCase() === q);
+  const choose = (s) => { setChosen(s); setQuery(s.name); setOpen(false); };
+  const createNew = () => { const name = query.trim(); if (!name) return; setChosen({ isNew: true, name }); setProvSaved(false); setOpen(false); };
+  const onKey = (e) => { if (e.key === 'Enter') { e.preventDefault(); if (exact) choose(exact); else if (query.trim()) createNew(); } };
+  const onPhone = (raw) => {
+    const s = String(raw);
+    if (s.trim().startsWith('+')) {
+      const cleaned = '+' + s.trim().slice(1).replace(/[^\d]/g, '');
+      const match = _PHONE_CODES.map((o) => o.dial).filter((d) => cleaned.startsWith(d)).sort((a, b) => b.length - a.length)[0];
+      if (match) { setNewCode(match); setNewDigits(cleaned.slice(match.length)); return; }
+    }
+    setNewDigits(s.replace(/[^\d]/g, ''));
+  };
+  const readShot = (f) => { const r = new FileReader(); r.onload = () => setShot(r.result); r.readAsDataURL(f); };
+
+  const step1Done = provOk;
+  const step2Done = desc.trim().length > 0;
+  const step3Done = docs.packing || docs.factura || docs.fotos;
+  const doneArr = [provOk, step > 2, step3Done];
+  const steps = [{ n: 1, l: 'Proveedor' }, { n: 2, l: 'Detalle' }, { n: 3, l: 'Adjuntos' }];
+  const activeIdx = step - 1;
+  const modS = { background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: 'var(--s-6)', marginBottom: 'var(--s-5)' };
+  const modHead = (n, title, sub, state) => (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 'var(--s-5)' }}>
+      <span style={{ width: 30, height: 30, borderRadius: '50%', flexShrink: 0, display: 'grid', placeItems: 'center', font: '800 13px/1 var(--f-display)', background: state === 'done' ? 'var(--wine)' : state === 'active' ? 'var(--wine-tint)' : 'var(--bg-elevated)', color: state === 'done' ? '#fff' : state === 'active' ? 'var(--wine)' : 'var(--ink-mute)', border: '1px solid ' + (state === 'active' ? 'var(--wine)' : 'transparent') }}>{state === 'done' ? I.check(14) : n}</span>
+      <div>
+        <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>{title}</div>
+        <div style={{ font: '500 11.5px/1.3 var(--f-sans)', color: 'var(--ink-mute)', marginTop: 2 }}>{sub}</div>
+      </div>
+    </div>);
+
+  if (registered) {
+    return (
+      <div>
+        <button onClick={() => setView('shipments')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 14, background: 'none', border: 0, cursor: 'pointer' }}>{I.arrowL(12)} Volver a Alertas · mis envíos</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '16px 18px', background: 'var(--success-bg)', borderRadius: 'var(--r-lg)', marginBottom: 'var(--s-6)', maxWidth: 680 }}>
+          <span style={{ color: 'var(--success)', display: 'flex', flexShrink: 0 }}>{I.check(20)}</span>
+          <div>
+            <div style={{ font: '800 15px/1.2 var(--f-display)', color: 'var(--ink)' }}>Pre-alerta registrada</div>
+            <div style={{ font: '500 12.5px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginTop: 3 }}>Tu código es <code style={{ font: '700 12.5px/1 var(--f-mono)', color: 'var(--wine)' }}>{registered}</code> · genera y envía las etiquetas a tu proveedor.</div>
+          </div>
+        </div>
+        <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: 'var(--shadow-sm)', padding: 'var(--s-6)', marginBottom: 'var(--s-6)', maxWidth: 680 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+            <span style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', flexShrink: 0 }}>{I.doc(15)}</span>
+            <div style={{ font: '800 14px/1.2 var(--f-display)', color: 'var(--ink)' }}>Que tu proveedor complete el detalle</div>
+          </div>
+          <p style={{ font: '500 12.5px/1.55 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 14px' }}>Envíale este link a tu proveedor para que llene el <b>Packing List + Factura</b> (medidas, cantidades y valor reales). Así se completa tu compra sin que tengas que pedirle los datos por chat.</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <U.Btn variant="primary" icon={linkCopied ? I.check(14) : I.copy(14)} onClick={() => copyLink(registered)}>{linkCopied ? 'Link copiado' : 'Copiar link para el proveedor'}</U.Btn>
+            <U.Btn variant="secondary" icon={plOpen ? I.chevU(13) : I.doc(13)} onClick={() => setPlOpen(!plOpen)}>{plOpen ? 'Cerrar Packing List' : 'Abrir Packing List + Factura'}</U.Btn>
+          </div>
+          <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '12px 0 0' }}>Las <b>etiquetas que el proveedor pega en cada caja</b> se generan dentro del Packing List, según las cajas que él confirme. No hace falta imprimirlas aquí.</p>
+          {packlistPanel(registered)}
+        </div>
+      </div>);
+  }
+
+  return (
+    <div>
+      <button onClick={() => setView('shipments')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, font: '600 12.5px/1 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 14, background: 'none', border: 0, cursor: 'pointer' }}>{I.arrowL(12)} Volver a Alertas · mis envíos</button>
+      <div className="eyebrow eyebrow-wine">NUEVA COMPRA · PREALERTA</div>
+      <h1 style={{ font: '900 30px/1 var(--f-display)', color: 'var(--ink)', letterSpacing: '-0.02em', margin: '8px 0 6px' }}>Registra tu compra</h1>
+      <p style={{ font: '500 14px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 var(--s-5)', maxWidth: '60ch' }}>Cuéntanos qué viene de China. Esto crea una <b style={{ color: 'var(--wine)' }}>prealerta</b> y genera el código y las etiquetas para tu proveedor.</p>
+
+      {showInfo ?
+      <div style={{ display: 'flex', gap: 12, padding: '14px 16px', background: 'var(--info-bg)', border: '1px solid var(--info)', borderRadius: 'var(--r-lg)', marginBottom: 'var(--s-6)', maxWidth: 680 }}>
+        <span style={{ color: 'var(--info)', flexShrink: 0, marginTop: 1 }}>{I.info(16)}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ font: '800 13px/1.3 var(--f-display)', color: 'var(--ink)' }}>Esto es un prellenado</div>
+          <p style={{ font: '500 12px/1.55 var(--f-sans)', color: 'var(--ink-soft)', margin: '4px 0 0' }}>Con el <b>proveedor y su teléfono</b> ya creas la pre-alerta — no necesitas tenerlo todo ahora. Los datos fuertes (medidas, cantidades, factura) los <b>termina tu proveedor</b> en el Packing List + Factura; al registrar te damos el link para enviárselo.</p>
+        </div>
+        <button type="button" onClick={() => setShowInfo(false)} aria-label="Cerrar" style={{ background: 'none', border: 0, color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 16, lineHeight: 1, flexShrink: 0 }}>×</button>
+      </div>
+      :
+      <React.Fragment>
+        <style>{'@keyframes dtd-hb{0%,100%{transform:scale(1)}12%{transform:scale(1.07)}24%{transform:scale(1)}38%{transform:scale(1.07)}60%{transform:scale(1)}}'}</style>
+        <button type="button" onClick={() => { setShowInfo(true); setPulse(false); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 13px', borderRadius: 'var(--r-pill)', border: '1px solid ' + (pulse ? 'var(--wine)' : 'var(--border)'), background: pulse ? 'var(--wine-tint)' : 'var(--bg-surface)', color: pulse ? 'var(--wine)' : 'var(--ink-soft)', font: '600 12px/1 var(--f-sans)', cursor: 'pointer', marginBottom: 'var(--s-6)', transformOrigin: 'left center', animation: pulse ? 'dtd-hb 1s ease-in-out 6' : 'none' }}>
+          <span style={{ color: pulse ? 'var(--wine)' : 'var(--info)', display: 'flex' }}>{I.info(13)}</span> Esto es un prellenado · cómo funciona
+        </button>
+      </React.Fragment>}
+
+      <div style={{ maxWidth: 680 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 'var(--s-6)' }}>
+          {steps.map((st, i, arr) => (
+            <React.Fragment key={st.n}>
+              <button type="button" onClick={() => { const t = i + 1; if (t <= step || provOk) setStep(t); }} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 0, padding: 0, cursor: 'pointer' }}>
+                <span style={{ width: 24, height: 24, borderRadius: '50%', display: 'grid', placeItems: 'center', font: '800 11px/1 var(--f-display)', flexShrink: 0, background: doneArr[i] ? 'var(--wine)' : i === activeIdx ? 'var(--wine-tint)' : 'var(--bg-elevated)', color: doneArr[i] ? '#fff' : i === activeIdx ? 'var(--wine)' : 'var(--ink-mute)', border: '1px solid ' + (i === activeIdx && !doneArr[i] ? 'var(--wine)' : 'transparent') }}>{doneArr[i] ? I.check(12) : st.n}</span>
+                <span style={{ font: (i === activeIdx ? '700' : '600') + ' 12px/1 var(--f-sans)', color: doneArr[i] ? 'var(--wine)' : i === activeIdx ? 'var(--ink)' : 'var(--ink-mute)' }}>{st.l}</span>
+              </button>
+              {i < arr.length - 1 && <span style={{ flex: 1, height: 2, background: 'var(--border)', borderRadius: 2, minWidth: 14 }} />}
+            </React.Fragment>
+          ))}
+        </div>
+
+        <div style={{ ...modS, display: step === 1 ? 'block' : 'none' }}>
+          {modHead(1, 'Proveedor', 'A quién le compras esta vez', step1Done ? 'done' : 'active')}
+          <div style={{ position: 'relative', marginBottom: 'var(--s-5)' }}>
+            <label style={lblS}>Proveedor</label>
+            <input value={query} onChange={(e) => { setQuery(e.target.value); setChosen(null); setProvSaved(false); setOpen(true); }} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 120)} onKeyDown={onKey} placeholder="Escribe para buscar tu proveedor…" style={inS} />
+            {chosen &&
+            <div style={{ font: '600 11.5px/1.4 var(--f-sans)', color: chosen.isNew ? 'var(--wine)' : 'var(--success)', marginTop: 7, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              {chosen.isNew ? <React.Fragment>{I.plus(12)} Se creará un proveedor nuevo: «{chosen.name}»</React.Fragment> : <React.Fragment>{I.check(12)} Proveedor existente seleccionado</React.Fragment>}
+            </div>}
+            {open && (query.length > 0 || filtered.length > 0) &&
+            <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, marginTop: 4, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', boxShadow: 'var(--shadow-md)', overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
+              {filtered.map((s) => (
+                <button key={s.n} type="button" onMouseDown={(e) => { e.preventDefault(); choose(s); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'none', border: 0, borderBottom: '1px solid var(--border)', cursor: 'pointer', textAlign: 'left' }}>
+                  <span style={{ width: 26, height: 26, borderRadius: 'var(--r-sm)', background: 'var(--wine-tint)', color: 'var(--wine)', display: 'grid', placeItems: 'center', font: '800 11px/1 var(--f-display)', flexShrink: 0 }}>#{s.n}</span>
+                  <span style={{ flex: 1, font: '600 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>{s.name}</span>
+                </button>
+              ))}
+              {query.trim() && !exact &&
+              <button type="button" onMouseDown={(e) => { e.preventDefault(); createNew(); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', background: 'var(--wine-tint)', border: 0, cursor: 'pointer', textAlign: 'left' }}>
+                <span style={{ color: 'var(--wine)', display: 'flex' }}>{I.plus(14)}</span>
+                <span style={{ flex: 1, font: '700 13px/1.2 var(--f-sans)', color: 'var(--wine)' }}>Crear «{query.trim()}»</span>
+                <span style={{ font: '600 10px/1 var(--f-mono)', color: 'var(--ink-mute)' }}>Enter</span>
+              </button>}
+              {filtered.length === 0 && !query.trim() &&
+              <div style={{ padding: '11px 14px', font: '500 12px/1.4 var(--f-sans)', color: 'var(--ink-mute)' }}>Escribe el nombre de tu proveedor.</div>}
+            </div>}
+          </div>
+          {chosen && chosen.isNew && (provSaved ?
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--success-bg)', border: '1px solid rgba(31,138,91,0.3)', borderRadius: 'var(--r-md)', padding: '12px 14px', marginBottom: 'var(--s-5)' }}>
+            <span style={{ color: 'var(--success)', flexShrink: 0, display: 'flex' }}>{I.check(18)}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ font: '700 13px/1.2 var(--f-sans)', color: 'var(--ink)' }}>Proveedor nuevo guardado</div>
+              <div style={{ font: '500 11.5px/1.3 var(--f-mono)', color: 'var(--ink-soft)', marginTop: 3 }}>{chosen.name}{newDigits ? ' · ' + newCode + ' ' + newDigits : ''}{shot ? ' · WeChat (captura)' : ''}{newCity ? ' · ' + newCity : ''}</div>
+            </div>
+            <button type="button" onClick={() => setProvSaved(false)} style={{ font: '600 12px/1 var(--f-sans)', color: 'var(--wine)', background: 'none', border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>{I.edit(12)} Editar</button>
+          </div>
+          :
+          <div style={{ background: 'var(--wine-tint)', border: '1px solid var(--wine-soft)', borderRadius: 'var(--r-md)', padding: 16, marginBottom: 'var(--s-5)' }}>
+            <div style={{ font: '700 10px/1 var(--f-sans)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--wine)', marginBottom: 12 }}>Datos del proveedor nuevo</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+              <div>
+                <label style={lblS}>Teléfono <span style={optS}>· recomendado</span></label>
+                <div style={{ display: 'flex', alignItems: 'stretch', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-surface)', overflow: 'hidden' }}>
+                  <select value={newCode} onChange={(e) => setNewCode(e.target.value)} aria-label="Código de país" style={{ appearance: 'none', WebkitAppearance: 'none', border: 0, outline: 0, backgroundColor: 'var(--bg-elevated)', color: 'var(--wine)', font: '700 13px/1 var(--f-mono)', padding: '0 24px 0 12px', cursor: 'pointer', borderRight: '1px solid var(--border)', backgroundImage: `url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%237F0F1A' stroke-width='1.6' fill='none' stroke-linecap='round'/></svg>")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 8px center' }}>
+                    {_PHONE_CODES.map((o) => <option key={o.c} value={o.dial}>{o.c} {o.dial}</option>)}
+                  </select>
+                  <input value={newDigits} onChange={(e) => onPhone(e.target.value)} inputMode="tel" placeholder="138 0000 0000" style={{ flex: 1, minWidth: 0, border: 0, outline: 'none', background: 'transparent', font: '600 13.5px/1.4 var(--f-mono)', color: 'var(--ink)', padding: '12px' }} />
+                </div>
+              </div>
+              <div>
+                <label style={lblS}>Ciudad <span style={optS}>· opcional</span></label>
+                <input value={newCity} onChange={(e) => setNewCity(e.target.value)} placeholder="Yiwu · Shenzhen · Guangzhou…" style={inS} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <label style={lblS}>WeChat del proveedor <span style={optS}>· captura del ID o QR</span></label>
+              <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '0 0 8px' }}>Si tu proveedor no tiene número, sube o toma una foto de su <b>ID o código QR de WeChat</b> — así lo contactamos y agilizamos tu compra.</p>
+              {shot ?
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, border: '1px solid var(--success)', background: 'var(--success-bg)', borderRadius: 'var(--r-md)' }}>
+                <img src={shot} alt="WeChat" style={{ width: 48, height: 48, borderRadius: 'var(--r-sm)', objectFit: 'cover', flexShrink: 0 }} />
+                <span style={{ flex: 1, font: '600 12.5px/1.3 var(--f-sans)', color: 'var(--success)' }}>Captura cargada</span>
+                <button type="button" onClick={() => setShot(null)} style={{ font: '600 12px/1 var(--f-sans)', color: 'var(--wine)', background: 'none', border: 0, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5 }}>{I.trash(12)} Quitar</button>
+              </div>
+              :
+              <div onClick={() => shotRef.current && shotRef.current.click()} onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)} onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) readShot(f); }} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '20px 16px', borderRadius: 'var(--r-md)', border: '2px dashed ' + (dragOver ? 'var(--wine)' : 'var(--border-strong)'), background: dragOver ? 'var(--wine-tint)' : 'var(--bg-base)', cursor: 'pointer', textAlign: 'center' }}>
+                <span style={{ color: 'var(--wine)', display: 'flex' }}>{I.camera(20)}</span>
+                <span style={{ font: '700 12.5px/1.3 var(--f-sans)', color: 'var(--ink)' }}>Arrastra la imagen o haz clic</span>
+                <span style={{ font: '500 11px/1.3 var(--f-sans)', color: 'var(--ink-mute)' }}>Sube una foto o tómala con la cámara · PNG/JPG</span>
+              </div>}
+              <input ref={shotRef} type="file" accept="image/*" capture="environment" onChange={(e) => { const f = e.target.files && e.target.files[0]; if (f) readShot(f); }} style={{ display: 'none' }} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={lblS}>Cuenta Alibaba o contacto <span style={optS}>· opcional</span></label>
+              <input value={newAccount} onChange={(e) => setNewAccount(e.target.value)} placeholder="Link de su tienda en Alibaba, o cómo lo contactas" style={inS} />
+            </div>
+            <U.Btn variant="primary" icon={I.check(14)} disabled={!(newDigits.trim() || shot)} onClick={() => setProvSaved(true)}>Guardar proveedor</U.Btn>
+            {!(newDigits.trim() || shot) && <p style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '8px 0 0' }}>Pon al menos un contacto: teléfono (recomendado) o una captura del WeChat (ID o QR).</p>}
+          </div>
+          )}
+        </div>
+
+        <div style={{ ...modS, display: step === 2 ? 'block' : 'none' }}>
+          {modHead(2, 'Detalle de la compra', 'Opcional · tu proveedor termina el detalle', step1Done ? (step2Done ? 'done' : 'active') : 'idle')}
+          <div style={{ marginBottom: 'var(--s-5)' }}>
+            <label style={lblS}>Descripción de la compra</label>
+            <textarea value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="Ej. 3 cajas de zapatos deportivos" rows={3} style={{ ...inS, resize: 'vertical' }} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 'var(--s-5)' }}>
+            <div>
+              <label style={lblS}>Cajas</label>
+              <input type="number" min="1" value={cajas} onChange={(e) => setCajas(Math.max(1, parseInt(e.target.value) || 1))} style={inS} />
+            </div>
+            <div>
+              <label style={lblS}>Valor estimado USD <span style={optS}>· opcional</span></label>
+              <input value={valor} onChange={(e) => setValor(e.target.value)} placeholder="—" style={inS} />
+            </div>
+          </div>
+          <div>
+            <label style={lblS}>Tracking China <span style={optS}>· opcional</span></label>
+            <input value={tracking} onChange={(e) => setTracking(e.target.value)} placeholder="Ej. SF1234567890" style={{ ...inS, fontFamily: 'var(--f-mono)' }} />
+          </div>
+        </div>
+
+        <div style={{ ...modS, display: step === 3 ? 'block' : 'none' }}>
+          {modHead(3, 'Adjuntos y link al proveedor', 'Opcional · acelera tu compra', step3Done ? 'done' : 'active')}
+          <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '0 0 12px' }}>No son obligatorios, pero si los subes procesamos tu compra más rápido y te quedan de recordatorio en tu portal.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {upRow('packing', 'Packing list', docs.packing, () => setDocs({ ...docs, packing: !docs.packing }))}
+            {upRow('factura', 'Factura del proveedor', docs.factura, () => setDocs({ ...docs, factura: !docs.factura }))}
+            {upRow('fotos', 'Fotos del producto', docs.fotos, () => setDocs({ ...docs, fotos: !docs.fotos }))}
+          </div>
+          {previewCode &&
+          <div style={{ marginTop: 'var(--s-5)', paddingTop: 'var(--s-5)', borderTop: '1px solid var(--border)' }}>
+            <div style={{ font: '800 13px/1.2 var(--f-display)', color: 'var(--ink)', marginBottom: 6 }}>Que tu proveedor complete el detalle</div>
+            <p style={{ font: '500 12px/1.55 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 12px' }}>Si no tienes todos los datos, envíale este link a tu proveedor para que llene el <b>Packing List + Factura</b>. Así se completa tu compra.</p>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <U.Btn variant="secondary" icon={linkCopied ? I.check(14) : I.copy(14)} onClick={() => copyLink(previewCode)}>{linkCopied ? 'Link copiado' : 'Copiar link para el proveedor'}</U.Btn>
+              <U.Btn variant="ghost" icon={plOpen ? I.chevU(13) : I.doc(13)} onClick={() => setPlOpen(!plOpen)}>{plOpen ? 'Cerrar Packing List' : 'Abrir Packing List + Factura'}</U.Btn>
+            </div>
+            <p style={{ font: '500 11px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '10px 0 0' }}>Las etiquetas que el proveedor pega en cada caja se generan dentro del Packing List.</p>
+            {packlistPanel(previewCode)}
+          </div>}
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginTop: 'var(--s-2)' }}>
+          {step > 1 && <U.Btn variant="ghost" icon={I.arrowL(14)} onClick={() => setStep(step - 1)}>Atrás</U.Btn>}
+          <div style={{ flex: 1 }} />
+          {step < 3 && <U.Btn variant="primary" iconRight={I.arrowR(14)} disabled={step === 1 && !provOk} onClick={() => setStep(step + 1)}>Siguiente</U.Btn>}
+          {step === 3 && <U.Btn variant="primary" iconRight={I.arrowR(14)} disabled={!provOk} onClick={submit}>Registrar compra</U.Btn>}
+        </div>
+        {step === 1 && !provOk && <p style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink-mute)', margin: '10px 0 0' }}>{chosen && chosen.isNew ? 'Guarda los datos de tu proveedor nuevo para continuar.' : 'Elige (o agrega) un proveedor para continuar.'}</p>}
+      </div>
+    </div>);
+}
+
+// ── Generador de etiquetas (código + QR · una por caja) ──────
+function LabelGenerator({ code, me, onClose, embedded, startPhase, initialBoxes }) {
+  const U = window.ERPUI;
+  const I = window.Icon;
+  const [phase, setPhase] = pUseState(startPhase || 'docs'); // docs → labels
   const [docs, setDocs] = pUseState({ packing: false, factura: false, fotos: 0 });
-  const [boxes, setBoxes] = pUseState(30);
+  const [boxes, setBoxes] = pUseState(initialBoxes || 30);
   const n = Math.max(1, Math.min(500, parseInt(boxes) || 1));
 
   // QR procedural (estilizado · el QR real lo genera el backend)
@@ -1898,14 +2825,16 @@ function LabelGenerator({ code, me, onClose }) {
   };
 
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(11,20,40,0.6)', display: 'grid', placeItems: 'center', padding: 24 }}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-base)', borderRadius: 'var(--r-lg)', width: '100%', maxWidth: 560, maxHeight: '88vh', overflow: 'auto', boxShadow: 'var(--shadow-lg)' }}>
+    <div onClick={embedded ? undefined : onClose} style={embedded ? {} : { position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(11,20,40,0.6)', display: 'grid', placeItems: 'center', padding: 24 }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--bg-base)', borderRadius: 'var(--r-lg)', width: '100%', maxWidth: embedded ? 680 : 560, maxHeight: embedded ? 'none' : '88vh', overflow: embedded ? 'visible' : 'auto', boxShadow: embedded ? 'none' : 'var(--shadow-lg)', border: embedded ? '1px solid var(--border)' : 0 }}>
         <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
             <div style={{ font: '900 17px/1.1 var(--f-display)', color: 'var(--ink)' }}>Etiquetas para el proveedor</div>
             <code style={{ font: '700 12px/1 var(--f-mono)', color: 'var(--wine)' }}>{code}</code>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 18 }}>×</button>
+          {embedded
+            ? <button onClick={onClose} style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none', border: 0, color: 'var(--ink-soft)', cursor: 'pointer', font: '600 12px/1 var(--f-sans)' }}>{I.arrowL(12)} Volver</button>
+            : <button onClick={onClose} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 18 }}>×</button>}
         </div>
         <div style={{ padding: 22 }}>
           {phase === 'docs' &&

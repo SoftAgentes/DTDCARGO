@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-06-19",
-  "norteVersion": "v4.4",
+  "generatedAt": "2026-06-20",
+  "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
@@ -12,7 +12,7 @@
       },
       {
         "id": "packlist-norte-divergencia",
-        "title": "El prototipo del Norte (_norte/packlist, v4.4) y la feature shippeada SDD-0096 divergieron: el Norte mantiene el packlist con imprimir/etiquetas (PDF), mientras la feature en prod usa exportar a Excel (SheetJS). En el merge gano el Norte (gobernanza: es la fuente) para el prototipo; la feature en app/p + lib/studio/prealertas NO se toco.",
+        "title": "El prototipo del Norte (_norte/packlist, v4.5) y la feature shippeada SDD-0096 divergieron: el Norte mantiene el packlist con imprimir/etiquetas (PDF), mientras la feature en prod usa exportar a Excel (SheetJS). En el merge gano el Norte (gobernanza: es la fuente) para el prototipo; la feature en app/p + lib/studio/prealertas NO se toco.",
         "severity": "media",
         "action": "Reconciliar en el proximo NORTE-SYNC: decidir si el packlist del proveedor es PDF/etiquetas o Excel, y alinear prototipo <-> codigo. Prod no afectado."
       },

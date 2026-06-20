@@ -275,7 +275,7 @@ function PinUnlock({ profile, onUnlocked, onForget }) {
       </div>
 
       <button onClick={onForget} style={{ background: 'none', border: 0, font: '600 11.5px/1.4 var(--f-sans)', color: 'var(--ink-mute)', textAlign: 'center' }}>
-        ¿No sos {profile.name.split(' ')[0]}? · Cerrar dispositivo
+        ¿No eres {profile.name.split(' ')[0]}? · Cerrar dispositivo
       </button>
       <div style={{ marginTop: 10, textAlign: 'center', font: '600 10px/1 var(--f-sans)', color: 'var(--ink-mute)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Demo · PIN 1234</div>
     </div>
@@ -296,8 +296,8 @@ function Picker({ profile, onPick }) {
       </div>
 
       <div style={{ padding: 16, flex: 1, animation: 'erp-pop 220ms ease' }}>
-        <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>¿QUÉ HACÉS HOY?</div>
-        <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 18 }}>Tu perfil tiene 2 roles. Elige un modo; cambiás cuando quieras desde el menú.</div>
+        <div style={{ font: '700 10px/1 var(--f-sans)', color: 'var(--ink-soft)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>¿QUÉ HACES HOY?</div>
+        <div style={{ font: '500 13px/1.4 var(--f-sans)', color: 'var(--ink-soft)', marginBottom: 18 }}>Tu perfil tiene 2 roles. Elige un modo; cambias cuando quieras desde el menú.</div>
 
         <button onClick={() => onPick('bodega')} style={{ width: '100%', padding: 20, marginBottom: 12, background: 'linear-gradient(135deg, var(--ink) 0%, #1F3055 100%)', color: '#fff', border: 0, borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', gap: 14, textAlign: 'left' }}>
           <div style={{ width: 60, height: 60, borderRadius: 'var(--r-md)', background: 'rgba(216,154,164,0.20)', color: 'var(--wine-soft)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{I.box(30)}</div>
@@ -321,7 +321,7 @@ function Picker({ profile, onPick }) {
 
         <div style={{ display: 'flex', gap: 10, padding: '12px 14px', background: 'var(--info-bg)', borderRadius: 'var(--r-md)' }}>
           <span style={{ color: 'var(--info)', display: 'flex', flexShrink: 0, marginTop: 1 }}>{I.info(15)}</span>
-          <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}><b>Multi-rol.</b> Este perfil tiene los 2 módulos habilitados. Cambiás de modo desde el menú ☰ sin cerrar sesión.</div>
+          <div style={{ font: '500 11.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}><b>Multi-rol.</b> Este perfil tiene los 2 módulos habilitados. Cambias de modo desde el menú ☰ sin cerrar sesión.</div>
         </div>
       </div>
     </div>

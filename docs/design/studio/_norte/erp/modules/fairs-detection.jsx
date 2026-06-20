@@ -81,34 +81,34 @@ function _buildPrompt(kind, country, sources, excludeNames) {
   const exclude = excludeNames && excludeNames.length ? excludeNames.join('; ') : 'ninguna';
   if (kind === 'feriado') {
     return (
-      `Sos un asistente de research para DTD-Cargo, un courier de carga marítima China→Venezuela.\n` +
-      `Listaá los feriados oficiales y períodos no laborables de ${place} durante 2026 que afectan la operación logística (almacenes y aduanas que paran).\n` +
-      `${country === 'CN' ? 'Incluí los períodos largos como Año Nuevo Chino y Golden Week con su rango completo de días.' : 'Incluí los feriados nacionales decretados.'}\n` +
+      `Eres un asistente de research para DTD-Cargo, un courier de carga marítima China→Venezuela.\n` +
+      `Lista los feriados oficiales y períodos no laborables de ${place} durante 2026 que afectan la operación logística (almacenes y aduanas que paran).\n` +
+      `${country === 'CN' ? 'Incluye los períodos largos como Año Nuevo Chino y Golden Week con su rango completo de días.' : 'Incluye los feriados nacionales decretados.'}\n` +
       `Ten en cuenta fuentes como:\n${sourcesTxt}\n` +
-      `Excluí estos que ya están cargados o fueron descartados: ${exclude}.\n\n` +
-      `Devolvé entre 5 y 9 feriados como un array JSON. Cada objeto con EXACTAMENTE estos campos:\n` +
+      `Excluye estos que ya están cargados o fueron descartados: ${exclude}.\n\n` +
+      `Devuelve entre 5 y 9 feriados como un array JSON. Cada objeto con EXACTAMENTE estos campos:\n` +
       `- "name": nombre del feriado\n` +
       `- "start": fecha inicio "YYYY-MM-DD" en 2026\n` +
       `- "end": fecha fin "YYYY-MM-DD" en 2026 (igual a start si es de un solo día)\n` +
       `- "sourceDomain": dominio de la fuente oficial más probable\n` +
-      `- "confidence": "alta" | "media" | "baja". "alta" para feriados fijos y confirmados; "media" si la fecha es móvil o aproximada; "baja" si es incierta. Procurá VARIAR el nivel.\n` +
+      `- "confidence": "alta" | "media" | "baja". "alta" para feriados fijos y confirmados; "media" si la fecha es móvil o aproximada; "baja" si es incierta. Procura VARIAR el nivel.\n` +
       `- "evidence": una frase corta en español sobre el feriado y su impacto operativo\n\n` +
       `Responde SOLO con el array JSON, sin texto adicional ni markdown.`);
 
   }
   return (
-    `Sos un asistente de research para DTD-Cargo, un courier de carga marítima China→Venezuela.\n` +
+    `Eres un asistente de research para DTD-Cargo, un courier de carga marítima China→Venezuela.\n` +
     `Busca ferias y expos comerciales en ${place} durante 2026 relevantes para importación, mayorista o logística.\n` +
     `Ten en cuenta fuentes como:\n${sourcesTxt}\n` +
-    `Excluí estas ferias (ya cargadas o descartadas): ${exclude}.\n\n` +
-    `Devolvé entre 5 y 8 ferias como un array JSON. Cada objeto con EXACTAMENTE estos campos:\n` +
+    `Excluye estas ferias (ya cargadas o descartadas): ${exclude}.\n\n` +
+    `Devuelve entre 5 y 8 ferias como un array JSON. Cada objeto con EXACTAMENTE estos campos:\n` +
     `- "name": nombre de la feria\n` +
     `- "city": ciudad\n` +
     `- "sector": sector principal, breve\n` +
     `- "start": fecha inicio "YYYY-MM-DD" en 2026\n` +
     `- "end": fecha fin "YYYY-MM-DD" en 2026\n` +
     `- "sourceDomain": dominio de la fuente más probable\n` +
-    `- "confidence": "alta" | "media" | "baja". Asigna "alta" solo a ferias reconocidas y recurrentes con fecha confirmada (ej. ferias emblemáticas anuales); "media" si la edición existe pero la fecha es aproximada; "baja" si el evento es incierto o poco documentado. Procurá VARIAR el nivel entre las ferias, no pongas todas igual.\n` +
+    `- "confidence": "alta" | "media" | "baja". Asigna "alta" solo a ferias reconocidas y recurrentes con fecha confirmada (ej. ferias emblemáticas anuales); "media" si la edición existe pero la fecha es aproximada; "baja" si el evento es incierto o poco documentado. Procura VARIAR el nivel entre las ferias, no pongas todas igual.\n` +
     `- "evidence": una frase corta en español sobre dónde se anuncia o por qué es relevante\n\n` +
     `Responde SOLO con el array JSON, sin texto adicional ni markdown.`);
 

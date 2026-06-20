@@ -87,7 +87,7 @@
           <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
           <span class="wm"><span class="d">DTD</span><span class="sp"></span><span class="g">Cargo</span></span>
         </div>
-        <span class="ver">Brand Book v4.4</span>
+        <span class="ver">Brand Book v4.5</span>
       </div>
       <h1>Brand Hub · todo el sistema de marca, en un solo lugar</h1>
       <p>El punto único de verdad de DTD-Cargo: guías, logos, color, plantillas y generadores. Si está acá, es lo vigente — tomá lo último y evitá versiones viejas.</p>
@@ -102,7 +102,7 @@
   <!-- BRAND KIT QUICK -->
   <div class="kit">
     <div class="kit-card">
-      <h3>Color · tokens v4.4</h3>
+      <h3>Color · tokens v4.5</h3>
       <div class="sw">
         <i style="background:#7F0F1A" data-h="--wine #7F0F1A"></i>
         <i style="background:#5E0A12" data-h="--wine-deep"></i>
@@ -143,13 +143,20 @@
   </div>
 
   <div class="foot">
-    <b>Gobernanza:</b> este hub es la fuente de verdad de la marca. Toda actualización se sincroniza a producción ("Norte") vía el protocolo de <code style="font-family:var(--f-mono);font-size:11px">SYNC-NORTE</code>. Versión única visible: <b>v3.7</b>. · Castellano venezolano, tuteo. · Cero AI slop.
+    <b>Gobernanza:</b> este hub es la fuente de verdad de la marca. Toda actualización se sincroniza a producción ("Norte") vía el protocolo de <code style="font-family:var(--f-mono);font-size:11px">SYNC-NORTE</code>. Versión única visible: <b>v4.5</b>. · Castellano venezolano, tuteo. · Cero AI slop.
   </div>
 
   <script>
     const ITEMS = [
       // Fundamentos
-      { t:'Brand Book v4.4', d:'La guía completa: fundamento, logo, tipografía, color, íconos, voz, motion y gobernanza (16 secciones).', cat:'Fundamentos', href:'Brand Book DTD v4.4.html', ic:'BB' },
+      { t:'Brand Book v4.5', d:'La guía completa: fundamento, logo, tipografía, color, íconos, voz, motion y gobernanza (16 secciones).', cat:'Fundamentos', href:'Brand Book DTD v4.5.html', ic:'BB' },
+      { t:'Arquitectura de Marca', d:'El mapa que ordena todo: modelo branded house, 4 niveles (marca madre → plataformas → herramientas), convención de naming y qué logo usa cada nivel.', cat:'Fundamentos', href:'Arquitectura de Marca · DTD-Cargo.html', ic:'⬢', isNew:true },
+      { t:'Iconos de Perfil', d:'Los 15 íconos de perfil (8 roles + 7 grupos) para directorio, CRM y WhatsApp. Set principal de iconografía (Brand Book §07).', cat:'Fundamentos', href:'Iconos de Perfil.html', ic:'◑' },
+      { t:'Mensajes y Audiencias', d:'La capa verbal: 3 audiencias (comerciante PyME · emprendedor primerizo · proveedor en Yiwu), messaging house (techo · pilares · base) y matriz de tono.', cat:'Fundamentos', href:'Mensajes y Audiencias · DTD-Cargo.html', ic:'❝', isNew:true },
+      { t:'Sistema de Datos', d:'Paleta de visualización para charts: categórica (máx 6, orden fijo), semántica y secuencial por alpha. Cero hex inventados — todo desde tokens.', cat:'Fundamentos', href:'Sistema de Datos · DTD-Cargo.html', ic:'▥', isNew:true },
+      { t:'Posicionamiento', d:'Contra qué compite DTD (courier · mayorista local · viajar solo · forwarder) y por qué te eligen: declaración, matriz competitiva, la cuña y alcance honesto.', cat:'Fundamentos', href:'Posicionamiento · DTD-Cargo.html', ic:'◎', isNew:true },
+      { t:'Accesibilidad de Color', d:'Matriz WCAG de cada texto sobre cada superficie (light + dark) con ratios reales y 6 reglas prácticas. Complementa el contraste del logo.', cat:'Fundamentos', href:'Accesibilidad de Color · DTD-Cargo.html', ic:'◐', isNew:true },
+      { t:'Sistema de Movimiento', d:'Cómo se mueve la marca: una sola curva + tres duraciones (tokens), principios sí/nunca, motion por capa (marca · producto · avisos) y respeto a reduced-motion.', cat:'Fundamentos', href:'Sistema de Movimiento · DTD-Cargo.html', ic:'➤', isNew:true },
       { t:'Logo Oficial', d:'4 variantes del isólogo + wordmark, con descargas PNG por tamaño de uso (48–320px, retina).', cat:'Fundamentos', href:'Logo Oficial.html', ic:'◆' },
       { t:'App Icon', d:'Ícono de aplicación DTD Cargo en sus tamaños y máscaras.', cat:'Fundamentos', href:'App Icon · DTD Cargo.html', ic:'▣' },
       { t:'Aplicaciones de Marca', d:'El isólogo aplicado a touchpoints: papelería, firma de email, stickers, factura demo.', cat:'Fundamentos', href:'Aplicaciones de Marca.html', ic:'✦' },
@@ -195,10 +202,16 @@
 
       // Comercial
       { t:'Propuesta · Servicios y Tarifas', d:'Documento comercial de servicios y tarifas DDP.', cat:'Impreso', href:'Propuesta · Servicios y Tarifas.html', ic:'❡' },
-      { t:'Kit de Bienvenida', d:'Onboarding del cliente nuevo: Shipping Mark, ciclo en 4 pasos, primeros pasos y reglas de oro. 1 página, PDF/email.', cat:'Impreso', href:'Kit de Bienvenida · DTD-Cargo.html', ic:'✦', isNew:true }
+      { t:'Kit de Bienvenida', d:'Onboarding del cliente nuevo: Shipping Mark, ciclo en 4 pasos, primeros pasos y reglas de oro. 1 página, PDF/email.', cat:'Impreso', href:'Kit de Bienvenida · DTD-Cargo.html', ic:'✦', isNew:true },
+
+      // Producto · las plataformas
+      { t:'Portal del Cliente', d:'La app del cliente. Rediseño 2026-06: nav por Inicio · Alertas mis envíos · Finanzas · Referidos · Academia · Soporte. Nueva compra (prellenado→prealerta) con combobox de proveedor, Packing List embebido, Seguimiento total por contenedor y Calculadora flotante (CBM + normal).', cat:'Producto', href:'Portal del Cliente.html', ic:'◧', isNew:true },
+      { t:'Portal · Rediseño 2026-06 (doc)', d:'Documentación del rediseño del Portal: arquitectura de información (nav de 6), ciclo Pre-alerta→Alerta→Envío, flujo Nueva compra 1-2-3, decisiones de diseño y handoff a Norte (archivos + seams).', cat:'Producto', href:'Portal del Cliente · Rediseño · DTD-Cargo.html', ic:'❡', isNew:true },
+      { t:'DTD Studio · ERP', d:'El back-office: despacho, consolidación, finanzas, módulo de Marca y Estudio de Redes. Reusa tokens y componentes del sistema.', cat:'Producto', href:'DTD Studio · ERP.html', ic:'▦' },
+      { t:'Operario · App', d:'App móvil del operario de almacén (recepción, medición, fotos, consolidación) con MobileInput y regla calculadora.', cat:'Producto', href:'Operario · App.html', ic:'▤' }
     ];
 
-    const CATS = ['Todos','Fundamentos','Generadores','Operativo','Impreso','Mensajería'];
+    const CATS = ['Todos','Fundamentos','Generadores','Operativo','Impreso','Mensajería','Producto'];
     let activeCat = 'Todos', query = '';
 
     const tabsEl = document.getElementById('tabs');
@@ -207,10 +220,22 @@
 
     function count(cat){ return cat==='Todos' ? ITEMS.length : ITEMS.filter(i=>i.cat===cat).length; }
 
+    const AXES = [
+      { label: 'Sistema · lo normativo', cats: ['Fundamentos'] },
+      { label: 'Producto · las plataformas', cats: ['Producto'] },
+      { label: 'Herramientas · lo aplicado', cats: ['Generadores','Operativo','Impreso','Mensajería'] }
+    ];
+
     function renderTabs(){
-      tabsEl.innerHTML = CATS.map(c =>
-        '<button class="tab'+(c===activeCat?' on':'')+'" data-cat="'+c+'">'+c+'<span class="c">'+count(c)+'</span></button>'
-      ).join('');
+      var axStyle = 'font:700 9px/1 var(--f-sans); letter-spacing:0.1em; text-transform:uppercase; color:var(--ink-mute); align-self:center; padding:0 6px 0 12px; border-left:1px solid var(--border); margin-left:4px;';
+      var html = '<button class="tab'+('Todos'===activeCat?' on':'')+'" data-cat="Todos">Todos<span class="c">'+count('Todos')+'</span></button>';
+      AXES.forEach(function(ax){
+        html += '<span style="'+axStyle+'">'+ax.label+'</span>';
+        ax.cats.forEach(function(c){
+          html += '<button class="tab'+(c===activeCat?' on':'')+'" data-cat="'+c+'">'+c+'<span class="c">'+count(c)+'</span></button>';
+        });
+      });
+      tabsEl.innerHTML = html;
       tabsEl.querySelectorAll('.tab').forEach(b => b.addEventListener('click', () => { activeCat = b.dataset.cat; renderTabs(); renderGrid(); }));
     }
 

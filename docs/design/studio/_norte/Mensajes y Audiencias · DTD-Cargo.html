@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mensajes y Audiencias · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--s-8); }
+  @media (max-width: 720px){ .wrap { padding: 0 var(--s-5); } }
+
+  /* Hero */
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: var(--s-12) 0 var(--s-16); }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .brandline { display: flex; align-items: center; gap: 14px; }
+  .brandline img { width: 46px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 26px; line-height: .9; color: #F2F0EC; }
+  .wm .sp { display: inline-block; width: 0.15em; }
+  .crumbs { font: 600 11px/1 var(--f-mono); color: rgba(242,240,236,0.62); display: flex; align-items: center; gap: 8px; }
+  .crumbs a:hover { color: #fff; }
+  .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); margin-left: 6px; }
+  .eyebrow-h { font: 700 11px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine-soft); margin: 44px 0 16px; }
+  .hero h1 { font: 800 46px/1.05 var(--f-display); letter-spacing: -0.025em; margin: 0 0 18px; max-width: 17ch; }
+  .hero h1 .ac { color: var(--wine-soft); }
+  .hero .lede { font: 400 17px/1.6 var(--f-sans); color: rgba(242,240,236,0.82); margin: 0; max-width: 64ch; }
+
+  section.block { padding: var(--s-16) 0 0; }
+  .sec-head .num { font: 700 11px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); }
+  .sec-head h2 { font: 800 32px/1.12 var(--f-display); letter-spacing: -0.022em; margin: 12px 0 10px; }
+  .sec-head .lead { font: 400 16px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 70ch; }
+
+  /* ── Messaging house ── */
+  .house { margin-top: -54px; position: relative; z-index: 4; }
+  .roof { background: var(--wine); color: #fff; border-radius: var(--r-xl) var(--r-xl) 0 0; padding: var(--s-8) var(--s-10); text-align: center; box-shadow: var(--shadow-lg); }
+  .roof .kick { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: rgba(255,255,255,0.72); }
+  .roof h2 { font: 800 30px/1.12 var(--f-display); letter-spacing: -0.02em; margin: 12px 0 0; }
+  .roof h2 span { color: #F2C9CF; }
+  .idea { background: var(--bg-surface); border-left: 1px solid var(--border); border-right: 1px solid var(--border); padding: var(--s-6) var(--s-10); text-align: center; }
+  .idea p { font: 500 16px/1.6 var(--f-sans); color: var(--ink); margin: 0; max-width: 80ch; margin-inline: auto; }
+  .idea p b { color: var(--wine); }
+  .pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); }
+  @media (max-width: 820px){ .pillars { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 480px){ .pillars { grid-template-columns: 1fr; } }
+  .pillar { background: var(--bg-surface); padding: var(--s-6); }
+  .pillar .pn { font: 700 10px/1 var(--f-mono); color: var(--wine); letter-spacing: 0.08em; }
+  .pillar h3 { font: 700 17px/1.18 var(--f-display); letter-spacing: -0.01em; margin: 10px 0 10px; }
+  .pillar ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .pillar li { font: 400 12.5px/1.45 var(--f-sans); color: var(--ink-soft); padding-left: 16px; position: relative; }
+  .pillar li::before { content: ""; position: absolute; left: 0; top: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--wine-soft); }
+  .base { background: var(--ink); color: #F2F0EC; border-radius: 0 0 var(--r-xl) var(--r-xl); padding: var(--s-6) var(--s-10); text-align: center; }
+  .base .kick { font: 700 10px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine-soft); }
+  .base p { font: 600 17px/1.4 var(--f-display); margin: 10px 0 0; letter-spacing: -0.01em; }
+
+  /* ── Personas ── */
+  .personas { margin-top: var(--s-10); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-5); }
+  @media (max-width: 900px){ .personas { grid-template-columns: 1fr; } }
+  .persona { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-xs); overflow: hidden; display: flex; flex-direction: column; }
+  .persona .top { padding: var(--s-6); border-bottom: 1px solid var(--border); background: var(--bg-base); }
+  .persona .badge { display: inline-flex; align-items: center; gap: 7px; font: 700 10px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--wine); margin-bottom: var(--s-4); }
+  .persona .badge .zh { font-family: var(--f-cn); font-weight: 700; }
+  .persona h3 { font: 800 20px/1.15 var(--f-display); letter-spacing: -0.015em; margin: 0 0 4px; }
+  .persona .who { font: 500 12.5px/1.45 var(--f-sans); color: var(--ink-mute); margin: 0; }
+  .persona .body { padding: var(--s-6); display: flex; flex-direction: column; gap: var(--s-5); flex: 1; }
+  .pf { }
+  .pf .h { font: 700 9.5px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: 8px; }
+  .pf p { font: 400 13px/1.55 var(--f-sans); color: var(--ink-soft); margin: 0; }
+  .pf.say { background: var(--wine-bg); border-radius: var(--r-md); padding: var(--s-4) var(--s-5); }
+  .pf.say p { color: var(--ink); font-weight: 600; font-style: italic; }
+  .pf.say .h { color: var(--wine); }
+  .chans { display: flex; flex-wrap: wrap; gap: 7px; }
+  .chans .c { font: 600 11px/1 var(--f-sans); padding: 6px 10px; border-radius: var(--r-pill); border: 1px solid var(--border); background: var(--bg-base); color: var(--ink-soft); }
+
+  /* ── Tone matrix ── */
+  .matrix { margin-top: var(--s-10); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-xs); }
+  table { width: 100%; border-collapse: collapse; background: var(--bg-surface); }
+  thead th { text-align: left; font: 700 10px/1.2 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-mute); padding: var(--s-4) var(--s-5); background: var(--bg-elevated); border-bottom: 1px solid var(--border); }
+  tbody td { padding: var(--s-4) var(--s-5); border-bottom: 1px solid var(--border); font: 500 13px/1.5 var(--f-sans); color: var(--ink-soft); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody td b { color: var(--ink); }
+  tbody td.do { color: var(--success); }
+  tbody td.dont { color: var(--danger); }
+
+  .foot { margin-top: var(--s-16); padding: var(--s-6) 0 var(--s-16); border-top: 1px solid var(--border); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div class="brandline">
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+          <span class="wm"><span>DTD</span><span class="sp"></span><span>Cargo</span></span>
+        </div>
+        <div class="crumbs"><a href="Brand Hub · DTD-Cargo.html">Brand Hub</a> <span>/</span> Mensajes y Audiencias <span class="ver">v4.5</span></div>
+      </div>
+      <div class="eyebrow-h">Sistema · Lenguaje</div>
+      <h1>A quién le hablamos <span class="ac">y qué le decimos.</span></h1>
+      <p class="lede">La capa verbal del sistema: las tres audiencias reales de DTD y la casa de mensajes que ordena todo lo que decimos — del tagline al caption de Instagram. Si una pieza de copy no encaja acá, no es DTD.</p>
+    </div>
+  </header>
+
+  <!-- ░░ MESSAGING HOUSE ░░ -->
+  <div class="wrap house">
+    <div class="roof">
+      <div class="kick">El techo · promesa única</div>
+      <h2>Con Confianza, <span>de China a tu puerta.</span></h2>
+    </div>
+    <div class="idea">
+      <p>Importar de China sigue siendo, para la mayoría, caro, lento y arriesgado. <b>No tiene por qué serlo.</b> Hacemos que cualquier comercio o emprendedor en Venezuela importe sin viajar ni arriesgar su capital — de la fábrica a su puerta.</p>
+    </div>
+    <div class="pillars">
+      <div class="pillar">
+        <div class="pn">PILAR 01</div>
+        <h3>Confianza que se ve</h3>
+        <ul>
+          <li>Tracking en tiempo real, paso a paso</li>
+          <li>Inspección con fotos reales en fábrica</li>
+          <li>18 años sostenidos por el boca a boca</li>
+        </ul>
+      </div>
+      <div class="pillar">
+        <div class="pn">PILAR 02</div>
+        <h3>Un solo responsable</h3>
+        <ul>
+          <li>Un punto de contacto, sin traspasos</li>
+          <li>Equipo propio en Yiwu y en Valencia</li>
+          <li>Compramos, consolidamos y nacionalizamos a nuestro nombre</li>
+        </ul>
+      </div>
+      <div class="pillar">
+        <div class="pn">PILAR 03</div>
+        <h3>Mejor precio en origen</h3>
+        <ul>
+          <li>Compra directa en Yiwu, sin intermediarios</li>
+          <li>Consolidación LCL: pagas solo tu volumen</li>
+          <li>DDP cerrado: el costo final no sorprende</li>
+        </ul>
+      </div>
+      <div class="pillar">
+        <div class="pn">PILAR 04</div>
+        <h3>Llega seguro y a tiempo</h3>
+        <ul>
+          <li>Control de calidad antes de embarcar</li>
+          <li>Puerta a puerta, tú solo recibes</li>
+          <li>Trazabilidad de la fábrica a tu depósito</li>
+        </ul>
+      </div>
+    </div>
+    <div class="base">
+      <div class="kick">La base · filosofía</div>
+      <p>Construyendo confianza cliente a cliente, contenedor a contenedor.</p>
+    </div>
+  </div>
+
+  <!-- ░░ AUDIENCIAS ░░ -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">01 / AUDIENCIAS</div>
+        <h2>Las tres personas a las que le hablamos</h2>
+        <p class="lead">No le hablamos igual a todos. Cada audiencia llega con un miedo distinto y necesita oír algo distinto primero. Mismo valor — confianza — tres entradas.</p>
+      </div>
+
+      <div class="personas">
+
+        <div class="persona">
+          <div class="top">
+            <div class="badge"><span class="dot">●</span> Audiencia primaria</div>
+            <h3>La comerciante PyME</h3>
+            <p class="who">Tienda o negocio en Venezuela · importa para revender · busca margen sobre el mayorista local.</p>
+          </div>
+          <div class="body">
+            <div class="pf"><div class="h">Qué la frena</div><p>El viaje a China es caro y arriesgado, no habla chino y le aterra que le metan gato por liebre o perder el capital en una mala compra.</p></div>
+            <div class="pf say"><div class="h">Qué necesita oír</div><p>«Compramos, inspeccionamos y nacionalizamos a nuestro nombre. Tú solo recibes.»</p></div>
+            <div class="pf"><div class="h">Canales</div><div class="chans"><span class="c">WhatsApp</span><span class="c">Instagram</span><span class="c">Boca a boca</span></div></div>
+          </div>
+        </div>
+
+        <div class="persona">
+          <div class="top">
+            <div class="badge"><span class="dot">●</span> Audiencia en crecimiento</div>
+            <h3>El emprendedor primerizo</h3>
+            <p class="who">Viene del casillero/courier · primera importación desde China · no domina la jerga logística.</p>
+          </div>
+          <div class="body">
+            <div class="pf"><div class="h">Qué la frena</div><p>CBM, FCL, LCL, aduana… la jerga lo abruma y no sabe por dónde empezar. Conoce el modelo casillero, no el de contenedor.</p></div>
+            <div class="pf say"><div class="h">Qué necesita oír</div><p>«Tú avisas que viene tu compra (prealerta) y nosotros te llevamos de la mano, paso a paso.»</p></div>
+            <div class="pf"><div class="h">Canales</div><div class="chans"><span class="c">Portal del Cliente</span><span class="c">WhatsApp</span><span class="c">Academia</span></div></div>
+          </div>
+        </div>
+
+        <div class="persona">
+          <div class="top">
+            <div class="badge"><span class="zh">供</span> Audiencia B2B · origen</div>
+            <h3>El proveedor en Yiwu</h3>
+            <p class="who">Fábrica o mayorista en China · relación funcional y bilingüe · entrega a bodega de consolidación.</p>
+          </div>
+          <div class="body">
+            <div class="pf"><div class="h">Qué necesita</div><p>Instrucciones claras y sin ambigüedad: a dónde entregar, cómo rotular la carga y cómo facturar. La precisión evita errores caros.</p></div>
+            <div class="pf say"><div class="h">Qué necesita oír</div><p>«Shipping Mark (唛头) <span style="font-family:var(--f-mono)">DTD-XXXX</span> · Packing List bilingüe · entrega a bodega Yiwu.»</p></div>
+            <div class="pf"><div class="h">Canales</div><div class="chans"><span class="c">WeChat</span><span class="c">Packing List 装箱单</span></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ░░ TONO POR REGISTRO ░░ -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">02 / REGISTRO</div>
+        <h2>El mismo tono, tres temperaturas</h2>
+        <p class="lead">Castellano venezolano neutro, con tuteo (tú) — nunca voseo. Lo que cambia es la temperatura según urgencia y formalidad. Detalle de voz en el Brand Book §11.</p>
+      </div>
+      <div class="matrix">
+        <table>
+          <thead>
+            <tr><th style="width:18%">Registro</th><th style="width:28%">Cuándo</th><th style="width:27%">Suena así</th><th>Evitá</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><b>Cercano</b></td>
+              <td>WhatsApp, redes, onboarding del cliente nuevo.</td>
+              <td class="do">«Tu compra ya salió de Yiwu — te aviso cuando llegue a Valencia.»</td>
+              <td class="dont">«Estimado cliente, le informamos que…»</td>
+            </tr>
+            <tr>
+              <td><b>Operativo</b></td>
+              <td>ERP, comprobantes, estados de embarque, instrucciones.</td>
+              <td class="do">«Embarque creado. Orden <span style="font-family:var(--f-mono)">DTD-5532-1-1</span> · ETA 12 días.»</td>
+              <td class="dont">«¡Genial! 🎉 Tu envío fue creado con éxito ✨»</td>
+            </tr>
+            <tr>
+              <td><b>Formal</b></td>
+              <td>Propuestas, cotizaciones DDP, documentos legales, proveedores.</td>
+              <td class="do">«Cotización DDP puerta a puerta, válida por 15 días. Condiciones abajo.»</td>
+              <td class="dont">Anglicismos innecesarios · «click acá» · «submit».</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="foot">
+      <b>Mensajes y Audiencias · DTD-Cargo v4.5</b> — capa de lenguaje del sistema. Deriva del propósito y los valores (Brand Book §02) y alimenta la voz (§11) y el Asistente de Contenido. Castellano venezolano, tuteo. Cero AI slop.
+    </div>
+  </div>
+
+</body>
+</html>
