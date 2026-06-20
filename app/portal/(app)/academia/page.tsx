@@ -2,15 +2,16 @@
  * Portal · Academia (SDD-0093, Slice D) — área del alumno.
  *
  * Server component: resuelve el cliente del portal (scope por client_markbox) y
- * muestra el gate de miembro o su inicio (mis cursos + mis diplomas). Versión 1
- * del port del diseño Cloud Design v4.3 (`_norte/portal/academia.jsx`); las
- * pantallas de detalle/reproductor/catálogo y la celular llegan en slices
- * siguientes. NEXT: requiere migración 0145 para leer el catálogo desde el portal.
+ * muestra el gate de miembro o su inicio (mis cursos + mis diplomas). Port del
+ * diseño Cloud Design (`_norte/portal/academia.jsx`). Cada tarjeta enlaza al
+ * detalle del curso (Slice D.2: detalle + reproductor + progreso por lección).
+ * El catálogo público y la celular llegan en slices siguientes. Requiere las
+ * migraciones 0145 (lectura del catálogo) y 0149 (progreso por lección).
  */
 
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { getPortalAcademy } from "@/lib/portal/portal-academy-queries";
+import { getPortalAcademy, tierLabel } from "@/lib/portal/portal-academy-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 
 export const metadata = { title: "Academia · DTD Cargo" };
@@ -78,9 +79,13 @@ function MisCursos({ courses }: { courses: { courseId: string; title: string; ti
         {courses.map((c) => {
           const pct = Math.min(100, Math.max(0, c.progressPct));
           return (
-            <article key={c.courseId} className="rounded-xl border border-grey-200 bg-white p-4 flex flex-col gap-3">
+            <Link
+              key={c.courseId}
+              href={`/portal/academia/${c.courseId}`}
+              className="rounded-xl border border-grey-200 bg-white p-4 flex flex-col gap-3 hover:border-wine transition-colors"
+            >
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wide text-wine">{c.tier}</span>
+                <span className="text-[11px] font-bold uppercase tracking-wide text-wine">{tierLabel(c.tier)}</span>
                 {c.completed && (
                   <span className="text-[11px] font-bold uppercase tracking-wide text-status-success">Completado</span>
                 )}
@@ -99,7 +104,7 @@ function MisCursos({ courses }: { courses: { courseId: string; title: string; ti
                 </div>
                 <span className="text-[11px] font-semibold text-grey-500">{pct}% completado</span>
               </div>
-            </article>
+            </Link>
           );
         })}
       </div>
