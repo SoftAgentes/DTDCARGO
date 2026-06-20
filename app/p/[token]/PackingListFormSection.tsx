@@ -209,6 +209,10 @@ export function PackingListFormSection({
   const [submit, setSubmit] = useState<SubmitState>({ kind: "idle" });
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
 
+  // Caja Padre (SDD-0097): líderes con su grupo EXPANDIDO. Default colapsado;
+  // al agregar un hijo expandimos su líder para que el proveedor lo vea.
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+
   // Autoguardado / historial. `tone`: "steady" para el autoguardado pasivo
   // (gris, no llama la atención); "pulse" (wine) SOLO para acciones manuales
   // ("Versión guardada / restaurada").
@@ -378,8 +382,10 @@ export function PackingListFormSection({
     }
   }, [submit.kind]);
 
-  // Totales + computados por fila — fuente única `computeTotals`.
-  const { rows: calcRows, totals } = useMemo(() => computeTotals(rows), [rows]);
+  // Totales — fuente única `computeTotals` (descarta filas vacías y re-suma).
+  const { totals } = useMemo(() => computeTotals(rows), [rows]);
+  // N.º de caja automático (Caja Padre): rango por fila, index-aligned con `rows`.
+  const cartons = useMemo(() => cartonRanges(rows), [rows]);
 
   function setRow(i: number, field: keyof PackingListRowInput, value: string) {
     setRows((prev) => {
@@ -393,6 +399,35 @@ export function PackingListFormSection({
   }
   function removeRow(i: number) {
     setRows((prev) => (prev.length <= 1 ? [emptyRow()] : prev.filter((_, k) => k !== i)));
+    // Reindexar el estado de colapso: las filas > i se corren una posición.
+    setExpanded((prev) => shiftExpanded(prev, i, -1));
+  }
+
+  /** Agrega un ítem en la MISMA caja que `i` (sub-ítem `same`) justo después suyo. */
+  function addChild(i: number) {
+    const lead = leadOf(rows, i);
+    // El hijo se inserta en i+1 → las filas > i se corren +1 (incluido el líder
+    // solo si i<lead, lo que no ocurre acá: i siempre ≥ lead).
+    setExpanded((prev) => {
+      const shifted = shiftExpanded(prev, i + 1, +1);
+      shifted.add(lead);
+      return shifted;
+    });
+    setRows((prev) => {
+      const next = prev.slice();
+      next.splice(i + 1, 0, { ...emptyRow(), same: true, qtyDirect: "" });
+      return next;
+    });
+  }
+
+  /** Colapsa/expande el grupo cuyo líder es `lead`. */
+  function toggleGroup(lead: number) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(lead)) next.delete(lead);
+      else next.add(lead);
+      return next;
+    });
   }
 
   // ── Excel vacío (CSV UTF-8 con BOM, abre en Excel) — portado de downloadXls ──
@@ -895,13 +930,55 @@ export function PackingListFormSection({
               </thead>
               <tbody>
                 {rows.map((r, i) => {
-                  const c = calcRows[i];
-                  // Filas vacías muestran em-dash en las celdas calc (display).
-                  const blank = rowIsBlank(r);
+                  const isChild = r.same === true;
+                  const lead = isChild ? leadOf(rows, i) : i;
+                  // El hijo se oculta cuando su líder está colapsado (applyCollapse).
+                  const hidden = isChild && !expanded.has(lead);
+                  const kids = isChild ? 0 : childCountOf(rows, i);
+                  const c = calcRow(r); // computados de ESTA fila (display)
+                  // Líder: qty/amount = sumatorio del grupo (líder + hijos `same`).
+                  const gsum = isChild ? null : groupSum(rows, i);
+                  // Filas vacías muestran em-dash en las celdas calc (display); un
+                  // líder con hijos que aportan cantidad NO se considera vacío.
+                  const blank = rowIsBlank(r) && (gsum ? gsum.q === 0 : true);
                   const dash = "—";
+                  const offTitle = "Va en la fila líder de la caja / 填在本箱首行";
                   return (
-                    <tr key={i} className="row">
-                      <td className="c-idx">{i + 1}</td>
+                    <tr
+                      key={i}
+                      className={`row${isChild ? " child" : ""}`}
+                      style={hidden ? { display: "none" } : undefined}
+                    >
+                      <td className="c-idx">
+                        {isChild ? (
+                          <span className="grp" aria-hidden>
+                            ⤷
+                          </span>
+                        ) : (
+                          <>
+                            {i + 1}
+                            {kids > 0 && (
+                              <button
+                                type="button"
+                                className={`grpTog no-print${
+                                  expanded.has(i) ? " open" : ""
+                                }`}
+                                onClick={() => toggleGroup(i)}
+                                aria-expanded={expanded.has(i)}
+                                aria-label={
+                                  expanded.has(i)
+                                    ? `Cerrar ítems de la caja ${i + 1} / 收起本箱`
+                                    : `Abrir ítems de la caja ${i + 1} / 展开本箱`
+                                }
+                                title="Abrir / cerrar ítems de esta caja / 展开 / 收起本箱"
+                              >
+                                <span className="chev" aria-hidden />
+                                <span className="cnt">+{kids}</span>
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </td>
                       <Td className="c-mk">
                         <CellInput
                           ariaLabel={`Marca, fila ${i + 1}`}
@@ -940,34 +1017,51 @@ export function PackingListFormSection({
                           onChange={(v) => setRow(i, "hs", v)}
                         />
                       </Td>
-                      <Td>
-                        <CellInput
-                          num
-                          ariaLabel={`Nº caja, fila ${i + 1}`}
-                          value={asStr(r.carton)}
-                          onChange={(v) => setRow(i, "carton", v)}
-                        />
-                      </Td>
-                      <Td>
-                        <CellInput
-                          num
-                          ariaLabel={`Cajas, fila ${i + 1}`}
-                          value={asStr(r.ctns)}
-                          onChange={(v) => setRow(i, "ctns", v)}
-                        />
-                      </Td>
-                      <Td>
-                        <CellInput
-                          num
-                          ariaLabel={`Uds/caja, fila ${i + 1}`}
-                          value={asStr(r.perctn)}
-                          onChange={(v) => setRow(i, "perctn", v)}
-                        />
-                      </Td>
+                      {/* Nº de caja: automático (rango consecutivo); el hijo espeja el del líder. */}
                       <CalcTd
-                        label={tr(lang, "Total uds", "Total PCS")}
-                        value={blank ? dash : fmtInt(c?.qty ?? 0)}
+                        label={tr(lang, "Nº caja", "Carton no.")}
+                        value={cartons[i] || dash}
                       />
+                      <Td>
+                        {isChild ? (
+                          <CellOff ariaLabel={`Cajas, fila ${i + 1}`} value={asStr(r.ctns)} title={offTitle} />
+                        ) : (
+                          <CellInput
+                            num
+                            ariaLabel={`Cajas, fila ${i + 1}`}
+                            value={asStr(r.ctns)}
+                            onChange={(v) => setRow(i, "ctns", v)}
+                          />
+                        )}
+                      </Td>
+                      <Td>
+                        {isChild ? (
+                          <CellOff ariaLabel={`Uds/caja, fila ${i + 1}`} value={asStr(r.perctn)} title={offTitle} />
+                        ) : (
+                          <CellInput
+                            num
+                            ariaLabel={`Uds/caja, fila ${i + 1}`}
+                            value={asStr(r.perctn)}
+                            onChange={(v) => setRow(i, "perctn", v)}
+                          />
+                        )}
+                      </Td>
+                      {/* Total uds: hijo = input qtyDirect editable; líder = sumatorio del grupo. */}
+                      {isChild ? (
+                        <Td>
+                          <CellInput
+                            num
+                            ariaLabel={`Cantidad, fila ${i + 1}`}
+                            value={asStr(r.qtyDirect)}
+                            onChange={(v) => setRow(i, "qtyDirect", v)}
+                          />
+                        </Td>
+                      ) : (
+                        <CalcTd
+                          label={tr(lang, "Total uds", "Total PCS")}
+                          value={blank ? dash : fmtInt(gsum?.q ?? 0)}
+                        />
+                      )}
                       <Td>
                         <CellInput
                           num
@@ -976,32 +1070,60 @@ export function PackingListFormSection({
                           onChange={(v) => setRow(i, "unit", v)}
                         />
                       </Td>
+                      {/* Total: hijo = su propio importe; líder = sumatorio del grupo. */}
                       <CalcTd
                         label={`Total ${currency}`}
-                        value={blank ? dash : fmtMoney(c?.amount ?? 0)}
+                        value={
+                          isChild
+                            ? fmtMoney(c.amount)
+                            : blank
+                              ? dash
+                              : fmtMoney(gsum?.a ?? 0)
+                        }
                       />
                       <Td>
-                        <CellInput
-                          num
-                          ariaLabel={`kg/caja, fila ${i + 1}`}
-                          value={asStr(r.wkg)}
-                          onChange={(v) => setRow(i, "wkg", v)}
-                        />
+                        {isChild ? (
+                          <CellOff ariaLabel={`kg/caja, fila ${i + 1}`} value={asStr(r.wkg)} title={offTitle} />
+                        ) : (
+                          <CellInput
+                            num
+                            ariaLabel={`kg/caja, fila ${i + 1}`}
+                            value={asStr(r.wkg)}
+                            onChange={(v) => setRow(i, "wkg", v)}
+                          />
+                        )}
                       </Td>
+                      {/* Peso/CBM: van en la fila líder (el hijo aporta 0). */}
                       <CalcTd
                         label={tr(lang, "Peso", "Weight")}
-                        value={blank ? dash : fmtW(c?.weight ?? 0)}
+                        value={isChild ? dash : blank ? dash : fmtW(c.weight)}
                       />
                       <Td>
-                        <CellInput
-                          num
-                          ariaLabel={`CBM/caja, fila ${i + 1}`}
-                          value={asStr(r.cbm)}
-                          onChange={(v) => setRow(i, "cbm", v)}
-                        />
+                        {isChild ? (
+                          <CellOff ariaLabel={`CBM/caja, fila ${i + 1}`} value={asStr(r.cbm)} title={offTitle} />
+                        ) : (
+                          <CellInput
+                            num
+                            ariaLabel={`CBM/caja, fila ${i + 1}`}
+                            value={asStr(r.cbm)}
+                            onChange={(v) => setRow(i, "cbm", v)}
+                          />
+                        )}
                       </Td>
-                      <CalcTd label="CBM" value={blank ? dash : fmtCbm(c?.vol ?? 0)} />
-                      <td className="c-del">
+                      <CalcTd
+                        label="CBM"
+                        value={isChild ? dash : blank ? dash : fmtCbm(c.vol)}
+                      />
+                      <td className="c-act">
+                        <button
+                          type="button"
+                          onClick={() => addChild(i)}
+                          className="rowadd no-print"
+                          aria-label={`Agregar ítem en la caja de la fila ${i + 1} / 同箱加货`}
+                          title="Agregar ítem en esta caja / 同箱加货"
+                        >
+                          +
+                        </button>
                         <button
                           type="button"
                           onClick={() => removeRow(i)}
@@ -1346,7 +1468,7 @@ export function PackingListFormSection({
           font: 600 11.5px var(--font-jetbrains-mono), ui-monospace, monospace;
           color: var(--color-ink); background: rgba(127,15,26,0.06); white-space: nowrap;
         }
-        .pl-doc td.c-del { width: 40px; text-align: center; }
+        .pl-doc td.c-del, .pl-doc td.c-act { width: 64px; text-align: center; white-space: nowrap; }
         .pl-doc .pl-cell {
           width: 100%; height: 100%; border: 0; outline: 0; background: transparent;
           font: 500 12px var(--font-archivo), system-ui, sans-serif;
@@ -1356,12 +1478,42 @@ export function PackingListFormSection({
         .pl-doc .pl-cell.mono { font-family: var(--font-jetbrains-mono), ui-monospace, monospace; }
         .pl-doc .pl-cell.num { text-align: right; font-family: var(--font-jetbrains-mono), ui-monospace, monospace; }
         .pl-doc .pl-cell.zh { font-family: var(--font-noto-sc), 'Noto Sans SC', sans-serif; }
+        /* ── Caja Padre (SDD-0097): sub-ítem readonly + fila hija + toggle grupo ── */
+        .pl-doc .pl-cell.off {
+          color: var(--color-grey-500); cursor: not-allowed;
+          background: repeating-linear-gradient(45deg,
+            var(--color-grey-100), var(--color-grey-100) 4px,
+            var(--color-white) 4px, var(--color-white) 8px);
+        }
+        .pl-doc tr.child > td { background: var(--color-grey-100); }
+        .pl-doc tr.child > td:first-child { border-left: 3px solid var(--color-wine); }
+        .pl-doc td.c-idx .grp { color: var(--color-wine); font-size: 14px; font-weight: 700; line-height: 1; }
+        .pl-doc .grpTog {
+          display: inline-flex; align-items: center; gap: 3px; margin-top: 3px;
+          appearance: none; border: 0; cursor: pointer;
+          background: rgba(127,15,26,0.06); color: var(--color-wine);
+          font: 700 8.5px/1 var(--font-jetbrains-mono), ui-monospace, monospace;
+          border-radius: 999px; padding: 3px 7px; min-height: 0;
+        }
+        .pl-doc .grpTog:hover { background: rgba(127,15,26,0.12); }
+        .pl-doc .grpTog .chev {
+          width: 0; height: 0; border-left: 4px solid currentColor;
+          border-top: 3px solid transparent; border-bottom: 3px solid transparent;
+          transition: transform .12s;
+        }
+        .pl-doc .grpTog.open .chev { transform: rotate(90deg); }
+        .pl-doc .rowadd {
+          appearance: none; cursor: pointer; border: 0; background: transparent;
+          color: var(--color-wine); font: 700 17px/1 var(--font-archivo), system-ui, sans-serif;
+          display: inline-grid; place-items: center;
+          min-width: 30px; min-height: 32px; border-radius: 8px;
+        }
+        .pl-doc .rowadd:hover { background: rgba(127,15,26,0.06); }
         .pl-doc .rowdel {
           appearance: none; cursor: pointer; border: 0; background: transparent;
           color: var(--color-grey-500); line-height: 1;
           display: inline-grid; place-items: center;
-          min-width: 32px; min-height: 32px; border-radius: 8px;
-          margin: 0 auto;
+          min-width: 30px; min-height: 32px; border-radius: 8px;
         }
         .pl-doc .rowdel:hover { color: var(--color-wine); background: rgba(127,15,26,0.06); }
         .pl-doc tfoot td {
@@ -1473,7 +1625,10 @@ export function PackingListFormSection({
           .no-print { display: none !important; }
           .pl-doc { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
           @page { size: A4 landscape; margin: 8mm; }
-          .pl-doc td.c-del, .pl-doc .rowdel { display: none !important; }
+          .pl-doc td.c-del, .pl-doc td.c-act,
+          .pl-doc .rowdel, .pl-doc .rowadd, .pl-doc .grpTog { display: none !important; }
+          /* Caja Padre: en papel TODOS los sub-ítems se imprimen (aunque estén colapsados). */
+          .pl-doc tr.child { display: table-row !important; }
           .pl-doc tbody td { height: 26px; }
           .pl-doc thead { display: table-header-group; }
           .pl-doc tr { page-break-inside: avoid; }
@@ -1497,6 +1652,114 @@ function tr(lang: Lang, es: string, en: string): string {
 
 function asStr(v: string | number | undefined): string {
   return v == null ? "" : String(v);
+}
+
+// ── Caja Padre (SDD-0097) · agrupación por caja, portado de packlist.js ──────
+// Display-only en el form (el server re-suma con computeTotals, fuente única).
+// Estos helpers operan sobre `rows` SIN filtrar (index-aligned con la tabla),
+// a diferencia de computeTotals que descarta filas vacías.
+
+/** Coerción numérica tolerante a coma decimal (espejo del num() del módulo puro). */
+function rowNum(v: string | number | undefined): number {
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return 0;
+    const n = Number(s.replace(",", "."));
+    return Number.isFinite(n) ? n : 0;
+  }
+  return 0;
+}
+
+/** Computados de UNA fila (mismas fórmulas que rowCalc del módulo puro). */
+type RowCalc = { qty: number; amount: number; weight: number; vol: number };
+function calcRow(r: PackingListRowInput): RowCalc {
+  const unit = rowNum(r.unit);
+  if (r.same === true) {
+    const qty = rowNum(r.qtyDirect);
+    return { qty, amount: qty * unit, weight: 0, vol: 0 };
+  }
+  const ctns = rowNum(r.ctns);
+  const perctn = rowNum(r.perctn);
+  const wkg = rowNum(r.wkg);
+  const cbm = rowNum(r.cbm);
+  const qty = ctns * perctn;
+  return { qty, amount: qty * unit, weight: ctns * wkg, vol: ctns * cbm };
+}
+
+/**
+ * Reindexa el Set de líderes expandidos cuando una fila entra/sale en `at`.
+ * delta=+1 (inserción) / -1 (borrado). Los índices ≥ `at` se desplazan; un líder
+ * borrado (delta=-1, lead===at) deja de estar expandido.
+ */
+function shiftExpanded(prev: Set<number>, at: number, delta: 1 | -1): Set<number> {
+  const next = new Set<number>();
+  for (const lead of prev) {
+    if (delta === -1 && lead === at) continue; // el líder borrado se descarta
+    next.add(lead >= at ? lead + delta : lead);
+  }
+  return next;
+}
+
+/** Índice de la fila LÍDER de la caja a la que pertenece `i` (sube por las `same`). */
+function leadOf(rows: PackingListRowInput[], i: number): number {
+  let k = i;
+  while (k > 0 && rows[k] && rows[k].same === true) k--;
+  return k;
+}
+
+/** Suma del grupo (líder + sus hijos `same` consecutivos): qty + amount. */
+function groupSum(rows: PackingListRowInput[], lead: number): { q: number; a: number } {
+  const c0 = calcRow(rows[lead]);
+  let q = c0.qty;
+  let a = c0.amount;
+  let j = lead + 1;
+  while (j < rows.length && rows[j]?.same === true) {
+    const c = calcRow(rows[j]);
+    q += c.qty;
+    a += c.amount;
+    j++;
+  }
+  return { q, a };
+}
+
+/** Nº de hijos `same` consecutivos que cuelgan del líder en `i` (0 si no es líder). */
+function childCountOf(rows: PackingListRowInput[], i: number): number {
+  if (rows[i]?.same === true) return 0;
+  let n = 0;
+  let k = i + 1;
+  while (k < rows.length && rows[k]?.same === true) {
+    n++;
+    k++;
+  }
+  return n;
+}
+
+/**
+ * N.º de caja automático (espejo de recalcCartons): rangos consecutivos. El líder
+ * con n=round(ctns) cajas toma `start..start+n-1` (o `start` si n=1); los hijos
+ * `same` espejan el rango de su líder; `start` avanza. Devuelve un string por fila,
+ * index-aligned con `rows`.
+ */
+function cartonRanges(rows: PackingListRowInput[]): string[] {
+  const out = new Array<string>(rows.length).fill("");
+  let start = 1;
+  let lastRange = "";
+  rows.forEach((r, i) => {
+    if (r.same === true) {
+      out[i] = lastRange; // el hijo espeja el rango del líder
+      return;
+    }
+    const n = Math.round(rowNum(r.ctns));
+    if (n > 0) {
+      lastRange = n === 1 ? String(start) : `${start}-${start + n - 1}`;
+      start += n;
+    } else {
+      lastRange = "";
+    }
+    out[i] = lastRange;
+  });
+  return out;
 }
 
 /**
@@ -1612,6 +1875,33 @@ function CalcTd({ label, value }: { label: string; value: string }) {
         {label}: {value}
       </span>
     </td>
+  );
+}
+
+/**
+ * Celda READONLY de un sub-ítem (Caja Padre): cajas/uds-caja/kg/cbm van en la
+ * fila LÍDER, así que en el hijo se muestran apagadas (rayado diagonal, fuera de
+ * tab) con un title bilingüe explicando que se editan en la fila líder.
+ */
+function CellOff({
+  value,
+  ariaLabel,
+  title,
+}: {
+  value: string;
+  ariaLabel?: string;
+  title?: string;
+}) {
+  return (
+    <input
+      className="pl-cell num off"
+      value={value}
+      readOnly
+      tabIndex={-1}
+      aria-label={ariaLabel}
+      aria-readonly="true"
+      title={title}
+    />
   );
 }
 

@@ -15,6 +15,42 @@ import {
   type PackingListRowInput,
 } from "../packlist-form";
 
+describe("computeTotals · Caja Padre (SDD-0097)", () => {
+  it("fila `same`: qty = qtyDirect; sin cajas/peso/vol (van en el líder)", () => {
+    const { rows } = computeTotals([
+      { es: "Líder", ctns: 5, perctn: 10, unit: 2, wkg: 3, cbm: 0.5 },
+      { es: "Sub-ítem", same: true, qtyDirect: 8, unit: 4 },
+    ]);
+    expect(rows).toHaveLength(2);
+    const child = rows[1];
+    expect(child.same).toBe(true);
+    expect(child.qty).toBe(8); // qtyDirect, NO cajas×uds
+    expect(child.amount).toBe(32); // 8 × 4
+    expect(child.weight).toBe(0); // el peso va en el líder
+    expect(child.vol).toBe(0);
+  });
+
+  it("totales: el sub-ítem NO doble-cuenta cajas/peso/vol", () => {
+    const { totals } = computeTotals([
+      { es: "Líder", ctns: 5, perctn: 10, unit: 2, wkg: 3, cbm: 0.5 },
+      { es: "Sub", same: true, qtyDirect: 8, unit: 4 },
+    ]);
+    expect(totals.ctns).toBe(5); // solo el líder
+    expect(totals.qty).toBe(58); // 50 + 8
+    expect(totals.amount).toBe(132); // 100 + 32
+    expect(totals.weight).toBe(15); // 5×3, solo el líder
+    expect(totals.cbm).toBe(2.5); // 5×0.5, solo el líder
+  });
+
+  it("una fila `same` vacía (sin qtyDirect ni nombre) se descarta", () => {
+    const { rows } = computeTotals([
+      { es: "Líder", ctns: 1, perctn: 1 },
+      { same: true },
+    ]);
+    expect(rows).toHaveLength(1);
+  });
+});
+
 describe("computeTotals", () => {
   it("qty = cajas × uds/caja por fila", () => {
     const { rows } = computeTotals([

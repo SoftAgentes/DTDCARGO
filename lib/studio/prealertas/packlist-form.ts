@@ -37,7 +37,12 @@ const ROW_NUM_FIELDS = ["ctns", "perctn", "unit", "wkg", "cbm"] as const;
 export type PackingListRowInput = Partial<
   Record<(typeof ROW_TEXT_FIELDS)[number], string> &
     Record<(typeof ROW_NUM_FIELDS)[number], string | number>
->;
+> & {
+  /** Caja Padre (SDD-0097): la fila comparte caja con la LÍDER anterior. */
+  same?: boolean;
+  /** Cantidad directa cuando `same` (no se computa de cajas×uds). */
+  qtyDirect?: string | number;
+};
 
 /** Fila saneada server-side: textos + números + computados por fila. */
 export type PackingListRow = {
@@ -52,6 +57,9 @@ export type PackingListRow = {
   unit: number;
   wkg: number;
   cbm: number;
+  /** Caja Padre (SDD-0097): comparte caja con su líder (cajas/peso/vol van al líder). */
+  same: boolean;
+  qtyDirect: number;
   qty: number;
   amount: number;
   weight: number;
@@ -124,14 +132,19 @@ function text(v: unknown): string {
   return typeof v === "string" ? v.trim().slice(0, MAX_TEXT_LEN) : "";
 }
 
-/** Calcula los computados de UNA fila desde sus números (no confía en el cliente). */
+/** Calcula los computados de UNA fila desde sus números (no confía en el cliente).
+ *  Caja Padre: si `same`, la fila aporta solo qty (qtyDirect) + amount; las cajas,
+ *  el peso y el volumen van en la fila LÍDER de la caja → acá quedan en 0 (no se
+ *  doble-cuentan). Portado de packlist.js · rowCalc. */
 function rowCalc(r: PackingListRowInput): PackingListRow {
+  const same = r.same === true;
   const ctns = num(r.ctns);
   const perctn = num(r.perctn);
   const unit = num(r.unit);
   const wkg = num(r.wkg);
   const cbm = num(r.cbm);
-  const qty = ctns * perctn;
+  const qtyDirect = num(r.qtyDirect);
+  const qty = same ? qtyDirect : ctns * perctn;
   return {
     brand: text(r.brand),
     code: text(r.code),
@@ -144,10 +157,12 @@ function rowCalc(r: PackingListRowInput): PackingListRow {
     unit,
     wkg,
     cbm,
+    same,
+    qtyDirect,
     qty: round(qty, 3),
     amount: round(qty * unit, 2),
-    weight: round(ctns * wkg, 3),
-    vol: round(ctns * cbm, 4),
+    weight: same ? 0 : round(ctns * wkg, 3),
+    vol: same ? 0 : round(ctns * cbm, 4),
   };
 }
 
@@ -161,7 +176,8 @@ function rowHasContent(r: PackingListRow): boolean {
     r.hs !== "" ||
     r.ctns > 0 ||
     r.perctn > 0 ||
-    r.unit > 0
+    r.unit > 0 ||
+    (r.same && r.qtyDirect > 0)
   );
 }
 
@@ -187,11 +203,11 @@ export function computeTotals(rows: PackingListRowInput[] | undefined): {
     weight = 0,
     vol = 0;
   for (const r of calc) {
-    ctns += r.ctns;
+    if (!r.same) ctns += r.ctns; // solo la fila LÍDER de la caja aporta cajas
     qty += r.qty;
     amount += r.amount;
-    weight += r.weight;
-    vol += r.vol;
+    weight += r.weight; // 0 en filas `same` (el peso va en el líder)
+    vol += r.vol; // 0 en filas `same`
   }
   return {
     rows: calc,
