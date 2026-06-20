@@ -257,7 +257,7 @@ function StepEyebrow({ n, zh, es }: { n: number; zh: string; es: string }) {
 
 // Base pública para el QR de verificación. Igual que el mockup del Norte
 // (packlist.js · qrSvg → "https://dtdcargo.com/verificar?c=" + mark). La página
-// /verificar está fuera de alcance; el QR solo tiene que ser escaneable.
+// /verificar (app/verificar/page.tsx, SDD-0097) confirma el Shipping Mark al escanear.
 const VERIFY_BASE =
   process.env.NEXT_PUBLIC_SITE_URL || "https://dtdcargo.com";
 

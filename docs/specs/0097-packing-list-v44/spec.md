@@ -61,7 +61,12 @@ el **SUBMIT versionado server-side de SDD-0096 se mantiene intacto** (mismo payl
 ### Slice C — Etiquetas QR reales + adjuntos con contador
 - **QR reales** (`ProviderShareClient.tsx` · `LabelCard`): reemplaza el placeholder gris por
   `qrcode.react · QRCodeSVG` (`value=${SITE_URL}/verificar?c=<markbox>`, navy de marca), **1 por caja**;
-  Imprimir/PDF + print-CSS intactos. `/verificar` queda **fuera de alcance** (el QR solo debe ser escaneable).
+  Imprimir/PDF + print-CSS intactos.
+- **`/verificar` (`app/verificar/page.tsx`)** — destino del QR, **implementada**: página pública DB-backed
+  (fuera de la frontera ESLint, como `/registro` y `/p`) que confirma si el Shipping Mark pertenece a un
+  envío DTD, **sin exponer datos del cliente** (solo lee `markbox`). 4 estados: verificado / no reconocido /
+  inconcluso (DB no responde) / entrada manual (sin `?c=`); CTAs WhatsApp + Rastrear; foco a11y (WCAG 2.4.7)
+  + marca pública (Archivo + tokens). Input saneado a `[A-Z0-9-]` (sin comodines a la query). `noindex`.
 - **Adjuntos con contador** (`SupplierUploadSection.tsx`): pastilla "N 附件 · Y doc · Z 📷" (categoriza por
   MIME) + copy reforzado (factura + packing list originales + fotos, para aduana). Route `/upload` sin cambios.
 - Dep: `qrcode.react@^4.2.0`.
@@ -91,6 +96,7 @@ documento. Autoguardado e historial = **localStorage** (cliente). El SUBMIT sigu
 ## 6. Estado
 
 Slices **A · B · C · D** implementados en `feat/packlist-v44` (commits `1e429d5` · `b58befd` · `17db4e1c`;
-D dentro de A). **Sin push, sin merge.** Pendiente coordinación: merge + push. Founder: confirmar los
+D dentro de A) + **diferidas cerradas**: `/verificar` real (destino del QR) + número de las reglas de
+bodega en **wine**. **Sin push, sin merge.** Pendiente coordinación: merge + push. Founder: confirmar los
 datos de bodega v4.4 (empresa CN, `candywu@ywlgcanopy.com`, fijo 0579) como canónicos en `CONTACT.cn`;
-server-persist de dirección/ciudad = follow-up; `/verificar` (destino del QR) = futuro.
+server-persist de dirección/ciudad = follow-up.

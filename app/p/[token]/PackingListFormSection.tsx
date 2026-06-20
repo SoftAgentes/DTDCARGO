@@ -1545,7 +1545,7 @@ export function PackingListFormSection({
         .pl-rules-list { list-style: none; margin: 0; padding: 0; }
         .pl-rule { display: flex; gap: 7px; margin-bottom: 5px; font: 400 10.5px/1.5 var(--font-archivo); color: var(--color-grey-700); }
         .pl-rule:last-child { margin-bottom: 0; }
-        .pl-rule-n { flex-shrink: 0; font-weight: 700; color: var(--color-ink); }
+        .pl-rule-n { flex-shrink: 0; font-weight: 700; color: var(--color-wine); }
         .pl-rule-zh { font-family: var(--font-noto-sc), var(--font-archivo); }
         .pl-rule-lat { color: var(--color-grey-700); }
         .pl-rule-contact { color: var(--color-ink); }
