@@ -38,6 +38,15 @@ export function DownloadIcon({ className, size = 16 }: IconProps) {
   );
 }
 
+/** Play (triángulo) — botón de video-ayuda (SDD-0098). */
+export function PlayIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2} className={className}>
+      <path d="M7 5.5v13l11-6.5z" />
+    </svg>
+  );
+}
+
 export function CloseIcon({ className, size = 16 }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} {...base} strokeWidth={2.2} className={className}>

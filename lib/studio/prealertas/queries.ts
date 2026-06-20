@@ -19,6 +19,15 @@ import {
   type Supplier,
   PREALERTA_STATUSES,
 } from "./types";
+import {
+  type PrealertaAddon,
+  type PrealertaAddonCode,
+  type PrealertaAddonRow,
+  type PrealertaServiceRequest,
+  type PrealertaServiceRequestStatus,
+  type PrealertaServiceRequestTiming,
+  mergePrealertaAddons,
+} from "./addons";
 
 // ── Coerción + columnas ────────────────────────────────────────
 
@@ -358,5 +367,84 @@ export async function prealertaStats(
     return { total: rows.length, byStatus };
   } catch {
     return empty;
+  }
+}
+
+// ── Add-ons / servicios de recepción (SDD-0098 · migr 0150) ─────
+
+/**
+ * Servicios ACTIVOS del menú de recepción para el tenant (merge "DB pisa, código
+ * respalda"). Lee `prealerta_addons` (RLS: equipo o cliente del portal del tenant)
+ * y lo combina con los DEFAULTS de código. Defensivo: si la tabla no existe (0150
+ * sin aplicar en un env) cae a los 7 defaults activos → la pantalla del portal
+ * funciona igual ANTES de la migración.
+ */
+export async function listActivePrealertaAddons(
+  supabase: SupabaseClient,
+): Promise<PrealertaAddon[]> {
+  try {
+    const { data, error } = await supabase
+      .from("prealerta_addons")
+      .select(
+        "code, label, description, notas_placeholder, consent_text, video_url, multi_tracking, sort, is_active",
+      )
+      .limit(50);
+    if (error) throw error;
+    return mergePrealertaAddons(
+      (data as PrealertaAddonRow[] | null) ?? [],
+    ).filter((a) => a.isActive);
+  } catch {
+    return mergePrealertaAddons([]).filter((a) => a.isActive);
+  }
+}
+
+// ── Solicitudes de servicio (prealerta_service_requests · migr 0150) ─────
+
+const PSR_COLUMNS =
+  "id, tenant_id, prealerta_id, client_markbox, addon_code, status, timing, trackings, consent_accepted, notes, quoted_amount_usd, processed_at, created_at, updated_at";
+
+function coercePsr(r: Record<string, unknown>): PrealertaServiceRequest {
+  return {
+    id: String(r.id),
+    tenant_id: String(r.tenant_id),
+    prealerta_id: String(r.prealerta_id),
+    client_markbox: String(r.client_markbox ?? ""),
+    addon_code: r.addon_code as PrealertaAddonCode,
+    status: (r.status as PrealertaServiceRequestStatus) ?? "solicitada",
+    timing: (r.timing as PrealertaServiceRequestTiming) ?? "a_tiempo",
+    trackings: Array.isArray(r.trackings) ? (r.trackings as string[]) : null,
+    consent_accepted: Boolean(r.consent_accepted),
+    notes: (r.notes as string | null) ?? null,
+    quoted_amount_usd: numOrNull(r.quoted_amount_usd),
+    processed_at: (r.processed_at as string | null) ?? null,
+    created_at: String(r.created_at),
+    updated_at: String(r.updated_at),
+  };
+}
+
+/**
+ * Solicitudes de servicio de UNA compra (o todas las del cliente por `markbox`).
+ * El cliente del portal pasa `markbox` (defensa en profundidad + RLS). Defensivo:
+ * [] si la tabla aún no existe (0150 sin aplicar) → no rompe la página.
+ */
+export async function listPrealertaServiceRequests(
+  supabase: SupabaseClient,
+  opts: { prealertaId?: string; markbox?: string } = {},
+): Promise<PrealertaServiceRequest[]> {
+  try {
+    let query = supabase
+      .from("prealerta_service_requests")
+      .select(PSR_COLUMNS)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true })
+      .limit(500);
+    if (opts.prealertaId) query = query.eq("prealerta_id", opts.prealertaId);
+    if (opts.markbox) query = query.eq("client_markbox", opts.markbox);
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data as Record<string, unknown>[] | null) ?? []).map(coercePsr);
+  } catch {
+    return [];
   }
 }

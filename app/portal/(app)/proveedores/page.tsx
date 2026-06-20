@@ -4,6 +4,7 @@ import { getPortalClient } from "@/lib/portal/portal-queries";
 import {
   listSuppliers,
   listPrealertas,
+  listActivePrealertaAddons,
 } from "@/lib/studio/prealertas/queries";
 import { summarizeSuppliers } from "@/lib/studio/prealertas/types";
 import { SuppliersClient } from "./SuppliersClient";
@@ -27,9 +28,10 @@ export default async function PortalSuppliersPage() {
   const client = await getPortalClient(supabase);
   if (!client) return null;
 
-  const [suppliers, prealertas] = await Promise.all([
+  const [suppliers, prealertas, addons] = await Promise.all([
     listSuppliers(supabase, { markbox: client.markbox }),
     listPrealertas(supabase, { markbox: client.markbox }),
+    listActivePrealertaAddons(supabase),
   ]);
 
   // Conteo de compras vivas por proveedor (para el próximo código y "N compras").
@@ -52,5 +54,7 @@ export default async function PortalSuppliersPage() {
     orderCountBySupplierId,
   );
 
-  return <SuppliersClient suppliers={views} markbox={client.markbox} />;
+  return (
+    <SuppliersClient suppliers={views} markbox={client.markbox} addons={addons} />
+  );
 }
