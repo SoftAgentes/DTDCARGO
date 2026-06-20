@@ -11,7 +11,6 @@ import {
   UserIcon,
   WarningIcon,
 } from "@/components/Icon";
-import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import {
   normalizeDocument,
   type ClientKind,
@@ -573,10 +572,6 @@ function StepDone({
         compra te pediremos completar tu perfil (foto de cédula + dirección de
         entrega), un par de minutos desde el portal.
       </p>
-
-      {/* SDD-0096: instructivo para el proveedor (dirección CN + Shipping Mark).
-          Sin link de form (aún no hay orden); el link sale por-orden del portal. */}
-      <ChinaSupplierClip markbox={markbox} />
 
       <Link href="/portal/login" className="btn btn-primary w-full">
         Ir al portal <ArrowIcon />
