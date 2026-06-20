@@ -173,7 +173,13 @@ export function summarizeSuppliers(
  * list, la factura del proveedor, fotos del producto y una captura del WhatsApp/
  * WeChat del proveedor (para que no tenga que copiar el número).
  */
-export type PrealertaDocType = "packing" | "factura" | "foto" | "whatsapp";
+// 'otro' (SDD-0096): cualquier otro documento que sube el proveedor por el link.
+export type PrealertaDocType =
+  | "packing"
+  | "factura"
+  | "foto"
+  | "whatsapp"
+  | "otro";
 
 export const PREALERTA_DOC_TYPE_LABEL: Record<PrealertaDocType, string> = {
   packing: "Packing list",
@@ -182,18 +188,39 @@ export const PREALERTA_DOC_TYPE_LABEL: Record<PrealertaDocType, string> = {
   // El valor del enum sigue siendo 'whatsapp' (interno, sin migración), pero de
   // cara al cliente es la captura del contacto de WeChat del proveedor.
   whatsapp: "Captura de WeChat",
+  otro: "Otro documento",
 };
 
 export function isPrealertaDocType(v: unknown): v is PrealertaDocType {
-  return v === "packing" || v === "factura" || v === "foto" || v === "whatsapp";
+  return (
+    v === "packing" ||
+    v === "factura" ||
+    v === "foto" ||
+    v === "whatsapp" ||
+    v === "otro"
+  );
 }
+
+/** Origen del adjunto (migr 0147): quién lo subió. */
+export type PrealertaDocSource = "client" | "supplier" | "team";
 
 /** Bucket privado de los adjuntos de compra (migr 0118). */
 export const PREALERTA_DOC_BUCKET = "prealerta-docs";
-/** Límite por archivo: 10 MB (matchea el file_size_limit del bucket). */
-export const PREALERTA_DOC_MAX_BYTES = 10 * 1024 * 1024;
+/** Límite por archivo: 15 MB (SDD-0096, matchea el file_size_limit del bucket;
+ *  subido de 10 a 15 MB para fotos de móvil del proveedor). */
+export const PREALERTA_DOC_MAX_BYTES = 15 * 1024 * 1024;
 
-/** Mimes permitidos (matchea allowed_mime_types del bucket · incl. heic/heif de iPhone). */
+// MIME de Office (SDD-0096): el proveedor re-sube el Excel llenado y "cualquier
+// otro documento". Matchea allowed_mime_types del bucket tras la migr 0147.
+const XLSX_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+const XLS_MIME = "application/vnd.ms-excel";
+const CSV_MIME = "text/csv";
+const DOCX_MIME =
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const DOC_MIME = "application/msword";
+
+/** Mimes permitidos (matchea allowed_mime_types del bucket · imágenes + pdf + Office). */
 export const PREALERTA_DOC_ALLOWED_MIME: ReadonlySet<string> = new Set([
   "application/pdf",
   "image/jpeg",
@@ -201,6 +228,11 @@ export const PREALERTA_DOC_ALLOWED_MIME: ReadonlySet<string> = new Set([
   "image/webp",
   "image/heic",
   "image/heif",
+  XLSX_MIME,
+  XLS_MIME,
+  CSV_MIME,
+  DOCX_MIME,
+  DOC_MIME,
 ]);
 
 export function isAllowedPrealertaDocMime(mime: string): boolean {
@@ -222,9 +254,28 @@ export function prealertaDocExtFromMime(mime: string): string {
       return "heic";
     case "image/heif":
       return "heif";
+    case XLSX_MIME:
+      return "xlsx";
+    case XLS_MIME:
+      return "xls";
+    case CSV_MIME:
+      return "csv";
+    case DOCX_MIME:
+      return "docx";
+    case DOC_MIME:
+      return "doc";
     default:
       return "bin";
   }
+}
+
+/** doc_type inferido del MIME para la subida del proveedor (SDD-0096):
+ *  imagen → foto · hoja de cálculo → packing · resto → otro. */
+export function inferPrealertaDocType(mime: string): PrealertaDocType {
+  if (mime.startsWith("image/")) return "foto";
+  if (mime === XLSX_MIME || mime === XLS_MIME || mime === CSV_MIME)
+    return "packing";
+  return "otro";
 }
 
 /**
@@ -251,6 +302,8 @@ export type PrealertaDocument = {
   file_name: string;
   content_type: string | null;
   size_bytes: number | null;
+  /** Origen del adjunto (migr 0147): client (portal) · supplier (link) · team. */
+  source: PrealertaDocSource;
   created_at: string;
 };
 

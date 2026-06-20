@@ -8,15 +8,20 @@
  * editamos sólo `xl/worksheets/sheet1.xml`, inyectando los valores como
  * `inlineStr` (así no tocamos `sharedStrings.xml`).
  *
- * Celdas mapeadas (verificadas contra el template real, hojas A1:O58):
- *   C7  = 唛头 (Shipping Mark)  → MARKBOX del cliente
- *   C8  = 客户 (Cliente)        → nombre del cliente
- *   C6  = 公司名称 (Proveedor)  → nombre del proveedor
- *   C10 = 微信 (WeChat)         → WeChat del proveedor
- *   H12 = 参考号 (Referencia)   → código de la compra
+ * Celdas mapeadas (template branded de SDD-0096, generado por
+ * scripts/build-packlist-template.mjs · grilla de proveedor A5:O8 + folio I3):
+ *   C5 = 公司名称 (Proveedor)  → nombre del proveedor
+ *   C6 = 唛头 (Shipping Mark)  → MARKBOX del cliente
+ *   C7 = 客户 (Cliente)        → nombre del cliente
+ *   C8 = 微信 (WeChat)         → WeChat del proveedor
+ *   I3 = N.º / Folio           → código de la compra
  *
  * Pre-llenar el 唛头 elimina el paso de "confirmar la marca en el grupo de WeChat"
- * que pide el propio instructivo del template.
+ * que pedía el método viejo del template.
+ *
+ * El template branded escribe estas celdas como sharedString con un placeholder
+ * (" "), así que en el XML salen `<c r="C6" s="N" t="s"><v>4</v></c>` —el formato
+ * que setInlineCell ya maneja (preserva el estilo, las vuelve inlineStr).
  *
  * Función PURA (recibe/devuelve bytes) → testeable sin red ni DB.
  */
@@ -75,11 +80,11 @@ export function fillPacklist(
     return templateBytes;
   }
   let xml = strFromU8(sheet);
-  xml = setInlineCell(xml, "C7", values.markbox); // 唛头
-  xml = setInlineCell(xml, "C8", values.clientName); // 客户
-  xml = setInlineCell(xml, "C6", values.supplierName); // 公司名称
-  xml = setInlineCell(xml, "C10", values.supplierWechat); // 微信
-  xml = setInlineCell(xml, "H12", values.code); // 参考号
+  xml = setInlineCell(xml, "C5", values.supplierName); // 公司名称
+  xml = setInlineCell(xml, "C6", values.markbox); // 唛头
+  xml = setInlineCell(xml, "C7", values.clientName); // 客户
+  xml = setInlineCell(xml, "C8", values.supplierWechat); // 微信
+  xml = setInlineCell(xml, "I3", values.code); // N.º / Folio
   files[SHEET_PATH] = strToU8(xml);
   return zipSync(files);
 }

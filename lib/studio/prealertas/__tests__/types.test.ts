@@ -23,6 +23,7 @@ import {
   buildPrealertaDocPath,
   isAllowedPrealertaDocMime,
   prealertaDocExtFromMime,
+  inferPrealertaDocType,
   isPrealertaDocType,
   PREALERTA_DOC_TYPE_LABEL,
   PREALERTA_DOC_MAX_BYTES,
@@ -331,8 +332,8 @@ describe("summarizeSuppliers · wechat", () => {
 });
 
 describe("helpers de adjuntos de compra", () => {
-  it("isPrealertaDocType discrimina los 4 tipos", () => {
-    for (const t of ["packing", "factura", "foto", "whatsapp"]) {
+  it("isPrealertaDocType discrimina los 5 tipos (SDD-0096 agrega 'otro')", () => {
+    for (const t of ["packing", "factura", "foto", "whatsapp", "otro"]) {
       expect(isPrealertaDocType(t)).toBe(true);
     }
     expect(isPrealertaDocType("bl")).toBe(false);
@@ -343,12 +344,19 @@ describe("helpers de adjuntos de compra", () => {
   it("hay label legible para cada tipo", () => {
     expect(PREALERTA_DOC_TYPE_LABEL.packing).toMatch(/packing/i);
     expect(PREALERTA_DOC_TYPE_LABEL.whatsapp).toMatch(/wechat/i);
+    expect(PREALERTA_DOC_TYPE_LABEL.otro).toMatch(/otro/i);
   });
 
-  it("acepta solo mimes de imagen/pdf permitidos", () => {
+  it("acepta mimes de imagen/pdf + Office (SDD-0096: xlsx/csv/doc para resubir el Excel)", () => {
     expect(isAllowedPrealertaDocMime("application/pdf")).toBe(true);
     expect(isAllowedPrealertaDocMime("image/jpeg")).toBe(true);
     expect(isAllowedPrealertaDocMime("image/heic")).toBe(true);
+    expect(
+      isAllowedPrealertaDocMime(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ),
+    ).toBe(true); // xlsx
+    expect(isAllowedPrealertaDocMime("text/csv")).toBe(true);
     expect(isAllowedPrealertaDocMime("application/zip")).toBe(false);
     expect(isAllowedPrealertaDocMime("text/html")).toBe(false);
   });
@@ -358,7 +366,30 @@ describe("helpers de adjuntos de compra", () => {
     expect(prealertaDocExtFromMime("image/jpeg")).toBe("jpg");
     expect(prealertaDocExtFromMime("image/png")).toBe("png");
     expect(prealertaDocExtFromMime("image/heic")).toBe("heic");
+    expect(
+      prealertaDocExtFromMime(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ),
+    ).toBe("xlsx"); // SDD-0096
+    expect(prealertaDocExtFromMime("text/csv")).toBe("csv");
     expect(prealertaDocExtFromMime("application/octet-stream")).toBe("bin");
+  });
+
+  it("infiere doc_type por mime (SDD-0096: imagen→foto, hoja→packing, resto→otro)", () => {
+    expect(inferPrealertaDocType("image/jpeg")).toBe("foto");
+    expect(inferPrealertaDocType("image/png")).toBe("foto");
+    expect(
+      inferPrealertaDocType(
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ),
+    ).toBe("packing");
+    expect(inferPrealertaDocType("text/csv")).toBe("packing");
+    expect(inferPrealertaDocType("application/pdf")).toBe("otro");
+    expect(
+      inferPrealertaDocType(
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      ),
+    ).toBe("otro");
   });
 
   it("arma el path {tenant}/{prealerta}/{uuid}.{ext}", () => {
@@ -372,7 +403,7 @@ describe("helpers de adjuntos de compra", () => {
     ).toBe("t-1/p-1/u-1.jpg");
   });
 
-  it("el límite de archivo es 10 MB", () => {
-    expect(PREALERTA_DOC_MAX_BYTES).toBe(10 * 1024 * 1024);
+  it("el límite de archivo es 15 MB (SDD-0096: subido de 10 a 15 para fotos de móvil)", () => {
+    expect(PREALERTA_DOC_MAX_BYTES).toBe(15 * 1024 * 1024);
   });
 });

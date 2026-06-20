@@ -220,10 +220,50 @@ export async function getProviderShareByToken(
   }
 }
 
+/**
+ * SDD-0096: IDs internos de la compra por `share_token`, para los POST públicos
+ * (envío del packing list + subida de adjuntos del proveedor). Devuelve lo
+ * mínimo que el route necesita server-side (prealerta_id, tenant_id, markbox) —
+ * NUNCA se expone al cliente. Admin client (visitante anónimo). null si el token
+ * es inválido / inexistente. Defensivo ante uuid mal formado.
+ */
+export async function getPrealertaIdsByToken(
+  supabase: SupabaseClient,
+  token: string,
+): Promise<{
+  prealertaId: string;
+  tenantId: string;
+  markbox: string;
+  code: string;
+} | null> {
+  try {
+    const { data, error } = await supabase
+      .from("prealertas")
+      .select("id, tenant_id, client_markbox, code")
+      .eq("share_token", token)
+      .is("deleted_at", null)
+      .maybeSingle<{
+        id: string;
+        tenant_id: string;
+        client_markbox: string;
+        code: string;
+      }>();
+    if (error || !data) return null;
+    return {
+      prealertaId: data.id,
+      tenantId: data.tenant_id,
+      markbox: data.client_markbox,
+      code: data.code,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // ── Adjuntos de la compra (prealerta_documents · migr 0118) ─────
 
 const PREALERTA_DOC_COLUMNS =
-  "id, tenant_id, prealerta_id, client_markbox, doc_type, storage_path, file_name, content_type, size_bytes, created_at";
+  "id, tenant_id, prealerta_id, client_markbox, doc_type, storage_path, file_name, content_type, size_bytes, source, created_at";
 
 function coercePrealertaDocument(r: Record<string, unknown>): PrealertaDocument {
   return {
@@ -236,6 +276,7 @@ function coercePrealertaDocument(r: Record<string, unknown>): PrealertaDocument 
     file_name: String(r.file_name ?? ""),
     content_type: (r.content_type as string | null) ?? null,
     size_bytes: numOrNull(r.size_bytes),
+    source: (r.source as PrealertaDocument["source"]) ?? "client",
     created_at: String(r.created_at),
   };
 }

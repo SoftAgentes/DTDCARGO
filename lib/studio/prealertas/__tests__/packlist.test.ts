@@ -1,9 +1,11 @@
 /**
- * Tests del pre-llenado del packing list (SDD-0057 ext · Fase 3).
+ * Tests del pre-llenado del packing list (SDD-0057 ext · Fase 3, mapa de celdas
+ * actualizado al template branded de SDD-0096).
  *  - setInlineCell: reemplaza celda auto-cerrada y celda con sharedString,
  *    preserva el estilo, escapa XML, ignora vacío / ref inexistente.
- *  - fillPacklist: contra el template REAL (public/templates) — inyecta el
- *    MARKBOX y el código como inlineStr y el .xlsx sigue siendo un zip válido.
+ *  - fillPacklist: contra el template REAL branded (public/templates) — inyecta
+ *    los 5 valores (proveedor C5, markbox C6, cliente C7, wechat C8, folio I3)
+ *    como inlineStr y el .xlsx sigue siendo un zip válido.
  */
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
@@ -68,10 +70,33 @@ describe("fillPacklist (template real)", () => {
     const files = unzipSync(out);
     const sheet = strFromU8(files["xl/worksheets/sheet1.xml"]);
     expect(sheet).toContain('t="inlineStr"');
-    expect(sheet).toContain("DTD-9000"); // 唛头 (C7)
-    expect(sheet).toContain("DTD-9000-1-1"); // 参考号 (H12)
-    expect(sheet).toContain("Cliente Demo"); // 客户 (C8)
-    expect(sheet).toContain("Proveedor Demo"); // 公司名称 (C6)
-    expect(sheet).toContain("wxid_demo"); // 微信 (C10)
+    expect(sheet).toContain("DTD-9000"); // 唛头 (C6)
+    expect(sheet).toContain("DTD-9000-1-1"); // folio (I3)
+    expect(sheet).toContain("Cliente Demo"); // 客户 (C7)
+    expect(sheet).toContain("Proveedor Demo"); // 公司名称 (C5)
+    expect(sheet).toContain("wxid_demo"); // 微信 (C8)
+  });
+
+  it("escribe los valores en las celdas exactas del template branded", () => {
+    const bytes = new Uint8Array(readFileSync(templatePath));
+    const out = fillPacklist(bytes, {
+      markbox: "DTD-1234",
+      clientName: "Acme Cliente",
+      supplierName: "Yiwu Proveedor",
+      supplierWechat: "wxid_abc",
+      code: "DTD-1234-2-3",
+    });
+    const files = unzipSync(out);
+    const sheet = strFromU8(files["xl/worksheets/sheet1.xml"]);
+    // Cada valor cae en su ref como inlineStr (no como sharedString).
+    const cellHas = (ref: string, val: string) =>
+      new RegExp(
+        `<c r="${ref}"[^>]*t="inlineStr"><is><t[^>]*>${val}</t></is></c>`,
+      ).test(sheet);
+    expect(cellHas("C5", "Yiwu Proveedor")).toBe(true);
+    expect(cellHas("C6", "DTD-1234")).toBe(true);
+    expect(cellHas("C7", "Acme Cliente")).toBe(true);
+    expect(cellHas("C8", "wxid_abc")).toBe(true);
+    expect(cellHas("I3", "DTD-1234-2-3")).toBe(true);
   });
 });

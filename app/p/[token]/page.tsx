@@ -48,6 +48,7 @@ export default async function ProviderSharePage({
         markbox={data.markbox}
         clientName={data.clientName}
         supplierName={data.supplierName}
+        supplierWechat={data.supplierWechat}
         labels={labels}
       />
     </div>
