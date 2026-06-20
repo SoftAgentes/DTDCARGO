@@ -1,41 +1,29 @@
 {
   "generatedAt": "2026-06-19",
-  "norteVersion": "v4.3",
+  "norteVersion": "v4.4",
   "partA": {
     "findings": [
-      {
-        "id": "lanes-listas-integrar",
-        "title": "3 lanes commiteadas y LIMPIAS listas para integrar + mi commit radar v4.3 sin pushear (5d63d2e). Total ~10 commits. norte-v44 = NORTE-SYNC v4.3->v4.4 (89 archivos, marca+book+radar, sin migr/spec) · packing-list-online = SDD-0096 + migr 0147 (26 archivos) · registro-norte = registro al Norte + hardening endpoints publicos (12 archivos). spec 0096 y migr 0147 LIBRES en main.",
-        "severity": "alta",
-        "action": "Ronda de merge con OK del founder + confirmacion de cada ventana que cerro. COLISIONES cruzadas a resolver a mano: app/registro/RegisterForm.tsx (registro-norte ∩ packing-list) y lib/design-tokens.ts (norte-v44 ∩ packing-list). Orden sugerido: packing-list primero (migrate-first 0147) -> registro-norte (resolver RegisterForm) -> norte-v44 (resolver design-tokens; ya contiene 5d63d2e, sin conflicto radar.md). Al merge regenerar docs/specs/README.md.",
-        "top": true
-      },
       {
         "id": "resend-smtp-portal-pendiente",
         "title": "El portal es SOLO-EMAIL (SDD-0094) pero Supabase Auth sigue con el email built-in (~4 mails/hora). Sin SMTP custom de Resend, los clientes reales pegan el rate-limit y no reciben el magic-link.",
         "severity": "alta",
-        "action": "Founder: conectar Resend SMTP en Supabase Auth (runbook docs/runbooks/setup-portal-auth.md, Paso 4) + subir el rate-limit de emails. Crear API key nueva en Resend (la de Vercel esta oculta)."
+        "action": "Founder: conectar Resend SMTP en Supabase Auth (runbook docs/runbooks/setup-portal-auth.md, Paso 4) + subir el rate-limit de emails. Crear API key nueva en Resend (la de Vercel esta oculta).",
+        "top": true
       },
       {
-        "id": "design-readme-pointer-v42",
-        "title": "docs/design/README.md:10 todavia declara el Brand Book vigente como 'Brand Book DTD v4.2.html'; el vigente es v4.3 (y la lane norte-v44 lo lleva a v4.4). Puntero de gobernanza de marca desactualizado.",
+        "id": "packlist-norte-divergencia",
+        "title": "El prototipo del Norte (_norte/packlist, v4.4) y la feature shippeada SDD-0096 divergieron: el Norte mantiene el packlist con imprimir/etiquetas (PDF), mientras la feature en prod usa exportar a Excel (SheetJS). En el merge gano el Norte (gobernanza: es la fuente) para el prototipo; la feature en app/p + lib/studio/prealertas NO se toco.",
         "severity": "media",
-        "action": "Actualizar el puntero a v4.3 — o dejar que norte-v44 lo corrija al merge (esa lane ya lleva todo lo visible a v4.4)."
+        "action": "Reconciliar en el proximo NORTE-SYNC: decidir si el packlist del proveedor es PDF/etiquetas o Excel, y alinear prototipo <-> codigo. Prod no afectado."
       },
       {
         "id": "schema-reconciliation-stale",
         "title": "docs/architecture/schema-reconciliation.md sigue en snapshot 0119; la ultima migracion del repo es 0147. Lista el Bloque 3 Fiscal/SENIAT como '⏳ draft', pero SDD-0073 v2 ya esta LIVE en prod (migr 0126/0141). Los markers 17/5/0 (77% built) siguen validos; lo viejo es el roadmap.",
         "severity": "media",
         "action": "Regenerar el reconciliador (0119 -> 0147) y promover el Bloque 3 a done."
-      },
-      {
-        "id": "playwright-mcp-untracked",
-        "title": ".playwright-mcp/ aparece untracked en el working tree (artefacto del MCP de Playwright). No deberia ir a git.",
-        "severity": "baja",
-        "action": "Agregar .playwright-mcp/ al .gitignore."
       }
     ],
-    "estimatedTokenSavings": "~3%"
+    "estimatedTokenSavings": "~2%"
   },
   "partB": {
     "counts": { "built": 17, "partial": 5, "missing": 0, "total": 22 },
