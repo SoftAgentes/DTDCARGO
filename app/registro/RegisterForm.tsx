@@ -6,6 +6,7 @@ import {
   ArrowIcon,
   CheckIcon,
   ChevronDownIcon,
+  MailIcon,
   ShieldIcon,
   UserIcon,
   WarningIcon,
@@ -525,14 +526,30 @@ function StepDone({
         <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
           Cómo entrar al portal
         </div>
-        <div className="mt-2 text-[12.5px] text-grey-700 leading-[1.5]">
-          Tu MARKBOX es el código de tus cajas — lo usamos en bodega y con el
-          proveedor, no para entrar. Para{" "}
-          <strong className="text-ink">entrar al portal</strong> no hace falta
-          recordarlo: en el login pides tu{" "}
-          <strong className="text-ink">enlace de acceso por correo</strong>
-          {email ? ` (te llega a ${email})` : ""} y entras con un clic.
+        <div className="mt-2 text-[12.5px] text-grey-700 leading-[1.55]">
+          No te pedimos contraseña ni tienes que recordar tu MARKBOX. Te enviamos un{" "}
+          <strong className="text-ink">enlace de acceso a tu correo</strong> y entras
+          con un clic — sin contraseñas que se te olvidan ni códigos que apuntar. Solo
+          tu correo.
         </div>
+        {email && (
+          <div className="mt-3 flex items-center gap-2.5 rounded-[10px] bg-white border border-grey-200 px-3.5 py-3">
+            <span className="flex-shrink-0 text-wine">
+              <MailIcon size={18} />
+            </span>
+            <div className="min-w-0">
+              <div className="text-[9.5px] font-bold tracking-[0.12em] uppercase text-grey-500">
+                Tu correo registrado
+              </div>
+              <div
+                className="text-[14px] font-bold text-ink"
+                style={{ wordBreak: "break-all" }}
+              >
+                {email}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {warning && (
