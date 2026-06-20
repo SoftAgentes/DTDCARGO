@@ -36,6 +36,7 @@ const eslintConfig = defineConfig([
     // (app/invitar/ NO está acá: es onboarding del Studio y usa DB por diseño.)
     files: [
       "app/estimacion/**",
+      "app/cotizador-flete/**",
       "app/track/**",
       "app/contacto/**",
       "app/calculadora/**",
