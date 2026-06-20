@@ -14,10 +14,12 @@ import {
 /**
  * Tests del cálculo de cotización LCL DDP.
  *
- * Modelo (desde 2026-06-08): el cliente ingresa CBM total + peso.
- * - Precio = CBM × tarifaBase. El PESO ya NO afecta el precio ni tiene límite
- *   por densidad: una carga densa (0,3 CBM @ 1000 kg) cotiza igual que liviana.
- * - El único límite del peso es ABSOLUTO: > 27.000 kg → deriva al asesor.
+ * Modelo (densidad reactivada · founder 2026-06-20): el cliente ingresa CBM + peso.
+ * - Precio = CBM × tarifaBase + recargo por DENSIDAD: el peso que excede
+ *   pesoIncluidoKg (500) por CBM se cobra a recargoExcedenteKg ($1) por kg
+ *   (configurable desde el ERP). Sobre pesoMaxKg (600) por CBM la UI avisa
+ *   "demasiado denso → FCL"; el cálculo NO setea alerta (el precio igual se ve).
+ * - Tope ABSOLUTO de peso: > 27.000 kg → deriva al asesor.
  * - Tope de volumen: > 68 CBM → deriva al asesor (FCL).
  * - Destinos: Valencia (descuento), Maracay/Caracas (casco), fuera del casco (km × $)
  * - Embalaje: estándar (0) vs especial (+$50)
@@ -50,9 +52,10 @@ describe("calcularEnvioLCL", () => {
     expect(cot.alerta).toBeUndefined();
   });
 
-  // Modelo nuevo (2026-06-08): el peso NO genera recargo por densidad.
-  // 1 CBM, 600 kg (antes daba +$100) → ahora solo CBM × tarifa, sin recargo.
-  it("NO aplica recargo de peso aunque la densidad sea alta (sin límite por densidad)", () => {
+  // Densidad reactivada (2026-06-20): 1 CBM @ 600 kg → density 600 > pesoIncluidoKg
+  // (500) → recargo (600 − 500) × $1 = $100. 600 no supera pesoMaxKg (600) → sin
+  // aviso "demasiado denso" y sin alerta (el precio se ve).
+  it("aplica recargo por densidad cuando el peso excede pesoIncluidoKg/CBM", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
       pesoKg: 600,
@@ -63,31 +66,31 @@ describe("calcularEnvioLCL", () => {
     expect(cot.cbm).toBe(1);
     expect(cot.densidadKgM3).toBe(600);
     expect(cot.precioBase).toBe(800);
-    expect(cot.recargoExcedente).toBe(0); // sin recargo por densidad
+    expect(cot.recargoExcedente).toBe(100); // (600 − 500) × $1
     expect(cot.recargoCiudad).toBe(0); // Caracas es casco
-    expect(cot.total).toBe(800); // solo CBM × tarifa
+    expect(cot.total).toBe(900); // 800 + 100
     expect(cot.alerta).toBeUndefined();
   });
 
-  // Caso explícito de la spec: carga MUY densa (0,3 CBM @ 1000 kg) → sin
-  // alerta, sin recargo, precio = CBM × tarifa.
-  it("una carga muy densa (0,3 CBM @ 1000 kg) NO alerta y cotiza solo por CBM", () => {
+  // Carga MUY densa (0,3 CBM @ 1000 kg): recargo sobre lo que excede 500 kg/CBM.
+  // Sin alerta → el precio se ve (la UI muestra el aviso "demasiado denso").
+  it("una carga muy densa (0,3 CBM @ 1000 kg) cobra recargo y NO oculta el precio", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 0.3,
-      pesoKg: 1000, // ~3333 kg/CBM, antes era ultradensa
+      pesoKg: 1000, // ~3333 kg/CBM
       embalaje: "estandar",
       ciudadId: "caracas",
     });
 
     expect(cot.alerta).toBeUndefined();
-    expect(cot.recargoExcedente).toBe(0);
     expect(cot.precioBase).toBe(240); // 0.3 × 800
-    expect(cot.total).toBe(240); // CBM × tarifa, sin recargo de peso
+    expect(cot.recargoExcedente).toBe(850); // (1000 − 0.3×500) × $1 = 850
+    expect(cot.total).toBe(1090); // 240 + 850
   });
 
-  // Antes una carga de 1 CBM @ 800 kg disparaba alerta peso_excedido.
-  // Ahora NO hay alerta por densidad (solo capeo absoluto de 27.000 kg).
-  it("ya NO existe la alerta peso_excedido por densidad", () => {
+  // 1 CBM @ 800 kg (density 800 > pesoMaxKg 600): la UI avisa "demasiado denso →
+  // FCL", pero el cálculo NO setea alerta → el precio se ve, con el recargo.
+  it("carga ultra densa: cobra recargo y NO setea alerta (el precio se ve)", () => {
     const cot = calcularEnvioLCL({
       cbmTotal: 1,
       pesoKg: 800,
@@ -96,7 +99,8 @@ describe("calcularEnvioLCL", () => {
     });
 
     expect(cot.alerta).toBeUndefined();
-    expect(cot.total).toBe(800);
+    expect(cot.recargoExcedente).toBe(300); // (800 − 500) × $1
+    expect(cot.total).toBe(1100); // 800 + 300
   });
 
   // Recargo por ciudad fuera del casco: Barquisimeto 220 km → 20 km × $1 = $20
@@ -396,35 +400,36 @@ describe("calcularEnvioLCL con params configurables", () => {
     expect(conDefault).toEqual(sinParams);
   });
 
-  // Modelo nuevo (2026-06-08): pesoIncluidoKg / recargoExcedenteKg / pesoMaxKg
-  // siguen en CalcParams (para no romper calculator_settings) pero YA NO se
-  // aplican al pricing. Bajar/subir estos params no cambia el total.
-  it("IGNORA params.pesoIncluidoKg en el pricing (sin recargo por densidad)", () => {
+  // Densidad reactivada (2026-06-20): pesoIncluidoKg + recargoExcedenteKg definen
+  // el recargo por densidad y son configurables desde el ERP. pesoMaxKg solo
+  // alimenta el aviso "demasiado denso" de la UI (no entra al cálculo del recargo).
+  it("USA params.pesoIncluidoKg como umbral del recargo por densidad", () => {
     const cot = calcularEnvioLCL(
       { cbmTotal: 1, pesoKg: 400, embalaje: "estandar", ciudadId: "caracas" },
-      withParams({ pesoIncluidoKg: 300 }), // antes hubiera cobrado +$100
+      withParams({ pesoIncluidoKg: 300 }), // density 400 > 300 → cobra
     );
-    expect(cot.recargoExcedente).toBe(0);
-    expect(cot.total).toBe(800); // solo CBM × tarifa
+    expect(cot.recargoExcedente).toBe(100); // (400 − 300) × $1
+    expect(cot.total).toBe(900); // 800 + 100
   });
 
-  it("IGNORA params.recargoExcedenteKg en el pricing", () => {
+  it("USA params.recargoExcedenteKg ($/kg del excedente, configurable en el ERP)", () => {
     const cot = calcularEnvioLCL(
       { cbmTotal: 1, pesoKg: 600, embalaje: "estandar", ciudadId: "caracas" },
-      withParams({ recargoExcedenteKg: 2 }), // sin efecto
+      withParams({ recargoExcedenteKg: 2 }), // (600 − 500) × $2
     );
-    expect(cot.recargoExcedente).toBe(0);
-    expect(cot.total).toBe(800);
+    expect(cot.recargoExcedente).toBe(200);
+    expect(cot.total).toBe(1000);
   });
 
-  it("IGNORA params.pesoMaxKg (ya no hay alerta por densidad)", () => {
+  it("pesoMaxKg no entra al cálculo del recargo (solo al aviso de la UI)", () => {
     const cot = calcularEnvioLCL(
       { cbmTotal: 1, pesoKg: 650, embalaje: "estandar", ciudadId: "caracas" },
       withParams({ pesoMaxKg: 700 }),
     );
-    expect(cot.alerta).toBeUndefined();
-    expect(cot.recargoExcedente).toBe(0);
-    expect(cot.total).toBe(800);
+    // El recargo es sobre pesoIncluidoKg (500): (650 − 500) × $1 = 150.
+    expect(cot.recargoExcedente).toBe(150);
+    expect(cot.alerta).toBeUndefined(); // el cálculo nunca setea alerta de densidad
+    expect(cot.total).toBe(950);
   });
 
   it("usa params.descuentoValencia", () => {
@@ -582,18 +587,18 @@ describe("cbmFromDimensions", () => {
     expect(cbmFromDimensions(40, 30, 60, Number.POSITIVE_INFINITY)).toBe(0); // no finito
   });
 
-  it("el CBM derivado alimenta el mismo motor sin recargo de peso", () => {
-    // 40×30×60×10 = 0,72 CBM → precio = 0,72 × 800 = 576 (sin importar el peso).
+  it("el CBM derivado alimenta el mismo motor (con recargo por densidad)", () => {
+    // 40×30×60×10 = 0,72 CBM → base = 0,72 × 800 = 576. Peso alto → recargo.
     const cbm = cbmFromDimensions(40, 30, 60, 10);
     const cot = calcularEnvioLCL({
       cbmTotal: cbm,
-      pesoKg: 5000, // peso alto, no debe sumar nada
+      pesoKg: 5000,
       embalaje: "estandar",
       ciudadId: "caracas",
     });
     expect(cot.cbm).toBe(0.72);
     expect(cot.precioBase).toBe(576);
-    expect(cot.recargoExcedente).toBe(0);
-    expect(cot.total).toBe(576);
+    expect(cot.recargoExcedente).toBe(4640); // (5000 − 0.72×500) × $1 = 4640
+    expect(cot.total).toBe(5216); // 576 + 4640
   });
 });

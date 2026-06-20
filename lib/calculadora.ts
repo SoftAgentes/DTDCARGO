@@ -9,11 +9,11 @@
  *
  *  Lógica (resumen para no-devs):
  *  1. El cliente ingresa el CBM total (m³) directo y el peso total (kg).
- *  2. Precio = CBM × tarifaBase. El PESO no afecta el precio: una caja de
- *     0,3 CBM que pese 1000 kg cuesta lo mismo que una liviana (sin recargo
- *     por densidad — decisión founder 2026-06-08).
- *  3. El peso solo está capeado en términos ABSOLUTOS: sobre 27.000 kg
- *     (peso de un contenedor) → deriva al asesor. Sin límite por densidad.
+ *  2. Precio = CBM × tarifaBase + recargo por DENSIDAD: el peso que excede
+ *     `pesoIncluidoKg` por CBM se cobra a `recargoExcedenteKg`/kg (founder
+ *     2026-06-20, reactiva la regla pausada el 2026-06-08; configurable en el ERP).
+ *  3. Sobre `pesoMaxKg` por CBM la carga es "demasiado densa" → la UI avisa que
+ *     deriva a FCL/asesor. Tope ABSOLUTO de peso: 27.000 kg → deriva al asesor.
  *  4. Recargos: embalaje especial (madera/paleta) + ciudad fuera del casco central.
  *  5. Baterías: multiplican el flete (×recargoBateriaMult).
  *  6. Carga especial / peligrosa → no cotiza, deriva al asesor.
@@ -221,7 +221,7 @@ export type EnvioCotizacion = {
 
   /** Cargos individuales (todos en USD, para mostrar desglose). */
   precioBase: number;       // CBM × tarifaBase
-  recargoExcedente: number; // SIEMPRE 0 desde 2026-06-08 (sin recargo por densidad). Se conserva en el desglose para reconciliar.
+  recargoExcedente: number; // recargo por densidad: kg que exceden pesoIncluidoKg/CBM × recargoExcedenteKg (founder 2026-06-20).
   recargoCiudad: number;    // km fuera del casco × tarifaKm
   recargoEmbalaje: number;  // 0 o recargoEmbalajeEspecial
   recargoBateria: number;   // extra por el multiplicador de baterías (0 si no)
@@ -312,8 +312,8 @@ export function calcularEnvioLCL(
     }, input);
   }
 
-  // 5.4 — Volumen (CBM) y densidad (la densidad ya solo se reporta para
-  // mostrar; NO afecta el precio ni dispara alertas — ver 5.6).
+  // 5.4 — Volumen (CBM) y densidad (peso/CBM). La densidad alimenta el recargo
+  // por exceso de peso en 5.6.
   const cbm = roundCBM(input.cbmTotal);
   const densidadKgM3 = input.pesoKg / cbm;
 
@@ -326,14 +326,18 @@ export function calcularEnvioLCL(
       : CONFIG.tarifaBaseCBM;
   const precioBase = cbm * tarifaCBM;
 
-  // 5.6 — Peso: SIN recargo por densidad (decisión founder 2026-06-08).
-  // El peso ya no afecta el precio ni tiene límite por densidad: una carga
-  // densa (ej. 0,3 CBM @ 1000 kg) cotiza igual que una liviana. El único
-  // límite del peso es el tope ABSOLUTO de contenedor (27.000 kg), validado
-  // arriba en 5.3b. Por eso el excedente queda en 0 siempre.
-  // (CalcParams.pesoIncluidoKg / pesoMaxKg / recargoExcedenteKg siguen
-  //  existiendo para no romper calculator_settings, pero ya no se aplican.)
-  const recargoExcedente = 0;
+  // 5.6 — Recargo por exceso de densidad (peso por CBM). Founder 2026-06-20: se
+  // REACTIVA (revierte la pausa del 2026-06-08). Se cobra sobre el peso que excede
+  // `pesoIncluidoKg` por CBM, a `recargoExcedenteKg` por kg — todo configurable
+  // desde el ERP (params.* ← calculator_settings · /studio/tarifas › Parámetros).
+  // El aviso de "demasiado denso" (> pesoMaxKg → derivar a FCL) lo muestra la UI
+  // (CalculadoraForm.pesoWarning); acá NO seteamos `alerta` para no ocultar el
+  // precio en el ResultPanel — el cliente debe VER el recargo aplicado.
+  let recargoExcedente = 0;
+  if (densidadKgM3 > params.pesoIncluidoKg) {
+    const kgExcedente = Math.max(0, input.pesoKg - cbm * params.pesoIncluidoKg);
+    recargoExcedente = roundUSD(kgExcedente * params.recargoExcedenteKg);
+  }
   const alerta: EnvioCotizacion["alerta"] | undefined = undefined;
 
   // 5.7 — Recargo por ciudad fuera del casco central

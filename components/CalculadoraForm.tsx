@@ -132,13 +132,27 @@ export function CalculadoraForm({
         ? `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`
         : null;
 
-  // Aviso del peso: SOLO el tope absoluto de contenedor. El peso ya no tiene
-  // límite por densidad ni recargo (decisión founder 2026-06-08) — una carga
-  // densa cotiza igual que una liviana.
-  const pesoWarning =
-    form.pesoKg > params.pesoMaxContenedorKg
-      ? "Esto es más que el peso permitido por contenedor; consulta a tu asesor."
-      : null;
+  // Aviso del peso: tope absoluto de contenedor + densidad (peso por CBM). Founder
+  // 2026-06-20: se reactiva el aviso de densidad. Sobre pesoMaxKg/CBM = "demasiado
+  // denso" → FCL/asesor; entre pesoIncluidoKg y pesoMaxKg = excedente con recargo
+  // ($/kg configurable desde el ERP; el monto lo computa lib/calculadora.ts). Usa
+  // `effectiveCbm` (contempla el panel "CBM por medidas").
+  const pesoWarning = ((): string | null => {
+    if (form.pesoKg > params.pesoMaxContenedorKg)
+      return "Esto es más que el peso permitido por contenedor; consulta a tu asesor.";
+    if (effectiveCbm <= 0 || form.pesoKg <= 0) return null;
+    const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
+    const maxSinRecargo = effectiveCbm * params.pesoIncluidoKg;
+    const maxDenso = effectiveCbm * params.pesoMaxKg;
+    if (form.pesoKg > maxDenso)
+      return `Para ${fmt(effectiveCbm)} m³, más de ${fmt(maxDenso)} kg es demasiado denso — consulta con tu asesor (FCL).`;
+    if (form.pesoKg > maxSinRecargo) {
+      const exceso = form.pesoKg - maxSinRecargo;
+      const recargo = exceso * params.recargoExcedenteKg;
+      return `El máximo de peso sin recargo para ${fmt(effectiveCbm)} m³ es ${fmt(maxSinRecargo)} kg. Te pasas por ${fmt(exceso)} kg → +$${fmt(recargo)} ($${params.recargoExcedenteKg}/kg extra).`;
+    }
+    return null;
+  })();
 
   // Confirmar desde el modal: ya tenemos el EST del ERP (o null), abrimos wa.me.
   function handleConfirm(contact: EstimadoContact, estimateCode: string | null) {
