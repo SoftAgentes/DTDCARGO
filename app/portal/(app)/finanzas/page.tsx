@@ -1,37 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { listMyEstimates, listMyInvoices } from "@/lib/portal/portal-queries";
+import { listMyInvoices } from "@/lib/portal/portal-queries";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   formatInvoiceAmount,
   invoiceBalance,
   type InvoiceCurrency,
 } from "@/lib/portal/portal-types";
-import { ArrowIcon, DocIcon, PaymentIcon, QuoteIcon } from "@/components/Icon";
-import { EstimateRow } from "../../_components/EstimateRow";
+import { ArrowIcon, DocIcon, QuoteIcon } from "@/components/Icon";
 import { InvoiceRow } from "../../_components/InvoiceRow";
-import { FinanzaSection } from "./FinanzaSection";
 
 export const metadata: Metadata = { title: "Finanzas" };
 
 /**
- * Hub de Finanzas del portal (founder 2026-06-20). Acordeón con 3 secciones en
- * orden de ciclo: Estimados → Cotizaciones → Facturas. Facturas nace ABIERTA por
- * defecto (es el estado de cuenta — lo que el cliente debe). El contenido es el
- * REAL: reusa las queries (listMyEstimates/listMyInvoices) y las filas
- * (EstimateRow/InvoiceRow) de /portal/estimados y /portal/facturas, que siguen
- * existiendo (con su tabla densa). "Cotizaciones formales" aún no existe →
- * "Próximamente" (mismo criterio que "Nueva cotización" del dashboard).
+ * Finanzas del portal (founder 2026-06-20). La gente entra por sus FACTURAS, así
+ * que la vista principal ES el estado de cuenta (KPIs de saldo + lista de
+ * facturas), directo, sin desplegar ni pestañas. Arriba van dos accesos chicos a
+ * las secciones secundarias: Estimados (→ /portal/estimados) y Cotizaciones
+ * (aún no existe → "Próximamente"). El detalle/tabla densa sigue en
+ * /portal/facturas; las filas de acá linkean a cada factura.
  */
 export default async function PortalFinanzasPage() {
   const supabase = await createClient();
-  const [estimates, invoices] = await Promise.all([
-    listMyEstimates(supabase),
-    listMyInvoices(supabase),
-  ]);
+  const invoices = await listMyInvoices(supabase);
+  const waLink = buildWhatsAppLink(
+    "Hola DTD Cargo, soy cliente y tengo una consulta sobre mis facturas.",
+  );
 
-  // KPIs de facturas en la moneda DOMINANTE (sumar entre monedas sería incorrecto;
-  // mismo criterio que /portal/facturas).
+  // KPIs en la moneda DOMINANTE (sumar entre monedas sería incorrecto; mismo
+  // criterio que /portal/facturas).
   const byCurrency = new Map<
     InvoiceCurrency,
     { total: number; paid: number; balance: number }
@@ -62,110 +60,113 @@ export default async function PortalFinanzasPage() {
         Finanzas
       </h1>
       <p className="mt-3 text-[14px] text-grey-700 leading-[1.55] max-w-[60ch]">
-        Tus estimados y facturas en un solo lugar. Las cotizaciones formales
-        llegan pronto.
+        Tus facturas y saldos. Estimados y cotizaciones, a un clic.
       </p>
 
-      <div className="mt-7 flex flex-col gap-4">
-        {/* 1. Estimados */}
-        <FinanzaSection
-          title="Estimados"
-          icon={<DocIcon size={22} />}
-          summary={
-            estimates.length === 0
-              ? "Sin estimados todavía"
-              : `${estimates.length} ${estimates.length === 1 ? "estimado" : "estimados"}`
-          }
-        >
-          {estimates.length === 0 ? (
-            <EmptyMini
-              text="Calcula tu carga en la calculadora o pídele un estimado a tu asesor. Cuando quede vinculado a tu cuenta, aparece acá."
-              href="/calculadora"
-              cta="Ir a la calculadora"
-            />
-          ) : (
-            <>
-              <div className="flex flex-col gap-3">
-                {estimates.map((e) => (
-                  <EstimateRow key={e.id} estimate={e} />
-                ))}
-              </div>
-              <FullLink href="/portal/estimados" label="Ver estimados en pantalla completa" />
-            </>
-          )}
-        </FinanzaSection>
-
-        {/* 2. Cotizaciones (próximamente) */}
-        <FinanzaSection
-          title="Cotizaciones"
-          icon={<QuoteIcon size={20} />}
-          summary="Cotizaciones formales de tu asesor"
-          badge={
-            <span className="text-[9.5px] font-bold tracking-[0.1em] uppercase text-grey-500 bg-grey-100 rounded-full px-2 py-0.5">
-              Próximamente
-            </span>
-          }
-        >
-          <p className="text-[13px] text-grey-700 leading-[1.55] max-w-[52ch]">
-            Pronto vas a ver acá las cotizaciones formales que te arme tu asesor —
-            con su validez, condiciones y un botón para confirmarlas.
-          </p>
-        </FinanzaSection>
-
-        {/* 3. Facturas (abierta por defecto — estado de cuenta) */}
-        <FinanzaSection
-          title="Facturas"
-          icon={<PaymentIcon size={22} />}
-          defaultOpen
-          summary={
-            invoices.length === 0 ? (
-              "Sin facturas todavía"
-            ) : agg.balance > 0 ? (
-              <span
-                className="font-semibold"
-                style={{ color: "var(--color-status-warning)" }}
-              >
-                Saldo pendiente {formatInvoiceAmount(agg.balance, primary)}
-              </span>
-            ) : (
-              "Al día · sin saldo pendiente"
-            )
-          }
-        >
-          {invoices.length === 0 ? (
-            <EmptyMini text="Cuando tu asesor emita una factura a tu nombre, aparece acá con su estado de pago." />
-          ) : (
-            <>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <MiniKpi label="Total facturado" value={formatInvoiceAmount(agg.total, primary)} />
-                <MiniKpi label="Pagado" value={formatInvoiceAmount(agg.paid, primary)} />
-                <MiniKpi
-                  label="Saldo pendiente"
-                  value={formatInvoiceAmount(agg.balance, primary)}
-                  highlight={agg.balance > 0}
-                />
-              </div>
-              {mixed && (
-                <p className="mt-2.5 text-[11.5px] text-grey-500 leading-[1.4]">
-                  Montos en {primary}. Tienes facturas en otras monedas — abre cada
-                  una para ver su detalle.
-                </p>
-              )}
-              <div className="mt-4 flex flex-col gap-3">
-                {invoices.map((inv) => (
-                  <InvoiceRow key={inv.id} invoice={inv} />
-                ))}
-              </div>
-              <FullLink href="/portal/facturas" label="Ver facturas en pantalla completa" />
-            </>
-          )}
-        </FinanzaSection>
+      {/* Accesos secundarios — Estimados (existe) + Cotizaciones (Próximamente) */}
+      <div className="mt-5 flex flex-wrap gap-2.5">
+        <AccesoChip href="/portal/estimados" icon={<DocIcon size={16} />} label="Estimados" />
+        <AccesoChip icon={<QuoteIcon size={15} />} label="Cotizaciones" soon />
       </div>
+
+      {/* Facturas — la vista principal (estado de cuenta) */}
+      {invoices.length === 0 ? (
+        <div className="mt-7 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">
+          <div className="text-[16px] font-bold text-ink">
+            Todavía no tienes facturas.
+          </div>
+          <p className="mt-2 text-[14px] text-grey-700 max-w-[46ch] mx-auto leading-[1.55]">
+            Cuando tu asesor emita una factura a tu nombre, aparece acá con su
+            estado de pago.
+          </p>
+          <a
+            href={waLink}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-primary mt-6 inline-flex"
+          >
+            Escribir a mi asesor <ArrowIcon />
+          </a>
+        </div>
+      ) : (
+        <>
+          <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Kpi label="Total facturado" value={formatInvoiceAmount(agg.total, primary)} />
+            <Kpi label="Pagado" value={formatInvoiceAmount(agg.paid, primary)} />
+            <Kpi
+              label="Saldo pendiente"
+              value={formatInvoiceAmount(agg.balance, primary)}
+              highlight={agg.balance > 0}
+            />
+          </div>
+          {mixed && (
+            <p className="mt-3 text-[12px] text-grey-500">
+              Montos en {primary}. Tienes facturas en otras monedas — abre cada una
+              para ver su detalle.
+            </p>
+          )}
+
+          <div className="mt-6 flex flex-col gap-3">
+            {invoices.map((inv) => (
+              <InvoiceRow key={inv.id} invoice={inv} />
+            ))}
+          </div>
+
+          <Link
+            href="/portal/facturas"
+            className="mt-5 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-wine hover:underline underline-offset-2"
+          >
+            Ver tabla completa <ArrowIcon size={13} />
+          </Link>
+        </>
+      )}
     </div>
   );
 }
 
-function MiniKpi({
+/**
+ * Acceso chico (pill) a una sección secundaria de Finanzas. Link si tiene `href`;
+ * si `soon`, queda estático con la etiqueta "Próximamente".
+ */
+function AccesoChip({
+  href,
+  icon,
+  label,
+  soon = false,
+}: {
+  href?: string;
+  icon: React.ReactNode;
+  label: string;
+  soon?: boolean;
+}) {
+  const inner = (
+    <>
+      <span className="text-wine flex-shrink-0">{icon}</span>
+      <span className="text-[13px] font-semibold text-ink">{label}</span>
+      {soon && (
+        <span className="text-[9px] font-bold tracking-[0.1em] uppercase text-grey-500 bg-grey-100 rounded-full px-1.5 py-0.5">
+          Próximamente
+        </span>
+      )}
+    </>
+  );
+  const base =
+    "inline-flex items-center gap-2 rounded-full border border-grey-200 bg-white px-3.5 py-2";
+
+  if (soon || !href) {
+    return <span className={`${base} opacity-70`}>{inner}</span>;
+  }
+  return (
+    <Link
+      href={href}
+      className={`${base} hover:border-ink focus-visible:border-ink transition-colors`}
+    >
+      {inner}
+    </Link>
+  );
+}
+
+function Kpi({
   label,
   value,
   highlight = false,
@@ -175,54 +176,21 @@ function MiniKpi({
   highlight?: boolean;
 }) {
   return (
-    <div className="rounded-[12px] bg-paper px-4 py-3">
-      <div className="text-[10px] font-bold tracking-[0.12em] uppercase text-grey-500">
+    <div className="card-shadow bg-white border border-grey-200 rounded-[16px] p-5">
+      <div className="text-[11px] font-bold tracking-[0.12em] uppercase text-grey-500">
         {label}
       </div>
       <div
-        className="mt-1 text-[18px] leading-none text-ink"
+        className="mt-2 text-[26px] leading-none text-ink"
         style={{
           fontFamily: "var(--font-archivo-black)",
           letterSpacing: "-0.01em",
+          // Saldo con deuda → dorado (--warning). Wine se reserva a CTAs/marca.
           color: highlight ? "var(--color-status-warning)" : undefined,
         }}
       >
         {value}
       </div>
-    </div>
-  );
-}
-
-function FullLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="mt-4 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-wine hover:underline underline-offset-2"
-    >
-      {label} <ArrowIcon size={13} />
-    </Link>
-  );
-}
-
-function EmptyMini({
-  text,
-  href,
-  cta,
-}: {
-  text: string;
-  href?: string;
-  cta?: string;
-}) {
-  return (
-    <div className="text-center py-4">
-      <p className="text-[13px] text-grey-700 leading-[1.55] max-w-[46ch] mx-auto">
-        {text}
-      </p>
-      {href && cta && (
-        <a href={href} className="btn btn-ghost mt-4 inline-flex">
-          {cta} <ArrowIcon size={14} />
-        </a>
-      )}
     </div>
   );
 }
