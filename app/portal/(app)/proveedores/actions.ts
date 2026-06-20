@@ -34,6 +34,16 @@ import {
   type SupplierActionState,
   type PrealertaActionState,
 } from "@/lib/studio/prealertas/types";
+import {
+  validateServiceRequestInput,
+  type ServiceRequestInput,
+  type ServiceRequestActionState,
+} from "@/lib/studio/prealertas/addons";
+import {
+  listActivePrealertaAddons,
+  getPrealertaByCode,
+} from "@/lib/studio/prealertas/queries";
+import { fireWorkflowEvent } from "@/lib/studio/workflow/workflow-rule-engine";
 
 /** Tope de fotos por compra (las demás se ignoran; evita subidas enormes). */
 const MAX_FOTOS = 8;
@@ -162,6 +172,119 @@ async function portalMarkbox(
   const { data, error } = await supabase.rpc("get_portal_client_markbox");
   if (error || !data) return null;
   return String(data);
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Servicios sobre la compra (add-ons · SDD-0098)            ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+/** Checkbox/toggle del FormData → boolean. */
+function isTruthy(v: FormDataEntryValue | null): boolean {
+  const s = String(v ?? "").toLowerCase();
+  return s === "on" || s === "true" || s === "1" || s === "yes";
+}
+
+/** Trackings de un textarea (uno por línea o coma). La validación fina la hace addons. */
+function splitTrackings(raw: FormDataEntryValue | null): string[] {
+  return String(raw ?? "")
+    .split(/[\n,]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Lee del FormData los servicios elegidos sobre la compra. Contrato:
+ *  - `addon` (multi)      → códigos seleccionados.
+ *  - `consent` (checkbox) → OBLIGATORIO; sin él no se piden servicios.
+ *  - `notes_<code>`       → notas por servicio (opcional).
+ *  - `trackings_<code>`   → trackings extra por servicio (solo multi).
+ * Valida cada uno contra los ACTIVOS; descarta inválidos/inactivos; dedupe por código.
+ */
+function parseServiceRequestsFromForm(
+  formData: FormData,
+  activeCodes: ReadonlySet<string>,
+): ServiceRequestInput[] {
+  if (!isTruthy(formData.get("consent"))) return [];
+  const out: ServiceRequestInput[] = [];
+  const seen = new Set<string>();
+  for (const raw of formData.getAll("addon")) {
+    const code = String(raw);
+    if (seen.has(code)) continue;
+    const v = validateServiceRequestInput(
+      {
+        addonCode: code,
+        notes: (formData.get(`notes_${code}`) as string | null) ?? null,
+        trackings: splitTrackings(formData.get(`trackings_${code}`)),
+      },
+      activeCodes,
+    );
+    if (v) {
+      out.push(v);
+      seen.add(code);
+    }
+  }
+  return out;
+}
+
+/** Dispara el evento de flujo del servicio pedido (best-effort, admin client). */
+async function firePrealertaServiceEvent(
+  tenantId: string,
+  prealertaId: string,
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    await fireWorkflowEvent(admin, tenantId, {
+      event: "prealerta_servicio_solicitado",
+      sourceKind: "prealerta",
+      sourceId: prealertaId,
+      serviceKey: null,
+    });
+  } catch (err) {
+    console.error("[firePrealertaServiceEvent] admin/workflow error:", err);
+  }
+}
+
+/**
+ * Inserta (best-effort) las solicitudes de servicio elegidas al registrar la compra
+ * + avisa al equipo (evento de flujo). NO lanza: los servicios son un extra y jamás
+ * tumban el alta de la compra. Usa el client de SESIÓN (RLS portal self insert, con
+ * consent obligatorio); el evento de flujo usa admin (tablas del Studio).
+ */
+async function insertPrealertaServiceRequestsFromForm(args: {
+  supabase: Awaited<ReturnType<typeof createClient>>;
+  formData: FormData;
+  tenantId: string;
+  prealertaId: string;
+  markbox: string;
+}): Promise<void> {
+  try {
+    const active = await listActivePrealertaAddons(args.supabase);
+    const activeCodes = new Set(active.map((a) => a.code as string));
+    const reqs = parseServiceRequestsFromForm(args.formData, activeCodes);
+    if (reqs.length === 0) return;
+
+    const rows = reqs.map((r) => ({
+      tenant_id: args.tenantId,
+      prealerta_id: args.prealertaId,
+      client_markbox: args.markbox,
+      addon_code: r.addonCode,
+      consent_accepted: true,
+      notes: r.notes,
+      trackings: r.trackings.length ? r.trackings : null,
+    }));
+
+    const { error } = await args.supabase
+      .from("prealerta_service_requests")
+      .insert(rows);
+    if (error) {
+      console.error("[insertPrealertaServiceRequests] insert error:", error);
+      return;
+    }
+
+    await firePrealertaServiceEvent(args.tenantId, args.prealertaId);
+  } catch (err) {
+    console.error("[insertPrealertaServiceRequests] unexpected:", err);
+  }
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
@@ -375,6 +498,15 @@ export async function createPrealertaAction(
         markbox,
       });
 
+      // Servicios sobre la compra (add-ons · SDD-0098) — best-effort, no tumba el alta.
+      await insertPrealertaServiceRequestsFromForm({
+        supabase,
+        formData,
+        tenantId,
+        prealertaId: insRow.id,
+        markbox,
+      });
+
       revalidatePortal();
       return {
         ok: true,
@@ -394,4 +526,70 @@ export async function createPrealertaAction(
   return {
     error: lastError ?? "No pudimos registrar la compra. Prueba de nuevo.",
   };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Pedir un servicio sobre una compra ya creada (detalle)    ║
+// ╚═══════════════════════════════════════════════════════════╝
+// Entrada secundaria al menú de servicios: desde el detalle de la compra. El gate
+// de "tardía" lo aplica el trigger en DB (si la compra ya fue recibida).
+
+export async function requestPrealertaServiceAction(
+  _prev: ServiceRequestActionState,
+  formData: FormData,
+): Promise<ServiceRequestActionState> {
+  const code = String(formData.get("prealertaCode") ?? "").trim();
+  const addonCode = String(formData.get("addonCode") ?? "").trim();
+  if (!code) return { error: "Falta la compra." };
+  if (!isTruthy(formData.get("consent"))) {
+    return { error: "Debes aceptar las condiciones del servicio." };
+  }
+
+  const supabase = await createClient();
+  const markbox = await portalMarkbox(supabase);
+  if (!markbox) return { error: "Tu sesión expiró. Vuelve a entrar." };
+
+  const { data: tenantData } = await supabase.rpc("get_portal_client_tenant");
+  const tenantId = tenantData ? String(tenantData) : null;
+  if (!tenantId) return { error: "No pudimos resolver tu cuenta." };
+
+  // La compra (scopeada por markbox) → su id.
+  const pre = await getPrealertaByCode(supabase, code, { markbox });
+  if (!pre) return { error: "Esa compra no es válida." };
+
+  // El servicio debe estar activo en el menú del tenant.
+  const active = await listActivePrealertaAddons(supabase);
+  const activeCodes = new Set(active.map((a) => a.code as string));
+  const v = validateServiceRequestInput(
+    {
+      addonCode,
+      notes: (formData.get("notes") as string | null) ?? null,
+      trackings: splitTrackings(formData.get("trackings")),
+    },
+    activeCodes,
+  );
+  if (!v) return { error: "Ese servicio no está disponible." };
+
+  const { error } = await supabase.from("prealerta_service_requests").insert({
+    tenant_id: tenantId,
+    prealerta_id: pre.id,
+    client_markbox: markbox,
+    addon_code: v.addonCode,
+    consent_accepted: true,
+    notes: v.notes,
+    trackings: v.trackings.length ? v.trackings : null,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "Ya pediste ese servicio para esta compra." };
+    }
+    console.error("[requestPrealertaServiceAction] insert error:", error);
+    return { error: "No pudimos registrar el servicio. Prueba de nuevo." };
+  }
+
+  await firePrealertaServiceEvent(tenantId, pre.id);
+  revalidatePortal();
+  revalidatePath(`/portal/compras/${encodeURIComponent(code)}/etiquetas`);
+  return { ok: true, requestedCount: 1 };
 }

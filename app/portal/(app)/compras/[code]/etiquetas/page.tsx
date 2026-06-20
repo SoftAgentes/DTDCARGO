@@ -7,7 +7,10 @@ import {
   getPrealertaByCode,
   listPrealertaDocuments,
   listSuppliers,
+  listActivePrealertaAddons,
+  listPrealertaServiceRequests,
 } from "@/lib/studio/prealertas/queries";
+import { PrealertaServiceSection } from "./ServiceSection";
 import {
   buildLabels,
   PREALERTA_DOC_BUCKET,
@@ -55,6 +58,19 @@ export default async function PortalLabelsPage({
   const supplierWechat = supplier?.wechat ?? null;
 
   const labels = buildLabels(prealerta.code, prealerta.boxes);
+
+  // Servicios de recepción (SDD-0098): menú activo + lo que el cliente ya pidió.
+  const [addons, serviceRequests] = await Promise.all([
+    listActivePrealertaAddons(supabase),
+    listPrealertaServiceRequests(supabase, {
+      prealertaId: prealerta.id,
+      markbox: client.markbox,
+    }),
+  ]);
+  const prealertaReceived =
+    prealerta.received_at != null ||
+    prealerta.status === "recibida" ||
+    prealerta.status === "consolidada";
 
   // Adjuntos que el cliente subió a esta compra (read-only · recordatorio). Las
   // signed URLs se generan server-side con admin (el cliente no firma vía Storage).
@@ -173,6 +189,13 @@ export default async function PortalLabelsPage({
           )}
         </div>
       )}
+
+      <PrealertaServiceSection
+        prealertaCode={prealerta.code}
+        prealertaReceived={prealertaReceived}
+        requests={serviceRequests}
+        addons={addons}
+      />
     </>
   );
 }

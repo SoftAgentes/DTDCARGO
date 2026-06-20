@@ -21,6 +21,11 @@ import type {
   SupplierActionState,
   PrealertaActionState,
 } from "@/lib/studio/prealertas/types";
+import type { PrealertaAddon } from "@/lib/studio/prealertas/addons";
+import {
+  PrealertaAddonPicker,
+  PrealertaServiceGallery,
+} from "../../_components/PrealertaAddons";
 
 const supplierInitial: SupplierActionState = {};
 const prealertaInitial: PrealertaActionState = {};
@@ -37,9 +42,11 @@ const prealertaInitial: PrealertaActionState = {};
 export function SuppliersClient({
   suppliers,
   markbox,
+  addons,
 }: {
   suppliers: SupplierView[];
   markbox: string;
+  addons: PrealertaAddon[];
 }) {
   // Modal "Nueva compra" — null cerrado; objeto = proveedor preseleccionado (o vacío).
   const [purchaseFor, setPurchaseFor] = useState<SupplierView | null | "new">(
@@ -157,6 +164,9 @@ export function SuppliersClient({
         )}
       </div>
 
+      {/* ── Galería de servicios + video-ayuda (Capa 2 · SDD-0098) ── */}
+      <PrealertaServiceGallery addons={addons} />
+
       {/* ── Link a Mis compras ── */}
       <div className="mt-8">
         <Link
@@ -171,6 +181,7 @@ export function SuppliersClient({
       {purchaseFor !== null && (
         <NewPurchaseModal
           suppliers={suppliers}
+          addons={addons}
           preselected={purchaseFor === "new" ? null : purchaseFor}
           onClose={() => setPurchaseFor(null)}
         />
@@ -364,10 +375,12 @@ function AddSupplierForm({
 // ── Modal "Nueva compra" ────────────────────────────────────────
 function NewPurchaseModal({
   suppliers,
+  addons,
   preselected,
   onClose,
 }: {
   suppliers: SupplierView[];
+  addons: PrealertaAddon[];
   preselected: SupplierView | null;
   onClose: () => void;
 }) {
@@ -636,6 +649,9 @@ function NewPurchaseModal({
                     />
                   </div>
                 </div>
+
+                {/* Servicios sobre la compra (add-ons · SDD-0098) */}
+                <PrealertaAddonPicker addons={addons} />
 
                 {state.fieldErrors?.supplierId && (
                   <p className="text-[12.5px] text-wine">
