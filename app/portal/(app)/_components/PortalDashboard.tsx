@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { buildWhatsAppLink, CONTACT } from "@/lib/design-tokens";
+import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
+import { ChinaSupplierClip } from "@/components/ChinaSupplierClip";
 import {
   SERVICE_LABELS,
   formatInvoiceAmount,
@@ -172,7 +173,10 @@ export function PortalDashboard({
             </div>
           ) : null}
 
-          <AgentCard client={client} />
+          {/* Bloque "Texto listo para WeChat": el cliente copia la dirección de
+              bodega CN + su código y se lo manda al proveedor (founder 2026-06-20 ·
+              mudado acá desde el cierre del registro, reemplaza la card del asesor). */}
+          <ChinaSupplierClip markbox={client.markbox} />
         </div>
       </div>
     </div>
@@ -261,42 +265,6 @@ function NextArrivalCard({ arrival }: { arrival: PortalNextArrival }) {
         </div>
       </div>
     </Link>
-  );
-}
-
-/**
- * Card "Tu agente" (DEGRADADO). No existe `clients.advisor_id` todavía → usamos el
- * contacto único público (CRM WhatsApp). TODO: clients.advisor_id cuando exista
- * asignación de asesor.
- */
-function AgentCard({ client }: { client: PortalClient }) {
-  const waLink = buildWhatsAppLink(
-    `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y tengo una consulta.`,
-  );
-  return (
-    <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
-      <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
-        Tu asesor
-      </div>
-      <p className="mt-3 text-[13.5px] text-grey-700 leading-[1.55]">
-        Tu asesor DTD te acompaña en cada carga. Escríbenos por WhatsApp para
-        cotizar, prealertar una compra o resolver cualquier duda.
-      </p>
-      <div
-        className="mt-4 text-[13px] text-grey-700"
-        style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-      >
-        {CONTACT.ve.whatsapp}
-      </div>
-      <a
-        href={waLink}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="btn btn-ghost mt-4 inline-flex w-full justify-center items-center gap-2"
-      >
-        <WhatsAppIcon size={18} /> Escribir por WhatsApp
-      </a>
-    </div>
   );
 }
 
