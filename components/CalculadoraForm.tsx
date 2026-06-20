@@ -35,6 +35,14 @@ type ServerRate = {
   valid_until: string | null;
 } | null;
 
+/**
+ * Aviso de un campo (CBM/peso) con severidad — mapea a los 3 tonos del Norte:
+ * `danger` (bloqueo real: deriva al asesor/FCL) = rojo · `info` (dato de precio,
+ * NO es un problema, ej. recargo por excedente) = wine · `warning` (ámbar
+ * genérico, fallback). El `BigInput` pinta el borde + el texto según el tono.
+ */
+type CalcWarning = { text: string; tone: "danger" | "warning" | "info" } | null;
+
 export function CalculadoraForm({
   serverRate,
   serverConfig,
@@ -125,11 +133,14 @@ export function CalculadoraForm({
   // Aviso del CBM: mínimo (punto de cruce) o máximo (contenedor). Usa el CBM
   // efectivo (derivado de medidas si el panel está abierto).
   const effectiveCbm = effectiveForm.cbmTotal;
-  const cbmWarning =
+  const cbmWarning: CalcWarning =
     effectiveCbm > params.cbmMaxContenedor
-      ? "Eso es más que un contenedor. Consulte a su asesor."
+      ? { text: "Eso es más que un contenedor. Consulta con tu asesor.", tone: "danger" }
       : effectiveCbm > 0 && effectiveCbm < crossoverCbm
-        ? `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`
+        ? {
+            text: `Nuestro mínimo de carga es ${crossoverLabel} m³ — por debajo, el envío sale $${minCharge}.`,
+            tone: "info",
+          }
         : null;
 
   // Aviso del peso: tope absoluto de contenedor + densidad (peso por CBM). Founder
@@ -137,19 +148,30 @@ export function CalculadoraForm({
   // denso" → FCL/asesor; entre pesoIncluidoKg y pesoMaxKg = excedente con recargo
   // ($/kg configurable desde el ERP; el monto lo computa lib/calculadora.ts). Usa
   // `effectiveCbm` (contempla el panel "CBM por medidas").
-  const pesoWarning = ((): string | null => {
+  const pesoWarning = ((): CalcWarning => {
     if (form.pesoKg > params.pesoMaxContenedorKg)
-      return "Esto es más que el peso permitido por contenedor; consulta a tu asesor.";
+      return {
+        text: "Esto es más que el peso permitido por contenedor; consulta a tu asesor.",
+        tone: "danger",
+      };
     if (effectiveCbm <= 0 || form.pesoKg <= 0) return null;
     const fmt = (n: number) => parseFloat(n.toFixed(2)).toString();
     const maxSinRecargo = effectiveCbm * params.pesoIncluidoKg;
     const maxDenso = effectiveCbm * params.pesoMaxKg;
+    // Densidad > pesoMaxKg → bloqueo (FCL/asesor): rojo.
     if (form.pesoKg > maxDenso)
-      return `Para ${fmt(effectiveCbm)} m³, más de ${fmt(maxDenso)} kg es demasiado denso — consulta con tu asesor (FCL).`;
+      return {
+        text: `Para ${fmt(effectiveCbm)} m³, más de ${fmt(maxDenso)} kg es demasiado denso — consulta con tu asesor (FCL).`,
+        tone: "danger",
+      };
+    // Excedente 500-600 → NO es un problema, es info del recargo: wine.
     if (form.pesoKg > maxSinRecargo) {
       const exceso = form.pesoKg - maxSinRecargo;
       const recargo = exceso * params.recargoExcedenteKg;
-      return `El máximo de peso sin recargo para ${fmt(effectiveCbm)} m³ es ${fmt(maxSinRecargo)} kg. Te pasas por ${fmt(exceso)} kg → +$${fmt(recargo)} ($${params.recargoExcedenteKg}/kg extra).`;
+      return {
+        text: `El máximo de peso sin recargo para ${fmt(effectiveCbm)} m³ es ${fmt(maxSinRecargo)} kg. Te pasas por ${fmt(exceso)} kg → +$${fmt(recargo)} ($${params.recargoExcedenteKg}/kg extra).`,
+        tone: "info",
+      };
     }
     return null;
   })();
@@ -409,10 +431,24 @@ function BigInput({
   value: number;
   onChange: (n: number) => void;
   placeholder?: string;
-  warning?: string | null;
+  warning?: CalcWarning;
   readOnly?: boolean;
   tag?: string;
 }) {
+  // Severidad → tono (alineado al Norte): danger = rojo (bloqueo), info = wine
+  // (dato de precio), warning = ámbar (fallback).
+  const warnBorder =
+    warning?.tone === "danger"
+      ? "border-status-danger"
+      : warning?.tone === "info"
+        ? "border-wine"
+        : "border-status-warning";
+  const warnText =
+    warning?.tone === "danger"
+      ? "text-status-danger"
+      : warning?.tone === "info"
+        ? "text-wine"
+        : "text-status-warning";
   return (
     <label className="flex flex-col gap-1.5 min-w-0">
       <span className="flex items-center gap-2 min-w-0">
@@ -428,7 +464,7 @@ function BigInput({
       <div
         className={`flex items-center gap-2 rounded-[12px] border px-3.5 h-[60px] transition-colors ${
           warning
-            ? "border-status-warning bg-white"
+            ? `${warnBorder} bg-white`
             : readOnly
               ? "border-grey-200 bg-paper"
               : "border-grey-200 bg-white focus-within:border-ink"
@@ -449,8 +485,8 @@ function BigInput({
         <span className="text-[13px] text-grey-500 whitespace-nowrap">{suffix}</span>
       </div>
       {warning && (
-        <span className="text-[11px] leading-[1.35] font-medium text-status-warning">
-          {warning}
+        <span className={`text-[11px] leading-[1.35] font-medium ${warnText}`}>
+          {warning.text}
         </span>
       )}
     </label>
