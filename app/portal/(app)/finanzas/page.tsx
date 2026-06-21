@@ -1,15 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { listMyInvoices } from "@/lib/portal/portal-queries";
+import {
+  listMyInvoices,
+  listMyShipments,
+  listMyEstimates,
+  getPortalClient,
+} from "@/lib/portal/portal-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import {
   formatInvoiceAmount,
   invoiceBalance,
+  isActiveShipmentStatus,
   type InvoiceCurrency,
+  type PortalShipmentRow,
+  type PortalEstimateRow,
 } from "@/lib/portal/portal-types";
+import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, DocIcon, QuoteIcon } from "@/components/Icon";
 import { InvoiceRow } from "../../_components/InvoiceRow";
+import { InvoiceCycleCard } from "../facturas/_components/InvoiceCycleCard";
 
 export const metadata: Metadata = { title: "Finanzas" };
 
@@ -23,7 +33,18 @@ export const metadata: Metadata = { title: "Finanzas" };
  */
 export default async function PortalFinanzasPage() {
   const supabase = await createClient();
-  const invoices = await listMyInvoices(supabase);
+  // Card "ciclo" del Norte GATEADA al demo: necesita estimados + envíos (sólo se
+  // cargan para el demo; clientes reales: misma página, sin queries extra).
+  const client = await getPortalClient(supabase);
+  const demo = showNortePortal(client?.markbox);
+  const [invoices, shipments, estimates] = await Promise.all([
+    listMyInvoices(supabase),
+    demo ? listMyShipments(supabase) : Promise.resolve<PortalShipmentRow[]>([]),
+    demo ? listMyEstimates(supabase) : Promise.resolve<PortalEstimateRow[]>([]),
+  ]);
+  const approvedCount = shipments.filter((s) =>
+    isActiveShipmentStatus(s.status),
+  ).length;
   const waLink = buildWhatsAppLink(
     "Hola DTD Cargo, soy cliente y tengo una consulta sobre mis facturas.",
   );
@@ -68,6 +89,16 @@ export default async function PortalFinanzasPage() {
         <AccesoChip href="/portal/estimados" icon={<DocIcon size={16} />} label="Estimados" />
         <AccesoChip icon={<QuoteIcon size={15} />} label="Cotizaciones" soon />
       </div>
+
+      {/* Card "ciclo" del Norte — GATEADA al demo (clientes reales no la ven). */}
+      {demo ? (
+        <InvoiceCycleCard
+          estimatesCount={estimates.length}
+          approvedCount={approvedCount}
+          invoicesCount={invoices.length}
+          invoicedLabel={formatInvoiceAmount(agg.total, primary)}
+        />
+      ) : null}
 
       {/* Facturas — la vista principal (estado de cuenta) */}
       {invoices.length === 0 ? (

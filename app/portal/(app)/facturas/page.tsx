@@ -16,7 +16,7 @@ import {
   type PortalShipmentRow,
   type PortalEstimateRow,
 } from "@/lib/portal/portal-types";
-import { isDemoMarkbox } from "@/lib/portal/demo";
+import { showNortePortal } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
 import { InvoiceRow } from "../../_components/InvoiceRow";
@@ -52,7 +52,7 @@ export default async function PortalInvoicesPage() {
   // (Estimado→Aprobado→Facturado) necesita estimados + envíos; sólo se cargan para
   // el demo (clientes reales: misma página, sin queries extra).
   const client = await getPortalClient(supabase);
-  const demo = isDemoMarkbox(client?.markbox);
+  const demo = showNortePortal(client?.markbox);
   const [invoices, shipments, estimates] = await Promise.all([
     listMyInvoices(supabase),
     demo ? listMyShipments(supabase) : Promise.resolve<PortalShipmentRow[]>([]),

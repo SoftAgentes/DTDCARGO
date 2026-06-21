@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { getMyShipment, getPortalClient } from "@/lib/portal/portal-queries";
 import { SERVICE_LABELS, estimatePortalEta } from "@/lib/portal/portal-types";
-import { isDemoMarkbox } from "@/lib/portal/demo";
+import { showNortePortal } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { StatusBadge } from "../../../_components/StatusBadge";
@@ -51,7 +51,7 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
 
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: stepper horizontal + 2
   // columnas. Clientes reales siguen con el detalle de abajo.
-  if (isDemoMarkbox(client?.markbox)) {
+  if (showNortePortal(client?.markbox)) {
     return (
       <PortalShipmentDetailNorte
         shipment={shipment}

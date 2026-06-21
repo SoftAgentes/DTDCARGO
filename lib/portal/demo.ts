@@ -32,3 +32,24 @@ export const DEMO_MARKBOXES: readonly string[] = ["DTD-1004"];
 export function isDemoMarkbox(markbox: string | null | undefined): boolean {
   return typeof markbox === "string" && DEMO_MARKBOXES.includes(markbox);
 }
+
+/**
+ * ¿El rediseño "Norte" del portal está PRENDIDO PARA TODOS? (formalización · founder
+ * 2026-06-20: "cambiar las plantillas de los clientes a que apunten a Norte").
+ *
+ * Mientras es `false`, sólo las cuentas demo ven el rediseño + el modo oscuro; en
+ * `true` lo ve TODO cliente. Es el ÚNICO interruptor del go-live: con esto en `true`
+ * las pantallas rediseñadas (Inicio · Envíos · Facturas) + el modo oscuro por defecto
+ * pasan a producción para todos los clientes. Para revertir: poné `false`.
+ */
+export const NORTE_PORTAL_LIVE = true;
+
+/**
+ * ¿Mostrarle a este cliente el portal "Norte" (rediseño + modo oscuro)? `true` para
+ * todos cuando `NORTE_PORTAL_LIVE`; si no, sólo para las cuentas demo. Es el gate
+ * único que usan el layout (tema), el header (toggle) y las páginas (qué componente
+ * renderizar).
+ */
+export function showNortePortal(markbox: string | null | undefined): boolean {
+  return NORTE_PORTAL_LIVE || isDemoMarkbox(markbox);
+}

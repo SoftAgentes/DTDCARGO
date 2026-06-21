@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { jetbrainsMonoUi } from "@/lib/fonts";
 import { createClient } from "@/lib/db/server";
 import { getPortalClient } from "@/lib/portal/portal-queries";
-import { isDemoMarkbox } from "@/lib/portal/demo";
+import { showNortePortal } from "@/lib/portal/demo";
 import { PortalHeader } from "../_components/PortalHeader";
 
 // JetBrains Mono scoped al área autenticada del portal (codes: MARKBOX,
@@ -26,24 +26,24 @@ export default async function PortalAppLayout({
   const client = await getPortalClient(supabase);
   if (!client) redirect("/portal/login");
 
-  // Dark mode del portal (founder 2026-06-20) — GATEADO al demo: solo las cuentas
-  // demo ven el tema oscuro / el rediseño Norte; los clientes reales siguen con el
-  // portal actual (claro). El tema nace en OSCURO y persiste por la cookie
-  // `portal-theme` (la setea el toggle; la lee acá → sin flash en SSR).
-  const demo = isDemoMarkbox(client.markbox);
+  // Dark mode + rediseño Norte del portal (founder 2026-06-20). `showNortePortal`
+  // decide quién lo ve: con NORTE_PORTAL_LIVE=true es TODO cliente (formalizado); si
+  // no, sólo el demo. El tema nace en OSCURO y persiste por la cookie `portal-theme`
+  // (la setea el toggle; la lee acá → sin flash en SSR).
+  const norte = showNortePortal(client.markbox);
   const cookieTheme = (await cookies()).get("portal-theme")?.value;
   const theme: "dark" | "light" = cookieTheme === "light" ? "light" : "dark";
 
   return (
     <div
       id="portal-shell"
-      data-portal-theme={demo ? theme : undefined}
+      data-portal-theme={norte ? theme : undefined}
       className={`${jetbrainsMonoUi.variable} min-h-screen bg-paper flex flex-col`}
     >
       <PortalHeader
         markbox={client.markbox}
         name={client.name}
-        themed={demo}
+        themed={norte}
         theme={theme}
       />
       <main className="flex-1 wrap w-full py-10 lg:py-14">{children}</main>

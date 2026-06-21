@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
 import { listMyShipments, getPortalClient } from "@/lib/portal/portal-queries";
-import { isDemoMarkbox } from "@/lib/portal/demo";
+import { showNortePortal } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
 import { ShipmentRow } from "../../_components/ShipmentRow";
@@ -25,7 +25,7 @@ export default async function PortalShipmentsPage() {
     getPortalClient(supabase),
   ]);
 
-  if (isDemoMarkbox(client?.markbox)) {
+  if (showNortePortal(client?.markbox)) {
     return <PortalShipmentsNorte shipments={shipments} />;
   }
 

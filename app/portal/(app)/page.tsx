@@ -10,7 +10,7 @@ import {
   listMyShipments,
 } from "@/lib/portal/portal-queries";
 import { listPendingAcceptanceInvoices } from "@/lib/portal/portal-legal-queries";
-import { isDemoMarkbox } from "@/lib/portal/demo";
+import { showNortePortal } from "@/lib/portal/demo";
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboard } from "./_components/PortalDashboard";
 import { PortalDashboardNorte } from "./_components/PortalDashboardNorte";
@@ -61,8 +61,8 @@ export default async function PortalHomePage() {
           hasAddress={profile.hasAddress}
         />
       ) : null}
-      {/* Rediseño Norte (oscuro) GATEADO al demo; clientes reales → dashboard actual. */}
-      {isDemoMarkbox(client.markbox) ? (
+      {/* Rediseño Norte (oscuro). `showNortePortal`: todos si NORTE_PORTAL_LIVE, si no el demo. */}
+      {showNortePortal(client.markbox) ? (
         <PortalDashboardNorte
           client={client}
           kpis={kpis}
