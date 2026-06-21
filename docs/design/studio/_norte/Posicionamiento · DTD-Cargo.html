@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Posicionamiento · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--s-8); }
+  @media (max-width: 720px){ .wrap { padding: 0 var(--s-5); } }
+
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: var(--s-12) 0 var(--s-16); }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .brandline { display: flex; align-items: center; gap: 14px; }
+  .brandline img { width: 46px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 26px; line-height: .9; color: #F2F0EC; }
+  .wm .sp { display: inline-block; width: 0.15em; }
+  .crumbs { font: 600 11px/1 var(--f-mono); color: rgba(242,240,236,0.62); display: flex; align-items: center; gap: 8px; }
+  .crumbs a:hover { color: #fff; }
+  .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); margin-left: 6px; }
+  .eyebrow-h { font: 700 11px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine-soft); margin: 44px 0 16px; }
+  .hero h1 { font: 800 46px/1.05 var(--f-display); letter-spacing: -0.025em; margin: 0 0 18px; max-width: 17ch; }
+  .hero h1 .ac { color: var(--wine-soft); }
+  .hero .lede { font: 400 17px/1.6 var(--f-sans); color: rgba(242,240,236,0.82); margin: 0; max-width: 64ch; }
+
+  /* positioning statement */
+  .stmt { margin-top: -54px; position: relative; z-index: 4; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--shadow-lg); padding: var(--s-10) var(--s-12); }
+  @media (max-width: 720px){ .stmt { padding: var(--s-8) var(--s-6); } }
+  .stmt .kick { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine); }
+  .stmt p { font: 500 25px/1.5 var(--f-display); letter-spacing: -0.015em; color: var(--ink); margin: 18px 0 0; }
+  @media (max-width: 720px){ .stmt p { font-size: 20px; } }
+  .stmt p b { color: var(--wine); font-weight: 800; }
+  .stmt p .mut { color: var(--ink-mute); font-weight: 500; }
+
+  section.block { padding: var(--s-16) 0 0; }
+  .sec-head .num { font: 700 11px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); }
+  .sec-head h2 { font: 800 32px/1.12 var(--f-display); letter-spacing: -0.022em; margin: 12px 0 10px; }
+  .sec-head .lead { font: 400 16px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 72ch; }
+
+  /* comparison matrix */
+  .cmp { margin-top: var(--s-8); overflow-x: auto; border: 1px solid var(--border); border-radius: var(--r-lg); box-shadow: var(--shadow-xs); }
+  table { border-collapse: collapse; width: 100%; min-width: 740px; background: var(--bg-surface); }
+  thead th { background: var(--bg-elevated); border-bottom: 1px solid var(--border); padding: var(--s-4) var(--s-3); font: 700 11px/1.3 var(--f-sans); color: var(--ink-soft); text-align: center; vertical-align: bottom; }
+  thead th.lead-col { text-align: left; padding-left: var(--s-5); width: 26%; }
+  thead th.us { background: var(--wine); color: #fff; border-radius: var(--r-sm) var(--r-sm) 0 0; font-family: var(--f-display); font-size: 13px; }
+  tbody th { text-align: left; padding: var(--s-4) var(--s-5); border-bottom: 1px solid var(--border); font: 600 13px/1.35 var(--f-sans); color: var(--ink); background: var(--bg-base); }
+  tbody td { text-align: center; padding: var(--s-4) var(--s-3); border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); }
+  tbody td.us { background: var(--wine-bg); border-left: 1px solid rgba(127,15,26,0.18); border-right: 1px solid rgba(127,15,26,0.18); }
+  tbody tr:last-child td, tbody tr:last-child th { border-bottom: 0; }
+  .mk { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font: 800 13px/1 var(--f-display); }
+  .mk.yes { background: var(--success-bg); color: var(--success); }
+  .mk.no { background: var(--bg-elevated); color: var(--ink-mute); }
+  .mk.part { background: var(--warning-bg); color: var(--warning); }
+  td .lab { display: block; font: 500 10px/1.2 var(--f-sans); color: var(--ink-mute); margin-top: 5px; }
+
+  /* wedge */
+  .wedge { margin-top: var(--s-10); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-5); }
+  @media (max-width: 820px){ .wedge { grid-template-columns: 1fr; } }
+  .w { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .w .n { font: 800 13px/1 var(--f-mono); color: var(--wine); }
+  .w h3 { font: 700 18px/1.2 var(--f-display); letter-spacing: -0.01em; margin: 12px 0 8px; }
+  .w p { font: 400 13.5px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; }
+  .w .proof { margin-top: var(--s-4); padding-top: var(--s-4); border-top: 1px solid var(--border); font: 600 12px/1.4 var(--f-mono); color: var(--ink); }
+
+  /* scope */
+  .scope { margin-top: var(--s-10); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+  @media (max-width: 720px){ .scope { grid-template-columns: 1fr; } }
+  .sc { border-radius: var(--r-lg); padding: var(--s-6); border: 1px solid var(--border); }
+  .sc.yes { background: var(--success-bg); border-color: rgba(31,138,91,0.25); }
+  .sc.no { background: var(--bg-elevated); }
+  .sc .h { display: inline-flex; align-items: center; gap: 8px; font: 700 12px/1 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: var(--s-4); }
+  .sc.yes .h { color: var(--success); }
+  .sc.no .h { color: var(--ink-soft); }
+  .sc ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .sc li { font: 400 13.5px/1.5 var(--f-sans); color: var(--ink-soft); padding-left: 22px; position: relative; }
+  .sc li b { color: var(--ink); font-weight: 700; }
+  .sc.yes li::before { content: "✓"; position: absolute; left: 0; color: var(--success); font-weight: 800; }
+  .sc.no li::before { content: "→"; position: absolute; left: 0; color: var(--ink-mute); font-weight: 800; }
+
+  .foot { margin-top: var(--s-16); padding: var(--s-6) 0 var(--s-16); border-top: 1px solid var(--border); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div class="brandline">
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+          <span class="wm"><span>DTD</span><span class="sp"></span><span>Cargo</span></span>
+        </div>
+        <div class="crumbs"><a href="Brand Hub · DTD-Cargo.html">Brand Hub</a> <span>/</span> Posicionamiento <span class="ver">v4.5</span></div>
+      </div>
+      <div class="eyebrow-h">Sistema · Fundamento</div>
+      <h1>Por qué te eligen <span class="ac">a ti.</span></h1>
+      <p class="lede">Contra qué compite realmente DTD en la cabeza del cliente, y qué hace que ninguna alternativa lo iguale. El argumento que estaba implícito en el propósito — ahora explícito y defendible.</p>
+    </div>
+  </header>
+
+  <!-- STATEMENT -->
+  <div class="wrap">
+    <div class="stmt">
+      <div class="kick">Declaración de posicionamiento</div>
+      <p><span class="mut">Para</span> el comercio y el emprendedor en Venezuela que importa de China, <span class="mut">DTD-Cargo es</span> el socio puerta a puerta que <b>compra, inspecciona, consolida y nacionaliza a su nombre</b> — <span class="mut">a diferencia de</span> couriers, mayoristas locales o freight forwarders, <span class="mut">porque</span> es el único con <b>equipo propio en Yiwu y Valencia</b> y un solo responsable de toda la cadena. <span class="mut">Por eso:</span> <b>Con Confianza, de China a tu puerta.</b></p>
+    </div>
+  </div>
+
+  <!-- COMPETITIVE MATRIX -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">01 / EL CAMPO DE JUEGO</div>
+        <h2>Las cuatro alternativas que sopesa el cliente</h2>
+        <p class="lead">Nadie compara DTD contra «otro DTD». Compara contra estas cuatro formas de traer mercancía. La columna llena es la diferencia.</p>
+      </div>
+      <div class="cmp">
+        <table>
+          <thead>
+            <tr>
+              <th class="lead-col">Lo que el cliente necesita</th>
+              <th>Casillero / courier</th>
+              <th>Mayorista local (VE)</th>
+              <th>Viajar y comprar solo</th>
+              <th>Freight forwarder</th>
+              <th class="us">DTD-Cargo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Mejor precio en origen (Yiwu)</th>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk yes">✓</span></td>
+              <td><span class="mk no">–</span></td>
+              <td class="us"><span class="mk yes">✓</span></td>
+            </tr>
+            <tr>
+              <th>Compra e inspección en fábrica (QC)</th>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk part">~</span><span class="lab">si viaja</span></td>
+              <td><span class="mk no">–</span></td>
+              <td class="us"><span class="mk yes">✓</span></td>
+            </tr>
+            <tr>
+              <th>Consolidación LCL (pagas tu volumen)</th>
+              <td><span class="mk part">~</span><span class="lab">por kilo</span></td>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk yes">✓</span></td>
+              <td class="us"><span class="mk yes">✓</span></td>
+            </tr>
+            <tr>
+              <th>Nacionaliza a su nombre (no tratas con aduana)</th>
+              <td><span class="mk part">~</span></td>
+              <td><span class="mk yes">✓</span><span class="lab">ya está en VE</span></td>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk no">–</span></td>
+              <td class="us"><span class="mk yes">✓</span></td>
+            </tr>
+            <tr>
+              <th>Un solo responsable, sin traspasos</th>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk yes">✓</span></td>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk no">–</span></td>
+              <td class="us"><span class="mk yes">✓</span></td>
+            </tr>
+            <tr>
+              <th>Puerta a puerta con trazabilidad</th>
+              <td><span class="mk part">~</span></td>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk no">–</span></td>
+              <td><span class="mk part">~</span></td>
+              <td class="us"><span class="mk yes">✓</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- WEDGE -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">02 / LA CUÑA</div>
+        <h2>Lo que nadie más puede decir</h2>
+        <p class="lead">Tres razones para creer que sostienen el «único». No son adjetivos: son hechos verificables.</p>
+      </div>
+      <div class="wedge">
+        <div class="w">
+          <div class="n">01</div>
+          <h3>Presencia propia en los dos extremos</h3>
+          <p>Equipo y bodega en Yiwu y en Valencia. No tercerizamos el origen ni el destino — por eso podemos comprar, inspeccionar y entregar nosotros mismos.</p>
+          <div class="proof">Yiwu · Valencia · equipo propio</div>
+        </div>
+        <div class="w">
+          <div class="n">02</div>
+          <h3>La cadena completa, un solo responsable</h3>
+          <p>Compra, QC, consolidación, flete y nacionalización bajo un mismo techo y un solo punto de contacto. El cliente no arma el rompecabezas; lo recibe armado.</p>
+          <div class="proof">Compra → QC → consolida → nacionaliza</div>
+        </div>
+        <div class="w">
+          <div class="n">03</div>
+          <h3>18 años sostenidos por el boca a boca</h3>
+          <p>Desde 2008, de un primer viaje a Yiwu a 12+ modalidades. La confianza no se declara: se acumuló contenedor a contenedor.</p>
+          <div class="proof">2008 → 2026 · +15 años de trayectoria</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCOPE -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">03 / HONESTIDAD DE ALCANCE</div>
+        <h2>Para quién sí, para quién no</h2>
+        <p class="lead">Un posicionamiento fuerte también dice a quién no le sirve. Decirlo construye más confianza que prometer todo a todos.</p>
+      </div>
+      <div class="scope">
+        <div class="sc yes">
+          <div class="h">DTD es para ti si…</div>
+          <ul>
+            <li>Importas <b>volumen comercial</b> para revender y quieres margen sobre el mayorista local.</li>
+            <li>Quieres <b>comprar directo en China</b> sin viajar, sin hablar chino y sin arriesgar el capital.</li>
+            <li>Necesitas que <b>alguien responda por toda la cadena</b> — de la fábrica a tu depósito.</li>
+            <li>Valoras <b>saber dónde está tu carga</b> en cada paso.</li>
+          </ul>
+        </div>
+        <div class="sc no">
+          <div class="h">DTD no es lo tuyo si…</div>
+          <ul>
+            <li>Solo necesitas <b>un paquete pequeño y personal</b> → te conviene un casillero/courier.</li>
+            <li>Quieres <b>el producto hoy mismo</b> en góndola → compra al mayorista local.</li>
+            <li>Buscas únicamente <b>mover una caja ya comprada</b>, sin compra ni inspección → un forwarder simple alcanza.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="foot">
+      <b>Posicionamiento · DTD-Cargo v4.5</b> — declaración + marco competitivo + razones para creer. Deriva del propósito/heritage (Brand Book §02–§03) y alimenta los pilares de mensaje (Mensajes y Audiencias). Castellano venezolano, tuteo.
+    </div>
+  </div>
+
+</body>
+</html>

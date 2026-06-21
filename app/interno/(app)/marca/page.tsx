@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 };
 
 const BRAND_BOOK = "/marca/asset/brand-book";
-const BRAND_BOOK_VERSION = "v4.4";
+const BRAND_BOOK_VERSION = "v4.5";
 
 const NAV: NavItem[] = [
   { id: "descargas-rapidas", label: "Descargas" },

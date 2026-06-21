@@ -7,7 +7,7 @@
 ## ⚠️ Estado (purga brand v3.7 · 2026-06-10)
 
 - **Lo único vigente es el Norte:** [`studio/_norte/`](studio/_norte/) (protocolo NORTE-SYNC; bitácora en [`studio/NORTE-CHANGELOG.md`](studio/NORTE-CHANGELOG.md)).
-- **El Brand Book vigente es UNO solo** — el de mayor versión en `_norte/` (hoy **`Brand Book DTD v4.4.html`**). Al llegar uno nuevo: se reemplaza y **se borra el anterior** (acá y en `public/marca/`). Publicado privado: `/marca/brand-book` · hub interno del equipo: `/interno/marca`.
+- **El Brand Book vigente es UNO solo** — el de mayor versión en `_norte/` (hoy **`Brand Book DTD v4.5.html`**). Al llegar uno nuevo: se reemplaza y **se borra el anterior** (acá y en `public/marca/`). Publicado privado: `/marca/brand-book` · hub interno del equipo: `/interno/marca`.
 - **Las carpetas históricas de diseño se eliminaron del working tree el 2026-06-10** (decisión founder; la historia completa vive en git — lista exacta en la entrada 2026-06-10 de [`studio/NORTE-CHANGELOG.md`](studio/NORTE-CHANGELOG.md)). Para consultarlas: `git log --oneline -- "docs/design/<carpeta>"` y checkout del commit.
 - **Anti-drift:** `/radar` corre el **gate de marca** (Regla 0.5) — cero referencias a books/carpetas pre-v3.7 en archivos vivos, casing "Con Confianza", terminología Shipping Mark, y book publicado == book del Norte.
 

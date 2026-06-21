@@ -643,7 +643,7 @@
             <div style={{ display: 'flex', gap: 14 }}>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div><Label>Nombre</Label><input value={name} onChange={(e) => setName(e.target.value)} placeholder={isGroup ? 'Ej. DDP Puerta a Puerta' : 'Nombre del ' + meta.label.toLowerCase()} style={inputBox} /></div>
-                <div><Label hint="opcional">SKU / código</Label><input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Autogenerado si lo dejás vacío" style={{ ...inputBox, fontFamily: 'var(--f-mono)' }} /></div>
+                <div><Label hint="opcional">SKU / código</Label><input value={sku} onChange={(e) => setSku(e.target.value)} placeholder="Autogenerado si lo dejas vacío" style={{ ...inputBox, fontFamily: 'var(--f-mono)' }} /></div>
               </div>
               <button type="button" onClick={() => setHasImg(v => !v)} title="Imagen del servicio" style={{ width: 88, height: 88, flexShrink: 0, borderRadius: 'var(--r-md)', border: '1px dashed ' + (hasImg ? 'var(--wine)' : 'var(--border)'), background: hasImg ? 'var(--wine-tint)' : 'var(--bg-elevated)', color: hasImg ? 'var(--wine)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 5, font: '600 9px/1.2 var(--f-sans)' }}>
                 {ic('image', 22, 'box')}{hasImg ? 'Imagen ✓' : 'Imagen'}

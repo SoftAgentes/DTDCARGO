@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8" />
-<title>DTD-Cargo · Brand Book v4.4</title>
+<title>DTD-Cargo · Brand Book v4.5</title>
 <meta name="robots" content="noindex, nofollow" />
 <meta name="description" content="Documento privado de marca · DTD Cargo · Doortudoor Services · J-50648869-8. Hub de marca interno — no difundir." />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
@@ -338,17 +338,30 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
 <!-- ══════════════════ SIDEBAR ══════════════════ -->
 <aside class="sidebar">
   <div class="sidebar-head">
+    <a id="bb-hub-link" href="Brand Hub · DTD-Cargo.html" style="display:none; align-items:center; gap:7px; font:700 10.5px/1 'Archivo', sans-serif; letter-spacing:0.08em; text-transform:uppercase; color:#C2747F; text-decoration:none; margin-bottom:16px;">← Brand Hub · empieza aquí</a>
+    <script>
+    /* El "← Brand Hub" solo sirve si el Hub viaja al lado (proyecto vivo / paquete).
+       En el standalone enviado solo, no existe → lo dejamos oculto para no romper. */
+    (function(){
+      var el = document.getElementById('bb-hub-link');
+      if (!el) return;
+      fetch('Brand Hub · DTD-Cargo.html', { method: 'HEAD' })
+        .then(function(r){ if (r && r.ok) el.style.display = 'inline-flex'; })
+        .catch(function(){ /* sin Hub al lado: queda oculto */ });
+    })();
+    </script>
     <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" class="iso" />
     <div class="title">DTD Cargo</div>
-    <div class="v">Brand Book · v4.4</div>
+    <div class="v">Brand Book · v4.5</div>
     <div class="sub">Sistema completo de identidad y aplicaciones de marca. Junio 2026.</div>
   </div>
   <nav id="bb-nav">
     <div class="group-label">Sistema · Fundamento</div>
     <a href="#cover"><span class="n">00</span>Portada</a>
-    <a href="#changelog"><span class="n">01</span>Changelog v2→v3</a>
+    <a href="#changelog"><span class="n">01</span>Changelog v2→v4.5</a>
     <a href="#foundation"><span class="n">02</span>Fundamento de marca</a>
     <a href="#purpose" class="sub"><span class="n">02·</span>Propósito · Misión · Visión</a>
+    <a href="Arquitectura de Marca · DTD-Cargo.html" class="sub" style="color:var(--wine);"><span class="n">★</span>Arquitectura de marca</a>
     <a href="#heritage"><span class="n">03</span>Heritage 2008-2026</a>
     <div class="group-label">Sistema · Visual</div>
     <a href="#logo"><span class="n">04</span>Logo · 4 variantes</a>
@@ -391,7 +404,7 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
   </nav>
   <div class="sidebar-foot">
     <button class="btn-download" onclick="window.print()">⎙ Imprimir / PDF</button>
-    <div class="meta">v4.4 · 19 Jun 2026 · privado</div>
+    <div class="meta">v4.5 · 20 Jun 2026 · privado</div>
   </div>
 </aside>
 
@@ -402,10 +415,10 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
 <section id="cover">
   <div class="cover-inner">
     <div class="cover-eyebrow">DTD-Cargo · Brand Book</div>
-    <h1>v4.4 · <span class="accent">una marca,</span><br/>un sistema completo.</h1>
+    <h1>v4.5 · <span class="accent">una marca,</span><br/>un sistema completo.</h1>
     <div class="cover-tag">Identidad visual + aplicaciones operacionales + voz de marca. Reseteo desde el isólogo oficial al spinner de la app móvil — todo coherente, todo derivable. <b>Nuevo en v4.4:</b> recursos gráficos chinos recoloreados a la marca (meandro, olas, nube, marco, esquinas sueltas, motivos festivos linterna y nudo, dragón de herencia), plantillas de Stories/feed integradas al Generador de Redes, y el Packing List + Factura bilingüe (中/EN) renovado. <b>v4.3:</b> Academia del alumno (Portal), Hub de Enlaces (link-in-bio de Instagram), registro reestructurado, Próxima salida de contenedor y panel de Tweaks en el Portal.</div>
     <div class="cover-meta">
-      <div><span class="k">Versión</span><span class="v">4.4</span></div>
+      <div><span class="k">Versión</span><span class="v">4.5</span></div>
       <div><span class="k">Fecha</span><span class="v">Jun 2026</span></div>
       <div><span class="k">Secciones</span><span class="v">16</span></div>
       <div><span class="k">Acceso</span><span class="v">Privado</span></div>
@@ -421,13 +434,29 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
 <section id="changelog">
   <div class="sec-head">
     <div class="num">01 / CHANGELOG</div>
-    <h2>De v2.4 a v4.4 · qué cambió</h2>
-    <p class="lead">Esto NO es un patch — es una revisión mayor. El logo se reconstruyó, las variantes se sistematizaron y se agregaron sistemas nuevos. <b>v4.4</b> suma los recursos gráficos chinos recoloreados a la marca, las plantillas de Stories/feed dentro del Generador de Redes y el Packing List bilingüe renovado (ver fila v4.4). <b>v4.3</b> sumó la Academia del alumno, el Hub de Enlaces y la reestructura del registro. <b>v4.2</b> sumó el Brand Hub y el Launcher.</p>
+    <h2>De v2.4 a v4.5 · qué cambió</h2>
+    <p class="lead">Esto NO es un patch — es una revisión mayor. El logo se reconstruyó, las variantes se sistematizaron y se agregaron sistemas nuevos. <b>v4.5</b> rediseña el Portal del Cliente y suma el Sistema de Movimiento (ver fila v4.5). <b>v4.4</b> sumó los recursos gráficos chinos recoloreados a la marca, las plantillas de Stories/feed dentro del Generador de Redes y el Packing List bilingüe renovado. <b>v4.3</b> sumó la Academia del alumno, el Hub de Enlaces y la reestructura del registro. <b>v4.2</b> sumó el Brand Hub y el Launcher.</p>
   </div>
+  <style>
+    .cl-tabs{display:flex;gap:8px;margin:0 0 18px;flex-wrap:wrap}
+    .cl-tab{font:700 12px/1 var(--f-sans, sans-serif);padding:9px 16px;border-radius:999px;border:1px solid var(--border,#E8E6E2);background:var(--bg-surface,#fff);color:var(--ink-soft,#6B6B6B);cursor:pointer}
+    .cl-tab.on{background:var(--wine,#7F0F1A);border-color:var(--wine,#7F0F1A);color:#fff}
+    .cl-tab .n{font:600 10px/1 var(--f-mono, monospace);opacity:.7;margin-left:6px}
+  </style>
+  <div class="cl-tabs">
+    <button class="cl-tab on" data-t="v4" onclick="clTab(this)">Serie v4<span class="n">4</span></button>
+    <button class="cl-tab" data-t="v3" onclick="clTab(this)">Serie v3<span class="n">9</span></button>
+    <button class="cl-tab" data-t="v2" onclick="clTab(this)">Reset v2.4<span class="n">13</span></button>
+  </div>
+  <script>function clTab(b){var s=b.closest('section');s.querySelectorAll('.cl-tab').forEach(function(x){x.classList.toggle('on',x===b)});s.querySelectorAll('.cl-panel').forEach(function(p){p.hidden=p.getAttribute('data-cl')!==b.getAttribute('data-t')})}</script>
   <div class="changelog">
+    <div class="cl-panel" data-cl="v4">
+    <div class="row"><span class="tag add">v4.5</span><div><strong>Portal del cliente rediseñado + Sistema de Movimiento (junio 2026)</strong> · <b>Portal</b> reorganizado: nav por Inicio · <b>Alertas mis envíos</b> (ciclo Pre-alerta → Alerta → Envío, con proveedores y documentos adentro) · Finanzas · Referidos · Academia · Soporte. <b>Nueva compra</b> (prellenado → prealerta) en pantalla completa con combobox de proveedor, <b>Packing List embebido</b> con permisos (Shipping Mark del cliente bloqueado, el detalle veraz lo cierra el proveedor), <b>Seguimiento total</b> por contenedor y <b>Calculadora flotante</b> (CBM + normal). <b>Sistema de Movimiento</b> (motion): una curva + tres duraciones, principios sí/nunca, respeto a reduced-motion. <b>Brand Hub</b> reestructurado en dos ejes (Sistema · Producto · Herramientas) + capa de Producto. Voz de IA y copy de cliente unificados a <b>tuteo</b>.</div></div>
     <div class="row"><span class="tag add">v4.4</span><div><strong>Recursos gráficos, plantillas sociales y Packing List (junio 2026)</strong> · <b>Recursos gráficos chinos</b> recoloreados a la paleta de marca: meandro, olas, nube, marco y esquinas sueltas (uso diario), motivos festivos <b>linterna 灯笼</b> y <b>nudo 中国结</b> (solo temporada), y el <b>dragón de herencia</b> en duotono. <b>Plantillas de Stories/feed</b> (9:16 y 1:1) integradas al Generador de Redes con editor, fotos y descarga. <b>Packing List + Factura</b> bilingüe 中/EN renovado: caja mixta, etiquetas Shipping Mark, adjuntos, autoguardado y vista móvil.</div></div>
     <div class="row"><span class="tag add">v4.3</span><div><strong>Academia, Enlaces y registro (junio 2026)</strong> · <b>Academia DTD del alumno</b> en el Portal (7 pantallas mobile: gate, inicio, curso, reproductor, diplomas, cohortes, Club) + standalone iPhone. <b>Hub de Enlaces</b> (link-in-bio de Instagram, canónico). <b>Registro</b> reestructurado: acceso por correo + contraseña, cédula con prefijo V/E/P, teléfono con selector de código de país (autodetección), foto opcional. Portal: tarjeta <b>Próxima salida</b> de contenedor + panel de <b>Tweaks</b>. Asteriscos de obligatorio en rojo.</div></div>
     <div class="row"><span class="tag add">v4.2</span><div><strong>Herramientas de marca + operación (junio 2026)</strong> · se suman al hub: <b>Brand Hub</b> (índice central de marca) y <b>DTD Apps · Launcher</b> (producto), Packing List + Factura bilingüe, Firma de email, Packaging logístico, Cotización DDP, Plantilla de presentación, Asistente de contenido (IA), Diplomas, Kit de bienvenida, Tarjeta por empleado, Reels + logo sonoro. Operación: Inventario de consolidación, Reclamos y siniestros, Academia/LMS, Scorecard de proveedores, Dashboard ejecutivo. Hero web rediseñado (Ciclo del Cliente reemplaza el “360°”).</div></div>
+    </div>
+    <div class="cl-panel" data-cl="v3" hidden>
     <div class="row"><span class="tag add">v3.7</span><div><strong>WhatsApp Business · todo en una sección interactiva</strong> · se unifica en la sección 09 lo que estaba disperso: <b>configurar el perfil por número</b> (selector de los 8 teléfonos → nombre de perfil, perfil completo/básico, catálogo SÍ/NO) con <b>botón Copiar</b> en cada campo (perfil, 8 ítems del catálogo, bienvenida/ausencia, 9 respuestas rápidas, etiquetas) + descarga de la foto de perfil, los <b>7 íconos de grupos / canales</b> y los <b>stickers</b> para el chat — más enlaces al generador de imágenes del catálogo y al comprobante</div></div>
     <div class="row"><span class="tag add">v3.6</span><div><strong>Marca en WhatsApp Business</strong> · estándar de tarjeta de catálogo <code>1080×1080</code> (foto 2/3 + franja navy 1/3, <b>sin logo en la imagen</b> — la marca va en metadata del PNG), los <b>8 servicios</b> (DDP principal · LCL · FCL Bodega · FCL Directo · Aduana · Inspección · Compra asistida · Terrestre), perfil por número (8 líneas) y kit de mensajería (bienvenida, ausencia, 9 respuestas rápidas, etiquetas) — sección 09</div></div>
     <div class="row"><span class="tag chg">CHANGED</span><div><strong>Assets como descargables</strong> · cada grupo (logos, paleta, tipografía, plantillas, servicios WhatsApp) se reestructura como mini-página de descarga directa por ítem</div></div>
@@ -437,6 +466,8 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
     <div class="row"><span class="tag add">v3.2</span><div><strong>App icon iOS/Android</strong> · ícono oficial de la app DTD Cargo, descargable (PNG + ZIP) desde <b>Capa de producto (sección 13)</b></div></div>
     <div class="row"><span class="tag add">v3.2</span><div><strong>Barra de navegación clara</strong> · el sidebar del ERP pasa a Papel DTD <code>#FBFAF7</code> con tokens propios <code>--bg-nav</code> (sección 06)</div></div>
     <div class="row"><span class="tag chg">CHANGED</span><div><strong>Wordmark</strong> · de <code>DTDCARGO</code> (una palabra, mayúsculas) a <code>DTD Cargo</code> (dos palabras, capitalizado, Archivo Black, gap 0.15em)</div></div>
+    </div>
+    <div class="cl-panel" data-cl="v2" hidden>
     <div class="row"><span class="tag add">NEW</span><div><strong>4 variantes oficiales del isólogo</strong> con reglas WCAG · primary · reverse · mono-light · mono-dark</div></div>
     <div class="row"><span class="tag add">NEW</span><div><strong>Sistema de 15 íconos de perfil</strong> · 8 roles individuales + 7 grupos / canales WhatsApp</div></div>
     <div class="row"><span class="tag add">NEW</span><div><strong>12 aplicaciones de marca</strong> · favicon, factura, sello, sticker pack, QR, mapa, watermark, etc.</div></div>
@@ -450,6 +481,7 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
     <div class="row"><span class="tag rem">REMOVED</span><div><strong>Filtros CSS</strong> <code>filter: brightness(0) invert(1)</code> sobre el isólogo — reemplazados por variantes nativas</div></div>
     <div class="row"><span class="tag rem">REMOVED</span><div><strong>Uso de wine-soft</strong> en el wordmark · ahora wine-soft es solo acento decorativo (charts, badges)</div></div>
     <div class="row"><span class="tag chg">CHANGED</span><div><strong>Regla de contraste WCAG 3:1 mínimo</strong> · documentada y enforceable por archivo (no se inventan combos)</div></div>
+    </div>
   </div>
 </section>
 
@@ -486,7 +518,7 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
 <!-- ══════════ 02 · PROPÓSITO · MISIÓN · VISIÓN ══════════ -->
 <section id="purpose">
   <div class="sec-head">
-    <div class="num">02 / PROPÓSITO · MISIÓN · VISIÓN</div>
+    <div class="num">02 · PROPÓSITO · MISIÓN · VISIÓN</div>
     <h2>La identidad estratégica</h2>
     <p class="lead">Por qué existimos, qué hacemos hoy y a dónde vamos. La base que sostiene cada decisión de marca y de producto.</p>
   </div>
@@ -727,6 +759,100 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
   </div>
 
   <p style="font-size:12.5px; color:var(--ink-mute); margin:12px 2px 0;">Apoyos técnicos (compartidos con el ERP): <b style="color:var(--ink);">JetBrains Mono</b> para códigos (Shipping Mark, tracking) y <b style="color:var(--ink);">Noto Sans SC</b> solo para chino (唛头). No son fuentes de titular — entran únicamente donde hay un dato o texto en mandarín.</p>
+
+  <!-- ░░ DESCARGA DE TIPOGRAFÍAS ░░ -->
+  <div class="card" style="padding:22px; margin-top:22px;">
+    <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:16px;">
+      <div>
+        <h4 style="margin:0 0 4px;">Descargar las tipografías</h4>
+        <p style="font-size:13px; color:var(--ink-soft); margin:0; max-width:62ch;">Todas son gratuitas (SIL Open Font License · uso comercial OK). Bájalas de la fuente oficial, o descarga la ficha con nombres, pesos y el CSS listo para pegar.</p>
+      </div>
+      <button onclick="dlFontSpec()" style="flex:0 0 auto; display:inline-flex; align-items:center; gap:8px; padding:11px 18px; border:0; border-radius:999px; background:var(--wine); color:#fff; font:700 12.5px/1 var(--f-sans); cursor:pointer;">⤓ Ficha de tipografías (.txt)</button>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px;">
+      <a href="https://fonts.google.com/specimen/Archivo+Black" target="_blank" rel="noopener" class="font-dl">
+        <span class="fd-name" style="font-family:'Archivo Black',sans-serif;">Archivo Black</span>
+        <span class="fd-role">Branding · titulares · wordmark</span>
+        <span class="fd-go">Descargar de Google Fonts ↗</span>
+      </a>
+      <a href="https://fonts.google.com/specimen/Archivo" target="_blank" rel="noopener" class="font-dl">
+        <span class="fd-name" style="font-family:'Archivo',sans-serif; font-weight:700;">Archivo</span>
+        <span class="fd-role">Branding · cuerpo · impreso</span>
+        <span class="fd-go">Descargar de Google Fonts ↗</span>
+      </a>
+      <a href="https://fonts.google.com/specimen/Sora" target="_blank" rel="noopener" class="font-dl">
+        <span class="fd-name" style="font-family:'Sora',sans-serif; font-weight:700;">Sora</span>
+        <span class="fd-role">Sistema · títulos / display</span>
+        <span class="fd-go">Descargar de Google Fonts ↗</span>
+      </a>
+      <a href="https://fonts.google.com/specimen/Nunito+Sans" target="_blank" rel="noopener" class="font-dl">
+        <span class="fd-name" style="font-family:'Nunito Sans',sans-serif; font-weight:700;">Nunito Sans</span>
+        <span class="fd-role">Sistema · cuerpo · UI</span>
+        <span class="fd-go">Descargar de Google Fonts ↗</span>
+      </a>
+      <a href="https://fonts.google.com/specimen/JetBrains+Mono" target="_blank" rel="noopener" class="font-dl">
+        <span class="fd-name" style="font-family:'JetBrains Mono',monospace; font-weight:700;">JetBrains Mono</span>
+        <span class="fd-role">Códigos · Shipping Mark · tracking</span>
+        <span class="fd-go">Descargar de Google Fonts ↗</span>
+      </a>
+      <a href="https://fonts.google.com/noto/specimen/Noto+Sans+SC" target="_blank" rel="noopener" class="font-dl">
+        <span class="fd-name" style="font-family:'Noto Sans SC',sans-serif; font-weight:700;">Noto Sans SC · 思源</span>
+        <span class="fd-role">Solo chino mandarín (唛头)</span>
+        <span class="fd-go">Descargar de Google Fonts ↗</span>
+      </a>
+    </div>
+  </div>
+  <style>
+    .font-dl { display:flex; flex-direction:column; gap:4px; padding:14px 15px; border:1px solid var(--border); border-radius:var(--r-md, 7px); background:var(--bg-elevated); text-decoration:none; transition:border-color 140ms ease, transform 140ms ease; }
+    .font-dl:hover { border-color:var(--wine); transform:translateY(-2px); }
+    .font-dl .fd-name { font-size:20px; line-height:1.1; color:var(--ink); }
+    .font-dl .fd-role { font:500 11px/1.35 var(--f-sans); color:var(--ink-soft); }
+    .font-dl .fd-go { font:700 10.5px/1 var(--f-mono, monospace); color:var(--wine); letter-spacing:0.02em; margin-top:6px; }
+  </style>
+  <script>
+  function dlFontSpec(){
+    var t = [
+      'DTD CARGO · TIPOGRAFIAS OFICIALES · v4.5',
+      'Con Confianza, de China a tu puerta.',
+      '============================================',
+      '',
+      'Todas las familias son gratuitas (SIL Open Font License) — uso comercial permitido.',
+      '',
+      'BRANDING  (logo, redes, flyers, correos, firma)',
+      '  Archivo Black  — wordmark "DTD Cargo", titulares, numeros grandes. Peso 900.',
+      '      https://fonts.google.com/specimen/Archivo+Black',
+      '  Archivo        — cuerpo, bajadas, captions, impreso. Pesos 400 / 500 / 700.',
+      '      https://fonts.google.com/specimen/Archivo',
+      '',
+      'SISTEMA  (ERP, portal, apps de producto)',
+      '  Sora           — titulos / display, KPI. Pesos 500 / 600 / 700 / 800.',
+      '      https://fonts.google.com/specimen/Sora',
+      '  Nunito Sans    — cuerpo, labels, botones. Pesos 400 a 800.',
+      '      https://fonts.google.com/specimen/Nunito+Sans',
+      '',
+      'TECNICAS  (compartidas)',
+      '  JetBrains Mono — codigos: Shipping Mark, tracking, facturas. Pesos 400-700.',
+      '      https://fonts.google.com/specimen/JetBrains+Mono',
+      '  Noto Sans SC   — SOLO chino mandarin (唛头, direcciones CN).',
+      '      https://fonts.google.com/noto/specimen/Noto+Sans+SC',
+      '',
+      'CSS rapido (Google Fonts) — pegar en el <head>:',
+      '<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;900&family=Nunito+Sans:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Noto+Sans+SC&display=swap" rel="stylesheet">',
+      '',
+      'REGLA DE MARCA',
+      '  Branding = Archivo / Archivo Black.   Producto = Sora + Nunito Sans.',
+      '  Nunca: Inter, Roboto, Montserrat, Lato, Helvetica ni fuentes serif.',
+      '',
+      'DTD Cargo · Doortudoor Services · RIF J-50648869-8 · info@dtdcargo.com'
+    ].join('\n');
+    var b = new Blob([t], { type: 'text/plain;charset=utf-8' });
+    var u = URL.createObjectURL(b);
+    var a = document.createElement('a');
+    a.href = u; a.download = 'DTD-Cargo · Tipografias v4.5.txt';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(u); }, 100);
+  }
+  </script>
 
   <!-- ░░ REDES SOCIALES ░░ -->
   <div style="display:flex; align-items:baseline; gap:12px; margin:36px 0 14px;">
@@ -2136,7 +2262,7 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
 
   <!-- Cierre del apéndice -->
   <div style="margin-top: 40px; padding-top: 36px; border-top: 2px solid var(--ink);">
-    <div class="eyebrow" style="margin-bottom: 16px;">Cierre · Brand Book v4.4</div>
+    <div class="eyebrow" style="margin-bottom: 16px;">Cierre · Brand Book v4.5</div>
     <h3 style="font: 900 32px/1.12 'Archivo Black', sans-serif; letter-spacing: -0.02em; margin: 0 0 14px; max-width: 18ch;">
       Con <span style="color: var(--wine);">Confianza</span>, de China a tu puerta.
     </h3>
@@ -2171,7 +2297,7 @@ section:nth-child(even) .wa-sticker-tags .st { background: var(--bg-surface); }
     <img src="assets/dtdcargo-isologo-reverse.png" style="width: 36px;" alt="" />
     <span class="mark" style="font-size: 24px;"><span class="dtd">DTD</span><span class="gap"></span><span class="cargo">Cargo</span></span>
   </div>
-  <p>© 2026 DTD-Cargo · Doortudoor Services · Brand Book v4.4 · Junio 2026 · documento privado, no difundir<br/>www.dtdcargo.com · Made in Yiwu & Valencia</p>
+  <p>© 2026 DTD-Cargo · Doortudoor Services · Brand Book v4.5 · Junio 2026 · documento privado, no difundir<br/>www.dtdcargo.com · Made in Yiwu & Valencia</p>
 </div>
 
 </div>

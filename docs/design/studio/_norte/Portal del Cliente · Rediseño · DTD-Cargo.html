@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Portal del Cliente · Rediseño 2026-06 · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  a { color: inherit; text-decoration: none; }
+  code { font-family: var(--f-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: 3px; font-size: 0.92em; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 var(--s-8); }
+  @media (max-width: 720px){ .wrap { padding: 0 var(--s-5); } }
+
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: var(--s-10) 0 var(--s-16); }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .brandline { display: flex; align-items: center; gap: 14px; }
+  .brandline img { width: 44px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 25px; line-height: .9; color: #F2F0EC; }
+  .wm .sp { display: inline-block; width: 0.15em; }
+  .crumbs { font: 600 11px/1 var(--f-mono); color: rgba(242,240,236,0.62); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .crumbs a:hover { color: #fff; }
+  .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); margin-left: 6px; }
+  .eyebrow-h { font: 700 11px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine-soft); margin: 40px 0 16px; }
+  .hero h1 { font: 800 44px/1.05 var(--f-display); letter-spacing: -0.025em; margin: 0 0 18px; max-width: 20ch; }
+  .hero h1 .ac { color: var(--wine-soft); }
+  .hero .lede { font: 400 17px/1.6 var(--f-sans); color: rgba(242,240,236,0.82); margin: 0 0 26px; max-width: 66ch; }
+  .hero .actions { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; font: 700 13px/1 var(--f-sans); padding: 12px 20px; border-radius: var(--r-pill); cursor: pointer; }
+  .btn.p { background: var(--wine); color: #fff; }
+  .btn.s { background: rgba(242,240,236,0.1); color: #F2F0EC; border: 1px solid rgba(242,240,236,0.24); }
+
+  section.block { padding: var(--s-16) 0 0; }
+  .sec-head .num { font: 700 11px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); }
+  .sec-head h2 { font: 800 31px/1.12 var(--f-display); letter-spacing: -0.022em; margin: 12px 0 10px; }
+  .sec-head .lead { font: 400 16px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 74ch; }
+
+  /* IA / nav */
+  .nav-row { margin-top: var(--s-8); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-5); }
+  @media (max-width: 860px){ .nav-row { grid-template-columns: 1fr; } }
+  .nv { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .nv .t { font: 700 16px/1.2 var(--f-display); letter-spacing: -0.01em; display: flex; align-items: center; gap: 9px; }
+  .nv .small { font: 700 9.5px/1 var(--f-sans); letter-spacing: 0.08em; text-transform: uppercase; color: var(--wine); background: var(--wine-bg); padding: 3px 7px; border-radius: var(--r-pill); }
+  .nv p { font: 400 13.5px/1.6 var(--f-sans); color: var(--ink-soft); margin: 10px 0 0; }
+  .nv ul { margin: 12px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; }
+  .nv li { font: 400 12.5px/1.5 var(--f-sans); color: var(--ink-soft); padding-left: 16px; position: relative; }
+  .nv li::before { content: "›"; position: absolute; left: 0; color: var(--wine); font-weight: 800; }
+  .nv li b { color: var(--ink); font-weight: 700; }
+
+  /* lifecycle */
+  .life { margin-top: var(--s-8); display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; }
+  .ls { flex: 1; min-width: 150px; background: var(--bg-surface); border: 1px solid var(--border); padding: var(--s-6); position: relative; }
+  .ls:first-child { border-radius: var(--r-lg) 0 0 var(--r-lg); }
+  .ls:last-child { border-radius: 0 var(--r-lg) var(--r-lg) 0; }
+  .ls .st { font: 700 10px/1 var(--f-sans); letter-spacing: 0.1em; text-transform: uppercase; color: var(--wine); }
+  .ls .nm { font: 800 19px/1.1 var(--f-display); letter-spacing: -0.015em; margin: 10px 0 8px; }
+  .ls .d { font: 400 12.5px/1.55 var(--f-sans); color: var(--ink-soft); }
+  .ls .who { font: 600 11px/1.3 var(--f-mono); color: var(--ink-mute); margin-top: 10px; }
+  @media (max-width: 760px){ .ls { border-radius: var(--r-lg) !important; } }
+
+  /* flow steps */
+  .flow { margin-top: var(--s-8); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-5); }
+  @media (max-width: 860px){ .flow { grid-template-columns: 1fr; } }
+  .fs { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .fs .n { width: 30px; height: 30px; border-radius: 50%; background: var(--wine); color: #fff; display: grid; place-items: center; font: 800 13px/1 var(--f-display); margin-bottom: 12px; }
+  .fs h3 { font: 700 15px/1.25 var(--f-display); margin: 0 0 6px; letter-spacing: -0.01em; }
+  .fs p { font: 400 13px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; }
+  .fs p b { color: var(--ink); font-weight: 700; }
+
+  /* decisions table */
+  .dec { margin-top: var(--s-8); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; }
+  .dec .r { display: grid; grid-template-columns: 220px 1fr; gap: 0; border-top: 1px solid var(--border); }
+  .dec .r:first-child { border-top: 0; }
+  .dec .k { padding: 16px 18px; background: var(--bg-elevated); font: 700 13px/1.4 var(--f-sans); color: var(--ink); }
+  .dec .v { padding: 16px 18px; background: var(--bg-surface); font: 400 13.5px/1.6 var(--f-sans); color: var(--ink-soft); }
+  .dec .v b { color: var(--ink); font-weight: 700; }
+  @media (max-width: 680px){ .dec .r { grid-template-columns: 1fr; } .dec .k { border-bottom: 1px solid var(--border); } }
+
+  /* handoff / seams */
+  .seams { margin-top: var(--s-8); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+  @media (max-width: 760px){ .seams { grid-template-columns: 1fr; } }
+  .seam { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); }
+  .seam .h { font: 700 13px/1.3 var(--f-display); margin-bottom: 8px; }
+  .seam code { display: inline-block; margin: 2px 0; }
+  .seam p { font: 400 12.5px/1.6 var(--f-sans); color: var(--ink-soft); margin: 8px 0 0; }
+
+  .callout { margin-top: var(--s-12); background: var(--ink); color: #F2F0EC; border-radius: var(--r-xl); padding: var(--s-10); }
+  .callout .kick { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine-soft); }
+  .callout h2 { font: 800 23px/1.25 var(--f-display); letter-spacing: -0.02em; margin: 12px 0 12px; max-width: 36ch; }
+  .callout p { font: 400 14px/1.65 var(--f-sans); color: rgba(242,240,236,0.8); margin: 0 0 8px; max-width: 78ch; }
+  .callout ul { margin: 12px 0 0; padding-left: 20px; }
+  .callout li { font: 400 13.5px/1.7 var(--f-sans); color: rgba(242,240,236,0.82); }
+  .callout li b { color: #fff; }
+
+  .foot { margin-top: var(--s-12); padding: var(--s-6) 0 var(--s-16); border-top: 1px solid var(--border); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div class="brandline">
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+          <span class="wm"><span>DTD</span><span class="sp"></span><span>Cargo</span></span>
+        </div>
+        <div class="crumbs"><a href="Brand Hub · DTD-Cargo.html">Brand Hub</a> <span>/</span> Producto <span>/</span> Portal · Rediseño <span class="ver">v4.5 · 2026-06</span></div>
+      </div>
+      <div class="eyebrow-h">Capa de producto · Documentación</div>
+      <h1>El rediseño del <span class="ac">Portal del Cliente.</span></h1>
+      <p class="lede">La app del cliente se reorganizó alrededor de cómo el cliente piensa su carga: avisa una compra, la sigue hasta su puerta y paga al llegar. Esta es la documentación viva del rediseño — la arquitectura, los flujos y las decisiones — para que el handoff a Norte se aplique sin reinterpretar.</p>
+      <div class="actions">
+        <a class="btn p" href="Portal del Cliente.html">Abrir el Portal →</a>
+        <a class="btn s" href="Brand Hub · DTD-Cargo.html">Volver al Hub</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- IA / nav -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">01 / ARQUITECTURA DE INFORMACIÓN</div>
+        <h2>Un nav de seis destinos</h2>
+        <p class="lead">Antes había piezas sueltas en el menú (Proveedores, Documentos) que en realidad son <b>parte de un flujo</b>, no destinos. El nav nuevo refleja el modelo mental del cliente: avisar → seguir → pagar, más su cuenta y ayuda.</p>
+      </div>
+      <div class="nav-row">
+        <div class="nv">
+          <div class="t">Inicio</div>
+          <p>Punto de entrada. Atajos a <b>Programar mi compra</b> (= prealerta) y a la <b>Calculadora CBM</b>. Resumen de lo que está en camino.</p>
+        </div>
+        <div class="nv">
+          <div class="t">Alertas mis envíos <span class="small">núcleo</span></div>
+          <p>El corazón del Portal. Aquí vive el ciclo Pre-alerta → Alerta → Envío. Proveedores y Documentos viven <b>dentro</b>, no como menú aparte.</p>
+          <ul>
+            <li><b>Nueva compra</b> (prellenado → prealerta)</li>
+            <li><b>Mis proveedores</b> → Re-comprar entra al mismo flujo</li>
+            <li><b>Seguimiento total</b> (agrupa por contenedor)</li>
+            <li>Documentos <b>atados a cada envío</b>, no sueltos</li>
+          </ul>
+        </div>
+        <div class="nv">
+          <div class="t">Finanzas</div>
+          <p>Eyebrow "Tu dinero". Facturas como tarjetas (con indicador de adjuntos) + chips <b>Estimados</b> y <b>Cotizaciones · próximamente</b>. "Ver tabla completa" alterna a la tabla densa.</p>
+        </div>
+        <div class="nv">
+          <div class="t">Referidos</div>
+          <p>Programa de referidos del cliente.</p>
+        </div>
+        <div class="nv">
+          <div class="t">Academia</div>
+          <p>Formación del cliente (compra inteligente desde China). Hoy en formato mobile embebido.</p>
+        </div>
+        <div class="nv">
+          <div class="t">Soporte</div>
+          <p>Mensajes y asesor por WhatsApp. Perfil y cuenta cuelgan del nombre del cliente (foto, direcciones last-mile, persona/empresa).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Lifecycle -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">02 / EL CICLO</div>
+        <h2>Pre-alerta → Alerta → Envío</h2>
+        <p class="lead">El mismo registro cambia de nombre según dónde está en el proceso. El dato preliminar lo pone el cliente; el dato veraz lo cierra el proveedor.</p>
+      </div>
+      <div class="life">
+        <div class="ls">
+          <div class="st">Paso 1 · lo crea el cliente</div>
+          <div class="nm">Pre-alerta</div>
+          <div class="d">El cliente avisa que viene mercancía: elige proveedor y deja datos preliminares. Internamente es la <b>Compra</b> (cliente) / <b>Orden</b> (ERP).</div>
+          <div class="who">cliente · prellenado</div>
+        </div>
+        <div class="ls">
+          <div class="st">Paso 2 · lo cierra el proveedor</div>
+          <div class="nm">Alerta</div>
+          <div class="d">El proveedor completa el Packing List + Factura (medidas, cantidades, valor reales). La compra queda firme.</div>
+          <div class="who">proveedor · dato veraz</div>
+        </div>
+        <div class="ls">
+          <div class="st">Paso 3 · en movimiento</div>
+          <div class="nm">Envío</div>
+          <div class="d">Ya recibido en bodega CN: se consolida, zarpa y se sigue hasta la puerta. Visible en Seguimiento total.</div>
+          <div class="who">DTD · trazabilidad</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Nueva compra flow -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">03 / FLUJO · NUEVA COMPRA</div>
+        <h2>Registra tu compra, en 1-2-3</h2>
+        <p class="lead">Pantalla completa (no ventana flotante), asistente de tres pasos. Es un <b>prellenado</b>: con proveedor + teléfono ya creas la prealerta — no hace falta tenerlo todo.</p>
+      </div>
+      <div class="flow">
+        <div class="fs">
+          <div class="n">1</div>
+          <h3>Proveedor</h3>
+          <p>Combobox inteligente: escribes y <b>busca tu proveedor interno</b>; si no existe y das Enter, abre <b>proveedor nuevo</b>. Nuevo proveedor exige <b>teléfono</b> (+86 por defecto) y <b>WeChat</b> (captura del ID/QR, no texto).</p>
+        </div>
+        <div class="fs">
+          <div class="n">2</div>
+          <h3>Detalle de la compra</h3>
+          <p>Opcional — <b>tu proveedor termina el detalle</b>. Descripción, cajas, valor estimado, tracking China.</p>
+        </div>
+        <div class="fs">
+          <div class="n">3</div>
+          <h3>Adjuntos y link al proveedor</h3>
+          <p>Adjuntos opcionales + el <b>link del Packing List + Factura</b> para enviar al proveedor (lleva el Shipping Mark del cliente). En escritorio el Packing List abre a pantalla completa; en teléfono, inline.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Decisiones -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">04 / DECISIONES DE DISEÑO</div>
+        <h2>Por qué quedó así</h2>
+        <p class="lead">Las decisiones que rigen el rediseño y que Norte debe respetar al portar.</p>
+      </div>
+      <div class="dec">
+        <div class="r"><div class="k">Proveedores y Documentos no son menú</div><div class="v">Son parte del flujo de compra/envío. Proveedores vive dentro de Alertas; Documentos va <b>atado a cada envío</b> (adjunto), no como sección suelta.</div></div>
+        <div class="r"><div class="k">Nueva compra = pantalla completa</div><div class="v">Nada de ventanas flotantes que se cierran al hacer clic afuera. El cliente trabaja dentro de la vista, con "Volver a Alertas".</div></div>
+        <div class="r"><div class="k">Prellenado, no formulario completo</div><div class="v">El cliente pone lo preliminar (proveedor + teléfono). El <b>dato veraz</b> (medidas, cantidades, factura) lo cierra el proveedor en el Packing List. La nota se auto-colapsa a los ~6 s con un latido de aviso (una sola vez).</div></div>
+        <div class="r"><div class="k">WeChat del proveedor: captura, no texto</div><div class="v">El número va arriba; el WeChat se sube como <b>foto del ID/QR</b> (drop o cámara). Obligatorio para proveedor nuevo — es el canal para contactarlo ante demoras.</div></div>
+        <div class="r"><div class="k">Etiquetas: dentro del Packing List</div><div class="v">No se imprimen en el Portal. Se generan en el Packing List según las cajas que confirma el proveedor, ligadas al Shipping Mark del cliente.</div></div>
+        <div class="r"><div class="k">Seguimiento total por contenedor</div><div class="v">Cuando varias compras viajan consolidadas, se muestran como <b>un solo seguimiento</b> (agrupado por contenedor).</div></div>
+        <div class="r"><div class="k">Calculadora siempre disponible</div><div class="v">FAB flotante, arrastrable y redimensionable, en todas las vistas. No saca al cliente de la pantalla. Dos pestañas (CBM · Normal); contenedor "pronto".</div></div>
+        <div class="r"><div class="k">Packing List · permisos</div><div class="v">Al abrirlo desde el Portal (<code>?mb · ?cliente · ?order</code>): el <b>Shipping Mark se bloquea</b> (dato del cliente); el nombre/empresa queda editable (placeholder de ejemplo, el proveedor puede poner otro destinatario); el resto lo completa el proveedor.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Seams / handoff -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">05 / HANDOFF A NORTE</div>
+        <h2>Archivos y seams</h2>
+        <p class="lead">El prototipo es 100% mock en el navegador. Para producción se reescribe el cuerpo de los seams (misma firma → API). Ver <code>backend/API-CONTRACT.md</code>.</p>
+      </div>
+      <div class="seams">
+        <div class="seam">
+          <div class="h">Archivos fuente (baseline completo)</div>
+          <code>portal/app.jsx</code><br>
+          <code>packlist/Packing List + Factura · DTD-Cargo.html</code><br>
+          <code>calc/cbm-variants.jsx</code><br>
+          <code>erp/tokens.css · components.jsx · icons.jsx</code>
+          <p>Se sincronizan como <b>archivos completos</b>, no diff por diff — los cambios son interdependientes.</p>
+        </div>
+        <div class="seam">
+          <div class="h">Datos y seams</div>
+          <code>window.ERPData</code> (mock realista CN→VE)<br>
+          <code>?mb / ?order / ?cliente</code> (prefill Packing List)<br>
+          <code>navigator.vibrate</code> (latido de aviso)
+          <p>Mock data en <code>erp/data.jsx</code>. Cualquier dato nuevo se agrega ahí y se expone vía <code>window.ERPData</code>.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="callout">
+      <div class="kick">Estado · pendientes conocidos</div>
+      <h2>Qué queda abierto en el Portal</h2>
+      <p>El rediseño está completo y cargando limpio. Quedan mejoras agendadas, no bloqueantes:</p>
+      <ul>
+        <li><b>Academia desktop:</b> hoy embebe el componente mobile-first; falta una vista de dos columnas para escritorio.</li>
+        <li><b>Handoff de Cloud Design:</b> se aplicó B3 (Finanzas); A1/A2/B1/B2 (hero único, registro simplificado, WeChat en Inicio, Mensajes 2-col) siguen pendientes.</li>
+        <li><b>Código muerto en <code>PortalSuppliers</code></b> (label-generator viejo, rebuy) por limpiar antes de Norte.</li>
+      </ul>
+    </div>
+    <div class="foot">
+      <b>Portal del Cliente · Rediseño 2026-06 · DTD-Cargo v4.5</b> — capa de producto del Brand Hub. Castellano venezolano, tuteo. Componentes y tokens del sistema (Nunito Sans + Sora · wine/navy). Fuente de verdad para el handoff a Norte (ver <code>CLAUDE.md</code> §SYNC-NORTE).
+    </div>
+  </div>
+
+</body>
+</html>

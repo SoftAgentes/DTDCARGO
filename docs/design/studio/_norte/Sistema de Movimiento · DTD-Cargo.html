@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Movimiento · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=Archivo+Black&family=Sora:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--s-8); }
+  @media (max-width: 720px){ .wrap { padding: 0 var(--s-5); } }
+
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: var(--s-12) 0 var(--s-16); }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .brandline { display: flex; align-items: center; gap: 14px; }
+  .brandline img { width: 46px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 26px; line-height: .9; color: #F2F0EC; }
+  .wm .sp { display: inline-block; width: 0.15em; }
+  .crumbs { font: 600 11px/1 var(--f-mono); color: rgba(242,240,236,0.62); display: flex; align-items: center; gap: 8px; }
+  .crumbs a:hover { color: #fff; }
+  .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); margin-left: 6px; }
+  .eyebrow-h { font: 700 11px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine-soft); margin: 44px 0 16px; }
+  .hero h1 { font: 800 46px/1.05 var(--f-display); letter-spacing: -0.025em; margin: 0 0 18px; max-width: 17ch; }
+  .hero h1 .ac { color: var(--wine-soft); }
+  .hero .lede { font: 400 17px/1.6 var(--f-sans); color: rgba(242,240,236,0.82); margin: 0; max-width: 64ch; }
+
+  /* principio (auto-demo) */
+  .demo { margin-top: -54px; position: relative; z-index: 4; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--shadow-lg); padding: var(--s-8) var(--s-10); }
+  .demo .kick { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine); }
+  .demo h2 { font: 800 26px/1.15 var(--f-display); letter-spacing: -0.02em; margin: 12px 0 10px; }
+  .demo p { font: 400 15px/1.65 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 76ch; }
+  .stage { margin-top: var(--s-6); display: flex; align-items: center; gap: var(--s-5); padding: var(--s-6); background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-lg); flex-wrap: wrap; }
+  .stage img { width: 52px; height: auto; }
+  @keyframes isoIn { 0%{ opacity:0; transform: translateY(10px) scale(0.94); } 100%{ opacity:1; transform: none; } }
+  @keyframes lineDraw { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: no-preference){
+    .stage img { animation: isoIn var(--dur-slow) var(--ease) both; }
+    .stage .route path { stroke-dasharray: 220; stroke-dashoffset: 220; animation: lineDraw 1.1s var(--ease) .2s forwards; }
+    .replay:active ~ * { } /* noop */
+  }
+  .route { flex: 1; min-width: 180px; }
+  .stage .wmark { font-family: var(--f-brand-display); font-weight: 900; font-size: 22px; letter-spacing: -0.02em; }
+  .replay { margin-top: var(--s-5); display: inline-flex; align-items: center; gap: 7px; font: 700 12px/1 var(--f-sans); color: var(--wine); background: var(--wine-tint); border: 1px solid var(--wine-soft); padding: 8px 14px; border-radius: var(--r-pill); cursor: pointer; }
+
+  section.block { padding: var(--s-16) 0 0; }
+  .sec-head .num { font: 700 11px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); }
+  .sec-head h2 { font: 800 32px/1.12 var(--f-display); letter-spacing: -0.022em; margin: 12px 0 10px; }
+  .sec-head .lead { font: 400 16px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 72ch; }
+
+  /* tokens */
+  .toks { margin-top: var(--s-8); display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-5); }
+  @media (max-width: 760px){ .toks { grid-template-columns: 1fr; } }
+  .tok { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .tok .nm { font: 700 12px/1 var(--f-mono); color: var(--wine); }
+  .tok .v { font: 800 22px/1 var(--f-display); color: var(--ink); margin: 10px 0 6px; }
+  .tok .d { font: 400 13px/1.55 var(--f-sans); color: var(--ink-soft); }
+  .tok .bar { margin-top: 12px; height: 8px; border-radius: 999px; background: var(--bg-elevated); overflow: hidden; }
+  .tok .bar i { display: block; height: 100%; background: var(--wine); width: 30%; }
+  @media (prefers-reduced-motion: no-preference){
+    .tok:hover .bar i { animation: sweep 1.2s var(--ease) infinite alternate; }
+    @keyframes sweep { from { width: 12%; } to { width: 92%; } }
+  }
+
+  /* dos/don'ts */
+  .rules { margin-top: var(--s-8); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+  @media (max-width: 760px){ .rules { grid-template-columns: 1fr; } }
+  .col { border-radius: var(--r-lg); padding: var(--s-6); border: 1px solid var(--border); }
+  .col.go { background: var(--success-bg); border-color: rgba(31,138,91,0.25); }
+  .col.no { background: var(--bg-elevated); }
+  .col .h { display: inline-flex; align-items: center; gap: 8px; font: 700 12px/1 var(--f-sans); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: var(--s-4); }
+  .col.go .h { color: var(--success); }
+  .col.no .h { color: var(--danger); }
+  .col ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 11px; }
+  .col li { font: 400 13.5px/1.5 var(--f-sans); color: var(--ink-soft); padding-left: 22px; position: relative; }
+  .col li b { color: var(--ink); font-weight: 700; }
+  .col.go li::before { content: "✓"; position: absolute; left: 0; color: var(--success); font-weight: 800; }
+  .col.no li::before { content: "✕"; position: absolute; left: 0; color: var(--danger); font-weight: 800; }
+
+  /* aplicaciones */
+  .apps { margin-top: var(--s-8); display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-5); }
+  @media (max-width: 820px){ .apps { grid-template-columns: 1fr; } }
+  .app { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); }
+  .app .ic { width: 38px; height: 38px; border-radius: var(--r-md); background: var(--wine-bg); color: var(--wine); display: grid; place-items: center; margin-bottom: 12px; }
+  .app h3 { font: 700 16px/1.2 var(--f-display); margin: 0 0 6px; letter-spacing: -0.01em; }
+  .app p { font: 400 13px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; }
+
+  .callout { margin-top: var(--s-12); background: var(--ink); color: #F2F0EC; border-radius: var(--r-xl); padding: var(--s-10); }
+  .callout .kick { font: 700 10.5px/1 var(--f-sans); letter-spacing: 0.14em; text-transform: uppercase; color: var(--wine-soft); }
+  .callout h2 { font: 800 24px/1.2 var(--f-display); letter-spacing: -0.02em; margin: 12px 0 12px; max-width: 30ch; }
+  .callout p { font: 400 14.5px/1.65 var(--f-sans); color: rgba(242,240,236,0.8); margin: 0; max-width: 76ch; }
+
+  .foot { margin-top: var(--s-12); padding: var(--s-6) 0 var(--s-16); border-top: 1px solid var(--border); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div class="brandline">
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+          <span class="wm"><span>DTD</span><span class="sp"></span><span>Cargo</span></span>
+        </div>
+        <div class="crumbs"><a href="Brand Hub · DTD-Cargo.html">Brand Hub</a> <span>/</span> Sistema de Movimiento <span class="ver">v4.5</span></div>
+      </div>
+      <div class="eyebrow-h">Sistema · Lenguaje</div>
+      <h1>Cómo se mueve <span class="ac">la marca.</span></h1>
+      <p class="lede">El movimiento en DTD guía, confirma y da continuidad — nunca decora por decorar. Un solo set de tiempos y una sola curva, para que del isólogo al dato del ERP todo se sienta de la misma mano: calmo, preciso, con resultados.</p>
+    </div>
+  </header>
+
+  <!-- Principio · demo del isólogo + ruta -->
+  <div class="wrap">
+    <div class="demo">
+      <div class="kick">El principio</div>
+      <h2>El isólogo entra, la ruta se dibuja sola</h2>
+      <p>La pieza madre de motion: el isólogo asienta su lugar y la ruta <b>China → Venezuela</b> se traza de origen a destino. Es la metáfora de toda la marca — algo sale de China y llega a tu puerta, con trazabilidad.</p>
+      <div class="stage" id="stage">
+        <img src="assets/dtdcargo-isologo-primary.png" alt="DTD Cargo" />
+        <svg class="route" viewBox="0 0 220 40" fill="none" aria-hidden="true">
+          <path d="M8 30 C 70 -6, 150 46, 212 12" stroke="var(--wine)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="8" cy="30" r="4" fill="var(--ink)"/>
+          <circle cx="212" cy="12" r="4" fill="var(--wine)"/>
+        </svg>
+        <span class="wmark"><span style="color:var(--wine)">DTD</span> <span style="color:var(--ink)">Cargo</span></span>
+      </div>
+      <button class="replay" onclick="(function(s){var n=s.cloneNode(true);s.parentNode.replaceChild(n,s);})(document.getElementById('stage'))">↻ Repetir animación</button>
+    </div>
+  </div>
+
+  <!-- Tiempos y curva -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">01 / TIEMPOS Y CURVA</div>
+        <h2>Una sola curva, tres velocidades</h2>
+        <p class="lead">Todo el movimiento usa los tokens de <code style="font-family:var(--f-mono); background:var(--bg-elevated); padding:2px 6px; border-radius:3px;">erp/tokens.css</code>. La curva es siempre la misma (entra rápido, asienta suave); solo cambia la duración según el peso del cambio.</p>
+      </div>
+      <div class="toks">
+        <div class="tok"><div class="nm">--ease</div><div class="v">cubic-bezier(.22, 1, .36, 1)</div><div class="d">La única curva. Acelera al inicio y desacelera al final — sensación de algo que llega y se acomoda, no que rebota.</div></div>
+        <div class="tok"><div class="nm">--dur-fast · 120ms</div><div class="v">Micro</div><div class="d">Hover, foco, toggles, cambios de estado de un control. Casi imperceptible.<div class="bar"><i></i></div></div></div>
+        <div class="tok"><div class="nm">--dur · 180ms</div><div class="v">Base</div><div class="d">Lo más usado: entrada de tarjetas, tabs, drawers, cambios de vista.<div class="bar"><i></i></div></div></div>
+        <div class="tok"><div class="nm">--dur-slow · 260ms</div><div class="v">Macro</div><div class="d">Modales, paneles grandes, el isólogo en piezas de marca. Reservado para lo importante.<div class="bar"><i></i></div></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reglas -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">02 / PRINCIPIOS</div>
+        <h2>Lo que el movimiento sí hace — y lo que nunca</h2>
+        <p class="lead">El motion comunica un cambio real. Si no aporta sentido, no va.</p>
+      </div>
+      <div class="rules">
+        <div class="col go">
+          <div class="h">Sí</div>
+          <ul>
+            <li><b>Entra desde el estado final:</b> anima <i>desde</i> oculto hacia lo visible, no al revés. Así print, PDF y reduced-motion muestran el contenido, no el frame previo.</li>
+            <li><b>Guía el ojo</b> en la dirección del flujo: lo nuevo entra de abajo o desde el origen de la acción.</li>
+            <li><b>Confirma acciones</b> con un cambio sutil (check, color, leve escala) — feedback, no espectáculo.</li>
+            <li><b>Respeta</b> <code style="font-family:var(--f-mono)">prefers-reduced-motion</code>: sin animación, el estado final es el base.</li>
+          </ul>
+        </div>
+        <div class="col no">
+          <div class="h">Nunca</div>
+          <ul>
+            <li><b>Loops decorativos infinitos</b> en contenido (parpadeos, pulsos sin fin). Solo se permite un latido puntual como aviso, y se detiene.</li>
+            <li><b>Rebotes exagerados</b> ni curvas elásticas: no es el lenguaje de DTD.</li>
+            <li><b>Animar montañas de elementos</b> a la vez: como mucho un stagger corto; nada de cascadas largas.</li>
+            <li><b>Movimiento en datos críticos</b> (montos, estados) que distraiga de leerlos.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Aplicaciones -->
+  <section class="block">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="num">03 / DÓNDE VIVE</div>
+        <h2>El movimiento por capa</h2>
+        <p class="lead">Mismos tiempos y curva; distinta intensidad según el contexto.</p>
+      </div>
+      <div class="apps">
+        <div class="app">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8 12 3l9 5v8l-9 5-9-5V8z"/></svg></div>
+          <h3>Marca</h3>
+          <p>El isólogo y la ruta China → Venezuela (portada-video de Facebook, reels). Entrada <b>--dur-slow</b>, una sola vez, con el logo sonoro de firma.</p>
+        </div>
+        <div class="app">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg></div>
+          <h3>Producto (ERP / Portal)</h3>
+          <p>Entrada de tarjetas, tabs y drawers en <b>--dur</b>; estados y hover en <b>--dur-fast</b>. Funcional: confirma y orienta, nunca entretiene.</p>
+        </div>
+        <div class="app">
+          <div class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5 9-11"/></svg></div>
+          <h3>Avisos puntuales</h3>
+          <p>Un <b>latido</b> breve para señalar que algo cambió de lugar (p. ej. una nota que se colapsó). Se ejecuta una vez y se detiene — nunca queda latiendo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="callout">
+      <div class="kick">Gobernanza</div>
+      <h2>Si una animación no comunica un cambio, no va.</h2>
+      <p>El movimiento es parte del sistema, no un adorno: usa solo los tokens de <code style="font-family:var(--f-mono)">tokens.css</code> (una curva, tres duraciones), respeta reduced-motion y nunca compite con el dato. La primera pieza sistematizada es la portada-video de Facebook; cualquier motion nuevo se mide contra estos principios antes de construir.</p>
+    </div>
+    <div class="foot">
+      <b>Sistema de Movimiento · DTD-Cargo v4.5</b> — capa de lenguaje del sistema. Tokens en <code style="font-family:var(--f-mono)">erp/tokens.css</code> (--ease · --dur-fast · --dur · --dur-slow). Complementa el Brand Book §12 (Brand in motion). Castellano venezolano, tuteo. Cero AI slop.
+    </div>
+  </div>
+
+</body>
+</html>

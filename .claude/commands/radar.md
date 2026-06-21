@@ -25,10 +25,10 @@ Nunca asumas la versión; detectala en vivo cada corrida:
 
 ## Regla 0.5 · Gate de marca (brand drift · SIEMPRE)
 
-**El Brand Book vigente es UNO solo** — el de mayor versión en `_norte/` (regla de gobernanza 2026-06-10; book vigente **v4.4**, 2026-06-19). Corré este chequeo y reportá **cualquier hit como hallazgo de severidad alta** (esperado: **0** en archivos vivos):
+**El Brand Book vigente es UNO solo** — el de mayor versión en `_norte/` (regla de gobernanza 2026-06-10; book vigente **v4.5**, 2026-06-20). Corré este chequeo y reportá **cualquier hit como hallazgo de severidad alta** (esperado: **0** en archivos vivos):
 
 ```
-rg -nS "brand-book-v[12]|brand-book-v3\.[0-7]|brand-book-v4\.[0-3]|Brand Book(?: DTD)? v(1\.|2\.|3\.[0-7]|4\.[0-3])|v1\.7-claude-design|_archivo-v1|handoffs-archive|_handoff_preview|BANDBOOK" app components lib public scripts e2e supabase docs AGENTS.md BRAND.md README.md --glob "!docs/specs/**" --glob "!**/NORTE-CHANGELOG.md" --glob "!docs/design/studio/_norte/**" --glob "!public/marca/brand-book-v*.html" --glob "!supabase/migrations/**" --glob "!docs/archive/**" --glob "!docs/design/studio/bug-reporter-v1.4.1/**"
+rg -nS "brand-book-v[12]|brand-book-v3\.[0-7]|brand-book-v4\.[0-4]|Brand Book(?: DTD)? v(1\.|2\.|3\.[0-7]|4\.[0-4])|v1\.7-claude-design|_archivo-v1|handoffs-archive|_handoff_preview|BANDBOOK" app components lib public scripts e2e supabase docs AGENTS.md BRAND.md README.md --glob "!docs/specs/**" --glob "!**/NORTE-CHANGELOG.md" --glob "!docs/design/studio/_norte/**" --glob "!public/marca/brand-book-v*.html" --glob "!supabase/migrations/**" --glob "!docs/archive/**" --glob "!docs/design/studio/bug-reporter-v1.4.1/**"
 ```
 
 - **Exclusiones legítimas (historia, NO cuentan como drift):** `docs/specs/**` (registros SDD), `NORTE-CHANGELOG.md`, `_norte/**` **solo para el grep de _contenido_** (sus bitácoras citan versiones viejas a propósito — su **presencia física** se valida aparte en la Regla 0.5b de abajo), `supabase/migrations/**` (migraciones aplicadas = inmutables; editar una rompe el hash del historial), `docs/archive/**` (sesiones congeladas) y `docs/design/studio/bug-reporter-v1.4.1/**` (handoff enlazado por SDD-0036).
@@ -41,10 +41,10 @@ rg -nS "brand-book-v[12]|brand-book-v3\.[0-7]|brand-book-v4\.[0-3]|Brand Book(?:
 > **Por qué existe:** las re-extracciones de ZIPs de marca quedan `untracked` o `ignored` → sobreviven a `git rm` y **un grep de _contenido_ no las caza** (sobre todo dentro de `_norte/`, que el grep de arriba excluye). El 2026-06-12 esto dejó un `Brand Book v3.0 Package/` con su propio `CLAUDE.md` (¡permitía voseo!) sentado dentro del Norte. Estos 3 chequeos miran **archivos sueltos en el filesystem**, no texto. **Cualquier hit = severidad alta.**
 
 ```
-# 1 · Books huérfanos en disco — esperado: 0 (el v4.4 del Norte + el gateado en private/marca están excluidos)
+# 1 · Books huérfanos en disco — esperado: 0 (el v4.5 del Norte + el gateado en private/marca están excluidos)
 find . \( -path ./.git -o -path ./.claude/worktrees -o -path ./node_modules -o -path ./.next \) -prune \
   -o -type f -iname '*brand*book*.html' -print \
-  | rg -iv 'docs/design/studio/_norte/Brand Book DTD v4\.4\.html|private/marca/brand-book-v4\.4\.html|public/marca/brand-book-v4\.4\.html'
+  | rg -iv 'docs/design/studio/_norte/Brand Book DTD v4\.5\.html|private/marca/brand-book-v4\.5\.html|public/marca/brand-book-v4\.5\.html'
 
 # 2 · CLAUDE.md contradictorio anidado dentro del Norte — esperado: 0 hits
 #     (válidos, ya excluidos: el canónico _norte/CLAUDE.md + la copia del paquete móvil design_handoff_mobile_app/)

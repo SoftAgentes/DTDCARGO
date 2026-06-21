@@ -9,10 +9,12 @@
 1. **Leé este archivo completo al inicio de cada sesión.** No lo resumas, no lo skipees.
 2. **Antes de aplicar cualquier cambio visual**, comparalo contra las reglas de abajo.
 3. **Si detectás una violación**, NO apliques el cambio en silencio. Mostrá el aviso con el formato `BRAND-CHECK` (definido al final) y esperá confirmación explícita del usuario.
-4. **Si el usuario insiste**, anotá que es una excepción documentada (con su responsabilidad), aplicalo, y registrá la decisión como comentario en el código:
-   ```
-   /* BRAND-EXCEPTION: <descripción> — autorizado por <usuario> el <fecha> */
-   ```
+4. **Si el usuario insiste**, anotá que es una excepción documentada (con su responsabilidad), aplicalo, y registrá la decisión en **dos** lugares:
+   - como comentario en el código, en el punto del cambio:
+     ```
+     /* BRAND-EXCEPTION: <descripción> — autorizado por <usuario> el <fecha> */
+     ```
+   - como entrada nueva en **`BRAND-DECISIONS.md`** (el registro central de decisiones de marca), con el formato `BD-NNN` que define ese archivo. El comentario en código apunta al *dónde*; `BRAND-DECISIONS.md` guarda el *por qué, desde cuándo y quién*.
 5. **Nunca inventes valores nuevos** de color, fuente, radius, sombra o spacing. Usá **siempre** las variables CSS del sistema (`var(--*)`). Si necesitás algo que no existe, preguntá primero.
 
 ---
@@ -303,7 +305,7 @@ preferís la alternativa?
 **Protocolo — cuando recibas este proyecto con una actualización de marca:**
 
 1. **El Brand Book vigente es UNO solo:** el de mayor versión en la raíz (hoy
-   `Brand Book DTD v4.4.html`). Si en Norte existen copias de brand books **anteriores
+   `Brand Book DTD v4.5.html`). Si en Norte existen copias de brand books **anteriores
    (v3.6, v3.5, …), eliminálas** — la versión nueva las reemplaza por completo; el
    historial vive en el changelog interno del book vigente.
 2. **Actualizá todo puntero** a la versión nueva (links en módulos tipo
@@ -315,9 +317,9 @@ preferís la alternativa?
 4. **No mezclar versiones:** nunca convivan dos brand books en Norte. Ante conflicto
    entre algo viejo de Norte y este proyecto, **gana este proyecto** (es la fuente).
 5. Registrá lo aplicado en el changelog/bitácora de Norte con la versión del book
-   (ej. "marca sincronizada a Brand Book v4.4").
-6. **Versión única visible: v4.4.** Marca y producto comparten número — sidebar del ERP,
-   títulos del Portal y apps de operario, tokens y Brand Book dicen todos **v4.4**. En Norte,
+   (ej. "marca sincronizada a Brand Book v4.5").
+6. **Versión única visible: v4.5.** Marca y producto comparten número — sidebar del ERP,
+   títulos del Portal y apps de operario, tokens y Brand Book dicen todos **v4.5**. En Norte,
    cualquier etiqueta visible con v2.x/v3.x viejo se actualiza a la versión vigente del book.
    Los CHANGELOG y comentarios históricos no se reescriben.
 
@@ -327,7 +329,7 @@ preferís la alternativa?
 
 - **ERP (admin):** `DTD Studio · ERP.html` + `erp/` (tokens, components, shell, modules).
 - **Portal (cliente):** `Portal del Cliente.html` + `portal/app.jsx`. Reusa `erp/tokens.css`, `erp/icons.jsx`, `erp/components.jsx`.
-- **Brand Book:** `Brand Book DTD v4.4.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro. (v4.3 y anteriores fueron reemplazados — su historial vive en el changelog interno del book vigente, que en v4.4 suma los recursos gráficos chinos recoloreados, las plantillas de Stories/feed en el Generador de Redes y el Packing List bilingüe renovado.)
+- **Brand Book:** `Brand Book DTD v4.5.html` — fuente de verdad de la identidad visual. **No** mezclar pantallas de producto adentro. (v4.4 y anteriores fueron reemplazados — su historial vive en el changelog interno del book vigente, que en v4.4 suma los recursos gráficos chinos recoloreados, las plantillas de Stories/feed en el Generador de Redes y el Packing List bilingüe renovado.)
 - **Colateral impreso de marca:** `Tarjeta de Presentación.html` (85×55 mm, doble cara, QR vCard) + `Colateral Impreso · DTD-Cargo.html` (membrete A4, credencial CR-80 con lanyard, vinilo de camión 6.0×2.4 m, roll-up 85×200 cm — cada pieza con spec de imprenta) + `Uniformes · DTD-Cargo.html`. Usan `erp/tokens.css` + `assets/dtdcargo-isologo-*.png`. **No** inventar datos de contacto: RIF `J-50648869-8`, Av. Bolívar Norte 14 (Valencia), `info@dtdcargo.com` (correo de branding · 2026-06), `+58 241 414 7886`.
 - **Documentos legales:** carpeta `legal/` — T&C de DTD (cliente), Acuerdo con el operador de
   consolidación (interno) y Brief de seguro (interno). Cada uno en `.md` (canónico, lo lee
@@ -347,6 +349,6 @@ preferís la alternativa?
 2. **Fuentes:** sistema → **Nunito Sans + Sora**; branding → **Archivo / Archivo Black**; + **JetBrains Mono** y **Noto Sans SC**. Ninguna otra.
 3. **Cero AI slop**: sin gradientes coloridos, sin emojis decorativos, sin glassmorphism, sin shadcn-defaults visibles.
 4. **Componentes del sistema** primero. Inventar solo con `/* TODO: brand-review */`.
-5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito.
+5. **Avisar antes de violar**. Formato `BRAND-CHECK` explícito. Toda excepción aprobada se registra en **`BRAND-DECISIONS.md`**.
 
 Cuando dudes, **preguntá**. Es preferible una pregunta extra antes que un cambio que el equipo de diseño tenga que revertir.

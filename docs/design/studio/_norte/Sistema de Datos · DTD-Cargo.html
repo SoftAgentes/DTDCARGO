@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Datos · DTD-Cargo</title>
+<link rel="stylesheet" href="erp/tokens.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Nunito+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; background: var(--bg-base); color: var(--ink); font-family: var(--f-sans); }
+  a { color: inherit; text-decoration: none; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--s-8); }
+  @media (max-width: 720px){ .wrap { padding: 0 var(--s-5); } }
+
+  .hero { background: linear-gradient(135deg, var(--ink), #1F3055); color: #F2F0EC; padding: var(--s-12) 0 var(--s-16); }
+  .hero-top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; }
+  .brandline { display: flex; align-items: center; gap: 14px; }
+  .brandline img { width: 46px; height: auto; }
+  .wm { font-family: var(--f-brand-display); font-weight: 900; letter-spacing: -0.02em; font-size: 26px; line-height: .9; color: #F2F0EC; }
+  .wm .sp { display: inline-block; width: 0.15em; }
+  .crumbs { font: 600 11px/1 var(--f-mono); color: rgba(242,240,236,0.62); display: flex; align-items: center; gap: 8px; }
+  .crumbs a:hover { color: #fff; }
+  .ver { font: 600 11px/1 var(--f-mono); color: #F2F0EC; background: rgba(242,240,236,0.12); border: 1px solid rgba(242,240,236,0.2); padding: 6px 11px; border-radius: var(--r-pill); margin-left: 6px; }
+  .eyebrow-h { font: 700 11px/1 var(--f-sans); letter-spacing: 0.16em; text-transform: uppercase; color: var(--wine-soft); margin: 44px 0 16px; }
+  .hero h1 { font: 800 46px/1.05 var(--f-display); letter-spacing: -0.025em; margin: 0 0 18px; max-width: 18ch; }
+  .hero h1 .ac { color: var(--wine-soft); }
+  .hero .lede { font: 400 17px/1.6 var(--f-sans); color: rgba(242,240,236,0.82); margin: 0; max-width: 64ch; }
+
+  .cards { margin-top: -54px; position: relative; z-index: 4; display: grid; grid-template-columns: 1fr; gap: var(--s-6); }
+  .panel { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--shadow-lg); padding: var(--s-8) var(--s-10); }
+
+  section.block { padding: var(--s-16) 0 0; }
+  .sec-head .num { font: 700 11px/1 var(--f-mono); letter-spacing: 0.1em; color: var(--wine); }
+  .sec-head h2 { font: 800 32px/1.12 var(--f-display); letter-spacing: -0.022em; margin: 12px 0 10px; }
+  .sec-head .lead { font: 400 16px/1.6 var(--f-sans); color: var(--ink-soft); margin: 0; max-width: 72ch; }
+
+  /* Swatch rows */
+  .swrow { display: flex; flex-wrap: wrap; gap: var(--s-3); margin-top: var(--s-6); }
+  .sw { flex: 1 1 130px; min-width: 120px; border: 1px solid var(--border); border-radius: var(--r-md); overflow: hidden; background: var(--bg-surface); }
+  .sw .chip { height: 60px; }
+  .sw .meta { padding: 10px 12px; }
+  .sw .seq { font: 700 10px/1 var(--f-mono); color: var(--ink-mute); }
+  .sw .nm { font: 700 13px/1.2 var(--f-display); margin: 5px 0 2px; color: var(--ink); }
+  .sw .tok { font: 500 11px/1 var(--f-mono); color: var(--wine); }
+  .sw .hex { font: 500 10.5px/1 var(--f-mono); color: var(--ink-mute); margin-top: 3px; }
+
+  /* Ramp */
+  .ramp { display: flex; margin-top: var(--s-6); border-radius: var(--r-md); overflow: hidden; border: 1px solid var(--border); }
+  .ramp i { flex: 1; height: 52px; display: grid; place-items: end center; padding-bottom: 6px; font: 600 9px/1 var(--f-mono); }
+
+  /* Charts demo */
+  .demos { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--s-6); margin-top: var(--s-6); }
+  @media (max-width: 820px){ .demos { grid-template-columns: 1fr; } }
+  .chart { background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); }
+  .chart .ct { font: 700 11px/1 var(--f-sans); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-mute); margin-bottom: var(--s-5); }
+  .bars { display: flex; align-items: flex-end; gap: 14px; height: 180px; padding-top: 10px; }
+  .bargrp { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+  .bar { width: 100%; border-radius: var(--r-xs) var(--r-xs) 0 0; }
+  .bargrp span { font: 600 10px/1 var(--f-mono); color: var(--ink-mute); }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: var(--s-5); }
+  .legend .lg { display: inline-flex; align-items: center; gap: 7px; font: 500 12px/1 var(--f-sans); color: var(--ink-soft); }
+  .legend .lg i { width: 12px; height: 12px; border-radius: 3px; display: block; }
+  .donut { width: 150px; height: 150px; border-radius: 50%; margin: 0 auto; position: relative; }
+  .donut::after { content: ""; position: absolute; inset: 27px; background: var(--bg-base); border-radius: 50%; }
+
+  /* Rules list */
+  .rules { margin-top: var(--s-10); display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-5); }
+  @media (max-width: 760px){ .rules { grid-template-columns: 1fr; } }
+  .rule { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s-6); box-shadow: var(--shadow-xs); display: flex; gap: var(--s-4); }
+  .rule .mk { flex: 0 0 auto; width: 30px; height: 30px; border-radius: var(--r-sm); display: grid; place-items: center; font: 800 15px/1 var(--f-display); }
+  .rule.ok .mk { background: var(--success-bg); color: var(--success); }
+  .rule.no .mk { background: var(--danger-bg); color: var(--danger); }
+  .rule h3 { font: 700 15px/1.25 var(--f-display); margin: 0 0 6px; letter-spacing: -0.01em; }
+  .rule p { font: 400 13px/1.55 var(--f-sans); color: var(--ink-soft); margin: 0; }
+  .rule code { font: 600 12px/1 var(--f-mono); background: var(--bg-elevated); padding: 2px 6px; border-radius: var(--r-xs); color: var(--ink); }
+
+  .note { margin-top: var(--s-6); font: 400 12.5px/1.6 var(--f-sans); color: var(--ink-soft); background: var(--wine-bg); border-radius: var(--r-md); padding: var(--s-4) var(--s-5); }
+  .note b { color: var(--wine); }
+
+  .foot { margin-top: var(--s-16); padding: var(--s-6) 0 var(--s-16); border-top: 1px solid var(--border); font: 400 12px/1.6 var(--f-sans); color: var(--ink-mute); }
+  .foot b { color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="hero-top">
+        <div class="brandline">
+          <img src="assets/dtdcargo-isologo-reverse.png" alt="DTD Cargo" />
+          <span class="wm"><span>DTD</span><span class="sp"></span><span>Cargo</span></span>
+        </div>
+        <div class="crumbs"><a href="Brand Hub · DTD-Cargo.html">Brand Hub</a> <span>/</span> Sistema de Datos <span class="ver">v4.5</span></div>
+      </div>
+      <div class="eyebrow-h">Sistema · Visual</div>
+      <h1>Cómo se ve <span class="ac">un gráfico DTD.</span></h1>
+      <p class="lede">La paleta de visualización que faltaba. Dashboards del ERP, KPIs y reportes ya no improvisan colores: serie por serie, todo sale de los tokens. Sin verdes random, sin arcoíris, sin AI slop.</p>
+    </div>
+  </header>
+
+  <div class="wrap cards">
+
+    <!-- CATEGORICAL -->
+    <div class="panel">
+      <div class="sec-head">
+        <div class="num">01 / CATEGÓRICA</div>
+        <h2>Series sin orden · máximo 6</h2>
+        <p class="lead">Para categorías que no tienen jerarquía (rutas, servicios, clientes). Se usan <b>en este orden</b>. El wine es siempre la serie protagonista. A partir de la 7ª categoría, agrupa el resto en «Otros» con el gris neutral.</p>
+      </div>
+      <div class="swrow">
+        <div class="sw"><div class="chip" style="background:#7F0F1A"></div><div class="meta"><div class="seq">SERIE 1</div><div class="nm">Wine</div><div class="tok">--wine</div><div class="hex">#7F0F1A</div></div></div>
+        <div class="sw"><div class="chip" style="background:#0F1E3D"></div><div class="meta"><div class="seq">SERIE 2</div><div class="nm">Navy</div><div class="tok">--ink</div><div class="hex">#0F1E3D</div></div></div>
+        <div class="sw"><div class="chip" style="background:#2A6FDB"></div><div class="meta"><div class="seq">SERIE 3</div><div class="nm">Info</div><div class="tok">--info</div><div class="hex">#2A6FDB</div></div></div>
+        <div class="sw"><div class="chip" style="background:#B8893A"></div><div class="meta"><div class="seq">SERIE 4</div><div class="nm">Gold</div><div class="tok">--warning</div><div class="hex">#B8893A</div></div></div>
+        <div class="sw"><div class="chip" style="background:#C2747F"></div><div class="meta"><div class="seq">SERIE 5</div><div class="nm">Wine soft</div><div class="tok">--wine-soft</div><div class="hex">#C2747F</div></div></div>
+        <div class="sw"><div class="chip" style="background:#6B6B6B"></div><div class="meta"><div class="seq">SERIE 6</div><div class="nm">Neutral</div><div class="tok">--neutral</div><div class="hex">#6B6B6B</div></div></div>
+      </div>
+      <div class="note"><b>Ojo con el doble sentido:</b> verde (<code style="font-family:var(--f-mono)">--success</code>) y rojo (<code style="font-family:var(--f-mono)">--danger</code>) <b>no</b> entran en la rotación categórica — están reservados para significado (bien / mal). Si los usas para «categoría 4», el lector cree que esa serie es positiva.</div>
+    </div>
+
+    <!-- SEMANTIC -->
+    <div class="panel">
+      <div class="sec-head">
+        <div class="num">02 / SEMÁNTICA</div>
+        <h2>Cuando el color significa algo</h2>
+        <p class="lead">Estado, riesgo y resultado. Estos colores comunican, no decoran — usa exactamente estos y solo para esto.</p>
+      </div>
+      <div class="swrow">
+        <div class="sw"><div class="chip" style="background:#1F8A5B"></div><div class="meta"><div class="seq">POSITIVO</div><div class="nm">A tiempo · OK</div><div class="tok">--success</div></div></div>
+        <div class="sw"><div class="chip" style="background:#B8893A"></div><div class="meta"><div class="seq">RIESGO</div><div class="nm">Demora · atención</div><div class="tok">--warning</div></div></div>
+        <div class="sw"><div class="chip" style="background:#A8323E"></div><div class="meta"><div class="seq">NEGATIVO</div><div class="nm">Vencido · error</div><div class="tok">--danger</div></div></div>
+        <div class="sw"><div class="chip" style="background:#2A6FDB"></div><div class="meta"><div class="seq">INFORMATIVO</div><div class="nm">En curso · nota</div><div class="tok">--info</div></div></div>
+        <div class="sw"><div class="chip" style="background:#6B6B6B"></div><div class="meta"><div class="seq">INACTIVO</div><div class="nm">Sin dato · cerrado</div><div class="tok">--neutral</div></div></div>
+      </div>
+    </div>
+
+    <!-- SEQUENTIAL -->
+    <div class="panel">
+      <div class="sec-head">
+        <div class="num">03 / SECUENCIAL</div>
+        <h2>Una sola serie · intensidad por alpha</h2>
+        <p class="lead">Para mapas de calor, volumen por mes o densidad. <b>No se inventan hex nuevos</b>: es un único token con opacidad escalonada. Wine para lo comercial, navy para lo operativo.</p>
+      </div>
+      <div class="ramp">
+        <i style="background:rgba(127,15,26,0.10); color:var(--wine)">10%</i>
+        <i style="background:rgba(127,15,26,0.28); color:var(--wine)">28%</i>
+        <i style="background:rgba(127,15,26,0.48); color:#fff">48%</i>
+        <i style="background:rgba(127,15,26,0.72); color:#fff">72%</i>
+        <i style="background:rgba(127,15,26,1); color:#fff">100%</i>
+      </div>
+      <div class="ramp">
+        <i style="background:rgba(15,30,61,0.10); color:var(--ink)">10%</i>
+        <i style="background:rgba(15,30,61,0.28); color:var(--ink)">28%</i>
+        <i style="background:rgba(15,30,61,0.48); color:#fff">48%</i>
+        <i style="background:rgba(15,30,61,0.72); color:#fff">72%</i>
+        <i style="background:rgba(15,30,61,1); color:#fff">100%</i>
+      </div>
+    </div>
+
+    <!-- DEMOS -->
+    <div class="panel">
+      <div class="sec-head">
+        <div class="num">04 / EN USO</div>
+        <h2>Cómo se ve aplicado</h2>
+        <p class="lead">La paleta categórica en una barra agrupada, y la semántica en un estado de embarques. Mismo dato, color con criterio.</p>
+      </div>
+      <div class="demos">
+        <div class="chart">
+          <div class="ct">CBM por ruta · trimestre</div>
+          <div class="bars">
+            <div class="bargrp"><div class="bar" style="height:62%; background:#7F0F1A"></div><span>Yiwu</span></div>
+            <div class="bargrp"><div class="bar" style="height:80%; background:#0F1E3D"></div><span>Guangzhou</span></div>
+            <div class="bargrp"><div class="bar" style="height:44%; background:#2A6FDB"></div><span>Shenzhen</span></div>
+            <div class="bargrp"><div class="bar" style="height:33%; background:#B8893A"></div><span>Ningbo</span></div>
+            <div class="bargrp"><div class="bar" style="height:24%; background:#C2747F"></div><span>Otros</span></div>
+          </div>
+          <div class="legend">
+            <span class="lg"><i style="background:#7F0F1A"></i>Yiwu</span>
+            <span class="lg"><i style="background:#0F1E3D"></i>Guangzhou</span>
+            <span class="lg"><i style="background:#2A6FDB"></i>Shenzhen</span>
+            <span class="lg"><i style="background:#B8893A"></i>Ningbo</span>
+            <span class="lg"><i style="background:#C2747F"></i>Otros</span>
+          </div>
+        </div>
+        <div class="chart">
+          <div class="ct">Embarques por estado</div>
+          <div class="donut" style="background:conic-gradient(#1F8A5B 0 58%, #2A6FDB 58% 78%, #B8893A 78% 92%, #A8323E 92% 100%)"></div>
+          <div class="legend" style="justify-content:center">
+            <span class="lg"><i style="background:#1F8A5B"></i>A tiempo</span>
+            <span class="lg"><i style="background:#2A6FDB"></i>En curso</span>
+            <span class="lg"><i style="background:#B8893A"></i>En demora</span>
+            <span class="lg"><i style="background:#A8323E"></i>Vencido</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RULES -->
+    <div class="panel">
+      <div class="sec-head">
+        <div class="num">05 / REGLAS</div>
+        <h2>Lo que sí y lo que nunca</h2>
+        <p class="lead">Para que ningún dashboard nuevo se desvíe del sistema.</p>
+      </div>
+      <div class="rules">
+        <div class="rule ok"><div class="mk">✓</div><div><h3>Empieza por wine, sigue el orden</h3><p>La serie protagonista siempre wine. Las demás, en el orden definido. Consistencia entre todos los reportes.</p></div></div>
+        <div class="rule ok"><div class="mk">✓</div><div><h3>Verde/rojo solo para significado</h3><p><code>--success</code> = bien, <code>--danger</code> = mal. Nunca como «un color más» de categoría.</p></div></div>
+        <div class="rule ok"><div class="mk">✓</div><div><h3>Rampas por alpha, no por hex</h3><p>Un solo token con opacidad escalonada. Cero hex nuevos — respeta «solo <code>var(--*)</code>».</p></div></div>
+        <div class="rule ok"><div class="mk">✓</div><div><h3>Máximo 6 series · agrupa el resto</h3><p>Más de 6 categorías se vuelve ilegible. La 7ª en adelante va a «Otros» en neutral.</p></div></div>
+        <div class="rule no"><div class="mk">✕</div><div><h3>Nada de neón ni arcoíris</h3><p>Sin lima, fucsia, gradientes coloridos por barra. Es el AI slop que prohíbe el CLAUDE.md.</p></div></div>
+        <div class="rule no"><div class="mk">✕</div><div><h3>Sin colores random por barra</h3><p>Cada barra de la misma serie comparte color. El color codifica, no adorna.</p></div></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="wrap">
+    <div class="foot">
+      <b>Sistema de Datos · DTD-Cargo v4.5</b> — paleta de visualización derivada 100% de <code style="font-family:var(--f-mono)">erp/tokens.css</code>. Cero hex inventados · rampas por alpha. Aplica a ERP, KPIs, reportes y propuestas. Detalle de tokens en el Brand Book §06.
+    </div>
+  </div>
+
+</body>
+</html>

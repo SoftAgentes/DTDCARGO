@@ -25,7 +25,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 // Carpeta del "norte vigente" (única, se sobrescribe en cada NORTE-SYNC).
 const NORTE_REL = "docs/design/studio/_norte";
 const NORTE_DIR = path.join(ROOT, NORTE_REL);
-const NORTE_VERSION = "v4.4"; // handoff Cloud Design (carga 2026-06-19 v4.4: recursos gráficos chinos recoloreados a la paleta [recursos-graficos/: meandro/olas/nube/marco/esquina + festivos linterna 灯笼/nudo 中国结 con BRAND-EXCEPTION del dorado + dragón duotono wine/navy], plantillas sociales Stories/feed integradas al Generador de Redes [+ Plantillas base sin texto], Packing List + Factura renovado [bilingüe 中/EN, caja mixta 同箱, N.º de caja automático, etiquetas Shipping Mark por cartón, adjuntos plegables, autoguardado/historial, vista móvil]; sin cambios de tokens/reglas · carga 2026-06-17 v4.3: Academia DTD vista alumno [portal/academia*.jsx; backend ya en SDD-0093 + migr 0144], Portal "Próxima salida de contenedor" + panel de Tweaks, Registro reestructurado [acceso por correo+contraseña, cédula V/E/P, teléfono con selector de código de país], Hub de Enlaces link-in-bio [/enlaces], Vistas Móviles visor por persona; sin cambios de tokens/reglas · carga 2026-06-14 v4.2: versión UNIFICADA marca+producto = v4.2; Brand Book v3.7 → v4.2 ÚNICO; estructura Brand Hub [solo marca] vs DTD Apps · Launcher [solo producto]; nuevos: Inventario de Consolidación [WMS], Reclamos y Siniestros, Academia [LMS], Scorecard de Proveedores, Dashboard Ejecutivo, Kit de Bienvenida, Reels y Logo Sonoro, Packlist, Cotización DDP, Diplomas, Ciclo del Cliente; MARKBOX fuera del lenguaje visual [Shipping Mark único])
+const NORTE_VERSION = "v4.5"; // handoff Cloud Design (carga 2026-06-20 v4.5: rediseño del Portal del Cliente + nuevo Sistema de Movimiento + Brand Hub en 3 ejes + barrido de tuteo venezolano; al Norte se aplicó SOLO el bump de versión + book único + BRAND-DECISIONS.md — el refresh de contenido del prototipo [~294 archivos del ZIP] queda para un NORTE-SYNC de contenido aparte; sin cambios de tokens/reglas · carga 2026-06-19 v4.4: recursos gráficos chinos recoloreados a la paleta [recursos-graficos/: meandro/olas/nube/marco/esquina + festivos linterna 灯笼/nudo 中国结 con BRAND-EXCEPTION del dorado + dragón duotono wine/navy], plantillas sociales Stories/feed integradas al Generador de Redes [+ Plantillas base sin texto], Packing List + Factura renovado [bilingüe 中/EN, caja mixta 同箱, N.º de caja automático, etiquetas Shipping Mark por cartón, adjuntos plegables, autoguardado/historial, vista móvil]; sin cambios de tokens/reglas · carga 2026-06-17 v4.3: Academia DTD vista alumno [portal/academia*.jsx; backend ya en SDD-0093 + migr 0144], Portal "Próxima salida de contenedor" + panel de Tweaks, Registro reestructurado [acceso por correo+contraseña, cédula V/E/P, teléfono con selector de código de país], Hub de Enlaces link-in-bio [/enlaces], Vistas Móviles visor por persona; sin cambios de tokens/reglas · carga 2026-06-14 v4.2: versión UNIFICADA marca+producto = v4.2; book de marca v3.7 → v4.2 ÚNICO; estructura Brand Hub [solo marca] vs DTD Apps · Launcher [solo producto]; nuevos: Inventario de Consolidación [WMS], Reclamos y Siniestros, Academia [LMS], Scorecard de Proveedores, Dashboard Ejecutivo, Kit de Bienvenida, Reels y Logo Sonoro, Packlist, Cotización DDP, Diplomas, Ciclo del Cliente; MARKBOX fuera del lenguaje visual [Shipping Mark único])
 
 // Pantallas-meta agrupadas por superficie.
 //   `code` = ruta de código a verificar para el overlay "estás aquí" (null = aún sin código).
@@ -157,9 +157,9 @@ const GROUPS = [
   {
     title: "Marca",
     screens: [
-      // Carga 2026-06-19: Brand Book v4.4 es el ÚNICO vigente (v4.3 eliminado por regla de gobernanza).
+      // Carga 2026-06-20: Brand Book v4.5 es el ÚNICO vigente (v4.4 eliminado por regla de gobernanza).
       { name: "Brand Hub (índice de marca)", file: "Brand Hub · DTD-Cargo.html", kind: "brand" },
-      { name: "Brand Book v4.4", file: "Brand Book DTD v4.4.html", kind: "brand" },
+      { name: "Brand Book v4.5", file: "Brand Book DTD v4.5.html", kind: "brand" },
       { name: "Tarjeta de Presentación", file: "Tarjeta de Presentación.html", kind: "brand" },
       { name: "Logo Oficial", file: "Logo Oficial.html", kind: "brand" },
       { name: "Iconos de Perfil", file: "Iconos de Perfil.html", kind: "brand" },
@@ -229,6 +229,21 @@ const GROUPS = [
       { name: "Plantillas Stories (social 9:16 / 1:1)", file: "Plantillas Stories · DTD-Cargo.html", ref: true },
       { name: "Plantillas base (sin texto)", file: "Plantillas base (sin texto) · DTD-Cargo.html", ref: true },
       { name: "Packing List · Vista Móvil", file: "packlist/Vista Móvil · Packing List.html", ref: true },
+    ],
+  },
+  {
+    // Carga 2026-06-20 (v4.5): rediseño del Portal del Cliente + capa de lenguaje de marca (Sistema de
+    // Movimiento) + microsites de fundamentos (Arquitectura, Mensajes, Datos, Accesibilidad, Posicionamiento).
+    // Mockups de diseño → ref:true (no diluyen el % construido).
+    title: "Nuevo en v4.5 (2026-06-20) · Portal rediseño · Sistema de Movimiento · microsites de marca",
+    screens: [
+      { name: "Portal del Cliente · Rediseño", file: "Portal del Cliente · Rediseño · DTD-Cargo.html", ref: true },
+      { name: "Sistema de Movimiento (motion)", file: "Sistema de Movimiento · DTD-Cargo.html", ref: true },
+      { name: "Arquitectura de Marca", file: "Arquitectura de Marca · DTD-Cargo.html", ref: true },
+      { name: "Mensajes y Audiencias", file: "Mensajes y Audiencias · DTD-Cargo.html", ref: true },
+      { name: "Sistema de Datos (charts)", file: "Sistema de Datos · DTD-Cargo.html", ref: true },
+      { name: "Accesibilidad de Color", file: "Accesibilidad de Color · DTD-Cargo.html", ref: true },
+      { name: "Posicionamiento", file: "Posicionamiento · DTD-Cargo.html", ref: true },
     ],
   },
 ];

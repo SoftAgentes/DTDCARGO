@@ -56,10 +56,10 @@ function Btn({ variant = 'secondary', size = 'md', icon, iconRight, children, on
 function Input({ label, value, onChange, placeholder, type = 'text', prefix, suffix, hint, error, required, mono, calc, style = {}, inputStyle = {}, ...rest }) {
   const [raw, setRaw] = React.useState(null);
   const calcOn = calc || type === 'number' || prefix === '$';
-  const evalSum = (s) => { const m = String(s).match(/[+\-]?\s*\d*\.?\d+/g); if (!m) return ''; const tot = m.reduce((a, tk) => a + (parseFloat(tk.replace(/\s/g, '')) || 0), 0); return String(Number.isInteger(tot) ? tot : +tot.toFixed(2)); };
-  const display = calcOn && raw !== null ? raw : (value == null ? '' : value);
+  const evalSum = (s) => {const m = String(s).match(/[+\-]?\s*\d*\.?\d+/g);if (!m) return '';const tot = m.reduce((a, tk) => a + (parseFloat(tk.replace(/\s/g, '')) || 0), 0);return String(Number.isInteger(tot) ? tot : +tot.toFixed(2));};
+  const display = calcOn && raw !== null ? raw : value == null ? '' : value;
   const hasOp = calcOn && raw !== null && /\d\s*[+\-]\s*\d/.test(raw);
-  const handle = (e) => { if (calcOn) { const txt = e.target.value; setRaw(txt); onChange && onChange({ target: { value: evalSum(txt) } }); } else { onChange && onChange(e); } };
+  const handle = (e) => {if (calcOn) {const txt = e.target.value;setRaw(txt);onChange && onChange({ target: { value: evalSum(txt) } });} else {onChange && onChange(e);}};
   return (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 6, ...style }}>
       {label &&
@@ -780,13 +780,13 @@ function ColumnManager({ cfg, setCfg, columns, defaultCfg, notes = {} }) {
 // contabilidad, líneas de factura) que no usan el wrapper de ERPUI.Input.
 function CalcInput({ value, onChange, style = {}, placeholder, ...rest }) {
   const [raw, setRaw] = React.useState(null);
-  const evalSum = (s) => { const m = String(s).match(/[+\-]?\s*\d*\.?\d+/g); if (!m) return ''; const tot = m.reduce((a, tk) => a + (parseFloat(tk.replace(/\s/g, '')) || 0), 0); return String(Number.isInteger(tot) ? tot : +tot.toFixed(2)); };
-  const display = raw !== null ? raw : (value == null ? '' : value);
+  const evalSum = (s) => {const m = String(s).match(/[+\-]?\s*\d*\.?\d+/g);if (!m) return '';const tot = m.reduce((a, tk) => a + (parseFloat(tk.replace(/\s/g, '')) || 0), 0);return String(Number.isInteger(tot) ? tot : +tot.toFixed(2));};
+  const display = raw !== null ? raw : value == null ? '' : value;
   return (
     <input
       type="text" inputMode="decimal" placeholder={placeholder}
       value={display}
-      onChange={(e) => { const txt = e.target.value; setRaw(txt); onChange && onChange({ target: { value: evalSum(txt) } }); }}
+      onChange={(e) => {const txt = e.target.value;setRaw(txt);onChange && onChange({ target: { value: evalSum(txt) } });}}
       onFocus={() => setRaw(value == null ? '' : String(value))}
       onBlur={() => setRaw(null)}
       style={style}

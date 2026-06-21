@@ -116,5 +116,5 @@ colores/fuentes nuevos.
 
 ## Pendiente de decisión (anotalo si lo resolvés en este commit)
 
-- **Copy:** hoy en **voseo** ("Calculalo") para igualar el resto de la calculadora.
-  `CLAUDE.md` pide **tuteo**. Decisión global; si se unifica, pasa a "¿No sabes tu CBM? Calcúlalo con las medidas".
+- **Copy:** unificado a **tuteo** ("Calcúlalo") según la regla de `CLAUDE.md`.
+  El disparador dice "¿No sabes tu CBM? Calcúlalo con las medidas".

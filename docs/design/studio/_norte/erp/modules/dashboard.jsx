@@ -808,7 +808,7 @@ function WidgetEditor({ config, toggleWidget }) {
         borderRadius: 'var(--r-md)', borderLeft: '3px solid var(--info)',
         font: '500 12px/1.5 var(--f-sans)', color: 'var(--ink-soft)',
       }}>
-        Si dejás una columna vacía, la otra ocupa todo el ancho automáticamente.
+        Si dejas una columna vacía, la otra ocupa todo el ancho automáticamente.
       </div>
     </div>
   );

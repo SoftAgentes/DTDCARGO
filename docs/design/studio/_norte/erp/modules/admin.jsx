@@ -587,7 +587,7 @@ function SectionAppearance() {
             { t: 'Logo Oficial', s: '4 variantes · descarga PNG (isólogo y apilado)', href: 'Logo Oficial.html' },
             { t: 'Portadas Redes · YouTube + Facebook', s: '3 direcciones · áreas seguras · descarga a tamaño real', href: 'Portadas Redes · DTD-Cargo.html' },
             { t: 'Portada Animada · Facebook', s: 'Video de portada 1250×463 · graba MP4 nativo', href: 'Portada Animada FB · DTD-Cargo.html' },
-            { t: 'Brand Book v4.4', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v4.4.html' },
+            { t: 'Brand Book v4.5', s: 'Sistema completo de identidad y aplicaciones', href: 'Brand Book DTD v4.5.html' },
           ].map(r => (
             <a key={r.href} href={r.href} target="_blank" rel="noopener" style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', textDecoration: 'none',
@@ -989,7 +989,7 @@ function SectionWorkflows() {
         <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
           <span style={{ color: 'var(--warning)' }}>{window.Icon.warn(14)}</span>
           <div style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink)' }}>
-            Editar el flujo de estados afecta todos los embarques actuales y futuros. Las reglas de notificación (Mailing → Reglas auto.) referencian estos estados — si los cambiás, revisalas.
+            Editar el flujo de estados afecta todos los embarques actuales y futuros. Las reglas de notificación (Mailing → Reglas auto.) referencian estos estados — si los cambias, revísalas.
           </div>
         </div>
       </U.Card>
@@ -1151,7 +1151,7 @@ function SectionFeatures() {
         { k: 'branding_xcliente', name: 'White-label por cliente',   desc: 'Clientes Platinum reciben correos con su propio branding.', module: 'mailing' },
         { k: 'cn_translation',    name: 'Traductor CN ↔ ES',         desc: 'Toggle de idioma + traducción de proveedores chinos.', module: 'almacén CN' },
         { k: 'comments',          name: 'Comentarios + @menciones',  desc: 'Hilos de comentarios en embarques/clientes/facturas con menciones.', module: 'global' },
-        { k: 'portal_cliente',    name: 'Portal externo del cliente', desc: 'Permite que clientes se logueen y vean sus envíos. Si lo apagás, solo se comunica por email.', module: 'global' },
+        { k: 'portal_cliente',    name: 'Portal externo del cliente', desc: 'Permite que clientes se logueen y vean sus envíos. Si lo apagas, solo se comunica por email.', module: 'global' },
         { k: 'referidos',         name: 'Programa de referidos',     desc: 'Programa de lealtad: el cliente recomienda DTD-Cargo con su código y gana crédito. Por defecto OFF — al cliente le aparece “Próximamente” en el portal hasta que lo actives.', module: 'portal cliente', defaultOn: false },
       ],
     },

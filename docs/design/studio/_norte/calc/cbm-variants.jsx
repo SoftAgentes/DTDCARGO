@@ -32,7 +32,7 @@ const KG_INCL_CBM = 500; // kg incluidos sin recargo por CBM
 const KG_EXTRA_USD = 1; // $/kg excedente
 const DENS_MAX = 600; // kg/CBM máximo
 const EMBALAJE_USD = 50; // embalaje especial
-const BAT_MULT = 1.5; // multiplicador por baterías
+const BAT_MULT = 1.4; // multiplicador por baterías
 const CBM_MAX = 68; // m³ máximo (1 contenedor 40'HC)
 const PESO_MAX = 27000; // kg máximo por contenedor
 const CONT_40HC = 68; // CBM aprox · 40'HC (para el dibujo)
@@ -333,6 +333,7 @@ function Notice({ tone, title, body }) {
 // Calculadora LCL DDP · con "calcular CBM por medidas"
 // ══════════════════════════════════════════════════════════════════
 function CalcLCL() {
+  const [heroOpen, setHeroOpen] = React.useState(false);
   // Tarifa base + vigencia las define el ERP (módulo Tarifas) vía bridge.
   const _erpTar = (() => { try { return (window.DTDData && window.DTDData.getCbmTariff) ? window.DTDData.getCbmTariff() : null; } catch (e) { return null; } })();
   const [tarifa, setTarifa] = useState(String((_erpTar && _erpTar.rate) || TARIFA_DEFAULT));
@@ -468,9 +469,9 @@ function CalcLCL() {
   const tarifaVencida = vence ? (vence < new Date().toISOString().slice(0, 10)) : false;
   const tarifaHint = vence
     ? (tarifaVencida
-        ? 'Tarifa vencida el ' + fmtFecha(vence) + ' — confirma con tu asesor.'
-        : 'Tarifa del sistema · vigente hasta ' + fmtFecha(vence) + '. Ajústala si tu cotización es distinta.')
-    : 'La genera el sistema. Ajústala si tu cotización es distinta.';
+        ? 'Esta tarifa venció el ' + fmtFecha(vence) + ' — confírmala con tu asesor antes de usarla.'
+        : 'Es nuestra tarifa actual de flete (válida hasta ' + fmtFecha(vence) + '). Si tu asesor te pasó otra, ajústala.')
+    : 'Es nuestra tarifa actual de flete. Si tienes otra cotización, ajústala.';
 
   // Sam (2026-06): cada bloque de entrada como una "etapa" con sombreado ligero,
   // para que se lea por partes sin numerar. Sutil: fondo apenas distinto + hairline.
@@ -481,18 +482,26 @@ function CalcLCL() {
     <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--r-xl)', boxShadow: 'var(--shadow-lg)', overflow: 'hidden', fontFamily: 'var(--f-sans)', display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
       {/* ENTRADA */}
       <div style={{ padding: 'var(--s-8)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--s-6)' }}>
-          <Wordmark size={17} />
-          <span style={{ font: '700 9.5px/1 var(--f-sans)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--wine)' }}>Calculadora LCL DDP</span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 'var(--s-6)' }}>
+          <span style={{ font: '700 13px/1 var(--f-sans)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--wine)', textAlign: 'center' }}>Calculadora de CBM <span style={{ color: 'var(--ink-mute)', fontWeight: 600 }}>· LCL · DDP</span></span>
         </div>
-        <h2 style={{ font: '800 25px/1.06 var(--f-display)', letterSpacing: '-0.025em', color: 'var(--ink)', margin: '0 0 6px' }}>Cotiza tu carga China → Venezuela</h2>
-        <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 22px', maxWidth: '44ch' }}>Puerta a puerta, financiamiento 100%. Indica tu volumen y peso y te damos un estimado al instante.</p>
+        {heroOpen ?
+        <div>
+          <h2 style={{ font: '800 25px/1.06 var(--f-display)', letterSpacing: '-0.025em', color: 'var(--ink)', margin: '0 0 6px' }}>Cotiza tu carga China → Venezuela</h2>
+          <p style={{ font: '500 12.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '0 0 6px', maxWidth: '44ch' }}>Puerta a puerta, pagas cuando llegue<span style={{ color: 'var(--wine)', fontWeight: 700 }}>*</span>. Indica tu volumen y peso y te damos un estimado al instante.</p>
+          <button type="button" onClick={() => setHeroOpen(false)} style={{ background: 'none', border: 0, color: 'var(--wine)', cursor: 'pointer', font: '600 11px/1 var(--f-sans)', padding: '2px 0 20px' }}>Ocultar</button>
+        </div>
+        :
+        <button type="button" onClick={() => setHeroOpen(true)} title="Ver de qué va" style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 0, cursor: 'pointer', padding: '0 0 16px' }}>
+          <span style={{ font: '800 17px/1.1 var(--f-display)', letterSpacing: '-0.02em', color: 'var(--ink)' }}>Cotiza tu carga China → Venezuela</span>
+          <span style={{ font: '600 11px/1 var(--f-mono)', color: 'var(--wine)' }}>ⓘ</span>
+        </button>}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Etapa · Tu carga */}
           <div style={stageBox}>
             <div style={stageEyebrow}>Tu carga</div>
-            <NumField label="Tarifa de CBM" tag={vence ? (tarifaVencida ? 'sistema · vencida' : 'sistema · vigente') : 'auto · editable'} value={tarifa} onChange={setTarifa} prefix="$" suffix="USD/CBM"
+            <NumField label="Tarifa actual de CBM" tag={vence ? (tarifaVencida ? 'vencida' : 'editable') : 'editable'} value={tarifa} onChange={setTarifa} prefix="$" suffix="USD/CBM"
             hint={tarifaHint} hintTone={tarifaVencida ? 'danger' : null} />
 
             <div>
@@ -523,7 +532,7 @@ function CalcLCL() {
           <div style={stageBox}>
             <div style={stageEyebrow}>Detalles de la carga</div>
             <Toggle on={embalaje} onToggle={() => setEmbalaje(!embalaje)} title="Embalaje especial" sub="Madera o paleta" badge={'+' + money(EMBALAJE_USD)} />
-            <Toggle on={baterias} onToggle={() => setBaterias(!baterias)} title="Lleva baterías" sub="Recargo por manejo de litio" badge={'×' + BAT_MULT} />
+            <Toggle on={baterias} onToggle={() => setBaterias(!baterias)} title="Lleva baterías" sub="Recargo por manejo de litio" />
             <Toggle on={especial} onToggle={() => setEspecial(!especial)} title="Carga especial o de alto valor" sub="Frágil, peligrosa o con permisos — la vemos a medida" />
           </div>
 

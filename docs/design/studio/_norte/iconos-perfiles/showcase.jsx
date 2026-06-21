@@ -94,7 +94,7 @@ function RoleCard({ role }) {
           <span className="role-num"><span className="wc">微信</span> {role.wc}</span>
         </div>
         <p className="role-help" style={{ font: '400 11.5px/1.5 var(--f-sans)', color: 'var(--ink-soft)', margin: '14px 0 6px' }}>
-          El <strong>PNG</strong> es la imagen quieta del ícono (una foto) — la que usás en WhatsApp, el CRM o un avatar. <strong>512</strong> y <strong>1024</strong> son el tamaño en píxeles (1024 = más grande/nítido). El <strong>SVG</strong> es la versión <strong>interactiva</strong>: vectorial y con la animación del rol — para web/apps, no para WhatsApp.
+          El <strong>PNG</strong> es la imagen quieta del ícono (una foto) — la que usas en WhatsApp, el CRM o un avatar. <strong>512</strong> y <strong>1024</strong> son el tamaño en píxeles (1024 = más grande/nítido). El <strong>SVG</strong> es la versión <strong>interactiva</strong>: vectorial y con la animación del rol — para web/apps, no para WhatsApp.
         </p>
         <div className="role-actions" style={{ marginTop: 4 }}>
           <button className="btn primary" onClick={() => exportPNG(512)}>↓ PNG 512 · fijo</button>

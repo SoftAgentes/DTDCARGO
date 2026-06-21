@@ -209,7 +209,7 @@
         <U.PageHeader
           eyebrow="CONFIGURACIÓN · DESPACHO"
           title="Reglas de Prioridad"
-          subtitle="Cada regla es una card plegable con su propio switch. Apagás sin abrir; abrís para configurar."
+          subtitle="Cada regla es una card plegable con su propio switch. Apagas sin abrir; abres para configurar."
           breadcrumbs={[
             { label: 'Despacho', onClick: () => goTo && goTo('despacho') },
             { label: 'Reglas de prioridad' },

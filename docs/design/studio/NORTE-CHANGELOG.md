@@ -4,6 +4,49 @@
 > El detalle técnico vive en `git log` / tags `norte-vX.Y`. El mockup vigente está en `_norte/`.
 > Regenerar índice: `node scripts/norte.mjs` · servir: `npx serve docs/design/studio/_norte -l 3010` → http://localhost:3010/_norte
 
+## v4.5 · carga 2026-06-20 — **marca sincronizada a Brand Book v4.5 · sync 2026-06-20**
+
+> *Hecho en ventana secundaria (worktree `feat/norte-v45`). NO mergeado ni pusheado — queda para la
+> ventana de coordinación.* El ZIP se extrajo **fuera del repo** (regla anti-drift de marca).
+
+Fuente: `Downloads/DTD-Cargo HANDOF NORTE V4.5 COMPLETO.zip` (355 MB crudo, 1373 entradas). El HANDOFF
+salta **v4.4 → v4.5**; el Brand Book **v4.4 → v4.5** (git lo detectó como *rename* 95% / standalone 77%).
+
+**Alcance: NORTE-SYNC COMPLETO** (book único + bump de versión + reflejo de prod + **refresh de contenido del
+prototipo**). Se hizo en dos pasos por decisión del founder: primero book+versión+prod, después el overwrite de
+contenido de `_norte/` desde el ZIP (este mismo commit, amendado). Norma de NORTE-SYNC respetada.
+
+**Aplicado:**
+- **Book único:** `Brand Book DTD v4.4.html` → `v4.5.html` (liviano, en `_norte/`) y el standalone gateado
+  `private/marca/brand-book-v4.4.html` → `v4.5.html`. Route handlers `/marca/**` + hub `/interno/marca` + bundle → v4.5.
+- **`BRAND-DECISIONS.md` NUEVO** (registro central de decisiones de marca BD-001..BD-015) + regla en
+  `CLAUDE.md` (toda excepción de marca se registra también ahí).
+- **Sistema sin drift:** `erp/tokens.css` solo cambia la **etiqueta de versión** (cero cambio de
+  tokens/fuentes/reglas — verificado por diff); los 4 logos PNG son **idénticos** (md5) → no se propaga nada nuevo a la web.
+- **Bump de versión única v4.4 → v4.5** en labels vivos: títulos ERP/Portal/Registro/Mobile/operario, badges,
+  Brand Hub, Launcher, punteros al book; + repo (`BRAND.md`, `docs/design/README.md`, `public/brand/README.md`,
+  `lib/design-tokens.ts`, `components/BrandMark.tsx`, `scripts/norte.mjs` `NORTE_VERSION`, `public/api/radar-report.json`,
+  `.claude/commands/radar.md` Regla 0.5/0.5b). **`AGENTS.md`: de-hardcodeado** (la línea decía "hoy v4.4"; ahora apunta a HANDOFF).
+- **LIVE en prod reflejado** en `_norte/HANDOFF.md` + `CHANGELOG.md`: packlist trilingüe (SDD-0097), cotizador de
+  fletes (SDD-0095), web-ui (home 1 CTA/registro/Finanzas/densidad), prealertas-ads (SDD-0098), academia (SDD-0093 B),
+  Kommo write-back (dry-run) + email del Portal branded.
+
+**✅ Refresh de contenido del prototipo (overwrite de `_norte/` desde el ZIP):** ~**39 archivos con cambio real**
+(el resto del diff del ZIP era solo line-endings LF que git normaliza). Destacado: **rediseño del Portal del Cliente**
+(`portal/app.jsx` +1115/-186), **Sistema de Movimiento** + microsites de fundamentos nuevos (**Arquitectura, Mensajes,
+Datos, Accesibilidad, Posicionamiento** de Marca + **Portal · Rediseño**), **Brand Hub** en 3 ejes (+ fix de un `v4.4`
+stale que traía el ZIP), **barrido de tuteo** (fairs-detection, copilot, registro, components, data…) y el Packing List.
+**Dirs pesados excluidos** (ya en `.gitignore`: `paquete-drive/`, `fondos/`, `trello/`, `para-enviar/`, `uploads/`,
+`scraps/`, `screenshots/`). **Conflicto WMS preservado:** el ZIP trae `inventario/DECISIONES-WMS-SDD-0080.md` →
+descartado; se mantuvo el `…SDD-0081.md` local. ZIP extraído en `Downloads/norte-v45-extract/`.
+
+**Índice (`scripts/norte.mjs`):** `NORTE_VERSION` → v4.5, puntero del book → `Brand Book DTD v4.5.html`, + grupo
+**"Nuevo en v4.5"** (Portal Rediseño, Sistema de Movimiento, 5 microsites de marca).
+
+**Gates:** `node scripts/verify.mjs` VERDE (2256 tests) · `next build` EXIT 0 · radar Regla 0.5 sin `v4.4` stale.
+
+---
+
 ## v4.4 · carga 2026-06-19 — **marca sincronizada a Brand Book v4.4 · sync 2026-06-19**
 
 > *Hecho en ventana secundaria (worktree `feat/norte-v44`). NO mergeado ni pusheado — queda para la

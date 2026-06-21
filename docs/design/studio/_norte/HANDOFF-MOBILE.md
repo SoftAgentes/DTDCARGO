@@ -227,7 +227,7 @@ Cada llamada va con `Authorization: Bearer <accessToken>`; el backend **verifica
 - **Componentes:** `window.ERPUI` primero; inventar solo con `/* TODO: brand-review */`.
 - **Códigos (mono):** Shipping Mark `DTD-XXXX` (cara al cliente) / Shipping Mark 唛头 (cara al
   proveedor CN, mismo valor), containers `DTDU-XXXXXX`, rutas `R-2026-XXXX`.
-- **Tono:** castellano rioplatense/venezolano neutro, voseo, verbos directos en CTAs
+- **Tono:** castellano venezolano neutro, tuteo, verbos directos en CTAs
   ("Confirmar ruta", "Recibir contenedor"). Sin emoji ni exclamaciones múltiples en UI.
 
 ---

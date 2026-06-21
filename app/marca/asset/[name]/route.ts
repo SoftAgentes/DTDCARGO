@@ -24,7 +24,7 @@ const ROOT = process.cwd();
 // Whitelist: nombre público → ruta relativa en private/marca/. Cerrada a propósito
 // (evita path traversal: solo estos 3 archivos se pueden pedir).
 const ASSETS: Record<string, string> = {
-  "brand-book": "private/marca/brand-book-v4.4.html",
+  "brand-book": "private/marca/brand-book-v4.5.html",
   "wa-catalogo": "private/marca/herramientas/whatsapp-catalogo-plantillas.html",
   "wa-guia": "private/marca/herramientas/whatsapp-business-guia.html",
 };
