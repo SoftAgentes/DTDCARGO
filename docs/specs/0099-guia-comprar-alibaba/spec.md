@@ -67,11 +67,14 @@ repo, el componente `components/AlibabaAddressGuide.tsx` (widget de dirección) 
   `make-pdf`, que no permite temática de marca). A4, ~9 págs, logo + wine/navy/cream + tabla de dirección Yiwu.
 - `assets/outline-curso-academia.md` — módulos/lecciones para `feat/academia` (tier=`gratis`, `free_preview`,
   `widget='alibaba_address'`, `video_url`, `asset_path`).
-- `assets/guia-alibaba-interactiva.html` — **guía interactiva DTD-branded** (re-skin del prototipo v2 del
-  founder): app gamificada y adaptativa por perfil (Agente/Emprendedor) + calculadoras (CBM, costo real,
-  scorecard) + captura progresiva de lead. Marca DTD (tokens + Archivo/Archivo Black/JetBrains Mono/Noto Sans
-  SC, isologo base64, **cero gradientes/emojis**), datos reales cableados (WhatsApp CRM + dirección Yiwu +
-  MARKBOX-CTA). Candidata a **lección interactiva** de la Academia (la inserta `feat/academia`).
+- `public/guias/comprar-en-alibaba.html` — **guía interactiva DTD-branded** (re-skin del prototipo v2 del
+  founder), **servible en `/guias/comprar-en-alibaba.html`**: app gamificada y adaptativa por perfil
+  (Agente/Emprendedor) + calculadoras (CBM, costo real, scorecard) + captura progresiva de lead. Marca DTD
+  (tokens + Archivo/Archivo Black/JetBrains Mono/Noto Sans SC, isologo base64, **cero gradientes/emojis**),
+  datos reales cableados (WhatsApp CRM + dirección Yiwu + MARKBOX-CTA).
+- `docs/runbooks/academia-guia-alibaba-interactiva.md` — **hand-off a `feat/academia`** para enchufar la guía
+  como lección de la Academia (migración del widget `alibaba_curso` + componente iframe + render + seed).
+  Decisión founder: el carril `academy_*`/portal lo aplica esa ventana, no esta rama.
 
 ## Fuera de alcance
 
