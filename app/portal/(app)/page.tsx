@@ -10,6 +10,8 @@ import {
   listMyShipments,
 } from "@/lib/portal/portal-queries";
 import { listPendingAcceptanceInvoices } from "@/lib/portal/portal-legal-queries";
+import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
+import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import { showNortePortal } from "@/lib/portal/demo";
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboard } from "./_components/PortalDashboard";
@@ -50,6 +52,18 @@ export default async function PortalHomePage() {
   // por tenant + markbox (identidad ya resuelta por sesión vía getPortalClient).
   const pendingAcceptance = await loadPendingAcceptance(client.id, client.markbox);
 
+  // Snapshot naviero del próximo arribo (SDD-0101 · Tier 1) — admin client (el
+  // cliente del portal no tiene RLS sobre sailings/consolidations), scopeado al
+  // envío. El héroe muestra el buque real cuando existe. Best-effort → null no rompe.
+  let nextArrivalNaviera: NavieraSnapshot | null = null;
+  if (nextArrival) {
+    try {
+      nextArrivalNaviera = await getShipmentNaviera(createAdminClient(), nextArrival.id);
+    } catch {
+      nextArrivalNaviera = null;
+    }
+  }
+
   return (
     <div className="flex flex-col gap-7">
       {pendingAcceptance.length > 0 ? (
@@ -67,6 +81,7 @@ export default async function PortalHomePage() {
           client={client}
           kpis={kpis}
           nextArrival={nextArrival}
+          nextArrivalNaviera={nextArrivalNaviera}
           shipments={shipments}
         />
       ) : (

@@ -24,8 +24,16 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { getContainerTracking } from "@/lib/studio/naviera-tracking/tracking-api";
+import {
+  trackingQuotaConfig,
+  trackingQuotaDecision,
+  trackingPeriod,
+} from "@/lib/studio/naviera-tracking/tracking-quota";
+import { getTrackingUsage } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import {
   evaluateCapacity,
+  normalizeContainerNo,
   validateBookingInput,
   validateConsolidationInput,
   validateConsolidationItemInput,
@@ -276,12 +284,188 @@ export async function createConsolidation(
     booking_id: input!.bookingId,
     sailing_id: input!.sailingId,
     container_type: input!.containerType,
+    container_no: input!.containerNo,
     status: input!.status,
     notes: input!.notes,
   });
   if (error) return { error: `No se pudo crear el contenedor: ${error.message}` };
   revalidate();
   return { ok: true, consolidationRef };
+}
+
+/**
+ * Setea / actualiza el nº físico del contenedor (SDD-0101 · tracking). Se suele
+ * cargar post-creación, cuando la naviera confirma el contenedor. Normaliza
+ * (mayúsculas, sin espacios); vacío lo limpia a null. RLS filtra por tenant.
+ */
+export async function setConsolidationContainerNo(
+  consolidationId: string,
+  containerNoRaw: string,
+): Promise<Result> {
+  const supabase = await createClient();
+  const containerNo = normalizeContainerNo(containerNoRaw);
+  const { error } = await supabase
+    .from("consolidations")
+    .update({ container_no: containerNo })
+    .eq("id", consolidationId);
+  if (error) return { error: `No se pudo guardar el contenedor: ${error.message}` };
+  revalidate();
+  return { ok: true };
+}
+
+/** Suma 1 al contador mensual del tracking + guarda el remaining (read-modify-write). */
+async function recordTrackingUsage(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  period: string,
+  remaining: number | null,
+): Promise<void> {
+  const cur = await getTrackingUsage(supabase, tenantId, period);
+  await supabase.from("searates_tracking_usage").upsert(
+    {
+      tenant_id: tenantId,
+      period,
+      calls: cur.calls + 1,
+      last_remaining: remaining,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "tenant_id,period" },
+  );
+}
+
+/**
+ * Refresca el tracking de un contenedor desde SeaRates (SDD-0101 · Slice B.2).
+ * Gasta como máximo **1 llamada**, guardada por la cuota (tope mensual + reserva
+ * del plan). Resuelve el número a trackear (container_no, fallback BL) + el SCAC
+ * de la naviera, llama al API, cachea el snapshot (o el error) y actualiza el
+ * contador. El operador la dispara a mano (nunca por pageview).
+ */
+export async function refreshTracking(
+  consolidationId: string,
+): Promise<{ ok?: boolean; error?: string; remaining?: number | null }> {
+  const supabase = await createClient();
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: c } = await supabase
+    .from("consolidations")
+    .select("id, container_no, sailing_id, booking_id")
+    .eq("id", consolidationId)
+    .maybeSingle();
+  if (!c) return { error: "Contenedor no encontrado." };
+
+  // Número a trackear: nº de contenedor (preferido) o BL del booking. SCAC del
+  // carrier del sailing (SeaRates autodetecta si falta).
+  let number = normalizeContainerNo(c.container_no as string | null);
+  let numberType: "CT" | "BL" = "CT";
+  let scac: string | null = null;
+
+  if (c.sailing_id) {
+    const { data: s } = await supabase
+      .from("sailings")
+      .select("carrier_id")
+      .eq("id", c.sailing_id as string)
+      .maybeSingle();
+    if (s?.carrier_id) {
+      const { data: car } = await supabase
+        .from("carriers")
+        .select("scac")
+        .eq("id", s.carrier_id as string)
+        .maybeSingle();
+      scac = (car?.scac as string | null)?.trim() || null;
+    }
+  }
+  if (!number && c.booking_id) {
+    const { data: b } = await supabase
+      .from("bookings")
+      .select("bl_number")
+      .eq("id", c.booking_id as string)
+      .maybeSingle();
+    const bl = (b?.bl_number as string | null)?.trim() || null;
+    if (bl) {
+      number = bl.toUpperCase();
+      numberType = "BL";
+    }
+  }
+  if (!number) {
+    return { error: "Carga el nº de contenedor o el BL antes de rastrear." };
+  }
+
+  // Guard de cuota ANTES de gastar.
+  const period = trackingPeriod(new Date());
+  const { monthlyCap, reserve } = trackingQuotaConfig();
+  const usage = await getTrackingUsage(supabase, tenantId, period);
+  const decision = trackingQuotaDecision({
+    callsThisPeriod: usage.calls,
+    lastRemaining: usage.lastRemaining,
+    monthlyCap,
+    reserve,
+  });
+  if (!decision.allowed) return { error: decision.message ?? "Cuota de tracking agotada." };
+
+  const result = await getContainerTracking({ number, type: numberType, sealine: scac });
+
+  // mock / red caída → NO se consumió llamada; no contamos ni cacheamos.
+  if (!result.ok && (result.error === "mock_no_key" || result.error.startsWith("network"))) {
+    return {
+      error:
+        result.error === "mock_no_key"
+          ? "Tracking no configurado (falta la API key de SeaRates)."
+          : "No se pudo conectar con SeaRates. Reintenta en un momento.",
+    };
+  }
+
+  // Hubo llamada real (ok o error de proveedor) → cuenta + remaining.
+  const remaining = result.remaining ?? null;
+  await recordTrackingUsage(supabase, tenantId, period, remaining);
+
+  if (!result.ok) {
+    // Error de proveedor (no encontrado, etc.): marca el estado sin pisar un
+    // snapshot bueno previo (UPDATE parcial, no upsert).
+    await supabase
+      .from("tracking_snapshots")
+      .update({
+        fetch_status: "error",
+        error_code: result.code ?? result.error,
+        api_remaining: remaining,
+        fetched_at: new Date().toISOString(),
+      })
+      .eq("tenant_id", tenantId)
+      .eq("number", number);
+    revalidate();
+    return { error: `SeaRates: ${result.code ?? result.error}`, remaining };
+  }
+
+  const live = result.live;
+  const { error: upErr } = await supabase.from("tracking_snapshots").upsert(
+    {
+      tenant_id: tenantId,
+      consolidation_id: consolidationId,
+      number,
+      number_type: numberType,
+      sealine: live.sealine,
+      sealine_name: live.sealineName,
+      status: live.status,
+      vessel: live.vessel,
+      pol_date: live.polDate,
+      pol_actual: live.polActual,
+      pod_eta: live.podEta,
+      pod_actual: live.podActual,
+      last_lat: live.lastLat,
+      last_lng: live.lastLng,
+      milestones: live.milestones,
+      raw: result.raw ?? null,
+      fetch_status: "ok",
+      error_code: null,
+      api_remaining: live.apiCallsRemaining,
+      fetched_at: new Date().toISOString(),
+    },
+    { onConflict: "tenant_id,number" },
+  );
+  if (upErr) return { error: `No se pudo guardar el tracking: ${upErr.message}`, remaining };
+
+  revalidate();
+  return { ok: true, remaining };
 }
 
 export async function changeConsolidationStatus(

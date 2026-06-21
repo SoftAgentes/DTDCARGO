@@ -16,6 +16,12 @@ import {
   signDocumentUrls,
 } from "@/lib/studio/shipment-document-queries";
 import { createAdminClient } from "@/lib/db/admin";
+import {
+  getShipmentNaviera,
+  getShipmentTrackingSnapshot,
+} from "@/lib/studio/naviera-tracking/queries";
+import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
+import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -52,11 +58,30 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: stepper horizontal + 2
   // columnas. Clientes reales siguen con el detalle de abajo.
   if (showNortePortal(client?.markbox)) {
+    // Snapshot naviero (SDD-0101): la cadena interna (Tier 1 · Slice A) + el snapshot
+    // VIVO de SeaRates (Slice B.3) se resuelven con el admin client (el cliente del
+    // portal no tiene RLS sobre sailings/consolidations/tracking_snapshots), scopeados
+    // al envío PROPIO (shipment.id ya verificado por getMyShipment). El portal SOLO LEE
+    // el cache del tracking (cero cuota; el refresh lo dispara el ERP). Degradan a null.
+    const admin = createAdminClient();
+    let naviera: NavieraSnapshot | null = null;
+    let live: TrackingSnapshotRow | null = null;
+    try {
+      [naviera, live] = await Promise.all([
+        getShipmentNaviera(admin, shipment.id),
+        getShipmentTrackingSnapshot(admin, shipment.id),
+      ]);
+    } catch {
+      naviera = null;
+      live = null;
+    }
     return (
       <PortalShipmentDetailNorte
         shipment={shipment}
         documents={documents}
         signedUrls={docUrls}
+        naviera={naviera}
+        live={live}
       />
     );
   }

@@ -50,7 +50,7 @@ const BOOKING_COLUMNS =
   "id, tenant_id, code, carrier_id, sailing_id, bl_number, container_type, mode, shipper, commodity, status, notes, created_at, updated_at, deleted_at";
 
 const CONSOLIDATION_COLUMNS =
-  "id, tenant_id, ref, booking_id, sailing_id, container_type, status, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, ref, booking_id, sailing_id, container_type, container_no, status, notes, created_at, updated_at, deleted_at";
 
 const ITEM_COLUMNS =
   "id, tenant_id, consolidation_id, shipment_id, client_markbox, client_name, supplier_name, cbm, weight_kg, pieces, created_at";
@@ -146,6 +146,7 @@ function coerceConsolidation(r: Record<string, unknown>): Consolidation {
     booking_id: (r.booking_id as string | null) ?? null,
     sailing_id: (r.sailing_id as string | null) ?? null,
     container_type: (r.container_type as string | null) ?? null,
+    container_no: (r.container_no as string | null) ?? null,
     status: (r.status as Consolidation["status"]) ?? "consolidando",
     notes: (r.notes as string | null) ?? null,
     created_at: String(r.created_at),

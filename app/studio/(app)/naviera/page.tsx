@@ -20,6 +20,10 @@ import {
   listSailings,
   navieraKpis,
 } from "@/lib/studio/naviera/queries";
+import {
+  listTrackingSnapshots,
+  type TrackingSnapshotRow,
+} from "@/lib/studio/naviera-tracking/snapshot-queries";
 import { NavieraClient } from "./_components/NavieraClient";
 
 export const metadata = { title: "Naviera & Consolidación" };
@@ -47,6 +51,16 @@ export default async function NavieraPage() {
     navieraKpis(supabase),
   ]);
 
+  // Snapshots de tracking cacheados (SDD-0101 · Slice B.2) mapeados por
+  // consolidación, para que el detalle muestre el dato vivo sin re-query.
+  const snapshots = await listTrackingSnapshots(supabase);
+  const trackingByConsolidation: Record<string, TrackingSnapshotRow> = {};
+  for (const s of snapshots) {
+    if (s.consolidationId && !trackingByConsolidation[s.consolidationId]) {
+      trackingByConsolidation[s.consolidationId] = s;
+    }
+  }
+
   return (
     <NavieraClient
       sailings={sailings}
@@ -57,6 +71,7 @@ export default async function NavieraPage() {
       ports={ports}
       containerTypes={containerTypes}
       kpis={kpis}
+      trackingByConsolidation={trackingByConsolidation}
     />
   );
 }

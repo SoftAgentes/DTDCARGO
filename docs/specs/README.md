@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 97 specs)
+### Índice de specs (generado · 98 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -134,7 +134,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0098 | Prealertas — menú de servicios de recepción (add-ons) + video… | in-progress | interno |
 | 0099 | Curso de bienvenida gratuito — Cómo comprar en Alibaba (guion… | in-progress | interno |
 | 0100 | Etiquetas CN reales: QR escaneable + datos de bodega (cierra … | in-progress | interna |
+| 0101 | Naviera Tier 1: tracking real del embarque (deep-link SeaRate… | draft | interna |
 | 0102 | Reclamos y siniestros del cliente — gestión de incidencias de… | in-progress | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0101 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

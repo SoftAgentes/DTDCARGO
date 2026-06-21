@@ -14,6 +14,7 @@ import {
   validateConsolidationItemInput,
   formatBookingCode,
   formatConsolidationRef,
+  normalizeContainerNo,
   BOOKING_CODE_RE,
   CONSOLIDATION_REF_RE,
   isContainerTypeCode,
@@ -159,6 +160,28 @@ describe("validateConsolidationInput", () => {
       status: "explotado" as never,
     });
     expect(input?.status).toBe("consolidando");
+  });
+
+  it("normaliza el nº de contenedor (mayúsculas, sin espacios) y null si vacío", () => {
+    const { input } = validateConsolidationInput({
+      containerType: "40HC",
+      containerNo: " cosu 123 4567 ",
+    });
+    expect(input?.containerNo).toBe("COSU1234567");
+
+    const { input: sinNo } = validateConsolidationInput({ containerType: "40HC" });
+    expect(sinNo?.containerNo).toBeNull();
+  });
+});
+
+describe("normalizeContainerNo", () => {
+  it("mayúsculas + sin espacios", () => {
+    expect(normalizeContainerNo("cosu 123 4567")).toBe("COSU1234567");
+  });
+  it("vacío / null / solo espacios → null", () => {
+    expect(normalizeContainerNo("")).toBeNull();
+    expect(normalizeContainerNo(null)).toBeNull();
+    expect(normalizeContainerNo("   ")).toBeNull();
   });
 });
 

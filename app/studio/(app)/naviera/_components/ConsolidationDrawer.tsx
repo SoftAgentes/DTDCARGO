@@ -41,6 +41,7 @@ export function ConsolidationDrawer({
   );
   const [bookingId, setBookingId] = useState("");
   const [sailingId, setSailingId] = useState("");
+  const [containerNo, setContainerNo] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -56,6 +57,7 @@ export function ConsolidationDrawer({
       containerType,
       bookingId: bookingId || null,
       sailingId: sailingId || null,
+      containerNo: containerNo.trim() || null,
       status: "consolidando",
       notes: notes.trim() || null,
     };
@@ -139,6 +141,17 @@ export function ConsolidationDrawer({
             </select>
           </Field>
         </div>
+
+        <Field label="Nº de contenedor" optional>
+          <input
+            className="studio-input studio-input-mono"
+            value={containerNo}
+            onChange={(e) => setContainerNo(e.target.value)}
+            placeholder="COSU1234567"
+            autoCapitalize="characters"
+            spellCheck={false}
+          />
+        </Field>
 
         <Field label="Notas" optional>
           <textarea
