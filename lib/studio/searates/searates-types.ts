@@ -54,8 +54,12 @@ export type SeaRatesPointId = `P_${number}` | `A_${number}` | `C_${number}` | (s
  * - weightKg / volumeM3: relevantes para LCL (peso/volumen de la carga suelta).
  */
 export type SeaRatesQuoteInput = {
-  pointIdFrom: SeaRatesPointId;
-  pointIdTo: SeaRatesPointId;
+  /** Origen/destino por ID de punto "P_<n>" (probe admin) O por coordenadas. */
+  pointIdFrom?: SeaRatesPointId;
+  pointIdTo?: SeaRatesPointId;
+  /** Coordenadas [lat, lng] (alternativa a pointId; el cron del cotizador las usa). */
+  coordsFrom?: readonly [number, number];
+  coordsTo?: readonly [number, number];
   shippingType: SeaRatesMode;
   container?: SeaRatesContainer;
   date?: string;
@@ -152,6 +156,16 @@ function parseOptionalNumber(v: unknown): number | undefined {
   return Number.isFinite(n) ? n : NaN;
 }
 
+/** Parsea coordenadas [lat, lng]; devuelve la tupla válida o null. */
+function parseCoords(v: unknown): readonly [number, number] | null {
+  if (!Array.isArray(v) || v.length !== 2) return null;
+  const lat = Number(v[0]);
+  const lng = Number(v[1]);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return [lat, lng];
+}
+
 /**
  * Validación manual (sin Zod). Normaliza point IDs (prefijo a mayúscula) y
  * shippingType a upper. Devuelve `{ input }` si todo OK, o `{ fieldErrors }` si
@@ -162,19 +176,29 @@ export function validateSeaRatesInput(
 ): SeaRatesValidation {
   const fieldErrors: SeaRatesFieldErrors = {};
 
-  const pointIdFrom = String(partial.pointIdFrom ?? "").trim().toUpperCase();
-  const pointIdTo = String(partial.pointIdTo ?? "").trim().toUpperCase();
   const shippingTypeRaw = String(partial.shippingType ?? "").trim().toUpperCase();
 
-  if (!pointIdFrom) fieldErrors.pointIdFrom = "Punto de origen requerido.";
-  else if (!POINT_ID_RE.test(pointIdFrom))
-    fieldErrors.pointIdFrom =
-      "Origen debe ser un ID de punto SeaRates (ej. P_27395).";
+  // Origen/destino: por coordenadas [lat,lng] (lo que usa el cron del cotizador) O
+  // por ID de punto "P_<n>" (probe admin). SeaRates no permite mezclar extremos.
+  const usingCoords = partial.coordsFrom != null || partial.coordsTo != null;
+  const coordsFrom = parseCoords(partial.coordsFrom);
+  const coordsTo = parseCoords(partial.coordsTo);
+  let pointIdFrom: string | undefined;
+  let pointIdTo: string | undefined;
 
-  if (!pointIdTo) fieldErrors.pointIdTo = "Punto de destino requerido.";
-  else if (!POINT_ID_RE.test(pointIdTo))
-    fieldErrors.pointIdTo =
-      "Destino debe ser un ID de punto SeaRates (ej. P_19774).";
+  if (usingCoords) {
+    if (!coordsFrom) fieldErrors.coordsFrom = "Coordenadas de origen inválidas ([lat, lng]).";
+    if (!coordsTo) fieldErrors.coordsTo = "Coordenadas de destino inválidas ([lat, lng]).";
+  } else {
+    pointIdFrom = String(partial.pointIdFrom ?? "").trim().toUpperCase();
+    pointIdTo = String(partial.pointIdTo ?? "").trim().toUpperCase();
+    if (!pointIdFrom) fieldErrors.pointIdFrom = "Punto de origen requerido.";
+    else if (!POINT_ID_RE.test(pointIdFrom))
+      fieldErrors.pointIdFrom = "Origen debe ser un ID de punto SeaRates (ej. P_27395).";
+    if (!pointIdTo) fieldErrors.pointIdTo = "Punto de destino requerido.";
+    else if (!POINT_ID_RE.test(pointIdTo))
+      fieldErrors.pointIdTo = "Destino debe ser un ID de punto SeaRates (ej. P_19774).";
+  }
 
   let shippingType: SeaRatesMode | null = null;
   if (shippingTypeRaw === "FCL" || shippingTypeRaw === "LCL")
@@ -206,10 +230,15 @@ export function validateSeaRatesInput(
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const input: SeaRatesQuoteInput = {
-    pointIdFrom,
-    pointIdTo,
     shippingType: shippingType as SeaRatesMode,
   };
+  if (usingCoords) {
+    input.coordsFrom = coordsFrom!;
+    input.coordsTo = coordsTo!;
+  } else {
+    input.pointIdFrom = pointIdFrom;
+    input.pointIdTo = pointIdTo;
+  }
   if (container) input.container = container;
   if (date) input.date = date;
   if (weightKg !== undefined && !Number.isNaN(weightKg)) input.weightKg = weightKg;

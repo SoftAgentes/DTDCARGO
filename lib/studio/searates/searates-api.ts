@@ -193,19 +193,27 @@ function defaultShipDate(): string {
 /**
  * Arma la query GraphQL de rates con los args INLINE (no variables).
  *
+ * Origen/destino: por coordenadas `[lat,lng]` (cron del cotizador) O por `pointId`
+ * "P_<n>" (probe admin). SeaRates exige ambos extremos del mismo tipo (no mezcla).
+ *
  * Seguro contra inyección: TODOS los valores vienen de `validateSeaRatesInput`
- * (pointId `^[PAC]_\d+$`, shippingType ∈ FCL|LCL, container del enum cerrado,
- * date `YYYY-MM-DD`, weight/volume numéricos) → no hay forma de meter comillas,
- * llaves ni espacios. Se usan args inline (y no variables) porque la introspección
- * está cerrada y así evitamos declarar tipos de variable que podrían no calzar
- * (p. ej. `date` es el scalar `Date`, no `String`).
+ * (pointId `^[PAC]_\d+$`, coords numéricas en rango, shippingType ∈ FCL|LCL,
+ * container del enum cerrado, date `YYYY-MM-DD`, weight/volume numéricos) → no hay
+ * forma de meter comillas, llaves ni espacios. Args inline (no variables) porque la
+ * introspección está cerrada (p. ej. `date` es el scalar `Date`, no `String`).
  *
  * El campo raíz `rates` devuelve un ARRAY de ofertas `{ general, points }`.
  */
 function buildRatesQuery(input: SeaRatesQuoteInput): string {
+  const endpoints =
+    input.coordsFrom && input.coordsTo
+      ? [
+          `coordinatesFrom: [${input.coordsFrom[0]}, ${input.coordsFrom[1]}]`,
+          `coordinatesTo: [${input.coordsTo[0]}, ${input.coordsTo[1]}]`,
+        ]
+      : [`pointIdFrom: "${input.pointIdFrom}"`, `pointIdTo: "${input.pointIdTo}"`];
   const args: string[] = [
-    `pointIdFrom: "${input.pointIdFrom}"`,
-    `pointIdTo: "${input.pointIdTo}"`,
+    ...endpoints,
     `shippingType: ${input.shippingType}`,
     `includedServices: ${INCLUDED_SERVICES}`,
   ];
