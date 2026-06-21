@@ -7,6 +7,7 @@ import {
 } from "@/lib/portal/portal-queries";
 import { buildPortalSupplierMark } from "@/lib/portal/portal-types";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
+import { showNortePortal } from "@/lib/portal/demo";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { ChangePasswordCard } from "./ChangePasswordCard";
 
@@ -34,6 +35,7 @@ export default async function PortalAccountPage() {
 
   const completeness = await getProfileCompleteness(supabase);
   const supplierMark = buildPortalSupplierMark(client.markbox);
+  const norte = showNortePortal(client.markbox);
   const waUpdate = buildWhatsAppLink(
     `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y necesito actualizar un dato de mi cuenta.`,
   );
@@ -52,24 +54,86 @@ export default async function PortalAccountPage() {
       <div className="mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1.05fr] gap-6 lg:gap-8 items-start">
         {/* ── Datos del cliente (read-only) ── */}
         <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
-          {/* MARKBOX prominente — es SU identificador */}
-          <div className="pb-6 border-b border-grey-200">
-            <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
-              Tu Shipping Mark
+          {/* MARKBOX prominente — es SU identificador. Norte: avatar + card navy
+              "TU CÓDIGO"; clientes en modo actual: el bloque wine de siempre. */}
+          {norte ? (
+            <div className="pb-6 border-b border-grey-200">
+              <div className="flex items-center gap-4">
+                <span
+                  className="grid place-items-center h-14 w-14 rounded-full flex-shrink-0 text-[18px]"
+                  style={{
+                    background: "var(--color-wine)",
+                    color: "var(--color-on-accent)",
+                    fontFamily: "var(--font-archivo-black)",
+                  }}
+                >
+                  {initials(client.name)}
+                </span>
+                <div className="min-w-0">
+                  <div
+                    className="text-[18px] leading-tight text-ink truncate"
+                    style={{ fontFamily: "var(--font-archivo-black)" }}
+                  >
+                    {client.name}
+                  </div>
+                  <div className="mt-0.5 text-[12.5px] text-grey-500">
+                    Cliente DTD
+                  </div>
+                </div>
+              </div>
+              <div
+                className="mt-5 rounded-[12px] p-5 text-center"
+                style={{
+                  background:
+                    "linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)",
+                }}
+              >
+                <div
+                  className="text-[10.5px] font-bold tracking-[0.16em] uppercase"
+                  style={{ color: "var(--hero-accent)" }}
+                >
+                  Tu Shipping Mark
+                </div>
+                <div
+                  className="mt-2.5 text-[28px] sm:text-[32px] leading-none"
+                  style={{
+                    fontFamily:
+                      "var(--font-jetbrains-mono), ui-monospace, monospace",
+                    color: "var(--hero-ink)",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {client.markbox}
+                </div>
+                <p
+                  className="mt-2 text-[11.5px] leading-[1.45]"
+                  style={{ color: "var(--hero-soft)" }}
+                >
+                  Tu código de cliente. Identifica tus cajas en nuestra bodega de
+                  Yiwu.
+                </p>
+              </div>
             </div>
-            <div
-              className="mt-2 text-[30px] sm:text-[36px] leading-none text-wine"
-              style={{
-                fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
-                letterSpacing: "-0.01em",
-              }}
-            >
-              {client.markbox}
+          ) : (
+            <div className="pb-6 border-b border-grey-200">
+              <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
+                Tu Shipping Mark
+              </div>
+              <div
+                className="mt-2 text-[30px] sm:text-[36px] leading-none text-wine"
+                style={{
+                  fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+                  letterSpacing: "-0.01em",
+                }}
+              >
+                {client.markbox}
+              </div>
+              <p className="mt-2 text-[12.5px] text-grey-500 leading-[1.5]">
+                Tu código de cliente. Identifica tus cajas en nuestra bodega de
+                Yiwu.
+              </p>
             </div>
-            <p className="mt-2 text-[12.5px] text-grey-500 leading-[1.5]">
-              Tu código de cliente. Identifica tus cajas en nuestra bodega de Yiwu.
-            </p>
-          </div>
+          )}
 
           <dl className="pt-6 flex flex-col gap-4">
             <Field label="Nombre / empresa" value={client.name} />
@@ -235,6 +299,13 @@ function Field({
       </dd>
     </div>
   );
+}
+
+/** Iniciales (1-2 letras) para el avatar del perfil. */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts[0][0] + (parts[1]?.[0] ?? "")).toUpperCase();
 }
 
 function Step({ n, title, copy }: { n: string; title: string; copy: string }) {

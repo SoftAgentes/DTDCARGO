@@ -1,17 +1,27 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/db/server";
-import { listMyInvoices } from "@/lib/portal/portal-queries";
+import {
+  listMyInvoices,
+  listMyShipments,
+  listMyEstimates,
+  getPortalClient,
+} from "@/lib/portal/portal-queries";
 import {
   formatInvoiceAmount,
   invoiceBalance,
+  isActiveShipmentStatus,
   type InvoiceCurrency,
   type PortalInvoiceRow,
+  type PortalShipmentRow,
+  type PortalEstimateRow,
 } from "@/lib/portal/portal-types";
+import { showNortePortal } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
 import { InvoiceRow } from "../../_components/InvoiceRow";
 import { InvoiceStatusBadge } from "../../_components/InvoiceStatusBadge";
+import { InvoiceCycleCard } from "./_components/InvoiceCycleCard";
 
 export const metadata: Metadata = { title: "Mis facturas" };
 
@@ -38,7 +48,19 @@ function formatDate(iso: string | null): string {
  */
 export default async function PortalInvoicesPage() {
   const supabase = await createClient();
-  const invoices = await listMyInvoices(supabase);
+  // Rediseño Norte (founder 2026-06-20) GATEADO al demo: la card "ciclo"
+  // (Estimado→Aprobado→Facturado) necesita estimados + envíos; sólo se cargan para
+  // el demo (clientes reales: misma página, sin queries extra).
+  const client = await getPortalClient(supabase);
+  const demo = showNortePortal(client?.markbox);
+  const [invoices, shipments, estimates] = await Promise.all([
+    listMyInvoices(supabase),
+    demo ? listMyShipments(supabase) : Promise.resolve<PortalShipmentRow[]>([]),
+    demo ? listMyEstimates(supabase) : Promise.resolve<PortalEstimateRow[]>([]),
+  ]);
+  const approvedCount = shipments.filter((s) =>
+    isActiveShipmentStatus(s.status),
+  ).length;
   const waLink = buildWhatsAppLink(
     "Hola DTD Cargo, soy cliente y tengo una consulta sobre mis facturas.",
   );
@@ -74,6 +96,16 @@ export default async function PortalInvoicesPage() {
         Tu estado de cuenta y comprobantes. Para dudas o pagos, escríbele a tu
         asesor por WhatsApp.
       </p>
+
+      {/* Card "ciclo" del Norte — GATEADA al demo (clientes reales no la ven). */}
+      {demo ? (
+        <InvoiceCycleCard
+          estimatesCount={estimates.length}
+          approvedCount={approvedCount}
+          invoicesCount={invoices.length}
+          invoicedLabel={formatInvoiceAmount(agg.total, primary)}
+        />
+      ) : null}
 
       {invoices.length === 0 ? (
         <div className="mt-8 card-shadow bg-white border border-grey-200 rounded-[18px] p-10 text-center">

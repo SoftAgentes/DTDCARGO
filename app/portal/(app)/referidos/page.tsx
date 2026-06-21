@@ -67,15 +67,17 @@ export default async function PortalReferralsPage() {
 }
 
 /**
- * Hero del código de referido. Gradiente navy→ink (único gradiente permitido por
- * el brand para el portal hero, CLAUDE.md). Texto cream/blanco sobre el navy.
+ * Hero del código de referido. Gradiente navy (tokens `--hero-*`, navy en AMBOS
+ * temas — NO sigue `--color-ink`, que en oscuro es el texto crema). Texto blanco
+ * sobre el navy. Único gradiente permitido por el brand para el portal hero.
  */
 function ShareHero({ program }: { program: PortalReferralProgram }) {
   return (
     <div
       className="rounded-[18px] overflow-hidden p-7 sm:p-8 text-white"
       style={{
-        background: "linear-gradient(135deg, var(--color-ink) 0%, #1F3055 100%)",
+        background:
+          "linear-gradient(135deg, var(--hero-from) 0%, var(--hero-to) 100%)",
       }}
     >
       <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-white/70">

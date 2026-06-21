@@ -49,6 +49,7 @@ export type {
 } from "@/lib/studio/tracking-progress";
 export {
   buildTimeline,
+  computeProgress,
   flowForService,
   nextMilestone,
 } from "@/lib/studio/tracking-progress";

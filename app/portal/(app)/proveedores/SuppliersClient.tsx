@@ -279,7 +279,7 @@ function SupplierCard({
       <span
         className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0 text-[14px] font-bold"
         style={{
-          background: "var(--color-paper)",
+          background: "color-mix(in srgb, var(--color-wine) 14%, var(--color-white))",
           color: "var(--color-wine)",
           fontFamily: "var(--font-archivo-black)",
         }}
@@ -762,7 +762,7 @@ function ModeChip({
       className="text-[12.5px] font-semibold rounded-full px-3 py-1.5 border transition-colors"
       style={{
         borderColor: active ? "var(--color-wine)" : "var(--color-grey-200)",
-        background: active ? "var(--color-paper)" : "#fff",
+        background: active ? "var(--color-paper)" : "var(--color-white)",
         color: active ? "var(--color-wine)" : "var(--color-grey-700)",
       }}
     >
@@ -812,7 +812,7 @@ function FileField({
           borderColor: has
             ? "var(--color-status-success)"
             : "var(--color-grey-200)",
-          background: has ? "var(--color-paper)" : "#fff",
+          background: has ? "var(--color-paper)" : "var(--color-white)",
         }}
       >
         <span

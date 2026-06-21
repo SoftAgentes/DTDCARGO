@@ -21,6 +21,9 @@
   --color-grey-100: #f2f0ec;
   --color-paper: #fbfaf7;
   --color-white: #ffffff;
+  /* Texto/íconos sobre un acento (wine/estado). NO cambia por tema (siempre claro
+     sobre el acento) — por eso es token aparte y no se redefine en oscuro. */
+  --color-on-accent: #ffffff;
 
   /* Status — brand book */
   --color-status-success: #1f8a5b;
@@ -39,6 +42,65 @@
   --font-archivo: var(--font-archivo), "Archivo", system-ui, -apple-system, sans-serif;
   --font-archivo-black: var(--font-archivo-black), "Archivo Black", sans-serif;
   --font-noto-sc: var(--font-noto-sc), "Noto Sans SC", sans-serif;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   PORTAL · tokens del rediseño Norte (founder 2026-06-20) — gateados al demo.
+   Sólo existen cuando el shell tiene [data-portal-theme] (lo pone el layout SOLO
+   para cuentas demo). El héroe "Próximo arribo" es NAVY en AMBOS temas (no sigue
+   --color-ink, que en oscuro es el texto crema) → tokens propios. La tinta sobre
+   navy vive acá (no rgba inline en el componente).
+   ────────────────────────────────────────────────────────────────── */
+[data-portal-theme] {
+  --hero-from: #0f1e3d;            /* navy de marca (= --color-ink en claro) */
+  --hero-to: #1f3055;             /* navy del héroe del Norte */
+  --hero-ink: #ffffff;
+  --hero-soft: rgba(255, 255, 255, 0.72);
+  --hero-mute: rgba(255, 255, 255, 0.66); /* AA sobre el navy del héroe (texto 10.5px) */
+  --hero-accent: #dd8088;          /* wine suave que lee sobre navy */
+  --portal-info: #2c5d8f;          /* azul informativo (KPI Facturado · actividad) */
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   DARK MODE del PORTAL (founder 2026-06-20) — gateado al demo.
+   Scopeado a `[data-portal-theme="dark"]` (lo pone app/portal/(app)/layout.tsx en
+   el shell, SOLO para cuentas demo). Redefine los MISMOS tokens que ya consumen los
+   componentes (paper, white, ink, greys, wine) → la superficie entera migra a
+   oscuro sin tocar JSX. Paleta = Norte dark theme (_norte/CLAUDE.md). Cuando se
+   prenda para todos, este bloque se mantiene; cambia solo el gate del layout.
+   ────────────────────────────────────────────────────────────────── */
+[data-portal-theme="dark"] {
+  --color-paper: #0b1428;     /* fondo de página (Norte --bg-base) */
+  --color-white: #16264a;     /* cards / superficies (Norte --bg-surface) */
+  --color-grey-100: #1f3055;  /* hover / elevado (Norte --bg-elevated) */
+  --color-grey-200: #29395c;  /* bordes */
+  --color-grey-300: #3d4d70;  /* bordes fuertes / placeholder */
+  --color-grey-500: #8b93a8;  /* texto muteado */
+  --color-grey-700: #aeb6c9;  /* texto secundario (Norte --ink-soft) */
+  --color-grey-900: #e8e6e2;  /* inverso (uso raro) */
+  --color-ink: #f2f0ec;       /* texto principal (Norte --ink) */
+  --color-wine: #c24450;      /* acento — más brillante para leer sobre navy */
+  --color-wine-deep: #d35e68; /* hover del acento */
+  --color-status-success: #2ea36e;
+  --color-status-warning: #d3a24a;
+  --color-status-danger: #e0606b;
+  /* El héroe sube un escalón sobre el fondo navy de la página (resalta como card) */
+  --hero-from: #1b2e54;
+  --hero-to: #25406c;
+  --portal-info: #5b9bd5;
+  color-scheme: dark;
+}
+
+/* Mostrar un elemento solo en un tema (ej. logo primary en claro, reverse en
+   oscuro). El estado default (sin data-portal-theme) = claro. */
+[data-theme-show="dark"] {
+  display: none;
+}
+[data-portal-theme="dark"] [data-theme-show="dark"] {
+  display: inline-flex;
+}
+[data-portal-theme="dark"] [data-theme-show="light"] {
+  display: none;
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -313,6 +375,23 @@
   transform: translateY(-2px);
 }
 
+/* Dark mode del portal (founder 2026-06-20 · rediseño Norte): las sombras navy
+   de arriba son invisibles sobre el fondo navy → sombras negras + inset highlight
+   (misma receta que .card-shadow-dark) para que las cards se despeguen del fondo.
+   El lift de hover (translateY) lo conserva la regla base; acá sólo la sombra. */
+[data-portal-theme="dark"] .card-shadow {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 20px rgba(0, 0, 0, 0.32),
+    0 24px 60px -20px rgba(0, 0, 0, 0.5);
+}
+[data-portal-theme="dark"] .card-shadow:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 12px 28px rgba(0, 0, 0, 0.4),
+    0 32px 70px -18px rgba(0, 0, 0, 0.6);
+}
+
 /* El frame del video (WorkBand) usa .card-shadow por estética, pero NO es
    interactivo → sin lift en hover (si no, el clip "salta" al pasar el mouse). */
 .work-band-frame:hover {
@@ -335,6 +414,58 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 8px 20px rgba(0, 0, 0, 0.32),
     0 24px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Badge de estado de envío (StatusBadge) — tokenizado por TONO para que se adapte
+   al tema del portal. En CLARO los colores espejan STATUS_COLORS 1:1 (cero cambio
+   para clientes reales); en OSCURO usan los tokens de estado brillantes (los hex
+   fijos navy eran invisibles sobre la card oscura). bg/borde con color-mix sobre
+   `transparent` → el badge se ve igual sobre card o sobre el fondo de página.
+   ────────────────────────────────────────────────────────────────── */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.badge-status-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.badge-status-info {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
+}
+.badge-status-success {
+  color: var(--color-status-success);
+  background: color-mix(in srgb, var(--color-status-success) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-status-success) 20%, transparent);
+}
+.badge-status-warning {
+  color: var(--color-status-warning);
+  background: color-mix(in srgb, var(--color-status-warning) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-status-warning) 20%, transparent);
+}
+.badge-status-danger {
+  color: var(--color-status-danger);
+  background: color-mix(in srgb, var(--color-status-danger) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-status-danger) 20%, transparent);
+}
+.badge-status-neutral {
+  color: var(--color-grey-500);
+  background: color-mix(in srgb, var(--color-grey-500) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-grey-500) 20%, transparent);
 }
 
 /* ──────────────────────────────────────────────────────────────────
