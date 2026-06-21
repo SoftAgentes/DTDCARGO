@@ -74,6 +74,69 @@ export type PortalClient = {
 };
 
 /**
+ * El asesor (account-director) ASIGNADO al cliente (ERP→Norte · clients.advisor_id
+ * → user_tenants/user_profiles). El portal lo muestra como "Tu asesor". null = sin
+ * asignar → el portal degrada al contacto público (CRM).
+ */
+export type PortalAdvisor = {
+  name: string;
+  phone: string | null;
+  avatarUrl: string | null;
+  /** Cargo (user_profiles.position_label), ej "Asesora comercial". */
+  positionLabel: string | null;
+};
+
+/**
+ * Normaliza un teléfono a formato wa.me (solo dígitos, con código de país). Devuelve
+ * null si no parece un número marcable (< 8 dígitos) → el caller cae al fallback.
+ */
+export function toWhatsAppRaw(phone: string | null | undefined): string | null {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 8 ? digits : null;
+}
+
+/** Modelo de presentación de la card "Tu asesor" del portal. */
+export type AdvisorCardModel = {
+  /** ¿Hay un asesor real asignado? Si no, es el contacto público de fallback. */
+  isReal: boolean;
+  /** Nombre del asesor, o null en el fallback público. */
+  name: string | null;
+  positionLabel: string | null;
+  avatarUrl: string | null;
+  /** Número destino del CTA de WhatsApp, en formato wa.me (solo dígitos). */
+  whatsappRaw: string;
+};
+
+/**
+ * Resuelve qué mostrar en la card "Tu asesor" (función pura, testeable):
+ *  - asesor con teléfono → su nombre + WhatsApp directo a SU número,
+ *  - asesor sin teléfono → su nombre, pero el WhatsApp cae al CRM público,
+ *  - sin asesor → fallback completo al contacto público (CRM).
+ */
+export function buildAdvisorCardModel(
+  advisor: PortalAdvisor | null,
+  publicWhatsappRaw: string,
+): AdvisorCardModel {
+  if (advisor) {
+    return {
+      isReal: true,
+      name: advisor.name,
+      positionLabel: advisor.positionLabel,
+      avatarUrl: advisor.avatarUrl,
+      whatsappRaw: toWhatsAppRaw(advisor.phone) ?? publicWhatsappRaw,
+    };
+  }
+  return {
+    isReal: false,
+    name: null,
+    positionLabel: null,
+    avatarUrl: null,
+    whatsappRaw: publicWhatsappRaw,
+  };
+}
+
+/**
  * El texto exacto que el cliente le pide a su proveedor en China que escriba en
  * **cada caja** como Shipping Mark (唛头): su código DTD-XXXX. Así la mercancía
  * llega identificada a la bodega de Yiwu y se sabe de quién es. Es el VALOR del

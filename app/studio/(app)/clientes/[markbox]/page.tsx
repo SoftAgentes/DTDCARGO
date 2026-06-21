@@ -8,12 +8,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
+import { createAdminClient } from "@/lib/db/admin";
 import {
   getClientByMarkbox,
   listShipmentsByMarkbox,
   getClientPortalAccess,
   getClientPortalApprovedAt,
 } from "@/lib/studio/client-queries";
+import { listTenantAdvisors } from "@/lib/studio/user-queries";
 import { tierBadgeTone, tierLabel } from "@/lib/studio/client-types";
 import {
   SERVICE_LABELS,
@@ -24,6 +26,7 @@ import { isAutoVerifyEnabled } from "@/lib/studio/identity";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ClientDetailClient } from "../_components/ClientDetailClient";
 import { PortalAccessCard } from "../_components/PortalAccessCard";
+import { AdvisorAssignCard } from "../_components/AdvisorAssignCard";
 import { IdentityVerificationCard } from "../_components/IdentityVerificationCard";
 import { DocsPanel } from "@/app/studio/_components/documents/DocsPanel";
 import { listDocumentsByEntity } from "@/lib/studio/documents/queries";
@@ -62,6 +65,17 @@ export default async function ClienteDetallePage({
   const shipments = (await listShipmentsByMarkbox(supabase, markbox)) as ShipmentRow[];
   const portalAccess = await getClientPortalAccess(supabase, client.id);
   const portalApprovedAt = await getClientPortalApprovedAt(supabase, client.id);
+
+  // Asesores asignables (ERP→Norte · clients.advisor_id). El listado de miembros
+  // del tenant se resuelve con el admin client (la RLS de user_tenants tapa a los
+  // no-admin más allá de su propia fila), scopeado por el tenant del usuario.
+  const { data: tenantLink } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  const advisors = tenantLink?.tenant_id
+    ? await listTenantAdvisors(createAdminClient(), tenantLink.tenant_id)
+    : [];
 
   // Documentos del DMS genérico (SDD-0049) adjuntos a este cliente — KYC, RIF,
   // contratos, poderes. Coexiste con shipment_documents.
@@ -211,6 +225,13 @@ export default async function ClienteDetallePage({
             email={client.email}
             access={portalAccess}
             approvedAt={portalApprovedAt}
+          />
+
+          <AdvisorAssignCard
+            clientId={client.id}
+            markbox={client.markbox}
+            currentAdvisorId={client.advisor_id}
+            advisors={advisors}
           />
 
           {showIdentityCard && (

@@ -77,6 +77,19 @@ export interface UserInvitation {
   created_at: string;
 }
 
+/**
+ * Opción del selector de asesor de un cliente (ERP→Norte · clients.advisor_id).
+ * Un miembro activo del tenant que puede asignarse como asesor/account-director.
+ */
+export interface TenantAdvisorOption {
+  userId: string;
+  /** "First Last" o null si el miembro aún no cargó su perfil. */
+  name: string | null;
+  role: StudioUserRole;
+  avatarUrl: string | null;
+  positionLabel: string | null;
+}
+
 // ─── KPIs (computed) ─────────────────────────────────────────
 
 export interface UserKpis {

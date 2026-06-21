@@ -15,6 +15,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   InvitationStatus,
   StudioUserRole,
+  TenantAdvisorOption,
   UserInvitation,
   UserKpis,
   UserMembershipWithProfile,
@@ -112,6 +113,53 @@ export async function listMembers(
     });
   }
   return rows;
+}
+
+/**
+ * Asesores asignables a un cliente (ERP→Norte · clients.advisor_id). Todos los
+ * miembros ACTIVOS del tenant — cualquier rol puede ser el asesor/account-director
+ * de un cliente (el dueño admin atiende VIPs; un comercial, su cartera). Ordenados
+ * por nombre. El caller pasa el admin client + tenant_id explícito (la RLS de
+ * user_tenants tapa a los no-admin más allá de su propia fila, así que el listado
+ * para el selector se resuelve server-side con admin, igual que el resto del módulo).
+ */
+export async function listTenantAdvisors(
+  supabase: SupabaseClient,
+  tenantId: string,
+): Promise<TenantAdvisorOption[]> {
+  const { data, error } = await supabase
+    .from("user_tenants")
+    .select(
+      "user_id, role, profile:user_profiles(first_name, last_name, avatar_url, position_label)",
+    )
+    .eq("tenant_id", tenantId)
+    .is("disabled_at", null);
+
+  if (error || !data) return [];
+
+  return data
+    .map((r) => {
+      const row = r as {
+        user_id: string;
+        role: StudioUserRole;
+        profile: Partial<UserProfile> | Partial<UserProfile>[] | null;
+      };
+      const profile = Array.isArray(row.profile)
+        ? (row.profile[0] ?? null)
+        : (row.profile ?? null);
+      const name = [profile?.first_name, profile?.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .trim();
+      return {
+        userId: row.user_id,
+        name: name || null,
+        role: row.role,
+        avatarUrl: profile?.avatar_url ?? null,
+        positionLabel: profile?.position_label ?? null,
+      };
+    })
+    .sort((a, b) => (a.name ?? "￿").localeCompare(b.name ?? "￿"));
 }
 
 export async function getMember(
