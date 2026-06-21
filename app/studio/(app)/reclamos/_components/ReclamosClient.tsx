@@ -9,7 +9,15 @@
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Fragment, useState, useTransition, type CSSProperties } from "react";
+import {
+  Fragment,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type CSSProperties,
+} from "react";
 import {
   CLAIM_FILTERS,
   CLAIM_FLOW_STEPS,
@@ -31,9 +39,12 @@ import type {
   ClaimClientOption,
   ClaimShipmentOption,
 } from "@/lib/studio/reclamos/claims-queries";
+import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
 import {
   advanceClaimStatusAction,
   softDeleteClaimAction,
+  uploadStudioClaimEvidenceAction,
+  deleteClaimEvidenceAction,
 } from "../actions";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -73,11 +84,13 @@ export function ReclamosClient({
   claims,
   clients,
   shipments,
+  evidence,
   canEdit,
 }: {
   claims: ClientClaim[];
   clients: ClaimClientOption[];
   shipments: ClaimShipmentOption[];
+  evidence: Record<string, ClaimEvidenceItem[]>;
   canEdit: boolean;
 }) {
   const router = useRouter();
@@ -256,6 +269,7 @@ export function ReclamosClient({
       {selectedClaim && (
         <ClaimDetail
           claim={selectedClaim}
+          evidence={evidence[selectedClaim.id] ?? []}
           canEdit={canEdit}
           onEdit={() => setDrawer({ mode: "edit", claim: selectedClaim })}
           onAdvanced={(to) =>
@@ -434,12 +448,14 @@ function ClaimsTable({
 // ── Detalle inline ──────────────────────────────────────────────
 function ClaimDetail({
   claim,
+  evidence,
   canEdit,
   onEdit,
   onAdvanced,
   onDeleted,
 }: {
   claim: ClientClaim;
+  evidence: ClaimEvidenceItem[];
   canEdit: boolean;
   onEdit: () => void;
   onAdvanced: (to: ClaimStatus) => void;
@@ -607,6 +623,44 @@ function ClaimDetail({
         })}
       </div>
 
+      {/* Evidencia (fotos / documentos) · SDD-0101 B2 */}
+      <div
+        style={{
+          marginTop: 22,
+          paddingTop: 18,
+          borderTop: "1px solid var(--border)",
+        }}
+      >
+        <div className="studio-eyebrow" style={{ marginBottom: 10 }}>
+          Evidencia
+        </div>
+        {evidence.length === 0 ? (
+          <div
+            style={{
+              font: "500 12.5px/1.4 var(--f-sans)",
+              color: "var(--ink-mute)",
+              marginBottom: canEdit ? 12 : 0,
+            }}
+          >
+            Sin fotos ni documentos todavía.
+          </div>
+        ) : (
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 10,
+              marginBottom: canEdit ? 14 : 0,
+            }}
+          >
+            {evidence.map((e) => (
+              <StudioEvidenceThumb key={e.id} item={e} canEdit={canEdit} />
+            ))}
+          </div>
+        )}
+        {canEdit && <EvidenceUpload claimId={claim.id} />}
+      </div>
+
       {/* Avance de estado + acciones */}
       {canEdit && (
         <div
@@ -762,5 +816,165 @@ function ClaimDetail({
         </div>
       )}
     </div>
+  );
+}
+
+// ── Evidencia (B2) ──────────────────────────────────────────────
+function StudioEvidenceThumb({
+  item,
+  canEdit,
+}: {
+  item: ClaimEvidenceItem;
+  canEdit: boolean;
+}) {
+  const [isDeleting, startDelete] = useTransition();
+  const [confirm, setConfirm] = useState(false);
+
+  useEffect(() => {
+    if (!confirm) return;
+    const t = setTimeout(() => setConfirm(false), 3000);
+    return () => clearTimeout(t);
+  }, [confirm]);
+
+  const thumb =
+    item.isImage && item.url ? (
+      <a href={item.url} target="_blank" rel="noopener noreferrer" title={item.fileName}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={item.url}
+          alt={item.fileName}
+          loading="lazy"
+          style={{
+            width: 72,
+            height: 72,
+            objectFit: "cover",
+            borderRadius: "var(--r-sm)",
+            border: "1px solid var(--border)",
+            display: "block",
+          }}
+        />
+      </a>
+    ) : (
+      <a
+        href={item.url ?? "#"}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={item.fileName}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          height: 72,
+          padding: "0 12px",
+          borderRadius: "var(--r-sm)",
+          border: "1px solid var(--border)",
+          background: "var(--bg-elevated)",
+          font: "600 11.5px/1.3 var(--f-sans)",
+          color: "var(--ink-soft)",
+          maxWidth: 150,
+          textDecoration: "none",
+          overflow: "hidden",
+        }}
+      >
+        <span
+          style={{
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {item.fileName}
+        </span>
+      </a>
+    );
+
+  return (
+    <div style={{ position: "relative" }}>
+      {thumb}
+      {canEdit && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!confirm) {
+              setConfirm(true);
+              return;
+            }
+            startDelete(async () => {
+              await deleteClaimEvidenceAction(item.id);
+            });
+          }}
+          disabled={isDeleting}
+          aria-label={confirm ? "Confirmar eliminar evidencia" : "Eliminar evidencia"}
+          title={confirm ? "Toca de nuevo para eliminar" : "Eliminar"}
+          style={{
+            position: "absolute",
+            top: -7,
+            right: -7,
+            width: confirm ? "auto" : 20,
+            height: 20,
+            padding: confirm ? "0 8px" : 0,
+            borderRadius: 999,
+            border: "1px solid var(--border)",
+            background: confirm ? "var(--danger)" : "var(--bg-surface)",
+            color: confirm ? "var(--ink-inv)" : "var(--danger)",
+            font: "700 11px/1 var(--f-sans)",
+            cursor: isDeleting ? "wait" : "pointer",
+            display: "grid",
+            placeItems: "center",
+            boxShadow: "var(--shadow-xs)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {confirm ? (isDeleting ? "…" : "Eliminar") : "×"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function EvidenceUpload({ claimId }: { claimId: string }) {
+  const [state, action, pending] = useActionState(
+    uploadStudioClaimEvidenceAction.bind(null, claimId),
+    {} as { ok?: boolean; error?: string },
+  );
+  const ref = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    if (state.ok) ref.current?.reset();
+  }, [state.ok]);
+
+  return (
+    <form
+      ref={ref}
+      action={action}
+      style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}
+    >
+      <input
+        type="file"
+        name="evidence"
+        multiple
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+        disabled={pending}
+        className="studio-file"
+        style={{ flex: "1 1 240px" }}
+      />
+      <button
+        type="submit"
+        className="studio-btn studio-btn-dark studio-btn-sm"
+        disabled={pending}
+      >
+        {pending ? "Subiendo…" : "Subir evidencia"}
+      </button>
+      {state.error && (
+        <span
+          style={{
+            font: "500 12px/1.4 var(--f-sans)",
+            color: "var(--danger)",
+            flexBasis: "100%",
+          }}
+        >
+          {state.error}
+        </span>
+      )}
+    </form>
   );
 }

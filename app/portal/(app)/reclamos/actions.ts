@@ -21,12 +21,18 @@ import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
 import { getPortalClient } from "@/lib/portal/portal-queries";
 import { isClaimType } from "@/lib/studio/reclamos/claims-types";
+import {
+  collectEvidenceFiles,
+  uploadClaimEvidenceBatch,
+} from "@/lib/studio/reclamos/claim-evidence";
 
 export type PortalClaimState = {
   ok?: boolean;
   error?: string;
   fieldErrors?: Record<string, string>;
   createdCode?: string;
+  /** true si algún archivo adjunto se descartó (inválido) o no pudo subir. */
+  evidenceSkipped?: boolean;
 };
 
 function strOrNull(v: FormDataEntryValue | null): string | null {
@@ -105,23 +111,27 @@ export async function createPortalClaimAction(
   const { data: userResp } = await supabase.auth.getUser();
 
   // Insert con campos CONTROLADOS por el servidor (el cliente no los provee).
-  const { error } = await admin.from("client_claims").insert({
-    tenant_id: tenantId,
-    claim_code: claimCode,
-    client_id: client.id,
-    client_markbox: client.markbox,
-    client_name: client.name,
-    shipment_id: shipmentRefId,
-    shipment_code: shipmentCode,
-    container_code: null,
-    claim_type: claimType,
-    description,
-    amount_usd: 0,
-    insured: false,
-    status: "reportado",
-    source: "portal",
-    created_by: userResp.user?.id ?? null,
-  });
+  const { data: inserted, error } = await admin
+    .from("client_claims")
+    .insert({
+      tenant_id: tenantId,
+      claim_code: claimCode,
+      client_id: client.id,
+      client_markbox: client.markbox,
+      client_name: client.name,
+      shipment_id: shipmentRefId,
+      shipment_code: shipmentCode,
+      container_code: null,
+      claim_type: claimType,
+      description,
+      amount_usd: 0,
+      insured: false,
+      status: "reportado",
+      source: "portal",
+      created_by: userResp.user?.id ?? null,
+    })
+    .select("id")
+    .maybeSingle<{ id: string }>();
 
   if (error) {
     if (error.code === "23505") {
@@ -130,6 +140,24 @@ export async function createPortalClaimAction(
     return { error: "No se pudo enviar el reclamo. Intenta más tarde." };
   }
 
+  // Evidencia (fotos/PDF) opcional — best-effort, no rompe el reclamo si falla.
+  const { files, skipped } = collectEvidenceFiles(formData);
+  let uploadedCount = 0;
+  if (inserted?.id && files.length > 0) {
+    const r = await uploadClaimEvidenceBatch(admin, {
+      tenantId,
+      claimId: inserted.id,
+      files,
+      source: "portal",
+      uploadedBy: userResp.user?.id ?? null,
+    });
+    uploadedCount = r.uploaded;
+  }
+
   revalidatePath("/portal/reclamos");
-  return { ok: true, createdCode: claimCode };
+  return {
+    ok: true,
+    createdCode: claimCode,
+    evidenceSkipped: skipped > 0 || uploadedCount < files.length,
+  };
 }

@@ -23,6 +23,11 @@ import {
   type ClaimActionState,
   type ClaimStatus,
 } from "@/lib/studio/reclamos/claims-types";
+import {
+  collectEvidenceFiles,
+  uploadClaimEvidenceBatch,
+  CLAIM_EVIDENCE_BUCKET,
+} from "@/lib/studio/reclamos/claim-evidence";
 
 const MODULE_ID = "reclamos";
 
@@ -246,6 +251,90 @@ export async function softDeleteClaimAction(
     .eq("id", claimId);
 
   if (error) return { error: `No se pudo eliminar el reclamo: ${error.message}` };
+
+  revalidatePath("/studio/reclamos");
+  return { ok: true };
+}
+
+/**
+ * Sube evidencia (fotos/PDF) a un reclamo desde el Studio (equipo). User client:
+ * la storage RLS por tenant valida el path {tenant}/{claim}/… El trigger fuerza
+ * el client_markbox del claim. Best-effort por archivo (B2).
+ */
+export async function uploadStudioClaimEvidenceAction(
+  claimId: string,
+  _prev: { ok?: boolean; error?: string },
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // El claim debe ser del tenant (RLS ya lo scopea; filtro defensivo).
+  const { data: claim } = await supabase
+    .from("client_claims")
+    .select("id")
+    .eq("id", claimId)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string }>();
+  if (!claim) return { error: "Reclamo no encontrado." };
+
+  const { files, skipped } = collectEvidenceFiles(formData);
+  if (files.length === 0) {
+    return {
+      error:
+        skipped > 0
+          ? "Archivos no válidos (usa JPG/PNG/WebP/HEIC o PDF, máx 10 MB)."
+          : "Elige al menos un archivo.",
+    };
+  }
+
+  const { data: userResp } = await supabase.auth.getUser();
+  const { uploaded } = await uploadClaimEvidenceBatch(supabase, {
+    tenantId,
+    claimId,
+    files,
+    source: "studio",
+    uploadedBy: userResp.user?.id ?? null,
+  });
+  if (uploaded === 0) return { error: "No se pudo subir la evidencia." };
+
+  revalidatePath("/studio/reclamos");
+  return { ok: true };
+}
+
+/** Soft-delete de una evidencia + borra el objeto del bucket (best-effort). */
+export async function deleteClaimEvidenceAction(
+  evidenceId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { data: ev } = await supabase
+    .from("client_claim_evidence")
+    .select("storage_path")
+    .eq("id", evidenceId)
+    .is("deleted_at", null)
+    .maybeSingle<{ storage_path: string }>();
+
+  const { error } = await supabase
+    .from("client_claim_evidence")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", evidenceId);
+  if (error) return { error: `No se pudo eliminar la evidencia: ${error.message}` };
+
+  if (ev?.storage_path) {
+    await supabase.storage
+      .from(CLAIM_EVIDENCE_BUCKET)
+      .remove([ev.storage_path])
+      .catch(() => {});
+  }
 
   revalidatePath("/studio/reclamos");
   return { ok: true };

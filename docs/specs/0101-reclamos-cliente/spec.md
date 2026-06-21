@@ -59,10 +59,16 @@ fase. La creación va por la action del portal con **admin client** que CONTROLA
 (`amount_usd=0`, `insured=false`, `status='reportado'`, `source='portal'`) — el cliente no puede forjar una
 indemnización ni saltar la evaluación; el embarque ajeno se ignora. El equipo gestiona el ciclo de vida (A).
 
+### Slice B2 — Evidencia (fotos/documentos) (ESTE entregable, apilado sobre B)
+
+Migración **0155**: tabla `client_claim_evidence` + bucket privado `claim-evidence` (10 MB, imágenes +
+PDF) + storage RLS por tenant + trigger que FUERZA el `client_markbox` del claim. El cliente adjunta
+fotos al reportar desde el portal (sube vía admin client, ve thumbnails firmados); el equipo ve la
+galería en el detalle del Studio y sube/borra evidencia (user client, gate `moduleEditDenial`). Helpers
+en `lib/studio/reclamos/claim-evidence.ts` (validación MIME/size, upload, signed URLs server-side).
+
 ### Fuera de alcance (slices futuros — declarados, no implementados)
 
-- **Evidencia/fotos (B2):** el cliente adjunta fotos al reclamo (Storage RLS, `shipment_documents` o
-  `documents` con `entity_type='claim'`). Diferido para no meter Storage RLS en esta tanda.
 - **Slice C — Puente contable + aseguradora:** vínculo opcional a `supplier_claim_offsets` cuando el daño
   es culpa del proveedor; gestión con la aseguradora (certificado, deducible, avería gruesa — ver
   `legal/Brief-Seguro-Operador-ES-ZH.md`); el estado `pagado` crea asiento contable real y se gatea a

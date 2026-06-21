@@ -19,6 +19,7 @@ import {
   isClaimTerminal,
 } from "@/lib/studio/reclamos/claims-types";
 import type { PortalClaimRow } from "@/lib/portal/portal-claims";
+import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
 import { createPortalClaimAction, type PortalClaimState } from "../actions";
 
 const initial: PortalClaimState = {};
@@ -41,9 +42,11 @@ const INPUT_CLASS =
 export function PortalClaims({
   claims,
   shipments,
+  evidence,
 }: {
   claims: PortalClaimRow[];
   shipments: { id: string; code: string }[];
+  evidence: Record<string, ClaimEvidenceItem[]>;
 }) {
   const [state, action, pending] = useActionState(
     createPortalClaimAction,
@@ -133,6 +136,24 @@ export function PortalClaims({
             </label>
           )}
 
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-grey-500">
+              Fotos o documentos <span className="text-grey-300 normal-case tracking-normal">(opcional)</span>
+            </span>
+            <input
+              type="file"
+              name="evidence"
+              multiple
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+              disabled={pending}
+              className="text-[13px] text-grey-700 file:mr-3 file:rounded-[8px] file:border-0 file:bg-grey-100 file:px-3 file:py-2 file:text-[13px] file:font-semibold file:text-ink hover:file:bg-grey-200 disabled:opacity-60"
+            />
+            <span className="text-[12px] text-grey-500">
+              Una foto del daño o el faltante ayuda a resolver más rápido. Hasta 8
+              archivos · imágenes o PDF · máx 10 MB c/u.
+            </span>
+          </label>
+
           {state.error && (
             <p className="text-[13px] text-wine leading-[1.4]">{state.error}</p>
           )}
@@ -158,6 +179,12 @@ export function PortalClaims({
             role="status"
           >
             Reclamo {justSent} enviado. Tu asesor lo va a revisar y te confirma la resolución.
+            {state.evidenceSkipped && (
+              <span className="block mt-1.5 text-[12.5px] text-grey-700">
+                Algunos archivos no se adjuntaron (deben ser JPG/PNG/PDF y pesar
+                menos de 10 MB). Si quieres, envíaselos a tu asesor por Mensajes.
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -175,7 +202,7 @@ export function PortalClaims({
         ) : (
           <div className="mt-4 flex flex-col gap-3">
             {claims.map((c) => (
-              <ClaimCard key={c.id} claim={c} />
+              <ClaimCard key={c.id} claim={c} evidence={evidence[c.id] ?? []} />
             ))}
           </div>
         )}
@@ -184,7 +211,13 @@ export function PortalClaims({
   );
 }
 
-function ClaimCard({ claim }: { claim: PortalClaimRow }) {
+function ClaimCard({
+  claim,
+  evidence,
+}: {
+  claim: PortalClaimRow;
+  evidence: ClaimEvidenceItem[];
+}) {
   const step = claimStatusStep(claim.status);
   const terminal = isClaimTerminal(claim.status);
 
@@ -231,6 +264,14 @@ function ClaimCard({ claim }: { claim: PortalClaimRow }) {
         <span>{fmtDate(claim.createdAt)}</span>
       </div>
 
+      {evidence.length > 0 && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {evidence.map((e) => (
+            <EvidenceThumb key={e.id} item={e} />
+          ))}
+        </div>
+      )}
+
       {claim.resolutionNote && (
         <div className="mt-3 rounded-[10px] bg-grey-100 px-3.5 py-2.5 text-[13px] text-grey-700 leading-[1.5]">
           <span className="font-semibold text-ink">Resolución: </span>
@@ -238,5 +279,39 @@ function ClaimCard({ claim }: { claim: PortalClaimRow }) {
         </div>
       )}
     </div>
+  );
+}
+
+function EvidenceThumb({ item }: { item: ClaimEvidenceItem }) {
+  if (!item.url) {
+    return (
+      <span className="flex items-center justify-center h-16 w-16 rounded-[8px] border border-grey-200 bg-grey-100 text-[11px] text-grey-500">
+        —
+      </span>
+    );
+  }
+  if (item.isImage) {
+    return (
+      <a href={item.url} target="_blank" rel="noopener noreferrer" title={item.fileName}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={item.url}
+          alt={item.fileName}
+          loading="lazy"
+          className="h-16 w-16 rounded-[8px] object-cover border border-grey-200"
+        />
+      </a>
+    );
+  }
+  return (
+    <a
+      href={item.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title={item.fileName}
+      className="flex items-center h-16 px-3 rounded-[8px] border border-grey-200 bg-grey-100 text-[12px] font-semibold text-grey-700 max-w-[170px] truncate"
+    >
+      {item.fileName}
+    </a>
   );
 }
