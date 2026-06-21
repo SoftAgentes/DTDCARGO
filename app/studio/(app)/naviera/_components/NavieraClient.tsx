@@ -25,6 +25,7 @@ import {
   bookingStatusTone,
   containerStatusLabel,
   containerStatusTone,
+  normalizeContainerNo,
   sailingStatusLabel,
   sailingStatusTone,
   spaceTone,
@@ -34,6 +35,7 @@ import {
   type Port,
   type Sailing,
 } from "@/lib/studio/naviera/types";
+import { buildSeaRatesTrackingUrl } from "@/lib/studio/naviera-tracking/searates-deeplink";
 import type {
   ConsolidationDetail,
   LooseCargo,
@@ -42,6 +44,7 @@ import type {
 import {
   closeConsolidation,
   changeConsolidationStatus,
+  setConsolidationContainerNo,
 } from "../actions";
 import { SailingDrawer } from "./SailingDrawer";
 import { BookingDrawer } from "./BookingDrawer";
@@ -563,6 +566,7 @@ function ConsolidationTab({
       {/* Detalle */}
       {selected && (
         <ContainerDetail
+          key={selected.consolidation.id}
           detail={selected}
           carriers={carriers}
           sailings={sailings}
@@ -592,6 +596,25 @@ function ContainerDetail({
   const carrierName = sailing
     ? carrierNameById(carriers, sailing.carrier_id)
     : "—";
+  const carrierScac = sailing
+    ? carriers.find((cr) => cr.id === sailing.carrier_id)?.scac ?? null
+    : null;
+
+  // Nº de contenedor + deep-link de tracking (SDD-0101). Se carga post-creación;
+  // el editor inicializa con lo guardado y se resetea al cambiar de contenedor
+  // (key={consolidation.id} en el render). El deep-link abre SeaRates (0 cuota).
+  const [containerNo, setContainerNo] = useState(c.container_no ?? "");
+  const [containerErr, setContainerErr] = useState<string | null>(null);
+  const normalizedNo = normalizeContainerNo(containerNo);
+  const containerDirty = (normalizedNo ?? "") !== (c.container_no ?? "");
+  // El deep-link sale del input en vivo (rastrear no requiere guardar primero).
+  const trackUrl = normalizedNo
+    ? buildSeaRatesTrackingUrl({
+        kind: "container",
+        value: normalizedNo,
+        scac: carrierScac,
+      })
+    : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -668,6 +691,90 @@ function ContainerDetail({
               onAction={() => changeConsolidationStatus(c.id, "zarpado")}
             />
           )}
+        </div>
+
+        {/* Nº de contenedor + tracking SeaRates (SDD-0101) */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            gap: 10,
+            flexWrap: "wrap",
+            marginBottom: 18,
+            paddingBottom: 18,
+            borderBottom: "1px solid var(--border)",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <span
+              style={{
+                font: "700 10.5px/1 var(--f-sans)",
+                color: "var(--ink-soft)",
+                letterSpacing: "0.1em",
+                textTransform: "uppercase",
+              }}
+            >
+              Nº de contenedor
+            </span>
+            <input
+              className="studio-input studio-input-mono"
+              style={{ width: 200 }}
+              value={containerNo}
+              onChange={(e) => {
+                setContainerNo(e.target.value);
+                setContainerErr(null);
+              }}
+              placeholder="COSU1234567"
+              autoCapitalize="characters"
+              spellCheck={false}
+            />
+          </div>
+          <ActionButton
+            variant="dark"
+            size="sm"
+            idleLabel="Guardar"
+            loadingLabel="Guardando…"
+            successLabel="Guardado"
+            disabled={!containerDirty}
+            onAction={() => {
+              setContainerErr(null);
+              return setConsolidationContainerNo(c.id, containerNo);
+            }}
+            onError={setContainerErr}
+          />
+          {trackUrl ? (
+            <a
+              href={trackUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              aria-label="Ver en SeaRates (abre en otra pestaña)"
+            >
+              Ver en SeaRates →
+            </a>
+          ) : (
+            <span
+              style={{
+                font: "500 11px/1.4 var(--f-sans)",
+                color: "var(--ink-mute)",
+                alignSelf: "center",
+              }}
+            >
+              Carga el nº para rastrear en SeaRates.
+            </span>
+          )}
+          {containerErr ? (
+            <span
+              style={{
+                font: "500 11.5px/1.4 var(--f-sans)",
+                color: "var(--danger)",
+                width: "100%",
+                marginTop: 2,
+              }}
+            >
+              {containerErr}
+            </span>
+          ) : null}
         </div>
 
         {/* Barras CBM + peso */}

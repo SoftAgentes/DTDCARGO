@@ -258,12 +258,25 @@ export type Consolidation = {
   booking_id: string | null;
   sailing_id: string | null;
   container_type: string | null;
+  /** Nº físico del contenedor (ej COSU1234567) — clave de tracking (SDD-0101, migr 0152). */
+  container_no: string | null;
   status: ContainerStatus;
   notes: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
 };
+
+/**
+ * Normaliza un nº de contenedor como se rotula: mayúsculas, sin espacios. Devuelve
+ * null si queda vacío. No fuerza ISO 6346 (operador puede cargar parcial); SeaRates
+ * valida al trackear.
+ */
+export function normalizeContainerNo(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const v = raw.toUpperCase().replace(/\s+/g, "").trim();
+  return v || null;
+}
 
 export type ConsolidationItem = {
   id: string;
@@ -575,6 +588,8 @@ export type ConsolidationInput = {
   bookingId: string | null;
   sailingId: string | null;
   containerType: string | null;
+  /** Nº físico del contenedor (opcional al crear; suele cargarse al confirmar booking). */
+  containerNo: string | null;
   status: ContainerStatus;
   notes: string | null;
 };
@@ -617,6 +632,7 @@ export function validateConsolidationInput(
       bookingId: (input.bookingId ?? "")?.toString().trim() || null,
       sailingId: (input.sailingId ?? "")?.toString().trim() || null,
       containerType: containerTypeRaw,
+      containerNo: normalizeContainerNo(input.containerNo),
       status,
       notes: input.notes?.trim() || null,
     },

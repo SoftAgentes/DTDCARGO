@@ -26,6 +26,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import {
   evaluateCapacity,
+  normalizeContainerNo,
   validateBookingInput,
   validateConsolidationInput,
   validateConsolidationItemInput,
@@ -276,12 +277,33 @@ export async function createConsolidation(
     booking_id: input!.bookingId,
     sailing_id: input!.sailingId,
     container_type: input!.containerType,
+    container_no: input!.containerNo,
     status: input!.status,
     notes: input!.notes,
   });
   if (error) return { error: `No se pudo crear el contenedor: ${error.message}` };
   revalidate();
   return { ok: true, consolidationRef };
+}
+
+/**
+ * Setea / actualiza el nº físico del contenedor (SDD-0101 · tracking). Se suele
+ * cargar post-creación, cuando la naviera confirma el contenedor. Normaliza
+ * (mayúsculas, sin espacios); vacío lo limpia a null. RLS filtra por tenant.
+ */
+export async function setConsolidationContainerNo(
+  consolidationId: string,
+  containerNoRaw: string,
+): Promise<Result> {
+  const supabase = await createClient();
+  const containerNo = normalizeContainerNo(containerNoRaw);
+  const { error } = await supabase
+    .from("consolidations")
+    .update({ container_no: containerNo })
+    .eq("id", consolidationId);
+  if (error) return { error: `No se pudo guardar el contenedor: ${error.message}` };
+  revalidate();
+  return { ok: true };
 }
 
 export async function changeConsolidationStatus(
