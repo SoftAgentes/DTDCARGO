@@ -4,9 +4,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   refreshOceanRates,
   mapRateToRow,
+  WEEKLY_CALL_CAP,
   type RateFetcher,
 } from "../ocean-rates-queries";
-import type { OceanMatrixRoute } from "../ocean-rates-matrix";
+import { OCEAN_RATES_MATRIX, type OceanMatrixRoute } from "../ocean-rates-matrix";
 import type { SeaRatesRate } from "../searates-types";
 
 const ROUTE_LCL: OceanMatrixRoute = {
@@ -122,5 +123,36 @@ describe("refreshOceanRates", () => {
     });
     expect(summary.upserted).toBe(false);
     expect(summary.errorMessage).toBe("db down");
+  });
+
+  it("cap explícito: corta la matriz a `cap` y marca capped", async () => {
+    const { client, upsert } = fakeAdmin();
+    const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
+    // 3 rutas pero cap=2 → solo consulta 2, capped=true.
+    const summary = await refreshOceanRates(client, {
+      fetchRate,
+      matrix: [ROUTE_LCL, ROUTE_FCL, ROUTE_LCL],
+      cap: 2,
+    });
+    expect(fetchRate).toHaveBeenCalledTimes(2);
+    expect(summary).toMatchObject({ requested: 3, total: 2, capped: true });
+    const [rows] = upsert.mock.calls[0] as [unknown[]];
+    expect(rows).toHaveLength(2);
+  });
+
+  it("sin cap explícito aplica WEEKLY_CALL_CAP (20)", async () => {
+    const { client } = fakeAdmin();
+    const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
+    // 25 rutas, sin `cap` → usa el default WEEKLY_CALL_CAP.
+    const big = Array.from({ length: 25 }, () => ROUTE_FCL);
+    const summary = await refreshOceanRates(client, { fetchRate, matrix: big });
+    expect(fetchRate).toHaveBeenCalledTimes(WEEKLY_CALL_CAP);
+    expect(summary).toMatchObject({ requested: 25, total: WEEKLY_CALL_CAP, capped: true });
+  });
+
+  it("la matriz de producción cabe bajo el cap (no quema cuota)", () => {
+    // Guard de datos: si se expanden puertos más allá de 20/semana, este test
+    // avisa (hay que subir el plan de SeaRates o bajar la cadencia antes).
+    expect(OCEAN_RATES_MATRIX.length).toBeLessThanOrEqual(WEEKLY_CALL_CAP);
   });
 });
