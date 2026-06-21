@@ -4,33 +4,39 @@
   "partA": {
     "findings": [
       {
-        "id": "resend-smtp-portal-pendiente",
-        "title": "El portal es SOLO-EMAIL (SDD-0094) pero Supabase Auth sigue con el email built-in (~4 mails/hora). Sin SMTP custom de Resend, los clientes reales pegan el rate-limit y no reciben el magic-link.",
+        "id": "worktrees-stale-masivo",
+        "title": "12 worktrees TODOS mergeados a main (b7d9ecff) y limpios (ahead 0, 0 sin commitear): academia, academia-publica, etiquetas-carton, guia-comprar-alibaba, norte-v44, norte-v45, packing-list-online, packlist-v44, prealertas-ads, registro-norte, searates, web-ui-cambios. Su trabajo YA esta en prod. Ocupan disco + ensucian git worktree list.",
         "severity": "alta",
-        "action": "Founder: conectar Resend SMTP en Supabase Auth (runbook docs/runbooks/setup-portal-auth.md, Paso 4) + subir el rate-limit de emails. Crear API key nueva en Resend (la de Vercel esta oculta).",
+        "action": "Housekeeping: tras confirmar que esas ventanas cerraron, git worktree remove --force + branch -d de los 12 (orphans: fs.rmSync con prefijo \\\\?\\). No borrar los de ventanas AUN abiertas.",
         "top": true
       },
       {
-        "id": "packlist-norte-divergencia",
-        "title": "El prototipo del Norte (_norte/packlist, v4.5) y la feature shippeada SDD-0096 divergieron: el Norte mantiene el packlist con imprimir/etiquetas (PDF), mientras la feature en prod usa exportar a Excel (SheetJS). En el merge gano el Norte (gobernanza: es la fuente) para el prototipo; la feature en app/p + lib/studio/prealertas NO se toco.",
+        "id": "searates-api-key-pendiente",
+        "title": "/cotizador-flete (SDD-0095) esta LIVE en prod pero SEARATES_API_KEY no esta en Vercel -> el cotizador publico devuelve tarifas mock, no reales de SeaRates.",
+        "severity": "alta",
+        "action": "Founder: poner SEARATES_API_KEY en Vercel (env de produccion). Sin eso la feature shippeada queda degradada."
+      },
+      {
+        "id": "kommo-writeback-flip",
+        "title": "La edge fn kommo-writeback esta deployada + validada en DRY-RUN (cola vacia, 0 escritura a Kommo). Falta configurar el mapa de etapas + campo MARKBOX en /studio/kommo y el flip de flags (writeback_enabled=true, dry_run=false) para que el ERP empiece a escribir valor/etapa/MARKBOX a Kommo.",
         "severity": "media",
-        "action": "Reconciliar en el proximo NORTE-SYNC: decidir si el packlist del proveedor es PDF/etiquetas o Excel, y alinear prototipo <-> codigo. Prod no afectado."
+        "action": "Founder: configurar mapa+campo en /studio/kommo -> Direccion, ver el dry-run, dar OK al flip (runbook activar-crm-kommo.md). Ojo open-question #4: si el PATCH da 401, regenerar token de Kommo con permiso de escritura."
       },
       {
         "id": "schema-reconciliation-stale",
-        "title": "docs/architecture/schema-reconciliation.md sigue en snapshot 0119; la ultima migracion del repo es 0147. Lista el Bloque 3 Fiscal/SENIAT como '⏳ draft', pero SDD-0073 v2 ya esta LIVE en prod (migr 0126/0141). Los markers 17/5/0 (77% built) siguen validos; lo viejo es el roadmap.",
+        "title": "docs/architecture/schema-reconciliation.md esta en snapshot 0147; el repo llego a 0150. Las 3 migr nuevas (0148 packlist address, 0149 academia progress, 0150 prealerta addons) son features fuera del blueprint de 22 entidades -> los markers 18/4/0 (82% built) siguen validos, solo el snapshot quedo viejo.",
         "severity": "media",
-        "action": "Regenerar el reconciliador (0119 -> 0147) y promover el Bloque 3 a done."
+        "action": "Actualizar el snapshot del reconciliador 0147 -> 0150 (sin cambio de markers)."
       }
     ],
     "estimatedTokenSavings": "~2%"
   },
   "partB": {
-    "counts": { "built": 17, "partial": 5, "missing": 0, "total": 22 },
+    "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
-      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "0%", "note": "SDD-0073 v2 LIVE (migr 0126/0141); schema-reconciliation lo lista '⏳ draft' = stale" },
+      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "0%", "note": "SDD-0073 v2 LIVE (migr 0126/0141)" },
       { "name": "Bloque 5 · Comercial", "remaining": "0%", "note": "6 SDDs en prod (0048/0049/0051/0052/0053/0054)" },
-      { "name": "Modelo de datos (blueprint Norte)", "remaining": "23%", "note": "17 built / 5 partial / 0 missing = 77% built; 0 entidades sin tabla" }
+      { "name": "Modelo de datos (blueprint Norte)", "remaining": "18%", "note": "18 built / 4 partial / 0 missing = 82% built; 0 entidades sin tabla (auth unificado, cola offline, catalogo CN, salida multi-canal)" }
     ]
   }
 }
