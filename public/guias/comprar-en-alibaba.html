@@ -82,7 +82,7 @@
   .pasaporte{display:flex;align-items:center;gap:7px}
   .pasaporte .lbl{font-size:11px;color:var(--cream);text-transform:uppercase;letter-spacing:.08em;margin-right:2px}
   .insignia{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;
-    background:rgba(232,220,200,.10);border:1px solid rgba(232,220,200,.22);opacity:.62;color:var(--cream);font-weight:700;transition:.35s}
+    background:rgba(232,220,200,.10);border:1px solid rgba(232,220,200,.22);filter:grayscale(1);opacity:.5;transition:.35s}
   .insignia.ganada{filter:none;opacity:1;background:rgba(184,137,58,.18);border-color:var(--oro);box-shadow:0 0 0 3px rgba(184,137,58,.14)}
   .insignia.pop{animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
   @keyframes pop{0%{transform:scale(.3) rotate(-12deg)}60%{transform:scale(1.18) rotate(4deg)}100%{transform:scale(1)}}
@@ -148,6 +148,29 @@
     display:grid;place-items:center;color:var(--abismo);font:700 12px var(--f-ui);text-align:center}
   .quienes .qt{min-width:0;flex:1}
   .quienes .qt b{color:var(--abismo)}
+
+  .greet{margin-top:10px;padding:10px 15px;border-radius:12px;background:color-mix(in srgb, var(--marea) 7%, var(--papel));border:1px solid color-mix(in srgb, var(--marea) 22%, var(--papel));font:600 13.5px var(--f-ui);color:var(--abismo)}
+  .greet b{color:var(--marea)}
+  /* Direccion Alibaba (copiar por campo) -- espejo del FAQ */
+  .dir-card{border:1px solid var(--linea);border-radius:16px;overflow:hidden;background:var(--papel);margin-top:6px;box-shadow:var(--sombra-suave)}
+  .dir-mark{padding:14px 16px;border-bottom:1px solid var(--linea);background:var(--espuma)}
+  .dir-mark label{display:block;font:700 11px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--bruma);margin-bottom:8px}
+  .dir-mark .row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+  .dir-mark input{height:42px;width:180px;padding:0 13px;border:1.5px solid var(--linea);border-radius:8px;background:var(--papel);font:700 14px var(--f-mono);letter-spacing:.04em;color:var(--abismo);outline:none}
+  .dir-mark input:focus{border-color:var(--marea)}
+  .dir-mark .h{font-size:12.5px;line-height:1.5;color:var(--bruma);max-width:42ch}
+  .dir-mark .h a{color:var(--marea);font-weight:700;text-decoration:underline}
+  .dir-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border-bottom:1px solid var(--linea)}
+  .dir-row:last-of-type{border-bottom:none}
+  .dir-row .k{font:700 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bruma)}
+  .dir-row .k .cjk{font-family:var(--f-cjk)}
+  .dir-row .v{margin-top:2px;font:700 15px var(--f-mono);color:var(--abismo);word-break:break-word}
+  .dir-row .v.cjk{font-family:var(--f-cjk);font-weight:500}
+  .dir-row .hint{margin-top:3px;font-size:12px;line-height:1.42;color:var(--bruma)}
+  .dir-copy{flex:none;height:38px;min-width:92px;padding:0 14px;border:1px solid var(--linea);border-radius:8px;background:var(--papel);font:700 12.5px var(--f-ui);color:var(--abismo);cursor:pointer;transition:.15s}
+  .dir-copy:hover{border-color:var(--marea);color:var(--marea)}
+  .dir-nota{padding:13px 16px;background:var(--espuma);border-top:3px solid var(--marea);font-size:13px;line-height:1.55;color:var(--bruma)}
+  .dir-nota b{color:var(--abismo)}
 
   /* Selector de perfil */
   .perfil-wrap{margin:6px 0 2px}
@@ -289,6 +312,8 @@
       <div class="pasaporte" id="pasaporte" aria-label="Insignias"><span class="lbl">Insignias</span></div>
     </header>
 
+    <div class="greet" id="greet" hidden></div>
+
     <section class="voyage" aria-label="Tu progreso">
       <div class="voyage-head">
         <div class="puerto">义乌 Yiwu<span class="sub">Tu compra arranca aquí</span></div>
@@ -311,6 +336,16 @@ const WHATSAPP  = "584121668021";   // CRM WhatsApp DTD (+58 412 166 8021) en fo
 const DIRECCION = "浙江省义乌市义乌港二期直通仓2栋2号 货7-货11 · Yiwu, Zhejiang 322000";  // bodega Yiwu (CONTACT.cn)
 const CODIGO    = "";               // visitante anonimo: el MARKBOX se entrega al registrarse
 const dir = (DIRECCION && DIRECCION.indexOf("{{")<0) ? DIRECCION : "[ direccion de tu almacen en Yiwu ]";
+
+// Contexto del portal: si el cliente está logueado, su MARKBOX llega por ?mark= (y ?name=).
+// Sin param = guía pública/standalone (modo manual DTD-XXXX). El portal arma el iframe con el mark real.
+const PARAMS = new URLSearchParams(location.search);
+function esc(x){ return String(x==null?"":x).replace(/[&<>"]/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]; }); }
+let URL_MARK = (PARAMS.get("mark")||"").trim().toUpperCase().replace(/[^A-Z0-9-]/g,"");
+if(URL_MARK && URL_MARK.indexOf("DTD-")!==0) URL_MARK = "DTD-"+URL_MARK;
+const URL_NAME = (PARAMS.get("name")||"").trim().slice(0,40);
+const MARK = URL_MARK || "DTD-XXXX";
+const HAS_MARK = !!URL_MARK;
 const cod = (CODIGO && CODIGO.indexOf("{{")<0 && CODIGO) ? CODIGO : "XXXX";
 
 /* ============================ LEAD (tuyo) ============================ */
@@ -322,6 +357,7 @@ function syncLead(evento){
   // === ENVIAR A SUPABASE/KOMMO ===  (aquí cableas tu endpoint real)
   // fetch('/api/lead', {method:'POST', body: JSON.stringify({evento, ...lead})});
   console.log("[syncLead]", evento, JSON.parse(JSON.stringify(lead)));
+  persist();
 }
 
 /* ============================ CONTENIDO ============================
@@ -329,7 +365,7 @@ function syncLead(evento){
    'emp' (emprendedor) o nada/'both' (todos).
    ================================================================ */
 const ETAPAS = [
-  { nodo:"Inicio", eyebrow:"Empecemos", insignia:{e:"", n:"A bordo"},
+  { nodo:"Inicio", eyebrow:"Empecemos", insignia:{e:"🚢", n:"A bordo"},
     titulo:"Quita el miedo: comprar en China es seguro (si sabes cómo)",
     intro:"Antes de tocar Alibaba, respira. Miles de venezolanos —empresas y emprendedores— importan desde China cada mes. El secreto no es la suerte: es seguir un proceso. Eso vas a aprender aquí. Y no estás solo: tenemos equipo propio en China y en Venezuela.",
     bloques:[
@@ -342,7 +378,7 @@ const ETAPAS = [
     checklist:["Entiendo que DTD Cargo recibe mi mercancía en China y la lleva a mi puerta en Venezuela","Elegí mi perfil arriba","Estoy listo/a para crear mi cuenta en Alibaba"]
   },
 
-  { nodo:"Registro", eyebrow:"Paso 1", insignia:{e:"", n:"Cuenta lista"},
+  { nodo:"Registro", eyebrow:"Paso 1", insignia:{e:"🔓", n:"Cuenta lista"},
     titulo:"Crea tu cuenta de comprador en Alibaba",
     intro:"Registrarte es gratis y toma 5 minutos. Aquí no compras nada todavía: solo abres la puerta.",
     bloques:[
@@ -354,7 +390,7 @@ const ETAPAS = [
     checklist:["Cuenta creada y correo verificado","Perfil completo con correo profesional","Activé contraseña fuerte + 2FA"]
   },
 
-  { nodo:"Buscar", eyebrow:"Paso 2", insignia:{e:"", n:"Buscador"},
+  { nodo:"Buscar", eyebrow:"Paso 2", insignia:{e:"🔍", n:"Buscador"},
     titulo:"Define qué vas a importar y empieza a buscar",
     intro:"Un buen pedido empieza con una buena búsqueda. Mientras más claro tengas el producto, mejores proveedores encuentras.",
     bloques:[
@@ -368,7 +404,7 @@ const ETAPAS = [
     checklist:["Tengo escrito mi producto con especificaciones y cantidad","Busqué con términos en inglés","Guardé 5–10 candidatos para comparar"]
   },
 
-  { nodo:"Verificar", eyebrow:"Paso 3", insignia:{e:"", n:"Detective"},
+  { nodo:"Verificar", eyebrow:"Paso 3", insignia:{e:"🛡️", n:"Detective"},
     titulo:"Separa los proveedores serios de los riesgosos",
     intro:"Aquí está el corazón de comprar sin miedo: aprender a leer las señales de confianza.",
     bloques:[
@@ -383,7 +419,7 @@ const ETAPAS = [
     checklist:["Mis candidatos tienen Trade Assurance","Verifiqué historial, reseñas y tipo de proveedor","Descarté los que tienen banderas rojas"]
   },
 
-  { nodo:"Negociar", eyebrow:"Paso 4", insignia:{e:"", n:"Negociador"},
+  { nodo:"Negociar", eyebrow:"Paso 4", insignia:{e:"🤝", n:"Negociador"},
     titulo:"Escríbeles, pregunta lo correcto y negocia",
     intro:"No necesitas inglés perfecto. Con las preguntas correctas, tú llevas el control.",
     bloques:[
@@ -403,7 +439,7 @@ const ETAPAS = [
     checklist:["Contacté a mis finalistas con la plantilla","Tengo por escrito precio (FOB/EXW), MOQ y medidas de caja","Recibí la Proforma Invoice (PI)"]
   },
 
-  { nodo:"Muestras", eyebrow:"Paso 5", insignia:{e:"", n:"Calidad"},
+  { nodo:"Muestras", eyebrow:"Paso 5", insignia:{e:"🔬", n:"Calidad"},
     titulo:"Comprueba la calidad antes de pedir en grande",
     intro:"Este paso te ahorra los peores dolores de cabeza. Ver antes de creer.",
     bloques:[
@@ -415,7 +451,7 @@ const ETAPAS = [
     checklist:["Aprobé una muestra o coordiné la revisión con DTD","La muestra cumple mis especificaciones","Acordé qué pasa con piezas defectuosas"]
   },
 
-  { nodo:"Pago", eyebrow:"Paso 6", insignia:{e:"", n:"Pago blindado"},
+  { nodo:"Pago", eyebrow:"Paso 6", insignia:{e:"💳", n:"Pago blindado"},
     titulo:"Paga de forma segura (y nunca por fuera)",
     intro:"El miedo número uno es “pagar y que no llegue”. Aquí lo blindamos.",
     bloques:[
@@ -427,20 +463,21 @@ const ETAPAS = [
     checklist:["Pagué dentro de Alibaba con Trade Assurance","Verifiqué que la cobertura cubra mi orden","Guardé comprobante, PI y conversación"]
   },
 
-  { nodo:"A almacén", eyebrow:"Paso 7", insignia:{e:"", n:"Listo para zarpar"},
+  { nodo:"A almacén", eyebrow:"Paso 7", insignia:{e:"📦", n:"Listo para zarpar"},
     titulo:"Que el proveedor envíe tu mercancía a nuestro almacén",
     intro:"Casi listo. Aquí tu pedido pasa a nuestras manos. De aquí en adelante, relájate: nos encargamos.",
     bloques:[
-      {ic:"", h:"Da nuestra dirección al proveedor", p:"Indícale que entregue en el almacén DTD en Yiwu: <b>"+dir+"</b>."},
-      {ic:"", h:"Usa tu MARKBOX (Shipping Mark)", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <b>dtdcargo.com/registro</b> (formato <b>DTD-"+cod+"</b>). Pídele al proveedor que marque <b>solo tu MARKBOX</b> en cada bulto — sin tus datos personales."},
+      {ic:"", h:"Pon NUESTRA dirección como destino", p:"Cuando el proveedor te pregunte a dónde enviar, dale la de nuestra bodega en Yiwu. Copia cada campo en su formulario — el chino se pega tal cual."},
+      {tipo:"direccion"},
+      {ic:"", h:"Usa tu MARKBOX (Shipping Mark)", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <b>dtdcargo.com/registro</b> (formato <b>"+MARK+"</b>). Pídele al proveedor que marque <b>solo tu MARKBOX</b> en cada bulto — sin tus datos personales."},
       {ic:"", h:"Avísanos qué viene", p:"Cuéntanos cuántas cajas, qué producto y el peso/volumen aproximado. Así lo recibimos bien y empezamos la consolidación."},
       {ic:"", h:"Documentos para la aduana", perfil:"pro", p:"Asegúrate de tener <b>Commercial Invoice</b>, <b>Packing List</b> y el <b>Bill of Lading (BL)</b>. Nosotros te guiamos para que la declaración en Venezuela salga limpia."},
       {tipo:"tip", k:"Tip", txt:"Pide al proveedor fotos del empaque con tu Shipping Mark antes de despachar. Doble confirmación."}
     ],
-    checklist:["El proveedor tiene la dirección de nuestro almacén","Mi MARKBOX (DTD-"+cod+") está en cada bulto","Le avisé a DTD qué mercancía viene"]
+    checklist:["El proveedor tiene la dirección de nuestro almacén","Mi MARKBOX ("+MARK+") está en cada bulto","Le avisé a DTD qué mercancía viene"]
   },
 
-  { final:true, nodo:"¡Llegó!", eyebrow:"Meta", insignia:{e:"", n:"Importador DTD"},
+  { final:true, nodo:"¡Llegó!", eyebrow:"Meta", insignia:{e:"🏆", n:"Importador DTD"},
     titulo:"Importación completada, bien hecho",
     intro:"Pasaste del miedo a tener tu mercancía en nuestro almacén en China, comprada de forma segura. Eso ya es ser importador. Ahora viene la parte fácil para ti.",
     bloques:[
@@ -454,6 +491,9 @@ const ETAPAS = [
 /* ============================ ESTADO ============================ */
 const estado = { actual:0, completadas:new Set(), checks:{} };
 ETAPAS.forEach((_,i)=> estado.checks[i]=new Set());
+const LS_KEY="dtd_guia_alibaba_v1";
+function persist(){ try{ localStorage.setItem(LS_KEY, JSON.stringify({ actual:estado.actual, completadas:[...estado.completadas], checks:Object.fromEntries(Object.entries(estado.checks).map(([k,v])=>[k,[...v]])), lead })); }catch(e){} }
+function restore(){ try{ const raw=localStorage.getItem(LS_KEY); if(!raw) return; const d=JSON.parse(raw); if(typeof d.actual==="number") estado.actual=d.actual; if(Array.isArray(d.completadas)) estado.completadas=new Set(d.completadas); if(d.checks) for(const k in d.checks) estado.checks[k]=new Set(d.checks[k]); if(d.lead) Object.assign(lead,d.lead); }catch(e){} }
 const $ = s=>document.querySelector(s);
 const stageEl=$("#stage"), railEl=$("#rail");
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -471,7 +511,7 @@ function renderRail(){
     const b=document.createElement("button"); b.className="nodo"; b.dataset.state=st;
     b.setAttribute("aria-label","Etapa "+(i+1)+": "+et.nodo);
     const punto = estado.completadas.has(i) ? "✓" : (i+1);
-    b.innerHTML='<span class="punto">'+punto+'</span><span class="cap">'+et.nodo+'</span>';
+    b.innerHTML='<span class="punto">'+(st==="bloqueado"?"🔒":punto)+'</span><span class="cap">'+et.nodo+'</span>';
     if(st!=="bloqueado") b.addEventListener("click",()=>irA(i));
     railEl.appendChild(b);
   });
@@ -482,7 +522,7 @@ function renderRail(){
 function renderPasaporte(){
   const p=$("#pasaporte"); p.querySelectorAll(".insignia").forEach(n=>n.remove());
   ETAPAS.forEach((et,i)=>{ const d=document.createElement("div");
-    d.className="insignia"+(estado.completadas.has(i)?" ganada":""); d.textContent=estado.completadas.has(i)?"✓":(i+1);
+    d.className="insignia"+(estado.completadas.has(i)?" ganada":""); d.textContent=et.insignia.e;
     d.title=et.insignia.n+(estado.completadas.has(i)?" ✓":" (bloqueada)"); p.appendChild(d); });
 }
 function renderModo(){
@@ -503,6 +543,7 @@ function bloqueHTML(b){
   if(b.tipo==="tool-cbm") return cbmHTML();
   if(b.tipo==="tool-landed") return landedHTML();
   if(b.tipo==="tool-scorecard") return scorecardHTML();
+  if(b.tipo==="direccion") return direccionHTML();
   const proTag = b.perfil==="pro" ? '<span class="pro">PRO</span>' : "";
   return '<div class="bloque"><h3><span class="ic"></span>'+b.h+proTag+'</h3><p>'+b.p+'</p></div>';
 }
@@ -523,6 +564,37 @@ function incotermsHTML(){
     '<tr><td><b>CIF</b></td><td>Puerto de destino + seguro</td><td>A veces</td></tr>'+
     '<tr><td><b>DDP</b></td><td>Tu puerta (todo incluido)</td><td>Eso lo hacemos nosotros</td></tr></table></div>';
 }
+function direccionHTML(){
+  const F=[
+    {k:"国家/地区",l:"País / región",v:"China"},
+    {k:"收货人",l:"Destinatario",v:"DTD Cargo - "+MARK,dest:true,hint:"Tu MARKBOX va al final — sin él no podemos saber que la caja es tuya."},
+    {k:"电话",l:"Teléfono (+86)",v:"18606891419"},
+    {k:"地址",l:"Dirección",v:"浙江省义乌市义乌港二期直通仓2栋2号 货7-货11",zh:true,hint:"Pégala en chino tal cual, sin traducir — es para el transporte dentro de China."},
+    {k:"省",l:"Provincia",v:"浙江省",zh:true,hint:"Zhejiang"},
+    {k:"市",l:"Ciudad",v:"义乌市",zh:true,hint:"Yiwu — en el selector aparece bajo 金华市 (Jinhua)"},
+    {k:"邮编",l:"Código postal",v:"322000"},
+    {k:"仓库联系人",l:"Contacto de bodega",v:"林冠",zh:true,hint:"Lin Guan"},
+    {k:"",l:"Email",v:"info@dtdcargo.com"},
+  ];
+  let rows="";
+  F.forEach(f=>{
+    const kc=(f.k?'<span class="cjk">'+f.k+'</span> · ':'')+f.l;
+    const id=f.dest?' id="dirDest"':'';
+    const vcls="v"+(f.zh?" cjk":"");
+    const hint=f.hint?'<div class="hint">'+f.hint+'</div>':'';
+    const field=f.dest?'destinatario':f.l;
+    rows+='<div class="dir-row"><div style="min-width:0"><div class="k">'+kc+'</div><div class="'+vcls+'"'+id+'>'+f.v+'</div>'+hint+'</div>'+
+      '<button class="dir-copy" data-field="'+field+'" data-val="'+f.v+'">Copiar</button></div>';
+  });
+  return '<div class="dir-card">'+
+    '<div class="dir-mark"><label>Tu MARKBOX'+(HAS_MARK?"":" (opcional)")+'</label><div class="row">'+
+      '<input id="dirMark" type="text" maxlength="50" placeholder="DTD-XXXX" value="'+(HAS_MARK?URL_MARK:"")+'" autocapitalize="characters" autocomplete="off">'+
+      '<div class="h">'+(HAS_MARK?((URL_NAME?"<b>Hola, "+esc(URL_NAME)+".</b> ":"")+"Tu MARKBOX <b>"+MARK+"</b> ya está cargado — cópialo junto a «DTD Cargo» en la dirección de Alibaba."):'Escríbelo y el campo Destinatario se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a>')+'</div>'+
+    '</div></div>'+rows+
+    '<div class="dir-nota"><b>Importante:</b> en el formulario de Alibaba el destinatario lleva «DTD Cargo + tu MARKBOX», pero en el <b>rótulo físico de la caja</b> va SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
+  '</div>';
+}
+
 function cbmHTML(){
   return '<div class="tool" data-tool="cbm"><div class="tool-h">Calculadora de volumen (CBM)</div>'+
     '<p class="tool-d">En carga suelta el flete se cobra por volumen. Estima el tuyo (medidas de la caja del proveedor):</p>'+
@@ -608,6 +680,18 @@ function wire(){
   if($("#btnNext")) $("#btnNext").addEventListener("click",completarEtapa);
   // herramientas
   stageEl.querySelectorAll("[data-calc]").forEach(b=> b.addEventListener("click",()=>calcTool(b.dataset.calc)));
+  // direccion: MARKBOX en vivo + copiar por campo (espejo del FAQ)
+  const dirM = stageEl.querySelector("#dirMark");
+  if(dirM){ dirM.addEventListener("input", ()=>{ const m=(dirM.value||"").trim().toUpperCase(); const d=stageEl.querySelector("#dirDest"); if(d) d.textContent="DTD Cargo - "+(m||"DTD-XXXX"); }); }
+  stageEl.querySelectorAll(".dir-copy").forEach(btn=> btn.addEventListener("click",()=>{
+    let val=btn.dataset.val;
+    if(btn.dataset.field==="destinatario"){
+      const i=stageEl.querySelector("#dirMark"); const m=((i&&i.value)||"").trim().toUpperCase();
+      if(!m){ if(i) i.focus(); const o=btn.textContent; btn.textContent="Falta tu mark ↑"; setTimeout(()=>btn.textContent=o,1800); return; }
+      val="DTD Cargo - "+m;
+    }
+    navigator.clipboard.writeText(val).then(()=>{ const o=btn.textContent; btn.textContent="✓ Copiado"; setTimeout(()=>btn.textContent=o,1600); }).catch(()=>{});
+  }));
   stageEl.querySelectorAll(".sc-crit").forEach(c=> c.addEventListener("click",()=>{ c.classList.toggle("on"); c.querySelector(".b").textContent=c.classList.contains("on")?"✓":""; scoreUpdate(); }));
   // captura
   if($("#capSave")) $("#capSave").addEventListener("click",guardarContacto);
@@ -682,18 +766,18 @@ function toggleCheck(idx){
   if(estado.checks[i].has(idx)) estado.checks[i].delete(idx); else estado.checks[i].add(idx);
   const el=stageEl.querySelector('.check[data-idx="'+idx+'"]'), on=estado.checks[i].has(idx);
   el.classList.toggle("on",on); el.querySelector(".box").textContent=on?"✓":"";
-  $("#chCnt").textContent=estado.checks[i].size+" de "+ETAPAS[i].checklist.length;
+  $("#chCnt").textContent=estado.checks[i].size+" de "+ETAPAS[i].checklist.length; persist();
   actualizarBotonNext();
 }
 function completarEtapa(){
   const i=estado.actual, et=ETAPAS[i], ya=estado.completadas.has(i);
   estado.completadas.add(i); lead.etapaMax=Math.max(lead.etapaMax,i+1);
-  if(!ya){ syncLead("etapa_completada_"+(i+1)); sello(); insigniaPop(i); confeti(); toast("✓","Etapa completada",et.insignia.n); }
+  if(!ya){ syncLead("etapa_completada_"+(i+1)); sello(); insigniaPop(i); confeti(); toast(et.insignia.e,"Insignia desbloqueada",et.insignia.n); }
   renderRail(); renderPasaporte();
   setTimeout(()=>{ if(i<ETAPAS.length-1) irA(i+1); else renderRail(); }, ya?0:650);
 }
 function irA(i){ if(i<0||i>=ETAPAS.length||estadoNodo(i)==="bloqueado") return;
-  estado.actual=i; renderRail(); renderPasaporte(); renderEtapa();
+  estado.actual=i; persist(); renderRail(); renderPasaporte(); renderEtapa();
   window.scrollTo({top:0,behavior:reduce?"auto":"smooth"}); }
 
 /* ---------- Efectos ---------- */
@@ -728,7 +812,8 @@ function enviarLead(){
 
 /* ---------- Arranque ---------- */
 $("#modoSw").addEventListener("click",()=> irA(0)); // "cambiar" -> vuelve al selector de perfil
-renderRail(); renderPasaporte(); renderModo(); renderEtapa();
+if(HAS_MARK){ const g=$("#greet"); if(g){ g.hidden=false; g.innerHTML=(URL_NAME?"Hola <b>"+esc(URL_NAME)+"</b> · ":"")+"tu MARKBOX es <b>"+MARK+"</b> — lo pones en la dirección del Paso 7 para que tu caja llegue identificada."; } }
+restore(); renderRail(); renderPasaporte(); renderModo(); renderEtapa();
 </script>
 </body>
 </html>
