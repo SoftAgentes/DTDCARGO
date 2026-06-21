@@ -42,6 +42,44 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   DARK MODE del PORTAL (founder 2026-06-20) — gateado al demo.
+   Scopeado a `[data-portal-theme="dark"]` (lo pone app/portal/(app)/layout.tsx en
+   el shell, SOLO para cuentas demo). Redefine los MISMOS tokens que ya consumen los
+   componentes (paper, white, ink, greys, wine) → la superficie entera migra a
+   oscuro sin tocar JSX. Paleta = Norte dark theme (_norte/CLAUDE.md). Cuando se
+   prenda para todos, este bloque se mantiene; cambia solo el gate del layout.
+   ────────────────────────────────────────────────────────────────── */
+[data-portal-theme="dark"] {
+  --color-paper: #0b1428;     /* fondo de página (Norte --bg-base) */
+  --color-white: #16264a;     /* cards / superficies (Norte --bg-surface) */
+  --color-grey-100: #1f3055;  /* hover / elevado (Norte --bg-elevated) */
+  --color-grey-200: #29395c;  /* bordes */
+  --color-grey-300: #3d4d70;  /* bordes fuertes / placeholder */
+  --color-grey-500: #8b93a8;  /* texto muteado */
+  --color-grey-700: #aeb6c9;  /* texto secundario (Norte --ink-soft) */
+  --color-grey-900: #e8e6e2;  /* inverso (uso raro) */
+  --color-ink: #f2f0ec;       /* texto principal (Norte --ink) */
+  --color-wine: #c24450;      /* acento — más brillante para leer sobre navy */
+  --color-wine-deep: #d35e68; /* hover del acento */
+  --color-status-success: #2ea36e;
+  --color-status-warning: #d3a24a;
+  --color-status-danger: #e0606b;
+  color-scheme: dark;
+}
+
+/* Mostrar un elemento solo en un tema (ej. logo primary en claro, reverse en
+   oscuro). El estado default (sin data-portal-theme) = claro. */
+[data-theme-show="dark"] {
+  display: none;
+}
+[data-portal-theme="dark"] [data-theme-show="dark"] {
+  display: inline-flex;
+}
+[data-portal-theme="dark"] [data-theme-show="light"] {
+  display: none;
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Capa SISTEMA (Norte): Sora (títulos) + Nunito Sans (cuerpo). Scopeada a
    3 superficies vía wrapper class — el resto del sitio público sigue en Archivo:
      · `.portal-sys` → /portal        (app/portal/layout.tsx · founder 2026-06-02)
