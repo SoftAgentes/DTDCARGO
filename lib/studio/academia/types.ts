@@ -51,6 +51,8 @@ export interface AcademyLesson {
   duration_min: number | null;
   free_preview: boolean;
   status: LessonStatus;
+  /** Herramienta embebida (migr 0149). null = lección normal. */
+  widget: "alibaba_address" | null;
 }
 
 /** Curso del catálogo + conteos para la vista de tarjetas. */
@@ -234,6 +236,7 @@ export interface CourseInput {
   slug: string;
   tier: CourseTier;
   summary: string | null;
+  level: string | null;
   status: CourseStatus;
 }
 
@@ -255,6 +258,9 @@ export function slugify(s: string): string {
     .slice(0, 60);
 }
 
+/** Formato kebab estricto: solo a-z0-9 separados por guion simple, sin bordes. */
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 export function validateCourseInput(
   partial: Partial<CourseInput>,
 ): { input: CourseInput | null; fieldErrors: Partial<Record<keyof CourseInput, string>> | null } {
@@ -269,14 +275,181 @@ export function validateCourseInput(
   const status = partial.status ?? "borrador";
   if (!COURSE_STATUSES.includes(status)) fieldErrors.status = "Estado inválido";
 
-  const slug = (partial.slug?.trim() || slugify(title)) ?? "";
-  if (!slug) fieldErrors.slug = "No se pudo generar el slug";
+  // slug: si viene, debe ser kebab; si falta, se deriva del título.
+  const rawSlug = partial.slug?.trim() ?? "";
+  const slug = rawSlug || slugify(title);
+  if (!slug) {
+    fieldErrors.slug = "No se pudo generar el slug (escribe un título o un slug)";
+  } else if (!SLUG_RE.test(slug)) {
+    fieldErrors.slug = "El slug solo admite minúsculas, números y guiones (ej. domina-yiwu)";
+  }
 
   if (Object.keys(fieldErrors).length > 0) return { input: null, fieldErrors };
   return {
-    input: { title, slug, tier, status, summary: partial.summary?.trim() || null },
+    input: {
+      title,
+      slug,
+      tier,
+      status,
+      summary: partial.summary?.trim() || null,
+      level: partial.level?.trim() || null,
+    },
     fieldErrors: null,
   };
+}
+
+// ── Módulo: input + validación + action state ────────────────
+
+export interface ModuleInput {
+  courseId: string;
+  title: string;
+  sort: number;
+}
+
+export interface ModuleActionState {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: Partial<Record<keyof ModuleInput, string>>;
+  moduleId?: string;
+}
+
+/** Normaliza un entero de orden (sort) ≥ 0; vacío/NaN → 0. */
+function normalizeSort(raw: number | null | undefined): number {
+  if (raw == null || Number.isNaN(raw)) return 0;
+  const n = Math.trunc(raw);
+  return n < 0 ? 0 : n;
+}
+
+export function validateModuleInput(
+  partial: Partial<ModuleInput>,
+): { input: ModuleInput | null; fieldErrors: Partial<Record<keyof ModuleInput, string>> | null } {
+  const fieldErrors: Partial<Record<keyof ModuleInput, string>> = {};
+
+  const courseId = partial.courseId?.trim() ?? "";
+  if (!courseId) fieldErrors.courseId = "Falta el curso";
+
+  const title = partial.title?.trim() ?? "";
+  if (!title) fieldErrors.title = "El título del módulo es requerido";
+
+  if (Object.keys(fieldErrors).length > 0) return { input: null, fieldErrors };
+  return {
+    input: { courseId, title, sort: normalizeSort(partial.sort) },
+    fieldErrors: null,
+  };
+}
+
+// ── Lección: input + validación + action state ───────────────
+
+export const LESSON_KINDS: readonly LessonKind[] = ["video", "texto", "descarga", "quiz"];
+export const LESSON_STATUSES: readonly LessonStatus[] = ["borrador", "publicado"];
+
+/** Widgets embebibles en una lección (espejo del CHECK de la migración 0149). */
+export type LessonWidget = "alibaba_address";
+export const LESSON_WIDGETS: readonly LessonWidget[] = ["alibaba_address"];
+
+export function lessonKindLabel(k: LessonKind): string {
+  return { video: "Video", texto: "Texto", descarga: "Descarga", quiz: "Quiz" }[k];
+}
+
+export function lessonStatusLabel(s: LessonStatus): string {
+  return { borrador: "Borrador", publicado: "Publicado" }[s];
+}
+
+export function lessonWidgetLabel(w: LessonWidget | null): string {
+  if (w === "alibaba_address") return "Guía de dirección (Alibaba)";
+  return "Ninguna";
+}
+
+export interface LessonInput {
+  moduleId: string;
+  courseId: string;
+  title: string;
+  kind: LessonKind;
+  videoUrl: string | null;
+  durationMin: number | null;
+  freePreview: boolean;
+  widget: LessonWidget | null;
+  status: LessonStatus;
+  sort: number;
+}
+
+export interface LessonActionState {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: Partial<Record<keyof LessonInput, string>>;
+  lessonId?: string;
+}
+
+export function validateLessonInput(
+  partial: Partial<LessonInput>,
+): { input: LessonInput | null; fieldErrors: Partial<Record<keyof LessonInput, string>> | null } {
+  const fieldErrors: Partial<Record<keyof LessonInput, string>> = {};
+
+  const moduleId = partial.moduleId?.trim() ?? "";
+  if (!moduleId) fieldErrors.moduleId = "Falta el módulo";
+
+  const courseId = partial.courseId?.trim() ?? "";
+  if (!courseId) fieldErrors.courseId = "Falta el curso";
+
+  const title = partial.title?.trim() ?? "";
+  if (!title) fieldErrors.title = "El título de la lección es requerido";
+
+  const kind = partial.kind ?? "video";
+  if (!LESSON_KINDS.includes(kind)) fieldErrors.kind = "Tipo de lección inválido";
+
+  const status = partial.status ?? "borrador";
+  if (!LESSON_STATUSES.includes(status)) fieldErrors.status = "Estado inválido";
+
+  // widget: null o uno del whitelist.
+  let widget: LessonWidget | null = null;
+  if (partial.widget != null && String(partial.widget).trim() !== "") {
+    if (!LESSON_WIDGETS.includes(partial.widget)) fieldErrors.widget = "Widget inválido";
+    else widget = partial.widget;
+  }
+
+  // duration_min: opcional, entero ≥ 0 si viene.
+  let durationMin: number | null = null;
+  if (partial.durationMin != null && !Number.isNaN(partial.durationMin)) {
+    const d = Math.trunc(partial.durationMin);
+    if (d < 0) fieldErrors.durationMin = "La duración no puede ser negativa";
+    else durationMin = d;
+  }
+
+  if (Object.keys(fieldErrors).length > 0) return { input: null, fieldErrors };
+  return {
+    input: {
+      moduleId,
+      courseId,
+      title,
+      kind,
+      videoUrl: partial.videoUrl?.trim() || null,
+      durationMin,
+      freePreview: partial.freePreview === true,
+      widget,
+      status,
+      sort: normalizeSort(partial.sort),
+    },
+    fieldErrors: null,
+  };
+}
+
+// ── Diploma imprimible: variante estable por folio (Feature B) ─
+
+/** Las 4 variantes del generador del Norte (diploma.js): A/B/C/D. */
+export const DIPLOMA_VARIANTS = ["A", "B", "C", "D"] as const;
+export type DiplomaVariant = (typeof DIPLOMA_VARIANTS)[number];
+
+/**
+ * Elige una variante de diploma de forma ESTABLE a partir del folio (mismo folio
+ * → misma variante siempre). Hash simple (suma de char codes) % 4. No es
+ * criptográfico: solo reparte el catálogo de variantes de modo determinista.
+ */
+export function pickDiplomaVariant(folio: string): DiplomaVariant {
+  let h = 0;
+  for (let i = 0; i < folio.length; i++) {
+    h = (h + folio.charCodeAt(i)) % DIPLOMA_VARIANTS.length;
+  }
+  return DIPLOMA_VARIANTS[h];
 }
 
 // ── Cohorte: input + validación + action state ───────────────
