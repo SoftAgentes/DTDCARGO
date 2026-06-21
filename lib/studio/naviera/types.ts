@@ -258,7 +258,7 @@ export type Consolidation = {
   booking_id: string | null;
   sailing_id: string | null;
   container_type: string | null;
-  /** Nº físico del contenedor (ej COSU1234567) — clave de tracking (SDD-0101, migr 0152). */
+  /** Nº físico del contenedor (ej COSU1234567) — clave de tracking (SDD-0101, migr 0154). */
   container_no: string | null;
   status: ContainerStatus;
   notes: string | null;

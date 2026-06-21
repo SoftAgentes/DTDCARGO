@@ -75,8 +75,9 @@ diferido); mapa embebido propio (el deep-link abre el mapa de SeaRates); EDI/AIS
 4. **Portal**: héroe "Próximo arribo" y detalle del envío muestran ETD/ETA/buque/
    contenedor reales cuando el envío está consolidado; **fallback a la heurística**
    cuando todavía no (honesto).
-5. **Migración 0152**: `container_no` en `consolidations` y `bookings` (nullable) +
-   índice. Nada más (el resto se resuelve por join).
+5. **Migración 0154**: `container_no` en `consolidations` y `bookings` (nullable) +
+   índice. Nada más (el resto se resuelve por join). *(Renumerada 0152→0154 por
+   colisión con feat/reclamos-cliente, 2026-06-21.)*
 
 ### Slice B — SeaRates Container Tracking API (MEDIDO, con tope)
 1. Cliente `lib/studio/naviera-tracking/tracking-api.ts` (reusa `getPlatformToken`),
@@ -92,7 +93,7 @@ diferido); mapa embebido propio (el deep-link abre el mapa de SeaRates); EDI/AIS
 Extender el RPC `public_track` (SDD-0059) para exponer el snapshot naviero al tracking
 público anónimo. Migración aparte (altera el RPC). Decisión de alcance de Sam.
 
-## 5. Datos (migración 0152, Slice A)
+## 5. Datos (migración 0154, Slice A)
 
 - `consolidations.container_no text` — nº físico del contenedor (ej `COSU1234567`).
 - `bookings.container_no text` — para FCL/booking directo.
@@ -128,4 +129,4 @@ El cliente del portal **no es miembro de `user_tenants`** → no tiene RLS sobre
 - Confirmar el **endpoint/contrato del Container Tracking API** de SeaRates (Slice B) y
   el **modelo de cuota** (tope mensual aceptable sobre las 100/mes compartidas con fletes).
 - Decidir si Slice C (tracking público) entra ahora o después.
-- Merge a main + deploy + aplicar migración 0152 a prod (gate de coordinación).
+- Merge a main + deploy + aplicar migración 0154 a prod (gate de coordinación).
