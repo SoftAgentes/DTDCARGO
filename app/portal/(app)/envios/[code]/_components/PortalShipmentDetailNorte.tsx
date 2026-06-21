@@ -11,6 +11,11 @@ import {
   type ShipmentService,
   type ShipmentStatus,
 } from "@/lib/portal/portal-types";
+import {
+  hasNavieraData,
+  type NavieraSnapshot,
+} from "@/lib/studio/naviera-tracking/types";
+import { trackingUrlFromSnapshot } from "@/lib/studio/naviera-tracking/searates-deeplink";
 import { StatusBadge } from "../../../../_components/StatusBadge";
 import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
 
@@ -38,10 +43,13 @@ export function PortalShipmentDetailNorte({
   shipment,
   documents,
   signedUrls,
+  naviera,
 }: {
   shipment: PortalShipmentDetail;
   documents: DocsProps["documents"];
   signedUrls: DocsProps["signedUrls"];
+  /** Snapshot naviero real resuelto de la cadena (SDD-0101). null = aún sin consolidar. */
+  naviera?: NavieraSnapshot | null;
 }) {
   const svc = SERVICE_LABELS[shipment.service];
   const serviceLabel = svc.sub ? `${svc.primary} · ${svc.sub}` : svc.primary;
@@ -100,6 +108,10 @@ export function PortalShipmentDetailNorte({
           carga avanza.
         </p>
       </div>
+
+      {/* Naviera Tier 1 (SDD-0101): buque/ETD/ETA/contenedor reales de la cadena +
+          deep-link a SeaRates. Solo cuando hay data (envío consolidado con zarpe). */}
+      {hasNavieraData(naviera) ? <NavieraCard naviera={naviera} /> : null}
 
       {/* 2 columnas: detalle de la carga · documentos */}
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -253,6 +265,97 @@ function Stepper({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/** Estado del contenedor → label de cara al cliente (SDD-0047 status). */
+function navieraStatusLabel(status: string): string {
+  switch (status) {
+    case "consolidando":
+      return "En consolidación";
+    case "cerrado":
+      return "Contenedor cerrado";
+    case "zarpado":
+      return "En tránsito marítimo";
+    case "arribado":
+      return "Arribado a puerto";
+    default:
+      return status;
+  }
+}
+
+/**
+ * Card "Naviera" (SDD-0101 · Tier 1) — buque/viaje/naviera/ruta marítima/ETD/ETA/
+ * contenedor/BL REALES, resueltos de la cadena de consolidación. Cierra la
+ * degradación "sin Naviera/ETD" del Norte. El botón abre el seguimiento en vivo de
+ * SeaRates (mapa + buque + ETA) SIN gastar cuota del API.
+ */
+function NavieraCard({ naviera }: { naviera: NavieraSnapshot }) {
+  const trackUrl = trackingUrlFromSnapshot(naviera);
+  const vessel = naviera.vessel
+    ? naviera.voyage
+      ? `${naviera.vessel} · ${naviera.voyage}`
+      : naviera.vessel
+    : null;
+  const seaRoute =
+    naviera.pol || naviera.pod
+      ? `${naviera.pol ?? "—"} → ${naviera.pod ?? "—"}`
+      : null;
+  const container = naviera.containerNo
+    ? naviera.containerType
+      ? `${naviera.containerNo} · ${naviera.containerType}`
+      : naviera.containerNo
+    : null;
+
+  return (
+    <div className="mt-6 card-shadow bg-white border border-grey-200 rounded-[18px] p-6 sm:p-8">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
+          Naviera
+        </h2>
+        {naviera.navieraStatus ? (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white bg-wine">
+            {navieraStatusLabel(naviera.navieraStatus)}
+          </span>
+        ) : null}
+      </div>
+      <dl className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        {vessel ? <Field label="Buque" value={vessel} /> : null}
+        {naviera.carrierName ? (
+          <Field label="Naviera" value={naviera.carrierName} />
+        ) : null}
+        {seaRoute ? <Field label="Ruta marítima" value={seaRoute} mono /> : null}
+        {naviera.etd ? (
+          <Field label="Zarpe (ETD)" value={formatDate(naviera.etd)} />
+        ) : null}
+        {naviera.eta ? (
+          <Field
+            label="Arribo a puerto (ETA)"
+            value={formatDate(naviera.eta)}
+            highlight
+            hint="Estimada por la naviera."
+          />
+        ) : null}
+        {container ? <Field label="Contenedor" value={container} mono /> : null}
+        {naviera.blNumber ? <Field label="BL" value={naviera.blNumber} mono /> : null}
+      </dl>
+
+      {trackUrl ? (
+        <div className="mt-8 pt-6 border-t border-grey-200">
+          <p className="text-[13.5px] text-grey-700 leading-[1.55]">
+            Sigue tu contenedor en tiempo real —mapa, buque y ETA— en SeaRates.
+          </p>
+          <a
+            href={trackUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-ghost mt-4 inline-flex items-center gap-2"
+          >
+            Ver seguimiento en SeaRates <ArrowIcon size={15} />
+          </a>
+        </div>
+      ) : null}
     </div>
   );
 }

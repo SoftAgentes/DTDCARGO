@@ -16,6 +16,8 @@ import {
   signDocumentUrls,
 } from "@/lib/studio/shipment-document-queries";
 import { createAdminClient } from "@/lib/db/admin";
+import { getShipmentNaviera } from "@/lib/studio/naviera-tracking/queries";
+import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 
 type Props = { params: Promise<{ code: string }> };
 
@@ -52,11 +54,22 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   // Rediseño Norte (founder 2026-06-20) GATEADO al demo: stepper horizontal + 2
   // columnas. Clientes reales siguen con el detalle de abajo.
   if (showNortePortal(client?.markbox)) {
+    // Snapshot naviero real (SDD-0101 · Tier 1): el cliente del portal NO tiene RLS
+    // sobre sailings/consolidations → se resuelve con el admin client, scopeado al
+    // envío PROPIO del cliente (shipment.id ya verificado por getMyShipment). Degrada
+    // a null si la cadena no está cargada → la card no se muestra (fallback honesto).
+    let naviera: NavieraSnapshot | null = null;
+    try {
+      naviera = await getShipmentNaviera(createAdminClient(), shipment.id);
+    } catch {
+      naviera = null;
+    }
     return (
       <PortalShipmentDetailNorte
         shipment={shipment}
         documents={documents}
         signedUrls={docUrls}
+        naviera={naviera}
       />
     );
   }

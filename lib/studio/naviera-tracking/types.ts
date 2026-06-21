@@ -41,7 +41,9 @@ export type NavieraSnapshot = {
 };
 
 /** ¿El snapshot tiene data naviera útil que mostrar (más que solo el ref)? */
-export function hasNavieraData(snap: NavieraSnapshot | null): snap is NavieraSnapshot {
+export function hasNavieraData(
+  snap: NavieraSnapshot | null | undefined,
+): snap is NavieraSnapshot {
   if (!snap) return false;
   return Boolean(
     snap.vessel || snap.etd || snap.eta || snap.containerNo || snap.blNumber,
