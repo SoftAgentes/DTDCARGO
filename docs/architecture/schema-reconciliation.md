@@ -2,22 +2,25 @@
 
 > **Qué es:** reconcilia el **blueprint de datos del Norte** (lo que el diseño dice que "debería existir") contra las **tablas realmente construidas en Supabase** (lo que existe en `supabase/migrations/`). Cada marker está **respaldado por una tabla/migración real** — nada inventado.
 >
-> **Snapshot:** 2026-06-19 · migraciones hasta `0147` · ≈150 tablas en 142 migraciones.
+> **Snapshot:** 2026-06-21 · migraciones hasta `0151` · ≈150 tablas en 146 migraciones.
 > **Método:** generado por barrido de `CREATE TABLE` en todas las migraciones + verificación adversarial (cada `✅` cita una tabla real; cada `❌` confirmado por ausencia total de candidata). Regenerable con `/radar` o re-corriendo el reconciliador.
 >
 > ⚠️ **Fuente del blueprint:** NO existe un `schema.prisma` en `_norte/` — el backend del Norte es un **handoff documental** (prototipo 100% mock en `localStorage`). Las entidades se derivan de `_norte/backend/API-CONTRACT.md` (mapea cada seam a un recurso REST), corroborado por los stores mock de `_norte/erp/data.jsx`.
 
-## Resumen
+## Resumen · core API-CONTRACT (22 entidades)
+
+> Estas 22 son el **piso** — el contrato original (`API-CONTRACT.md`). La **re-derivación completa contra el Norte v4.5** está abajo en su propia sección: ahí el blueprint crece a ~13 dominios / ~146 formas y aparecen los huecos nuevos (Nómina entera, Reclamos del cliente, libros fiscales).
 
 | | Entidades |
 |---|---|
 | ✅ **built** (tabla real fiel) | **18** |
 | 🟡 **partial** (existe pero fragmentado/incompleto) | **4** |
 | ❌ **missing** (sin tabla) | **0** |
-| **Total blueprint** | **22** |
+| **Total core** | **22** |
 
-**Completitud del modelo:** 18/22 = **82% built** · 18% partial · 0% missing.
-**Hueco real principal:** ya **no quedan entidades sin tabla**. Lo que falta es **modelado/consolidación** (todo en 🟡): auth unificado, cola offline de entrada, catálogo de origen CN y salida multi-canal (WhatsApp/Telegram). Ninguno es keystone — la capa legal (que bloqueaba Facturación) ya está cerrada (`0102`), el inbox del portal cerró con SDD-0057 (`0105`/`0118`/`0119`) y las reglas genéricas ya las cubre el motor de workflow por servicio (`0143`, SDD-0091).
+**Completitud del core:** 18/22 = **82% built** · 18% partial · 0% missing.
+**Hueco real (dentro del core 22):** ya **no quedan entidades sin tabla**. Lo que falta es **modelado/consolidación** (todo en 🟡): auth unificado, cola offline de entrada, catálogo de origen CN y salida multi-canal (WhatsApp/Telegram). Ninguno es keystone — la capa legal (que bloqueaba Facturación) ya está cerrada (`0102`), el inbox del portal cerró con SDD-0057 (`0105`/`0118`/`0119`) y las reglas genéricas ya las cubre el motor de workflow por servicio (`0143`, SDD-0091).
+**⚠️ Fuera del core**, la re-derivación v4.5 (abajo) **sí encuentra módulos enteros sin tabla** — el más grande, Nómina/RRHH.
 
 ## Reconciliación por entidad
 
@@ -46,6 +49,44 @@
 | LegalAcceptance / Aceptación T&C | ✅ | `legal_acceptances` | **Promovido ❌→✅:** `0102` (SDD-0054). Prueba legal **inmutable server-sellada** (AC-YYYY-NNNN, hash SHA-256, ip, accepted_at, atada a cbm/weight/total). Append-only por trigger DB. Respalda el gate AUT-04. |
 | PortalInboxEvent / Bandeja del portal | ✅ | `prealertas`, `prealerta_documents`, `conversations`, `conversation_messages` | **Promovido 🟡→✅ (2026-06-10):** SDD-0057 **done** — flujo cliente→ERP completo en prod con datos vivos: `prealertas` (`0105`) + adjuntos (`0118`) + link al proveedor `share_token` (`0119`) + bandeja `conversations` (`0106`/SDD-0056). Implementado como **composición de tablas especializadas** (no una única `PortalInboxEvent` genérica) — equivalente funcional, mismo criterio que `File`. |
 
+## Re-derivación contra el Norte v4.5 (2026-06-21)
+
+> Las 22 de arriba son el **API-CONTRACT core**. El Norte v4.2–v4.5 expandió el prototipo a **~13 dominios / ~146 formas de entidad**. Esta sección reconcilia esa superficie ampliada contra las **145 tablas reales** (`information_schema`, 2026-06-21). Método: barrido de `_norte/backend/API-CONTRACT.md` + stores mock (`erp/data.jsx`, `erp/modules/*-data.jsx`, `portal/*`, `academia-data.jsx`, `naviera-data.jsx`, `nomina-data.jsx`, `reclamos/`, `packlist/`, `inventario/`) cruzado contra las tablas reales. Las cifras `~` son aproximadas; los **huecos** de abajo están verificados (ausencia de tabla en las 145).
+
+**Cobertura ampliada:** ~146 formas → **~100 con tabla** · **~16 vistas/derivados** (no son entidad) · **~30 huecos sin tabla**.
+
+### Dominios NUEVOS ya respaldados por tabla (✅ · más allá de las 22)
+
+- **Academia / LMS (8):** `academy_courses` · `_modules` · `_lessons` · `_cohorts` · `_enrollments` · `_lesson_progress` · `_attendance` · `_diplomas` (SDD-0093/0144/0145/0149).
+- **Naviera & Consolidación (7):** `carriers` · `sailings` · `bookings` · `consolidations` · `consolidation_items` · `container_types` · `ocean_rates` (SDD-0047/0096, ocean 0146).
+- **Oferta / Servicios (6):** `service_configs` · `service_addons` · `service_faqs` · `service_price_history` · `service_workflow_steps` · `workflow_step_runs` (SDD-0076/0090/0091, migr 0130/0142/0143).
+- **Prealerta add-ons (3):** `prealerta_service_requests` · `prealerta_addons` · `prealerta_documents` (SDD-0098, migr 0150).
+- **Packing list del proveedor (1):** `packing_list_submissions` (SDD-0097, migr 0148).
+- **Proveedor CN (1):** `suppliers_cn` (catálogo operativo + rating + `wechat` como **campo**).
+- **Financiero / contable:** `accounts` · `journal_entries`/`_lines` · `accounting_settings` · `currency_conversions` · `tenant_fx_history` · `purchase_orders`(+`_items`) · `sales_orders` · `renditions`(+`_receipts`) · `expenses`(+`_alerts`) · `collection_activities` · `fiscal_settings` (SDD-0040/0044/0073/0077/0079/0080/0124/0125).
+- **Comunicación / colaboración:** `conversations`(+`_messages`) · `comments`(+`_mentions`/`_reactions`) · `referrals` (SDD-0045/0051/0056).
+- **Cliente del portal:** `client_users` (auth+sesión separada de `clients`).
+
+### Huecos del blueprint v4.5 (el Norte lo diseña · Supabase NO tiene tabla)
+
+| # | Hueco | Fuente en el Norte | Estado | Nota |
+|---|---|---|---|---|
+| 1 ⭐ | **Nómina / RRHH completa** (~11: employee, payroll_rules, payroll_run, attendance, holidays, loans, registrations, invites, warnings, contractors, employee_comms) | `nomina-data.jsx` + API §10 | ❌ | **Módulo entero sin backend** — el hueco más grande del Norte v4.5. |
+| 2 | **Reclamo / siniestro del cliente** | `reclamos/reclamos.jsx` | ❌ | `supplier_claim_offsets`/`supplier_credit_notes` cubren el lado **proveedor**, no el reclamo del **cliente** (daño/faltante/retraso + seguro). Hoy cae en `conversations`. |
+| 3 | **Libros fiscales** (Libro Ventas / Compras + Retenciones) | `fiscal-data.jsx` | ❌ | Solo existe `fiscal_settings` (config). SDD-0073 clasifica por factura; los **registros** como tabla = V2. |
+| 4 | **Conciliación bancaria + Activos fijos** | `conciliacion.jsx`, `contabilidad-data.jsx` | ❌ | Contabilidad sin esas 2 tablas (bank_statements, fixed_assets). |
+| 5 | **Supplier↔Client (grupo WeChat)** | `SUPPLIER_CLIENTS` (`data.jsx`) | ❌ | Relación M:N con `wechatGroup` por par cliente↔proveedor. El **dato** WeChat ya vive en `suppliers_cn.wechat`; falta la **tabla puente**. |
+| 6 | **Detección de ferias (IA)** + **Vault / No-olvidar** | `fairs-detection.jsx`, `vault.jsx` | ❌ | Vault = decisión founder (SDD-0025 **skip**). Ferias = store de aprobación IA sin tabla. |
+| 7 | **Portal inbox** (seam `portalInbox`, API §5) | `data-bridge.jsx` | 🟡 | Sin tabla 1:1; se compone de `conversations`/`comments`/`outbox_push_events` (equivalente funcional, mismo criterio que `File`). |
+
+### No son entidad (vistas / derivados — NO cuentan como hueco)
+
+Dashboard · Scorecard de proveedor · Calendar (base) · Copilot · course progress · collection item (CxC, overlay de `invoices`) · settlement/liquidación · tier de fidelización · "próxima salida" · **Sistema de Movimiento** (spec visual) · **WeChat Perfil** (asset de marca). Todo computado sobre entidades reales.
+
+### Tablas huérfanas (built, fuera del blueprint del Norte)
+
+Integración/infra que el prototipo no modela (es lo inverso de un hueco, no deuda): Kommo (`kommo_*`, 8) · Bug Reporter (`bug_*`, 6) · Agentes (`agents`/`agent_*`/`skills`, SDD-0020) · CMS público (`back_*`/`news_*`/`seo_drafts`) · Calculadora (`calculator_*`) · `public_track_log` · `sync_logs` · `platform_admins` · `operario_pins`/`operario_push_subscriptions` · `portal_registro_throttle`.
+
 ## Roadmap de Bloques financieros
 
 > Numeración documentada **solo** en los front-matters de los specs financieros (no había doc dedicado). Estados citados de `docs/specs/README.md`.
@@ -63,6 +104,8 @@
 
 ## Notas de procedencia y correcciones
 
+- **Re-derivación v4.5 (2026-06-21):** primera reconciliación contra el Norte **ampliado** (no solo el API-CONTRACT core de 22). Barrido de los 13 dominios del prototipo v4.5 vs las 145 tablas reales → **~100 con tabla, ~16 vistas/derivados, ~30 huecos**; el mayor = **Nómina entera** (≈11 entidades, API §10, cero tablas), luego **Reclamo del cliente** y **libros fiscales** (Ventas/Compras/Retenciones). Las 22 del core quedan como **piso** (18✅/4🟡/0❌ sin cambio). Ver sección «Re-derivación contra el Norte v4.5». Método: agente de enumeración sobre `_norte/` + verificación de ausencia de tabla contra `information_schema`.
+- **Regeneración 2026-06-21 (snapshot `0147`→`0151`):** **0 promociones** — las 4 migraciones nuevas (`0148` dirección del proveedor en packing list, `0149` `academia_lesson_progress`, `0150` add-ons de prealerta, `0151` `clients.advisor_id`) son **extensiones de módulo / columnas, no entidades del blueprint** → conteo **18✅/4🟡/0❌ (82%) sin cambio**. ⚠️ Sigue pendiente la **re-derivación completa del blueprint contra el Norte v4.5** (las 22 entidades son un **piso**; Academia/WMS/Reclamos/Scorecard/Dashboard aún sin reconciliar).
 - **Regeneración 2026-06-19 (snapshot `0119`→`0147`):** **1 promoción** — `Rule / Regla` 🟡→✅ (motor de workflow por servicio `service_workflow_steps`+`workflow_step_runs`, `0143`/SDD-0091 = catálogo genérico configurable de automatización). Conteo **17✅/5🟡/0❌ → 18✅/4🟡/0❌ (77%→82%)**. **Bloque 3 Fiscal/SENIAT promovido a `done`** (SDD-0073 v2 LIVE, `0126`/`0141`). Las demás migraciones `0120`–`0147` son **módulos nuevos o extensiones** que NO mueven el blueprint de 22: financiero (rendiciones `0123`, OC `0124`, OV `0125`/`0127`–`0129`, fiscal `0126`/`0141`, QBO `0131`, cierre `0133`), CRM (kommo writeback `0136`/`0137`/`0138`, users `0139`), contenido (service-configs `0130`, news `0140`, oferta `0142`), Academia LMS (`0144`, 7 tablas), ocean rates (`0146`), packing list del proveedor (`0147`). ⚠️ **El Norte v4.2–v4.4 sumó módulos nuevos (Academia, WMS/Inventario, Reclamos, Scorecard, Dashboard) que EXPANDEN el blueprint más allá de las 22 entidades del `API-CONTRACT.md` original** — una re-derivación completa contra el Norte v4.4 es tarea aparte; las 22 son hoy un **piso**, no el total del Norte vigente.
 - **Regeneración 2026-06-10 (snapshot `0113`→`0119`):** **1 promoción** — `PortalInboxEvent` 🟡→✅ (SDD-0057 cerrado `done`; `prealertas`+`prealerta_documents`+`share_token`+`conversations`, verificado en prod con datos vivos: 3 proveedores, 2 prealertas con token). Conteo **16✅/6🟡/0❌ → 17✅/5🟡/0❌ (73%→77%)**. Las otras 4 migraciones nuevas no mueven el blueprint: `0114`/`0115` = **Bloque 2.3 Financiero Socio China** (SDD-0059, 7 tablas confidenciales fuera del blueprint del Norte, fila nueva en el roadmap) · `0116` versionado refuerza `File` (ya ✅) · `0117` RLS refuerza `Quote` (ya ✅).
 - **Regeneración 2026-06-07 (snapshot `0096`→`0113`):** **5 promociones** verificadas adversarialmente — `LegalDoc`+`LegalAcceptance` ❌→✅ (por `0102_capa_legal`, SDD-0054); `Invoice` 🟡→✅ (gate AUT-04 ya respaldado); `File` 🟡→✅ (`documents` genérica, SDD-0049); `Route catalog` 🟡→✅ (`route_cost_templates`, `0100`). `PortalInboxEvent` ❌→🟡 (`prealertas`+`conversations`). Conteo **11✅/8🟡/3❌ → 16✅/6🟡/0❌**. **Bloque 4 Naviera corregido a `done`** (SDD-0047 cerrado; la versión previa lo daba "en construcción"). **0 entidades sin tabla.**
