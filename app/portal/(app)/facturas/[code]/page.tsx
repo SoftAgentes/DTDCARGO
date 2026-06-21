@@ -163,18 +163,15 @@ export default async function PortalInvoiceDetailPage({ params }: Props) {
           </dl>
 
           <div className="mt-8 pt-6 border-t border-grey-200">
-            <button
-              type="button"
-              disabled
-              className="btn btn-ghost w-full justify-center opacity-60"
-              style={{ cursor: "not-allowed" }}
-              title="Pronto vas a poder descargar el PDF de tu factura"
+            <Link
+              href={`/portal/facturas/${encodeURIComponent(inv.code)}/comprobante`}
+              className="btn btn-primary w-full justify-center"
             >
-              Descargar PDF · próximamente
-            </button>
+              Ver / Imprimir comprobante
+            </Link>
             <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
-              ¿Una duda con esta factura o necesitas el comprobante? Escríbele a tu
-              asesor.
+              Abre el comprobante y guárdalo como PDF desde el diálogo de
+              impresión. ¿Una duda con esta factura? Escríbele a tu asesor.
             </p>
             <a
               href={waLink}

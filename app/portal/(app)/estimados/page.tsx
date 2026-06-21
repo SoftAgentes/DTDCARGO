@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@/lib/db/server";
 import { listMyEstimates } from "@/lib/portal/portal-queries";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
@@ -8,10 +9,10 @@ import { EstimateRow } from "../../_components/EstimateRow";
 export const metadata: Metadata = { title: "Estimados" };
 
 /**
- * "Estimados" (SDD-0061 · portal read-only). Lista los estimados ligados al
- * MARKBOX del cliente: los que generó en la calculadora pública (ya vinculados a
- * su cuenta) y los que le armó un asesor. La confirmación/conversión la maneja el
- * asesor → cada estimado trae un CTA "Pedir que lo confirmen" a WhatsApp.
+ * "Estimados" (SDD-0061 · portal read-only · split Norte). Lista los estimados LEAD
+ * del cliente — los que generó en la calculadora pública (`source='web'`). Cada uno
+ * trae un CTA "Avanzar a cotización" que lo formaliza (pasa a la pista formal, ver
+ * /portal/cotizaciones). Lo formal/asesor vive en /portal/cotizaciones.
  */
 export default async function PortalEstimatesPage() {
   const supabase = await createClient();
@@ -27,8 +28,15 @@ export default async function PortalEstimatesPage() {
         Estimados.
       </h1>
       <p className="lead mt-3">
-        Los cálculos que hiciste en la calculadora y los que armó tu asesor. Cuando
-        quieras confirmar uno, escríbele a tu asesor y lo convertimos en tu envío.
+        Los cálculos rápidos que hiciste en la calculadora. Cuando quieras un precio
+        formal para una carga puntual, pide una{" "}
+        <Link
+          href="/portal/cotizaciones"
+          className="text-wine font-semibold hover:underline"
+        >
+          cotización
+        </Link>
+        .
       </p>
 
       {estimates.length === 0 ? (

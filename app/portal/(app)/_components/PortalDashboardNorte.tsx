@@ -87,7 +87,12 @@ export function PortalDashboardNorte({
         </div>
         <div className="flex flex-wrap items-center gap-2.5">
           <NewPurchaseButton href="/portal/proveedores" />
-          <SoonButton label="Nueva cotización" />
+          <Link
+            href="/portal/cotizaciones/nueva"
+            className="btn btn-ghost inline-flex items-center gap-1.5"
+          >
+            Nueva cotización
+          </Link>
         </div>
       </div>
 
@@ -500,24 +505,6 @@ function ActividadCard({ shipments }: { shipments: PortalShipmentRow[] }) {
         })}
       </div>
     </div>
-  );
-}
-
-/** Botón deshabilitado "Próximamente" (espeja el de `PortalDashboard`). */
-function SoonButton({ label }: { label: string }) {
-  return (
-    <button
-      type="button"
-      disabled
-      title="Próximamente"
-      aria-disabled
-      className="btn btn-ghost inline-flex items-center gap-1.5 opacity-55 cursor-not-allowed pointer-events-none"
-    >
-      {label}
-      <span className="text-[10.5px] font-bold tracking-[0.1em] uppercase text-grey-500">
-        Próximamente
-      </span>
-    </button>
   );
 }
 

@@ -335,25 +335,35 @@ export async function listMyDocuments(
 }
 
 /**
- * Estimados del cliente logueado (SDD-0061 · portal read-only), recientes
- * primero. Devuelve TODOS los estimados ligados a su markbox: los que generó en
- * la calculadora pública (source='web', ya vinculados) Y los que le armó un asesor
- * (source='studio'). Filtra EXPLÍCITO por markbox (defensa en profundidad, como el
- * resto del archivo) + la policy "quotes portal self read" (migr 0117). Hasta 100.
+ * Quotes del cliente logueado por TIPO (portal read-only), recientes primero.
+ * Split del Norte (founder 2026-06-21): el cliente ve por separado sus
+ *   - **estimados** (`source='web'`): la primera salida, lo que generó él en la
+ *     calculadora pública (etapa lead), y
+ *   - **cotizaciones** (`source!='web'`): lo formal — lo que le armó un asesor o
+ *     lo que pidió él mismo desde el portal ("Nueva cotización").
+ * Filtra EXPLÍCITO por markbox (defensa en profundidad) + la policy "quotes portal
+ * self read" (migr 0117). Hasta 100.
  */
-export async function listMyEstimates(
+type PortalQuoteKind = "estimado" | "cotizacion";
+
+async function listMyQuotes(
   supabase: SupabaseClient,
+  kind: PortalQuoteKind,
 ): Promise<PortalEstimateRow[]> {
   const markbox = await portalMarkbox(supabase);
   if (!markbox) return [];
 
-  const { data, error } = await supabase
+  const base = supabase
     .from("quotes")
     .select(
       "id, quote_code, status, source, service, origin, destination, total_usd, nota, converted_to_shipment_id, created_at, updated_at",
     )
     .eq("client_markbox", markbox)
-    .is("deleted_at", null)
+    .is("deleted_at", null);
+  const filtered =
+    kind === "estimado" ? base.eq("source", "web") : base.neq("source", "web");
+
+  const { data, error } = await filtered
     .order("created_at", { ascending: false })
     .limit(100);
 
@@ -373,6 +383,20 @@ export async function listMyEstimates(
     createdAt: r.created_at as string,
     updatedAt: r.updated_at as string,
   }));
+}
+
+/** Estimados (lead, `source='web'`) del cliente. */
+export function listMyEstimates(
+  supabase: SupabaseClient,
+): Promise<PortalEstimateRow[]> {
+  return listMyQuotes(supabase, "estimado");
+}
+
+/** Cotizaciones (formal, `source!='web'`) del cliente. */
+export function listMyCotizaciones(
+  supabase: SupabaseClient,
+): Promise<PortalEstimateRow[]> {
+  return listMyQuotes(supabase, "cotizacion");
 }
 
 // ─────────────────────────────────────────────────────────────

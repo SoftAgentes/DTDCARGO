@@ -415,18 +415,20 @@ export type PortalDocument = {
 };
 
 // ─────────────────────────────────────────────────────────────
-// Estimados del portal (SDD-0061 · read-only)
+// Estimados y Cotizaciones del portal (SDD-0061 · read-only)
 //
-// El cliente ve TODOS los estimados ligados a su MARKBOX: los que generó en la
-// calculadora pública (source='web', ya vinculados a su cuenta) Y los que le armó
-// un asesor en el ERP (source='studio'). Reusa el enum/estado del módulo
-// Estimados del Studio (lib/studio/quote-types) — misma fuente de verdad. El
-// portal está FUERA de la frontera ESLint público↔ERP (superficie autenticada
-// Supabase-backed), así que puede importar de `@/lib/studio`, igual que envíos y
-// facturas.
+// Split del Norte (founder 2026-06-21), ambos sobre `quotes` por MARKBOX:
+//   - ESTIMADOS  = `source='web'` — la primera salida, lo que el cliente generó en
+//     la calculadora pública (etapa lead). → /portal/estimados.
+//   - COTIZACIONES = `source!='web'` — lo formal: lo que le armó un asesor o lo que
+//     pidió él desde el portal ("Nueva cotización"). → /portal/cotizaciones.
+// Mismo tipo de fila (`PortalEstimateRow`) y enum/estado del módulo del Studio
+// (lib/studio/quote-types) — misma fuente de verdad. El portal está FUERA de la
+// frontera ESLint público↔ERP (superficie autenticada Supabase-backed), así que
+// puede importar de `@/lib/studio`, igual que envíos y facturas.
 // ─────────────────────────────────────────────────────────────
 
-/** Una fila de "Estimados" del portal (read-only). */
+/** Una fila de "Estimados"/"Cotizaciones" del portal (read-only, misma forma). */
 export type PortalEstimateRow = {
   id: string;
   /** EST-YYYY-NNNN (o Q- de estimados viejos del Studio). */
