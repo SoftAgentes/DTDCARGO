@@ -12,6 +12,7 @@
 
 import { QRCodeSVG } from "qrcode.react";
 
+import { CONTACT } from "@/lib/design-tokens";
 import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
 import type { LabelClient, LabelWarehouseCn } from "../page";
 
@@ -87,40 +88,21 @@ export type WarehouseAddress = {
   wechat: string;
 };
 
-const HUB_DATA: Record<string, Omit<WarehouseAddress, "code" | "city" | "city_cn">> = {
-  "YIW-A1": {
-    address_cn: "义乌市国际商贸城三区 5楼 218号 · DTD Cargo",
-    contact_cn: "王亮 Wang Liang",
-    phone: "+86 137 5028 9114",
-    wechat: "DTD_CARGO_YIW",
-  },
-  "GZ-B2": {
-    address_cn: "广州市番禺区市桥工业园 12号 B栋 · DTD Cargo",
-    contact_cn: "陈伟 Chen Wei",
-    phone: "+86 188 2266 9988",
-    wechat: "DTD_CARGO_GZ",
-  },
-  "SZ-C1": {
-    address_cn: "深圳市宝安区福永街道工业区 8栋 · DTD Cargo",
-    contact_cn: "张敏 Zhang Min",
-    phone: "+86 159 8842 1107",
-    wechat: "DTD_CARGO_SZ",
-  },
-};
-
+// DTD opera UNA bodega real (Yiwu); su contacto + dirección reales son la fuente
+// única CONTACT.cn (lib/design-tokens). El selector de almacén refleja el code y
+// la ciudad del catálogo `warehouses_cn`, pero el bloque de contacto SIEMPRE es
+// el de la bodega real — sin datos inventados ni "—". (Contacto por hub para
+// otros almacenes = a futuro; hoy no hay más bodegas operativas → SDD-0100 §6.)
 export function warehouseAddress(w: LabelWarehouseCn): WarehouseAddress {
-  const fallback = {
-    address_cn: w.hub_name_cn ?? w.warehouse_name ?? "DTD Cargo",
-    contact_cn: "DTD Cargo",
-    phone: "—",
-    wechat: "—",
-  };
-  const hub = HUB_DATA[w.code] ?? fallback;
+  const cn = CONTACT.cn;
   return {
     code: w.code,
     city: w.city,
     city_cn: w.hub_name_cn ?? w.city,
-    ...hub,
+    address_cn: cn.addressCjk,
+    contact_cn: `${cn.contactPersonCjk} ${cn.contactPersonPinyin}`,
+    phone: cn.phone,
+    wechat: cn.wechatId,
   };
 }
 
