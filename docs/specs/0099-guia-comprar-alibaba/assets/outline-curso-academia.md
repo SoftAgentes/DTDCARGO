@@ -44,6 +44,12 @@
    está en el reproductor, lo agrega la ventana de academia.)*
 4. Poner `video_url` (YouTube) en cada lección **cuando Sam grabe** los mini-videos.
 5. Publicar (`status='publicado'`) — `tier='gratis'`, todas `free_preview=true`.
+6. **Guía interactiva** (`guia-alibaba-interactiva.html`): app standalone DTD-branded (perfil Agente/Emprendedor
+   + calculadoras CBM/costo-real/scorecard + captura de lead). Puede ser la **lección de bienvenida
+   interactiva** (iframe del HTML, o portarla a React). El WhatsApp (CRM) y la dirección Yiwu ya van cableados;
+   su `syncLead()` es un placeholder `console.log` → cablear a Supabase/Kommo si se quiere capturar el lead
+   (busca `=== ENVIAR A SUPABASE/KOMMO ===`). El MARKBOX se muestra como `DTD-XXXX` + CTA a `/registro` (el
+   visitante anónimo aún no tiene código).
 
 ## Funnel
 - Cada lección/cierre jala a **registro (MARKBOX)** + **teaser a cursos avanzados (pagos)** de la Academia.

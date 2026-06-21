@@ -67,6 +67,11 @@ repo, el componente `components/AlibabaAddressGuide.tsx` (widget de dirección) 
   `make-pdf`, que no permite temática de marca). A4, ~9 págs, logo + wine/navy/cream + tabla de dirección Yiwu.
 - `assets/outline-curso-academia.md` — módulos/lecciones para `feat/academia` (tier=`gratis`, `free_preview`,
   `widget='alibaba_address'`, `video_url`, `asset_path`).
+- `assets/guia-alibaba-interactiva.html` — **guía interactiva DTD-branded** (re-skin del prototipo v2 del
+  founder): app gamificada y adaptativa por perfil (Agente/Emprendedor) + calculadoras (CBM, costo real,
+  scorecard) + captura progresiva de lead. Marca DTD (tokens + Archivo/Archivo Black/JetBrains Mono/Noto Sans
+  SC, isologo base64, **cero gradientes/emojis**), datos reales cableados (WhatsApp CRM + dirección Yiwu +
+  MARKBOX-CTA). Candidata a **lección interactiva** de la Academia (la inserta `feat/academia`).
 
 ## Fuera de alcance
 
@@ -80,4 +85,4 @@ repo, el componente `components/AlibabaAddressGuide.tsx` (widget de dirección) 
 - [ ] El "paso DTD" (dirección Yiwu + MARKBOX, EXW no DDP) es el clímax y reusa el widget existente.
 - [ ] **Cero menciones a competidores/terceros**; solo marca/tokens DTD en el PDF.
 - [ ] Funnel: cada mini-video/cierre → registro (MARKBOX) + teaser a cursos avanzados.
-- [ ] `docs:check` verde; `ui-ux-designer` revisó el PDF. Commit en `feat/guia-comprar-alibaba` (sin push).
+- [ ] `docs:check` verde; `ui-ux-designer` revisó el PDF **y la guía interactiva**. Commit en `feat/guia-comprar-alibaba` (sin push).
