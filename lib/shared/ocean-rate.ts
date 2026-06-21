@@ -38,16 +38,19 @@ export type OceanContainer = (typeof OCEAN_CONTAINERS)[number];
 
 /**
  * PUERTOS de exportación CACHEADOS (origen) — el cron los consulta por coords.
- * Son pocos (4) a propósito: el cache cabe en 20 rutas/semana (4 puertos × 5
- * destinos VE). Las CIUDADES de origen (Yiwu, Guangzhou…) son muchas y mapean a
- * estos puertos (ver OCEAN_ORIGIN_CITIES) → "escribe la ciudad, resuelve al puerto"
- * sin gastar cuota extra. Coords [lat,lng] validadas EN VIVO contra SeaRates.
+ * La grilla 5 puertos × 5 destinos VE = 25 rutas se recorta al cap (23/semana,
+ * founder 2026-06-21): las 2 menos comunes (Qingdao→Maracaibo/Punto Fijo) caen a
+ * WhatsApp. Las CIUDADES de origen (Yiwu, Guangzhou…) mapean a estos puertos (ver
+ * OCEAN_ORIGIN_CITIES) → "escribe la ciudad, resuelve al puerto" sin gastar cuota
+ * extra. Coords [lat,lng] validadas EN VIVO. Qingdao va ÚLTIMO (el cap lo recorta
+ * primero, por ser el origen más débil — menos navieras).
  */
 export const OCEAN_ORIGINS: readonly OceanPoint[] = [
   { id: "ningbo", name: "Ningbo", country: "CN", lat: 29.87, lng: 121.83 },
   { id: "shanghai", name: "Shanghai", country: "CN", lat: 31.23, lng: 121.49 },
   { id: "nansha", name: "Nansha", country: "CN", lat: 22.76, lng: 113.62 },
   { id: "shekou", name: "Shekou", country: "CN", lat: 22.48, lng: 113.9 },
+  { id: "qingdao", name: "Qingdao", country: "CN", lat: 36.08, lng: 120.32 },
 ];
 
 /** Puertos de DESTINO (Venezuela). Coords [lat,lng] validadas EN VIVO contra SeaRates. */
@@ -95,6 +98,10 @@ export const OCEAN_ORIGIN_CITIES: readonly OceanOriginCity[] = [
   { id: "shenzhen", name: "Shenzhen", portId: "shekou" },
   { id: "shekou", name: "Shekou", portId: "shekou" },
   { id: "huizhou", name: "Huizhou", portId: "shekou" },
+  // → Qingdao (Shandong / norte de China)
+  { id: "qingdao", name: "Qingdao", portId: "qingdao" },
+  { id: "jinan", name: "Jinan", portId: "qingdao" },
+  { id: "yantai", name: "Yantai", portId: "qingdao" },
 ];
 
 const ORIGIN_IDS = new Set(OCEAN_ORIGINS.map((p) => p.id));

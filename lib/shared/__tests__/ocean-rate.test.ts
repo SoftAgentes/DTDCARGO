@@ -117,6 +117,7 @@ describe("findOceanPoint + coherencia del catálogo", () => {
   it("ciudades de origen resuelven a un puerto export existente (Yiwu → Ningbo)", () => {
     expect(resolveOriginCity("yiwu")?.portId).toBe("ningbo");
     expect(resolveOriginCity("GUANGZHOU")?.portId).toBe("nansha");
+    expect(resolveOriginCity("qingdao")?.portId).toBe("qingdao");
     expect(resolveOriginCity("ciudad-inexistente")).toBeUndefined();
     const portIds = new Set(OCEAN_ORIGINS.map((p) => p.id));
     expect(OCEAN_ORIGIN_CITIES.every((c) => portIds.has(c.portId))).toBe(true);

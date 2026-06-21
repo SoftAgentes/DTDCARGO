@@ -21,14 +21,12 @@ import { OCEAN_RATES_MATRIX, type OceanMatrixRoute } from "./ocean-rates-matrix"
 
 /**
  * Tope DURO de llamadas a SeaRates por corrida del cron (founder 2026-06-21).
- * 20/semana × ≤5 lunes/mes = ≤100/mes → entra en el Shipper Package GRATIS.
- * (Oleh 2026-06-18: 100/mes ES el cap del plan; 2.000-3.000/mes requieren la
- *  subscripción paga "Logistics Explorer API" aparte.)
- * Es un GUARD de cuota: aunque la matriz crezca, el cron nunca consulta más de
- * 20 rutas/corrida. La matriz actual (20) toca el tope — el cap recorta si se
- * expanden más puertos sin subir el plan.
+ * 23/semana ≈ 100/mes (usa la cuota FCL completa; en meses de 5 lunes ~115, un
+ * toque sobre las 100 gratis). La matriz de producción = grilla 5×5 = 25 rutas; el
+ * cap recorta a 23 → las 2 menos comunes (Qingdao→Maracaibo/Punto Fijo) → WhatsApp.
+ * GUARD de cuota: el cron nunca consulta más de WEEKLY_CALL_CAP rutas/corrida.
  */
-export const WEEKLY_CALL_CAP = 20;
+export const WEEKLY_CALL_CAP = 23;
 
 /** Firma del fetcher inyectado (la cumple `getOceanRate`). */
 export type RateFetcher = (

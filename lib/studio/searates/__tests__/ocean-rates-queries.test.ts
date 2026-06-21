@@ -147,7 +147,7 @@ describe("refreshOceanRates", () => {
     expect(rows).toHaveLength(2);
   });
 
-  it("sin cap explícito aplica WEEKLY_CALL_CAP (20)", async () => {
+  it("sin cap explícito aplica WEEKLY_CALL_CAP", async () => {
     const { client } = fakeAdmin();
     const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
     const big = Array.from({ length: 25 }, () => ROUTE_B);
@@ -156,8 +156,12 @@ describe("refreshOceanRates", () => {
     expect(summary).toMatchObject({ requested: 25, total: WEEKLY_CALL_CAP, capped: true });
   });
 
-  it("la matriz de producción cabe bajo el cap (no quema cuota)", () => {
-    // Guard de datos: si se expanden puertos más allá de 20/semana, este test avisa.
-    expect(OCEAN_RATES_MATRIX.length).toBeLessThanOrEqual(WEEKLY_CALL_CAP);
+  it("el cron recorta la matriz de producción al cap (protege la cuota)", async () => {
+    // La grilla 5×5 = 25 > cap (23) a propósito: el cron cachea las 23 principales.
+    const { client } = fakeAdmin();
+    const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
+    const summary = await refreshOceanRates(client, { fetchRate });
+    expect(fetchRate).toHaveBeenCalledTimes(Math.min(OCEAN_RATES_MATRIX.length, WEEKLY_CALL_CAP));
+    expect(summary.total).toBeLessThanOrEqual(WEEKLY_CALL_CAP);
   });
 });
