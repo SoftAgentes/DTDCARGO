@@ -149,6 +149,27 @@
   .quienes .qt{min-width:0;flex:1}
   .quienes .qt b{color:var(--abismo)}
 
+  /* Direccion Alibaba (copiar por campo) -- espejo del FAQ */
+  .dir-card{border:1px solid var(--linea);border-radius:16px;overflow:hidden;background:var(--papel);margin-top:6px;box-shadow:var(--sombra-suave)}
+  .dir-mark{padding:14px 16px;border-bottom:1px solid var(--linea);background:var(--espuma)}
+  .dir-mark label{display:block;font:700 11px var(--f-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--bruma);margin-bottom:8px}
+  .dir-mark .row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+  .dir-mark input{height:42px;width:180px;padding:0 13px;border:1.5px solid var(--linea);border-radius:8px;background:var(--papel);font:700 14px var(--f-mono);letter-spacing:.04em;color:var(--abismo);outline:none}
+  .dir-mark input:focus{border-color:var(--marea)}
+  .dir-mark .h{font-size:12.5px;line-height:1.5;color:var(--bruma);max-width:42ch}
+  .dir-mark .h a{color:var(--marea);font-weight:700;text-decoration:underline}
+  .dir-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border-bottom:1px solid var(--linea)}
+  .dir-row:last-of-type{border-bottom:none}
+  .dir-row .k{font:700 10.5px var(--f-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--bruma)}
+  .dir-row .k .cjk{font-family:var(--f-cjk)}
+  .dir-row .v{margin-top:2px;font:700 15px var(--f-mono);color:var(--abismo);word-break:break-word}
+  .dir-row .v.cjk{font-family:var(--f-cjk);font-weight:500}
+  .dir-row .hint{margin-top:3px;font-size:12px;line-height:1.42;color:var(--bruma)}
+  .dir-copy{flex:none;height:38px;min-width:92px;padding:0 14px;border:1px solid var(--linea);border-radius:8px;background:var(--papel);font:700 12.5px var(--f-ui);color:var(--abismo);cursor:pointer;transition:.15s}
+  .dir-copy:hover{border-color:var(--marea);color:var(--marea)}
+  .dir-nota{padding:13px 16px;background:var(--espuma);border-top:3px solid var(--marea);font-size:13px;line-height:1.55;color:var(--bruma)}
+  .dir-nota b{color:var(--abismo)}
+
   /* Selector de perfil */
   .perfil-wrap{margin:6px 0 2px}
   .perfil-q{font-family:var(--f-ui);font-weight:700;font-size:15px;color:var(--abismo);margin-bottom:10px}
@@ -432,7 +453,8 @@ const ETAPAS = [
     titulo:"Que el proveedor envíe tu mercancía a nuestro almacén",
     intro:"Casi listo. Aquí tu pedido pasa a nuestras manos. De aquí en adelante, relájate: nos encargamos.",
     bloques:[
-      {ic:"", h:"Da nuestra dirección al proveedor", p:"Indícale que entregue en el almacén DTD en Yiwu: <b>"+dir+"</b>."},
+      {ic:"", h:"Pon NUESTRA dirección como destino", p:"Cuando el proveedor te pregunte a dónde enviar, dale la de nuestra bodega en Yiwu. Copia cada campo en su formulario — el chino se pega tal cual."},
+      {tipo:"direccion"},
       {ic:"", h:"Usa tu MARKBOX (Shipping Mark)", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <b>dtdcargo.com/registro</b> (formato <b>DTD-"+cod+"</b>). Pídele al proveedor que marque <b>solo tu MARKBOX</b> en cada bulto — sin tus datos personales."},
       {ic:"", h:"Avísanos qué viene", p:"Cuéntanos cuántas cajas, qué producto y el peso/volumen aproximado. Así lo recibimos bien y empezamos la consolidación."},
       {ic:"", h:"Documentos para la aduana", perfil:"pro", p:"Asegúrate de tener <b>Commercial Invoice</b>, <b>Packing List</b> y el <b>Bill of Lading (BL)</b>. Nosotros te guiamos para que la declaración en Venezuela salga limpia."},
@@ -507,6 +529,7 @@ function bloqueHTML(b){
   if(b.tipo==="tool-cbm") return cbmHTML();
   if(b.tipo==="tool-landed") return landedHTML();
   if(b.tipo==="tool-scorecard") return scorecardHTML();
+  if(b.tipo==="direccion") return direccionHTML();
   const proTag = b.perfil==="pro" ? '<span class="pro">PRO</span>' : "";
   return '<div class="bloque"><h3><span class="ic"></span>'+b.h+proTag+'</h3><p>'+b.p+'</p></div>';
 }
@@ -527,6 +550,37 @@ function incotermsHTML(){
     '<tr><td><b>CIF</b></td><td>Puerto de destino + seguro</td><td>A veces</td></tr>'+
     '<tr><td><b>DDP</b></td><td>Tu puerta (todo incluido)</td><td>Eso lo hacemos nosotros</td></tr></table></div>';
 }
+function direccionHTML(){
+  const F=[
+    {k:"国家/地区",l:"País / región",v:"China"},
+    {k:"收货人",l:"Destinatario",v:"DTD Cargo - DTD-XXXX",dest:true,hint:"Tu MARKBOX va al final — sin él no podemos saber que la caja es tuya."},
+    {k:"电话",l:"Teléfono (+86)",v:"18606891419"},
+    {k:"地址",l:"Dirección",v:"浙江省义乌市义乌港二期直通仓2栋2号 货7-货11",zh:true,hint:"Pégala en chino tal cual, sin traducir — es para el transporte dentro de China."},
+    {k:"省",l:"Provincia",v:"浙江省",zh:true,hint:"Zhejiang"},
+    {k:"市",l:"Ciudad",v:"义乌市",zh:true,hint:"Yiwu — en el selector aparece bajo 金华市 (Jinhua)"},
+    {k:"邮编",l:"Código postal",v:"322000"},
+    {k:"仓库联系人",l:"Contacto de bodega",v:"林冠",zh:true,hint:"Lin Guan"},
+    {k:"",l:"Email",v:"info@dtdcargo.com"},
+  ];
+  let rows="";
+  F.forEach(f=>{
+    const kc=(f.k?'<span class="cjk">'+f.k+'</span> · ':'')+f.l;
+    const id=f.dest?' id="dirDest"':'';
+    const vcls="v"+(f.zh?" cjk":"");
+    const hint=f.hint?'<div class="hint">'+f.hint+'</div>':'';
+    const field=f.dest?'destinatario':f.l;
+    rows+='<div class="dir-row"><div style="min-width:0"><div class="k">'+kc+'</div><div class="'+vcls+'"'+id+'>'+f.v+'</div>'+hint+'</div>'+
+      '<button class="dir-copy" data-field="'+field+'" data-val="'+f.v+'">Copiar</button></div>';
+  });
+  return '<div class="dir-card">'+
+    '<div class="dir-mark"><label>Tu MARKBOX (opcional)</label><div class="row">'+
+      '<input id="dirMark" type="text" maxlength="50" placeholder="DTD-XXXX" autocapitalize="characters" autocomplete="off">'+
+      '<div class="h">Escríbelo y el campo Destinatario se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a></div>'+
+    '</div></div>'+rows+
+    '<div class="dir-nota"><b>Importante:</b> en el formulario de Alibaba el destinatario lleva «DTD Cargo + tu MARKBOX», pero en el <b>rótulo físico de la caja</b> va SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
+  '</div>';
+}
+
 function cbmHTML(){
   return '<div class="tool" data-tool="cbm"><div class="tool-h">Calculadora de volumen (CBM)</div>'+
     '<p class="tool-d">En carga suelta el flete se cobra por volumen. Estima el tuyo (medidas de la caja del proveedor):</p>'+
@@ -612,6 +666,18 @@ function wire(){
   if($("#btnNext")) $("#btnNext").addEventListener("click",completarEtapa);
   // herramientas
   stageEl.querySelectorAll("[data-calc]").forEach(b=> b.addEventListener("click",()=>calcTool(b.dataset.calc)));
+  // direccion: MARKBOX en vivo + copiar por campo (espejo del FAQ)
+  const dirM = stageEl.querySelector("#dirMark");
+  if(dirM){ dirM.addEventListener("input", ()=>{ const m=(dirM.value||"").trim().toUpperCase(); const d=stageEl.querySelector("#dirDest"); if(d) d.textContent="DTD Cargo - "+(m||"DTD-XXXX"); }); }
+  stageEl.querySelectorAll(".dir-copy").forEach(btn=> btn.addEventListener("click",()=>{
+    let val=btn.dataset.val;
+    if(btn.dataset.field==="destinatario"){
+      const i=stageEl.querySelector("#dirMark"); const m=((i&&i.value)||"").trim().toUpperCase();
+      if(!m){ if(i) i.focus(); const o=btn.textContent; btn.textContent="Falta tu mark ↑"; setTimeout(()=>btn.textContent=o,1800); return; }
+      val="DTD Cargo - "+m;
+    }
+    navigator.clipboard.writeText(val).then(()=>{ const o=btn.textContent; btn.textContent="✓ Copiado"; setTimeout(()=>btn.textContent=o,1600); }).catch(()=>{});
+  }));
   stageEl.querySelectorAll(".sc-crit").forEach(c=> c.addEventListener("click",()=>{ c.classList.toggle("on"); c.querySelector(".b").textContent=c.classList.contains("on")?"✓":""; scoreUpdate(); }));
   // captura
   if($("#capSave")) $("#capSave").addEventListener("click",guardarContacto);
