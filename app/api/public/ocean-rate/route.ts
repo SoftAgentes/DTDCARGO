@@ -4,7 +4,7 @@
  *
  * Es el puente público↔ERP del cotizador de fletes: la UI pública NO importa
  * Supabase, le pega por HTTP a este handler. El handler valida el candado de país
- * (origen China · destino Venezuela/Barranquilla), lee la caché vía
+ * (origen China · destino Venezuela), lee la caché vía
  * `getPublicOceanRate` (RPC anon, 0 llamadas a SeaRates) y devuelve el estimado +
  * el disclaimer. Nunca consume cuota de SeaRates → a prueba de scraping por diseño.
  *

@@ -3,7 +3,9 @@ import { describe, it, expect } from "vitest";
 import {
   validateOceanRouteInput,
   findOceanPoint,
+  resolveOriginCity,
   OCEAN_ORIGINS,
+  OCEAN_ORIGIN_CITIES,
   OCEAN_DESTINATIONS,
 } from "../ocean-rate";
 
@@ -24,15 +26,15 @@ describe("validateOceanRouteInput · candado de país", () => {
     });
   });
 
-  it("destino Barranquilla (Colombia) permitido", () => {
+  it("destino Maracaibo (VE) permitido", () => {
     const r = validateOceanRouteInput({
       pointIdFrom: "ningbo",
-      pointIdTo: "barranquilla",
+      pointIdTo: "maracaibo",
       shippingType: "FCL",
       container: "HC40",
     });
     expect(r.fieldErrors).toBeUndefined();
-    expect(r.input?.pointIdTo).toBe("barranquilla");
+    expect(r.input?.pointIdTo).toBe("maracaibo");
   });
 
   it("LCL rechazado — este cotizador es solo FCL (el LCL vive en /calculadora)", () => {
@@ -65,7 +67,7 @@ describe("validateOceanRouteInput · candado de país", () => {
     expect(r.fieldErrors?.pointIdFrom).toBeTruthy();
   });
 
-  it("destino fuera del catálogo (VE/CO) → rechazado", () => {
+  it("destino fuera del catálogo (solo VE) → rechazado", () => {
     const r = validateOceanRouteInput({
       pointIdFrom: "nansha",
       pointIdTo: "tokyo",
@@ -105,10 +107,19 @@ describe("findOceanPoint + coherencia del catálogo", () => {
     expect(findOceanPoint("xyz")).toBeUndefined();
   });
 
-  it("orígenes son CN; destinos son VE/CO; todos con coords finitas", () => {
+  it("orígenes son CN; destinos son VE; todos con coords finitas", () => {
     expect(OCEAN_ORIGINS.every((p) => p.country === "CN")).toBe(true);
-    expect(OCEAN_DESTINATIONS.every((p) => p.country === "VE" || p.country === "CO")).toBe(true);
+    expect(OCEAN_DESTINATIONS.every((p) => p.country === "VE")).toBe(true);
     const all = [...OCEAN_ORIGINS, ...OCEAN_DESTINATIONS];
     expect(all.every((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))).toBe(true);
+  });
+
+  it("ciudades de origen resuelven a un puerto export existente (Yiwu → Ningbo)", () => {
+    expect(resolveOriginCity("yiwu")?.portId).toBe("ningbo");
+    expect(resolveOriginCity("GUANGZHOU")?.portId).toBe("nansha");
+    expect(resolveOriginCity("qingdao")?.portId).toBe("qingdao");
+    expect(resolveOriginCity("ciudad-inexistente")).toBeUndefined();
+    const portIds = new Set(OCEAN_ORIGINS.map((p) => p.id));
+    expect(OCEAN_ORIGIN_CITIES.every((c) => portIds.has(c.portId))).toBe(true);
   });
 });

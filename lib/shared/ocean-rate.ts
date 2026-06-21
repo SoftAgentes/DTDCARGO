@@ -6,10 +6,10 @@
  * el sitio público (UI + API route), `lib/public/` (lectura cacheada) y el ERP
  * (cron que llena la caché).
  *
- * Candado de país (regla founder 2026-06-17): origen = puertos de CHINA; destino
- * = puertos de VENEZUELA + SOLO Barranquilla (Colombia). Ningún otro país aparece.
- * Fase 2 (slice B) expandirá el catálogo a TODOS los puertos vía un resolver
- * nombre→ID; este slice arranca con las rutas principales (las que el cron cachea).
+ * Candado de país (founder): ORIGEN = ciudades/puertos de CHINA — las ciudades
+ * (Yiwu, Guangzhou…) resuelven a su puerto export cacheado (ver OCEAN_ORIGIN_CITIES);
+ * DESTINO = puertos de VENEZUELA. Ningún otro país. La query a SeaRates va por
+ * COORDENADAS → sumar un puerto = agregar su lat/lng (sin cazar el `P_<n>` interno).
  */
 
 export type OceanShippingType = "FCL" | "LCL";
@@ -37,24 +37,71 @@ export const OCEAN_CONTAINERS = ["ST20", "ST40", "HC40", "REF20", "REF40"] as co
 export type OceanContainer = (typeof OCEAN_CONTAINERS)[number];
 
 /**
- * Catálogo de puntos permitidos (= allowlist del candado de país). Origen China,
- * destino Venezuela + Barranquilla. Coords [lat,lng] validadas EN VIVO contra
- * SeaRates (todas devuelven tarifas reales). La query usa `coordinatesFrom/To`, así
- * que sumar un puerto = agregar su lat/lng (no hace falta cazar el `P_<n>`).
+ * PUERTOS de exportación CACHEADOS (origen) — el cron los consulta por coords.
+ * La grilla 5 puertos × 5 destinos VE = 25 rutas se recorta al cap (23/semana,
+ * founder 2026-06-21): las 2 menos comunes (Qingdao→Maracaibo/Punto Fijo) caen a
+ * WhatsApp. Las CIUDADES de origen (Yiwu, Guangzhou…) mapean a estos puertos (ver
+ * OCEAN_ORIGIN_CITIES) → "escribe la ciudad, resuelve al puerto" sin gastar cuota
+ * extra. Coords [lat,lng] validadas EN VIVO. Qingdao va ÚLTIMO (el cap lo recorta
+ * primero, por ser el origen más débil — menos navieras).
  */
 export const OCEAN_ORIGINS: readonly OceanPoint[] = [
-  { id: "nansha", name: "Nansha", country: "CN", lat: 22.76, lng: 113.62 },
-  { id: "shekou", name: "Shekou", country: "CN", lat: 22.48, lng: 113.9 },
   { id: "ningbo", name: "Ningbo", country: "CN", lat: 29.87, lng: 121.83 },
   { id: "shanghai", name: "Shanghai", country: "CN", lat: 31.23, lng: 121.49 },
+  { id: "nansha", name: "Nansha", country: "CN", lat: 22.76, lng: 113.62 },
+  { id: "shekou", name: "Shekou", country: "CN", lat: 22.48, lng: 113.9 },
   { id: "qingdao", name: "Qingdao", country: "CN", lat: 36.08, lng: 120.32 },
 ];
 
+/** Puertos de DESTINO (Venezuela). Coords [lat,lng] validadas EN VIVO contra SeaRates. */
 export const OCEAN_DESTINATIONS: readonly OceanPoint[] = [
   { id: "la-guaira", name: "La Guaira", country: "VE", lat: 10.6, lng: -66.93 },
   { id: "puerto-cabello", name: "Puerto Cabello", country: "VE", lat: 10.48, lng: -68.01 },
   { id: "guanta", name: "Guanta", country: "VE", lat: 10.24, lng: -64.59 },
-  { id: "barranquilla", name: "Barranquilla", country: "CO", lat: 11.0, lng: -74.8 },
+  { id: "maracaibo", name: "Maracaibo", country: "VE", lat: 10.65, lng: -71.61 },
+  { id: "punto-fijo", name: "Punto Fijo", country: "VE", lat: 11.69, lng: -70.21 },
+];
+
+/**
+ * Ciudad/puerto de ORIGEN seleccionable. `portId` = el puerto export cacheado
+ * (OCEAN_ORIGINS) al que mapea → "Yiwu" resuelve a Ningbo (auto-resolución como el
+ * calculador de SeaRates), usando el rate cacheado de ese puerto. Cubre los hubs
+ * manufactureros principales; ciudad fuera del mapa → el cotizador cae a WhatsApp.
+ */
+export type OceanOriginCity = { id: string; name: string; portId: string };
+
+export const OCEAN_ORIGIN_CITIES: readonly OceanOriginCity[] = [
+  // → Ningbo (Zhejiang / sur del delta del Yangtze)
+  { id: "ningbo", name: "Ningbo", portId: "ningbo" },
+  { id: "yiwu", name: "Yiwu", portId: "ningbo" },
+  { id: "hangzhou", name: "Hangzhou", portId: "ningbo" },
+  { id: "wenzhou", name: "Wenzhou", portId: "ningbo" },
+  { id: "jinhua", name: "Jinhua", portId: "ningbo" },
+  { id: "shaoxing", name: "Shaoxing", portId: "ningbo" },
+  { id: "taizhou", name: "Taizhou", portId: "ningbo" },
+  // → Shanghai (delta del Yangtze)
+  { id: "shanghai", name: "Shanghai", portId: "shanghai" },
+  { id: "suzhou", name: "Suzhou", portId: "shanghai" },
+  { id: "wuxi", name: "Wuxi", portId: "shanghai" },
+  { id: "nanjing", name: "Nanjing", portId: "shanghai" },
+  { id: "changzhou", name: "Changzhou", portId: "shanghai" },
+  { id: "nantong", name: "Nantong", portId: "shanghai" },
+  // → Nansha (Guangzhou / oeste del delta del Perla)
+  { id: "guangzhou", name: "Guangzhou", portId: "nansha" },
+  { id: "nansha", name: "Nansha", portId: "nansha" },
+  { id: "foshan", name: "Foshan", portId: "nansha" },
+  { id: "dongguan", name: "Dongguan", portId: "nansha" },
+  { id: "zhongshan", name: "Zhongshan", portId: "nansha" },
+  { id: "jiangmen", name: "Jiangmen", portId: "nansha" },
+  { id: "zhuhai", name: "Zhuhai", portId: "nansha" },
+  // → Shekou (Shenzhen / este del delta del Perla)
+  { id: "shenzhen", name: "Shenzhen", portId: "shekou" },
+  { id: "shekou", name: "Shekou", portId: "shekou" },
+  { id: "huizhou", name: "Huizhou", portId: "shekou" },
+  // → Qingdao (Shandong / norte de China)
+  { id: "qingdao", name: "Qingdao", portId: "qingdao" },
+  { id: "jinan", name: "Jinan", portId: "qingdao" },
+  { id: "yantai", name: "Yantai", portId: "qingdao" },
 ];
 
 const ORIGIN_IDS = new Set(OCEAN_ORIGINS.map((p) => p.id));
@@ -67,6 +114,12 @@ export function findOceanPoint(id: string): OceanPoint | undefined {
     OCEAN_ORIGINS.find((p) => p.id === norm) ??
     OCEAN_DESTINATIONS.find((p) => p.id === norm)
   );
+}
+
+/** Resuelve una ciudad/puerto de origen a su entrada (con el puerto cacheado). */
+export function resolveOriginCity(cityId: string): OceanOriginCity | undefined {
+  const norm = cityId.trim().toLowerCase();
+  return OCEAN_ORIGIN_CITIES.find((c) => c.id === norm);
 }
 
 /** Entrada de una consulta del cotizador público. */
@@ -90,8 +143,8 @@ const POINT_ID_RE = /^[a-z][a-z0-9-]*$/;
 
 /**
  * Valida + normaliza una consulta pública con candado de país: el origen debe ser
- * un puerto de China del catálogo y el destino un puerto de Venezuela/Barranquilla
- * del catálogo. FCL exige un contenedor del set público. Sin Zod (convención repo).
+ * un puerto de China del catálogo y el destino un puerto de Venezuela del catálogo.
+ * FCL exige un contenedor del set público. Sin Zod (convención repo).
  */
 export function validateOceanRouteInput(
   partial: Partial<Record<keyof OceanRouteInput, unknown>>,
@@ -108,7 +161,7 @@ export function validateOceanRouteInput(
 
   if (!pointIdTo) fieldErrors.pointIdTo = "Indica el puerto de destino.";
   else if (!POINT_ID_RE.test(pointIdTo) || !DEST_IDS.has(pointIdTo))
-    fieldErrors.pointIdTo = "Destino no disponible (Venezuela o Barranquilla).";
+    fieldErrors.pointIdTo = "Destino no disponible (solo puertos de Venezuela).";
 
   // Este cotizador es SOLO FCL (full container). El LCL público vive en
   // /calculadora (decisión founder 2026-06-20). Rechazamos cualquier otro modo.
