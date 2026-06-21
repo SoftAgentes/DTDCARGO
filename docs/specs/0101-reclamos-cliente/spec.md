@@ -49,11 +49,20 @@ vía 0059) es **Slice C** — fuera de este alcance.
 4. Registro en `lib/studio/modules.ts` (grupo OPERACIÓN) y `lib/studio/rbac.ts`.
 5. Tests Vitest de los helpers puros (máquina, step, KPIs, validador).
 
+### Slice B — Portal del cliente (ESTE entregable, apilado sobre A)
+
+Migración **0153**: columna `source` (`studio | portal`), policy `SELECT` para el cliente del portal
+(`get_portal_client_markbox()`) y `next_claim_code_service` (gemela de `next_claim_code` SIN
+`assert_tenant_match`, solo `service_role` — patrón `next_markbox_service`, 0109). El cliente reporta
+desde `/portal/reclamos` (tipo + descripción + envío opcional) y ve sus reclamos read-only con su estado y
+fase. La creación va por la action del portal con **admin client** que CONTROLA los campos sensibles
+(`amount_usd=0`, `insured=false`, `status='reportado'`, `source='portal'`) — el cliente no puede forjar una
+indemnización ni saltar la evaluación; el embarque ajeno se ignora. El equipo gestiona el ciclo de vida (A).
+
 ### Fuera de alcance (slices futuros — declarados, no implementados)
 
-- **Slice B — Portal del cliente:** el cliente reporta el reclamo desde `/portal` (RLS dual por
-  `client_markbox`, igual que `prealerta_service_requests`). Evidencia/fotos vía `documents`
-  polimórfico (`entity_type='claim'`, SDD-0049) o `shipment_documents`.
+- **Evidencia/fotos (B2):** el cliente adjunta fotos al reclamo (Storage RLS, `shipment_documents` o
+  `documents` con `entity_type='claim'`). Diferido para no meter Storage RLS en esta tanda.
 - **Slice C — Puente contable + aseguradora:** vínculo opcional a `supplier_claim_offsets` cuando el daño
   es culpa del proveedor; gestión con la aseguradora (certificado, deducible, avería gruesa — ver
   `legal/Brief-Seguro-Operador-ES-ZH.md`); el estado `pagado` crea asiento contable real y se gatea a
