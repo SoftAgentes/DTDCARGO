@@ -453,4 +453,61 @@ describe("getOceanRate · con token (GraphQL)", () => {
     expect(r.ok).toBe(false);
     if (!r.ok) expect(r.error).toMatch(/^network:/);
   });
+
+  it("sin date: inyecta un `date` por defecto (SeaRates lo exige)", async () => {
+    setEnv(true);
+    const body = {
+      data: {
+        rates: [
+          {
+            general: { totalPrice: 5000, totalCurrency: "USD", totalTransitTime: 40, expired: false },
+            points: [{ provider: "MSC" }],
+          },
+        ],
+      },
+    };
+    const fetchSpy = stubAuthThenRates(new Response(JSON.stringify(body), { status: 200 }));
+    // Sin `date` en el input → el cliente DEBE inyectar uno (si no, graphql_error).
+    const r = await getOceanRate({
+      pointIdFrom: "P_27395",
+      pointIdTo: "P_19774",
+      shippingType: "FCL",
+      container: "HC40",
+    });
+    expect(r.ok).toBe(true);
+    const init = fetchSpy.mock.calls[1]![1] as RequestInit;
+    const sent = JSON.parse(String(init.body));
+    expect(sent.query).toMatch(/date: "\d{4}-\d{2}-\d{2}"/);
+  });
+
+  it("ignora ofertas vencidas: elige la NO vencida aunque sea más cara", async () => {
+    setEnv(true);
+    const body = {
+      data: {
+        rates: [
+          {
+            general: { totalPrice: 4500, totalCurrency: "USD", totalTransitTime: 46, expired: true },
+            points: [{ provider: "Maersk" }],
+          },
+          {
+            general: { totalPrice: 8091, totalCurrency: "USD", totalTransitTime: 40, expired: false },
+            points: [{ provider: "MSC" }],
+          },
+        ],
+      },
+    };
+    stubAuthThenRates(new Response(JSON.stringify(body), { status: 200 }));
+    const r = await getOceanRate({
+      pointIdFrom: "P_27395",
+      pointIdTo: "P_19774",
+      shippingType: "FCL",
+      container: "HC40",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.rateUsd).toBe(8091); // la no-vencida, NO la vencida de $4500
+      expect(r.carrier).toBe("MSC");
+      expect(r.expired).toBe(false);
+    }
+  });
 });
