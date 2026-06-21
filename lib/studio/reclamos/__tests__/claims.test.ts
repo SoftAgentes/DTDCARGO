@@ -8,6 +8,9 @@ import {
   claimMatchesFilter,
   isClaimOpen,
   isClaimTerminal,
+  isFaultParty,
+  faultPartyLabel,
+  validateClaimFinancialsInput,
   CLAIM_STATUSES,
   type ClaimStatus,
 } from "../claims-types";
@@ -175,5 +178,60 @@ describe("validateClaimInput", () => {
     expect(input?.shipment_id).toBeNull();
     expect(input?.container_code).toBeNull();
     expect(input?.insured).toBe(false);
+  });
+});
+
+describe("fault party (Slice C)", () => {
+  it("valida la parte responsable", () => {
+    expect(isFaultParty("proveedor")).toBe(true);
+    expect(isFaultParty("transportista")).toBe(true);
+    expect(isFaultParty("nope")).toBe(false);
+    expect(faultPartyLabel("dtd")).toContain("DTD");
+  });
+});
+
+describe("validateClaimFinancialsInput (Slice C)", () => {
+  it("acepta todo vacío (campos opcionales → null)", () => {
+    const { input, fieldErrors } = validateClaimFinancialsInput({});
+    expect(fieldErrors).toBeUndefined();
+    expect(input).toEqual({
+      fault_party: null,
+      supplier_claim_offset_id: null,
+      insured_amount_usd: null,
+      policy_deductible_usd: null,
+      insurer_claim_ref: null,
+    });
+  });
+
+  it("acepta datos válidos (coerce montos)", () => {
+    const { input, fieldErrors } = validateClaimFinancialsInput({
+      fault_party: "proveedor",
+      supplier_claim_offset_id: "off-1",
+      insured_amount_usd: "300",
+      policy_deductible_usd: 50,
+      insurer_claim_ref: "CERT-1",
+    });
+    expect(fieldErrors).toBeUndefined();
+    expect(input).toMatchObject({
+      fault_party: "proveedor",
+      supplier_claim_offset_id: "off-1",
+      insured_amount_usd: 300,
+      policy_deductible_usd: 50,
+      insurer_claim_ref: "CERT-1",
+    });
+  });
+
+  it("rechaza parte responsable inválida y montos negativos", () => {
+    expect(
+      validateClaimFinancialsInput({ fault_party: "nope" }).fieldErrors?.fault_party,
+    ).toBeTruthy();
+    expect(
+      validateClaimFinancialsInput({ insured_amount_usd: -5 }).fieldErrors
+        ?.insured_amount_usd,
+    ).toBeTruthy();
+    expect(
+      validateClaimFinancialsInput({ policy_deductible_usd: -1 }).fieldErrors
+        ?.policy_deductible_usd,
+    ).toBeTruthy();
   });
 });

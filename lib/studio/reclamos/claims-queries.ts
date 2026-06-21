@@ -7,7 +7,7 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { num, type ClientClaim } from "./claims-types";
+import { num, type ClientClaim, type ClaimFinancials } from "./claims-types";
 
 const CLAIM_COLUMNS =
   "id, tenant_id, claim_code, client_id, client_markbox, client_name, " +
@@ -15,7 +15,7 @@ const CLAIM_COLUMNS =
   "amount_usd, insured, status, resolution_note, evaluated_at, resolved_at, " +
   "created_by, created_at, updated_at, deleted_at";
 
-/** Coacciona la fila cruda (amount_usd string) a ClientClaim tipado. */
+/** Coacciona la fila cruda (numeric→number) a ClientClaim tipado. */
 function rowToClaim(row: Record<string, unknown>): ClientClaim {
   return {
     ...(row as ClientClaim),
@@ -108,4 +108,71 @@ export async function listClaimShipments(
     return [];
   }
   return (data ?? []) as ClaimShipmentOption[];
+}
+
+/** Cruces contables del proveedor (SDD-0059) para el selector del puente (Slice C). */
+export type ClaimOffsetOption = {
+  id: string;
+  amount_usd: number;
+  status: string;
+  claimed_on: string;
+  shipment_id: string | null;
+};
+
+export async function listSupplierClaimOffsets(
+  supabase: SupabaseClient,
+): Promise<ClaimOffsetOption[]> {
+  const { data, error } = await supabase
+    .from("supplier_claim_offsets")
+    .select("id, amount_usd, status, claimed_on, shipment_id")
+    .is("deleted_at", null)
+    .order("claimed_on", { ascending: false })
+    .limit(200);
+
+  if (error) {
+    console.error("[listSupplierClaimOffsets]", error.message);
+    return [];
+  }
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    amount_usd: num(r.amount_usd),
+    status: r.status as string,
+    claimed_on: r.claimed_on as string,
+    shipment_id: (r.shipment_id as string | null) ?? null,
+  }));
+}
+
+/**
+ * Resolución financiera por reclamo (Slice C) — tabla SEPARADA solo-equipo. La
+ * RLS la filtra por tenant. Devuelve un Map claim_id → ClaimFinancials.
+ */
+export async function listClaimFinancials(
+  supabase: SupabaseClient,
+  claimIds: string[],
+): Promise<Map<string, ClaimFinancials>> {
+  const out = new Map<string, ClaimFinancials>();
+  if (claimIds.length === 0) return out;
+
+  const { data, error } = await supabase
+    .from("client_claim_financials")
+    .select(
+      "claim_id, fault_party, supplier_claim_offset_id, insured_amount_usd, policy_deductible_usd, insurer_claim_ref",
+    )
+    .in("claim_id", claimIds);
+
+  if (error || !data) return out;
+
+  for (const r of data) {
+    out.set(r.claim_id as string, {
+      claim_id: r.claim_id as string,
+      fault_party: (r.fault_party as ClaimFinancials["fault_party"]) ?? null,
+      supplier_claim_offset_id: (r.supplier_claim_offset_id as string | null) ?? null,
+      insured_amount_usd:
+        r.insured_amount_usd == null ? null : num(r.insured_amount_usd),
+      policy_deductible_usd:
+        r.policy_deductible_usd == null ? null : num(r.policy_deductible_usd),
+      insurer_claim_ref: (r.insurer_claim_ref as string | null) ?? null,
+    });
+  }
+  return out;
 }

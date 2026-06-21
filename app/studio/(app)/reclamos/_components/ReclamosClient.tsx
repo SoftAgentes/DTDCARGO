@@ -31,20 +31,28 @@ import {
   claimTypeTone,
   computeClaimKpis,
   isClaimFilter,
+  faultPartyLabel,
+  FAULT_PARTY_OPTIONS,
+  type ClaimActionState,
   type ClaimFilter,
   type ClaimStatus,
+  type ClaimFinancials,
   type ClientClaim,
 } from "@/lib/studio/reclamos/claims-types";
+import { claimOffsetStatusLabel } from "@/lib/studio/partner-finance/types";
 import type {
   ClaimClientOption,
   ClaimShipmentOption,
+  ClaimOffsetOption,
 } from "@/lib/studio/reclamos/claims-queries";
 import type { ClaimEvidenceItem } from "@/lib/studio/reclamos/claim-evidence";
+import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
 import {
   advanceClaimStatusAction,
   softDeleteClaimAction,
   uploadStudioClaimEvidenceAction,
   deleteClaimEvidenceAction,
+  updateClaimFinancialsAction,
 } from "../actions";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -85,13 +93,19 @@ export function ReclamosClient({
   clients,
   shipments,
   evidence,
+  offsets,
+  financials,
   canEdit,
+  canFinance,
 }: {
   claims: ClientClaim[];
   clients: ClaimClientOption[];
   shipments: ClaimShipmentOption[];
   evidence: Record<string, ClaimEvidenceItem[]>;
+  offsets: ClaimOffsetOption[];
+  financials: Record<string, ClaimFinancials>;
   canEdit: boolean;
+  canFinance: boolean;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -270,7 +284,10 @@ export function ReclamosClient({
         <ClaimDetail
           claim={selectedClaim}
           evidence={evidence[selectedClaim.id] ?? []}
+          offsets={offsets}
+          financials={financials[selectedClaim.id] ?? null}
           canEdit={canEdit}
+          canFinance={canFinance}
           onEdit={() => setDrawer({ mode: "edit", claim: selectedClaim })}
           onAdvanced={(to) =>
             toast.success(
@@ -449,14 +466,20 @@ function ClaimsTable({
 function ClaimDetail({
   claim,
   evidence,
+  offsets,
+  financials,
   canEdit,
+  canFinance,
   onEdit,
   onAdvanced,
   onDeleted,
 }: {
   claim: ClientClaim;
   evidence: ClaimEvidenceItem[];
+  offsets: ClaimOffsetOption[];
+  financials: ClaimFinancials | null;
   canEdit: boolean;
+  canFinance: boolean;
   onEdit: () => void;
   onAdvanced: (to: ClaimStatus) => void;
   onDeleted: () => void;
@@ -815,7 +838,193 @@ function ClaimDetail({
           )}
         </div>
       )}
+
+      {canFinance && (
+        <ClaimFinancials claim={claim} fin={financials} offsets={offsets} />
+      )}
     </div>
+  );
+}
+
+// ── Resolución financiera (Slice C) ─────────────────────────────
+function ClaimFinancials({
+  claim,
+  fin,
+  offsets,
+}: {
+  claim: ClientClaim;
+  fin: ClaimFinancials | null;
+  offsets: ClaimOffsetOption[];
+}) {
+  const [state, action, pending] = useActionState(
+    updateClaimFinancialsAction.bind(null, claim.id),
+    {} as ClaimActionState,
+  );
+  const [justSaved, setJustSaved] = useState(false);
+
+  useEffect(() => {
+    if (!state.ok) return;
+    setJustSaved(true);
+    const t = setTimeout(() => setJustSaved(false), 2500);
+    return () => clearTimeout(t);
+  }, [state.ok]);
+
+  const noOffsets = offsets.length === 0;
+
+  return (
+    <div
+      style={{
+        marginTop: 22,
+        paddingTop: 18,
+        borderTop: "1px solid var(--border)",
+      }}
+    >
+      <div className="studio-eyebrow" style={{ marginBottom: 8 }}>
+        Resolución financiera
+      </div>
+      <p
+        style={{
+          font: "500 11.5px/1.4 var(--f-sans)",
+          color: "var(--ink-mute)",
+          margin: "0 0 12px",
+          maxWidth: "60ch",
+        }}
+      >
+        Solo Contabilidad. Advisory — no genera asientos contables todavía.
+      </p>
+      <form action={action} style={{ display: "grid", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label className="studio-label" htmlFor={`fin-fault-${claim.id}`}>
+              Parte responsable
+            </label>
+            <select
+              id={`fin-fault-${claim.id}`}
+              name="fault_party"
+              className="studio-input"
+              defaultValue={fin?.fault_party ?? ""}
+            >
+              <option value="">Sin determinar</option>
+              {FAULT_PARTY_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="studio-label" htmlFor={`fin-offset-${claim.id}`}>
+              Recupero del proveedor
+            </label>
+            <select
+              id={`fin-offset-${claim.id}`}
+              name="supplier_claim_offset_id"
+              className="studio-input"
+              defaultValue={fin?.supplier_claim_offset_id ?? ""}
+              disabled={noOffsets}
+            >
+              <option value="">
+                {noOffsets ? "No hay recuperos cargados" : "Sin vincular"}
+              </option>
+              {offsets.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {USD(o.amount_usd)} · {claimOffsetStatusLabel(o.status)} ·{" "}
+                  {fmtDate(o.claimed_on)}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label className="studio-label" htmlFor={`fin-insured-${claim.id}`}>
+              Monto cubierto
+            </label>
+            <NumericInput
+              id={`fin-insured-${claim.id}`}
+              name="insured_amount_usd"
+              type="currency"
+              min={0}
+              placeholder="0.00"
+              defaultValue={fin?.insured_amount_usd ?? null}
+            />
+            {state.fieldErrors?.insured_amount_usd && (
+              <FinErr msg={state.fieldErrors.insured_amount_usd} />
+            )}
+          </div>
+          <div>
+            <label className="studio-label" htmlFor={`fin-deduct-${claim.id}`}>
+              Deducible
+            </label>
+            <NumericInput
+              id={`fin-deduct-${claim.id}`}
+              name="policy_deductible_usd"
+              type="currency"
+              min={0}
+              placeholder="0.00"
+              defaultValue={fin?.policy_deductible_usd ?? null}
+            />
+            {state.fieldErrors?.policy_deductible_usd && (
+              <FinErr msg={state.fieldErrors.policy_deductible_usd} />
+            )}
+          </div>
+        </div>
+        <div>
+          <label className="studio-label" htmlFor={`fin-ref-${claim.id}`}>
+            Referencia de la aseguradora
+          </label>
+          <input
+            id={`fin-ref-${claim.id}`}
+            name="insurer_claim_ref"
+            type="text"
+            className="studio-input"
+            defaultValue={fin?.insurer_claim_ref ?? ""}
+            placeholder="Nº de certificado / reclamo con la póliza"
+            autoComplete="off"
+          />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <button
+            type="submit"
+            className="studio-btn studio-btn-dark studio-btn-sm"
+            disabled={pending}
+          >
+            {pending ? "Guardando…" : "Guardar resolución"}
+          </button>
+          {justSaved && (
+            <span
+              role="status"
+              aria-live="polite"
+              style={{ font: "600 12px/1 var(--f-sans)", color: "var(--success)" }}
+            >
+              Guardado
+            </span>
+          )}
+          {state.error && (
+            <span
+              role="alert"
+              style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--danger)" }}
+            >
+              {state.error}
+            </span>
+          )}
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function FinErr({ msg }: { msg: string }) {
+  return (
+    <p
+      style={{
+        font: "500 11px/1.3 var(--f-sans)",
+        color: "var(--danger)",
+        margin: "4px 0 0",
+      }}
+    >
+      {msg}
+    </p>
   );
 }
 

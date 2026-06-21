@@ -167,6 +167,42 @@ export function claimStatusStep(s: ClaimStatus): 1 | 2 | 3 {
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
+// ║ Resolución financiera (Slice C) · parte responsable        ║
+// ╚═══════════════════════════════════════════════════════════╝
+export type FaultParty =
+  | "proveedor"
+  | "dtd"
+  | "transportista"
+  | "cliente"
+  | "indeterminado";
+
+export const FAULT_PARTIES: FaultParty[] = [
+  "proveedor",
+  "dtd",
+  "transportista",
+  "cliente",
+  "indeterminado",
+];
+
+export const FAULT_PARTY_META: Record<FaultParty, { label: string }> = {
+  proveedor: { label: "Proveedor (fábrica)" },
+  dtd: { label: "DTD / consolidación" },
+  transportista: { label: "Transportista / naviera" },
+  cliente: { label: "Cliente" },
+  indeterminado: { label: "Indeterminado" },
+};
+
+export const FAULT_PARTY_OPTIONS: { value: FaultParty; label: string }[] =
+  FAULT_PARTIES.map((f) => ({ value: f, label: FAULT_PARTY_META[f].label }));
+
+export function faultPartyLabel(f: string): string {
+  return FAULT_PARTY_META[f as FaultParty]?.label ?? f;
+}
+export function isFaultParty(v: unknown): v is FaultParty {
+  return typeof v === "string" && (FAULT_PARTIES as string[]).includes(v);
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
 // ║ Fila persistida + KPIs derivados                           ║
 // ╚═══════════════════════════════════════════════════════════╝
 export type ClientClaim = {
@@ -191,6 +227,19 @@ export type ClientClaim = {
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
+};
+
+/**
+ * Resolución financiera del reclamo (Slice C) — fila de `client_claim_financials`,
+ * una TABLA SEPARADA solo-equipo (el portal nunca la ve). 1:1 con el reclamo.
+ */
+export type ClaimFinancials = {
+  claim_id: string;
+  fault_party: FaultParty | null;
+  supplier_claim_offset_id: string | null;
+  insured_amount_usd: number | null;
+  policy_deductible_usd: number | null;
+  insurer_claim_ref: string | null;
 };
 
 export type ClaimKpis = {
@@ -320,6 +369,57 @@ export function validateClaimInput(
       insured: raw.insured === true || raw.insured === "true" || raw.insured === "on",
     },
   };
+}
+
+// ── Resolución financiera · validador (Slice C) ───────────────
+export type ClaimFinancialsInput = {
+  fault_party: FaultParty | null;
+  supplier_claim_offset_id: string | null;
+  insured_amount_usd: number | null;
+  policy_deductible_usd: number | null;
+  insurer_claim_ref: string | null;
+};
+
+export function validateClaimFinancialsInput(
+  raw: Partial<Record<string, unknown>>,
+): { input: ClaimFinancialsInput | null; fieldErrors?: Record<string, string> } {
+  const errors: Record<string, string> = {};
+
+  const faultRaw = strOrNull(raw.fault_party);
+  let fault: FaultParty | null = null;
+  if (faultRaw !== null) {
+    if (!isFaultParty(faultRaw)) errors.fault_party = "Parte responsable inválida.";
+    else fault = faultRaw;
+  }
+
+  const insured = numOrNull(raw.insured_amount_usd);
+  if (insured !== null && !(Number.isFinite(insured) && insured >= 0)) {
+    errors.insured_amount_usd = "Monto cubierto inválido.";
+  }
+  const deductible = numOrNull(raw.policy_deductible_usd);
+  if (deductible !== null && !(Number.isFinite(deductible) && deductible >= 0)) {
+    errors.policy_deductible_usd = "Deducible inválido.";
+  }
+
+  if (Object.keys(errors).length > 0) return { input: null, fieldErrors: errors };
+
+  return {
+    input: {
+      fault_party: fault,
+      supplier_claim_offset_id: strOrNull(raw.supplier_claim_offset_id),
+      insured_amount_usd:
+        insured !== null && Number.isFinite(insured) ? insured : null,
+      policy_deductible_usd:
+        deductible !== null && Number.isFinite(deductible) ? deductible : null,
+      insurer_claim_ref: strOrNull(raw.insurer_claim_ref),
+    },
+  };
+}
+
+function numOrNull(v: unknown): number | null {
+  if (v == null || String(v).trim() === "") return null;
+  const n = Number(v);
+  return Number.isFinite(n) ? round2(n) : Number.NaN;
 }
 
 // ── helper local ──────────────────────────────────────────────

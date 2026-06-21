@@ -15,9 +15,10 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { moduleEditDenial, getStudioRole } from "@/lib/studio/rbac-guard";
 import {
   validateClaimInput,
+  validateClaimFinancialsInput,
   canTransitionClaim,
   isClaimStatus,
   type ClaimActionState,
@@ -222,6 +223,17 @@ export async function advanceClaimStatusAction(
     return { error: `Transición inválida: ${current.status} → ${to}.` };
   }
 
+  // Separación de poderes (Slice C): solo Contabilidad (o admin) marca la
+  // indemnización como PAGADA — toca dinero real.
+  if (to === "pagado") {
+    const role = await getStudioRole(supabase);
+    if (role !== "accounting" && role !== "admin") {
+      return {
+        error: "Solo Contabilidad puede marcar una indemnización como pagada.",
+      };
+    }
+  }
+
   const patch: { status: ClaimStatus; resolution_note?: string } = { status: to };
   const trimmed = note?.trim();
   if (trimmed) patch.resolution_note = trimmed;
@@ -334,6 +346,76 @@ export async function deleteClaimEvidenceAction(
       .from(CLAIM_EVIDENCE_BUCKET)
       .remove([ev.storage_path])
       .catch(() => {});
+  }
+
+  revalidatePath("/studio/reclamos");
+  return { ok: true };
+}
+
+/**
+ * Resolución financiera del reclamo (Slice C): parte responsable, puente al
+ * supplier_claim_offset (recupero del proveedor, SDD-0059) y datos de la póliza.
+ * ADVISORY — NO crea asientos contables (eso es C2). Gateada a accounting/admin
+ * (separación de poderes: es resolución financiera, no operativa).
+ */
+export async function updateClaimFinancialsAction(
+  claimId: string,
+  _prev: ClaimActionState,
+  formData: FormData,
+): Promise<ClaimActionState> {
+  const supabase = await createClient();
+
+  const role = await getStudioRole(supabase);
+  if (role !== "accounting" && role !== "admin") {
+    return { error: "Solo Contabilidad puede editar la resolución financiera." };
+  }
+
+  const raw: Record<string, unknown> = {
+    fault_party: formData.get("fault_party"),
+    supplier_claim_offset_id: formData.get("supplier_claim_offset_id"),
+    insured_amount_usd: formData.get("insured_amount_usd"),
+    policy_deductible_usd: formData.get("policy_deductible_usd"),
+    insurer_claim_ref: formData.get("insurer_claim_ref"),
+  };
+  const { input, fieldErrors } = validateClaimFinancialsInput(raw);
+  if (fieldErrors) return { fieldErrors };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // El claim debe ser del tenant (defensa; el trigger igual lo valida).
+  const { data: claim } = await supabase
+    .from("client_claims")
+    .select("id")
+    .eq("id", claimId)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string }>();
+  if (!claim) return { error: "Reclamo no encontrado." };
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  // Upsert a la tabla SEPARADA client_claim_financials (solo-equipo). El portal
+  // nunca ve estos campos: no viven en client_claims.
+  const { error } = await supabase.from("client_claim_financials").upsert(
+    {
+      claim_id: claimId,
+      tenant_id: tenantId,
+      fault_party: input!.fault_party,
+      supplier_claim_offset_id: input!.supplier_claim_offset_id,
+      insured_amount_usd: input!.insured_amount_usd,
+      policy_deductible_usd: input!.policy_deductible_usd,
+      insurer_claim_ref: input!.insurer_claim_ref,
+      updated_by: userResp.user?.id ?? null,
+    },
+    { onConflict: "claim_id" },
+  );
+
+  if (error) {
+    // El trigger client_claim_financials_check rechaza un offset de otro tenant.
+    if (error.code === "23514" || /no pertenece al tenant/i.test(error.message)) {
+      return { error: "Ese cruce de proveedor no es de tu tenant." };
+    }
+    return { error: `No se pudo guardar la resolución: ${error.message}` };
   }
 
   revalidatePath("/studio/reclamos");

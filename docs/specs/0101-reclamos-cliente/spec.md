@@ -67,12 +67,23 @@ fotos al reportar desde el portal (sube vía admin client, ve thumbnails firmado
 galería en el detalle del Studio y sube/borra evidencia (user client, gate `moduleEditDenial`). Helpers
 en `lib/studio/reclamos/claim-evidence.ts` (validación MIME/size, upload, signed URLs server-side).
 
+### Slice C — Puente proveedor + aseguradora (ESTE entregable, apilado sobre A)
+
+Migración **0156**: tabla **SEPARADA** `client_claim_financials` (1:1, RLS **solo-equipo** — el portal
+nunca la ve) con `fault_party` (parte responsable), `supplier_claim_offset_id` (FK al cruce del proveedor,
+SDD-0059, trigger de coherencia de tenant), `insured_amount_usd`, `policy_deductible_usd`,
+`insurer_claim_ref`. Sección **"Resolución financiera"** en el detalle del Studio, visible/editable **solo
+`accounting`/`admin`**. Dos controles **en la DB** (la auditoría adversarial mostró que PostgREST directo
+evade el código TS): (1) trigger `client_claims_guard_pago` bloquea la transición a `pagado` salvo rol
+accounting/admin (`current_studio_role()`) — cierra el bypass de la RLS `for all` de la action;
+(2) campos financieros en tabla aparte → el cliente no los lee por PostgREST (la fila de `client_claims`
+ya no los tiene). El gate de `pagado` está además en `advanceClaimStatusAction` (doble defensa).
+
 ### Fuera de alcance (slices futuros — declarados, no implementados)
 
-- **Slice C — Puente contable + aseguradora:** vínculo opcional a `supplier_claim_offsets` cuando el daño
-  es culpa del proveedor; gestión con la aseguradora (certificado, deducible, avería gruesa — ver
-  `legal/Brief-Seguro-Operador-ES-ZH.md`); el estado `pagado` crea asiento contable real y se gatea a
-  `accounting` (hoy es advisory).
+- **C2 — Asiento contable automático al pagar:** cuando el reclamo pasa a `pagado`, generar el asiento
+  (DR siniestros/indemnizaciones / CR caja-banco) reusando el motor de SDD-0079. Diferido: exige tocar
+  el motor de asientos + auditoría financiera. Hoy `pagado` es advisory (no genera asiento).
 - Nacimiento automático del reclamo desde el despacho/excepción (hook de `shipments.status='exception'`).
 
 ## 2. Datos — `client_claims`
