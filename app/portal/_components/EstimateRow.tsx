@@ -93,7 +93,7 @@ export function EstimateRow({ estimate }: { estimate: PortalEstimateRow }) {
           </p>
         ) : null}
         {converted ? (
-          <p className="mt-2 text-[12.5px] font-medium text-[#1F8A5B]">
+          <p className="mt-2 text-[12.5px] font-medium text-[color:var(--color-status-success)]">
             Convertido en envío.
           </p>
         ) : null}
