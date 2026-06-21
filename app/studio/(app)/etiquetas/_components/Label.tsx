@@ -3,13 +3,16 @@
 /**
  * Etiqueta individual (SDD-0031).
  *
- * Header bilingüe ES/CN · MARKBOX en JetBrains Mono wine · QR mock 21×21
- * con finder patterns · Box X/Y sobre fondo navy · footer con dirección
+ * Header bilingüe ES/CN · MARKBOX en JetBrains Mono wine · QR real
+ * (qrcode.react → /verificar) · Box X/Y sobre fondo navy · footer con dirección
  * del warehouse CN destino.
  *
  * Dimensiones en mm reales para que el @page CSS imprima al tamaño exacto.
  */
 
+import { QRCodeSVG } from "qrcode.react";
+
+import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
 import type { LabelClient, LabelWarehouseCn } from "../page";
 
 // ─────────────────────────────────────────────────────────────
@@ -67,67 +70,8 @@ export const FORMATS: LabelFormat[] = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────
-// QR mock determinista · djb2 + finder patterns
-// ─────────────────────────────────────────────────────────────
-
-function hashStr(s: string): number {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
-  return h >>> 0;
-}
-
-export function QrMock({ value, size = 64 }: { value: string; size?: number }) {
-  const grid = 21;
-  const seed = hashStr(value);
-  let s = seed;
-  const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-  const cells: Array<[number, number]> = [];
-
-  for (let r = 0; r < grid; r++) {
-    for (let c = 0; c < grid; c++) {
-      // 3 finder patterns (TL · TR · BL)
-      const inFinder =
-        (r < 7 && c < 7) ||
-        (r < 7 && c > grid - 8) ||
-        (r > grid - 8 && c < 7);
-      if (inFinder) {
-        const lr = r < 7 ? r : grid - 1 - r;
-        const lc = c < 7 ? c : c > grid - 8 ? grid - 1 - c : c;
-        const onRing = lr === 0 || lr === 6 || lc === 0 || lc === 6;
-        const inSquare = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
-        if (onRing || inSquare) cells.push([c, r]);
-        continue;
-      }
-      // Separador blanco junto a los finders
-      const nextToFinder =
-        (r === 7 && c < 8) ||
-        (c === 7 && r < 8) ||
-        (r === 7 && c > grid - 9) ||
-        (c === grid - 8 && r < 8) ||
-        (r === grid - 8 && c < 8) ||
-        (c === 7 && r > grid - 9);
-      if (nextToFinder) continue;
-      if (rnd() > 0.52) cells.push([c, r]);
-    }
-  }
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${grid} ${grid}`}
-      shapeRendering="crispEdges"
-      style={{ display: "block" }}
-      aria-label={`QR mock para ${value}`}
-    >
-      <rect x="0" y="0" width={grid} height={grid} fill="#FFFFFF" />
-      {cells.map(([c, r], i) => (
-        <rect key={i} x={c} y={r} width="1" height="1" fill="#0F1E3D" />
-      ))}
-    </svg>
-  );
-}
+// QR real → /verificar: la URL la arma labelVerifyUrl (lib/studio/etiquetas-qr.ts);
+// el render usa <QRCodeSVG> de qrcode.react (escaneable, único por cartón).
 
 // ─────────────────────────────────────────────────────────────
 // Warehouse formatting helper
@@ -329,9 +273,14 @@ export function Label({
 
         {qr && (
           <div style={{ flexShrink: 0, textAlign: "center" }}>
-            <QrMock
-              value={`DTD:${client.markbox}|${boxIndex}/${totalBoxes}`}
+            <QRCodeSVG
+              value={labelVerifyUrl(client.markbox, boxIndex, totalBoxes)}
               size={qrSize}
+              marginSize={4}
+              fgColor="#0F1E3D"
+              bgColor="#FFFFFF"
+              level={isCompact ? "L" : "M"}
+              aria-label={`Verificar ${client.markbox} · caja ${boxIndex} de ${totalBoxes}`}
             />
           </div>
         )}

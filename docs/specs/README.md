@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 95 specs)
+### Índice de specs (generado · 96 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -133,6 +133,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0097 | Packing list Norte v4.4 — propagación a producción (editor de… | in-progress | interna |
 | 0098 | Prealertas — menú de servicios de recepción (add-ons) + video… | in-progress | interno |
 | 0099 | Curso de bienvenida gratuito — Cómo comprar en Alibaba (guion… | in-progress | interno |
+| 0100 | QR real escaneable en etiquetas CN (cierra el mock de SDD-0031) | in-progress | interna |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

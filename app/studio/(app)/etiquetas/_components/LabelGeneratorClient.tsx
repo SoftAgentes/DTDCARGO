@@ -576,7 +576,7 @@ function LabelGeneratorInner({
                 onChange={(e) => setQr(e.target.checked)}
                 style={{ accentColor: "var(--wine)" }}
               />
-              Incluir código QR (mock visual · no escaneable)
+              Incluir código QR escaneable (lleva a /verificar)
             </label>
           </Card>
 
