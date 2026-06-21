@@ -17,6 +17,7 @@
  * cotizar; el cliente NO fija precios.
  */
 import type { ShipmentService } from "@/lib/shared/shipment-public";
+import type { QuoteStatus } from "@/lib/studio/quote-types";
 
 /** Los 4 servicios núcleo que el cliente puede pedir cotizar. */
 export const COTIZACION_SERVICES: ShipmentService[] = [
@@ -149,6 +150,22 @@ export type CotizacionQuoteRow = {
   total_usd: number;
   nota: string;
 };
+
+/**
+ * ¿Se puede AVANZAR este estimado (lead) a cotización formal? El cliente lo pide
+ * desde /portal/estimados; avanzar = flipear el quote a `source='studio'` (el mismo
+ * registro pasa a la pista formal, arrastra su precio automático). No se avanza si
+ * ya se convirtió en envío, ni si está rechazado/vencido (terminales de cara al
+ * cliente). Compartido por el botón (visibilidad) y la action (guard).
+ */
+export function canAdvanceEstimate(e: {
+  status: QuoteStatus;
+  convertedToShipmentId: string | null;
+}): boolean {
+  return (
+    !e.convertedToShipmentId && e.status !== "rejected" && e.status !== "expired"
+  );
+}
 
 export function buildCotizacionRow(
   input: CotizacionRequestInput,

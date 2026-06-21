@@ -9,10 +9,10 @@ import { EstimateRow } from "../../_components/EstimateRow";
 export const metadata: Metadata = { title: "Estimados" };
 
 /**
- * "Estimados" (SDD-0061 · portal read-only). Lista los estimados ligados al
- * MARKBOX del cliente: los que generó en la calculadora pública (ya vinculados a
- * su cuenta) y los que le armó un asesor. La confirmación/conversión la maneja el
- * asesor → cada estimado trae un CTA "Pedir que lo confirmen" a WhatsApp.
+ * "Estimados" (SDD-0061 · portal read-only · split Norte). Lista los estimados LEAD
+ * del cliente — los que generó en la calculadora pública (`source='web'`). Cada uno
+ * trae un CTA "Avanzar a cotización" que lo formaliza (pasa a la pista formal, ver
+ * /portal/cotizaciones). Lo formal/asesor vive en /portal/cotizaciones.
  */
 export default async function PortalEstimatesPage() {
   const supabase = await createClient();

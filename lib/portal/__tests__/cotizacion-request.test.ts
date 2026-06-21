@@ -3,6 +3,7 @@ import {
   validateCotizacionRequest,
   buildCotizacionRow,
   buildCotizacionNota,
+  canAdvanceEstimate,
   COTIZACION_SERVICES,
 } from "../cotizacion-request";
 
@@ -138,6 +139,38 @@ describe("buildCotizacionRow", () => {
     expect(row.weight_kg).toBeNull();
     expect(row.cbm).toBe(28);
     expect(row.nota).toContain("Solicitud del portal");
+  });
+});
+
+describe("canAdvanceEstimate", () => {
+  it("permite avanzar un estimado en revisión (draft) sin convertir", () => {
+    expect(
+      canAdvanceEstimate({ status: "draft", convertedToShipmentId: null }),
+    ).toBe(true);
+  });
+
+  it("permite avanzar uno enviado o aceptado", () => {
+    expect(
+      canAdvanceEstimate({ status: "sent", convertedToShipmentId: null }),
+    ).toBe(true);
+    expect(
+      canAdvanceEstimate({ status: "accepted", convertedToShipmentId: null }),
+    ).toBe(true);
+  });
+
+  it("NO permite avanzar uno rechazado o vencido", () => {
+    expect(
+      canAdvanceEstimate({ status: "rejected", convertedToShipmentId: null }),
+    ).toBe(false);
+    expect(
+      canAdvanceEstimate({ status: "expired", convertedToShipmentId: null }),
+    ).toBe(false);
+  });
+
+  it("NO permite avanzar uno ya convertido en envío", () => {
+    expect(
+      canAdvanceEstimate({ status: "accepted", convertedToShipmentId: "ship-1" }),
+    ).toBe(false);
   });
 });
 
