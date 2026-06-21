@@ -1,10 +1,10 @@
 /**
- * Reclamos y siniestros del cliente (SDD-0101 · Slice A + B2 + C).
+ * Reclamos y siniestros del cliente (SDD-0101 · Slice A + B2 + C + C2).
  *
  * Server component: gate de módulo (RBAC SDD-0085) + fetch de reclamos, clientes,
  * embarques, evidencia firmada y —solo para accounting/admin— los cruces de
- * proveedor y la resolución financiera (tabla separada solo-equipo). `canFinance`
- * gatea la carga Y el render de la sección financiera.
+ * proveedor, la resolución financiera (tabla separada solo-equipo) y el código
+ * del asiento contable de la indemnización (C2). `canFinance` gatea todo eso.
  */
 
 import { createClient } from "@/lib/db/server";
@@ -15,6 +15,7 @@ import {
   listClaimShipments,
   listSupplierClaimOffsets,
   listClaimFinancials,
+  listClaimEntryCodes,
 } from "@/lib/studio/reclamos/claims-queries";
 import {
   listClaimEvidence,
@@ -48,14 +49,17 @@ export default async function ReclamosPage() {
   const evidence: Record<string, ClaimEvidenceItem[]> = {};
   for (const [k, v] of evidenceMap) evidence[k] = v;
 
-  // Resolución financiera: SOLO si el rol puede verla (tabla separada solo-equipo).
+  // Resolución financiera + asiento contable: SOLO si el rol puede verla.
   const financials: Record<string, ClaimFinancials> = {};
+  const entryCodes: Record<string, string> = {};
   if (canFinance) {
-    const finMap = await listClaimFinancials(
-      supabase,
-      claims.map((c) => c.id),
-    );
+    const ids = claims.map((c) => c.id);
+    const [finMap, ecMap] = await Promise.all([
+      listClaimFinancials(supabase, ids),
+      listClaimEntryCodes(supabase, ids),
+    ]);
     for (const [k, v] of finMap) financials[k] = v;
+    for (const [k, v] of ecMap) entryCodes[k] = v;
   }
 
   return (
@@ -66,6 +70,7 @@ export default async function ReclamosPage() {
       evidence={evidence}
       offsets={offsets}
       financials={financials}
+      entryCodes={entryCodes}
       canEdit={canEdit}
       canFinance={canFinance}
     />

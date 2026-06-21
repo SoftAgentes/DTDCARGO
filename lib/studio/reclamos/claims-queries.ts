@@ -7,7 +7,12 @@
  */
 
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { num, type ClientClaim, type ClaimFinancials } from "./claims-types";
+import {
+  num,
+  type ClientClaim,
+  type ClaimFinancials,
+  type ClaimPaymentMethod,
+} from "./claims-types";
 
 const CLAIM_COLUMNS =
   "id, tenant_id, claim_code, client_id, client_markbox, client_name, " +
@@ -156,7 +161,7 @@ export async function listClaimFinancials(
   const { data, error } = await supabase
     .from("client_claim_financials")
     .select(
-      "claim_id, fault_party, supplier_claim_offset_id, insured_amount_usd, policy_deductible_usd, insurer_claim_ref",
+      "claim_id, fault_party, supplier_claim_offset_id, insured_amount_usd, policy_deductible_usd, insurer_claim_ref, payment_method",
     )
     .in("claim_id", claimIds);
 
@@ -172,7 +177,34 @@ export async function listClaimFinancials(
       policy_deductible_usd:
         r.policy_deductible_usd == null ? null : num(r.policy_deductible_usd),
       insurer_claim_ref: (r.insurer_claim_ref as string | null) ?? null,
+      payment_method: (r.payment_method as ClaimPaymentMethod) ?? "transfer",
     });
+  }
+  return out;
+}
+
+/**
+ * Código del asiento contable de la indemnización por reclamo (Slice C2) — para
+ * mostrar el comprobante en el detalle. Map claim_id → entry_code (asentado).
+ */
+export async function listClaimEntryCodes(
+  supabase: SupabaseClient,
+  claimIds: string[],
+): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  if (claimIds.length === 0) return out;
+
+  const { data, error } = await supabase
+    .from("journal_entries")
+    .select("claim_id, entry_code")
+    .in("claim_id", claimIds)
+    .eq("status", "asentado")
+    .is("deleted_at", null);
+
+  if (error || !data) return out;
+
+  for (const r of data) {
+    if (r.claim_id) out.set(r.claim_id as string, r.entry_code as string);
   }
   return out;
 }

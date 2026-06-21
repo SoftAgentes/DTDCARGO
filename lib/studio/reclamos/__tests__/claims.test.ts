@@ -200,6 +200,7 @@ describe("validateClaimFinancialsInput (Slice C)", () => {
       insured_amount_usd: null,
       policy_deductible_usd: null,
       insurer_claim_ref: null,
+      payment_method: "transfer",
     });
   });
 
@@ -232,6 +233,17 @@ describe("validateClaimFinancialsInput (Slice C)", () => {
     expect(
       validateClaimFinancialsInput({ policy_deductible_usd: -1 }).fieldErrors
         ?.policy_deductible_usd,
+    ).toBeTruthy();
+  });
+
+  it("payment_method default 'transfer'; valida el medio (Slice C2)", () => {
+    expect(validateClaimFinancialsInput({}).input?.payment_method).toBe("transfer");
+    expect(
+      validateClaimFinancialsInput({ payment_method: "cash" }).input?.payment_method,
+    ).toBe("cash");
+    expect(
+      validateClaimFinancialsInput({ payment_method: "tarjeta" }).fieldErrors
+        ?.payment_method,
     ).toBeTruthy();
   });
 });

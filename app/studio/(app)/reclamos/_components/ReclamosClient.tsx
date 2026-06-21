@@ -33,6 +33,7 @@ import {
   isClaimFilter,
   faultPartyLabel,
   FAULT_PARTY_OPTIONS,
+  CLAIM_PAYMENT_METHOD_OPTIONS,
   type ClaimActionState,
   type ClaimFilter,
   type ClaimStatus,
@@ -95,6 +96,7 @@ export function ReclamosClient({
   evidence,
   offsets,
   financials,
+  entryCodes,
   canEdit,
   canFinance,
 }: {
@@ -104,6 +106,7 @@ export function ReclamosClient({
   evidence: Record<string, ClaimEvidenceItem[]>;
   offsets: ClaimOffsetOption[];
   financials: Record<string, ClaimFinancials>;
+  entryCodes: Record<string, string>;
   canEdit: boolean;
   canFinance: boolean;
 }) {
@@ -286,6 +289,7 @@ export function ReclamosClient({
           evidence={evidence[selectedClaim.id] ?? []}
           offsets={offsets}
           financials={financials[selectedClaim.id] ?? null}
+          entryCode={entryCodes[selectedClaim.id] ?? null}
           canEdit={canEdit}
           canFinance={canFinance}
           onEdit={() => setDrawer({ mode: "edit", claim: selectedClaim })}
@@ -468,6 +472,7 @@ function ClaimDetail({
   evidence,
   offsets,
   financials,
+  entryCode,
   canEdit,
   canFinance,
   onEdit,
@@ -478,6 +483,7 @@ function ClaimDetail({
   evidence: ClaimEvidenceItem[];
   offsets: ClaimOffsetOption[];
   financials: ClaimFinancials | null;
+  entryCode: string | null;
   canEdit: boolean;
   canFinance: boolean;
   onEdit: () => void;
@@ -840,7 +846,12 @@ function ClaimDetail({
       )}
 
       {canFinance && (
-        <ClaimFinancials claim={claim} fin={financials} offsets={offsets} />
+        <ClaimFinancials
+          claim={claim}
+          fin={financials}
+          offsets={offsets}
+          entryCode={entryCode}
+        />
       )}
     </div>
   );
@@ -851,10 +862,12 @@ function ClaimFinancials({
   claim,
   fin,
   offsets,
+  entryCode,
 }: {
   claim: ClientClaim;
   fin: ClaimFinancials | null;
   offsets: ClaimOffsetOption[];
+  entryCode: string | null;
 }) {
   const [state, action, pending] = useActionState(
     updateClaimFinancialsAction.bind(null, claim.id),
@@ -879,18 +892,43 @@ function ClaimFinancials({
         borderTop: "1px solid var(--border)",
       }}
     >
-      <div className="studio-eyebrow" style={{ marginBottom: 8 }}>
-        Resolución financiera
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+          marginBottom: 8,
+          flexWrap: "wrap",
+        }}
+      >
+        <div className="studio-eyebrow">Resolución financiera</div>
+        {entryCode && (
+          <span
+            style={{
+              font: "600 11px/1 var(--f-mono)",
+              color: "var(--success)",
+              background: "var(--success-bg)",
+              border: "1px solid transparent",
+              borderRadius: "var(--r-pill)",
+              padding: "4px 10px",
+            }}
+            title="Asiento contable de la indemnización"
+          >
+            Asiento {entryCode}
+          </span>
+        )}
       </div>
       <p
         style={{
           font: "500 11.5px/1.4 var(--f-sans)",
           color: "var(--ink-mute)",
           margin: "0 0 12px",
-          maxWidth: "60ch",
+          maxWidth: "62ch",
         }}
       >
-        Solo Contabilidad. Advisory — no genera asientos contables todavía.
+        Solo Contabilidad. Al marcar la indemnización como pagada se asienta el
+        desembolso (DR siniestros / CR caja-banco) por el medio de pago elegido.
       </p>
       <form action={action} style={{ display: "grid", gap: 12 }}>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -969,19 +1007,38 @@ function ClaimFinancials({
             )}
           </div>
         </div>
-        <div>
-          <label className="studio-label" htmlFor={`fin-ref-${claim.id}`}>
-            Referencia de la aseguradora
-          </label>
-          <input
-            id={`fin-ref-${claim.id}`}
-            name="insurer_claim_ref"
-            type="text"
-            className="studio-input"
-            defaultValue={fin?.insurer_claim_ref ?? ""}
-            placeholder="Nº de certificado / reclamo con la póliza"
-            autoComplete="off"
-          />
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label className="studio-label" htmlFor={`fin-method-${claim.id}`}>
+              Medio de pago de la indemnización
+            </label>
+            <select
+              id={`fin-method-${claim.id}`}
+              name="payment_method"
+              className="studio-input"
+              defaultValue={fin?.payment_method ?? "transfer"}
+            >
+              {CLAIM_PAYMENT_METHOD_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="studio-label" htmlFor={`fin-ref-${claim.id}`}>
+              Referencia de la aseguradora
+            </label>
+            <input
+              id={`fin-ref-${claim.id}`}
+              name="insurer_claim_ref"
+              type="text"
+              className="studio-input"
+              defaultValue={fin?.insurer_claim_ref ?? ""}
+              placeholder="Nº de certificado / reclamo"
+              autoComplete="off"
+            />
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <button

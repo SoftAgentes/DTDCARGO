@@ -23,12 +23,18 @@ import {
   isClaimStatus,
   type ClaimActionState,
   type ClaimStatus,
+  type ClaimPaymentMethod,
 } from "@/lib/studio/reclamos/claims-types";
 import {
   collectEvidenceFiles,
   uploadClaimEvidenceBatch,
   CLAIM_EVIDENCE_BUCKET,
 } from "@/lib/studio/reclamos/claim-evidence";
+import { syncClaimIndemnityEntry } from "@/lib/studio/accounting/claim-posting";
+import {
+  getAccountingSettings,
+  isPeriodClosed,
+} from "@/lib/studio/accounting/period-queries";
 
 const MODULE_ID = "reclamos";
 
@@ -150,6 +156,18 @@ export async function updateClaimAction(
   const { input, fieldErrors } = validateClaimInput(inputFromFormData(formData));
   if (fieldErrors) return { fieldErrors };
 
+  // C2-4: un reclamo pagado ya está asentado contablemente → inmutable (su monto
+  // no debe divergir del asiento). No se edita.
+  const { data: paidCheck } = await supabase
+    .from("client_claims")
+    .select("status")
+    .eq("id", claimId)
+    .is("deleted_at", null)
+    .maybeSingle<{ status: string }>();
+  if (paidCheck?.status === "pagado") {
+    return { error: "El reclamo ya está pagado y asentado; no se puede editar." };
+  }
+
   // Snapshot del cliente si cambió.
   const { data: client } = await supabase
     .from("clients")
@@ -212,16 +230,26 @@ export async function advanceClaimStatusAction(
 
   const { data: current, error: readErr } = await supabase
     .from("client_claims")
-    .select("id, status")
+    .select("id, status, amount_usd, claim_code, tenant_id")
     .eq("id", claimId)
     .is("deleted_at", null)
-    .maybeSingle<{ id: string; status: ClaimStatus }>();
+    .maybeSingle<{
+      id: string;
+      status: ClaimStatus;
+      amount_usd: number | string;
+      claim_code: string;
+      tenant_id: string;
+    }>();
   if (readErr) return { error: `No se pudo leer el reclamo: ${readErr.message}` };
   if (!current) return { error: "Reclamo no encontrado." };
 
   if (!canTransitionClaim(current.status, to)) {
     return { error: `Transición inválida: ${current.status} → ${to}.` };
   }
+
+  // Una sola lectura de reloj para validar el período Y sellar el asiento (C2-2:
+  // evita la ventana de medianoche entre la validación y el posteo).
+  const payDate = new Date().toISOString().slice(0, 10);
 
   // Separación de poderes (Slice C): solo Contabilidad (o admin) marca la
   // indemnización como PAGADA — toca dinero real.
@@ -230,6 +258,13 @@ export async function advanceClaimStatusAction(
     if (role !== "accounting" && role !== "admin") {
       return {
         error: "Solo Contabilidad puede marcar una indemnización como pagada.",
+      };
+    }
+    // C2: no pagar en período contable cerrado (el asiento no se podría asentar).
+    const settings = await getAccountingSettings(supabase);
+    if (isPeriodClosed(settings.closing_date, payDate)) {
+      return {
+        error: "El período contable está cerrado; no se puede pagar con esta fecha.",
       };
     }
   }
@@ -244,6 +279,24 @@ export async function advanceClaimStatusAction(
     .eq("id", claimId);
 
   if (error) return { error: `No se pudo actualizar el estado: ${error.message}` };
+
+  // C2: al pagar, asentar la indemnización (best-effort — no rompe el pago si el
+  // asiento falla; el caller lo logea). DR 6.20 siniestros / CR caja-banco.
+  if (to === "pagado") {
+    const { data: fin } = await supabase
+      .from("client_claim_financials")
+      .select("payment_method")
+      .eq("claim_id", claimId)
+      .maybeSingle<{ payment_method: ClaimPaymentMethod | null }>();
+    await syncClaimIndemnityEntry({
+      tenantId: current.tenant_id,
+      claimId: current.id,
+      claimCode: current.claim_code,
+      amountUsd: Number(current.amount_usd) || 0,
+      method: fin?.payment_method ?? "transfer",
+      entryDate: payDate,
+    });
+  }
 
   revalidatePath("/studio/reclamos");
   return { ok: true };
@@ -405,6 +458,7 @@ export async function updateClaimFinancialsAction(
       insured_amount_usd: input!.insured_amount_usd,
       policy_deductible_usd: input!.policy_deductible_usd,
       insurer_claim_ref: input!.insurer_claim_ref,
+      payment_method: input!.payment_method,
       updated_by: userResp.user?.id ?? null,
     },
     { onConflict: "claim_id" },

@@ -79,11 +79,19 @@ accounting/admin (`current_studio_role()`) — cierra el bypass de la RLS `for a
 (2) campos financieros en tabla aparte → el cliente no los lee por PostgREST (la fila de `client_claims`
 ya no los tiene). El gate de `pagado` está además en `advanceClaimStatusAction` (doble defensa).
 
+### Slice C2 — Asiento contable de la indemnización (ESTE entregable, apilado sobre C)
+
+Migración **0157**: cuenta `6.20` "Siniestros / indemnizaciones a clientes" (gasto, sembrada para dtd) +
+`journal_entries.claim_id` (`source='claim'`) con índice de idempotencia + `client_claim_financials.payment_method`
+(cash/transfer/usdt). Al marcar el reclamo como `pagado`, `advanceClaimStatusAction` valida que el período
+contable no esté cerrado (SDD-0080) y luego `syncClaimIndemnityEntry` (best-effort) asienta el desembolso:
+**DR 6.20 / CR caja-banco** (según el medio de pago), monto = `amount_usd` del reclamo. Idempotente por
+`claim_id`; espejo exacto del gasto→asiento (SDD-0079). El detalle muestra el código del asiento (`A-YYYY-NNNN`).
+
 ### Fuera de alcance (slices futuros — declarados, no implementados)
 
-- **C2 — Asiento contable automático al pagar:** cuando el reclamo pasa a `pagado`, generar el asiento
-  (DR siniestros/indemnizaciones / CR caja-banco) reusando el motor de SDD-0079. Diferido: exige tocar
-  el motor de asientos + auditoría financiera. Hoy `pagado` es advisory (no genera asiento).
+- Asiento del RECUPERO (de la aseguradora o del proveedor) como entrada propia — hoy el puente es solo el
+  vínculo informativo; contabilizar el recupero es futuro.
 - Nacimiento automático del reclamo desde el despacho/excepción (hook de `shipments.status='exception'`).
 
 ## 2. Datos — `client_claims`

@@ -202,6 +202,39 @@ export function isFaultParty(v: unknown): v is FaultParty {
   return typeof v === "string" && (FAULT_PARTIES as string[]).includes(v);
 }
 
+// ── Medio de pago de la indemnización (Slice C2) → cuenta del asiento ──
+export type ClaimPaymentMethod = "cash" | "transfer" | "usdt";
+
+export const CLAIM_PAYMENT_METHODS: ClaimPaymentMethod[] = [
+  "cash",
+  "transfer",
+  "usdt",
+];
+
+export const CLAIM_PAYMENT_METHOD_META: Record<
+  ClaimPaymentMethod,
+  { label: string }
+> = {
+  cash: { label: "Caja / efectivo" },
+  transfer: { label: "Banco (transferencia)" },
+  usdt: { label: "Banco USD / USDT" },
+};
+
+export const CLAIM_PAYMENT_METHOD_OPTIONS: {
+  value: ClaimPaymentMethod;
+  label: string;
+}[] = CLAIM_PAYMENT_METHODS.map((m) => ({
+  value: m,
+  label: CLAIM_PAYMENT_METHOD_META[m].label,
+}));
+
+export function claimPaymentMethodLabel(m: string): string {
+  return CLAIM_PAYMENT_METHOD_META[m as ClaimPaymentMethod]?.label ?? m;
+}
+export function isClaimPaymentMethod(v: unknown): v is ClaimPaymentMethod {
+  return typeof v === "string" && (CLAIM_PAYMENT_METHODS as string[]).includes(v);
+}
+
 // ╔═══════════════════════════════════════════════════════════╗
 // ║ Fila persistida + KPIs derivados                           ║
 // ╚═══════════════════════════════════════════════════════════╝
@@ -240,6 +273,7 @@ export type ClaimFinancials = {
   insured_amount_usd: number | null;
   policy_deductible_usd: number | null;
   insurer_claim_ref: string | null;
+  payment_method: ClaimPaymentMethod;
 };
 
 export type ClaimKpis = {
@@ -378,6 +412,7 @@ export type ClaimFinancialsInput = {
   insured_amount_usd: number | null;
   policy_deductible_usd: number | null;
   insurer_claim_ref: string | null;
+  payment_method: ClaimPaymentMethod;
 };
 
 export function validateClaimFinancialsInput(
@@ -401,6 +436,13 @@ export function validateClaimFinancialsInput(
     errors.policy_deductible_usd = "Deducible inválido.";
   }
 
+  const pmRaw = strOrNull(raw.payment_method);
+  let paymentMethod: ClaimPaymentMethod = "transfer";
+  if (pmRaw !== null) {
+    if (!isClaimPaymentMethod(pmRaw)) errors.payment_method = "Medio de pago inválido.";
+    else paymentMethod = pmRaw;
+  }
+
   if (Object.keys(errors).length > 0) return { input: null, fieldErrors: errors };
 
   return {
@@ -412,6 +454,7 @@ export function validateClaimFinancialsInput(
       policy_deductible_usd:
         deductible !== null && Number.isFinite(deductible) ? deductible : null,
       insurer_claim_ref: strOrNull(raw.insurer_claim_ref),
+      payment_method: paymentMethod,
     },
   };
 }
