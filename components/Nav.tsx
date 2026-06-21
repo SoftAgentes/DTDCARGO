@@ -12,8 +12,9 @@ const links = [
 ];
 
 /** Contenido de apoyo agrupado en el dropdown "Recursos".
- *  Orden por intención del visitante: proceso → soporte → términos → contenido. */
+ *  Orden por intención del visitante: formación → proceso → soporte → términos → contenido. */
 const recursos = [
+  { href: "/academia", label: "Academia" },
   { href: "/#how", label: "Cómo trabajamos" },
   { href: "/faq", label: "Preguntas frecuentes" },
   { href: "/glosario", label: "Glosario" },

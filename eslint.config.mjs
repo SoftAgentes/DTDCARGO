@@ -42,6 +42,7 @@ const eslintConfig = defineConfig([
       "app/calculadora/**",
       "app/calculadora-terrestre/**",
       "app/servicios/**",
+      "app/academia/**",
       "app/noticias/**",
       "app/glosario/**",
       "components/**",

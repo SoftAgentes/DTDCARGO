@@ -50,6 +50,7 @@ const TOPIC_LABELS: Record<string, string> = {
   inspeccion: "Inspección de fábrica",
   marca: "Registro de marca",
   visa: "Visa de negocios",
+  academia: "Academia · Cursos de importación",
   otro: "Otro",
 };
 
