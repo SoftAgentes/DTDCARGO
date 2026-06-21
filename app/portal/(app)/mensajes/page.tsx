@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
-import { getPortalClient } from "@/lib/portal/portal-queries";
-import { type PortalClient } from "@/lib/portal/portal-types";
+import { getPortalClient, getPortalAdvisor } from "@/lib/portal/portal-queries";
+import {
+  buildAdvisorCardModel,
+  type PortalAdvisor,
+  type PortalClient,
+} from "@/lib/portal/portal-types";
 import {
   getPortalThread,
   type PortalThreadMessage,
 } from "@/lib/portal/portal-conversation-queries";
 import { PortalMessageForm } from "./PortalMessageForm";
-import { buildWhatsAppLink, CONTACT } from "@/lib/design-tokens";
+import { CONTACT } from "@/lib/design-tokens";
 import { WhatsAppIcon } from "@/components/Icon";
 
 export const metadata: Metadata = { title: "Mensajes" };
@@ -25,11 +29,23 @@ export default async function PortalMensajesPage() {
   const client = await getPortalClient(supabase);
   if (!client) return null;
 
+  const admin = createAdminClient();
+
   let thread: PortalThreadMessage[] = [];
   try {
-    thread = await getPortalThread(createAdminClient(), client.id);
+    thread = await getPortalThread(admin, client.id);
   } catch {
     thread = [];
+  }
+
+  // Asesor asignado (ERP→Norte · clients.advisor_id). Si no hay → la card degrada
+  // al contacto público (CRM). El cliente del portal no tiene RLS sobre los perfiles
+  // del equipo, por eso se resuelve con el admin client (igual que el hilo).
+  let advisor: PortalAdvisor | null = null;
+  try {
+    advisor = await getPortalAdvisor(admin, client.id);
+  } catch {
+    advisor = null;
   }
 
   return (
@@ -86,37 +102,85 @@ export default async function PortalMensajesPage() {
 
         {/* Asesor por WhatsApp — mudado desde el dashboard (founder 2026-06-20):
             el contacto del asesor vive acá, en Atención al cliente. */}
-        <AsesorCard client={client} />
+        <AsesorCard client={client} advisor={advisor} />
       </div>
     </div>
   );
 }
 
+/** Iniciales (máx 2) del nombre del asesor para el avatar de la card. */
+function advisorInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
 /**
- * Tarjeta "Tu asesor" — contacto por WhatsApp. Mudada desde el dashboard
- * (founder 2026-06-20). DEGRADADO: no existe `clients.advisor_id` todavía → usamos
- * el contacto único público (CRM WhatsApp). El mensaje se precarga con el nombre +
- * código del cliente.
+ * Tarjeta "Tu asesor" — contacto por WhatsApp. Mudada desde el dashboard (founder
+ * 2026-06-20). ERP→Norte: si el cliente tiene un asesor ASIGNADO (clients.advisor_id)
+ * muestra su nombre/cargo y el WhatsApp va directo a su número; si no, degrada al
+ * contacto público (CRM). El mensaje se precarga con el nombre + código del cliente.
  */
-function AsesorCard({ client }: { client: PortalClient }) {
-  const waLink = buildWhatsAppLink(
-    `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y tengo una consulta.`,
-  );
+function AsesorCard({
+  client,
+  advisor,
+}: {
+  client: PortalClient;
+  advisor: PortalAdvisor | null;
+}) {
+  const model = buildAdvisorCardModel(advisor, CONTACT.ve.whatsappRaw);
+  const greeting = model.isReal
+    ? `Hola ${model.name}, soy ${client.name} (${client.markbox}) y tengo una consulta.`
+    : `Hola DTD Cargo, soy ${client.name} (${client.markbox}) y tengo una consulta.`;
+  const waLink = `https://wa.me/${model.whatsappRaw}?text=${encodeURIComponent(greeting)}`;
+
   return (
     <div className="card-shadow bg-white border border-grey-200 rounded-[18px] p-6">
       <div className="text-[11px] font-bold tracking-[0.14em] uppercase text-grey-500">
         Tu asesor
       </div>
-      <p className="mt-3 text-[13.5px] text-grey-700 leading-[1.55]">
-        ¿Prefieres WhatsApp? Escríbele directo a tu asesor de DTD para cotizar,
-        prealertar una compra o resolver cualquier duda.
+
+      {model.isReal && model.name ? (
+        <div className="mt-4 flex items-center gap-3">
+          <div
+            className="flex shrink-0 items-center justify-center rounded-full bg-wine text-white"
+            style={{
+              width: 44,
+              height: 44,
+              fontFamily: "var(--font-archivo-black)",
+              fontSize: 15,
+              letterSpacing: "0.02em",
+            }}
+          >
+            {advisorInitials(model.name)}
+          </div>
+          <div className="min-w-0">
+            <div className="text-[15px] font-semibold text-ink leading-tight truncate">
+              {model.name}
+            </div>
+            <div className="text-[12.5px] text-grey-600 leading-tight">
+              {model.positionLabel ?? "Tu asesor en DTD Cargo"}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <p className="mt-4 text-[13.5px] text-grey-700 leading-[1.55]">
+        {model.isReal
+          ? "Escríbele directo por WhatsApp para cotizar, prealertar una compra o resolver cualquier duda."
+          : "¿Prefieres WhatsApp? Escríbele directo a tu asesor de DTD para cotizar, prealertar una compra o resolver cualquier duda."}
       </p>
-      <div
-        className="mt-4 text-[13px] text-grey-700"
-        style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
-      >
-        {CONTACT.ve.whatsapp}
-      </div>
+
+      {!model.isReal && (
+        <div
+          className="mt-4 text-[13px] text-grey-700"
+          style={{ fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace" }}
+        >
+          {CONTACT.ve.whatsapp}
+        </div>
+      )}
+
       <a
         href={waLink}
         target="_blank"

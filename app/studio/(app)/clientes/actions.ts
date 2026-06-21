@@ -409,3 +409,46 @@ export async function markIdentityAction(
   revalidatePath(`/studio/clientes/${markbox}`);
   return { ok: true };
 }
+
+// ── Asesor asignado (ERP→Norte · clients.advisor_id) ───────────────────────
+// Asigna / desasigna el asesor (account-director) del cliente. El portal lo
+// muestra como "Tu asesor" (card de /portal/mensajes) y rutea su contacto. El
+// trigger clients_advisor_same_tenant (migr 0151) garantiza que el asesor sea
+// miembro activo del mismo tenant; acá filtramos tenant_id defensivo en el UPDATE.
+
+export async function assignAdvisorAction(
+  clientId: string,
+  markbox: string,
+  advisorId: string | null,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const { data: userResp } = await supabase.auth.getUser();
+  if (!userResp.user) return { error: "Inicia sesión primero." };
+
+  const { data: link } = await supabase
+    .from("user_tenants")
+    .select("tenant_id")
+    .maybeSingle<{ tenant_id: string }>();
+  if (!link?.tenant_id) return { error: "No se pudo resolver el tenant." };
+
+  const value = advisorId && advisorId.trim() ? advisorId.trim() : null;
+
+  const { error } = await supabase
+    .from("clients")
+    .update({ advisor_id: value })
+    .eq("id", clientId)
+    .eq("tenant_id", link.tenant_id);
+
+  if (error) {
+    // El trigger clients_advisor_same_tenant rechaza con check_violation (23514)
+    // si el asesor no es miembro activo del tenant → mensaje amable.
+    if (error.code === "23514" || /miembro activo del tenant/i.test(error.message)) {
+      return { error: "Ese asesor no es un miembro activo de tu equipo." };
+    }
+    return { error: `No se pudo asignar el asesor: ${error.message}` };
+  }
+
+  revalidatePath(`/studio/clientes/${markbox}`);
+  return { ok: true };
+}

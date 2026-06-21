@@ -43,6 +43,12 @@ export type Client = {
   doc_verified_at: string | null;
   /** SDD-0042 Fase 6 / SDD-0046: path en client-docs de la foto de cédula/RIF. */
   cedula_photo_path: string | null;
+  /**
+   * ERP→Norte: usuario (auth.users) asesor asignado a este cliente. null = sin
+   * asignar (el portal degrada al contacto público). Debe ser miembro activo del
+   * mismo tenant (lo garantiza el trigger clients_advisor_same_tenant, migr 0151).
+   */
+  advisor_id: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
