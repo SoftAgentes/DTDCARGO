@@ -82,7 +82,7 @@
   .pasaporte{display:flex;align-items:center;gap:7px}
   .pasaporte .lbl{font-size:11px;color:var(--cream);text-transform:uppercase;letter-spacing:.08em;margin-right:2px}
   .insignia{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:15px;
-    background:rgba(232,220,200,.10);border:1px solid rgba(232,220,200,.22);opacity:.62;color:var(--cream);font-weight:700;transition:.35s}
+    background:rgba(232,220,200,.10);border:1px solid rgba(232,220,200,.22);filter:grayscale(1);opacity:.5;transition:.35s}
   .insignia.ganada{filter:none;opacity:1;background:rgba(184,137,58,.18);border-color:var(--oro);box-shadow:0 0 0 3px rgba(184,137,58,.14)}
   .insignia.pop{animation:pop .5s cubic-bezier(.2,1.4,.4,1)}
   @keyframes pop{0%{transform:scale(.3) rotate(-12deg)}60%{transform:scale(1.18) rotate(4deg)}100%{transform:scale(1)}}
@@ -322,6 +322,7 @@ function syncLead(evento){
   // === ENVIAR A SUPABASE/KOMMO ===  (aquí cableas tu endpoint real)
   // fetch('/api/lead', {method:'POST', body: JSON.stringify({evento, ...lead})});
   console.log("[syncLead]", evento, JSON.parse(JSON.stringify(lead)));
+  persist();
 }
 
 /* ============================ CONTENIDO ============================
@@ -329,7 +330,7 @@ function syncLead(evento){
    'emp' (emprendedor) o nada/'both' (todos).
    ================================================================ */
 const ETAPAS = [
-  { nodo:"Inicio", eyebrow:"Empecemos", insignia:{e:"", n:"A bordo"},
+  { nodo:"Inicio", eyebrow:"Empecemos", insignia:{e:"🚢", n:"A bordo"},
     titulo:"Quita el miedo: comprar en China es seguro (si sabes cómo)",
     intro:"Antes de tocar Alibaba, respira. Miles de venezolanos —empresas y emprendedores— importan desde China cada mes. El secreto no es la suerte: es seguir un proceso. Eso vas a aprender aquí. Y no estás solo: tenemos equipo propio en China y en Venezuela.",
     bloques:[
@@ -342,7 +343,7 @@ const ETAPAS = [
     checklist:["Entiendo que DTD Cargo recibe mi mercancía en China y la lleva a mi puerta en Venezuela","Elegí mi perfil arriba","Estoy listo/a para crear mi cuenta en Alibaba"]
   },
 
-  { nodo:"Registro", eyebrow:"Paso 1", insignia:{e:"", n:"Cuenta lista"},
+  { nodo:"Registro", eyebrow:"Paso 1", insignia:{e:"🔓", n:"Cuenta lista"},
     titulo:"Crea tu cuenta de comprador en Alibaba",
     intro:"Registrarte es gratis y toma 5 minutos. Aquí no compras nada todavía: solo abres la puerta.",
     bloques:[
@@ -354,7 +355,7 @@ const ETAPAS = [
     checklist:["Cuenta creada y correo verificado","Perfil completo con correo profesional","Activé contraseña fuerte + 2FA"]
   },
 
-  { nodo:"Buscar", eyebrow:"Paso 2", insignia:{e:"", n:"Buscador"},
+  { nodo:"Buscar", eyebrow:"Paso 2", insignia:{e:"🔍", n:"Buscador"},
     titulo:"Define qué vas a importar y empieza a buscar",
     intro:"Un buen pedido empieza con una buena búsqueda. Mientras más claro tengas el producto, mejores proveedores encuentras.",
     bloques:[
@@ -368,7 +369,7 @@ const ETAPAS = [
     checklist:["Tengo escrito mi producto con especificaciones y cantidad","Busqué con términos en inglés","Guardé 5–10 candidatos para comparar"]
   },
 
-  { nodo:"Verificar", eyebrow:"Paso 3", insignia:{e:"", n:"Detective"},
+  { nodo:"Verificar", eyebrow:"Paso 3", insignia:{e:"🛡️", n:"Detective"},
     titulo:"Separa los proveedores serios de los riesgosos",
     intro:"Aquí está el corazón de comprar sin miedo: aprender a leer las señales de confianza.",
     bloques:[
@@ -383,7 +384,7 @@ const ETAPAS = [
     checklist:["Mis candidatos tienen Trade Assurance","Verifiqué historial, reseñas y tipo de proveedor","Descarté los que tienen banderas rojas"]
   },
 
-  { nodo:"Negociar", eyebrow:"Paso 4", insignia:{e:"", n:"Negociador"},
+  { nodo:"Negociar", eyebrow:"Paso 4", insignia:{e:"🤝", n:"Negociador"},
     titulo:"Escríbeles, pregunta lo correcto y negocia",
     intro:"No necesitas inglés perfecto. Con las preguntas correctas, tú llevas el control.",
     bloques:[
@@ -403,7 +404,7 @@ const ETAPAS = [
     checklist:["Contacté a mis finalistas con la plantilla","Tengo por escrito precio (FOB/EXW), MOQ y medidas de caja","Recibí la Proforma Invoice (PI)"]
   },
 
-  { nodo:"Muestras", eyebrow:"Paso 5", insignia:{e:"", n:"Calidad"},
+  { nodo:"Muestras", eyebrow:"Paso 5", insignia:{e:"🔬", n:"Calidad"},
     titulo:"Comprueba la calidad antes de pedir en grande",
     intro:"Este paso te ahorra los peores dolores de cabeza. Ver antes de creer.",
     bloques:[
@@ -415,7 +416,7 @@ const ETAPAS = [
     checklist:["Aprobé una muestra o coordiné la revisión con DTD","La muestra cumple mis especificaciones","Acordé qué pasa con piezas defectuosas"]
   },
 
-  { nodo:"Pago", eyebrow:"Paso 6", insignia:{e:"", n:"Pago blindado"},
+  { nodo:"Pago", eyebrow:"Paso 6", insignia:{e:"💳", n:"Pago blindado"},
     titulo:"Paga de forma segura (y nunca por fuera)",
     intro:"El miedo número uno es “pagar y que no llegue”. Aquí lo blindamos.",
     bloques:[
@@ -427,7 +428,7 @@ const ETAPAS = [
     checklist:["Pagué dentro de Alibaba con Trade Assurance","Verifiqué que la cobertura cubra mi orden","Guardé comprobante, PI y conversación"]
   },
 
-  { nodo:"A almacén", eyebrow:"Paso 7", insignia:{e:"", n:"Listo para zarpar"},
+  { nodo:"A almacén", eyebrow:"Paso 7", insignia:{e:"📦", n:"Listo para zarpar"},
     titulo:"Que el proveedor envíe tu mercancía a nuestro almacén",
     intro:"Casi listo. Aquí tu pedido pasa a nuestras manos. De aquí en adelante, relájate: nos encargamos.",
     bloques:[
@@ -440,7 +441,7 @@ const ETAPAS = [
     checklist:["El proveedor tiene la dirección de nuestro almacén","Mi MARKBOX (DTD-"+cod+") está en cada bulto","Le avisé a DTD qué mercancía viene"]
   },
 
-  { final:true, nodo:"¡Llegó!", eyebrow:"Meta", insignia:{e:"", n:"Importador DTD"},
+  { final:true, nodo:"¡Llegó!", eyebrow:"Meta", insignia:{e:"🏆", n:"Importador DTD"},
     titulo:"Importación completada, bien hecho",
     intro:"Pasaste del miedo a tener tu mercancía en nuestro almacén en China, comprada de forma segura. Eso ya es ser importador. Ahora viene la parte fácil para ti.",
     bloques:[
@@ -454,6 +455,9 @@ const ETAPAS = [
 /* ============================ ESTADO ============================ */
 const estado = { actual:0, completadas:new Set(), checks:{} };
 ETAPAS.forEach((_,i)=> estado.checks[i]=new Set());
+const LS_KEY="dtd_guia_alibaba_v1";
+function persist(){ try{ localStorage.setItem(LS_KEY, JSON.stringify({ actual:estado.actual, completadas:[...estado.completadas], checks:Object.fromEntries(Object.entries(estado.checks).map(([k,v])=>[k,[...v]])), lead })); }catch(e){} }
+function restore(){ try{ const raw=localStorage.getItem(LS_KEY); if(!raw) return; const d=JSON.parse(raw); if(typeof d.actual==="number") estado.actual=d.actual; if(Array.isArray(d.completadas)) estado.completadas=new Set(d.completadas); if(d.checks) for(const k in d.checks) estado.checks[k]=new Set(d.checks[k]); if(d.lead) Object.assign(lead,d.lead); }catch(e){} }
 const $ = s=>document.querySelector(s);
 const stageEl=$("#stage"), railEl=$("#rail");
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -471,7 +475,7 @@ function renderRail(){
     const b=document.createElement("button"); b.className="nodo"; b.dataset.state=st;
     b.setAttribute("aria-label","Etapa "+(i+1)+": "+et.nodo);
     const punto = estado.completadas.has(i) ? "✓" : (i+1);
-    b.innerHTML='<span class="punto">'+punto+'</span><span class="cap">'+et.nodo+'</span>';
+    b.innerHTML='<span class="punto">'+(st==="bloqueado"?"🔒":punto)+'</span><span class="cap">'+et.nodo+'</span>';
     if(st!=="bloqueado") b.addEventListener("click",()=>irA(i));
     railEl.appendChild(b);
   });
@@ -482,7 +486,7 @@ function renderRail(){
 function renderPasaporte(){
   const p=$("#pasaporte"); p.querySelectorAll(".insignia").forEach(n=>n.remove());
   ETAPAS.forEach((et,i)=>{ const d=document.createElement("div");
-    d.className="insignia"+(estado.completadas.has(i)?" ganada":""); d.textContent=estado.completadas.has(i)?"✓":(i+1);
+    d.className="insignia"+(estado.completadas.has(i)?" ganada":""); d.textContent=et.insignia.e;
     d.title=et.insignia.n+(estado.completadas.has(i)?" ✓":" (bloqueada)"); p.appendChild(d); });
 }
 function renderModo(){
@@ -682,18 +686,18 @@ function toggleCheck(idx){
   if(estado.checks[i].has(idx)) estado.checks[i].delete(idx); else estado.checks[i].add(idx);
   const el=stageEl.querySelector('.check[data-idx="'+idx+'"]'), on=estado.checks[i].has(idx);
   el.classList.toggle("on",on); el.querySelector(".box").textContent=on?"✓":"";
-  $("#chCnt").textContent=estado.checks[i].size+" de "+ETAPAS[i].checklist.length;
+  $("#chCnt").textContent=estado.checks[i].size+" de "+ETAPAS[i].checklist.length; persist();
   actualizarBotonNext();
 }
 function completarEtapa(){
   const i=estado.actual, et=ETAPAS[i], ya=estado.completadas.has(i);
   estado.completadas.add(i); lead.etapaMax=Math.max(lead.etapaMax,i+1);
-  if(!ya){ syncLead("etapa_completada_"+(i+1)); sello(); insigniaPop(i); confeti(); toast("✓","Etapa completada",et.insignia.n); }
+  if(!ya){ syncLead("etapa_completada_"+(i+1)); sello(); insigniaPop(i); confeti(); toast(et.insignia.e,"Insignia desbloqueada",et.insignia.n); }
   renderRail(); renderPasaporte();
   setTimeout(()=>{ if(i<ETAPAS.length-1) irA(i+1); else renderRail(); }, ya?0:650);
 }
 function irA(i){ if(i<0||i>=ETAPAS.length||estadoNodo(i)==="bloqueado") return;
-  estado.actual=i; renderRail(); renderPasaporte(); renderEtapa();
+  estado.actual=i; persist(); renderRail(); renderPasaporte(); renderEtapa();
   window.scrollTo({top:0,behavior:reduce?"auto":"smooth"}); }
 
 /* ---------- Efectos ---------- */
@@ -728,7 +732,7 @@ function enviarLead(){
 
 /* ---------- Arranque ---------- */
 $("#modoSw").addEventListener("click",()=> irA(0)); // "cambiar" -> vuelve al selector de perfil
-renderRail(); renderPasaporte(); renderModo(); renderEtapa();
+restore(); renderRail(); renderPasaporte(); renderModo(); renderEtapa();
 </script>
 </body>
 </html>
