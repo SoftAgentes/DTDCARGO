@@ -9,12 +9,12 @@ import { CotizadorFletes } from "@/components/CotizadorFletes";
 export const metadata: Metadata = {
   title: "Flete marítimo China–Venezuela",
   description:
-    "Estima el flete marítimo puerto a puerto desde China a Venezuela. Elige origen, destino y modo (LCL o contenedor) y mira un precio estimado al instante. Para cotización en firme, te atiende un asesor.",
+    "Estima el flete marítimo de contenedor completo (FCL) puerto a puerto desde China a Venezuela. Elige origen, destino y tipo de contenedor y mira un precio estimado al instante. Para cotización en firme, te atiende un asesor.",
   alternates: { canonical: "/cotizador-flete" },
   ...socialMeta({
     title: "Flete marítimo China–Venezuela · DTD Cargo",
     description:
-      "Estima el flete marítimo puerto a puerto desde China a Venezuela. LCL o contenedor completo, precio estimado al instante.",
+      "Estima el flete marítimo de contenedor completo (FCL) puerto a puerto desde China a Venezuela. Precio estimado al instante.",
     path: "/cotizador-flete",
   }),
 };
@@ -45,9 +45,9 @@ export default function CotizadorFletePage() {
             </p>
             <div className="mt-8 flex flex-col gap-4 text-[15px] text-grey-700">
               {[
-                ["LCL o contenedor completo.", "Carga suelta (LCL) o FCL de 20'/40'/High Cube y refrigerado."],
+                ["Contenedor completo (FCL).", "20', 40' y 40' High Cube, estándar o refrigerado."],
                 ["Puerto a puerto.", "Salidas desde los puertos principales de China hacia Venezuela."],
-                ["¿Lo quieres puerta a puerta?", "Pídenos el DDP con aduana, impuestos y entrega incluidos."],
+                ["¿Carga suelta (LCL)?", "Calcúlala en nuestra calculadora. ¿Puerta a puerta? Pídenos el DDP."],
               ].map(([t, d]) => (
                 <div key={t} className="flex items-start gap-3">
                   <span

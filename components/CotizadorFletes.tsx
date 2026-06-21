@@ -8,7 +8,6 @@ import {
   OCEAN_CONTAINERS,
   validateOceanRouteInput,
   OCEAN_RATE_DISCLAIMER,
-  type OceanShippingType,
   type OceanContainer,
 } from "@/lib/shared/ocean-rate";
 import {
@@ -46,7 +45,8 @@ const FIELD =
 export function CotizadorFletes() {
   const [pointIdFrom, setFrom] = useState(OCEAN_ORIGINS[0]?.id ?? "");
   const [pointIdTo, setTo] = useState(OCEAN_DESTINATIONS[0]?.id ?? "");
-  const [mode, setMode] = useState<OceanShippingType>("LCL");
+  // Este cotizador es SOLO FCL (full container). El LCL público vive en /calculadora.
+  // Default: 40' High Cube (decisión founder).
   const [container, setContainer] = useState<OceanContainer>("HC40");
 
   const [status, setStatus] = useState<Status>("idle");
@@ -57,8 +57,8 @@ export function CotizadorFletes() {
     const { input, fieldErrors } = validateOceanRouteInput({
       pointIdFrom,
       pointIdTo,
-      shippingType: mode,
-      container: mode === "FCL" ? container : undefined,
+      shippingType: "FCL",
+      container,
     });
     if (fieldErrors || !input) {
       setStatus("error");
@@ -87,10 +87,7 @@ export function CotizadorFletes() {
 
   const originName = OCEAN_ORIGINS.find((p) => p.id === pointIdFrom)?.name ?? "China";
   const destName = OCEAN_DESTINATIONS.find((p) => p.id === pointIdTo)?.name ?? "Venezuela";
-  const modeLabel =
-    mode === "FCL"
-      ? `Marítimo FCL · ${CONTAINER_LABELS[container] ?? container}`
-      : "Marítimo LCL (carga suelta)";
+  const modeLabel = `Marítimo FCL · ${CONTAINER_LABELS[container] ?? container}`;
 
   const rate = result?.rate ?? null;
   const priceUsd =
@@ -128,31 +125,28 @@ export function CotizadorFletes() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Row label="Modo">
+          {/* Modo fijo: este cotizador es solo FCL. Chip informativo (no control). */}
+          <div className="flex flex-col gap-2">
+            <span className="text-[11.5px] font-semibold tracking-[0.12em] uppercase text-grey-500">
+              Modo de envío
+            </span>
+            <div className="flex items-center h-12 px-3.5 rounded-[10px] bg-grey-100 text-[14.5px] font-medium text-grey-700">
+              FCL · contenedor completo
+            </div>
+          </div>
+          <Row label="Contenedor">
             <select
               className={FIELD}
-              value={mode}
-              onChange={(e) => setMode(e.target.value as OceanShippingType)}
+              value={container}
+              onChange={(e) => setContainer(e.target.value as OceanContainer)}
             >
-              <option value="LCL">LCL · carga suelta</option>
-              <option value="FCL">FCL · contenedor completo</option>
+              {OCEAN_CONTAINERS.map((c) => (
+                <option key={c} value={c}>
+                  {CONTAINER_LABELS[c] ?? c}
+                </option>
+              ))}
             </select>
           </Row>
-          {mode === "FCL" && (
-            <Row label="Contenedor">
-              <select
-                className={FIELD}
-                value={container}
-                onChange={(e) => setContainer(e.target.value as OceanContainer)}
-              >
-                {OCEAN_CONTAINERS.map((c) => (
-                  <option key={c} value={c}>
-                    {CONTAINER_LABELS[c] ?? c}
-                  </option>
-                ))}
-              </select>
-            </Row>
-          )}
         </div>
 
         <button
