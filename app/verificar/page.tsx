@@ -68,6 +68,70 @@ async function markStatus(mark: string): Promise<boolean | null> {
   }
 }
 
+type DiplomaInfo = {
+  folio: string;
+  studentName: string;
+  courseTitle: string;
+  hours: number | null;
+  place: string | null;
+  issuedAt: string;
+};
+
+/**
+ * Un folio de diploma de la Academia tiene forma DTD-AC-YYYY-NNNN (SDD-0093),
+ * distinto del Shipping Mark de carga (DTD-NNNN). Así una misma /verificar
+ * resuelve ambos QR (caja y diploma) sin chocar en el mismo `?c=`.
+ */
+function isDiplomaFolio(code: string): boolean {
+  return /^DTD-AC-\d{4}-\d+$/.test(code);
+}
+
+/**
+ * Lee un diploma por folio — SOLO campos seguros (nunca client_markbox ni IDs),
+ * mismo criterio que la RPC pública `academy_verify_diploma`. `null` = no existe
+ * o error transitorio. Admin client (mismo patrón que `markStatus`).
+ */
+async function diplomaLookup(folio: string): Promise<DiplomaInfo | null> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("academy_diplomas")
+      .select("folio, student_name, course_title, hours, place, issued_at")
+      .eq("folio", folio)
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle<{
+        folio: string;
+        student_name: string;
+        course_title: string;
+        hours: number | null;
+        place: string | null;
+        issued_at: string;
+      }>();
+    if (error || !data) return null;
+    return {
+      folio: data.folio,
+      studentName: data.student_name,
+      courseTitle: data.course_title,
+      hours: data.hours,
+      place: data.place,
+      issuedAt: data.issued_at,
+    };
+  } catch {
+    return null;
+  }
+}
+
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+function fmtFecha(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return `${d} de ${MESES[(m - 1) % 12]} de ${y}`;
+}
+
 function CheckIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -96,6 +160,29 @@ function QueryIcon() {
   );
 }
 
+function Campo({ label, valor }: { label: string; valor: string }) {
+  return (
+    <div>
+      <dt
+        style={{
+          font: "700 11px/1 var(--font-archivo)",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--color-grey-700)",
+        }}
+      >
+        {label}
+      </dt>
+      <dd
+        className="m-0 mt-1.5"
+        style={{ font: "400 15px/1.4 var(--font-archivo)", color: "var(--color-ink)" }}
+      >
+        {valor}
+      </dd>
+    </div>
+  );
+}
+
 export default async function VerificarPage({
   searchParams,
 }: {
@@ -103,19 +190,26 @@ export default async function VerificarPage({
 }) {
   const { c } = await searchParams;
   const mark = normMark(c);
-  const status = await markStatus(mark);
+  // Un folio de diploma (DTD-AC-YYYY-NNNN) toma la rama de diploma; cualquier otro
+  // código se trata como Shipping Mark de carga (flujo SDD-0097 original).
+  const folioMode = isDiplomaFolio(mark);
+  const diploma = folioMode ? await diplomaLookup(mark) : null;
+  const status = folioMode ? null : await markStatus(mark);
 
   const waUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
-    mark
-      ? `Hola DTD Cargo, quiero verificar mi carga con Shipping Mark ${mark}.`
-      : "Hola DTD Cargo, quiero verificar mi carga.",
+    folioMode
+      ? `Hola DTD Cargo, quiero verificar el diploma con folio ${mark}.`
+      : mark
+        ? `Hola DTD Cargo, quiero verificar mi carga con Shipping Mark ${mark}.`
+        : "Hola DTD Cargo, quiero verificar mi carga.",
   )}`;
 
   // Estado del documento según el lookup.
   const verified = status === true;
   const unknown = status === false;
-  const inconclusive = status === null && mark !== ""; // hay MARK pero DB no responde
+  const inconclusive = status === null && mark !== "" && !folioMode; // MARK, DB no responde
   const empty = mark === ""; // sin ?c= (entrada manual)
+  const diplomaMissing = folioMode && diploma === null;
 
   return (
     <>
@@ -137,7 +231,69 @@ export default async function VerificarPage({
                 border-radius: 2px;
               }
             `}</style>
-            <span className="eyebrow">Verificación de carga</span>
+            <span className="eyebrow">
+              {folioMode ? "Verificación de diploma" : "Verificación de carga"}
+            </span>
+
+            {/* ─── Diploma verificado (folio DTD-AC-…) ─── */}
+            {folioMode && diploma && (
+              <div className="mt-6">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="grid place-items-center rounded-full"
+                    style={{ width: 44, height: 44, background: "var(--color-wine)" }}
+                  >
+                    <CheckIcon />
+                  </span>
+                  <h1 className="h-display" style={{ fontSize: H1_SIZE, margin: 0 }}>
+                    Diploma verificado
+                  </h1>
+                </div>
+                <p className="lead mt-6">
+                  Folio{" "}
+                  <strong style={{ fontFamily: MONO, color: "var(--color-ink)" }}>
+                    {diploma.folio}
+                  </strong>{" "}
+                  — emitido por la Academia DTD.
+                </p>
+                <div
+                  className="mt-6 rounded-[14px] p-6"
+                  style={{
+                    background: "var(--color-white)",
+                    border: "1px solid var(--color-grey-200)",
+                  }}
+                >
+                  <dl className="m-0 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
+                    <Campo label="Alumno" valor={diploma.studentName} />
+                    <Campo label="Curso" valor={diploma.courseTitle} />
+                    <Campo label="Emitido" valor={fmtFecha(diploma.issuedAt)} />
+                    {diploma.hours != null && (
+                      <Campo label="Duración" valor={`${diploma.hours} horas`} />
+                    )}
+                    {diploma.place && <Campo label="Lugar" valor={diploma.place} />}
+                  </dl>
+                </div>
+              </div>
+            )}
+
+            {/* ─── Folio con forma de diploma pero no encontrado ─── */}
+            {diplomaMissing && (
+              <div className="mt-6">
+                <h1 className="h-display" style={{ fontSize: H1_SIZE }}>
+                  No encontramos este
+                  <br />
+                  <span style={{ color: "var(--color-wine)" }}>diploma.</span>
+                </h1>
+                <p className="lead mt-6">
+                  El folio{" "}
+                  <strong style={{ fontFamily: MONO, color: "var(--color-ink)" }}>
+                    {mark}
+                  </strong>{" "}
+                  no figura en la Academia DTD. Revisa que esté escrito tal cual aparece en el
+                  diploma (incluye los guiones) o escríbenos y lo confirmamos.
+                </p>
+              </div>
+            )}
 
             {/* ─── Carga verificada ─── */}
             {verified && (
@@ -261,8 +417,8 @@ export default async function VerificarPage({
               </div>
             )}
 
-            {/* ─── Tarjeta de confianza + CTAs (no en entrada manual) ─── */}
-            {!empty && (
+            {/* ─── Tarjeta de confianza + CTAs · carga (no en manual ni diploma) ─── */}
+            {!empty && !folioMode && (
               <div
                 className="mt-9 rounded-[14px] p-6"
                 style={{
@@ -300,6 +456,42 @@ export default async function VerificarPage({
                   </a>
                   <Link href="/track" className="btn btn-ghost">
                     Rastrear un envío
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* ─── Nota de confianza · diploma ─── */}
+            {folioMode && (
+              <div
+                className="mt-9 rounded-[14px] p-6"
+                style={{
+                  background: "var(--color-white)",
+                  border: "1px solid var(--color-grey-200)",
+                }}
+              >
+                <BrandMark size={30} />
+                <p
+                  className="mt-4"
+                  style={{
+                    font: "400 13.5px/1.6 var(--font-archivo)",
+                    color: "var(--color-grey-700)",
+                  }}
+                >
+                  Los diplomas de la Academia DTD se emiten al completar un curso. Si tienes dudas
+                  sobre este diploma, escríbenos: una persona te responde.
+                </p>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                  >
+                    Escríbenos por WhatsApp
+                  </a>
+                  <Link href="/academia" className="btn btn-ghost">
+                    Ver la Academia
                   </Link>
                 </div>
               </div>
