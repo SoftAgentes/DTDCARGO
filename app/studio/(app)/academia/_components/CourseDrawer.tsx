@@ -17,7 +17,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
-import { Field, FormError } from "@/app/studio/(app)/naviera/_components/SailingDrawer";
+import { Field, FormError } from "./Field";
 import {
   COURSE_STATUSES,
   COURSE_TIERS,

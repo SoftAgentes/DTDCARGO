@@ -13,7 +13,7 @@ import {
   DrawerShell,
   DrawerFooter,
 } from "@/app/studio/_components/ui/drawer/DrawerShell";
-import { Field, FormError } from "@/app/studio/(app)/naviera/_components/SailingDrawer";
+import { Field, FormError } from "./Field";
 import type { EnrollmentInput } from "@/lib/studio/academia/types";
 import { createEnrollmentAction } from "../actions";
 
