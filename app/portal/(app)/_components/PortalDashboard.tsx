@@ -63,8 +63,12 @@ export function PortalDashboard({
         <div className="flex flex-wrap items-center gap-2.5">
           {/* SDD-0057 — "Nueva compra · = prealerta" (control único del portal). */}
           <NewPurchaseButton href="/portal/proveedores" />
-          {/* Slice 5.7 — cotización aún deshabilitada ("Próximamente"). */}
-          <SoonButton label="Nueva cotización" />
+          <Link
+            href="/portal/cotizaciones/nueva"
+            className="btn btn-ghost inline-flex items-center gap-1.5"
+          >
+            Nueva cotización
+          </Link>
         </div>
       </div>
 
@@ -296,24 +300,6 @@ function Kpi({
       </div>
       <div className="mt-1.5 text-[11.5px] text-grey-500">{sub}</div>
     </div>
-  );
-}
-
-/** Botón deshabilitado con copy "Próximamente" (slices 5.6 / 5.7 aún no listos). */
-function SoonButton({ label }: { label: string }) {
-  return (
-    <button
-      type="button"
-      disabled
-      title="Próximamente"
-      aria-disabled
-      className="btn btn-ghost inline-flex items-center gap-1.5 opacity-55 cursor-not-allowed pointer-events-none"
-    >
-      {label}
-      <span className="text-[10.5px] font-bold tracking-[0.1em] uppercase text-grey-500">
-        Próximamente
-      </span>
-    </button>
   );
 }
 

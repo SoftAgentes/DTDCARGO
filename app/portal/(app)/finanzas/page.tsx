@@ -28,8 +28,8 @@ export const metadata: Metadata = { title: "Finanzas" };
  * que la vista principal ES el estado de cuenta (KPIs de saldo + lista de
  * facturas), directo, sin desplegar ni pestañas. Arriba van dos accesos chicos a
  * las secciones secundarias: Estimados (→ /portal/estimados) y Cotizaciones
- * (aún no existe → "Próximamente"). El detalle/tabla densa sigue en
- * /portal/facturas; las filas de acá linkean a cada factura.
+ * (→ /portal/cotizaciones). El detalle/tabla densa sigue en /portal/facturas;
+ * las filas de acá linkean a cada factura.
  */
 export default async function PortalFinanzasPage() {
   const supabase = await createClient();
@@ -84,10 +84,10 @@ export default async function PortalFinanzasPage() {
         Tus facturas y saldos. Estimados y cotizaciones, a un clic.
       </p>
 
-      {/* Accesos secundarios — Estimados (existe) + Cotizaciones (Próximamente) */}
+      {/* Accesos secundarios — Estimados (lead/calculadora) + Cotizaciones (formal) */}
       <div className="mt-5 flex flex-wrap gap-2.5">
         <AccesoChip href="/portal/estimados" icon={<DocIcon size={16} />} label="Estimados" />
-        <AccesoChip icon={<QuoteIcon size={15} />} label="Cotizaciones" soon />
+        <AccesoChip href="/portal/cotizaciones" icon={<QuoteIcon size={15} />} label="Cotizaciones" />
       </div>
 
       {/* Card "ciclo" del Norte — GATEADA al demo (clientes reales no la ven). */}
