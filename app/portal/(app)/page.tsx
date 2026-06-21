@@ -10,8 +10,10 @@ import {
   listMyShipments,
 } from "@/lib/portal/portal-queries";
 import { listPendingAcceptanceInvoices } from "@/lib/portal/portal-legal-queries";
+import { isDemoMarkbox } from "@/lib/portal/demo";
 import { PortalPending } from "../_components/PortalPending";
 import { PortalDashboard } from "./_components/PortalDashboard";
+import { PortalDashboardNorte } from "./_components/PortalDashboardNorte";
 import { PendingAcceptanceCard } from "./_components/PendingAcceptanceCard";
 import { ProfileIncompleteCard } from "./_components/ProfileIncompleteCard";
 
@@ -59,12 +61,22 @@ export default async function PortalHomePage() {
           hasAddress={profile.hasAddress}
         />
       ) : null}
-      <PortalDashboard
-        client={client}
-        kpis={kpis}
-        nextArrival={nextArrival}
-        shipments={shipments}
-      />
+      {/* Rediseño Norte (oscuro) GATEADO al demo; clientes reales → dashboard actual. */}
+      {isDemoMarkbox(client.markbox) ? (
+        <PortalDashboardNorte
+          client={client}
+          kpis={kpis}
+          nextArrival={nextArrival}
+          shipments={shipments}
+        />
+      ) : (
+        <PortalDashboard
+          client={client}
+          kpis={kpis}
+          nextArrival={nextArrival}
+          shipments={shipments}
+        />
+      )}
     </div>
   );
 }

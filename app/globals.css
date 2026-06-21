@@ -42,6 +42,23 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   PORTAL · tokens del rediseño Norte (founder 2026-06-20) — gateados al demo.
+   Sólo existen cuando el shell tiene [data-portal-theme] (lo pone el layout SOLO
+   para cuentas demo). El héroe "Próximo arribo" es NAVY en AMBOS temas (no sigue
+   --color-ink, que en oscuro es el texto crema) → tokens propios. La tinta sobre
+   navy vive acá (no rgba inline en el componente).
+   ────────────────────────────────────────────────────────────────── */
+[data-portal-theme] {
+  --hero-from: #0f1e3d;            /* navy de marca (= --color-ink en claro) */
+  --hero-to: #1f3055;             /* navy del héroe del Norte */
+  --hero-ink: #ffffff;
+  --hero-soft: rgba(255, 255, 255, 0.72);
+  --hero-mute: rgba(255, 255, 255, 0.66); /* AA sobre el navy del héroe (texto 10.5px) */
+  --hero-accent: #dd8088;          /* wine suave que lee sobre navy */
+  --portal-info: #2c5d8f;          /* azul informativo (KPI Facturado · actividad) */
+}
+
+/* ──────────────────────────────────────────────────────────────────
    DARK MODE del PORTAL (founder 2026-06-20) — gateado al demo.
    Scopeado a `[data-portal-theme="dark"]` (lo pone app/portal/(app)/layout.tsx en
    el shell, SOLO para cuentas demo). Redefine los MISMOS tokens que ya consumen los
@@ -64,6 +81,10 @@
   --color-status-success: #2ea36e;
   --color-status-warning: #d3a24a;
   --color-status-danger: #e0606b;
+  /* El héroe sube un escalón sobre el fondo navy de la página (resalta como card) */
+  --hero-from: #1b2e54;
+  --hero-to: #25406c;
+  --portal-info: #5b9bd5;
   color-scheme: dark;
 }
 
@@ -349,6 +370,23 @@
     0 12px 24px rgba(15, 30, 61, 0.14),
     0 32px 60px -18px rgba(15, 30, 61, 0.32);
   transform: translateY(-2px);
+}
+
+/* Dark mode del portal (founder 2026-06-20 · rediseño Norte): las sombras navy
+   de arriba son invisibles sobre el fondo navy → sombras negras + inset highlight
+   (misma receta que .card-shadow-dark) para que las cards se despeguen del fondo.
+   El lift de hover (translateY) lo conserva la regla base; acá sólo la sombra. */
+[data-portal-theme="dark"] .card-shadow {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 20px rgba(0, 0, 0, 0.32),
+    0 24px 60px -20px rgba(0, 0, 0, 0.5);
+}
+[data-portal-theme="dark"] .card-shadow:hover {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 12px 28px rgba(0, 0, 0, 0.4),
+    0 32px 70px -18px rgba(0, 0, 0, 0.6);
 }
 
 /* El frame del video (WorkBand) usa .card-shadow por estética, pero NO es
