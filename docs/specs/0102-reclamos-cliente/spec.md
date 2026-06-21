@@ -1,5 +1,5 @@
 ---
-sdd: "0101"
+sdd: "0102"
 title: "Reclamos y siniestros del cliente — gestión de incidencias de carga (daño / faltante / retraso)"
 status: in-progress
 author: "Claude Code (session context) + founder"
@@ -11,7 +11,7 @@ related: ["0059","0047","0042","0085","0049"]
 confidencialidad: interno
 ---
 
-# SDD-0101 — Reclamos y siniestros del cliente
+# SDD-0102 — Reclamos y siniestros del cliente
 
 > Módulo del Studio (**OPERACIÓN · POST-VENTA**) para gestionar las incidencias que el **cliente**
 > reporta sobre su carga: **daño, faltante, retraso u otro**. Cada reclamo queda atado a la orden /
