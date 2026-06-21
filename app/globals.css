@@ -21,6 +21,9 @@
   --color-grey-100: #f2f0ec;
   --color-paper: #fbfaf7;
   --color-white: #ffffff;
+  /* Texto/íconos sobre un acento (wine/estado). NO cambia por tema (siempre claro
+     sobre el acento) — por eso es token aparte y no se redefine en oscuro. */
+  --color-on-accent: #ffffff;
 
   /* Status — brand book */
   --color-status-success: #1f8a5b;
@@ -411,6 +414,58 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 8px 20px rgba(0, 0, 0, 0.32),
     0 24px 60px -20px rgba(0, 0, 0, 0.5);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Badge de estado de envío (StatusBadge) — tokenizado por TONO para que se adapte
+   al tema del portal. En CLARO los colores espejan STATUS_COLORS 1:1 (cero cambio
+   para clientes reales); en OSCURO usan los tokens de estado brillantes (los hex
+   fijos navy eran invisibles sobre la card oscura). bg/borde con color-mix sobre
+   `transparent` → el badge se ve igual sobre card o sobre el fondo de página.
+   ────────────────────────────────────────────────────────────────── */
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+.badge-status-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: currentColor;
+  flex-shrink: 0;
+}
+.badge-status-info {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-ink) 20%, transparent);
+}
+.badge-status-success {
+  color: var(--color-status-success);
+  background: color-mix(in srgb, var(--color-status-success) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-status-success) 20%, transparent);
+}
+.badge-status-warning {
+  color: var(--color-status-warning);
+  background: color-mix(in srgb, var(--color-status-warning) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-status-warning) 20%, transparent);
+}
+.badge-status-danger {
+  color: var(--color-status-danger);
+  background: color-mix(in srgb, var(--color-status-danger) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-status-danger) 20%, transparent);
+}
+.badge-status-neutral {
+  color: var(--color-grey-500);
+  background: color-mix(in srgb, var(--color-grey-500) 8%, transparent);
+  border-color: color-mix(in srgb, var(--color-grey-500) 20%, transparent);
 }
 
 /* ──────────────────────────────────────────────────────────────────

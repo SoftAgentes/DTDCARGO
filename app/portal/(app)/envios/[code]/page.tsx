@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/db/server";
-import { getMyShipment } from "@/lib/portal/portal-queries";
+import { getMyShipment, getPortalClient } from "@/lib/portal/portal-queries";
 import { SERVICE_LABELS, estimatePortalEta } from "@/lib/portal/portal-types";
+import { isDemoMarkbox } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon, WhatsAppIcon } from "@/components/Icon";
 import { StatusBadge } from "../../../_components/StatusBadge";
 import { PortalTimeline } from "../../../_components/PortalTimeline";
 import { PortalDocsCard } from "../../../_components/PortalDocsCard";
+import { PortalShipmentDetailNorte } from "./_components/PortalShipmentDetailNorte";
 import {
   listShipmentDocuments,
   signDocumentUrls,
@@ -27,7 +29,10 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
   const code = decodeURIComponent(raw);
 
   const supabase = await createClient();
-  const shipment = await getMyShipment(supabase, code);
+  const [shipment, client] = await Promise.all([
+    getMyShipment(supabase, code),
+    getPortalClient(supabase),
+  ]);
   // RLS sólo devuelve envíos del cliente logueado; si no hay match (ajeno o
   // inexistente) → 404, no exponemos la diferencia.
   if (!shipment) notFound();
@@ -43,6 +48,18 @@ export default async function PortalShipmentDetailPage({ params }: Props) {
         documents.map((d) => d.storage_path),
       )
     : {};
+
+  // Rediseño Norte (founder 2026-06-20) GATEADO al demo: stepper horizontal + 2
+  // columnas. Clientes reales siguen con el detalle de abajo.
+  if (isDemoMarkbox(client?.markbox)) {
+    return (
+      <PortalShipmentDetailNorte
+        shipment={shipment}
+        documents={documents}
+        signedUrls={docUrls}
+      />
+    );
+  }
 
   const svc = SERVICE_LABELS[shipment.service];
   const serviceLabel = svc.sub ? `${svc.primary} · ${svc.sub}` : svc.primary;

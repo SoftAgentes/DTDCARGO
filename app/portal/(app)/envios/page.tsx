@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/db/server";
-import { listMyShipments } from "@/lib/portal/portal-queries";
+import { listMyShipments, getPortalClient } from "@/lib/portal/portal-queries";
+import { isDemoMarkbox } from "@/lib/portal/demo";
 import { buildWhatsAppLink } from "@/lib/design-tokens";
 import { ArrowIcon } from "@/components/Icon";
 import { ShipmentRow } from "../../_components/ShipmentRow";
+import { PortalShipmentsNorte } from "./_components/PortalShipmentsNorte";
 
 export const metadata: Metadata = { title: "Mis envíos" };
 
@@ -11,10 +13,22 @@ export const metadata: Metadata = { title: "Mis envíos" };
  * "Mis envíos" (SDD-0042). Lista read-only de los envíos del cliente. Vivía en
  * `(app)/page.tsx`; en Fase 5 (Norte) ese slot pasó a ser el Inicio/dashboard y
  * la lista se reubicó acá (`/portal/envios`). Funcionalidad preservada tal cual.
+ *
+ * Rediseño Norte (founder 2026-06-20) GATEADO al demo: el demo ve la lista con
+ * tabs + buscador + cards con progreso (`PortalShipmentsNorte`); clientes reales
+ * siguen con la lista plana de abajo.
  */
 export default async function PortalShipmentsPage() {
   const supabase = await createClient();
-  const shipments = await listMyShipments(supabase);
+  const [shipments, client] = await Promise.all([
+    listMyShipments(supabase),
+    getPortalClient(supabase),
+  ]);
+
+  if (isDemoMarkbox(client?.markbox)) {
+    return <PortalShipmentsNorte shipments={shipments} />;
+  }
+
   const waLink = buildWhatsAppLink(
     "Hola DTD Cargo, soy cliente y tengo una consulta sobre mis envíos.",
   );
