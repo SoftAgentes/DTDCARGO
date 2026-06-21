@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Cómo comprar en Alibaba y traerlo a Venezuela — DTD Cargo</title>
+<!--
+  Print-master branded de la guía (SDD-0099). Se renderiza a PDF con scripts/build-guia-pdf.mjs (Playwright).
+  Los tokens __LOGO_REVERSE__ / __LOGO_PRIMARY__ los inyecta el script como data-URI base64.
+  Fuente narrativa del texto: ./guia-comprar-alibaba.md  ·  Tokens de marca: lib/design-tokens.ts + BRAND.md
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&family=Archivo+Black&family=JetBrains+Mono:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --wine:#7F0F1A; --wine-deep:#5E0A12; --wine-soft:#C2747F;
+    --ink:#0F1E3D; --cream:#E8DCC8; --paper:#FBFAF7; --white:#FFFFFF;
+    --grey-900:#1F1F1F; --grey-700:#333333; --grey-500:#6B6B6B;
+    --grey-300:#C9C5BE; --grey-200:#E8E6E2; --grey-100:#F2F0EC;
+    /* status del SITIO PÚBLICO (lib/design-tokens.ts / globals.css). OJO: danger #C2353F es el del público;
+       el Studio usa #A8323E (app/studio/tokens.css). Este PDF mirror del set público → #C2353F es lo correcto. */
+    --gold:#B8893A; --danger:#C2353F; --success:#1F8A5B;
+    --font-ui:"Archivo",system-ui,-apple-system,sans-serif;
+    --font-display:"Archivo Black","Archivo",sans-serif;
+    --font-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+    --font-cjk:"Noto Sans SC","Archivo",sans-serif;
+  }
+
+  *{ box-sizing:border-box; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  @page{ size:A4; }
+
+  html,body{ margin:0; padding:0; }
+  body{
+    font-family:var(--font-ui);
+    color:var(--grey-900);
+    background:var(--paper);
+    font-size:10.5pt;
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  p{ margin:0 0 8px; }
+  strong{ font-weight:700; color:var(--grey-900); }
+  .cjk{ font-family:var(--font-cjk); }
+  .mono{ font-family:var(--font-mono); }
+
+  /* ---------- COVER ---------- */
+  .cover{
+    height:261mm;
+    background:var(--ink);
+    color:var(--cream);
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between;
+    padding:20mm 18mm;
+    break-after:page;
+    position:relative;
+    overflow:hidden;
+  }
+  .cover__top{ display:flex; align-items:center; gap:12px; }
+  .cover__logo{ width:46px; height:auto; display:block; }
+  .cover__wordmark{
+    font-family:var(--font-display); font-size:13pt; letter-spacing:.04em;
+    color:var(--white); text-transform:uppercase;
+  }
+  .cover__bar{ width:64px; height:6px; background:var(--wine); border-radius:3px; margin-bottom:18px; }
+  .cover__eyebrow{
+    font-size:10pt; font-weight:700; letter-spacing:.18em; text-transform:uppercase;
+    color:var(--wine-soft); margin-bottom:14px;
+  }
+  .cover h1{
+    font-family:var(--font-display); font-weight:400;
+    font-size:42pt; line-height:.98; letter-spacing:-.02em;
+    color:var(--white); margin:0 0 16px; max-width:16ch;
+  }
+  .cover__sub{ font-size:13.5pt; color:var(--cream); max-width:42ch; line-height:1.45; }
+  .cover__foot{ display:flex; justify-content:space-between; align-items:flex-end; font-size:10pt; color:var(--cream); }
+  .cover__foot strong{ color:var(--white); }
+  .cover__url{ font-family:var(--font-mono); color:var(--white); letter-spacing:.02em; }
+
+  /* ---------- DOC BODY ---------- */
+  .doc{ max-width:150mm; margin:0 auto; padding:8mm 0 4mm; }
+  .doc__intro{
+    font-size:12pt; line-height:1.5; color:var(--grey-700);
+    border-left:4px solid var(--wine); padding:2px 0 2px 16px; margin:0 0 14mm;
+  }
+
+  .step{ margin:0 0 11mm; }
+  .step__eyebrow{
+    display:inline-block; font-size:9pt; font-weight:700; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--wine); margin-bottom:5px;
+  }
+  .step h2{
+    font-family:var(--font-display); font-weight:400;
+    font-size:18pt; line-height:1.08; letter-spacing:-.01em;
+    color:var(--ink); margin:0 0 9px; break-after:avoid;
+  }
+  .step.climax h2{ color:var(--wine); }
+  .step.climax .step__eyebrow{ background:var(--wine); color:var(--white); padding:3px 9px; border-radius:5px; }
+  .step ul{ margin:6px 0 8px; padding-left:0; list-style:none; }
+  .step li{ position:relative; padding-left:18px; margin-bottom:6px; }
+  .step li::before{
+    content:""; position:absolute; left:0; top:7px;
+    width:7px; height:7px; border-radius:2px; background:var(--wine-soft);
+  }
+  .step li strong{ color:var(--ink); }
+
+  /* ---------- CALLOUTS ---------- */
+  .callout{
+    border-radius:10px; padding:12px 16px; margin:10px 0 4px;
+    break-inside:avoid; font-size:10pt; line-height:1.5;
+  }
+  .callout__label{
+    display:block; font-size:8.5pt; font-weight:800; letter-spacing:.13em;
+    text-transform:uppercase; margin-bottom:4px;
+  }
+  .callout.rule{ background:color-mix(in srgb, var(--wine) 9%, var(--paper)); border-left:4px solid var(--wine); }
+  .callout.rule .callout__label{ color:var(--wine); }
+  .callout.danger{ background:color-mix(in srgb, var(--danger) 9%, var(--paper)); border-left:4px solid var(--danger); }
+  .callout.danger .callout__label{ color:var(--danger); }
+  .callout.warn{ background:color-mix(in srgb, var(--gold) 14%, var(--paper)); border-left:4px solid var(--gold); }
+  .callout.warn .callout__label{ color:color-mix(in srgb, var(--gold) 40%, var(--ink)); }
+  .callout.tip{ background:var(--grey-100); border-left:4px solid var(--grey-300); }
+  .callout.tip .callout__label{ color:var(--grey-500); }
+  .callout.dtd{ background:var(--ink); color:var(--cream); border-left:4px solid var(--wine); }
+  .callout.dtd .callout__label{ color:color-mix(in srgb, var(--wine-soft) 60%, var(--cream)); }
+  .callout.dtd strong{ color:var(--white); }
+
+  /* Mantiene un bloque "héroe" (correo / tabla) junto a su encabezado: ni encabezado huérfano ni split. */
+  .keep{ break-inside:avoid; }
+
+  /* ---------- ADDRESS TABLE (Paso 8) ---------- */
+  .addr-wrap{ break-inside:avoid; margin:10px 0 6px; }
+  table.addr{
+    width:100%; border-collapse:collapse; font-size:9.5pt;
+    border:1px solid var(--grey-300); border-radius:10px; overflow:hidden;
+  }
+  table.addr th{
+    text-align:left; background:var(--ink); color:var(--cream);
+    font-family:var(--font-display); font-weight:400; font-size:9pt;
+    letter-spacing:.02em; padding:9px 12px;
+  }
+  table.addr td{ padding:8px 12px; border-top:1px solid var(--grey-200); vertical-align:top; }
+  table.addr tr:nth-child(even) td{ background:var(--white); }
+  table.addr tr:nth-child(odd) td{ background:var(--grey-100); }
+  table.addr .field{ width:42%; color:var(--grey-700); font-weight:600; }
+  table.addr .field .es{ display:block; font-size:8pt; font-weight:500; color:var(--grey-700); letter-spacing:.01em; }
+  table.addr .value{ color:var(--grey-900); }
+  table.addr tr.key td{ background:color-mix(in srgb, var(--wine) 9%, var(--paper)); }
+  table.addr tr.key .value{ font-weight:700; color:var(--wine); }
+
+  /* ---------- EMAIL / INQUIRY CARD ---------- */
+  .email-card{
+    background:var(--ink); color:color-mix(in srgb, var(--white) 82%, var(--ink)); border-radius:12px;
+    padding:16px 18px; margin:10px 0 6px; break-inside:avoid;
+    font-family:var(--font-mono),"Noto Sans SC",monospace;
+    font-size:9pt; line-height:1.6; white-space:pre-wrap;
+  }
+  .email-card .hl{ color:var(--cream); }
+  .email-card .q{ color:var(--cream); font-weight:700; }
+
+  /* ---------- FAQ ---------- */
+  .faq{ margin-top:9mm; }
+  .faq h2{
+    font-family:var(--font-display); font-weight:400; font-size:20pt;
+    color:var(--ink); letter-spacing:-.01em; margin:0 0 4mm;
+  }
+  .faq__item{ margin-bottom:9px; padding-bottom:9px; border-bottom:1px solid var(--grey-200); break-inside:avoid; }
+  .faq__q{ font-weight:700; color:var(--wine); margin-bottom:2px; }
+  .faq__a{ color:var(--grey-700); }
+
+  /* ---------- CLOSING / FUNNEL ---------- */
+  .closing{
+    break-inside:avoid; margin-top:8mm; background:var(--ink); color:var(--cream);
+    border-radius:14px; padding:20px 22px;
+  }
+  .closing__bar{ width:48px; height:5px; background:var(--wine); border-radius:3px; margin-bottom:12px; }
+  .closing h2{
+    font-family:var(--font-display); font-weight:400; font-size:18pt;
+    color:var(--white); margin:0 0 8px; letter-spacing:-.01em;
+  }
+  .closing p{ color:var(--cream); margin-bottom:8px; }
+  .closing strong{ color:var(--white); }
+  .closing .cta{
+    display:flex; gap:18px; margin-top:12px; padding-top:12px;
+    border-top:1px solid color-mix(in srgb, var(--cream) 22%, var(--ink)); flex-wrap:wrap;
+  }
+  .closing .cta__item{ flex:1; min-width:62mm; }
+  .closing .cta__k{ font-size:8.5pt; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--wine-soft); margin-bottom:3px; }
+  .closing .cta__v{ font-size:10pt; color:var(--white); }
+  .closing .cta__v .url{ font-family:var(--font-mono); }
+</style>
+</head>
+<body>
+
+  <!-- ========================= COVER ========================= -->
+  <section class="cover">
+    <div class="cover__top">
+      <img class="cover__logo" src="__LOGO_REVERSE__" alt="DTD Cargo">
+      <span class="cover__wordmark">DTD&nbsp;Cargo</span>
+    </div>
+
+    <div class="cover__center">
+      <div class="cover__bar"></div>
+      <div class="cover__eyebrow">Curso de bienvenida · Gratis</div>
+      <h1>Cómo comprar en Alibaba y traerlo a Venezuela</h1>
+      <div class="cover__sub">Guía paso a paso para comprar seguro en China y recibirlo puerta a puerta — con tu equipo en Yiwu y en Venezuela.</div>
+    </div>
+
+    <div class="cover__foot">
+      <div><strong>DTD&nbsp;Cargo</strong><br>Tu equipo en China y en Venezuela</div>
+      <div class="cover__url">dtdcargo.com</div>
+    </div>
+  </section>
+
+  <!-- ========================= DOC ========================= -->
+  <main class="doc">
+
+    <p class="doc__intro">Esta es la guía completa del curso. Síguela paso a paso: cuenta, proveedor seguro, pago protegido y tu mercancía en camino a tu puerta. Lo que tú no haces —naviera, aduana y flete internacional— lo hacemos nosotros.</p>
+
+    <!-- Paso 0 -->
+    <section class="step">
+      <span class="step__eyebrow">Paso 0</span>
+      <h2>Respira: comprar en China es seguro (si sabes cómo)</h2>
+      <p>Miles de venezolanos —empresas y emprendedores— traen productos de China cada mes. El secreto no es la suerte: es <strong>seguir un proceso</strong>. Eso es lo que vas a aprender aquí, gratis, paso a paso.</p>
+      <p>Y no estás solo: <strong>DTD Cargo es tu equipo en China y en Venezuela.</strong> Tú compras en Alibaba; nosotros recibimos tu mercancía en nuestra bodega de Yiwu, la consolidamos y te la llevamos <strong>puerta a puerta</strong> a tu ciudad. Tú no peleas con navieras, aduana ni fletes internacionales.</p>
+      <div class="callout rule">
+        <span class="callout__label">La regla de oro</span>
+        El 90% de los problemas vienen de saltarse pasos o de pagar por fuera de la plataforma. Sigue esta guía y los evitas casi todos.
+      </div>
+    </section>
+
+    <!-- Paso 1 -->
+    <section class="step">
+      <span class="step__eyebrow">Paso 1</span>
+      <h2>Crea tu cuenta (y saca tu MARKBOX)</h2>
+      <p><strong>Tu cuenta de Alibaba es gratis y toma 5 minutos.</strong> Entra a <strong>alibaba.com</strong> → “Sign in / Join Free” → regístrate como <strong>comprador (Buyer)</strong>.</p>
+      <ul>
+        <li>Usa un <strong>correo de empresa</strong> (no uno genérico). Los proveedores serios toman más en serio a quien se ve profesional.</li>
+        <li>Completa tu <strong>perfil</strong> lo más posible (país: Venezuela, nombre de tu empresa). Si tú te presentas serio, el proveedor te responde en serio.</li>
+        <li>Pon <strong>contraseña fuerte + verificación en dos pasos (2FA)</strong>. Es tu cuenta de compras: protégela.</li>
+      </ul>
+      <div class="callout dtd">
+        <span class="callout__label">El primer paso DTD</span>
+        Regístrate gratis en <strong>dtdcargo.com/registro</strong> y recibes al instante tu <strong>MARKBOX</strong> (tu Shipping Mark, ej. <span class="mono">DTD-1042</span>). Es tu código único: lo usarás en el Paso 8 para que tu caja llegue identificada a nuestra bodega. Guárdalo.
+      </div>
+    </section>
+
+    <!-- Paso 2 -->
+    <section class="step">
+      <span class="step__eyebrow">Paso 2</span>
+      <h2>Busca tu producto como un profesional</h2>
+      <p>Un buen pedido empieza con una buena búsqueda.</p>
+      <ul>
+        <li><strong>Busca en inglés.</strong> Traduce tu producto (ej. <em>zapatos deportivos → sports shoes</em>). ¿No sabes el término exacto? Pídele a una IA “dame 10 términos de búsqueda para [producto], del más al menos importante”.</li>
+        <li><strong>Busca por imagen.</strong> Sube una foto del producto que tienes en mente y Alibaba te muestra proveedores con ese diseño. Es la forma más rápida de llegar a lo que quieres.</li>
+        <li><strong>Por producto vs. por proveedor:</strong> si ya sabes qué diseño quieres, busca por producto. Si tu producto aún no existe (lo vas a mandar a fabricar), busca por <strong>proveedores/fabricantes</strong> que personalicen.</li>
+        <li>Guarda <strong>5 a 10 candidatos</strong> para comparar. No te cases con el primero que aparece.</li>
+      </ul>
+    </section>
+
+    <!-- Paso 3 -->
+    <section class="step">
+      <span class="step__eyebrow">Paso 3</span>
+      <h2>Separa los proveedores serios de los riesgosos</h2>
+      <p>Acá está el corazón de comprar sin miedo: <strong>leer las señales de confianza.</strong> Usa estos filtros en Alibaba:</p>
+      <ul>
+        <li><strong>Trade Assurance</strong> — la protección de Alibaba. Si el proveedor no entrega o la calidad no es la pactada, te ayudan a recuperar tu dinero. <strong>Compra SIEMPRE con Trade Assurance.</strong></li>
+        <li><strong>Verified Supplier (proveedor verificado)</strong> — esa insignia no se regala: el proveedor pasó inspecciones de terceros (licencia comercial, ubicación real, control de calidad, certificaciones). Es un sello de confianza.</li>
+        <li><strong>Años en la plataforma + reseñas + response rate.</strong> Un proveedor con historial es más seguro.</li>
+        <li>Si quieres, filtra por <strong>país</strong> del proveedor o por <strong>+5 años</strong> de experiencia.</li>
+      </ul>
+      <div class="callout danger">
+        <span class="callout__label">Banderas rojas</span>
+        Precio demasiado bueno para ser verdad · sin Trade Assurance · casi sin historial · o que insiste en sacarte de la plataforma. Si ves esto, sigue de largo.
+      </div>
+      <div class="callout dtd">
+        <span class="callout__label">Tu ventaja con DTD</span>
+        Si dudas de un proveedor o de la calidad, nuestro equipo en Yiwu puede ir a verlo o revisar la mercancía <strong>antes de que pagues el saldo</strong>. Estamos en terreno.
+      </div>
+    </section>
+
+    <!-- Paso 4 -->
+    <section class="step">
+      <span class="step__eyebrow">Paso 4</span>
+      <h2>¿Fabricante o intermediario? Lee bien la página del proveedor</h2>
+      <p>La <strong>página del producto</strong> te da info general, pero la <strong>página del proveedor</strong> (haz clic en el nombre de la empresa) te muestra sus capacidades reales.</p>
+      <ul>
+        <li><strong>Fabricante (manufacturer):</strong> controla todo el proceso, de la materia prima al producto. Suele ser más económico.</li>
+        <li><strong>Trading company (intermediario):</strong> no siempre es la fábrica; trabaja con fábricas asociadas. A veces consigue mejores precios por volumen — <strong>no la descartes solo por serlo</strong>; compara precio, tiempo y personalización.</li>
+        <li>En la página del proveedor mira: <strong>años reales operando</strong>, <strong>catálogo</strong> (¿está especializado en tu material o hace de todo?), <strong>certificaciones (ISO), líneas de producción, on-time delivery rate, nº de pedidos y facturación</strong>.</li>
+        <li>Si ofrecen <strong>reporte de inspección descargable</strong>, bájalo y compáralo con lo que ves.</li>
+      </ul>
+      <div class="callout tip">
+        <span class="callout__label">En corto</span>
+        Quieres trabajar con una fábrica <strong>experta en tu tipo de producto</strong>, no con una que un día hace madera y otro día metal.
+      </div>
+    </section>
+
+    <!-- Paso 5 -->
+    <section class="step">
+      <div class="keep">
+      <span class="step__eyebrow">Paso 5</span>
+      <h2>Contáctalos bien: el correo paso a paso</h2>
+      <p>No necesitas inglés perfecto; necesitas <strong>las preguntas correctas</strong>. Y NUNCA escribas solo <em>“please give me price”</em> — eso te delata como alguien que no va en serio, y te ignoran.</p>
+      <p>Desarrolla <strong>una plantilla</strong> y mándasela a tus 3-5 finalistas. Esta es la nuestra (tradúcela al inglés con una IA y envíala en inglés):</p>
+      <div class="email-card"><span class="hl">Hello [supplier name],</span>
+
+My name is [tu nombre], purchasing manager at [tu empresa], an online retail
+business based in Venezuela. We're looking to start a long-term partnership and
+would like you to become our main supplier of [tu producto].
+
+[Sé MUY específico: dimensiones, material, color, acabado, si lleva tu logo,
+nivel de personalización. Mientras más claro, mejor te cotizan.]
+
+Please answer below each question:
+<span class="q">1)</span> EX-WORKS (EXW) price per unit for 300, 500 and 1000 units.
+<span class="q">2)</span> Can you add our logo to the product?
+<span class="q">3)</span> How do you pack it? Is custom packaging included or extra?
+<span class="q">4)</span> Can you print our barcode on the packaging?
+<span class="q">5)</span> Can you send a sample, and how much would it cost?
+<span class="q">6)</span> Production + packing lead time for 300 / 500 / 1000 units.
+<span class="q">7)</span> Can you deliver the goods to our warehouse in Yiwu, China?
+   Address: <span class="cjk">浙江省义乌市义乌港二期直通仓2栋2号 货7-货11</span> (Yiwu, Zhejiang)
+<span class="q">8)</span> [Lo que quieras mejorar/personalizar del producto.]
+
+Thank you!</div>
+      </div>
+      <p style="margin-top:10px"><strong>Por qué así, y el ajuste DTD clave:</strong></p>
+      <ul>
+        <li>Pides el precio <strong>EXW</strong> = el precio del producto listo en su fábrica, <strong>sin envío</strong>. Así comparas el costo real entre proveedores sin que te mezclen fletes.</li>
+        <li><strong>No le pidas al proveedor que te envíe a Venezuela (DDP/DAP).</strong> En la pregunta 7 le pides que entregue en <strong>nuestra bodega de Yiwu</strong> (flete interno chino, barato). El envío internacional + aduana + entrega a tu puerta lo hace DTD. Tú solo llevas la mercancía hasta nosotros.</li>
+        <li>Presentarte buscando <strong>relación a largo plazo</strong> y con un volumen serio hace que te tomen en cuenta.</li>
+      </ul>
+      <div class="callout tip">
+        <span class="callout__label">¿No quieres hacerlo tú?</span>
+        Con la <strong>compra asistida de DTD</strong> somos tu departamento de compras en China: ubicamos, negociamos y gestionamos por ti. <em>(Opcional — el curso te enseña a hacerlo solo.)</em>
+      </div>
+    </section>
+
+    <!-- Paso 6 -->
+    <section class="step">
+      <span class="step__eyebrow">Paso 6</span>
+      <h2>Pide muestra antes de pedir mucho</h2>
+      <p>Ver antes de creer. <strong>Una muestra barata evita un pedido grande malo.</strong></p>
+      <ul>
+        <li>Antes de un pedido grande, pide <strong>1-3 muestras</strong> a <strong>3-5 proveedores</strong>. Sí, pagas por ellas — es la inversión más barata que harás.</li>
+        <li>Compara la muestra contra tus especificaciones del Paso 2: material, tamaño, terminación, funcionamiento.</li>
+        <li>¿Mandar la muestra a Venezuela es caro o lento? <strong>Mándala a nuestra bodega en Yiwu</strong>: la revisamos por ti y te mandamos fotos y video. También hacemos <strong>control de calidad del pedido completo</strong> cuando llega.</li>
+      </ul>
+    </section>
+
+    <!-- Paso 7 -->
+    <section class="step">
+      <span class="step__eyebrow">Paso 7</span>
+      <h2>Paga seguro (y nunca por fuera)</h2>
+      <p>El miedo número uno es <em>“pago y no me llega”</em>. Acá lo blindamos:</p>
+      <ul>
+        <li>Paga <strong>DENTRO de Alibaba con Trade Assurance</strong>. Tu dinero queda en <strong>escrow</strong> (garantía): Alibaba lo retiene y lo libera al proveedor cuando todo está bien. Si algo sale mal, reclamas con fotos y te ayudan a recuperarlo.</li>
+      </ul>
+      <div class="callout danger">
+        <span class="callout__label">Regla antifraude</span>
+        Nunca pagues a una cuenta personal ni por fuera de la plataforma, <strong>aunque te ofrezcan 3-5% de descuento</strong>. Eso elimina toda la protección. Pago por dentro = protección.
+      </div>
+      <div class="callout dtd">
+        <span class="callout__label">Tu ventaja con DTD</span>
+        Si tienes dudas de cómo o a quién pagar, escríbenos <strong>antes</strong> de transferir. Preferimos aclararte 5 minutos que verte perder dinero.
+      </div>
+    </section>
+
+    <!-- Paso 8 — CLÍMAX -->
+    <section class="step climax">
+      <div class="keep">
+      <span class="step__eyebrow">Paso 8 · El paso clave</span>
+      <h2>El paso DTD: tu dirección = nuestra bodega en Yiwu</h2>
+      <p>Aquí está lo que nos hace diferentes. Mientras otros te reciben en <strong>Miami</strong> (un desvío), <strong>DTD recibe tu mercancía directo en China, en nuestra bodega de Yiwu.</strong> Tu MARKBOX funciona como tu “casillero”: el código con el que sabemos que la caja es tuya.</p>
+      <p><strong>Cuando compres o cotices, pon ESTA dirección como destino en Alibaba</strong> (cópiala campo por campo; el chino va <strong>tal cual, sin traducir</strong> — es para el transporte dentro de China):</p>
+      <div class="addr-wrap">
+        <table class="addr">
+          <thead><tr><th>Campo</th><th>Qué pones</th></tr></thead>
+          <tbody>
+            <tr><td class="field"><span class="cjk">国家/地区</span><span class="es">País</span></td><td class="value">China</td></tr>
+            <tr class="key"><td class="field"><span class="cjk">收货人</span><span class="es">Destinatario</span></td><td class="value">DTD Cargo - <span class="mono">[TU MARKBOX]</span> &nbsp;(ej. <span class="mono">DTD Cargo - DTD-1042</span>)</td></tr>
+            <tr><td class="field"><span class="cjk">电话</span><span class="es">Teléfono</span></td><td class="value mono">18606891419</td></tr>
+            <tr><td class="field"><span class="cjk">地址</span><span class="es">Dirección</span></td><td class="value cjk">浙江省义乌市义乌港二期直通仓2栋2号 货7-货11</td></tr>
+            <tr><td class="field"><span class="cjk">省</span><span class="es">Provincia</span></td><td class="value"><span class="cjk">浙江省</span> (Zhejiang)</td></tr>
+            <tr><td class="field"><span class="cjk">市</span><span class="es">Ciudad</span></td><td class="value"><span class="cjk">义乌市</span> (Yiwu — en el selector aparece bajo <span class="cjk">金华市</span> / Jinhua)</td></tr>
+            <tr><td class="field"><span class="cjk">邮编</span><span class="es">Código postal</span></td><td class="value mono">322000</td></tr>
+            <tr><td class="field"><span class="cjk">仓库联系人</span><span class="es">Contacto de bodega</span></td><td class="value"><span class="cjk">林冠</span> (Lin Guan)</td></tr>
+            <tr><td class="field">Email</td><td class="value mono">info@dtdcargo.com</td></tr>
+          </tbody>
+        </table>
+      </div>
+      </div>
+      <div class="callout warn">
+        <span class="callout__label">Lo más importante</span>
+        En el formulario de Alibaba el destinatario lleva <strong>“DTD Cargo + tu MARKBOX”</strong>. Pero en el <strong>rótulo físico de la caja</strong> va <strong>SOLO tu MARKBOX</strong> — sin tu nombre, dirección ni teléfono personal (los datos personales en la caja causan confusión o decomiso). Sin tu MARKBOX, la caja llega a la bodega pero no podemos saber de quién es.
+      </div>
+      <p><em>En dtdcargo.com tienes una herramienta que arma estos campos con tu MARKBOX y un botón “copiar” en cada uno — úsala para no equivocarte.</em></p>
+      <div class="callout tip">
+        <span class="callout__label">Avísanos qué viene</span>
+        Cuéntanos cuántas cajas, qué producto y el peso/volumen aproximado, así lo recibimos bien y empezamos la consolidación.
+      </div>
+    </section>
+
+    <!-- Paso 9 -->
+    <section class="step">
+      <span class="step__eyebrow">Paso 9</span>
+      <h2>De China a tu puerta: nos encargamos nosotros</h2>
+      <p>¡Ya casi! Aquí tu pedido pasa a nuestras manos:</p>
+      <ul>
+        <li>Recibimos y revisamos tu mercancía en Yiwu, la <strong>consolidamos</strong> con otros pedidos para que pagues menos flete, gestionamos el <strong>envío marítimo</strong> y la <strong>aduana</strong>, y te la entregamos <strong>puerta a puerta</strong> en tu ciudad en Venezuela.</li>
+        <li>Tú <strong>pagas al llegar</strong>* — no peleas con navieras ni con aduana. Te avisamos en cada etapa hasta la entrega. <em>(*Aplican condiciones según tu envío.)</em></li>
+        <li>El envío va por <strong>barco</strong> (60 a 90 días según ruta y salidas). Para muestras urgentes tenemos <strong>courier express</strong> de paquetería pequeña.</li>
+      </ul>
+      <div class="callout tip">
+        <span class="callout__label">Sigue tu carga</span>
+        Entra a tu portal en <strong>dtdcargo.com/portal</strong> con tu MARKBOX y mira en qué etapa va tu envío.
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq">
+      <h2>Preguntas frecuentes</h2>
+      <div class="faq__item"><div class="faq__q">¿Es seguro comprar en China por Alibaba?</div><div class="faq__a">Sí, si compras con <strong>Trade Assurance</strong> y pagas <strong>dentro de la plataforma</strong>. Esta guía te enseña exactamente cómo.</div></div>
+      <div class="faq__item"><div class="faq__q">¿Tengo que comprar mucha cantidad?</div><div class="faq__a">No siempre. El proveedor pone un mínimo (MOQ), pero muchos negocian <strong>órdenes de prueba</strong>. Y con DTD traes <strong>carga suelta (LCL)</strong>: pagas solo por el volumen que ocupas.</div></div>
+      <div class="faq__item"><div class="faq__q">¿Cómo pago la mercancía?</div><div class="faq__a">Dentro de Alibaba con Trade Assurance. El <strong>flete con DTD lo pagas al llegar</strong>*.</div></div>
+      <div class="faq__item"><div class="faq__q">¿Cuánto tarda?</div><div class="faq__a">El barco tarda <strong>60 a 90 días</strong> (flete interno en China + salida + travesía). Te avisamos en cada etapa.</div></div>
+      <div class="faq__item"><div class="faq__q">¿A qué ciudades entregan?</div><div class="faq__a">A <strong>toda Venezuela</strong>, puerta a puerta. Dinos tu ciudad y te confirmamos.</div></div>
+      <div class="faq__item"><div class="faq__q">¿Qué pongo como dirección en Alibaba?</div><div class="faq__a">La de <strong>nuestra bodega en Yiwu + tu MARKBOX</strong> (Paso 8).</div></div>
+      <div class="faq__item"><div class="faq__q">¿Los proveedores hablan español?</div><div class="faq__a">Normalmente no, trabajan en inglés. Usa la plantilla del Paso 5 (tradúcela con una IA).</div></div>
+    </section>
+
+    <!-- Cierre / funnel -->
+    <section class="closing">
+      <div class="closing__bar"></div>
+      <h2>Lo lograste</h2>
+      <p>Pasaste del miedo a comprar en China como un profesional: cuenta lista, proveedor verificado, pago protegido y tu mercancía en camino a tu puerta. <strong>Eso ya es ser importador.</strong></p>
+      <p>¿Quieres ir más a fondo? Este es el curso de bienvenida (gratis). En la <strong>Academia DTD</strong> tenemos cursos <strong>avanzados</strong> para escalar: sourcing en 1688, contenedor completo, negociación pro y más. <em>(Próximamente.)</em></p>
+      <div class="cta">
+        <div class="cta__item">
+          <div class="cta__k">Empieza hoy</div>
+          <div class="cta__v">Saca tu MARKBOX gratis en <span class="url">dtdcargo.com/registro</span></div>
+        </div>
+        <div class="cta__item">
+          <div class="cta__k">Sigue tu carga</div>
+          <div class="cta__v">Tu portal en <span class="url">dtdcargo.com/portal</span></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

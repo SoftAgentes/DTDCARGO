@@ -56,11 +56,25 @@ repo, el componente `components/AlibabaAddressGuide.tsx` (widget de dirección) 
 
 ## Entrega (mi carril — contenido/docs)
 
-- `assets/guia-comprar-alibaba.md` — guion maestro combinado (fuente única → PDF + mini-videos).
+- `assets/guia-comprar-alibaba.md` — guion maestro (fuente **narrativa** del texto → mini-videos + base del PDF).
 - `assets/guion-mini-videos.md` — los ~10 mini-videos (gancho + contenido + CTA + texto en pantalla).
-- `assets/guia-comprar-alibaba.pdf` — PDF DTD-branded (vía skill `make-pdf`), descargable del curso.
+- `assets/guia-comprar-alibaba.html` — **print-master DTD-branded** (tokens de marca + Google Fonts + Noto Sans
+  SC para el CJK; logos vía tokens `__LOGO_*__`); es la fuente del PDF.
+- `scripts/build-guia-pdf.mjs` — renderiza el HTML a PDF con **Chromium headless (Playwright)**. Inyecta los
+  logos como base64 y espera `document.fonts.ready` (el chino renderiza sin cuadritos). Flag `--png` =
+  screenshots de control. Se corre directo: `node scripts/build-guia-pdf.mjs`.
+- `assets/guia-comprar-alibaba.pdf` — PDF descargable del curso, **generado del HTML** (reemplaza al de
+  `make-pdf`, que no permite temática de marca). A4, ~9 págs, logo + wine/navy/cream + tabla de dirección Yiwu.
 - `assets/outline-curso-academia.md` — módulos/lecciones para `feat/academia` (tier=`gratis`, `free_preview`,
   `widget='alibaba_address'`, `video_url`, `asset_path`).
+- `public/guias/comprar-en-alibaba.html` — **guía interactiva DTD-branded** (re-skin del prototipo v2 del
+  founder), **servible en `/guias/comprar-en-alibaba.html`**: app gamificada y adaptativa por perfil
+  (Agente/Emprendedor) + calculadoras (CBM, costo real, scorecard) + captura progresiva de lead. Marca DTD
+  (tokens + Archivo/Archivo Black/JetBrains Mono/Noto Sans SC, isologo base64, **cero gradientes/emojis**),
+  datos reales cableados (WhatsApp CRM + dirección Yiwu + MARKBOX-CTA).
+- `docs/runbooks/academia-guia-alibaba-interactiva.md` — **hand-off a `feat/academia`** para enchufar la guía
+  como lección de la Academia (migración del widget `alibaba_curso` + componente iframe + render + seed).
+  Decisión founder: el carril `academy_*`/portal lo aplica esa ventana, no esta rama.
 
 ## Fuera de alcance
 
@@ -74,4 +88,4 @@ repo, el componente `components/AlibabaAddressGuide.tsx` (widget de dirección) 
 - [ ] El "paso DTD" (dirección Yiwu + MARKBOX, EXW no DDP) es el clímax y reusa el widget existente.
 - [ ] **Cero menciones a competidores/terceros**; solo marca/tokens DTD en el PDF.
 - [ ] Funnel: cada mini-video/cierre → registro (MARKBOX) + teaser a cursos avanzados.
-- [ ] `docs:check` verde; `ui-ux-designer` revisó el PDF. Commit en `feat/guia-comprar-alibaba` (sin push).
+- [ ] `docs:check` verde; `ui-ux-designer` revisó el PDF **y la guía interactiva**. Commit en `feat/guia-comprar-alibaba` (sin push).
