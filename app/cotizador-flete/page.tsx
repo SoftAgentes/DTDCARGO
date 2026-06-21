@@ -39,14 +39,14 @@ export default function CotizadorFletePage() {
               <span style={{ color: "var(--color-wine)" }}>China a tu puerto.</span>
             </h1>
             <p className="lead mt-6">
-              Elige el puerto de origen en China y tu destino, y mira un flete
-              estimado al instante. Es un precio referencial para que te orientes;
-              tu asesor lo cierra en firme con cupo y fecha.
+              Elige tu ciudad o puerto de origen en China y tu destino, y mira un
+              flete estimado al instante. Es un precio referencial para que te
+              orientes; tu asesor lo cierra en firme con cupo y fecha.
             </p>
             <div className="mt-8 flex flex-col gap-4 text-[15px] text-grey-700">
               {[
-                ["Contenedor completo (FCL).", "20', 40' y 40' High Cube, estándar o refrigerado."],
-                ["Puerto a puerto.", "Salidas desde los puertos principales de China hacia Venezuela."],
+                ["Contenedor completo (FCL).", "Estimado al instante en 40' High Cube; otras medidas con tu asesor."],
+                ["Desde tu ciudad.", "Elige tu ciudad de China (Yiwu, Guangzhou, Shenzhen…) y calculamos desde su puerto."],
                 ["¿Carga suelta (LCL)?", "Calcúlala en nuestra calculadora. ¿Puerta a puerta? Pídenos el DDP."],
               ].map(([t, d]) => (
                 <div key={t} className="flex items-start gap-3">

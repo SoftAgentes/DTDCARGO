@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { CONTACT } from "@/lib/design-tokens";
 import {
-  OCEAN_ORIGINS,
+  OCEAN_ORIGIN_CITIES,
   OCEAN_DESTINATIONS,
   OCEAN_CONTAINERS,
   validateOceanRouteInput,
@@ -20,8 +20,9 @@ import { ArrowIcon, CheckIcon, WarningIcon } from "./Icon";
 /**
  * Cotizador público de flete marítimo (SDD-0095 Slice B).
  *
- * Form puerto→puerto (candado de país: origen China, destino Venezuela/Barranquilla)
- * que pega a `/api/public/ocean-rate` y muestra el flete CACHEADO — 0 llamadas a
+ * Form ciudad/puerto→puerto: el origen es una CIUDAD de China que se resuelve a su
+ * puerto export cacheado (Yiwu → Ningbo); el destino es un puerto de Venezuela. Pega
+ * a `/api/public/ocean-rate` y muestra el flete CACHEADO — 0 llamadas a
  * SeaRates por visita. White-label: nunca se nombra al proveedor ni a la naviera.
  * El número visible pasa por `applyFreightMarkup` (default 0 = flete crudo).
  *
@@ -43,7 +44,7 @@ const FIELD =
   "h-12 px-3.5 rounded-[10px] bg-grey-100 border-0 outline-none text-[14.5px] font-medium text-ink focus:ring-2 focus:ring-wine/40";
 
 export function CotizadorFletes() {
-  const [pointIdFrom, setFrom] = useState(OCEAN_ORIGINS[0]?.id ?? "");
+  const [originCityId, setOriginCity] = useState(OCEAN_ORIGIN_CITIES[0]?.id ?? "");
   const [pointIdTo, setTo] = useState(OCEAN_DESTINATIONS[0]?.id ?? "");
   // Este cotizador es SOLO FCL (full container). El LCL público vive en /calculadora.
   // Default: 40' High Cube (decisión founder).
@@ -54,6 +55,8 @@ export function CotizadorFletes() {
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    // La ciudad de origen se resuelve a su puerto export cacheado (Yiwu → Ningbo).
+    const pointIdFrom = OCEAN_ORIGIN_CITIES.find((c) => c.id === originCityId)?.portId ?? "";
     const { input, fieldErrors } = validateOceanRouteInput({
       pointIdFrom,
       pointIdTo,
@@ -85,7 +88,7 @@ export function CotizadorFletes() {
     }
   }
 
-  const originName = OCEAN_ORIGINS.find((p) => p.id === pointIdFrom)?.name ?? "China";
+  const originName = OCEAN_ORIGIN_CITIES.find((c) => c.id === originCityId)?.name ?? "China";
   const destName = OCEAN_DESTINATIONS.find((p) => p.id === pointIdTo)?.name ?? "Venezuela";
   const modeLabel = `Marítimo FCL · ${CONTAINER_LABELS[container] ?? container}`;
 
@@ -104,11 +107,15 @@ export function CotizadorFletes() {
         className="card-shadow bg-white border border-grey-200 rounded-[18px] p-7 lg:p-9 flex flex-col gap-5"
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Row label="Origen">
-            <select className={FIELD} value={pointIdFrom} onChange={(e) => setFrom(e.target.value)}>
-              {OCEAN_ORIGINS.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
+          <Row label="Origen (ciudad o puerto)">
+            <select
+              className={FIELD}
+              value={originCityId}
+              onChange={(e) => setOriginCity(e.target.value)}
+            >
+              {OCEAN_ORIGIN_CITIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>

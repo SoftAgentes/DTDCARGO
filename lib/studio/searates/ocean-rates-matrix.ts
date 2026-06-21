@@ -5,7 +5,7 @@
  * destinos × [40'HQ]. La query a SeaRates usa COORDENADAS (`coordsFrom`/`coordsTo`
  * del catálogo) → agregar un puerto al cotizador = sumar su lat/lng, sin cazar IDs.
  *
- *   5 orígenes (CN) × 4 destinos (VE+CO) × 1 contenedor (40'HQ, el default) = 20 rutas
+ *   4 puertos export (CN) × 5 destinos (VE) × 1 contenedor (40'HQ, el default) = 20 rutas
  *   = WEEKLY_CALL_CAP. Cacheamos SOLO el 40'HQ (founder 2026-06-21): así entran MÁS
  *   puertos dentro del tope de 20; el 20'/40' estándar cae a "pedir por WhatsApp".
  *
