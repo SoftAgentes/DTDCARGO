@@ -64,6 +64,7 @@ export const MODULES: ModuleDef[] = [
   { id: "despacho-rules", group: "OPERACIÓN", label: "Reglas despacho", labelKey: "chrome.sidebar.dispatch_rules", icon: "shield", slug: "/studio/despacho/reglas" },
   { id: "despacho-dashboard", group: "OPERACIÓN", label: "Dashboard despacho", labelKey: "chrome.sidebar.dispatch_dashboard", icon: "chart", slug: "/studio/despacho/dashboard" },
   { id: "admin-rutas", group: "OPERACIÓN", label: "Rutas y ciudades", labelKey: "chrome.sidebar.routes_cities", icon: "radar", slug: "/studio/admin/rutas" },
+  { id: "reclamos", group: "OPERACIÓN", label: "Reclamos", icon: "shield", slug: "/studio/reclamos" },
 
   // COMERCIAL
   { id: "quotes", group: "COMERCIAL", label: "Estimados", labelKey: "chrome.sidebar.quotes", icon: "calc", slug: "/studio/cotizador" },

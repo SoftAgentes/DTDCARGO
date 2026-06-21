@@ -60,6 +60,9 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   "despacho-rules": ["operations"],
   "despacho-dashboard": ["operations", "warehouse"],
   "admin-rutas": ["operations"],
+  // Post-venta (SDD-0101): atención (commercial/operations) abre; accounting ve
+  // indemnizaciones; support read-only. admin siempre.
+  reclamos: ["commercial", "operations", "accounting", "support"],
 
   // ─── COMERCIAL ───────────────────────────────────────────────
   quotes: ["commercial", "operations", "accounting", "support"],
