@@ -25,8 +25,8 @@ import { OCEAN_RATES_MATRIX, type OceanMatrixRoute } from "./ocean-rates-matrix"
  * (Oleh 2026-06-18: 100/mes ES el cap del plan; 2.000-3.000/mes requieren la
  *  subscripción paga "Logistics Explorer API" aparte.)
  * Es un GUARD de cuota: aunque la matriz crezca, el cron nunca consulta más de
- * 20 rutas/corrida. La matriz actual (18) ya cabe debajo — el cap solo recorta
- * si se expanden puertos sin subir el plan.
+ * 20 rutas/corrida. La matriz actual (20) toca el tope — el cap recorta si se
+ * expanden más puertos sin subir el plan.
  */
 export const WEEKLY_CALL_CAP = 20;
 
@@ -75,10 +75,10 @@ export function mapRateToRow(
   fetchedAt: string,
 ): OceanRateRow {
   const base = {
-    point_from: route.pointIdFrom,
-    point_to: route.pointIdTo,
+    point_from: route.fromId,
+    point_to: route.toId,
     shipping_type: route.shippingType,
-    container: route.container ?? "",
+    container: route.container,
     fetched_at: fetchedAt,
   };
 
@@ -144,12 +144,10 @@ export async function refreshOceanRates(
     let rate: SeaRatesRate;
     try {
       rate = await opts.fetchRate({
-        pointIdFrom: route.pointIdFrom,
-        pointIdTo: route.pointIdTo,
+        coordsFrom: route.coordsFrom,
+        coordsTo: route.coordsTo,
         shippingType: route.shippingType,
         container: route.container,
-        volumeM3: route.volumeM3,
-        weightKg: route.weightKg,
       });
     } catch (e) {
       // getOceanRate NO tira, pero por las dudas: una excepción = fila 'error'.

@@ -16,11 +16,17 @@ export type OceanShippingType = "FCL" | "LCL";
 export type OceanCountry = "CN" | "VE" | "CO";
 export type OceanRateStatus = "ok" | "no_rate" | "error";
 
-/** Punto SeaRates permitido en el cotizador público. `id` = "P_<n>". */
+/**
+ * Punto del cotizador público. `id` = slug estable (clave de caché + value del
+ * <select>). `lat`/`lng` = coords [lat,lng] para la query a SeaRates
+ * (`coordinatesFrom/To`) → agregar un puerto = sumar su lat/lng, sin cazar el `P_<n>`.
+ */
 export type OceanPoint = {
   id: string;
   name: string;
   country: OceanCountry;
+  lat: number;
+  lng: number;
 };
 
 /**
@@ -32,21 +38,23 @@ export type OceanContainer = (typeof OCEAN_CONTAINERS)[number];
 
 /**
  * Catálogo de puntos permitidos (= allowlist del candado de país). Origen China,
- * destino Venezuela + Barranquilla. IDs confirmados en vivo contra SeaRates.
- *
- * TODO Fase 2 slice B: expandir a todos los puertos CN/VE + resolver el ID de
- * Barranquilla (CO) — hoy se omite porque aún no tenemos su "P_<n>".
+ * destino Venezuela + Barranquilla. Coords [lat,lng] validadas EN VIVO contra
+ * SeaRates (todas devuelven tarifas reales). La query usa `coordinatesFrom/To`, así
+ * que sumar un puerto = agregar su lat/lng (no hace falta cazar el `P_<n>`).
  */
 export const OCEAN_ORIGINS: readonly OceanPoint[] = [
-  { id: "P_27395", name: "Nansha", country: "CN" },
-  { id: "P_27079", name: "Shekou", country: "CN" },
+  { id: "nansha", name: "Nansha", country: "CN", lat: 22.76, lng: 113.62 },
+  { id: "shekou", name: "Shekou", country: "CN", lat: 22.48, lng: 113.9 },
+  { id: "ningbo", name: "Ningbo", country: "CN", lat: 29.87, lng: 121.83 },
+  { id: "shanghai", name: "Shanghai", country: "CN", lat: 31.23, lng: 121.49 },
+  { id: "qingdao", name: "Qingdao", country: "CN", lat: 36.08, lng: 120.32 },
 ];
 
 export const OCEAN_DESTINATIONS: readonly OceanPoint[] = [
-  { id: "P_19774", name: "La Guaira", country: "VE" },
-  { id: "P_19792", name: "Puerto Cabello", country: "VE" },
-  { id: "P_19772", name: "Guanta", country: "VE" },
-  // TODO Fase 2: { id: "P_<barranquilla>", name: "Barranquilla", country: "CO" },
+  { id: "la-guaira", name: "La Guaira", country: "VE", lat: 10.6, lng: -66.93 },
+  { id: "puerto-cabello", name: "Puerto Cabello", country: "VE", lat: 10.48, lng: -68.01 },
+  { id: "guanta", name: "Guanta", country: "VE", lat: 10.24, lng: -64.59 },
+  { id: "barranquilla", name: "Barranquilla", country: "CO", lat: 11.0, lng: -74.8 },
 ];
 
 const ORIGIN_IDS = new Set(OCEAN_ORIGINS.map((p) => p.id));
@@ -54,7 +62,7 @@ const DEST_IDS = new Set(OCEAN_DESTINATIONS.map((p) => p.id));
 
 /** Busca un punto (origen o destino) por ID. */
 export function findOceanPoint(id: string): OceanPoint | undefined {
-  const norm = id.trim().toUpperCase();
+  const norm = id.trim().toLowerCase();
   return (
     OCEAN_ORIGINS.find((p) => p.id === norm) ??
     OCEAN_DESTINATIONS.find((p) => p.id === norm)
@@ -78,7 +86,7 @@ export type OceanRouteValidation =
   | { input: OceanRouteInput; fieldErrors?: undefined }
   | { input?: undefined; fieldErrors: OceanRouteFieldErrors };
 
-const POINT_ID_RE = /^P_\d+$/;
+const POINT_ID_RE = /^[a-z][a-z0-9-]*$/;
 
 /**
  * Valida + normaliza una consulta pública con candado de país: el origen debe ser
@@ -90,8 +98,8 @@ export function validateOceanRouteInput(
 ): OceanRouteValidation {
   const fieldErrors: OceanRouteFieldErrors = {};
 
-  const pointIdFrom = String(partial.pointIdFrom ?? "").trim().toUpperCase();
-  const pointIdTo = String(partial.pointIdTo ?? "").trim().toUpperCase();
+  const pointIdFrom = String(partial.pointIdFrom ?? "").trim().toLowerCase();
+  const pointIdTo = String(partial.pointIdTo ?? "").trim().toLowerCase();
   const shippingTypeRaw = String(partial.shippingType ?? "").trim().toUpperCase();
 
   if (!pointIdFrom) fieldErrors.pointIdFrom = "Indica el puerto de origen.";

@@ -335,6 +335,35 @@ describe("getOceanRate · con token (GraphQL)", () => {
     expect(sent.query).toContain("points");
   });
 
+  it("por COORDENADAS: arma coordinatesFrom/To [lat,lng] (no pointId)", async () => {
+    setEnv(true);
+    const body = {
+      data: {
+        rates: [
+          {
+            general: { totalPrice: 8091, totalCurrency: "USD", totalTransitTime: 49, expired: false },
+            points: [{ provider: "MSC" }],
+          },
+        ],
+      },
+    };
+    const fetchSpy = stubAuthThenRates(new Response(JSON.stringify(body), { status: 200 }));
+    const r = await getOceanRate({
+      coordsFrom: [29.87, 121.83],
+      coordsTo: [10.6, -66.93],
+      shippingType: "FCL",
+      container: "HC40",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.rateUsd).toBe(8091);
+    const init = fetchSpy.mock.calls[1]![1] as RequestInit;
+    const sent = JSON.parse(String(init.body));
+    expect(sent.query).toContain("coordinatesFrom: [29.87, 121.83]");
+    expect(sent.query).toContain("coordinatesTo: [10.6, -66.93]");
+    expect(sent.query).not.toContain("pointIdFrom"); // coords → NO pointId
+    expect(sent.query).toContain("container: HC40");
+  });
+
   it("LCL ok: arma volumen/peso inline (KG/M3), carrier de points, no manda contenedor", async () => {
     setEnv(true);
     const body = {

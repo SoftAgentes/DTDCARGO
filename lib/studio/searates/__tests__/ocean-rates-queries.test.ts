@@ -10,23 +10,26 @@ import {
 import { OCEAN_RATES_MATRIX, type OceanMatrixRoute } from "../ocean-rates-matrix";
 import type { SeaRatesRate } from "../searates-types";
 
-const ROUTE_LCL: OceanMatrixRoute = {
-  pointIdFrom: "P_27395",
-  pointIdTo: "P_19774",
-  shippingType: "LCL",
-  volumeM3: 1,
-  weightKg: 250,
+const ROUTE_A: OceanMatrixRoute = {
+  fromId: "nansha",
+  toId: "la-guaira",
+  coordsFrom: [22.76, 113.62],
+  coordsTo: [10.6, -66.93],
+  shippingType: "FCL",
+  container: "HC40",
 };
-const ROUTE_FCL: OceanMatrixRoute = {
-  pointIdFrom: "P_27395",
-  pointIdTo: "P_19792",
+const ROUTE_B: OceanMatrixRoute = {
+  fromId: "shekou",
+  toId: "puerto-cabello",
+  coordsFrom: [22.48, 113.9],
+  coordsTo: [10.48, -68.01],
   shippingType: "FCL",
   container: "HC40",
 };
 
 const OK_RATE: SeaRatesRate = {
   ok: true,
-  mode: "LCL",
+  mode: "FCL",
   rateUsd: 1738,
   currency: "USD",
   transitDays: 5,
@@ -49,13 +52,13 @@ function fakeAdmin() {
 }
 
 describe("mapRateToRow", () => {
-  it("ok → status 'ok' + campos de tarifa", () => {
-    const row = mapRateToRow(ROUTE_LCL, OK_RATE, "T");
+  it("ok → status 'ok' + campos de tarifa; clave de caché = fromId/toId (slug)", () => {
+    const row = mapRateToRow(ROUTE_A, OK_RATE, "T");
     expect(row).toMatchObject({
-      point_from: "P_27395",
-      point_to: "P_19774",
-      shipping_type: "LCL",
-      container: "",
+      point_from: "nansha",
+      point_to: "la-guaira",
+      shipping_type: "FCL",
+      container: "HC40",
       status: "ok",
       rate_usd: 1738,
       carrier: "ANL",
@@ -65,8 +68,8 @@ describe("mapRateToRow", () => {
     });
   });
 
-  it("no_rate → status 'no_rate' sin error_code; container del FCL", () => {
-    const row = mapRateToRow(ROUTE_FCL, { ok: false, error: "no_rate" }, "T");
+  it("no_rate → status 'no_rate' sin error_code", () => {
+    const row = mapRateToRow(ROUTE_B, { ok: false, error: "no_rate" }, "T");
     expect(row.status).toBe("no_rate");
     expect(row.error_code).toBeNull();
     expect(row.container).toBe("HC40");
@@ -74,25 +77,30 @@ describe("mapRateToRow", () => {
   });
 
   it("otro error → status 'error' + error_code", () => {
-    const row = mapRateToRow(ROUTE_FCL, { ok: false, error: "auth_failed" }, "T");
+    const row = mapRateToRow(ROUTE_B, { ok: false, error: "auth_failed" }, "T");
     expect(row.status).toBe("error");
     expect(row.error_code).toBe("auth_failed");
   });
 });
 
 describe("refreshOceanRates", () => {
-  it("consulta cada ruta, mapea y hace upsert en bloque + summary", async () => {
+  it("consulta cada ruta por COORDENADAS, mapea y hace upsert en bloque + summary", async () => {
     const { client, from, upsert } = fakeAdmin();
+    // OK para Nansha (lat 22.76), no_rate para el resto.
     const fetchRate: RateFetcher = vi.fn(async (input) =>
-      input.shippingType === "LCL" ? OK_RATE : NO_RATE,
+      input.coordsFrom?.[0] === 22.76 ? OK_RATE : NO_RATE,
     );
 
     const summary = await refreshOceanRates(client, {
       fetchRate,
-      matrix: [ROUTE_LCL, ROUTE_FCL],
+      matrix: [ROUTE_A, ROUTE_B],
     });
 
     expect(fetchRate).toHaveBeenCalledTimes(2);
+    // El fetcher recibe COORDS (no pointId).
+    expect(fetchRate).toHaveBeenCalledWith(
+      expect.objectContaining({ coordsFrom: [22.76, 113.62], coordsTo: [10.6, -66.93] }),
+    );
     expect(from).toHaveBeenCalledWith("ocean_rates");
     expect(upsert).toHaveBeenCalledOnce();
     const [rows, opts] = upsert.mock.calls[0] as [unknown[], { onConflict: string }];
@@ -106,7 +114,7 @@ describe("refreshOceanRates", () => {
     const fetchRate: RateFetcher = vi.fn(async () => {
       throw new Error("boom");
     });
-    const summary = await refreshOceanRates(client, { fetchRate, matrix: [ROUTE_LCL] });
+    const summary = await refreshOceanRates(client, { fetchRate, matrix: [ROUTE_A] });
     expect(summary.error).toBe(1);
     const [rows] = upsert.mock.calls[0] as [Array<{ status: string; error_code: string | null }>];
     expect(rows[0]!.status).toBe("error");
@@ -119,7 +127,7 @@ describe("refreshOceanRates", () => {
     const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
     const summary = await refreshOceanRates({ from } as unknown as SupabaseClient, {
       fetchRate,
-      matrix: [ROUTE_LCL],
+      matrix: [ROUTE_A],
     });
     expect(summary.upserted).toBe(false);
     expect(summary.errorMessage).toBe("db down");
@@ -128,10 +136,9 @@ describe("refreshOceanRates", () => {
   it("cap explícito: corta la matriz a `cap` y marca capped", async () => {
     const { client, upsert } = fakeAdmin();
     const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
-    // 3 rutas pero cap=2 → solo consulta 2, capped=true.
     const summary = await refreshOceanRates(client, {
       fetchRate,
-      matrix: [ROUTE_LCL, ROUTE_FCL, ROUTE_LCL],
+      matrix: [ROUTE_A, ROUTE_B, ROUTE_A],
       cap: 2,
     });
     expect(fetchRate).toHaveBeenCalledTimes(2);
@@ -143,16 +150,14 @@ describe("refreshOceanRates", () => {
   it("sin cap explícito aplica WEEKLY_CALL_CAP (20)", async () => {
     const { client } = fakeAdmin();
     const fetchRate: RateFetcher = vi.fn(async () => NO_RATE);
-    // 25 rutas, sin `cap` → usa el default WEEKLY_CALL_CAP.
-    const big = Array.from({ length: 25 }, () => ROUTE_FCL);
+    const big = Array.from({ length: 25 }, () => ROUTE_B);
     const summary = await refreshOceanRates(client, { fetchRate, matrix: big });
     expect(fetchRate).toHaveBeenCalledTimes(WEEKLY_CALL_CAP);
     expect(summary).toMatchObject({ requested: 25, total: WEEKLY_CALL_CAP, capped: true });
   });
 
   it("la matriz de producción cabe bajo el cap (no quema cuota)", () => {
-    // Guard de datos: si se expanden puertos más allá de 20/semana, este test
-    // avisa (hay que subir el plan de SeaRates o bajar la cadencia antes).
+    // Guard de datos: si se expanden puertos más allá de 20/semana, este test avisa.
     expect(OCEAN_RATES_MATRIX.length).toBeLessThanOrEqual(WEEKLY_CALL_CAP);
   });
 });
