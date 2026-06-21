@@ -22,6 +22,7 @@ import {
   type PortalShipmentRow,
   type ShipmentService,
 } from "@/lib/portal/portal-types";
+import type { NavieraSnapshot } from "@/lib/studio/naviera-tracking/types";
 import { ShipmentRow } from "../../_components/ShipmentRow";
 import { NewPurchaseButton } from "../../_components/NewPurchaseButton";
 
@@ -45,11 +46,14 @@ export function PortalDashboardNorte({
   client,
   kpis,
   nextArrival,
+  nextArrivalNaviera,
   shipments,
 }: {
   client: PortalClient;
   kpis: PortalDashboardKpis;
   nextArrival: PortalNextArrival | null;
+  /** Snapshot naviero del próximo arribo (SDD-0101) — el héroe muestra el buque real. */
+  nextArrivalNaviera?: NavieraSnapshot | null;
   shipments: PortalShipmentRow[];
 }) {
   const firstName = client.name.trim().split(/\s+/)[0] || client.name;
@@ -87,8 +91,11 @@ export function PortalDashboardNorte({
         </div>
       </div>
 
-      {/* ── Héroe navy "Próximo arribo" (progreso derivado del status) ── */}
-      {nextArrival ? <NextArrivalHero arrival={nextArrival} /> : null}
+      {/* ── Héroe navy "Próximo arribo" (progreso derivado del status; buque real
+            de la cadena naviera cuando existe, SDD-0101) ── */}
+      {nextArrival ? (
+        <NextArrivalHero arrival={nextArrival} naviera={nextArrivalNaviera} />
+      ) : null}
 
       {/* ── 4 KPIs con acento ── */}
       <div className="mt-7 grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -194,9 +201,20 @@ export function PortalDashboardNorte({
  * ambos temas (tokens `--hero-*`, que sólo existen en el shell del demo). El
  * progreso del arco sale de `computeProgress(status)` (mapa canónico del repo).
  */
-function NextArrivalHero({ arrival }: { arrival: PortalNextArrival }) {
+function NextArrivalHero({
+  arrival,
+  naviera,
+}: {
+  arrival: PortalNextArrival;
+  naviera?: NavieraSnapshot | null;
+}) {
   const svc = SERVICE_LABELS[arrival.service];
   const progress = computeProgress(arrival.status);
+  const vessel = naviera?.vessel
+    ? naviera.voyage
+      ? `${naviera.vessel} · ${naviera.voyage}`
+      : naviera.vessel
+    : null;
   const px = 30 + 260 * (progress / 100);
   const py = 100 - 70 * Math.sin(Math.PI * (progress / 100));
 
@@ -242,6 +260,17 @@ function NextArrivalHero({ arrival }: { arrival: PortalNextArrival }) {
               </span>
             ) : null}
           </div>
+          {vessel ? (
+            <div
+              className="mt-2 text-[12.5px] font-semibold"
+              style={{
+                fontFamily: "var(--font-jetbrains-mono), ui-monospace, monospace",
+                color: "var(--hero-soft)",
+              }}
+            >
+              Buque {vessel}
+            </div>
+          ) : null}
           <div className="mt-5 flex flex-wrap gap-x-8 gap-y-4">
             <HeroStat
               label="Entrega estimada"
