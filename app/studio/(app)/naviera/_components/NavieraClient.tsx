@@ -16,6 +16,8 @@
  */
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
@@ -45,7 +47,9 @@ import {
   closeConsolidation,
   changeConsolidationStatus,
   setConsolidationContainerNo,
+  refreshTracking,
 } from "../actions";
+import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import { SailingDrawer } from "./SailingDrawer";
 import { BookingDrawer } from "./BookingDrawer";
 import { ConsolidationDrawer } from "./ConsolidationDrawer";
@@ -75,6 +79,7 @@ export function NavieraClient({
   ports,
   containerTypes,
   kpis,
+  trackingByConsolidation,
 }: {
   sailings: Sailing[];
   bookings: Booking[];
@@ -84,6 +89,8 @@ export function NavieraClient({
   ports: Port[];
   containerTypes: ContainerType[];
   kpis: NavieraKpis;
+  /** Snapshots de tracking SeaRates por consolidación (SDD-0101 · Slice B.2). */
+  trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
 }) {
   const [tab, setTab] = useState<Tab>("consolidation");
   const [showNewSailing, setShowNewSailing] = useState(false);
@@ -235,6 +242,7 @@ export function NavieraClient({
           consolidations={consolidations}
           carriers={carriers}
           sailings={sailings}
+          trackingByConsolidation={trackingByConsolidation}
           onNew={() => setShowNewConsolidation(true)}
           onAssign={(d) => setAssignTo(d)}
         />
@@ -456,12 +464,14 @@ function ConsolidationTab({
   consolidations,
   carriers,
   sailings,
+  trackingByConsolidation,
   onNew,
   onAssign,
 }: {
   consolidations: ConsolidationDetail[];
   carriers: Carrier[];
   sailings: Sailing[];
+  trackingByConsolidation?: Record<string, TrackingSnapshotRow>;
   onNew: () => void;
   onAssign: (d: ConsolidationDetail) => void;
 }) {
@@ -570,6 +580,7 @@ function ConsolidationTab({
           detail={selected}
           carriers={carriers}
           sailings={sailings}
+          snapshot={trackingByConsolidation?.[selected.consolidation.id] ?? null}
           onAssign={() => onAssign(selected)}
         />
       )}
@@ -581,11 +592,13 @@ function ContainerDetail({
   detail,
   carriers,
   sailings,
+  snapshot,
   onAssign,
 }: {
   detail: ConsolidationDetail;
   carriers: Carrier[];
   sailings: Sailing[];
+  snapshot: TrackingSnapshotRow | null;
   onAssign: () => void;
 }) {
   const c = detail.consolidation;
@@ -823,6 +836,9 @@ function ContainerDetail({
         )}
       </div>
 
+      {/* Tracking en vivo desde SeaRates (SDD-0101 · Slice B.2) */}
+      <LiveTrackingCard snapshot={snapshot} consolidationId={c.id} />
+
       {/* Items consolidados */}
       <TableShell>
         <div
@@ -968,6 +984,193 @@ function ContainerDetail({
           </>
         )}
       </TableShell>
+    </div>
+  );
+}
+
+/** "hace X" relativo (corto) para el fetched_at del snapshot. */
+function timeAgo(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const min = Math.floor((Date.now() - t) / 60000);
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.floor(h / 24)} d`;
+}
+
+/** Texto del último hito (el más reciente). */
+function lastMilestoneText(snapshot: TrackingSnapshotRow): string {
+  const last = snapshot.milestones[snapshot.milestones.length - 1];
+  if (!last) return "—";
+  const where = last.location ? ` · ${last.location}` : "";
+  const when = last.date ? ` · ${last.date}` : "";
+  return `${last.description}${where}${when}`;
+}
+
+function LiveStat({
+  label,
+  value,
+  mono = false,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div>
+      <div
+        style={{
+          font: "700 10.5px/1 var(--f-sans)",
+          color: "var(--ink-soft)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          marginBottom: 5,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          font: mono ? "600 13px/1.3 var(--f-mono)" : "600 13px/1.3 var(--f-sans)",
+          color: "var(--ink)",
+          wordBreak: "break-word",
+        }}
+      >
+        {value}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Tracking en vivo desde SeaRates (SDD-0101 · Slice B.2). Muestra el snapshot
+ * cacheado (estado/buque/ETA/posición/último hito) + un botón MEDIDO "Actualizar
+ * desde SeaRates" (1 llamada, guardada por la cuota). El operador lo dispara a mano
+ * — nunca por pageview. El deep-link gratis vive arriba (bloque del nº de contenedor).
+ */
+function LiveTrackingCard({
+  snapshot,
+  consolidationId,
+}: {
+  snapshot: TrackingSnapshotRow | null;
+  consolidationId: string;
+}) {
+  const router = useRouter();
+  const toast = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const hasData = snapshot != null && snapshot.fetchStatus === "ok";
+
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        padding: "20px 22px",
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          marginBottom: hasData ? 16 : 0,
+        }}
+      >
+        <div className="studio-eyebrow">Tracking en vivo · SeaRates</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <span style={{ font: "500 11px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
+            {snapshot ? `Actualizado ${timeAgo(snapshot.fetchedAt)}` : "Sin rastrear todavía"}
+          </span>
+          {snapshot?.apiRemaining != null ? (
+            <span
+              style={{
+                font: "700 11px/1 var(--f-mono)",
+                // Aviso cuando escasea el plan (cuota dura compartida con fletes).
+                color: snapshot.apiRemaining <= 3 ? "var(--warning)" : "var(--ink-mute)",
+              }}
+            >
+              quedan {snapshot.apiRemaining}
+            </span>
+          ) : null}
+          <ActionButton
+            variant="dark"
+            size="sm"
+            idleLabel="Actualizar desde SeaRates"
+            loadingLabel="Consultando…"
+            successLabel="Actualizado"
+            onAction={() => {
+              setError(null);
+              return refreshTracking(consolidationId);
+            }}
+            onSuccess={() => {
+              toast.success("Tracking actualizado desde SeaRates");
+              router.refresh();
+            }}
+            onError={setError}
+          />
+        </div>
+      </div>
+
+      {error ? (
+        <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--danger)", marginTop: 12 }}>
+          {error}
+        </div>
+      ) : null}
+
+      {snapshot && snapshot.fetchStatus === "error" && !error ? (
+        <div style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)", marginTop: 12 }}>
+          SeaRates no devolvió datos para este número
+          {snapshot.errorCode ? ` (${snapshot.errorCode})` : ""}. Verifica el contenedor/BL.
+        </div>
+      ) : null}
+
+      {hasData ? (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+            gap: 14,
+          }}
+        >
+          <LiveStat label="Estado" value={snapshot.status ?? "—"} />
+          <LiveStat label="Buque" value={snapshot.vessel ?? "—"} />
+          <LiveStat
+            label={snapshot.podActual ? "Arribo (real)" : "ETA a puerto"}
+            value={snapshot.podEta ?? "—"}
+            mono
+          />
+          {snapshot.lastLat != null && snapshot.lastLng != null ? (
+            <LiveStat
+              label="Última posición"
+              value={`${snapshot.lastLat.toFixed(2)}, ${snapshot.lastLng.toFixed(2)}`}
+              mono
+            />
+          ) : null}
+          {snapshot.milestones.length > 0 ? (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <div
+                style={{
+                  font: "700 10.5px/1 var(--f-sans)",
+                  color: "var(--ink-soft)",
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  marginBottom: 6,
+                }}
+              >
+                Último hito
+              </div>
+              <div style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink)" }}>
+                {lastMilestoneText(snapshot)}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

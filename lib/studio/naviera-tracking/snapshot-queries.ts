@@ -76,6 +76,22 @@ export async function getTrackingSnapshotByNumber(
   return coerceSnapshot(data as Record<string, unknown>);
 }
 
+/**
+ * Todos los snapshots cacheados del tenant (para mapear por consolidación en el
+ * ERP). RLS filtra por tenant. Recientes primero. Hasta 500.
+ */
+export async function listTrackingSnapshots(
+  supabase: SupabaseClient,
+): Promise<TrackingSnapshotRow[]> {
+  const { data, error } = await supabase
+    .from("tracking_snapshots")
+    .select(SNAPSHOT_COLUMNS)
+    .order("fetched_at", { ascending: false })
+    .limit(500);
+  if (error || !data) return [];
+  return (data as Record<string, unknown>[]).map(coerceSnapshot);
+}
+
 /** Uso de cuota del tracking en un período ('YYYY-MM'). 0/null si no hay fila. */
 export async function getTrackingUsage(
   supabase: SupabaseClient,
