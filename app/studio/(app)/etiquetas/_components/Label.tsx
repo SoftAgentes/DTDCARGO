@@ -3,13 +3,17 @@
 /**
  * Etiqueta individual (SDD-0031).
  *
- * Header bilingüe ES/CN · MARKBOX en JetBrains Mono wine · QR mock 21×21
- * con finder patterns · Box X/Y sobre fondo navy · footer con dirección
+ * Header bilingüe ES/CN · MARKBOX en JetBrains Mono wine · QR real
+ * (qrcode.react → /verificar) · Box X/Y sobre fondo navy · footer con dirección
  * del warehouse CN destino.
  *
  * Dimensiones en mm reales para que el @page CSS imprima al tamaño exacto.
  */
 
+import { QRCodeSVG } from "qrcode.react";
+
+import { CONTACT } from "@/lib/design-tokens";
+import { labelVerifyUrl } from "@/lib/studio/etiquetas-qr";
 import type { LabelClient, LabelWarehouseCn } from "../page";
 
 // ─────────────────────────────────────────────────────────────
@@ -67,67 +71,8 @@ export const FORMATS: LabelFormat[] = [
   },
 ];
 
-// ─────────────────────────────────────────────────────────────
-// QR mock determinista · djb2 + finder patterns
-// ─────────────────────────────────────────────────────────────
-
-function hashStr(s: string): number {
-  let h = 5381;
-  for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
-  return h >>> 0;
-}
-
-export function QrMock({ value, size = 64 }: { value: string; size?: number }) {
-  const grid = 21;
-  const seed = hashStr(value);
-  let s = seed;
-  const rnd = () => (s = (s * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
-  const cells: Array<[number, number]> = [];
-
-  for (let r = 0; r < grid; r++) {
-    for (let c = 0; c < grid; c++) {
-      // 3 finder patterns (TL · TR · BL)
-      const inFinder =
-        (r < 7 && c < 7) ||
-        (r < 7 && c > grid - 8) ||
-        (r > grid - 8 && c < 7);
-      if (inFinder) {
-        const lr = r < 7 ? r : grid - 1 - r;
-        const lc = c < 7 ? c : c > grid - 8 ? grid - 1 - c : c;
-        const onRing = lr === 0 || lr === 6 || lc === 0 || lc === 6;
-        const inSquare = lr >= 2 && lr <= 4 && lc >= 2 && lc <= 4;
-        if (onRing || inSquare) cells.push([c, r]);
-        continue;
-      }
-      // Separador blanco junto a los finders
-      const nextToFinder =
-        (r === 7 && c < 8) ||
-        (c === 7 && r < 8) ||
-        (r === 7 && c > grid - 9) ||
-        (c === grid - 8 && r < 8) ||
-        (r === grid - 8 && c < 8) ||
-        (c === 7 && r > grid - 9);
-      if (nextToFinder) continue;
-      if (rnd() > 0.52) cells.push([c, r]);
-    }
-  }
-
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${grid} ${grid}`}
-      shapeRendering="crispEdges"
-      style={{ display: "block" }}
-      aria-label={`QR mock para ${value}`}
-    >
-      <rect x="0" y="0" width={grid} height={grid} fill="#FFFFFF" />
-      {cells.map(([c, r], i) => (
-        <rect key={i} x={c} y={r} width="1" height="1" fill="#0F1E3D" />
-      ))}
-    </svg>
-  );
-}
+// QR real → /verificar: la URL la arma labelVerifyUrl (lib/studio/etiquetas-qr.ts);
+// el render usa <QRCodeSVG> de qrcode.react (escaneable, único por cartón).
 
 // ─────────────────────────────────────────────────────────────
 // Warehouse formatting helper
@@ -143,40 +88,21 @@ export type WarehouseAddress = {
   wechat: string;
 };
 
-const HUB_DATA: Record<string, Omit<WarehouseAddress, "code" | "city" | "city_cn">> = {
-  "YIW-A1": {
-    address_cn: "义乌市国际商贸城三区 5楼 218号 · DTD Cargo",
-    contact_cn: "王亮 Wang Liang",
-    phone: "+86 137 5028 9114",
-    wechat: "DTD_CARGO_YIW",
-  },
-  "GZ-B2": {
-    address_cn: "广州市番禺区市桥工业园 12号 B栋 · DTD Cargo",
-    contact_cn: "陈伟 Chen Wei",
-    phone: "+86 188 2266 9988",
-    wechat: "DTD_CARGO_GZ",
-  },
-  "SZ-C1": {
-    address_cn: "深圳市宝安区福永街道工业区 8栋 · DTD Cargo",
-    contact_cn: "张敏 Zhang Min",
-    phone: "+86 159 8842 1107",
-    wechat: "DTD_CARGO_SZ",
-  },
-};
-
+// DTD opera UNA bodega real (Yiwu); su contacto + dirección reales son la fuente
+// única CONTACT.cn (lib/design-tokens). El selector de almacén refleja el code y
+// la ciudad del catálogo `warehouses_cn`, pero el bloque de contacto SIEMPRE es
+// el de la bodega real — sin datos inventados ni "—". (Contacto por hub para
+// otros almacenes = a futuro; hoy no hay más bodegas operativas → SDD-0100 §6.)
 export function warehouseAddress(w: LabelWarehouseCn): WarehouseAddress {
-  const fallback = {
-    address_cn: w.hub_name_cn ?? w.warehouse_name ?? "DTD Cargo",
-    contact_cn: "DTD Cargo",
-    phone: "—",
-    wechat: "—",
-  };
-  const hub = HUB_DATA[w.code] ?? fallback;
+  const cn = CONTACT.cn;
   return {
     code: w.code,
     city: w.city,
     city_cn: w.hub_name_cn ?? w.city,
-    ...hub,
+    address_cn: cn.addressCjk,
+    contact_cn: `${cn.contactPersonCjk} ${cn.contactPersonPinyin}`,
+    phone: cn.phone,
+    wechat: cn.wechatId,
   };
 }
 
@@ -329,9 +255,14 @@ export function Label({
 
         {qr && (
           <div style={{ flexShrink: 0, textAlign: "center" }}>
-            <QrMock
-              value={`DTD:${client.markbox}|${boxIndex}/${totalBoxes}`}
+            <QRCodeSVG
+              value={labelVerifyUrl(client.markbox, boxIndex, totalBoxes)}
               size={qrSize}
+              marginSize={4}
+              fgColor="#0F1E3D"
+              bgColor="#FFFFFF"
+              level={isCompact ? "L" : "M"}
+              aria-label={`Verificar ${client.markbox} · caja ${boxIndex} de ${totalBoxes}`}
             />
           </div>
         )}
