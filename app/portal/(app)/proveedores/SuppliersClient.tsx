@@ -268,7 +268,7 @@ function SupplierCard({
       <span
         className="w-10 h-10 rounded-[10px] grid place-items-center flex-shrink-0 text-[14px] font-bold"
         style={{
-          background: "var(--color-paper)",
+          background: "color-mix(in srgb, var(--color-wine) 14%, var(--color-white))",
           color: "var(--color-wine)",
           fontFamily: "var(--font-archivo-black)",
         }}
