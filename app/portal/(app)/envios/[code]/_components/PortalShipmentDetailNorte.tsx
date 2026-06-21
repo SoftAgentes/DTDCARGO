@@ -16,6 +16,7 @@ import {
   type NavieraSnapshot,
 } from "@/lib/studio/naviera-tracking/types";
 import { trackingUrlFromSnapshot } from "@/lib/studio/naviera-tracking/searates-deeplink";
+import type { TrackingSnapshotRow } from "@/lib/studio/naviera-tracking/snapshot-queries";
 import { StatusBadge } from "../../../../_components/StatusBadge";
 import { PortalDocsCard } from "../../../../_components/PortalDocsCard";
 
@@ -44,12 +45,15 @@ export function PortalShipmentDetailNorte({
   documents,
   signedUrls,
   naviera,
+  live,
 }: {
   shipment: PortalShipmentDetail;
   documents: DocsProps["documents"];
   signedUrls: DocsProps["signedUrls"];
   /** Snapshot naviero real resuelto de la cadena (SDD-0101). null = aún sin consolidar. */
   naviera?: NavieraSnapshot | null;
+  /** Snapshot VIVO de SeaRates cacheado (SDD-0101 · B.3). null = aún sin rastrear. */
+  live?: TrackingSnapshotRow | null;
 }) {
   const svc = SERVICE_LABELS[shipment.service];
   const serviceLabel = svc.sub ? `${svc.primary} · ${svc.sub}` : svc.primary;
@@ -111,7 +115,9 @@ export function PortalShipmentDetailNorte({
 
       {/* Naviera Tier 1 (SDD-0101): buque/ETD/ETA/contenedor reales de la cadena +
           deep-link a SeaRates. Solo cuando hay data (envío consolidado con zarpe). */}
-      {hasNavieraData(naviera) ? <NavieraCard naviera={naviera} /> : null}
+      {hasNavieraData(naviera) ? (
+        <NavieraCard naviera={naviera} live={live} />
+      ) : null}
 
       {/* 2 columnas: detalle de la carga · documentos */}
       <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
@@ -285,14 +291,73 @@ function navieraStatusLabel(status: string): string {
   }
 }
 
+/** Estado SeaRates (metadata.status) → label de cara al cliente. */
+function liveStatusLabel(status: string): string {
+  switch (status.toUpperCase()) {
+    case "PLANNED":
+      return "Planificado";
+    case "IN_TRANSIT":
+      return "En tránsito marítimo";
+    case "DISCHARGED":
+      return "Descargado en puerto";
+    case "DELIVERED":
+      return "Entregado";
+    case "EMPTY_RETURNED":
+      return "Contenedor devuelto";
+    default:
+      return status.replace(/_/g, " ").toLowerCase();
+  }
+}
+
+/** "hace X" (corto, es-VE) para el sello de actualización del tracking. */
+function timeAgoEs(iso: string): string {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "—";
+  const min = Math.floor((Date.now() - t) / 60000);
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  return `hace ${Math.floor(h / 24)} d`;
+}
+
+/** Texto del último movimiento del tracking vivo (último hito, o la posición). */
+function liveLastMovement(live: TrackingSnapshotRow): string {
+  const last = live.milestones[live.milestones.length - 1];
+  if (last) {
+    const where = last.location ? ` · ${last.location}` : "";
+    return `${last.description}${where}`;
+  }
+  if (live.lastLat != null && live.lastLng != null) {
+    return `Posición ${live.lastLat.toFixed(2)}, ${live.lastLng.toFixed(2)}`;
+  }
+  return "—";
+}
+
 /**
- * Card "Naviera" (SDD-0101 · Tier 1) — buque/viaje/naviera/ruta marítima/ETD/ETA/
- * contenedor/BL REALES, resueltos de la cadena de consolidación. Cierra la
- * degradación "sin Naviera/ETD" del Norte. El botón abre el seguimiento en vivo de
- * SeaRates (mapa + buque + ETA) SIN gastar cuota del API.
+ * Card "Naviera" (SDD-0101) — buque/viaje/naviera/ruta marítima/ETD/ETA/contenedor/
+ * BL resueltos de la cadena (Tier 1 · Slice A) + ENRIQUECIDOS con el tracking VIVO de
+ * SeaRates cuando existe (Slice B.3): ETA real, estado real, último movimiento. El
+ * botón abre el seguimiento en vivo de SeaRates SIN gastar cuota.
  */
-function NavieraCard({ naviera }: { naviera: NavieraSnapshot }) {
+function NavieraCard({
+  naviera,
+  live,
+}: {
+  naviera: NavieraSnapshot;
+  live?: TrackingSnapshotRow | null;
+}) {
   const trackUrl = trackingUrlFromSnapshot(naviera);
+  // El tracking vivo (real, de la naviera) le gana al dato manual de la cadena.
+  const liveData: TrackingSnapshotRow | null =
+    live != null && live.fetchStatus === "ok" ? live : null;
+  const etaValue = liveData?.podEta ?? naviera.eta;
+  const etaConfirmed = !!liveData?.podEta;
+  const statusText = liveData?.status
+    ? liveStatusLabel(liveData.status)
+    : naviera.navieraStatus
+      ? navieraStatusLabel(naviera.navieraStatus)
+      : null;
   const vessel = naviera.vessel
     ? naviera.voyage
       ? `${naviera.vessel} · ${naviera.voyage}`
@@ -314,9 +379,9 @@ function NavieraCard({ naviera }: { naviera: NavieraSnapshot }) {
         <h2 className="text-[12px] font-bold tracking-[0.12em] uppercase text-grey-500">
           Naviera
         </h2>
-        {naviera.navieraStatus ? (
+        {statusText ? (
           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white bg-wine">
-            {navieraStatusLabel(naviera.navieraStatus)}
+            {statusText}
           </span>
         ) : null}
       </div>
@@ -329,17 +394,37 @@ function NavieraCard({ naviera }: { naviera: NavieraSnapshot }) {
         {naviera.etd ? (
           <Field label="Zarpe (ETD)" value={formatDate(naviera.etd)} />
         ) : null}
-        {naviera.eta ? (
+        {etaValue ? (
           <Field
             label="Arribo a puerto (ETA)"
-            value={formatDate(naviera.eta)}
+            value={formatDate(etaValue)}
             highlight
-            hint="Estimada por la naviera."
+            hint={
+              etaConfirmed
+                ? "Confirmada por la naviera (SeaRates)."
+                : "Estimada por la naviera."
+            }
           />
         ) : null}
         {container ? <Field label="Contenedor" value={container} mono /> : null}
         {naviera.blNumber ? <Field label="BL" value={naviera.blNumber} mono /> : null}
       </dl>
+
+      {liveData &&
+      (liveData.milestones.length > 0 ||
+        (liveData.lastLat != null && liveData.lastLng != null)) ? (
+        <div className="mt-8 pt-6 border-t border-grey-200">
+          <div className="text-[11px] font-semibold tracking-[0.12em] uppercase text-grey-500">
+            Último movimiento
+          </div>
+          <p className="mt-1.5 text-[14px] font-semibold text-ink leading-[1.5]">
+            {liveLastMovement(liveData)}
+          </p>
+          <p className="mt-1 text-[11.5px] text-grey-500">
+            Actualizado {timeAgoEs(liveData.fetchedAt)} · vía SeaRates
+          </p>
+        </div>
+      ) : null}
 
       {trackUrl ? (
         <div className="mt-8 pt-6 border-t border-grey-200">

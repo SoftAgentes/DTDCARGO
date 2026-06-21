@@ -92,6 +92,22 @@ export async function listTrackingSnapshots(
   return (data as Record<string, unknown>[]).map(coerceSnapshot);
 }
 
+/** Snapshot cacheado por consolidación (linkado en el refresh). null si no hay. */
+export async function getTrackingSnapshotByConsolidation(
+  supabase: SupabaseClient,
+  consolidationId: string,
+): Promise<TrackingSnapshotRow | null> {
+  const { data, error } = await supabase
+    .from("tracking_snapshots")
+    .select(SNAPSHOT_COLUMNS)
+    .eq("consolidation_id", consolidationId)
+    .order("fetched_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return coerceSnapshot(data as Record<string, unknown>);
+}
+
 /** Uso de cuota del tracking en un período ('YYYY-MM'). 0/null si no hay fila. */
 export async function getTrackingUsage(
   supabase: SupabaseClient,

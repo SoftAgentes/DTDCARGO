@@ -12,6 +12,10 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NavieraSnapshot } from "./types";
+import {
+  getTrackingSnapshotByConsolidation,
+  type TrackingSnapshotRow,
+} from "./snapshot-queries";
 
 const EMPTY: Omit<NavieraSnapshot, "consolidationRef" | "navieraStatus"> = {
   containerNo: null,
@@ -115,4 +119,28 @@ export async function getShipmentNaviera(
   }
 
   return snap;
+}
+
+/**
+ * Snapshot VIVO de SeaRates del envío (SDD-0101 · Slice B.3), resuelto por su
+ * consolidación. SOLO LECTURA del cache (el refresh lo dispara el ERP, no el portal
+ * → cero cuota). En el portal recibe el admin client (sin RLS sobre
+ * tracking_snapshots), scopeado al envío PROPIO del cliente. null si no se rastreó.
+ */
+export async function getShipmentTrackingSnapshot(
+  supabase: SupabaseClient,
+  shipmentId: string,
+): Promise<TrackingSnapshotRow | null> {
+  const { data: item, error } = await supabase
+    .from("consolidation_items")
+    .select("consolidation_id")
+    .eq("shipment_id", shipmentId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error || !item?.consolidation_id) return null;
+  return getTrackingSnapshotByConsolidation(
+    supabase,
+    item.consolidation_id as string,
+  );
 }
