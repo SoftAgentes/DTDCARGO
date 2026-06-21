@@ -181,6 +181,16 @@ export async function getPlatformToken(): Promise<string | null> {
 }
 
 /**
+ * Fecha de zarpe por defecto (~hoy+14d, formato YYYY-MM-DD) para cuando el caller
+ * no pasa `date`. SeaRates RECHAZA la query de rates sin fecha (responde 200 con
+ * errors:[{message:"Internal server error"}]) → el cron de caché, que no especifica
+ * fecha, la necesita. Descubierto en vivo 2026-06-21.
+ */
+function defaultShipDate(): string {
+  return new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
+}
+
+/**
  * Arma la query GraphQL de rates con los args INLINE (no variables).
  *
  * Seguro contra inyección: TODOS los valores vienen de `validateSeaRatesInput`
@@ -244,16 +254,28 @@ function extractOffers(data: unknown): Offer[] {
   return [];
 }
 
-/** Elige la oferta más barata por `general.totalPrice` (fallback: la primera). */
+/**
+ * Elige la mejor oferta: **prefiere NO vencidas** (una oferta válida le gana a
+ * cualquier vencida, aunque sea más cara) y entre las de igual validez, la más
+ * barata por `general.totalPrice`. Si TODAS están vencidas, cae a la más barata.
+ * (SeaRates suele devolver tarifas vencidas mezcladas; mostrar una vencida como
+ *  benchmark es engañoso — descubierto 2026-06-21.)
+ */
 function pickCheapest(offers: Offer[]): Offer {
   let best = offers[0]!;
   let bestPrice = Infinity;
+  let bestExpired = true; // arrancamos "peor que cualquier no-vencida"
   for (const off of offers) {
     const g = (off.general ?? {}) as Record<string, unknown>;
     const p = pickNumber(g, ["totalPrice"]);
-    if (p !== null && p > 0 && p < bestPrice) {
-      bestPrice = p;
+    if (p === null || p <= 0) continue;
+    const expired = pickBoolean(g, ["expired"]) === true;
+    // No-vencida > vencida; a igual validez, la más barata.
+    const better = (bestExpired && !expired) || (bestExpired === expired && p < bestPrice);
+    if (better) {
       best = off;
+      bestPrice = p;
+      bestExpired = expired;
     }
   }
   return best;
@@ -387,6 +409,11 @@ export async function getOceanRate(
   const token = await getPlatformToken();
   if (!token) return { ok: false, error: "auth_failed" };
 
+  // SeaRates EXIGE `date`: sin fecha la query de rates responde 200 con
+  // errors:[{message:"Internal server error"}]. Si el caller no la pasa (p.ej. el
+  // cron de caché), inyectamos un zarpe por defecto (~hoy+14d). Descubierto 2026-06-21.
+  const dated: SeaRatesQuoteInput = input.date ? input : { ...input, date: defaultShipDate() };
+
   const r = await timedFetch(cfg.base, {
     method: "POST",
     headers: {
@@ -394,7 +421,7 @@ export async function getOceanRate(
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify({ query: buildRatesQuery(input) }),
+    body: JSON.stringify({ query: buildRatesQuery(dated) }),
   });
 
   const raw = r.body ?? r.text ?? null;

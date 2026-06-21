@@ -17,7 +17,8 @@ import { getOceanRate } from "@/lib/studio/searates/searates-api";
 import { refreshOceanRates } from "@/lib/studio/searates/ocean-rates-queries";
 
 export const dynamic = "force-dynamic";
-// La matriz (≈12 rutas) corre secuencial; cada consulta a SeaRates es ~1-2s.
+// La matriz (18 rutas, tope duro 20/corrida = WEEKLY_CALL_CAP) corre secuencial;
+// cada consulta a SeaRates es ~1-2s. 20/semana × ≤5 lunes = ≤100/mes (plan gratis).
 export const maxDuration = 60;
 
 function authorize(req: NextRequest): { ok: boolean; reason?: string } {

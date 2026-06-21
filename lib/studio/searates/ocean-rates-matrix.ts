@@ -4,7 +4,8 @@
  * Dimensionada para CABER EN LA CUOTA (100 llamadas/mes): se deriva del catálogo
  * público (`lib/shared/ocean-rate.ts`) cruzando orígenes × destinos × configs.
  *   2 orígenes (CN) × 3 destinos (VE) × 3 configs (FCL ST20/ST40/HC40) = 18 rutas/semana
- *   ≈ 72/mes → entra en 100 (+ headroom para reintentos).
+ *   ≈ 72/mes → entra en 100. Además `refreshOceanRates` aplica un TOPE DURO de
+ *   20/corrida (WEEKLY_CALL_CAP) que blinda la cuota aunque se expanda la matriz.
  *
  * Cada llamada gasta 1 rate (+ 1 auth cacheada). Si Oleh sube el límite, se
  * expande el catálogo o la cadencia sin tocar código del cron (solo data).

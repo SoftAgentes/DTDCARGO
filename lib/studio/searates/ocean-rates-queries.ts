@@ -19,6 +19,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { SeaRatesQuoteInput, SeaRatesRate } from "./searates-types";
 import { OCEAN_RATES_MATRIX, type OceanMatrixRoute } from "./ocean-rates-matrix";
 
+/**
+ * Tope DURO de llamadas a SeaRates por corrida del cron (founder 2026-06-21).
+ * 20/semana × ≤5 lunes/mes = ≤100/mes → entra en el Shipper Package GRATIS.
+ * (Oleh 2026-06-18: 100/mes ES el cap del plan; 2.000-3.000/mes requieren la
+ *  subscripción paga "Logistics Explorer API" aparte.)
+ * Es un GUARD de cuota: aunque la matriz crezca, el cron nunca consulta más de
+ * 20 rutas/corrida. La matriz actual (18) ya cabe debajo — el cap solo recorta
+ * si se expanden puertos sin subir el plan.
+ */
+export const WEEKLY_CALL_CAP = 20;
+
 /** Firma del fetcher inyectado (la cumple `getOceanRate`). */
 export type RateFetcher = (
   input: Partial<SeaRatesQuoteInput>,
@@ -44,7 +55,12 @@ export type OceanRateRow = {
 };
 
 export type RefreshSummary = {
+  /** Rutas en la matriz ANTES del cap. */
+  requested: number;
+  /** Rutas efectivamente consultadas (= min(requested, cap)). */
   total: number;
+  /** true si el cap de cuota recortó la matriz (señal de que hay que subir el plan). */
+  capped: boolean;
   ok: number;
   no_rate: number;
   error: number;
@@ -100,18 +116,24 @@ export function mapRateToRow(
 
 /**
  * Refresca la caché: consulta cada ruta de la matriz y hace UPSERT en bloque.
- * Gasta 1 llamada de rate por ruta (la matriz está dimensionada a la cuota).
+ * Gasta 1 llamada de rate por ruta. Aplica un TOPE DURO de `WEEKLY_CALL_CAP`
+ * rutas por corrida (guard de cuota) → nunca pasa de 100/mes aunque la matriz crezca.
  * NUNCA tira por una ruta: un fallo individual queda como status 'error' en su fila.
  */
 export async function refreshOceanRates(
   admin: SupabaseClient,
-  opts: { fetchRate: RateFetcher; matrix?: readonly OceanMatrixRoute[] },
+  opts: { fetchRate: RateFetcher; matrix?: readonly OceanMatrixRoute[]; cap?: number },
 ): Promise<RefreshSummary> {
-  const matrix = opts.matrix ?? OCEAN_RATES_MATRIX;
+  const cap = opts.cap ?? WEEKLY_CALL_CAP;
+  const fullMatrix = opts.matrix ?? OCEAN_RATES_MATRIX;
+  // Guard de cuota: nunca consultamos más de `cap` rutas por corrida.
+  const matrix = fullMatrix.slice(0, cap);
   const fetchedAt = new Date().toISOString();
   const rows: OceanRateRow[] = [];
   const summary: RefreshSummary = {
+    requested: fullMatrix.length,
     total: matrix.length,
+    capped: fullMatrix.length > cap,
     ok: 0,
     no_rate: 0,
     error: 0,
