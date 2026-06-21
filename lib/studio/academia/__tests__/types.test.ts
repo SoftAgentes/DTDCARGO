@@ -22,10 +22,18 @@ import {
   COHORT_MODALITIES,
   COHORT_STATUSES,
   countAttended,
+  DIPLOMA_VARIANTS,
   isApproved,
+  LESSON_KINDS,
+  LESSON_WIDGETS,
+  lessonWidgetLabel,
   modalityLabel,
+  pickDiplomaVariant,
   validateCohortInput,
+  validateCourseInput,
   validateEnrollmentInput,
+  validateLessonInput,
+  validateModuleInput,
 } from "../types";
 
 // ── Regla de aprobación ──────────────────────────────────────
@@ -263,5 +271,218 @@ describe("labels y tones de cohorte", () => {
   it("modalityLabel", () => {
     expect(modalityLabel("presencial")).toBe("Presencial");
     expect(modalityLabel("online")).toBe("Online");
+  });
+});
+
+// ── validateCourseInput (Feature A) ──────────────────────────
+
+describe("validateCourseInput", () => {
+  it("acepta un curso válido y normaliza vacíos a null", () => {
+    const { input, fieldErrors } = validateCourseInput({
+      title: "  Domina Yiwu  ",
+      slug: " domina-yiwu ",
+      tier: "inicial",
+      level: "  Principiante ",
+      summary: "  El que nunca ha importado  ",
+      status: "publicado",
+    });
+    expect(fieldErrors).toBeNull();
+    expect(input?.title).toBe("Domina Yiwu");
+    expect(input?.slug).toBe("domina-yiwu");
+    expect(input?.level).toBe("Principiante");
+    expect(input?.summary).toBe("El que nunca ha importado");
+    expect(input?.status).toBe("publicado");
+  });
+
+  it("título vacío → fieldError", () => {
+    const { input, fieldErrors } = validateCourseInput({ title: "   " });
+    expect(input).toBeNull();
+    expect(fieldErrors?.title).toBeTruthy();
+  });
+
+  it("deriva el slug del título cuando falta", () => {
+    const { input, fieldErrors } = validateCourseInput({
+      title: "De 0 a Contenedor en 4 Semanas",
+    });
+    expect(fieldErrors).toBeNull();
+    expect(input?.slug).toBe("de-0-a-contenedor-en-4-semanas");
+  });
+
+  it("slug con mayúsculas/espacios/acentos (no kebab) → fieldError", () => {
+    const { input, fieldErrors } = validateCourseInput({
+      title: "X",
+      slug: "Domina Yiwu",
+    });
+    expect(input).toBeNull();
+    expect(fieldErrors?.slug).toBeTruthy();
+  });
+
+  it("slug con guion al borde no es válido", () => {
+    expect(validateCourseInput({ title: "X", slug: "-yiwu" }).fieldErrors?.slug).toBeTruthy();
+    expect(validateCourseInput({ title: "X", slug: "yiwu-" }).fieldErrors?.slug).toBeTruthy();
+    expect(validateCourseInput({ title: "X", slug: "a--b" }).fieldErrors?.slug).toBeTruthy();
+  });
+
+  it("tier inválido → fieldError", () => {
+    const { fieldErrors } = validateCourseInput({
+      title: "X",
+      tier: "premium" as never,
+    });
+    expect(fieldErrors?.tier).toBeTruthy();
+  });
+
+  it("estado inválido → fieldError", () => {
+    const { fieldErrors } = validateCourseInput({
+      title: "X",
+      status: "archivado" as never,
+    });
+    expect(fieldErrors?.status).toBeTruthy();
+  });
+
+  it("level y summary omitidos → null", () => {
+    const { input } = validateCourseInput({ title: "X" });
+    expect(input?.level).toBeNull();
+    expect(input?.summary).toBeNull();
+  });
+});
+
+// ── validateModuleInput (Feature A) ──────────────────────────
+
+describe("validateModuleInput", () => {
+  it("acepta un módulo válido", () => {
+    const { input, fieldErrors } = validateModuleInput({
+      courseId: "c-1",
+      title: "  Encuentra tu producto ",
+      sort: 2,
+    });
+    expect(fieldErrors).toBeNull();
+    expect(input?.title).toBe("Encuentra tu producto");
+    expect(input?.sort).toBe(2);
+    expect(input?.courseId).toBe("c-1");
+  });
+
+  it("título vacío → fieldError", () => {
+    const { input, fieldErrors } = validateModuleInput({ courseId: "c-1", title: " " });
+    expect(input).toBeNull();
+    expect(fieldErrors?.title).toBeTruthy();
+  });
+
+  it("curso faltante → fieldError", () => {
+    const { fieldErrors } = validateModuleInput({ title: "M" });
+    expect(fieldErrors?.courseId).toBeTruthy();
+  });
+
+  it("sort vacío/NaN → 0; negativo → 0; decimal se trunca", () => {
+    expect(validateModuleInput({ courseId: "c", title: "M" }).input?.sort).toBe(0);
+    expect(validateModuleInput({ courseId: "c", title: "M", sort: -3 }).input?.sort).toBe(0);
+    expect(validateModuleInput({ courseId: "c", title: "M", sort: 4.8 }).input?.sort).toBe(4);
+  });
+});
+
+// ── validateLessonInput (Feature A) ──────────────────────────
+
+describe("validateLessonInput", () => {
+  it("acepta una lección válida y normaliza", () => {
+    const { input, fieldErrors } = validateLessonInput({
+      moduleId: "m-1",
+      courseId: "c-1",
+      title: "  Leer una ficha en 1688 ",
+      kind: "video",
+      videoUrl: "  https://youtu.be/x ",
+      durationMin: 12,
+      freePreview: true,
+      widget: "alibaba_address",
+      status: "publicado",
+      sort: 3,
+    });
+    expect(fieldErrors).toBeNull();
+    expect(input?.title).toBe("Leer una ficha en 1688");
+    expect(input?.videoUrl).toBe("https://youtu.be/x");
+    expect(input?.durationMin).toBe(12);
+    expect(input?.freePreview).toBe(true);
+    expect(input?.widget).toBe("alibaba_address");
+    expect(input?.status).toBe("publicado");
+    expect(input?.sort).toBe(3);
+  });
+
+  it("módulo o curso faltante → fieldError", () => {
+    expect(validateLessonInput({ courseId: "c", title: "L" }).fieldErrors?.moduleId).toBeTruthy();
+    expect(validateLessonInput({ moduleId: "m", title: "L" }).fieldErrors?.courseId).toBeTruthy();
+  });
+
+  it("título vacío → fieldError", () => {
+    const { fieldErrors } = validateLessonInput({ moduleId: "m", courseId: "c", title: " " });
+    expect(fieldErrors?.title).toBeTruthy();
+  });
+
+  it("kind inválido → fieldError", () => {
+    const { fieldErrors } = validateLessonInput({
+      moduleId: "m",
+      courseId: "c",
+      title: "L",
+      kind: "pdf" as never,
+    });
+    expect(fieldErrors?.kind).toBeTruthy();
+  });
+
+  it("widget inválido → fieldError; vacío → null", () => {
+    expect(
+      validateLessonInput({
+        moduleId: "m",
+        courseId: "c",
+        title: "L",
+        widget: "calculadora" as never,
+      }).fieldErrors?.widget,
+    ).toBeTruthy();
+    const { input } = validateLessonInput({ moduleId: "m", courseId: "c", title: "L" });
+    expect(input?.widget).toBeNull();
+  });
+
+  it("duración negativa → fieldError; omitida → null", () => {
+    expect(
+      validateLessonInput({ moduleId: "m", courseId: "c", title: "L", durationMin: -1 })
+        .fieldErrors?.durationMin,
+    ).toBeTruthy();
+    expect(
+      validateLessonInput({ moduleId: "m", courseId: "c", title: "L" }).input?.durationMin,
+    ).toBeNull();
+  });
+
+  it("freePreview default false; widget whitelist y kinds reflejan la migración", () => {
+    const { input } = validateLessonInput({ moduleId: "m", courseId: "c", title: "L" });
+    expect(input?.freePreview).toBe(false);
+    expect([...LESSON_KINDS]).toEqual(["video", "texto", "descarga", "quiz"]);
+    expect([...LESSON_WIDGETS]).toEqual(["alibaba_address"]);
+  });
+
+  it("lessonWidgetLabel: null = Ninguna; alibaba_address = etiqueta", () => {
+    expect(lessonWidgetLabel(null)).toBe("Ninguna");
+    expect(lessonWidgetLabel("alibaba_address")).toContain("Alibaba");
+  });
+});
+
+// ── pickDiplomaVariant (Feature B) ───────────────────────────
+
+describe("pickDiplomaVariant", () => {
+  it("siempre devuelve una de las 4 variantes (A/B/C/D)", () => {
+    for (let i = 0; i < 200; i++) {
+      const folio = `DTD-AC-2026-${String(i).padStart(4, "0")}`;
+      expect(DIPLOMA_VARIANTS).toContain(pickDiplomaVariant(folio));
+    }
+  });
+
+  it("es estable: mismo folio → misma variante", () => {
+    const folio = "DTD-AC-2026-0042";
+    expect(pickDiplomaVariant(folio)).toBe(pickDiplomaVariant(folio));
+  });
+
+  it("string vacío no rompe (cae en la primera variante)", () => {
+    expect(DIPLOMA_VARIANTS).toContain(pickDiplomaVariant(""));
+  });
+
+  it("reparte entre varias variantes (no colapsa a una sola)", () => {
+    const seen = new Set<string>();
+    for (let i = 0; i < 100; i++) seen.add(pickDiplomaVariant(`DTD-AC-2026-${i}`));
+    expect(seen.size).toBeGreaterThan(1);
   });
 });

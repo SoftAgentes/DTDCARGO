@@ -22,17 +22,29 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
-import { moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { getStudioRole, moduleEditDenial } from "@/lib/studio/rbac-guard";
+import { canAccessModule } from "@/lib/studio/rbac";
+import { getCourseEditorTree } from "@/lib/studio/academia/queries";
+import type { CourseTree } from "@/lib/studio/academia/types";
 import {
   buildDiplomaFolio,
   countAttended,
   isApproved,
   validateCohortInput,
+  validateCourseInput,
   validateEnrollmentInput,
+  validateLessonInput,
+  validateModuleInput,
   type CohortActionState,
   type CohortInput,
+  type CourseActionState,
+  type CourseInput,
   type EnrollmentActionState,
   type EnrollmentInput,
+  type LessonActionState,
+  type LessonInput,
+  type ModuleActionState,
+  type ModuleInput,
 } from "@/lib/studio/academia/types";
 
 type Result = { ok?: boolean; error?: string };
@@ -54,6 +66,271 @@ async function resolveTenant(
     .limit(1)
     .maybeSingle<{ tenant_id: string }>();
   return link?.tenant_id ?? null;
+}
+
+// ════════════════════════════════════════════════════════════════
+// Catálogo · Cursos (Feature A · CRUD de contenido)
+// ════════════════════════════════════════════════════════════════
+//
+// El Director (rol commercial) gestiona el CONTENIDO. El PRECIO no se toca acá:
+// vive en service_configs (lo fija Administración, gate por rol SDD-0085). El
+// unique(tenant, slug) se maneja avisando ante el choque 23505 (PostgREST).
+
+const SLUG_TAKEN_MSG = "Ya existe un curso con ese slug. Usa otro.";
+
+export async function createCourseAction(
+  raw: Partial<CourseInput>,
+): Promise<CourseActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateCourseInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos del curso inválidos." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const { data: row, error } = await supabase
+    .from("academy_courses")
+    .insert({
+      tenant_id: tenantId,
+      slug: input.slug,
+      title: input.title,
+      tier: input.tier,
+      summary: input.summary,
+      level: input.level,
+      status: input.status,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error || !row) {
+    if (error?.code === "23505") return { fieldErrors: { slug: SLUG_TAKEN_MSG } };
+    return { error: `No se pudo crear el curso: ${error?.message ?? "desconocido"}` };
+  }
+  revalidate();
+  return { ok: true, createdId: row.id };
+}
+
+export async function updateCourseAction(
+  courseId: string,
+  raw: Partial<CourseInput>,
+): Promise<CourseActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!courseId) return { error: "Falta el curso a editar." };
+  const { input, fieldErrors } = validateCourseInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos del curso inválidos." };
+
+  const { error } = await supabase
+    .from("academy_courses")
+    .update({
+      slug: input.slug,
+      title: input.title,
+      tier: input.tier,
+      summary: input.summary,
+      level: input.level,
+      status: input.status,
+    })
+    .eq("id", courseId)
+    .is("deleted_at", null);
+
+  if (error) {
+    if (error.code === "23505") return { fieldErrors: { slug: SLUG_TAKEN_MSG } };
+    return { error: `No se pudo actualizar el curso: ${error.message}` };
+  }
+  revalidate();
+  return { ok: true, createdId: courseId };
+}
+
+// ════════════════════════════════════════════════════════════════
+// Catálogo · Módulos
+// ════════════════════════════════════════════════════════════════
+
+export async function createModuleAction(
+  raw: Partial<ModuleInput>,
+): Promise<ModuleActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateModuleInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos del módulo inválidos." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // El curso debe existir en el tenant (RLS lo fuerza igual; esto da mejor error).
+  const { data: course } = await supabase
+    .from("academy_courses")
+    .select("id")
+    .eq("id", input.courseId)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string }>();
+  if (!course) return { fieldErrors: { courseId: "Ese curso no es válido." } };
+
+  const { data: row, error } = await supabase
+    .from("academy_modules")
+    .insert({
+      tenant_id: tenantId,
+      course_id: input.courseId,
+      title: input.title,
+      sort: input.sort,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error || !row) {
+    return { error: `No se pudo crear el módulo: ${error?.message ?? "desconocido"}` };
+  }
+  revalidate();
+  return { ok: true, moduleId: row.id };
+}
+
+export async function updateModuleAction(
+  moduleId: string,
+  raw: Partial<ModuleInput>,
+): Promise<ModuleActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!moduleId) return { error: "Falta el módulo a editar." };
+  const { input, fieldErrors } = validateModuleInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos del módulo inválidos." };
+
+  const { error } = await supabase
+    .from("academy_modules")
+    .update({ title: input.title, sort: input.sort })
+    .eq("id", moduleId)
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo actualizar el módulo: ${error.message}` };
+  revalidate();
+  return { ok: true, moduleId };
+}
+
+// ════════════════════════════════════════════════════════════════
+// Catálogo · Lecciones
+// ════════════════════════════════════════════════════════════════
+
+export async function createLessonAction(
+  raw: Partial<LessonInput>,
+): Promise<LessonActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateLessonInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos de la lección inválidos." };
+
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  // El módulo debe existir en el tenant y pertenecer al curso declarado.
+  const { data: mod } = await supabase
+    .from("academy_modules")
+    .select("id, course_id")
+    .eq("id", input.moduleId)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string; course_id: string }>();
+  if (!mod) return { fieldErrors: { moduleId: "Ese módulo no es válido." } };
+  if (mod.course_id !== input.courseId) {
+    return { fieldErrors: { moduleId: "El módulo no pertenece a este curso." } };
+  }
+
+  const { data: row, error } = await supabase
+    .from("academy_lessons")
+    .insert({
+      tenant_id: tenantId,
+      module_id: input.moduleId,
+      course_id: input.courseId,
+      title: input.title,
+      kind: input.kind,
+      video_url: input.videoUrl,
+      duration_min: input.durationMin,
+      free_preview: input.freePreview,
+      widget: input.widget,
+      status: input.status,
+      sort: input.sort,
+    })
+    .select("id")
+    .single<{ id: string }>();
+
+  if (error || !row) {
+    return { error: `No se pudo crear la lección: ${error?.message ?? "desconocido"}` };
+  }
+  revalidate();
+  return { ok: true, lessonId: row.id };
+}
+
+export async function updateLessonAction(
+  lessonId: string,
+  raw: Partial<LessonInput>,
+): Promise<LessonActionState> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, MODULE);
+  if (denial) return { error: denial };
+
+  if (!lessonId) return { error: "Falta la lección a editar." };
+  const { input, fieldErrors } = validateLessonInput(raw);
+  if (fieldErrors) return { fieldErrors };
+  if (!input) return { error: "Datos de la lección inválidos." };
+
+  // El módulo destino debe pertenecer al mismo curso (permite mover de módulo).
+  const { data: mod } = await supabase
+    .from("academy_modules")
+    .select("id, course_id")
+    .eq("id", input.moduleId)
+    .is("deleted_at", null)
+    .maybeSingle<{ id: string; course_id: string }>();
+  if (!mod) return { fieldErrors: { moduleId: "Ese módulo no es válido." } };
+  if (mod.course_id !== input.courseId) {
+    return { fieldErrors: { moduleId: "El módulo no pertenece a este curso." } };
+  }
+
+  const { error } = await supabase
+    .from("academy_lessons")
+    .update({
+      module_id: input.moduleId,
+      title: input.title,
+      kind: input.kind,
+      video_url: input.videoUrl,
+      duration_min: input.durationMin,
+      free_preview: input.freePreview,
+      widget: input.widget,
+      status: input.status,
+      sort: input.sort,
+    })
+    .eq("id", lessonId)
+    .is("deleted_at", null);
+
+  if (error) return { error: `No se pudo actualizar la lección: ${error.message}` };
+  revalidate();
+  return { ok: true, lessonId };
+}
+
+/**
+ * Carga el árbol de edición de un curso (curso + módulos + lecciones, incl.
+ * borrador) para el editor del catálogo. Es una LECTURA → gate de VISTA (no de
+ * edición): el rol debe poder VER el módulo. null si no puede o si no existe.
+ */
+export async function loadCourseEditorTreeAction(
+  courseId: string,
+): Promise<CourseTree | null> {
+  const supabase = await createClient();
+  const role = await getStudioRole(supabase);
+  if (!canAccessModule(role, MODULE)) return null;
+  if (!courseId) return null;
+  return getCourseEditorTree(supabase, courseId);
 }
 
 // ════════════════════════════════════════════════════════════════

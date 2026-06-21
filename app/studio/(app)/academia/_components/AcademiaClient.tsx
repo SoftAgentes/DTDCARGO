@@ -31,8 +31,11 @@ import {
   type AcademiaStats,
   type RosterRow,
 } from "@/lib/studio/academia/types";
+import Link from "next/link";
 import { CohortDrawer } from "./CohortDrawer";
 import { EnrollmentDrawer } from "./EnrollmentDrawer";
+import { CourseDrawer } from "./CourseDrawer";
+import { CourseEditorDrawer } from "./CourseEditorDrawer";
 import { emitDiplomasAction, toggleAttendanceAction } from "../actions";
 
 type Tab = "catalogo" | "cohortes";
@@ -100,16 +103,25 @@ export function AcademiaClient({
             sesión y emite el diploma a quien apruebe (≥ 75% de asistencia).
           </p>
         </div>
-        <button
-          type="button"
-          className="studio-btn studio-btn-primary"
-          onClick={() => {
-            setTab("cohortes");
-            setShowNewCohort(true);
-          }}
-        >
-          + Nueva cohorte
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Link
+            href="/studio/academia/diplomas"
+            className="studio-btn studio-btn-ghost"
+            style={{ textDecoration: "none" }}
+          >
+            Diplomas
+          </Link>
+          <button
+            type="button"
+            className="studio-btn studio-btn-primary"
+            onClick={() => {
+              setTab("cohortes");
+              setShowNewCohort(true);
+            }}
+          >
+            + Nueva cohorte
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -208,62 +220,107 @@ export function AcademiaClient({
 // ════════════════════════════════════════════════════════════════
 
 function CatalogTab({ courses }: { courses: CourseWithCounts[] }) {
-  if (courses.length === 0) {
-    return (
-      <EmptyState
-        eyebrow="Catálogo vacío"
-        title="Aún no hay cursos"
-        description="Corre el seed de la Academia (scripts/seed-academia.ts) para sembrar los cursos base, o crea uno cuando esté lista la gestión de contenido."
-      />
-    );
-  }
+  const [showNewCourse, setShowNewCourse] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-        gap: "var(--s-4)",
-      }}
-    >
-      {courses.map((c) => (
-        <article
-          key={c.id}
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--s-4)" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        <div className="studio-eyebrow">Catálogo · {courses.length} curso(s)</div>
+        <button
+          type="button"
+          className="studio-btn studio-btn-primary studio-btn-sm"
+          onClick={() => setShowNewCourse(true)}
+        >
+          + Nuevo curso
+        </button>
+      </div>
+
+      {courses.length === 0 ? (
+        <EmptyState
+          eyebrow="Catálogo vacío"
+          title="Aún no hay cursos"
+          description="Crea el primer curso con “+ Nuevo curso”. Luego agrégale módulos y lecciones. El precio se fija aparte, en Servicios (Administración)."
+          action={
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary"
+              onClick={() => setShowNewCourse(true)}
+            >
+              + Nuevo curso
+            </button>
+          }
+        />
+      ) : (
+        <div
           style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-lg)",
-            padding: "var(--s-5)",
-            display: "flex",
-            flexDirection: "column",
-            gap: "var(--s-3)",
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+            gap: "var(--s-4)",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
-            <Badge tone="wine" size="sm">{tierLabel(c.tier)}</Badge>
-            <Badge tone={courseStatusTone(c.status)} size="sm" dot>
-              {courseStatusLabel(c.status)}
-            </Badge>
-          </div>
-          <h2 style={{ font: "800 16px/1.25 var(--f-display)", color: "var(--ink)", margin: 0 }}>
-            {c.title}
-          </h2>
-          {c.summary && (
-            <p style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
-              {c.summary}
-            </p>
-          )}
-          <div
-            style={{
-              marginTop: "auto",
-              font: "600 11.5px/1 var(--f-sans)",
-              color: "var(--ink-mute)",
-              letterSpacing: "0.02em",
-            }}
-          >
-            {c.modules_count} módulos · {c.lessons_count} lecciones
-          </div>
-        </article>
-      ))}
+          {courses.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setEditingId(c.id)}
+              aria-label={`Editar curso: ${c.title}`}
+              style={{
+                textAlign: "left",
+                background: "var(--bg-surface)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--r-lg)",
+                padding: "var(--s-5)",
+                display: "flex",
+                flexDirection: "column",
+                gap: "var(--s-3)",
+                cursor: "pointer",
+                transition: "border-color var(--dur-fast) var(--ease)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--s-2)", flexWrap: "wrap" }}>
+                <Badge tone="wine" size="sm">{tierLabel(c.tier)}</Badge>
+                <Badge tone={courseStatusTone(c.status)} size="sm" dot>
+                  {courseStatusLabel(c.status)}
+                </Badge>
+              </div>
+              <span style={{ display: "block", font: "800 16px/1.25 var(--f-display)", color: "var(--ink)", margin: 0 }}>
+                {c.title}
+              </span>
+              {c.summary && (
+                <p style={{ font: "500 12.5px/1.5 var(--f-sans)", color: "var(--ink-soft)", margin: 0 }}>
+                  {c.summary}
+                </p>
+              )}
+              <div
+                style={{
+                  marginTop: "auto",
+                  font: "600 11.5px/1 var(--f-sans)",
+                  color: "var(--ink-mute)",
+                  letterSpacing: "0.02em",
+                }}
+              >
+                {c.modules_count} módulos · {c.lessons_count} lecciones
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {showNewCourse && <CourseDrawer onClose={() => setShowNewCourse(false)} />}
+      {editingId && (
+        <CourseEditorDrawer
+          courseId={editingId}
+          onClose={() => setEditingId(null)}
+        />
+      )}
     </div>
   );
 }

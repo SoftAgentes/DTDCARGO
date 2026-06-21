@@ -11,6 +11,7 @@ import {
   isApproved,
   type AcademyCohort,
   type AcademyCourse,
+  type AcademyDiploma,
   type AcademyEnrollment,
   type AcademyLesson,
   type AcademiaStats,
@@ -21,6 +22,11 @@ import {
   type ModuleWithLessons,
   type RosterRow,
 } from "@/lib/studio/academia/types";
+
+const COURSE_COLS =
+  "id, tenant_id, slug, title, tier, summary, level, service_key, status, sort, cover_path, created_at, updated_at";
+const LESSON_COLS =
+  "id, tenant_id, module_id, course_id, title, sort, kind, video_url, asset_path, duration_min, free_preview, status, widget";
 
 const COHORT_COLS =
   "id, tenant_id, course_id, name, hours, sessions, modality, place, starts_at, facilitator_name, status, created_at, updated_at";
@@ -56,11 +62,15 @@ export async function listCoursesWithCounts(supabase: SupabaseClient): Promise<C
   }));
 }
 
-/** Detalle de un curso: módulos con sus lecciones, ordenados. */
+/**
+ * Detalle de un curso: módulos con sus lecciones, ordenados. Incluye TODAS las
+ * lecciones vivas (incl. borrador) — es la vista de EDICIÓN del Director, no la
+ * pública del portal. `getCourseEditorTree` es el alias semántico para el editor.
+ */
 export async function getCourseTree(supabase: SupabaseClient, courseId: string): Promise<CourseTree | null> {
   const { data: course } = await supabase
     .from("academy_courses")
-    .select("id, tenant_id, slug, title, tier, summary, level, service_key, status, sort, cover_path, created_at, updated_at")
+    .select(COURSE_COLS)
     .eq("id", courseId)
     .is("deleted_at", null)
     .maybeSingle();
@@ -75,10 +85,11 @@ export async function getCourseTree(supabase: SupabaseClient, courseId: string):
       .order("sort", { ascending: true }),
     supabase
       .from("academy_lessons")
-      .select("id, tenant_id, module_id, course_id, title, sort, kind, video_url, asset_path, duration_min, free_preview, status")
+      .select(LESSON_COLS)
       .eq("course_id", courseId)
       .is("deleted_at", null)
-      .order("sort", { ascending: true }),
+      .order("sort", { ascending: true })
+      .order("title", { ascending: true }),
   ]);
 
   const lessons = (lessonsRes.data ?? []) as AcademyLesson[];
@@ -95,6 +106,20 @@ export async function getCourseTree(supabase: SupabaseClient, courseId: string):
   }));
 
   return { ...(course as AcademyCourse), modules };
+}
+
+/**
+ * Árbol de un curso para el EDITOR (Feature A): curso + módulos (ordenados) +
+ * lecciones por módulo, incluyendo borradores (es la vista de edición del
+ * Director). Alias explícito de `getCourseTree` para no acoplar el editor a la
+ * vista de lectura — si mañana la pública filtra `status='publicado'`, el editor
+ * sigue viendo todo.
+ */
+export async function getCourseEditorTree(
+  supabase: SupabaseClient,
+  courseId: string,
+): Promise<CourseTree | null> {
+  return getCourseTree(supabase, courseId);
 }
 
 /** KPIs del módulo (Slice A + Slice B). */
@@ -357,4 +382,23 @@ export async function getCohortWithRoster(
   });
 
   return { cohort: c, course_title: courseTitle, roster, readyToEmit };
+}
+
+// ── Diplomas (Feature B · generador imprimible) ──────────────
+
+/**
+ * Diplomas emitidos del tenant (Feature B). LEE de `academy_diplomas` (no del
+ * localStorage del prototipo del Norte). Orden: el más reciente primero. RLS
+ * scope-a por tenant. Devuelve [] ante error.
+ */
+export async function listDiplomas(supabase: SupabaseClient): Promise<AcademyDiploma[]> {
+  const { data } = await supabase
+    .from("academy_diplomas")
+    .select(
+      "id, tenant_id, enrollment_id, client_markbox, folio, student_name, course_title, hours, place, issued_at, storage_path, created_at",
+    )
+    .is("deleted_at", null)
+    .order("issued_at", { ascending: false })
+    .order("created_at", { ascending: false });
+  return (data ?? []) as AcademyDiploma[];
 }
