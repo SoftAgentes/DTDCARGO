@@ -38,14 +38,23 @@ alter table academy_lessons add constraint academy_lessons_widget_check
 ## Paso 3 — Componente que embebe la guía
 Vive en `components/` (frontera OK: solo design-tokens, reusable público↔portal), espejo de `AlibabaAddressGuide`.
 
+> **MARKBOX automático en el portal.** Como el cliente está logueado, le pasamos su MARKBOX (y nombre) por
+> querystring al iframe. La guía lee `?mark=` y **pre-llena** el campo MARKBOX + arma el Destinatario solo
+> (`DTD Cargo - DTD-1042`) + saluda + refuerza que lo ponga en la dirección. **Sin `?mark=` = guía pública/manual**
+> (placeholder `DTD-XXXX`). El mark se sanitiza en la guía (solo `A-Z0-9-`, se le antepone `DTD-` si falta).
+
 ```tsx
 // components/AlibabaCursoGuide.tsx
 "use client";
 
-export function AlibabaCursoGuide() {
+export function AlibabaCursoGuide({ markbox, name }: { markbox?: string; name?: string }) {
+  const qs = new URLSearchParams();
+  if (markbox) qs.set("mark", markbox);   // ej "DTD-1042"
+  if (name) qs.set("name", name);         // opcional, solo para el saludo
+  const src = "/guias/comprar-en-alibaba.html" + (qs.toString() ? `?${qs}` : "");
   return (
     <iframe
-      src="/guias/comprar-en-alibaba.html"
+      src={src}
       title="Cómo comprar en Alibaba — guía interactiva DTD"
       loading="lazy"
       className="w-full rounded-xl border"
@@ -62,10 +71,12 @@ export function AlibabaCursoGuide() {
 ```tsx
 {lesson.widget === "alibaba_curso" ? (
   <section className="flex flex-col gap-2">
-    <AlibabaCursoGuide />
+    <AlibabaCursoGuide markbox={clientMarkbox} name={clientName} />
   </section>
 ) : null}
 ```
+`clientMarkbox` ya lo tenés en la página: el portal academia resuelve el cliente con
+`get_portal_client_markbox()` (mismo dato que usa el progreso). `clientName` es opcional (solo el saludo).
 Y, si querés, el badge "Herramienta" del course-detail (`[courseId]/page.tsx`) para `alibaba_curso` igual que
 para `alibaba_address`.
 

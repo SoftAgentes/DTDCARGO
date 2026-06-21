@@ -149,6 +149,8 @@
   .quienes .qt{min-width:0;flex:1}
   .quienes .qt b{color:var(--abismo)}
 
+  .greet{margin-top:10px;padding:10px 15px;border-radius:12px;background:color-mix(in srgb, var(--marea) 7%, var(--papel));border:1px solid color-mix(in srgb, var(--marea) 22%, var(--papel));font:600 13.5px var(--f-ui);color:var(--abismo)}
+  .greet b{color:var(--marea)}
   /* Direccion Alibaba (copiar por campo) -- espejo del FAQ */
   .dir-card{border:1px solid var(--linea);border-radius:16px;overflow:hidden;background:var(--papel);margin-top:6px;box-shadow:var(--sombra-suave)}
   .dir-mark{padding:14px 16px;border-bottom:1px solid var(--linea);background:var(--espuma)}
@@ -310,6 +312,8 @@
       <div class="pasaporte" id="pasaporte" aria-label="Insignias"><span class="lbl">Insignias</span></div>
     </header>
 
+    <div class="greet" id="greet" hidden></div>
+
     <section class="voyage" aria-label="Tu progreso">
       <div class="voyage-head">
         <div class="puerto">义乌 Yiwu<span class="sub">Tu compra arranca aquí</span></div>
@@ -332,6 +336,16 @@ const WHATSAPP  = "584121668021";   // CRM WhatsApp DTD (+58 412 166 8021) en fo
 const DIRECCION = "浙江省义乌市义乌港二期直通仓2栋2号 货7-货11 · Yiwu, Zhejiang 322000";  // bodega Yiwu (CONTACT.cn)
 const CODIGO    = "";               // visitante anonimo: el MARKBOX se entrega al registrarse
 const dir = (DIRECCION && DIRECCION.indexOf("{{")<0) ? DIRECCION : "[ direccion de tu almacen en Yiwu ]";
+
+// Contexto del portal: si el cliente está logueado, su MARKBOX llega por ?mark= (y ?name=).
+// Sin param = guía pública/standalone (modo manual DTD-XXXX). El portal arma el iframe con el mark real.
+const PARAMS = new URLSearchParams(location.search);
+function esc(x){ return String(x==null?"":x).replace(/[&<>"]/g, function(c){ return ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]; }); }
+let URL_MARK = (PARAMS.get("mark")||"").trim().toUpperCase().replace(/[^A-Z0-9-]/g,"");
+if(URL_MARK && URL_MARK.indexOf("DTD-")!==0) URL_MARK = "DTD-"+URL_MARK;
+const URL_NAME = (PARAMS.get("name")||"").trim().slice(0,40);
+const MARK = URL_MARK || "DTD-XXXX";
+const HAS_MARK = !!URL_MARK;
 const cod = (CODIGO && CODIGO.indexOf("{{")<0 && CODIGO) ? CODIGO : "XXXX";
 
 /* ============================ LEAD (tuyo) ============================ */
@@ -455,12 +469,12 @@ const ETAPAS = [
     bloques:[
       {ic:"", h:"Pon NUESTRA dirección como destino", p:"Cuando el proveedor te pregunte a dónde enviar, dale la de nuestra bodega en Yiwu. Copia cada campo en su formulario — el chino se pega tal cual."},
       {tipo:"direccion"},
-      {ic:"", h:"Usa tu MARKBOX (Shipping Mark)", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <b>dtdcargo.com/registro</b> (formato <b>DTD-"+cod+"</b>). Pídele al proveedor que marque <b>solo tu MARKBOX</b> en cada bulto — sin tus datos personales."},
+      {ic:"", h:"Usa tu MARKBOX (Shipping Mark)", p:"Es tu código para que tu caja no se confunda con otra. Lo recibes gratis al registrarte en <b>dtdcargo.com/registro</b> (formato <b>"+MARK+"</b>). Pídele al proveedor que marque <b>solo tu MARKBOX</b> en cada bulto — sin tus datos personales."},
       {ic:"", h:"Avísanos qué viene", p:"Cuéntanos cuántas cajas, qué producto y el peso/volumen aproximado. Así lo recibimos bien y empezamos la consolidación."},
       {ic:"", h:"Documentos para la aduana", perfil:"pro", p:"Asegúrate de tener <b>Commercial Invoice</b>, <b>Packing List</b> y el <b>Bill of Lading (BL)</b>. Nosotros te guiamos para que la declaración en Venezuela salga limpia."},
       {tipo:"tip", k:"Tip", txt:"Pide al proveedor fotos del empaque con tu Shipping Mark antes de despachar. Doble confirmación."}
     ],
-    checklist:["El proveedor tiene la dirección de nuestro almacén","Mi MARKBOX (DTD-"+cod+") está en cada bulto","Le avisé a DTD qué mercancía viene"]
+    checklist:["El proveedor tiene la dirección de nuestro almacén","Mi MARKBOX ("+MARK+") está en cada bulto","Le avisé a DTD qué mercancía viene"]
   },
 
   { final:true, nodo:"¡Llegó!", eyebrow:"Meta", insignia:{e:"🏆", n:"Importador DTD"},
@@ -553,7 +567,7 @@ function incotermsHTML(){
 function direccionHTML(){
   const F=[
     {k:"国家/地区",l:"País / región",v:"China"},
-    {k:"收货人",l:"Destinatario",v:"DTD Cargo - DTD-XXXX",dest:true,hint:"Tu MARKBOX va al final — sin él no podemos saber que la caja es tuya."},
+    {k:"收货人",l:"Destinatario",v:"DTD Cargo - "+MARK,dest:true,hint:"Tu MARKBOX va al final — sin él no podemos saber que la caja es tuya."},
     {k:"电话",l:"Teléfono (+86)",v:"18606891419"},
     {k:"地址",l:"Dirección",v:"浙江省义乌市义乌港二期直通仓2栋2号 货7-货11",zh:true,hint:"Pégala en chino tal cual, sin traducir — es para el transporte dentro de China."},
     {k:"省",l:"Provincia",v:"浙江省",zh:true,hint:"Zhejiang"},
@@ -573,9 +587,9 @@ function direccionHTML(){
       '<button class="dir-copy" data-field="'+field+'" data-val="'+f.v+'">Copiar</button></div>';
   });
   return '<div class="dir-card">'+
-    '<div class="dir-mark"><label>Tu MARKBOX (opcional)</label><div class="row">'+
-      '<input id="dirMark" type="text" maxlength="50" placeholder="DTD-XXXX" autocapitalize="characters" autocomplete="off">'+
-      '<div class="h">Escríbelo y el campo Destinatario se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a></div>'+
+    '<div class="dir-mark"><label>Tu MARKBOX'+(HAS_MARK?"":" (opcional)")+'</label><div class="row">'+
+      '<input id="dirMark" type="text" maxlength="50" placeholder="DTD-XXXX" value="'+(HAS_MARK?URL_MARK:"")+'" autocapitalize="characters" autocomplete="off">'+
+      '<div class="h">'+(HAS_MARK?((URL_NAME?"<b>Hola, "+esc(URL_NAME)+".</b> ":"")+"Tu MARKBOX <b>"+MARK+"</b> ya está cargado — cópialo junto a «DTD Cargo» en la dirección de Alibaba."):'Escríbelo y el campo Destinatario se arma solo. <a href="https://dtdcargo.com/registro" target="_blank" rel="noopener">¿No tienes uno? Regístrate →</a>')+'</div>'+
     '</div></div>'+rows+
     '<div class="dir-nota"><b>Importante:</b> en el formulario de Alibaba el destinatario lleva «DTD Cargo + tu MARKBOX», pero en el <b>rótulo físico de la caja</b> va SOLO tu MARKBOX — sin tu nombre, dirección ni teléfono personal (causan confusión o decomiso).</div>'+
   '</div>';
@@ -798,6 +812,7 @@ function enviarLead(){
 
 /* ---------- Arranque ---------- */
 $("#modoSw").addEventListener("click",()=> irA(0)); // "cambiar" -> vuelve al selector de perfil
+if(HAS_MARK){ const g=$("#greet"); if(g){ g.hidden=false; g.innerHTML=(URL_NAME?"Hola <b>"+esc(URL_NAME)+"</b> · ":"")+"tu MARKBOX es <b>"+MARK+"</b> — lo pones en la dirección del Paso 7 para que tu caja llegue identificada."; } }
 restore(); renderRail(); renderPasaporte(); renderModo(); renderEtapa();
 </script>
 </body>
