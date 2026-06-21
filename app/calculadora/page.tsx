@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Sora, Nunito_Sans } from "next/font/google";
 import { jetbrainsMono } from "@/lib/fonts";
 import { socialMeta } from "@/lib/seo-og";
@@ -108,6 +109,15 @@ export default async function CalculadoraPage() {
               serverConfig={serverConfig}
               ciudades={ciudades}
             />
+            <p className="mt-6 text-[13px] text-grey-700">
+              ¿Tu carga llena un contenedor completo?{" "}
+              <Link
+                href="/calculadora-fcl"
+                className="text-wine font-semibold hover:underline"
+              >
+                Calcula tu FCL →
+              </Link>
+            </p>
           </div>
         </section>
 

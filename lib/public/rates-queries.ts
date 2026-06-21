@@ -14,6 +14,20 @@
 import { getAnonClient } from "./supabase-anon";
 import type { CalcParams, Ciudad } from "@/lib/calculadora";
 
+/** Una ruta FCL pública (contenedor completo) para la calculadora FCL del sitio. */
+export type PublicFclRoute = {
+  origin: string;
+  destination: string;
+  /** Tarifa flat por contenedor en USD. */
+  flatRate: number;
+  /** Piso comercial USD, o null. */
+  minCharge: number | null;
+  /** Días de tránsito estimados, o null. */
+  transitDays: number | null;
+  /** Vigencia (ISO date), o null. */
+  validUntil: string | null;
+};
+
 export type PublicCbmRate = {
   /** Tarifa por CBM en USD (la base editable del calculador). */
   per_cbm: number;
@@ -150,6 +164,58 @@ export async function getPublicCalculatorCities(): Promise<Ciudad[]> {
   } catch (e) {
     console.error(
       "[getPublicCalculatorCities] error inesperado:",
+      e instanceof Error ? e.message : String(e),
+    );
+    return [];
+  }
+}
+
+/**
+ * Resuelve las RUTAS FCL públicas (contenedor completo) para `/calculadora-fcl`.
+ *
+ * Llama a la RPC `public_fcl_rates` (anon, security definer, grant anon) de
+ * `supabase/migrations/0157_public_fcl_rates.sql`. Retorno MÍNIMO: origin +
+ * destination + flat_rate + min_charge + transit_days + valid_until, solo de las
+ * rutas reserva_FCL marcadas is_public del tenant dtd.
+ *
+ * Si no hay rutas públicas (o Supabase caído / RPC ausente) devuelve `[]` y la
+ * calculadora muestra su estado vacío ("pídela por WhatsApp"). Nunca tira: es una
+ * página pública de marketing.
+ */
+export async function getPublicFclRoutes(): Promise<PublicFclRoute[]> {
+  try {
+    const supabase = getAnonClient();
+    const { data, error } = await supabase.rpc("public_fcl_rates");
+
+    if (error) {
+      console.error("[getPublicFclRoutes] RPC error:", error.message);
+      return [];
+    }
+
+    const rows = Array.isArray(data) ? data : [];
+    const routes: PublicFclRoute[] = [];
+    for (const row of rows) {
+      const origin = typeof row?.origin === "string" ? row.origin.trim() : "";
+      const destination =
+        typeof row?.destination === "string" ? row.destination.trim() : "";
+      const flatRate = Number(row?.flat_rate);
+      // Defensa: una fila sin ruta o sin tarifa válida no debe romper el form.
+      if (!origin || !destination || !Number.isFinite(flatRate) || flatRate <= 0) {
+        continue;
+      }
+      routes.push({
+        origin,
+        destination,
+        flatRate,
+        minCharge: row?.min_charge == null ? null : Number(row.min_charge),
+        transitDays: row?.transit_days == null ? null : Number(row.transit_days),
+        validUntil: row?.valid_until ?? null,
+      });
+    }
+    return routes;
+  } catch (e) {
+    console.error(
+      "[getPublicFclRoutes] error inesperado:",
       e instanceof Error ? e.message : String(e),
     );
     return [];
