@@ -50,6 +50,15 @@ pnpm docs:index / docs:check   # índice + validación de specs SDD
 ```
 Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`.
 
+## Mapa del repo (graphify) — exploración para agentes
+
+`graphify-out/graph.json` = grafo de conocimiento del repo (AST: god nodes, comunidades por dominio, edges de llamadas/imports). Sirve para "¿qué llama a X?", "¿qué se rompe si toco Y?", trazar flujos — sin re-escanear todo.
+
+- **Consultar:** `/graphify query "<pregunta>"` · `/graphify path "A" "B"` · `/graphify explain "X"` (basta con que exista `graph.json`).
+- **MCP** (server `graphify` en `.mcp.json`, local y gitignored): expone tools `query_graph`/`get_node`/`get_neighbors`/`god_nodes`/`shortest_path`. Requiere el extra `graphifyy[mcp]` instalado.
+- **Refrescar:** `/graphify update` re-extrae solo los archivos cambiados (AST, sin LLM, gratis). ⚠️ **El server MCP lee el grafo al arrancar → después de un `update`, reiniciar Claude Code para que sirva la versión nueva (regla: update → reiniciar).**
+- **Windows:** leer `graphify-out/.graphify_root` y `.graphify_python` con `utf-8-sig` (PowerShell les mete BOM y rompe el walk); los scripts que llaman `extract()` necesitan guard `if __name__ == '__main__':`.
+
 ## Variables de entorno (ver `.env.example`)
 
 `NEXT_PUBLIC_HAILUWAY_API` (base URL del ERP, HTTP) · `DTD_API_KEY` · `NEXT_PUBLIC_WHATSAPP_NUMBER` · `NEXT_PUBLIC_CONTACT_EMAIL` · `NEXT_PUBLIC_SITE_URL` (default `https://dtdcargo.com`).
