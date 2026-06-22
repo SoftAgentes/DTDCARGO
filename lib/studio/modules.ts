@@ -93,6 +93,7 @@ export const MODULES: ModuleDef[] = [
   { id: "documents", group: "FINANZAS", label: "Documentos", labelKey: "chrome.sidebar.documents", icon: "doc", slug: "/studio/documentos" },
   { id: "reports", group: "FINANZAS", label: "Reportes", labelKey: "chrome.sidebar.reports", icon: "chart", slug: "/studio/reportes" },
   { id: "costing", group: "FINANZAS", label: "Costing & Margen", labelKey: "chrome.sidebar.costing", icon: "star", slug: "/studio/costing" },
+  { id: "nomina", group: "FINANZAS", label: "Nómina · RRHH", icon: "users", slug: "/studio/nomina" },
 
   // MARKETING
   { id: "noticias-web", group: "MARKETING", label: "Noticias Web", labelKey: "chrome.sidebar.noticias_web", icon: "doc", slug: "/studio/marketing/noticias-web" },
