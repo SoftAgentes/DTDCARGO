@@ -185,6 +185,8 @@ export interface SalesBookRow {
   total: number;
   /** Retención de IVA — columna preparada (V1 sin comprobantes) → null. */
   retention: number | null;
+  /** Moneda de la operación (snapshot al asentar; V1 no normaliza). null → "—". */
+  currency: string | null;
 }
 
 /** Fila del Libro de Compras (formato SENIAT, columnas fijas V1). */
@@ -204,6 +206,8 @@ export interface PurchaseBookRow {
   total: number;
   /** Retención de IVA practicada — columna preparada (V1) → null. */
   retention: number | null;
+  /** Moneda de la compra (snapshot al asentar; V1 no normaliza). null → "—". */
+  currency: string | null;
 }
 
 /** Totales de un libro (Σ base/IVA/total + desglose por alícuota). */
@@ -339,6 +343,8 @@ export interface RawInvoice {
   total_amount: number;
   issued_at: string | null;
   created_at: string;
+  /** Moneda de la factura (V1 no normaliza; se persiste en el snapshot). */
+  currency: string | null;
 }
 
 /**
@@ -384,6 +390,7 @@ export function toSalesRow(
     iva: round2(iva),
     total: round2(base + iva),
     retention: null, // columna preparada (V1 sin comprobantes)
+    currency: inv.currency,
   };
 }
 
@@ -396,6 +403,8 @@ export interface RawBill {
   total_amount: number;
   issue_date: string | null;
   created_at: string;
+  /** Moneda de la compra (V1 no normaliza; se persiste en el snapshot). */
+  currency: string | null;
 }
 
 /**
@@ -422,5 +431,6 @@ export function toPurchaseRow(
     iva: null,
     total: round2(bill.total_amount),
     retention: null,
+    currency: bill.currency,
   };
 }

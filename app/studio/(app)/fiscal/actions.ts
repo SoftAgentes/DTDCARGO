@@ -15,11 +15,29 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { canEditModule } from "@/lib/studio/rbac";
+import type { StudioUserRole } from "@/lib/studio/user-types";
 import {
+  isFiscalModuleEnabled,
   validateFiscalSettingsInput,
   type FiscalSettingsActionState,
   type FiscalSettingsInput,
 } from "@/lib/studio/fiscal/config-types";
+import { getFiscalSettings, purchaseBook, salesBook } from "@/lib/studio/fiscal/queries";
+import {
+  isValidBookPeriod,
+  isValidBookType,
+  purchaseRowToEntry,
+  salesRowToEntry,
+  type FiscalBookEntryPayload,
+  type PostedBookType,
+} from "@/lib/studio/fiscal/books-types";
+import {
+  computeWithholdingAmount,
+  validateWithholdingInput,
+  type WithholdingActionState,
+  type WithholdingInput,
+} from "@/lib/studio/fiscal/withholding-types";
 
 function parseNumber(v: FormDataEntryValue | null): number | undefined {
   if (v == null) return undefined;
@@ -145,6 +163,248 @@ export async function saveFiscalSettingsAction(
       error:
         "No se pudo guardar la configuración fiscal. Revisa los valores e intenta de nuevo.",
     };
+  }
+
+  revalidatePath("/studio/fiscal");
+  return { ok: true };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SDD-0104 · Libros asentados + Retenciones
+//
+// Gate de poderes DUPLICADO (action + DB): el founder lo exige para dinero
+// (PostgREST evade la action). Acá devolvemos un error amable; la RLS/RPC de
+// 0165/0166 vuelven a gatear rol accounting/admin dentro de la DB.
+// ═══════════════════════════════════════════════════════════════
+
+const FISCAL_DENY_MSG =
+  "Solo Contabilidad puede asentar libros o registrar retenciones.";
+const MODULE_OFF_MSG =
+  "El módulo Fiscal/SENIAT está desactivado. Actívalo en Configuración para usar esta función.";
+
+/**
+ * Resuelve usuario→tenant→rol con el cliente del usuario (RLS). Devuelve el
+ * gate listo: si `denied`, la action corta con ese mensaje. Filtra user_tenants
+ * por user_id (post-0040 ese listado expone a todos los miembros → maybeSingle
+ * sin filtro rompería con >1 usuario).
+ */
+async function resolveFiscalGate(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+): Promise<{ tenantId: string; userId: string } | { denied: string }> {
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return { denied: "Sesión no válida." };
+
+  const { data: link, error: linkErr } = await supabase
+    .from("user_tenants")
+    .select("tenant_id, role")
+    .eq("user_id", userId)
+    .maybeSingle<{ tenant_id: string; role: StudioUserRole }>();
+  if (linkErr || !link?.tenant_id) {
+    return { denied: "No se pudo resolver el tenant del usuario." };
+  }
+  if (!canEditModule(link.role, "fiscal")) return { denied: FISCAL_DENY_MSG };
+
+  return { tenantId: link.tenant_id, userId };
+}
+
+/**
+ * Asienta un libro (Ventas/Compras): clasifica el período vivo con los helpers
+ * de 0073, arma las líneas y llama la RPC atómica `fiscal_post_book`. La RPC
+ * recalcula los totales desde las líneas. Idempotente: el índice único parcial
+ * de 0165 revienta 23505 si ya hay un asiento vigente → mensaje amable.
+ */
+export async function postFiscalBookAction(
+  period: string,
+  bookType: PostedBookType,
+): Promise<{ ok?: boolean; error?: string; bookId?: string }> {
+  if (!isValidBookPeriod(period)) return { error: "Período inválido." };
+  if (!isValidBookType(bookType)) return { error: "Tipo de libro inválido." };
+
+  const supabase = await createClient();
+  const gate = await resolveFiscalGate(supabase);
+  if ("denied" in gate) return { error: gate.denied };
+
+  const settings = await getFiscalSettings(supabase);
+  if (!isFiscalModuleEnabled(settings)) return { error: MODULE_OFF_MSG };
+
+  // Clasifica el período VIVO (misma lógica que el preview) → líneas congeladas.
+  let entries: FiscalBookEntryPayload[];
+  if (bookType === "ventas") {
+    const book = await salesBook(supabase, period, settings);
+    entries = book.rows.map((r, i) => salesRowToEntry(r, i + 1));
+  } else {
+    const book = await purchaseBook(supabase, period, settings);
+    entries = book.rows.map((r, i) => purchaseRowToEntry(r, i + 1));
+  }
+
+  const { data, error } = await supabase.rpc("fiscal_post_book", {
+    p_period: period,
+    p_book_type: bookType,
+    p_entries: entries,
+    p_default_iva_mode: settings.default_invoice_iva_mode,
+  });
+
+  if (error) {
+    if ((error as { code?: string }).code === "23505") {
+      return {
+        error:
+          "Este período ya está asentado. Anula el asiento vigente para volver a asentarlo.",
+      };
+    }
+    console.error("[fiscal] postFiscalBook rpc error:", error);
+    return {
+      error: "No se pudo asentar el período. Revisa los datos e intenta de nuevo.",
+    };
+  }
+
+  revalidatePath("/studio/fiscal");
+  return { ok: true, bookId: (data as string | null) ?? undefined };
+}
+
+/**
+ * Anula el asiento vigente de un libro. La RLS (accounting/admin) + el trigger
+ * `fiscal_books_guard` de 0165 gatean el rol y la transición asentado→anulado;
+ * voided_at/voided_by los sella el trigger. Tras anular se puede re-asentar.
+ */
+export async function voidFiscalBookAction(
+  bookId: string,
+  reason?: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!bookId) return { error: "Falta el identificador del asiento." };
+
+  const supabase = await createClient();
+  const gate = await resolveFiscalGate(supabase);
+  if ("denied" in gate) return { error: gate.denied };
+
+  const cleanReason = reason?.trim() ? reason.trim() : null;
+  const { error } = await supabase
+    .from("fiscal_books")
+    .update({ status: "anulado", void_reason: cleanReason })
+    .eq("id", bookId);
+
+  if (error) {
+    console.error("[fiscal] voidFiscalBook update error:", error);
+    return { error: "No se pudo anular el asiento. Intenta de nuevo." };
+  }
+
+  revalidatePath("/studio/fiscal");
+  return { ok: true };
+}
+
+// ── Retenciones ────────────────────────────────────────────────
+
+function inputFromWithholdingForm(
+  formData: FormData,
+): Partial<WithholdingInput> {
+  const type = String(formData.get("withholding_type") ?? "");
+  return {
+    withholdingType: (type || undefined) as WithholdingInput["withholdingType"],
+    voucherNumber: parseStrOrNull(formData.get("voucher_number")) ?? "",
+    period: String(formData.get("period") ?? ""),
+    opDate: String(formData.get("op_date") ?? ""),
+    supplierId: parseStrOrNull(formData.get("supplier_id")),
+    supplierName: parseStrOrNull(formData.get("supplier_name")) ?? "",
+    rif: parseStrOrNull(formData.get("rif")),
+    sourceBillId: parseStrOrNull(formData.get("source_bill_id")),
+    sourceDoc: parseStrOrNull(formData.get("source_doc")),
+    base: parseNumber(formData.get("base")),
+    pct: parseNumber(formData.get("pct")),
+    // amount llega del form pero NO se confía: se recalcula server-side.
+    amount: parseNumber(formData.get("amount")),
+    currency: parseStrOrNull(formData.get("currency")) ?? "USD",
+    notes: parseStrOrNull(formData.get("notes")),
+  };
+}
+
+/**
+ * Crea un comprobante de retención. Valida + RECALCULA el monto server-side (no
+ * confía en el amount del form) y persiste. tenant_id + created_by son
+ * server-controlled. La RLS de 0166 gatea rol accounting/admin (gate en DB);
+ * 23505 = comprobante vigente duplicado → mensaje amable.
+ */
+export async function createWithholdingAction(
+  _prev: WithholdingActionState,
+  formData: FormData,
+): Promise<WithholdingActionState> {
+  const partial = inputFromWithholdingForm(formData);
+  // Recalcular el monto desde base/pct ANTES de validar (no confiar en el form).
+  if (
+    partial.base != null &&
+    partial.pct != null &&
+    Number.isFinite(partial.base) &&
+    Number.isFinite(partial.pct)
+  ) {
+    partial.amount = computeWithholdingAmount(partial.base, partial.pct);
+  }
+
+  const { input, fieldErrors } = validateWithholdingInput(partial);
+  if (fieldErrors) return { fieldErrors };
+
+  const supabase = await createClient();
+  const gate = await resolveFiscalGate(supabase);
+  if ("denied" in gate) return { error: gate.denied };
+
+  const settings = await getFiscalSettings(supabase);
+  if (!isFiscalModuleEnabled(settings)) return { error: MODULE_OFF_MSG };
+
+  const row = {
+    tenant_id: gate.tenantId,
+    withholding_type: input!.withholdingType,
+    voucher_number: input!.voucherNumber,
+    period: input!.period,
+    op_date: input!.opDate,
+    supplier_id: input!.supplierId,
+    supplier_name: input!.supplierName,
+    rif: input!.rif,
+    source_bill_id: input!.sourceBillId,
+    source_doc: input!.sourceDoc,
+    base: input!.base,
+    pct: input!.pct,
+    amount: input!.amount,
+    currency: input!.currency,
+    notes: input!.notes,
+    created_by: gate.userId,
+  };
+
+  const { error } = await supabase.from("tax_withholdings").insert(row);
+
+  if (error) {
+    if ((error as { code?: string }).code === "23505") {
+      return { error: "Ya existe un comprobante vigente con ese número." };
+    }
+    console.error("[fiscal] createWithholding insert error:", error);
+    return {
+      error:
+        "No se pudo registrar el comprobante. Revisa los valores e intenta de nuevo.",
+    };
+  }
+
+  revalidatePath("/studio/fiscal");
+  return { ok: true };
+}
+
+/**
+ * Anula un comprobante de retención (queda en historial, tachado). La RLS de
+ * 0166 gatea rol accounting/admin; el trigger sella voided_at/voided_by.
+ */
+export async function voidWithholdingAction(
+  id: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!id) return { error: "Falta el identificador del comprobante." };
+
+  const supabase = await createClient();
+  const gate = await resolveFiscalGate(supabase);
+  if ("denied" in gate) return { error: gate.denied };
+
+  const { error } = await supabase
+    .from("tax_withholdings")
+    .update({ status: "anulado" })
+    .eq("id", id);
+
+  if (error) {
+    console.error("[fiscal] voidWithholding update error:", error);
+    return { error: "No se pudo anular el comprobante. Intenta de nuevo." };
   }
 
   revalidatePath("/studio/fiscal");

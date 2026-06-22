@@ -15,10 +15,11 @@
  */
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { rowsToCsv, type CsvValue } from "@/lib/studio/reports/export-csv";
 import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
 import {
   invoiceIvaModeLabel,
@@ -36,25 +37,39 @@ import {
   type PurchaseBookRow,
   type SalesBookRow,
 } from "@/lib/studio/fiscal/types";
+import type {
+  PostedBook,
+  PostedBookType,
+} from "@/lib/studio/fiscal/books-types";
+import type { TaxWithholding } from "@/lib/studio/fiscal/withholding-types";
+import { postFiscalBookAction, voidFiscalBookAction } from "../actions";
 import { FiscalConfig } from "./FiscalConfig";
+import { WithholdingsView } from "./WithholdingsView";
 
-export type FiscalTab = "config" | "ventas" | "compras";
+export type FiscalTab = "config" | "ventas" | "compras" | "retenciones";
 
 type Props = {
   tab: FiscalTab;
   period: FiscalPeriod;
   settings: FiscalSettings;
   canEditConfig: boolean;
+  /** ¿El usuario puede asentar/anular libros y crear/anular retenciones? */
+  canPost?: boolean;
   sales?: SalesBookRow[];
   purchases?: PurchaseBookRow[];
   /** Monedas distintas presentes en el período (V1 no normaliza con fx_rate). */
   currencies?: string[];
+  /** Asiento VIGENTE del período (snapshot inmutable) o null si no asentado. */
+  postedBook?: PostedBook | null;
+  /** Comprobantes de retención del período (pestaña Retenciones). */
+  withholdings?: TaxWithholding[];
 };
 
 const TABS: { id: FiscalTab; label: string }[] = [
   { id: "config", label: "Configuración" },
   { id: "ventas", label: "Libro de Ventas" },
   { id: "compras", label: "Libro de Compras" },
+  { id: "retenciones", label: "Retenciones" },
 ];
 
 // ── Formato ────────────────────────────────────────────────────
@@ -76,9 +91,12 @@ export function FiscalClient({
   period,
   settings,
   canEditConfig,
+  canPost = false,
   sales,
   purchases,
   currencies = [],
+  postedBook = null,
+  withholdings = [],
 }: Props) {
   const router = useRouter();
   const params = useSearchParams();
@@ -163,6 +181,8 @@ export function FiscalClient({
             rows={sales ?? []}
             settings={settings}
             currencies={currencies}
+            postedBook={postedBook}
+            canPost={canPost}
             onPeriod={(p) => go({ period: p })}
           />
         ) : (
@@ -176,11 +196,178 @@ export function FiscalClient({
             rows={purchases ?? []}
             settings={settings}
             currencies={currencies}
+            postedBook={postedBook}
+            canPost={canPost}
             onPeriod={(p) => go({ period: p })}
           />
         ) : (
           <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
         ))}
+
+      {tab === "retenciones" &&
+        (moduleOn ? (
+          <WithholdingsView
+            period={period}
+            rows={withholdings}
+            canPost={canPost}
+            onPeriod={(p) => go({ period: p })}
+          />
+        ) : (
+          <FiscalDisabled canEditConfig={canEditConfig} onGoConfig={() => go({ tab: "config" })} />
+        ))}
+    </div>
+  );
+}
+
+// ── Banda de asiento (asentar / snapshot vigente / anular) ─────
+/**
+ * Cinta de control del asentado de un libro-período (SDD-0104). Tres estados:
+ *  - No asentado → botón "Asentar período" (accounting/admin) con confirmación.
+ *  - Asentado, vivo == snapshot → badge "Asentado · {fecha}" + "Anular asiento".
+ *  - Asentado, vivo difiere → además aviso discreto "hay cambios desde el asiento".
+ *
+ * Compara row_count + total base/iva del vivo contra el snapshot para detectar
+ * drift (factura editada/agregada/anulada tras asentar).
+ */
+function PostingBar({
+  period,
+  bookType,
+  posted,
+  canPost,
+  liveRowCount,
+  liveBase,
+  liveIva,
+}: {
+  period: FiscalPeriod;
+  bookType: PostedBookType;
+  posted: PostedBook | null;
+  canPost: boolean;
+  liveRowCount: number;
+  liveBase: number;
+  liveIva: number;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  const close2 = (a: number, b: number) => Math.abs(a - b) < 0.01;
+  const drift =
+    posted != null &&
+    (posted.rowCount !== liveRowCount ||
+      !close2(posted.totalBase, liveBase) ||
+      !close2(posted.totalIva, liveIva));
+
+  const onPost = () => {
+    if (
+      !window.confirm(
+        `¿Asentar el ${bookType === "ventas" ? "Libro de Ventas" : "Libro de Compras"} de ${periodLabel(period)}? Quedará congelado: editar facturas luego no cambia el asiento.`,
+      )
+    ) {
+      return;
+    }
+    startTransition(async () => {
+      const res = await postFiscalBookAction(period, bookType);
+      if (res?.error) {
+        window.alert(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
+  const onVoid = () => {
+    if (!posted) return;
+    const reason = window.prompt(
+      "Anular el asiento vigente (queda en historial; podrás re-asentar). Motivo (opcional):",
+      "",
+    );
+    // null = canceló el prompt; "" = aceptó sin motivo.
+    if (reason === null) return;
+    startTransition(async () => {
+      const res = await voidFiscalBookAction(posted.id, reason);
+      if (res?.error) {
+        window.alert(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 12,
+        flexWrap: "wrap",
+        padding: "12px 14px",
+        marginBottom: 18,
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-md)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        {posted ? (
+          <>
+            <Badge tone="success" size="md" dot>
+              Asentado · {posted.postedAt.slice(0, 10)}
+            </Badge>
+            <span
+              style={{ font: "500 12px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}
+            >
+              Snapshot inmutable de {posted.rowCount}{" "}
+              {posted.rowCount === 1 ? "operación" : "operaciones"}.
+            </span>
+            {drift && (
+              <span
+                role="note"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
+                  font: "600 11.5px/1.3 var(--f-sans)",
+                  color: "var(--warning)",
+                }}
+              >
+                <span aria-hidden style={{ fontWeight: 800 }}>!</span>
+                Hay cambios desde el asiento — anula y re-asienta para actualizar.
+              </span>
+            )}
+          </>
+        ) : (
+          <span
+            style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}
+          >
+            Este período no está asentado. El libro se recalcula en vivo; asiéntalo
+            para congelar un registro oficial inmutable.
+          </span>
+        )}
+      </div>
+
+      {canPost && (
+        <div style={{ display: "flex", gap: 8 }}>
+          {posted ? (
+            <button
+              type="button"
+              className="studio-btn studio-btn-ghost studio-btn-sm"
+              onClick={onVoid}
+              disabled={pending}
+            >
+              {pending ? "Procesando…" : "Anular asiento"}
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="studio-btn studio-btn-primary studio-btn-sm"
+              onClick={onPost}
+              disabled={pending}
+            >
+              {pending ? "Asentando…" : "Asentar período"}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -403,28 +590,76 @@ const tdStyle: React.CSSProperties = {
 const numTd: React.CSSProperties = { ...tdStyle, textAlign: "right", fontFamily: "var(--f-mono)" };
 const numTh: React.CSSProperties = { ...thStyle, textAlign: "right" };
 
+// ── Snapshot → filas (para renderizar el asiento con la misma tabla) ──
+/** Líneas del snapshot vigente → SalesBookRow[] (lo que pinta la tabla viva). */
+function postedToSalesRows(posted: PostedBook): SalesBookRow[] {
+  return posted.entries.map((e) => ({
+    date: e.opDate ?? "—",
+    invoiceCode: e.documentNumber ?? "—",
+    controlNumber: e.controlNumber,
+    rif: e.rif,
+    clientName: e.partyName ?? "—",
+    ivaClass: (e.ivaClass ?? "exenta") as IvaClass,
+    base: e.base ?? 0,
+    rate: e.rate,
+    iva: e.iva ?? 0,
+    total: e.total ?? 0,
+    retention: e.retention,
+    currency: e.currency,
+  }));
+}
+
+/** Líneas del snapshot vigente → PurchaseBookRow[]. */
+function postedToPurchaseRows(posted: PostedBook): PurchaseBookRow[] {
+  return posted.entries.map((e) => ({
+    date: e.opDate ?? "—",
+    documentNumber: e.documentNumber ?? "—",
+    controlNumber: e.controlNumber,
+    rif: e.rif,
+    supplierName: e.partyName ?? "—",
+    base: e.base,
+    rate: e.rate,
+    iva: e.iva,
+    total: e.total ?? 0,
+    retention: e.retention,
+    currency: e.currency,
+  }));
+}
+
 // ── Libro de Ventas ────────────────────────────────────────────
 function SalesBookView({
   period,
   rows,
   settings,
   currencies,
+  postedBook,
+  canPost,
   onPeriod,
 }: {
   period: FiscalPeriod;
   rows: SalesBookRow[];
   settings: FiscalSettings;
   currencies: string[];
+  postedBook: PostedBook | null;
+  canPost: boolean;
   onPeriod: (p: FiscalPeriod) => void;
 }) {
-  const totals = useMemo(() => salesTotals(rows), [rows]);
+  // Totales del VIVO (para detectar drift contra el snapshot).
+  const liveTotals = useMemo(() => salesTotals(rows), [rows]);
+  // Si está asentado, la tabla muestra el SNAPSHOT (no el vivo).
+  const displayRows = useMemo(
+    () => (postedBook ? postedToSalesRows(postedBook) : rows),
+    [postedBook, rows],
+  );
+  const snapCurrencies = postedBook ? postedBook.currencies : currencies;
+  const totals = useMemo(() => salesTotals(displayRows), [displayRows]);
 
   const exportCsv = () => {
     const headers = [
       "Fecha", "Factura", "Nº control", "RIF", "Cliente", "Condición",
       "Base imponible", "Alícuota %", "IVA débito", "Total", "Retención IVA",
     ];
-    const data: CsvValue[][] = rows.map((r) => [
+    const data: CsvValue[][] = displayRows.map((r) => [
       r.date, r.invoiceCode, r.controlNumber ?? "—", r.rif ?? "—", r.clientName,
       ivaClassLabel(r.ivaClass), r.base, r.rate ?? "Exenta", r.iva, r.total, r.retention ?? "—",
     ]);
@@ -433,9 +668,21 @@ function SalesBookView({
 
   return (
     <div>
-      <BookToolbar period={period} onPeriod={onPeriod} onCsv={exportCsv} hasRows={rows.length > 0} />
+      <BookToolbar period={period} onPeriod={onPeriod} onCsv={exportCsv} hasRows={displayRows.length > 0} />
 
-      {rows.length === 0 ? (
+      {(displayRows.length > 0 || canPost) && (
+        <PostingBar
+          period={period}
+          bookType="ventas"
+          posted={postedBook}
+          canPost={canPost}
+          liveRowCount={liveTotals.rows}
+          liveBase={liveTotals.base}
+          liveIva={liveTotals.iva}
+        />
+      )}
+
+      {displayRows.length === 0 ? (
         <EmptyState
           eyebrow={`Libro de Ventas · ${periodLabel(period)}`}
           title="Sin facturas en este mes"
@@ -443,7 +690,7 @@ function SalesBookView({
         />
       ) : (
         <>
-          <CurrencyNote currencies={currencies} />
+          <CurrencyNote currencies={snapCurrencies} />
           <TotalsStrip totals={totals} label="IVA débito fiscal" />
           {totals.byRate.length > 0 && <RateBreakdown totals={totals} />}
           <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: "var(--r-md)" }}>
@@ -463,7 +710,7 @@ function SalesBookView({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => (
+                {displayRows.map((r, i) => (
                   <tr key={`${r.invoiceCode}-${i}`}>
                     <td style={tdStyle}>{r.date}</td>
                     <td style={{ ...tdStyle, fontFamily: "var(--f-mono)" }}>{r.invoiceCode}</td>
@@ -501,7 +748,7 @@ function SalesBookView({
           <PrintLayout
             title={`Libro de Ventas · ${periodLabel(period)}`}
             columns={["Fecha", "Factura", "RIF", "Cliente", "Condición", "Base", "Alícuota", "IVA", "Total"]}
-            rows={rows.map((r) => [
+            rows={displayRows.map((r) => [
               r.date, r.invoiceCode, r.rif ?? "—", r.clientName, ivaClassLabel(r.ivaClass),
               fmtMoney(r.base), fmtRate(r.rate), fmtMoney(r.iva), fmtMoney(r.total),
             ])}
@@ -519,15 +766,25 @@ function PurchaseBookView({
   rows,
   settings,
   currencies,
+  postedBook,
+  canPost,
   onPeriod,
 }: {
   period: FiscalPeriod;
   rows: PurchaseBookRow[];
   settings: FiscalSettings;
   currencies: string[];
+  postedBook: PostedBook | null;
+  canPost: boolean;
   onPeriod: (p: FiscalPeriod) => void;
 }) {
-  const totals = useMemo(() => purchaseTotals(rows), [rows]);
+  const liveTotals = useMemo(() => purchaseTotals(rows), [rows]);
+  const displayRows = useMemo(
+    () => (postedBook ? postedToPurchaseRows(postedBook) : rows),
+    [postedBook, rows],
+  );
+  const snapCurrencies = postedBook ? postedBook.currencies : currencies;
+  const totals = useMemo(() => purchaseTotals(displayRows), [displayRows]);
   const missingIva = totals.rows - totals.rowsWithData;
 
   const exportCsv = () => {
@@ -535,7 +792,7 @@ function PurchaseBookView({
       "Fecha", "Documento", "Nº control", "RIF", "Proveedor",
       "Base imponible", "Alícuota %", "IVA crédito", "Total", "Retención IVA",
     ];
-    const data: CsvValue[][] = rows.map((r) => [
+    const data: CsvValue[][] = displayRows.map((r) => [
       r.date, r.documentNumber, r.controlNumber ?? "—", r.rif ?? "—", r.supplierName,
       r.base ?? "—", r.rate ?? "—", r.iva ?? "—", r.total, r.retention ?? "—",
     ]);
@@ -544,9 +801,21 @@ function PurchaseBookView({
 
   return (
     <div>
-      <BookToolbar period={period} onPeriod={onPeriod} onCsv={exportCsv} hasRows={rows.length > 0} />
+      <BookToolbar period={period} onPeriod={onPeriod} onCsv={exportCsv} hasRows={displayRows.length > 0} />
 
-      {rows.length === 0 ? (
+      {(displayRows.length > 0 || canPost) && (
+        <PostingBar
+          period={period}
+          bookType="compras"
+          posted={postedBook}
+          canPost={canPost}
+          liveRowCount={liveTotals.rows}
+          liveBase={liveTotals.base}
+          liveIva={liveTotals.iva}
+        />
+      )}
+
+      {displayRows.length === 0 ? (
         <EmptyState
           eyebrow={`Libro de Compras · ${periodLabel(period)}`}
           title="Sin compras en este mes"
@@ -554,7 +823,7 @@ function PurchaseBookView({
         />
       ) : (
         <>
-          <CurrencyNote currencies={currencies} />
+          <CurrencyNote currencies={snapCurrencies} />
           <TotalsStrip totals={totals} label="IVA crédito fiscal" />
           <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: "var(--r-md)" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}>
@@ -572,7 +841,7 @@ function PurchaseBookView({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((r, i) => (
+                {displayRows.map((r, i) => (
                   <tr key={`${r.documentNumber}-${i}`}>
                     <td style={tdStyle}>{r.date}</td>
                     <td style={{ ...tdStyle, fontFamily: "var(--f-mono)" }}>{r.documentNumber}</td>
@@ -617,7 +886,7 @@ function PurchaseBookView({
           <PrintLayout
             title={`Libro de Compras · ${periodLabel(period)}`}
             columns={["Fecha", "Documento", "RIF", "Proveedor", "Base", "Alícuota", "IVA", "Total"]}
-            rows={rows.map((r) => [
+            rows={displayRows.map((r) => [
               r.date, r.documentNumber, r.rif ?? "—", r.supplierName,
               fmtMoneyOrDash(r.base), r.rate == null ? "—" : `${r.rate.toFixed(2)}%`,
               fmtMoneyOrDash(r.iva), fmtMoney(r.total),
