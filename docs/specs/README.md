@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 99 specs)
+### Índice de specs (generado · 101 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -137,6 +137,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0101 | Naviera Tier 1: tracking real del embarque (deep-link SeaRate… | draft | interna |
 | 0102 | Reclamos y siniestros del cliente — gestión de incidencias de… | in-progress | interno |
 | 0103 | Nómina / RRHH — empleados y prestadores (Slice A) + roadmap L… | in-progress | interno |
+| 0104 | Libros fiscales persistidos — asentar Libro de Ventas / Compr… | in-progress | interno |
+| 0105 | Conciliación bancaria + Activos fijos — sub-pestañas de Conta… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
