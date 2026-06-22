@@ -5,36 +5,40 @@
     "findings": [
       {
         "id": "skill-manifest-sprawl",
-        "title": "Manifiesto de skills/plugins por sesion enorme (~200, del marketplace oficial auto-instalado); mayoria ajenos a DTD",
+        "title": "Manifiesto de skills/plugins por sesion enorme (~200, marketplace oficial auto-instalado); mayoria ajenos a DTD",
         "severity": "alta",
-        "action": "Via /plugin (interactivo): deshabilitar los plugins no usados del marketplace claude-plugins-official (legal, small-business, finance, data, design, operations, intercom, box, enterprise-search, product-tracking, cowork, brightdata). Es config GLOBAL + auto-gestionada -> no se edita a mano de forma durable (la auto-instalacion del marketplace oficial lo revierte). Unica via segura = el gestor /plugin.",
+        "action": "Via /plugin (interactivo): deshabilitar los plugins no usados del marketplace claude-plugins-official. Config GLOBAL + auto-gestionada -> no se edita a mano de forma durable. Unica via segura = el gestor /plugin. Es el unico item que baja tokens del prompt.",
         "top": true
       },
       {
-        "id": "config-hygiene-applied",
-        "title": "Higiene de config aplicada (2026-06-21): allow-lists podadas, additionalDirectory stale removido, git wildcards acotados, snapshot del reconciliador al dia",
+        "id": "schema-recon-refreshed",
+        "title": "schema-reconciliation REFRESCADO (2026-06-21) tras el cluster 0152-0159",
         "severity": "baja",
-        "action": "Hecho: ~/.claude/settings.json allow 32->19 + additionalDirs 3->2 (motor-oferta); .claude/settings.local.json allow 24->18 (git add */push */commit -o); schema-reconciliation snapshot 0147->0151. Sin commitear (founder decide)."
+        "action": "Hecho: snapshot 0151->0159, Reclamos del cliente + naviera-tracking movidos de hueco a built, nota de procedencia del cluster agregada. Huecos v4.5 ~30->~28. Sin pendiente."
+      },
+      {
+        "id": "config-hygiene-done",
+        "title": "Higiene de config + workspace COMPLETADA esta jornada",
+        "severity": "baja",
+        "action": "Hecho: allow-lists podadas (global 32->19, local 24->18, MCP claude_ai_Supabase obsoleto + additionalDir motor-oferta removidos), 6 worktrees mergeados + 7 branches borrados, workspace en un solo main limpio. Sin accion pendiente."
       },
       {
         "id": "gate-runtime-flaky",
-        "title": "Gate verify.mjs: paso test ~57s; vitest worker flaky en Windows ('failed to find the runner')",
+        "title": "Gate verify.mjs: paso test ~45-65s; vitest worker flaky en Windows ('failed to find the runner')",
         "severity": "baja",
-        "action": "Sin cambio (operacional); ante 'failed to find the runner' re-correr (crash transitorio, no regresion). Timeout 180s alcanza."
+        "action": "Sin cambio (operacional); ante 'failed to find the runner' re-correr. Timeout 180s alcanza."
       }
     ],
-    "estimatedTokenSavings": "~10% (pendiente del /plugin; la limpieza de config ya esta hecha pero settings no pesa en el contexto del modelo)"
+    "estimatedTokenSavings": "~10% (pendiente del /plugin; la limpieza de config/workspace ya esta hecha)"
   },
   "partB": {
     "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
-      { "name": "Core API-CONTRACT (22 entidades)", "remaining": "18%", "note": "18 built / 4 partial / 0 missing = 82% built; piso verificado. Las 4 partial: auth unificado, cola offline entrada, catalogo CN origen, salida multi-canal" },
-      { "name": "Re-derivacion Norte v4.5 (re-derivado 2026-06-21)", "remaining": "~30 huecos", "note": "~13 dominios / ~146 formas -> ~100 con tabla, ~16 vistas, ~30 sin tabla. Built nuevos: Academia(8), Naviera(7), Oferta/Servicios(6), prealerta add-ons(3), packing list, suppliers_cn, financiero/contable, conversations/comments/referrals" },
-      { "name": "HUECO #1 - Nomina/RRHH", "remaining": "100%", "note": "Modulo entero del Norte (~11 entidades, API §10) SIN ninguna tabla. El hueco mas grande." },
-      { "name": "HUECO #2 - Reclamo del cliente", "remaining": "100%", "note": "supplier_claim_* cubren lado proveedor, no el reclamo del cliente (dano/faltante/retraso+seguro). Hoy cae en conversations." },
-      { "name": "HUECO #3 - Libros fiscales", "remaining": "100%", "note": "Solo existe fiscal_settings (config); Libro Ventas/Compras + Retenciones como tabla = V2 de SDD-0073." },
-      { "name": "HUECO #4 - Conciliacion bancaria + Activos fijos / Supplier-Client(wechatGroup) / Ferias / Vault", "remaining": "100%", "note": "bank_statements, fixed_assets, tabla puente supplier<->client, deteccion de ferias IA, Vault (SDD-0025 skip por founder)." },
-      { "name": "Bloques financieros 1-5 (SDD-0021/0040/0041/0044/0047/0048-0054/0073)", "remaining": "0%", "note": "todos done/LIVE; solo 2.3 Financiero Socio China (SDD-0059) en partial (confidencial, fuera del blueprint)" }
+      { "name": "Core API-CONTRACT (22 entidades)", "remaining": "18%", "note": "18 built / 4 partial / 0 missing = 82% built. Las 4 partial sin tocar: auth unificado, cola offline entrada, catalogo CN origen, salida multi-canal" },
+      { "name": "Re-derivacion Norte v4.5 - huecos (post-cluster)", "remaining": "bajando", "note": "Este sesion CERRO: Reclamos del cliente (client_claims + evidence + financials, migr 0152-0157) y naviera tracking (container_no + tracking_snapshots, migr 0154/0158). Doc schema-reconciliation aun lista Reclamos como hueco -> regenerar." },
+      { "name": "HUECO #1 - Nomina/RRHH", "remaining": "100%", "note": "Modulo entero del Norte (~11 entidades, API §10) SIN ninguna tabla. Sigue siendo el bottleneck unico mas caro." },
+      { "name": "Huecos restantes", "remaining": "abiertos", "note": "Libros fiscales (Ventas/Compras/Retenciones), conciliacion bancaria + activos fijos, supplier<->client (wechatGroup), deteccion de ferias IA, Vault (SDD-0025 skip por founder)." },
+      { "name": "Bloques financieros 1-5", "remaining": "0%", "note": "done/LIVE; solo 2.3 Financiero Socio China (SDD-0059) en partial (confidencial, fuera del blueprint)" }
     ]
   }
 }
