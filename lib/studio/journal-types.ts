@@ -14,7 +14,9 @@ export type EntrySource =
   | "invoice"
   | "receipt"
   | "supplier_bill"
-  | "supplier_payment";
+  | "supplier_payment"
+  | "expense"
+  | "depreciacion";
 
 /** Una línea persistida de un asiento (con join opcional a la cuenta). */
 export type JournalLine = {
@@ -108,6 +110,8 @@ export function entrySourceLabel(source: EntrySource): string {
   if (source === "receipt") return "Cobro";
   if (source === "supplier_bill") return "Causación CxP";
   if (source === "supplier_payment") return "Pago a proveedor";
+  if (source === "expense") return "Gasto";
+  if (source === "depreciacion") return "Depreciación";
   return "Manual";
 }
 
