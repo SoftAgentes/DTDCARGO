@@ -58,6 +58,7 @@ describe("RBAC: candados de gobernanza (separación de poderes)", () => {
     "costing",
     "reports",
     "fiscal",
+    "nomina", // SDD-0103: dinero + PII de empleados → solo accounting (+admin)
   ];
   // Admin-only duro (gestión de roles, plata internacional, recovery, legal).
   const ADMIN_ONLY = [
@@ -147,6 +148,7 @@ describe("RBAC anti-drift: gate de acción en módulos sensibles", () => {
     "app/studio/(app)/costing/actions.ts",
     "app/studio/(app)/financiero-china/actions.ts",
     "app/studio/(app)/operarios/actions.ts",
+    "app/studio/(app)/nomina/actions.ts",
     "lib/studio/sales-orders/actions.ts",
     "lib/studio/purchase-orders/actions.ts",
   ];

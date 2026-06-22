@@ -49,6 +49,7 @@
 | Dirección · Tablero ejecutivo | 0048 | app/studio/(app)/direccion/ | lib/studio/direccion/ |
 | Documentos · Hub (DMS) | 0049 | app/studio/(app)/documentos/ + _components/documents/DocsPanel | lib/studio/documents/ · supabase/migrations/0097 |
 | Inventario de Consolidación (WMS) | 0081 | `app/studio/(app)/inventario/` *(propuesto)* | `lib/studio/inventory/` *(propuesto)* — derivación sobre warehouse_receipts_* + consolidations (SDD-0047) |
+| Nómina / RRHH (empleados + prestadores) | 0103 | `app/studio/(app)/nomina/` | `lib/studio/nomina/` · `supabase/migrations/{0160,0161}` (Slice A; cálculo LOTTT → Slice B) |
 
 ## Móvil PWA (operario)
 

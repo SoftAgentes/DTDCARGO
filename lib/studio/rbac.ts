@@ -94,6 +94,9 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   documents: ["commercial", "operations", "accounting", "warehouse", "support"],
   reports: ["accounting"],
   costing: ["accounting"], // márgenes — sensible
+  // Nómina (SDD-0103): dinero + PII de empleados → SOLO accounting (+admin). La
+  // RLS de la DB también gatea por rol (nomina_can_access), no solo por tenant.
+  nomina: ["accounting"],
 
   // ─── MARKETING ───────────────────────────────────────────────
   "noticias-web": ["commercial", "support"],
