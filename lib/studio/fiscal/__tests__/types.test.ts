@@ -142,6 +142,7 @@ const SAMPLE: RawInvoice = {
   total_amount: 1160,
   issued_at: "2026-06-10",
   created_at: "2026-06-10T12:00:00Z",
+  currency: "USD",
 };
 
 describe("toSalesRow · cambiar el modo cambia el libro (Acceptance §8)", () => {

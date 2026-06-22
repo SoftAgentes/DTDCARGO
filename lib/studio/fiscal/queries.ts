@@ -250,6 +250,7 @@ export async function salesBook(
       total_amount: num(r.total_amount),
       issued_at: (r.issued_at as string | null) ?? null,
       created_at: String(r.created_at ?? ""),
+      currency,
     };
     return toSalesRow(inv, settings);
   });
@@ -340,6 +341,7 @@ export async function purchaseBook(
       total_amount: num(r.total_amount),
       issue_date: (r.issue_date as string | null) ?? null,
       created_at: String(r.created_at ?? ""),
+      currency,
     };
     return toPurchaseRow(raw, settings);
   });
