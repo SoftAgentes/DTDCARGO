@@ -26,6 +26,10 @@ const eslintConfig = defineConfig([
     // Edge Functions de Supabase corren en Deno (imports jsr:/ global Deno):
     // no las lintea el config de Next. Se chequean con el bundler de deploy.
     "supabase/functions/**",
+    // Grafo de conocimiento de graphify (AST generado + scripts _gen_*.js):
+    // output regenerable y gitignored, NO código de la app. `graphify update`
+    // deja .js con require() de Node que rompen el lint del gate.
+    "graphify-out/**",
   ]),
 
   // ─── Frontera sitio-público ↔ ERP ────────────────────────────────────
