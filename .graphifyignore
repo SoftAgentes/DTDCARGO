@@ -1,3 +1,25 @@
+# .graphifyignore — qué entra al grafo de conocimiento (graphify)
+# Semántica gitignore (last-match-wins). El build con docs usa estos límites.
+# Regla dura: NUNCA meter docs sensibles (key filtrada / contratos / PII) al grafo.
+
+# ── Documentos de texto: excluidos por DEFECTO ──
+*.md
+*.mdx
+*.txt
+*.rst
+*.qmd
+
+# ── Re-incluir SOLO los docs valiosos y NO sensibles ──
+!/AGENTS.md
+!/CLAUDE.md
+!/BRAND.md
+!/README.md
+!docs/specs/**
+!docs/runbooks/**
+!docs/architecture/**
+!docs/marketing/**
+
+# ── Media / binarios: SIEMPRE fuera (van tras los re-includes para ganar) ──
 *.png
 *.jpg
 *.jpeg
@@ -9,18 +31,24 @@
 *.mp3
 *.wav
 *.svg
-public/
-assets/
-
-*.md
-*.mdx
-*.txt
-*.rst
 *.pdf
-*.qmd
+*.docx
+*.xlsx
 *.html
 *.yaml
 *.yml
-*.docx
-*.xlsx
-docs/
+public/
+assets/
+
+# ── Sensible / ruidoso: SIEMPRE fuera (al final, ganan a cualquier re-include) ──
+# docs/archive: transcripts con service_role key filtrada (sb_secret_…) — JAMÁS al grafo.
+docs/archive/**
+docs/legal/**
+docs/operaciones/**
+docs/design/**
+
+# Vault de Obsidian (se abrió en la carpeta del repo): plugins JS minificados
+# = ~4400 nodos basura. Nunca al grafo.
+.obsidian/
+*.canvas
+*.base
