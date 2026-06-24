@@ -194,3 +194,70 @@ lib/studio/modules.ts        (editar: +fila nomina)
 lib/studio/rbac.ts           (editar: +fila nomina)
 lib/studio/rbac.test.ts      (editar: +nomina en GUARDED_ACTIONS)
 ```
+
+## 8. Slice B — `payroll_rules` (parámetros LOTTT · ESTE entregable)
+
+> Primera pieza del roadmap §6. **Es config, no cálculo:** almacena los parámetros LOTTT que
+> la nómina del período usará. NO computa recibos (eso es `payroll_run`, Slice C, que **sí**
+> requiere contador). Por eso **se construye sin esperar al contador** — él después llena/ajusta
+> los valores desde *Reglas de cálculo*; el motor que los consume llega en C.
+
+**Frontera:** una tabla + su capa de datos + una pestaña/panel "Reglas" en `/studio/nomina`.
+Sin `calcRecibo`, sin asiento, sin liquidación.
+
+### 8.1 `nomina_payroll_rules` (migración 0162)
+
+Un **ruleset vigente por tenant** (versionado: editar archiva el anterior y sube `version`, para
+que cada corte futuro pueda congelar el snapshot que usó). Reusa `nomina_can_access()` y el patrón
+RLS por tenant+rol de 0160. Money/PII-adjacent → mismas 3 capas de seguridad.
+
+| Columna | Tipo | Nota |
+|---|---|---|
+| `id` | uuid PK | `gen_random_uuid()` |
+| `tenant_id` | uuid not null | FK `tenants` on delete cascade |
+| `version` | int not null default 1 | sube en cada edición; histórico = filas archivadas |
+| `status` | text not null default `'vigente'` | `check in ('vigente','archivada')` · **un solo `vigente` por tenant** (índice parcial único) |
+| `pay_frequency` | text not null default `'mensual'` | `check in ('mensual','quincenal','semanal')` — frecuencia de pago (prorrateo) |
+| `day_method` | text not null default `'30'` | `check in ('30','real')` — método de días (30 fijos vs días reales) |
+| `min_salary` | numeric(14,2) not null default 0 | SML vigente (Bs) |
+| `cestaticket` | numeric(14,2) not null default 0 | cestaticket (Bs) |
+| `bono_guerra` | numeric(14,2) not null default 0 | bono de guerra económica (Bs) |
+| `sso_pct` | numeric(5,2) not null default 4 | % SSO/IVSS empleado |
+| `rpe_pct` | numeric(5,2) not null default 0.5 | % RPE (Régimen Prestacional de Empleo) |
+| `faov_pct` | numeric(5,2) not null default 1 | % FAOV (sin tope) |
+| `sso_cap_sm` | numeric(6,2) not null default 5 | tope IVSS en nº de SM |
+| `rpe_cap_sm` | numeric(6,2) not null default 10 | tope RPE en nº de SM |
+| `overtime_pct` | numeric(5,2) not null default 50 | recargo hora extra diurna (LOTTT) |
+| `night_pct` | numeric(5,2) not null default 30 | recargo bono nocturno |
+| `holiday_pct` | numeric(5,2) not null default 50 | recargo día feriado |
+| `utilidades_days` | int not null default 30 | días de utilidades/aguinaldo (mín. legal 30) |
+| `bono_vacacional_days` | int not null default 15 | días de bono vacacional |
+| `vacaciones_days` | int not null default 15 | días de vacaciones |
+| `salarial_bonuses` | jsonb not null default `'[]'` | **(criterio contador)** qué bonos son salariales; la columna existe, el valor lo define el contador en C |
+| `notes` | text | libre |
+| `created_by` | uuid | FK `auth.users` on delete set null |
+| `created_at` / `updated_at` | timestamptz | `touch_updated_at` |
+| `deleted_at` | timestamptz | soft-delete |
+
+Índice: `unique (tenant_id) where status = 'vigente' and deleted_at is null` (un vigente por tenant).
+RLS `for all` por `tenant_id = get_user_tenant_id() and nomina_can_access()`. Grants explícitos a
+`authenticated`. Seed: **1 ruleset DEMO ficticio** vigente para el tenant `dtd` (valores VE plausibles,
+NO asesoría fiscal — el contador los valida).
+
+### 8.2 Capa de datos · `lib/studio/nomina/payroll-rules-{types,queries}.ts`
+
+- **types:** `PayrollRules` (números llegan como string de `numeric` → coercer con `num()`), enums
+  `PAY_FREQUENCY` / `DAY_METHOD` (`text + check`, **sin Zod**), `validatePayrollRulesInput()` puro
+  (rangos: %s 0–100, topes ≥0, días ≥0, `utilidades_days` ≥30), helpers de label/tono.
+- **queries:** `getVigentePayrollRules(sb, tenantId)`, `upsertPayrollRules(sb, ...)` (archiva el
+  vigente + inserta nueva versión en una transacción lógica), funciones puras que reciben `SupabaseClient`.
+- **tests:** `payroll-rules-types.test.ts` — Vitest de los validadores puros (rangos, defaults, enums).
+
+### 8.3 UI · pestaña "Reglas" en `/studio/nomina`
+
+Tercera pestaña (Empleados · Prestadores · **Reglas**). Form de edición (`DrawerShell` o panel),
+guard `moduleEditDenial("nomina")` como 1er paso de la action. Sin cálculo: solo lee/guarda params.
+
+### 8.4 Fuera de Slice B (queda para C+)
+`payroll_run`/`_lines`, `calcRecibo`, asiento contable, export Excel, liquidación, asistencia,
+préstamos. El `salarial_bonuses` se almacena pero **no se consume** hasta C (con contador).

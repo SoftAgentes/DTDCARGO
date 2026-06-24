@@ -14,6 +14,7 @@ import {
   listContractors,
   listContractorPayments,
 } from "@/lib/studio/nomina/contractor-queries";
+import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
 import { computeEmployeeKpis } from "@/lib/studio/nomina/employee-types";
 import { computeContractorKpis } from "@/lib/studio/nomina/contractor-types";
 import { NominaClient } from "./_components/NominaClient";
@@ -24,10 +25,11 @@ export default async function NominaPage() {
   await requireModuleView("nomina");
   const supabase = await createClient();
 
-  const [employees, contractors, payments] = await Promise.all([
+  const [employees, contractors, payments, rules] = await Promise.all([
     listEmployees(supabase),
     listContractors(supabase),
     listContractorPayments(supabase),
+    getVigentePayrollRules(supabase),
   ]);
 
   const employeeKpis = computeEmployeeKpis(employees);
@@ -60,6 +62,7 @@ export default async function NominaPage() {
         employees={employees}
         contractors={contractors}
         payments={payments}
+        rules={rules}
         employeeKpis={employeeKpis}
         contractorKpis={contractorKpis}
       />

@@ -25,12 +25,20 @@ import {
   type ContractorPayment,
   type ContractorKpis,
 } from "@/lib/studio/nomina/contractor-types";
+import {
+  payFrequencyLabel,
+  dayMethodLabel,
+  payrollRulesStatusLabel,
+  payrollRulesStatusTone,
+  type PayrollRules,
+} from "@/lib/studio/nomina/payroll-rules-types";
 import { setEmployeeStatusAction, setContractorStatusAction } from "../actions";
 import { EmpleadoDrawer } from "./EmpleadoDrawer";
 import { PrestadorDrawer } from "./PrestadorDrawer";
 import { PagoPrestadorDrawer } from "./PagoPrestadorDrawer";
+import { ReglasDrawer } from "./ReglasDrawer";
 
-type Tab = "empleados" | "prestadores";
+type Tab = "empleados" | "prestadores" | "reglas";
 
 function fmtUsd(n: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -61,18 +69,21 @@ function initialsOf(name: string): string {
 const TABS: { value: Tab; label: string }[] = [
   { value: "empleados", label: "Empleados" },
   { value: "prestadores", label: "Prestadores" },
+  { value: "reglas", label: "Reglas" },
 ];
 
 export function NominaClient({
   employees,
   contractors,
   payments,
+  rules,
   employeeKpis,
   contractorKpis,
 }: {
   employees: Employee[];
   contractors: Contractor[];
   payments: ContractorPayment[];
+  rules: PayrollRules | null;
   employeeKpis: EmployeeKpis;
   contractorKpis: ContractorKpis;
 }) {
@@ -80,38 +91,41 @@ export function NominaClient({
   const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employee: Employee }>(null);
   const [prestDrawer, setPrestDrawer] = useState<null | { mode: "new" } | { mode: "edit"; contractor: Contractor }>(null);
   const [pagoOpen, setPagoOpen] = useState(false);
+  const [reglasOpen, setReglasOpen] = useState(false);
 
   const contractorName = new Map(contractors.map((c) => [c.id, c.full_name]));
 
   return (
     <div>
-      {/* KPIs */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "var(--s-3)",
-          marginBottom: "var(--s-6)",
-        }}
-      >
-        {tab === "empleados" ? (
-          <>
-            <KpiCard value={employeeKpis.active_count} label="Empleados activos" />
-            <KpiCard
-              value={fmtUsd(employeeKpis.monthly_payroll_usd)}
-              label="Nómina mensual"
-              sub="Σ sueldos de activos · indexado USD"
-            />
-            <KpiCard value={employeeKpis.total_count} label="Total en ficha" highlightWhenPositive={false} />
-          </>
-        ) : (
-          <>
-            <KpiCard value={contractorKpis.active_count} label="Prestadores activos" />
-            <KpiCard value={contractorKpis.payments_count} label="Pagos registrados" highlightWhenPositive={false} />
-            <KpiCard value={fmtUsd(contractorKpis.total_paid_usd)} label="Total pagado" />
-          </>
-        )}
-      </div>
+      {/* KPIs — solo en las pestañas con métricas (Reglas es config) */}
+      {tab !== "reglas" && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "var(--s-3)",
+            marginBottom: "var(--s-6)",
+          }}
+        >
+          {tab === "empleados" ? (
+            <>
+              <KpiCard value={employeeKpis.active_count} label="Empleados activos" />
+              <KpiCard
+                value={fmtUsd(employeeKpis.monthly_payroll_usd)}
+                label="Nómina mensual"
+                sub="Σ sueldos de activos · indexado USD"
+              />
+              <KpiCard value={employeeKpis.total_count} label="Total en ficha" highlightWhenPositive={false} />
+            </>
+          ) : (
+            <>
+              <KpiCard value={contractorKpis.active_count} label="Prestadores activos" />
+              <KpiCard value={contractorKpis.payments_count} label="Pagos registrados" highlightWhenPositive={false} />
+              <KpiCard value={fmtUsd(contractorKpis.total_paid_usd)} label="Total pagado" />
+            </>
+          )}
+        </div>
+      )}
 
       {/* Tabs */}
       <div
@@ -146,13 +160,14 @@ export function NominaClient({
         })}
       </div>
 
-      {tab === "empleados" ? (
+      {tab === "empleados" && (
         <EmpleadosTab
           employees={employees}
           onNew={() => setEmpDrawer({ mode: "new" })}
           onEdit={(employee) => setEmpDrawer({ mode: "edit", employee })}
         />
-      ) : (
+      )}
+      {tab === "prestadores" && (
         <PrestadoresTab
           contractors={contractors}
           payments={payments}
@@ -161,6 +176,9 @@ export function NominaClient({
           onEditContractor={(contractor) => setPrestDrawer({ mode: "edit", contractor })}
           onNewPayment={() => setPagoOpen(true)}
         />
+      )}
+      {tab === "reglas" && (
+        <ReglasTab rules={rules} onEdit={() => setReglasOpen(true)} />
       )}
 
       {empDrawer && (
@@ -181,6 +199,164 @@ export function NominaClient({
           onClose={() => setPagoOpen(false)}
         />
       )}
+      {reglasOpen && (
+        <ReglasDrawer rules={rules} onClose={() => setReglasOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Reglas de cálculo (payroll_rules · Slice B)
+// ─────────────────────────────────────────────────────────────
+function fmtBs(n: number): string {
+  return new Intl.NumberFormat("es-VE", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
+}
+
+function ReglasTab({
+  rules,
+  onEdit,
+}: {
+  rules: PayrollRules | null;
+  onEdit: () => void;
+}) {
+  if (!rules) {
+    return (
+      <EmptyState
+        eyebrow="Sin reglas"
+        title="Aún no defines las reglas de cálculo."
+        description="Los parámetros LOTTT (salario mínimo, cestaticket, deducciones, topes, recargos y provisiones) que la nómina del período va a usar. Es config, no cálculo."
+        action={
+          <button type="button" className="studio-btn studio-btn-primary" onClick={onEdit}>
+            Definir reglas
+          </button>
+        }
+      />
+    );
+  }
+
+  const moneyRows: { label: string; value: string }[] = [
+    { label: "Salario mínimo", value: `Bs ${fmtBs(rules.min_salary)}` },
+    { label: "Cestaticket", value: `Bs ${fmtBs(rules.cestaticket)}` },
+    { label: "Bono de guerra", value: `Bs ${fmtBs(rules.bono_guerra)}` },
+  ];
+  const pctRows: { label: string; value: string }[] = [
+    { label: "SSO / IVSS", value: `${rules.sso_pct} %` },
+    { label: "RPE", value: `${rules.rpe_pct} %` },
+    { label: "FAOV", value: `${rules.faov_pct} %` },
+    { label: "Tope IVSS", value: `${rules.sso_cap_sm} SM` },
+    { label: "Tope RPE", value: `${rules.rpe_cap_sm} SM` },
+  ];
+  const recargoRows: { label: string; value: string }[] = [
+    { label: "Hora extra diurna", value: `${rules.overtime_pct} %` },
+    { label: "Bono nocturno", value: `${rules.night_pct} %` },
+    { label: "Día feriado", value: `${rules.holiday_pct} %` },
+  ];
+  const provisionRows: { label: string; value: string }[] = [
+    { label: "Utilidades", value: `${rules.utilidades_days} días` },
+    { label: "Bono vacacional", value: `${rules.bono_vacacional_days} días` },
+    { label: "Vacaciones", value: `${rules.vacaciones_days} días` },
+  ];
+
+  return (
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "var(--s-4)",
+          gap: "var(--s-3)",
+          flexWrap: "wrap",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--s-3)" }}>
+          <Badge tone={payrollRulesStatusTone(rules.status)} size="sm">
+            {payrollRulesStatusLabel(rules.status)} · v{rules.version}
+          </Badge>
+          <span style={{ font: "500 12.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+            {payFrequencyLabel(rules.pay_frequency)} · {dayMethodLabel(rules.day_method)}
+          </span>
+        </div>
+        <button type="button" className="studio-btn studio-btn-primary" onClick={onEdit}>
+          Editar reglas
+        </button>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gap: "var(--s-4)",
+        }}
+      >
+        <RulesCard title="Montos base (Bs)" rows={moneyRows} />
+        <RulesCard title="Deducciones y topes" rows={pctRows} />
+        <RulesCard title="Recargos" rows={recargoRows} />
+        <RulesCard title="Provisiones / prestaciones" rows={provisionRows} />
+      </div>
+
+      {rules.notes && (
+        <p
+          style={{
+            font: "400 12.5px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: "var(--s-4) 0 0",
+            maxWidth: "62ch",
+          }}
+        >
+          {rules.notes}
+        </p>
+      )}
+    </>
+  );
+}
+
+function RulesCard({
+  title,
+  rows,
+}: {
+  title: string;
+  rows: { label: string; value: string }[];
+}) {
+  return (
+    <div
+      style={{
+        background: "var(--bg-surface)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        padding: "16px 18px",
+      }}
+    >
+      <div
+        style={{
+          font: "700 9.5px/1 var(--f-sans)",
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: "var(--ink-mute)",
+          marginBottom: "var(--s-3)",
+        }}
+      >
+        {title}
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {rows.map((r) => (
+          <div
+            key={r.label}
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}
+          >
+            <span style={{ font: "500 12.5px/1.3 var(--f-sans)", color: "var(--ink-soft)" }}>
+              {r.label}
+            </span>
+            <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)" }}>
+              {r.value}
+            </span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

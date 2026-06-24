@@ -35,6 +35,8 @@ import {
   isContractorStatus,
   type ContractorStatus,
 } from "@/lib/studio/nomina/contractor-types";
+import { validatePayrollRulesInput } from "@/lib/studio/nomina/payroll-rules-types";
+import { upsertPayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
 
 const MODULE_ID = "nomina";
 const PATH = "/studio/nomina";
@@ -361,6 +363,68 @@ export async function softDeleteContractorPaymentAction(
     .eq("id", paymentId);
 
   if (error) return { error: `No se pudo eliminar el pago: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Reglas de cálculo (payroll_rules · Slice B)                ║
+// ╚═══════════════════════════════════════════════════════════╝
+function payrollRulesRawFromForm(formData: FormData): Record<string, unknown> {
+  return {
+    pay_frequency: strOrNull(formData.get("pay_frequency")) ?? "mensual",
+    day_method: strOrNull(formData.get("day_method")) ?? "30",
+    min_salary: strOrNull(formData.get("min_salary")) ?? 0,
+    cestaticket: strOrNull(formData.get("cestaticket")) ?? 0,
+    bono_guerra: strOrNull(formData.get("bono_guerra")) ?? 0,
+    sso_pct: strOrNull(formData.get("sso_pct")) ?? 0,
+    rpe_pct: strOrNull(formData.get("rpe_pct")) ?? 0,
+    faov_pct: strOrNull(formData.get("faov_pct")) ?? 0,
+    sso_cap_sm: strOrNull(formData.get("sso_cap_sm")) ?? 0,
+    rpe_cap_sm: strOrNull(formData.get("rpe_cap_sm")) ?? 0,
+    overtime_pct: strOrNull(formData.get("overtime_pct")) ?? 0,
+    night_pct: strOrNull(formData.get("night_pct")) ?? 0,
+    holiday_pct: strOrNull(formData.get("holiday_pct")) ?? 0,
+    utilidades_days: strOrNull(formData.get("utilidades_days")) ?? 30,
+    bono_vacacional_days: strOrNull(formData.get("bono_vacacional_days")) ?? 0,
+    vacaciones_days: strOrNull(formData.get("vacaciones_days")) ?? 0,
+    salarial_bonuses: strOrNull(formData.get("salarial_bonuses")),
+    notes: strOrNull(formData.get("notes")),
+  };
+}
+
+/**
+ * Guarda una nueva versión del ruleset LOTTT (archiva el vigente + sube version).
+ * Es config, no cálculo: solo persiste params. Gate de rol (moduleEditDenial)
+ * como PRIMER paso; la RLS por tenant+rol es el backstop en la DB.
+ */
+export async function savePayrollRulesAction(
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validatePayrollRulesInput(
+    payrollRulesRawFromForm(formData),
+  );
+  if (fieldErrors) return { fieldErrors };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant del usuario." };
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  const { error } = await upsertPayrollRules(
+    supabase,
+    tenantId,
+    input!,
+    userResp.user?.id ?? null,
+  );
+  if (error) return { error };
 
   revalidatePath(PATH);
   return { ok: true };
