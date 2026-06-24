@@ -48,7 +48,7 @@ pnpm test:e2e            # Playwright
 pnpm seed                # datos demo del Studio (tsx scripts/seed.ts)
 pnpm docs:index / docs:check   # índice + validación de specs SDD
 ```
-Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`.
+Test puntual: `pnpm test path/to/file.test.ts` o `pnpm test -t "nombre"`. E2e puntual: `pnpm test:e2e path/to/spec.ts` o `pnpm test:e2e -g "nombre"` (modo interactivo: `pnpm test:e2e:ui`).
 
 ## Mapa del repo (graphify) — exploración para agentes
 
