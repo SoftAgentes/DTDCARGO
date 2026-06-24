@@ -13,6 +13,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateRateInput,
   type RateActionState,
@@ -104,6 +105,9 @@ export async function createRate(
   formData: FormData,
 ): Promise<RateActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateRateInput(partial);
@@ -159,6 +163,9 @@ export async function updateRate(
   formData: FormData,
 ): Promise<RateActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateRateInput(partial);
@@ -198,6 +205,9 @@ export async function softDeleteRate(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const { error } = await supabase
     .from("rates")
@@ -247,6 +257,9 @@ export async function saveCalculatorSettingsAction(
   formData: FormData,
 ): Promise<CalculatorSettingsActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const partial = settingsFromFormData(formData);
   const { input, fieldErrors } = validateCalculatorSettingsInput(partial);
@@ -363,6 +376,9 @@ export async function createCityAction(
   formData: FormData,
 ): Promise<CalculatorCityActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const partial = cityFromFormData(formData);
   const { input, fieldErrors } = validateCityInput(partial);
@@ -401,6 +417,9 @@ export async function updateCityAction(
   formData: FormData,
 ): Promise<CalculatorCityActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const partial = cityFromFormData(formData);
   const { input, fieldErrors } = validateCityInput(partial);
@@ -435,6 +454,9 @@ export async function deleteCityAction(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const who = await resolveTenantAdmin(supabase);
   if (!who.ok) return { error: who.error };
@@ -462,6 +484,9 @@ export async function publishRateAction(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const { error } = await supabase
     .from("rates")
@@ -483,6 +508,9 @@ export async function archiveRateAction(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   // Al archivar, una tarifa nunca debe seguir siendo la pública del calculador.
   const { error } = await supabase
@@ -534,6 +562,9 @@ export async function importRatesAction(
   csv: string,
 ): Promise<RateImportResult> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "rates");
+  if (denial) return { error: denial };
+
 
   const preview = parseRatesCsv(csv ?? "");
   if (preview.error) return { error: preview.error, preview };

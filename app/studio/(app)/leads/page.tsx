@@ -1,8 +1,10 @@
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 
 export const metadata = { title: "CRM · Leads" };
 
-export default function LeadsPage() {
+export default async function LeadsPage() {
+  await requireModuleView("leads");
   return (
     <EmptyState
       eyebrow="Próximamente · SDD futuro"

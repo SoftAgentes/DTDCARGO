@@ -36,10 +36,15 @@ function makeSupabase() {
         select() {
           return chain;
         },
-        // user_tenants.select(...).maybeSingle() → tenant
+        // getStudioRole (moduleEditDenial): .select("role").limit(1).maybeSingle()
+        limit() {
+          return chain;
+        },
+        // user_tenants.select(...).maybeSingle() → tenant + role (default admin
+        // para que el guard moduleEditDenial no bloquee estos tests).
         maybeSingle: async () =>
           table === "user_tenants"
-            ? { data: { tenant_id: "tenant-1" }, error: null }
+            ? { data: { tenant_id: "tenant-1", role: "admin" }, error: null }
             : { data: null, error: null },
         insert() {
           // create: `await supabase.from("clients").insert({...})`

@@ -6,6 +6,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   computeDispatchKpis,
   listActiveDispatchOrders,
@@ -27,6 +28,8 @@ export default async function DispatchPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireModuleView("despacho");
+
   const params = await searchParams;
   const filters = parseDispatchFilters(params);
 

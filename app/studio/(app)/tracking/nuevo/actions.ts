@@ -15,6 +15,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { getUserTenantId } from "@/lib/auth/session";
 import type { ShipmentService, ShipmentStatus } from "@/lib/studio/shipment-types";
@@ -87,6 +88,9 @@ export async function createShipment(
   const initialStatus: ShipmentStatus = getDefaultInitialStatus(shipment_service);
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
   const { data: created, error } = await supabase
     .from("shipments")
     .insert({

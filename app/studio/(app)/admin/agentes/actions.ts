@@ -16,6 +16,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   AGENT_STATUSES,
   validateInstallSkillInput,
@@ -43,6 +44,9 @@ export async function installSkillAction(
   formData: FormData,
 ): Promise<AgentActionState> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "admin");
+  if (denial) return { error: denial };
 
   const partial = parseInstallFormData(formData);
   const { input, fieldErrors } = validateInstallSkillInput(partial);
@@ -151,6 +155,10 @@ export async function toggleAgentStatusAction(
   if (!agentId) return { error: "Falta agentId." };
 
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "admin");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("agents")
     .update({ status: nextStatus })

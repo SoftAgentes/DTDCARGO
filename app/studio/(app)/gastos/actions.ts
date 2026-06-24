@@ -14,6 +14,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   autoResolveAlertForShipment,
@@ -95,6 +96,9 @@ export async function createExpenseAction(
   formData: FormData,
 ): Promise<ExpenseActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "auth_required" };
 
@@ -226,6 +230,9 @@ export async function updateExpenseAction(
   formData: FormData,
 ): Promise<ExpenseActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { errorCode: "auth_required" };
 
@@ -314,6 +321,9 @@ export async function softDeleteExpenseAction(
   id: string,
 ): Promise<ExpenseActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "expenses");
+  if (denial) return { error: denial };
+
   // Tenant + fecha del gasto (para anular su asiento y guardar el período · SDD-0079/0080).
   const { data: exp } = await supabase
     .from("expenses")

@@ -20,6 +20,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   DOCUMENTS_BUCKET,
   DOCUMENT_MAX_BYTES,
@@ -68,6 +69,9 @@ export async function uploadDocument(
   formData: FormData,
 ): Promise<DocActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "documents");
+  if (denial) return { error: denial };
+
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Sesión expirada. Vuelve a entrar." };
@@ -290,6 +294,9 @@ function versionRpcErrorMessage(err: { code?: string; message?: string }): strin
 /** Soft-delete (deleted_at) + borra el object del bucket (best-effort). */
 export async function deleteDocument(id: string): Promise<DocActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "documents");
+  if (denial) return { error: denial };
+
 
   const { data: doc } = await supabase
     .from("documents")
@@ -335,6 +342,9 @@ export async function updateDocumentMeta(
   },
 ): Promise<DocActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "documents");
+  if (denial) return { error: denial };
+
 
   // Leemos la fila para validar contra su entity_type (coherencia del validador).
   const { data: doc } = await supabase

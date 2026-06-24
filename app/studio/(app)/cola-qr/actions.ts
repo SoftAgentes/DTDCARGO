@@ -11,6 +11,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateBatchPrintInput,
   validateCancelQrOrderInput,
@@ -56,6 +57,9 @@ export async function batchAssignPrinterAction(
   formData: FormData,
 ): Promise<QrQueueActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "qrqueue");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<BatchPrintInput> = {
     ids: parseIdsList(formData),
@@ -90,6 +94,9 @@ export async function markPrintedAction(
   formData: FormData,
 ): Promise<QrQueueActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "qrqueue");
+  if (denial) return { error: denial };
+
   const ids = parseIdsList(formData);
   if (ids.length === 0) return { fieldErrors: { ids: "Selecciona al menos 1 orden." } };
 
@@ -115,6 +122,9 @@ export async function markDeliveredAction(
   formData: FormData,
 ): Promise<QrQueueActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "qrqueue");
+  if (denial) return { error: denial };
+
   const ids = parseIdsList(formData);
   if (ids.length === 0) return { fieldErrors: { ids: "Selecciona al menos 1 orden." } };
 
@@ -140,6 +150,9 @@ export async function cancelQrOrderAction(
   formData: FormData,
 ): Promise<QrQueueActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "qrqueue");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<CancelQrOrderInput> = {
     id: parseStringOrNull(formData.get("id")) ?? undefined,

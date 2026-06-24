@@ -13,6 +13,7 @@
  */
 
 import Link from "next/link";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { createClient } from "@/lib/db/server";
 import {
   getShipmentById,
@@ -52,6 +53,8 @@ export default async function TrackingPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireModuleView("tracking");
+
   const sp = await searchParams;
   const requestedId = typeof sp.id === "string" ? sp.id : null;
 

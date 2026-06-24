@@ -13,6 +13,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { createAdminClient } from "@/lib/db/admin";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateClientInput,
   type ClientActionState,
@@ -64,6 +65,9 @@ export async function createClientAction(
   formData: FormData,
 ): Promise<ClientActionState> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateClientInput(partial);
@@ -144,6 +148,9 @@ export async function updateClientAction(
 ): Promise<ClientActionState> {
   const supabase = await createClient();
 
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateClientInput(partial);
   if (fieldErrors) return { fieldErrors };
@@ -205,6 +212,9 @@ export async function softDeleteClientAction(
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
 
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("clients")
     .update({ deleted_at: new Date().toISOString() })
@@ -228,6 +238,10 @@ export async function invitePortalAction(
   markbox: string,
 ): Promise<{ ok?: boolean; error?: string; email?: string }> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
   const { data, error } = await supabase.rpc("portal_invite_client", {
     p_client_id: clientId,
   });
@@ -251,6 +265,10 @@ export async function revokePortalAction(
   markbox: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
   const { error } = await supabase.rpc("portal_revoke_client", {
     p_client_id: clientId,
   });
@@ -273,6 +291,10 @@ export async function approvePortalAction(
   markbox: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
   const { error } = await supabase.rpc("portal_approve_client", {
     p_client_id: clientId,
   });
@@ -303,6 +325,9 @@ export async function verifyIdentityAction(
   markbox: string,
 ): Promise<{ ok?: boolean; error?: string; result?: VerifyResult }> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
@@ -382,6 +407,9 @@ export async function markIdentityAction(
 
   const supabase = await createClient();
 
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
 
@@ -422,6 +450,9 @@ export async function assignAdvisorAction(
   advisorId: string | null,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "clients");
+  if (denial) return { error: denial };
 
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };

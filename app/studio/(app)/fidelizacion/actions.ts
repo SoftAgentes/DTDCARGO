@@ -22,6 +22,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   REFERRAL_RULES,
   REFERRAL_STEPS,
@@ -80,6 +81,9 @@ export async function registerReferral(
   formData: FormData,
 ): Promise<ReferralActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "fidelizacion");
+  if (denial) return { error: denial };
+
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateReferralInput(partial);
@@ -137,6 +141,9 @@ export async function registerReferral(
  */
 export async function accreditReferral(id: string): Promise<Result> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "fidelizacion");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("referrals")
     .update({
@@ -156,6 +163,9 @@ export async function updateReferralStatus(
 ): Promise<Result> {
   if (!VALID_STATUS.has(status)) return { error: "Estado de referido inválido." };
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "fidelizacion");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("referrals")
     .update({ status })

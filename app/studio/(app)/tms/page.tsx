@@ -6,6 +6,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   computeIncidentsKpis,
   computeTmsKpis,
@@ -25,6 +26,8 @@ import { TmsKpis } from "./_components/TmsKpis";
 export const metadata = { title: "TMS · Transporte" };
 
 export default async function TmsPage() {
+  await requireModuleView("tms");
+
   const supabase = await createClient();
 
   const [

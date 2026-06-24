@@ -7,6 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateCityInput,
   validateRouteInput,
@@ -77,6 +78,9 @@ export async function createRouteAction(
   formData: FormData,
 ): Promise<RoutesActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "admin-rutas");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<RouteInput> = {
     name: parseStringOrNull(formData.get("name")) ?? undefined,
@@ -134,6 +138,9 @@ export async function updateRouteAction(
   formData: FormData,
 ): Promise<RoutesActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "admin-rutas");
+  if (denial) return { error: denial };
+
 
   const id = parseStringOrNull(formData.get("id"));
   if (!id) return { fieldErrors: { id: "Falta el ID de la ruta." } };
@@ -180,6 +187,9 @@ export async function softDeleteRouteAction(
   formData: FormData,
 ): Promise<RoutesActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "admin-rutas");
+  if (denial) return { error: denial };
+
   const id = parseStringOrNull(formData.get("id"));
   if (!id) return { fieldErrors: { id: "Falta el ID de la ruta." } };
 
@@ -199,6 +209,9 @@ export async function toggleRouteActiveAction(
   formData: FormData,
 ): Promise<RoutesActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "admin-rutas");
+  if (denial) return { error: denial };
+
   const id = parseStringOrNull(formData.get("id"));
   const next = parseBool(formData.get("active"));
   if (!id) return { fieldErrors: { id: "Falta el ID de la ruta." } };
@@ -225,6 +238,9 @@ export async function createCityAction(
   formData: FormData,
 ): Promise<RoutesActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "admin-rutas");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<CityInput> = {
     state_code: parseStringOrNull(formData.get("state_code")) ?? undefined,
@@ -265,6 +281,9 @@ export async function updateCityAction(
   formData: FormData,
 ): Promise<RoutesActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "admin-rutas");
+  if (denial) return { error: denial };
+
 
   const id = parseStringOrNull(formData.get("id"));
   if (!id) return { fieldErrors: { id: "Falta el ID de la ciudad." } };
@@ -299,6 +318,9 @@ export async function softDeleteCityAction(
   formData: FormData,
 ): Promise<RoutesActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "admin-rutas");
+  if (denial) return { error: denial };
+
   const id = parseStringOrNull(formData.get("id"));
   if (!id) return { fieldErrors: { id: "Falta el ID de la ciudad." } };
 

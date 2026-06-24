@@ -8,6 +8,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   computeConversationKpis,
   listAssignableAgents,
@@ -18,6 +19,8 @@ import { ConversacionesClient } from "./_components/ConversacionesClient";
 export const metadata = { title: "Conversaciones · DTD Studio" };
 
 export default async function ConversacionesPage() {
+  await requireModuleView("conversaciones");
+
   const supabase = await createClient();
 
   const { data: link } = await supabase

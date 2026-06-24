@@ -7,6 +7,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateUpdateDispatchRulesInput,
   type DispatchPaymentPolicy,
@@ -57,6 +58,9 @@ export async function updateDispatchRulesAction(
   formData: FormData,
 ): Promise<DispatchRulesActionState> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "despacho-rules");
+  if (denial) return { error: denial };
 
   const partial: Partial<UpdateDispatchRulesInput> = {
     payment_policy: (formData.get("payment_policy") as DispatchPaymentPolicy) ?? "estricto",

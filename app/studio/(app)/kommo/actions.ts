@@ -11,6 +11,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   convertLead,
@@ -77,6 +78,9 @@ export async function saveKommoStageMapAction(
   raw: KommoStageMap,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "kommo");
+  if (denial) return { error: denial };
+
 
   // Admin-only (controla escrituras a Kommo) — mismo patrón que resolveAdminTenant.
   const { data: userResp } = await supabase.auth.getUser();
@@ -142,6 +146,9 @@ export async function saveKommoMarkboxFieldAction(
   fieldId: number | null,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "kommo");
+  if (denial) return { error: denial };
+
 
   // Admin-only — mismo patrón que resolveAdminTenant.
   const { data: userResp } = await supabase.auth.getUser();

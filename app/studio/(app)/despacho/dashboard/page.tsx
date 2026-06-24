@@ -6,6 +6,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   computeDispatchDashboardStats,
   listDispatchRouteRanking,
@@ -33,6 +34,8 @@ export default async function DispatchDashboardPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireModuleView("despacho-dashboard");
+
   const params = await searchParams;
   const period = parsePeriod(params.period);
 

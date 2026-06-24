@@ -8,6 +8,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   listRates,
   parseRateFiltersFromSearchParams,
@@ -23,6 +24,8 @@ export default async function TarifasPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireModuleView("rates");
+
   const rawParams = await searchParams;
   const filters = parseRateFiltersFromSearchParams(rawParams);
 

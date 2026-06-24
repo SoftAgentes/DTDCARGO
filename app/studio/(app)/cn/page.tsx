@@ -8,6 +8,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { listClients } from "@/lib/studio/client-queries";
 import {
   computeWarehouseKpis,
@@ -30,6 +31,8 @@ export default async function CnPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireModuleView("cn");
+
   const rawParams = await searchParams;
   const filters = parseReceiptFiltersFromSearchParams(rawParams);
 

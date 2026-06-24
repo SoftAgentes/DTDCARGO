@@ -8,6 +8,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   listQuotes,
   parseQuoteFiltersFromSearchParams,
@@ -21,6 +22,8 @@ export default async function CotizadorPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireModuleView("quotes");
+
   const rawParams = await searchParams;
   const filters = parseQuoteFiltersFromSearchParams(rawParams);
 

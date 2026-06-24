@@ -13,6 +13,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   computeCustomsKpis,
   computeTaxBreakdownYtd,
@@ -33,6 +34,8 @@ export default async function SeniatPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireModuleView("seniat");
+
   const rawParams = await searchParams;
   const filters = parseCustomsFiltersFromSearchParams(rawParams);
 

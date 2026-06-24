@@ -38,6 +38,7 @@ vi.mock("@/lib/db/admin", () => ({
 type FakeOpts = {
   userId?: string | null;
   tenantId?: string | null;
+  role?: string | null;
   client?: Record<string, unknown> | null;
   readError?: { message: string } | null;
   updateError?: { message: string } | null;
@@ -60,17 +61,20 @@ function makeSupabase(opts: FakeOpts) {
       return {
         // SELECT chain
         select() {
+          // user_tenants se consulta dos veces: para tenant_id (la action) y para
+          // role (moduleEditDenial → getStudioRole, con .select("role").limit(1)).
+          // Devolvemos ambos campos; default role = admin (puede editar) para que
+          // el guard no bloquee los casos felices. Casos sin tenant → null → denial.
+          const userTenantsRow =
+            opts.tenantId === null
+              ? null
+              : { tenant_id: opts.tenantId ?? "t-1", role: opts.role ?? "admin" };
           return {
-            // user_tenants.maybeSingle → tenant_id
+            // getStudioRole: .select("role").limit(1).maybeSingle()
+            limit: () => ({ maybeSingle: async () => ({ data: userTenantsRow }) }),
+            // user_tenants.maybeSingle → tenant_id (la action)
             maybeSingle: async () => {
-              if (table === "user_tenants") {
-                return {
-                  data:
-                    opts.tenantId === null
-                      ? null
-                      : { tenant_id: opts.tenantId ?? "t-1" },
-                };
-              }
+              if (table === "user_tenants") return { data: userTenantsRow };
               return { data: null };
             },
             // clients select(...).eq(id).maybeSingle()

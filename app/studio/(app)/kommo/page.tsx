@@ -5,6 +5,7 @@
  * (ni Kommo ni el mirror).
  */
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { getKommoAnalytics } from "@/lib/studio/kommo-analytics";
 import {
   getKommoMarkboxFieldId,
@@ -35,6 +36,8 @@ export default async function KommoPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  await requireModuleView("kommo");
+
   const raw = await searchParams;
   const single = (k: string): string | undefined => {
     const v = raw[k];

@@ -14,6 +14,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   emitRenditionFor,
   voidRenditionFor,
@@ -33,6 +34,10 @@ export async function emitRenditionAction(args: {
   receiptCount?: number;
 }> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "renditions");
+  if (denial) return { error: denial };
+
   const result = await emitRenditionFor(supabase, {
     from: args.from,
     to: args.to,
@@ -59,6 +64,10 @@ export async function voidRenditionAction(
   reason: string,
 ): Promise<{ ok?: boolean; error?: string; renditionCode?: string }> {
   const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, "renditions");
+  if (denial) return { error: denial };
+
   const result = await voidRenditionFor(supabase, renditionId, reason);
   if (!result.ok) {
     return { error: result.error ?? "No se pudo anular la rendición." };

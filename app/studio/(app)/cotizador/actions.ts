@@ -18,6 +18,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import {
   enqueueKommoWriteback,
@@ -96,6 +97,9 @@ export async function createQuote(
   formData: FormData,
 ): Promise<QuoteActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "quotes");
+  if (denial) return { error: denial };
+
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateQuoteInput(partial);
@@ -166,6 +170,9 @@ export async function updateQuote(
   formData: FormData,
 ): Promise<QuoteActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "quotes");
+  if (denial) return { error: denial };
+
 
   // Validar que sigue siendo draft (defensa server-side)
   const { data: current, error: readErr } = await supabase
@@ -361,6 +368,9 @@ export async function convertQuoteToShipment(
   id: string,
 ): Promise<{ ok?: boolean; error?: string; shipmentId?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "quotes");
+  if (denial) return { error: denial };
+
 
   // Leer la quote completa
   const { data: quote, error: readErr } = await supabase
@@ -442,6 +452,9 @@ export async function softDeleteQuote(
   id: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "quotes");
+  if (denial) return { error: denial };
+
 
   const { error } = await supabase
     .from("quotes")

@@ -18,6 +18,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { sendEmail } from "@/lib/studio/mail/send-email";
 import { buildSampleVars } from "@/lib/studio/mail-sample-vars";
 import {
@@ -53,6 +54,9 @@ export async function updateMailTemplateAction(
   if (!input) return { error: "Datos inválidos." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const updateData: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
@@ -173,6 +177,9 @@ export async function createMailRuleAction(
   if (!input) return { error: "Datos inválidos." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
 
@@ -224,6 +231,9 @@ export async function updateMailRuleAction(
   if (!input) return { error: "Datos inválidos." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("mail_rules")
     .update({
@@ -254,6 +264,9 @@ export async function toggleMailRuleActiveAction(
   if (!id) return { error: "Falta id." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("mail_rules")
     .update({ active, updated_at: new Date().toISOString() })
@@ -276,6 +289,9 @@ export async function deleteMailRuleAction(
   if (!id) return { error: "Falta id." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const { error } = await supabase.from("mail_rules").delete().eq("id", id);
 
   if (error) {
@@ -322,6 +338,9 @@ export async function updateMailConfigAction(
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const { data: link } = await supabase
     .from("user_tenants")
     .select("tenant_id")
@@ -372,6 +391,9 @@ export async function addMailBlacklistAction(
   if (Object.keys(fieldErrors).length > 0) return { fieldErrors };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const { data: userResp } = await supabase.auth.getUser();
   if (!userResp.user) return { error: "Inicia sesión primero." };
 
@@ -407,6 +429,9 @@ export async function removeMailBlacklistAction(
   if (!id) return { error: "Falta id." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "mailing");
+  if (denial) return { error: denial };
+
   const { error } = await supabase.from("mail_blacklist").delete().eq("id", id);
 
   if (error) {

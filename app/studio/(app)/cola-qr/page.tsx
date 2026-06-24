@@ -8,6 +8,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   computeQrQueueKpis,
   listQrOrders,
@@ -25,6 +26,8 @@ export default async function ColaQrPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireModuleView("qrqueue");
+
   const params = await searchParams;
   const filters = parseQrQueueFilters(params);
 

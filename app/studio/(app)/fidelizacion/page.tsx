@@ -11,6 +11,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   clientsWithTier,
   listReferrals,
@@ -23,6 +24,8 @@ import { FidelizacionClient } from "./_components/FidelizacionClient";
 export const metadata = { title: "Fidelización & Referidos" };
 
 export default async function FidelizacionPage() {
+  await requireModuleView("fidelizacion");
+
   const supabase = await createClient();
 
   const [clients, counts, referrals, stats, top] = await Promise.all([

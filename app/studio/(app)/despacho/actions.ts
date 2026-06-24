@@ -14,6 +14,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { getTruckCapacity } from "@/lib/studio/dispatch-queries";
 import {
   validateAssignTruckDriverInput,
@@ -80,6 +81,9 @@ export async function createDispatchOrderAction(
   formData: FormData,
 ): Promise<DispatchActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "despacho");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<CreateDispatchOrderInput> = {
     hub: (parseStringOrNull(formData.get("hub")) as DispatchHub) ?? undefined,
@@ -250,6 +254,9 @@ export async function cancelDispatchOrderAction(
   formData: FormData,
 ): Promise<DispatchActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "despacho");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<CancelDispatchOrderInput> = {
     od_id: parseStringOrNull(formData.get("od_id")) ?? undefined,
@@ -284,6 +291,9 @@ export async function assignTruckDriverAction(
   formData: FormData,
 ): Promise<DispatchActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "despacho");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<AssignTruckDriverInput> = {
     od_id: parseStringOrNull(formData.get("od_id")) ?? undefined,
@@ -341,6 +351,9 @@ export async function closeDispatchOrderAction(
   formData: FormData,
 ): Promise<DispatchActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "despacho");
+  if (denial) return { error: denial };
+
   const od_id = parseStringOrNull(formData.get("od_id"));
   if (!od_id) return { fieldErrors: { od_id: "Falta el ID de la OD." } };
 

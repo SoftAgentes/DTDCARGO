@@ -14,6 +14,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { fireMailEvent } from "@/lib/studio/mail/mail-rule-engine";
 import { autoInvoiceForReceipt } from "@/lib/studio/sales-orders/actions";
@@ -128,6 +129,9 @@ export async function createReceiptAction(
   formData: FormData,
 ): Promise<WarehouseReceiptActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "cn");
+  if (denial) return { error: denial };
+
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateReceiptInput(partial);
@@ -307,6 +311,9 @@ export async function changeReceiptStatusAction(
   }
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "cn");
+  if (denial) return { error: denial };
+
 
   // Resolver tenant_id (necesario para el event)
   const { data: link } = await supabase
@@ -501,6 +508,9 @@ export async function changeReceiptPaymentStatusAction(
   }
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "cn");
+  if (denial) return { error: denial };
+
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -562,6 +572,9 @@ export async function markReceiptVerifiedAction(
   errorCode?: import("@/lib/i18n").ErrorCode;
 }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "cn");
+  if (denial) return { error: denial };
+
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -646,6 +659,9 @@ export async function bulkChangeReceiptPaymentStatusAction(
   }
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "cn");
+  if (denial) return { error: denial };
+
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -709,6 +725,9 @@ export async function bulkChangeReceiptStatusAction(
   }
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "cn");
+  if (denial) return { error: denial };
+
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -753,6 +772,9 @@ export async function softDeleteReceiptAction(
   receiptId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "cn");
+  if (denial) return { error: denial };
+
 
   const { error } = await supabase
     .from("warehouse_receipts_cn")

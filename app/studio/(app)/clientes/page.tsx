@@ -8,6 +8,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   listClients,
   parseClientFiltersFromSearchParams,
@@ -21,6 +22,10 @@ export default async function ClientesPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
+  // RBAC: gate de vista por rol (SDD-0085). clients = [commercial, operations,
+  // accounting, support]; el resto (ej. warehouse) se redirige fail-closed.
+  await requireModuleView("clients");
+
   const rawParams = await searchParams;
   const filters = parseClientFiltersFromSearchParams(rawParams);
 

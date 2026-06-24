@@ -16,6 +16,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { getUser, getUserTenantId } from "@/lib/auth/session";
 import { isValidStatusForService } from "@/lib/studio/shipment-state-machine";
@@ -57,6 +58,9 @@ export async function updateShipment(
   formData: FormData,
 ): Promise<ActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
 
   // Leer el shipment para conocer su servicio (validacion vehicle_category)
   const { data: current, error: readError } = await supabase
@@ -143,6 +147,9 @@ export async function cancelShipment(
   if (!tenantId) return { error: "Sin tenant asignado." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
   const user = await getUser();
 
   // 1. Update shipment
@@ -187,6 +194,9 @@ export async function transitionShipment(
   if (!tenantId) return { error: "Sin tenant asignado." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
 
   const { data: shipment, error: readError } = await supabase
     .from("shipments")
@@ -287,6 +297,9 @@ export async function addShipmentEvent(
   if (!tenantId) return { error: "Sin tenant asignado." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
   const { data: shipment, error: readError } = await supabase
     .from("shipments")
     .select("shipment_service")
@@ -355,6 +368,9 @@ export async function changeDestination(
   if (!tenantId) return { error: "Sin tenant asignado." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tracking");
+  if (denial) return { error: denial };
+
 
   // 1) Leer envío actual (destino actual + status)
   const { data: shipment, error: readError } = await supabase

@@ -15,6 +15,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { createAdminClient } from "@/lib/db/admin";
 import { insertOutboundMessage } from "@/lib/studio/conversaciones/messages-queries";
 import { sendEmail } from "@/lib/studio/mail/send-email";
@@ -181,6 +182,9 @@ export async function setStatusAction(
   if (fieldErrors) return { fieldErrors };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "conversaciones");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("conversations")
     .update({ status: input!.status })
@@ -207,6 +211,9 @@ export async function assignAction(
   if (fieldErrors) return { fieldErrors };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "conversaciones");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("conversations")
     .update({ assigned_to: input!.assigned_to })
@@ -233,6 +240,9 @@ export async function markCaseAction(
   if (fieldErrors) return { fieldErrors };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "conversaciones");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("conversations")
     .update({ is_case: input!.is_case })

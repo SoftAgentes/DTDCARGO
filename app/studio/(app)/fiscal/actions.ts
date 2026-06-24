@@ -15,6 +15,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { canEditModule } from "@/lib/studio/rbac";
 import type { StudioUserRole } from "@/lib/studio/user-types";
 import {
@@ -108,6 +109,9 @@ export async function saveFiscalSettingsAction(
   formData: FormData,
 ): Promise<FiscalSettingsActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "fiscal");
+  if (denial) return { error: denial };
+
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateFiscalSettingsInput(partial);
@@ -274,6 +278,9 @@ export async function voidFiscalBookAction(
   if (!bookId) return { error: "Falta el identificador del asiento." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "fiscal");
+  if (denial) return { error: denial };
+
   const gate = await resolveFiscalGate(supabase);
   if ("denied" in gate) return { error: gate.denied };
 
@@ -342,6 +349,9 @@ export async function createWithholdingAction(
   if (fieldErrors) return { fieldErrors };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "fiscal");
+  if (denial) return { error: denial };
+
   const gate = await resolveFiscalGate(supabase);
   if ("denied" in gate) return { error: gate.denied };
 
@@ -394,6 +404,9 @@ export async function voidWithholdingAction(
   if (!id) return { error: "Falta el identificador del comprobante." };
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "fiscal");
+  if (denial) return { error: denial };
+
   const gate = await resolveFiscalGate(supabase);
   if ("denied" in gate) return { error: gate.denied };
 

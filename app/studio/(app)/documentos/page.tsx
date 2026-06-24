@@ -11,6 +11,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   listAllDocuments,
   folderCounts,
@@ -46,6 +47,8 @@ export default async function DocumentosPage({
 }: {
   searchParams: Promise<{ q?: string; folder?: string; view?: string }>;
 }) {
+  await requireModuleView("documents");
+
   const sp = await searchParams;
   const q = (sp.q ?? "").trim();
   const folder = (sp.folder ?? "all").trim() || "all";

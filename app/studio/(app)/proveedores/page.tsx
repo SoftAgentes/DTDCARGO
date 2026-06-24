@@ -10,6 +10,7 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import {
   listPrealertas,
   listSuppliers,
@@ -23,6 +24,8 @@ import {
 export const metadata = { title: "Proveedores & prealertas" };
 
 export default async function ProveedoresPage() {
+  await requireModuleView("suppliers");
+
   const supabase = await createClient();
 
   // Operador = todo el tenant (sin markbox). RLS de 0105 le da read del tenant.

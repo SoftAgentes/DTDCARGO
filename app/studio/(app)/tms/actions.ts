@@ -17,6 +17,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   validateDriverInput,
   validateIncidentInput,
@@ -74,6 +75,9 @@ export async function createTruckAction(
   formData: FormData,
 ): Promise<TmsActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tms");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<TmsTruckInput> = {
     plate: parseStringOrNull(formData.get("plate")) ?? undefined,
@@ -122,6 +126,9 @@ export async function createDriverAction(
   formData: FormData,
 ): Promise<TmsActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tms");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<TmsDriverInput> = {
     name: parseStringOrNull(formData.get("name")) ?? undefined,
@@ -170,6 +177,9 @@ export async function createRouteAction(
   formData: FormData,
 ): Promise<TmsActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tms");
+  if (denial) return { error: denial };
+
 
   const partial: Partial<TmsRouteInput> = {
     shipment_id: parseStringOrNull(formData.get("shipment_id")) ?? undefined,
@@ -270,6 +280,9 @@ export async function markRouteStartedAction(
   routeId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tms");
+  if (denial) return { error: denial };
+
 
   const { error } = await supabase
     .from("tms_routes")
@@ -286,6 +299,9 @@ export async function markRouteCompletedAction(
   routeId: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tms");
+  if (denial) return { error: denial };
+
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -351,6 +367,9 @@ export async function cancelRouteAction(
   reason?: string,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tms");
+  if (denial) return { error: denial };
+
 
   const { data: route } = await supabase
     .from("tms_routes")
@@ -396,6 +415,9 @@ export async function addIncidentAction(
   formData: FormData,
 ): Promise<TmsActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tms");
+  if (denial) return { error: denial };
+
 
   const typeRaw = parseStringOrNull(formData.get("incident_type"));
   const partial: Partial<TmsIncidentInput> = {
@@ -475,6 +497,9 @@ export async function updateTruckStatusAction(
   }
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "tms");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("tms_trucks")
     .update({ status: newStatus })

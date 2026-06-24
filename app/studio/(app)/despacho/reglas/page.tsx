@@ -3,12 +3,15 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { getDispatchRules } from "@/lib/studio/dispatch-rules-queries";
 import { RulesClient } from "./_components/RulesClient";
 
 export const metadata = { title: "Reglas de Despacho · DTD Studio" };
 
 export default async function DispatchRulesPage() {
+  await requireModuleView("despacho-rules");
+
   const supabase = await createClient();
   const rules = await getDispatchRules(supabase);
 

@@ -7,12 +7,15 @@
  */
 
 import { createClient } from "@/lib/db/server";
+import { requireModuleView } from "@/lib/studio/rbac-guard";
 import { listShipments, type ShipmentListRow } from "@/lib/studio/shipment-queries";
 import { EmbarquesClient } from "./_components/EmbarquesClient";
 
 export const metadata = { title: "Embarques" };
 
 export default async function EmbarquesPage() {
+  await requireModuleView("shipments");
+
   const supabase = await createClient();
   const shipments = (await listShipments(supabase, {})) as ShipmentListRow[];
 

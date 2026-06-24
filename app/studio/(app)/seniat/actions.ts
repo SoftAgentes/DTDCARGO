@@ -13,6 +13,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import {
   CUSTOMS_DOC_REQUIRED,
   validateFilingInput,
@@ -81,6 +82,9 @@ export async function createFilingAction(
   formData: FormData,
 ): Promise<CustomsFilingActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "seniat");
+  if (denial) return { error: denial };
+
 
   const partial = inputFromFormData(formData);
   const { input, fieldErrors } = validateFilingInput(partial);
@@ -169,6 +173,9 @@ export async function updateFilingAction(
   formData: FormData,
 ): Promise<CustomsFilingActionState> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "seniat");
+  if (denial) return { error: denial };
+
 
   const partial = inputFromFormData(formData);
   // Para update, shipment_id viene del filing existente — no del form
@@ -207,6 +214,9 @@ export async function markDocumentUploadedAction(
   uploaded: boolean,
 ): Promise<{ ok?: boolean; error?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "seniat");
+  if (denial) return { error: denial };
+
 
   const { error } = await supabase
     .from("customs_documents")
@@ -230,6 +240,9 @@ export async function markFilingClearedAction(
   filingId: string,
 ): Promise<{ ok?: boolean; error?: string; missingDocs?: string[] }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "seniat");
+  if (denial) return { error: denial };
+
 
   const { data: link } = await supabase
     .from("user_tenants")
@@ -317,6 +330,9 @@ export async function changeFilingStatusAction(
   }
 
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "seniat");
+  if (denial) return { error: denial };
+
 
   const extra: Record<string, unknown> = { status: newStatus };
   if (newStatus === "observacion" && alertText?.trim()) {

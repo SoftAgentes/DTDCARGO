@@ -24,6 +24,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
+import { moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { getContainerTracking } from "@/lib/studio/naviera-tracking/tracking-api";
 import {
   trackingQuotaConfig,
@@ -94,6 +95,9 @@ export async function createSailing(
   raw: Partial<SailingInput>,
 ): Promise<{ ok?: boolean; error?: string; sailingId?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { input, fieldErrors } = validateSailingInput(raw);
   if (fieldErrors) {
     return { error: Object.values(fieldErrors)[0] ?? "Datos del itinerario inválidos." };
@@ -132,6 +136,9 @@ export async function updateSailing(
   raw: Partial<SailingInput>,
 ): Promise<Result> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { input, fieldErrors } = validateSailingInput(raw);
   if (fieldErrors) {
     return { error: Object.values(fieldErrors)[0] ?? "Datos del itinerario inválidos." };
@@ -164,6 +171,9 @@ export async function changeSailingStatus(
 ): Promise<Result> {
   if (!VALID_SAILING_STATUS.has(status)) return { error: "Estado inválido." };
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("sailings")
     .update({ status })
@@ -179,6 +189,9 @@ export async function createBooking(
   raw: Partial<BookingInput>,
 ): Promise<{ ok?: boolean; error?: string; bookingCode?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { input, fieldErrors } = validateBookingInput(raw);
   if (fieldErrors) {
     return { error: Object.values(fieldErrors)[0] ?? "Datos de la reserva inválidos." };
@@ -218,6 +231,9 @@ export async function updateBooking(
   raw: Partial<BookingInput>,
 ): Promise<Result> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { input, fieldErrors } = validateBookingInput(raw);
   if (fieldErrors) {
     return { error: Object.values(fieldErrors)[0] ?? "Datos de la reserva inválidos." };
@@ -247,6 +263,9 @@ export async function changeBookingStatus(
 ): Promise<Result> {
   if (!VALID_BOOKING_STATUS.has(status)) return { error: "Estado inválido." };
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("bookings")
     .update({ status })
@@ -262,6 +281,9 @@ export async function createConsolidation(
   raw: Partial<ConsolidationInput>,
 ): Promise<{ ok?: boolean; error?: string; consolidationRef?: string }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { input, fieldErrors } = validateConsolidationInput(raw);
   if (fieldErrors) {
     return { error: Object.values(fieldErrors)[0] ?? "Datos del contenedor inválidos." };
@@ -303,6 +325,9 @@ export async function setConsolidationContainerNo(
   containerNoRaw: string,
 ): Promise<Result> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const containerNo = normalizeContainerNo(containerNoRaw);
   const { error } = await supabase
     .from("consolidations")
@@ -344,6 +369,9 @@ export async function refreshTracking(
   consolidationId: string,
 ): Promise<{ ok?: boolean; error?: string; remaining?: number | null }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const tenantId = await resolveTenant(supabase);
   if (!tenantId) return { error: "No se pudo resolver el tenant." };
 
@@ -474,6 +502,9 @@ export async function changeConsolidationStatus(
 ): Promise<Result> {
   if (!VALID_CONTAINER_STATUS.has(status)) return { error: "Estado inválido." };
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("consolidations")
     .update({ status })
@@ -496,6 +527,9 @@ export async function linkConsolidation(
   link: { bookingId?: string | null; sailingId?: string | null },
 ): Promise<Result> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const patch: Record<string, unknown> = {};
   if ("bookingId" in link) patch.booking_id = link.bookingId || null;
   if ("sailingId" in link) patch.sailing_id = link.sailingId || null;
@@ -521,6 +555,9 @@ export async function assignLooseCargo(
   raw: Partial<ConsolidationItemInput>,
 ): Promise<{ ok?: boolean; error?: string; warning?: string | null }> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
 
   const { input, fieldErrors } = validateConsolidationItemInput(raw);
   if (fieldErrors) {
@@ -581,6 +618,9 @@ export async function assignLooseCargo(
 /** Quita una pieza asignada (vuelve a carga suelta si tenía shipment_id). */
 export async function removeConsolidationItem(itemId: string): Promise<Result> {
   const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "naviera");
+  if (denial) return { error: denial };
+
   const { error } = await supabase
     .from("consolidation_items")
     .delete()
