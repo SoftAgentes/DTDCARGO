@@ -15,7 +15,7 @@ export type ClientFilters = {
 };
 
 const CLIENT_COLUMNS =
-  "id, tenant_id, markbox, name, email, phone, address, rif, tier, notes, lat, lng, registration_channel, doc_kind, doc_verify_status, doc_verify_source, doc_registry_name, doc_verified_at, cedula_photo_path, advisor_id, created_at, updated_at, deleted_at";
+  "id, tenant_id, markbox, name, email, phone, address, rif, tier, notes, lat, lng, registration_channel, doc_kind, doc_verify_status, doc_verify_source, doc_registry_name, doc_verified_at, cedula_photo_path, advisor_id, person_id, created_at, updated_at, deleted_at";
 
 /**
  * Lista de clientes con filtros opcionales. RLS filtra por tenant.
@@ -42,13 +42,15 @@ export async function listClients(
 
   if (filters.q && filters.q.trim()) {
     const q = filters.q.trim().replace(/[,()]/g, " ").replace(/\s+/g, " ").trim();
+    // SDD-0106: cédula primero, Shipping Mark después. Para un match exacto
+    // tolerante a formato usá getClientByCedula(); esta búsqueda libre es ilike.
     query = query.or(
       [
+        `rif.ilike.%${q}%`,
         `name.ilike.%${q}%`,
         `markbox.ilike.%${q}%`,
         `email.ilike.%${q}%`,
         `phone.ilike.%${q}%`,
-        `rif.ilike.%${q}%`,
       ].join(","),
     );
   }
@@ -67,6 +69,29 @@ export async function getClientByMarkbox(
     .from("clients")
     .select(CLIENT_COLUMNS)
     .eq("markbox", markbox)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === "PGRST116") return null;
+    throw error;
+  }
+  return (data as Client | null) ?? null;
+}
+
+/**
+ * Cliente del tenant por **cédula/RIF**, normalizada igual que el índice único
+ * (SDD-0106 · "ubicar por cédula primero, Shipping Mark después"). Tolera
+ * variantes de formato (`V-12.345.678` ≡ `v12345678`). `null` si no existe.
+ * Vía RPC `find_client_by_cedula` (SECURITY INVOKER → RLS por tenant).
+ */
+export async function getClientByCedula(
+  supabase: SupabaseClient,
+  doc: string,
+): Promise<Client | null> {
+  const trimmed = doc.trim();
+  if (!trimmed) return null;
+  const { data, error } = await supabase
+    .rpc("find_client_by_cedula", { p_doc: trimmed })
     .maybeSingle();
 
   if (error) {
