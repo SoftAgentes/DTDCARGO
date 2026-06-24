@@ -1,44 +1,31 @@
 {
-  "generatedAt": "2026-06-23",
+  "generatedAt": "2026-06-24",
   "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
-        "id": "obsolete-additional-dir",
-        "title": "additionalDirectory global apunta a path inexistente (Desktop\\DTDCargo\\supabase\\migrations) — el proyecto real está en Desktop\\Developer\\software\\DTDCargo",
-        "severity": "alta",
-        "action": "En ~/.claude/settings.json corregir o eliminar el additionalDirectory obsoleto; el path real es C:\\Users\\Trabajo\\Desktop\\Developer\\software\\DTDCargo\\supabase\\migrations (160 migraciones).",
-        "top": true
-      },
-      {
-        "id": "settings-local-bloat",
-        "title": "settings.local.json: ~30 entradas en allow, varias de un solo uso (echo PID, break, invocaciones puntuales de Playwright) + wildcards amplios (Copy-Item *, git rm *, npm install *)",
-        "severity": "media",
-        "action": "Podar los one-offs y acotar wildcards: Copy-Item */git rm */npm install * → comandos concretos o quitarlos. Deja la allow-list legible y menos riesgosa."
-      },
-      {
         "id": "effort-level-cost",
         "title": "effortLevel='high' global — caro para tareas mecánicas (renames, bumps de migración, edits de docs)",
         "severity": "baja",
-        "action": "Bajar a medium o usar Sonnet/Haiku en tareas mecánicas; reservar high para diseño/arquitectura. Ahorro de costo sin perder calidad donde importa."
+        "action": "Bajar a medium con /config o usar Sonnet/Haiku en tareas mecánicas; reservar high para diseño/arquitectura.",
+        "top": true
       },
       {
-        "id": "leftover-audit-allow",
-        "title": "Entrada de allow leftover de una auditoría previa: rg 'IA ANTROPIC|dtd-cargo' .claude/settings*.json (path antiguo ya no usado)",
+        "id": "settings-local-wildcards",
+        "title": "settings.local.json (ya podado a 21 entradas) aún tiene wildcards amplias: Copy-Item *, git rm *, npm install *, npm link *",
         "severity": "baja",
-        "action": "Quitar esa línea del allow de settings.local.json — ya no hay refs al path viejo en los settings."
+        "action": "Opcional: acotar esas 4 wildcards a comandos concretos si querés menos superficie de auto-permiso. Trade-off: más prompts a futuro."
       }
     ],
-    "estimatedTokenSavings": "~5%"
+    "estimatedTokenSavings": "~2%"
   },
   "partB": {
     "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
       { "name": "Core API-CONTRACT (22 entidades)", "remaining": "18%", "note": "18 built / 4 partial (auth unificado, cola offline de entrada, catalogo origen CN, salida multi-canal WhatsApp/Telegram) / 0 missing. 82% built. Ninguno keystone." },
-      { "name": "Bloques financieros 1-5", "remaining": "~6%", "note": "7 de 8 done; solo 2.3 (Socio Logistico China, confidencial) in-progress con tablas ya en prod (0114/0115). Bloques 3 Fiscal, 4 Naviera, 5 Comercial = done." },
-      { "name": "Hueco v4.5 #1 · Nomina/RRHH", "remaining": "~80%", "note": "DOC DESACTUALIZADO: lo marca missing 'modulo entero sin backend', pero migr 0160 (employees) + 0161 (contractors) ya existen -> iniciado. Falta el motor: payroll_rules/payroll_run/attendance/holidays/loans/warnings/employee_comms. Bottleneck vigente." },
-      { "name": "Hueco v4.5 #2 · Libros fiscales", "remaining": "0%", "note": "DOC DESACTUALIZADO: lo marca missing, pero migr 0165 (fiscal_books) + 0166 (tax_withholdings), SDD-0104, ya en main -> BUILT." },
-      { "name": "Hueco v4.5 #3 · Conciliacion bancaria + Activos fijos", "remaining": "0%", "note": "DOC DESACTUALIZADO: lo marca missing, pero migr 0167 (bank_reconciliation) + 0168 (fixed_assets), SDD-0105, ya en main -> BUILT." }
+      { "name": "Bloques financieros 1-5", "remaining": "~6%", "note": "7 de 8 done; solo 2.3 (Socio Logistico China, confidencial) in-progress con tablas en prod. Bloques 3 Fiscal, 4 Naviera, 5 Comercial = done." },
+      { "name": "Hueco v4.5 #1 · Nomina/RRHH", "remaining": "~80%", "note": "Bottleneck vigente. employees (0160) + contractors (0161) ya con tabla; falta el motor: payroll_rules/payroll_run/attendance/holidays/loans/warnings/registrations/invites/employee_comms." },
+      { "name": "Huecos v4.5 menores", "remaining": "var", "note": "#2 Supplier<->Client (tabla puente WeChat) missing · #3 Deteccion ferias IA missing (Vault = skip founder) · #4 Portal inbox partial (compuesto de conversations/comments/outbox). Snapshot doc al 0168." }
     ]
   }
 }
