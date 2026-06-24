@@ -1,44 +1,44 @@
 {
-  "generatedAt": "2026-06-21",
+  "generatedAt": "2026-06-23",
   "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
-        "id": "skill-manifest-sprawl",
-        "title": "Manifiesto de skills/plugins por sesion enorme (~200, marketplace oficial auto-instalado); mayoria ajenos a DTD",
+        "id": "obsolete-additional-dir",
+        "title": "additionalDirectory global apunta a path inexistente (Desktop\\DTDCargo\\supabase\\migrations) — el proyecto real está en Desktop\\Developer\\software\\DTDCargo",
         "severity": "alta",
-        "action": "Via /plugin (interactivo): deshabilitar los plugins no usados del marketplace claude-plugins-official. Config GLOBAL + auto-gestionada -> no se edita a mano de forma durable. Unica via segura = el gestor /plugin. Es el unico item que baja tokens del prompt.",
+        "action": "En ~/.claude/settings.json corregir o eliminar el additionalDirectory obsoleto; el path real es C:\\Users\\Trabajo\\Desktop\\Developer\\software\\DTDCargo\\supabase\\migrations (160 migraciones).",
         "top": true
       },
       {
-        "id": "schema-recon-refreshed",
-        "title": "schema-reconciliation REFRESCADO (2026-06-21) tras el cluster 0152-0159",
-        "severity": "baja",
-        "action": "Hecho: snapshot 0151->0159, Reclamos del cliente + naviera-tracking movidos de hueco a built, nota de procedencia del cluster agregada. Huecos v4.5 ~30->~28. Sin pendiente."
+        "id": "settings-local-bloat",
+        "title": "settings.local.json: ~30 entradas en allow, varias de un solo uso (echo PID, break, invocaciones puntuales de Playwright) + wildcards amplios (Copy-Item *, git rm *, npm install *)",
+        "severity": "media",
+        "action": "Podar los one-offs y acotar wildcards: Copy-Item */git rm */npm install * → comandos concretos o quitarlos. Deja la allow-list legible y menos riesgosa."
       },
       {
-        "id": "config-hygiene-done",
-        "title": "Higiene de config + workspace COMPLETADA esta jornada",
+        "id": "effort-level-cost",
+        "title": "effortLevel='high' global — caro para tareas mecánicas (renames, bumps de migración, edits de docs)",
         "severity": "baja",
-        "action": "Hecho: allow-lists podadas (global 32->19, local 24->18, MCP claude_ai_Supabase obsoleto + additionalDir motor-oferta removidos), 6 worktrees mergeados + 7 branches borrados, workspace en un solo main limpio. Sin accion pendiente."
+        "action": "Bajar a medium o usar Sonnet/Haiku en tareas mecánicas; reservar high para diseño/arquitectura. Ahorro de costo sin perder calidad donde importa."
       },
       {
-        "id": "gate-runtime-flaky",
-        "title": "Gate verify.mjs: paso test ~45-65s; vitest worker flaky en Windows ('failed to find the runner')",
+        "id": "leftover-audit-allow",
+        "title": "Entrada de allow leftover de una auditoría previa: rg 'IA ANTROPIC|dtd-cargo' .claude/settings*.json (path antiguo ya no usado)",
         "severity": "baja",
-        "action": "Sin cambio (operacional); ante 'failed to find the runner' re-correr. Timeout 180s alcanza."
+        "action": "Quitar esa línea del allow de settings.local.json — ya no hay refs al path viejo en los settings."
       }
     ],
-    "estimatedTokenSavings": "~10% (pendiente del /plugin; la limpieza de config/workspace ya esta hecha)"
+    "estimatedTokenSavings": "~5%"
   },
   "partB": {
     "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
-      { "name": "Core API-CONTRACT (22 entidades)", "remaining": "18%", "note": "18 built / 4 partial / 0 missing = 82% built. Las 4 partial sin tocar: auth unificado, cola offline entrada, catalogo CN origen, salida multi-canal" },
-      { "name": "Re-derivacion Norte v4.5 - huecos (post-cluster)", "remaining": "bajando", "note": "Este sesion CERRO: Reclamos del cliente (client_claims + evidence + financials, migr 0152-0157) y naviera tracking (container_no + tracking_snapshots, migr 0154/0158). Doc schema-reconciliation aun lista Reclamos como hueco -> regenerar." },
-      { "name": "HUECO #1 - Nomina/RRHH", "remaining": "100%", "note": "Modulo entero del Norte (~11 entidades, API §10) SIN ninguna tabla. Sigue siendo el bottleneck unico mas caro." },
-      { "name": "Huecos restantes", "remaining": "abiertos", "note": "Libros fiscales (Ventas/Compras/Retenciones), conciliacion bancaria + activos fijos, supplier<->client (wechatGroup), deteccion de ferias IA, Vault (SDD-0025 skip por founder)." },
-      { "name": "Bloques financieros 1-5", "remaining": "0%", "note": "done/LIVE; solo 2.3 Financiero Socio China (SDD-0059) en partial (confidencial, fuera del blueprint)" }
+      { "name": "Core API-CONTRACT (22 entidades)", "remaining": "18%", "note": "18 built / 4 partial (auth unificado, cola offline de entrada, catalogo origen CN, salida multi-canal WhatsApp/Telegram) / 0 missing. 82% built. Ninguno keystone." },
+      { "name": "Bloques financieros 1-5", "remaining": "~6%", "note": "7 de 8 done; solo 2.3 (Socio Logistico China, confidencial) in-progress con tablas ya en prod (0114/0115). Bloques 3 Fiscal, 4 Naviera, 5 Comercial = done." },
+      { "name": "Hueco v4.5 #1 · Nomina/RRHH", "remaining": "~80%", "note": "DOC DESACTUALIZADO: lo marca missing 'modulo entero sin backend', pero migr 0160 (employees) + 0161 (contractors) ya existen -> iniciado. Falta el motor: payroll_rules/payroll_run/attendance/holidays/loans/warnings/employee_comms. Bottleneck vigente." },
+      { "name": "Hueco v4.5 #2 · Libros fiscales", "remaining": "0%", "note": "DOC DESACTUALIZADO: lo marca missing, pero migr 0165 (fiscal_books) + 0166 (tax_withholdings), SDD-0104, ya en main -> BUILT." },
+      { "name": "Hueco v4.5 #3 · Conciliacion bancaria + Activos fijos", "remaining": "0%", "note": "DOC DESACTUALIZADO: lo marca missing, pero migr 0167 (bank_reconciliation) + 0168 (fixed_assets), SDD-0105, ya en main -> BUILT." }
     ]
   }
 }

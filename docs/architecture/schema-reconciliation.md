@@ -2,14 +2,14 @@
 
 > **Qué es:** reconcilia el **blueprint de datos del Norte** (lo que el diseño dice que "debería existir") contra las **tablas realmente construidas en Supabase** (lo que existe en `supabase/migrations/`). Cada marker está **respaldado por una tabla/migración real** — nada inventado.
 >
-> **Snapshot:** 2026-06-21 · migraciones hasta `0159` · ≈160 tablas en 154 migraciones.
+> **Snapshot:** 2026-06-23 · migraciones hasta `0168` · ≈169 tablas en 160 migraciones.
 > **Método:** generado por barrido de `CREATE TABLE` en todas las migraciones + verificación adversarial (cada `✅` cita una tabla real; cada `❌` confirmado por ausencia total de candidata). Regenerable con `/radar` o re-corriendo el reconciliador.
 >
 > ⚠️ **Fuente del blueprint:** NO existe un `schema.prisma` en `_norte/` — el backend del Norte es un **handoff documental** (prototipo 100% mock en `localStorage`). Las entidades se derivan de `_norte/backend/API-CONTRACT.md` (mapea cada seam a un recurso REST), corroborado por los stores mock de `_norte/erp/data.jsx`.
 
 ## Resumen · core API-CONTRACT (22 entidades)
 
-> Estas 22 son el **piso** — el contrato original (`API-CONTRACT.md`). La **re-derivación completa contra el Norte v4.5** está abajo en su propia sección: ahí el blueprint crece a ~13 dominios / ~146 formas y aparecen los huecos nuevos (Nómina entera, Reclamos del cliente, libros fiscales).
+> Estas 22 son el **piso** — el contrato original (`API-CONTRACT.md`). La **re-derivación completa contra el Norte v4.5** está abajo en su propia sección: ahí el blueprint crece a ~13 dominios / ~146 formas y aparece el hueco grande vigente: **Nómina/RRHH** (parcial — falta el motor de cálculo). Reclamos del cliente, libros fiscales y conciliación bancaria + activos fijos ya pasaron de hueco a built (ver bitácora).
 
 | | Entidades |
 |---|---|
@@ -20,7 +20,7 @@
 
 **Completitud del core:** 18/22 = **82% built** · 18% partial · 0% missing.
 **Hueco real (dentro del core 22):** ya **no quedan entidades sin tabla**. Lo que falta es **modelado/consolidación** (todo en 🟡): auth unificado, cola offline de entrada, catálogo de origen CN y salida multi-canal (WhatsApp/Telegram). Ninguno es keystone — la capa legal (que bloqueaba Facturación) ya está cerrada (`0102`), el inbox del portal cerró con SDD-0057 (`0105`/`0118`/`0119`) y las reglas genéricas ya las cubre el motor de workflow por servicio (`0143`, SDD-0091).
-**⚠️ Fuera del core**, la re-derivación v4.5 (abajo) **sí encuentra módulos enteros sin tabla** — el más grande, Nómina/RRHH.
+**⚠️ Fuera del core**, la re-derivación v4.5 (abajo) encuentra el hueco grande vigente: **Nómina/RRHH**, hoy 🟡 parcial (employees + contractors con tabla desde `0160`/`0161`; falta el motor de cálculo).
 
 ## Reconciliación por entidad
 
@@ -53,7 +53,7 @@
 
 > Las 22 de arriba son el **API-CONTRACT core**. El Norte v4.2–v4.5 expandió el prototipo a **~13 dominios / ~146 formas de entidad**. Esta sección reconcilia esa superficie ampliada contra las **145 tablas reales** (`information_schema`, 2026-06-21). Método: barrido de `_norte/backend/API-CONTRACT.md` + stores mock (`erp/data.jsx`, `erp/modules/*-data.jsx`, `portal/*`, `academia-data.jsx`, `naviera-data.jsx`, `nomina-data.jsx`, `reclamos/`, `packlist/`, `inventario/`) cruzado contra las tablas reales. Las cifras `~` son aproximadas; los **huecos** de abajo están verificados (ausencia de tabla en las 145).
 
-**Cobertura ampliada:** ~146 formas → **~105 con tabla** · **~16 vistas/derivados** (no son entidad) · **~28 huecos sin tabla**. *(Actualizado 2026-06-21 tras el cluster `0152`–`0159`: Reclamos del cliente y naviera-tracking pasaron de hueco a built.)*
+**Cobertura ampliada:** ~146 formas → **~110 con tabla** · **~16 vistas/derivados** (no son entidad) · **~20 huecos sin tabla**. *(Actualizado 2026-06-23 tras `0160`–`0168`: Libros fiscales y Conciliación bancaria + Activos fijos pasaron de hueco a built; Nómina/RRHH bajó de ❌ a 🟡 — employees + contractors ya tienen tabla.)*
 
 ### Dominios NUEVOS ya respaldados por tabla (✅ · más allá de las 22)
 
@@ -73,14 +73,13 @@
 
 | # | Hueco | Fuente en el Norte | Estado | Nota |
 |---|---|---|---|---|
-| 1 ⭐ | **Nómina / RRHH completa** (~11: employee, payroll_rules, payroll_run, attendance, holidays, loans, registrations, invites, warnings, contractors, employee_comms) | `nomina-data.jsx` + API §10 | ❌ | **Módulo entero sin backend** — el hueco más grande del Norte v4.5. |
-| 2 | **Libros fiscales** (Libro Ventas / Compras + Retenciones) | `fiscal-data.jsx` | ❌ | Solo existe `fiscal_settings` (config). SDD-0073 clasifica por factura; los **registros** como tabla = V2. |
-| 3 | **Conciliación bancaria + Activos fijos** | `conciliacion.jsx`, `contabilidad-data.jsx` | ❌ | Contabilidad sin esas 2 tablas (bank_statements, fixed_assets). |
-| 4 | **Supplier↔Client (grupo WeChat)** | `SUPPLIER_CLIENTS` (`data.jsx`) | ❌ | Relación M:N con `wechatGroup` por par cliente↔proveedor. El **dato** WeChat ya vive en `suppliers_cn.wechat`; falta la **tabla puente**. |
-| 5 | **Detección de ferias (IA)** + **Vault / No-olvidar** | `fairs-detection.jsx`, `vault.jsx` | ❌ | Vault = decisión founder (SDD-0025 **skip**). Ferias = store de aprobación IA sin tabla. |
-| 6 | **Portal inbox** (seam `portalInbox`, API §5) | `data-bridge.jsx` | 🟡 | Sin tabla 1:1; se compone de `conversations`/`comments`/`outbox_push_events` (equivalente funcional, mismo criterio que `File`). |
+| 1 ⭐ | **Nómina / RRHH** (~11: employee, payroll_rules, payroll_run, attendance, holidays, loans, registrations, invites, warnings, contractors, employee_comms) | `nomina-data.jsx` + API §10 | 🟡 | **Iniciado (2026-06-23):** `nomina_employees` (`0160`) + `nomina_contractors` + `nomina_contractor_payments` (`0161`) ya existen. **Falta el motor:** payroll_rules/payroll_run/attendance/holidays/loans/warnings/registrations/invites/employee_comms. Sigue siendo el hueco más grande del Norte v4.5. |
+| 2 | **Supplier↔Client (grupo WeChat)** | `SUPPLIER_CLIENTS` (`data.jsx`) | ❌ | Relación M:N con `wechatGroup` por par cliente↔proveedor. El **dato** WeChat ya vive en `suppliers_cn.wechat`; falta la **tabla puente**. |
+| 3 | **Detección de ferias (IA)** + **Vault / No-olvidar** | `fairs-detection.jsx`, `vault.jsx` | ❌ | Vault = decisión founder (SDD-0025 **skip**). Ferias = store de aprobación IA sin tabla. |
+| 4 | **Portal inbox** (seam `portalInbox`, API §5) | `data-bridge.jsx` | 🟡 | Sin tabla 1:1; se compone de `conversations`/`comments`/`outbox_push_events` (equivalente funcional, mismo criterio que `File`). |
 
-> **Cerrado 2026-06-21:** ~~Reclamo/siniestro del cliente~~ → **BUILT** (`client_claims` + `client_claim_evidence` + `client_claim_financials`, SDD-0102, migr 0152–0157). Era el hueco #2.
+> **Cerrado 2026-06-23:** ~~Libros fiscales~~ → **BUILT** (`fiscal_books` + `fiscal_book_entries` + `tax_withholdings`, SDD-0104, migr 0165/0166 — Libro Ventas/Compras + Retenciones como registros) · ~~Conciliación bancaria + Activos fijos~~ → **BUILT** (`bank_statements` + `bank_statement_lines` + `fixed_assets` + `fixed_asset_depreciation`, SDD-0105, migr 0167/0168). Eran los huecos #2 y #3.
+> **Cerrado 2026-06-21:** ~~Reclamo/siniestro del cliente~~ → **BUILT** (`client_claims` + `client_claim_evidence` + `client_claim_financials`, SDD-0102, migr 0152–0157).
 
 ### No son entidad (vistas / derivados — NO cuentan como hueco)
 
@@ -107,6 +106,7 @@ Integración/infra que el prototipo no modela (es lo inverso de un hueco, no deu
 
 ## Notas de procedencia y correcciones
 
+- **Cluster `0160`–`0168` (2026-06-23 · detectado por `/radar`):** **3 huecos del blueprint v4.5 movidos** contra tablas reales (sweep `CREATE TABLE`). **#2 Libros fiscales ❌→✅** (`fiscal_books`+`fiscal_book_entries`+`tax_withholdings`, SDD-0104, migr `0165`/`0166`). **#3 Conciliación bancaria + Activos fijos ❌→✅** (`bank_statements`+`bank_statement_lines`+`fixed_assets`+`fixed_asset_depreciation`, SDD-0105, migr `0167`/`0168`). **#1 Nómina/RRHH ❌→🟡** — `nomina_employees` (`0160`) + `nomina_contractors`/`nomina_contractor_payments` (`0161`) ya existen; falta el motor (payroll_run/attendance/holidays/loans/warnings/…). El **core de 22 no cambia** (18✅/4🟡/0❌); los huecos v4.5 bajan ~28→~20. Total: **160 migraciones, ≈169 tablas**. Próxima migr libre = `0169`.
 - **Cluster `0152`–`0159` aplicado + mergeado (2026-06-21):** 7 ramas integradas a `main`, **9 migraciones a prod**. **2 huecos del blueprint v4.5 cerrados:** Reclamo del cliente → `client_claims`/`_evidence`/`_financials` (SDD-0102) y naviera-tracking → `container_no`+`tracking_snapshots`+`searates_tracking_usage` (SDD-0101). Colisiones resueltas: SDD-0101→0102 (reclamos), migr 0155→0158 (naviera), 0157→0159 (portal-norte fcl). Además `0120_welcome_email_template_v37` aplicada (faltaba en prod, detectada por auditoría). El core de 22 no cambia (18✅/4🟡/0❌); los huecos v4.5 bajan ~30→~28. Próxima migr libre = `0160`.
 - **Re-derivación v4.5 (2026-06-21):** primera reconciliación contra el Norte **ampliado** (no solo el API-CONTRACT core de 22). Barrido de los 13 dominios del prototipo v4.5 vs las 145 tablas reales → **~100 con tabla, ~16 vistas/derivados, ~30 huecos**; el mayor = **Nómina entera** (≈11 entidades, API §10, cero tablas), luego **Reclamo del cliente** y **libros fiscales** (Ventas/Compras/Retenciones). Las 22 del core quedan como **piso** (18✅/4🟡/0❌ sin cambio). Ver sección «Re-derivación contra el Norte v4.5». Método: agente de enumeración sobre `_norte/` + verificación de ausencia de tabla contra `information_schema`.
 - **Regeneración 2026-06-21 (snapshot `0147`→`0151`):** **0 promociones** — las 4 migraciones nuevas (`0148` dirección del proveedor en packing list, `0149` `academia_lesson_progress`, `0150` add-ons de prealerta, `0151` `clients.advisor_id`) son **extensiones de módulo / columnas, no entidades del blueprint** → conteo **18✅/4🟡/0❌ (82%) sin cambio**. ⚠️ Sigue pendiente la **re-derivación completa del blueprint contra el Norte v4.5** (las 22 entidades son un **piso**; Academia/WMS/Reclamos/Scorecard/Dashboard aún sin reconciliar).
