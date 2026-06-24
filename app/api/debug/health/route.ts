@@ -29,11 +29,11 @@ export const dynamic = "force-dynamic";
 function isAuthorized(request: Request): boolean {
   const expected = process.env.DEBUG_HEALTH_SECRET;
   if (!expected) return false; // fail-closed: sin secreto configurado, nadie pasa
+  // Solo `Authorization: Bearer <secreto>`. Se eliminó el fallback `?key=` porque
+  // el secreto en la URL queda en logs de servidor/proxy, historial y Referer.
   const auth = request.headers.get("authorization");
   const bearer = auth?.startsWith("Bearer ") ? auth.slice(7) : null;
-  const key = new URL(request.url).searchParams.get("key");
-  const provided = bearer ?? key;
-  return provided != null && provided === expected;
+  return bearer != null && bearer === expected;
 }
 
 export async function GET(request: Request) {
