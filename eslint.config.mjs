@@ -30,6 +30,11 @@ const eslintConfig = defineConfig([
     // output regenerable y gitignored, NO código de la app. `graphify update`
     // deja .js con require() de Node que rompen el lint del gate.
     "graphify-out/**",
+    // Vault de Obsidian (el repo se abre como vault local · ver .gitignore):
+    // config + bundles minificados de plugins de terceros (main.js de 500KB+),
+    // gitignored y NO código de la app. ESLint no respeta .gitignore por sí solo
+    // → sin esto, los bundles inflan el gate con miles de warnings/errores ajenos.
+    ".obsidian/**",
   ]),
 
   // ─── Frontera sitio-público ↔ ERP ────────────────────────────────────
