@@ -57,16 +57,19 @@ regresión: un módulo nuevo con mutaciones sin guard rompe el gate `verify.mjs`
 - **`/api/debug/health`** — se eliminó el fallback de secreto por query param
   (`?key=`): quedaba en logs/historial/Referer. Solo `Authorization: Bearer`.
 
-- **`/verificar` (PENDIENTE · requiere diseño, NO auto-parcheado)** — página
-  pública que usa `service_role` para verificar Shipping Marks (`DTD-NNNN`,
-  secuenciales) y diplomas (`DTD-AC-YYYY-NNNN`). Enumerable. La rama de
-  **diploma expone `student_name` (PII)** → un atacante puede cosechar nombres
-  probando folios. **No se parchó** acá porque la mitigación correcta
-  (rate-limit por IP en el render hot-path del QR, o tokens opacos en vez de
-  folios secuenciales) necesita diseño y arriesga romper el flujo legítimo de
-  escaneo. **Recomendación:** reusar el patrón `portal_registro_throttle` (ver
-  `app/registro/actions.ts`) por IP, o mover el lookup a una RPC pública
-  `SECURITY DEFINER` con throttle. Tratar como spec propia.
+- **`/verificar` (RESUELTO · throttle por IP)** — página pública que usa
+  `service_role` para verificar Shipping Marks (`DTD-NNNN`, secuenciales) y
+  diplomas (`DTD-AC-YYYY-NNNN`). Ambos enumerables; la rama de **diploma exponía
+  `student_name` (PII)** → cosecha de nombres por folio. **Mitigado con throttle
+  por IP** (migr `0169` `public_verify_throttle` + `lib/public/verify-throttle.ts`,
+  inyectado en `app/verificar/page.tsx`): pasado el límite (40 verificaciones /
+  30 min por IP, generoso para escaneo de palet, ajustable) la página responde
+  en **estado neutro** —ni confirma ni niega— sin tocar la DB ni revelar PII.
+  Fail-open ante error del throttle (no rompe el escaneo legítimo). Tabla propia
+  (no `portal_registro_throttle`) para no chocar con el límite de registro (5/60min).
+  El throttle helper recibe el admin client por inyección porque `lib/public` no
+  puede importar `@/lib/db` (frontera). **Pendiente menor:** la migr 0169 no se
+  aplicó a una DB de prueba (espejo exacto de 0094, sin FKs ni funciones).
 
 - **Material de marca (`/marca/*`, `/interno/marca/d/*`)** con gate `getUser()`
   (no `getUserTenantId()`): un cliente del portal puede ver el brand-book. **No

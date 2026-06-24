@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/db/admin";
+import { getRequestIp } from "@/lib/http/request-ip";
+import { isVerifyThrottled, type ThrottleDb } from "@/lib/public/verify-throttle";
 import { BrandMark } from "@/components/BrandMark";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
@@ -193,8 +195,21 @@ export default async function VerificarPage({
   // Un folio de diploma (DTD-AC-YYYY-NNNN) toma la rama de diploma; cualquier otro
   // código se trata como Shipping Mark de carga (flujo SDD-0097 original).
   const folioMode = isDiplomaFolio(mark);
-  const diploma = folioMode ? await diplomaLookup(mark) : null;
-  const status = folioMode ? null : await markStatus(mark);
+  // Anti-enumeración (migr 0169): los códigos son secuenciales y el diploma
+  // expone el nombre del alumno. Pasado el límite por IP, NO tocamos la DB ni
+  // revelamos existencia/PII → estado neutro. Solo throttlea si hay algo que
+  // verificar (con `?c=`); la entrada manual vacía no consume cupo.
+  // Cast estructural: el SupabaseClient real satisface ThrottleDb, pero su tipo
+  // recursivo dispara TS2589 (deep instantiation) si se matchea directo.
+  const throttled =
+    mark !== ""
+      ? await isVerifyThrottled(
+          createAdminClient() as unknown as ThrottleDb,
+          await getRequestIp(),
+        )
+      : false;
+  const diploma = !throttled && folioMode ? await diplomaLookup(mark) : null;
+  const status = !throttled && !folioMode ? await markStatus(mark) : null;
 
   const waUrl = `https://wa.me/${CONTACT.ve.whatsappRaw}?text=${encodeURIComponent(
     folioMode
@@ -204,12 +219,13 @@ export default async function VerificarPage({
         : "Hola DTD Cargo, quiero verificar mi carga.",
   )}`;
 
-  // Estado del documento según el lookup.
+  // Estado del documento según el lookup. Todo lo que "afirma o niega" requiere
+  // `!throttled`: si la IP superó el límite, solo mostramos el estado neutro.
   const verified = status === true;
   const unknown = status === false;
-  const inconclusive = status === null && mark !== "" && !folioMode; // MARK, DB no responde
+  const inconclusive = !throttled && status === null && mark !== "" && !folioMode; // MARK, DB no responde
   const empty = mark === ""; // sin ?c= (entrada manual)
-  const diplomaMissing = folioMode && diploma === null;
+  const diplomaMissing = !throttled && folioMode && diploma === null;
 
   return (
     <>
@@ -234,6 +250,22 @@ export default async function VerificarPage({
             <span className="eyebrow">
               {folioMode ? "Verificación de diploma" : "Verificación de carga"}
             </span>
+
+            {/* ─── Throttle: demasiadas verificaciones desde la IP (migr 0169) ─── */}
+            {throttled && (
+              <div className="mt-6">
+                <h1 className="h-display" style={{ fontSize: H1_SIZE }}>
+                  Demasiadas
+                  <br />
+                  <span style={{ color: "var(--color-wine)" }}>verificaciones.</span>
+                </h1>
+                <p className="lead mt-6">
+                  Recibimos muchas consultas desde tu conexión en poco tiempo.
+                  Espera unos minutos e intenta de nuevo, o escríbenos y lo
+                  confirmamos al instante.
+                </p>
+              </div>
+            )}
 
             {/* ─── Diploma verificado (folio DTD-AC-…) ─── */}
             {folioMode && diploma && (
