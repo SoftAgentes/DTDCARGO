@@ -30,6 +30,35 @@ Specs en `docs/specs/NNNN-slug/spec.md`, correlativo propio desde 0001 (no compa
 
 **Commits:** `feat(studio): SDD-NNNN — título` (Studio) · `feat(DTD-NNNN): …` (público).
 
+## Modelo Director + Modo Forja
+
+DTDCargo usa una sesión **Director** como única autoridad de integración. Las demás sesiones/agentes son secundarios.
+
+**Director es el único que puede:**
+- mergear o cherry-pickear hacia `main`;
+- hacer push;
+- aplicar migrations reales o tocar producción;
+- resolver conflictos entre worktrees;
+- regenerar archivos compartidos como `docs/specs/README.md`;
+- cerrar la integración final después de `node scripts/verify.mjs` y `pnpm build`.
+
+**Agentes secundarios:**
+- trabajan solo en su `git worktree` + rama;
+- nunca trabajan directo en `main`;
+- nunca hacen push;
+- nunca aplican migrations a producción;
+- escriben migrations como archivos en su rama cuando aplique;
+- hacen commits atómicos y selectivos, nunca `git add -A`;
+- reportan rama, worktree, commits, archivos tocados y pendientes;
+- dejan `RESUMEN.md` cuando operen en Modo Forja;
+- dejan `PROBLEMAS.md` si se bloquean.
+
+**Runbooks obligatorios:**
+- `docs/runbooks/git-worktrees-multiventana.md`
+- `docs/runbooks/multi-ventanas-buena-practica.md`
+
+Modo Forja se usa solo para tareas grandes y bien delimitadas. No usarlo para hotfixes urgentes, cambios de una línea o migrations críticas sin Director.
+
 ## Stack
 
 - **Next.js 16** App Router · **React 19** · **TypeScript** strict · **Tailwind v4** · **pnpm**
