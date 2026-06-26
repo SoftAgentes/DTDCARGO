@@ -17,6 +17,8 @@ import Link from "next/link";
 import { useActionState, useMemo, useState } from "react";
 import { createShipment, type CreateShipmentState } from "../actions";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
+import type { ClientSearchHit } from "@/lib/studio/client-search-action";
 import {
   SERVICE_OPTIONS,
   VEHICLE_CATEGORY_OPTIONS,
@@ -50,6 +52,7 @@ export function CreateShipmentForm({
   const [service, setService] = useState<ShipmentService>("puerta_a_puerta_DDP");
   const [vehicleCategory, setVehicleCategory] = useState("");
   const [clientName, setClientName] = useState("");
+  const [clientMarkbox, setClientMarkbox] = useState("");
 
   const vehicleRequired = service === "transporte_terrestre";
   const showGps = service === "transporte_terrestre";
@@ -162,29 +165,28 @@ export function CreateShipmentForm({
           </div>
         </div>
 
-        {/* Cliente (con datalist) + MARKBOX */}
+        {/* Cliente: combobox cédula-first (SDD-0108) + Shipping Mark.
+            Busca por cédula/nombre/Shipping Mark contra clientes reales; al
+            elegir autocompleta nombre + markbox. Si el cliente aún no existe,
+            el operador tipea libre (fallback manual) y se crea con el envío. */}
         <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 14 }}>
           <div>
             <label htmlFor="client_name" className="studio-label">
               Cliente
             </label>
-            <input
+            <ClientCombobox
               id="client_name"
-              name="client_name"
-              type="text"
-              placeholder="Empresa Demo S.A."
-              list="clientes-existentes"
-              autoComplete="off"
               value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
+              onManualChange={(text) => setClientName(text)}
+              onSelect={(c: ClientSearchHit) => {
+                setClientName(c.name);
+                setClientMarkbox(c.markbox);
+              }}
+              placeholder="Cédula, nombre o Shipping Mark…"
               disabled={isPending}
-              className="studio-input"
             />
-            <datalist id="clientes-existentes">
-              {existingClients.map((c) => (
-                <option key={c} value={c} />
-              ))}
-            </datalist>
+            {/* El nombre viaja en el form vía hidden (el input visible es el combobox). */}
+            <input type="hidden" name="client_name" value={clientName} />
             {clientIsKnown && (
               <div
                 style={{
@@ -193,7 +195,7 @@ export function CreateShipmentForm({
                   fontWeight: 600,
                 }}
               >
-                ✓ Cliente existente
+                Cliente existente
               </div>
             )}
             {clientIsNew && (
@@ -204,13 +206,7 @@ export function CreateShipmentForm({
                   fontWeight: 600,
                 }}
               >
-                + Cliente nuevo — se va a crear con este envío
-              </div>
-            )}
-            {!trimmedClient && existingClients.length > 0 && (
-              <div style={hintStyle}>
-                {existingClients.length} cliente{existingClients.length === 1 ? "" : "s"} ya usado{existingClients.length === 1 ? "" : "s"}.
-                Escribe para autocompletar.
+                Cliente nuevo — se va a crear con este envío
               </div>
             )}
           </div>
@@ -223,6 +219,8 @@ export function CreateShipmentForm({
               name="client_markbox"
               type="text"
               placeholder="DTD-XXXX"
+              value={clientMarkbox}
+              onChange={(e) => setClientMarkbox(e.target.value)}
               disabled={isPending}
               className="studio-input studio-input-mono"
             />
