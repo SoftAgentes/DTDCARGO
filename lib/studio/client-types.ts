@@ -49,6 +49,12 @@ export type Client = {
    * mismo tenant (lo garantiza el trigger clients_advisor_same_tenant, migr 0151).
    */
   advisor_id: string | null;
+  /**
+   * SDD-0106: identidad (tabla `persons`, anclada por cédula) de este perfil de
+   * carga. La cédula es el identificador estable de la persona a través de
+   * servicios (carga, academia); el Shipping Mark es el rastreo de cajas.
+   */
+  person_id: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;

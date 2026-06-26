@@ -134,7 +134,7 @@ export function ClientsClient({
             id="client-q"
             type="search"
             className="studio-input"
-            placeholder="Nombre, Shipping Mark, email, teléfono, RIF…"
+            placeholder="Cédula/RIF, nombre, Shipping Mark, email, teléfono…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
