@@ -148,3 +148,7 @@ graphify-out/
 # Los .md de docs/legal SÍ se versionan (son texto/punteros); estos binarios y el paquete ZIP extraído, no.
 equipo-crm/*.pdf
 docs/legal/DTDcapalegalconsolidada/
+
+# Dashboard operativo (capa 6, estado vivo) — artefacto local, no se versiona aquí.
+# Vive dentro del repo para servirse local; la data se regenera con /actualizar-dashboards.
+/dashboard/
