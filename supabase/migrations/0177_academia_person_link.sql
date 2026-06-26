@@ -119,3 +119,60 @@ where e.person_id is null
     = upper(regexp_replace(p.national_id::text, '[^A-Za-z0-9]', '', 'g'));
 
 -- (d) inscripciones sin student_ci → person_id queda null (no-op explícito).
+
+-- ╔═══════════════════════════════════════════════════════════╗
+-- ║ 4. Defensa en DB · person_in_tenant() + trigger same-tenant║
+-- ╚═══════════════════════════════════════════════════════════╝
+-- Injertado del lane robusto (forja SDD-0107). La FK sola NO garantiza que
+-- person_id sea del MISMO tenant que la inscripción: un cliente PostgREST
+-- autenticado podría setear person_id de otro tenant o de una persona
+-- soft-deleted. Helper person_in_tenant() + trigger BEFORE INSERT/UPDATE lo
+-- cierran para TODO cliente (mismo patrón que la validación polimórfica del repo:
+-- helper *_in_tenant() + trigger). Se crea DESPUÉS del backfill (que ya garantiza
+-- same-tenant por construcción de los joins) → guarda las escrituras futuras.
+create or replace function public.person_in_tenant(
+  p_person_id uuid,
+  p_tenant_id uuid
+) returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists(
+    select 1 from public.persons
+    where id = p_person_id
+      and tenant_id = p_tenant_id
+      and deleted_at is null
+  );
+$$;
+
+comment on function public.person_in_tenant(uuid, uuid) is
+  'SDD-0107: ¿persona viva del tenant dado? Defiende person_id contra cross-tenant / soft-deleted en triggers (FK sola no alcanza). SECURITY DEFINER, fail-closed.';
+
+revoke all on function public.person_in_tenant(uuid, uuid) from public;
+revoke execute on function public.person_in_tenant(uuid, uuid) from anon;
+grant execute on function public.person_in_tenant(uuid, uuid) to authenticated;
+
+-- BEFORE INSERT/UPDATE: si person_id viene seteado, debe ser persona viva del
+-- MISMO tenant que la inscripción. NULL pasa (inscripción sin cédula). Cierra el
+-- hueco que la FK deja abierto (cross-tenant + soft-deleted).
+create or replace function public.academy_enrollments_validate_person()
+returns trigger
+language plpgsql
+as $$
+begin
+  if new.person_id is not null
+     and not public.person_in_tenant(new.person_id, new.tenant_id) then
+    raise exception
+      'inscripción ligada a una persona inexistente, borrada o de otro tenant: %', new.person_id
+      using errcode = 'check_violation';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists academy_enrollments_person_same_tenant on public.academy_enrollments;
+create trigger academy_enrollments_person_same_tenant
+  before insert or update of person_id, tenant_id on public.academy_enrollments
+  for each row execute function public.academy_enrollments_validate_person();

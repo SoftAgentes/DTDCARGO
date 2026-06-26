@@ -67,9 +67,13 @@ isla de `student_ci` sueltos y se integra a la identidad única del tenant.
      `email = student_email`, `doc_kind = 'persona'`, y linkear. El índice único parcial de
      `persons` (0170) **debe** tolerar este insert sin colisión (por eso se deduplica primero).
    - **(d)** inscripciones sin `student_ci` → `person_id` queda `null` (no se inventa identidad).
-4. **Sin RLS nueva** (solo columna additiva; `academy_enrollments` ya tiene RLS por tenant de
-   `0144`). Si se agrega algún helper/RPC: `revoke execute ... from public, anon`.
-5. **Cast enum↔text:** no aplica (todo texto); igual usar `::text` si se compara contra enums.
+4. **Defensa en DB (consolidado del lane robusto):** helper `person_in_tenant(p_person_id, p_tenant_id)`
+   (SECURITY DEFINER, fail-closed, `revoke ... from public, anon` + `grant ... to authenticated`) +
+   trigger `academy_enrollments_person_same_tenant` BEFORE INSERT/UPDATE que rechaza un `person_id`
+   de otro tenant o soft-deleted (la FK sola no lo cubre). Se crea **después** del backfill. Mismo
+   patrón que la validación polimórfica del repo (`*_in_tenant()` + trigger).
+5. **Sin RLS nueva** (columna additiva; `academy_enrollments` ya tiene RLS por tenant de `0144`).
+6. **Cast enum↔text:** no aplica (todo texto); igual se usa `::text` en los `regexp_replace`.
 
 ### 2.2 Capa app (Studio · Academia)
 - `lib/studio/academy-enrollment-{types,queries}.ts` (o el par existente del módulo): el tipo de
@@ -77,8 +81,10 @@ isla de `student_ci` sueltos y se integra a la identidad única del tenant.
   (reusar `find_client_by_cedula` no aplica — es de clients; crear lookup de persona o reusar
   `normalizeCedula` + `persons` query de SDD-0106).
 - **Validación de cédula en el alta** (`actions.ts` del módulo Academia): si el operador ingresa
-  `student_ci`, validar formato con los validadores de cédula/RIF existentes
-  (`RIF_REGEX`/`formatRif`/`normalizeCedula` de `client-types.ts` / `person-types.ts`).
+  `student_ci`, validar formato con un validador **cédula-aware** que acepta la **cédula venezolana
+  simple** (V/E + 5–10 dígitos, con o sin puntos/guiones) **y** el RIF completo (reusa `RIF_REGEX`/
+  `formatRif`/`normalizeCedula` de `client-types.ts`). Decisión de la forja: el `RIF_REGEX` solo
+  rechazaba la cédula simple (8 dígitos sin verificador), que es justo como se identifica al alumno.
   Formato inválido → `fieldErrors.student_ci` (patrón Server Action de AGENTS.md, **no Zod**).
 - Al guardar (create/edit) con cédula válida: **ubicar o crear** la persona (lazy) y setear
   `person_id`. Reusar la lógica de dedupe-por-cédula-normalizada del backfill.

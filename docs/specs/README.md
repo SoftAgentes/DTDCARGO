@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 102 specs)
+### Índice de specs (generado · 103 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -140,6 +140,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0104 | Libros fiscales persistidos — asentar Libro de Ventas / Compr… | in-progress | interno |
 | 0105 | Conciliación bancaria + Activos fijos — sub-pestañas de Conta… | in-progress | interno |
 | 0106 | Identidad por persona (cédula) — tabla persons + Shipping Mar… | in-progress | interno |
+| 0107 | Academia ligada a la persona (cédula) — academy_enrollments.p… | in-progress | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
