@@ -63,6 +63,9 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   // Post-venta (SDD-0101): atención (commercial/operations) abre; accounting ve
   // indemnizaciones; support read-only. admin siempre.
   reclamos: ["commercial", "operations", "accounting", "support"],
+  // Inspecciones (SDD-0066): calidad la corre operación; comercial la usa con el
+  // cliente; support read-only. White-label: el proveedor tercero es interno.
+  inspecciones: ["operations", "commercial", "support"],
 
   // ─── COMERCIAL ───────────────────────────────────────────────
   quotes: ["commercial", "operations", "accounting", "support"],
