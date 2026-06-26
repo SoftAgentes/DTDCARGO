@@ -77,6 +77,8 @@ docs-legal/
 
 # Config local de Claude. El harness del proyecto (agentes + skills) SÍ se versiona;
 # settings/planes locales quedan fuera.
+# Forge (manifest + tooling) es toolbox LOCAL, no va al repo del equipo.
+.forge/
 .claude/*
 # Solo el harness DTD se versiona; Forge (skills/agents/commands extra) queda LOCAL.
 !.claude/agents/

@@ -1,31 +1,37 @@
 {
-  "generatedAt": "2026-06-24",
+  "generatedAt": "2026-06-26",
   "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
-        "id": "effort-level-cost",
-        "title": "effortLevel='high' global — caro para tareas mecánicas (renames, bumps de migración, edits de docs)",
-        "severity": "baja",
-        "action": "Bajar a medium con /config o usar Sonnet/Haiku en tareas mecánicas; reservar high para diseño/arquitectura.",
+        "id": "context-hygiene-multitask",
+        "title": "Sesión larga multi-tarea en un solo contexto (gstack upgrade → auditoría contabilidad → build SDD-0066 → compactar memoria → radar) sin /clear",
+        "severity": "media",
+        "action": "Correr /clear entre tareas no relacionadas; cada tarea arranca con contexto limpio. La superficie always-loaded (AGENTS.md 3.4k tok) está sana — el costo viene del historial acumulado.",
         "top": true
       },
       {
         "id": "settings-local-wildcards",
-        "title": "settings.local.json (ya podado a 21 entradas) aún tiene wildcards amplias: Copy-Item *, git rm *, npm install *, npm link *",
+        "title": "settings.local.json (14 entradas) con wildcards amplias: git rm *, git restore *, Copy-Item *, Get-ChildItem *, gh issue *",
         "severity": "baja",
-        "action": "Opcional: acotar esas 4 wildcards a comandos concretos si querés menos superficie de auto-permiso. Trade-off: más prompts a futuro."
+        "action": "Opcional: acotar git rm */git restore */Copy-Item * a usos concretos (son las únicas con potencial destructivo). Sin paths viejos ni refs obsoletas. Trade-off: más prompts a futuro."
+      },
+      {
+        "id": "foreign-skill-surface",
+        "title": "Suite de skills/agents ajena al proyecto cargada en sesión (Forge: la-herreria/la-forja/avivar/brujula/crisol + agent types backend-specialist/db-architect/etc.)",
+        "severity": "baja",
+        "action": "Si no se usan en DTD, scopearlos fuera del .claude de este proyecto reduce la superficie de selección de skills. Son lazy-loaded (solo descripciones), impacto modesto."
       }
     ],
-    "estimatedTokenSavings": "~2%"
+    "estimatedTokenSavings": "~10%"
   },
   "partB": {
     "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
-      { "name": "Core API-CONTRACT (22 entidades)", "remaining": "18%", "note": "18 built / 4 partial (auth unificado, cola offline de entrada, catalogo origen CN, salida multi-canal WhatsApp/Telegram) / 0 missing. 82% built. Ninguno keystone." },
-      { "name": "Bloques financieros 1-5", "remaining": "~6%", "note": "7 de 8 done; solo 2.3 (Socio Logistico China, confidencial) in-progress con tablas en prod. Bloques 3 Fiscal, 4 Naviera, 5 Comercial = done." },
-      { "name": "Hueco v4.5 #1 · Nomina/RRHH", "remaining": "~80%", "note": "Bottleneck vigente. employees (0160) + contractors (0161) ya con tabla; falta el motor: payroll_rules/payroll_run/attendance/holidays/loans/warnings/registrations/invites/employee_comms." },
-      { "name": "Huecos v4.5 menores", "remaining": "var", "note": "#2 Supplier<->Client (tabla puente WeChat) missing · #3 Deteccion ferias IA missing (Vault = skip founder) · #4 Portal inbox partial (compuesto de conversations/comments/outbox). Snapshot doc al 0168." }
+      { "name": "Core API-CONTRACT (22 entidades · piso)", "remaining": "18%", "note": "18 built / 4 partial / 0 missing = 82%. Conteo canónico del doc (la grep cruda 57/34/23 incluye prosa del changelog). Ningún keystone faltante." },
+      { "name": "Bloques financieros 1-5", "remaining": "~6%", "note": "7 de 8 done; solo 2.3 (Socio Logístico China, confidencial) in-progress con tablas en prod. Bloques 3 Fiscal, 4 Naviera, 5 Comercial = done." },
+      { "name": "Nómina/RRHH (SDD-0103)", "remaining": "~5%", "note": "Ya NO es bottleneck: Slice A/B/C + motor LIVE en prod (migr 0175 nomina_payroll_run). Falta criterio salarial + asiento + liquidación = gate contador, no ingeniería." },
+      { "name": "Re-derivación del blueprint vs Norte v4.5", "remaining": "documentado parcial", "note": "BOTTLENECK vigente: schema-reconciliation está al snapshot 0168 y mide 22 entidades-piso; el Norte v4.2-v4.5 sumó módulos YA SHIPEADOS (Academia 0093, WMS 0081, Reclamos 0102, Inspecciones 0066) no re-contados. El gap es de DOC, no de funcionalidad." }
     ]
   }
 }
