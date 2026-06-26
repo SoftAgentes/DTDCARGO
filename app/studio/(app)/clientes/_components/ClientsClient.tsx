@@ -101,8 +101,9 @@ export function ClientsClient({
               maxWidth: "62ch",
             }}
           >
-            Catálogo del tenant. Shipping Mark como ID estable. El detalle muestra
-            el historial de envíos.
+            Catálogo del tenant. La cédula/RIF es el ancla de identidad; el
+            Shipping Mark rastrea las cajas. El detalle muestra el historial de
+            envíos.
           </p>
         </div>
         <button
@@ -249,7 +250,7 @@ function ClientsTable({ clients }: { clients: Client[] }) {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "120px 1.4fr 100px 1.2fr 140px 140px",
+          gridTemplateColumns: "120px 120px 1.5fr 100px 1.2fr 140px",
           gap: 12,
           padding: "12px 20px",
           background: "var(--bg-elevated)",
@@ -261,10 +262,10 @@ function ClientsTable({ clients }: { clients: Client[] }) {
         }}
       >
         <span>Shipping Mark</span>
+        <span>Cédula/RIF</span>
         <span>Nombre</span>
         <span>Tier</span>
         <span>Contacto</span>
-        <span>RIF</span>
         <span>Creado</span>
       </div>
 
@@ -275,7 +276,7 @@ function ClientsTable({ clients }: { clients: Client[] }) {
           className="studio-tracking-row"
           style={{
             display: "grid",
-            gridTemplateColumns: "120px 1.4fr 100px 1.2fr 140px 140px",
+            gridTemplateColumns: "120px 120px 1.5fr 100px 1.2fr 140px",
             gap: 12,
             padding: "14px 20px",
             borderTop: i > 0 ? "1px solid var(--border)" : 0,
@@ -292,6 +293,18 @@ function ClientsTable({ clients }: { clients: Client[] }) {
             }}
           >
             {c.markbox}
+          </span>
+          <span
+            style={{
+              font: "600 12px/1 var(--f-mono)",
+              color: c.rif ? "var(--ink)" : "var(--ink-mute)",
+              letterSpacing: "0.02em",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {c.rif ?? "—"}
           </span>
           <div
             style={{
@@ -361,14 +374,6 @@ function ClientsTable({ clients }: { clients: Client[] }) {
             )}
             {!c.email && !c.phone && <span style={{ color: "var(--ink-mute)" }}>—</span>}
           </div>
-          <span
-            style={{
-              font: "500 11.5px/1 var(--f-mono)",
-              color: c.rif ? "var(--ink-soft)" : "var(--ink-mute)",
-            }}
-          >
-            {c.rif ?? "—"}
-          </span>
           <span
             style={{
               font: "500 11.5px/1 var(--f-sans)",
