@@ -1,31 +1,43 @@
 {
-  "generatedAt": "2026-06-24",
+  "generatedAt": "2026-06-26",
   "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
-        "id": "effort-level-cost",
-        "title": "effortLevel='high' global — caro para tareas mecánicas (renames, bumps de migración, edits de docs)",
-        "severity": "baja",
-        "action": "Bajar a medium con /config o usar Sonnet/Haiku en tareas mecánicas; reservar high para diseño/arquitectura.",
+        "id": "npm-wildcards-pnpm-repo",
+        "title": "Permisos npm en repo pnpm-only (settings.local.json: npm install *, npm run *, npm link *)",
+        "severity": "media",
+        "action": "Quitar `npm install *`, `npm run *`, `npm link *` de .claude/settings.local.json — el repo es pnpm; un `npm install` genera package-lock.json y desincroniza el lockfile. Reemplazar por equivalentes pnpm acotados si hacen falta.",
         "top": true
       },
       {
-        "id": "settings-local-wildcards",
-        "title": "settings.local.json (ya podado a 21 entradas) aún tiene wildcards amplias: Copy-Item *, git rm *, npm install *, npm link *",
+        "id": "forge-refs-stale",
+        "title": "Refs a 'forge' sin uso en el proyecto",
         "severity": "baja",
-        "action": "Opcional: acotar esas 4 wildcards a comandos concretos si querés menos superficie de auto-permiso. Trade-off: más prompts a futuro."
+        "action": "Revisar `PowerShell(forge *)` y `Read(//c/Users/Trabajo/.forge/tools/forge-cli/**)` en settings.local.json — no hay forge en el repo; podar si quedaron de otra sesion."
+      },
+      {
+        "id": "broad-powershell-wildcards",
+        "title": "Wildcards PowerShell/git amplios (Copy-Item *, Get-ChildItem *, git rm *)",
+        "severity": "baja",
+        "action": "Acotar a rutas del repo si se quiere menos superficie de auto-permiso. Trade-off: mas prompts a futuro. Riesgo bajo."
+      },
+      {
+        "id": "effort-high-mechanical",
+        "title": "effortLevel='high' global — caro en tareas mecanicas",
+        "severity": "baja",
+        "action": "Mantener high para implement/review; bajar a Sonnet/medium en tareas mecanicas (radar, docs:index, sweeps de marca) reduce costo sin perder calidad."
       }
     ],
-    "estimatedTokenSavings": "~2%"
+    "estimatedTokenSavings": "~10%"
   },
   "partB": {
     "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
       { "name": "Core API-CONTRACT (22 entidades)", "remaining": "18%", "note": "18 built / 4 partial (auth unificado, cola offline de entrada, catalogo origen CN, salida multi-canal WhatsApp/Telegram) / 0 missing. 82% built. Ninguno keystone." },
-      { "name": "Bloques financieros 1-5", "remaining": "~6%", "note": "7 de 8 done; solo 2.3 (Socio Logistico China, confidencial) in-progress con tablas en prod. Bloques 3 Fiscal, 4 Naviera, 5 Comercial = done." },
-      { "name": "Hueco v4.5 #1 · Nomina/RRHH", "remaining": "~80%", "note": "Bottleneck vigente. employees (0160) + contractors (0161) ya con tabla; falta el motor: payroll_rules/payroll_run/attendance/holidays/loans/warnings/registrations/invites/employee_comms." },
-      { "name": "Huecos v4.5 menores", "remaining": "var", "note": "#2 Supplier<->Client (tabla puente WeChat) missing · #3 Deteccion ferias IA missing (Vault = skip founder) · #4 Portal inbox partial (compuesto de conversations/comments/outbox). Snapshot doc al 0168." }
+      { "name": "Bloques financieros 1-5", "remaining": "~6%", "note": "7 de 8 done; solo 2.3 (Socio Logistico China, confidencial) in-progress con tablas en prod (0114/0115). Bloques 3 Fiscal, 4 Naviera, 5 Comercial = done." },
+      { "name": "Hueco v4.5 #1 · Nomina/RRHH", "remaining": "~70%", "note": "Bottleneck vigente. employees (0160) + contractors (0161) ya con tabla; falta el motor LOTTT: payroll_rules/payroll_run/attendance/holidays/loans/warnings/registrations/invites/employee_comms." },
+      { "name": "Huecos v4.5 menores", "remaining": "var", "note": "#2 Supplier<->Client (tabla puente WeChat) missing · #3 Deteccion ferias IA missing (Vault = skip founder) · #4 Portal inbox partial (compuesto). Snapshot doc al 0168." }
     ]
   }
 }
