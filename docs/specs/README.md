@@ -98,7 +98,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0063 | Servicios a fondo (sitio público) — fichas incluye/no-incluye… | in-progress | interno |
 | 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
 | 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | done | interno |
-| 0066 | Generador de reportes de inspección en el ERP (white-label · … | proposed | interno |
+| 0066 | Generador de reportes de inspección en el ERP (white-label · … | done | interno |
 | 0067 | Aceptación con evidencia reforzada (SDD-B del handoff legal) … | done | interno |
 | 0068 | Recibos de cobranza con mandato (SDD-C del handoff legal) — l… | done | interno |
 | 0068 | Registro self-service — entrega real del correo de bienvenida… | done | interno |

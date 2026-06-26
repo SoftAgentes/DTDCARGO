@@ -1,10 +1,10 @@
 ---
 sdd: "0066"
 title: "Generador de reportes de inspección en el ERP (white-label · marca DTD)"
-status: proposed
+status: done
 author: "Claude Code (session context) + founder"
 created: 2026-06-09
-updated: 2026-06-09
+updated: 2026-06-26
 supersedes: null
 superseded_by: null
 related: ["0049", "0052", "0063"]
