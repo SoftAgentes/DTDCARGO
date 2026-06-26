@@ -4,7 +4,7 @@ title: "Nómina / RRHH — empleados y prestadores (Slice A) + roadmap LOTTT"
 status: in-progress
 author: "Claude Code (lane sdd-0103-nomina) + founder"
 created: 2026-06-22
-updated: 2026-06-22
+updated: 2026-06-26
 supersedes: null
 superseded_by: null
 related: ["0085","0024","0079","0080","0077"]
@@ -261,3 +261,51 @@ guard `moduleEditDenial("nomina")` como 1er paso de la action. Sin cálculo: sol
 ### 8.4 Fuera de Slice B (queda para C+)
 `payroll_run`/`_lines`, `calcRecibo`, asiento contable, export Excel, liquidación, asistencia,
 préstamos. El `salarial_bonuses` se almacena pero **no se consume** hasta C (con contador).
+
+## 9. Slice C — insumos del motor (asistencia · préstamos · amonestaciones · ESTE entregable)
+
+> Tres piezas del roadmap §6 (ítems 3, 4, 6) construidas **en paralelo** (forja de 3 lanes en
+> worktrees aislados, consolidadas en un commit). **Son insumos del motor, no el motor:** alimentan
+> el futuro `payroll_run`/`calcRecibo` (horas extra, descuento de cuota) pero **ninguna calcula
+> recibo ni liquidación** — eso queda para el Slice del motor, con contador. Las tres reusan
+> `nomina_can_access()` (0160) → RLS `for all to authenticated` por tenant **y** rol (admin/accounting),
+> triggers de coherencia `security definer`, seed **DEMO ficticio** (cero PII real), grants explícitos,
+> y `moduleEditDenial("nomina")` como **primer paso** de cada action (3 capas de seguridad).
+
+### 9.1 Asistencia + Feriados (migración 0163)
+
+`nomina_attendance` — registro diario por empleado: `status` (`trabajado`/`ausente`/`libre`/`feriado`)
++ `overtime_hours`/`night_hours`, único `(tenant_id, employee_id, work_date)`. `nomina_holidays` —
+feriado `nacional`/`empresa`, único `(tenant_id, holiday_date)`; seed de feriados VE. Capa
+`attendance-{types,queries}.ts` (enums `ATTENDANCE_STATUS`/`HOLIDAY_SCOPE` `text+check` sin Zod,
+`validateAttendanceInput`/`validateHolidayInput` puros, `computeAttendanceKpis`). UI: pestaña
+**"Asistencia"** (`AsistenciaTab` + `AsistenciaDrawer`/`FeriadoDrawer`). **Alimenta** el cálculo de
+horas extra del recibo.
+
+### 9.2 Préstamos (migración 0164)
+
+`nomina_loans` + tabla hija `nomina_loan_installments` (cuotas/abonos). **Saldo derivado**
+(`principal_usd − Σ amount_usd`) en la capa de queries, **nunca columna** (evita drift); cuando una
+cuota lleva el saldo a 0 la action marca el préstamo `pagado`. Capa `loan-{types,queries}.ts`
+(`LOAN_STATUS`, `validateLoanInput`/`validateLoanInstallmentInput`, `listLoansWithBalance`,
+`getLoan`/`getLoanBalance`, `computeLoanKpis`). UI: pestaña **"Préstamos"** + `PrestamoDrawer`
+(crear) + `CuotaPrestamoDrawer` (registrar cuota). Actions: `createLoanAction`,
+`registerLoanInstallmentAction` (relee saldo, marca `pagado`), `cancelLoanAction`,
+`softDeleteLoanAction`. **El descuento real en el recibo lo hará el motor**, no este Slice.
+
+### 9.3 Amonestaciones (migración 0171)
+
+`nomina_warnings` — acta disciplinaria Art. 79 LOTTT; correlativo `AM-NNNN` (`next_warning_code`,
+patrón de `next_employee_code`, `unique(tenant_id, warning_code)`), `severity`
+(`leve`/`grave`/`muy_grave`), `status` (`emitida`/`anulada` — no se borra, queda el rastro). Capa
+`warning-{types,queries}.ts` (catálogo `ART79_CAUSES`, `validateWarningInput`, `computeWarningKpis`,
+`isWarningCode`). UI: pestaña **"Amonestaciones"** + `AmonestacionDrawer` (asistente causa → relato →
+testigos → acta). Actions: `emitirAmonestacionAction` (genera `AM-NNNN`) / `anularAmonestacionAction`.
+
+### 9.4 Integración y numeración
+
+Las 3 lanes salieron de worktrees aislados sobre la misma base y se consolidaron en **un commit**. La
+migración de amonestaciones se renumeró **0170 → 0171** (0170 lo tomó SDD-0106 persons en otra rama).
+`NominaClient`/`page.tsx`/`actions.ts` integran las 3 pestañas nuevas — orden final de tabs: Empleados
+· Prestadores · Asistencia · Préstamos · Amonestaciones · Reglas. **Sigue pendiente el motor**
+(`payroll_run`/`calcRecibo`/liquidación), que **requiere contador** (§3 ⚠️).

@@ -32,13 +32,42 @@ import {
   payrollRulesStatusTone,
   type PayrollRules,
 } from "@/lib/studio/nomina/payroll-rules-types";
-import { setEmployeeStatusAction, setContractorStatusAction } from "../actions";
+import {
+  loanStatusLabel,
+  loanStatusTone,
+  type LoanWithBalance,
+  type LoanKpis,
+} from "@/lib/studio/nomina/loan-types";
+import {
+  warningSeverityLabel,
+  warningSeverityTone,
+  warningStatusLabel,
+  warningStatusTone,
+  type Warning,
+  type WarningKpis,
+} from "@/lib/studio/nomina/warning-types";
+import {
+  setEmployeeStatusAction,
+  setContractorStatusAction,
+  anularAmonestacionAction,
+} from "../actions";
 import { EmpleadoDrawer } from "./EmpleadoDrawer";
 import { PrestadorDrawer } from "./PrestadorDrawer";
 import { PagoPrestadorDrawer } from "./PagoPrestadorDrawer";
 import { ReglasDrawer } from "./ReglasDrawer";
+import { AsistenciaTab } from "./AsistenciaTab";
+import { PrestamoDrawer } from "./PrestamoDrawer";
+import { CuotaPrestamoDrawer } from "./CuotaPrestamoDrawer";
+import { AmonestacionDrawer } from "./AmonestacionDrawer";
+import type { Attendance, Holiday } from "@/lib/studio/nomina/attendance-types";
 
-type Tab = "empleados" | "prestadores" | "reglas";
+type Tab =
+  | "empleados"
+  | "prestadores"
+  | "asistencia"
+  | "prestamos"
+  | "amonestaciones"
+  | "reglas";
 
 function fmtUsd(n: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -69,6 +98,9 @@ function initialsOf(name: string): string {
 const TABS: { value: Tab; label: string }[] = [
   { value: "empleados", label: "Empleados" },
   { value: "prestadores", label: "Prestadores" },
+  { value: "asistencia", label: "Asistencia" },
+  { value: "prestamos", label: "Préstamos" },
+  { value: "amonestaciones", label: "Amonestaciones" },
   { value: "reglas", label: "Reglas" },
 ];
 
@@ -77,28 +109,46 @@ export function NominaClient({
   contractors,
   payments,
   rules,
+  attendance,
+  holidays,
+  loans,
+  warnings,
   employeeKpis,
   contractorKpis,
+  loanKpis,
+  warningKpis,
 }: {
   employees: Employee[];
   contractors: Contractor[];
   payments: ContractorPayment[];
   rules: PayrollRules | null;
+  attendance: Attendance[];
+  holidays: Holiday[];
+  loans: LoanWithBalance[];
+  warnings: Warning[];
   employeeKpis: EmployeeKpis;
   contractorKpis: ContractorKpis;
+  loanKpis: LoanKpis;
+  warningKpis: WarningKpis;
 }) {
   const [tab, setTab] = useState<Tab>("empleados");
   const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employee: Employee }>(null);
   const [prestDrawer, setPrestDrawer] = useState<null | { mode: "new" } | { mode: "edit"; contractor: Contractor }>(null);
   const [pagoOpen, setPagoOpen] = useState(false);
   const [reglasOpen, setReglasOpen] = useState(false);
+  const [prestamoOpen, setPrestamoOpen] = useState(false);
+  const [cuotaLoan, setCuotaLoan] = useState<LoanWithBalance | null>(null);
+  const [amonestacionOpen, setAmonestacionOpen] = useState(false);
 
   const contractorName = new Map(contractors.map((c) => [c.id, c.full_name]));
+  const employeeName = new Map(
+    employees.map((e) => [e.id, `${e.full_name} · ${e.employee_code}`]),
+  );
 
   return (
     <div>
-      {/* KPIs — solo en las pestañas con métricas (Reglas es config) */}
-      {tab !== "reglas" && (
+      {/* KPIs — Asistencia y Reglas traen lo suyo adentro */}
+      {tab !== "asistencia" && tab !== "reglas" && (
         <div
           style={{
             display: "grid",
@@ -107,7 +157,7 @@ export function NominaClient({
             marginBottom: "var(--s-6)",
           }}
         >
-          {tab === "empleados" ? (
+          {tab === "empleados" && (
             <>
               <KpiCard value={employeeKpis.active_count} label="Empleados activos" />
               <KpiCard
@@ -117,11 +167,26 @@ export function NominaClient({
               />
               <KpiCard value={employeeKpis.total_count} label="Total en ficha" highlightWhenPositive={false} />
             </>
-          ) : (
+          )}
+          {tab === "prestadores" && (
             <>
               <KpiCard value={contractorKpis.active_count} label="Prestadores activos" />
               <KpiCard value={contractorKpis.payments_count} label="Pagos registrados" highlightWhenPositive={false} />
               <KpiCard value={fmtUsd(contractorKpis.total_paid_usd)} label="Total pagado" />
+            </>
+          )}
+          {tab === "prestamos" && (
+            <>
+              <KpiCard value={loanKpis.active_count} label="Préstamos activos" />
+              <KpiCard value={loanKpis.total_count} label="Total registrados" highlightWhenPositive={false} />
+              <KpiCard value={fmtUsd(loanKpis.outstanding_usd)} label="Saldo por cobrar" />
+            </>
+          )}
+          {tab === "amonestaciones" && (
+            <>
+              <KpiCard value={warningKpis.this_month_count} label="Amonestaciones del mes" />
+              <KpiCard value={warningKpis.active_count} label="Vigentes (emitidas)" highlightWhenPositive={false} />
+              <KpiCard value={warningKpis.severe_count} label="Graves / muy graves" highlightWhenPositive={false} />
             </>
           )}
         </div>
@@ -177,6 +242,28 @@ export function NominaClient({
           onNewPayment={() => setPagoOpen(true)}
         />
       )}
+      {tab === "asistencia" && (
+        <AsistenciaTab
+          attendance={attendance}
+          holidays={holidays}
+          employees={employees}
+        />
+      )}
+      {tab === "prestamos" && (
+        <PrestamosTab
+          loans={loans}
+          onNew={() => setPrestamoOpen(true)}
+          onRegisterCuota={(loan) => setCuotaLoan(loan)}
+        />
+      )}
+      {tab === "amonestaciones" && (
+        <AmonestacionesTab
+          warnings={warnings}
+          employeeName={employeeName}
+          hasEmployees={employees.length > 0}
+          onNew={() => setAmonestacionOpen(true)}
+        />
+      )}
       {tab === "reglas" && (
         <ReglasTab rules={rules} onEdit={() => setReglasOpen(true)} />
       )}
@@ -201,6 +288,21 @@ export function NominaClient({
       )}
       {reglasOpen && (
         <ReglasDrawer rules={rules} onClose={() => setReglasOpen(false)} />
+      )}
+      {prestamoOpen && (
+        <PrestamoDrawer
+          employees={employees.filter((e) => e.status === "activo")}
+          onClose={() => setPrestamoOpen(false)}
+        />
+      )}
+      {cuotaLoan && (
+        <CuotaPrestamoDrawer loan={cuotaLoan} onClose={() => setCuotaLoan(null)} />
+      )}
+      {amonestacionOpen && (
+        <AmonestacionDrawer
+          employees={employees.filter((e) => e.status !== "egresado")}
+          onClose={() => setAmonestacionOpen(false)}
+        />
       )}
     </div>
   );
@@ -710,6 +812,7 @@ function Toolbar({
   plural,
   ctaLabel,
   onCta,
+  ctaDisabled,
   extraCta,
 }: {
   count: number;
@@ -717,6 +820,7 @@ function Toolbar({
   plural: string;
   ctaLabel: string;
   onCta: () => void;
+  ctaDisabled?: boolean;
   extraCta?: { label: string; onClick: () => void };
 }) {
   return (
@@ -739,7 +843,12 @@ function Toolbar({
             {extraCta.label}
           </button>
         )}
-        <button type="button" className="studio-btn studio-btn-primary" onClick={onCta}>
+        <button
+          type="button"
+          className="studio-btn studio-btn-primary"
+          onClick={onCta}
+          disabled={ctaDisabled}
+        >
           {ctaLabel}
         </button>
       </div>
@@ -829,5 +938,310 @@ function StatusToggle({
         }}
       />
     </button>
+  );
+}
+
+// ──────────────────────────────────────────────────────────────
+// Préstamos (loans · Slice C)
+// ──────────────────────────────────────────────────────────────
+const LOAN_COLS = "minmax(200px,1.3fr) 1fr 110px 110px 96px 110px";
+
+function PrestamosTab({
+  loans,
+  onNew,
+  onRegisterCuota,
+}: {
+  loans: LoanWithBalance[];
+  onNew: () => void;
+  onRegisterCuota: (loan: LoanWithBalance) => void;
+}) {
+  return (
+    <>
+      <Toolbar
+        count={loans.length}
+        singular="préstamo"
+        plural="préstamos"
+        ctaLabel="+ Nuevo préstamo"
+        onCta={onNew}
+      />
+      {loans.length === 0 ? (
+        <EmptyState
+          eyebrow="Sin préstamos"
+          title="Aún no hay préstamos."
+          description="Adelantos al empleado con una cuota que se descuenta del recibo. El descuento real lo aplica el motor de nómina; acá registras el préstamo y su saldo."
+          action={
+            <button type="button" className="studio-btn studio-btn-primary" onClick={onNew}>
+              + Nuevo préstamo
+            </button>
+          }
+        />
+      ) : (
+        <div
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            overflow: "hidden",
+          }}
+        >
+          <TableHeader cols={LOAN_COLS}>
+            <span>Empleado</span>
+            <span>Concepto</span>
+            <span style={{ textAlign: "right" }}>Cuota</span>
+            <span style={{ textAlign: "right" }}>Saldo</span>
+            <span>Estado</span>
+            <span style={{ textAlign: "right" }}>Acciones</span>
+          </TableHeader>
+          {loans.map((l, i) => (
+            <PrestamoRow
+              key={l.id}
+              l={l}
+              first={i === 0}
+              onRegisterCuota={onRegisterCuota}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function PrestamoRow({
+  l,
+  first,
+  onRegisterCuota,
+}: {
+  l: LoanWithBalance;
+  first: boolean;
+  onRegisterCuota: (loan: LoanWithBalance) => void;
+}) {
+  const dimmed = l.status !== "activo";
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: LOAN_COLS,
+        gap: 12,
+        padding: "12px 20px",
+        alignItems: "center",
+        borderTop: first ? 0 : "1px solid var(--border)",
+        opacity: dimmed ? 0.6 : 1,
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            font: "700 13px/1.2 var(--f-sans)",
+            color: "var(--ink)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {l.employee_name}
+        </div>
+        <div style={{ font: "600 11px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+          {l.employee_code}
+        </div>
+      </div>
+      <div style={{ font: "500 12.5px/1.3 var(--f-sans)", color: "var(--ink-soft)", minWidth: 0 }}>
+        {l.concept ?? "—"}
+      </div>
+      <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
+        {fmtUsd(l.installment_usd)}
+      </span>
+      <span style={{ font: "700 12.5px/1 var(--f-mono)", color: "var(--ink)", textAlign: "right" }}>
+        {fmtUsd(l.balance_usd)}
+      </span>
+      <Badge tone={loanStatusTone(l.status)} size="sm">
+        {loanStatusLabel(l.status)}
+      </Badge>
+      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end", alignItems: "center" }}>
+        {l.status === "activo" && (
+          <button
+            type="button"
+            onClick={() => onRegisterCuota(l)}
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            style={{ padding: "6px 10px" }}
+          >
+            {l.balance_usd > 0 ? "Registrar cuota" : "Ver"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Amonestaciones (warnings · Slice C)
+// ─────────────────────────────────────────────────────────────
+const WARN_COLS = "100px minmax(200px,1.4fr) minmax(180px,1.2fr) 110px 100px 88px";
+
+function AmonestacionesTab({
+  warnings,
+  employeeName,
+  hasEmployees,
+  onNew,
+}: {
+  warnings: Warning[];
+  employeeName: Map<string, string>;
+  hasEmployees: boolean;
+  onNew: () => void;
+}) {
+  return (
+    <>
+      <Toolbar
+        count={warnings.length}
+        singular="amonestación"
+        plural="amonestaciones"
+        ctaLabel="+ Nueva amonestación"
+        onCta={onNew}
+        ctaDisabled={!hasEmployees}
+      />
+      {warnings.length === 0 ? (
+        <EmptyState
+          eyebrow="Sin amonestaciones"
+          title="Aún no hay amonestaciones."
+          description={
+            hasEmployees
+              ? "Documenta una falta del empleado con el asistente: causal (Art. 79 LOTTT), relato, testigos y acta."
+              : "Primero registra al menos un empleado para poder amonestar."
+          }
+          action={
+            hasEmployees ? (
+              <button type="button" className="studio-btn studio-btn-primary" onClick={onNew}>
+                + Nueva amonestación
+              </button>
+            ) : undefined
+          }
+        />
+      ) : (
+        <div
+          style={{
+            background: "var(--bg-surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg)",
+            overflow: "hidden",
+          }}
+        >
+          <TableHeader cols={WARN_COLS}>
+            <span>Código</span>
+            <span>Empleado · Causal</span>
+            <span>Relato</span>
+            <span>Severidad</span>
+            <span>Estado</span>
+            <span style={{ textAlign: "right" }}>Acciones</span>
+          </TableHeader>
+          {warnings.map((w, i) => (
+            <AmonestacionRow
+              key={w.id}
+              w={w}
+              first={i === 0}
+              employeeLabel={employeeName.get(w.employee_id) ?? "Empleado"}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function AmonestacionRow({
+  w,
+  first,
+  employeeLabel,
+}: {
+  w: Warning;
+  first: boolean;
+  employeeLabel: string;
+}) {
+  const [isPending, startTransition] = useTransition();
+  const anulada = w.status === "anulada";
+  const anular = () => {
+    startTransition(async () => {
+      await anularAmonestacionAction(w.id);
+    });
+  };
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: WARN_COLS,
+        gap: 12,
+        padding: "12px 20px",
+        alignItems: "center",
+        borderTop: first ? 0 : "1px solid var(--border)",
+        opacity: anulada ? 0.55 : 1,
+      }}
+    >
+      <div style={{ minWidth: 0 }}>
+        <div style={{ font: "700 12px/1.2 var(--f-mono)", color: "var(--ink)" }}>
+          {w.warning_code}
+        </div>
+        <div style={{ font: "600 10.5px/1.3 var(--f-mono)", color: "var(--ink-mute)" }}>
+          {fmtDate(w.issued_on)}
+        </div>
+      </div>
+
+      <div style={{ minWidth: 0 }}>
+        <div
+          style={{
+            font: "700 12.5px/1.3 var(--f-sans)",
+            color: "var(--ink)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {employeeLabel}
+        </div>
+        <div
+          style={{
+            font: "500 11.5px/1.35 var(--f-sans)",
+            color: "var(--ink-soft)",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {w.cause}
+        </div>
+      </div>
+
+      <div
+        style={{
+          font: "500 12px/1.4 var(--f-sans)",
+          color: "var(--ink-soft)",
+          display: "-webkit-box",
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: "vertical",
+          overflow: "hidden",
+        }}
+      >
+        {w.narrative}
+      </div>
+
+      <Badge tone={warningSeverityTone(w.severity)} size="sm">
+        {warningSeverityLabel(w.severity)}
+      </Badge>
+
+      <Badge tone={warningStatusTone(w.status)} size="sm">
+        {warningStatusLabel(w.status)}
+      </Badge>
+
+      <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
+        {!anulada && (
+          <button
+            type="button"
+            onClick={anular}
+            disabled={isPending}
+            className="studio-btn studio-btn-ghost studio-btn-sm"
+            style={{ padding: "6px 10px", opacity: isPending ? 0.6 : 1 }}
+          >
+            {isPending ? "Anulando…" : "Anular"}
+          </button>
+        )}
+      </div>
+    </div>
   );
 }

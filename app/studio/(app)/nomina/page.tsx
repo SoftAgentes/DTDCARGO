@@ -1,10 +1,11 @@
 /**
- * /studio/nomina — Nómina / RRHH (SDD-0103 · Slice A).
+ * /studio/nomina — Nómina / RRHH (SDD-0103 · Slices A/B/C).
  *
  * Server component: gatea por rol (requireModuleView → solo accounting/admin),
- * fetcha empleados + prestadores + pagos del tenant (RLS filtra por tenant Y
- * rol) y delega la UI al cliente. Es dinero + PII: la page no se renderiza para
- * roles sin acceso (redirect).
+ * fetcha empleados + prestadores + pagos + reglas + asistencia + préstamos +
+ * amonestaciones del tenant (RLS filtra por tenant Y rol) y delega la UI al
+ * cliente. Es dinero + PII: la page no se renderiza para roles sin acceso
+ * (redirect).
  */
 
 import { createClient } from "@/lib/db/server";
@@ -15,8 +16,16 @@ import {
   listContractorPayments,
 } from "@/lib/studio/nomina/contractor-queries";
 import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
+import {
+  listAttendance,
+  listHolidays,
+} from "@/lib/studio/nomina/attendance-queries";
+import { listLoansWithBalance } from "@/lib/studio/nomina/loan-queries";
+import { listWarnings } from "@/lib/studio/nomina/warning-queries";
 import { computeEmployeeKpis } from "@/lib/studio/nomina/employee-types";
 import { computeContractorKpis } from "@/lib/studio/nomina/contractor-types";
+import { computeLoanKpis } from "@/lib/studio/nomina/loan-types";
+import { computeWarningKpis } from "@/lib/studio/nomina/warning-types";
 import { NominaClient } from "./_components/NominaClient";
 
 export const metadata = { title: "Nómina" };
@@ -25,15 +34,24 @@ export default async function NominaPage() {
   await requireModuleView("nomina");
   const supabase = await createClient();
 
-  const [employees, contractors, payments, rules] = await Promise.all([
-    listEmployees(supabase),
-    listContractors(supabase),
-    listContractorPayments(supabase),
-    getVigentePayrollRules(supabase),
-  ]);
+  const [employees, contractors, payments, rules, attendance, holidays, warnings] =
+    await Promise.all([
+      listEmployees(supabase),
+      listContractors(supabase),
+      listContractorPayments(supabase),
+      getVigentePayrollRules(supabase),
+      listAttendance(supabase),
+      listHolidays(supabase),
+      listWarnings(supabase),
+    ]);
+
+  // Los préstamos derivan saldo combinando con sus cuotas y con los empleados.
+  const loans = await listLoansWithBalance(supabase, employees);
 
   const employeeKpis = computeEmployeeKpis(employees);
   const contractorKpis = computeContractorKpis(contractors, payments);
+  const loanKpis = computeLoanKpis(loans);
+  const warningKpis = computeWarningKpis(warnings);
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -63,8 +81,14 @@ export default async function NominaPage() {
         contractors={contractors}
         payments={payments}
         rules={rules}
+        attendance={attendance}
+        holidays={holidays}
+        loans={loans}
+        warnings={warnings}
         employeeKpis={employeeKpis}
         contractorKpis={contractorKpis}
+        loanKpis={loanKpis}
+        warningKpis={warningKpis}
       />
     </div>
   );
