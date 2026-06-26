@@ -1,7 +1,7 @@
 ---
 sdd: "0107"
 title: "Academia ligada a la persona (cédula) — academy_enrollments.person_id"
-status: in-progress
+status: done
 author: "Claude Code (forja · ventana secundaria) + founder"
 created: 2026-06-26
 updated: 2026-06-26
