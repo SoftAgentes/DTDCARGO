@@ -24,12 +24,19 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/db/server";
 import { getStudioRole, moduleEditDenial } from "@/lib/studio/rbac-guard";
 import { canAccessModule } from "@/lib/studio/rbac";
-import { getCourseEditorTree } from "@/lib/studio/academia/queries";
+import {
+  findPersonByCedula,
+  getCourseEditorTree,
+  getPersonCargoMarkbox,
+  resolvePersonForEnrollment,
+} from "@/lib/studio/academia/queries";
 import type { CourseTree } from "@/lib/studio/academia/types";
 import {
   buildDiplomaFolio,
   countAttended,
   isApproved,
+  isValidStudentCi,
+  normalizeCedula,
   validateCohortInput,
   validateCourseInput,
   validateEnrollmentInput,
@@ -447,6 +454,26 @@ export async function createEnrollmentAction(
     };
   }
 
+  // SDD-0107: si hay cédula válida, ubicar o crear (lazy, deduplicado) la persona
+  // y anclar la inscripción. Sin cédula → person_id null (no se inventa identidad).
+  let personId: string | null = null;
+  let personContext: EnrollmentActionState["person"];
+  if (input.studentCi) {
+    const resolved = await resolvePersonForEnrollment(supabase, tenantId, {
+      studentCi: input.studentCi,
+      studentName: input.studentName,
+      studentEmail: input.studentEmail,
+    });
+    if (resolved) {
+      personId = resolved.personId;
+      personContext = {
+        created: resolved.created,
+        name: resolved.name,
+        cargoMarkbox: resolved.cargoMarkbox,
+      };
+    }
+  }
+
   const { data: row, error } = await supabase
     .from("academy_enrollments")
     .insert({
@@ -457,6 +484,7 @@ export async function createEnrollmentAction(
       student_name: input.studentName,
       student_ci: input.studentCi,
       student_email: input.studentEmail,
+      person_id: personId,
     })
     .select("id")
     .single<{ id: string }>();
@@ -465,7 +493,42 @@ export async function createEnrollmentAction(
     return { error: `No se pudo inscribir al alumno: ${error?.message ?? "desconocido"}` };
   }
   revalidate();
-  return { ok: true, enrollmentId: row.id };
+  return { ok: true, enrollmentId: row.id, person: personContext };
+}
+
+/**
+ * SDD-0107 (mejora UX): lookup en vivo de la cédula del alumno ANTES de
+ * inscribir. El drawer lo llama on-blur del campo cédula para avisar al operador
+ * si ese humano ya está en el sistema (ya es cliente DTD-NNNN / ya es alumno) o
+ * si será un alta nueva. Es SOLO LECTURA: no crea persona ni inscribe. La
+ * creación lazy ocurre recién al confirmar la inscripción.
+ */
+export async function lookupStudentCiAction(rawCi: string): Promise<{
+  status: "invalid" | "empty" | "existing" | "new";
+  /** Presente si status = "existing". */
+  match?: { name: string; cargoMarkbox: string | null; normalized: string };
+  /** Cédula normalizada visible (solo cuando es válida). */
+  normalized?: string;
+}> {
+  const supabase = await createClient();
+  // Gate de vista: si el rol no ve Academia, no exponemos el lookup.
+  const role = await getStudioRole(supabase);
+  if (!canAccessModule(role, MODULE)) return { status: "empty" };
+
+  const trimmed = (rawCi ?? "").trim();
+  if (!trimmed) return { status: "empty" };
+  if (!isValidStudentCi(trimmed)) return { status: "invalid" };
+
+  const normalized = normalizeCedula(trimmed);
+  const person = await findPersonByCedula(supabase, trimmed);
+  if (!person) return { status: "new", normalized };
+
+  const cargoMarkbox = await getPersonCargoMarkbox(supabase, person.id);
+  return {
+    status: "existing",
+    normalized,
+    match: { name: person.name, cargoMarkbox, normalized },
+  };
 }
 
 // ════════════════════════════════════════════════════════════════

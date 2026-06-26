@@ -9,6 +9,7 @@ import {
   countAttended,
   attendanceRatio,
   isApproved,
+  normalizeCedula,
   type AcademyCohort,
   type AcademyCourse,
   type AcademyDiploma,
@@ -31,7 +32,7 @@ const LESSON_COLS =
 const COHORT_COLS =
   "id, tenant_id, course_id, name, hours, sessions, modality, place, starts_at, facilitator_name, status, created_at, updated_at";
 const ENROLLMENT_COLS =
-  "id, tenant_id, course_id, cohort_id, client_markbox, student_name, student_ci, student_email, progress_pct, completed_at, created_at";
+  "id, tenant_id, course_id, cohort_id, client_markbox, student_name, student_ci, student_email, person_id, progress_pct, completed_at, created_at";
 
 /** Catálogo de cursos + conteo de módulos y lecciones (vivos). */
 export async function listCoursesWithCounts(supabase: SupabaseClient): Promise<CourseWithCounts[]> {
@@ -401,4 +402,117 @@ export async function listDiplomas(supabase: SupabaseClient): Promise<AcademyDip
     .order("issued_at", { ascending: false })
     .order("created_at", { ascending: false });
   return (data ?? []) as AcademyDiploma[];
+}
+
+// ── Personas (SDD-0107): ubicar/crear por cédula normalizada ──
+
+/**
+ * Persona viva del tenant cuya cédula normalizada calza `doc` (espejo del
+ * índice único de 0170). null si no existe. RLS scope-a por tenant; igual
+ * filtramos en TS por `normalizeCedula` para no depender del raw guardado.
+ */
+export async function findPersonByCedula(
+  supabase: SupabaseClient,
+  doc: string,
+): Promise<{ id: string; name: string; national_id: string | null } | null> {
+  const target = normalizeCedula(doc);
+  if (!target) return null;
+
+  // Traemos los candidatos del tenant con cédula no-nula y filtramos normalizado
+  // en TS (Postgrest no expone regexp_replace en el filtro). El universo de
+  // personas por tenant es chico; si crece, esto pasa a una RPC como 0174.
+  const { data } = await supabase
+    .from("persons")
+    .select("id, name, national_id")
+    .not("national_id", "is", null)
+    .is("deleted_at", null)
+    .limit(2000);
+
+  for (const p of (data ?? []) as { id: string; name: string; national_id: string | null }[]) {
+    if (p.national_id && normalizeCedula(p.national_id) === target) return p;
+  }
+  return null;
+}
+
+/**
+ * Indica si una persona tiene perfil de carga (cliente con Shipping Mark) en el
+ * tenant. Lo usa la UX para distinguir "alumno ya es cliente DTD-NNNN" de
+ * "persona registrada pero sin carga aún".
+ */
+export async function getPersonCargoMarkbox(
+  supabase: SupabaseClient,
+  personId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("clients")
+    .select("markbox")
+    .eq("person_id", personId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle<{ markbox: string }>();
+  return data?.markbox ?? null;
+}
+
+/**
+ * Resultado de resolver la persona del alumno por cédula (SDD-0107). `created`
+ * distingue alta nueva de match existente; `cargoMarkbox` indica si esa persona
+ * ya es cliente de carga (para el feedback al operador).
+ */
+export interface PersonResolveResult {
+  personId: string;
+  /** true = persona creada en este paso (alumno nuevo); false = ya existía. */
+  created: boolean;
+  name: string;
+  /** Shipping Mark del perfil de carga, si la persona ya es cliente. */
+  cargoMarkbox: string | null;
+}
+
+/**
+ * Ubica o crea (lazy, deduplicado por cédula normalizada) la persona del alumno
+ * y devuelve su id + contexto para el feedback de la UX. Espejo en runtime del
+ * backfill (a)/(c) de 0177. `tenantId` es el del caller (resuelto en la action).
+ * Devuelve null si el documento no es anclable (no normaliza a nada).
+ */
+export async function resolvePersonForEnrollment(
+  supabase: SupabaseClient,
+  tenantId: string,
+  args: { studentCi: string; studentName: string; studentEmail: string | null },
+): Promise<PersonResolveResult | null> {
+  const norm = normalizeCedula(args.studentCi);
+  if (!norm) return null;
+
+  const existing = await findPersonByCedula(supabase, args.studentCi);
+  if (existing) {
+    const cargoMarkbox = await getPersonCargoMarkbox(supabase, existing.id);
+    return { personId: existing.id, created: false, name: existing.name, cargoMarkbox };
+  }
+
+  // No existe → crear persona lazy (academia-only). El índice único parcial de
+  // 0170 protege contra una carrera: si otra inserción ganó, re-buscamos.
+  const { data: inserted, error } = await supabase
+    .from("persons")
+    .insert({
+      tenant_id: tenantId,
+      national_id: args.studentCi,
+      doc_kind: "persona",
+      name: args.studentName,
+      email: args.studentEmail,
+    })
+    .select("id, name")
+    .single<{ id: string; name: string }>();
+
+  if (error) {
+    // 23505 = choque del índice único (otra inserción concurrente) → re-buscar.
+    if (error.code === "23505") {
+      const again = await findPersonByCedula(supabase, args.studentCi);
+      if (again) {
+        const cargoMarkbox = await getPersonCargoMarkbox(supabase, again.id);
+        return { personId: again.id, created: false, name: again.name, cargoMarkbox };
+      }
+    }
+    return null;
+  }
+
+  return { personId: inserted.id, created: true, name: inserted.name, cargoMarkbox: null };
 }

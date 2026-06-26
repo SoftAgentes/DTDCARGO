@@ -1,8 +1,13 @@
 /**
- * Tipos + validadores de la Academia DTD (SDD-0093).
+ * Tipos + validadores de la Academia DTD (SDD-0093 · SDD-0107).
  * DATA PURA (sin React, sin server-only). Convención del Studio: enums = uniones
  * de string-literal (espejo de los CHECK de la migración 0144), sin Zod.
  */
+
+import { RIF_REGEX, formatRif } from "@/lib/studio/client-types";
+import { normalizeCedula } from "@/lib/studio/person-types";
+
+export { normalizeCedula };
 
 export type CourseTier = "gratis" | "inicial" | "core" | "pro" | "complemento";
 export type CourseStatus = "borrador" | "proximamente" | "publicado";
@@ -108,6 +113,12 @@ export interface AcademyEnrollment {
   student_name: string;
   student_ci: string | null;
   student_email: string | null;
+  /**
+   * SDD-0107: persona (identidad por cédula, tabla `persons`) del alumno. La
+   * cédula sigue en `student_ci`; `person_id` es el vínculo normalizado y
+   * deduplicado. null = inscripción sin cédula (no se ancla).
+   */
+  person_id: string | null;
   progress_pct: number;
   completed_at: string | null;
   created_at: string;
@@ -542,11 +553,62 @@ export interface EnrollmentInput {
   clientMarkbox: string | null;
 }
 
+/**
+ * Documento del alumno (SDD-0107): cédula venezolana o RIF. A diferencia del
+ * RIF de `clients` (que exige 8 dígitos + verificador), el operador de Academia
+ * suele tipear la cédula simple (`V-18.452.110`), así que aceptamos:
+ *   - cédula:  letra V/E/J/G/P + 5..10 dígitos (con/sin puntos/guiones)
+ *   - RIF:     el formato canónico de clients (`RIF_REGEX`)
+ * Es el ancla que liga la inscripción a `persons` por cédula normalizada.
+ */
+// Letra de prefijo + separadores opcionales (guion/punto/espacio) + 5..10 dígitos
+// agrupados de cualquier forma. El conteo fino (≥5 dígitos) lo hace isValidStudentCi.
+const STUDENT_CI_REGEX = /^[VEJGPvejgp][-.\s]?[\d.\s]+-?\d?$/;
+
+/** ¿El documento del alumno tiene un formato anclable a una persona? */
+export function isValidStudentCi(raw: string): boolean {
+  const s = raw.trim();
+  if (!s) return false;
+  if (RIF_REGEX.test(s)) return true;
+  // Debe empezar por letra de prefijo válida y traer solo dígitos/separadores.
+  if (!STUDENT_CI_REGEX.test(s)) return false;
+  // Entre 5 y 10 dígitos tras normalizar (descarta "V-1" y números absurdos).
+  const digits = s.replace(/[^0-9]/g, "");
+  return digits.length >= 5 && digits.length <= 10;
+}
+
+/**
+ * Formato visible canónico de la cédula del alumno: si calza el RIF completo lo
+ * formatea como `X-XXXXXXXX-X`; si es cédula simple, deja la letra en mayúscula
+ * + dígitos con puntos de miles (`V-18.452.110`). NO altera el ancla (que usa
+ * `normalizeCedula`), solo el texto que se guarda/muestra.
+ */
+export function formatStudentCi(raw: string): string {
+  const s = raw.trim();
+  if (RIF_REGEX.test(s)) return formatRif(s);
+  const letter = (s.match(/[A-Za-z]/)?.[0] ?? "V").toUpperCase();
+  const digits = s.replace(/[^0-9]/g, "");
+  if (!digits) return s.toUpperCase();
+  const grouped = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${letter}-${grouped}`;
+}
+
 export interface EnrollmentActionState {
   ok?: boolean;
   error?: string;
   fieldErrors?: Partial<Record<keyof EnrollmentInput, string>>;
   enrollmentId?: string;
+  /**
+   * SDD-0107: contexto de la persona resuelta por cédula, para el feedback al
+   * operador (mejora UX). undefined = inscripción sin cédula (sin ancla).
+   */
+  person?: {
+    /** true = persona creada en este alta (alumno nuevo). */
+    created: boolean;
+    name: string;
+    /** Shipping Mark si la persona ya es cliente de carga; null si no. */
+    cargoMarkbox: string | null;
+  };
 }
 
 /** Validación laxa de email (solo si viene); el campo es opcional. */
@@ -568,13 +630,20 @@ export function validateEnrollmentInput(
   const email = partial.studentEmail?.trim() ?? "";
   if (email && !looksLikeEmail(email)) fieldErrors.studentEmail = "Correo inválido";
 
+  // SDD-0107: cédula opcional, pero si viene debe ser anclable a una persona.
+  const ciRaw = partial.studentCi?.trim() ?? "";
+  if (ciRaw && !isValidStudentCi(ciRaw)) {
+    fieldErrors.studentCi = "Cédula inválida. Ej: V-18.452.110 o J-12345678-9.";
+  }
+
   if (Object.keys(fieldErrors).length > 0) return { input: null, fieldErrors };
   return {
     input: {
       cohortId,
       courseId: partial.courseId?.trim() || null,
       studentName,
-      studentCi: partial.studentCi?.trim() || null,
+      // Se guarda en formato canónico visible; el ancla usa normalizeCedula.
+      studentCi: ciRaw ? formatStudentCi(ciRaw) : null,
       studentEmail: email || null,
       clientMarkbox: partial.clientMarkbox?.trim() || null,
     },
