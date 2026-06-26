@@ -309,3 +309,74 @@ migración de amonestaciones se renumeró **0170 → 0171** (0170 lo tomó SDD-0
 `NominaClient`/`page.tsx`/`actions.ts` integran las 3 pestañas nuevas — orden final de tabs: Empleados
 · Prestadores · Asistencia · Préstamos · Amonestaciones · Reglas. **Sigue pendiente el motor**
 (`payroll_run`/`calcRecibo`/liquidación), que **requiere contador** (§3 ⚠️).
+
+## 10. Slice motor — estructura de `payroll_run` (ESTE entregable)
+
+> Ítem 2 del roadmap §6. **Es la ESTRUCTURA del motor, no la ley fiscal.** Construye el registro del
+> corte + sus renglones (recibos) + el lifecycle, y un `calcReciboDraft()` **BORRADOR / ADVISORY**
+> que computa SOLO lo MECÁNICO que el `HANDOFF-NOMINA §3` marca como «✅ ya resuelto». El criterio
+> salarial, la liquidación y el asiento contable quedan **fuera** (otra pasada, con contador).
+
+### 10.1 Tablas (migración 0175)
+
+- **`nomina_payroll_runs`** — corte del período: `period_label` + `period_start`/`period_end`,
+  snapshot de `pay_frequency`/`day_method`, **`rules_snapshot jsonb`** (copia CONGELADA del
+  `payroll_rules` vigente usado → editar las reglas después NO cambia un corte viejo), `status`
+  (`borrador`/`confirmado`/`pagado`/`anulado`), totales `total_gross/deductions/net_usd`,
+  `confirmed_at`/`paid_at`, soft-delete. Índice único parcial: **un corte vivo no-anulado por
+  `(tenant_id, period_label)`**.
+- **`nomina_payroll_run_lines`** — renglón = recibo por empleado: snapshots `employee_code`/`name`/
+  `base_salary_usd`, insumos `worked_days`/`overtime_hours`/`night_hours`, componentes
+  `overtime_pay`/`night_pay`/`loan_deduction`/`statutory_deductions_usd`, totales
+  `gross`/`total_deductions`/`net_usd`, **`breakdown jsonb`** (renglones transparentes del recibo).
+  **Sin soft-delete**: los renglones se regeneran mientras el corte esté en borrador (se borran y
+  recomputan).
+- Seguridad idéntica al resto de nómina: RLS `for all to authenticated` por
+  `tenant_id = get_user_tenant_id() and nomina_can_access()` (reusa el helper de 0160, no se
+  redefine); triggers de coherencia `security definer` + `set search_path = public` +
+  `revoke execute … from public, anon` (el run y el empleado del renglón son del mismo tenant);
+  grants explícitos; `touch_updated_at`. **Sin seed** (el corte lo genera el usuario; EmptyState
+  cubre el vacío).
+
+### 10.2 Cálculo advisory · `calcReciboDraft()` (PURO)
+
+En `lib/studio/nomina/payroll-run-types.ts`. Computa SOLO lo mecánico (HANDOFF §3 «✅»):
+
+1. **Prorrateo** por frecuencia de pago + método de días (`day_method` 30 fijos vs días reales).
+2. **Horas extra** = `horas × valor_hora × (1 + overtime_pct/100)`; **bono nocturno** =
+   `horas × valor_hora × (night_pct/100)` (`valor_hora = base/30/8`).
+3. **Deducciones SSO/RPE/FAOV sobre el SUELDO BASE** prorrateado, con tope = `cap_sm × min_salary`
+   (FAOV sin tope). HANDOFF §3: las deducciones van solo sobre el sueldo base.
+4. **Cuota de préstamo** = `min(installment, saldo)` (no descuenta de más).
+5. `breakdown[]` transparente (deducciones en negativo).
+
+**Frontera (lo diferido):**
+- ❌ **NO consume `rules.salarial_bonuses`** — qué bonos son salariales es **criterio del contador**;
+  el subconjunto `CalcRules` ni siquiera tipa ese campo (test lo verifica: el recibo no cambia aunque
+  las reglas traigan bonos).
+- ❌ **NO calcula liquidación** (Art. 142 / salario integral).
+- ❌ **NO genera asiento contable** — `// TODO: asiento al confirmar (slice motor + contador)`,
+  integra SDD-0079 en una pasada posterior.
+- Cada recibo se marca **borrador/advisory**: el contador valida antes de pagar.
+
+### 10.3 Capa de datos, actions y UI
+
+- `payroll-run-queries.ts`: `listPayrollRuns`/`getPayrollRun`/`listPayrollRunLines` +
+  `findLivePayrollRunForPeriod` + lectores del generador (`aggregateAttendanceByEmployee` en
+  `[start,end]`, `activeLoanByEmployee` reusando `listLoansWithBalance`).
+- `actions.ts`: `generatePayrollRunAction` (snapshot de reglas → crea run borrador → computa renglones
+  con `calcReciboDraft` para empleados activos → rollup; error claro si ya hay corte vivo),
+  `regeneratePayrollRunLinesAction` (solo borrador), `setPayrollRunStatusAction` (transiciones válidas
+  `borrador→confirmado→pagado` y `→anulado`; rechaza saltos; marca `confirmed_at`/`paid_at`),
+  `softDeletePayrollRunAction`, `listPayrollRunLinesAction` (lectura). Todas con `moduleEditDenial("nomina")`
+  como 1er paso (las de mutación). Quedan cubiertas por el anti-drift de `rbac.test.ts`
+  (`app/studio/(app)/nomina/actions.ts` ya estaba en `GUARDED_ACTIONS` por archivo).
+- UI: **7ª pestaña "Recibos"** en `NominaClient` (orden final: Empleados · Prestadores · Asistencia ·
+  Préstamos · Amonestaciones · Recibos · Reglas) — lista de cortes con KPIs + Badge de estado, drawer
+  «Generar corte» (período + fechas; frecuencia/método de las reglas vigentes) y vista de detalle del
+  corte = tabla de renglones (los recibos: base, extras, deducciones, cuota, neto en `var(--f-mono)`).
+- Tests: `payroll-run-types.test.ts` (prorrateo, hora extra, deducciones con topes, cuota capada al
+  saldo, `salarial_bonuses` IGNORADO, transiciones, KPIs, validadores).
+
+**Sigue diferido (otra pasada, con contador):** asiento contable al confirmar (SDD-0079), criterio
+salarial (`salarial_bonuses`), salario integral / liquidación (Art. 142), export Excel del recibo.

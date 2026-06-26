@@ -55,6 +55,25 @@ import {
 } from "@/lib/studio/nomina/loan-types";
 import { getLoan, getLoanBalance } from "@/lib/studio/nomina/loan-queries";
 import { validateWarningInput } from "@/lib/studio/nomina/warning-types";
+import {
+  validateGeneratePayrollRunInput,
+  calcReciboDraft,
+  calcRulesFrom,
+  canTransitionPayrollRun,
+  daysBetweenInclusive,
+  isPayrollRunStatus,
+  type PayrollRunStatus,
+} from "@/lib/studio/nomina/payroll-run-types";
+import { getVigentePayrollRules } from "@/lib/studio/nomina/payroll-rules-queries";
+import { listEmployees } from "@/lib/studio/nomina/employee-queries";
+import {
+  getPayrollRun,
+  findLivePayrollRunForPeriod,
+  aggregateAttendanceByEmployee,
+  activeLoanByEmployee,
+  listPayrollRunLines,
+} from "@/lib/studio/nomina/payroll-run-queries";
+import type { PayrollRunLine } from "@/lib/studio/nomina/payroll-run-types";
 
 const MODULE_ID = "nomina";
 const PATH = "/studio/nomina";
@@ -867,6 +886,322 @@ export async function anularAmonestacionAction(
     .eq("id", warningId);
 
   if (error) return { error: `No se pudo anular la amonestación: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Corte del período (payroll_run · Slice motor — ESTRUCTURA) ║
+// ╚═══════════════════════════════════════════════════════════╝
+//
+// Genera el corte de nómina del período + sus renglones (recibos) en
+// BORRADOR / ADVISORY (solo cálculo MECÁNICO; calcReciboDraft). Congela las
+// reglas vigentes (rules_snapshot). NO genera asiento contable, NO consume
+// salarial_bonuses, NO calcula liquidación (frontera del slice).
+//
+// TODO: asiento al confirmar (slice motor + contador) — integra SDD-0079.
+
+/** Recalcula y persiste los renglones de un corte en borrador (helper interno). */
+async function buildRunLines(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  run: { id: string; tenant_id: string; period_start: string; period_end: string; rules_snapshot: Record<string, unknown> },
+): Promise<{ error: string | null; totals: { gross: number; deductions: number; net: number } }> {
+  // Reglas mecánicas del snapshot congelado del corte (NO se relee payroll_rules,
+  // así un corte viejo no cambia si editan las reglas después).
+  const snap = run.rules_snapshot as Record<string, unknown>;
+  const calcRules = calcRulesFrom({
+    pay_frequency: (snap.pay_frequency as "mensual" | "quincenal" | "semanal") ?? "mensual",
+    day_method: (snap.day_method as "30" | "real") ?? "30",
+    min_salary: Number(snap.min_salary ?? 0),
+    sso_pct: Number(snap.sso_pct ?? 0),
+    rpe_pct: Number(snap.rpe_pct ?? 0),
+    faov_pct: Number(snap.faov_pct ?? 0),
+    sso_cap_sm: Number(snap.sso_cap_sm ?? 0),
+    rpe_cap_sm: Number(snap.rpe_cap_sm ?? 0),
+    overtime_pct: Number(snap.overtime_pct ?? 0),
+    night_pct: Number(snap.night_pct ?? 0),
+  });
+
+  const employees = await listEmployees(supabase);
+  const activeEmployees = employees.filter((e) => e.status === "activo");
+
+  const periodDays = daysBetweenInclusive(run.period_start, run.period_end);
+  const attendanceByEmp = await aggregateAttendanceByEmployee(
+    supabase,
+    run.period_start,
+    run.period_end,
+  );
+  const loanByEmp = await activeLoanByEmployee(supabase, employees);
+
+  // Limpia los renglones previos (regeneración mientras borrador).
+  const { error: delErr } = await supabase
+    .from("nomina_payroll_run_lines")
+    .delete()
+    .eq("run_id", run.id);
+  if (delErr) {
+    return { error: `No se pudieron limpiar los renglones: ${delErr.message}`, totals: { gross: 0, deductions: 0, net: 0 } };
+  }
+
+  let gross = 0;
+  let deductions = 0;
+  let net = 0;
+
+  const rows = activeEmployees.map((e) => {
+    const attendance = attendanceByEmp.get(e.id) ?? {
+      worked_days: 0,
+      overtime_hours: 0,
+      night_hours: 0,
+    };
+    const loan = loanByEmp.get(e.id);
+    const recibo = calcReciboDraft({
+      base_salary_usd: e.salary_usd,
+      rules: calcRules,
+      period_days: periodDays,
+      attendance,
+      loan: loan ? { installment_usd: loan.installment_usd, balance_usd: loan.balance_usd } : null,
+    });
+    gross += recibo.gross_usd;
+    deductions += recibo.total_deductions_usd;
+    net += recibo.net_usd;
+    return {
+      tenant_id: run.tenant_id,
+      run_id: run.id,
+      employee_id: e.id,
+      employee_code: e.employee_code,
+      employee_name: e.full_name,
+      base_salary_usd: e.salary_usd,
+      worked_days: recibo.worked_days,
+      overtime_hours: attendance.overtime_hours,
+      night_hours: attendance.night_hours,
+      overtime_pay_usd: recibo.overtime_pay_usd,
+      night_pay_usd: recibo.night_pay_usd,
+      loan_deduction_usd: recibo.loan_deduction_usd,
+      statutory_deductions_usd: recibo.statutory_deductions_usd,
+      gross_usd: recibo.gross_usd,
+      total_deductions_usd: recibo.total_deductions_usd,
+      net_usd: recibo.net_usd,
+      breakdown: recibo.breakdown,
+    };
+  });
+
+  if (rows.length > 0) {
+    const { error: insErr } = await supabase.from("nomina_payroll_run_lines").insert(rows);
+    if (insErr) {
+      return { error: `No se pudieron generar los recibos: ${insErr.message}`, totals: { gross: 0, deductions: 0, net: 0 } };
+    }
+  }
+
+  return {
+    error: null,
+    totals: {
+      gross: Math.round((gross + Number.EPSILON) * 100) / 100,
+      deductions: Math.round((deductions + Number.EPSILON) * 100) / 100,
+      net: Math.round((net + Number.EPSILON) * 100) / 100,
+    },
+  };
+}
+
+/**
+ * Genera un corte de nómina del período: snapshot de las reglas vigentes → crea
+ * el run en borrador → computa los renglones (recibos BORRADOR/ADVISORY de los
+ * empleados activos) → rollup de totales. Si ya hay un corte vivo del período,
+ * devuelve error claro. Gate de rol (moduleEditDenial) PRIMERO; RLS = backstop.
+ */
+export async function generatePayrollRunAction(
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateGeneratePayrollRunInput({
+    period_label: strOrNull(formData.get("period_label")),
+    period_start: strOrNull(formData.get("period_start")),
+    period_end: strOrNull(formData.get("period_end")),
+    notes: strOrNull(formData.get("notes")),
+  });
+  if (fieldErrors) return { fieldErrors };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant del usuario." };
+
+  // ¿Ya hay un corte vivo (no anulado) para este período?
+  const existing = await findLivePayrollRunForPeriod(supabase, input!.period_label);
+  if (existing) {
+    return {
+      fieldErrors: {
+        period_label: `Ya existe un corte ${input!.period_label} (${existing.status}). Anúlalo para regenerar.`,
+      },
+    };
+  }
+
+  // Reglas vigentes a congelar en el corte.
+  const rules = await getVigentePayrollRules(supabase);
+  if (!rules) {
+    return { error: "Define primero las reglas de cálculo (pestaña Reglas)." };
+  }
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  // 1) Crea el corte en borrador con el snapshot congelado de las reglas.
+  const { data: runData, error: runErr } = await supabase
+    .from("nomina_payroll_runs")
+    .insert({
+      tenant_id: tenantId,
+      period_label: input!.period_label,
+      period_start: input!.period_start,
+      period_end: input!.period_end,
+      pay_frequency: rules.pay_frequency,
+      day_method: rules.day_method,
+      rules_snapshot: rules,
+      status: "borrador",
+      notes: input!.notes,
+      created_by: userResp.user?.id ?? null,
+    })
+    .select("id, tenant_id, period_start, period_end, rules_snapshot")
+    .single();
+
+  if (runErr || !runData) {
+    if (runErr?.code === "23505") {
+      return { fieldErrors: { period_label: "Ya hay un corte vivo para ese período." } };
+    }
+    return { error: `No se pudo crear el corte: ${runErr?.message ?? "desconocido"}` };
+  }
+
+  // 2) Computa y persiste los renglones (recibos).
+  const built = await buildRunLines(supabase, {
+    id: String(runData.id),
+    tenant_id: String(runData.tenant_id),
+    period_start: String(runData.period_start),
+    period_end: String(runData.period_end),
+    rules_snapshot: (runData.rules_snapshot ?? {}) as Record<string, unknown>,
+  });
+  if (built.error) return { error: built.error };
+
+  // 3) Rollup de totales en el corte.
+  await supabase
+    .from("nomina_payroll_runs")
+    .update({
+      total_gross_usd: built.totals.gross,
+      total_deductions_usd: built.totals.deductions,
+      total_net_usd: built.totals.net,
+    })
+    .eq("id", runData.id);
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/**
+ * Regenera los renglones de un corte (solo si está en borrador): borra y
+ * recomputa con el snapshot de reglas congelado del propio corte.
+ */
+export async function regeneratePayrollRunLinesAction(
+  runId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const run = await getPayrollRun(supabase, runId);
+  if (!run) return { error: "El corte no existe o no es de tu tenant." };
+  if (run.status !== "borrador") {
+    return { error: "Solo se pueden regenerar cortes en borrador." };
+  }
+
+  const built = await buildRunLines(supabase, {
+    id: run.id,
+    tenant_id: run.tenant_id,
+    period_start: run.period_start,
+    period_end: run.period_end,
+    rules_snapshot: (run.rules_snapshot ?? {}) as Record<string, unknown>,
+  });
+  if (built.error) return { error: built.error };
+
+  await supabase
+    .from("nomina_payroll_runs")
+    .update({
+      total_gross_usd: built.totals.gross,
+      total_deductions_usd: built.totals.deductions,
+      total_net_usd: built.totals.net,
+    })
+    .eq("id", runId)
+    .eq("status", "borrador");
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/**
+ * Cambia el estado del corte (borrador→confirmado→pagado · →anulado). Rechaza
+ * saltos inválidos. Marca confirmed_at / paid_at. SIN asiento contable en este
+ * slice (TODO: asiento al confirmar — slice motor + contador).
+ */
+export async function setPayrollRunStatusAction(
+  runId: string,
+  status: PayrollRunStatus,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!isPayrollRunStatus(status)) return { error: "Estado inválido." };
+
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const run = await getPayrollRun(supabase, runId);
+  if (!run) return { error: "El corte no existe o no es de tu tenant." };
+
+  if (!canTransitionPayrollRun(run.status, status)) {
+    return { error: `No se puede pasar de ${run.status} a ${status}.` };
+  }
+
+  const patch: Record<string, unknown> = { status };
+  if (status === "confirmado") patch.confirmed_at = new Date().toISOString();
+  if (status === "pagado") patch.paid_at = new Date().toISOString();
+
+  const { error } = await supabase
+    .from("nomina_payroll_runs")
+    .update(patch)
+    .eq("id", runId)
+    .eq("status", run.status); // optimista: solo si no cambió mientras tanto
+
+  if (error) return { error: `No se pudo cambiar el estado del corte: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/** Lee los renglones (recibos) de un corte. Read-only (gate de view por la page). */
+export async function listPayrollRunLinesAction(
+  runId: string,
+): Promise<{ lines?: PayrollRunLine[]; error?: string }> {
+  const supabase = await createClient();
+  // Lectura: la RLS por tenant+rol ya restringe; no muta nada.
+  const run = await getPayrollRun(supabase, runId);
+  if (!run) return { error: "El corte no existe o no es de tu tenant." };
+  const lines = await listPayrollRunLines(supabase, runId);
+  return { lines };
+}
+
+/** Soft delete de un corte (deleted_at = now()). */
+export async function softDeletePayrollRunAction(
+  runId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { error } = await supabase
+    .from("nomina_payroll_runs")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", runId);
+
+  if (error) return { error: `No se pudo eliminar el corte: ${error.message}` };
 
   revalidatePath(PATH);
   return { ok: true };

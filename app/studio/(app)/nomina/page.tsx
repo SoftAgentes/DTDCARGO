@@ -22,10 +22,12 @@ import {
 } from "@/lib/studio/nomina/attendance-queries";
 import { listLoansWithBalance } from "@/lib/studio/nomina/loan-queries";
 import { listWarnings } from "@/lib/studio/nomina/warning-queries";
+import { listPayrollRuns } from "@/lib/studio/nomina/payroll-run-queries";
 import { computeEmployeeKpis } from "@/lib/studio/nomina/employee-types";
 import { computeContractorKpis } from "@/lib/studio/nomina/contractor-types";
 import { computeLoanKpis } from "@/lib/studio/nomina/loan-types";
 import { computeWarningKpis } from "@/lib/studio/nomina/warning-types";
+import { computePayrollRunKpis } from "@/lib/studio/nomina/payroll-run-types";
 import { NominaClient } from "./_components/NominaClient";
 
 export const metadata = { title: "Nómina" };
@@ -34,7 +36,7 @@ export default async function NominaPage() {
   await requireModuleView("nomina");
   const supabase = await createClient();
 
-  const [employees, contractors, payments, rules, attendance, holidays, warnings] =
+  const [employees, contractors, payments, rules, attendance, holidays, warnings, runs] =
     await Promise.all([
       listEmployees(supabase),
       listContractors(supabase),
@@ -43,6 +45,7 @@ export default async function NominaPage() {
       listAttendance(supabase),
       listHolidays(supabase),
       listWarnings(supabase),
+      listPayrollRuns(supabase),
     ]);
 
   // Los préstamos derivan saldo combinando con sus cuotas y con los empleados.
@@ -52,6 +55,7 @@ export default async function NominaPage() {
   const contractorKpis = computeContractorKpis(contractors, payments);
   const loanKpis = computeLoanKpis(loans);
   const warningKpis = computeWarningKpis(warnings);
+  const runKpis = computePayrollRunKpis(runs);
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -85,10 +89,12 @@ export default async function NominaPage() {
         holidays={holidays}
         loans={loans}
         warnings={warnings}
+        runs={runs}
         employeeKpis={employeeKpis}
         contractorKpis={contractorKpis}
         loanKpis={loanKpis}
         warningKpis={warningKpis}
+        runKpis={runKpis}
       />
     </div>
   );
