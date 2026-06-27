@@ -49,6 +49,17 @@ describe("0181 employee_comms · defensa-en-DB", () => {
     expect(sql).not.toMatch(/"nomina_employee_comms self (insert|delete)"/);
   });
 
+  it("guard de columnas del empleado: solo read_at/acked_at (no reescribe el acta · M-2)", () => {
+    // El empleado dueño puede UPDATE (policy C) pero el trigger congela el
+    // contenido: no puede reescribir body/title/requires_ack de una amonestación.
+    expect(sql).toContain("nomina_employee_comm_update_guard");
+    expect(sql).toContain("before update on public.nomina_employee_comms");
+    expect(sql).toMatch(/new\.body\s+is distinct from old\.body/);
+    expect(sql).toMatch(/new\.requires_ack is distinct from old\.requires_ack/);
+    // El admin (nomina_can_access) sí puede editar libremente.
+    expect(sql).toMatch(/if \(select public\.nomina_can_access\(\)\) then\s*\n\s*return new/);
+  });
+
   it("get_employee_id_for_user es fail-closed (excluye egresado/soft-deleted)", () => {
     expect(sql).toContain("create or replace function public.get_employee_id_for_user()");
     expect(sql).toContain("e.deleted_at is null");

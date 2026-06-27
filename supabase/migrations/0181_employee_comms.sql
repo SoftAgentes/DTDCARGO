@@ -71,8 +71,9 @@ grant execute on function public.get_employee_id_for_user() to authenticated;
 
 -- Policy ADITIVA sobre nomina_employees: el empleado DUEÑO LEE su propia ficha
 -- (la app /m/emp la consume con la sesión del empleado, NO un rol Studio). La
--- escritura acotada (allowlist) va por updateMyProfileAction → policy de UPDATE
--- self más abajo, tras crear la tabla de staging bancario en 0182.
+-- escritura del empleado NO usa policy de UPDATE self (sería superficie amplia):
+-- va por RPCs angostas SECURITY DEFINER en 0182 (update_my_contact = phone/email;
+-- request_my_bank_change = staging). Solo-lectura acá, a propósito.
 create policy "nomina_employees self read"
   on public.nomina_employees for select
   to authenticated
@@ -262,11 +263,10 @@ create policy "nomina_employee_comms self read"
 -- (C) Lado EMPLEADO DUEÑO: UPDATE solo de los suyos (marcar read_at/acked_at).
 -- with check exige que SIGA siendo suyo → no puede reasignar el comm a otro
 -- empleado. NO hay policy de INSERT/DELETE para el empleado → no puede crear ni
--- borrar comms (solo el admin via policy A). (RLS suma: con A+C un empleado que
--- ADEMÁS fuese admin podría actualizar; el caso real del empleado puro queda
--- acotado por C: solo sus propios renglones, y el allowlist de columnas lo da la
--- action — la RLS no distingue columnas, por eso markCommReadAction/ackCommAction
--- solo escriben read_at/acked_at.)
+-- borrar comms (solo el admin via policy A). La RLS no distingue COLUMNAS → el
+-- allowlist de columnas lo fuerza el trigger de guard de abajo (defensa-en-DB),
+-- no solo la action: un PostgREST directo del empleado tampoco puede reescribir
+-- el contenido del acta.
 create policy "nomina_employee_comms self update"
   on public.nomina_employee_comms for update
   to authenticated
@@ -278,5 +278,51 @@ create policy "nomina_employee_comms self update"
     deleted_at is null
     and employee_id = (select public.get_employee_id_for_user())
   );
+
+-- ── Guard de columnas para el empleado dueño (allowlist-en-DB) ──
+-- La policy C deja al empleado actualizar SU fila, pero RLS no restringe columnas.
+-- Sin esto, vía PostgREST directo el empleado podría reescribir body/title de una
+-- amonestación recibida (acta Art. 79 LOTTT) o poner requires_ack=false/acked_at=null
+-- antes de acusar → repudio/manipulación de evidencia. Este trigger congela todo
+-- salvo read_at/acked_at cuando el caller NO es admin (nomina_can_access()=false).
+-- Mismo patrón que el guard del perfil (update_my_contact/self_guard).
+create or replace function public.nomina_employee_comm_update_guard()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Admin/RRHH (nomina_can_access) gestiona libremente.
+  if (select public.nomina_can_access()) then
+    return new;
+  end if;
+  -- Empleado: SOLO read_at/acked_at pueden cambiar. El resto, congelado.
+  if new.type        is distinct from old.type
+     or new.title    is distinct from old.title
+     or new.body     is distinct from old.body
+     or new.requires_ack is distinct from old.requires_ack
+     or new.ref_kind is distinct from old.ref_kind
+     or new.ref_id   is distinct from old.ref_id
+     or new.employee_id is distinct from old.employee_id
+     or new.tenant_id is distinct from old.tenant_id
+     or new.created_by is distinct from old.created_by
+     or new.deleted_at is distinct from old.deleted_at then
+    raise exception 'el empleado solo puede marcar leído/acuse de su comunicación'
+      using errcode = '42501';
+  end if;
+  return new;
+end;
+$$;
+
+comment on function public.nomina_employee_comm_update_guard is
+  'SDD-0113 (defensa-en-DB): para el empleado dueño (no admin) congela todo salvo read_at/acked_at en un UPDATE de su comm. Impide reescribir el acta/amonestación o falsear requires_ack/acked_at vía PostgREST directo.';
+
+revoke execute on function public.nomina_employee_comm_update_guard() from public, anon;
+
+drop trigger if exists nomina_employee_comm_update_guard_trg on public.nomina_employee_comms;
+create trigger nomina_employee_comm_update_guard_trg
+  before update on public.nomina_employee_comms
+  for each row execute function public.nomina_employee_comm_update_guard();
 
 -- Sin seed: las comunicaciones las genera RRHH desde el Studio.

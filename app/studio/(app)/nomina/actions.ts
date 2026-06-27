@@ -1841,10 +1841,31 @@ async function ensureEmployeeAuthUser(email: string): Promise<string | null> {
   });
   if (!createErr && created?.user?.id) return created.user.id;
 
-  // Ya existe (email_exists / 422). Buscarlo y reusarlo.
+  // Ya existe (email_exists / 422). Reusar SOLO si el auth.user NO está ya tomado
+  // por otra identidad — evita apropiarse de un usuario ajeno por colisión de
+  // email (M-1): un auth.user enlazado a otra ficha de empleado viva, o un
+  // usuario de Studio (miembro de user_tenants), NO se reutiliza. Si está tomado,
+  // devolvemos null → la aprobación crea la ficha sin login (reintentable con otro
+  // correo); nunca enlazamos PII de un tenant al user de otra persona.
   const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
   const found = list?.users?.find((u) => (u.email ?? "").toLowerCase() === normalized);
-  return found?.id ?? null;
+  if (!found?.id) return null;
+
+  const { data: linkedEmp } = await admin
+    .from("nomina_employees")
+    .select("id")
+    .eq("auth_user_id", found.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (linkedEmp?.id) return null; // ya es de otro empleado vivo → no apropiar
+
+  const { count: studioMember } = await admin
+    .from("user_tenants")
+    .select("user_id", { count: "exact", head: true })
+    .eq("user_id", found.id);
+  if ((studioMember ?? 0) > 0) return null; // usuario de Studio (otra identidad)
+
+  return found.id;
 }
 
 // ╔═══════════════════════════════════════════════════════════╗
