@@ -24,6 +24,12 @@ import { listLoansWithBalance } from "@/lib/studio/nomina/loan-queries";
 import { listWarnings } from "@/lib/studio/nomina/warning-queries";
 import { listPayrollRuns } from "@/lib/studio/nomina/payroll-run-queries";
 import { listSettlements } from "@/lib/studio/nomina/settlement-queries";
+import { listInvites } from "@/lib/studio/nomina/invite-queries";
+import {
+  listRegistrations,
+  computeRegistrationKpis,
+} from "@/lib/studio/nomina/registration-queries";
+import { listAllComms } from "@/lib/studio/nomina/comms-queries";
 import { computeEmployeeKpis } from "@/lib/studio/nomina/employee-types";
 import { computeContractorKpis } from "@/lib/studio/nomina/contractor-types";
 import { computeLoanKpis } from "@/lib/studio/nomina/loan-types";
@@ -38,18 +44,33 @@ export default async function NominaPage() {
   await requireModuleView("nomina");
   const supabase = await createClient();
 
-  const [employees, contractors, payments, rules, attendance, holidays, warnings, runs, settlements] =
-    await Promise.all([
-      listEmployees(supabase),
-      listContractors(supabase),
-      listContractorPayments(supabase),
-      getVigentePayrollRules(supabase),
-      listAttendance(supabase),
-      listHolidays(supabase),
-      listWarnings(supabase),
-      listPayrollRuns(supabase),
-      listSettlements(supabase),
-    ]);
+  const [
+    employees,
+    contractors,
+    payments,
+    rules,
+    attendance,
+    holidays,
+    warnings,
+    runs,
+    settlements,
+    invites,
+    registrations,
+    comms,
+  ] = await Promise.all([
+    listEmployees(supabase),
+    listContractors(supabase),
+    listContractorPayments(supabase),
+    getVigentePayrollRules(supabase),
+    listAttendance(supabase),
+    listHolidays(supabase),
+    listWarnings(supabase),
+    listPayrollRuns(supabase),
+    listSettlements(supabase),
+    listInvites(supabase),
+    listRegistrations(supabase),
+    listAllComms(supabase),
+  ]);
 
   // Los préstamos derivan saldo combinando con sus cuotas y con los empleados.
   const loans = await listLoansWithBalance(supabase, employees);
@@ -60,6 +81,7 @@ export default async function NominaPage() {
   const warningKpis = computeWarningKpis(warnings);
   const runKpis = computePayrollRunKpis(runs);
   const settlementKpis = computeSettlementKpis(settlements);
+  const registrationKpis = computeRegistrationKpis(registrations);
 
   return (
     <div style={{ maxWidth: 1280 }}>
@@ -95,12 +117,16 @@ export default async function NominaPage() {
         warnings={warnings}
         runs={runs}
         settlements={settlements}
+        invites={invites}
+        registrations={registrations}
+        comms={comms}
         employeeKpis={employeeKpis}
         contractorKpis={contractorKpis}
         loanKpis={loanKpis}
         warningKpis={warningKpis}
         runKpis={runKpis}
         settlementKpis={settlementKpis}
+        registrationKpis={registrationKpis}
       />
     </div>
   );

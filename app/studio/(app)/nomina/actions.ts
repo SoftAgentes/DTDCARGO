@@ -96,6 +96,11 @@ import {
   getAccountingSettings,
   isPeriodClosed,
 } from "@/lib/studio/accounting/period-queries";
+import { validateInviteInput } from "@/lib/studio/nomina/invite-types";
+import { validateApproveRegistrationInput } from "@/lib/studio/nomina/registration-types";
+import { getRegistration } from "@/lib/studio/nomina/registration-queries";
+import { validateSendCommInput } from "@/lib/studio/nomina/comms-types";
+import { createAdminClient } from "@/lib/db/admin";
 
 const MODULE_ID = "nomina";
 const PATH = "/studio/nomina";
@@ -1598,6 +1603,339 @@ export async function softDeleteFiniquitoAction(
     .eq("id", settlementId);
 
   if (error) return { error: `No se pudo eliminar el finiquito: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Onboarding del empleado · Invitaciones (SDD-0113 Slice A)  ║
+// ╚═══════════════════════════════════════════════════════════╝
+//
+// El admin genera una INVITACIÓN (link con token) que comparte por WhatsApp; el
+// candidato se auto-registra (SOLICITUD en staging, app/m/emp); el admin la
+// aprueba → materializa la ficha nomina_employees (con el sueldo que define la
+// EMPRESA) o la rechaza. Gate de rol (moduleEditDenial) PRIMERO; RLS = backstop.
+
+/**
+ * Genera una invitación: el token lo pone la DB (default gen_random_bytes).
+ * Devuelve el token en `createdToken` para que la UI arme el link a copiar.
+ */
+export async function createInviteAction(
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateInviteInput({
+    cargo: strOrNull(formData.get("cargo")),
+    department: strOrNull(formData.get("department")),
+  });
+  if (fieldErrors) return { fieldErrors };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant del usuario." };
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  const { data, error } = await supabase
+    .from("nomina_employee_invites")
+    .insert({
+      tenant_id: tenantId,
+      cargo: input!.cargo,
+      department: input!.department,
+      created_by: userResp.user?.id ?? null,
+    })
+    .select("token")
+    .single();
+
+  if (error || !data) {
+    return { error: `No se pudo generar la invitación: ${error?.message ?? "desconocido"}` };
+  }
+
+  revalidatePath(PATH);
+  return { ok: true, createdToken: String(data.token) };
+}
+
+/** Revoca una invitación (status='revocada'); el link deja de servir. */
+export async function revokeInviteAction(
+  inviteId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { error } = await supabase
+    .from("nomina_employee_invites")
+    .update({ status: "revocada" })
+    .eq("id", inviteId)
+    .eq("status", "activa");
+
+  if (error) return { error: `No se pudo revocar la invitación: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Onboarding · Aprobar / rechazar solicitudes (SDD-0113 A)   ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+/**
+ * Aprueba una solicitud: MATERIALIZA la ficha nomina_employees con los datos del
+ * candidato + el **sueldo que define la empresa** (NO el que pidió el candidato),
+ * genera EMP-NNNN, y enlaza la solicitud (status='aprobada', employee_id). El
+ * alta/enlace del login del empleado (auth.users, patrón Portal Cliente) es Slice
+ * C — acá solo se crea la ficha. Gate de rol PRIMERO; RLS = backstop.
+ */
+export async function approveRegistrationAction(
+  registrationId: string,
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateApproveRegistrationInput({
+    salary_usd: strOrNull(formData.get("salary_usd")) ?? 0,
+    hire_date: strOrNull(formData.get("hire_date")),
+  });
+  if (fieldErrors) return { fieldErrors };
+
+  const reg = await getRegistration(supabase, registrationId);
+  if (!reg) return { error: "La solicitud no existe o no es de tu tenant." };
+  if (reg.status !== "pendiente") {
+    return { error: "La solicitud ya fue revisada." };
+  }
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant del usuario." };
+
+  const { data: codeData, error: codeErr } = await supabase.rpc("next_employee_code", {
+    p_tenant_id: tenantId,
+  });
+  if (codeErr || !codeData) {
+    return { error: "No se pudo generar el código del empleado." };
+  }
+  const employeeCode = String(codeData);
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  // 0) Crea/enlaza el login del empleado (auth.users real, patrón Portal Cliente).
+  //    Es el paso que faltaba en Slice A. Usa el admin client (service_role) para
+  //    crear el usuario por email; si ya existe (re-aprobación / colisión) lo
+  //    reusa buscándolo por email. El auth_user_id se setea en la ficha (único).
+  const authUserId = await ensureEmployeeAuthUser(reg.email);
+  if (!authUserId) {
+    return { error: "No se pudo crear el acceso del empleado (auth). Revisa el correo." };
+  }
+
+  // 1) Materializa la ficha con el sueldo de la empresa.
+  const { data: empData, error: empErr } = await supabase
+    .from("nomina_employees")
+    .insert({
+      tenant_id: tenantId,
+      employee_code: employeeCode,
+      full_name: reg.full_name,
+      national_id: reg.national_id,
+      position_label: reg.cargo,
+      phone: reg.phone,
+      email: reg.email,
+      salary_usd: input!.salary_usd,
+      hire_date: input!.hire_date ?? reg.start_date,
+      birth_date: reg.birth_date,
+      bank_name: reg.bank_name,
+      bank_account_type: reg.bank_account_type,
+      bank_account: reg.bank_account,
+      status: "activo",
+      auth_user_id: authUserId,
+      created_by: userResp.user?.id ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (empErr || !empData) {
+    if (empErr?.code === "23505" && /national_id/.test(empErr.message)) {
+      return { error: "Ya existe un empleado con esa cédula. Revisa antes de aprobar." };
+    }
+    if (empErr?.code === "23505" && /auth_user/.test(empErr.message)) {
+      return { error: "Ese correo ya está enlazado a otro empleado. Usa un correo distinto." };
+    }
+    return { error: `No se pudo crear la ficha: ${empErr?.message ?? "desconocido"}` };
+  }
+
+  // 2) Enlaza la solicitud → aprobada (optimista: solo si sigue pendiente).
+  const { error: regErr } = await supabase
+    .from("nomina_employee_registrations")
+    .update({
+      status: "aprobada",
+      employee_id: empData.id,
+      reviewed_by: userResp.user?.id ?? null,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", registrationId)
+    .eq("status", "pendiente");
+
+  if (regErr) {
+    // La ficha quedó creada; reportamos el desfase para que el admin lo revise.
+    return { error: `Ficha creada (${employeeCode}) pero no se pudo cerrar la solicitud: ${regErr.message}` };
+  }
+
+  revalidatePath(PATH);
+  return { ok: true, createdCode: employeeCode };
+}
+
+/** Rechaza una solicitud con motivo. No crea ficha; queda el rastro. */
+export async function rejectRegistrationAction(
+  registrationId: string,
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const reason = strOrNull(formData.get("rejection_reason"));
+  if (!reason) return { fieldErrors: { rejection_reason: "Indica el motivo del rechazo." } };
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  const { error } = await supabase
+    .from("nomina_employee_registrations")
+    .update({
+      status: "rechazada",
+      rejection_reason: reason,
+      reviewed_by: userResp.user?.id ?? null,
+      reviewed_at: new Date().toISOString(),
+    })
+    .eq("id", registrationId)
+    .eq("status", "pendiente");
+
+  if (error) return { error: `No se pudo rechazar la solicitud: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/**
+ * Crea o reutiliza el auth.users del empleado por email (login propio de /m/emp).
+ * service_role: crea el usuario con email confirmado (el empleado entra con magic
+ * link / reset de contraseña). Si ya existe (re-aprobación), lo busca y lo reusa.
+ * Devuelve el auth user id o null si falló de forma irrecuperable.
+ */
+async function ensureEmployeeAuthUser(email: string): Promise<string | null> {
+  const admin = createAdminClient();
+  const normalized = email.trim().toLowerCase();
+
+  const { data: created, error: createErr } = await admin.auth.admin.createUser({
+    email: normalized,
+    email_confirm: true,
+    user_metadata: { role: "employee", app: "m-emp" },
+  });
+  if (!createErr && created?.user?.id) return created.user.id;
+
+  // Ya existe (email_exists / 422). Reusar SOLO si el auth.user NO está ya tomado
+  // por otra identidad — evita apropiarse de un usuario ajeno por colisión de
+  // email (M-1): un auth.user enlazado a otra ficha de empleado viva, o un
+  // usuario de Studio (miembro de user_tenants), NO se reutiliza. Si está tomado,
+  // devolvemos null → la aprobación crea la ficha sin login (reintentable con otro
+  // correo); nunca enlazamos PII de un tenant al user de otra persona.
+  const { data: list } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+  const found = list?.users?.find((u) => (u.email ?? "").toLowerCase() === normalized);
+  if (!found?.id) return null;
+
+  const { data: linkedEmp } = await admin
+    .from("nomina_employees")
+    .select("id")
+    .eq("auth_user_id", found.id)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (linkedEmp?.id) return null; // ya es de otro empleado vivo → no apropiar
+
+  const { count: studioMember } = await admin
+    .from("user_tenants")
+    .select("user_id", { count: "exact", head: true })
+    .eq("user_id", found.id);
+  if ((studioMember ?? 0) > 0) return null; // usuario de Studio (otra identidad)
+
+  return found.id;
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Comunicaciones al empleado (SDD-0113 Slice B)              ║
+// ╚═══════════════════════════════════════════════════════════╝
+
+/**
+ * Envía una comunicación de RRHH a un empleado (recibo/aviso/llamado/amonestación).
+ * El trigger same-tenant (DB) valida que el empleado y el ref_id polimórfico sean
+ * del mismo tenant. Gate de rol (moduleEditDenial) PRIMERO; RLS = backstop.
+ */
+export async function sendCommAction(
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateSendCommInput({
+    employee_id: strOrNull(formData.get("employee_id")),
+    type: strOrNull(formData.get("type")),
+    title: strOrNull(formData.get("title")),
+    body: strOrNull(formData.get("body")),
+    ref_kind: strOrNull(formData.get("ref_kind")),
+    ref_id: strOrNull(formData.get("ref_id")),
+    requires_ack: strOrNull(formData.get("requires_ack")),
+  });
+  if (fieldErrors) return { fieldErrors };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant del usuario." };
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  const { error } = await supabase.from("nomina_employee_comms").insert({
+    tenant_id: tenantId,
+    employee_id: input!.employee_id,
+    type: input!.type,
+    title: input!.title,
+    body: input!.body,
+    ref_kind: input!.ref_kind,
+    ref_id: input!.ref_id,
+    requires_ack: input!.requires_ack,
+    created_by: userResp.user?.id ?? null,
+  });
+
+  if (error) {
+    if (error.code === "check_violation" || /no pertenece al tenant/.test(error.message)) {
+      return { error: "El empleado o la referencia no son de tu empresa." };
+    }
+    return { error: `No se pudo enviar la comunicación: ${error.message}` };
+  }
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/** El admin confirma un cambio bancario pendiente del empleado (aplica a la ficha). */
+export async function confirmBankChangeAction(
+  changeId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { error } = await supabase.rpc("confirm_bank_change", { p_change_id: changeId });
+  if (error) return { error: `No se pudo confirmar el cambio bancario: ${error.message}` };
 
   revalidatePath(PATH);
   return { ok: true };

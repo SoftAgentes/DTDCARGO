@@ -213,6 +213,8 @@ export type NominaActionState = {
   fieldErrors?: Record<string, string>;
   /** Code del empleado recién creado (para toast + highlight). */
   createdCode?: string;
+  /** Token de invitación recién generado (para mostrar el link a copiar · SDD-0113). */
+  createdToken?: string;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
