@@ -206,8 +206,8 @@ export default function OperarioLoginPage() {
               color: "var(--danger)",
               margin: 0,
               padding: "var(--s-2) var(--s-3)",
-              background: "rgba(168, 50, 62, 0.18)",
-              border: "1px solid rgba(168, 50, 62, 0.35)",
+              background: "var(--danger-bg-strong)",
+              border: "1px solid var(--danger-border)",
               borderRadius: "var(--r-sm)",
             }}
           >
@@ -312,10 +312,10 @@ function NumpadButton({
         width: 72,
         height: 72,
         borderRadius: "50%",
-        background: ghost ? "transparent" : "rgba(255,255,255,0.08)",
+        background: ghost ? "transparent" : "var(--surface-inv)",
         color: ghost ? "var(--ink-inv-mute)" : "var(--ink-inv)",
         font: "900 28px/1 var(--f-display)",
-        border: ghost ? 0 : "1px solid rgba(255,255,255,0.12)",
+        border: ghost ? 0 : "1px solid var(--border-inv)",
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "center",
@@ -355,7 +355,7 @@ function LangSwitch({
       style={{
         display: "inline-flex",
         padding: 3,
-        background: "rgba(255,255,255,0.08)",
+        background: "var(--surface-inv)",
         borderRadius: "var(--r-md)",
       }}
     >

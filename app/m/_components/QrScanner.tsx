@@ -202,7 +202,7 @@ export function QrScanner({
               border: "2px solid var(--wine-soft)",
               borderRadius: "var(--r-md)",
               pointerEvents: "none",
-              boxShadow: "0 0 0 9999px rgba(15,30,61,0.45)",
+              boxShadow: "0 0 0 9999px var(--scrim-soft)",
             }}
           />
           {/* Pulse scan line (respeta prefers-reduced-motion) */}

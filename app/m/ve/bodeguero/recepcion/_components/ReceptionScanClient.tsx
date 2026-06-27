@@ -281,7 +281,7 @@ export function ReceptionScanClient({ receipt, tenantId, operario }: Props) {
             style={{
               marginTop: 14,
               height: 6,
-              background: "rgba(255,255,255,0.12)",
+              background: "var(--border-inv)",
               borderRadius: 999,
               overflow: "hidden",
             }}

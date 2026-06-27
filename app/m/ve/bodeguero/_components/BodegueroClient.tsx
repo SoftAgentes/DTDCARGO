@@ -1232,7 +1232,7 @@ function CapacityBar({
         style={{
           width: "100%",
           height: 4,
-          background: "rgba(255,255,255,0.12)",
+          background: "var(--border-inv)",
           borderRadius: 999,
           overflow: "hidden",
         }}
