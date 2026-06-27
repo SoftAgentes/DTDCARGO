@@ -1,10 +1,10 @@
 ---
 sdd: "0110"
 title: "Cablear el posting contable del Financiero con el Socio Logístico China (wiring de SDD-0059)"
-status: draft
+status: done
 author: "Claude Code (carril sdd0110-posting-china)"
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0059", "0079", "0101", "0040"]
