@@ -114,7 +114,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0078 | Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor | in-progress | interno |
 | 0079 | Asiento automático del gasto — expenses → journal_entries (ci… | in-progress | interno |
 | 0080 | Cierre de período contable — bloquear asientos de períodos ce… | in-progress | interno |
-| 0081 | Inventario de Consolidación (WMS) — stock real CN/VE por Ship… | approved | interno |
+| 0081 | Inventario de Consolidación (WMS) — stock real CN/VE por Ship… | in-progress | interno |
 | 0082 | Captura de email + consentimiento de marketing (implementa SD… | in-progress | interno |
 | 0083 | Write-back de valor a Kommo — outbox + value-sync (implementa… | in-progress | interno |
 | 0084 | Mapa de etapas + write-back de etapa a Kommo (cierra SDD-0062… | in-progress | interno |
