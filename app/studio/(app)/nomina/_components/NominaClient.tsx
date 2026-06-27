@@ -67,11 +67,18 @@ import { RecibosTab } from "./RecibosTab";
 import { GenerarCorteDrawer } from "./GenerarCorteDrawer";
 import { LiquidacionTab } from "./LiquidacionTab";
 import { GenerarFiniquitoDrawer } from "./GenerarFiniquitoDrawer";
+import { SolicitudesTab } from "./SolicitudesTab";
+import { GenerarInvitacionDrawer } from "./GenerarInvitacionDrawer";
+import { RevisarSolicitudDrawer } from "./RevisarSolicitudDrawer";
 import type { Settlement, SettlementKpis } from "@/lib/studio/nomina/settlement-types";
+import type { EmployeeInvite } from "@/lib/studio/nomina/invite-types";
+import type { EmployeeRegistration } from "@/lib/studio/nomina/registration-types";
+import type { RegistrationKpis } from "@/lib/studio/nomina/registration-queries";
 import type { Attendance, Holiday } from "@/lib/studio/nomina/attendance-types";
 
 type Tab =
   | "empleados"
+  | "solicitudes"
   | "prestadores"
   | "asistencia"
   | "prestamos"
@@ -108,6 +115,7 @@ function initialsOf(name: string): string {
 
 const TABS: { value: Tab; label: string }[] = [
   { value: "empleados", label: "Empleados" },
+  { value: "solicitudes", label: "Solicitudes" },
   { value: "prestadores", label: "Prestadores" },
   { value: "asistencia", label: "Asistencia" },
   { value: "prestamos", label: "Préstamos" },
@@ -128,12 +136,15 @@ export function NominaClient({
   warnings,
   runs,
   settlements,
+  invites,
+  registrations,
   employeeKpis,
   contractorKpis,
   loanKpis,
   warningKpis,
   runKpis,
   settlementKpis,
+  registrationKpis,
 }: {
   employees: Employee[];
   contractors: Contractor[];
@@ -145,12 +156,15 @@ export function NominaClient({
   warnings: Warning[];
   runs: PayrollRun[];
   settlements: Settlement[];
+  invites: EmployeeInvite[];
+  registrations: EmployeeRegistration[];
   employeeKpis: EmployeeKpis;
   contractorKpis: ContractorKpis;
   loanKpis: LoanKpis;
   warningKpis: WarningKpis;
   runKpis: PayrollRunKpis;
   settlementKpis: SettlementKpis;
+  registrationKpis: RegistrationKpis;
 }) {
   const [tab, setTab] = useState<Tab>("empleados");
   const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employee: Employee }>(null);
@@ -162,6 +176,8 @@ export function NominaClient({
   const [amonestacionOpen, setAmonestacionOpen] = useState(false);
   const [corteOpen, setCorteOpen] = useState(false);
   const [finiquitoOpen, setFiniquitoOpen] = useState(false);
+  const [invitacionOpen, setInvitacionOpen] = useState(false);
+  const [reviewReg, setReviewReg] = useState<EmployeeRegistration | null>(null);
 
   const contractorName = new Map(contractors.map((c) => [c.id, c.full_name]));
   const employeeName = new Map(
@@ -189,6 +205,13 @@ export function NominaClient({
                 sub="Σ sueldos de activos · indexado USD"
               />
               <KpiCard value={employeeKpis.total_count} label="Total en ficha" highlightWhenPositive={false} />
+            </>
+          )}
+          {tab === "solicitudes" && (
+            <>
+              <KpiCard value={registrationKpis.pending_count} label="Por revisar" />
+              <KpiCard value={registrationKpis.approved_count} label="Aprobadas" highlightWhenPositive={false} />
+              <KpiCard value={registrationKpis.total_count} label="Total solicitudes" highlightWhenPositive={false} />
             </>
           )}
           {tab === "prestadores" && (
@@ -267,6 +290,14 @@ export function NominaClient({
           employees={employees}
           onNew={() => setEmpDrawer({ mode: "new" })}
           onEdit={(employee) => setEmpDrawer({ mode: "edit", employee })}
+        />
+      )}
+      {tab === "solicitudes" && (
+        <SolicitudesTab
+          invites={invites}
+          registrations={registrations}
+          onNewInvite={() => setInvitacionOpen(true)}
+          onReview={(r) => setReviewReg(r)}
         />
       )}
       {tab === "prestadores" && (
@@ -360,6 +391,12 @@ export function NominaClient({
           rules={rules}
           onClose={() => setFiniquitoOpen(false)}
         />
+      )}
+      {invitacionOpen && (
+        <GenerarInvitacionDrawer onClose={() => setInvitacionOpen(false)} />
+      )}
+      {reviewReg && (
+        <RevisarSolicitudDrawer registration={reviewReg} onClose={() => setReviewReg(null)} />
       )}
     </div>
   );
