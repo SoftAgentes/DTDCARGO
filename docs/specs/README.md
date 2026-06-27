@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 103 specs)
+### Índice de specs (generado · 109 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -135,12 +135,18 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0099 | Curso de bienvenida gratuito — Cómo comprar en Alibaba (guion… | in-progress | interno |
 | 0100 | Etiquetas CN reales: QR escaneable + datos de bodega (cierra … | in-progress | interna |
 | 0101 | Naviera Tier 1: tracking real del embarque (deep-link SeaRate… | draft | interna |
-| 0102 | Reclamos y siniestros del cliente — gestión de incidencias de… | in-progress | interno |
+| 0102 | Reclamos y siniestros del cliente — gestión de incidencias de… | done | interno |
 | 0103 | Nómina / RRHH — empleados y prestadores (Slice A) + roadmap L… | in-progress | interno |
 | 0104 | Libros fiscales persistidos — asentar Libro de Ventas / Compr… | in-progress | interno |
 | 0105 | Conciliación bancaria + Activos fijos — sub-pestañas de Conta… | in-progress | interno |
 | 0106 | Identidad por persona (cédula) — tabla persons + Shipping Mar… | in-progress | interno |
 | 0107 | Academia ligada a la persona (cédula) — academy_enrollments.p… | done | interno |
+| 0109 | Liquidación y finiquito de nómina (LOTTT) — prestaciones, vac… | draft | interno |
+| 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | draft | interno |
+| 0113 | Onboarding y app self-service del empleado — invites + regist… | draft | interno |
+| 0114 | Dashboard configurable + persistencia de preferencias por usu… | draft | interno |
+| 0115 | Financiero China Slice C — forex como revenue · claim offsets… | draft | confidencial |
+| 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | draft | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0108, 0110, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

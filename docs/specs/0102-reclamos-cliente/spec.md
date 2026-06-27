@@ -1,10 +1,10 @@
 ---
 sdd: "0102"
 title: "Reclamos y siniestros del cliente — gestión de incidencias de carga (daño / faltante / retraso)"
-status: in-progress
+status: done
 author: "Claude Code (session context) + founder"
 created: 2026-06-21
-updated: 2026-06-21
+updated: 2026-06-26
 supersedes: null
 superseded_by: null
 related: ["0059","0047","0042","0085","0049"]
