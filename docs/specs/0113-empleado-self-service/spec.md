@@ -1,10 +1,10 @@
 ---
 sdd: "0113"
 title: "Onboarding y app self-service del empleado — invites + registrations + employee_comms + app /m/emp"
-status: draft
+status: done
 author: "Claude Code (redactor de specs) + founder"
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0103", "0085", "0042", "0106"]
