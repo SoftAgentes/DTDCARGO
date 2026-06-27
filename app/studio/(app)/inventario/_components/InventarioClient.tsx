@@ -46,7 +46,7 @@ export function InventarioClient({ cn, ve }: Props) {
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto" }}>
       {/* Header */}
-      <div style={{ marginBottom: 20 }}>
+      <div style={{ marginBottom: "var(--s-5)" }}>
         <span className="studio-eyebrow">Operación · Inventario</span>
         <h1
           className="studio-display"
@@ -69,7 +69,7 @@ export function InventarioClient({ cn, ve }: Props) {
       </div>
 
       {/* Tabs bodega */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 16, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "var(--s-2)", marginBottom: "var(--s-4)", flexWrap: "wrap" }}>
         {TABS.map((t) => {
           const active = warehouse === t.key;
           return (
@@ -101,7 +101,7 @@ export function InventarioClient({ cn, ve }: Props) {
           display: "flex",
           alignItems: "center",
           gap: 9,
-          marginBottom: 16,
+          marginBottom: "var(--s-4)",
           flexWrap: "wrap",
         }}
       >
@@ -120,8 +120,8 @@ export function InventarioClient({ cn, ve }: Props) {
         style={{
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
-          gap: 14,
-          marginBottom: 16,
+          gap: "var(--s-4)",
+          marginBottom: "var(--s-4)",
         }}
       >
         <KpiCard
@@ -149,8 +149,8 @@ export function InventarioClient({ cn, ve }: Props) {
           style={{
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
-            gap: 14,
-            marginBottom: 20,
+            gap: "var(--s-4)",
+            marginBottom: "var(--s-5)",
           }}
         >
           {/* Ocupación del próximo contenedor */}
@@ -302,9 +302,9 @@ export function InventarioClient({ cn, ve }: Props) {
         style={{
           font: "400 12px/1.6 var(--f-sans)",
           color: "var(--ink-mute)",
-          marginTop: 20,
+          marginTop: "var(--s-5)",
           borderTop: "1px solid var(--border)",
-          paddingTop: 16,
+          paddingTop: "var(--s-4)",
         }}
       >
         Torre de solo lectura (Slice A). El stock se deriva de las recepciones en
