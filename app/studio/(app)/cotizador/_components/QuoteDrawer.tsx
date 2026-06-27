@@ -37,6 +37,8 @@ import { Icon } from "@/app/studio/_components/icons";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { SplitActionButton } from "@/app/studio/_components/ui/SplitActionButton";
 import { NumericInput } from "@/app/studio/_components/ui/NumericInput";
+import { ClientCombobox } from "@/app/studio/_components/ui/ClientCombobox";
+import type { ClientSearchHit } from "@/lib/studio/client-search-action";
 
 interface Props {
   mode: "create" | "edit";
@@ -412,10 +414,34 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
             )}
           </div>
 
-          {/* Cliente: MARKBOX + Nombre */}
+          {/* Cliente: combobox cédula-first (SDD-0108) + Shipping Mark.
+              El combobox busca por cédula/nombre/Shipping Mark; al elegir
+              autocompleta nombre + markbox. Si el cliente aún no existe, el
+              operador tipea libre (fallback manual) y completa el markbox. */}
           <div
-            style={{ display: "grid", gridTemplateColumns: "180px 1fr", gap: 12 }}
+            style={{ display: "grid", gridTemplateColumns: "1fr 180px", gap: 12 }}
           >
+            <div>
+              <label className="studio-label" htmlFor="qd-clname">
+                Cliente <span style={{ color: "var(--wine)" }}>*</span>
+              </label>
+              <ClientCombobox
+                id="qd-clname"
+                value={clientName}
+                onManualChange={(text) => setClientName(text)}
+                onSelect={(c: ClientSearchHit) => {
+                  setClientName(c.name);
+                  setClientMarkbox(c.markbox);
+                }}
+                placeholder="Cédula, nombre o Shipping Mark…"
+                required
+              />
+              {/* El nombre viaja en el form vía hidden (el input visible es el combobox). */}
+              <input type="hidden" name="client_name" value={clientName} />
+              {state.fieldErrors?.client_name && (
+                <FieldError msg={state.fieldErrors.client_name} />
+              )}
+            </div>
             <div>
               <label className="studio-label" htmlFor="qd-markbox">
                 Shipping Mark <span style={{ color: "var(--wine)" }}>*</span>
@@ -432,24 +458,6 @@ export function QuoteDrawer({ mode, quote, onClose }: Props) {
               />
               {state.fieldErrors?.client_markbox && (
                 <FieldError msg={state.fieldErrors.client_markbox} />
-              )}
-            </div>
-            <div>
-              <label className="studio-label" htmlFor="qd-clname">
-                Nombre del cliente <span style={{ color: "var(--wine)" }}>*</span>
-              </label>
-              <input
-                id="qd-clname"
-                name="client_name"
-                type="text"
-                className="studio-input"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Empresa Demo S.A."
-                required
-              />
-              {state.fieldErrors?.client_name && (
-                <FieldError msg={state.fieldErrors.client_name} />
               )}
             </div>
           </div>
