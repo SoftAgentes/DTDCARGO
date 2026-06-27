@@ -29,7 +29,16 @@ const ALLOWED_MIME = new Set([
 
 export type UploadPhotoResult =
   | { ok: true; storagePath: string; photoId: string }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      /**
+       * true = fallo transitorio (sesión, Storage/RPC, infra) → el cliente
+       * puede reintentar (encolar). false/undefined = validación dura
+       * (mime/size/receipt inexistente) → no reintentable, se descarta.
+       */
+      retryable?: boolean;
+    };
 
 /**
  * Sube 1 foto y la vincula al receipt. Llamar 1 vez por archivo.
@@ -39,7 +48,9 @@ export async function uploadReceiptPhotoAction(
   formData: FormData,
 ): Promise<UploadPhotoResult> {
   const operario = await getCurrentOperario();
-  if (!operario) return { ok: false, error: "Sesión expirada." };
+  // Sesión expirada es transitorio: el operario puede re-loguear y el retry
+  // (desde el home, ya logueado) la sube. NO descartar la foto.
+  if (!operario) return { ok: false, error: "Sesión expirada.", retryable: true };
 
   const receiptId = String(formData.get("receipt_id") ?? "").trim();
   const position = Number(formData.get("position") ?? 0);
@@ -81,7 +92,8 @@ export async function uploadReceiptPhotoAction(
 
   if (uploadErr) {
     console.error("[uploadReceiptPhoto] storage upload error:", uploadErr);
-    return { ok: false, error: `Storage: ${uploadErr.message}` };
+    // Storage caído/503/deadlock = transitorio → reintentable (no perder foto).
+    return { ok: false, error: `Storage: ${uploadErr.message}`, retryable: true };
   }
 
   // Indexar via RPC (valida operario + tenant scope)
@@ -101,7 +113,9 @@ export async function uploadReceiptPhotoAction(
     console.error("[uploadReceiptPhoto] link error:", linkErr);
     // Rollback: borrar el object huérfano del bucket
     await admin.storage.from(BUCKET).remove([path]).catch(() => {});
-    return { ok: false, error: `Link: ${linkErr.message}` };
+    // Error de RPC/DB = transitorio → reintentable. El RPC es idempotente
+    // por (receipt_id, position) (migr 0183), así que el retry no duplica.
+    return { ok: false, error: `Link: ${linkErr.message}`, retryable: true };
   }
 
   return {

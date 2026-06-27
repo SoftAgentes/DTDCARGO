@@ -15,6 +15,7 @@ import { BigButton } from "@/app/m/_components/BigButton";
 import { KpiCard } from "@/app/m/_components/KpiCard";
 import { MobileHeader } from "@/app/m/_components/MobileHeader";
 import { PushOptIn } from "@/app/m/_components/PushOptIn";
+import { PhotoRetryRunner } from "./PhotoRetryRunner";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { pushQrPrintForReceiptAction } from "../qr-actions";
@@ -130,6 +131,8 @@ export function OperarioHomeClient({
 
   return (
     <div style={{ minHeight: "100dvh", background: "var(--bg-base)" }}>
+      {/* Drena fotos de recepción encoladas por red caída (sube solas). */}
+      <PhotoRetryRunner lang={lang} />
       <MobileHeader
         title={t(lang, "Mi día", "今日工作")}
         subtitle={`${operario.warehouseCode} · ${operario.warehouseNameCn}`}
