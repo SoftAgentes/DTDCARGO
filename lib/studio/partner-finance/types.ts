@@ -252,6 +252,8 @@ export type SupplierCharge = {
   status: ChargeStatus;
   reconciled: boolean;
   statement_line_id: string | null;
+  /** SDD-0110: asiento de causación (back-pointer). NULL = aún no asentado. */
+  journal_entry_id: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -297,6 +299,47 @@ export function deriveNetAmount(
   );
   const net = round2(Math.max(0, gross - credited));
   return { credited, net_amount: net };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Conversión a USD funcional para el asiento (SDD-0110)      ║
+// ╚═══════════════════════════════════════════════════════════╝
+/**
+ * Convierte un monto en `currency` a USD funcional para contabilizarlo. PURO —
+ * testeable sin DB. El plan de cuentas del dominio (2.1.7 / 4.6 / 5.10) lleva
+ * el mayor en USD; un cargo en RMB/VES/USDT debe entrar convertido, NUNCA su
+ * valor nominal crudo (un cargo de 7000 RMB no son 7000 USD).
+ *
+ * Semántica de `fx_rate` (columna, comentario de migr 0114): "<currency>/USD" =
+ * unidades de la moneda del cargo por 1 USD (ej. RMB/USD ≈ 7.2, VES/USD ≈ 36).
+ * Por lo tanto:  USD = amount / fx_rate.
+ *
+ * USDT se trata 1:1 con USD (stablecoin par; el spread, si lo hubiera, es
+ * revenue forex aparte — no se mete en el costo de la mercancía).
+ *
+ * Devuelve `{ ok, usd? , reason? }`:
+ *  - USD / USDT → `{ ok: true, usd: amount }` (sin tasa).
+ *  - otra moneda con `fx_rate` válido (> 0) → `{ ok: true, usd: amount / fx_rate }`.
+ *  - otra moneda sin tasa válida → `{ ok: false, reason: 'missing-fx-rate' }`
+ *    (el caller NO debe asentar — preferimos sin asiento a un asiento en moneda
+ *    equivocada).
+ */
+export function amountToUsd(args: {
+  amount: number;
+  currency: PartnerCurrency;
+  fxRate?: number | null;
+}): { ok: true; usd: number } | { ok: false; reason: "missing-fx-rate" } {
+  const amount = num(args.amount);
+  // USD y USDT (par) → ya está en USD funcional, sin tasa.
+  if (args.currency === "USD" || args.currency === "USDT") {
+    return { ok: true, usd: round2(amount) };
+  }
+  // RMB / VES → exige una tasa <currency>/USD válida.
+  const fx = args.fxRate == null ? NaN : Number(args.fxRate);
+  if (!Number.isFinite(fx) || fx <= 0) {
+    return { ok: false, reason: "missing-fx-rate" };
+  }
+  return { ok: true, usd: round2(amount / fx) };
 }
 
 /**
@@ -489,6 +532,8 @@ export type SupplierClaimOffset = {
   evidence_document_id: string | null;
   status: ClaimOffsetStatus;
   client_invoice_id: string | null;
+  /** SDD-0110: asiento de neutralización (back-pointer). NULL = aún no asentado. */
+  journal_entry_id: string | null;
   created_at: string;
   deleted_at: string | null;
 };

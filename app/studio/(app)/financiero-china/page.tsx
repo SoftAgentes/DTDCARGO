@@ -24,6 +24,7 @@ import {
   getPartnerBalance,
   listLedgerEntries,
 } from "@/lib/studio/partner-finance/ledger-queries";
+import { getPartnerFinanceHealth } from "@/lib/studio/partner-finance/posting-health-queries";
 import { FinancieroChinaClient } from "./_components/FinancieroChinaClient";
 
 export const metadata = { title: "Financiero China · DTD Studio" };
@@ -81,7 +82,7 @@ export default async function FinancieroChinaPage() {
   // Socio por defecto (primero de la lista) para cuenta corriente + cargos.
   const defaultSupplierId = supplierOptions[0]?.id ?? null;
 
-  const [statements, charges, ledgerEntries, balance] = await Promise.all([
+  const [statements, charges, ledgerEntries, balance, health] = await Promise.all([
     listStatements(supabase),
     defaultSupplierId ? listCharges(supabase, defaultSupplierId) : Promise.resolve([]),
     defaultSupplierId
@@ -90,6 +91,7 @@ export default async function FinancieroChinaPage() {
     defaultSupplierId
       ? getPartnerBalance(supabase, defaultSupplierId)
       : Promise.resolve({ net_usd: 0, net_rmb: 0, entry_count: 0 }),
+    getPartnerFinanceHealth(supabase),
   ]);
 
   return (
@@ -100,6 +102,7 @@ export default async function FinancieroChinaPage() {
       charges={charges}
       ledgerEntries={ledgerEntries}
       balance={balance}
+      health={health}
     />
   );
 }

@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 109 specs)
+### Índice de specs (generado · 110 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -142,11 +142,12 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0106 | Identidad por persona (cédula) — tabla persons + Shipping Mar… | in-progress | interno |
 | 0107 | Academia ligada a la persona (cédula) — academy_enrollments.p… | done | interno |
 | 0109 | Liquidación y finiquito de nómina (LOTTT) — prestaciones, vac… | draft | interno |
+| 0110 | Cablear el posting contable del Financiero con el Socio Logís… | draft | confidencial |
 | 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | draft | interno |
 | 0113 | Onboarding y app self-service del empleado — invites + regist… | draft | interno |
 | 0114 | Dashboard configurable + persistencia de preferencias por usu… | draft | interno |
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | draft | confidencial |
 | 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | draft | interno |
 
-> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0108, 0110, 0112 — código sin spec o renumerado, auditar caso por caso.
+> **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0108, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->

@@ -22,7 +22,7 @@ import {
 } from "./types";
 
 const CHARGE_COLUMNS =
-  "id, tenant_id, supplier_id, container_id, description, description_cn, amount, currency, fx_rate, charged_on, status, reconciled, statement_line_id, created_at, updated_at, deleted_at";
+  "id, tenant_id, supplier_id, container_id, description, description_cn, amount, currency, fx_rate, charged_on, status, reconciled, statement_line_id, journal_entry_id, created_at, updated_at, deleted_at";
 
 const CREDIT_NOTE_COLUMNS =
   "id, tenant_id, charge_id, reason, amount, currency, fx_rate, issued_on, document_id, created_at, deleted_at";
