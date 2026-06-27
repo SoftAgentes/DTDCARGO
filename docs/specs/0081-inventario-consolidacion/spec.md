@@ -1,10 +1,10 @@
 ---
 sdd: "0081"
 title: "Inventario de Consolidación (WMS) — stock real CN/VE por Shipping Mark + ocupación de contenedor + cola de consolidación"
-status: approved
+status: in-progress
 author: "Claude Code (carril feat/norte-v42 · Norte v4.2)"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-26
 supersedes: null
 superseded_by: null
 related: ["0047", "0016", "0067", "0030", "0029"]
@@ -129,3 +129,34 @@ cero cambios destructivos.** RLS heredada de las tablas base (fail-closed por `t
 - Tests de `getStockByWarehouse` con fixtures de receipts CN/VE (estado derivado correcto: CN consolidación
   + VE despacho).
 - `pnpm build` (turbopack) verde antes de cualquier push.
+
+## 8. Estado de implementación
+
+### Slice A — Torre read-only ✅ construido (2026-06-26, rama `feat/sdd0081-wms`)
+
+**Sin migración** (100% derivación, como dicta la spec). Archivos:
+
+- `lib/studio/inventory/types.ts` — estados derivados CN/VE + helpers `statusMeta`, `kpisFromRows`,
+  `occupancyFrom`; constantes `READY_THRESHOLD_DAYS=3`, `DEFAULT_CONTAINER_CBM=68`.
+- `lib/studio/inventory/queries.ts` — `getStockByWarehouse(supabase, 'CN'|'VE', now?)` puro; deriva CN
+  (consolidación) mapeando `shipment_id → consolidations.status` vía `consolidation_items`, y VE (despacho)
+  agregando `warehouse_receipt_ve_boxes` por `(receipt × markbox)`. Capacidad del 40'HC se lee de
+  `container_types` con fallback a 68.
+- `app/studio/(app)/inventario/page.tsx` (server, `requireModuleView("inventory")`) +
+  `_components/InventarioClient.tsx` (client, tabs CN/VE · 4 KPIs · ocupación + cola · tabla).
+- `lib/studio/modules.ts` + `lib/studio/rbac.ts` — módulo `inventory` (OPERACIÓN), RBAC
+  `["operations","warehouse","support"]` (+admin). Sin USD → no es módulo de dinero.
+- Tests: `lib/studio/inventory/__tests__/queries.test.ts` (12 casos: agrupación, KPIs, ocupación/semáforo,
+  estado derivado CN §6.3 y VE §6.4, fallback de capacidad, bodega vacía).
+
+**Decisiones de implementación tomadas (defensibles, dentro del alcance §6):**
+
+- **Estado VE en Slice A se deriva del ciclo de la recepción VE** (`en_muelle`/`recibiendo` → "en tránsito";
+  `sellado`/`con_incidencia` → "en aduana"), sin join caro a `dispatch_orders`. El avance a
+  "en entrega"/"entregado" cosido con Despacho se difiere a Slice B (la spec lo permite: "derivada de
+  `warehouse_receipts_ve` + el estado de despacho"). Las migr de despacho citadas en `related` (0029/0030)
+  corresponden a la numeración HailuWay; en este repo el despacho vive en `dispatch_orders` (otra numeración).
+- **Una fila = un receipt CN** (no se colapsan las N recepciones del mismo mark en una sola), espejo del
+  mockup, para que el operador vea "5 cajas recibidas hace 2 días" + "3 listas hace 5" por separado.
+
+### Slice B / C — pendiente (no en este lane).

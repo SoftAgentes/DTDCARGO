@@ -53,6 +53,9 @@ export const ROLE_MODULE_ACCESS: Record<string, readonly StudioUserRole[]> = {
   qrqueue: ["operations", "warehouse"],
   labels: ["operations", "warehouse"],
   ve: ["operations", "warehouse", "support"],
+  // Inventario / WMS (SDD-0081): torre de stock read-only. La corre operación +
+  // bodega; support la consulta. Sin USD → no es módulo de dinero.
+  inventory: ["operations", "warehouse", "support"],
   naviera: ["operations", "accounting"],
   seniat: ["operations", "accounting"],
   tms: ["operations", "warehouse"],
