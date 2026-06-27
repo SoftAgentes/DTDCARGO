@@ -200,14 +200,23 @@ async function postPartnerEntry(
       return { ok: true, skipped: "zero-amount" };
     }
 
-    // Idempotencia por origen.
-    const { count, error: existsErr } = await admin
+    // Idempotencia por origen: si YA hay un asiento vivo para esta fila,
+    // devolvemos su id (no insertamos otro). Devolver el entryId permite al
+    // caller re-aplicar el write-back del back-pointer aunque el asiento ya
+    // existiera (idempotente de punta a punta). El filtro por tenant_id es
+    // explícito (admin bypasea RLS) → no se cruza un asiento de otro tenant.
+    const { data: existing, error: existsErr } = await admin
       .from("journal_entries")
-      .select("id", { count: "exact", head: true })
+      .select("id")
+      .eq("tenant_id", args.tenantId)
       .eq(args.sourceColumn, args.sourceId)
-      .is("deleted_at", null);
+      .is("deleted_at", null)
+      .limit(1)
+      .maybeSingle<{ id: string }>();
     if (existsErr) return { ok: false, error: existsErr.message };
-    if ((count ?? 0) > 0) return { ok: true, skipped: "entry-already-exists" };
+    if (existing?.id) {
+      return { ok: true, entryId: existing.id, skipped: "entry-already-exists" };
+    }
 
     const { data: codeData, error: codeErr } = await admin.rpc(
       "next_entry_code",
@@ -348,4 +357,145 @@ export async function postClaimOffsetJournalEntry(input: {
     lines: buildClaimOffsetLines(partner, cogs, input.amountUsd),
     entryDate: input.entryDate,
   });
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Wiring (SDD-0110) · cablea el posting al alta + back-pointer║
+// ╚═══════════════════════════════════════════════════════════╝
+// Hasta SDD-0110 los `post*JournalEntry` existían pero NUNCA se invocaban →
+// journal_entry_id quedaba siempre NULL. Estos wrappers best-effort (patrón
+// `syncClaimIndemnityEntry`, SDD-0101) cierran el loop:
+//   1. crean el asiento (idempotente por origen);
+//   2. escriben el back-pointer journal_entry_id en la fila origen, sólo si
+//      sigue NULL (no pisa un valor previo) y filtrando por tenant_id
+//      (admin bypasea RLS → el scoping es explícito).
+// No throwean: el alta del cargo/conversión/cruce ya quedó persistida; si el
+// asiento falla, se logea y se puede re-postear (el índice de idempotencia lo
+// hace seguro).
+
+/**
+ * Escribe el back-pointer `journal_entry_id` en la fila origen, idempotente:
+ * sólo actualiza si la columna sigue NULL (`is journal_entry_id null`) → un
+ * segundo intento no pisa nada. Filtra por tenant_id (defensa cross-tenant con
+ * el admin client). Best-effort: devuelve `{ ok, error? }`, no throwea.
+ */
+async function writeBackJournalEntryId(args: {
+  table: "supplier_charges" | "supplier_claim_offsets" | "currency_conversions";
+  tenantId: string;
+  rowId: string;
+  entryId: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from(args.table)
+      .update({ journal_entry_id: args.entryId })
+      .eq("id", args.rowId)
+      .eq("tenant_id", args.tenantId)
+      .is("journal_entry_id", null);
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Cablea el asiento de un cargo del socio + escribe el back-pointer. Best-effort.
+ * El monto es el NETO (amount − Σ notas de crédito) — el caller lo resuelve.
+ */
+export async function syncChargeJournalEntry(input: {
+  tenantId: string;
+  chargeId: string;
+  netAmountUsd: number;
+  entryDate?: string;
+}): Promise<PartnerPostingResult> {
+  const result = await postChargeJournalEntry(input);
+  if (result.ok && result.entryId) {
+    const wb = await writeBackJournalEntryId({
+      table: "supplier_charges",
+      tenantId: input.tenantId,
+      rowId: input.chargeId,
+      entryId: result.entryId,
+    });
+    if (!wb.ok) {
+      console.error(
+        `[financiero-china] cargo ${input.chargeId}: asiento ${result.entryId} creado pero el back-pointer falló:`,
+        wb.error,
+      );
+    }
+  } else if (!result.ok) {
+    console.error(
+      `[financiero-china] asiento del cargo ${input.chargeId} no creado:`,
+      result.skipped ?? result.error,
+    );
+  }
+  return result;
+}
+
+/**
+ * Cablea el asiento de una conversión (spread forex = revenue) + back-pointer.
+ * Best-effort. Monto = comisión captada (USD).
+ */
+export async function syncConversionJournalEntry(input: {
+  tenantId: string;
+  conversionId: string;
+  commissionUsd: number;
+  entryDate?: string;
+}): Promise<PartnerPostingResult> {
+  const result = await postConversionJournalEntry(input);
+  if (result.ok && result.entryId) {
+    const wb = await writeBackJournalEntryId({
+      table: "currency_conversions",
+      tenantId: input.tenantId,
+      rowId: input.conversionId,
+      entryId: result.entryId,
+    });
+    if (!wb.ok) {
+      console.error(
+        `[financiero-china] conversión ${input.conversionId}: asiento ${result.entryId} creado pero el back-pointer falló:`,
+        wb.error,
+      );
+    }
+  } else if (!result.ok && result.skipped !== "zero-amount") {
+    // Una conversión sin comisión (spread 0) no genera asiento → no es error.
+    console.error(
+      `[financiero-china] asiento de la conversión ${input.conversionId} no creado:`,
+      result.skipped ?? result.error,
+    );
+  }
+  return result;
+}
+
+/**
+ * Cablea el asiento de un cruce contable (claim offset) + back-pointer.
+ * Best-effort. Monto en USD (amount_usd del cruce).
+ */
+export async function syncClaimOffsetJournalEntry(input: {
+  tenantId: string;
+  claimOffsetId: string;
+  amountUsd: number;
+  entryDate?: string;
+}): Promise<PartnerPostingResult> {
+  const result = await postClaimOffsetJournalEntry(input);
+  if (result.ok && result.entryId) {
+    const wb = await writeBackJournalEntryId({
+      table: "supplier_claim_offsets",
+      tenantId: input.tenantId,
+      rowId: input.claimOffsetId,
+      entryId: result.entryId,
+    });
+    if (!wb.ok) {
+      console.error(
+        `[financiero-china] cruce ${input.claimOffsetId}: asiento ${result.entryId} creado pero el back-pointer falló:`,
+        wb.error,
+      );
+    }
+  } else if (!result.ok) {
+    console.error(
+      `[financiero-china] asiento del cruce ${input.claimOffsetId} no creado:`,
+      result.skipped ?? result.error,
+    );
+  }
+  return result;
 }

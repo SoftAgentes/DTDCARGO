@@ -28,6 +28,13 @@ import {
   applyCreditNote,
   transitionChargeStatus,
 } from "@/lib/studio/partner-finance/charges-queries";
+import { addConversion } from "@/lib/studio/partner-finance/conversions-queries";
+import { addClaimOffset } from "@/lib/studio/partner-finance/claim-offsets-queries";
+import {
+  syncChargeJournalEntry,
+  syncConversionJournalEntry,
+  syncClaimOffsetJournalEntry,
+} from "@/lib/studio/partner-finance/posting";
 import {
   getPartnerBalance,
   listLedgerEntries,
@@ -52,6 +59,8 @@ import {
   isMatchConfidence,
   isMatchStatus,
   validateChargeInput,
+  validateClaimOffsetInput,
+  validateConversionInput,
   validateCreditNoteInput,
   validateStatementInput,
   validateStatementLineInput,
@@ -323,11 +332,101 @@ export async function addChargeAction(
     return { error: Object.values(v.fieldErrors)[0] ?? "Datos del cargo inválidos." };
   }
 
+  let charge: Awaited<ReturnType<typeof addCharge>>;
   try {
-    await addCharge(supabase, tenantId, v.input);
+    charge = await addCharge(supabase, tenantId, v.input);
   } catch (e) {
     return { error: `No se pudo crear el cargo: ${(e as Error).message}` };
   }
+
+  // Asiento de causación (SDD-0110). Best-effort: si falla no rompe el alta.
+  // Un cargo nuevo no tiene notas de crédito → net = amount. No se asienta un
+  // cargo nacido `cancelado` (monto 0 efectivo de obligación).
+  if (charge.status !== "cancelado") {
+    await syncChargeJournalEntry({
+      tenantId,
+      chargeId: charge.id,
+      netAmountUsd: charge.amount,
+      entryDate: charge.charged_on,
+    });
+  }
+
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+// ── Conversión de divisa (spread forex = revenue) ─────────────────
+/**
+ * Alta de una conversión de divisa con su asiento del spread (revenue).
+ * SDD-0110: cablea `syncConversionJournalEntry` tras persistir la fila. El
+ * monto del asiento = comisión captada (commission_amount, computada en lib).
+ * Best-effort: una comisión 0 (sin spread) no genera asiento (no es error).
+ */
+export async function addConversionAction(
+  raw: Record<string, unknown>,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const v = validateConversionInput(raw);
+  if (!v.ok) {
+    return { error: Object.values(v.fieldErrors)[0] ?? "Datos de la conversión inválidos." };
+  }
+
+  let conversion: Awaited<ReturnType<typeof addConversion>>;
+  try {
+    conversion = await addConversion(supabase, tenantId, v.input);
+  } catch (e) {
+    return { error: `No se pudo registrar la conversión: ${(e as Error).message}` };
+  }
+
+  await syncConversionJournalEntry({
+    tenantId,
+    conversionId: conversion.id,
+    commissionUsd: conversion.commission_amount,
+    entryDate: conversion.converted_on,
+  });
+
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+// ── Cruce contable (claim offset) ─────────────────────────────────
+/**
+ * Alta de un cruce contable reclamo→cliente con su asiento de neutralización
+ * de margen. SDD-0110: cablea `syncClaimOffsetJournalEntry` tras persistir la
+ * fila. El monto del asiento = amount_usd del cruce. Best-effort.
+ */
+export async function addClaimOffsetAction(
+  raw: Record<string, unknown>,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
+  const tenantId = await resolveTenant(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant." };
+
+  const v = validateClaimOffsetInput(raw);
+  if (!v.ok) {
+    return { error: Object.values(v.fieldErrors)[0] ?? "Datos del cruce inválidos." };
+  }
+
+  let claimOffset: Awaited<ReturnType<typeof addClaimOffset>>;
+  try {
+    claimOffset = await addClaimOffset(supabase, tenantId, v.input);
+  } catch (e) {
+    return { error: `No se pudo registrar el cruce: ${(e as Error).message}` };
+  }
+
+  await syncClaimOffsetJournalEntry({
+    tenantId,
+    claimOffsetId: claimOffset.id,
+    amountUsd: claimOffset.amount_usd,
+    entryDate: claimOffset.claimed_on,
+  });
 
   revalidatePath(ROUTE);
   return { ok: true };

@@ -252,6 +252,8 @@ export type SupplierCharge = {
   status: ChargeStatus;
   reconciled: boolean;
   statement_line_id: string | null;
+  /** SDD-0110: asiento de causación (back-pointer). NULL = aún no asentado. */
+  journal_entry_id: string | null;
   created_at: string;
   updated_at: string;
   deleted_at: string | null;
@@ -489,6 +491,8 @@ export type SupplierClaimOffset = {
   evidence_document_id: string | null;
   status: ClaimOffsetStatus;
   client_invoice_id: string | null;
+  /** SDD-0110: asiento de neutralización (back-pointer). NULL = aún no asentado. */
+  journal_entry_id: string | null;
   created_at: string;
   deleted_at: string | null;
 };

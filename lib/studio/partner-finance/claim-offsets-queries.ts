@@ -21,7 +21,7 @@ import {
 } from "./types";
 
 const CLAIM_OFFSET_COLUMNS =
-  "id, tenant_id, shipment_id, client_id, supplier_id, amount_usd, claimed_on, recognized_on, received_in_china_on, applied_to_client_on, evidence_document_id, status, client_invoice_id, created_at, deleted_at";
+  "id, tenant_id, shipment_id, client_id, supplier_id, amount_usd, claimed_on, recognized_on, received_in_china_on, applied_to_client_on, evidence_document_id, status, client_invoice_id, journal_entry_id, created_at, deleted_at";
 
 function coerceClaimOffset(r: Record<string, unknown>): SupplierClaimOffset {
   return {
