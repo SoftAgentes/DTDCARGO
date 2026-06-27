@@ -141,7 +141,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0105 | Conciliación bancaria + Activos fijos — sub-pestañas de Conta… | in-progress | interno |
 | 0106 | Identidad por persona (cédula) — tabla persons + Shipping Mar… | in-progress | interno |
 | 0107 | Academia ligada a la persona (cédula) — academy_enrollments.p… | done | interno |
-| 0108 | Combobox de cliente cédula-first (cotizador/tracking/embarques) | in-progress | interno |
+| 0108 | Combobox de cliente cédula-first (cotizador/tracking/embarques) | done | interno |
 | 0109 | Liquidación y finiquito de nómina (LOTTT) — prestaciones, vac… | draft | interno |
 | 0110 | Cablear el posting contable del Financiero con el Socio Logís… | done | confidencial |
 | 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | draft | interno |

@@ -1,10 +1,10 @@
 ---
 sdd: "0108"
 title: "Combobox de cliente cédula-first (cotizador/tracking/embarques)"
-status: in-progress
+status: done
 author: "Claude Code (ventana secundaria) + founder"
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0106", "0107", "0046", "0010"]
