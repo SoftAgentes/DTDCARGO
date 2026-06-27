@@ -12,9 +12,19 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/db/admin";
+import { createClient } from "@/lib/db/server";
 import { getInviteByToken } from "@/lib/studio/nomina/invite-queries";
 import { isInviteUsable } from "@/lib/studio/nomina/invite-types";
 import { validateRegistrationInput } from "@/lib/studio/nomina/registration-types";
+import {
+  validateEmployeeProfileInput,
+  bankDataChanged,
+} from "@/lib/studio/nomina/profile-types";
+import {
+  getMyEmployee,
+  getMyPayslip,
+  type MyPayslip,
+} from "@/lib/studio/nomina/employee-self-queries";
 
 export type RegistroActionState = {
   ok?: boolean;
@@ -98,4 +108,142 @@ export async function submitRegistrationAction(
 
   revalidatePath("/m/emp/registro");
   return { ok: true };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ App del empleado · sesión propia (SDD-0113 Slice C)        ║
+// ╚═══════════════════════════════════════════════════════════╝
+//
+// Estas actions NO llevan moduleEditDenial("nomina"): el caller es el EMPLEADO,
+// no un rol Studio. El candado es la RLS por empleado (employee_id =
+// get_employee_id_for_user()) + el allowlist server-side del perfil. La sesión
+// es la del empleado (createClient lee su cookie); la RLS lo acota a lo suyo.
+
+export type EmpActionState = {
+  ok?: boolean;
+  error?: string;
+  fieldErrors?: Record<string, string>;
+  /** true si el cambio bancario quedó pendiente de verificación del admin. */
+  bankPending?: boolean;
+};
+
+/**
+ * Trae MI recibo de un período (cambio de selector). Vía RPC get_my_payslip:
+ * SOLO mi renglón, SOLO confirmado/pagado. La RLS/RPC acota al propio empleado.
+ */
+export async function fetchMyPayslipAction(period: string): Promise<MyPayslip | null> {
+  const supabase = await createClient();
+  return getMyPayslip(supabase, period || null);
+}
+
+/**
+ * Marca una comunicación como LEÍDA (read_at). La RLS self-update solo deja tocar
+ * los comms del propio empleado → no puede marcar los de otro. Solo set read_at
+ * si estaba vacío (idempotente; no pisa el primer timestamp).
+ */
+export async function markCommReadAction(
+  commId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!commId) return { error: "Falta el id de la comunicación." };
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("nomina_employee_comms")
+    .update({ read_at: new Date().toISOString() })
+    .eq("id", commId)
+    .is("read_at", null);
+
+  if (error) return { error: `No se pudo marcar como leída: ${error.message}` };
+
+  revalidatePath("/m/emp");
+  return { ok: true };
+}
+
+/**
+ * "Acuso recibo" → setea acked_at (timestamp in-app). RLS self-update acota al
+ * dueño. Solo si requires_ack y aún sin acked. Marca read_at de paso.
+ */
+export async function ackCommAction(
+  commId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  if (!commId) return { error: "Falta el id de la comunicación." };
+  const supabase = await createClient();
+
+  const now = new Date().toISOString();
+  const { data, error } = await supabase
+    .from("nomina_employee_comms")
+    .update({ acked_at: now, read_at: now })
+    .eq("id", commId)
+    .eq("requires_ack", true)
+    .is("acked_at", null)
+    .select("id");
+
+  if (error) return { error: `No se pudo confirmar: ${error.message}` };
+  if (!data || data.length === 0) {
+    return { error: "Esta comunicación no requiere confirmación o ya fue confirmada." };
+  }
+
+  revalidatePath("/m/emp");
+  return { ok: true };
+}
+
+/**
+ * Actualiza el perfil self-service. ALLOWLIST server-side: solo phone/email/bank_*
+ * (validateEmployeeProfileInput descarta el resto, aunque venga en el FormData).
+ * phone/email → directo vía RPC update_my_contact (allowlist en la DB). Cambio
+ * bancario → NO entra directo: queda PENDIENTE de verificación del admin
+ * (request_my_bank_change). Sin moduleEditDenial: candado = RLS por empleado.
+ */
+export async function updateMyProfileAction(
+  _prev: EmpActionState,
+  formData: FormData,
+): Promise<EmpActionState> {
+  const supabase = await createClient();
+
+  // Defensa de sesión: sin ficha enlazada → no autorizado (no se confía en input).
+  const me = await getMyEmployee(supabase);
+  if (!me) return { error: "No tienes una ficha de empleado activa." };
+
+  const { input, fieldErrors } = validateEmployeeProfileInput({
+    phone: strOrNull(formData.get("phone")),
+    email: strOrNull(formData.get("email")),
+    bank_name: strOrNull(formData.get("bank_name")),
+    bank_account_type: strOrNull(formData.get("bank_account_type")),
+    bank_account: strOrNull(formData.get("bank_account")),
+    // Estos llegan en el FormData de un atacante pero el validador NO los copia:
+    salary_usd: strOrNull(formData.get("salary_usd")),
+    position_label: strOrNull(formData.get("position_label")),
+    status: strOrNull(formData.get("status")),
+  });
+  if (fieldErrors) return { fieldErrors };
+
+  // 1) Contacto directo (phone/email) → RPC allowlist en la DB.
+  const { error: contactErr } = await supabase.rpc("update_my_contact", {
+    p_phone: input!.phone,
+    p_email: input!.email,
+  });
+  if (contactErr) return { error: `No se pudo guardar el contacto: ${contactErr.message}` };
+
+  // 2) Cambio bancario → SOLO si cambió → staging pendiente de verificación.
+  let bankPending = false;
+  const changed = bankDataChanged(
+    {
+      bank_name: input!.bank_name,
+      bank_account_type: input!.bank_account_type,
+      bank_account: input!.bank_account,
+    },
+    { bank_name: me.bank_name, bank_account_type: me.bank_account_type, bank_account: me.bank_account },
+  );
+  if (changed) {
+    const { error: bankErr } = await supabase.rpc("request_my_bank_change", {
+      p_bank_name: input!.bank_name,
+      p_bank_account_type: input!.bank_account_type,
+      p_bank_account: input!.bank_account,
+    });
+    if (bankErr) return { error: `No se pudo solicitar el cambio bancario: ${bankErr.message}` };
+    bankPending = true;
+  }
+
+  revalidatePath("/m/emp");
+  return { ok: true, bankPending };
 }

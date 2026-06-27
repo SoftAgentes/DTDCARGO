@@ -29,6 +29,7 @@ import {
   listRegistrations,
   computeRegistrationKpis,
 } from "@/lib/studio/nomina/registration-queries";
+import { listAllComms } from "@/lib/studio/nomina/comms-queries";
 import { computeEmployeeKpis } from "@/lib/studio/nomina/employee-types";
 import { computeContractorKpis } from "@/lib/studio/nomina/contractor-types";
 import { computeLoanKpis } from "@/lib/studio/nomina/loan-types";
@@ -55,6 +56,7 @@ export default async function NominaPage() {
     settlements,
     invites,
     registrations,
+    comms,
   ] = await Promise.all([
     listEmployees(supabase),
     listContractors(supabase),
@@ -67,6 +69,7 @@ export default async function NominaPage() {
     listSettlements(supabase),
     listInvites(supabase),
     listRegistrations(supabase),
+    listAllComms(supabase),
   ]);
 
   // Los préstamos derivan saldo combinando con sus cuotas y con los empleados.
@@ -116,6 +119,7 @@ export default async function NominaPage() {
         settlements={settlements}
         invites={invites}
         registrations={registrations}
+        comms={comms}
         employeeKpis={employeeKpis}
         contractorKpis={contractorKpis}
         loanKpis={loanKpis}

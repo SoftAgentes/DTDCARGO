@@ -70,6 +70,8 @@ import { GenerarFiniquitoDrawer } from "./GenerarFiniquitoDrawer";
 import { SolicitudesTab } from "./SolicitudesTab";
 import { GenerarInvitacionDrawer } from "./GenerarInvitacionDrawer";
 import { RevisarSolicitudDrawer } from "./RevisarSolicitudDrawer";
+import { ComunicacionesTab } from "./ComunicacionesTab";
+import type { EmployeeComm } from "@/lib/studio/nomina/comms-types";
 import type { Settlement, SettlementKpis } from "@/lib/studio/nomina/settlement-types";
 import type { EmployeeInvite } from "@/lib/studio/nomina/invite-types";
 import type { EmployeeRegistration } from "@/lib/studio/nomina/registration-types";
@@ -85,6 +87,7 @@ type Tab =
   | "amonestaciones"
   | "recibos"
   | "liquidaciones"
+  | "comunicaciones"
   | "reglas";
 
 function fmtUsd(n: number): string {
@@ -122,6 +125,7 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "amonestaciones", label: "Amonestaciones" },
   { value: "recibos", label: "Recibos" },
   { value: "liquidaciones", label: "Liquidaciones" },
+  { value: "comunicaciones", label: "Comunicaciones" },
   { value: "reglas", label: "Reglas" },
 ];
 
@@ -138,6 +142,7 @@ export function NominaClient({
   settlements,
   invites,
   registrations,
+  comms,
   employeeKpis,
   contractorKpis,
   loanKpis,
@@ -158,6 +163,7 @@ export function NominaClient({
   settlements: Settlement[];
   invites: EmployeeInvite[];
   registrations: EmployeeRegistration[];
+  comms: EmployeeComm[];
   employeeKpis: EmployeeKpis;
   contractorKpis: ContractorKpis;
   loanKpis: LoanKpis;
@@ -187,7 +193,7 @@ export function NominaClient({
   return (
     <div>
       {/* KPIs — Asistencia y Reglas traen lo suyo adentro */}
-      {tab !== "asistencia" && tab !== "reglas" && (
+      {tab !== "asistencia" && tab !== "reglas" && tab !== "comunicaciones" && (
         <div
           style={{
             display: "grid",
@@ -341,6 +347,9 @@ export function NominaClient({
           hasEmployees={employees.some((e) => e.status !== "egresado")}
           onNew={() => setFiniquitoOpen(true)}
         />
+      )}
+      {tab === "comunicaciones" && (
+        <ComunicacionesTab comms={comms} employees={employees} />
       )}
       {tab === "reglas" && (
         <ReglasTab rules={rules} onEdit={() => setReglasOpen(true)} />
