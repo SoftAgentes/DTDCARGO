@@ -1,10 +1,10 @@
 ---
 sdd: "0109"
 title: "Liquidación y finiquito de nómina (LOTTT) — prestaciones, vacaciones/utilidades fraccionadas e indemnización por causa de terminación"
-status: draft
+status: in-progress
 author: "Claude Code (lane sdd-0109-nomina-liquidacion) + founder"
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0103", "0079", "0080", "0104", "0085"]
@@ -288,6 +288,20 @@ app/studio/(app)/nomina/_components/NominaClient.tsx      (editar: +pestaña Liq
 ```
 
 ## 10. Decisiones pendientes (founder)
+
+> **Resueltas por el founder · 2026-06-27** (las 4 que fijan el modelo de datos; el resto quedan
+> «el contador en la pasada de cálculo», advisory):
+> - **#2 Prestaciones (Art. 142):** modelar **ambas** (garantía trimestral + retroactivo) y tomar
+>   **la mayor** → `prestaciones_method = 'mejor'` (default). Es lo que exige la ley literal.
+> - **#5 Asiento al confirmar:** **provisiona** contra pasivo «finiquitos por pagar»; el pago real
+>   sale luego por Tesorería (SDD-0044). NO contra caja-banco.
+> - **#7 Moneda:** calcular en **USD** (fuente de verdad del sueldo, SDD-0103) y **convertir a Bs** a
+>   la tasa del egreso para el PDF legal, con desglose en ambas.
+> - **#4 Art. 78 (causas ajenas):** **no incluye** Art. 92 por default (`ajena_78_incluye_92 = false`,
+>   configurable). Las demás causas siguen el mapa LOTTT mecánico.
+>
+> Las restantes (#1 qué bonos son salariales, #3 tasa de interés, #6 adelantos, #8 firma del PDF,
+> #9 preaviso, #10 retención) quedan **advisory / config del contador** y NO bloquean este entregable.
 
 > Borrador para revisión. Estas son decisiones de **negocio / contador** que NO resuelvo en la spec —
 > las dejo expuestas para que las definas (o las marques como «el contador en la pasada de cálculo»).

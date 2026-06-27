@@ -65,6 +65,9 @@ import { CuotaPrestamoDrawer } from "./CuotaPrestamoDrawer";
 import { AmonestacionDrawer } from "./AmonestacionDrawer";
 import { RecibosTab } from "./RecibosTab";
 import { GenerarCorteDrawer } from "./GenerarCorteDrawer";
+import { LiquidacionTab } from "./LiquidacionTab";
+import { GenerarFiniquitoDrawer } from "./GenerarFiniquitoDrawer";
+import type { Settlement, SettlementKpis } from "@/lib/studio/nomina/settlement-types";
 import type { Attendance, Holiday } from "@/lib/studio/nomina/attendance-types";
 
 type Tab =
@@ -74,6 +77,7 @@ type Tab =
   | "prestamos"
   | "amonestaciones"
   | "recibos"
+  | "liquidaciones"
   | "reglas";
 
 function fmtUsd(n: number): string {
@@ -109,6 +113,7 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "prestamos", label: "Préstamos" },
   { value: "amonestaciones", label: "Amonestaciones" },
   { value: "recibos", label: "Recibos" },
+  { value: "liquidaciones", label: "Liquidaciones" },
   { value: "reglas", label: "Reglas" },
 ];
 
@@ -122,11 +127,13 @@ export function NominaClient({
   loans,
   warnings,
   runs,
+  settlements,
   employeeKpis,
   contractorKpis,
   loanKpis,
   warningKpis,
   runKpis,
+  settlementKpis,
 }: {
   employees: Employee[];
   contractors: Contractor[];
@@ -137,11 +144,13 @@ export function NominaClient({
   loans: LoanWithBalance[];
   warnings: Warning[];
   runs: PayrollRun[];
+  settlements: Settlement[];
   employeeKpis: EmployeeKpis;
   contractorKpis: ContractorKpis;
   loanKpis: LoanKpis;
   warningKpis: WarningKpis;
   runKpis: PayrollRunKpis;
+  settlementKpis: SettlementKpis;
 }) {
   const [tab, setTab] = useState<Tab>("empleados");
   const [empDrawer, setEmpDrawer] = useState<null | { mode: "new" } | { mode: "edit"; employee: Employee }>(null);
@@ -152,6 +161,7 @@ export function NominaClient({
   const [cuotaLoan, setCuotaLoan] = useState<LoanWithBalance | null>(null);
   const [amonestacionOpen, setAmonestacionOpen] = useState(false);
   const [corteOpen, setCorteOpen] = useState(false);
+  const [finiquitoOpen, setFiniquitoOpen] = useState(false);
 
   const contractorName = new Map(contractors.map((c) => [c.id, c.full_name]));
   const employeeName = new Map(
@@ -207,6 +217,13 @@ export function NominaClient({
               <KpiCard value={runKpis.live_count} label="Cortes vivos" highlightWhenPositive={false} />
               <KpiCard value={runKpis.draft_count} label="En borrador" highlightWhenPositive={false} />
               <KpiCard value={fmtUsd(runKpis.net_usd)} label="Neto de cortes vivos" />
+            </>
+          )}
+          {tab === "liquidaciones" && (
+            <>
+              <KpiCard value={settlementKpis.draft_count} label="En borrador" highlightWhenPositive={false} />
+              <KpiCard value={settlementKpis.confirmed_count} label="Confirmados" highlightWhenPositive={false} />
+              <KpiCard value={fmtUsd(settlementKpis.net_usd)} label="Neto de finiquitos vivos" />
             </>
           )}
         </div>
@@ -287,6 +304,13 @@ export function NominaClient({
       {tab === "recibos" && (
         <RecibosTab runs={runs} onNew={() => setCorteOpen(true)} />
       )}
+      {tab === "liquidaciones" && (
+        <LiquidacionTab
+          settlements={settlements}
+          hasEmployees={employees.some((e) => e.status !== "egresado")}
+          onNew={() => setFiniquitoOpen(true)}
+        />
+      )}
       {tab === "reglas" && (
         <ReglasTab rules={rules} onEdit={() => setReglasOpen(true)} />
       )}
@@ -329,6 +353,13 @@ export function NominaClient({
       )}
       {corteOpen && (
         <GenerarCorteDrawer rules={rules} onClose={() => setCorteOpen(false)} />
+      )}
+      {finiquitoOpen && (
+        <GenerarFiniquitoDrawer
+          employees={employees}
+          rules={rules}
+          onClose={() => setFiniquitoOpen(false)}
+        />
       )}
     </div>
   );
