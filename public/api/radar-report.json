@@ -4,40 +4,45 @@
   "partA": {
     "findings": [
       {
-        "id": "npm-wildcards-pnpm-repo",
-        "title": "Permisos npm en repo pnpm-only (settings.local.json: npm install *, npm run *, npm link *)",
+        "id": "podar-wildcards-permisos",
+        "title": "Permisos locales con wildcards amplios/destructivos (git rm *, git restore *, Copy-Item *, Get-ChildItem *)",
         "severity": "media",
-        "action": "Quitar `npm install *`, `npm run *`, `npm link *` de .claude/settings.local.json — el repo es pnpm; un `npm install` genera package-lock.json y desincroniza el lockfile. Reemplazar por equivalentes pnpm acotados si hacen falta.",
+        "action": "Acotar en .claude/settings.local.json: git rm/restore a rutas específicas; Copy-Item/Get-ChildItem son demasiado abiertos. git rm * es destructivo.",
         "top": true
       },
       {
-        "id": "forge-refs-stale",
-        "title": "Refs a 'forge' sin uso en el proyecto",
+        "id": "settings-local-bom",
+        "title": "settings.local.json escrito con BOM (UTF-16/PowerShell)",
         "severity": "baja",
-        "action": "Revisar `PowerShell(forge *)` y `Read(//c/Users/Trabajo/.forge/tools/forge-cli/**)` en settings.local.json — no hay forge en el repo; podar si quedaron de otra sesion."
+        "action": "Reescribir como UTF-8 sin BOM para evitar parsing raro; cosmético hoy pero ya mordió en .graphify_root."
       },
       {
-        "id": "broad-powershell-wildcards",
-        "title": "Wildcards PowerShell/git amplios (Copy-Item *, Get-ChildItem *, git rm *)",
+        "id": "claude-md-duplicado-norte",
+        "title": "Guardrails duplicados: _norte/design_handoff_mobile_app/CLAUDE.md es copia del canónico _norte/CLAUDE.md",
         "severity": "baja",
-        "action": "Acotar a rutas del repo si se quiere menos superficie de auto-permiso. Trade-off: mas prompts a futuro. Riesgo bajo."
+        "action": "Si editás el canónico _norte/CLAUDE.md, replicá en la copia del paquete móvil o diverge (hoy en sync con no-voseo + Nunito/Sora + book v4.5)."
       },
       {
-        "id": "effort-high-mechanical",
-        "title": "effortLevel='high' global — caro en tareas mecanicas",
+        "id": "modelo-mecanico-sonnet",
+        "title": "Sin model/effort configurado para tareas mecánicas",
         "severity": "baja",
-        "action": "Mantener high para implement/review; bajar a Sonnet/medium en tareas mecanicas (radar, docs:index, sweeps de marca) reduce costo sin perder calidad."
+        "action": "Considerar Sonnet/Haiku en barridos mecánicos (renames, sync de docs, greps) para bajar costo; Opus para diseño/financiero/security."
       }
     ],
-    "estimatedTokenSavings": "~10%"
+    "estimatedTokenSavings": "~8%"
   },
   "partB": {
     "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
     "blocks": [
-      { "name": "Core API-CONTRACT (22 entidades)", "remaining": "18%", "note": "18 built / 4 partial (auth unificado, cola offline de entrada, catalogo origen CN, salida multi-canal WhatsApp/Telegram) / 0 missing. 82% built. Ninguno keystone." },
-      { "name": "Bloques financieros 1-5", "remaining": "~6%", "note": "7 de 8 done; solo 2.3 (Socio Logistico China, confidencial) in-progress con tablas en prod (0114/0115). Bloques 3 Fiscal, 4 Naviera, 5 Comercial = done." },
-      { "name": "Hueco v4.5 #1 · Nomina/RRHH", "remaining": "~70%", "note": "Bottleneck vigente. employees (0160) + contractors (0161) ya con tabla; falta el motor LOTTT: payroll_rules/payroll_run/attendance/holidays/loans/warnings/registrations/invites/employee_comms." },
-      { "name": "Huecos v4.5 menores", "remaining": "var", "note": "#2 Supplier<->Client (tabla puente WeChat) missing · #3 Deteccion ferias IA missing (Vault = skip founder) · #4 Portal inbox partial (compuesto). Snapshot doc al 0168." }
+      { "name": "Bloque 1.1 · Facturación", "remaining": "0%", "note": "SDD-0021 done" },
+      { "name": "Bloque 1.2 · Contabilidad", "remaining": "0%", "note": "SDD-0040 done" },
+      { "name": "Bloque 2.1 · Cobranzas", "remaining": "0%", "note": "SDD-0041 done" },
+      { "name": "Bloque 2.2 · Tesorería", "remaining": "0%", "note": "SDD-0044 done" },
+      { "name": "Bloque 2.3 · Financiero Socio China", "remaining": "50%", "note": "SDD-0059 in-progress (confidencial, fuera del core-22); migr 0114/0115 en prod" },
+      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "0%", "note": "SDD-0073 v2 LIVE (migr 0126/0141)" },
+      { "name": "Bloque 4 · Naviera & Consolidación", "remaining": "0%", "note": "SDD-0047 done (migr 0096)" },
+      { "name": "Bloque 5 · Comercial", "remaining": "0%", "note": "SDD-0048/49/51/52/53/54 done" },
+      { "name": "Blueprint v4.5 ampliado (fuera del core-22)", "remaining": "~20 huecos", "note": "doc desactualizado: dice 'proxima migr 0169' pero prod esta en 0177 (Nomina motor 0175, Persons 0170-0174, Academia 0177, Inspecciones 0176 ya LIVE) — pendiente regenerar la reconciliacion" }
     ]
   }
 }
