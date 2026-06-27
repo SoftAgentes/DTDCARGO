@@ -74,6 +74,28 @@ import {
   listPayrollRunLines,
 } from "@/lib/studio/nomina/payroll-run-queries";
 import type { PayrollRunLine } from "@/lib/studio/nomina/payroll-run-types";
+import {
+  validateGenerateSettlementInput,
+  calcLiquidacion,
+  settlementRulesFrom,
+  canTransitionSettlement,
+  type SettlementLine,
+} from "@/lib/studio/nomina/settlement-types";
+import {
+  getSettlement,
+  findLiveSettlementForEmployee,
+  listSettlementLines,
+  employeeLoanBalanceUsd,
+} from "@/lib/studio/nomina/settlement-queries";
+import type { SettlementLineRow } from "@/lib/studio/nomina/settlement-types";
+import {
+  postSettlementJournalEntry,
+  voidSettlementJournalEntry,
+} from "@/lib/studio/accounting/settlement-posting";
+import {
+  getAccountingSettings,
+  isPeriodClosed,
+} from "@/lib/studio/accounting/period-queries";
 
 const MODULE_ID = "nomina";
 const PATH = "/studio/nomina";
@@ -1202,6 +1224,380 @@ export async function softDeletePayrollRunAction(
     .eq("id", runId);
 
   if (error) return { error: `No se pudo eliminar el corte: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+// ╔═══════════════════════════════════════════════════════════╗
+// ║ Liquidación / finiquito (settlements · SDD-0109)           ║
+// ╚═══════════════════════════════════════════════════════════╝
+//
+// Genera el finiquito de egreso (LOTTT) en BORRADOR / ADVISORY: calcula
+// prestaciones + fracciones + indemnización Art. 92 + intereses − deducciones,
+// con el criterio salarial como PARÁMETRO (calcLiquidacion). Congela el ruleset
+// (rules_snapshot). Al CONFIRMAR genera el asiento de provisión (SDD-0079);
+// el pago real sale luego por Tesorería. El contador valida antes de pagar.
+
+/** Persiste los renglones del desglose de un finiquito en borrador (helper). */
+async function writeSettlementLines(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  tenantId: string,
+  settlementId: string,
+  lines: SettlementLine[],
+): Promise<string | null> {
+  const { error: delErr } = await supabase
+    .from("nomina_settlement_lines")
+    .delete()
+    .eq("settlement_id", settlementId);
+  if (delErr) return `No se pudieron limpiar los renglones: ${delErr.message}`;
+
+  if (lines.length === 0) return null;
+
+  const rows = lines.map((l) => ({
+    tenant_id: tenantId,
+    settlement_id: settlementId,
+    kind: l.kind,
+    label: l.label,
+    days: l.days,
+    base_usd: l.base_usd,
+    amount_usd: l.amount_usd,
+  }));
+  const { error: insErr } = await supabase.from("nomina_settlement_lines").insert(rows);
+  if (insErr) return `No se pudieron generar los renglones: ${insErr.message}`;
+  return null;
+}
+
+/**
+ * Genera un finiquito para un empleado por causa de terminación. Congela las
+ * reglas vigentes, computa el desglose (advisory) y crea el finiquito en
+ * borrador. Si ya hay uno vivo del empleado, error claro. Gate de rol PRIMERO.
+ */
+export async function generarFiniquitoAction(
+  _prev: NominaActionState,
+  formData: FormData,
+): Promise<NominaActionState> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { input, fieldErrors } = validateGenerateSettlementInput({
+    employee_id: strOrNull(formData.get("employee_id")),
+    termination_cause: strOrNull(formData.get("termination_cause")),
+    termination_date: strOrNull(formData.get("termination_date")),
+    notes: strOrNull(formData.get("notes")),
+  });
+  if (fieldErrors) return { fieldErrors };
+
+  const tenantId = await resolveTenantId(supabase);
+  if (!tenantId) return { error: "No se pudo resolver el tenant del usuario." };
+
+  // ¿Ya hay finiquito vivo del empleado?
+  const existing = await findLiveSettlementForEmployee(supabase, input!.employee_id);
+  if (existing) {
+    return {
+      fieldErrors: {
+        employee_id: `El empleado ya tiene un finiquito ${existing.settlement_code} (${existing.status}). Anúlalo para regenerar.`,
+      },
+    };
+  }
+
+  // Datos del empleado (sueldo + ingreso) — de la ficha.
+  const employees = await listEmployees(supabase);
+  const employee = employees.find((e) => e.id === input!.employee_id);
+  if (!employee) return { fieldErrors: { employee_id: "El empleado no es de tu tenant." } };
+  if (!employee.hire_date) {
+    return { fieldErrors: { employee_id: "El empleado no tiene fecha de ingreso en la ficha." } };
+  }
+  if (input!.termination_date < employee.hire_date) {
+    return { fieldErrors: { termination_date: "El egreso no puede ser anterior al ingreso." } };
+  }
+
+  // Reglas vigentes (criterio salarial) a congelar.
+  const rules = await getVigentePayrollRules(supabase);
+  if (!rules) {
+    return { error: "Define primero las reglas de cálculo (pestaña Reglas)." };
+  }
+
+  const loanBalanceUsd = await employeeLoanBalanceUsd(supabase, {
+    id: employee.id,
+    full_name: employee.full_name,
+    employee_code: employee.employee_code,
+  });
+
+  const calc = calcLiquidacion({
+    cause: input!.termination_cause,
+    hireDate: employee.hire_date,
+    terminationDate: input!.termination_date,
+    baseSalaryUsd: employee.salary_usd,
+    rules: settlementRulesFrom(rules),
+    loanBalanceUsd,
+  });
+
+  // next_settlement_code (correlativo LIQ-NNNN).
+  const { data: codeData, error: codeErr } = await supabase.rpc("next_settlement_code", {
+    p_tenant_id: tenantId,
+  });
+  if (codeErr || !codeData) {
+    return { error: "No se pudo generar el código del finiquito." };
+  }
+  const settlementCode = String(codeData);
+
+  const { data: userResp } = await supabase.auth.getUser();
+
+  const { data: ins, error: insErr } = await supabase
+    .from("nomina_settlements")
+    .insert({
+      tenant_id: tenantId,
+      settlement_code: settlementCode,
+      employee_id: employee.id,
+      employee_code: employee.employee_code,
+      employee_name: employee.full_name,
+      termination_cause: input!.termination_cause,
+      hire_date: employee.hire_date,
+      termination_date: input!.termination_date,
+      base_salary_usd: employee.salary_usd,
+      rules_snapshot: rules,
+      status: "borrador",
+      total_prestaciones_usd: calc.totals.prestaciones_usd,
+      total_fracciones_usd: calc.totals.fracciones_usd,
+      total_indemnizacion_usd: calc.totals.indemnizacion_usd,
+      total_intereses_usd: calc.totals.intereses_usd,
+      total_deductions_usd: calc.totals.deductions_usd,
+      total_net_usd: calc.totals.net_usd,
+      salario_integral_usd: calc.totals.salario_integral_usd,
+      notes: input!.notes,
+      created_by: userResp.user?.id ?? null,
+    })
+    .select("id")
+    .single();
+
+  if (insErr || !ins) {
+    if (insErr?.code === "23505") {
+      return { error: "Carrera al generar el código. Intenta de nuevo." };
+    }
+    if (insErr?.code === "check_violation" || /no pertenece al tenant/i.test(insErr?.message ?? "")) {
+      return { fieldErrors: { employee_id: "El empleado no es de tu tenant." } };
+    }
+    return { error: `No se pudo crear el finiquito: ${insErr?.message ?? "desconocido"}` };
+  }
+
+  const lineErr = await writeSettlementLines(supabase, tenantId, String(ins.id), calc.lines);
+  if (lineErr) return { error: lineErr };
+
+  revalidatePath(PATH);
+  return { ok: true, createdCode: settlementCode };
+}
+
+/**
+ * Regenera el desglose de un finiquito en borrador: recomputa con el snapshot de
+ * reglas congelado del propio finiquito + el saldo de préstamo actual.
+ */
+export async function regenerarFiniquitoAction(
+  settlementId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const s = await getSettlement(supabase, settlementId);
+  if (!s) return { error: "El finiquito no existe o no es de tu tenant." };
+  if (s.status !== "borrador") {
+    return { error: "Solo se pueden regenerar finiquitos en borrador." };
+  }
+
+  const loanBalanceUsd = await employeeLoanBalanceUsd(supabase, {
+    id: s.employee_id,
+    full_name: s.employee_name,
+    employee_code: s.employee_code,
+  });
+
+  const calc = calcLiquidacion({
+    cause: s.termination_cause,
+    hireDate: s.hire_date,
+    terminationDate: s.termination_date,
+    baseSalaryUsd: s.base_salary_usd,
+    rules: settlementRulesFrom(s.rules_snapshot),
+    loanBalanceUsd,
+  });
+
+  const lineErr = await writeSettlementLines(supabase, s.tenant_id, s.id, calc.lines);
+  if (lineErr) return { error: lineErr };
+
+  await supabase
+    .from("nomina_settlements")
+    .update({
+      total_prestaciones_usd: calc.totals.prestaciones_usd,
+      total_fracciones_usd: calc.totals.fracciones_usd,
+      total_indemnizacion_usd: calc.totals.indemnizacion_usd,
+      total_intereses_usd: calc.totals.intereses_usd,
+      total_deductions_usd: calc.totals.deductions_usd,
+      total_net_usd: calc.totals.net_usd,
+      salario_integral_usd: calc.totals.salario_integral_usd,
+    })
+    .eq("id", s.id)
+    .eq("status", "borrador");
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/**
+ * Confirma el finiquito (borrador → confirmado): valida período abierto, genera
+ * el asiento de PROVISIÓN (DR gasto / CR sueldos por pagar, SDD-0079), guarda el
+ * journal_entry_id y sella confirmed_at. (PDF a Storage = Slice posterior; el
+ * detalle es imprimible desde el navegador.) Es un asiento contable → idempotente
+ * por el journal_entry_id del propio finiquito.
+ */
+export async function confirmarFiniquitoAction(
+  settlementId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const s = await getSettlement(supabase, settlementId);
+  if (!s) return { error: "El finiquito no existe o no es de tu tenant." };
+  if (!canTransitionSettlement(s.status, "confirmado")) {
+    return { error: `No se puede confirmar un finiquito ${s.status}.` };
+  }
+  if (s.journal_entry_id) {
+    return { error: "El finiquito ya tiene un asiento contable." };
+  }
+
+  // Período fiscal cerrado → no se postea (SDD-0080).
+  const settings = await getAccountingSettings(supabase);
+  if (isPeriodClosed(settings.closing_date, s.termination_date)) {
+    return {
+      error: `El período del egreso (${s.termination_date}) está cerrado contablemente. No se puede asentar.`,
+    };
+  }
+
+  // RECLAMAR PRIMERO (UPDATE optimista) y SOLO el ganador postea → cierra el
+  // TOCTOU del doble-confirm: dos clicks concurrentes no crean dos asientos.
+  // El guard `status='borrador' AND journal_entry_id IS NULL` + el .select()
+  // nos dice cuántas filas matchearon (0 = otra acción ya lo tomó).
+  const { data: claimed, error: claimErr } = await supabase
+    .from("nomina_settlements")
+    .update({ status: "confirmado", confirmed_at: new Date().toISOString() })
+    .eq("id", s.id)
+    .eq("status", "borrador")
+    .is("journal_entry_id", null)
+    .select("id");
+  if (claimErr) return { error: `No se pudo confirmar el finiquito: ${claimErr.message}` };
+  if (!claimed || claimed.length === 0) {
+    return { error: "El finiquito ya no está en borrador (otra acción lo cambió)." };
+  }
+
+  // Ganamos el reclamo → generamos el asiento de provisión (best-effort: si falta
+  // una cuenta del CoA, no rompe; queda confirmado sin asiento y se reintenta).
+  const posting = await postSettlementJournalEntry({
+    tenantId: s.tenant_id,
+    settlementId: s.id,
+    settlementCode: s.settlement_code,
+    employeeName: s.employee_name,
+    netUsd: s.total_net_usd,
+    entryDate: s.termination_date,
+  });
+  if (!posting.ok && !posting.skipped) {
+    // El asiento falló de verdad → revertimos el reclamo (vuelve a borrador).
+    await supabase
+      .from("nomina_settlements")
+      .update({ status: "borrador", confirmed_at: null })
+      .eq("id", s.id)
+      .eq("status", "confirmado");
+    return { error: `No se pudo generar el asiento: ${posting.error ?? "desconocido"}` };
+  }
+
+  // Guardar el back-pointer al asiento. Si esto fallara, el finiquito queda
+  // confirmado y el asiento vivo: anulamos el asiento para no dejarlo huérfano.
+  if (posting.entryId) {
+    const { error: linkErr } = await supabase
+      .from("nomina_settlements")
+      .update({ journal_entry_id: posting.entryId })
+      .eq("id", s.id);
+    if (linkErr) {
+      await voidSettlementJournalEntry(posting.entryId);
+      await supabase
+        .from("nomina_settlements")
+        .update({ status: "borrador", confirmed_at: null })
+        .eq("id", s.id)
+        .eq("status", "confirmado");
+      return { error: `No se pudo ligar el asiento: ${linkErr.message}` };
+    }
+  }
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/**
+ * Anula un finiquito (borrador|confirmado → anulado). Si tenía asiento, lo anula
+ * (contra-asiento lógico: status='anulado', los saldos lo ignoran). Conserva la
+ * fila (rastro). Libera el índice único parcial para re-generar. Solo admin/accounting.
+ */
+export async function anularFiniquitoAction(
+  settlementId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const s = await getSettlement(supabase, settlementId);
+  if (!s) return { error: "El finiquito no existe o no es de tu tenant." };
+  if (!canTransitionSettlement(s.status, "anulado")) {
+    return { error: `No se puede anular un finiquito ${s.status}.` };
+  }
+
+  if (s.journal_entry_id) {
+    const voided = await voidSettlementJournalEntry(s.journal_entry_id);
+    if (!voided.ok) {
+      return { error: `No se pudo anular el asiento: ${voided.error ?? "desconocido"}` };
+    }
+  }
+
+  const { error } = await supabase
+    .from("nomina_settlements")
+    .update({ status: "anulado", journal_entry_id: null })
+    .eq("id", s.id)
+    .eq("status", s.status);
+
+  if (error) return { error: `No se pudo anular el finiquito: ${error.message}` };
+
+  revalidatePath(PATH);
+  return { ok: true };
+}
+
+/** Lee los renglones del desglose de un finiquito. Read-only (gate de view). */
+export async function listSettlementLinesAction(
+  settlementId: string,
+): Promise<{ lines?: SettlementLineRow[]; error?: string }> {
+  const supabase = await createClient();
+  const s = await getSettlement(supabase, settlementId);
+  if (!s) return { error: "El finiquito no existe o no es de tu tenant." };
+  const lines = await listSettlementLines(supabase, settlementId);
+  return { lines };
+}
+
+/** Soft delete de un finiquito (deleted_at = now()). */
+export async function softDeleteFiniquitoAction(
+  settlementId: string,
+): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await createClient();
+
+  const denial = await moduleEditDenial(supabase, MODULE_ID);
+  if (denial) return { error: denial };
+
+  const { error } = await supabase
+    .from("nomina_settlements")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", settlementId);
+
+  if (error) return { error: `No se pudo eliminar el finiquito: ${error.message}` };
 
   revalidatePath(PATH);
   return { ok: true };

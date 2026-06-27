@@ -119,6 +119,11 @@ export type PayrollRules = {
   vacaciones_days: number;
   // Criterio del contador (Slice C): se almacena, no se consume aún.
   salarial_bonuses: SalarialBonus[];
+  // Config de liquidación (SDD-0109 · additiva, migr 0179). Opcionales: filas
+  // viejas y snapshots previos a 0179 no las traen → el motor usa defaults.
+  prestaciones_method?: "garantia" | "retroactivo" | "mejor";
+  prestaciones_interest_pct?: number;
+  ajena_78_incluye_92?: boolean;
   notes: string | null;
   created_by: string | null;
   created_at: string;
