@@ -58,6 +58,7 @@ import {
   isChargeStatus,
   isMatchConfidence,
   isMatchStatus,
+  amountToUsd,
   validateChargeInput,
   validateClaimOffsetInput,
   validateConversionInput,
@@ -340,15 +341,30 @@ export async function addChargeAction(
   }
 
   // Asiento de causación (SDD-0110). Best-effort: si falla no rompe el alta.
-  // Un cargo nuevo no tiene notas de crédito → net = amount. No se asienta un
-  // cargo nacido `cancelado` (monto 0 efectivo de obligación).
+  // Un cargo nuevo no tiene notas de crédito → net = amount.
+  //  - No se asienta un cargo nacido `cancelado`.
+  //  - El monto se convierte a USD funcional (el plan lleva el mayor en USD).
+  //    Un cargo no-USD SIN fx_rate válido NO se asienta (preferible dejar
+  //    journal_entry_id NULL que meter un asiento en moneda equivocada — lo
+  //    captura el detector de no-asentados).
   if (charge.status !== "cancelado") {
-    await syncChargeJournalEntry({
-      tenantId,
-      chargeId: charge.id,
-      netAmountUsd: charge.amount,
-      entryDate: charge.charged_on,
+    const conv = amountToUsd({
+      amount: charge.amount,
+      currency: charge.currency,
+      fxRate: charge.fx_rate,
     });
+    if (conv.ok) {
+      await syncChargeJournalEntry({
+        tenantId,
+        chargeId: charge.id,
+        netAmountUsd: conv.usd,
+        entryDate: charge.charged_on,
+      });
+    } else {
+      console.error(
+        `[financiero-china] cargo ${charge.id} (${charge.currency}) sin fx_rate válido — no se asienta (journal_entry_id queda NULL).`,
+      );
+    }
   }
 
   revalidatePath(ROUTE);
@@ -383,12 +399,27 @@ export async function addConversionAction(
     return { error: `No se pudo registrar la conversión: ${(e as Error).message}` };
   }
 
-  await syncConversionJournalEntry({
-    tenantId,
-    conversionId: conversion.id,
-    commissionUsd: conversion.commission_amount,
-    entryDate: conversion.converted_on,
+  // La comisión captada está en la moneda `from` (computeConversionSpread). El
+  // ingreso forex (4.6) lleva el mayor en USD. Si `from` es USD/USDT → 1:1. Si
+  // `from` es VES no hay tasa VES/USD directa persistida (effective_rate es
+  // from→to) → NO asentamos en moneda equivocada; queda visible en el detector.
+  const commConv = amountToUsd({
+    amount: conversion.commission_amount,
+    currency: conversion.from_currency,
+    fxRate: null,
   });
+  if (commConv.ok) {
+    await syncConversionJournalEntry({
+      tenantId,
+      conversionId: conversion.id,
+      commissionUsd: commConv.usd,
+      entryDate: conversion.converted_on,
+    });
+  } else {
+    console.error(
+      `[financiero-china] conversión ${conversion.id}: comisión en ${conversion.from_currency} sin tasa a USD — no se asienta (journal_entry_id queda NULL).`,
+    );
+  }
 
   revalidatePath(ROUTE);
   return { ok: true };
@@ -421,6 +452,7 @@ export async function addClaimOffsetAction(
     return { error: `No se pudo registrar el cruce: ${(e as Error).message}` };
   }
 
+  // El cruce ya se almacena en USD (columna amount_usd) → sin conversión.
   await syncClaimOffsetJournalEntry({
     tenantId,
     claimOffsetId: claimOffset.id,

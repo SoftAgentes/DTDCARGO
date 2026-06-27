@@ -205,17 +205,25 @@ async function postPartnerEntry(
     // caller re-aplicar el write-back del back-pointer aunque el asiento ya
     // existiera (idempotente de punta a punta). El filtro por tenant_id es
     // explícito (admin bypasea RLS) → no se cruza un asiento de otro tenant.
-    const { data: existing, error: existsErr } = await admin
-      .from("journal_entries")
-      .select("id")
-      .eq("tenant_id", args.tenantId)
-      .eq(args.sourceColumn, args.sourceId)
-      .is("deleted_at", null)
-      .limit(1)
-      .maybeSingle<{ id: string }>();
-    if (existsErr) return { ok: false, error: existsErr.message };
-    if (existing?.id) {
-      return { ok: true, entryId: existing.id, skipped: "entry-already-exists" };
+    const findExisting = async (): Promise<
+      { id: string } | null | { error: string }
+    > => {
+      const { data, error } = await admin
+        .from("journal_entries")
+        .select("id")
+        .eq("tenant_id", args.tenantId)
+        .eq(args.sourceColumn, args.sourceId)
+        .is("deleted_at", null)
+        .limit(1)
+        .maybeSingle<{ id: string }>();
+      if (error) return { error: error.message };
+      return data ?? null;
+    };
+
+    const pre = await findExisting();
+    if (pre && "error" in pre) return { ok: false, error: pre.error };
+    if (pre?.id) {
+      return { ok: true, entryId: pre.id, skipped: "entry-already-exists" };
     }
 
     const { data: codeData, error: codeErr } = await admin.rpc(
@@ -243,6 +251,21 @@ async function postPartnerEntry(
       .select("id")
       .single();
     if (entryErr || !inserted) {
+      // Carrera TOCTOU: otra alta concurrente del mismo origen ya insertó su
+      // asiento y el UNIQUE parcial (migr 0178) rechazó el segundo. Lo tratamos
+      // como "ya existe": re-SELECT del ganador + write-back idempotente. Así
+      // dos altas casi simultáneas convergen a UN solo asiento (no falla).
+      const code = (entryErr as { code?: string } | null)?.code;
+      const isUnique =
+        code === "23505" ||
+        /duplicate key|unique constraint|23505/i.test(entryErr?.message ?? "");
+      if (isUnique) {
+        const winner = await findExisting();
+        if (winner && "error" in winner) return { ok: false, error: winner.error };
+        if (winner?.id) {
+          return { ok: true, entryId: winner.id, skipped: "entry-already-exists" };
+        }
+      }
       return {
         ok: false,
         error: entryErr?.message ?? "no se pudo crear el asiento",

@@ -23,6 +23,7 @@ import type {
   PartnerStatement,
   SupplierChargeWithNet,
 } from "@/lib/studio/partner-finance/types";
+import type { PartnerFinanceHealth } from "@/lib/studio/partner-finance/posting-health-queries";
 import { getSupplierFinance } from "../actions";
 import { ReconciliationTab } from "./ReconciliationTab";
 import { LedgerTab } from "./LedgerTab";
@@ -44,6 +45,7 @@ export function FinancieroChinaClient({
   charges: initialCharges,
   ledgerEntries: initialEntries,
   balance: initialBalance,
+  health,
 }: {
   suppliers: SupplierOption[];
   defaultSupplierId: string | null;
@@ -51,6 +53,7 @@ export function FinancieroChinaClient({
   charges: SupplierChargeWithNet[];
   ledgerEntries: PartnerLedgerEntry[];
   balance: PartnerBalance;
+  health: PartnerFinanceHealth;
 }) {
   const [tab, setTab] = useState<Tab>("reconciliacion");
   const [supplierId, setSupplierId] = useState<string | null>(defaultSupplierId);
@@ -126,6 +129,60 @@ export function FinancieroChinaClient({
           </p>
         </div>
       </div>
+
+      {/* Detector de huecos contables (SDD-0110): movimientos sin asiento o con
+          asiento stale tras una nota de crédito. Best-effort hace que estos
+          colgados sean invisibles sin un contador. */}
+      {health.total > 0 && (
+        <div
+          role="status"
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 10,
+            padding: "12px 14px",
+            marginBottom: 20,
+            borderRadius: "var(--r-md)",
+            background: "var(--warning-bg)",
+            border: "1px solid var(--warning)",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <p
+              style={{
+                margin: 0,
+                font: "700 13px/1.4 var(--f-sans)",
+                color: "var(--warning)",
+              }}
+            >
+              {health.total} movimiento{health.total === 1 ? "" : "s"} sin
+              contabilizar correctamente.
+            </p>
+            <p
+              style={{
+                margin: "4px 0 0",
+                font: "500 12px/1.5 var(--f-sans)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              {[
+                health.unpostedCharges > 0 &&
+                  `${health.unpostedCharges} cargo(s) sin asiento`,
+                health.unpostedConversions > 0 &&
+                  `${health.unpostedConversions} conversión(es) sin asiento`,
+                health.unpostedClaimOffsets > 0 &&
+                  `${health.unpostedClaimOffsets} cruce(s) sin asiento`,
+                health.staleCharges > 0 &&
+                  `${health.staleCharges} cargo(s) con asiento desactualizado por nota de crédito`,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+              . Revisa el plan de cuentas (2.1.7 / 4.6 / 5.10) y las tasas de
+              cambio de los cargos no-USD.
+            </p>
+          </div>
+        </div>
+      )}
 
       {suppliers.length === 0 ? (
         <EmptyState

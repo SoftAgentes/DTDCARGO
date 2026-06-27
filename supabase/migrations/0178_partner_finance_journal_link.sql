@@ -58,6 +58,33 @@ create index if not exists claim_offset_journal_entry_idx
   on public.supplier_claim_offsets (journal_entry_id)
   where journal_entry_id is not null;
 
+-- ╔═══════════════════════════════════════════════════════════╗
+-- ║ 3. UNIQUE parcial · 1 asiento vivo por origen (idempotencia)║
+-- ╚═══════════════════════════════════════════════════════════╝
+-- El poster (posting.ts) es read-then-write: chequea si ya hay asiento y recién
+-- inserta. Eso es TOCTOU — dos altas casi simultáneas del mismo origen podían
+-- crear DOS asientos. Los índices de 0114 (je_charge_idx, etc.) NO son únicos.
+-- Estos UNIQUE parciales cierran la carrera en la DB: a lo sumo UN asiento vivo
+-- (deleted_at is null) por cada origen. La segunda inserción concurrente choca
+-- con unique-violation (23505) → el poster lo trata como "ya existe" + re-SELECT
+-- + write-back (no falla). Anular (deleted_at) libera el slot para re-asentar.
+--
+-- Seguro de aplicar: charge_id / conversion_id / claim_offset_id en
+-- journal_entries nunca se posteó antes de SDD-0110 → cero filas previas que
+-- pudieran violar el unique. El partial-where excluye los asientos previos sin
+-- origen (charge_id null, etc.) y los anulados.
+create unique index if not exists je_charge_unique
+  on public.journal_entries (tenant_id, charge_id)
+  where charge_id is not null and deleted_at is null;
+
+create unique index if not exists je_conversion_unique
+  on public.journal_entries (tenant_id, conversion_id)
+  where conversion_id is not null and deleted_at is null;
+
+create unique index if not exists je_claim_offset_unique
+  on public.journal_entries (tenant_id, claim_offset_id)
+  where claim_offset_id is not null and deleted_at is null;
+
 -- ─────────────────────────────────────────────────────────────
 -- Fin migración 0178_partner_finance_journal_link.sql
 -- Aplicar con: supabase migration apply 0178 · o MCP apply_migration

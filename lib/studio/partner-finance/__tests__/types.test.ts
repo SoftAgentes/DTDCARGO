@@ -33,6 +33,8 @@ import {
   canTransitionClaimOffset,
   isClaimOffsetStatus,
   claimOffsetStatusLabel,
+  // conversión a USD funcional (SDD-0110)
+  amountToUsd,
   // validators
   validateLedgerEntryInput,
   validateChargeInput,
@@ -40,6 +42,55 @@ import {
   validateConversionInput,
   validateClaimOffsetInput,
 } from "../types";
+
+// ── amountToUsd (SDD-0110: moneda cruzada en el asiento) ──────
+describe("amountToUsd · conversión a USD funcional para el asiento", () => {
+  it("USD y USDT son 1:1 (sin tasa)", () => {
+    expect(amountToUsd({ amount: 1000, currency: "USD" })).toEqual({
+      ok: true,
+      usd: 1000,
+    });
+    expect(amountToUsd({ amount: 1000, currency: "USDT" })).toEqual({
+      ok: true,
+      usd: 1000,
+    });
+  });
+
+  it("RMB con fx_rate <currency>/USD → divide (7000 RMB ÷ 7 = 1000 USD)", () => {
+    const r = amountToUsd({ amount: 7000, currency: "RMB", fxRate: 7 });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.usd).toBe(1000);
+  });
+
+  it("VES con fx_rate alto (36) → monto chico en USD (no 36x)", () => {
+    const r = amountToUsd({ amount: 3600, currency: "VES", fxRate: 36 });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.usd).toBe(100);
+  });
+
+  it("no-USD SIN fx_rate → NO convierte (missing-fx-rate)", () => {
+    expect(amountToUsd({ amount: 7000, currency: "RMB", fxRate: null })).toEqual({
+      ok: false,
+      reason: "missing-fx-rate",
+    });
+    expect(amountToUsd({ amount: 7000, currency: "RMB" })).toEqual({
+      ok: false,
+      reason: "missing-fx-rate",
+    });
+  });
+
+  it("no-USD con fx_rate inválido (0 / negativo / NaN) → missing-fx-rate", () => {
+    expect(amountToUsd({ amount: 100, currency: "RMB", fxRate: 0 }).ok).toBe(false);
+    expect(amountToUsd({ amount: 100, currency: "RMB", fxRate: -7 }).ok).toBe(false);
+    expect(amountToUsd({ amount: 100, currency: "VES", fxRate: NaN }).ok).toBe(false);
+  });
+
+  it("redondea a 2 decimales", () => {
+    const r = amountToUsd({ amount: 100, currency: "RMB", fxRate: 3 });
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.usd).toBe(33.33);
+  });
+});
 
 // ── Monedas + bill_kind ───────────────────────────────────────
 describe("monedas del dominio", () => {

@@ -32,6 +32,9 @@ const db = {
   currency_conversions: [] as Row[],
   supplier_claim_offsets: [] as Row[],
   entryCounter: 0,
+  /** Hace que el PRÓXIMO maybeSingle sobre journal_entries devuelva null aunque
+   *  haya fila (simula la carrera TOCTOU: el pre-check no ve al ganador). */
+  hideJournalLookupOnce: false,
 };
 
 function resetDb() {
@@ -42,6 +45,7 @@ function resetDb() {
   db.currency_conversions = [];
   db.supplier_claim_offsets = [];
   db.entryCounter = 0;
+  db.hideJournalLookupOnce = false;
 }
 
 /** Siembra el plan de cuentas mínimo del tenant (postable). */
@@ -116,6 +120,27 @@ function makeChain(table: keyof typeof db & string) {
     single() {
       // Insert de un objeto → persistir con id y devolverlo.
       if (pendingInsert && !Array.isArray(pendingInsert)) {
+        // Simula el UNIQUE parcial de migr 0178: a lo sumo UN asiento vivo por
+        // (tenant_id, charge_id|conversion_id|claim_offset_id). Si ya hay uno,
+        // devuelve 23505 (como Postgres) en vez de insertar.
+        if (table === "journal_entries") {
+          const p = pendingInsert as Row;
+          for (const col of ["charge_id", "conversion_id", "claim_offset_id"]) {
+            if (p[col] == null) continue;
+            const dup = (db.journal_entries as Row[]).some(
+              (r) =>
+                r.tenant_id === p.tenant_id &&
+                r[col] === p[col] &&
+                r.deleted_at == null,
+            );
+            if (dup) {
+              return Promise.resolve({
+                data: null,
+                error: { code: "23505", message: "duplicate key value violates unique constraint" },
+              });
+            }
+          }
+        }
         const row = { id: makeId("je"), ...pendingInsert };
         (db[table] as Row[]).push(row);
         return Promise.resolve({ data: { id: row.id }, error: null });
@@ -124,6 +149,12 @@ function makeChain(table: keyof typeof db & string) {
       return Promise.resolve({ data: found, error: null });
     },
     maybeSingle() {
+      // Carrera TOCTOU: el pre-check (maybeSingle sobre journal_entries) no ve
+      // al ganador una vez → fuerza el camino del INSERT que choca con 23505.
+      if (table === "journal_entries" && db.hideJournalLookupOnce) {
+        db.hideJournalLookupOnce = false;
+        return Promise.resolve({ data: null, error: null });
+      }
       const found = applyFilters(db[table] as Row[], filters)[0] ?? null;
       return Promise.resolve({ data: found, error: null });
     },
@@ -191,6 +222,30 @@ describe("idempotencia · doble alta → UN asiento", () => {
     expect(entries).toHaveLength(1);
     // El back-pointer apunta al mismo asiento en ambos intentos.
     expect(r1.entryId).toBe(r2.entryId);
+  });
+
+  it("carrera TOCTOU: el pre-check no ve al ganador → el UNIQUE (23505) recupera, UN asiento", async () => {
+    const chargeId = "ch-race";
+    db.supplier_charges.push({ id: chargeId, tenant_id: TENANT, journal_entry_id: null });
+    // Simula que otra alta concurrente YA insertó el asiento ganador.
+    db.journal_entries.push({
+      id: "je-winner",
+      tenant_id: TENANT,
+      charge_id: chargeId,
+      deleted_at: null,
+    });
+    // El pre-check no lo ve (carrera) → el poster intenta insertar y choca 23505.
+    db.hideJournalLookupOnce = true;
+
+    const r = await syncChargeJournalEntry({ tenantId: TENANT, chargeId, netAmountUsd: 1000 });
+
+    expect(r.ok).toBe(true);
+    expect(r.entryId).toBe("je-winner"); // converge al ganador
+    expect(r.skipped).toBe("entry-already-exists");
+    // No se duplicó el asiento.
+    expect(db.journal_entries.filter((e) => e.charge_id === chargeId)).toHaveLength(1);
+    // El back-pointer quedó escrito al ganador.
+    expect(db.supplier_charges.find((c) => c.id === chargeId)!.journal_entry_id).toBe("je-winner");
   });
 
   it("conversión y cruce también son idempotentes", async () => {
