@@ -142,7 +142,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0106 | Identidad por persona (cédula) — tabla persons + Shipping Mar… | in-progress | interno |
 | 0107 | Academia ligada a la persona (cédula) — academy_enrollments.p… | done | interno |
 | 0108 | Combobox de cliente cédula-first (cotizador/tracking/embarques) | done | interno |
-| 0109 | Liquidación y finiquito de nómina (LOTTT) — prestaciones, vac… | draft | interno |
+| 0109 | Liquidación y finiquito de nómina (LOTTT) — prestaciones, vac… | done | interno |
 | 0110 | Cablear el posting contable del Financiero con el Socio Logís… | done | confidencial |
 | 0111 | Scorecard de proveedores — captura de desempeño + reclamo al … | draft | interno |
 | 0113 | Onboarding y app self-service del empleado — invites + regist… | draft | interno |

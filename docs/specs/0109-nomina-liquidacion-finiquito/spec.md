@@ -1,7 +1,7 @@
 ---
 sdd: "0109"
 title: "Liquidación y finiquito de nómina (LOTTT) — prestaciones, vacaciones/utilidades fraccionadas e indemnización por causa de terminación"
-status: in-progress
+status: done
 author: "Claude Code (lane sdd-0109-nomina-liquidacion) + founder"
 created: 2026-06-26
 updated: 2026-06-27
