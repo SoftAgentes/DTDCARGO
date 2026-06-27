@@ -16,7 +16,7 @@ import {
   countStaleBugs,
   listBugsForAdmin,
 } from "@/lib/studio/bug-queries";
-import { parseBugAdminFilters } from "@/lib/studio/bug-types";
+import { parseBugAdminFilters, type ReporterProfile } from "@/lib/studio/bug-types";
 import { BugsAdminClient } from "./_components/BugsAdminClient";
 
 const STALE_DAYS = 7;
@@ -25,13 +25,6 @@ export const metadata = { title: "Bug Tracker · DTD Studio" };
 export const dynamic = "force-dynamic";
 
 type SearchParams = { [key: string]: string | string[] | undefined };
-
-export type ReporterProfile = {
-  user_id: string;
-  first_name: string | null;
-  last_name: string | null;
-  email: string | null;
-};
 
 export default async function BugsAdminPage({
   searchParams,

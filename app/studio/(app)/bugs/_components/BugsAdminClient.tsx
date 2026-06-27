@@ -25,7 +25,7 @@ import {
 } from "@/lib/studio/bug-types";
 import { moduleLabelFromSlug } from "@/lib/studio/bug-module-name";
 import type { BugAdminKpis } from "@/lib/studio/bug-queries";
-import type { ReporterProfile } from "../page";
+import type { ReporterProfile } from "@/lib/studio/bug-types";
 
 interface Props {
   bugs: BugReport[];

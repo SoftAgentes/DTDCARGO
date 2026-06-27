@@ -30,6 +30,14 @@ export type BugNotifType =
   | "critical_alert"
   | "duplicate_detected";
 
+/** Perfil mínimo del reportante (para mapear bug.reporter_id → nombre/email en la UI). */
+export type ReporterProfile = {
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+};
+
 // ─────────────────────────────────────────────────────────────
 // Row types
 // ─────────────────────────────────────────────────────────────

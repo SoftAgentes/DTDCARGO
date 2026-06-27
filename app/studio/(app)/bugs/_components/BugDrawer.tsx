@@ -36,7 +36,7 @@ import {
   takeBugAction,
   updateBugAdminAction,
 } from "../actions";
-import type { ReporterProfile } from "../page";
+import type { ReporterProfile } from "@/lib/studio/bug-types";
 
 interface Props {
   bug: BugReport;
