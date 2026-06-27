@@ -1,10 +1,10 @@
 ---
 sdd: "0104"
 title: "Libros fiscales persistidos — asentar Libro de Ventas / Compras (snapshot inmutable) + Retenciones (comprobantes emitidos)"
-status: in-progress
+status: done
 author: "Claude Code (lane sdd-0104-libros-fiscales · Norte hueco #2)"
 created: 2026-06-22
-updated: 2026-06-22
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0073", "0080", "0085", "0044", "0021", "0102", "0006", "0052"]

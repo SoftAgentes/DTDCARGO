@@ -1,10 +1,10 @@
 ---
 sdd: "0080"
 title: "Cierre de período contable — bloquear asientos de períodos cerrados (close the books, estilo QBO)"
-status: in-progress
+status: done
 author: "Claude Code (carril cierre-periodo)"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0040", "0079", "0073"]

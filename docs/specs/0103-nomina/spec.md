@@ -1,10 +1,10 @@
 ---
 sdd: "0103"
 title: "Nómina / RRHH — empleados y prestadores (Slice A) + roadmap LOTTT"
-status: in-progress
+status: done
 author: "Claude Code (lane sdd-0103-nomina) + founder"
 created: 2026-06-22
-updated: 2026-06-26
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0085","0024","0079","0080","0077"]

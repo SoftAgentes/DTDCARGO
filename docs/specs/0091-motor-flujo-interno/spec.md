@@ -1,10 +1,10 @@
 ---
 sdd: "0091"
 title: "Motor de flujo interno por servicio (N8N-lite) — implementación de SDD-0076 FASE-FUTURA"
-status: in-progress
+status: done
 author: "Claude Code (ventana motor-flujo) + founder"
 created: 2026-06-16
-updated: 2026-06-16
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0076", "0090", "0085", "0026", "0020"]

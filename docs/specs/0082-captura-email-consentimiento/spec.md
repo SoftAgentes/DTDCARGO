@@ -1,10 +1,10 @@
 ---
 sdd: "0082"
 title: "Captura de email + consentimiento de marketing (implementa SDD-0062 Slice D)"
-status: in-progress
+status: done
 author: "Claude Code (ventana crm-email-captura) + founder"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0062", "0026", "0042", "0046", "0078"]

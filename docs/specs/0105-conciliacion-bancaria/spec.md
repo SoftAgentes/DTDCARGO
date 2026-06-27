@@ -1,10 +1,10 @@
 ---
 sdd: "0105"
 title: "Conciliación bancaria + Activos fijos — sub-pestañas de Contabilidad (hueco #3 del Norte)"
-status: in-progress
+status: done
 author: "Claude Code (carril sdd-0105-conciliacion-bancaria)"
 created: 2026-06-22
-updated: 2026-06-22
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0040", "0077", "0079", "0080"]

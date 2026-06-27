@@ -1,10 +1,10 @@
 ---
 sdd: "0042"
 title: "Portal del Cliente — auth de cliente + mis envíos (V1)"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-06-02
-updated: 2026-06-05
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0010", "0013", "0021", "0024", "0026"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0096"
 title: "Packing list online del proveedor + adjuntos por el link"
-status: in-progress
+status: done
 author: "Claude (DTD)"
 created: 2026-06-19
-updated: 2026-06-19
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0057"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0093"
 title: "Academia DTD — módulo de formación (catálogo on-demand + cohortes + diplomas + portal + facturas)"
-status: in-progress
+status: done
 author: "Claude Code (ventana academia) + founder"
 created: 2026-06-17
-updated: 2026-06-17
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0090", "0076", "0085", "0051", "0042", "0049", "0077", "0079", "0026"]

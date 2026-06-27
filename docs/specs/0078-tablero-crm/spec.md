@@ -1,10 +1,10 @@
 ---
 sdd: "0078"
 title: "Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor"
-status: in-progress
+status: done
 author: "Claude Code (ventana crm-tablero) + founder"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0043", "0058", "0051", "0052", "0062"]

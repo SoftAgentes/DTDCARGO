@@ -1,10 +1,10 @@
 ---
 sdd: "0085"
 title: "RBAC por módulo del Studio — matriz rol×módulo + gate de vista y de acción"
-status: in-progress
+status: done
 author: "Claude Code (ventana rbac-modulos) + founder"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0024", "0007", "0076", "0048", "0020"]

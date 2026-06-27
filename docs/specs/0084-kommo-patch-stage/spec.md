@@ -1,10 +1,10 @@
 ---
 sdd: "0084"
 title: "Mapa de etapas + write-back de etapa a Kommo (cierra SDD-0062 Slice B)"
-status: in-progress
+status: done
 author: "Claude Code (ventana kommo-patch-stage) + founder"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0083", "0062", "0078", "0043", "0058"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0043"
 title: "Conector Kommo CRM — Alcance A (espejo read-only) + Alcance B (webhooks)"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-06-02
-updated: 2026-06-05
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: []

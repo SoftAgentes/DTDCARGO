@@ -1,10 +1,10 @@
 ---
 sdd: "0072"
 title: "Orden de venta (Sales Order · modelo QuickBooks): el estimado confirmado, formal y trazable"
-status: in-progress
+status: done
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
 created: 2026-06-07
-updated: 2026-06-12
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0061", "0071", "0057", "0021", "0041", "0016", "0044", "0058"]

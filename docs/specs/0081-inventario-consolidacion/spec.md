@@ -1,10 +1,10 @@
 ---
 sdd: "0081"
 title: "Inventario de Consolidación (WMS) — stock real CN/VE por Shipping Mark + ocupación de contenedor + cola de consolidación"
-status: in-progress
+status: done
 author: "Claude Code (carril feat/norte-v42 · Norte v4.2)"
 created: 2026-06-14
-updated: 2026-06-26
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0047", "0016", "0067", "0030", "0029"]

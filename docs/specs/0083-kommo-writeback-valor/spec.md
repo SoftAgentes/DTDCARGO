@@ -1,10 +1,10 @@
 ---
 sdd: "0083"
 title: "Write-back de valor a Kommo — outbox + value-sync (implementa SDD-0062 Slice A+B)"
-status: in-progress
+status: done
 author: "Claude Code (ventana kommo-writeback) + founder"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0062", "0043", "0058", "0061", "0078"]

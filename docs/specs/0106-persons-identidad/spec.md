@@ -1,10 +1,10 @@
 ---
 sdd: "0106"
 title: "Identidad por persona (cédula) — tabla persons + Shipping Mark opcional"
-status: in-progress
+status: done
 author: "Claude Code (carril sdd-0106-persons-identidad) + founder"
 created: 2026-06-24
-updated: 2026-06-24
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0010", "0042", "0046", "0093", "0095"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0063"
 title: "Servicios a fondo (sitio público) — fichas incluye/no-incluye/precio/cómo/tiempos para alimentar el crawl de IA"
-status: in-progress
+status: done
 author: "Claude Code (session context) + founder"
 created: 2026-06-08
-updated: 2026-06-08
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0062","0043","0058"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0098"
 title: "Prealertas — menú de servicios de recepción (add-ons) + video-ayuda + regla antes-de-almacén"
-status: in-progress
+status: done
 author: "Claude Code (ventana prealertas-ads) + founder"
 created: 2026-06-20
-updated: 2026-06-20
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0057", "0090", "0091", "0066", "0076"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0077"
 title: "Contabilidad estilo QuickBooks — proveedor→cuenta por defecto + cascada Tipo→Subtipo + gasto→cuenta del plan"
-status: in-progress
+status: done
 author: "Claude Code (carril contabilidad-qbo)"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0040", "0044", "0039", "0021", "0052"]

@@ -74,8 +74,8 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0039 | Gastos CN · scope contenedor/operativo + moneda dual CNY/USD … | done | interno |
 | 0040 | Contabilidad — plan de cuentas + diario/mayor + P&L/Balance +… | done | interno |
 | 0041 | Cobranzas — recibos de pago + asiento del cobro + cola CxC (B… | done | interno |
-| 0042 | Portal del Cliente — auth de cliente + mis envíos (V1) | in-progress | interno |
-| 0043 | Conector Kommo CRM — Alcance A (espejo read-only) + Alcance B… | in-progress | interno |
+| 0042 | Portal del Cliente — auth de cliente + mis envíos (V1) | done | interno |
+| 0043 | Conector Kommo CRM — Alcance A (espejo read-only) + Alcance B… | done | interno |
 | 0044 | Tesorería — Proveedores + CxP + órdenes de pago + asiento del… | done | interno |
 | 0045 | Comentarios + @menciones transversales — hilo embebible en cu… | done | interno |
 | 0046 | Verificación de identidad de clientes — motor 2 vías (CNE céd… | done | interno |
@@ -95,7 +95,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0060 | Documentos · Versionado — revisiones append-only sobre el Hub… | done | interno |
 | 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | in-progress | interno |
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
-| 0063 | Servicios a fondo (sitio público) — fichas incluye/no-incluye… | in-progress | interno |
+| 0063 | Servicios a fondo (sitio público) — fichas incluye/no-incluye… | done | interno |
 | 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
 | 0065 | Rename de marca MARKBOX → \"Shipping Mark\" (solo nombre visi… | done | interno |
 | 0066 | Generador de reportes de inspección en el ERP (white-label · … | done | interno |
@@ -105,41 +105,41 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0069 | Rendición quincenal a la Operadora (SDD-D del handoff legal) … | done | interno |
 | 0070 | Expediente de defensa legal (SDD-E del handoff) — cadena de e… | done | interno |
 | 0071 | Orden de compra (Purchase Order · compra asistida → Bill): el… | done | interno |
-| 0072 | Orden de venta (Sales Order · modelo QuickBooks): el estimado… | in-progress | interno |
+| 0072 | Orden de venta (Sales Order · modelo QuickBooks): el estimado… | done | interno |
 | 0073 | Fiscal · SENIAT — módulo configurable: Configuración fiscal (… | in-progress | interno |
 | 0074 | Onboarding — sync del alta de cliente a Kommo (push del lead) | in-progress | interno |
 | 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | proposed | interno |
 | 0076 | Configuración canónica de servicios | in-progress | interno |
-| 0077 | Contabilidad estilo QuickBooks — proveedor→cuenta por defecto… | in-progress | interno |
-| 0078 | Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor | in-progress | interno |
-| 0079 | Asiento automático del gasto — expenses → journal_entries (ci… | in-progress | interno |
-| 0080 | Cierre de período contable — bloquear asientos de períodos ce… | in-progress | interno |
-| 0081 | Inventario de Consolidación (WMS) — stock real CN/VE por Ship… | in-progress | interno |
-| 0082 | Captura de email + consentimiento de marketing (implementa SD… | in-progress | interno |
-| 0083 | Write-back de valor a Kommo — outbox + value-sync (implementa… | in-progress | interno |
-| 0084 | Mapa de etapas + write-back de etapa a Kommo (cierra SDD-0062… | in-progress | interno |
-| 0085 | RBAC por módulo del Studio — matriz rol×módulo + gate de vist… | in-progress | interno |
-| 0086 | MARKBOX → Kommo al convertir (patch_lead) — cierra el loop le… | in-progress | interno |
+| 0077 | Contabilidad estilo QuickBooks — proveedor→cuenta por defecto… | done | interno |
+| 0078 | Tablero CRM (Kommo ↔ ERP) read-only — Dirección + Asesor | done | interno |
+| 0079 | Asiento automático del gasto — expenses → journal_entries (ci… | done | interno |
+| 0080 | Cierre de período contable — bloquear asientos de períodos ce… | done | interno |
+| 0081 | Inventario de Consolidación (WMS) — stock real CN/VE por Ship… | done | interno |
+| 0082 | Captura de email + consentimiento de marketing (implementa SD… | done | interno |
+| 0083 | Write-back de valor a Kommo — outbox + value-sync (implementa… | done | interno |
+| 0084 | Mapa de etapas + write-back de etapa a Kommo (cierra SDD-0062… | done | interno |
+| 0085 | RBAC por módulo del Studio — matriz rol×módulo + gate de vist… | done | interno |
+| 0086 | MARKBOX → Kommo al convertir (patch_lead) — cierra el loop le… | done | interno |
 | 0087 | Espejo de usuarios de Kommo — nombres de asesor en el tablero | in-progress | interno |
 | 0088 | Motor de contenido de marketing — cerebro de ruteo (Test de N… | proposed | interno |
 | 0089 | Clasificador de contenido + output multicanal (idea → noticia… | in-progress | interno |
 | 0090 | Motor de oferta al cliente — wizard de intención + matriz de … | proposed | interno |
-| 0091 | Motor de flujo interno por servicio (N8N-lite) — implementaci… | in-progress | interno |
-| 0092 | Integración SeaRates Logistics Explorer — fletes marítimos FC… | in-progress | interno |
-| 0093 | Academia DTD — módulo de formación (catálogo on-demand + coho… | in-progress | interno |
+| 0091 | Motor de flujo interno por servicio (N8N-lite) — implementaci… | done | interno |
+| 0092 | Integración SeaRates Logistics Explorer — fletes marítimos FC… | done | interno |
+| 0093 | Academia DTD — módulo de formación (catálogo on-demand + coho… | done | interno |
 | 0094 | Acceso al portal solo por email (magic-link) — retira el logi… | in-progress | interno |
 | 0095 | Cotizador público de fletes marítimos (SeaRates · caché anti-… | in-progress | interno |
-| 0096 | Packing list online del proveedor + adjuntos por el link | in-progress | interna |
+| 0096 | Packing list online del proveedor + adjuntos por el link | done | interna |
 | 0097 | Packing list Norte v4.4 — propagación a producción (editor de… | in-progress | interna |
-| 0098 | Prealertas — menú de servicios de recepción (add-ons) + video… | in-progress | interno |
+| 0098 | Prealertas — menú de servicios de recepción (add-ons) + video… | done | interno |
 | 0099 | Curso de bienvenida gratuito — Cómo comprar en Alibaba (guion… | in-progress | interno |
 | 0100 | Etiquetas CN reales: QR escaneable + datos de bodega (cierra … | in-progress | interna |
 | 0101 | Naviera Tier 1: tracking real del embarque (deep-link SeaRate… | draft | interna |
 | 0102 | Reclamos y siniestros del cliente — gestión de incidencias de… | done | interno |
-| 0103 | Nómina / RRHH — empleados y prestadores (Slice A) + roadmap L… | in-progress | interno |
-| 0104 | Libros fiscales persistidos — asentar Libro de Ventas / Compr… | in-progress | interno |
-| 0105 | Conciliación bancaria + Activos fijos — sub-pestañas de Conta… | in-progress | interno |
-| 0106 | Identidad por persona (cédula) — tabla persons + Shipping Mar… | in-progress | interno |
+| 0103 | Nómina / RRHH — empleados y prestadores (Slice A) + roadmap L… | done | interno |
+| 0104 | Libros fiscales persistidos — asentar Libro de Ventas / Compr… | done | interno |
+| 0105 | Conciliación bancaria + Activos fijos — sub-pestañas de Conta… | done | interno |
+| 0106 | Identidad por persona (cédula) — tabla persons + Shipping Mar… | done | interno |
 | 0107 | Academia ligada a la persona (cédula) — academy_enrollments.p… | done | interno |
 | 0108 | Combobox de cliente cédula-first (cotizador/tracking/embarques) | done | interno |
 | 0109 | Liquidación y finiquito de nómina (LOTTT) — prestaciones, vac… | done | interno |

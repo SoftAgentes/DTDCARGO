@@ -1,10 +1,10 @@
 ---
 sdd: "0079"
 title: "Asiento automático del gasto — expenses → journal_entries (cierra el ciclo contable)"
-status: in-progress
+status: done
 author: "Claude Code (carril gasto-asiento)"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0077", "0040", "0039", "0044"]

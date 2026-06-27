@@ -1,10 +1,10 @@
 ---
 sdd: "0092"
 title: "Integración SeaRates Logistics Explorer — fletes marítimos FCL/LCL (benchmark interno, Fase 1)"
-status: in-progress
+status: done
 author: "Claude Code (ventana searates) + founder"
 created: 2026-06-17
-updated: 2026-06-17
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0053", "0050", "0061"]

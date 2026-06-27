@@ -1,10 +1,10 @@
 ---
 sdd: "0086"
 title: "MARKBOX → Kommo al convertir (patch_lead) — cierra el loop lead↔cliente"
-status: in-progress
+status: done
 author: "Claude Code (ventana kommo-patch-stage) + founder"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-27
 supersedes: null
 superseded_by: null
 related: ["0084", "0083", "0062", "0058", "0078"]
