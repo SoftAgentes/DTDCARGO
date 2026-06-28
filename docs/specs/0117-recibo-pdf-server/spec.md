@@ -1,7 +1,7 @@
 ---
 sdd: "0117"
 title: "Recibo y finiquito en PDF server-side (@react-pdf/renderer) — reemplaza window.print()"
-status: draft
+status: in-progress
 author: "Claude Code (Director) + founder"
 created: 2026-06-28
 updated: 2026-06-28
