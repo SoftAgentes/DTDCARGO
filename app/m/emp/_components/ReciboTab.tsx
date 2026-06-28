@@ -4,8 +4,10 @@
  * ReciboTab · recibo del período (SDD-0113 Slice C/D). LEE de payroll_run_lines
  * (vía RPC get_my_payslip, solo confirmado/pagado) — NO recalcula. Slice D:
  *   - "Enviar por WhatsApp": wa.me deep-link con resumen (100% client-side).
- *   - "Imprimir / PDF": window.print() de una vista imprimible (NO hay lib de PDF
- *     en el repo; el binario PDF dedicado queda diferido — ver impl doc).
+ *   - "Imprimir / PDF": window.print() con @media print scopeado a
+ *     #recibo-printable (solo el recibo va al papel · tokens forzados a luz ·
+ *     "Guardar como PDF" en el diálogo). Mismo patrón que cobranzas/recibo y
+ *     rendiciones · NO hay lib de PDF en el repo (binario dedicado diferido).
  */
 
 import { useState, useTransition } from "react";
@@ -58,7 +60,7 @@ export function ReciboTab({
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       {/* Selector de período */}
       {periods.length > 1 && (
-        <label style={{ display: "block" }}>
+        <label data-print-hide style={{ display: "block" }}>
           <span className="studio-label" style={{ display: "block", marginBottom: 4 }}>Período</span>
           <select
             className="studio-input"
@@ -138,8 +140,8 @@ export function ReciboTab({
         </p>
       </div>
 
-      {/* Acciones Slice D */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+      {/* Acciones Slice D — NO van al papel (data-print-hide). */}
+      <div data-print-hide style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         <a
           href={waHref}
           target="_blank"
@@ -179,6 +181,37 @@ export function ReciboTab({
           {Icon.doc(16)} Imprimir / PDF
         </button>
       </div>
+
+      {/* Print scoped: deja SOLO el recibo en el papel y fuerza tokens de luz
+          (la app emp puede estar en tema oscuro · no debe sangrar al PDF).
+          Mismo patrón que cobranzas/recibo y rendiciones. */}
+      <style>{`
+        @media print {
+          [data-print-hide] { display: none !important; }
+          body * { visibility: hidden !important; }
+          #recibo-printable, #recibo-printable * { visibility: visible !important; }
+          #recibo-printable {
+            --ink: #0F1E3D;
+            --ink-soft: #6B6B6B;
+            --ink-mute: #9A958C;
+            --border: #E8E6E2;
+            --bg-surface: #FFFFFF;
+            --bg-base: #FBFAF7;
+            --danger: #B0142B;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            border: none;
+            border-radius: 0;
+            padding: 0;
+          }
+          * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}</style>
     </div>
   );
 }
