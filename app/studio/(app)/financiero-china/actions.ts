@@ -29,7 +29,12 @@ import {
   transitionChargeStatus,
 } from "@/lib/studio/partner-finance/charges-queries";
 import { addConversion } from "@/lib/studio/partner-finance/conversions-queries";
-import { addClaimOffset } from "@/lib/studio/partner-finance/claim-offsets-queries";
+import {
+  addClaimOffset,
+  transitionClaimOffset,
+  nextClaimOffsetStatus,
+} from "@/lib/studio/partner-finance/claim-offsets-queries";
+import { isClaimOffsetStatus } from "@/lib/studio/partner-finance/types";
 import {
   syncChargeJournalEntry,
   syncConversionJournalEntry,
@@ -459,6 +464,38 @@ export async function addClaimOffsetAction(
     amountUsd: claimOffset.amount_usd,
     entryDate: claimOffset.claimed_on,
   });
+
+  revalidatePath(ROUTE);
+  return { ok: true };
+}
+
+/**
+ * SDD-0115 sub-slice 2: avanza un cruce al SIGUIENTE estado de la máquina
+ * (reclamado → reconocido_proveedor → pagado_en_china → aplicado_a_cliente →
+ * cerrado). El guard `canTransitionClaimOffset` (en la query) rechaza saltos; el
+ * `.eq("status", from)` es optimista (la fila debe seguir en `from`). RLS por
+ * tenant + gate de rol. El asiento ya se posteó al crear el cruce.
+ */
+export async function transitionClaimOffsetAction(
+  raw: { claimId?: string; from?: string },
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const denial = await moduleEditDenial(supabase, "financiero-china");
+  if (denial) return { error: denial };
+
+  const claimId = String(raw.claimId ?? "").trim();
+  const from = String(raw.from ?? "").trim();
+  if (!claimId || !isClaimOffsetStatus(from)) {
+    return { error: "Cruce o estado inválido." };
+  }
+  const to = nextClaimOffsetStatus(from);
+  if (!to) return { error: "El cruce ya está en su estado final." };
+
+  try {
+    await transitionClaimOffset(supabase, claimId, from, to);
+  } catch (e) {
+    return { error: `No se pudo avanzar el cruce: ${(e as Error).message}` };
+  }
 
   revalidatePath(ROUTE);
   return { ok: true };
