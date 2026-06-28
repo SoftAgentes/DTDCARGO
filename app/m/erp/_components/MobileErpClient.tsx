@@ -722,7 +722,7 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15,30,61,0.5)",
+        background: "var(--surface-navy)",
         zIndex: 50,
         display: "flex",
         alignItems: "flex-end",
@@ -836,7 +836,7 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
             {/* línea bezier curve overlay */}
             <path
               d="M 60 80 Q 200 30 340 80"
-              stroke="rgba(255,255,255,0.18)"
+              stroke="var(--chart-grid)"
               strokeWidth="1.5"
               strokeDasharray="3 4"
               fill="none"
@@ -844,12 +844,12 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
             {/* línea del progreso */}
             <path
               d={`M 60 80 Q ${60 + (340 - 60) * 0.5} ${80 - 35} ${60 + (340 - 60) * (progress / 100)} ${80 - 35 * Math.sin((progress / 100) * Math.PI)}`}
-              stroke="rgba(194,116,127,0.85)"
+              stroke="var(--chart-line)"
               strokeWidth="2.5"
               fill="none"
             />
             <circle cx="60" cy="80" r="8" fill="#1F8A5B" />
-            <circle cx="340" cy="80" r="8" fill="rgba(194,116,127,0.5)" />
+            <circle cx="340" cy="80" r="8" fill="var(--chart-dot)" />
             {/* ship dot animado al progreso */}
             <circle
               cx={60 + (340 - 60) * (progress / 100)}
@@ -863,7 +863,7 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
               fontFamily="Archivo, sans-serif"
               fontSize="9.5"
               fontWeight="700"
-              fill="rgba(255,255,255,0.7)"
+              fill="var(--chart-label)"
               textAnchor="middle"
             >
               {truncate(s.origin ?? "Origen", 18)}
@@ -874,7 +874,7 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
               fontFamily="Archivo, sans-serif"
               fontSize="9.5"
               fontWeight="700"
-              fill="rgba(255,255,255,0.7)"
+              fill="var(--chart-label)"
               textAnchor="middle"
             >
               {truncate(s.destination ?? "Destino", 18)}
@@ -886,7 +886,7 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
               top: 12,
               left: 12,
               font: "700 9px/1 var(--f-sans)",
-              color: "rgba(255,255,255,0.5)",
+              color: "var(--ink-side-soft)",
               letterSpacing: "0.14em",
               textTransform: "uppercase",
             }}
@@ -1643,7 +1643,7 @@ function ExpenseRow({
               bottom: 0,
               right: 0,
               padding: "1px 4px",
-              background: "rgba(15,30,61,0.78)",
+              background: "var(--surface-navy-strong)",
               color: "#fff",
               font: "700 9px/1 var(--f-sans)",
               borderTopLeftRadius: "var(--r-sm)",
@@ -1794,7 +1794,7 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15,30,61,0.5)",
+        background: "var(--surface-navy)",
         zIndex: 60,
         display: "flex",
         alignItems: "flex-end",
@@ -2066,7 +2066,7 @@ function NewExpenseModal({ onClose }: { onClose: () => void }) {
                   width: 28,
                   height: 28,
                   borderRadius: "var(--r-pill)",
-                  background: "rgba(15,30,61,0.78)",
+                  background: "var(--surface-navy-strong)",
                   color: "#fff",
                   border: 0,
                   display: "grid",
@@ -2699,7 +2699,7 @@ function EditExpenseSheet({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15,30,61,0.5)",
+        background: "var(--surface-navy)",
         zIndex: 60,
         display: "flex",
         alignItems: "flex-end",
@@ -2966,7 +2966,7 @@ function EditExpenseSheet({
                   top: 6,
                   left: 6,
                   padding: "3px 8px",
-                  background: "rgba(15,30,61,0.78)",
+                  background: "var(--surface-navy-strong)",
                   color: "#fff",
                   font: "700 9.5px/1 var(--f-sans)",
                   borderRadius: "var(--r-sm)",
@@ -2991,7 +2991,7 @@ function EditExpenseSheet({
                   width: 28,
                   height: 28,
                   borderRadius: "var(--r-pill)",
-                  background: "rgba(15,30,61,0.78)",
+                  background: "var(--surface-navy-strong)",
                   color: "#fff",
                   border: 0,
                   display: "grid",
@@ -3035,7 +3035,7 @@ function EditExpenseSheet({
                   gap: 8,
                   padding: 8,
                   background:
-                    "linear-gradient(to top, rgba(15,30,61,0.78), rgba(15,30,61,0))",
+                    "linear-gradient(to top, var(--surface-navy-strong), transparent)",
                 }}
               >
                 <a
@@ -3044,7 +3044,7 @@ function EditExpenseSheet({
                   rel="noopener noreferrer"
                   style={{
                     padding: "6px 10px",
-                    background: "rgba(255,255,255,0.94)",
+                    background: "var(--surface-inv-strong)",
                     color: "var(--ink)",
                     borderRadius: "var(--r-sm)",
                     font: "700 11px/1 var(--f-sans)",
@@ -3058,7 +3058,7 @@ function EditExpenseSheet({
                   onClick={() => setRemoveReceipt(true)}
                   style={{
                     padding: "6px 10px",
-                    background: "rgba(217,28,28,0.92)",
+                    background: "var(--badge-remove)",
                     color: "#fff",
                     border: 0,
                     borderRadius: "var(--r-sm)",

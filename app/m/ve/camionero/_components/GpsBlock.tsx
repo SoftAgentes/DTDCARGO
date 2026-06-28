@@ -304,7 +304,7 @@ export function GpsBlock() {
             borderRadius: "50%",
             transform: isOn ? "translateX(20px)" : "translateX(0)",
             transition: "transform var(--dur) var(--ease)",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.3)",
+            boxShadow: "var(--shadow-knob)",
           }}
         />
       </button>

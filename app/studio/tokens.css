@@ -78,6 +78,28 @@
   /* ── Scrim (overlay para drawers/modals) ─────────────────── */
   --scrim: rgba(15,30,61,0.55);
 
+  /* ── Operario · superficies sobre navy (app/m) ────────────────
+     Extraídos de rgba() inline de las PWAs operario (feat/m-rgba-tokens).
+     Los valores son EXACTOS a los previos (extracción pura, sin cambio
+     visual). Las pantallas operario son navy permanente o per-rol; si se
+     quiere afinar el dark-variant, se hace acá en un solo lugar. */
+  --scrim-soft: rgba(15,30,61,0.4);             /* overlay suave (drawers cn, qr) */
+  --surface-navy: rgba(15,30,61,0.5);           /* panel navy translúcido (erp) */
+  --surface-navy-strong: rgba(15,30,61,0.78);   /* header/chip frosted (erp) */
+  --surface-inv: rgba(255,255,255,0.08);        /* chrome sobre navy (numpad, chips) */
+  --surface-inv-soft: rgba(255,255,255,0.06);   /* chrome más suave (modos) */
+  --surface-inv-strong: rgba(255,255,255,0.94); /* chip casi opaco (erp) */
+  --border-inv: rgba(255,255,255,0.12);         /* borde/línea fina sobre navy */
+  --surface-sel: rgba(168,50,62,0.22);          /* item seleccionado (modos) */
+  --danger-bg-strong: rgba(168,50,62,0.18);     /* pill de error sobre navy */
+  --danger-border: rgba(168,50,62,0.35);        /* borde pill de error */
+  --badge-remove: rgba(217,28,28,0.92);         /* badge eliminar foto (erp) */
+  --shadow-knob: 0 1px 3px rgba(0,0,0,0.3);     /* sombra de perilla toggle */
+  --chart-grid: rgba(255,255,255,0.18);         /* grilla del chart hero (erp) */
+  --chart-line: rgba(194,116,127,0.85);         /* línea del chart hero */
+  --chart-dot: rgba(194,116,127,0.5);           /* punto del chart hero */
+  --chart-label: rgba(255,255,255,0.7);         /* labels del chart hero */
+
   /* ── Layout ────────────────────────────────────────────── */
   --sb-expanded: 248px;
   --sb-collapsed: 64px;

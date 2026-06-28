@@ -169,9 +169,9 @@ export function ModosClient({ operario, errorMsg }: Props) {
                   textAlign: "left",
                   padding: 18,
                   background: isPicked
-                    ? "rgba(168, 50, 62, 0.22)"
-                    : "rgba(255,255,255,0.06)",
-                  border: `1.5px solid ${isPicked ? "var(--wine-soft)" : "rgba(255,255,255,0.14)"}`,
+                    ? "var(--surface-sel)"
+                    : "var(--surface-inv-soft)",
+                  border: `1.5px solid ${isPicked ? "var(--wine-soft)" : "var(--border-inv)"}`,
                   borderRadius: "var(--r-md)",
                   color: "var(--ink-inv)",
                   cursor: pickedRole === null ? "pointer" : "default",
@@ -189,7 +189,7 @@ export function ModosClient({ operario, errorMsg }: Props) {
                     borderRadius: "var(--r-sm)",
                     background: isPicked
                       ? "var(--wine-soft)"
-                      : "rgba(255,255,255,0.08)",
+                      : "var(--surface-inv)",
                     color: isPicked ? "var(--ink)" : "var(--ink-inv)",
                     display: "inline-flex",
                     alignItems: "center",
@@ -275,8 +275,8 @@ export function ModosClient({ operario, errorMsg }: Props) {
           style={{
             marginTop: 18,
             padding: 12,
-            background: "rgba(168, 50, 62, 0.18)",
-            border: "1px solid rgba(168, 50, 62, 0.4)",
+            background: "var(--danger-bg-strong)",
+            border: "1px solid var(--danger-border)",
             borderRadius: "var(--r-sm)",
             color: "var(--ink-inv)",
             font: "600 12.5px/1.4 var(--f-sans)",

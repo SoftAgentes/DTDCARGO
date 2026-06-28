@@ -567,7 +567,7 @@ function ReceiptDetailModal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15, 30, 61, 0.4)",
+        background: "var(--scrim-soft)",
         zIndex: 60,
         display: "flex",
         alignItems: "flex-end",
@@ -1021,7 +1021,7 @@ function MenuModal({
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(15, 30, 61, 0.4)",
+        background: "var(--scrim-soft)",
         zIndex: 50,
         display: "flex",
         alignItems: "flex-end",
