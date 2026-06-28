@@ -166,7 +166,7 @@ export function ReciboTab({
             background: "var(--ink)",
             color: "var(--ink-inv)",
             borderRadius: "var(--r-md, 10px)",
-            padding: "13px 12px",
+            padding: "14px 12px",
             font: "700 13px/1 var(--f-sans)",
             textDecoration: "none",
           }}
@@ -185,7 +185,7 @@ export function ReciboTab({
             color: "var(--ink)",
             border: "1px solid var(--border)",
             borderRadius: "var(--r-md, 10px)",
-            padding: "13px 12px",
+            padding: "14px 12px",
             font: "700 13px/1 var(--f-sans)",
             cursor: "pointer",
           }}
