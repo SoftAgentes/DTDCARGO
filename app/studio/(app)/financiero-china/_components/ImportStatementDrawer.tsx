@@ -1,12 +1,17 @@
 "use client";
 
 /**
- * Drawer de import de un estado de cuenta del Socio China (SDD-0059 · Slice B2).
+ * Drawer de import de un estado de cuenta del Socio China (SDD-0059 · Slice B2
+ * + SDD-0115 Slice C4: parser CSV).
  *
- * V1: alta manual de líneas (descripción + monto + moneda + fecha). El parser
- * de archivo (CSV/XLSX) es Slice C — // TODO: upload CSV/XLSX. Al crear, el
- * server corre el match auto (reconcileStatement) y persiste la sugerencia de
- * cada línea, así el operador entra directo a confirmar.
+ * Dos caminos a las líneas: (1) subir un CSV del Administrador China → el parser
+ * (statement-parser, puro) detecta header + sugiere el mapeo de columnas → el
+ * operador confirma/corrige → carga las líneas; (2) alta manual línea por línea
+ * (fallback de siempre). En ambos, al crear el server corre el match auto
+ * (reconcileStatement) y persiste la sugerencia de cada línea.
+ *
+ * CSV-only por ahora (XLSX diferido, spec §9 D3-bis); el mapeo no se persiste
+ * (per-upload, D3).
  */
 
 import { useState, useTransition } from "react";
@@ -17,6 +22,12 @@ import {
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import { Icon } from "@/app/studio/_components/icons";
 import { PARTNER_CURRENCIES } from "@/lib/studio/partner-finance/types";
+import {
+  parseStatementCsv,
+  buildLinesFromRows,
+  type ParsedStatement,
+  type StatementColumnMap,
+} from "@/lib/studio/partner-finance/statement-parser";
 import type { SupplierOption } from "./FinancieroChinaClient";
 import { importStatement } from "../actions";
 
@@ -60,6 +71,62 @@ export function ImportStatementDrawer({
   );
   const [periodLabel, setPeriodLabel] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([newLine()]);
+
+  // Estado del parser CSV (Slice C4): el archivo parseado + el mapeo editable.
+  const [parsed, setParsed] = useState<ParsedStatement | null>(null);
+  const [map, setMap] = useState<StatementColumnMap | null>(null);
+  const [parseError, setParseError] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string>("");
+
+  const onFile = async (file: File | null) => {
+    setParseError(null);
+    if (!file) return;
+    setFileName(file.name);
+    try {
+      const text = await file.text();
+      const result = parseStatementCsv(text);
+      if (result.rows.length === 0) {
+        setParseError("No se encontraron filas con datos en el archivo.");
+        setParsed(null);
+        setMap(null);
+        return;
+      }
+      setParsed(result);
+      setMap(result.suggestedMap);
+    } catch {
+      setParseError("No pudimos leer el archivo. Verifica que sea un CSV válido.");
+      setParsed(null);
+      setMap(null);
+    }
+  };
+
+  const setMapField = (field: keyof StatementColumnMap, value: number | null) =>
+    setMap((m) => (m ? { ...m, [field]: value } : m));
+
+  const applyParsedLines = () => {
+    if (!parsed || !map) return;
+    const built = buildLinesFromRows(parsed.rows, map);
+    if (built.length === 0) {
+      setParseError("Con este mapeo no se armó ninguna línea. Revisa las columnas.");
+      return;
+    }
+    setLines(
+      built.map((b) => {
+        lineSeq += 1;
+        return {
+          key: `l${lineSeq}`,
+          raw_description: b.raw_description,
+          raw_description_cn: b.raw_description_cn ?? "",
+          amount: String(b.amount),
+          currency: b.currency,
+          line_date: b.line_date ?? "",
+        };
+      }),
+    );
+    setParsed(null);
+    setMap(null);
+    toast.success(`${built.length} línea${built.length === 1 ? "" : "s"} cargada${built.length === 1 ? "" : "s"} desde el CSV`);
+  };
 
   const updateLine = (key: string, patch: Partial<DraftLine>) =>
     setLines((ls) => ls.map((l) => (l.key === key ? { ...l, ...patch } : l)));
@@ -110,7 +177,7 @@ export function ImportStatementDrawer({
   return (
     <DrawerShell
       title="Importar estado de cuenta"
-      subtitle="Alta manual de líneas · el sistema sugiere los matches"
+      subtitle="Sube un CSV o carga las líneas a mano · el sistema sugiere los matches"
       onClose={onClose}
       pending={pending}
       width={720}
@@ -175,7 +242,72 @@ export function ImportStatementDrawer({
           </div>
         </div>
 
-        {/* TODO: upload CSV/XLSX — Slice C. V1 = alta manual de líneas. */}
+        {/* Upload CSV (Slice C4) · el parser sugiere el mapeo; el operador confirma. */}
+        <div
+          style={{
+            border: "1px dashed var(--border)",
+            borderRadius: "var(--r-md)",
+            padding: "12px 14px",
+            background: "var(--bg-elevated)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+            <div>
+              <div className="studio-eyebrow">Importar desde CSV</div>
+              <p style={{ margin: "3px 0 0", font: "400 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+                Sube el estado de cuenta del socio en CSV. Detectamos las columnas;
+                tú confirmas el mapeo. {fileName && <strong>{fileName}</strong>}
+              </p>
+            </div>
+            <label className="studio-btn studio-btn-ghost studio-btn-sm" style={{ cursor: "pointer", flexShrink: 0 }}>
+              {Icon.upload(13)} Subir CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                style={{ display: "none" }}
+                onChange={(e) => onFile(e.target.files?.[0] ?? null)}
+              />
+            </label>
+          </div>
+
+          {parseError && (
+            <p style={{ margin: "8px 0 0", font: "600 11.5px/1.4 var(--f-sans)", color: "var(--danger)" }}>
+              {parseError}
+            </p>
+          )}
+
+          {parsed && map && (
+            <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ font: "600 11.5px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+                {parsed.rows.length} fila{parsed.rows.length === 1 ? "" : "s"} ·{" "}
+                {parsed.hasHeader ? "encabezado detectado" : "sin encabezado (columnas genéricas)"}. Asigna cada columna:
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8 }}>
+                <MapSelect label="Descripción" field="description" headers={parsed.headers} map={map} onChange={setMapField} />
+                <MapSelect label="Descripción 中文" field="descriptionCn" headers={parsed.headers} map={map} onChange={setMapField} />
+                <MapSelect label="Monto" field="amount" headers={parsed.headers} map={map} onChange={setMapField} />
+                <MapSelect label="Moneda" field="currency" headers={parsed.headers} map={map} onChange={setMapField} />
+                <MapSelect label="Fecha" field="date" headers={parsed.headers} map={map} onChange={setMapField} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 5, alignItems: "flex-start" }}>
+                <button
+                  type="button"
+                  className="studio-btn studio-btn-dark studio-btn-sm"
+                  disabled={map.description == null && map.amount == null}
+                  onClick={applyParsedLines}
+                >
+                  {Icon.check(13)} Cargar líneas
+                </button>
+                <span style={{ font: "400 11px/1.4 var(--f-sans)", color: "var(--ink-soft)" }}>
+                  {map.description == null && map.amount == null
+                    ? "Asigna al menos descripción o monto para cargar."
+                    : "Reemplaza las líneas actuales del formulario."}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
+
         <div>
           <div
             style={{
@@ -303,6 +435,39 @@ export function ImportStatementDrawer({
         submitLabel="Importar y reconciliar"
       />
     </DrawerShell>
+  );
+}
+
+function MapSelect({
+  label,
+  field,
+  headers,
+  map,
+  onChange,
+}: {
+  label: string;
+  field: keyof StatementColumnMap;
+  headers: string[];
+  map: StatementColumnMap;
+  onChange: (field: keyof StatementColumnMap, value: number | null) => void;
+}) {
+  const value = map[field];
+  return (
+    <label style={{ display: "block" }}>
+      <span className="studio-label" style={{ display: "block", marginBottom: 3 }}>{label}</span>
+      <select
+        className="studio-input"
+        value={value == null ? "" : String(value)}
+        onChange={(e) => onChange(field, e.target.value === "" ? null : Number(e.target.value))}
+      >
+        <option value="">— ninguna —</option>
+        {headers.map((h, i) => (
+          <option key={i} value={i}>
+            {h}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

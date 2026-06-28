@@ -209,11 +209,15 @@ decisiones caen en "derivar/no persistir", este slice no toca migraciones** y es
   diferido a SDD-0110 — el `journal_entry_id` arranca `null`.*
 - **Slice C2 — Tablero de claim offsets (UI, sin migración).** Tab Cruces + drawer +
   `advanceClaimOffsetAction` (guard de máquina de estados). Reusa `transitionClaimOffset`.
-- **Slice C3 — Alertas PP/CA.** `listOverduePartnerBills` + banner/cola de alertas. Migración
-  **solo si** se persiste (Decisión D2).
-- **Slice C4 — Parser CSV/XLSX.** `statement-parser.ts` (puro) + upload en `ImportStatementDrawer`
-  + mapeo de columnas. Migración **solo si** se recuerda el mapeo (Decisión D3). Adjunta el
-  archivo crudo (`documents` 0049).
+- **Slice C3 — Alertas PP/CA. ✅ HECHO (sin migración · D2 = derivar).** `listOverduePartnerBills`
+  + `buildPartnerBillAlerts` (puro) en `lib/studio/partner-finance/alerts-queries.ts` + banner
+  `PartnerAlertsBanner` arriba de las tabs. La alerta se DERIVA en query pura (no se persiste) →
+  sin tabla nueva, sin migración. `bill_kind` se expuso en `treasury/types` + `bill-queries`.
+- **Slice C4 — Parser CSV. ✅ HECHO (sin migración · D3 per-upload · D3-bis CSV-only).**
+  `statement-parser.ts` (puro: parseo CSV robusto + detección de header + heurística de mapeo
+  es/en/中文 + parseo de monto/moneda/fecha) + upload + panel de mapeo en `ImportStatementDrawer`.
+  El mapeo es per-upload (no se recuerda → sin tabla). XLSX diferido (el socio exporta a CSV).
+  *Adjuntar el archivo crudo a `documents` (0049) queda como follow-up menor.*
 
 > Orden sugerido: C1 → C2 → C3 → C4 (independientes; C1/C2 son puro frontend sobre lib existente,
 > arrancan sin bloqueo). C4 es el de mayor esfuerzo (parser de formatos heterogéneos).
@@ -240,10 +244,11 @@ el KPI como "ya está en los libros".
       comisión forex como **revenue** (etiqueta "Ingreso por cambio de moneda", no costo).
 - [ ] Tab Cruces muestra el tablero por estado y permite avanzar la máquina de estados con guard
       (transición inválida rechazada server-side).
-- [ ] Las alertas PP/CA detectan bills `pp`/`ca` vencidas con balance pendiente y muestran días de
-      atraso.
-- [ ] El parser acepta un CSV/XLSX de muestra del socio, permite mapear columnas, y produce líneas
-      que entran al match (`reconcileStatement`) sin alta manual.
+- [x] Las alertas PP/CA detectan bills `pp`/`ca` vencidas con balance pendiente y muestran días de
+      atraso. *(C3 · `buildPartnerBillAlerts` + `PartnerAlertsBanner`)*
+- [x] El parser acepta un CSV de muestra del socio, permite mapear columnas, y produce líneas
+      que entran al match (`reconcileStatement`) sin alta manual. *(C4 · `statement-parser.ts` +
+      upload en `ImportStatementDrawer`; XLSX diferido)*
 - [ ] Toda tabla nueva (si la hay) tiene RLS fail-closed por tenant + defensa-en-DB cross-tenant
       (helper `*_in_tenant()` + trigger).
 - [ ] Server actions con `validate*Input` propio (no Zod) + `revalidatePath`.
