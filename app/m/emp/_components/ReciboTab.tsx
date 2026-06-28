@@ -173,9 +173,10 @@ export function ReciboTab({
         >
           {Icon.external(16)} WhatsApp
         </a>
-        <button
-          type="button"
-          onClick={() => window.print()}
+        <a
+          href={`/m/emp/recibo/${encodeURIComponent(payslip.period_label)}/pdf`}
+          target="_blank"
+          rel="noopener noreferrer"
           style={{
             display: "flex",
             alignItems: "center",
@@ -187,11 +188,12 @@ export function ReciboTab({
             borderRadius: "var(--r-md, 10px)",
             padding: "14px 12px",
             font: "700 13px/1 var(--f-sans)",
+            textDecoration: "none",
             cursor: "pointer",
           }}
         >
-          {Icon.doc(16)} Imprimir / PDF
-        </button>
+          {Icon.doc(16)} Descargar PDF
+        </a>
       </div>
 
       {/* Print scoped: deja SOLO el recibo en el papel y fuerza tokens de luz
