@@ -177,6 +177,57 @@ export type ShipmentEventRow = {
   created_at: string;
 };
 
+/** Evento más reciente de un shipment (status real + cuándo ocurrió). */
+export type LatestShipmentEvent = {
+  status: ShipmentStatus;
+  occurred_at: string;
+};
+
+/**
+ * Reduce PURO: dada una lista de eventos ORDENADA por occurred_at desc,
+ * devuelve el más reciente por shipment_id (el primero que aparece para
+ * cada id). Separado para testear sin DB.
+ */
+export function pickLatestPerShipment(
+  rows: { shipment_id: string; status: ShipmentStatus; occurred_at: string }[],
+): Map<string, LatestShipmentEvent> {
+  const out = new Map<string, LatestShipmentEvent>();
+  for (const r of rows) {
+    if (!out.has(r.shipment_id)) {
+      out.set(r.shipment_id, { status: r.status, occurred_at: r.occurred_at });
+    }
+  }
+  return out;
+}
+
+/**
+ * Último evento REAL de tracking por cada shipment (tabla shipment_events ·
+ * no el status estimado). Permite mostrar "actualizado hace X" con datos
+ * reales. Query indexada por (shipment_id, occurred_at desc) where
+ * deleted_at is null (migr 0002).
+ */
+export async function listLatestShipmentEvents(
+  supabase: SupabaseClient,
+  shipmentIds: string[],
+): Promise<Map<string, LatestShipmentEvent>> {
+  if (shipmentIds.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from("shipment_events")
+    .select("shipment_id, status, occurred_at")
+    .in("shipment_id", shipmentIds)
+    .is("deleted_at", null)
+    .order("occurred_at", { ascending: false })
+    .order("created_at", { ascending: false }); // desempate determinístico
+  if (error) throw error;
+  return pickLatestPerShipment(
+    (data ?? []) as {
+      shipment_id: string;
+      status: ShipmentStatus;
+      occurred_at: string;
+    }[],
+  );
+}
+
 /**
  * Lista de TODOS los status validos (para validar params crudos).
  * Mantenida sincronizada con el enum shipment_status en supabase/migrations/0002.

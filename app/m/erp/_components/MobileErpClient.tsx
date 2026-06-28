@@ -21,6 +21,7 @@ import {
   type ShipmentService,
   type ShipmentStatus,
 } from "@/lib/studio/shipment-types";
+import { computeProgress } from "@/lib/studio/tracking-progress";
 import type { Client } from "@/lib/studio/client-types";
 import {
   CATEGORY_ICONS,
@@ -57,6 +58,9 @@ type MobileShipment = {
   destination: string | null;
   shipment_service: ShipmentService;
   status: ShipmentStatus;
+  /** Tracking real: último evento de shipment_events (status + cuándo). */
+  last_event_status?: ShipmentStatus | null;
+  last_event_at?: string | null;
 };
 
 type Tab = "home" | "tracking" | "clients" | "expenses" | "more";
@@ -712,9 +716,14 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
   const shareText = `Hola, tu embarque ${s.code}${s.client_name ? ` (${s.client_name})` : ""} está en estado: ${STATUS_LABELS[s.status as ShipmentStatus]}.${s.destination ? ` Destino: ${s.destination}.` : ""}`;
   const waUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
 
-  // Progress mock derivado del status (0-100). Hasta tener tracking real
-  // de eventos, mapeamos status → progress estimado para visualizar el mapa.
-  const progress = statusToProgress(s.status as ShipmentStatus);
+  // Progreso canónico por status (misma fuente que el Studio web ·
+  // lib/studio/tracking-progress). El "tracking real" de cuándo se movió el
+  // embarque sale de last_event_at (abajo), no de un % inventado.
+  const progress = computeProgress(s.status as ShipmentStatus);
+  const lastUpdate = s.last_event_at ? relativeEs(s.last_event_at) : null;
+  const lastUpdateLabel = s.last_event_status
+    ? STATUS_LABELS[s.last_event_status]
+    : null;
 
   return (
     <div
@@ -910,6 +919,27 @@ function ShipmentSheet({ s, onClose }: { s: MobileShipment; onClose: () => void 
           <DetailField label="Destino" value={s.destination ?? "—"} />
         </div>
 
+        {/* Última actualización REAL (último evento de shipment_events) */}
+        <div
+          style={{
+            font: "500 11.5px/1.4 var(--f-sans)",
+            color: "var(--ink-soft)",
+            marginBottom: 14,
+          }}
+        >
+          {lastUpdate ? (
+            <>
+              Última actualización ·{" "}
+              <span style={{ color: "var(--ink)", fontWeight: 600 }}>
+                {lastUpdateLabel ?? STATUS_LABELS[s.status as ShipmentStatus]}
+              </span>{" "}
+              · {lastUpdate}
+            </>
+          ) : (
+            "Sin eventos de tracking registrados todavía."
+          )}
+        </div>
+
         {/* Quick actions */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
           <a
@@ -1010,34 +1040,20 @@ function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n - 1) + "…" : s;
 }
 
-function statusToProgress(status: ShipmentStatus): number {
-  switch (status) {
-    case "draft":
-      return 0;
-    case "in_warehouse":
-    case "consolidating":
-      return 15;
-    case "shipped":
-      return 35;
-    case "in_transit":
-      return 55;
-    case "in_customs":
-      return 75;
-    case "arrived_destination":
-    case "delayed_warehouse":
-      return 85;
-    case "out_for_delivery":
-    case "last_mile":
-      return 95;
-    case "delivered":
-      return 100;
-    case "exception":
-      return 50;
-    case "cancelled":
-      return 0;
-    default:
-      return 0;
-  }
+/** Tiempo relativo en español-VE ("hace 3 d"). Solo se usa en el sheet, que
+ *  se renderiza on-click (client-only) → sin riesgo de hydration mismatch. */
+function relativeEs(iso: string): string {
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return "—";
+  const min = Math.floor((Date.now() - then) / 60000);
+  if (min < 1) return "recién";
+  if (min < 60) return `hace ${min} min`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `hace ${h} h`;
+  const d = Math.floor(h / 24);
+  if (d < 30) return `hace ${d} d`;
+  const mo = Math.floor(d / 30);
+  return `hace ${mo} ${mo > 1 ? "meses" : "mes"}`;
 }
 
 // ─────────────────────────────────────────────────────────────

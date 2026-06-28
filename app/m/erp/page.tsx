@@ -17,7 +17,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/db/server";
 import { listClients } from "@/lib/studio/client-queries";
-import { listShipments } from "@/lib/studio/shipment-queries";
+import {
+  listLatestShipmentEvents,
+  listShipments,
+} from "@/lib/studio/shipment-queries";
 import {
   listMyExpenses,
   signReceiptUrls,
@@ -112,6 +115,22 @@ export default async function MobileErpPage() {
       s.status !== "draft",
   );
 
+  // Tracking real: último evento de shipment_events por embarque (status +
+  // cuándo ocurrió). Reemplaza el "mock" de progreso por dato real de cuándo
+  // se movió el embarque por última vez.
+  const latestEvents = await listLatestShipmentEvents(
+    supabase,
+    activeShipments.map((s) => s.id),
+  );
+  const shipmentsWithEvents = activeShipments.map((s) => {
+    const ev = latestEvents.get(s.id);
+    return {
+      ...s,
+      last_event_status: ev?.status ?? null,
+      last_event_at: ev?.occurred_at ?? null,
+    };
+  });
+
   return (
     <MobileErpClient
       user={{
@@ -122,7 +141,7 @@ export default async function MobileErpPage() {
         role,
         email: userResp.user.email ?? "",
       }}
-      shipments={activeShipments}
+      shipments={shipmentsWithEvents}
       clients={clients}
       expenses={expenses}
       receiptUrls={receiptUrls}
