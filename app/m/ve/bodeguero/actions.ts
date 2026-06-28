@@ -204,5 +204,6 @@ function humanizeRpcError(msg: string): string {
   if (msg.includes("P0007")) return "Transición de status no permitida.";
   if (msg.includes("P0008")) return "Paquete no encontrado en la OD.";
   if (msg.includes("P0009")) return "Cajas a despachar fuera de rango.";
+  if (msg.includes("P0013")) return "Este paquete ya fue fraccionado.";
   return msg;
 }

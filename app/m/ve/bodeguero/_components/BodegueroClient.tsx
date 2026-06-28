@@ -16,7 +16,7 @@
  * ciudad (cada ciudad es una "parada").
  */
 
-import { useActionState, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
@@ -34,6 +34,12 @@ import {
   splitPackageP2Action,
 } from "../actions";
 import { switchModeAction } from "../../modos/actions";
+import { SplitQueueRetryRunner } from "./SplitQueueRetryRunner";
+import {
+  enqueueSplit,
+  makeSplitLocalId,
+} from "@/app/m/_lib/split-queue";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   computeCapacity,
   DISPATCH_ORDER_STATUS_LABELS,
@@ -107,6 +113,8 @@ export function BodegueroClient({
         paddingBottom: "env(safe-area-inset-bottom)",
       }}
     >
+      {/* Drena la cola offline de fraccionamientos al volver la señal */}
+      <SplitQueueRetryRunner />
       <Header
         operario={operario}
         realtimeStatus={realtime.status}
@@ -956,19 +964,65 @@ function SplitModal({
   pkg: DispatchOrderRow["packages"][number];
   onClose: () => void;
 }) {
+  const toast = useToast();
   const [boxes, setBoxes] = useState(Math.max(1, Math.floor(pkg.boxes_total / 2)));
   const [reason, setReason] = useState<DispatchSplitReason>("falta_volumen");
   const [reasonText, setReasonText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
-  const [state, formAction, isPending] = useActionState(splitPackageP2Action, INITIAL);
-
-  // M1 fix: setTimeout fuera del render body para evitar leaks en cada render
-  useEffect(() => {
-    if (state?.ok) {
-      const t = setTimeout(onClose, 100);
-      return () => clearTimeout(t);
+  // Submit offline-aware: si la action tira por red, encolamos el split para
+  // reintento automático (SplitQueueRetryRunner). La idempotencia de la DB
+  // (migr 0184, P0013) evita un fraccionamiento duplicado si el original sí
+  // entró pero la respuesta se perdió.
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (pending) return;
+    if (reason === "otro" && !reasonText.trim()) {
+      setError("Indica un motivo libre para 'Otro'.");
+      return;
     }
-  }, [state?.ok, onClose]);
+    setError(null);
+    setPending(true);
+
+    const fd = new FormData();
+    fd.set("od_id", od.id);
+    fd.set("package_id", pkg.package_id);
+    fd.set("boxes_shipped", String(boxes));
+    fd.set("split_reason", reason);
+    fd.set("split_reason_text", reasonText);
+
+    try {
+      const res = await splitPackageP2Action(INITIAL, fd);
+      if (res.fieldErrors) {
+        setError(Object.values(res.fieldErrors)[0] ?? "Datos inválidos.");
+        setPending(false);
+        return;
+      }
+      if (res.error) {
+        setError(res.error);
+        setPending(false);
+        return;
+      }
+      // OK · revalidatePath en la action refresca la cola del bodeguero.
+      toast.success("Paquete fraccionado · P2 en bodega ✓");
+      onClose();
+    } catch {
+      enqueueSplit({
+        localId: makeSplitLocalId(pkg.package_id),
+        odId: od.id,
+        odCode: od.order_code,
+        packageId: pkg.package_id,
+        markbox: pkg.markbox,
+        boxesShipped: boxes,
+        splitReason: reason,
+        splitReasonText: reasonText.trim() || null,
+        queuedAt: Date.now(),
+      });
+      toast.info("Sin señal · el fraccionamiento se hará solo al volver la conexión.");
+      onClose();
+    }
+  }
 
   return (
     <div
@@ -1023,13 +1077,7 @@ function SplitModal({
           <code style={{ color: "var(--wine)" }}>{pkg.markbox}</code> · {pkg.client_name} · {pkg.boxes_total} cajas
         </div>
 
-        <form action={formAction} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input type="hidden" name="od_id" value={od.id} />
-          <input type="hidden" name="package_id" value={pkg.package_id} />
-          <input type="hidden" name="boxes_shipped" value={boxes} />
-          <input type="hidden" name="split_reason" value={reason} />
-          <input type="hidden" name="split_reason_text" value={reasonText} />
-
+        <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           <div>
             <label className="studio-label">
               Cajas P1 (sale ahora) · {boxes} de {pkg.boxes_total}
@@ -1088,17 +1136,14 @@ function SplitModal({
             </div>
           )}
 
-          {state?.error && <ErrorBanner msg={state.error} />}
-          {state?.fieldErrors?.boxes_shipped && (
-            <ErrorBanner msg={state.fieldErrors.boxes_shipped} />
-          )}
+          {error && <ErrorBanner msg={error} />}
 
           <div style={{ display: "flex", gap: 10, marginTop: 6 }}>
             <button
               type="button"
               className="studio-btn studio-btn-ghost"
               onClick={onClose}
-              disabled={isPending}
+              disabled={pending}
               style={{ flex: 1 }}
             >
               Cancelar
@@ -1106,10 +1151,10 @@ function SplitModal({
             <button
               type="submit"
               className="studio-btn studio-btn-primary"
-              disabled={isPending}
+              disabled={pending}
               style={{ flex: 2 }}
             >
-              {isPending ? "Fraccionando…" : "Confirmar P1/P2"}
+              {pending ? "Fraccionando…" : "Confirmar P1/P2"}
             </button>
           </div>
         </form>
