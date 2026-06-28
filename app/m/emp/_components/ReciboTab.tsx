@@ -15,6 +15,7 @@ import { Icon } from "@/app/studio/_components/icons";
 import type { MyEmployee, MyPayslip, MyPayslipPeriod } from "@/lib/studio/nomina/employee-self-queries";
 import { fetchMyPayslipAction } from "../actions";
 import { fmtUsd } from "./EmpClient";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 
 export function ReciboTab({
   me,
@@ -27,28 +28,33 @@ export function ReciboTab({
 }) {
   const [payslip, setPayslip] = useState<MyPayslip | null>(initialPayslip);
   const [pending, startTransition] = useTransition();
+  const [err, setErr] = useState<string | null>(null);
 
   function onPeriodChange(period: string) {
+    setErr(null);
     startTransition(async () => {
-      const next = await fetchMyPayslipAction(period);
-      setPayslip(next);
+      try {
+        const next = await fetchMyPayslipAction(period);
+        if (!next) {
+          // Período de la lista (confirmado/pagado) que no cargó = error, no "sin recibo".
+          // Mantenemos el recibo anterior visible y avisamos.
+          setErr("No pudimos cargar ese período. Intenta de nuevo.");
+          return;
+        }
+        setPayslip(next);
+      } catch {
+        setErr("No pudimos cargar ese período. Intenta de nuevo.");
+      }
     });
   }
 
   if (!payslip) {
     return (
-      <div
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          padding: "20px 18px",
-          font: "400 13px/1.5 var(--f-sans)",
-          color: "var(--ink-soft)",
-        }}
-      >
-        Aún no tienes un recibo confirmado. Cuando RRHH confirme tu corte de nómina, aparecerá aquí.
-      </div>
+      <EmptyState
+        eyebrow="Recibo"
+        title="Aún no tienes un recibo confirmado"
+        description="Cuando RRHH confirme tu corte de nómina, aparecerá aquí."
+      />
     );
   }
 
@@ -78,6 +84,12 @@ export function ReciboTab({
         </label>
       )}
 
+      {err && (
+        <div data-print-hide style={{ font: "500 12px/1.3 var(--f-sans)", color: "var(--danger)" }}>
+          {err}
+        </div>
+      )}
+
       {/* Vista imprimible del recibo (id printable para window.print scoped CSS) */}
       <div
         id="recibo-printable"
@@ -101,9 +113,9 @@ export function ReciboTab({
           </div>
         </div>
 
-        {lines.map((l, i) => (
+        {lines.map((l) => (
           <div
-            key={i}
+            key={l.label}
             style={{
               display: "flex",
               justifyContent: "space-between",
@@ -154,7 +166,7 @@ export function ReciboTab({
             background: "var(--ink)",
             color: "var(--ink-inv)",
             borderRadius: "var(--r-md, 10px)",
-            padding: "11px 12px",
+            padding: "13px 12px",
             font: "700 13px/1 var(--f-sans)",
             textDecoration: "none",
           }}
@@ -173,7 +185,7 @@ export function ReciboTab({
             color: "var(--ink)",
             border: "1px solid var(--border)",
             borderRadius: "var(--r-md, 10px)",
-            padding: "11px 12px",
+            padding: "13px 12px",
             font: "700 13px/1 var(--f-sans)",
             cursor: "pointer",
           }}

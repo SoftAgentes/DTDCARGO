@@ -18,6 +18,7 @@ function Field({
   label,
   name,
   type = "text",
+  inputMode,
   required,
   defaultValue,
   placeholder,
@@ -26,6 +27,7 @@ function Field({
   label: string;
   name: string;
   type?: string;
+  inputMode?: "numeric" | "decimal" | "tel" | "text";
   required?: boolean;
   defaultValue?: string | null;
   placeholder?: string;
@@ -40,6 +42,7 @@ function Field({
         className="studio-input"
         name={name}
         type={type}
+        inputMode={inputMode}
         required={required}
         defaultValue={defaultValue ?? undefined}
         placeholder={placeholder}
@@ -132,7 +135,7 @@ export function RegistroForm({
           </span>
         )}
       </label>
-      <Field label="Número de cuenta" name="bank_account" error={fe.bank_account} placeholder="0134…" />
+      <Field label="Número de cuenta" name="bank_account" inputMode="numeric" error={fe.bank_account} placeholder="0134…" />
 
       <button
         type="submit"

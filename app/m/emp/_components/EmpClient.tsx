@@ -52,7 +52,8 @@ export function EmpClient({
         background: "var(--bg-base)",
         maxWidth: 520,
         margin: "0 auto",
-        paddingBottom: 76,
+        // Altura real de la tab bar fija + safe-area (no un valor mágico).
+        paddingBottom: "calc(64px + env(safe-area-inset-bottom))",
         display: "flex",
         flexDirection: "column",
       }}
@@ -101,6 +102,7 @@ export function EmpClient({
           borderTop: "1px solid var(--border)",
           display: "grid",
           gridTemplateColumns: "repeat(4, 1fr)",
+          minHeight: 56,
         }}
       >
         <TabButton label="Inicio" icon={Icon.dashboard(20)} active={tab === "inicio"} onClick={() => setTab("inicio")} />

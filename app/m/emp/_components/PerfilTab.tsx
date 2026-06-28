@@ -13,6 +13,7 @@ import { useActionState, useEffect } from "react";
 import type { MyEmployee, MyBankChange } from "@/lib/studio/nomina/employee-self-queries";
 import { updateMyProfileAction, type EmpActionState } from "../actions";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { fmtUsd } from "./EmpClient";
 
 const INITIAL: EmpActionState = {};
 
@@ -49,7 +50,7 @@ export function PerfilTab({ me, pendingBank }: { me: MyEmployee; pendingBank: My
         <ReadRow label="Cédula" value={me.national_id ?? "—"} />
         <ReadRow label="Cargo" value={me.position_label ?? "—"} />
         <ReadRow label="Departamento" value={me.department ?? "—"} />
-        <ReadRow label="Sueldo (USD)" value={me.salary_usd != null ? `$${Number(me.salary_usd).toFixed(2)}` : "—"} />
+        <ReadRow label="Sueldo (USD)" value={me.salary_usd != null ? fmtUsd(Number(me.salary_usd)) : "—"} />
         <ReadRow label="Fecha de ingreso" value={me.hire_date ?? "—"} />
         <p style={{ font: "400 10.5px/1.4 var(--f-sans)", color: "var(--ink-mute)", marginTop: 8 }}>
           Para corregir estos datos, contacta a Recursos Humanos.
@@ -115,7 +116,7 @@ export function PerfilTab({ me, pendingBank }: { me: MyEmployee; pendingBank: My
               <option value="ahorro">Ahorro</option>
             </select>
           </label>
-          <EditField label="Número de cuenta" name="bank_account" defaultValue={me.bank_account} error={state.fieldErrors?.bank_account} />
+          <EditField label="Número de cuenta" name="bank_account" inputMode="numeric" defaultValue={me.bank_account} error={state.fieldErrors?.bank_account} />
         </section>
 
         {state.error && (
@@ -164,12 +165,14 @@ function EditField({
   name,
   defaultValue,
   type = "text",
+  inputMode,
   error,
 }: {
   label: string;
   name: string;
   defaultValue?: string | null;
   type?: string;
+  inputMode?: "numeric" | "decimal" | "tel" | "text";
   error?: string;
 }) {
   return (
@@ -179,6 +182,7 @@ function EditField({
         className="studio-input"
         name={name}
         type={type}
+        inputMode={inputMode}
         defaultValue={defaultValue ?? undefined}
         style={{ width: "100%" }}
       />

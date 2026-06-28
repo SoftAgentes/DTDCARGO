@@ -17,6 +17,7 @@ import {
 import { markCommReadAction, ackCommAction } from "../actions";
 import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 
 export function MensajesTab({
   comms,
@@ -50,18 +51,11 @@ export function MensajesTab({
 
   if (comms.length === 0) {
     return (
-      <div
-        style={{
-          background: "var(--bg-surface)",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-lg)",
-          padding: "20px 18px",
-          font: "400 13px/1.5 var(--f-sans)",
-          color: "var(--ink-soft)",
-        }}
-      >
-        No tienes comunicaciones por ahora.
-      </div>
+      <EmptyState
+        eyebrow="Mensajes"
+        title="No tienes comunicaciones por ahora"
+        description="Cuando RRHH te envíe un aviso o recibo, aparecerá aquí."
+      />
     );
   }
 
