@@ -133,13 +133,15 @@ export function FiniquitoDetalle({
             </button>
           )}
           {settlement.status !== "anulado" && (
-            <button
-              type="button"
-              onClick={() => window.print()}
+            <a
+              href={`/studio/nomina/finiquito/${settlement.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="studio-btn studio-btn-ghost studio-btn-sm"
+              style={{ textDecoration: "none" }}
             >
-              Imprimir / PDF
-            </button>
+              Descargar PDF
+            </a>
           )}
           {canConfirm && (
             <button
