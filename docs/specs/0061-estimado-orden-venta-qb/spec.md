@@ -1,10 +1,10 @@
 ---
 sdd: "0061"
 title: "Estimado → Orden de venta (modelo QuickBooks): retira 'cotización', captura el estimado web en el ERP y lo vincula al registro del cliente"
-status: in-progress
+status: done
 author: "Claude Code (carril comercial · sesión con founder 2026-06-07)"
 created: 2026-06-07
-updated: 2026-06-09
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0001", "0002", "0011", "0021", "0040", "0041", "0044", "0042", "0046", "0057", "0058", "0010", "0055"]

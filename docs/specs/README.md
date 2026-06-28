@@ -88,12 +88,12 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0053 | Costing & Margen — costo editable por embarque (7 categorías)… | done | interno |
 | 0054 | Capa legal — documentos versionados + aceptaciones inmutables… | done | interno |
 | 0055 | Calculadora — configuración desde el Studio (Fase 3): ciudade… | done | interno |
-| 0056 | Conversaciones · bandeja unificada (WhatsApp + email + portal) | in-progress | interno |
+| 0056 | Conversaciones · bandeja unificada (WhatsApp + email + portal) | done | interno |
 | 0057 | Portal — Compras/Prealertas + Proveedores del cliente (cierra… | done | interno |
 | 0058 | Kommo lead → cliente — puente CRM↔ERP (convertir un lead del … | done | interno |
 | 0059 | Financiero con el Socio Logístico China — libro mayor bilater… | in-progress | confidencial |
 | 0060 | Documentos · Versionado — revisiones append-only sobre el Hub… | done | interno |
-| 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | in-progress | interno |
+| 0061 | Estimado → Orden de venta (modelo QuickBooks): retira 'cotiza… | done | interno |
 | 0062 | Reestructuración CRM (Kommo) para cierres automáticos + integ… | proposed | interno |
 | 0063 | Servicios a fondo (sitio público) — fichas incluye/no-incluye… | done | interno |
 | 0064 | Reestructuración de mensaje, UX, SEO/GEO y confianza del siti… | in-progress | interno |
@@ -107,7 +107,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0071 | Orden de compra (Purchase Order · compra asistida → Bill): el… | done | interno |
 | 0072 | Orden de venta (Sales Order · modelo QuickBooks): el estimado… | done | interno |
 | 0073 | Fiscal · SENIAT — módulo configurable: Configuración fiscal (… | in-progress | interno |
-| 0074 | Onboarding — sync del alta de cliente a Kommo (push del lead) | in-progress | interno |
+| 0074 | Onboarding — sync del alta de cliente a Kommo (push del lead) | done | interno |
 | 0075 | Portal del cliente — alineación con el Norte (estimado, sopor… | proposed | interno |
 | 0076 | Configuración canónica de servicios | in-progress | interno |
 | 0077 | Contabilidad estilo QuickBooks — proveedor→cuenta por defecto… | done | interno |
@@ -120,7 +120,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0084 | Mapa de etapas + write-back de etapa a Kommo (cierra SDD-0062… | done | interno |
 | 0085 | RBAC por módulo del Studio — matriz rol×módulo + gate de vist… | done | interno |
 | 0086 | MARKBOX → Kommo al convertir (patch_lead) — cierra el loop le… | done | interno |
-| 0087 | Espejo de usuarios de Kommo — nombres de asesor en el tablero | in-progress | interno |
+| 0087 | Espejo de usuarios de Kommo — nombres de asesor en el tablero | done | interno |
 | 0088 | Motor de contenido de marketing — cerebro de ruteo (Test de N… | proposed | interno |
 | 0089 | Clasificador de contenido + output multicanal (idea → noticia… | in-progress | interno |
 | 0090 | Motor de oferta al cliente — wizard de intención + matriz de … | proposed | interno |

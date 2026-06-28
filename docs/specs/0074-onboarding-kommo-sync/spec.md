@@ -1,10 +1,10 @@
 ---
 sdd: "0074"
 title: "Onboarding — sync del alta de cliente a Kommo (push del lead)"
-status: in-progress
+status: done
 author: "Claude Code (session context) + founder"
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0042","0043","0046","0058","0062"]

@@ -1,10 +1,10 @@
 ---
 sdd: "0087"
 title: "Espejo de usuarios de Kommo — nombres de asesor en el tablero"
-status: in-progress
+status: done
 author: "Claude Code (ventana kommo-users) + founder"
 created: 2026-06-14
-updated: 2026-06-14
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0078", "0043", "0062"]

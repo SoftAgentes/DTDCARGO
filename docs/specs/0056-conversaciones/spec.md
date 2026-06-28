@@ -1,10 +1,10 @@
 ---
 sdd: "0056"
 title: "Conversaciones · bandeja unificada (WhatsApp + email + portal)"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-06-04
-updated: 2026-06-05
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0026", "0042", "0043", "0045"]
