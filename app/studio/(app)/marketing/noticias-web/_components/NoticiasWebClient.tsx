@@ -71,6 +71,7 @@ import { CategoryDetector } from "./CategoryDetector";
 import { KeywordPanel } from "./KeywordPanel";
 import { PublishModal } from "./PublishModal";
 import { useToast } from "@/app/studio/_components/ui/ToastProvider";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
 import {
   detectBriefIntent,
   generateArticle,
@@ -272,6 +273,7 @@ export function NoticiasWebClient() {
 
   // Step machine
   const [step, setStep] = useState<Step>(0);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
 
   // Step 0 state · Brief (Plan v5)
   // El brief es lo único que el operador escribe en step 0; tipo + categoría
@@ -924,19 +926,22 @@ export function NoticiasWebClient() {
       // De step 1 al Banco de ideas (SDD-0089) · si hay artículo generado,
       // confirmar antes (lo perderíamos al volver al clasificador).
       if (article) {
-        const ok = window.confirm(
-          "Volver al Banco de ideas va a descartar el artículo generado. ¿Continuar?",
-        );
-        if (!ok) return;
-        setArticle("");
-        setOutlines([]);
-        setSelectedOutlineIdx(-1);
-        setSelectedHeadline("");
-        setHeadlines([]);
+        setConfirmDiscard(true);
+        return;
       }
       // El veredicto del cerebro se conserva → el operador lo ve de nuevo.
       setStage("banco");
     }
+  };
+
+  const discardAndBackToBanco = () => {
+    setArticle("");
+    setOutlines([]);
+    setSelectedOutlineIdx(-1);
+    setSelectedHeadline("");
+    setHeadlines([]);
+    setConfirmDiscard(false);
+    setStage("banco");
   };
 
   // ── Render ──────────────────────────────────────────────────
@@ -1094,6 +1099,16 @@ export function NoticiasWebClient() {
           onPublished={handlePublished}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmDiscard}
+        danger
+        title="Descartar artículo"
+        message="Volver al Banco de ideas va a descartar el artículo generado. ¿Continuar?"
+        confirmLabel="Descartar y volver"
+        onCancel={() => setConfirmDiscard(false)}
+        onConfirm={() => discardAndBackToBanco()}
+      />
     </div>
   );
 }

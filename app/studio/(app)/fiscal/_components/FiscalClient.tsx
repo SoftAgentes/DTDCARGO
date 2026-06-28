@@ -21,6 +21,8 @@ import { downloadTextFile } from "@/app/studio/_components/ui/download";
 import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { Badge } from "@/app/studio/_components/ui/Badge";
 import { Icon } from "@/app/studio/_components/icons";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 import {
   invoiceIvaModeLabel,
   isFiscalModuleEnabled,
@@ -256,38 +258,31 @@ function PostingBar({
       !close2(posted.totalBase, liveBase) ||
       !close2(posted.totalIva, liveIva));
 
-  const onPost = () => {
-    if (
-      !window.confirm(
-        `¿Asentar el ${bookType === "ventas" ? "Libro de Ventas" : "Libro de Compras"} de ${periodLabel(period)}? Quedará congelado: editar facturas luego no cambia el asiento.`,
-      )
-    ) {
-      return;
-    }
+  const [confirmPost, setConfirmPost] = useState(false);
+  const [voidOpen, setVoidOpen] = useState(false);
+  const toast = useToast();
+
+  const doPost = () => {
     startTransition(async () => {
       const res = await postFiscalBookAction(period, bookType);
       if (res?.error) {
-        window.alert(res.error);
+        toast.error(res.error);
         return;
       }
+      setConfirmPost(false);
       router.refresh();
     });
   };
 
-  const onVoid = () => {
+  const doVoid = (reason: string) => {
     if (!posted) return;
-    const reason = window.prompt(
-      "Anular el asiento vigente (queda en historial; podrás re-asentar). Motivo (opcional):",
-      "",
-    );
-    // null = canceló el prompt; "" = aceptó sin motivo.
-    if (reason === null) return;
     startTransition(async () => {
       const res = await voidFiscalBookAction(posted.id, reason);
       if (res?.error) {
-        window.alert(res.error);
+        toast.error(res.error);
         return;
       }
+      setVoidOpen(false);
       router.refresh();
     });
   };
@@ -351,7 +346,7 @@ function PostingBar({
             <button
               type="button"
               className="studio-btn studio-btn-ghost studio-btn-sm"
-              onClick={onVoid}
+              onClick={() => setVoidOpen(true)}
               disabled={pending}
             >
               {pending ? "Procesando…" : "Anular asiento"}
@@ -360,7 +355,7 @@ function PostingBar({
             <button
               type="button"
               className="studio-btn studio-btn-primary studio-btn-sm"
-              onClick={onPost}
+              onClick={() => setConfirmPost(true)}
               disabled={pending}
             >
               {pending ? "Asentando…" : "Asentar período"}
@@ -368,6 +363,28 @@ function PostingBar({
           )}
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmPost}
+        title="Asentar libro"
+        message={`¿Asentar el ${bookType === "ventas" ? "Libro de Ventas" : "Libro de Compras"} de ${periodLabel(period)}? Quedará congelado: editar facturas luego no cambia el asiento.`}
+        confirmLabel="Asentar"
+        pending={pending}
+        onCancel={() => setConfirmPost(false)}
+        onConfirm={() => doPost()}
+      />
+      <ConfirmDialog
+        open={voidOpen}
+        danger
+        reason
+        reasonLabel="Motivo (opcional)"
+        title="Anular asiento"
+        message="Anular el asiento vigente queda en historial; podrás re-asentar."
+        confirmLabel="Anular"
+        pending={pending}
+        onCancel={() => setVoidOpen(false)}
+        onConfirm={(motivo) => doVoid(motivo)}
+      />
     </div>
   );
 }

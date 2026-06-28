@@ -31,6 +31,8 @@ import { withholdingTotals } from "@/lib/studio/fiscal/withholding-queries";
 import { voidWithholdingAction } from "../actions";
 import { useRouter } from "next/navigation";
 import { WithholdingDrawer } from "./WithholdingDrawer";
+import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 
 function fmtMoney(n: number): string {
   return n.toLocaleString("en-US", {
@@ -78,17 +80,19 @@ export function WithholdingsView({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [voidingId, setVoidingId] = useState<string | null>(null);
+  const [confirmVoidId, setConfirmVoidId] = useState<string | null>(null);
+  const toast = useToast();
 
-  const onVoid = (id: string) => {
-    if (!window.confirm("¿Anular este comprobante de retención?")) return;
+  const doVoid = (id: string) => {
     setVoidingId(id);
     startTransition(async () => {
       const res = await voidWithholdingAction(id);
       setVoidingId(null);
       if (res?.error) {
-        window.alert(res.error);
+        toast.error(res.error);
         return;
       }
+      setConfirmVoidId(null);
       router.refresh();
     });
   };
@@ -324,7 +328,7 @@ export function WithholdingsView({
                           <button
                             type="button"
                             className="studio-btn studio-btn-ghost studio-btn-xs"
-                            onClick={() => onVoid(r.id)}
+                            onClick={() => setConfirmVoidId(r.id)}
                             disabled={pending && voidingId === r.id}
                           >
                             {pending && voidingId === r.id ? "Anulando…" : "Anular"}
@@ -383,6 +387,19 @@ export function WithholdingsView({
           }}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmVoidId !== null}
+        danger
+        title="Anular comprobante"
+        message="¿Anular este comprobante de retención? Queda en historial."
+        confirmLabel="Anular"
+        pending={pending}
+        onCancel={() => setConfirmVoidId(null)}
+        onConfirm={() => {
+          if (confirmVoidId) doVoid(confirmVoidId);
+        }}
+      />
     </div>
   );
 }

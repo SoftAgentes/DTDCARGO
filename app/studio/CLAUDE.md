@@ -555,8 +555,12 @@ donde el user podrá elegir formato VE (`12.323,50`) vs US
 
 Ver memoria `studio-tech-debt-post-sprint3`. Highlights:
 
-- `window.prompt()` en `VeRowActions` (assign_delivery / mark_delivered /
-  report_incident) — popovers reutilizables pendientes.
+- ~~`window.prompt()`/`window.confirm()` nativos~~ — **RESUELTO**: existe
+  `app/studio/_components/ui/ConfirmDialog.tsx` (confirm + variante con motivo).
+  Migrados VeRowActions (`PromptModal`), Fiscal (asentar/anular libro),
+  Withholdings (anular comprobante), Noticias-web (descartar artículo). **Para
+  cualquier confirmación/destructivo nuevo usar `<ConfirmDialog>`, nunca
+  `window.confirm/prompt/alert`** (usar `useToast` para avisos).
 - Field helpers (`FieldText`, `FieldSelect`, `FieldError`, `FormError`) viven
   en `tms/_components/TruckDrawer.tsx` con prefijo `tms-` hardcoded en IDs.
   Si vas a usarlos en otro módulo, parametrizá el prefijo primero.
