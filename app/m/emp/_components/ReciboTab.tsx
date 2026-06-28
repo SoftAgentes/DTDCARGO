@@ -2,12 +2,12 @@
 
 /**
  * ReciboTab · recibo del período (SDD-0113 Slice C/D). LEE de payroll_run_lines
- * (vía RPC get_my_payslip, solo confirmado/pagado) — NO recalcula. Slice D:
+ * (vía RPC get_my_payslip, solo confirmado/pagado) — NO recalcula.
  *   - "Enviar por WhatsApp": wa.me deep-link con resumen (100% client-side).
- *   - "Imprimir / PDF": window.print() con @media print scopeado a
- *     #recibo-printable (solo el recibo va al papel · tokens forzados a luz ·
- *     "Guardar como PDF" en el diálogo). Mismo patrón que cobranzas/recibo y
- *     rendiciones · NO hay lib de PDF en el repo (binario dedicado diferido).
+ *   - "Descargar PDF": link al route server-side `/m/emp/recibo/[period]/pdf`
+ *     (@react-pdf/renderer, fail-closed · SDD-0117 Slice A) — PDF real, ya no
+ *     window.print(). El bloque `@media print` de abajo queda como fallback de
+ *     impresión del navegador (Ctrl+P · scopeado a #recibo-printable).
  */
 
 import { useState, useTransition } from "react";
