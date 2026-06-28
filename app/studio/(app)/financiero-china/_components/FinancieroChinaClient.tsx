@@ -29,7 +29,8 @@ import { ReconciliationTab } from "./ReconciliationTab";
 import { LedgerTab } from "./LedgerTab";
 import { ChargesTab } from "./ChargesTab";
 import { ConversionsTab } from "./ConversionsTab";
-import type { CurrencyConversion } from "@/lib/studio/partner-finance/types";
+import { ClaimOffsetsTab } from "./ClaimOffsetsTab";
+import type { CurrencyConversion, SupplierClaimOffset } from "@/lib/studio/partner-finance/types";
 
 export type SupplierOption = {
   id: string;
@@ -38,7 +39,7 @@ export type SupplierOption = {
   name_cn: string | null;
 };
 
-type Tab = "reconciliacion" | "cuenta" | "cargos" | "conversiones";
+type Tab = "reconciliacion" | "cuenta" | "cargos" | "conversiones" | "cruces";
 
 export function FinancieroChinaClient({
   suppliers,
@@ -50,6 +51,7 @@ export function FinancieroChinaClient({
   health,
   conversions,
   forexRevenue,
+  claimOffsets,
 }: {
   suppliers: SupplierOption[];
   defaultSupplierId: string | null;
@@ -60,6 +62,7 @@ export function FinancieroChinaClient({
   health: PartnerFinanceHealth;
   conversions: CurrencyConversion[];
   forexRevenue: { total_commission: number; count: number };
+  claimOffsets: SupplierClaimOffset[];
 }) {
   const [tab, setTab] = useState<Tab>("reconciliacion");
   const [supplierId, setSupplierId] = useState<string | null>(defaultSupplierId);
@@ -99,6 +102,7 @@ export function FinancieroChinaClient({
     { value: "cuenta", label: "Cuenta corriente" },
     { value: "cargos", label: "Cargos y notas", count: charges.length },
     { value: "conversiones", label: "Conversiones", count: conversions.length },
+    { value: "cruces", label: "Cruces", count: claimOffsets.length },
   ];
 
   return (
@@ -294,6 +298,10 @@ export function FinancieroChinaClient({
 
           {tab === "conversiones" && (
             <ConversionsTab conversions={conversions} forexRevenue={forexRevenue} />
+          )}
+
+          {tab === "cruces" && (
+            <ClaimOffsetsTab claimOffsets={claimOffsets} suppliers={suppliers} />
           )}
         </>
       )}
