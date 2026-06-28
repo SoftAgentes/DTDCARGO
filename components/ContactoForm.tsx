@@ -57,7 +57,10 @@ export function ContactoForm() {
       whatsapp: String(fd.get("whatsapp") ?? "").trim(),
       mensaje: String(fd.get("mensaje") ?? "").trim(),
     };
-    const code = `DTD-${Date.now().toString(36).toUpperCase().slice(-6)}`;
+    // Ref del lead para el CRM/WhatsApp. Prefijo WEB- (no DTD-): NO es un MARKBOX
+    // (el consecutivo DTD-NNNN del cliente) — es un folio desechable del contacto.
+    // Usar DTD- chocaba con el namespace del Shipping Mark y confundía al equipo.
+    const code = `WEB-${Date.now().toString(36).toUpperCase().slice(-6)}`;
     const honeypot = String(fd.get(HONEYPOT_FIELD) ?? "");
 
     // Captación server-side (best-effort): el equipo recibe el lead por email +

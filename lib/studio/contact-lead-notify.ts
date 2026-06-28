@@ -70,8 +70,10 @@ export async function notifyContactLeadToAdmin(
 }
 
 function buildHtml(p: ContactLeadPayload): string {
+  // Sin fila "Código": un lead inbound se identifica por nombre + email +
+  // WhatsApp; el folio (WEB-XXXX) es ruido para el equipo. Sigue en metadata
+  // del email y en el mensaje de WhatsApp por si el CRM lo quiere parsear.
   const rows: Array<[string, string]> = [
-    ["Código", p.code],
     ["Tema", p.topicLabel],
     ["Nombre", p.nombre],
     ["Email", p.email],
