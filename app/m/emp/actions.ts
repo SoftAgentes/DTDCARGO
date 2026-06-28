@@ -16,6 +16,7 @@ import { createClient } from "@/lib/db/server";
 import { getInviteByToken } from "@/lib/studio/nomina/invite-queries";
 import { isInviteUsable } from "@/lib/studio/nomina/invite-types";
 import { validateRegistrationInput } from "@/lib/studio/nomina/registration-types";
+import { getRequestIp } from "@/lib/http/request-ip";
 import {
   validateEmployeeProfileInput,
   bankDataChanged,
@@ -38,11 +39,16 @@ function strOrNull(v: FormDataEntryValue | null): string | null {
   return s === "" ? null : s;
 }
 
+// Throttle por IP del registro público (reusa portal_registro_throttle · migr 0094).
+const REGISTRO_IP_LIMIT = 5;
+const REGISTRO_WINDOW_MINUTES = 60;
+const THROTTLE_TABLE = "portal_registro_throttle";
+
 /**
  * Auto-registro del candidato por link de invitación. Público + service client:
  * valida el token, inserta la solicitud `pendiente`, y marca la invitación
  * `usada` (un link = un registro). El sueldo NO se acepta acá (lo fija la empresa
- * al aprobar). Anti-spam = token-only (sin token válido no hay registro).
+ * al aprobar). Anti-spam = token-only + throttle por IP (fail-open · §9.7).
  */
 export async function submitRegistrationAction(
   _prev: RegistroActionState,
@@ -73,6 +79,23 @@ export async function submitRegistrationAction(
   if (!invite || !isInviteUsable(invite)) {
     return { error: "La invitación no es válida o ya venció. Pídele al admin un link nuevo." };
   }
+
+  // 1b) Throttle por IP — defensa adicional al token: un link filtrado no puede
+  //     spamear solicitudes con emails falsos desde la misma conexión. Fail-open:
+  //     un error de lectura del anti-abuso no bloquea un registro legítimo.
+  const ip = await getRequestIp();
+  const windowStart = new Date(
+    Date.now() - REGISTRO_WINDOW_MINUTES * 60 * 1000,
+  ).toISOString();
+  const { count: recentCount, error: throttleErr } = await admin
+    .from(THROTTLE_TABLE)
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("created_at", windowStart);
+  if (!throttleErr && (recentCount ?? 0) >= REGISTRO_IP_LIMIT) {
+    return { error: "Demasiados envíos desde tu conexión. Prueba de nuevo en un rato." };
+  }
+  await admin.from(THROTTLE_TABLE).insert({ ip });
 
   // 2) Insertar la solicitud en staging (pendiente).
   const { error: insErr } = await admin.from("nomina_employee_registrations").insert({

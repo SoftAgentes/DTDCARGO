@@ -135,7 +135,7 @@ export function MensajesTab({
                     <ActionButton
                       variant="dark"
                       size="sm"
-                      idleLabel="Acuso recibo"
+                      idleLabel="Confirmar recibo"
                       loadingLabel="Confirmando…"
                       successLabel="Confirmado"
                       onAction={() => {
