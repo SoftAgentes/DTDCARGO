@@ -1,48 +1,44 @@
 {
-  "generatedAt": "2026-06-26",
+  "generatedAt": "2026-06-28",
   "norteVersion": "v4.5",
   "partA": {
     "findings": [
       {
-        "id": "podar-wildcards-permisos",
-        "title": "Permisos locales con wildcards amplios/destructivos (git rm *, git restore *, Copy-Item *, Get-ChildItem *)",
+        "id": "wildcards-destructivos-permisos",
+        "title": "Permisos locales con wildcards destructivos (git rm *, git restore *, Copy-Item *, Get-ChildItem *, git check-ignore *)",
         "severity": "media",
-        "action": "Acotar en .claude/settings.local.json: git rm/restore a rutas específicas; Copy-Item/Get-ChildItem son demasiado abiertos. git rm * es destructivo.",
+        "action": "Acotar en .claude/settings.local.json: git rm/restore a rutas específicas; Copy-Item/Get-ChildItem son demasiado abiertos. git rm * es destructivo y se auto-permite.",
         "top": true
       },
       {
         "id": "settings-local-bom",
-        "title": "settings.local.json escrito con BOM (UTF-16/PowerShell)",
+        "title": "settings.local.json escrito con BOM (UTF-8 EF BB BF)",
         "severity": "baja",
-        "action": "Reescribir como UTF-8 sin BOM para evitar parsing raro; cosmético hoy pero ya mordió en .graphify_root."
+        "action": "Reescribir como UTF-8 sin BOM para evitar parsing raro; PowerShell le mete BOM (ya mordió en .graphify_root)."
       },
       {
-        "id": "claude-md-duplicado-norte",
-        "title": "Guardrails duplicados: _norte/design_handoff_mobile_app/CLAUDE.md es copia del canónico _norte/CLAUDE.md",
+        "id": "marca-limpia",
+        "title": "Marca 100% limpia: 0 drift de contenido, 0 books huerfanos en disco, tagline 'Con Confianza' OK, Norte v4.5 vigente",
         "severity": "baja",
-        "action": "Si editás el canónico _norte/CLAUDE.md, replicá en la copia del paquete móvil o diverge (hoy en sync con no-voseo + Nunito/Sora + book v4.5)."
+        "action": "Sin accion. El gate de marca (Regla 0.5 + 0.5b) pasa limpio; book v4.5 unico."
       },
       {
-        "id": "modelo-mecanico-sonnet",
-        "title": "Sin model/effort configurado para tareas mecánicas",
+        "id": "agents-md-tamano-ok",
+        "title": "AGENTS.md 15 KB (~3.8k tokens) — bajo el umbral de 5k, sin refs a diseno archivado; puente CLAUDE.md → @AGENTS.md OK",
         "severity": "baja",
-        "action": "Considerar Sonnet/Haiku en barridos mecánicos (renames, sync de docs, greps) para bajar costo; Opus para diseño/financiero/security."
+        "action": "Sin accion."
       }
     ],
-    "estimatedTokenSavings": "~8%"
+    "estimatedTokenSavings": "~5%"
   },
   "partB": {
-    "counts": { "built": 18, "partial": 4, "missing": 0, "total": 22 },
+    "counts": { "built": 63, "partial": 34, "missing": 23, "total": 120 },
     "blocks": [
-      { "name": "Bloque 1.1 · Facturación", "remaining": "0%", "note": "SDD-0021 done" },
-      { "name": "Bloque 1.2 · Contabilidad", "remaining": "0%", "note": "SDD-0040 done" },
-      { "name": "Bloque 2.1 · Cobranzas", "remaining": "0%", "note": "SDD-0041 done" },
-      { "name": "Bloque 2.2 · Tesorería", "remaining": "0%", "note": "SDD-0044 done" },
-      { "name": "Bloque 2.3 · Financiero Socio China", "remaining": "50%", "note": "SDD-0059 in-progress (confidencial, fuera del core-22); migr 0114/0115 en prod" },
-      { "name": "Bloque 3 · Fiscal/SENIAT", "remaining": "0%", "note": "SDD-0073 v2 LIVE (migr 0126/0141)" },
-      { "name": "Bloque 4 · Naviera & Consolidación", "remaining": "0%", "note": "SDD-0047 done (migr 0096)" },
-      { "name": "Bloque 5 · Comercial", "remaining": "0%", "note": "SDD-0048/49/51/52/53/54 done" },
-      { "name": "Blueprint v4.5 ampliado (fuera del core-22)", "remaining": "~20 huecos", "note": "doc desactualizado: dice 'proxima migr 0169' pero prod esta en 0177 (Nomina motor 0175, Persons 0170-0174, Academia 0177, Inspecciones 0176 ya LIVE) — pendiente regenerar la reconciliacion" }
+      {
+        "name": "Modelo de datos (schema-reconciliation)",
+        "remaining": "48%",
+        "note": "63 construidas / 120 entidades. 34 parciales + 23 faltantes = 57 (48%). Bottleneck = las 23 entidades no arrancadas."
+      }
     ]
   }
 }
