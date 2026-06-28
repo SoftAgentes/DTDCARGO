@@ -1,10 +1,10 @@
 ---
 sdd: "0115"
 title: "Financiero China Slice C — forex como revenue · claim offsets · alertas PP/CA · parser de estado de cuenta"
-status: draft
+status: in-progress
 author: "Claude Code (redactor) + founder"
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0059", "0110", "0044", "0040", "0075", "0049", "0047"]
