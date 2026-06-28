@@ -27,6 +27,11 @@ import { type Lang, operarioLangToLocale } from "@/lib/lang";
 import { t as tDict, type I18nKey } from "@/lib/i18n";
 import { createReceiptFromOperarioAction } from "../actions";
 import { uploadReceiptPhotoAction } from "../photo-actions";
+import {
+  blobToDataUrl,
+  enqueuePhoto,
+  makePhotoLocalId,
+} from "@/app/m/_lib/photo-queue";
 import type {
   CreateReceiptInput,
   CreateReceiptState,
@@ -175,6 +180,8 @@ export function NuevaRecepcionClient({
   const [photoUploadCount, setPhotoUploadCount] = useState(0);
   const [photoUploadTotal, setPhotoUploadTotal] = useState(0);
   const [photoUploadErrors, setPhotoUploadErrors] = useState<string[]>([]);
+  // Fotos que fallaron por red y quedaron encoladas para retry offline.
+  const [photosQueued, setPhotosQueued] = useState(0);
   const photosRef = useRef<Photo[]>([]);
   // Keep latest snapshot para useEffect
   photosRef.current = reception.photos;
@@ -194,26 +201,66 @@ export function NuevaRecepcionClient({
       return;
     }
     let cancelled = false;
+    const receiptId = state.receiptId;
+    const receiptCode = state.receiptCode;
     setPhotoUploadTotal(photos.length);
     setPhotoUploadCount(0);
     setPhotoUploadErrors([]);
+    setPhotosQueued(0);
     setView("uploading");
 
     (async () => {
       const errors: string[] = [];
+      let queued = 0;
+
+      // Encola una foto para que PhotoRetryRunner la suba sola al volver la
+      // señal. Devuelve true si quedó encolada.
+      const queuePhoto = async (i: number, p: Photo): Promise<boolean> => {
+        try {
+          const dataUrl = await blobToDataUrl(p.file);
+          enqueuePhoto({
+            localId: makePhotoLocalId(receiptId, i),
+            receiptId,
+            receiptCode,
+            position: i,
+            photoDataUrl: dataUrl,
+            contentType: p.file.type,
+            queuedAt: Date.now(),
+          });
+          return true;
+        } catch {
+          errors.push(`Foto ${i + 1}: no se pudo guardar para reintento`);
+          return false;
+        }
+      };
+
       for (let i = 0; i < photos.length; i++) {
         if (cancelled) return;
         const p = photos[i];
         const fd = new FormData();
-        fd.set("receipt_id", state.receiptId!);
+        fd.set("receipt_id", receiptId);
         fd.set("position", String(i));
         fd.set("photo", p.file);
-        const res = await uploadReceiptPhotoAction(fd);
-        if (!res.ok) errors.push(`Foto ${i + 1}: ${res.error}`);
+        try {
+          const res = await uploadReceiptPhotoAction(fd);
+          if (!res.ok) {
+            // retryable = transitorio (sesión/Storage/RPC) → encolar.
+            // !retryable = validación dura (mime/size) → error visible.
+            if (res.retryable) {
+              if (await queuePhoto(i, p)) queued += 1;
+            } else {
+              errors.push(`Foto ${i + 1}: ${res.error}`);
+            }
+          }
+        } catch {
+          // Excepción = red caída (el server action no respondió) → encolar.
+          if (await queuePhoto(i, p)) queued += 1;
+        }
         if (!cancelled) setPhotoUploadCount(i + 1);
       }
       if (!cancelled) {
         setPhotoUploadErrors(errors);
+        setPhotosQueued(queued);
         setView("done");
       }
     })();
@@ -317,9 +364,13 @@ export function NuevaRecepcionClient({
         <Done
           lang={lang}
           code={state.receiptCode ?? "—"}
-          photosUploaded={Math.max(0, photoUploadTotal - photoUploadErrors.length)}
+          photosUploaded={Math.max(
+            0,
+            photoUploadTotal - photoUploadErrors.length - photosQueued,
+          )}
           photosTotal={photoUploadTotal}
           photoErrors={photoUploadErrors}
+          photosQueued={photosQueued}
           onNew={() => {
             dispatch({ type: "reset" });
             setView("step1");
@@ -1444,6 +1495,7 @@ function Done({
   photosUploaded,
   photosTotal,
   photoErrors,
+  photosQueued,
   onNew,
   onHome,
 }: {
@@ -1452,10 +1504,12 @@ function Done({
   photosUploaded: number;
   photosTotal: number;
   photoErrors: string[];
+  photosQueued: number;
   onNew: () => void;
   onHome: () => void;
 }) {
-  const allOk = photoErrors.length === 0;
+  const hasErrors = photoErrors.length > 0;
+  const allOk = !hasErrors && photosQueued === 0;
   const toast = useToast();
 
   // Toast post-success (trazabilidad visual · sobrevive interrupciones)
@@ -1464,6 +1518,11 @@ function Done({
     if (allOk) {
       toast.success(
         t(lang, "pwa.receipt.saved_toast", { code }),
+      );
+    } else if (!hasErrors && photosQueued > 0) {
+      // Recepción OK, solo quedaron fotos encoladas por red → se subirán solas.
+      toast.warning(
+        t(lang, "pwa.receipt.photos_queued", { n: photosQueued }),
       );
     } else {
       toast.warning(
@@ -1540,11 +1599,13 @@ function Done({
             >
               {allOk
                 ? t(lang, "pwa.receipt.photos_uploaded", { n: photosUploaded })
-                : t(lang, "pwa.receipt.photos_progress", {
-                    up: photosUploaded,
-                    total: photosTotal,
-                    err: photoErrors.length,
-                  })}
+                : !hasErrors && photosQueued > 0
+                  ? t(lang, "pwa.receipt.photos_queued", { n: photosQueued })
+                  : t(lang, "pwa.receipt.photos_progress", {
+                      up: photosUploaded,
+                      total: photosTotal,
+                      err: photoErrors.length,
+                    })}
             </p>
           )}
         </div>
