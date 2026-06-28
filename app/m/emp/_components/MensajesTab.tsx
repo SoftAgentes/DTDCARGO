@@ -109,7 +109,7 @@ export function MensajesTab({
                     width: 8,
                     height: 8,
                     borderRadius: 4,
-                    background: "var(--accent)",
+                    background: "var(--wine)",
                     marginTop: 5,
                     flexShrink: 0,
                   }}

@@ -94,7 +94,7 @@ export function RegistroForm({
         <div
           role="alert"
           style={{
-            background: "var(--danger-tint, var(--bg-elevated))",
+            background: "var(--danger-bg)",
             border: "1px solid var(--danger)",
             borderRadius: "var(--r-md)",
             padding: "10px 12px",

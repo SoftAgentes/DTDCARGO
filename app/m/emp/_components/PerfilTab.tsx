@@ -79,7 +79,7 @@ export function PerfilTab({ me, pendingBank }: { me: MyEmployee; pendingBank: My
           {pendingBank && (
             <div
               style={{
-                background: "var(--warning-soft, var(--bg-base))",
+                background: "var(--warning-bg)",
                 border: "1px solid var(--warning)",
                 borderRadius: "var(--r-md, 10px)",
                 padding: "9px 11px",

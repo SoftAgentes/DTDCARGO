@@ -143,7 +143,7 @@ function TabButton({
         flexDirection: "column",
         alignItems: "center",
         gap: 3,
-        color: active ? "var(--accent)" : "var(--ink-mute)",
+        color: active ? "var(--wine)" : "var(--ink-mute)",
         cursor: "pointer",
         position: "relative",
       }}
@@ -198,7 +198,7 @@ function InicioTab({
           onClick={onGoMensajes}
           style={{
             textAlign: "left",
-            background: "var(--warning-soft, var(--bg-surface))",
+            background: "var(--warning-bg)",
             border: "1px solid var(--warning)",
             borderRadius: "var(--r-lg)",
             padding: "12px 14px",
