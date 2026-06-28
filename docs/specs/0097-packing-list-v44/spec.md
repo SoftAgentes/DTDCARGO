@@ -1,10 +1,10 @@
 ---
 sdd: "0097"
 title: "Packing list Norte v4.4 — propagación a producción (editor del proveedor)"
-status: in-progress
+status: done
 author: "Claude (DTD)"
 created: 2026-06-20
-updated: 2026-06-20
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0096", "0057"]

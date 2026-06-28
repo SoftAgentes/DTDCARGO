@@ -1,10 +1,10 @@
 ---
 sdd: "0095"
 title: "Cotizador público de fletes marítimos (SeaRates · caché anti-scraping, Fase 2)"
-status: in-progress
+status: done
 author: "Claude Code (ventana searates-cotizador-publico) + founder"
 created: 2026-06-17
-updated: 2026-06-17
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0092", "0061", "0055"]

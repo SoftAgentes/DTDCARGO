@@ -1,10 +1,10 @@
 ---
 sdd: "0100"
 title: "Etiquetas CN reales: QR escaneable + datos de bodega (cierra mocks de SDD-0031)"
-status: in-progress
+status: done
 author: "Claude (DTD)"
 created: 2026-06-20
-updated: 2026-06-20
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0031", "0097", "0096", "0008"]

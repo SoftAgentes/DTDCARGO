@@ -127,13 +127,13 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0091 | Motor de flujo interno por servicio (N8N-lite) — implementaci… | done | interno |
 | 0092 | Integración SeaRates Logistics Explorer — fletes marítimos FC… | done | interno |
 | 0093 | Academia DTD — módulo de formación (catálogo on-demand + coho… | done | interno |
-| 0094 | Acceso al portal solo por email (magic-link) — retira el logi… | in-progress | interno |
-| 0095 | Cotizador público de fletes marítimos (SeaRates · caché anti-… | in-progress | interno |
+| 0094 | Acceso al portal solo por email (magic-link) — retira el logi… | done | interno |
+| 0095 | Cotizador público de fletes marítimos (SeaRates · caché anti-… | done | interno |
 | 0096 | Packing list online del proveedor + adjuntos por el link | done | interna |
-| 0097 | Packing list Norte v4.4 — propagación a producción (editor de… | in-progress | interna |
+| 0097 | Packing list Norte v4.4 — propagación a producción (editor de… | done | interna |
 | 0098 | Prealertas — menú de servicios de recepción (add-ons) + video… | done | interno |
 | 0099 | Curso de bienvenida gratuito — Cómo comprar en Alibaba (guion… | in-progress | interno |
-| 0100 | Etiquetas CN reales: QR escaneable + datos de bodega (cierra … | in-progress | interna |
+| 0100 | Etiquetas CN reales: QR escaneable + datos de bodega (cierra … | done | interna |
 | 0101 | Naviera Tier 1: tracking real del embarque (deep-link SeaRate… | draft | interna |
 | 0102 | Reclamos y siniestros del cliente — gestión de incidencias de… | done | interno |
 | 0103 | Nómina / RRHH — empleados y prestadores (Slice A) + roadmap L… | done | interno |

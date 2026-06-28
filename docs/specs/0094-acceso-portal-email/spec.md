@@ -1,10 +1,10 @@
 ---
 sdd: "0094"
 title: "Acceso al portal solo por email (magic-link) — retira el login por Shipping Mark"
-status: in-progress
+status: done
 author: "founder"
 created: 2026-06-17
-updated: 2026-06-17
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0042", "0065"]
