@@ -15,6 +15,8 @@ import {
   type EmployeeComm,
 } from "@/lib/studio/nomina/comms-types";
 import { markCommReadAction, ackCommAction } from "../actions";
+import { ActionButton } from "@/app/studio/_components/ui/ActionButton";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 
 export function MensajesTab({
   comms,
@@ -24,8 +26,9 @@ export function MensajesTab({
   setComms: Dispatch<SetStateAction<EmployeeComm[]>>;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const toast = useToast();
 
   function open(c: EmployeeComm) {
     const willOpen = openId === c.id ? null : c.id;
@@ -39,17 +42,10 @@ export function MensajesTab({
     }
   }
 
-  function ack(c: EmployeeComm) {
-    setErr(null);
-    startTransition(async () => {
-      const res = await ackCommAction(c.id);
-      if (res.error) {
-        setErr(res.error);
-        return;
-      }
-      const now = new Date().toISOString();
-      setComms((prev) => prev.map((x) => (x.id === c.id ? { ...x, acked_at: now, read_at: now } : x)));
-    });
+  function onAcked(c: EmployeeComm) {
+    const now = new Date().toISOString();
+    setComms((prev) => prev.map((x) => (x.id === c.id ? { ...x, acked_at: now, read_at: now } : x)));
+    toast.success("Comunicación confirmada");
   }
 
   if (comms.length === 0) {
@@ -141,23 +137,24 @@ export function MensajesTab({
                   {c.body}
                 </p>
                 {needsAck && (
-                  <button
-                    type="button"
-                    disabled={pending}
-                    onClick={() => ack(c)}
-                    style={{
-                      marginTop: 8,
-                      background: "var(--ink)",
-                      color: "var(--ink-inv)",
-                      border: "none",
-                      borderRadius: "var(--r-md, 10px)",
-                      padding: "10px 16px",
-                      font: "700 13px/1 var(--f-sans)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    Acuso recibo
-                  </button>
+                  <div style={{ marginTop: 8 }}>
+                    <ActionButton
+                      variant="dark"
+                      size="sm"
+                      idleLabel="Acuso recibo"
+                      loadingLabel="Confirmando…"
+                      successLabel="Confirmado"
+                      onAction={() => {
+                        setErr(null);
+                        return ackCommAction(c.id);
+                      }}
+                      onSuccess={() => onAcked(c)}
+                      onError={(m) => {
+                        setErr(m);
+                        toast.error(m);
+                      }}
+                    />
+                  </div>
                 )}
               </div>
             )}

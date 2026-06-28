@@ -9,14 +9,27 @@
  * lo demás; (3) las RPCs de la DB solo tocan columnas seguras.
  */
 
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import type { MyEmployee, MyBankChange } from "@/lib/studio/nomina/employee-self-queries";
 import { updateMyProfileAction, type EmpActionState } from "../actions";
+import { useToast } from "@/app/studio/_components/ui/ToastProvider";
 
 const INITIAL: EmpActionState = {};
 
 export function PerfilTab({ me, pendingBank }: { me: MyEmployee; pendingBank: MyBankChange | null }) {
   const [state, action, pending] = useActionState(updateMyProfileAction, INITIAL);
+  const toast = useToast();
+
+  // Feedback durable: el <p> inline se pierde al scrollear; el toast sobrevive.
+  useEffect(() => {
+    if (state.ok) {
+      toast.success(
+        state.bankPending
+          ? "Contacto guardado · cambio bancario pendiente de verificación"
+          : "Cambios guardados",
+      );
+    }
+  }, [state, toast]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
