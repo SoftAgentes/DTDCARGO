@@ -35,7 +35,7 @@ function round2(n: number): number {
 }
 
 const BILL_COLUMNS =
-  "id, tenant_id, bill_code, supplier_id, supplier_name, concept, expense_account_id, currency, fx_rate, total_amount, paid_amount, status, issue_date, due_date, reference, shipment_id, journal_entry_id, notes, created_at, updated_at, deleted_at";
+  "id, tenant_id, bill_code, supplier_id, supplier_name, concept, expense_account_id, currency, fx_rate, total_amount, paid_amount, status, bill_kind, issue_date, due_date, reference, shipment_id, journal_entry_id, notes, created_at, updated_at, deleted_at";
 
 const PAYMENT_COLUMNS =
   "id, tenant_id, payment_code, bill_id, supplier_id, supplier_name, amount, currency, fx_rate, method, cash_account_id, reference, paid_at, journal_entry_id, notes, created_at, deleted_at";
@@ -54,6 +54,7 @@ function coerceBill(row: Record<string, unknown>): SupplierBill {
     total_amount: num(row.total_amount),
     paid_amount: num(row.paid_amount),
     status: (row.status as SupplierBill["status"]) ?? "pendiente",
+    bill_kind: (row.bill_kind as SupplierBill["bill_kind"]) ?? "full",
     issue_date: String(row.issue_date),
     due_date: String(row.due_date),
     reference: (row.reference as string | null) ?? null,
