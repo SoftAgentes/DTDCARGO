@@ -20,6 +20,7 @@ import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
 import { listSuppliers } from "@/lib/studio/treasury/supplier-queries";
 import { listStatements } from "@/lib/studio/partner-finance/statements-queries";
 import { listCharges } from "@/lib/studio/partner-finance/charges-queries";
+import { listConversions, getForexRevenue } from "@/lib/studio/partner-finance/conversions-queries";
 import {
   getPartnerBalance,
   listLedgerEntries,
@@ -82,17 +83,20 @@ export default async function FinancieroChinaPage() {
   // Socio por defecto (primero de la lista) para cuenta corriente + cargos.
   const defaultSupplierId = supplierOptions[0]?.id ?? null;
 
-  const [statements, charges, ledgerEntries, balance, health] = await Promise.all([
-    listStatements(supabase),
-    defaultSupplierId ? listCharges(supabase, defaultSupplierId) : Promise.resolve([]),
-    defaultSupplierId
-      ? listLedgerEntries(supabase, defaultSupplierId)
-      : Promise.resolve([]),
-    defaultSupplierId
-      ? getPartnerBalance(supabase, defaultSupplierId)
-      : Promise.resolve({ net_usd: 0, net_rmb: 0, entry_count: 0 }),
-    getPartnerFinanceHealth(supabase),
-  ]);
+  const [statements, charges, ledgerEntries, balance, health, conversions, forexRevenue] =
+    await Promise.all([
+      listStatements(supabase),
+      defaultSupplierId ? listCharges(supabase, defaultSupplierId) : Promise.resolve([]),
+      defaultSupplierId
+        ? listLedgerEntries(supabase, defaultSupplierId)
+        : Promise.resolve([]),
+      defaultSupplierId
+        ? getPartnerBalance(supabase, defaultSupplierId)
+        : Promise.resolve({ net_usd: 0, net_rmb: 0, entry_count: 0 }),
+      getPartnerFinanceHealth(supabase),
+      listConversions(supabase),
+      getForexRevenue(supabase),
+    ]);
 
   return (
     <FinancieroChinaClient
@@ -103,6 +107,8 @@ export default async function FinancieroChinaPage() {
       ledgerEntries={ledgerEntries}
       balance={balance}
       health={health}
+      conversions={conversions}
+      forexRevenue={forexRevenue}
     />
   );
 }

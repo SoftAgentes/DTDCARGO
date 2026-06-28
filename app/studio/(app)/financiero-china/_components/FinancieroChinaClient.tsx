@@ -28,6 +28,8 @@ import { getSupplierFinance } from "../actions";
 import { ReconciliationTab } from "./ReconciliationTab";
 import { LedgerTab } from "./LedgerTab";
 import { ChargesTab } from "./ChargesTab";
+import { ConversionsTab } from "./ConversionsTab";
+import type { CurrencyConversion } from "@/lib/studio/partner-finance/types";
 
 export type SupplierOption = {
   id: string;
@@ -36,7 +38,7 @@ export type SupplierOption = {
   name_cn: string | null;
 };
 
-type Tab = "reconciliacion" | "cuenta" | "cargos";
+type Tab = "reconciliacion" | "cuenta" | "cargos" | "conversiones";
 
 export function FinancieroChinaClient({
   suppliers,
@@ -46,6 +48,8 @@ export function FinancieroChinaClient({
   ledgerEntries: initialEntries,
   balance: initialBalance,
   health,
+  conversions,
+  forexRevenue,
 }: {
   suppliers: SupplierOption[];
   defaultSupplierId: string | null;
@@ -54,6 +58,8 @@ export function FinancieroChinaClient({
   ledgerEntries: PartnerLedgerEntry[];
   balance: PartnerBalance;
   health: PartnerFinanceHealth;
+  conversions: CurrencyConversion[];
+  forexRevenue: { total_commission: number; count: number };
 }) {
   const [tab, setTab] = useState<Tab>("reconciliacion");
   const [supplierId, setSupplierId] = useState<string | null>(defaultSupplierId);
@@ -92,6 +98,7 @@ export function FinancieroChinaClient({
     },
     { value: "cuenta", label: "Cuenta corriente" },
     { value: "cargos", label: "Cargos y notas", count: charges.length },
+    { value: "conversiones", label: "Conversiones", count: conversions.length },
   ];
 
   return (
@@ -283,6 +290,10 @@ export function FinancieroChinaClient({
               loading={loading}
               loadError={loadError}
             />
+          )}
+
+          {tab === "conversiones" && (
+            <ConversionsTab conversions={conversions} forexRevenue={forexRevenue} />
           )}
         </>
       )}
