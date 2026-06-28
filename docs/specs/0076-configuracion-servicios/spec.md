@@ -1,10 +1,10 @@
 ---
 sdd: "0076"
 title: "Configuración canónica de servicios"
-status: in-progress
+status: done
 author: "Sam + Claude Code"
 created: 2026-06-13
-updated: 2026-06-13
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0063", "0054", "0055", "0068", "0072", "0020"]
@@ -32,7 +32,14 @@ Extiende **SDD-0063** (servicios-detalle público, front-only) elevándolo a mod
 
 ## Alcance
 
-Cuatro fases. **Esta entrega = Fase 1.**
+> **Estado 2026-06-28 (verificado): Fases 1-3 LIVE en prod → spec `done`.** Migr `0130`
+> creó las 4 tablas + RPCs públicas (`public_servicios()`/`public_service_faqs()`, anon,
+> security definer, whitelist); `/studio/servicios` + `lib/studio/service-catalog/` existen;
+> `app/servicios/page.tsx:53` ya lee `getServiciosParaSitio()` (merge DB+estático con fallback)
+> vía `lib/public/servicios-queries.ts`. **Fase 4 (gancho IA) = roadmap futuro** (su propia spec
+> cuando se haga · no bloquea el cierre del core).
+
+Cuatro fases. **Fases 1-3 entregadas; Fase 4 diferida.**
 
 - **Fase 1 (esta rama `feat/configuracion-servicios`):** catálogo de claves + estructura en código (`lib/shared/service-catalog.ts`) + tests de reconciliación + esta spec. Sin DB, sin tocar el sitio live.
 - **Fase 2:** migración (`service_configs` + `service_faqs` + `service_addons` + `service_price_history`) + módulo `/studio/servicios` con asistente + seed del contenido grounded. El sitio sigue leyendo el estático.
