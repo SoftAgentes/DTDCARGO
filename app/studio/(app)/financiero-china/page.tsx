@@ -22,6 +22,7 @@ import { listStatements } from "@/lib/studio/partner-finance/statements-queries"
 import { listCharges } from "@/lib/studio/partner-finance/charges-queries";
 import { listConversions, getForexRevenue } from "@/lib/studio/partner-finance/conversions-queries";
 import { listClaimOffsets } from "@/lib/studio/partner-finance/claim-offsets-queries";
+import { listOverduePartnerBills } from "@/lib/studio/partner-finance/alerts-queries";
 import {
   getPartnerBalance,
   listLedgerEntries,
@@ -93,6 +94,7 @@ export default async function FinancieroChinaPage() {
     conversions,
     forexRevenue,
     claimOffsets,
+    overdueBillAlerts,
   ] = await Promise.all([
     listStatements(supabase),
     defaultSupplierId ? listCharges(supabase, defaultSupplierId) : Promise.resolve([]),
@@ -106,6 +108,7 @@ export default async function FinancieroChinaPage() {
     listConversions(supabase),
     getForexRevenue(supabase),
     listClaimOffsets(supabase),
+    listOverduePartnerBills(supabase),
   ]);
 
   return (
@@ -120,6 +123,7 @@ export default async function FinancieroChinaPage() {
       conversions={conversions}
       forexRevenue={forexRevenue}
       claimOffsets={claimOffsets}
+      overdueBillAlerts={overdueBillAlerts}
     />
   );
 }

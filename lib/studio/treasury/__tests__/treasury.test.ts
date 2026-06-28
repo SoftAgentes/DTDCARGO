@@ -58,6 +58,7 @@ function bill(partial: Partial<SupplierBill> & { id: string }): SupplierBill {
     total_amount: 1000,
     paid_amount: 0,
     status: "pendiente",
+    bill_kind: "full",
     issue_date: "2026-04-01",
     due_date: "2026-05-01",
     reference: null,

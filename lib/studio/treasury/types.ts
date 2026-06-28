@@ -199,6 +199,23 @@ export function billStatusTone(
   return BILL_STATUS_META[status as BillStatus]?.tone ?? "neutral";
 }
 
+/**
+ * Tipo de CxP en el ciclo del Socio China (SDD-0059 · migr 0114):
+ *  - `pp` (pre-pago) · adelanto contra un embarque · crédito comercial 30-45d.
+ *  - `ca` (contra-entrega / saldo) · saldo a pagar al cierre del embarque.
+ *  - `full` (default) · CxP normal sin tramo de socio.
+ * El detector de vencidos PP/CA (SDD-0115 C3) sólo mira `pp` y `ca`.
+ */
+export type BillKind = "pp" | "ca" | "full";
+
+export function billKindLabel(kind: string): string {
+  return kind === "pp"
+    ? "Pre-pago"
+    : kind === "ca"
+      ? "Contra-entrega"
+      : "Completa";
+}
+
 /** Una cuenta por pagar persistida. */
 export type SupplierBill = {
   id: string;
@@ -213,6 +230,8 @@ export type SupplierBill = {
   total_amount: number;
   paid_amount: number;
   status: BillStatus;
+  /** Tramo del ciclo del Socio China (default 'full'). Ver BillKind. */
+  bill_kind: BillKind;
   issue_date: string; // YYYY-MM-DD
   due_date: string; // YYYY-MM-DD
   reference: string | null;

@@ -30,7 +30,9 @@ import { LedgerTab } from "./LedgerTab";
 import { ChargesTab } from "./ChargesTab";
 import { ConversionsTab } from "./ConversionsTab";
 import { ClaimOffsetsTab } from "./ClaimOffsetsTab";
+import { PartnerAlertsBanner } from "./PartnerAlertsBanner";
 import type { CurrencyConversion, SupplierClaimOffset } from "@/lib/studio/partner-finance/types";
+import type { PartnerBillAlert } from "@/lib/studio/partner-finance/alerts-queries";
 
 export type SupplierOption = {
   id: string;
@@ -52,6 +54,7 @@ export function FinancieroChinaClient({
   conversions,
   forexRevenue,
   claimOffsets,
+  overdueBillAlerts,
 }: {
   suppliers: SupplierOption[];
   defaultSupplierId: string | null;
@@ -63,6 +66,7 @@ export function FinancieroChinaClient({
   conversions: CurrencyConversion[];
   forexRevenue: { total_commission: number; count: number };
   claimOffsets: SupplierClaimOffset[];
+  overdueBillAlerts: PartnerBillAlert[];
 }) {
   const [tab, setTab] = useState<Tab>("reconciliacion");
   const [supplierId, setSupplierId] = useState<string | null>(defaultSupplierId);
@@ -194,6 +198,9 @@ export function FinancieroChinaClient({
           </div>
         </div>
       )}
+
+      {/* Alertas PP/CA vencidas (SDD-0115 C3) · derivadas, siempre visibles. */}
+      <PartnerAlertsBanner alerts={overdueBillAlerts} />
 
       {suppliers.length === 0 ? (
         <EmptyState
