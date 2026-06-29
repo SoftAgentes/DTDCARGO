@@ -81,6 +81,7 @@ export const MODULES: ModuleDef[] = [
   { id: "rates", group: "COMERCIAL", label: "Tarifas", labelKey: "chrome.sidebar.rates", icon: "tag", slug: "/studio/tarifas" },
   { id: "fidelizacion", group: "COMERCIAL", label: "Fidelización", icon: "star", slug: "/studio/fidelizacion" },
   { id: "academia", group: "COMERCIAL", label: "Academia · Formación", icon: "star", slug: "/studio/academia" },
+  { id: "club", group: "COMERCIAL", label: "Club DTD", icon: "users", slug: "/studio/club" },
 
   // FINANZAS
   { id: "direccion", group: "FINANZAS", label: "Dirección", icon: "chart", slug: "/studio/direccion", adminOnly: true },

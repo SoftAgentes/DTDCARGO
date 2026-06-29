@@ -1,10 +1,10 @@
 ---
 sdd: "0116"
 title: "Club DTD — membresía recurrente + compra grupal (consolidación comunitaria)"
-status: draft
+status: in-progress
 author: "Claude Code (redactor de specs) + founder"
 created: 2026-06-26
-updated: 2026-06-26
+updated: 2026-06-28
 supersedes: null
 superseded_by: null
 related: ["0093", "0107", "0106", "0051", "0066", "0042", "0085", "0090", "0047", "0053", "0077"]
@@ -240,6 +240,24 @@ Nombres y columnas son **propuesta**; los que dependen de una decisión de negoc
   clientes o consolidaciones existentes.
 
 ## 9. Decisiones pendientes (founder)
+
+> **Resueltas por el founder (2026-06-28) — desbloquean Slice A:**
+> - **D1 = "mismo que Academia".** Miembro del Club = miembro de la Academia (≥1
+>   inscripción/diploma). El gate del tab Club (Slice E) y la elegibilidad reusan ese criterio;
+>   no hay un escalón de pago aparte.
+> - **D3 = planes `comunidad | importador | mayorista`** (valores del `check` de `plan`).
+> - **D4 = sin cuota (gratis).** No hay cobro ni recurrencia; se monetiza vía logística/compra
+>   grupal. Sin pasarela, sin checkout.
+> - **D6 = RBAC `commercial + support`** (support read-only V1; admin siempre).
+> - **D2 (de facto):** el `plan` vive en `club_members` (no se deriva de fidelización).
+>
+> **Reconciliación de modelo (consecuencia de D1+D4):** como la entrada es gratis y el gate de
+> elegibilidad lo da Academia, `club_members` **NO modela cobro ni vigencia**. Registra solo
+> `plan` (tier) + `status` por persona. `current_period_end` queda **nullable y sin uso** (placeholder
+> para una futura recurrencia si cambia D4); el `status` se reduce a `activa | pausada | cancelada`
+> (se elimina `vencida`, que solo tenía sentido con cuota).
+>
+> D5, D7–D11 siguen abiertas y bloquean Slices B+ (no Slice A).
 
 > Este spec **expone** las decisiones de negocio; no las resuelve. El modelo deja todo
 > configurable (planes, estados, vigencia) para no clavar un número antes de tiempo.
