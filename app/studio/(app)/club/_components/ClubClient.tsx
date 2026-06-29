@@ -1,315 +1,151 @@
 "use client";
 
 /**
- * Orquestador client del Club DTD (SDD-0116, Slice A · membresía). Header + KPIs
- * + tabla de miembros + drawer de alta/edición + baja (soft delete con confirm).
- * Trazabilidad visual: highlight warm de la row recién creada (useRowHighlight) +
- * toasts (useToast). Solo tokens var(--*).
+ * Shell client del Club DTD (SDD-0116). Header + 2 pestañas:
+ *  - Miembros        · Slice A (membresía).
+ *  - Compras grupales · Slice B (rondas de consolidación comunitaria).
+ * Cada vista maneja sus KPIs, su botón "+ Nuevo", sus drawers y su trazabilidad.
  */
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useToast } from "@/app/studio/_components/ui/ToastProvider";
-import { Badge } from "@/app/studio/_components/ui/Badge";
-import { EmptyState } from "@/app/studio/_components/ui/EmptyState";
-import { KpiCard } from "@/app/studio/_components/ui/KpiCard";
-import { ConfirmDialog } from "@/app/studio/_components/ui/ConfirmDialog";
-import { useRowHighlight } from "@/app/studio/_components/ui/useRowHighlight";
-import {
-  planLabel,
-  planBadgeTone,
-  memberStatusLabel,
-  memberStatusTone,
-  sourceLabel,
-  type ClubMemberRow,
-  type ClubStats,
-} from "@/lib/studio/club/club-member-types";
-import { ClubMemberDrawer } from "./ClubMemberDrawer";
-import { softDeleteClubMemberAction } from "../actions";
+import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { MembersView } from "./MembersView";
+import { GroupBuysView } from "./GroupBuysView";
+import type { ClubMemberRow, ClubStats } from "@/lib/studio/club/club-member-types";
+import type { GroupBuyDetail, GroupBuyStats } from "@/lib/studio/club/group-buy-types";
+import type { EligibleMember } from "@/lib/studio/club/group-buy-queries";
 
-const MESES = [
-  "ene", "feb", "mar", "abr", "may", "jun",
-  "jul", "ago", "sep", "oct", "nov", "dic",
+type Tab = "miembros" | "compras";
+
+const TABS: { value: Tab; label: string }[] = [
+  { value: "miembros", label: "Miembros" },
+  { value: "compras", label: "Compras grupales" },
 ];
-function fmtDate(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return `${d.getUTCDate()} ${MESES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
-}
 
 export function ClubClient({
   stats,
   members,
+  gbStats,
+  groupBuys,
+  eligibleMembers,
 }: {
   stats: ClubStats;
   members: ClubMemberRow[];
+  gbStats: GroupBuyStats;
+  groupBuys: GroupBuyDetail[];
+  eligibleMembers: EligibleMember[];
 }) {
-  const router = useRouter();
-  const toast = useToast();
-  const flashClassFor = useRowHighlight();
+  const searchParams = useSearchParams();
 
-  const [showNew, setShowNew] = useState(false);
-  const [editing, setEditing] = useState<ClubMemberRow | null>(null);
-  const [toDelete, setToDelete] = useState<ClubMemberRow | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleDelete = async (reason: string) => {
-    if (!toDelete) return;
-    void reason;
-    setDeleting(true);
-    const r = await softDeleteClubMemberAction(toDelete.id);
-    setDeleting(false);
-    if (r.error) {
-      toast.error(r.error);
-      return;
+  // Los ids que viven en la tab Compras (rondas + participantes), para que un
+  // ?highlight= que apunte a cualquiera de ellos abra esa tab (trazabilidad).
+  const comprasIds = useMemo(() => {
+    const s = new Set<string>();
+    for (const g of groupBuys) {
+      s.add(g.id);
+      for (const p of g.participants) s.add(p.id);
     }
-    toast.success(`${toDelete.person_name} dado de baja del Club`);
-    setToDelete(null);
-    router.refresh();
+    return s;
+  }, [groupBuys]);
+
+  const [tab, setTab] = useState<Tab>(() => {
+    const hl = searchParams.get("highlight");
+    return hl && comprasIds.has(hl) ? "compras" : "miembros";
+  });
+
+  // Navegación por flechas del patrón ARIA tablist (complemento del roving
+  // tabindex: sin esto la tab inactiva queda inalcanzable por teclado).
+  const onTabKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    const idx = TABS.findIndex((t) => t.value === tab);
+    const nextIdx =
+      e.key === "ArrowRight"
+        ? (idx + 1) % TABS.length
+        : (idx - 1 + TABS.length) % TABS.length;
+    const next = TABS[nextIdx].value;
+    setTab(next);
+    document.getElementById(`club-tab-${next}`)?.focus();
   };
 
   return (
     <div style={{ maxWidth: 1280 }}>
       {/* Header */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-end",
-          gap: 24,
-          marginBottom: 24,
-          flexWrap: "wrap",
-        }}
-      >
-        <div>
-          <span className="studio-eyebrow" style={{ color: "var(--wine)" }}>
-            Club DTD
-          </span>
-          <h1
-            className="studio-display"
-            style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
-          >
-            La comunidad de importadores DTD.
-          </h1>
-          <p
-            style={{
-              font: "400 13px/1.5 var(--f-sans)",
-              color: "var(--ink-soft)",
-              margin: 0,
-              maxWidth: "64ch",
-            }}
-          >
-            Los miembros del Club — importadores que importan con DTD. El miembro
-            es una persona (identidad por cédula); ser alumno de la Academia es el
-            gate de elegibilidad.
-          </p>
-        </div>
-        <button
-          type="button"
-          className="studio-btn studio-btn-primary"
-          onClick={() => setShowNew(true)}
+      <div style={{ marginBottom: 20 }}>
+        <span className="studio-eyebrow" style={{ color: "var(--wine)" }}>
+          Club DTD
+        </span>
+        <h1
+          className="studio-display"
+          style={{ fontSize: 30, margin: "8px 0 8px", color: "var(--ink)" }}
         >
-          + Nuevo miembro
-        </button>
-      </div>
-
-      {/* KPIs */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-          gap: 14,
-          marginBottom: 20,
-        }}
-      >
-        <KpiCard value={stats.miembros} label="Miembros" sub="vivos" />
-        <KpiCard
-          value={stats.activos}
-          label="Activos"
-          valueColor={stats.activos > 0 ? "var(--success)" : "var(--ink)"}
-          sub="membresía activa"
-        />
-        <KpiCard value={stats.importadores} label="Importadores" sub="plan" />
-        <KpiCard
-          value={stats.mayoristas}
-          label="Mayoristas"
-          valueColor={stats.mayoristas > 0 ? "var(--wine)" : "var(--ink)"}
-          sub="plan"
-        />
-      </div>
-
-      {/* Lista */}
-      {members.length === 0 ? (
-        <EmptyState
-          eyebrow="Club DTD"
-          title="Aún no hay miembros"
-          description="Da de alta al primer miembro del Club. Se ancla a una persona por su cédula; si ya es cliente o alumno, se reusa su identidad."
-          action={
-            <button
-              type="button"
-              className="studio-btn studio-btn-primary"
-              onClick={() => setShowNew(true)}
-            >
-              + Nuevo miembro
-            </button>
-          }
-        />
-      ) : (
-        <div
+          La comunidad de importadores DTD.
+        </h1>
+        <p
           style={{
-            background: "var(--bg-surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--r-lg)",
-            overflow: "hidden",
+            font: "400 13px/1.5 var(--f-sans)",
+            color: "var(--ink-soft)",
+            margin: 0,
+            maxWidth: "64ch",
           }}
         >
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ background: "var(--surface)" }}>
-                {["Miembro", "Cédula", "Plan", "Estado", "Carga", "Academia", "Alta", ""].map(
-                  (h, i) => (
-                    <th
-                      key={h || `act-${i}`}
-                      style={{
-                        textAlign: i >= 2 && i <= 5 ? "center" : "left",
-                        padding: "10px 14px",
-                        font: "700 11px/1 var(--f-sans)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        color: "var(--ink-mute)",
-                        borderBottom: "1px solid var(--border)",
-                      }}
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m) => (
-                <tr
-                  key={m.id}
-                  data-row-id={m.id}
-                  className={flashClassFor(m.id)}
-                  style={{ borderBottom: "1px solid var(--border)" }}
-                >
-                  <td style={{ padding: "10px 14px" }}>
-                    <span style={{ font: "600 13px/1.3 var(--f-sans)", color: "var(--ink)" }}>
-                      {m.person_name}
-                    </span>
-                    {m.source && (
-                      <span
-                        style={{
-                          font: "500 11px/1 var(--f-sans)",
-                          color: "var(--ink-mute)",
-                          display: "block",
-                          marginTop: 2,
-                        }}
-                      >
-                        {sourceLabel(m.source)}
-                      </span>
-                    )}
-                  </td>
-                  <td
-                    className="studio-input-mono"
-                    style={{
-                      padding: "10px 14px",
-                      font: "500 12px/1 var(--f-mono)",
-                      color: "var(--ink-soft)",
-                      background: "transparent",
-                      border: "none",
-                    }}
-                  >
-                    {m.person_national_id ?? "—"}
-                  </td>
-                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                    <Badge tone={planBadgeTone(m.plan)} size="sm">
-                      {planLabel(m.plan)}
-                    </Badge>
-                  </td>
-                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                    <Badge tone={memberStatusTone(m.status)} size="sm">
-                      {memberStatusLabel(m.status)}
-                    </Badge>
-                  </td>
-                  <td
-                    className="studio-input-mono"
-                    style={{
-                      padding: "10px 14px",
-                      textAlign: "center",
-                      font: "500 12px/1 var(--f-mono)",
-                      color: m.cargo_markbox ? "var(--ink-soft)" : "var(--ink-mute)",
-                      background: "transparent",
-                      border: "none",
-                    }}
-                  >
-                    {m.cargo_markbox ?? "—"}
-                  </td>
-                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                    {m.is_academy_member ? (
-                      <Badge tone="success" size="sm">
-                        Alumno
-                      </Badge>
-                    ) : (
-                      <span style={{ font: "500 12px/1 var(--f-sans)", color: "var(--ink-mute)" }}>
-                        —
-                      </span>
-                    )}
-                  </td>
-                  <td
-                    style={{
-                      padding: "10px 14px",
-                      font: "500 12px/1 var(--f-sans)",
-                      color: "var(--ink-soft)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {fmtDate(m.joined_at)}
-                  </td>
-                  <td style={{ padding: "10px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
-                    <button
-                      type="button"
-                      className="studio-btn studio-btn-ghost studio-btn-xs"
-                      onClick={() => setEditing(m)}
-                    >
-                      Editar
-                    </button>{" "}
-                    <button
-                      type="button"
-                      className="studio-btn studio-btn-danger studio-btn-xs"
-                      onClick={() => setToDelete(m)}
-                    >
-                      Baja
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+          Donde aprender se vuelve hacer, en grupo. Miembros del Club (Slice A) y
+          compras grupales que juntan volumen para bajar el costo por CBM (Slice B).
+        </p>
+      </div>
 
-      {showNew && <ClubMemberDrawer onClose={() => setShowNew(false)} />}
-      {editing && (
-        <ClubMemberDrawer member={editing} onClose={() => setEditing(null)} />
-      )}
+      {/* Tabs */}
+      <div
+        role="tablist"
+        aria-label="Vistas del Club"
+        onKeyDown={onTabKeyDown}
+        style={{
+          display: "flex",
+          gap: 4,
+          marginBottom: 18,
+          borderBottom: "1px solid var(--border)",
+        }}
+      >
+        {TABS.map((tDef) => {
+          const active = tab === tDef.value;
+          return (
+            <button
+              key={tDef.value}
+              type="button"
+              role="tab"
+              id={`club-tab-${tDef.value}`}
+              aria-selected={active}
+              aria-controls={`club-panel-${tDef.value}`}
+              tabIndex={active ? 0 : -1}
+              onClick={() => setTab(tDef.value)}
+              style={{
+                padding: "10px 16px",
+                background: "transparent",
+                border: "none",
+                borderBottom: active ? "2px solid var(--wine)" : "2px solid transparent",
+                color: active ? "var(--ink)" : "var(--ink-soft)",
+                font: active ? "700 13px/1 var(--f-sans)" : "500 13px/1 var(--f-sans)",
+                cursor: "pointer",
+                marginBottom: -1,
+              }}
+            >
+              {tDef.label}
+            </button>
+          );
+        })}
+      </div>
 
-      <ConfirmDialog
-        open={!!toDelete}
-        title="Dar de baja al miembro"
-        message={
-          toDelete
-            ? `¿Dar de baja a ${toDelete.person_name} del Club? La persona y su identidad se conservan; solo se cierra la membresía.`
-            : ""
-        }
-        confirmLabel="Dar de baja"
-        danger
-        pending={deleting}
-        onCancel={() => setToDelete(null)}
-        onConfirm={handleDelete}
-      />
+      <div role="tabpanel" id={`club-panel-${tab}`} aria-labelledby={`club-tab-${tab}`}>
+        {tab === "miembros" ? (
+          <MembersView stats={stats} members={members} />
+        ) : (
+          <GroupBuysView
+            stats={gbStats}
+            groupBuys={groupBuys}
+            eligibleMembers={eligibleMembers}
+          />
+        )}
+      </div>
     </div>
   );
 }
