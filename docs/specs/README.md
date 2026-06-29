@@ -34,7 +34,7 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 ```
 
 <!-- AUTO-INDEX:START (generado por scripts/build-docs-index.mjs · no editar a mano) -->
-### Índice de specs (generado · 112 specs)
+### Índice de specs (generado · 113 specs)
 
 | # | Spec | Estado | Conf. |
 |---|---|---|---|
@@ -148,8 +148,9 @@ feat(DTD-0001): scaffold inicial Next.js + branding
 | 0113 | Onboarding y app self-service del empleado — invites + regist… | done | interno |
 | 0114 | Dashboard configurable + persistencia de preferencias por usu… | draft | interno |
 | 0115 | Financiero China Slice C — forex como revenue · claim offsets… | done | confidencial |
-| 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | draft | interno |
+| 0116 | Club DTD — membresía recurrente + compra grupal (consolidació… | in-progress | interno |
 | 0117 | Recibo y finiquito en PDF server-side (@react-pdf/renderer) —… | done | interno |
+| 0118 | Seed migrations idempotentes — habilitar validación en branch… | draft | interno |
 
 > **Huecos en el correlativo:** 0022, 0023, 0027, 0028, 0037, 0112 — código sin spec o renumerado, auditar caso por caso.
 <!-- AUTO-INDEX:END -->
