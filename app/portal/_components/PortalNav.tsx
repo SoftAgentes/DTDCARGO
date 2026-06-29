@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 
 /**
  * Navegación del portal autenticado (client — estado activo por `usePathname`).
- * Inicio · Mis envíos · Compras · Finanzas · Documentos · Referidos · Academia · Mensajes · Cuenta.
+ * Inicio · Mis envíos · Compras · Finanzas · Documentos · Referidos · Academia · Club · Mensajes · Cuenta.
  * Etiquetas cortas para que entren en mobile sin romper el header de 68px.
  * "Compras" (SDD-0057) cubre Tus proveedores + Mis compras. "Finanzas" (founder
  * 2026-06-20) es el hub que agrupa Estimados + Facturas + Cotizaciones (las dos
@@ -61,6 +61,11 @@ const LINKS: {
     href: "/portal/academia",
     label: "Academia",
     match: (p) => p.startsWith("/portal/academia"),
+  },
+  {
+    href: "/portal/club",
+    label: "Club",
+    match: (p) => p.startsWith("/portal/club"),
   },
   {
     href: "/portal/mensajes",
