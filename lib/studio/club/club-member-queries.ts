@@ -40,7 +40,10 @@ export async function listClubMembers(supabase: SupabaseClient): Promise<ClubMem
       .from("clients")
       .select("person_id, markbox")
       .in("person_id", personIds)
-      .is("deleted_at", null),
+      .is("deleted_at", null)
+      // Orden determinista: el markbox "primero" = el perfil de carga más antiguo
+      // (una persona puede tener >1 perfil de carga).
+      .order("created_at", { ascending: true }),
     supabase
       .from("academy_enrollments")
       .select("person_id")
@@ -57,7 +60,7 @@ export async function listClubMembers(supabase: SupabaseClient): Promise<ClubMem
     personById.set(p.id, { name: p.name, national_id: p.national_id });
   }
 
-  // Primer markbox por persona (orden de inserción de la query).
+  // Primer markbox por persona (más antiguo, por el order de la query).
   const markboxByPerson = new Map<string, string>();
   for (const c of (clientsRes.data ?? []) as { person_id: string | null; markbox: string }[]) {
     if (c.person_id && !markboxByPerson.has(c.person_id)) {
